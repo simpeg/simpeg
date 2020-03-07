@@ -1,10 +1,8 @@
 import numpy as np
-import scipy.sparse as sp
 import properties
-import warnings
 
 from ...survey import BaseSurvey, BaseRx
-from ... import utils
+from ...utils.code_utils import deprecate_property
 
 
 class Survey(BaseSurvey):
@@ -43,18 +41,4 @@ class Survey(BaseSurvey):
             cnt += rx.nD
         return np.sum(dd_du, axis=0), np.sum(dd_dm, axis=0)
 
-    @property
-    def rxList(self):
-        warnings.warn(
-            "source.rxList will be deprecaited and replaced with "
-            "source.receiver_list. Please update your code accordingly"
-        )
-        return self.receiver_list
-
-    @rxList.setter
-    def rxList(self, value):
-        warnings.warn(
-            "source.rxList will be deprecaited and replaced with "
-            "source.receiver_list. Please update your code accordingly"
-        )
-        self.receiver_list = value
+    rxList = deprecate_property(receiver_list, 'rxList', removal_version='0.15.0')

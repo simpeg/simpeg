@@ -3,9 +3,11 @@
 Receivers for the NSEM problem
 
 """
+from ...utils.code_utils import deprecate_class
 
 import numpy as np
 from scipy.constants import mu_0
+import properties
 
 from ...utils import sdiag, mkvc
 from ...survey import BaseRx
@@ -22,10 +24,14 @@ class BaseRxNSEM_Point(BaseRx):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
-        assert(orientation in ['xx', 'xy', 'yx', 'yy', 'zx', 'zy']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
-        assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
+    component = properties.StringChoice(
+        "component of the field (real or imag)", {
+            "real": ["re", "in-phase", "in phase"],
+            "imag": ["imaginary", "im", "out-of-phase", "out of phase"]
+        }
+    )
 
+    def __init__(self, locs, orientation=None, component=None):
         self.orientation = orientation
         self.component = component
 
@@ -60,17 +66,17 @@ class BaseRxNSEM_Point(BaseRx):
         self._f = value
 
     def _locs_e(self):
-        if self.locs.ndim == 3:
-            loc = self.locs[:, :, 0]
+        if self.locations.ndim == 3:
+            loc = self.locations[:, :, 0]
         else:
-            loc = self.locs
+            loc = self.locations
         return loc
 
     def _locs_b(self):
-        if self.locs.ndim == 3:
-            loc = self.locs[:, :, 1]
+        if self.locations.ndim == 3:
+            loc = self.locations[:, :, 1]
         else:
-            loc = self.locs
+            loc = self.locations
         return loc
 
     # Location projection
@@ -328,18 +334,23 @@ class BaseRxNSEM_Point(BaseRx):
         raise NotImplementedError('SimPEG.EM.NSEM receiver has to have an evalDeriv method')
 
 
-class Point_impedance1D(BaseRx):
+class Point1DImpedance(BaseRx):
     """
     Natural source 1D impedance receiver class
 
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
+    component = properties.StringChoice(
+        "component of the field (real or imag)", {
+            "real": ["re", "in-phase", "in phase"],
+            "imag": ["imaginary", "im", "out-of-phase", "out of phase"]
+        }
+    )
+
     orientation = 'yx'
 
-    def __init__(self, locs, component=None):
-        assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
-
+    def __init__(self, locs, component='real'):
         self.component = component
         BaseRx.__init__(self, locs)
 
@@ -377,13 +388,13 @@ class Point_impedance1D(BaseRx):
     @property
     def Pex(self):
         if getattr(self, '_Pex', None) is None:
-            self._Pex = self._mesh.getInterpolationMat(self.locs[:, -1], 'Fx')
+            self._Pex = self._mesh.getInterpolationMat(self.locations[:, -1], 'Fx')
         return self._Pex
 
     @property
     def Pbx(self):
         if getattr(self, '_Pbx', None) is None:
-            self._Pbx = self._mesh.getInterpolationMat(self.locs[:, -1], 'Ex')
+            self._Pbx = self._mesh.getInterpolationMat(self.locations[:, -1], 'Ex')
         return self._Pbx
 
     @property
@@ -469,7 +480,7 @@ class Point_impedance1D(BaseRx):
         return rx_deriv_component
 
 
-class Point_impedance3D(BaseRxNSEM_Point):
+class Point3DImpedance(BaseRxNSEM_Point):
     """
     Natural source 3D impedance receiver class
 
@@ -478,9 +489,14 @@ class Point_impedance3D(BaseRxNSEM_Point):
     :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, component=None):
+    orientation = properties.StringChoice(
+        "orientation of the receiver. Must currently be 'xx', 'xy', 'yx', 'yy'",
+        ["xx", "xy", "yx", "yy"]
+    )
 
-        BaseRxNSEM_Point.__init__(self, locs, orientation=orientation, component=component)
+    def __init__(self, locs, orientation='xy', component='real'):
+
+        super().__init__(locs, orientation=orientation, component=component)
 
     def eval(self, src, mesh, f, return_complex=False):
         '''
@@ -629,7 +645,7 @@ class Point_impedance3D(BaseRxNSEM_Point):
         return rx_deriv_component
 
 
-class Point_tipper3D(BaseRxNSEM_Point):
+class Point3DTipper(BaseRxNSEM_Point):
     """
     Natural source 3D tipper receiver base class
 
@@ -637,12 +653,14 @@ class Point_tipper3D(BaseRxNSEM_Point):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     :param string component: real or imaginary component 'real' or 'imag'
     """
+    orientation = properties.StringChoice(
+        "orientation of the receiver. Must currently be 'zx', 'zy'",
+        ["zx", "zy"]
+    )
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, locs, orientation='zx', component='real'):
 
-        BaseRxNSEM_Point.__init__(
-            self, locs, orientation=orientation, component=component
-        )
+        super().__init__(locs, orientation=orientation, component=component)
 
     def eval(self, src, mesh, f, return_complex=False):
         '''
@@ -752,3 +770,22 @@ class Point_tipper3D(BaseRxNSEM_Point):
             )
 
         return rx_deriv_component
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Point_impedance1D(Point1DImpedance):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_impedance3D(Point3DImpedance):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Point_tipper3D(Point3DTipper):
+    pass

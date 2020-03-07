@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.special import kn
+from ....utils.code_utils import deprecate_class
 import properties
 
 from .... import props
@@ -7,16 +8,16 @@ from .... import maps
 from ....utils import sdiag
 
 from ..resistivity.fields_2d import (
-    Fields_ky, Fields_ky_CC, Fields_ky_N
+    Fields2D, Fields2DCellCentered, Fields2DNodal
 )
-from ..induced_polarization.simulation_2d import BaseIPSimulation_2D
-from ..induced_polarization import Problem2D_N as BaseProblem2D_N
-from ..induced_polarization import Problem2D_CC as BaseProblem2D_CC
+from ..induced_polarization.simulation_2d import BaseIPSimulation2D
+from ..induced_polarization import Simulation2DNodal as BaseSimulation2DNodal
+from ..induced_polarization import Simulation2DCellCentered as BaseSimulation2DCellCentered
 from .survey import Survey
 from .simulation import BaseSIPSimulation
 
 
-class BaseSIPSimulation_2D(BaseIPSimulation_2D, BaseSIPSimulation):
+class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
 
 
     eta, etaMap, etaDeriv = props.Invertible(
@@ -44,7 +45,7 @@ class BaseSIPSimulation_2D(BaseIPSimulation_2D, BaseSIPSimulation):
     )
 
     # surveyPair = Survey
-    fieldsPair = Fields_ky
+    fieldsPair = Fields2D
     _f = None
     _Jmatrix = None
     actinds = None
@@ -405,43 +406,62 @@ class BaseSIPSimulation_2D(BaseIPSimulation_2D, BaseSIPSimulation):
         ]
         return toDelete
 
-class Problem2D_CC(BaseSIPSimulation_2D, BaseProblem2D_CC):
+
+class Simulation2DCellCentered(BaseSIPSimulation2D, BaseSimulation2DCellCentered):
     """
     2.5D cell centered Spectral IP problem
     """
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_CC
+    fieldsPair = Fields2DCellCentered
     sign = 1.
     bc_type = "Mixed"
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPSimulation_2D.__init__(self, mesh, **kwargs)
+        BaseSIPSimulation2D.__init__(self, mesh, **kwargs)
         if self.actinds is None:
-            print("You did not put Active indices")
-            print("So, set actMap = IdentityMap(mesh)")
+            if self.verbose:
+                print("You did not put Active indices")
+                print("So, set actMap = IdentityMap(mesh)")
             self.actinds = np.ones(mesh.nC, dtype=bool)
 
         self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
 
 
-class Problem2D_N(BaseSIPSimulation_2D, BaseProblem2D_N):
+class Simulation2DNodal(BaseSIPSimulation2D, BaseSimulation2DNodal):
     """
     2.5D nodal Spectral IP problem
     """
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_N
+    fieldsPair = Fields2DNodal
     sign = -1.
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPSimulation_2D.__init__(self, mesh, **kwargs)
+        BaseSIPSimulation2D.__init__(self, mesh, **kwargs)
         # self.setBC()
         if self.actinds is None:
-            print("You did not put Active indices")
-            print("So, set actMap = IdentityMap(mesh)")
+            if self.verbose:
+                print("You did not put Active indices")
+                print("So, set actMap = IdentityMap(mesh)")
             self.actinds = np.ones(mesh.nC, dtype=bool)
 
         self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
+
+
+Simulation2DCellCentred = Simulation2DCellCentered
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Problem2D_N(Simulation2DNodal):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem2D_CC(Simulation2DCellCentered):
+    pass

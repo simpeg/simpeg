@@ -41,12 +41,12 @@ class MagFwdProblemTests(unittest.TestCase):
         self.xr = xr
         self.yr = yr
         self.rxLoc = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
-        receivers = mag.point_receiver(self.rxLoc, components=components)
+        receivers = mag.Point(self.rxLoc, components=components)
         srcField = mag.SourceField([receivers], parameters=H0)
 
         self.survey = mag.MagneticSurvey(srcField)
 
-        self.sim = mag.simulation.DifferentialEquationSimulation(
+        self.sim = mag.simulation.Simulation3DDifferential(
             M,
             survey=self.survey,
             muMap=maps.ChiMap(M),

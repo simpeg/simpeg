@@ -168,10 +168,10 @@ model_map = maps.IdentityMap(mesh)*maps.ExpMap()
 # Define the Physics
 # ------------------
 #
-# Here we define the physics of the problem using the DCSimulation_1D class.
+# Here we define the physics of the problem using the Simulation1DLayers class.
 #
 
-simulation = dc.simulation_1d.DCSimulation_1D(
+simulation = dc.simulation_1d.Simulation1DLayers(
         mesh, survey=survey, rhoMap=model_map, t=layer_thicknesses,
         data_type="apparent_resistivity"
         )

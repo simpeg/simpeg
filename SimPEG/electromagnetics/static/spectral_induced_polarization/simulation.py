@@ -1,6 +1,8 @@
 import numpy as np
 import sys
 import gc
+import warnings
+from ....utils.code_utils import deprecate_class
 import properties
 
 from .... import props
@@ -9,9 +11,9 @@ from .data import Data
 from ....utils import sdiag
 
 from ...base import BaseEMSimulation
-from ..resistivity.fields import FieldsDC, Fields_CC, Fields_N
-from ..induced_polarization import Problem3D_CC as BaseProblem3D_CC
-from ..induced_polarization import Problem3D_N as BaseProblem3D_N
+from ..resistivity.fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
+from ..induced_polarization import Simulation3DCellCentered as BaseSimulation3DCellCentered
+from ..induced_polarization import Simulation3DNodal as BaseSimulation3DNodal
 from .survey import Survey
 
 
@@ -700,11 +702,11 @@ class BaseSIPSimulation(BaseEMSimulation):
                 )
 
 
-class Problem3D_CC(BaseSIPSimulation, BaseProblem3D_CC):
+class Simulation3DCellCentered(BaseSIPSimulation, BaseSimulation3DCellCentered):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_CC
+    fieldsPair = Fields3DCellCentered
     sign = 1.
     bc_type = 'Neumann'
 
@@ -721,11 +723,11 @@ class Problem3D_CC(BaseSIPSimulation, BaseProblem3D_CC):
             self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
 
 
-class Problem3D_N(BaseSIPSimulation, BaseProblem3D_N):
+class Simulation3DNodal(BaseSIPSimulation, BaseSimulation3DNodal):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces
-    fieldsPair = Fields_N
+    fieldsPair = Fields3DNodal
     sign = -1.
 
     def __init__(self, mesh, **kwargs):
@@ -739,3 +741,20 @@ class Problem3D_N(BaseSIPSimulation, BaseProblem3D_N):
                 self.actinds = np.ones(mesh.nC, dtype=bool)
 
             self.actMap = maps.InjectActiveCells(mesh, self.actinds, 0.)
+
+
+Simulation3DCellCentred = Simulation3DCellCentered
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_N(Simulation3DNodal):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_CC(Simulation3DCellCentered):
+    pass

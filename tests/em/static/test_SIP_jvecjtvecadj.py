@@ -1,6 +1,5 @@
 from __future__ import print_function
 import unittest
-import properties
 import discretize
 from SimPEG import (
     utils, maps, data_misfit, regularization, optimization, inversion,
@@ -48,10 +47,15 @@ class SIPProblemTestsCC(unittest.TestCase):
 
         times = np.arange(10)*1e-3 + 1e-3
         rx = sip.receivers.Dipole(M, N, times)
+        print(rx.nD)
+        print(rx.locations)
         src = sip.sources.Dipole([rx], Aloc, Bloc)
         survey = sip.Survey([src])
+        print(f'Survey ND = {survey.nD}')
+        print(f'Survey ND = {src.nD}')
+
         wires = maps.Wires(('eta', mesh.nC), ('taui', mesh.nC))
-        problem = sip.Problem3D_CC(
+        problem = sip.Simulation3DCellCentered(
             mesh,
             rho=1./sigma,
             etaMap=wires.eta,
@@ -62,7 +66,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         problem.pair(survey)
         mSynth = np.r_[eta, 1./tau]
         problem.model = mSynth
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.Tikhonov(mesh)
@@ -147,20 +151,26 @@ class SIPProblemTestsN(unittest.TestCase):
 
         times = np.arange(10)*1e-3 + 1e-3
         rx = sip.receivers.Pole(M, times)
+        print('nodal1', rx.nD)
+        print(rx.locations.shape)
         src = sip.sources.Dipole([rx], Aloc, Bloc)
         survey = sip.Survey([src])
+        print('nodal2', survey.nD)
         wires = maps.Wires(('eta', mesh.nC), ('taui', mesh.nC))
-        problem = sip.Problem3D_N(
+        problem = sip.Simulation3DNodal(
             mesh,
             sigma=sigma,
             etaMap=wires.eta,
             tauiMap=wires.taui,
             storeJ = False,
         )
+        print(survey.nD)
         problem.Solver = Solver
         problem.pair(survey)
         mSynth = np.r_[eta, 1./tau]
-        dobs = problem.make_synthetic_data(mSynth)
+        print(survey.nD)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        print(survey.nD)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.Tikhonov(mesh)
@@ -211,7 +221,8 @@ class SIPProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
 
-class IPProblemTestsN_air(unittest.TestCase):
+
+class SIPProblemTestsN_air(unittest.TestCase):
 
     def setUp(self):
 
@@ -255,7 +266,7 @@ class IPProblemTestsN_air(unittest.TestCase):
         survey = sip.Survey([src])
 
         wires = maps.Wires(('eta', actmapeta.nP), ('taui', actmaptau.nP), ('c', actmapc.nP))
-        problem = sip.Problem3D_N(
+        problem = sip.Simulation3DNodal(
             mesh,
             sigma=sigma,
             etaMap=actmapeta*wires.eta,
@@ -269,7 +280,7 @@ class IPProblemTestsN_air(unittest.TestCase):
         problem.Solver = Solver
         problem.pair(survey)
         mSynth = np.r_[eta[~airind], 1./tau[~airind], c[~airind]]
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg_eta = regularization.Sparse(mesh, mapping=wires.eta, indActive=~airind)
@@ -322,6 +333,7 @@ class IPProblemTestsN_air(unittest.TestCase):
             num=3
         )
         self.assertTrue(passed)
+
 
 if __name__ == '__main__':
     unittest.main()

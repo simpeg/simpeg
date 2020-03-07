@@ -3,6 +3,7 @@ import scipy.sparse as sp
 from scipy.constants import mu_0
 import time
 import properties
+from ...utils.code_utils import deprecate_class
 
 from ...data import Data
 from ...simulation import BaseTimeSimulation
@@ -10,8 +11,8 @@ from ...utils import mkvc, sdiag, speye, Zero
 from ..base import BaseEMSimulation
 from .survey import Survey
 from .fields import (
-    Fields3D_b, Fields3D_e, Fields3D_h, Fields3D_j,
-    Fields_Derivs_eb, Fields_Derivs_hj
+    Fields3DMagneticFluxDensity, Fields3DElectricField, Fields3DMagneticField, Fields3DCurrentDensity,
+    FieldsDerivativesEB, FieldsDerivativesHJ
 )
 
 
@@ -450,9 +451,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 #                                                                             #
 ###############################################################################
 
-# ------------------------------- Problem3D_b ------------------------------- #
+# ------------------------------- Simulation3DMagneticFluxDensity ------------------------------- #
 
-class Problem3D_b(BaseTDEMSimulation):
+class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
     """
     Starting from the quasi-static E-B formulation of Maxwell's equations
     (semi-discretized)
@@ -518,8 +519,8 @@ class Problem3D_b(BaseTDEMSimulation):
 
     _fieldType = 'b'
     _formulation = 'EB'
-    fieldsPair = Fields3D_b  #: A SimPEG.EM.TDEM.Fields3D_b object
-    Fields_Derivs = Fields_Derivs_eb
+    fieldsPair = Fields3DMagneticFluxDensity  #: A SimPEG.EM.TDEM.Fields3DMagneticFluxDensity object
+    Fields_Derivs = FieldsDerivativesEB
 
     def getAdiag(self, tInd):
         """
@@ -642,8 +643,8 @@ class Problem3D_b(BaseTDEMSimulation):
         return RHSDeriv
 
 
-# ------------------------------- Problem3D_e ------------------------------- #
-class Problem3D_e(BaseTDEMSimulation):
+# ------------------------------- Simulation3DElectricField ------------------------------- #
+class Simulation3DElectricField(BaseTDEMSimulation):
     """
         Solve the EB-formulation of Maxwell's equations for the electric field, e.
 
@@ -681,8 +682,8 @@ class Problem3D_e(BaseTDEMSimulation):
 
     _fieldType = 'e'
     _formulation = 'EB'
-    fieldsPair = Fields3D_e  #: A Fields3D_e
-    Fields_Derivs = Fields_Derivs_eb
+    fieldsPair = Fields3DElectricField  #: A Fields3DElectricField
+    Fields_Derivs = FieldsDerivativesEB
 
     # @profile
     def Jtvec(self, m, v, f=None):
@@ -944,9 +945,9 @@ class Problem3D_e(BaseTDEMSimulation):
 #                                                                             #
 ###############################################################################
 
-# ------------------------------- Problem3D_h ------------------------------- #
+# ------------------------------- Simulation3DMagneticField ------------------------------- #
 
-class Problem3D_h(BaseTDEMSimulation):
+class Simulation3DMagneticField(BaseTDEMSimulation):
     """
     Solve the H-J formulation of Maxwell's equations for the magnetic field h.
 
@@ -977,8 +978,8 @@ class Problem3D_h(BaseTDEMSimulation):
 
     _fieldType = 'h'
     _formulation = 'HJ'
-    fieldsPair = Fields3D_h  #: Fields object pair
-    Fields_Derivs = Fields_Derivs_hj
+    fieldsPair = Fields3DMagneticField  #: Fields object pair
+    Fields_Derivs = FieldsDerivativesHJ
 
     def getAdiag(self, tInd):
         """
@@ -1051,9 +1052,9 @@ class Problem3D_h(BaseTDEMSimulation):
             return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
         return D * self.MfRhoIDeriv(G * u, v)
 
-# ------------------------------- Problem3D_j ------------------------------- #
+# ------------------------------- Simulation3DCurrentDensity ------------------------------- #
 
-class Problem3D_j(BaseTDEMSimulation):
+class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
     """
     Solve the H-J formulation for current density
@@ -1065,8 +1066,8 @@ class Problem3D_j(BaseTDEMSimulation):
 
     _fieldType = 'j'
     _formulation = 'HJ'
-    fieldsPair = Fields3D_j  #: Fields object pair
-    Fields_Derivs = Fields_Derivs_hj
+    fieldsPair = Fields3DCurrentDensity  #: Fields object pair
+    Fields_Derivs = FieldsDerivativesHJ
 
     def getAdiag(self, tInd):
         """
@@ -1155,3 +1156,25 @@ class Problem3D_j(BaseTDEMSimulation):
         return D * self.MfRhoIDeriv(G * u, v)
 
 
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_e(Simulation3DElectricField):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_b(Simulation3DMagneticFluxDensity):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_h(Simulation3DMagneticField):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_j(Simulation3DCurrentDensity):
+    pass

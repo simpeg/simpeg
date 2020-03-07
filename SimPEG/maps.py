@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+from .utils.code_utils import deprecate_class
 
 from six import integer_types
 from six import string_types
@@ -1235,10 +1236,11 @@ class Weighting(IdentityMap):
     def __init__(self, mesh=None, nP=None, weights=None, **kwargs):
 
         if 'nC' in kwargs:
-            raise AttributeError(
+            warnings.warn(
                 '`nC` is deprecated. Use `nP` to set the number of model '
-                'parameters'
-            )
+                'parameters, This option will be removed in version 0.15.0 of SimPEG',
+                DeprecationWarning)
+            nP = nC
 
         super(Weighting, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
@@ -2020,93 +2022,6 @@ class ParametricSplineMap(IdentityMap):
         if v is not None:
             return sp.csr_matrix(np.c_[g1, g2, g3]) * v
         return sp.csr_matrix(np.c_[g1, g2, g3])
-
-
-###############################################################################
-#                                                                             #
-#                              Depreciated Maps                               #
-#                                                                             #
-###############################################################################
-
-
-class FullMap(SurjectFull):
-    """FullMap is deprecated. Use SurjectVertical1DMap instead"""
-    def __init__(self, mesh, **kwargs):
-        warnings.warn(
-            "`FullMap` is deprecated and will be removed in future versions."
-            " Use `SurjectFull` instead",
-            FutureWarning)
-        SurjectFull.__init__(self, mesh, **kwargs)
-
-
-class Vertical1DMap(SurjectVertical1D):
-    """Vertical1DMap is deprecated. Use SurjectVertical1D instead"""
-    def __init__(self, mesh, **kwargs):
-        warnings.warn(
-            "`Vertical1DMap` is deprecated and will be removed in future"
-            " versions. Use `SurjectVertical1D` instead",
-            FutureWarning)
-        SurjectVertical1D.__init__(self, mesh, **kwargs)
-
-
-class Map2Dto3D(Surject2Dto3D):
-    """Map2Dto3D is deprecated. Use Surject2Dto3D instead"""
-
-    def __init__(self, mesh, **kwargs):
-        warnings.warn(
-            "`Map2Dto3D` is deprecated and will be removed in future versions."
-            " Use `Surject2Dto3D` instead",
-            FutureWarning)
-        Surject2Dto3D.__init__(self, mesh, **kwargs)
-
-
-class ActiveCells(InjectActiveCells):
-    """ActiveCells is deprecated. Use InjectActiveCells instead"""
-
-    def __init__(self, mesh, indActive, valInactive, nC=None):
-        warnings.warn(
-            "`ActiveCells` is deprecated and will be removed in future "
-            "versions. Use `InjectActiveCells` instead",
-            FutureWarning)
-        InjectActiveCells.__init__(self, mesh, indActive, valInactive, nC)
-
-
-class CircleMap(ParametricCircleMap):
-    """CircleMap is deprecated. Use ParametricCircleMap instead"""
-
-    def __init__(self, mesh, logSigma=True):
-        warnings.warn(
-            "`CircleMap` is deprecated and will be removed in future "
-            "versions. Use `ParametricCircleMap` instead",
-            FutureWarning)
-        ParametricCircleMap.__init__(self, mesh, logSigma)
-
-
-class PolyMap(ParametricPolyMap):
-    """PolyMap is deprecated. Use ParametricSplineMap instead"""
-
-    def __init__(self, mesh, order, logSigma=True, normal='X', actInd=None):
-        warnings.warn(
-            "`PolyMap` is deprecated and will be removed in future "
-            "versions. Use `ParametricSplineMap` instead",
-            FutureWarning
-        )
-        ParametricPolyMap(self, mesh, order, logSigma, normal, actInd)
-
-
-class SplineMap(ParametricSplineMap):
-    """SplineMap is deprecated. Use ParametricSplineMap instead"""
-
-    def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True,
-                 normal='X'):
-        warnings.warn(
-            "`SplineMap` is deprecated and will be removed in future "
-            "versions. Use `ParametricSplineMap` instead",
-            FutureWarning
-        )
-        ParametricSplineMap.__init__(
-            self, mesh, pts, ptsv, order, logSigma, normal
-        )
 
 
 class BaseParametric(IdentityMap):
@@ -3481,3 +3396,44 @@ class TileMap(IdentityMap):
         if v is not None:
             return self.P * v
         return self.P
+
+
+###############################################################################
+#                                                                             #
+#                              Deprecated Maps                               #
+#                                                                             #
+###############################################################################
+
+@deprecate_class(removal_version='0.15.0')
+class FullMap(SurjectFull):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Vertical1DMap(SurjectVertical1D):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Map2Dto3D(Surject2Dto3D):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class ActiveCells(InjectActiveCells):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class CircleMap(ParametricCircleMap):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class PolyMap(ParametricPolyMap):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class SplineMap(ParametricSplineMap):
+    pass

@@ -1,7 +1,4 @@
-import warnings
-warnings.warn(
-    'CounterUtils has been deprecated, please use counter_utils',
-    DeprecationWarning
-)
+from .code_utils import deprecate_module
+deprecate_module('CounterUtils', 'counter_utils', '0.15.0')
 
 from .counter_utils import *

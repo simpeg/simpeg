@@ -1,7 +1,4 @@
-import warnings
-warnings.warn(
-    'MT1Dsolutions has been deprecated, please use solutions_1d',
-    DeprecationWarning
-)
+from ....utils.code_utils import deprecate_module
+deprecate_module('MT1Dsolutions', 'solutions_1d', '0.15.0')
 
 from .solutions_1d import *

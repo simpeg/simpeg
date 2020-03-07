@@ -44,10 +44,10 @@ class StepOff(properties.HasProperties):
 
         t0 = self.t0
 
-        if fieldType is "dbdt":
+        if fieldType == "dbdt":
             mu0 = 4*np.pi*1e-7
             eta = -mu0/(times-t0)
-        elif fieldType is "dhdt":
+        elif fieldType == "dhdt":
             eta = -1/(times-t0)
 
         return eta
@@ -96,13 +96,13 @@ class StepOff(properties.HasProperties):
         tau1 = np.kron(np.reshape(tau1, newshape=(nC, 1)), np.ones((1, nT)))
         tau2 = np.kron(np.reshape(tau2, newshape=(nC, 1)), np.ones((1, nT)))
 
-        if fieldType is "h":
+        if fieldType == "h":
             eta = (
                 0.5*(1-np.sign(times-t0))*chi0 +
                 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
                 (spec.expi(-(times-t0)/tau2) - spec.expi(-(times-t0)/tau1))
             )
-        elif fieldType is "b":
+        elif fieldType == "b":
             mu0 = 4*np.pi*1e-7
             eta = (
                 0.5*(1-np.sign(times-t0))*chi0 +
@@ -110,12 +110,12 @@ class StepOff(properties.HasProperties):
                 (spec.expi(-(times-t0)/tau2) - spec.expi(-(times-t0)/tau1))
             )
             eta = mu0*eta
-        elif fieldType is "dhdt":
+        elif fieldType == "dhdt":
             eta = (
                 0. + 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
                 (np.exp(-(times-t0)/tau1)-np.exp(-(times-t0)/tau2))/(times-t0)
             )
-        elif fieldType is "dbdt":
+        elif fieldType == "dbdt":
             mu0 = 4*np.pi*1e-7
             eta = (
                 0. + 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
@@ -174,13 +174,13 @@ class SquarePulse(properties.HasProperties):
         delt = self.delt
         mu0 = 4*np.pi*1e-7
 
-        if fieldType is "h":
+        if fieldType == "h":
             eta = np.log(1 + delt/(times-t0))
-        elif fieldType is "b":
+        elif fieldType == "b":
             eta = mu0*np.log(1 + delt/(times-t0))
-        elif fieldType is "dhdt":
+        elif fieldType == "dhdt":
             eta = -(1/(times-t0) - 1/(times-t0+delt))
-        elif fieldType is "dbdt":
+        elif fieldType == "dbdt":
             eta = -mu0*(1/(times-t0) - 1/(times-t0+delt))
 
         return eta
@@ -233,7 +233,7 @@ class SquarePulse(properties.HasProperties):
         tau1 = np.kron(np.reshape(tau1, newshape=(nC, 1)), np.ones((1, nT)))
         tau2 = np.kron(np.reshape(tau2, newshape=(nC, 1)), np.ones((1, nT)))
 
-        if fieldType is "h":
+        if fieldType == "h":
             eta = (
                 (np.sign(times-t0+delt) - np.sign(times-t0))*(chi0 - dchi) -
                 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
@@ -242,7 +242,7 @@ class SquarePulse(properties.HasProperties):
                     spec.expi(-(times-t0+delt)/tau2) +
                     spec.expi(-(times-t0+delt)/tau1))
             )
-        elif fieldType is "b":
+        elif fieldType == "b":
             mu0 = 4*np.pi*1e-7
             eta = (
                 (np.sign(times-t0+delt) - np.sign(times-t0))*(chi0 - dchi) -
@@ -253,14 +253,14 @@ class SquarePulse(properties.HasProperties):
                     spec.expi(-(times-t0+delt)/tau1))
             )
             eta = mu0*eta
-        elif fieldType is "dhdt":
+        elif fieldType == "dhdt":
             eta = (
                 0. + 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *
                 (np.exp(-(times-t0)/tau1) - np.exp(-(times-t0)/tau2))/(times-t0) -
                 0.5*(1+np.sign(times-t0+delt))*(dchi/np.log(tau2/tau1)) *
                 (np.exp(-(times-t0+delt)/tau1) - np.exp(-(times-t0+delt)/tau2))/(times-t0+delt)
             )
-        elif fieldType is "dbdt":
+        elif fieldType == "dbdt":
             mu0 = 4*np.pi*1e-7
             eta = (
                 0. + 0.5*(1+np.sign(times-t0))*(dchi/np.log(tau2/tau1)) *

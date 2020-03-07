@@ -177,11 +177,11 @@ def run(plotIt=True):
     # Define the receivers, we will sample the real secondary magnetic flux
     # density as well as the imaginary magnetic flux density
 
-    bz_r = FDEM.Rx.Point_bSecondary(
-        locs=rx_loc, orientation='z', component='real'
+    bz_r = FDEM.Rx.PointMagneticFluxDensitySecondary(
+        locations=rx_loc, orientation='z', component='real'
     )  # vertical real b-secondary
-    bz_i = FDEM.Rx.Point_b(
-        locs=rx_loc, orientation='z', component='imag'
+    bz_i = FDEM.Rx.PointMagneticFluxDensity(
+        locations=rx_loc, orientation='z', component='imag'
     )  # vertical imag b (same as b-secondary)
 
     rxList = [bz_r, bz_i]  # list of receivers
@@ -218,7 +218,7 @@ def run(plotIt=True):
     # define a problem - the statement of which discrete pde system we want to
     # solve
     survey = FDEM.Survey(srcList)
-    prob = FDEM.Problem3D_e(
+    prob = FDEM.Simulation3DElectricField(
         mesh,
         survey=survey,
         solver=Solver,

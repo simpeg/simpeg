@@ -37,7 +37,7 @@ class FDEM_analyticTests(unittest.TestCase):
 
         x = np.linspace(-10, 10, 5)
         XYZ = utils.ndgrid(x, np.r_[0], np.r_[0])
-        rxList = fdem.Rx.Point_e(XYZ, orientation='x', component='imag')
+        rxList = fdem.Rx.PointElectricField(XYZ, orientation='x', component='imag')
         SrcList = [
             fdem.Src.MagDipole(
                 [rxList], location=np.r_[0., 0., 0.],
@@ -59,7 +59,7 @@ class FDEM_analyticTests(unittest.TestCase):
         sigma = np.ones(mesh.nC)*sig
         sigma[mesh.gridCC[:, 2] > 0] = 1e-8
 
-        prb = fdem.Problem3D_b(mesh, sigma=sigma)
+        prb = fdem.Simulation3DMagneticFluxDensity(mesh, sigma=sigma)
         prb.pair(survey)
 
         try:
@@ -79,7 +79,7 @@ class FDEM_analyticTests(unittest.TestCase):
 
     def test_Transect(self, plotIt=plotIt):
 
-        for src in self.prb.survey.srcList:
+        for src in self.prb.survey.source_list:
             print(' --- testing {} --- '.format(src.__class__.__name__))
             x = np.linspace(-55, 55, 12)
             XYZ = utils.ndgrid(x, np.r_[0], np.r_[0])
@@ -157,8 +157,8 @@ class TestDipoles(unittest.TestCase):
         surveye = fdem.Survey(de_p)
         surveym = fdem.Survey(dm_p)
 
-        prbe = fdem.Problem3D_h(mesh, sigma=sigmaback, mu=mur*mu_0)
-        prbm = fdem.Problem3D_e(mesh, sigma=sigmaback, mu=mur*mu_0)
+        prbe = fdem.Simulation3DMagneticField(mesh, sigma=sigmaback, mu=mur*mu_0)
+        prbm = fdem.Simulation3DElectricField(mesh, sigma=sigmaback, mu=mur*mu_0)
 
         # pair problem and survey
         prbe.pair(surveye)

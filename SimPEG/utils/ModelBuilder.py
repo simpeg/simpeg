@@ -1,7 +1,4 @@
-import warnings
-warnings.warn(
-    'ModelBuilder has been deprecated, please use model_builder',
-    DeprecationWarning
-)
+from .code_utils import deprecate_module
+deprecate_module('ModelBuilder', 'model_builder', '0.15.0')
 
 from .model_builder import *

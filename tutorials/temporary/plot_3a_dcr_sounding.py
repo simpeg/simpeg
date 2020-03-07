@@ -127,7 +127,7 @@ plot_layer(model_map*model, mesh)
 # argument *sigmaMap* is defined, the simulation will expect a conductivity model. 
 #
 
-simulation = dc.simulation_1d.DCSimulation_1D(
+simulation = dc.simulation_1d.Simulation1DLayers(
         mesh, survey=survey, rhoMap=model_map, t=layer_thicknesses,
         data_type="apparent_resistivity"
         )

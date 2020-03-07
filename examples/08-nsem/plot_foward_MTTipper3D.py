@@ -58,11 +58,11 @@ def run(plotIt=True):
     # Make a receiver list
     rxList = []
     for rx_orientation in ['xx', 'xy', 'yx', 'yy']:
-        rxList.append(NSEM.Rx.Point_impedance3D(rx_loc, rx_orientation, 'real'))
-        rxList.append(NSEM.Rx.Point_impedance3D(rx_loc, rx_orientation, 'imag'))
+        rxList.append(NSEM.Rx.Point3DImpedance(rx_loc, rx_orientation, 'real'))
+        rxList.append(NSEM.Rx.Point3DImpedance(rx_loc, rx_orientation, 'imag'))
     for rx_orientation in ['zx', 'zy']:
-        rxList.append(NSEM.Rx.Point_tipper3D(rx_loc, rx_orientation, 'real'))
-        rxList.append(NSEM.Rx.Point_tipper3D(rx_loc, rx_orientation, 'imag'))
+        rxList.append(NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, 'real'))
+        rxList.append(NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, 'imag'))
 
     # Source list
     srcList = [
@@ -73,7 +73,7 @@ def run(plotIt=True):
     survey = NSEM.Survey(srcList)
 
     # Setup the problem object
-    problem = NSEM.Problem3D_ePrimSec(M,
+    problem = NSEM.Simulation3DPrimarySecondary(M,
         survey=survey, solver=Solver,
         sigma=sig, sigmaPrimary=sigBG)
 
