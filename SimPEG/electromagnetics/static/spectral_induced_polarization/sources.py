@@ -3,7 +3,7 @@ import properties
 
 from .... import survey
 from ....utils import Zero, closestPoints, mkvc
-from ....utils import deprecate_property
+from ....utils.code_utils import deprecate_property
 
 
 class BaseSrc(survey.BaseSrc):
