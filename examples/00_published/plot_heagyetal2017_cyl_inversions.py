@@ -84,7 +84,7 @@ def run(plotIt=True, saveFig=False):
 
     # FDEM inversion
     np.random.seed(1)
-    dmisfit = data_misfit.l2_DataMisfit(simulation=prbFD, data=dataFD)
+    dmisfit = data_misfit.L2DataMisfit(simulation=prbFD, data=dataFD)
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = regularization.Simple(regMesh)
     opt = optimization.InexactGaussNewton(maxIterCG=10)
