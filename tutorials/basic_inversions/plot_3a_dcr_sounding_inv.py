@@ -13,7 +13,7 @@ In this tutorial, we focus on the following:
 
 For this tutorial, we will invert sounding data collected over a layered Earth using
 a Wenner array. The end product is layered Earth model which explains the data.
-    
+
 
 """
 
@@ -77,12 +77,12 @@ k = np.r_[k, len(k)+1]
 
 source_list = []
 for ii in range(0, n_sources):
-    
+
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
     M_locations = M_electrodes[k[ii]:k[ii+1], :]
     N_locations = N_electrodes[k[ii]:k[ii+1], :]
     receiver_list = [dc.receivers.Dipole(M_locations, N_locations)]
-    
+
     # AB electrode locations for source. Each is a (1, 3) numpy array
     A_location = A_electrodes[k[ii], :]
     B_location = B_electrodes[k[ii], :]
@@ -172,10 +172,10 @@ model_map = maps.IdentityMap(nP=len(starting_model))*maps.ExpMap()
 # Define the Physics
 # ------------------
 #
-# Here we define the physics of the problem using the DCSimulation_1D class.
+# Here we define the physics of the problem using the Simulation1DLayers class.
 #
 
-simulation = dc.simulation_1d.DCSimulation_1D(
+simulation = dc.simulation_1d.Simulation1DLayers(
         survey=survey, rhoMap=model_map, thicknesses=layer_thicknesses,
         data_type="apparent_resistivity"
         )
@@ -290,8 +290,3 @@ ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 ax1.legend(['True Sounding Curve','Predicted Sounding Curve'])
 plt.show()
-
-
-
-
-

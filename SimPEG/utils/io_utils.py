@@ -285,7 +285,7 @@ def readUBCmagneticsObservations(obs_file):
         line = fid.readline()
     fid.close()
 
-    rxLoc = magnetics.receivers.point_receiver(locXYZ)
+    rxLoc = magnetics.receivers.Point(locXYZ)
     srcField = magnetics.sources.SourceField([rxLoc], parameters=(B[2], B[0], B[1]))
     survey = magnetics.survey.MagneticSurvey(srcField)
     data_object = data.Data(survey, dobs=d, noise_floor=wd)
@@ -369,7 +369,7 @@ def readUBCgravityObservations(obs_file):
         line = fid.readline()
     fid.close()
 
-    rxLoc = gravity.receivers.point_receiver(locXYZ)
+    rxLoc = gravity.receivers.Point(locXYZ)
     srcField = gravity.sources.SourceField([rxLoc])
     survey = gravity.survey.GravitySurvey(srcField)
     data_object = data.Data(survey, dobs=d, noise_floor=wd)

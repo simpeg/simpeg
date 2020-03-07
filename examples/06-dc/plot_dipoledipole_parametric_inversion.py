@@ -128,7 +128,7 @@ def run(
 
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
-    prb = DC.Problem2D_N(
+    prb = DC.Simulation2DNodal(
         mesh, survey=survey, rhoMap=mapping, storeJ=True,
         solver=Solver
     )

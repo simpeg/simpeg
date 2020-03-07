@@ -127,7 +127,7 @@ components = ["tmi"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = magnetics.receivers.point_receiver(
+receiver_list = magnetics.receivers.Point(
         receiver_locations, components=components
         )
 
@@ -205,7 +205,7 @@ starting_model = background_susceptibility*np.ones(nC)
 # 
 
 # Define the problem. Define the cells below topography and the mapping
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh,
     modelType='susceptibility', chiMap=model_map,
     actInd=ind_active

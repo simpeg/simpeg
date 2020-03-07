@@ -59,8 +59,8 @@ def run(plotIt=True, saveFig=False):
 
     # ----- FDEM problem & survey ----- #
     rxlocs = utils.ndgrid([np.r_[50.], np.r_[0], np.r_[0.]])
-    bzr = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'real')
-    bzi = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'imag')
+    bzr = FDEM.Rx.PointMagneticFluxDensitySecondary(rxlocs, 'z', 'real')
+    bzi = FDEM.Rx.PointMagneticFluxDensitySecondary(rxlocs, 'z', 'imag')
 
     freqs = np.logspace(2, 3, 5)
     srcLoc = np.array([0., 0., 0.])
@@ -76,7 +76,7 @@ def run(plotIt=True, saveFig=False):
     ]
 
     surveyFD = FDEM.Survey(srcList)
-    prbFD = FDEM.Problem3D_b(
+    prbFD = FDEM.Simulation3DMagneticFluxDensity(
         mesh, survey=surveyFD, sigmaMap=mapping, solver=Solver)
     std = 0.03
     dataFD = prbFD.make_synthetic_data(mtrue, standard_deviation=std, add_noise=True)
@@ -84,7 +84,7 @@ def run(plotIt=True, saveFig=False):
 
     # FDEM inversion
     np.random.seed(1)
-    dmisfit = data_misfit.l2_DataMisfit(simulation=prbFD, data=dataFD)
+    dmisfit = data_misfit.L2DataMisfit(simulation=prbFD, data=dataFD)
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = regularization.Simple(regMesh)
     opt = optimization.InexactGaussNewton(maxIterCG=10)
@@ -108,7 +108,7 @@ def run(plotIt=True, saveFig=False):
     times = np.logspace(-4, np.log10(2e-3), 10)
     print('min diffusion distance ', 1.28*np.sqrt(times.min()/(sig_half*mu_0)),
           'max diffusion distance ', 1.28*np.sqrt(times.max()/(sig_half*mu_0)))
-    rx = TDEM.Rx.Point_b(rxlocs, times, 'z')
+    rx = TDEM.Rx.PointMagneticFluxDensity(rxlocs, times, 'z')
     src = TDEM.Src.MagDipole(
         [rx],
         waveform=TDEM.Src.StepOffWaveform(),
@@ -116,7 +116,7 @@ def run(plotIt=True, saveFig=False):
     )
 
     surveyTD = TDEM.Survey([src])
-    prbTD = TDEM.Problem3D_b(
+    prbTD = TDEM.Simulation3DMagneticFluxDensity(
         mesh, survey=surveyTD, sigmaMap=mapping, Solver=Solver)
     prbTD.time_steps = [(5e-5, 10), (1e-4, 10), (5e-4, 10)]
 

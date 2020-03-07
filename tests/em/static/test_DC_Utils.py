@@ -75,7 +75,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
             # Setup Problem with exponential mapping
             expmap = maps.ExpMap(self.mesh)
-            problem = dc.Problem3D_CC(self.mesh,
+            problem = dc.Simulation3DCellCentered(self.mesh,
                         sigmaMap=expmap,
                         survey=survey,
                         bc_type='Neumann')

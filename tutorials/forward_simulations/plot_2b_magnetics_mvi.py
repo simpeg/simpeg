@@ -7,12 +7,12 @@ Here we use the module *SimPEG.potential_fields.magnetics* to predict magnetic
 gradiometry data for magnetic vector models. The simulation is performed on a
 Tree mesh. For this tutorial, we focus on the following:
 
-    - How to define the survey when we want to measured multiple field components 
+    - How to define the survey when we want to measured multiple field components
     - How to predict magnetic data in the case of remanence
     - How to include surface topography
     - How to construct tree meshes based on topography and survey geometry
     - The units of the physical property model and resulting data
-    
+
 
 """
 
@@ -76,7 +76,7 @@ components = ["bxz", "byz", "bzz"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = magnetics.receivers.point_receiver(
+receiver_list = magnetics.receivers.Point(
         receiver_locations, components=components
         )
 
@@ -102,7 +102,7 @@ survey = magnetics.survey.MagneticSurvey(source_field)
 #
 # Here, we create the OcTree mesh that will be used to predict magnetic
 # gradiometry data for the forward simuulation.
-# 
+#
 
 dx = 5    # minimum cell width (base mesh cell width) in x
 dy = 5    # minimum cell width (base mesh cell width) in y
@@ -152,7 +152,7 @@ mesh.finalize()
 #     by the magnitude of the Earth's field (remanent contribution)
 #     3) Sum the induced and remanent contributions
 #     4) Define as a vector np.r_[chi_1, chi_2, chi_3]
-#     
+#
 #
 
 # Define susceptibility values for each unit in SI
@@ -230,7 +230,7 @@ cbar.set_label(
 
 # Define the forward simulation. By setting the 'store_sensitivities' keyword
 # argument to "forward_only", we simulate the data without storing the sensitivities
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, chiMap=model_map, actInd=ind_active,
     modelType='vector', store_sensitivities="forward_only"
 )

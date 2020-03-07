@@ -7,6 +7,7 @@ import numpy as np
 import scipy.sparse as sp
 import time
 import properties
+from ...utils.code_utils import deprecate_class
 import warnings
 
 from ... import utils
@@ -22,7 +23,7 @@ from .empirical import BaseHydraulicConductivity
 from .empirical import BaseWaterRetention
 
 
-class RichardsSimulation(BaseTimeSimulation):
+class SimulationNDCellCentered(BaseTimeSimulation):
     """Richards Simulation"""
 
     hydraulic_conductivity = properties.Instance(
@@ -362,3 +363,15 @@ class RichardsSimulation(BaseTimeSimulation):
             BJtv = BJtv + B.T*JTvC
 
         return BJtv + PTdv
+
+
+SimulationNDCellCentred = SimulationNDCellCentered
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class RichardsProblem(SimulationNDCellCentered):
+    pass

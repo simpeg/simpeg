@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
+from ...utils.code_utils import deprecate_class
 
 from ...simulation import LinearSimulation
 from ...utils import sub2ind
@@ -70,7 +71,7 @@ def lineintegral(M, Tx, Rx):
     return inds, V
 
 
-class StraightRayProblem(LinearSimulation):
+class Simulation2DIntegral(LinearSimulation):
 
     slowness, slownessMap, slownessDeriv = props.Invertible(
         "Slowness model (1/v)"
@@ -107,3 +108,12 @@ class StraightRayProblem(LinearSimulation):
         # mt = self.model.transformDeriv
         # return mt.T * ( self.A.T * v )
         return self.slownessDeriv.T * self.A.T * v
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class StraightRayProblem(Simulation2DIntegral):
+    pass

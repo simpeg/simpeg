@@ -13,7 +13,7 @@ for a 1D layered Earth. In this tutorial, we focus on the following:
 
 For this tutorial, we will invert sounding data collected over a layered Earth using
 a Wenner array. The end product is layered Earth model which explains the data.
-    
+
 
 
 """
@@ -78,12 +78,12 @@ k = np.r_[k, len(k)+1]
 
 source_list = []
 for ii in range(0, n_sources):
-    
+
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
     M_locations = M_electrodes[k[ii]:k[ii+1], :]
     N_locations = N_electrodes[k[ii]:k[ii+1], :]
     receiver_list = [dc.receivers.Dipole(M_locations, N_locations)]
-    
+
     # AB electrode locations for source. Each is a (1, 3) numpy array
     A_location = A_electrodes[k[ii], :]
     B_location = B_electrodes[k[ii], :]
@@ -171,7 +171,7 @@ layer_map = maps.ExpMap(nP=mesh.nC-1) * wire_map.t
 # resistivity values. This is defined here.
 #
 
-simulation = dc.simulation_1d.DCSimulation_1D(
+simulation = dc.simulation_1d.Simulation1DLayers(
         survey=survey, rhoMap=resistivity_map, thicknessesMap=layer_map,
         data_type="apparent_resistivity"
         )
@@ -205,7 +205,7 @@ reg_rho = regularization.Simple(
 mesh_t = TensorMesh([mesh.hx.size-1])
 reg_t = regularization.Simple(
     mesh_t, alpha_s=0.01, alpha_x=1,
-    mapping=wire_map.t    
+    mapping=wire_map.t
 )
 
 # Combine to make regularization for the inversion problem
@@ -297,8 +297,3 @@ ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 ax1.legend(['True Sounding Curve','Predicted Sounding Curve'])
 plt.show()
-
-
-
-
-

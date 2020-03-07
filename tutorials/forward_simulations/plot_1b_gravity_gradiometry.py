@@ -3,7 +3,7 @@
 Gravity Gradiometry on a Tree Mesh
 ==================================
 
-Here we use the module *SimPEG.potential_fields.gravity* to predict gravity 
+Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
 gradiometry data for a synthetic density contrast model. The simulation is
 carried out on a tree mesh. For this tutorial, we focus on the following:
 
@@ -73,7 +73,7 @@ components = ["gxz", "gyz", "gzz"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = gravity.receivers.point_receiver(
+receiver_list = gravity.receivers.Point(
         receiver_locations, components=components
         )
 
@@ -91,7 +91,7 @@ survey = gravity.survey.GravitySurvey(source_field)
 # -----------------------
 #
 # Here, we create the OcTree mesh that will be used in the forward simulation.
-# 
+#
 
 dx = 5    # minimum cell width (base mesh cell width) in x
 dy = 5    # minimum cell width (base mesh cell width) in y
@@ -196,11 +196,11 @@ plt.show()
 #
 # Here we demonstrate how to predict gravity anomaly data using the integral
 # formulation.
-# 
+#
 
 # Define the forward simulation. By setting the 'store_sensitivities' keyword
 # argument to "forward_only", we simulate the data without storing the sensitivities
-simulation = gravity.simulation.IntegralSimulation(
+simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, rhoMap=model_map,
     actInd=ind_active, store_sensitivities="forward_only"
 )
@@ -255,11 +255,3 @@ cbar.set_label(
 )
 
 plt.show()
-
-
-
-
-
-
-
-

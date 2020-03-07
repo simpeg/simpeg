@@ -3,7 +3,7 @@
 Gravity Simulation on a Tensor Mesh
 ===================================
 
-Here we use the module *SimPEG.potential_fields.gravity* to predict gravity 
+Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
 anomaly data for a synthetic density contrast model. The simulation is
 carried out on a tensor mesh. For this tutorial, we focus on the following:
 
@@ -76,7 +76,7 @@ components = ["gz"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = gravity.receivers.point_receiver(
+receiver_list = gravity.receivers.Point(
         receiver_locations, components=components
         )
 
@@ -176,11 +176,11 @@ plt.show()
 #
 # Here we demonstrate how to predict gravity anomaly data using the integral
 # formulation.
-# 
+#
 
 # Define the forward simulation. By setting the 'store_sensitivities' keyword
 # argument to "forward_only", we simulate the data without storing the sensitivities
-simulation = gravity.simulation.IntegralSimulation(
+simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, rhoMap=model_map,
     actInd=ind_active, store_sensitivities="forward_only"
 )
@@ -214,7 +214,7 @@ plt.show()
 # ---------------------------
 #
 # Write the data and topography
-# 
+#
 
 if save_file == True:
 
@@ -244,9 +244,3 @@ if save_file == True:
         output_model,
         fmt='%.4e'
     )
-
-
-
-
-
-

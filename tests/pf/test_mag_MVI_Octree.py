@@ -43,7 +43,7 @@ class MVIProblemTest(unittest.TestCase):
 
         # Create a MAGsurvey
         xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
-        rxLoc = mag.point_receiver(xyzLoc)
+        rxLoc = mag.Point(xyzLoc)
         srcField = mag.SourceField([rxLoc], parameters=H0)
         survey = mag.MagneticSurvey(srcField)
 
@@ -84,7 +84,7 @@ class MVIProblemTest(unittest.TestCase):
         idenMap = maps.IdentityMap(nP=nC*3)
 
         # Create the forward model operator
-        sim = mag.IntegralSimulation(
+        sim = mag.Simulation3DIntegral(
             self.mesh,
             survey=survey,
             modelType='vector',

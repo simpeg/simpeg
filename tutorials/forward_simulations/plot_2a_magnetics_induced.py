@@ -11,7 +11,7 @@ For this tutorial, we focus on the following:
     - How to predict magnetic data for a susceptibility model
     - How to include surface topography
     - The units of the physical property model and resulting data
-    
+
 
 """
 
@@ -77,7 +77,7 @@ components = ["tmi"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = magnetics.receivers.point_receiver(
+receiver_list = magnetics.receivers.Point(
         receiver_locations, components=components
         )
 
@@ -176,7 +176,7 @@ plt.show()
 
 # Define the forward simulation. By setting the 'store_sensitivities' keyword
 # argument to "forward_only", we simulate the data without storing the sensitivities
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh,
     modelType='susceptibility', chiMap=model_map,
     actInd=ind_active, store_sensitivities="forward_only"
@@ -216,7 +216,7 @@ plt.show()
 # ---------------------
 #
 # Write the data and topography
-# 
+#
 
 
 if save_file == True:
@@ -242,6 +242,3 @@ if save_file == True:
         output_model,
         fmt='%.4e'
     )
-
-
-

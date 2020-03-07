@@ -112,7 +112,7 @@ expmap = maps.ExpMap(mesh)
 mapactive = maps.InjectActiveCells(mesh=mesh, indActive=actind,
                                    valInactive=-5.)
 mapping = expmap * mapactive
-problem = DC.Problem3D_CC(
+problem = DC.Simulation3DCellCentered(
     mesh, survey=survey, sigmaMap=mapping, solver=Solver, bc_type='Neumann')
 
 data = problem.make_synthetic_data(mtrue[actind], standard_deviation=0.05, add_noise=True)

@@ -37,20 +37,20 @@ class IPProblemTestsCC(unittest.TestCase):
         B0loc = np.r_[-130, 0.]
         B1loc = np.r_[-110, 0.]
 
-        rx = dc.Rx.Dipole_ky(M, N)
+        rx = dc.Rx.Dipole2D(M, N)
         src0 = dc.Src.Dipole([rx], A0loc, B0loc)
         src1 = dc.Src.Dipole([rx], A1loc, B1loc)
         survey = ip.Survey([src0, src1])
 
         sigma = np.ones(mesh.nC) * 1.
-        problem = ip.Problem2D_CC(
+        problem = ip.Simulation2DCellCentered(
             mesh, sigma=sigma, etaMap=maps.IdentityMap(mesh),
             verbose=False
         )
         problem.pair(survey)
 
         mSynth = np.ones(mesh.nC)*0.1
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.Tikhonov(mesh)
@@ -120,20 +120,20 @@ class IPProblemTestsN(unittest.TestCase):
         B0loc = np.r_[-130, 0.]
         B1loc = np.r_[-110, 0.]
 
-        rx = dc.Rx.Dipole_ky(M, N)
+        rx = dc.Rx.Dipole2D(M, N)
         src0 = dc.Src.Dipole([rx], A0loc, B0loc)
         src1 = dc.Src.Dipole([rx], A1loc, B1loc)
         survey = ip.Survey([src0, src1])
 
         sigma = np.ones(mesh.nC) * 1.
-        problem = ip.Problem2D_N(
+        problem = ip.Simulation2DNodal(
             mesh, rho=1./sigma, etaMap=maps.IdentityMap(mesh),
             verbose=False
         )
         problem.pair(survey)
 
         mSynth = np.ones(mesh.nC)*0.1
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.Tikhonov(mesh)

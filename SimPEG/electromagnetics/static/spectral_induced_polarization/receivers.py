@@ -1,5 +1,6 @@
 import numpy as np
 import properties
+from ....utils.code_utils import deprecate_property
 
 from ....survey import BaseTimeRx, RxLocationArray
 
@@ -26,10 +27,6 @@ class BaseRx(BaseTimeRx):
            "apparent_chargeability"
         ]
     )
-
-
-    def __init__(self, locations=None, times=None, **kwargs):
-        super(BaseRx, self).__init__(locations, times, **kwargs)
 
     # @property
     # def projField(self):
@@ -86,23 +83,20 @@ class Dipole(BaseRx):
         super(Dipole, self).__init__(times=times, **kwargs)
         self.locations = locations
 
+    # this should probably be updated to n_receivers...
     @property
     def nD(self):
         """Number of data in the receiver."""
         return self.locations[0].shape[0]
 
-    @property
-    def nRx(self):
-        """Number of data in the receiver."""
-        # return self.locations[0].shape[0]
-        raise Exception("nRx has deprecated. please use rx.nD instead")
+    nRx = deprecate_property(nD, 'nRx', '0.15.0')
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
-        P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
+        P0 = mesh.getInterpolationMat(self.locations[0], Gloc)
+        P1 = mesh.getInterpolationMat(self.locations[1], Gloc)
         P = P0 - P1
 
         if self.data_type == 'apparent_resistivity':
@@ -121,24 +115,19 @@ class Pole(BaseRx):
     Pole receiver
     """
 
-    def __init__(self, locations, times, **kwargs):
-        super(Pole, self).__init__(locations, times, **kwargs)
-
+    # this should probably be updated to n_receivers...
     @property
     def nD(self):
         """Number of data in the receiver."""
         return self.locations.shape[0]
 
-    @property
-    def nRx(self):
-        """Number of data in the receiver."""
-        raise Exception("nRx has deprecated. please use rx.nD instead")
+    nRx = deprecate_property(nD, 'nRx', '0.15.0')
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P = mesh.getInterpolationMat(self.locs, Gloc)
+        P = mesh.getInterpolationMat(self.locations, Gloc)
 
         if self.data_type == 'apparent_resistivity':
             P = sdiag(1./self.geometric_factor) * P

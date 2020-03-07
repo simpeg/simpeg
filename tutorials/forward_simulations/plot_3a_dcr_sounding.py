@@ -15,7 +15,7 @@ sounding data over a 1D layered Earth. In this tutorial, we focus on the followi
 For this tutorial, we will simulate sounding data over a layered Earth using
 a Wenner array. The end product is a sounding curve which tells us how the
 electrical resistivity changes with depth.
-    
+
 
 """
 
@@ -59,10 +59,10 @@ electrode_separations = np.linspace(a_min, a_max, n_stations)
 source_list = []  # create empty array for sources to live
 
 for ii in range(0, len(electrode_separations)):
-    
+
     # Extract separation parameter for sources and receivers
     a = electrode_separations[ii]
-    
+
     # AB electrode locations for source. Each is a (1, 3) numpy array
     A_location = np.r_[-1.5*a, 0., 0.]
     B_location = np.r_[1.5*a, 0., 0.]
@@ -127,10 +127,10 @@ plot_layer(model_map*model, mesh)
 #
 # Here we predict DC resistivity data. If the keyword argument *rhoMap* is
 # defined, the simulation will expect a resistivity model. If the keyword
-# argument *sigmaMap* is defined, the simulation will expect a conductivity model. 
+# argument *sigmaMap* is defined, the simulation will expect a conductivity model.
 #
 
-simulation = dc.simulation_1d.DCSimulation_1D(
+simulation = dc.simulation_1d.Simulation1DLayers(
         survey=survey, rhoMap=model_map, thicknesses=layer_thicknesses,
         data_type="apparent_resistivity"
         )
@@ -176,7 +176,3 @@ if save_file == True:
 
     fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\layers.txt'
     np.savetxt(fname, mesh.hx, fmt='%d')
-
-
-
-

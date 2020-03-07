@@ -5,7 +5,12 @@ from . import sources as Src
 from . import waveforms
 
 from .simulation import (
-    Problem_BaseVRM, Problem_Linear, Problem_LogUniform
+    BaseVRMSimulation, Simulation3DLinear, Simulation3DLogUniform
 )
 
 from .survey import SurveyVRM as Survey
+
+############
+# Deprecated
+############
+from .simulation import Problem_Linear, Problem_LogUnifrom

@@ -10,8 +10,8 @@ from scipy import interpolate as sciint
 
 import SimPEG as simpeg
 from SimPEG.electromagnetics.natural_source.survey import Survey, Data
-from SimPEG.electromagnetics.natural_source.receivers import (Point_impedance1D,
-    Point_impedance3D, Point_tipper3D)
+from SimPEG.electromagnetics.natural_source.receivers import (Point1DImpedance,
+    Point3DImpedance, Point3DTipper)
 from SimPEG.electromagnetics.natural_source.sources import Planewave_xy_1Dprimary
 from SimPEG.electromagnetics.natural_source.utils import analytic_1d, plot_data_types as pDt
 
@@ -67,9 +67,9 @@ def extract_data_info(NSEMdata):
         for rx in src.receiver_list:
             dL.append(NSEMdata[src, rx])
             freqL.append(np.ones(rx.nD) * src.freq)
-            if isinstance(rx, Point_impedance3D):
+            if isinstance(rx, Point3DImpedance):
                 rxTL.extend((('z' + rx.orientation + ' ') * rx.nD).split())
-            if isinstance(rx, Point_tipper3D):
+            if isinstance(rx, Point3DTipper):
                 rxTL.extend((('t' + rx.orientation + ' ') * rx.nD).split())
     return np.concatenate(dL), np.concatenate(freqL), np.array(rxTL)
 
@@ -121,9 +121,9 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
         rx_comp = []
         for rxT in rxs:
             if'z' in rxT[0]:
-                rxtype = Point_impedance3D
+                rxtype = Point3DImpedance
             elif 't' in rxT[0]:
-                rxtype = Point_tipper3D
+                rxtype = Point3DTipper
             else:
                 raise IOError('Unknown rx type string')
             orient = rxT[1:3]
@@ -141,20 +141,20 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
                 if rx_comp is True or np.any(
                         [(isinstance(rx, ct) and rx.orientation in co)
                             for (ct, co) in rx_comp]):
-                    if len(rx.locs.shape) == 3:
+                    if len(rx.locations.shape) == 3:
                         ind_loc = np.sum(
                             np.concatenate(
-                                [(np.sqrt(np.sum((rx.locs[:, :, 0] - location) ** 2, axis=1)) < 0.1).reshape(-1, 1)
+                                [(np.sqrt(np.sum((rx.locations[:, :, 0] - location) ** 2, axis=1)) < 0.1).reshape(-1, 1)
                                  for location in locations],
                                 axis=1), axis=1, dtype=bool)
-                        new_locs = rx.locs[ind_loc,:,:]
+                        new_locs = rx.locations[ind_loc,:,:]
                     else:
                         ind_loc = np.sum(
                             np.concatenate(
-                                [(np.sqrt(np.sum((rx.locs[:, :] - location) ** 2, axis=1)) < 0.1).reshape(-1, 1)
+                                [(np.sqrt(np.sum((rx.locations[:, :] - location) ** 2, axis=1)) < 0.1).reshape(-1, 1)
                                  for location in locations],
                                 axis=1), axis=1, dtype=bool)
-                        new_locs = rx.locs[ind_loc, :]
+                        new_locs = rx.locations[ind_loc, :]
                     new_rx = type(rx)
                     new_rxList.append(
                         new_rx(new_locs, rx.orientation, rx.component))
@@ -218,8 +218,8 @@ def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
     for loc in uniLocs:
         # Make the receiver list
         rx1DList = []
-        rx1DList.append(Point_impedance1D(simpeg.mkvc(loc, 2).T, 'real'))
-        rx1DList.append(Point_impedance1D(simpeg.mkvc(loc, 2).T, 'imag'))
+        rx1DList.append(Point1DImpedance(simpeg.mkvc(loc, 2).T, 'real'))
+        rx1DList.append(Point1DImpedance(simpeg.mkvc(loc, 2).T, 'imag'))
         # Source list
         locrecData = recData[np.sqrt(
             np.sum((rec_to_ndarr(

@@ -22,8 +22,8 @@ class DataMisfitTest(unittest.TestCase):
         sigma = np.random.rand(mesh.nC)
         model = np.log(sigma)
 
-        # prob = DC.Problem3D_CC(mesh, rhoMap=maps.ExpMap(mesh))
-        # prob1 = DC.Problem3D_CC(mesh, rhoMap=maps.ExpMap(mesh))
+        # prob = DC.Simulation3DCellCentered(mesh, rhoMap=maps.ExpMap(mesh))
+        # prob1 = DC.Simulation3DCellCentered(mesh, rhoMap=maps.ExpMap(mesh))
 
         rx = DC.Rx.Pole(
             utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.max()]])
@@ -40,12 +40,12 @@ class DataMisfitTest(unittest.TestCase):
             np.r_[0.25, mesh.vectorCCy.max()]
         )
         survey = DC.Survey([src])
-        simulation0 = DC.simulation.Problem3D_CC(
+        simulation0 = DC.simulation.Simulation3DCellCentered(
             mesh=mesh, survey=survey, rhoMap=maps.ExpMap(mesh)
         )
 
         survey1 = DC.Survey([src1])
-        simulation1 = DC.simulation.Problem3D_CC(
+        simulation1 = DC.simulation.Simulation3DCellCentered(
             mesh=mesh, survey=survey1, rhoMap=maps.ExpMap(mesh)
         )
 

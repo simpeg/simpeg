@@ -230,7 +230,7 @@ dc_survey.drapeTopo(mesh, ind_active, option='top')
 # argument *rhoMap* is defined, the simulation will expect a resistivity model.
 #
 
-dc_simulation = dc.simulation_2d.Problem2D_N(
+dc_simulation = dc.simulation_2d.Simulation2DNodal(
         mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
         )
 
@@ -347,7 +347,7 @@ cbar.set_label(
 # We use the keyword argument *sigma* to define the background conductivity on
 # the mesh. We could use the keyword argument *rho* to accomplish the same thing
 # using a background resistivity model.
-simulation_ip = ip.simulation_2d.Problem2D_N(
+simulation_ip = ip.simulation_2d.Simulation2DNodal(
     mesh, survey=ip_survey, etaMap=chargeability_map,
     sigma=conductivity_map*conductivity_model, Solver=Solver
 )

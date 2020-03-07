@@ -13,7 +13,7 @@ from pymatsolver import Pardiso as Solver
 def halfSpaceProblemAnaDiff(
     meshType, srctype="MagDipole",
     sig_half=1e-2, rxOffset=50., bounds=None,
-    plotIt=False, rxType='bz'
+    plotIt=False, rxType='MagneticFluxDensityz'
 ):
     if bounds is None:
         bounds = [1e-5, 1e-3]
@@ -34,7 +34,7 @@ def halfSpaceProblemAnaDiff(
     actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
-    rx = getattr(tdem.Rx, 'Point_{}'.format(rxType[:-1]))(
+    rx = getattr(tdem.Rx, 'Point{}'.format(rxType[:-1]))(
         np.array([[rxOffset, 0., 0.]]), np.logspace(-5, -4, 21), rxType[-1]
     )
 
@@ -50,7 +50,7 @@ def halfSpaceProblemAnaDiff(
         )
 
     survey = tdem.Survey([src])
-    prb = tdem.Problem3D_b(mesh, sigmaMap=mapping)
+    prb = tdem.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
     prb.Solver = Solver
 
     prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40),
@@ -61,7 +61,7 @@ def halfSpaceProblemAnaDiff(
     sigma = np.log(sigma[active])
     prb.pair(survey)
     if srctype == "MagDipole":
-        bz_ana = mu_0*analytics.hzAnalyticDipoleT(rx.locs[0][0]+1e-3,
+        bz_ana = mu_0*analytics.hzAnalyticDipoleT(rx.locations[0][0]+1e-3,
                                                      rx.times, sig_half)
     elif srctype == "CircularLoop":
         bz_ana = mu_0*analytics.hzAnalyticDipoleT(13, rx.times, sig_half)

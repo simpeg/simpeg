@@ -99,7 +99,7 @@ for ii in range(0, n_sources):
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
     M_locations = M_electrodes[k[ii]:k[ii+1], :]
     N_locations = N_electrodes[k[ii]:k[ii+1], :]
-    receiver_list = [dc.receivers.Dipole_ky(M_locations, N_locations, data_type='volt')]
+    receiver_list = [dc.receivers.Dipole2D(M_locations, N_locations, data_type='volt')]
     
     # AB electrode locations for source. Each is a (1, 3) numpy array
     A_location = A_electrodes[k[ii], :]
@@ -251,7 +251,7 @@ starting_conductivity_model = background_conductivity*np.ones(nC)
 # 
 
 # Define the problem. Define the cells below topography and the mapping
-dc_simulation = dc.simulation_2d.Problem2D_N(
+dc_simulation = dc.simulation_2d.Simulation2DNodal(
         mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
         )
 
@@ -469,7 +469,7 @@ starting_chargeability_model = background_chargeability*np.ones(nC)
 # entire mesh.
 # 
 
-ip_simulation = ip.simulation_2d.Problem2D_N(
+ip_simulation = ip.simulation_2d.Simulation2DNodal(
         mesh, survey=ip_survey, etaMap=chargeability_map,
         sigma=conductivity_map*recovered_conductivity_model, 
         Solver=Solver
