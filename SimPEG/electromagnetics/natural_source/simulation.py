@@ -56,12 +56,16 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         self.model = m
         # Initiate the Jv list
         # Jv = []
-        Jv = np.zeros((441, 24))
+        number_of_frequencies = len(self.survey.frequencies) 
+        number_of_components = len(self.survey.get_sources_by_frequency(self.survey.frequencies[0])[0].receiver_list)
+        n_dim = number_of_frequencies * number_of_components
+        m_dim = int(self.survey.nD / (number_of_components * number_of_frequencies))
+        Jv = np.zeros((m_dim, n_dim))
         col = 0
+
         # Loop all the frequenies
         for nF, freq in enumerate(self.survey.frequencies):
             # Get the system
-
             for src in self.survey.get_sources_by_frequency(freq):
                 # need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
@@ -78,7 +82,8 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                     col += 1
             # when running full inversion clearing the fields creates error and inversion crashes
             # self.Ainv[nF].clean()
-        return da.hstack(Jv).compute()
+        return Jv.flatten('F')
+        # return da.reshape(Jv, ())
 
     def Jtvec(self, m, v, f=None):
         """
