@@ -125,7 +125,7 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary magnetic flux density
         """
         return Zero()
-    
+
     freq = deprecate_property(frequency, 'freq', removal_version='0.15.0')
 
 
@@ -284,7 +284,7 @@ class MagDipole(BaseFDEMSrc):
 
     :param list receiver_list: receiver list
     :param float freq: frequency
-    :param numpy.ndarray loc: source location
+    :param numpy.ndarray location: source location
         (ie: :code:`np.r_[xloc,yloc,zloc]`)
     :param string orientation: 'X', 'Y', 'Z'
     :param float moment: magnetic dipole moment
@@ -303,6 +303,7 @@ class MagDipole(BaseFDEMSrc):
     location = LocationVector(
         "location of the source", default=np.r_[0.,0.,0.], shape=(3,)
     )
+    loc = deprecate_property(location, 'loc', removal_version='0.15.0')
 
     def __init__(
         self, receiver_list=None, frequency=None, location=None, **kwargs
