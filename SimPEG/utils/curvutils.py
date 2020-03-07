@@ -1,7 +1,4 @@
-import warnings
-warnings.warn(
-    'curvutils has been deprecated, please use curv_utils',
-    DeprecationWarning
-)
+from .code_utils import deprecate_module
+deprecate_module('curvutils', 'curv_utils', '0.15.0')
 
 from .curv_utils import *

@@ -1,9 +1,9 @@
 import numpy as np
 import properties
-import warnings
 
 from ....survey import BaseTimeSurvey
 from . import sources
+from . import receivers
 from .. import resistivity as dc
 
 
@@ -21,15 +21,7 @@ class Survey(BaseTimeSurvey):
     )
 
     def __init__(self, source_list=None, **kwargs):
-        super(Survey, self).__init__(source_list, **kwargs)
-
-    @property
-    def times(self):
-        warnings.warn(
-            "survey.times will be deprecated in favor of survey.unique_times."
-            " Please update your code accordingly"
-        )
-        return self.unique_times
+        super().__init__(source_list, **kwargs)
 
     @property
     def n_locations(self):
@@ -46,10 +38,10 @@ def from_dc_to_sip_survey(survey_dc, times):
     for src in srcList:
         rxList_sip = []
         for rx in src.receiver_list:
-            if isinstance(rx, dc.receivers.Pole_ky) or isinstance(rx, dc.receivers.Pole):
-                rx_sip = receivers.Pole(rx.locs, times=times)
-            elif isinstance(rx, dc.receivers.Dipole_ky) or isinstance(rx, dc.receivers.Dipole):
-                rx_sip = receivers.Dipole(rx.locs[0], rx.locs[1], times=times)
+            if isinstance(rx, dc.receivers.Pole2D) or isinstance(rx, dc.receivers.Pole):
+                rx_sip = receivers.Pole(rx.locations, times=times)
+            elif isinstance(rx, dc.receivers.Dipole2D) or isinstance(rx, dc.receivers.Dipole):
+                rx_sip = receivers.Dipole(rx.locations[0], rx.locations[1], times=times)
             else:
                 print(rx)
                 raise NotImplementedError()

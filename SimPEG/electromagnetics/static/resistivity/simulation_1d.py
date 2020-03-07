@@ -15,7 +15,7 @@ from empymod.utils import check_hankel
 from ..utils import static_utils
 
 
-class DCSimulation_1D(BaseEMSimulation):
+class Simulation1DLayers(BaseEMSimulation):
     """
     1D DC Simulation
     """
@@ -145,7 +145,7 @@ class DCSimulation_1D(BaseEMSimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super(DCSimulation_1D, self).deleteTheseOnModelUpdate
+        toDelete = super(Simulation1DLayers, self).deleteTheseOnModelUpdate
         if self.fix_Jmatrix:
             return toDelete
 

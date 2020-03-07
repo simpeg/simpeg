@@ -1,7 +1,7 @@
 from SimPEG import Problem, Utils, Maps, Mesh
 from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC
-from SimPEG.EM.Static.DC import Survey, BaseDCProblem, Problem3D_CC
+from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields3DCellCentered
+from SimPEG.EM.Static.DC import Survey, BaseDCProblem, Simulation3DCellCentered
 from SimPEG.Utils import sdiag
 import numpy as np
 import scipy.sparse as sp
@@ -58,11 +58,11 @@ class BaseSPProblem(BaseDCProblem):
         return self.Div*(Mf*(MfQviI*vel))
 
 
-class Problem_CC(BaseSPProblem, Problem3D_CC):
+class Problem_CC(BaseSPProblem, Simulation3DCellCentered):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_CC
+    fieldsPair = Fields3DCellCentered
     modelType = None
     bc_type = "Mixed"
     coordinate_system = properties.StringChoice(
@@ -99,10 +99,10 @@ class Problem_CC_Jstore(Problem_CC):
         if getattr(self, '_G', None) is None:
             A = self.getA()
             self.Ainv = self.Solver(A, **self.solverOpts)
-            src = self.survey.srcList[0]
-            rx = src.rxList[0]
+            src = self.survey.source_list[0]
+            rx = src.receiver_list[0]
             P = rx.getP(self.mesh, "CC").toarray()
-            src = self.survey.srcList[0]
+            src = self.survey.source_list[0]
             self._G = (self.Ainv * P.T).T * src.evalDeriv(
                 self, v=Utils.sdiag(np.ones_like(self.model))
             )

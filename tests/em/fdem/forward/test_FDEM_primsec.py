@@ -165,21 +165,21 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         print('\n------- Testing Primary Secondary Source EB -> EB --------\n')
         # receivers
         self.rxlist = []
-        for rxtype in ['b', 'e']:
-            rx = getattr(fdem.Rx, 'Point_{}'.format(rxtype))
+        for rxtype in ['MagneticFluxDensity', 'ElectricField']:
+            rx = getattr(fdem.Rx, 'Point{}'.format(rxtype))
             for orientation in ['x', 'y', 'z']:
                 for comp in ['real', 'imag']:
                     self.rxlist.append(rx(rx_locs, component=comp,
                                        orientation=orientation))
 
         # primary
-        self.primarySimulation = fdem.Problem3D_b(meshp, sigmaMap=primaryMapping)
+        self.primarySimulation = fdem.Simulation3DMagneticFluxDensity(meshp, sigmaMap=primaryMapping)
         self.primarySimulation.solver = Solver
         primarySrc = fdem.Src.MagDipole(self.rxlist, freq=freq, loc=src_loc)
         self.primarySurvey = fdem.Survey([primarySrc])
 
         # Secondary Problem
-        self.secondarySimulation = fdem.Problem3D_b(meshs, sigmaMap=mapping)
+        self.secondarySimulation = fdem.Simulation3DMagneticFluxDensity(meshs, sigmaMap=mapping)
         self.secondarySimulation.Solver = Solver
         self.secondarySrc = fdem.Src.PrimSecMappedSigma(
                 self.rxlist, freq, self.primarySimulation,
@@ -188,7 +188,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondarySimulation.pair(self.secondarySurvey)
 
         # Full 3D problem to compare with
-        self.simulation3D = fdem.Problem3D_b(meshs, sigmaMap=mapping)
+        self.simulation3D = fdem.Simulation3DMagneticFluxDensity(meshs, sigmaMap=mapping)
         self.simulation3D.Solver = Solver
         self.survey3D = fdem.Survey([primarySrc])
         self.simulation3D.pair(self.survey3D)
@@ -224,15 +224,15 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         print('\n------- Testing Primary Secondary Source HJ -> EB --------\n')
         # receivers
         self.rxlist = []
-        for rxtype in ['b', 'e']:
-            rx = getattr(fdem.Rx, 'Point_{}'.format(rxtype))
+        for rxtype in ['MagneticFluxDensity', 'ElectricField']:
+            rx = getattr(fdem.Rx, 'Point{}'.format(rxtype))
             for orientation in ['x', 'y', 'z']:
                 for comp in ['real', 'imag']:
                     self.rxlist.append(rx(rx_locs, component=comp,
                                        orientation=orientation))
 
         # primary
-        self.primarySimulation = fdem.Problem3D_j(meshp, sigmaMap=primaryMapping)
+        self.primarySimulation = fdem.Simulation3DCurrentDensity(meshp, sigmaMap=primaryMapping)
         self.primarySimulation.solver = Solver
         s_e = np.zeros(meshp.nF)
         inds = meshp.nFx + utils.closestPoints(meshp, src_loc, gridLoc='Fz')
@@ -243,7 +243,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.primarySurvey = fdem.Survey([primarySrc])
 
         # Secondary Problem
-        self.secondarySimulation = fdem.Problem3D_e(meshs, sigmaMap=mapping)
+        self.secondarySimulation = fdem.Simulation3DElectricField(meshs, sigmaMap=mapping)
         self.secondarySimulation.Solver = Solver
         self.secondarySrc = fdem.Src.PrimSecMappedSigma(
                 self.rxlist, freq, self.primarySimulation,
@@ -253,7 +253,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondarySimulation.pair(self.secondarySurvey)
 
         # Full 3D problem to compare with
-        self.simulation3D = fdem.Problem3D_e(meshs, sigmaMap=mapping)
+        self.simulation3D = fdem.Simulation3DElectricField(meshs, sigmaMap=mapping)
         self.simulation3D.Solver = Solver
         s_e3D = np.zeros(meshs.nE)
         inds = (meshs.nEx + meshs.nEy +

@@ -56,7 +56,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Create a MAGsurvey
         rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
-        rxLoc = mag.point_receiver(rxLoc)
+        rxLoc = mag.Point(rxLoc)
         srcField = mag.SourceField([rxLoc], parameters=H0)
         survey = mag.MagneticSurvey(srcField)
 
@@ -74,7 +74,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         idenMap = maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        sim = mag.IntegralSimulation(
+        sim = mag.Simulation3DIntegral(
             self.mesh,
             survey=survey,
             chiMap=idenMap,

@@ -64,7 +64,7 @@ def run(plotIt=True):
     # Setup the boundary and initial conditions
     bc = np.array([-61.5, -20.7])
     h = np.zeros(M.nC) + bc[0]
-    prob = richards.RichardsSimulation(
+    prob = richards.SimulationNDCellCentered(
         M,
         hydraulic_conductivity=k_fun,
         water_retention=theta_fun,

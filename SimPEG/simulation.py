@@ -17,6 +17,12 @@ from . import props
 from .data import SyntheticData, Data
 from .survey import BaseSurvey
 from .utils import Counter, timeIt, count, mkvc
+from .utils.code_utils import deprecate_method, deprecate_property
+
+try:
+    from pymatsolver import Pardiso as DefaultSolver
+except ImportError:
+    from SimPEG import SolverLU as DefaultSolver
 
 __all__ = ['LinearSimulation', 'ExponentialSinusoidSimulation']
 
@@ -101,8 +107,6 @@ class Class(properties.Property):
         prop_doc = super(properties.Property, self).sphinx()
         prop_doc = None
         return '{doc}{default}'.format(doc=prop_doc, default=default_str)
-
-
 
 
 ##############################################################################
@@ -199,49 +203,10 @@ class BaseSimulation(props.HasModel):
                 getattr(self, mat).clean()  # clean factors
                 setattr(self, mat, None)  # set to none
 
-    @property
-    def Solver(self):
-        """
-        Deprecated solver property. Please use :code:`simulation.solver`
-        instead
-        """
-        warnings.warn(
-            "simulation.Solver will be deprecaited and replaced with "
-            "simulation.solver. Please update your code accordingly",
-            DeprecationWarning
-        )
-        return self.solver
+    Solver = deprecate_property(solver, 'Solver',
+        new_name='simulation.solver', removal_version='0.15.0')
 
-    @Solver.setter
-    def Solver(self, value):
-        warnings.warn(
-            "simulation.Solver will be deprecaited and replaced with "
-            "simulation.solver. Please update your code accordingly",
-            DeprecationWarning
-        )
-        self.solver = value
-
-    @property
-    def solverOpts(self):
-        """
-        Deprecated solver options. Please use :code:`simulation.solver_opts`
-        instead
-        """
-        warnings.warn(
-            "simulation.solverOpts will be deprecaited and replaced with "
-            "simulation.solver_opts. Please update your code accordingly",
-            DeprecationWarning
-        )
-        return self.solver
-
-    @solverOpts.setter
-    def solverOpts(self, value):
-        warnings.warn(
-            "simulation.solverOpts will be deprecaited and replaced with "
-            "simulation.solver_opts. Please update your code accordingly",
-            DeprecationWarning
-        )
-        self.solver_opts = value
+    solverOpts = deprecate_property(solver_opts, 'solverOpts', removal_version='0.15.0')
 
     ###########################################################################
     # Instantiation
@@ -250,7 +215,7 @@ class BaseSimulation(props.HasModel):
         # raise exception if user tries to set "mapping"
         if 'mapping' in kwargs.keys():
             raise Exception(
-                'Depreciated (in 0.4.0): use one of {}'.format(
+                'Deprecated (in 0.4.0): use one of {}'.format(
                     [p for p in self._props.keys() if 'Map' in p]
                 )
             )
@@ -261,24 +226,10 @@ class BaseSimulation(props.HasModel):
         super(BaseSimulation, self).__init__(**kwargs)
 
         if 'solver' not in kwargs.keys() and 'Solver' not in kwargs.keys():
-            self.solver = pymatsolver.Solver
-
-
+            self.solver = DefaultSolver
 
     ###########################################################################
     # Methods
-
-    def pair(self, survey):
-        """
-        Deprecated pairing method. Please use :code:`simulation.survey=survey`
-        instead
-        """
-        warnings.warn(
-            "simulation.pair(survey) will be deprecated. Please use "
-            "simulation.survey = survey",
-            DeprecationWarning
-        )
-        self.survey = survey
 
     def fields(self, m=None):
         """
@@ -425,15 +376,18 @@ class BaseSimulation(props.HasModel):
             standard_deviation=standard_deviation, noise_floor=noise_floor
         )
 
-    def makeSyntheticData(self, m, standard_deviation=0.05, f=None):
+    def pair(self, survey):
+        """
+        Deprecated pairing method. Please use :code:`simulation.survey=survey`
+        instead
+        """
         warnings.warn(
-            "makeSyntheticData will be deprecated in favor of "
-            "make_synthetic_data. Please update your code to use "
-            "make_synthetic_data", DeprecationWarning
+            "Simulation.pair(survey) will be deprecated. Please update your code "
+            "to instead use simulation.survey = survey, or pass it upon intialization "
+            "of the simulation object. This will be removed in version "
+            "0.15.0 of SimPEG", DeprecationWarning
         )
-        return self.make_synthetic_data(
-            m, standard_deviation=standard_deviation, f=f
-        )
+        survey.pair(self)
 
 
 class BaseTimeSimulation(BaseSimulation):
@@ -489,29 +443,9 @@ class BaseTimeSimulation(BaseSimulation):
         "Modeling times"
         return self.time_mesh.vectorNx
 
-    @property
-    def timeSteps(self):
-        warnings.warn(
-            "timeSteps will be deprecated in favor of time_steps. "
-            "Please update your code accordingly"
-        )
-        return self.time_steps
+    timeSteps = deprecate_property(time_steps, 'timeSteps', removal_version='0.15.0')
 
-    @timeSteps.setter
-    def timeSteps(self, value):
-        warnings.warn(
-            "timeSteps will be deprecated in favor of time_steps. "
-            "Please update your code accordingly"
-        )
-        self.time_steps = value
-
-    @property
-    def timeMesh(self):
-        warnings.warn(
-            "timeMesh will be deprecated in favor of time_mesh. "
-            "Please update your code accordingly"
-        )
-        return self.time_mesh
+    timeMesh = deprecate_property(time_mesh, 'timeMesh', removal_version='0.15.0')
 
     def dpred(self, m=None, f=None):
         """

@@ -41,7 +41,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create a MAGsurvey
         rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
-        rxList = magnetics.receivers.point_receiver(rxLoc)
+        rxList = magnetics.receivers.Point(rxLoc)
         srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
         survey = magnetics.survey.MagneticSurvey(srcField)
 
@@ -80,7 +80,7 @@ class AmpProblemTest(unittest.TestCase):
         idenMap = maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        simulation = magnetics.IntegralSimulation(
+        simulation = magnetics.Simulation3DIntegral(
             survey=survey,
             mesh=mesh,
             chiMap=idenMap,
@@ -117,7 +117,7 @@ class AmpProblemTest(unittest.TestCase):
         idenMap = maps.IdentityMap(nP=nC)
 
         # Create static map
-        simulation = magnetics.simulation.IntegralSimulation(
+        simulation = magnetics.simulation.Simulation3DIntegral(
                 mesh=mesh, survey=survey, chiMap=idenMap, actInd=surf,
                 store_sensitivities='ram'
         )
@@ -168,11 +168,11 @@ class AmpProblemTest(unittest.TestCase):
         # components of the field and add them up: :math:`|B| = \sqrt{( Bx^2 + Bx^2 + Bx^2 )}`
         #
 
-        rxList = magnetics.receivers.point_receiver(rxLoc, components=['bx', 'by', 'bz'])
+        rxList = magnetics.receivers.Point(rxLoc, components=['bx', 'by', 'bz'])
         srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
         surveyAmp = magnetics.survey.MagneticSurvey(srcField)
 
-        simulation = magnetics.simulation.IntegralSimulation(
+        simulation = magnetics.simulation.Simulation3DIntegral(
                 mesh=mesh, survey=surveyAmp, chiMap=idenMap,
                 actInd=surf, modelType='amplitude', store_sensitivities='forward_only'
         )
@@ -197,7 +197,7 @@ class AmpProblemTest(unittest.TestCase):
         mstart = np.ones(nC)*1e-4
 
         # Create the forward model operator
-        simulation = magnetics.simulation.IntegralSimulation(
+        simulation = magnetics.simulation.Simulation3DIntegral(
            survey=surveyAmp, mesh=mesh, chiMap=idenMap, actInd=actv,
            modelType='amplitude'
         )

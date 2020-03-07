@@ -2,13 +2,14 @@ import numpy as np
 import scipy as sp
 import properties
 import shutil
+from ....utils.code_utils import deprecate_class
 
 from ....utils import mkvc, sdiag, Zero
 from ....data import Data
 from ...base import BaseEMSimulation
 from .boundary_utils import getxBCyBC_CC
 from .survey import Survey
-from .fields import Fields_CC, Fields_N
+from .fields import Fields3DCellCentered, Fields3DNodal
 import dask
 import dask.array as da
 import multiprocessing
@@ -343,14 +344,14 @@ class BaseDCSimulation(BaseEMSimulation):
         return toDelete
 
 
-class Problem3D_CC(BaseDCSimulation):
+class Simulation3DCellCentered(BaseDCSimulation):
     """
     3D cell centered DC problem
     """
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_CC
+    fieldsPair = Fields3DCellCentered
     bc_type = 'Dirichlet'
 
     def __init__(self, mesh, **kwargs):
@@ -512,7 +513,8 @@ class Problem3D_CC(BaseDCSimulation):
 
     def setBC(self):
         if self.bc_type == 'Dirichlet':
-            print('Homogeneous Dirichlet is the natural BC for this CC discretization.')
+            if self.verbose:
+                print('Homogeneous Dirichlet is the natural BC for this CC discretization.')
             self.Div = sdiag(self.mesh.vol) * self.mesh.faceDiv
             self.Grad = self.Div.T
 
@@ -650,14 +652,14 @@ class Problem3D_CC(BaseDCSimulation):
             self.Grad = self.Div.T - P_BC*sdiag(y_BC)*M
 
 
-class Problem3D_N(BaseDCSimulation):
+class Simulation3DNodal(BaseDCSimulation):
     """
     3D nodal DC problem
     """
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces
-    fieldsPair = Fields_N
+    fieldsPair = Fields3DNodal
 
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation.__init__(self, mesh, **kwargs)
@@ -712,3 +714,20 @@ class Problem3D_N(BaseDCSimulation):
         # qDeriv = source.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+
+Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_N(Simulation3DNodal):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_CC(Simulation3DCellCentered):
+    pass

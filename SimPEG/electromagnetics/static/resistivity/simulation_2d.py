@@ -1,18 +1,19 @@
 import numpy as np
 from scipy.special import kn
 import properties
+from ....utils.code_utils import deprecate_class
 
 from ....utils import mkvc, sdiag, Zero
 from ...base import BaseEMSimulation
 from ....data import Data
 
 from .survey import Survey
-from .fields_2d import Fields_ky, Fields_ky_CC, Fields_ky_N
-from .fields import FieldsDC, Fields_CC, Fields_N
+from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
+from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from .boundary_utils import getxBCyBC_CC
 
 
-class BaseDCSimulation_2D(BaseEMSimulation):
+class BaseDCSimulation2D(BaseEMSimulation):
     """
     Base 2.5D DC problem
     """
@@ -25,7 +26,7 @@ class BaseDCSimulation_2D(BaseEMSimulation):
         "store the sensitivity", default=False
     )
 
-    fieldsPair = Fields_ky  # SimPEG.EM.Static.Fields_2D
+    fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
     nky = 15
     kys = np.logspace(-4, 1, nky)
@@ -274,7 +275,7 @@ class BaseDCSimulation_2D(BaseEMSimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super(BaseDCSimulation_2D, self).deleteTheseOnModelUpdate
+        toDelete = super(BaseDCSimulation2D, self).deleteTheseOnModelUpdate
         if self.sigmaMap is not None:
             toDelete += [
                 '_MnSigma', '_MnSigmaDerivMat',
@@ -396,19 +397,19 @@ class BaseDCSimulation_2D(BaseEMSimulation):
                 return (sdiag(u*vol*(-1./rho**2)))*(self.rhoDeriv * v)
 
 
-class Problem2D_CC(BaseDCSimulation_2D):
+class Simulation2DCellCentered(BaseDCSimulation2D):
     """
     2.5D cell centered DC problem
     """
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_CC
-    fieldsPair_fwd = Fields_CC
+    fieldsPair = Fields2DCellCentered
+    fieldsPair_fwd = Fields3DCellCentered
     bc_type = 'Mixed'
 
     def __init__(self, mesh, **kwargs):
-        BaseDCSimulation_2D.__init__(self, mesh, **kwargs)
+        BaseDCSimulation2D.__init__(self, mesh, **kwargs)
 
     def getA(self, ky):
         """
@@ -537,19 +538,19 @@ class Problem2D_CC(BaseDCSimulation_2D):
         self.Grad = self.Div.T - P_BC*sdiag(y_BC)*M
 
 
-class Problem2D_N(BaseDCSimulation_2D):
+class Simulation2DNodal(BaseDCSimulation2D):
     """
     2.5D nodal DC problem
     """
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_N
-    fieldsPair_fwd = Fields_N
+    fieldsPair = Fields2DNodal
+    fieldsPair_fwd = Fields3DNodal
     _gradT = None
 
     def __init__(self, mesh, **kwargs):
-        BaseDCSimulation_2D.__init__(self, mesh, **kwargs)
+        BaseDCSimulation2D.__init__(self, mesh, **kwargs)
         # self.setBC()
         self.solver_opts['is_symmetric'] = True
         self.solver_opts['is_positive_definite'] = True
@@ -602,3 +603,20 @@ class Problem2D_N(BaseDCSimulation_2D):
         # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+
+Simulation2DCellCentred = Simulation2DCellCentered  # UK and US
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Problem2D_N(Simulation2DNodal):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem2D_CC(Simulation2DCellCentered):
+    pass

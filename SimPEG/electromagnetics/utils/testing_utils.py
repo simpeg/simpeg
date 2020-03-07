@@ -32,10 +32,10 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     x = np.array([np.linspace(-5.*cs,-2.*cs,3),np.linspace(5.*cs,2.*cs,3)]) + cs/4. #don't sample right by the source, slightly off alignment from either staggered grid
     XYZ = utils.ndgrid(x,x,np.linspace(-2.*cs,2.*cs,5))
-    Rx0 = getattr(fdem.Rx, 'Point_' + comp[0])
-    if comp[2] == 'r':
+    Rx0 = getattr(fdem.Rx, 'Point' + comp[0])
+    if comp[-1] == 'r':
         real_or_imag = 'real'
-    elif comp[2] == 'i':
+    elif comp[-1] == 'i':
         real_or_imag = 'imag'
     rx0 = Rx0(XYZ, comp[1], 'imag')
 
@@ -68,19 +68,19 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     if fdemType == 'e':
         survey = fdem.Survey(Src)
-        prb = fdem.Problem3D_e(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DElectricField(mesh, sigmaMap=mapping)
 
     elif fdemType == 'b':
         survey = fdem.Survey(Src)
-        prb = fdem.Problem3D_b(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
 
     elif fdemType == 'j':
         survey = fdem.Survey(Src)
-        prb = fdem.Problem3D_j(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DCurrentDensity(mesh, sigmaMap=mapping)
 
     elif fdemType == 'h':
         survey = fdem.Survey(Src)
-        prb = fdem.Problem3D_h(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DMagneticField(mesh, sigmaMap=mapping)
 
     else:
         raise NotImplementedError()

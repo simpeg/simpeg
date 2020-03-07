@@ -107,7 +107,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
 
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
-    prb = DC.Problem2D_N(
+    prb = DC.Simulation2DNodal(
         mesh, survey=survey, rhoMap=mapping, storeJ=True,
         Solver=Solver, verbose=True
     )

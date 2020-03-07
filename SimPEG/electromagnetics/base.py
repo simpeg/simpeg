@@ -14,13 +14,7 @@ from ..survey import BaseSurvey, BaseSrc
 from ..utils import sdiag, Zero
 from .. import props
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
-
 __all__ = ['BaseEMSimulation', 'BaseEMSrc']
-
 
 
 ###############################################################################
@@ -52,8 +46,6 @@ class BaseEMSimulation(BaseSimulation):
     props.Reciprocal(mu, mui)
 
     # mapPair = IdentityMap  #: Type of mapping to pair with
-
-    solver = Solver  #: Type of solver to pair with
 
     verbose = False
     storeInnerProduct = True

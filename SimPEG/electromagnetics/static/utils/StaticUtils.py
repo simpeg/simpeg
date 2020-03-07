@@ -1,7 +1,4 @@
-import warnings
-warnings.warn(
-    'StaticUtils has been deprecated, please use static_utils',
-    DeprecationWarning
-)
+from ....utils.code_utils import deprecate_module
+deprecate_module('StaticUtils', 'static_utils', '0.15.0')
 
 from .static_utils import *

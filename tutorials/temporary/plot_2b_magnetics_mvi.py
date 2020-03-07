@@ -76,7 +76,7 @@ components = ["dbx_dz", "dby_dz", "dbz_dz"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = magnetics.receivers.point_receiver(
+receiver_list = magnetics.receivers.Point(
         receiver_locations, components=components
         )
 
@@ -228,7 +228,7 @@ cbar.set_label(
 
 # Define the forward simulation. Set modelType to 'vector'. By setting the 'forward_only'
 # keyword argument to false, we avoid storing a large dense matrix.
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, chiMap=model_map, actInd=ind_active,
     modelType='vector', forward_only=True
 )

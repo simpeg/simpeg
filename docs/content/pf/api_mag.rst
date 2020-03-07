@@ -143,7 +143,7 @@ Differential equation approach
 Mag Differential eq. approach
 =============================
 
-.. autoclass:: SimPEG.potential_fields.magnetics.DifferentialEquationSimulation
+.. autoclass:: SimPEG.potential_fields.magnetics.Simulation3DDifferential
     :show-inheritance:
     :members:
     :undoc-members:
@@ -153,7 +153,7 @@ Mag Differential eq. approach
 Mag Integral eq. approach
 =========================
 
-.. autoclass:: SimPEG.potential_fields.magnetics.IntegralSimulation
+.. autoclass:: SimPEG.potential_fields.magnetics.Simulation3DIntegral
     :show-inheritance:
     :members:
     :undoc-members:
@@ -183,7 +183,7 @@ Magnetics Source
 Magnetics Source
 ================
 
-.. autoclass:: SimPEG.potential_fields.magnetics.point_receiver
+.. autoclass:: SimPEG.potential_fields.magnetics.Point
     :show-inheritance:
     :members:
     :undoc-members:

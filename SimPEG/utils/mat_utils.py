@@ -1,5 +1,6 @@
 from __future__ import division
 import numpy as np
+from .code_utils import deprecate_method
 
 from discretize.utils import (
     Zero, Identity, mkvc, sdiag, sdInv, speye, kron3, spzeros, ddx, av,
@@ -7,9 +8,7 @@ from discretize.utils import (
     inv2X2BlockDiagonal, TensorType, makePropertyTensor, invPropertyTensor,
 )
 
-
-def avExtrap(**kwargs):
-    raise Exception("avExtrap has been deprecated. Use av_extrap instead.")
+avExtrap = deprecate_method(av_extrap, 'avExtrap', removal_version='0.15.0')
 
 
 def diagEst(matFun, n, k=None, approach='Probing'):

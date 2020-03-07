@@ -57,7 +57,7 @@ def run(plotIt=True):
 
     # Create a MAGsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
-    rxLoc = magnetics.receivers.point_receiver(rxLoc, components=["tmi"])
+    rxLoc = magnetics.receivers.Point(rxLoc, components=["tmi"])
     srcField = magnetics.sources.SourceField(receiver_list=[rxLoc], parameters=H0)
     survey = magnetics.survey.MagneticSurvey(srcField)
 
@@ -75,7 +75,7 @@ def run(plotIt=True):
     idenMap = maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
-    simulation = magnetics.simulation.IntegralSimulation(
+    simulation = magnetics.simulation.Simulation3DIntegral(
             survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv,
             )
 

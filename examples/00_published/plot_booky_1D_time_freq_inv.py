@@ -188,13 +188,13 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Set Rx (In-phase and Quadrature)
     rxOffset = 7.86
-    bzr = FDEM.Rx.Point_bSecondary(
+    bzr = FDEM.Rx.PointMagneticFluxDensitySecondary(
         np.array([[rxOffset, 0., src_height_resolve]]),
         orientation='z',
         component='real'
     )
 
-    bzi = FDEM.Rx.Point_b(
+    bzi = FDEM.Rx.PointMagneticFluxDensity(
         np.array([[rxOffset, 0., src_height_resolve]]),
         orientation='z',
         component='imag'
@@ -209,7 +209,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Set FDEM survey (In-phase and Quadrature)
     survey = FDEM.Survey(srcList)
-    prb = FDEM.Problem3D_b(
+    prb = FDEM.Simulation3DMagneticFluxDensity(
         mesh, sigmaMap=mapping, Solver=Solver
     )
     prb.survey = survey
@@ -285,7 +285,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     peakTime = 1.0000000e-02
     a = 3.
 
-    dbdt_z = TDEM.Rx.Point_dbdt(
+    dbdt_z = TDEM.Rx.PointMagneticFluxTimeDerivative(
         locations=rxLoc, times=times_off[:-3]+offTime, orientation='z'
     )  # vertical db_dt
 
@@ -304,7 +304,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
         (peakTime/5, 5), ((offTime-peakTime)/5, 5),
         (1e-5, 5), (5e-5, 5), (1e-4, 10), (5e-4, 15)
     ]
-    prob = TDEM.Problem3D_e(
+    prob = TDEM.Simulation3DElectricField(
         mesh, time_steps=timeSteps, sigmaMap=mapping, Solver=Solver
     )
     survey = TDEM.Survey(srcList)

@@ -14,7 +14,7 @@ from pymatsolver import Pardiso
 
 class TestGroundedSourceTDEM_j(unittest.TestCase):
 
-    prob_type = "j"
+    prob_type = 'CurrentDensity'
 
     @classmethod
     def setUpClass(self):
@@ -65,7 +65,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             (1e-6, 20), (1e-5, 30), (3e-5, 30), (1e-4, 40), (3e-4, 30),
             (1e-3, 20), (1e-2, 17)
         ]
-        prob = getattr(tdem, "Problem3D_{}".format(self.prob_type))(
+        prob = getattr(tdem, "Simulation3D{}".format(self.prob_type))(
             mesh, timeSteps=timeSteps, mu=mu, sigmaMap=maps.ExpMap(mesh),
             Solver=Pardiso
         )
@@ -145,7 +145,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
 
 class TestGroundedSourceTDEM_h(TestGroundedSourceTDEM_j):
 
-    prob_type = "h"
+    prob_type = 'MagneticField'
 
 
 if __name__ == '__main__':
