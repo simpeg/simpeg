@@ -55,13 +55,13 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         # Set current model
         self.model = m
         # Initiate the Jv list
-        # Jv = []
+        Jv = []
         number_of_frequencies = len(self.survey.frequencies) 
         number_of_components = len(self.survey.get_sources_by_frequency(self.survey.frequencies[0])[0].receiver_list)
         n_dim = number_of_frequencies * number_of_components
         m_dim = int(self.survey.nD / (number_of_components * number_of_frequencies))
-        Jv = np.zeros((m_dim, n_dim))
-        col = 0
+        # Jv = np.zeros((m_dim, n_dim))
+        # col = 0
 
         # Loop all the frequenies
         for nF, freq in enumerate(self.survey.frequencies):
@@ -78,12 +78,14 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 # Calculate the projection derivatives
                 for rx in src.receiver_list:
                     # Calculate dP/du*du/dm*v
-                    Jv[:, col] = rx.evalDeriv(src, self.mesh, f, mkvc(du_dm_v))
-                    col += 1
+                    # Jv[:, col] = rx.evalDeriv(src, self.mesh, f, mkvc(du_dm_v))
+                    # col += 1
+                    Jv.append(da.from_delayed(dask.delayed(rx.evalDeriv)(src, self.mesh, f, mkvc(du_dm_v)), shape=(m_dim,), dtype=float))
             # when running full inversion clearing the fields creates error and inversion crashes
             # self.Ainv[nF].clean()
-        return Jv.flatten('F')
-        # return da.reshape(Jv, ())
+        # Jv_ = da.hstack(Jv).compute()
+        # return Jv.flatten('F')
+        return da.concatenate(Jv, axis=0).compute()
 
     def Jtvec(self, m, v, f=None):
         """
