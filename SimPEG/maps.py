@@ -3328,9 +3328,9 @@ class TileMap(IdentityMap):
         """
         kwargs.pop('mesh', None)
         if global_mesh._meshType != 'TREE':
-            raise TypeError('global_mesh must be a TreeMesh')
+            raise ValueError('global_mesh must be a TreeMesh')
         if local_mesh._meshType != 'TREE':
-            raise TypeError('local_mesh must be a TreeMesh')
+            raise ValueError('local_mesh must be a TreeMesh')
 
         super(TileMap, self).__init__(**kwargs)
         self.global_mesh = global_mesh
