@@ -3306,26 +3306,36 @@ class ParametricBlockInLayer(ParametricLayer):
 
 class TileMap(IdentityMap):
     """
-        Mapping for tiled inversion
+        Mapping for tiled inversion.
+
+        Uses volume averaging to map a model defined on a global mesh to the
+        local mesh. Everycell in the local mesh must also be in the global mesh.
     """
 
     tol = 1e-8  # Tolerance to avoid zero division
     components = 1 # Number of components in the model. =3 for vector model
 
-    def __init__(self, *args, **kwargs):
-
-        assert len(args) == 3, ('Mapping requires a tuple' +
-                                '(global_mesh, global_active, local_mesh)')
+    def __init__(self, global_mesh, global_active, local_mesh, **kwargs):
+        """
+        Parameters
+        ----------
+        global_mesh : discretize.TreeMesh
+            Global TreeMesh defining the entire domain.
+        global_active : bool, array of bool, or array of indices
+            Defines the active cells in the global_mesh.
+        local_mesh : discretize.TreeMesh
+            Local TreeMesh for the simulation.
+        """
+        kwargs.pop('mesh', None)
+        if global_mesh._meshType != 'TREE':
+            raise TypeError('global_mesh must be a TreeMesh')
+        if local_mesh._meshType != 'TREE':
+            raise TypeError('local_mesh must be a TreeMesh')
 
         super(TileMap, self).__init__(**kwargs)
-        self.global_mesh = args[0]
-        self.global_active = args[1]
-        self.local_mesh = args[2]
-
-        assert np.all([
-            self.global_mesh._meshType == "TREE",
-            self.local_mesh._meshType == "TREE"
-            ]), "TileMap currently only available for TreeMesh."
+        self.global_mesh = global_mesh
+        self.global_active = global_active
+        self.local_mesh = local_mesh
 
         if not isinstance(self.global_active, bool):
             temp = np.zeros(self.global_mesh.nC, dtype='bool')
@@ -3368,8 +3378,6 @@ class TileMap(IdentityMap):
             self.local_active = mkvc(np.sum(P, axis=1) > 0)
 
             P = P[self.local_active, :]
-
-            sumRow = mkvc(np.sum(P, axis=1) + self.tol)
 
             self._P = sp.block_diag([
                 sdiag(1./self.local_mesh.vol[self.local_active]) * P
