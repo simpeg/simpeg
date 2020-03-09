@@ -331,7 +331,7 @@ def plot_pseudoSection(
     midx, midz = source_receiver_midpoints(data.survey)
     if midx.shape[1] == 2:
         min_x, min_y = np.min(midx, axis=0)
-        max_x, max_y = np.max(midx, axis=1)
+        max_x, max_y = np.max(midx, axis=0)
         if max_x - min_x > max_y-min_y:
             midx = midx[:, 0]
         else:
