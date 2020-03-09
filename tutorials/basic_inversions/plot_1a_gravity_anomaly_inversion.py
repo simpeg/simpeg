@@ -39,7 +39,7 @@ from SimPEG import (
     directives, inversion, utils
     )
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 3
 
 #############################################
 # Define File Names
@@ -77,11 +77,13 @@ dobs = dobs[:, -1]
 # Plot
 fig = plt.figure(figsize=(7, 5))
 
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.85])
 plot2Ddata(receiver_locations, dobs, ax=ax1, contourOpts={"cmap": "RdBu_r"})
 ax1.set_title('Gravity Anomaly')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('y (m)')
 
-ax2 = fig.add_axes([0.82, 0.05, 0.03, 0.9])
+ax2 = fig.add_axes([0.82, 0.1, 0.03, 0.85])
 norm = mpl.colors.Normalize(
     vmin=-np.max(np.abs(dobs)), vmax=np.max(np.abs(dobs))
 )
@@ -192,7 +194,7 @@ starting_model = background_density*np.ones(nC)
 
 simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, rhoMap=model_map,
-    actInd=ind_active, forward_only=False
+    actInd=ind_active
 )
 
 
@@ -295,14 +297,15 @@ true_model = true_model[ind_active]
 fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.8])
 mesh.plotSlice(
     plotting_map*true_model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
     clim=(np.min(true_model), np.max(true_model)), pcolorOpts={'cmap': 'jet'}
     )
 ax1.set_title('Model slice at y = 0 m')
 
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+
+ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
 norm = mpl.colors.Normalize(vmin=np.min(true_model), vmax=np.max(true_model))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='%.1e'
@@ -318,14 +321,14 @@ plt.show()
 fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.8])
 mesh.plotSlice(
     plotting_map*recovered_model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
     clim=(np.min(recovered_model), np.max(recovered_model)), pcolorOpts={'cmap': 'jet'}
 )
 ax1.set_title('Model slice at y = 0 m')
 
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
 norm = mpl.colors.Normalize(vmin=np.min(recovered_model), vmax=np.max(recovered_model))
 cbar = mpl.colorbar.ColorbarBase(
         ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet
@@ -354,18 +357,22 @@ ax2 = 3*[None]
 norm = 3*[None]
 cbar = 3*[None]
 cplot = 3*[None]
-v_lim = [np.max(np.abs(dobs)), np.max(np.abs(dobs)), 3]
+v_lim = [
+    np.max(np.abs(dobs)), np.max(np.abs(dobs)), np.max(np.abs(data_array[:, 2]))
+]
 
 for ii in range(0, 3):
     
-    ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.05, 0.25, 0.9])
+    ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.11, 0.23, 0.84])
     cplot[ii] = plot2Ddata(
         receiver_list[0].locations, data_array[:, ii], ax=ax1[ii], ncontour=30,
         clim=(-v_lim[ii], v_lim[ii]), contourOpts={"cmap": "RdBu_r"}
     )
     ax1[ii].set_title(plot_title[ii])
+    ax1[ii].set_xlabel('x (m)')
+    ax1[ii].set_ylabel('y (m)')
     
-    ax2[ii] = fig.add_axes([0.33*ii+0.27, 0.05, 0.01, 0.9])
+    ax2[ii] = fig.add_axes([0.33*ii+0.27, 0.11, 0.01, 0.85])
     norm[ii] = mpl.colors.Normalize(vmin=-v_lim[ii], vmax=v_lim[ii])
     cbar[ii] = mpl.colorbar.ColorbarBase(
         ax2[ii], norm=norm[ii], orientation='vertical', cmap=mpl.cm.RdBu_r

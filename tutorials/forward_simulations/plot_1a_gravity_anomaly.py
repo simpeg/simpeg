@@ -3,7 +3,7 @@
 Gravity Simulation on a Tensor Mesh
 ===================================
 
-Here we use the module *SimPEG.potential_fields.gravity* to predict gravity 
+Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
 anomaly data for a synthetic density contrast model. The simulation is
 carried out on a tensor mesh. For this tutorial, we focus on the following:
 
@@ -32,6 +32,8 @@ from discretize.utils import mkvc
 from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
 from SimPEG import maps
 from SimPEG.potential_fields import gravity
+
+save_file = False
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -146,14 +148,16 @@ model[ind_sphere] = sphere_density
 fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 mesh.plotSlice(
     plotting_map*model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
     clim=(np.min(model), np.max(model)), pcolorOpts={'cmap': 'jet'}
     )
 ax1.set_title('Model slice at y = 0 m')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('z (m)')
 
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(vmin=np.min(model), vmax=np.max(model))
 cbar = mpl.colorbar.ColorbarBase(
         ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet
@@ -172,13 +176,13 @@ plt.show()
 #
 # Here we demonstrate how to predict gravity anomaly data using the integral
 # formulation.
-# 
+#
 
-# Define the forward simulation. By setting the 'forward_only' keyword argument
-# to false, we avoid storing a large dense matrix.
+# Define the forward simulation. By setting the 'store_sensitivities' keyword
+# argument to "forward_only", we simulate the data without storing the sensitivities
 simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, rhoMap=model_map,
-    actInd=ind_active, forward_only=True
+    actInd=ind_active, store_sensitivities="forward_only"
 )
 
 # Compute predicted data for some model
@@ -187,11 +191,13 @@ dpred = simulation.dpred(model)
 # Plot
 fig = plt.figure(figsize=(7, 5))
 
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.1, 0.1, 0.75, 0.85])
 plot2Ddata(receiver_list[0].locations, dpred, ax=ax1, contourOpts={"cmap": "RdBu_r"})
 ax1.set_title('Gravity Anomaly (Z-component)')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('y (m)')
 
-ax2 = fig.add_axes([0.82, 0.05, 0.03, 0.9])
+ax2 = fig.add_axes([0.82, 0.1, 0.03, 0.85])
 norm = mpl.colors.Normalize(
     vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred))
 )
@@ -208,38 +214,33 @@ plt.show()
 # ---------------------------
 #
 # Write the data and topography
-# 
+#
+
+if save_file == True:
+
+    fname = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_topo.txt'
+    np.savetxt(
+        fname,
+        np.c_[xyz_topo],
+        fmt='%.4e'
+    )
+
+    maximum_anomaly = np.max(np.abs(dpred))
+    noise = 0.01*maximum_anomaly*np.random.rand(len(dpred))
+    fname = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_data.obs'
+    np.savetxt(
+        fname,
+        np.c_[receiver_locations, dpred + noise],
+        fmt='%.4e'
+    )
 
 
-fname = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_topo.txt'
-np.savetxt(
-    fname,
-    np.c_[xyz_topo],
-    fmt='%.4e'
-)
+    output_model = plotting_map*model
+    output_model[np.isnan(output_model)] = 0.
 
-maximum_anomaly = np.max(np.abs(dpred))
-noise = 0.01*maximum_anomaly*np.random.rand(len(dpred))
-fname = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_data.obs'
-np.savetxt(
-    fname,
-    np.c_[receiver_locations, dpred + noise],
-    fmt='%.4e'
-)
-
-
-output_model = plotting_map*model
-output_model[np.isnan(output_model)] = 0.
-
-fname = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\true_model.txt'
-np.savetxt(
-    fname,
-    output_model,
-    fmt='%.4e'
-)
-
-
-
-
-
-
+    fname = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\true_model.txt'
+    np.savetxt(
+        fname,
+        output_model,
+        fmt='%.4e'
+    )

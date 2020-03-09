@@ -22,7 +22,8 @@ import properties
 from discretize.Tests import checkDerivative
 
 from .utils import (
-    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag, mat_utils
+    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag,
+    mat_utils, speye
 )
 
 
@@ -3303,9 +3304,111 @@ class ParametricBlockInLayer(ParametricLayer):
             return sp.csr_matrix(self._deriv3d(m))
 
 
+class TileMap(IdentityMap):
+    """
+        Mapping for tiled inversion.
+
+        Uses volume averaging to map a model defined on a global mesh to the
+        local mesh. Everycell in the local mesh must also be in the global mesh.
+    """
+
+    tol = 1e-8  # Tolerance to avoid zero division
+    components = 1 # Number of components in the model. =3 for vector model
+
+    def __init__(self, global_mesh, global_active, local_mesh, **kwargs):
+        """
+        Parameters
+        ----------
+        global_mesh : discretize.TreeMesh
+            Global TreeMesh defining the entire domain.
+        global_active : bool, array of bool, or array of indices
+            Defines the active cells in the global_mesh.
+        local_mesh : discretize.TreeMesh
+            Local TreeMesh for the simulation.
+        """
+        kwargs.pop('mesh', None)
+        if global_mesh._meshType != 'TREE':
+            raise ValueError('global_mesh must be a TreeMesh')
+        if local_mesh._meshType != 'TREE':
+            raise ValueError('local_mesh must be a TreeMesh')
+
+        super(TileMap, self).__init__(**kwargs)
+        self.global_mesh = global_mesh
+        self.global_active = global_active
+        self.local_mesh = local_mesh
+
+        if not isinstance(self.global_active, bool):
+            temp = np.zeros(self.global_mesh.nC, dtype='bool')
+            temp[self.global_active] = True
+            self.global_active = temp
+
+        self.P
+
+    @property
+    def local_active(self):
+        """
+        This is the local_active of the global_active used in the global problem.
+        """
+        return getattr(self, '_local_active', None)
+
+    @local_active.setter
+    def local_active(self, local_active):
+
+        if not isinstance(local_active, bool):
+            temp = np.zeros(self.local_mesh.nC, dtype='bool')
+            temp[local_active] = True
+            local_active = temp
+
+        self._local_active = local_active
+
+    @property
+    def P(self):
+        """
+            Set the projection matrix with partial volumes
+        """
+        if getattr(self, '_P', None) is None:
+
+            in_local = self.local_mesh._get_containing_cell_indexes(self.global_mesh.gridCC)
+
+            P = sp.csr_matrix(
+                (self.global_mesh.vol, (in_local, np.arange(self.global_mesh.nC))),
+                shape=(self.local_mesh.nC, self.global_mesh.nC)
+            ) * speye(self.global_mesh.nC)[:, self.global_active]
+
+            self.local_active = mkvc(np.sum(P, axis=1) > 0)
+
+            P = P[self.local_active, :]
+
+            self._P = sp.block_diag([
+                sdiag(1./self.local_mesh.vol[self.local_active]) * P
+                for ii in range(self.components)])
+
+        return self._P
+
+    def _transform(self, m):
+        return self.P * m
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        return self.P.shape
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+        """
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
 ###############################################################################
 #                                                                             #
-#                              Depreciated Maps                               #
+#                              Deprecated Maps                               #
 #                                                                             #
 ###############################################################################
 

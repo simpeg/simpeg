@@ -49,7 +49,9 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
-# sphinx_gallery_thumbnail_number = 2
+save_file = False
+
+# sphinx_gallery_thumbnail_number = 4
 
 
 ###############################################################
@@ -83,7 +85,7 @@ data_type = 'volt'
 end_locations = np.r_[-400., 400]
 station_separation = 50.
 dipole_separation = 25.
-n = 8 
+n = 8
 
 # Generate DC survey line
 dc_survey = generate_dcip_survey_line(
@@ -186,15 +188,17 @@ fig = plt.figure(figsize=(8.5, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_mod = np.log10(conductivity_model)
 
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 mesh.plotImage(
     plotting_map*log_mod, ax=ax1, grid=False,
     clim=(np.log10(resistor_conductivity), np.log10(conductor_conductivity)),
     pcolorOpts={'cmap':'jet'}
 )
 ax1.set_title('Conductivity Model')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('z (m)')
 
-ax2 = fig.add_axes([0.87, 0.05, 0.05, 0.9])
+ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(vmin=np.log10(resistor_conductivity), vmax=np.log10(conductor_conductivity))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, cmap=mpl.cm.jet, orientation='vertical', format="$10^{%.1f}$"
@@ -238,7 +242,7 @@ dpred_dc = dc_simulation.dpred(conductivity_model)
 dc_data = data.Data(dc_survey, dobs=dpred_dc)
 
 # Plot apparent conductivity pseudo-section
-fig = plt.figure(figsize=(11, 5))
+fig = plt.figure(figsize=(12, 5))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 plot_pseudoSection(
@@ -255,23 +259,25 @@ plt.show()
 # -------------------------
 #
 
-# Add 5% Gaussian noise to each datum
-dc_noise = 0.05*dpred_dc*np.random.rand(len(dpred_dc))
+if save_file == True:
 
-# Write out data at their original electrode locations (not shifted)
-data_array = np.c_[
-    electrode_locations,
-    dpred_dc + dc_noise
-    ]
+    # Add 5% Gaussian noise to each datum
+    dc_noise = 0.05*dpred_dc*np.random.rand(len(dpred_dc))
 
-fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\dc_data.obs'
-np.savetxt(fname, data_array, fmt='%.4e')
+    # Write out data at their original electrode locations (not shifted)
+    data_array = np.c_[
+        electrode_locations,
+        dpred_dc + dc_noise
+        ]
 
-fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\true_conductivity.txt'
-np.savetxt(fname, conductivity_map*conductivity_model, fmt='%.4e')
+    fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\dc_data.obs'
+    np.savetxt(fname, data_array, fmt='%.4e')
 
-fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\xyz_topo.txt'
-np.savetxt(fname, xyz_topo, fmt='%.4e')
+    fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\true_conductivity.txt'
+    np.savetxt(fname, conductivity_map*conductivity_model, fmt='%.4e')
+
+    fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\xyz_topo.txt'
+    np.savetxt(fname, xyz_topo, fmt='%.4e')
 
 #######################################################################
 # Predict IP Resistivity Data
@@ -317,11 +323,13 @@ chargeability_model[ind_chargeable] = sphere_chargeability
 # Plot Chargeability Model
 fig = plt.figure(figsize=(8.5, 4))
 
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.1, 0.1, 0.75, 0.78])
 mesh.plotImage(plotting_map*chargeability_model, ax=ax1, grid=False, pcolorOpts={'cmap':'plasma'})
 ax1.set_title('Intrinsic Chargeability')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('z (m)')
 
-ax2 = fig.add_axes([0.87, 0.05, 0.05, 0.9])
+ax2 = fig.add_axes([0.87, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(vmin=0, vmax=sphere_chargeability)
 cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation='vertical', cmap=mpl.cm.plasma)
 cbar.set_label(
@@ -353,19 +361,28 @@ ip_data = data.Data(ip_survey, dobs=dpred_ip)
 # Plot apparent chargeability. To accomplish this, we must normalize the IP
 # voltage by the DC voltage. This is then multiplied by 1000 so that our
 # apparent chargeability is in units mV/V.
-fig = plt.figure(figsize=(11, 5))
+fig = plt.figure(figsize=(12, 9))
+
+# Plot apparent conductivity
+ax1 = fig.add_axes([0.05, 0.55, 0.8, 0.42])
+plot_pseudoSection(
+    dc_data, ax=ax1, survey_type='dipole-dipole',
+    data_type='appConductivity', space_type='half-space', scale='log',
+    pcolorOpts={'cmap':'jet'}
+)
+ax1.set_title('Apparent Conductivity [S/m]')
 
 # Convert from voltage measurement to apparent chargeability by normalizing by
 # the DC voltage
 apparent_chargeability = dpred_ip/dpred_dc
 
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax2 = fig.add_axes([0.05, 0.05, 0.8, 0.42])
 plot_pseudoSection(
-    ip_data, dobs=apparent_chargeability, ax=ax1, survey_type='dipole-dipole',
+    ip_data, dobs=apparent_chargeability, ax=ax2, survey_type='dipole-dipole',
     data_type='appChargeability', space_type='half-space', scale='linear',
     pcolorOpts={'cmap':'plasma'}
 )
-ax1.set_title('Apparent Chargeability (V/V)')
+ax2.set_title('Apparent Chargeability (V/V)')
 
 plt.show()
 
@@ -374,17 +391,19 @@ plt.show()
 # ---------------
 #
 
-# Add 1% Gaussian noise based on the DC data (not the IP data)
-ip_noise = 0.01*np.abs(dpred_dc)*np.random.rand(len(dpred_ip))
+if save_file == True:
 
-data_array = np.c_[
-    electrode_locations,
-    dpred_ip + ip_noise
-    ]
+    # Add 1% Gaussian noise based on the DC data (not the IP data)
+    ip_noise = 0.01*np.abs(dpred_dc)*np.random.rand(len(dpred_ip))
 
-fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\ip_data.obs'
-np.savetxt(fname, data_array, fmt='%.4e')
+    data_array = np.c_[
+        electrode_locations,
+        dpred_ip + ip_noise
+        ]
 
-fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\true_chargeability.txt'
-np.savetxt(fname, chargeability_map*chargeability_model, fmt='%.4e')
+    fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\ip_data.obs'
+    np.savetxt(fname, data_array, fmt='%.4e')
+
+    fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\true_chargeability.txt'
+    np.savetxt(fname, chargeability_map*chargeability_model, fmt='%.4e')
 

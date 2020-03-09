@@ -48,7 +48,7 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 1
 
 
 #############################################
@@ -115,29 +115,25 @@ dc_data = data.Data(dc_survey, dobs=dobs_dc)
 ip_data = data.Data(ip_survey, dobs=dobs_ip)
 
 # Plot apparent conductivity using pseudo-section
-fig = plt.figure(figsize=(11, 5))
+fig = plt.figure(figsize=(11, 9))
 
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.05, 0.55, 0.8, 0.45])
 plot_pseudoSection(
     dc_data, ax=ax1, survey_type='dipole-dipole', data_type='appConductivity',
     space_type='half-space', scale='log', pcolorOpts={'cmap':'jet'}
 )
 ax1.set_title('Apparent Conductivity [S/m]')
 
-plt.show()
-
 # Plot apparent chargeability in pseudo-section
-fig = plt.figure(figsize=(11, 5))
-
 apparent_chargeability = ip_data.dobs/dc_data.dobs
 
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax2 = fig.add_axes([0.05, 0.05, 0.8, 0.45])
 plot_pseudoSection(
-    ip_data, dobs=apparent_chargeability, ax=ax1, survey_type='dipole-dipole',
+    ip_data, dobs=apparent_chargeability, ax=ax2, survey_type='dipole-dipole',
     data_type='appChargeability', space_type='half-space', scale='linear',
     pcolorOpts={'cmap':'plasma'}
 )
-ax1.set_title('Apparent Chargeability (V/V)')
+ax2.set_title('Apparent Chargeability (V/V)')
 
 plt.show()
 
@@ -170,7 +166,7 @@ ip_data.noise_floor = uncertainties_ip
 #
 
 dh = 10.                                                    # base cell width
-dom_width_x = 2400.                                         # domain width x                                        # domain width y
+dom_width_x = 2400.                                         # domain width x
 dom_width_z = 1200.                                         # domain width z
 nbcx = 2**int(np.round(np.log(dom_width_x/dh)/np.log(2.)))  # num. base cells x
 nbcz = 2**int(np.round(np.log(dom_width_z/dh)/np.log(2.)))  # num. base cells z
@@ -304,6 +300,9 @@ dc_inverse_problem = inverse_problem.BaseInvProblem(
 # criteria for the inversion and saving inversion results at each iteration.
 #
 
+# Apply and update sensitivity weighting as the model updates
+update_sensitivity_weighting = directives.UpdateSensitivityWeights()
+
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
@@ -313,9 +312,6 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 # for each trade-off paramter value.
 beta_schedule = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
 
-# Apply and update sensitivity weighting as the model updates
-update_sensitivity_weighting = directives.UpdateSensitivityWeights()
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
@@ -323,8 +319,8 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 target_misfit = directives.TargetMisfit(chifact=1)
 
 directives_list = [
-        starting_beta, beta_schedule, save_iteration,
-        update_sensitivity_weighting, target_misfit
+        update_sensitivity_weighting, starting_beta, beta_schedule,
+        save_iteration, target_misfit
         ]
 
 #####################################################################
@@ -357,15 +353,17 @@ fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.ActiveCells(mesh, ind_active, np.nan)
 
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.83])
 mesh.plotImage(
     plotting_map*true_conductivity_model, ax=ax1, grid=False,
     clim=(np.min(true_conductivity_model), np.max(true_conductivity_model)),
     pcolorOpts={'cmap': 'jet'}
 )
 ax1.set_title('True Conductivity Model')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('z (m)')
 
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.83])
 norm = mpl.colors.Normalize(
         vmin=np.min(true_conductivity_model), vmax=np.max(true_conductivity_model)
         )
@@ -383,15 +381,17 @@ plt.show()
 # Plot Recovered Model
 fig = plt.figure(figsize=(9, 4))
 
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.83])
 mesh.plotImage(
     plotting_map*recovered_conductivity_model, normal='Y', ax=ax1, grid=False,
     clim=(np.min(true_conductivity_model), np.max(true_conductivity_model)),
     pcolorOpts={'cmap': 'jet'}
 )
 ax1.set_title('Recovered Conductivity Model')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('z (m)')
 
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.83])
 norm = mpl.colors.Normalize(vmin=np.min(true_conductivity_model), vmax=np.max(true_conductivity_model))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='10^%.1f'
@@ -412,7 +412,7 @@ dc_data_predicted = data.Data(dc_survey, dobs=dpred_dc)
 data_array = [dc_data, dc_data_predicted, dc_data]
 dobs_array = [None, None, (dobs_dc-dpred_dc)/uncertainties_dc]
 
-fig = plt.figure(figsize=(17, 4))
+fig = plt.figure(figsize=(17, 5.5))
 plot_title=['Observed', 'Predicted', 'Normalized Misfit']
 plot_type=['appConductivity', 'appConductivity', 'misfitMap']
 plot_units=['S/m', 'S/m', '']
@@ -510,15 +510,15 @@ ip_inverse_problem = inverse_problem.BaseInvProblem(
 # Here we define the directives in the same manner as the DC inverse problem.
 #
 
+update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
 beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 target_misfit = directives.TargetMisfit(chifact=1.)
 
 directives_list = [
-        starting_beta, beta_schedule, save_iteration,
-        update_sensitivity_weighting, target_misfit
+        update_sensitivity_weighting, starting_beta, beta_schedule,
+        save_iteration, target_misfit
         ]
 
 #####################################################
@@ -551,15 +551,17 @@ fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.ActiveCells(mesh, ind_active, np.nan)
 
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.83])
 mesh.plotImage(
     plotting_map*true_chargeability_model, ax=ax1, grid=False,
     clim=(np.min(true_chargeability_model), np.max(true_chargeability_model)),
     pcolorOpts={'cmap':'plasma'}
     )
 ax1.set_title('True Chargeability Model')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('z (m)')
 
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+ax2 = fig.add_axes([0.85, 0.12, 0.03, 0.83])
 norm = mpl.colors.Normalize(
         vmin=np.min(true_chargeability_model), vmax=np.max(true_chargeability_model)
         )
@@ -577,15 +579,17 @@ plt.show()
 # Plot Recovered Model
 fig = plt.figure(figsize=(9, 4))
 
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.83])
 mesh.plotImage(
     plotting_map*recovered_chargeability_model, normal='Y', ax=ax1, grid=False,
     clim=(np.min(recovered_chargeability_model), np.max(recovered_chargeability_model)),
     pcolorOpts={'cmap':'plasma'}
 )
 ax1.set_title('Recovered Chargeability Model')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('z (m)')
 
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+ax2 = fig.add_axes([0.85, 0.12, 0.03, 0.83])
 norm = mpl.colors.Normalize(
         vmin=np.min(recovered_chargeability_model), vmax=np.max(recovered_chargeability_model)
         )
@@ -610,7 +614,7 @@ dobs_array = np.c_[
     dobs_ip/dobs_dc, dpred_ip/dobs_dc, (dobs_ip-dpred_ip)/uncertainties_ip
     ]
 
-fig = plt.figure(figsize=(17, 4))
+fig = plt.figure(figsize=(17, 5.5))
 plot_title=['Observed', 'Predicted', 'Normalized Misfit']
 plot_type=['appChargeability', 'appChargeability', 'volt']
 scale = ['linear', 'linear', 'linear']
@@ -622,13 +626,15 @@ cplot = 3*[None]
 
 for ii in range(0, 3):
     
-    ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.05, 0.25, 0.9])
+    ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.11, 0.23, 0.85])
     cplot[ii] = plot_pseudoSection(
         ip_data, dobs=dobs_array[:, ii], ax=ax1[ii], survey_type='dipole-dipole',
         data_type=plot_type[ii], space_type='half-space',
         pcolorOpts={'cmap':'plasma'}
         )
     ax1[ii].set_title(plot_title[ii])
+    ax1[ii].set_xlabel('x (m)')
+    ax1[ii].set_ylabel('z (m)')
 
 plt.show()
 

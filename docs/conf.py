@@ -289,9 +289,13 @@ sphinx_gallery_conf = {
     # path to your examples scripts
     'examples_dirs' : ['../examples',
                        '../tutorials/models_mapping',
+                       '../tutorials/forward_simulations',
+                       '../tutorials/basic_inversions',
                        ],
     'gallery_dirs'  : ['content/examples',
                        'content/tutorials/models_mapping',
+                       'content/tutorials/forward_simulations',
+                       'content/tutorials/basic_inversions',
                        ],
     'within_subsection_order': FileNameSortKey,
     'backreferences_dir' : False
