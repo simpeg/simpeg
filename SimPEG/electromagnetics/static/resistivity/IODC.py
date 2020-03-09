@@ -5,8 +5,9 @@ import matplotlib
 import properties
 import warnings
 
-from discretize import TensorMesh
+from discretize import TensorMesh, TreeMesh
 from discretize.base import BaseMesh
+from discretize.utils import refine_tree_xyz, mkvc, meshTensor
 
 from ....data import Data
 from ....utils import sdiag, uniqueRows, surface2ind_topo, plot2Ddata
@@ -494,8 +495,6 @@ class IO(properties.HasProperties):
         """
         Set up a mesh for a given DC survey
         """
-        if mesh_type == 'TreeMesh':
-            raise NotImplementedError()
 
         # 2D or 3D mesh
         if dimension in [2, 3]:
@@ -563,6 +562,7 @@ class IO(properties.HasProperties):
                 #     "Input dx ({}) is greater than expected \n We recommend using {:0.1e} m cells, that is, {} cells per {0.1e} m dipole length".format(dx, dx_ideal, ncell_per_dipole, a)
                 # )
                 pass
+
             self.dx = dx
             self.dz = dz
             self.npad_x = npad_x
@@ -580,60 +580,110 @@ class IO(properties.HasProperties):
                 corezlength = self.grids[:, z_ind].max() + dz_topo
                 self.corezlength = corezlength
 
-            ncx = np.round(corexlength/dx)
-            ncz = np.round(corezlength/dz)
-            hx = [
-                (dx, npad_x, -pad_rate_x), (dx, ncx), (dx, npad_x, pad_rate_x)
-            ]
-            hz = [(dz, npad_z, -pad_rate_z), (dz, ncz)]
-            x0_mesh = -(
-                (dx * pad_rate_x ** (np.arange(npad_x)+1)).sum() + dx * 3 - x0
-            )
-            z0_mesh = -((dz * pad_rate_z ** (np.arange(npad_z)+1)).sum() + dz * ncz) + zmax
-
-            # For 2D mesh
-            if dimension == 2:
-                h = [hx, hz]
-                x0_for_mesh = [x0_mesh, z0_mesh]
-                self.xyzlim = np.vstack((
-                    np.r_[x0, x0+lineLength],
-                    np.r_[zmax-corezlength, zmax]
-                ))
-                fill_value = "extrapolate"
-
-            # For 3D mesh
-            else:
-                if dy is None:
-                    raise Exception("You must input dy (m)")
-
-                self.dy = dy
-                self.npad_y = npad_y
-                self.pad_rate_y = pad_rate_y
-
-                ylocs = np.unique(self.electrode_locations[:, 1])
-                ymin, ymax = ylocs.min(), ylocs.max()
-                # 3 cells each for buffer in y-direction
-                coreylength = ymax-ymin+dy*6
-                ncy = np.round(coreylength/dy)
-                hy = [
-                    (dy, npad_y, -pad_rate_y),
-                    (dy, ncy),
-                    (dy, npad_y, pad_rate_y)
+            if mesh_type == 'TensorMesh':
+                ncx = np.round(corexlength/dx)
+                ncz = np.round(corezlength/dz)
+                hx = [
+                    (dx, npad_x, -pad_rate_x), (dx, ncx), (dx, npad_x, pad_rate_x)
                 ]
-                y0 = ylocs.min()-dy/2.
-                y0_mesh = -(
-                    (dy * pad_rate_y ** (np.arange(npad_y)+1)).sum()
-                    + dy*3 - y0
+                hz = [(dz, npad_z, -pad_rate_z), (dz, ncz)]
+                x0_mesh = -(
+                    (dx * pad_rate_x ** (np.arange(npad_x)+1)).sum() + dx * 3 - x0
                 )
+                z0_mesh = -((dz * pad_rate_z ** (np.arange(npad_z)+1)).sum() + dz * ncz) + zmax
 
-                h = [hx, hy, hz]
-                x0_for_mesh = [x0_mesh, y0_mesh, z0_mesh]
-                self.xyzlim = np.vstack((
-                    np.r_[x0, x0+lineLength],
-                    np.r_[ymin-dy*3, ymax+dy*3],
-                    np.r_[zmax-corezlength, zmax]
-                ))
-            mesh = TensorMesh(h, x0=x0_for_mesh)
+                # For 2D mesh
+                if dimension == 2:
+                    h = [hx, hz]
+                    x0_for_mesh = [x0_mesh, z0_mesh]
+                    self.xyzlim = np.vstack((
+                        np.r_[x0, x0+lineLength],
+                        np.r_[zmax-corezlength, zmax]
+                    ))
+                    fill_value = "extrapolate"
+
+                # For 3D mesh
+                else:
+                    if dy is None:
+                        raise Exception("You must input dy (m)")
+
+                    self.dy = dy
+                    self.npad_y = npad_y
+                    self.pad_rate_y = pad_rate_y
+
+                    ylocs = np.unique(self.electrode_locations[:, 1])
+                    ymin, ymax = ylocs.min(), ylocs.max()
+                    # 3 cells each for buffer in y-direction
+                    coreylength = ymax-ymin+dy*6
+                    ncy = np.round(coreylength/dy)
+                    hy = [
+                        (dy, npad_y, -pad_rate_y),
+                        (dy, ncy),
+                        (dy, npad_y, pad_rate_y)
+                    ]
+                    y0 = ylocs.min()-dy/2.
+                    y0_mesh = -(
+                        (dy * pad_rate_y ** (np.arange(npad_y)+1)).sum()
+                        + dy*3 - y0
+                    )
+
+                    h = [hx, hy, hz]
+                    x0_for_mesh = [x0_mesh, y0_mesh, z0_mesh]
+                    self.xyzlim = np.vstack((
+                        np.r_[x0, x0+lineLength],
+                        np.r_[ymin-dy*3, ymax+dy*3],
+                        np.r_[zmax-corezlength, zmax]
+                    ))
+                mesh = TensorMesh(h, x0=x0_for_mesh)
+
+            elif mesh_type == "TREE":
+                # Quadtree mesh
+                if dimension == 2:
+
+                    dom_width_x = 3000. + lineLength                                 # domain width x
+                    dom_width_z = 1000. + corezlength                                # domain width z
+
+                    nbcx = 2**int(np.round(np.log(dom_width_x/dx)/np.log(2.)))     # num. base cells x
+                    nbcz = 2**int(np.round(np.log(dom_width_z/dz)/np.log(2.)))     # num. base cells z
+
+                    length = 0.
+                    i_count = 1
+                    dz_tmp = dz
+                    octree_levels = []
+                    while length < corezlength:
+                        length += 5*dz_tmp
+                        octree_levels.append(5)
+                        dz_tmp*=2
+
+                    # Define the base mesh
+                    hx = [(dx, nbcx)]
+                    hz = [(dz, nbcz)]
+
+                    hx = meshTensor(hx)
+                    hz = meshTensor(hz)
+                    x_shift = (self.electrode_locations[:,0].min()+self.electrode_locations[:,0].max()) * 0.5
+                    mesh = TreeMesh([hx, hz], x0=[-hx.sum()/2.+x_shift, -hz.sum()])
+                    # mesh = TreeMesh([hx, hz], x0='CN')
+
+                    # Mesh refinement based on topography
+                    mesh = refine_tree_xyz(
+                        mesh, self.electrode_locations, octree_levels=octree_levels, method='radial', finalize=False
+                    )
+                    mesh.finalize()
+
+                    self.xyzlim = np.vstack((
+                        np.r_[self.electrode_locations[:,0].min(), self.electrode_locations[:,0].max()],
+                        np.r_[zmax-corezlength, zmax]
+                    ))
+
+                # Octree mesh
+                elif dimension == 3:
+                    raise NotImplementedError()
+
+            else:
+                raise NotImplementedError()
+
+
             actind = surface2ind_topo(mesh, locs, method=method, fill_value=np.nan)
 
         else:
