@@ -53,7 +53,7 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Create a MAGsurvey
         locXYZ = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
-        rxLoc = gravity.point_receiver(locXYZ)
+        rxLoc = gravity.Point(locXYZ)
         srcField = gravity.SourceField([rxLoc])
         survey = gravity.GravitySurvey(srcField)
 
@@ -71,7 +71,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         idenMap = maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        sim = gravity.IntegralSimulation(
+        sim = gravity.Simulation3DIntegral(
                 self.mesh,
                 survey=survey,
                 rhoMap=idenMap,

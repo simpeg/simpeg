@@ -42,7 +42,7 @@
 #         q[indb] = -1.
 #
 #         mSynth = q.copy()
-#         dpred = simulation.makeSyntheticData(mSynth)
+#         dpred = simulation.make_synthetic_data(mSynth, add_noise=True)
 #
 #         # Now set up the problem to do some minimization
 #         dmis = data_misfit.L2DataMisfit(data=dpred, simulation=simulation)

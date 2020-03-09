@@ -19,7 +19,7 @@ addrandoms = True
 
 def JvecAdjointTest(inputSetup, comp='All', freq=False):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
-    survey, problem = nsem.utils.testUtils.setupSimpegNSEM_ePrimSec(
+    survey, problem = nsem.utils.test_utils.setupSimpegNSEM_ePrimSec(
         inputSetup, comp=comp, singleFreq=freq
     )
     print('Using {0} solver for the problem'.format(problem.Solver))
@@ -46,13 +46,13 @@ def JvecAdjointTest(inputSetup, comp='All', freq=False):
 class NSEM_3D_AdjointTests(unittest.TestCase):
 
     # Test the adjoint of Jvec and Jtvec
-    def test_JvecAdjoint_zxx(self):self.assertTrue(JvecAdjointTest(nsem.utils.testUtils.halfSpace(1e-2),'xx',.1))
-    def test_JvecAdjoint_zxy(self):self.assertTrue(JvecAdjointTest(nsem.utils.testUtils.halfSpace(1e-2),'xy',.1))
-    def test_JvecAdjoint_zyx(self):self.assertTrue(JvecAdjointTest(nsem.utils.testUtils.halfSpace(1e-2),'yx',.1))
-    def test_JvecAdjoint_zyy(self):self.assertTrue(JvecAdjointTest(nsem.utils.testUtils.halfSpace(1e-2),'yy',.1))
-    def test_JvecAdjoint_tzx(self):self.assertTrue(JvecAdjointTest(nsem.utils.testUtils.halfSpace(1e-2),'zx',.1))
-    def test_JvecAdjoint_tzy(self):self.assertTrue(JvecAdjointTest(nsem.utils.testUtils.halfSpace(1e-2),'zy',.1))
-    def test_JvecAdjoint_All(self):self.assertTrue(JvecAdjointTest(nsem.utils.testUtils.random(1e-2),'Imp',.1))
+    def test_JvecAdjoint_zxx(self):self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.halfSpace(1e-2),'xx',.1))
+    def test_JvecAdjoint_zxy(self):self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.halfSpace(1e-2),'xy',.1))
+    def test_JvecAdjoint_zyx(self):self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.halfSpace(1e-2),'yx',.1))
+    def test_JvecAdjoint_zyy(self):self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.halfSpace(1e-2),'yy',.1))
+    def test_JvecAdjoint_tzx(self):self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.halfSpace(1e-2),'zx',.1))
+    def test_JvecAdjoint_tzy(self):self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.halfSpace(1e-2),'zy',.1))
+    def test_JvecAdjoint_All(self):self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2),'Imp',.1))
 
 if __name__ == '__main__':
     unittest.main()

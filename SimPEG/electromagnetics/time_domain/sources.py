@@ -4,6 +4,7 @@ import numpy as np
 from scipy.constants import mu_0
 import properties
 import warnings
+from ...utils.code_utils import deprecate_property
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
@@ -311,10 +312,11 @@ class MagDipole(BaseTDEMSrc):
     orientation = properties.Vector3(
         "orientation of the source", default='Z', length=1., required=True
     )
-    loc = LocationVector(
+    location = LocationVector(
         "location of the source", default=np.r_[0.,0.,0.],
         shape=(3,)
     )
+    loc = deprecate_property(location, 'loc', removal_version='0.15.0')
 
     def __init__(self, receiver_list=None, **kwargs):
         kwargs.pop("srcType", None)
@@ -340,7 +342,7 @@ class MagDipole(BaseTDEMSrc):
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
 
-        if prob.mesh._meshType is 'CYL':
+        if prob.mesh._meshType == 'CYL':
             coordinates = "cylindrical"
             if prob.mesh.isSymmetric:
                 return self._srcFct(gridY)[:, 1]
@@ -511,7 +513,8 @@ class LineCurrent(BaseTDEMSrc):
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 
-    loc = properties.Array("location of the source", shape=('*', 3))
+    location = properties.Array("location of the source", shape=('*', 3))
+    loc = deprecate_property(location, 'loc', removal_version='0.15.0')
 
     def __init__(self, receiver_list=None, **kwargs):
         self.integrate = False
@@ -729,11 +732,3 @@ class RawVec_Grounded(BaseTDEMSrc):
         # if prob._fieldType == 'h':
         #     return prob.Mf * self._s_e * self.waveform.eval(time)
         return self._s_e * self.waveform.eval(time)
-
-
-
-
-
-
-
-

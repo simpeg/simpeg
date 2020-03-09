@@ -3,6 +3,7 @@ import scipy.sparse as sp
 from ...fields import Fields
 from ...utils import mkvc, Zero, Identity, sdiag
 from ..utils import omega
+from ...utils.code_utils import deprecate_class
 
 class FieldsFDEM(Fields):
     """
@@ -318,9 +319,9 @@ class FieldsFDEM(Fields):
         )
 
 
-class Fields3D_e(FieldsFDEM):
+class Fields3DElectricField(FieldsFDEM):
     """
-    Fields object for Problem3D_e.
+    Fields object for Simulation3DElectricField.
 
     :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
@@ -410,7 +411,7 @@ class Fields3D_e(FieldsFDEM):
         :param SimPEG.electromagnetics.frequency_domain.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: SimPEG.utils.Zero
         :return: product of the electric field derivative with respect to the
             inversion model with a vector
         """
@@ -634,9 +635,9 @@ class Fields3D_e(FieldsFDEM):
         ) + self._hDeriv_mui(src, v, adjoint=adjoint)
 
 
-class Fields3D_b(FieldsFDEM):
+class Fields3DMagneticFluxDensity(FieldsFDEM):
     """
-    Fields object for Problem3D_b.
+    Fields object for Simulation3DMagneticFluxDensity.
 
     :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
@@ -732,7 +733,7 @@ class Fields3D_b(FieldsFDEM):
         :param SimPEG.electromagnetics.frequency_domain.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: SimPEG.utils.Zero
         :return: product of the magnetic flux density derivative with respect
             to the inversion model with a vector
         """
@@ -957,9 +958,9 @@ class Fields3D_b(FieldsFDEM):
         )
 
 
-class Fields3D_j(FieldsFDEM):
+class Fields3DCurrentDensity(FieldsFDEM):
     """
-    Fields object for Problem3D_j.
+    Fields object for Simulation3DCurrentDensity.
 
     :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
@@ -1068,7 +1069,7 @@ class Fields3D_j(FieldsFDEM):
         :param SimPEG.electromagnetics.frequency_domain.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: SimPEG.utils.Zero
         :return: product of the current density derivative with respect to the
             inversion model with a vector
         """
@@ -1303,9 +1304,9 @@ class Fields3D_j(FieldsFDEM):
         )
 
 
-class Fields3D_h(FieldsFDEM):
+class Fields3DMagneticField(FieldsFDEM):
     """
-    Fields object for Problem3D_h.
+    Fields object for Simulation3DMagneticField.
 
     :param discretize.base.BaseMesh mesh: mesh
     :param SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
@@ -1399,7 +1400,7 @@ class Fields3D_h(FieldsFDEM):
         :param SimPEG.electromagnetics.frequency_domain.SrcFDEM.BaseFDEMSrc src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: SimPEG.utils.Zero
         :return: product of the magnetic field derivative with respect to the
             inversion model with a vector
         """
@@ -1591,3 +1592,24 @@ class Fields3D_h(FieldsFDEM):
         )
 
 
+############
+# Deprecated
+############
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_e(Fields3DElectricField):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_b(Fields3DMagneticFluxDensity):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_j(Fields3DCurrentDensity):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_h(Fields3DMagneticField):
+    pass

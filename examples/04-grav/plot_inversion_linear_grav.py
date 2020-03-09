@@ -16,12 +16,8 @@ from SimPEG import (
     directives, inversion
     )
 
-try:
-    from SimPEG import utils
-    from SimPEG.utils import plot2Ddata
-except:
-    from SimPEG import Utils as utils
-    from SimPEG.Utils.Plotutils import plot2Ddata
+from SimPEG import utils
+from SimPEG.utils import plot2Ddata
 
 import shutil
 
@@ -62,7 +58,7 @@ def run(plotIt=True):
 
     # Create a GRAVsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
-    rxLoc = gravity.receivers.point_receiver(rxLoc)
+    rxLoc = gravity.receivers.Point(rxLoc)
     srcField = gravity.sources.SourceField([rxLoc])
     survey = gravity.survey.GravitySurvey(srcField)
 
@@ -81,7 +77,7 @@ def run(plotIt=True):
     idenMap = maps.IdentityMap(nP=nC)
 
     # Create the forward simulation
-    simulation = gravity.simulation.IntegralSimulation(
+    simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, rhoMap=idenMap, actInd=actv
     )
 

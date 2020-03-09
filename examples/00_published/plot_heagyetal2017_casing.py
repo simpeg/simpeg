@@ -340,11 +340,11 @@ class PrimSecCasingExample(object):
             #     )
 
             # # set the problem's propmap
-            # FDEM.Problem3D_h.PropMap = CasingEMPropMap
+            # FDEM.Simulation3DMagneticField.PropMap = CasingEMPropMap
 
             # use H-J formulation for source with vertical current density and
             # cylindrical symmetry (h faster on cyl --> less edges than faces)
-            primaryProblem = FDEM.Problem3D_h(
+            primaryProblem = FDEM.Simulation3DMagneticField(
                 self.meshp, sigmaMap=self.primaryMapping
             )
             primaryProblem.mu = self.muModel
@@ -582,7 +582,7 @@ class PrimSecCasingExample(object):
         print('Setting up Secondary Problem')
         if mapping is None:
             mapping = [('sigma', maps.IdentityMap(self.meshs))]
-        sec_problem = FDEM.Problem3D_e(self.meshs, sigmaMap=mapping)
+        sec_problem = FDEM.Simulation3DElectricField(self.meshs, sigmaMap=mapping)
         sec_problem.Solver = Solver
         print('... done setting up secondary problem')
         return sec_problem
@@ -600,8 +600,8 @@ class PrimSecCasingExample(object):
         self.rx_x = self.rxlocs[:, 0].reshape(nx, ny, order='F')
         self.rx_y = self.rxlocs[:, 1].reshape(nx, ny, order='F')
 
-        rx_ex = FDEM.Rx.Point_e(self.rxlocs, orientation='x', component='real')
-        rx_ey = FDEM.Rx.Point_e(self.rxlocs, orientation='y', component='real')
+        rx_ex = FDEM.Rx.PointElectricField(self.rxlocs, orientation='x', component='real')
+        rx_ey = FDEM.Rx.PointElectricField(self.rxlocs, orientation='y', component='real')
 
         RxList = [rx_ex, rx_ey]
 
@@ -684,7 +684,7 @@ class PrimSecCasingExample(object):
         secondarySurvey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs
         )
-        src = secondarySurvey.srcList[0]
+        src = secondarySurvey.source_list[0]
         s_e = src.s_e(secondaryProblem, f=primaryFields)
 
         # Mesh to interpolate onto for stream plots
@@ -799,10 +799,10 @@ class PrimSecCasingExample(object):
 
         sec_survey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs)
-        src = sec_survey.srcList[0]
-        rx0 = src.rxList[0]
+        src = sec_survey.source_list[0]
+        rx0 = src.receiver_list[0]
 
-        nx = int(np.sqrt(len(rx0.locs)))
+        nx = int(np.sqrt(len(rx0.locations)))
         ny = nx
 
         def plotDataFun(ax, plotme, num=50, plotBlock=True, xlim=XLIM,
@@ -1290,7 +1290,7 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         self.primaryProblem.model = self.mtrue  # set the current model
         self.primaryProblem.survey = self.primarySurvey
         primaryFields = self.primaryProblem.fieldsPair(self.primaryProblem)
-        primaryFields[self.primarySurvey.srcList[0], 'hSolution'] = results[
+        primaryFields[self.primarySurvey.source_list[0], 'hSolution'] = results[
             'primfields'
         ]
 

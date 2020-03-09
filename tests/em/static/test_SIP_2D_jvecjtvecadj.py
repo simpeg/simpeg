@@ -16,7 +16,7 @@ except ImportError:
 np.random.seed(38)
 
 
-class IPProblemTestsCC(unittest.TestCase):
+class SIPProblemTestsCC(unittest.TestCase):
 
     def setUp(self):
 
@@ -24,10 +24,10 @@ class IPProblemTestsCC(unittest.TestCase):
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hz = [(cs, 0, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hz], x0="CN")
-        blkind0 = utils.ModelBuilder.getIndicesSphere(
+        blkind0 = utils.model_builder.getIndicesSphere(
             np.r_[-100., -200.], 75., mesh.gridCC
         )
-        blkind1 = utils.ModelBuilder.getIndicesSphere(
+        blkind1 = utils.model_builder.getIndicesSphere(
             np.r_[100., -200.], 75., mesh.gridCC
         )
 
@@ -51,7 +51,7 @@ class IPProblemTestsCC(unittest.TestCase):
         src = sip.sources.Dipole([rx], Aloc, Bloc)
         survey = sip.Survey([src])
         wires = maps.Wires(('eta', mesh.nC), ('taui', mesh.nC))
-        problem = sip.Problem2D_CC(
+        problem = sip.Simulation2DCellCentered(
             mesh,
             rho=1./sigma,
             etaMap=wires.eta,
@@ -62,7 +62,7 @@ class IPProblemTestsCC(unittest.TestCase):
         problem.pair(survey)
         mSynth = np.r_[eta, 1./tau]
         problem.model = mSynth
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.Tikhonov(mesh)
@@ -122,10 +122,10 @@ class IPProblemTestsN(unittest.TestCase):
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hz = [(cs, 0, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hz], x0="CN")
-        blkind0 = utils.ModelBuilder.getIndicesSphere(
+        blkind0 = utils.model_builder.getIndicesSphere(
             np.r_[-100., -200.], 75., mesh.gridCC
         )
-        blkind1 = utils.ModelBuilder.getIndicesSphere(
+        blkind1 = utils.model_builder.getIndicesSphere(
             np.r_[100., -200.], 75., mesh.gridCC
         )
 
@@ -149,7 +149,7 @@ class IPProblemTestsN(unittest.TestCase):
         src = sip.sources.Dipole([rx], Aloc, Bloc)
         survey = sip.Survey([src])
         wires = maps.Wires(('eta', mesh.nC), ('taui', mesh.nC))
-        problem = sip.Problem2D_N(
+        problem = sip.Simulation2DNodal(
             mesh,
             sigma=sigma,
             etaMap=wires.eta,
@@ -160,7 +160,7 @@ class IPProblemTestsN(unittest.TestCase):
         problem.pair(survey)
         mSynth = np.r_[eta, 1./tau]
         problem.model = mSynth
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.Tikhonov(mesh)
@@ -219,10 +219,10 @@ class IPProblemTestsN_air(unittest.TestCase):
         hx = [(cs, 0, -1.3), (cs, 21), (cs, 0, 1.3)]
         hz = [(cs, 0, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hz], x0="CN")
-        blkind0 = utils.ModelBuilder.getIndicesSphere(
+        blkind0 = utils.model_builder.getIndicesSphere(
             np.r_[-100., -200.], 75., mesh.gridCC
         )
-        blkind1 = utils.ModelBuilder.getIndicesSphere(
+        blkind1 = utils.model_builder.getIndicesSphere(
             np.r_[100., -200.], 75., mesh.gridCC
         )
 
@@ -254,7 +254,7 @@ class IPProblemTestsN_air(unittest.TestCase):
         survey = sip.Survey([src])
 
         wires = maps.Wires(('eta', actmapeta.nP), ('taui', actmaptau.nP), ('c', actmapc.nP))
-        problem = sip.Problem2D_N(
+        problem = sip.Simulation2DNodal(
             mesh,
             sigma=sigma,
             etaMap=actmapeta*wires.eta,
@@ -266,7 +266,7 @@ class IPProblemTestsN_air(unittest.TestCase):
         problem.Solver = Solver
         problem.pair(survey)
         mSynth = np.r_[eta[~airind], 1./tau[~airind], c[~airind]]
-        dobs = problem.make_synthetic_data(mSynth)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg_eta = regularization.Simple(mesh, mapping=wires.eta, indActive=~airind)

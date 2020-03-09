@@ -23,7 +23,7 @@ inversion example. Note that we have 3D forward modeling mesh.
 import discretize
 from SimPEG import (
     maps, data_misfit, regularization, optimization,
-    inverse_problem, directives, inversion, Versions
+    inverse_problem, directives, inversion, Report
 )
 from SimPEG.utils import plotLayer
 try:
@@ -177,7 +177,7 @@ for i in range(ntx):
 # Set up problem and pair with survey
 
 survey = DC.Survey(srclist)
-problem = DC.Problem3D_CC(
+problem = DC.Simulation3DCellCentered(
     mesh,
     survey=survey,
     solver=Solver,
@@ -191,12 +191,12 @@ problem = DC.Problem3D_CC(
 # Step 5
 # ------
 #
-# Run :code:`survey.dpred` to comnpute syntetic data
+# Run :code:`simulation.dpred` to comnpute syntetic data
 #
 # .. math::
 #   \rho_a = \frac{V}{I}\pi\frac{b(b+a)}{a}
 #
-# To make synthetic example you can use survey.makeSyntheticData, which
+# To make synthetic example you can use simulation.make_synthetic_data, which
 # generates related setups.
 
 data = problem.make_synthetic_data(mtrue, standard_deviation=0.01, add_noise=True)
@@ -279,4 +279,4 @@ ax[1].set_title('(b)', fontsize=25)
 # --------------------------------------------
 #
 
-Versions()
+Report()

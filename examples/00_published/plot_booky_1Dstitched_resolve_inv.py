@@ -82,13 +82,13 @@ def resolve_1Dinversions(
 
     # ------------------- Forward Simulation ------------------- #
     # set up the receivers
-    bzr = FDEM.Rx.Point_bSecondary(
+    bzr = FDEM.Rx.PointMagneticFluxDensitySecondary(
         np.array([[rxOffset, 0., src_height]]),
         orientation='z',
         component='real'
     )
 
-    bzi = FDEM.Rx.Point_b(
+    bzi = FDEM.Rx.PointMagneticFluxDensity(
         np.array([[rxOffset, 0., src_height]]),
         orientation='z',
         component='imag'
@@ -103,7 +103,7 @@ def resolve_1Dinversions(
 
     # construct a forward simulation
     survey = FDEM.Survey(srcList)
-    prb = FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=PardisoSolver)
+    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping, Solver=PardisoSolver)
     prb.survey = survey
 
     # ------------------- Inversion ------------------- #

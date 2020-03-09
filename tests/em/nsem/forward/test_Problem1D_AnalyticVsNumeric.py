@@ -15,9 +15,9 @@ def getAppResPhs(nsemdata):
         app_phs = np.arctan2(z.imag, z.real)*(180/np.pi)
         return app_res, app_phs
     zList = []
-    for src in nsemdata.survey.srcList:
+    for src in nsemdata.survey.source_list:
         zc = [src.freq]
-        for rx in src.rxList:
+        for rx in src.receiver_list:
             if 'i' in rx.rxType:
                 m = 1j
             else:
@@ -33,9 +33,9 @@ def getAppResPhs(nsemdata):
 def calculateAnalyticSolution(srcList, mesh, model):
     surveyAna = nsem.Survey(srcList)
     data1D = nsem.Data(surveyAna)
-    for src in surveyAna.srcList:
-        elev = src.rxList[0].locs[0]
-        anaEd, anaEu, anaHd, anaHu = nsem.utils.MT1Danalytic.getEHfields(
+    for src in surveyAna.source_list:
+        elev = src.receiver_list[0].locations[0]
+        anaEd, anaEu, anaHd, anaHu = nsem.utils.analytic_1d.getEHfields(
             mesh, model, src.freq, elev
         )
         anaE = anaEd+anaEu
@@ -44,7 +44,7 @@ def calculateAnalyticSolution(srcList, mesh, model):
         # anaE = (anaEtemp/anaEtemp[-1])#.conj()
         # anaH = (anaHtemp/anaEtemp[-1])#.conj()
         anaZ = anaE/anaH
-        for rx in src.rxList:
+        for rx in src.receiver_list:
             data1D[src, rx] = getattr(anaZ, rx.component)
     return data1D
 
@@ -53,14 +53,14 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
 
     # Make the survey
     # Primary secondary
-    survey, sig, sigBG, mesh = nsem.utils.testUtils.setup1DSurvey(
+    survey, sig, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
         sigmaHalf, False, structure=True
     )
     # Analytic data
-    simulation = nsem.Problem1D_ePrimSec(mesh, sigmaPrimary=sig, sigma=sig, survey=survey)
+    simulation = nsem.Simulation1DPrimarySecondary(mesh, sigmaPrimary=sig, sigma=sig, survey=survey)
     # simulation.pair(survey)
 
-    dataAnaObj = calculateAnalyticSolution(survey.srcList, mesh, sig)
+    dataAnaObj = calculateAnalyticSolution(survey.source_list, mesh, sig)
 
     data = simulation.dpred()
     dataAna = mkvc(dataAnaObj)

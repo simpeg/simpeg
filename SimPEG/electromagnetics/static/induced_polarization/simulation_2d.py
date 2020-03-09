@@ -1,19 +1,20 @@
 import numpy as np
+from ....utils.code_utils import deprecate_class
 
 from .... import props
 from ....data import Data
 from ....utils import sdiag
 
 from ..resistivity.fields_2d import (
-    Fields_ky, Fields_ky_CC, Fields_ky_N
+    Fields2D, Fields2DCellCentered, Fields2DNodal
 )
 
-from ..resistivity.simulation_2d import BaseDCSimulation_2D
-from ..resistivity import Problem2D_CC as BaseProblem2D_CC
-from ..resistivity import Problem2D_N as BaseProblem2D_N
+from ..resistivity.simulation_2d import BaseDCSimulation2D
+from ..resistivity import Simulation2DCellCentered as BaseSimulation2DCellCentered
+from ..resistivity import Simulation2DNodal as BaseSimulation2DNodal
 
 
-class BaseIPSimulation_2D(BaseDCSimulation_2D):
+class BaseIPSimulation2D(BaseDCSimulation2D):
 
     sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)"
@@ -29,7 +30,7 @@ class BaseIPSimulation_2D(BaseDCSimulation_2D):
         "Electrical Chargeability (V/V)"
     )
 
-    fieldsPair = Fields_ky
+    fieldsPair = Fields2D
     _Jmatrix = None
     _f = None
     sign = None
@@ -216,19 +217,19 @@ class BaseIPSimulation_2D(BaseDCSimulation_2D):
                 )
 
 
-class Problem2D_CC(BaseIPSimulation_2D, BaseProblem2D_CC):
+class Simulation2DCellCentered(BaseIPSimulation2D, BaseSimulation2DCellCentered):
     """
     2.5D cell centered IP problem
     """
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_CC
+    fieldsPair = Fields2DCellCentered
     bc_type = 'Mixed'
     sign = 1.
 
     def __init__(self, mesh, **kwargs):
-        BaseIPSimulation_2D.__init__(self, mesh, **kwargs)
+        BaseIPSimulation2D.__init__(self, mesh, **kwargs)
 
     def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:
@@ -272,18 +273,18 @@ class Problem2D_CC(BaseIPSimulation_2D, BaseProblem2D_CC):
                 return dMfRhoI_dI * (dMf_drho * (drho_dlogrho*v))
 
 
-class Problem2D_N(BaseIPSimulation_2D, BaseProblem2D_N):
+class Simulation2DNodal(BaseIPSimulation2D, BaseSimulation2DNodal):
     """
     2.5D nodal IP problem
     """
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_N
+    fieldsPair = Fields2DNodal
     sign = -1.
 
     def __init__(self, mesh, **kwargs):
-        BaseIPSimulation_2D.__init__(self, mesh, **kwargs)
+        BaseIPSimulation2D.__init__(self, mesh, **kwargs)
 
     def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:
@@ -296,3 +297,20 @@ class Problem2D_N(BaseIPSimulation_2D, BaseProblem2D_N):
             self.sigma = 1./rho
         else:
             raise Exception("Either sigma or rho should be provided")
+
+
+Simulation2DCellCentred = Simulation2DCellCentered
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Problem2D_N(Simulation2DNodal):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem2D_CC(Simulation2DCellCentered):
+    pass

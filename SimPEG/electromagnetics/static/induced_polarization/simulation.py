@@ -2,6 +2,7 @@ import numpy as np
 import dask
 import dask.array as da
 import multiprocessing
+from ....utils.code_utils import deprecate_class
 import scipy.sparse as sp
 import sys
 import shutil
@@ -11,9 +12,9 @@ from ....data import Data
 from ....utils import mkvc, sdiag, Zero
 from ...base import BaseEMSimulation
 
-from ..resistivity.fields import FieldsDC, Fields_CC, Fields_N
-from ..resistivity import Problem3D_CC as BaseProblem3D_CC
-from ..resistivity import Problem3D_N as BaseProblem3D_N
+from ..resistivity.fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
+from ..resistivity import Simulation3DCellCentered as BaseSimulation3DCellCentered
+from ..resistivity import Simulation3DNodal as BaseSimulation3DNodal
 import os
 import dask
 import dask.array as da
@@ -454,28 +455,39 @@ class BaseIPSimulation(BaseEMSimulation):
                 )
 
 
-class Problem3D_CC(BaseIPSimulation, BaseProblem3D_CC):
+class Simulation3DCellCentered(BaseIPSimulation, BaseSimulation3DCellCentered):
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_CC
+    fieldsPair = Fields3DCellCentered
     sign = 1.
     bc_type = 'Dirichlet'
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_CC, self).__init__(mesh, **kwargs)
+        super(Simulation3DCellCentered, self).__init__(mesh, **kwargs)
         self.setBC()
 
 
-class Problem3D_N(BaseIPSimulation, BaseProblem3D_N):
+class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces
-    fieldsPair = Fields_N
+    fieldsPair = Fields3DNodal
     sign = -1.
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_N, self).__init__(mesh, **kwargs)
+        super(Simulation3DNodal, self).__init__(mesh, **kwargs)
 
 
+############
+# Deprecated
+############
 
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_N(Simulation3DNodal):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_CC(Simulation3DCellCentered):
+    pass

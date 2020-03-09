@@ -32,7 +32,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         N = utils.ndgrid(x+12.5, y, np.r_[0.])
         radius = 50.
         xc = np.r_[0., 0., -100]
-        blkind = utils.ModelBuilder.getIndicesSphere(xc, radius, mesh.gridCC)
+        blkind = utils.model_builder.getIndicesSphere(xc, radius, mesh.gridCC)
         sigmaInf = np.ones(mesh.nC)*1e-2
         eta = np.zeros(mesh.nC)
         eta[blkind] = 0.1
@@ -49,9 +49,9 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.src = src
         self.eta = eta
 
-    def test_Problem3D_N(self):
+    def test_Simulation3DNodal(self):
 
-        simulationdc = dc.simulation.Problem3D_N(
+        simulationdc = dc.simulation.Simulation3DNodal(
             mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
         simulationdc.Solver = Solver
@@ -59,7 +59,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         finf = simulationdc.fields(self.sigmaInf)
         datainf = simulationdc.dpred(self.sigmaInf, f=finf)
         surveyip = ip.survey.Survey([self.src])
-        simulationip = ip.simulation.Problem3D_N(
+        simulationip = ip.simulation.Simulation3DNodal(
             mesh=self.mesh,
             survey=surveyip,
             sigma=self.sigmaInf,
@@ -73,15 +73,15 @@ class IPProblemAnalyticTests(unittest.TestCase):
         err = np.linalg.norm((data-data_full)/data_full)**2 / data_full.size
         if err < 0.05:
             passed = True
-            print(">> IP forward test for Problem3D_N is passed")
+            print(">> IP forward test for Simulation3DNodal is passed")
         else:
             passed = False
-            print(">> IP forward test for Problem3D_N is failed")
+            print(">> IP forward test for Simulation3DNodal is failed")
         self.assertTrue(passed)
 
-    def test_Problem3D_CC(self):
+    def test_Simulation3DCellCentered(self):
 
-        simulationdc = dc.simulation.Problem3D_CC(
+        simulationdc = dc.simulation.Simulation3DCellCentered(
             mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
         simulationdc.Solver = Solver
@@ -89,7 +89,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         finf = simulationdc.fields(self.sigmaInf)
         datainf = simulationdc.dpred(self.sigmaInf, f=finf)
         surveyip = ip.survey.Survey([self.src])
-        simulationip = ip.simulation.Problem3D_CC(
+        simulationip = ip.simulation.Simulation3DCellCentered(
             mesh=self.mesh,
             survey=surveyip,
             rho=1./self.sigmaInf,
@@ -103,10 +103,10 @@ class IPProblemAnalyticTests(unittest.TestCase):
         err = np.linalg.norm((data-data_full)/data_full)**2 / data_full.size
         if err < 0.05:
             passed = True
-            print(">> IP forward test for Problem3D_CC is passed")
+            print(">> IP forward test for Simulation3DCellCentered is passed")
         else:
             passed = False
-            print(">> IP forward test for Problem3D_CC is failed")
+            print(">> IP forward test for Simulation3DCellCentered is failed")
         self.assertTrue(passed)
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 from ...survey import BaseRx
 import properties
+from ...utils.code_utils import deprecate_property
 
 import warnings
 
@@ -36,26 +37,14 @@ class Point(BaseRx):
         if self.times is not None:
             return len(self.times)
 
-    @property
-    def nTimes(self):
-        warnings.warn(
-            "Point.nTimes will be depreciated in favour of "
-            "Point.n_times. Please update your code accordingly"
-        )
-        return self.n_times
+    nTimes = deprecate_property(n_times, 'nTimes', removal_version='0.15.0')
 
     @property
     def n_locations(self):
         """Number of locations."""
         return self.locations.shape[0]
 
-    @property
-    def nLocs(self):
-        warnings.warn(
-            "Point.nLocs will be depreciated in favour of "
-            "Point.n_times. Please update your code accordingly"
-        )
-        return self.n_times
+    nLocs = deprecate_property(n_locations, 'nLocs', removal_version='0.15.0')
 
     @property
     def nD(self):
@@ -63,22 +52,7 @@ class Point(BaseRx):
         if self.times is not None:
             return self.locations.shape[0] * len(self.times)
 
-    @property
-    def fieldComp(self):
-        warnings.warn(
-            "Point.fieldComp will be depreciated in favour of "
-            "Point.orientation. Please update your code accordingly"
-        )
-        return self.orientation
-
-    @fieldComp.setter
-    def fieldComp(self, value):
-        warnings.warn(
-            "Point.fieldComp will be depreciated in favour of "
-            "Point.orientation. Please update your code accordingly"
-        )
-        self.orientation = value
-
+    fieldComp = deprecate_property(orientation, 'fieldComp', removal_version='0.15.0')
 
 
 class SquareLoop(Point):
