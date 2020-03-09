@@ -13,7 +13,7 @@ for a 1D layered Earth. In this tutorial, we focus on the following:
 
 For this tutorial, we will invert sounding data collected over a layered Earth using
 a Wenner array. The end product is layered Earth model which explains the data.
-    
+
 
 
 """
@@ -78,12 +78,12 @@ k = np.r_[k, len(k)+1]
 
 source_list = []
 for ii in range(0, n_sources):
-    
+
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
     M_locations = M_electrodes[k[ii]:k[ii+1], :]
     N_locations = N_electrodes[k[ii]:k[ii+1], :]
     receiver_list = [dc.receivers.Dipole(M_locations, N_locations)]
-    
+
     # AB electrode locations for source. Each is a (1, 3) numpy array
     A_location = A_electrodes[k[ii], :]
     B_location = B_electrodes[k[ii], :]
@@ -97,14 +97,15 @@ survey.getABMN_locations()
 
 # Plot apparent resistivities on sounding curve as a function of Wenner separation
 # parameter.
-electrode_separations = np.sqrt(
-        np.sum((survey.m_locations - survey.n_locations)**2, axis=1)
+electrode_separations = 0.5*np.sqrt(
+        np.sum((survey.a_locations - survey.b_locations)**2, axis=1)
         )
 
 fig = plt.figure(figsize=(11, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+mpl.rcParams.update({'font.size': 14})
+ax1 = fig.add_axes([0.15, 0.1, 0.7, 0.85])
 ax1.semilogy(electrode_separations, dobs, 'b')
-ax1.set_xlabel("Wenner Array Separation Parameter (m)")
+ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 plt.show()
 
@@ -141,19 +142,20 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 #
 
 # Define the resistivities and thicknesses for the starting model. The thickness
-# of the bottom layer is not used, as we assume it extends downward to infinity.
+# of the bottom layer is assumed to extend downward to infinity so we don't
+# need to define it.
 resistivities = np.r_[1e3, 1e3, 1e3]
-layer_thicknesses = np.r_[50., 50., 300.]
+layer_thicknesses = np.r_[50., 50.]
 
-# Define the layers as a mesh
-mesh = TensorMesh([layer_thicknesses], '0')
+# Define a mesh for plotting and regularization.
+mesh = TensorMesh([(np.r_[layer_thicknesses, layer_thicknesses[-1]])], '0')
 print(mesh)
 
 # Define model. We are inverting for the layer resistivities and layer thicknesses.
 # Since the bottom layer extends to infinity, it is not a model parameter for
 # which we need to invert. For a 3 layer model, there is a total of 5 parameters.
 # For stability, our model is the log-resistivity and log-thickness.
-starting_model = np.r_[np.log(resistivities), np.log(layer_thicknesses[:-1])]
+starting_model = np.r_[np.log(resistivities), np.log(layer_thicknesses)]
 
 # Since the model contains two different properties for each layer, we use
 # wire maps to distinguish the properties.
@@ -170,7 +172,7 @@ layer_map = maps.ExpMap(nP=mesh.nC-1) * wire_map.t
 #
 
 simulation = dc.simulation_1d.Simulation1DLayers(
-        mesh, survey=survey, rhoMap=resistivity_map, tMap=layer_map,
+        survey=survey, rhoMap=resistivity_map, thicknessesMap=layer_map,
         data_type="apparent_resistivity"
         )
 
@@ -203,7 +205,7 @@ reg_rho = regularization.Simple(
 mesh_t = TensorMesh([mesh.hx.size-1])
 reg_t = regularization.Simple(
     mesh_t, alpha_s=0.01, alpha_x=1,
-    mapping=wire_map.t    
+    mapping=wire_map.t
 )
 
 # Combine to make regularization for the inversion problem
@@ -227,6 +229,9 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # criteria for the inversion and saving inversion results at each iteration.
 #
 
+# Apply and update sensitivity weighting as the model updates
+update_sensitivity_weights = directives.UpdateSensitivityWeights()
+
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
@@ -236,18 +241,15 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 # for each trade-off paramter value.
 beta_schedule = directives.BetaSchedule(coolingFactor=5., coolingRate=3.)
 
-# Apply and update sensitivity weighting as the model updates
-update_sensitivity_weights = directives.UpdateSensitivityWeights()
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit(chifact=1)
+target_misfit = directives.TargetMisfit(chifact=0.1)
 
 # The directives are defined in a list
 directives_list = [
-        starting_beta, beta_schedule, update_sensitivity_weights, target_misfit
+        update_sensitivity_weights, starting_beta, beta_schedule, target_misfit
         ]
 
 #####################################################################
@@ -280,7 +282,7 @@ plotting_mesh = TensorMesh([np.r_[layer_map*recovered_model, layer_thicknesses[-
 x_min = np.min([np.min(resistivity_map*recovered_model), np.min(true_model)])
 x_max = np.max([np.max(resistivity_map*recovered_model), np.max(true_model)])
 
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
 plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color='b')
 plot_layer(resistivity_map*recovered_model, plotting_mesh, ax=ax1, depth_axis=False, color='r')
 ax1.set_xlim(0.9*x_min, 1.1*x_max)
@@ -288,15 +290,10 @@ ax1.legend(['True Model','Recovered Model'])
 
 # Plot the true and apparent resistivities on a sounding curve
 fig = plt.figure(figsize=(11, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.2, 0.05, 0.6, 0.8])
 ax1.semilogy(electrode_separations, dobs, 'b')
 ax1.semilogy(electrode_separations, inv_prob.dpred, 'r')
-ax1.set_xlabel("Wenner Array Separation Parameter (m)")
+ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 ax1.legend(['True Sounding Curve','Predicted Sounding Curve'])
 plt.show()
-
-
-
-
-
