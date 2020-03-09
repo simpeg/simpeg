@@ -69,7 +69,7 @@ local_surveys = []
 local_meshes = []
 for local_index in local_indices:
 
-    receivers = gravity.receivers.point_receiver(rxLoc[local_index, :])
+    receivers = gravity.receivers.Point(rxLoc[local_index, :])
     srcField = gravity.sources.SourceField([receivers])
     local_survey = gravity.survey.GravitySurvey(srcField)
 
@@ -127,12 +127,12 @@ model = model[activeCells]
 idenMap = maps.IdentityMap(nP=nC)
 
 # Create a global survey just for simulation of data
-receivers = gravity.receivers.point_receiver(rxLoc)
+receivers = gravity.receivers.Point(rxLoc)
 srcField = gravity.sources.SourceField([receivers])
 survey = gravity.survey.GravitySurvey(srcField)
 
 # Create the forward simulation for the global dataset
-simulation = gravity.simulation.IntegralSimulation(
+simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, rhoMap=idenMap, actInd=activeCells
 )
 
@@ -160,7 +160,7 @@ for ii, local_survey in enumerate(local_surveys):
     local_actives = tile_map.local_active
 
     # Create the forward simulation
-    simulation = gravity.simulation.IntegralSimulation(
+    simulation = gravity.simulation.Simulation3DIntegral(
         survey=local_survey, mesh=local_meshes[ii], rhoMap=tile_map,
         actInd=local_actives,
         sensitivity_path=f"Inversion\Tile{ii}.zarr"
