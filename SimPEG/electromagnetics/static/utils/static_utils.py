@@ -152,7 +152,7 @@ def source_receiver_midpoints(survey, **kwargs):
     midxy = []
     midz = []
 
-    for ii, source in enumerate(survey.source_list[):
+    for ii, source in enumerate(survey.source_list):
         tx_locs = source.location
         if isinstance(tx_locs, list):
             Cmid = (tx_locs[0][:-1] + tx_locs[1][:-1])/2
@@ -161,7 +161,6 @@ def source_receiver_midpoints(survey, **kwargs):
         else:
             Cmid = tx_locs[:-1]
             zsrc = tx_locs[-1]
-            tx_sep = np.linalg.norm((tx_locs[:-1] - tx_locs[:-1]))
 
         Pmids = []
         for receiver in source.receiver_list:
@@ -603,22 +602,23 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
             N = np.c_[lxx+a*dl_x, lyy+a*dl_y, np.ones(nstn).T*ztop]
             rx[(ii*nstn):((ii+1)*nstn), :] = np.c_[M, N]
 
-            if mesh.dim == 3:
-                rxClass = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
-            elif mesh.dim == 2:
+            if dim == 3:
+                rxClass = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
+            elif dim == 2:
                 M = M[:, [0, 2]]
                 N = N[:, [0, 2]]
                 if d2flag == '2.5D':
-                    rxClass = DC.Rx.Dipole2D(rx[:, [0, 2]], rx[:, [3, 5]])
+                    rxClass = dc.Rx.Dipole2D(rx[:, [0, 2]], rx[:, [3, 5]])
                 elif d2flag == '2D':
-                    rxClass = DC.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
-            srcClass = DC.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
+                    rxClass = dc.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
+            srcClass = dc.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
         SrcList.append(srcClass)
+        survey_type = 'dipole-dipole'
 
     if (d2flag == '2.5D') and (dim == 2):
-        survey = dc.Survey_ky(SrcList)
+        survey = dc.Survey_ky(SrcList, survey_type=survey_type.lower())
     else:
-        survey = dc.Survey(SrcList)
+        survey = dc.Survey(SrcList, survey_type=survey_type.lower())
 
     return survey
 
@@ -776,11 +776,7 @@ def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim
         return SrcList
 
     else:
-
-        if dim_flag == '2.5D':
-            survey = dc.Survey_ky(SrcList)
-        else:
-            survey = dc.Survey(SrcList)
+        survey = dc.Survey(SrcList, survey_type=survey_type.lower())
 
         return survey
 
@@ -1775,7 +1771,7 @@ def gen_3d_survey_from_2d_lines(
         :param int n_spacing: number of rx dipoles per tx
 
         Output:
-        :return SimPEG.DC.SurveyDC.Survey survey_3d: 3D DC survey object
+        :return SimPEG.dc.SurveyDC.Survey survey_3d: 3D DC survey object
     """
     ylocs = np.arange(n_lines)*line_spacing + y0
 
@@ -1787,7 +1783,7 @@ def gen_3d_survey_from_2d_lines(
         xmin, xmax = x0, x0+line_length
         ymin, ymax = y, y
         zmin, zmax = 0, 0
-        IO_2d = DC.IO()
+        IO_2d = dc.IO()
         endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
         survey_2d = gen_DCIPsurvey(
             endl, survey_type, a, b, n_spacing, dim=3,
@@ -1804,9 +1800,9 @@ def gen_3d_survey_from_2d_lines(
         line_inds.append(np.ones(survey_2d.nD, dtype=int)*i)
     line_inds = np.hstack(line_inds)
     srcList = sum(srcList, [])
-    survey_3d = DC.Survey(srcList)
+    survey_3d = dc.Survey(srcList)
     survey_3d.getABMN_locations()
-    IO_3d = DC.IO()
+    IO_3d = dc.IO()
 
     survey_3d.a_locations[:, 1] += src_offset_y
     survey_3d.b_locations[:, 1] += src_offset_y

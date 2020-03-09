@@ -73,6 +73,8 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                 n=self.survey_n
             )
 
+            self.assertEqual(survey_type, survey.survey_type)
+
             # Setup Problem with exponential mapping
             expmap = maps.ExpMap(self.mesh)
             problem = dc.Simulation3DCellCentered(self.mesh,
@@ -92,7 +94,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                 format_type='GENERAL'
             )
             data2 = utils.readUBC_DC3Dobs(surveyfile)
-            assert(np.allclose(mkvc(data2), mkvc(dobs)))
+            self.assertTrue(np.allclose(mkvc(data2), mkvc(dobs)))
 
             if self.plotIt:
                 import matplotlib.pyplot as plt
