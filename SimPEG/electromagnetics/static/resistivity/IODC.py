@@ -640,29 +640,36 @@ class IO(properties.HasProperties):
                 # Quadtree mesh
                 if dimension == 2:
 
-                    dom_width_x = 3000. + lineLength                                 # domain width x
-                    dom_width_z = 1000. + corezlength                                # domain width z
+                    pad_length_x = np.sum(meshTensor([(dx, npad_x, pad_rate_x)]))
+                    pad_length_z = np.sum(meshTensor([(dz, npad_z, pad_rate_z)]))
+
+                    dom_width_x = lineLength + 2*pad_length_x  # domain width x
+                    dom_width_z = corezlength + pad_length_z   # domain width z
 
                     nbcx = 2**int(np.round(np.log(dom_width_x/dx)/np.log(2.)))     # num. base cells x
                     nbcz = 2**int(np.round(np.log(dom_width_z/dz)/np.log(2.)))     # num. base cells z
 
                     length = 0.
-                    i_count = 1
                     dz_tmp = dz
                     octree_levels = []
                     while length < corezlength:
                         length += 5*dz_tmp
                         octree_levels.append(5)
-                        dz_tmp*=2
+                        dz_tmp *= 2
 
                     # Define the base mesh
                     hx = [(dx, nbcx)]
                     hz = [(dz, nbcz)]
 
-                    hx = meshTensor(hx)
-                    hz = meshTensor(hz)
-                    x_shift = (self.electrode_locations[:,0].min()+self.electrode_locations[:,0].max()) * 0.5
-                    mesh = TreeMesh([hx, hz], x0=[-hx.sum()/2.+x_shift, -hz.sum()])
+                    mesh_width = np.sum(meshTensor(hx))
+                    mesh_height = np.sum(meshTensor(hz))
+
+                    array_midpoint = 0.5*(
+                        self.electrode_locations[:, 0].min() +
+                        self.electrode_locations[:, 0].max()
+                    )
+                    mesh = TreeMesh([hx, hz],
+                        x0=[array_midpoint-mesh_width/2, zmax-mesh_height])
                     # mesh = TreeMesh([hx, hz], x0='CN')
 
                     # Mesh refinement based on topography
