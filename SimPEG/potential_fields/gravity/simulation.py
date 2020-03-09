@@ -32,7 +32,7 @@ class Simulation3DIntegral(BasePFSimulation):
         self.modelMap = self.rhoMap
 
     def fields(self, m):
-        self.model = self.rhoMap*m
+        self.model = m
 
         if self.store_sensitivities == 'forward_only':
             self.model = m
