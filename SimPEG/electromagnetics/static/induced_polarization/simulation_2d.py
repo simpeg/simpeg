@@ -60,17 +60,9 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
     def fields(self, m):
         if self.verbose:
             print(">> Compute DC fields")
-
         if self._f is None:
-            self._f = self.fieldsPair(self)
-            Srcs = self.survey.source_list
-            for iky in range(self.nky):
-                ky = self.kys[iky]
-                A = self.getA(ky)
-                self.Ainv[iky] = self.Solver(A, **self.solver_opts)
-                RHS = self.getRHS(ky)
-                u = self.Ainv[iky] * RHS
-                self._f[Srcs, self._solutionType, iky] = u
+            # re-uses the DC simulation's fields method
+            self._f = super().fields(None)
 
         self._pred = self.forward(m, f=self._f)
 

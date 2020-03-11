@@ -8,18 +8,15 @@ from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
 
 
 # Trapezoidal integration for 2D DC problem
-def IntTrapezoidal(kys, Pf, y=0.):
-    phi = np.zeros(Pf.shape[0])
-    nky = kys.size
-    dky = np.diff(kys)
-    dky = np.r_[dky[0], dky]
-    phi0 = 1./np.pi*Pf[:, 0]
-    for iky in range(nky):
-        phi1 = 1./np.pi*Pf[:, iky]
-        phi += phi1*dky[iky]/2.*np.cos(kys[iky]*y)
-        phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
-        phi0 = phi1.copy()
-    return phi
+def IntTrapezoidal(kys, Pf, y=0.0):
+    dky = np.diff(kys)/2
+    weights = np.r_[dky, 0]+np.r_[0, dky]
+    weights *= np.cos(kys*y)  # *(1.0/np.pi)
+    # assume constant value at 0 frequency?
+    weights[0] += kys[0]/2 * (1.0 + np.cos(kys[0]*y))
+    weights /= np.pi
+
+    return Pf.dot(weights)
 
 # Receiver classes
 class BaseRx(BaseSimPEGRx):
