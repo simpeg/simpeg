@@ -61,7 +61,8 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
         if self.verbose:
             print(">> Compute DC fields")
         if self._f is None:
-            self._f = super().fields()
+            # re-uses the DC simulation's fields method
+            self._f = super().fields(None)
 
         self._pred = self.forward(m, f=self._f)
 
