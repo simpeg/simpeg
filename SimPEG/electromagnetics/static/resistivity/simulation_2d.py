@@ -8,6 +8,8 @@ from ...base import BaseEMSimulation
 from ....data import Data
 
 from .survey import Survey
+from . import sources
+from . import receivers
 from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from .boundary_utils import getxBCyBC_CC
@@ -35,6 +37,82 @@ class BaseDCSimulation2D(BaseEMSimulation):
     # there's actually nT+1 fields, so we don't need to store the last one
     _Jmatrix = None
     fix_Jmatrix = False
+    _mini_survey = None
+
+    def __init__(self, *args, **kwargs):
+        miniaturize = kwargs.pop('miniaturize', False)
+        super().__init__(*args, **kwargs)
+        # Do stuff to simplify the forward and JTvec operation if number of dipole
+        # sources is greater than the number of unique pole sources
+        if miniaturize:
+            survey = self.survey
+            survey.getABMN_locations()
+            A = survey.a_locations
+            B = survey.b_locations
+            M = survey.m_locations
+            N = survey.n_locations
+            u_src, inv_src = np.unique(np.r_[A, B], axis=0, return_inverse=True)
+            if len(u_src) < survey.nSrc:
+                if self.verbose:
+                    print('Number of sources greater than number of source electrodes.')
+                    print('Switching internally to smaller survey.')
+
+                inv_A, inv_B = inv_src.reshape(2, -1)
+                ind_dipoles_tx = inv_A != inv_B
+
+                unique_sources = []
+                #ranges = np.arange(survey.nD*2)
+                pos_inds = np.zeros(survey.nD, dtype=int)
+                neg_inds = np.zeros(survey.nD, dtype=int)
+                counter = 0
+                for i_src, src_loc in enumerate(u_src):
+                    # add all the receivers which used that pole.
+                    # for each dipole source, essentialy it creates 2 receivers for that source.
+                    # Even though there's "double" the number of receivers, the number of sources
+                    # is reduced to the minimum necessary to reconstruct the survey. Reducing the memory
+                    # required to store the fields, and allowing more rhs solutions to be done in parallel
+                    # when storing the J matrix.
+
+                    ind_A = np.where(inv_A == i_src)[0]  # these are all individually unique
+                    ind_B = np.where(inv_B == i_src)[0]  #    "
+
+                    # There will be overlapping indices in ind_A and ind_B if there are pole
+                    # sources in the original survey.
+                    ind_AB, _is = np.unique(np.r_[ind_A, ind_B], return_inverse=True)
+
+                    ind_AB_to_A = _is[:len(ind_A)]
+                    ind_AB_to_B = _is[len(ind_A):]
+
+                    my_ms = M[ind_AB]
+                    my_ns = N[ind_AB]
+                    rx_dipole_inds = np.any(my_ms != my_ns, axis=1)
+
+                    recs = []
+                    my_ns = my_ns[rx_dipole_inds]
+                    n_dipole_rx = len(my_ns)
+                    if n_dipole_rx > 0:
+                        recs.append(receivers.Dipole2D(my_ms[rx_dipole_inds], my_ns))
+
+                    my_ms = my_ms[~rx_dipole_inds]
+                    n_pole_rx = len(my_ms)
+                    if n_pole_rx > 0:
+                        recs.append(receivers.Pole2D(my_ms))
+
+                    my_data_inds = np.arange(len(ind_AB)) + counter
+                    counter += len(ind_AB)
+
+                    my_plus_inds = my_data_inds[ind_AB_to_A]
+                    my_neg_inds = my_data_inds[ind_AB_to_B]
+
+                    pos_inds[ind_A] = my_plus_inds
+                    neg_inds[ind_B] = my_neg_inds
+
+                    unique_sources.append(sources.Pole(recs, src_loc))
+                # only keep the negative indices of tx's that had a dipole source
+                self._pos_inds = pos_inds
+                self._neg_inds = neg_inds[ind_dipoles_tx]
+                self._ind_dipole_txs = ind_dipoles_tx
+                self._mini_survey = Survey(unique_sources)
 
     def set_geometric_factor(self, geometric_factor):
         index = 0
@@ -52,7 +130,6 @@ class BaseDCSimulation2D(BaseEMSimulation):
             for i in range(self.nky):
                 self.Ainv[i].clean()
         f = self.fieldsPair(self)
-        #Srcs = self.survey.source_list
         for iky, ky in enumerate(self.kys):
             A = self.getA(ky)
             self.Ainv[iky] = self.Solver(A, **self.solver_opts)
@@ -86,14 +163,21 @@ class BaseDCSimulation2D(BaseEMSimulation):
                 m = self.model
             f = self.fields(m)
 
-        data = Data(self.survey)
         kys = self.kys
-        cnt = 0
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                data[src, rx] = rx.eval(kys, src, self.mesh, f)
+        if self._mini_survey is not None:
+            survey = self._mini_survey
+        else:
+            survey = self.survey
 
-        return mkvc(data)
+        temp = np.empty(survey.nD)
+        count = 0
+        for src in survey.source_list:
+            for rx in src.receiver_list:
+                d = rx.eval(kys, src, self.mesh, f)
+                temp[count:count+len(d)] = d
+                count += len(d)
+
+        return self._mini_survey_data(temp)
 
     def getJ(self, m, f=None):
         """
@@ -125,8 +209,12 @@ class BaseDCSimulation2D(BaseEMSimulation):
             f = self.fields(m)
 
         # TODO: This is not a good idea !! should change that as a list
-        Jv = Data(self.survey)  # same size as the data
+        if self._mini_survey is not None:
+            survey = self._mini_survey
+        else:
+            survey = self.survey
 
+        Jv = np.zeros(survey.nD)
         # Assume y=0.
         # This needs some thoughts to implement in general when src is dipole
         y = 0.
@@ -137,12 +225,11 @@ class BaseDCSimulation2D(BaseEMSimulation):
         trap_weights[0] += self.kys[0]/2 * (1.0 + np.cos(self.kys[0]*y))
         trap_weights /= np.pi
 
-        Jv.dobs[:] = 0.0  # initialize Jv object with zeros
-
         # TODO: this loop is pretty slow .. (Parellize)
         for iky, ky in enumerate(self.kys):
             u_ky = f[:, self._solutionType, iky]
-            for i_src, src in enumerate(self.survey.source_list):
+            count = 0
+            for i_src, src in enumerate(survey.source_list):
                 u_src = u_ky[:, i_src]
                 dA_dm_v = self.getADeriv(ky, u_src, v, adjoint=False)
                 # dRHS_dm_v = self.getRHSDeriv(ky, src, v) = 0
@@ -153,8 +240,10 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     df_dm_v = df_dmFun(iky, src, du_dm_v, v, adjoint=False)
                     Jv1_temp = rx.evalDeriv(ky, src, self.mesh, f, df_dm_v)
                     # Trapezoidal intergration
-                    Jv[src, rx] += trap_weights[iky]*Jv1_temp
-        return mkvc(Jv)
+                    Jv[count:count+len(Jv1_temp)] += trap_weights[iky]*Jv1_temp
+                    count += len(Jv1_temp)
+
+        return self._mini_survey_data(Jv)
 
     def Jtvec(self, m, v, f=None):
         """
@@ -187,23 +276,31 @@ class BaseDCSimulation2D(BaseEMSimulation):
         # assume constant value at 0 frequency?
         trap_weights[0] += self.kys[0]/2 * (1.0 + np.cos(self.kys[0]*y))
         trap_weights /= np.pi
+        if self._mini_survey is not None:
+            survey = self._mini_survey
+        else:
+            survey = self.survey
 
         if v is not None:
             # Ensure v is a data object.
-            if not isinstance(v, Data):
-                v = Data(self.survey, v)
+            if isinstance(v, Data):
+                v = v.dobs
+            v = self._mini_survey_dataT(v)
             Jtv = np.zeros(m.size, dtype=float)
 
             # TODO: this loop is pretty slow .. (Parellize)
             for iky, ky in enumerate(self.kys):
                 u_ky = f[:, self._solutionType, iky]
-                for i_src, src in enumerate(self.survey.source_list):
+                count = 0
+                for i_src, src in enumerate(survey.source_list):
                     u_src = u_ky[:, i_src]
                     df_duT_sum = 0
                     df_dmT_sum = 0
                     for rx in src.receiver_list:
+                        my_v = v[count:count+rx.nD]
+                        count += rx.nD
                         # wrt f, need possibility wrt m
-                        PTv = rx.evalDeriv(ky, src, self.mesh, f, v[src, rx],
+                        PTv = rx.evalDeriv(ky, src, self.mesh, f, my_v,
                                            adjoint=True)
                         df_duTFun = getattr(
                             f, '_{0!s}Deriv'.format(rx.projField), None
@@ -225,11 +322,11 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
         else:
             # This is for forming full sensitivity matrix
-            Jt = np.zeros((self.model.size, self.survey.nD), order='F')
+            Jt = np.zeros((self.model.size, survey.nD), order='F')
             for iky, ky in enumerate(self.kys):
                 u_ky = f[:, self._solutionType, iky]
                 istrt = 0
-                for i_src, src in enumerate(self.survey.source_list):
+                for i_src, src in enumerate(survey.source_list):
                     u_src = u_ky[:, i_src]
                     for rx in src.receiver_list:
                         # wrt f, need possibility wrt m
@@ -246,7 +343,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
                         else:
                             Jt[:, istrt:iend] += Jtv
                         istrt += rx.nD
-            return Jt
+            return (self._mini_survey_data(Jt.T)).T
 
     def getSourceTerm(self, ky):
         """
@@ -258,7 +355,10 @@ class BaseDCSimulation2D(BaseEMSimulation):
         :return: q (nC or nN, nSrc)
         """
 
-        Srcs = self.survey.source_list
+        if self._mini_survey is not None:
+            Srcs = self._mini_survey.source_list
+        else:
+            Srcs = self.survey.source_list
 
         if self._formulation == 'EB':
             n = self.mesh.nN
@@ -288,6 +388,24 @@ class BaseDCSimulation2D(BaseEMSimulation):
         if self._Jmatrix is not None:
             toDelete += ['_Jmatrix']
         return toDelete
+
+    def _mini_survey_data(self, d_mini):
+        if self._mini_survey is not None:
+            out = d_mini[self._pos_inds]
+            out[self._ind_dipole_txs] -= d_mini[self._neg_inds]
+        else:
+            out = d_mini
+        return out
+
+    def _mini_survey_dataT(self, v):
+        if self._mini_survey is not None:
+            out = np.zeros(self._mini_survey.nD)
+            out[self._pos_inds] = v
+            out[self._neg_inds] -= v[self._ind_dipole_txs]
+            return out
+        else:
+            out = v
+        return out
 
     ####################################################
     # Mass Matrices
