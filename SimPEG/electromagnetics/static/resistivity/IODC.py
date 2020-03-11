@@ -646,8 +646,8 @@ class IO(properties.HasProperties):
                     dom_width_x = lineLength + 2*pad_length_x  # domain width x
                     dom_width_z = corezlength + pad_length_z   # domain width z
 
-                    nbcx = 2**int(np.round(np.log(dom_width_x/dx)/np.log(2.)))     # num. base cells x
-                    nbcz = 2**int(np.round(np.log(dom_width_z/dz)/np.log(2.)))     # num. base cells z
+                    nbcx = 2**int(np.ceil(np.log(dom_width_x/dx)/np.log(2.)))     # num. base cells x
+                    nbcz = 2**int(np.ceil(np.log(dom_width_z/dz)/np.log(2.)))     # num. base cells z
 
                     length = 0.
                     dz_tmp = dz
