@@ -283,9 +283,7 @@ class BaseDCSimulation(BaseEMSimulation):
                                         None)
                     df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
 
-                    # ATinvdf_duT = da.asarray(self.Ainv * df_duT)
                     ATinvdf_duT = da.from_delayed(dask.delayed(self.Ainv * df_duT), shape=(self.model.size,), dtype=float)
-                    # print(ATinvdf_duT)
 
                     dA_dmT = dask.delayed(self.getADeriv)(u_source, ATinvdf_duT, adjoint=True)
                     dRHS_dmT = dask.delayed(self.getRHSDeriv)(source, ATinvdf_duT, adjoint=True)

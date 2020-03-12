@@ -70,8 +70,6 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         number_of_components = len(self.survey.get_sources_by_frequency(self.survey.frequencies[0])[0].receiver_list)
         n_dim = number_of_frequencies * number_of_components
         m_dim = int(self.survey.nD / (number_of_components * number_of_frequencies))
-        # Jv = np.zeros((m_dim, n_dim))
-        # col = 0
 
         # Loop all the frequenies
         for nF, freq in enumerate(self.survey.frequencies):
@@ -88,12 +86,9 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 # Calculate the projection derivatives
                 for rx in src.receiver_list:
                     # Calculate dP/du*du/dm*v
-                    # Jv[:, col] = rx.evalDeriv(src, self.mesh, f, mkvc(du_dm_v))
-                    # col += 1
                     Jv.append(da.from_delayed(dask.delayed(rx.evalDeriv)(src, self.mesh, f, mkvc(du_dm_v)), shape=(m_dim,), dtype=float))
             # when running full inversion clearing the fields creates error and inversion crashes
             # self.Ainv[nF].clean()
-        # Jv_ = da.hstack(Jv).compute()
         # return Jv.flatten('F')
         return da.concatenate(Jv, axis=0).compute()
 
@@ -116,9 +111,8 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         # Ensure v is a data object.
         if not isinstance(v, Data):
             v = Data(self.survey, v)
-
+        # initiate dask array for Jtv
         Jtv = da.zeros(m.size)
-        # Jtv = []
 
         for nF, freq in enumerate(self.survey.frequencies):
 
@@ -135,12 +129,16 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                         PTv += -rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx]), adjoint=True) # wrt f, need possibility wrt m
                     else:
                         raise Exception('Must be real or imag')
-                dA_duIT = mkvc(self.Ainv[nF] * PTv)  # Force (nU,) shape
-                # print(dA_duIT.shape)
-                dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
-                dRHS_dmT = self.getRHSDeriv(freq, dA_duIT, adjoint=True)
+                dA_duIT = da.from_delayed(dask.delayed(mkvc(self.Ainv[nF] * PTv)),
+                                          shape=(self.mesh.nE * 2,), dtype=float)  # Force (nU,) shape
+
+                dA_dmT = dask.delayed(self.getADeriv)(freq, u_src, dA_duIT, adjoint=True)
+                dRHS_dmT = dask.delayed(self.getRHSDeriv)(freq, dA_duIT, adjoint=True)
+                du_dmT = da.from_delayed(-dA_dmT, shape=(self.model.size,),
+                                         dtype=complex)
                 # Make du_dmT
-                Jtv += (-dA_dmT + dRHS_dmT).real
+                du_dmT += da.from_delayed(dRHS_dmT, shape=(self.model.size,), dtype=complex)
+                Jtv += du_dmT.real
                 # when running full inversion clearing the fields creates error and inversion crashes
                 # self.ATinv[nF].clean()
         return Jtv.compute()
