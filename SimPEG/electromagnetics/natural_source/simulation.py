@@ -12,7 +12,7 @@ try:
 except ImportError:
     from SimPEG import SolverLU as SimpegSolver
 
-from ...utils import mkvc, setKwargs
+from ...utils import mkvc, setKwargs, diagEst
 from ..frequency_domain.simulation import BaseFDEMSimulation
 from ..utils import omega
 from .survey import Survey, Data
@@ -34,9 +34,19 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
     # surveyPair = Survey
     # dataPair = Data
 
-
     # Notes:
     # Use the fields and devs methods from BaseFDEMProblem
+    def getJtJdiag(self, m, k):
+        if k is None:
+            k = int(self.survey.nD / 10)
+
+        def JtJv(v):
+            Jv = self.Jvec(m, v)
+            return self.Jtvec(m, Jv)
+
+        JtJdiag = diagEst(JtJv, len(m), k=k)
+        JtJdiag = JtJdiag / np.max(JtJdiag)
+        return JtJdiag
 
     def Jvec(self, m, v, f=None):
         """
@@ -126,6 +136,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                     else:
                         raise Exception('Must be real or imag')
                 dA_duIT = mkvc(self.Ainv[nF] * PTv)  # Force (nU,) shape
+                # print(dA_duIT.shape)
                 dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(freq, dA_duIT, adjoint=True)
                 # Make du_dmT

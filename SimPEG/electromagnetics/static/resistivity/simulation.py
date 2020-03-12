@@ -269,6 +269,51 @@ class BaseDCSimulation(BaseEMSimulation):
             # Ensure v is a data object.
             if not isinstance(v, Data):
                 v = Data(self.survey, v)
+            Jtv = da.zeros(m.size)
+        # print(len(self.survey.source_list))
+        for source in self.survey.source_list:
+            u_source = f[source, self._solutionType].copy()
+            for rx in source.receiver_list:
+                # wrt f, need possibility wrt m
+                if v is not None:
+                    PTv = rx.evalDeriv(
+                        source, self.mesh, f, v[source, rx], adjoint=True
+                    )
+                    df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
+                                        None)
+                    df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
+
+                    # ATinvdf_duT = da.asarray(self.Ainv * df_duT)
+                    ATinvdf_duT = da.from_delayed(dask.delayed(self.Ainv * df_duT), shape=(self.model.size,), dtype=float)
+                    # print(ATinvdf_duT)
+
+                    dA_dmT = dask.delayed(self.getADeriv)(u_source, ATinvdf_duT, adjoint=True)
+                    dRHS_dmT = dask.delayed(self.getRHSDeriv)(source, ATinvdf_duT, adjoint=True)
+
+                    du_dmT = da.from_delayed(-dA_dmT, shape=(self.model.size,),
+                                             dtype=float)
+
+                    if not isinstance(dRHS_dmT, Zero):
+                        du_dmT += da.from_delayed(dRHS_dmT, shape=(self.model.size,), dtype=float)
+
+                    if not isinstance(df_dmT, Zero):
+                        du_dmT += da.from_delayed(df_dmT, shape=(self.model.size,), dtype=float)
+                    # du_dmT = -dA_dmT + dRHS_dmT
+                    Jtv += du_dmT
+
+        return Jtv.compute()
+
+
+    def _Jtvec_old(self, m, v=None, f=None):
+        """
+            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+            Full J matrix can be computed by inputing v=None
+        """
+
+        if v is not None:
+            # Ensure v is a data object.
+            if not isinstance(v, Data):
+                v = Data(self.survey, v)
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix
