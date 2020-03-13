@@ -21,7 +21,7 @@ import discretize
 from SimPEG import (
     maps, optimization,
     data_misfit, regularization, inverse_problem,
-    inversion, directives, Versions
+    inversion, directives, Report
 )
 from SimPEG.electromagnetics import frequency_domain as FDEM
 
@@ -176,11 +176,11 @@ for x in src_locations:
     src_loc = np.r_[x, 0., src_z]
     rx_locs = src_loc - rx_offsets
 
-    rx_real = FDEM.Rx.Point_bSecondary(
-        locs=rx_locs, orientation=orientation, component='real'
+    rx_real = FDEM.Rx.PointMagneticFluxDensitySecondary(
+        locations=rx_locs, orientation=orientation, component='real'
     )
-    rx_imag = FDEM.Rx.Point_bSecondary(
-        locs=rx_locs, orientation=orientation, component='imag'
+    rx_imag = FDEM.Rx.PointMagneticFluxDensitySecondary(
+        locations=rx_locs, orientation=orientation, component='imag'
     )
 
     src = FDEM.Src.MagDipole(
@@ -192,7 +192,7 @@ for x in src_locations:
 
 # create the survey and problem objects for running the forward simulation
 survey = FDEM.Survey(srcList)
-prob = FDEM.Problem3D_b(mesh, survey=survey, sigmaMap=mapping, Solver=Solver)
+prob = FDEM.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigmaMap=mapping, Solver=Solver)
 
 ###############################################################################
 # Data and Set up data for inversion
@@ -333,7 +333,7 @@ plt.show()
 # --------------------------------------------
 #
 
-Versions()
+Report()
 
 ###############################################################################
 # Moving Forward

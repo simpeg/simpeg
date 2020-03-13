@@ -7,12 +7,12 @@ Here we use the module *SimPEG.potential_fields.magnetics* to predict magnetic
 gradiometry data for magnetic vector models. The simulation is performed on a
 Tree mesh. For this tutorial, we focus on the following:
 
-    - How to define the survey when we want to measured multiple field components 
+    - How to define the survey when we want to measured multiple field components
     - How to predict magnetic data in the case of remanence
     - How to include surface topography
     - How to construct tree meshes based on topography and survey geometry
     - The units of the physical property model and resulting data
-    
+
 
 """
 
@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
-from SimPEG.utils import plot2Ddata, ModelBuilder, surface2ind_topo, matutils
+from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo, mat_utils
 from SimPEG import maps
 from SimPEG.potential_fields import magnetics
 
@@ -72,11 +72,11 @@ receiver_locations = np.c_[x, y, z]
 # Define the component(s) of the field we want to simulate as strings within
 # a list. Here we measure the x, y and z derivatives of the Bz anomaly at
 # each observation location.
-components = ["dbx_dz", "dby_dz", "dbz_dz"]
+components = ["bxz", "byz", "bzz"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = magnetics.receivers.point_receiver(
+receiver_list = magnetics.receivers.Point(
         receiver_locations, components=components
         )
 
@@ -102,7 +102,7 @@ survey = magnetics.survey.MagneticSurvey(source_field)
 #
 # Here, we create the OcTree mesh that will be used to predict magnetic
 # gradiometry data for the forward simuulation.
-# 
+#
 
 dx = 5    # minimum cell width (base mesh cell width) in x
 dy = 5    # minimum cell width (base mesh cell width) in y
@@ -152,7 +152,7 @@ mesh.finalize()
 #     by the magnitude of the Earth's field (remanent contribution)
 #     3) Sum the induced and remanent contributions
 #     4) Define as a vector np.r_[chi_1, chi_2, chi_3]
-#     
+#
 #
 
 # Define susceptibility values for each unit in SI
@@ -168,14 +168,14 @@ model_map = maps.IdentityMap(nP=3*nC)  # model has 3 parameters for each cell
 
 # Define susceptibility for each cell
 susceptibility_model = background_susceptibility*np.ones(ind_active.sum())
-ind_sphere = ModelBuilder.getIndicesSphere(
+ind_sphere = model_builder.getIndicesSphere(
     np.r_[0.,  0., -45.], 15., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]
 susceptibility_model[ind_sphere] = sphere_susceptibility
 
 # Compute the unit direction of the inducing field in Cartesian coordinates
-field_direction = matutils.dip_azimuth2cartesian(field_inclination, field_declination)
+field_direction = mat_utils.dip_azimuth2cartesian(field_inclination, field_declination)
 
 # Multiply susceptibility model to obtain the x, y, z components of the
 # effective susceptibility contribution from induced magnetization.
@@ -188,7 +188,7 @@ remanence_declination = 90.
 remanence_susceptibility = 0.01
 
 remanence_model = np.zeros(np.shape(susceptibility_model))
-effective_susceptibility_sphere = remanence_susceptibility*matutils.dip_azimuth2cartesian(
+effective_susceptibility_sphere = remanence_susceptibility*mat_utils.dip_azimuth2cartesian(
         remanence_inclination, remanence_declination
         )
 remanence_model[ind_sphere, :] = effective_susceptibility_sphere
@@ -202,15 +202,17 @@ fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 plotting_model = np.sqrt(np.sum(plotting_model, axis=1)**2)
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 mesh.plotSlice(
     plotting_map*plotting_model, normal='Y', ax=ax1,
     ind=int(mesh.hy.size/2), grid=True,
     clim=(np.min(plotting_model), np.max(plotting_model))
 )
 ax1.set_title('MVI Model at y = 0 m')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('z (m)')
 
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(vmin=np.min(plotting_model), vmax=np.max(plotting_model))
 cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation='vertical')
 cbar.set_label(
@@ -226,11 +228,11 @@ cbar.set_label(
 # in the case of remanent magnetization.
 #
 
-# Define the forward simulation. Set modelType to 'vector'. By setting the 'forward_only'
-# keyword argument to false, we avoid storing a large dense matrix.
-simulation = magnetics.simulation.IntegralSimulation(
+# Define the forward simulation. By setting the 'store_sensitivities' keyword
+# argument to "forward_only", we simulate the data without storing the sensitivities
+simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, chiMap=model_map, actInd=ind_active,
-    modelType='vector', forward_only=True
+    modelType='vector', store_sensitivities="forward_only"
 )
 
 # Compute predicted data for some model
@@ -241,32 +243,36 @@ n_data = len(dpred)
 fig = plt.figure(figsize=(13, 4))
 v_max = np.max(np.abs(dpred))
 
-ax1 = fig.add_axes([0.05, 0.05, 0.25, 0.9])
+ax1 = fig.add_axes([0.1, 0.15, 0.25, 0.78])
 plot2Ddata(
     receiver_list[0].locations, dpred[0:n_data:3], ax=ax1, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 ax1.set_title('$dBz/dx$')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('y (m)')
 
-ax2 = fig.add_axes([0.31, 0.05, 0.25, 0.9])
+ax2 = fig.add_axes([0.36, 0.15, 0.25, 0.78])
 cplot2 = plot2Ddata(
     receiver_list[0].locations, dpred[1:n_data:3], ax=ax2, ncontour=30,
     clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
 )
 cplot2[0].set_clim((-v_max, v_max))
 ax2.set_title('$dBz/dy$')
+ax2.set_xlabel('x (m)')
 ax2.set_yticks([])
 
-ax3 = fig.add_axes([0.57, 0.05, 0.25, 0.9])
+ax3 = fig.add_axes([0.62, 0.15, 0.25, 0.78])
 cplot3 = plot2Ddata(
     receiver_list[0].locations, dpred[2:n_data:3], ax=ax3, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 cplot3[0].set_clim((-v_max, v_max))
 ax3.set_title('$dBz/dz$')
+ax3.set_xlabel('x (m)')
 ax3.set_yticks([])
 
-ax4 = fig.add_axes([0.84, 0.08, 0.03, 0.83])
+ax4 = fig.add_axes([0.89, 0.13, 0.02, 0.79])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
     ax4, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r

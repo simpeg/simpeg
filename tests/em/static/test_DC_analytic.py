@@ -48,8 +48,8 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.sigma = sigma
         self.data_ana = data_ana
 
-    def test_Problem3D_N(self, tolerance=0.2):
-        simulation = dc.simulation.Problem3D_N(self.mesh, survey=self.survey, sigma=self.sigma)
+    def test_Simulation3DNodal(self, tolerance=0.2):
+        simulation = dc.simulation.Simulation3DNodal(self.mesh, survey=self.survey, sigma=self.sigma)
         simulation.Solver = Solver
         data = simulation.dpred()
         err = (
@@ -59,15 +59,15 @@ class DCProblemAnalyticTests(unittest.TestCase):
         if err < 0.2:
             print(err)
             passed = True
-            print(">> DC analytic test for Problem3D_N is passed")
+            print(">> DC analytic test for Simulation3DNodal is passed")
         else:
             print(err)
             passed = False
-            print(">> DC analytic test for Problem3D_N is failed")
+            print(">> DC analytic test for Simulation3DNodal is failed")
         self.assertTrue(passed)
 
-    def test_Problem3D_CC_Mixed(self, tolerance=0.2):
-        simulation = dc.Problem3D_CC(
+    def test_Simulation3DCellCentered_Mixed(self, tolerance=0.2):
+        simulation = dc.Simulation3DCellCentered(
             self.mesh, survey=self.survey, sigma=self.sigma, bc_type='Mixed'
         )
         simulation.Solver = Solver
@@ -79,15 +79,15 @@ class DCProblemAnalyticTests(unittest.TestCase):
         if err < tolerance:
             print(err)
             passed = True
-            print(">> DC analytic test for Problem3D_CC is passed")
+            print(">> DC analytic test for Simulation3DCellCentered is passed")
         else:
             print(err)
             passed = False
-            print(">> DC analytic test for Problem3D_CC is failed")
+            print(">> DC analytic test for Simulation3DCellCentered is failed")
         self.assertTrue(passed)
 
-    def test_Problem3D_CC_Neumann(self, tolerance=0.2):
-        simulation = dc.simulation.Problem3D_CC(
+    def test_Simulation3DCellCentered_Neumann(self, tolerance=0.2):
+        simulation = dc.simulation.Simulation3DCellCentered(
             self.mesh, survey=self.survey, sigma=self.sigma, bc_type='Neumann'
             )
         simulation.Solver = Solver
@@ -99,11 +99,11 @@ class DCProblemAnalyticTests(unittest.TestCase):
         if err < tolerance:
             print(err)
             passed = True
-            print(">> DC analytic test for Problem3D_CC is passed")
+            print(">> DC analytic test for Simulation3DCellCentered is passed")
         else:
             print(err)
             passed = False
-            print(">> DC analytic test for Problem3D_CC is failed")
+            print(">> DC analytic test for Simulation3DCellCentered is failed")
         self.assertTrue(passed)
 
 
@@ -144,8 +144,8 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         self.sigma = sigma
         self.data_ana = data_ana
 
-    def test_Problem3D_CC_Dirichlet(self, tolerance=0.2):
-        simulation = dc.simulation.Problem3D_CC(
+    def test_Simulation3DCellCentered_Dirichlet(self, tolerance=0.2):
+        simulation = dc.simulation.Simulation3DCellCentered(
             self.mesh, survey=self.survey, sigma=self.sigma, bc_type='Dirichlet'
         )
 
@@ -158,11 +158,11 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         if err < tolerance:
             print(err)
             passed = True
-            print(">> DC analytic test for Problem3D_CC_Dirchlet is passed")
+            print(">> DC analytic test for Simulation3DCellCentered_Dirchlet is passed")
         else:
             print(err)
             passed = False
-            print(">> DC analytic test for Problem3D_CC_Dirchlet is failed")
+            print(">> DC analytic test for Simulation3DCellCentered_Dirchlet is failed")
         self.assertTrue(passed)
 
 
@@ -198,8 +198,8 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
         self.sigma = sigma
         self.data_ana = data_ana
 
-    def test_Problem3D_CC_Mixed(self, tolerance=0.2):
-        simulation = dc.simulation.Problem3D_CC(
+    def test_Simulation3DCellCentered_Mixed(self, tolerance=0.2):
+        simulation = dc.simulation.Simulation3DCellCentered(
                 self.mesh, survey=self.survey, sigma=self.sigma, bc_type='Mixed')
         simulation.Solver = Solver
         data = simulation.dpred()
@@ -210,11 +210,11 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
         if err < tolerance:
             print(err)
             passed = True
-            print(">> DC analytic test for Problem3D_CC_Mixed is passed")
+            print(">> DC analytic test for Simulation3DCellCentered_Mixed is passed")
         else:
             print(err)
             passed = False
-            print(">> DC analytic test for Problem3D_CC_Mixed is failed")
+            print(">> DC analytic test for Simulation3DCellCentered_Mixed is failed")
         self.assertTrue(passed)
 
 if __name__ == '__main__':

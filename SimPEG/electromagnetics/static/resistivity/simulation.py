@@ -2,13 +2,14 @@ import numpy as np
 import scipy as sp
 import properties
 import shutil
+from ....utils.code_utils import deprecate_class
 
 from ....utils import mkvc, sdiag, Zero
 from ....data import Data
 from ...base import BaseEMSimulation
 from .boundary_utils import getxBCyBC_CC
 from .survey import Survey
-from .fields import Fields_CC, Fields_N
+from .fields import Fields3DCellCentered, Fields3DNodal
 import dask
 import dask.array as da
 import multiprocessing
@@ -59,9 +60,9 @@ class BaseDCSimulation(BaseEMSimulation):
 
         self.Ainv = self.Solver(A, **self.solver_opts)
         RHS = self.getRHS()
-        Srcs = self.survey.source_list
+        # Srcs = self.survey.source_list
 
-        f[Srcs, self._solutionType] = self.Ainv * RHS  #, num_cores=self.n_cpu).compute()
+        f[:, self._solutionType] = self.Ainv * RHS  # num_cores=self.n_cpu).compute()
 
         # if not self.storeJ:
         #     self.Ainv.clean()
@@ -77,9 +78,10 @@ class BaseDCSimulation(BaseEMSimulation):
 
             # Need to check if multiplying weights makes sense
             if W is None:
-                self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
+                self.gtgdiag = da.sum(self.getJ(m)**2, axis=0).compute()
             else:
-                self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
+                w = da.from_array(W.diagonal())[:, None]
+                self.gtgdiag = da.sum((w*self.getJ(m))**2, axis=0).compute()
             #     from dask.diagnostics import Profiler, ResourceProfiler, CacheProfiler
 
             #     with Profiler() as prof, ResourceProfiler(dt=0.25) as rprof, CacheProfiler() as cprof:
@@ -165,7 +167,7 @@ class BaseDCSimulation(BaseEMSimulation):
                     dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
 
                     dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
-                    
+
                     if n_col > 1:
                         du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
                                                  shape=(self.model.size, n_col),
@@ -371,7 +373,7 @@ class BaseDCSimulation(BaseEMSimulation):
         elif self._formulation == 'HJ':
             n = self.mesh.nC
 
-        q = np.zeros((n, len(Srcs)))
+        q = np.zeros((n, len(Srcs)), order='F')
 
         for i, source in enumerate(Srcs):
             q[:, i] = source.eval(self)
@@ -385,14 +387,14 @@ class BaseDCSimulation(BaseEMSimulation):
         return toDelete
 
 
-class Problem3D_CC(BaseDCSimulation):
+class Simulation3DCellCentered(BaseDCSimulation):
     """
     3D cell centered DC problem
     """
 
     _solutionType = 'phiSolution'
     _formulation = 'HJ'  # CC potentials means J is on faces
-    fieldsPair = Fields_CC
+    fieldsPair = Fields3DCellCentered
     bc_type = 'Dirichlet'
 
     def __init__(self, mesh, **kwargs):
@@ -554,7 +556,8 @@ class Problem3D_CC(BaseDCSimulation):
 
     def setBC(self):
         if self.bc_type == 'Dirichlet':
-            print('Homogeneous Dirichlet is the natural BC for this CC discretization.')
+            if self.verbose:
+                print('Homogeneous Dirichlet is the natural BC for this CC discretization.')
             self.Div = sdiag(self.mesh.vol) * self.mesh.faceDiv
             self.Grad = self.Div.T
 
@@ -692,14 +695,14 @@ class Problem3D_CC(BaseDCSimulation):
             self.Grad = self.Div.T - P_BC*sdiag(y_BC)*M
 
 
-class Problem3D_N(BaseDCSimulation):
+class Simulation3DNodal(BaseDCSimulation):
     """
     3D nodal DC problem
     """
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # N potentials means B is on faces
-    fieldsPair = Fields_N
+    fieldsPair = Fields3DNodal
 
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation.__init__(self, mesh, **kwargs)
@@ -754,3 +757,20 @@ class Problem3D_N(BaseDCSimulation):
         # qDeriv = source.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+
+Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_N(Simulation3DNodal):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_CC(Simulation3DCellCentered):
+    pass

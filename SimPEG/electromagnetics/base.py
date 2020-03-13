@@ -14,13 +14,7 @@ from ..survey import BaseSurvey, BaseSrc
 from ..utils import sdiag, Zero
 from .. import props
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
-
 __all__ = ['BaseEMSimulation', 'BaseEMSrc']
-
 
 
 ###############################################################################
@@ -52,8 +46,6 @@ class BaseEMSimulation(BaseSimulation):
     props.Reciprocal(mu, mui)
 
     # mapPair = IdentityMap  #: Type of mapping to pair with
-
-    solver = Solver  #: Type of solver to pair with
 
     verbose = False
     storeInnerProduct = True
@@ -358,9 +350,14 @@ class BaseEMSimulation(BaseSimulation):
             )(np.ones(self.mesh.nE)) * self.sigmaDeriv
 
         if v is not None:
+            if not isinstance(u, Zero):
+                u = u.reshape(-1)
+                if v.ndim > 1:
+                    # promote u iff v is a matrix
+                    u = u[:, None]  # Avoids constructing the sparse matrix
             if adjoint:
-                return self._MeSigmaDeriv.T * (sdiag(u)*v)
-            return sdiag(u)*(self._MeSigmaDeriv * v)
+                return self._MeSigmaDeriv.T * (u*v)
+            return u*(self._MeSigmaDeriv * v)
         else:
             if adjoint is True:
                 return self._MeSigmaDeriv.T * sdiag(u)

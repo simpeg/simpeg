@@ -3,6 +3,7 @@ from __future__ import print_function
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
+from ...utils.code_utils import deprecate_class
 
 from SimPEG import utils
 from ...simulation import BaseSimulation
@@ -13,14 +14,14 @@ from .analytics import CongruousMagBC
 from SimPEG import Solver
 from SimPEG import props
 import properties
-from SimPEG.utils import mkvc, matutils, sdiag, setKwargs
+from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
 import dask
 import dask.array as da
 from scipy.sparse import csr_matrix as csr
 from dask.delayed import Delayed
 
 
-class IntegralSimulation(BasePFSimulation):
+class Simulation3DIntegral(BasePFSimulation):
     """
     magnetic simulation in integral form.
 
@@ -58,7 +59,7 @@ class IntegralSimulation(BasePFSimulation):
                 self._M = sp.identity(self.nC) * self.survey.source_field.parameters[0]
 
             else:
-                mag = matutils.dip_azimuth2cartesian(
+                mag = mat_utils.dip_azimuth2cartesian(
                     np.ones(self.nC) * self.survey.source_field.parameters[1],
                     np.ones(self.nC) * self.survey.source_field.parameters[2]
                 )
@@ -132,7 +133,7 @@ class IntegralSimulation(BasePFSimulation):
         if getattr(self, '_tmi_projection', None) is None:
 
             # Convert from north to cartesian
-            self._tmi_projection = matutils.dip_azimuth2cartesian(
+            self._tmi_projection = mat_utils.dip_azimuth2cartesian(
                 self.survey.source_field.parameters[1],
                 self.survey.source_field.parameters[2]
             )
@@ -597,7 +598,7 @@ class IntegralSimulation(BasePFSimulation):
         return np.vstack([rows[component] for component in components])
 
 
-class DifferentialEquationSimulation(BaseSimulation):
+class Simulation3DDifferential(BaseSimulation):
     """
         Secondary field approach using differential equations!
     """
@@ -1049,7 +1050,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
         Optimization, Regularization,
         Parameters, ObjFunction, Inversion
     )
-    prob = DifferentialEquationSimulation(
+    prob = Simulation3DDifferential(
            mesh,
            survey=data,
            mu=model)
@@ -1068,3 +1069,17 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     inv = Inversion.BaseInversion(obj, opt)
 
     return inv, reg
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class MagneticIntegral(Simulation3DIntegral):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_Diff(Simulation3DDifferential):
+    pass

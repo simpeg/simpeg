@@ -11,7 +11,7 @@ For this tutorial, we focus on the following:
     - How to predict magnetic data for a susceptibility model
     - How to include surface topography
     - The units of the physical property model and resulting data
-    
+
 
 """
 
@@ -28,9 +28,11 @@ import os
 
 from discretize import TensorMesh
 from discretize.utils import mkvc
-from SimPEG.utils import plot2Ddata, ModelBuilder, surface2ind_topo
+from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
 from SimPEG import maps
 from SimPEG.potential_fields import magnetics
+
+save_file = False
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -75,7 +77,7 @@ components = ["tmi"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = magnetics.receivers.point_receiver(
+receiver_list = magnetics.receivers.Point(
         receiver_locations, components=components
         )
 
@@ -131,7 +133,7 @@ model_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
 
 # Define model. Models in SimPEG are vector arrays
 model = background_susceptibility*np.ones(ind_active.sum())
-ind_sphere = ModelBuilder.getIndicesSphere(
+ind_sphere = model_builder.getIndicesSphere(
     np.r_[0., 0., -45.], 15., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]
@@ -141,14 +143,17 @@ model[ind_sphere] = sphere_susceptibility
 fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
-ax1 = fig.add_axes([0.05, 0.05, 0.78, 0.9])
+ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 mesh.plotSlice(
     plotting_map*model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
     clim=(np.min(model), np.max(model))
 )
 ax1.set_title('Model slice at y = 0 m')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('z (m)')
 
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+
+ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(vmin=np.min(model), vmax=np.max(model))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical'
@@ -169,12 +174,12 @@ plt.show()
 # susceptibility model using the integral formulation.
 #
 
-# Define the forward simluation. By setting the 'forward_only' keyword argument
-# to false, we avoid storing a large dense matrix.
-simulation = magnetics.simulation.IntegralSimulation(
+# Define the forward simulation. By setting the 'store_sensitivities' keyword
+# argument to "forward_only", we simulate the data without storing the sensitivities
+simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh,
     modelType='susceptibility', chiMap=model_map,
-    actInd=ind_active, forward_only=True
+    actInd=ind_active, store_sensitivities="forward_only"
 )
 
 # Compute predicted data for a susceptibility model
@@ -184,14 +189,17 @@ dpred = simulation.dpred(model)
 fig = plt.figure(figsize=(6, 5))
 v_max = np.max(np.abs(dpred))
 
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.1, 0.1, 0.8, 0.85])
 plot2Ddata(
     receiver_list[0].locations, dpred, ax=ax1, ncontour=30, clim=(-v_max, v_max),
     contourOpts={"cmap": "RdBu_r"}
 )
 ax1.set_title('TMI Anomaly')
+ax1.set_xlabel('x (m)')
+ax1.set_ylabel('y (m)')
 
-ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
+
+ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.85])
 norm = mpl.colors.Normalize(
         vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred))
 )
@@ -208,30 +216,29 @@ plt.show()
 # ---------------------
 #
 # Write the data and topography
-# 
+#
 
 
-fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_topo.txt'
-np.savetxt(fname, np.c_[xyz_topo], fmt='%.4e')
+if save_file == True:
 
-maximum_anomaly = np.max(np.abs(dpred))
-noise = 0.02*maximum_anomaly*np.random.rand(len(dpred))
-fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_data.obs'
-np.savetxt(
-    fname,
-    np.c_[receiver_locations, dpred + noise],
-    fmt='%.4e'
-)
+    fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_topo.txt'
+    np.savetxt(fname, np.c_[xyz_topo], fmt='%.4e')
 
-output_model = plotting_map*model
-output_model[np.isnan(output_model)] = 0.
+    maximum_anomaly = np.max(np.abs(dpred))
+    noise = 0.02*maximum_anomaly*np.random.rand(len(dpred))
+    fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_data.obs'
+    np.savetxt(
+        fname,
+        np.c_[receiver_locations, dpred + noise],
+        fmt='%.4e'
+    )
 
-fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\true_model.txt'
-np.savetxt(
-    fname,
-    output_model,
-    fmt='%.4e'
-)
+    output_model = plotting_map*model
+    output_model[np.isnan(output_model)] = 0.
 
-
-
+    fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\true_model.txt'
+    np.savetxt(
+        fname,
+        output_model,
+        fmt='%.4e'
+    )

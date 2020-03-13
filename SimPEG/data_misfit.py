@@ -1,11 +1,11 @@
 import numpy as np
 import properties
 from dask.delayed import Delayed
-from .utils import Counter, sdiag, timeIt
+from .utils import Counter, sdiag, timeIt, Identity
 from .data import Data
 from .simulation import BaseSimulation
 from .objective_function import L2ObjectiveFunction
-import warnings
+from .utils.code_utils import deprecate_class, deprecate_property
 
 __all__ = ["L2DataMisfit"]
 
@@ -37,7 +37,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
     )
 
     counter = properties.Instance(
-        "Set this to a SimPEG.Utils.Counter() if you want to count things",
+        "Set this to a SimPEG.utils.Counter() if you want to count things",
         Counter
     )
 
@@ -81,12 +81,6 @@ class BaseDataMisfit(L2ObjectiveFunction):
         return (self.nD, self.nP)
 
     @property
-    def Wd(self):
-        raise AttributeError(
-            'The `Wd` property been depreciated, please use: `W` instead'
-        )
-
-    @property
     def W(self):
         """W
             The data weighting matrix.
@@ -122,6 +116,8 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @W.setter
     def W(self, value):
+        if isinstance(value, Identity):
+            value = np.ones(self.data.nD)
         if len(value.shape) < 2:
             value = sdiag(value)
         assert value.shape == (self.data.nD, self.data.nD), (
@@ -138,12 +134,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
             )
         return self.simulation.residual(m, self.data.dobs, f=f)
 
-    @property
-    def std(self):
-        raise Exception(
-            "L2DataMisfit no longer has the attribute 'std'. Please use "
-            "data.standard_deviation"
-        )
+    Wd = deprecate_property(W, 'Wd', removal_version='0.15.0')
 
 
 class L2DataMisfit(BaseDataMisfit):
@@ -208,14 +199,49 @@ class L2DataMisfit(BaseDataMisfit):
             m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
         )
 
+
+@deprecate_class(removal_version='0.15.0')
 class l2_DataMisfit(L2DataMisfit):
-    """
-    This class will be deprecated in the next release of SimPEG. Please use
-    `L2DataMisfit` instead.
-    """
-    def __init__(self, **kwargs):
-        warnings.warn(
-            "l2_DataMisfit has been depreciated in favor of L2DataMisfit. Please "
-            "update your code to use 'L2DataMisfit'", DeprecationWarning
-        )
-        super(l2_DataMisfit, self).__init__(**kwargs)
+
+    def __init__(self, survey):
+        try:
+            simulation = survey.simulation
+        except AttributeError:
+            raise Exception('Survey object must be paired to a problem')
+        self.survey = survey
+        try:
+            dobs = survey.dobs
+            std = survey.std
+        except AttributeError:
+            raise Exception('Survey object must have been given a data object')
+        # create a Data object...
+        # Get the survey's simulation that was paired to it....
+        # simulation = survey.simulation
+
+        self.data = Data(survey, dobs, standard_deviation=std)
+
+        eps_factor = 1e-5  #: factor to multiply by the norm of the data to create floor
+        if getattr(self.survey, 'eps', None) is None:
+            print(
+                'SimPEG.DataMisfit.l2_DataMisfit assigning default eps '
+                'of 1e-5 * ||dobs||'
+            )
+            eps = (
+                np.linalg.norm(survey.dobs, 2)*eps_factor
+            )  # default
+        else:
+            eps = self.survey.eps
+
+        self.data.noise_floor = eps
+
+        super().__init__(self.data, simulation)
+
+    @property
+    def noise_floor(self):
+        return self.data.noise_floor
+    eps = deprecate_property(noise_floor, 'eps', new_name='data.standard_deviation', removal_version='0.15.0')
+
+    @property
+    def standard_deviation(self):
+        return self.data.standard_deviation
+    std = deprecate_property(standard_deviation, 'std', new_name='data.standard_deviation', removal_version='0.15.0')

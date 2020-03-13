@@ -17,7 +17,7 @@ np.random.seed(41)
 
 class DCProblem_2DTestsCC(unittest.TestCase):
 
-    formulation = 'Problem2D_CC'
+    formulation = 'Simulation2DCellCentered'
     storeJ = False
     adjoint_tol = 1e-10
 
@@ -33,7 +33,7 @@ class DCProblem_2DTestsCC(unittest.TestCase):
         A0loc = np.r_[-150, 0.]
         A1loc = np.r_[-130, 0.]
         # rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        rx = dc.receivers.Dipole_ky(M, N)
+        rx = dc.receivers.Dipole2D(M, N)
         src0 = dc.sources.Pole([rx], A0loc)
         src1 = dc.sources.Pole([rx], A1loc)
         survey = dc.survey.Survey_ky([src0, src1])
@@ -42,7 +42,7 @@ class DCProblem_2DTestsCC(unittest.TestCase):
             solver=Solver, survey=survey
         )
         mSynth = np.ones(mesh.nC)*1.
-        data = simulation.make_synthetic_data(mSynth)
+        data = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data)
@@ -97,21 +97,21 @@ class DCProblem_2DTestsCC(unittest.TestCase):
 
 class DCProblemTestsN(DCProblem_2DTestsCC):
 
-    formulation = 'Problem2D_N'
+    formulation = 'Simulation2DNodal'
     storeJ = False
     adjoint_tol = 1e-8
 
 
 class DCProblem_2DTestsCC_storeJ(DCProblem_2DTestsCC):
 
-    formulation = 'Problem2D_CC'
+    formulation = 'Simulation2DCellCentered'
     storeJ = True
     adjoint_tol = 1e-10
 
 
 class DCProblemTestsN_storeJ(DCProblem_2DTestsCC):
 
-    formulation = 'Problem2D_N'
+    formulation = 'Simulation2DNodal'
     storeJ = True
     adjoint_tol = 1e-8
 

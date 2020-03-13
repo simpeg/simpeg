@@ -6,6 +6,7 @@ import dask
 import dask.array as da
 import multiprocessing
 from scipy.constants import mu_0
+from ...utils.code_utils import deprecate_class
 
 try:
     from pymatsolver import Pardiso as SimpegSolver
@@ -16,8 +17,9 @@ from ...utils import mkvc, setKwargs, diagEst
 from ..frequency_domain.simulation import BaseFDEMSimulation
 from ..utils import omega
 from .survey import Survey, Data
-from .fields import Fields1D_ePrimSec, Fields3D_ePrimSec
 from pyMKL import mkl_set_num_threads
+from .fields import Fields1DPrimarySecondary, Fields3DPrimarySecondary
+
 
 class BaseNSEMSimulation(BaseFDEMSimulation):
     """
@@ -149,7 +151,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
 ###################################
 
 
-class Problem1D_ePrimSec(BaseNSEMSimulation):
+class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     """
     A NSEM problem soving a e formulation and primary/secondary fields decomposion.
 
@@ -175,7 +177,7 @@ class Problem1D_ePrimSec(BaseNSEMSimulation):
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
     _solutionType = 'e_1dSolution'
     _formulation  = 'EF'
-    fieldsPair = Fields1D_ePrimSec
+    fieldsPair = Fields1DPrimarySecondary
 
     # Initiate properties
     _sigmaPrimary = None
@@ -285,7 +287,7 @@ class Problem1D_ePrimSec(BaseNSEMSimulation):
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray m: Conductivity model (nC,)
-        :rtype: SimPEG.EM.NSEM.FieldsNSEM.Fields1D_ePrimSec
+        :rtype: SimPEG.EM.NSEM.FieldsNSEM.Fields1DPrimarySecondary
         :return: NSEM fields object containing the solution
         """
         # Set the current model
@@ -318,7 +320,7 @@ class Problem1D_ePrimSec(BaseNSEMSimulation):
 ###################################
 # 3D problems
 ###################################
-class Problem3D_ePrimSec(BaseNSEMSimulation):
+class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     """
     A NSEM problem solving a e formulation and a primary/secondary fields decompostion.
 
@@ -344,14 +346,18 @@ class Problem3D_ePrimSec(BaseNSEMSimulation):
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
     _solutionType = ['e_pxSolution', 'e_pySolution']  # Forces order on the object
     _formulation  = 'EB'
+<<<<<<< HEAD
     fieldsPair = Fields3D_ePrimSec
     n_cpu = int(multiprocessing.cpu_count())
+=======
+    fieldsPair = Fields3DPrimarySecondary
+>>>>>>> 8e573083a7dda92edaba6fd3074d28b434f67f00
 
     # Initiate properties
     _sigmaPrimary = None
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_ePrimSec, self).__init__(mesh, **kwargs)
+        super(Simulation3DPrimarySecondary, self).__init__(mesh, **kwargs)
 
     @property
     def sigmaPrimary(self):
@@ -496,3 +502,20 @@ class Problem3D_ePrimSec(BaseNSEMSimulation):
                 sys.stdout.flush()
             # Ainv.clean()
         return F
+<<<<<<< HEAD
+=======
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_ePrimSec(Simulation3DPrimarySecondary):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem1D_ePrimSec(Simulation1DPrimarySecondary):
+    pass
+>>>>>>> 8e573083a7dda92edaba6fd3074d28b434f67f00

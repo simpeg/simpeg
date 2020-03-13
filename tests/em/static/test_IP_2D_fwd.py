@@ -29,7 +29,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         B0loc = np.r_[-130, 0.]
         B1loc = np.r_[-110, 0.]
 
-        rx = dc.Rx.Dipole_ky(M, N)
+        rx = dc.Rx.Dipole2D(M, N)
         src0 = dc.Src.Dipole([rx], A0loc, B0loc)
         src1 = dc.Src.Dipole([rx], A1loc, B1loc)
 
@@ -41,7 +41,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         surveyDC = dc.Survey_ky([src0, src1])
 
         sigmaInf = np.ones(mesh.nC) * 1.
-        blkind = utils.ModelBuilder.getIndicesSphere(
+        blkind = utils.model_builder.getIndicesSphere(
             np.r_[0, -150], 40, mesh.gridCC)
 
         eta = np.zeros(mesh.nC)
@@ -52,42 +52,42 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.mesh = mesh
         self.sigmaInf = sigmaInf
         self.sigma0 = sigma0
-        self.srcLists = srcLists
-        self.srcLists_ip = srcLists_ip
+        self.source_lists = srcLists
+        self.source_lists_ip = srcLists_ip
         self.eta = eta
 
-    def test_Problem2D_N(self):
+    def test_Simulation2DNodal(self):
 
-        problemDC = dc.Problem2D_N(
+        problemDC = dc.Simulation2DNodal(
             self.mesh, sigmaMap=maps.IdentityMap(self.mesh)
         )
         problemDC.Solver = Solver
         problemDC.pair(self.surveyDC)
         data0 = problemDC.dpred(self.sigma0)
         datainf = problemDC.dpred(self.sigmaInf)
-        problemIP = ip.Problem2D_N(
+        problemIP = ip.Simulation2DNodal(
             self.mesh,
             sigma=self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
         )
         problemIP.Solver = Solver
-        surveyIP = ip.Survey(self.srcLists_ip)
+        surveyIP = ip.Survey(self.source_lists_ip)
         problemIP.pair(surveyIP)
         data_full = data0 - datainf
         data = problemIP.dpred(self.eta)
         err = np.linalg.norm((data-data_full)/data_full)**2 / data_full.size
         if err < 0.05:
             passed = True
-            print(">> IP forward test for Problem2D_N is passed")
+            print(">> IP forward test for Simulation2DNodal is passed")
             print(err)
         else:
             passed = False
-            print(">> IP forward test for Problem2D_N is failed")
+            print(">> IP forward test for Simulation2DNodal is failed")
         self.assertTrue(passed)
 
-    def test_Problem2D_CC(self):
+    def test_Simulation2DCellCentered(self):
 
-        problemDC = dc.Problem2D_CC(
+        problemDC = dc.Simulation2DCellCentered(
             self.mesh, rhoMap=maps.IdentityMap(self.mesh)
         )
         problemDC.Solver = Solver
@@ -95,26 +95,26 @@ class IPProblemAnalyticTests(unittest.TestCase):
         data0 = problemDC.dpred(1./self.sigma0)
         finf = problemDC.fields(1./self.sigmaInf)
         datainf = problemDC.dpred(1./self.sigmaInf, f=finf)
-        problemIP = ip.Problem2D_CC(
+        problemIP = ip.Simulation2DCellCentered(
             self.mesh,
             rho=1./self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh)
         )
         problemIP.Solver = Solver
         print("\n\n\n")
-        print(self.srcLists_ip)
-        surveyIP = ip.Survey(self.srcLists_ip)
+        print(self.source_lists_ip)
+        surveyIP = ip.Survey(self.source_lists_ip)
         problemIP.pair(surveyIP)
         data_full = data0 - datainf
         data = problemIP.dpred(self.eta)
         err = np.linalg.norm((data-data_full)/data_full)**2 / data_full.size
         if err < 0.05:
             passed = True
-            print(">> IP forward test for Problem2D_CC is passed")
+            print(">> IP forward test for Simulation2DCellCentered is passed")
         else:
             import matplotlib.pyplot as plt
             passed = False
-            print(">> IP forward test for Problem2D_CC is failed")
+            print(">> IP forward test for Simulation2DCellCentered is failed")
             print(err)
             plt.plot(data_full)
             plt.plot(data, 'k.')

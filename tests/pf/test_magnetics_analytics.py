@@ -2,7 +2,7 @@ import unittest
 #from SimPEG import Mesh, PF
 import discretize
 from SimPEG.potential_fields import magnetics as mag
-from SimPEG.utils.ModelBuilder import getIndicesSphere
+from SimPEG.utils.model_builder import getIndicesSphere
 import numpy as np
 from scipy.constants import mu_0
 

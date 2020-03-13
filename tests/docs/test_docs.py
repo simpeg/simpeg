@@ -20,6 +20,9 @@ class Doc_Test(unittest.TestCase):
 
         response = subprocess.run(["make", "html"])
         self.assertTrue(response.returncode == 0)
+        # response = subprocess.call(["make", "html"], shell=True)  # Needed for local test on Windows
+        # self.assertTrue(response == 0)
+
         os.chdir(wd)
 
     def test_linkcheck(self):
@@ -29,6 +32,10 @@ class Doc_Test(unittest.TestCase):
         response = subprocess.run(["make", "linkcheck"])
         print(response.returncode)
         self.assertTrue(response.returncode == 0)
+        # response = subprocess.call(["make", "linkcheck"], shell=True)  # Needed for local test on Windows
+        # print(response)
+        # self.assertTrue(response == 0)
+
         os.chdir(wd)
 
 

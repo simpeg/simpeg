@@ -22,7 +22,7 @@ OcTree meshes. Some things we consider are:
 
 from discretize import TreeMesh
 from discretize.utils.meshutils import refine_tree_xyz
-from SimPEG.utils import mkvc, ModelBuilder, surface2ind_topo
+from SimPEG.utils import mkvc, model_builder, surface2ind_topo
 from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt
@@ -223,7 +223,7 @@ model_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 model = background_value*np.ones(ind_active.sum())
 
 # Add a sphere
-ind_sphere = ModelBuilder.getIndicesSphere(
+ind_sphere = model_builder.getIndicesSphere(
     np.r_[-25., 0., -15.], 20., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]  # So same size and order as model
@@ -234,7 +234,7 @@ xp = np.kron(np.ones((2)), [-10., 10., 55., 35.])
 yp = np.kron([-1000., 1000.], np.ones((4)))
 zp = np.kron(np.ones((2)), [-120., -120., 45., 45.])
 xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-ind_polygon = ModelBuilder.PolygonInd(mesh, xyz_pts)
+ind_polygon = model_builder.PolygonInd(mesh, xyz_pts)
 ind_polygon = ind_polygon[ind_active]  # So same size and order as model
 model[ind_polygon] = dyke_value
 
@@ -334,7 +334,7 @@ N = int(ind_active.sum())
 model = np.kron(np.ones((N, 1)), np.c_[background_sigma_value, background_mu_value])
 
 # Add a conductive and permeable sphere
-ind_sphere = ModelBuilder.getIndicesSphere(
+ind_sphere = model_builder.getIndicesSphere(
     np.r_[-20., 0., -15.], 20., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]  # So same size and order as model
@@ -345,7 +345,7 @@ xp = np.kron(np.ones((2)), [-10., 10., 55., 35.])
 yp = np.kron([-1000., 1000.], np.ones((4)))
 zp = np.kron(np.ones((2)), [-120., -120., 45., 45.])
 xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-ind_polygon = ModelBuilder.PolygonInd(mesh, xyz_pts)
+ind_polygon = model_builder.PolygonInd(mesh, xyz_pts)
 ind_polygon = ind_polygon[ind_active]  # So same size and order as model
 model[ind_polygon, 0] = dyke_sigma_value
 

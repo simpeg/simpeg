@@ -1,15 +1,16 @@
 import numpy as np
 import properties
+from ....utils.code_utils import deprecate_class
 
 from ....fields import TimeFields
 from ....utils import Identity, Zero
 
-# TODO: this should be the BaseDCSimulation_2D --> but circular imports at the
+# TODO: this should be the BaseDCSimulation2D --> but circular imports at the
 # moment, so we can settle for its base at the moment
 from ...base import BaseEMSimulation
 
 
-class Fields_ky(TimeFields):
+class Fields2D(TimeFields):
 
     """
 
@@ -46,6 +47,13 @@ class Fields_ky(TimeFields):
 
     knownFields = {}
     dtype = float
+
+    @property
+    def survey(self):
+        mini = self.simulation._mini_survey
+        if mini is not None:
+            return mini
+        return self.simulation.survey
 
     def _phiDeriv(self, kyInd, src, du_dm_v, v, adjoint=False):
         if (
@@ -108,7 +116,7 @@ class Fields_ky(TimeFields):
     #     return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
 
 
-class Fields_ky_CC(Fields_ky):
+class Fields2DCellCentered(Fields2D):
     """
     Fancy Field Storage for a 2.5D cell centered code.
     """
@@ -146,7 +154,7 @@ class Fields_ky_CC(Fields_ky):
         raise NotImplementedError
 
 
-class Fields_ky_N(Fields_ky):
+class Fields2DNodal(Fields2D):
     """
     Fancy Field Storage for a 2.5D nodal code.
     """
@@ -181,3 +189,24 @@ class Fields_ky_N(Fields_ky):
 
     def _e(self, phiSolution, srcList):
         raise NotImplementedError
+
+
+Fields2DCellCentred = Fields2DCellCentered
+
+
+############
+# Deprecated
+############
+@deprecate_class(removal_version='0.15.0')
+class Fields_ky(Fields2D):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields_ky_CC(Fields2DCellCentered):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields_ky_N(Fields2DNodal):
+    pass

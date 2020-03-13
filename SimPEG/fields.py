@@ -238,7 +238,7 @@ class TimeFields(Fields):
               'N':  self.mesh.nN,
               'F':  self.mesh.nF,
               'E':  self.mesh.nE}[loc]
-        nSrc = self.simulation.survey.nSrc
+        nSrc = self.survey.nSrc
         nT = self.simulation.nT + 1
         return (nP, nSrc, nT)
 

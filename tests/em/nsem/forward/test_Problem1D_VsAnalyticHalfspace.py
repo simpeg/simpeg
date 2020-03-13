@@ -10,10 +10,10 @@ TOLp = 5e-1
 def appRes_psFieldNorm(sigmaHalf):
 
     # Make the survey
-    survey, sigma, sigBG, mesh = nsem.utils.testUtils.setup1DSurvey(
+    survey, sigma, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
         sigmaHalf, False
     )
-    simulation = nsem.Problem1D_ePrimSec(mesh, sigmaPrimary=sigBG, sigma=sigma)
+    simulation = nsem.Simulation1DPrimarySecondary(mesh, sigmaPrimary=sigBG, sigma=sigma)
     simulation.pair(survey)
 
     # Get the fields
@@ -23,7 +23,7 @@ def appRes_psFieldNorm(sigmaHalf):
     data = simulation.dpred(f=fields)
 
     # Calculate the app res and phs
-    app_r = np.array(nsem.utils.testUtils.getAppResPhs(data, survey=survey))[:, 0]
+    app_r = np.array(nsem.utils.test_utils.getAppResPhs(data, survey=survey))[:, 0]
 
     return np.linalg.norm(
         np.abs(np.log(app_r) - np.log(np.ones(survey.nFreq) / sigmaHalf)) *
@@ -34,10 +34,10 @@ def appRes_psFieldNorm(sigmaHalf):
 def appPhs_psFieldNorm(sigmaHalf):
 
     # Make the survey
-    survey, sigma, sigBG, mesh = nsem.utils.testUtils.setup1DSurvey(
+    survey, sigma, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
         sigmaHalf, False
     )
-    simulation = nsem.Problem1D_ePrimSec(mesh, sigmaPrimary=sigBG, sigma=sigma)
+    simulation = nsem.Simulation1DPrimarySecondary(mesh, sigmaPrimary=sigBG, sigma=sigma)
     simulation.pair(survey)
 
     # Get the fields
@@ -47,7 +47,7 @@ def appPhs_psFieldNorm(sigmaHalf):
     data = simulation.dpred(f=fields)
 
     # Calculate the app  phs
-    app_p = np.array(nsem.utils.testUtils.getAppResPhs(data, survey))[:, 1]
+    app_p = np.array(nsem.utils.test_utils.getAppResPhs(data, survey))[:, 1]
 
     return np.linalg.norm(np.abs(app_p - np.ones(survey.nFreq)*45) / 45)
 

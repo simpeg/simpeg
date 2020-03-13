@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import epsilon_0
+from ...utils.code_utils import deprecate_class
 
 from ...fields import TimeFields
 from ...utils import mkvc, sdiag, Zero
@@ -107,9 +108,9 @@ class FieldsTDEM(TimeFields):
         )
 
 
-class Fields_Derivs_eb(FieldsTDEM):
+class FieldsDerivativesEB(FieldsTDEM):
     """
-    A fields object for satshing derivs in the EB formulatio
+    A fields object for satshing derivs in the EB formulation
     """
     knownFields = {
                     'bDeriv': 'F',
@@ -121,7 +122,7 @@ class Fields_Derivs_eb(FieldsTDEM):
                   }
 
 
-class Fields_Derivs_hj(FieldsTDEM):
+class FieldsDerivativesHJ(FieldsTDEM):
     """
     A fields object for satshing derivs in the HJ formulation
     """
@@ -135,7 +136,7 @@ class Fields_Derivs_hj(FieldsTDEM):
                   }
 
 
-class Fields3D_b(FieldsTDEM):
+class Fields3DMagneticFluxDensity(FieldsTDEM):
     """Field Storage for a TDEM simulation."""
     knownFields = {'bSolution': 'F'}
     aliasFields = {
@@ -310,7 +311,7 @@ class Fields3D_b(FieldsTDEM):
         )
 
 
-class Fields3D_e(FieldsTDEM):
+class Fields3DElectricField(FieldsTDEM):
     """Fancy Field Storage for a TDEM simulation."""
     knownFields = {'eSolution': 'E'}
     aliasFields = {
@@ -367,7 +368,7 @@ class Fields3D_e(FieldsTDEM):
         """
         Integrate _db_dt using rectangles
         """
-        raise NotImplementedError('To obtain b-fields, please use Problem3D_b')
+        raise NotImplementedError('To obtain b-fields, please use Simulation3DMagneticFluxDensity')
         # dbdt = self._dbdt(eSolution, source_list, tInd)
         # dt = self.simulation.time_mesh.hx
         # # assume widths of "ghost cells" same on either end
@@ -429,7 +430,7 @@ class Fields3D_e(FieldsTDEM):
         )
 
 
-class Fields3D_h(FieldsTDEM):
+class Fields3DMagneticField(FieldsTDEM):
     """Fancy Field Storage for a TDEM simulation."""
     knownFields = {'hSolution': 'E'}
     aliasFields = {
@@ -594,7 +595,7 @@ class Fields3D_h(FieldsTDEM):
         )
 
 
-class Fields3D_j(FieldsTDEM):
+class Fields3DCurrentDensity(FieldsTDEM):
     """Fancy Field Storage for a TDEM simulation."""
     knownFields = {'jSolution': 'F'}
     aliasFields = {
@@ -627,7 +628,7 @@ class Fields3D_j(FieldsTDEM):
         return Zero()
 
     def _h(self, jSolution, source_list, tInd):
-        raise NotImplementedError('Please use Problem3D_h to get h-fields')
+        raise NotImplementedError('Please use Simulation3DMagneticField to get h-fields')
 
     def _dhdt(self, jSolution, source_list, tInd):
         C = self._edgeCurl
@@ -712,3 +713,35 @@ class Fields3D_j(FieldsTDEM):
             self.simulation.MeMu * self._dhdtDeriv_m(tInd, src, v)
         )
 
+
+############
+# Deprecated
+############
+@deprecate_class(removal_version='0.15.0')
+class Fields_Derivs_eb(FieldsDerivativesEB):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields_Derivs_hj(FieldsDerivativesHJ):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_b(Fields3DMagneticFluxDensity):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_e(Fields3DElectricField):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_h(Fields3DMagneticField):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_j(Fields3DCurrentDensity):
+    pass

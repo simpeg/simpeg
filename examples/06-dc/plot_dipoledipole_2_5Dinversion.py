@@ -53,10 +53,10 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     survey.drapeTopo(mesh, actind, option="top")
 
     # Build a conductivity model
-    blk_inds_c = utils.ModelBuilder.getIndicesSphere(
+    blk_inds_c = utils.model_builder.getIndicesSphere(
         np.r_[60., -25.], 12.5, mesh.gridCC
     )
-    blk_inds_r = utils.ModelBuilder.getIndicesSphere(
+    blk_inds_r = utils.model_builder.getIndicesSphere(
         np.r_[140., -25.], 12.5, mesh.gridCC
     )
     layer_inds = mesh.gridCC[:, 1] > -5.
@@ -99,7 +99,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
-    prb = DC.Problem2D_N(
+    prb = DC.Simulation2DNodal(
         mesh, survey=survey, rhoMap=mapping, storeJ=True,
         Solver=Solver, verbose=True
     )

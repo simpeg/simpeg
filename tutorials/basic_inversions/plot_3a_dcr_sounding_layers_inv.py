@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-DC Resistivity: 1D Resistivity Inversion
-========================================
+DC Resistivity: Inverting for Resistivities and Layers
+======================================================
 
 Here we use the module *SimPEG.electromangetics.static.resistivity* to invert
-DC resistivity sounding data and recover a 1D electrical resistivity model.
-In this tutorial, we focus on the following:
+DC resistivity sounding data and recover the resistivities and layer thicknesses
+for a 1D layered Earth. In this tutorial, we focus on the following:
 
     - How to define sources and receivers from a survey file
     - How to define the survey
-    - 1D inversion of DC resistivity data
+    - Defining a model that consists of resistivities and layer thicknesses
 
 For this tutorial, we will invert sounding data collected over a layered Earth using
 a Wenner array. The end product is layered Earth model which explains the data.
-    
+
+
 
 """
 
@@ -24,6 +25,7 @@ a Wenner array. The end product is layered Earth model which explains the data.
 
 import os
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
@@ -32,9 +34,10 @@ from SimPEG import (maps, data, data_misfit, regularization,
     optimization, inverse_problem, inversion, directives
     )
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.StaticUtils import plot_layer
+from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
 
 # sphinx_gallery_thumbnail_number = 2
+
 
 #############################################
 # Define File Names
@@ -61,7 +64,6 @@ mesh_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\ass
 # Load data
 dobs = np.loadtxt(str(data_filename))
 
-# Extract source and receiver electrode locations and the observed data
 A_electrodes = dobs[:, 0:3]
 B_electrodes = dobs[:, 3:6]
 M_electrodes = dobs[:, 6:9]
@@ -76,12 +78,12 @@ k = np.r_[k, len(k)+1]
 
 source_list = []
 for ii in range(0, n_sources):
-    
+
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
     M_locations = M_electrodes[k[ii]:k[ii+1], :]
     N_locations = N_electrodes[k[ii]:k[ii+1], :]
     receiver_list = [dc.receivers.Dipole(M_locations, N_locations)]
-    
+
     # AB electrode locations for source. Each is a (1, 3) numpy array
     A_location = A_electrodes[k[ii], :]
     B_location = B_electrodes[k[ii], :]
@@ -95,14 +97,15 @@ survey.getABMN_locations()
 
 # Plot apparent resistivities on sounding curve as a function of Wenner separation
 # parameter.
-electrode_separations = np.sqrt(
-        np.sum((survey.m_locations - survey.n_locations)**2, axis=1)
+electrode_separations = 0.5*np.sqrt(
+        np.sum((survey.a_locations - survey.b_locations)**2, axis=1)
         )
 
 fig = plt.figure(figsize=(11, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+mpl.rcParams.update({'font.size': 14})
+ax1 = fig.add_axes([0.15, 0.1, 0.7, 0.85])
 ax1.semilogy(electrode_separations, dobs, 'b')
-ax1.set_xlabel("Wenner Array Separation Parameter (m)")
+ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 plt.show()
 
@@ -116,7 +119,7 @@ plt.show()
 # For this tutorial, the uncertainty on each datum will be 2.5%.
 #
 
-uncertainties = 0.025*np.abs(dobs)
+uncertainties = 0.025*dobs
 
 
 ###############################################
@@ -129,53 +132,49 @@ uncertainties = 0.025*np.abs(dobs)
 
 data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 
-
-###############################################
-# Defining a 1D Layered Earth (1D Tensor Mesh)
-# --------------------------------------------
+###############################################################
+# Defining the Starting Model and Mapping
+# ---------------------------------------
 #
-# Here, we define the layer thicknesses for our 1D simulation. To do this, we use
-# the TensorMesh class.
+# In this case, the model consists of parameters which define the respective
+# resistivities and thickness for a set of horizontal layer. Here, we choose to
+# define a model consisting of 3 layers.
 #
 
-#layer_thicknesses = 20.*np.ones((25))
-layer_thicknesses = 5*np.logspace(0,1,20)
-mesh = TensorMesh([layer_thicknesses], '0')
+# Define the resistivities and thicknesses for the starting model. The thickness
+# of the bottom layer is assumed to extend downward to infinity so we don't
+# need to define it.
+resistivities = np.r_[1e3, 1e3, 1e3]
+layer_thicknesses = np.r_[50., 50.]
 
+# Define a mesh for plotting and regularization.
+mesh = TensorMesh([(np.r_[layer_thicknesses, layer_thicknesses[-1]])], '0')
 print(mesh)
 
-###############################################################
-# Define a Starting and Reference Model
-# -------------------------------------
-#
-# Here, we create starting and/or reference models for the inversion as
-# well as the mapping from the model space to the active cells. Starting and
-# reference models can be a constant background value or contain a-priori
-# structures. Here, the starting model is log(1000) Ohm meters.
-#
-# Define log-resistivity values for each layer since our model is the
-# log-resistivity. Don't make the values 0!
-# Otherwise the gradient for the 1st iteration is zero and the inversion will
-# not converge.
+# Define model. We are inverting for the layer resistivities and layer thicknesses.
+# Since the bottom layer extends to infinity, it is not a model parameter for
+# which we need to invert. For a 3 layer model, there is a total of 5 parameters.
+# For stability, our model is the log-resistivity and log-thickness.
+starting_model = np.r_[np.log(resistivities), np.log(layer_thicknesses)]
 
-# Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-starting_model = np.log(1e3*np.ones((len(layer_thicknesses))))
-
-# Define mapping from model to active cells.
-model_map = maps.IdentityMap(mesh)*maps.ExpMap()
+# Since the model contains two different properties for each layer, we use
+# wire maps to distinguish the properties.
+wire_map = maps.Wires(('rho', mesh.nC), ('t', mesh.nC-1))
+resistivity_map = maps.ExpMap(nP=mesh.nC) * wire_map.rho
+layer_map = maps.ExpMap(nP=mesh.nC-1) * wire_map.t
 
 #######################################################################
 # Define the Physics
 # ------------------
 #
-# Here we define the physics of the problem using the DCSimulation_1D class.
+# Here we define the physics of the problem. The data consists of apparent
+# resistivity values. This is defined here.
 #
 
-simulation = dc.simulation_1d.DCSimulation_1D(
-        mesh, survey=survey, rhoMap=model_map, t=layer_thicknesses,
+simulation = dc.simulation_1d.Simulation1DLayers(
+        survey=survey, rhoMap=resistivity_map, thicknessesMap=layer_map,
         data_type="apparent_resistivity"
         )
-
 
 #######################################################################
 # Define Inverse Problem
@@ -195,15 +194,27 @@ simulation = dc.simulation_1d.DCSimulation_1D(
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 dmis.W = 1./uncertainties
 
-# Define the regularization (model objective function)
-reg = regularization.Simple(
-    mesh, alpha_s=1., alpha_x=1., mref=starting_model
+# Define the regularization on the parameters related to resistivity
+mesh_rho = TensorMesh([mesh.hx.size])
+reg_rho = regularization.Simple(
+    mesh_rho, alpha_s=0.01, alpha_x=1,
+    mapping=wire_map.rho
 )
+
+# Define the regularization on the parameters related to layer thickness
+mesh_t = TensorMesh([mesh.hx.size-1])
+reg_t = regularization.Simple(
+    mesh_t, alpha_s=0.01, alpha_x=1,
+    mapping=wire_map.t
+)
+
+# Combine to make regularization for the inversion problem
+reg = reg_rho + reg_t
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.InexactGaussNewton(
-    maxIter=30, maxIterCG=20
+    maxIter=50, maxIterCG=30
 )
 
 # Define the inverse problem
@@ -218,29 +229,28 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # criteria for the inversion and saving inversion results at each iteration.
 #
 
+# Apply and update sensitivity weighting as the model updates
+update_sensitivity_weights = directives.UpdateSensitivityWeights()
+
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 
 # Set the rate of reduction in trade-off parameter (beta) each time the
 # the inverse problem is solved. And set the number of Gauss-Newton iterations
 # for each trade-off paramter value.
 beta_schedule = directives.BetaSchedule(coolingFactor=5., coolingRate=3.)
 
-# Apply and update sensitivity weighting as the model updates
-update_sensitivity_weights = directives.UpdateSensitivityWeights()
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit(chifact=1)
+target_misfit = directives.TargetMisfit(chifact=0.1)
 
-# The directives are defined as a list.
+# The directives are defined in a list
 directives_list = [
-    update_sensitivity_weights, starting_beta, beta_schedule,
-    save_iteration, target_misfit
-    ]
+        update_sensitivity_weights, starting_beta, beta_schedule, target_misfit
+        ]
 
 #####################################################################
 # Running the Inversion
@@ -251,7 +261,7 @@ directives_list = [
 #
 
 # Here we combine the inverse problem and the set of directives
-inv = inversion.BaseInversion(inv_prob, directives_list)
+inv = inversion.BaseInversion(inv_prob, directiveList=directives_list)
 
 # Run the inversion
 recovered_model = inv.run(starting_model)
@@ -264,30 +274,26 @@ recovered_model = inv.run(starting_model)
 # Load the true model and layer thicknesses
 true_model = np.loadtxt(str(model_filename))
 true_layers = np.loadtxt(str(mesh_filename))
-true_layers = TensorMesh([true_layers], 'N')
+true_layers = TensorMesh([true_layers], '0')
 
 # Plot true model and recovered model
 fig = plt.figure(figsize=(5, 5))
-x_min = np.min([np.min(model_map*recovered_model), np.min(true_model)])
-x_max = np.max([np.max(model_map*recovered_model), np.max(true_model)])
+plotting_mesh = TensorMesh([np.r_[layer_map*recovered_model, layer_thicknesses[-1]]], '0')
+x_min = np.min([np.min(resistivity_map*recovered_model), np.min(true_model)])
+x_max = np.max([np.max(resistivity_map*recovered_model), np.max(true_model)])
 
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
 plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color='b')
-plot_layer(model_map*recovered_model, mesh, ax=ax1, depth_axis=False, color='r')
+plot_layer(resistivity_map*recovered_model, plotting_mesh, ax=ax1, depth_axis=False, color='r')
 ax1.set_xlim(0.9*x_min, 1.1*x_max)
 ax1.legend(['True Model','Recovered Model'])
 
 # Plot the true and apparent resistivities on a sounding curve
 fig = plt.figure(figsize=(11, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.2, 0.05, 0.6, 0.8])
 ax1.semilogy(electrode_separations, dobs, 'b')
 ax1.semilogy(electrode_separations, inv_prob.dpred, 'r')
-ax1.set_xlabel("Wenner Array Separation Parameter (m)")
+ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 ax1.legend(['True Sounding Curve','Predicted Sounding Curve'])
 plt.show()
-
-
-
-
-

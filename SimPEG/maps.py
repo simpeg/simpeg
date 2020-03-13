@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+from .utils.code_utils import deprecate_class
 
 from six import integer_types
 from six import string_types
@@ -21,7 +22,8 @@ import properties
 from discretize.Tests import checkDerivative
 
 from .utils import (
-    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag, matutils
+    setKwargs, mkvc, rotationMatrixFromNormals, Zero, Identity, sdiag,
+    mat_utils, speye
 )
 
 
@@ -538,8 +540,8 @@ class SphericalSystem(IdentityMap):
             self.model = model
 
             # Do a double projection to make sure the parameters are bounded
-            m_xyz = matutils.spherical2cartesian(model.reshape((-1, 3), order='F'))
-            m_atp = matutils.cartesian2spherical(
+            m_xyz = mat_utils.spherical2cartesian(model.reshape((-1, 3), order='F'))
+            m_atp = mat_utils.cartesian2spherical(
                 m_xyz.reshape((-1, 3), order='F')
             ).reshape((-1, 3), order='F')
 
@@ -573,7 +575,7 @@ class SphericalSystem(IdentityMap):
         :param model:
         :return:
         """
-        return matutils.spherical2cartesian(model.reshape((-1, 3), order='F'))
+        return mat_utils.spherical2cartesian(model.reshape((-1, 3), order='F'))
 
     def inverse(self, model):
         """
@@ -583,7 +585,7 @@ class SphericalSystem(IdentityMap):
         :return: model
 
         """
-        return matutils.cartesian2spherical(model.reshape((-1, 3), order='F'))
+        return mat_utils.cartesian2spherical(model.reshape((-1, 3), order='F'))
 
     @property
     def shape(self):
@@ -1234,10 +1236,11 @@ class Weighting(IdentityMap):
     def __init__(self, mesh=None, nP=None, weights=None, **kwargs):
 
         if 'nC' in kwargs:
-            raise AttributeError(
-                '`nC` is depreciated. Use `nP` to set the number of model '
-                'parameters'
-            )
+            warnings.warn(
+                '`nC` is deprecated. Use `nP` to set the number of model '
+                'parameters, This option will be removed in version 0.15.0 of SimPEG',
+                DeprecationWarning)
+            nP = nC
 
         super(Weighting, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
@@ -2019,93 +2022,6 @@ class ParametricSplineMap(IdentityMap):
         if v is not None:
             return sp.csr_matrix(np.c_[g1, g2, g3]) * v
         return sp.csr_matrix(np.c_[g1, g2, g3])
-
-
-###############################################################################
-#                                                                             #
-#                              Depreciated Maps                               #
-#                                                                             #
-###############################################################################
-
-
-class FullMap(SurjectFull):
-    """FullMap is depreciated. Use SurjectVertical1DMap instead"""
-    def __init__(self, mesh, **kwargs):
-        warnings.warn(
-            "`FullMap` is deprecated and will be removed in future versions."
-            " Use `SurjectFull` instead",
-            FutureWarning)
-        SurjectFull.__init__(self, mesh, **kwargs)
-
-
-class Vertical1DMap(SurjectVertical1D):
-    """Vertical1DMap is depreciated. Use SurjectVertical1D instead"""
-    def __init__(self, mesh, **kwargs):
-        warnings.warn(
-            "`Vertical1DMap` is deprecated and will be removed in future"
-            " versions. Use `SurjectVertical1D` instead",
-            FutureWarning)
-        SurjectVertical1D.__init__(self, mesh, **kwargs)
-
-
-class Map2Dto3D(Surject2Dto3D):
-    """Map2Dto3D is depreciated. Use Surject2Dto3D instead"""
-
-    def __init__(self, mesh, **kwargs):
-        warnings.warn(
-            "`Map2Dto3D` is deprecated and will be removed in future versions."
-            " Use `Surject2Dto3D` instead",
-            FutureWarning)
-        Surject2Dto3D.__init__(self, mesh, **kwargs)
-
-
-class ActiveCells(InjectActiveCells):
-    """ActiveCells is depreciated. Use InjectActiveCells instead"""
-
-    def __init__(self, mesh, indActive, valInactive, nC=None):
-        warnings.warn(
-            "`ActiveCells` is deprecated and will be removed in future "
-            "versions. Use `InjectActiveCells` instead",
-            FutureWarning)
-        InjectActiveCells.__init__(self, mesh, indActive, valInactive, nC)
-
-
-class CircleMap(ParametricCircleMap):
-    """CircleMap is depreciated. Use ParametricCircleMap instead"""
-
-    def __init__(self, mesh, logSigma=True):
-        warnings.warn(
-            "`CircleMap` is deprecated and will be removed in future "
-            "versions. Use `ParametricCircleMap` instead",
-            FutureWarning)
-        ParametricCircleMap.__init__(self, mesh, logSigma)
-
-
-class PolyMap(ParametricPolyMap):
-    """PolyMap is depreciated. Use ParametricSplineMap instead"""
-
-    def __init__(self, mesh, order, logSigma=True, normal='X', actInd=None):
-        warnings.warn(
-            "`PolyMap` is deprecated and will be removed in future "
-            "versions. Use `ParametricSplineMap` instead",
-            FutureWarning
-        )
-        ParametricPolyMap(self, mesh, order, logSigma, normal, actInd)
-
-
-class SplineMap(ParametricSplineMap):
-    """SplineMap is depreciated. Use ParametricSplineMap instead"""
-
-    def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True,
-                 normal='X'):
-        warnings.warn(
-            "`SplineMap` is deprecated and will be removed in future "
-            "versions. Use `ParametricSplineMap` instead",
-            FutureWarning
-        )
-        ParametricSplineMap.__init__(
-            self, mesh, pts, ptsv, order, logSigma, normal
-        )
 
 
 class BaseParametric(IdentityMap):
@@ -3386,3 +3302,146 @@ class ParametricBlockInLayer(ParametricLayer):
             return sp.csr_matrix(self._deriv2d(m))
         elif self.mesh.dim == 3:
             return sp.csr_matrix(self._deriv3d(m))
+
+
+class TileMap(IdentityMap):
+    """
+        Mapping for tiled inversion.
+
+        Uses volume averaging to map a model defined on a global mesh to the
+        local mesh. Everycell in the local mesh must also be in the global mesh.
+    """
+
+    tol = 1e-8  # Tolerance to avoid zero division
+    components = 1 # Number of components in the model. =3 for vector model
+
+    def __init__(self, global_mesh, global_active, local_mesh, **kwargs):
+        """
+        Parameters
+        ----------
+        global_mesh : discretize.TreeMesh
+            Global TreeMesh defining the entire domain.
+        global_active : bool, array of bool, or array of indices
+            Defines the active cells in the global_mesh.
+        local_mesh : discretize.TreeMesh
+            Local TreeMesh for the simulation.
+        """
+        kwargs.pop('mesh', None)
+        if global_mesh._meshType != 'TREE':
+            raise ValueError('global_mesh must be a TreeMesh')
+        if local_mesh._meshType != 'TREE':
+            raise ValueError('local_mesh must be a TreeMesh')
+
+        super(TileMap, self).__init__(**kwargs)
+        self.global_mesh = global_mesh
+        self.global_active = global_active
+        self.local_mesh = local_mesh
+
+        if not isinstance(self.global_active, bool):
+            temp = np.zeros(self.global_mesh.nC, dtype='bool')
+            temp[self.global_active] = True
+            self.global_active = temp
+
+        self.P
+
+    @property
+    def local_active(self):
+        """
+        This is the local_active of the global_active used in the global problem.
+        """
+        return getattr(self, '_local_active', None)
+
+    @local_active.setter
+    def local_active(self, local_active):
+
+        if not isinstance(local_active, bool):
+            temp = np.zeros(self.local_mesh.nC, dtype='bool')
+            temp[local_active] = True
+            local_active = temp
+
+        self._local_active = local_active
+
+    @property
+    def P(self):
+        """
+            Set the projection matrix with partial volumes
+        """
+        if getattr(self, '_P', None) is None:
+
+            in_local = self.local_mesh._get_containing_cell_indexes(self.global_mesh.gridCC)
+
+            P = sp.csr_matrix(
+                (self.global_mesh.vol, (in_local, np.arange(self.global_mesh.nC))),
+                shape=(self.local_mesh.nC, self.global_mesh.nC)
+            ) * speye(self.global_mesh.nC)[:, self.global_active]
+
+            self.local_active = mkvc(np.sum(P, axis=1) > 0)
+
+            P = P[self.local_active, :]
+
+            self._P = sp.block_diag([
+                sdiag(1./self.local_mesh.vol[self.local_active]) * P
+                for ii in range(self.components)])
+
+        return self._P
+
+    def _transform(self, m):
+        return self.P * m
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        return self.P.shape
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+        """
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
+###############################################################################
+#                                                                             #
+#                              Deprecated Maps                               #
+#                                                                             #
+###############################################################################
+
+@deprecate_class(removal_version='0.15.0')
+class FullMap(SurjectFull):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Vertical1DMap(SurjectVertical1D):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Map2Dto3D(Surject2Dto3D):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class ActiveCells(InjectActiveCells):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class CircleMap(ParametricCircleMap):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class PolyMap(ParametricPolyMap):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class SplineMap(ParametricSplineMap):
+    pass

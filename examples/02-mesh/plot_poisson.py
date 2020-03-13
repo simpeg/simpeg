@@ -14,7 +14,7 @@ def run(plotIt=True):
     # Step1: Generate Tensor and Curvilinear Mesh
     sz = [40, 40]
     tM = discretize.TensorMesh(sz)
-    rM = discretize.CurvilinearMesh(utils.meshutils.exampleLrmGrid(sz, 'rotate'))
+    rM = discretize.CurvilinearMesh(utils.mesh_utils.exampleLrmGrid(sz, 'rotate'))
 
     # Step2: Direct Current (DC) operator
     def DCfun(mesh, pts):
@@ -24,7 +24,7 @@ def run(plotIt=True):
         A = -D*MsigI*D.T
         A[-1, -1] /= mesh.vol[-1]  # Remove null space
         rhs = np.zeros(mesh.nC)
-        txind = utils.meshutils.closestPoints(mesh, pts)
+        txind = utils.mesh_utils.closestPoints(mesh, pts)
         rhs[txind] = np.r_[1, -1]
         return A, rhs
 

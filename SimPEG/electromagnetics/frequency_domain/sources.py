@@ -7,6 +7,7 @@ from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
 from ...props import LocationVector
 from ...utils import mkvc, Zero
+from ...utils.code_utils import deprecate_property
 
 from ..utils import omega
 from ..base import BaseEMSrc
@@ -28,24 +29,6 @@ class BaseFDEMSrc(BaseEMSrc):
         super(BaseFDEMSrc, self).__init__(receiver_list=receiver_list, **kwargs)
         if frequency is not None:
             self.frequency = frequency
-
-
-    @property
-    def freq(self):
-        warnings.warn(
-            "The freq property will be depreciated in favor of frequency. "
-            "Please update your code accordingly"
-        )
-        return self.frequency
-
-    @freq.setter
-    def freq(self, value):
-        warnings.warn(
-            "The freq property will be depreciated in favor of frequency. "
-            "Please update your code accordingly"
-        )
-        if value is not None:
-            self.frequency = value
 
     def bPrimary(self, simulation):
         """
@@ -142,6 +125,8 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary magnetic flux density
         """
         return Zero()
+
+    freq = deprecate_property(frequency, 'freq', removal_version='0.15.0')
 
 
 class RawVec_e(BaseFDEMSrc):
@@ -299,7 +284,7 @@ class MagDipole(BaseFDEMSrc):
 
     :param list receiver_list: receiver list
     :param float freq: frequency
-    :param numpy.ndarray loc: source location
+    :param numpy.ndarray location: source location
         (ie: :code:`np.r_[xloc,yloc,zloc]`)
     :param string orientation: 'X', 'Y', 'Z'
     :param float moment: magnetic dipole moment
@@ -318,6 +303,7 @@ class MagDipole(BaseFDEMSrc):
     location = LocationVector(
         "location of the source", default=np.r_[0.,0.,0.], shape=(3,)
     )
+    loc = deprecate_property(location, 'loc', removal_version='0.15.0')
 
     def __init__(
         self, receiver_list=None, frequency=None, location=None, **kwargs
@@ -865,6 +851,3 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary)) *
             self.ePrimaryDeriv(simulation, v, adjoint=adjoint, f=f)
         )
-
-
-

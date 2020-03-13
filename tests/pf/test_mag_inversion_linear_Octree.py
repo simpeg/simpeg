@@ -50,7 +50,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Create a MAGsurvey
         xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
-        rxLoc = mag.point_receiver(xyzLoc)
+        rxLoc = mag.Point(xyzLoc)
         srcField = mag.SourceField([rxLoc], parameters=H0)
         survey = mag.MagneticSurvey(srcField)
 
@@ -73,7 +73,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # We can now create a susceptibility model and generate data
         # Lets start with a simple block in half-space
-        self.model = utils.ModelBuilder.addBlock(
+        self.model = utils.model_builder.addBlock(
             self.mesh.gridCC, np.zeros(self.mesh.nC),
             np.r_[-20, -20, -15], np.r_[20, 20, 20], 0.05
         )[actv]
@@ -85,7 +85,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         idenMap = maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        sim = mag.IntegralSimulation(
+        sim = mag.Simulation3DIntegral(
             self.mesh,
             survey=survey,
             chiMap=idenMap,

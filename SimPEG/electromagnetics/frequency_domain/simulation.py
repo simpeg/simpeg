@@ -2,6 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
 import properties
+from ...utils.code_utils import deprecate_class
 
 from ... import props
 from ...data import Data
@@ -10,7 +11,7 @@ from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
 from .fields import (
-    FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
+    FieldsFDEM, Fields3DElectricField, Fields3DMagneticFluxDensity, Fields3DMagneticField, Fields3DCurrentDensity
 )
 
 
@@ -26,8 +27,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
         {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
         \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
 
-    if using the E-B formulation (:code:`Problem3D_e`
-    or :code:`Problem3D_b`). Note that in this case,
+    if using the E-B formulation (:code:`Simulation3DElectricField`
+    or :code:`Simulation3DMagneticFluxDensity`). Note that in this case,
     :math:`\mathbf{s_e}` is an integrated quantity.
 
     If we write Maxwell's equations in terms of
@@ -39,8 +40,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
         i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
         \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
-    if using the H-J formulation (:code:`Problem3D_j` or
-    :code:`Problem3D_h`). Note that here, :math:`\mathbf{s_m}` is an
+    if using the H-J formulation (:code:`Simulation3DCurrentDensity` or
+    :code:`Simulation3DMagneticField`). Note that here, :math:`\mathbf{s_m}` is an
     integrated quantity.
 
     The problem performs the elimination so that we are solving the system
@@ -174,9 +175,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
                     df_dmT = df_dmT + du_dmT
 
                     # TODO: this should be taken care of by the reciever?
-                    if rx.component is 'real':
+                    if rx.component == 'real':
                         Jtv +=   np.array(df_dmT, dtype=complex).real
-                    elif rx.component is 'imag':
+                    elif rx.component == 'imag':
                         Jtv += - np.array(df_dmT, dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
@@ -195,10 +196,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
         :return: (s_m, s_e) (nE or nF, nSrc)
         """
         Srcs = self.survey.get_sources_by_frequency(freq)
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             s_m = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
             s_e = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
-        elif self._formulation is 'HJ':
+        elif self._formulation == 'HJ':
             s_m = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
             s_e = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
 
@@ -215,7 +216,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 #                               E-B Formulation                               #
 ###############################################################################
 
-class Problem3D_e(BaseFDEMSimulation):
+class Simulation3DElectricField(BaseFDEMSimulation):
     """
     By eliminating the magnetic flux density using
 
@@ -242,10 +243,10 @@ class Problem3D_e(BaseFDEMSimulation):
 
     _solutionType = 'eSolution'
     _formulation  = 'EB'
-    fieldsPair    = Fields3D_e
+    fieldsPair    = Fields3DElectricField
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_e, self).__init__(mesh, **kwargs)
+        super(Simulation3DElectricField, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -360,7 +361,7 @@ class Problem3D_e(BaseFDEMSimulation):
         )
 
 
-class Problem3D_b(BaseFDEMSimulation):
+class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     """
     We eliminate :math:`\mathbf{e}` using
 
@@ -385,10 +386,10 @@ class Problem3D_b(BaseFDEMSimulation):
 
     _solutionType = 'bSolution'
     _formulation = 'EB'
-    fieldsPair = Fields3D_b
+    fieldsPair = Fields3DMagneticFluxDensity
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_b, self).__init__(mesh, **kwargs)
+        super(Simulation3DMagneticFluxDensity, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -539,7 +540,7 @@ class Problem3D_b(BaseFDEMSimulation):
 ###############################################################################
 
 
-class Problem3D_j(BaseFDEMSimulation):
+class Simulation3DCurrentDensity(BaseFDEMSimulation):
     """
     We eliminate \\\(\\\mathbf{h}\\\) using
 
@@ -567,10 +568,10 @@ class Problem3D_j(BaseFDEMSimulation):
 
     _solutionType = 'jSolution'
     _formulation  = 'HJ'
-    fieldsPair    = Fields3D_j
+    fieldsPair    = Fields3DCurrentDensity
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_j, self).__init__(mesh, **kwargs)
+        super(Simulation3DCurrentDensity, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -737,7 +738,7 @@ class Problem3D_j(BaseFDEMSimulation):
             return RHSDeriv
 
 
-class Problem3D_h(BaseFDEMSimulation):
+class Simulation3DMagneticField(BaseFDEMSimulation):
     """
     We eliminate \\\(\\\mathbf{j}\\\) using
 
@@ -758,10 +759,10 @@ class Problem3D_h(BaseFDEMSimulation):
 
     _solutionType = 'hSolution'
     _formulation  = 'HJ'
-    fieldsPair    = Fields3D_h
+    fieldsPair    = Fields3DMagneticField
 
     def __init__(self, mesh, **kwargs):
-        super(Problem3D_h, self).__init__(mesh, **kwargs)
+        super(Simulation3DMagneticField, self).__init__(mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -880,3 +881,27 @@ class Problem3D_h(BaseFDEMSimulation):
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         return RHSDeriv + s_mDeriv(v) + C.T * (MfRho * s_eDeriv(v))
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_e(Simulation3DElectricField):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_b(Simulation3DMagneticFluxDensity):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_h(Simulation3DMagneticField):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_j(Simulation3DCurrentDensity):
+    pass

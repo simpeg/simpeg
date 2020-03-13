@@ -6,13 +6,14 @@ from __future__ import unicode_literals
 import numpy as np
 from scipy.interpolate import interp1d, NearestNDInterpolator
 import properties
+from ....utils.code_utils import deprecate_class
 
 from ....utils import uniqueRows
 from ....survey import BaseSurvey
 from ..utils import drapeTopotoLoc
 from . import receivers as Rx
 from . import sources as Src
-from ..utils import StaticUtils
+from ..utils import static_utils
 from SimPEG import data
 
 
@@ -86,7 +87,7 @@ class Survey(BaseSurvey):
         space_type='half-space'
     ):
 
-        geometric_factor = StaticUtils.geometric_factor(
+        geometric_factor = static_utils.geometric_factor(
             self,
             survey_type=survey_type,
             space_type=space_type
@@ -125,12 +126,12 @@ class Survey(BaseSurvey):
                     )
 
                 # Pole RX
-                if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
+                if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole2D):
                     m_locations.append(rx.locations)
                     n_locations.append(rx.locations)
 
                 # Dipole RX
-                elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
+                elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole2D):
                     m_locations.append(rx.locations[0])
                     n_locations.append(rx.locations[1])
 
@@ -183,12 +184,12 @@ class Survey(BaseSurvey):
                         source.location = np.array([locA[0], z_SrcA])
                         for rx in source.receiver_list:
                             # Pole Rx
-                            if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
+                            if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole2D):
                                 locM = rx.locations.copy()
                                 z_RxM = self.topo_function(locM[:, 0])
                                 rx.locations = np.c_[locM[:, 0], z_RxM]
                             # Dipole Rx
-                            elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
+                            elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole2D):
                                 locM = rx.locations[0].copy()
                                 locN = rx.locations[1].copy()
                                 z_RxM = self.topo_function(locM[:, 0])
@@ -210,12 +211,12 @@ class Survey(BaseSurvey):
 
                         for rx in source.receiver_list:
                             # Pole Rx
-                            if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole_ky):
+                            if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole2D):
                                 locM = rx.locations.copy()
                                 z_RxM = self.topo_function(locM[:, 0])
                                 rx.locations = np.c_[locM[:, 0], z_RxM]
                             # Dipole Rx
-                            elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole_ky):
+                            elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole2D):
                                 locM = rx.locations[0].copy()
                                 locN = rx.locations[1].copy()
                                 z_RxM = self.topo_function(locM[:, 0])
@@ -324,9 +325,6 @@ class Survey(BaseSurvey):
                     "Input valid survey survey_geometry: surface or borehole"
                     )
 
-
+@deprecate_class(removal_version='0.15.0')
 class Survey_ky(Survey):
-    """
-    2.5D survey
-    """
-    # TODO: we should depreciate this and just use the above survey class as they are identical
+    pass

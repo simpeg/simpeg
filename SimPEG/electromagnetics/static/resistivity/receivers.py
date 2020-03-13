@@ -1,4 +1,5 @@
 import numpy as np
+from ....utils.code_utils import deprecate_class
 
 import properties
 import dask
@@ -7,18 +8,15 @@ from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
 
 
 # Trapezoidal integration for 2D DC problem
-def IntTrapezoidal(kys, Pf, y=0.):
-    phi = np.zeros(Pf.shape[0])
-    nky = kys.size
-    dky = np.diff(kys)
-    dky = np.r_[dky[0], dky]
-    phi0 = 1./np.pi*Pf[:, 0]
-    for iky in range(nky):
-        phi1 = 1./np.pi*Pf[:, iky]
-        phi += phi1*dky[iky]/2.*np.cos(kys[iky]*y)
-        phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
-        phi0 = phi1.copy()
-    return phi
+def IntTrapezoidal(kys, Pf, y=0.0):
+    dky = np.diff(kys)/2
+    weights = np.r_[dky, 0]+np.r_[0, dky]
+    weights *= np.cos(kys*y)  # *(1.0/np.pi)
+    # assume constant value at 0 frequency?
+    weights[0] += kys[0]/2 * (1.0 + np.cos(kys[0]*y))
+    weights /= np.pi
+
+    return Pf.dot(weights)
 
 # Receiver classes
 class BaseRx(BaseSimPEGRx):
@@ -160,7 +158,7 @@ class Dipole(BaseRx):
         return P
 
 
-class Dipole_ky(Dipole):
+class Dipole2D(Dipole):
     """
     Dipole receiver for 2.5D simulations
     """
@@ -169,7 +167,7 @@ class Dipole_ky(Dipole):
         assert locationsM.shape == locationsN.shape, (
             'locationsM and locationsN need to be the same size'
         )
-        super(Dipole_ky, self).__init__(locationsM, locationsN, **kwargs)
+        super(Dipole2D, self).__init__(locationsM, locationsN, **kwargs)
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
@@ -232,7 +230,7 @@ class Pole(BaseRx):
         return P
 
 
-class Pole_ky(BaseRx):
+class Pole2D(BaseRx):
     """
     Pole receiver for 2.5D simulations
     """
@@ -274,3 +272,17 @@ class Pole_ky(BaseRx):
             return P*v
         elif adjoint:
             return P.T*v
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class Dipole_ky(Dipole2D):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Pole_ky(Pole2D):
+    pass

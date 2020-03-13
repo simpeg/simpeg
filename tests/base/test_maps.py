@@ -2,6 +2,7 @@ import numpy as np
 import unittest
 import discretize
 from SimPEG import maps, models, utils
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 import inspect
 
 TOL = 1e-14
@@ -18,7 +19,7 @@ MAPS_TO_EXCLUDE_2D = [
     "ParametricCasingAndLayer",
     "ParametricLayer", "ParametricBlockInLayer",
     "Projection", "SelfConsistentEffectiveMedium",
-    "SumMap", "SurjectUnits"
+    "SumMap", "SurjectUnits", "TileMap"
 ]
 MAPS_TO_EXCLUDE_3D = [
     "ComboMap", "ActiveCells", "InjectActiveCells",
@@ -29,7 +30,7 @@ MAPS_TO_EXCLUDE_3D = [
     "SplineMap", "ParametricCasingAndLayer",
     "ParametricLayer", "ParametricBlockInLayer",
     "Projection", "SelfConsistentEffectiveMedium",
-    "SumMap", "SurjectUnits"
+    "SumMap", "SurjectUnits", "TileMap"
 ]
 
 
@@ -394,8 +395,6 @@ class MapTests(unittest.TestCase):
         self.assertTrue(np.all(m1[unit2] == 1))
         self.assertTrue(surject_units.test(m0))
 
-
-
     def test_Projection(self):
         nP = 10
         m = np.arange(nP)
@@ -418,6 +417,56 @@ class MapTests(unittest.TestCase):
 
         mapping = maps.Projection(nP, np.r_[1, 2, 6, 1, 3, 5, 4, 9, 9, 8, 0])
         mapping.test()
+
+    def test_Tile(self):
+        """
+        Test for TileMap
+        """
+        rxLocs = np.random.randn(3, 3) * 20
+        h = [5, 5, 5]
+        padDist = np.ones((3, 2)) * 100
+
+        local_meshes = []
+
+        for ii in range(rxLocs.shape[0]):
+
+            local_mesh = mesh_builder_xyz(
+                rxLocs, h, padding_distance=padDist, mesh_type='tree'
+            )
+            local_mesh = refine_tree_xyz(
+                local_mesh, rxLocs[ii, :].reshape((1,-1)),
+                method='radial', octree_levels=[1], finalize=True
+
+            )
+
+            local_meshes.append(local_mesh)
+
+        mesh = mesh_builder_xyz(rxLocs, h, padding_distance=padDist, mesh_type='tree')
+
+        # This garantees that the local meshes are always coarser or equal
+        for local_mesh in local_meshes:
+            mesh.insert_cells(
+                local_mesh.gridCC,
+                local_mesh.cell_levels_by_index(np.arange(local_mesh.nC)),
+                finalize=False
+            )
+        mesh.finalize()
+
+        # Define an active cells from topo
+        activeCells = utils.surface2ind_topo(mesh, rxLocs)
+
+        model = np.random.randn(int(activeCells.sum()))
+        total_mass = (model*mesh.vol[activeCells]).sum()
+
+        for local_mesh in local_meshes:
+
+            tile_map = maps.TileMap(
+                mesh, activeCells, local_mesh,
+            )
+
+            local_mass = ((tile_map * model) * local_mesh.vol[tile_map.local_active]).sum()
+
+            self.assertTrue((local_mass - total_mass) / total_mass < 1e-8)
 
 
 class TestWires(unittest.TestCase):

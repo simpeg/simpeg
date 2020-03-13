@@ -8,7 +8,7 @@ and inverse problem. This module supports both gravity and gravity gradient mode
 Gravity Integral eq. approach
 =========================
 
-.. autoclass:: SimPEG.potential_fields.gravity.IntegralSimulation
+.. autoclass:: SimPEG.potential_fields.gravity.Simulation3DIntegral
     :show-inheritance:
     :members:
     :undoc-members:
@@ -38,7 +38,7 @@ Gravity Source
 Gravity Source
 ================
 
-.. autoclass:: SimPEG.potential_fields.gravity.point_receiver
+.. autoclass:: SimPEG.potential_fields.gravity.Point
     :show-inheritance:
     :members:
     :undoc-members:

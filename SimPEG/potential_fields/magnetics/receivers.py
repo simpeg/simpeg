@@ -3,7 +3,7 @@ import numpy as np
 from ... import survey
 
 
-class point_receiver(survey.BaseRx):
+class Point(survey.BaseRx):
     """
     Magnetic point receiver class for integral formulation
 

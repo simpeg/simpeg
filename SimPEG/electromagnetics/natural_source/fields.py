@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
+from ...utils.code_utils import deprecate_class
 
 from ...fields import Fields
 from ..frequency_domain.fields import FieldsFDEM
@@ -19,7 +20,7 @@ from ..utils import omega
 ###########
 # 1D Fields
 ###########
-class Fields1D_ePrimSec(FieldsFDEM):
+class Fields1DPrimarySecondary(FieldsFDEM):
     """
     Fields storage for the 1D NSEM solution.
 
@@ -36,7 +37,7 @@ class Fields1D_ePrimSec(FieldsFDEM):
     }
 
     # def __init__(self, mesh, survey, **kwargs):
-    #     super(Fields1D_ePrimSec, self).__init__(mesh, survey, **kwargs)
+    #     super(Fields1DPrimarySecondary, self).__init__(mesh, survey, **kwargs)
 
     def _ePrimary(self, eSolution, source_list):
         """
@@ -115,7 +116,7 @@ class Fields1D_ePrimSec(FieldsFDEM):
         :param SimPEG.electromagnetics.frequency_domain.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
+        :rtype: SimPEG.utils.Zero
         :return: product of the electric field derivative with respect to the inversion model with a vector
         """
 
@@ -213,7 +214,7 @@ class Fields1D_ePrimSec(FieldsFDEM):
 ###########
 # 3D Fields
 ###########
-class Fields3D_ePrimSec(Fields):
+class Fields3DPrimarySecondary(Fields):
     """
     Fields storage for the 3D NSEM solution. Labels polarizations by px and py.
 
@@ -535,3 +536,16 @@ class Fields3D_ePrimSec(Fields):
         """ Derivative of b_py wrt m """
         # b_py does not depend on the model
         return Zero()
+
+
+############
+# Deprecated
+############
+@deprecate_class(removal_version='0.15.0')
+class Fields1D_ePrimSec(Fields1DPrimarySecondary):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Fields3D_ePrimSec(Fields3DPrimarySecondary):
+    pass

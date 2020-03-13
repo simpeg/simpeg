@@ -1,7 +1,7 @@
 import unittest
 import discretize
 from SimPEG import utils, maps
-from SimPEG.utils.ModelBuilder import getIndicesSphere
+from SimPEG.utils.model_builder import getIndicesSphere
 from SimPEG.potential_fields import magnetics as mag
 
 import numpy as np
@@ -49,11 +49,11 @@ class MagFwdProblemTests(unittest.TestCase):
         # Move obs plane 2 radius away from sphere
         Z = np.ones((xr.size, yr.size))*2.*self.rad
         self.locXyz = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
-        rxLoc = mag.point_receiver(self.locXyz, components=components)
+        rxLoc = mag.Point(self.locXyz, components=components)
         srcField = mag.SourceField([rxLoc], parameters=H0)
         self.survey = mag.MagneticSurvey(srcField)
 
-        self.sim = mag.IntegralSimulation(
+        self.sim = mag.Simulation3DIntegral(
             mesh,
             survey=self.survey,
             chiMap=idenMap,

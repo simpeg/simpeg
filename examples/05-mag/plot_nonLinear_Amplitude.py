@@ -28,12 +28,8 @@ from SimPEG import (
     )
 
 from SimPEG.potential_fields import magnetics
-try:
-    from SimPEG import utils
-    from SimPEG.utils import mkvc
-except:
-    from SimPEG import Utils as utils
-    from SimPEG.Utils import mkvc
+from SimPEG import utils
+from SimPEG.utils import mkvc, surface2ind_topo
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 # sphinx_gallery_thumbnail_number = 4
 
@@ -73,7 +69,7 @@ Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 10
 
 # Create a MAGsurvey
 rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
-rxList = magnetics.receivers.point_receiver(rxLoc)
+rxList = magnetics.receivers.Point(rxLoc)
 srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
 survey = magnetics.survey.MagneticSurvey(srcField)
 
@@ -118,10 +114,10 @@ nC = int(actv.sum())
 #
 
 # Convert the inclination declination to vector in Cartesian
-M_xyz = utils.matutils.dip_azimuth2cartesian(np.ones(nC)*M[0], np.ones(nC)*M[1])
+M_xyz = utils.mat_utils.dip_azimuth2cartesian(np.ones(nC)*M[0], np.ones(nC)*M[1])
 
 # Get the indicies of the magnetized block
-ind = utils.ModelBuilder.getIndicesBlock(
+ind = utils.model_builder.getIndicesBlock(
     np.r_[-20, -20, -10], np.r_[20, 20, 25],
     mesh.gridCC,
 )[0]
@@ -138,7 +134,7 @@ model = model[actv]
 idenMap = maps.IdentityMap(nP=nC)
 
 # Create the forward model operator
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv, store_sensitivities="forward_only"
 )
 simulation.M = M_xyz
@@ -160,7 +156,7 @@ data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
 # Plot the model and data
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 1, 1)
-im = utils.PlotUtils.plot2Ddata(
+im = utils.plot_utils.plot2Ddata(
         rxLoc, synthetic_data, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
@@ -195,7 +191,8 @@ plt.show()
 #
 
 # Get the active cells for equivalent source is the top only
-surf = utils.modelutils.surface_layer_index(mesh, topo)
+surf = surface2ind_topo(mesh, topo)
+#surf = utils.plot_utils.surface_layer_index(mesh, topo)
 nC = np.count_nonzero(surf)  # Number of active cells
 mstart = np.ones(nC)*1e-4
 
@@ -206,7 +203,7 @@ surfMap = maps.InjectActiveCells(mesh, surf, np.nan)
 idenMap = maps.IdentityMap(nP=nC)
 
 # Create static map
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
         mesh=mesh, survey=survey, chiMap=idenMap, actInd=surf,
         store_sensitivities='ram'
 )
@@ -258,11 +255,11 @@ mrec = inv.run(mstart)
 # components of the field and add them up: :math:`|B| = \sqrt{( Bx^2 + Bx^2 + Bx^2 )}`
 #
 
-rxList = magnetics.receivers.point_receiver(rxLoc, components=['bx', 'by', 'bz'])
+rxList = magnetics.receivers.Point(rxLoc, components=['bx', 'by', 'bz'])
 srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
 surveyAmp = magnetics.survey.MagneticSurvey(srcField)
 
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
         mesh=mesh, survey=surveyAmp, chiMap=idenMap, actInd=surf, modelType='amplitude'
 )
 
@@ -271,7 +268,7 @@ bAmp = simulation.fields(mrec)
 # Plot the layer model and data
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 2, 1)
-im = utils.PlotUtils.plot2Ddata(
+im = utils.plot_utils.plot2Ddata(
         rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
@@ -279,7 +276,7 @@ ax.set_title('Predicted data.')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(2, 2, 2)
-im = utils.PlotUtils.plot2Ddata(
+im = utils.plot_utils.plot2Ddata(
         rxLoc, bAmp, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
@@ -318,7 +315,7 @@ idenMap = maps.IdentityMap(nP=nC)
 mstart = np.ones(nC)*1e-4
 
 # Create the forward model operator
-simulation = magnetics.simulation.IntegralSimulation(
+simulation = magnetics.simulation.Simulation3DIntegral(
    survey=surveyAmp, mesh=mesh, chiMap=idenMap, actInd=actv,
    modelType='amplitude'
 )
@@ -383,7 +380,7 @@ mrec_Amp = inv.run(mstart)
 # Plot the layer model and data
 plt.figure(figsize=(12, 8))
 ax = plt.subplot(3, 1, 1)
-im = utils.PlotUtils.plot2Ddata(
+im = utils.plot_utils.plot2Ddata(
         rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
  )
 plt.colorbar(im[0])

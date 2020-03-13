@@ -1,4 +1,5 @@
 from __future__ import print_function
+from ...utils.code_utils import deprecate_class
 from SimPEG import utils
 from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
@@ -13,7 +14,7 @@ from scipy.sparse import csr_matrix as csr
 from dask.delayed import Delayed
 
 
-class IntegralSimulation(BasePFSimulation):
+class Simulation3DIntegral(BasePFSimulation):
     """
     Gravity simulation in integral form.
 
@@ -31,7 +32,7 @@ class IntegralSimulation(BasePFSimulation):
         self.modelMap = self.rhoMap
 
     def fields(self, m):
-        self.model = self.rhoMap*m
+        self.model = m
 
         if self.store_sensitivities == 'forward_only':
             self.model = m
@@ -262,12 +263,12 @@ class IntegralSimulation(BasePFSimulation):
         return np.vstack([rows[component] for component in components])
 
 
-class DifferentialEquationSimulation(BaseSimulation):
+class Simulation3DDifferential(BaseSimulation):
     """
         Gravity in differential equations!
     """
 
-    _depreciate_main_map = 'rhoMap'
+    _deprecate_main_map = 'rhoMap'
 
     rho, rhoMap, rhoDeriv = props.Invertible(
         "Specific density (g/cc)",
@@ -345,3 +346,17 @@ class DifferentialEquationSimulation(BaseSimulation):
         gField = 4. * np.pi * NewtG * 1e+8 * self._Div * u
 
         return {'G': gField, 'u': u}
+
+
+############
+# Deprecated
+############
+
+@deprecate_class(removal_version='0.15.0')
+class GravityIntegral(Simulation3DIntegral):
+    pass
+
+
+@deprecate_class(removal_version='0.15.0')
+class Problem3D_Diff(Simulation3DDifferential):
+    pass

@@ -226,7 +226,7 @@ class SparseDeriv(BaseSparse):
                 ) * R
 
             theta = self.cellDiffStencil * (self.mapping * f_m)
-            dmdx = utils.matutils.coterminal(theta)
+            dmdx = utils.mat_utils.coterminal(theta)
             r = W * dmdx
 
         else:
@@ -316,7 +316,7 @@ class SparseDeriv(BaseSparse):
                 ) * R
 
             theta = self.cellDiffStencil * (self.mapping * model)
-            dmdx = utils.matutils.coterminal(theta)
+            dmdx = utils.mat_utils.coterminal(theta)
 
             r = W * dmdx
 
@@ -342,7 +342,7 @@ class SparseDeriv(BaseSparse):
 
         if self.space == 'spherical':
             theta = self.cellDiffStencil * (self.mapping * f_m)
-            dmdx = utils.matutils.coterminal(theta)
+            dmdx = utils.mat_utils.coterminal(theta)
 
         else:
 

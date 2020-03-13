@@ -4,7 +4,9 @@ from six import integer_types
 import warnings
 
 from .survey import BaseSurvey
+from . import survey
 from .utils import mkvc
+from .utils.code_utils import deprecate_property
 
 __all__ = ['Data', 'SyntheticData']
 
@@ -267,39 +269,10 @@ class Data(properties.HasProperties):
         self.dobs = v
 
     ##########################
-    # Depreciated
+    # Deprecated
     ##########################
-    @property
-    def std(self):
-        warnings.warn(
-            "std has been depreciated in favor of standard_deviation. Please "
-            "update your code to use 'standard_deviation'"
-        )
-        return self.standard_deviation
-
-    @std.setter
-    def std(self, value):
-        warnings.warn(
-            "std has been depreciated in favor of standard_deviation. Please "
-            "update your code to use 'standard_deviation'"
-        )
-        self.standard_deviation = value
-
-    @property
-    def eps(self):
-        warnings.warn(
-            "eps has been depreciated in favor of noise_floor. Please "
-            "update your code to use 'noise_floor'"
-        )
-        return self.noise_floor
-
-    @eps.setter
-    def eps(self, value):
-        warnings.warn(
-            "eps has been depreciated in favor of noise_floor. Please "
-            "update your code to use 'noise_floor'"
-        )
-        self.noise_floor = value
+    std = deprecate_property(standard_deviation, 'std', removal_version='0.15.0')
+    eps = deprecate_property(noise_floor, 'eps', removal_version='0.15.0')
 
 
 class SyntheticData(Data):
@@ -339,3 +312,17 @@ class SyntheticData(Data):
     @properties.validator('dclean')
     def _dclean_validator(self, change):
         self._dobs_validator(change)
+
+
+# inject a new data class into the survey module
+class _Data(Data):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            'The survey.Data class has been moved. To import the data class, '
+            'please use SimPEG.data.Data. This class will be removed in SimPEG 0.15.0',
+            DeprecationWarning)
+        super().__init__(*args, **kwargs)
+survey.Data = _Data
+survey.Data.__name__ = 'Data'
+survey.Data.__qualname__ = 'Data'
+survey.Data.__module__ = 'SimPEG.survey'

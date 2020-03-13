@@ -13,9 +13,9 @@ def from_dc_to_ip_survey(dc_survey, dim="2.5D"):
             rxList_ip = []
             src_ip = []
             for rx in src.receiver_list:
-                if isinstance(rx, receivers.Pole_ky):
+                if isinstance(rx, receivers.Pole2D):
                     rx_ip = receivers.Pole(rx.locations)
-                elif isinstance(rx, receivers.Dipole_ky):
+                elif isinstance(rx, receivers.Dipole2D):
                     rx_ip = receivers.Dipole(rx.locations[0], rx.locations[1])
                 else:
                     # print(rx)

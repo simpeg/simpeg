@@ -34,12 +34,12 @@ class DCProblemTestsCC(unittest.TestCase):
 
         srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = dc.survey.Survey(srcList)
-        simulation = dc.simulation.Problem3D_CC(
+        simulation = dc.simulation.Simulation3DCellCentered(
                 mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh)
                 )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -122,7 +122,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         self.sigma_map = maps.ExpMap(mesh) * maps.InjectActiveCells(
             mesh, mesh.gridCC[:, 2] <=0, np.log(1e-8)
         )
-        self.prob = dc.simulation.Problem3D_CC(
+        self.prob = dc.simulation.Simulation3DCellCentered(
             mesh=mesh, survey=self.survey, sigmaMap=self.sigma_map, Solver=Pardiso, bc_type="Dirichlet"
         )
 
@@ -173,12 +173,12 @@ class DCProblemTestsN(unittest.TestCase):
 
         srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = dc.survey.Survey(srcList)
-        simulation = dc.simulation.Problem3D_N(
+        simulation = dc.simulation.Simulation3DNodal(
                 mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh)
                 )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -249,13 +249,13 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
 
         srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = dc.survey.Survey(srcList)
-        simulation = dc.simulation.Problem3D_CC(
+        simulation = dc.simulation.Simulation3DCellCentered(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh),
             storeJ=True
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -330,12 +330,12 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
 
         srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = dc.survey.Survey(srcList)
-        simulation = dc.simulation.Problem3D_N(
+        simulation = dc.simulation.Simulation3DNodal(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh), storeJ=True
             )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
