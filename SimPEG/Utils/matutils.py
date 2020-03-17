@@ -302,6 +302,7 @@ def calculate_2D_trend(points, values, order=0, method='all'):
 
         # evaluate at all data locations
         data_trend = C[0]*points[:, 0] + C[1]*points[:, 1] + C[2]
+        print('Removed linear trend with mean: {0:.6g}'.format(np.mean(data_trend)))
 
     elif order == 2:
         # best-fit quadratic curve
@@ -321,4 +322,5 @@ def calculate_2D_trend(points, values, order=0, method='all'):
                 points[:, 0]**2, points[:, 1]**2
                 ], C).reshape(points[:, 0].shape)
 
+        print('Removed polynomial trend with mean: {0:.6g}'.format(np.mean(data_trend)))
     return data_trend, C
