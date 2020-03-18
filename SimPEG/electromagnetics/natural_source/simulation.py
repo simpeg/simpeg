@@ -346,12 +346,8 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
     _solutionType = ['e_pxSolution', 'e_pySolution']  # Forces order on the object
     _formulation  = 'EB'
-<<<<<<< HEAD
-    fieldsPair = Fields3D_ePrimSec
-    n_cpu = int(multiprocessing.cpu_count())
-=======
     fieldsPair = Fields3DPrimarySecondary
->>>>>>> 8e573083a7dda92edaba6fd3074d28b434f67f00
+    n_cpu = int(multiprocessing.cpu_count())
 
     # Initiate properties
     _sigmaPrimary = None
@@ -502,8 +498,6 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
                 sys.stdout.flush()
             # Ainv.clean()
         return F
-<<<<<<< HEAD
-=======
 
 
 ############
@@ -518,4 +512,3 @@ class Problem3D_ePrimSec(Simulation3DPrimarySecondary):
 @deprecate_class(removal_version='0.15.0')
 class Problem1D_ePrimSec(Simulation1DPrimarySecondary):
     pass
->>>>>>> 8e573083a7dda92edaba6fd3074d28b434f67f00
