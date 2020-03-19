@@ -1,7 +1,7 @@
 
 """
-Gravity Gradiometry on a Tree Mesh
-==================================
+Gravity Gradiometry on a Tree Mesh with Topography
+==================================================
 
 Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
 gradiometry data for a synthetic density contrast model. The simulation is

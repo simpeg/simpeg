@@ -1,7 +1,7 @@
 
 """
-Gravity Simulation on a Tensor Mesh
-===================================
+Gravity Anomaly Simulation on a Tensor Mesh
+===========================================
 
 Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
 anomaly data for a synthetic density contrast model. The simulation is

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-DC Resistivity: 1D Sounding
-===========================
+DC Resistivity Sounding over a Layered Earth
+============================================
 
 Here we use the module *SimPEG.electromangetics.static.resistivity* to predict
 sounding data over a 1D layered Earth. In this tutorial, we focus on the following:

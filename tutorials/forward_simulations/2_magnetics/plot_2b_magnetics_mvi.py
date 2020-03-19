@@ -1,6 +1,6 @@
 
 """
-Magnetic Gradiometry and Vector Models on a Tree Mesh
+Gradiometry and Magnetic Vector Models on a Tree Mesh
 =====================================================
 
 Here we use the module *SimPEG.potential_fields.magnetics* to predict magnetic
