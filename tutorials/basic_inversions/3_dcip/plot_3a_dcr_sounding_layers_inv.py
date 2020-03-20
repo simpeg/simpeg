@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-DC Resistivity: Inverting for Resistivities and Layers
-======================================================
+Parametric 1D Inversion of Sounding Data 
+========================================
 
 Here we use the module *SimPEG.electromangetics.static.resistivity* to invert
 DC resistivity sounding data and recover the resistivities and layer thicknesses

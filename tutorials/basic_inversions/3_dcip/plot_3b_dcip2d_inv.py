@@ -1,7 +1,7 @@
 
 """
-DC Resistivity and IP Inversion
-===============================
+2.5D DC Resistivity and IP Inversion
+====================================
 
 Here we invert total magnetic intensity (TMI) data to recover a magnetic
 susceptibility model. We formulate the inverse problem as an iteratively

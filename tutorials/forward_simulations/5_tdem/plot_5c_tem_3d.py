@@ -24,7 +24,7 @@ to simulate the fields at each time channel with sufficient accuracy.
 """
 
 #########################################################################
-# Import modules
+# Import Modules
 # --------------
 #
 
@@ -38,15 +38,16 @@ import SimPEG.electromagnetics.time_domain as tdem
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import os
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 
-write_file = False
+save_file = False
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 3
 
 
 ###############################################################
@@ -252,48 +253,55 @@ cbar.set_label(
 )
 
 
+######################################################
+# Define the Time-Stepping
+# ------------------------
+#
+# Stuff about time-stepping and some rule of thumb
+#
+
+time_steps = [(1e-4, 20), (1e-5, 10), (1e-4, 10)]
+
+
 #######################################################################
 # Simulation: Time-Domain Response
 # --------------------------------
 #
-# Here we demonstrate how to simulate the time domain response for
-# an electrical conductivity model on an OcTree mesh. An important
-# part of this is defining the time-discretization (time-stepping) used
-# by the forward simulation.
-#
-
-# Define the formulation for solving Maxwell's equations. Since we are
+# Here we define the formulation for solving Maxwell's equations. Since we are
 # measuring the time-derivative of the magnetic flux density and working with
 # a resistivity model, the EB formulation is the most natural. We must also
 # remember to define the mapping for the conductivity model.
 # We defined a waveform 'on-time' is from -0.002 s to 0 s. As a result, we need
 # to set the start time for the simulation to be at -0.002 s.
+#
+
 simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
     mesh, survey=survey, sigmaMap=model_map, Solver=Solver, t0=-0.002
     )
 
-# Need to define time stepping that will include both the on-times for the
-# sources and the time channels for the receivers. In our case, we have 20
-# time steps using a step length of 1e-4 seconds, Then we have 10 time
-# steps using a step length of 1e-5, etc... Note that each different step
-# you use will require a separate factorization of a linear system to be
-# stored.
-simulation.time_steps = [(1e-4, 20), (1e-5, 10), (1e-4, 10)]
+# Set the time-stepping for the simulation
+simulation.time_steps = time_steps
+
+########################################################################
+# Predict Data and Plot
+# ---------------------
+#
 
 # Predict data for a given model
 dpred = simulation.dpred(model)
 
-# Plot
-dpred = np.reshape(dpred, (n_tx**2, n_times))
+# Data were organized by location, then by time channel
+dpred_plotting = np.reshape(dpred, (n_tx**2, n_times))
 
+# Plot
 fig = plt.figure(figsize=(10, 4))
 
 # dB/dt at early time
-v_max = np.max(np.abs(dpred[:, 0]))
+v_max = np.max(np.abs(dpred_plotting[:, 0]))
 ax11 = fig.add_axes([0.05, 0.05, 0.35, 0.9])
 plot2Ddata(
-    receiver_locations[:, 0:2], dpred[:, 0], ax=ax11, ncontour=30, clim=(-v_max, v_max),
-    contourOpts={"cmap": "RdBu_r"}
+    receiver_locations[:, 0:2], dpred_plotting[:, 0], ax=ax11, ncontour=30,
+    clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
     )
 ax11.set_title('dBz/dt at 0.0001 s')
 
@@ -305,11 +313,11 @@ cbar1 = mpl.colorbar.ColorbarBase(
 cbar1.set_label('$T/s$', rotation=270, labelpad=15, size=12)
 
 # dB/dt at later times
-v_max = np.max(np.abs(dpred[:, -1]))
+v_max = np.max(np.abs(dpred_plotting[:, -1]))
 ax21 = fig.add_axes([0.55, 0.05, 0.35, 0.9])
 plot2Ddata(
-    receiver_locations[:, 0:2], dpred[:, -1], ax=ax21, ncontour=30, clim=(-v_max, v_max),
-    contourOpts={"cmap": "RdBu_r"}
+    receiver_locations[:, 0:2], dpred_plotting[:, -1], ax=ax21, ncontour=30,
+    clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
     )
 ax21.set_title('dBz/dt at 0.001 s')
 
@@ -321,3 +329,46 @@ cbar2 = mpl.colorbar.ColorbarBase(
 cbar2.set_label('$T/s$', rotation=270, labelpad=15, size=12)
 
 plt.show()
+
+
+#######################################################
+# Optional: Export Data
+# ---------------------
+#
+# Write the true model, data and topography
+#
+
+if save_file == True:
+    
+    # Write topography
+    fname = (os.path.dirname(tdem.__file__)
+        + '\\..\\..\\..\\tutorials\\assets\\tdem\\tdem_topo.txt'
+        )
+    np.savetxt(fname, np.c_[topo_xyz], fmt='%.4e')
+    
+    # Write data with 2% noise added
+    fname = (os.path.dirname(tdem.__file__)
+        + '\\..\\..\\..\\tutorials\\assets\\tdem\\tdem_data.obs'
+        )
+    dpred = dpred + 0.02*np.abs(dpred)*np.random.rand(len(dpred))
+    t_vec = np.kron(np.ones(ntx), time_channels)
+    receiver_locations = np.kron(receiver_locations, np.ones((len(time_channels), 1)))
+    
+    np.savetxt(
+        fname,
+        np.c_[receiver_locations, t_vec, dpred],
+        fmt='%.4e'
+    )
+    
+    # Plot true model
+    output_model = plotting_map*model
+    output_model[np.isnan(output_model)] = 1e-8
+
+    fname = (os.path.dirname(tdem.__file__)
+        + '\\..\\..\\..\\tutorials\\assets\\tdem\\true_model.txt'
+        )
+    np.savetxt(
+        fname,
+        output_model,
+        fmt='%.4e'
+    )

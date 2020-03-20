@@ -10,7 +10,7 @@ coplanar survey geometry. For this tutorial, we focus on the following:
     - How to define the transmitters and receivers
     - How to define the survey
     - How to solve the FDEM problem on cylindrical meshes
-    - The units of the conductivity model and resulting data
+    - The units of the conductivity/resistivity model and resulting data
     
 
 Please note that we have used a coarse mesh to shorten the time of the simulation.
@@ -114,8 +114,8 @@ hz = [(10., 10, -1.5), (10., 100), (10., 10, 1.5)]  # discretization in vertical
 mesh = CylMesh([hr, 1, hz], x0='00C')
 
 ###############################################################
-# Create Conductivity Model and Mapping for Cylindrical Mesh
-# ----------------------------------------------------------
+# Create Conductivity/Resistivity Model and Mapping
+# -------------------------------------------------
 #
 # Here, we create the model that will be used to predict frequency domain
 # data and the mapping from the model to the mesh. The model
@@ -123,7 +123,7 @@ mesh = CylMesh([hr, 1, hz], x0='00C')
 # surface layer. For this example, we will have only flat topography.
 #
 
-# Conductivity in S/m
+# Conductivity in S/m (or resistivity in Ohm m)
 air_conductivity = 1e-8
 background_conductivity = 1e-1
 layer_conductivity = 1e-2
@@ -178,23 +178,29 @@ cbar.set_label(
 # Simulation: Predicting FDEM Data
 # --------------------------------
 #
-# Here we demonstrate how to define the simulation and forward model
-# data for our airborne survey.
-#
-
-# Define the formulation for solving Maxwell's equations. Since we are
+# Here we define the formulation for solving Maxwell's equations. Since we are
 # measuring the magnetic flux density and working with a conductivity model,
 # the EB formulation is the most natural. We must also remember to define
-# the mapping for the conductivity model.
+# the mapping for the conductivity model. If you defined a resistivity model,
+# use the kwarg *rhoMap* instead of *sigmaMap*
+#
+
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
         mesh, survey=survey, sigmaMap=model_map, Solver=Solver
         )
 
+######################################################
+# Predict and Plot Data
+# ---------------------
+#
+# Here we show how the simulation is used to predict data.
+#
+
 # Compute predicted data for the given model.
 dpred = simulation.dpred(model)
 
-# Data are organized by transmitter then by receiver. We had nFreq transmitters
-# and each transmitter had 2 receivers (real and imaginary component). So
+# Data are organized by transmitter location, then component, then frequency. We had nFreq
+# transmitters and each transmitter had 2 receivers (real and imaginary component). So
 # first we will pick out the real and imaginary data
 bz_real = dpred[0:len(dpred):2]
 bz_imag = dpred[1:len(dpred):2]

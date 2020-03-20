@@ -3,7 +3,8 @@ Simulation on an OcTree Mesh
 ============================
 
 Here we use the module *SimPEG.electromagnetics.frequency_domain* to simulate the
-FDEM response for an airborne survey using an OcTree mesh and a resistivity model.
+FDEM response for an airborne survey using an OcTree mesh and a 
+conductivity/resistivity model.
 To limit computational demant, we simulate airborne data at a single frequency
 for a vertical coplanar survey geometry. This tutorial can be easily adapted to
 simulate data at many frequencies. For this tutorial, we focus on the following:
@@ -12,7 +13,7 @@ simulate data at many frequencies. For this tutorial, we focus on the following:
     - How to define the survey
     - How to define the topography
     - How to solve the FDEM problem on OcTree meshes
-    - The units of the resistivity model and resulting data
+    - The units of the conductivity/resistivity model and resulting data
     
 
 Please note that we have used a coarse mesh to shorten the time of the simulation.
@@ -77,37 +78,37 @@ frequencies = [100, 500, 2500]
 # Defining transmitter locations
 N = 9
 xtx, ytx, ztx = np.meshgrid(
-    np.linspace(-200, 200, N), np.linspace(-200,200, N), [50]
+    np.linspace(-200, 200, N), np.linspace(-200,200, N), [40]
 )
 source_locations = np.c_[mkvc(xtx), mkvc(ytx), mkvc(ztx)]
 ntx = np.size(xtx)
 
 # Define receiver locations
 xrx, yrx, zrx = np.meshgrid(
-    np.linspace(-200, 200, N), np.linspace(-200,200, N), [30]
+    np.linspace(-200, 200, N), np.linspace(-200,200, N), [20]
 )
 receiver_locations = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 
 source_list = []  # Create empty list to store sources
 
 # Each unique location and frequency defines a new transmitter
-for ii in range(ntx):
+for ii in range(len(frequencies)):
+    for jj in range(ntx):
 
-    # Define receivers of different type at each location
-    bzr_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
-            receiver_locations[ii, :], 'z', 'real'
-            )
-    bzi_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
-            receiver_locations[ii, :], 'z', 'imag'
-            )
-    receivers_list = [bzr_receiver, bzi_receiver]
-
-    for jj in range(len(frequencies)):
-
+        # Define receivers of different type at each location
+        bzr_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
+                receiver_locations[jj, :], 'z', 'real'
+                )
+        bzi_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
+                receiver_locations[jj, :], 'z', 'imag'
+                )
+        receivers_list = [bzr_receiver, bzi_receiver]
+        
         # Must define the transmitter properties and associated receivers
         source_list.append(
             fdem.sources.MagDipole(
-                receivers_list, frequencies[jj], source_locations[ii], orientation='z'
+                receivers_list, frequencies[ii], source_locations[jj],
+                orientation='z', moment=100
             )
         )
     
@@ -155,8 +156,8 @@ mesh = refine_tree_xyz(
 mesh.finalize()
 
 ###############################################################
-# Defining a Resistivity Model
-# ----------------------------
+# Defining the Conductivity/Resistivity Model and Mapping
+# -------------------------------------------------------
 #
 # Here, we create the model that will be used to predict frequency
 # domain data and the mapping from the model to the mesh. Here,
@@ -164,27 +165,27 @@ mesh.finalize()
 # background.
 #
 
-# Resistivity in Ohm m
-air_resistivity = 1e8
-background_resistivity = 1e2
-block_resistivity = 1e-1
+# Conductivity in S/m (or resistivity in Ohm m)
+air_conductivity = 1e-8
+background_conductivity = 1e-2
+block_conductivity = 1e1
 
 # Find cells that are active in the forward modeling (cells below surface)
 ind_active = surface2ind_topo(mesh, topo_xyz)
 
 # Define mapping from model to active cells
-model_map = maps.InjectActiveCells(mesh, ind_active, air_resistivity)
+model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
 # Define model. Models in SimPEG are vector arrays
-model = background_resistivity*np.ones(ind_active.sum())
+model = background_conductivity*np.ones(ind_active.sum())
 ind_block = (
     (mesh.gridCC[ind_active, 0] < 100.) & (mesh.gridCC[ind_active, 0] > -100.) &
     (mesh.gridCC[ind_active, 1] < 100.) & (mesh.gridCC[ind_active, 1] > -100.) &
-    (mesh.gridCC[ind_active, 2] > -250.) & (mesh.gridCC[ind_active, 2] < -50.)
+    (mesh.gridCC[ind_active, 2] > -275.) & (mesh.gridCC[ind_active, 2] < -75.)
 )
-model[ind_block] = block_resistivity
+model[ind_block] = block_conductivity
 
-# Plot Log of Resistivity Model
+# Plot Resistivity Model
 fig = plt.figure(figsize=(7, 6))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
@@ -193,82 +194,90 @@ log_model = np.log10(model)
 ax1 = fig.add_axes([0.13, 0.1, 0.6, 0.85])
 mesh.plotSlice(
     plotting_map*log_model, normal='Y', ax=ax1, ind=int(mesh.hx.size/2),
-    grid=True, clim=(np.log10(block_resistivity), np.log10(background_resistivity))
+    grid=True, clim=(np.log10(background_conductivity), np.log10(block_conductivity))
 )
-ax1.set_title('Resistivity Model at Y = 0 m')
+ax1.set_title('Conductivity Model at Y = 0 m')
 
 ax2 = fig.add_axes([0.75, 0.1, 0.05, 0.85])
-norm = mpl.colors.Normalize(vmin=np.log10(block_resistivity), vmax=np.log10(background_resistivity))
+norm = mpl.colors.Normalize(vmin=np.log10(background_conductivity), vmax=np.log10(block_conductivity))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
 )
 cbar.set_label(
-    'Resistivity (Ohm m)', rotation=270, labelpad=15, size=12
+    'Conductivity [S/m]', rotation=270, labelpad=15, size=12
 )
 
 
-#######################################################################
-# Predict Data
-# ------------
+######################################################
+# Simulation: Predicting FDEM Data
+# --------------------------------
 #
-# Here we demonstrate how to simulate the frequency domain response for
-# an electrical resistivity model on an OcTree mesh.
+# Here we define the formulation for solving Maxwell's equations. Since we are
+# measuring the magnetic flux density and working with a conductivity model,
+# the EB formulation is the most natural. We must also remember to define
+# the mapping for the conductivity model. If you defined a resistivity model,
+# use the kwarg *rhoMap* instead of *sigmaMap*
 #
 
-# Define the forward simulation
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
-        mesh, survey=survey, rhoMap=model_map, Solver=Solver
+        mesh, survey=survey, sigmaMap=model_map, Solver=Solver
         )
 
-# Compute predicted data for a your model
-mu0 = 4*np.pi*1e-7
-dpred = simulation.dpred(model)/mu0
+######################################################
+# Predict and Plot Data
+# ---------------------
+#
+# Here we show how the simulation is used to predict data.
+#
 
-# Data are organized by transmitter then by receiver. We had nFreq transmitters
+# Compute predicted data for a your model.
+dpred = simulation.dpred(model)
+
+# Data are organized by frequency, transmitter location, then by receiver. We nFreq transmitters
 # and each transmitter had 2 receivers (real and imaginary component). So
 # first we will pick out the real and imaginary data
-hz_real = dpred[0:len(dpred):2]/mu0
-hz_imag = dpred[1:len(dpred):2]/mu0
+bz_real = dpred[0:len(dpred):2]
+bz_imag = dpred[1:len(dpred):2]
 
-# Then we will will reshape the data.
-hz_real = np.reshape(hz_real, (ntx, len(frequencies)))
-hz_imag = np.reshape(hz_imag, (ntx, len(frequencies)))
+# Then we will will reshape the data for plotting.
+bz_real_plotting = np.reshape(bz_real, (len(frequencies), ntx))
+bz_imag_plotting = np.reshape(bz_imag, (len(frequencies), ntx))
 
 
 fig = plt.figure(figsize=(10, 4))
 
 # Real Component
 frequencies_index = 0
-v_max = np.max(np.abs(hz_real[:, frequencies_index]))
+v_max = np.max(np.abs(bz_real_plotting[frequencies_index, :]))
 ax1 = fig.add_axes([0.05, 0.05, 0.35, 0.9])
 plot2Ddata(
-    receiver_locations[:, 0:2], hz_real[:, frequencies_index], ax=ax1,
+    receiver_locations[:, 0:2], bz_real_plotting[frequencies_index, :], ax=ax1,
     ncontour=30, clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
     )
-ax1.set_title('Re[$H_z$] at 100 Hz')
+ax1.set_title('Re[$B_z$] at 100 Hz')
 
 ax2 = fig.add_axes([0.41, 0.05, 0.02, 0.9])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
 )
-cbar.set_label('$A/m$', rotation=270, labelpad=15, size=12)
+cbar.set_label('$T$', rotation=270, labelpad=15, size=12)
 
 # Imaginary Component
-v_max = np.max(np.abs(hz_imag[:, frequencies_index]))
+v_max = np.max(np.abs(bz_imag_plotting[frequencies_index, :]))
 ax1 = fig.add_axes([0.55, 0.05, 0.35, 0.9])
 plot2Ddata(
-    receiver_locations[:, 0:2], hz_imag[:, frequencies_index],
+    receiver_locations[:, 0:2], bz_imag_plotting[frequencies_index, :],
     ax=ax1, ncontour=30, clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
 )
-ax1.set_title('Im[$H_z$] at 100 Hz')
+ax1.set_title('Im[$B_z$] at 100 Hz')
 
 ax2 = fig.add_axes([0.91, 0.05, 0.02, 0.9])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
 )
-cbar.set_label('$A/m$', rotation=270, labelpad=15, size=12)
+cbar.set_label('$T$', rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -282,24 +291,35 @@ plt.show()
 
 
 if save_file == True:
-
-    fname = os.path.dirname(fdem.__file__) + '\\..\\..\\..\\tutorials\\assets\\fdem\\fdem_topo.txt'
+    
+    # Write topography
+    fname = (os.path.dirname(fdem.__file__)
+        + '\\..\\..\\..\\tutorials\\assets\\fdem\\fdem_topo.txt'
+        )
     np.savetxt(fname, np.c_[topo_xyz], fmt='%.4e')
-
-    fname = os.path.dirname(fdem.__file__) + '\\..\\..\\..\\tutorials\\assets\\fdem\\fdem_data.txt'
-    hz_real = hz_real + 1e-10*np.random.rand(len(hz_real))
-    hz_imag = hz_imag + 5e-11*np.random.rand(len(hz_imag))
-    f_vec = frequencies*np.ones(len(hz_real))
+    
+    # Write data with 2% noise added
+    fname = (os.path.dirname(fdem.__file__)
+        + '\\..\\..\\..\\tutorials\\assets\\fdem\\fdem_data.obs'
+        )
+    bz_real = bz_real + 1e-14*np.random.rand(len(bz_real))
+    bz_imag = bz_imag + 1e-14*np.random.rand(len(bz_imag))
+    f_vec = np.kron(frequencies, np.ones(ntx))
+    receiver_locations = np.kron(np.ones((len(frequencies), 1)), receiver_locations)
+    
     np.savetxt(
         fname,
-        np.c_[f_vec, receiver_locations, hz_real, hz_imag],
+        np.c_[f_vec, receiver_locations, bz_real, bz_imag],
         fmt='%.4e'
     )
-
+    
+    # Plot true model
     output_model = plotting_map*model
-    output_model[np.isnan(output_model)] = 0.
+    output_model[np.isnan(output_model)] = 1e-8
 
-    fname = os.path.dirname(fdem.__file__) + '\\..\\..\\..\\tutorials\\assets\\fdem\\true_model.txt'
+    fname = (os.path.dirname(fdem.__file__)
+        + '\\..\\..\\..\\tutorials\\assets\\fdem\\true_model.txt'
+        )
     np.savetxt(
         fname,
         output_model,
