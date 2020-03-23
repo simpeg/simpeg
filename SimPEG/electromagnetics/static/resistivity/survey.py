@@ -126,12 +126,12 @@ class Survey(BaseSurvey):
                     )
 
                 # Pole RX
-                if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole2D):
+                if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole):
                     m_locations.append(rx.locations)
                     n_locations.append(rx.locations)
 
                 # Dipole RX
-                elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole2D):
+                elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole):
                     m_locations.append(rx.locations[0])
                     n_locations.append(rx.locations[1])
 
@@ -184,12 +184,12 @@ class Survey(BaseSurvey):
                         source.location = np.array([locA[0], z_SrcA])
                         for rx in source.receiver_list:
                             # Pole Rx
-                            if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole2D):
+                            if isinstance(rx, Rx.Pole):
                                 locM = rx.locations.copy()
                                 z_RxM = self.topo_function(locM[:, 0])
                                 rx.locations = np.c_[locM[:, 0], z_RxM]
                             # Dipole Rx
-                            elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole2D):
+                            elif isinstance(rx, Rx.Dipole):
                                 locM = rx.locations[0].copy()
                                 locN = rx.locations[1].copy()
                                 z_RxM = self.topo_function(locM[:, 0])
@@ -211,12 +211,12 @@ class Survey(BaseSurvey):
 
                         for rx in source.receiver_list:
                             # Pole Rx
-                            if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole2D):
+                            if isinstance(rx, Rx.Pole):
                                 locM = rx.locations.copy()
                                 z_RxM = self.topo_function(locM[:, 0])
                                 rx.locations = np.c_[locM[:, 0], z_RxM]
                             # Dipole Rx
-                            elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole2D):
+                            elif isinstance(rx, Rx.Dipole):
                                 locM = rx.locations[0].copy()
                                 locN = rx.locations[1].copy()
                                 z_RxM = self.topo_function(locM[:, 0])

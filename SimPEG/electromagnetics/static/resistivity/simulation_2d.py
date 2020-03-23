@@ -10,6 +10,7 @@ from ....data import Data
 from .survey import Survey
 from . import sources
 from . import receivers
+from .receivers import IntTrapezoidal
 from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from .boundary_utils import getxBCyBC_CC
@@ -91,12 +92,12 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     my_ns = my_ns[rx_dipole_inds]
                     n_dipole_rx = len(my_ns)
                     if n_dipole_rx > 0:
-                        recs.append(receivers.Dipole2D(my_ms[rx_dipole_inds], my_ns))
+                        recs.append(receivers.Dipole(my_ms[rx_dipole_inds], my_ns))
 
                     my_ms = my_ms[~rx_dipole_inds]
                     n_pole_rx = len(my_ms)
                     if n_pole_rx > 0:
-                        recs.append(receivers.Pole2D(my_ms))
+                        recs.append(receivers.Pole(my_ms))
 
                     my_data_inds = np.arange(len(ind_AB)) + counter
                     counter += len(ind_AB)
@@ -173,7 +174,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         count = 0
         for src in survey.source_list:
             for rx in src.receiver_list:
-                d = rx.eval(kys, src, self.mesh, f)
+                d = IntTrapezoidal(self.kys, rx.eval(src, self.mesh, f))
                 temp[count:count+len(d)] = d
                 count += len(d)
 
@@ -238,7 +239,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                        None)
                     df_dm_v = df_dmFun(iky, src, du_dm_v, v, adjoint=False)
-                    Jv1_temp = rx.evalDeriv(ky, src, self.mesh, f, df_dm_v)
+                    Jv1_temp = rx.evalDeriv(src, self.mesh, f, df_dm_v)
                     # Trapezoidal intergration
                     Jv[count:count+len(Jv1_temp)] += trap_weights[iky]*Jv1_temp
                     count += len(Jv1_temp)
@@ -300,7 +301,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
                         my_v = v[count:count+rx.nD]
                         count += rx.nD
                         # wrt f, need possibility wrt m
-                        PTv = rx.evalDeriv(ky, src, self.mesh, f, my_v,
+                        PTv = rx.evalDeriv(src, self.mesh, f, my_v,
                                            adjoint=True)
                         df_duTFun = getattr(
                             f, '_{0!s}Deriv'.format(rx.projField), None

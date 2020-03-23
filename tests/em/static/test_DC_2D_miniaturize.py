@@ -26,8 +26,8 @@ class DCMiniaturizeTest(unittest.TestCase):
         # add some other receivers and sources to the mix
         electrode_locations = np.unique(np.r_[A, B, M, N], axis=0)
 
-        rx_p = dc.receivers.Pole2D(electrode_locations[[10, 20, 30, 40]])
-        rx_d = dc.receivers.Dipole2D(electrode_locations[[10, 20, 30, 40]], electrode_locations[[15, 25, 35, 45]])
+        rx_p = dc.receivers.Pole(electrode_locations[[10, 20, 30, 40]])
+        rx_d = dc.receivers.Dipole(electrode_locations[[10, 20, 30, 40]], electrode_locations[[15, 25, 35, 45]])
 
         tx_pd = dc.sources.Pole([rx_d], electrode_locations[0])
         tx_pp = dc.sources.Pole([rx_p], electrode_locations[2])

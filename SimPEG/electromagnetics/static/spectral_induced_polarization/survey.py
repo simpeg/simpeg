@@ -38,9 +38,9 @@ def from_dc_to_sip_survey(survey_dc, times):
     for src in srcList:
         rxList_sip = []
         for rx in src.receiver_list:
-            if isinstance(rx, dc.receivers.Pole2D) or isinstance(rx, dc.receivers.Pole):
+            if isinstance(rx, dc.receivers.Pole):
                 rx_sip = receivers.Pole(rx.locations, times=times)
-            elif isinstance(rx, dc.receivers.Dipole2D) or isinstance(rx, dc.receivers.Dipole):
+            elif isinstance(rx, dc.receivers.Dipole):
                 rx_sip = receivers.Dipole(rx.locations[0], rx.locations[1], times=times)
             else:
                 print(rx)
