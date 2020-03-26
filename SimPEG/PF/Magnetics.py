@@ -454,7 +454,6 @@ class Forward(object):
     forwardOnly = False
     components = ['tmi']
     model = None
-    components = 'z'
     Mxyz = None
     P = None
     verbose = True

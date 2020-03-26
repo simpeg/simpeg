@@ -44,26 +44,17 @@ class MagFwdProblemTests(unittest.TestCase):
         srcField = PF.BaseMag.SrcField([rxLoc], param=H0)
         self.survey = PF.BaseMag.LinearSurvey(srcField)
 
-        self.prob_xyz = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
+        self.prob = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
                                                       actInd=sph_ind,
-                                                      forwardOnly=True,
-                                                      rxType='xyz')
-        self.prob_tmi = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
-                                                      actInd=sph_ind,
-                                                      forwardOnly=True,
-                                                      rxType='tmi')
+                                                      forwardOnly=True)
 
     def test_ana_forward(self):
 
         # Compute 3-component mag data
-        self.survey.pair(self.prob_xyz)
-        dxyz = self.prob_xyz.fields(self.model)
-        dbx, dby, dbz = dxyz[::3], dxyz[1::3], dxyz[2::3]
-
-        self.survey.unpair()
-        self.survey.pair(self.prob_tmi)
-
-        dtmi = self.prob_tmi.fields(self.model)
+        self.survey.components = ['bx', 'by', 'bz', 'tmi']
+        self.survey.pair(self.prob)
+        dxyz = self.prob.fields(self.model)
+        dbx, dby, dbz, dtmi = dxyz[::4], dxyz[1::4], dxyz[2::4], dxyz[3::4]
 
         # Compute analytical response from a magnetized sphere
         bxa, bya, bza = PF.MagAnalytics.MagSphereFreeSpace(self.locXyz[:, 0],
@@ -71,6 +62,30 @@ class MagFwdProblemTests(unittest.TestCase):
                                                            self.locXyz[:, 2],
                                                            self.rad, 0, 0, 0,
                                                            self.chi, self.b0)
+
+        receivers = self.survey.rxLoc
+
+        # ax1 = plt.subplot(2,3,1)
+        # ax1.scatter(receivers[:, 0], receivers[:, 1], 5, dbx)
+        # ax1.set_title("Bx")
+        # ax1.set_aspect('equal')
+        #
+        # ax2 = plt.subplot(2,3,2)
+        # ax2.scatter(receivers[:, 0], receivers[:, 1], 5, dby)
+        # ax2.set_title("By")
+        # ax2.set_aspect('equal')
+        #
+        # ax3 = plt.subplot(2,3,3)
+        # ax3.scatter(receivers[:, 0], receivers[:, 1], 5, dbz)
+        # ax3.set_title("Bz")
+        # ax3.set_aspect('equal')
+        #
+        # ax4 = plt.subplot(2,3,5)
+        # ax4.scatter(receivers[:, 0], receivers[:, 1], 5, dtmi)
+        # ax4.set_title("Btmi")
+        # ax4.set_aspect('equal')
+        #
+        # plt.show()
 
         # Projection matrix
         Ptmi = mkvc(self.b0)/np.sqrt(np.sum(self.b0**2.))
