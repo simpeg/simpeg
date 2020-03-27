@@ -471,6 +471,10 @@ def writeVectorUBC(mesh, fileName, model):
         :param numpy.ndarray model: The model
     """
 
+    if model.ndim == 1:
+        # Catch the standard case that the model is (3*nC,1) instead of (nC,3)
+        model = model.reshape((-1, 3), order='F')
+        
     modelMatTR = np.zeros_like(model)
 
     if isinstance(mesh, TreeMesh):
