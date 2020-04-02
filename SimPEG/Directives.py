@@ -38,11 +38,11 @@ class InversionDirective(object):
 
     @inversion.setter
     def inversion(self, i):
-        if getattr(self, '_inversion', None) is not None:
-            warnings.warn(
-                'InversionDirective {0!s} has switched to a new inversion.'
-                .format(self.__class__.__name__)
-            )
+        # if getattr(self, '_inversion', None) is not None:
+        #     warnings.warn(
+        #         'InversionDirective {0!s} has switched to a new inversion.'
+        #         .format(self.__class__.__name__)
+        #     )
         self._inversion = i
 
     @property
@@ -708,6 +708,188 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
         # Save the file as a npz
         self.outDict[self.opt.iter] = iterDict
+
+
+class SaveIterationsGeoH5(InversionDirective):
+    """
+        Saves inversion results to a geoh5 file
+    """
+    # Initialize the output dict
+    h5_object = None
+    channels = ['model']
+    attribute = "model"
+    association = "VERTEX"
+    sorting = None
+    mapping = None
+
+    def initialize(self):
+        if self.attribute == "predicted":
+            return
+        prop = self.invProb.model
+
+        if self.mapping is not None:
+            prop = self.mapping * prop
+
+        if self.attribute == "mvi_model":
+            prop = np.linalg.norm(prop.reshape((-1, 3), order='F'), axis=1)
+
+        elif self.attribute == "mvis_model":
+            prop = prop.reshape((-1, 3), order='F')[:, 0]
+
+        for ii, channel in enumerate(self.channels):
+
+            attr = prop[ii::len(self.channels)]
+
+            if self.sorting is not None:
+                attr = attr[self.sorting]
+
+            self.h5_object.add_data({
+                    f"Initial": {
+                        "association":self.association, "values": attr
+                    }
+                }
+            )
+
+        self.h5_object.workspace.finalize()
+
+    def endIter(self):
+
+        if self.attribute == "predicted":
+            if getattr(self.dmisfit, 'objfcts', None) is not None:
+                dpred = []
+                for local_misfit in self.dmisfit.objfcts:
+                    dpred.append(np.asarray(
+                        local_misfit.survey.dpred(self.invProb.model)
+                    ))
+                prop = np.hstack(dpred)
+            else:
+                prop = self.dmisfit.survey.dpred(self.invProb.model)
+        else:
+            prop = self.invProb.model
+
+        if self.mapping is not None:
+            prop = self.mapping * prop
+
+        if self.attribute == "mvi_model":
+            prop = np.linalg.norm(prop.reshape((-1, 3), order='F'), axis=1)
+
+        elif self.attribute == "mvi_model":
+            prop = prop.reshape((-1, 3), order='F')[:, 0]
+
+        for ii, channel in enumerate(self.channels):
+
+            attr = prop[ii::len(self.channels)]
+
+            if self.sorting is not None:
+                attr = attr[self.sorting]
+
+            self.h5_object.add_data({
+                    f"Iteration_{self.opt.iter}_" + channel: {
+                        "association":self.association, "values": attr
+                    }
+                }
+            )
+
+        self.h5_object.workspace.finalize()
+
+
+class VectorInversion(InversionDirective):
+    """
+    Control a vector inversion from Cartesian to spherical coordinates
+    """
+
+    chifact_target = 2.
+    mode = 'cartesian'
+    norms = []
+    alphas = []
+
+    @property
+    def target(self):
+        if getattr(self, '_target', None) is None:
+            nD = 0
+            for survey in self.survey:
+                nD += survey.nD
+
+            self._target = nD * 0.5 * self.chifact_target
+
+        return self._target
+
+    @target.setter
+    def target(self, val):
+        self._target = val
+
+    def initialize(self):
+
+        if self.mode == 'cartesian':
+            self.norms = []
+            self.alphas = []
+            for reg in self.reg.objfcts:
+                self.norms.append(reg.norms)
+                self.alphas.append([reg.alpha_s, reg.alpha_x, reg.alpha_y, reg.alpha_z])
+                reg.norms = np.c_[2., 2., 2., 2.]
+                reg.alpha_s, reg.alpha_x, reg.alpha_y, reg.alpha_z = 1, 1, 1, 1
+                reg.model = self.invProb.model
+
+        for prob in self.prob:
+            if getattr(prob, 'coordinate_system', None) is not None:
+                prob.coordinate_system = self.mode
+
+    def endIter(self):
+        if (self.invProb.phi_d < self.target) and self.mode == 'cartesian':
+
+            self.mode = 'spherical'
+            print("Switching MVI to spherical coordinates")
+            mstart = Utils.matutils.xyz2atp(self.invProb.model.reshape((-1, 3), order='F'))
+            mref = Utils.matutils.xyz2atp(self.invProb.model.reshape((-1, 3), order='F'))
+
+            self.opt.xc = mstart
+
+            for prob in self.prob:
+                if getattr(prob, 'coordinate_system', None) is not None:
+                    prob.coordinate_system = self.mode
+                    prob.model = mstart
+
+            for ind, (reg_fun, norms, alphas) in enumerate(zip(
+                    self.reg.objfcts, self.norms, self.alphas
+            )):
+                print(alphas)
+                reg_fun.alpha_s = alphas[0]
+                reg_fun.alpha_x = alphas[1]
+                reg_fun.alpha_y = alphas[2]
+                reg_fun.alpha_z = alphas[3]
+                reg_fun.norms = norms
+                reg_fun.mref = mref
+
+                if ind > 0:
+
+                    reg_fun.alpha_s = 0
+                    reg_fun.space = 'spherical'
+                    reg_fun.eps_q = np.pi
+
+            nC = mstart.reshape((-1, 3)).shape[0]
+            self.opt.lower = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
+            self.opt.upper[nC:] = np.inf
+
+            self.invProb.model = mstart
+
+            # Add directives
+            for directive in self.inversion.directiveList.dList:
+                # directive._inversion = None
+                if isinstance(directive, SaveIterationsGeoH5):
+                    channels = []
+                    for channel in directive.channels:
+                        channels.append(channel + "_s")
+                    directive.channels = channels
+
+                    if directive.attribute == "mvi_model":
+                        directive.attribute = "mvis_model"
+
+                elif isinstance(directive, Update_IRLS):
+                    directive.sphericalDomain = True
+
+            self.inversion.directiveList = [
+                ProjSpherical(), UpdateSensitivityWeights()
+            ] + self.inversion.directiveList.dList
 
 
 class Update_IRLS(InversionDirective):
