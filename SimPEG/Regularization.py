@@ -167,7 +167,6 @@ class RegularizationMesh(Props.BaseSimPEG):
                             Utils.speye(self.mesh.nFy)[:, indActive_Fy]
                         )
                     else:
-                        print ("Use Simple")
                         indActive_Fy = (
                             (self.mesh._aveCC2FyStencil() * self.indActive) >= 1
                         )
