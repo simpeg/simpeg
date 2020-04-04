@@ -88,7 +88,7 @@ source_list = []  # Create empty list to store sources
 # Each unique location defines a new transmitter
 for ii in range(ntx):
 
-    # Define receivers of different type at each location.
+    # Define receivers at each location.
     dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
         receiver_locations[ii, :], time_channels, 'z'
         )
@@ -152,7 +152,7 @@ ind_layer = (
 )
 model[ind_layer] = layer_conductivity
 ind_pipe = (
-    (mesh.gridCC[ind_active, 0] < 60.) &
+    (mesh.gridCC[ind_active, 0] < 50.) &
     (mesh.gridCC[ind_active, 2] > -10000.) & (mesh.gridCC[ind_active, 2] < 0.)
 )
 model[ind_pipe] = pipe_conductivity
@@ -169,7 +169,7 @@ mesh.plotImage(
     plotting_map*log_model, ax=ax1, grid=False,
     clim=(np.log10(layer_conductivity), np.log10(pipe_conductivity))
 )
-ax1.set_title('Resistivity Model (Survey in red)')
+ax1.set_title('Conductivity Model (Survey in red)')
 
 ax1.plot(receiver_locations[:, 0], receiver_locations[:, 2], 'r.')
 
@@ -179,7 +179,7 @@ cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
 )
 cbar.set_label(
-    'Resistivity [$\Omega m$]', rotation=270, labelpad=15, size=12
+    'Conductivity [$S/m$]', rotation=270, labelpad=15, size=12
 )
 
 ######################################################

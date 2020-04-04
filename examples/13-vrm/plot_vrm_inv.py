@@ -105,13 +105,14 @@ survey_vrm = VRM.Survey(srcListVRM)
 #
 # Here we predict data by solving the forward problem. For the VRM problem,
 # we use a sensitivity refinement strategy for cells # that are proximal to
-# transmitters. This is controlled through the *ref_factor* and *ref_radius*
+# transmitters. This is controlled through the *refinement_factor* and *refinement_distance*
 # properties.
 #
 
 # Defining the problem
 problem_vrm = VRM.Simulation3DLinear(
-    mesh, survey=survey_vrm, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75]
+    mesh, survey=survey_vrm, indActive=topoCells,
+    refinement_factor=3, refinement_distance=[1.25, 2.5, 3.75]
 )
 
 # Predict VRM response
@@ -153,7 +154,8 @@ fields_tot = fields_tot + 0.05*np.abs(fields_tot)*np.random.normal(size=fields_t
 #survey_inv = VRM.Survey(srcListVRM)
 actCells = (mesh.gridCC[:, 2] < 0.) & (mesh.gridCC[:, 2] > -2.)
 problem_inv = VRM.Simulation3DLinear(
-    mesh, survey=survey_vrm, indActive=actCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75]
+    mesh, survey=survey_vrm, indActive=actCells,
+    refinement_factor=3, refinement_distance=[1.25, 2.5, 3.75]
 )
 survey_vrm.set_active_interval(1e-3, 1e-2)
 

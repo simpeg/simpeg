@@ -101,12 +101,13 @@ survey_vrm = VRM.Survey(src_list_vrm)
 #
 # For the VRM problem, we used a sensitivity refinement strategy for cells
 # that are proximal to transmitters. This is controlled through the
-# *ref_factor* and *ref_radius* properties.
+# *refinement_factor* and *refinement_distance* properties.
 #
 
 # Defining the problem
 problem_vrm = VRM.Simulation3DLinear(
-    mesh, survey=survey_vrm, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75]
+    mesh, survey=survey_vrm, indActive=topoCells,
+    refinement_factor=3, refinement_distance=[1.25, 2.5, 3.75]
 )
 
 # Predict VRM response
