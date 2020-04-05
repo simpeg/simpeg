@@ -189,8 +189,8 @@ n_waveforms = len(waveform_list)
 dpred = np.reshape(dpred, (n_waveforms, n_times)).T
 
 # Characteristic VRM decay for several waveforms.
-fig = plt.figure(figsize=(6, 5))
-ax1 = fig.add_axes([0.1, 0.1, 0.85, 0.85])
+fig = plt.figure(figsize=(5, 5))
+ax1 = fig.add_axes([0.15, 0.1, 0.8, 0.85])
 ax1.loglog(time_channels, -dpred[:, 0], 'b')
 ax1.loglog(time_channels, -dpred[:, 1], 'r')
 ax1.loglog(time_channels, -dpred[:, 2], 'k')

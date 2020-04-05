@@ -278,7 +278,7 @@ ax1.set_title('Airborne TDEM Profile')
 fig = plt.figure(figsize=(10, 5))
 
 # Decays over the pipe
-ax1 = fig.add_axes([0.1, 0.1, 0.38, 0.85])
+ax1 = fig.add_axes([0.1, 0.1, 0.35, 0.85])
 ax1.loglog(time_channels, -dpred_tdem[0, :], 'r', lw=2)
 ax1.loglog(time_channels, -dpred_vrm[0, :], 'b', lw=2)
 ax1.loglog(time_channels, -dpred_total[0, :], 'k', lw=2)
@@ -289,7 +289,7 @@ ax1.set_title('Response over the pipe (VRM negligible)')
 ax1.legend(['Inductive', 'VRM', 'Total'], loc='upper right')
 
 # Decay away from pipe
-ax2 = fig.add_axes([0.53, 0.1, 0.38, 0.85])
+ax2 = fig.add_axes([0.6, 0.1, 0.35, 0.85])
 ax2.loglog(time_channels, -dpred_tdem[-1, :], 'r', lw=2)
 ax2.loglog(time_channels, -dpred_vrm[-1, :], 'b', lw=2)
 ax2.loglog(time_channels, -dpred_total[-1, :], 'k', lw=2)

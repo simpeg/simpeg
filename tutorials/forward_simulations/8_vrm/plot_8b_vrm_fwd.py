@@ -246,7 +246,7 @@ fig = plt.figure(figsize=(13, 5))
 time_index = 10
 
 v_max = np.max(np.abs(dpred[:, time_index]))
-ax11 = fig.add_axes([0.1, 0.05, 0.35, 0.9])
+ax11 = fig.add_axes([0.1, 0.1, 0.35, 0.9])
 plot2Ddata(
     locations[:, 0:2], -dpred[:, time_index], ax=ax11, ncontour=30,
     clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
@@ -256,7 +256,7 @@ ax11.set_ylabel('y (m)')
 titlestr = "- dBz/dt at t=" + '{:.1e}'.format(time_channels[time_index]) + " s"
 ax11.set_title(titlestr)
 
-ax12 = fig.add_axes([0.46, 0.05, 0.02, 0.9])
+ax12 = fig.add_axes([0.46, 0.1, 0.02, 0.9])
 norm1 = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar1 = mpl.colorbar.ColorbarBase(
     ax12, norm=norm1, orientation='vertical', cmap=mpl.cm.RdBu_r
@@ -268,7 +268,7 @@ location_indicies = [0, 65, 217]
 color_flags = ['k', 'r', 'b']
 legend_str = []
 
-ax2 = fig.add_axes([0.6, 0.05, 0.35, 0.9])
+ax2 = fig.add_axes([0.6, 0.1, 0.35, 0.9])
 for ii in range(0, len(location_indicies)):
     ax2.loglog(time_channels, -dpred[location_indicies[ii], :], color_flags[ii])
     legend_str.append(
