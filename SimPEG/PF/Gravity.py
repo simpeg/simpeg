@@ -165,6 +165,8 @@ class GravityIntegral(Problem.LinearProblem):
          """
         if m is not None:
             self.model = self.rhoMap*m
+
+        print("Multiplication")
         self.rxLoc = self.survey.srcField.rxList[0].locs
         self.nD = int(self.rxLoc.shape[0])
 
@@ -400,7 +402,7 @@ class Forward(object):
                     arg = dy[:, bb] * dz[:, cc] / dxr
 
                     if ('gxx' in self.components) or ("gzz" in self.components) or ("guv" in self.components):
-                        gxx -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        gxx -= 1e+4 * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dxdy / (r * dz_r + eps) +
                             dxdz / (r * dy_r + eps) -
                             np.arctan(arg+eps) +
@@ -410,7 +412,7 @@ class Forward(object):
                         )
 
                     if 'gxy' in self.components:
-                        compDict['gxy'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        compDict['gxy'] -= 1e+4 * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             np.log(dz_r) + dy[:, bb]**2./ (r*dz_r) +
                             dz[:, cc] / r  -
                             1. / (1+arg**2.+ eps) * (dz[:, cc]/r**2) * (r - dy[:, bb]**2./r)
@@ -418,7 +420,7 @@ class Forward(object):
                         )
 
                     if 'gxz' in self.components:
-                        compDict['gxz'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        compDict['gxz'] -= 1e+4 * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             np.log(dy_r) + dz[:, cc]**2./ (r*dy_r) +
                             dy[:, bb] / r  -
                             1. / (1+arg**2.) * (dy[:, bb]/(r**2)) * (r - dz[:, cc]**2./r)
@@ -428,7 +430,7 @@ class Forward(object):
                     arg = dx[:, aa]*dz[:, cc]/dyr
 
                     if ('gyy' in self.components) or ("gzz" in self.components) or ("guv" in self.components):
-                        gyy -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        gyy -= 1e+4 * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             dxdy / (r*dz_r+ eps) +
                             dydz / (r*dx_r+ eps) -
                             np.arctan(arg+eps) +
@@ -438,7 +440,7 @@ class Forward(object):
                         )
 
                     if 'gyz' in self.components:
-                        compDict['gyz'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                        compDict['gyz'] -= 1e+4 * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                             np.log(dx_r) + dz[:, cc]**2./ (r*(dx_r)) +
                             dx[:, aa] / r  -
                             1. / (1+arg**2.) * (dx[:, aa]/(r**2)) * (r - dz[:, cc]**2./r)
