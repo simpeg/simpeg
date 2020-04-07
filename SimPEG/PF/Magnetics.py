@@ -1022,8 +1022,8 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 def calcRow(
     Xn, Yn, Zn, rxlocation, P,
     components=[
-        "dbx_dx", "dbx_dy", "dbx_dz", "dby_dy",
-        "dby_dz", "dbz_dz", "bx", "by", "bz"
+        "bxx", "bxy", "bxz", "byy",
+        "byz", "bzz", "bx", "by", "bz"
         ]
 ):
     """
@@ -1136,13 +1136,13 @@ def calcRow(
     arg40 = dz1 + r8
 
     rows = []
-    dbx_dx, dby_dy = [], []
+    bxx, byy = [], []
     for comp in components:
         # m_x vector
-        if (comp == "dbx_dx") or ("dbz_dz" in components):
-            dbx_dx = np.zeros((1, 3 * nC))
+        if (comp == "bxx") or ("bzz" in components):
+            bxx = np.zeros((1, 3 * nC))
 
-            dbx_dx[0, 0:nC] = (
+            bxx[0, 0:nC] = (
                 2 * (
                     (
                         (dx1**2 - r1 * arg1) /
@@ -1179,31 +1179,31 @@ def calcRow(
                 )
             )
 
-            dbx_dx[0, nC:2*nC] = (
+            bxx[0, nC:2*nC] = (
                 dx2 / (r5 * arg25 + eps) - dx2 / (r2 * arg10 + eps) +
                 dx2 / (r3 * arg15 + eps) - dx2 / (r8 * arg40 + eps) +
                 dx1 / (r1 * arg5 + eps) - dx1 / (r6 * arg30 + eps) +
                 dx1 / (r7 * arg35 + eps) - dx1 / (r4 * arg20 + eps)
             )
 
-            dbx_dx[0, 2*nC:] = (
+            bxx[0, 2*nC:] = (
                 dx1 / (r1 * arg4 + eps) - dx2 / (r2 * arg9 + eps) +
                 dx2 / (r3 * arg14 + eps) - dx1 / (r4 * arg19 + eps) +
                 dx2 / (r5 * arg24 + eps) - dx1 / (r6 * arg29 + eps) +
                 dx1 / (r7 * arg34 + eps) - dx2 / (r8 * arg39 + eps)
             )
 
-            dbx_dx /= (4 * np.pi)
+            bxx /= (4 * np.pi)
 
-        if (comp == "dby_dy") or ("dbz_dz" in components):
-            # dby_dy
-            dby_dy = np.zeros((1, 3 * nC))
+        if (comp == "byy") or ("bzz" in components):
+            # byy
+            byy = np.zeros((1, 3 * nC))
 
-            dby_dy[0, 0:nC] = (dy2 / (r3 * arg15 + eps) - dy2 / (r2 * arg10 + eps) +
+            byy[0, 0:nC] = (dy2 / (r3 * arg15 + eps) - dy2 / (r2 * arg10 + eps) +
                         dy1 / (r5 * arg25 + eps) - dy1 / (r8 * arg40 + eps) +
                         dy2 / (r1 * arg5 + eps) - dy2 / (r4 * arg20 + eps) +
                         dy1 / (r7 * arg35 + eps) - dy1 / (r6 * arg30 + eps))
-            dby_dy[0, nC:2*nC] = (2 * (((dy2**2 - r1 * arg2) / (r1 * arg2**2 + dy2**2 * r1 + eps)) -
+            byy[0, nC:2*nC] = (2 * (((dy2**2 - r1 * arg2) / (r1 * arg2**2 + dy2**2 * r1 + eps)) -
                        ((dy2**2 - r2 * arg7) / (r2 * arg7**2 + dy2**2 * r2 + eps)) +
                        ((dy2**2 - r3 * arg12) / (r3 * arg12**2 + dy2**2 * r3 + eps)) -
                        ((dy2**2 - r4 * arg17) / (r4 * arg17**2 + dy2**2 * r4 + eps)) +
@@ -1211,30 +1211,30 @@ def calcRow(
                        ((dy1**2 - r6 * arg27) / (r6 * arg27**2 + dy1**2 * r6 + eps)) +
                        ((dy1**2 - r7 * arg32) / (r7 * arg32**2 + dy1**2 * r7 + eps)) -
                        ((dy1**2 - r8 * arg37) / (r8 * arg37**2 + dy1**2 * r8 + eps))))
-            dby_dy[0, 2*nC:] = (dy2 / (r1 * arg3 + eps) - dy2 / (r2 * arg8 + eps) +
+            byy[0, 2*nC:] = (dy2 / (r1 * arg3 + eps) - dy2 / (r2 * arg8 + eps) +
                          dy2 / (r3 * arg13 + eps) - dy2 / (r4 * arg18 + eps) +
                          dy1 / (r5 * arg23 + eps) - dy1 / (r6 * arg28 + eps) +
                          dy1 / (r7 * arg33 + eps) - dy1 / (r8 * arg38 + eps))
 
-            dby_dy /= (4 * np.pi)
+            byy /= (4 * np.pi)
 
-        if comp == "dby_dy":
+        if comp == "byy":
 
-            rows += [dby_dy]
+            rows += [byy]
 
-        if comp == "dbx_dx":
+        if comp == "bxx":
 
-            rows += [dbx_dx]
+            rows += [bxx]
 
-        if comp == "dbz_dz":
+        if comp == "bzz":
 
-            dbz_dz = -dbx_dx - dby_dy
-            rows += [dbz_dz]
+            bzz = -bxx - byy
+            rows += [bzz]
 
-        if comp == "dbx_dy":
-            dbx_dy = np.zeros((1, 3 * nC))
+        if comp == "bxy":
+            bxy = np.zeros((1, 3 * nC))
 
-            dbx_dy[0, 0:nC] = (2 * (((dx1 * arg4) / (r1 * arg1**2 + (dx1**2) * r1 + eps)) -
+            bxy[0, 0:nC] = (2 * (((dx1 * arg4) / (r1 * arg1**2 + (dx1**2) * r1 + eps)) -
                         ((dx2 * arg9) / (r2 * arg6**2 + (dx2**2) * r2 + eps)) +
                         ((dx2 * arg14) / (r3 * arg11**2 + (dx2**2) * r3 + eps)) -
                         ((dx1 * arg19) / (r4 * arg16**2 + (dx1**2) * r4 + eps)) +
@@ -1242,23 +1242,23 @@ def calcRow(
                         ((dx1 * arg29) / (r6 * arg26**2 + (dx1**2) * r6 + eps)) +
                         ((dx1 * arg34) / (r7 * arg31**2 + (dx1**2) * r7 + eps)) -
                         ((dx2 * arg39) / (r8 * arg36**2 + (dx2**2) * r8 + eps))))
-            dbx_dy[0, nC:2*nC] = (dy2 / (r1 * arg5 + eps) - dy2 / (r2 * arg10 + eps) +
+            bxy[0, nC:2*nC] = (dy2 / (r1 * arg5 + eps) - dy2 / (r2 * arg10 + eps) +
                            dy2 / (r3 * arg15 + eps) - dy2 / (r4 * arg20 + eps) +
                            dy1 / (r5 * arg25 + eps) - dy1 / (r6 * arg30 + eps) +
                            dy1 / (r7 * arg35 + eps) - dy1 / (r8 * arg40 + eps))
-            dbx_dy[0, 2*nC:] = (1 / r1 - 1 / r2 +
+            bxy[0, 2*nC:] = (1 / r1 - 1 / r2 +
                          1 / r3 - 1 / r4 +
                          1 / r5 - 1 / r6 +
                          1 / r7 - 1 / r8)
 
-            dbx_dy /= (4 * np.pi)
+            bxy /= (4 * np.pi)
 
-            rows += [dbx_dy]
+            rows += [bxy]
 
-        if comp == "dbx_dz":
-            dbx_dz = np.zeros((1, 3 * nC))
+        if comp == "bxz":
+            bxz = np.zeros((1, 3 * nC))
 
-            dbx_dz[0, 0:nC] =(2 * (((dx1 * arg5) / (r1 * (arg1**2) + (dx1**2) * r1 + eps)) -
+            bxz[0, 0:nC] =(2 * (((dx1 * arg5) / (r1 * (arg1**2) + (dx1**2) * r1 + eps)) -
                         ((dx2 * arg10) / (r2 * (arg6**2) + (dx2**2) * r2 + eps)) +
                         ((dx2 * arg15) / (r3 * (arg11**2) + (dx2**2) * r3 + eps)) -
                         ((dx1 * arg20) / (r4 * (arg16**2) + (dx1**2) * r4 + eps)) +
@@ -1266,27 +1266,27 @@ def calcRow(
                         ((dx1 * arg30) / (r6 * (arg26**2) + (dx1**2) * r6 + eps)) +
                         ((dx1 * arg35) / (r7 * (arg31**2) + (dx1**2) * r7 + eps)) -
                         ((dx2 * arg40) / (r8 * (arg36**2) + (dx2**2) * r8 + eps))))
-            dbx_dz[0, nC:2*nC] = (1 / r1 - 1 / r2 +
+            bxz[0, nC:2*nC] = (1 / r1 - 1 / r2 +
                            1 / r3 - 1 / r4 +
                            1 / r5 - 1 / r6 +
                            1 / r7 - 1 / r8)
-            dbx_dz[0, 2*nC:] = (dz2 / (r1 * arg4 + eps) - dz2 / (r2 * arg9 + eps) +
+            bxz[0, 2*nC:] = (dz2 / (r1 * arg4 + eps) - dz2 / (r2 * arg9 + eps) +
                          dz1 / (r3 * arg14 + eps) - dz1 / (r4 * arg19 + eps) +
                          dz2 / (r5 * arg24 + eps) - dz2 / (r6 * arg29 + eps) +
                          dz1 / (r7 * arg34 + eps) - dz1 / (r8 * arg39 + eps))
 
-            dbx_dz /= (4 * np.pi)
+            bxz /= (4 * np.pi)
 
-            rows += [dbx_dz]
+            rows += [bxz]
 
-        if comp == "dby_dz":
-            dby_dz = np.zeros((1, 3 * nC))
+        if comp == "byz":
+            byz = np.zeros((1, 3 * nC))
 
-            dby_dz[0, 0:nC] = (1 / r3 - 1 / r2 +
+            byz[0, 0:nC] = (1 / r3 - 1 / r2 +
                         1 / r5 - 1 / r8 +
                         1 / r1 - 1 / r4 +
                         1 / r7 - 1 / r6)
-            dby_dz[0, nC:2*nC] = (2 * ((((dy2 * arg5) / (r1 * (arg2**2) + (dy2**2) * r1 + eps))) -
+            byz[0, nC:2*nC] = (2 * ((((dy2 * arg5) / (r1 * (arg2**2) + (dy2**2) * r1 + eps))) -
                     (((dy2 * arg10) / (r2 * (arg7**2) + (dy2**2) * r2 + eps))) +
                     (((dy2 * arg15) / (r3 * (arg12**2) + (dy2**2) * r3 + eps))) -
                     (((dy2 * arg20) / (r4 * (arg17**2) + (dy2**2) * r4 + eps))) +
@@ -1294,14 +1294,14 @@ def calcRow(
                     (((dy1 * arg30) / (r6 * (arg27**2) + (dy1**2) * r6 + eps))) +
                     (((dy1 * arg35) / (r7 * (arg32**2) + (dy1**2) * r7 + eps))) -
                     (((dy1 * arg40) / (r8 * (arg37**2) + (dy1**2) * r8 + eps)))))
-            dby_dz[0, 2*nC:] = (dz2 / (r1 * arg3  + eps) - dz2 / (r2 * arg8 + eps) +
+            byz[0, 2*nC:] = (dz2 / (r1 * arg3  + eps) - dz2 / (r2 * arg8 + eps) +
                      dz1 / (r3 * arg13 + eps) - dz1 / (r4 * arg18 + eps) +
                      dz2 / (r5 * arg23 + eps) - dz2 / (r6 * arg28 + eps) +
                      dz1 / (r7 * arg33 + eps) - dz1 / (r8 * arg38 + eps))
 
-            dby_dz /= (4 * np.pi)
+            byz /= (4 * np.pi)
 
-            rows += [dby_dz]
+            rows += [byz]
 
         if (comp == "bx") or ("tmi" in components):
             bx = np.zeros((1, 3 * nC))
