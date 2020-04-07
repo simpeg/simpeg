@@ -778,6 +778,38 @@ class Point3DTipper(BaseRxNSEM_Point):
         return rx_deriv_component
 
 
+##################################################
+# Receiver for 1D Analytic
+
+class AnalyticReceiver1D(BaseRx):
+    """
+    Assumes that the data locations are xyz coordinates.
+
+    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param string component: real or imaginary component 'real' or 'imag'
+    """
+
+    component = properties.StringChoice(
+        "component of the field (real, imag or app_res)", {
+            "real": ["re", "in-phase", "in phase"],
+            "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
+            "app_res": ["apparent_resistivity"]
+        }
+    )
+
+    def __init__(self, locations=None, component=None):
+        self.component = component 
+
+        BaseRx.__init__(self, locations)
+
+
+
+
+
+
+
+
 ############
 # Deprecated
 ############
