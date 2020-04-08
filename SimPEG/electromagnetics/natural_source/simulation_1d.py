@@ -14,6 +14,12 @@ class Simulation1DLayers(BaseEMSimulation):
     """
     
     """
+
+    _Q = None
+    _dQdsig = None
+
+    forward_only = properties.Bool("store propagator matricies", default=True)
+
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "thicknesses of the layers"
     )
@@ -45,54 +51,103 @@ class Simulation1DLayers(BaseEMSimulation):
         Admittances for all layers
         """
 
-        return (1 - 1j)*np.sqrt(sig/(4*np.pi*mu_0*f))
+        return (1 - 1j)*np.sqrt(sig/(4*np.pi*f*mu_0))
 
 
-    def _get_M(self, fi, layers, sigma_1d):
+    def _get_propagator_matricies_for_source(self, src, layers, sigma_1d):
 
-        a = self._get_admittance(fi, sigma_1d)
+        
+        # Get frequency for planewave source
+        f = src.frequency
 
-        # List of empty places for each 2x2 array
-        M = len(layers)*[None]
+        # Admittance for all layers
+        a = self._get_admittance(f, sigma_1d)
 
-        # Compute Pn+1
-        Pend = np.array([[1, 1], [a[-1], -a[-1]]], dtype=complex)
+        # List of empty places for each 2x2 array Qj
+        Q = len(layers)*[None]
 
-        # Compute exponents
-        e_neg = np.exp(-(1 + 1j)*np.sqrt(np.pi*mu_0*fi*sigma_1d[0:-1])*layers)
-        e_pos = np.exp( (1 + 1j)*np.sqrt(np.pi*mu_0*fi*sigma_1d[0:-1])*layers)
+        # Compute exponent terms
+        e_neg = np.exp(-(1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*layers)
+        e_pos = np.exp( (1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*layers)
 
-        # parallelize this later
+        # Create Q matrix for each layer
         for jj in range(0, len(layers)):
 
-            M[jj] = (2/a[jj])*np.array([
+            Q[jj] = (2/a[jj])*np.array([
                 [a[jj]*(e_neg[jj] + e_pos[jj]), (e_neg[jj] - e_pos[jj])],
                 [a[jj]**2*(e_neg[jj] - e_pos[jj]), a[jj]*(e_neg[jj] + e_pos[jj])]
                 ], dtype=complex)
 
-        M.append(Pend)
+        # Compute 2x2 matrix for bottom layer
+        Q.append(np.array([[1, 1], [a[-1], -a[-1]]], dtype=complex))
 
-        return np.linalg.multi_dot(M)
+        return Q
 
+    def _get_sigma_derivative_matricies_for_source(self, src, layers, sigma_1d):
+
+        
+        # Get frequency for planewave source
+        f = src.frequency
+
+        # Admittance for all layers
+        a = self._get_admittance(f, sigma_1d)
+
+        # List of empty places for each 2x2 array Qj
+        dQdsig = len(layers)*[None]
+
+        # Compute exponent terms
+        e_neg = np.exp(-(1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*layers)
+        e_pos = np.exp( (1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*layers)
+
+        ikh = (1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*layers  # product of i, wavenumber and layer thickness
+
+
+        # Create Q matrix for each layer
+        for jj in range(0, len(layers)):
+
+            dQdsig[jj] = np.array([
+                [
+                ikh[jj]*(-e_neg[jj] + e_pos[jj]),
+                (-1/(sigma_1d[jj]*a[jj]))*(e_neg[jj] - e_pos[jj]) + (layers[jj]/a[jj]**2)*(e_neg[jj] + e_pos[jj])
+                ],[
+                (0.5*a[jj]/sigma_1d[jj])*(e_neg[jj] - e_pos[jj]) - layers[jj]*(e_neg[jj] + e_pos[jj]),
+                ikh[jj]*(-e_neg[jj] + e_pos[jj])]
+                ], dtype=complex)
+
+        # Compute 2x2 matrix for bottom layer
+        dQdsig.append(np.array([[0, 0], [0.5*a[-1]/sigma_1d[-1], -0.5*a[-1]/sigma_1d[-1]]], dtype=complex))
+
+        return dQdsig
+
+    def _compute_dMdsig_jj(self, Q, dQdsig, jj):
+
+        return np.linalg.multi_dot(Q[0:jj] + [dQdsig[jj]] + Q[jj+1:])
 
 
     def fields(self, m):
 
+        replace_Q = False
+
         if m is not None:
             self.model = m
 
-        f = [] 
+        f = []
 
         for source_ii in self.survey.source_list:
 
-            M = self._get_M(
-                    source_ii.frequency, self.thicknesses, m
+            # We can parallelize this
+            Q = self._get_propagator_matricies_for_source(
+                    source_ii, self.thicknesses, self.model
                     )
 
+            # Create final matix
+            M = np.linalg.multi_dot(Q)
+
+            # Add to fields
             f.append(M[0, 1]/M[1, 1])
 
-        return f
 
+        return f
 
 
     def dpred(self, m=None, f=None):
@@ -114,10 +169,160 @@ class Simulation1DLayers(BaseEMSimulation):
                 elif rx.component is 'imag':
                     d.append(f[ii].imag())
                 elif rx.component is 'app_res':
-                    d.append(np.abs(f[ii])**2/(2*np.pi*src.frequency*4*np.pi*1e-7))
+                    d.append(np.abs(f[ii])**2/(2*np.pi*src.frequency*mu_0))
 
         
         return d
+
+
+
+    def Jvec(self, m, v):
+
+        self.model = m
+
+        Jv = []
+
+        for source_ii in self.survey.source_list:
+
+            # Get Propagator matricies
+            Q = self._get_propagator_matricies_for_source(
+                    source_ii, self.thicknesses, self.model
+                    )
+
+            # Create final matix
+            M = np.linalg.multi_dot(Q)
+
+            # Get derivative matricies
+            dQdsig = self._get_sigma_derivative_matricies_for_source(
+                    source_ii, self.thicknesses, self.model
+                    )
+
+            dMdsig = np.empty([4, len(self.model)])
+
+            for jj in range(0, len(self.model)):
+                
+                dMdsig_jj = self._compute_dMdsig_jj(Q, dQdsig, jj)
+                dMdsig[:, jj] = np.r_[
+                    dMdsig_jj[0, 1].real,
+                    dMdsig_jj[0, 1].imag,
+                    dMdsig_jj[1, 1].real,
+                    dMdsig_jj[1, 1].imag
+                    ]
+
+            for rx in source_ii.receiver_list:
+
+                if rx.component is 'real':
+                    A = (
+                        np.abs(M[1, 1])**-2*
+                        np.c_[M[1, 1].real, M[1, 1].imag, M[0, 1].real, M[0, 1].imag]
+                        )
+
+                    C = -2*(M[1, 1].real + M[1, 1].imag)*(M[0, 1].real*M[1, 1].real + M[0, 1].imag*M[1, 1].imag)/np.abs(M[1, 1])**4
+
+                    Jrow = np.dot(A, dMdsig) + C
+
+                elif rx.component is 'imag':
+                    A = (
+                        np.abs(M[1, 1])**-2*
+                        np.c_[-M[1, 1].imag, M[1, 1].real, M[0, 1].imag, M[0, 1].real]
+                        )
+
+                    C = -2*(M[1, 1].real + M[1, 1].imag)*(-M[0, 1].real*M[1, 1].imag + M[0, 1].imag*M[1, 1].real)/np.abs(M[1, 1])**4
+
+                    Jrow = np.dot(A, dMdsig) + C
+
+                elif rx.component is 'app_res':
+
+                    rho_a = np.abs(M[0, 1]/M[1, 1])**2/(2*np.pi*source_ii.frequency*mu_0)
+                    A = (
+                        1/(mu_0*np.pi*source_ii.frequency*np.abs(M[1, 1]**2))*
+                        np.c_[M[0, 1].real, M[0, 1].imag, -rho_a*M[1, 1].real, -rho_a*M[1, 1].imag]
+                        )
+
+                    Jrow = np.dot(A, dMdsig)
+
+                Jv.append(np.dot(Jrow, v))
+
+        return mkvc(np.vstack(Jv))
+
+
+
+    def Jtvec(self, m, v):
+
+        self.model = m
+
+        COUNT = 0
+
+        Jtv = np.zeros(len(v))
+
+        for source_ii in self.survey.source_list:
+
+            # Get Propagator matricies
+            Q = self._get_propagator_matricies_for_source(
+                    source_ii, self.thicknesses, self.model
+                    )
+
+            # Create final matix
+            M = np.linalg.multi_dot(Q)
+
+            # Get derivative matricies
+            dQdsig = self._get_sigma_derivative_matricies_for_source(
+                    source_ii, self.thicknesses, self.model
+                    )
+
+            dMdsig = np.empty([4, len(self.model)])
+
+            for jj in range(0, len(self.model)):
+                
+                dMdsig_jj = self._compute_dMdsig_jj(Q, dQdsig, jj)
+                dMdsig[:, jj] = np.r_[
+                    dMdsig_jj[0, 1].real,
+                    dMdsig_jj[0, 1].imag,
+                    dMdsig_jj[1, 1].real,
+                    dMdsig_jj[1, 1].imag
+                    ]
+
+            for rx in source_ii.receiver_list:
+
+                if rx.component is 'real':
+                    A = (
+                        np.abs(M[1, 1])**-2*
+                        np.c_[M[1, 1].real, M[1, 1].imag, M[0, 1].real, M[0, 1].imag]
+                        )
+
+                    C = -2*(M[1, 1].real + M[1, 1].imag)*(M[0, 1].real*M[1, 1].real + M[0, 1].imag*M[1, 1].imag)/np.abs(M[1, 1])**4
+
+                    Jcol = np.dot(A, dMdsig) + C
+
+                elif rx.component is 'imag':
+                    A = (
+                        np.abs(M[1, 1])**-2*
+                        np.c_[-M[1, 1].imag, M[1, 1].real, M[0, 1].imag, M[0, 1].real]
+                        )
+
+                    C = -2*(M[1, 1].real + M[1, 1].imag)*(-M[0, 1].real*M[1, 1].imag + M[0, 1].imag*M[1, 1].real)/np.abs(M[1, 1])**4
+
+                    Jcol = np.dot(A, dMdsig) + C
+
+                elif rx.component is 'app_res':
+
+                    rho_a = np.abs(M[0, 1]/M[1, 1])**2/(2*np.pi*source_ii.frequency*mu_0)
+                    A = (
+                        1/(mu_0*np.pi*source_ii.frequency*np.abs(M[1, 1]**2))*
+                        np.c_[M[0, 1].real, M[0, 1].imag, -rho_a*M[1, 1].real, -rho_a*M[1, 1].imag]
+                        )
+
+                    Jcol = np.dot(A, dMdsig)
+
+                Jtv =+ v[COUNT]*Jcol
+                COUNT =+ 1
+
+        return mkvc(Jtv)
+
+
+
+
+
 
 
         
