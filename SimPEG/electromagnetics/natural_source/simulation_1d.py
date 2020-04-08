@@ -107,11 +107,11 @@ class Simulation1DLayers(BaseEMSimulation):
 
             dQdsig[jj] = np.array([
                 [
-                ikh[jj]*(-e_neg[jj] + e_pos[jj]),
-                (-1/(sigma_1d[jj]*a[jj]))*(e_neg[jj] - e_pos[jj]) + (layers[jj]/a[jj]**2)*(e_neg[jj] + e_pos[jj])
+                ikh[jj]*(-e_neg[jj] + e_pos[jj])/sigma_1d[jj],
+                (-1/(sigma_1d[jj]*a[jj]))*(e_neg[jj] - e_pos[jj]) - (layers[jj]/a[jj]**2)*(e_neg[jj] + e_pos[jj])
                 ],[
-                (0.5*a[jj]/sigma_1d[jj])*(e_neg[jj] - e_pos[jj]) - layers[jj]*(e_neg[jj] + e_pos[jj]),
-                ikh[jj]*(-e_neg[jj] + e_pos[jj])]
+                (a[jj]/sigma_1d[jj])*(e_neg[jj] - e_pos[jj]) - layers[jj]*(e_neg[jj] + e_pos[jj]),
+                ikh[jj]*(-e_neg[jj] + e_pos[jj])/sigma_1d[jj]]
                 ], dtype=complex)
 
         # Compute 2x2 matrix for bottom layer
@@ -165,14 +165,13 @@ class Simulation1DLayers(BaseEMSimulation):
             for rx in src.receiver_list:
 
                 if rx.component is 'real':
-                    d.append(f[ii].real())
+                    d.append(f[ii].real)
                 elif rx.component is 'imag':
-                    d.append(f[ii].imag())
+                    d.append(f[ii].imag)
                 elif rx.component is 'app_res':
                     d.append(np.abs(f[ii])**2/(2*np.pi*src.frequency*mu_0))
-
-        
-        return d
+       
+        return np.hstack(d)
 
 
 
@@ -212,34 +211,32 @@ class Simulation1DLayers(BaseEMSimulation):
             for rx in source_ii.receiver_list:
 
                 if rx.component is 'real':
+
+                    C = 2*(M[0, 1].real*M[1, 1].real + M[0, 1].imag*M[1, 1].imag)/np.abs(M[1, 1])**2
+
                     A = (
                         np.abs(M[1, 1])**-2*
-                        np.c_[M[1, 1].real, M[1, 1].imag, M[0, 1].real, M[0, 1].imag]
+                        np.c_[M[1, 1].real, M[1, 1].imag, M[0, 1].real-C*M[1, 1].real, M[0, 1].imag-C*M[1, 1].imag]
                         )
-
-                    C = -2*(M[1, 1].real + M[1, 1].imag)*(M[0, 1].real*M[1, 1].real + M[0, 1].imag*M[1, 1].imag)/np.abs(M[1, 1])**4
-
-                    Jrow = np.dot(A, dMdsig) + C
 
                 elif rx.component is 'imag':
+
+                    C = 2*(-M[0, 1].real*M[1, 1].imag + M[0, 1].imag*M[1, 1].real)/np.abs(M[1, 1])**2
+
                     A = (
                         np.abs(M[1, 1])**-2*
-                        np.c_[-M[1, 1].imag, M[1, 1].real, M[0, 1].imag, M[0, 1].real]
+                        np.c_[-M[1, 1].imag, M[1, 1].real, M[0, 1].imag-C*M[1, 1].real, -M[0, 1].real-C*M[1, 1].imag]
                         )
-
-                    C = -2*(M[1, 1].real + M[1, 1].imag)*(-M[0, 1].real*M[1, 1].imag + M[0, 1].imag*M[1, 1].real)/np.abs(M[1, 1])**4
-
-                    Jrow = np.dot(A, dMdsig) + C
 
                 elif rx.component is 'app_res':
 
                     rho_a = np.abs(M[0, 1]/M[1, 1])**2/(2*np.pi*source_ii.frequency*mu_0)
                     A = (
-                        1/(mu_0*np.pi*source_ii.frequency*np.abs(M[1, 1]**2))*
-                        np.c_[M[0, 1].real, M[0, 1].imag, -rho_a*M[1, 1].real, -rho_a*M[1, 1].imag]
+                        (2/np.abs(M[1, 1])**2)*
+                        np.c_[M[0, 1].real/(source_ii.frequency*mu_0), M[0, 1].imag/(source_ii.frequency*mu_0), -rho_a*M[1, 1].real, -rho_a*M[1, 1].imag]
                         )
 
-                    Jrow = np.dot(A, dMdsig)
+                Jrow = np.dot(A, dMdsig)
 
                 Jv.append(np.dot(Jrow, v))
 
@@ -285,34 +282,32 @@ class Simulation1DLayers(BaseEMSimulation):
             for rx in source_ii.receiver_list:
 
                 if rx.component is 'real':
+
+                    C = 2*(M[0, 1].real*M[1, 1].real + M[0, 1].imag*M[1, 1].imag)/np.abs(M[1, 1])**2
+
                     A = (
                         np.abs(M[1, 1])**-2*
-                        np.c_[M[1, 1].real, M[1, 1].imag, M[0, 1].real, M[0, 1].imag]
+                        np.c_[M[1, 1].real, M[1, 1].imag, M[0, 1].real-C*M[1, 1].real, M[0, 1].imag-C*M[1, 1].imag]
                         )
-
-                    C = -2*(M[1, 1].real + M[1, 1].imag)*(M[0, 1].real*M[1, 1].real + M[0, 1].imag*M[1, 1].imag)/np.abs(M[1, 1])**4
-
-                    Jcol = np.dot(A, dMdsig) + C
 
                 elif rx.component is 'imag':
+
+                    C = 2*(-M[0, 1].real*M[1, 1].imag + M[0, 1].imag*M[1, 1].real)/np.abs(M[1, 1])**2
+
                     A = (
                         np.abs(M[1, 1])**-2*
-                        np.c_[-M[1, 1].imag, M[1, 1].real, M[0, 1].imag, M[0, 1].real]
+                        np.c_[-M[1, 1].imag, M[1, 1].real, M[0, 1].imag-C*M[1, 1].real, -M[0, 1].real-C*M[1, 1].imag]
                         )
-
-                    C = -2*(M[1, 1].real + M[1, 1].imag)*(-M[0, 1].real*M[1, 1].imag + M[0, 1].imag*M[1, 1].real)/np.abs(M[1, 1])**4
-
-                    Jcol = np.dot(A, dMdsig) + C
 
                 elif rx.component is 'app_res':
 
                     rho_a = np.abs(M[0, 1]/M[1, 1])**2/(2*np.pi*source_ii.frequency*mu_0)
                     A = (
-                        1/(mu_0*np.pi*source_ii.frequency*np.abs(M[1, 1]**2))*
-                        np.c_[M[0, 1].real, M[0, 1].imag, -rho_a*M[1, 1].real, -rho_a*M[1, 1].imag]
+                        (2/np.abs(M[1, 1])**2)*
+                        np.c_[M[0, 1].real/(source_ii.frequency*mu_0), M[0, 1].imag/(source_ii.frequency*mu_0), -rho_a*M[1, 1].real, -rho_a*M[1, 1].imag]
                         )
 
-                    Jcol = np.dot(A, dMdsig)
+                Jcol = np.dot(A, dMdsig)
 
                 Jtv =+ v[COUNT]*Jcol
                 COUNT =+ 1
