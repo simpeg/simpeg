@@ -18,7 +18,7 @@ class Simulation1DLayers(BaseEMSimulation):
     _Q = None
     _dQdsig = None
 
-    forward_only = properties.Bool("store propagator matricies", default=True)
+    forward_only = properties.Bool("store propagator matricies", default=False)
 
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "thicknesses of the layers"
@@ -31,6 +31,8 @@ class Simulation1DLayers(BaseEMSimulation):
     storeJ = properties.Bool(
         "store the sensitivity", default=False
     )
+
+    _Jmatrix = None
 
     def __init__(self, **kwargs):
         BaseEMSimulation.__init__(self, **kwargs)
@@ -73,7 +75,7 @@ class Simulation1DLayers(BaseEMSimulation):
         # Create Q matrix for each layer
         for jj in range(0, len(layers)):
 
-            Q[jj] = (2/a[jj])*np.array([
+            Q[jj] = (0.5/a[jj])*np.array([
                 [a[jj]*(e_neg[jj] + e_pos[jj]), (e_neg[jj] - e_pos[jj])],
                 [a[jj]**2*(e_neg[jj] - e_pos[jj]), a[jj]*(e_neg[jj] + e_pos[jj])]
                 ], dtype=complex)
@@ -107,11 +109,11 @@ class Simulation1DLayers(BaseEMSimulation):
 
             dQdsig[jj] = np.array([
                 [
-                ikh[jj]*(-e_neg[jj] + e_pos[jj])/sigma_1d[jj],
-                (-1/(sigma_1d[jj]*a[jj]))*(e_neg[jj] - e_pos[jj]) - (layers[jj]/a[jj]**2)*(e_neg[jj] + e_pos[jj])
+                ikh[jj]*(-e_neg[jj] + e_pos[jj])/(4*sigma_1d[jj]),
+                (-1/(4*sigma_1d[jj]*a[jj]))*(e_neg[jj] - e_pos[jj]) - (layers[jj]/(4*a[jj]**2))*(e_neg[jj] + e_pos[jj])
                 ],[
-                (a[jj]/sigma_1d[jj])*(e_neg[jj] - e_pos[jj]) - layers[jj]*(e_neg[jj] + e_pos[jj]),
-                ikh[jj]*(-e_neg[jj] + e_pos[jj])/sigma_1d[jj]]
+                (a[jj]/(4*sigma_1d[jj]))*(e_neg[jj] - e_pos[jj]) - (layers[jj]/4)*(e_neg[jj] + e_pos[jj]),
+                ikh[jj]*(-e_neg[jj] + e_pos[jj])/(4*sigma_1d[jj])]
                 ], dtype=complex)
 
         # Compute 2x2 matrix for bottom layer
@@ -121,7 +123,11 @@ class Simulation1DLayers(BaseEMSimulation):
 
     def _compute_dMdsig_jj(self, Q, dQdsig, jj):
 
-        return np.linalg.multi_dot(Q[0:jj] + [dQdsig[jj]] + Q[jj+1:])
+        
+        if len(Q) > 1:
+            return np.linalg.multi_dot(Q[0:jj] + [dQdsig[jj]] + Q[jj+1:])
+        else:
+            return dQdsig[0]
 
 
     def fields(self, m):
@@ -137,25 +143,26 @@ class Simulation1DLayers(BaseEMSimulation):
 
             # We can parallelize this
             Q = self._get_propagator_matricies_for_source(
-                    source_ii, self.thicknesses, self.model
+                    source_ii, self.thicknesses, self.sigma
                     )
 
             # Create final matix
-            M = np.linalg.multi_dot(Q)
+            if len(Q) > 1:
+                M = np.linalg.multi_dot(Q)
+            else:
+                M = Q[0]
 
             # Add to fields
             f.append(M[0, 1]/M[1, 1])
-
 
         return f
 
 
     def dpred(self, m=None, f=None):
 
-        if m is not None:
-            self.model = m
-
         if f is None:
+            if m is None:
+                m = self.model
             f = self.fields(m)
 
         d = []
@@ -171,11 +178,53 @@ class Simulation1DLayers(BaseEMSimulation):
                 elif rx.component is 'app_res':
                     d.append(np.abs(f[ii])**2/(2*np.pi*src.frequency*mu_0))
        
-        return np.hstack(d)
+        return mkvc(np.hstack(d))
+
+    
+    def getJ(self, m, f=None, factor=0.001):
+
+        if self._Jmatrix is not None:
+            return self._Jmatrix
+        else:
+            if self.verbose:
+                print("Calculating J and storing")
+            self.model = m
+
+            N = self.survey.nD
+            M = self.model.size
+            J = np.zeros((N, M), dtype=float, order='F')
+
+            for ii in range(0, len(m)):
+
+                m1 = m.copy()
+                m2 = m.copy()
+                dm = factor*m[ii]
+                m1[ii] = m[ii] - 0.5*dm
+                m2[ii] = m[ii] + 0.5*dm
+                d1 = self.dpred(m1)
+                d2 = self.dpred(m2)
+
+                J[:, ii] = (d2 - d1)/dm
+
+            self._Jmatrix = J
+        return self._Jmatrix
+
+    def Jvec(self, m, v, f=None):
+
+        J = self.getJ(m)
+        Jv = mkvc(np.dot(J, v))
+
+        return mkvc(Jv)
+
+    def Jtvec(self, m, v, f=None):
+
+        J = self.getJ(m)
+        Jtv = mkvc(np.dot(J.T, v))
+
+        return Jtv
 
 
-
-    def Jvec(self, m, v):
+    def Jvec_analytic(self, m, v):
 
         self.model = m
 
@@ -185,15 +234,18 @@ class Simulation1DLayers(BaseEMSimulation):
 
             # Get Propagator matricies
             Q = self._get_propagator_matricies_for_source(
-                    source_ii, self.thicknesses, self.model
+                    source_ii, self.thicknesses, self.sigma
                     )
 
             # Create final matix
-            M = np.linalg.multi_dot(Q)
+            if len(Q) > 1:
+                M = np.linalg.multi_dot(Q)
+            else:
+                M = Q[0]
 
             # Get derivative matricies
             dQdsig = self._get_sigma_derivative_matricies_for_source(
-                    source_ii, self.thicknesses, self.model
+                    source_ii, self.thicknesses, self.sigma
                     )
 
             dMdsig = np.empty([4, len(self.model)])
@@ -244,7 +296,7 @@ class Simulation1DLayers(BaseEMSimulation):
 
 
 
-    def Jtvec(self, m, v):
+    def Jtvec_analytic(self, m, v):
 
         self.model = m
 
@@ -256,15 +308,18 @@ class Simulation1DLayers(BaseEMSimulation):
 
             # Get Propagator matricies
             Q = self._get_propagator_matricies_for_source(
-                    source_ii, self.thicknesses, self.model
+                    source_ii, self.thicknesses, self.sigma
                     )
 
             # Create final matix
-            M = np.linalg.multi_dot(Q)
+            if len(Q) > 1:
+                M = np.linalg.multi_dot(Q)
+            else:
+                M = Q[0]
 
             # Get derivative matricies
             dQdsig = self._get_sigma_derivative_matricies_for_source(
-                    source_ii, self.thicknesses, self.model
+                    source_ii, self.thicknesses, self.sigma
                     )
 
             dMdsig = np.empty([4, len(self.model)])
@@ -315,7 +370,13 @@ class Simulation1DLayers(BaseEMSimulation):
         return mkvc(Jtv)
 
 
+    @property
+    def deleteTheseOnModelUpdate(self):
+        toDelete = super(Simulation1DLayers, self).deleteTheseOnModelUpdate
 
+        if self._Jmatrix is not None:
+            toDelete += ['_Jmatrix']
+        return toDelete
 
 
 

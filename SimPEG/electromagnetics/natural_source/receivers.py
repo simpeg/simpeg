@@ -804,7 +804,14 @@ class AnalyticReceiver1D(BaseRx):
         BaseRx.__init__(self, locations)
 
 
+    @property
+    def nD(self):
+        """Number of data in the receiver."""
 
+        if self.locations == None:
+            return 1
+        else:
+            return self.locations.shape[0]
 
 
 
