@@ -13,12 +13,11 @@ from . import receivers
 from .receivers import IntTrapezoidal
 from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
-from .simulation import BaseDCSimulation
 from .boundary_utils import getxBCyBC_CC
 from .utils import _mini_pole_pole
 
 
-class BaseDCSimulation2D(BaseDCSimulation):
+class BaseDCSimulation2D(BaseEMSimulation):
     """
     Base 2.5D DC problem
     """
