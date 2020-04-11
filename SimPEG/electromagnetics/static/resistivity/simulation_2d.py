@@ -8,8 +8,6 @@ from ...base import BaseEMSimulation
 from ....data import Data
 
 from .survey import Survey
-from . import sources
-from . import receivers
 from .receivers import IntTrapezoidal
 from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
