@@ -2,6 +2,7 @@ import numpy as np
 
 from . import receivers
 from . import sources
+from .survey import Survey
 
 def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
     """
@@ -42,3 +43,60 @@ def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
         srcList += [src]
 
     return srcList
+
+def _mini_pole_pole(survey, verbose=False):
+    """ Function to miniaturize a survey for use in DCSimulation.
+
+    Miniaturizes the survey into the minimum number of unique pole-pole electrode
+    combinations for AM, AN, BM, BN pairs (also taking into account reciprocity),
+    for use in a DCSimulation only.
+    """
+    survey.getABMN_locations()
+    A = survey.a_locations
+    B = survey.b_locations
+    M = survey.m_locations
+    N = survey.n_locations
+
+    elecs, inverse = np.unique(np.r_[A, B, M, N], axis=0, return_inverse=True)
+    if len(elecs) < survey.nSrc:
+        if verbose:
+            print('Number of sources greater than number of electrodes.')
+            print('Switching internally to smaller survey.')
+
+        inv_A, inv_B, inv_M, inv_N = inverse.reshape(4, -1)
+        dipole_tx = (inv_A != inv_B)
+        dipole_rx = (inv_M != inv_N)
+
+        AM = np.sort(np.c_[inv_A, inv_M])
+        AN = np.sort(np.c_[inv_A[dipole_rx], inv_N[dipole_rx]])
+        BM = np.sort(np.c_[inv_B[dipole_tx], inv_M[dipole_tx]])
+        BN = np.sort(np.c_[inv_B[dipole_tx & dipole_rx], inv_N[dipole_tx & dipole_rx]])
+        unique_pole_poles, pole_pole_inv = np.unique(np.r_[AM, AN, BM, BN], axis=0, return_inverse=True)
+
+        inv_AM, pole_pole_inv = pole_pole_inv[:len(AM)], pole_pole_inv[len(AM):]
+        inv_AN, pole_pole_inv = pole_pole_inv[:len(AN)], pole_pole_inv[len(AN):]
+        inv_BM, inv_BN = pole_pole_inv[:len(BM)], pole_pole_inv[len(BM):]
+
+        if verbose:
+            print(f"There are {unique_pole_poles.shape[0]} unique pole-pole combinations.")
+
+        unique_sources = []
+        last_src = None
+        i_d = 0
+        while i_d < len(unique_pole_poles):
+            if last_src != unique_pole_poles[i_d, 0]:
+                last_src = unique_pole_poles[i_d, 0]
+                rxs = []
+            else:
+                while (i_d < len(unique_pole_poles)
+                       and last_src == unique_pole_poles[i_d, 0]):
+                    rxs.append(unique_pole_poles[i_d, 1])
+                    i_d += 1
+                rxs = np.array(rxs, dtype=int)
+                rxs = receivers.Pole(elecs[rxs])
+                unique_sources.append(sources.Pole([rxs], elecs[last_src]))
+
+        dipoles = [dipole_rx, dipole_tx]
+        invs = [inv_AM, inv_AN, inv_BM, inv_BN]
+        mini_survey = Survey(unique_sources)
+        return dipoles, invs, mini_survey
