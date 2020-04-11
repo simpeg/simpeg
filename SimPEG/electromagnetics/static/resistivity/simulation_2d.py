@@ -23,6 +23,14 @@ class BaseDCSimulation2D(BaseDCSimulation):
     Base 2.5D DC problem
     """
 
+    survey = properties.Instance(
+        "a DC survey object", Survey, required=True
+    )
+
+    storeJ = properties.Bool(
+        "store the sensitivity matrix?", default=False
+    )
+
     fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
     nky = 15
