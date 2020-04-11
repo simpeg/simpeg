@@ -606,11 +606,7 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
         SrcList.append(srcClass)
         survey_type = 'dipole-dipole'
 
-    if (d2flag == '2.5D') and (dim == 2):
-        survey = dc.Survey_ky(SrcList, survey_type=survey_type.lower())
-    else:
-        survey = dc.Survey(SrcList, survey_type=survey_type.lower())
-
+    survey = dc.Survey(SrcList, survey_type=survey_type.lower())
     return survey
 
 

@@ -3,6 +3,7 @@ import scipy as sp
 import properties
 import shutil
 from ....utils.code_utils import deprecate_class
+import warnings
 
 from ....utils import mkvc, sdiag, Zero
 from ....data import Data
@@ -67,7 +68,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         if self.Ainv is not None:
             self.Ainv.clean()
-        self.Ainv = self.Solver(A, **self.solver_opts)
+        self.Ainv = self.solver(A, **self.solver_opts)
         RHS = self.getRHS()
 
         f[:, self._solutionType] = self.Ainv * RHS
@@ -110,10 +111,6 @@ class BaseDCSimulation(BaseEMSimulation):
             Generate Full sensitivity matrix
         """
 
-        if self._mini_survey is not None:
-            raise NotImplementedError(
-                "pole-pole survey reduction hasn't been implemented for getJ yet."
-            )
 
         if self._Jmatrix is not None:
             return self._Jmatrix
@@ -121,7 +118,9 @@ class BaseDCSimulation(BaseEMSimulation):
 
             self.model = m
             if f is None:
-                f = self.fields(m).compute()
+                f = self.fields(m)
+            if isinstance(f, Delayed):
+                f = f.compute()
             """
             I think it should be this as a quick fix...
             f = f[self.inv[0]]
@@ -131,6 +130,14 @@ class BaseDCSimulation(BaseEMSimulation):
 
         if self.verbose:
             print("Calculating J and storing")
+
+        if self._mini_survey is not None:
+            warnings.warn(
+                "pole-pole survey reduction hasn't been implemented for getJ yet."
+            )
+            J = self._Jtvec(m=m, v=None, f=f).T
+            self._Jmatrix = da.from_array(J)
+            return self._Jmatrix
 
         if os.path.exists(self.Jpath):
             shutil.rmtree(self.Jpath, ignore_errors=True)
@@ -233,9 +240,11 @@ class BaseDCSimulation(BaseEMSimulation):
             f = f.compute()
 
         if self.storeJ:
-            J = self.getJ(m, f=f).compute()
-            Jv = mkvc(np.dot(J, v))
-            return Jv
+            # J = self.getJ(m, f=f).compute()
+            # Jv = mkvc(np.dot(J, v))
+            # won't above lines pull J completely into memory?
+            J = self.getJ(m, f=f)
+            return J.dot(v).compute()
 
         self.model = m
 
@@ -304,7 +313,7 @@ class BaseDCSimulation(BaseEMSimulation):
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix
-            Jtv = np.zeros((self.model.size, self.survey.nD), order='F')
+            Jtv = np.zeros((self.model.size, survey.nD), order='F')
             istrt = int(0)
             iend = int(0)
 

@@ -69,7 +69,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
             A = self.getA(ky)
             if self.Ainv[iky] is not None:
                 self.Ainv[iky].clean()
-            self.Ainv[iky] = self.Solver(A, **self.solver_opts)
+            self.Ainv[iky] = self.solver(A, **self.solver_opts)
             RHS = self.getRHS(ky)
             u = self.Ainv[iky] * RHS
             f[:, self._solutionType, iky] = u

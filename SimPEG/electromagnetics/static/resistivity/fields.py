@@ -13,6 +13,13 @@ class FieldsDC(Fields):
     knownFields = {}
     dtype = float
 
+    @property
+    def survey(self):
+        mini = self.simulation._mini_survey
+        if mini is not None:
+            return mini
+        return self.simulation.survey
+
     def _phiDeriv(self, src, du_dm_v, v, adjoint=False):
         if (
             getattr(self, '_phiDeriv_u', None) is None or
