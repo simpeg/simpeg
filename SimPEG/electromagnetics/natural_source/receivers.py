@@ -783,11 +783,11 @@ class Point3DTipper(BaseRxNSEM_Point):
 
 class AnalyticReceiver1D(BaseRx):
     """
-    Assumes that the data locations are xyz coordinates.
+    Receiver class for the 1D and pseudo-3D problems. For the 1D problem,
+    locations are not necessary. For the 3D problem, xyz positions are required.
 
     :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
+    :param string component: 'real'|'imag'|'app_res'
     """
 
     component = properties.StringChoice(

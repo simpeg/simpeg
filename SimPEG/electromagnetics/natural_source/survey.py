@@ -250,7 +250,9 @@ def _rec_to_ndarr(rec_arr, data_type=float):
 
 class Survey1D(BaseSurvey):
     """
-    
+    Survey class for the 1D and pseudo-3D problems
+
+    :param List source_list: list of of SimPEG.electromagnetics.natural_sources.receivers.AnalyticPlanewave1D
     """
 
     source_list = properties.List(

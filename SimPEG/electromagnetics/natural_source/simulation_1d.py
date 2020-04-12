@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 import properties
 from scipy.constants import mu_0
 
@@ -10,45 +11,52 @@ from ... import props
 from .survey import Survey1D
 
 
-class Simulation1DLayers(BaseEMSimulation):
-    """
-    
-    """
+class BaseSimulation1D(BaseEMSimulation):
 
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "thicknesses of the layers"
-    )
-
+    # Must be 1D survey object
     survey = properties.Instance(
         "a Survey1D survey object", Survey1D, required=True
     )
 
-    _Jmatrix = None
+    sensitivity_method = properties.StringChoice(
+        "Choose 1st or 2nd order computations with sensitivity matrix ('approximate', 'analytic')", {
+            "approximate": [],
+            "analytic": []
+        }
+    )
 
-    def __init__(self, **kwargs):
+    # Instantiate
+    def __init__(self, sensitivity_method='approximate', **kwargs):
+        
+        self.sensitivity_method = sensitivity_method
+
         BaseEMSimulation.__init__(self, **kwargs)
 
 
-    def _get_wavenumber(self, f, sig):
+    # Compute layer admittances for a 1d model
+    def _get_admittance(self, f, sigma_1d):
 
         """
-        Wavenumbers for all frequencies
+        Layer admittances
+
+        :param np.float f: frequency in Hz
+        :pamam np.array sig: layer conductivities in S/m (nLayers,)
+        :return a: layer admittances (nLayers,)
         """
 
-        return (1 - 1j)*np.sqrt(np.pi*mu_0*f*sig)
+        return (1 - 1j)*np.sqrt(sigma_1d/(4*np.pi*f*mu_0))
 
 
-    def _get_admittance(self, f, sig):
-
+    def _get_propagator_matricies_1d(self, src, thicknesses, sigma_1d):
         """
-        Admittances for all layers
+        For a given source and layered Earth model, this returns the list of
+        propagator matricies.
+
+        :param SimPEG.electromagnetics.sources.AnalyticPlanewave1D src: Analytic 1D planewave source
+        :param np.array thicknesses: layer thicknesses (nLayers-1,)
+        :param np.array sigma_1d: layer conductivities (nLayers,)
+        :return list Q: list containing matrix for each layer [nLayers,]
         """
-
-        return (1 - 1j)*np.sqrt(sig/(4*np.pi*f*mu_0))
-
-
-    def _get_propagator_matricies_for_source(self, src, layers, sigma_1d):
-
         
         # Get frequency for planewave source
         f = src.frequency
@@ -57,27 +65,36 @@ class Simulation1DLayers(BaseEMSimulation):
         a = self._get_admittance(f, sigma_1d)
 
         # List of empty places for each 2x2 array Qj
-        Q = len(layers)*[None]
+        Q = len(thicknesses)*[None]
 
         # Compute exponent terms
-        e_neg = np.exp(-(1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*layers)
-        e_pos = np.exp( (1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*layers)
+        e_neg = np.exp(-(1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*thicknesses)
+        e_pos = np.exp( (1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*thicknesses)
 
         # Create Q matrix for each layer
-        for jj in range(0, len(layers)):
+        for jj in range(0, len(thicknesses)):
 
             Q[jj] = (0.5/a[jj])*np.array([
                 [a[jj]*(e_neg[jj] + e_pos[jj]), (e_neg[jj] - e_pos[jj])],
                 [a[jj]**2*(e_neg[jj] - e_pos[jj]), a[jj]*(e_neg[jj] + e_pos[jj])]
                 ], dtype=complex)
 
-        # Compute 2x2 matrix for bottom layer
+        # Compute 2x2 matrix for bottom layer and append
         Q.append(np.array([[1, 1], [a[-1], -a[-1]]], dtype=complex))
 
         return Q
 
-    def _get_sigma_derivative_matricies_for_source(self, src, layers, sigma_1d):
 
+    def _get_sigma_derivative_matricies_1d(self, src, thicknesses, sigma_1d):
+        """
+        For a given source (frequency) and layered Earth, return the list containing
+        the derivative of each layer's propagator matrix with respect to conductivity.
+        
+        :param SimPEG.electromagnetics.sources.AnalyticPlanewave1D src: Analytic 1D planewave source
+        :param np.array thicknesses: layer thicknesses (nLayers-1,)
+        :param np.array sigma_1d: layer conductivities (nLayers,)
+        :return list dQdig: list containing matrix for each layer [nLayers,]
+        """
         
         # Get frequency for planewave source
         f = src.frequency
@@ -85,25 +102,25 @@ class Simulation1DLayers(BaseEMSimulation):
         # Admittance for all layers
         a = self._get_admittance(f, sigma_1d)
 
-        # List of empty places for each 2x2 array Qj
-        dQdsig = len(layers)*[None]
+        # List of empty places for each 2x2 array dQdsig_j
+        dQdsig = len(thicknesses)*[None]
 
         # Compute exponent terms
-        e_neg = np.exp(-(1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*layers)
-        e_pos = np.exp( (1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*layers)
+        e_neg = np.exp(-(1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*thicknesses)
+        e_pos = np.exp( (1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*thicknesses)
 
-        ikh = (1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*layers  # product of i, wavenumber and layer thickness
+        # product of i, wavenumber and layer thicknesses
+        ikh = (1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*thicknesses  
 
-
-        # Create Q matrix for each layer
-        for jj in range(0, len(layers)):
+        # Create dQdm matrix for each layer
+        for jj in range(0, len(thicknesses)):
 
             dQdsig[jj] = np.array([
                 [
                 ikh[jj]*(-e_neg[jj] + e_pos[jj])/(4*sigma_1d[jj]),
-                (-1/(4*sigma_1d[jj]*a[jj]))*(e_neg[jj] - e_pos[jj]) - (layers[jj]/(4*a[jj]**2))*(e_neg[jj] + e_pos[jj])
+                (-1/(4*sigma_1d[jj]*a[jj]))*(e_neg[jj] - e_pos[jj]) - (thicknesses[jj]/(4*a[jj]**2))*(e_neg[jj] + e_pos[jj])
                 ],[
-                (a[jj]/(4*sigma_1d[jj]))*(e_neg[jj] - e_pos[jj]) - (layers[jj]/4)*(e_neg[jj] + e_pos[jj]),
+                (a[jj]/(4*sigma_1d[jj]))*(e_neg[jj] - e_pos[jj]) - (thicknesses[jj]/4)*(e_neg[jj] + e_pos[jj]),
                 ikh[jj]*(-e_neg[jj] + e_pos[jj])/(4*sigma_1d[jj])]
                 ], dtype=complex)
 
@@ -112,26 +129,89 @@ class Simulation1DLayers(BaseEMSimulation):
 
         return dQdsig
 
-    def _compute_dMdsig_jj(self, Q, dQdsig, jj):
-
+    def _get_thicknesses_derivative_matricies_1d(self, src, thicknesses, sigma_1d):
+        """
+        For a given source (frequency) and layered Earth, return the list containing
+        the derivative of each layer's propagator matrix with respect to thickness.
         
+        :param SimPEG.electromagnetics.sources.AnalyticPlanewave1D src: Analytic 1D planewave source
+        :param np.array thicknesses: layer thicknesses (nLayers-1,)
+        :param np.array sigma_1d: layer conductivities (nLayers,)
+        :return list dQdig: list containing matrix for each layer [nLayers-1,]
+        """
+        
+        # Get frequency for planewave source
+        f = src.frequency
+
+        # Admittance for all layers
+        a = self._get_admittance(f, sigma_1d)
+
+        # List of empty places for each 2x2 array dQdh_j
+        dQdh = len(thicknesses)*[None]
+
+        # Compute exponent terms
+        e_neg = np.exp(-(1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*thicknesses)
+        e_pos = np.exp( (1 + 1j)*np.sqrt(np.pi*mu_0*f*sigma_1d[0:-1])*thicknesses)
+
+        C = 1j*np.pi*f*mu_0  # Constant
+
+        # Create dQdh matrix for each layer
+        for jj in range(0, len(thicknesses)):
+
+            dQdh[jj] = C*np.array([
+                [a[jj]*(-e_neg[jj] + e_pos[jj]), (-e_neg[jj] - e_pos[jj])],
+                [a[jj]**2*(-e_neg[jj] - e_pos[jj]), a[jj]*(-e_neg[jj] + e_pos[jj])]
+                ], dtype=complex)
+
+        return dQdh
+
+
+    def _compute_dMdsig_jj(self, Q, dQdsig, jj):
+        """
+        Combine propagator matricies
+        """
+
         if len(Q) > 1:
             return np.linalg.multi_dot(Q[0:jj] + [dQdsig[jj]] + Q[jj+1:])
         else:
             return dQdsig[0]
 
 
+
+class Simulation1DLayers(BaseSimulation1D):
+
+    """
+    Simulation class for the 1D MT problem using propagator matrix solution.
+    """
+
+    # Add layer thickness as invertible property
+    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
+        "thicknesses of the layers"
+    )
+
+    # Instantiate
+    def __init__(self, **kwargs):
+        BaseSimulation1D.__init__(self, **kwargs)
+
+
     def fields(self, m):
+        """
+        Compute the complex impedance for a given model.
+
+        :param np.array m: inversion model (nP,)
+        :return f: complex impedances
+        """
 
         if m is not None:
             self.model = m
 
         f = []
 
+        # For each source
         for source_ii in self.survey.source_list:
 
             # We can parallelize this
-            Q = self._get_propagator_matricies_for_source(
+            Q = self._get_propagator_matricies_1d(
                     source_ii, self.thicknesses, self.sigma
                     )
 
@@ -148,6 +228,12 @@ class Simulation1DLayers(BaseEMSimulation):
 
 
     def dpred(self, m=None, f=None):
+        """
+        Predict data vector for a given model.
+
+        :param np.array m: inversion model (nP,)
+        :return d: data vector
+        """
 
         if f is None:
             if m is None:
@@ -156,10 +242,10 @@ class Simulation1DLayers(BaseEMSimulation):
 
         d = []
 
+        # For each source and receiver, compute the datum.
         for ii in range(0, len(self.survey.source_list)):
             src = self.survey.source_list[ii]
             for rx in src.receiver_list:
-
                 if rx.component is 'real':
                     d.append(f[ii].real)
                 elif rx.component is 'imag':
@@ -169,8 +255,21 @@ class Simulation1DLayers(BaseEMSimulation):
        
         return mkvc(np.hstack(d))
 
-    def Jvec(self, m, v, f=None, method='approximate'):
+    def Jvec(self, m, v, f=None, method=None):
+        """
+        Sensitivity times a vector.
 
+        :param numpy.ndarray m: inversion model (nP,)
+        :param numpy.ndarray v: vector which we take sensitivity product with
+            (nP,)
+        :param String method: Choose from 'approximate' or 'analytic'
+        :return: Jv (ndata,)
+        """
+
+        if method == None:
+            method = self.sensitivity_method
+
+        # 1st order computation
         if method == 'approximate':
             factor = 0.001
             Jv = np.zeros((self.survey.nD), dtype=float)
@@ -186,34 +285,44 @@ class Simulation1DLayers(BaseEMSimulation):
 
             return Jv
 
+        # 2nd order computation
         elif method == 'analytic':
 
             self.model = m
-            v = self.sigmaDeriv*v
+
+            if self.thicknessesMap == None:
+                v = self.sigmaDeriv*v
+            else:
+                v = sp.sparse.vstack([self.sigmaDeriv, self.thicknessesDeriv])*v
+
             Jv = []
 
             for source_ii in self.survey.source_list:
 
                 # Get Propagator matricies
-                Q = self._get_propagator_matricies_for_source(
+                Q = self._get_propagator_matricies_1d(
                         source_ii, self.thicknesses, self.sigma
                         )
 
-                # Create final matix
+                # Create product of propagator matricies
                 if len(Q) > 1:
                     M = np.linalg.multi_dot(Q)
                 else:
                     M = Q[0]
 
-                # Get derivative matricies
-                dQdsig = self._get_sigma_derivative_matricies_for_source(
+                # Get sigma derivative matricies
+                dQdsig = self._get_sigma_derivative_matricies_1d(
                         source_ii, self.thicknesses, self.sigma
                         )
 
                 dMdsig = np.zeros((4, len(self.sigma)), dtype=float)
 
                 for jj in range(0, len(self.sigma)):
-                    dMdsig_jj = self._compute_dMdsig_jj(Q, dQdsig, jj)
+                    if len(Q) > 1:
+                        dMdsig_jj =  np.linalg.multi_dot(Q[0:jj] + [dQdsig[jj]] + Q[jj+1:])
+                    else:
+                        dMdsig_jj =  dQdsig[0]
+
                     dMdsig[:, jj] = np.r_[
                         dMdsig_jj[0, 1].real,
                         dMdsig_jj[0, 1].imag,
@@ -221,34 +330,82 @@ class Simulation1DLayers(BaseEMSimulation):
                         dMdsig_jj[1, 1].imag
                         ]
 
+                # Get h derivative matricies
+                if self.thicknessesMap != None:
+
+                    dQdh = self._get_thicknesses_derivative_matricies_1d(
+                            source_ii, self.thicknesses, self.sigma
+                            )
+
+                    dMdh = np.zeros((4, len(self.thicknesses)), dtype=float)
+                    for jj in range(0, len(self.thicknesses)):
+                        dMdh_jj = np.linalg.multi_dot(Q[0:jj] + [dQdh[jj]] + Q[jj+1:])
+                        dMdh[:, jj] = np.r_[
+                            dMdh_jj[0, 1].real,
+                            dMdh_jj[0, 1].imag,
+                            dMdh_jj[1, 1].real,
+                            dMdh_jj[1, 1].imag
+                            ]
+
+                # Compute for each receiver
                 for rx in source_ii.receiver_list:
                     if rx.component is 'real':
                         C = 2*(M[0, 1].real*M[1, 1].real + M[0, 1].imag*M[1, 1].imag)/np.abs(M[1, 1])**2
                         A = (
-                            np.abs(M[1, 1])**-2*
-                            np.c_[M[1, 1].real, M[1, 1].imag, M[0, 1].real-C*M[1, 1].real, M[0, 1].imag-C*M[1, 1].imag]
+                            np.abs(M[1, 1])**-2*np.c_[
+                                M[1, 1].real,
+                                M[1, 1].imag,
+                                M[0, 1].real-C*M[1, 1].real,
+                                M[0, 1].imag-C*M[1, 1].imag
+                                ]
                             )
                     elif rx.component is 'imag':
                         C = 2*(-M[0, 1].real*M[1, 1].imag + M[0, 1].imag*M[1, 1].real)/np.abs(M[1, 1])**2
                         A = (
-                            np.abs(M[1, 1])**-2*
-                            np.c_[-M[1, 1].imag, M[1, 1].real, M[0, 1].imag-C*M[1, 1].real, -M[0, 1].real-C*M[1, 1].imag]
+                            np.abs(M[1, 1])**-2*np.c_[
+                                -M[1, 1].imag,
+                                M[1, 1].real,
+                                M[0, 1].imag-C*M[1, 1].real,
+                                -M[0, 1].real-C*M[1, 1].imag
+                                ]
                             )
                     elif rx.component is 'app_res':
                         rho_a = np.abs(M[0, 1]/M[1, 1])**2/(2*np.pi*source_ii.frequency*mu_0)
                         A = (
-                            (2/np.abs(M[1, 1])**2)*
-                            np.c_[M[0, 1].real/(source_ii.frequency*mu_0), M[0, 1].imag/(source_ii.frequency*mu_0), -rho_a*M[1, 1].real, -rho_a*M[1, 1].imag]
+                            2*np.abs(M[1, 1])**-2*np.c_[
+                                M[0, 1].real/(2*np.pi*source_ii.frequency*mu_0),
+                                M[0, 1].imag/(2*np.pi*source_ii.frequency*mu_0),
+                                -rho_a*M[1, 1].real,
+                                -rho_a*M[1, 1].imag
+                                ]
                             )
 
-                    Jrow = np.dot(A, dMdsig)
+                    # Compute row of sensitivity
+                    if self.thicknessesMap == None:
+                        Jrow = np.dot(A, dMdsig)
+                    else:
+                        Jrow = np.dot(A, np.hstack([dMdsig, dMdh]))
+
                     Jv.append(np.dot(Jrow, v))
 
             return mkvc(np.vstack(Jv))
 
 
-    def Jtvec(self, m, v, f=None, method='approximate'):
+    def Jtvec(self, m, v, f=None, method=None):
+        """
+        Transpose of sensitivity times a vector.
 
+        :param numpy.ndarray m: inversion model (nP,)
+        :param numpy.ndarray v: vector which we take sensitivity product with
+            (nD,)
+        :param String method: Choose from 'approximate' or 'analytic'
+        :return: Jtv (nP,)
+        """
+
+        if method == None:
+            method = self.sensitivity_method
+
+        # 1st order method
         if method == 'approximate':
             factor = 0.001
             Jtv = np.zeros(len(m), dtype=float)
@@ -264,6 +421,7 @@ class Simulation1DLayers(BaseEMSimulation):
 
             return Jtv
 
+        # 2nd order computation
         elif method == 'analytic':
 
             self.model = m
@@ -273,25 +431,29 @@ class Simulation1DLayers(BaseEMSimulation):
             for source_ii in self.survey.source_list:
 
                 # Get Propagator matricies
-                Q = self._get_propagator_matricies_for_source(
+                Q = self._get_propagator_matricies_1d(
                         source_ii, self.thicknesses, self.sigma
                         )
 
-                # Create final matix
+                # Create product of propagator matricies
                 if len(Q) > 1:
                     M = np.linalg.multi_dot(Q)
                 else:
                     M = Q[0]
 
-                # Get derivative matricies
-                dQdsig = self._get_sigma_derivative_matricies_for_source(
+                # Get sigma derivative matricies
+                dQdsig = self._get_sigma_derivative_matricies_1d(
                         source_ii, self.thicknesses, self.sigma
                         )
 
                 dMdsig = np.zeros((4, len(self.sigma)), dtype=float)
 
                 for jj in range(0, len(self.sigma)):
-                    dMdsig_jj = self._compute_dMdsig_jj(Q, dQdsig, jj)
+                    if len(Q) > 1:
+                        dMdsig_jj =  np.linalg.multi_dot(Q[0:jj] + [dQdsig[jj]] + Q[jj+1:])
+                    else:
+                        dMdsig_jj =  dQdsig[0]
+
                     dMdsig[:, jj] = np.r_[
                         dMdsig_jj[0, 1].real,
                         dMdsig_jj[0, 1].imag,
@@ -299,43 +461,70 @@ class Simulation1DLayers(BaseEMSimulation):
                         dMdsig_jj[1, 1].imag
                         ]
 
+                # Get h derivative matricies
+                if self.thicknessesMap != None:
+
+                    dQdh = self._get_thicknesses_derivative_matricies_1d(
+                            source_ii, self.thicknesses, self.sigma
+                            )
+
+                    dMdh = np.zeros((4, len(self.thicknesses)), dtype=float)
+
+                    for jj in range(0, len(self.thicknesses)):
+                        dMdh_jj = np.linalg.multi_dot(Q[0:jj] + [dQdh[jj]] + Q[jj+1:])
+                        dMdh[:, jj] = np.r_[
+                            dMdh_jj[0, 1].real,
+                            dMdh_jj[0, 1].imag,
+                            dMdh_jj[1, 1].real,
+                            dMdh_jj[1, 1].imag
+                            ]
+
+                # Compute for each receiver
                 for rx in source_ii.receiver_list:
                     if rx.component is 'real':
                         C = 2*(M[0, 1].real*M[1, 1].real + M[0, 1].imag*M[1, 1].imag)/np.abs(M[1, 1])**2
                         A = (
-                            np.abs(M[1, 1])**-2*
-                            np.c_[M[1, 1].real, M[1, 1].imag, M[0, 1].real-C*M[1, 1].real, M[0, 1].imag-C*M[1, 1].imag]
+                            np.abs(M[1, 1])**-2*np.c_[
+                                M[1, 1].real,
+                                M[1, 1].imag,
+                                M[0, 1].real-C*M[1, 1].real,
+                                M[0, 1].imag-C*M[1, 1].imag
+                                ]
                             )
-
                     elif rx.component is 'imag':
                         C = 2*(-M[0, 1].real*M[1, 1].imag + M[0, 1].imag*M[1, 1].real)/np.abs(M[1, 1])**2
                         A = (
-                            np.abs(M[1, 1])**-2*
-                            np.c_[-M[1, 1].imag, M[1, 1].real, M[0, 1].imag-C*M[1, 1].real, -M[0, 1].real-C*M[1, 1].imag]
+                            np.abs(M[1, 1])**-2*np.c_[
+                                -M[1, 1].imag,
+                                M[1, 1].real,
+                                M[0, 1].imag-C*M[1, 1].real,
+                                -M[0, 1].real-C*M[1, 1].imag
+                                ]
                             )
-
                     elif rx.component is 'app_res':
                         rho_a = np.abs(M[0, 1]/M[1, 1])**2/(2*np.pi*source_ii.frequency*mu_0)
                         A = (
-                            (2/np.abs(M[1, 1])**2)*
-                            np.c_[M[0, 1].real/(source_ii.frequency*mu_0), M[0, 1].imag/(source_ii.frequency*mu_0), -rho_a*M[1, 1].real, -rho_a*M[1, 1].imag]
+                            2*np.abs(M[1, 1])**-2*np.c_[
+                                M[0, 1].real/(2*np.pi*source_ii.frequency*mu_0),
+                                M[0, 1].imag/(2*np.pi*source_ii.frequency*mu_0),
+                                -rho_a*M[1, 1].real,
+                                -rho_a*M[1, 1].imag
+                                ]
                             )
 
-                    Jtcol = np.dot(A, dMdsig)
+                    # Compute column of sensitivity transpose
+                    if self.thicknessesMap == None:
+                        Jtcol = np.dot(A, dMdsig)
+                    else:
+                        Jtcol = np.dot(A, np.hstack([dMdsig, dMdh]))
+                    
                     Jtv = Jtv + v[COUNT]*Jtcol
                     COUNT = COUNT + 1
 
-            return mkvc(Jtv*self.sigmaDeriv.T)
-
-
-
-    @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super(Simulation1DLayers, self).deleteTheseOnModelUpdate
-
-        if self._Jmatrix is not None:
-            toDelete += ['_Jmatrix']
-        return toDelete
+            if self.thicknessesMap == None:
+                return mkvc(Jtv*self.sigmaDeriv.T)
+            else:
+                return mkvc(Jtv*sp.sparse.vstack([self.sigmaDeriv, self.thicknessesDeriv]).T)
 
 
 

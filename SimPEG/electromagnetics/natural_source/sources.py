@@ -260,7 +260,10 @@ class Planewave_xy_3Dprimary(BaseFDEMSrc):
 
 class AnalyticPlanewave1D(BaseFDEMSrc):
     """
-    
+    Source class for the 1D and pseudo-3D problems.
+
+    :param list receiver_list: List of SimPEG.electromagnetics.natural_sources.receivers.AnalyticReceiver1D
+    :param float frequency: frequency for the source
     """
 
     def __init__(self, receiver_list, frequency):
