@@ -404,16 +404,10 @@ class IO(properties.HasProperties):
 
                 locsM = self.m_locations[inds, :]
                 locsN = self.n_locations[inds, :]
-                if dimension == 2:
-                    if survey_type in ['dipole-dipole', 'pole-dipole']:
-                        rx = Rx.Dipole2D(locsM, locsN)
-                    elif survey_type in ['dipole-pole', 'pole-pole']:
-                        rx = Rx.Pole2D(locsM)
-                elif dimension == 3:
-                    if survey_type in ['dipole-dipole', 'pole-dipole']:
-                        rx = Rx.Dipole(locsM, locsN)
-                    elif survey_type in ['dipole-pole', 'pole-pole']:
-                        rx = Rx.Pole(locsM)
+                if survey_type in ['dipole-dipole', 'pole-dipole']:
+                    rx = Rx.Dipole(locsM, locsN)
+                elif survey_type in ['dipole-pole', 'pole-pole']:
+                    rx = Rx.Pole(locsM)
                 else:
                     raise NotImplementedError()
 

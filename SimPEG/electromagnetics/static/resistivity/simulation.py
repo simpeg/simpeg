@@ -3,6 +3,7 @@ import scipy as sp
 import properties
 import shutil
 from ....utils.code_utils import deprecate_class
+import warnings
 
 from ....utils import mkvc, sdiag, Zero
 from ....data import Data
@@ -10,16 +11,13 @@ from ...base import BaseEMSimulation
 from .boundary_utils import getxBCyBC_CC
 from .survey import Survey
 from .fields import Fields3DCellCentered, Fields3DNodal
+from .utils import _mini_pole_pole
 import dask
 import dask.array as da
 import multiprocessing
 import os
 from scipy.sparse import csr_matrix as csr
-from scipy.sparse import linalg
-from pymatsolver import BicgJacobi
-from pyMKL import mkl_set_num_threads, mkl_get_max_threads
-import zarr
-import time
+from pyMKL import mkl_set_num_threads
 import sparse
 from dask.delayed import Delayed
 
@@ -40,11 +38,21 @@ class BaseDCSimulation(BaseEMSimulation):
         "store the sensitivity matrix?", default=False
     )
 
+    _mini_survey = None
+
     Ainv = None
     _Jmatrix = None
     gtgdiag = None
     n_cpu = int(multiprocessing.cpu_count())
     max_chunk_size = 128
+
+    def __init__(self, *args, **kwargs):
+        miniaturize = kwargs.pop('miniaturize', False)
+        super().__init__(*args, **kwargs)
+        # Do stuff to simplify the forward and JTvec operation if number of dipole
+        # sources is greater than the number of unique pole sources
+        if miniaturize:
+            self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
 
     @dask.delayed(pure=True)
     def fields(self, m=None, calcJ=True):
@@ -58,16 +66,29 @@ class BaseDCSimulation(BaseEMSimulation):
         f = self.fieldsPair(self)
         A = self.getA()
 
-        self.Ainv = self.Solver(A, **self.solver_opts)
+        if self.Ainv is not None:
+            self.Ainv.clean()
+        self.Ainv = self.solver(A, **self.solver_opts)
         RHS = self.getRHS()
-        # Srcs = self.survey.source_list
 
-        f[:, self._solutionType] = self.Ainv * RHS  # num_cores=self.n_cpu).compute()
-
-        # if not self.storeJ:
-        #     self.Ainv.clean()
+        f[:, self._solutionType] = self.Ainv * RHS
 
         return f
+
+    def dpred(self, m=None, f=None):
+
+        if self._mini_survey is not None:
+            # Temporarily set self.survey to self._mini_survey
+            survey = self.survey
+            self.survey = self._mini_survey
+
+        data = super().dpred(m=m, f=f)
+
+        if self._mini_survey is not None:
+            # reset survey
+            self.survey = survey
+
+        return self._mini_survey_data(data)
 
     def getJtJdiag(self, m, W=None):
         """
@@ -82,19 +103,6 @@ class BaseDCSimulation(BaseEMSimulation):
             else:
                 w = da.from_array(W.diagonal())[:, None]
                 self.gtgdiag = da.sum((w*self.getJ(m))**2, axis=0).compute()
-            #     from dask.diagnostics import Profiler, ResourceProfiler, CacheProfiler
-
-            #     with Profiler() as prof, ResourceProfiler(dt=0.25) as rprof, CacheProfiler() as cprof:
-            #         self.gtgdiag = da.sum((self.getJ(m))**2., 0).compute()
-
-            #     from dask.diagnostics import visualize
-            #     visualize([prof, rprof, cprof])
-                # WJ = da.from_delayed(
-                #         dask.delayed(csr.dot)(W, self.getJ(m)),
-                #         shape=self.getJ(m).shape,
-                #         dtype=float
-                # )
-                # self.gtgdiag = da.sum(WJ**2., 0).compute()
 
         return self.gtgdiag
 
@@ -103,16 +111,33 @@ class BaseDCSimulation(BaseEMSimulation):
             Generate Full sensitivity matrix
         """
 
+
         if self._Jmatrix is not None:
             return self._Jmatrix
         else:
 
             self.model = m
             if f is None:
-                f = self.fields(m).compute()
+                f = self.fields(m)
+            if isinstance(f, Delayed):
+                f = f.compute()
+            """
+            I think it should be this as a quick fix...
+            f = f[self.inv[0]]
+            f[self._dipoles[1]] -= f[self.inv[0]]
+            if mini_survey... ?????
+            """
 
         if self.verbose:
             print("Calculating J and storing")
+
+        if self._mini_survey is not None:
+            warnings.warn(
+                "pole-pole survey reduction hasn't been implemented for getJ yet."
+            )
+            J = self._Jtvec(m=m, v=None, f=f).T
+            self._Jmatrix = da.from_array(J)
+            return self._Jmatrix
 
         if os.path.exists(self.Jpath):
             shutil.rmtree(self.Jpath, ignore_errors=True)
@@ -215,18 +240,25 @@ class BaseDCSimulation(BaseEMSimulation):
             f = f.compute()
 
         if self.storeJ:
-            J = self.getJ(m, f=f).compute()
-            Jv = mkvc(np.dot(J, v))
-            return Jv
+            # J = self.getJ(m, f=f).compute()
+            # Jv = mkvc(np.dot(J, v))
+            # won't above lines pull J completely into memory?
+            J = self.getJ(m, f=f)
+            return J.dot(v).compute()
 
         self.model = m
+
+        if self._mini_survey is not None:
+            survey = self._mini_survey
+        else:
+            survey = self.survey
 
         # if self.storeJ:
         #     J = self.getJ(m, f=f)
         #     return da.dot(J, da.from_array(v, chunks=self._Jmatrix.chunks[1]))
 
         Jv = []
-        for source in self.survey.source_list:
+        for source in survey.source_list:
             u_source = f[source, self._solutionType]  # solution vector
             dA_dm_v = self.getADeriv(u_source, v)
             dRHS_dm_v = self.getRHSDeriv(source, v)
@@ -235,7 +267,8 @@ class BaseDCSimulation(BaseEMSimulation):
                 df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                 df_dm_v = df_dmFun(source, du_dm_v, v, adjoint=False)
                 Jv.append(rx.evalDeriv(source, self.mesh, f, df_dm_v))
-        return np.hstack(Jv)
+        Jv = np.hstack(Jv)
+        return self._mini_survey_data(Jv)
 
     def Jtvec(self, m, v, f=None):
         """
@@ -267,7 +300,13 @@ class BaseDCSimulation(BaseEMSimulation):
             Full J matrix can be computed by inputing v=None
         """
 
+        if self._mini_survey is not None:
+            survey = self._mini_survey
+        else:
+            survey = self.survey
+
         if v is not None:
+<<<<<<< HEAD
             # Ensure v is a data object.
             if not isinstance(v, Data):
                 v = Data(self.survey, v)
@@ -314,14 +353,20 @@ class BaseDCSimulation(BaseEMSimulation):
             # Ensure v is a data object.
             if not isinstance(v, Data):
                 v = Data(self.survey, v)
+=======
+            if isinstance(v, Data):
+                v = v.dobs
+            v = self._mini_survey_dataT(v)
+            v = Data(survey, v)
+>>>>>>> simulation
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix
-            Jtv = np.zeros((self.model.size, self.survey.nD), order='F')
+            Jtv = np.zeros((self.model.size, survey.nD), order='F')
             istrt = int(0)
             iend = int(0)
 
-        for source in self.survey.source_list:
+        for source in survey.source_list:
             u_source = f[source, self._solutionType].copy()
             for rx in source.receiver_list:
                 # wrt f, need possibility wrt m
@@ -354,8 +399,7 @@ class BaseDCSimulation(BaseEMSimulation):
         if v is not None:
             return mkvc(Jtv)
         else:
-            # return np.hstack(Jtv)
-            return Jtv
+            return (self._mini_survey_data(Jtv.T)).T
 
     def getSourceTerm(self):
         """
@@ -364,7 +408,10 @@ class BaseDCSimulation(BaseEMSimulation):
         :return: q (nC or nN, nSrc)
         """
 
-        Srcs = self.survey.source_list
+        if self._mini_survey is not None:
+            Srcs = self._mini_survey.source_list
+        else:
+            Srcs = self.survey.source_list
 
         if self._formulation == 'EB':
             n = self.mesh.nN
@@ -385,6 +432,30 @@ class BaseDCSimulation(BaseEMSimulation):
         if self._Jmatrix is not None:
             toDelete += ['_Jmatrix']
         return toDelete
+
+    def _mini_survey_data(self, d_mini):
+        if self._mini_survey is not None:
+            out = d_mini[self._invs[0]]  # AM
+            out[self._dipoles[0]] -= d_mini[self._invs[1]]  # AN
+            out[self._dipoles[1]] -= d_mini[self._invs[2]]  # BM
+            out[self._dipoles[0] & self._dipoles[1]] += d_mini[self._invs[3]]  # BN
+        else:
+            out = d_mini
+        return out
+
+    def _mini_survey_dataT(self, v):
+        if self._mini_survey is not None:
+            out = np.zeros(self._mini_survey.nD)
+            # Need to use ufunc.at because there could be repeated indices
+            # That need to be properly handled.
+            np.add.at(out, self._invs[0], v)  # AM
+            np.subtract.at(out, self._invs[1], v[self._dipoles[0]])  # AN
+            np.subtract.at(out, self._invs[2], v[self._dipoles[1]])  # BM
+            np.add.at(out, self._invs[3], v[self._dipoles[0] & self._dipoles[1]])  #BN
+            return out
+        else:
+            out = v
+        return out
 
 
 class Simulation3DCellCentered(BaseDCSimulation):
