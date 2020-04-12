@@ -320,13 +320,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     def __call__(self, m, f=None):
 
-        # @dask.delayed
-        # def rowSum(arr):
-        #     sumIt = 0
-        #     for i in range(len(arr)):
-        #         sumIt += arr[i]
-        #     return sumIt
-
         fct = []
         for i, phi in enumerate(self):
             multiplier, objfct = phi

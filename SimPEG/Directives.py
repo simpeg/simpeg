@@ -1,14 +1,10 @@
 from __future__ import print_function
 from . import Utils
-import scipy.sparse as sp
-import dask.array as da
-from . import Regularization, DataMisfit, ObjectiveFunction
-from . import Maps
+from . import DataMisfit
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-from . import Maps
-from .PF import Magnetics, MagneticsDriver
+from .PF import Magnetics
 from . import Regularization
 from . import Mesh
 from . import ObjectiveFunction
@@ -773,8 +769,9 @@ class SaveIterationsGeoH5(InversionDirective):
         if self.attribute == "mvi_model":
             prop = np.linalg.norm(prop.reshape((-1, 3), order='F'), axis=1)
 
-        elif self.attribute == "mvi_model":
+        elif self.attribute == "mvis_model":
             prop = prop.reshape((-1, 3), order='F')[:, 0]
+
 
         for ii, channel in enumerate(self.channels):
 
@@ -789,7 +786,7 @@ class SaveIterationsGeoH5(InversionDirective):
                     }
                 }
             )
-
+            print("saved " + self.attribute)
         self.h5_object.workspace.finalize()
 
 
@@ -799,6 +796,7 @@ class VectorInversion(InversionDirective):
     """
 
     chifact_target = 2.
+    mref = None
     mode = 'cartesian'
     norms = []
     alphas = []
@@ -825,10 +823,12 @@ class VectorInversion(InversionDirective):
             self.alphas = []
             for reg in self.reg.objfcts:
                 self.norms.append(reg.norms)
-                self.alphas.append([reg.alpha_s, reg.alpha_x, reg.alpha_y, reg.alpha_z])
                 reg.norms = np.c_[2., 2., 2., 2.]
-                reg.alpha_s, reg.alpha_x, reg.alpha_y, reg.alpha_z = 1, 1, 1, 1
                 reg.model = self.invProb.model
+
+                print(reg.alpha_s, reg.alpha_x, reg.alpha_y, reg.alpha_z)
+
+            self.mref = reg.mref
 
         for prob in self.prob:
             if getattr(prob, 'coordinate_system', None) is not None:
@@ -839,9 +839,11 @@ class VectorInversion(InversionDirective):
 
             self.mode = 'spherical'
             print("Switching MVI to spherical coordinates")
-            mstart = Utils.matutils.xyz2atp(self.invProb.model.reshape((-1, 3), order='F'))
-            mref = Utils.matutils.xyz2atp(self.invProb.model.reshape((-1, 3), order='F'))
 
+            mstart = Utils.matutils.xyz2atp(self.invProb.model.reshape((-1, 3), order='F'))
+            mref = Utils.matutils.xyz2atp(self.mref.reshape((-1, 3), order='F'))
+
+            self.invProb.model = mstart
             self.opt.xc = mstart
 
             for prob in self.prob:
@@ -849,30 +851,27 @@ class VectorInversion(InversionDirective):
                     prob.coordinate_system = self.mode
                     prob.model = mstart
 
-            for ind, (reg_fun, norms, alphas) in enumerate(zip(
-                    self.reg.objfcts, self.norms, self.alphas
+            for ind, (reg_fun, norms) in enumerate(zip(
+                    self.reg.objfcts, self.norms
             )):
-                print(alphas)
-                reg_fun.alpha_s = alphas[0]
-                reg_fun.alpha_x = alphas[1]
-                reg_fun.alpha_y = alphas[2]
-                reg_fun.alpha_z = alphas[3]
                 reg_fun.norms = norms
                 reg_fun.mref = mref
 
-                if ind > 0:
 
+                if ind > 0:
                     reg_fun.alpha_s = 0
                     reg_fun.space = 'spherical'
                     reg_fun.eps_q = np.pi
+
+                print(reg_fun.alpha_s, reg_fun.alpha_x, reg_fun.alpha_y, reg_fun.alpha_z)
+
 
             nC = mstart.reshape((-1, 3)).shape[0]
             self.opt.lower = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
             self.opt.upper[nC:] = np.inf
 
-            self.invProb.model = mstart
-
             # Add directives
+            directiveList = []
             for directive in self.inversion.directiveList.dList:
                 # directive._inversion = None
                 if isinstance(directive, SaveIterationsGeoH5):
@@ -884,13 +883,34 @@ class VectorInversion(InversionDirective):
                     if directive.attribute == "mvi_model":
                         directive.attribute = "mvis_model"
 
+                    directiveList.append(directive)
+
+                elif isinstance(directive, SaveUBCModelEveryIteration):
+                    directiveList.append(directive)
+
                 elif isinstance(directive, Update_IRLS):
                     directive.sphericalDomain = True
+                    IRLS = directive
 
-            self.inversion.directiveList = [
-                ProjSpherical(), UpdateSensitivityWeights()
-            ] + self.inversion.directiveList.dList
+                elif isinstance(directive, UpdatePreconditioner):
+                    update_Jacobi = directive
 
+            directiveList = [
+                ProjSpherical(), IRLS, UpdateSensitivityWeights(), update_Jacobi,
+            ] + directiveList
+
+            # update_SensWeight = UpdateSensitivityWeights()
+            # update_Jacobi = UpdatePreconditioner()
+
+            # inv = Inversion.BaseInversion(invProb,
+            #                               directiveList=[
+            #                                   ProjSpherical, IRLS, update_SensWeight,
+            #                                   update_Jacobi, save_model, inversion_output
+            #                               ])
+
+            self.inversion.directiveList = directiveList
+
+            print(self.inversion.directiveList.dList)
 
 class Update_IRLS(InversionDirective):
 
@@ -983,6 +1003,7 @@ class Update_IRLS(InversionDirective):
     def endIter(self):
 
         if self.sphericalDomain:
+            print("IRLS angle scale")
             self.angleScale()
 
         # Check if misfit is within the tolerance, otherwise scale beta
@@ -1043,7 +1064,6 @@ class Update_IRLS(InversionDirective):
         ]):
 
             if self.fix_Jmatrix:
-                print (">> Fix Jmatrix")
                 self.invProb.dmisfit.prob.fix_Jmatrix = True
 
             # Check for maximum number of IRLS cycles
@@ -1065,7 +1085,6 @@ class Update_IRLS(InversionDirective):
 
                 elif self.floorEpsEnforced:
                     reg.eps_p = self.floorEps_p[ii]
-                    # print('Eps_p: ' + str(reg.eps_p))
 
                 if reg.eps_q > self.floorEps_q[ii] and self.coolEps_q:
 
@@ -1073,11 +1092,6 @@ class Update_IRLS(InversionDirective):
 
                 elif self.floorEpsEnforced:
                     reg.eps_q = self.floorEps_q[ii]
-
-                print('Eps_q: ' + str(reg.eps_q))
-
-            # Remember the value of the norm from previous R matrices
-            # self.f_old = self.reg(self.invProb.model)
 
             self.IRLSiter += 1
 
@@ -1094,7 +1108,6 @@ class Update_IRLS(InversionDirective):
                     dmis.stashedR = None
 
             # Compute new model objective function value
-
             phi_m_new = []
             for reg in self.reg.objfcts:
                 phi_m_new += [reg(self.invProb.model)]
@@ -1355,9 +1368,7 @@ class UpdateSensitivityWeights(InversionDirective):
                     "Cannot form the sensitivity explicitely"
                 )
 
-
-
-                self.JtJdiag += [mkvc(np.sum((dmisfit.W*prob.getJ(m))**(2.), axis=0))]
+                self.JtJdiag += [Utils.mkvc(np.sum((dmisfit.W*prob.getJ(m))**(2.), axis=0))]
             else:
                 self.JtJdiag += [prob.getJtJdiag(m, W=dmisfit.W)]
 
@@ -1443,6 +1454,7 @@ class ProjSpherical(InversionDirective):
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
             phi_m_last += [reg(self.invProb.model)]
+            print(reg.space)
 
         self.invProb.phi_m_last = phi_m_last
 
