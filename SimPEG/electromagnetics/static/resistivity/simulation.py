@@ -121,20 +121,12 @@ class BaseDCSimulation(BaseEMSimulation):
                 f = self.fields(m)
             if isinstance(f, Delayed):
                 f = f.compute()
-            """
-            I think it should be this as a quick fix...
-            f = f[self.inv[0]]
-            f[self._dipoles[1]] -= f[self.inv[0]]
-            if mini_survey... ?????
-            """
 
         if self.verbose:
             print("Calculating J and storing")
 
         if self._mini_survey is not None:
-            warnings.warn(
-                "pole-pole survey reduction hasn't been implemented for getJ yet."
-            )
+            # Need to us _Jtvec for this operation currently...
             J = self._Jtvec(m=m, v=None, f=f).T
             self._Jmatrix = da.from_array(J)
             return self._Jmatrix

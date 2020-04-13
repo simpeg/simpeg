@@ -7,7 +7,7 @@ import gc
 from dask.delayed import Delayed
 from .data_misfit import BaseDataMisfit
 from .props import BaseSimPEG, Model
-from .regularization import BaseRegularization, BaseComboRegularization
+from .regularization import BaseRegularization, BaseComboRegularization, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .utils import callHooks, timeIt
 
@@ -207,21 +207,25 @@ class BaseInvProblem(BaseSimPEG):
                 regs = [self.reg]
                 mults = [1.0]
             for reg, mult in zip(regs, mults):
+                if isinstance(reg, Sparse):
+                    i_s, i_x, i_y, i_z = 0, 1, 2, 3
+                else:
+                    i_s, i_x, i_y, i_z = 0, 1, 3, 5
                 dim = reg.regmesh.dim
                 self.phi_s += (
-                    mult * reg.objfcts[0](m) * reg.alpha_s
+                    mult * reg.objfcts[i_s](m) * reg.alpha_s
                 )
                 self.phi_x += (
-                    mult * reg.objfcts[1](m) * reg.alpha_x
+                    mult * reg.objfcts[i_x](m) * reg.alpha_x
                 )
                 if dim > 1:
                     self.phi_z += (
-                        mult * reg.objfcts[3](m) * reg.alpha_y
+                        mult * reg.objfcts[i_y](m) * reg.alpha_y
                     )
                 if dim > 2:
                     self.phi_y = self.phi_z
                     self.phi_z += (
-                        mult * reg.objfcts[5](m) * reg.alpha_z
+                        mult * reg.objfcts[i_z](m) * reg.alpha_z
                     )
 
         phi = phi_d + self.beta * phi_m
