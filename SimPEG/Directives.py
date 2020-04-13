@@ -786,7 +786,6 @@ class SaveIterationsGeoH5(InversionDirective):
                     }
                 }
             )
-            print("saved " + self.attribute)
         self.h5_object.workspace.finalize()
 
 
@@ -826,8 +825,6 @@ class VectorInversion(InversionDirective):
                 reg.norms = np.c_[2., 2., 2., 2.]
                 reg.model = self.invProb.model
 
-                print(reg.alpha_s, reg.alpha_x, reg.alpha_y, reg.alpha_z)
-
             self.mref = reg.mref
 
         for prob in self.prob:
@@ -846,6 +843,14 @@ class VectorInversion(InversionDirective):
             self.invProb.model = mstart
             self.opt.xc = mstart
 
+            print(self.invProb.model, self.opt.xc)
+            nC = mstart.reshape((-1, 3)).shape[0]
+            self.opt.lower = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
+            self.opt.upper[nC:] = np.inf
+
+            self.reg.mref = mref
+            self.reg.model = mstart
+
             for prob in self.prob:
                 if getattr(prob, 'coordinate_system', None) is not None:
                     prob.coordinate_system = self.mode
@@ -856,19 +861,61 @@ class VectorInversion(InversionDirective):
             )):
                 reg_fun.norms = norms
                 reg_fun.mref = mref
-
+                reg_fun.model = mstart
 
                 if ind > 0:
                     reg_fun.alpha_s = 0
                     reg_fun.space = 'spherical'
                     reg_fun.eps_q = np.pi
-
-                print(reg_fun.alpha_s, reg_fun.alpha_x, reg_fun.alpha_y, reg_fun.alpha_z)
-
-
-            nC = mstart.reshape((-1, 3)).shape[0]
-            self.opt.lower = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
-            self.opt.upper[nC:] = np.inf
+            # Create a regularization
+            # print(self.reg.objfcts[2].indActive)
+            # reg_a = Regularization.Sparse(
+            #     self.reg.objfcts[0].mesh,
+            #     indActive=self.reg.objfcts[0].indActive,
+            #     mapping=self.reg.objfcts[0].mapping,
+            #     gradientType=self.reg.objfcts[0].gradientType,
+            #     alpha_s=self.reg.objfcts[0].alpha_s,
+            #     alpha_x=self.reg.objfcts[0].alpha_x,
+            #     alpha_y=self.reg.objfcts[0].alpha_y,
+            #     alpha_z=self.reg.objfcts[0].alpha_z,
+            # )
+            # reg_a.norms = self.norms[0]
+            # reg_a.mref = mref
+            #
+            # reg_t = Regularization.Sparse(
+            #     self.reg.objfcts[1].mesh,
+            #     indActive=self.reg.objfcts[1].indActive,
+            #     mapping=self.reg.objfcts[1].mapping,
+            #     gradientType=self.reg.objfcts[1].gradientType,
+            #     alpha_s=0,
+            #     alpha_x=self.reg.objfcts[1].alpha_x,
+            #     alpha_y=self.reg.objfcts[1].alpha_y,
+            #     alpha_z=self.reg.objfcts[1].alpha_z,
+            # )
+            # reg_t.space = 'spherical'
+            # reg_t.norms = self.norms[1]
+            # reg_t.mref = mref
+            # reg_t.eps_q = np.pi
+            #
+            # reg_p = Regularization.Sparse(
+            #     self.reg.objfcts[2].mesh,
+            #     indActive=self.reg.objfcts[2].indActive,
+            #     mapping=self.reg.objfcts[2].mapping,
+            #     gradientType=self.reg.objfcts[2].gradientType,
+            #     alpha_s=0,
+            #     alpha_x=self.reg.objfcts[2].alpha_x,
+            #     alpha_y=self.reg.objfcts[2].alpha_y,
+            #     alpha_z=self.reg.objfcts[2].alpha_z,
+            # )
+            #
+            # reg_p.space = 'spherical'
+            # reg_p.norms = self.norms[2]
+            # reg_p.mref = mref
+            # reg_p.eps_q = np.pi
+            #
+            # # Assemble the three regularization
+            # self.reg = reg_a + reg_t + reg_p
+            # self.invProb.reg = self.reg
 
             # Add directives
             directiveList = []
@@ -890,6 +937,7 @@ class VectorInversion(InversionDirective):
 
                 elif isinstance(directive, Update_IRLS):
                     directive.sphericalDomain = True
+                    directive.model = mstart
                     IRLS = directive
 
                 elif isinstance(directive, UpdatePreconditioner):
@@ -908,9 +956,12 @@ class VectorInversion(InversionDirective):
             #                                   update_Jacobi, save_model, inversion_output
             #                               ])
 
-            self.inversion.directiveList = directiveList
 
-            print(self.inversion.directiveList.dList)
+            self.inversion.directiveList = directiveList
+            directiveList[1].endIter()
+            directiveList[2].endIter()
+            directiveList[3].endIter()
+
 
 class Update_IRLS(InversionDirective):
 
@@ -1003,7 +1054,6 @@ class Update_IRLS(InversionDirective):
     def endIter(self):
 
         if self.sphericalDomain:
-            print("IRLS angle scale")
             self.angleScale()
 
         # Check if misfit is within the tolerance, otherwise scale beta
@@ -1024,8 +1074,6 @@ class Update_IRLS(InversionDirective):
             self.invProb.beta = self.invProb.beta * ratio
 
             if np.all([self.mode != 1, self.betaSearch]):
-                print("Beta search step")
-                # self.updateBeta = False
                 # Re-use previous model and continue with new beta
                 self.invProb.model = self.reg.objfcts[0].model
                 self.opt.xc = self.reg.objfcts[0].model
@@ -1041,11 +1089,6 @@ class Update_IRLS(InversionDirective):
             reg.model = self.invProb.model
             for comp in reg.objfcts:
                 phim_new += comp(reg.model)
-            # for comp in reg.objfcts:
-            #     phim_new += np.sum(
-            #         comp.f_m**2. /
-            #         (comp.f_m**2. + comp.epsilon**2.)**(1 - comp.norm/2.)
-            #     )
 
         # Update the model used by the regularization
         phi_m_last = []
@@ -1062,7 +1105,6 @@ class Update_IRLS(InversionDirective):
             (self.opt.iter-self.iterStart) % self.minGNiter == 0,
             self.mode != 1
         ]):
-
             if self.fix_Jmatrix:
                 self.invProb.dmisfit.prob.fix_Jmatrix = True
 
@@ -1087,7 +1129,6 @@ class Update_IRLS(InversionDirective):
                     reg.eps_p = self.floorEps_p[ii]
 
                 if reg.eps_q > self.floorEps_q[ii] and self.coolEps_q:
-
                     reg.eps_q /= self.coolEpsFact
 
                 elif self.floorEpsEnforced:
@@ -1098,7 +1139,6 @@ class Update_IRLS(InversionDirective):
             # Reset the regularization matrices so that it is
             # recalculated for current model. Do it to all levels of comboObj
             for reg in self.reg.objfcts:
-
                 # If comboObj, go down one more level
                 for comp in reg.objfcts:
                     comp.stashedR = None
@@ -1161,15 +1201,9 @@ class Update_IRLS(InversionDirective):
                                     self.invProb.model)
                                 ), self.prctile
                             )
-                print("Calculated eps_p %e" % reg.eps_p)
             if getattr(reg, 'eps_q', None) is None:
-
                 reg.eps_q = reg.eps_p
-                # reg.eps_q = np.percentile(
-                #                 np.abs(reg.objfcts[1].f_m
-                #                 ), self.prctile
-                #             )
-                print("Calculated eps_q %e" % reg.eps_q)
+
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms, alpha in zip(self.reg.objfcts, self.norms, self.alpha):
@@ -1180,11 +1214,6 @@ class Update_IRLS(InversionDirective):
         # Save l2-model
         self.invProb.l2model = self.invProb.model.copy()
 
-        # Print to screen
-        for reg in self.reg.objfcts:
-            if not self.silent:
-                print("eps_p: " + str(reg.eps_p) +
-                      " eps_q: " + str(reg.eps_q))
 
     def angleScale(self):
         """
@@ -1260,9 +1289,6 @@ class UpdatePreconditioner(InversionDirective):
 
         # Deal with the linear case
         if getattr(self.opt, 'JtJdiag', None) is None:
-
-            print("Approximated diag(JtJ) with linear operator")
-
             JtJdiag = np.zeros_like(self.invProb.model)
             m = self.invProb.model
             for prob, dmisfit in zip(self.prob, self.dmisfit.objfcts):
@@ -1296,12 +1322,6 @@ class UpdatePreconditioner(InversionDirective):
 
         for reg in self.reg.objfcts:
             regDiag += reg.deriv2(m).diagonal()
-        #     # Check if he has wire
-        #     if getattr(reg.mapping, 'P', None) is None:
-        #         regDiag += (reg.W.T*reg.W).diagonal()
-        #     else:
-        #         P = reg.mapping.P
-        #         regDiag += (P.T * (reg.W.T * (reg.W * P))).diagonal()
 
         # Assumes that opt.JtJdiag has been updated or static
         diagA = self.opt.JtJdiag + self.invProb.beta*regDiag
@@ -1336,7 +1356,6 @@ class UpdateSensitivityWeights(InversionDirective):
             self.update()
 
     def update(self):
-
         # Get sum square of columns of J
         self.getJtJdiag()
 
@@ -1454,7 +1473,6 @@ class ProjSpherical(InversionDirective):
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
             phi_m_last += [reg(self.invProb.model)]
-            print(reg.space)
 
         self.invProb.phi_m_last = phi_m_last
 
@@ -1561,8 +1579,6 @@ class JointAmpMVI(InversionDirective):
                     ampW = np.r_[ampW, ampW, ampW]
 
                     # Scale max values
-                    scale = np.abs(xyz).max()/self.amp.max()
-                    # print('Scale: '+str(scale))
                     prob.W = ampW
 
 
@@ -1618,7 +1634,6 @@ class ScaleComboReg(InversionDirective):
         m = self.invProb.model
 
         scale = np.abs(self.reg.objfcts[0](m)).max()/np.abs(self.reg.objfcts[1](m)).max()
-        print("Initial scale: " + str(scale))
         self.reg.objfcts[1].scale = scale
 
     def endIter(self):
@@ -1626,5 +1641,4 @@ class ScaleComboReg(InversionDirective):
         m = self.invProb.model
 
         scale = np.abs(self.reg.objfcts[0].deriv(m)).max()/np.abs(self.reg.objfcts[1].deriv(m)).max()
-        print("Initial scale: " + str(scale))
         self.reg.objfcts[1].scale = scale

@@ -1770,7 +1770,7 @@ class SparseDeriv(BaseSparse):
                 )
 
             else:
-                W = Utils.sdiag((Ave * self.scale*self.regmesh.vol)**0.5) * R
+                W = Utils.sdiag((Ave * (self.scale*self.regmesh.vol))**0.5) * R
 
 
             dmdx = self.cellDiffStencil * (self.mapping * f_m)
@@ -1950,7 +1950,7 @@ class Sparse(BaseComboRegularization):
             alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
             **kwargs
         )
-
+        self.mesh = mesh
         # Utils.setKwargs(self, **kwargs)
 
     # Properties
@@ -2076,7 +2076,6 @@ class Sparse(BaseComboRegularization):
 
 def coterminal(theta):
     """ Compute coterminal angle so that [-pi < theta < pi]"""
-
     sub = theta[np.abs(theta) >= np.pi]
     sub = -np.sign(sub) * (2*np.pi-np.abs(sub))
 
