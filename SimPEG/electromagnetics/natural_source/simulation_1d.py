@@ -10,6 +10,8 @@ from ... import props
 
 from .survey import Survey1D
 
+from discretize import TensorMesh
+
 
 class BaseSimulation1D(BaseEMSimulation):
 
@@ -527,6 +529,87 @@ class Simulation1DLayers(BaseSimulation1D):
                 return mkvc(Jtv*sp.sparse.vstack([self.sigmaDeriv, self.thicknessesDeriv]).T)
 
 
+# class SimulationPseudo3D(BaseSimulation1D):
 
+#     """
+#     Simulation class for the pseudo 3D MT problem using propagator matrix solution.
+#     """
+
+#     # tensor mesh
+#     mesh = properties.Instance("a discretize Tensor mesh instance", TensorMesh)
+
+#     # Topography active cells
+#     indActive = properties.Array('Topography active cells', dtype=bool)
+
+#     # Instantiate
+#     def __init__(self, **kwargs):
+#         BaseSimulation1D.__init__(self, **kwargs)
+
+
+
+#     def get_1D_model_for_receiver(self):
+
+
+
+#     def fields(self, m):
+#         """
+#         Compute the complex impedance for a given model.
+
+#         :param np.array m: inversion model (nP,)
+#         :return f: complex impedances
+#         """
+
+#         if m is not None:
+#             self.model = m
+
+#         f = []
+
+#         # For each source
+#         for source_ii in self.survey.source_list:
+
+#             # We can parallelize this
+#             Q = self._get_propagator_matricies_1d(
+#                     source_ii, self.thicknesses, self.sigma
+#                     )
+
+#             # Create final matix
+#             if len(Q) > 1:
+#                 M = np.linalg.multi_dot(Q)
+#             else:
+#                 M = Q[0]
+
+#             # Add to fields
+#             f.append(M[0, 1]/M[1, 1])
+
+#         return f
+
+
+#     def dpred(self, m=None, f=None):
+#         """
+#         Predict data vector for a given model.
+
+#         :param np.array m: inversion model (nP,)
+#         :return d: data vector
+#         """
+
+#         if f is None:
+#             if m is None:
+#                 m = self.model
+#             f = self.fields(m)
+
+#         d = []
+
+#         # For each source and receiver, compute the datum.
+#         for ii in range(0, len(self.survey.source_list)):
+#             src = self.survey.source_list[ii]
+#             for rx in src.receiver_list:
+#                 if rx.component is 'real':
+#                     d.append(f[ii].real)
+#                 elif rx.component is 'imag':
+#                     d.append(f[ii].imag)
+#                 elif rx.component is 'app_res':
+#                     d.append(np.abs(f[ii])**2/(2*np.pi*src.frequency*mu_0))
+       
+#         return mkvc(np.hstack(d))
 
         

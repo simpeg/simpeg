@@ -306,7 +306,7 @@ class BaseDCSimulation(BaseEMSimulation):
             survey = self.survey
 
         if v is not None:
-<<<<<<< HEAD
+
             # Ensure v is a data object.
             if not isinstance(v, Data):
                 v = Data(self.survey, v)
@@ -353,12 +353,11 @@ class BaseDCSimulation(BaseEMSimulation):
             # Ensure v is a data object.
             if not isinstance(v, Data):
                 v = Data(self.survey, v)
-=======
             if isinstance(v, Data):
                 v = v.dobs
             v = self._mini_survey_dataT(v)
             v = Data(survey, v)
->>>>>>> simulation
+
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix
