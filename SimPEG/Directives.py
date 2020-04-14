@@ -818,11 +818,7 @@ class VectorInversion(InversionDirective):
     def initialize(self):
 
         if self.mode == 'cartesian':
-            self.norms = []
-            self.alphas = []
             for reg in self.reg.objfcts:
-                self.norms.append(reg.norms)
-                reg.norms = np.c_[2., 2., 2., 2.]
                 reg.model = self.invProb.model
 
             self.mref = reg.mref
@@ -855,20 +851,21 @@ class VectorInversion(InversionDirective):
                     prob.coordinate_system = self.mode
                     prob.model = mstart
 
-            for ind, (reg_fun, norms) in enumerate(zip(
-                    self.reg.objfcts, self.norms
-            )):
+            for ind, reg_fun in enumerate(self.reg.objfcts):
 
-                reg_fun.norms = norms
                 reg_fun.mref = mref
                 reg_fun.model = mstart
 
                 if ind > 0:
                     reg_fun.alpha_s = 0
                     reg_fun.eps_q = np.pi
+                    for reg in reg_fun.objfcts:
+                        reg.space = 'spherical'
 
             # Add directives
             directiveList = []
+            update_Jacobi = []
+            IRLS = []
             for directive in self.inversion.directiveList.dList:
                 # directive._inversion = None
                 if isinstance(directive, SaveIterationsGeoH5):
@@ -888,6 +885,7 @@ class VectorInversion(InversionDirective):
                 elif isinstance(directive, Update_IRLS):
                     directive.sphericalDomain = True
                     directive.model = mstart
+                    directive.coolingRate = 1
                     IRLS = directive
 
                 elif isinstance(directive, UpdatePreconditioner):
@@ -897,21 +895,16 @@ class VectorInversion(InversionDirective):
                 ProjSpherical(), IRLS, UpdateSensitivityWeights(), update_Jacobi,
             ] + directiveList
 
-            # update_SensWeight = UpdateSensitivityWeights()
-            # update_Jacobi = UpdatePreconditioner()
-
-            # inv = Inversion.BaseInversion(invProb,
-            #                               directiveList=[
-            #                                   ProjSpherical, IRLS, update_SensWeight,
-            #                                   update_Jacobi, save_model, inversion_output
-            #                               ])
-
-
             self.inversion.directiveList = directiveList
             directiveList[1].endIter()
             directiveList[2].endIter()
             directiveList[3].endIter()
 
+        else:
+            for directive in self.inversion.directiveList.dList:
+                if isinstance(directive, Update_IRLS) and directive.mode!=1:
+                    print('Changing IRLS cooling rate')
+                    directive.coolingRate = 1
 
 class Update_IRLS(InversionDirective):
 
@@ -967,10 +960,9 @@ class Update_IRLS(InversionDirective):
         if self.mode == 1:
 
             self.norms = []
-            self.alpha = []
             for reg in self.reg.objfcts:
+                print(reg.norms)
                 self.norms.append(reg.norms)
-                self.alpha.append(reg.alpha_s)
                 reg.norms = np.c_[2., 2., 2., 2.]
                 reg.model = self.invProb.model
 
@@ -1049,6 +1041,7 @@ class Update_IRLS(InversionDirective):
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([self.invProb.phi_d < self.target, self.mode == 1]):
             self.startIRLS()
+            self.f_old = np.sum(phi_m_last)
 
         # Only update after GN iterations
         if np.all([
@@ -1154,12 +1147,9 @@ class Update_IRLS(InversionDirective):
             if getattr(reg, 'eps_q', None) is None:
                 reg.eps_q = reg.eps_p
 
-
         # Re-assign the norms supplied by user l2 -> lp
-        for reg, norms, alpha in zip(self.reg.objfcts, self.norms, self.alpha):
+        for reg, norms in zip(self.reg.objfcts, self.norms):
             reg.norms = norms
-
-            reg.alpha_s = alpha
 
         # Save l2-model
         self.invProb.l2model = self.invProb.model.copy()
