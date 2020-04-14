@@ -961,7 +961,6 @@ class Update_IRLS(InversionDirective):
 
             self.norms = []
             for reg in self.reg.objfcts:
-                print(reg.norms)
                 self.norms.append(reg.norms)
                 reg.norms = np.c_[2., 2., 2., 2.]
                 reg.model = self.invProb.model
