@@ -794,7 +794,7 @@ class VectorInversion(InversionDirective):
     Control a vector inversion from Cartesian to spherical coordinates
     """
 
-    chifact_target = 2.
+    chifact_target = 5.
     mref = None
     mode = 'cartesian'
     norms = []
@@ -843,7 +843,6 @@ class VectorInversion(InversionDirective):
             self.invProb.model = mstart
             self.opt.xc = mstart
 
-            print(self.invProb.model, self.opt.xc)
             nC = mstart.reshape((-1, 3)).shape[0]
             self.opt.lower = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
             self.opt.upper[nC:] = np.inf
@@ -859,63 +858,14 @@ class VectorInversion(InversionDirective):
             for ind, (reg_fun, norms) in enumerate(zip(
                     self.reg.objfcts, self.norms
             )):
+
                 reg_fun.norms = norms
                 reg_fun.mref = mref
                 reg_fun.model = mstart
 
                 if ind > 0:
                     reg_fun.alpha_s = 0
-                    reg_fun.space = 'spherical'
                     reg_fun.eps_q = np.pi
-            # Create a regularization
-            # print(self.reg.objfcts[2].indActive)
-            # reg_a = Regularization.Sparse(
-            #     self.reg.objfcts[0].mesh,
-            #     indActive=self.reg.objfcts[0].indActive,
-            #     mapping=self.reg.objfcts[0].mapping,
-            #     gradientType=self.reg.objfcts[0].gradientType,
-            #     alpha_s=self.reg.objfcts[0].alpha_s,
-            #     alpha_x=self.reg.objfcts[0].alpha_x,
-            #     alpha_y=self.reg.objfcts[0].alpha_y,
-            #     alpha_z=self.reg.objfcts[0].alpha_z,
-            # )
-            # reg_a.norms = self.norms[0]
-            # reg_a.mref = mref
-            #
-            # reg_t = Regularization.Sparse(
-            #     self.reg.objfcts[1].mesh,
-            #     indActive=self.reg.objfcts[1].indActive,
-            #     mapping=self.reg.objfcts[1].mapping,
-            #     gradientType=self.reg.objfcts[1].gradientType,
-            #     alpha_s=0,
-            #     alpha_x=self.reg.objfcts[1].alpha_x,
-            #     alpha_y=self.reg.objfcts[1].alpha_y,
-            #     alpha_z=self.reg.objfcts[1].alpha_z,
-            # )
-            # reg_t.space = 'spherical'
-            # reg_t.norms = self.norms[1]
-            # reg_t.mref = mref
-            # reg_t.eps_q = np.pi
-            #
-            # reg_p = Regularization.Sparse(
-            #     self.reg.objfcts[2].mesh,
-            #     indActive=self.reg.objfcts[2].indActive,
-            #     mapping=self.reg.objfcts[2].mapping,
-            #     gradientType=self.reg.objfcts[2].gradientType,
-            #     alpha_s=0,
-            #     alpha_x=self.reg.objfcts[2].alpha_x,
-            #     alpha_y=self.reg.objfcts[2].alpha_y,
-            #     alpha_z=self.reg.objfcts[2].alpha_z,
-            # )
-            #
-            # reg_p.space = 'spherical'
-            # reg_p.norms = self.norms[2]
-            # reg_p.mref = mref
-            # reg_p.eps_q = np.pi
-            #
-            # # Assemble the three regularization
-            # self.reg = reg_a + reg_t + reg_p
-            # self.invProb.reg = self.reg
 
             # Add directives
             directiveList = []
@@ -1459,7 +1409,6 @@ class ProjSpherical(InversionDirective):
         self.opt.xc = m
 
     def endIter(self):
-
         x = self.invProb.model
         nC = int(len(x)/3)
 

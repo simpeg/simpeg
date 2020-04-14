@@ -200,25 +200,19 @@ class MagneticIntegral(Problem.LinearProblem):
         if (self.gtgdiag is None) and (self.modelType != 'amplitude'):
 
             if W is None:
-                W = sdiag(np.ones(self.G.shape[1]))
+                W = np.ones(self.G.shape[1])
 
-            # self.gtgdiag = np.zeros(dmudm.shape[1])
-
-            # for ii in range(self.G.shape[0]):
-
-            # self.gtgdiag = da.sum(da.from_delayed(dask.delayed(csr.dot)(W, self.G), dtype=float, shape=self.G.shape)**2., 0).compute()
-
-            self.gtgdiag = np.array(da.sum(da.power(self.G, 2), axis=0))
+            self.gtgdiag = np.array(da.sum(da.power(W[:, None].astype(np.float32) * self.G, 2), axis=0))
 
         if self.coordinate_system == 'cartesian':
             if self.modelType == 'amplitude':
-                return np.sum((W * self.dfdm * sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0)
+                return np.sum((self.dfdm * sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0)
             else:
                 return mkvc(np.sum((sdiag(mkvc(self.gtgdiag)**0.5) * dmudm).power(2.), axis=0))
 
         else:  # spherical
             if self.modelType == 'amplitude':
-                return mkvc(np.sum(((W * self.dfdm) * sdiag(mkvc(self.gtgdiag)**0.5) * (self.dSdm * dmudm)).power(2.), axis=0))
+                return mkvc(np.sum(((self.dfdm) * sdiag(mkvc(self.gtgdiag)**0.5) * (self.dSdm * dmudm)).power(2.), axis=0))
             else:
 
                 #Japprox = sdiag(mkvc(self.gtgdiag)**0.5*dmudm) * (self.dSdm * dmudm)
@@ -264,7 +258,6 @@ class MagneticIntegral(Problem.LinearProblem):
 
         else:
 
-#            vec = dask.delayed(csr.dot)(dmudm, v)
             dmudm_v = da.from_array(dmudm*v, chunks=self.G.chunks[1])
 
             Jvec = da.dot(self.G, dmudm_v.astype(np.float32))
