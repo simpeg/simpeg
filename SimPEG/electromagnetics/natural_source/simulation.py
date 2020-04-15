@@ -63,12 +63,13 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
 
         # Calculate the fields if not given as input
         if f is None:
-            f = self.fields(m).compute()
+            # f = self.fields(m).compute()
+            f = self.fields2(m)
         # Set current model
         self.model = m
         # Initiate the Jv list
         Jv = []
-        number_of_frequencies = len(self.survey.frequencies) 
+        number_of_frequencies = len(self.survey.frequencies)
         number_of_components = len(self.survey.get_sources_by_frequency(self.survey.frequencies[0])[0].receiver_list)
         n_dim = number_of_frequencies * number_of_components
         m_dim = int(self.survey.nD / (number_of_components * number_of_frequencies))
@@ -76,6 +77,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         # Loop all the frequenies
         for nF, freq in enumerate(self.survey.frequencies):
             # Get the system
+            print('length: ',len(self.survey.get_sources_by_frequency(freq)))
             for src in self.survey.get_sources_by_frequency(freq):
                 # need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
@@ -451,6 +453,55 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
         return dRHS_dm
 
     @dask.delayed(pure=True)
+    def fieldByFrequency(self, freq, freq_index):
+        """
+        Function to calculate all the fields for the model m.
+
+        :param numpy.ndarray (nC,) m: Conductivity model
+        :rtype: SimPEG.EM.NSEM.FieldsNSEM
+        :return: Fields object with of the solution
+
+        """
+        if self.verbose:
+            print('Starting work for {:.3e}'.format(freq))
+            sys.stdout.flush()
+        mkl_set_num_threads(4)
+        if self.Ainv[int(freq_index)] is not None:
+            self.Ainv[int(freq_index)].clean()
+
+        A = self.getA(freq)
+        rhs = self.getRHS(freq)
+        # Solve the system
+        self.Ainv[int(freq_index)] = self.Solver(A, **self.solver_opts)
+        e_s = self.Ainv[int(freq_index)] * rhs
+        return e_s
+        # Ainv.clean()
+
+    def fields2(self, m=None):
+        """
+        Function to calculate all the fields for the model m.
+
+        :param numpy.ndarray (nC,) m: Conductivity model
+        :rtype: SimPEG.EM.NSEM.FieldsNSEM
+        :return: Fields object with of the solution
+
+        """
+        self.Ainv = [None for i in range(self.survey.num_frequencies)]
+        F = self.fieldsPair(self)
+        for nf, freq in enumerate(self.survey.frequencies):
+            Src = self.survey.get_sources_by_frequency(freq)[0]
+            e_s = self.fieldByFrequency(freq, nf)
+            F[Src, 'e_pxSolution'] = e_s[:, 0]
+            F[Src, 'e_pySolution'] = e_s[:, 1]
+        # index = np.arange(0, len(self.survey.frequencies), 1)
+        # # self.fieldByFrequency(self.survey.frequencies[0], index[0])
+        # pool = multiprocessing.Pool()
+        # pool.map(self.fieldByFrequency, (index))
+        # pool.close()
+        # pool.join()
+        return F
+
+    # @dask.delayed(pure=True)
     def fields(self, m=None):
         """
         Function to calculate all the fields for the model m.
@@ -484,6 +535,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
             # Solve the system
             self.Ainv[nf] = self.Solver(A, **self.solver_opts)
             e_s = self.Ainv[nf] * rhs
+            print('es: ', e_s.shape)
 
             # Store the fields
             Src = self.survey.get_sources_by_frequency(freq)[0]
@@ -494,7 +546,9 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
             # Note curl e = -iwb so b = -curl/iw
 
             if self.verbose:
-                print('Ran for {:f} seconds'.format(time.time()-startTime))
+                print('Ran for {:f} seconds'.format(time.time() - startTime))
+                # print('field type: ', Src.receiver_list)
+                print('field type: ', F[:, 'e_pxSolution'].shape)
                 sys.stdout.flush()
             # Ainv.clean()
         return F
