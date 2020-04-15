@@ -260,17 +260,11 @@ class BaseSimulation(props.HasModel):
                 "simulation.survey = survey"
             )
 
-        if isinstance(f, Delayed):
-            f = f.compute()
-
         if f is None:
             if m is None:
                 m = self.model
 
             f = self.fields(m)
-
-            if isinstance(f, Delayed):
-                f = f.compute()
 
         data = Data(self.survey)
         for src in self.survey.source_list:
@@ -358,9 +352,6 @@ class BaseSimulation(props.HasModel):
 
         if f is None:
             f = self.fields(m)
-
-        if isinstance(f, Delayed):
-            f = f.compute()
 
         dclean = self.dpred(m, f=f)
 

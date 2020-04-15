@@ -103,8 +103,6 @@ class BaseIPSimulation(BaseEMSimulation):
         """
         if f is None:
             f = self.fields(m)
-        if isinstance(f, Delayed):
-            f = f.compute()
 
         return self._pred
 
@@ -138,7 +136,7 @@ class BaseIPSimulation(BaseEMSimulation):
 
         self.model = m
         if f is None:
-            f = self.fields(m).compute()
+            f = self.fields(m)
 
         if self.verbose:
             print("Calculating J and storing")
@@ -229,9 +227,6 @@ class BaseIPSimulation(BaseEMSimulation):
         if f is None:
             f = self.fields(m)
 
-        if isinstance(f, Delayed):
-            f = f.compute()
-
         # When sensitivity matrix J is stored
         if self.storeJ:
             J = self.getJ(m, f=f).compute()
@@ -268,9 +263,6 @@ class BaseIPSimulation(BaseEMSimulation):
         if f is None:
             f = self.fields(m)
 
-        if isinstance(f, Delayed):
-            f = f.compute()
-
         # When sensitivity matrix J is stored
         if self.storeJ:
             J = self.getJ(m, f=f)
@@ -281,7 +273,7 @@ class BaseIPSimulation(BaseEMSimulation):
             self.model = m
 
             if f is None:
-                f = self.fields(m).compute()
+                f = self.fields(m)
             return self._Jtvec(m, v=v, f=f)
 
     def _Jtvec(self, m, v=None, f=None):

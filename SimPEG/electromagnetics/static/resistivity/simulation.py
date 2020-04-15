@@ -54,7 +54,6 @@ class BaseDCSimulation(BaseEMSimulation):
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
 
-    @dask.delayed(pure=True)
     def fields(self, m=None, calcJ=True):
 
         mkl_set_num_threads(self.n_cpu)
@@ -119,8 +118,6 @@ class BaseDCSimulation(BaseEMSimulation):
             self.model = m
             if f is None:
                 f = self.fields(m)
-            if isinstance(f, Delayed):
-                f = f.compute()
 
         if self.verbose:
             print("Calculating J and storing")
@@ -228,13 +225,7 @@ class BaseDCSimulation(BaseEMSimulation):
         if f is None:
             f = self.fields(m)
 
-        if isinstance(f, Delayed):
-            f = f.compute()
-
         if self.storeJ:
-            # J = self.getJ(m, f=f).compute()
-            # Jv = mkvc(np.dot(J, v))
-            # won't above lines pull J completely into memory?
             J = self.getJ(m, f=f)
             return J.dot(v).compute()
 
@@ -269,8 +260,6 @@ class BaseDCSimulation(BaseEMSimulation):
 
         if f is None:
             f = self.fields(m)
-        if isinstance(f, Delayed):
-            f = f.compute()
 
         self.model = m
 
@@ -448,24 +437,21 @@ class Simulation3DCellCentered(BaseDCSimulation):
         if self.storeJ:
             Gvec = self.Grad * u
 
-            Div = da.from_array(
+            if getattr(self, "Div_coo", None) is None:
+                self.Div_coo = da.from_array(
                     sparse.COO.from_scipy_sparse(self.Div.T),
                     chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
                 )
+
             if adjoint:
 
-                Dvec = da.dot(Div, v)
+                Dvec = da.dot(self.Div_coo, v)
 
                 return self.MfRhoIDerivDask(Gvec, Dvec, adjoint)
 
             vec = self.MfRhoIDerivDask(Gvec, v, adjoint)
 
-            # Dvec = da.from_delayed(
-            #     dask.delayed(csr.dot)(self.Div, vec),
-            #     dtype=float, shape=[self.Div.shape[0], vec.shape[1]]
-            # )
-
-            return da.dot(Div, vec)
+            return da.dot(self.Div_coo, vec)
         else:
             D = self.Div
             G = self.Grad
