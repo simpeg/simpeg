@@ -126,12 +126,22 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
+        defaultcontourOpts = {
+        'levels':levels, 'vmin':vmin, 'vmax':vmax, 'zorder':1
+        }
+        for key in contourOpts.keys():
+            defaultcontourOpts[key] = contourOpts[key]
+
         cont = ax.contourf(
-            X, Y, DATA, levels=levels, vmin=vmin, vmax=vmax, zorder=1,
-            **contourOpts
+            X, Y, DATA, **defaultcontourOpts
         )
         if level:
-            CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **levelOpts)
+
+            defaultlevelOpts = {'levels':levels, 'zorder':3}
+            for key in levelOpts.keys():
+                defaultlevelOpts[key] = levelOpts[key]
+
+            CS = ax.contour(X, Y, DATA, **defaultlevelOpts)
 
     else:
         # Assume size of data is (N,2)
@@ -182,10 +192,13 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
+        defaultcontourOpts = {'levels':levels,
+            'vmin':vmin, 'vmax':vmax, 'zorder':1,}
+        for key in contourOpts.keys():
+            defaultcontourOpts[key] = contourOpts[key]
+
         cont = ax.contourf(
-            X, Y, DATA, levels=levels,
-            vmin=vmin, vmax=vmax, zorder=1,
-            **contourOpts
+            X, Y, DATA, **defaultcontourOpts
         )
         ax.streamplot(X, Y, DATAx, DATAy, zorder=4, color="w")
         if level:
