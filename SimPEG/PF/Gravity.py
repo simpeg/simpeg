@@ -101,6 +101,8 @@ class GravityIntegral(Problem.LinearProblem):
 
             if W is None:
                 W = np.ones(self.G.shape[1])
+            else:
+                W = W.diagonal()
 
             self.gtgdiag = da.sum(da.power(W[:, None].astype(np.float32) * self.G, 2), axis=0).compute()
 

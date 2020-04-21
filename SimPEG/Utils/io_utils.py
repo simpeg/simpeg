@@ -392,8 +392,6 @@ def writeUBCmagneticsObservations(filename, survey, d):
         newline='\n', header=head, comments=''
     )
 
-    print("Observation file saved to: " + filename)
-
 
 def readUBCgravityObservations(obs_file):
     """
@@ -458,8 +456,6 @@ def writeUBCgravityObservations(filename, survey, d):
         filename, data, fmt='%e', delimiter=' ',
         newline='\n', header=head, comments=''
     )
-
-    print("Observation file saved to: " + filename)
 
 
 def writeVectorUBC(mesh, fileName, model):

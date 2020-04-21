@@ -408,9 +408,9 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                             models={
                                 fileName + '.dip': (np.rad2deg(theta)),
                                 fileName + '.azm': ((450 - np.rad2deg(phi)) % 360),
-                                fileName + '_TOT.amp': np.sum(vec**2, axis=1)**0.5,
-                                fileName + '_IND.amp': np.sum(m_ind**2, axis=1)**0.5,
-                                fileName + '_REM.amp': np.sum(m_rem**2, axis=1)**0.5 }
+                                fileName + '_TOT.mod': np.sum(vec**2, axis=1)**0.5,
+                                fileName + '_IND.mod': np.sum(m_ind**2, axis=1)**0.5,
+                                fileName + '_REM.mod': np.sum(m_rem**2, axis=1)**0.5 }
                         )
 
                         Utils.io_utils.writeVectorUBC(
@@ -430,20 +430,76 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                         )
                         Mesh.TensorMesh.writeModelUBC(
                             self.mesh,
-                            fileName + '_TOT.amp', np.sum(vec**2, axis=1)**0.5
+                            fileName + '_TOT.mod', np.sum(vec**2, axis=1)**0.5
                         )
                         Mesh.TensorMesh.writeModelUBC(
                             self.mesh,
-                            fileName + '_IND.amp', np.sum(m_ind**2, axis=1)**0.5
+                            fileName + '_IND.mod', np.sum(m_ind**2, axis=1)**0.5
                         )
                         Mesh.TensorMesh.writeModelUBC(
                             self.mesh,
-                            fileName + '_REM.amp', np.sum(m_rem**2, axis=1)**0.5
+                            fileName + '_REM.mod', np.sum(m_rem**2, axis=1)**0.5
                         )
                         Utils.io_utils.writeVectorUBC(
                             self.mesh,
                             fileName + '_VEC.fld', vec
                         )
+
+
+
+class SaveUBCPredictedEveryIteration(SaveEveryIteration):
+    """SaveModelEveryIteration"""
+
+    replace = True
+    format = 'grav'
+    fileName = "Predicted"
+    residuals = True
+    survey = None
+
+    def initialize(self):
+
+        self.invProb.evalFunction(self.invProb.model,  return_g=False, return_H=False)
+
+        residuals = self.survey.dobs - self.invProb.dpred
+
+        if self.format == 'grav':
+            Utils.io_utils.writeUBCgravityObservations(self.fileName + "_Initial.pre", self.survey, self.invProb.dpred)
+
+            if self.residuals:
+                Utils.io_utils.writeUBCgravityObservations(self.fileName + "_Initial_Residual.pre", self.survey,
+                                                           residuals)
+
+        elif self.format in ['mag', 'mvi', 'mvis']:
+            Utils.io_utils.writeUBCmagneticsObservations(self.fileName + "_Initial.pre", self.survey, self.invProb.dpred)
+
+            if self.residuals:
+                Utils.io_utils.writeUBCmagneticsObservations(
+                    self.fileName + "_Initial_Residual.pre", self.survey, residuals
+                )
+
+        print("SimPEG.SavePredictedEveryIteration will save your predicted data" +
+              " in UBC format as: '###-{0!s}.mod'".format(self.fileName))
+
+    def endIter(self):
+
+        if not self.replace:
+            fileName = self.fileName + "Iter" + str(self.opt.iter)
+        else:
+            fileName = self.fileName
+
+        residuals = self.survey.dobs - self.invProb.dpred
+
+        if self.format == 'grav':
+            Utils.io_utils.writeUBCgravityObservations(fileName + ".pre", self.survey, self.invProb.dpred)
+
+            if self.residuals:
+                Utils.io_utils.writeUBCgravityObservations(fileName + "_Residual.pre", self.survey, residuals)
+
+        elif self.format in ['mag', 'mvi', 'mvis']:
+            Utils.io_utils.writeUBCmagneticsObservations(fileName + ".pre", self.survey, self.invProb.dpred)
+
+            if self.residuals:
+                Utils.io_utils.writeUBCmagneticsObservations(fileName + "_Residual.pre", self.survey, residuals)
 
 
 class SaveOutputEveryIteration(SaveEveryIteration):
@@ -797,6 +853,7 @@ class VectorInversion(InversionDirective):
     chifact_target = 5.
     mref = None
     mode = 'cartesian'
+    inversion_type = 'mvis'
     norms = []
     alphas = []
 
@@ -817,21 +874,20 @@ class VectorInversion(InversionDirective):
 
     def initialize(self):
 
-        if self.mode == 'cartesian':
-            for reg in self.reg.objfcts:
-                reg.model = self.invProb.model
+        for reg in self.reg.objfcts:
+            reg.model = self.invProb.model
 
-            self.mref = reg.mref
+        self.mref = reg.mref
 
         for prob in self.prob:
             if getattr(prob, 'coordinate_system', None) is not None:
                 prob.coordinate_system = self.mode
 
     def endIter(self):
-        if (self.invProb.phi_d < self.target) and self.mode == 'cartesian':
+        if (self.invProb.phi_d < self.target) and self.mode == 'cartesian' and self.inversion_type == 'mvis':
 
-            self.mode = 'spherical'
             print("Switching MVI to spherical coordinates")
+            self.mode = 'spherical'
 
             mstart = Utils.matutils.xyz2atp(self.invProb.model.reshape((-1, 3), order='F'))
             mref = Utils.matutils.xyz2atp(self.mref.reshape((-1, 3), order='F'))
@@ -900,11 +956,14 @@ class VectorInversion(InversionDirective):
             directiveList[2].endIter()
             directiveList[3].endIter()
 
-        else:
-            for directive in self.inversion.directiveList.dList:
-                if isinstance(directive, Update_IRLS) and directive.mode!=1:
-                    print('Changing IRLS cooling rate')
-                    directive.coolingRate = 1
+
+
+        # else:
+            # for directive in self.inversion.directiveList.dList:
+            #     if isinstance(directive, Update_IRLS) and directive.mode!=1:
+            #         print('Changing IRLS cooling rate')
+            #         directive.coolingRate = 1
+
 
 class Update_IRLS(InversionDirective):
 
@@ -964,16 +1023,6 @@ class Update_IRLS(InversionDirective):
                 self.norms.append(reg.norms)
                 reg.norms = np.c_[2., 2., 2., 2.]
                 reg.model = self.invProb.model
-
-                # # Check if using non-simple difference
-                # dx = sp.find(reg.regmesh.cellDiffxStencil)[2].max()
-                # if dx != 1:
-                #     print(dx)
-                #     reg.alpha_s = dx**2. #/np.min(reg.regmesh.mesh.hx)**2.
-
-        # Update the model used by the regularization
-        # for reg in self.reg.objfcts:
-        #     reg.model = self.invProb.model
 
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
