@@ -936,6 +936,11 @@ class VectorInversion(InversionDirective):
                     directiveList.append(directive)
 
                 elif isinstance(directive, SaveUBCModelEveryIteration):
+                    directive.fileName = directive.fileName + "_S"
+                    directiveList.append(directive)
+
+                elif isinstance(directive, SaveUBCPredictedEveryIteration):
+                    directive.fileName = directive.fileName + "_S"
                     directiveList.append(directive)
 
                 elif isinstance(directive, Update_IRLS):
