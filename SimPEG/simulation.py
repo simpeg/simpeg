@@ -2,10 +2,8 @@ from __future__ import print_function
 
 import inspect
 import numpy as np
-import pymatsolver
 import sys
 import warnings
-from dask.delayed import Delayed
 import properties
 from properties.utils import undefined
 
@@ -17,7 +15,7 @@ from . import props
 from .data import SyntheticData, Data
 from .survey import BaseSurvey
 from .utils import Counter, timeIt, count, mkvc
-from .utils.code_utils import deprecate_method, deprecate_property
+from .utils.code_utils import deprecate_property
 
 try:
     from pymatsolver import Pardiso as DefaultSolver
