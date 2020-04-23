@@ -63,9 +63,9 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         """
 
         # Calculate the fields if not given as input
-        if f is None:
-            # f = self.fields(m).compute()
-            F = self.fields(m)
+        # if f is None:
+        #     # f = self.fields(m)
+        #     F = self.fields2(m)
         # Set current model
         self.model = m
         # Initiate the Jv list
@@ -76,12 +76,12 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         m_dim = int(self.survey.nD / (number_of_components * number_of_frequencies))
 
         # Loop all the frequenies
-        # F = self.fieldsPair(self)
+        F = self.fieldsPair(self)
         for nF, freq in enumerate(self.survey.frequencies):
-            # Src = self.survey.get_sources_by_frequency(freq)[0]
-            # e_s = da.from_delayed(self.fieldByFrequency(freq, nF), (self.mesh.nE, 2), dtype=complex).compute()
-            # F[Src, 'e_pxSolution'] = e_s[:, 0]
-            # F[Src, 'e_pySolution'] = e_s[:, 1]
+            Src = self.survey.get_sources_by_frequency(freq)[0]
+            e_s = da.from_delayed(self.fieldByFrequency(freq, nF), (self.mesh.nE, 2), dtype=complex).compute()
+            F[Src, 'e_pxSolution'] = e_s[:, 0]
+            F[Src, 'e_pySolution'] = e_s[:, 1]
             # Get the system
             for src in self.survey.get_sources_by_frequency(freq):
                 # need fDeriv_m = df/du*du/dm + df/dm
@@ -113,7 +113,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         """
 
         if f is None:
-            f = self.fields(m).compute()
+            f = self.fields(m)
 
         self.model = m
 
@@ -151,7 +151,6 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 # when running full inversion clearing the fields creates error and inversion crashes
                 # self.ATinv[nF].clean()
         return Jtv.compute()
-
 
     def getJ(self, m, f=None):
         """
@@ -565,14 +564,16 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
         self.Ainv = [None for i in range(self.survey.num_frequencies)]
         F = self.fieldsPair(self)
         e_s = []
-        ds = []
+        # ds = []
         for nf, freq in enumerate(self.survey.frequencies):
+            # ==== Xarray stuff for when it is ready to handle in fields =====
             # Src = self.survey.get_sources_by_frequency(freq)[0]
             # e_s = da.from_delayed(self.fieldByFrequency(freq, nf), (self.mesh.nE, 2), dtype=complex)
             # ds.append(xr.DataArray(e_s, coords=[np.arange(0, self.mesh.nE, 1), ['e_pxSolution', 'e_pySolution']], dims=['index', 'space']))
+
+            # ==== regular implementation =====
             e_s.append(da.from_delayed(self.fieldByFrequency(freq, nf), (self.mesh.nE, 2), dtype=complex))
-            # F[Src, 'e_pxSolution'] = e_s[:, 0]
-            # F[Src, 'e_pySolution'] = e_s[:, 1]
+
         F_ = da.hstack(e_s).compute()
         # da.hstack(e_s).visualize()
 
@@ -597,7 +598,6 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
         :return: Fields object with of the solution
 
         """
-        mkl_set_num_threads(self.n_cpu)
         # Set the current model
         if m is not None:
             self.model = m
@@ -621,7 +621,6 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
             # Solve the system
             self.Ainv[nf] = self.Solver(A, **self.solver_opts)
             e_s = self.Ainv[nf] * rhs
-            print('es: ', e_s.shape)
 
             # Store the fields
             Src = self.survey.get_sources_by_frequency(freq)[0]
