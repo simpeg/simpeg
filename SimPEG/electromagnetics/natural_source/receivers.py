@@ -794,7 +794,8 @@ class AnalyticReceiver1D(BaseRx):
         "component of the field (real, imag or app_res)", {
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-            "app_res": ["apparent_resistivity"]
+            "app_res": ["apparent_resistivity"],
+            "phase": ["phs"]
         }
     )
 

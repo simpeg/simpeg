@@ -15,7 +15,27 @@ from discretize import TensorMesh
 
 class Simulation1DRecursive(BaseEMSimulation):
     """
-    Simulation class for the 1D MT problem using propagator matrix solution.
+    Simulation class for the 1D MT problem using recursive solution.
+
+    This solution is defined with z +ve upward and a :math:`+i\\omega t`
+    Fourier convention. First, let:
+
+    .. math::
+        \\alpha_i^2 = i\\omega\\mu_i\\sigma_i
+
+    The complex impedance in layer :math:`i` is given by:
+
+    .. math::
+        Z_i = \\dfrac{\\alpha_i}{\\sigma_i} \\Bigg [
+        \\dfrac{\\sigma_i Z_{i+1} - \\alpha_i tanh(\\alpha_i h_i)}
+        {\\alpha_i - \\sigma_i Z_{i+1}tanh(\\alpha_i h_i)} \\Bigg ]
+
+    where the complex impedance in the bottom half-space is given by:
+
+    .. math::
+        Z_N = - \\frac{\\alpha_N}{\\sigma_N}
+
+
     """
 
     # Must be 1D survey object
@@ -23,6 +43,7 @@ class Simulation1DRecursive(BaseEMSimulation):
         "a Survey1D survey object", Survey1D, required=True
     )
 
+    # Finite difference or analytic sensitivities can be computed
     sensitivity_method = properties.StringChoice(
         "Choose 1st or 2nd order computations with sensitivity matrix ('1st_order', '2nd_order')", {
             "1st_order": [],
@@ -35,18 +56,19 @@ class Simulation1DRecursive(BaseEMSimulation):
         "thicknesses of the layers"
     )
 
-
-
-    # Store sensitivity
+    # Storing sensitivity
     _Jmatrix = None
     fix_Jmatrix = False
     storeJ = properties.Bool("store the sensitivity", default=False)
 
+    # Frequency for each datum
     _frequency_vector = None
     
-
     @ property
     def frequency_vector(self):
+        """
+        A vector containing the corresponding frequency for each datum.
+        """
         
         if getattr(self, '_frequency_vector', None) is None:
             if self._frequency_vector == None:
@@ -69,33 +91,29 @@ class Simulation1DRecursive(BaseEMSimulation):
         return toDelete
 
 
-
     # Instantiate
-    def __init__(self, sensitivity_method="1st_order", **kwargs):
+    def __init__(self, sensitivity_method="2nd_order", **kwargs):
         
         self.sensitivity_method = sensitivity_method
 
         BaseEMSimulation.__init__(self, **kwargs)
 
 
-
-
-
     def _get_recursive_impedances_1d(self, fvec, thicknesses, sigma_1d):
         """
-        For a given source and layered Earth model, this returns the list of
-        propagator matricies.
+        For a given layered Earth model, this returns the complex impedances
+        at the surface for all frequencies.
 
-        :param float: frequency in Hz
-        :param np.array thicknesses: layer thicknesses (nLayers-1,)
-        :param np.array sigma_1d: layer conductivities (nLayers,)
-        :return list Q: list containing matrix for each layer [nLayers,]
+        :param numpy.ndarray fvec: vector with frequencies in Hz (nFreq,)
+        :param numpy.ndarray thicknesses: layer thicknesses (nLayers-1,)
+        :param numpy.ndarray sigma_1d: layer conductivities (nLayers,)
+        :return numpy.ndarray Z: complex impedances at surface for all frequencies (nFreq,)
         """
         
         omega = 2*np.pi*fvec
         n_layer = len(sigma_1d)
 
-        # Bottom layer
+        # Bottom layer quantities
         alpha = np.sqrt(1j*omega*mu_0*sigma_1d[-1])
         ratio = alpha/sigma_1d[-1]
         Z = -ratio
@@ -114,19 +132,32 @@ class Simulation1DRecursive(BaseEMSimulation):
 
 
     def _get_sigma_sensitivities(self, fvec, thicknesses, sigma_1d):
+        """
+        For a given layered Earth model, this returns the Jacobian for the
+        complex impedances at the surface with respect to the layer conductivities.
+
+        :param numpy.ndarray fvec: vector with frequencies for each datum in Hz (nD,)
+        :param numpy.ndarray thicknesses: layer thicknesses (nLayers-1,)
+        :param numpy.ndarray sigma_1d: layer conductivities (nLayers,)
+        :return numpy.ndarray J: Jacobian (nD, nLayers)
+        """
+
         omega = 2*np.pi*fvec
         n_layer = len(sigma_1d)
         J = np.empty((len(fvec), n_layer), dtype=np.complex128)
 
+        # Bottom layer quantities
         alpha = np.sqrt(1j*omega*mu_0*sigma_1d[-1])
         alpha_ds = 1j*omega*mu_0/(2*alpha)
-
+        
         ratio = alpha/sigma_1d[-1]
         ratio_ds = alpha_ds/sigma_1d[-1] - ratio/sigma_1d[-1]
 
         Z = -ratio
         dZ_dsigma = -ratio_ds
         J[:, -1] = dZ_dsigma
+
+        # Work from lowest layer to top layer
         for ii in range(n_layer-2, -1, -1):
             alpha = np.sqrt(1j*omega*mu_0*sigma_1d[ii])
             alpha_ds = 1j*omega*mu_0/(2*alpha)
@@ -155,11 +186,22 @@ class Simulation1DRecursive(BaseEMSimulation):
 
             J[:, ii] = dZ_ds
             J[:, ii+1:] *= dZ_dZp1[:, None]
+
         return J
 
 
     def _get_thickness_sensitivities(self, fvec, thicknesses, sigma_1d):
+        """
+        For a given layered Earth model, this returns the Jacobian for the
+        complex impedances at the surface with respect to the layer thicknesses.
+
+        :param numpy.ndarray fvec: vector with frequencies for each datum in Hz (nD,)
+        :param numpy.ndarray thicknesses: layer thicknesses (nLayers-1,)
+        :param numpy.ndarray sigma_1d: layer conductivities (nLayers,)
+        :return numpy.ndarray J: Jacobian (nD, nLayers-1)
+        """
     
+        # Bottom layer quantities
         omega = 2*np.pi*fvec
         n_layer = len(sigma_1d)
         J = np.empty((len(fvec), n_layer-1), dtype=np.complex128)
@@ -168,6 +210,8 @@ class Simulation1DRecursive(BaseEMSimulation):
         ratio = alpha/sigma_1d[-1]
 
         Z = -ratio
+
+        # Work from lowest layer to top layer
         for ii in range(n_layer-2, -1, -1):
             alpha = np.sqrt(1j*omega*mu_0*sigma_1d[ii])
             ratio = alpha/sigma_1d[ii]
@@ -192,20 +236,16 @@ class Simulation1DRecursive(BaseEMSimulation):
 
             J[:, ii] = dZ_dh
             J[:, ii+1:] *= dZ_dZp1[:, None]
+
         return J
-
-
-    
-
-
 
 
     def fields(self, m):
         """
-        Compute the complex impedance for a given model.
+        Computes the data for a given 1D model.
 
         :param np.array m: inversion model (nP,)
-        :return f: complex impedances
+        :return np.array f: data (nD,) 
         """
 
         if m is not None:
@@ -216,7 +256,7 @@ class Simulation1DRecursive(BaseEMSimulation):
                 self.frequency_vector, self.thicknesses, self.sigma
                 )
 
-        # For each source-receiver pair, compute datum
+        # For each complex impedance, extract compute datum
         f = []
         COUNT = 0
         for source_ii in self.survey.source_list:
@@ -224,9 +264,15 @@ class Simulation1DRecursive(BaseEMSimulation):
                 if rx.component is 'real':
                     f.append(np.real(complex_impedance[COUNT]))
                 elif rx.component is 'imag':
-                    f.append(np.real(complex_impedance[COUNT]))
+                    f.append(np.imag(complex_impedance[COUNT]))
                 elif rx.component is 'app_res':
-                    f.append(np.abs(complex_impedance[COUNT])**2/(2*np.pi*source_ii.frequency*mu_0))
+                    f.append(np.abs(
+                        complex_impedance[COUNT])**2/(2*np.pi*source_ii.frequency*mu_0)
+                        )
+                elif rx.component is 'phase':
+                    f.append((180./np.pi)*np.arctan(
+                        np.imag(complex_impedance[COUNT])/np.real(complex_impedance[COUNT])
+                        ))
                 COUNT = COUNT + 1
 
         return np.array(f)
@@ -236,8 +282,8 @@ class Simulation1DRecursive(BaseEMSimulation):
         """
         Predict data vector for a given model.
 
-        :param np.array m: inversion model (nP,)
-        :return d: data vector
+        :param numpy.ndarray m: inversion model (nP,)
+        :return numpy.ndarray d: data (nD,)
         """
 
         if f is None:
@@ -255,16 +301,16 @@ class Simulation1DRecursive(BaseEMSimulation):
 
         :param numpy.ndarray m: inversion model (nP,)
         :param String method: Choose from '1st_order' or '2nd_order'
-        :return: J (ndata, nP)
+        :return numpy.ndarray J: Sensitivity matrix (nD, nP)
         """
         
         if sensitivity_method == None:
             sensitivity_method = self.sensitivity_method
 
         if self._Jmatrix is not None:
-
             pass
 
+        # Finite difference computation
         elif sensitivity_method == '1st_order':
 
             # 1st order computation
@@ -287,14 +333,15 @@ class Simulation1DRecursive(BaseEMSimulation):
 
             self._Jmatrix = Jmatrix
 
+        # Analytic computation
         elif sensitivity_method == '2nd_order':
 
             self.model = m
 
-            # Sensitivity of parameters with model
-            dMdm = []
-            Jmatrix = []
+            dMdm = []  # Derivative of properties with respect to model
+            Jmatrix = []  # Jacobian
             
+            # Derivatives for conductivity
             if self.sigmaMap != None:
                 dMdm.append(self.sigmaDeriv)
                 Jmatrix.append(
@@ -303,6 +350,7 @@ class Simulation1DRecursive(BaseEMSimulation):
                         )
                     )
 
+            # Derivatives for thicknesses
             if self.thicknessesMap != None:
                 dMdm.append(self.thicknessesDeriv)
                 Jmatrix.append(
@@ -311,6 +359,7 @@ class Simulation1DRecursive(BaseEMSimulation):
                         )
                     )
             
+            # Combine
             if len(dMdm) == 1:
                 dMdm = dMdm[0]
                 Jmatrix = Jmatrix[0]
@@ -318,6 +367,7 @@ class Simulation1DRecursive(BaseEMSimulation):
                 dMdm = sp.sparse.vstack(dMdm[:])
                 Jmatrix = np.hstack(Jmatrix[:])
 
+            # Replace rows of Jmatrix with data sensitivity not impedance sensitivity
             COUNT = 0
             for source_ii in self.survey.source_list:
                 for rx in source_ii.receiver_list:
@@ -330,13 +380,26 @@ class Simulation1DRecursive(BaseEMSimulation):
                             source_ii.frequency, self.thicknesses, self.sigma
                             )
                         Jmatrix[COUNT, :] = (
-                            (np.pi*source_ii.frequency*mu_0)**-1 *
-                            (np.real(Z)*np.real(Jmatrix[COUNT, :]) + np.imag(Z)*np.imag(Jmatrix[COUNT, :]))
+                            (np.pi*source_ii.frequency*mu_0)**-1 * (
+                                np.real(Z)*np.real(Jmatrix[COUNT, :]) +
+                                np.imag(Z)*np.imag(Jmatrix[COUNT, :])
+                                )
+                            )
+                    elif rx.component is 'phase':
+                        Z = self._get_recursive_impedances_1d(
+                            source_ii.frequency, self.thicknesses, self.sigma
+                            )
+                        Jmatrix[COUNT, :] = (180./np.pi)*(
+                            (np.abs(Z))**-2 * (
+                                np.real(Z)*np.imag(Jmatrix[COUNT, :]) -
+                                np.imag(Z)*np.real(Jmatrix[COUNT, :])
+                                )
                             )
 
 
                     COUNT = COUNT + 1
 
+            # Store full sensitivities
             self._Jmatrix = np.real(Jmatrix)*dMdm
 
         return self._Jmatrix
@@ -347,10 +410,10 @@ class Simulation1DRecursive(BaseEMSimulation):
         Sensitivity times a vector.
 
         :param numpy.ndarray m: inversion model (nP,)
-        :param numpy.ndarray v: vector which we take sensitivity product with
-            (nP,)
-        :param String method: Choose from 'approximate' or 'analytic'
-        :return: Jv (ndata,)
+        :param numpy.ndarray v: vector which we take sensitivity product
+            witH (nP,)
+        :param String method: Choose from '1st_order' or '2nd_order'
+        :return numpy.ndarray Jv: Jv (nD,)
         """
 
         if sensitivity_method == None:
@@ -366,10 +429,10 @@ class Simulation1DRecursive(BaseEMSimulation):
         Transpose of sensitivity times a vector.
 
         :param numpy.ndarray m: inversion model (nP,)
-        :param numpy.ndarray v: vector which we take sensitivity product with
-            (nD,)
-        :param String method: Choose from 'approximate' or 'analytic'
-        :return: Jtv (nP,)
+        :param numpy.ndarray v: vector which we take sensitivity product
+            with (nD,)
+        :param String method: Choose from '1st_order' or '2nd_order'
+        :return numpy.ndarray Jtv: Jtv (nP,)
         """
 
         if sensitivity_method == None:
