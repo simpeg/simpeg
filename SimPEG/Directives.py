@@ -952,6 +952,9 @@ class VectorInversion(InversionDirective):
                 elif isinstance(directive, UpdatePreconditioner):
                     update_Jacobi = directive
 
+                else:
+                    directiveList.append(directive)
+
             directiveList = [
                 ProjSpherical(), IRLS, UpdateSensitivityWeights(), update_Jacobi,
             ] + directiveList
