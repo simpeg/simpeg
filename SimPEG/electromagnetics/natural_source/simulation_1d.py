@@ -63,7 +63,7 @@ class Simulation1DRecursive(BaseEMSimulation):
 
     # Frequency for each datum
     _frequency_vector = None
-    
+
     @ property
     def frequency_vector(self):
         """
@@ -71,10 +71,10 @@ class Simulation1DRecursive(BaseEMSimulation):
         """
         
         if getattr(self, '_frequency_vector', None) is None:
-            if self._frequency_vector == None:
+            if self._frequency_vector is None:
                 fvec = []
                 for src in self.survey.source_list:
-                    fvec.append(src.frequency * np.ones(len(src.receiver_list)))
+                    fvec.append(src.frequency)
                 self._frequency_vector = np.hstack(fvec)
 
         return self._frequency_vector
@@ -93,7 +93,7 @@ class Simulation1DRecursive(BaseEMSimulation):
 
     # Instantiate
     def __init__(self, sensitivity_method="2nd_order", **kwargs):
-        
+
         self.sensitivity_method = sensitivity_method
 
         BaseEMSimulation.__init__(self, **kwargs)
@@ -109,7 +109,7 @@ class Simulation1DRecursive(BaseEMSimulation):
         :param numpy.ndarray sigma_1d: layer conductivities (nLayers,)
         :return numpy.ndarray Z: complex impedances at surface for all frequencies (nFreq,)
         """
-        
+
         omega = 2*np.pi*fvec
         n_layer = len(sigma_1d)
 
@@ -258,22 +258,20 @@ class Simulation1DRecursive(BaseEMSimulation):
 
         # For each complex impedance, extract compute datum
         f = []
-        COUNT = 0
-        for source_ii in self.survey.source_list:
-            for rx in source_ii.receiver_list:
+        for ii, src in enumerate(self.survey.source_list):
+            for rx in src.receiver_list:
                 if rx.component is 'real':
-                    f.append(np.real(complex_impedance[COUNT]))
+                    f.append(np.real(complex_impedance[ii]))
                 elif rx.component is 'imag':
-                    f.append(np.imag(complex_impedance[COUNT]))
+                    f.append(np.imag(complex_impedance[ii]))
                 elif rx.component is 'app_res':
                     f.append(np.abs(
-                        complex_impedance[COUNT])**2/(2*np.pi*source_ii.frequency*mu_0)
+                        complex_impedance[ii])**2/(2*np.pi*src.frequency*mu_0)
                         )
                 elif rx.component is 'phase':
                     f.append((180./np.pi)*np.arctan(
-                        np.imag(complex_impedance[COUNT])/np.real(complex_impedance[COUNT])
+                        np.imag(complex_impedance[ii])/np.real(complex_impedance[ii])
                         ))
-                COUNT = COUNT + 1
 
         return np.array(f)
 
@@ -303,7 +301,7 @@ class Simulation1DRecursive(BaseEMSimulation):
         :param String method: Choose from '1st_order' or '2nd_order'
         :return numpy.ndarray J: Sensitivity matrix (nD, nP)
         """
-        
+
         if sensitivity_method == None:
             sensitivity_method = self.sensitivity_method
 
@@ -329,7 +327,7 @@ class Simulation1DRecursive(BaseEMSimulation):
                 m2[ii] = m[ii] + 0.5*dm
                 d1 = self.dpred(m1)
                 d2 = self.dpred(m2)
-                Jmatrix[:, ii] = (d2 - d1)/dm 
+                Jmatrix[:, ii] = (d2 - d1)/dm
 
             self._Jmatrix = Jmatrix
 
@@ -358,49 +356,45 @@ class Simulation1DRecursive(BaseEMSimulation):
                         self.frequency_vector, self.thicknesses, self.sigma
                         )
                     )
-            
+
             # Combine
             if len(dMdm) == 1:
                 dMdm = dMdm[0]
                 Jmatrix = Jmatrix[0]
             else:
-                dMdm = sp.sparse.vstack(dMdm[:])
-                Jmatrix = np.hstack(Jmatrix[:])
+                dMdm = sp.sparse.vstack(dMdm)
+                Jmatrix = np.hstack(Jmatrix)
+            J = np.empty((self.survey.nD, Jmatrix.shape[1]))
 
-            # Replace rows of Jmatrix with data sensitivity not impedance sensitivity
-            COUNT = 0
-            for source_ii in self.survey.source_list:
+            start = 0
+            for ii, source_ii in enumerate(self.survey.source_list):
                 for rx in source_ii.receiver_list:
-                    if rx.component is 'real':
-                        Jmatrix[COUNT, :] = np.real(Jmatrix[COUNT, :])
-                    elif rx.component is 'imag':
-                        Jmatrix[COUNT, :] = np.imag(Jmatrix[COUNT, :])
-                    elif rx.component is 'app_res':
+                    if rx.component == 'real':
+                        Jrows = np.real(Jmatrix[ii, :])
+                    elif rx.component == 'imag':
+                        Jrows = np.imag(Jmatrix[ii, :])
+                    else:
                         Z = self._get_recursive_impedances_1d(
                             source_ii.frequency, self.thicknesses, self.sigma
                             )
-                        Jmatrix[COUNT, :] = (
-                            (np.pi*source_ii.frequency*mu_0)**-1 * (
-                                np.real(Z)*np.real(Jmatrix[COUNT, :]) +
-                                np.imag(Z)*np.imag(Jmatrix[COUNT, :])
+                        if rx.component == 'app_res':
+                            Jrows = (
+                                (np.pi*source_ii.frequency*mu_0)**-1 *
+                                (np.real(Z)*np.real(Jmatrix[ii, :]) + np.imag(Z)*np.imag(Jmatrix[ii, :]))
                                 )
-                            )
-                    elif rx.component is 'phase':
-                        Z = self._get_recursive_impedances_1d(
-                            source_ii.frequency, self.thicknesses, self.sigma
-                            )
-                        Jmatrix[COUNT, :] = (180./np.pi)*(
-                            (np.abs(Z))**-2 * (
-                                np.real(Z)*np.imag(Jmatrix[COUNT, :]) -
-                                np.imag(Z)*np.real(Jmatrix[COUNT, :])
-                                )
-                            )
+                        elif rx.component == 'phase':
+                            C = 180/np.pi
+                            real = np.real(Z)
+                            imag = np.imag(Z)
+                            bot = np.abs(Z)**2
+                            d_real_dm = np.real(Jmatrix[ii, :])
+                            d_imag_dm = np.imag(Jmatrix[ii, :])
+                            Jrows = C*(-imag/bot*d_real_dm + real/bot*d_imag_dm)
+                    end = start + rx.nD
+                    J[start:end] = Jrows
+                    start = end
 
-
-                    COUNT = COUNT + 1
-
-            # Store full sensitivities
-            self._Jmatrix = np.real(Jmatrix)*dMdm
+            self._Jmatrix = J*dMdm
 
         return self._Jmatrix
 
@@ -441,4 +435,3 @@ class Simulation1DRecursive(BaseEMSimulation):
         J = self.getJ(m, f=None, sensitivity_method=sensitivity_method)
 
         return mkvc(np.dot(v, J))
-        

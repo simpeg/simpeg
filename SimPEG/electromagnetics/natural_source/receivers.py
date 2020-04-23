@@ -795,12 +795,12 @@ class AnalyticReceiver1D(BaseRx):
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
             "app_res": ["apparent_resistivity"],
-            "phase": ["phs"]
+            "phase": ["phs", "angle"]
         }
     )
 
     def __init__(self, locations=None, component=None):
-        self.component = component 
+        self.component = component
 
         BaseRx.__init__(self, locations)
 
