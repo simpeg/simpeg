@@ -78,6 +78,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         # Loop all the frequenies
         F = self.fieldsPair(self)
         for nF, freq in enumerate(self.survey.frequencies):
+            # calculating fields on the fly ===
             Src = self.survey.get_sources_by_frequency(freq)[0]
             e_s = da.from_delayed(self.fieldByFrequency(freq, nF), (self.mesh.nE, 2), dtype=complex).compute()
             F[Src, 'e_pxSolution'] = e_s[:, 0]
@@ -112,8 +113,8 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         :return: Jtv (nP,) Data sensitivities wrt m
         """
 
-        if f is None:
-            f = self.fields(m)
+        # if f is None:
+        #     f = self.fields(m)
 
         self.model = m
 
@@ -122,8 +123,13 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             v = Data(self.survey, v)
         # initiate dask array for Jtv
         Jtv = da.zeros(m.size)
-
+        f = self.fieldsPair(self)
         for nF, freq in enumerate(self.survey.frequencies):
+            # calculating fields on the fly ===
+            Src = self.survey.get_sources_by_frequency(freq)[0]
+            e_s = da.from_delayed(self.fieldByFrequency(freq, nF), (self.mesh.nE, 2), dtype=complex).compute()
+            f[Src, 'e_pxSolution'] = e_s[:, 0]
+            f[Src, 'e_pySolution'] = e_s[:, 1]
 
             for src in self.survey.get_sources_by_frequency(freq):
                 # u_src needs to have both polarizations
