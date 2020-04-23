@@ -35,103 +35,72 @@ def surface2ind_topo(mesh, topo, gridLoc='N', method='linear',
                                below the topography
     """
 
+    assert gridLoc in ["N", "CC"], "Value of gridLoc must be 'N' (nodal) or 'CC' (cell center)"
+
+    dim = mesh.dim - 1
+
     if mesh.dim == 3:
-
-        if mesh._meshType in ['TREE']:
-
-                if method == 'nearest':
-                    F = NearestNDInterpolator(topo[:, :2], topo[:, 2])
-                    zTopo = F(mesh.gridCC[:, :2])
-                else:
-                    tri2D = Delaunay(topo[:, :2])
-                    F = LinearNDInterpolator(tri2D, topo[:, 2])
-                    zTopo = F(mesh.gridCC[:, :2])
-
-                    if any(np.isnan(zTopo)):
-                        F = NearestNDInterpolator(topo[:, :2], topo[:, 2])
-                        zTopo[np.isnan(zTopo)] = F(mesh.gridCC[np.isnan(zTopo), :2])
-
-        if gridLoc == 'CC':
-
-            if mesh._meshType in ['TREE']:
-
-                # Fetch elevation at cell centers
-                actind = mesh.gridCC[:, 2] < zTopo
-
-            else:
-                XY = ndgrid(mesh.vectorCCx, mesh.vectorCCy)
-                Zcc = mesh.gridCC[:, 2].reshape((np.prod(mesh.vnC[:2]),
-                                                 mesh.nCz),
-                                                order='F')
-
-                gridTopo = griddata(topo[:, :2], topo[:, 2], XY,
-                                    method=method,
-                                    fill_value=fill_value)
-
-                actind = [gridTopo >= Zcc[:, ixy]
-                          for ixy in range(np.prod(mesh.vnC[2]))]
-
-                actind = np.hstack(actind)
-
-        elif gridLoc == 'N':
-
-            if mesh._meshType in ['TENSOR', 'CYL', 'BASETENSOR']:
-
-                XY = ndgrid(mesh.vectorNx, mesh.vectorNy)
-                gridTopo = griddata(topo[:, :2], topo[:, 2], XY,
-                                    method=method,
-                                    fill_value=fill_value)
-
-                gridTopo = gridTopo.reshape(mesh.vnN[:2], order='F')
-
-                # TODO: this will only work for tensor meshes
-                Nz = mesh.vectorNz[1:]
-                actind = np.array([False]*mesh.nC).reshape(mesh.vnC, order='F')
-
-                for ii in range(mesh.nCx):
-                    for jj in range(mesh.nCy):
-                        actind[ii, jj, :] = [np.all(gridTopo[ii:ii+2, jj:jj+2] >=
-                                                    Nz[kk])
-                                             for kk in range(len(Nz))]
-            else:
-
-                # Fetch elevation at cell centers
-                actind = (mesh.gridCC[:, 2] + mesh.h_gridded[:, 2]/2.) < zTopo
-
+        assert topo.shape[1] == 3, "topo locations of shape (*, 3) required for 3D mesh"
+        if method == 'linear':
+            tri2D = Delaunay(topo[:, :2])
+            z_interpolate = LinearNDInterpolator(tri2D, topo[:, 2])
+        else:
+            z_interpolate = NearestNDInterpolator(topo[:, :2], topo[:, 2])
     elif mesh.dim == 2:
-
-        Ftopo = interp1d(topo[:, 0], topo[:, 1], fill_value=fill_value,
-                         kind=method)
-
-        if gridLoc == 'CC':
-            gridTopo = Ftopo(mesh.gridCC[:, 0])
-            actind = mesh.gridCC[:, 1] <= gridTopo
-
-        elif gridLoc == 'N':
-
-            if mesh._meshType in ['TENSOR', 'CYL', 'BASETENSOR']:
-                gridTopo = Ftopo(mesh.vectorNx)
-                    # raise NotImplementedError('Nodal surface2ind_topo not' +
-                    #                           'implemented for {0!s} ' +
-                    #                           'mesh'.format(mesh._meshType))
-
-                # TODO: this will only work for tensor meshes
-                Ny = mesh.vectorNy[1:]
-                actind = np.array([False]*mesh.nC).reshape(mesh.vnC, order='F')
-
-                for ii in range(mesh.nCx):
-                    actind[ii, :] = [np.all(gridTopo[ii: ii+2] > Ny[kk])
-                                     for kk in range(len(Ny))]
-
-            else:
-                zTopo = Ftopo(mesh.gridCC[:, 0])
-                actind = (mesh.gridCC[:, 1] + mesh.h_gridded[:, 1]/2.) < zTopo
-
+        assert topo.shape[1] == 2, "topo locations of shape (*, 2) required for 2D mesh"
+        z_interpolate = interp1d(
+            topo[:, 0], topo[:, 1], bounds_error=False, fill_value=np.nan, kind=method
+        )
     else:
-        raise NotImplementedError('surface2ind_topo not implemented' +
-                                  ' for 1D mesh')
+        assert topo.ndim == 1, "topo locations of shape (*, ) required for 1D mesh"
 
-    return mkvc(actind)
+    if gridLoc == 'CC':
+        locations = mesh.gridCC
+
+        if mesh.dim == 1:
+            active = np.zeros(mesh.nC, dtype='bool')
+            active[np.searchsorted(mesh.vectorCCx, topo).max():] = True
+            return active
+
+    elif gridLoc == 'N':
+
+        if mesh.dim == 3:
+            locations = np.vstack([
+                mesh.gridCC + (np.c_[-1, 1, 1][:, None] * mesh.h_gridded / 2.).squeeze(),
+                mesh.gridCC + (np.c_[-1, -1, 1][:, None] * mesh.h_gridded / 2.).squeeze(),
+                mesh.gridCC + (np.c_[1, 1, 1][:, None] * mesh.h_gridded / 2.).squeeze(),
+                mesh.gridCC + (np.c_[1, -1, 1][:, None] * mesh.h_gridded / 2.).squeeze()
+            ])
+
+        elif mesh.dim == 2:
+            locations = np.vstack([
+                mesh.gridCC + (np.c_[-1, 1][:, None] * mesh.h_gridded / 2.).squeeze(),
+                mesh.gridCC + (np.c_[1, 1][:, None] * mesh.h_gridded / 2.).squeeze(),
+            ])
+
+        else:
+            active = np.zeros(mesh.nC, dtype='bool')
+            active[np.searchsorted(mesh.vectorNx, topo).max():] = True
+
+            return active
+
+    # Interpolate z values on CC or N
+    z_topo = z_interpolate(locations[:, :-1]).squeeze()
+
+    # Apply nearest neighbour if in extrapolation
+    ind_nan = np.isnan(z_topo)
+
+    if np.any(ind_nan):
+        tree = cKDTree(topo)
+        _, ind = tree.query(locations[ind_nan, :])
+        z_topo[ind_nan] = topo[ind, dim]
+
+    # Create an active bool of all True
+    active = np.all(
+        (locations[:, dim] < z_topo).reshape((mesh.nC, -1), order='F'), axis=1
+    )
+
+    return active.ravel()
 
 
 def tileSurveyPoints(locs, nRefine, minimize=True, method='cluster'):
