@@ -480,7 +480,7 @@ class IO(properties.HasProperties):
     def set_mesh(self, topo=None,
                 dx=None, dy=None, dz=None,
                 n_spacing=None, corezlength=None,
-                npad_x=5, npad_y=5, npad_z=5,
+                npad_x=None, npad_y=None, npad_z=None,
                 pad_rate_x=1.3, pad_rate_y=1.3, pad_rate_z=1.3,
                 ncell_per_dipole=4, mesh_type='TensorMesh',
                 dimension=2,
