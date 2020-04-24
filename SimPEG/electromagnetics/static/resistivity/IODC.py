@@ -481,14 +481,40 @@ class IO(properties.HasProperties):
                 dx=None, dy=None, dz=None,
                 n_spacing=None, corezlength=None,
                 npad_x=None, npad_y=None, npad_z=None,
-                pad_rate_x=1.3, pad_rate_y=1.3, pad_rate_z=1.3,
-                ncell_per_dipole=4, mesh_type='TensorMesh',
+                pad_rate_x=None, pad_rate_y=None, pad_rate_z=None,
+                ncell_per_dipole=None, mesh_type='TensorMesh',
                 dimension=2,
                 method='nearest'
                 ):
         """
         Set up a mesh for a given DC survey
         """
+
+        # Update properties
+        if npad_x is not None:
+            self.npad_x = npad_x
+        else:
+            npad_x = self.npad_x
+
+        if npad_z is not None:
+            self.npad_z = npad_z
+        else:
+            npad_z = self.npad_z
+
+        if pad_rate_x is not None:
+            self.pad_rate_x = pad_rate_x
+        else:
+            pad_rate_x = self.pad_rate_x
+
+        if pad_rate_z is not None:
+            self.pad_rate_z = pad_rate_z
+        else:
+            pad_rate_z = self.pad_rate_z
+        
+        if ncell_per_dipole is not None:
+            self.ncell_per_dipole = ncell_per_dipole
+        else:
+            ncell_per_dipole = self.ncell_per_dipole
 
         # 2D or 3D mesh
         if dimension in [2, 3]:
@@ -557,13 +583,10 @@ class IO(properties.HasProperties):
                 # )
                 pass
 
+            # Set mesh properties to class instance
             self.dx = dx
             self.dz = dz
-            self.npad_x = npad_x
-            self.npad_z = npad_z
-            self.pad_rate_x = pad_rate_x
-            self.pad_rate_z = pad_rate_z
-            self.ncell_per_dipole = ncell_per_dipole
+
             zmax = locs[:, z_ind].max()
             zmin = locs[:, z_ind].min()
 
@@ -602,8 +625,15 @@ class IO(properties.HasProperties):
                         raise Exception("You must input dy (m)")
 
                     self.dy = dy
-                    self.npad_y = npad_y
-                    self.pad_rate_y = pad_rate_y
+                    if npad_y is not None:
+                        self.npad_y = npad_y
+                    else:
+                        npad_y = self.npad_y
+
+                    if pad_rate_y is not None:
+                        self.pad_rate_y = pad_rate_y
+                    else:
+                        pad_rate_y = self.pad_rate_y
 
                     ylocs = np.unique(self.electrode_locations[:, 1])
                     ymin, ymax = ylocs.min(), ylocs.max()
