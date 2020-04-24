@@ -19,6 +19,7 @@ from ..utils import omega
 from .survey import Survey, Data
 from pyMKL import mkl_set_num_threads
 from .fields import Fields1DPrimarySecondary, Fields3DPrimarySecondary
+import xarray as xr
 
 
 class BaseNSEMSimulation(BaseFDEMSimulation):
@@ -62,25 +63,32 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         """
 
         # Calculate the fields if not given as input
-        if f is None:
-            f = self.fields(m).compute()
+        # if f is None:
+        #     # f = self.fields(m)
+        #     F = self.fields2(m)
         # Set current model
         self.model = m
         # Initiate the Jv list
         Jv = []
-        number_of_frequencies = len(self.survey.frequencies) 
+        number_of_frequencies = len(self.survey.frequencies)
         number_of_components = len(self.survey.get_sources_by_frequency(self.survey.frequencies[0])[0].receiver_list)
         n_dim = number_of_frequencies * number_of_components
         m_dim = int(self.survey.nD / (number_of_components * number_of_frequencies))
 
         # Loop all the frequenies
+        F = self.fieldsPair(self)
         for nF, freq in enumerate(self.survey.frequencies):
+            # calculating fields on the fly ===
+            Src = self.survey.get_sources_by_frequency(freq)[0]
+            e_s = da.from_delayed(self.fieldByFrequency(freq, nF), (self.mesh.nE, 2), dtype=complex).compute()
+            F[Src, 'e_pxSolution'] = e_s[:, 0]
+            F[Src, 'e_pySolution'] = e_s[:, 1]
             # Get the system
             for src in self.survey.get_sources_by_frequency(freq):
                 # need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
-                u_src = f[src, :]
-                dA_dm_v = self.getADeriv(freq, u_src, v) 
+                u_src = F[src, :]
+                dA_dm_v = self.getADeriv(freq, u_src, v)
                 dRHS_dm_v = self.getRHSDeriv(freq, v)
 
                 # Calculate du/dm*v
@@ -88,7 +96,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 # Calculate the projection derivatives
                 for rx in src.receiver_list:
                     # Calculate dP/du*du/dm*v
-                    Jv.append(da.from_delayed(dask.delayed(rx.evalDeriv)(src, self.mesh, f, mkvc(du_dm_v)), shape=(m_dim,), dtype=float))
+                    Jv.append(da.from_delayed(dask.delayed(rx.evalDeriv)(src, self.mesh, F, mkvc(du_dm_v)), shape=(m_dim,), dtype=float))
             # when running full inversion clearing the fields creates error and inversion crashes
             # self.Ainv[nF].clean()
         # return Jv.flatten('F')
@@ -105,8 +113,8 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         :return: Jtv (nP,) Data sensitivities wrt m
         """
 
-        if f is None:
-            f = self.fields(m).compute()
+        # if f is None:
+        #     f = self.fields(m)
 
         self.model = m
 
@@ -115,8 +123,13 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             v = Data(self.survey, v)
         # initiate dask array for Jtv
         Jtv = da.zeros(m.size)
-
+        f = self.fieldsPair(self)
         for nF, freq in enumerate(self.survey.frequencies):
+            # calculating fields on the fly ===
+            Src = self.survey.get_sources_by_frequency(freq)[0]
+            e_s = da.from_delayed(self.fieldByFrequency(freq, nF), (self.mesh.nE, 2), dtype=complex).compute()
+            f[Src, 'e_pxSolution'] = e_s[:, 0]
+            f[Src, 'e_pySolution'] = e_s[:, 1]
 
             for src in self.survey.get_sources_by_frequency(freq):
                 # u_src needs to have both polarizations
@@ -144,6 +157,74 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 # when running full inversion clearing the fields creates error and inversion crashes
                 # self.ATinv[nF].clean()
         return Jtv.compute()
+
+    def getJ(self, m, f=None):
+        """
+        Function to calculate the sensitivity matrix.
+
+        :param numpy.ndarray m: inversion model (nP,)
+        :param SimPEG.EM.NSEM.FieldsNSEM f (optional): NSEM fields object, if not given it is calculated
+        :rtype: numpy.ndarray
+        :return: J (nD, nP) Data sensitivities wrt m
+        """
+
+        if f is None:
+            f = self.fields(m)
+
+        self.model = m
+
+        J = np.empty((self.survey.nD, self.model.size))
+
+        istrt = 0
+        for freq in self.survey.frequencies:
+            AT = self.getA(freq).T
+
+            ATinv = self.Solver(AT, **self.solverOpts)
+
+            for src in self.survey.get_sources_by_frequency(freq):
+                # u_src needs to have both polarizations
+                u_src = f[src, :]
+
+                for rx in src.receiver_list:
+                    # Get the adjoint evalDeriv
+
+                    # Need to make PT
+                    # Ideally rx.evalDeriv will be updated to return a matrix,
+                    # but for now just calculate it like so...
+                    PT = np.empty((AT.shape[0], rx.nD*2), dtype=complex, order='F')
+                    for i in range(rx.nD):
+                        v = np.zeros(rx.nD)
+                        v[i] = 1.0
+                        PTv = rx.evalDeriv(src, self.mesh, f, v, adjoint=True)
+                        PT[:, 2*i:2*i+2] = PTv
+
+                    dA_duIT = ATinv * PT
+                    dA_duIT = dA_duIT.reshape(-1, rx.nD, order='F')  # shape now nUxnD
+
+                    # getADeriv and getRHSDeriv should be updated to accept and return
+                    # matrices, but for now this works.
+                    # They should also be update to return the real parts as well.
+                    dA_dmT = np.empty((rx.nD, J.shape[1]))
+                    dRHS_dmT = np.empty((rx.nD, J.shape[1]))
+                    for i in range(rx.nD):
+                        dA_dmT[i, :] = self.getADeriv(freq, u_src, dA_duIT[:, i], adjoint=True).real
+                        dRHS_dmT[i, :] = self.getRHSDeriv(freq, dA_duIT[:, i], adjoint=True).real
+                    # Make du_dmT
+                    du_dmT = -dA_dmT + dRHS_dmT
+                    # Now just need to put it in the right spot.....
+                    real_or_imag = rx.component
+                    if real_or_imag == 'real':
+                        J_rows = du_dmT
+                    elif real_or_imag == 'imag':
+                        J_rows = -du_dmT
+                    else:
+                        raise Exception('Must be real or imag')
+                    iend = istrt + rx.nD
+                    J[istrt:iend, :] = J_rows
+                    istrt = iend
+            # Clean the factorization, clear memory.
+            ATinv.clean()
+        return J
 
 
 ###################################
@@ -354,6 +435,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
 
     def __init__(self, mesh, **kwargs):
         super(Simulation3DPrimarySecondary, self).__init__(mesh, **kwargs)
+        self.Ainv = [None for i in range(self.survey.num_frequencies)]
 
     @property
     def sigmaPrimary(self):
@@ -451,6 +533,68 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
         return dRHS_dm
 
     @dask.delayed(pure=True)
+    def fieldByFrequency(self, freq, freq_index):
+        """
+        Function to calculate all the fields for the model m.
+
+        :param numpy.ndarray (nC,) m: Conductivity model
+        :rtype: SimPEG.EM.NSEM.FieldsNSEM
+        :return: Fields object with of the solution
+
+        """
+        if self.verbose:
+            print('Starting work for {:.3e}'.format(freq))
+            sys.stdout.flush()
+        mkl_set_num_threads(self.n_cpu)
+        if self.Ainv[int(freq_index)] is not None:
+            self.Ainv[int(freq_index)].clean()
+
+        A = self.getA(freq)
+        rhs = self.getRHS(freq)
+        # Solve the system
+        self.Ainv[int(freq_index)] = self.Solver(A, **self.solver_opts)
+        e_s = self.Ainv[int(freq_index)] * rhs
+
+        return e_s
+        # Ainv.clean()
+
+    def fields2(self, m=None):
+        """
+        Function to calculate all the fields for the model m.
+
+        :param numpy.ndarray (nC,) m: Conductivity model
+        :rtype: SimPEG.EM.NSEM.FieldsNSEM
+        :return: Fields object with of the solution
+
+        """
+        self.Ainv = [None for i in range(self.survey.num_frequencies)]
+        F = self.fieldsPair(self)
+        e_s = []
+        # ds = []
+        for nf, freq in enumerate(self.survey.frequencies):
+            # ==== Xarray stuff for when it is ready to handle in fields =====
+            # Src = self.survey.get_sources_by_frequency(freq)[0]
+            # e_s = da.from_delayed(self.fieldByFrequency(freq, nf), (self.mesh.nE, 2), dtype=complex)
+            # ds.append(xr.DataArray(e_s, coords=[np.arange(0, self.mesh.nE, 1), ['e_pxSolution', 'e_pySolution']], dims=['index', 'space']))
+
+            # ==== regular implementation =====
+            e_s.append(da.from_delayed(self.fieldByFrequency(freq, nf), (self.mesh.nE, 2), dtype=complex))
+
+        F_ = da.hstack(e_s).compute()
+        # da.hstack(e_s).visualize()
+
+        F[:, 'e_pxSolution'] = F_[:, ::2]
+        F[:, 'e_pySolution'] = F_[:, 1::2]
+
+        # index = np.arange(0, len(self.survey.frequencies), 1)
+        # # self.fieldByFrequency(self.survey.frequencies[0], index[0])
+        # pool = multiprocessing.Pool()
+        # pool.map(self.fieldByFrequency, (index))
+        # pool.close()
+        # pool.join()
+        return F
+
+    # @dask.delayed(pure=True)
     def fields(self, m=None):
         """
         Function to calculate all the fields for the model m.
@@ -460,7 +604,6 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
         :return: Fields object with of the solution
 
         """
-        mkl_set_num_threads(self.n_cpu)
         # Set the current model
         if m is not None:
             self.model = m
@@ -494,7 +637,9 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
             # Note curl e = -iwb so b = -curl/iw
 
             if self.verbose:
-                print('Ran for {:f} seconds'.format(time.time()-startTime))
+                print('Ran for {:f} seconds'.format(time.time() - startTime))
+                # print('field type: ', Src.receiver_list)
+                print('field type: ', F[:, 'e_pxSolution'].shape)
                 sys.stdout.flush()
             # Ainv.clean()
         return F
