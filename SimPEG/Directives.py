@@ -728,7 +728,6 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
             regCombo += ["phi_msz"]
 
         # Initialize the output dict
-        iterDict = None
         iterDict = {}
 
         # Save the data.
@@ -744,10 +743,20 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         iterDict['m'] = self.invProb.model
         iterDict['dpred'] = self.invProb.dpred
 
+        if hasattr(self.dmisfit.objfcts[0].prob, 'coordinate_system'):
+            iterDict['coordinate_system'] = self.dmisfit.objfcts[0].prob.coordinate_system
+        else:
+            iterDict['coordinate_system'] = False
+            
         if hasattr(self.reg.objfcts[0], 'eps_p') is True:
             iterDict['eps_p'] = self.reg.objfcts[0].eps_p
             iterDict['eps_q'] = self.reg.objfcts[0].eps_q
-
+            
+        if hasattr(self.opt, 'iterLS') is True:
+            iterDict['IRLSiter'] = self.opt.iterLS
+        else:
+            iterDict['IRLSiter'] = 0
+            
         if hasattr(self.reg.objfcts[0], 'norms') is True:
             for objfct in self.reg.objfcts[0].objfcts:
                 objfct.stashedR = None
