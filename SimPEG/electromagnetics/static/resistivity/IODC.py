@@ -176,7 +176,7 @@ class IO(properties.HasProperties):
     dy = properties.Float(
         "Length of corecell in y-direction", required=True
     )
-    dy = properties.Float(
+    dz = properties.Float(
         "Length of corecell in z-direction", required=True
     )
 
@@ -478,11 +478,10 @@ class IO(properties.HasProperties):
         return survey
 
     def set_mesh(self, topo=None,
-                dx=None, dy=None, dz=None,
-                n_spacing=None, corezlength=None,
-                npad_x=7, npad_y=7, npad_z=7,
-                pad_rate_x=1.3, pad_rate_y=1.3, pad_rate_z=1.3,
-                ncell_per_dipole=4, mesh_type='TensorMesh',
+                dx=None, dy=None, dz=None, corezlength=None,
+                npad_x=None, npad_y=None, npad_z=None,
+                pad_rate_x=None, pad_rate_y=None, pad_rate_z=None,
+                ncell_per_dipole=None, mesh_type='TensorMesh',
                 dimension=2,
                 method='nearest'
                 ):
@@ -490,205 +489,230 @@ class IO(properties.HasProperties):
         Set up a mesh for a given DC survey
         """
 
+        # Update properties
+        if npad_x is None:
+            npad_x = self.npad_x
+        self.npad_x = npad_x
+
+        if npad_z is None:
+            npad_z = self.npad_z
+        self.npad_z = npad_z
+
+        if pad_rate_x is None:
+            pad_rate_x = self.pad_rate_x
+        self.pad_rate_x = pad_rate_x
+
+        if pad_rate_z is None:
+            pad_rate_z = self.pad_rate_z
+        self.pad_rate_z = pad_rate_z
+
+        if ncell_per_dipole is None:
+            ncell_per_dipole = self.ncell_per_dipole
+        self.ncell_per_dipole = ncell_per_dipole
+
         # 2D or 3D mesh
-        if dimension in [2, 3]:
-            if dimension == 2:
-                z_ind = 1
-            else:
-                z_ind = 2
-            a = abs(np.diff(np.sort(self.electrode_locations[:, 0]))).min()
-            lineLength = abs(
-                self.electrode_locations[:, 0].max() -
-                self.electrode_locations[:, 0].min()
+        if dimension not in [2, 3]:
+            raise NotImplementedError('Set mesh has not been implemented for a 1D system')
+
+        if dimension == 2:
+            z_ind = 1
+        else:
+            z_ind = 2
+        a = abs(np.diff(np.sort(self.electrode_locations[:, 0]))).min()
+        lineLength = abs(
+            self.electrode_locations[:, 0].max() -
+            self.electrode_locations[:, 0].min()
+        )
+        dx_ideal = a/ncell_per_dipole
+        if dx is None:
+            dx = dx_ideal
+            print(
+                "dx is set to {} m (samllest electrode spacing ({}) / {})".format(dx, a, ncell_per_dipole)
             )
-            dx_ideal = a/ncell_per_dipole
-            if dx is None:
-                dx = dx_ideal
-                warnings.warn(
-                    "dx is set to {} m (samllest electrode spacing ({}) / {})".format(dx, a, ncell_per_dipole)
-                )
-            if dz is None:
-                dz = dx*0.5
-                warnings.warn(
-                    "dz ({} m) is set to dx ({} m) / {}".format(dz, dx, 2)
-                )
-            x0 = self.electrode_locations[:, 0].min()
-            if topo is None:
-                # For 2D mesh
-                if dimension == 2:
-                    # sort by x
-                    row_idx = np.lexsort((self.electrode_locations[:, 0],))
-                # For 3D mesh
-                else:
-                    # sort by x, then by y
-                    row_idx = np.lexsort((self.electrode_locations[:, 1],
-                                          self.electrode_locations[:, 0]))
-                locs = self.electrode_locations[row_idx, :]
+        if dz is None:
+            dz = dx*0.5
+            print(
+                "dz ({} m) is set to dx ({} m) / {}".format(dz, dx, 2)
+            )
+        if dimension == 3:
+            if dy is None:
+                print('dy is set equal to dx')
+                dy = dx
+            self.dy = dy
+
+            if npad_y is None:
+                npad_y = self.npad_y
+            self.npad_y = npad_y
+
+            if pad_rate_y is None:
+                pad_rate_y = self.pad_rate_y
+            self.pad_rate_y = pad_rate_y
+
+        x0 = self.electrode_locations[:, 0].min()
+        if topo is None:
+            # For 2D mesh
+            if dimension == 2:
+                # sort by x
+                row_idx = np.lexsort((self.electrode_locations[:, 0],))
+            # For 3D mesh
             else:
-                # For 2D mesh
-                if dimension == 2:
-                    mask = np.isin(self.electrode_locations[:, 0], topo[:, 0])
-                    if np.any(mask):
-                        warnings.warn(
-                            "Because the x coordinates of some topo and electrodes are the same,"
-                            " we excluded electrodes with the same coordinates.",
-                            RuntimeWarning
-                        )
-                    locs_tmp = np.vstack((topo, self.electrode_locations[~mask, :]))
-                    row_idx = np.lexsort((locs_tmp[:, 0],))
-                else:
-                    dtype = [('x', np.float64), ('y', np.float64)]
-                    mask = np.isin(self.electrode_locations[:, [0, 1]].copy().view(dtype),
-                                   topo[:, [0, 1]].copy().view(dtype)).flatten()
-                    if np.any(mask):
-                        warnings.warn(
-                            "Because the x and y coordinates of some topo and electrodes are the same,"
-                            " we excluded electrodes with the same coordinates.",
-                            RuntimeWarning
-                        )
-                    locs_tmp = np.vstack((topo, self.electrode_locations[~mask, :]))
-                    row_idx = np.lexsort((locs_tmp[:, 1],
-                                          locs_tmp[:, 0]))
-                locs = locs_tmp[row_idx, :]
+                # sort by x, then by y
+                row_idx = np.lexsort((self.electrode_locations[:, 1],
+                                      self.electrode_locations[:, 0]))
+            locs = self.electrode_locations[row_idx, :]
+        else:
+            # For 2D mesh
+            if dimension == 2:
+                mask = np.isin(self.electrode_locations[:, 0], topo[:, 0])
+                if np.any(mask):
+                    warnings.warn(
+                        "Because the x coordinates of some topo and electrodes are the same,"
+                        " we excluded electrodes with the same coordinates.",
+                        RuntimeWarning
+                    )
+                locs_tmp = np.vstack((topo, self.electrode_locations[~mask, :]))
+                row_idx = np.lexsort((locs_tmp[:, 0],))
+            else:
+                dtype = [('x', np.float64), ('y', np.float64)]
+                mask = np.isin(self.electrode_locations[:, [0, 1]].copy().view(dtype),
+                               topo[:, [0, 1]].copy().view(dtype)).flatten()
+                if np.any(mask):
+                    warnings.warn(
+                        "Because the x and y coordinates of some topo and electrodes are the same,"
+                        " we excluded electrodes with the same coordinates.",
+                        RuntimeWarning
+                    )
+                locs_tmp = np.vstack((topo, self.electrode_locations[~mask, :]))
+                row_idx = np.lexsort((locs_tmp[:, 1],
+                                      locs_tmp[:, 0]))
+            locs = locs_tmp[row_idx, :]
 
-            if dx > dx_ideal:
-                # warnings.warn(
-                #     "Input dx ({}) is greater than expected \n We recommend using {:0.1e} m cells, that is, {} cells per {0.1e} m dipole length".format(dx, dx_ideal, ncell_per_dipole, a)
-                # )
-                pass
+        if dx > dx_ideal:
+            # warnings.warn(
+            #     "Input dx ({}) is greater than expected \n We recommend using {:0.1e} m cells, that is, {} cells per {0.1e} m dipole length".format(dx, dx_ideal, ncell_per_dipole, a)
+            # )
+            pass
 
-            self.dx = dx
-            self.dz = dz
-            self.npad_x = npad_x
-            self.npad_z = npad_z
-            self.pad_rate_x = pad_rate_x
-            self.pad_rate_z = pad_rate_z
-            self.ncell_per_dipole = ncell_per_dipole
-            zmax = locs[:, z_ind].max()
-            zmin = locs[:, z_ind].min()
+        # Set mesh properties to class instance
+        self.dx = dx
+        self.dz = dz
 
-            # 3 cells each for buffer
-            corexlength = lineLength + dx * 6
-            if corezlength is None:
-                dz_topo = locs[:,1].max()-locs[:,1].min()
-                corezlength = self.grids[:, z_ind].max() + dz_topo
-                self.corezlength = corezlength
+        zmax = locs[:, z_ind].max()
+        zmin = locs[:, z_ind].min()
 
-            if mesh_type == 'TensorMesh':
-                ncx = np.round(corexlength/dx)
-                ncz = np.round(corezlength/dz)
-                hx = [
-                    (dx, npad_x, -pad_rate_x), (dx, ncx), (dx, npad_x, pad_rate_x)
+        # 3 cells each for buffer
+        corexlength = lineLength + dx * 6
+        if corezlength is None:
+            dz_topo = locs[:,1].max()-locs[:,1].min()
+            corezlength = self.grids[:, z_ind].max() + dz_topo
+            self.corezlength = corezlength
+
+        if mesh_type == 'TensorMesh':
+            ncx = np.round(corexlength/dx)
+            ncz = np.round(corezlength/dz)
+            hx = [
+                (dx, npad_x, -pad_rate_x), (dx, ncx), (dx, npad_x, pad_rate_x)
+            ]
+            hz = [(dz, npad_z, -pad_rate_z), (dz, ncz)]
+            x0_mesh = -(
+                (dx * pad_rate_x ** (np.arange(npad_x)+1)).sum() + dx * 3 - x0
+            )
+            z0_mesh = -((dz * pad_rate_z ** (np.arange(npad_z)+1)).sum() + dz * ncz) + zmax
+
+            # For 2D mesh
+            if dimension == 2:
+                h = [hx, hz]
+                x0_for_mesh = [x0_mesh, z0_mesh]
+                self.xyzlim = np.vstack((
+                    np.r_[x0, x0+lineLength],
+                    np.r_[zmax-corezlength, zmax]
+                ))
+                fill_value = "extrapolate"
+
+            # For 3D mesh
+            else:
+
+                ylocs = np.unique(self.electrode_locations[:, 1])
+                ymin, ymax = ylocs.min(), ylocs.max()
+                # 3 cells each for buffer in y-direction
+                coreylength = ymax-ymin+dy*6
+                ncy = np.round(coreylength/dy)
+                hy = [
+                    (dy, npad_y, -pad_rate_y),
+                    (dy, ncy),
+                    (dy, npad_y, pad_rate_y)
                 ]
-                hz = [(dz, npad_z, -pad_rate_z), (dz, ncz)]
-                x0_mesh = -(
-                    (dx * pad_rate_x ** (np.arange(npad_x)+1)).sum() + dx * 3 - x0
+                y0 = ylocs.min()-dy/2.
+                y0_mesh = -(
+                    (dy * pad_rate_y ** (np.arange(npad_y)+1)).sum()
+                    + dy*3 - y0
                 )
-                z0_mesh = -((dz * pad_rate_z ** (np.arange(npad_z)+1)).sum() + dz * ncz) + zmax
 
-                # For 2D mesh
-                if dimension == 2:
-                    h = [hx, hz]
-                    x0_for_mesh = [x0_mesh, z0_mesh]
-                    self.xyzlim = np.vstack((
-                        np.r_[x0, x0+lineLength],
-                        np.r_[zmax-corezlength, zmax]
-                    ))
-                    fill_value = "extrapolate"
+                h = [hx, hy, hz]
+                x0_for_mesh = [x0_mesh, y0_mesh, z0_mesh]
+                self.xyzlim = np.vstack((
+                    np.r_[x0, x0+lineLength],
+                    np.r_[ymin-dy*3, ymax+dy*3],
+                    np.r_[zmax-corezlength, zmax]
+                ))
+            mesh = TensorMesh(h, x0=x0_for_mesh)
 
-                # For 3D mesh
-                else:
-                    if dy is None:
-                        raise Exception("You must input dy (m)")
+        elif mesh_type == "TREE":
+            # Quadtree mesh
+            if dimension == 2:
 
-                    self.dy = dy
-                    self.npad_y = npad_y
-                    self.pad_rate_y = pad_rate_y
+                pad_length_x = np.sum(meshTensor([(dx, npad_x, pad_rate_x)]))
+                pad_length_z = np.sum(meshTensor([(dz, npad_z, pad_rate_z)]))
 
-                    ylocs = np.unique(self.electrode_locations[:, 1])
-                    ymin, ymax = ylocs.min(), ylocs.max()
-                    # 3 cells each for buffer in y-direction
-                    coreylength = ymax-ymin+dy*6
-                    ncy = np.round(coreylength/dy)
-                    hy = [
-                        (dy, npad_y, -pad_rate_y),
-                        (dy, ncy),
-                        (dy, npad_y, pad_rate_y)
-                    ]
-                    y0 = ylocs.min()-dy/2.
-                    y0_mesh = -(
-                        (dy * pad_rate_y ** (np.arange(npad_y)+1)).sum()
-                        + dy*3 - y0
-                    )
+                dom_width_x = lineLength + 2*pad_length_x  # domain width x
+                dom_width_z = corezlength + pad_length_z   # domain width z
 
-                    h = [hx, hy, hz]
-                    x0_for_mesh = [x0_mesh, y0_mesh, z0_mesh]
-                    self.xyzlim = np.vstack((
-                        np.r_[x0, x0+lineLength],
-                        np.r_[ymin-dy*3, ymax+dy*3],
-                        np.r_[zmax-corezlength, zmax]
-                    ))
-                mesh = TensorMesh(h, x0=x0_for_mesh)
+                nbcx = 2**int(np.ceil(np.log(dom_width_x/dx)/np.log(2.)))     # num. base cells x
+                nbcz = 2**int(np.ceil(np.log(dom_width_z/dz)/np.log(2.)))     # num. base cells z
 
-            elif mesh_type == "TREE":
-                # Quadtree mesh
-                if dimension == 2:
+                length = 0.
+                dz_tmp = dz
+                octree_levels = []
+                while length < corezlength:
+                    length += 5*dz_tmp
+                    octree_levels.append(5)
+                    dz_tmp *= 2
 
-                    pad_length_x = np.sum(meshTensor([(dx, npad_x, pad_rate_x)]))
-                    pad_length_z = np.sum(meshTensor([(dz, npad_z, pad_rate_z)]))
+                # Define the base mesh
+                hx = [(dx, nbcx)]
+                hz = [(dz, nbcz)]
 
-                    dom_width_x = lineLength + 2*pad_length_x  # domain width x
-                    dom_width_z = corezlength + pad_length_z   # domain width z
+                mesh_width = np.sum(meshTensor(hx))
+                mesh_height = np.sum(meshTensor(hz))
 
-                    nbcx = 2**int(np.ceil(np.log(dom_width_x/dx)/np.log(2.)))     # num. base cells x
-                    nbcz = 2**int(np.ceil(np.log(dom_width_z/dz)/np.log(2.)))     # num. base cells z
+                array_midpoint = 0.5*(
+                    self.electrode_locations[:, 0].min() +
+                    self.electrode_locations[:, 0].max()
+                )
+                mesh = TreeMesh([hx, hz],
+                    x0=[array_midpoint-mesh_width/2, zmax-mesh_height])
+                # mesh = TreeMesh([hx, hz], x0='CN')
 
-                    length = 0.
-                    dz_tmp = dz
-                    octree_levels = []
-                    while length < corezlength:
-                        length += 5*dz_tmp
-                        octree_levels.append(5)
-                        dz_tmp *= 2
+                # Mesh refinement based on topography
+                mesh = refine_tree_xyz(
+                    mesh, self.electrode_locations, octree_levels=octree_levels, method='radial', finalize=False
+                )
+                mesh.finalize()
 
-                    # Define the base mesh
-                    hx = [(dx, nbcx)]
-                    hz = [(dz, nbcz)]
+                self.xyzlim = np.vstack((
+                    np.r_[self.electrode_locations[:,0].min(), self.electrode_locations[:,0].max()],
+                    np.r_[zmax-corezlength, zmax]
+                ))
 
-                    mesh_width = np.sum(meshTensor(hx))
-                    mesh_height = np.sum(meshTensor(hz))
-
-                    array_midpoint = 0.5*(
-                        self.electrode_locations[:, 0].min() +
-                        self.electrode_locations[:, 0].max()
-                    )
-                    mesh = TreeMesh([hx, hz],
-                        x0=[array_midpoint-mesh_width/2, zmax-mesh_height])
-                    # mesh = TreeMesh([hx, hz], x0='CN')
-
-                    # Mesh refinement based on topography
-                    mesh = refine_tree_xyz(
-                        mesh, self.electrode_locations, octree_levels=octree_levels, method='radial', finalize=False
-                    )
-                    mesh.finalize()
-
-                    self.xyzlim = np.vstack((
-                        np.r_[self.electrode_locations[:,0].min(), self.electrode_locations[:,0].max()],
-                        np.r_[zmax-corezlength, zmax]
-                    ))
-
-                # Octree mesh
-                elif dimension == 3:
-                    raise NotImplementedError()
-
-            else:
-                raise NotImplementedError()
-
-
-            actind = surface2ind_topo(mesh, locs, method=method, fill_value=np.nan)
+            # Octree mesh
+            elif dimension == 3:
+                raise NotImplementedError('set_mesh has not implemented 3D TreeMesh (yet)')
 
         else:
-            raise NotImplementedError()
+            raise NotImplementedError("set_mesh currently generates TensorMesh or TreeMesh")
+
+
+        actind = surface2ind_topo(mesh, locs, method=method, fill_value=np.nan)
 
         return mesh, actind
 
