@@ -138,7 +138,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         print('Adjoint Test for e')
 
         m = -1 + 1e-1*np.random.rand(self.sigma_map.nP)
-        u = self.prob.fields(m).compute()
+        u = self.prob.fields(m)
         # u = u[self.survey.source_list,'e']
 
         v = np.random.rand(self.survey.nD)
