@@ -743,7 +743,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         iterDict['m'] = self.invProb.model
         iterDict['dpred'] = self.invProb.dpred
 
-        if hasattr(self.dmisfit.objfcts[0].prob, 'coordinate_system'):
+        if hasattr(self.dmisfit.objfcts[0].prob, 'coordinate_system') is True:
             iterDict['coordinate_system'] = self.dmisfit.objfcts[0].prob.coordinate_system
         else:
             iterDict['coordinate_system'] = False
@@ -752,10 +752,11 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
             iterDict['eps_p'] = self.reg.objfcts[0].eps_p
             iterDict['eps_q'] = self.reg.objfcts[0].eps_q
             
-        if hasattr(self.opt, 'iterLS') is True:
-            iterDict['IRLSiter'] = self.opt.iterLS
-        else:
-            iterDict['IRLSiter'] = 0
+        iterDict['IRLSiterStart'] = None
+        for direct in self.inversion.directiveList.dList:
+            if isinstance(direct, Update_IRLS) and hasattr(direct, 'iterStart') is True:
+                if direct.IRLSiter > 0:
+                    iterDict['IRLSiterStart'] = direct.iterStart
             
         if hasattr(self.reg.objfcts[0], 'norms') is True:
             for objfct in self.reg.objfcts[0].objfcts:
