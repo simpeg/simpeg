@@ -16,7 +16,6 @@ class BaseDCSimulation(BaseEMSimulation):
     """
     Base DC Problem
     """
-    Jpath = "./sensitivity/"
 
     survey = properties.Instance(
         "a DC survey object", Survey, required=True
@@ -43,12 +42,10 @@ class BaseDCSimulation(BaseEMSimulation):
     def fields(self, m=None, calcJ=True):
         if m is not None:
             self.model = m
-            self._Jmatrix = None
 
         f = self.fieldsPair(self)
-        A = self.getA()
-
         if self.Ainv is not None:
+            A = self.getA()
             self.Ainv.clean()
         self.Ainv = self.solver(A, **self.solver_opts)
         RHS = self.getRHS()
@@ -105,7 +102,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         if self.storeJ:
             J = self.getJ(m, f=f)
-            return J.dot(v)
+            return np.asarray(J.dot(v))
 
         self.model = m
 
@@ -139,7 +136,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         if self.storeJ:
             J = self.getJ(m, f=f)
-            return J.T.dot(v)
+            return np.asarray(J.T.dot(v))
 
         return self._Jtvec(m, v=v, f=f)
 

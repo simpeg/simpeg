@@ -131,6 +131,11 @@ class BaseSimulation(props.HasModel):
 
     counter = properties.Instance("A SimPEG.utils.Counter object", Counter)
 
+    sensitivity_path = properties.String(
+        'path to store the sensitivty',
+        default="./sensitivity/"
+        )
+
     # TODO: need to implement a serializer for this & setter
     solver = Class(
         "Linear algebra solver (e.g. from pymatsolver)",

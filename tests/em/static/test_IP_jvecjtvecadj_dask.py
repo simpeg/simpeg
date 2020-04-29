@@ -3,6 +3,7 @@ import unittest
 import discretize
 import numpy as np
 
+import SimPEG.dask
 from SimPEG import maps
 from SimPEG import data_misfit
 from SimPEG import regularization

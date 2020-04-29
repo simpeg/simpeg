@@ -50,20 +50,10 @@ class BasePFSimulation(LinearSimulation):
         default='disk'
     )
 
-    max_chunk_size = properties.Float(
-        "Largest chunk size (Mb) used by Dask",
-        default=128
-    )
-
     chunk_format = properties.StringChoice(
         "Apply memory chunks along rows of G",
         choices=['equal', 'row', 'auto'],
         default='equal'
-    )
-
-    max_ram = properties.Float(
-        "Target maximum memory (Gb) usage",
-        default=128
     )
 
     sensitivity_path = properties.String(

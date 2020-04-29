@@ -89,13 +89,13 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
             lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,
-            num=4
+            num=6
         )
         self.assertTrue(passed)
 
     def tearDown(self):
         # Clean up the working directory
-        shutil.rmtree(self.p.Jpath)
+        shutil.rmtree(self.p.sensitivity_path)
 
 
 class DCProblemTestsN_storeJ(unittest.TestCase):
@@ -175,7 +175,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
 
     def tearDown(self):
         # Clean up the working directory
-        shutil.rmtree(self.p.Jpath)
+        shutil.rmtree(self.p.sensitivity_path)
 
 if __name__ == '__main__':
     unittest.main()
