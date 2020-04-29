@@ -309,7 +309,11 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
 
     def tearDown(self):
         # Clean up the working directory
-        shutil.rmtree(self.p.Jpath)
+        try:
+            shutil.rmtree(self.p.Jpath)
+        except FileNotFoundError:
+            pass
+
 
 
 class DCProblemTestsN_storeJ(unittest.TestCase):
@@ -389,7 +393,10 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
 
     def tearDown(self):
         # Clean up the working directory
-        shutil.rmtree(self.p.Jpath)
+        try:
+            shutil.rmtree(self.p.Jpath)
+        except FileNotFoundError:
+            pass
 
 if __name__ == '__main__':
     unittest.main()

@@ -10,8 +10,6 @@ from .boundary_utils import getxBCyBC_CC
 from .survey import Survey
 from .fields import Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
-from scipy.sparse import csr_matrix as csr
-import sparse
 
 
 class BaseDCSimulation(BaseEMSimulation):
@@ -61,7 +59,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
     def getJ(self, m, f=None):
         if self._Jmatrix is None:
-            self._Jmatrix = self._Jtvec(m, v=None, f=f)
+            self._Jmatrix = self._Jtvec(m, v=None, f=f).T
         return self._Jmatrix
 
     def dpred(self, m=None, f=None):
@@ -142,12 +140,6 @@ class BaseDCSimulation(BaseEMSimulation):
         if self.storeJ:
             J = self.getJ(m, f=f)
             return J.T.dot(v)
-            # mkvc(
-            #     da.dot(
-            #         da.from_array(
-            #             v, chunks=self._Jmatrix.chunks[0]), self._Jmatrix
-            #     ).compute()
-            # )
 
         return self._Jtvec(m, v=v, f=f)
 
@@ -292,7 +284,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         D = self.Div
         G = self.Grad
         MfRhoI = self.MfRhoI
-        A = D * MfRhoI * G
+        A = D @ MfRhoI @ G
 
         if(self.bc_type == 'Neumann'):
             if self.verbose:
@@ -307,34 +299,14 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
+        D = self.Div
+        G = self.Grad
+        MfRhoIDeriv = self.MfRhoIDeriv
 
-        if self.storeJ:
-            Gvec = self.Grad * u
+        if adjoint:
+            return MfRhoIDeriv(G@u, D.T@v, adjoint)
 
-            if getattr(self, "Div_coo", None) is None:
-                self.Div_coo = da.from_array(
-                    sparse.COO.from_scipy_sparse(self.Div.T),
-                    chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
-                )
-
-            if adjoint:
-
-                Dvec = da.dot(self.Div_coo, v)
-
-                return self.MfRhoIDerivDask(Gvec, Dvec, adjoint)
-
-            vec = self.MfRhoIDerivDask(Gvec, v, adjoint)
-
-            return da.dot(self.Div_coo, vec)
-        else:
-            D = self.Div
-            G = self.Grad
-            MfRhoIDeriv = self.MfRhoIDeriv
-
-            if adjoint:
-                return MfRhoIDeriv(G * u, D.T * v, adjoint)
-
-            return D * (MfRhoIDeriv(G * u, v, adjoint))
+        return D * (MfRhoIDeriv(G@u, v, adjoint))
 
     def getRHS(self):
         """
@@ -355,81 +327,11 @@ class Simulation3DCellCentered(BaseDCSimulation):
         # return qDeriv
         return Zero()
 
-    # def MfRhoIDerivDask(self, u, v=None, adjoint=False):
-    #     """
-    #         Derivative of :code:`MfRhoI` with respect to the model.
-    #     """
-    #     if self.rhoMap is None:
-    #         return Zero()
-    #
-    #     if len(self.rho.shape) > 1:
-    #         if self.rho.shape[1] > self.mesh.dim:
-    #             raise NotImplementedError(
-    #                 "Full anisotropy is not implemented for MfRhoIDeriv."
-    #             )
-    #
-    #     if getattr(self, 'dMfRhoI_dI', None) is None:
-    #         self.dMfRhoI_dI = -self.MfRhoI.power(2.)
-    #
-    #     if adjoint is True:
-    #
-    #         vec = self.dMfRhoI_dI.T * u
-    #         return self.MfRhoDeriv(
-    #             vec, v=v, adjoint=adjoint
-    #         )
-    #     else:
-    #         vec = self.MfRhoDeriv(u, v=v)
-    #
-    #         return da.from_delayed(
-    #             dask.delayed(csr.dot)(self.dMfRhoI_dI, vec),
-    #             dtype=float, shape=[self.dMfRhoI_dI.shape[0], vec.shape[1]]
-    #         )
-
-    # def MfRhoDerivDask(self, u, v=None, adjoint=False):
-    #     """
-    #     Derivative of :code:`MfRho` with respect to the model.
-    #     """
-    #     if self.rhoMap is None:
-    #         return Zero()
-    #
-    #     if getattr(self, '_MfRhoDeriv', None) is None:
-    #         MfRhoDeriv = self.mesh.getFaceInnerProductDeriv(
-    #             np.ones(self.mesh.nC)
-    #         )(np.ones(self.mesh.nF)) * self.rhoDeriv
-    #
-    #         self._MfRhoDeriv = da.from_array(
-    #                 sparse.COO.from_scipy_sparse(MfRhoDeriv),
-    #                 chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
-    #         )
-    #
-    #     if v is not None:
-    #         udiag = da.from_array(
-    #             sparse.COO.from_scipy_sparse(sdiag(u)),
-    #             chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
-    #         )
-    #
-    #         if adjoint is True:
-    #
-    #             uvec = da.dot(udiag, v)
-    #
-    #             return da.dot(self._MfRhoDeriv.T, uvec)
-    #
-    #
-    #         vec = da.dot(self._MfRhoDeriv, v)
-    #         return da.dot(udiag, vec)
-    #
-    #     else:
-    #         if adjoint is True:
-    #
-    #             return da.dot(self._MfRhoDeriv.T, udiag)
-    #
-    #         return da.dot(udiag, self._MfRhoDeriv)
-
     def setBC(self):
         if self.bc_type == 'Dirichlet':
             if self.verbose:
                 print('Homogeneous Dirichlet is the natural BC for this CC discretization.')
-            self.Div = sdiag(self.mesh.vol) * self.mesh.faceDiv
+            self.Div = sdiag(self.mesh.vol) @ self.mesh.faceDiv
             self.Grad = self.Div.T
 
         else:
@@ -590,7 +492,7 @@ class Simulation3DNodal(BaseDCSimulation):
 
         MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
-        A = Grad.T * MeSigma * Grad
+        A = Grad.T @ MeSigma @ Grad
 
         # Handling Null space of A
         I, J, V = sp.sparse.find(A[0, :])
@@ -607,9 +509,9 @@ class Simulation3DNodal(BaseDCSimulation):
         """
         Grad = self.mesh.nodalGrad
         if not adjoint:
-            return Grad.T*self.MeSigmaDeriv(Grad*u, v, adjoint)
+            return Grad.T@self.MeSigmaDeriv(Grad@u, v, adjoint)
         elif adjoint:
-            return self.MeSigmaDeriv(Grad*u, Grad*v, adjoint)
+            return self.MeSigmaDeriv(Grad@u, Grad@v, adjoint)
 
     def getRHS(self):
         """
