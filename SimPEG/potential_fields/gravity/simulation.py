@@ -5,13 +5,11 @@ from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
 from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
-import scipy as sp
 import scipy.constants as constants
 import numpy as np
 import dask
 import dask.array as da
 from scipy.sparse import csr_matrix as csr
-from dask.delayed import Delayed
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -39,7 +37,7 @@ class Simulation3DIntegral(BasePFSimulation):
             # Compute the linear operation without forming the full dense G
             return mkvc(self.linear_operator())
 
-        return da.dot(self.G, (self.rhoMap*m).astype(np.float32)).compute()
+        return np.asarray(self.G.dot(self.rhoMap*m))
 
     def getJtJdiag(self, m, W=None):
         """
@@ -67,30 +65,21 @@ class Simulation3DIntegral(BasePFSimulation):
         """
             Sensitivity matrix
         """
-        return da.dot(self.G, self.rhoDeriv)
+        return self.G.dot(self.rhoDeriv)
 
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector
         """
-        if isinstance(self.rhoDeriv, Delayed):
-            dmu_dm_v = da.from_array(self.rhoDeriv*v, chunks=self.G.chunks[1])
-        else:
-            dmu_dm_v = self.rhoDeriv * v
-
-        return da.dot(self.G, dmu_dm_v.astype(np.float32))
+        dmu_dm_v = self.rhoDeriv @ v
+        return np.asarray(self.G.dot(dmu_dm_v))
 
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transposed times a vector
         """
-
-        Jtvec = da.dot(v.astype(np.float32), self.G)
-        dmudm_v = dask.delayed(csr.dot)(Jtvec, self.rhoDeriv)
-
-        return da.from_delayed(
-            dmudm_v, dtype=float, shape=[self.rhoDeriv.shape[1]]
-        ).compute()
+        Jtvec = self.G.T.dot(v)
+        return np.asarray(self.rhoDeriv@Jtvec)
 
     @property
     def G(self):
