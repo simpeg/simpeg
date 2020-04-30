@@ -7,9 +7,6 @@ from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
 import scipy.constants as constants
 import numpy as np
-import dask
-import dask.array as da
-from scipy.sparse import csr_matrix as csr
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -35,31 +32,31 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.store_sensitivities == 'forward_only':
             self.model = m
             # Compute the linear operation without forming the full dense G
-            return mkvc(self.linear_operator())
+            fields = mkvc(self.linear_operator())
+        else:
+            fields = self.G@(self.rhoMap@m).astype(np.float32)
 
-        return np.asarray(self.G.dot(self.rhoMap*m))
+        return np.asarray(fields)
 
     def getJtJdiag(self, m, W=None):
         """
             Return the diagonal of JtJ
         """
         self.model = m
+
         if W is None:
-            W = sdiag(np.ones(self.nD))
+            W = np.ones(self.nD)
+        else:
+            W = W.diagonal()**2
+        if getattr(self, "_gtg_diagonal", None) is not None:
+            return self._gtg_diagonal
 
-        if getattr(self, "_gtg_diagonal", None) is None:
-            self._gtg_diagonal = mkvc(da.sum(da.power(
-                            da.from_delayed(
-                                dask.delayed(csr.dot)(W, self.G),
-                                shape=self.G.shape, dtype=float
-                            ), 2), axis=0).compute()
-            )
-
-        return mkvc(
-            np.sum((
-                sdiag(mkvc(self.gtg_diagonal)**0.5) * self.rhoDeriv
-            ).power(2.), axis=0)
-        )
+        diag = np.zeros(self.G.shape[1])
+        if self.modelType != 'amplitude':
+            for i in range(len(W)):
+                diag += W[i]*(self.G[i]*self.G[i])
+        self._gtg_diagonal = ((sdiag(np.sqrt(diag))@self.rhoDeriv)**2).sum(axis=0)
+        return self._gtg_diagonal
 
     def getJ(self, m, f=None):
         """
@@ -71,14 +68,14 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Sensitivity times a vector
         """
-        dmu_dm_v = self.rhoDeriv @ v
-        return np.asarray(self.G.dot(dmu_dm_v))
+        dmu_dm_v = (self.rhoDeriv @ v)
+        return self.G@dmu_dm_v.astype(np.float32)
 
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transposed times a vector
         """
-        Jtvec = self.G.T.dot(v)
+        Jtvec = self.G.T@v.astype(np.float32)
         return np.asarray(self.rhoDeriv@Jtvec)
 
     @property
