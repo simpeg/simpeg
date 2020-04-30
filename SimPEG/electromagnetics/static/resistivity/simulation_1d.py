@@ -45,7 +45,11 @@ class Simulation1DLayers(BaseEMSimulation):
 
     def __init__(self, **kwargs):
         BaseEMSimulation.__init__(self, **kwargs)
-        ht, htarg = check_hankel('fht', [self.hankel_filter, self.hankel_pts_per_dec], 1)
+        try:
+            ht, htarg = check_hankel('fht', [self.hankel_filter, self.hankel_pts_per_dec], 1)
+        except ValueError:
+            ht, htarg = check_hankel('dlf', [self.hankel_filter, self.hankel_pts_per_dec], 1)
+
         self.fhtfilt = htarg[0]                 # Store filter
         self.hankel_filter = self.fhtfilt.name  # Store name
         self.hankel_pts_per_dec = htarg[1]      # Store pts_per_dec
