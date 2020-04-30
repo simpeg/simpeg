@@ -42,11 +42,12 @@ class BaseDCSimulation(BaseEMSimulation):
     def fields(self, m=None, calcJ=True):
         if m is not None:
             self.model = m
+            self._Jmatrix = None
 
         f = self.fieldsPair(self)
         if self.Ainv is not None:
-            A = self.getA()
             self.Ainv.clean()
+        A = self.getA()
         self.Ainv = self.solver(A, **self.solver_opts)
         RHS = self.getRHS()
 

@@ -46,11 +46,11 @@ class BaseIPSimulation(BaseEMSimulation):
 
         if m is not None:
             self.model = m
+            self._Jmatrix = None
 
         f = self.fieldsPair(self)
-        if self.Ainv is None:
-            A = self.getA()
-            self.Ainv = self.solver(A, **self.solver_opts)
+        A = self.getA()
+        self.Ainv = self.solver(A, **self.solver_opts)
         RHS = self.getRHS()
         Srcs = self.survey.source_list
         f[Srcs, self._solutionType] = self.Ainv * RHS

@@ -98,6 +98,7 @@ def dask_getJ(self, m, f=None):
 
     rowChunk, colChunk = compute_chunk_sizes(self.survey.nD, m_size, self.max_chunk_size)
     self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
+    self.Ainv.clean()
 
     return self._Jmatrix
 Sim.getJ = dask_getJ
