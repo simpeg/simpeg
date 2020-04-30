@@ -9,8 +9,11 @@ from .... import props
 
 from .survey import Survey
 
-from empymod import filters
-from empymod.transform import dlf, get_spline_values
+from empymod.transform import dlf
+try:
+    from empymod import get_spline_values as get_dlf_points
+except ImportError:
+    from empymod import get_dlf_points
 from empymod.utils import check_hankel
 from ..utils import static_utils
 
@@ -186,7 +189,7 @@ class Simulation1DLayers(BaseEMSimulation):
         # TODO: only works isotropic sigma
         if getattr(self, '_lambd', None) is None:
             self._lambd = np.empty([self.offset.size, self.n_filter], order='F', dtype=complex)
-            self.lambd[:, :], _ = get_spline_values(
+            self.lambd[:, :], _ = get_dlf_points(
                 self.fhtfilt, self.offset, self.hankel_pts_per_dec
             )
         return self._lambd
