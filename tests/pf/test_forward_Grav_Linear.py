@@ -63,6 +63,7 @@ class GravFwdProblemTests(unittest.TestCase):
     def test_ana_grav_forward(self):
 
         # Compute 3-component grav data
+        print(self.sim.rhoMap.dot(self.model))
 
         data = self.sim.dpred(self.model)
 
@@ -86,8 +87,11 @@ class GravFwdProblemTests(unittest.TestCase):
 
     def tearDown(self):
         # Clean up the working directory
-        if self.sim.store_sensitivities == 'disk':
-            shutil.rmtree(self.sim.sensitivity_path)
+        try:
+            if self.sim.store_sensitivities == 'disk':
+                shutil.rmtree(self.sim.sensitivity_path)
+        except FileNotFoundError:
+            pass
 
 class GravityGradientFwdProblemTests(unittest.TestCase):
 
