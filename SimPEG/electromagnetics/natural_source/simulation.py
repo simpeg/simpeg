@@ -98,7 +98,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                     # Calculate dP/du*du/dm*v
                     Jv.append(da.from_delayed(dask.delayed(rx.evalDeriv)(src, self.mesh, F, mkvc(du_dm_v)), shape=(m_dim,), dtype=float))
             # when running full inversion clearing the fields creates error and inversion crashes
-            # self.Ainv[nF].clean()
+            self.Ainv[nF].clean()
         # return Jv.flatten('F')
         return da.concatenate(Jv, axis=0).compute()
 
@@ -155,7 +155,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 du_dmT += da.from_delayed(dRHS_dmT, shape=(self.model.size,), dtype=complex)
                 Jtv += du_dmT.real
                 # when running full inversion clearing the fields creates error and inversion crashes
-                # self.ATinv[nF].clean()
+                self.Ainv[nF].clean()
         return Jtv.compute()
 
     def getJ(self, m, f=None):
@@ -174,6 +174,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         self.model = m
 
         J = np.empty((self.survey.nD, self.model.size))
+        print("J: ", J.shape)
 
         istrt = 0
         for freq in self.survey.frequencies:

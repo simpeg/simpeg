@@ -57,3 +57,8 @@ examples/00_published/*.png
 *.xyz
 *.npy
 *.mod
+*.msh
+mt-sensitivity-mobileMT.con
+mt-sensitivity.con
+Sigma-pre.dat
+ubc_out_mt-test-bv7
