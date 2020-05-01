@@ -63,7 +63,6 @@ class GravFwdProblemTests(unittest.TestCase):
     def test_ana_grav_forward(self):
 
         # Compute 3-component grav data
-        print(self.sim.rhoMap.dot(self.model))
 
         data = self.sim.dpred(self.model)
 

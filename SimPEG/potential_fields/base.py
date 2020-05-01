@@ -98,7 +98,7 @@ class BasePFSimulation(LinearSimulation):
                 for receiver, component in zip(self.survey.receiver_locations.tolist(), active_components)
             ])
         else:
-            kernel = np.vstack([
+            kernel = np.hstack([
                 self.evaluate_integral(receiver, components[component]).dot(self.model)
                 for receiver, component in zip(self.survey.receiver_locations.tolist(), active_components)
             ])
