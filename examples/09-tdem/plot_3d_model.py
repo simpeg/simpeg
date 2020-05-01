@@ -6,7 +6,9 @@ import empymod
 import discretize
 import pymatsolver
 import numpy as np
-import SimPEG, SimPEG.EM
+import SimPEG
+from SimPEG import maps
+from SimPEG.electromagnetics import time_domain as TDEM
 import matplotlib.pyplot as plt
 
 ###############################################################################
@@ -122,7 +124,7 @@ print(f"- Target     :: {diff_dist2.min():8.0f} / {diff_dist2.max():8.0f} m.")
 time_steps = [1e-1, (1e-2, 21), (3e-2, 23), (1e-1, 21), (3e-1, 23)]
 
 # Create mesh with time steps
-ts = SimPEG.Mesh.TensorMesh([time_steps]).vectorNx
+ts = discretize.TensorMesh([time_steps]).vectorNx
 
 # Plot them
 plt.figure(figsize=(9, 1.5))
@@ -260,18 +262,10 @@ epm_bg = empymod.bipole(**inp)
 #
 # Set-up SimPEG-specific parameters.
 
-# Define the `Problem`
-prob = SimPEG.EM.TDEM.Problem3D_e(
-    mesh,
-    rhoMap=SimPEG.Maps.IdentityMap(mesh),
-    Solver=pymatsolver.Pardiso,
-    timeSteps=time_steps,
-)
-
 
 # Set up the receiver list
 rec_list = [
-    SimPEG.EM.TDEM.Rx.Point_e(
+    TDEM.Rx.PointElectricField(
         orientation='x',
         times=times,
         locs=np.array([[*rec[:3]], ]),
@@ -281,7 +275,7 @@ rec_list = [
 
 # Set up the source list
 src_list = [
-    SimPEG.EM.TDEM.Src.LineCurrent(
+    TDEM.Src.LineCurrent(
         rxList=rec_list,
         loc=np.array([[*src[::2]], [*src[1::2]]]),
     ),
@@ -289,18 +283,25 @@ src_list = [
 
 
 # Create `Survey`
-survey = SimPEG.EM.TDEM.Survey(src_list)
+survey = TDEM.Survey(src_list)
 
-# Pair `Problem` to `Survey`
-prob.pair(survey)
+
+# Define the `Simulation`
+prob = TDEM.Simulation3DElectricField(
+    mesh,
+    survey=survey,
+    rhoMap=maps.IdentityMap(mesh),
+    Solver=pymatsolver.Pardiso,
+    timeSteps=time_steps,
+)
 
 
 ###############################################################################
 # Compute
 # """""""
 
-spg_bg = survey.dpred(mres_bg)
-spg_tg = survey.dpred(mres_tg)
+spg_bg = prob.dpred(mres_bg)
+spg_tg = prob.dpred(mres_tg)
 
 
 ###############################################################################
