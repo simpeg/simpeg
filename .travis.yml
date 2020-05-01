@@ -31,6 +31,7 @@ env:
     - TEST_DIR=tests/em/fdem/forward
     - TEST_DIR=tests/em/vrm
     - TEST_DIR=tests/pf
+    - TEST_DIR=tests/dask
     - TEST_DIR=tests/docs;
       PATH=$PATH:${HOME}/google-cloud-sdk/bin;
       PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};

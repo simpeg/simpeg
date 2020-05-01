@@ -18,7 +18,7 @@ def dask_getJtJdiag(self, m, W=None):
     if getattr(self, "_gtg_diagonal", None) is not None:
         return self._gtg_diagonal
 
-    if self.modelType != 'amplitude':
+    if not self.is_amplitude_data:
         diag = ((W[:, None]*self.G)**2).sum(axis=0).compute()
     else:  # self.modelType is amplitude
         fieldDeriv = self.fieldDeriv

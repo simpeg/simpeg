@@ -74,8 +74,9 @@ def dask_linear_operator(self):
             pred = (stack@self.model).compute()
         return pred
     else:
+        print(stack.chunks)
         with ProgressBar():
             print('Computing sensitivities to local ram')
-            kernel = stack.compute()
+            kernel = array.asarray(stack.compute())
     return kernel
 Sim.linear_operator = dask_linear_operator
