@@ -1,7 +1,6 @@
 from __future__ import print_function
 import unittest
 import SimPEG.dask
-import dask
 from SimPEG import (directives, maps,
                     inverse_problem, optimization, data_misfit,
                     inversion, utils, regularization)

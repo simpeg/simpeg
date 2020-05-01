@@ -1,6 +1,5 @@
 from __future__ import print_function
 import numpy as np
-import dask
 import SimPEG.dask
 from SimPEG import (
     data, data_misfit, directives, maps, inverse_problem, optimization,
