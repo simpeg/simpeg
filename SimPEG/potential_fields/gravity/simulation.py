@@ -54,7 +54,9 @@ class Simulation3DIntegral(BasePFSimulation):
         diag = np.zeros(self.G.shape[1])
         for i in range(len(W)):
             diag += W[i]*(self.G[i]*self.G[i])
-        self._gtg_diagonal = ((sdiag(np.sqrt(diag))@self.rhoDeriv)**2).sum(axis=0)
+        self._gtg_diagonal = mkvc(
+            ((sdiag(np.sqrt(diag))@self.rhoDeriv)**2).sum(axis=0)
+        )
         return self._gtg_diagonal
 
     def getJ(self, m, f=None):

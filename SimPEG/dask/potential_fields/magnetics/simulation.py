@@ -2,7 +2,7 @@ import dask.array as da
 import dask
 import numpy as np
 from ....potential_fields.magnetics import Simulation3DIntegral as Sim
-from ....utils import sdiag
+from ....utils import sdiag, mkvc
 
 def dask_getJtJdiag(self, m, W=None):
     """
@@ -26,6 +26,8 @@ def dask_getJtJdiag(self, m, W=None):
              fieldDeriv[1, :, None] * self.G[1::3] +
              fieldDeriv[2, :, None] * self.G[2::3])
         diag = ((W[:, None]*J)**2).sum(axis=0).compute()
-    self._gtg_diagonal = ((sdiag(np.sqrt(diag))@self.chiDeriv)**2).sum(axis=0)
+    self._gtg_diagonal = mkvc(
+        ((sdiag(np.sqrt(diag))@self.chiDeriv)**2).sum(axis=0)
+    )
     return self._gtg_diagonal
 Sim.getJtJdiag = dask_getJtJdiag

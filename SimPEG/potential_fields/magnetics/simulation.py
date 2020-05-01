@@ -167,7 +167,9 @@ class Simulation3DIntegral(BasePFSimulation):
                        fieldDeriv[1, i]*Gy[i] +
                        fieldDeriv[2, i]*Gz[i])
                 diag += W[i]*(row*row)
-        self._gtg_diagonal = ((sdiag(np.sqrt(diag))@self.chiDeriv)**2).sum(axis=0)
+        self._gtg_diagonal = mkvc(
+            ((sdiag(np.sqrt(diag))@self.chiDeriv)**2).sum(axis=0)
+        )
         return self._gtg_diagonal
 
     def Jvec(self, m, v, f=None):
