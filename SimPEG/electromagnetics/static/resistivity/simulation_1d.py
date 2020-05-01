@@ -1,8 +1,7 @@
 import numpy as np
-from scipy.special import kn
 import properties
 
-from ....utils import mkvc, sdiag, Zero
+from ....utils import mkvc
 from ...base import BaseEMSimulation
 from ....data import Data
 from .... import props
