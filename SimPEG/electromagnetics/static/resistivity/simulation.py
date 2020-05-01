@@ -103,7 +103,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         if self.storeJ:
             J = self.getJ(m, f=f)
-            return np.asarray(J.dot(v))
+            return J.dot(v)
 
         self.model = m
 

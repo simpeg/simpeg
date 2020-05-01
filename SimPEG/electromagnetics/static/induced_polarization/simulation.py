@@ -125,7 +125,7 @@ class BaseIPSimulation(BaseEMSimulation):
         # When sensitivity matrix J is stored
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jv = np.asarray(J.dot(v))
+            Jv = J.dot(v)
             return self.sign * Jv
         Jv = []
 
