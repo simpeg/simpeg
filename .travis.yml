@@ -50,6 +50,8 @@ before_install:
 install:
   - conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py;
   - pip install -r requirements_dev.txt
+  - if [ "$TEST_DIR" = "tests/dask" ]; then
+      pip install -r requirements_dask.txt
   - python setup.py install
   - if [ "$TEST_DIR" = "$DEPLOY_DIR" ]; then
       if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
