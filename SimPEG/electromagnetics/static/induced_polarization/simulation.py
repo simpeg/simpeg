@@ -146,7 +146,7 @@ class BaseIPSimulation(BaseEMSimulation):
         return self.sign*np.hstack(Jv)
 
     def forward(self, m, f=None):
-        return self.Jvec(m, m, f=f)
+        return np.asarray(self.Jvec(m, m, f=f))
 
     def Jtvec(self, m, v, f=None):
         """

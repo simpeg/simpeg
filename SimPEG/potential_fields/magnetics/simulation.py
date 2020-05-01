@@ -102,12 +102,12 @@ class Simulation3DIntegral(BasePFSimulation):
             self.model = model
             fields = mkvc(self.linear_operator())
         else:
-            fields = self.G@model.astype(np.float32)
+            fields = np.asarray(self.G@model.astype(np.float32))
 
         if self.is_amplitude_data:
             fields = self.compute_amplitude(fields)
 
-        return np.asarray(fields)
+        return fields
 
     @property
     def G(self):
@@ -180,7 +180,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Jvec = self.G@dmu_dm_v.astype(np.float32)
 
         if self.is_amplitude_data:
-            Jvec = Jvec.reshape((3, -1), order='F')
+            Jvec = Jvec.reshape((-1, 3)).T
             fieldDeriv_Jvec = self.fieldDeriv * Jvec
             return fieldDeriv_Jvec[0] + fieldDeriv_Jvec[1] + fieldDeriv_Jvec[2]
         else:
@@ -191,7 +191,7 @@ class Simulation3DIntegral(BasePFSimulation):
             self.model = np.zeros(self.G.shape[1])
 
         if self.is_amplitude_data:
-            v = (self.fieldDeriv * v).reshape(-1, order='F')
+            v = (self.fieldDeriv * v).T.reshape(-1)
         Jtvec = self.G.T@v.astype(np.float32)
         return np.asarray(self.chiDeriv.T@Jtvec)
 
@@ -202,8 +202,7 @@ class Simulation3DIntegral(BasePFSimulation):
             self.model = np.zeros(self.G.shape[1])
 
         if getattr(self, '_fieldDeriv', None) is None:
-
-            fields = self.G.dot((self.chiMap@self.chi).astype(np.float32))
+            fields = np.asarray(self.G.dot((self.chiMap@self.chi).astype(np.float32)))
             b_xyz = self.normalized_fields(fields)
 
             self._fieldDeriv = b_xyz
