@@ -47,13 +47,19 @@ class Simulation1DLayers(BaseEMSimulation):
         BaseEMSimulation.__init__(self, **kwargs)
         try:
             ht, htarg = check_hankel('fht', [self.hankel_filter, self.hankel_pts_per_dec], 1)
+            self.fhtfilt = htarg[0]             # Store filter
+            self.hankel_pts_per_dec = htarg[1]  # Store pts_per_dec
         except ValueError:
-            ht, htarg = check_hankel('dlf', [self.hankel_filter, self.hankel_pts_per_dec], 1)
-
-        self.fhtfilt = htarg[0]                 # Store filter
+            arg = {}
+            arg['dlf'] = self.hankel_filter
+            if self.hankel_pts_per_dec is not None:
+                arg['pts_per_dec'] = self.hankel_pts_per_dec
+            ht, htarg = check_hankel('dlf', arg, 1)
+            self.fhtfilt = htarg['dlf']                     # Store filter
+            self.hankel_pts_per_dec = htarg['pts_per_dec']  # Store pts_per_dec
         self.hankel_filter = self.fhtfilt.name  # Store name
-        self.hankel_pts_per_dec = htarg[1]      # Store pts_per_dec
         self.n_filter = self.fhtfilt.base.size
+
 
     def fields(self, m):
 
@@ -71,11 +77,19 @@ class Simulation1DLayers(BaseEMSimulation):
             T0 = (T1 + rho0 * np.tanh(self.lambd*t0)) / (1.+(T1*np.tanh(self.lambd*t0)/rho0))
             T1 = T0
         PJ = (T0, None, None)
-        voltage = dlf(
-            PJ, self.lambd,
-            self.offset, self.fhtfilt,
-            self.hankel_pts_per_dec, factAng=None, ab=33
-        ).real / (2*np.pi)
+        try:
+            voltage = dlf(
+                PJ, self.lambd,
+                self.offset, self.fhtfilt,
+                self.hankel_pts_per_dec, factAng=None, ab=33
+            ).real / (2*np.pi)
+        except TypeError:
+            voltage = dlf(
+                PJ, self.lambd,
+                self.offset, self.fhtfilt,
+                self.hankel_pts_per_dec, ang_fact=None, ab=33
+            ).real / (2*np.pi)
+
         # Assume dipole-dipole
         V = voltage.reshape((self.survey.nD, 4), order='F')
         data = V[:, 0]+V[:, 1] - (V[:, 2]+V[:, 3])
