@@ -33,7 +33,7 @@ class BasePFSimulation(LinearSimulation):
     store_sensitivities = properties.StringChoice(
         "Compute and store G",
         choices=['disk', 'ram', 'forward_only'],
-        default='disk'
+        default='ram'
     )
 
     def __init__(self, mesh, **kwargs):
