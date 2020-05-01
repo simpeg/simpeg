@@ -37,7 +37,7 @@ from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps, data, data_misfit, inverse_problem, regularization, optimization,
     directives, inversion, utils
-    )
+)
 
 # sphinx_gallery_thumbnail_number = 3
 
@@ -50,9 +50,13 @@ from SimPEG import (
 # is loaded to compare with the inversion result.
 #
 
-topo_filename = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_topo.txt'
-data_filename = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\gravity_data.obs'
-model_filename = os.path.dirname(gravity.__file__) + '\\..\\..\\..\\tutorials\\assets\\gravity\\true_model.txt'
+module_path = os.path.dirname(gravity.__file__)
+sep = 7*(os.path.sep)
+relative_path = "{}..{}..{}..{}tutorials{}assets{}gravity{}".format(*sep)
+
+topo_filename = module_path + relative_path + 'gravity_topo.txt'
+data_filename = module_path + relative_path + 'gravity_data.obs'
+model_filename = module_path + relative_path + 'true_model.txt'
 
 
 #############################################
@@ -88,8 +92,8 @@ norm = mpl.colors.Normalize(
     vmin=-np.max(np.abs(dobs)), vmax=np.max(np.abs(dobs))
 )
 cbar = mpl.colorbar.ColorbarBase(
-        ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r, format='%.1e'
-        )
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r, format='%.1e'
+)
 cbar.set_label('$mgal$', rotation=270, labelpad=15, size=12)
 
 plt.show()
@@ -122,8 +126,8 @@ uncertainties = 0.01*maximum_anomaly*np.ones(np.shape(dobs))
 # Define the receivers. The data consist of vertical gravity anomaly measurements.
 # The set of receivers must be defined as a list.
 receiver_list = gravity.receivers.Point(
-        receiver_locations, components="gz"
-        )
+    receiver_locations, components="gz"
+)
 
 receiver_list = [receiver_list]
 
@@ -262,8 +266,8 @@ sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 
 # The directives are defined as a list.
 directives_list = [
-        sensitivity_weights, starting_beta, beta_schedule, save_iteration, update_jacobi, target_misfit
-        ]
+    sensitivity_weights, starting_beta, beta_schedule, save_iteration, update_jacobi, target_misfit
+]
 
 #####################################################################
 # Running the Inversion
@@ -301,7 +305,7 @@ ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.8])
 mesh.plotSlice(
     plotting_map*true_model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
     clim=(np.min(true_model), np.max(true_model)), pcolorOpts={'cmap': 'jet'}
-    )
+)
 ax1.set_title('Model slice at y = 0 m')
 
 
@@ -310,10 +314,7 @@ norm = mpl.colors.Normalize(vmin=np.min(true_model), vmax=np.max(true_model))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='%.1e'
 )
-cbar.set_label(
-    '$g/cm^3$',
-    rotation=270, labelpad=15, size=12
-)
+cbar.set_label('$g/cm^3$', rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -331,8 +332,8 @@ ax1.set_title('Model slice at y = 0 m')
 ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
 norm = mpl.colors.Normalize(vmin=np.min(recovered_model), vmax=np.max(recovered_model))
 cbar = mpl.colorbar.ColorbarBase(
-        ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet
-        )
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet
+)
 cbar.set_label('$g/cm^3$',rotation=270, labelpad=15, size=12)
 
 plt.show()

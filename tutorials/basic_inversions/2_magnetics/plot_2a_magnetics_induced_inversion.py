@@ -52,9 +52,13 @@ from SimPEG import (
 # is loaded to compare with the inversion result.
 #
 
-topo_filename = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_topo.txt'
-data_filename = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_data.obs'
-model_filename = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\true_model.txt'
+module_path = os.path.dirname(magnetics.__file__)
+sep = 7*(os.path.sep)
+relative_path = "{}..{}..{}..{}tutorials{}assets{}magnetics{}".format(*sep)
+
+topo_filename = module_path + relative_path + 'magnetics_topo.txt'
+data_filename = module_path + relative_path + 'magnetics_data.obs'
+model_filename = module_path + relative_path + 'true_model.txt'
 
 
 #############################################
@@ -87,10 +91,10 @@ ax1.set_ylabel('y (m)')
 
 ax2 = fig.add_axes([0.85, 0.05, 0.05, 0.9])
 norm = mpl.colors.Normalize(
-        vmin=-np.max(np.abs(dobs)), vmax=np.max(np.abs(dobs))
+    vmin=-np.max(np.abs(dobs)), vmax=np.max(np.abs(dobs))
 )
 cbar = mpl.colorbar.ColorbarBase(
-        ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
 )
 cbar.set_label('$nT$', rotation=270, labelpad=15, size=12)
 
@@ -128,8 +132,8 @@ components = ["tmi"]
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
 receiver_list = magnetics.receivers.Point(
-        receiver_locations, components=components
-        )
+    receiver_locations, components=components
+)
 
 receiver_list = [receiver_list]
 
@@ -141,7 +145,7 @@ inducing_field = (strength, inclination, declination)
 
 source_field = magnetics.sources.SourceField(
     receiver_list=receiver_list, parameters=inducing_field
-    )
+)
 
 # Define the survey
 survey = magnetics.survey.MagneticSurvey(source_field)
@@ -283,7 +287,7 @@ sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 # The directives are defined as a list.
 directives_list = [
     sensitivity_weights, starting_beta, save_iteration, update_IRLS, update_jacobi,
-    ]
+]
 
 #####################################################################
 # Running the Inversion

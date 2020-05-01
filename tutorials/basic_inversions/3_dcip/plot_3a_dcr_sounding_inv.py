@@ -31,7 +31,7 @@ from discretize import TensorMesh
 
 from SimPEG import (maps, data, data_misfit, regularization,
     optimization, inverse_problem, inversion, directives
-    )
+)
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
 
@@ -46,9 +46,13 @@ from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
 # results.
 #
 
-data_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\app_res_1d_data.dobs'
-model_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\true_model.txt'
-mesh_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\layers.txt'
+module_path = os.path.dirname(dc.__file__)
+sep = 8*(os.path.sep)
+relative_path = "{}..{}..{}..{}..{}tutorials{}assets{}dcip1d{}".format(*sep)
+
+data_filename = module_path + relative_path + 'app_res_1d_data.dobs'
+model_filename = module_path + relative_path + 'true_model.txt'
+mesh_filename = module_path + relative_path + 'layers.txt'
 
 
 #############################################
@@ -97,8 +101,8 @@ survey.getABMN_locations()
 # Plot apparent resistivities on sounding curve as a function of Wenner separation
 # parameter.
 electrode_separations = 0.5*np.sqrt(
-        np.sum((survey.a_locations - survey.b_locations)**2, axis=1)
-        )
+    np.sum((survey.a_locations - survey.b_locations)**2, axis=1)
+)
 
 fig = plt.figure(figsize=(11, 5))
 mpl.rcParams.update({'font.size': 14})
@@ -176,9 +180,9 @@ model_map = maps.IdentityMap(nP=len(starting_model))*maps.ExpMap()
 #
 
 simulation = dc.simulation_1d.Simulation1DLayers(
-        survey=survey, rhoMap=model_map, thicknesses=layer_thicknesses,
-        data_type="apparent_resistivity"
-        )
+    survey=survey, rhoMap=model_map, thicknesses=layer_thicknesses,
+    data_type="apparent_resistivity"
+)
 
 
 #######################################################################
@@ -244,7 +248,7 @@ target_misfit = directives.TargetMisfit(chifact=1)
 directives_list = [
     update_sensitivity_weights, starting_beta, beta_schedule,
     save_iteration, target_misfit
-    ]
+]
 
 #####################################################################
 # Running the Inversion

@@ -44,8 +44,8 @@ from SimPEG.potential_fields import magnetics
 #
 
 [x_topo, y_topo] = np.meshgrid(
-        np.linspace(-200, 200, 41), np.linspace(-200, 200, 41)
-        )
+    np.linspace(-200, 200, 41), np.linspace(-200, 200, 41)
+)
 z_topo = -15*np.exp(-(x_topo**2 + y_topo**2) / 80**2)
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
@@ -77,8 +77,8 @@ components = ["bxz", "byz", "bzz"]
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
 receiver_list = magnetics.receivers.Point(
-        receiver_locations, components=components
-        )
+    receiver_locations, components=components
+)
 
 receiver_list = [receiver_list]
 
@@ -90,7 +90,7 @@ inducing_field = (field_strength, field_inclination, field_declination)
 
 source_field = magnetics.sources.SourceField(
     receiver_list=receiver_list, parameters=inducing_field
-    )
+)
 
 # Define the survey
 survey = magnetics.survey.MagneticSurvey(source_field)
@@ -189,8 +189,8 @@ remanence_susceptibility = 0.01
 
 remanence_model = np.zeros(np.shape(susceptibility_model))
 effective_susceptibility_sphere = remanence_susceptibility*mat_utils.dip_azimuth2cartesian(
-        remanence_inclination, remanence_declination
-        )
+    remanence_inclination, remanence_declination
+)
 remanence_model[ind_sphere, :] = effective_susceptibility_sphere
 
 # Define effective susceptibility model as a vector np.r_[chi_x, chi_y, chi_z]

@@ -111,7 +111,6 @@ ax1.set_ylabel('Waveform value')
 ax1.set_title('Waveform')
 
 
-
 #####################################################################
 # Create Airborne Survey
 # ----------------------
@@ -148,8 +147,8 @@ for ii in range(ntx):
 
     # Here we define receivers that measure the h-field in A/m
     dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
-            receiver_locations[ii, :], time_channels, 'z'
-            )
+        receiver_locations[ii, :], time_channels, 'z'
+    )
     receivers_list = [dbzdt_receiver]  # Make a list containing all receivers even if just one
 
     # Must define the transmitter properties and associated receivers
@@ -277,7 +276,7 @@ time_steps = [(1e-4, 20), (1e-5, 10), (1e-4, 10)]
 
 simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
     mesh, survey=survey, sigmaMap=model_map, Solver=Solver, t0=-0.002
-    )
+)
 
 # Set the time-stepping for the simulation
 simulation.time_steps = time_steps
@@ -302,7 +301,7 @@ ax11 = fig.add_axes([0.05, 0.05, 0.35, 0.9])
 plot2Ddata(
     receiver_locations[:, 0:2], dpred_plotting[:, 0], ax=ax11, ncontour=30,
     clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
-    )
+)
 ax11.set_title('dBz/dt at 0.0001 s')
 
 ax12 = fig.add_axes([0.42, 0.05, 0.02, 0.9])
@@ -318,7 +317,7 @@ ax21 = fig.add_axes([0.55, 0.05, 0.35, 0.9])
 plot2Ddata(
     receiver_locations[:, 0:2], dpred_plotting[:, -1], ax=ax21, ncontour=30,
     clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
-    )
+)
 ax21.set_title('dBz/dt at 0.001 s')
 
 ax22 = fig.add_axes([0.92, 0.05, 0.02, 0.9])
@@ -340,35 +339,24 @@ plt.show()
 
 if save_file == True:
     
-    # Write topography
-    fname = (os.path.dirname(tdem.__file__)
-        + '\\..\\..\\..\\tutorials\\assets\\tdem\\tdem_topo.txt'
-        )
+    module_path = os.path.dirname(tdem.__file__)
+    sep = 7*(os.path.sep)
+    relative_path = "{}..{}..{}..{}tutorials{}assets{}tdem{}".format(*sep)
+
+    fname = module_path + relative_path + 'tdem_topo.txt'
     np.savetxt(fname, np.c_[topo_xyz], fmt='%.4e')
     
     # Write data with 2% noise added
-    fname = (os.path.dirname(tdem.__file__)
-        + '\\..\\..\\..\\tutorials\\assets\\tdem\\tdem_data.obs'
-        )
+    fname = module_path + relative_path + 'tdem_data.obs'
     dpred = dpred + 0.02*np.abs(dpred)*np.random.rand(len(dpred))
     t_vec = np.kron(np.ones(ntx), time_channels)
     receiver_locations = np.kron(receiver_locations, np.ones((len(time_channels), 1)))
     
-    np.savetxt(
-        fname,
-        np.c_[receiver_locations, t_vec, dpred],
-        fmt='%.4e'
-    )
+    np.savetxt(fname, np.c_[receiver_locations, t_vec, dpred], fmt='%.4e')
     
     # Plot true model
     output_model = plotting_map*model
     output_model[np.isnan(output_model)] = 1e-8
 
-    fname = (os.path.dirname(tdem.__file__)
-        + '\\..\\..\\..\\tutorials\\assets\\tdem\\true_model.txt'
-        )
-    np.savetxt(
-        fname,
-        output_model,
-        fmt='%.4e'
-    )
+    fname = module_path + relative_path + 'true_model.txt'
+    np.savetxt(fname, output_model, fmt='%.4e')

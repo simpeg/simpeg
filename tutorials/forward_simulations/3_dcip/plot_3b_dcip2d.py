@@ -35,12 +35,11 @@ from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
 from SimPEG.electromagnetics.static.utils import (
-        generate_dcip_survey_line, plot_pseudoSection, gettopoCC, source_receiver_midpoints
-        )
+    generate_dcip_survey_line, plot_pseudoSection
+)
 
 import os
 import numpy as np
-from scipy.interpolate import interp1d
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
@@ -92,7 +91,7 @@ dc_survey = generate_dcip_survey_line(
     survey_type, data_type, end_locations, xyz_topo,
     station_separation, dipole_separation, n,
     dim_flag='2.5D', sources_only=False
-    )
+)
 
 ###############################################################
 # Create OcTree Mesh
@@ -124,22 +123,22 @@ dc_survey.getABMN_locations()
 electrode_locations = np.c_[
     dc_survey.a_locations, dc_survey.b_locations,
     dc_survey.m_locations, dc_survey.n_locations
-    ]
+]
 
 unique_locations = np.unique(
     np.reshape(electrode_locations, (4*dc_survey.nD, 2)), axis=0
-    )
+)
 
 mesh = refine_tree_xyz(
     mesh, unique_locations, octree_levels=[2, 4], method='radial', finalize=False
-    )
+)
 
 # Refine core mesh region
 xp, zp = np.meshgrid([-800., 800.], [-800., 0.])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
 mesh = refine_tree_xyz(
     mesh, xyz, octree_levels=[0, 2, 2], method='box', finalize=False
-    )
+)
 
 mesh.finalize()
 
@@ -231,8 +230,8 @@ dc_survey.drapeTopo(mesh, ind_active, option='top')
 #
 
 dc_simulation = dc.simulation_2d.Simulation2DNodal(
-        mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
-        )
+    mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
+)
 
 # Predict the data by running the simulation. The data are the raw voltage in
 # units of volts.
@@ -258,8 +257,14 @@ plt.show()
 # Optional: Write out dpred
 # -------------------------
 #
+# Write DC resistivity data, topography and true model
+#
 
 if save_file == True:
+    
+    module_path = os.path.dirname(dc.__file__)
+    sep = 8*(os.path.sep)
+    relative_path = "{}..{}..{}..{}..{}tutorials{}assets{}dcip2d{}".format(*sep)
 
     # Add 5% Gaussian noise to each datum
     dc_noise = 0.05*dpred_dc*np.random.rand(len(dpred_dc))
@@ -268,15 +273,15 @@ if save_file == True:
     data_array = np.c_[
         electrode_locations,
         dpred_dc + dc_noise
-        ]
+    ]
 
-    fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\dc_data.obs'
+    fname = module_path + relative_path + 'dc_data.obs'
     np.savetxt(fname, data_array, fmt='%.4e')
 
-    fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\true_conductivity.txt'
+    fname = module_path + relative_path + 'true_conductivity.txt'
     np.savetxt(fname, conductivity_map*conductivity_model, fmt='%.4e')
 
-    fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\xyz_topo.txt'
+    fname = module_path + relative_path + 'xyz_topo.txt'
     np.savetxt(fname, xyz_topo, fmt='%.4e')
 
 #######################################################################
@@ -390,6 +395,8 @@ plt.show()
 # Write out dpred
 # ---------------
 #
+# Write data and true model
+#
 
 if save_file == True:
 
@@ -399,11 +406,11 @@ if save_file == True:
     data_array = np.c_[
         electrode_locations,
         dpred_ip + ip_noise
-        ]
+    ]
 
-    fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\ip_data.obs'
+    fname = module_path + relative_path + 'ip_data.obs'
     np.savetxt(fname, data_array, fmt='%.4e')
 
-    fname = os.path.dirname(ip.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\true_chargeability.txt'
+    fname = module_path + relative_path + 'true_chargeability.txt'
     np.savetxt(fname, chargeability_map*chargeability_model, fmt='%.4e')
 

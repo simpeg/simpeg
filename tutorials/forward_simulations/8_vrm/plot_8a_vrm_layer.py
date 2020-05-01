@@ -78,7 +78,7 @@ ax1.set_title('Waveforms')
 ax1.legend(
     ['step-off','20 ms square pulse', '30 ms trapezoidal', '40 ms triangular'],
     loc='upper right'
-    )
+)
 
 
 
@@ -102,7 +102,7 @@ xyz = np.c_[0., 0., 0.5]
 # There are 4 parameters needed to define a receiver.
 dbdt_receivers = [
     vrm.receivers.Point(xyz, times=time_channels, fieldType='dbdt', orientation='z')
-    ]
+]
 
 # Define sources
 source_list = []
@@ -202,5 +202,5 @@ ax1.set_title('Characteristic Decay')
 ax1.legend(
     ['step-off','20 ms square pulse', '30 ms trapezoidal', '40 ms triangular'],
     loc='upper right'
-    )
+)
 

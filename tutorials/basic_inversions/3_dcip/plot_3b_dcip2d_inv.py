@@ -59,12 +59,16 @@ except ImportError:
 # path to the true model conductivity and chargeability models are also
 # provided for comparison with the inversion results.
 #
+    
+module_path = os.path.dirname(dc.__file__)
+sep = 8*(os.path.sep)
+relative_path = "{}..{}..{}..{}..{}tutorials{}assets{}dcip2d{}".format(*sep)
 
-topo_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\xyz_topo.txt'
-dc_data_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\dc_data.obs'
-ip_data_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\ip_data.obs'
-true_conductivity_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\true_conductivity.txt'
-true_chargeability_filename = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip2d\\true_chargeability.txt'
+topo_filename = module_path + relative_path + 'xyz_topo.txt'
+dc_data_filename = module_path + relative_path + 'dc_data.obs'
+ip_data_filename = module_path + relative_path + 'ip_data.obs'
+true_conductivity_filename = module_path + relative_path + 'true_conductivity.txt'
+true_chargeability_filename = module_path + relative_path + 'true_chargeability.txt'
 
 
 #############################################
@@ -186,7 +190,7 @@ dc_survey.getABMN_locations()
 electrode_locations = np.r_[
     dc_survey.a_locations, dc_survey.b_locations,
     dc_survey.m_locations, dc_survey.n_locations
-    ]
+]
 
 unique_locations = np.unique(electrode_locations, axis=0)
 
@@ -199,7 +203,7 @@ xp, zp = np.meshgrid([-800., 800.], [-800., 0.])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
 mesh = refine_tree_xyz(
     mesh, xyz, octree_levels=[0, 2, 2], method='box', finalize=False
-    )
+)
 
 mesh.finalize()
 
@@ -252,8 +256,8 @@ starting_conductivity_model = background_conductivity*np.ones(nC)
 
 # Define the problem. Define the cells below topography and the mapping
 dc_simulation = dc.simulation_2d.Simulation2DNodal(
-        mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
-        )
+    mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
+)
 
 #######################################################################
 # Define DC Inverse Problem
@@ -275,21 +279,20 @@ dc_data_misfit.W = utils.sdiag(1./uncertainties_dc)
 
 # Define the regularization (model objective function)
 dc_regularization = regularization.Simple(
-        mesh, indActive=ind_active, mref=starting_conductivity_model,
-        alpha_s=0.01, alpha_x=1, alpha_y=1
-        )
+    mesh, indActive=ind_active, mref=starting_conductivity_model,
+    alpha_s=0.01, alpha_x=1, alpha_y=1
+)
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
 dc_optimization = optimization.ProjectedGNCG(
-        maxIter=5, lower=-10., upper=2.,
-        maxIterLS=20, maxIterCG=10, tolCG=1e-3
-        )
+    maxIter=5, lower=-10., upper=2., maxIterLS=20, maxIterCG=10, tolCG=1e-3
+)
 
 # Here we define the inverse problem that is to be solved
 dc_inverse_problem = inverse_problem.BaseInvProblem(
-        dc_data_misfit, dc_regularization, dc_optimization
-        )
+    dc_data_misfit, dc_regularization, dc_optimization
+)
 
 #######################################################################
 # Define DC Inversion Directives
@@ -319,9 +322,9 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 target_misfit = directives.TargetMisfit(chifact=1)
 
 directives_list = [
-        update_sensitivity_weighting, starting_beta, beta_schedule,
-        save_iteration, target_misfit
-        ]
+    update_sensitivity_weighting, starting_beta, beta_schedule,
+    save_iteration, target_misfit
+]
 
 #####################################################################
 # Running the DC Inversion
@@ -333,8 +336,8 @@ directives_list = [
 
 # Here we combine the inverse problem and the set of directives
 dc_inversion = inversion.BaseInversion(
-        dc_inverse_problem, directiveList=directives_list
-        )
+    dc_inverse_problem, directiveList=directives_list
+)
 
 # Run inversion
 recovered_conductivity_model = dc_inversion.run(starting_conductivity_model)
@@ -395,7 +398,7 @@ ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.83])
 norm = mpl.colors.Normalize(vmin=np.min(true_conductivity_model), vmax=np.max(true_conductivity_model))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='10^%.1f'
-    )
+)
 cbar.set_label('$S/m$',rotation=270, labelpad=15, size=12)
 
 plt.show()
@@ -427,10 +430,10 @@ for ii in range(0, 3):
 
     ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.05, 0.25, 0.9])
     cplot[ii] = plot_pseudoSection(
-            data_array[ii], dobs=dobs_array[ii], ax=ax1[ii], survey_type='dipole-dipole',
-            data_type=plot_type[ii], scale=scale[ii], space_type='half-space',
-            pcolorOpts={'cmap':'jet'}
-            )
+        data_array[ii], dobs=dobs_array[ii], ax=ax1[ii], survey_type='dipole-dipole',
+        data_type=plot_type[ii], scale=scale[ii], space_type='half-space',
+        pcolorOpts={'cmap':'jet'}
+    )
     ax1[ii].set_title(plot_title[ii])
 
 plt.show()
@@ -470,10 +473,9 @@ starting_chargeability_model = background_chargeability*np.ones(nC)
 #
 
 ip_simulation = ip.simulation_2d.Simulation2DNodal(
-        mesh, survey=ip_survey, etaMap=chargeability_map,
-        sigma=conductivity_map*recovered_conductivity_model,
-        Solver=Solver
-        )
+    mesh, survey=ip_survey, etaMap=chargeability_map,
+    sigma=conductivity_map*recovered_conductivity_model, Solver=Solver
+)
 
 #####################################################
 # Define IP Inverse Problem
@@ -490,18 +492,18 @@ ip_data_misfit.W = utils.sdiag(1./uncertainties_ip)
 ip_regularization = regularization.Simple(
     mesh, indActive=ind_active, mapping=maps.IdentityMap(nP=nC),
     alpha_s=1, alpha_x=1, alpha_y=1
-    )
+)
 
 # Define how the optimization problem is solved.
 ip_optimization = optimization.ProjectedGNCG(
     maxIter=10, lower=0., upper=1.,
     maxIterLS=20, maxIterCG=10, tolCG=1e-3
-    )
+)
 
 # Here we define the inverse problem that is to be solved
 ip_inverse_problem = inverse_problem.BaseInvProblem(
-        ip_data_misfit, ip_regularization, ip_optimization
-        )
+    ip_data_misfit, ip_regularization, ip_optimization
+)
 
 #####################################################
 # Define IP Inversion Directives
@@ -517,9 +519,8 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 target_misfit = directives.TargetMisfit(chifact=1.)
 
 directives_list = [
-        update_sensitivity_weighting, starting_beta, beta_schedule,
-        save_iteration, target_misfit
-        ]
+    update_sensitivity_weighting, starting_beta, beta_schedule, save_iteration, target_misfit
+]
 
 #####################################################
 # Define IP Inversion Directives
@@ -530,8 +531,8 @@ directives_list = [
 
 # Here we combine the inverse problem and the set of directives
 ip_inversion = inversion.BaseInversion(
-        ip_inverse_problem, directiveList=directives_list
-        )
+    ip_inverse_problem, directiveList=directives_list
+)
 
 # Run inversion
 recovered_chargeability_model = ip_inversion.run(starting_chargeability_model)
@@ -556,22 +557,20 @@ mesh.plotImage(
     plotting_map*true_chargeability_model, ax=ax1, grid=False,
     clim=(np.min(true_chargeability_model), np.max(true_chargeability_model)),
     pcolorOpts={'cmap':'plasma'}
-    )
+)
 ax1.set_title('True Chargeability Model')
 ax1.set_xlabel('x (m)')
 ax1.set_ylabel('z (m)')
 
 ax2 = fig.add_axes([0.85, 0.12, 0.03, 0.83])
 norm = mpl.colors.Normalize(
-        vmin=np.min(true_chargeability_model), vmax=np.max(true_chargeability_model)
-        )
+    vmin=np.min(true_chargeability_model), vmax=np.max(true_chargeability_model)
+)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', cmap=mpl.cm.plasma
 )
-
 cbar.set_label(
-    'Intrinsic Chargeability (V/V)',
-    rotation=270, labelpad=15, size=12
+    'Intrinsic Chargeability (V/V)', rotation=270, labelpad=15, size=12
 )
 
 plt.show()
@@ -591,11 +590,11 @@ ax1.set_ylabel('z (m)')
 
 ax2 = fig.add_axes([0.85, 0.12, 0.03, 0.83])
 norm = mpl.colors.Normalize(
-        vmin=np.min(recovered_chargeability_model), vmax=np.max(recovered_chargeability_model)
-        )
+    vmin=np.min(recovered_chargeability_model), vmax=np.max(recovered_chargeability_model)
+)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', cmap=mpl.cm.plasma
-    )
+)
 cbar.set_label('Intrinsic Chargeability (V/V)',rotation=270, labelpad=15, size=12)
 
 plt.show()
@@ -612,7 +611,7 @@ ip_data_predicted = data.Data(ip_survey, dobs=dpred_ip)
 # the DC voltage
 dobs_array = np.c_[
     dobs_ip/dobs_dc, dpred_ip/dobs_dc, (dobs_ip-dpred_ip)/uncertainties_ip
-    ]
+]
 
 fig = plt.figure(figsize=(17, 5.5))
 plot_title=['Observed', 'Predicted', 'Normalized Misfit']
@@ -629,9 +628,8 @@ for ii in range(0, 3):
     ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.11, 0.23, 0.85])
     cplot[ii] = plot_pseudoSection(
         ip_data, dobs=dobs_array[:, ii], ax=ax1[ii], survey_type='dipole-dipole',
-        data_type=plot_type[ii], space_type='half-space',
-        pcolorOpts={'cmap':'plasma'}
-        )
+        data_type=plot_type[ii], space_type='half-space', pcolorOpts={'cmap':'plasma'}
+    )
     ax1[ii].set_title(plot_title[ii])
     ax1[ii].set_xlabel('x (m)')
     ax1[ii].set_ylabel('z (m)')

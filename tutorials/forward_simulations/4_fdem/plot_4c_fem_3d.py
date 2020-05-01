@@ -97,11 +97,11 @@ for ii in range(len(frequencies)):
 
         # Define receivers of different type at each location
         bzr_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
-                receiver_locations[jj, :], 'z', 'real'
-                )
+            receiver_locations[jj, :], 'z', 'real'
+        )
         bzi_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
-                receiver_locations[jj, :], 'z', 'imag'
-                )
+            receiver_locations[jj, :], 'z', 'imag'
+        )
         receivers_list = [bzr_receiver, bzi_receiver]
         
         # Must define the transmitter properties and associated receivers
@@ -243,7 +243,6 @@ bz_imag = dpred[1:len(dpred):2]
 bz_real_plotting = np.reshape(bz_real, (len(frequencies), ntx))
 bz_imag_plotting = np.reshape(bz_imag, (len(frequencies), ntx))
 
-
 fig = plt.figure(figsize=(10, 4))
 
 # Real Component
@@ -253,7 +252,7 @@ ax1 = fig.add_axes([0.05, 0.05, 0.35, 0.9])
 plot2Ddata(
     receiver_locations[:, 0:2], bz_real_plotting[frequencies_index, :], ax=ax1,
     ncontour=30, clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
-    )
+)
 ax1.set_title('Re[$B_z$] at 100 Hz')
 
 ax2 = fig.add_axes([0.41, 0.05, 0.02, 0.9])
@@ -292,37 +291,26 @@ plt.show()
 
 if save_file == True:
     
+    module_path = os.path.dirname(fdem.__file__)
+    sep = 7*(os.path.sep)
+    relative_path = "{}..{}..{}..{}tutorials{}assets{}fdem{}".format(*sep)
+    
     # Write topography
-    fname = (os.path.dirname(fdem.__file__)
-        + '\\..\\..\\..\\tutorials\\assets\\fdem\\fdem_topo.txt'
-        )
+    fname = module_path + relative_path + 'fdem_topo.txt'
     np.savetxt(fname, np.c_[topo_xyz], fmt='%.4e')
     
     # Write data with 2% noise added
-    fname = (os.path.dirname(fdem.__file__)
-        + '\\..\\..\\..\\tutorials\\assets\\fdem\\fdem_data.obs'
-        )
+    fname = module_path + relative_path + 'fdem_data.obs'
     bz_real = bz_real + 1e-14*np.random.rand(len(bz_real))
     bz_imag = bz_imag + 1e-14*np.random.rand(len(bz_imag))
     f_vec = np.kron(frequencies, np.ones(ntx))
     receiver_locations = np.kron(np.ones((len(frequencies), 1)), receiver_locations)
     
-    np.savetxt(
-        fname,
-        np.c_[f_vec, receiver_locations, bz_real, bz_imag],
-        fmt='%.4e'
-    )
+    np.savetxt(fname, np.c_[f_vec, receiver_locations, bz_real, bz_imag], fmt='%.4e')
     
     # Plot true model
     output_model = plotting_map*model
     output_model[np.isnan(output_model)] = 1e-8
 
-    fname = (os.path.dirname(fdem.__file__)
-        + '\\..\\..\\..\\tutorials\\assets\\fdem\\true_model.txt'
-        )
-    np.savetxt(
-        fname,
-        output_model,
-        fmt='%.4e'
-    )
-
+    fname = module_path + relative_path + 'true_model.txt'
+    np.savetxt(fname, output_model, fmt='%.4e')

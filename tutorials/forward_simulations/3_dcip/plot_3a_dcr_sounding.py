@@ -73,14 +73,14 @@ for ii in range(0, len(electrode_separations)):
 
     # Create receivers list. Define as pole or dipole.
     receiver_list = dc.receivers.Dipole(
-            M_location, N_location
-            )
+        M_location, N_location
+    )
     receiver_list = [receiver_list]
 
     # Define the source properties and associated receivers
     source_list.append(
-            dc.sources.Dipole(receiver_list, A_location, B_location)
-            )
+        dc.sources.Dipole(receiver_list, A_location, B_location)
+    )
 
 # Define survey
 survey = dc.Survey(source_list)
@@ -116,7 +116,7 @@ model_map = maps.IdentityMap(nP=len(model))
 max_depth = 500
 mesh = TensorMesh(
     [np.r_[layer_thicknesses, max_depth-layer_thicknesses.sum()]]
-    )
+)
 
 # Plot the 1D model
 plot_layer(model_map*model, mesh)
@@ -131,9 +131,9 @@ plot_layer(model_map*model, mesh)
 #
 
 simulation = dc.simulation_1d.Simulation1DLayers(
-        survey=survey, rhoMap=model_map, thicknesses=layer_thicknesses,
-        data_type="apparent_resistivity"
-        )
+    survey=survey, rhoMap=model_map, thicknesses=layer_thicknesses,
+    data_type="apparent_resistivity"
+)
 
 # Predict data for a given model
 dpred = simulation.dpred(model)
@@ -151,8 +151,14 @@ plt.show()
 # Optional: Export Data
 # ---------------------
 #
+# Export data and true model
+#
 
 if save_file == True:
+    
+    module_path = os.path.dirname(dc.__file__)
+    sep = 7*(os.path.sep)
+    relative_path = "{}..{}..{}..{}tutorials{}assets{}dcip1d{}".format(*sep)
 
     survey.getABMN_locations()
 
@@ -164,15 +170,13 @@ if save_file == True:
         survey.m_locations,
         survey.n_locations,
         dpred + noise
-        ]
+    ]
 
-    fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\app_res_1d_data.dobs'
+    fname = module_path + relative_path + 'app_res_1d_data.dobs'
     np.savetxt(fname, data_array, fmt='%.4e')
 
-
-    fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\true_model.txt'
+    fname = module_path + relative_path + 'true_model.txt'
     np.savetxt(fname, model, fmt='%.4e')
 
-
-    fname = os.path.dirname(dc.__file__) + '\\..\\..\\..\\..\\tutorials\\assets\\dcip1d\\layers.txt'
+    fname = module_path + relative_path + 'layers.txt'
     np.savetxt(fname, mesh.hx, fmt='%d')

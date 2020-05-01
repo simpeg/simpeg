@@ -46,8 +46,8 @@ save_file = False
 #
 
 [x_topo, y_topo] = np.meshgrid(
-        np.linspace(-200, 200, 41), np.linspace(-200, 200, 41)
-        )
+    np.linspace(-200, 200, 41), np.linspace(-200, 200, 41)
+)
 z_topo = -15*np.exp(-(x_topo**2 + y_topo**2) / 80**2)
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
@@ -78,8 +78,8 @@ components = ["tmi"]
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
 receiver_list = magnetics.receivers.Point(
-        receiver_locations, components=components
-        )
+    receiver_locations, components=components
+)
 
 receiver_list = [receiver_list]
 
@@ -91,7 +91,7 @@ inducing_field = (strength, inclination, declination)
 
 source_field = magnetics.sources.SourceField(
     receiver_list=receiver_list, parameters=inducing_field
-    )
+)
 
 # Define the survey
 survey = magnetics.survey.MagneticSurvey(source_field)
@@ -152,7 +152,6 @@ ax1.set_title('Model slice at y = 0 m')
 ax1.set_xlabel('x (m)')
 ax1.set_ylabel('z (m)')
 
-
 ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(vmin=np.min(model), vmax=np.max(model))
 cbar = mpl.colorbar.ColorbarBase(
@@ -201,10 +200,10 @@ ax1.set_ylabel('y (m)')
 
 ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.85])
 norm = mpl.colors.Normalize(
-        vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred))
+    vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred))
 )
 cbar = mpl.colorbar.ColorbarBase(
-        ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
 )
 cbar.set_label('$nT$', rotation=270, labelpad=15, size=12)
 
@@ -215,30 +214,24 @@ plt.show()
 # Optional: Export Data
 # ---------------------
 #
-# Write the data and topography
+# Write the data, topography and true model
 #
 
-
 if save_file == True:
+    
+    module_path = os.path.dirname(magnetics.__file__)
+    sep = 7*(os.path.sep)
+    relative_path = "{}..{}..{}..{}tutorials{}assets{}magnetics{}".format(*sep)
 
-    fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_topo.txt'
+    fname = module_path + relative_path + 'magnetics_topo.txt'
     np.savetxt(fname, np.c_[xyz_topo], fmt='%.4e')
 
     maximum_anomaly = np.max(np.abs(dpred))
     noise = 0.02*maximum_anomaly*np.random.rand(len(dpred))
-    fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\magnetics_data.obs'
-    np.savetxt(
-        fname,
-        np.c_[receiver_locations, dpred + noise],
-        fmt='%.4e'
-    )
+    fname = module_path + relative_path + 'magnetics_data.obs'
+    np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt='%.4e')
 
     output_model = plotting_map*model
     output_model[np.isnan(output_model)] = 0.
-
-    fname = os.path.dirname(magnetics.__file__) + '\\..\\..\\..\\tutorials\\assets\\magnetics\\true_model.txt'
-    np.savetxt(
-        fname,
-        output_model,
-        fmt='%.4e'
-    )
+    fname = module_path + relative_path + 'true_model.txt'
+    np.savetxt(fname, output_model, fmt='%.4e')

@@ -52,7 +52,7 @@ import matplotlib as mpl
 
 [x_topo, y_topo, z_topo] = np.meshgrid(
     np.linspace(-100, 100, 41), np.linspace(-100, 100, 41), 0.
-    )
+)
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
@@ -93,14 +93,15 @@ for pp in range(0, locations.shape[0]):
     loc_pp = np.reshape(locations[pp, :], (1, 3))
     receivers_list = [
         vrm.receivers.Point(loc_pp, times=time_channels, fieldType='dbdt', orientation='z')
-        ]
+    ]
     
     dipole_moment = [0., 0., 1.]
     
     # Define the source
     source_list.append(
         vrm.sources.MagDipole(
-            receivers_list, mkvc(locations[pp, :]), dipole_moment, waveform)
+            receivers_list, mkvc(locations[pp, :]), dipole_moment, waveform
+        )
     )
 
 # Define the survey
@@ -250,7 +251,7 @@ ax11 = fig.add_axes([0.1, 0.1, 0.35, 0.9])
 plot2Ddata(
     locations[:, 0:2], -dpred[:, time_index], ax=ax11, ncontour=30,
     clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
-    )
+)
 ax11.set_xlabel('x (m)')
 ax11.set_ylabel('y (m)')
 titlestr = "- dBz/dt at t=" + '{:.1e}'.format(time_channels[time_index]) + " s"

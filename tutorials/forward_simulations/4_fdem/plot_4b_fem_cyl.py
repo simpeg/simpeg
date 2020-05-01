@@ -75,11 +75,11 @@ for ii in range(ntx):
     # measurements require separate receivers. You can define the orientation of
     # the transmitters and receivers for different survey geometries.
     bzr_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
-            receiver_locations[ii, :], 'z', 'real'
-            )
+        receiver_locations[ii, :], 'z', 'real'
+    )
     bzi_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
-            receiver_locations[ii, :], 'z', 'imag'
-            )
+        receiver_locations[ii, :], 'z', 'imag'
+    )
     receivers_list = [bzr_receiver, bzi_receiver]  # must be a list
 
     for jj in range(len(frequencies)):
@@ -164,8 +164,8 @@ ax1.plot(receiver_locations[:, 0], receiver_locations[:, 2], 'r.')
 
 ax2 = fig.add_axes([0.76, 0.1, 0.05, 0.85])
 norm = mpl.colors.Normalize(
-        vmin=np.log10(layer_conductivity), vmax=np.log10(pipe_conductivity)
-        )
+    vmin=np.log10(layer_conductivity), vmax=np.log10(pipe_conductivity)
+)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
 )
@@ -186,8 +186,8 @@ cbar.set_label(
 #
 
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
-        mesh, survey=survey, sigmaMap=model_map, Solver=Solver
-        )
+    mesh, survey=survey, sigmaMap=model_map, Solver=Solver
+)
 
 ######################################################
 # Predict and Plot Data

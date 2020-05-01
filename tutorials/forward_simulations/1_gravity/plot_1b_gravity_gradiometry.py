@@ -74,8 +74,8 @@ components = ["gxz", "gyz", "gzz"]
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
 receiver_list = gravity.receivers.Point(
-        receiver_locations, components=components
-        )
+    receiver_locations, components=components
+)
 
 receiver_list = [receiver_list]
 
