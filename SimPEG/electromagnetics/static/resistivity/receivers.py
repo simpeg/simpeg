@@ -128,21 +128,9 @@ class Dipole(BaseRx):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        # Find indices for pole receivers
-        inds_dipole = (
-            np.linalg.norm(self.locations[0]-self.locations[1], axis=1) > self.threshold
-        )
-
-        P0 = mesh.getInterpolationMat(self.locations[0][inds_dipole], Gloc)
-        P1 = mesh.getInterpolationMat(self.locations[1][inds_dipole], Gloc)
+        P0 = mesh.getInterpolationMat(self.locations[0], Gloc)
+        P1 = mesh.getInterpolationMat(self.locations[1], Gloc)
         P = P0 - P1
-
-        # Generate interpolation matrix for pole receivers
-        if ~np.alltrue(inds_dipole):
-            P0_pole = mesh.getInterpolationMat(
-                self.locations[0][~inds_dipole], Gloc
-            )
-            P = sp.vstack((P, P0_pole))
 
         if self.data_type == 'apparent_resistivity':
             P = sdiag(1./self.geometric_factor) * P
@@ -156,46 +144,6 @@ class Dipole(BaseRx):
             P = P.toarray().T
 
         return P
-
-
-class Dipole2D(Dipole):
-    """
-    Dipole receiver for 2.5D simulations
-    """
-
-    def __init__(self, locationsM, locationsN, **kwargs):
-        assert locationsM.shape == locationsN.shape, (
-            'locationsM and locationsN need to be the same size'
-        )
-        super(Dipole2D, self).__init__(locationsM, locationsN, **kwargs)
-
-    def getP(self, mesh, Gloc):
-        if mesh in self._Ps:
-            return self._Ps[mesh]
-
-        P0 = mesh.getInterpolationMat(self.locations[0], Gloc)
-        P1 = mesh.getInterpolationMat(self.locations[1], Gloc)
-        P = P0 - P1
-
-        if self.data_type == 'apparent_resistivity':
-            P = sdiag(1./(np.ones(P.shape[0]) * self.geometric_factor)) * P
-        elif self.data_type == 'apparent_chargeability':
-            P = sdiag(1./self.dc_voltage) * P
-        if self.storeProjections:
-            self._Ps[mesh] = P
-        return P
-
-    def eval(self, kys, src, mesh, f):
-        P = self.getP(mesh, self.projGLoc(f))
-        Pf = P*f[src, self.projField, :]
-        return IntTrapezoidal(kys, Pf, y=0.)
-
-    def evalDeriv(self, ky, src, mesh, f, v, adjoint=False):
-        P = self.getP(mesh, self.projGLoc(f))
-        if not adjoint:
-            return P*v
-        elif adjoint:
-            return P.T*v
 
 
 class Pole(BaseRx):
@@ -228,61 +176,15 @@ class Pole(BaseRx):
             self._Ps[mesh] = P
 
         return P
-
-
-class Pole2D(BaseRx):
-    """
-    Pole receiver for 2.5D simulations
-    """
-
-    # def __init__(self, locations, **kwargs):
-
-    #     locations = np.atleast_2d(locationsM)
-    #     # We may not need this ...
-    #     BaseRx.__init__(self, locations)
-
-    @property
-    def nD(self):
-        """Number of data in the receiver."""
-        return self.locations.shape[0]
-
-    def getP(self, mesh, Gloc):
-        if mesh in self._Ps:
-            return self._Ps[mesh]
-
-        P = mesh.getInterpolationMat(self.locations, Gloc)
-
-        if self.data_type == 'apparent_resistivity':
-            P = sdiag(1./self.geometric_factor) * P
-        elif self.data_type == 'apparent_chargeability':
-            P = sdiag(1./self.dc_voltage) * P
-        if self.storeProjections:
-            self._Ps[mesh] = P
-
-        return P
-
-    def eval(self, kys, src, mesh, f):
-        P = self.getP(mesh, self.projGLoc(f))
-        Pf = P*f[src, self.projField, :]
-        return IntTrapezoidal(kys, Pf, y=0.)
-
-    def evalDeriv(self, ky, src, mesh, f, v, adjoint=False):
-        P = self.getP(mesh, self.projGLoc(f))
-        if not adjoint:
-            return P*v
-        elif adjoint:
-            return P.T*v
-
-
 ############
 # Deprecated
 ############
 
 @deprecate_class(removal_version='0.15.0')
-class Dipole_ky(Dipole2D):
+class Dipole_ky(Dipole):
     pass
 
 
 @deprecate_class(removal_version='0.15.0')
-class Pole_ky(Pole2D):
+class Pole_ky(Pole):
     pass

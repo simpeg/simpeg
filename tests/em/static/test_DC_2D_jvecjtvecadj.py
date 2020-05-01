@@ -33,7 +33,7 @@ class DCProblem_2DTestsCC(unittest.TestCase):
         A0loc = np.r_[-150, 0.]
         A1loc = np.r_[-130, 0.]
         # rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        rx = dc.receivers.Dipole2D(M, N)
+        rx = dc.receivers.Dipole(M, N)
         src0 = dc.sources.Pole([rx], A0loc)
         src1 = dc.sources.Pole([rx], A1loc)
         survey = dc.survey.Survey_ky([src0, src1])

@@ -150,8 +150,6 @@ class L2DataMisfit(BaseDataMisfit):
     @timeIt
     def __call__(self, m, f=None):
         "__call__(m, f=None)"
-        if isinstance(f, Delayed):
-            f = f.compute()
 
         R = self.W * self.residual(m, f=f)
         return 0.5 * np.vdot(R, R)
@@ -171,9 +169,6 @@ class L2DataMisfit(BaseDataMisfit):
         if f is None:
             f = self.simulation.fields(m)
 
-        if isinstance(f, Delayed):
-            f = f.compute()
-
         return self.simulation.Jtvec(
             m, self.W.T * (self.W * self.residual(m, f=f)), f=f
         )
@@ -191,9 +186,6 @@ class L2DataMisfit(BaseDataMisfit):
 
         if f is None:
             f = self.simulation.fields(m)
-
-        if isinstance(f, Delayed):
-            f = f.compute()
 
         return self.simulation.Jtvec_approx(
             m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
