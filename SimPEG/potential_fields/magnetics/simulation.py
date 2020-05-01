@@ -30,8 +30,13 @@ class Simulation3DIntegral(BasePFSimulation):
 
     modelType = properties.StringChoice(
         "Type of magnetization model",
-        choices=['susceptibility', 'vector', 'amplitude'],
+        choices=['susceptibility', 'vector'],
         default='susceptibility'
+    )
+
+    is_amplitude_data = properties.Boolean(
+        "Whether the supplied data is amplitude data",
+        default=False
     )
 
 
@@ -99,7 +104,7 @@ class Simulation3DIntegral(BasePFSimulation):
         else:
             fields = self.G@model.astype(np.float32)
 
-        if self.modelType == 'amplitude':
+        if self.is_amplitude_data:
             fields = self.compute_amplitude(fields)
 
         return np.asarray(fields)
@@ -149,7 +154,7 @@ class Simulation3DIntegral(BasePFSimulation):
             return self._gtg_diagonal
 
         diag = np.zeros(self.G.shape[1])
-        if self.modelType != 'amplitude':
+        if not self.is_amplitude_data:
             for i in range(len(W)):
                 diag += W[i]*(self.G[i]*self.G[i])
         else:
@@ -172,7 +177,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         Jvec = self.G@dmu_dm_v.astype(np.float32)
 
-        if self.modelType == 'amplitude':
+        if self.is_amplitude_data:
             Jvec = Jvec.reshape((3, -1), order='F')
             fieldDeriv_Jvec = self.fieldDeriv * Jvec
             return fieldDeriv_Jvec[0] + fieldDeriv_Jvec[1] + fieldDeriv_Jvec[2]
@@ -183,7 +188,7 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.chi is None:
             self.model = np.zeros(self.G.shape[1])
 
-        if self.modelType == 'amplitude':
+        if self.is_amplitude_data:
             v = (self.fieldDeriv * v).reshape(-1, order='F')
         Jtvec = self.G.T@v.astype(np.float32)
         return np.asarray(self.chiDeriv.T@Jtvec)
@@ -234,7 +239,7 @@ class Simulation3DIntegral(BasePFSimulation):
             receiver_location:  [obsx, obsy, obsz] nC x 3 Array
 
             components: list[str]
-                List of gravity components chosen from:
+                List of magnetic components chosen from:
                 'bx', 'by', 'bz', 'bxx', 'bxy', 'bxz', 'byy', 'byz', 'bzz'
 
             OUTPUT:
