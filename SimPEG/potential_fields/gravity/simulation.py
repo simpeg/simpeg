@@ -52,9 +52,8 @@ class Simulation3DIntegral(BasePFSimulation):
             return self._gtg_diagonal
 
         diag = np.zeros(self.G.shape[1])
-        if self.modelType != 'amplitude':
-            for i in range(len(W)):
-                diag += W[i]*(self.G[i]*self.G[i])
+        for i in range(len(W)):
+            diag += W[i]*(self.G[i]*self.G[i])
         self._gtg_diagonal = ((sdiag(np.sqrt(diag))@self.rhoDeriv)**2).sum(axis=0)
         return self._gtg_diagonal
 
