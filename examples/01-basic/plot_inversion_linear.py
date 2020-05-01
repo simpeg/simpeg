@@ -7,15 +7,15 @@ Here we go over the basics of creating a linear problem and inversion.
 """
 from __future__ import print_function
 import numpy as np
-from SimPEG import Mesh
-from SimPEG import Problem
-from SimPEG import Survey
-from SimPEG import DataMisfit
-from SimPEG import Directives
-from SimPEG import Optimization
-from SimPEG import Regularization
-from SimPEG import InvProblem
-from SimPEG import Inversion
+import discretize
+from SimPEG import simulation
+from SimPEG import maps
+from SimPEG import data_misfit
+from SimPEG import directives
+from SimPEG import optimization
+from SimPEG import regularization
+from SimPEG import inverse_problem
+from SimPEG import inversion
 import matplotlib.pyplot as plt
 
 
@@ -23,7 +23,7 @@ def run(N=100, plotIt=True):
 
     np.random.seed(1)
 
-    mesh = Mesh.TensorMesh([N])
+    mesh = discretize.TensorMesh([N])
 
     nk = 20
     jk = np.linspace(1., 60., nk)
@@ -46,23 +46,21 @@ def run(N=100, plotIt=True):
     mtrue[mesh.vectorCCx > 0.45] = -0.5
     mtrue[mesh.vectorCCx > 0.6] = 0
 
-    prob = Problem.LinearProblem(mesh, G=G)
-    survey = Survey.LinearSurvey()
-    survey.pair(prob)
-    survey.makeSyntheticData(mtrue, std=0.01)
+    prob = simulation.LinearSimulation(mesh, G=G, model_map=maps.IdentityMap(mesh))
+    data = prob.make_synthetic_data(mtrue, standard_deviation=0.01, add_noise=True)
 
     M = prob.mesh
 
-    reg = Regularization.Tikhonov(mesh, alpha_s=1., alpha_x=1.)
-    dmis = DataMisfit.l2_DataMisfit(survey)
-    opt = Optimization.InexactGaussNewton(maxIter=60)
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    directives = [
-        Directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
-        Directives.TargetMisfit()
+    reg = regularization.Tikhonov(mesh, alpha_s=1., alpha_x=1.)
+    dmis = data_misfit.L2DataMisfit(simulation=prob, data=data)
+    opt = optimization.InexactGaussNewton(maxIter=60)
+    invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
+    directive_list = [
+        directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+        directives.TargetMisfit()
     ]
-    inv = Inversion.BaseInversion(invProb, directiveList=directives)
-    m0 = np.zeros_like(survey.mtrue)
+    inv = inversion.BaseInversion(invProb, directiveList=directive_list)
+    m0 = np.zeros(M.nC)
 
     mrec = inv.run(m0)
 
@@ -72,12 +70,12 @@ def run(N=100, plotIt=True):
             axes[0].plot(prob.G[i, :])
         axes[0].set_title('Columns of matrix G')
 
-        axes[1].plot(M.vectorCCx, survey.mtrue, 'b-')
+        axes[1].plot(M.vectorCCx, mtrue, 'b-')
         axes[1].plot(M.vectorCCx, mrec, 'r-')
         axes[1].legend(('True Model', 'Recovered Model'))
         axes[1].set_ylim([-2, 2])
 
-    return prob, survey, mesh, mrec
+    return prob, data, mesh, mrec
 
 if __name__ == '__main__':
     run()

@@ -2,10 +2,12 @@ from __future__ import print_function
 import unittest
 import numpy as np
 import scipy.sparse as sp
-from SimPEG import Mesh
-from SimPEG import Utils
+
+import discretize
+from SimPEG import utils
 from SimPEG import SolverLU
-from SimPEG import EM
+from SimPEG.electromagnetics import frequency_domain as fdem
+from SimPEG.electromagnetics import analytics
 from scipy.constants import mu_0
 
 # import matplotlib
@@ -31,33 +33,33 @@ class FDEM_analyticTests(unittest.TestCase):
         hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
         hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-        mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+        mesh = discretize.TensorMesh([hx, hy, hz], 'CCC')
 
         x = np.linspace(-10, 10, 5)
-        XYZ = Utils.ndgrid(x, np.r_[0], np.r_[0])
-        rxList = EM.FDEM.Rx.Point_e(XYZ, orientation='x', component='imag')
+        XYZ = utils.ndgrid(x, np.r_[0], np.r_[0])
+        rxList = fdem.Rx.PointElectricField(XYZ, orientation='x', component='imag')
         SrcList = [
-            EM.FDEM.Src.MagDipole(
-                [rxList], loc=np.r_[0., 0., 0.],
-                freq=freq
+            fdem.Src.MagDipole(
+                [rxList], location=np.r_[0., 0., 0.],
+                frequency=freq
             ),
-            EM.FDEM.Src.CircularLoop(
-                [rxList], loc=np.r_[0., 0., 0.],
-                freq=freq, radius=np.sqrt(1./np.pi)
+            fdem.Src.CircularLoop(
+                [rxList], location=np.r_[0., 0., 0.],
+                frequency=freq, radius=np.sqrt(1./np.pi)
             ),
-            # EM.FDEM.Src.MagDipole_Bfield(
+            # fdem.Src.MagDipole_Bfield(
             #     [rxList], loc=np.r_[0., 0., 0.],
             #     freq=freq
             # ), # less accurate
         ]
 
-        survey = EM.FDEM.Survey(SrcList)
+        survey = fdem.Survey(SrcList)
 
         sig = 1e-1
         sigma = np.ones(mesh.nC)*sig
         sigma[mesh.gridCC[:, 2] > 0] = 1e-8
 
-        prb = EM.FDEM.Problem3D_b(mesh, sigma=sigma)
+        prb = fdem.Simulation3DMagneticFluxDensity(mesh, sigma=sigma)
         prb.pair(survey)
 
         try:
@@ -77,15 +79,15 @@ class FDEM_analyticTests(unittest.TestCase):
 
     def test_Transect(self, plotIt=plotIt):
 
-        for src in self.prb.survey.srcList:
+        for src in self.prb.survey.source_list:
             print(' --- testing {} --- '.format(src.__class__.__name__))
             x = np.linspace(-55, 55, 12)
-            XYZ = Utils.ndgrid(x, np.r_[0], np.r_[0])
+            XYZ = utils.ndgrid(x, np.r_[0], np.r_[0])
 
             P = self.mesh.getInterpolationMat(XYZ, 'Fz')
 
             ana = mu_0*np.imag(
-                EM.Analytics.FDEM.hzAnalyticDipoleF(x, src.freq, self.sig)
+                analytics.FDEM.hzAnalyticDipoleF(x, src.freq, self.sig)
             )
             num = P*np.imag(self.u[src, 'b'])
 
@@ -123,15 +125,15 @@ class TestDipoles(unittest.TestCase):
         csx, ncx, npadx = 5, 50, 25
         csz, ncz, npadz = 5, 50, 25
 
-        hx = Utils.meshTensor(
+        hx = utils.meshTensor(
             [(csx, ncx), (csx, npadx, 1.3)]
         )
-        hz = Utils.meshTensor(
+        hz = utils.meshTensor(
             [(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)]
         )
 
         # define the cylindrical mesh
-        mesh = Mesh.CylMesh([hx, 1, hz], [0., 0., -hz.sum()/2])
+        mesh = discretize.CylMesh([hx, 1, hz], [0., 0., -hz.sum()/2])
 
         if plotIt:
             mesh.plotGrid()
@@ -143,20 +145,20 @@ class TestDipoles(unittest.TestCase):
         # set up source
         # test electric dipole
         src_loc = np.r_[0., 0., 0.]
-        s_ind = Utils.closestPoints(mesh, src_loc, 'Fz') + mesh.nFx
+        s_ind = utils.closestPoints(mesh, src_loc, 'Fz') + mesh.nFx
 
         de = np.zeros(mesh.nF, dtype=complex)
         de[s_ind] = 1./csz
-        de_p = [EM.FDEM.Src.RawVec_e([], freq, de/mesh.area)]
+        de_p = [fdem.Src.RawVec_e([], freq, de/mesh.area)]
 
-        dm_p = [EM.FDEM.Src.MagDipole([], freq, src_loc)]
+        dm_p = [fdem.Src.MagDipole([], freq, src_loc)]
 
         # Pair the problem and survey
-        surveye = EM.FDEM.Survey(de_p)
-        surveym = EM.FDEM.Survey(dm_p)
+        surveye = fdem.Survey(de_p)
+        surveym = fdem.Survey(dm_p)
 
-        prbe = EM.FDEM.Problem3D_h(mesh, sigma=sigmaback, mu=mur*mu_0)
-        prbm = EM.FDEM.Problem3D_e(mesh, sigma=sigmaback, mu=mur*mu_0)
+        prbe = fdem.Simulation3DMagneticField(mesh, sigma=sigmaback, mu=mur*mu_0)
+        prbm = fdem.Simulation3DElectricField(mesh, sigma=sigmaback, mu=mur*mu_0)
 
         # pair problem and survey
         prbe.pair(surveye)
@@ -175,7 +177,7 @@ class TestDipoles(unittest.TestCase):
         z = 100.
 
         # where we choose to measure
-        XYZ = Utils.ndgrid(r, np.r_[0.], np.r_[z])
+        XYZ = utils.ndgrid(r, np.r_[0.], np.r_[z])
 
         Pf = mesh.getInterpolationMat(XYZ, 'CC')
         Zero = sp.csr_matrix(Pf.shape)
@@ -185,7 +187,7 @@ class TestDipoles(unittest.TestCase):
         bn = fieldsBackM[dm_p, 'b']
 
         SigmaBack = sigmaback*np.ones((mesh.nC))
-        Rho = Utils.sdiag(1./SigmaBack)
+        Rho = utils.sdiag(1./SigmaBack)
         Rho = sp.block_diag([Rho, Rho])
 
         en = Rho*mesh.aveF2CCV*jn
@@ -195,20 +197,20 @@ class TestDipoles(unittest.TestCase):
         bx, bz = Pfx*bn, Pfz*bn
 
         # get analytic solution
-        exa, eya, eza = EM.Analytics.FDEM.ElectricDipoleWholeSpace(
+        exa, eya, eza = analytics.FDEM.ElectricDipoleWholeSpace(
             XYZ, src_loc, sigmaback, freq, orientation='Z', mu=mur*mu_0
         )
 
-        exa = Utils.mkvc(exa, 2)
-        eya = Utils.mkvc(eya, 2)
-        eza = Utils.mkvc(eza, 2)
+        exa = utils.mkvc(exa, 2)
+        eya = utils.mkvc(eya, 2)
+        eza = utils.mkvc(eza, 2)
 
-        bxa, bya, bza = EM.Analytics.FDEM.MagneticDipoleWholeSpace(
+        bxa, bya, bza = analytics.FDEM.MagneticDipoleWholeSpace(
             XYZ, src_loc, sigmaback, freq, orientation='Z', mu=mur*mu_0
         )
-        bxa = Utils.mkvc(bxa, 2)
-        bya = Utils.mkvc(bya, 2)
-        bza = Utils.mkvc(bza, 2)
+        bxa = utils.mkvc(bxa, 2)
+        bya = utils.mkvc(bya, 2)
+        bza = utils.mkvc(bza, 2)
 
         print(' comp,       anayltic,       numeric,       num - ana,       (num - ana)/ana')
         print('  ex:', np.linalg.norm(exa), np.linalg.norm(ex), np.linalg.norm(exa-ex), np.linalg.norm(exa-ex)/np.linalg.norm(exa))

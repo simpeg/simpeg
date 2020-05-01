@@ -9,17 +9,17 @@ with a compact norm
 import numpy as np
 import matplotlib.pyplot as plt
 
-from SimPEG import Mesh
-from SimPEG import Utils
-from SimPEG import Maps
-from SimPEG import Regularization
-from SimPEG import DataMisfit
-from SimPEG import Optimization
-from SimPEG import InvProblem
-from SimPEG import Directives
-from SimPEG import Inversion
-from SimPEG import PF
+from discretize import TensorMesh
+from SimPEG.potential_fields import gravity
+from SimPEG import (
+    maps, data, data_misfit, regularization, optimization, inverse_problem,
+    directives, inversion
+    )
 
+from SimPEG import utils
+from SimPEG.utils import plot2Ddata
+
+import shutil
 
 def run(plotIt=True):
 
@@ -30,7 +30,7 @@ def run(plotIt=True):
     hyind = [(dx, 5, -1.3), (dx, 15), (dx, 5, 1.3)]
     hzind = [(dx, 5, -1.3), (dx, 7), (3.5, 1), (2, 5)]
 
-    mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
+    mesh = TensorMesh([hxind, hyind, hzind], 'CCC')
 
     # Get index of the center
     midx = int(mesh.nCx/2)
@@ -41,10 +41,10 @@ def run(plotIt=True):
     zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.vectorNz[-1]
 
     # We would usually load a topofile
-    topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
+    topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
     # Go from topo to array of indices of active cells
-    actv = Utils.surface2ind_topo(mesh, topo, 'N')
+    actv = utils.surface2ind_topo(mesh, topo, 'N')
     actv = np.where(actv)[0]
     nC = len(actv)
 
@@ -57,79 +57,81 @@ def run(plotIt=True):
     Z = -np.exp((X**2 + Y**2) / 75**2) + mesh.vectorNz[-1] + 0.1
 
     # Create a GRAVsurvey
-    rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
-    rxLoc = PF.BaseGrav.RxObs(rxLoc)
-    srcField = PF.BaseGrav.SrcField([rxLoc])
-    survey = PF.BaseGrav.LinearSurvey(srcField)
+    rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
+    rxLoc = gravity.receivers.Point(rxLoc)
+    srcField = gravity.sources.SourceField([rxLoc])
+    survey = gravity.survey.GravitySurvey(srcField)
 
     # We can now create a density model and generate data
     # Here a simple block in half-space
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
     model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.75
     model[(midx+1):(midx+5), (midy-2):(midy+2), -10:-6] = -0.75
-    model = Utils.mkvc(model)
+    model = utils.mkvc(model)
     model = model[actv]
 
     # Create active map to go from reduce set to full
-    actvMap = Maps.InjectActiveCells(mesh, actv, -100)
+    actvMap = maps.InjectActiveCells(mesh, actv, -100)
 
     # Create reduced identity map
-    idenMap = Maps.IdentityMap(nP=nC)
+    idenMap = maps.IdentityMap(nP=nC)
 
-    # Create the forward model operator
-    prob = PF.Gravity.GravityIntegral(mesh, rhoMap=idenMap, actInd=actv)
-
-    # Pair the survey and problem
-    survey.pair(prob)
+    # Create the forward simulation
+    simulation = gravity.simulation.Simulation3DIntegral(
+    survey=survey, mesh=mesh, rhoMap=idenMap, actInd=actv
+    )
 
     # Compute linear forward operator and compute some data
-    d = prob.fields(model)
+    d = simulation.fields(model)
 
     # Add noise and uncertainties
     # We add some random Gaussian noise (1nT)
-    data = d + np.random.randn(len(d))*1e-3
-    wd = np.ones(len(data))*1e-3  # Assign flat uncertainties
+    synthetic_data = d + np.random.randn(len(d))*1e-3
+    wd = np.ones(len(synthetic_data))*1e-3  # Assign flat uncertainties
 
-    survey.dobs = data
-    survey.std = wd
-    survey.mtrue = model
+    data_object = data.Data(
+    survey, dobs=synthetic_data, noise_floor=wd
+    )
+
+    m0 = np.ones(nC)*1e-4  # Starting model
 
     # Create sensitivity weights from our linear forward operator
-    rxLoc = survey.srcField.rxList[0].locs
-    wr = np.sum(prob.G**2., axis=0)**0.5
-    wr = (wr/np.max(wr))
+    rxLoc = survey.source_field.receiver_list[0].locations
 
     # Create a regularization
-    reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-    reg.cell_weights = wr
+    reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
     reg.norms = np.c_[0, 0, 0, 0]
 
     # Data misfit function
-    dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.W = Utils.sdiag(1/wd)
+    dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
+    dmis.W = utils.sdiag(1/wd)
 
     # Add directives to the inversion
-    opt = Optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
-                                     maxIterLS=20, maxIterCG=10,
-                                     tolCG=1e-3)
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
+    opt = optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
+                                 maxIterLS=20, maxIterCG=10,
+                                 tolCG=1e-3)
+    invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
     # model parameters
-    IRLS = Directives.Update_IRLS(
-        f_min_change=1e-4, maxIRLSiter=30, coolEpsFact=1.5, beta_tol=1e-1,
+    update_IRLS = directives.Update_IRLS(
+    f_min_change=1e-4, max_irls_iterations=30,
+    coolEpsFact=1.5, beta_tol=1e-2,
     )
-    saveDict = Directives.SaveOutputEveryIteration(save_txt=False)
-    update_Jacobi = Directives.UpdatePreconditioner()
-    inv = Inversion.BaseInversion(
-        invProb, directiveList=[IRLS, betaest, update_Jacobi, saveDict]
+    saveDict = directives.SaveOutputEveryIteration(save_txt=False)
+    update_Jacobi = directives.UpdatePreconditioner()
+    sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+    inv = inversion.BaseInversion(
+    invProb, directiveList=[update_IRLS, sensitivity_weights, betaest, update_Jacobi, saveDict]
     )
 
     # Run the inversion
-    m0 = np.ones(nC)*1e-4  # Starting model
+
     mrec = inv.run(m0)
+
+    shutil.rmtree(simulation.sensitivity_path)
 
     if plotIt:
         # Here is the recovered susceptibility model
@@ -147,7 +149,7 @@ def run(plotIt=True):
         vmin, vmax = mrec.min(), mrec.max()
 
         # Plot the data
-        Utils.PlotUtils.plot2Ddata(rxLoc, data)
+        plot2Ddata(rxLoc, data_object.dobs)
 
         plt.figure()
 
@@ -227,14 +229,14 @@ def run(plotIt=True):
         fig, axs = plt.figure(), plt.subplot()
         axs.plot(saveDict.phi_d, 'k', lw=2)
         axs.plot(
-            np.r_[IRLS.iterStart, IRLS.iterStart],
+            np.r_[update_IRLS.iterStart, update_IRLS.iterStart],
             np.r_[0, np.max(saveDict.phi_d)], 'k:'
         )
 
         twin = axs.twinx()
         twin.plot(saveDict.phi_m, 'k--', lw=2)
         axs.text(
-            IRLS.iterStart, np.max(saveDict.phi_d)/2.,
+            update_IRLS.iterStart, np.max(saveDict.phi_d)/2.,
             'IRLS Steps', va='bottom', ha='center',
             rotation='vertical', size=12,
             bbox={'facecolor': 'white'}

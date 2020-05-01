@@ -16,11 +16,12 @@ the same as in the forward modeling example. To remove the VRM signal we:
 # --------------
 #
 
-import SimPEG.VRM as VRM
+from SimPEG.electromagnetics import viscous_remanent_magnetization as VRM
 import numpy as np
+import discretize
 from SimPEG import (
-    mkvc, Mesh, Maps, DataMisfit, Directives, Optimization, Regularization,
-    InvProblem, Inversion
+    utils, maps, data_misfit, directives, optimization, regularization,
+    inverse_problem, inversion, data
     )
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -35,7 +36,7 @@ cs, ncx, ncy, ncz, npad = 2., 35, 35, 20, 5
 hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
 hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
 hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+mesh = discretize.TensorMesh([hx, hy, hz], 'CCC')
 
 ##########################################################################
 # Defining the true model
@@ -78,22 +79,22 @@ xi_true += 1e-5
 # for the survey. Our example is similar to an EM-63 survey.
 #
 
-waveform = VRM.WaveformVRM.StepOff()
+waveform = VRM.waveforms.StepOff()
 
 times = np.logspace(-5, -2, 31)  # Observation times
 x, y = np.meshgrid(np.linspace(-30, 30, 21), np.linspace(-30, 30, 21))
 z = 0.5*np.ones(x.shape)
-loc = np.c_[mkvc(x), mkvc(y), mkvc(z)]  # Src and Rx Locations
+loc = np.c_[utils.mkvc(x), utils.mkvc(y), utils.mkvc(z)]  # Src and Rx Locations
 
 srcListVRM = []
 
 for pp in range(0, loc.shape[0]):
 
     loc_pp = np.reshape(loc[pp, :], (1, 3))
-    rxListVRM = [VRM.Rx.Point(loc_pp, times=times, fieldType='dbdt', fieldComp='z')]
+    rxListVRM = [VRM.Rx.Point(loc_pp, times=times, fieldType='dbdt', orientation='z')]
 
     srcListVRM.append(
-        VRM.Src.MagDipole(rxListVRM, mkvc(loc[pp, :]), [0., 0., 0.01], waveform)
+        VRM.Src.MagDipole(rxListVRM, utils.mkvc(loc[pp, :]), [0., 0., 0.01], waveform)
     )
 
 survey_vrm = VRM.Survey(srcListVRM)
@@ -108,14 +109,13 @@ survey_vrm = VRM.Survey(srcListVRM)
 # properties.
 #
 
-# Defining the forward problem
-problem_vrm = VRM.Problem_Linear(
-    mesh, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75]
+# Defining the problem
+problem_vrm = VRM.Simulation3DLinear(
+    mesh, survey=survey_vrm, indActive=topoCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75]
 )
-problem_vrm.pair(survey_vrm)
 
 # Predict VRM response
-fields_vrm = survey_vrm.dpred(xi_true)
+fields_vrm = problem_vrm.dpred(xi_true)
 
 # Add an artificial TEM response. An analytic solution for the response near
 # the surface of a conductive half-space (Nabighian, 1979) is scaled at each
@@ -150,36 +150,40 @@ fields_tot = fields_tot + 0.05*np.abs(fields_tot)*np.random.normal(size=fields_t
 #
 
 # Define problem
-survey_inv = VRM.Survey(srcListVRM)
+#survey_inv = VRM.Survey(srcListVRM)
 actCells = (mesh.gridCC[:, 2] < 0.) & (mesh.gridCC[:, 2] > -2.)
-problem_inv = VRM.Problem_Linear(
-    mesh, indActive=actCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75]
+problem_inv = VRM.Simulation3DLinear(
+    mesh, survey=survey_vrm, indActive=actCells, ref_factor=3, ref_radius=[1.25, 2.5, 3.75]
 )
-problem_inv.pair(survey_inv)
-survey_inv.set_active_interval(1e-3, 1e-2)
-survey_inv.dobs = fields_tot[survey_inv.t_active]
-survey_inv.std = 0.05*np.abs(fields_tot[survey_inv.t_active])
-survey_inv.eps = 1e-11
+survey_vrm.set_active_interval(1e-3, 1e-2)
+
+dobs = fields_tot[survey_vrm.t_active]
+std = 0.05*np.abs(fields_tot[survey_vrm.t_active])
+eps = 1e-11
+data_vrm = data.Data(dobs=dobs, survey=survey_vrm, standard_deviation=std, noise_floor=eps)
 
 # Setup and run inversion
-dmis = DataMisfit.l2_DataMisfit(survey_inv)
-w = mkvc((np.sum(np.array(problem_inv.A)**2, axis=0)))**0.5
+dmis = data_misfit.L2DataMisfit(simulation=problem_inv, data=data_vrm)
+
+w = utils.mkvc((np.sum(np.array(problem_inv.A)**2, axis=0)))**0.5
 w = w/np.max(w)
-reg = Regularization.SimpleSmall(mesh=mesh, indActive=actCells,  cell_weights=w)
-opt = Optimization.ProjectedGNCG(maxIter=20, lower=0., upper=1e-2, maxIterLS=20, tolCG=1e-4)
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+w = w
+
+reg = regularization.SimpleSmall(mesh=mesh, indActive=actCells,  cell_weights=w)
+opt = optimization.ProjectedGNCG(maxIter=20, lower=0., upper=1e-2, maxIterLS=20, tolCG=1e-4)
+invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 directives = [
-    Directives.BetaSchedule(coolingFactor=2, coolingRate=1),
-    Directives.TargetMisfit()
+    directives.BetaSchedule(coolingFactor=2, coolingRate=1),
+    directives.TargetMisfit()
 ]
-inv = Inversion.BaseInversion(invProb, directiveList=directives)
+inv = inversion.BaseInversion(invProb, directiveList=directives)
 
 xi_0 = 1e-3*np.ones(actCells.sum())
 xi_rec = inv.run(xi_0)
 
 # Predict VRM response at all times for recovered model
-survey_inv.set_active_interval(0., 1.)
-fields_pre = survey_inv.dpred(xi_rec)
+survey_vrm.set_active_interval(0., 1.)
+fields_pre = problem_inv.dpred(xi_rec)
 
 ################################
 # Plotting
@@ -196,8 +200,8 @@ Fig = plt.figure(figsize=(10, 10))
 font_size = 12
 
 # Plot models
-invMap = Maps.InjectActiveCells(mesh, actCells, 0.)  # Maps to mesh
-topoMap = Maps.InjectActiveCells(mesh, topoCells, 0.)
+invMap = maps.InjectActiveCells(mesh, actCells, 0.)  # Maps to mesh
+topoMap = maps.InjectActiveCells(mesh, topoCells, 0.)
 max_val = np.max(np.r_[xi_true, xi_rec])
 ax1 = 3*[None]
 cplot1 = 2*[None]
@@ -235,9 +239,9 @@ ax2 = 2*[None]
 for qq in range(0, 2):
     ax2[qq] = Fig.add_axes([0.1+0.45*qq, 0.36, 0.35, 0.26])
     k = int((N**2-1)/2 - 3*N*(-1)**qq)
-    di_tot = mkvc(np.abs(fields_tot[k, :]))
-    di_pre = mkvc(np.abs(fields_vrm[k, :]))
-    di_tem = mkvc(np.abs(fields_tem[k, :]))
+    di_tot = utils.mkvc(np.abs(fields_tot[k, :]))
+    di_pre = utils.mkvc(np.abs(fields_vrm[k, :]))
+    di_tem = utils.mkvc(np.abs(fields_tem[k, :]))
     ax2[qq].loglog(times, di_tot, 'k.-')
     ax2[qq].loglog(times, di_tem, 'r.-')
     ax2[qq].loglog(times, di_pre, 'b.-')

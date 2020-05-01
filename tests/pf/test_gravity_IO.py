@@ -1,8 +1,9 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-from SimPEG import Mesh, PF
-from SimPEG.Utils import io_utils
+#from SimPEG.potential_fields import gravity
+from SimPEG.utils.drivers import GravityDriver_Inv
+from SimPEG.utils import io_utils
 from scipy.constants import mu_0
 import shutil
 import os
@@ -26,7 +27,7 @@ class GravSensProblemTests(unittest.TestCase):
 
         inp_file = os.path.sep.join([self.basePath, 'SimPEG_Grav_Input.inp'])
 
-        driver = PF.GravityDriver.GravityDriver_Inv(inp_file)
+        driver = GravityDriver_Inv(inp_file)
 
         print(driver.mesh)
         print(driver.survey)
@@ -47,7 +48,7 @@ class GravSensProblemTests(unittest.TestCase):
             os.path.sep.join(
                 [self.basePath, 'FWR_data.dat']
             ),
-            driver.survey, driver.survey.dobs
+            driver.data
         )
         # Read it back
         data = io_utils.readUBCgravityObservations(
@@ -56,7 +57,7 @@ class GravSensProblemTests(unittest.TestCase):
                 )
         )
         # Check similarity
-        passed = np.all(data.dobs == driver.survey.dobs)
+        passed = np.all(data.dobs == driver.data.dobs)
         self.assertTrue(passed, True)
 
         # Clean up the working directory

@@ -13,8 +13,9 @@ import pandas as pd
 import shutil
 import os
 import matplotlib.pyplot as plt
-from SimPEG import DC, Versions
-from SimPEG.Utils.io_utils import download
+from SimPEG.electromagnetics.static import resistivity as DC
+from SimPEG import Report
+from SimPEG.utils.io_utils import download
 
 ###############################################################################
 # Download an example DC data csv file
@@ -81,7 +82,7 @@ shutil.rmtree(os.path.expanduser('./test_url'))
 # --------------------------------------------
 #
 
-Versions()
+Report()
 
 ###############################################################################
 # Moving Forward

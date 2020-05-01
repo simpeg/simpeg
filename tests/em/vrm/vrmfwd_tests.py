@@ -1,8 +1,7 @@
 import unittest
-import SimPEG.VRM as VRM
 import numpy as np
-from SimPEG import Mesh
-
+import discretize
+from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
 
 class VRM_fwd_tests(unittest.TestCase):
 
@@ -18,7 +17,7 @@ class VRM_fwd_tests(unittest.TestCase):
         np.random.seed(self.seed)
 
         h = [0.05, 0.05]
-        meshObj = Mesh.TensorMesh((h, h, h), x0='CCC')
+        meshObj = discretize.TensorMesh((h, h, h), x0='CCC')
 
         dchi = 0.01
         tau1 = 1e-8
@@ -26,25 +25,25 @@ class VRM_fwd_tests(unittest.TestCase):
         mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj.nC)
 
         times = np.logspace(-4, -2, 3)
-        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
+        waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
         phi = np.random.uniform(-np.pi, np.pi)
         psi = np.random.uniform(-np.pi, np.pi)
         R = 2.
         loc_rx = R*np.c_[np.sin(phi)*np.cos(psi), np.sin(phi)*np.sin(psi), np.cos(phi)]
 
-        rxList = [VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='x')]
-        rxList.append(VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='y'))
-        rxList.append(VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='z'))
+        rxList = [vrm.receivers.Point(loc_rx, times=times, fieldType='dhdt', orientation='x')]
+        rxList.append(vrm.receivers.Point(loc_rx, times=times, fieldType='dhdt', orientation='y'))
+        rxList.append(vrm.receivers.Point(loc_rx, times=times, fieldType='dhdt', orientation='z'))
 
         alpha = np.random.uniform(0, np.pi)
         beta = np.random.uniform(-np.pi, np.pi)
         loc_tx = [0., 0., 0.]
-        Src = VRM.Src.CircLoop(rxList, loc_tx, 25., np.r_[alpha, beta], 1., waveObj)
+        Src = vrm.sources.CircLoop(rxList, loc_tx, 25., np.r_[alpha, beta], 1., waveObj)
         txList = [Src]
 
-        Survey = VRM.Survey(txList)
-        Problem = VRM.Problem_Linear(meshObj, ref_factor=0)
+        Survey = vrm.Survey(txList)
+        Problem = vrm.Simulation3DLinear(meshObj, ref_factor=0)
         Problem.pair(Survey)
         Fields = Problem.fields(mod)
 
@@ -74,7 +73,7 @@ class VRM_fwd_tests(unittest.TestCase):
         np.random.seed(self.seed)
 
         h = [0.5, 0.5]
-        meshObj = Mesh.TensorMesh((h, h, h), x0='CCC')
+        meshObj = discretize.TensorMesh((h, h, h), x0='CCC')
 
         dchi = 0.01
         tau1 = 1e-8
@@ -82,33 +81,33 @@ class VRM_fwd_tests(unittest.TestCase):
         mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj.nC)
 
         times = np.logspace(-4, -2, 3)
-        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
+        waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
         phi = np.random.uniform(-np.pi, np.pi)
         psi = np.random.uniform(-np.pi, np.pi)
         Rrx = 3.
         loc_rx = Rrx*np.c_[np.sin(phi)*np.cos(psi), np.sin(phi)*np.sin(psi), np.cos(phi)]
 
-        rxList = [VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='x')]
-        rxList.append(VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='y'))
-        rxList.append(VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='z'))
+        rxList = [vrm.receivers.Point(loc_rx, times=times, fieldType='dhdt', orientation='x')]
+        rxList.append(vrm.receivers.Point(loc_rx, times=times, fieldType='dhdt', orientation='y'))
+        rxList.append(vrm.receivers.Point(loc_rx, times=times, fieldType='dhdt', orientation='z'))
 
         alpha = np.random.uniform(0, np.pi)
         beta = np.random.uniform(-np.pi, np.pi)
         Rtx = 4.
         loc_tx = Rtx*np.r_[np.sin(alpha)*np.cos(beta), np.sin(alpha)*np.sin(beta), np.cos(alpha)]
 
-        txList = [VRM.Src.MagDipole(rxList, loc_tx, [0., 0., 0.01], waveObj)]
-        txList.append(VRM.Src.CircLoop(
+        txList = [vrm.sources.MagDipole(rxList, loc_tx, [0., 0., 0.01], waveObj)]
+        txList.append(vrm.sources.CircLoop(
             rxList, loc_tx, np.sqrt(0.01/np.pi), np.r_[0., 0.], 1., waveObj)
             )
         px = loc_tx[0]+np.r_[-0.05, 0.05, 0.05, -0.05, -0.05]
         py = loc_tx[1]+np.r_[-0.05, -0.05, 0.05, 0.05, -0.05]
         pz = loc_tx[2]*np.ones(5)
-        txList.append(VRM.Src.LineCurrent(rxList, np.c_[px, py, pz], 1., waveObj))
+        txList.append(vrm.sources.LineCurrent(rxList, np.c_[px, py, pz], 1., waveObj))
 
-        Survey = VRM.Survey(txList)
-        Problem = VRM.Problem_Linear(meshObj, ref_factor=1)
+        Survey = vrm.Survey(txList)
+        Problem = vrm.Simulation3DLinear(meshObj, ref_factor=1)
         Problem.pair(Survey)
         Fields = Problem.fields(mod)
 
@@ -126,7 +125,7 @@ class VRM_fwd_tests(unittest.TestCase):
         """
 
         h = [(2, 20)]
-        meshObj = Mesh.TensorMesh((h, h, h), x0='CCN')
+        meshObj = discretize.TensorMesh((h, h, h), x0='CCN')
 
         dchi = 0.01
         tau1 = 1e-8
@@ -134,22 +133,22 @@ class VRM_fwd_tests(unittest.TestCase):
         mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj.nC)
 
         times = np.array([1e-3])
-        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
+        waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
         z = 0.5
         a = 0.1
         loc_rx = np.c_[0., 0., z]
-        rxList = [VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='z')]
-        txList = [VRM.Src.CircLoop(rxList, np.r_[0., 0., z], a, np.r_[0., 0.], 1., waveObj)]
+        rxList = [vrm.receivers.Point(loc_rx, times=times, fieldType='dhdt', orientation='z')]
+        txList = [vrm.sources.CircLoop(rxList, np.r_[0., 0., z], a, np.r_[0., 0.], 1., waveObj)]
 
-        Survey2 = VRM.Survey(txList)
-        Survey3 = VRM.Survey(txList)
-        Survey4 = VRM.Survey(txList)
-        Survey5 = VRM.Survey(txList)
-        Problem2 = VRM.Problem_Linear(meshObj, ref_factor=2)
-        Problem3 = VRM.Problem_Linear(meshObj, ref_factor=3)
-        Problem4 = VRM.Problem_Linear(meshObj, ref_factor=4)
-        Problem5 = VRM.Problem_Linear(meshObj, ref_factor=5)
+        Survey2 = vrm.Survey(txList)
+        Survey3 = vrm.Survey(txList)
+        Survey4 = vrm.Survey(txList)
+        Survey5 = vrm.Survey(txList)
+        Problem2 = vrm.Simulation3DLinear(meshObj, ref_factor=2)
+        Problem3 = vrm.Simulation3DLinear(meshObj, ref_factor=3)
+        Problem4 = vrm.Simulation3DLinear(meshObj, ref_factor=4)
+        Problem5 = vrm.Simulation3DLinear(meshObj, ref_factor=5)
         Problem2.pair(Survey2)
         Problem3.pair(Survey3)
         Problem4.pair(Survey4)
@@ -177,7 +176,7 @@ class VRM_fwd_tests(unittest.TestCase):
         """
 
         h = [(2, 30)]
-        meshObj = Mesh.TensorMesh((h, h, [(2, 20)]), x0='CCN')
+        meshObj = discretize.TensorMesh((h, h, [(2, 20)]), x0='CCN')
 
         dchi = 0.01
         tau1 = 1e-8
@@ -185,22 +184,22 @@ class VRM_fwd_tests(unittest.TestCase):
         mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj.nC)
 
         times = np.array([1e-3])
-        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
+        waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
         z = 0.25
         a = 5
-        rxList = [VRM.Rx.Point(np.c_[a, 0., z], times=times, fieldType='dhdt', fieldComp='x')]
-        rxList.append(VRM.Rx.Point(np.c_[0., a, z], times=times, fieldType='dhdt', fieldComp='y'))
-        txList = [VRM.Src.CircLoop(rxList, np.r_[0., 0., z], a, np.r_[0., 0.], 1., waveObj)]
+        rxList = [vrm.receivers.Point(np.c_[a, 0., z], times=times, fieldType='dhdt', orientation='x')]
+        rxList.append(vrm.receivers.Point(np.c_[0., a, z], times=times, fieldType='dhdt', orientation='y'))
+        txList = [vrm.sources.CircLoop(rxList, np.r_[0., 0., z], a, np.r_[0., 0.], 1., waveObj)]
 
-        Survey2 = VRM.Survey(txList)
-        Survey3 = VRM.Survey(txList)
-        Survey4 = VRM.Survey(txList)
-        Survey5 = VRM.Survey(txList)
-        Problem2 = VRM.Problem_Linear(meshObj, ref_factor=2)
-        Problem3 = VRM.Problem_Linear(meshObj, ref_factor=3)
-        Problem4 = VRM.Problem_Linear(meshObj, ref_factor=4)
-        Problem5 = VRM.Problem_Linear(meshObj, ref_factor=5)
+        Survey2 = vrm.Survey(txList)
+        Survey3 = vrm.Survey(txList)
+        Survey4 = vrm.Survey(txList)
+        Survey5 = vrm.Survey(txList)
+        Problem2 = vrm.Simulation3DLinear(meshObj, ref_factor=2)
+        Problem3 = vrm.Simulation3DLinear(meshObj, ref_factor=3)
+        Problem4 = vrm.Simulation3DLinear(meshObj, ref_factor=4)
+        Problem5 = vrm.Simulation3DLinear(meshObj, ref_factor=5)
         Problem2.pair(Survey2)
         Problem3.pair(Survey3)
         Problem4.pair(Survey4)
@@ -235,8 +234,8 @@ class VRM_fwd_tests(unittest.TestCase):
 
         h1 = [(2, 4)]
         h2 = 0.5*np.ones(16)
-        meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='000')
-        meshObj_OcTree = Mesh.TreeMesh([h2, h2, h2], x0='000')
+        meshObj_Tensor = discretize.TensorMesh((h1, h1, h1), x0='000')
+        meshObj_OcTree = discretize.TreeMesh([h2, h2, h2], x0='000')
 
         x, y, z = np.meshgrid(
             np.c_[1., 3., 5., 7.],
@@ -294,23 +293,23 @@ class VRM_fwd_tests(unittest.TestCase):
         mod_tau2_b = tau2*np.ones(meshObj_OcTree.nC)
 
         times = np.array([1e-3])
-        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
+        waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
         loc_rx = np.c_[4., 4., 8.25]
-        rxList = [VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='z')]
-        txList = [VRM.Src.MagDipole(rxList, np.r_[4., 4., 8.25], [0., 0., 1.], waveObj)]
+        rxList = [vrm.receivers.Point(loc_rx, times=times, fieldType='dhdt', orientation='z')]
+        txList = [vrm.sources.MagDipole(rxList, np.r_[4., 4., 8.25], [0., 0., 1.], waveObj)]
 
-        Survey1 = VRM.Survey(txList)
-        Survey2 = VRM.Survey(txList)
-        Survey3 = VRM.Survey(txList)
-        Survey4 = VRM.Survey(txList)
-        Problem1 = VRM.Problem_Linear(meshObj_Tensor, ref_factor=2, ref_radius=[1.9, 3.6])
-        Problem2 = VRM.Problem_LogUniform(
+        Survey1 = vrm.Survey(txList)
+        Survey2 = vrm.Survey(txList)
+        Survey3 = vrm.Survey(txList)
+        Survey4 = vrm.Survey(txList)
+        Problem1 = vrm.Simulation3DLinear(meshObj_Tensor, ref_factor=2, ref_radius=[1.9, 3.6])
+        Problem2 = vrm.Simulation3DLogUniform(
             meshObj_Tensor, ref_factor=2, ref_radius=[1.9, 3.6], chi0=mod_chi0_a,
             dchi=mod_dchi_a, tau1=mod_tau1_a, tau2=mod_tau2_a
             )
-        Problem3 = VRM.Problem_Linear(meshObj_OcTree, ref_factor=0)
-        Problem4 = VRM.Problem_LogUniform(
+        Problem3 = vrm.Simulation3DLinear(meshObj_OcTree, ref_factor=0)
+        Problem4 = vrm.Simulation3DLogUniform(
             meshObj_OcTree, ref_factor=0, chi0=mod_chi0_b, dchi=mod_dchi_b,
             tau1=mod_tau1_b, tau2=mod_tau2_b
             )
@@ -322,8 +321,8 @@ class VRM_fwd_tests(unittest.TestCase):
         Fields2 = Problem2.fields()
         Fields3 = Problem3.fields(mod_b)
         Fields4 = Problem4.fields()
-        dpred1 = Survey1.dpred(mod_a)
-        dpred2 = Survey2.dpred(mod_a)
+        dpred1 = Problem1.dpred(mod_a)
+        dpred2 = Problem2.dpred(mod_a)
 
         Err1 = np.abs((Fields1-Fields2)/Fields1)
         Err2 = np.abs((Fields2-Fields3)/Fields2)
@@ -348,7 +347,7 @@ class VRM_fwd_tests(unittest.TestCase):
         np.random.seed(self.seed)
 
         h1 = [0.25, 0.25]
-        meshObj_Tensor = Mesh.TensorMesh((h1, h1, h1), x0='CCN')
+        meshObj_Tensor = discretize.TensorMesh((h1, h1, h1), x0='CCN')
 
         chi0 = 0.
         dchi = 0.01
@@ -359,7 +358,7 @@ class VRM_fwd_tests(unittest.TestCase):
         mod = (dchi/np.log(tau2/tau1))*np.ones(meshObj_Tensor.nC)
 
         times = np.array([1e-3])
-        waveObj = VRM.WaveformVRM.SquarePulse(delt=0.02)
+        waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
         phi = np.random.uniform(-np.pi, np.pi)
         psi = np.random.uniform(-np.pi, np.pi)
@@ -367,26 +366,26 @@ class VRM_fwd_tests(unittest.TestCase):
         loc_rx = R*np.c_[np.sin(phi)*np.cos(psi), np.sin(phi)*np.sin(psi), np.cos(phi)]
         loc_tx = 0.5*np.r_[np.sin(phi)*np.cos(psi), np.sin(phi)*np.sin(psi), np.cos(phi)]
 
-        rxList1 = [VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='x')]
-        rxList1.append(VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='y'))
-        rxList1.append(VRM.Rx.Point(loc_rx, times=times, fieldType='dhdt', fieldComp='z'))
+        rxList1 = [vrm.receivers.Point(loc_rx, times=times, fieldType='dhdt', orientation='x')]
+        rxList1.append(vrm.receivers.Point(loc_rx, times=times, fieldType='dhdt', orientation='y'))
+        rxList1.append(vrm.receivers.Point(loc_rx, times=times, fieldType='dhdt', orientation='z'))
 
         w = 0.1
         N = 100
-        rxList2 = [VRM.Rx.SquareLoop(
-            loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', fieldComp='x')]
-        rxList2.append(VRM.Rx.SquareLoop(
-            loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', fieldComp='y'))
-        rxList2.append(VRM.Rx.SquareLoop(
-            loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', fieldComp='z'))
+        rxList2 = [vrm.receivers.SquareLoop(
+            loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', orientation='x')]
+        rxList2.append(vrm.receivers.SquareLoop(
+            loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', orientation='y'))
+        rxList2.append(vrm.receivers.SquareLoop(
+            loc_rx, times=times, width=w, nTurns=N, fieldType='dhdt', orientation='z'))
 
-        txList1 = [VRM.Src.MagDipole(rxList1, loc_tx, [1., 1., 1.], waveObj)]
-        txList2 = [VRM.Src.MagDipole(rxList2, loc_tx, [1., 1., 1.], waveObj)]
+        txList1 = [vrm.sources.MagDipole(rxList1, loc_tx, [1., 1., 1.], waveObj)]
+        txList2 = [vrm.sources.MagDipole(rxList2, loc_tx, [1., 1., 1.], waveObj)]
 
-        Survey1 = VRM.Survey(txList1)
-        Survey2 = VRM.Survey(txList2)
-        Problem1 = VRM.Problem_Linear(meshObj_Tensor, ref_factor=2, ref_radius=[1.9, 3.6])
-        Problem2 = VRM.Problem_Linear(meshObj_Tensor, ref_factor=2, ref_radius=[1.9, 3.6])
+        Survey1 = vrm.Survey(txList1)
+        Survey2 = vrm.Survey(txList2)
+        Problem1 = vrm.Simulation3DLinear(meshObj_Tensor, ref_factor=2, ref_radius=[1.9, 3.6])
+        Problem2 = vrm.Simulation3DLinear(meshObj_Tensor, ref_factor=2, ref_radius=[1.9, 3.6])
         Problem1.pair(Survey1)
         Problem2.pair(Survey2)
         Fields1 = Problem1.fields(mod)

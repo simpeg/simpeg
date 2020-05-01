@@ -1,12 +1,15 @@
 from __future__ import print_function
 import unittest
 import numpy as np
+import discretize
 from SimPEG import (
-    Mesh, Maps, DataMisfit, Regularization, Inversion,
-    Optimization, InvProblem, Tests, Utils
+    maps, data_misfit, regularization,
+    inversion, optimization, inverse_problem, tests, utils
 )
-import SimPEG.EM.Static.DC as DC
+from SimPEG.utils import mkvc
+from SimPEG.electromagnetics import resistivity as dc
 from pymatsolver import Pardiso
+import shutil
 
 np.random.seed(40)
 
@@ -23,42 +26,44 @@ class DCProblemTestsCC(unittest.TestCase):
         surveySize = nElecs*aSpacing - aSpacing
         cs = surveySize / nElecs / 4
 
-        mesh = Mesh.TensorMesh([
+        mesh = discretize.TensorMesh([
             [(cs, 10, -1.3), (cs, surveySize / cs), (cs, 10, 1.3)],
             [(cs, 3, -1.3), (cs, 3, 1.3)],
             # [(cs, 5, -1.3), (cs, 10)]
         ], 'CN')
 
-        srcList = DC.Utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = DC.Survey(srcList)
-        problem = DC.Problem3D_CC(mesh, rhoMap=Maps.IdentityMap(mesh))
-        problem.pair(survey)
+        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(srcList)
+        simulation = dc.simulation.Simulation3DCellCentered(
+                mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh)
+                )
 
         mSynth = np.ones(mesh.nC)
-        survey.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization
-        dmis = DataMisfit.l2_DataMisfit(survey)
-        reg = Regularization.Tikhonov(mesh)
-        opt = Optimization.InexactGaussNewton(
+        dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
+        reg = regularization.Tikhonov(mesh)
+        opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
             tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e4)
-        inv = Inversion.BaseInversion(invProb)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
+        inv = inversion.BaseInversion(invProb)
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
         self.dmis = dmis
+        self.dobs = dobs
 
     def test_misfit(self):
-        passed = Tests.checkDerivative(
+        passed = tests.checkDerivative(
             lambda m: [
-                self.survey.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
+                self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
             ],
             self.m0,
             plotIt=False,
@@ -70,7 +75,7 @@ class DCProblemTestsCC(unittest.TestCase):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
         v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.dobs.shape[0])
+        w = np.random.rand(mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -78,11 +83,11 @@ class DCProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = Tests.checkDerivative(
+        passed = tests.checkDerivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,
-            num=3
+            num=6
         )
         self.assertTrue(passed)
 
@@ -92,7 +97,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         cs = 10
         nc = 20
         npad = 10
-        mesh = Mesh.CylMesh([
+        mesh = discretize.CylMesh([
             [(cs, nc), (cs, npad, 1.3)],
             np.r_[2*np.pi],
             [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
@@ -103,38 +108,38 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         # receivers
         rx_x = np.linspace(10, 200, 20)
         rx_z = np.r_[-5]
-        rx_locs = Utils.ndgrid([rx_x, np.r_[0], rx_z])
-        rx_list = [DC.Rx.BaseRx(rx_locs, 'ex')]
+        rx_locs = utils.ndgrid([rx_x, np.r_[0], rx_z])
+        rx_list = [dc.receivers.BaseRx(rx_locs, projField="e", orientation="x")]
 
         # sources
         src_a = np.r_[0., 0., -5.]
         src_b = np.r_[55., 0., -5.]
 
-        src_list = [DC.Src.Dipole(rx_list, locA=src_a, locB=src_b)]
+        src_list = [dc.sources.Dipole(rx_list, locationA=src_a, locationB=src_b)]
 
         self.mesh = mesh
-        self.sigma_map = Maps.ExpMap(mesh) * Maps.InjectActiveCells(
+        self.survey = dc.survey.Survey(src_list)
+        self.sigma_map = maps.ExpMap(mesh) * maps.InjectActiveCells(
             mesh, mesh.gridCC[:, 2] <=0, np.log(1e-8)
         )
-        self.prob = DC.Problem3D_CC(
-            mesh, sigmaMap=self.sigma_map, Solver=Pardiso, bc_type="Dirichlet"
+        self.prob = dc.simulation.Simulation3DCellCentered(
+            mesh=mesh, survey=self.survey, sigmaMap=self.sigma_map, Solver=Pardiso, bc_type="Dirichlet"
         )
-        self.survey = DC.Survey(src_list)
-        self.prob.pair(self.survey)
 
 
     def test_e_deriv(self):
         x0 = -1 + 1e-1*np.random.rand(self.sigma_map.nP)
 
         def fun(x):
-            return self.survey.dpred(x), lambda x: self.prob.Jvec(x0, x)
-        return Tests.checkDerivative(fun, x0, num=3, plotIt=False)
+            return self.prob.dpred(x), lambda x: self.prob.Jvec(x0, x)
+        return tests.checkDerivative(fun, x0, num=3, plotIt=False)
 
     def test_e_adjoint(self):
         print('Adjoint Test for e')
 
         m = -1 + 1e-1*np.random.rand(self.sigma_map.nP)
-        u = self.prob.fields(m)
+        u = self.prob.fields(m).compute()
+        # u = u[self.survey.source_list,'e']
 
         v = np.random.rand(self.survey.nD)
         w = np.random.rand(self.sigma_map.nP)
@@ -160,42 +165,44 @@ class DCProblemTestsN(unittest.TestCase):
         surveySize = nElecs*aSpacing - aSpacing
         cs = surveySize / nElecs / 4
 
-        mesh = Mesh.TensorMesh([
+        mesh = discretize.TensorMesh([
             [(cs, 10, -1.3), (cs, surveySize / cs), (cs, 10, 1.3)],
             [(cs, 3, -1.3), (cs, 3, 1.3)],
             # [(cs, 5, -1.3), (cs, 10)]
         ], 'CN')
 
-        srcList = DC.Utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = DC.Survey(srcList)
-        problem = DC.Problem3D_N(mesh, rhoMap=Maps.IdentityMap(mesh))
-        problem.pair(survey)
+        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(srcList)
+        simulation = dc.simulation.Simulation3DNodal(
+                mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh)
+                )
 
         mSynth = np.ones(mesh.nC)
-        survey.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization
-        dmis = DataMisfit.l2_DataMisfit(survey)
-        reg = Regularization.Tikhonov(mesh)
-        opt = Optimization.InexactGaussNewton(
+        dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
+        reg = regularization.Tikhonov(mesh)
+        opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
             tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e4)
-        inv = Inversion.BaseInversion(invProb)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
+        inv = inversion.BaseInversion(invProb)
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
         self.dmis = dmis
+        self.dobs = dobs
 
     def test_misfit(self):
-        passed = Tests.checkDerivative(
+        passed = tests.checkDerivative(
             lambda m: [
-                self.survey.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
+                self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
             ],
             self.m0,
             plotIt=False,
@@ -207,7 +214,7 @@ class DCProblemTestsN(unittest.TestCase):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
         v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.dobs.shape[0])
+        w = np.random.rand(mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -215,7 +222,7 @@ class DCProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = Tests.checkDerivative(
+        passed = tests.checkDerivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,
@@ -234,44 +241,45 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         surveySize = nElecs*aSpacing - aSpacing
         cs = surveySize / nElecs / 4
 
-        mesh = Mesh.TensorMesh([
+        mesh = discretize.TensorMesh([
             [(cs, 10, -1.3), (cs, surveySize / cs), (cs, 10, 1.3)],
             [(cs, 3, -1.3), (cs, 3, 1.3)],
             # [(cs, 5, -1.3), (cs, 10)]
         ], 'CN')
 
-        srcList = DC.Utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = DC.Survey(srcList)
-        problem = DC.Problem3D_CC(
-            mesh, rhoMap=Maps.IdentityMap(mesh), storeJ=True
-            )
-        problem.pair(survey)
+        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(srcList)
+        simulation = dc.simulation.Simulation3DCellCentered(
+            mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh),
+            storeJ=True
+        )
 
         mSynth = np.ones(mesh.nC)
-        survey.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization
-        dmis = DataMisfit.l2_DataMisfit(survey)
-        reg = Regularization.Tikhonov(mesh)
-        opt = Optimization.InexactGaussNewton(
+        dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
+        reg = regularization.Tikhonov(mesh)
+        opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
             tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e4)
-        inv = Inversion.BaseInversion(invProb)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
+        inv = inversion.BaseInversion(invProb)
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
         self.dmis = dmis
+        self.dobs = dobs
 
     def test_misfit(self):
-        passed = Tests.checkDerivative(
+        passed = tests.checkDerivative(
             lambda m: [
-                self.survey.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
+                self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
             ],
             self.m0,
             plotIt=False,
@@ -283,7 +291,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
         v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.dobs.shape[0])
+        w = np.random.rand(mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -291,13 +299,17 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = Tests.checkDerivative(
+        passed = tests.checkDerivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,
-            num=3
+            num=4
         )
         self.assertTrue(passed)
+
+    def tearDown(self):
+        # Clean up the working directory
+        shutil.rmtree(self.p.Jpath)
 
 
 class DCProblemTestsN_storeJ(unittest.TestCase):
@@ -310,44 +322,44 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         surveySize = nElecs*aSpacing - aSpacing
         cs = surveySize / nElecs / 4
 
-        mesh = Mesh.TensorMesh([
+        mesh = discretize.TensorMesh([
             [(cs, 10, -1.3), (cs, surveySize / cs), (cs, 10, 1.3)],
             [(cs, 3, -1.3), (cs, 3, 1.3)],
             # [(cs, 5, -1.3), (cs, 10)]
         ], 'CN')
 
-        srcList = DC.Utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = DC.Survey(srcList)
-        problem = DC.Problem3D_N(
-            mesh, rhoMap=Maps.IdentityMap(mesh), storeJ=True
+        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(srcList)
+        simulation = dc.simulation.Simulation3DNodal(
+            mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh), storeJ=True
             )
-        problem.pair(survey)
 
         mSynth = np.ones(mesh.nC)
-        survey.makeSyntheticData(mSynth)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
 
         # Now set up the problem to do some minimization
-        dmis = DataMisfit.l2_DataMisfit(survey)
-        reg = Regularization.Tikhonov(mesh)
-        opt = Optimization.InexactGaussNewton(
+        dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
+        reg = regularization.Tikhonov(mesh)
+        opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6,
             tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e4)
-        inv = Inversion.BaseInversion(invProb)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
+        inv = inversion.BaseInversion(invProb)
 
         self.inv = inv
         self.reg = reg
-        self.p = problem
+        self.p = simulation
         self.mesh = mesh
         self.m0 = mSynth
         self.survey = survey
         self.dmis = dmis
+        self.dobs = dobs
 
     def test_misfit(self):
-        passed = Tests.checkDerivative(
+        passed = tests.checkDerivative(
             lambda m: [
-                self.survey.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
+                self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)
             ],
             self.m0,
             plotIt=False,
@@ -359,7 +371,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
         v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.dobs.shape[0])
+        w = np.random.rand(mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -367,13 +379,17 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        passed = Tests.checkDerivative(
+        passed = tests.checkDerivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)],
             self.m0,
             plotIt=False,
             num=3
         )
         self.assertTrue(passed)
+
+    def tearDown(self):
+        # Clean up the working directory
+        shutil.rmtree(self.p.Jpath)
 
 if __name__ == '__main__':
     unittest.main()

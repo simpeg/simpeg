@@ -7,14 +7,14 @@ import unittest
 # SimPEG, discretize
 import discretize
 from discretize import utils
-from SimPEG.EM import TDEM
-from SimPEG import Utils, Maps, Tests
+from SimPEG.electromagnetics import time_domain as tdem
+from SimPEG import maps, tests
 from pymatsolver import Pardiso
 
 
 class TestGroundedSourceTDEM_j(unittest.TestCase):
 
-    prob_type = "j"
+    prob_type = 'CurrentDensity'
 
     @classmethod
     def setUpClass(self):
@@ -59,17 +59,17 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         mu = mu0 * np.ones(mesh.nC)
         mu[target_inds] = mu1
 
-        src = TDEM.Src.RawVec_Grounded([], s_e=s_e)
+        src = tdem.Src.RawVec_Grounded([], s_e=s_e)
 
         timeSteps = [
             (1e-6, 20), (1e-5, 30), (3e-5, 30), (1e-4, 40), (3e-4, 30),
             (1e-3, 20), (1e-2, 17)
         ]
-        prob = getattr(TDEM, "Problem3D_{}".format(self.prob_type))(
-            mesh, timeSteps=timeSteps, mu=mu, sigmaMap=Maps.ExpMap(mesh),
+        prob = getattr(tdem, "Simulation3D{}".format(self.prob_type))(
+            mesh, timeSteps=timeSteps, mu=mu, sigmaMap=maps.ExpMap(mesh),
             Solver=Pardiso
         )
-        survey = TDEM.Survey([src])
+        survey = tdem.Survey([src])
 
         prob.model = sigma
 
@@ -87,7 +87,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         m0 = np.log(self.sigma) + np.random.rand(self.mesh.nC)
         self.prob.model = m0
 
-        return Tests.checkDerivative(deriv_fct, np.log(self.sigma), num=3, plotIt=False)
+        return tests.checkDerivative(deriv_fct, np.log(self.sigma), num=3, plotIt=False)
 
     def test_deriv_phi(self):
 
@@ -145,7 +145,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
 
 class TestGroundedSourceTDEM_h(TestGroundedSourceTDEM_j):
 
-    prob_type = "h"
+    prob_type = 'MagneticField'
 
 
 if __name__ == '__main__':

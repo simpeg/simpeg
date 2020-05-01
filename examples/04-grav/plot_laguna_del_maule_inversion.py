@@ -14,15 +14,17 @@ Craig Miller
 import os
 import shutil
 import tarfile
-import SimPEG.PF as PF
+from SimPEG.potential_fields import gravity
 from SimPEG import (
-    Maps, Regularization, Optimization, DataMisfit,
-    InvProblem, Directives, Inversion, Utils
+    data, data_misfit, maps, regularization, optimization,
+    inverse_problem, directives, inversion
 )
-from SimPEG.Utils.io_utils import download
+from SimPEG import utils
+from SimPEG.utils import download, plot2Ddata
+
 import matplotlib.pyplot as plt
 import numpy as np
-
+from SimPEG.utils.drivers.gravity_driver import GravityDriver_Inv
 
 def run(plotIt=True, cleanAfterRun=True):
 
@@ -49,33 +51,35 @@ def run(plotIt=True, cleanAfterRun=True):
     # %%
     # Read in the input file which included all parameters at once
     # (mesh, topo, model, survey, inv param, etc.)
-    driver = PF.GravityDriver.GravityDriver_Inv(input_file)
+    driver = GravityDriver_Inv(input_file)
     # %%
     # Now we need to create the survey and model information.
 
     # Access the mesh and survey information
-    mesh = driver.mesh
+    mesh = driver.mesh#
     survey = driver.survey
+    data_object = driver.data
+    #[survey, data_object] = driver.survey
 
     # define gravity survey locations
-    rxLoc = survey.srcField.rxList[0].locs
+    rxLoc = survey.source_field.receiver_list[0].locations
 
     # define gravity data and errors
-    d = survey.dobs
-    wd = survey.std
+    d = data_object.dobs
+    wd = data_object.uncertainty
 
     # Get the active cells
     active = driver.activeCells
     nC = len(active)  # Number of active cells
 
     # Create active map to go from reduce set to full
-    activeMap = Maps.InjectActiveCells(mesh, active, -100)
+    activeMap = maps.InjectActiveCells(mesh, active, -100)
 
     # Create static map
     static = driver.staticCells
     dynamic = driver.dynamicCells
 
-    staticCells = Maps.InjectActiveCells(
+    staticCells = maps.InjectActiveCells(
         None, dynamic, driver.m0[static], nC=nC
     )
     mstart = driver.m0[dynamic]
@@ -85,54 +89,50 @@ def run(plotIt=True, cleanAfterRun=True):
     # %%
     # Now that we have a model and a survey we can build the linear system ...
     # Create the forward model operator
-    prob = PF.Gravity.GravityIntegral(mesh, rhoMap=staticCells,
-                                      actInd=active)
-    prob.solverOpts['accuracyTol'] = 1e-4
-
-    # Pair the survey and problem
-    survey.pair(prob)
-
-    # Apply depth weighting
-    wr = PF.Magnetics.get_dist_wgt(mesh, rxLoc, active, wgtexp,
-                                   np.min(mesh.hx)/4.)
-    wr = wr**2.
+    simulation = gravity.simulation.Simulation3DIntegral(
+        survey=survey, mesh=mesh, rhoMap=staticCells, actInd=active
+        )
 
     # %% Create inversion objects
-    reg = Regularization.Sparse(mesh, indActive=active,
+    reg = regularization.Sparse(mesh, indActive=active,
                                 mapping=staticCells, gradientType='total')
     reg.mref = driver.mref[dynamic]
-    reg.cell_weights = wr * mesh.vol[active]
+
     reg.norms = np.c_[0., 1., 1., 1.]
     # reg.norms = driver.lpnorms
 
+
     # Specify how the optimization will proceed
-    opt = Optimization.ProjectedGNCG(maxIter=20, lower=driver.bounds[0],
+    opt = optimization.ProjectedGNCG(maxIter=20, lower=driver.bounds[0],
                                      upper=driver.bounds[1], maxIterLS=10,
-                                     maxIterCG=20, tolCG=1e-3)
+                                     maxIterCG=20, tolCG=1e-4)
 
     # Define misfit function (obs-calc)
-    dmis = DataMisfit.l2_DataMisfit(survey)
+    dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
     dmis.W = 1./wd
 
     # create the default L2 inverse problem from the above objects
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+    invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
     # Specify how the initial beta is found
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
-    IRLS = Directives.Update_IRLS(
-        f_min_change=1e-4, maxIRLSiter=40, beta_tol=5e-1,
-        betaSearch=False)
+    IRLS = directives.Update_IRLS(
+        f_min_change=1e-4, max_irls_iterations=40,
+        coolEpsFact=1.5, beta_tol=5e-1
+        )
 
     # Preconditioning refreshing for each IRLS iteration
-    update_Jacobi = Directives.UpdatePreconditioner()
+    update_Jacobi = directives.UpdatePreconditioner()
+    sensitivity_weights = directives.UpdateSensitivityWeights()
 
     # Create combined the L2 and Lp problem
-    inv = Inversion.BaseInversion(invProb,
-                                  directiveList=[IRLS, update_Jacobi, betaest])
+    inv = inversion.BaseInversion(invProb,
+        directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest]
+        )
 
     # %%
     # Run L2 and Lp inversion
@@ -145,7 +145,7 @@ def run(plotIt=True, cleanAfterRun=True):
     # %%
     if plotIt:
         # Plot observed data
-        Utils.PlotUtils.plot2Ddata(rxLoc, d)
+        plot2Ddata(rxLoc, d)
 
         # %%
         # Write output model and data files and print misfit stats.

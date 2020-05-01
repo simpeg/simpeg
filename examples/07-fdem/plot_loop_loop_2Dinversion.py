@@ -7,7 +7,7 @@ at 30kHz with 3 different coil separations [0.32m, 0.71m, 1.18m].
 We will use only Horizontal co-planar orientations (vertical magnetic dipole),
 and look at the real and imaginary parts of the secondary magnetic field.
 
-We use the :class:`SimPEG.Maps.Surject2Dto3D` mapping to invert for a 2D model
+We use the :class:`SimPEG.maps.Surject2Dto3D` mapping to invert for a 2D model
 and perform the forward modelling in 3D.
 
 """
@@ -17,13 +17,13 @@ import matplotlib.pyplot as plt
 import time
 from pymatsolver import Pardiso as Solver
 
+import discretize
 from SimPEG import (
-    Mesh, Maps, Optimization,
-    DataMisfit, Regularization, InvProblem,
-    Inversion, Directives, Versions
+    maps, optimization,
+    data_misfit, regularization, inverse_problem,
+    inversion, directives, Report
 )
-from SimPEG.EM import FDEM
-from SimPEG.Utils import mkvc
+from SimPEG.electromagnetics import frequency_domain as FDEM
 
 ###############################################################################
 # Setup
@@ -95,7 +95,7 @@ ncx = int(np.diff(core_domain_x)/csx)
 ncz = int(np.diff(core_domain_z)/csz)
 
 # create a 3D tensor mesh
-mesh = Mesh.TensorMesh(
+mesh = discretize.TensorMesh(
     [
         [(csx, npadx, -pf), (csx, ncx), (csx, npadx, pf)],
         [(csx, npady, -pf), (csx, 1), (csx, npady, pf)],
@@ -117,7 +117,7 @@ mesh.plotGrid()
 # Here, we set up a 2D tensor mesh which we will represent the inversion model
 # on
 
-inversion_mesh = Mesh.TensorMesh([mesh.hx, mesh.hz[mesh.vectorCCz<=0]])
+inversion_mesh = discretize.TensorMesh([mesh.hx, mesh.hz[mesh.vectorCCz<=0]])
 inversion_mesh.x0 = [-inversion_mesh.hx.sum()/2., -inversion_mesh.hy.sum()]
 inversion_mesh.plotGrid()
 
@@ -130,14 +130,14 @@ inversion_mesh.plotGrid()
 # the surface, fixing the conductivity of the air cells to 1e-8 S/m
 
 # create a 2D mesh that includes air cells
-mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hz], x0=mesh.x0[[0, 2]])
+mesh2D = discretize.TensorMesh([mesh.hx, mesh.hz], x0=mesh.x0[[0, 2]])
 active_inds = mesh2D.gridCC[:, 1] < 0  # active indices are below the surface
 
 
 mapping = (
-    Maps.Surject2Dto3D(mesh) *  # populates 3D space from a 2D model
-    Maps.InjectActiveCells(mesh2D, active_inds, sigma_air) *  # adds air cells
-    Maps.ExpMap(nP=inversion_mesh.nC)  # takes the exponential (log(sigma) --> sigma)
+    maps.Surject2Dto3D(mesh) *  # populates 3D space from a 2D model
+    maps.InjectActiveCells(mesh2D, active_inds, sigma_air) *  # adds air cells
+    maps.ExpMap(nP=inversion_mesh.nC)  # takes the exponential (log(sigma) --> sigma)
 )
 
 ###############################################################################
@@ -176,15 +176,15 @@ for x in src_locations:
     src_loc = np.r_[x, 0., src_z]
     rx_locs = src_loc - rx_offsets
 
-    rx_real = FDEM.Rx.Point_bSecondary(
-        locs=rx_locs, orientation=orientation, component='real'
+    rx_real = FDEM.Rx.PointMagneticFluxDensitySecondary(
+        locations=rx_locs, orientation=orientation, component='real'
     )
-    rx_imag = FDEM.Rx.Point_bSecondary(
-        locs=rx_locs, orientation=orientation, component='imag'
+    rx_imag = FDEM.Rx.PointMagneticFluxDensitySecondary(
+        locations=rx_locs, orientation=orientation, component='imag'
     )
 
     src = FDEM.Src.MagDipole(
-        rxList=[rx_real, rx_imag], loc=src_loc, orientation=orientation,
+        receiver_list=[rx_real, rx_imag], loc=src_loc, orientation=orientation,
         freq=freq
     )
 
@@ -192,18 +192,21 @@ for x in src_locations:
 
 # create the survey and problem objects for running the forward simulation
 survey = FDEM.Survey(srcList)
-prob = FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=Solver)
-
-prob.pair(survey)
+prob = FDEM.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigmaMap=mapping, Solver=Solver)
 
 ###############################################################################
-# Data
+# Data and Set up data for inversion
 # ----
 #
-# Generate clean, synthetic data
+# Generate clean, synthetic data. Later we will invert the clean data, and
+# assign a standard deviation of 0.05, and a floor of 1e-11.
 
 t = time.time()
-dclean = survey.dpred(m_true)
+
+data = prob.make_synthetic_data(
+    m_true, standard_deviation=0.05, noise_floor=1E-11, add_noise=False)
+
+dclean = data.dclean
 print(
     "Done forward simulation. Elapsed time = {:1.2f} s".format(time.time() - t)
 )
@@ -241,22 +244,11 @@ def plot_data(data, ax=None, color="C0", label=""):
 ax = plot_data(dclean)
 
 ###############################################################################
-# Set up data for inversion
-# -------------------------
-#
-# We will invert the clean data, and assign a standard deviation of 0.05, and
-# a floor of 1e-11.
-
-survey.std = 0.05
-survey.eps = 1e-11
-survey.dobs = dclean
-
-###############################################################################
 # Set up the inversion
 # --------------------
 #
 # We create the data misfit, simple regularization
-# (a Tikhonov-style regularization, :class:`SimPEG.Regularization.Simple`)
+# (a Tikhonov-style regularization, :class:`SimPEG.regularization.Simple`)
 # The smoothness and smallness contributions can be set by including
 # `alpha_s, alpha_x, alpha_y` as input arguments when the regularization is
 # created. The default reference model in the regularization is the starting
@@ -266,18 +258,18 @@ survey.dobs = dclean
 # We estimate the trade-off parameter, beta, between the data
 # misfit and regularization by the largest eigenvalue of the data misfit and
 # the regularization. Here, we use a fixed beta, but could alternatively
-# employ a beta-cooling schedule using :class:`SimPEG.Directives.BetaSchedule`
+# employ a beta-cooling schedule using :class:`SimPEG.directives.BetaSchedule`
 
-dmisfit = DataMisfit.l2_DataMisfit(survey)
-reg = Regularization.Simple(inversion_mesh)
-opt = Optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
-invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
+dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data)
+reg = regularization.Simple(inversion_mesh)
+opt = optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
+invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
-betaest = Directives.BetaEstimate_ByEig(beta0_ratio=0.25)
-target = Directives.TargetMisfit()
+betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.25)
+target = directives.TargetMisfit()
 
 directiveList = [betaest, target]
-inv = Inversion.BaseInversion(invProb, directiveList=directiveList)
+inv = inversion.BaseInversion(invProb, directiveList=directiveList)
 
 print("The target misfit is {:1.2f}".format(target.target))
 
@@ -341,7 +333,7 @@ plt.show()
 # --------------------------------------------
 #
 
-Versions()
+Report()
 
 ###############################################################################
 # Moving Forward

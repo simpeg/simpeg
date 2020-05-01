@@ -4,7 +4,7 @@ Maps: Parametrized Layer
 
 Build a model of a parametrized layer in a wholespace. If you want to
 build a model of a parametrized layer in a halfspace, also use
-Maps.InjectActiveCell.
+maps.InjectActiveCell.
 
 The model is
 
@@ -17,15 +17,16 @@ The model is
         'layer thickness'
     ]
 """
-from SimPEG import Mesh, Maps
+import discretize
+from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
 
-    mesh = Mesh.TensorMesh([50, 50], x0='CC')  # 2D tensor mesh
-    mapping = Maps.ParametricLayer(mesh)  # parametric layer in wholespace
+    mesh = discretize.TensorMesh([50, 50], x0='CC')  # 2D tensor mesh
+    mapping = maps.ParametricLayer(mesh)  # parametric layer in wholespace
 
     # model
     m = np.hstack(

@@ -7,7 +7,7 @@ sources, and analytic functions.
 Utilities for Electromagnetics
 ==============================
 
-.. automodule:: SimPEG.EM.Utils
+.. automodule:: SimPEG.electromagnetics.utils
     :show-inheritance:
     :members:
     :undoc-members:
@@ -17,7 +17,7 @@ Utilities for Electromagnetics
 Analytic Functions - Time
 =========================
 
-.. automodule:: SimPEG.EM.Analytics.TDEM
+.. automodule:: SimPEG.electromagnetics.analytics.TDEM
     :show-inheritance:
     :members:
     :undoc-members:
@@ -27,7 +27,7 @@ Analytic Functions - Time
 Analytic Functions - Frequency
 ==============================
 
-.. automodule:: SimPEG.EM.Analytics.FDEM
+.. automodule:: SimPEG.electromagnetics.analytics.FDEM
     :show-inheritance:
     :members:
     :undoc-members:

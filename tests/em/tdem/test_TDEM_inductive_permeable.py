@@ -10,9 +10,9 @@ from matplotlib.colors import LogNorm
 from scipy.constants import mu_0, inch, foot
 import time
 
-from SimPEG.EM import TDEM
-from SimPEG import Utils, Maps
-from SimPEG.Utils import Zero
+from SimPEG.electromagnetics import time_domain as tdem
+from SimPEG import utils, maps
+from SimPEG.utils import Zero
 
 from pymatsolver import Pardiso
 
@@ -120,7 +120,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
 
         time_mesh = discretize.TensorMesh([ramp])
         offTime = 10000
-        waveform = TDEM.Src.QuarterSineRampOnWaveform(
+        waveform = tdem.Src.QuarterSineRampOnWaveform(
             ramp_on=np.r_[1e-4, 20], ramp_off=offTime - np.r_[1e-4, 0]
         )
 
@@ -130,11 +130,11 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             plt.plot(time_mesh.gridN, np.zeros(time_mesh.nN), '-|', color='k')
             plt.show()
 
-        src_magnetostatic = TDEM.Src.CircularLoop(
+        src_magnetostatic = tdem.Src.CircularLoop(
             [], loc=np.r_[0., 0., 0.], orientation="z", radius=100,
         )
 
-        src_ramp_on = TDEM.Src.CircularLoop(
+        src_ramp_on = tdem.Src.CircularLoop(
             [], loc=np.r_[0., 0., 0.], orientation="z", radius=100,
             waveform=waveform
         )
@@ -142,17 +142,17 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         src_list = [src_magnetostatic]
         src_list_late_ontime = [src_ramp_on]
 
-        prob = TDEM.Problem3D_b(
-            mesh=mesh, timeSteps=timeSteps, sigmaMap=Maps.IdentityMap(mesh),
+        prob = tdem.Simulation3DMagneticFluxDensity(
+            mesh=mesh, timeSteps=timeSteps, sigmaMap=maps.IdentityMap(mesh),
             Solver=Pardiso
         )
-        prob_late_ontime = TDEM.Problem3D_b(
-            mesh=mesh, timeSteps=timeSteps, sigmaMap=Maps.IdentityMap(mesh),
+        prob_late_ontime = tdem.Simulation3DMagneticFluxDensity(
+            mesh=mesh, timeSteps=timeSteps, sigmaMap=maps.IdentityMap(mesh),
             Solver=Pardiso
         )
 
-        survey = TDEM.Survey(srcList=src_list)
-        survey_late_ontime = TDEM.Survey(src_list_late_ontime)
+        survey = tdem.Survey(srcList=src_list)
+        survey_late_ontime = tdem.Survey(src_list_late_ontime)
 
         prob.pair(survey)
         prob_late_ontime.pair(survey_late_ontime)

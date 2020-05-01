@@ -30,7 +30,7 @@ with open("README.rst") as f:
 
 setup(
     name="SimPEG",
-    version="0.13.1",
+    version="0.14.0b2",
     packages=find_packages(exclude=['tests*']),
     install_requires=[
         'numpy>=1.7',
@@ -40,7 +40,13 @@ setup(
         'properties>=0.5.2',
         'vectormath>=0.2.0',
         'discretize>=0.4.0',
-        'geoana>=0.0.4'
+        'geoana>=0.0.4',
+        'zarr',
+        'dask',
+        'fsspec>=0.3.3',
+        'sparse',
+        'empymod',
+        'pandas',
     ],
     author="Rowan Cockett",
     author_email="rowanc1@gmail.com",

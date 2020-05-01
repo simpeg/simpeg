@@ -3,10 +3,10 @@ import scipy.sparse as sp
 import warnings
 import properties
 
-from .. import Props
-from .. import Maps
-from .. import ObjectiveFunction
-from .. import Utils
+from .. import props
+from .. import maps
+from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
+from .. import utils
 from .regularization_mesh import RegularizationMesh
 
 ###############################################################################
@@ -15,7 +15,7 @@ from .regularization_mesh import RegularizationMesh
 #                                                                             #
 ###############################################################################
 
-class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
+class BaseRegularization(BaseObjectiveFunction):
     """
     Base class for regularization. Inherit this for building your own
     regularization. The base regularization assumes a weighted l2 style of
@@ -33,12 +33,12 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
             self.regmesh.indActive = indActive
-        Utils.setKwargs(self, **kwargs)
+        utils.setKwargs(self, **kwargs)
 
     counter = None
 
     # Properties
-    mref = Props.Array(
+    mref = props.Array(
         "reference model"
     )
     indActive = properties.Array(
@@ -52,7 +52,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
     )
     mapping = properties.Instance(
         "mapping which is applied to model in the regularization",
-        Maps.IdentityMap, default=Maps.IdentityMap()
+        maps.IdentityMap, default=maps.IdentityMap()
     )
 
     # Observers and Validators
@@ -68,7 +68,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 
         # update regmesh indActive
         if getattr(self, 'regmesh', None) is not None:
-            self.regmesh.indActive = Utils.mkvc(value)
+            self.regmesh.indActive = utils.mkvc(value)
 
     @properties.observer('indActive')
     def _update_regmesh_indActive(self, change):
@@ -121,7 +121,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
             return m
         return (-self.mref + m)  # in case self.mref is Zero, returns type m
 
-    @Utils.timeIt
+    @utils.timeIt
     def __call__(self, m):
         """
         We use a weighted 2-norm objective function
@@ -133,7 +133,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         r = self.W * (self.mapping * (self._delta_m(m)))
         return 0.5 * r.dot(r)
 
-    @Utils.timeIt
+    @utils.timeIt
     def deriv(self, m):
         """
 
@@ -156,7 +156,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
         r = self.W * (self.mapping * (self._delta_m(m)))
         return mD.T * (self.W.T * r)
 
-    @Utils.timeIt
+    @utils.timeIt
     def deriv2(self, m, v=None):
         """
         Second derivative
@@ -194,7 +194,7 @@ class BaseRegularization(ObjectiveFunction.BaseObjectiveFunction):
 #                                                                             #
 ###############################################################################
 
-class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
+class BaseComboRegularization(ComboObjectiveFunction):
 
     def __init__(
         self, mesh, objfcts=[], **kwargs
@@ -207,7 +207,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
             self.regmesh.indActive = indActive
-        Utils.setKwargs(self, **kwargs)
+        utils.setKwargs(self, **kwargs)
 
         # link these attributes
         linkattrs = [
@@ -220,17 +220,17 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
                 [setattr(fct, attr, val) for fct in self.objfcts]
 
     # Properties
-    alpha_s = Props.Float("smallness weight")
-    alpha_x = Props.Float("weight for the first x-derivative")
-    alpha_y = Props.Float("weight for the first y-derivative")
-    alpha_z = Props.Float("weight for the first z-derivative")
-    alpha_xx = Props.Float("weight for the second x-derivative")
-    alpha_yy = Props.Float("weight for the second y-derivative")
-    alpha_zz = Props.Float("weight for the second z-derivative")
+    alpha_s = props.Float("smallness weight")
+    alpha_x = props.Float("weight for the first x-derivative")
+    alpha_y = props.Float("weight for the first y-derivative")
+    alpha_z = props.Float("weight for the first z-derivative")
+    alpha_xx = props.Float("weight for the second x-derivative")
+    alpha_yy = props.Float("weight for the second y-derivative")
+    alpha_zz = props.Float("weight for the second z-derivative")
 
     counter = None
 
-    mref = Props.Array(
+    mref = props.Array(
         "reference model"
     )
     mrefInSmooth = properties.Bool(
@@ -250,7 +250,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
     )
     mapping = properties.Instance(
         "mapping which is applied to model in the regularization",
-        Maps.IdentityMap, default=Maps.IdentityMap()
+        maps.IdentityMap, default=maps.IdentityMap()
     )
 
     # Other properties and methods
@@ -311,7 +311,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 
         # update regmesh indActive
         if getattr(self, 'regmesh', None) is not None:
-            self.regmesh.indActive = Utils.mkvc(value)
+            self.regmesh.indActive = utils.mkvc(value)
 
     @properties.observer('indActive')
     def _update_regmesh_indActive(self, change):
@@ -335,7 +335,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         for fct in self.objfcts:
             if getattr(fct, 'mrefInSmooth', None) is not None:
                 if self.mrefInSmooth is False:
-                    fct.mref = Utils.Zero()
+                    fct.mref = utils.Zero()
                 else:
                     fct.mref = change['value']
             else:

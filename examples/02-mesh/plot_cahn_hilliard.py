@@ -40,7 +40,9 @@ as the time increases.
 .. _FiPy: http://www.ctcms.nist.gov/fipy/examples/cahnHilliard/generated/examples.cahnHilliard.mesh2DCoupled.html
 """
 from __future__ import print_function
-from SimPEG import Mesh, Utils, Solver
+import discretize
+from SimPEG import utils
+from SimPEG import Solver
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -62,11 +64,11 @@ def run(plotIt=True, n=60):
     # (dt*A*d2fdphi2 - I - dt*A*L) * phi_ =  (dt*A*d2fdphi2 - I)*phi - dt*A*dfdphi
 
     h = [(0.25, n)]
-    M = Mesh.TensorMesh([h, h])
+    M = discretize.TensorMesh([h, h])
 
     # Constants
     D = a = epsilon = 1.
-    I = Utils.speye(M.nC)
+    I = utils.speye(M.nC)
 
     # Operators
     A = D * M.faceDiv * M.cellGrad
@@ -85,7 +87,7 @@ def run(plotIt=True, n=60):
         dexp += 0.05
 
         dfdphi = a**2 * 2 * phi * (1 - phi) * (1 - 2 * phi)
-        d2fdphi2 = Utils.sdiag(a**2 * 2 * (1 - 6 * phi * (1 - phi)))
+        d2fdphi2 = utils.sdiag(a**2 * 2 * (1 - 6 * phi * (1 - phi)))
 
         MAT = (dt*A*d2fdphi2 - I - dt*A*L)
         rhs = (dt*A*d2fdphi2 - I)*phi - dt*A*dfdphi

@@ -11,7 +11,7 @@ tensor meshes. Some things we consider are:
     - Adding structures of various shape to the model
     - Parameterized models
     - Models with 2 or more physical properties
-    
+
 
 """
 
@@ -21,8 +21,8 @@ tensor meshes. Some things we consider are:
 #
 
 from discretize import TensorMesh
-from SimPEG.Utils import mkvc, surface2ind_topo, ModelBuilder
-from SimPEG import Maps
+from SimPEG.utils import mkvc, surface2ind_topo, model_builder
+from SimPEG import maps
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -65,7 +65,7 @@ halfspace_value = 100.
 # Find cells below topography and define mapping
 air_value = 0.
 ind_active = mesh.gridCC[:, 2] < 0.
-model_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+model_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model
 model = halfspace_value*np.ones(ind_active.sum())
@@ -102,7 +102,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Find cells below topography and define mapping
 air_value = 0.
 ind_active = surface2ind_topo(mesh, topo, 'N')
-model_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+model_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model on subsurface cells
 model = background_value*np.ones(ind_active.sum())
@@ -149,7 +149,7 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Find cells below topography
 air_value = 0.
 ind_active = surface2ind_topo(mesh, topo, 'N')
-active_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model on subsurface cells
 model = background_value*np.ones(ind_active.sum())
@@ -163,9 +163,9 @@ ind_block = (
 model[ind_block] = block_value
 
 # Define a single mapping from model to mesh
-exponential_map = Maps.ExpMap()
-reciprocal_map = Maps.ReciprocalMap()
-model_map = Maps.ComboMap([active_map, reciprocal_map, exponential_map])
+exponential_map = maps.ExpMap()
+reciprocal_map = maps.ReciprocalMap()
+model_map = maps.ComboMap([active_map, reciprocal_map, exponential_map])
 
 # Plot
 fig = plt.figure(figsize=(5, 5))
@@ -200,13 +200,13 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Set active cells and define unit values
 air_value = 0.
 ind_active = surface2ind_topo(mesh, topo, 'N')
-model_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+model_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define model for cells under the surface topography
 model = background_value*np.ones(ind_active.sum())
 
 # Add a sphere
-ind_sphere = ModelBuilder.getIndicesSphere(
+ind_sphere = model_builder.getIndicesSphere(
     np.r_[-25., 0., -15.], 20., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]  # So it's same size and order as model
@@ -217,7 +217,7 @@ xp = np.kron(np.ones((2)), [-10., 10., 45., 25.])
 yp = np.kron([-1000., 1000.], np.ones((4)))
 zp = np.kron(np.ones((2)), [-120., -120., 35., 35.])
 xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-ind_polygon = ModelBuilder.PolygonInd(mesh, xyz_pts)
+ind_polygon = model_builder.PolygonInd(mesh, xyz_pts)
 ind_polygon = ind_polygon[ind_active]  # So same size and order as model
 model[ind_polygon] = dyke_value
 
@@ -255,14 +255,14 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Set active cells and define unit values
 air_value = 0.
 ind_active = surface2ind_topo(mesh, topo, 'N')
-active_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define the model on subsurface cells
 model = np.r_[background_value, block_value, xc, dx, yc, dy, zc, dz]
-parametric_map = Maps.ParametricBlock(mesh, indActive=ind_active, epsilon=1e-10, p=5.)
+parametric_map = maps.ParametricBlock(mesh, indActive=ind_active, epsilon=1e-10, p=5.)
 
 # Define a single mapping from model to mesh
-model_map = Maps.ComboMap([active_map, parametric_map])
+model_map = maps.ComboMap([active_map, parametric_map])
 
 # Plot
 fig = plt.figure(figsize=(5, 5))
@@ -304,14 +304,14 @@ topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 # Set active cells
 air_value = 0.
 ind_active = surface2ind_topo(mesh, topo, 'N')
-active_map = Maps.InjectActiveCells(mesh, ind_active, air_value)
+active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define model for cells under the surface topography
 N = int(ind_active.sum())
 model = np.kron(np.ones((N, 1)), np.c_[background_sigma, background_myu])
 
 # Add a conductive and permeable sphere
-ind_sphere = ModelBuilder.getIndicesSphere(
+ind_sphere = model_builder.getIndicesSphere(
     np.r_[-25., 0., -15.], 20., mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]  # So same size and order as model
@@ -322,17 +322,17 @@ xp = np.kron(np.ones((2)), [-10., 10., 45., 25.])
 yp = np.kron([-1000., 1000.], np.ones((4)))
 zp = np.kron(np.ones((2)), [-120., -120., 35., 35.])
 xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-ind_polygon = ModelBuilder.PolygonInd(mesh, xyz_pts)
+ind_polygon = model_builder.PolygonInd(mesh, xyz_pts)
 ind_polygon = ind_polygon[ind_active]  # So same size and order as model
 model[ind_polygon, 0] = dyke_sigma
 
 # Create model vector and wires
 model = mkvc(model)
-wire_map = Maps.Wires(('log_sigma', N), ('mu', N))
+wire_map = maps.Wires(('log_sigma', N), ('mu', N))
 
 # Use combo maps to map from model to mesh
-sigma_map = Maps.ComboMap([active_map, Maps.ExpMap(), wire_map.log_sigma])
-mu_map = Maps.ComboMap([active_map, wire_map.mu])
+sigma_map = maps.ComboMap([active_map, maps.ExpMap(), wire_map.log_sigma])
+mu_map = maps.ComboMap([active_map, wire_map.mu])
 
 # Plot
 fig = plt.figure(figsize=(5, 5))

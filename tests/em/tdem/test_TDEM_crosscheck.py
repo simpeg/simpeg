@@ -1,7 +1,10 @@
 from __future__ import division, print_function
 import unittest
-from SimPEG import Maps, Mesh
-from SimPEG import EM
+import discretize
+
+from SimPEG import maps
+from SimPEG.electromagnetics import time_domain as tdem
+from SimPEG.electromagnetics import utils
 import numpy as np
 
 import warnings
@@ -14,7 +17,7 @@ FLR = 1e-20
 np.random.seed(25)
 
 
-def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
+def setUp_TDEM(prbtype='MagneticFluxDensity', rxcomp='bz', waveform='stepoff'):
     cs = 5.
     ncx = 8
     ncy = 8
@@ -22,7 +25,7 @@ def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
     npad = 4
     # hx = [(cs, ncx), (cs, npad, 1.3)]
     # hz = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
-    mesh = Mesh.TensorMesh(
+    mesh = discretize.TensorMesh(
         [
             [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)],
             [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)],
@@ -31,34 +34,34 @@ def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
     )
 
     active = mesh.vectorCCz < 0.
-    activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
+    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
-    prb = getattr(EM.TDEM, 'Problem3D_{}'.format(prbtype))(mesh, sigmaMap=mapping)
+    prb = getattr(tdem, 'Simulation3D{}'.format(prbtype))(mesh, sigmaMap=mapping)
 
     rxtimes = np.logspace(-4, -3, 20)
 
     if waveform.upper() == 'RAW':
-        out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
+        out = utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
         wavefun = interp1d(prb.times, out)
         t0 = 0.006
-        waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
+        waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)
         prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
         rxtimes = t0+rxtimes
 
     else:
-        waveform = EM.TDEM.Src.StepOffWaveform()
+        waveform = tdem.Src.StepOffWaveform()
         prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
 
     rxOffset = 10.
-    rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
+    rx = getattr(tdem.Rx, 'Point{}'.format(rxcomp[:-1]))(
         np.r_[rxOffset, 0., -1e-2], rxtimes, rxcomp[-1]
     )
-    src = EM.TDEM.Src.MagDipole(
+    src = tdem.Src.MagDipole(
         [rx], loc=np.array([0., 0., 0.]), waveform=waveform
     )
 
-    survey = EM.TDEM.Survey([src])
+    survey = tdem.Survey([src])
 
 
 
@@ -73,13 +76,14 @@ def setUp_TDEM(prbtype='b', rxcomp='bz', waveform='stepoff'):
     return prb, m, mesh
 
 
-def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz', waveform='stepoff'):
+def CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+        rxcomp='bz', waveform='stepoff'):
 
     prb1, m1, mesh1 = setUp_TDEM(prbtype1, rxcomp, waveform)
     prb2, _, mesh2 = setUp_TDEM(prbtype2, rxcomp, waveform)
 
-    d1 = prb1.survey.dpred(m1)
-    d2 = prb2.survey.dpred(m1)
+    d1 = prb1.dpred(m1)
+    d2 = prb2.dpred(m1)
 
     check = np.linalg.norm(d1 - d2)
     tol = 0.5 * (np.linalg.norm(d1) + np.linalg.norm(d2)) * TOL
@@ -87,7 +91,7 @@ def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz', waveform='stepoff'):
 
     print(
         'Checking {}, {} for {} data, {} waveform'.format(
-        prbtype1, prbtype2, rxcomp, waveform
+            prbtype1, prbtype2, rxcomp, waveform
         )
     )
     print(
@@ -101,47 +105,61 @@ def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz', waveform='stepoff'):
 
 class TDEM_cross_check_EB(unittest.TestCase):
     def test_EB_ey_stepoff(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='ey', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+            rxcomp='ElectricFieldy', waveform='stepoff')
 
     def test_EB_dbdtx_stepoff(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtx', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+            rxcomp='MagneticFluxTimeDerivativex', waveform='stepoff')
 
     def test_EB_dbdtz_stepoff(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtz', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+            rxcomp='MagneticFluxTimeDerivativez', waveform='stepoff')
 
     def test_HJ_j_stepoff(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='CurrentDensityy', waveform='stepoff')
 
     def test_HJ_j_stepoff(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='CurrentDensityy', waveform='stepoff')
 
     def test_HJ_dhdtx_stepoff(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='MagneticFieldTimeDerivativex', waveform='stepoff')
 
     def test_HJ_dhdtz_stepoff(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='stepoff')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='MagneticFieldTimeDerivativex', waveform='stepoff')
 
 
     def test_EB_ey_vtem(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='ey', waveform='vtem')
+        CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+            rxcomp='ElectricFieldy', waveform='vtem')
 
     def test_EB_dbdtx_vtem(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtx', waveform='vtem')
+        CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+            rxcomp='MagneticFluxTimeDerivativex', waveform='vtem')
 
     def test_EB_dbdtz_vtem(self):
-        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbdtz', waveform='vtem')
+        CrossCheck(prbtype1='MagneticFluxDensity', prbtype2='ElectricField',
+            rxcomp='MagneticFluxTimeDerivativez', waveform='vtem')
 
     def test_HJ_j_vtem(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='vtem')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='CurrentDensityy', waveform='vtem')
 
     def test_HJ_j_vtem(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='jy', waveform='vtem')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='CurrentDensityy', waveform='vtem')
 
     def test_HJ_dhdtx_vtem(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='vtem')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='MagneticFieldTimeDerivativex', waveform='vtem')
 
     def test_HJ_dhdtz_vtem(self):
-        CrossCheck(prbtype1='h', prbtype2='j', rxcomp='dhdtx', waveform='vtem')
+        CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
+            rxcomp='MagneticFieldTimeDerivativex', waveform='vtem')
 
 
     def test_MagDipoleSimpleFail(self):
@@ -150,7 +168,7 @@ class TDEM_cross_check_EB(unittest.TestCase):
 
 
         with warnings.catch_warnings(record=True):
-            EM.TDEM.Src.MagDipole(
+            tdem.Src.MagDipole(
                 [], loc=np.r_[0., 0., 0.],
                 orientation=np.r_[1., 1., 0.]
             )

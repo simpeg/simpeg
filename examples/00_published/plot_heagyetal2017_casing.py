@@ -28,11 +28,13 @@ This example is used in the paper
 This example is available on figshare:
 https://doi.org/10.6084/m9.figshare.5036123
 
+This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capriotti
 """
-from SimPEG import Mesh, Utils, Maps, Tests
-from SimPEG.EM import mu_0, FDEM, Analytics
-from SimPEG.EM.Utils import omega
-from SimPEG.Utils.io_utils import download
+import discretize
+from SimPEG import utils, maps, tests
+from SimPEG.electromagnetics import mu_0, frequency_domain as FDEM, analytics
+from SimPEG.electromagnetics.utils import omega
+from SimPEG.utils.io_utils import download
 # try:
 #     from pymatsolver import MumpsSolver as Solver
 #     print('using MumpsSolver')
@@ -169,16 +171,16 @@ class PrimSecCasingExample(object):
             # ------------- Assemble the Cyl Mesh ------------- #
             # pad nicely to second cell size
             npadx1 = np.floor(np.log(csx2/csx1) / np.log(pfx1))
-            hx1a = Utils.meshTensor([(csx1, ncx1)])
-            hx1b = Utils.meshTensor([(csx1, npadx1, pfx1)])
+            hx1a = utils.meshTensor([(csx1, ncx1)])
+            hx1b = utils.meshTensor([(csx1, npadx1, pfx1)])
             dx1 = sum(hx1a)+sum(hx1b)
             dx1 = np.floor(dx1/csx2)
             hx1b *= (dx1*csx2 - sum(hx1a))/sum(hx1b)
 
             # second chunk of mesh
             ncx2 = np.ceil((dx2 - dx1)/csx2)
-            hx2a = Utils.meshTensor([(csx2, ncx2)])
-            hx2b = Utils.meshTensor([(csx2, npadx2, pfx2)])
+            hx2a = utils.meshTensor([(csx2, ncx2)])
+            hx2b = utils.meshTensor([(csx2, npadx2, pfx2)])
             hx = np.hstack([hx1a, hx1b, hx2a, hx2b])
 
             # cell size, number of core cells, number of padding cells in the
@@ -187,12 +189,12 @@ class PrimSecCasingExample(object):
             npadzu, npadzd = 43, 43
 
             # vector of cell widths in the z-direction
-            hz = Utils.meshTensor(
+            hz = utils.meshTensor(
                     [(csz, npadzd, -pfz), (csz, ncz), (csz, npadzu, pfz)]
                     )
 
             # primary mesh
-            self._meshp = Mesh.CylMesh(
+            self._meshp = discretize.CylMesh(
                 [hx, 1., hz], [0., 0., -np.sum(hz[:npadzu+ncz-nza])]
                 )
 
@@ -212,7 +214,7 @@ class PrimSecCasingExample(object):
 
     @property
     def projectionMapPrimary(self):
-        return Maps.Projection(nP=9, index=np.r_[0, 1, 3, 4])
+        return maps.Projection(nP=9, index=np.r_[0, 1, 3, 4])
 
     @property
     def primaryMapping(self):
@@ -242,24 +244,24 @@ class PrimSecCasingExample(object):
 
             # inject casing parameters so they are included in the construction
             # of the layered background + casing
-            injectCasingParams = Maps.InjectActiveCells(
+            injectCasingParams = maps.InjectActiveCells(
                 None, indActive=np.r_[0, 1, 4, 5], valInactive=valInactive,
                 nC=10
                 )
 
             # maps a list of casing parameters to the cyl mesh (below the
             # subsurface)
-            paramMapPrimary = Maps.ParametricCasingAndLayer(
+            paramMapPrimary = maps.ParametricCasingAndLayer(
                 self.meshp, indActive=self.indActivePrimary, slopeFact=1e4
                 )
 
             # inject air cells
-            injActMapPrimary = Maps.InjectActiveCells(
+            injActMapPrimary = maps.InjectActiveCells(
                 self.meshp, self.indActivePrimary, np.log(self.sigmaair)
                 )
 
             # map from log conductivity to conductivity
-            expMapPrimary = Maps.ExpMap(self.meshp)
+            expMapPrimary = maps.ExpMap(self.meshp)
 
             # assemble the primary mapping
             primaryMapping = (
@@ -288,7 +290,7 @@ class PrimSecCasingExample(object):
             if getattr(self, '_paramMapPrimary', None) is None:
                 self.primaryMapping
 
-            muMap = (Maps.InjectActiveCells(
+            muMap = (maps.InjectActiveCells(
                         self.meshp, self.indActivePrimary, mu_0) *
                      self._paramMapPrimary)
 
@@ -316,38 +318,38 @@ class PrimSecCasingExample(object):
             # inverting for - This will change when we improve the propmap!
             print('Getting Primary Problem')
 
-            # class CasingEMPropMap(Maps.PropMap):
+            # class CasingEMPropMap(maps.PropMap):
 
-            #     sigma = Maps.Property(
+            #     sigma = maps.Property(
             #                 "Electrical Conductivity", defaultInvProp=True,
-            #                 propertyLink=('rho', Maps.ReciprocalMap)
+            #                 propertyLink=('rho', maps.ReciprocalMap)
             #     )
-            #     mu = Maps.Property(
+            #     mu = maps.Property(
             #             "Inverse Magnetic Permeability",
             #             defaultVal=self.muModel,
-            #             propertyLink=('mui', Maps.ReciprocalMap)
+            #             propertyLink=('mui', maps.ReciprocalMap)
             #     )
-            #     rho = Maps.Property(
+            #     rho = maps.Property(
             #             "Electrical Resistivity",
-            #             propertyLink=('sigma', Maps.ReciprocalMap)
+            #             propertyLink=('sigma', maps.ReciprocalMap)
             #     )
-            #     mui = Maps.Property(
+            #     mui = maps.Property(
             #             "Inverse Magnetic Permeability",
             #             defaultVal=1./self.muModel,
-            #             propertyLink=('mu', Maps.ReciprocalMap)
+            #             propertyLink=('mu', maps.ReciprocalMap)
             #     )
 
             # # set the problem's propmap
-            # FDEM.Problem3D_h.PropMap = CasingEMPropMap
+            # FDEM.Simulation3DMagneticField.PropMap = CasingEMPropMap
 
             # use H-J formulation for source with vertical current density and
             # cylindrical symmetry (h faster on cyl --> less edges than faces)
-            primaryProblem = FDEM.Problem3D_h(
+            primaryProblem = FDEM.Simulation3DMagneticField(
                 self.meshp, sigmaMap=self.primaryMapping
             )
             primaryProblem.mu = self.muModel
 
-            primaryProblem.Solver = Solver
+            primaryProblem.solver = Solver
             self._primaryProblem = primaryProblem
 
             print('... done building primary problem')
@@ -497,18 +499,18 @@ class PrimSecCasingExample(object):
             csz, ncz, npadz = 25, 40, 14
             pf = 1.5
 
-            hx = Utils.meshTensor(
+            hx = utils.meshTensor(
                 [(csx, npadx, -pf), (csx, ncx), (csx, npadx, pf)]
             )
-            hy = Utils.meshTensor(
+            hy = utils.meshTensor(
                 [(csy, npady, -pf), (csy, ncy), (csy, npady, pf)]
             )
-            hz = Utils.meshTensor(
+            hz = utils.meshTensor(
                 [(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)]
             )
 
             x0 = np.r_[-hx.sum()/2., -hy.sum()/2., -hz[:npadz+ncz].sum()]
-            self._meshs = Mesh.TensorMesh([hx, hy, hz], x0=x0)
+            self._meshs = discretize.TensorMesh([hx, hy, hz], x0=x0)
 
             print('Secondary Mesh ... ')
             print(
@@ -527,13 +529,13 @@ class PrimSecCasingExample(object):
 
     @property
     def injActMap(self):
-        return Maps.InjectActiveCells(
+        return maps.InjectActiveCells(
             self.meshs, self.indActive, np.log(self.sigmaair)
             )
 
     @property
     def expMap(self):
-        return Maps.ExpMap(self.meshs)
+        return maps.ExpMap(self.meshs)
 
     @property
     def mapping(self):
@@ -543,7 +545,7 @@ class PrimSecCasingExample(object):
         # model on our mesh
         if getattr(self, '_mapping', None) is None:
             print('building secondary mapping')
-            paramMap = Maps.ParametricBlockInLayer(
+            paramMap = maps.ParametricBlockInLayer(
                 self.meshs, indActive=self.indActive
                 )
             self._mapping = (
@@ -561,7 +563,7 @@ class PrimSecCasingExample(object):
             # map the primary model to the secondary mesh (layer without the
             # block)
             print('Building primaryMap2meshs')
-            paramMapPrimaryMeshs = Maps.ParametricLayer(
+            paramMapPrimaryMeshs = maps.ParametricLayer(
                 self.meshs, indActive=self.indActive
                 )
 
@@ -579,8 +581,8 @@ class PrimSecCasingExample(object):
     def setupSecondaryProblem(self, mapping=None):
         print('Setting up Secondary Problem')
         if mapping is None:
-            mapping = [('sigma', Maps.IdentityMap(self.meshs))]
-        sec_problem = FDEM.Problem3D_e(self.meshs, sigmaMap=mapping)
+            mapping = [('sigma', maps.IdentityMap(self.meshs))]
+        sec_problem = FDEM.Simulation3DElectricField(self.meshs, sigmaMap=mapping)
         sec_problem.Solver = Solver
         print('... done setting up secondary problem')
         return sec_problem
@@ -594,12 +596,12 @@ class PrimSecCasingExample(object):
         nx = 41
         ny = nx
         rx_x, rx_y = 2*[np.linspace(-2050, 2050, nx)]
-        self.rxlocs = Utils.ndgrid([rx_x, rx_y, np.r_[-1]])
+        self.rxlocs = utils.ndgrid([rx_x, rx_y, np.r_[-1]])
         self.rx_x = self.rxlocs[:, 0].reshape(nx, ny, order='F')
         self.rx_y = self.rxlocs[:, 1].reshape(nx, ny, order='F')
 
-        rx_ex = FDEM.Rx.Point_e(self.rxlocs, orientation='x', component='real')
-        rx_ey = FDEM.Rx.Point_e(self.rxlocs, orientation='y', component='real')
+        rx_ex = FDEM.Rx.PointElectricField(self.rxlocs, orientation='x', component='real')
+        rx_ey = FDEM.Rx.PointElectricField(self.rxlocs, orientation='y', component='real')
 
         RxList = [rx_ex, rx_ey]
 
@@ -616,14 +618,12 @@ class PrimSecCasingExample(object):
 
     # -------------- SOLVE ---------------------------- #
     def solveSecondary(self, sec_problem, sec_survey, m, plotIt=False):
-
-        if not sec_problem.ispaired:
-            sec_problem.pair(sec_survey)
+        sec_problem.survey = sec_survey
 
         print('Solving Secondary')
         t0 = time.time()
         fields = sec_problem.fields(m)
-        dpred = sec_survey.dpred(m, f=fields)
+        dpred = sec_problem.dpred(m, f=fields)
         t1 = time.time()
         print(' ...done.   secondary time '), t1-t0
 
@@ -644,7 +644,7 @@ class PrimSecCasingExample(object):
         csz, ncz = cs, np.ceil(zmax/cs)
 
         # define the tensor mesh
-        meshcart = Mesh.TensorMesh(
+        meshcart = discretize.TensorMesh(
             [[(csx, ncx)], [(csx, 1)], [(csz, ncz)]], [0, -csx/2., -zmax]
             )
 
@@ -684,7 +684,7 @@ class PrimSecCasingExample(object):
         secondarySurvey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs
         )
-        src = secondarySurvey.srcList[0]
+        src = secondarySurvey.source_list[0]
         s_e = src.s_e(secondaryProblem, f=primaryFields)
 
         # Mesh to interpolate onto for stream plots
@@ -698,7 +698,7 @@ class PrimSecCasingExample(object):
         ncy = np.ceil((ymax-ymin)/cs)
         ncz = np.ceil((zmax-zmin)/cs)
 
-        meshs_plt = Mesh.TensorMesh(
+        meshs_plt = discretize.TensorMesh(
             [[(cs, ncx)], [(cs, ncy)], [(cs, ncz)]],
             [xmin+(xmin+xmax)/2., ymin+(ymin+ymax)/2., zmin+(zmin+zmax)/2.]
         )
@@ -799,10 +799,10 @@ class PrimSecCasingExample(object):
 
         sec_survey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs)
-        src = sec_survey.srcList[0]
-        rx0 = src.rxList[0]
+        src = sec_survey.source_list[0]
+        rx0 = src.receiver_list[0]
 
-        nx = int(np.sqrt(len(rx0.locs)))
+        nx = int(np.sqrt(len(rx0.locations)))
         ny = nx
 
         def plotDataFun(ax, plotme, num=50, plotBlock=True, xlim=XLIM,
@@ -848,7 +848,7 @@ class PrimSecCasingExample(object):
         ncontours = 50
 
         fig, ax = plt.subplots(2, 2, figsize=(12, 10))
-        ax = Utils.mkvc(ax)
+        ax = utils.mkvc(ax)
 
         plotx0 = (data_block[:rx0.nD]).reshape(nx, ny, order='F')
         ploty0 = (data_block[rx0.nD:]).reshape(nx, ny, order='F')
@@ -1016,7 +1016,7 @@ class PrimSecCasingExample(object):
 
         # Plot layer contribution
         fig, ax = plt.subplots(2, 2, figsize=(12, 10))
-        # ax = Utils.mkvc(ax)
+        # ax = utils.mkvc(ax)
 
         useaxlim = True
         xlim = np.r_[-1500., 1500.]
@@ -1145,7 +1145,7 @@ class PrimSecCasingExample(object):
             self.plotPrimaryProperties()  # plot mu, sigma
 
         # Primary Simulation
-        self.primaryProblem.pair(self.primarySurvey)
+        self.primaryProblem.survey = self.primarySurvey
         primfields = self.solvePrimary(self.primaryProblem, m=self.mtrue)
 
         if saveFields is True:
@@ -1161,7 +1161,7 @@ class PrimSecCasingExample(object):
         sec_survey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs
         )
-        sec_problem.pair(sec_survey)
+        sec_problem.survey = sec_survey
 
         # layered earth only (background)
         background_problem = self.setupSecondaryProblem(
@@ -1170,7 +1170,7 @@ class PrimSecCasingExample(object):
         background_survey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs
         )
-        background_problem.pair(background_survey)
+        background_problem.survey = background_survey
 
         # -------------- Test the sensitivity ----------------------------- #
         if runTests:
@@ -1179,10 +1179,10 @@ class PrimSecCasingExample(object):
             # Test Block Model
             def fun(x):
                 return [
-                    sec_survey.dpred(x),
+                    sec_problem.dpred(x),
                     lambda x: sec_problem.Jvec(self.mtrue, x)
                 ]
-            Tests.checkDerivative(fun, self.mtrue, num=2, plotIt=False)
+            tests.checkDerivative(fun, self.mtrue, num=2, plotIt=False)
 
         # -------------- Calculate Fields --------------------------------- #
         # Background
@@ -1288,11 +1288,9 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
 
         # Put the primary fields into a fields object
         self.primaryProblem.model = self.mtrue  # set the current model
-        self.primaryProblem.pair(self.primarySurvey)
-        primaryFields = self.primaryProblem.fieldsPair(
-            self.meshp, self.primarySurvey
-        )
-        primaryFields[self.primarySurvey.srcList[0], 'hSolution'] = results[
+        self.primaryProblem.survey = self.primarySurvey
+        primaryFields = self.primaryProblem.fieldsPair(self.primaryProblem)
+        primaryFields[self.primarySurvey.source_list[0], 'hSolution'] = results[
             'primfields'
         ]
 

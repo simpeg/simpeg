@@ -103,12 +103,10 @@ Then we can write
 The API
 -------
 
-.. automodule:: SimPEG.Regularization
+.. automodule:: SimPEG.regularization
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Regularization.RegularizationMesh
+.. autoclass:: SimPEG.regularization.RegularizationMesh
     :members:
     :undoc-members:
-
-

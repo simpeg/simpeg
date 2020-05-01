@@ -30,7 +30,7 @@ API
 NSEM Problem
 ------------
 
-.. automodule:: SimPEG.EM.NSEM.ProblemNSEM
+.. automodule:: SimPEG.electromagnetics.natural_source.simulation
     :show-inheritance:
     :members:
     :undoc-members:
@@ -39,17 +39,17 @@ NSEM Problem
 NSEM Survey
 -----------
 
-.. automodule:: SimPEG.EM.NSEM.SurveyNSEM
+.. automodule:: SimPEG.electromagnetics.natural_source.survey
     :show-inheritance:
     :members:
     :undoc-members:
 
-.. automodule:: SimPEG.EM.NSEM.SrcNSEM
+.. automodule:: SimPEG.electromagnetics.natural_source.sources
     :show-inheritance:
     :members:
     :undoc-members:
 
-.. automodule:: SimPEG.EM.NSEM.RxNSEM
+.. automodule:: SimPEG.electromagnetics.natural_source.receivers
     :show-inheritance:
     :members:
     :undoc-members:
@@ -58,8 +58,7 @@ NSEM Survey
 NSEM Fields
 -----------
 
-.. automodule:: SimPEG.EM.NSEM.FieldsNSEM
+.. automodule:: SimPEG.electromagnetics.natural_source.fields
     :show-inheritance:
     :members:
     :undoc-members:
-
