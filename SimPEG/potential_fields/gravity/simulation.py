@@ -55,7 +55,7 @@ class Simulation3DIntegral(BasePFSimulation):
         for i in range(len(W)):
             diag += W[i]*(self.G[i]*self.G[i])
         self._gtg_diagonal = mkvc(
-            ((sdiag(np.sqrt(diag))@self.rhoDeriv)**2).sum(axis=0)
+            ((sdiag(np.sqrt(diag))@self.rhoDeriv).power(2)).sum(axis=0)
         )
         return self._gtg_diagonal
 
