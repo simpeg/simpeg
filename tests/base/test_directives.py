@@ -131,7 +131,10 @@ class ValidationInInversion(unittest.TestCase):
 
     def tearDown(self):
         # Clean up the working directory
-        shutil.rmtree(self.sim.sensitivity_path)
+        try:
+            shutil.rmtree(self.sim.sensitivity_path)
+        except FileNotFoundError:
+            pass
 
 
 if __name__ == '__main__':
