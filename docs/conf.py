@@ -298,7 +298,7 @@ sphinx_gallery_conf = {
                        'content/tutorials/basic_inversions',
                        ],
     'within_subsection_order': FileNameSortKey,
-    'backreferences_dir' : False
+    'backreferences_dir' : None
 }
 
 
