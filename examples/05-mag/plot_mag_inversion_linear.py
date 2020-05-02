@@ -8,7 +8,6 @@ with a compact norm
 """
 import matplotlib.pyplot as plt
 import numpy as np
-import shutil
 from discretize import TensorMesh
 from SimPEG.potential_fields import magnetics
 from SimPEG import utils
@@ -126,8 +125,6 @@ def run(plotIt=True):
 
     # Run the inversion
     mrec = inv.run(m0)
-
-    shutil.rmtree(simulation.sensitivity_path)
 
     if plotIt:
         # Here is the recovered susceptibility model

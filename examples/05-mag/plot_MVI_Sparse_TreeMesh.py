@@ -29,7 +29,6 @@ from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 from SimPEG.potential_fields import magnetics
 import scipy as sp
 import numpy as np
-import shutil
 import matplotlib.pyplot as plt
 from scipy.interpolate import NearestNDInterpolator
 
@@ -413,8 +412,6 @@ inv = inversion.BaseInversion(
 )
 
 mrec_MVI_S = inv.run(mstart)
-
-shutil.rmtree(simulation.sensitivity_path)
 
 #############################################################
 # Final Plot
