@@ -60,15 +60,15 @@ except ImportError:
 # provided for comparison with the inversion results.
 #
     
-module_path = os.path.dirname(dc.__file__)
-sep = 8*(os.path.sep)
-relative_path = "{}..{}..{}..{}..{}tutorials{}assets{}dcip2d{}".format(*sep)
+dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
+dir_path.extend(['tutorials', 'assets', 'dcip2d'])
+dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-topo_filename = module_path + relative_path + 'xyz_topo.txt'
-dc_data_filename = module_path + relative_path + 'dc_data.obs'
-ip_data_filename = module_path + relative_path + 'ip_data.obs'
-true_conductivity_filename = module_path + relative_path + 'true_conductivity.txt'
-true_chargeability_filename = module_path + relative_path + 'true_chargeability.txt'
+topo_filename = dir_path + 'xyz_topo.txt'
+dc_data_filename = dir_path + 'dc_data.obs'
+ip_data_filename = dir_path + 'ip_data.obs'
+true_conductivity_filename = dir_path + 'true_conductivity.txt'
+true_chargeability_filename = dir_path + 'true_chargeability.txt'
 
 
 #############################################
@@ -119,12 +119,13 @@ dc_data = data.Data(dc_survey, dobs=dobs_dc)
 ip_data = data.Data(ip_survey, dobs=dobs_ip)
 
 # Plot apparent conductivity using pseudo-section
+mpl.rcParams.update({'font.size': 12})
 fig = plt.figure(figsize=(11, 9))
 
 ax1 = fig.add_axes([0.05, 0.55, 0.8, 0.45])
 plot_pseudoSection(
     dc_data, ax=ax1, survey_type='dipole-dipole', data_type='appConductivity',
-    space_type='half-space', scale='log', pcolorOpts={'cmap':'jet'}
+    space_type='half-space', scale='log', pcolorOpts={'cmap':'viridis'}
 )
 ax1.set_title('Apparent Conductivity [S/m]')
 
@@ -360,7 +361,7 @@ ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.83])
 mesh.plotImage(
     plotting_map*true_conductivity_model, ax=ax1, grid=False,
     clim=(np.min(true_conductivity_model), np.max(true_conductivity_model)),
-    pcolorOpts={'cmap': 'jet'}
+    pcolorOpts={'cmap': 'viridis'}
 )
 ax1.set_title('True Conductivity Model')
 ax1.set_xlabel('x (m)')
@@ -371,13 +372,10 @@ norm = mpl.colors.Normalize(
         vmin=np.min(true_conductivity_model), vmax=np.max(true_conductivity_model)
         )
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='10^%.1f'
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.viridis, format='10^%.1f'
 )
 
-cbar.set_label(
-    '$S/m$',
-    rotation=270, labelpad=15, size=12
-)
+cbar.set_label('$S/m$', rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -388,7 +386,7 @@ ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.83])
 mesh.plotImage(
     plotting_map*recovered_conductivity_model, normal='Y', ax=ax1, grid=False,
     clim=(np.min(true_conductivity_model), np.max(true_conductivity_model)),
-    pcolorOpts={'cmap': 'jet'}
+    pcolorOpts={'cmap': 'viridis'}
 )
 ax1.set_title('Recovered Conductivity Model')
 ax1.set_xlabel('x (m)')
@@ -397,7 +395,7 @@ ax1.set_ylabel('z (m)')
 ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.83])
 norm = mpl.colors.Normalize(vmin=np.min(true_conductivity_model), vmax=np.max(true_conductivity_model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='10^%.1f'
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.viridis, format='10^%.1f'
 )
 cbar.set_label('$S/m$',rotation=270, labelpad=15, size=12)
 
@@ -432,7 +430,7 @@ for ii in range(0, 3):
     cplot[ii] = plot_pseudoSection(
         data_array[ii], dobs=dobs_array[ii], ax=ax1[ii], survey_type='dipole-dipole',
         data_type=plot_type[ii], scale=scale[ii], space_type='half-space',
-        pcolorOpts={'cmap':'jet'}
+        pcolorOpts={'cmap':'viridis'}
     )
     ax1[ii].set_title(plot_title[ii])
 

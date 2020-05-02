@@ -156,9 +156,9 @@ plt.show()
 
 if save_file == True:
     
-    module_path = os.path.dirname(dc.__file__)
-    sep = 7*(os.path.sep)
-    relative_path = "{}..{}..{}..{}tutorials{}assets{}dcip1d{}".format(*sep)
+    dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
+    dir_path.extend(['tutorials', 'assets', 'dcip1d'])
+    dir_path = os.path.sep.join(dir_path) + os.path.sep
 
     survey.getABMN_locations()
 
@@ -172,11 +172,11 @@ if save_file == True:
         dpred + noise
     ]
 
-    fname = module_path + relative_path + 'app_res_1d_data.dobs'
+    fname = dir_path + 'app_res_1d_data.dobs'
     np.savetxt(fname, data_array, fmt='%.4e')
 
-    fname = module_path + relative_path + 'true_model.txt'
+    fname = dir_path + 'true_model.txt'
     np.savetxt(fname, model, fmt='%.4e')
 
-    fname = module_path + relative_path + 'layers.txt'
+    fname = dir_path + 'layers.txt'
     np.savetxt(fname, mesh.hx, fmt='%d')

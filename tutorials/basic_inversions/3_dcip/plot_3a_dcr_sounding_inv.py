@@ -46,13 +46,13 @@ from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
 # results.
 #
 
-module_path = os.path.dirname(dc.__file__)
-sep = 8*(os.path.sep)
-relative_path = "{}..{}..{}..{}..{}tutorials{}assets{}dcip1d{}".format(*sep)
+dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
+dir_path.extend(['tutorials', 'assets', 'dcip1d'])
+dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-data_filename = module_path + relative_path + 'app_res_1d_data.dobs'
-model_filename = module_path + relative_path + 'true_model.txt'
-mesh_filename = module_path + relative_path + 'layers.txt'
+data_filename = dir_path + 'app_res_1d_data.dobs'
+model_filename = dir_path + 'true_model.txt'
+mesh_filename = dir_path + 'layers.txt'
 
 
 #############################################

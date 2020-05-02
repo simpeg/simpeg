@@ -191,7 +191,7 @@ ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 mesh.plotImage(
     plotting_map*log_mod, ax=ax1, grid=False,
     clim=(np.log10(resistor_conductivity), np.log10(conductor_conductivity)),
-    pcolorOpts={'cmap':'jet'}
+    pcolorOpts={'cmap':'viridis'}
 )
 ax1.set_title('Conductivity Model')
 ax1.set_xlabel('x (m)')
@@ -200,7 +200,7 @@ ax1.set_ylabel('z (m)')
 ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(vmin=np.log10(resistor_conductivity), vmax=np.log10(conductor_conductivity))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, cmap=mpl.cm.jet, orientation='vertical', format="$10^{%.1f}$"
+    ax2, norm=norm, cmap=mpl.cm.viridis, orientation='vertical', format="$10^{%.1f}$"
 )
 cbar.set_label(
     'Conductivity [S/m]', rotation=270, labelpad=15, size=12
@@ -247,7 +247,7 @@ ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 plot_pseudoSection(
     dc_data, ax=ax1, survey_type='dipole-dipole',
     data_type='appConductivity', space_type='half-space', scale='log',
-    pcolorOpts={'cmap':'jet'}
+    pcolorOpts={'cmap':'viridis'}
 )
 ax1.set_title('Apparent Conductivity [S/m]')
 
@@ -262,9 +262,9 @@ plt.show()
 
 if save_file == True:
     
-    module_path = os.path.dirname(dc.__file__)
-    sep = 8*(os.path.sep)
-    relative_path = "{}..{}..{}..{}..{}tutorials{}assets{}dcip2d{}".format(*sep)
+    dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
+    dir_path.extend(['tutorials', 'assets', 'dcip2d'])
+    dir_path = os.path.sep.join(dir_path) + os.path.sep
 
     # Add 5% Gaussian noise to each datum
     dc_noise = 0.05*dpred_dc*np.random.rand(len(dpred_dc))
@@ -275,13 +275,13 @@ if save_file == True:
         dpred_dc + dc_noise
     ]
 
-    fname = module_path + relative_path + 'dc_data.obs'
+    fname = dir_path + 'dc_data.obs'
     np.savetxt(fname, data_array, fmt='%.4e')
 
-    fname = module_path + relative_path + 'true_conductivity.txt'
+    fname = dir_path + 'true_conductivity.txt'
     np.savetxt(fname, conductivity_map*conductivity_model, fmt='%.4e')
 
-    fname = module_path + relative_path + 'xyz_topo.txt'
+    fname = dir_path + 'xyz_topo.txt'
     np.savetxt(fname, xyz_topo, fmt='%.4e')
 
 #######################################################################
@@ -373,7 +373,7 @@ ax1 = fig.add_axes([0.05, 0.55, 0.8, 0.42])
 plot_pseudoSection(
     dc_data, ax=ax1, survey_type='dipole-dipole',
     data_type='appConductivity', space_type='half-space', scale='log',
-    pcolorOpts={'cmap':'jet'}
+    pcolorOpts={'cmap':'viridis'}
 )
 ax1.set_title('Apparent Conductivity [S/m]')
 
@@ -408,9 +408,9 @@ if save_file == True:
         dpred_ip + ip_noise
     ]
 
-    fname = module_path + relative_path + 'ip_data.obs'
+    fname = dir_path + 'ip_data.obs'
     np.savetxt(fname, data_array, fmt='%.4e')
 
-    fname = module_path + relative_path + 'true_chargeability.txt'
+    fname = dir_path + 'true_chargeability.txt'
     np.savetxt(fname, chargeability_map*chargeability_model, fmt='%.4e')
 

@@ -52,13 +52,13 @@ from SimPEG import (
 # is loaded to compare with the inversion result.
 #
 
-module_path = os.path.dirname(magnetics.__file__)
-sep = 7*(os.path.sep)
-relative_path = "{}..{}..{}..{}tutorials{}assets{}magnetics{}".format(*sep)
+dir_path = os.path.dirname(magnetics.__file__).split(os.path.sep)[:-3]
+dir_path.extend(['tutorials', 'assets', 'magnetics'])
+dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-topo_filename = module_path + relative_path + 'magnetics_topo.txt'
-data_filename = module_path + relative_path + 'magnetics_data.obs'
-model_filename = module_path + relative_path + 'true_model.txt'
+topo_filename = dir_path + 'magnetics_topo.txt'
+data_filename = dir_path + 'magnetics_data.obs'
+model_filename = dir_path + 'true_model.txt'
 
 
 #############################################
@@ -83,7 +83,7 @@ v_max = np.max(np.abs(dobs))
 ax1 = fig.add_axes([0.1, 0.1, 0.75, 0.85])
 plot2Ddata(
     receiver_locations, dobs, ax=ax1, ncontour=30, clim=(-v_max, v_max),
-    contourOpts={"cmap": "RdBu_r"}
+    contourOpts={"cmap": "bwr"}
 )
 ax1.set_title('TMI Anomaly')
 ax1.set_xlabel('x (m)')
@@ -94,7 +94,7 @@ norm = mpl.colors.Normalize(
     vmin=-np.max(np.abs(dobs)), vmax=np.max(np.abs(dobs))
 )
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.bwr
 )
 cbar.set_label('$nT$', rotation=270, labelpad=15, size=12)
 
@@ -326,14 +326,14 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
 mesh.plotSlice(
     plotting_map*true_model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
-    clim=(np.min(true_model), np.max(true_model)), pcolorOpts={'cmap': 'jet'}
+    clim=(np.min(true_model), np.max(true_model)), pcolorOpts={'cmap': 'viridis'}
 )
 ax1.set_title('Model slice at y = 0 m')
 
 ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
 norm = mpl.colors.Normalize(vmin=np.min(true_model), vmax=np.max(true_model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='%.1e'
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.viridis, format='%.1e'
 )
 cbar.set_label('SI', rotation=270, labelpad=15, size=12)
 
@@ -346,14 +346,14 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
 mesh.plotSlice(
     plotting_map*recovered_model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
-    clim=(np.min(recovered_model), np.max(recovered_model)), pcolorOpts={'cmap': 'jet'}
+    clim=(np.min(recovered_model), np.max(recovered_model)), pcolorOpts={'cmap': 'viridis'}
 )
 ax1.set_title('Model slice at y = 0 m')
 
 ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
 norm = mpl.colors.Normalize(vmin=np.min(recovered_model), vmax=np.max(recovered_model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='%.1e'
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.viridis, format='%.1e'
 )
 cbar.set_label('SI',rotation=270, labelpad=15, size=12)
 
@@ -388,7 +388,7 @@ for ii in range(0, 3):
     ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.11, 0.25, 0.84])
     cplot[ii] = plot2Ddata(
         receiver_list[0].locations, data_array[:, ii], ax=ax1[ii], ncontour=30,
-        clim=(-v_lim[ii], v_lim[ii]), contourOpts={"cmap": "RdBu_r"}
+        clim=(-v_lim[ii], v_lim[ii]), contourOpts={"cmap": "bwr"}
     )
     ax1[ii].set_title(plot_title[ii])
     ax1[ii].set_xlabel('x (m)')
@@ -397,7 +397,7 @@ for ii in range(0, 3):
     ax2[ii] = fig.add_axes([0.33*ii+0.27, 0.11, 0.01, 0.84])
     norm[ii] = mpl.colors.Normalize(vmin=-v_lim[ii], vmax=v_lim[ii])
     cbar[ii] = mpl.colorbar.ColorbarBase(
-        ax2[ii], norm=norm[ii], orientation='vertical', cmap=mpl.cm.RdBu_r
+        ax2[ii], norm=norm[ii], orientation='vertical', cmap=mpl.cm.bwr
     )
     cbar[ii].set_label(plot_units[ii], rotation=270, labelpad=15, size=12)
 

@@ -183,6 +183,7 @@ for ii in range(0, 8):
 model += 1e-5
 
 # Plot Model
+mpl.rcParams.update({'font.size': 12})
 fig = plt.figure(figsize=(7.5, 7))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
@@ -250,7 +251,7 @@ v_max = np.max(np.abs(dpred[:, time_index]))
 ax11 = fig.add_axes([0.1, 0.1, 0.35, 0.9])
 plot2Ddata(
     locations[:, 0:2], -dpred[:, time_index], ax=ax11, ncontour=30,
-    clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
+    clim=(-v_max, v_max), contourOpts={"cmap": "bwr"}
 )
 ax11.set_xlabel('x (m)')
 ax11.set_ylabel('y (m)')
@@ -260,7 +261,7 @@ ax11.set_title(titlestr)
 ax12 = fig.add_axes([0.46, 0.1, 0.02, 0.9])
 norm1 = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar1 = mpl.colorbar.ColorbarBase(
-    ax12, norm=norm1, orientation='vertical', cmap=mpl.cm.RdBu_r
+    ax12, norm=norm1, orientation='vertical', cmap=mpl.cm.bwr
 )
 cbar1.set_label('$T/s$', rotation=270, labelpad=15, size=12)
 
@@ -271,7 +272,7 @@ legend_str = []
 
 ax2 = fig.add_axes([0.6, 0.1, 0.35, 0.9])
 for ii in range(0, len(location_indicies)):
-    ax2.loglog(time_channels, -dpred[location_indicies[ii], :], color_flags[ii])
+    ax2.loglog(time_channels, -dpred[location_indicies[ii], :], color_flags[ii], lw=2)
     legend_str.append(
         "(" + '{:.1f}'.format(locations[location_indicies[ii], 0]) +
         " m, " + '{:.1f}'.format(locations[location_indicies[ii], 1]) + " m)"

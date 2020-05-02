@@ -229,6 +229,7 @@ ind_block = (
 model[ind_block] = block_conductivity
 
 # Plot log-conductivity model
+mpl.rcParams.update({'font.size': 12})
 fig = plt.figure(figsize=(7, 6))
 
 log_model = np.log10(model)
@@ -300,14 +301,14 @@ v_max = np.max(np.abs(dpred_plotting[:, 0]))
 ax11 = fig.add_axes([0.05, 0.05, 0.35, 0.9])
 plot2Ddata(
     receiver_locations[:, 0:2], dpred_plotting[:, 0], ax=ax11, ncontour=30,
-    clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
+    clim=(-v_max, v_max), contourOpts={"cmap": "bwr"}
 )
 ax11.set_title('dBz/dt at 0.0001 s')
 
 ax12 = fig.add_axes([0.42, 0.05, 0.02, 0.9])
 norm1 = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar1 = mpl.colorbar.ColorbarBase(
-    ax12, norm=norm1, orientation='vertical', cmap=mpl.cm.RdBu_r
+    ax12, norm=norm1, orientation='vertical', cmap=mpl.cm.bwr
 )
 cbar1.set_label('$T/s$', rotation=270, labelpad=15, size=12)
 
@@ -316,14 +317,14 @@ v_max = np.max(np.abs(dpred_plotting[:, -1]))
 ax21 = fig.add_axes([0.55, 0.05, 0.35, 0.9])
 plot2Ddata(
     receiver_locations[:, 0:2], dpred_plotting[:, -1], ax=ax21, ncontour=30,
-    clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
+    clim=(-v_max, v_max), contourOpts={"cmap": "bwr"}
 )
 ax21.set_title('dBz/dt at 0.001 s')
 
 ax22 = fig.add_axes([0.92, 0.05, 0.02, 0.9])
 norm2 = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar2 = mpl.colorbar.ColorbarBase(
-    ax22, norm=norm2, orientation='vertical', cmap=mpl.cm.RdBu_r
+    ax22, norm=norm2, orientation='vertical', cmap=mpl.cm.bwr
 )
 cbar2.set_label('$T/s$', rotation=270, labelpad=15, size=12)
 
@@ -339,15 +340,15 @@ plt.show()
 
 if save_file == True:
     
-    module_path = os.path.dirname(tdem.__file__)
-    sep = 7*(os.path.sep)
-    relative_path = "{}..{}..{}..{}tutorials{}assets{}tdem{}".format(*sep)
+    dir_path = os.path.dirname(tdem.__file__).split(os.path.sep)[:-3]
+    dir_path.extend(['tutorials', 'assets', 'tdem'])
+    dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    fname = module_path + relative_path + 'tdem_topo.txt'
+    fname = dir_path + 'tdem_topo.txt'
     np.savetxt(fname, np.c_[topo_xyz], fmt='%.4e')
     
     # Write data with 2% noise added
-    fname = module_path + relative_path + 'tdem_data.obs'
+    fname = dir_path + 'tdem_data.obs'
     dpred = dpred + 0.02*np.abs(dpred)*np.random.rand(len(dpred))
     t_vec = np.kron(np.ones(ntx), time_channels)
     receiver_locations = np.kron(receiver_locations, np.ones((len(time_channels), 1)))
@@ -358,5 +359,5 @@ if save_file == True:
     output_model = plotting_map*model
     output_model[np.isnan(output_model)] = 1e-8
 
-    fname = module_path + relative_path + 'true_model.txt'
+    fname = dir_path + 'true_model.txt'
     np.savetxt(fname, output_model, fmt='%.4e')

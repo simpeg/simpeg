@@ -148,6 +148,7 @@ ind_pipe = (
 model[ind_pipe] = pipe_conductivity
 
 # Plot Conductivity Model
+mpl.rcParams.update({'font.size': 14})
 fig = plt.figure(figsize=(5, 6))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
@@ -213,8 +214,8 @@ bz_imag = np.reshape(bz_imag, (ntx, len(frequencies)))
 fig = plt.figure(figsize=(7, 5))
 ax1 = fig.add_axes([0.15, 0.1, 0.8, 0.85])
 frequencies_index = 0
-ax1.plot(receiver_locations[:, 0], bz_real[:, frequencies_index], 'k')
-ax1.plot(receiver_locations[:, 0], bz_imag[:, frequencies_index], 'r')
+ax1.plot(receiver_locations[:, 0], bz_real[:, frequencies_index], 'b', lw=3)
+ax1.plot(receiver_locations[:, 0], bz_imag[:, frequencies_index], 'r', lw=3)
 ax1.set_xlim((0, np.max(xtx)))
 ax1.set_xlabel('Easting [m]')
 ax1.set_ylabel('Bz secondary [T]')
@@ -225,8 +226,8 @@ ax1.legend(['Real', 'Imaginary'], loc='lower right')
 fig = plt.figure(figsize=(7, 5))
 ax1 = fig.add_axes([0.15, 0.1, 0.8, 0.85])
 location_index = 0
-ax1.semilogx(frequencies, bz_real[location_index, :], 'k')
-ax1.semilogx(frequencies, bz_imag[location_index, :], 'r')
+ax1.semilogx(frequencies, bz_real[location_index, :], 'b', lw=3)
+ax1.semilogx(frequencies, bz_imag[location_index, :], 'r', lw=3)
 ax1.set_xlim((np.min(frequencies), np.max(frequencies)))
 ax1.set_xlabel('Frequency [Hz]')
 ax1.set_ylabel('Bz secondary [T]')

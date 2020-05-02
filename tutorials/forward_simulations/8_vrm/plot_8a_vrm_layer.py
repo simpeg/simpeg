@@ -32,6 +32,7 @@ from discretize.utils import mkvc
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -65,6 +66,7 @@ waveform_list.append(vrm.waveforms.ArbitraryPiecewise(t_wave=t_wave, I_wave=I_wa
 
 # Plot waveforms
 fig = plt.figure(figsize=(8, 4))
+mpl.rcParams.update({'font.size': 12})
 ax1 = fig.add_axes([0.1, 0.1, 0.85, 0.85])
 ax1.plot(np.r_[-0.04, 0., 0., 0.02], np.r_[1, 1, 0, 0], 'b', lw=2)
 ax1.plot(np.r_[-0.04, -0.02, -0.02, 0., 0., 0.04], np.r_[0, 0, 1, 1, 0, 0], 'r', lw=2)
@@ -189,12 +191,12 @@ n_waveforms = len(waveform_list)
 dpred = np.reshape(dpred, (n_waveforms, n_times)).T
 
 # Characteristic VRM decay for several waveforms.
-fig = plt.figure(figsize=(5, 5))
+fig = plt.figure(figsize=(6, 7))
 ax1 = fig.add_axes([0.15, 0.1, 0.8, 0.85])
-ax1.loglog(time_channels, -dpred[:, 0], 'b')
-ax1.loglog(time_channels, -dpred[:, 1], 'r')
-ax1.loglog(time_channels, -dpred[:, 2], 'k')
-ax1.loglog(time_channels, -dpred[:, 3], 'g')
+ax1.loglog(time_channels, -dpred[:, 0], 'b', lw=2)
+ax1.loglog(time_channels, -dpred[:, 1], 'r', lw=2)
+ax1.loglog(time_channels, -dpred[:, 2], 'k', lw=2)
+ax1.loglog(time_channels, -dpred[:, 3], 'g', lw=2)
 ax1.set_xlim((np.min(time_channels), np.max(time_channels)))
 ax1.set_xlabel('time [s]')
 ax1.set_ylabel('-dBz/dt [T/s]')

@@ -151,7 +151,7 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 mesh.plotSlice(
     plotting_map*model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
-    clim=(np.min(model), np.max(model)), pcolorOpts={'cmap': 'jet'}
+    clim=(np.min(model), np.max(model)), pcolorOpts={'cmap': 'viridis'}
 )
 ax1.set_title('Model slice at y = 0 m')
 ax1.set_xlabel('x (m)')
@@ -160,7 +160,7 @@ ax1.set_ylabel('z (m)')
 ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(vmin=np.min(model), vmax=np.max(model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.viridis
 )
 cbar.set_label(
     '$g/cm^3$',
@@ -192,7 +192,7 @@ dpred = simulation.dpred(model)
 fig = plt.figure(figsize=(7, 5))
 
 ax1 = fig.add_axes([0.1, 0.1, 0.75, 0.85])
-plot2Ddata(receiver_list[0].locations, dpred, ax=ax1, contourOpts={"cmap": "RdBu_r"})
+plot2Ddata(receiver_list[0].locations, dpred, ax=ax1, contourOpts={"cmap": "bwr"})
 ax1.set_title('Gravity Anomaly (Z-component)')
 ax1.set_xlabel('x (m)')
 ax1.set_ylabel('y (m)')
@@ -202,7 +202,7 @@ norm = mpl.colors.Normalize(
     vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred))
 )
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r, format='%.1e'
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.bwr, format='%.1e'
 )
 cbar.set_label('$mgal$', rotation=270, labelpad=15, size=12)
 
@@ -218,19 +218,19 @@ plt.show()
 
 if save_file == True:
     
-    module_path = os.path.dirname(gravity.__file__)
-    sep = 7*(os.path.sep)
-    relative_path = "{}..{}..{}..{}tutorials{}assets{}gravity{}".format(*sep)
-
-    fname = module_path + relative_path + 'gravity_topo.txt'
+    dir_path = os.path.dirname(gravity.__file__).split(os.path.sep)[:-3]
+    dir_path.extend(['tutorials', 'assets', 'gravity'])
+    dir_path = os.path.sep.join(dir_path) + os.path.sep
+    
+    fname = dir_path + 'gravity_topo.txt'
     np.savetxt(fname, np.c_[xyz_topo], fmt='%.4e')
 
     maximum_anomaly = np.max(np.abs(dpred))
     noise = 0.01*maximum_anomaly*np.random.rand(len(dpred))
-    fname = module_path + relative_path + 'gravity_data.obs'
+    fname = dir_path + 'gravity_data.obs'
     np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt='%.4e')
 
     output_model = plotting_map*model
     output_model[np.isnan(output_model)] = 0.
-    fname = module_path + relative_path + 'true_model.txt'
+    fname = dir_path + 'true_model.txt'
     np.savetxt(fname, output_model, fmt='%.4e')

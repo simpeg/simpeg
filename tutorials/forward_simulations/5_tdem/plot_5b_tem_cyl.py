@@ -159,6 +159,7 @@ model[ind_pipe] = pipe_conductivity
 
 
 # Plot Resistivity Model
+mpl.rcParams.update({'font.size': 12})
 fig = plt.figure(figsize=(4.5, 6))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
@@ -227,7 +228,7 @@ dpred = np.reshape(dpred, (ntx, len(time_channels)))
 fig = plt.figure(figsize=(5, 5))
 ax1 = fig.add_subplot(111)
 for ii in range(0, len(time_channels)):
-    ax1.plot(receiver_locations[:, 0], -dpred[:, ii])  # -ve sign to plot -dBz/dt
+    ax1.plot(receiver_locations[:, 0], -dpred[:, ii], 'k', lw=2)  # -ve sign to plot -dBz/dt
 ax1.set_xlim((0, np.max(xtx)))
 ax1.set_xlabel('Easting [m]')
 ax1.set_ylabel('-dBz/dt [T/s]')
@@ -236,11 +237,11 @@ ax1.set_title('Airborne TDEM Profile')
 # Response over pipe for all time channels
 fig = plt.figure(figsize=(5, 5))
 ax1 = fig.add_subplot(111)
-ax1.loglog(time_channels, -dpred[0, :], 'b')
-ax1.loglog(time_channels, -dpred[-1, :], 'r')
+ax1.loglog(time_channels, -dpred[0, :], 'b', lw=2)
+ax1.loglog(time_channels, -dpred[-1, :], 'r', lw=2)
 ax1.set_xlim((np.min(time_channels), np.max(time_channels)))
 ax1.set_xlabel('time [s]')
 ax1.set_ylabel('-dBz/dt [T/s]')
 ax1.set_title('Decay Curve')
-ax1.legend(['Over pipe','Background'], loc='upper right')
+ax1.legend(['Over pipe','Background'], loc='lower left')
 

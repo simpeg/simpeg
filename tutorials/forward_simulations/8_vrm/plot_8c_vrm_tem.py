@@ -122,6 +122,7 @@ ind_pipe = (
 conductivity_model[ind_pipe] = pipe_conductivity
 
 # Plot conductivity model
+mpl.rcParams.update({'font.size': 12})
 fig = plt.figure(figsize=(5.5, 6))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
@@ -269,7 +270,7 @@ dpred_total = dpred_tdem + dpred_vrm
 fig = plt.figure(figsize=(5, 5))
 ax1 = fig.add_subplot(111)
 for ii in range(0, len(time_channels)):
-    ax1.plot(receiver_locations[:, 0], -dpred_total[:, ii])  # -ve sign to plot -dBz/dt
+    ax1.plot(receiver_locations[:, 0], -dpred_total[:, ii], 'k')  # -ve sign to plot -dBz/dt
 ax1.set_xlim((0, np.max(xtx)))
 ax1.set_xlabel('Easting [m]')
 ax1.set_ylabel('-dBz/dt [T/s]')

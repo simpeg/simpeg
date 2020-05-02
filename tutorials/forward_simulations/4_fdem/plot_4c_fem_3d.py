@@ -186,6 +186,7 @@ ind_block = (
 model[ind_block] = block_conductivity
 
 # Plot Resistivity Model
+mpl.rcParams.update({'font.size': 12})
 fig = plt.figure(figsize=(7, 6))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
@@ -220,8 +221,8 @@ cbar.set_label(
 #
 
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
-        mesh, survey=survey, sigmaMap=model_map, Solver=Solver
-        )
+    mesh, survey=survey, sigmaMap=model_map, Solver=Solver
+)
 
 ######################################################
 # Predict and Plot Data
@@ -251,14 +252,14 @@ v_max = np.max(np.abs(bz_real_plotting[frequencies_index, :]))
 ax1 = fig.add_axes([0.05, 0.05, 0.35, 0.9])
 plot2Ddata(
     receiver_locations[:, 0:2], bz_real_plotting[frequencies_index, :], ax=ax1,
-    ncontour=30, clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
+    ncontour=30, clim=(-v_max, v_max), contourOpts={"cmap": "bwr"}
 )
 ax1.set_title('Re[$B_z$] at 100 Hz')
 
 ax2 = fig.add_axes([0.41, 0.05, 0.02, 0.9])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.bwr
 )
 cbar.set_label('$T$', rotation=270, labelpad=15, size=12)
 
@@ -267,14 +268,14 @@ v_max = np.max(np.abs(bz_imag_plotting[frequencies_index, :]))
 ax1 = fig.add_axes([0.55, 0.05, 0.35, 0.9])
 plot2Ddata(
     receiver_locations[:, 0:2], bz_imag_plotting[frequencies_index, :],
-    ax=ax1, ncontour=30, clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
+    ax=ax1, ncontour=30, clim=(-v_max, v_max), contourOpts={"cmap": "bwr"}
 )
 ax1.set_title('Im[$B_z$] at 100 Hz')
 
 ax2 = fig.add_axes([0.91, 0.05, 0.02, 0.9])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.bwr
 )
 cbar.set_label('$T$', rotation=270, labelpad=15, size=12)
 
@@ -291,16 +292,16 @@ plt.show()
 
 if save_file == True:
     
-    module_path = os.path.dirname(fdem.__file__)
-    sep = 7*(os.path.sep)
-    relative_path = "{}..{}..{}..{}tutorials{}assets{}fdem{}".format(*sep)
+    dir_path = os.path.dirname(fdem.__file__).split(os.path.sep)[:-3]
+    dir_path.extend(['tutorials', 'assets', 'fdem'])
+    dir_path = os.path.sep.join(dir_path) + os.path.sep
     
     # Write topography
-    fname = module_path + relative_path + 'fdem_topo.txt'
+    fname = dir_path + 'fdem_topo.txt'
     np.savetxt(fname, np.c_[topo_xyz], fmt='%.4e')
     
     # Write data with 2% noise added
-    fname = module_path + relative_path + 'fdem_data.obs'
+    fname = dir_path + 'fdem_data.obs'
     bz_real = bz_real + 1e-14*np.random.rand(len(bz_real))
     bz_imag = bz_imag + 1e-14*np.random.rand(len(bz_imag))
     f_vec = np.kron(frequencies, np.ones(ntx))
@@ -312,5 +313,5 @@ if save_file == True:
     output_model = plotting_map*model
     output_model[np.isnan(output_model)] = 1e-8
 
-    fname = module_path + relative_path + 'true_model.txt'
+    fname = dir_path + 'true_model.txt'
     np.savetxt(fname, output_model, fmt='%.4e')

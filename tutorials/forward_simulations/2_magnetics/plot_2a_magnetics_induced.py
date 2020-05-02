@@ -191,19 +191,18 @@ v_max = np.max(np.abs(dpred))
 ax1 = fig.add_axes([0.1, 0.1, 0.8, 0.85])
 plot2Ddata(
     receiver_list[0].locations, dpred, ax=ax1, ncontour=30, clim=(-v_max, v_max),
-    contourOpts={"cmap": "RdBu_r"}
+    contourOpts={"cmap": "bwr"}
 )
 ax1.set_title('TMI Anomaly')
 ax1.set_xlabel('x (m)')
 ax1.set_ylabel('y (m)')
 
-
-ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.85])
+ax2 = fig.add_axes([0.87, 0.1, 0.03, 0.85])
 norm = mpl.colors.Normalize(
     vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred))
 )
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
+    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.bwr
 )
 cbar.set_label('$nT$', rotation=270, labelpad=15, size=12)
 
@@ -219,19 +218,19 @@ plt.show()
 
 if save_file == True:
     
-    module_path = os.path.dirname(magnetics.__file__)
-    sep = 7*(os.path.sep)
-    relative_path = "{}..{}..{}..{}tutorials{}assets{}magnetics{}".format(*sep)
+    dir_path = os.path.dirname(magnetics.__file__).split(os.path.sep)[:-3]
+    dir_path.extend(['tutorials', 'assets', 'magnetics'])
+    dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    fname = module_path + relative_path + 'magnetics_topo.txt'
+    fname = dir_path + 'magnetics_topo.txt'
     np.savetxt(fname, np.c_[xyz_topo], fmt='%.4e')
 
     maximum_anomaly = np.max(np.abs(dpred))
     noise = 0.02*maximum_anomaly*np.random.rand(len(dpred))
-    fname = module_path + relative_path + 'magnetics_data.obs'
+    fname = dir_path + 'magnetics_data.obs'
     np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt='%.4e')
 
     output_model = plotting_map*model
     output_model[np.isnan(output_model)] = 0.
-    fname = module_path + relative_path + 'true_model.txt'
+    fname = dir_path + 'true_model.txt'
     np.savetxt(fname, output_model, fmt='%.4e')
