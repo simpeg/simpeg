@@ -221,7 +221,6 @@ class BaseTDEMSrc(BaseEMSrc):
     # rxPair = Rx
 
     waveformPair = BaseWaveform  #: type of waveform to pair with
-    waveform = None  #: source waveform
     srcType = properties.StringChoice(
         "is the source a galvanic of inductive source",
         choices=["inductive", "galvanic"],
@@ -234,11 +233,8 @@ class BaseTDEMSrc(BaseEMSrc):
 
     @waveform.setter
     def waveform(self, val):
-        if self.waveform is None:
-            val._assertMatchesPair(self.waveformPair)
-            self._waveform = val
-        else:
-            self._waveform = self.StepOffWaveform(val)
+        val._assertMatchesPair(self.waveformPair)
+        self._waveform = val
 
     def __init__(self, receiver_list=None, waveform=StepOffWaveform(), **kwargs):
         if receiver_list is not None:

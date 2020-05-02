@@ -173,5 +173,30 @@ class TDEM_cross_check_EB(unittest.TestCase):
                 orientation=np.r_[1., 1., 0.]
             )
 
+    def test_waveform_instantiation(self):
+
+        rx_list = [
+            tdem.receivers.Point_b(
+                locations=[np.r_[0.0, 0.0, 0.0]],
+                times=np.r_[1e-3, 2e-3, 5e-3], orientation="z"
+            )
+        ]
+        src_loop = tdem.sources.CircularLoop(
+            rxList=rx_list,
+            loc=np.r_[0.0, 0.0, 0.0],
+            orientation="z",
+            radius=300,
+            current=1000.0
+        )
+
+        offTime=1e-3
+        src_loop.waveform = tdem.sources.QuarterSineRampOnWaveform(
+            ramp_on=np.r_[0.0, 5.0e-4], ramp_off=np.r_[offTime, offTime + 1e-4]
+        )
+
+        self.assertTrue(
+            isinstance(src_loop.waveform, tdem.sources.QuarterSineRampOnWaveform)
+        )
+
 if __name__ == '__main__':
     unittest.main()
