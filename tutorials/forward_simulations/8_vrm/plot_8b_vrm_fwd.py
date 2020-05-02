@@ -180,8 +180,6 @@ for ii in range(0, 8):
         np.exp(-(xyzc[:, 2]-z_0[ii])**2/var_z[ii])
     )
 
-model += 1e-5
-
 # Plot Model
 mpl.rcParams.update({'font.size': 12})
 fig = plt.figure(figsize=(7.5, 7))
@@ -196,7 +194,7 @@ ax1.set_title('Model slice at z = 0 m')
 ax1.set_xlabel('x (m)')
 ax1.set_ylabel('y (m)')
 
-ax2 = fig.add_axes([0.83, 0.12, 0.05, 0.78])
+ax2 = fig.add_axes([0.83, 0.12, 0.05, 0.77])
 norm = mpl.colors.Normalize(vmin=np.min(model), vmax=np.max(model))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation='vertical', cmap=mpl.cm.magma_r
@@ -248,20 +246,22 @@ fig = plt.figure(figsize=(13, 5))
 time_index = 10
 
 v_max = np.max(np.abs(dpred[:, time_index]))
-ax11 = fig.add_axes([0.1, 0.1, 0.35, 0.9])
+v_min = np.min(np.abs(dpred[:, time_index]))
+ax11 = fig.add_axes([0.12, 0.1, 0.33, 0.85])
 plot2Ddata(
     locations[:, 0:2], -dpred[:, time_index], ax=ax11, ncontour=30,
-    clim=(-v_max, v_max), contourOpts={"cmap": "bwr"}
+    clim=(v_min, v_max), contourOpts={"cmap": "magma_r"}
 )
 ax11.set_xlabel('x (m)')
 ax11.set_ylabel('y (m)')
 titlestr = "- dBz/dt at t=" + '{:.1e}'.format(time_channels[time_index]) + " s"
 ax11.set_title(titlestr)
 
-ax12 = fig.add_axes([0.46, 0.1, 0.02, 0.9])
-norm1 = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
+ax12 = fig.add_axes([0.46, 0.1, 0.02, 0.85])
+norm1 = mpl.colors.Normalize(vmin=v_min, vmax=v_max)
 cbar1 = mpl.colorbar.ColorbarBase(
-    ax12, norm=norm1, orientation='vertical', cmap=mpl.cm.bwr
+    ax12, norm=norm1, 
+    orientation='vertical', cmap=mpl.cm.magma_r
 )
 cbar1.set_label('$T/s$', rotation=270, labelpad=15, size=12)
 
@@ -270,7 +270,7 @@ location_indicies = [0, 65, 217]
 color_flags = ['k', 'r', 'b']
 legend_str = []
 
-ax2 = fig.add_axes([0.6, 0.1, 0.35, 0.9])
+ax2 = fig.add_axes([0.6, 0.1, 0.35, 0.85])
 for ii in range(0, len(location_indicies)):
     ax2.loglog(time_channels, -dpred[location_indicies[ii], :], color_flags[ii], lw=2)
     legend_str.append(
