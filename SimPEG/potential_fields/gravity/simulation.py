@@ -77,7 +77,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Sensitivity transposed times a vector
         """
         Jtvec = self.G.T@v.astype(np.float32)
-        return np.asarray(self.rhoDeriv@Jtvec)
+        return np.asarray(self.rhoDeriv.T@Jtvec)
 
     @property
     def G(self):
