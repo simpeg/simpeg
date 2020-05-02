@@ -57,6 +57,8 @@ class BaseDCSimulation(BaseEMSimulation):
 
     def getJ(self, m, f=None):
         if self._Jmatrix is None:
+            if f is None:
+                f = self.fields(m)
             self._Jmatrix = self._Jtvec(m, v=None, f=f).T
         return self._Jmatrix
 
