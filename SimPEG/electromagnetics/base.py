@@ -291,7 +291,7 @@ class BaseEMSimulation(BaseSimulation):
 
         if v is not None:
             if not isinstance(u, Zero):
-                u = u.flatten
+                u = u.flatten()
                 if v.ndim > 1:
                     # promote u iff v is a matrix
                     u = u[:, None]  # Avoids constructing the sparse matrix
