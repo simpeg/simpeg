@@ -30,7 +30,6 @@ from SimPEG.potential_fields import magnetics
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import NearestNDInterpolator
 
 
 # sphinx_gallery_thumbnail_number = 3
@@ -59,7 +58,6 @@ b = 100
 A = 50
 zz = A*np.exp(-0.5*((xx/b)**2. + (yy/b)**2.))
 
-# We would usually load a topofile
 topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
 # Create and array of observation points
@@ -89,11 +87,11 @@ plt.show()
 # Inversion Mesh
 # --------------
 #
-# Here, we create a TreeMesh with base cell size of 5 m. We reated a small
+# Here, we create a TreeMesh with base cell size of 5 m. We created a small
 # utility function to center the mesh around points and to figure out the
 # outer most dimension for adequate padding distance.
 # The second stage allows to refine the mesh around points or surfaces
-# (point assumed to follow some horiontal trend)
+# (point assumed to follow some horizontal trend)
 # The refinement process is repeated twice to allow for a finer level around
 # the survey locations.
 #
@@ -119,9 +117,8 @@ nC = int(actv.sum())
 
 def plotVectorSectionsOctree(
     mesh, m, normal='X', ind=0, vmin=None, vmax=None,
-    subFact=2, scale=1., xlim=None, ylim=None, vec='k',
-    title=None, axs=None, actvMap=None, contours=None, fill=True,
-        orientation='vertical', cmap='pink_r'
+    scale=1., vec='k',
+    axs=None, actvMap=None, fill=True,
 ):
 
     """
@@ -199,6 +196,7 @@ def plotVectorSectionsOctree(
 # Lets start with a block below topography
 #
 
+
 model = np.zeros((mesh.nC, 3))
 
 # Convert the inclination declination to vector in Cartesian
@@ -235,11 +233,11 @@ std = 5  # nT
 synthetic_data = d + np.random.randn(len(d))*std
 wd = np.ones(len(d))*std
 
-# Assigne data and uncertainties to the survey
+# Assign data and uncertainties to the survey
 data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
 
 # Create an projection matrix for plotting later
-actvPlot = maps.InjectActiveCells(mesh, actv, np.nan)
+actv_plot = maps.InjectActiveCells(mesh, actv, np.nan)
 
 # Plot the model and data
 plt.figure()
@@ -253,7 +251,7 @@ plt.gca().set_aspect('equal', adjustable='box')
 ax = plt.subplot(2, 1, 2)
 plotVectorSectionsOctree(
     mesh, model, axs=ax, normal='Y', ind=66,
-    actvMap=actvPlot, scale=0.5, vmin=0., vmax=0.01
+    actvMap=actv_plot, scale=0.5, vmin=0., vmax=0.025
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
@@ -317,7 +315,7 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio = 1e1)
 sensitivity_weights = directives.UpdateSensitivityWeights()
 
 # Here is where the norms are applied
-# Use pick a treshold parameter empirically based on the distribution of
+# Use pick a threshold parameter empirically based on the distribution of
 #  model parameters
 IRLS = directives.Update_IRLS(
     f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1
@@ -326,11 +324,13 @@ IRLS = directives.Update_IRLS(
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
 
-inv = inversion.BaseInversion(invProb,
-                              directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest])
+inv = inversion.BaseInversion(
+    invProb, directiveList=[
+        sensitivity_weights, IRLS, update_Jacobi, betaest
+    ]
+)
 
 # Run the inversion
-
 mrec_MVIC = inv.run(m0)
 
 ###############################################################
@@ -343,10 +343,12 @@ mrec_MVIC = inv.run(m0)
 #
 
 spherical_map = maps.SphericalSystem()
-mstart = utils.mat_utils.cartesian2spherical(mrec_MVIC.reshape((nC, 3), order='F'))
+m_start = utils.mat_utils.cartesian2spherical(
+    mrec_MVIC.reshape((nC, 3), order='F')
+)
 beta = invProb.beta
 dmis.simulation.chiMap = spherical_map
-dmis.simulation.model = mstart
+dmis.simulation.model = m_start
 
 # Create a block diagonal regularization
 wires = maps.Wires(('amp', nC), ('theta', nC), ('phi', nC))
@@ -363,25 +365,25 @@ reg_t = regularization.Sparse(mesh, indActive=actv,
                               mapping=wires.theta)
 reg_t.alpha_s = 0.  # No reference angle
 reg_t.space = 'spherical'
-reg_t.norms = np.c_[2., 0., 0., 0.]  # Only norm on gradients used
+reg_t.norms = np.c_[0., 0., 0., 0.]  # Only norm on gradients used
 
 # Regularize the horizontal angle of the vectors
 reg_p = regularization.Sparse(mesh, indActive=actv,
                               mapping=wires.phi)
 reg_p.alpha_s = 0.  # No reference angle
 reg_p.space = 'spherical'
-reg_p.norms = np.c_[2., 0., 0., 0.]  # Only norm on gradients used
+reg_p.norms = np.c_[0., 0., 0., 0.]  # Only norm on gradients used
 
 reg = reg_a + reg_t + reg_p
 reg.mref = np.zeros(3*nC)
 
-Lbound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
-Ubound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
+lower_bound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
+upper_bound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(maxIter=20,
-                                 lower=Lbound,
-                                 upper=Ubound,
+                                 lower=lower_bound,
+                                 upper=upper_bound,
                                  maxIterLS=20,
                                  maxIterCG=30,
                                  tolCG=1e-3,
@@ -392,7 +394,7 @@ opt.approxHinv = None
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
 # Here is where the norms are applied
-IRLS = directives.Update_IRLS(f_min_change=1e-4, max_irls_iterations=20,
+irls = directives.Update_IRLS(f_min_change=1e-4, max_irls_iterations=20,
                               minGNiter=1, beta_tol=0.5,
                               coolingRate=1, coolEps_q=True,
                               sphericalDomain=True
@@ -400,18 +402,18 @@ IRLS = directives.Update_IRLS(f_min_change=1e-4, max_irls_iterations=20,
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are update between each iteration.
-ProjSpherical = directives.ProjectSphericalBounds()
+spherical_projection = directives.ProjectSphericalBounds()
 sensitivity_weights = directives.UpdateSensitivityWeights()
 update_Jacobi = directives.UpdatePreconditioner()
 
 inv = inversion.BaseInversion(
     invProb,
     directiveList=[
-        ProjSpherical, IRLS, sensitivity_weights, update_Jacobi
+        spherical_projection, irls, sensitivity_weights, update_Jacobi
     ]
 )
 
-mrec_MVI_S = inv.run(mstart)
+mrec_MVI_S = inv.run(m_start)
 
 #############################################################
 # Final Plot
@@ -426,7 +428,7 @@ plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 1, 1)
 plotVectorSectionsOctree(
     mesh, mrec_MVIC.reshape((nC, 3), order="F"),
-    axs=ax, normal='Y', ind=65, actvMap=actvPlot,
+    axs=ax, normal='Y', ind=65, actvMap=actv_plot,
     scale=0.05, vmin=0., vmax=0.005)
 
 ax.set_xlim([-200, 200])
@@ -442,7 +444,7 @@ vec_xyz = utils.mat_utils.spherical2cartesian(
 
 plotVectorSectionsOctree(
     mesh, vec_xyz, axs=ax, normal='Y', ind=65,
-    actvMap=actvPlot, scale=0.4, vmin=0., vmax=0.01
+    actvMap=actv_plot, scale=0.4, vmin=0., vmax=0.025
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
