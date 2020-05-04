@@ -20,6 +20,9 @@ from .survey import Survey, Data
 from pyMKL import mkl_set_num_threads
 from .fields import Fields1DPrimarySecondary, Fields3DPrimarySecondary
 import xarray as xr
+import dask
+import dask.array as da
+import zarr
 
 
 class BaseNSEMSimulation(BaseFDEMSimulation):
@@ -39,17 +42,6 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
 
     # Notes:
     # Use the fields and devs methods from BaseFDEMProblem
-    def getJtJdiag(self, m, k):
-        if k is None:
-            k = int(self.survey.nD / 10)
-
-        def JtJv(v):
-            Jv = self.Jvec(m, v)
-            return self.Jtvec(m, Jv)
-
-        JtJdiag = diagEst(JtJv, len(m), k=k)
-        JtJdiag = JtJdiag / np.max(JtJdiag)
-        return JtJdiag
 
     def Jvec(self, m, v, f=None):
         """
@@ -167,65 +159,98 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         :rtype: numpy.ndarray
         :return: J (nD, nP) Data sensitivities wrt m
         """
-
-        if f is None:
-            f = self.fields(m)
-
         self.model = m
 
-        J = np.empty((self.survey.nD, self.model.size))
-        print("J: ", J.shape)
-
-        istrt = 0
+        f = self.fieldsPair(self)
+        fcount = 0
+        Jmatrix_pointers = []
+        nf = 0
         for freq in self.survey.frequencies:
-            AT = self.getA(freq).T
+            # calculating fields on the fly ===
+            Src = self.survey.get_sources_by_frequency(freq)[0]
+            e_s = da.from_delayed(self.fieldByFrequency(freq, nf), (self.mesh.nE, 2), dtype=complex).compute()
+            f[Src, 'e_pxSolution'] = e_s[:, 0]
+            f[Src, 'e_pySolution'] = e_s[:, 1]
+            ATinv = self.Ainv[nf]
 
-            ATinv = self.Solver(AT, **self.solverOpts)
-
+            # construct all the PT matricies dasked
+            count = 0
             for src in self.survey.get_sources_by_frequency(freq):
-                # u_src needs to have both polarizations
-                u_src = f[src, :]
-
                 for rx in src.receiver_list:
                     # Get the adjoint evalDeriv
-
                     # Need to make PT
-                    # Ideally rx.evalDeriv will be updated to return a matrix,
-                    # but for now just calculate it like so...
-                    PT = np.empty((AT.shape[0], rx.nD*2), dtype=complex, order='F')
+                    # PT = np.empty((self.mesh.nE, rx.nD*2), dtype=complex, order='F')
+                    PT_ = []
                     for i in range(rx.nD):
                         v = np.zeros(rx.nD)
                         v[i] = 1.0
-                        PTv = rx.evalDeriv(src, self.mesh, f, v, adjoint=True)
-                        PT[:, 2*i:2*i+2] = PTv
+                        PT_.append(da.from_delayed(dask.delayed(rx.evalDeriv)
+                            (src, self.mesh, f, v, adjoint=True),
+                            shape=(self.mesh.nE, 2), dtype=complex)
+                        )
+                    PT = da.hstack(PT_)
+                    blockName = self.j_path + "F" + str(fcount) + "_P" + str(count) + ".zarr"
+                    da.to_zarr(PT.rechunk('auto'), blockName)
+                    count += 1
 
-                    dA_duIT = ATinv * PT
-                    dA_duIT = dA_duIT.reshape(-1, rx.nD, order='F')  # shape now nUxnD
-
-                    # getADeriv and getRHSDeriv should be updated to accept and return
-                    # matrices, but for now this works.
-                    # They should also be update to return the real parts as well.
-                    dA_dmT = np.empty((rx.nD, J.shape[1]))
-                    dRHS_dmT = np.empty((rx.nD, J.shape[1]))
-                    for i in range(rx.nD):
-                        dA_dmT[i, :] = self.getADeriv(freq, u_src, dA_duIT[:, i], adjoint=True).real
-                        dRHS_dmT[i, :] = self.getRHSDeriv(freq, dA_duIT[:, i], adjoint=True).real
-                    # Make du_dmT
-                    du_dmT = -dA_dmT + dRHS_dmT
-                    # Now just need to put it in the right spot.....
-                    real_or_imag = rx.component
-                    if real_or_imag == 'real':
-                        J_rows = du_dmT
-                    elif real_or_imag == 'imag':
-                        J_rows = -du_dmT
-                    else:
-                        raise Exception('Must be real or imag')
-                    iend = istrt + rx.nD
-                    J[istrt:iend, :] = J_rows
-                    istrt = iend
-            # Clean the factorization, clear memory.
+            # run solver in serial due to pardiso not being thread safe
+            dA_duIT_list = []
+            for ii in range(count):
+                blockName = self.j_path + "P" + str(ii) + ".zarr"
+                dA_duIT = ATinv * da.from_zarr(blockName).compute()
+                dA_duIT_list.append(dA_duIT.reshape(-1, rx.nD, order='F')) # shape now nUxnD
+            # [Clean the factorization, clear memory.
             ATinv.clean()
-        return J
+
+            # construct all the sub J matricies of the total J matrix - dasked
+            count = 0
+            for src in self.survey.get_sources_by_frequency(freq):
+                # u_src needs to have both polarizations
+                for rx in src.receiver_list:
+                    Jsub = da.from_delayed(self.constructJsubMatrix(freq, src, rx, f[src, :], dA_duIT_list[count]), shape=(rx.nD, self.model.size), dtype=float)
+                    blockName = self.j_path + "F" + str(fcount) + "_J" + str(count) + ".zarr"
+                    da.to_zarr(Jsub.rechunk('auto'), blockName)
+                    Jmatrix_pointers.append(blockName)
+                    count += 1
+            fcount += 1
+            nf += 1
+        self._Jmatrix_pointers = Jmatrix_pointers
+        return Jmatrix_pointers
+
+    @dask.delayed(pure=True)
+    def constructJsubMatrix(self, freq, src, rx, u_src, dA_duIT):
+        # getADeriv and getRHSDeriv should be updated to accept and return
+        # matrices, but for now this works.
+        # They should also be update to return the real parts as well.
+        dA_dmT = np.empty((rx.nD, self.model.size))
+        dRHS_dmT = np.empty((rx.nD, self.model.size))
+        for i in range(rx.nD):
+            dA_dmT[i, :] = self.getADeriv(freq, u_src, dA_duIT[:, i], adjoint=True).real
+            dRHS_dmT[i, :] = self.getRHSDeriv(freq, dA_duIT[:, i], adjoint=True).real
+        # Make du_dmT
+        du_dmT = -dA_dmT + dRHS_dmT
+        # Now just need to put it in the right spot.....
+        real_or_imag = rx.component
+        if real_or_imag == 'real':
+            J_rows = du_dmT
+        elif real_or_imag == 'imag':
+            J_rows = -du_dmT
+        else:
+            raise Exception('Must be real or imag')
+        return J_rows
+
+    def getJtJdiag(self, m=None):
+        if m is not None:
+            self._Jmatrix_pointers = self.getJ(m)
+
+        # now loop through the martricies
+        jtjdiag = da.zeros(self.model.size)
+        for subJ in self._Jmatrix_pointers:
+            jtjdiag += da.sum(da.from_zarr(subJ)**2)
+
+        jtjdiag = jtjdiag**0.5
+        self.jtjdiag = jtjdiag / jtjdiag.max()
+        return self._jtjdiag.compute()
 
 
 ###################################
@@ -430,6 +455,9 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     _formulation  = 'EB'
     fieldsPair = Fields3DPrimarySecondary
     n_cpu = int(multiprocessing.cpu_count())
+    j_path = './sensitivity/'
+    _jtjdiag = None
+    _Jmatrix_pointers = None
 
     # Initiate properties
     _sigmaPrimary = None
