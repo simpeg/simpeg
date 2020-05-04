@@ -5,13 +5,8 @@ from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
 from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
-import scipy as sp
 import scipy.constants as constants
 import numpy as np
-import dask
-import dask.array as da
-from scipy.sparse import csr_matrix as csr
-from dask.delayed import Delayed
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -37,60 +32,51 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.store_sensitivities == 'forward_only':
             self.model = m
             # Compute the linear operation without forming the full dense G
-            return mkvc(self.linear_operator())
+            fields = mkvc(self.linear_operator())
+        else:
+            fields = self.G@(self.rhoMap@m).astype(np.float32)
 
-        return da.dot(self.G, (self.rhoMap*m).astype(np.float32)).compute()
+        return np.asarray(fields)
 
     def getJtJdiag(self, m, W=None):
         """
             Return the diagonal of JtJ
         """
         self.model = m
+
         if W is None:
-            W = sdiag(np.ones(self.nD))
-
+            W = np.ones(self.nD)
+        else:
+            W = W.diagonal()**2
         if getattr(self, "_gtg_diagonal", None) is None:
-            self._gtg_diagonal = mkvc(da.sum(da.power(
-                            da.from_delayed(
-                                dask.delayed(csr.dot)(W, self.G),
-                                shape=self.G.shape, dtype=float
-                            ), 2), axis=0).compute()
-            )
 
-        return mkvc(
-            np.sum((
-                sdiag(mkvc(self.gtg_diagonal)**0.5) * self.rhoDeriv
-            ).power(2.), axis=0)
-        )
+            diag = np.zeros(self.G.shape[1])
+            for i in range(len(W)):
+                diag += W[i]*(self.G[i]*self.G[i])
+            self._gtg_diagonal = diag
+        else:
+            diag = self._gtg_diagonal
+        return mkvc((sdiag(np.sqrt(diag))@self.rhoDeriv).power(2).sum(axis=0))
 
     def getJ(self, m, f=None):
         """
             Sensitivity matrix
         """
-        return da.dot(self.G, self.rhoDeriv)
+        return self.G.dot(self.rhoDeriv)
 
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector
         """
-        if isinstance(self.rhoDeriv, Delayed):
-            dmu_dm_v = da.from_array(self.rhoDeriv*v, chunks=self.G.chunks[1])
-        else:
-            dmu_dm_v = self.rhoDeriv * v
-
-        return da.dot(self.G, dmu_dm_v.astype(np.float32))
+        dmu_dm_v = (self.rhoDeriv @ v)
+        return self.G@dmu_dm_v.astype(np.float32)
 
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transposed times a vector
         """
-
-        Jtvec = da.dot(v.astype(np.float32), self.G)
-        dmudm_v = dask.delayed(csr.dot)(Jtvec, self.rhoDeriv)
-
-        return da.from_delayed(
-            dmudm_v, dtype=float, shape=[self.rhoDeriv.shape[1]]
-        ).compute()
+        Jtvec = self.G.T@v.astype(np.float32)
+        return np.asarray(self.rhoDeriv.T@Jtvec)
 
     @property
     def G(self):

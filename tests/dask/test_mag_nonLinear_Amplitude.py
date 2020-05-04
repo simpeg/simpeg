@@ -1,5 +1,6 @@
 from __future__ import print_function
 import numpy as np
+import SimPEG.dask
 from SimPEG import (
     data, data_misfit, directives, maps, inverse_problem, optimization,
     inversion, regularization
@@ -53,7 +54,7 @@ class AmpProblemTest(unittest.TestCase):
         padDist = np.ones((3, 2)) * 100
 
         mesh = mesh_builder_xyz(rxLoc, h, padding_distance=padDist, depth_core=100, mesh_type='tree')
-        mesh = refine_tree_xyz(mesh, topo, method='surface', octree_levels=[4,4], finalize=True)
+        mesh = refine_tree_xyz(mesh, topo, method='surface', octree_levels=[4, 4], finalize=True)
 
         # Define an active cells from topo
         actv = utils.surface2ind_topo(mesh, topo)
