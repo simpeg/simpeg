@@ -48,16 +48,15 @@ class Simulation3DIntegral(BasePFSimulation):
             W = np.ones(self.nD)
         else:
             W = W.diagonal()**2
-        if getattr(self, "_gtg_diagonal", None) is not None:
-            return self._gtg_diagonal
+        if getattr(self, "_gtg_diagonal", None) is None:
 
-        diag = np.zeros(self.G.shape[1])
-        for i in range(len(W)):
-            diag += W[i]*(self.G[i]*self.G[i])
-        self._gtg_diagonal = mkvc(
-            ((sdiag(np.sqrt(diag))@self.rhoDeriv).power(2)).sum(axis=0)
-        )
-        return self._gtg_diagonal
+            diag = np.zeros(self.G.shape[1])
+            for i in range(len(W)):
+                diag += W[i]*(self.G[i]*self.G[i])
+            self._gtg_diagonal = diag
+        else:
+            diag = self._gtg_diagonal
+        return mkvc((sdiag(np.sqrt(diag))@self.rhoDeriv).power(2).sum(axis=0))
 
     def getJ(self, m, f=None):
         """

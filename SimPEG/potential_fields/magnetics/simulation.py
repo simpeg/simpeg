@@ -150,27 +150,25 @@ class Simulation3DIntegral(BasePFSimulation):
             W = np.ones(self.nD)
         else:
             W = W.diagonal()**2
-        if getattr(self, "_gtg_diagonal", None) is not None:
-            return self._gtg_diagonal
-
-        diag = np.zeros(self.G.shape[1])
-        if not self.is_amplitude_data:
-            for i in range(len(W)):
-                diag += W[i]*(self.G[i]*self.G[i])
+        if getattr(self, "_gtg_diagonal", None) is None:
+            diag = np.zeros(self.G.shape[1])
+            if not self.is_amplitude_data:
+                for i in range(len(W)):
+                    diag += W[i]*(self.G[i]*self.G[i])
+            else:
+                fieldDeriv = self.fieldDeriv
+                Gx = self.G[::3]
+                Gy = self.G[1::3]
+                Gz = self.G[2::3]
+                for i in range(len(W)):
+                    row = (fieldDeriv[0, i]*Gx[i] +
+                           fieldDeriv[1, i]*Gy[i] +
+                           fieldDeriv[2, i]*Gz[i])
+                    diag += W[i]*(row*row)
+            self._gtg_diagonal = diag
         else:
-            fieldDeriv = self.fieldDeriv
-            Gx = self.G[::3]
-            Gy = self.G[1::3]
-            Gz = self.G[2::3]
-            for i in range(len(W)):
-                row = (fieldDeriv[0, i]*Gx[i] +
-                       fieldDeriv[1, i]*Gy[i] +
-                       fieldDeriv[2, i]*Gz[i])
-                diag += W[i]*(row*row)
-        self._gtg_diagonal = mkvc(
-            ((sdiag(np.sqrt(diag))@self.chiDeriv).power(2)).sum(axis=0)
-        )
-        return self._gtg_diagonal
+            diag = self._gtg_diagonal
+        return mkvc((sdiag(np.sqrt(diag))@self.chiDeriv).power(2).sum(axis=0))
 
     def Jvec(self, m, v, f=None):
         if self.chi is None:
@@ -573,6 +571,13 @@ class Simulation3DIntegral(BasePFSimulation):
             rows["tmi"] = np.dot(self.tmi_projection, np.r_[rows["bx"], rows["by"], rows["bz"]])
 
         return np.vstack([rows[component] for component in components])
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        deletes = super().deleteTheseOnModelUpdate
+        if self.is_amplitude_data:
+            deletes += ['_gtg_diagonal']
+        return deletes
 
 
 class Simulation3DDifferential(BaseSimulation):
@@ -1017,6 +1022,7 @@ class Simulation3DDifferential(BaseSimulation):
         bfz = self.Qfz * B
 
         return np.r_[bfx, bfy, bfz]
+
 
 def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     """
