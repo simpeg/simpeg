@@ -158,7 +158,7 @@ have first order convergence (e.g. the improvement in the approximation is
 directly related to how small :math:`\Delta x` is, while if we include the
 first derivative in our approximation, we expect that :math:`\|f(x) +
 J(x)\Delta x - f(x + \Delta x)\|` to converge at a second-order rate. For
-example, all `maps have an associated derivative test <https://github.com/simpeg/simpeg/blob/master/SimPEG/maps.py#L95>`_ . An example from `test_FDEM_derivs.py <ht
+example, all `maps have an associated derivative test <https://github.com/simpeg/simpeg/blob/master/SimPEG/maps.py#L127>`_ . An example from `test_FDEM_derivs.py <ht
 tps://github.com/simpeg/simpeg/blob/master/tests/em/fdem/inverse/derivs/test_F
 DEM_derivs.py>`_
 

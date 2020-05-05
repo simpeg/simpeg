@@ -30,7 +30,7 @@ def diagEst(matFun, n, k=None, approach='Probing'):
         :return: est_diag(A)
 
         Based on Saad http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf,
-        and http://www.cita.utoronto.ca/~niels/diagonal.pdf
+        and https://www.cita.utoronto.ca/~niels/diagonal.pdf
     """
 
     if type(matFun).__name__ == 'ndarray':

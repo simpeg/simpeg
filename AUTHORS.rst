@@ -6,7 +6,7 @@
 - Dom Fournier, (`@fourndo <https://github.com/fourndo/>`_)
 - Dave Marchant, (`@dwfmarchant <https://github.com/dwfmarchant/>`_)
 - Lars Ruthotto, (`@lruthotto <https://github.com/lruthotto/>`_)
-- Mike Wathen, (`@mrwathen <https://github.com/mrwathen/>`_)
+- Mike Wathen, (`@wathenmp <https://github.com/wathenmp/>`_)
 - Luz Angelica Caudillo-Mata, (`@lacmajedrez <https://github.com/lacmajedrez/>`_)
 - Eldad Haber, (`@eldadhaber <https://github.com/eldadhaber/>`_)
 - Doug Oldenburg, (`@dougoldenburg <https://github.com/dougoldenburg/>`_)
