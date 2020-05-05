@@ -83,16 +83,16 @@ release = '0.14.0b2'
 # directories to ignore when looking for source files.
 exclude_patterns = ['_build']
 
-linkcheck_ignore = [
-    'http://math.lanl.gov/~mac/papers/numerics/HS99B.pdf',
-    'http://wiki.python.org/moin/NumericAndScientific',
-    'http://wiki.python.org/moin/PythonEditors',
-    'http://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html#numpy.array',
-    'http://dx.doi.org/10.1016/j.cageo.2015.09.015',
-    'http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf',
-    'https://www.ngdc.noaa.gov/',
-    'http://discretize.simpeg.xyz/en/latest/objects.inv'
-]
+# linkcheck_ignore = [
+#     'https://cnls.lanl.gov/~shashkov/papers/maxjcp.pdf',
+#     'https://wiki.python.org/moin/NumericAndScientific',
+#     'https://wiki.python.org/moin/PythonEditors',
+#     'https://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html#numpy.array',
+#     'https://dx.doi.org/10.1016/j.cageo.2015.09.015',
+#     'https://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf',
+#     'https://www.ngdc.noaa.gov/',
+#     'https://discretize.simpeg.xyz/en/master/objects.inv'
+# ]
 
 linkcheck_retries = 3
 linkcheck_timeout = 500
@@ -264,11 +264,11 @@ man_pages = [
 # Intersphinx
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'matplotlib': ('http://matplotlib.org/', None),
-    'properties': ('http://propertiespy.readthedocs.io/en/latest/', None),
-    'discretize': ('http://discretize.simpeg.xyz/en/latest/', None)
+    'properties': ('https://propertiespy.readthedocs.io/en/latest/', None),
+    'discretize': ('http://discretize.simpeg.xyz/en/master/', None)
 }
 
 
