@@ -165,9 +165,11 @@ class TipperAmplitudeStationPlot(BaseDataNSEMPlots):
 class ApperentResPhsStationPlot(BaseDataNSEMPlots):
     """
     Class for setting up 4 axes figure with:
-            apparent resistivity | phase
-            --------------------------------
-            impedance amplitudes | impedance phase
+            +---------------------+----------------+
+            |apparent resistivity | phase          |
+            +---------------------+----------------+
+            |impedance amplitudes | impedance phase|
+            +---------------------+----------------+
         setup.
     """
 
