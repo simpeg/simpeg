@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import properties
-from ...utils.code_utils import deprecate_class
+from ...utils.code_utils import deprecate_class, deprecate_property
 
 from ...simulation import BaseSimulation
 from ... import props
@@ -26,6 +26,9 @@ class BaseVRMSimulation(BaseSimulation):
     refinement_factor = properties.Integer('Sensitivity refinement factor', min=0)
     refinement_distance = properties.Array('Sensitivity refinement radii from sources', dtype=float)
     indActive = properties.Array('Topography active cells', dtype=bool)
+
+    ref_factor = deprecate_property(refinement_factor, 'ref_factor', removal_version='0.15.0')
+    ref_radius = deprecate_property(refinement_distance, 'ref_radius', removal_version='0.15.0')
 
     def __init__(self, mesh=None, **kwargs):
 
