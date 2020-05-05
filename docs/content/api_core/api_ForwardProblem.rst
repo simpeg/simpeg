@@ -135,3 +135,7 @@ Data
 .. autoclass:: SimPEG.data.SyntheticData
     :members:
     :undoc-members:
+
+.. autoclass:: SimPEG.data.UncertaintyArray
+    :members:
+    :undoc-members:
