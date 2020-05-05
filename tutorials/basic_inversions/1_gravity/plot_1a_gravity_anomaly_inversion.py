@@ -29,6 +29,7 @@ import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import tarfile
 
 from discretize import TensorMesh
 
@@ -39,9 +40,6 @@ from SimPEG import (
     directives, inversion, utils
 )
 
-def f(): pass
-fname = f.__code__.co_filename
-
 # sphinx_gallery_thumbnail_number = 3
 
 #############################################
@@ -50,13 +48,26 @@ fname = f.__code__.co_filename
 #
 # File paths for assets we are loading. To set up the inversion, we require
 # topography and field observations. The true model defined on the whole mesh
-# is loaded to compare with the inversion result.
+# is loaded to compare with the inversion result. These files are stored as a
+# tar-file on our google cloud bucket:
+# "https://storage.googleapis.com/simpeg/doc-assets/gravity.tar.gz"
 #
 
-dir_path = os.path.dirname(os.path.abspath(fname)).split(os.path.sep)[:-2]
-dir_path.extend(['assets', 'gravity'])
-dir_path = os.path.sep.join(dir_path) + os.path.sep
+# storage bucket where we have the data
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/gravity.tar.gz"
 
+# download the data
+downloaded_data = utils.download(data_source, overwrite=True)
+
+# unzip the tarfile
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
+
+# path to the directory containing our data
+dir_path = downloaded_data.split(".")[0] + os.path.sep
+
+# files to work with
 topo_filename = dir_path + 'gravity_topo.txt'
 data_filename = dir_path + 'gravity_data.obs'
 model_filename = dir_path + 'true_model.txt'

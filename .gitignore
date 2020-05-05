@@ -46,9 +46,16 @@ docs/warnings.txt
 docs/content/examples/*
 docs/content/tutorials/*
 docs/modules/*
+
+# paths to where data are downloaded
 examples/00_published/bookpurnong_inversion/*
+examples/00_published/._bookpurnong_inversion
 examples/00_published/*.tar.gz
 examples/00_published/*.png
+tutorials/basic_inversions/1_gravity/gravity/*
+tutorials/basic_inversions/2_magnetics/magnetics/*
+tutorials/basic_inversions/3_dcip/dcip1d/*
+tutorials/basic_inversions/3_dcip/dcip2d/*
 
 # jupyter
 *.ipynb
@@ -57,3 +64,4 @@ examples/00_published/*.png
 *.xyz
 *.npy
 *.mod
+*.tar.gz

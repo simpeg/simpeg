@@ -26,17 +26,18 @@ import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import tarfile
 
 from discretize import TensorMesh
 
-from SimPEG import (maps, data, data_misfit, regularization,
-    optimization, inverse_problem, inversion, directives
+from SimPEG import (
+    maps, data, data_misfit, regularization,
+    optimization, inverse_problem, inversion, directives,
+    utils
 )
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
 
-def f(): pass
-fname = f.__code__.co_filename
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -46,13 +47,25 @@ fname = f.__code__.co_filename
 #
 # Here we provide the file paths to assets we need to run the inversion. The
 # Path to the true model is also provided for comparison with the inversion
-# results.
+# results. These files are stored as a tar-file on our google cloud bucket:
+# "https://storage.googleapis.com/simpeg/doc-assets/dcip1d.tar.gz"
 #
 
-dir_path = os.path.dirname(os.path.abspath(fname)).split(os.path.sep)[:-2]
-dir_path.extend(['assets', 'dcip1d'])
-dir_path = os.path.sep.join(dir_path) + os.path.sep
+# storage bucket where we have the data
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip1d.tar.gz"
 
+# download the data
+downloaded_data = utils.download(data_source, overwrite=True)
+
+# unzip the tarfile
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
+
+# path to the directory containing our data
+dir_path = downloaded_data.split(".")[0] + os.path.sep
+
+# files to work with
 data_filename = dir_path + 'app_res_1d_data.dobs'
 model_filename = dir_path + 'true_model.txt'
 mesh_filename = dir_path + 'layers.txt'

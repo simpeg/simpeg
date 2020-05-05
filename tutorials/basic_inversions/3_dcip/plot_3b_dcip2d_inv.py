@@ -31,14 +31,16 @@ import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import tarfile
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
 from SimPEG.utils import model_builder, surface2ind_topo
-from SimPEG import (maps, data, data_misfit, regularization,
+from SimPEG import (
+    maps, data, data_misfit, regularization,
     optimization, inverse_problem, inversion, directives, utils
-    )
+)
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
 from SimPEG.electromagnetics.static.utils.static_utils import plot_pseudoSection
@@ -47,9 +49,6 @@ try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
-
-def f(): pass
-fname = f.__code__.co_filename
 
 # sphinx_gallery_thumbnail_number = 1
 
@@ -60,12 +59,26 @@ fname = f.__code__.co_filename
 #
 # Here we provide the file paths to assets we need to run the inversion. The
 # path to the true model conductivity and chargeability models are also
-# provided for comparison with the inversion results.
+# provided for comparison with the inversion results. These files are stored as a
+# tar-file on our google cloud bucket:
+# "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
 #
-dir_path = os.path.dirname(os.path.abspath(fname)).split(os.path.sep)[:-2]
-dir_path.extend(['assets', 'dcip2d'])
-dir_path = os.path.sep.join(dir_path) + os.path.sep
 
+# storage bucket where we have the data
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
+
+# download the data
+downloaded_data = utils.download(data_source, overwrite=True)
+
+# unzip the tarfile
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
+
+# path to the directory containing our data
+dir_path = downloaded_data.split(".")[0] + os.path.sep
+
+# files to work with
 topo_filename = dir_path + 'xyz_topo.txt'
 dc_data_filename = dir_path + 'dc_data.obs'
 ip_data_filename = dir_path + 'ip_data.obs'
