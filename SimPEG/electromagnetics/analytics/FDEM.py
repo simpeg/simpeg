@@ -12,9 +12,9 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
     .. plot::
 
         import matplotlib.pyplot as plt
-        from SimPEG.electromagnetics import frequency_domain as fdem
+        from SimPEG import electromagnetics as EM
         freq = np.logspace(-1, 6, 61)
-        test = fdem.hzAnalyticDipoleF(100, freq, 0.001, secondary=False)
+        test = EM.analytics.hzAnalyticDipoleF(100, freq, 0.001, secondary=False)
         plt.loglog(freq, abs(test.real))
         plt.loglog(freq, abs(test.imag))
         plt.title('Response at $r$=100m')
@@ -56,11 +56,11 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment=1., orientation='X', mu
 
     .. plot::
 
-        from SimPEG import EM
+        import SimPEG.electromagnetics as EM
         import matplotlib.pyplot as plt
         from scipy.constants import mu_0
         freqs = np.logspace(-2,5,100)
-        Bx, By, Bz = EM.Analytics.FDEM.MagneticDipoleWholeSpace([0,100,0], [0,0,0], 1e-2, freqs, moment=1, orientation='Z')
+        Bx, By, Bz = EM.analytics.FDEM.MagneticDipoleWholeSpace([0,100,0], [0,0,0], 1e-2, freqs, moment=1, orientation='Z')
         plt.loglog(freqs, np.abs(Bz.real)/mu_0, 'b')
         plt.loglog(freqs, np.abs(Bz.imag)/mu_0, 'r')
         plt.legend(('real','imag'))

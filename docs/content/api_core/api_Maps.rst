@@ -95,10 +95,11 @@ When these are used in the inverse problem, this is extremely important!!
     :include-source:
 
     import numpy as np
-    from SimPEG import Mesh, Maps
+    import discretize
+    from SimPEG import maps
     import matplotlib.pyplot as plt
-    M = Mesh.TensorMesh([100])
-    expMap = Maps.ExpMap(M)
+    M = discretize.TensorMesh([100])
+    expMap = maps.ExpMap(M)
     m = np.zeros(M.nC)
     m[M.vectorCCx>0.5] = 1.0
     expMap.test(m, plotIt=True)
