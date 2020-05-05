@@ -260,7 +260,7 @@ srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
 surveyAmp = magnetics.survey.MagneticSurvey(srcField)
 
 simulation = magnetics.simulation.Simulation3DIntegral(
-        mesh=mesh, survey=surveyAmp, chiMap=idenMap, actInd=surf, modelType='amplitude'
+        mesh=mesh, survey=surveyAmp, chiMap=idenMap, actInd=surf, is_amplitude_data=True
 )
 
 bAmp = simulation.fields(mrec)
@@ -317,7 +317,7 @@ mstart = np.ones(nC)*1e-4
 # Create the forward model operator
 simulation = magnetics.simulation.Simulation3DIntegral(
    survey=surveyAmp, mesh=mesh, chiMap=idenMap, actInd=actv,
-   modelType='amplitude'
+   is_amplitude_data=True
 )
 
 data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)

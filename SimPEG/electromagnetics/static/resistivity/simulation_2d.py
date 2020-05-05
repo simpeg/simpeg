@@ -74,7 +74,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         return f
 
     def fields_to_space(self, f, y=0.):
-        f_fwd = self.fieldsPair_fwd(self.mesh, self.survey)
+        f_fwd = self.fieldsPair_fwd(self)
         # Evaluating Integration using Trapezoidal rules
         dky = np.diff(self.kys)/2
         trap_weights = np.r_[dky, 0]+np.r_[0, dky]

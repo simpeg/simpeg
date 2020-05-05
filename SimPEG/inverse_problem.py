@@ -4,7 +4,6 @@ import properties
 import numpy as np
 import scipy.sparse as sp
 import gc
-from dask.delayed import Delayed
 from .data_misfit import BaseDataMisfit
 from .props import BaseSimPEG, Model
 from .regularization import BaseRegularization, BaseComboRegularization, Sparse

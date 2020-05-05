@@ -5,10 +5,6 @@ from ....fields import Fields
 from ....utils import Identity, Zero
 from ....utils.code_utils import deprecate_class
 
-import dask
-import dask.array as da
-from scipy.sparse import csr_matrix as csr
-
 class FieldsDC(Fields):
     knownFields = {}
     dtype = float

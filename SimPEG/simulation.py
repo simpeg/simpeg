@@ -2,10 +2,8 @@ from __future__ import print_function
 
 import inspect
 import numpy as np
-import pymatsolver
 import sys
 import warnings
-from dask.delayed import Delayed
 import properties
 from properties.utils import undefined
 
@@ -17,7 +15,7 @@ from . import props
 from .data import SyntheticData, Data
 from .survey import BaseSurvey
 from .utils import Counter, timeIt, count, mkvc
-from .utils.code_utils import deprecate_method, deprecate_property
+from .utils.code_utils import deprecate_property
 
 try:
     from pymatsolver import Pardiso as DefaultSolver
@@ -132,6 +130,11 @@ class BaseSimulation(props.HasModel):
     survey = properties.Instance("a survey object", BaseSurvey)
 
     counter = properties.Instance("A SimPEG.utils.Counter object", Counter)
+
+    sensitivity_path = properties.String(
+        'path to store the sensitivty',
+        default="./sensitivity/"
+        )
 
     # TODO: need to implement a serializer for this & setter
     solver = Class(

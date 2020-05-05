@@ -138,7 +138,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         print('Adjoint Test for e')
 
         m = -1 + 1e-1*np.random.rand(self.sigma_map.nP)
-        u = self.prob.fields(m).compute()
+        u = self.prob.fields(m)
         # u = u[self.survey.source_list,'e']
 
         v = np.random.rand(self.survey.nD)
@@ -309,7 +309,11 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
 
     def tearDown(self):
         # Clean up the working directory
-        shutil.rmtree(self.p.Jpath)
+        try:
+            shutil.rmtree(self.p.sensitivity_path)
+        except FileNotFoundError:
+            pass
+
 
 
 class DCProblemTestsN_storeJ(unittest.TestCase):
@@ -389,7 +393,10 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
 
     def tearDown(self):
         # Clean up the working directory
-        shutil.rmtree(self.p.Jpath)
+        try:
+            shutil.rmtree(self.p.sensitivity_path)
+        except FileNotFoundError:
+            pass
 
 if __name__ == '__main__':
     unittest.main()

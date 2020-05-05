@@ -15,10 +15,6 @@ from SimPEG import Solver
 from SimPEG import props
 import properties
 from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
-import dask
-import dask.array as da
-from scipy.sparse import csr_matrix as csr
-from dask.delayed import Delayed
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -34,8 +30,13 @@ class Simulation3DIntegral(BasePFSimulation):
 
     modelType = properties.StringChoice(
         "Type of magnetization model",
-        choices=['susceptibility', 'vector', 'amplitude'],
+        choices=['susceptibility', 'vector'],
         default='susceptibility'
+    )
+
+    is_amplitude_data = properties.Boolean(
+        "Whether the supplied data is amplitude data",
+        default=False
     )
 
 
@@ -101,10 +102,9 @@ class Simulation3DIntegral(BasePFSimulation):
             self.model = model
             fields = mkvc(self.linear_operator())
         else:
-            # TODO: Delay the fields all the way to the objective function for block parallel
-            fields = da.dot(self.G, model.astype(np.float32)).compute()
+            fields = np.asarray(self.G@model.astype(np.float32))
 
-        if self.modelType == 'amplitude':
+        if self.is_amplitude_data:
             fields = self.compute_amplitude(fields)
 
         return fields
@@ -144,50 +144,43 @@ class Simulation3DIntegral(BasePFSimulation):
         """
             Return the diagonal of JtJ
         """
-
         self.model = m
 
         if W is None:
-            W = sdiag(np.ones(self.nD))
-
-        if getattr(self, "_gtg_diagonal", None) is None and self.modelType != 'amplitude':
-            self._gtg_diagonal = mkvc(da.sum(da.power(
-                            da.from_delayed(
-                                dask.delayed(csr.dot)(W, self.G),
-                                shape=self.G.shape, dtype=float
-                            ), 2), axis=0).compute()
-            )
-
-        if self.modelType == 'amplitude':
-            return mkvc(da.sum(da.power(
-                da.from_delayed(
-                    dask.delayed(csr.dot)(
-                        da.from_delayed(
-                                dask.delayed(csr.dot)(W*self.fieldDeriv, self.G),
-                                shape=(self.nD, self.nC), dtype=float
-                            ),
-                        self.chiDeriv
-                    ),
-                    shape=(self.nD, self.chiDeriv.shape[1]), dtype=float
-                ), 2), axis=0).compute())
+            W = np.ones(self.nD)
         else:
-            return mkvc(np.sum((sdiag(mkvc(self._gtg_diagonal)**0.5) * self.chiDeriv).power(2.), axis=0))
+            W = W.diagonal()**2
+        if getattr(self, "_gtg_diagonal", None) is None:
+            diag = np.zeros(self.G.shape[1])
+            if not self.is_amplitude_data:
+                for i in range(len(W)):
+                    diag += W[i]*(self.G[i]*self.G[i])
+            else:
+                fieldDeriv = self.fieldDeriv
+                Gx = self.G[::3]
+                Gy = self.G[1::3]
+                Gz = self.G[2::3]
+                for i in range(len(W)):
+                    row = (fieldDeriv[0, i]*Gx[i] +
+                           fieldDeriv[1, i]*Gy[i] +
+                           fieldDeriv[2, i]*Gz[i])
+                    diag += W[i]*(row*row)
+            self._gtg_diagonal = diag
+        else:
+            diag = self._gtg_diagonal
+        return mkvc((sdiag(np.sqrt(diag))@self.chiDeriv).power(2).sum(axis=0))
 
     def Jvec(self, m, v, f=None):
         if self.chi is None:
             self.model = np.zeros(self.G.shape[1])
+        dmu_dm_v = self.chiDeriv@v
 
-        if isinstance(self.chiDeriv, Delayed):
-            dmu_dm_v = da.from_array(self.chiDeriv*v, chunks=self.G.chunks[1])
-        else:
-            dmu_dm_v = self.chiDeriv * v
+        Jvec = self.G@dmu_dm_v.astype(np.float32)
 
-        Jvec = da.dot(self.G, dmu_dm_v.astype(np.float32))
-
-        if self.modelType == 'amplitude':
-            fieldDeriv_Jvec = dask.delayed(csr.dot)(self.fieldDeriv, Jvec)
-
-            return da.from_delayed(fieldDeriv_Jvec, dtype=float, shape=[self.fieldDeriv.shape[0]])
+        if self.is_amplitude_data:
+            Jvec = Jvec.reshape((-1, 3)).T
+            fieldDeriv_Jvec = self.fieldDeriv * Jvec
+            return fieldDeriv_Jvec[0] + fieldDeriv_Jvec[1] + fieldDeriv_Jvec[2]
         else:
             return Jvec
 
@@ -195,22 +188,10 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.chi is None:
             self.model = np.zeros(self.G.shape[1])
 
-        if self.modelType == 'amplitude':
-
-            fieldDeriv_v = da.from_delayed(
-                dask.delayed(csr.dot)(v, self.fieldDeriv),
-                dtype=np.float32, shape=[self.fieldDeriv.shape[1]]
-            )
-
-            Jtvec = da.dot(fieldDeriv_v, self.G)
-
-        else:
-
-            Jtvec = da.dot(v.astype(np.float32), self.G)
-
-        dmu_dm_v = dask.delayed(csr.dot)(Jtvec, self.chiDeriv)
-
-        return da.from_delayed(dmu_dm_v, dtype=float, shape=[self.chiDeriv.shape[1]]).compute()
+        if self.is_amplitude_data:
+            v = (self.fieldDeriv * v).T.reshape(-1)
+        Jtvec = self.G.T@v.astype(np.float32)
+        return np.asarray(self.chiDeriv.T@Jtvec)
 
     @property
     def fieldDeriv(self):
@@ -219,14 +200,10 @@ class Simulation3DIntegral(BasePFSimulation):
             self.model = np.zeros(self.G.shape[1])
 
         if getattr(self, '_fieldDeriv', None) is None:
-
-            fields = da.dot(self.G, (self.chiMap * self.chi).astype(np.float32)).compute()
+            fields = np.asarray(self.G.dot((self.chiMap@self.chi).astype(np.float32)))
             b_xyz = self.normalized_fields(fields)
 
-            ii = np.kron(np.asarray(range(self.nD), dtype='int'), np.ones(3))
-            jj = np.asarray(range(3*self.nD), dtype='int')
-
-            self._fieldDeriv = csr((mkvc(b_xyz), (ii, jj)), shape=(self.nD, 3*self.nD))
+            self._fieldDeriv = b_xyz
 
         return self._fieldDeriv
 
@@ -239,7 +216,7 @@ class Simulation3DIntegral(BasePFSimulation):
         # Get field amplitude
         amp = cls.compute_amplitude(fields.astype(np.float64))
 
-        return fields.reshape((3, -1), order='F') * sp.diags(1./amp)
+        return fields.reshape((3, -1), order='F')/amp[None, :]
 
     @classmethod
     def compute_amplitude(cls, b_xyz):
@@ -247,9 +224,7 @@ class Simulation3DIntegral(BasePFSimulation):
             Compute amplitude of the magnetic field
         """
 
-        amplitude = np.sum(
-            b_xyz.reshape((3, -1), order='F')**2., axis=0
-        )**0.5
+        amplitude = np.linalg.norm(b_xyz.reshape((3, -1), order='F'), axis=0)
 
         return amplitude
 
@@ -263,7 +238,7 @@ class Simulation3DIntegral(BasePFSimulation):
             receiver_location:  [obsx, obsy, obsz] nC x 3 Array
 
             components: list[str]
-                List of gravity components chosen from:
+                List of magnetic components chosen from:
                 'bx', 'by', 'bz', 'bxx', 'bxy', 'bxz', 'byy', 'byz', 'bzz'
 
             OUTPUT:
@@ -596,6 +571,13 @@ class Simulation3DIntegral(BasePFSimulation):
             rows["tmi"] = np.dot(self.tmi_projection, np.r_[rows["bx"], rows["by"], rows["bz"]])
 
         return np.vstack([rows[component] for component in components])
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        deletes = super().deleteTheseOnModelUpdate
+        if self.is_amplitude_data:
+            deletes += ['_gtg_diagonal']
+        return deletes
 
 
 class Simulation3DDifferential(BaseSimulation):
@@ -1040,6 +1022,7 @@ class Simulation3DDifferential(BaseSimulation):
         bfz = self.Qfz * B
 
         return np.r_[bfx, bfy, bfz]
+
 
 def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     """

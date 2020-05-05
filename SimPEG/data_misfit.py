@@ -1,6 +1,5 @@
 import numpy as np
 import properties
-from dask.delayed import Delayed
 from .utils import Counter, sdiag, timeIt, Identity
 from .data import Data
 from .simulation import BaseSimulation

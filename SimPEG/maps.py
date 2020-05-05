@@ -15,7 +15,6 @@ import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
 from scipy.constants import mu_0
-from scipy.spatial import cKDTree
 from scipy.sparse import csr_matrix as csr
 
 import properties
@@ -209,6 +208,12 @@ class IdentityMap(properties.HasProperties):
                 val, type(val)
             )
         )
+
+    def dot(self, val):
+        return self.__mul__(val)
+
+    def __matmul__(self, val):
+        return self.__mul__(val)
 
     __numpy_ufunc__ = True
 
