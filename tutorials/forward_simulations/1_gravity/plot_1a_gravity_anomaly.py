@@ -217,11 +217,11 @@ plt.show()
 #
 
 if save_file == True:
-    
+
     dir_path = os.path.dirname(gravity.__file__).split(os.path.sep)[:-3]
     dir_path.extend(['tutorials', 'assets', 'gravity'])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
-    
+
     fname = dir_path + 'gravity_topo.txt'
     np.savetxt(fname, np.c_[xyz_topo], fmt='%.4e')
 

@@ -48,6 +48,9 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
+def f(): pass
+fname = f.__code__.co_filename
+
 # sphinx_gallery_thumbnail_number = 1
 
 
@@ -59,9 +62,8 @@ except ImportError:
 # path to the true model conductivity and chargeability models are also
 # provided for comparison with the inversion results.
 #
-    
-dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-dir_path.extend(['tutorials', 'assets', 'dcip2d'])
+dir_path = os.path.dirname(os.path.abspath(fname)).split(os.path.sep)[:-2]
+dir_path.extend(['assets', 'dcip2d'])
 dir_path = os.path.sep.join(dir_path) + os.path.sep
 
 topo_filename = dir_path + 'xyz_topo.txt'

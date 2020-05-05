@@ -16,7 +16,7 @@ this tutorial, we focus on the following:
 
 Although we consider gravity anomaly data in this tutorial, the same approach
 can be used to invert other types of geophysical data.
-    
+
 
 """
 
@@ -25,7 +25,7 @@ can be used to invert other types of geophysical data.
 # --------------
 #
 
-import os, shutil
+import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -39,6 +39,9 @@ from SimPEG import (
     directives, inversion, utils
 )
 
+def f(): pass
+fname = f.__code__.co_filename
+
 # sphinx_gallery_thumbnail_number = 3
 
 #############################################
@@ -50,8 +53,8 @@ from SimPEG import (
 # is loaded to compare with the inversion result.
 #
 
-dir_path = os.path.dirname(gravity.__file__).split(os.path.sep)[:-3]
-dir_path.extend(['tutorials', 'assets', 'gravity'])
+dir_path = os.path.dirname(os.path.abspath(fname)).split(os.path.sep)[:-2]
+dir_path.extend(['assets', 'gravity'])
 dir_path = os.path.sep.join(dir_path) + os.path.sep
 
 topo_filename = dir_path + 'gravity_topo.txt'
@@ -195,7 +198,7 @@ starting_model = background_density*np.ones(nC)
 #
 # Here, we define the physics of the gravity problem by using the simulation
 # class.
-# 
+#
 
 simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey, mesh=mesh, rhoMap=model_map,
@@ -284,9 +287,6 @@ inv = inversion.BaseInversion(inv_prob, directives_list)
 # Run inversion
 recovered_model = inv.run(starting_model)
 
-# Remove directory storing sensitivities (optional)
-shutil.rmtree(simulation.sensitivity_path)
-
 
 ############################################################
 # Plotting True Model and Recovered Model
@@ -364,7 +364,7 @@ v_lim = [
 ]
 
 for ii in range(0, 3):
-    
+
     ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.11, 0.23, 0.84])
     cplot[ii] = plot2Ddata(
         receiver_list[0].locations, data_array[:, ii], ax=ax1[ii], ncontour=30,
@@ -373,7 +373,7 @@ for ii in range(0, 3):
     ax1[ii].set_title(plot_title[ii])
     ax1[ii].set_xlabel('x (m)')
     ax1[ii].set_ylabel('y (m)')
-    
+
     ax2[ii] = fig.add_axes([0.33*ii+0.25, 0.11, 0.01, 0.85])
     norm[ii] = mpl.colors.Normalize(vmin=-v_lim[ii], vmax=v_lim[ii])
     cbar[ii] = mpl.colorbar.ColorbarBase(
@@ -382,4 +382,3 @@ for ii in range(0, 3):
     cbar[ii].set_label(plot_units[ii], rotation=270, labelpad=15, size=12)
 
 plt.show()
-

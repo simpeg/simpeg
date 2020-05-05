@@ -35,6 +35,9 @@ from SimPEG import (maps, data, data_misfit, regularization,
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
 
+def f(): pass
+fname = f.__code__.co_filename
+
 # sphinx_gallery_thumbnail_number = 2
 
 #############################################
@@ -46,8 +49,8 @@ from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
 # results.
 #
 
-dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-dir_path.extend(['tutorials', 'assets', 'dcip1d'])
+dir_path = os.path.dirname(os.path.abspath(fname)).split(os.path.sep)[:-2]
+dir_path.extend(['assets', 'dcip1d'])
 dir_path = os.path.sep.join(dir_path) + os.path.sep
 
 data_filename = dir_path + 'app_res_1d_data.dobs'
