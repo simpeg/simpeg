@@ -41,6 +41,10 @@ The API
     :members:
     :undoc-members:
 
+.. autoclass:: SimPEG.data_misfit.UncertaintyArray
+    :members:
+    :undoc-members:
+
 Common Data Misfits
 ===================
 

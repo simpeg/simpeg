@@ -82,6 +82,10 @@ Simulation
     :members:
     :undoc-members:
 
+.. autoclass:: SimPEG.simulation.TimeStepArray
+    :members:
+    :undoc-members:
+
 
 Fields
 ------
@@ -110,6 +114,14 @@ Survey
     :undoc-members:
 
 .. autoclass:: SimPEG.survey.BaseTimeRx
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.survey.SourceLocationArray
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.survey.RxLocationArray
     :members:
     :undoc-members:
 

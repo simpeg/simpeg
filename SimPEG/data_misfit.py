@@ -162,7 +162,7 @@ class L2DataMisfit(BaseDataMisfit):
             \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W}
             (\mathbf{d} - \mathbf{d}^{obs})
         :param numpy.ndarray m: model
-        :param SimPEG.Fields.Fields f: fields object
+        :param SimPEG.fields.Fields f: fields object
         """
 
         if f is None:
@@ -180,7 +180,7 @@ class L2DataMisfit(BaseDataMisfit):
             \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W} \mathbf{J}
         :param numpy.ndarray m: model
         :param numpy.ndarray v: vector
-        :param SimPEG.Fields.Fields f: fields object
+        :param SimPEG.fields.Fields f: fields object
         """
 
         if f is None:
