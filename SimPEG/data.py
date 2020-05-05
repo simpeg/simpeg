@@ -150,15 +150,16 @@ class Data(properties.HasProperties):
         Data uncertainties. If a stardard deviation and noise floor are
         provided, the uncertainty is
 
-        ..code:: python
+        .. code:: python
 
             data.uncertainty = (
-                data.standard_deviation*np.abs(data.dobs) + data.noise_floor
+                data.standard_deviation*np.abs(data.dobs) +
+                data.noise_floor
             )
 
         otherwise, the uncertainty can be set directly
 
-        ..code:: python
+        .. code:: python
 
             data.uncertainty = 0.05 * np.absolute(self.dobs) + 1e-12
 

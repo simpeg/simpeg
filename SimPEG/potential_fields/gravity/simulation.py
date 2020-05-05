@@ -113,6 +113,7 @@ class Simulation3DIntegral(BasePFSimulation):
             :rtype numpy.ndarray: rows
             :returns: ndarray with shape (n_components, n_cells)
                 Dense array mapping of the contribution of all active cells to data components::
+
                     rows =
                         g_1 = [g_1x g_1y g_1z]
                         g_2 = [g_2x g_2y g_2z]
