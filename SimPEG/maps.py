@@ -3402,7 +3402,7 @@ class TileMap(IdentityMap):
 
     def deriv(self, m, v=None):
         """
-            :param numpy.array m: model
+            :param numpy.ndarray m: model
             :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
