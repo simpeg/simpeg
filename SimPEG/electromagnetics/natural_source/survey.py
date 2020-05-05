@@ -59,7 +59,7 @@ from .utils.plot_utils import DataNSEMPlotMethods
 #         """
 #         Evalute and return Data given calculated fields
 
-#         :param SimPEG.EM.NSEM.FieldsNSEM f: A NSEM fileds object to evaluate data from
+#         :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: A NSEM fileds object to evaluate data from
 #         :retype: SimPEG.EM.NSEM.Data
 #         :return: NSEM Data object
 #         """

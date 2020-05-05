@@ -82,7 +82,7 @@ Simulation
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.simulation.TimeStepArray
+.. autoclass:: SimPEG.simulation.TimeStepArray
     :members:
     :undoc-members:
 

@@ -25,7 +25,7 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     Inherit this to build your own objective function. If building a
     regularization, have a look at
-    :class:`SimPEG.Regularization.BaseRegularization` as there are additional
+    :class:`SimPEG.regularization.BaseRegularization` as there are additional
     methods and properties tailored to regularization of a model. Similarly,
     for building a data misfit, see :class:`SimPEG.DataMisfit.BaseDataMisfit`.
     """

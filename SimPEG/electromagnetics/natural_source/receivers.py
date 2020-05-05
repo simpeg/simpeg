@@ -427,7 +427,7 @@ class Point1DImpedance(BaseRx):
 
         :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: NSEM fields object of the source
         :param bool (optional) return_complex: Flag for return the complex evaluation
         :rtype: numpy.ndarray
         :return: Evaluated data for the receiver
@@ -450,7 +450,7 @@ class Point1DImpedance(BaseRx):
 
         :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: NSEM fields object of the source
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False) and size (nD,) (adjoint=True)
         :rtype: numpy.ndarray
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
@@ -535,7 +535,7 @@ class Point3DImpedance(BaseRxNSEM_Point):
 
         :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: NSEM fields object of the source
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False) and size (nD,) (adjoint=True)
         :rtype: numpy.ndarray
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
@@ -694,7 +694,7 @@ class Point3DTipper(BaseRxNSEM_Point):
 
         :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: NSEM fields object of the source
         :param numpy.ndarray v: Random vector of size
         :rtype: numpy.ndarray
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True)

@@ -40,7 +40,7 @@ class BaseRx(survey.BaseRx):
         """
         Project fields to receivers to get data.
 
-        :param SimPEG.electromagnetics.frequency_domain.SrcFDEM.BaseFDEMSrc src: FDEM source
+        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: FDEM source
         :param discretize.base.BaseMesh mesh: mesh used
         :param Fields f: fields object
         :rtype: numpy.ndarray
@@ -57,7 +57,7 @@ class BaseRx(survey.BaseRx):
         """
         Derivative of projected fields with respect to the inversion model times a vector.
 
-        :param SimPEG.electromagnetics.frequency_domain.SrcFDEM.BaseFDEMSrc src: FDEM source
+        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: FDEM source
         :param discretize.base.BaseMesh mesh: mesh used
         :param Fields f: fields object
         :param numpy.ndarray v: vector to multiply
