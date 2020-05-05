@@ -90,7 +90,6 @@ and live on the edges(!) of the cell.
     :include-source:
 
     from __future__ import print_function
-    from SimPEG import Mesh
     import discretize
     discretize.TensorMesh([1,1,1]).plotGrid(faces=True, edges=True, centers=True, showIt=True)
 

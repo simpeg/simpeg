@@ -94,7 +94,7 @@ class BaseRx(BaseTimeRx):
         """
         Project fields to receivers to get data.
 
-        :param SimPEG.EM.TDEM.SrcTDEM.BaseSrc src: TDEM source
+        :param SimPEG.electromagnetics.time_domain.sources.BaseWaveform src: TDEM source
         :param discretize.base.BaseMesh mesh: mesh used
         :param Fields f: fields object
         :rtype: numpy.ndarray
@@ -109,7 +109,7 @@ class BaseRx(BaseTimeRx):
         """
         Derivative of projected fields with respect to the inversion model times a vector.
 
-        :param SimPEG.EM.TDEM.SrcTDEM.BaseSrc src: TDEM source
+        :param SimPEG.electromagnetics.time_domain.sources.BaseWaveform src: TDEM source
         :param discretize.base.BaseMesh mesh: mesh used
         :param discretize.base.BaseMesh time_mesh: time mesh
         :param Fields f: fields object

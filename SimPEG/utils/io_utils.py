@@ -158,7 +158,7 @@ def download(
     """
 
     # Download from cloud
-    import urllib
+    import urllib.request
     import os
     import sys
 

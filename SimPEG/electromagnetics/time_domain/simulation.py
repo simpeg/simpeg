@@ -45,7 +45,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         Solve the forward problem for the fields.
 
         :param numpy.ndarray m: inversion model (nP,)
-        :rtype: SimPEG.EM.TDEM.FieldsTDEM
+        :rtype: SimPEG.electromagnetics.time_domain.fields.FieldsTDEM
         :return f: fields object
         """
 

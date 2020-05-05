@@ -37,7 +37,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
 
         :param numpy.ndarray m: conductivity model (nP,)
         :param numpy.ndarray v: vector which we take sensitivity product with (nP,)
-        :param SimPEG.EM.NSEM.FieldsNSEM (optional) u: NSEM fields object, if not given it is calculated
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM (optional) u: NSEM fields object, if not given it is calculated
         :rtype: numpy.ndarray
         :return: Jv (nData,) Data sensitivities wrt m
         """
@@ -82,7 +82,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
 
         :param numpy.ndarray m: inversion model (nP,)
         :param numpy.ndarray v: vector which we take adjoint product with (nP,)
-        :param SimPEG.EM.NSEM.FieldsNSEM f (optional): NSEM fields object, if not given it is calculated
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f (optional): NSEM fields object, if not given it is calculated
         :rtype: numpy.ndarray
         :return: Jtv (nP,) Data sensitivities wrt m
         """
@@ -245,6 +245,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     def getRHS(self, freq):
         """
             Function to return the right hand side for the system.
+
             :param float freq: Frequency
             :rtype: numpy.ndarray
             :return: RHS for 1 polarizations, primary fields (nF, 1)
@@ -271,7 +272,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray m: Conductivity model (nC,)
-        :rtype: SimPEG.EM.NSEM.FieldsNSEM.Fields1DPrimarySecondary
+        :rtype: SimPEG.electromagnetics.natural_source.fields.Fields1DPrimarySecondary
         :return: NSEM fields object containing the solution
         """
         # Set the current model
@@ -370,7 +371,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
         Calculate the derivative of A wrt m.
 
         :param float freq: Frequency
-        :param SimPEG.EM.NSEM.FieldsNSEM u: NSEM Fields object
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM u: NSEM Fields object
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False)
             and size (nP,) (adjoint=True)
         :rtype: numpy.ndarray
@@ -438,7 +439,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray (nC,) m: Conductivity model
-        :rtype: SimPEG.EM.NSEM.FieldsNSEM
+        :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
         :return: Fields object with of the solution
 
         """
@@ -477,7 +478,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     #     Function to calculate all the fields for the model m.
     #
     #     :param numpy.ndarray (nC,) m: Conductivity model
-    #     :rtype: SimPEG.EM.NSEM.FieldsNSEM
+    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
     #     :return: Fields object with of the solution
     #
     #     """
@@ -485,7 +486,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     #     Function to calculate all the fields for the model m.
     #
     #     :param numpy.ndarray (nC,) m: Conductivity model
-    #     :rtype: SimPEG.EM.NSEM.FieldsNSEM
+    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
     #     :return: Fields object with of the solution
     #
     #     """
@@ -511,7 +512,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     #     Function to calculate all the fields for the model m.
     #
     #     :param numpy.ndarray (nC,) m: Conductivity model
-    #     :rtype: SimPEG.EM.NSEM.FieldsNSEM
+    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
     #     :return: Fields object with of the solution
     #
     #     """
@@ -519,7 +520,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     #     Function to calculate all the fields for the model m.
     #
     #     :param numpy.ndarray (nC,) m: Conductivity model
-    #     :rtype: SimPEG.EM.NSEM.FieldsNSEM
+    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
     #     :return: Fields object with of the solution
     #
     #     """

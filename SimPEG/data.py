@@ -29,11 +29,13 @@ class Data(properties.HasProperties):
     of those data and the noise floor.
 
     .. code:: python
+
         data = Data(survey, dobs=dobs, standard_deviation=std, noise_floor=floor)
 
     or
 
     .. code:: python
+
         data = Data(survey, dobs=dobs, uncertainty=uncertainty)
     """
 
@@ -43,6 +45,7 @@ class Data(properties.HasProperties):
         parameters:
 
         .. code:: python
+
             data = Data(survey)
             for src in survey.source_list:
                 for rx in src.receiver_list:
@@ -62,12 +65,14 @@ class Data(properties.HasProperties):
         For example, if you set
 
         .. code:: python
+
             data = Data(survey, dobs=dobs)
             data.standard_deviation = 0.05
 
         then the contribution to the uncertainty is equal to
 
         .. code:: python
+
             data.standard_deviation * np.abs(data.dobs)
 
         """,
@@ -84,12 +89,14 @@ class Data(properties.HasProperties):
         For example, if you set
 
         .. code:: python
+
             data = Data(survey, dobs=dobs)
             data.noise_floor = 1e-10
 
         then the contribution to the uncertainty is equal to
 
         .. code:: python
+
             data.noise_floor
 
         """,
@@ -141,22 +148,22 @@ class Data(properties.HasProperties):
     def uncertainty(self):
         """
         Data uncertainties. If a stardard deviation and noise floor are
-        provided, the incertainty is
+        provided, the uncertainty is
 
-        ..code:: python
+        .. code:: python
 
-            data.uncertainty == (
-                data.standard_deviation * np.absolute(data.dobs) +
+            data.uncertainty = (
+                data.standard_deviation*np.abs(data.dobs) +
                 data.noise_floor
             )
 
         otherwise, the uncertainty can be set directly
 
-        ..code:: python
+        .. code:: python
 
             data.uncertainty = 0.05 * np.absolute(self.dobs) + 1e-12
 
-        Note that setting the uncertainty directly will clear the :code:`standard_deviation`
+        Note that setting the uncertainty directly will clear the `standard_deviation`
         and set the value to the `noise_floor` property.
 
         """
@@ -217,7 +224,8 @@ class Data(properties.HasProperties):
         Dictionary of data indices by sources and receivers. To set data using
         survey parameters:
 
-        .. code::
+        .. code:: python
+
             data = Data(survey)
             for src in survey.source_list:
                 for rx in src.receiver_list:
@@ -286,6 +294,7 @@ class SyntheticData(Data):
         parameters:
 
         .. code:: python
+
             data = Data(survey)
             for src in survey.source_list:
                 for rx in src.receiver_list:

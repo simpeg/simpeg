@@ -69,11 +69,11 @@ def resolve_1Dinversions(
     Coplanar Coil data (both real and imaginary).
 
     :param discretize.CylMesh mesh: mesh used for the forward simulation
-    :param numpy.array dobs: observed data
+    :param numpy.ndarray dobs: observed data
     :param float src_height: height of the source above the ground
-    :param numpy.array freqs: frequencies
-    :param numpy.array m0: starting model
-    :param numpy.array mref: reference model
+    :param numpy.ndarray freqs: frequencies
+    :param numpy.ndarray m0: starting model
+    :param numpy.ndarray mref: reference model
     :param maps.IdentityMap mapping: mapping that maps the model to electrical conductivity
     :param float std: percent error used to construct the data misfit term
     :param float floor: noise floor used to construct the data misfit term

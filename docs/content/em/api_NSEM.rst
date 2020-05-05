@@ -54,11 +54,59 @@ NSEM Survey
     :members:
     :undoc-members:
 
+.. autoclass:: SimPEG.electromagnetics.natural_source.Data
+    :members:
+    :undoc-members:
+
 
 NSEM Fields
 -----------
 
 .. automodule:: SimPEG.electromagnetics.natural_source.fields
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+
+NSEM Utilities
+--------------
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.analytic_1d
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.data_utils
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.data_viewer
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.edi_files_utils
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.plot_data_types
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.plot_utils
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.solutions_1d
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.source_utils
     :show-inheritance:
     :members:
     :undoc-members:

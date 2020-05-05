@@ -40,3 +40,12 @@ Property
 .. autoclass:: SimPEG.props.Integer
     :members:
     :undoc-members:
+
+
+.. autoclass:: SimPEG.props.LocationVector
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.props.HasModel
+    :members:
+    :undoc-members:

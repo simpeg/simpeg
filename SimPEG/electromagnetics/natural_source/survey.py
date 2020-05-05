@@ -59,7 +59,7 @@ from .utils.plot_utils import DataNSEMPlotMethods
 #         """
 #         Evalute and return Data given calculated fields
 
-#         :param SimPEG.EM.NSEM.FieldsNSEM f: A NSEM fileds object to evaluate data from
+#         :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: A NSEM fileds object to evaluate data from
 #         :retype: SimPEG.EM.NSEM.Data
 #         :return: NSEM Data object
 #         """
@@ -81,15 +81,6 @@ from .utils.plot_utils import DataNSEMPlotMethods
 class Data(BaseData, DataNSEMPlotMethods):
     """
     Data class for NSEMdata. Stores the data vector indexed by the survey.
-
-    **Required**
-    :param SimPEG.EM.NSEM.SurveyNSEM survey: NSEM survey object
-
-    **Optional**
-    :param numpy.ndarray v: Vector of the data in order matching of the survey
-    :param numpy.ndarray standard_deviation: Vector of the standard_deviation of data in order matching of the survey
-    :param numpy.ndarray floor: Vector of the noise floor of the data in order matching of the survey
-
     """
     def __init__(self, survey, dobs=None, standard_deviation=None, noise_floor=None):
         BaseData.__init__(self, survey, dobs, standard_deviation, noise_floor)
@@ -99,11 +90,10 @@ class Data(BaseData, DataNSEMPlotMethods):
         '''
         Returns a numpy.recarray for a SimpegNSEM impedance data object.
 
-        **Optional**
-        :param str returnType: Switches between returning a rec array where the impedance is split to real and imaginary ('RealImag') or is a complex ('Complex')
+        :param returnType: Switches between returning a rec array where the impedance is split to real and imaginary ('RealImag') or is a complex ('Complex')
+        :type returnType: str, optional
         :rtype: numpy.recarray
         :return: Record array with data, with indexed columns
-
         '''
 
         # Define the record fields
@@ -171,11 +161,11 @@ class Data(BaseData, DataNSEMPlotMethods):
         """
         Class method that reads in a numpy record array to NSEMdata object.
 
-        **Required**
-        :param numpy.recarray recArray: Record array with the data. Has to have ('freq','x','y','z') columns and some ('zxx','zxy','zyx','zyy','tzx','tzy')
+        :param recArray: Record array with the data. Has to have ('freq','x','y','z') columns and some ('zxx','zxy','zyx','zyy','tzx','tzy')
+        :type recArray: numpy.recarray
 
-        **Optional**
-        :param string srcType: The type of SimPEG.EM.NSEM.SrcNSEM to be used
+        :param srcType: The type of SimPEG.EM.NSEM.SrcNSEM to be used
+        :type srcType: str, optional
 
         """
         if srcType=='primary':

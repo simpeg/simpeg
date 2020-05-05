@@ -141,6 +141,7 @@ class L2DataMisfit(BaseDataMisfit):
     The data misfit with an l_2 norm:
 
     .. math::
+
         \mu_\\text{data} = {1\over 2}\left|
         \mathbf{W}_d (\mathbf{d}_\\text{pred} -
         \mathbf{d}_\\text{obs}) \\right|_2^2
@@ -158,11 +159,14 @@ class L2DataMisfit(BaseDataMisfit):
         """
         deriv(m, f=None)
         Derivative of the data misfit
+
         .. math::
+
             \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W}
             (\mathbf{d} - \mathbf{d}^{obs})
+
         :param numpy.ndarray m: model
-        :param SimPEG.Fields.Fields f: fields object
+        :param SimPEG.fields.Fields f: fields object
         """
 
         if f is None:
@@ -176,11 +180,14 @@ class L2DataMisfit(BaseDataMisfit):
     def deriv2(self, m, v, f=None):
         """
         deriv2(m, v, f=None)
+
         .. math::
+
             \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W} \mathbf{J}
+
         :param numpy.ndarray m: model
         :param numpy.ndarray v: vector
-        :param SimPEG.Fields.Fields f: fields object
+        :param SimPEG.fields.Fields f: fields object
         """
 
         if f is None:

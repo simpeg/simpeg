@@ -238,8 +238,8 @@ class BaseSimulation(props.HasModel):
         """
         u = fields(m)
         The field given the model.
-        :param numpy.array m: model
-        :rtype: numpy.array
+        :param numpy.ndarray m: model
+        :rtype: numpy.ndarray
         :return: u, the fields
         """
         raise NotImplementedError(
@@ -252,8 +252,11 @@ class BaseSimulation(props.HasModel):
         Create the projected data from a model.
         The fields, f, (if provided) will be used for the predicted data
         instead of recalculating the fields (which may be expensive!).
+
         .. math::
+
             d_\\text{pred} = P(f(m))
+
         Where P is a projection of the fields onto the data space.
         """
         if self.survey is None:
@@ -280,10 +283,10 @@ class BaseSimulation(props.HasModel):
         """
         Jv = Jvec(m, v, f=None)
         Effect of J(m) on a vector v.
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: Jv
         """
         raise NotImplementedError('Jvec is not yet implemented.')
@@ -293,10 +296,10 @@ class BaseSimulation(props.HasModel):
         """
         Jtv = Jtvec(m, v, f=None)
         Effect of transpose of J(m) on a vector v.
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: JTv
         """
         raise NotImplementedError('Jt is not yet implemented.')
@@ -305,10 +308,10 @@ class BaseSimulation(props.HasModel):
     def Jvec_approx(self, m, v, f=None):
         """Jvec_approx(m, v, f=None)
         Approximate effect of J(m) on a vector v
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: approxJv
         """
         return self.Jvec(m, v, f)
@@ -317,10 +320,10 @@ class BaseSimulation(props.HasModel):
     def Jtvec_approx(self, m, v, f=None):
         """Jtvec_approx(m, v, f=None)
         Approximate effect of transpose of J(m) on a vector v.
-        :param numpy.array m: model
-        :param numpy.array v: vector to multiply
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector to multiply
         :param Fields f: fields
-        :rtype: numpy.array
+        :rtype: numpy.ndarray
         :return: JTv
         """
         return self.Jtvec(m, v, f)
@@ -328,13 +331,16 @@ class BaseSimulation(props.HasModel):
     @count
     def residual(self, m, dobs, f=None):
         """residual(m, dobs, f=None)
-            :param numpy.array m: geophysical model
-            :param numpy.array f: fields
-            :rtype: numpy.array
-            :return: data residual
-            The data residual:
-            .. math::
-                \mu_\\text{data} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
+        The data residual:
+
+        .. math::
+
+            \mu_\\text{data} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
+
+        :param numpy.ndarray m: geophysical model
+        :param numpy.ndarray f: fields
+        :rtype: numpy.ndarray
+        :return: data residual
         """
         return mkvc(self.dpred(m, f=f) - dobs)
 
@@ -343,10 +349,10 @@ class BaseSimulation(props.HasModel):
     ):
         """
         Make synthetic data given a model, and a standard deviation.
-        :param numpy.array m: geophysical model
-        :param numpy.array standard_deviation: standard deviation
-        :param numpy.array noise_floor: noise floor
-        :param numpy.array f: fields for the given model (if pre-calculated)
+        :param numpy.ndarray m: geophysical model
+        :param numpy.ndarray standard_deviation: standard deviation
+        :param numpy.ndarray noise_floor: noise floor
+        :param numpy.ndarray f: fields for the given model (if pre-calculated)
         """
 
         std = kwargs.pop('std', None)
@@ -395,8 +401,10 @@ class BaseTimeSimulation(BaseSimulation):
         You can set as an array of dt's or as a list of tuples/floats.
         Tuples must be length two with [..., (dt, repeat), ...]
         For example, the following setters are the same::
+
             sim.time_steps = [(1e-6, 3), 1e-5, (1e-4, 2)]
             sim.time_steps = np.r_[1e-6,1e-6,1e-6,1e-5,1e-4,1e-4]
+
         """,
         dtype=float
     )
@@ -447,8 +455,11 @@ class BaseTimeSimulation(BaseSimulation):
         Create the projected data from a model.
         The fields, f, (if provided) will be used for the predicted data
         instead of recalculating the fields (which may be expensive!).
+
         .. math::
+
             d_\\text{pred} = P(f(m))
+
         Where P is a projection of the fields onto the data space.
         """
         if self.survey is None:
@@ -477,11 +488,14 @@ class BaseTimeSimulation(BaseSimulation):
 class LinearSimulation(BaseSimulation):
     """
     Class for a linear simulation of the form
+
     .. math::
+
         d = Gm
+
     where :math:`d` is a vector of the data, `G` is the simulation matrix and
     :math:`m` is the model.
-    Inherit this class to build a linear simulatio.
+    Inherit this class to build a linear simulation.
     """
 
     linear_model, model_map, model_deriv = props.Invertible(

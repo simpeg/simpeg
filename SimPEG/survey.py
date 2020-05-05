@@ -87,7 +87,9 @@ class BaseRx(properties.HasProperties):
             Returns the projection matrices as a
             list for all components collected by
             the receivers.
+
             .. note::
+
                 Projection matrices are stored as a dictionary listed by meshes.
         """
         if projGLoc is None:
@@ -140,7 +142,9 @@ class BaseTimeRx(BaseRx):
     def getSpatialP(self, mesh):
         """
             Returns the spatial projection matrix.
+
             .. note::
+
                 This is not stored in memory, but is created on demand.
         """
         return mesh.getInterpolationMat(self.locations, self.projGLoc)
@@ -148,7 +152,9 @@ class BaseTimeRx(BaseRx):
     def getTimeP(self, timeMesh):
         """
             Returns the time projection matrix.
+
             .. note::
+
                 This is not stored in memory, but is created on demand.
         """
         return timeMesh.getInterpolationMat(self.times, self.projTLoc)
@@ -158,7 +164,9 @@ class BaseTimeRx(BaseRx):
             Returns the projection matrices as a
             list for all components collected by
             the receivers.
+
             .. note::
+
                 Projection matrices are stored as a dictionary (mesh, timeMesh)
                 if storeProjections is True
         """

@@ -84,14 +84,7 @@ release = '0.14.0b2'
 exclude_patterns = ['_build']
 
 linkcheck_ignore = [
-    'http://math.lanl.gov/~mac/papers/numerics/HS99B.pdf',
-    'http://wiki.python.org/moin/NumericAndScientific',
-    'http://wiki.python.org/moin/PythonEditors',
-    'http://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html#numpy.array',
-    'http://dx.doi.org/10.1016/j.cageo.2015.09.015',
-    'http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf',
-    'https://www.ngdc.noaa.gov/',
-    'http://discretize.simpeg.xyz/en/latest/objects.inv'
+    'https://github.com/simpeg/simpeg/blob/master/SimPEG/maps.py#L127'
 ]
 
 linkcheck_retries = 3
@@ -264,11 +257,11 @@ man_pages = [
 # Intersphinx
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'matplotlib': ('http://matplotlib.org/', None),
-    'properties': ('http://propertiespy.readthedocs.io/en/latest/', None),
-    'discretize': ('http://discretize.simpeg.xyz/en/latest/', None)
+    'properties': ('https://propertiespy.readthedocs.io/en/latest/', None),
+    'discretize': ('http://discretize.simpeg.xyz/en/master/', None)
 }
 
 
@@ -330,72 +323,13 @@ supress_nonlocal_image_warn()
 # http://stackoverflow.com/questions/11417221/sphinx-autodoc-gives-warning-pyclass-reference-target-not-found-type-warning
 
 nitpick_ignore = [
-    ('py:class', 'IdentityMap'),
-    ('py:class', 'BaseSurvey'),
-    ('py:class', 'BaseSrc'),
-    ('py:class', 'BaseRx'),
-    ('py:class', 'Survey'),
-    ('py:class', 'FieldsFDEM'),
-    ('py:class', 'Fields3DElectricField'),
-    ('py:class', 'Fields3DMagneticFluxDensity'),
-    ('py:class', 'Fields3DCurrentDensity'),
-    ('py:class', 'Fields3DMagneticField'),
-    ('py:class', 'SurveyTDEM'),
-    ('py:class', 'SrcTDEM'),
-    ('py:class', 'FieldsTDEM'),
-    ('py:class', 'EMPropMap'),
-    ('py:class', 'Data'),
-    ('py:class', 'SurveyDC'),
-    ('py:class', 'BaseMTFields'),
-    ('py:class', 'SolverLU'),
-    ('py:class', 'BaseMagSurvey'),
-    ('py:class', 'BaseMagMap'),
-    ('py:class', 'Fields3DCellCentered'),
-    ('py:class', 'FieldsDC'),
-    ('py:class', 'Fields3DNodal'),
-    ('py:class', 'Survey_ky'),
-    ('py:class', 'Fields2D'),
-    ('py:class', 'Fields2DCellCentered'),
-    ('py:class', 'Fields2DNodal'),
-    ('py:class', 'BaseNSEMFields'),
-    ('py:class', 'Fields1DPrimarySecondary'),
-    ('py:class', 'Fields1D_eTotal'),
-    ('py:class', 'Fields3DPrimarySecondary'),
-    ('py:class', 'BaseNSEMSrc'),
-    ('py:class', 'SimPEG.electromagnetics.natural_source.utils.plot_utils.DataNSEMPlotMethods'),
-    ('py:class', 'DataNSEMPlotMethods'),
-    ('py:class', 'RichardsMap'),
-    ('py:class', 'SimPEG.props.HasModel'),
-    ('py:class', 'BaseFDEMSrc'),
-    ('py:class', 'BaseTDEMSrc'),
-    ('py:class', 'properties.Model'),
-    ('py:class', 'properties.PhysicalProperty'),
-    ('py:func', 'discretize.utils.mesh_utils.meshTensor'),
-    ('py:class', 'SimPEG.regularization.BaseRegularization'),
-    ('py:func', 'discretize.utils.mesh_utils.meshTensor'),
-    ('py:class', 'properties.base.HasProperties'),
+    ('py:class', 'discretize.base.base_mesh.BaseMesh'),
+    ('py:class', 'callable'),
     ('py:class', 'properties.base.base.HasProperties'),
-    ('py:class', 'properties.Boolean'),
-    ('py:class', 'FieldsDerivativesEB'),
-    ('py:class', 'FieldsDerivativesHJ'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.simulation.BaseVRMSimulation'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.simulation.Simulation3DLinear'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.simulation.Simulation3DLogUniform'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.BaseRxVRM'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.PointMagneticField'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.PointMagneticFieldTimeDerivative'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.PointMagneticFluxDensity'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.receivers.PointMagneticFluxTimeDerivative'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.sources.BaseSrcVRM'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.sources.MagDipole'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.sources.CircLoop'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.sources.LineCurrent'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.survey.SurveyVRM'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.StepOff'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.SquarePulse'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.ArbitraryDiscrete'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.ArbitraryPiecewise'),
-    ('py:class', 'SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms.Custom'),
-    ('py:class', 'SimPEG.props.LocationVector'),
-    ('py:class', 'SurveyVRM'),
+    ('py:class', 'pymatsolver.direct.Pardiso'),
+    ('py:class', 'matplotlib.axes._axes.Axes'),
+    ('py:class', 'optional'),
+    ('py:class', 'builtins.float'),
+    ('py:class', 'builtins.complex'),
+    ('py:meth', '__call__'),
 ]

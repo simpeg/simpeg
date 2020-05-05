@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import properties
-from ...utils.code_utils import deprecate_class
+from ...utils.code_utils import deprecate_class, deprecate_property
 
 from ...simulation import BaseSimulation
 from ... import props
@@ -23,14 +23,17 @@ class BaseVRMSimulation(BaseSimulation):
     """
 
     _AisSet = False
-    ref_factor = properties.Integer('Sensitivity refinement factor', min=0)
-    ref_radius = properties.Array('Sensitivity refinement radii from sources', dtype=float)
+    refinement_factor = properties.Integer('Sensitivity refinement factor', min=0)
+    refinement_distance = properties.Array('Sensitivity refinement radii from sources', dtype=float)
     indActive = properties.Array('Topography active cells', dtype=bool)
+
+    ref_factor = deprecate_property(refinement_factor, 'ref_factor', removal_version='0.15.0')
+    ref_radius = deprecate_property(refinement_distance, 'ref_radius', removal_version='0.15.0')
 
     def __init__(self, mesh=None, **kwargs):
 
-        ref_factor = kwargs.pop('ref_factor', None)
-        ref_radius = kwargs.pop('ref_radius', None)
+        refinement_factor = kwargs.pop('refinement_factor', None)
+        refinement_distance = kwargs.pop('refinement_distance', None)
         indActive = kwargs.pop('indActive', None)
 
         if len(mesh.h) != 3:
@@ -38,35 +41,35 @@ class BaseVRMSimulation(BaseSimulation):
 
         super(BaseVRMSimulation, self).__init__(mesh, **kwargs)
 
-        if ref_factor is None and ref_radius is None:
-            self.ref_factor = 3
-            self.ref_radius = list(1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, 4))
-        elif ref_factor is None and ref_radius is not None:
-            self.ref_factor = len(ref_radius)
-            self.ref_radius = ref_radius
-        elif ref_factor is not None and ref_radius is None:
-            self.ref_factor = ref_factor
-            self.ref_radius = list(1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, ref_factor+1))
+        if refinement_factor is None and refinement_distance is None:
+            self.refinement_factor = 3
+            self.refinement_distance = list(1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, 4))
+        elif refinement_factor is None and refinement_distance is not None:
+            self.refinement_factor = len(refinement_distance)
+            self.refinement_distance = refinement_distance
+        elif refinement_factor is not None and refinement_distance is None:
+            self.refinement_factor = refinement_factor
+            self.refinement_distance = list(1.25*np.mean(np.r_[np.min(mesh.h[0]), np.min(mesh.h[1]), np.min(mesh.h[2])])*np.arange(1, refinement_factor+1))
         else:
-            self.ref_factor = ref_factor
-            self.ref_radius = ref_radius
+            self.refinement_factor = refinement_factor
+            self.refinement_distance = refinement_distance
 
         if indActive is None:
             self.indActive = np.ones(mesh.nC, dtype=bool)
         else:
             self.indActive = indActive
 
-    @properties.observer('ref_factor')
-    def _ref_factor_observer(self, change):
+    @properties.observer('refinement_factor')
+    def _refinement_factor_observer(self, change):
         if change['value'] > 4:
             print("Refinement factor larger than 4 may result in computations which exceed memory limits")
-        if self.ref_radius is not None and change['value'] != len(self.ref_radius):
-            print("Number of refinement radii currently DOES NOT match ref_factor")
+        if self.refinement_distance is not None and change['value'] != len(self.refinement_distance):
+            print("Number of refinement radii currently DOES NOT match refinement_factor")
 
-    @properties.observer('ref_radius')
-    def _ref_radius_validator(self, change):
-        if self.ref_factor is not None and len(change['value']) != self.ref_factor:
-            print("Number of refinement radii current DOES NOT match ref_factor")
+    @properties.observer('refinement_distance')
+    def _refinement_distance_validator(self, change):
+        if self.refinement_factor is not None and len(change['value']) != self.refinement_factor:
+            print("Number of refinement radii current DOES NOT match refinement_factor")
 
     @properties.validator('indActive')
     def _indActive_validator(self, change):
@@ -658,15 +661,15 @@ class BaseVRMSimulation(BaseSimulation):
             A.append(G*H0)
 
             # Refine A matrix
-            ref_factor = self.ref_factor
-            ref_radius = self.ref_radius
+            refinement_factor = self.refinement_factor
+            refinement_distance = self.refinement_distance
 
-            if ref_factor > 0:
+            if refinement_factor > 0:
 
                 srcObj = self.survey.source_list[pp]
-                refFlag = srcObj._getRefineFlags(xyzc, ref_factor, ref_radius)
+                refFlag = srcObj._getRefineFlags(xyzc, refinement_factor, refinement_distance)
 
-                for qq in range(1, ref_factor+1):
+                for qq in range(1, refinement_factor+1):
                     if len(refFlag[refFlag == qq]) != 0:
                         A[pp][:, refFlag == qq] =self._getSubsetAcolumns(xyzc, xyzh, pp, qq, refFlag)
 

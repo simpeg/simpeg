@@ -105,22 +105,20 @@ class Simulation3DIntegral(BasePFSimulation):
             Compute the forward linear relationship between the model and the physics at a point
             and for every components of the survey.
 
-            INPUT:
-            receiver_location:  numpy.ndarray (n_receivers, 3)
+            :param numpy.ndarray receiver_location:  array with shape (n_receivers, 3)
                 Array of receiver locations as x, y, z columns.
-
-            components: list[str]
-                List of gravity components chosen from:
+            :param list[str] components: List of gravity components chosen from:
                 'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz', 'gyy', 'gyz', 'gzz', 'guv'
 
-            OUTPUT:
-            rows: ndarray (n_components, n_cells)
-                Dense array mapping of the contribution of all active cells to data components.
-                rows =
-                    g_1 = [g_1x g_1y g_1z]
-                    g_2 = [g_2x g_2y g_2z]
-                    ...
-                    g_c = [g_cx g_cy g_cz]
+            :rtype numpy.ndarray: rows
+            :returns: ndarray with shape (n_components, n_cells)
+                Dense array mapping of the contribution of all active cells to data components::
+
+                    rows =
+                        g_1 = [g_1x g_1y g_1z]
+                        g_2 = [g_2x g_2y g_2z]
+                               ...
+                        g_c = [g_cx g_cy g_cz]
 
         """
         eps = 1e-8

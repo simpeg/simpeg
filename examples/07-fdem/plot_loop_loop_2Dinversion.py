@@ -195,8 +195,8 @@ survey = FDEM.Survey(srcList)
 prob = FDEM.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigmaMap=mapping, Solver=Solver)
 
 ###############################################################################
-# Data and Set up data for inversion
-# ----
+# Set up data for inversion
+# -------------------------
 #
 # Generate clean, synthetic data. Later we will invert the clean data, and
 # assign a standard deviation of 0.05, and a floor of 1e-11.

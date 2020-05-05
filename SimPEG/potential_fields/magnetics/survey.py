@@ -52,3 +52,6 @@ class MagneticSurvey(BaseSurvey):
             print(self._vnD)
             self._vnD = np.asarray(self._vnD)
         return self._vnD
+
+# make this look like it lives in the below module
+MagneticSurvey.__module__ = 'SimPEG.potential_fields.magnetics'

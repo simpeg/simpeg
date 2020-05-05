@@ -162,17 +162,22 @@ class TipperAmplitudeStationPlot(BaseDataNSEMPlots):
                                     comp_plot_dict=dd_kwargs)
 
 
-class ApperentResPhsStationPlot(BaseDataNSEMPlots):
+class ApparentResPhsStationPlot(BaseDataNSEMPlots):
     """
     Class for setting up 4 axes figure with:
-            apparent resistivity | phase
-            --------------------------------
-            impedance amplitudes | impedance phase
+
+            +---------------------+----------------+
+            |apparent resistivity | phase          |
+            +---------------------+----------------+
+            |impedance amplitudes | impedance phase|
+            +---------------------+----------------+
+
         setup.
+
     """
 
     def __init__(self):
-        super(ApperentResPhsStationPlot, self).__init__()
+        super(ApparentResPhsStationPlot, self).__init__()
 
 
     def setup(self):
@@ -290,15 +295,15 @@ class DataNSEMPlotMethods(object):
         Plot apperent resistivity curves at a given location
 
         :param location: Location of the data point
-        :type location: :class:`axes <matplotlib.axes>`
+        :type location: :class:`axes <matplotlib.axes.Axes>`
         :param components: List of the components to plot.
             Default = ['xy','yx']
         :type components: list
         :param ax: The ax object to add the,  , Default: None
-        :type ax: :class:`axes <matplotlib.axes>`
+        :type ax: :class:`axes <matplotlib.axes.Axes>`
         :param errorbars: Controls if errorbars are plotted
             Default = True
-        :type errorbars: boolean
+        :type errorbars: bool
         :param comp_plot_dict: Dictionary with additional kwargs
             for matplotlib.plot
         :type comp_plot_dict: dict
@@ -339,15 +344,15 @@ class DataNSEMPlotMethods(object):
         Plot apperent resistivity curves at a given location
 
         :param location: Location of the data point
-        :type location: :class:`axes <matplotlib.axes>`
+        :type location: :class:`axes <matplotlib.axes.Axes>`
         :param components: List of the components to plot.
             Default = ['xy','yx']
         :type components: list
         :param ax: The ax object to add the,  , Default: None
-        :type ax: :class:`axes <matplotlib.axes>`
+        :type ax: :class:`axes <matplotlib.axes.Axes>`
         :param errorbars: Controls if errorbars are plotted
             Default = True
-        :type errorbars: boolean
+        :type errorbars: bool
         :param comp_plot_dict: Dictionary with additional kwargs
             for matplotlib.plot settings
         :type comp_plot_dict: dict
@@ -386,15 +391,15 @@ class DataNSEMPlotMethods(object):
         Plot impedance amplitude curves at a given location
 
         :param location: Location of the data point
-        :type location: :class:`axes <matplotlib.axes>`
+        :type location: :class:`axes <matplotlib.axes.Axes>`
         :param components: List of the components to plot.
             Default = ['xy','yx']
         :type components: list
         :param ax: The ax object to add the,  , Default: None
-        :type ax: :class:`axes <matplotlib.axes>`
+        :type ax: :class:`axes <matplotlib.axes.Axes>`
         :param errorbars: Controls if errorbars are plotted
             Default = True
-        :type errorbars: boolean
+        :type errorbars: bool
         :param comp_plot_dict: Dictionary with additional kwargs
             for matplotlib.plot
         :type comp_plot_dict: dict
@@ -434,15 +439,15 @@ class DataNSEMPlotMethods(object):
         Plot tipper amplitude curves at a given location
 
         :param location: Location of the data point
-        :type location: :class:`axes <matplotlib.axes>`
+        :type location: :class:`axes <matplotlib.axes.Axes>`
         :param components: List of the components to plot.
             Default = ['xy','yx']
         :type components: list
         :param ax: The ax object to add the,  , Default: None
-        :type ax: :class:`axes <matplotlib.axes>`
+        :type ax: :class:`axes <matplotlib.axes.Axes>`
         :param errorbars: Controls if errorbars are plotted
             Default = True
-        :type errorbars: boolean
+        :type errorbars: bool
         :param comp_plot_dict: Dictionary with additional kwargs
             for matplotlib.plot
         :type comp_plot_dict: dict
@@ -482,7 +487,7 @@ class DataNSEMPlotMethods(object):
             (all discreate data locations).
 
         :param ax: The ax object for mapping to. Default: None
-        :type ax: :class:`axes <matplotlib.axes>`
+        :type ax: :class:`axes <matplotlib.axes.Axes>`
 
         """
         # Default plot dict
@@ -518,12 +523,11 @@ class DataNSEMPlotMethods(object):
         self, location, orientation, component,
             ax=None, **plot_kwargs):
         """
-
         :param numpy.ndarray location: Coordnaties of the station to plot
         :param str orientation: The orientation of the data
         :param str component: The data component to plot
-        :param matplotlib.axes ax (optional):
-        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs)
+        :param matplotlib.axes.Axes ax: Axes (optional):
+        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs:
 
         """
 
@@ -547,12 +551,11 @@ class DataNSEMPlotMethods(object):
         self, location, orientation, component,
             ax=None, **plot_kwargs):
         """
-
         :param numpy.ndarray location: Coordnaties of the station to plot
         :param str orientation: The orientation of the data
         :param str component: The data component to plot
-        :param matplotlib.axes ax (optional):
-        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs)
+        :param matplotlib.axes.Axes ax: Axes (optional)
+        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs:
 
         """
 
@@ -578,8 +581,8 @@ class DataNSEMPlotMethods(object):
         :param numpy.ndarray frequency: Frequency to be mapped
         :param str orientation: The orientation of the data
         :param str component: The data component to plot
-        :param matplotlib.axes ax (optional):
-        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs)
+        :param matplotlib.axes.Axes ax: Axes (optional)
+        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs:
 
         """
 
