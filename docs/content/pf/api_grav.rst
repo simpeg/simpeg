@@ -35,8 +35,8 @@ Gravity Source
     :inherited-members:
 
 
-Gravity Source
-==============
+Gravity Receiver
+================
 
 .. autoclass:: SimPEG.potential_fields.gravity.Point
     :show-inheritance:

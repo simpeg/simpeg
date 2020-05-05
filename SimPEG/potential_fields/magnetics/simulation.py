@@ -951,11 +951,17 @@ class Simulation3DDifferential(BaseSimulation):
             Especially, here for we use total magnetic intensity (TMI) data,
             which is common in practice.
             First we project our B on to data location
+
             .. math::
+
                 \mathbf{B}_{rec} = \mathbf{P} \mathbf{B}
+
             then we take the dot product between B and b_0
+
             .. math ::
+
                 \\text{TMI} = \\vec{B}_s \cdot \hat{B}_0
+
         """
         # TODO: There can be some different tyes of data like |B| or B
         components = self.survey.components
@@ -986,8 +992,11 @@ class Simulation3DDifferential(BaseSimulation):
     def projectFieldsDeriv(self, B):
         """
             This function projects the fields onto the data space.
+
             .. math::
+
                 \\frac{\partial d_\\text{pred}}{\partial \mathbf{B}} = \mathbf{P}
+
             Especially, this function is for TMI data type
         """
 

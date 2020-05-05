@@ -121,6 +121,7 @@ lives (i.e. it varies logarithmically).
 .. autoclass:: SimPEG.maps.ExpMap
     :members:
     :undoc-members:
+    :noindex:
 
 
 Vertical 1D Map
@@ -129,6 +130,7 @@ Vertical 1D Map
 .. autoclass:: SimPEG.maps.SurjectVertical1D
     :members:
     :undoc-members:
+    :noindex:
 
 
 Map 2D Cross-Section to 3D Model
@@ -137,6 +139,7 @@ Map 2D Cross-Section to 3D Model
 .. autoclass:: SimPEG.maps.Surject2Dto3D
     :members:
     :undoc-members:
+    :noindex:
 
 
 Mesh to Mesh Map
@@ -145,6 +148,7 @@ Mesh to Mesh Map
 .. autoclass:: SimPEG.maps.Mesh2Mesh
     :members:
     :undoc-members:
+    :noindex:
 
 
 .. image:: /content/examples/03-maps/images/sphx_glr_plot_mesh2mesh_001.png
@@ -166,6 +170,7 @@ be sure to test that the derivative is correct.
 .. autoclass:: SimPEG.maps.ComboMap
     :members:
     :undoc-members:
+    :noindex:
 
 
 The API

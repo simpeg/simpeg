@@ -148,13 +148,12 @@ class Data(properties.HasProperties):
     def uncertainty(self):
         """
         Data uncertainties. If a stardard deviation and noise floor are
-        provided, the incertainty is
+        provided, the uncertainty is
 
         ..code:: python
 
-            data.uncertainty == (
-                data.standard_deviation * np.absolute(data.dobs) +
-                data.noise_floor
+            data.uncertainty = (
+                data.standard_deviation*np.abs(data.dobs) + data.noise_floor
             )
 
         otherwise, the uncertainty can be set directly
@@ -163,7 +162,7 @@ class Data(properties.HasProperties):
 
             data.uncertainty = 0.05 * np.absolute(self.dobs) + 1e-12
 
-        Note that setting the uncertainty directly will clear the :code:`standard_deviation`
+        Note that setting the uncertainty directly will clear the `standard_deviation`
         and set the value to the `noise_floor` property.
 
         """

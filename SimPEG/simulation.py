@@ -252,8 +252,11 @@ class BaseSimulation(props.HasModel):
         Create the projected data from a model.
         The fields, f, (if provided) will be used for the predicted data
         instead of recalculating the fields (which may be expensive!).
+
         .. math::
+
             d_\\text{pred} = P(f(m))
+
         Where P is a projection of the fields onto the data space.
         """
         if self.survey is None:
@@ -328,13 +331,16 @@ class BaseSimulation(props.HasModel):
     @count
     def residual(self, m, dobs, f=None):
         """residual(m, dobs, f=None)
-            :param numpy.ndarray m: geophysical model
-            :param numpy.ndarray f: fields
-            :rtype: numpy.ndarray
-            :return: data residual
-            The data residual:
-            .. math::
-                \mu_\\text{data} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
+        The data residual:
+
+        .. math::
+
+            \mu_\\text{data} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
+
+        :param numpy.ndarray m: geophysical model
+        :param numpy.ndarray f: fields
+        :rtype: numpy.ndarray
+        :return: data residual
         """
         return mkvc(self.dpred(m, f=f) - dobs)
 
@@ -395,8 +401,10 @@ class BaseTimeSimulation(BaseSimulation):
         You can set as an array of dt's or as a list of tuples/floats.
         Tuples must be length two with [..., (dt, repeat), ...]
         For example, the following setters are the same::
+
             sim.time_steps = [(1e-6, 3), 1e-5, (1e-4, 2)]
             sim.time_steps = np.r_[1e-6,1e-6,1e-6,1e-5,1e-4,1e-4]
+
         """,
         dtype=float
     )
@@ -447,8 +455,11 @@ class BaseTimeSimulation(BaseSimulation):
         Create the projected data from a model.
         The fields, f, (if provided) will be used for the predicted data
         instead of recalculating the fields (which may be expensive!).
+
         .. math::
+
             d_\\text{pred} = P(f(m))
+
         Where P is a projection of the fields onto the data space.
         """
         if self.survey is None:
@@ -477,11 +488,14 @@ class BaseTimeSimulation(BaseSimulation):
 class LinearSimulation(BaseSimulation):
     """
     Class for a linear simulation of the form
+
     .. math::
+
         d = Gm
+
     where :math:`d` is a vector of the data, `G` is the simulation matrix and
     :math:`m` is the model.
-    Inherit this class to build a linear simulatio.
+    Inherit this class to build a linear simulation.
     """
 
     linear_model, model_map, model_deriv = props.Invertible(

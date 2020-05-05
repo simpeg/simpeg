@@ -245,6 +245,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     def getRHS(self, freq):
         """
             Function to return the right hand side for the system.
+
             :param float freq: Frequency
             :rtype: numpy.ndarray
             :return: RHS for 1 polarizations, primary fields (nF, 1)

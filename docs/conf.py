@@ -330,6 +330,7 @@ nitpick_ignore = [
     ('py:class', 'properties.base.base.HasProperties'),
     ('py:class', 'pymatsolver.direct.Pardiso'),
     ('py:class', 'matplotlib.axes._axes.Axes'),
+    ('py:class', 'optional'),
     ('py:meth', '__call__'),
     ('py:class', 'SimPEG.regularization.regularization_mesh.RegularizationMesh'),
     ('py:class', 'SimPEG.electromagnetics.time_domain.source.BaseWaveform'),

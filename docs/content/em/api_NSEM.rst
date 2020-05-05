@@ -54,6 +54,10 @@ NSEM Survey
     :members:
     :undoc-members:
 
+.. autoclass:: SimPEG.electromagnetics.natural_source.Data
+    :members:
+    :undoc-members:
+
 
 NSEM Fields
 -----------
