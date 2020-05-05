@@ -325,15 +325,11 @@ supress_nonlocal_image_warn()
 nitpick_ignore = [
     ('py:class', 'discretize.base.base_mesh.BaseMesh'),
     ('py:class', 'callable'),
-    ('py:class', 'builtins.float'),
-    ('py:class', 'builtins.complex'),
     ('py:class', 'properties.base.base.HasProperties'),
     ('py:class', 'pymatsolver.direct.Pardiso'),
     ('py:class', 'matplotlib.axes._axes.Axes'),
     ('py:class', 'optional'),
+    ('py:class', 'builtins.float'),
+    ('py:class', 'builtins.complex'),
     ('py:meth', '__call__'),
-    ('py:class', 'SimPEG.regularization.regularization_mesh.RegularizationMesh'),
-    ('py:class', 'SimPEG.electromagnetics.time_domain.source.BaseWaveform'),
-    ('py:class', 'SimPEG.electromagnetics.time_domain.source.BaseWaveform'),
-    ('py:class', 'SimPEG.potential_fields.magnetics.survey.MagneticSurvey'),
 ]
