@@ -224,7 +224,8 @@ class Data(properties.HasProperties):
         Dictionary of data indices by sources and receivers. To set data using
         survey parameters:
 
-        .. code::
+        .. code:: python
+
             data = Data(survey)
             for src in survey.source_list:
                 for rx in src.receiver_list:
