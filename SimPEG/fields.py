@@ -220,6 +220,7 @@ class Fields(properties.HasProperties):
 class TimeFields(Fields):
     """Fancy Field Storage for time domain problems
     .. code:: python
+
         fields = TimeFields(simulation=simulation, knownFields={'phi':'CC'})
         fields[:,'phi', timeInd] = phi
         print(fields[src0,'phi'])

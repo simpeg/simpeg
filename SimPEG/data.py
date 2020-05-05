@@ -29,11 +29,13 @@ class Data(properties.HasProperties):
     of those data and the noise floor.
 
     .. code:: python
+
         data = Data(survey, dobs=dobs, standard_deviation=std, noise_floor=floor)
 
     or
 
     .. code:: python
+
         data = Data(survey, dobs=dobs, uncertainty=uncertainty)
     """
 
@@ -43,6 +45,7 @@ class Data(properties.HasProperties):
         parameters:
 
         .. code:: python
+
             data = Data(survey)
             for src in survey.source_list:
                 for rx in src.receiver_list:
@@ -62,12 +65,14 @@ class Data(properties.HasProperties):
         For example, if you set
 
         .. code:: python
+
             data = Data(survey, dobs=dobs)
             data.standard_deviation = 0.05
 
         then the contribution to the uncertainty is equal to
 
         .. code:: python
+
             data.standard_deviation * np.abs(data.dobs)
 
         """,
@@ -84,12 +89,14 @@ class Data(properties.HasProperties):
         For example, if you set
 
         .. code:: python
+
             data = Data(survey, dobs=dobs)
             data.noise_floor = 1e-10
 
         then the contribution to the uncertainty is equal to
 
         .. code:: python
+
             data.noise_floor
 
         """,
@@ -286,6 +293,7 @@ class SyntheticData(Data):
         parameters:
 
         .. code:: python
+
             data = Data(survey)
             for src in survey.source_list:
                 for rx in src.receiver_list:
