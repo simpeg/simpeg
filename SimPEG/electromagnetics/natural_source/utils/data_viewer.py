@@ -2,10 +2,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .. import receiver as rx
+from .. import receivers as rx
 import properties
 
-from plot_utils import ApperentResPhsStationPlot, TipperAmplitudeStationPlot
+from .plot_utils import ApperentResPhsStationPlot, TipperAmplitudeStationPlot
 
 class NSEM_data_viewer(properties.HasProperties):
     """
@@ -164,4 +164,3 @@ class NSEM_data_viewer(properties.HasProperties):
         if len(self.station_figs) > 0:
             for sta_fig in self.station_figs:
                 sta_fig.clear_axes()
-

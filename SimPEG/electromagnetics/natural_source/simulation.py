@@ -271,7 +271,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray m: Conductivity model (nC,)
-        :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM.Fields1DPrimarySecondary
+        :rtype: SimPEG.electromagnetics.natural_source.fields.Fields1DPrimarySecondary
         :return: NSEM fields object containing the solution
         """
         # Set the current model

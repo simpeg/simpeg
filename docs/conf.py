@@ -83,16 +83,9 @@ release = '0.14.0b2'
 # directories to ignore when looking for source files.
 exclude_patterns = ['_build']
 
-# linkcheck_ignore = [
-#     'https://cnls.lanl.gov/~shashkov/papers/maxjcp.pdf',
-#     'https://wiki.python.org/moin/NumericAndScientific',
-#     'https://wiki.python.org/moin/PythonEditors',
-#     'https://docs.scipy.org/doc/numpy/reference/generated/numpy.ndarray.html#numpy.ndarray',
-#     'https://dx.doi.org/10.1016/j.cageo.2015.09.015',
-#     'https://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf',
-#     'https://www.ngdc.noaa.gov/',
-#     'https://discretize.simpeg.xyz/en/master/objects.inv'
-# ]
+linkcheck_ignore = [
+    'https://github.com/simpeg/simpeg/blob/master/SimPEG/maps.py#L127'
+]
 
 linkcheck_retries = 3
 linkcheck_timeout = 500
@@ -336,6 +329,7 @@ nitpick_ignore = [
     ('py:class', 'builtins.complex'),
     ('py:class', 'properties.base.base.HasProperties'),
     ('py:class', 'pymatsolver.direct.Pardiso'),
+    ('py:class', 'matplotlib.axes._axes.Axes'),
     ('py:meth', '__call__'),
     ('py:class', 'SimPEG.regularization.regularization_mesh.RegularizationMesh'),
     ('py:class', 'SimPEG.electromagnetics.time_domain.source.BaseWaveform'),
