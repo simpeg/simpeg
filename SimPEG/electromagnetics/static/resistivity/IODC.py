@@ -870,11 +870,19 @@ class IO(properties.HasProperties):
             a, b, m, n, survey_type=survey_type, data_dc=voltage
         )
         survey.dobs = voltage[self.sort_inds]
-        survey.std = voltage[self.sort_inds]
+        survey.std = standard_deviation[self.sort_inds]
         survey.topo = topo
         return survey
 
-    def write_to_csv(self, fname, dobs, standard_deviation=None):
+    def write_to_csv(self, fname, dobs, standard_deviation=None, **kwargs):
+        uncert = kwargs.pop('uncertainty', None)
+        if uncert is not None:
+            warnings.warn(
+                "The uncertainty option has been deprecated and will be removed in SimPEG 0.15.0. "
+                "Please use standard_deviation".
+            )
+            standard_deviation = uncert
+
         if standard_deviation is None:
             standard_deviation = np.ones(dobs.size) * np.nan
         data = np.c_[
