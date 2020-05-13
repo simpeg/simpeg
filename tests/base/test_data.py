@@ -29,13 +29,13 @@ class DataTest(unittest.TestCase):
 
 
     def test_instantiation_relative_error(self):
-        std = 0.5
-        data = Data(self.sim.survey, dobs=self.dobs, relative_error=std)
+        relative = 0.5
+        data = Data(self.sim.survey, dobs=self.dobs, relative_error=relative)
         self.assertTrue(
-            all(data.relative_error == std*np.ones(len(self.dobs)))
+            all(data.relative_error == relative*np.ones(len(self.dobs)))
         )
         self.assertTrue(
-            all(data.standard_deviation == std*np.abs(self.dobs))
+            all(data.standard_deviation == relative*np.abs(self.dobs))
         )
 
     def test_instantiation_noise_floor(self):
@@ -48,24 +48,24 @@ class DataTest(unittest.TestCase):
             all(data.standard_deviation == floor*np.ones(len(self.dobs)))
         )
 
-    def test_instantiation_std_floor(self):
-        std = 0.5
+    def test_instantiation_relative_floor(self):
+        relative = 0.5
         floor = np.min(np.abs(self.dobs))
-        data = Data(self.sim.survey, dobs=self.dobs, relative_error=std, noise_floor=floor)
+        data = Data(self.sim.survey, dobs=self.dobs, relative_error=relative, noise_floor=floor)
         self.assertTrue(
-            all(data.relative_error == std*np.ones(len(self.dobs)))
+            all(data.relative_error == relative*np.ones(len(self.dobs)))
         )
         self.assertTrue(
             all(data.noise_floor == floor*np.ones(len(self.dobs)))
         )
         self.assertTrue(
-            np.allclose(data.standard_deviation, std*np.abs(self.dobs) + floor*np.ones(len(self.dobs)))
+            np.allclose(data.standard_deviation, relative*np.abs(self.dobs) + floor*np.ones(len(self.dobs)))
         )
 
     def test_instantiation_standard_deviation(self):
-        std = 0.5
+        relative = 0.5
         floor = np.min(np.abs(self.dobs))
-        standard_deviation = std*np.abs(self.dobs) + floor*np.ones(len(self.dobs))
+        standard_deviation = relative*np.abs(self.dobs) + floor*np.ones(len(self.dobs))
         data = Data(self.sim.survey, dobs=self.dobs, standard_deviation=standard_deviation)
 
         self.assertTrue(
