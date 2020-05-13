@@ -233,7 +233,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     uncert = abs(dobs_re) * std + floor
 
     # Data Misfit
-    data_resolve = data.Data(dobs=dobs_re, survey=survey, uncertainty=uncert)
+    data_resolve = data.Data(dobs=dobs_re, survey=survey, standard_deviation=uncert)
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data_resolve)
 
     # Regularization
@@ -344,7 +344,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     uncert = abs(dobs_sky) * std + floor
 
     # Data Misfit
-    data_sky = data.Data(dobs=-dobs_sky, survey=survey, uncertainty=uncert)
+    data_sky = data.Data(dobs=-dobs_sky, survey=survey, standard_deviation=uncert)
     dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data_sky)
 
     # Regularization

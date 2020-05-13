@@ -109,7 +109,7 @@ def resolve_1Dinversions(
     # ------------------- Inversion ------------------- #
     # data misfit term
     uncert = abs(dobs) * std + floor
-    data = data.Data(dobs=dobs, uncertainty=uncert)
+    data = data.Data(dobs=dobs, standard_deviation=uncert)
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
 
     # regularization

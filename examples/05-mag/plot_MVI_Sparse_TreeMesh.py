@@ -300,7 +300,7 @@ reg.mref = np.zeros(3*nC)
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
-dmis.W = 1./data_object.uncertainty
+dmis.W = 1./data_object.standard_deviation
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(maxIter=10, lower=-10, upper=10.,

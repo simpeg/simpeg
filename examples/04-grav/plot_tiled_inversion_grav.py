@@ -169,7 +169,7 @@ for ii, local_survey in enumerate(local_surveys):
     data_object = data.Data(
         local_survey,
         dobs=synthetic_data[local_indices[ii]],
-        uncertainty=wd[local_indices[ii]]
+        standard_deviation=wd[local_indices[ii]]
     )
 
     local_misfits.append(

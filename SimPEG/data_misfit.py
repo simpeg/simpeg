@@ -96,21 +96,21 @@ class BaseDataMisfit(L2ObjectiveFunction):
                     "dmis.data = Data(dobs=dobs, relative_error=std"
                     ", noise_floor=eps)"
                 )
-            uncertainty = self.data.uncertainty
-            if uncertainty is None:
+            standard_deviation = self.data.standard_deviation
+            if standard_deviation is None:
                 raise Exception(
                     "data uncertainties must be set before the data misfit "
                     "can be constructed (data.relative_error = 0.05, "
                     "data.noise_floor = 1e-5), alternatively, the W matrix "
-                    "can be set directly (dmisfit.W = 1./uncertainty)"
+                    "can be set directly (dmisfit.W = 1./standard_deviation)"
                 )
-            if any(uncertainty <= 0):
+            if any(standard_deviation <= 0):
                 raise Exception(
-                    "data.uncertainty musy be strictly positive to construct "
+                    "data.standard_deviation musy be strictly positive to construct "
                     "the W matrix. Please set data.relative_error and or "
                     "data.noise_floor."
                 )
-            self._W = sdiag(1/(uncertainty))
+            self._W = sdiag(1/(standard_deviation))
         return self._W
 
     @W.setter

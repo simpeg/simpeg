@@ -803,7 +803,7 @@ def writeUBC_DCobs(
 
     # if(isinstance(dc_survey.std, float)):
     #     print(
-    #         """survey.std was a float computing uncertainty vector
+    #         """survey.std was a float computing standard_deviation vector
     #         (survey.std*survey.dobs + survey.eps)"""
     #     )
 

@@ -836,7 +836,7 @@ class IO(properties.HasProperties):
             m = np.c_[abmn[:,4], -abmn[:,5]]
             n = np.c_[abmn[:,6], -abmn[:,7]]
             voltage = abmn[:,8]
-            uncertainty = abmn[:,9]
+            standard_deviation = abmn[:,9]
 
         elif input_type == "simple":
             if toponame is not None:
@@ -853,7 +853,7 @@ class IO(properties.HasProperties):
             m = np.c_[tmp[:,2], e]
             n = np.c_[tmp[:,3], e]
             voltage = tmp[:, 4]
-            uncertainty = tmp[:, 5]
+            standard_deviation = tmp[:, 5]
 
         if np.all(a==b):
             if np.all (m==n):
@@ -874,16 +874,16 @@ class IO(properties.HasProperties):
         survey.topo = topo
         return survey
 
-    def write_to_csv(self, fname, dobs, uncertainty=None):
-        if uncertainty is None:
-            uncertainty = np.ones(dobs.size) * np.nan
+    def write_to_csv(self, fname, dobs, standard_deviation=None):
+        if standard_deviation is None:
+            standard_deviation = np.ones(dobs.size) * np.nan
         data = np.c_[
             self.a_locations,
             self.b_locations,
             self.m_locations,
             self.n_locations,
             dobs,
-            uncertainty
+            standard_deviation
         ]
         df = pd.DataFrame(data=data, columns=["Ax", "Az", "Bx", "Bz", "Mx", "Mz", "Nx", "Nz", 'Voltage', 'Uncertainty'])
         df.to_csv(fname)
@@ -896,7 +896,7 @@ class IO(properties.HasProperties):
             m_locations = df[["Mx", "Mz"]].values
             n_locations = df[["Nx", "Nz"]].values
             dobs = df["Voltage"].values
-            uncertainty = df["Uncertainty"].values
+            standard_deviation = df["Uncertainty"].values
 
             if np.all(a_locations == b_locations):
                 src_type = 'pole-'
@@ -915,7 +915,7 @@ class IO(properties.HasProperties):
                 data_dc=dobs,
                 data_dc_type='volt'
             )
-            survey.std = uncertainty[self.sort_inds]
+            survey.std = standard_deviation[self.sort_inds]
             survey.dobs = dobs[self.sort_inds]
         else:
             raise NotImplementedError()

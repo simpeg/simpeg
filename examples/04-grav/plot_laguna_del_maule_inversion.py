@@ -66,7 +66,7 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # define gravity data and errors
     d = data_object.dobs
-    wd = data_object.uncertainty
+    wd = data_object.standard_deviation
 
     # Get the active cells
     active = driver.activeCells

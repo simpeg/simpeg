@@ -36,7 +36,7 @@ class Data(properties.HasProperties):
 
     .. code:: python
 
-        data = Data(survey, dobs=dobs, uncertainty=uncertainty)
+        data = Data(survey, dobs=dobs, standard_deviation=standard_deviation)
     """
 
     dobs = properties.Array(
@@ -69,7 +69,7 @@ class Data(properties.HasProperties):
             data = Data(survey, dobs=dobs)
             data.relative_error = 0.05
 
-        then the contribution to the uncertainty is equal to
+        then the contribution to the standard_deviation is equal to
 
         .. code:: python
 
@@ -93,7 +93,7 @@ class Data(properties.HasProperties):
             data = Data(survey, dobs=dobs)
             data.noise_floor = 1e-10
 
-        then the contribution to the uncertainty is equal to
+        then the contribution to the standard_deviation is equal to
 
         .. code:: python
 
@@ -114,7 +114,7 @@ class Data(properties.HasProperties):
     #######################
     def __init__(
         self, survey, dobs=None, relative_error=None, noise_floor=None,
-        uncertainty=None
+        standard_deviation=None
     ):
         super(Data, self).__init__()
         self.survey = survey
@@ -130,40 +130,40 @@ class Data(properties.HasProperties):
         if noise_floor is not None:
             self.noise_floor = noise_floor
 
-        if uncertainty is not None:
+        if standard_deviation is not None:
             if relative_error is not None or noise_floor is not None:
                 warnings.warn(
-                    "Setting the uncertainty overwrites the "
+                    "Setting the standard_deviation overwrites the "
                     "relative_error and noise floor"
                 )
-            self.uncertainty = uncertainty
+            self.standard_deviation = standard_deviation
 
-        if uncertainty is None and relative_error is None and noise_floor is None:
-            self.uncertainty = 0.0
+        if standard_deviation is None and relative_error is None and noise_floor is None:
+            self.standard_deviation = 0.0
 
     #######################
     # Properties
     #######################
     @property
-    def uncertainty(self):
+    def standard_deviation(self):
         """
         Data uncertainties. If a stardard deviation and noise floor are
-        provided, the uncertainty is
+        provided, the standard_deviation is
 
         .. code:: python
 
-            data.uncertainty = (
+            data.standard_deviation = (
                 data.relative_error*np.abs(data.dobs) +
                 data.noise_floor
             )
 
-        otherwise, the uncertainty can be set directly
+        otherwise, the standard_deviation can be set directly
 
         .. code:: python
 
-            data.uncertainty = 0.05 * np.absolute(self.dobs) + 1e-12
+            data.standard_deviation = 0.05 * np.absolute(self.dobs) + 1e-12
 
-        Note that setting the uncertainty directly will clear the `relative_error`
+        Note that setting the standard_deviation directly will clear the `relative_error`
         and set the value to the `noise_floor` property.
 
         """
@@ -171,7 +171,7 @@ class Data(properties.HasProperties):
             raise Exception(
                 "The relative_error and / or noise_floor must be set "
                 "before asking for uncertainties. Alternatively, the "
-                "uncertainty can be set directly"
+                "standard_deviation can be set directly"
             )
 
         uncert = np.zeros(self.nD)
@@ -182,8 +182,8 @@ class Data(properties.HasProperties):
 
         return uncert
 
-    @uncertainty.setter
-    def uncertainty(self, value):
+    @standard_deviation.setter
+    def standard_deviation(self, value):
         self.relative_error = np.zeros(self.nD)
         self.noise_floor = value
 
@@ -212,7 +212,7 @@ class Data(properties.HasProperties):
             )
 
     @properties.validator(['relative_error', 'noise_floor'])
-    def _uncertainty_validator(self, change):
+    def _standard_deviation_validator(self, change):
         if isinstance(change['value'], float):
             change['value'] = change['value'] * np.ones(self.nD)
         self._dobs_validator(change)

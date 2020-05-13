@@ -121,7 +121,7 @@ def run(plotIt=True):
     scale = utils.sdiag(np.r_[utils.mkvc(1./homogMap.P.sum(axis=0)),np.ones_like(actv)])
 
     for ii in range(survey.nD):
-        wr += ((prob.G[ii, :]*prob.chiMap.deriv(np.ones(sumMap.shape[1])*1e-4)*scale)/data.uncertainty[ii])**2.
+        wr += ((prob.G[ii, :]*prob.chiMap.deriv(np.ones(sumMap.shape[1])*1e-4)*scale)/data.standard_deviation[ii])**2.
 
     # Scale the model spaces independently
     wr[wires.homo.index] /= (np.max((wires.homo*wr)))

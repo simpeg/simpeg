@@ -318,7 +318,7 @@ def writeUBCmagneticsObservations(filename, data_object):
     rxLoc = survey.source_field.receiver_list[0].locations
 
     d = data_object.dobs
-    wd = data_object.uncertainty
+    wd = data_object.standard_deviation
 
     data = np.c_[rxLoc, d, wd]
     head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0]) +
@@ -391,7 +391,7 @@ def writeUBCgravityObservations(filename, data_object):
 
     d = data_object.dobs
 
-    wd = data_object.uncertainty
+    wd = data_object.standard_deviation
 
     data = np.c_[rxLoc, d, wd]
     head = ('%i\n' % len(d))

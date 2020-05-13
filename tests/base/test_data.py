@@ -35,7 +35,7 @@ class DataTest(unittest.TestCase):
             all(data.relative_error == std*np.ones(len(self.dobs)))
         )
         self.assertTrue(
-            all(data.uncertainty == std*np.abs(self.dobs))
+            all(data.standard_deviation == std*np.abs(self.dobs))
         )
 
     def test_instantiation_noise_floor(self):
@@ -45,7 +45,7 @@ class DataTest(unittest.TestCase):
             all(data.noise_floor == floor*np.ones(len(self.dobs)))
         )
         self.assertTrue(
-            all(data.uncertainty == floor*np.ones(len(self.dobs)))
+            all(data.standard_deviation == floor*np.ones(len(self.dobs)))
         )
 
     def test_instantiation_std_floor(self):
@@ -59,20 +59,20 @@ class DataTest(unittest.TestCase):
             all(data.noise_floor == floor*np.ones(len(self.dobs)))
         )
         self.assertTrue(
-            np.allclose(data.uncertainty, std*np.abs(self.dobs) + floor*np.ones(len(self.dobs)))
+            np.allclose(data.standard_deviation, std*np.abs(self.dobs) + floor*np.ones(len(self.dobs)))
         )
 
-    def test_instantiation_uncertainty(self):
+    def test_instantiation_standard_deviation(self):
         std = 0.5
         floor = np.min(np.abs(self.dobs))
-        uncertainty = std*np.abs(self.dobs) + floor*np.ones(len(self.dobs))
-        data = Data(self.sim.survey, dobs=self.dobs, uncertainty=uncertainty)
+        standard_deviation = std*np.abs(self.dobs) + floor*np.ones(len(self.dobs))
+        data = Data(self.sim.survey, dobs=self.dobs, standard_deviation=standard_deviation)
 
         self.assertTrue(
-            all(data.noise_floor == uncertainty)
+            all(data.noise_floor == standard_deviation)
         )
         self.assertTrue(
-            all(data.uncertainty == uncertainty)
+            all(data.standard_deviation == standard_deviation)
         )
 
 if __name__ == '__main__':
