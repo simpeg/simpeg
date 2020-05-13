@@ -93,12 +93,12 @@ def setupProblem(
 
         if invertMui:
             muiMap = maps.ReciprocalMap(mesh)*muMap
-            prob = getattr(fdem, 'Problem3D_{}'.format(prbtype))(
+            prob = getattr(fdem, 'Simulation3D{}'.format(prbtype))(
                 mesh, muiMap=muiMap, sigmaMap=sigmaMap
             )
             # m0 = np.hstack([1./muMod, sigmaMod])
         else:
-            prob = getattr(fdem, 'Problem3D_{}'.format(prbtype))(
+            prob = getattr(fdem, 'Simulation3D{}'.format(prbtype))(
                 mesh, muMap=muMap, sigmaMap=sigmaMap
             )
         m0 = np.hstack([muMod, sigmaMod])
@@ -108,12 +108,12 @@ def setupProblem(
 
         if invertMui:
             muiMap = maps.ReciprocalMap(mesh) * muMap
-            prob = getattr(fdem, 'Problem3D_{}'.format(prbtype))(
+            prob = getattr(fdem, 'Simulation3D{}'.format(prbtype))(
                     mesh, sigma=sigmaMod, muiMap=muiMap
                 )
             # m0 = 1./muMod
         else:
-            prob = getattr(fdem, 'Problem3D_{}'.format(prbtype))(
+            prob = getattr(fdem, 'Simulation3D{}'.format(prbtype))(
                     mesh, sigma=sigmaMod, muMap=muMap
                 )
         m0 = muMod
@@ -140,8 +140,8 @@ class MuTests(unittest.TestCase):
         MeMuI = self.prob.MeMuI
         MfMui = self.prob.MfMui
         MfMuiI = self.prob.MfMuiI
-        MeMuDeriv = self.prob.MeMuDeriv(u[:, 'ElectricField'])
-        MfMuiDeriv = self.prob.MfMuiDeriv(u[:, 'MagneticFluxDensity'])
+        MeMuDeriv = self.prob.MeMuDeriv(u[:, 'e'])
+        MfMuiDeriv = self.prob.MfMuiDeriv(u[:, 'b'])
 
         m1 = np.random.rand(self.mesh.nC)
         self.prob.model = m1

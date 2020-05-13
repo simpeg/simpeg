@@ -2,7 +2,6 @@ import numpy as np
 from ....utils.code_utils import deprecate_class
 
 import properties
-import dask
 from ....utils import closestPoints, sdiag
 from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
 

@@ -1,22 +1,13 @@
 import time
 import sys
-import scipy.sparse as sp
 import numpy as np
-import dask
-import dask.array as da
-import multiprocessing
 from scipy.constants import mu_0
 from ...utils.code_utils import deprecate_class
 
-try:
-    from pymatsolver import Pardiso as SimpegSolver
-except ImportError:
-    from SimPEG import SolverLU as SimpegSolver
-
-from ...utils import mkvc, setKwargs
+from ...utils import mkvc
 from ..frequency_domain.simulation import BaseFDEMSimulation
 from ..utils import omega
-from .survey import Survey, Data
+from .survey import Data
 from .fields import Fields1DPrimarySecondary, Fields3DPrimarySecondary
 
 
@@ -46,14 +37,14 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
 
         :param numpy.ndarray m: conductivity model (nP,)
         :param numpy.ndarray v: vector which we take sensitivity product with (nP,)
-        :param SimPEG.EM.NSEM.FieldsNSEM (optional) u: NSEM fields object, if not given it is calculated
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM (optional) u: NSEM fields object, if not given it is calculated
         :rtype: numpy.ndarray
         :return: Jv (nData,) Data sensitivities wrt m
         """
 
         # Calculate the fields if not given as input
         if f is None:
-           f = self.fields(m)
+            f = self.fields(m)
         # Set current model
         self.model = m
         # Initiate the Jv object
@@ -70,13 +61,13 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 # We need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
                 # NOTE: need to account for the 2 polarizations in the derivatives.
-                u_src = f[src,:] # u should be a vector by definition. Need to fix this...
+                u_src = f[src, :]  # u should be a vector by definition. Need to fix this...
                 # dA_dm and dRHS_dm should be of size nE,2, so that we can multiply by Ainv.
                 # The 2 columns are each of the polarizations.
                 dA_dm_v = self.getADeriv(freq, u_src, v) # Size: nE,2 (u_px,u_py) in the columns.
                 dRHS_dm_v = self.getRHSDeriv(freq, v) # Size: nE,2 (u_px,u_py) in the columns.
                 # Calculate du/dm*v
-                du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v)
+                du_dm_v = Ainv * (-dA_dm_v + dRHS_dm_v)
                 # Calculate the projection derivatives
                 for rx in src.receiver_list:
                     # Calculate dP/du*du/dm*v
@@ -91,7 +82,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
 
         :param numpy.ndarray m: inversion model (nP,)
         :param numpy.ndarray v: vector which we take adjoint product with (nP,)
-        :param SimPEG.EM.NSEM.FieldsNSEM f (optional): NSEM fields object, if not given it is calculated
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f (optional): NSEM fields object, if not given it is calculated
         :rtype: numpy.ndarray
         :return: Jtv (nP,) Data sensitivities wrt m
         """
@@ -254,6 +245,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     def getRHS(self, freq):
         """
             Function to return the right hand side for the system.
+
             :param float freq: Frequency
             :rtype: numpy.ndarray
             :return: RHS for 1 polarizations, primary fields (nF, 1)
@@ -280,7 +272,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray m: Conductivity model (nC,)
-        :rtype: SimPEG.EM.NSEM.FieldsNSEM.Fields1DPrimarySecondary
+        :rtype: SimPEG.electromagnetics.natural_source.fields.Fields1DPrimarySecondary
         :return: NSEM fields object containing the solution
         """
         # Set the current model
@@ -379,7 +371,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
         Calculate the derivative of A wrt m.
 
         :param float freq: Frequency
-        :param SimPEG.EM.NSEM.FieldsNSEM u: NSEM Fields object
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM u: NSEM Fields object
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False)
             and size (nP,) (adjoint=True)
         :rtype: numpy.ndarray
@@ -447,7 +439,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray (nC,) m: Conductivity model
-        :rtype: SimPEG.EM.NSEM.FieldsNSEM
+        :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
         :return: Fields object with of the solution
 
         """
@@ -481,106 +473,106 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
             Ainv.clean()
         return F
 
-    def fields2(self, freq):
-        """
-        Function to calculate all the fields for the model m.
-
-        :param numpy.ndarray (nC,) m: Conductivity model
-        :rtype: SimPEG.EM.NSEM.FieldsNSEM
-        :return: Fields object with of the solution
-
-        """
-        """
-        Function to calculate all the fields for the model m.
-
-        :param numpy.ndarray (nC,) m: Conductivity model
-        :rtype: SimPEG.EM.NSEM.FieldsNSEM
-        :return: Fields object with of the solution
-
-        """
-        A = self.getA(freq)
-        rhs = self.getRHS(freq)
-        # Solve the system
-        Ainv = self.Solver(A, **self.solver_opts)
-        e_s = Ainv * rhs
-
-        # Store the fields
-        # Src = self.survey.get_sources_by_frequency(freq)[0]
-        # Store the fields
-        # Use self._solutionType
-        # self.F[Src, 'e_pxSolution'] = e_s[:, 0]
-        # self.F[Src, 'e_pySolution'] = e_s[:, 1]
-            # Note curl e = -iwb so b = -curl/iw
-
-        Ainv.clean()
-        return e_s
-
-    def fieldsMulti(self, freq):
-        """
-        Function to calculate all the fields for the model m.
-
-        :param numpy.ndarray (nC,) m: Conductivity model
-        :rtype: SimPEG.EM.NSEM.FieldsNSEM
-        :return: Fields object with of the solution
-
-        """
-        """
-        Function to calculate all the fields for the model m.
-
-        :param numpy.ndarray (nC,) m: Conductivity model
-        :rtype: SimPEG.EM.NSEM.FieldsNSEM
-        :return: Fields object with of the solution
-
-        """
-        A = self.getA(freq)
-        rhs = self.getRHS(freq)
-        # Solve the system
-        Ainv = self.Solver(A, **self.solver_opts)
-        e_s = Ainv * rhs
-
-        # Store the fields
-        Src = self.survey.get_sources_by_frequency(freq)[0]
-        # Store the fields
-        # Use self._solutionType
-        self.F[Src, 'e_pxSolution'] = e_s[:, 0]
-        self.F[Src, 'e_pySolution'] = e_s[:, 1]
-            # Note curl e = -iwb so b = -curl/iw
-        Ainv.clean()
-
-    def fieldsParallel(self, m=None):
-        parallel = 'dask'
-
-        if m is not None:
-            self.model = m
-
-        F = self.fieldsPair(self)
-
-        if parallel == 'dask':
-            output = []
-            f_ = dask.delayed(self.fields2, pure=True)
-            for freq in self.survey.frequencies:
-                output.append(da.from_delayed(f_(freq), (self.model.size, 2), dtype=float))
-
-            e_s = da.hstack(output).compute()
-            cnt = 0
-            for freq in self.survey.frequencies:
-                index = cnt * 2
-                # Store the fields
-                Src = self.survey.get_sources_by_frequency(freq)[0]
-                # Store the fields
-                # Use self._solutionType
-                F[Src, 'e_pxSolution'] = e_s[:, index]
-                F[Src, 'e_pySolution'] = e_s[:, index + 1]
-                cnt += 1
-
-        elif parallel == 'multipro':
-            self.F = F
-            pool = multiprocessing.Pool()
-            pool.map(self.fieldsMulti, self.survey.frequencies)
-            pool.close()
-            pool.join()
-
-        return F
+    # def fields2(self, freq):
+    #     """
+    #     Function to calculate all the fields for the model m.
+    #
+    #     :param numpy.ndarray (nC,) m: Conductivity model
+    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+    #     :return: Fields object with of the solution
+    #
+    #     """
+    #     """
+    #     Function to calculate all the fields for the model m.
+    #
+    #     :param numpy.ndarray (nC,) m: Conductivity model
+    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+    #     :return: Fields object with of the solution
+    #
+    #     """
+    #     A = self.getA(freq)
+    #     rhs = self.getRHS(freq)
+    #     # Solve the system
+    #     Ainv = self.Solver(A, **self.solver_opts)
+    #     e_s = Ainv * rhs
+    #
+    #     # Store the fields
+    #     # Src = self.survey.get_sources_by_frequency(freq)[0]
+    #     # Store the fields
+    #     # Use self._solutionType
+    #     # self.F[Src, 'e_pxSolution'] = e_s[:, 0]
+    #     # self.F[Src, 'e_pySolution'] = e_s[:, 1]
+    #         # Note curl e = -iwb so b = -curl/iw
+    #
+    #     Ainv.clean()
+    #     return e_s
+    #
+    # def fieldsMulti(self, freq):
+    #     """
+    #     Function to calculate all the fields for the model m.
+    #
+    #     :param numpy.ndarray (nC,) m: Conductivity model
+    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+    #     :return: Fields object with of the solution
+    #
+    #     """
+    #     """
+    #     Function to calculate all the fields for the model m.
+    #
+    #     :param numpy.ndarray (nC,) m: Conductivity model
+    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+    #     :return: Fields object with of the solution
+    #
+    #     """
+    #     A = self.getA(freq)
+    #     rhs = self.getRHS(freq)
+    #     # Solve the system
+    #     Ainv = self.Solver(A, **self.solver_opts)
+    #     e_s = Ainv * rhs
+    #
+    #     # Store the fields
+    #     Src = self.survey.get_sources_by_frequency(freq)[0]
+    #     # Store the fields
+    #     # Use self._solutionType
+    #     self.F[Src, 'e_pxSolution'] = e_s[:, 0]
+    #     self.F[Src, 'e_pySolution'] = e_s[:, 1]
+    #         # Note curl e = -iwb so b = -curl/iw
+    #     Ainv.clean()
+    #
+    # def fieldsParallel(self, m=None):
+    #     parallel = 'dask'
+    #
+    #     if m is not None:
+    #         self.model = m
+    #
+    #     F = self.fieldsPair(self)
+    #
+    #     if parallel == 'dask':
+    #         output = []
+    #         f_ = dask.delayed(self.fields2, pure=True)
+    #         for freq in self.survey.frequencies:
+    #             output.append(da.from_delayed(f_(freq), (self.model.size, 2), dtype=float))
+    #
+    #         e_s = da.hstack(output).compute()
+    #         cnt = 0
+    #         for freq in self.survey.frequencies:
+    #             index = cnt * 2
+    #             # Store the fields
+    #             Src = self.survey.get_sources_by_frequency(freq)[0]
+    #             # Store the fields
+    #             # Use self._solutionType
+    #             F[Src, 'e_pxSolution'] = e_s[:, index]
+    #             F[Src, 'e_pySolution'] = e_s[:, index + 1]
+    #             cnt += 1
+    #
+    #     elif parallel == 'multipro':
+    #         self.F = F
+    #         pool = multiprocessing.Pool()
+    #         pool.map(self.fieldsMulti, self.survey.frequencies)
+    #         pool.close()
+    #         pool.join()
+    #
+    #     return F
 
 
 ############

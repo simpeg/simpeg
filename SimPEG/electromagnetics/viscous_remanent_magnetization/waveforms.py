@@ -385,6 +385,7 @@ class ArbitraryDiscrete(properties.HasProperties):
 
         return eta
 
+
 ###################################################
 #    ARBITRARY WAVEFORM PIECEWISE DISCRETIZATION
 ###################################################

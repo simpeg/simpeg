@@ -2,10 +2,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .. import receiver as rx
+from .. import receivers as rx
 import properties
 
-from plot_utils import ApperentResPhsStationPlot, TipperAmplitudeStationPlot
+from .plot_utils import ApparentResPhsStationPlot, TipperAmplitudeStationPlot
 
 class NSEM_data_viewer(properties.HasProperties):
     """
@@ -14,13 +14,13 @@ class NSEM_data_viewer(properties.HasProperties):
     Generates a clickble location map of the data, plotting data curves
     in a separate window.
 
-    **Required**
-    :param SimPEG.EM.NSEM.Data data: Data object, needs to have assigned
+    :param SimPEG.electromagnetics.natural_source.Data data: Data object, needs to have assigned
         standard_deviation and floor
 
-    **Optional**
-    :param dict data_dict: A dictionary of other NSEM Data objects
-    :param string backend: Flag to control the backend used in matplotlib
+    :param data_dict: A dictionary of other NSEM Data objects
+    :type data_dict: dict, optional
+    :param backend: Flag to control the backend used in matplotlib
+    :type backend: str, optional
 
     """
 
@@ -65,7 +65,7 @@ class NSEM_data_viewer(properties.HasProperties):
         unique_rx = np.unique(
             np.array([rx.__class__ for src in self._data.survey.source_list for rx in src.receiver_list]))
         if rx.Point3DImpedance in unique_rx:
-            self.station_figs.append(ApperentResPhsStationPlot())
+            self.station_figs.append(ApparentResPhsStationPlot())
         if rx.Point3DTipper in unique_rx:
             self.station_figs.append(TipperAmplitudeStationPlot())
 
@@ -164,4 +164,3 @@ class NSEM_data_viewer(properties.HasProperties):
         if len(self.station_figs) > 0:
             for sta_fig in self.station_figs:
                 sta_fig.clear_axes()
-

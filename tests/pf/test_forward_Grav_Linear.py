@@ -86,8 +86,11 @@ class GravFwdProblemTests(unittest.TestCase):
 
     def tearDown(self):
         # Clean up the working directory
-        if self.sim.store_sensitivities == 'disk':
-            shutil.rmtree(self.sim.sensitivity_path)
+        try:
+            if self.sim.store_sensitivities == 'disk':
+                shutil.rmtree(self.sim.sensitivity_path)
+        except FileNotFoundError:
+            pass
 
 class GravityGradientFwdProblemTests(unittest.TestCase):
 

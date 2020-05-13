@@ -153,8 +153,11 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         """Create the projected data from a model.
         The field, f, (if provided) will be used for the predicted data
         instead of recalculating the fields (which may be expensive!).
+
         .. math::
+
             d_\\text{pred} = P(f(m), m)
+
         Where P is a projection of the fields onto the data space.
         """
         if f is None:

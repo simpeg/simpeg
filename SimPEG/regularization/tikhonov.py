@@ -177,10 +177,10 @@ class Simple(BaseComboRegularization):
 
     where:
 
-    - :math:`\phi_s` is a :class:`SimPEG.Regularization.Small` instance
-    - :math:`\phi_x` is a :class:`SimPEG.Regularization.SimpleSmoothDeriv` instance, with :code:`orientation='x'`
-    - :math:`\phi_y` is a :class:`SimPEG.Regularization.SimpleSmoothDeriv` instance, with :code:`orientation='y'`
-    - :math:`\phi_z` is a :class:`SimPEG.Regularization.SimpleSmoothDeriv` instance, with :code:`orientation='z'`
+    - :math:`\phi_s` is a :class:`SimPEG.regularization.Small` instance
+    - :math:`\phi_x` is a :class:`SimPEG.regularization.SimpleSmoothDeriv` instance, with :code:`orientation='x'`
+    - :math:`\phi_y` is a :class:`SimPEG.regularization.SimpleSmoothDeriv` instance, with :code:`orientation='y'`
+    - :math:`\phi_z` is a :class:`SimPEG.regularization.SimpleSmoothDeriv` instance, with :code:`orientation='z'`
 
 
     **Required Inputs**

@@ -13,14 +13,22 @@ About SimPEG
    content/basic/installing
    content/basic/getting_started_developers
    content/basic/practices
-   content/examples/index
+
+Examples
+********
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Examples uses of SimPEG
+
+    content/examples/index
 
 Tutorials
 *********
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Tutorials
+   :maxdepth: 3
+   :caption: Tutorials to get up and going
 
    content/tutorials/mesh_generation/index
    content/tutorials/models_mapping/index

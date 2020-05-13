@@ -8,7 +8,6 @@ from SimPEG import (
 )
 from SimPEG.utils import mkvc
 from SimPEG.electromagnetics import resistivity as dc
-from pymatsolver import Pardiso
 
 np.random.seed(40)
 

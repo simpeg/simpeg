@@ -11,7 +11,7 @@ from .utils.source_utils import homo1DModelSource
 ###   Sources ###
 #################
 
-# class BaseFDEMSrc(FDEMBaseSrc):
+# class BaseFDEMSrc(BaseFDEMSrc):
 #     '''
 #     Sources for the NSEM simulation.
 #     Use the SimPEG BaseSrc, since the source fields share properties with the transmitters.
@@ -26,7 +26,7 @@ from .utils.source_utils import homo1DModelSource
 #     def __init__(self, receiver_list, frequency):
 
 #         self.frequency = float(frequency)
-#         FDEMBaseSrc.__init__(self, receiver_list)
+#         BaseFDEMSrc.__init__(self, receiver_list)
 
 # 1D sources
 class Planewave_xy_1DhomotD(BaseFDEMSrc):

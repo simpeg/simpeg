@@ -1,16 +1,18 @@
 import numpy as np
-from scipy.special import kn
 import properties
 
-from ....utils import mkvc, sdiag, Zero
+from ....utils import mkvc
 from ...base import BaseEMSimulation
 from ....data import Data
 from .... import props
 
 from .survey import Survey
 
-from empymod import filters
-from empymod.transform import dlf, get_spline_values
+from empymod.transform import dlf
+try:
+    from empymod.transform import get_spline_values as get_dlf_points
+except ImportError:
+    from empymod.transform import get_dlf_points
 from empymod.utils import check_hankel
 from ..utils import static_utils
 
@@ -42,11 +44,21 @@ class Simulation1DLayers(BaseEMSimulation):
 
     def __init__(self, **kwargs):
         BaseEMSimulation.__init__(self, **kwargs)
-        ht, htarg = check_hankel('fht', [self.hankel_filter, self.hankel_pts_per_dec], 1)
-        self.fhtfilt = htarg[0]                 # Store filter
+        try:
+            ht, htarg = check_hankel('fht', [self.hankel_filter, self.hankel_pts_per_dec], 1)
+            self.fhtfilt = htarg[0]             # Store filter
+            self.hankel_pts_per_dec = htarg[1]  # Store pts_per_dec
+        except ValueError:
+            arg = {}
+            arg['dlf'] = self.hankel_filter
+            if self.hankel_pts_per_dec is not None:
+                arg['pts_per_dec'] = self.hankel_pts_per_dec
+            ht, htarg = check_hankel('dlf', arg, 1)
+            self.fhtfilt = htarg['dlf']                     # Store filter
+            self.hankel_pts_per_dec = htarg['pts_per_dec']  # Store pts_per_dec
         self.hankel_filter = self.fhtfilt.name  # Store name
-        self.hankel_pts_per_dec = htarg[1]      # Store pts_per_dec
         self.n_filter = self.fhtfilt.base.size
+
 
     def fields(self, m):
 
@@ -64,11 +76,19 @@ class Simulation1DLayers(BaseEMSimulation):
             T0 = (T1 + rho0 * np.tanh(self.lambd*t0)) / (1.+(T1*np.tanh(self.lambd*t0)/rho0))
             T1 = T0
         PJ = (T0, None, None)
-        voltage = dlf(
-            PJ, self.lambd,
-            self.offset, self.fhtfilt,
-            self.hankel_pts_per_dec, factAng=None, ab=33
-        ).real / (2*np.pi)
+        try:
+            voltage = dlf(
+                PJ, self.lambd,
+                self.offset, self.fhtfilt,
+                self.hankel_pts_per_dec, factAng=None, ab=33
+            ).real / (2*np.pi)
+        except TypeError:
+            voltage = dlf(
+                PJ, self.lambd,
+                self.offset, self.fhtfilt,
+                self.hankel_pts_per_dec, ang_fact=None, ab=33
+            ).real / (2*np.pi)
+
         # Assume dipole-dipole
         V = voltage.reshape((self.survey.nD, 4), order='F')
         data = V[:, 0]+V[:, 1] - (V[:, 2]+V[:, 3])
@@ -186,7 +206,7 @@ class Simulation1DLayers(BaseEMSimulation):
         # TODO: only works isotropic sigma
         if getattr(self, '_lambd', None) is None:
             self._lambd = np.empty([self.offset.size, self.n_filter], order='F', dtype=complex)
-            self.lambd[:, :], _ = get_spline_values(
+            self.lambd[:, :], _ = get_dlf_points(
                 self.fhtfilt, self.offset, self.hankel_pts_per_dec
             )
         return self._lambd

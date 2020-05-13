@@ -22,10 +22,8 @@ def rotate_data(NSEMdata, rot_angle):
     Function that rotates clockwise by rotation angle
         (- negative for a counter-clockwise rotation)
 
-    **Required**
     :param SimPEG.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
-    :param float rot_angle: Rotation angel in degrees,
-        positive for clockwise rotation
+    :param float rot_angle: Rotation angel in degrees, positive for clockwise rotation
     '''
     recData = NSEMdata.toRecArray('Complex')
     impData = rec_to_ndarr(
@@ -57,7 +55,6 @@ def extract_data_info(NSEMdata):
     Useful when assigning uncertainties to data based on frequencies and
     receiver types.
 
-    **Required**
     :param SimPEG.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
 
     """
@@ -80,14 +77,16 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
     (uses the numerator location as a reference). Also gives the option
     of selecting frequencies and receiver.
 
-    **Required**
     :param SimPEG.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
 
-    **Optional**
-    :param numpy.ndarray locs: receiver locations to use (default is 'All' locations)
-    :param numpy.ndarray freqs: frequencies to use (default is 'All' frequencies))
-    :param string rxs: list of receiver sting types to use (default is 'All' types)
+    :param locs: receiver locations to use (default is 'All' locations)
+    :type locs: numpy.ndarray, optional
+    :param freqs: frequencies to use (default is 'All' frequencies))
+    :type freqs: numpy.ndarray, optional
+    :param rxs: list of receiver sting types to use (default is 'All' types).
         Can be any componation of ['zxx','zxy','zyx','zyy','tzx','tzy']
+    :type rxs: str, optional
+
     """
 
     # Initiate new objects
@@ -183,12 +182,12 @@ def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
     Function that converts a 3D NSEMdata of a list of
     1D NSEMdata objects for running 1D inversions for.
 
-    **Required**
     :param SimPEG.electromagnetics.natural_source.Data NSEMdata: NSEM data object to process
 
-    **Optional**
-    :param string rxType3D: component of the NSEMdata to use
+    :param rxType3D: component of the NSEMdata to use.
         Can be 'xy', 'yx' or 'det'
+    :type rxType3D: str, optional
+
     """
 
     # Find the unique locations

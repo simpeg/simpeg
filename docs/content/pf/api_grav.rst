@@ -6,7 +6,7 @@ The gravity problem uses an integral equation approach for solving the forward
 and inverse problem. This module supports both gravity and gravity gradient modeling.
 
 Gravity Integral eq. approach
-=========================
+=============================
 
 .. autoclass:: SimPEG.potential_fields.gravity.Simulation3DIntegral
     :show-inheritance:
@@ -16,7 +16,7 @@ Gravity Integral eq. approach
 
 
 Gravity Survey
-================
+==============
 
 .. autoclass:: SimPEG.potential_fields.gravity.GravitySurvey
     :show-inheritance:
@@ -26,7 +26,7 @@ Gravity Survey
 
 
 Gravity Source
-================
+==============
 
 .. autoclass:: SimPEG.potential_fields.gravity.SourceField
     :show-inheritance:
@@ -35,7 +35,7 @@ Gravity Source
     :inherited-members:
 
 
-Gravity Source
+Gravity Receiver
 ================
 
 .. autoclass:: SimPEG.potential_fields.gravity.Point
@@ -46,7 +46,7 @@ Gravity Source
 
 
 Gravity analytic solutions
-----------------------
+--------------------------
 
 .. automodule:: SimPEG.potential_fields.gravity.analytics
     :show-inheritance:

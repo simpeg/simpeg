@@ -84,7 +84,7 @@ class MagDipole(BaseSrcVRM):
 
         return np.c_[hx0, hy0, hz0]
 
-    def _getRefineFlags(self, xyzc, ref_factor, ref_radius):
+    def _getRefineFlags(self, xyzc, refinement_factor, refinement_distance):
 
         """
         This function finds the refinement factor to be assigned to each cell
@@ -93,9 +93,9 @@ class MagDipole(BaseSrcVRM):
 
         xyzc -- Cell-center locations as NX3 array
 
-        ref_factor -- Refinement factors
+        refinement_factor -- Refinement factors
 
-        ref_radius -- Refinement radii
+        refinement_distance -- Refinement radii
 
         OUTPUTS:
 
@@ -111,10 +111,10 @@ class MagDipole(BaseSrcVRM):
             (xyzc[:, 2] - self.location[2])**2
         )
 
-        for nn in range(0, ref_factor):
+        for nn in range(0, refinement_factor):
 
-            k = (r < ref_radius[nn]+1e-5) & (refFlag < ref_factor-nn+1)
-            refFlag[k] = ref_factor - nn
+            k = (r < refinement_distance[nn]+1e-5) & (refFlag < refinement_factor-nn+1)
+            refFlag[k] = refinement_factor - nn
 
         return refFlag
 
@@ -199,7 +199,7 @@ class CircLoop(BaseSrcVRM):
 
         return np.c_[hx0, hy0, hz0]
 
-    def _getRefineFlags(self, xyzc, ref_factor, ref_radius):
+    def _getRefineFlags(self, xyzc, refinement_factor, refinement_distance):
 
         """
         This function finds the refinement factor to be assigned to each cell
@@ -208,9 +208,9 @@ class CircLoop(BaseSrcVRM):
 
         xyzc -- Cell-center locations as NX3 array
 
-        ref_factor -- Refinement factors
+        refinement_factor -- Refinement factors
 
-        ref_radius -- Refinement radii
+        refinement_distance -- Refinement radii
 
         OUTPUTS:
 
@@ -247,10 +247,10 @@ class CircLoop(BaseSrcVRM):
         cosA = np.sqrt(x1p**2 + x2p**2)/r
         d = np.sqrt(a**2 + r**2 - 2*a*r*cosA)
 
-        for nn in range(0, ref_factor):
+        for nn in range(0, refinement_factor):
 
-            k = (d < ref_radius[nn]+1e-3) & (refFlag < ref_factor-nn+1)
-            refFlag[k] = ref_factor - nn
+            k = (d < refinement_distance[nn]+1e-3) & (refFlag < refinement_factor-nn+1)
+            refFlag[k] = refinement_factor - nn
 
         return refFlag
 
@@ -355,7 +355,7 @@ class LineCurrent(BaseSrcVRM):
 
         return np.c_[hx0, hy0, hz0]
 
-    def _getRefineFlags(self, xyzc, ref_factor, ref_radius):
+    def _getRefineFlags(self, xyzc, refinement_factor, refinement_distance):
 
         """
         This function finds the refinement factor to be assigned to each cell
@@ -364,9 +364,9 @@ class LineCurrent(BaseSrcVRM):
 
         xyzc -- Cell-center locations as NX3 array
 
-        ref_factor -- Refinement factors
+        refinement_factor -- Refinement factors
 
-        ref_radius -- Refinement radii
+        refinement_distance -- Refinement radii
 
         OUTPUTS:
 
@@ -390,9 +390,9 @@ class LineCurrent(BaseSrcVRM):
                 2*(tx1[2] - tx0[2])*(tx0[2] - xyzc[:, 2])
             )
 
-            for nn in range(0, ref_factor):
+            for nn in range(0, refinement_factor):
 
-                d = ref_radius[nn] + 1e-3
+                d = refinement_distance[nn] + 1e-3
                 c = (
                     (tx0[0] - xyzc[:, 0])**2 +
                     (tx0[1] - xyzc[:, 1])**2 +
@@ -416,8 +416,8 @@ class LineCurrent(BaseSrcVRM):
                     (k_pos == True)
                 )
 
-                ind = (k_pos == False) & (k_neg == False) & (ref_flag_tt < ref_factor+1-nn)
-                ref_flag_tt[ind] = ref_factor - nn
+                ind = (k_pos == False) & (k_neg == False) & (ref_flag_tt < refinement_factor+1-nn)
+                ref_flag_tt[ind] = refinement_factor - nn
 
             ref_flag = np.maximum(ref_flag, ref_flag_tt)
 

@@ -242,7 +242,10 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
 
     def tearDown(self):
         # Clean up the working directory
-        shutil.rmtree(self.p.Jpath)
+        try:
+            shutil.rmtree(self.p.sensitivity_path)
+        except FileNotFoundError:
+            pass
 
 
 class IPProblemTestsN_storeJ(unittest.TestCase):
@@ -320,7 +323,10 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
 
     def tearDown(self):
         # Clean up the working directory
-        shutil.rmtree(self.p.Jpath)
+        try:
+            shutil.rmtree(self.p.sensitivity_path)
+        except FileNotFoundError:
+            pass
 
 if __name__ == '__main__':
     unittest.main()

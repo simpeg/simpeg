@@ -101,7 +101,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         simulation.Solver = Solver
 
 #        f = simulation.fields()
-        f = simulation.fields(self.sigma).compute()
+        f = simulation.fields(self.sigma)
         eNumeric = utils.mkvc(f[self.survey.source_list,'e'])
         jNumeric = utils.mkvc(f[self.survey.source_list,'j'])
         errE = (
@@ -132,7 +132,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
             )
         simulation.Solver = Solver
 
-        f = simulation.fields(self.sigma).compute()
+        f = simulation.fields(self.sigma)
         eNumeric = utils.mkvc(f[self.survey.source_list,'e'])
         jNumeric = utils.mkvc(f[self.survey.source_list,'j'])
         errE = (
@@ -163,7 +163,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
             )
         simulation.Solver = Solver
 
-        f = simulation.fields(self.sigma).compute()
+        f = simulation.fields(self.sigma)
         eNumeric = utils.mkvc(f[self.survey.source_list,'e'])
         jNumeric = utils.mkvc(f[self.survey.source_list,'j'])
         errE = (
@@ -273,7 +273,7 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
         simulation = dc.simulation.Simulation3DNodal(self.mesh, survey=self.survey, sigma=self.sigma)
         simulation.Solver = Solver
 
-        f = simulation.fields(self.sigma).compute()
+        f = simulation.fields(self.sigma)
         eNumeric = utils.mkvc(f[self.survey.source_list,'e'])
         jNumeric = utils.mkvc(f[self.survey.source_list,'j'])
         errE = (

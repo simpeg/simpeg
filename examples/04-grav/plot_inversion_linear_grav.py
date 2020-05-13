@@ -19,8 +19,6 @@ from SimPEG import (
 from SimPEG import utils
 from SimPEG.utils import plot2Ddata
 
-import shutil
-
 def run(plotIt=True):
 
     # Create a mesh
@@ -130,8 +128,6 @@ def run(plotIt=True):
     # Run the inversion
 
     mrec = inv.run(m0)
-
-    shutil.rmtree(simulation.sensitivity_path)
 
     if plotIt:
         # Here is the recovered susceptibility model

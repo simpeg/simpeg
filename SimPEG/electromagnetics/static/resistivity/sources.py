@@ -2,7 +2,7 @@ import numpy as np
 import properties
 
 from .... import survey
-from ....utils import Zero, closestPoints, mkvc
+from ....utils import Zero, closestPoints
 from ....utils.code_utils import deprecate_property
 
 

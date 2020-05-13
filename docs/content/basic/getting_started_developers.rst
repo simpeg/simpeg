@@ -23,7 +23,7 @@ recommend checking out `Software Carpentry <http://software-carpentry.org/>`_.
 
 .. _Python: https://www.python.org/
 
-.. _Anaconda: https://www.continuum.io/downloads/
+.. _Anaconda: https://www.anaconda.com/products/individual
 
 
 .. _getting_started_working_with_git_and_github:
@@ -31,7 +31,7 @@ recommend checking out `Software Carpentry <http://software-carpentry.org/>`_.
 Working with Git and GitHub
 ---------------------------
 
-.. image:: https://assets-cdn.github.com/images/modules/logos_page/Octocat.png
+.. image:: https://github.githubassets.com/images/modules/logos_page/Octocat.png
     :align: right
     :width: 100
     :target: http://github.com
@@ -166,7 +166,7 @@ line at the end of all saved documents. The rest are up to you.
 Jupyter Notebook
 ----------------
 
-.. image:: http://blog.jupyter.org/content/images/2015/02/jupyter-sq-text.png
+.. image:: https://jupyter.org/assets/main-logo.svg
     :align: right
     :width: 100
 

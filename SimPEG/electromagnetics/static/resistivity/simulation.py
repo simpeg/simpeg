@@ -1,9 +1,7 @@
 import numpy as np
 import scipy as sp
 import properties
-import shutil
 from ....utils.code_utils import deprecate_class
-import warnings
 
 from ....utils import mkvc, sdiag, Zero
 from ....data import Data
@@ -12,23 +10,12 @@ from .boundary_utils import getxBCyBC_CC
 from .survey import Survey
 from .fields import Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
-import dask
-import dask.array as da
-import multiprocessing
-import os
-from scipy.sparse import csr_matrix as csr
-from pyMKL import mkl_set_num_threads
-import sparse
-from dask.delayed import Delayed
 
 
 class BaseDCSimulation(BaseEMSimulation):
     """
     Base DC Problem
     """
-    Jpath = "./sensitivity/"
-    # n_cpu = None
-    maxRAM = 2
 
     survey = properties.Instance(
         "a DC survey object", Survey, required=True
@@ -43,8 +30,6 @@ class BaseDCSimulation(BaseEMSimulation):
     Ainv = None
     _Jmatrix = None
     gtgdiag = None
-    n_cpu = int(multiprocessing.cpu_count())
-    max_chunk_size = 128
 
     def __init__(self, *args, **kwargs):
         miniaturize = kwargs.pop('miniaturize', False)
@@ -55,18 +40,14 @@ class BaseDCSimulation(BaseEMSimulation):
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
 
     def fields(self, m=None, calcJ=True):
-
-        mkl_set_num_threads(self.n_cpu)
-
         if m is not None:
             self.model = m
             self._Jmatrix = None
 
         f = self.fieldsPair(self)
-        A = self.getA()
-
         if self.Ainv is not None:
             self.Ainv.clean()
+        A = self.getA()
         self.Ainv = self.solver(A, **self.solver_opts)
         RHS = self.getRHS()
 
@@ -74,8 +55,14 @@ class BaseDCSimulation(BaseEMSimulation):
 
         return f
 
-    def dpred(self, m=None, f=None):
+    def getJ(self, m, f=None):
+        if self._Jmatrix is None:
+            if f is None:
+                f = self.fields(m)
+            self._Jmatrix = self._Jtvec(m, v=None, f=f).T
+        return self._Jmatrix
 
+    def dpred(self, m=None, f=None):
         if self._mini_survey is not None:
             # Temporarily set self.survey to self._mini_survey
             survey = self.survey
@@ -93,129 +80,20 @@ class BaseDCSimulation(BaseEMSimulation):
         """
             Return the diagonal of JtJ
         """
-
         if (self.gtgdiag is None):
+            J = self.getJ(m)
 
-            # Need to check if multiplying weights makes sense
             if W is None:
-                self.gtgdiag = da.sum(self.getJ(m)**2, axis=0).compute()
+                W = np.ones(J.shape[0])
             else:
-                w = da.from_array(W.diagonal())[:, None]
-                self.gtgdiag = da.sum((w*self.getJ(m))**2, axis=0).compute()
+                W = W.diagonal()**2
 
+            diag = np.zeros(J.shape[1])
+            for i in range(J.shape[0]):
+                diag += (W[i])*(J[i]*J[i])
+
+            self.gtgdiag = diag
         return self.gtgdiag
-
-    def getJ(self, m, f=None):
-        """
-            Generate Full sensitivity matrix
-        """
-
-
-        if self._Jmatrix is not None:
-            return self._Jmatrix
-        else:
-
-            self.model = m
-            if f is None:
-                f = self.fields(m)
-
-        if self.verbose:
-            print("Calculating J and storing")
-
-        if self._mini_survey is not None:
-            # Need to us _Jtvec for this operation currently...
-            J = self._Jtvec(m=m, v=None, f=f).T
-            self._Jmatrix = da.from_array(J)
-            return self._Jmatrix
-
-        if os.path.exists(self.Jpath):
-            shutil.rmtree(self.Jpath, ignore_errors=True)
-
-            # Wait for the system to clear out the directory
-            while os.path.exists(self.Jpath):
-                pass
-
-        nD = self.survey.nD
-        nC = m.shape[0]
-
-        # print('DASK: Chunking using parameters')
-        nChunks_col = 1
-        nChunks_row = 1
-        rowChunk = int(np.ceil(nD/nChunks_row))
-        colChunk = int(np.ceil(nC/nChunks_col))
-        chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
-
-        # Add more chunks until memory falls below target
-        while chunk_size >= self.max_chunk_size:
-
-            if rowChunk > colChunk:
-                nChunks_row += 1
-            else:
-                nChunks_col += 1
-
-            rowChunk = int(np.ceil(nD/nChunks_row))
-            colChunk = int(np.ceil(nC/nChunks_col))
-            chunk_size = rowChunk*colChunk*8*1e-6  # in Mb
-
-        count = 0
-        for source in self.survey.source_list:
-            u_source = f[source, self._solutionType].copy()
-            for rx in source.receiver_list:
-                # wrt f, need possibility wrt m
-                PTv = rx.getP(self.mesh, rx.projGLoc(f)).T
-
-                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
-                                    None)
-                df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
-
-                # Find a block of receivers
-                n_block_col = int(np.ceil(df_duT.shape[0]*df_duT.shape[1]*8*1e-9 / self.maxRAM))
-
-                n_col = int(np.ceil(df_duT.shape[1] / n_block_col))
-
-                nrows = int(self.model.size / np.ceil(self.model.size * n_col * 8 * 1e-6 / self.max_chunk_size))
-                ind = 0
-                for col in range(n_block_col):
-                    ATinvdf_duT = da.asarray(self.Ainv * np.asarray(df_duT[:, ind:ind+n_col].todense())).rechunk((nrows, n_col))
-
-                    dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
-
-                    dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
-
-                    if n_col > 1:
-                        du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
-                                                 shape=(self.model.size, n_col),
-                                                 dtype=float)
-                    else:
-                        du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
-                                                 shape=(self.model.size,),
-                                                 dtype=float)
-
-                    if not isinstance(dRHS_dmT, Zero):
-                        du_dmT += da.from_delayed(dask.delayed(dRHS_dmT), shape=(self.model.size, n_col), dtype=float)
-
-                    if not isinstance(df_dmT, Zero):
-                        du_dmT += da.from_delayed(df_dmT, shape=(self.model.size, n_col), dtype=float)
-
-                    blockName = self.Jpath + "J" + str(count) + ".zarr"
-                    da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
-                    del ATinvdf_duT
-                    count += 1
-
-                    ind += n_col
-
-        dask_arrays = []
-        for ii in range(count):
-            blockName = self.Jpath + "J" + str(ii) + ".zarr"
-            J = da.from_zarr(blockName)
-            # Stack all the source blocks in one big zarr
-            dask_arrays.append(J)
-
-        # self._Jmatrix = da.concatenate(dask_arrays, axis=0).rechunk((rowChunk, colChunk))
-        self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
-        self.Ainv.clean()
-
-        return self._Jmatrix
 
     def Jvec(self, m, v, f=None):
         """
@@ -227,7 +105,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         if self.storeJ:
             J = self.getJ(m, f=f)
-            return J.dot(v).compute()
+            return J.dot(v)
 
         self.model = m
 
@@ -235,10 +113,6 @@ class BaseDCSimulation(BaseEMSimulation):
             survey = self._mini_survey
         else:
             survey = self.survey
-
-        # if self.storeJ:
-        #     J = self.getJ(m, f=f)
-        #     return da.dot(J, da.from_array(v, chunks=self._Jmatrix.chunks[1]))
 
         Jv = []
         for source in survey.source_list:
@@ -265,13 +139,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         if self.storeJ:
             J = self.getJ(m, f=f)
-            self._Jmatrix = J
-            return mkvc(
-                da.dot(
-                    da.from_array(
-                        v, chunks=self._Jmatrix.chunks[0]), self._Jmatrix
-                ).compute()
-            )
+            return np.asarray(J.T.dot(v))
 
         return self._Jtvec(m, v=v, f=f)
 
@@ -363,6 +231,8 @@ class BaseDCSimulation(BaseEMSimulation):
         toDelete = super(BaseDCSimulation, self).deleteTheseOnModelUpdate
         if self._Jmatrix is not None:
             toDelete += ['_Jmatrix']
+        if self.gtgdiag is not None:
+            toDelete += ['gtgdiag']
         return toDelete
 
     def _mini_survey_data(self, d_mini):
@@ -414,10 +284,9 @@ class Simulation3DCellCentered(BaseDCSimulation):
         D = self.Div
         G = self.Grad
         MfRhoI = self.MfRhoI
-        A = D * MfRhoI * G
+        A = D @ MfRhoI @ G
 
         if(self.bc_type == 'Neumann'):
-            Vol = self.mesh.vol
             if self.verbose:
                 print('Perturbing first row of A to remove nullspace for Neumann BC.')
 
@@ -427,40 +296,17 @@ class Simulation3DCellCentered(BaseDCSimulation):
                 A[0, jj] = 0.
             A[0, 0] = 1.
 
-        # I think we should deprecate this for DC problem.
-        # if self._makeASymmetric is True:
-        #     return V.T * A
         return A
 
     def getADeriv(self, u, v, adjoint=False):
+        D = self.Div
+        G = self.Grad
+        MfRhoIDeriv = self.MfRhoIDeriv
 
-        if self.storeJ:
-            Gvec = self.Grad * u
+        if adjoint:
+            return MfRhoIDeriv(G@u, D.T@v, adjoint)
 
-            if getattr(self, "Div_coo", None) is None:
-                self.Div_coo = da.from_array(
-                    sparse.COO.from_scipy_sparse(self.Div.T),
-                    chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
-                )
-
-            if adjoint:
-
-                Dvec = da.dot(self.Div_coo, v)
-
-                return self.MfRhoIDerivDask(Gvec, Dvec, adjoint)
-
-            vec = self.MfRhoIDerivDask(Gvec, v, adjoint)
-
-            return da.dot(self.Div_coo, vec)
-        else:
-            D = self.Div
-            G = self.Grad
-            MfRhoIDeriv = self.MfRhoIDeriv
-
-            if adjoint:
-                return MfRhoIDeriv(G * u, D.T * v, adjoint)
-
-            return D * (MfRhoIDeriv(G * u, v, adjoint))
+        return D * (MfRhoIDeriv(G@u, v, adjoint))
 
     def getRHS(self):
         """
@@ -481,84 +327,11 @@ class Simulation3DCellCentered(BaseDCSimulation):
         # return qDeriv
         return Zero()
 
-    def MfRhoIDerivDask(self, u, v=None, adjoint=False):
-        """
-            Derivative of :code:`MfRhoI` with respect to the model.
-        """
-        if self.rhoMap is None:
-            return Zero()
-
-        if len(self.rho.shape) > 1:
-            if self.rho.shape[1] > self.mesh.dim:
-                raise NotImplementedError(
-                    "Full anisotropy is not implemented for MfRhoIDeriv."
-                )
-
-        if getattr(self, 'dMfRhoI_dI', None) is None:
-            self.dMfRhoI_dI = -self.MfRhoI.power(2.)
-
-        if adjoint is True:
-
-            vec = self.dMfRhoI_dI.T * u
-            return self.MfRhoDeriv(
-                vec, v=v, adjoint=adjoint
-            )
-        else:
-            vec = self.MfRhoDeriv(u, v=v)
-
-            return da.from_delayed(
-                dask.delayed(csr.dot)(self.dMfRhoI_dI, vec),
-                dtype=float, shape=[self.dMfRhoI_dI.shape[0], vec.shape[1]]
-            )
-            # return dMfRhoI_dI * self.MfRhoDeriv(u, v=v)
-
-    def MfRhoDerivDask(self, u, v=None, adjoint=False):
-        """
-        Derivative of :code:`MfRho` with respect to the model.
-        """
-        if self.rhoMap is None:
-            return Zero()
-
-        if getattr(self, '_MfRhoDeriv', None) is None:
-            MfRhoDeriv = self.mesh.getFaceInnerProductDeriv(
-                np.ones(self.mesh.nC)
-            )(np.ones(self.mesh.nF)) * self.rhoDeriv
-
-            self._MfRhoDeriv = da.from_array(
-                    sparse.COO.from_scipy_sparse(MfRhoDeriv),
-                    chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
-            )
-
-        if v is not None:
-            udiag = da.from_array(
-                sparse.COO.from_scipy_sparse(sdiag(u)),
-                chunks=(v.chunksize[0], v.chunksize[0]), asarray=False
-            )
-
-            if adjoint is True:
-
-                uvec = da.dot(udiag, v)
-
-                return da.dot(self._MfRhoDeriv.T, uvec)
-
-
-            vec = da.dot(self._MfRhoDeriv, v)
-            return da.dot(udiag, vec)
-
-        else:
-            if adjoint is True:
-
-                return da.dot(self._MfRhoDeriv.T, udiag)
-
-            return da.dot(udiag, self._MfRhoDeriv)
-
-            # sdiag(u)*(self._MfRhoDeriv)
-
     def setBC(self):
         if self.bc_type == 'Dirichlet':
             if self.verbose:
                 print('Homogeneous Dirichlet is the natural BC for this CC discretization.')
-            self.Div = sdiag(self.mesh.vol) * self.mesh.faceDiv
+            self.Div = sdiag(self.mesh.vol) @ self.mesh.faceDiv
             self.Grad = self.Div.T
 
         else:
@@ -719,7 +492,7 @@ class Simulation3DNodal(BaseDCSimulation):
 
         MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
-        A = Grad.T * MeSigma * Grad
+        A = Grad.T @ MeSigma @ Grad
 
         # Handling Null space of A
         I, J, V = sp.sparse.find(A[0, :])
@@ -736,9 +509,9 @@ class Simulation3DNodal(BaseDCSimulation):
         """
         Grad = self.mesh.nodalGrad
         if not adjoint:
-            return Grad.T*self.MeSigmaDeriv(Grad*u, v, adjoint)
+            return Grad.T@self.MeSigmaDeriv(Grad@u, v, adjoint)
         elif adjoint:
-            return self.MeSigmaDeriv(Grad*u, Grad*v, adjoint)
+            return self.MeSigmaDeriv(Grad@u, Grad@v, adjoint)
 
     def getRHS(self):
         """

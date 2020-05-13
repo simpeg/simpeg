@@ -100,7 +100,7 @@ For the frequency range typical of most geophysical surveys, the contribution of
 Geophysical methods where the quasi-static approximation, often called diffusive approximation, does not hold are high-frequency methods such as ground-penetrating radar or dielectric well-log measurements.
 
 Implementation in SimPEG.electromagnetics
-===========================
+=========================================
 
 We consider two formulations in SimPEG.electromagnetics, both first-order and both in terms of one field and one flux. We allow for the definition of magnetic and electric sources (see for example: Ward and Hohmann, starting on page 144). The E-B formulation is in terms of the electric field and the magnetic flux:
 

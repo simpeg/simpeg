@@ -174,7 +174,7 @@ class AmpProblemTest(unittest.TestCase):
 
         simulation = magnetics.simulation.Simulation3DIntegral(
                 mesh=mesh, survey=surveyAmp, chiMap=idenMap,
-                actInd=surf, modelType='amplitude', store_sensitivities='forward_only'
+                actInd=surf, is_amplitude_data=True, store_sensitivities='forward_only'
         )
 
         bAmp = simulation.fields(mrec)
@@ -199,7 +199,7 @@ class AmpProblemTest(unittest.TestCase):
         # Create the forward model operator
         simulation = magnetics.simulation.Simulation3DIntegral(
            survey=surveyAmp, mesh=mesh, chiMap=idenMap, actInd=actv,
-           modelType='amplitude'
+            is_amplitude_data=True
         )
 
         data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)

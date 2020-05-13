@@ -30,11 +30,11 @@ Waveform
 Sources
 =======
 
-.. .. automodule:: SimPEG.electromagnetics.viscous_remanent_magnetization.sources
-..     :show-inheritance:
-..     :members:
-..     :undoc-members:
-..     :inherited-members:
+.. automodule:: SimPEG.electromagnetics.viscous_remanent_magnetization.sources
+    :show-inheritance:
+    :members:
+    :undoc-members:
+    :inherited-members:
 
 Receivers
 =========
