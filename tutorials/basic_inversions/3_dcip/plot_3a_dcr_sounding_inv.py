@@ -132,11 +132,10 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with SimPEG requires that we define uncertainties on our data. The
-# uncertainty represents our estimate of the standard deviation of the noise on
-# our data. For DC sounding data, a percent uncertainty is applied to each datum.
-# For this tutorial, the uncertainty on each datum will be 2%.
-#
+# Inversion with SimPEG requires that we define standard deviation on our data.
+# This represents our estimate of the noise in our data. For DC sounding data,
+# a relative error is applied to each datum. For this tutorial, the relative
+# error on each datum will be 2%.
 
 uncertainties = 0.02*np.abs(dobs)
 
@@ -149,7 +148,7 @@ uncertainties = 0.02*np.abs(dobs)
 # the survey, the observation values and the uncertainties.
 #
 
-data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
+data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
 
 
 ###############################################
@@ -217,7 +216,6 @@ simulation = dc.simulation_1d.Simulation1DLayers(
 # residual between the observed data and the data predicted for a given model.
 # The weighting is defined by the reciprocal of the uncertainties.
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
-dmis.W = 1./uncertainties
 
 # Define the regularization (model objective function)
 reg = regularization.Simple(

@@ -16,7 +16,7 @@ this tutorial, we focus on the following:
 
 Although we consider gravity anomaly data in this tutorial, the same approach
 can be used to invert other types of geophysical data.
-    
+
 
 """
 
@@ -127,11 +127,11 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with SimPEG requires that we define uncertainties on our data. The
-# uncertainty represents our estimate of the standard deviation of the noise on
-# our data. For gravity inversion, a constant floor value is generall applied to
-# all data. For this tutorial, the uncertainty on each datum will be 1% of the
-# maximum observed gravity anomaly value.
+# Inversion with SimPEG requires that we define standard deviation on our data.
+# This represents our estimate of the noise in our data. For gravity inversion,
+# a constant floor value is generally applied to all data. For this tutorial,
+# the standard deviation on each datum will be 1% of the maximum observed
+# gravity anomaly value.
 #
 
 uncertainties_real = 1e-14*np.ones(len(dobs_real))
@@ -165,16 +165,16 @@ for ii in range(n_data):
             receiver_locations[ii, :], 'z', 'imag'
             )
     receivers_list = [bzr_receiver, bzi_receiver]
-    
+
     # Must define the transmitter properties and associated receivers
     source_location = receiver_locations[ii, :] + np.c_[0, 0, 20]
-    
+
     source_list.append(
         fdem.sources.MagDipole(
             receivers_list, frequencies[ii], source_location, orientation='z'
         )
     )
-    
+
 survey = fdem.Survey(source_list)
 
 #############################################
@@ -200,7 +200,7 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 # Here we define the OcTree mesh that is used for this example.
 # We chose to design a coarser mesh to decrease the run time.
 # When designing a mesh to solve practical frequency domain problems:
-# 
+#
 #     - Your smallest cell size should be 10%-20% the size of your smallest skin depth
 #     - The thickness of your padding needs to be 2-3 times biggest than your largest skin depth
 #     - The skin depth is ~500*np.sqrt(rho/f)
@@ -266,7 +266,7 @@ starting_model = background_conductivity*np.ones(nC)
 #
 # Here, we define the physics of the gravity problem by using the simulation
 # class.
-# 
+#
 
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
         mesh, survey=survey, sigmaMap=model_map, Solver=Solver
@@ -439,7 +439,7 @@ v_lim = [
 ]
 
 for ii in range(0, 3):
-    
+
     ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.11, 0.23, 0.84])
     cplot[ii] = plot2Ddata(
         receiver_locations[k], data_array[:, ii], ax=ax1[ii], ncontour=30,
@@ -448,7 +448,7 @@ for ii in range(0, 3):
     ax1[ii].set_title(plot_title[ii])
     ax1[ii].set_xlabel('x (m)')
     ax1[ii].set_ylabel('y (m)')
-    
+
     ax2[ii] = fig.add_axes([0.33*ii+0.27, 0.11, 0.01, 0.85])
     norm[ii] = mpl.colors.Normalize(vmin=-v_lim[ii], vmax=v_lim[ii])
     cbar[ii] = mpl.colorbar.ColorbarBase(
@@ -457,4 +457,3 @@ for ii in range(0, 3):
     cbar[ii].set_label(plot_units[ii], rotation=270, labelpad=15, size=12)
 
 plt.show()
-

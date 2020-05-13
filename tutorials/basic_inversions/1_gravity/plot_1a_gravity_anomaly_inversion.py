@@ -117,11 +117,11 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with SimPEG requires that we define uncertainties on our data. The
-# uncertainty represents our estimate of the standard deviation of the noise on
-# our data. For gravity inversion, a constant floor value is generall applied to
-# all data. For this tutorial, the uncertainty on each datum will be 1% of the
-# maximum observed gravity anomaly value.
+# Inversion with SimPEG requires that we define standard deviation on our data.
+# This represents our estimate of the noise in our data. For gravity inversion,
+# a constant floor value is generally applied to all data. For this tutorial,
+# the standard deviation on each datum will be 1% of the maximum observed
+# gravity anomaly value.
 #
 
 maximum_anomaly = np.max(np.abs(dobs))
@@ -160,7 +160,7 @@ survey = gravity.survey.GravitySurvey(source_field)
 # the survey, the observation values and the uncertainties.
 #
 
-data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
+data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
 
 
 #############################################
@@ -232,7 +232,6 @@ simulation = gravity.simulation.Simulation3DIntegral(
 # residual between the observed data and the data predicted for a given model.
 # The weighting is defined by the reciprocal of the uncertainties.
 dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
-dmis.W = utils.sdiag(1/uncertainties)
 
 # Define the regularization (model objective function).
 reg = regularization.Simple(
