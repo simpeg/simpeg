@@ -878,8 +878,9 @@ class IO(properties.HasProperties):
         uncert = kwargs.pop('uncertainty', None)
         if uncert is not None:
             warnings.warn(
-                "The uncertainty option has been deprecated and will be removed in SimPEG 0.15.0. "
-                "Please use standard_deviation".
+                "The uncertainty option has been deprecated and will be removed"
+                " in SimPEG 0.15.0. Please use standard_deviation.",
+                DeprecationWarning
             )
             standard_deviation = uncert
 
