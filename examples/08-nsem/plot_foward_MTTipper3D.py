@@ -81,8 +81,7 @@ def run(plotIt=True):
     # data = problem.make_synthetic_data(relative_error=0.1, add_noise=True)
     data = NSEM.Data(
         survey=survey, dobs=problem.dpred())
-    # Add standard_deviation to the data - 10% standard
-    # devation and 0 floor
+    # Add standard deviation to the data - 10% relative error and 0 floor
     data.relative_error = 0.1
     data.noise_floor = 0.0
 

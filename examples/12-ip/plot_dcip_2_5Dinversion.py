@@ -172,7 +172,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Set initial model based upon histogram
     m0_dc = np.ones(actmap.nP)*np.log(100.)
-    # Set standard_deviation
+    # Set standard deviation
     # floor
     data_dc.noise_floor = 10**(-3.2)
     # percentage
@@ -237,7 +237,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Set initial model based upon histogram
     m0_ip = np.ones(actmap.nP)*1e-10
-    # Set standard_deviation
+    # Set standard deviation
     # floor
     data_ip.noise_floor = 10**(-4)
     # percentage

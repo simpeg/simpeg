@@ -52,8 +52,8 @@ def run(plotIt=True):
 
 
     # create observed data
-    std = 0.05
-    data = simulation.make_synthetic_data(mtrue, relative_error=std)
+    rel_err = 0.05
+    data = simulation.make_synthetic_data(mtrue, relative_error=rel_err)
 
 
     dmisfit = data_misfit.L2DataMisfit(simulation=simulation, data=data)

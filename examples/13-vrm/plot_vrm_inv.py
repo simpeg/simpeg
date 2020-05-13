@@ -160,9 +160,9 @@ problem_inv = VRM.Simulation3DLinear(
 survey_vrm.set_active_interval(1e-3, 1e-2)
 
 dobs = fields_tot[survey_vrm.t_active]
-std = 0.05*np.abs(fields_tot[survey_vrm.t_active])
+rel_err = 0.05
 eps = 1e-11
-data_vrm = data.Data(dobs=dobs, survey=survey_vrm, relative_error=std, noise_floor=eps)
+data_vrm = data.Data(dobs=dobs, survey=survey_vrm, relative_error=rel_err, noise_floor=eps)
 
 # Setup and run inversion
 dmis = data_misfit.L2DataMisfit(simulation=problem_inv, data=data_vrm)
