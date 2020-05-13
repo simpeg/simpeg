@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 import unittest
 import discretize
+import properties
 
 from SimPEG import maps
 from SimPEG.electromagnetics import time_domain as tdem
@@ -161,17 +162,41 @@ class TDEM_cross_check_EB(unittest.TestCase):
         CrossCheck(prbtype1='MagneticField', prbtype2='CurrentDensity',
             rxcomp='MagneticFieldTimeDerivativex', waveform='vtem')
 
-
     def test_MagDipoleSimpleFail(self):
-
         print('\ntesting MagDipole error handling')
 
-
-        with warnings.catch_warnings(record=True):
+        with self.assertRaises(properties.ValidationError):
             tdem.Src.MagDipole(
-                [], loc=np.r_[0., 0., 0.],
+                ['a', 0, {'s':1}],
+                location=np.r_[0., 0., 0.],
                 orientation=np.r_[1., 1., 0.]
             )
+
+    def test_waveform_instantiation(self):
+
+        rx_list = [
+            tdem.receivers.Point_b(
+                locations=[np.r_[0.0, 0.0, 0.0]],
+                times=np.r_[1e-3, 2e-3, 5e-3], orientation="z"
+            )
+        ]
+        src_loop = tdem.sources.CircularLoop(
+            rxList=rx_list,
+            loc=np.r_[0.0, 0.0, 0.0],
+            orientation="z",
+            radius=300,
+            current=1000.0
+        )
+
+        offTime=1e-3
+        src_loop.waveform = tdem.sources.QuarterSineRampOnWaveform(
+            ramp_on=np.r_[0.0, 5.0e-4], ramp_off=np.r_[offTime, offTime + 1e-4]
+        )
+
+        self.assertIsInstance(src_loop.waveform, tdem.sources.QuarterSineRampOnWaveform)
+
+        with self.assertRaises(properties.ValidationError):
+            src_loop.waveform = (1,5)
 
 if __name__ == '__main__':
     unittest.main()
