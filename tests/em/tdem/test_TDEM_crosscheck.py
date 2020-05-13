@@ -163,13 +163,12 @@ class TDEM_cross_check_EB(unittest.TestCase):
             rxcomp='MagneticFieldTimeDerivativex', waveform='vtem')
 
     def test_MagDipoleSimpleFail(self):
-
         print('\ntesting MagDipole error handling')
 
-
-        with self.assertWarns(DeprecationWarning):
+        with self.assertRaises(properties.ValidationError):
             tdem.Src.MagDipole(
-                [], loc=np.r_[0., 0., 0.],
+                ['a', 0, {'s':1}],
+                location=np.r_[0., 0., 0.],
                 orientation=np.r_[1., 1., 0.]
             )
 
