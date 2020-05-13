@@ -136,9 +136,9 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     # floor
     eps = 10**(-3.2)
     # percentage
-    std = 0.05
+    relative = 0.05
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
-    uncert = abs(data.dobs) * std + eps
+    uncert = abs(data.dobs) * relative + eps
     dmisfit.standard_deviation = uncert
 
     # Map for a regularization

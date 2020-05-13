@@ -125,7 +125,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     )
 
     # Make synthetic DC data with 5% Gaussian noise
-    data_dc = prb.make_synthetic_data(mtrue_dc, std=0.05, add_noise=True)
+    data_dc = prb.make_synthetic_data(mtrue_dc, relative_error=0.05, add_noise=True)
     IO.data_dc = data_dc.dobs
 
     # Generate mtrue_ip for chargability
@@ -138,7 +138,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         solver=Solver
     )
 
-    data_ip = prb_ip.make_synthetic_data(mtrue_ip, std=0.05, add_noise=True)
+    data_ip = prb_ip.make_synthetic_data(mtrue_ip, relative_error=0.05, add_noise=True)
 
     IO.data_ip = data_ip.dobs
 

@@ -150,7 +150,7 @@ synthetic_data += np.random.randn(nD)*std
 wd = np.ones(nD)*std
 
 # Assigne data and uncertainties to the survey
-data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
+data_object = data.Data(survey, dobs=synthetic_data, standard_deviation=wd)
 
 
 # Plot the model and data

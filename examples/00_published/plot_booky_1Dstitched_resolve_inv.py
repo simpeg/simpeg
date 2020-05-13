@@ -62,7 +62,7 @@ def download_and_unzip_data(
 
 def resolve_1Dinversions(
     mesh, dobs, src_height, freqs, m0, mref, mapping,
-    std=0.08, floor=1e-14, rxOffset=7.86
+    relative=0.08, floor=1e-14, rxOffset=7.86
 ):
     """
     Perform a single 1D inversion for a RESOLVE sounding for Horizontal
@@ -75,7 +75,7 @@ def resolve_1Dinversions(
     :param numpy.ndarray m0: starting model
     :param numpy.ndarray mref: reference model
     :param maps.IdentityMap mapping: mapping that maps the model to electrical conductivity
-    :param float std: percent error used to construct the data misfit term
+    :param float relative: percent error used to construct the data misfit term
     :param float floor: noise floor used to construct the data misfit term
     :param float rxOffset: offset between source and receiver.
     """
@@ -108,9 +108,9 @@ def resolve_1Dinversions(
 
     # ------------------- Inversion ------------------- #
     # data misfit term
-    uncert = abs(dobs) * std + floor
-    data = data.Data(dobs=dobs, standard_deviation=uncert)
-    dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
+    uncert = abs(dobs) * relative + floor
+    dat = data.Data(dobs=dobs, standard_deviation=uncert)
+    dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=dat)
 
     # regularization
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
@@ -212,7 +212,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
         # set up a noise model
         # 10% for the 3 lowest frequencies, 15% for the two highest
-        std = np.repeat(np.r_[np.ones(3)*0.1, np.ones(2)*0.15], 2)
+        relative = np.repeat(np.r_[np.ones(3)*0.1, np.ones(2)*0.15], 2)
         floor = abs(20 * bp * 1e-6)   # floor of 20ppm
 
         # loop over the soundings and invert each
@@ -228,7 +228,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
             src_height = b_height_resolve[rxind].astype(float)
             mopt, dpred, dobs = resolve_1Dinversions(
                 mesh, dobs, src_height, frequency_cp, m0, mref, mapping,
-                std=std, floor=floor
+                relative=relative, floor=floor
             )
 
             # add results to our list

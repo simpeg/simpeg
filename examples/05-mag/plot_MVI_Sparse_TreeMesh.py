@@ -234,7 +234,7 @@ synthetic_data = d + np.random.randn(len(d))*std
 wd = np.ones(len(d))*std
 
 # Assign data and uncertainties to the survey
-data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
+data_object = data.Data(survey, dobs=synthetic_data, standard_deviation=wd)
 
 # Create an projection matrix for plotting later
 actv_plot = maps.InjectActiveCells(mesh, actv, np.nan)
