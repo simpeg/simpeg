@@ -357,6 +357,11 @@ class BaseSimulation(props.HasModel):
 
         std = kwargs.pop('std', None)
         if std is not None:
+            warnings.warn(
+                'The std parameter will be deprecated in SimPEG 0.15.0. '
+                'Please use relative_error.',
+                DeprecationWarning,
+            )
             relative_error = std
 
         if f is None:
