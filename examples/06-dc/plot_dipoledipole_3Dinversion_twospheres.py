@@ -140,7 +140,7 @@ mapping = expmap * mapactive
 problem = DC.Simulation3DCellCentered(
     mesh, survey=survey, sigmaMap=mapping, solver=Solver, bc_type='Neumann')
 
-data = problem.make_synthetic_data(mtrue[actind], standard_deviation=0.05, add_noise=True)
+data = problem.make_synthetic_data(mtrue[actind], relative_error=0.05, add_noise=True)
 
 # Tikhonov Inversion
 ####################

@@ -90,7 +90,7 @@ def run(plotIt=True):
 
     # Compute linear forward operator and compute some data
     data = prob.make_synthetic_data(
-        model, standard_deviation=0.0, noise_floor=1, add_noise=True)
+        model, relative_error=0.0, noise_floor=1, add_noise=True)
 
     # Create a homogenous maps for the two domains
     domains = [mesh.gridCC[actv,0] < 0, mesh.gridCC[actv,0] >= 0]

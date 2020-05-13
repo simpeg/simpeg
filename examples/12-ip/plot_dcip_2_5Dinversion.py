@@ -176,7 +176,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # floor
     data_dc.noise_floor = 10**(-3.2)
     # percentage
-    data_dc.standard_deviation = 0.05
+    data_dc.relative_error = 0.05
 
     mopt_dc, pred_dc = DC.run_inversion(
         m0_dc, prb, data_dc, actind, mesh,
@@ -241,7 +241,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # floor
     data_ip.noise_floor = 10**(-4)
     # percentage
-    data_ip.standard_deviation = 0.05
+    data_ip.relative_error = 0.05
     # Clean sensitivity function formed with true resistivity
     prb_ip._Jmatrix = None
     # Input obtained resistivity to form sensitivity

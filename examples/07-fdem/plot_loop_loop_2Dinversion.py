@@ -204,7 +204,7 @@ prob = FDEM.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigmaMap=mappin
 t = time.time()
 
 data = prob.make_synthetic_data(
-    m_true, standard_deviation=0.05, noise_floor=1E-11, add_noise=False)
+    m_true, relative_error=0.05, noise_floor=1E-11, add_noise=False)
 
 dclean = data.dclean
 print(

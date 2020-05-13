@@ -30,7 +30,7 @@ class Data(properties.HasProperties):
 
     .. code:: python
 
-        data = Data(survey, dobs=dobs, standard_deviation=std, noise_floor=floor)
+        data = Data(survey, dobs=dobs, relative_error=std, noise_floor=floor)
 
     or
 
@@ -55,7 +55,7 @@ class Data(properties.HasProperties):
         shape=('*',), required=True
     )
 
-    standard_deviation = UncertaintyArray(
+    relative_error = UncertaintyArray(
         """
         Standard deviation of the data. This can be set using an array of the
         same size as the data (e.g. if you want to assign a different standard
@@ -67,13 +67,13 @@ class Data(properties.HasProperties):
         .. code:: python
 
             data = Data(survey, dobs=dobs)
-            data.standard_deviation = 0.05
+            data.relative_error = 0.05
 
         then the contribution to the uncertainty is equal to
 
         .. code:: python
 
-            data.standard_deviation * np.abs(data.dobs)
+            data.relative_error * np.abs(data.dobs)
 
         """,
         shape=('*',)
@@ -113,7 +113,7 @@ class Data(properties.HasProperties):
     # Instantiate the class
     #######################
     def __init__(
-        self, survey, dobs=None, standard_deviation=None, noise_floor=None,
+        self, survey, dobs=None, relative_error=None, noise_floor=None,
         uncertainty=None
     ):
         super(Data, self).__init__()
@@ -124,21 +124,21 @@ class Data(properties.HasProperties):
             dobs = np.nan*np.ones(survey.nD)  # initialize data as nans
         self.dobs = dobs
 
-        if standard_deviation is not None:
-            self.standard_deviation = standard_deviation
+        if relative_error is not None:
+            self.relative_error = relative_error
 
         if noise_floor is not None:
             self.noise_floor = noise_floor
 
         if uncertainty is not None:
-            if standard_deviation is not None or noise_floor is not None:
+            if relative_error is not None or noise_floor is not None:
                 warnings.warn(
                     "Setting the uncertainty overwrites the "
-                    "standard_deviation and noise floor"
+                    "relative_error and noise floor"
                 )
             self.uncertainty = uncertainty
 
-        if uncertainty is None and standard_deviation is None and noise_floor is None:
+        if uncertainty is None and relative_error is None and noise_floor is None:
             self.uncertainty = 0.0
 
     #######################
@@ -153,7 +153,7 @@ class Data(properties.HasProperties):
         .. code:: python
 
             data.uncertainty = (
-                data.standard_deviation*np.abs(data.dobs) +
+                data.relative_error*np.abs(data.dobs) +
                 data.noise_floor
             )
 
@@ -163,20 +163,20 @@ class Data(properties.HasProperties):
 
             data.uncertainty = 0.05 * np.absolute(self.dobs) + 1e-12
 
-        Note that setting the uncertainty directly will clear the `standard_deviation`
+        Note that setting the uncertainty directly will clear the `relative_error`
         and set the value to the `noise_floor` property.
 
         """
-        if self.standard_deviation is None and self.noise_floor is None:
+        if self.relative_error is None and self.noise_floor is None:
             raise Exception(
-                "The standard_deviation and / or noise_floor must be set "
+                "The relative_error and / or noise_floor must be set "
                 "before asking for uncertainties. Alternatively, the "
                 "uncertainty can be set directly"
             )
 
         uncert = np.zeros(self.nD)
-        if self.standard_deviation is not None:
-            uncert = uncert + self.standard_deviation * np.absolute(self.dobs)
+        if self.relative_error is not None:
+            uncert = uncert + self.relative_error * np.absolute(self.dobs)
         if self.noise_floor is not None:
             uncert = uncert + self.noise_floor
 
@@ -184,7 +184,7 @@ class Data(properties.HasProperties):
 
     @uncertainty.setter
     def uncertainty(self, value):
-        self.standard_deviation = np.zeros(self.nD)
+        self.relative_error = np.zeros(self.nD)
         self.noise_floor = value
 
     @property
@@ -211,7 +211,7 @@ class Data(properties.HasProperties):
                 )
             )
 
-    @properties.validator(['standard_deviation', 'noise_floor'])
+    @properties.validator(['relative_error', 'noise_floor'])
     def _uncertainty_validator(self, change):
         if isinstance(change['value'], float):
             change['value'] = change['value'] * np.ones(self.nD)
@@ -279,7 +279,7 @@ class Data(properties.HasProperties):
     ##########################
     # Deprecated
     ##########################
-    std = deprecate_property(standard_deviation, 'std', removal_version='0.15.0')
+    std = deprecate_property(relative_error, 'std', removal_version='0.15.0')
     eps = deprecate_property(noise_floor, 'eps', removal_version='0.15.0')
 
 
@@ -306,12 +306,12 @@ class SyntheticData(Data):
     )
 
     def __init__(
-        self, survey, dobs=None, dclean=None, standard_deviation=None,
+        self, survey, dobs=None, dclean=None, relative_error=None,
         noise_floor=None
     ):
         super(SyntheticData, self).__init__(
             survey=survey, dobs=dobs,
-            standard_deviation=standard_deviation, noise_floor=noise_floor
+            relative_error=relative_error, noise_floor=noise_floor
         )
 
         if dclean is None:

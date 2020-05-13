@@ -93,21 +93,21 @@ class BaseDataMisfit(L2ObjectiveFunction):
                 raise Exception(
                     "data with uncertainties must be set before the data "
                     "misfit can be constructed. Please set the data: "
-                    "dmis.data = Data(dobs=dobs, standard_deviation=std"
+                    "dmis.data = Data(dobs=dobs, relative_error=std"
                     ", noise_floor=eps)"
                 )
             uncertainty = self.data.uncertainty
             if uncertainty is None:
                 raise Exception(
                     "data uncertainties must be set before the data misfit "
-                    "can be constructed (data.standard_deviation = 0.05, "
+                    "can be constructed (data.relative_error = 0.05, "
                     "data.noise_floor = 1e-5), alternatively, the W matrix "
                     "can be set directly (dmisfit.W = 1./uncertainty)"
                 )
             if any(uncertainty <= 0):
                 raise Exception(
                     "data.uncertainty musy be strictly positive to construct "
-                    "the W matrix. Please set data.standard_deviation and or "
+                    "the W matrix. Please set data.relative_error and or "
                     "data.noise_floor."
                 )
             self._W = sdiag(1/(uncertainty))
@@ -216,7 +216,7 @@ class l2_DataMisfit(L2DataMisfit):
         # Get the survey's simulation that was paired to it....
         # simulation = survey.simulation
 
-        self.data = Data(survey, dobs, standard_deviation=std)
+        self.data = Data(survey, dobs, relative_error=std)
 
         eps_factor = 1e-5  #: factor to multiply by the norm of the data to create floor
         if getattr(self.survey, 'eps', None) is None:
@@ -237,9 +237,9 @@ class l2_DataMisfit(L2DataMisfit):
     @property
     def noise_floor(self):
         return self.data.noise_floor
-    eps = deprecate_property(noise_floor, 'eps', new_name='data.standard_deviation', removal_version='0.15.0')
+    eps = deprecate_property(noise_floor, 'eps', new_name='data.relative_error', removal_version='0.15.0')
 
     @property
-    def standard_deviation(self):
-        return self.data.standard_deviation
-    std = deprecate_property(standard_deviation, 'std', new_name='data.standard_deviation', removal_version='0.15.0')
+    def relative_error(self):
+        return self.data.relative_error
+    std = deprecate_property(relative_error, 'std', new_name='data.relative_error', removal_version='0.15.0')

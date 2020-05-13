@@ -47,7 +47,7 @@ def run(N=100, plotIt=True):
     mtrue[mesh.vectorCCx > 0.6] = 0
 
     prob = simulation.LinearSimulation(mesh, G=G, model_map=maps.IdentityMap(mesh))
-    data = prob.make_synthetic_data(mtrue, standard_deviation=0.01, add_noise=True)
+    data = prob.make_synthetic_data(mtrue, relative_error=0.01, add_noise=True)
 
     M = prob.mesh
 

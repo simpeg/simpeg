@@ -160,7 +160,7 @@ def resample_data(NSEMdata, locs='All', freqs='All', rxs='All', verbose=False):
                     data_list.append(NSEMdata[src, rx][ind_loc])
                     try:
                         std_list.append(
-                            NSEMdata.standard_deviation[src, rx][ind_loc])
+                            NSEMdata.relative_error[src, rx][ind_loc])
                         floor_list.append(NSEMdata.floor[src, rx][ind_loc])
                     except Exception as e:
                         if verbose:

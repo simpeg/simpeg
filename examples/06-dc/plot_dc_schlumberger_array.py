@@ -199,7 +199,7 @@ problem = DC.Simulation3DCellCentered(
 # To make synthetic example you can use simulation.make_synthetic_data, which
 # generates related setups.
 
-data = problem.make_synthetic_data(mtrue, standard_deviation=0.01, add_noise=True)
+data = problem.make_synthetic_data(mtrue, relative_error=0.01, add_noise=True)
 
 appres = data.dclean*np.pi*b*(b+a)/a
 appres_obs = data.dobs*np.pi*b*(b+a)/a

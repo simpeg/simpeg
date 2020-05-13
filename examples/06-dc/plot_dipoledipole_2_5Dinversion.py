@@ -111,7 +111,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     )
 
     # Make synthetic DC data with 5% Gaussian noise
-    data = prb.make_synthetic_data(mtrue, standard_deviation=0.05, add_noise=True)
+    data = prb.make_synthetic_data(mtrue, relative_error=0.05, add_noise=True)
 
     IO.data_dc = data.dobs
     # Show apparent resisitivty pseudo-section

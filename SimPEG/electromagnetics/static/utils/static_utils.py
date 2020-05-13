@@ -870,7 +870,7 @@ def writeUBC_DCobs(
                     np.c_[
                         A, B, M, N,
                         data.dobs[count:count+nD],
-                        data.standard_deviation[count:count+nD]
+                        data.relative_error[count:count+nD]
                     ],
                     delimiter=str(' '), newline=str('\n'))
                 fid.close()
@@ -903,7 +903,7 @@ def writeUBC_DCobs(
                     np.c_[
                         M, N,
                         data.dobs[count:count+nD],
-                        data.standard_deviation[count:count+nD]
+                        data.relative_error[count:count+nD]
                     ],
                     delimiter=str(' '), newline=str('\n'))
 
@@ -932,13 +932,13 @@ def writeUBC_DCobs(
             fid.close()
 
             fid = open(fileName, 'ab')
-            if isinstance(data.standard_deviation, np.ndarray):
+            if isinstance(data.relative_error, np.ndarray):
                 np.savetxt(
                     fid,
                     np.c_[
                         M, N, data.dobs[count:count+nD],
                         (
-                            data.standard_deviation[count:count+nD] +
+                            data.relative_error[count:count+nD] +
                             data.noise_floor[count:count+nD]
                         )
                     ],
@@ -948,7 +948,7 @@ def writeUBC_DCobs(
                 raise Exception(
                     """Uncertainities SurveyObject.std should be set.
                     Either float or nunmpy.ndarray is expected, """
-                    "not {}".format(type(data.standard_deviation)))
+                    "not {}".format(type(data.relative_error)))
 
             fid.close()
             fid = open(fileName, 'a')
@@ -1451,7 +1451,7 @@ def readUBC_DC3Dobs(fileName):
 
     survey = dc.Survey(srcLists)
     data = Data(
-        survey=survey, dobs=np.asarray(d), standard_deviation=np.asarray(wd)
+        survey=survey, dobs=np.asarray(d), relative_error=np.asarray(wd)
     )
     return data
 

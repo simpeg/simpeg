@@ -84,7 +84,7 @@ class ValidationInInversion(unittest.TestCase):
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(data)
-        dmis.W = 1./data.standard_deviation
+        dmis.W = 1./data.relative_error
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(

@@ -81,7 +81,7 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Compute linear forward operator and compute some data
         data = sim.make_synthetic_data(
-            self.model, standard_deviation=0.0, noise_floor=0.001, add_noise=True
+            self.model, relative_error=0.0, noise_floor=0.001, add_noise=True
         )
 
         # Create a regularization

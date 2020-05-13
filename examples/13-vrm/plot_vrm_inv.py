@@ -162,7 +162,7 @@ survey_vrm.set_active_interval(1e-3, 1e-2)
 dobs = fields_tot[survey_vrm.t_active]
 std = 0.05*np.abs(fields_tot[survey_vrm.t_active])
 eps = 1e-11
-data_vrm = data.Data(dobs=dobs, survey=survey_vrm, standard_deviation=std, noise_floor=eps)
+data_vrm = data.Data(dobs=dobs, survey=survey_vrm, relative_error=std, noise_floor=eps)
 
 # Setup and run inversion
 dmis = data_misfit.L2DataMisfit(simulation=problem_inv, data=data_vrm)

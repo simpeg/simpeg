@@ -49,7 +49,7 @@ def run(plotIt=False):
         M, survey=survey, slownessMap=maps.IdentityMap(M))
 
     s = utils.mkvc(utils.model_builder.randomModel(M.vnC)) + 1.
-    data = problem.make_synthetic_data(s, standard_deviation=0.01)
+    data = problem.make_synthetic_data(s, relative_error=0.01)
 
     # Create an optimization program
 

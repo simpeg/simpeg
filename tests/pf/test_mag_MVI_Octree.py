@@ -97,7 +97,7 @@ class MVIProblemTest(unittest.TestCase):
         # Compute some data and add some random noise
         data = sim.make_synthetic_data(
             utils.mkvc(self.model),
-                standard_deviation=0.0, noise_floor=5.0, add_noise=True
+                relative_error=0.0, noise_floor=5.0, add_noise=True
             )
 
         # This Mapping connects the regularizations for the three-component

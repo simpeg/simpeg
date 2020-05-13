@@ -53,7 +53,7 @@ def run(plotIt=True):
 
     # create observed data
     std = 0.05
-    data = simulation.make_synthetic_data(mtrue, standard_deviation=std)
+    data = simulation.make_synthetic_data(mtrue, relative_error=std)
 
 
     dmisfit = data_misfit.L2DataMisfit(simulation=simulation, data=data)

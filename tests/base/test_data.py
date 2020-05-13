@@ -28,11 +28,11 @@ class DataTest(unittest.TestCase):
         self.dobs = self.sim.dpred(model)
 
 
-    def test_instantiation_standard_deviation(self):
+    def test_instantiation_relative_error(self):
         std = 0.5
-        data = Data(self.sim.survey, dobs=self.dobs, standard_deviation=std)
+        data = Data(self.sim.survey, dobs=self.dobs, relative_error=std)
         self.assertTrue(
-            all(data.standard_deviation == std*np.ones(len(self.dobs)))
+            all(data.relative_error == std*np.ones(len(self.dobs)))
         )
         self.assertTrue(
             all(data.uncertainty == std*np.abs(self.dobs))
@@ -51,9 +51,9 @@ class DataTest(unittest.TestCase):
     def test_instantiation_std_floor(self):
         std = 0.5
         floor = np.min(np.abs(self.dobs))
-        data = Data(self.sim.survey, dobs=self.dobs, standard_deviation=std, noise_floor=floor)
+        data = Data(self.sim.survey, dobs=self.dobs, relative_error=std, noise_floor=floor)
         self.assertTrue(
-            all(data.standard_deviation == std*np.ones(len(self.dobs)))
+            all(data.relative_error == std*np.ones(len(self.dobs)))
         )
         self.assertTrue(
             all(data.noise_floor == floor*np.ones(len(self.dobs)))

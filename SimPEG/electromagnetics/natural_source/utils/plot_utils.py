@@ -124,7 +124,7 @@ class TipperAmplitudeStationPlot(BaseDataNSEMPlots):
 
         :param data_list: List of NSEM data objects to plot.
             Has to be of length >= 1. First item is treat as a
-            observed data (Hast to have standard_deviation and floor)
+            observed data (Hast to have relative_error and floor)
             assigned) and the others are plotted on top.
         :param location: Location of the station to plot
         """
@@ -213,7 +213,7 @@ class ApparentResPhsStationPlot(BaseDataNSEMPlots):
 
         :param data_list: List of NSEM data objects to plot.
             Has to be of length >= 1. First item is treat as a
-            observed data (Hast to have standard_deviation and floor)
+            observed data (Hast to have relative_error and floor)
             assigned) and the others are plotted on top.
         :param location: Location of the station to plot
         """
@@ -776,7 +776,7 @@ def _extract_frequency_data(
     loc_arr = rx.locations
     data_arr = data[src, rx]
     if return_uncert:
-        std_arr = data.standard_deviation[src, rx]
+        std_arr = data.relative_error[src, rx]
         floor_arr = data.floor[src, rx]
     if return_uncert:
         return (loc_arr, data_arr, std_arr, floor_arr)
@@ -809,7 +809,7 @@ def _extract_location_data(
 
             if return_uncert:
                 index = data.index_dictionary[src][rx]
-                std_list.append(data.standard_deviation[index][ind_loc])
+                std_list.append(data.relative_error[index][ind_loc])
                 floor_list.append(data.noise_floor[index][ind_loc])
     if return_uncert:
         return (np.array(freq_list), np.concatenate(data_list),

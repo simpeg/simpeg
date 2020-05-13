@@ -47,13 +47,13 @@ class TestData(unittest.TestCase):
                 v = np.random.rand(rx.nD)
                 V += [v]
                 index = self.D.index_dictionary[src][rx]
-                self.D.standard_deviation[index] = v
-                self.assertTrue(np.all(v == self.D.standard_deviation[index]))
+                self.D.relative_error[index] = v
+                self.assertTrue(np.all(v == self.D.relative_error[index]))
         V = np.concatenate(V)
-        self.assertTrue(np.all(V == self.D.standard_deviation))
+        self.assertTrue(np.all(V == self.D.relative_error))
 
-        D2 = data.Data(self.D.survey, standard_deviation=V)
-        self.assertTrue(np.all(D2.standard_deviation == self.D.standard_deviation))
+        D2 = data.Data(self.D.survey, relative_error=V)
+        self.assertTrue(np.all(D2.relative_error == self.D.relative_error))
 
     def test_uniqueSrcs(self):
         srcs = self.D.survey.source_list

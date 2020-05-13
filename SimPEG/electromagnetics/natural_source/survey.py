@@ -82,8 +82,8 @@ class Data(BaseData, DataNSEMPlotMethods):
     """
     Data class for NSEMdata. Stores the data vector indexed by the survey.
     """
-    def __init__(self, survey, dobs=None, standard_deviation=None, noise_floor=None):
-        BaseData.__init__(self, survey, dobs, standard_deviation, noise_floor)
+    def __init__(self, survey, dobs=None, relative_error=None, noise_floor=None):
+        BaseData.__init__(self, survey, dobs, relative_error, noise_floor)
 
 
     def toRecArray(self, returnType='RealImag'):

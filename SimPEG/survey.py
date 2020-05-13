@@ -378,10 +378,10 @@ class BaseSurvey(properties.HasProperties):
                     )
 
             data = target.simulation.make_synthetic_data(
-                m, standard_deviation=stddev, f=f, add_noise=True)
+                m, relative_error=stddev, f=f, add_noise=True)
             target.dtrue = data.dclean
             target.dobs = data.dobs
-            target.std = data.standard_deviation
+            target.std = data.relative_error
             return target.dobs
         self.makeSyntheticData = types.MethodType(dep_makeSyntheticData, self)
 
