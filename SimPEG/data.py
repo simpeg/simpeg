@@ -25,12 +25,12 @@ class UncertaintyArray(properties.Array):
 
 class Data(properties.HasProperties):
     """
-    Data storage. This class keeps track of observed data, standard deviation
+    Data storage. This class keeps track of observed data, relative error
     of those data and the noise floor.
 
     .. code:: python
 
-        data = Data(survey, dobs=dobs, relative_error=std, noise_floor=floor)
+        data = Data(survey, dobs=dobs, relative_error=relative, noise_floor=floor)
 
     or
 
@@ -57,10 +57,10 @@ class Data(properties.HasProperties):
 
     relative_error = UncertaintyArray(
         """
-        Standard deviation of the data. This can be set using an array of the
-        same size as the data (e.g. if you want to assign a different standard
-        deviation to each datum) or as a scalar if you would like to assign a
-        the same standard deviation to all data.
+        Relative error of the data. This can be set using an array of the
+        same size as the data (e.g. if you want to assign a different relative
+        error to each datum) or as a scalar if you would like to assign a
+        the same relative error to all data.
 
         For example, if you set
 
@@ -134,7 +134,7 @@ class Data(properties.HasProperties):
             if relative_error is not None or noise_floor is not None:
                 warnings.warn(
                     "Setting the standard_deviation overwrites the "
-                    "relative_error and noise floor"
+                    "relative_error and noise_floor"
                 )
             self.standard_deviation = standard_deviation
 
@@ -147,7 +147,7 @@ class Data(properties.HasProperties):
     @property
     def standard_deviation(self):
         """
-        Data uncertainties. If a stardard deviation and noise floor are
+        Data standard deviations. If a relative error and noise floor are
         provided, the standard_deviation is
 
         .. code:: python

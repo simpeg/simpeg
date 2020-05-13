@@ -91,15 +91,15 @@ class BaseDataMisfit(L2ObjectiveFunction):
         if getattr(self, '_W', None) is None:
             if self.data is None:
                 raise Exception(
-                    "data with uncertainties must be set before the data "
+                    "data with standard deviations must be set before the data "
                     "misfit can be constructed. Please set the data: "
-                    "dmis.data = Data(dobs=dobs, relative_error=std"
+                    "dmis.data = Data(dobs=dobs, relative_error=rel"
                     ", noise_floor=eps)"
                 )
             standard_deviation = self.data.standard_deviation
             if standard_deviation is None:
                 raise Exception(
-                    "data uncertainties must be set before the data misfit "
+                    "data standard deviations must be set before the data misfit "
                     "can be constructed (data.relative_error = 0.05, "
                     "data.noise_floor = 1e-5), alternatively, the W matrix "
                     "can be set directly (dmisfit.W = 1./standard_deviation)"
@@ -237,7 +237,7 @@ class l2_DataMisfit(L2DataMisfit):
     @property
     def noise_floor(self):
         return self.data.noise_floor
-    eps = deprecate_property(noise_floor, 'eps', new_name='data.relative_error', removal_version='0.15.0')
+    eps = deprecate_property(noise_floor, 'eps', new_name='data.noise_floor', removal_version='0.15.0')
 
     @property
     def relative_error(self):
