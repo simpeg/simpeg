@@ -59,7 +59,7 @@ def run(plotIt=True):
     prb.survey = survey
 
     # create observed data
-    data = prb.make_synthetic_data(mtrue, standard_deviation=0.02, noise_floor=1e-11)
+    data = prb.make_synthetic_data(mtrue, relative_error=0.02, noise_floor=1e-11)
 
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])

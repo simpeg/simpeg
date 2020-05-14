@@ -84,7 +84,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             problem.solver = Solver
 
             # Create synthetic data
-            dobs = problem.make_synthetic_data(self.model, standard_deviation=0.)
+            dobs = problem.make_synthetic_data(self.model, relative_error=0.)
             dobs.eps = 1e-5
 
             # Testing IO

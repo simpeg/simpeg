@@ -134,7 +134,7 @@ def run(
     )
 
     # Make synthetic DC data with 5% Gaussian noise
-    data = prb.make_synthetic_data(mtrue, std=0.05, add_noise=True)
+    data = prb.make_synthetic_data(mtrue, relative_error=0.05, add_noise=True)
 
     # Show apparent resisitivty pseudo-section
     IO.plotPseudoSection(
@@ -145,14 +145,14 @@ def run(
     fig = plt.figure()
     out = hist(data.dobs/IO.G, bins=20)
     plt.show()
-    # Set uncertainty
+    # Set standard_deviation
     # floor
     eps = 10**(-3.2)
     # percentage
-    std = 0.05
+    relative = 0.05
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
-    uncert = abs(data.dobs) * std + eps
-    dmisfit.uncertainty = uncert
+    uncert = abs(data.dobs) * relative + eps
+    dmisfit.standard_deviation = uncert
 
     # Map for a regularization
     mesh_1d = discretize.TensorMesh([parametric_block.nP])

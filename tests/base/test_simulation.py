@@ -34,7 +34,7 @@ class TestLinearSimulation(unittest.TestCase):
         dclean = self.sim.dpred(self.mtrue)
         data = self.sim.make_synthetic_data(self.mtrue)
         assert np.all(
-            data.standard_deviation == 0.05 * np.ones_like(dclean)
+            data.relative_error == 0.05 * np.ones_like(dclean)
         )
 
 

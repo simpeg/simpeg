@@ -78,12 +78,11 @@ def run(plotIt=True):
         sigma=sig, sigmaPrimary=sigBG)
 
     # Calculate the data
-    # data = problem.make_synthetic_data(standard_deviation=0.1, add_noise=True)
+    # data = problem.make_synthetic_data(relative_error=0.1, add_noise=True)
     data = NSEM.Data(
         survey=survey, dobs=problem.dpred())
-    # Add uncertainty to the data - 10% standard
-    # devation and 0 floor
-    data.standard_deviation = 0.1
+    # Add standard deviation to the data - 10% relative error and 0 floor
+    data.relative_error = 0.1
     data.noise_floor = 0.0
 
     # Add plots

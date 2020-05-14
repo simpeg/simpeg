@@ -345,19 +345,24 @@ class BaseSimulation(props.HasModel):
         return mkvc(self.dpred(m, f=f) - dobs)
 
     def make_synthetic_data(
-        self, m, standard_deviation=0.05, noise_floor=0.0, f=None, add_noise=False, **kwargs
+        self, m, relative_error=0.05, noise_floor=0.0, f=None, add_noise=False, **kwargs
     ):
         """
         Make synthetic data given a model, and a standard deviation.
         :param numpy.ndarray m: geophysical model
-        :param numpy.ndarray standard_deviation: standard deviation
+        :param numpy.ndarray relative_error: standard deviation
         :param numpy.ndarray noise_floor: noise floor
         :param numpy.ndarray f: fields for the given model (if pre-calculated)
         """
 
         std = kwargs.pop('std', None)
         if std is not None:
-            standard_deviation = std
+            warnings.warn(
+                'The std parameter will be deprecated in SimPEG 0.15.0. '
+                'Please use relative_error.',
+                DeprecationWarning,
+            )
+            relative_error = std
 
         if f is None:
             f = self.fields(m)
@@ -365,7 +370,7 @@ class BaseSimulation(props.HasModel):
         dclean = self.dpred(m, f=f)
 
         if add_noise is True:
-            std = (standard_deviation*abs(dclean) + noise_floor)
+            std = (relative_error*abs(dclean) + noise_floor)
             noise = std*np.random.randn(*dclean.shape)
             dobs = dclean + noise
         else:
@@ -373,7 +378,7 @@ class BaseSimulation(props.HasModel):
 
         return SyntheticData(
             survey=self.survey, dobs=dobs, dclean=dclean,
-            standard_deviation=standard_deviation, noise_floor=noise_floor
+            relative_error=relative_error, noise_floor=noise_floor
         )
 
     def pair(self, survey):

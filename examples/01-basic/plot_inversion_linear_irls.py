@@ -57,7 +57,7 @@ def run(N=100, plotIt=True):
 
     prob = LinearSimulation(mesh, G=G, model_map=maps.IdentityMap(mesh))
     data = prob.make_synthetic_data(mtrue,
-        standard_deviation=0.0,
+        relative_error=0.0,
         noise_floor=std_noise,
         add_noise=True)
 

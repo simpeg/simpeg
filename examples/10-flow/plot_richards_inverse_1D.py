@@ -83,9 +83,9 @@ def run(plotIt=True):
     m0 = np.ones(M.nC)*np.log(Ks)
 
     # Create some synthetic data and fields
-    stdev = 0.02  # The standard deviation for the noise
+    relative = 0.02  # The standard deviation for the noise
     Hs = prob.fields(mtrue)
-    data = prob.make_synthetic_data(mtrue, std=stdev, f=Hs, add_noise=True)
+    data = prob.make_synthetic_data(mtrue, relative_error=relative, f=Hs, add_noise=True)
 
     # Setup a pretty standard inversion
     reg = regularization.Tikhonov(M, alpha_s=1e-1)

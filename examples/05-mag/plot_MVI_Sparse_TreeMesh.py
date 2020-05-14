@@ -234,7 +234,7 @@ synthetic_data = d + np.random.randn(len(d))*std
 wd = np.ones(len(d))*std
 
 # Assign data and uncertainties to the survey
-data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
+data_object = data.Data(survey, dobs=synthetic_data, standard_deviation=wd)
 
 # Create an projection matrix for plotting later
 actv_plot = maps.InjectActiveCells(mesh, actv, np.nan)
@@ -300,7 +300,7 @@ reg.mref = np.zeros(3*nC)
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
-dmis.W = 1./data_object.uncertainty
+dmis.W = 1./data_object.standard_deviation
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(maxIter=10, lower=-10, upper=10.,

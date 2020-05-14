@@ -111,7 +111,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     )
 
     # Make synthetic DC data with 5% Gaussian noise
-    data = prb.make_synthetic_data(mtrue, standard_deviation=0.05, add_noise=True)
+    data = prb.make_synthetic_data(mtrue, relative_error=0.05, add_noise=True)
 
     IO.data_dc = data.dobs
     # Show apparent resisitivty pseudo-section
@@ -130,14 +130,14 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Set initial model based upon histogram
     m0 = np.ones(actmap.nP)*np.log(100.)
 
-    # Set uncertainty
+    # Set standard_deviation
     # floor (10 ohm-m)
     eps = 1.
     # percentage
-    std = 0.05
+    relative = 0.05
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
-    uncert = abs(data.dobs) * std + eps
-    dmisfit.uncertainty = uncert
+    uncert = abs(data.dobs) * relative + eps
+    dmisfit.standard_deviation = uncert
 
     # Map for a regularization
     regmap = maps.IdentityMap(nP=int(actind.sum()))

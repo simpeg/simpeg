@@ -15,7 +15,7 @@ class NSEM_data_viewer(properties.HasProperties):
     in a separate window.
 
     :param SimPEG.electromagnetics.natural_source.Data data: Data object, needs to have assigned
-        standard_deviation and floor
+        relative_error and noise_floor
 
     :param data_dict: A dictionary of other NSEM Data objects
     :type data_dict: dict, optional

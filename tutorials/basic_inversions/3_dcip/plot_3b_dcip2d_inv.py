@@ -161,21 +161,21 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with SimPEG requires that we define uncertainties on our data. The
-# uncertainty represents our estimate of the standard deviation of the noise on
-# our data. For DC data, a percent uncertainty is applied to each datum.
-# For this tutorial, the uncertainty on each datum will be 5%. For IP data, a
-# percent of the DC data is used for the uncertainties. For this tutorial, the
-# uncertainties on IP data are 1% of the corresponding DC data value.
+# Inversion with SimPEG requires that we define standard deviation on our data.
+# This represents our estimate of the noise in our data. For DC data, a relative
+# error is applied to each datum. For this tutorial, the relative error on each
+# datum will be 5%. For IP data, a percent of the DC data is used for the
+# standard deviation. For this tutorial, the standard deviation on IP data are
+# 1% of the corresponding DC data value.
 #
 
-# Compute uncertainties
-uncertainties_dc = 0.05*np.abs(dobs_dc)
-uncertainties_ip = 0.01*np.abs(dobs_dc)
+# Compute standard deviations
+std_dc = 0.05*np.abs(dobs_dc)
+std_ip = 0.01*np.abs(dobs_dc)
 
-# Add uncertainties to data object
-dc_data.noise_floor = uncertainties_dc
-ip_data.noise_floor = uncertainties_ip
+# Add standard deviations to data object
+dc_data.standard_deviation = std_dc
+ip_data.standard_deviation = std_ip
 
 ########################################################
 # Create OcTree Mesh
@@ -289,9 +289,9 @@ dc_simulation = dc.simulation_2d.Simulation2DNodal(
 
 # Define the data misfit. Here the data misfit is the L2 norm of the weighted
 # residual between the observed data and the data predicted for a given model.
-# The weighting is defined by the reciprocal of the uncertainties.
+# Within the data misfit, the residual between predicted and observed data are
+# normalized by the data's standard deviation.
 dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation)
-dc_data_misfit.W = utils.sdiag(1./uncertainties_dc)
 
 # Define the regularization (model objective function)
 dc_regularization = regularization.Simple(
@@ -426,7 +426,7 @@ dpred_dc = dc_inverse_problem.dpred
 dc_data_predicted = data.Data(dc_survey, dobs=dpred_dc)
 
 data_array = [dc_data, dc_data_predicted, dc_data]
-dobs_array = [None, None, (dobs_dc-dpred_dc)/uncertainties_dc]
+dobs_array = [None, None, (dobs_dc-dpred_dc)/std_dc]
 
 fig = plt.figure(figsize=(17, 5.5))
 plot_title=['Observed', 'Predicted', 'Normalized Misfit']
@@ -499,7 +499,6 @@ ip_simulation = ip.simulation_2d.Simulation2DNodal(
 
 # Define the data misfit (Here we use weighted L2-norm)
 ip_data_misfit = data_misfit.L2DataMisfit(data=ip_data, simulation=ip_simulation)
-ip_data_misfit.W = utils.sdiag(1./uncertainties_ip)
 
 # Define the regularization (model objective function)
 ip_regularization = regularization.Simple(
@@ -623,7 +622,7 @@ ip_data_predicted = data.Data(ip_survey, dobs=dpred_ip)
 # Convert from voltage measurements to apparent chargeability by normalizing by
 # the DC voltage
 dobs_array = np.c_[
-    dobs_ip/dobs_dc, dpred_ip/dobs_dc, (dobs_ip-dpred_ip)/uncertainties_ip
+    dobs_ip/dobs_dc, dpred_ip/dobs_dc, (dobs_ip-dpred_ip)/std_ip
 ]
 
 fig = plt.figure(figsize=(17, 5.5))

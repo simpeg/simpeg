@@ -288,7 +288,7 @@ def readUBCmagneticsObservations(obs_file):
     rxLoc = magnetics.receivers.Point(locXYZ)
     srcField = magnetics.sources.SourceField([rxLoc], parameters=(B[2], B[0], B[1]))
     survey = magnetics.survey.MagneticSurvey(srcField)
-    data_object = data.Data(survey, dobs=d, noise_floor=wd)
+    data_object = data.Data(survey, dobs=d, standard_deviation=wd)
 
     return data_object
 
@@ -318,7 +318,7 @@ def writeUBCmagneticsObservations(filename, data_object):
     rxLoc = survey.source_field.receiver_list[0].locations
 
     d = data_object.dobs
-    wd = data_object.uncertainty
+    wd = data_object.standard_deviation
 
     data = np.c_[rxLoc, d, wd]
     head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0]) +
@@ -372,7 +372,7 @@ def readUBCgravityObservations(obs_file):
     rxLoc = gravity.receivers.Point(locXYZ)
     srcField = gravity.sources.SourceField([rxLoc])
     survey = gravity.survey.GravitySurvey(srcField)
-    data_object = data.Data(survey, dobs=d, noise_floor=wd)
+    data_object = data.Data(survey, dobs=d, standard_deviation=wd)
     return data_object
 
 
@@ -391,7 +391,7 @@ def writeUBCgravityObservations(filename, data_object):
 
     d = data_object.dobs
 
-    wd = data_object.uncertainty
+    wd = data_object.standard_deviation
 
     data = np.c_[rxLoc, d, wd]
     head = ('%i\n' % len(d))

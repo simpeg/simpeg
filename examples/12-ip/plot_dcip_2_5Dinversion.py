@@ -125,7 +125,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     )
 
     # Make synthetic DC data with 5% Gaussian noise
-    data_dc = prb.make_synthetic_data(mtrue_dc, std=0.05, add_noise=True)
+    data_dc = prb.make_synthetic_data(mtrue_dc, relative_error=0.05, add_noise=True)
     IO.data_dc = data_dc.dobs
 
     # Generate mtrue_ip for chargability
@@ -138,7 +138,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         solver=Solver
     )
 
-    data_ip = prb_ip.make_synthetic_data(mtrue_ip, std=0.05, add_noise=True)
+    data_ip = prb_ip.make_synthetic_data(mtrue_ip, relative_error=0.05, add_noise=True)
 
     IO.data_ip = data_ip.dobs
 
@@ -172,11 +172,11 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Set initial model based upon histogram
     m0_dc = np.ones(actmap.nP)*np.log(100.)
-    # Set uncertainty
+    # Set standard deviation
     # floor
     data_dc.noise_floor = 10**(-3.2)
     # percentage
-    data_dc.standard_deviation = 0.05
+    data_dc.relative_error = 0.05
 
     mopt_dc, pred_dc = DC.run_inversion(
         m0_dc, prb, data_dc, actind, mesh,
@@ -237,11 +237,11 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Set initial model based upon histogram
     m0_ip = np.ones(actmap.nP)*1e-10
-    # Set uncertainty
+    # Set standard deviation
     # floor
     data_ip.noise_floor = 10**(-4)
     # percentage
-    data_ip.standard_deviation = 0.05
+    data_ip.relative_error = 0.05
     # Clean sensitivity function formed with true resistivity
     prb_ip._Jmatrix = None
     # Input obtained resistivity to form sensitivity

@@ -131,7 +131,7 @@ def run(plotIt=True):
         cb.set_label('$\\varphi$')
 
     # get observed data
-    data = problem.make_synthetic_data(phitrue, std=0.03, add_noise=True)
+    data = problem.make_synthetic_data(phitrue, relative_error=0.03, add_noise=True)
     dpred = problem.dpred(np.zeros(M.nC))
 
     # objective function pieces
