@@ -106,7 +106,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
                 )
             if any(standard_deviation <= 0):
                 raise Exception(
-                    "data.standard_deviation musy be strictly positive to construct "
+                    "data.standard_deviation must be strictly positive to construct "
                     "the W matrix. Please set data.relative_error and or "
                     "data.noise_floor."
                 )
@@ -209,14 +209,14 @@ class l2_DataMisfit(L2DataMisfit):
         self.survey = survey
         try:
             dobs = survey.dobs
-            std = survey.std
+            rel_err = survey.std
         except AttributeError:
             raise Exception('Survey object must have been given a data object')
         # create a Data object...
         # Get the survey's simulation that was paired to it....
         # simulation = survey.simulation
 
-        self.data = Data(survey, dobs, relative_error=std)
+        self.data = Data(survey, dobs, relative_error=rel_err)
 
         eps_factor = 1e-5  #: factor to multiply by the norm of the data to create floor
         if getattr(self.survey, 'eps', None) is None:

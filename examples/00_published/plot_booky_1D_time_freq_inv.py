@@ -230,10 +230,10 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # Uncertainty
     relative = np.repeat(np.r_[np.ones(3)*0.1, np.ones(2)*0.15], 2)
     floor = 20 * abs(bp) * 1e-6
-    uncert = abs(dobs_re) * relative + floor
+    std = abs(dobs_re) * relative + floor
 
     # Data Misfit
-    data_resolve = data.Data(dobs=dobs_re, survey=survey, standard_deviation=uncert)
+    data_resolve = data.Data(dobs=dobs_re, survey=survey, standard_deviation=std)
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data_resolve)
 
     # Regularization
@@ -341,10 +341,10 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # Uncertainty
     relative = 0.12
     floor = 7.5e-12
-    uncert = abs(dobs_sky) * relative + floor
+    std = abs(dobs_sky) * relative + floor
 
     # Data Misfit
-    data_sky = data.Data(dobs=-dobs_sky, survey=survey, standard_deviation=uncert)
+    data_sky = data.Data(dobs=-dobs_sky, survey=survey, standard_deviation=std)
     dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data_sky)
 
     # Regularization

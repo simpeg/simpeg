@@ -66,7 +66,6 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # define gravity data and errors
     d = data_object.dobs
-    wd = data_object.standard_deviation
 
     # Get the active cells
     active = driver.activeCells
@@ -109,7 +108,6 @@ def run(plotIt=True, cleanAfterRun=True):
 
     # Define misfit function (obs-calc)
     dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
-    dmis.W = 1./wd
 
     # create the default L2 inverse problem from the above objects
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)

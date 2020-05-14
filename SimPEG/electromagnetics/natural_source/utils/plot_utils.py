@@ -124,7 +124,7 @@ class TipperAmplitudeStationPlot(BaseDataNSEMPlots):
 
         :param data_list: List of NSEM data objects to plot.
             Has to be of length >= 1. First item is treat as a
-            observed data (Hast to have relative_error and floor)
+            observed data (Hast to have relative_error and noise_floor)
             assigned) and the others are plotted on top.
         :param location: Location of the station to plot
         """
@@ -213,7 +213,7 @@ class ApparentResPhsStationPlot(BaseDataNSEMPlots):
 
         :param data_list: List of NSEM data objects to plot.
             Has to be of length >= 1. First item is treat as a
-            observed data (Hast to have relative_error and floor)
+            observed data (Hast to have relative_error and noise_floor)
             assigned) and the others are plotted on top.
         :param location: Location of the station to plot
         """

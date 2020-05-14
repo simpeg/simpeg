@@ -127,7 +127,7 @@ plt.show()
 
 maximum_anomaly = np.max(np.abs(dobs))
 
-uncertainties = 0.02*maximum_anomaly*np.ones(len(dobs))
+std = 0.02*maximum_anomaly*np.ones(len(dobs))
 
 #############################################
 # Defining the Survey
@@ -169,10 +169,10 @@ survey = magnetics.survey.MagneticSurvey(source_field)
 # -----------------
 #
 # Here is where we define the data that is inverted. The data is defined by
-# the survey, the observation values and the uncertainties.
+# the survey, the observation values and the standard deviations.
 #
 
-data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
+data_object = data.Data(survey, dobs=dobs, standard_deviation=std)
 
 
 #############################################
@@ -243,7 +243,8 @@ simulation = magnetics.simulation.Simulation3DIntegral(
 
 # Define the data misfit. Here the data misfit is the L2 norm of the weighted
 # residual between the observed data and the data predicted for a given model.
-# The weighting is defined by the reciprocal of the uncertainties.
+# Within the data misfit, the residual between predicted and observed data are
+# normalized by the data's standard deviation.
 dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 
 # Define the regularization (model objective function)
@@ -378,7 +379,7 @@ plt.show()
 dpred = inv_prob.dpred
 
 # Observed data | Predicted data | Normalized data misfit
-data_array = np.c_[dobs, dpred, (dobs-dpred)/uncertainties]
+data_array = np.c_[dobs, dpred, (dobs-dpred)/std]
 
 fig = plt.figure(figsize=(17, 4))
 plot_title=['Observed', 'Predicted', 'Normalized Misfit']

@@ -62,6 +62,10 @@ class Data(properties.HasProperties):
         error to each datum) or as a scalar if you would like to assign a
         the same relative error to all data.
 
+        The standard_deviation is constructed as follows::
+
+            relative_error * np.abs(dobs) + noise_floor
+
         For example, if you set
 
         .. code:: python
@@ -85,6 +89,10 @@ class Data(properties.HasProperties):
         same size as the data (e.g. if you want to assign a different noise
         floor to each datum) or as a scalar if you would like to assign a
         the same noise floor to all data.
+
+        The standard_deviation is constructed as follows::
+
+            relative_error * np.abs(dobs) + noise_floor
 
         For example, if you set
 

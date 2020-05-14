@@ -137,7 +137,7 @@ plt.show()
 # a relative error is applied to each datum. For this tutorial, the relative
 # error on each datum will be 2%.
 
-uncertainties = 0.02*np.abs(dobs)
+std = 0.02*np.abs(dobs)
 
 
 ###############################################
@@ -145,10 +145,10 @@ uncertainties = 0.02*np.abs(dobs)
 # --------------------
 #
 # Here is where we define the data that are inverted. The data are defined by
-# the survey, the observation values and the uncertainties.
+# the survey, the observation values and the standard deviation.
 #
 
-data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
+data_object = data.Data(survey, dobs=dobs, standard_deviation=std)
 
 
 ###############################################
@@ -214,7 +214,8 @@ simulation = dc.simulation_1d.Simulation1DLayers(
 
 # Define the data misfit. Here the data misfit is the L2 norm of the weighted
 # residual between the observed data and the data predicted for a given model.
-# The weighting is defined by the reciprocal of the uncertainties.
+# Within the data misfit, the residual between predicted and observed data are
+# normalized by the data's standard deviation.
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 
 # Define the regularization (model objective function)

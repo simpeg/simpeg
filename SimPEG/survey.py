@@ -363,22 +363,22 @@ class BaseSurvey(properties.HasProperties):
                 "0.15.0 of SimPEG", DeprecationWarning
             )
             if std is None and getattr(target, 'std', None) is None:
-                stddev = 0.05
+                rel_err = 0.05
                 print(
-                        'SimPEG.Survey assigned default std '
+                        'SimPEG.Survey assigned default rel_err '
                         'of 5%'
                     )
             elif std is None:
-                stddev = target.std
+                rel_err = target.std
             else:
-                stddev = std
+                rel_err = std
                 print(
-                        'SimPEG.Survey assigned new std '
-                        'of {:.2f}%'.format(100.*stddev)
+                        'SimPEG.Survey assigned new rel_err '
+                        'of {:.2f}%'.format(100.*rel_err)
                     )
 
             data = target.simulation.make_synthetic_data(
-                m, relative_error=stddev, f=f, add_noise=True)
+                m, relative_error=rel_err, f=f, add_noise=True)
             target.dtrue = data.dclean
             target.dobs = data.dobs
             target.std = data.relative_error
