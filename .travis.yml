@@ -60,7 +60,7 @@ install:
 # Run test
 script:
   # - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
-  - travis_weight 60 nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
+  - travis_wait 60 nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
 
 
 # Calculate coverage
