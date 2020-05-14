@@ -7,21 +7,38 @@ from SimPEG import utils
 
 def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
     """
-    4.56 in Ward and Hohmann
+    The analytical expression is given in Equation 4.56 in Ward and Hohmann,
+    1988, and the example reproduces their Figure 4.2.
+
 
     .. plot::
 
+        import numpy as np
         import matplotlib.pyplot as plt
         from SimPEG import electromagnetics as EM
-        freq = np.logspace(-1, 6, 61)
-        test = EM.analytics.hzAnalyticDipoleF(100, freq, 0.001, secondary=False)
-        plt.loglog(freq, abs(test.real))
-        plt.loglog(freq, abs(test.imag))
-        plt.title('Response at $r$=100m')
-        plt.xlabel('Frequency')
-        plt.ylabel('Response')
-        plt.legend(('real','imag'))
+        freq = np.logspace(-1, 5, 301)
+        test = EM.analytics.hzAnalyticDipoleF(
+                100, freq, 0.01, secondary=False)
+        plt.loglog(freq, test.real, 'C0-', label='Real')
+        plt.loglog(freq, -test.real, 'C0--')
+        plt.loglog(freq, test.imag, 'C1-', label='Imaginary')
+        plt.loglog(freq, -test.imag, 'C1--')
+        plt.title('Response at $r=100$ m')
+        plt.xlim([1e-1, 1e5])
+        plt.ylim([1e-12, 1e-6])
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel('$H_z$ (A/m)')
+        plt.legend(loc=6)
         plt.show()
+
+
+    **Reference**
+
+    - Ward, S. H., and G. W. Hohmann, 1988, Electromagnetic theory for
+      geophysical applications, Chapter 4 of Electromagnetic Methods in Applied
+      Geophysics: SEG, Investigations in Geophysics No. 3, 130--311; DOI:
+      `10.1190/1.9781560802631.ch4
+      <https://doi.org/10.1190/1.9781560802631.ch4>`_.
 
     """
     r = np.abs(r)
@@ -45,7 +62,8 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment=1., orientation='X', mu
     """
     Analytical solution for a dipole in a whole-space.
 
-    Equation 2.57 of Ward and Hohmann
+    The analytical expression is given in Equation 2.57 in Ward and Hohmann,
+    1988, and the example reproduces their Figure 2.2.
 
     TODOs:
         - set it up to instead take a mesh & survey
@@ -56,16 +74,30 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment=1., orientation='X', mu
 
     .. plot::
 
-        import SimPEG.electromagnetics as EM
+        import numpy as np
+        from SimPEG import electromagnetics as EM
         import matplotlib.pyplot as plt
         from scipy.constants import mu_0
-        freqs = np.logspace(-2,5,100)
-        Bx, By, Bz = EM.analytics.FDEM.MagneticDipoleWholeSpace([0,100,0], [0,0,0], 1e-2, freqs, moment=1, orientation='Z')
-        plt.loglog(freqs, np.abs(Bz.real)/mu_0, 'b')
-        plt.loglog(freqs, np.abs(Bz.imag)/mu_0, 'r')
-        plt.legend(('real','imag'))
+        freqs = np.logspace(-2, 5, 301)
+        Bx, By, Bz = EM.analytics.FDEM.MagneticDipoleWholeSpace(
+                [0, 100, 0], [0, 0, 0], 1e-2, freqs, moment=1, orientation='Z')
+        plt.figure()
+        plt.loglog(freqs, Bz.real/mu_0, 'C0', label='Real')
+        plt.loglog(freqs, -Bz.real/mu_0, 'C0--')
+        plt.loglog(freqs, Bz.imag/mu_0, 'C1', label='Imaginary')
+        plt.loglog(freqs, -Bz.imag/mu_0, 'C1--')
+        plt.legend()
+        plt.xlim([1e-2, 1e5])
+        plt.ylim([1e-13, 1e-6])
         plt.show()
 
+    **Reference**
+
+    - Ward, S. H., and G. W. Hohmann, 1988, Electromagnetic theory for
+      geophysical applications, Chapter 4 of Electromagnetic Methods in Applied
+      Geophysics: SEG, Investigations in Geophysics No. 3, 130--311; DOI:
+      `10.1190/1.9781560802631.ch4
+      <https://doi.org/10.1190/1.9781560802631.ch4>`_.
 
     """
 
