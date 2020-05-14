@@ -27,6 +27,7 @@ env:
     - PYPI_PY=3.6  # deploy to pypi from python 3.6
 
   matrix:
+    - TEST_DIR=tests/docs
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR=tests/em/tdem
     - TEST_DIR="tests/em/static tests/seis tests/base tests/utils"
@@ -37,10 +38,6 @@ env:
     - TEST_DIR=tests/em/vrm
     - TEST_DIR=tests/pf
     - TEST_DIR=tests/dask
-    - TEST_DIR=tests/docs;
-      PATH=$PATH:${HOME}/google-cloud-sdk/bin;
-      PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};
-      CLOUDSDK_CORE_DISABLE_PROMPTS=1
 
 
 # Setup anaconda
@@ -63,7 +60,7 @@ install:
 # Run test
 script:
   # - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
-  - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
+  - travis_weight 60 nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
 
 
 # Calculate coverage
