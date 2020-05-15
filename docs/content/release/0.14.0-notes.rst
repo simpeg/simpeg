@@ -1,0 +1,177 @@
+===========================
+SimPEG 0.14.0 Release Notes
+===========================
+
+This release marks a major change in the structure of SimPEG, and it all started
+with this,
+
+* `#562 <https://github.com/simpeg/simpeg/issues/562>`__: What's the problem with ``Problem``?
+
+We hope to answer that question with this release!
+
+This release will break backward compatibility as many modules and classes have
+been renamed.
+
+We are also only supporting Python versions between 3.6-3.8. We have dropped all
+testing and development on Python versions previous to this (especially
+2.7).
+
+Highlights
+==========
+
+* No more ``Problem``-s, only ``Simulation``-s
+* ``Data`` is important
+* PEP 8 renaming
+* Dask parallelism
+* Resistivity Simulation improvements
+
+Simulation
+==========
+We will refer to this update as the simulation update, and there are a few large
+changes that we will attempt to describe here.
+
+We (the developers) believed that there were some significant challenges with the
+overall structure of the SimPEG framework, which all revolved around constructing
+a forward simulation by ``pair``-ing a ``Survey`` and a ``Problem``. The ``Survey``
+handled things like sources, receivers, and the ``Problem`` handled the physics
+engine of the forward simulation. These two items had to be created separately,
+then ``pair``-ed afterwards for both the ``Problem`` to be able to use sources, and for
+the ``Survey`` to predict data. We found that this structure made it difficult to
+interface with other packages and was also generally difficult to explain. Also,
+field data was then attached to the ``Survey`` class.
+
+The ``Simulation`` class
+------------------------
+``Problem`` has been renamed to ``Simulation``
+
+We decided to refactor this code into something a little more manageable.
+The ``Simulation`` class is now the workhorse of the SimPEG forward simulations.
+It handles things like modeling fields and projecting those fields to the data
+locations defined by it's ``survey``. The ``Survey`` class is much lighter weight,
+now only handling the sources and receivers. Also a single ``survey`` can now be
+attached to many ``Simulation``-s.
+
+Previously we had something like,
+
+.. code-block:: python
+
+    survey = DC.Survey(srcList)
+    prob = DC.Problem3D_CC(mesh, rhoMap=mapping)
+    prob.pair(survey)
+
+    # Compute the fields from `prob`
+    fields = prob.fields(model)
+    # And predict data using the `survey`
+    dpred = survey.dpred(model, f=fields)
+
+Now,
+
+.. code-block:: python
+
+    survey = resistivity.Survey([source_list])
+    sim = resistivity.Simulation3DCellCentered(
+        mesh,
+        survey=survey,
+        rhoMap=mapping
+    )
+
+    # Compute the fields from `sim`
+    fields = sim.fields(model)
+    # Predict data also using `sim`
+    dpred = sim.dpred(model, f=fields)
+
+See? The ``Simulation`` handles predicting data. This change will also make it
+easier to interface with external codes for inversion purposes, as all that is
+needed to be defined to use a ``Simulation`` for an ``InvProblem``, is
+``sim.dpred``, ``sim.Jvec`` and ``sim.Jtvec``.
+
+Please see the documentation for the Simulation class for a detailed description
+of arguments, but largely it accepts the same arguments as the ``Problem`` class,
+but now also requires a ``Survey`` to be set.
+
+The ``Data`` class
+------------------
+Previously, field data would also live within the ``Survey`` class. Which was not
+only confusing, but placed the importance on the wrong component. When inverting geophysical
+data, we are concerned with the data. Thus we would like to enforce this importance
+by making data live in dedicated ``Data`` class. This ``Data`` class can act like a smart
+dictionary to grab data associated with a specific source, receiver combination.
+More importantly, this ``Data`` class is where we store information related to observed
+data and its errors.
+
+Previously,
+
+.. code-block:: python
+
+    # Add data to the survey
+    survey.dobs = dobs
+    survey.std = 0.05  # a 5% relative error
+    survey.eps = 1.0E-6  # a noise floor
+
+Now,
+
+.. code-block:: python
+
+    # Create a data object
+    data = data.Data(dobs=dobs, relative_error=0.05, noise_floor=1e-6)
+
+
+The ``L2DataMisfit`` class
+--------------------------
+
+Previously, because the ``Survey`` class handled predicting data at the receivers,
+and it also had knowledge of the observed data and its noise, we constructed the
+data misfit measure using only the survey. Now we have specifically broken this
+piece up into the a forward ``Simulation``, and a ``Data`` class. This mimics
+the definition of the classic data misfit measure.
+
+.. math::
+
+    \phi_d = ||\textbf{W}_d(\mathcal{F}(\vec{m}) - \vec{d}_{obs})||^2
+
+The ``Simulation`` class handles the forward operation, :math:`\mathcal{F}`, and
+the ``Data`` class handles the noise, :math:`\textbf{W}_d=diag(\frac{1}{\sigma_i})`,
+and the observed data, :math:`\vec{d}_{obs}`.
+
+Previously,
+
+.. code-block:: python
+
+    # Survey knows how to predict data, knows the observed data,
+    # and it's standard deviation
+    dmis = DataMisfit.l2_DataMisfit(survey)
+
+Now,
+
+.. code-block:: python
+
+    # Create a data misfit
+    dmis = data_misfit.L2DataMisfit(data=data, simulation=sim)
+
+
+Dask
+====
+
+
+Changelog
+==========
+As can be expected.
+
+Renamed Modules
+---------------
+
+
+New Functions
+-------------
+
+
+Deprecations
+------------
+
+
+Pull Requests
+=============
+
+
+Contributors
+============

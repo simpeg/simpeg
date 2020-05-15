@@ -8,8 +8,6 @@ cache:
   - docs/content/examples
   - docs/content/tutorials
 
-sudo: false
-
 addons:
   apt:
     packages:
