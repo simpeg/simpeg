@@ -10,9 +10,10 @@ with this,
 We hope to answer that question with this release!
 
 This release will break backward compatibility as many modules and classes have
-been renamed.
+been renamed. Check out the :ref:`sphx_glr_content_examples` and :ref:`simpeg_tutorials`
+(which have also been improved) to see how it's done.
 
-We are also only supporting Python versions between 3.6-3.8. We have dropped all
+We are also only supporting Python versions 3.6<= at this time. We have dropped all
 testing and development on Python versions previous to this (especially
 2.7).
 
@@ -44,10 +45,10 @@ The ``Simulation`` class
 ------------------------
 ``Problem`` has been renamed to ``Simulation``
 
-We decided to refactor this code into something a little more manageable.
+We decided to refactor this code into something a little more understandable.
 The ``Simulation`` class is now the workhorse of the SimPEG forward simulations.
 It handles things like modeling fields and projecting those fields to the data
-locations defined by it's ``survey``. The ``Survey`` class is much lighter weight,
+locations defined by its ``survey``. The ``Survey`` class is much lighter weight,
 now only handling the sources and receivers. Also a single ``survey`` can now be
 attached to many ``Simulation``-s.
 
@@ -85,8 +86,9 @@ easier to interface with external codes for inversion purposes, as all that is
 needed to be defined to use a ``Simulation`` for an ``InvProblem``, is
 ``sim.dpred``, ``sim.Jvec`` and ``sim.Jtvec``.
 
-Please see the documentation for the Simulation class for a detailed description
-of arguments, but largely it accepts the same arguments as the ``Problem`` class,
+Please see the documentation for the :class:`SimPEG.simulation.BaseSimulation` class
+as well as the individual method's ``Simulation``-s, for a detailed description of
+arguments, but largely it accepts the same arguments as the ``Problem`` class,
 but now also requires a ``Survey`` to be set.
 
 The ``Data`` class
@@ -97,7 +99,9 @@ data, we are concerned with the data. Thus we would like to enforce this importa
 by making data live in dedicated ``Data`` class. This ``Data`` class can act like a smart
 dictionary to grab data associated with a specific source, receiver combination.
 More importantly, this ``Data`` class is where we store information related to observed
-data and its errors.
+data and its errors. This class started in the ``SimPEG.Survey`` module, but has
+now been moved into its own new module ``SimPEG.data``. See the documentation for
+the :class:`SimPEG.data.Data` for all of the details.
 
 Previously,
 
@@ -115,6 +119,28 @@ Now,
     # Create a data object
     data = data.Data(dobs=dobs, relative_error=0.05, noise_floor=1e-6)
 
+You might also notice that we changed the name of the terms used to construct
+the standard deviation. See issue `#846 <https://github.com/simpeg/simpeg/issues/846>`__.
+Previously ``survey.std`` represented an error that was relative to the absolute
+value of the data. The name of this term is misleading, as it is not actually
+the classic statistical standard deviation.
+
+Previously the uncertainty was constructed as:
+
+.. code-block:: python
+
+    uncertainty = survey.std * np.abs(survey.dobs) + survey.eps
+
+We now have updated the names to be clearer and more in line with what we would
+naturally expect, which is accessed from `data.standard_deviation`. The value
+that is returned from this is now defined as:
+
+.. code-block:: python
+
+  data.standard_deviation = (
+      data.relative_error * np.abs(data.dobs) +
+      data.noise_floor
+  )
 
 The ``L2DataMisfit`` class
 --------------------------
@@ -123,11 +149,12 @@ Previously, because the ``Survey`` class handled predicting data at the receiver
 and it also had knowledge of the observed data and its noise, we constructed the
 data misfit measure using only the survey. Now we have specifically broken this
 piece up into the a forward ``Simulation``, and a ``Data`` class. This mimics
-the definition of the classic data misfit measure.
+the definition of the classic data misfit measure. See the documentation for the
+:class:`SimPEG.data_misfit.L2DataMisfit` for all of the details.
 
 .. math::
 
-    \phi_d = ||\textbf{W}_d(\mathcal{F}(\vec{m}) - \vec{d}_{obs})||^2
+    \phi_d = ||\textbf{W}_d(\mathcal{F}(\vec{m}) - \vec{d}_{obs})||_2^2
 
 The ``Simulation`` class handles the forward operation, :math:`\mathcal{F}`, and
 the ``Data`` class handles the noise, :math:`\textbf{W}_d=diag(\frac{1}{\sigma_i})`,
@@ -146,23 +173,128 @@ Now,
 .. code-block:: python
 
     # Create a data misfit
-    dmis = data_misfit.L2DataMisfit(data=data, simulation=sim)
+    dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
 
 
 Dask
 ====
 
+We have begun a concerted effort to incorporate ``dask`` as means to allow SimPEG
+to scale to larger computers (and take advantage of parallelism). Checkout the
+``dask`` docs at https://docs.dask.org/en/latest/.
+
+This feature is experimental at the moment and can be toggled on like so,
+
+.. code-block:: python
+
+    import SimPEG.dask
+
+which will then enable a parallel operations for a few modules. It will specifically
+replace these functions with ``dask`` versions,
+
+* ``SimPEG.potential_fields.BasePFSimulation.linear_operator``
+* ``SimPEG.potential_fields.magnetics.Simulation3DIntegral.getJtJdiag``
+* ``SimPEG.potential_fields.gravity.Simulation3DIntegral.getJtJdiag``
+* ``SimPEG.electromagnetics.static.resistivity.simulation.BaseDCSimulation.getJ``
+* ``SimPEG.electromagnetics.static.resistivity.simulation.BaseDCSimulation.getJtJdiag``
+* ``SimPEG.electromagnetics.static.induced_polarization.simulation.BaseDCSimulation.getJ``
+* ``SimPEG.electromagnetics.static.induced_polarization.simulation.BaseDCSimulation.getJtJdiag``
 
 Changelog
-==========
-As can be expected.
+=========
+As can be expected, there are many changes in this release, and we hope to identify
+all of them here.
 
 Renamed Modules
 ---------------
+We have taken steps to rename the modules of SimPEG to a more PEP 8 friendly
+system. The previous locations do not exist.
+
+* ``EM`` → ``electromagnetics``
+* ``EM.FDEM`` → ``electromagnetics.frequency_domain``
+* ``EM.TDEM`` → ``electromagnetics.time_domain``
+* ``EM.NSEM`` → ``electromagnetics.natural_source``
+* ``EM.Static`` → ``electromagnetics.static``
+* ``EM.Static.DC`` → ``electromagnetics.static.resistivity``
+* ``EM.Static.IP`` → ``electromagnetics.static.induced_polarization``
+* ``EM.Static.SIP`` → ``electromagnetics.static.spectral_induced_polarization``
+* ``EM.Utils`` → ``electromagnetics.utils``
+* ``VRM`` → ``electromagnetics.viscous_remanent_magnetization``
+* ``FLOW`` → ``flow``
+* ``SEIS`` → ``seismic``
+* ``PF`` → ``potential_fields``
+* ``PF.Magnetics`` → ``potential_fields.magnetics``
+* ``PF.Gravity`` → ``potential_fields.gravity``
+* ``PF`` → ``potential_fields``
+* ``Utils`` → ``utils``
+* ``DataMisfit`` → ``data_misfit``
+* ``Directives`` → ``directives``
+* ``Fields`` → ``fields``
+* ``InvProblem`` → ``inverse_problem``
+* ``Inversion`` → ``inversion``
+* ``Maps`` → ``maps``
+* ``Models`` → ``models``
+* ``ObjectiveFunction`` → ``objective_function``
+* ``Optimization`` → ``optimization``
+* ``Props`` → ``props``
+* ``Survey`` → ``survey``
+* ``Problem`` → ``simulation``
+
+Also many of the utilities modules within these are also being deprecated. Their
+old names are still around and should throw a deprecation warning when loaded.
+
+For example,
+
+* ``Utils.codeutils`` → ``utils.code_utils``
+* ``Utils.ModelBuilder`` → ``utils.model_builder``
+* ``EM.Utils.EMUtils`` → ``electromagnetics.utils.waveform_utils`` (this one is a little less obvious)
+
+``Problem`` to ``Simulation``
+-----------------------------
+Many of the previous ``Problem`` classes are still within the modules, but now
+will now throw a deprecation warning which points to the updated ``Simulation``.
+The renaming scheme for the ``Simulation``-s was decided in
+`#857 <https://github.com/simpeg/simpeg/issues/847>`__.
+
+For example,
+
+* ``Problem3D_CC`` → ``Simulation3DCellCentered``
+* ``Problem2D_CC`` → ``Simulation2DCellCentered``
+* ``Problem3D_e`` → ``Simulation3DElectricField``
+* ``Problem3D_b`` → ``Simulation3DMagneticFluxDensity``
+* ``Problem3D_h`` → ``Simulation3DMagneticField``
+* ``Problem3D_j`` → ``Simulation3DCurrentDensity``
+* etc.
+
+Our current plan is to remove these deprecated versions in the 0.15.0 SimPEG
+release.
+
+Potential field re-organization
 
 
-New Functions
--------------
+Improvements and Additions
+--------------------------
+
+We have made a few improvements to the ``SimPEG.electromagnetics.static.resistivity``
+that were motivatived by our work under the Geoscientists Without Borders project.
+
+One is that we now have a 1D layered Earth simulation class,
+:class:`SimPEG.electromagnetics.static.resistivity.simulation_1d.Simulation1DLayers`,
+that can be used to invert resistivity sounding data for conductivity and/or
+thicknesses of a set number of layers.
+
+The second, is a new ``miniaturize`` option for the 2D and 3D resistivity simulations.
+This option causes the class to internally replace ``Dipole`` sources and receivers
+with only unique ``Pole`` sources and receivers. This can result in a dramatic speedup
+and reduced memory requirements when the input ``survey`` contains many more
+``Dipole``-s than electrode locations. This is especially common in the wenner
+type survey acquisitions that use a unique source and receiver for each measured
+data point. This option is disabled by default, and can be enabled by passing the
+``minaturize=True`` keyword to the resistivity ``Simulation`` upon initialization.
+
+The third is automated ``TreeMesh`` construction within the ``IODC`` class for
+a 2D survey.
+
 
 
 Deprecations

@@ -1,5 +1,5 @@
 import scipy.sparse as sp
-from ...utils.code_utils import deprecate_class
+from ...utils.code_utils import deprecate_class, deprecate_property
 import properties
 
 from ...utils import mkvc
@@ -20,14 +20,19 @@ class BaseRx(BaseTimeRx):
         ["x", "y", "z"]
     )
 
+    projComp = deprecate_property(orientation, 'projComp', new_name='orientation', removal_version='0.15.0')
+
     def __init__(self, locations, times, orientation=None, **kwargs):
-        self.orientation = orientation
-        self.projComp = orientation
+        proj = kwargs.pop('projComp', None)
+        if proj is not None:
+            self.projComp = proj
+        else:
+            self.orientation = orientation
         super().__init__(locations=locations, times=times, **kwargs)
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
-        return f._GLoc(self.projField) + self.projComp
+        return f._GLoc(self.projField) + self.orientation
 
     def projTLoc(self, f):
         """Time Location projection (e.g. CC N)"""

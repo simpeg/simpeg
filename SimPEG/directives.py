@@ -12,11 +12,13 @@ from .regularization import BaseComboRegularization, BaseRegularization
 from .utils import (
     mkvc, setKwargs, sdiag, diagEst, spherical2cartesian, cartesian2spherical
 )
+from .utils.code_utils import deprecate_property
 
 
 
 class InversionDirective(properties.HasProperties):
     """InversionDirective"""
+    _REGISTRY = {}
 
     debug = False    #: Print debugging information
     _regPair = [
@@ -108,13 +110,7 @@ class InversionDirective(properties.HasProperties):
         """
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
 
-    @property
-    def prob(self):
-        warnings.warn(
-            "The prob property will be depricated in favor of simulation. "
-            "Please update your code accordingly"
-        )
-        return self.simulation
+    prob = deprecate_property(simulation, 'prob', new_name='simulation', removal_version='0.15.0')
 
     def initialize(self):
         pass
@@ -655,15 +651,15 @@ class Update_IRLS(InversionDirective):
     # Solving parameter for IRLS (mode:2)
     irls_iteration = 0
     minGNiter = 1
-    max_irls_iterations = 20
+    max_irls_iterations = properties.Integer('maximum irls iterations', default=20)
     iterStart = 0
     sphericalDomain = False
 
     # Beta schedule
-    update_beta = True
-    beta_search = False
-    coolingFactor = 2.
-    coolingRate = 1
+    update_beta = properties.Bool('Update beta', default=True)
+    beta_search = properties.Bool('Do a beta serarch', default=False)
+    coolingFactor = properties.Float('Cooling factor', default=2.)
+    coolingRate = properties.Integer('Cooling rate', default=1)
     ComboObjFun = False
     mode = 1
     coolEpsOptimized = True
@@ -674,6 +670,10 @@ class Update_IRLS(InversionDirective):
     coolEpsFact = 1.2
     silent = False
     fix_Jmatrix = False
+
+    maxIRLSiters = deprecate_property(max_irls_iterations, 'maxIRLSiters', new_name='max_irls_iterations', removal_version='0.15.0')
+    updateBeta = deprecate_property(update_beta, 'updateBeta', new_name='update_beta', removal_version='0.15.0')
+    betaSearch = deprecate_property(beta_search, 'betaSearch', new_name='beta_search', removal_version='0.15.0')
 
     @property
     def target(self):

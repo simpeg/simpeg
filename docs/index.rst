@@ -30,10 +30,7 @@ Tutorials
    :maxdepth: 3
    :caption: Tutorials to get up and going
 
-   content/tutorials/mesh_generation/index
-   content/tutorials/models_mapping/index
-   content/tutorials/forward_simulations/index
-   content/tutorials/basic_inversions/index
+   content/tutorials/index
 
 
 Packages

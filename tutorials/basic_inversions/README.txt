@@ -1,5 +1,5 @@
 Basic Inversions
-****************
+================
 
 Inversion is used to recover a model from geophysical data. Recovered models are meant to approximate the distribution of a physical property within the survey region; i.e. density, magnetic susceptibility, electrical resistivity, etc. To carry out a geophysical inversion with SimPEG, the user
 must:

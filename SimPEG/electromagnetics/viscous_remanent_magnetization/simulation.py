@@ -27,8 +27,8 @@ class BaseVRMSimulation(BaseSimulation):
     refinement_distance = properties.Array('Sensitivity refinement radii from sources', dtype=float)
     indActive = properties.Array('Topography active cells', dtype=bool)
 
-    ref_factor = deprecate_property(refinement_factor, 'ref_factor', removal_version='0.15.0')
-    ref_radius = deprecate_property(refinement_distance, 'ref_radius', removal_version='0.15.0')
+    ref_factor = deprecate_property(refinement_factor, 'ref_factor', new_name='refinement_factor', removal_version='0.15.0')
+    ref_radius = deprecate_property(refinement_distance, 'ref_radius', new_name='refinement_distance', removal_version='0.15.0')
 
     def __init__(self, mesh=None, **kwargs):
 

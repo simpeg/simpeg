@@ -268,7 +268,7 @@ class LineCurrent(BaseSrcVRM):
     location = properties.Array(
         "location of the source wire points", shape=('*', 3)
     )
-    loc = deprecate_property(location, 'loc', removal_version='0.15.0')
+    loc = deprecate_property(location, 'loc', new_name='location', removal_version='0.15.0')
 
     def __init__(self, receiver_list, location, Imax, waveform, **kwargs):
 

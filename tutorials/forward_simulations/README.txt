@@ -1,5 +1,5 @@
 Forward Simulations
-*******************
+===================
 
 In SimPEG, the forward simulation represents the computation of predicted data
 for a given model and geophysical survey. To carry out a forward simulation, the user

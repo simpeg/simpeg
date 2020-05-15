@@ -191,7 +191,9 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
             Predicted data.
 
             .. math::
+
                 d_\\text{pred} = Pf(m)
+
         """
         if f is None:
             f = self.fields(m)

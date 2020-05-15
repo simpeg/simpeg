@@ -89,7 +89,7 @@ class Dipole(BaseRx):
         """Number of data in the receiver."""
         return self.locations[0].shape[0]
 
-    nRx = deprecate_property(nD, 'nRx', '0.15.0')
+    nRx = deprecate_property(nD, 'nRx', new_name='nD', removal_version='0.15.0')
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
@@ -121,7 +121,7 @@ class Pole(BaseRx):
         """Number of data in the receiver."""
         return self.locations.shape[0]
 
-    nRx = deprecate_property(nD, 'nRx', '0.15.0')
+    nRx = deprecate_property(nD, 'nRx', new_name='nD', removal_version='0.15.0')
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:

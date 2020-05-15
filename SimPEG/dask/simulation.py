@@ -1,8 +1,9 @@
 from ..simulation import BaseSimulation as Sim
 
-Sim._max_ram = 128
+Sim._max_ram = 16
 @property
 def max_ram(self):
+    "Maximum ram in (Gb)"
     return self._max_ram
 @max_ram.setter
 def max_ram(self, other):

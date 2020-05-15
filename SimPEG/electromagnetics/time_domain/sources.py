@@ -297,7 +297,7 @@ class MagDipole(BaseTDEMSrc):
         "location of the source", default=np.r_[0.,0.,0.],
         shape=(3,)
     )
-    loc = deprecate_property(location, 'loc', removal_version='0.15.0')
+    loc = deprecate_property(location, 'loc', new_name='location', removal_version='0.15.0')
 
     def __init__(self, receiver_list=None, **kwargs):
         kwargs.pop("srcType", None)
@@ -495,7 +495,7 @@ class LineCurrent(BaseTDEMSrc):
     """
 
     location = properties.Array("location of the source", shape=('*', 3))
-    loc = deprecate_property(location, 'loc', removal_version='0.15.0')
+    loc = deprecate_property(location, 'loc', new_name='location', removal_version='0.15.0')
 
     def __init__(self, receiver_list=None, **kwargs):
         self.integrate = False

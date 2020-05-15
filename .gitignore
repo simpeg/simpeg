@@ -44,7 +44,9 @@ docs/_build/
 docs/warnings.txt
 .DS_Store
 docs/content/examples/*
-docs/content/tutorials/*
+docs/content/tutorials/basic_inversions/*
+docs/content/tutorials/forward_simulations/*
+docs/content/tutorials/models_mapping/*
 docs/modules/*
 
 # paths to where data are downloaded
