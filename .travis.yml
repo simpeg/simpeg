@@ -21,9 +21,6 @@ env:
 
   matrix:
     - TEST_DIR=tests/docs;
-      PATH=$PATH:${HOME}/google-cloud-sdk/bin;
-      PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};
-      CLOUDSDK_CORE_DISABLE_PROMPTS=1
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR=tests/em/tdem
     - TEST_DIR="tests/em/static tests/seis tests/base tests/utils"
@@ -53,6 +50,9 @@ install:
     fi
   - python setup.py install
   - if [ "$TEST_DIR" = "tests/docs" ]; then
+      export PATH=$PATH:${HOME}/google-cloud-sdk/bin;
+      export PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};
+      export CLOUDSDK_CORE_DISABLE_PROMPTS=1;
       if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
       pip install google-compute-engine;
       openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d ;
@@ -62,7 +62,7 @@ install:
       gsutil cp gs://simpeg/simulation/tut_basic_inversions.tar.gz $PWD/docs/content/tutorials ;
       gsutil cp gs://simpeg/simulation/tut_forward_simulations.tar.gz $PWD/docs/content/tutorials ;
       gsutil cp gs://simpeg/simulation/tut_models_mapping.tar.gz $PWD/docs/content/tutorials ;
-      cd content ;
+      cd docs/content ;
       tar -xzf examples.tar.gz examples;
       cd tutorials;
       tar -xzf tut_basic_inversions.tar.gz basic_inversions;
