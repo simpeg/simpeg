@@ -1,2 +1,2 @@
-Basic Inversions
+Linear Inversion
 ================
