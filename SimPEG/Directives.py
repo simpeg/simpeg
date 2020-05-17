@@ -226,23 +226,46 @@ class BetaEstimate_ByEig(InversionDirective):
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
         ratio = []
+        x0 = np.random.rand(*m.shape)
+        x0 = x0 / np.linalg.norm(x0)
         for i in range(self.ninit):
-            x0 = np.random.rand(*m.shape)
-            t, b = 0, 0
+            x1 = 0.
+            t = 0.
             i_count = 0
             for mult, dmis in zip(self.dmisfit.multipliers, self.dmisfit.objfcts):
                 # check if f is list
                 if len(self.dmisfit.objfcts) > 1:
-                    t += mult * x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
+                    x1 += mult * dmis.deriv2(m, x0, f=f[i_count])
                     i_count += 1
                 else:
-                    t += mult * x0.dot(dmis.deriv2(m, x0, f=f))
+                    x1 = mult * dmis.deriv2(m, x0, f=f)
+            x0 = x1 / np.linalg.norm(x1)
+        i_count = 0
+        t = 0.
+        for mult, dmis in zip(self.dmisfit.multipliers, self.dmisfit.objfcts):
+            # check if f is list
+            if len(self.dmisfit.objfcts) > 1:
+                t += mult * x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
+                i_count += 1
+            else:
+                t = mult * x0.dot(dmis.deriv2(m, x0, f=f))
+
+        x0 = np.random.rand(*m.shape)
+        x0 = x0 / np.linalg.norm(x0)
+        for i in range(self.ninit):
+            x1 = 0.
             for mult, reg in zip(self.reg.multipliers, self.reg.objfcts):
-                b += mult * x0.dot(reg.deriv2(m, v=x0))
-            ratio.append(t / b)
+                x1 += mult * reg.deriv2(m, v=x0)
+            x0 = x1 / np.linalg.norm(x1)
+
+        b=0.
+        for mult, reg in zip(self.reg.multipliers, self.reg.objfcts):
+            b += mult * x0.dot(reg.deriv2(m, v=x0))
+
+        ratio = (t / b)
 
         self.ratio = ratio
-        self.beta0 = self.beta0_ratio * np.median(ratio)
+        self.beta0 = self.beta0_ratio * ratio
 
         self.invProb.beta = self.beta0
 
@@ -1652,13 +1675,20 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             for i in range(nbr):
                 ratio = []
                 if Smooth[i]:
+                    x0 = np.random.rand(*m.shape)
+                    x0 = x0 / np.linalg.norm(x0)
+                    x1 = np.random.rand(*m.shape)
+                    x1 = x1 / np.linalg.norm(x1)
                     for j in range(self.ninit):
-                        x0 = np.random.rand(m.shape[0])
-                        t = x0.dot(self.invProb.reg.objfcts[0].deriv2(m, v=x0))
-                        b = x0.dot(self.invProb.reg.objfcts[i].deriv2(m, v=x0))
-                        ratio.append(t / b)
+                        x0 = self.invProb.reg.objfcts[0].deriv2(m, v=x0)
+                        x1 = self.invProb.reg.objfcts[i].deriv2(m, v=x1)
+                        x0 = x0 /np.linalg.norm(x0)
+                        x1 = x1 / np.linalg.norm(x1)
+                    t = x0.dot(self.invProb.reg.objfcts[0].deriv2(m, v=x0))
+                    b = x1.dot(self.invProb.reg.objfcts[i].deriv2(m, v=x1))
+                    ratio = (t / b)
 
-                    self.alpha0[i] *= self.alpha0_ratio[i] * np.median(ratio)
+                    self.alpha0[i] *= self.alpha0_ratio[i] * (ratio)
                     mtype = self.invProb.reg.objfcts[i]._multiplier_pair
                     setattr(self.invProb.reg, mtype, self.alpha0[i])
 
@@ -1670,16 +1700,24 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     if self.debug:
                         print(type(self.invProb.reg.objfcts[
                               idx[0]].objfcts[idx[1]]))
-
+                    x0 = np.random.rand(*m.shape)
+                    x0 = x0 / np.linalg.norm(x0)
+                    x1 = np.random.rand(*m.shape)
+                    x1 = x1 / np.linalg.norm(x1)
                     for j in range(self.ninit):
-                        x0 = np.random.rand(m.shape[0])
-                        t = x0.dot(self.invProb.reg.objfcts[
-                            Small[0]].objfcts[Small[1]].deriv2(m, v=x0))
-                        b = x0.dot(self.invProb.reg.objfcts[
-                            idx[0]].objfcts[idx[1]].deriv2(m, v=x0))
-                        ratio.append(np.divide(t, b, out=np.zeros_like(t), where=b!=0))
+                        x0 = self.invProb.reg.objfcts[
+                        Small[0]].objfcts[Small[1]].deriv2(m, v=x0)
+                        x1 = self.invProb.reg.objfcts[
+                        idx[0]].objfcts[idx[1]].deriv2(m, v=x1)
+                        x0 = x0 / np.linalg.norm(x0)
+                        x1 = x1 / np.linalg.norm(x1)
+                    t = x0.dot(self.invProb.reg.objfcts[
+                        Small[0]].objfcts[Small[1]].deriv2(m, v=x0))
+                    b = x1.dot(self.invProb.reg.objfcts[
+                        idx[0]].objfcts[idx[1]].deriv2(m, v=x1))
+                    ratio = np.divide(t, b, out=np.zeros_like(t), where=b!=0)
 
-                    self.alpha0[i] *= self.alpha0_ratio[i] * np.median(ratio)
+                    self.alpha0[i] *= self.alpha0_ratio[i] * ratio
                     mtype = self.invProb.reg.objfcts[
                         idx[0]].objfcts[idx[1]]._multiplier_pair
                     setattr(self.invProb.reg.objfcts[
@@ -1984,17 +2022,20 @@ class ScalingEstimate_ByEig(InversionDirective):
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
         ratio = np.zeros((self.ninit,ndm-1))
-        for i in range(self.ninit):
+        t = np.zeros(ndm)
+
+        for j in range(ndm):
             x0 = np.random.rand(*m.shape)
-            t = np.zeros(ndm)
+            x0 = x0 / np.linalg.norm(x0)
+            for i in range(self.ninit):
+                x0 = self.dmisfit.objfcts[j].deriv2(m, x0, f=f[0])
+                x0 = x0 / np.linalg.norm(x0)
+            t[j] = x0.dot(self.dmisfit.objfcts[j].deriv2(m, x0, f=f[0]))
 
-            for j in range(ndm):
-                t[j] = x0.dot(self.dmisfit.objfcts[j].deriv2(m, x0, f=f[0]))
-
-            ratio[i] = t[0]/t[1:]
+        ratio = t[0]/t[1:]
 
         self.ratio = ratio
-        self.Chi0[1:] = self.Chi0[1:] * np.median(ratio, axis=0)
+        self.Chi0[1:] = self.Chi0[1:] * self.ratio
         self.dmisfit.multipliers = self.Chi0
         self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
 
