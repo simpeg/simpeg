@@ -366,6 +366,7 @@ There were 18 pull requests contributing to this release.
 * `#868 <https://github.com/simpeg/simpeg/pull/868>`__: This change was necessary for fields to be called correctly for dcip2...
 * `#869 <https://github.com/simpeg/simpeg/pull/869>`__: Simulation tutorials 2.
 * `#872 <https://github.com/simpeg/simpeg/pull/872>`__: Uncertainty rename in simulation.
+* `#874 <https://github.com/simpeg/simpeg/pull/874>`__: Release notes for simulation as part of the Documentation.
 
 Contributors
 ============
@@ -374,7 +375,7 @@ Combining to produce over 500 commits (listed in no particular order):
 
 * @lheagy
 * @jcapriot
-* @fourndo
+* @fourndo/@domfournier
 * @sgkang
 * @dccowan
 * @JKutt
