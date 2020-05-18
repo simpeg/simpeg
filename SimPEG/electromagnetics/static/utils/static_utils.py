@@ -544,15 +544,9 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
                 # Create line of P2 locations
                 P2 = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
                 if survey_type.lower() in['dipole-dipole', 'pole-dipole']:
-                    if d2flag == '2.5D':
-                        rxClass = dc.Rx.Dipole2D(P1, P2)
-                    elif d2flag == '2D':
-                        rxClass = dc.Rx.Dipole(P1, P2)
+                    rxClass = dc.Rx.Dipole(P1, P2)
                 elif survey_type.lower() in ['dipole-pole', 'pole-pole']:
-                    if d2flag == '2.5D':
-                        rxClass = dc.Rx.Pole2D(P1)
-                    elif d2flag == '2D':
-                        rxClass = dc.Rx.Pole(P1)
+                    rxClass = dc.Rx.Pole(P1)
 
             if survey_type.lower() in['dipole-dipole', 'dipole-pole']:
                 srcClass = dc.Src.Dipole([rxClass], M[ii, :], N[ii, :])
@@ -607,19 +601,12 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
             elif dim == 2:
                 M = M[:, [0, 2]]
                 N = N[:, [0, 2]]
-                if d2flag == '2.5D':
-                    rxClass = dc.Rx.Dipole2D(rx[:, [0, 2]], rx[:, [3, 5]])
-                elif d2flag == '2D':
-                    rxClass = dc.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
+                rxClass = dc.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
             srcClass = dc.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
         SrcList.append(srcClass)
         survey_type = 'dipole-dipole'
 
-    if (d2flag == '2.5D') and (dim == 2):
-        survey = dc.Survey_ky(SrcList, survey_type=survey_type.lower())
-    else:
-        survey = dc.Survey(SrcList, survey_type=survey_type.lower())
-
+    survey = dc.Survey(SrcList, survey_type=survey_type.lower())
     return survey
 
 
@@ -743,25 +730,14 @@ def generate_dcip_survey_line(survey_type, data_type, endl, topo, ds, dh, n, dim
             continue
 
         # Create receivers
-        if dim_flag == '2.5D':
-            if survey_type.lower() in ['dipole-pole', 'pole-pole']:
-                rxClass = dc.receivers.Pole2D(
-                	P[ii+1:ii+nrec+1, :], data_type=data_type
-                	)
-            elif survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
-                rxClass = dc.receivers.Dipole2D(
-                	DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :], data_type=data_type
-                	)
-
-        else:
-            if survey_type.lower() in ['dipole-pole', 'pole-pole']:
-                rxClass = dc.receivers.Pole(
-                	P[ii+1:ii+nrec+1, :], data_type=data_type
-                	)
-            elif survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
-                rxClass = dc.receivers.Dipole(
-                	DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :], data_type=data_type
-                	)
+        if survey_type.lower() in ['dipole-pole', 'pole-pole']:
+            rxClass = dc.receivers.Pole(
+            	P[ii+1:ii+nrec+1, :], data_type=data_type
+            	)
+        elif survey_type.lower() in ['dipole-dipole', 'pole-dipole']:
+            rxClass = dc.receivers.Dipole(
+            	DP1[ii+1:ii+nrec+1, :], DP2[ii+1:ii+nrec+1, :], data_type=data_type
+            	)
 
         # Create sources
         if survey_type.lower() in ['pole-dipole', 'pole-pole']:
@@ -827,7 +803,7 @@ def writeUBC_DCobs(
 
     # if(isinstance(dc_survey.std, float)):
     #     print(
-    #         """survey.std was a float computing uncertainty vector
+    #         """survey.std was a float computing standard_deviation vector
     #         (survey.std*survey.dobs + survey.eps)"""
     #     )
 
@@ -894,7 +870,7 @@ def writeUBC_DCobs(
                     np.c_[
                         A, B, M, N,
                         data.dobs[count:count+nD],
-                        data.standard_deviation[count:count+nD]
+                        data.relative_error[count:count+nD]
                     ],
                     delimiter=str(' '), newline=str('\n'))
                 fid.close()
@@ -927,7 +903,7 @@ def writeUBC_DCobs(
                     np.c_[
                         M, N,
                         data.dobs[count:count+nD],
-                        data.standard_deviation[count:count+nD]
+                        data.relative_error[count:count+nD]
                     ],
                     delimiter=str(' '), newline=str('\n'))
 
@@ -956,13 +932,13 @@ def writeUBC_DCobs(
             fid.close()
 
             fid = open(fileName, 'ab')
-            if isinstance(data.standard_deviation, np.ndarray):
+            if isinstance(data.relative_error, np.ndarray):
                 np.savetxt(
                     fid,
                     np.c_[
                         M, N, data.dobs[count:count+nD],
                         (
-                            data.standard_deviation[count:count+nD] +
+                            data.relative_error[count:count+nD] +
                             data.noise_floor[count:count+nD]
                         )
                     ],
@@ -972,7 +948,7 @@ def writeUBC_DCobs(
                 raise Exception(
                     """Uncertainities SurveyObject.std should be set.
                     Either float or nunmpy.ndarray is expected, """
-                    "not {}".format(type(data.standard_deviation)))
+                    "not {}".format(type(data.relative_error)))
 
             fid.close()
             fid = open(fileName, 'a')
@@ -1352,7 +1328,7 @@ def readUBC_DC2Dpre(fileName):
 
         d.append(temp[-1])
 
-        Rx = dc.Rx.Dipole2D(rx[:, :3], rx[:, 3:])
+        Rx = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
         srcLists.append(dc.Src.Dipole([Rx], tx[:3], tx[3:]))
 
     # Create survey class
@@ -1475,7 +1451,7 @@ def readUBC_DC3Dobs(fileName):
 
     survey = dc.Survey(srcLists)
     data = Data(
-        survey=survey, dobs=np.asarray(d), standard_deviation=np.asarray(wd)
+        survey=survey, dobs=np.asarray(d), relative_error=np.asarray(wd)
     )
     return data
 

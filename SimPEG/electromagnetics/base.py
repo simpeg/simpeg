@@ -11,7 +11,7 @@ from ..data import Data
 from ..maps import IdentityMap
 from ..simulation import BaseSimulation
 from ..survey import BaseSurvey, BaseSrc
-from ..utils import sdiag, Zero
+from ..utils import sdiag, Zero, mkvc
 from .. import props
 
 __all__ = ['BaseEMSimulation', 'BaseEMSrc']
@@ -223,13 +223,18 @@ class BaseEMSimulation(BaseSimulation):
             )(np.ones(self.mesh.nF)) * self.muiDeriv
 
         if v is not None:
+            if not isinstance(u, Zero):
+                u = u.flatten()
+                if v.ndim > 1:
+                    u = u[:, None]
             if adjoint is True:
-                return self._MfMuiDeriv.T*(sdiag(u)*v)
-            return sdiag(u)*(self._MfMuiDeriv*v)
+                return self._MfMuiDeriv.T*(u*v)
+            return u*(self._MfMuiDeriv*v)
         else:
+            mat = sdiag(u)*self._MfMuiDeriv
             if adjoint is True:
-                return self._MfMuiDeriv.T*(sdiag(u))
-            return sdiag(u)*(self._MfMuiDeriv)
+                return mat.T
+            return mat
 
     @property
     def MfMuiI(self):
@@ -285,13 +290,19 @@ class BaseEMSimulation(BaseSimulation):
             )(np.ones(self.mesh.nE)) * self.muDeriv
 
         if v is not None:
+            if not isinstance(u, Zero):
+                u = u.flatten()
+                if v.ndim > 1:
+                    # promote u iff v is a matrix
+                    u = u[:, None]  # Avoids constructing the sparse matrix
             if adjoint:
-                return self._MeMuDeriv.T * (sdiag(u)*v)
-            return sdiag(u)*(self._MeMuDeriv * v)
+                return self._MeMuDeriv.T * (u*v)
+            return u*(self._MeMuDeriv * v)
         else:
+            mat = sdiag(u) * self._MeMuDeriv
             if adjoint is True:
-                return self._MeMuDeriv.T * sdiag(u)
-            return sdiag(u) * self._MeMuDeriv
+                return mat.T
+            return mat
 
     @property
     def MeMuI(self):
@@ -351,7 +362,7 @@ class BaseEMSimulation(BaseSimulation):
 
         if v is not None:
             if not isinstance(u, Zero):
-                u = u.reshape(-1)
+                u = u.flatten()  # u is either nUx1 or nU
                 if v.ndim > 1:
                     # promote u iff v is a matrix
                     u = u[:, None]  # Avoids constructing the sparse matrix
@@ -418,12 +429,17 @@ class BaseEMSimulation(BaseSimulation):
             )(np.ones(self.mesh.nF)) * self.rhoDeriv
 
         if v is not None:
+            if not isinstance(u, Zero):
+                u = u.flatten()
+                if v.ndim > 1:
+                    # promote u iff v is a matrix
+                    u = u[:, None]  # Avoids constructing the sparse matrix
             if adjoint is True:
-                return self._MfRhoDeriv.T*(sdiag(u)*v)
-            return sdiag(u)*(self._MfRhoDeriv*v)
+                return self._MfRhoDeriv.T.dot(u*v)
+            return u*(self._MfRhoDeriv.dot(v))
         else:
             if adjoint is True:
-                return self._MfRhoDeriv.T*(sdiag(u))
+                return self._MfRhoDeriv.T.dot(sdiag(u))
             return sdiag(u)*(self._MfRhoDeriv)
 
     @property
@@ -451,10 +467,10 @@ class BaseEMSimulation(BaseSimulation):
 
         if adjoint is True:
             return self.MfRhoDeriv(
-                dMfRhoI_dI.T*u, v=v, adjoint=adjoint
+                dMfRhoI_dI.T.dot(u), v=v, adjoint=adjoint
             )
         else:
-            return dMfRhoI_dI * self.MfRhoDeriv(u, v=v)
+            return dMfRhoI_dI.dot(self.MfRhoDeriv(u, v=v))
 
 
 ###############################################################################

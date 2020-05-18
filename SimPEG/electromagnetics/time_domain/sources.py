@@ -38,12 +38,6 @@ class BaseWaveform(properties.HasProperties):
     def __init__(self, **kwargs):
         setKwargs(self, **kwargs)
 
-    def _assertMatchesPair(self, pair):
-        assert isinstance(self, pair), (
-            "Waveform object must be an instance of a %s "
-            "BaseWaveform class.".format(pair.__name__)
-        )
-
     def eval(self, time):
         raise NotImplementedError
 
@@ -219,33 +213,20 @@ class QuarterSineRampOnWaveform(BaseWaveform):
 class BaseTDEMSrc(BaseEMSrc):
 
     # rxPair = Rx
-
-    waveformPair = BaseWaveform  #: type of waveform to pair with
-    waveform = None  #: source waveform
+    waveform = properties.Instance(
+        "A source waveform",
+        BaseWaveform,
+        default=StepOffWaveform()
+    )
     srcType = properties.StringChoice(
         "is the source a galvanic of inductive source",
         choices=["inductive", "galvanic"],
     )
 
-    @property
-    def waveform(self):
-        "A waveform instance is not None"
-        return getattr(self, '_waveform', None)
-
-    @waveform.setter
-    def waveform(self, val):
-        if self.waveform is None:
-            val._assertMatchesPair(self.waveformPair)
-            self._waveform = val
-        else:
-            self._waveform = self.StepOffWaveform(val)
-
-    def __init__(self, receiver_list=None, waveform=StepOffWaveform(), **kwargs):
+    def __init__(self, receiver_list=None, **kwargs):
         if receiver_list is not None:
             kwargs['receiver_list'] = receiver_list
-
         super(BaseTDEMSrc, self).__init__(**kwargs)
-        self.waveform = waveform
 
     def bInitial(self, prob):
         return Zero()

@@ -1,6 +1,5 @@
 import numpy as np
 import properties
-from dask.delayed import Delayed
 from .utils import Counter, sdiag, timeIt, Identity
 from .data import Data
 from .simulation import BaseSimulation
@@ -92,26 +91,26 @@ class BaseDataMisfit(L2ObjectiveFunction):
         if getattr(self, '_W', None) is None:
             if self.data is None:
                 raise Exception(
-                    "data with uncertainties must be set before the data "
+                    "data with standard deviations must be set before the data "
                     "misfit can be constructed. Please set the data: "
-                    "dmis.data = Data(dobs=dobs, standard_deviation=std"
+                    "dmis.data = Data(dobs=dobs, relative_error=rel"
                     ", noise_floor=eps)"
                 )
-            uncertainty = self.data.uncertainty
-            if uncertainty is None:
+            standard_deviation = self.data.standard_deviation
+            if standard_deviation is None:
                 raise Exception(
-                    "data uncertainties must be set before the data misfit "
-                    "can be constructed (data.standard_deviation = 0.05, "
+                    "data standard deviations must be set before the data misfit "
+                    "can be constructed (data.relative_error = 0.05, "
                     "data.noise_floor = 1e-5), alternatively, the W matrix "
-                    "can be set directly (dmisfit.W = 1./uncertainty)"
+                    "can be set directly (dmisfit.W = 1./standard_deviation)"
                 )
-            if any(uncertainty <= 0):
+            if any(standard_deviation <= 0):
                 raise Exception(
-                    "data.uncertainty musy be strictly positive to construct "
-                    "the W matrix. Please set data.standard_deviation and or "
+                    "data.standard_deviation must be strictly positive to construct "
+                    "the W matrix. Please set data.relative_error and or "
                     "data.noise_floor."
                 )
-            self._W = sdiag(1/(uncertainty))
+            self._W = sdiag(1/(standard_deviation))
         return self._W
 
     @W.setter
@@ -142,6 +141,7 @@ class L2DataMisfit(BaseDataMisfit):
     The data misfit with an l_2 norm:
 
     .. math::
+
         \mu_\\text{data} = {1\over 2}\left|
         \mathbf{W}_d (\mathbf{d}_\\text{pred} -
         \mathbf{d}_\\text{obs}) \\right|_2^2
@@ -150,8 +150,6 @@ class L2DataMisfit(BaseDataMisfit):
     @timeIt
     def __call__(self, m, f=None):
         "__call__(m, f=None)"
-        if isinstance(f, Delayed):
-            f = f.compute()
 
         R = self.W * self.residual(m, f=f)
         return 0.5 * np.vdot(R, R)
@@ -161,18 +159,18 @@ class L2DataMisfit(BaseDataMisfit):
         """
         deriv(m, f=None)
         Derivative of the data misfit
+
         .. math::
+
             \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W}
             (\mathbf{d} - \mathbf{d}^{obs})
+
         :param numpy.ndarray m: model
-        :param SimPEG.Fields.Fields f: fields object
+        :param SimPEG.fields.Fields f: fields object
         """
 
         if f is None:
             f = self.simulation.fields(m)
-
-        if isinstance(f, Delayed):
-            f = f.compute()
 
         return self.simulation.Jtvec(
             m, self.W.T * (self.W * self.residual(m, f=f)), f=f
@@ -182,18 +180,18 @@ class L2DataMisfit(BaseDataMisfit):
     def deriv2(self, m, v, f=None):
         """
         deriv2(m, v, f=None)
+
         .. math::
+
             \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W} \mathbf{J}
+
         :param numpy.ndarray m: model
         :param numpy.ndarray v: vector
-        :param SimPEG.Fields.Fields f: fields object
+        :param SimPEG.fields.Fields f: fields object
         """
 
         if f is None:
             f = self.simulation.fields(m)
-
-        if isinstance(f, Delayed):
-            f = f.compute()
 
         return self.simulation.Jtvec_approx(
             m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
@@ -211,14 +209,14 @@ class l2_DataMisfit(L2DataMisfit):
         self.survey = survey
         try:
             dobs = survey.dobs
-            std = survey.std
+            rel_err = survey.std
         except AttributeError:
             raise Exception('Survey object must have been given a data object')
         # create a Data object...
         # Get the survey's simulation that was paired to it....
         # simulation = survey.simulation
 
-        self.data = Data(survey, dobs, standard_deviation=std)
+        self.data = Data(survey, dobs, relative_error=rel_err)
 
         eps_factor = 1e-5  #: factor to multiply by the norm of the data to create floor
         if getattr(self.survey, 'eps', None) is None:
@@ -239,9 +237,9 @@ class l2_DataMisfit(L2DataMisfit):
     @property
     def noise_floor(self):
         return self.data.noise_floor
-    eps = deprecate_property(noise_floor, 'eps', new_name='data.standard_deviation', removal_version='0.15.0')
+    eps = deprecate_property(noise_floor, 'eps', new_name='data.noise_floor', removal_version='0.15.0')
 
     @property
-    def standard_deviation(self):
-        return self.data.standard_deviation
-    std = deprecate_property(standard_deviation, 'std', new_name='data.standard_deviation', removal_version='0.15.0')
+    def relative_error(self):
+        return self.data.relative_error
+    std = deprecate_property(relative_error, 'std', new_name='data.relative_error', removal_version='0.15.0')

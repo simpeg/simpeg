@@ -87,7 +87,9 @@ class BaseRx(properties.HasProperties):
             Returns the projection matrices as a
             list for all components collected by
             the receivers.
+
             .. note::
+
                 Projection matrices are stored as a dictionary listed by meshes.
         """
         if projGLoc is None:
@@ -140,7 +142,9 @@ class BaseTimeRx(BaseRx):
     def getSpatialP(self, mesh):
         """
             Returns the spatial projection matrix.
+
             .. note::
+
                 This is not stored in memory, but is created on demand.
         """
         return mesh.getInterpolationMat(self.locations, self.projGLoc)
@@ -148,7 +152,9 @@ class BaseTimeRx(BaseRx):
     def getTimeP(self, timeMesh):
         """
             Returns the time projection matrix.
+
             .. note::
+
                 This is not stored in memory, but is created on demand.
         """
         return timeMesh.getInterpolationMat(self.times, self.projTLoc)
@@ -158,7 +164,9 @@ class BaseTimeRx(BaseRx):
             Returns the projection matrices as a
             list for all components collected by
             the receivers.
+
             .. note::
+
                 Projection matrices are stored as a dictionary (mesh, timeMesh)
                 if storeProjections is True
         """
@@ -355,25 +363,25 @@ class BaseSurvey(properties.HasProperties):
                 "0.15.0 of SimPEG", DeprecationWarning
             )
             if std is None and getattr(target, 'std', None) is None:
-                stddev = 0.05
+                rel_err = 0.05
                 print(
-                        'SimPEG.Survey assigned default std '
+                        'SimPEG.Survey assigned default rel_err '
                         'of 5%'
                     )
             elif std is None:
-                stddev = target.std
+                rel_err = target.std
             else:
-                stddev = std
+                rel_err = std
                 print(
-                        'SimPEG.Survey assigned new std '
-                        'of {:.2f}%'.format(100.*stddev)
+                        'SimPEG.Survey assigned new rel_err '
+                        'of {:.2f}%'.format(100.*rel_err)
                     )
 
             data = target.simulation.make_synthetic_data(
-                m, standard_deviation=stddev, f=f, add_noise=True)
+                m, relative_error=rel_err, f=f, add_noise=True)
             target.dtrue = data.dclean
             target.dobs = data.dobs
-            target.std = data.standard_deviation
+            target.std = data.relative_error
             return target.dobs
         self.makeSyntheticData = types.MethodType(dep_makeSyntheticData, self)
 

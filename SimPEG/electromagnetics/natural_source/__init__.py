@@ -1,4 +1,4 @@
-""" module SimPEG.EM.NSEM
+""" module SimPEG.electromagnetics.natural_source
 
 SimPEG implementation of the natural source problem
 (including magenetotelluric, tipper and ZTEM)

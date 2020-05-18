@@ -5,13 +5,16 @@ from ....fields import Fields
 from ....utils import Identity, Zero
 from ....utils.code_utils import deprecate_class
 
-import dask
-import dask.array as da
-from scipy.sparse import csr_matrix as csr
-
 class FieldsDC(Fields):
     knownFields = {}
     dtype = float
+
+    @property
+    def survey(self):
+        mini = self.simulation._mini_survey
+        if mini is not None:
+            return mini
+        return self.simulation.survey
 
     def _phiDeriv(self, src, du_dm_v, v, adjoint=False):
         if (

@@ -37,7 +37,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
         real_or_imag = 'real'
     elif comp[-1] == 'i':
         real_or_imag = 'imag'
-    rx0 = Rx0(XYZ, comp[1], 'imag')
+    rx0 = Rx0(XYZ, comp[1], real_or_imag)
 
     Src = []
 

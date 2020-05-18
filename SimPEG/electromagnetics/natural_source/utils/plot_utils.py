@@ -124,7 +124,7 @@ class TipperAmplitudeStationPlot(BaseDataNSEMPlots):
 
         :param data_list: List of NSEM data objects to plot.
             Has to be of length >= 1. First item is treat as a
-            observed data (Hast to have standard_deviation and floor)
+            observed data (Hast to have relative_error and noise_floor)
             assigned) and the others are plotted on top.
         :param location: Location of the station to plot
         """
@@ -162,17 +162,22 @@ class TipperAmplitudeStationPlot(BaseDataNSEMPlots):
                                     comp_plot_dict=dd_kwargs)
 
 
-class ApperentResPhsStationPlot(BaseDataNSEMPlots):
+class ApparentResPhsStationPlot(BaseDataNSEMPlots):
     """
     Class for setting up 4 axes figure with:
-            apparent resistivity | phase
-            --------------------------------
-            impedance amplitudes | impedance phase
+
+            +---------------------+----------------+
+            |apparent resistivity | phase          |
+            +---------------------+----------------+
+            |impedance amplitudes | impedance phase|
+            +---------------------+----------------+
+
         setup.
+
     """
 
     def __init__(self):
-        super(ApperentResPhsStationPlot, self).__init__()
+        super(ApparentResPhsStationPlot, self).__init__()
 
 
     def setup(self):
@@ -208,7 +213,7 @@ class ApperentResPhsStationPlot(BaseDataNSEMPlots):
 
         :param data_list: List of NSEM data objects to plot.
             Has to be of length >= 1. First item is treat as a
-            observed data (Hast to have standard_deviation and floor)
+            observed data (Hast to have relative_error and noise_floor)
             assigned) and the others are plotted on top.
         :param location: Location of the station to plot
         """
@@ -290,15 +295,15 @@ class DataNSEMPlotMethods(object):
         Plot apperent resistivity curves at a given location
 
         :param location: Location of the data point
-        :type location: :class:`axes <matplotlib.axes>`
+        :type location: :class:`axes <matplotlib.axes.Axes>`
         :param components: List of the components to plot.
             Default = ['xy','yx']
         :type components: list
         :param ax: The ax object to add the,  , Default: None
-        :type ax: :class:`axes <matplotlib.axes>`
+        :type ax: :class:`axes <matplotlib.axes.Axes>`
         :param errorbars: Controls if errorbars are plotted
             Default = True
-        :type errorbars: boolean
+        :type errorbars: bool
         :param comp_plot_dict: Dictionary with additional kwargs
             for matplotlib.plot
         :type comp_plot_dict: dict
@@ -339,15 +344,15 @@ class DataNSEMPlotMethods(object):
         Plot apperent resistivity curves at a given location
 
         :param location: Location of the data point
-        :type location: :class:`axes <matplotlib.axes>`
+        :type location: :class:`axes <matplotlib.axes.Axes>`
         :param components: List of the components to plot.
             Default = ['xy','yx']
         :type components: list
         :param ax: The ax object to add the,  , Default: None
-        :type ax: :class:`axes <matplotlib.axes>`
+        :type ax: :class:`axes <matplotlib.axes.Axes>`
         :param errorbars: Controls if errorbars are plotted
             Default = True
-        :type errorbars: boolean
+        :type errorbars: bool
         :param comp_plot_dict: Dictionary with additional kwargs
             for matplotlib.plot settings
         :type comp_plot_dict: dict
@@ -386,15 +391,15 @@ class DataNSEMPlotMethods(object):
         Plot impedance amplitude curves at a given location
 
         :param location: Location of the data point
-        :type location: :class:`axes <matplotlib.axes>`
+        :type location: :class:`axes <matplotlib.axes.Axes>`
         :param components: List of the components to plot.
             Default = ['xy','yx']
         :type components: list
         :param ax: The ax object to add the,  , Default: None
-        :type ax: :class:`axes <matplotlib.axes>`
+        :type ax: :class:`axes <matplotlib.axes.Axes>`
         :param errorbars: Controls if errorbars are plotted
             Default = True
-        :type errorbars: boolean
+        :type errorbars: bool
         :param comp_plot_dict: Dictionary with additional kwargs
             for matplotlib.plot
         :type comp_plot_dict: dict
@@ -434,15 +439,15 @@ class DataNSEMPlotMethods(object):
         Plot tipper amplitude curves at a given location
 
         :param location: Location of the data point
-        :type location: :class:`axes <matplotlib.axes>`
+        :type location: :class:`axes <matplotlib.axes.Axes>`
         :param components: List of the components to plot.
             Default = ['xy','yx']
         :type components: list
         :param ax: The ax object to add the,  , Default: None
-        :type ax: :class:`axes <matplotlib.axes>`
+        :type ax: :class:`axes <matplotlib.axes.Axes>`
         :param errorbars: Controls if errorbars are plotted
             Default = True
-        :type errorbars: boolean
+        :type errorbars: bool
         :param comp_plot_dict: Dictionary with additional kwargs
             for matplotlib.plot
         :type comp_plot_dict: dict
@@ -482,7 +487,7 @@ class DataNSEMPlotMethods(object):
             (all discreate data locations).
 
         :param ax: The ax object for mapping to. Default: None
-        :type ax: :class:`axes <matplotlib.axes>`
+        :type ax: :class:`axes <matplotlib.axes.Axes>`
 
         """
         # Default plot dict
@@ -518,12 +523,11 @@ class DataNSEMPlotMethods(object):
         self, location, orientation, component,
             ax=None, **plot_kwargs):
         """
-
         :param numpy.ndarray location: Coordnaties of the station to plot
         :param str orientation: The orientation of the data
         :param str component: The data component to plot
-        :param matplotlib.axes ax (optional):
-        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs)
+        :param matplotlib.axes.Axes ax: Axes (optional):
+        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs:
 
         """
 
@@ -547,12 +551,11 @@ class DataNSEMPlotMethods(object):
         self, location, orientation, component,
             ax=None, **plot_kwargs):
         """
-
         :param numpy.ndarray location: Coordnaties of the station to plot
         :param str orientation: The orientation of the data
         :param str component: The data component to plot
-        :param matplotlib.axes ax (optional):
-        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs)
+        :param matplotlib.axes.Axes ax: Axes (optional)
+        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs:
 
         """
 
@@ -578,8 +581,8 @@ class DataNSEMPlotMethods(object):
         :param numpy.ndarray frequency: Frequency to be mapped
         :param str orientation: The orientation of the data
         :param str component: The data component to plot
-        :param matplotlib.axes ax (optional):
-        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs)
+        :param matplotlib.axes.Axes ax: Axes (optional)
+        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs:
 
         """
 
@@ -773,7 +776,7 @@ def _extract_frequency_data(
     loc_arr = rx.locations
     data_arr = data[src, rx]
     if return_uncert:
-        std_arr = data.standard_deviation[src, rx]
+        std_arr = data.relative_error[src, rx]
         floor_arr = data.floor[src, rx]
     if return_uncert:
         return (loc_arr, data_arr, std_arr, floor_arr)
@@ -806,7 +809,7 @@ def _extract_location_data(
 
             if return_uncert:
                 index = data.index_dictionary[src][rx]
-                std_list.append(data.standard_deviation[index][ind_loc])
+                std_list.append(data.relative_error[index][ind_loc])
                 floor_list.append(data.noise_floor[index][ind_loc])
     if return_uncert:
         return (np.array(freq_list), np.concatenate(data_list),

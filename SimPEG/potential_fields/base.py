@@ -9,15 +9,7 @@ import numpy as np
 import multiprocessing
 from ..simulation import LinearSimulation
 from scipy.sparse import csr_matrix as csr
-from SimPEG.utils import mkvc, sdiag
-from .. import props
-from dask import delayed, array, config
-from dask.diagnostics import ProgressBar
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
+from SimPEG.utils import mkvc
 
 ###############################################################################
 #                                                                             #
@@ -27,12 +19,6 @@ except ImportError:
 
 
 class BasePFSimulation(LinearSimulation):
-
-    store_sensitivity = properties.Bool(
-        "Store the sensitivity to disk",
-        default=True
-    )
-
     actInd = properties.Array(
         "Array of active cells (ground)",
         dtype=(bool, int),
@@ -47,28 +33,7 @@ class BasePFSimulation(LinearSimulation):
     store_sensitivities = properties.StringChoice(
         "Compute and store G",
         choices=['disk', 'ram', 'forward_only'],
-        default='disk'
-    )
-
-    max_chunk_size = properties.Float(
-        "Largest chunk size (Mb) used by Dask",
-        default=128
-    )
-
-    chunk_format = properties.StringChoice(
-        "Apply memory chunks along rows of G",
-        choices=['equal', 'row', 'auto'],
-        default='equal'
-    )
-
-    max_ram = properties.Float(
-        "Target maximum memory (Gb) usage",
-        default=128
-    )
-
-    sensitivity_path = properties.String(
-        "Directory used to store the sensitivity matrix on disk",
-        default="./Inversion/sensitivity.zarr"
+        default='ram'
     )
 
     def __init__(self, mesh, **kwargs):
@@ -113,102 +78,34 @@ class BasePFSimulation(LinearSimulation):
 
         self.nC = self.modelMap.shape[0]
 
-        n_data_comp = len(self.survey.components)
-
         components = np.array(list(self.survey.components.keys()))
         active_components = np.hstack([np.c_[values] for values in self.survey.components.values()]).tolist()
+        nD = self.survey.nD
 
-        if self.store_sensitivities != 'ram':
-
-            row = delayed(self.evaluate_integral, pure=True)
-
-            rows = [
-                array.from_delayed(
-                    row(receiver_location, components[component]), dtype=np.float32, shape=(n_data_comp,  self.nC)
-                )
-                for receiver_location, component in zip(self.survey.receiver_locations.tolist(), active_components)
-            ]
-            stack = array.vstack(rows)
-
-            # Chunking options
-            if self.chunk_format == 'row' or self.store_sensitivities == 'forward_only':
-                config.set({'array.chunk-size': f'{self.max_chunk_size}MiB'})
-                # Autochunking by rows is faster and more memory efficient for
-                # very large problems sensitivty and forward calculations
-                stack = stack.rechunk({0: 'auto', 1: -1})
-
-            elif self.chunk_format == 'equal':
-                # Manual chunks for equal number of blocks along rows and columns.
-                # Optimal for Jvec and Jtvec operations
-                n_chunks_col = 1
-                n_chunks_row = 1
-                row_chunk = int(np.ceil(stack.shape[0]/n_chunks_row))
-                col_chunk = int(np.ceil(stack.shape[1]/n_chunks_col))
-                chunk_size = row_chunk*col_chunk*8*1e-6  # in Mb
-
-                # Add more chunks along either dimensions until memory falls below target
-                while chunk_size >= self.max_chunk_size:
-
-                    if row_chunk > col_chunk:
-                        n_chunks_row += 1
-                    else:
-                        n_chunks_col += 1
-
-                    row_chunk = int(np.ceil(stack.shape[0]/n_chunks_row))
-                    col_chunk = int(np.ceil(stack.shape[1]/n_chunks_col))
-                    chunk_size = row_chunk*col_chunk*8*1e-6  # in Mb
-
-                stack = stack.rechunk((row_chunk, col_chunk))
-            else:
-                # Auto chunking by columns is faster for Inversions
-                config.set({'array.chunk-size': f'{self.max_chunk_size}MiB'})
-                stack = stack.rechunk({0: -1, 1: 'auto'})
-
-            if self.store_sensitivities == 'forward_only':
-
-                with ProgressBar():
-                    print("Forward calculation: ")
-                    pred = array.dot(stack, self.model).compute()
-
-                return pred
-
-            else:
-                if os.path.exists(self.sensitivity_path):
-
-                    kernel = array.from_zarr(self.sensitivity_path)
-
-                    if np.all(np.r_[
-                            np.any(np.r_[kernel.chunks[0]] == stack.chunks[0]),
-                            np.any(np.r_[kernel.chunks[1]] == stack.chunks[1]),
-                            np.r_[kernel.shape] == np.r_[stack.shape]]):
-                        # Check that loaded kernel matches supplied data and mesh
-                        print("Zarr file detected with same shape and chunksize ... re-loading")
-
-                        return kernel
-                    else:
-                        print("Zarr file detected with wrong shape and chunksize ... over-writing")
-
-                with ProgressBar():
-                    print("Saving kernel to zarr: " + self.sensitivity_path)
-                    kernel = array.to_zarr(stack, self.sensitivity_path, compute=True, return_stored=True, overwrite=True)
-
-        else:
-            # TODO
-            # Process in parallel using multiprocessing
-            # pool = multiprocessing.Pool(self.n_cpu)
-            # kernel = pool.map(
-            #   self.evaluate_integral, [
-            #       receiver for receiver in self.survey.receiver_locations.tolist()
-            # ])
-            # pool.close()
-            # pool.join()
-
-            # Single threaded
+        if self.store_sensitivities == 'disk':
+            sens_name = self.sensitivity_path + "sensitivity.npy"
+            if os.path.exists(sens_name):
+                # do not pull array completely into ram, just need to check the size
+                kernel = np.load(sens_name, mmap_mode='r')
+                if kernel.shape == (nD, self.nC):
+                    print(f'Found sensitivity file at {sens_name} with expected shape')
+                    kernel = np.asarray(kernel)
+                    return kernel
+        # Single threaded
+        if self.store_sensitivities != "forward_only":
             kernel = np.vstack([
                 self.evaluate_integral(receiver, components[component])
                 for receiver, component in zip(self.survey.receiver_locations.tolist(), active_components)
             ])
-
+        else:
+            kernel = np.hstack([
+                self.evaluate_integral(receiver, components[component]).dot(self.model)
+                for receiver, component in zip(self.survey.receiver_locations.tolist(), active_components)
+            ])
+        if self.store_sensitivities == 'disk':
+            print(f'writing sensitivity to {sens_name}')
+            os.makedirs(self.sensitivity_path, exist_ok=True)
+            np.save(sens_name, kernel)
         return kernel
 
     def evaluate_integral(self):
@@ -221,6 +118,7 @@ class BasePFSimulation(LinearSimulation):
         """
 
         raise RuntimeError(f"Integral calculations must implemented by the subclass {self}.")
+
 
 def progress(iter, prog, final):
     """
@@ -238,6 +136,7 @@ def progress(iter, prog, final):
         prog = arg
 
     return prog
+
 
 def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     """

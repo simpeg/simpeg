@@ -493,3 +493,7 @@ class RegularizationMesh(props.BaseSimPEG):
                 self.Pafz.T * self.mesh._cellGradzStencil * self.Pac
             )
         return self._cellDiffzStencil
+
+
+# Make it look like it's in the regularization module
+RegularizationMesh.__module__ = 'SimPEG.regularization'

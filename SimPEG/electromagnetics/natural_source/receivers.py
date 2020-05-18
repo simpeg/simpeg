@@ -69,20 +69,14 @@ class BaseRxNSEM_Point(BaseRx):
         if self.locations.ndim == 3:
             loc = self.locations[:, :, 0]
         else:
-            if self.locations.shape[1] == 6:
-                loc = self.locations[:, 3:]
-            else:
-                loc = self.locations
+            loc = self.locations
         return loc
 
     def _locs_b(self):
         if self.locations.ndim == 3:
             loc = self.locations[:, :, 1]
         else:
-            if self.locations.shape[1] == 6:
-                loc = self.locations[:, :3]
-            else:
-                loc = self.locations
+            loc = self.locations
         return loc
 
     # Location projection
@@ -431,9 +425,9 @@ class Point1DImpedance(BaseRx):
         '''
         Project the fields to natural source data.
 
-        :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
+        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: NSEM source
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: NSEM fields object of the source
         :param bool (optional) return_complex: Flag for return the complex evaluation
         :rtype: numpy.ndarray
         :return: Evaluated data for the receiver
@@ -454,9 +448,9 @@ class Point1DImpedance(BaseRx):
 
         The derivative of the projection wrt u
 
-        :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
+        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: NSEM source
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: NSEM fields object of the source
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False) and size (nD,) (adjoint=True)
         :rtype: numpy.ndarray
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
@@ -508,9 +502,9 @@ class Point3DImpedance(BaseRxNSEM_Point):
         '''
         Project the fields to natural source data.
 
-        :param SrcNSEM src: The source of the fields to project
+        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: The source of the fields to project
         :param discretize.TensorMesh mesh: topological mesh corresponding to the fields
-        :param FieldsNSEM f: Natural source fields object to project
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: Natural source fields object to project
         :rtype: numpy.ndarray
         :return: component of the impedance evaluation
         '''
@@ -539,9 +533,9 @@ class Point3DImpedance(BaseRxNSEM_Point):
         """
         The derivative of the projection wrt u
 
-        :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
+        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: NSEM source
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: NSEM fields object of the source
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False) and size (nD,) (adjoint=True)
         :rtype: numpy.ndarray
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
@@ -672,9 +666,9 @@ class Point3DTipper(BaseRxNSEM_Point):
         '''
         Project the fields to natural source data.
 
-        :param SrcNSEM src: The source of the fields to project
+        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: The source of the fields to project
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param FieldsNSEM f: Natural source fields object to project
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: Natural source fields object to project
         :rtype: numpy.ndarray
         :return: Evaluated component of the impedance data
         '''
@@ -698,9 +692,9 @@ class Point3DTipper(BaseRxNSEM_Point):
         """
         The derivative of the projection wrt u
 
-        :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
+        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: NSEM source
         :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: NSEM fields object of the source
         :param numpy.ndarray v: Random vector of size
         :rtype: numpy.ndarray
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True)

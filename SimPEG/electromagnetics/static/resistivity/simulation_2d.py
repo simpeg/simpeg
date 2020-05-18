@@ -8,11 +8,11 @@ from ...base import BaseEMSimulation
 from ....data import Data
 
 from .survey import Survey
-from . import sources
-from . import receivers
+from .receivers import IntTrapezoidal
 from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from .boundary_utils import getxBCyBC_CC
+from .utils import _mini_pole_pole
 
 
 class BaseDCSimulation2D(BaseEMSimulation):
@@ -25,7 +25,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
     )
 
     storeJ = properties.Bool(
-        "store the sensitivity", default=False
+        "store the sensitivity matrix?", default=False
     )
 
     fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
@@ -45,74 +45,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         # Do stuff to simplify the forward and JTvec operation if number of dipole
         # sources is greater than the number of unique pole sources
         if miniaturize:
-            survey = self.survey
-            survey.getABMN_locations()
-            A = survey.a_locations
-            B = survey.b_locations
-            M = survey.m_locations
-            N = survey.n_locations
-            u_src, inv_src = np.unique(np.r_[A, B], axis=0, return_inverse=True)
-            if len(u_src) < survey.nSrc:
-                if self.verbose:
-                    print('Number of sources greater than number of source electrodes.')
-                    print('Switching internally to smaller survey.')
-
-                inv_A, inv_B = inv_src.reshape(2, -1)
-                ind_dipoles_tx = inv_A != inv_B
-
-                unique_sources = []
-                #ranges = np.arange(survey.nD*2)
-                pos_inds = np.zeros(survey.nD, dtype=int)
-                neg_inds = np.zeros(survey.nD, dtype=int)
-                counter = 0
-                for i_src, src_loc in enumerate(u_src):
-                    # add all the receivers which used that pole.
-                    # for each dipole source, essentialy it creates 2 receivers for that source.
-                    # Even though there's "double" the number of receivers, the number of sources
-                    # is reduced to the minimum necessary to reconstruct the survey. Reducing the memory
-                    # required to store the fields, and allowing more rhs solutions to be done in parallel
-                    # when storing the J matrix.
-
-                    ind_A = np.where(inv_A == i_src)[0]  # these are all individually unique
-                    ind_B = np.where(inv_B == i_src)[0]  #    "
-
-                    # There will be overlapping indices in ind_A and ind_B if there are pole
-                    # sources in the original survey.
-                    ind_AB, _is = np.unique(np.r_[ind_A, ind_B], return_inverse=True)
-
-                    ind_AB_to_A = _is[:len(ind_A)]
-                    ind_AB_to_B = _is[len(ind_A):]
-
-                    my_ms = M[ind_AB]
-                    my_ns = N[ind_AB]
-                    rx_dipole_inds = np.any(my_ms != my_ns, axis=1)
-
-                    recs = []
-                    my_ns = my_ns[rx_dipole_inds]
-                    n_dipole_rx = len(my_ns)
-                    if n_dipole_rx > 0:
-                        recs.append(receivers.Dipole2D(my_ms[rx_dipole_inds], my_ns))
-
-                    my_ms = my_ms[~rx_dipole_inds]
-                    n_pole_rx = len(my_ms)
-                    if n_pole_rx > 0:
-                        recs.append(receivers.Pole2D(my_ms))
-
-                    my_data_inds = np.arange(len(ind_AB)) + counter
-                    counter += len(ind_AB)
-
-                    my_plus_inds = my_data_inds[ind_AB_to_A]
-                    my_neg_inds = my_data_inds[ind_AB_to_B]
-
-                    pos_inds[ind_A] = my_plus_inds
-                    neg_inds[ind_B] = my_neg_inds
-
-                    unique_sources.append(sources.Pole(recs, src_loc))
-                # only keep the negative indices of tx's that had a dipole source
-                self._pos_inds = pos_inds
-                self._neg_inds = neg_inds[ind_dipoles_tx]
-                self._ind_dipole_txs = ind_dipoles_tx
-                self._mini_survey = Survey(unique_sources)
+            self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
 
     def set_geometric_factor(self, geometric_factor):
         index = 0
@@ -132,14 +65,16 @@ class BaseDCSimulation2D(BaseEMSimulation):
         f = self.fieldsPair(self)
         for iky, ky in enumerate(self.kys):
             A = self.getA(ky)
-            self.Ainv[iky] = self.Solver(A, **self.solver_opts)
+            if self.Ainv[iky] is not None:
+                self.Ainv[iky].clean()
+            self.Ainv[iky] = self.solver(A, **self.solver_opts)
             RHS = self.getRHS(ky)
             u = self.Ainv[iky] * RHS
             f[:, self._solutionType, iky] = u
         return f
 
     def fields_to_space(self, f, y=0.):
-        f_fwd = self.fieldsPair_fwd(self.mesh, self.survey)
+        f_fwd = self.fieldsPair_fwd(self)
         # Evaluating Integration using Trapezoidal rules
         dky = np.diff(self.kys)/2
         trap_weights = np.r_[dky, 0]+np.r_[0, dky]
@@ -173,7 +108,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         count = 0
         for src in survey.source_list:
             for rx in src.receiver_list:
-                d = rx.eval(kys, src, self.mesh, f)
+                d = IntTrapezoidal(self.kys, rx.eval(src, self.mesh, f))
                 temp[count:count+len(d)] = d
                 count += len(d)
 
@@ -208,7 +143,6 @@ class BaseDCSimulation2D(BaseEMSimulation):
         if f is None:
             f = self.fields(m)
 
-        # TODO: This is not a good idea !! should change that as a list
         if self._mini_survey is not None:
             survey = self._mini_survey
         else:
@@ -238,7 +172,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
                                        None)
                     df_dm_v = df_dmFun(iky, src, du_dm_v, v, adjoint=False)
-                    Jv1_temp = rx.evalDeriv(ky, src, self.mesh, f, df_dm_v)
+                    Jv1_temp = rx.evalDeriv(src, self.mesh, f, df_dm_v)
                     # Trapezoidal intergration
                     Jv[count:count+len(Jv1_temp)] += trap_weights[iky]*Jv1_temp
                     count += len(Jv1_temp)
@@ -300,7 +234,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
                         my_v = v[count:count+rx.nD]
                         count += rx.nD
                         # wrt f, need possibility wrt m
-                        PTv = rx.evalDeriv(ky, src, self.mesh, f, my_v,
+                        PTv = rx.evalDeriv(src, self.mesh, f, my_v,
                                            adjoint=True)
                         df_duTFun = getattr(
                             f, '_{0!s}Deriv'.format(rx.projField), None
@@ -391,8 +325,10 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     def _mini_survey_data(self, d_mini):
         if self._mini_survey is not None:
-            out = d_mini[self._pos_inds]
-            out[self._ind_dipole_txs] -= d_mini[self._neg_inds]
+            out = d_mini[self._invs[0]]  # AM
+            out[self._dipoles[0]] -= d_mini[self._invs[1]]  # AN
+            out[self._dipoles[1]] -= d_mini[self._invs[2]]  # BM
+            out[self._dipoles[0] & self._dipoles[1]] += d_mini[self._invs[3]]  # BN
         else:
             out = d_mini
         return out
@@ -400,8 +336,12 @@ class BaseDCSimulation2D(BaseEMSimulation):
     def _mini_survey_dataT(self, v):
         if self._mini_survey is not None:
             out = np.zeros(self._mini_survey.nD)
-            out[self._pos_inds] = v
-            out[self._neg_inds] -= v[self._ind_dipole_txs]
+            # Need to use ufunc.at because there could be repeated indices
+            # That need to be properly handled.
+            np.add.at(out, self._invs[0], v)  # AM
+            np.subtract.at(out, self._invs[1], v[self._dipoles[0]])  # AN
+            np.subtract.at(out, self._invs[2], v[self._dipoles[1]])  # BM
+            np.add.at(out, self._invs[3], v[self._dipoles[0] & self._dipoles[1]])  #BN
             return out
         else:
             out = v
