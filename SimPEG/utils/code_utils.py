@@ -304,7 +304,7 @@ class Report(ScoobyReport):
                          ncol=ncol, text_width=text_width, sort=sort)
 
 
-def deprecate_class(removal_version=None):
+def deprecate_class(removal_version=None, new_location=None):
     def decorator(cls):
         my_name = cls.__name__
         parent_name = cls.__bases__[0].__name__
@@ -321,6 +321,8 @@ def deprecate_class(removal_version=None):
             warnings.warn(message, DeprecationWarning)
             self._old__init__(*args, **kwargs)
         cls.__init__ = __init__
+        if new_location is not None:
+            parent_name = f"{new_location}.{parent_name}"
         cls.__doc__ =  f""" This class has been deprecated, see `{parent_name}` for documentation"""
         return cls
     return decorator

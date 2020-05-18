@@ -223,8 +223,10 @@ system. The previous locations do not exist.
 * ``FLOW`` → ``flow``
 * ``SEIS`` → ``seismic``
 * ``PF`` → ``potential_fields``
-* ``PF.Magnetics`` → ``potential_fields.magnetics``
 * ``PF.Gravity`` → ``potential_fields.gravity``
+* ``PF.GravAnalytics`` → ``potential_fields.gravity.analytics``
+* ``PF.Magnetics`` → ``potential_fields.magnetics``
+* ``PF.MagAnalytics`` → ``potential_fields.magnetics.analytics``
 * ``PF`` → ``potential_fields``
 * ``Utils`` → ``utils``
 * ``DataMisfit`` → ``data_misfit``
@@ -269,11 +271,17 @@ For example,
 Our current plan is to remove these deprecated versions in the 0.15.0 SimPEG
 release.
 
-Potential field re-organization
+Potential field reorganization
+------------------------------
+The ``potential_fields`` module has likely received the largest amount of reorganization
+to make it more in line with the structure of the other modules, and some things have
+moved around and been renamed. There are now two separate modules within ``potential_fields``:
+``gravity`` and ``magnetics``. All of the classes in ``PF.BaseGrav`` have been
+moved to ``potential_fields.gravity``, and the classes in ``PF.BaseMag`` have been
+moved to ``potential_fields.magnetics``
 
-
-Improvements and Additions
---------------------------
+Improvements and Additions to ``resistivity``
+---------------------------------------------
 
 We have made a few improvements to the ``SimPEG.electromagnetics.static.resistivity``
 that were motivatived by our work under the Geoscientists Without Borders project.

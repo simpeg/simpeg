@@ -1,6 +1,7 @@
 import numpy as np
 
 from ...survey import BaseSurvey
+from ...utils.code_utils import deprecate_class
 
 
 class MagneticSurvey(BaseSurvey):
@@ -55,3 +56,7 @@ class MagneticSurvey(BaseSurvey):
 
 # make this look like it lives in the below module
 MagneticSurvey.__module__ = 'SimPEG.potential_fields.magnetics'
+
+@deprecate_class(removal_version='0.15.0')
+class LinearSurvey(MagneticSurvey):
+    pass
