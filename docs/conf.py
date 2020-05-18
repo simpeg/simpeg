@@ -84,7 +84,7 @@ release = '0.14.0b2'
 exclude_patterns = ['_build']
 
 linkcheck_ignore = [
-    'https://github.com/simpeg/simpeg/blob/master/SimPEG/maps.py#L127'
+    r'https://github.com/simpeg/simpeg*'
 ]
 
 linkcheck_retries = 3
