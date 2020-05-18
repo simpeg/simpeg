@@ -1,3 +1,5 @@
+.. _0.14.0_notes:
+
 ===========================
 SimPEG 0.14.0 Release Notes
 ===========================
@@ -40,6 +42,9 @@ then ``pair``-ed afterwards for both the ``Problem`` to be able to use sources, 
 the ``Survey`` to predict data. We found that this structure made it difficult to
 interface with other packages and was also generally difficult to explain. Also,
 field data was then attached to the ``Survey`` class.
+
+These changes within this section are also the ones while will require the largest
+changes to code (which are still hopefully small).
 
 The ``Simulation`` class
 ------------------------
@@ -137,10 +142,18 @@ that is returned from this is now defined as:
 
 .. code-block:: python
 
-  data.standard_deviation = (
-      data.relative_error * np.abs(data.dobs) +
-      data.noise_floor
-  )
+    data.standard_deviation = (
+        data.relative_error * np.abs(data.dobs) +
+        data.noise_floor
+    )
+
+This is now also the object that is returned from:
+
+.. code-block:: python
+
+    data = sim.make_synthetic_data(
+        m, relative_error=0.05, noise_floor=0.0, f=None, add_noise=True
+    )
 
 The ``L2DataMisfit`` class
 --------------------------
@@ -227,7 +240,6 @@ system. The previous locations do not exist.
 * ``PF.GravAnalytics`` → ``potential_fields.gravity.analytics``
 * ``PF.Magnetics`` → ``potential_fields.magnetics``
 * ``PF.MagAnalytics`` → ``potential_fields.magnetics.analytics``
-* ``PF`` → ``potential_fields``
 * ``Utils`` → ``utils``
 * ``DataMisfit`` → ``data_misfit``
 * ``Directives`` → ``directives``
@@ -273,12 +285,14 @@ release.
 
 Potential field reorganization
 ------------------------------
+
 The ``potential_fields`` module has likely received the largest amount of reorganization
 to make it more in line with the structure of the other modules, and some things have
 moved around and been renamed. There are now two separate modules within ``potential_fields``:
 ``gravity`` and ``magnetics``. All of the classes in ``PF.BaseGrav`` have been
 moved to ``potential_fields.gravity``, and the classes in ``PF.BaseMag`` have been
-moved to ``potential_fields.magnetics``
+moved to ``potential_fields.magnetics``. The ``Map``-s that were within them have
+been deprecated and will be moved into the base ``SimPEG.maps``.
 
 Improvements and Additions to ``resistivity``
 ---------------------------------------------
@@ -304,14 +318,62 @@ The third is automated ``TreeMesh`` construction within the ``IODC`` class for
 a 2D survey.
 
 
-
 Deprecations
 ------------
 
+Some functions and properties have been renamed to more PEP 8 friendly names,
+for example:
+
+* ``Problem.makeSyntheticData`` → ``Simulation.make_synhetic_data``
+* ``Survey.srcList`` → ``Survey.source_list``
+* ``Source.rxList`` → ``Source.receiver_list``
+* ``Source.loc`` → ``Source.location``
+* ``Receiver.locs`` → ``Receiver.locations``
+* etc...
+
+As mentioned before, the old names of these properties will still be around, but
+will throw ``DeprecationWarnings`` pointing the user to the new names.
+
+We have done work to make this release as backwards compatible as possible, but can
+not guarantee that all code will work. At the minimum, module imports must be changed.
+
+As noted all of the ``Problem``-s are being deprecated and will be removed as of
+version 0.15.0 of SimPEG. The deprecated utility models will also be removed then.
 
 Pull Requests
 =============
 
+There were 18 pull requests contributing a combination of 28,270, code line
+additions and 15,494 removals.
+
+* `#786 <https://github.com/simpeg/simpeg/pull/786>`__: Simulation class refactor.
+* `#835 <https://github.com/simpeg/simpeg/pull/835>`__: Add simulation PF tutorials to simulation PF branch
+* `#843 <https://github.com/simpeg/simpeg/pull/843>`__: Fix drapeTopoLoc.
+* `#844 <https://github.com/simpeg/simpeg/pull/844>`__: Static receiver midpoint 3D.
+* `#845 <https://github.com/simpeg/simpeg/pull/845>`__: Tile map.
+* `#848 <https://github.com/simpeg/simpeg/pull/848>`__: Fix Ward and Hohmann example.
+* `#849 <https://github.com/simpeg/simpeg/pull/849>`__: Update and fix tutorials.
+* `#851 <https://github.com/simpeg/simpeg/pull/851>`__: Simulation method names .
+* `#853 <https://github.com/simpeg/simpeg/pull/853>`__: CSEM TDEM 3D example.
+* `#854 <https://github.com/simpeg/simpeg/pull/854>`__: Simulation dc2.5 d speedup.
+* `#861 <https://github.com/simpeg/simpeg/pull/861>`__: Fix typo.
+* `#863 <https://github.com/simpeg/simpeg/pull/863>`__: light formatting to be closer to black, update filepaths to be os independent.
+* `#864 <https://github.com/simpeg/simpeg/pull/864>`__: Sim dask split.
+* `#865 <https://github.com/simpeg/simpeg/pull/865>`__: simulation fdem testing bug.
+* `#866 <https://github.com/simpeg/simpeg/pull/866>`__: waveform logic bug.
+* `#868 <https://github.com/simpeg/simpeg/pull/868>`__: This change was necessary for fields to be called correctly for dcip2...
+* `#869 <https://github.com/simpeg/simpeg/pull/869>`__: Simulation tutorials 2.
+* `#872 <https://github.com/simpeg/simpeg/pull/872>`__: Uncertainty rename in simulation.
 
 Contributors
 ============
+
+Combining to produce 535 individual commits:
+
+* @lheagy
+* @jcapriot
+* @fourndo
+* @sgkang
+* @dccowan
+* @prisae
+*
