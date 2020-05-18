@@ -327,7 +327,7 @@ Deprecations
 Some functions and properties have been renamed to more PEP 8 friendly names,
 for example:
 
-* ``Problem.makeSyntheticData`` → ``Simulation.make_synhetic_data``
+* ``Survey.makeSyntheticData`` → ``Simulation.make_synhetic_data``
 * ``Survey.srcList`` → ``Survey.source_list``
 * ``Source.rxList`` → ``Source.receiver_list``
 * ``Source.loc`` → ``Source.location``
@@ -339,6 +339,8 @@ will throw ``DeprecationWarnings`` pointing the user to the new names.
 
 We have done work to make this release as backwards compatible as possible, but can
 not guarantee that all code will work. At the minimum, module imports must be changed.
+The old style of ``pair``-ing a survey will still work, in which case all of the older
+functions will still work. This is only intended for old code to continue working.
 
 As noted all of the ``Problem``-s are being deprecated and will be removed as of
 version 0.15.0 of SimPEG. The deprecated utility models will also be removed then.
@@ -346,7 +348,7 @@ version 0.15.0 of SimPEG. The deprecated utility models will also be removed the
 Pull Requests
 =============
 
-There were 18 pull requests contributing to this release.
+There were 19 pull requests contributing to this release.
 
 * `#786 <https://github.com/simpeg/simpeg/pull/786>`__: Simulation class refactor.
 * `#835 <https://github.com/simpeg/simpeg/pull/835>`__: Add simulation PF tutorials to simulation PF branch
