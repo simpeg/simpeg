@@ -343,8 +343,7 @@ version 0.15.0 of SimPEG. The deprecated utility models will also be removed the
 Pull Requests
 =============
 
-There were 18 pull requests contributing a combination of 28,270, code line
-additions and 15,494 removals.
+There were 18 pull requests contributing to this release.
 
 * `#786 <https://github.com/simpeg/simpeg/pull/786>`__: Simulation class refactor.
 * `#835 <https://github.com/simpeg/simpeg/pull/835>`__: Add simulation PF tutorials to simulation PF branch
@@ -368,12 +367,13 @@ additions and 15,494 removals.
 Contributors
 ============
 
-Combining to produce 535 individual commits:
+Combining to produce over 500 commits (listed in no particular order):
 
 * @lheagy
 * @jcapriot
 * @fourndo
 * @sgkang
 * @dccowan
+* @JKutt
 * @prisae
-*
+* @craigmillernz
