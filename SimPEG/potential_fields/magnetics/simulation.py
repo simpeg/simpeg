@@ -580,11 +580,11 @@ class Simulation3DIntegral(BasePFSimulation):
         return deletes
 
     @property
-    def coordinate_system(self) = properties.StringChoice(
-        "Type of coordinate system we are regularizing in",
-        choices=['cartesian', 'spherical'],
-        default='cartesian'
-    )
+    def coordinate_system(self):
+        raise AttributeError(
+            'The coordinate_system property has been removed. '
+            'Instead make use of `SimPEG.maps.SphericalSystem`.'
+            )
 
 class Simulation3DDifferential(BaseSimulation):
     """

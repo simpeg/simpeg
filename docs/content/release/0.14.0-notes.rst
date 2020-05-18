@@ -43,7 +43,7 @@ the ``Survey`` to predict data. We found that this structure made it difficult t
 interface with other packages and was also generally difficult to explain. Also,
 field data was then attached to the ``Survey`` class.
 
-These changes within this section are also the ones while will require the largest
+These changes within this section are also the ones which will require the most
 changes to code (which are still hopefully small).
 
 The ``Simulation`` class
@@ -101,7 +101,7 @@ The ``Data`` class
 Previously, field data would also live within the ``Survey`` class. Which was not
 only confusing, but placed the importance on the wrong component. When inverting geophysical
 data, we are concerned with the data. Thus we would like to enforce this importance
-by making data live in dedicated ``Data`` class. This ``Data`` class can act like a smart
+by making data live in a dedicated ``Data`` class. This ``Data`` class can act like a smart
 dictionary to grab data associated with a specific source, receiver combination.
 More importantly, this ``Data`` class is where we store information related to observed
 data and its errors. This class started in the ``SimPEG.Survey`` module, but has
@@ -167,7 +167,7 @@ the definition of the classic data misfit measure. See the documentation for the
 
 .. math::
 
-    \phi_d = ||\textbf{W}_d(\mathcal{F}(\vec{m}) - \vec{d}_{obs})||_2^2
+    \phi_d = \frac{1}{2}||\textbf{W}_d(\mathcal{F}(\vec{m}) - \vec{d}_{obs})||_2^2
 
 The ``Simulation`` class handles the forward operation, :math:`\mathcal{F}`, and
 the ``Data`` class handles the noise, :math:`\textbf{W}_d=diag(\frac{1}{\sigma_i})`,
@@ -216,7 +216,7 @@ replace these functions with ``dask`` versions,
 Changelog
 =========
 As can be expected, there are many changes in this release, and we hope to identify
-all of them here.
+most of them here.
 
 Renamed Modules
 ---------------
@@ -293,6 +293,9 @@ moved around and been renamed. There are now two separate modules within ``poten
 moved to ``potential_fields.gravity``, and the classes in ``PF.BaseMag`` have been
 moved to ``potential_fields.magnetics``. The ``Map``-s that were within them have
 been deprecated and will be moved into the base ``SimPEG.maps``.
+
+The option of a ``coordinate_system`` for the magnetics simulation is no longer
+valid and will throw an ``AttributeError``. Instead use the :class:`SimPEG.maps.SphericalSystem`.
 
 Improvements and Additions to ``resistivity``
 ---------------------------------------------

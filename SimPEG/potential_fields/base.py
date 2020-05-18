@@ -149,12 +149,12 @@ class BasePFSimulation(LinearSimulation):
         loading dask for parallelism by doing ``import SimPEG.dask``. This will
         be removed in version 0.15.0 of SimPEG
         """
-            warnings.warn(
-                "parallelized has been deprecated. If interested, try out "
-                "loading dask for parallelism by doing ``import SimPEG.dask``. "
-                "This will be removed in version 0.15.0 of SimPEG",
-                DeprecationWarning
-            )
+        warnings.warn(
+            "parallelized has been deprecated. If interested, try out "
+            "loading dask for parallelism by doing ``import SimPEG.dask``. "
+            "This will be removed in version 0.15.0 of SimPEG",
+            DeprecationWarning
+        )
         return False
 
     @parallelized.setter
