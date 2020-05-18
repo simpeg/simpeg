@@ -1,17 +1,18 @@
 
 """
-Gravity: Least-Squares inversion
-================================
+Gravity: Sparse Norm inversion
+==============================
 
-Here we invert gravity anomaly data to recover a density contrast model. We
-formulate the inverse problem as a least-squares optimization problem. For
-this tutorial, we focus on the following:
+Here we invert gravity anomaly data to recover a density contrast model. We formulate the inverse problem as an iteratively
+re-weighted least-squares (IRLS) optimization problem. For this tutorial, we
+focus on the following:
 
     - Defining the survey from xyz formatted data
     - Generating a mesh based on survey geometry
     - Including surface topography
     - Defining the inverse problem (data misfit, regularization, optimization)
     - Specifying directives for the inversion
+    - Setting sparse and blocky norms
     - Plotting the recovered model and data misfit
 
 Although we consider gravity anomaly data in this tutorial, the same approach
@@ -233,16 +234,16 @@ simulation = gravity.simulation.Simulation3DIntegral(
 # Within the data misfit, the residual between predicted and observed data are
 # normalized by the data's standard deviation.
 dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
+dmis.W = utils.sdiag(1/uncertainties)
 
 # Define the regularization (model objective function).
-reg = regularization.Simple(
-    mesh, indActive=ind_active, mapping=model_map
-)
+reg = regularization.Sparse(mesh, indActive=ind_active, mapping=model_map)
+reg.norms = np.c_[0, 2, 2, 2]
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.ProjectedGNCG(
-    maxIter=10, lower=-1., upper=1.,
+    maxIter=100, lower=-1., upper=1.,
     maxIterLS=20, maxIterCG=10, tolCG=1e-3
 )
 
@@ -260,7 +261,14 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
+
+# Defines the directives for the IRLS regularization. This includes setting
+# the cooling schedule for the trade-off parameter.
+update_IRLS = directives.Update_IRLS(
+    f_min_change=1e-4, max_irls_iterations=30,
+    coolEpsFact=1.5, beta_tol=1e-2,
+    )
 
 # Defining the fractional decrease in beta and the number of Gauss-Newton solves
 # for each beta value.
@@ -272,16 +280,12 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()
 
-# Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit(chifact=1)
-
 # Add sensitivity weights
 sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 
 # The directives are defined as a list.
 directives_list = [
-    sensitivity_weights, starting_beta, beta_schedule,
-    save_iteration, update_jacobi, target_misfit
+    update_IRLS, sensitivity_weights, starting_beta, beta_schedule, save_iteration, update_jacobi
 ]
 
 #####################################################################
