@@ -396,11 +396,11 @@ Contributors
 
 Combining to produce over 500 commits (listed in no particular order):
 
-* @lheagy
-* @jcapriot
-* @fourndo/@domfournier
-* @sgkang
-* @dccowan
-* @JKutt
-* @prisae
-* @craigmillernz
+* `@lheagy <https://github.com/lheagy>`__
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@fourndo <https://github.com/fourndo>`__  / `@domfournier <https://github.com/domfournier>`__
+* `@sgkang <https://github.com/sgkang>`__
+* `@dccowan <https://github.com/dccowan>`__
+* `@JKutt <https://github.com/JKutt>`__
+* `@prisae <https://github.com/prisae>`__
+* `@craigmillernz <https://github.com/craigmillernz>`__
