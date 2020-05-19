@@ -156,7 +156,7 @@ API
 ===
 
 FDEM Simulation
-------------
+---------------
 
 .. automodule:: SimPEG.electromagnetics.frequency_domain.simulation
     :show-inheritance:
