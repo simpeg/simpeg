@@ -348,9 +348,12 @@ version 0.15.0 of SimPEG. The deprecated utility models will also be removed the
 Pull Requests
 =============
 
-There were 19 pull requests contributing to this release.
+There were 20 pull requests contributing to this release.
 
 * `#786 <https://github.com/simpeg/simpeg/pull/786>`__: Simulation class refactor.
+* `#792 <https://github.com/simpeg/simpeg/pull/792>`__: Use scooby for Versions.
+* `#802 <https://github.com/simpeg/simpeg/pull/802>`__: Simulation jk.
+* `#819 <https://github.com/simpeg/simpeg/pull/819>`__: Simulation jk df.
 * `#835 <https://github.com/simpeg/simpeg/pull/835>`__: Add simulation PF tutorials to simulation PF branch
 * `#843 <https://github.com/simpeg/simpeg/pull/843>`__: Fix drapeTopoLoc.
 * `#844 <https://github.com/simpeg/simpeg/pull/844>`__: Static receiver midpoint 3D.
