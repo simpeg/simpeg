@@ -233,8 +233,10 @@ system. The previous locations do not exist.
 * ``EM.NSEM`` → ``electromagnetics.natural_source``
 * ``EM.Static`` → ``electromagnetics.static``
 * ``EM.Static.DC`` → ``electromagnetics.static.resistivity``
+* ``EM.Static.DC.Utils`` → ``electromagnetics.static.resistivity.utils``
 * ``EM.Static.IP`` → ``electromagnetics.static.induced_polarization``
 * ``EM.Static.SIP`` → ``electromagnetics.static.spectral_induced_polarization``
+* ``EM.Static.Utils`` → ``electromagnetics.static.utils``
 * ``EM.Utils`` → ``electromagnetics.utils``
 * ``VRM`` → ``electromagnetics.viscous_remanent_magnetization``
 * ``FLOW`` → ``flow``
@@ -257,6 +259,16 @@ system. The previous locations do not exist.
 * ``Props`` → ``props``
 * ``Survey`` → ``survey``
 * ``Problem`` → ``simulation``
+
+Also generally modules with the following names have changed:
+
+* ``METHOD.SurveyMETHOD`` → ``method_name.survey``
+* ``METHOD.SrcMETHOD`` → ``method_name.sources``
+* ``METHOD.RxMETHOD`` → ``method_name.receivers``
+* ``METHOD.ProblemMETHOD_xD`` → ``method_name.simulation_xd``
+* ``METHOD.FieldsMETHOD`` → ``method_name.fields``
+
+where ``METHOD`` was the old module name for the method and ``method_name`` is the new name.
 
 Also many of the utilities modules within these are also being deprecated. Their
 old names are still around and should throw a deprecation warning when loaded pointing
