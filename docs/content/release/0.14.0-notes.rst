@@ -15,7 +15,7 @@ This release will break backward compatibility as many modules and classes have
 been renamed. Check out the :ref:`sphx_glr_content_examples` and :ref:`simpeg_tutorials`
 (which have also been improved) to see how it's done.
 
-We are also only supporting Python versions 3.6<= at this time. We have dropped all
+We are also only supporting Python versions >=3.6 at this time. We have dropped all
 testing and development on Python versions previous to this (especially
 2.7).
 
@@ -92,7 +92,7 @@ needed to be defined to use a ``Simulation`` for an ``InvProblem``, is
 ``sim.dpred``, ``sim.Jvec`` and ``sim.Jtvec``.
 
 Please see the documentation for the :class:`SimPEG.simulation.BaseSimulation` class
-as well as the individual method's ``Simulation``-s, for a detailed description of
+as well as the individual methods' ``Simulation``-s, for a detailed description of
 arguments, but largely it accepts the same arguments as the ``Problem`` class,
 but now also requires a ``Survey`` to be set.
 
@@ -147,7 +147,7 @@ that is returned from this is now defined as:
         data.noise_floor
     )
 
-This is now also the object that is returned from:
+This ``Data`` class is now also the object that is returned from:
 
 .. code-block:: python
 
@@ -161,9 +161,8 @@ The ``L2DataMisfit`` class
 Previously, because the ``Survey`` class handled predicting data at the receivers,
 and it also had knowledge of the observed data and its noise, we constructed the
 data misfit measure using only the survey. Now we have specifically broken this
-piece up into the a forward ``Simulation``, and a ``Data`` class. This mimics
-the definition of the classic data misfit measure. See the documentation for the
-:class:`SimPEG.data_misfit.L2DataMisfit` for all of the details.
+piece up into a forward ``Simulation`` object, and a ``Data`` object. This mimics
+the definition of the classic data misfit measure.
 
 .. math::
 
@@ -171,14 +170,15 @@ the definition of the classic data misfit measure. See the documentation for the
 
 The ``Simulation`` class handles the forward operation, :math:`\mathcal{F}`, and
 the ``Data`` class handles the noise, :math:`\textbf{W}_d=diag(\frac{1}{\sigma_i})`,
-and the observed data, :math:`\vec{d}_{obs}`.
+and the observed data, :math:`\vec{d}_{obs}`. See the documentation for the
+:class:`SimPEG.data_misfit.L2DataMisfit` for all of the details.
 
 Previously,
 
 .. code-block:: python
 
     # Survey knows how to predict data, knows the observed data,
-    # and it's standard deviation
+    # and its standard deviation
     dmis = DataMisfit.l2_DataMisfit(survey)
 
 Now,
@@ -186,13 +186,15 @@ Now,
 .. code-block:: python
 
     # Create a data misfit
+    # The data class now knows the observed data and its standard deviation.
+    # The simulation knows how to create data from a model.
     dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
 
 
 Dask
 ====
 
-We have begun a concerted effort to incorporate ``dask`` as means to allow SimPEG
+We have begun a concerted effort to incorporate ``dask`` as a means to allow SimPEG
 to scale to larger computers (and take advantage of parallelism). Checkout the
 ``dask`` docs at https://docs.dask.org/en/latest/.
 
@@ -202,7 +204,7 @@ This feature is experimental at the moment and can be toggled on like so,
 
     import SimPEG.dask
 
-which will then enable a parallel operations for a few modules. It will specifically
+which will then enable parallel operations for a few modules. It will specifically
 replace these functions with ``dask`` versions,
 
 * ``SimPEG.potential_fields.BasePFSimulation.linear_operator``
@@ -215,11 +217,13 @@ replace these functions with ``dask`` versions,
 
 Changelog
 =========
+
 As can be expected, there are many changes in this release, and we hope to identify
-most of them here.
+most of them here (or at least point you in the right direction).
 
 Renamed Modules
 ---------------
+
 We have taken steps to rename the modules of SimPEG to a more PEP 8 friendly
 system. The previous locations do not exist.
 
@@ -255,7 +259,8 @@ system. The previous locations do not exist.
 * ``Problem`` → ``simulation``
 
 Also many of the utilities modules within these are also being deprecated. Their
-old names are still around and should throw a deprecation warning when loaded.
+old names are still around and should throw a deprecation warning when loaded pointing
+to the correct name.
 
 For example,
 
@@ -265,7 +270,7 @@ For example,
 
 ``Problem`` to ``Simulation``
 -----------------------------
-Many of the previous ``Problem`` classes are still within the modules, but now
+Many of the previous ``Problem`` classes are still within the modules, but
 will now throw a deprecation warning which points to the updated ``Simulation``.
 The renaming scheme for the ``Simulation``-s was decided in
 `#857 <https://github.com/simpeg/simpeg/issues/847>`__.
@@ -292,7 +297,7 @@ moved around and been renamed. There are now two separate modules within ``poten
 ``gravity`` and ``magnetics``. All of the classes in ``PF.BaseGrav`` have been
 moved to ``potential_fields.gravity``, and the classes in ``PF.BaseMag`` have been
 moved to ``potential_fields.magnetics``. The ``Map``-s that were within them have
-been deprecated and will be moved into the base ``SimPEG.maps``.
+been deprecated and can instead be found in ``SimPEG.maps``.
 
 The option of a ``coordinate_system`` for the magnetics simulation is no longer
 valid and will throw an ``AttributeError``. Instead use the :class:`SimPEG.maps.SphericalSystem`.
@@ -301,7 +306,7 @@ Improvements and Additions to ``resistivity``
 ---------------------------------------------
 
 We have made a few improvements to the ``SimPEG.electromagnetics.static.resistivity``
-that were motivatived by our work under the Geoscientists Without Borders project.
+that were motivated by our work under the Geoscientists Without Borders project.
 
 One is that we now have a 1D layered Earth simulation class,
 :class:`SimPEG.electromagnetics.static.resistivity.simulation_1d.Simulation1DLayers`,
@@ -317,7 +322,7 @@ type survey acquisitions that use a unique source and receiver for each measured
 data point. This option is disabled by default, and can be enabled by passing the
 ``minaturize=True`` keyword to the resistivity ``Simulation`` upon initialization.
 
-The third is automated ``TreeMesh`` construction within the ``IODC`` class for
+The third is automated ``TreeMesh`` construction within the ``resistivity.IO`` class for
 a 2D survey.
 
 
@@ -327,20 +332,21 @@ Deprecations
 Some functions and properties have been renamed to more PEP 8 friendly names,
 for example:
 
-* ``Survey.makeSyntheticData`` → ``Simulation.make_synhetic_data``
+* ``Survey.makeSyntheticData`` → ``Simulation.make_synthetic_data``
 * ``Survey.srcList`` → ``Survey.source_list``
 * ``Source.rxList`` → ``Source.receiver_list``
 * ``Source.loc`` → ``Source.location``
 * ``Receiver.locs`` → ``Receiver.locations``
 * etc...
 
-As mentioned before, the old names of these properties will still be around, but
+As mentioned before, the old names of these items will still be around, but
 will throw ``DeprecationWarnings`` pointing the user to the new names.
 
 We have done work to make this release as backwards compatible as possible, but can
 not guarantee that all code will work. At the minimum, module imports must be changed.
 The old style of ``pair``-ing a survey will still work, in which case all of the older
-functions will still work. This is only intended for old code to continue working.
+functions will still work. This is only intended for old code to continue working,
+and should not be relied upon for developing new code.
 
 As noted all of the ``Problem``-s are being deprecated and will be removed as of
 version 0.15.0 of SimPEG. The deprecated utility models will also be removed then.
@@ -348,7 +354,7 @@ version 0.15.0 of SimPEG. The deprecated utility models will also be removed the
 Pull Requests
 =============
 
-There were 20 pull requests contributing to this release.
+There were 22 pull requests contributing to this release.
 
 * `#786 <https://github.com/simpeg/simpeg/pull/786>`__: Simulation class refactor.
 * `#792 <https://github.com/simpeg/simpeg/pull/792>`__: Use scooby for Versions.
