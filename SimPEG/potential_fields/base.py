@@ -14,7 +14,7 @@ from SimPEG.utils import mkvc
 
 ###############################################################################
 #                                                                             #
-#                             Base Potential Fields Problem                   #
+#                             Base Potential Fields Simulation                   #
 #                                                                             #
 ###############################################################################
 

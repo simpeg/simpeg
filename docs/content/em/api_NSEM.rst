@@ -27,8 +27,8 @@ under development
 API
 ===
 
-NSEM Problem
-------------
+NSEM Simulation
+---------------
 
 .. automodule:: SimPEG.electromagnetics.natural_source.simulation
     :show-inheritance:

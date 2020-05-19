@@ -154,8 +154,8 @@ Here \\(\\bm\\) indicates model parameters in discretized space.
 API for DC codes
 ================
 
-Problem
--------
+Simulation
+----------
 
 .. automodule:: SimPEG.electromagnetics.static.resistivity.simulation
     :show-inheritance:

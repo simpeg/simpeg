@@ -152,16 +152,10 @@ H-J Formulation
     \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
 
-.. Forward Problem
-.. ===============
-
-.. Inverse Problem
-.. ===============
-
 API
 ===
 
-FDEM Problem
+FDEM Simulation
 ------------
 
 .. automodule:: SimPEG.electromagnetics.frequency_domain.simulation

@@ -589,7 +589,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
     **Required**
     :param list receiver_list: Receiver List
     :param float freq: frequency
-    :param BaseFDEMProblem primarySimulation: FDEM primary problem
+    :param BaseFDEMSimulation primarySimulation: FDEM psimulation
     :param SurveyFDEM primarySurvey: FDEM primary survey
 
     **Optional**

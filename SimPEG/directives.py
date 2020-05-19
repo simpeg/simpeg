@@ -957,7 +957,7 @@ class UpdatePreconditioner(InversionDirective):
 
             if getattr(sim, 'getJtJdiag', None) is None:
                 assert getattr(sim, 'getJ', None) is not None, (
-                    "Problem does not have a getJ attribute." +
+                    "Simulation does not have a getJ attribute." +
                     "Cannot form the sensitivity explicitly"
                 )
                 JtJdiag += np.sum(np.power((dmisfit.W*sim.getJ(m)), 2), axis=0)
@@ -988,7 +988,7 @@ class UpdatePreconditioner(InversionDirective):
 
             if getattr(sim, 'getJtJdiag', None) is None:
                 assert getattr(sim, 'getJ', None) is not None, (
-                    "Problem does not have a getJ attribute." +
+                    "Simulation does not have a getJ attribute." +
                     "Cannot form the sensitivity explicitly"
                 )
                 JtJdiag += np.sum(np.power((dmisfit.W*sim.getJ(m)), 2), axis=0)
@@ -1078,7 +1078,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
             if getattr(sim, 'getJtJdiag', None) is None:
                 assert getattr(sim, 'getJ', None) is not None, (
-                    "Problem does not have a getJ attribute." +
+                    "Simulation does not have a getJ attribute." +
                     "Cannot form the sensitivity explicitly"
                 )
 
