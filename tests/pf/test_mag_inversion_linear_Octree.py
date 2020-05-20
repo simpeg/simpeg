@@ -52,7 +52,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(xyzLoc)
         srcField = mag.SourceField([rxLoc], parameters=H0)
-        survey = mag.MagneticSurvey(srcField)
+        survey = mag.Survey(srcField)
 
         # self.mesh.finalize()
         self.mesh = meshutils.mesh_builder_xyz(

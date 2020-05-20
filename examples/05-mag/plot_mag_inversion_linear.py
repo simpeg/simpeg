@@ -58,7 +58,7 @@ def run(plotIt=True):
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
     rxLoc = magnetics.receivers.Point(rxLoc, components=["tmi"])
     srcField = magnetics.sources.SourceField(receiver_list=[rxLoc], parameters=H0)
-    survey = magnetics.survey.MagneticSurvey(srcField)
+    survey = magnetics.survey.Survey(srcField)
 
     # We can now create a susceptibility model and generate data
     # Here a simple block in half-space

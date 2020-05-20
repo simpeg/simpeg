@@ -44,7 +44,7 @@ class MagFwdProblemTests(unittest.TestCase):
         receivers = mag.Point(self.rxLoc, components=components)
         srcField = mag.SourceField([receivers], parameters=H0)
 
-        self.survey = mag.MagneticSurvey(srcField)
+        self.survey = mag.Survey(srcField)
 
         self.sim = mag.simulation.Simulation3DDifferential(
             M,

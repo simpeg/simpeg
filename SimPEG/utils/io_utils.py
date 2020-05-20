@@ -287,7 +287,7 @@ def readUBCmagneticsObservations(obs_file):
 
     rxLoc = magnetics.receivers.Point(locXYZ)
     srcField = magnetics.sources.SourceField([rxLoc], parameters=(B[2], B[0], B[1]))
-    survey = magnetics.survey.MagneticSurvey(srcField)
+    survey = magnetics.survey.Survey(srcField)
     data_object = data.Data(survey, dobs=d, standard_deviation=wd)
 
     return data_object

@@ -163,7 +163,7 @@ Mag Integral eq. approach
 Magnetics Survey
 ================
 
-.. autoclass:: SimPEG.potential_fields.magnetics.MagneticSurvey
+.. autoclass:: SimPEG.potential_fields.magnetics.Survey
     :show-inheritance:
     :members:
     :undoc-members:

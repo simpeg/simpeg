@@ -9,7 +9,7 @@ import warnings
 from SimPEG import utils
 from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
-from .survey import MagneticSurvey
+from .survey import Survey
 from .analytics import CongruousMagBC
 
 from SimPEG import Solver
@@ -606,7 +606,7 @@ class Simulation3DDifferential(BaseSimulation):
     props.Reciprocal(mu, mui)
 
     survey = properties.Instance(
-            "a survey object", MagneticSurvey, required=True
+            "a survey object", Survey, required=True
     )
 
     def __init__(self, mesh, **kwargs):

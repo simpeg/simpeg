@@ -66,7 +66,7 @@ class ValidationInInversion(unittest.TestCase):
             np.vstack([[0.25, 0.25, 0.25], [-0.25, -0.25, 0.25]])
         )
         srcField = mag.SourceField([rx], parameters=(B[0], B[1], B[2]))
-        survey = mag.MagneticSurvey(srcField)
+        survey = mag.Survey(srcField)
 
         # Create the forward model operator
         sim = mag.Simulation3DIntegral(

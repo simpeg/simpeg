@@ -162,7 +162,7 @@ source_field = magnetics.sources.SourceField(
 )
 
 # Define the survey
-survey = magnetics.survey.MagneticSurvey(source_field)
+survey = magnetics.survey.Survey(source_field)
 
 #############################################
 # Defining the Data

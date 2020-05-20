@@ -58,7 +58,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(rxLoc)
         srcField = mag.SourceField([rxLoc], parameters=H0)
-        survey = mag.MagneticSurvey(srcField)
+        survey = mag.Survey(srcField)
 
         # We can now create a susceptibility model and generate data
         # Here a simple block in half-space

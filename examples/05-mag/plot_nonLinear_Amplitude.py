@@ -71,7 +71,7 @@ Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 10
 rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
 rxList = magnetics.receivers.Point(rxLoc)
 srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
-survey = magnetics.survey.MagneticSurvey(srcField)
+survey = magnetics.survey.Survey(srcField)
 
 # Here how the topography looks with a quick interpolation, just a Gaussian...
 tri = sp.spatial.Delaunay(topo)
@@ -257,7 +257,7 @@ mrec = inv.run(mstart)
 
 rxList = magnetics.receivers.Point(rxLoc, components=['bx', 'by', 'bz'])
 srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
-surveyAmp = magnetics.survey.MagneticSurvey(srcField)
+surveyAmp = magnetics.survey.Survey(srcField)
 
 simulation = magnetics.simulation.Simulation3DIntegral(
         mesh=mesh, survey=surveyAmp, chiMap=idenMap, actInd=surf, is_amplitude_data=True

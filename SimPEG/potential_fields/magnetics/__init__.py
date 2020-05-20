@@ -5,7 +5,7 @@ from . import analytics
 from . import simulation
 
 from .simulation import Simulation3DIntegral, Simulation3DDifferential
-from .survey import MagneticSurvey
+from .survey import Survey
 from .sources import SourceField
 from .receivers import Point
 
