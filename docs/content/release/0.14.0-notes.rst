@@ -147,6 +147,13 @@ that is returned from this is now defined as:
         data.noise_floor
     )
 
+You can also directly set the value of ``data.standard_deviation`` if you prefer
+to work with that quantity.
+
+.. code-block:: python
+
+    data.standard_deviation = 0.01
+
 This ``Data`` class is now also the object that is returned from:
 
 .. code-block:: python
@@ -155,8 +162,8 @@ This ``Data`` class is now also the object that is returned from:
         m, relative_error=0.05, noise_floor=0.0, f=None, add_noise=True
     )
 
-The ``L2DataMisfit`` class
---------------------------
+The ``DataMisfit`` class
+------------------------
 
 Previously, because the ``Survey`` class handled predicting data at the receivers,
 and it also had knowledge of the observed data and its noise, we constructed the
