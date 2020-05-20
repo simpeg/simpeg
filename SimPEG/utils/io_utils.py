@@ -371,7 +371,7 @@ def readUBCgravityObservations(obs_file):
 
     rxLoc = gravity.receivers.Point(locXYZ)
     srcField = gravity.sources.SourceField([rxLoc])
-    survey = gravity.survey.GravitySurvey(srcField)
+    survey = gravity.survey.Survey(srcField)
     data_object = data.Data(survey, dobs=d, standard_deviation=wd)
     return data_object
 

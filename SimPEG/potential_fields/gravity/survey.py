@@ -2,7 +2,7 @@ from ...survey import BaseSurvey
 from ...utils.code_utils import deprecate_class
 
 
-class GravitySurvey(BaseSurvey):
+class Survey(BaseSurvey):
     """Base Gravity Survey"""
 
     receiver_locations = None  #: receiver locations
@@ -78,5 +78,5 @@ class GravitySurvey(BaseSurvey):
 
 
 @deprecate_class(removal_version='0.15.0')
-class LinearSurvey(GravitySurvey):
+class LinearSurvey(Survey):
     pass

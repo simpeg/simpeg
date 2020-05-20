@@ -55,7 +55,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         locXYZ = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = gravity.Point(locXYZ)
         srcField = gravity.SourceField([rxLoc])
-        survey = gravity.GravitySurvey(srcField)
+        survey = gravity.Survey(srcField)
 
         # We can now create a density model and generate data
         # Here a simple block in half-space
