@@ -1,6 +1,6 @@
 """
-Forward Simulation for Inductive and Viscous Remanent Magnetization Responses
-=============================================================================
+Forward Simulation Including Inductive Response
+===============================================
 
 Here we use the modules *SimPEG.electromagnetics.viscous_remanent_magnetization*
 and *SimPEG.electromagnetics.time_domain* to simulation the transient response 

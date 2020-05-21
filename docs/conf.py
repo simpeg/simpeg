@@ -280,13 +280,15 @@ texinfo_documents = [
 # Sphinx Gallery
 sphinx_gallery_conf = {
     # path to your examples scripts
-    'examples_dirs' : ['../examples',
+    'examples_dirs' : ['../examples/published',
+                       '../examples/community',
                        '../tutorials/models_mapping',
                        '../tutorials/linear',
                        '../tutorials/potential_fields',
                        '../tutorials/electromagnetics',
                        ],
-    'gallery_dirs'  : ['content/examples',
+    'gallery_dirs'  : ['content/examples/published',
+                       'content/examples/community',
                        'content/tutorials/models_mapping',
                        'content/tutorials/linear',
                        'content/tutorials/potential_fields',

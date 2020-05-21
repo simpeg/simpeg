@@ -122,6 +122,7 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment=1., orientation='X', mu
     kr = k*r
 
     front = moment / (4.*pi * r**3.) * np.exp(-1j*kr)
+    
     mid   = -kr**2. + 3.*1j*kr + 3.
 
     if orientation.upper() == 'X':

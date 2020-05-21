@@ -36,7 +36,8 @@ Examples
     :maxdepth: 2
     :caption: Examples Gallery
 
-    content/examples/index
+    content/examples/published/index
+    content/examples/community/index
 
 
 Packages

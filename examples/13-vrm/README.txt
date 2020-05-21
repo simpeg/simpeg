@@ -1,2 +1,0 @@
-Viscous Remanent Magnetization
-==============================
