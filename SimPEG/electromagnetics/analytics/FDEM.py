@@ -58,7 +58,7 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
 
     return hz
 
-def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment=1., orientation='X', mu = mu_0):
+def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment, fieldType='h', mu_r=1, eps_r=1):
     """
     Analytical solution for a dipole in a whole-space.
 
@@ -80,7 +80,7 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment=1., orientation='X', mu
         from scipy.constants import mu_0
         freqs = np.logspace(-2, 5, 301)
         Bx, By, Bz = EM.analytics.FDEM.MagneticDipoleWholeSpace(
-                [0, 100, 0], [0, 0, 0], 1e-2, freqs, moment=1, orientation='Z')
+                [0, 100, 0], [0, 0, 0], 1e-2, freqs, moment='Z')
         plt.figure()
         plt.loglog(freqs, Bz.real/mu_0, 'C0', label='Real')
         plt.loglog(freqs, -Bz.real/mu_0, 'C0--')
@@ -101,62 +101,23 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment=1., orientation='X', mu
 
     """
 
-    if not isinstance(orientation, str):
-        if np.allclose(orientation, np.r_[1., 0., 0.]):
-            orientation = 'X'
-        elif np.allclose(orientation, np.r_[0., 1., 0.]):
-            orientation = 'Y'
-        elif np.allclose(orientation, np.r_[0., 0., 1.]):
-            orientation = 'Z'
+    mu = 4*np.pi*1e-7*mu_r
+    eps = 8.85418782e-12*eps_r
+    w = 2*np.pi*f
+
+    if isinstance(moment, str):
+        if moment == 'X':
+            mx, my, mz = 1., 0., 0.
+        elif moment == 'Y':
+            mx, my, mz = 0., 1., 0.
+        elif moment == 'Z':
+            mx, my, mz = 0., 0., 1. 
         else:
-            raise NotImplementedError('arbitrary orientations not implemented')
-
-    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
-
-    dx = XYZ[:,0]-srcLoc[0]
-    dy = XYZ[:,1]-srcLoc[1]
-    dz = XYZ[:,2]-srcLoc[2]
-
-    r  = np.sqrt( dx**2. + dy**2. + dz**2.)
-    k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
-    kr = k*r
-
-    front = moment / (4.*pi * r**3.) * np.exp(-1j*kr)
+            raise NotImplementedError('String type for moment not recognized')
     
-    mid   = -kr**2. + 3.*1j*kr + 3.
-
-    if orientation.upper() == 'X':
-        Hx = front*( (dx/r)**2. * mid + (kr**2. - 1j*kr - 1.) )
-        Hy = front*( (dx*dy/r**2.) * mid )
-        Hz = front*( (dx*dz/r**2.) * mid )
-
-    elif orientation.upper() == 'Y':
-        Hx = front*( (dy*dx/r**2.) * mid )
-        Hy = front*( (dy/r)**2. * mid + (kr**2. - 1j*kr - 1.) )
-        Hz = front*( (dy*dz/r**2.) * mid )
-
-    elif orientation.upper() == 'Z':
-        Hx = front*( (dx*dz/r**2.) * mid )
-        Hy = front*( (dy*dz/r**2.) * mid )
-        Hz = front*( (dz/r)**2. * mid + (kr**2. - 1j*kr - 1.) )
-
-    Bx = mu*Hx
-    By = mu*Hy
-    Bz = mu*Hz
-
-    if Bx.ndim is 1:
-        Bx = utils.mkvc(Bx,2)
-
-    if By.ndim is 1:
-        By = utils.mkvc(By,2)
-
-    if Bz.ndim is 1:
-        Bz = utils.mkvc(Bz,2)
-
-    return Bx, By, Bz
-
-
-def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
+    else:
+        mx, my, mz = moment[0], moment[1], moment[2]
+            
     XYZ = utils.asArray_N_x_Dim(XYZ, 3)
 
     dx = XYZ[:,0]-srcLoc[0]
@@ -164,33 +125,126 @@ def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orienta
     dz = XYZ[:,2]-srcLoc[2]
 
     r  = np.sqrt( dx**2. + dy**2. + dz**2.)
-    k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
+    k  = np.sqrt( -1j*w*mu*sig + w**2*mu*eps)
     kr = k*r
 
-    front = current * length / (4. * np.pi * sig * r**3) * np.exp(-1j*k*r)
-    mid   = -k**2 * r**2 + 3*1j*k*r + 3
+    if fieldType == 'h':
+        front = 1 / (4.*pi * r**3.) * np.exp(-1j*kr)
+        mid   = -kr**2. + 3.*1j*kr + 3.
 
-    # Ex = front*((dx**2 / r**2)*mid + (k**2 * r**2 -1j*k*r))
-    # Ey = front*(dx*dy  / r**2)*mid
-    # Ez = front*(dx*dz  / r**2)*mid
+        Fx = front * (
+            mx * ( (dx/r)**2. * mid + (kr**2. - 1j*kr - 1.) ) +
+            my * ( (dy*dx/r**2.) * mid ) +
+            mz * ( (dx*dz/r**2.) * mid )
+            )
 
-    if orientation.upper() == 'X':
-        Ex = front*((dx**2 / r**2)*mid + (k**2 * r**2 -1j*k*r-1.))
-        Ey = front*(dx*dy  / r**2)*mid
-        Ez = front*(dx*dz  / r**2)*mid
-        return Ex, Ey, Ez
+        Fy = front * (
+            mx * ( (dx*dy/r**2.) * mid ) +
+            my * ( (dy/r)**2. * mid + (kr**2. - 1j*kr - 1.) ) +
+            mz * ( (dy*dz/r**2.) * mid )
+        )
 
-    elif orientation.upper() == 'Y':
-        #  x--> y, y--> z, z-->x
-        Ey = front*((dy**2 / r**2)*mid + (k**2 * r**2 -1j*k*r-1.))
-        Ez = front*(dy*dz  / r**2)*mid
-        Ex = front*(dy*dx  / r**2)*mid
-        return Ex, Ey, Ez
+        Fz = front * (
+            mx * ( (dx*dz/r**2.) * mid ) +
+            my * ( (dy*dz/r**2.) * mid ) +
+            mz * ( (dz/r)**2. * mid + (kr**2. - 1j*kr - 1.) )
+        )
 
-    elif orientation.upper() == 'Z':
-        # x --> z, y --> x, z --> y
-        Ez = front*((dz**2 / r**2)*mid + (k**2 * r**2 -1j*k*r-1.))
-        Ex = front*(dz*dx  / r**2)*mid
-        Ey = front*(dz*dy  / r**2)*mid
-        return Ex, Ey, Ez
-        # return Ey, Ez, Ex
+    elif fieldType == 'e':
+
+        front = 1j*w*mu*(1 + 1j*kr) / (4.*pi * r**3.) * np.exp(-1j*kr)
+
+        Fx = front * (
+            my * ( dz/r) +
+            mz * (-dy/r)
+            )
+
+        Fy = front * (
+            mx * (-dz/r) +
+            mz * ( dx/r)
+        )
+
+        Fz = front * (
+            mx * ( dy/r) +
+            my * (-dx/r)
+        )
+
+    return Fx, Fy, Fz
+
+
+def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, moment='X', fieldType='e', mu_r=1, eps_r=1):
+    
+    mu = 4*np.pi*1e-7*mu_r
+    eps = 8.85418782e-12*eps_r
+    w = 2*np.pi*f
+
+    if isinstance(moment, str):
+        if moment.upper() == 'X':
+            mx, my, mz = 1., 0., 0.
+        elif moment.upper() == 'Y':
+            mx, my, mz = 0., 1., 0.
+        elif moment.upper() == 'Z':
+            mx, my, mz = 0., 0., 1. 
+        else:
+            raise NotImplementedError('String type for moment not recognized')
+    
+    else:
+        mx, my, mz = moment[0], moment[1], moment[2]
+
+
+    XYZ = utils.asArray_N_x_Dim(XYZ, 3)
+
+    dx = XYZ[:,0]-srcLoc[0]
+    dy = XYZ[:,1]-srcLoc[1]
+    dz = XYZ[:,2]-srcLoc[2]
+
+    r  = np.sqrt( dx**2. + dy**2. + dz**2.)
+    k  = np.sqrt( -1j*w*mu*sig + w**2*mu*eps)
+    kr = k*r
+
+    
+    if fieldType == 'e':
+
+        front = 1 / (4. * np.pi * sig * r**3) * np.exp(-1j*k*r)
+        mid   = -k**2 * r**2 + 3*1j*k*r + 3
+
+        Fx = front * (
+            mx * ((dx**2 / r**2)*mid + (k**2 * r**2 -1j*k*r-1.)) +
+            my * (dy*dx  / r**2)*mid +
+            mz * (dz*dx  / r**2)*mid
+            )
+
+        Fy = front * (
+            mx * (dx*dy  / r**2)*mid +
+            my * ((dy**2 / r**2)*mid + (k**2 * r**2 -1j*k*r-1.)) +
+            mz * (dz*dy  / r**2)*mid
+        )
+
+        Fz = front * (
+            mx * (dx*dz  / r**2)*mid +
+            my * (dy*dz  / r**2)*mid +
+            mz * ((dz**2 / r**2)*mid + (k**2 * r**2 -1j*k*r-1.))
+        )
+
+    elif fieldType == 'h':
+
+        front = (1 + 1j*kr) / (4. * np.pi * r**2) * np.exp(-1j*k*r)
+
+        Fx = front * (
+            my * ( dz/r) +
+            mz * (-dy/r)
+            )
+
+        Fy = front * (
+            mx * (-dz/r) +
+            mz * ( dx/r)
+        )
+
+        Fz = front * (
+            mx * ( dy/r) +
+            my * (-dx/r)
+        )
+
+    return Fx, Fy, Fz
+
+
