@@ -128,7 +128,7 @@ model[ind_pipe] = pipe_value
 # Define a single mapping from model to mesh
 exponential_map = maps.ExpMap()
 reciprocal_map = maps.ReciprocalMap()
-model_map = maps.ComboMap([active_map, reciprocal_map, exponential_map])
+model_map = active_map*reciprocal_map*exponential_map
 
 # Plotting
 fig = plt.figure(figsize=(5, 5))
@@ -164,7 +164,7 @@ model = np.r_[background_value, pipe_value, rc, dr, 0., 1., zc, dz]  # add dummy
 parametric_map = maps.ParametricBlock(mesh, indActive=ind_active, epsilon=1e-10, p=8.)
 
 # Define a single mapping from model to mesh
-model_map = maps.ComboMap([active_map, parametric_map])
+model_map = active_map*parametric_map
 
 # Plotting
 fig = plt.figure(figsize=(5, 5))
@@ -222,8 +222,8 @@ model = mkvc(model)
 wire_map = maps.Wires(('log_sigma', N), ('mu', N))
 
 # Use combo maps to map from model to mesh
-sigma_map = maps.ComboMap([active_map, maps.ExpMap(), wire_map.log_sigma])
-mu_map = maps.ComboMap([active_map, wire_map.mu])
+sigma_map = active_map*maps.ExpMap()*wire_map.log_sigma
+mu_map = active_map*wire_map.mu
 
 # Plotting
 fig = plt.figure(figsize=(5, 5))
