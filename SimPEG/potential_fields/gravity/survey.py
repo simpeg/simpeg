@@ -1,7 +1,8 @@
 from ...survey import BaseSurvey
+from ...utils.code_utils import deprecate_class
 
 
-class GravitySurvey(BaseSurvey):
+class Survey(BaseSurvey):
     """Base Gravity Survey"""
 
     receiver_locations = None  #: receiver locations
@@ -30,7 +31,7 @@ class GravitySurvey(BaseSurvey):
     @property
     def components(self):
         return self.source_field.receiver_list[0].components
-    
+
     @property
     def Qfx(self):
         if getattr(self, '_Qfx', None) is None:
@@ -74,3 +75,8 @@ class GravitySurvey(BaseSurvey):
 
         fields = {'gx': gfx, 'gy': gfy, 'gz': gfz}
         return fields
+
+
+@deprecate_class(removal_version='0.15.0')
+class LinearSurvey(Survey):
+    pass

@@ -19,7 +19,7 @@ __all__ = ['BaseEMSimulation', 'BaseEMSrc']
 
 ###############################################################################
 #                                                                             #
-#                             Base EM Problem                                 #
+#                             Base EM Simulation                                 #
 #                                                                             #
 ###############################################################################
 
@@ -491,7 +491,7 @@ class BaseEMSrc(BaseSrc):
         - :math:`s_m` : magnetic source term
         - :math:`s_e` : electric source term
 
-        :param BaseFDEMSimulation simulation: FDEM Problem
+        :param BaseFDEMSimulation simulation: FDEM Simulation
         :rtype: tuple
         :return: tuple with magnetic source term and electric source term
         """
@@ -505,7 +505,7 @@ class BaseEMSrc(BaseSrc):
         - :code:`s_mDeriv` : derivative of the magnetic source term
         - :code:`s_eDeriv` : derivative of the electric source term
 
-        :param BaseFDEMSimulation simulation: FDEM Problem
+        :param BaseFDEMSimulation simulation: FDEM Simulation
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: tuple
@@ -528,7 +528,7 @@ class BaseEMSrc(BaseSrc):
         """
         Magnetic source term
 
-        :param BaseFDEMSimulation simulation: FDEM Problem
+        :param BaseFDEMSimulation simulation: FDEM Simulation
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
@@ -538,7 +538,7 @@ class BaseEMSrc(BaseSrc):
         """
         Electric source term
 
-        :param BaseFDEMSimulation simulation: FDEM Problem
+        :param BaseFDEMSimulation simulation: FDEM Simulation
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
@@ -548,7 +548,7 @@ class BaseEMSrc(BaseSrc):
         """
         Derivative of magnetic source term with respect to the inversion model
 
-        :param BaseFDEMSimulation simulation: FDEM Problem
+        :param BaseFDEMSimulation simulation: FDEM Simulation
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -561,7 +561,7 @@ class BaseEMSrc(BaseSrc):
         """
         Derivative of electric source term with respect to the inversion model
 
-        :param BaseFDEMSimulation simulation: FDEM Problem
+        :param BaseFDEMSimulation simulation: FDEM Simulation
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray

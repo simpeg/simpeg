@@ -51,7 +51,7 @@ class MagFwdProblemTests(unittest.TestCase):
         self.locXyz = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
         rxLoc = mag.Point(self.locXyz, components=components)
         srcField = mag.SourceField([rxLoc], parameters=H0)
-        self.survey = mag.MagneticSurvey(srcField)
+        self.survey = mag.Survey(srcField)
 
         self.sim = mag.Simulation3DIntegral(
             mesh,

@@ -32,12 +32,12 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     debug = properties.Bool(
         "Print debugging information",
-        default=False
+        default=False, required=False
     )
 
     counter = properties.Instance(
         "Set this to a SimPEG.utils.Counter() if you want to count things",
-        Counter
+        Counter, required=False
     )
 
     _has_fields = properties.Bool(
@@ -133,7 +133,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
             )
         return self.simulation.residual(m, self.data.dobs, f=f)
 
-    Wd = deprecate_property(W, 'Wd', removal_version='0.15.0')
+    Wd = deprecate_property(W, 'Wd', new_name='W', removal_version='0.15.0')
 
 
 class L2DataMisfit(BaseDataMisfit):

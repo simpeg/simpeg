@@ -83,7 +83,7 @@ receiver_list = [receiver_list]
 source_field = gravity.sources.SourceField(receiver_list=receiver_list)
 
 # Defining the survey
-survey = gravity.survey.GravitySurvey(source_field)
+survey = gravity.survey.Survey(source_field)
 
 
 ##########################################################

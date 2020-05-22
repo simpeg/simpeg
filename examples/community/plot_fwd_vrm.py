@@ -96,7 +96,7 @@ for pp in range(0, loc.shape[0]):
 survey_vrm = VRM.Survey(src_list_vrm)
 
 ##########################################################################
-# Problem
+# Simulation
 # -------
 #
 # For the VRM problem, we used a sensitivity refinement strategy for cells

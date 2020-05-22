@@ -363,8 +363,8 @@ where:
 
 
 
-TDEM Problem
-============
+TDEM Simulation
+===============
 
 .. automodule:: SimPEG.electromagnetics.time_domain.simulation
     :show-inheritance:

@@ -75,7 +75,7 @@ class BaseRx(properties.HasProperties):
         if getattr(self, '_Ps', None) is None:
             self._Ps = {}
 
-    locs = deprecate_property(locations, 'locs', removal_version='0.15.0')
+    locs = deprecate_property(locations, 'locs', new_name='locations', removal_version='0.15.0')
 
     @property
     def nD(self):
@@ -199,7 +199,7 @@ class BaseSrc(BaseSimPEG):
         "unique identifier for the source"
     )
 
-    loc = deprecate_property(location, 'loc', removal_version='0.15.0')
+    loc = deprecate_property(location, 'loc', new_name='location', removal_version='0.15.0')
 
     @properties.validator('receiver_list')
     def _receiver_list_validator(self, change):
@@ -211,7 +211,7 @@ class BaseSrc(BaseSimPEG):
             enumerate(value)
         ]
 
-    rxList = deprecate_property(receiver_list, 'rxList', removal_version='0.15.0')
+    rxList = deprecate_property(receiver_list, 'rxList', new_name='receiver_list', removal_version='0.15.0')
 
     def getReceiverIndex(self, receiver):
         if type(receiver) is not list:
@@ -323,7 +323,7 @@ class BaseSurvey(properties.HasProperties):
     #############
     # Deprecated
     #############
-    srcList = deprecate_property(source_list, 'srcList', removal_version='0.15.0')
+    srcList = deprecate_property(source_list, 'srcList', new_name='source_list', removal_version='0.15.0')
 
     def dpred(self, m=None, f=None):
         raise Exception(
@@ -407,7 +407,7 @@ class BaseTimeSurvey(BaseSurvey):
             self._unique_times = np.unique(np.hstack(rx_times))
         return self._unique_times
 
-    times = deprecate_property(unique_times, 'times', removal_version='0.15.0')
+    times = deprecate_property(unique_times, 'times', new_name='unique_times', removal_version='0.15.0')
 
 
 ###############################################################################

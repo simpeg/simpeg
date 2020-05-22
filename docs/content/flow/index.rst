@@ -38,8 +38,8 @@ Here we reproduce the results from Celia et al. (1990):
     :align: center
 
 
-Richards Problem
-================
+Richards Simulation
+===================
 
 .. automodule:: SimPEG.flow.richards.simulation
     :show-inheritance:

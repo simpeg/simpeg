@@ -100,8 +100,8 @@ for pp in range(0, loc.shape[0]):
 survey_vrm = VRM.Survey(srcListVRM)
 
 ##########################################################################
-# Forward Problem
-# ---------------
+# Forward Simulation
+# ------------------
 #
 # Here we predict data by solving the forward problem. For the VRM problem,
 # we use a sensitivity refinement strategy for cells # that are proximal to

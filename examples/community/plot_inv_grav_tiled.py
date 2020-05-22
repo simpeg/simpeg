@@ -71,7 +71,7 @@ for local_index in local_indices:
 
     receivers = gravity.receivers.Point(rxLoc[local_index, :])
     srcField = gravity.sources.SourceField([receivers])
-    local_survey = gravity.survey.GravitySurvey(srcField)
+    local_survey = gravity.survey.Survey(srcField)
 
     # Create a local mesh that covers all points, but refined on the local survey
     local_mesh = mesh_builder_xyz(
@@ -129,7 +129,7 @@ idenMap = maps.IdentityMap(nP=nC)
 # Create a global survey just for simulation of data
 receivers = gravity.receivers.Point(rxLoc)
 srcField = gravity.sources.SourceField([receivers])
-survey = gravity.survey.GravitySurvey(srcField)
+survey = gravity.survey.Survey(srcField)
 
 # Create the forward simulation for the global dataset
 simulation = gravity.simulation.Simulation3DIntegral(

@@ -1,9 +1,10 @@
 import numpy as np
 
 from ...survey import BaseSurvey
+from ...utils.code_utils import deprecate_class
 
 
-class MagneticSurvey(BaseSurvey):
+class Survey(BaseSurvey):
     """Base Magnetics Survey"""
 
     # source_field = properties.Instance(
@@ -54,4 +55,8 @@ class MagneticSurvey(BaseSurvey):
         return self._vnD
 
 # make this look like it lives in the below module
-MagneticSurvey.__module__ = 'SimPEG.potential_fields.magnetics'
+Survey.__module__ = 'SimPEG.potential_fields.magnetics'
+
+@deprecate_class(removal_version='0.15.0')
+class LinearSurvey(Survey):
+    pass

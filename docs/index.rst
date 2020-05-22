@@ -69,6 +69,15 @@ API
    content/api_core/api_Utilities
 
 
+Information
+****************
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Meta Information
+
+   content/release/index
+
 Project Index & Search
 **********************
 
