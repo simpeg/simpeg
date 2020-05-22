@@ -7,7 +7,7 @@ Here we use the module *SimPEG.electromagnetics.static.resistivity* to predict
 DC resistivity data. In this tutorial, we focus on the following:
 
     - How to define the survey
-    - How to define the problem
+    - How to define the forward simulation
     - How to predict DC resistivity data for a synthetic resistivity model
     - How to include surface topography
     - The units of the model and resulting data

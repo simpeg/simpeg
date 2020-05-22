@@ -27,6 +27,7 @@ Tutorials
    content/tutorials/linear/index
    content/tutorials/potential_fields/index
    content/tutorials/electromagnetics/index
+   content/tutorials/seismic/index
 
 
 Examples

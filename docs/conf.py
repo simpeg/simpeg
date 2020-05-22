@@ -286,6 +286,7 @@ sphinx_gallery_conf = {
                        '../tutorials/linear',
                        '../tutorials/potential_fields',
                        '../tutorials/electromagnetics',
+                       '../tutorials/seismic',
                        ],
     'gallery_dirs'  : ['content/examples/published',
                        'content/examples/community',
@@ -293,6 +294,7 @@ sphinx_gallery_conf = {
                        'content/tutorials/linear',
                        'content/tutorials/potential_fields',
                        'content/tutorials/electromagnetics',
+                       'content/tutorials/seismic',
                        ],
     'within_subsection_order': FileNameSortKey,
     'backreferences_dir' : None
