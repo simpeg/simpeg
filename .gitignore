@@ -54,10 +54,11 @@ examples/published/bookpurnong_inversion/*
 examples/published/._bookpurnong_inversion
 examples/published/*.tar.gz
 examples/published/*.png
-tutorials/basic_inversions/1_gravity/gravity/*
-tutorials/basic_inversions/2_magnetics/magnetics/*
-tutorials/basic_inversions/3_dcip/dcip1d/*
-tutorials/basic_inversions/3_dcip/dcip2d/*
+tutorials/potential_fields/1_gravity/gravity/*
+tutorials/potential_fields/2_magnetics/magnetics/*
+tutorials/electromagnetics/1_dcr/dcip1d/*
+tutorials/electromagnetics/1_dcr/dcip2d/*
+tutorials/electromagnetics/1_dcip/dcip2d/*
 
 # jupyter
 *.ipynb
