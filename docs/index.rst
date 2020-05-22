@@ -22,12 +22,7 @@ Tutorials
    :maxdepth: 3
    :caption: Tutorials
 
-   content/tutorials/mesh_generation/index
-   content/tutorials/models_mapping/index
-   content/tutorials/linear/index
-   content/tutorials/potential_fields/index
-   content/tutorials/electromagnetics/index
-   content/tutorials/seismic/index
+   content/tutorials/index
 
 
 Examples

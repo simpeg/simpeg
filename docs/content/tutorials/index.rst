@@ -7,6 +7,8 @@ Tutorials
     :maxdepth: 2
     :caption: Examples uses of SimPEG
 
-    forward_simulations/index
     models_mapping/index
-    basic_inversions/index
+    linear/index
+    potential_fields/index
+    electromagnetics/index
+    seismic/index
