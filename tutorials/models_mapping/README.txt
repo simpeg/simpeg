@@ -1,5 +1,5 @@
 Models and Mapping
-******************
+==================
 
 In SimPEG, the model represents the set of parameters that define our geology.
 For many problems, the model is a vector containing one or more physical

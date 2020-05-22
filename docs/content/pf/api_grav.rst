@@ -18,7 +18,7 @@ Gravity Integral eq. approach
 Gravity Survey
 ==============
 
-.. autoclass:: SimPEG.potential_fields.gravity.GravitySurvey
+.. autoclass:: SimPEG.potential_fields.gravity.Survey
     :show-inheritance:
     :members:
     :undoc-members:

@@ -76,8 +76,11 @@ class BaseIPSimulation(BaseEMSimulation):
     def dpred(self, m=None, f=None):
         """
             Predicted data.
+
             .. math::
+
                 d_\\text{pred} = Pf(m)
+
         """
         if f is None:
             f = self.fields(m)

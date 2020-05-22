@@ -39,14 +39,14 @@ class Survey(BaseSurvey):
         """
         return self._frequencies
 
-    freqs = deprecate_property(frequencies, 'freq', removal_version='0.15.0')
+    freqs = deprecate_property(frequencies, 'freq', new_name='frequencies', removal_version='0.15.0')
 
     @property
     def num_frequencies(self):
         """Number of frequencies"""
         return len(self._frequency_dict)
 
-    nFreq = deprecate_property(num_frequencies, 'nFreq', removal_version='0.15.0')
+    nFreq = deprecate_property(num_frequencies, 'nFreq', new_name='num_frequencies', removal_version='0.15.0')
 
     @property
     def num_sources_by_frequency(self):
@@ -57,7 +57,7 @@ class Survey(BaseSurvey):
                 self._num_sources_by_frequency[freq] = len(self.getSrcByFreq(freq))
         return self._num_sources_by_frequency
 
-    nSrcByFreq = deprecate_property(num_sources_by_frequency, 'nSrcByFreq', '0.15.0')
+    nSrcByFreq = deprecate_property(num_sources_by_frequency, 'nSrcByFreq', new_name='num_sources_by_frequency', removal_version='0.15.0')
 
     def get_sources_by_frequency(self, frequency):
         """

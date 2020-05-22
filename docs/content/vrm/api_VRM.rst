@@ -8,8 +8,8 @@ API
 Below describes the classes, methods and properties relevant to forward modeling and inverting VRM responses in the time domain.
 
 
-VRM Problem
-===========
+VRM Simulation
+==============
 
 .. automodule:: SimPEG.electromagnetics.viscous_remanent_magnetization.simulation
     :show-inheritance:

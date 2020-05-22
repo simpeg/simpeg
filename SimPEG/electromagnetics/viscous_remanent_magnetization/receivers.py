@@ -37,14 +37,14 @@ class Point(BaseRx):
         if self.times is not None:
             return len(self.times)
 
-    nTimes = deprecate_property(n_times, 'nTimes', removal_version='0.15.0')
+    nTimes = deprecate_property(n_times, 'nTimes', new_name='n_times', removal_version='0.15.0')
 
     @property
     def n_locations(self):
         """Number of locations."""
         return self.locations.shape[0]
 
-    nLocs = deprecate_property(n_locations, 'nLocs', removal_version='0.15.0')
+    nLocs = deprecate_property(n_locations, 'nLocs', new_name='n_locations', removal_version='0.15.0')
 
     @property
     def nD(self):
@@ -52,7 +52,7 @@ class Point(BaseRx):
         if self.times is not None:
             return self.locations.shape[0] * len(self.times)
 
-    fieldComp = deprecate_property(orientation, 'fieldComp', removal_version='0.15.0')
+    fieldComp = deprecate_property(orientation, 'fieldComp', new_name='orientation', removal_version='0.15.0')
 
 
 class SquareLoop(Point):

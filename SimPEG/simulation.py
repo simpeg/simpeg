@@ -209,7 +209,8 @@ class BaseSimulation(props.HasModel):
     Solver = deprecate_property(solver, 'Solver',
         new_name='simulation.solver', removal_version='0.15.0')
 
-    solverOpts = deprecate_property(solver_opts, 'solverOpts', removal_version='0.15.0')
+    solverOpts = deprecate_property(solver_opts, 'solverOpts',
+        new_name='solver_opts', removal_version='0.15.0')
 
     ###########################################################################
     # Instantiation
@@ -450,9 +451,9 @@ class BaseTimeSimulation(BaseSimulation):
         "Modeling times"
         return self.time_mesh.vectorNx
 
-    timeSteps = deprecate_property(time_steps, 'timeSteps', removal_version='0.15.0')
+    timeSteps = deprecate_property(time_steps, 'timeSteps', new_name='time_steps', removal_version='0.15.0')
 
-    timeMesh = deprecate_property(time_mesh, 'timeMesh', removal_version='0.15.0')
+    timeMesh = deprecate_property(time_mesh, 'timeMesh', new_name='time_mesh', removal_version='0.15.0')
 
     def dpred(self, m=None, f=None):
         """

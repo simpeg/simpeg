@@ -1,6 +1,7 @@
 import properties
 import numpy as np
 from ... import survey
+from ...utils.code_utils import deprecate_class
 
 
 class Point(survey.BaseRx):
@@ -55,3 +56,8 @@ class Point(survey.BaseRx):
     def receiver_index(self):
 
         return self.receiver_index
+
+
+@deprecate_class(removal_version='0.15.0')
+class RxObs(Point):
+    pass

@@ -58,7 +58,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'SimPEG'
-copyright = u'2013 - 2017, SimPEG Team, http://simpeg.xyz'
+copyright = u'2013 - 2020, SimPEG Team, http://simpeg.xyz'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -84,7 +84,7 @@ release = '0.14.0b2'
 exclude_patterns = ['_build']
 
 linkcheck_ignore = [
-    'https://github.com/simpeg/simpeg/blob/master/SimPEG/maps.py#L127'
+    r'https://github.com/simpeg/simpeg*'
 ]
 
 linkcheck_retries = 3
@@ -282,13 +282,13 @@ sphinx_gallery_conf = {
     # path to your examples scripts
     'examples_dirs' : ['../examples',
                        '../tutorials/models_mapping',
-                       '../tutorials/forward_simulations',
                        '../tutorials/basic_inversions',
+                       '../tutorials/forward_simulations',
                        ],
     'gallery_dirs'  : ['content/examples',
                        'content/tutorials/models_mapping',
-                       'content/tutorials/forward_simulations',
                        'content/tutorials/basic_inversions',
+                       'content/tutorials/forward_simulations',
                        ],
     'within_subsection_order': FileNameSortKey,
     'backreferences_dir' : None

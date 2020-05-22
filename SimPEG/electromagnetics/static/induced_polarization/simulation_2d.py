@@ -71,8 +71,11 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
     def dpred(self, m=None, f=None):
         """
             Predicted data.
+
             .. math::
+
                 d_\\text{pred} = Pf(m)
+
         """
         # return self.Jvec(m, m, f=f)
         if f is None:

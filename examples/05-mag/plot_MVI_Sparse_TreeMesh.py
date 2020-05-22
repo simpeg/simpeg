@@ -70,7 +70,7 @@ Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 5
 xyzLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
 rxLoc = magnetics.receivers.Point(xyzLoc)
 srcField = magnetics.sources.SourceField(receiver_list=[rxLoc], parameters=H0)
-survey = magnetics.survey.MagneticSurvey(srcField)
+survey = magnetics.survey.Survey(srcField)
 
 # Here how the topography looks with a quick interpolation, just a Gaussian...
 tri = sp.spatial.Delaunay(topo)

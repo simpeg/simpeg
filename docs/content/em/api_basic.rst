@@ -6,8 +6,8 @@ The API
 =======
 
 
-Problem
--------
+Simulation
+----------
 
 .. autoclass:: SimPEG.electromagnetics.base.BaseEMSimulation
     :show-inheritance:

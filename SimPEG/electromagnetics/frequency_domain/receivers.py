@@ -1,5 +1,5 @@
 import properties
-from ...utils.code_utils import deprecate_class
+from ...utils.code_utils import deprecate_class, deprecate_property
 
 from ... import survey
 
@@ -25,16 +25,22 @@ class BaseRx(survey.BaseRx):
         }
     )
 
+    projComp = deprecate_property(orientation, 'projComp', new_name='orientation', removal_version='0.15.0')
+
     def __init__(self, locations, orientation=None, component=None, **kwargs):
-        self.orientation = orientation
+        proj = kwargs.pop('projComp', None)
+        if proj is not None:
+            self.projComp = proj
+        else:
+            self.orientation = orientation
+
         self.component = component
-        self.projComp = orientation
 
         super(BaseRx, self).__init__(locations, **kwargs)
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
-        return f._GLoc(self.projField) + self.projComp
+        return f._GLoc(self.projField) + self.orientation
 
     def eval(self, src, mesh, f):
         """

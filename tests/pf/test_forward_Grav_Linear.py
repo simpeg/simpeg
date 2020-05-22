@@ -50,7 +50,7 @@ class GravFwdProblemTests(unittest.TestCase):
         self.locXyz = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
         receivers = gravity.Point(self.locXyz, components=components)
         sources = gravity.SourceField([receivers])
-        self.survey = gravity.GravitySurvey(sources)
+        self.survey = gravity.Survey(sources)
 
         self.sim = gravity.Simulation3DIntegral(
                 mesh,
@@ -132,7 +132,7 @@ class GravityGradientFwdProblemTests(unittest.TestCase):
         self.locXyz = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
         receivers = gravity.Point(self.locXyz, components=components)
         sources = gravity.SourceField([receivers])
-        self.survey = gravity.GravitySurvey(sources)
+        self.survey = gravity.Survey(sources)
 
         self.sim = gravity.Simulation3DIntegral(
                 mesh,

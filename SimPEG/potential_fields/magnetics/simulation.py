@@ -4,11 +4,12 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
 from ...utils.code_utils import deprecate_class
+import warnings
 
 from SimPEG import utils
 from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
-from .survey import MagneticSurvey
+from .survey import Survey
 from .analytics import CongruousMagBC
 
 from SimPEG import Solver
@@ -38,7 +39,6 @@ class Simulation3DIntegral(BasePFSimulation):
         "Whether the supplied data is amplitude data",
         default=False
     )
-
 
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh, **kwargs)
@@ -579,6 +579,12 @@ class Simulation3DIntegral(BasePFSimulation):
             deletes += ['_gtg_diagonal']
         return deletes
 
+    @property
+    def coordinate_system(self):
+        raise AttributeError(
+            'The coordinate_system property has been removed. '
+            'Instead make use of `SimPEG.maps.SphericalSystem`.'
+            )
 
 class Simulation3DDifferential(BaseSimulation):
     """
@@ -600,7 +606,7 @@ class Simulation3DDifferential(BaseSimulation):
     props.Reciprocal(mu, mui)
 
     survey = properties.Instance(
-            "a survey object", MagneticSurvey, required=True
+            "a survey object", Survey, required=True
     )
 
     def __init__(self, mesh, **kwargs):

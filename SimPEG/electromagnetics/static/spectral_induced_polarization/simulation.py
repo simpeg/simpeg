@@ -436,7 +436,9 @@ class BaseSIPSimulation(BaseEMSimulation):
             Predicted data.
 
             .. math::
+
                 d_\\text{pred} = Pf(m)
+
         """
         if f is None:
             f = self.fields(m)

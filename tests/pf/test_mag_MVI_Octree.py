@@ -45,7 +45,7 @@ class MVIProblemTest(unittest.TestCase):
         xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(xyzLoc)
         srcField = mag.SourceField([rxLoc], parameters=H0)
-        survey = mag.MagneticSurvey(srcField)
+        survey = mag.Survey(srcField)
 
         # Create a mesh
         h = [5, 5, 5]

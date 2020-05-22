@@ -44,7 +44,7 @@ class AmpProblemTest(unittest.TestCase):
         rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
         rxList = magnetics.receivers.Point(rxLoc)
         srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
-        survey = magnetics.survey.MagneticSurvey(srcField)
+        survey = magnetics.survey.Survey(srcField)
 
         ###############################################################################
         # Inversion Mesh
@@ -171,7 +171,7 @@ class AmpProblemTest(unittest.TestCase):
 
         rxList = magnetics.receivers.Point(rxLoc, components=['bx', 'by', 'bz'])
         srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
-        surveyAmp = magnetics.survey.MagneticSurvey(srcField)
+        surveyAmp = magnetics.survey.Survey(srcField)
 
         simulation = magnetics.simulation.Simulation3DIntegral(
                 mesh=mesh, survey=surveyAmp, chiMap=idenMap,

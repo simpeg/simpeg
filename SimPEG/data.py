@@ -287,8 +287,14 @@ class Data(properties.HasProperties):
     ##########################
     # Deprecated
     ##########################
-    std = deprecate_property(relative_error, 'std', removal_version='0.15.0')
-    eps = deprecate_property(noise_floor, 'eps', removal_version='0.15.0')
+    std = deprecate_property(
+        relative_error, 'std',
+        new_name='relative_error', removal_version='0.15.0'
+    )
+    eps = deprecate_property(
+        noise_floor, 'eps',
+        new_name='noise_floor', removal_version='0.15.0'
+    )
 
 
 class SyntheticData(Data):

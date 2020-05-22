@@ -30,10 +30,7 @@ Tutorials
    :maxdepth: 3
    :caption: Tutorials to get up and going
 
-   content/tutorials/mesh_generation/index
-   content/tutorials/models_mapping/index
-   content/tutorials/forward_simulations/index
-   content/tutorials/basic_inversions/index
+   content/tutorials/index
 
 
 Packages
@@ -63,6 +60,15 @@ API
    content/api_core/api_Maps
    content/api_core/api_Utilities
 
+
+Information
+****************
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Meta Information
+
+   content/release/index
 
 Project Index & Search
 **********************

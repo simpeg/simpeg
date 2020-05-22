@@ -15,7 +15,7 @@ def spectral_ip_mappings(
     is_log_c=True
 ):
     """
-    Generates Mappings for Spectral Induced Polarization Problem.
+    Generates Mappings for Spectral Induced Polarization Simulation.
     Three parameters are required to be input:
     Chargeability (eta), Time constant (tau), and Frequency dependency (c).
     If there is no topography (indActive is None),
@@ -183,4 +183,3 @@ def run_inversion(
     # Run inversion
     mopt = inv.run(m0)
     return mopt, invProb.dpred
-
