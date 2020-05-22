@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-2.5D Forward Simulation of a DCIP Line 
+2.5D Forward Simulation of a DCIP Line
 ======================================
 
 Here we use the module *SimPEG.electromagnetics.static.resistivity* to predict
@@ -18,7 +18,7 @@ the following:
 This tutorial is split into two parts. First we create a resistivity model and
 predict DC resistivity data. Next we create a chargeability model and a
 background conductivity model to compute IP data.
-    
+
 
 """
 
@@ -260,8 +260,8 @@ plt.show()
 # Write DC resistivity data, topography and true model
 #
 
-if save_file == True:
-    
+if save_file:
+
     dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
     dir_path.extend(['tutorials', 'assets', 'dcip2d'])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
@@ -398,7 +398,7 @@ plt.show()
 # Write data and true model
 #
 
-if save_file == True:
+if save_file:
 
     # Add 1% Gaussian noise based on the DC data (not the IP data)
     ip_noise = 0.01*np.abs(dpred_dc)*np.random.rand(len(dpred_ip))
@@ -413,4 +413,3 @@ if save_file == True:
 
     fname = dir_path + 'true_chargeability.txt'
     np.savetxt(fname, chargeability_map*chargeability_model, fmt='%.4e')
-

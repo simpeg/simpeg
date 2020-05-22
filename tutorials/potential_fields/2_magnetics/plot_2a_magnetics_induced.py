@@ -216,8 +216,8 @@ plt.show()
 # Write the data, topography and true model
 #
 
-if save_file == True:
-    
+if save_file:
+
     dir_path = os.path.dirname(magnetics.__file__).split(os.path.sep)[:-3]
     dir_path.extend(['tutorials', 'assets', 'magnetics'])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

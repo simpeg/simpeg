@@ -14,7 +14,7 @@ on the following:
     - How to solve TDEM problems on an OcTree mesh
     - How to include topography
     - The units of the conductivity model and resulting data
-    
+
 
 Please note that we have used a coarse mesh and larger time-stepping to shorten
 the time of the simulation. Proper discretization in space and time is required
@@ -96,7 +96,7 @@ waveform = tdem.sources.TrapezoidWaveform(
 # defining a function for your waveform.
 # def wave_function(t):
 #     return - t/(np.max(waveform_times) - np.min(waveform_times))
-# 
+#
 # waveform = tdem.sources.RawWaveform(waveFct=wave_function, offTime=0.)
 
 # Evaluate the waveform for each on time.
@@ -167,7 +167,7 @@ survey = tdem.Survey(source_list)
 # Here we define the OcTree mesh that is used for this example.
 # We chose to design a coarser mesh to decrease the run time.
 # When designing a mesh to solve practical time domain problems:
-# 
+#
 #     - Your smallest cell size should be 10%-20% the size of your smallest diffusion distance
 #     - The thickness of your padding needs to be 2-3 times biggest than your largest diffusion distance
 #     - The diffusion distance is ~1260*np.sqrt(rho*t)
@@ -338,23 +338,23 @@ plt.show()
 # Write the true model, data and topography
 #
 
-if save_file == True:
-    
+if save_file:
+
     dir_path = os.path.dirname(tdem.__file__).split(os.path.sep)[:-3]
     dir_path.extend(['tutorials', 'assets', 'tdem'])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
     fname = dir_path + 'tdem_topo.txt'
     np.savetxt(fname, np.c_[topo_xyz], fmt='%.4e')
-    
+
     # Write data with 2% noise added
     fname = dir_path + 'tdem_data.obs'
     dpred = dpred + 0.02*np.abs(dpred)*np.random.rand(len(dpred))
     t_vec = np.kron(np.ones(ntx), time_channels)
     receiver_locations = np.kron(receiver_locations, np.ones((len(time_channels), 1)))
-    
+
     np.savetxt(fname, np.c_[receiver_locations, t_vec, dpred], fmt='%.4e')
-    
+
     # Plot true model
     output_model = plotting_map*model
     output_model[np.isnan(output_model)] = 1e-8

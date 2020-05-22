@@ -3,7 +3,7 @@ Forward Simulation on a Tree Mesh
 =================================
 
 Here we use the module *SimPEG.electromagnetics.frequency_domain* to simulate the
-FDEM response for an airborne survey using an OcTree mesh and a 
+FDEM response for an airborne survey using an OcTree mesh and a
 conductivity/resistivity model.
 To limit computational demant, we simulate airborne data at a single frequency
 for a vertical coplanar survey geometry. This tutorial can be easily adapted to
@@ -14,7 +14,7 @@ simulate data at many frequencies. For this tutorial, we focus on the following:
     - How to define the topography
     - How to solve the FDEM problem on OcTree meshes
     - The units of the conductivity/resistivity model and resulting data
-    
+
 
 Please note that we have used a coarse mesh to shorten the time of the simulation.
 Proper discretization is required to simulate the fields at each frequency with
@@ -44,7 +44,7 @@ try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
-    
+
 save_file = False
 
 # sphinx_gallery_thumbnail_number = 2
@@ -103,7 +103,7 @@ for ii in range(len(frequencies)):
             receiver_locations[jj, :], 'z', 'imag'
         )
         receivers_list = [bzr_receiver, bzi_receiver]
-        
+
         # Must define the transmitter properties and associated receivers
         source_list.append(
             fdem.sources.MagDipole(
@@ -111,7 +111,7 @@ for ii in range(len(frequencies)):
                 orientation='z', moment=100
             )
         )
-    
+
 survey = fdem.Survey(source_list)
 
 ###############################################################
@@ -121,7 +121,7 @@ survey = fdem.Survey(source_list)
 # Here we define the OcTree mesh that is used for this example.
 # We chose to design a coarser mesh to decrease the run time.
 # When designing a mesh to solve practical frequency domain problems:
-# 
+#
 #     - Your smallest cell size should be 10%-20% the size of your smallest skin depth
 #     - The thickness of your padding needs to be 2-3 times biggest than your largest skin depth
 #     - The skin depth is ~500*np.sqrt(rho/f)
@@ -290,25 +290,25 @@ plt.show()
 #
 
 
-if save_file == True:
-    
+if save_file:
+
     dir_path = os.path.dirname(fdem.__file__).split(os.path.sep)[:-3]
     dir_path.extend(['tutorials', 'assets', 'fdem'])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
-    
+
     # Write topography
     fname = dir_path + 'fdem_topo.txt'
     np.savetxt(fname, np.c_[topo_xyz], fmt='%.4e')
-    
+
     # Write data with 2% noise added
     fname = dir_path + 'fdem_data.obs'
     bz_real = bz_real + 1e-14*np.random.rand(len(bz_real))
     bz_imag = bz_imag + 1e-14*np.random.rand(len(bz_imag))
     f_vec = np.kron(frequencies, np.ones(ntx))
     receiver_locations = np.kron(np.ones((len(frequencies), 1)), receiver_locations)
-    
+
     np.savetxt(fname, np.c_[f_vec, receiver_locations, bz_real, bz_imag], fmt='%.4e')
-    
+
     # Plot true model
     output_model = plotting_map*model
     output_model[np.isnan(output_model)] = 1e-8

@@ -11,7 +11,7 @@ DC resistivity data. In this tutorial, we focus on the following:
     - How to predict DC resistivity data for a synthetic resistivity model
     - How to include surface topography
     - The units of the model and resulting data
-    
+
 
 """
 
@@ -252,8 +252,8 @@ plt.show()
 # Write DC resistivity data, topography and true model
 #
 
-if save_file == True:
-    
+if save_file:
+
     dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
     dir_path.extend(['tutorials', 'assets', 'dcr2d'])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
@@ -275,5 +275,3 @@ if save_file == True:
 
     fname = dir_path + 'xyz_topo.txt'
     np.savetxt(fname, xyz_topo, fmt='%.4e')
-
-

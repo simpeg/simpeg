@@ -1825,7 +1825,7 @@ def plot_layer(rho, mesh, xscale='log', ax=None, showlayers=False, xlim=None, de
         plt.xlabel('Resistivity ($\Omega$m)', fontsize = 14)
         plt.ylabel('Depth (m)', fontsize = 14)
         plt.ylabel('Depth (m)', fontsize = 14)
-        if showlayers == True:
+        if showlayers:
             for locz in z_grid:
                 plt.plot(np.linspace(rho_min, rho_max, 100), np.ones(100)*locz, 'b--', lw = 0.5)
         return plt.plot(resistivity, z, 'k-', **kwargs)
@@ -1836,7 +1836,7 @@ def plot_layer(rho, mesh, xscale='log', ax=None, showlayers=False, xlim=None, de
         ax.set_ylim(z.min(), z.max())
         ax.set_xlabel('Resistivity ($\Omega$m)', fontsize = 14)
         ax.set_ylabel('Depth (m)', fontsize = 14)
-        if showlayers == True:
+        if showlayers:
             for locz in z_grid:
                 ax.plot(np.linspace(rho_min, rho_max, 100), np.ones(100)*locz, 'b--', lw = 0.5)
         return ax.plot(resistivity, z, 'k-', **kwargs)

@@ -154,8 +154,8 @@ plt.show()
 # Export data and true model
 #
 
-if save_file == True:
-    
+if save_file:
+
     dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
     dir_path.extend(['tutorials', 'assets', 'dcr1d'])
     dir_path = os.path.sep.join(dir_path) + os.path.sep

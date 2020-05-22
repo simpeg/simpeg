@@ -159,7 +159,7 @@ obs_string = []
 for ii in range(0, n_source):
     ax.plot(x, dpred_plotting[:, ii])
     obs_string.append('source {}'.format(ii+1))
-    
+
 ax.set_xlim(np.min(x), np.max(x))
 ax.set_xlabel('x (m)')
 ax.set_ylabel('arrival time (s)')
@@ -174,15 +174,15 @@ ax.legend(obs_string, loc='upper right')
 # Write the data and true model
 #
 
-if save_file == True:
+if save_file:
 
     dir_path = os.path.dirname(tomo.__file__).split(os.path.sep)[:-3]
     dir_path.extend(['tutorials', 'seismic', 'assets'])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
-    
-    
+
+
     noise = 0.05*dpred*np.random.rand(len(dpred))
-    
+
     data_array = np.c_[
         np.kron(x, np.ones(n_receiver)),
         np.kron(y_sources, np.ones(n_receiver)),
@@ -197,6 +197,3 @@ if save_file == True:
     output_model = model
     fname = dir_path + 'true_model_2D.txt'
     np.savetxt(fname, output_model, fmt='%.4e')
-
-
-

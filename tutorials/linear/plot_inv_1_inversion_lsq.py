@@ -33,7 +33,7 @@ from SimPEG import (
 # sphinx_gallery_thumbnail_number = 3
 
 #############################################
-# Defining the Model and Mapping 
+# Defining the Model and Mapping
 # ------------------------------
 #
 # Here we generate a synthetic model and a mappig which goes from the model
@@ -61,7 +61,7 @@ ax.plot(mesh.vectorCCx, true_model, 'b-')
 ax.set_ylim([-2, 2])
 
 #############################################
-# Defining the Linear Operator 
+# Defining the Linear Operator
 # ----------------------------
 #
 # Here we define the linear operator with dimensions (nData, nParam). In practive,
@@ -99,7 +99,7 @@ ax.set_title('Columns of matrix G')
 
 
 #############################################
-# Defining the Simulation 
+# Defining the Simulation
 # -----------------------
 #
 # The simulation defines the relationship between the model parameters and
@@ -109,7 +109,7 @@ ax.set_title('Columns of matrix G')
 sim = simulation.LinearSimulation(mesh, G=G, model_map=model_map)
 
 #############################################
-# Predict Synthetic Data 
+# Predict Synthetic Data
 # ----------------------
 #
 # Here, we use the true model to create synthetic data which we will subsequently
@@ -202,5 +202,3 @@ ax[1].plot(mesh.vectorCCx, true_model, 'b-')
 ax[1].plot(mesh.vectorCCx, recovered_model, 'r-')
 ax[1].legend(('True Model', 'Recovered Model'))
 ax[1].set_ylim([-2, 2])
-
-
