@@ -398,6 +398,23 @@ There were 22 pull requests contributing to this release.
 * `#872 <https://github.com/simpeg/simpeg/pull/872>`__: Uncertainty rename in simulation.
 * `#874 <https://github.com/simpeg/simpeg/pull/874>`__: Release notes for simulation as part of the Documentation.
 
+
+Closed Issues
+=============
+
+* `#865 <https://github.com/simpeg/simpeg/issues/865>`__: FDEM: derivative test seems to ignore imag-real-flag
+* `#857 <https://github.com/simpeg/simpeg/issues/857>`__: DOC: Broken link
+* `#850 <https://github.com/simpeg/simpeg/issues/850>`__: Can't set a waveform on initialized BaseTDEMSrc object
+* `#847 <https://github.com/simpeg/simpeg/issues/847>`__: Renaming of methods' Problems
+* `#846 <https://github.com/simpeg/simpeg/issues/846>`__: Standard deviation and it's place in the code base
+* `#842 <https://github.com/simpeg/simpeg/issues/842>`__: Static drape topo not on surface.
+* `#787 <https://github.com/simpeg/simpeg/issues/787>`__: Plotting integrated sensitivity for DC resistivity problem.
+* `#765 <https://github.com/simpeg/simpeg/issues/765>`__: DOC: Source code not linked, 404
+* `#562 <https://github.com/simpeg/simpeg/issues/562>`__: What's the problem with ``Problem``?
+* `#527 <https://github.com/simpeg/simpeg/issues/527>`__: Remove MapPair, RxPair, *Pair
+* `#524 <https://github.com/simpeg/simpeg/issues/524>`__: Remove rxType from BaseRx
+* `#202 <https://github.com/simpeg/simpeg/issues/202>`__: Using the DataClass
+
 Contributors
 ============
 
