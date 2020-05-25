@@ -126,7 +126,7 @@ class Dipole(BaseRx):
             )
 
         if "locationsN" in kwargs.keys():
-            m_locations = kwargs.pop("locationsN")
+            n_locations = kwargs.pop("locationsN")
             warnings.warn(
                 "The locationsN property has been deprecated. Please set the "
                 "n_locations property instead. This will be removed in version"
@@ -155,11 +155,11 @@ class Dipole(BaseRx):
 
         # check the size of m_locations, n_locations
         if locations[0].shape != locations[1].shape:
-                raise ValueError(
-                    f"m_locations (shape: {locations[0].shape}) and "
-                    f"n_locations (shape: {locations[1].shape}) need to be "
-                    f"the same size"
-                )
+            raise ValueError(
+                f"m_locations (shape: {locations[0].shape}) and "
+                f"n_locations (shape: {locations[1].shape}) need to be "
+                f"the same size"
+            )
 
         super(Dipole, self).__init__(**kwargs)
         self.locations = locations
