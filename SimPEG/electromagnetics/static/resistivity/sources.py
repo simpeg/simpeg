@@ -84,7 +84,7 @@ class Dipole(BaseSrc):
             )
 
         super(Dipole, self).__init__(receiver_list, **kwargs)
-        self.location = [locationA, locationB]
+        self.location = location
 
     @property
     def a_location(self):
