@@ -97,7 +97,7 @@ survey_vrm = VRM.Survey(src_list_vrm)
 
 ##########################################################################
 # Simulation
-# -------
+# ----------
 #
 # For the VRM problem, we used a sensitivity refinement strategy for cells
 # that are proximal to transmitters. This is controlled through the
