@@ -81,7 +81,7 @@ There is a paper about SimPEG!
     }
 
 Electromagnetics
-================
+----------------
 
 If you are using the electromagnetics module of SimPEG, please cite:
 
