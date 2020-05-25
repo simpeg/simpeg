@@ -5,6 +5,7 @@ import properties
 from ....utils import closestPoints, sdiag
 from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
 
+import warnings
 
 # Trapezoidal integration for 2D DC problem
 def IntTrapezoidal(kys, Pf, y=0.0):
@@ -110,13 +111,68 @@ class Dipole(BaseRx):
         min_length=1, max_length=2
     )
 
-    def __init__(self, locationsM, locationsN, **kwargs):
-        if locationsM.shape != locationsN.shape:
-            raise ValueError(
-                'locationsM and locationsN need to be the same size')
-        locations = [np.atleast_2d(locationsM), np.atleast_2d(locationsN)]
+    def __init__(
+        self, m_locations=None, n_locations=None, locations=None, **kwargs
+    ):
+
+        # Check for old keywords
+        if "locationsM" in kwargs.keys():
+            m_locations = kwargs.pop("locationsM")
+            warnings.warn(
+                "The locationsM property has been deprecated. Please set the "
+                "m_locations property instead. This will be removed in version"
+                " 0.15.0 of SimPEG",
+                DeprecationWarning
+            )
+
+        if "locationsN" in kwargs.keys():
+            m_locations = kwargs.pop("locationsN")
+            warnings.warn(
+                "The locationsN property has been deprecated. Please set the "
+                "n_locations property instead. This will be removed in version"
+                " 0.15.0 of SimPEG",
+                DeprecationWarning
+            )
+
+        # if m_locations set, then use m_locations, n_locations
+        if m_locations is not None:
+            if n_locations is None:
+                raise ValueError(
+                    "For a dipole source both m_locations and n_locations "
+                    "must be set"
+                )
+
+            if locations is not None:
+                raise ValueError(
+                    "Cannot set both locations and m_locations, n_locations. "
+                    "Please provide either locations=(m_locations, n_locations) "
+                    "or both m_locations=m_locations, n_locations=n_locations"
+                )
+
+            locations = [
+                np.atleast_2d(m_locations), np.atleast_2d(n_locations)
+            ]
+
+        # check the size of m_locations, n_locations
+        if locations[0].shape != locations[1].shape:
+                raise ValueError(
+                    f"m_locations (shape: {locations[0].shape}) and "
+                    f"n_locations (shape: {locations[1].shape}) need to be "
+                    f"the same size"
+                )
+
         super(Dipole, self).__init__(**kwargs)
         self.locations = locations
+
+    @property
+    def m_locations(self):
+        """Locations of the M-electrodes"""
+        return self.locations[0]
+
+    @property
+    def n_locaitons(self):
+        """Locations of the N-electrodes"""
+        return self.locations[1]
 
     @property
     def nD(self):
