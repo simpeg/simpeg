@@ -2,7 +2,7 @@
     :alt: SimPEG Logo
 
 SimPEG
-======
+******
 
 .. image:: https://img.shields.io/pypi/v/SimPEG.svg
     :target: https://pypi.python.org/pypi/SimPEG
@@ -51,7 +51,7 @@ You are welcome to join forum and engage with people who use and develop SimPEG 
 Weekly meetings are open to all. They are generally held on Tuesdays at 10:30am PDT. Please see the calendar (`GCAL <https://calendar.google.com/calendar/b/0?cid=ZHVhamYzMWlibThycWdkZXM5NTdoYXV2MnNAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ>`_, `ICAL <https://calendar.google.com/calendar/ical/duajf31ibm8rqgdes957hauv2s%40group.calendar.google.com/public/basic.ics>`_) for information on the next meeting.
 
 Overview Video
---------------
+==============
 
 .. image:: https://img.youtube.com/vi/yUm01YsS9hQ/0.jpg
     :target: https://www.youtube.com/watch?v=yUm01YsS9hQ
@@ -61,7 +61,7 @@ Working towards all the Geophysics, but Backwards - SciPy 2016
 
 
 Citing SimPEG
--------------
+=============
 
 There is a paper about SimPEG!
 
@@ -81,7 +81,7 @@ There is a paper about SimPEG!
     }
 
 Electromagnetics
-****************
+================
 
 If you are using the electromagnetics module of SimPEG, please cite:
 
@@ -106,7 +106,7 @@ If you are using the electromagnetics module of SimPEG, please cite:
 
 
 Links
------
+=====
 
 Website:
 http://simpeg.xyz

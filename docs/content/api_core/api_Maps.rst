@@ -54,9 +54,9 @@ done by the :class:`SimPEG.maps.ExpMap` described above.
 .. code-block:: python
     :linenos:
 
-    M = Mesh.TensorMesh([7,5])
-    v1dMap = Maps.SurjectVertical1D(M)
-    expMap = Maps.ExpMap(M)
+    M = mesh.TensorMesh([7,5])
+    v1dMap = maps.SurjectVertical1D(M)
+    expMap = maps.ExpMap(M)
     myMap = expMap * v1dMap
     m = np.r_[0.2,1,0.1,2,2.9] # only 5 model parameters!
     sig = myMap * m

@@ -1,2 +1,0 @@
-From the SimPEG Community
-=========================
