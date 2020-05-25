@@ -1,8 +1,9 @@
 from __future__ import division
 import numpy as np
-from scipy.constants import mu_0, pi
+from scipy.constants import mu_0, pi, epsilon_0
 from scipy.special import erf
 from SimPEG import utils
+import warnings
 
 
 def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
@@ -58,7 +59,7 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
 
     return hz
 
-def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment, fieldType='h', mu_r=1, eps_r=1):
+def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment, fieldType='b', mu_r=1, eps_r=1, **kwargs):
     """
     Analytical solution for a dipole in a whole-space.
 
@@ -67,8 +68,6 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment, fieldType='h', mu_r=1,
 
     TODOs:
         - set it up to instead take a mesh & survey
-        - add E-fields
-        - handle multiple frequencies
         - add divide by zero safety
 
 
@@ -101,8 +100,24 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment, fieldType='h', mu_r=1,
 
     """
 
-    mu = 4*np.pi*1e-7*mu_r
-    eps = 8.85418782e-12*eps_r
+    orient = kwargs.pop('orientation', None)
+    if orient is not None:
+        warnings.warn('orientation kwarg has been deprecated and will be removed'
+                      ' in SimPEG version 0.15.0, please use the moment argument',
+                      DeprecationWarning)
+        magnitude = moment
+        moment = orient
+    else:
+        magnitude = 1
+    mu = kwargs.pop('mu', None)
+    if mu is not None:
+        warnings.warn('mu kwarg has been deprecated and will be removed'
+                      ' in SimPEG version 0.15.0, please use the mu_r argument.',
+                      DeprecationWarning)
+        mu_r = mu/mu_0
+
+    mu = mu_0*mu_r
+    eps = epsilon_0*eps_r
     w = 2*np.pi*f
 
     if isinstance(moment, str):
@@ -111,13 +126,13 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment, fieldType='h', mu_r=1,
         elif moment == 'Y':
             mx, my, mz = 0., 1., 0.
         elif moment == 'Z':
-            mx, my, mz = 0., 0., 1. 
+            mx, my, mz = 0., 0., 1.
         else:
             raise NotImplementedError('String type for moment not recognized')
-    
+        mx, my, mz = mx*magnitude, my*magnitude, mz*magnitude
     else:
         mx, my, mz = moment[0], moment[1], moment[2]
-            
+
     XYZ = utils.asArray_N_x_Dim(XYZ, 3)
 
     dx = XYZ[:,0]-srcLoc[0]
@@ -128,7 +143,7 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment, fieldType='h', mu_r=1,
     k  = np.sqrt( -1j*w*mu*sig + w**2*mu*eps)
     kr = k*r
 
-    if fieldType == 'h':
+    if fieldType in ['h', 'b']:
         front = 1 / (4.*pi * r**3.) * np.exp(-1j*kr)
         mid   = -kr**2. + 3.*1j*kr + 3.
 
@@ -149,6 +164,9 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment, fieldType='h', mu_r=1,
             my * ( (dy*dz/r**2.) * mid ) +
             mz * ( (dz/r)**2. * mid + (kr**2. - 1j*kr - 1.) )
         )
+
+        if fieldType == 'b':
+            Fx, Fy, Fz = mu*Fx, mu*Fy, mu*Fz
 
     elif fieldType == 'e':
 
@@ -172,10 +190,34 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment, fieldType='h', mu_r=1,
     return Fx, Fy, Fz
 
 
-def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, moment='X', fieldType='e', mu_r=1, eps_r=1):
-    
-    mu = 4*np.pi*1e-7*mu_r
-    eps = 8.85418782e-12*eps_r
+def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, moment='X', fieldType='e', mu_r=1, eps_r=1, **kwargs):
+
+    orient = kwargs.pop('orientation', None)
+    if orient is not None:
+        warnings.warn('orientation kwarg has been deprecated and will be removed'
+                      ' in SimPEG version 0.15.0, please use the moment argument.',
+                      DeprecationWarning)
+        moment = orient
+    mu = kwargs.pop('mu', None)
+    if mu is not None:
+        warnings.warn('mu kwarg has been deprecated and will be removed'
+                      ' in SimPEG version 0.15.0, please use the mu_r argument.')
+        mu_r = mu/mu_0
+    cur = kwargs.pop('current', None)
+    if cur is not None:
+        warnings.warn('current kwarg has been deprecated and will be removed'
+                      ' in SimPEG version 0.15.0, please use the moment argument.')
+        magnitude = cur
+    else:
+        magnitude = 1
+    length = kwargs.pop('length', None)
+    if length is not None:
+        warnings.warn('length kwarg has been deprecated and will be removed'
+                      ' in SimPEG version 0.15.0, please use the moment argument.')
+        magnitude *= length
+
+    mu = mu_0*mu_r
+    eps = epsilon_0*eps_r
     w = 2*np.pi*f
 
     if isinstance(moment, str):
@@ -184,10 +226,11 @@ def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, moment='X', fieldType='e', mu_
         elif moment.upper() == 'Y':
             mx, my, mz = 0., 1., 0.
         elif moment.upper() == 'Z':
-            mx, my, mz = 0., 0., 1. 
+            mx, my, mz = 0., 0., 1.
         else:
             raise NotImplementedError('String type for moment not recognized')
-    
+        mx, my, mz = mx*magnitude, my*magnitude, mz*magnitude
+
     else:
         mx, my, mz = moment[0], moment[1], moment[2]
 
@@ -202,7 +245,7 @@ def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, moment='X', fieldType='e', mu_
     k  = np.sqrt( -1j*w*mu*sig + w**2*mu*eps)
     kr = k*r
 
-    
+
     if fieldType == 'e':
 
         front = 1 / (4. * np.pi * sig * r**3) * np.exp(-1j*k*r)
@@ -226,7 +269,7 @@ def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, moment='X', fieldType='e', mu_
             mz * ((dz**2 / r**2)*mid + (k**2 * r**2 -1j*k*r-1.))
         )
 
-    elif fieldType == 'h':
+    elif fieldType in ['h', 'b']:
 
         front = (1 + 1j*kr) / (4. * np.pi * r**2) * np.exp(-1j*k*r)
 
@@ -245,6 +288,7 @@ def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, moment='X', fieldType='e', mu_
             my * (-dx/r)
         )
 
+        if fieldType == 'b':
+            Fx, Fy, Fz = mu*Fx, mu*Fy, mu*Fz
+
     return Fx, Fy, Fz
-
-
