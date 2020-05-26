@@ -11,10 +11,13 @@ from ...utils import mkvc, sdiag, speye, Zero
 from ..base import BaseEMSimulation
 from .survey import Survey
 from .fields import (
-    Fields3DMagneticFluxDensity, Fields3DElectricField, Fields3DMagneticField, Fields3DCurrentDensity,
-    FieldsDerivativesEB, FieldsDerivativesHJ
+    Fields3DMagneticFluxDensity,
+    Fields3DElectricField,
+    Fields3DMagneticField,
+    Fields3DCurrentDensity,
+    FieldsDerivativesEB,
+    FieldsDerivativesHJ,
 )
-
 
 
 class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
@@ -23,12 +26,11 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     solve the second order form. For the time discretization, we use backward
     Euler.
     """
-    clean_on_model_update = ['_Adcinv']  #: clear DC matrix factors on any model updates
+
+    clean_on_model_update = ["_Adcinv"]  #: clear DC matrix factors on any model updates
     dt_threshold = 1e-8
 
-    survey = properties.Instance(
-        "a survey object", Survey, required=True
-    )
+    survey = properties.Instance("a survey object", Survey, required=True)
 
     # def fields_nostore(self, m):
     #     """
@@ -55,10 +57,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         f = self.fieldsPair(self)
 
         # set initial fields
-        f[:, self._fieldType+'Solution', 0] = self.getInitialFields()
+        f[:, self._fieldType + "Solution", 0] = self.getInitialFields()
 
         if self.verbose:
-            print('{}\nCalculating fields(m)\n{}'.format('*'*50, '*'*50))
+            print("{}\nCalculating fields(m)\n{}".format("*" * 50, "*" * 50))
 
         # timestep to solve forward
         Ainv = None
@@ -66,8 +68,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             # keep factors if dt is the same as previous step b/c A will be the
             # same
             if Ainv is not None and (
-                tInd > 0 and abs(dt-self.time_steps[tInd - 1]) >
-                self.dt_threshold
+                tInd > 0 and abs(dt - self.time_steps[tInd - 1]) > self.dt_threshold
             ):
                 Ainv.clean()
                 Ainv = None
@@ -75,31 +76,29 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             if Ainv is None:
                 A = self.getAdiag(tInd)
                 if self.verbose:
-                    print('Factoring...   (dt = {:e})'.format(dt))
+                    print("Factoring...   (dt = {:e})".format(dt))
                 Ainv = self.Solver(A, **self.solver_opts)
                 if self.verbose:
-                    print('Done')
+                    print("Done")
 
-            rhs = self.getRHS(tInd+1)  # this is on the nodes of the time mesh
+            rhs = self.getRHS(tInd + 1)  # this is on the nodes of the time mesh
             Asubdiag = self.getAsubdiag(tInd)
 
             if self.verbose:
-                print('    Solving...   (tInd = {:d})'.format(tInd+1))
+                print("    Solving...   (tInd = {:d})".format(tInd + 1))
 
             # taking a step
-            sol = Ainv * (
-                rhs - Asubdiag * f[:, (self._fieldType + 'Solution'), tInd]
-            )
+            sol = Ainv * (rhs - Asubdiag * f[:, (self._fieldType + "Solution"), tInd])
 
             if self.verbose:
-                print('    Done...')
+                print("    Done...")
 
             if sol.ndim == 1:
                 sol.shape = (sol.size, 1)
-            f[:, self._fieldType+'Solution', tInd+1] = sol
+            f[:, self._fieldType + "Solution", tInd + 1] = sol
 
         if self.verbose:
-            print('{}\nDone calculating fields(m)\n{}'.format('*'*50, '*'*50))
+            print("{}\nDone calculating fields(m)\n{}".format("*" * 50, "*" * 50))
 
         # clean factors and return
         Ainv.clean()
@@ -126,7 +125,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         if f is None:
             f = self.fields(m)
 
-        ftype = self._fieldType + 'Solution'  # the thing we solved for
+        ftype = self._fieldType + "Solution"  # the thing we solved for
         self.model = m
 
         # mat to store previous time-step's solution deriv times a vector for
@@ -141,12 +140,12 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         #     ifields = np.zeros((self.mesh.nE, len(Srcs)))
 
         # for i, src in enumerate(self.survey.source_list):
-        dun_dm_v = np.hstack([
-            mkvc(
-                self.getInitialFieldsDeriv(src, v, f=f), 2
-            )
-            for src in self.survey.source_list
-        ])
+        dun_dm_v = np.hstack(
+            [
+                mkvc(self.getInitialFieldsDeriv(src, v, f=f), 2)
+                for src in self.survey.source_list
+            ]
+        )
         # can over-write this at each timestep
         # store the field derivs we need to project to calc full deriv
         df_dm_v = self.Fields_Derivs(self)
@@ -156,8 +155,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         for tInd, dt in zip(range(self.nT), self.time_steps):
             # keep factors if dt is the same as previous step b/c A will be the
             # same
-            if Adiaginv is not None and (tInd > 0 and dt !=
-                                         self.time_steps[tInd - 1]):
+            if Adiaginv is not None and (tInd > 0 and dt != self.time_steps[tInd - 1]):
                 Adiaginv.clean()
                 Adiaginv = None
 
@@ -171,41 +169,40 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
                 # here, we are lagging by a timestep, so filling in as we go
                 for projField in set([rx.projField for rx in src.receiver_list]):
-                    df_dmFun = getattr(f, '_%sDeriv' % projField, None)
+                    df_dmFun = getattr(f, "_%sDeriv" % projField, None)
                     # df_dm_v is dense, but we only need the times at
                     # (rx.P.T * ones > 0)
                     # This should be called rx.footprint
 
-                    df_dm_v[src, '{}Deriv'.format(projField), tInd] = df_dmFun(
+                    df_dm_v[src, "{}Deriv".format(projField), tInd] = df_dmFun(
                         tInd, src, dun_dm_v[:, i], v
-                        )
+                    )
 
-                un_src = f[src, ftype, tInd+1]
+                un_src = f[src, ftype, tInd + 1]
 
                 # cell centered on time mesh
                 dA_dm_v = self.getAdiagDeriv(tInd, un_src, v)
                 # on nodes of time mesh
-                dRHS_dm_v = self.getRHSDeriv(tInd+1, src, v)
+                dRHS_dm_v = self.getRHSDeriv(tInd + 1, src, v)
 
-                dAsubdiag_dm_v = self.getAsubdiagDeriv(
-                    tInd, f[src, ftype, tInd], v
-                )
+                dAsubdiag_dm_v = self.getAsubdiagDeriv(tInd, f[src, ftype, tInd], v)
 
                 JRHS = dRHS_dm_v - dAsubdiag_dm_v - dA_dm_v
 
                 # step in time and overwrite
-                if tInd != len(self.time_steps+1):
-                    dun_dm_v[:, i] = Adiaginv * (
-                        JRHS - Asubdiag * dun_dm_v[:, i]
-                    )
+                if tInd != len(self.time_steps + 1):
+                    dun_dm_v[:, i] = Adiaginv * (JRHS - Asubdiag * dun_dm_v[:, i])
 
         Jv = []
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 Jv.append(
-                    rx.evalDeriv(src, self.mesh, self.time_mesh, f,   mkvc(
-                            df_dm_v[src, '%sDeriv' % rx.projField, :]
-                        )
+                    rx.evalDeriv(
+                        src,
+                        self.mesh,
+                        self.time_mesh,
+                        f,
+                        mkvc(df_dm_v[src, "%sDeriv" % rx.projField, :]),
                     )
                 )
         Adiaginv.clean()
@@ -237,7 +234,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             f = self.fields(m)
 
         self.model = m
-        ftype = self._fieldType + 'Solution'  # the thing we solved for
+        ftype = self._fieldType + "Solution"  # the thing we solved for
 
         # Ensure v is a data object.
         if not isinstance(v, Data):
@@ -249,9 +246,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         ATinv_df_duT_v = np.zeros(
             (
                 len(self.survey.source_list),
-                len(f[self.survey.source_list[0], ftype, 0])
+                len(f[self.survey.source_list[0], ftype, 0]),
             ),
-            dtype=float
+            dtype=float,
         )
         JTv = np.zeros(m.shape, dtype=float)
 
@@ -264,35 +261,34 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             # PT_v = Fields_Derivs(self.mesh) # initialize storage
             # #for PT_v (don't need to preserve over sources)
             # initialize size
-            df_duT_v[src, '{}Deriv'.format(self._fieldType), :] = (
-                np.zeros_like(f[src, self._fieldType, :])
+            df_duT_v[src, "{}Deriv".format(self._fieldType), :] = np.zeros_like(
+                f[src, self._fieldType, :]
             )
 
             for rx in src.receiver_list:
-                PT_v[src, '{}Deriv'.format(rx.projField), :] = rx.evalDeriv(
-                    src, self.mesh, self.time_mesh, f, mkvc(v[src, rx]),
-                    adjoint=True
-                ) # this is +=
+                PT_v[src, "{}Deriv".format(rx.projField), :] = rx.evalDeriv(
+                    src, self.mesh, self.time_mesh, f, mkvc(v[src, rx]), adjoint=True
+                )  # this is +=
 
                 # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.time_mesh.nN,
                 # self.time_mesh.nN), order='F')
-                df_duTFun = getattr(f, '_{}Deriv'.format(rx.projField), None)
+                df_duTFun = getattr(f, "_{}Deriv".format(rx.projField), None)
 
-                for tInd in range(self.nT+1):
+                for tInd in range(self.nT + 1):
                     cur = df_duTFun(
-                        tInd, src, None, mkvc(
-                            PT_v[src, '{}Deriv'.format(rx.projField), tInd]
-                        ),
-                        adjoint=True
+                        tInd,
+                        src,
+                        None,
+                        mkvc(PT_v[src, "{}Deriv".format(rx.projField), tInd]),
+                        adjoint=True,
                     )
 
-                    df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] = (
-                        df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] +
-                        mkvc(cur[0], 2)
-                    )
+                    df_duT_v[src, "{}Deriv".format(self._fieldType), tInd] = df_duT_v[
+                        src, "{}Deriv".format(self._fieldType), tInd
+                    ] + mkvc(cur[0], 2)
                     JTv = cur[1] + JTv
 
-        del PT_v # no longer need this
+        del PT_v  # no longer need this
 
         AdiagTinv = None
 
@@ -303,8 +299,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         for tInd in reversed(range(self.nT)):
             # tInd = tIndP - 1
             if AdiagTinv is not None and (
-                tInd <= self.nT and
-                self.time_steps[tInd] != self.time_steps[tInd+1]
+                tInd <= self.nT and self.time_steps[tInd] != self.time_steps[tInd + 1]
             ):
                 AdiagTinv.clean()
                 AdiagTinv = None
@@ -315,40 +310,38 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 AdiagTinv = self.Solver(Adiag.T, **self.solver_opts)
 
             if tInd < self.nT - 1:
-                Asubdiag = self.getAsubdiag(tInd+1)
+                Asubdiag = self.getAsubdiag(tInd + 1)
 
             for isrc, src in enumerate(self.survey.source_list):
 
                 # solve against df_duT_v
-                if tInd >= self.nT-1:
+                if tInd >= self.nT - 1:
                     # last timestep (first to be solved)
-                    ATinv_df_duT_v[isrc, :] = AdiagTinv * df_duT_v[
-                        src, '{}Deriv'.format(self._fieldType), tInd+1
-                    ]
+                    ATinv_df_duT_v[isrc, :] = (
+                        AdiagTinv
+                        * df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1]
+                    )
                 elif tInd > -1:
                     ATinv_df_duT_v[isrc, :] = AdiagTinv * (
-                        mkvc(df_duT_v[
-                            src, '{}Deriv'.format(self._fieldType), tInd+1
-                        ]) - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+                        mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
+                        - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
                     )
 
                 dAsubdiagT_dm_v = self.getAsubdiagDeriv(
-                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
-                    adjoint=True)
+                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :], adjoint=True
+                )
 
                 dRHST_dm_v = self.getRHSDeriv(
-                    tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                    tInd + 1, src, ATinv_df_duT_v[isrc, :], adjoint=True
                 )  # on nodes of time mesh
 
-                un_src = f[src, ftype, tInd+1]
+                un_src = f[src, ftype, tInd + 1]
                 # cell centered on time mesh
                 dAT_dm_v = self.getAdiagDeriv(
                     tInd, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
                 )
 
-                JTv = JTv +  mkvc(
-                    -dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v
-                )
+                JTv = JTv + mkvc(-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v)
 
         # Treat the initial condition
 
@@ -366,10 +359,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         Srcs = self.survey.source_list
 
-        if self._formulation == 'EB':
+        if self._formulation == "EB":
             s_m = np.zeros((self.mesh.nF, len(Srcs)))
             s_e = np.zeros((self.mesh.nE, len(Srcs)))
-        elif self._formulation == 'HJ':
+        elif self._formulation == "HJ":
             s_m = np.zeros((self.mesh.nE, len(Srcs)))
             s_e = np.zeros((self.mesh.nF, len(Srcs)))
 
@@ -387,44 +380,42 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         Srcs = self.survey.source_list
 
-        if self._fieldType in ['b', 'j']:
+        if self._fieldType in ["b", "j"]:
             ifields = np.zeros((self.mesh.nF, len(Srcs)))
-        elif self._fieldType in ['e', 'h']:
+        elif self._fieldType in ["e", "h"]:
             ifields = np.zeros((self.mesh.nE, len(Srcs)))
 
         if self.verbose:
             print("Calculating Initial fields")
 
         for i, src in enumerate(Srcs):
-            ifields[:, i] = (
-                ifields[:, i] + getattr(
-                    src, '{}Initial'.format(self._fieldType), None
-                )(self)
-            )
+            ifields[:, i] = ifields[:, i] + getattr(
+                src, "{}Initial".format(self._fieldType), None
+            )(self)
 
         return ifields
 
     def getInitialFieldsDeriv(self, src, v, adjoint=False, f=None):
 
         ifieldsDeriv = mkvc(
-            getattr(
-                src, '{}InitialDeriv'.format(self._fieldType), None
-            )(self, v, adjoint, f)
+            getattr(src, "{}InitialDeriv".format(self._fieldType), None)(
+                self, v, adjoint, f
+            )
         )
 
         # take care of any utils.zero cases
         if adjoint is False:
-            if self._fieldType in ['b', 'j']:
+            if self._fieldType in ["b", "j"]:
                 ifieldsDeriv += np.zeros(self.mesh.nF)
-            elif self._fieldType in ['e', 'h']:
+            elif self._fieldType in ["e", "h"]:
                 ifieldsDeriv += np.zeros(self.mesh.nE)
 
         elif adjoint is True:
-            if self._fieldType in ['b', 'j']:
+            if self._fieldType in ["b", "j"]:
                 ifieldsDeriv += np.zeros(self.mesh.nF)
-            elif self._fieldType in ['e', 'h']:
+            elif self._fieldType in ["e", "h"]:
                 ifieldsDeriv[0] += np.zeros(self.mesh.nE)
-            ifieldsDeriv[1] += np.zeros_like(self.model) # take care of a  Zero() case
+            ifieldsDeriv[1] += np.zeros_like(self.model)  # take care of a  Zero() case
 
         return ifieldsDeriv
 
@@ -432,12 +423,12 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     # initial condition
     @property
     def Adcinv(self):
-        if not hasattr(self, 'getAdc'):
+        if not hasattr(self, "getAdc"):
             raise NotImplementedError(
                 "Support for galvanic sources has not been implemented for "
                 "{}-formulation".format(self._fieldType)
             )
-        if getattr(self, '_Adcinv', None) is None:
+        if getattr(self, "_Adcinv", None) is None:
             if self.verbose:
                 print("Factoring the system matrix for the DC problem")
             Adc = self.getAdc()
@@ -452,6 +443,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 ###############################################################################
 
 # ------------------------------- Simulation3DMagneticFluxDensity ------------------------------- #
+
 
 class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
     """
@@ -517,8 +509,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
     """
 
-    _fieldType = 'b'
-    _formulation = 'EB'
+    _fieldType = "b"
+    _formulation = "EB"
     fieldsPair = Fields3DMagneticFluxDensity  #: A SimPEG.EM.TDEM.Fields3DMagneticFluxDensity object
     Fields_Derivs = FieldsDerivativesEB
 
@@ -539,7 +531,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         MfMui = self.MfMui
         I = speye(self.mesh.nF)
 
-        A = 1./dt * I + (C * (MeSigmaI * (C.T * MfMui)))
+        A = 1.0 / dt * I + (C * (MeSigmaI * (C.T * MfMui)))
 
         if self._makeASymmetric is True:
             return MfMui.T * A
@@ -561,7 +553,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
                 v = MfMui * v
             return self.MeSigmaIDeriv(C.T * (MfMui * u), C.T * v, adjoint)
 
-        ADeriv = (C * (self.MeSigmaIDeriv(C.T * (MfMui * u), v, adjoint)))
+        ADeriv = C * (self.MeSigmaIDeriv(C.T * (MfMui * u), v, adjoint))
 
         if self._makeASymmetric is True:
             return MfMui.T * ADeriv
@@ -574,7 +566,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         dt = self.time_steps[tInd]
         MfMui = self.MfMui
-        Asubdiag = - 1./dt * sp.eye(self.mesh.nF)
+        Asubdiag = -1.0 / dt * sp.eye(self.mesh.nF)
 
         if self._makeASymmetric is True:
             return MfMui.T * Asubdiag
@@ -594,7 +586,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         s_m, s_e = self.getSourceTerm(tInd)
 
-        rhs = (C * (MeSigmaI * s_e) + s_m)
+        rhs = C * (MeSigmaI * s_e) + s_m
         if self._makeASymmetric is True:
             return MfMui.T * rhs
         return rhs
@@ -610,33 +602,26 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         MfMui = self.MfMui
 
         _, s_e = src.eval(self, self.times[tInd])
-        s_mDeriv, s_eDeriv = src.evalDeriv(
-            self, self.times[tInd], adjoint=adjoint
-        )
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
 
         if adjoint:
             if self._makeASymmetric is True:
                 v = self.MfMui * v
-            if isinstance(s_e,  Zero):
-                MeSigmaIDerivT_v =  Zero()
+            if isinstance(s_e, Zero):
+                MeSigmaIDerivT_v = Zero()
             else:
                 MeSigmaIDerivT_v = self.MeSigmaIDeriv(s_e, C.T * v, adjoint)
 
-            RHSDeriv = (
-                MeSigmaIDerivT_v + s_eDeriv( MeSigmaI.T * (C.T * v)) +
-                s_mDeriv(v)
-            )
+            RHSDeriv = MeSigmaIDerivT_v + s_eDeriv(MeSigmaI.T * (C.T * v)) + s_mDeriv(v)
 
             return RHSDeriv
 
-        if isinstance(s_e,  Zero):
-            MeSigmaIDeriv_v =  Zero()
+        if isinstance(s_e, Zero):
+            MeSigmaIDeriv_v = Zero()
         else:
             MeSigmaIDeriv_v = self.MeSigmaIDeriv(s_e, v, adjoint)
 
-        RHSDeriv = (
-            C * MeSigmaIDeriv_v + C * MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
-        )
+        RHSDeriv = C * MeSigmaIDeriv_v + C * MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
 
         if self._makeASymmetric is True:
             return self.MfMui.T * RHSDeriv
@@ -680,8 +665,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
     """
 
-    _fieldType = 'e'
-    _formulation = 'EB'
+    _fieldType = "e"
+    _formulation = "EB"
     fieldsPair = Fields3DElectricField  #: A Fields3DElectricField
     Fields_Derivs = FieldsDerivativesEB
 
@@ -696,7 +681,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             f = self.fields(m)
 
         self.model = m
-        ftype = self._fieldType + 'Solution'  # the thing we solved for
+        ftype = self._fieldType + "Solution"  # the thing we solved for
 
         # Ensure v is a data object.
         if not isinstance(v, Data):
@@ -708,9 +693,9 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         ATinv_df_duT_v = np.zeros(
             (
                 len(self.survey.source_list),
-                len(f[self.survey.source_list[0], ftype, 0])
+                len(f[self.survey.source_list[0], ftype, 0]),
             ),
-            dtype=float
+            dtype=float,
         )
         JTv = np.zeros(m.shape, dtype=float)
 
@@ -723,33 +708,32 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             # PT_v = Fields_Derivs(self.mesh) # initialize storage
             # #for PT_v (don't need to preserve over sources)
             # initialize size
-            df_duT_v[src, '{}Deriv'.format(self._fieldType), :] = (
-                np.zeros_like(f[src, self._fieldType, :])
+            df_duT_v[src, "{}Deriv".format(self._fieldType), :] = np.zeros_like(
+                f[src, self._fieldType, :]
             )
 
             for rx in src.receiver_list:
-                PT_v[src, '{}Deriv'.format(rx.projField), :] = rx.evalDeriv(
-                    src, self.mesh, self.time_mesh, f, mkvc(v[src, rx]),
-                    adjoint=True
+                PT_v[src, "{}Deriv".format(rx.projField), :] = rx.evalDeriv(
+                    src, self.mesh, self.time_mesh, f, mkvc(v[src, rx]), adjoint=True
                 )
                 # this is +=
 
                 # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.time_mesh.nN,
                 # self.time_mesh.nN), order='F')
-                df_duTFun = getattr(f, '_{}Deriv'.format(rx.projField), None)
+                df_duTFun = getattr(f, "_{}Deriv".format(rx.projField), None)
 
-                for tInd in range(self.nT+1):
+                for tInd in range(self.nT + 1):
                     cur = df_duTFun(
-                        tInd, src, None, mkvc(
-                            PT_v[src, '{}Deriv'.format(rx.projField), tInd]
-                        ),
-                        adjoint=True
+                        tInd,
+                        src,
+                        None,
+                        mkvc(PT_v[src, "{}Deriv".format(rx.projField), tInd]),
+                        adjoint=True,
                     )
 
-                    df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd] = (
-                        df_duT_v[src, '{}Deriv'.format(self._fieldType), tInd]
-                        + mkvc(cur[0], 2)
-                        )
+                    df_duT_v[src, "{}Deriv".format(self._fieldType), tInd] = df_duT_v[
+                        src, "{}Deriv".format(self._fieldType), tInd
+                    ] + mkvc(cur[0], 2)
                     JTv = cur[1] + JTv
 
         # no longer need this
@@ -764,8 +748,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         for tInd in reversed(range(self.nT)):
             # tInd = tIndP - 1
             if AdiagTinv is not None and (
-                tInd <= self.nT and
-                self.time_steps[tInd] != self.time_steps[tInd+1]
+                tInd <= self.nT and self.time_steps[tInd] != self.time_steps[tInd + 1]
             ):
                 AdiagTinv.clean()
                 AdiagTinv = None
@@ -776,39 +759,38 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                 AdiagTinv = self.Solver(Adiag.T, **self.solver_opts)
 
             if tInd < self.nT - 1:
-                Asubdiag = self.getAsubdiag(tInd+1)
+                Asubdiag = self.getAsubdiag(tInd + 1)
 
             for isrc, src in enumerate(self.survey.source_list):
 
                 # solve against df_duT_v
-                if tInd >= self.nT-1:
+                if tInd >= self.nT - 1:
                     # last timestep (first to be solved)
-                    ATinv_df_duT_v[isrc, :] = AdiagTinv * df_duT_v[
-                        src, '{}Deriv'.format(self._fieldType), tInd+1]
+                    ATinv_df_duT_v[isrc, :] = (
+                        AdiagTinv
+                        * df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1]
+                    )
                 elif tInd > -1:
                     ATinv_df_duT_v[isrc, :] = AdiagTinv * (
-                        mkvc(df_duT_v[
-                            src, '{}Deriv'.format(self._fieldType), tInd+1
-                        ]
-                        ) - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :]))
+                        mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
+                        - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+                    )
 
                 dAsubdiagT_dm_v = self.getAsubdiagDeriv(
-                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :],
-                    adjoint=True)
+                    tInd, f[src, ftype, tInd], ATinv_df_duT_v[isrc, :], adjoint=True
+                )
 
                 dRHST_dm_v = self.getRHSDeriv(
-                        tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
-                        )  # on nodes of time mesh
+                    tInd + 1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                )  # on nodes of time mesh
 
-                un_src = f[src, ftype, tInd+1]
+                un_src = f[src, ftype, tInd + 1]
                 # cell centered on time mesh
                 dAT_dm_v = self.getAdiagDeriv(
                     tInd, un_src, ATinv_df_duT_v[isrc, :], adjoint=True
                 )
 
-                JTv = JTv +  mkvc(
-                    -dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v
-                )
+                JTv = JTv + mkvc(-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v)
 
         # Treating initial condition when a galvanic source is included
         tInd = -1
@@ -817,28 +799,32 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         for isrc, src in enumerate(self.survey.source_list):
             if src.srcType == "galvanic":
 
-                ATinv_df_duT_v[isrc, :] = Grad*(self.Adcinv*(Grad.T*(
-                    mkvc(df_duT_v[
-                        src, '{}Deriv'.format(self._fieldType), tInd+1
-                    ]
-                    ) - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :]))
-                ))
-
-                dRHST_dm_v = self.getRHSDeriv(
-                        tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
-                        )  # on nodes of time mesh
-
-                un_src = f[src, ftype, tInd+1]
-                # cell centered on time mesh
-                dAT_dm_v = (
-                    self.MeSigmaDeriv(
-                        un_src, ATinv_df_duT_v[isrc, :], adjoint=True
+                ATinv_df_duT_v[isrc, :] = Grad * (
+                    self.Adcinv
+                    * (
+                        Grad.T
+                        * (
+                            mkvc(
+                                df_duT_v[
+                                    src, "{}Deriv".format(self._fieldType), tInd + 1
+                                ]
+                            )
+                            - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+                        )
                     )
                 )
 
-                JTv = JTv +  mkvc(
-                    -dAT_dm_v + dRHST_dm_v
+                dRHST_dm_v = self.getRHSDeriv(
+                    tInd + 1, src, ATinv_df_duT_v[isrc, :], adjoint=True
+                )  # on nodes of time mesh
+
+                un_src = f[src, ftype, tInd + 1]
+                # cell centered on time mesh
+                dAT_dm_v = self.MeSigmaDeriv(
+                    un_src, ATinv_df_duT_v[isrc, :], adjoint=True
                 )
+
+                JTv = JTv + mkvc(-dAT_dm_v + dRHST_dm_v)
 
         # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
         if AdiagTinv is not None:
@@ -857,7 +843,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         MfMui = self.MfMui
         MeSigma = self.MeSigma
 
-        return C.T * (MfMui * C) + 1./dt * MeSigma
+        return C.T * (MfMui * C) + 1.0 / dt * MeSigma
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         """
@@ -869,9 +855,9 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         # MeSigmaDeriv = self.MeSigmaDeriv(u)
 
         if adjoint:
-            return 1./dt * self.MeSigmaDeriv(u, v, adjoint)
+            return 1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
 
-        return 1./dt * self.MeSigmaDeriv(u, v, adjoint)
+        return 1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
 
     def getAsubdiag(self, tInd):
         """
@@ -881,7 +867,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
         dt = self.time_steps[tInd]
 
-        return - 1./dt * self.MeSigma
+        return -1.0 / dt * self.MeSigma
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
         """
@@ -891,9 +877,9 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         dt = self.time_steps[tInd]
 
         if adjoint:
-            return - 1./dt * self.MeSigmaDeriv(u, v, adjoint)
+            return -1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
 
-        return - 1./dt * self.MeSigmaDeriv(u, v, adjoint)
+        return -1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
 
     def getRHS(self, tInd):
         """
@@ -903,13 +889,11 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         # if tInd == len(self.time_steps):
         #     tInd = tInd - 1
 
-        dt = self.time_steps[tInd-1]
+        dt = self.time_steps[tInd - 1]
         s_m, s_e = self.getSourceTerm(tInd)
-        _, s_en1 = self.getSourceTerm(tInd-1)
+        _, s_en1 = self.getSourceTerm(tInd - 1)
 
-        return (
-            -1./dt * (s_e - s_en1) + self.mesh.edgeCurl.T * self.MfMui * s_m
-        )
+        return -1.0 / dt * (s_e - s_en1) + self.mesh.edgeCurl.T * self.MfMui * s_m
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         # right now, we are assuming that s_e, s_m do not depend on the model.
@@ -920,15 +904,15 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         Grad = self.mesh.nodalGrad
         Adc = Grad.T * MeSigma * Grad
         # Handling Null space of A
-        Adc[0, 0] = Adc[0, 0] + 1.
+        Adc[0, 0] = Adc[0, 0] + 1.0
         return Adc
 
     def getAdcDeriv(self, u, v, adjoint=False):
         Grad = self.mesh.nodalGrad
         if not adjoint:
-            return Grad.T*self.MeSigmaDeriv(-u, v, adjoint)
+            return Grad.T * self.MeSigmaDeriv(-u, v, adjoint)
         elif adjoint:
-            return self.MeSigmaDeriv(-u, Grad*v, adjoint)
+            return self.MeSigmaDeriv(-u, Grad * v, adjoint)
         return Adc
 
     # def clean(self):
@@ -946,6 +930,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 ###############################################################################
 
 # ------------------------------- Simulation3DMagneticField ------------------------------- #
+
 
 class Simulation3DMagneticField(BaseTDEMSimulation):
     """
@@ -976,8 +961,8 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
     """
 
-    _fieldType = 'h'
-    _formulation = 'HJ'
+    _fieldType = "h"
+    _formulation = "HJ"
     fieldsPair = Fields3DMagneticField  #: Fields object pair
     Fields_Derivs = FieldsDerivativesHJ
 
@@ -993,7 +978,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         MfRho = self.MfRho
         MeMu = self.MeMu
 
-        return C.T * ( MfRho * C ) + 1./dt * MeMu
+        return C.T * (MfRho * C) + 1.0 / dt * MeMu
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         assert tInd >= 0 and tInd < self.nT
@@ -1002,7 +987,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         C = self.mesh.edgeCurl
 
         if adjoint:
-            return  self.MfRhoDeriv(C * u, C * v, adjoint)
+            return self.MfRhoDeriv(C * u, C * v, adjoint)
 
         return C.T * self.MfRhoDeriv(C * u, v, adjoint)
 
@@ -1011,7 +996,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
         dt = self.time_steps[tInd]
 
-        return - 1./dt * self.MeMu
+        return -1.0 / dt * self.MeMu
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
         return Zero()
@@ -1052,7 +1037,9 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
             return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
         return D * self.MfRhoIDeriv(G * u, v)
 
+
 # ------------------------------- Simulation3DCurrentDensity ------------------------------- #
+
 
 class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
@@ -1064,8 +1051,8 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
     """
 
-    _fieldType = 'j'
-    _formulation = 'HJ'
+    _fieldType = "j"
+    _formulation = "HJ"
     fieldsPair = Fields3DCurrentDensity  #: Fields object pair
     Fields_Derivs = FieldsDerivativesHJ
 
@@ -1082,7 +1069,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         MeMuI = self.MeMuI
         eye = sp.eye(self.mesh.nF)
 
-        A = C * (MeMuI * (C.T * MfRho)) + 1./dt * eye
+        A = C * (MeMuI * (C.T * MfRho)) + 1.0 / dt * eye
 
         if self._makeASymmetric:
             return MfRho.T * A
@@ -1114,8 +1101,8 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         dt = self.time_steps[tInd]
 
         if self._makeASymmetric:
-            return -1./dt * self.MfRho.T
-        return -1./dt * eye
+            return -1.0 / dt * self.MfRho.T
+        return -1.0 / dt * eye
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
         return Zero()
@@ -1129,9 +1116,9 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         MeMuI = self.MeMuI
         dt = self.time_steps[tInd]
         s_m, s_e = self.getSourceTerm(tInd)
-        _, s_en1 = self.getSourceTerm(tInd-1)
+        _, s_en1 = self.getSourceTerm(tInd - 1)
 
-        rhs = -1./dt * (s_e - s_en1) + C * MeMuI * s_m
+        rhs = -1.0 / dt * (s_e - s_en1) + C * MeMuI * s_m
         if self._makeASymmetric:
             return self.MfRho.T * rhs
         return rhs
@@ -1160,21 +1147,22 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 # Deprecated
 ############
 
-@deprecate_class(removal_version='0.15.0')
+
+@deprecate_class(removal_version="0.15.0")
 class Problem3D_e(Simulation3DElectricField):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Problem3D_b(Simulation3DMagneticFluxDensity):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Problem3D_h(Simulation3DMagneticField):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Problem3D_j(Simulation3DCurrentDensity):
     pass

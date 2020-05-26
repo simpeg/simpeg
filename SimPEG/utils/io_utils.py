@@ -4,6 +4,7 @@ import time as tm
 import re
 import warnings
 
+
 def read_GOCAD_ts(tsfile):
     """
 
@@ -30,19 +31,19 @@ def read_GOCAD_ts(tsfile):
     import vtk
     import vtk.util.numpy_support as npsup
 
-    fid = open(tsfile, 'r')
+    fid = open(tsfile, "r")
     line = fid.readline()
 
     # Skip all the lines until the vertices
-    while re.match('TFACE', line) == None:
+    while re.match("TFACE", line) == None:
         line = fid.readline()
 
     line = fid.readline()
     vrtx = []
 
     # Run down all the vertices and save in array
-    while re.match('VRTX', line):
-        l_input = re.split('[\s*]', line)
+    while re.match("VRTX", line):
+        l_input = re.split("[\s*]", line)
         temp = np.array(l_input[2:5])
         vrtx.append(temp.astype(np.float))
 
@@ -52,15 +53,15 @@ def read_GOCAD_ts(tsfile):
     vrtx = np.asarray(vrtx)
 
     # Skip lines to the triangles
-    while re.match('TRGL', line) == None:
+    while re.match("TRGL", line) == None:
         line = fid.readline()
 
     # Run down the list of triangles
     trgl = []
 
     # Run down all the vertices and save in array
-    while re.match('TRGL', line):
-        l_input = re.split('[\s*]', line)
+    while re.match("TRGL", line):
+        l_input = re.split("[\s*]", line)
         temp = np.array(l_input[1:4])
         trgl.append(temp.astype(np.int))
 
@@ -114,7 +115,7 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     vtkMesh.SetZCoordinates(npsup.numpy_to_vtk(mesh.vectorNz, deep=1))
     # Add indexes
     vtkInd = npsup.numpy_to_vtk(np.arange(mesh.nC), deep=1)
-    vtkInd.SetName('Index')
+    vtkInd.SetName("Index")
     vtkMesh.GetCellData().AddArray(vtkInd)
 
     extractImpDistRectGridFilt = vtk.vtkExtractGeometry()  # Object constructor
@@ -139,15 +140,13 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
 
     # Get index inside
     insideGrid = extractImpDistRectGridFilt.GetOutput()
-    insideGrid = npsup.vtk_to_numpy(insideGrid.GetCellData().GetArray('Index'))
+    insideGrid = npsup.vtk_to_numpy(insideGrid.GetCellData().GetArray("Index"))
 
     # Return the indexes inside
     return insideGrid
 
 
-def download(
-    url, folder='.', overwrite=False, verbose=True
-):
+def download(url, folder=".", overwrite=False, verbose=True):
     """
     Function to download all files stored in a cloud directory
 
@@ -167,11 +166,11 @@ def download(
 
         # grab just the filename
         fname = splitfullpath[-1]
-        fnamesplit = fname.split('.')
+        fnamesplit = fname.split(".")
         newname = fnamesplit[0]
 
         # check if we have already re-numbered
-        newnamesplit = newname.split('(')
+        newnamesplit = newname.split("(")
 
         # add (num) to the end of the filename
         if len(newnamesplit) == 1:
@@ -180,10 +179,8 @@ def download(
             num = int(newnamesplit[-1][:-1])
             num += 1
 
-        newname = '{}({}).{}'.format(newnamesplit[0], num, fnamesplit[-1])
-        return os.path.sep.join(
-            splitfullpath[:-1] + newnamesplit[:-1] + [newname]
-        )
+        newname = "{}({}).{}".format(newnamesplit[0], num, fnamesplit[-1])
+        return os.path.sep.join(splitfullpath[:-1] + newnamesplit[:-1] + [newname])
 
     # grab the correct url retriever
     if sys.version_info < (3,):
@@ -199,9 +196,9 @@ def download(
         os.makedirs(folder)
 
     if isinstance(url, str):
-        filenames = [url.split('/')[-1]]
+        filenames = [url.split("/")[-1]]
     elif isinstance(url, list):
-        filenames = [u.split('/')[-1] for u in url]
+        filenames = [u.split("/")[-1] for u in url]
 
     downloadpath = [os.path.sep.join([folder, f]) for f in filenames]
 
@@ -216,11 +213,7 @@ def download(
                     download = rename_path(download)
 
                 if verbose is True:
-                    print(
-                        "file already exists, new file is called {}".format(
-                            download
-                        )
-                    )
+                    print("file already exists, new file is called {}".format(download))
                 downloadpath[i] = download
 
     # download files
@@ -247,7 +240,8 @@ def readUBCmagneticsObservations(obs_file):
     """
     from SimPEG.potential_fields import magnetics
     from SimPEG import data
-    fid = open(obs_file, 'r')
+
+    fid = open(obs_file, "r")
 
     # First line has the inclination,declination and amplitude of B0
     line = fid.readline()
@@ -321,12 +315,13 @@ def writeUBCmagneticsObservations(filename, data_object):
     wd = data_object.standard_deviation
 
     data = np.c_[rxLoc, d, wd]
-    head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0]) +
-            '%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1) +
-            '%i\n' % len(d))
+    head = (
+        "%6.2f %6.2f %6.2f\n" % (B[1], B[2], B[0])
+        + "%6.2f %6.2f %6.2f\n" % (B[1], B[2], 1)
+        + "%i\n" % len(d)
+    )
     np.savetxt(
-        filename, data, fmt='%e', delimiter=' ',
-        newline='\n', header=head, comments=''
+        filename, data, fmt="%e", delimiter=" ", newline="\n", header=head, comments=""
     )
 
     print("Observation file saved to: " + filename)
@@ -345,7 +340,8 @@ def readUBCgravityObservations(obs_file):
     """
     from SimPEG.potential_fields import gravity
     from SimPEG import data
-    fid = open(obs_file, 'r')
+
+    fid = open(obs_file, "r")
 
     # First line has the number of rows
     line = fid.readline()
@@ -394,10 +390,9 @@ def writeUBCgravityObservations(filename, data_object):
     wd = data_object.standard_deviation
 
     data = np.c_[rxLoc, d, wd]
-    head = ('%i\n' % len(d))
+    head = "%i\n" % len(d)
     np.savetxt(
-        filename, data, fmt='%e', delimiter=' ',
-        newline='\n', header=head, comments=''
+        filename, data, fmt="%e", delimiter=" ", newline="\n", header=head, comments=""
     )
 
     print("Observation file saved to: " + filename)

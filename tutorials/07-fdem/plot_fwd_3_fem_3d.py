@@ -77,16 +77,12 @@ frequencies = [100, 500, 2500]
 
 # Defining transmitter locations
 N = 9
-xtx, ytx, ztx = np.meshgrid(
-    np.linspace(-200, 200, N), np.linspace(-200,200, N), [40]
-)
+xtx, ytx, ztx = np.meshgrid(np.linspace(-200, 200, N), np.linspace(-200, 200, N), [40])
 source_locations = np.c_[mkvc(xtx), mkvc(ytx), mkvc(ztx)]
 ntx = np.size(xtx)
 
 # Define receiver locations
-xrx, yrx, zrx = np.meshgrid(
-    np.linspace(-200, 200, N), np.linspace(-200,200, N), [20]
-)
+xrx, yrx, zrx = np.meshgrid(np.linspace(-200, 200, N), np.linspace(-200, 200, N), [20])
 receiver_locations = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 
 source_list = []  # Create empty list to store sources
@@ -97,18 +93,21 @@ for ii in range(len(frequencies)):
 
         # Define receivers of different type at each location
         bzr_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
-            receiver_locations[jj, :], 'z', 'real'
+            receiver_locations[jj, :], "z", "real"
         )
         bzi_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
-            receiver_locations[jj, :], 'z', 'imag'
+            receiver_locations[jj, :], "z", "imag"
         )
         receivers_list = [bzr_receiver, bzi_receiver]
 
         # Must define the transmitter properties and associated receivers
         source_list.append(
             fdem.sources.MagDipole(
-                receivers_list, frequencies[ii], source_locations[jj],
-                orientation='z', moment=100
+                receivers_list,
+                frequencies[ii],
+                source_locations[jj],
+                orientation="z",
+                moment=100,
             )
         )
 
@@ -128,30 +127,28 @@ survey = fdem.Survey(source_list)
 #
 #
 
-dh = 25.                                                     # base cell width
-dom_width = 3000.                                            # domain width
-nbc = 2**int(np.round(np.log(dom_width/dh)/np.log(2.)))      # num. base cells
+dh = 25.0  # base cell width
+dom_width = 3000.0  # domain width
+nbc = 2 ** int(np.round(np.log(dom_width / dh) / np.log(2.0)))  # num. base cells
 
 # Define the base mesh
 h = [(dh, nbc)]
-mesh = TreeMesh([h, h, h], x0='CCC')
+mesh = TreeMesh([h, h, h], x0="CCC")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz, octree_levels=[0, 0, 0, 1], method='surface', finalize=False
+    mesh, topo_xyz, octree_levels=[0, 0, 0, 1], method="surface", finalize=False
 )
 
 # Mesh refinement near transmitters and receivers
 mesh = refine_tree_xyz(
-    mesh, receiver_locations, octree_levels=[2, 4], method='radial', finalize=False
+    mesh, receiver_locations, octree_levels=[2, 4], method="radial", finalize=False
 )
 
 # Refine core mesh region
-xp, yp, zp = np.meshgrid([-250., 250.], [-250., 250.], [-300., 0.])
+xp, yp, zp = np.meshgrid([-250.0, 250.0], [-250.0, 250.0], [-300.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-mesh = refine_tree_xyz(
-    mesh, xyz, octree_levels=[0, 2, 4], method='box', finalize=False
-)
+mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 4], method="box", finalize=False)
 
 mesh.finalize()
 
@@ -177,16 +174,19 @@ ind_active = surface2ind_topo(mesh, topo_xyz)
 model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
 # Define model. Models in SimPEG are vector arrays
-model = background_conductivity*np.ones(ind_active.sum())
+model = background_conductivity * np.ones(ind_active.sum())
 ind_block = (
-    (mesh.gridCC[ind_active, 0] < 100.) & (mesh.gridCC[ind_active, 0] > -100.) &
-    (mesh.gridCC[ind_active, 1] < 100.) & (mesh.gridCC[ind_active, 1] > -100.) &
-    (mesh.gridCC[ind_active, 2] > -275.) & (mesh.gridCC[ind_active, 2] < -75.)
+    (mesh.gridCC[ind_active, 0] < 100.0)
+    & (mesh.gridCC[ind_active, 0] > -100.0)
+    & (mesh.gridCC[ind_active, 1] < 100.0)
+    & (mesh.gridCC[ind_active, 1] > -100.0)
+    & (mesh.gridCC[ind_active, 2] > -275.0)
+    & (mesh.gridCC[ind_active, 2] < -75.0)
 )
 model[ind_block] = block_conductivity
 
 # Plot Resistivity Model
-mpl.rcParams.update({'font.size': 12})
+mpl.rcParams.update({"font.size": 12})
 fig = plt.figure(figsize=(7, 6))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
@@ -194,19 +194,23 @@ log_model = np.log10(model)
 
 ax1 = fig.add_axes([0.13, 0.1, 0.6, 0.85])
 mesh.plotSlice(
-    plotting_map*log_model, normal='Y', ax=ax1, ind=int(mesh.hx.size/2),
-    grid=True, clim=(np.log10(background_conductivity), np.log10(block_conductivity))
+    plotting_map * log_model,
+    normal="Y",
+    ax=ax1,
+    ind=int(mesh.hx.size / 2),
+    grid=True,
+    clim=(np.log10(background_conductivity), np.log10(block_conductivity)),
 )
-ax1.set_title('Conductivity Model at Y = 0 m')
+ax1.set_title("Conductivity Model at Y = 0 m")
 
 ax2 = fig.add_axes([0.75, 0.1, 0.05, 0.85])
-norm = mpl.colors.Normalize(vmin=np.log10(background_conductivity), vmax=np.log10(block_conductivity))
+norm = mpl.colors.Normalize(
+    vmin=np.log10(background_conductivity), vmax=np.log10(block_conductivity)
+)
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
+    ax2, norm=norm, orientation="vertical", format="$10^{%.1f}$"
 )
-cbar.set_label(
-    'Conductivity [S/m]', rotation=270, labelpad=15, size=12
-)
+cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 
 
 ######################################################
@@ -237,8 +241,8 @@ dpred = simulation.dpred(model)
 # Data are organized by frequency, transmitter location, then by receiver. We nFreq transmitters
 # and each transmitter had 2 receivers (real and imaginary component). So
 # first we will pick out the real and imaginary data
-bz_real = dpred[0:len(dpred):2]
-bz_imag = dpred[1:len(dpred):2]
+bz_real = dpred[0 : len(dpred) : 2]
+bz_imag = dpred[1 : len(dpred) : 2]
 
 # Then we will will reshape the data for plotting.
 bz_real_plotting = np.reshape(bz_real, (len(frequencies), ntx))
@@ -251,33 +255,41 @@ frequencies_index = 0
 v_max = np.max(np.abs(bz_real_plotting[frequencies_index, :]))
 ax1 = fig.add_axes([0.05, 0.05, 0.35, 0.9])
 plot2Ddata(
-    receiver_locations[:, 0:2], bz_real_plotting[frequencies_index, :], ax=ax1,
-    ncontour=30, clim=(-v_max, v_max), contourOpts={"cmap": "bwr"}
+    receiver_locations[:, 0:2],
+    bz_real_plotting[frequencies_index, :],
+    ax=ax1,
+    ncontour=30,
+    clim=(-v_max, v_max),
+    contourOpts={"cmap": "bwr"},
 )
-ax1.set_title('Re[$B_z$] at 100 Hz')
+ax1.set_title("Re[$B_z$] at 100 Hz")
 
 ax2 = fig.add_axes([0.41, 0.05, 0.02, 0.9])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.bwr
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.bwr
 )
-cbar.set_label('$T$', rotation=270, labelpad=15, size=12)
+cbar.set_label("$T$", rotation=270, labelpad=15, size=12)
 
 # Imaginary Component
 v_max = np.max(np.abs(bz_imag_plotting[frequencies_index, :]))
 ax1 = fig.add_axes([0.55, 0.05, 0.35, 0.9])
 plot2Ddata(
-    receiver_locations[:, 0:2], bz_imag_plotting[frequencies_index, :],
-    ax=ax1, ncontour=30, clim=(-v_max, v_max), contourOpts={"cmap": "bwr"}
+    receiver_locations[:, 0:2],
+    bz_imag_plotting[frequencies_index, :],
+    ax=ax1,
+    ncontour=30,
+    clim=(-v_max, v_max),
+    contourOpts={"cmap": "bwr"},
 )
-ax1.set_title('Im[$B_z$] at 100 Hz')
+ax1.set_title("Im[$B_z$] at 100 Hz")
 
 ax2 = fig.add_axes([0.91, 0.05, 0.02, 0.9])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.bwr
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.bwr
 )
-cbar.set_label('$T$', rotation=270, labelpad=15, size=12)
+cbar.set_label("$T$", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -293,25 +305,25 @@ plt.show()
 if save_file:
 
     dir_path = os.path.dirname(fdem.__file__).split(os.path.sep)[:-3]
-    dir_path.extend(['tutorials', 'assets', 'fdem'])
+    dir_path.extend(["tutorials", "assets", "fdem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
     # Write topography
-    fname = dir_path + 'fdem_topo.txt'
-    np.savetxt(fname, np.c_[topo_xyz], fmt='%.4e')
+    fname = dir_path + "fdem_topo.txt"
+    np.savetxt(fname, np.c_[topo_xyz], fmt="%.4e")
 
     # Write data with 2% noise added
-    fname = dir_path + 'fdem_data.obs'
-    bz_real = bz_real + 1e-14*np.random.rand(len(bz_real))
-    bz_imag = bz_imag + 1e-14*np.random.rand(len(bz_imag))
+    fname = dir_path + "fdem_data.obs"
+    bz_real = bz_real + 1e-14 * np.random.rand(len(bz_real))
+    bz_imag = bz_imag + 1e-14 * np.random.rand(len(bz_imag))
     f_vec = np.kron(frequencies, np.ones(ntx))
     receiver_locations = np.kron(np.ones((len(frequencies), 1)), receiver_locations)
 
-    np.savetxt(fname, np.c_[f_vec, receiver_locations, bz_real, bz_imag], fmt='%.4e')
+    np.savetxt(fname, np.c_[f_vec, receiver_locations, bz_real, bz_imag], fmt="%.4e")
 
     # Plot true model
-    output_model = plotting_map*model
+    output_model = plotting_map * model
     output_model[np.isnan(output_model)] = 1e-8
 
-    fname = dir_path + 'true_model.txt'
-    np.savetxt(fname, output_model, fmt='%.4e')
+    fname = dir_path + "true_model.txt"
+    np.savetxt(fname, output_model, fmt="%.4e")

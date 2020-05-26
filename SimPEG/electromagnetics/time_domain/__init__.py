@@ -1,8 +1,14 @@
 from .simulation import (
-    Simulation3DMagneticFluxDensity, Simulation3DElectricField, Simulation3DMagneticField, Simulation3DCurrentDensity
+    Simulation3DMagneticFluxDensity,
+    Simulation3DElectricField,
+    Simulation3DMagneticField,
+    Simulation3DCurrentDensity,
 )
 from .fields import (
-    Fields3DMagneticFluxDensity, Fields3DElectricField, Fields3DMagneticField, Fields3DCurrentDensity
+    Fields3DMagneticFluxDensity,
+    Fields3DElectricField,
+    Fields3DMagneticField,
+    Fields3DCurrentDensity,
 )
 from .survey import Survey
 from . import sources

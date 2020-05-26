@@ -27,7 +27,7 @@ class BaseSrc(survey.BaseSrc):
     @property
     def vnD(self):
         """Vector number of data"""
-        return np.array([rx.nD*len(rx.times) for rx in self.receiver_list])
+        return np.array([rx.nD * len(rx.times) for rx in self.receiver_list])
 
 
 class Dipole(BaseSrc):
@@ -37,30 +37,31 @@ class Dipole(BaseSrc):
 
     location = properties.List(
         "location of the source electrodes",
-        survey.SourceLocationArray("location of electrode")
+        survey.SourceLocationArray("location of electrode"),
     )
-    loc = deprecate_property(location, 'loc', new_name='location', removal_version='0.15.0')
+    loc = deprecate_property(
+        location, "loc", new_name="location", removal_version="0.15.0"
+    )
 
     def __init__(self, receiver_list, locationA, locationB, **kwargs):
         if locationA.shape != locationB.shape:
-            raise Exception('Shape of locationA and locationB should be the same')
+            raise Exception("Shape of locationA and locationB should be the same")
         super(Dipole, self).__init__(receiver_list, **kwargs)
         self.location = [locationA, locationB]
 
-
     def eval(self, simulation):
-        if simulation._formulation == 'HJ':
-            inds = closestPoints(simulation.mesh, self.location, gridLoc='CC')
+        if simulation._formulation == "HJ":
+            inds = closestPoints(simulation.mesh, self.location, gridLoc="CC")
             q = np.zeros(simulation.mesh.nC)
-            q[inds] = self.current * np.r_[1., -1.]
-        elif simulation._formulation == 'EB':
+            q[inds] = self.current * np.r_[1.0, -1.0]
+        elif simulation._formulation == "EB":
             qa = simulation.mesh.getInterpolationMat(
-                    self.location[0], locType='N'
-                ).todense()
-            qb = -simulation.mesh.getInterpolationMat(
-                self.location[1], locType='N'
+                self.location[0], locType="N"
             ).todense()
-            q = self.current * mkvc(qa+qb)
+            qb = -simulation.mesh.getInterpolationMat(
+                self.location[1], locType="N"
+            ).todense()
+            q = self.current * mkvc(qa + qb)
         return q
 
 
@@ -73,11 +74,13 @@ class Pole(BaseSrc):
         super(Pole, self).__init__(receiver_list, location=location, **kwargs)
 
     def eval(self, simulation):
-        if simulation._formulation == 'HJ':
+        if simulation._formulation == "HJ":
             inds = closestPoints(simulation.mesh, self.location)
             q = np.zeros(simulation.mesh.nC)
-            q[inds] = self.current * np.r_[1.]
-        elif simulation._formulation == 'EB':
-            q = simulation.mesh.getInterpolationMat(self.location, locType='N').todense()
+            q[inds] = self.current * np.r_[1.0]
+        elif simulation._formulation == "EB":
+            q = simulation.mesh.getInterpolationMat(
+                self.location, locType="N"
+            ).todense()
             q = self.current * mkvc(q)
         return q

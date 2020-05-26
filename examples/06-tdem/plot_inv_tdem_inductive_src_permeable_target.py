@@ -44,8 +44,8 @@ radius_loop = 100  # radius of the transmitter loop
 #
 # Next, we create a cylindrically symmteric tensor mesh
 
-csx = 5.  # core cell size in the x-direction
-csz = 5.  # core cell size in the z-direction
+csx = 5.0  # core cell size in the x-direction
+csz = 5.0  # core cell size in the z-direction
 domainx = 100  # use a uniform cell size out to a radius of 100m
 
 # padding parameters
@@ -53,17 +53,19 @@ npadx, npadz = 15, 15  # number of padding cells
 pfx = 1.4  # expansion factor for the padding to infinity in the x-direction
 pfz = 1.4  # expansion factor for the padding to infinity in the z-direction
 
-ncz = int(target_l/csz)  # number of z cells in the core region
+ncz = int(target_l / csz)  # number of z cells in the core region
 
 # create the cyl mesh
-mesh = discretize.CylMesh([
-    [(csx, int(domainx/csx)), (csx, npadx, pfx)],
-    1,
-    [(csz, npadz, -pfz), (csz, ncz), (csz, npadz, pfz)]
-])
+mesh = discretize.CylMesh(
+    [
+        [(csx, int(domainx / csx)), (csx, npadx, pfx)],
+        1,
+        [(csz, npadz, -pfz), (csz, ncz), (csz, npadz, pfz)],
+    ]
+)
 
 # put the origin at the top of the target
-mesh.x0 = [0, 0, -mesh.hz[:npadz + ncz].sum()]
+mesh.x0 = [0, 0, -mesh.hz[: npadz + ncz].sum()]
 
 # plot the mesh
 mesh.plotGrid()
@@ -87,18 +89,22 @@ sigma = np.ones(mesh.nC) * sigma_back
 # Plot the models
 
 xlim = np.r_[-200, 200]  # x-limits in meters
-zlim = np.r_[-1.5*target_l, 10.]  # z-limits in meters. (z-positive up)
+zlim = np.r_[-1.5 * target_l, 10.0]  # z-limits in meters. (z-positive up)
 
 fig, ax = plt.subplots(1, 1, figsize=(6, 5))
 
 # plot the permeability
-plt.colorbar(mesh.plotImage(
-    mur_model, ax=ax,
-    pcolorOpts={'norm': LogNorm()},  # plot on a log-scale
-    mirror=True
-)[0], ax=ax)
-ax.plot(np.r_[radius_loop], np.r_[0.], 'wo', markersize=8)
-ax.plot(np.r_[-radius_loop], np.r_[0.], 'wx', markersize=8)
+plt.colorbar(
+    mesh.plotImage(
+        mur_model,
+        ax=ax,
+        pcolorOpts={"norm": LogNorm()},  # plot on a log-scale
+        mirror=True,
+    )[0],
+    ax=ax,
+)
+ax.plot(np.r_[radius_loop], np.r_[0.0], "wo", markersize=8)
+ax.plot(np.r_[-radius_loop], np.r_[0.0], "wx", markersize=8)
 
 ax.set_title("Relative permeability", fontsize=13)
 ax.set_xlim(xlim)
@@ -113,15 +119,23 @@ ax.set_ylim(zlim)
 # define a quarter-sine ramp-on waveform as our transmitter waveform
 
 ramp = [
-    (1e-5, 20), (1e-4, 20), (3e-4, 20), (1e-3, 20), (3e-3, 20), (1e-2, 20),
-    (3e-2, 20), (1e-1, 20), (3e-1, 20), (1,  50)
+    (1e-5, 20),
+    (1e-4, 20),
+    (3e-4, 20),
+    (1e-3, 20),
+    (3e-3, 20),
+    (1e-2, 20),
+    (3e-2, 20),
+    (1e-1, 20),
+    (3e-1, 20),
+    (1, 50),
 ]
 time_mesh = discretize.TensorMesh([ramp])
 
 # define an off time past when we will simulate to keep the transmitter on
 offTime = 100
 quarter_sine = TDEM.Src.QuarterSineRampOnWaveform(
-    ramp_on=np.r_[0., 3], ramp_off= offTime - np.r_[1., 0]
+    ramp_on=np.r_[0.0, 3], ramp_off=offTime - np.r_[1.0, 0]
 )
 
 # evaluate the waveform at each time in the simulation
@@ -129,8 +143,8 @@ quarter_sine_plt = [quarter_sine.eval(t) for t in time_mesh.gridN]
 
 fig, ax = plt.subplots(1, 1, figsize=(6, 4))
 ax.plot(time_mesh.gridN, quarter_sine_plt)
-ax.plot(time_mesh.gridN, np.zeros(time_mesh.nN), 'k|', markersize=2)
-ax.set_title('quarter sine waveform')
+ax.plot(time_mesh.gridN, np.zeros(time_mesh.nN), "k|", markersize=2)
+ax.set_title("quarter sine waveform")
 
 ###############################################################################
 # Sources for the 2 simulations
@@ -141,13 +155,12 @@ ax.set_title('quarter sine waveform')
 
 # For the magnetostatic simulation. The default waveform is a step-off
 src_magnetostatic = TDEM.Src.CircularLoop(
-    [], loc=np.r_[0., 0., 0.], orientation="z", radius=100,
+    [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100,
 )
 
 # For the long on-time simulation. We use the ramp-on waveform
 src_ramp_on = TDEM.Src.CircularLoop(
-    [], loc=np.r_[0., 0., 0.], orientation="z", radius=100,
-    waveform=quarter_sine
+    [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100, waveform=quarter_sine
 )
 
 src_list_magnetostatic = [src_magnetostatic]
@@ -161,12 +174,10 @@ src_list_ramp_on = [src_ramp_on]
 # equations
 
 prob_magnetostatic = TDEM.Simulation3DMagneticFluxDensity(
-    mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp,
-    Solver=Pardiso
+    mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp, Solver=Pardiso
 )
 prob_ramp_on = TDEM.Simulation3DMagneticFluxDensity(
-    mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp,
-    Solver=Pardiso
+    mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp, Solver=Pardiso
 )
 
 survey_magnetostatic = TDEM.Survey(srcList=src_list_magnetostatic)
@@ -180,16 +191,16 @@ prob_ramp_on.pair(survey_ramp_on)
 # -------------------------------
 
 t = time.time()
-print('--- Running Long On-Time Simulation ---')
+print("--- Running Long On-Time Simulation ---")
 
 prob_ramp_on.mu = mu_model
 fields = prob_ramp_on.fields(sigma)
 
 print(" ... done. Elapsed time {}".format(time.time() - t))
-print('\n')
+print("\n")
 
 # grab the last time-step in the simulation
-b_ramp_on = utils.mkvc(fields[:, 'b', -1])
+b_ramp_on = utils.mkvc(fields[:, "b", -1])
 
 ###############################################################################
 # Compute Magnetostatic Fields from the step-off source
@@ -204,25 +215,30 @@ b_magnetostatic = src_magnetostatic.bInitial(prob_magnetostatic)
 # Plot the results
 # -----------------------------------------------------
 
+
 def plotBFieldResults(
-    ax=None, clim_min=None, clim_max=None,
-    max_depth=1.5*target_l, max_r=100,
-    top=10., view="magnetostatic"
+    ax=None,
+    clim_min=None,
+    clim_max=None,
+    max_depth=1.5 * target_l,
+    max_r=100,
+    top=10.0,
+    view="magnetostatic",
 ):
     if ax is None:
         plt.subplots(1, 1, figsize=(6, 7))
 
-    assert view.lower() in ["magnetostatic", "late_ontime", 'diff']
+    assert view.lower() in ["magnetostatic", "late_ontime", "diff"]
 
-    xlim = max_r*np.r_[-1, 1]  # x-limits in meters
+    xlim = max_r * np.r_[-1, 1]  # x-limits in meters
     zlim = np.r_[-max_depth, top]  # z-limits in meters. (z-positive up)
 
     clim = None
 
-    if clim_max is not None and clim_max != 0.:
+    if clim_max is not None and clim_max != 0.0:
         clim = clim_max * np.r_[-1, 1]
 
-        if clim_min is not None and clim_min != 0.:
+        if clim_min is not None and clim_min != 0.0:
             clim[0] = clim_min
 
     if view == "magnetostatic":
@@ -230,34 +246,35 @@ def plotBFieldResults(
     elif view == "late_ontime":
         plotme = b_ramp_on
     elif view == "diff":
-        plotme = b_magnetostatic-b_ramp_on
+        plotme = b_magnetostatic - b_ramp_on
 
-    cb = plt.colorbar(mesh.plotImage(
-        plotme,
-        view='vec', vType='F',
-        ax=ax, range_x=xlim, range_y=zlim,
-        sample_grid=np.r_[np.diff(xlim)/100., np.diff(zlim)/100.],
-        mirror=True,
-        pcolorOpts={'norm': LogNorm()}
-    )[0], ax=ax)
+    cb = plt.colorbar(
+        mesh.plotImage(
+            plotme,
+            view="vec",
+            vType="F",
+            ax=ax,
+            range_x=xlim,
+            range_y=zlim,
+            sample_grid=np.r_[np.diff(xlim) / 100.0, np.diff(zlim) / 100.0],
+            mirror=True,
+            pcolorOpts={"norm": LogNorm()},
+        )[0],
+        ax=ax,
+    )
     cb.set_clim(clim)
-    ax.set_title('{}'.format(view), fontsize=13)
+    ax.set_title("{}".format(view), fontsize=13)
     ax.set_xlim(xlim)
     ax.set_ylim(zlim)
     cb.update_ticks()
 
     return ax
 
+
 fig, ax = plt.subplots(1, 3, figsize=(12, 5))
 
 for a, v in zip(ax, ["magnetostatic", "late_ontime", "diff"]):
-    a = plotBFieldResults(
-        ax=a,
-        clim_min=1e-15,
-        clim_max=1e-7,
-        view=v,
-        max_r=200
-    )
+    a = plotBFieldResults(ax=a, clim_min=1e-15, clim_max=1e-7, view=v, max_r=200)
 plt.tight_layout()
 
 ###############################################################################

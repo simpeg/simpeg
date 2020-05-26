@@ -9,15 +9,15 @@ import numpy as np
 nx = 5
 ny = 5
 
-class MagFwdProblemTests(unittest.TestCase):
 
+class MagFwdProblemTests(unittest.TestCase):
     def setUp(self):
 
         # Define inducing field and sphere parameters
-        H0 = (50000., 60., 250.)
-        #H0 = (50000., 90., 0.)
+        H0 = (50000.0, 60.0, 250.0)
+        # H0 = (50000., 90., 0.)
         self.b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
-        self.rad = 2.
+        self.rad = 2.0
         self.chi = 0.01
 
         # Define a mesh
@@ -25,14 +25,14 @@ class MagFwdProblemTests(unittest.TestCase):
         hxind = [(cs, 21)]
         hyind = [(cs, 21)]
         hzind = [(cs, 21)]
-        mesh = discretize.TensorMesh([hxind, hyind, hzind], 'CCC')
+        mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
 
         # Get cells inside the sphere
-        sph_ind = getIndicesSphere([0., 0., 0.], self.rad, mesh.gridCC)
+        sph_ind = getIndicesSphere([0.0, 0.0, 0.0], self.rad, mesh.gridCC)
 
         # Adjust susceptibility for volume difference
-        Vratio = (4./3.*np.pi*self.rad**3.) / (np.sum(sph_ind)*cs**3.)
-        model = np.ones(mesh.nC)*self.chi*Vratio
+        Vratio = (4.0 / 3.0 * np.pi * self.rad ** 3.0) / (np.sum(sph_ind) * cs ** 3.0)
+        model = np.ones(mesh.nC) * self.chi * Vratio
         self.model = model[sph_ind]
 
         # Creat reduced identity map for Linear Pproblem
@@ -44,10 +44,10 @@ class MagFwdProblemTests(unittest.TestCase):
         self.xr = xr
         self.yr = yr
         X, Y = np.meshgrid(xr, yr)
-        components = ['bx', 'by', 'bz', 'tmi']
+        components = ["bx", "by", "bz", "tmi"]
 
         # Move obs plane 2 radius away from sphere
-        Z = np.ones((xr.size, yr.size))*2.*self.rad
+        Z = np.ones((xr.size, yr.size)) * 2.0 * self.rad
         self.locXyz = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
         rxLoc = mag.Point(self.locXyz, components=components)
         srcField = mag.SourceField([rxLoc], parameters=H0)
@@ -58,7 +58,7 @@ class MagFwdProblemTests(unittest.TestCase):
             survey=self.survey,
             chiMap=idenMap,
             actInd=sph_ind,
-            store_sensitivities='forward_only'
+            store_sensitivities="forward_only",
         )
 
     def test_ana_forward(self):
@@ -71,16 +71,22 @@ class MagFwdProblemTests(unittest.TestCase):
         d_t = data[3::4]
 
         # Compute analytical response from a magnetized sphere
-        bxa, bya, bza, btmi = mag.analytics.MagSphereFreeSpace(self.locXyz[:, 0],
-                                                         self.locXyz[:, 1],
-                                                         self.locXyz[:, 2],
-                                                         self.rad, 0, 0, 0,
-                                                         self.chi, self.b0)
+        bxa, bya, bza, btmi = mag.analytics.MagSphereFreeSpace(
+            self.locXyz[:, 0],
+            self.locXyz[:, 1],
+            self.locXyz[:, 2],
+            self.rad,
+            0,
+            0,
+            0,
+            self.chi,
+            self.b0,
+        )
 
-        err_x = np.linalg.norm(d_x-bxa)/np.linalg.norm(bxa)
-        err_y = np.linalg.norm(d_y-bya)/np.linalg.norm(bya)
-        err_z = np.linalg.norm(d_z-bza)/np.linalg.norm(bza)
-        err_t = np.linalg.norm(d_t-btmi)/np.linalg.norm(btmi)
+        err_x = np.linalg.norm(d_x - bxa) / np.linalg.norm(bxa)
+        err_y = np.linalg.norm(d_y - bya) / np.linalg.norm(bya)
+        err_z = np.linalg.norm(d_z - bza) / np.linalg.norm(bza)
+        err_t = np.linalg.norm(d_t - btmi) / np.linalg.norm(btmi)
 
         self.assertLess(err_x, 0.005)
         self.assertLess(err_y, 0.005)
@@ -88,5 +94,5 @@ class MagFwdProblemTests(unittest.TestCase):
         self.assertLess(err_t, 0.005)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

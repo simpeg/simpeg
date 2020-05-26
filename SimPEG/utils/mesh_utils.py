@@ -1,3 +1,1 @@
-from discretize.utils import (
-    exampleLrmGrid, meshTensor, closestPoints, ExtractCoreMesh
-)
+from discretize.utils import exampleLrmGrid, meshTensor, closestPoints, ExtractCoreMesh

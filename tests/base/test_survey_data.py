@@ -7,12 +7,13 @@ np.random.seed(100)
 
 
 class TestData(unittest.TestCase):
-
     def setUp(self):
-        mesh = discretize.TensorMesh([np.ones(n)*5 for n in [10,11,12]],[0,0,-30])
-        x = np.linspace(5,10,3)
-        XYZ = utils.ndgrid(x,x,np.r_[0.])
-        srcLoc = np.r_[0,0,0.]
+        mesh = discretize.TensorMesh(
+            [np.ones(n) * 5 for n in [10, 11, 12]], [0, 0, -30]
+        )
+        x = np.linspace(5, 10, 3)
+        XYZ = utils.ndgrid(x, x, np.r_[0.0])
+        srcLoc = np.r_[0, 0, 0.0]
         rxList0 = survey.BaseRx(XYZ)
         Src0 = survey.BaseSrc([rxList0], location=srcLoc)
         rxList1 = survey.BaseRx(XYZ)
@@ -22,7 +23,7 @@ class TestData(unittest.TestCase):
         rxList3 = survey.BaseRx(XYZ)
         Src3 = survey.BaseSrc([rxList3], location=srcLoc)
         Src4 = survey.BaseSrc([rxList0, rxList1, rxList2, rxList3], location=srcLoc)
-        srcList = [Src0,Src1,Src2,Src3,Src4]
+        srcList = [Src0, Src1, Src2, Src3, Src4]
         mysurvey = survey.BaseSurvey(source_list=srcList)
         self.D = data.Data(mysurvey)
 
@@ -63,11 +64,14 @@ class TestData(unittest.TestCase):
     def test_sourceIndex(self):
         mysurvey = self.D.survey
         srcs = mysurvey.source_list
-        assert mysurvey.getSourceIndex([srcs[1],srcs[0]]) == [1,0]
-        assert mysurvey.getSourceIndex([srcs[1],srcs[2],srcs[2]]) == [1,2,2]
-        SrcNotThere = survey.BaseSrc(srcs[0].receiver_list, location=np.r_[0,0,0])
+        assert mysurvey.getSourceIndex([srcs[1], srcs[0]]) == [1, 0]
+        assert mysurvey.getSourceIndex([srcs[1], srcs[2], srcs[2]]) == [1, 2, 2]
+        SrcNotThere = survey.BaseSrc(srcs[0].receiver_list, location=np.r_[0, 0, 0])
         self.assertRaises(KeyError, mysurvey.getSourceIndex, [SrcNotThere])
-        self.assertRaises(KeyError, mysurvey.getSourceIndex, [srcs[1],srcs[2],SrcNotThere])
+        self.assertRaises(
+            KeyError, mysurvey.getSourceIndex, [srcs[1], srcs[2], SrcNotThere]
+        )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

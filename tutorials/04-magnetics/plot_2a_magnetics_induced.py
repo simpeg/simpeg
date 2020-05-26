@@ -1,4 +1,3 @@
-
 """
 Forward Simulation of Total Magnetic Intensity Data
 ===================================================
@@ -45,10 +44,8 @@ save_file = False
 # topography could also be loaded from a file.
 #
 
-[x_topo, y_topo] = np.meshgrid(
-    np.linspace(-200, 200, 41), np.linspace(-200, 200, 41)
-)
-z_topo = -15*np.exp(-(x_topo**2 + y_topo**2) / 80**2)
+[x_topo, y_topo] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
+z_topo = -15 * np.exp(-(x_topo ** 2 + y_topo ** 2) / 80 ** 2)
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
@@ -63,8 +60,8 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 #
 
 # Define the observation locations as an (N, 3) numpy array or load them.
-x = np.linspace(-80., 80., 17)
-y = np.linspace(-80., 80., 17)
+x = np.linspace(-80.0, 80.0, 17)
+y = np.linspace(-80.0, 80.0, 17)
 x, y = np.meshgrid(x, y)
 x, y = mkvc(x.T), mkvc(y.T)
 fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
@@ -77,9 +74,7 @@ components = ["tmi"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = magnetics.receivers.Point(
-    receiver_locations, components=components
-)
+receiver_list = magnetics.receivers.Point(receiver_locations, components=components)
 
 receiver_list = [receiver_list]
 
@@ -104,11 +99,11 @@ survey = magnetics.survey.Survey(source_field)
 # Here, we create the tensor mesh that will be used for the forward simulation.
 #
 
-dh = 5.
+dh = 5.0
 hx = [(dh, 5, -1.3), (dh, 40), (dh, 5, 1.3)]
 hy = [(dh, 5, -1.3), (dh, 40), (dh, 5, 1.3)]
 hz = [(dh, 5, -1.3), (dh, 15)]
-mesh = TensorMesh([hx, hy, hz], 'CCN')
+mesh = TensorMesh([hx, hy, hz], "CCN")
 
 
 #############################################
@@ -132,10 +127,8 @@ nC = int(ind_active.sum())
 model_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
 
 # Define model. Models in SimPEG are vector arrays
-model = background_susceptibility*np.ones(ind_active.sum())
-ind_sphere = model_builder.getIndicesSphere(
-    np.r_[0., 0., -45.], 15., mesh.gridCC
-)
+model = background_susceptibility * np.ones(ind_active.sum())
+ind_sphere = model_builder.getIndicesSphere(np.r_[0.0, 0.0, -45.0], 15.0, mesh.gridCC)
 ind_sphere = ind_sphere[ind_active]
 model[ind_sphere] = sphere_susceptibility
 
@@ -145,22 +138,21 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 mesh.plotSlice(
-    plotting_map*model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
-    clim=(np.min(model), np.max(model))
+    plotting_map * model,
+    normal="Y",
+    ax=ax1,
+    ind=int(mesh.nCy / 2),
+    grid=True,
+    clim=(np.min(model), np.max(model)),
 )
-ax1.set_title('Model slice at y = 0 m')
-ax1.set_xlabel('x (m)')
-ax1.set_ylabel('z (m)')
+ax1.set_title("Model slice at y = 0 m")
+ax1.set_xlabel("x (m)")
+ax1.set_ylabel("z (m)")
 
 ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(vmin=np.min(model), vmax=np.max(model))
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical'
-)
-cbar.set_label(
-    'Magnetic Susceptibility (SI)',
-    rotation=270, labelpad=15, size=12
-)
+cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation="vertical")
+cbar.set_label("Magnetic Susceptibility (SI)", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -176,9 +168,12 @@ plt.show()
 # Define the forward simulation. By setting the 'store_sensitivities' keyword
 # argument to "forward_only", we simulate the data without storing the sensitivities
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh,
-    modelType='susceptibility', chiMap=model_map,
-    actInd=ind_active, store_sensitivities="forward_only"
+    survey=survey,
+    mesh=mesh,
+    modelType="susceptibility",
+    chiMap=model_map,
+    actInd=ind_active,
+    store_sensitivities="forward_only",
 )
 
 # Compute predicted data for a susceptibility model
@@ -190,21 +185,23 @@ v_max = np.max(np.abs(dpred))
 
 ax1 = fig.add_axes([0.1, 0.1, 0.8, 0.85])
 plot2Ddata(
-    receiver_list[0].locations, dpred, ax=ax1, ncontour=30, clim=(-v_max, v_max),
-    contourOpts={"cmap": "bwr"}
+    receiver_list[0].locations,
+    dpred,
+    ax=ax1,
+    ncontour=30,
+    clim=(-v_max, v_max),
+    contourOpts={"cmap": "bwr"},
 )
-ax1.set_title('TMI Anomaly')
-ax1.set_xlabel('x (m)')
-ax1.set_ylabel('y (m)')
+ax1.set_title("TMI Anomaly")
+ax1.set_xlabel("x (m)")
+ax1.set_ylabel("y (m)")
 
 ax2 = fig.add_axes([0.87, 0.1, 0.03, 0.85])
-norm = mpl.colors.Normalize(
-    vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred))
-)
+norm = mpl.colors.Normalize(vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred)))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.bwr
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.bwr
 )
-cbar.set_label('$nT$', rotation=270, labelpad=15, size=12)
+cbar.set_label("$nT$", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -219,18 +216,18 @@ plt.show()
 if save_file:
 
     dir_path = os.path.dirname(magnetics.__file__).split(os.path.sep)[:-3]
-    dir_path.extend(['tutorials', 'assets', 'magnetics'])
+    dir_path.extend(["tutorials", "assets", "magnetics"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    fname = dir_path + 'magnetics_topo.txt'
-    np.savetxt(fname, np.c_[xyz_topo], fmt='%.4e')
+    fname = dir_path + "magnetics_topo.txt"
+    np.savetxt(fname, np.c_[xyz_topo], fmt="%.4e")
 
     maximum_anomaly = np.max(np.abs(dpred))
-    noise = 0.02*maximum_anomaly*np.random.rand(len(dpred))
-    fname = dir_path + 'magnetics_data.obs'
-    np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt='%.4e')
+    noise = 0.02 * maximum_anomaly * np.random.rand(len(dpred))
+    fname = dir_path + "magnetics_data.obs"
+    np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt="%.4e")
 
-    output_model = plotting_map*model
-    output_model[np.isnan(output_model)] = 0.
-    fname = dir_path + 'true_model.txt'
-    np.savetxt(fname, output_model, fmt='%.4e')
+    output_model = plotting_map * model
+    output_model[np.isnan(output_model)] = 0.0
+    fname = dir_path + "true_model.txt"
+    np.savetxt(fname, output_model, fmt="%.4e")

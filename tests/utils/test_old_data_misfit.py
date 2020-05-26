@@ -9,28 +9,25 @@ import discretize as Mesh
 from SimPEG import data_misfit as DataMisfit
 from SimPEG import maps as Maps
 from SimPEG import utils as Utils
-#from SimPEG import Mesh, DataMisfit, Maps, Utils
-#from SimPEG.EM.Static import DC
+
+# from SimPEG import Mesh, DataMisfit, Maps, Utils
+# from SimPEG.EM.Static import DC
 from SimPEG.electromagnetics.static import resistivity as DC
 
 np.random.seed(17)
 
 
 class DataMisfitTest(unittest.TestCase):
-
     def setUp(self):
-        mesh = Mesh.TensorMesh([30, 30], x0=[-0.5, -1.])
+        mesh = Mesh.TensorMesh([30, 30], x0=[-0.5, -1.0])
         sigma = np.ones(mesh.nC)
         model = np.log(sigma)
 
         prob = DC.Problem3D_CC(mesh, rhoMap=Maps.ExpMap(mesh))
 
-        rx = DC.Rx.Pole(
-            Utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.max()]])
-        )
+        rx = DC.Rx.Pole(Utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.max()]]))
         src = DC.Src.Dipole(
-            [rx], np.r_[-0.25, mesh.vectorCCy.max()],
-            np.r_[0.25, mesh.vectorCCy.max()]
+            [rx], np.r_[-0.25, mesh.vectorCCy.max()], np.r_[0.25, mesh.vectorCCy.max()]
         )
         survey = DC.Survey([src])
 
@@ -81,13 +78,14 @@ class DataMisfitTest(unittest.TestCase):
         epstest = np.all(self.survey.eps == self.dmis.eps)
         Wtest = np.allclose(
             np.abs(np.dot(self.dmis.W.todense(), self.dobs)),
-            1./self.std,
-            atol=self.eps
+            1.0 / self.std,
+            atol=self.eps,
         )
 
         self.assertTrue(stdtest)
         self.assertTrue(epstest)
         self.assertTrue(Wtest)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

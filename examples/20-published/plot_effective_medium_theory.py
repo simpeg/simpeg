@@ -22,7 +22,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from SimPEG import maps
 from matplotlib import rcParams
-rcParams['font.size'] = 12
+
+rcParams["font.size"] = 12
 
 ###############################################################################
 # Conductivities
@@ -33,8 +34,8 @@ rcParams['font.size'] = 12
 #
 
 sigma_fluid = 3
-sigma1 = np.logspace(1, 5, 5) # look at a range of particle conductivities
-phi = np.linspace(0.0, 1, 1000) # vary the volume of particles
+sigma1 = np.logspace(1, 5, 5)  # look at a range of particle conductivities
+phi = np.linspace(0.0, 1, 1000)  # vary the volume of particles
 
 ###############################################################################
 # Construct the Mapping

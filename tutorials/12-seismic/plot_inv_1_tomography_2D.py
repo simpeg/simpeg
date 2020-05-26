@@ -30,8 +30,15 @@ import tarfile
 from discretize import TensorMesh
 
 from SimPEG import (
-    data, maps, regularization, data_misfit, optimization, inverse_problem,
-    directives, inversion, utils
+    data,
+    maps,
+    regularization,
+    data_misfit,
+    optimization,
+    inverse_problem,
+    directives,
+    inversion,
+    utils,
 )
 
 from SimPEG.seismic import straight_ray_tomography as tomo
@@ -62,8 +69,8 @@ tar.close()
 dir_path = downloaded_data.split(".")[0] + os.path.sep
 
 # files to work with
-data_filename = dir_path + 'tomography2D_data.obs'
-model_filename = dir_path + 'true_model_2D.txt'
+data_filename = dir_path + "tomography2D_data.obs"
+model_filename = dir_path + "true_model_2D.txt"
 
 
 #############################################
@@ -85,13 +92,13 @@ dobs = dobs[:, -1]
 # Define survey
 unique_sources, k = np.unique(xy_sources, axis=0, return_index=True)
 n_sources = len(k)
-k = np.r_[k, len(dobs)+1]
+k = np.r_[k, len(dobs) + 1]
 
 source_list = []
 for ii in range(0, n_sources):
 
     # Receiver locations for source ii
-    receiver_locations = xy_receivers[k[ii]:k[ii+1], :]
+    receiver_locations = xy_receivers[k[ii] : k[ii + 1], :]
     receiver_list = [tomo.Rx(receiver_locations)]
 
     # Source ii location
@@ -114,15 +121,15 @@ obs_string = []
 
 for ii in range(0, n_source):
 
-    x_plotting = xy_receivers[k[ii]:k[ii+1], 0]
-    dobs_plotting = dobs[k[ii]:k[ii+1]]
+    x_plotting = xy_receivers[k[ii] : k[ii + 1], 0]
+    dobs_plotting = dobs[k[ii] : k[ii + 1]]
     ax.plot(x_plotting, dobs_plotting)
-    obs_string.append('source {}'.format(ii+1))
+    obs_string.append("source {}".format(ii + 1))
 
-ax.set_xlabel('x (m)')
-ax.set_ylabel('arrival time (s)')
-ax.set_title('Positions vs. Arrival Time')
-ax.legend(obs_string, loc='upper right')
+ax.set_xlabel("x (m)")
+ax.set_ylabel("arrival time (s)")
+ax.set_title("Positions vs. Arrival Time")
+ax.legend(obs_string, loc="upper right")
 
 plt.show()
 
@@ -137,7 +144,7 @@ plt.show()
 #
 
 # Compute standard deviations
-std = 0.05*np.abs(dobs)
+std = 0.05 * np.abs(dobs)
 
 # Add standard deviations to data object
 data_obj.standard_deviation = std
@@ -150,11 +157,11 @@ data_obj.standard_deviation = std
 # Here, we create the tensor mesh that will be used to invert the data.
 #
 
-dh = 10.  # cell width
+dh = 10.0  # cell width
 N = 21  # number of cells in X and Y direction
 hx = [(dh, N)]
 hy = [(dh, N)]
-mesh = TensorMesh([hx, hy], 'CC')
+mesh = TensorMesh([hx, hy], "CC")
 
 
 ########################################################
@@ -170,13 +177,13 @@ mesh = TensorMesh([hx, hy], 'CC')
 # Define density contrast values for each unit in g/cc. Don't make this 0!
 # Otherwise the gradient for the 1st iteration is zero and the inversion will
 # not converge.
-background_velocity = 3000.
+background_velocity = 3000.0
 
 # Define mapping from model space to the slowness on mesh cells
 model_mapping = maps.ReciprocalMap()
 
 # Define starting model
-starting_model = background_velocity*np.ones(mesh.nC)
+starting_model = background_velocity * np.ones(mesh.nC)
 
 ##############################################
 # Define the Physics
@@ -188,9 +195,7 @@ starting_model = background_velocity*np.ones(mesh.nC)
 
 # Define the forward simulation. To do this we need the mesh, the survey and
 # the mapping from the model to the slowness value on each cell.
-simulation = tomo.Simulation(
-    mesh, survey=survey, slownessMap=model_mapping
-)
+simulation = tomo.Simulation(mesh, survey=survey, slownessMap=model_mapping)
 
 #######################################################################
 # Define the Inverse Problem
@@ -220,8 +225,7 @@ reg.norms = np.c_[p, qx, qy]
 
 # Define how the optimization problem is solved.
 opt = optimization.ProjectedGNCG(
-    maxIter=100, lower=0., upper=1e6,
-    maxIterLS=20, maxIterCG=10, tolCG=1e-4
+    maxIter=100, lower=0.0, upper=1e6, maxIterLS=20, maxIterCG=10, tolCG=1e-4
 )
 
 # Here we define the inverse problem that is to be solved
@@ -239,9 +243,8 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
 update_IRLS = directives.Update_IRLS(
-    f_min_change=1e-4, max_irls_iterations=30,
-    coolEpsFact=1.5, beta_tol=1e-2,
-    )
+    f_min_change=1e-4, max_irls_iterations=30, coolEpsFact=1.5, beta_tol=1e-2,
+)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
@@ -251,9 +254,7 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Define the directives as a list
-directives_list=[
-    starting_beta, update_IRLS, saveDict
-]
+directives_list = [starting_beta, update_IRLS, saveDict]
 
 
 #####################################################################
@@ -283,17 +284,15 @@ true_model = np.loadtxt(str(model_filename))
 fig = plt.figure(figsize=(6, 5.5))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.65, 0.75])
-mesh.plotImage(
-    true_model, ax=ax1, grid=True, pcolorOpts={'cmap':'viridis'}
-)
-ax1.set_title('True Model')
+mesh.plotImage(true_model, ax=ax1, grid=True, pcolorOpts={"cmap": "viridis"})
+ax1.set_title("True Model")
 
 ax2 = fig.add_axes([0.82, 0.15, 0.05, 0.75])
 norm = mpl.colors.Normalize(vmin=np.min(true_model), vmax=np.max(true_model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.viridis
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis
 )
-cbar.set_label('Velocity (m/s)', rotation=270, labelpad=15, size=12)
+cbar.set_label("Velocity (m/s)", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -301,16 +300,14 @@ plt.show()
 fig = plt.figure(figsize=(6, 5.5))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.65, 0.75])
-mesh.plotImage(
-    recovered_model, ax=ax1, grid=True, pcolorOpts={'cmap':'viridis'}
-)
-ax1.set_title('Recovered Model')
+mesh.plotImage(recovered_model, ax=ax1, grid=True, pcolorOpts={"cmap": "viridis"})
+ax1.set_title("Recovered Model")
 
 ax2 = fig.add_axes([0.82, 0.15, 0.05, 0.75])
 norm = mpl.colors.Normalize(vmin=np.min(recovered_model), vmax=np.max(recovered_model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.viridis
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis
 )
-cbar.set_label('Velocity (m/s)',rotation=270, labelpad=15, size=12)
+cbar.set_label("Velocity (m/s)", rotation=270, labelpad=15, size=12)
 
 plt.show()

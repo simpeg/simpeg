@@ -84,7 +84,7 @@ waveform_times = np.linspace(-0.002, 0, 21)
 # For the trapezoidal waveform we define the ramp on interval, the
 # ramp-off interval and the off-time.
 waveform = tdem.sources.TrapezoidWaveform(
-    ramp_on=np.r_[-0.002, -0.001],  ramp_off=np.r_[-0.001, 0.], offTime=0.
+    ramp_on=np.r_[-0.002, -0.001], ramp_off=np.r_[-0.001, 0.0], offTime=0.0
 )
 
 # Uncomment to try a quarter sine wave ramp on, followed by a linear ramp-off.
@@ -106,9 +106,9 @@ waveform_value = [waveform.eval(t) for t in waveform_times]
 fig = plt.figure(figsize=(10, 4))
 ax1 = fig.add_subplot(111)
 ax1.plot(waveform_times, waveform_value, lw=2)
-ax1.set_xlabel('Times [s]')
-ax1.set_ylabel('Waveform value')
-ax1.set_title('Waveform')
+ax1.set_xlabel("Times [s]")
+ax1.set_ylabel("Waveform value")
+ax1.set_title("Waveform")
 
 
 #####################################################################
@@ -129,14 +129,14 @@ time_channels = np.logspace(-4, -3, n_times)
 # Defining transmitter locations
 n_tx = 11
 xtx, ytx, ztx = np.meshgrid(
-    np.linspace(-200, 200, n_tx), np.linspace(-200,200, n_tx), [50]
+    np.linspace(-200, 200, n_tx), np.linspace(-200, 200, n_tx), [50]
 )
 source_locations = np.c_[mkvc(xtx), mkvc(ytx), mkvc(ztx)]
 ntx = np.size(xtx)
 
 # Define receiver locations
 xrx, yrx, zrx = np.meshgrid(
-    np.linspace(-200, 200, n_tx), np.linspace(-190,190, n_tx), [30]
+    np.linspace(-200, 200, n_tx), np.linspace(-190, 190, n_tx), [30]
 )
 receiver_locations = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 
@@ -147,14 +147,20 @@ for ii in range(ntx):
 
     # Here we define receivers that measure the h-field in A/m
     dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
-        receiver_locations[ii, :], time_channels, 'z'
+        receiver_locations[ii, :], time_channels, "z"
     )
-    receivers_list = [dbzdt_receiver]  # Make a list containing all receivers even if just one
+    receivers_list = [
+        dbzdt_receiver
+    ]  # Make a list containing all receivers even if just one
 
     # Must define the transmitter properties and associated receivers
     source_list.append(
         tdem.sources.MagDipole(
-            receivers_list, location=source_locations[ii], waveform=waveform, moment=1., orientation='z'
+            receivers_list,
+            location=source_locations[ii],
+            waveform=waveform,
+            moment=1.0,
+            orientation="z",
         )
     )
 
@@ -174,30 +180,28 @@ survey = tdem.Survey(source_list)
 #
 #
 
-dh = 25.                                                     # base cell width
-dom_width = 1600.                                            # domain width
-nbc = 2**int(np.round(np.log(dom_width/dh)/np.log(2.)))      # num. base cells
+dh = 25.0  # base cell width
+dom_width = 1600.0  # domain width
+nbc = 2 ** int(np.round(np.log(dom_width / dh) / np.log(2.0)))  # num. base cells
 
 # Define the base mesh
 h = [(dh, nbc)]
-mesh = TreeMesh([h, h, h], x0='CCC')
+mesh = TreeMesh([h, h, h], x0="CCC")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz, octree_levels=[0, 0, 0, 1], method='surface', finalize=False
+    mesh, topo_xyz, octree_levels=[0, 0, 0, 1], method="surface", finalize=False
 )
 
 # Mesh refinement near transmitters and receivers
 mesh = refine_tree_xyz(
-    mesh, receiver_locations, octree_levels=[2, 4], method='radial', finalize=False
+    mesh, receiver_locations, octree_levels=[2, 4], method="radial", finalize=False
 )
 
 # Refine core mesh region
-xp, yp, zp = np.meshgrid([-250., 250.], [-250., 250.], [-250., 0.])
+xp, yp, zp = np.meshgrid([-250.0, 250.0], [-250.0, 250.0], [-250.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-mesh = refine_tree_xyz(
-    mesh, xyz, octree_levels=[0, 2, 4], method='box', finalize=False
-)
+mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 4], method="box", finalize=False)
 
 mesh.finalize()
 
@@ -220,16 +224,19 @@ ind_active = surface2ind_topo(mesh, topo_xyz)
 model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
 # Define the model
-model = background_conductivity*np.ones(ind_active.sum())
+model = background_conductivity * np.ones(ind_active.sum())
 ind_block = (
-    (mesh.gridCC[ind_active, 0] < 100.) & (mesh.gridCC[ind_active, 0] > -100.) &
-    (mesh.gridCC[ind_active, 1] < 100.) & (mesh.gridCC[ind_active, 1] > -100.) &
-    (mesh.gridCC[ind_active, 2] > -200.) & (mesh.gridCC[ind_active, 2] < -50.)
+    (mesh.gridCC[ind_active, 0] < 100.0)
+    & (mesh.gridCC[ind_active, 0] > -100.0)
+    & (mesh.gridCC[ind_active, 1] < 100.0)
+    & (mesh.gridCC[ind_active, 1] > -100.0)
+    & (mesh.gridCC[ind_active, 2] > -200.0)
+    & (mesh.gridCC[ind_active, 2] < -50.0)
 )
 model[ind_block] = block_conductivity
 
 # Plot log-conductivity model
-mpl.rcParams.update({'font.size': 12})
+mpl.rcParams.update({"font.size": 12})
 fig = plt.figure(figsize=(7, 6))
 
 log_model = np.log10(model)
@@ -238,19 +245,21 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.13, 0.1, 0.6, 0.85])
 mesh.plotSlice(
-    plotting_map*log_model, normal='Y', ax=ax1, ind=int(mesh.hx.size/2),
-    grid=True, clim=(np.min(log_model), np.max(log_model))
+    plotting_map * log_model,
+    normal="Y",
+    ax=ax1,
+    ind=int(mesh.hx.size / 2),
+    grid=True,
+    clim=(np.min(log_model), np.max(log_model)),
 )
-ax1.set_title('Conductivity Model at Y = 0 m')
+ax1.set_title("Conductivity Model at Y = 0 m")
 
 ax2 = fig.add_axes([0.75, 0.1, 0.05, 0.85])
 norm = mpl.colors.Normalize(vmin=np.min(log_model), vmax=np.max(log_model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
+    ax2, norm=norm, orientation="vertical", format="$10^{%.1f}$"
 )
-cbar.set_label(
-    'Conductivity [S/m]', rotation=270, labelpad=15, size=12
-)
+cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 
 
 ######################################################
@@ -291,7 +300,7 @@ simulation.time_steps = time_steps
 dpred = simulation.dpred(model)
 
 # Data were organized by location, then by time channel
-dpred_plotting = np.reshape(dpred, (n_tx**2, n_times))
+dpred_plotting = np.reshape(dpred, (n_tx ** 2, n_times))
 
 # Plot
 fig = plt.figure(figsize=(10, 4))
@@ -300,33 +309,41 @@ fig = plt.figure(figsize=(10, 4))
 v_max = np.max(np.abs(dpred_plotting[:, 0]))
 ax11 = fig.add_axes([0.05, 0.05, 0.35, 0.9])
 plot2Ddata(
-    receiver_locations[:, 0:2], dpred_plotting[:, 0], ax=ax11, ncontour=30,
-    clim=(-v_max, v_max), contourOpts={"cmap": "bwr"}
+    receiver_locations[:, 0:2],
+    dpred_plotting[:, 0],
+    ax=ax11,
+    ncontour=30,
+    clim=(-v_max, v_max),
+    contourOpts={"cmap": "bwr"},
 )
-ax11.set_title('dBz/dt at 0.0001 s')
+ax11.set_title("dBz/dt at 0.0001 s")
 
 ax12 = fig.add_axes([0.42, 0.05, 0.02, 0.9])
 norm1 = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar1 = mpl.colorbar.ColorbarBase(
-    ax12, norm=norm1, orientation='vertical', cmap=mpl.cm.bwr
+    ax12, norm=norm1, orientation="vertical", cmap=mpl.cm.bwr
 )
-cbar1.set_label('$T/s$', rotation=270, labelpad=15, size=12)
+cbar1.set_label("$T/s$", rotation=270, labelpad=15, size=12)
 
 # dB/dt at later times
 v_max = np.max(np.abs(dpred_plotting[:, -1]))
 ax21 = fig.add_axes([0.55, 0.05, 0.35, 0.9])
 plot2Ddata(
-    receiver_locations[:, 0:2], dpred_plotting[:, -1], ax=ax21, ncontour=30,
-    clim=(-v_max, v_max), contourOpts={"cmap": "bwr"}
+    receiver_locations[:, 0:2],
+    dpred_plotting[:, -1],
+    ax=ax21,
+    ncontour=30,
+    clim=(-v_max, v_max),
+    contourOpts={"cmap": "bwr"},
 )
-ax21.set_title('dBz/dt at 0.001 s')
+ax21.set_title("dBz/dt at 0.001 s")
 
 ax22 = fig.add_axes([0.92, 0.05, 0.02, 0.9])
 norm2 = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar2 = mpl.colorbar.ColorbarBase(
-    ax22, norm=norm2, orientation='vertical', cmap=mpl.cm.bwr
+    ax22, norm=norm2, orientation="vertical", cmap=mpl.cm.bwr
 )
-cbar2.set_label('$T/s$', rotation=270, labelpad=15, size=12)
+cbar2.set_label("$T/s$", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -341,23 +358,23 @@ plt.show()
 if save_file:
 
     dir_path = os.path.dirname(tdem.__file__).split(os.path.sep)[:-3]
-    dir_path.extend(['tutorials', 'assets', 'tdem'])
+    dir_path.extend(["tutorials", "assets", "tdem"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    fname = dir_path + 'tdem_topo.txt'
-    np.savetxt(fname, np.c_[topo_xyz], fmt='%.4e')
+    fname = dir_path + "tdem_topo.txt"
+    np.savetxt(fname, np.c_[topo_xyz], fmt="%.4e")
 
     # Write data with 2% noise added
-    fname = dir_path + 'tdem_data.obs'
-    dpred = dpred + 0.02*np.abs(dpred)*np.random.rand(len(dpred))
+    fname = dir_path + "tdem_data.obs"
+    dpred = dpred + 0.02 * np.abs(dpred) * np.random.rand(len(dpred))
     t_vec = np.kron(np.ones(ntx), time_channels)
     receiver_locations = np.kron(receiver_locations, np.ones((len(time_channels), 1)))
 
-    np.savetxt(fname, np.c_[receiver_locations, t_vec, dpred], fmt='%.4e')
+    np.savetxt(fname, np.c_[receiver_locations, t_vec, dpred], fmt="%.4e")
 
     # Plot true model
-    output_model = plotting_map*model
+    output_model = plotting_map * model
     output_model[np.isnan(output_model)] = 1e-8
 
-    fname = dir_path + 'true_model.txt'
-    np.savetxt(fname, output_model, fmt='%.4e')
+    fname = dir_path + "true_model.txt"
+    np.savetxt(fname, output_model, fmt="%.4e")

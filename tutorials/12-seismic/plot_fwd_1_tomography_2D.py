@@ -42,8 +42,8 @@ save_file = False
 
 # Define the locations for the sources and receivers.
 x = np.linspace(-100, 100, 11)
-y_receivers = 100*np.ones(len(x))
-y_sources = -100*np.ones(len(x))
+y_receivers = 100 * np.ones(len(x))
+y_sources = -100 * np.ones(len(x))
 
 receiver_locations = np.c_[x, y_receivers]
 source_locations = np.c_[x, y_sources]
@@ -70,11 +70,11 @@ survey = tomo.Survey(source_list)
 # data.
 #
 
-dh = 10.  # cell width
+dh = 10.0  # cell width
 N = 21  # number of cells in X and Y direction
 hx = [(dh, N)]
 hy = [(dh, N)]
-mesh = TensorMesh([hx, hy], 'CC')
+mesh = TensorMesh([hx, hy], "CC")
 
 
 ########################################################
@@ -88,15 +88,13 @@ mesh = TensorMesh([hx, hy], 'CC')
 #
 
 # Define velocity of each unit in m/s
-background_velocity = 3000.
-block_velocity = 1500.
+background_velocity = 3000.0
+block_velocity = 1500.0
 
 # Define the model. Models in SimPEG are vector arrays.
-model = background_velocity*np.ones(mesh.nC)
+model = background_velocity * np.ones(mesh.nC)
 
-ind_block = model_builder.getIndicesBlock(
-    np.r_[-50, 20],  np.r_[50, -20], mesh.gridCC
-)
+ind_block = model_builder.getIndicesBlock(np.r_[-50, 20], np.r_[50, -20], mesh.gridCC)
 model[ind_block] = block_velocity
 
 # Define a mapping from the model (velocity) to the slowness. If your model
@@ -107,23 +105,18 @@ model_mapping = maps.ReciprocalMap()
 fig = plt.figure(figsize=(6, 5.5))
 
 ax1 = fig.add_axes([0.15, 0.15, 0.65, 0.75])
-mesh.plotImage(
-    model, ax=ax1, grid=True, pcolorOpts={'cmap':'viridis'}
-)
-ax1.set_xlabel('x (m)')
-ax1.set_ylabel('y (m)')
-ax1.plot(x, y_sources, 'ro')  # source locations
-ax1.plot(x, y_receivers, 'ko')  # receiver locations
+mesh.plotImage(model, ax=ax1, grid=True, pcolorOpts={"cmap": "viridis"})
+ax1.set_xlabel("x (m)")
+ax1.set_ylabel("y (m)")
+ax1.plot(x, y_sources, "ro")  # source locations
+ax1.plot(x, y_receivers, "ko")  # receiver locations
 
 ax2 = fig.add_axes([0.82, 0.15, 0.05, 0.75])
 norm = mpl.colors.Normalize(vmin=np.min(model), vmax=np.max(model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.viridis
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis
 )
-cbar.set_label(
-    '$Velocity (m/s)$',
-    rotation=270, labelpad=15, size=12
-)
+cbar.set_label("$Velocity (m/s)$", rotation=270, labelpad=15, size=12)
 
 
 #######################################################
@@ -136,9 +129,7 @@ cbar.set_label(
 
 # Define the forward simulation. To do this we need the mesh, the survey and
 # the mapping from the model to the slowness values on the mesh.
-simulation = tomo.Simulation(
-    mesh, survey=survey, slownessMap=model_mapping
-)
+simulation = tomo.Simulation(mesh, survey=survey, slownessMap=model_mapping)
 
 # Compute predicted data for some model
 dpred = simulation.dpred(model)
@@ -158,13 +149,13 @@ obs_string = []
 
 for ii in range(0, n_source):
     ax.plot(x, dpred_plotting[:, ii])
-    obs_string.append('source {}'.format(ii+1))
+    obs_string.append("source {}".format(ii + 1))
 
 ax.set_xlim(np.min(x), np.max(x))
-ax.set_xlabel('x (m)')
-ax.set_ylabel('arrival time (s)')
-ax.set_title('Positions vs. Arrival Time')
-ax.legend(obs_string, loc='upper right')
+ax.set_xlabel("x (m)")
+ax.set_ylabel("arrival time (s)")
+ax.set_title("Positions vs. Arrival Time")
+ax.legend(obs_string, loc="upper right")
 
 
 #######################################################
@@ -177,23 +168,22 @@ ax.legend(obs_string, loc='upper right')
 if save_file:
 
     dir_path = os.path.dirname(tomo.__file__).split(os.path.sep)[:-3]
-    dir_path.extend(['tutorials', 'seismic', 'assets'])
+    dir_path.extend(["tutorials", "seismic", "assets"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-
-    noise = 0.05*dpred*np.random.rand(len(dpred))
+    noise = 0.05 * dpred * np.random.rand(len(dpred))
 
     data_array = np.c_[
         np.kron(x, np.ones(n_receiver)),
         np.kron(y_sources, np.ones(n_receiver)),
         np.kron(np.ones(n_source), x),
         np.kron(np.ones(n_source), y_receivers),
-        dpred+noise
+        dpred + noise,
     ]
 
-    fname = dir_path + 'tomography2D_data.obs'
-    np.savetxt(fname, data_array, fmt='%.4e')
+    fname = dir_path + "tomography2D_data.obs"
+    np.savetxt(fname, data_array, fmt="%.4e")
 
     output_model = model
-    fname = dir_path + 'true_model_2D.txt'
-    np.savetxt(fname, output_model, fmt='%.4e')
+    fname = dir_path + "true_model_2D.txt"
+    np.savetxt(fname, output_model, fmt="%.4e")

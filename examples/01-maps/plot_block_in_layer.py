@@ -29,18 +29,18 @@ import matplotlib.pyplot as plt
 
 def run(plotIt=True):
 
-    mesh = discretize.TensorMesh([50, 50], x0='CC')  # 2D Tensor Mesh
+    mesh = discretize.TensorMesh([50, 50], x0="CC")  # 2D Tensor Mesh
     mapping = maps.ParametricBlockInLayer(mesh)  # mapping
 
     m = np.hstack(
         np.r_[
-            1.,  # value of the background
-            2.,  # value in the layer
-            3.,  # value in the block
+            1.0,  # value of the background
+            2.0,  # value in the layer
+            3.0,  # value in the block
             -0.1,  # center of the layer (depth)
             0.2,  # thickness of the layer
             0.3,  # x-center of block
-            0.2  # width of the block
+            0.2,  # width of the block
         ]
     )
 
@@ -51,6 +51,7 @@ def run(plotIt=True):
         fig, ax = plt.subplots(1, 1, figsize=(4, 6))
         mesh.plotImage(rho, ax=ax)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run()
     plt.show()

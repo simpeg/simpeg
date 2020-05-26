@@ -31,9 +31,15 @@ import tarfile
 from discretize import TensorMesh
 
 from SimPEG import (
-    maps, data, data_misfit, regularization,
-    optimization, inverse_problem, inversion, directives,
-    utils
+    maps,
+    data,
+    data_misfit,
+    regularization,
+    optimization,
+    inverse_problem,
+    inversion,
+    directives,
+    utils,
 )
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
@@ -66,9 +72,9 @@ tar.close()
 dir_path = downloaded_data.split(".")[0] + os.path.sep
 
 # files to work with
-data_filename = dir_path + 'app_res_1d_data.dobs'
-model_filename = dir_path + 'true_model.txt'
-mesh_filename = dir_path + 'layers.txt'
+data_filename = dir_path + "app_res_1d_data.dobs"
+model_filename = dir_path + "true_model.txt"
+mesh_filename = dir_path + "layers.txt"
 
 
 #############################################
@@ -93,14 +99,14 @@ dobs = dobs[:, -1]
 unique_tx, k = np.unique(np.c_[A_electrodes, B_electrodes], axis=0, return_index=True)
 n_sources = len(k)
 k = np.sort(k)
-k = np.r_[k, len(k)+1]
+k = np.r_[k, len(k) + 1]
 
 source_list = []
 for ii in range(0, n_sources):
 
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
-    M_locations = M_electrodes[k[ii]:k[ii+1], :]
-    N_locations = N_electrodes[k[ii]:k[ii+1], :]
+    M_locations = M_electrodes[k[ii] : k[ii + 1], :]
+    N_locations = N_electrodes[k[ii] : k[ii + 1], :]
     receiver_list = [dc.receivers.Dipole(M_locations, N_locations)]
 
     # AB electrode locations for source. Each is a (1, 3) numpy array
@@ -116,14 +122,14 @@ survey.getABMN_locations()
 
 # Plot apparent resistivities on sounding curve as a function of Wenner separation
 # parameter.
-electrode_separations = 0.5*np.sqrt(
-    np.sum((survey.a_locations - survey.b_locations)**2, axis=1)
+electrode_separations = 0.5 * np.sqrt(
+    np.sum((survey.a_locations - survey.b_locations) ** 2, axis=1)
 )
 
 fig = plt.figure(figsize=(11, 5))
-mpl.rcParams.update({'font.size': 14})
+mpl.rcParams.update({"font.size": 14})
 ax1 = fig.add_axes([0.15, 0.1, 0.7, 0.85])
-ax1.semilogy(electrode_separations, dobs, 'b')
+ax1.semilogy(electrode_separations, dobs, "b")
 ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 plt.show()
@@ -137,7 +143,7 @@ plt.show()
 # a relative error is applied to each datum. For this tutorial, the relative
 # error on each datum will be 2%.
 
-std = 0.02*np.abs(dobs)
+std = 0.02 * np.abs(dobs)
 
 
 ###############################################
@@ -160,10 +166,10 @@ data_object = data.Data(survey, dobs=dobs, standard_deviation=std)
 #
 
 # Define layer thicknesses
-layer_thicknesses = 5*np.logspace(0,1,25)
+layer_thicknesses = 5 * np.logspace(0, 1, 25)
 
 # Define a mesh for plotting and regularization.
-mesh = TensorMesh([(np.r_[layer_thicknesses, layer_thicknesses[-1]])], '0')
+mesh = TensorMesh([(np.r_[layer_thicknesses, layer_thicknesses[-1]])], "0")
 
 print(mesh)
 
@@ -182,10 +188,10 @@ print(mesh)
 # not converge.
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-starting_model = np.log(2e2*np.ones((len(layer_thicknesses)+1)))
+starting_model = np.log(2e2 * np.ones((len(layer_thicknesses) + 1)))
 
 # Define mapping from model to active cells.
-model_map = maps.IdentityMap(nP=len(starting_model))*maps.ExpMap()
+model_map = maps.IdentityMap(nP=len(starting_model)) * maps.ExpMap()
 
 #######################################################################
 # Define the Physics
@@ -195,8 +201,10 @@ model_map = maps.IdentityMap(nP=len(starting_model))*maps.ExpMap()
 #
 
 simulation = dc.simulation_1d.Simulation1DLayers(
-    survey=survey, rhoMap=model_map, thicknesses=layer_thicknesses,
-    data_type="apparent_resistivity"
+    survey=survey,
+    rhoMap=model_map,
+    thicknesses=layer_thicknesses,
+    data_type="apparent_resistivity",
 )
 
 
@@ -229,10 +237,7 @@ reg.norms = np.c_[p, q]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.ProjectedGNCG(
-    maxIter=100, maxIterLS=20,
-    maxIterCG=20, tolCG=1e-3
-)
+opt = optimization.ProjectedGNCG(maxIter=100, maxIterLS=20, maxIterCG=20, tolCG=1e-3)
 
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -250,8 +255,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 update_sensitivity_weights = directives.UpdateSensitivityWeights()
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-IRLS = directives.Update_IRLS(
-    max_irls_iterations=40, minGNiter=1, f_min_change=1e-5)
+IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=1e-5)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
@@ -265,8 +269,11 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # The directives are defined as a list.
 directives_list = [
-    update_sensitivity_weights, IRLS, starting_beta,
-    update_Jacobi, save_iteration
+    update_sensitivity_weights,
+    IRLS,
+    starting_beta,
+    update_Jacobi,
+    save_iteration,
 ]
 
 #####################################################################
@@ -291,30 +298,30 @@ recovered_model = inv.run(starting_model)
 # Load the true model and layer thicknesses
 true_model = np.loadtxt(str(model_filename))
 true_layers = np.loadtxt(str(mesh_filename))
-true_layers = TensorMesh([true_layers], 'N')
+true_layers = TensorMesh([true_layers], "N")
 
 # Extract Least-Squares model
 l2_model = inv_prob.l2model
 
 # Plot true model and recovered model
 fig = plt.figure(figsize=(6, 4))
-x_min = np.min(np.r_[model_map*recovered_model, model_map*l2_model, true_model])
-x_max = np.max(np.r_[model_map*recovered_model, model_map*l2_model, true_model])
+x_min = np.min(np.r_[model_map * recovered_model, model_map * l2_model, true_model])
+x_max = np.max(np.r_[model_map * recovered_model, model_map * l2_model, true_model])
 
 ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
-plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color='k')
-plot_layer(model_map*l2_model, mesh, ax=ax1, depth_axis=False, color='b')
-plot_layer(model_map*recovered_model, mesh, ax=ax1, depth_axis=False, color='r')
-ax1.set_xlim(0.9*x_min, 1.1*x_max)
-ax1.legend(['True Model','L2-Model','Sparse Model'])
+plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color="k")
+plot_layer(model_map * l2_model, mesh, ax=ax1, depth_axis=False, color="b")
+plot_layer(model_map * recovered_model, mesh, ax=ax1, depth_axis=False, color="r")
+ax1.set_xlim(0.9 * x_min, 1.1 * x_max)
+ax1.legend(["True Model", "L2-Model", "Sparse Model"])
 
 # Plot the true and apparent resistivities on a sounding curve
 fig = plt.figure(figsize=(11, 5))
 ax1 = fig.add_axes([0.2, 0.1, 0.6, 0.8])
-ax1.semilogy(electrode_separations, dobs, 'k')
-ax1.semilogy(electrode_separations, simulation.dpred(l2_model), 'b')
-ax1.semilogy(electrode_separations, simulation.dpred(recovered_model), 'r')
+ax1.semilogy(electrode_separations, dobs, "k")
+ax1.semilogy(electrode_separations, simulation.dpred(l2_model), "b")
+ax1.semilogy(electrode_separations, simulation.dpred(recovered_model), "r")
 ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
-ax1.legend(['True Sounding Curve','Predicted (L2-Model)','Predicted (Sparse)'])
+ax1.legend(["True Sounding Curve", "Predicted (L2-Model)", "Predicted (Sparse)"])
 plt.show()

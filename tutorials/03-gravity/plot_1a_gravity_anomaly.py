@@ -1,4 +1,3 @@
-
 """
 Forward Simulation of Gravity Anomaly Data on a Tensor Mesh
 ===========================================================
@@ -46,7 +45,7 @@ save_file = False
 #
 
 [x_topo, y_topo] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
-z_topo = -15*np.exp(-(x_topo**2 + y_topo**2) / 80**2)
+z_topo = -15 * np.exp(-(x_topo ** 2 + y_topo ** 2) / 80 ** 2)
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
@@ -62,12 +61,12 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 #
 
 # Define the observation locations as an (N, 3) numpy array or load them.
-x = np.linspace(-80., 80., 17)
-y = np.linspace(-80., 80., 17)
+x = np.linspace(-80.0, 80.0, 17)
+y = np.linspace(-80.0, 80.0, 17)
 x, y = np.meshgrid(x, y)
 x, y = mkvc(x.T), mkvc(y.T)
 fun_interp = LinearNDInterpolator(np.c_[x_topo, y_topo], z_topo)
-z = fun_interp(np.c_[x, y]) + 5.
+z = fun_interp(np.c_[x, y]) + 5.0
 receiver_locations = np.c_[x, y, z]
 
 # Define the component(s) of the field we want to simulate as strings within
@@ -76,9 +75,7 @@ components = ["gz"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list = gravity.receivers.Point(
-    receiver_locations, components=components
-)
+receiver_list = gravity.receivers.Point(receiver_locations, components=components)
 
 receiver_list = [receiver_list]
 
@@ -97,11 +94,11 @@ survey = gravity.survey.Survey(source_field)
 # data.
 #
 
-dh = 5.
+dh = 5.0
 hx = [(dh, 5, -1.3), (dh, 40), (dh, 5, 1.3)]
 hy = [(dh, 5, -1.3), (dh, 40), (dh, 5, 1.3)]
 hz = [(dh, 5, -1.3), (dh, 15)]
-mesh = TensorMesh([hx, hy, hz], 'CCN')
+mesh = TensorMesh([hx, hy, hz], "CCN")
 
 ########################################################
 # Density Contrast Model and Mapping on Tensor Mesh
@@ -113,7 +110,7 @@ mesh = TensorMesh([hx, hy, hz], 'CCN')
 #
 
 # Define density contrast values for each unit in g/cc
-background_density = 0.
+background_density = 0.0
 block_density = -0.2
 sphere_density = 0.2
 
@@ -126,21 +123,22 @@ nC = int(ind_active.sum())
 model_map = maps.IdentityMap(nP=nC)
 
 # Define model. Models in SimPEG are vector arrays.
-model = background_density*np.ones(nC)
+model = background_density * np.ones(nC)
 
 # You could find the indicies of specific cells within the model and change their
 # value to add structures.
 ind_block = (
-    (mesh.gridCC[ind_active, 0] > -50.) & (mesh.gridCC[ind_active, 0] < -20.) &
-    (mesh.gridCC[ind_active, 1] > -15.) & (mesh.gridCC[ind_active, 1] < 15.) &
-    (mesh.gridCC[ind_active, 2] > -50.) & (mesh.gridCC[ind_active, 2] < -30.)
+    (mesh.gridCC[ind_active, 0] > -50.0)
+    & (mesh.gridCC[ind_active, 0] < -20.0)
+    & (mesh.gridCC[ind_active, 1] > -15.0)
+    & (mesh.gridCC[ind_active, 1] < 15.0)
+    & (mesh.gridCC[ind_active, 2] > -50.0)
+    & (mesh.gridCC[ind_active, 2] < -30.0)
 )
 model[ind_block] = block_density
 
 # You can also use SimPEG utilities to add structures to the model more concisely
-ind_sphere = model_builder.getIndicesSphere(
-    np.r_[35., 0., -40.], 15., mesh.gridCC
-)
+ind_sphere = model_builder.getIndicesSphere(np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC)
 ind_sphere = ind_sphere[ind_active]
 model[ind_sphere] = sphere_density
 
@@ -150,22 +148,24 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 mesh.plotSlice(
-    plotting_map*model, normal='Y', ax=ax1, ind=int(mesh.nCy/2), grid=True,
-    clim=(np.min(model), np.max(model)), pcolorOpts={'cmap': 'viridis'}
+    plotting_map * model,
+    normal="Y",
+    ax=ax1,
+    ind=int(mesh.nCy / 2),
+    grid=True,
+    clim=(np.min(model), np.max(model)),
+    pcolorOpts={"cmap": "viridis"},
 )
-ax1.set_title('Model slice at y = 0 m')
-ax1.set_xlabel('x (m)')
-ax1.set_ylabel('z (m)')
+ax1.set_title("Model slice at y = 0 m")
+ax1.set_xlabel("x (m)")
+ax1.set_ylabel("z (m)")
 
 ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(vmin=np.min(model), vmax=np.max(model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.viridis
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis
 )
-cbar.set_label(
-    '$g/cm^3$',
-    rotation=270, labelpad=15, size=12
-)
+cbar.set_label("$g/cm^3$", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -181,8 +181,11 @@ plt.show()
 # Define the forward simulation. By setting the 'store_sensitivities' keyword
 # argument to "forward_only", we simulate the data without storing the sensitivities
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, rhoMap=model_map,
-    actInd=ind_active, store_sensitivities="forward_only"
+    survey=survey,
+    mesh=mesh,
+    rhoMap=model_map,
+    actInd=ind_active,
+    store_sensitivities="forward_only",
 )
 
 # Compute predicted data for some model
@@ -193,18 +196,16 @@ fig = plt.figure(figsize=(7, 5))
 
 ax1 = fig.add_axes([0.1, 0.1, 0.75, 0.85])
 plot2Ddata(receiver_list[0].locations, dpred, ax=ax1, contourOpts={"cmap": "bwr"})
-ax1.set_title('Gravity Anomaly (Z-component)')
-ax1.set_xlabel('x (m)')
-ax1.set_ylabel('y (m)')
+ax1.set_title("Gravity Anomaly (Z-component)")
+ax1.set_xlabel("x (m)")
+ax1.set_ylabel("y (m)")
 
 ax2 = fig.add_axes([0.82, 0.1, 0.03, 0.85])
-norm = mpl.colors.Normalize(
-    vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred))
-)
+norm = mpl.colors.Normalize(vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred)))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.bwr, format='%.1e'
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.bwr, format="%.1e"
 )
-cbar.set_label('$mgal$', rotation=270, labelpad=15, size=12)
+cbar.set_label("$mgal$", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -219,18 +220,18 @@ plt.show()
 if save_file:
 
     dir_path = os.path.dirname(gravity.__file__).split(os.path.sep)[:-3]
-    dir_path.extend(['tutorials', 'assets', 'gravity'])
+    dir_path.extend(["tutorials", "assets", "gravity"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    fname = dir_path + 'gravity_topo.txt'
-    np.savetxt(fname, np.c_[xyz_topo], fmt='%.4e')
+    fname = dir_path + "gravity_topo.txt"
+    np.savetxt(fname, np.c_[xyz_topo], fmt="%.4e")
 
     maximum_anomaly = np.max(np.abs(dpred))
-    noise = 0.01*maximum_anomaly*np.random.rand(len(dpred))
-    fname = dir_path + 'gravity_data.obs'
-    np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt='%.4e')
+    noise = 0.01 * maximum_anomaly * np.random.rand(len(dpred))
+    fname = dir_path + "gravity_data.obs"
+    np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt="%.4e")
 
-    output_model = plotting_map*model
-    output_model[np.isnan(output_model)] = 0.
-    fname = dir_path + 'true_model.txt'
-    np.savetxt(fname, output_model, fmt='%.4e')
+    output_model = plotting_map * model
+    output_model[np.isnan(output_model)] = 0.0
+    fname = dir_path + "true_model.txt"
+    np.savetxt(fname, output_model, fmt="%.4e")

@@ -14,9 +14,7 @@ from .maps import IdentityMap
 from .props import BaseSimPEG
 from .utils import setKwargs, timeIt, Zero, Identity
 
-__all__ = [
-    'BaseObjectiveFunction', 'ComboObjectiveFunction', 'L2ObjectiveFunction'
-]
+__all__ = ["BaseObjectiveFunction", "ComboObjectiveFunction", "L2ObjectiveFunction"]
 
 
 class BaseObjectiveFunction(BaseSimPEG):
@@ -46,7 +44,7 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     def __call__(self, x, f=None):
         raise NotImplementedError(
-            '__call__ has not been implemented for {} yet'.format(
+            "__call__ has not been implemented for {} yet".format(
                 self.__class__.__name__
             )
         )
@@ -58,16 +56,16 @@ class BaseObjectiveFunction(BaseSimPEG):
         """
         if self._nP is not None:
             return self._nP
-        if getattr(self, 'mapping', None) is not None:
+        if getattr(self, "mapping", None) is not None:
             return self.mapping.nP
-        return '*'
+        return "*"
 
     @property
     def _nC_residual(self):
         """
         Shape of the residual
         """
-        if getattr(self, 'mapping', None) is not None:
+        if getattr(self, "mapping", None) is not None:
             return self.mapping.shape[0]
         else:
             return self.nP
@@ -77,8 +75,8 @@ class BaseObjectiveFunction(BaseSimPEG):
         """
         A `SimPEG.Maps` instance
         """
-        if getattr(self, '_mapping') is None:
-            if getattr(self, '_nP') is not None:
+        if getattr(self, "_mapping") is None:
+            if getattr(self, "_nP") is not None:
                 self._mapping = self.mapPair(nP=self.nP)
             else:
                 self._mapping = self.mapPair()
@@ -87,10 +85,9 @@ class BaseObjectiveFunction(BaseSimPEG):
     @mapping.setter
     def mapping(self, value):
         assert isinstance(value, self.mapPair), (
-            'mapping must be an instance of a {}, not a {}'
+            "mapping must be an instance of a {}, not a {}"
         ).format(self.mapPair, value.__class__.__name__)
         self._mapping = value
-
 
     @timeIt
     def __call__(self, x, f=None):
@@ -123,30 +120,33 @@ class BaseObjectiveFunction(BaseSimPEG):
         )
 
     def _test_deriv(self, x=None, num=4, plotIt=False, **kwargs):
-        print('Testing {0!s} Deriv'.format(self.__class__.__name__))
+        print("Testing {0!s} Deriv".format(self.__class__.__name__))
         if x is None:
-            if self.nP == '*':
+            if self.nP == "*":
                 x = np.random.randn(np.random.randint(1e2, high=1e3))
             else:
                 x = np.random.randn(self.nP)
 
         return checkDerivative(
-            lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt,
-            **kwargs
+            lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt, **kwargs
         )
 
     def _test_deriv2(self, x=None, num=4, plotIt=False, **kwargs):
-        print('Testing {0!s} Deriv2'.format(self.__class__.__name__))
+        print("Testing {0!s} Deriv2".format(self.__class__.__name__))
         if x is None:
-            if self.nP == '*':
+            if self.nP == "*":
                 x = np.random.randn(np.random.randint(1e2, high=1e3))
             else:
                 x = np.random.randn(self.nP)
 
-        v = x + 0.1*np.random.rand(len(x))
+        v = x + 0.1 * np.random.rand(len(x))
         return checkDerivative(
             lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)],
-            x, num=num, expectedOrder=1, plotIt=plotIt, **kwargs
+            x,
+            num=num,
+            expectedOrder=1,
+            plotIt=plotIt,
+            **kwargs
         )
 
     def test(self, x=None, num=4, plotIt=False, **kwargs):
@@ -156,7 +156,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         """
         deriv = self._test_deriv(x=x, num=num, **kwargs)
         deriv2 = self._test_deriv2(x=x, num=num, plotIt=False, **kwargs)
-        return (deriv & deriv2)
+        return deriv & deriv2
 
     __numpy_ufunc__ = True
 
@@ -173,21 +173,23 @@ class BaseObjectiveFunction(BaseSimPEG):
                 )
             )
 
-        if self.__class__.__name__ != 'ComboObjectiveFunction': #not isinstance(self, ComboObjectiveFunction):
+        if (
+            self.__class__.__name__ != "ComboObjectiveFunction"
+        ):  # not isinstance(self, ComboObjectiveFunction):
             self = 1 * self
 
-        if objfct2.__class__.__name__ != 'ComboObjectiveFunction': #not isinstance(objfct2, ComboObjectiveFunction):
+        if (
+            objfct2.__class__.__name__ != "ComboObjectiveFunction"
+        ):  # not isinstance(objfct2, ComboObjectiveFunction):
             objfct2 = 1 * objfct2
 
         objfctlist = self.objfcts + objfct2.objfcts
         multipliers = self.multipliers + objfct2.multipliers
 
-        return ComboObjectiveFunction(
-            objfcts=objfctlist, multipliers=multipliers
-        )
+        return ComboObjectiveFunction(objfcts=objfctlist, multipliers=multipliers)
 
     def __radd__(self, objfct2):
-        return self+objfct2
+        return self + objfct2
 
     def __mul__(self, multiplier):
         return ComboObjectiveFunction([self], [multiplier])
@@ -196,13 +198,13 @@ class BaseObjectiveFunction(BaseSimPEG):
         return self * multiplier
 
     def __div__(self, denominator):
-        return self.__mul__(1./denominator)
+        return self.__mul__(1.0 / denominator)
 
     def __truediv__(self, denominator):
-        return self.__mul__(1./denominator)
+        return self.__mul__(1.0 / denominator)
 
     def __rdiv__(self, denominator):
-        return self.__mul__(1./denominator)
+        return self.__mul__(1.0 / denominator)
 
 
 class ComboObjectiveFunction(BaseObjectiveFunction):
@@ -232,17 +234,18 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             )
 
     """
-    _multiplier_types = (float, None, Zero, np.float64) + integer_types # Directive
+
+    _multiplier_types = (float, None, Zero, np.float64) + integer_types  # Directive
     _multipliers = None
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
 
         if multipliers is None:
-            multipliers = len(objfcts)*[1]
+            multipliers = len(objfcts) * [1]
 
-        self._nP = '*'
+        self._nP = "*"
 
-        assert(len(objfcts)==len(multipliers)), (
+        assert len(objfcts) == len(multipliers), (
             "Must have the same number of Objective Functions and Multipliers "
             "not {} and {}".format(len(objfcts), len(multipliers))
         )
@@ -254,23 +257,21 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             list matches the length of the objective function list
             """
             for fct, mult in zip(objfctlist, multipliers):
-                assert (
-                    isinstance(fct, BaseObjectiveFunction)
-                ) , (
+                assert isinstance(fct, BaseObjectiveFunction), (
                     "Unrecognized objective function type {} in objfcts. "
                     "All entries in objfcts must inherit from "
                     "ObjectiveFunction".format(fct.__class__.__name__)
                 )
 
-                assert(type(mult) in self._multiplier_types), (
+                assert type(mult) in self._multiplier_types, (
                     "Objective Functions can only be multiplied by a "
                     "float, or a properties.Float, not a {}, {}".format(
                         type(mult), mult
                     )
                 )
 
-                if fct.nP != '*':
-                    if self._nP != '*':
+                if fct.nP != "*":
+                    if self._nP != "*":
                         assert self._nP == fct.nP, (
                             "Objective Functions must all have the same "
                             "nP={}, not {}".format(self.nP, [f.nP for f in objfcts])
@@ -302,27 +303,25 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     @multipliers.setter
     def multipliers(self, value):
         for val in value:
-            assert type(val) in self._multiplier_types, (
-                'Multiplier must be in type {} not {}'.format(
-                    self._multiplier_types, type(val)
-                )
+            assert (
+                type(val) in self._multiplier_types
+            ), "Multiplier must be in type {} not {}".format(
+                self._multiplier_types, type(val)
             )
 
         assert len(value) == len(self.objfcts), (
-            'the length of multipliers should be the same as the number of'
-            ' objective functions ({}), not {}'.format(
-                len(self.objfcts, len(value))
-            )
+            "the length of multipliers should be the same as the number of"
+            " objective functions ({}), not {}".format(len(self.objfcts, len(value)))
         )
 
         self._multipliers = value
 
     def __call__(self, m, f=None):
 
-        fct = 0.
+        fct = 0.0
         for i, phi in enumerate(self):
             multiplier, objfct = phi
-            if multiplier == 0.: # don't evaluate the fct
+            if multiplier == 0.0:  # don't evaluate the fct
                 continue
             else:
                 if f is not None and objfct._hasFields:
@@ -343,7 +342,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         g = Zero()
         for i, phi in enumerate(self):
             multiplier, objfct = phi
-            if multiplier == 0.: # don't evaluate the fct
+            if multiplier == 0.0:  # don't evaluate the fct
                 continue
             else:
                 if f is not None and objfct._hasFields:
@@ -365,7 +364,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         H = Zero()
         for i, phi in enumerate(self):
             multiplier, objfct = phi
-            if multiplier == 0.: # don't evaluate the fct
+            if multiplier == 0.0:  # don't evaluate the fct
                 continue
             else:
                 if f is not None and objfct._hasFields:
@@ -399,11 +398,12 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
 
         \phi = \frac{1}{2}||\mathbf{W} \mathbf{m}||^2
     """
+
     def __init__(self, W=None, **kwargs):
 
         super(L2ObjectiveFunction, self).__init__(**kwargs)
         if W is not None:
-            if self.nP == '*':
+            if self.nP == "*":
                 self._nP = W.shape[1]
         self._W = W
 
@@ -412,8 +412,8 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         """
         Weighting matrix. The default if not sepcified is an identity.
         """
-        if getattr(self, '_W', None) is None:
-            if self._nC_residual != '*':
+        if getattr(self, "_W", None) is None:
+            if self._nC_residual != "*":
                 self._W = sp.eye(self._nC_residual)
             else:
                 self._W = Identity()
@@ -429,10 +429,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
 
         :param numpy.ndarray m: model
         """
-        return (
-            self.mapping.deriv(m).T *
-            (self.W.T * (self.W * (self.mapping * m)))
-        )
+        return self.mapping.deriv(m).T * (self.W.T * (self.W * (self.mapping * m)))
 
     def deriv2(self, m, v=None):
         """
@@ -442,10 +439,8 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         :param numpy.ndarray v: vector to multiply by
         """
         if v is not None:
-            return (
-                self.mapping.deriv(m).T * (
-                    self.W.T * (self.W * (self.mapping.deriv(m) * v))
-                )
+            return self.mapping.deriv(m).T * (
+                self.W.T * (self.W * (self.mapping.deriv(m) * v))
             )
         W = self.W * self.mapping.deriv(m)
         return W.T * W

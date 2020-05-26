@@ -1,4 +1,3 @@
-
 """
 2.5D DC Resistivity Inversion with Sparse Norms
 ===============================================
@@ -33,8 +32,15 @@ from discretize.utils import mkvc, refine_tree_xyz
 
 from SimPEG.utils import surface2ind_topo
 from SimPEG import (
-    maps, data, data_misfit, regularization,
-    optimization, inverse_problem, inversion, directives, utils
+    maps,
+    data,
+    data_misfit,
+    regularization,
+    optimization,
+    inverse_problem,
+    inversion,
+    directives,
+    utils,
 )
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import plot_pseudoSection
@@ -73,9 +79,9 @@ tar.close()
 dir_path = downloaded_data.split(".")[0] + os.path.sep
 
 # files to work with
-topo_filename = dir_path + 'xyz_topo.txt'
-data_filename = dir_path + 'dc_data.obs'
-true_conductivity_filename = dir_path + 'true_conductivity.txt'
+topo_filename = dir_path + "xyz_topo.txt"
+data_filename = dir_path + "dc_data.obs"
+true_conductivity_filename = dir_path + "true_conductivity.txt"
 
 
 #############################################
@@ -100,15 +106,15 @@ dobs = dobs[:, -1]
 # Define survey
 unique_tx, k = np.unique(np.c_[A_electrodes, B_electrodes], axis=0, return_index=True)
 n_sources = len(k)
-k = np.r_[k, len(A_electrodes)+1]
+k = np.r_[k, len(A_electrodes) + 1]
 
 source_list = []
 for ii in range(0, n_sources):
 
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
-    M_locations = M_electrodes[k[ii]:k[ii+1], :]
-    N_locations = N_electrodes[k[ii]:k[ii+1], :]
-    receiver_list = [dc.receivers.Dipole(M_locations, N_locations, data_type='volt')]
+    M_locations = M_electrodes[k[ii] : k[ii + 1], :]
+    N_locations = N_electrodes[k[ii] : k[ii + 1], :]
+    receiver_list = [dc.receivers.Dipole(M_locations, N_locations, data_type="volt")]
 
     # AB electrode locations for source. Each is a (1, 3) numpy array
     A_location = A_electrodes[k[ii], :]
@@ -122,15 +128,20 @@ survey = dc.survey.Survey_ky(source_list)
 dc_data = data.Data(survey, dobs=dobs)
 
 # Plot apparent conductivity using pseudo-section
-mpl.rcParams.update({'font.size': 12})
+mpl.rcParams.update({"font.size": 12})
 fig = plt.figure(figsize=(12, 5))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
 plot_pseudoSection(
-    dc_data, ax=ax1, survey_type='dipole-dipole', data_type='appConductivity',
-    space_type='half-space', scale='log', pcolorOpts={'cmap':'viridis'}
+    dc_data,
+    ax=ax1,
+    survey_type="dipole-dipole",
+    data_type="appConductivity",
+    space_type="half-space",
+    scale="log",
+    pcolorOpts={"cmap": "viridis"},
 )
-ax1.set_title('Apparent Conductivity [S/m]')
+ax1.set_title("Apparent Conductivity [S/m]")
 
 plt.show()
 
@@ -144,7 +155,7 @@ plt.show()
 #
 
 # Compute standard deviations
-std = 0.05*np.abs(dobs)
+std = 0.05 * np.abs(dobs)
 
 # Add standard deviations to data object
 dc_data.standard_deviation = std
@@ -157,41 +168,38 @@ dc_data.standard_deviation = std
 # resistivity and IP data.
 #
 
-dh = 10.                                                    # base cell width
-dom_width_x = 2400.                                         # domain width x
-dom_width_z = 1200.                                         # domain width z
-nbcx = 2**int(np.round(np.log(dom_width_x/dh)/np.log(2.)))  # num. base cells x
-nbcz = 2**int(np.round(np.log(dom_width_z/dh)/np.log(2.)))  # num. base cells z
+dh = 10.0  # base cell width
+dom_width_x = 2400.0  # domain width x
+dom_width_z = 1200.0  # domain width z
+nbcx = 2 ** int(np.round(np.log(dom_width_x / dh) / np.log(2.0)))  # num. base cells x
+nbcz = 2 ** int(np.round(np.log(dom_width_z / dh) / np.log(2.0)))  # num. base cells z
 
 # Define the base mesh
 hx = [(dh, nbcx)]
 hz = [(dh, nbcz)]
-mesh = TreeMesh([hx, hz], x0='CN')
+mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[:, [0, 2]], octree_levels=[1], method='surface', finalize=False
+    mesh, topo_xyz[:, [0, 2]], octree_levels=[1], method="surface", finalize=False
 )
 
 # Mesh refinement near transmitters and receivers
 survey.getABMN_locations()
 electrode_locations = np.r_[
-    survey.a_locations, survey.b_locations,
-    survey.m_locations, survey.n_locations
+    survey.a_locations, survey.b_locations, survey.m_locations, survey.n_locations
 ]
 
 unique_locations = np.unique(electrode_locations, axis=0)
 
 mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[2, 4], method='radial', finalize=False
+    mesh, unique_locations, octree_levels=[2, 4], method="radial", finalize=False
 )
 
 # Refine core mesh region
-xp, zp = np.meshgrid([-800., 800.], [-800., 0.])
+xp, zp = np.meshgrid([-800.0, 800.0], [-800.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(
-    mesh, xyz, octree_levels=[0, 2, 2], method='box', finalize=False
-)
+mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 2], method="box", finalize=False)
 
 mesh.finalize()
 
@@ -210,7 +218,7 @@ mesh.finalize()
 ind_active = surface2ind_topo(mesh, topo_xyz[:, [0, 2]])
 
 # Shift electrodes to the surface of discretized topography
-survey.drapeTopo(mesh, ind_active, option='top')
+survey.drapeTopo(mesh, ind_active, option="top")
 
 ########################################################
 # Starting/Reference Model and Mapping on OcTree Mesh
@@ -229,10 +237,10 @@ background_conductivity = np.log(1e-2)
 active_map = maps.InjectActiveCells(mesh, ind_active, np.exp(air_conductivity))
 nC = int(ind_active.sum())
 
-conductivity_map = active_map*maps.ExpMap()
+conductivity_map = active_map * maps.ExpMap()
 
 # Define model
-starting_conductivity_model = background_conductivity*np.ones(nC)
+starting_conductivity_model = background_conductivity * np.ones(nC)
 
 ##############################################
 # Define the Physics of the DC Simulation
@@ -270,8 +278,14 @@ dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
 regmap = maps.IdentityMap(nP=int(ind_active.sum()))
 
 reg = regularization.Sparse(
-    mesh, indActive=ind_active, mref=starting_conductivity_model, mapping=regmap,
-    gradientType='components', alpha_s=0.01, alpha_x=1, alpha_y=1
+    mesh,
+    indActive=ind_active,
+    mref=starting_conductivity_model,
+    mapping=regmap,
+    gradientType="components",
+    alpha_s=0.01,
+    alpha_x=1,
+    alpha_y=1,
 )
 
 p = 0
@@ -315,8 +329,10 @@ update_Jacobi = directives.UpdatePreconditioner()
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 directives_list = [
-    update_sensitivity_weighting, update_IRLS, starting_beta,
-    save_iteration
+    update_sensitivity_weighting,
+    update_IRLS,
+    starting_beta,
+    save_iteration,
 ]
 
 #####################################################################
@@ -328,9 +344,7 @@ directives_list = [
 #
 
 # Here we combine the inverse problem and the set of directives
-dc_inversion = inversion.BaseInversion(
-    inv_prob, directiveList=directives_list
-)
+dc_inversion = inversion.BaseInversion(inv_prob, directiveList=directives_list)
 
 # Run inversion
 recovered_conductivity_model = dc_inversion.run(starting_conductivity_model)
@@ -350,37 +364,53 @@ recovered_conductivity_model_log10 = np.log10(np.exp(recovered_conductivity_mode
 
 # Plot True Model
 fig = plt.figure(figsize=(9, 15))
-ax1 = 3*[None]
-ax2 = 3*[None]
-title_str = ['True Conductivity Model', 'Smooth Recovered Model', 'Sparse Recovered Model']
+ax1 = 3 * [None]
+ax2 = 3 * [None]
+title_str = [
+    "True Conductivity Model",
+    "Smooth Recovered Model",
+    "Sparse Recovered Model",
+]
 
 plotting_map = maps.ActiveCells(mesh, ind_active, np.nan)
 plotting_model = [
     true_conductivity_model_log10,
     l2_conductivity_model_log10,
-    recovered_conductivity_model_log10
-    ]
+    recovered_conductivity_model_log10,
+]
 
 for ii in range(0, 3):
 
-    ax1[ii] = fig.add_axes([0.1, 0.73-0.3*ii, 0.72, 0.21])
+    ax1[ii] = fig.add_axes([0.1, 0.73 - 0.3 * ii, 0.72, 0.21])
     mesh.plotImage(
-        plotting_map*plotting_model[ii], ax=ax1[ii], grid=False,
-        clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
-        range_x=[-700, 700], range_y=[-600, 0], pcolorOpts={'cmap': 'viridis'}
+        plotting_map * plotting_model[ii],
+        ax=ax1[ii],
+        grid=False,
+        clim=(
+            np.min(true_conductivity_model_log10),
+            np.max(true_conductivity_model_log10),
+        ),
+        range_x=[-700, 700],
+        range_y=[-600, 0],
+        pcolorOpts={"cmap": "viridis"},
     )
     ax1[ii].set_title(title_str[ii])
-    ax1[ii].set_xlabel('x (m)')
-    ax1[ii].set_ylabel('z (m)')
+    ax1[ii].set_xlabel("x (m)")
+    ax1[ii].set_ylabel("z (m)")
 
-    ax2[ii] = fig.add_axes([0.83, 0.73-0.3*ii, 0.05, 0.21])
+    ax2[ii] = fig.add_axes([0.83, 0.73 - 0.3 * ii, 0.05, 0.21])
     norm = mpl.colors.Normalize(
-            vmin=np.min(true_conductivity_model_log10), vmax=np.max(true_conductivity_model_log10)
-            )
-    cbar = mpl.colorbar.ColorbarBase(
-        ax2[ii], norm=norm, orientation='vertical', cmap=mpl.cm.viridis, format='10^%.1f'
+        vmin=np.min(true_conductivity_model_log10),
+        vmax=np.max(true_conductivity_model_log10),
     )
-    cbar.set_label('$S/m$', rotation=270, labelpad=15, size=12)
+    cbar = mpl.colorbar.ColorbarBase(
+        ax2[ii],
+        norm=norm,
+        orientation="vertical",
+        cmap=mpl.cm.viridis,
+        format="10^%.1f",
+    )
+    cbar.set_label("$S/m$", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -394,28 +424,32 @@ dpred = simulation.dpred(recovered_conductivity_model)
 dc_data_predicted = data.Data(survey, dobs=dpred)
 
 data_array = [dc_data, dc_data_predicted, dc_data]
-dobs_array = [None, None, (dobs-dpred)/std]
+dobs_array = [None, None, (dobs - dpred) / std]
 
 fig = plt.figure(figsize=(17, 5.5))
-plot_title=['Observed', 'Predicted', 'Normalized Misfit']
-plot_type=['appConductivity', 'appConductivity', 'misfitMap']
-plot_units=['S/m', 'S/m', '']
-scale = ['log', 'log', 'linear']
+plot_title = ["Observed", "Predicted", "Normalized Misfit"]
+plot_type = ["appConductivity", "appConductivity", "misfitMap"]
+plot_units = ["S/m", "S/m", ""]
+scale = ["log", "log", "linear"]
 
-ax1 = 3*[None]
-norm = 3*[None]
-cbar = 3*[None]
-cplot = 3*[None]
+ax1 = 3 * [None]
+norm = 3 * [None]
+cbar = 3 * [None]
+cplot = 3 * [None]
 
 for ii in range(0, 3):
 
-    ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.05, 0.25, 0.9])
+    ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.05, 0.25, 0.9])
     cplot[ii] = plot_pseudoSection(
-        data_array[ii], dobs=dobs_array[ii], ax=ax1[ii], survey_type='dipole-dipole',
-        data_type=plot_type[ii], scale=scale[ii], space_type='half-space',
-        pcolorOpts={'cmap':'viridis'}
+        data_array[ii],
+        dobs=dobs_array[ii],
+        ax=ax1[ii],
+        survey_type="dipole-dipole",
+        data_type=plot_type[ii],
+        scale=scale[ii],
+        space_type="half-space",
+        pcolorOpts={"cmap": "viridis"},
     )
     ax1[ii].set_title(plot_title[ii])
 
 plt.show()
-

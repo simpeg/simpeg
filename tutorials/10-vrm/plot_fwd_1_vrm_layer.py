@@ -56,32 +56,31 @@ waveform_list.append(vrm.waveforms.SquarePulse(t0=0, delt=0.02))
 
 # 30 ms trapezoidal waveform with off-time at t = 0 s.
 t_wave = np.r_[-0.03, -0.02, -0.01, 0]
-I_wave = np.r_[0., 1., 1., 0]
+I_wave = np.r_[0.0, 1.0, 1.0, 0]
 waveform_list.append(vrm.waveforms.ArbitraryPiecewise(t_wave=t_wave, I_wave=I_wave))
 
 # 40 ms triangular waveform with off-time at t = 0 s.
 t_wave = np.r_[-0.04, -0.02, 0]
-I_wave = np.r_[0., 1., 0]
+I_wave = np.r_[0.0, 1.0, 0]
 waveform_list.append(vrm.waveforms.ArbitraryPiecewise(t_wave=t_wave, I_wave=I_wave))
 
 # Plot waveforms
 fig = plt.figure(figsize=(8, 4))
-mpl.rcParams.update({'font.size': 12})
+mpl.rcParams.update({"font.size": 12})
 ax1 = fig.add_axes([0.1, 0.1, 0.85, 0.85])
-ax1.plot(np.r_[-0.04, 0., 0., 0.02], np.r_[1, 1, 0, 0], 'b', lw=2)
-ax1.plot(np.r_[-0.04, -0.02, -0.02, 0., 0., 0.04], np.r_[0, 0, 1, 1, 0, 0], 'r', lw=2)
-ax1.plot(np.r_[-0.04, -0.03, -0.02, -0.01, 0, 0.04], np.r_[0, 0, 1, 1, 0, 0], 'k', lw=2)
-ax1.plot(np.r_[-0.04, -0.02, 0, 0.04], np.r_[0, 1, 0, 0], 'g', lw=2)
+ax1.plot(np.r_[-0.04, 0.0, 0.0, 0.02], np.r_[1, 1, 0, 0], "b", lw=2)
+ax1.plot(np.r_[-0.04, -0.02, -0.02, 0.0, 0.0, 0.04], np.r_[0, 0, 1, 1, 0, 0], "r", lw=2)
+ax1.plot(np.r_[-0.04, -0.03, -0.02, -0.01, 0, 0.04], np.r_[0, 0, 1, 1, 0, 0], "k", lw=2)
+ax1.plot(np.r_[-0.04, -0.02, 0, 0.04], np.r_[0, 1, 0, 0], "g", lw=2)
 ax1.set_xlim((-0.04, 0.04))
 ax1.set_ylim((-0.01, 1.1))
-ax1.set_xlabel('time [s]')
-ax1.set_ylabel('current [A]')
-ax1.set_title('Waveforms')
+ax1.set_xlabel("time [s]")
+ax1.set_ylabel("current [A]")
+ax1.set_title("Waveforms")
 ax1.legend(
-    ['step-off','20 ms square pulse', '30 ms trapezoidal', '40 ms triangular'],
-    loc='upper right'
+    ["step-off", "20 ms square pulse", "30 ms trapezoidal", "40 ms triangular"],
+    loc="upper right",
 )
-
 
 
 ##########################################################################
@@ -99,18 +98,18 @@ time_channels = np.logspace(-4, -1, 31)
 
 # Define the location of the coincident loop transmitter and receiver.
 # In general, you can define the receiver locations as an (N, 3) numpy array.
-xyz = np.c_[0., 0., 0.5]
+xyz = np.c_[0.0, 0.0, 0.5]
 
 # There are 4 parameters needed to define a receiver.
 dbdt_receivers = [
-    vrm.receivers.Point(xyz, times=time_channels, fieldType='dbdt', orientation='z')
+    vrm.receivers.Point(xyz, times=time_channels, fieldType="dbdt", orientation="z")
 ]
 
 # Define sources
 source_list = []
-dipole_moment = [0., 0., 1]
+dipole_moment = [0.0, 0.0, 1]
 for pp in range(0, len(waveform_list)):
-    
+
     # Define the transmitter-receiver pair for each waveform
     source_list.append(
         vrm.sources.MagDipole(
@@ -132,11 +131,11 @@ survey = vrm.Survey(source_list)
 # 10 m thick.
 #
 
-cs, ncx, ncy, ncz, npad = 2., 35, 35, 5, 5
+cs, ncx, ncy, ncz, npad = 2.0, 35, 35, 5, 5
 hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
 hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
 hz = [(cs, ncz)]
-mesh = TensorMesh([hx, hy, hz], 'CCN')
+mesh = TensorMesh([hx, hy, hz], "CCN")
 
 ##########################################################################
 # Defining an Amalgamated Magnetic Property Model
@@ -151,11 +150,11 @@ mesh = TensorMesh([hx, hy, hz], 'CCN')
 
 # Amalgamated magnetic property for the layer
 model_value = 0.0001
-model = model_value*np.ones(mesh.nC)
+model = model_value * np.ones(mesh.nC)
 
 # Define the active cells. These are the cells that exhibit magnetic viscosity
 # and/or lie below the surface topography.
-ind_active = np.ones(mesh.nC, dtype='bool')
+ind_active = np.ones(mesh.nC, dtype="bool")
 
 ##########################################################################
 # Define the Simulation
@@ -173,8 +172,11 @@ ind_active = np.ones(mesh.nC, dtype='bool')
 # transmitter will be modeled as if they are comprised of 2^3 equal smaller
 # cells.
 simulation = vrm.Simulation3DLinear(
-    mesh, survey=survey, indActive=ind_active,
-    refinement_factor=2, refinement_distance=[2., 4.]
+    mesh,
+    survey=survey,
+    indActive=ind_active,
+    refinement_factor=2,
+    refinement_distance=[2.0, 4.0],
 )
 
 #######################################
@@ -193,16 +195,15 @@ dpred = np.reshape(dpred, (n_waveforms, n_times)).T
 # Characteristic VRM decay for several waveforms.
 fig = plt.figure(figsize=(6, 7))
 ax1 = fig.add_axes([0.15, 0.1, 0.8, 0.85])
-ax1.loglog(time_channels, -dpred[:, 0], 'b', lw=2)
-ax1.loglog(time_channels, -dpred[:, 1], 'r', lw=2)
-ax1.loglog(time_channels, -dpred[:, 2], 'k', lw=2)
-ax1.loglog(time_channels, -dpred[:, 3], 'g', lw=2)
+ax1.loglog(time_channels, -dpred[:, 0], "b", lw=2)
+ax1.loglog(time_channels, -dpred[:, 1], "r", lw=2)
+ax1.loglog(time_channels, -dpred[:, 2], "k", lw=2)
+ax1.loglog(time_channels, -dpred[:, 3], "g", lw=2)
 ax1.set_xlim((np.min(time_channels), np.max(time_channels)))
-ax1.set_xlabel('time [s]')
-ax1.set_ylabel('-dBz/dt [T/s]')
-ax1.set_title('Characteristic Decay')
+ax1.set_xlabel("time [s]")
+ax1.set_ylabel("-dBz/dt [T/s]")
+ax1.set_title("Characteristic Decay")
 ax1.legend(
-    ['step-off','20 ms square pulse', '30 ms trapezoidal', '40 ms triangular'],
-    loc='upper right'
+    ["step-off", "20 ms square pulse", "30 ms trapezoidal", "40 ms triangular"],
+    loc="upper right",
 )
-

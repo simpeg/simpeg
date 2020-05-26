@@ -26,57 +26,52 @@ class IO(properties.HasProperties):
     survey_layout = properties.StringChoice(
         "Survey geometry of DC surveys",
         default="SURFACE",
-        choices=["SURFACE", "BOREHOLE", "GENERAL"]
+        choices=["SURFACE", "BOREHOLE", "GENERAL"],
     )
 
     survey_type = properties.StringChoice(
         "DC-IP Survey type",
         default="dipole-dipole",
-        choices=[
-            "dipole-dipole", "pole-dipole",
-            "dipole-pole", "pole-pole"
-        ]
+        choices=["dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"],
     )
 
     dimension = properties.Integer(
-        "Dimension of electrode locations",
-        default=2,
-        required=True
+        "Dimension of electrode locations", default=2, required=True
     )
 
     a_locations = properties.Array(
         "locations of the positive (+) current electrodes",
         required=True,
-        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float  # data are floats
+        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float,  # data are floats
     )
 
     b_locations = properties.Array(
         "locations of the negative (-) current electrodes",
         required=True,
-        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float  # data are floats
+        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float,  # data are floats
     )
 
     m_locations = properties.Array(
         "locations of the positive (+) potential electrodes",
         required=True,
-        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float  # data are floats
+        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float,  # data are floats
     )
 
     n_locations = properties.Array(
         "locations of the negative (-) potential electrodes",
         required=True,
-        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float  # data are floats
+        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float,  # data are floats
     )
 
     electrode_locations = properties.Array(
         "unique locations of a, b, m, n electrodes",
         required=True,
-        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float  # data are floats
+        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float,  # data are floats
     )
 
     # Data
@@ -84,148 +79,104 @@ class IO(properties.HasProperties):
         "Type of DC-IP survey",
         required=True,
         default="volt",
-        choices=[
-           "volt", "apparent_resistivity", "apparent_conductivity",
-        ]
+        choices=["volt", "apparent_resistivity", "apparent_conductivity",],
     )
 
     data_dc = properties.Array(
-        "Measured DC data",
-        shape=('*',),
-        dtype=float  # data are floats
+        "Measured DC data", shape=("*",), dtype=float  # data are floats
     )
 
     data_ip_type = properties.StringChoice(
         "Type of DC-IP survey",
         required=True,
         default="volt",
-        choices=[
-           "volt", "apparent_chargeability",
-        ]
+        choices=["volt", "apparent_chargeability",],
     )
 
     data_ip = properties.Array(
-        "Measured IP data",
-        shape=('*',),
-        dtype=float  # data are floats
+        "Measured IP data", shape=("*",), dtype=float  # data are floats
     )
 
     data_sip_type = properties.StringChoice(
         "Type of DC-IP survey",
         required=True,
         default="volt",
-        choices=[
-           "volt", "apparent_chargeability",
-        ]
+        choices=["volt", "apparent_chargeability",],
     )
 
     data_sip = properties.Array(
-        "Measured Spectral IP data",
-        shape=('*', '*'),
-        dtype=float  # data are floats
+        "Measured Spectral IP data", shape=("*", "*"), dtype=float  # data are floats
     )
 
     times_ip = properties.Array(
         "Time channels of measured Spectral IP voltages (s)",
         required=True,
-        shape=('*',),
-        dtype=float  # data are floats
+        shape=("*",),
+        dtype=float,  # data are floats
     )
 
     G = properties.Array(
-        "Geometric factor of DC-IP survey",
-        shape=('*',),
-        dtype=float  # data are floats
+        "Geometric factor of DC-IP survey", shape=("*",), dtype=float  # data are floats
     )
 
     grids = properties.Array(
         "Spatial grids for plotting pseudo-section",
-        shape=('*', '*'),
-        dtype=float  # data are floats
+        shape=("*", "*"),
+        dtype=float,  # data are floats
     )
 
     space_type = properties.StringChoice(
         "Assumption to compute apparent resistivity",
         default="half-space",
-        choices=[
-            "half-space", "whole-space"
-        ]
+        choices=["half-space", "whole-space"],
     )
 
     line_inds = properties.Array(
-        "Line indices",
-        required=True,
-        shape=('*',),
-        dtype=int  # data are floats
+        "Line indices", required=True, shape=("*",), dtype=int  # data are floats
     )
     sort_inds = properties.Array(
         "Sorting indices from ABMN",
         required=True,
-        shape=('*',),
-        dtype=int  # data are floats
+        shape=("*",),
+        dtype=int,  # data are floats
     )
 
     # Related to Physics and Discretization
-    mesh = properties.Instance(
-        "Mesh for discretization", BaseMesh, required=True
-    )
+    mesh = properties.Instance("Mesh for discretization", BaseMesh, required=True)
 
-    dx = properties.Float(
-        "Length of corecell in x-direction", required=True,
-    )
-    dy = properties.Float(
-        "Length of corecell in y-direction", required=True
-    )
-    dz = properties.Float(
-        "Length of corecell in z-direction", required=True
-    )
+    dx = properties.Float("Length of corecell in x-direction", required=True,)
+    dy = properties.Float("Length of corecell in y-direction", required=True)
+    dz = properties.Float("Length of corecell in z-direction", required=True)
 
     npad_x = properties.Integer(
-        "The number of padding cells x-direction",
-        required=True,
-        default=5
+        "The number of padding cells x-direction", required=True, default=5
     )
 
     npad_y = properties.Integer(
-        "The number of padding cells y-direction",
-        required=True,
-        default=5
+        "The number of padding cells y-direction", required=True, default=5
     )
 
     npad_z = properties.Integer(
-        "The number of padding cells z-direction",
-        required=True,
-        default=5
+        "The number of padding cells z-direction", required=True, default=5
     )
 
     pad_rate_x = properties.Float(
-        "Expansion rate of padding cells in  x-direction",
-        required=True,
-        default=1.3
+        "Expansion rate of padding cells in  x-direction", required=True, default=1.3
     )
 
     pad_rate_y = properties.Float(
-        "Expansion rate of padding cells in  y-direction",
-        required=True,
-        default=1.3
+        "Expansion rate of padding cells in  y-direction", required=True, default=1.3
     )
 
     pad_rate_z = properties.Float(
-        "Expansion rate of padding cells in  z-direction",
-        required=True,
-        default=1.3
+        "Expansion rate of padding cells in  z-direction", required=True, default=1.3
     )
 
     ncell_per_dipole = properties.Integer(
-        "The number of cells between dipole electrodes",
-        required=True,
-        default=4
+        "The number of cells between dipole electrodes", required=True, default=4
     )
 
-    corezlength = properties.Float(
-        "Core depth (m)",
-        required=True,
-    )
+    corezlength = properties.Float("Core depth (m)", required=True,)
 
     # For synthetic surveys
     x0 = None
@@ -236,9 +187,7 @@ class IO(properties.HasProperties):
 
     def __init__(self, **kwargs):
         super(IO, self).__init__(**kwargs)
-        warnings.warn(
-            "code under construction - API might change in the future"
-        )
+        warnings.warn("code under construction - API might change in the future")
 
     # Properties
     @property
@@ -265,7 +214,7 @@ class IO(properties.HasProperties):
         elif self.data_dc_type.lower() == "volt":
             return self.data_dc / self.G
         elif self.data_dc_type.lower() == "apparent_conductivity":
-            return 1./self.data_dc
+            return 1.0 / self.data_dc
         else:
             print(self.data_dc_type.lower())
             raise NotImplementedError()
@@ -278,9 +227,9 @@ class IO(properties.HasProperties):
         if self.data_dc_type.lower() == "apparent_conductivity":
             return self.data_dc
         elif self.data_dc_type.lower() == "apparent_resistivity":
-            return 1./self.data_dc
+            return 1.0 / self.data_dc
         elif self.data_dc_type.lower() == "volt":
-            return 1./self.data_dc * self.G
+            return 1.0 / self.data_dc * self.G
 
     # For IP
     @property
@@ -292,9 +241,7 @@ class IO(properties.HasProperties):
             return self.data_ip
         elif self.data_ip_type.lower() == "apparent_chargeability":
             if self.voltages is None:
-                raise Exception(
-                    "DC voltages must be set to compute IP voltages"
-                    )
+                raise Exception("DC voltages must be set to compute IP voltages")
             return self.data_ip * self.voltages
         else:
             raise NotImplementedError()
@@ -309,9 +256,7 @@ class IO(properties.HasProperties):
             return self.data_sip
         elif self.data_sip_type.lower() == "apparent_chargeability":
             if self.voltages is None:
-                raise Exception(
-                    "DC voltages must be set to compute IP voltages"
-                    )
+                raise Exception("DC voltages must be set to compute IP voltages")
             return sdiag(self.voltages) * self.data_sip
         else:
             raise NotImplementedError()
@@ -327,7 +272,7 @@ class IO(properties.HasProperties):
             if self.voltages is None:
                 raise Exception(
                     "DC voltages must be set to compute Apparent Chargeability"
-                    )
+                )
             return self.data_ip / self.voltages
         else:
             raise NotImplementedError()
@@ -344,8 +289,8 @@ class IO(properties.HasProperties):
             if self.voltages is None:
                 raise Exception(
                     "DC voltages must be set to compute Apparent Chargeability"
-                    )
-            return sdiag(1./self.voltages) * self.data_sip
+                )
+            return sdiag(1.0 / self.voltages) * self.data_sip
         else:
             raise NotImplementedError()
 
@@ -356,15 +301,26 @@ class IO(properties.HasProperties):
         """
         G = geometric_factor(
             survey, survey_type=self.survey_type, space_type=self.space_type
-            )
+        )
         return G
 
     def from_ambn_locations_to_survey(
-        self, a_locations, b_locations, m_locations, n_locations,
-        survey_type=None, data_dc=None, data_ip=None, data_sip=None,
-        data_dc_type="volt", data_ip_type="volt", data_sip_type="volt",
-        fname=None, dimension=2, line_inds=None,
-        times_ip=None
+        self,
+        a_locations,
+        b_locations,
+        m_locations,
+        n_locations,
+        survey_type=None,
+        data_dc=None,
+        data_ip=None,
+        data_sip=None,
+        data_dc_type="volt",
+        data_ip_type="volt",
+        data_sip_type="volt",
+        fname=None,
+        dimension=2,
+        line_inds=None,
+        times_ip=None,
     ):
         """
         read A, B, M, N electrode location and data (V or apparent_resistivity)
@@ -384,12 +340,9 @@ class IO(properties.HasProperties):
         uniqSrc = uniqueRows(np.c_[self.a_locations, self.b_locations])
         uniqElec = uniqueRows(
             np.vstack(
-                (
-                    self.a_locations, self.b_locations,
-                    self.m_locations, self.n_locations
-                )
-                )
+                (self.a_locations, self.b_locations, self.m_locations, self.n_locations)
             )
+        )
         self.electrode_locations = uniqElec[0]
         nSrc = uniqSrc[0].shape[0]
         ndata = self.a_locations.shape[0]
@@ -404,9 +357,9 @@ class IO(properties.HasProperties):
 
                 locsM = self.m_locations[inds, :]
                 locsN = self.n_locations[inds, :]
-                if survey_type in ['dipole-dipole', 'pole-dipole']:
+                if survey_type in ["dipole-dipole", "pole-dipole"]:
                     rx = Rx.Dipole(locsM, locsN)
-                elif survey_type in ['dipole-pole', 'pole-pole']:
+                elif survey_type in ["dipole-pole", "pole-pole"]:
                     rx = Rx.Pole(locsM)
                 else:
                     raise NotImplementedError()
@@ -418,9 +371,9 @@ class IO(properties.HasProperties):
                     locA = uniqSrc[0][iSrc, :3]
                     locB = uniqSrc[0][iSrc, 3:]
 
-                if survey_type in ['dipole-dipole', 'dipole-pole']:
+                if survey_type in ["dipole-dipole", "dipole-pole"]:
                     src = Src.Dipole([rx], locA, locB)
-                elif survey_type in ['pole-dipole', 'pole-pole']:
+                elif survey_type in ["pole-dipole", "pole-pole"]:
                     src = Src.Pole([rx], locA)
 
                 srcLists.append(src)
@@ -451,25 +404,25 @@ class IO(properties.HasProperties):
             # Here we ignore ... z-locations
             self.n_data = survey.nD
 
-            midABx = (self.a_locations[:, 0] + self.b_locations[:, 0])*0.5
-            midMNx = (self.m_locations[:, 0] + self.n_locations[:, 0])*0.5
+            midABx = (self.a_locations[:, 0] + self.b_locations[:, 0]) * 0.5
+            midMNx = (self.m_locations[:, 0] + self.n_locations[:, 0]) * 0.5
 
             if dimension == 2:
-                z = abs(midABx-midMNx)*1./3.
-                x = (midABx+midMNx)*0.5
+                z = abs(midABx - midMNx) * 1.0 / 3.0
+                x = (midABx + midMNx) * 0.5
                 zmax = z.max()
                 a = abs(np.diff(np.sort(self.electrode_locations[:, 0]))).min()
                 # Consider the case of 1D types of array
                 if np.all(zmax < a):
-                    z = abs(self.a_locations[:, 0] - self.b_locations[:, 0])/3.
+                    z = abs(self.a_locations[:, 0] - self.b_locations[:, 0]) / 3.0
                 self.grids = np.c_[x, z]
 
             elif dimension == 3:
-                midABy = (self.a_locations[:, 1] + self.b_locations[:, 1])*0.5
-                midMNy = (self.m_locations[:, 1] + self.n_locations[:, 1])*0.5
-                z = np.sqrt((midABx-midMNx)**2 + (midABy-midMNy)**2) * 1./3.
-                x = (midABx+midMNx)*0.5
-                y = (midABy+midMNy)*0.5
+                midABy = (self.a_locations[:, 1] + self.b_locations[:, 1]) * 0.5
+                midMNy = (self.m_locations[:, 1] + self.n_locations[:, 1]) * 0.5
+                z = np.sqrt((midABx - midMNx) ** 2 + (midABy - midMNy) ** 2) * 1.0 / 3.0
+                x = (midABx + midMNx) * 0.5
+                y = (midABy + midMNy) * 0.5
                 self.grids = np.c_[x, y, z]
             else:
                 raise Exception()
@@ -477,14 +430,24 @@ class IO(properties.HasProperties):
             raise NotImplementedError()
         return survey
 
-    def set_mesh(self, topo=None,
-                dx=None, dy=None, dz=None, corezlength=None,
-                npad_x=None, npad_y=None, npad_z=None,
-                pad_rate_x=None, pad_rate_y=None, pad_rate_z=None,
-                ncell_per_dipole=None, mesh_type='TensorMesh',
-                dimension=2,
-                method='nearest'
-                ):
+    def set_mesh(
+        self,
+        topo=None,
+        dx=None,
+        dy=None,
+        dz=None,
+        corezlength=None,
+        npad_x=None,
+        npad_y=None,
+        npad_z=None,
+        pad_rate_x=None,
+        pad_rate_y=None,
+        pad_rate_z=None,
+        ncell_per_dipole=None,
+        mesh_type="TensorMesh",
+        dimension=2,
+        method="nearest",
+    ):
         """
         Set up a mesh for a given DC survey
         """
@@ -512,7 +475,9 @@ class IO(properties.HasProperties):
 
         # 2D or 3D mesh
         if dimension not in [2, 3]:
-            raise NotImplementedError('Set mesh has not been implemented for a 1D system')
+            raise NotImplementedError(
+                "Set mesh has not been implemented for a 1D system"
+            )
 
         if dimension == 2:
             z_ind = 1
@@ -520,23 +485,22 @@ class IO(properties.HasProperties):
             z_ind = 2
         a = abs(np.diff(np.sort(self.electrode_locations[:, 0]))).min()
         lineLength = abs(
-            self.electrode_locations[:, 0].max() -
-            self.electrode_locations[:, 0].min()
+            self.electrode_locations[:, 0].max() - self.electrode_locations[:, 0].min()
         )
-        dx_ideal = a/ncell_per_dipole
+        dx_ideal = a / ncell_per_dipole
         if dx is None:
             dx = dx_ideal
             print(
-                "dx is set to {} m (samllest electrode spacing ({}) / {})".format(dx, a, ncell_per_dipole)
+                "dx is set to {} m (samllest electrode spacing ({}) / {})".format(
+                    dx, a, ncell_per_dipole
+                )
             )
         if dz is None:
-            dz = dx*0.5
-            print(
-                "dz ({} m) is set to dx ({} m) / {}".format(dz, dx, 2)
-            )
+            dz = dx * 0.5
+            print("dz ({} m) is set to dx ({} m) / {}".format(dz, dx, 2))
         if dimension == 3:
             if dy is None:
-                print('dy is set equal to dx')
+                print("dy is set equal to dx")
                 dy = dx
             self.dy = dy
 
@@ -557,8 +521,9 @@ class IO(properties.HasProperties):
             # For 3D mesh
             else:
                 # sort by x, then by y
-                row_idx = np.lexsort((self.electrode_locations[:, 1],
-                                      self.electrode_locations[:, 0]))
+                row_idx = np.lexsort(
+                    (self.electrode_locations[:, 1], self.electrode_locations[:, 0])
+                )
             locs = self.electrode_locations[row_idx, :]
         else:
             # For 2D mesh
@@ -568,23 +533,24 @@ class IO(properties.HasProperties):
                     warnings.warn(
                         "Because the x coordinates of some topo and electrodes are the same,"
                         " we excluded electrodes with the same coordinates.",
-                        RuntimeWarning
+                        RuntimeWarning,
                     )
                 locs_tmp = np.vstack((topo, self.electrode_locations[~mask, :]))
                 row_idx = np.lexsort((locs_tmp[:, 0],))
             else:
-                dtype = [('x', np.float64), ('y', np.float64)]
-                mask = np.isin(self.electrode_locations[:, [0, 1]].copy().view(dtype),
-                               topo[:, [0, 1]].copy().view(dtype)).flatten()
+                dtype = [("x", np.float64), ("y", np.float64)]
+                mask = np.isin(
+                    self.electrode_locations[:, [0, 1]].copy().view(dtype),
+                    topo[:, [0, 1]].copy().view(dtype),
+                ).flatten()
                 if np.any(mask):
                     warnings.warn(
                         "Because the x and y coordinates of some topo and electrodes are the same,"
                         " we excluded electrodes with the same coordinates.",
-                        RuntimeWarning
+                        RuntimeWarning,
                     )
                 locs_tmp = np.vstack((topo, self.electrode_locations[~mask, :]))
-                row_idx = np.lexsort((locs_tmp[:, 1],
-                                      locs_tmp[:, 0]))
+                row_idx = np.lexsort((locs_tmp[:, 1], locs_tmp[:, 0]))
             locs = locs_tmp[row_idx, :]
 
         if dx > dx_ideal:
@@ -603,30 +569,29 @@ class IO(properties.HasProperties):
         # 3 cells each for buffer
         corexlength = lineLength + dx * 6
         if corezlength is None:
-            dz_topo = locs[:,1].max()-locs[:,1].min()
+            dz_topo = locs[:, 1].max() - locs[:, 1].min()
             corezlength = self.grids[:, z_ind].max() + dz_topo
             self.corezlength = corezlength
 
-        if mesh_type == 'TensorMesh':
-            ncx = np.round(corexlength/dx)
-            ncz = np.round(corezlength/dz)
-            hx = [
-                (dx, npad_x, -pad_rate_x), (dx, ncx), (dx, npad_x, pad_rate_x)
-            ]
+        if mesh_type == "TensorMesh":
+            ncx = np.round(corexlength / dx)
+            ncz = np.round(corezlength / dz)
+            hx = [(dx, npad_x, -pad_rate_x), (dx, ncx), (dx, npad_x, pad_rate_x)]
             hz = [(dz, npad_z, -pad_rate_z), (dz, ncz)]
             x0_mesh = -(
-                (dx * pad_rate_x ** (np.arange(npad_x)+1)).sum() + dx * 3 - x0
+                (dx * pad_rate_x ** (np.arange(npad_x) + 1)).sum() + dx * 3 - x0
             )
-            z0_mesh = -((dz * pad_rate_z ** (np.arange(npad_z)+1)).sum() + dz * ncz) + zmax
+            z0_mesh = (
+                -((dz * pad_rate_z ** (np.arange(npad_z) + 1)).sum() + dz * ncz) + zmax
+            )
 
             # For 2D mesh
             if dimension == 2:
                 h = [hx, hz]
                 x0_for_mesh = [x0_mesh, z0_mesh]
-                self.xyzlim = np.vstack((
-                    np.r_[x0, x0+lineLength],
-                    np.r_[zmax-corezlength, zmax]
-                ))
+                self.xyzlim = np.vstack(
+                    (np.r_[x0, x0 + lineLength], np.r_[zmax - corezlength, zmax])
+                )
                 fill_value = "extrapolate"
 
             # For 3D mesh
@@ -635,26 +600,23 @@ class IO(properties.HasProperties):
                 ylocs = np.unique(self.electrode_locations[:, 1])
                 ymin, ymax = ylocs.min(), ylocs.max()
                 # 3 cells each for buffer in y-direction
-                coreylength = ymax-ymin+dy*6
-                ncy = np.round(coreylength/dy)
-                hy = [
-                    (dy, npad_y, -pad_rate_y),
-                    (dy, ncy),
-                    (dy, npad_y, pad_rate_y)
-                ]
-                y0 = ylocs.min()-dy/2.
+                coreylength = ymax - ymin + dy * 6
+                ncy = np.round(coreylength / dy)
+                hy = [(dy, npad_y, -pad_rate_y), (dy, ncy), (dy, npad_y, pad_rate_y)]
+                y0 = ylocs.min() - dy / 2.0
                 y0_mesh = -(
-                    (dy * pad_rate_y ** (np.arange(npad_y)+1)).sum()
-                    + dy*3 - y0
+                    (dy * pad_rate_y ** (np.arange(npad_y) + 1)).sum() + dy * 3 - y0
                 )
 
                 h = [hx, hy, hz]
                 x0_for_mesh = [x0_mesh, y0_mesh, z0_mesh]
-                self.xyzlim = np.vstack((
-                    np.r_[x0, x0+lineLength],
-                    np.r_[ymin-dy*3, ymax+dy*3],
-                    np.r_[zmax-corezlength, zmax]
-                ))
+                self.xyzlim = np.vstack(
+                    (
+                        np.r_[x0, x0 + lineLength],
+                        np.r_[ymin - dy * 3, ymax + dy * 3],
+                        np.r_[zmax - corezlength, zmax],
+                    )
+                )
             mesh = TensorMesh(h, x0=x0_for_mesh)
 
         elif mesh_type == "TREE":
@@ -664,17 +626,21 @@ class IO(properties.HasProperties):
                 pad_length_x = np.sum(meshTensor([(dx, npad_x, pad_rate_x)]))
                 pad_length_z = np.sum(meshTensor([(dz, npad_z, pad_rate_z)]))
 
-                dom_width_x = lineLength + 2*pad_length_x  # domain width x
-                dom_width_z = corezlength + pad_length_z   # domain width z
+                dom_width_x = lineLength + 2 * pad_length_x  # domain width x
+                dom_width_z = corezlength + pad_length_z  # domain width z
 
-                nbcx = 2**int(np.ceil(np.log(dom_width_x/dx)/np.log(2.)))     # num. base cells x
-                nbcz = 2**int(np.ceil(np.log(dom_width_z/dz)/np.log(2.)))     # num. base cells z
+                nbcx = 2 ** int(
+                    np.ceil(np.log(dom_width_x / dx) / np.log(2.0))
+                )  # num. base cells x
+                nbcz = 2 ** int(
+                    np.ceil(np.log(dom_width_z / dz) / np.log(2.0))
+                )  # num. base cells z
 
-                length = 0.
+                length = 0.0
                 dz_tmp = dz
                 octree_levels = []
                 while length < corezlength:
-                    length += 5*dz_tmp
+                    length += 5 * dz_tmp
                     octree_levels.append(5)
                     dz_tmp *= 2
 
@@ -685,50 +651,70 @@ class IO(properties.HasProperties):
                 mesh_width = np.sum(meshTensor(hx))
                 mesh_height = np.sum(meshTensor(hz))
 
-                array_midpoint = 0.5*(
-                    self.electrode_locations[:, 0].min() +
-                    self.electrode_locations[:, 0].max()
+                array_midpoint = 0.5 * (
+                    self.electrode_locations[:, 0].min()
+                    + self.electrode_locations[:, 0].max()
                 )
-                mesh = TreeMesh([hx, hz],
-                    x0=[array_midpoint-mesh_width/2, zmax-mesh_height])
+                mesh = TreeMesh(
+                    [hx, hz], x0=[array_midpoint - mesh_width / 2, zmax - mesh_height]
+                )
                 # mesh = TreeMesh([hx, hz], x0='CN')
 
                 # Mesh refinement based on topography
                 mesh = refine_tree_xyz(
-                    mesh, self.electrode_locations, octree_levels=octree_levels, method='radial', finalize=False
+                    mesh,
+                    self.electrode_locations,
+                    octree_levels=octree_levels,
+                    method="radial",
+                    finalize=False,
                 )
                 mesh.finalize()
 
-                self.xyzlim = np.vstack((
-                    np.r_[self.electrode_locations[:,0].min(), self.electrode_locations[:,0].max()],
-                    np.r_[zmax-corezlength, zmax]
-                ))
+                self.xyzlim = np.vstack(
+                    (
+                        np.r_[
+                            self.electrode_locations[:, 0].min(),
+                            self.electrode_locations[:, 0].max(),
+                        ],
+                        np.r_[zmax - corezlength, zmax],
+                    )
+                )
 
             # Octree mesh
             elif dimension == 3:
-                raise NotImplementedError('set_mesh has not implemented 3D TreeMesh (yet)')
+                raise NotImplementedError(
+                    "set_mesh has not implemented 3D TreeMesh (yet)"
+                )
 
         else:
-            raise NotImplementedError("set_mesh currently generates TensorMesh or TreeMesh")
-
+            raise NotImplementedError(
+                "set_mesh currently generates TensorMesh or TreeMesh"
+            )
 
         actind = surface2ind_topo(mesh, locs, method=method, fill_value=np.nan)
 
         return mesh, actind
 
     def plotPseudoSection(
-        self, data_type="apparent_resistivity",
+        self,
+        data_type="apparent_resistivity",
         data=None,
-        dataloc=True, aspect_ratio=2,
+        dataloc=True,
+        aspect_ratio=2,
         scale="log",
-        cmap="viridis", ncontour=10, ax=None,
-        figname=None, clim=None, label=None,
-        iline=0, orientation='vertical'
+        cmap="viridis",
+        ncontour=10,
+        ax=None,
+        figname=None,
+        clim=None,
+        label=None,
+        iline=0,
+        orientation="vertical",
     ):
         """
             Plot 2D pseudo-section for DC-IP data
         """
-        matplotlib.rcParams['font.size'] = 12
+        matplotlib.rcParams["font.size"] = 12
 
         if ax is None:
             fig = plt.figure(figsize=(10, 5))
@@ -781,27 +767,31 @@ class IO(properties.HasProperties):
             label = label_tmp
 
         out = plot2Ddata(
-            grids, val,
-            contourOpts={'cmap': cmap},
+            grids,
+            val,
+            contourOpts={"cmap": cmap},
             ax=ax,
             dataloc=dataloc,
             scale=scale,
             ncontour=ncontour,
-            clim=clim
+            clim=clim,
         )
         ax.invert_yaxis()
         ax.set_xlabel("x (m)")
         ax.set_yticklabels([])
         ax.set_ylabel("n-spacing")
-        if orientation == 'vertical':
+        if orientation == "vertical":
             frac = 0.01
-        elif orientation == 'horizontal':
+        elif orientation == "horizontal":
             frac = 0.03
         else:
-            raise ValueError('Orientation must be either vertical or horizontal, not {}'.format(orientation))
+            raise ValueError(
+                "Orientation must be either vertical or horizontal, not {}".format(
+                    orientation
+                )
+            )
         cb = plt.colorbar(
-            out[0],
-            format="%.1e", ax=ax, orientation=orientation, fraction=frac
+            out[0], format="%.1e", ax=ax, orientation=orientation, fraction=frac
         )
         cb.set_label(label)
         cb.set_ticks(out[0].levels)
@@ -810,19 +800,16 @@ class IO(properties.HasProperties):
         if figname is not None:
             fig.savefig(figname, dpi=200)
 
-    def read_ubc_dc2d_obs_file(self, filename, input_type='simple', toponame=None):
-        obsfile = np.genfromtxt(
-            filename, delimiter=' \n',
-            dtype=np.str, comments='!'
-        )
+    def read_ubc_dc2d_obs_file(self, filename, input_type="simple", toponame=None):
+        obsfile = np.genfromtxt(filename, delimiter=" \n", dtype=np.str, comments="!")
         if input_type == "general":
-            topo=None
+            topo = None
             n_src = 0
             n_rxs = []
             src_info = []
             abmn = []
             for obs in obsfile:
-                temp = (np.fromstring(obs, dtype=float, sep=' ').T)
+                temp = np.fromstring(obs, dtype=float, sep=" ").T
                 if len(temp) == 5:
                     n_src += 1
                     src_info = temp[:4]
@@ -831,40 +818,44 @@ class IO(properties.HasProperties):
                     abmn.append(np.r_[src_info, temp])
 
             abmn = np.vstack(abmn)
-            a = np.c_[abmn[:,0], -abmn[:,1]]
-            b = np.c_[abmn[:,2], -abmn[:,3]]
-            m = np.c_[abmn[:,4], -abmn[:,5]]
-            n = np.c_[abmn[:,6], -abmn[:,7]]
-            voltage = abmn[:,8]
-            standard_deviation = abmn[:,9]
+            a = np.c_[abmn[:, 0], -abmn[:, 1]]
+            b = np.c_[abmn[:, 2], -abmn[:, 3]]
+            m = np.c_[abmn[:, 4], -abmn[:, 5]]
+            n = np.c_[abmn[:, 6], -abmn[:, 7]]
+            voltage = abmn[:, 8]
+            standard_deviation = abmn[:, 9]
 
         elif input_type == "simple":
             if toponame is not None:
                 tmp_topo = np.loadtxt(toponame)
                 n_topo = tmp_topo[0, 0]
                 z_ref = tmp_topo[0, 1]
-                topo = tmp_topo[1:,:]
+                topo = tmp_topo[1:, :]
                 if topo.shape[0] != n_topo:
-                    print (">> # of points for the topography is not {0}, but {0}".format(n_topo, topo.shape[0]))
-            tmp = np.loadtxt(filename, comments='!').astype(float)
+                    print(
+                        ">> # of points for the topography is not {0}, but {0}".format(
+                            n_topo, topo.shape[0]
+                        )
+                    )
+            tmp = np.loadtxt(filename, comments="!").astype(float)
             e = np.zeros(tmp.shape[0], dtype=float)
-            a = np.c_[tmp[:,0], e]
-            b = np.c_[tmp[:,1], e]
-            m = np.c_[tmp[:,2], e]
-            n = np.c_[tmp[:,3], e]
+            a = np.c_[tmp[:, 0], e]
+            b = np.c_[tmp[:, 1], e]
+            m = np.c_[tmp[:, 2], e]
+            n = np.c_[tmp[:, 3], e]
             voltage = tmp[:, 4]
             standard_deviation = tmp[:, 5]
 
-        if np.all(a==b):
-            if np.all (m==n):
-                survey_type = 'pole-pole'
+        if np.all(a == b):
+            if np.all(m == n):
+                survey_type = "pole-pole"
             else:
-                survey_type = 'pole-dipole'
+                survey_type = "pole-dipole"
         else:
-            if np.all (m==n):
-                survey_type = 'dipole-pole'
+            if np.all(m == n):
+                survey_type = "dipole-pole"
             else:
-                survey_type = 'dipole-dipole'
+                survey_type = "dipole-dipole"
 
         survey = self.from_ambn_locations_to_survey(
             a, b, m, n, survey_type=survey_type, data_dc=voltage
@@ -875,12 +866,12 @@ class IO(properties.HasProperties):
         return survey
 
     def write_to_csv(self, fname, dobs, standard_deviation=None, **kwargs):
-        uncert = kwargs.pop('uncertainty', None)
+        uncert = kwargs.pop("uncertainty", None)
         if uncert is not None:
             warnings.warn(
                 "The uncertainty option has been deprecated and will be removed"
                 " in SimPEG 0.15.0. Please use standard_deviation.",
-                DeprecationWarning
+                DeprecationWarning,
             )
             standard_deviation = uncert
 
@@ -892,9 +883,23 @@ class IO(properties.HasProperties):
             self.m_locations,
             self.n_locations,
             dobs,
-            standard_deviation
+            standard_deviation,
         ]
-        df = pd.DataFrame(data=data, columns=["Ax", "Az", "Bx", "Bz", "Mx", "Mz", "Nx", "Nz", 'Voltage', 'Uncertainty'])
+        df = pd.DataFrame(
+            data=data,
+            columns=[
+                "Ax",
+                "Az",
+                "Bx",
+                "Bz",
+                "Mx",
+                "Mz",
+                "Nx",
+                "Nz",
+                "Voltage",
+                "Uncertainty",
+            ],
+        )
         df.to_csv(fname)
 
     def read_dc_data_csv(self, fname, dim=2):
@@ -908,21 +913,23 @@ class IO(properties.HasProperties):
             standard_deviation = df["Uncertainty"].values
 
             if np.all(a_locations == b_locations):
-                src_type = 'pole-'
+                src_type = "pole-"
             else:
-                src_type = 'dipole-'
+                src_type = "dipole-"
 
             if np.all(m_locations == n_locations):
-                rx_type = 'pole'
+                rx_type = "pole"
             else:
-                rx_type = 'dipole'
+                rx_type = "dipole"
             survey_type = src_type + rx_type
             survey = self.from_ambn_locations_to_survey(
-                a_locations, b_locations,
-                m_locations, n_locations,
+                a_locations,
+                b_locations,
+                m_locations,
+                n_locations,
                 survey_type,
                 data_dc=dobs,
-                data_dc_type='volt'
+                data_dc_type="volt",
             )
             survey.std = standard_deviation[self.sort_inds]
             survey.dobs = dobs[self.sort_inds]
@@ -933,5 +940,5 @@ class IO(properties.HasProperties):
     def read_topo_csv(self, fname, dim=2):
         if dim == 2:
             df = pd.read_csv(fname)
-            topo = df[['X', 'Z']].values
+            topo = df[["X", "Z"]].values
         return topo

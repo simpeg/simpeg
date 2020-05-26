@@ -10,7 +10,7 @@ class Survey(BaseSurvey):
 
     receiver_list = properties.List(
         "list of receivers for flow simulations",
-        properties.Instance("A receiver instance", BaseRx)
+        properties.Instance("A receiver instance", BaseRx),
     )
 
     def __init__(self, receiver_list, **kwargs):
@@ -36,9 +36,11 @@ class Survey(BaseSurvey):
         cnt = 0
         for ii, rx in enumerate(self.receiver_list):
             dd_du[ii], dd_dm[ii] = rx.deriv(
-                f, simulation, v=v[cnt:cnt + rx.nD], adjoint=True
+                f, simulation, v=v[cnt : cnt + rx.nD], adjoint=True
             )
             cnt += rx.nD
         return np.sum(dd_du, axis=0), np.sum(dd_dm, axis=0)
 
-    rxList = deprecate_property(receiver_list, 'rxList', new_name='receiver_list', removal_version='0.15.0')
+    rxList = deprecate_property(
+        receiver_list, "rxList", new_name="receiver_list", removal_version="0.15.0"
+    )

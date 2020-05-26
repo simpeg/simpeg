@@ -19,9 +19,14 @@ from pymatsolver import Pardiso as Solver
 
 import discretize
 from SimPEG import (
-    maps, optimization,
-    data_misfit, regularization, inverse_problem,
-    inversion, directives, Report
+    maps,
+    optimization,
+    data_misfit,
+    regularization,
+    inverse_problem,
+    inversion,
+    directives,
+    Report,
 )
 from SimPEG.electromagnetics import frequency_domain as FDEM
 
@@ -39,7 +44,7 @@ sigma_air = 1e-8
 coil_separations = [0.32, 0.71, 1.18]
 freq = 30e3
 
-print("skin_depth: {:1.2f}m".format(500/np.sqrt(sigma_deep*freq)))
+print("skin_depth: {:1.2f}m".format(500 / np.sqrt(sigma_deep * freq)))
 
 
 ###############################################################################
@@ -49,7 +54,7 @@ print("skin_depth: {:1.2f}m".format(500/np.sqrt(sigma_deep*freq)))
 
 z_interface_shallow = -0.25
 z_interface_deep = -1.5
-x_dip = np.r_[0., 8.]
+x_dip = np.r_[0.0, 8.0]
 
 
 def interface(x):
@@ -57,15 +62,16 @@ def interface(x):
 
     interface[x < x_dip[0]] = z_interface_shallow
 
-    dipping_unit = ((x >= x_dip[0]) & (x <= x_dip[1]))
-    x_dipping = (
-        -(z_interface_shallow-z_interface_deep)/x_dip[1]
-    )*(x[dipping_unit]) + z_interface_shallow
+    dipping_unit = (x >= x_dip[0]) & (x <= x_dip[1])
+    x_dipping = (-(z_interface_shallow - z_interface_deep) / x_dip[1]) * (
+        x[dipping_unit]
+    ) + z_interface_shallow
     interface[dipping_unit] = x_dipping
 
     interface[x > x_dip[1]] = z_interface_deep
 
     return interface
+
 
 ###############################################################################
 # Forward Modelling Mesh
@@ -88,23 +94,23 @@ npady = 7  # number of padding cells in the y-direction
 npadz = 11  # number of padding cells in the z-direction
 
 core_domain_x = np.r_[-11.5, 11.5]  # extent of uniform cells in the x-direction
-core_domain_z = np.r_[-2., 0.]  # extent of uniform cells in the z-direction
+core_domain_z = np.r_[-2.0, 0.0]  # extent of uniform cells in the z-direction
 
 # number of cells in the core region
-ncx = int(np.diff(core_domain_x)/csx)
-ncz = int(np.diff(core_domain_z)/csz)
+ncx = int(np.diff(core_domain_x) / csx)
+ncz = int(np.diff(core_domain_z) / csz)
 
 # create a 3D tensor mesh
 mesh = discretize.TensorMesh(
     [
         [(csx, npadx, -pf), (csx, ncx), (csx, npadx, pf)],
         [(csx, npady, -pf), (csx, 1), (csx, npady, pf)],
-        [(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)]
+        [(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)],
     ]
 )
 # set the origin
 mesh.x0 = np.r_[
-    -mesh.hx.sum()/2., -mesh.hy.sum()/2., -mesh.hz[:npadz+ncz].sum()
+    -mesh.hx.sum() / 2.0, -mesh.hy.sum() / 2.0, -mesh.hz[: npadz + ncz].sum()
 ]
 
 print("the mesh has {} cells".format(mesh.nC))
@@ -117,8 +123,8 @@ mesh.plotGrid()
 # Here, we set up a 2D tensor mesh which we will represent the inversion model
 # on
 
-inversion_mesh = discretize.TensorMesh([mesh.hx, mesh.hz[mesh.vectorCCz<=0]])
-inversion_mesh.x0 = [-inversion_mesh.hx.sum()/2., -inversion_mesh.hy.sum()]
+inversion_mesh = discretize.TensorMesh([mesh.hx, mesh.hz[mesh.vectorCCz <= 0]])
+inversion_mesh.x0 = [-inversion_mesh.hx.sum() / 2.0, -inversion_mesh.hy.sum()]
 inversion_mesh.plotGrid()
 
 ###############################################################################
@@ -135,9 +141,13 @@ active_inds = mesh2D.gridCC[:, 1] < 0  # active indices are below the surface
 
 
 mapping = (
-    maps.Surject2Dto3D(mesh) *  # populates 3D space from a 2D model
-    maps.InjectActiveCells(mesh2D, active_inds, sigma_air) *  # adds air cells
-    maps.ExpMap(nP=inversion_mesh.nC)  # takes the exponential (log(sigma) --> sigma)
+    maps.Surject2Dto3D(mesh)
+    * maps.InjectActiveCells(  # populates 3D space from a 2D model
+        mesh2D, active_inds, sigma_air
+    )
+    * maps.ExpMap(  # adds air cells
+        nP=inversion_mesh.nC
+    )  # takes the exponential (log(sigma) --> sigma)
 )
 
 ###############################################################################
@@ -165,34 +175,38 @@ ax.set_ylim([-2, 0])
 
 src_locations = np.arange(-11, 11, 0.5)
 src_z = 0.25  # src is 0.25m above the surface
-orientation = 'z'  # z-oriented dipole for horizontal co-planar loops
+orientation = "z"  # z-oriented dipole for horizontal co-planar loops
 
 # reciever offset in 3D space
-rx_offsets = np.vstack([np.r_[sep, 0., 0.] for sep in coil_separations])
+rx_offsets = np.vstack([np.r_[sep, 0.0, 0.0] for sep in coil_separations])
 
 # create our source list - one source per location
 srcList = []
 for x in src_locations:
-    src_loc = np.r_[x, 0., src_z]
+    src_loc = np.r_[x, 0.0, src_z]
     rx_locs = src_loc - rx_offsets
 
     rx_real = FDEM.Rx.PointMagneticFluxDensitySecondary(
-        locations=rx_locs, orientation=orientation, component='real'
+        locations=rx_locs, orientation=orientation, component="real"
     )
     rx_imag = FDEM.Rx.PointMagneticFluxDensitySecondary(
-        locations=rx_locs, orientation=orientation, component='imag'
+        locations=rx_locs, orientation=orientation, component="imag"
     )
 
     src = FDEM.Src.MagDipole(
-        receiver_list=[rx_real, rx_imag], loc=src_loc, orientation=orientation,
-        freq=freq
+        receiver_list=[rx_real, rx_imag],
+        loc=src_loc,
+        orientation=orientation,
+        freq=freq,
     )
 
     srcList.append(src)
 
 # create the survey and problem objects for running the forward simulation
 survey = FDEM.Survey(srcList)
-prob = FDEM.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigmaMap=mapping, Solver=Solver)
+prob = FDEM.Simulation3DMagneticFluxDensity(
+    mesh, survey=survey, sigmaMap=mapping, Solver=Solver
+)
 
 ###############################################################################
 # Set up data for inversion
@@ -204,12 +218,11 @@ prob = FDEM.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigmaMap=mappin
 t = time.time()
 
 data = prob.make_synthetic_data(
-    m_true, relative_error=0.05, noise_floor=1E-11, add_noise=False)
+    m_true, relative_error=0.05, noise_floor=1e-11, add_noise=False
+)
 
 dclean = data.dclean
-print(
-    "Done forward simulation. Elapsed time = {:1.2f} s".format(time.time() - t)
-)
+print("Done forward simulation. Elapsed time = {:1.2f} s".format(time.time() - t))
 
 
 def plot_data(data, ax=None, color="C0", label=""):
@@ -222,24 +235,30 @@ def plot_data(data, ax=None, color="C0", label=""):
 
     for i, offset in enumerate(coil_separations):
         ax[i].plot(
-            src_locations, data_real[i::len(coil_separations)],
-            color=color, label="{} real".format(label)
+            src_locations,
+            data_real[i :: len(coil_separations)],
+            color=color,
+            label="{} real".format(label),
         )
         ax[i].plot(
-            src_locations, data_imag[i::len(coil_separations)], '--',
-            color=color, label="{} imag".format(label)
+            src_locations,
+            data_imag[i :: len(coil_separations)],
+            "--",
+            color=color,
+            label="{} imag".format(label),
         )
 
         ax[i].set_title("offset = {:1.2f}m".format(offset))
         ax[i].legend()
         ax[i].grid(which="both")
-        ax[i].set_ylim(np.r_[data.min(), data.max()]+1e-11*np.r_[-1, 1])
+        ax[i].set_ylim(np.r_[data.min(), data.max()] + 1e-11 * np.r_[-1, 1])
 
         ax[i].set_xlabel("source location x (m)")
         ax[i].set_ylabel("Secondary B-Field (T)")
 
     plt.tight_layout()
     return ax
+
 
 ax = plot_data(dclean)
 
@@ -299,22 +318,18 @@ plot_data(invProb.dpred, ax=ax, color="C1", label="predicted")
 # ------------------------
 #
 
-fig, ax = plt.subplots(1, 2, figsize = (12, 5))
+fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
 # put both plots on the same colorbar
 clim = np.r_[np.log(sigma_surface), np.log(sigma_deep)]
 
 # recovered model
-cb = plt.colorbar(
-    inversion_mesh.plotImage(mrec, ax=ax[0], clim=clim)[0], ax=ax[0],
-)
+cb = plt.colorbar(inversion_mesh.plotImage(mrec, ax=ax[0], clim=clim)[0], ax=ax[0],)
 ax[0].set_title("recovered model")
 cb.set_label("$\log(\sigma)$")
 
 # true model
-cb = plt.colorbar(
-    inversion_mesh.plotImage(m_true, ax=ax[1], clim=clim)[0], ax=ax[1],
-)
+cb = plt.colorbar(inversion_mesh.plotImage(m_true, ax=ax[1], clim=clim)[0], ax=ax[1],)
 ax[1].set_title("true model")
 cb.set_label("$\log(\sigma)$")
 

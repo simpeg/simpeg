@@ -25,12 +25,10 @@ def _partition_args(mesh, Hcond, Theta, hcond_args, theta_args, **kwargs):
     hcond_params = {k: kwargs[k] for k in kwargs if k in hcond_args}
     theta_params = {k: kwargs[k] for k in kwargs if k in theta_args}
 
-    other_params = {
-        k: kwargs[k] for k in kwargs if k not in hcond_args + theta_args
-    }
+    other_params = {k: kwargs[k] for k in kwargs if k not in hcond_args + theta_args}
 
     if len(other_params) > 0:
-        raise Exception('Unknown parameters: {}'.format(other_params))
+        raise Exception("Unknown parameters: {}".format(other_params))
 
     hcond = Hcond(mesh, **hcond_params)
     theta = Theta(mesh, **theta_params)
@@ -41,8 +39,8 @@ def _partition_args(mesh, Hcond, Theta, hcond_args, theta_args, **kwargs):
 class NonLinearModel(props.HasModel):
     """A non linear model that has dependence on the fields and a model"""
 
-    counter = None   #: A SimPEG.utils.Counter object
-    mesh = None      #: A SimPEG Mesh
+    counter = None  #: A SimPEG.utils.Counter object
+    mesh = None  #: A SimPEG Mesh
 
     def __init__(self, mesh, **kwargs):
         self.mesh = mesh
@@ -55,7 +53,6 @@ class NonLinearModel(props.HasModel):
 
 
 class BaseWaterRetention(NonLinearModel):
-
     def plot(self, ax=None):
         import matplotlib.pyplot as plt
 
@@ -67,13 +64,12 @@ class BaseWaterRetention(NonLinearModel):
 
         h = -np.logspace(-2, 3, 1000)
         ax.semilogx(-h, self(h))
-        ax.set_title('Water retention curve')
-        ax.set_xlabel('Soil water potential, $- \psi$')
-        ax.set_ylabel('Water content, $\\theta$')
+        ax.set_title("Water retention curve")
+        ax.set_xlabel("Soil water potential, $- \psi$")
+        ax.set_ylabel("Water content, $\\theta$")
 
 
 class BaseHydraulicConductivity(NonLinearModel):
-
     def plot(self, ax=None):
         import matplotlib.pyplot as plt
 
@@ -85,32 +81,24 @@ class BaseHydraulicConductivity(NonLinearModel):
 
         h = -np.logspace(-2, 3, 1000)
         ax.loglog(-h, self(h))
-        ax.set_title('Hydraulic conductivity function')
-        ax.set_xlabel('Soil water potential, $- \psi$')
-        ax.set_ylabel('Hydraulic conductivity, $K$')
+        ax.set_title("Hydraulic conductivity function")
+        ax.set_xlabel("Soil water potential, $- \psi$")
+        ax.set_ylabel("Hydraulic conductivity, $K$")
 
 
 class Haverkamp_theta(BaseWaterRetention):
 
     theta_r, theta_rMap, theta_rDeriv = props.Invertible(
-        "residual water content [L3L-3]",
-        default=0.075
+        "residual water content [L3L-3]", default=0.075
     )
 
     theta_s, theta_sMap, theta_sDeriv = props.Invertible(
-        "saturated water content [L3L-3]",
-        default=0.287
+        "saturated water content [L3L-3]", default=0.287
     )
 
-    alpha, alphaMap, alphaDeriv = props.Invertible(
-        "",
-        default=1.611e+06
-    )
+    alpha, alphaMap, alphaDeriv = props.Invertible("", default=1.611e06)
 
-    beta, betaMap, betaDeriv = props.Invertible(
-        "",
-        default=3.96
-    )
+    beta, betaMap, betaDeriv = props.Invertible("", default=3.96)
 
     def _get_params(self):
         return self.theta_r, self.theta_s, self.alpha, self.beta
@@ -118,12 +106,7 @@ class Haverkamp_theta(BaseWaterRetention):
     def __call__(self, u):
         theta_r, theta_s, alpha, beta = self._get_params()
 
-        f = (
-            alpha *
-            (theta_s - theta_r) /
-            (alpha + abs(u)**beta) +
-            theta_r
-        )
+        f = alpha * (theta_s - theta_r) / (alpha + abs(u) ** beta) + theta_r
 
         if np.isscalar(theta_s):
             f[u >= 0] = theta_s
@@ -150,17 +133,17 @@ class Haverkamp_theta(BaseWaterRetention):
             )
         """
         return (
-            self._derivTheta_r(u) +
-            self._derivTheta_s(u) +
-            self._derivAlpha(u) +
-            self._derivBeta(u)
+            self._derivTheta_r(u)
+            + self._derivTheta_s(u)
+            + self._derivAlpha(u)
+            + self._derivBeta(u)
         )
 
     def _derivTheta_r(self, u):
         if self.theta_rMap is None:
             return utils.Zero()
         theta_r, theta_s, alpha, beta = self._get_params()
-        ddm = -alpha/(alpha + abs(u)**beta) + 1
+        ddm = -alpha / (alpha + abs(u) ** beta) + 1
         ddm[u >= 0] = 0
         dT = utils.sdiag(ddm) * self.theta_rDeriv
         return dT
@@ -171,16 +154,16 @@ class Haverkamp_theta(BaseWaterRetention):
         theta_r, theta_s, alpha, beta = self._get_params()
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         dT_p = P_p * self.theta_sDeriv
-        dT_n = P_n * utils.sdiag(
-            alpha/(alpha + abs(u)**beta)
-        ) * self.theta_sDeriv
+        dT_n = P_n * utils.sdiag(alpha / (alpha + abs(u) ** beta)) * self.theta_sDeriv
         return dT_p + dT_n
 
     def _derivAlpha(self, u):
         if self.alphaMap is None:
             return utils.Zero()
         theta_r, theta_s, alpha, beta = self._get_params()
-        ddm = -alpha*(-theta_r + theta_s)/(alpha + abs(u)**beta)**2 + (-theta_r + theta_s)/(alpha + abs(u)**beta)
+        ddm = -alpha * (-theta_r + theta_s) / (alpha + abs(u) ** beta) ** 2 + (
+            -theta_r + theta_s
+        ) / (alpha + abs(u) ** beta)
         ddm[u >= 0] = 0
         dA = utils.sdiag(ddm) * self.alphaDeriv
         return dA
@@ -189,7 +172,13 @@ class Haverkamp_theta(BaseWaterRetention):
         if self.betaMap is None:
             return utils.Zero()
         theta_r, theta_s, alpha, beta = self._get_params()
-        ddm = -alpha*(-theta_r + theta_s)*np.log(abs(u))*abs(u)**beta/(alpha + abs(u)**beta)**2
+        ddm = (
+            -alpha
+            * (-theta_r + theta_s)
+            * np.log(abs(u))
+            * abs(u) ** beta
+            / (alpha + abs(u) ** beta) ** 2
+        )
         ddm[u >= 0] = 0
         dN = utils.sdiag(ddm) * self.betaDeriv
         return dN
@@ -198,11 +187,9 @@ class Haverkamp_theta(BaseWaterRetention):
         theta_r, theta_s, alpha, beta = self._get_params()
 
         g = (
-            alpha * (
-                (theta_s - theta_r) /
-                (alpha + abs(u)**beta)**2
-            ) *
-            (-beta * abs(u)**(beta-1) * np.sign(u))
+            alpha
+            * ((theta_s - theta_r) / (alpha + abs(u) ** beta) ** 2)
+            * (-beta * abs(u) ** (beta - 1) * np.sign(u))
         )
         g[u >= 0] = 0
         g = utils.sdiag(g)
@@ -212,19 +199,12 @@ class Haverkamp_theta(BaseWaterRetention):
 class Haverkamp_k(BaseHydraulicConductivity):
 
     Ks, KsMap, KsDeriv = props.Invertible(
-        "Saturated hydraulic conductivity",
-        default=9.44e-03
+        "Saturated hydraulic conductivity", default=9.44e-03
     )
 
-    A, AMap, ADeriv = props.Invertible(
-        "fitting parameter",
-        default=1.175e+06
-    )
+    A, AMap, ADeriv = props.Invertible("fitting parameter", default=1.175e06)
 
-    gamma, gammaMap, gammaDeriv = props.Invertible(
-        "fitting parameter",
-        default=4.74
-    )
+    gamma, gammaMap, gammaDeriv = props.Invertible("fitting parameter", default=4.74)
 
     def _get_params(self):
         return self.Ks, self.A, self.gamma
@@ -233,12 +213,14 @@ class Haverkamp_k(BaseHydraulicConductivity):
         Ks, A, gamma = self._get_params()
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         f_p = P_p * np.ones(len(u)) * Ks  # ensures scalar Ks works
-        f_n = P_n * Ks * A / (A + abs(u)**gamma)
+        f_n = P_n * Ks * A / (A + abs(u) ** gamma)
         return f_p + f_n
 
     def derivU(self, u):
         Ks, A, gamma = self._get_params()
-        g = -(Ks*A*gamma*abs(u)**(gamma-1)*np.sign(u))/((A+abs(u)**gamma)**2)
+        g = -(Ks * A * gamma * abs(u) ** (gamma - 1) * np.sign(u)) / (
+            (A + abs(u) ** gamma) ** 2
+        )
         g[u >= 0] = 0
         return utils.sdiag(g)
 
@@ -253,14 +235,14 @@ class Haverkamp_k(BaseHydraulicConductivity):
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
 
         dKs_dm_p = P_p * self.KsDeriv
-        dKs_dm_n = P_n * utils.sdiag(A/(A + abs(u)**gamma)) * self.KsDeriv
+        dKs_dm_n = P_n * utils.sdiag(A / (A + abs(u) ** gamma)) * self.KsDeriv
         return dKs_dm_p + dKs_dm_n
 
     def _derivA(self, u):
         if self.AMap is None:
             return utils.Zero()
         Ks, A, gamma = self._get_params()
-        ddm = Ks / (A + abs(u)**gamma) - Ks*A/(A + abs(u)**gamma)**2
+        ddm = Ks / (A + abs(u) ** gamma) - Ks * A / (A + abs(u) ** gamma) ** 2
         ddm[u >= 0] = 0
         dA_dm = utils.sdiag(ddm) * self.ADeriv
         return dA_dm
@@ -269,7 +251,7 @@ class Haverkamp_k(BaseHydraulicConductivity):
         if self.gammaMap is None:
             return utils.Zero()
         Ks, A, gamma = self._get_params()
-        ddm = -(A*Ks*np.log(abs(u))*abs(u)**gamma)/(A + abs(u)**gamma)**2
+        ddm = -(A * Ks * np.log(abs(u)) * abs(u) ** gamma) / (A + abs(u) ** gamma) ** 2
         ddm[u >= 0] = 0
         dGamma_dm = utils.sdiag(ddm) * self.gammaDeriv
         return dGamma_dm
@@ -280,8 +262,8 @@ def haverkamp(mesh, **kwargs):
         mesh,
         Haverkamp_k,
         Haverkamp_theta,
-        ['Ks', 'A', 'gamma'],
-        ['alpha', 'beta', 'theta_r', 'theta_s'],
+        ["Ks", "A", "gamma"],
+        ["alpha", "beta", "theta_r", "theta_s"],
         **kwargs
     )
 
@@ -298,36 +280,32 @@ class HaverkampParams(object):
             flow equation." Water Resources Research 26.7 (1990): 1483-1496.
         """
         return {
-            'alpha': 1.611e+06,
-            'beta': 3.96,
-            'theta_r': 0.075,
-            'theta_s': 0.287,
-            'Ks': 9.44e-03,
-            'A': 1.175e+06,
-            'gamma': 4.74
+            "alpha": 1.611e06,
+            "beta": 3.96,
+            "theta_r": 0.075,
+            "theta_s": 0.287,
+            "Ks": 9.44e-03,
+            "A": 1.175e06,
+            "gamma": 4.74,
         }
 
 
 class Vangenuchten_theta(BaseWaterRetention):
 
     theta_r, theta_rMap, theta_rDeriv = props.Invertible(
-        "residual water content [L3L-3]",
-        default=0.078
+        "residual water content [L3L-3]", default=0.078
     )
 
     theta_s, theta_sMap, theta_sDeriv = props.Invertible(
-        "saturated water content [L3L-3]",
-        default=0.430
+        "saturated water content [L3L-3]", default=0.430
     )
 
     n, nMap, nDeriv = props.Invertible(
-        "measure of the pore-size distribution, >1",
-        default=1.56
+        "measure of the pore-size distribution, >1", default=1.56
     )
 
     alpha, alphaMap, alphaDeriv = props.Invertible(
-        "related to the inverse of the air entry suction [L-1], >0",
-        default=0.036
+        "related to the inverse of the air entry suction [L-1], >0", default=0.036
     )
 
     def _get_params(self):
@@ -335,15 +313,9 @@ class Vangenuchten_theta(BaseWaterRetention):
 
     def __call__(self, u):
         theta_r, theta_s, alpha, n = self._get_params()
-        f = (
-            (
-                theta_s - theta_r
-            ) /
-            (
-                (1.0 + abs(alpha * u)**n) ** (1.0 - 1.0 / n)
-            ) +
-            theta_r
-        )
+        f = (theta_s - theta_r) / (
+            (1.0 + abs(alpha * u) ** n) ** (1.0 - 1.0 / n)
+        ) + theta_r
         if np.isscalar(theta_s):
             f[u >= 0] = theta_s
         else:
@@ -376,17 +348,17 @@ class Vangenuchten_theta(BaseWaterRetention):
             )
         """
         return (
-            self._derivTheta_r(u) +
-            self._derivTheta_s(u) +
-            self._derivN(u) +
-            self._derivAlpha(u)
+            self._derivTheta_r(u)
+            + self._derivTheta_s(u)
+            + self._derivN(u)
+            + self._derivAlpha(u)
         )
 
     def _derivTheta_r(self, u):
         if self.theta_rMap is None:
             return utils.Zero()
         theta_r, theta_s, alpha, n = self._get_params()
-        ddm = -(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n) + 1
+        ddm = -((abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n)) + 1
         ddm[u >= 0] = 0
         dT = utils.sdiag(ddm) * self.theta_rDeriv
         return dT
@@ -397,16 +369,28 @@ class Vangenuchten_theta(BaseWaterRetention):
         theta_r, theta_s, alpha, n = self._get_params()
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         dT_p = P_p * self.theta_sDeriv
-        dT_n = P_n * utils.sdiag(
-            (abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)
-        ) * self.theta_sDeriv
+        dT_n = (
+            P_n
+            * utils.sdiag((abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n))
+            * self.theta_sDeriv
+        )
         return dT_p + dT_n
 
     def _derivN(self, u):
         if self.nMap is None:
             return utils.Zero()
         theta_r, theta_s, alpha, n = self._get_params()
-        ddm = (-theta_r + theta_s)*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)
+        ddm = (
+            (-theta_r + theta_s)
+            * (
+                (-1.0 + 1.0 / n)
+                * np.log(abs(alpha * u))
+                * abs(alpha * u) ** n
+                / (abs(alpha * u) ** n + 1.0)
+                - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n ** 2
+            )
+            * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n)
+        )
         ddm[u >= 0] = 0
         dN = utils.sdiag(ddm) * self.nDeriv
         return dN
@@ -415,14 +399,31 @@ class Vangenuchten_theta(BaseWaterRetention):
         if self.alphaMap is None:
             return utils.Zero()
         theta_r, theta_s, alpha, n = self._get_params()
-        ddm = n*u*(-1.0 + 1.0/n)*(-theta_r + theta_s)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*abs(alpha*u)**n*np.sign(alpha*u)/((abs(alpha*u)**n + 1.0)*abs(alpha*u))
+        ddm = (
+            n
+            * u
+            * (-1.0 + 1.0 / n)
+            * (-theta_r + theta_s)
+            * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n)
+            * abs(alpha * u) ** n
+            * np.sign(alpha * u)
+            / ((abs(alpha * u) ** n + 1.0) * abs(alpha * u))
+        )
         ddm[u >= 0] = 0
         dA = utils.sdiag(ddm) * self.alphaDeriv
         return dA
 
     def derivU(self, u):
         theta_r, theta_s, alpha, n = self._get_params()
-        g = -alpha*n*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1./n - 1)*(theta_r - theta_s)*(abs(alpha*u)**n + 1)**(1./n - 2)
+        g = (
+            -alpha
+            * n
+            * abs(alpha * u) ** (n - 1)
+            * np.sign(alpha * u)
+            * (1.0 / n - 1)
+            * (theta_r - theta_s)
+            * (abs(alpha * u) ** n + 1) ** (1.0 / n - 2)
+        )
         g[u >= 0] = 0
         g = utils.sdiag(g)
         return g
@@ -431,23 +432,17 @@ class Vangenuchten_theta(BaseWaterRetention):
 class Vangenuchten_k(BaseHydraulicConductivity):
 
     Ks, KsMap, KsDeriv = props.Invertible(
-        "Saturated hydraulic conductivity",
-        default=24.96
+        "Saturated hydraulic conductivity", default=24.96
     )
 
-    I, IMap, IDeriv = props.Invertible(
-        "",
-        default=0.5
-    )
+    I, IMap, IDeriv = props.Invertible("", default=0.5)
 
     n, nMap, nDeriv = props.Invertible(
-        "measure of the pore-size distribution, >1",
-        default=1.56
+        "measure of the pore-size distribution, >1", default=1.56
     )
 
     alpha, alphaMap, alphaDeriv = props.Invertible(
-        "related to the inverse of the air entry suction [L-1], >0",
-        default=0.036
+        "related to the inverse of the air entry suction [L-1], >0", default=0.036
     )
 
     def _get_params(self):
@@ -455,7 +450,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         I = self.I
         n = self.n
         Ks = self.Ks
-        m = 1.0 - 1.0/n
+        m = 1.0 - 1.0 / n
         return Ks, alpha, I, n, m
 
     def __call__(self, u):
@@ -464,9 +459,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
         f_p = P_p * np.ones(len(u)) * Ks  # ensures scalar Ks works
-        f_n = P_n * Ks * theta_e ** I * (
-            (1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2
-        )
+        f_n = P_n * Ks * theta_e ** I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
         return f_p + f_n
 
     def derivM(self, u):
@@ -498,10 +491,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
             )
         """
         return (
-            self._derivKs(u) +
-            self._derivI(u) +
-            self._derivN(u) +
-            self._derivAlpha(u)
+            self._derivKs(u) + self._derivI(u) + self._derivN(u) + self._derivAlpha(u)
         )
 
     def _derivKs(self, u):
@@ -512,16 +502,62 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
         dKs_dm_p = P_p * self.KsDeriv
-        dKs_dm_n = P_n * utils.sdiag(
-            theta_e ** I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
-        ) * self.KsDeriv
+        dKs_dm_n = (
+            P_n
+            * utils.sdiag(
+                theta_e ** I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
+            )
+            * self.KsDeriv
+        )
         return dKs_dm_p + dKs_dm_n
 
     def _derivAlpha(self, u):
         if self.alphaMap is None:
             return utils.Zero()
         Ks, alpha, I, n, m = self._get_params()
-        ddm = I*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
+        ddm = I * u * n * Ks * abs(alpha * u) ** (n - 1) * np.sign(alpha * u) * (
+            1.0 / n - 1
+        ) * ((abs(alpha * u) ** n + 1) ** (1.0 / n - 1)) ** (I - 1) * (
+            (
+                1
+                - 1.0
+                / ((abs(alpha * u) ** n + 1) ** (1.0 / n - 1)) ** (1.0 / (1.0 / n - 1))
+            )
+            ** (1 - 1.0 / n)
+            - 1
+        ) ** 2 * (
+            abs(alpha * u) ** n + 1
+        ) ** (
+            1.0 / n - 2
+        ) - (
+            2
+            * u
+            * n
+            * Ks
+            * abs(alpha * u) ** (n - 1)
+            * np.sign(alpha * u)
+            * (1.0 / n - 1)
+            * ((abs(alpha * u) ** n + 1) ** (1.0 / n - 1)) ** I
+            * (
+                (
+                    1
+                    - 1.0
+                    / ((abs(alpha * u) ** n + 1) ** (1.0 / n - 1))
+                    ** (1.0 / (1.0 / n - 1))
+                )
+                ** (1 - 1.0 / n)
+                - 1
+            )
+            * (abs(alpha * u) ** n + 1) ** (1.0 / n - 2)
+        ) / (
+            ((abs(alpha * u) ** n + 1) ** (1.0 / n - 1)) ** (1.0 / (1.0 / n - 1) + 1)
+            * (
+                1
+                - 1.0
+                / ((abs(alpha * u) ** n + 1) ** (1.0 / n - 1)) ** (1.0 / (1.0 / n - 1))
+            )
+            ** (1.0 / n)
+        )
         ddm[u >= 0] = 0
         dA = utils.sdiag(ddm) * self.alphaDeriv
         return dA
@@ -530,7 +566,95 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         if self.nMap is None:
             return utils.Zero()
         Ks, alpha, I, n, m = self._get_params()
-        ddm = 1.0*I*Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)**2*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*(abs(alpha*u)**n + 1.0)**(1.0 - 1.0/n) - 2*Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n)*(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n))*(1.0 - 1.0/n)*(1.0*((-1.0 + 1.0/n)*np.log(abs(alpha*u))*abs(alpha*u)**n/(abs(alpha*u)**n + 1.0) - 1.0*np.log(abs(alpha*u)**n + 1.0)/n**2)*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n)*(abs(alpha*u)**n + 1.0)**(1.0 - 1.0/n)/(1.0 - 1.0/n) - 1.0*np.log(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))/(n**2*(1.0 - 1.0/n)**2))/(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0) + 1.0*np.log(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)/n**2)*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)
+        ddm = 1.0 * I * Ks * (
+            1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n)
+        ) ** I * (
+            (-1.0 + 1.0 / n)
+            * np.log(abs(alpha * u))
+            * abs(alpha * u) ** n
+            / (abs(alpha * u) ** n + 1.0)
+            - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n ** 2
+        ) * (
+            -(
+                (
+                    -(
+                        (1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n))
+                        ** (1.0 / (1.0 - 1.0 / n))
+                    )
+                    + 1.0
+                )
+                ** (1.0 - 1.0 / n)
+            )
+            + 1.0
+        ) ** 2 * (
+            abs(alpha * u) ** n + 1.0
+        ) ** (
+            -1.0 + 1.0 / n
+        ) * (
+            abs(alpha * u) ** n + 1.0
+        ) ** (
+            1.0 - 1.0 / n
+        ) - 2 * Ks * (
+            1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n)
+        ) ** I * (
+            -(
+                (1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n))
+                ** (1.0 / (1.0 - 1.0 / n))
+            )
+            + 1.0
+        ) ** (
+            1.0 - 1.0 / n
+        ) * (
+            -(
+                (1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n))
+                ** (1.0 / (1.0 - 1.0 / n))
+            )
+            * (1.0 - 1.0 / n)
+            * (
+                1.0
+                * (
+                    (-1.0 + 1.0 / n)
+                    * np.log(abs(alpha * u))
+                    * abs(alpha * u) ** n
+                    / (abs(alpha * u) ** n + 1.0)
+                    - 1.0 * np.log(abs(alpha * u) ** n + 1.0) / n ** 2
+                )
+                * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n)
+                * (abs(alpha * u) ** n + 1.0) ** (1.0 - 1.0 / n)
+                / (1.0 - 1.0 / n)
+                - 1.0
+                * np.log(1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n))
+                / (n ** 2 * (1.0 - 1.0 / n) ** 2)
+            )
+            / (
+                -(
+                    (1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n))
+                    ** (1.0 / (1.0 - 1.0 / n))
+                )
+                + 1.0
+            )
+            + 1.0
+            * np.log(
+                -(
+                    (1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n))
+                    ** (1.0 / (1.0 - 1.0 / n))
+                )
+                + 1.0
+            )
+            / n ** 2
+        ) * (
+            -(
+                (
+                    -(
+                        (1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n))
+                        ** (1.0 / (1.0 - 1.0 / n))
+                    )
+                    + 1.0
+                )
+                ** (1.0 - 1.0 / n)
+            )
+            + 1.0
+        )
         ddm[u >= 0] = 0
         dn = utils.sdiag(ddm) * self.nDeriv
         return dn
@@ -539,14 +663,74 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         if self.IMap is None:
             return utils.Zero()
         Ks, alpha, I, n, m = self._get_params()
-        ddm = Ks*(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**I*(-(-(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))**(1.0/(1.0 - 1.0/n)) + 1.0)**(1.0 - 1.0/n) + 1.0)**2*np.log(1.0*(abs(alpha*u)**n + 1.0)**(-1.0 + 1.0/n))
+        ddm = (
+            Ks
+            * (1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n)) ** I
+            * (
+                -(
+                    (
+                        -(
+                            (1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n))
+                            ** (1.0 / (1.0 - 1.0 / n))
+                        )
+                        + 1.0
+                    )
+                    ** (1.0 - 1.0 / n)
+                )
+                + 1.0
+            )
+            ** 2
+            * np.log(1.0 * (abs(alpha * u) ** n + 1.0) ** (-1.0 + 1.0 / n))
+        )
         ddm[u >= 0] = 0
         dI = utils.sdiag(ddm) * self.IDeriv
         return dI
 
     def derivU(self, u):
         Ks, alpha, I, n, m = self._get_params()
-        ddm = I*alpha*n*Ks*abs(alpha*u)**(n - 1.0)*np.sign(alpha*u)*(1.0/n - 1.0)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*alpha*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
+        ddm = I * alpha * n * Ks * abs(alpha * u) ** (n - 1.0) * np.sign(alpha * u) * (
+            1.0 / n - 1.0
+        ) * ((abs(alpha * u) ** n + 1) ** (1.0 / n - 1)) ** (I - 1) * (
+            (
+                1
+                - 1.0
+                / ((abs(alpha * u) ** n + 1) ** (1.0 / n - 1)) ** (1.0 / (1.0 / n - 1))
+            )
+            ** (1 - 1.0 / n)
+            - 1
+        ) ** 2 * (
+            abs(alpha * u) ** n + 1
+        ) ** (
+            1.0 / n - 2
+        ) - (
+            2
+            * alpha
+            * n
+            * Ks
+            * abs(alpha * u) ** (n - 1)
+            * np.sign(alpha * u)
+            * (1.0 / n - 1)
+            * ((abs(alpha * u) ** n + 1) ** (1.0 / n - 1)) ** I
+            * (
+                (
+                    1
+                    - 1.0
+                    / ((abs(alpha * u) ** n + 1) ** (1.0 / n - 1))
+                    ** (1.0 / (1.0 / n - 1))
+                )
+                ** (1 - 1.0 / n)
+                - 1
+            )
+            * (abs(alpha * u) ** n + 1) ** (1.0 / n - 2)
+        ) / (
+            ((abs(alpha * u) ** n + 1) ** (1.0 / n - 1)) ** (1.0 / (1.0 / n - 1) + 1)
+            * (
+                1
+                - 1.0
+                / ((abs(alpha * u) ** n + 1) ** (1.0 / n - 1)) ** (1.0 / (1.0 / n - 1))
+            )
+            ** (1.0 / n)
+        )
         ddm[u >= 0] = 0
         g = utils.sdiag(ddm)
         return g
@@ -557,8 +741,8 @@ def van_genuchten(mesh, **kwargs):
         mesh,
         Vangenuchten_k,
         Vangenuchten_theta,
-        ['alpha', 'n', 'Ks', 'I'],
-        ['alpha', 'n', 'theta_r', 'theta_s'],
+        ["alpha", "n", "Ks", "I"],
+        ["alpha", "n", "theta_r", "theta_s"],
         **kwargs
     )
 
@@ -575,78 +759,111 @@ class VanGenuchtenParams(object):
     @property
     def sand(self):
         return {
-            "theta_r": 0.020, "theta_s": 0.417, "alpha": 0.138*100.,
-            "n": 1.592, "Ks": 504.0*constants.centi/constants.day
+            "theta_r": 0.020,
+            "theta_s": 0.417,
+            "alpha": 0.138 * 100.0,
+            "n": 1.592,
+            "Ks": 504.0 * constants.centi / constants.day,
         }
 
     @property
     def loamy_sand(self):
         return {
-            "theta_r": 0.035, "theta_s": 0.401, "alpha": 0.115*100.,
-            "n": 1.474, "Ks": 146.6*constants.centi/constants.day
+            "theta_r": 0.035,
+            "theta_s": 0.401,
+            "alpha": 0.115 * 100.0,
+            "n": 1.474,
+            "Ks": 146.6 * constants.centi / constants.day,
         }
 
     @property
     def sandy_loam(self):
         return {
-            "theta_r": 0.041, "theta_s": 0.412, "alpha": 0.068*100.,
-            "n": 1.322, "Ks": 62.16*constants.centi/constants.day
+            "theta_r": 0.041,
+            "theta_s": 0.412,
+            "alpha": 0.068 * 100.0,
+            "n": 1.322,
+            "Ks": 62.16 * constants.centi / constants.day,
         }
 
     @property
     def loam(self):
         return {
-            "theta_r": 0.027, "theta_s": 0.434, "alpha": 0.090*100.,
-            "n": 1.220, "Ks": 16.32*constants.centi/constants.day
+            "theta_r": 0.027,
+            "theta_s": 0.434,
+            "alpha": 0.090 * 100.0,
+            "n": 1.220,
+            "Ks": 16.32 * constants.centi / constants.day,
         }
 
     @property
     def silt_loam(self):
         return {
-            "theta_r": 0.015, "theta_s": 0.486, "alpha": 0.048*100.,
-            "n": 1.211, "Ks": 31.68*constants.centi/constants.day
+            "theta_r": 0.015,
+            "theta_s": 0.486,
+            "alpha": 0.048 * 100.0,
+            "n": 1.211,
+            "Ks": 31.68 * constants.centi / constants.day,
         }
 
     @property
     def sandy_clay_loam(self):
         return {
-            "theta_r": 0.068, "theta_s": 0.330, "alpha": 0.036*100.,
-            "n": 1.250, "Ks": 10.32*constants.centi/constants.day
+            "theta_r": 0.068,
+            "theta_s": 0.330,
+            "alpha": 0.036 * 100.0,
+            "n": 1.250,
+            "Ks": 10.32 * constants.centi / constants.day,
         }
 
     @property
     def clay_loam(self):
         return {
-            "theta_r": 0.075, "theta_s": 0.390, "alpha": 0.039*100.,
-            "n": 1.194, "Ks": 5.52*constants.centi/constants.day
+            "theta_r": 0.075,
+            "theta_s": 0.390,
+            "alpha": 0.039 * 100.0,
+            "n": 1.194,
+            "Ks": 5.52 * constants.centi / constants.day,
         }
 
     @property
     def silty_clay_loam(self):
         return {
-            "theta_r": 0.040, "theta_s": 0.432, "alpha": 0.031*100.,
-            "n": 1.151, "Ks": 3.60*constants.centi/constants.day
+            "theta_r": 0.040,
+            "theta_s": 0.432,
+            "alpha": 0.031 * 100.0,
+            "n": 1.151,
+            "Ks": 3.60 * constants.centi / constants.day,
         }
 
     @property
     def sandy_clay(self):
         return {
-            "theta_r": 0.109, "theta_s": 0.321, "alpha": 0.034*100.,
-            "n": 1.168, "Ks": 2.88*constants.centi/constants.day
+            "theta_r": 0.109,
+            "theta_s": 0.321,
+            "alpha": 0.034 * 100.0,
+            "n": 1.168,
+            "Ks": 2.88 * constants.centi / constants.day,
         }
 
     @property
     def silty_clay(self):
         return {
-            "theta_r": 0.056, "theta_s": 0.423, "alpha": 0.029*100.,
-            "n": 1.127, "Ks": 2.16*constants.centi/constants.day
+            "theta_r": 0.056,
+            "theta_s": 0.423,
+            "alpha": 0.029 * 100.0,
+            "n": 1.127,
+            "Ks": 2.16 * constants.centi / constants.day,
         }
 
     @property
     def clay(self):
         return {
-            "theta_r": 0.090, "theta_s": 0.385, "alpha": 0.027*100.,
-            "n": 1.131, "Ks": 1.44*constants.centi/constants.day
+            "theta_r": 0.090,
+            "theta_s": 0.385,
+            "alpha": 0.027 * 100.0,
+            "n": 1.131,
+            "Ks": 1.44 * constants.centi / constants.day,
         }
 
     # From:

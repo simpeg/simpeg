@@ -23,7 +23,7 @@ class Data(BaseData):
                         data.dobs[index] = datum
 
         """
-        if getattr(self, '_index_dictionary', None) is None:
+        if getattr(self, "_index_dictionary", None) is None:
             if self.survey is None:
                 raise Exception(
                     "To set or get values by source-receiver pairs, a survey must "

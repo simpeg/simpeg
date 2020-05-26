@@ -13,7 +13,7 @@ def run(plotIt=True):
 
     M = discretize.TensorMesh([100, 100])
     h1 = utils.meshTensor([(6, 7, -1.5), (6, 10), (6, 7, 1.5)])
-    h1 = h1/h1.sum()
+    h1 = h1 / h1.sum()
     M2 = discretize.TensorMesh([h1, h1])
     V = utils.model_builder.randomModel(M.vnC, seed=79, its=50)
     v = utils.mkvc(V)
@@ -27,15 +27,15 @@ def run(plotIt=True):
 
     ax = plt.subplot(131)
     M.plotImage(v, ax=ax)
-    ax.set_title('Fine Mesh (Original)')
+    ax.set_title("Fine Mesh (Original)")
     ax = plt.subplot(132)
     M2.plotImage(H, clim=[0, 1], ax=ax)
-    ax.set_title('Course Mesh')
+    ax.set_title("Course Mesh")
     ax = plt.subplot(133)
     M.plotImage(h, clim=[0, 1], ax=ax)
-    ax.set_title('Fine Mesh (Interpolated)')
+    ax.set_title("Fine Mesh (Interpolated)")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()
     plt.show()

@@ -5,21 +5,23 @@ import numpy as np
 
 import discretize
 from SimPEG import (
-    maps, directives, regularization, data_misfit, optimization,
-    inversion, inverse_problem
+    maps,
+    directives,
+    regularization,
+    data_misfit,
+    optimization,
+    inversion,
+    inverse_problem,
 )
 from SimPEG.potential_fields import magnetics as mag
 import shutil
 
 
 class directivesValidation(unittest.TestCase):
-
     def test_validation_pass(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(
-            f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
-        )
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
         update_Jacobi = directives.UpdatePreconditioner()
         dList = [betaest, IRLS, update_Jacobi]
         directiveList = directives.DirectiveList(*dList)
@@ -29,9 +31,7 @@ class directivesValidation(unittest.TestCase):
     def test_validation_fail(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(
-            f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
-        )
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
         update_Jacobi = directives.UpdatePreconditioner()
         dList = [betaest, update_Jacobi, IRLS]
         directiveList = directives.DirectiveList(*dList)
@@ -42,9 +42,7 @@ class directivesValidation(unittest.TestCase):
     def test_validation_warning(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(
-            f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
-        )
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
         update_Jacobi = directives.UpdatePreconditioner()
         dList = [betaest, IRLS]
         directiveList = directives.DirectiveList(*dList)
@@ -54,7 +52,6 @@ class directivesValidation(unittest.TestCase):
 
 
 class ValidationInInversion(unittest.TestCase):
-
     def setUp(self):
         mesh = discretize.TensorMesh([4, 4, 4])
 
@@ -62,9 +59,7 @@ class ValidationInInversion(unittest.TestCase):
         B = [50000, 90, 0]
 
         # Create a MAGsurvey
-        rx = mag.Point(
-            np.vstack([[0.25, 0.25, 0.25], [-0.25, -0.25, 0.25]])
-        )
+        rx = mag.Point(np.vstack([[0.25, 0.25, 0.25], [-0.25, -0.25, 0.25]]))
         srcField = mag.SourceField([rx], parameters=(B[0], B[1], B[2]))
         survey = mag.Survey(srcField)
 
@@ -84,12 +79,11 @@ class ValidationInInversion(unittest.TestCase):
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(data)
-        dmis.W = 1./data.relative_error
+        dmis.W = 1.0 / data.relative_error
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=2, lower=-10., upper=10.,
-            maxIterCG=2
+            maxIter=2, lower=-10.0, upper=10.0, maxIterCG=2
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -102,9 +96,7 @@ class ValidationInInversion(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(
-            f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
-        )
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
 
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
@@ -128,7 +120,6 @@ class ValidationInInversion(unittest.TestCase):
             inv = inversion.BaseInversion(self.invProb)
             inv.directiveList = [update_Jacobi, sensitivity_weights]
 
-
     def tearDown(self):
         # Clean up the working directory
         try:
@@ -137,5 +128,5 @@ class ValidationInInversion(unittest.TestCase):
             pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

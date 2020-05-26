@@ -49,12 +49,17 @@ from SimPEG.flow import richards
 
 def run(plotIt=True):
 
-    M = discretize.TensorMesh([np.ones(40)], x0='N')
-    M.setCellGradBC('dirichlet')
+    M = discretize.TensorMesh([np.ones(40)], x0="N")
+    M.setCellGradBC("dirichlet")
     # We will use the haverkamp empirical model with parameters from Celia1990
     k_fun, theta_fun = richards.empirical.haverkamp(
-        M, A=1.1750e+06, gamma=4.74, alpha=1.6110e+06,
-        theta_s=0.287, theta_r=0.075, beta=3.96
+        M,
+        A=1.1750e06,
+        gamma=4.74,
+        alpha=1.6110e06,
+        theta_s=0.287,
+        theta_r=0.075,
+        beta=3.96,
     )
 
     # Here we are making saturated hydraulic conductivity
@@ -68,13 +73,16 @@ def run(plotIt=True):
         M,
         hydraulic_conductivity=k_fun,
         water_retention=theta_fun,
-        boundary_conditions=bc, initial_conditions=h,
-        do_newton=False, method='mixed', debug=False
+        boundary_conditions=bc,
+        initial_conditions=h,
+        do_newton=False,
+        method="mixed",
+        debug=False,
     )
     prob.time_steps = [(5, 25, 1.1), (60, 40)]
 
     # Create the survey
-    locs = -np.arange(2, 38, 4.).reshape(-1, 1)
+    locs = -np.arange(2, 38, 4.0).reshape(-1, 1)
     times = np.arange(30, prob.time_mesh.vectorCCx[-1], 60)
     rxSat = richards.receivers.Saturation(locs, times)
     survey = richards.Survey([rxSat])
@@ -82,7 +90,7 @@ def run(plotIt=True):
 
     # Create a simple model for Ks
     Ks = 1e-3
-    mtrue = np.ones(M.nC)*np.log(Ks)
+    mtrue = np.ones(M.nC) * np.log(Ks)
     mtrue[15:20] = np.log(5e-2)
     mtrue[20:35] = np.log(3e-3)
     mtrue[35:40] = np.log(1e-2)
@@ -96,32 +104,33 @@ def run(plotIt=True):
 
         plt.subplot(221)
         plt.plot(np.log10(np.exp(mtrue)), M.gridCC)
-        plt.title('(a) True model and data locations')
-        plt.ylabel('Depth, cm')
-        plt.xlabel('Hydraulic conductivity, $log_{10}(K_s)$')
-        plt.plot([-3.25]*len(locs), locs, 'ro')
-        plt.legend(('True model', 'Data locations'))
+        plt.title("(a) True model and data locations")
+        plt.ylabel("Depth, cm")
+        plt.xlabel("Hydraulic conductivity, $log_{10}(K_s)$")
+        plt.plot([-3.25] * len(locs), locs, "ro")
+        plt.legend(("True model", "Data locations"))
 
         plt.subplot(222)
-        plt.plot(times/60, data.dobs.reshape((-1, len(locs))))
-        plt.title('(b) True data over time at all depths')
-        plt.xlabel('Time, minutes')
-        plt.ylabel('Saturation')
+        plt.plot(times / 60, data.dobs.reshape((-1, len(locs))))
+        plt.title("(b) True data over time at all depths")
+        plt.xlabel("Time, minutes")
+        plt.ylabel("Saturation")
 
         ax = plt.subplot(212)
-        mesh2d = discretize.TensorMesh([prob.time_mesh.hx/60, prob.mesh.hx], '0N')
+        mesh2d = discretize.TensorMesh([prob.time_mesh.hx / 60, prob.mesh.hx], "0N")
         sats = [theta_fun(_) for _ in Hs]
         clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r
         clr[0].set_cmap(cmap0)
         c = plt.colorbar(clr[0])
-        c.set_label('Saturation $\\theta$')
-        plt.xlabel('Time, minutes')
-        plt.ylabel('Depth, cm')
-        plt.title('(c) Saturation over time')
+        c.set_label("Saturation $\\theta$")
+        plt.xlabel("Time, minutes")
+        plt.ylabel("Depth, cm")
+        plt.title("(c) Saturation over time")
 
         plt.tight_layout()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run()
     plt.show()

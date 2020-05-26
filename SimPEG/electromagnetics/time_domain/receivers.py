@@ -16,14 +16,15 @@ class BaseRx(BaseTimeRx):
     """
 
     orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'x', 'y', 'z'",
-        ["x", "y", "z"]
+        "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
     )
 
-    projComp = deprecate_property(orientation, 'projComp', new_name='orientation', removal_version='0.15.0')
+    projComp = deprecate_property(
+        orientation, "projComp", new_name="orientation", removal_version="0.15.0"
+    )
 
     def __init__(self, locations, times, orientation=None, **kwargs):
-        proj = kwargs.pop('projComp', None)
+        proj = kwargs.pop("projComp", None)
         if proj is not None:
             self.projComp = proj
         else:
@@ -108,7 +109,7 @@ class BaseRx(BaseTimeRx):
 
         P = self.getP(mesh, time_mesh, f)
         f_part = mkvc(f[src, self.projField, :])
-        return P*f_part
+        return P * f_part
 
     def evalDeriv(self, src, mesh, time_mesh, f, v, adjoint=False):
         """
@@ -129,7 +130,7 @@ class BaseRx(BaseTimeRx):
         elif adjoint:
             # dP_dF_T = P.T * v #[src, self]
             # newshape = (len(dP_dF_T)/time_mesh.nN, time_mesh.nN )
-            return P.T * v # np.reshape(dP_dF_T, newshape, order='F')
+            return P.T * v  # np.reshape(dP_dF_T, newshape, order='F')
 
 
 class PointElectricField(BaseRx):
@@ -141,9 +142,11 @@ class PointElectricField(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locations=None, times=None, orientation='x', **kwargs):
-        self.projField = 'e'
-        super(PointElectricField, self).__init__(locations, times, orientation, **kwargs)
+    def __init__(self, locations=None, times=None, orientation="x", **kwargs):
+        self.projField = "e"
+        super(PointElectricField, self).__init__(
+            locations, times, orientation, **kwargs
+        )
 
 
 class PointMagneticFluxDensity(BaseRx):
@@ -155,9 +158,11 @@ class PointMagneticFluxDensity(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locations=None, times=None, orientation='x', **kwargs):
-        self.projField = 'b'
-        super(PointMagneticFluxDensity, self).__init__(locations, times, orientation, **kwargs)
+    def __init__(self, locations=None, times=None, orientation="x", **kwargs):
+        self.projField = "b"
+        super(PointMagneticFluxDensity, self).__init__(
+            locations, times, orientation, **kwargs
+        )
 
 
 class PointMagneticFluxTimeDerivative(BaseRx):
@@ -169,18 +174,22 @@ class PointMagneticFluxTimeDerivative(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locations=None, times=None, orientation='x', **kwargs):
-        self.projField = 'dbdt'
-        super(PointMagneticFluxTimeDerivative, self).__init__(locations, times, orientation, **kwargs)
+    def __init__(self, locations=None, times=None, orientation="x", **kwargs):
+        self.projField = "dbdt"
+        super(PointMagneticFluxTimeDerivative, self).__init__(
+            locations, times, orientation, **kwargs
+        )
 
     def eval(self, src, mesh, time_mesh, f):
 
         if self.projField in f.aliasFields:
-            return super(PointMagneticFluxTimeDerivative, self).eval(src, mesh, time_mesh, f)
+            return super(PointMagneticFluxTimeDerivative, self).eval(
+                src, mesh, time_mesh, f
+            )
 
         P = self.getP(mesh, time_mesh, f)
-        f_part = mkvc(f[src, 'b', :])
-        return P*f_part
+        f_part = mkvc(f[src, "b", :])
+        return P * f_part
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
@@ -199,9 +208,7 @@ class PointMagneticFluxTimeDerivative(BaseRx):
         if self.projField in f.aliasFields:
             return super(PointMagneticFluxTimeDerivative, self).getTimeP(time_mesh, f)
 
-        return time_mesh.getInterpolationMat(
-            self.times, 'CC'
-        )*time_mesh.faceDiv
+        return time_mesh.getInterpolationMat(self.times, "CC") * time_mesh.faceDiv
 
 
 class PointMagneticField(BaseRx):
@@ -213,9 +220,11 @@ class PointMagneticField(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locations=None, times=None, orientation='x', **kwargs):
-        self.projField = 'h'
-        super(PointMagneticField, self).__init__(locations, times, orientation, **kwargs)
+    def __init__(self, locations=None, times=None, orientation="x", **kwargs):
+        self.projField = "h"
+        super(PointMagneticField, self).__init__(
+            locations, times, orientation, **kwargs
+        )
 
 
 class PointCurrentDensity(BaseRx):
@@ -227,46 +236,51 @@ class PointCurrentDensity(BaseRx):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     """
 
-    def __init__(self, locations=None, times=None, orientation='x', **kwargs):
-        self.projField = 'j'
-        super(PointCurrentDensity, self).__init__(locations, times, orientation, **kwargs)
+    def __init__(self, locations=None, times=None, orientation="x", **kwargs):
+        self.projField = "j"
+        super(PointCurrentDensity, self).__init__(
+            locations, times, orientation, **kwargs
+        )
+
 
 class PointMagneticFieldTimeDerivative(BaseRx):
-
-    def __init__(self, locations=None, times=None, orientation='x', **kwargs):
-        self.projField = 'dhdt'
-        super(PointMagneticFieldTimeDerivative, self).__init__(locations, times, orientation, **kwargs)
+    def __init__(self, locations=None, times=None, orientation="x", **kwargs):
+        self.projField = "dhdt"
+        super(PointMagneticFieldTimeDerivative, self).__init__(
+            locations, times, orientation, **kwargs
+        )
 
 
 ############
 # Deprecated
 ############
 
-@deprecate_class(removal_version='0.15.0')
+
+@deprecate_class(removal_version="0.15.0")
 class Point_e(PointElectricField):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Point_b(PointMagneticFluxDensity):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Point_h(PointMagneticField):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Point_j(PointCurrentDensity):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Point_dbdt(PointMagneticFluxTimeDerivative):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Point_dhdt(PointMagneticFieldTimeDerivative):
     pass

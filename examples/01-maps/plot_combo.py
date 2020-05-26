@@ -45,21 +45,21 @@ def run(plotIt=True):
         return
 
     figs, axs = plt.subplots(1, 2)
-    axs[0].plot(m, M.vectorCCy, 'b-o')
-    axs[0].set_title('Model')
-    axs[0].set_ylabel('Depth, y')
-    axs[0].set_xlabel('Value, $m_i$')
+    axs[0].plot(m, M.vectorCCy, "b-o")
+    axs[0].set_title("Model")
+    axs[0].set_ylabel("Depth, y")
+    axs[0].set_xlabel("Value, $m_i$")
     axs[0].set_xlim(0, 3)
     axs[0].set_ylim(0, 1)
-    clbar = plt.colorbar(M.plotImage(
-        sig, ax=axs[1], grid=True, gridOpts=dict(color='grey')
-    )[0])
-    axs[1].set_title('Physical Property')
-    axs[1].set_ylabel('Depth, y')
-    clbar.set_label('$\sigma = \exp(\mathbf{P}m)$')
+    clbar = plt.colorbar(
+        M.plotImage(sig, ax=axs[1], grid=True, gridOpts=dict(color="grey"))[0]
+    )
+    axs[1].set_title("Physical Property")
+    axs[1].set_ylabel("Depth, y")
+    clbar.set_label("$\sigma = \exp(\mathbf{P}m)$")
     plt.tight_layout()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()
     plt.show()

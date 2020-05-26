@@ -49,8 +49,8 @@ save_file = False
 # MN electrode locations, respectively.
 #
 
-a_min = 20.
-a_max = 500.
+a_min = 20.0
+a_max = 500.0
 n_stations = 25
 
 # Define the 'a' spacing for Wenner array measurements for each reading
@@ -64,23 +64,19 @@ for ii in range(0, len(electrode_separations)):
     a = electrode_separations[ii]
 
     # AB electrode locations for source. Each is a (1, 3) numpy array
-    A_location = np.r_[-1.5*a, 0., 0.]
-    B_location = np.r_[1.5*a, 0., 0.]
+    A_location = np.r_[-1.5 * a, 0.0, 0.0]
+    B_location = np.r_[1.5 * a, 0.0, 0.0]
 
     # MN electrode locations for receivers. Each is an (N, 3) numpy array
-    M_location = np.r_[-0.5*a, 0., 0.]
-    N_location = np.r_[0.5*a, 0., 0.]
+    M_location = np.r_[-0.5 * a, 0.0, 0.0]
+    N_location = np.r_[0.5 * a, 0.0, 0.0]
 
     # Create receivers list. Define as pole or dipole.
-    receiver_list = dc.receivers.Dipole(
-        M_location, N_location
-    )
+    receiver_list = dc.receivers.Dipole(M_location, N_location)
     receiver_list = [receiver_list]
 
     # Define the source properties and associated receivers
-    source_list.append(
-        dc.sources.Dipole(receiver_list, A_location, B_location)
-    )
+    source_list.append(dc.sources.Dipole(receiver_list, A_location, B_location))
 
 # Define survey
 survey = dc.Survey(source_list)
@@ -97,7 +93,7 @@ survey = dc.Survey(source_list)
 #
 
 # Define layer thicknesses.
-layer_thicknesses = np.r_[100., 100.]
+layer_thicknesses = np.r_[100.0, 100.0]
 
 # Define layer resistivities.
 model = np.r_[1e3, 4e3, 2e2]
@@ -114,12 +110,10 @@ model_map = maps.IdentityMap(nP=len(model))
 
 # Define a 1D mesh for plotting. Provide a maximum depth for the plot.
 max_depth = 500
-mesh = TensorMesh(
-    [np.r_[layer_thicknesses, max_depth-layer_thicknesses.sum()]]
-)
+mesh = TensorMesh([np.r_[layer_thicknesses, max_depth - layer_thicknesses.sum()]])
 
 # Plot the 1D model
-plot_layer(model_map*model, mesh)
+plot_layer(model_map * model, mesh)
 
 #######################################################################
 # Define the Forward Simulation and Predict DC Resistivity Data
@@ -131,8 +125,10 @@ plot_layer(model_map*model, mesh)
 #
 
 simulation = dc.simulation_1d.Simulation1DLayers(
-    survey=survey, rhoMap=model_map, thicknesses=layer_thicknesses,
-    data_type="apparent_resistivity"
+    survey=survey,
+    rhoMap=model_map,
+    thicknesses=layer_thicknesses,
+    data_type="apparent_resistivity",
 )
 
 # Predict data for a given model
@@ -141,7 +137,7 @@ dpred = simulation.dpred(model)
 # Plot apparent resistivities on sounding curve
 fig = plt.figure(figsize=(11, 5))
 ax1 = fig.add_axes([0.1, 0.1, 0.75, 0.85])
-ax1.semilogy(1.5*electrode_separations, dpred, 'b')
+ax1.semilogy(1.5 * electrode_separations, dpred, "b")
 ax1.set_xlabel("AB/2 (m)")
 ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
 plt.show()
@@ -157,26 +153,26 @@ plt.show()
 if save_file:
 
     dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-    dir_path.extend(['tutorials', 'assets', 'dcr1d'])
+    dir_path.extend(["tutorials", "assets", "dcr1d"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
     survey.getABMN_locations()
 
-    noise = 0.025*dpred*np.random.rand(len(dpred))
+    noise = 0.025 * dpred * np.random.rand(len(dpred))
 
     data_array = np.c_[
         survey.a_locations,
         survey.b_locations,
         survey.m_locations,
         survey.n_locations,
-        dpred + noise
+        dpred + noise,
     ]
 
-    fname = dir_path + 'app_res_1d_data.dobs'
-    np.savetxt(fname, data_array, fmt='%.4e')
+    fname = dir_path + "app_res_1d_data.dobs"
+    np.savetxt(fname, data_array, fmt="%.4e")
 
-    fname = dir_path + 'true_model.txt'
-    np.savetxt(fname, model, fmt='%.4e')
+    fname = dir_path + "true_model.txt"
+    np.savetxt(fname, model, fmt="%.4e")
 
-    fname = dir_path + 'layers.txt'
-    np.savetxt(fname, mesh.hx, fmt='%d')
+    fname = dir_path + "layers.txt"
+    np.savetxt(fname, mesh.hx, fmt="%d")

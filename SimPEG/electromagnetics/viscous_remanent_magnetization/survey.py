@@ -19,16 +19,16 @@ class SurveyVRM(BaseSurvey):
     source_list = properties.List(
         "A list of sources for the survey",
         properties.Instance("A SimPEG source", BaseSrcVRM),
-        default=[]
+        default=[],
     )
 
     t_active = properties.Array(
-        'Boolean array where True denotes active data in the inversion', dtype=bool
+        "Boolean array where True denotes active data in the inversion", dtype=bool
     )
 
     def __init__(self, source_list=None, **kwargs):
 
-        t_active = kwargs.pop('t_active', None)
+        t_active = kwargs.pop("t_active", None)
 
         super(SurveyVRM, self).__init__(source_list=source_list, **kwargs)
 
@@ -40,11 +40,12 @@ class SurveyVRM(BaseSurvey):
         else:
             self.t_active = t_active
 
-    @properties.validator('t_active')
+    @properties.validator("t_active")
     def _t_active_validator(self, change):
-        if self._nD_all != len(change['value']):
+        if self._nD_all != len(change["value"]):
             raise ValueError(
-                'Length of t_active boolean array must equal number of data. Number of data is %i' % self._nD_all
+                "Length of t_active boolean array must equal number of data. Number of data is %i"
+                % self._nD_all
             )
 
     @property
