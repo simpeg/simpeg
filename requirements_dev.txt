@@ -15,3 +15,5 @@ sphinxcontrib-napoleon
 toolz
 empymod
 scooby
+black
+pre-commit
