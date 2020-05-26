@@ -20,7 +20,7 @@ env:
     - PYPI_PY=3.6  # deploy to pypi from python 3.6
 
   matrix:
-    - TEST_DIR=tests/docs;
+    - TEST_DIR=tests/docs
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR=tests/em/tdem
     - TEST_DIR="tests/em/static tests/seis tests/base tests/utils"
@@ -59,16 +59,11 @@ install:
       tar -xzf credentials.tar.gz ;
       gcloud auth activate-service-account --key-file credentials/client-secret-docs.json ;
       gsutil cp gs://simpeg/simulation/${TRAVIS_PYTHON_VERSION}/examples.tar.gz $PWD/docs/content ;
-      gsutil cp gs://simpeg/simulation/${TRAVIS_PYTHON_VERSION}/tut_basic_inversions.tar.gz $PWD/docs/content/tutorials ;
-      gsutil cp gs://simpeg/simulation/${TRAVIS_PYTHON_VERSION}/tut_forward_simulations.tar.gz $PWD/docs/content/tutorials ;
-      gsutil cp gs://simpeg/simulation/${TRAVIS_PYTHON_VERSION}/tut_models_mapping.tar.gz $PWD/docs/content/tutorials ;
+      gsutil cp gs://simpeg/simulation/${TRAVIS_PYTHON_VERSION}/tutorials.tar.gz $PWD/docs/content ;
       cd docs/content ;
       tar -xzf examples.tar.gz examples;
-      cd tutorials;
-      tar -xzf tut_basic_inversions.tar.gz basic_inversions;
-      tar -xzf tut_forward_simulations.tar.gz forward_simulations;
-      tar -xzf tut_models_mapping.tar.gz models_mapping;
-      cd ../../../ ;
+      tar -xzf tutorials.tar.gz tutorials;
+      cd ../../ ;
     fi
 
 # Run test

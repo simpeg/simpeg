@@ -198,7 +198,7 @@ class TestDipoles(unittest.TestCase):
 
         # get analytic solution
         exa, eya, eza = analytics.FDEM.ElectricDipoleWholeSpace(
-            XYZ, src_loc, sigmaback, freq, orientation='Z', mu=mur*mu_0
+            XYZ, src_loc, sigmaback, freq, 'Z', mu_r=mur
         )
 
         exa = utils.mkvc(exa, 2)
@@ -206,7 +206,7 @@ class TestDipoles(unittest.TestCase):
         eza = utils.mkvc(eza, 2)
 
         bxa, bya, bza = analytics.FDEM.MagneticDipoleWholeSpace(
-            XYZ, src_loc, sigmaback, freq, orientation='Z', mu=mur*mu_0
+            XYZ, src_loc, sigmaback, freq, 'Z', mu_r=mur
         )
         bxa = utils.mkvc(bxa, 2)
         bya = utils.mkvc(bya, 2)

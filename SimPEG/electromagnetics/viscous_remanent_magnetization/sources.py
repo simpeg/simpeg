@@ -413,7 +413,7 @@ class LineCurrent(BaseSrcVRM):
                     (np.abs(np.imag(q_pos)) > 1e-12) |
                     ((np.real(q_pos) < 0.) & (np.real(q_neg) < 0.)) |
                     ((np.real(q_pos) > 1.) & (np.real(q_neg) > 1.)) |
-                    (k_pos == True)
+                    (k_pos)
                 )
 
                 ind = (k_pos == False) & (k_neg == False) & (ref_flag_tt < refinement_factor+1-nn)

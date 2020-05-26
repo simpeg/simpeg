@@ -19,8 +19,8 @@ tutorial, but the details, advantages and disadvantages differ between
 the implementations.
 
 
-.. image:: /content/examples/02-mesh/images/sphx_glr_plot_basic_types_001.png
-    :target: /content/examples/02-mesh/plot_basic_types.html
+.. image:: http://discretize.simpeg.xyz/en/master/_images/sphx_glr_1_mesh_overview_001.png
+    :target: http://discretize.simpeg.xyz/en/master/tutorials/mesh_generation/1_mesh_overview.html
     :align: center
 
 

@@ -12,7 +12,7 @@ with this,
 We hope to answer that question with this release!
 
 This release will break backward compatibility as many modules and classes have
-been renamed. Check out the :ref:`sphx_glr_content_examples` and :ref:`simpeg_tutorials`
+been renamed. Check out the :ref:`sphx_glr_content_examples` and :ref:`simpeg_tuts`
 (which have also been improved) to see how it's done.
 
 We are also only supporting Python versions >=3.6 at this time. We have dropped all
@@ -373,7 +373,7 @@ version 0.15.0 of SimPEG. The deprecated utility models will also be removed the
 Pull Requests
 =============
 
-There were 22 pull requests contributing to this release.
+There were 23 pull requests contributing to this release.
 
 * `#786 <https://github.com/simpeg/simpeg/pull/786>`__: Simulation class refactor.
 * `#792 <https://github.com/simpeg/simpeg/pull/792>`__: Use scooby for Versions.
@@ -397,6 +397,7 @@ There were 22 pull requests contributing to this release.
 * `#869 <https://github.com/simpeg/simpeg/pull/869>`__: Simulation tutorials 2.
 * `#872 <https://github.com/simpeg/simpeg/pull/872>`__: Uncertainty rename in simulation.
 * `#874 <https://github.com/simpeg/simpeg/pull/874>`__: Release notes for simulation as part of the Documentation.
+* `#876 <https://github.com/simpeg/simpeg/pull/876>`__: Simulation tutorials cleanup
 
 
 Closed Issues
@@ -411,7 +412,7 @@ Closed Issues
 * `#787 <https://github.com/simpeg/simpeg/issues/787>`__: Plotting integrated sensitivity for DC resistivity problem.
 * `#765 <https://github.com/simpeg/simpeg/issues/765>`__: DOC: Source code not linked, 404
 * `#562 <https://github.com/simpeg/simpeg/issues/562>`__: What's the problem with ``Problem``?
-* `#527 <https://github.com/simpeg/simpeg/issues/527>`__: Remove MapPair, RxPair, *Pair
+* `#527 <https://github.com/simpeg/simpeg/issues/527>`__: Remove MapPair, RxPair, Pair
 * `#524 <https://github.com/simpeg/simpeg/issues/524>`__: Remove rxType from BaseRx
 * `#202 <https://github.com/simpeg/simpeg/issues/202>`__: Using the DataClass
 

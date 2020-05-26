@@ -14,6 +14,7 @@
 import sys
 import os
 from sphinx_gallery.sorting import FileNameSortKey
+import glob
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -276,20 +277,14 @@ texinfo_documents = [
    'Miscellaneous'),
 ]
 
+tutorial_dirs = glob.glob('../tutorials/[!_]*')
+tut_gallery_dirs = ['content/tutorials/'+os.path.basename(f) for f in tutorial_dirs]
 
 # Sphinx Gallery
 sphinx_gallery_conf = {
     # path to your examples scripts
-    'examples_dirs' : ['../examples',
-                       '../tutorials/models_mapping',
-                       '../tutorials/basic_inversions',
-                       '../tutorials/forward_simulations',
-                       ],
-    'gallery_dirs'  : ['content/examples',
-                       'content/tutorials/models_mapping',
-                       'content/tutorials/basic_inversions',
-                       'content/tutorials/forward_simulations',
-                       ],
+    'examples_dirs' : ['../examples'] + tutorial_dirs,
+    'gallery_dirs'  : ['content/examples'] + tut_gallery_dirs,
     'within_subsection_order': FileNameSortKey,
     'backreferences_dir' : None
 }
