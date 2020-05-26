@@ -284,7 +284,7 @@ def apparent_resistivity(
     return rhoApp
 
 
-def plot_pseudoSection(
+def plot_pseudosection(
     data, ax=None, survey_type='dipole-dipole',
     data_type="appConductivity", space_type='half-space',
     clim=None, scale="linear", sameratio=True,
@@ -435,7 +435,7 @@ def plot_pseudoSection(
     return ax
 
 
-def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
+def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
     """
         Load in endpoints and survey specifications to generate Tx, Rx location
         stations.
@@ -1840,3 +1840,39 @@ def plot_layer(rho, mesh, xscale='log', ax=None, showlayers=False, xlim=None, de
             for locz in z_grid:
                 ax.plot(np.linspace(rho_min, rho_max, 100), np.ones(100)*locz, 'b--', lw = 0.5)
         return ax.plot(resistivity, z, 'k-', **kwargs)
+
+
+############
+# Deprecated
+############
+
+def plot_pseudoSection(
+    data, ax=None, survey_type='dipole-dipole',
+    data_type="appConductivity", space_type='half-space',
+    clim=None, scale="linear", sameratio=True,
+    pcolorOpts={}, data_location=False, dobs=None, dim=2,
+):
+
+    warnings.warn(
+        "The plot_pseudoSection method has been deprecated. Please use "
+        "plot_pseudosection instead. This will be removed in version"
+        " 0.15.0 of SimPEG",
+        DeprecationWarning
+    )
+
+    return plot_pseudosection(
+        data=data, ax=ax, survey_type=survey_type, data_type=data_type,
+        space_type=space_type, clim=clim, scale=scale, sameratio=sameratio,
+        pcolorOpts=pcolorOpts, data_locations=data_location, dobs=dobs, dim=dim
+    )
+
+def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag='2.5D'):
+    warnings.warn(
+        "The gen_DCIPsurvey method has been deprecated. Please use "
+        "generate_dcip_survey instead. This will be removed in version"
+        " 0.15.0 of SimPEG",
+        DeprecationWarning
+    )
+
+    return generate_dcip_survey(endl, survey_type, a, b, n, dim, d2flag)
+
