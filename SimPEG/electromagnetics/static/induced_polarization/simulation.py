@@ -1,4 +1,5 @@
 import numpy as np
+import properties
 from ....utils.code_utils import deprecate_class
 
 from .... import props
@@ -21,7 +22,12 @@ class BaseIPSimulation(BaseEMSimulation):
 
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability")
 
-    # surveyPair = Survey
+    data_type = properties.StringChoice(
+        "IP data type",
+        default='volt',
+        choices=['volt', 'apparent_chargeability'],
+    )
+
     fieldsPair = FieldsDC
     Ainv = None
     _f = None
@@ -29,42 +35,46 @@ class BaseIPSimulation(BaseEMSimulation):
     _Jmatrix = None
     gtgdiag = None
     sign = None
-    data_type = "volt"
     _pred = None
     gtgdiag = None
 
     def fields(self, m=None):
-        if self.verbose is True:
-            print(">> Compute fields")
 
         if m is not None:
             self.model = m
-            self._Jmatrix = None
+            # sensitivity matrix is fixed
+            # self._Jmatrix = None
 
-        f = self.fieldsPair(self)
-        A = self.getA()
-        self.Ainv = self.solver(A, **self.solver_opts)
-        RHS = self.getRHS()
-        Srcs = self.survey.source_list
-        f[Srcs, self._solutionType] = self.Ainv * RHS
+        if self._f is None:
 
-        # Compute DC voltage
-        if self.data_type == "apparent_chargeability":
             if self.verbose is True:
-                print(">> Data type is apparaent chargeability")
-            for src in self.survey.source_list:
-                for rx in src.receiver_list:
-                    rx._dc_voltage = rx.eval(src, self.mesh, self._f)
-                    rx.data_type = self.data_type
-                    rx._Ps = {}
+                print(">> Solve DC problem")
 
-        self._pred = self.forward(m, f=f)
-        self._f = f
+            self._f = self.fieldsPair(self)
+            A = self.getA()
+            self.Ainv = self.solver(A, **self.solver_opts)
+            RHS = self.getRHS()
+            Srcs = self.survey.source_list
+            self._f[Srcs, self._solutionType] = self.Ainv * RHS
+
+            if self.data_type == "apparent_chargeability":
+                if self.verbose is True:
+                    print(">> Data type is apparaent chargeability")
+                for src in self.survey.source_list:
+                    for rx in src.receiver_list:
+                        rx._dc_voltage = rx.eval(src, self.mesh, self._f)
+                        rx.data_type = self.data_type
+                        rx._Ps = {}
+
+        if self.verbose is True:
+            print(">> Compute predicted data")
+
+        self._pred = self.forward(m, f=self._f)
 
         # if not self.storeJ:
         #     self.Ainv.clean()
 
-        return f
+        return self._f
 
     def dpred(self, m=None, f=None):
         """
