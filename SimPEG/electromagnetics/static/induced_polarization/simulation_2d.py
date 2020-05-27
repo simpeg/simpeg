@@ -36,28 +36,6 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
     sign = None
     _pred = None
 
-    # TODO: remove below
-    # def set_dc_data(
-    #     self, dc_voltage, data_type="apparent_chargeability", dc_survey=None
-    # ):
-    #     if dc_survey is None:
-    #         dc_data = Data(self.survey, dc_voltage)
-    #         for src in self.survey.source_list:
-    #             for rx in src.receiver_list:
-    #                 rx._dc_voltage = dc_data[src, rx]
-    #                 rx.data_type = data_type
-    #                 rx._Ps = {}
-    #     else:
-    #         dc_data = Data(dc_survey, dc_voltage)
-    #         for isrc, src in enumerate(self.survey.source_list):
-    #             dc_src = dc_survey.source_list[isrc]
-    #             for irx, rx in enumerate(src.receiver_list):
-    #                 dc_rx = dc_src.receiver_list[irx]
-    #                 rx._dc_voltage = dc_data[dc_src, dc_rx]
-    #                 rx.data_type = data_type
-    #                 rx._Ps = {}
-    #     return dc_data
-
     def fields(self, m):
         if self.verbose:
             print(">> Compute DC fields")
@@ -69,7 +47,8 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
                 if self.verbose is True:
                     print(">> Data type is apparaent chargeability")
 
-                dc_voltage = self.dpred_dc(f=self._f)
+                # call dpred function in 2D DC simulation
+                dc_voltage = super().dpred(m=[], f=self._f)
                 dc_data = Data(self.survey, dc_voltage)
                 for src in self.survey.source_list:
                     for rx in src.receiver_list:
@@ -80,32 +59,6 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
         self._pred = self.forward(m, f=self._f)
 
         return self._f
-
-    def dpred_dc(self, f=None):
-        """
-        Project DC volrage to receiver locations
-        :param Fields f: fields object
-        :rtype: numpy.ndarray
-        :return: data
-        """
-        if f is None:
-            f = self.fields(m)
-
-        kys = self.kys
-        if self._mini_survey is not None:
-            survey = self._mini_survey
-        else:
-            survey = self.survey
-
-        temp = np.empty(survey.nD)
-        count = 0
-        for src in survey.source_list:
-            for rx in src.receiver_list:
-                d = IntTrapezoidal(self.kys, rx.eval(src, self.mesh, f))
-                temp[count : count + len(d)] = d
-                count += len(d)
-
-        return self._mini_survey_data(temp)
 
     def dpred(self, m=None, f=None):
         """
