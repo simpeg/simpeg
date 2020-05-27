@@ -1,138 +1,124 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-from SimPEG import Mesh
-from SimPEG import Utils
-from SimPEG import Maps
-from SimPEG import Regularization
-from SimPEG import DataMisfit
-from SimPEG import Optimization
-from SimPEG import InvProblem
-from SimPEG import Directives
-from SimPEG import Inversion
-import matplotlib.pyplot as plt
-import SimPEG.PF as PF
+import discretize
+from SimPEG import (
+    utils,
+    maps,
+    regularization,
+    data_misfit,
+    optimization,
+    inverse_problem,
+    directives,
+    inversion,
+)
+from SimPEG.potential_fields import gravity, get_dist_wgt
+
+import shutil
 
 np.random.seed(43)
 
 
 class GravInvLinProblemTest(unittest.TestCase):
-
     def setUp(self):
 
         ndv = -100
         # Create a self.mesh
-        dx = 5.
+        dx = 5.0
 
         hxind = [(dx, 5, -1.3), (dx, 5), (dx, 5, 1.3)]
         hyind = [(dx, 5, -1.3), (dx, 5), (dx, 5, 1.3)]
         hzind = [(dx, 5, -1.3), (dx, 6)]
 
-        self.mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
+        self.mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
 
         # Get index of the center
-        midx = int(self.mesh.nCx/2)
-        midy = int(self.mesh.nCy/2)
+        midx = int(self.mesh.nCx / 2)
+        midy = int(self.mesh.nCy / 2)
 
         # Lets create a simple Gaussian topo and set the active cells
         [xx, yy] = np.meshgrid(self.mesh.vectorNx, self.mesh.vectorNy)
-        zz = -np.exp((xx**2 + yy**2) / 75**2) + self.mesh.vectorNz[-1]
+        zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + self.mesh.vectorNz[-1]
 
         # Go from topo to actv cells
-        topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
-        actv = Utils.surface2ind_topo(self.mesh, topo, 'N')
+        topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
+        actv = utils.surface2ind_topo(self.mesh, topo, "N")
         actv = np.where(actv)[0]
 
         # Create active map to go from reduce space to full
-        self.actvMap = Maps.InjectActiveCells(self.mesh, actv, -100)
+        self.actvMap = maps.InjectActiveCells(self.mesh, actv, -100)
         nC = len(actv)
 
         # Create and array of observation points
-        xr = np.linspace(-20., 20., 20)
-        yr = np.linspace(-20., 20., 20)
+        xr = np.linspace(-20.0, 20.0, 20)
+        yr = np.linspace(-20.0, 20.0, 20)
         X, Y = np.meshgrid(xr, yr)
 
         # Move the observation points 5m above the topo
-        Z = -np.exp((X**2 + Y**2) / 75**2) + self.mesh.vectorNz[-1] + 5.
+        Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + self.mesh.vectorNz[-1] + 5.0
 
         # Create a MAGsurvey
-        locXYZ = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
-        rxLoc = PF.BaseGrav.RxObs(locXYZ)
-        srcField = PF.BaseGrav.SrcField([rxLoc])
-        survey = PF.BaseGrav.LinearSurvey(srcField)
+        locXYZ = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
+        rxLoc = gravity.Point(locXYZ)
+        srcField = gravity.SourceField([rxLoc])
+        survey = gravity.Survey(srcField)
 
         # We can now create a density model and generate data
         # Here a simple block in half-space
         model = np.zeros((self.mesh.nCx, self.mesh.nCy, self.mesh.nCz))
-        model[(midx-2):(midx+2), (midy-2):(midy+2), -6:-2] = 0.5
-        model = Utils.mkvc(model)
+        model[(midx - 2) : (midx + 2), (midy - 2) : (midy + 2), -6:-2] = 0.5
+        model = utils.mkvc(model)
         self.model = model[actv]
 
         # Create active map to go from reduce set to full
-        actvMap = Maps.InjectActiveCells(self.mesh, actv, ndv)
+        actvMap = maps.InjectActiveCells(self.mesh, actv, ndv)
 
         # Create reduced identity map
-        idenMap = Maps.IdentityMap(nP=nC)
+        idenMap = maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        prob = PF.Gravity.GravityIntegral(
+        sim = gravity.Simulation3DIntegral(
             self.mesh,
+            survey=survey,
             rhoMap=idenMap,
-            actInd=actv
+            actInd=actv,
+            store_sensitivities="ram",
         )
 
-        # Pair the survey and problem
-        survey.pair(prob)
-
         # Compute linear forward operator and compute some data
-        d = prob.fields(self.model)
-
-        # Add noise and uncertainties (1nT)
-        data = d + np.random.randn(len(d))*0.001
-        wd = np.ones(len(data))*.001
-
-        survey.dobs = data
-        survey.std = wd
-
-        # PF.Gravity.plot_obs_2D(survey.srcField.rxList[0].locs, d=data)
-
-        # Create sensitivity weights from our linear forward operator
-        wr = PF.Magnetics.get_dist_wgt(self.mesh, locXYZ, actv, 2., 2.)
-        wr = wr**2.
+        data = sim.make_synthetic_data(
+            self.model, relative_error=0.0, noise_floor=0.001, add_noise=True
+        )
 
         # Create a regularization
-        reg = Regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
-        reg.cell_weights = wr
+        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
         reg.norms = np.c_[0, 0, 0, 0]
-        reg.gradientType = 'component'
+        reg.gradientType = "component"
         # reg.eps_p, reg.eps_q = 5e-2, 1e-2
 
         # Data misfit function
-        dmis = DataMisfit.l2_DataMisfit(survey)
-        dmis.W = 1/wd
+        dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
 
         # Add directives to the inversion
-        opt = Optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
-                                         maxIterLS=20, maxIterCG=10,
-                                         tolCG=1e-3)
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+8)
+        opt = optimization.ProjectedGNCG(
+            maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
+        )
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e8)
 
         # Here is where the norms are applied
-        IRLS = Directives.Update_IRLS(f_min_change=1e-4,
-                                      minGNiter=1)
-        update_Jacobi = Directives.UpdatePreconditioner()
-
-        self.inv = Inversion.BaseInversion(invProb,
-                                           directiveList=[IRLS,
-                                                          update_Jacobi])
-
-
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
+        update_Jacobi = directives.UpdatePreconditioner()
+        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+        self.inv = inversion.BaseInversion(
+            invProb, directiveList=[IRLS, sensitivity_weights, update_Jacobi]
+        )
+        self.sim = sim
 
     def test_grav_inverse(self):
 
         # Run the inversion
         mrec = self.inv.run(self.model)
-        residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
+        residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
         print(residual)
 
         # plt.figure()
@@ -149,5 +135,11 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         self.assertTrue(residual < 0.05)
 
-if __name__ == '__main__':
+    def tearDown(self):
+        # Clean up the working directory
+        if self.sim.store_sensitivities == "disk":
+            shutil.rmtree(self.sim.sensitivity_path)
+
+
+if __name__ == "__main__":
     unittest.main()

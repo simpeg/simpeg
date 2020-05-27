@@ -6,8 +6,8 @@ import numpy as np
 import unittest
 from scipy.constants import mu_0
 
-from SimPEG.EM import NSEM
-from SimPEG import Maps
+from SimPEG.electromagnetics import natural_source as nsem
+from SimPEG import maps
 
 
 TOL = 1e-4
@@ -16,17 +16,23 @@ CONDUCTIVITY = 1e1
 MU = mu_0
 
 
-def JvecAdjointTest(sigmaHalf, formulation='PrimSec'):
-    forType = 'PrimSec' not in formulation
-    survey, sigma, sigBG, m1d = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,tD=forType,structure=False)
-    print('Adjoint test of e formulation for {:s} comp \n'.format(formulation))
+def JvecAdjointTest(sigmaHalf, formulation="PrimSec"):
+    forType = "PrimSec" not in formulation
+    survey, sigma, sigBG, m1d = nsem.utils.test_utils.setup1DSurvey(
+        sigmaHalf, tD=forType, structure=False
+    )
+    print("Adjoint test of e formulation for {:s} comp \n".format(formulation))
 
-    if 'PrimSec' in formulation:
-        problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary=sigBG, sigmaMap=Maps.IdentityMap(m1d))
+    if "PrimSec" in formulation:
+        problem = nsem.Simulation1DPrimarySecondary(
+            m1d, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(m1d)
+        )
     else:
-        raise NotImplementedError('Only {} formulations are implemented.'.format(formulation))
+        raise NotImplementedError(
+            "Only {} formulations are implemented.".format(formulation)
+        )
     problem.pair(survey)
-    m  = sigma
+    m = sigma
     u = problem.fields(m)
 
     np.random.seed(1983)
@@ -36,14 +42,13 @@ def JvecAdjointTest(sigmaHalf, formulation='PrimSec'):
 
     vJw = v.ravel().dot(problem.Jvec(m, w, u))
     wJtv = w.ravel().dot(problem.Jtvec(m, v, u))
-    tol = np.max([TOL*(10**int(np.log10(np.abs(vJw)))),FLR])
-    print(' vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol')
+    tol = np.max([TOL * (10 ** int(np.log10(np.abs(vJw)))), FLR])
+    print(" vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol")
     print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)
     return np.abs(vJw - wJtv) < tol
 
 
 class NSEM_1D_AdjointTests(unittest.TestCase):
-
     def setUp(self):
         pass
 
@@ -56,8 +61,9 @@ class NSEM_1D_AdjointTests(unittest.TestCase):
     # def test_JvecAdjoint_zyxi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyxi',.1))
     # def test_JvecAdjoint_zyyr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyyr',.1))
     # def test_JvecAdjoint_zyyi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyyi',.1))
-    def test_JvecAdjoint_All(self):self.assertTrue(JvecAdjointTest(1e-2))
+    def test_JvecAdjoint_All(self):
+        self.assertTrue(JvecAdjointTest(1e-2))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

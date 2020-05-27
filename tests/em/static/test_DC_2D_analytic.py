@@ -1,34 +1,36 @@
-from __future__ import print_function
-import unittest
-from SimPEG import Mesh, Utils, EM, SolverLU
 import numpy as np
-import SimPEG.EM.Static.DC as DC
+import unittest
 import matplotlib.pyplot as plt
+
+from discretize import TensorMesh
+
+from SimPEG import utils, SolverLU
+from SimPEG.electromagnetics import resistivity as dc
+from SimPEG.electromagnetics import analytics
 
 
 class DCProblemAnalyticTests_PDP(unittest.TestCase):
-
     def setUp(self):
 
         cs = 12.5
         hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
         hy = [(cs, 7, -1.3), (cs, 20)]
-        mesh = Mesh.TensorMesh([hx, hy], x0="CN")
+        mesh = TensorMesh([hx, hy], x0="CN")
         sighalf = 1e-2
-        sigma = np.ones(mesh.nC)*sighalf
-        x = np.linspace(-135, 250., 20)
-        M = Utils.ndgrid(x-12.5, np.r_[0.])
-        N = Utils.ndgrid(x+12.5, np.r_[0.])
-        A0loc = np.r_[-150, 0.]
+        sigma = np.ones(mesh.nC) * sighalf
+        x = np.linspace(-135, 250.0, 20)
+        M = utils.ndgrid(x - 12.5, np.r_[0.0])
+        N = utils.ndgrid(x + 12.5, np.r_[0.0])
+        A0loc = np.r_[-150, 0.0]
         # A1loc = np.r_[-130, 0.]
         rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        data_ana = EM.Analytics.DCAnalytic_Pole_Dipole(
-            np.r_[A0loc, 0.], rxloc, sighalf, earth_type="halfspace"
+        data_ana = analytics.DCAnalytic_Pole_Dipole(
+            np.r_[A0loc, 0.0], rxloc, sighalf, earth_type="halfspace"
         )
 
-        rx = DC.Rx.Dipole_ky(M, N)
-        src0 = DC.Src.Pole([rx], A0loc)
-        survey = DC.Survey_ky([src0])
+        rx = dc.receivers.Dipole(M, N)
+        src0 = dc.sources.Pole([rx], A0loc)
+        survey = dc.Survey_ky([src0])
 
         self.survey = survey
         self.mesh = mesh
@@ -38,71 +40,76 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
 
         try:
             from pymatsolver import Pardiso
+
             self.Solver = Pardiso
         except ImportError:
             self.Solver = SolverLU
 
-    def test_Problem2D_N(self, tolerance=0.05):
+    def test_Simulation2DNodal(self, tolerance=0.05):
 
-        problem = DC.Problem2D_N(self.mesh, sigma=self.sigma)
-        problem.Solver = self.Solver
-        problem.pair(self.survey)
-        data = self.survey.dpred()
+        simulation = dc.simulation_2d.Simulation2DNodal(
+            self.mesh, survey=self.survey, sigma=self.sigma
+        )
+        simulation.Solver = self.Solver
+        data = simulation.dpred()
         err = (
-            np.linalg.norm((data-self.data_ana) / self.data_ana)**2 /
-            self.data_ana.size
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
         )
         if err < tolerance:
             passed = True
-            print(">> DC analytic test for PDP Problem2D_N is passed")
+            print(">> DC analytic test for PDP Simulation2DNodal is passed")
         else:
             print(err)
             passed = False
-            print(">> DC analytic test for PDP Problem2D_N is failed")
+            print(">> DC analytic test for PDP Simulation2DNodal is failed")
         self.assertTrue(passed)
 
-    def test_Problem2D_CC(self, tolerance=0.05):
-        problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma)
-        problem.Solver = self.Solver
-        problem.pair(self.survey)
-        data = self.survey.dpred()
+    def test_Simulation2DCellCentered(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
+            self.mesh, survey=self.survey, sigma=self.sigma
+        )
+        simulation.Solver = self.Solver
+        data = simulation.dpred()
         err = (
-            np.linalg.norm((data-self.data_ana)/self.data_ana)**2 /
-            self.data_ana.size
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
         )
         if err < tolerance:
             passed = True
-            print(">> DC analytic test for PDP Problem2D_CC is passed")
+            print(">> DC analytic test for PDP Simulation2DCellCentered is passed")
         else:
             print(err)
             passed = False
-            print(">> DC analytic test for PDP Problem2D_CC is failed")
+            print(">> DC analytic test for PDP Simulation2DCellCentered is failed")
         self.assertTrue(passed)
 
 
 class DCProblemAnalyticTests_DPP(unittest.TestCase):
-
     def setUp(self):
 
         cs = 12.5
         hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
         hy = [(cs, 7, -1.3), (cs, 20)]
-        mesh = Mesh.TensorMesh([hx, hy], x0="CN")
+        mesh = TensorMesh([hx, hy], x0="CN")
         sighalf = 1e-2
-        sigma = np.ones(mesh.nC)*sighalf
-        x = np.linspace(0, 250., 20)
-        M = Utils.ndgrid(x-12.5, np.r_[0.])
-        N = Utils.ndgrid(x+12.5, np.r_[0.])
-        A0loc = np.r_[-150, 0.]
-        A1loc = np.r_[-125, 0.]
+        sigma = np.ones(mesh.nC) * sighalf
+        x = np.linspace(0, 250.0, 20)
+        M = utils.ndgrid(x - 12.5, np.r_[0.0])
+        N = utils.ndgrid(x + 12.5, np.r_[0.0])
+        A0loc = np.r_[-150, 0.0]
+        A1loc = np.r_[-125, 0.0]
         rxloc = np.c_[M, np.zeros(20)]
-        data_ana = EM.Analytics.DCAnalytic_Dipole_Pole(
-                    [np.r_[A0loc, 0.], np.r_[A1loc, 0.]],
-                    rxloc, sighalf, earth_type="halfspace")
+        data_ana = analytics.DCAnalytic_Dipole_Pole(
+            [np.r_[A0loc, 0.0], np.r_[A1loc, 0.0]],
+            rxloc,
+            sighalf,
+            earth_type="halfspace",
+        )
 
-        rx = DC.Rx.Pole_ky(M)
-        src0 = DC.Src.Dipole([rx], A0loc, A1loc)
-        survey = DC.Survey_ky([src0])
+        rx = dc.receivers.Pole(M)
+        src0 = dc.sources.Dipole([rx], A0loc, A1loc)
+        survey = dc.survey.Survey_ky([src0])
 
         self.survey = survey
         self.mesh = mesh
@@ -112,78 +119,81 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
 
         try:
             from pymatsolver import PardisoSolver
+
             self.Solver = PardisoSolver
         except ImportError:
             self.Solver = SolverLU
 
-    def test_Problem2D_N(self, tolerance=0.05):
+    def test_Simulation2DNodal(self, tolerance=0.05):
 
-        problem = DC.Problem2D_N(self.mesh, sigma=self.sigma)
-        problem.Solver = self.Solver
-        problem.pair(self.survey)
-        data = self.survey.dpred()
+        simulation = dc.simulation_2d.Simulation2DNodal(
+            self.mesh, survey=self.survey, sigma=self.sigma
+        )
+        simulation.Solver = self.Solver
+        simulation.pair(self.survey)
+        data = simulation.dpred()
         err = (
-            np.linalg.norm((data-self.data_ana) / self.data_ana)**2 /
-            self.data_ana.size
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
         )
         if err < tolerance:
             passed = True
-            print(">> DC analytic test for DPP Problem2D_N is passed")
+            print(">> DC analytic test for DPP Simulation2DNodal is passed")
             if self.plotIt:
                 plt.plot(self.data_ana)
-                plt.plot(data, 'k.')
+                plt.plot(data, "k.")
                 plt.show()
         else:
             passed = False
-            print(">> DC analytic test for DPP Problem2D_N is failed")
+            print(">> DC analytic test for DPP Simulation2DNodal is failed")
             print(err)
         self.assertTrue(passed)
 
-    def test_Problem2D_CC(self, tolerance=0.05):
-        problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma)
-        problem.Solver = self.Solver
-        problem.pair(self.survey)
-        data = self.survey.dpred()
+    def test_Simulation2DCellCentered(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
+            self.mesh, survey=self.survey, sigma=self.sigma
+        )
+        simulation.Solver = self.Solver
+        data = simulation.dpred()
         err = (
-            np.linalg.norm((data-self.data_ana)/self.data_ana)**2 /
-            self.data_ana.size
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
         )
         if err < tolerance:
             passed = True
-            print(">> DC analytic test for DPP Problem2D_CC is passed")
+            print(">> DC analytic test for DPP Simulation2DCellCentered is passed")
         else:
             passed = False
-            print(">> DC analytic test for DPP Problem2D_CC is failed")
+            print(">> DC analytic test for DPP Simulation2DCellCentered is failed")
             print(err)
             if self.plotIt:
                 plt.plot(self.data_ana)
-                plt.plot(data, 'k.')
+                plt.plot(data, "k.")
                 plt.show()
         self.assertTrue(passed)
 
 
 class DCProblemAnalyticTests_PP(unittest.TestCase):
-
     def setUp(self):
         # Note: Pole-Pole requires bigger boundary to obtain good accuracy.
         # One can use greater padding rate. Here 1.5 is used.
         cs = 12.5
         hx = [(cs, 7, -1.5), (cs, 61), (cs, 7, 1.5)]
         hy = [(cs, 7, -1.5), (cs, 20)]
-        mesh = Mesh.TensorMesh([hx, hy], x0="CN")
+        mesh = TensorMesh([hx, hy], x0="CN")
         sighalf = 1e-2
-        sigma = np.ones(mesh.nC)*sighalf
-        x = np.linspace(0, 250., 20)
-        M = Utils.ndgrid(x-12.5, np.r_[0.])
-        A0loc = np.r_[-150, 0.]
+        sigma = np.ones(mesh.nC) * sighalf
+        x = np.linspace(0, 250.0, 20)
+        M = utils.ndgrid(x - 12.5, np.r_[0.0])
+        A0loc = np.r_[-150, 0.0]
         rxloc = np.c_[M, np.zeros(20)]
-        data_ana = EM.Analytics.DCAnalytic_Pole_Pole(
-                    np.r_[A0loc, 0.],
-                    rxloc, sighalf, earth_type="halfspace")
+        data_ana = analytics.DCAnalytic_Pole_Pole(
+            np.r_[A0loc, 0.0], rxloc, sighalf, earth_type="halfspace"
+        )
 
-        rx = DC.Rx.Pole_ky(M)
-        src0 = DC.Src.Pole([rx], A0loc)
-        survey = DC.Survey_ky([src0])
+        rx = dc.receivers.Pole(M)
+        src0 = dc.sources.Pole([rx], A0loc)
+        survey = dc.survey.Survey_ky([src0])
 
         self.survey = survey
         self.mesh = mesh
@@ -192,27 +202,30 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
 
         try:
             from pymatsolver import PardisoSolver
+
             self.Solver = PardisoSolver
         except ImportError:
             self.Solver = SolverLU
 
-    def test_Problem2D_CC(self, tolerance=0.05):
-        problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma, bc_type="Mixed")
-        problem.Solver = self.Solver
-        problem.pair(self.survey)
-        data = self.survey.dpred()
+    def test_Simulation2DCellCentered(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
+            self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Mixed"
+        )
+        simulation.Solver = self.Solver
+        data = simulation.dpred()
         err = (
-            np.linalg.norm((data-self.data_ana)/self.data_ana)**2 /
-            self.data_ana.size
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
         )
         if err < tolerance:
             passed = True
-            print(">> DC analytic test for PP Problem2D_CC is passed")
+            print(">> DC analytic test for PP Simulation2DCellCentered is passed")
         else:
             passed = False
-            print(">> DC analytic test for PP Problem2D_CC is failed")
+            print(">> DC analytic test for PP Simulation2DCellCentered is failed")
             print(err)
         self.assertTrue(passed)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -1,17 +1,16 @@
 import numpy as np
-from SimPEG.EM.Utils.CurrentUtils import (
-    getStraightLineCurrentIntegral, getSourceTermLineCurrentPolygon
-    )
+from SimPEG.electromagnetics.utils import (
+    getStraightLineCurrentIntegral,
+    getSourceTermLineCurrentPolygon,
+)
 import unittest
-from SimPEG.Utils import io_utils
+from SimPEG.utils import download
 
 
 class LineCurrentTests(unittest.TestCase):
-
     def setUp(self):
-        url = 'https://storage.googleapis.com/simpeg/tests/em_utils/'
-        cloudfiles = ['currents.npy']
-        self.basePath = io_utils.remoteDownload(url, cloudfiles)
+        url = "https://storage.googleapis.com/simpeg/tests/em_utils/currents.npy"
+        self.basePath = download(url)
 
     def test(self):
 
@@ -23,12 +22,11 @@ class LineCurrentTests(unittest.TestCase):
         sy_true = np.r_[0.265625, 0.096875, 0.096875, 0.040625]
         sz_true = np.r_[0.1605, 0.057, 0.057, 0.0255]
 
-        sx, sy, sz = getStraightLineCurrentIntegral(hx, hy, hz,
-                                                    ax, ay, az, bx, by, bz)
+        sx, sy, sz = getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz)
 
         s_true = np.r_[sx_true, sy_true, sz_true]
         s = np.r_[sx, sy, sz]
-        err = np.linalg.norm(s_true-s) / np.linalg.norm(s_true)
+        err = np.linalg.norm(s_true - s) / np.linalg.norm(s_true)
         print(">> Test getStraightLineCurrentIntegral")
         if err < 1e-5:
             passed = True
@@ -38,21 +36,20 @@ class LineCurrentTests(unittest.TestCase):
 
         self.assertTrue(passed)
 
-
-        hx = np.ones(10)*1.
-        hy = np.ones(10)*2.
-        hz = np.ones(10)*3.
+        hx = np.ones(10) * 1.0
+        hy = np.ones(10) * 2.0
+        hz = np.ones(10) * 3.0
 
         px = np.r_[0, 3, 5]
         py = np.r_[0, 3, 5]
-        pz = np.r_[2., 3., 4.]
+        pz = np.r_[2.0, 3.0, 4.0]
 
-        xorig = np.r_[0., 0., 0.]
+        xorig = np.r_[0.0, 0.0, 0.0]
 
         out = getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz)
-        fname = self.basePath + "currents.npy"
+        fname = self.basePath
         out_true = np.load(fname)
-        err = np.linalg.norm(out-out_true)
+        err = np.linalg.norm(out - out_true)
         print(">> Test getSourceTermLineCurrentPolygon")
 
         if err < 1e-5:
@@ -63,6 +60,6 @@ class LineCurrentTests(unittest.TestCase):
 
         self.assertTrue(passed)
 
-if __name__ == '__main__':
-    unittest.main()
 
+if __name__ == "__main__":
+    unittest.main()

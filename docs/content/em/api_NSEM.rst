@@ -27,10 +27,10 @@ under development
 API
 ===
 
-NSEM Problem
-------------
+NSEM Simulation
+---------------
 
-.. automodule:: SimPEG.EM.NSEM.ProblemNSEM
+.. automodule:: SimPEG.electromagnetics.natural_source.simulation
     :show-inheritance:
     :members:
     :undoc-members:
@@ -39,18 +39,22 @@ NSEM Problem
 NSEM Survey
 -----------
 
-.. automodule:: SimPEG.EM.NSEM.SurveyNSEM
+.. automodule:: SimPEG.electromagnetics.natural_source.survey
     :show-inheritance:
     :members:
     :undoc-members:
 
-.. automodule:: SimPEG.EM.NSEM.SrcNSEM
+.. automodule:: SimPEG.electromagnetics.natural_source.sources
     :show-inheritance:
     :members:
     :undoc-members:
 
-.. automodule:: SimPEG.EM.NSEM.RxNSEM
+.. automodule:: SimPEG.electromagnetics.natural_source.receivers
     :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.electromagnetics.natural_source.Data
     :members:
     :undoc-members:
 
@@ -58,8 +62,51 @@ NSEM Survey
 NSEM Fields
 -----------
 
-.. automodule:: SimPEG.EM.NSEM.FieldsNSEM
+.. automodule:: SimPEG.electromagnetics.natural_source.fields
     :show-inheritance:
     :members:
     :undoc-members:
 
+
+NSEM Utilities
+--------------
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.analytic_1d
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.data_utils
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.data_viewer
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.edi_files_utils
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.plot_data_types
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.plot_utils
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.solutions_1d
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.natural_source.utils.source_utils
+    :show-inheritance:
+    :members:
+    :undoc-members:

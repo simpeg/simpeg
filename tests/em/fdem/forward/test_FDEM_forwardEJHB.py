@@ -1,123 +1,357 @@
 import unittest
-from SimPEG import EM
 from scipy.constants import mu_0
-from SimPEG.EM.Utils.testingUtils import getFDEMProblem, crossCheckTest
+from SimPEG.electromagnetics.utils.testing_utils import getFDEMProblem, crossCheckTest
 
 testEJ = True
 testBH = True
 
-TOLEJHB = 1 # averaging and more sensitive to boundary condition violations (ie. the impact of violating the boundary conditions in each case is different.)
-#TODO: choose better testing parameters to lower this
+TOLEJHB = 1  # averaging and more sensitive to boundary condition violations (ie. the impact of violating the boundary conditions in each case is different.)
+# TODO: choose better testing parameters to lower this
 
-SrcList = ['RawVec', 'MagDipole', 'MagDipole_Bfield', 'MagDipole', 'CircularLoop']
+SrcList = ["RawVec", "MagDipole", "MagDipole_Bfield", "MagDipole", "CircularLoop"]
 
 
 class FDEM_CrossCheck(unittest.TestCase):
     if testEJ:
+
         def test_EJ_CrossCheck_jxr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'jxr', TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["CurrentDensity", "x", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_jyr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'jyr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["CurrentDensity", "y", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_jzr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'jzr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["CurrentDensity", "z", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_jxi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'jxi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["CurrentDensity", "x", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_jyi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'jyi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["CurrentDensity", "y", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_jzi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'jzi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["CurrentDensity", "z", "i"], TOL=TOLEJHB
+                )
+            )
 
         def test_EJ_CrossCheck_exr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'exr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["ElectricField", "x", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_eyr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'eyr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["ElectricField", "y", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_ezr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'ezr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["ElectricField", "z", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_exi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'exi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["ElectricField", "x", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_eyi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'eyi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["ElectricField", "y", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_ezi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'ezi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["ElectricField", "z", "i"], TOL=TOLEJHB
+                )
+            )
 
         def test_EJ_CrossCheck_bxr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'bxr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["MagneticFluxDensity", "x", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_byr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'byr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["MagneticFluxDensity", "y", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_bzr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'bzr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["MagneticFluxDensity", "z", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_bxi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'bxi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["MagneticFluxDensity", "x", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_byi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'byi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["MagneticFluxDensity", "y", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_bzi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'bzi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["MagneticFluxDensity", "z", "i"], TOL=TOLEJHB
+                )
+            )
 
         def test_EJ_CrossCheck_hxr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'hxr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["MagneticField", "x", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_hyr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'hyr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["MagneticField", "y", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_hzr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'hzr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["MagneticField", "z", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_hxi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'hxi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["MagneticField", "x", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_hyi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'hyi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["MagneticField", "y", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_EJ_CrossCheck_hzi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'e', 'j', 'hzi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "e", "j", ["MagneticField", "z", "i"], TOL=TOLEJHB
+                )
+            )
 
     if testBH:
+
         def test_HB_CrossCheck_jxr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'jxr', TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["CurrentDensity", "x", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_jyr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'jyr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["CurrentDensity", "y", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_jzr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'jzr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["CurrentDensity", "z", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_jxi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'jxi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["CurrentDensity", "x", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_jyi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'jyi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["CurrentDensity", "y", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_jzi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'jzi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["CurrentDensity", "z", "i"], TOL=TOLEJHB
+                )
+            )
 
         def test_HB_CrossCheck_exr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'exr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["ElectricField", "x", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_eyr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'eyr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["ElectricField", "y", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_ezr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'ezr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["ElectricField", "z", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_exi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'exi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["ElectricField", "x", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_eyi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'eyi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["ElectricField", "y", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_ezi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'ezi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["ElectricField", "z", "i"], TOL=TOLEJHB
+                )
+            )
 
         def test_HB_CrossCheck_bxr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'bxr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["MagneticFluxDensity", "x", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_byr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'byr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["MagneticFluxDensity", "y", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_bzr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'bzr',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["MagneticFluxDensity", "z", "r"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_bxi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'bxi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["MagneticFluxDensity", "x", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_byi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'byi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["MagneticFluxDensity", "y", "i"], TOL=TOLEJHB
+                )
+            )
+
         def test_HB_CrossCheck_bzi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'bzi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["MagneticFluxDensity", "z", "i"], TOL=TOLEJHB
+                )
+            )
 
         def test_HB_CrossCheck_hxr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'hxr',  TOL=TOLEJHB))
-        def test_HB_CrossCheck_hyr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'hyr',  TOL=TOLEJHB))
-        def test_HB_CrossCheck_hzr_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'hzr',  TOL=TOLEJHB))
-        def test_HB_CrossCheck_hxi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'hxi',  TOL=TOLEJHB))
-        def test_HB_CrossCheck_hyi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'hyi',  TOL=TOLEJHB))
-        def test_HB_CrossCheck_hzi_Jform(self):
-            self.assertTrue(crossCheckTest(SrcList, 'h', 'b', 'hzi',  TOL=TOLEJHB))
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["MagneticField", "x", "r"], TOL=TOLEJHB
+                )
+            )
 
-if __name__ == '__main__':
+        def test_HB_CrossCheck_hyr_Jform(self):
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["MagneticField", "y", "r"], TOL=TOLEJHB
+                )
+            )
+
+        def test_HB_CrossCheck_hzr_Jform(self):
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["MagneticField", "z", "r"], TOL=TOLEJHB
+                )
+            )
+
+        def test_HB_CrossCheck_hxi_Jform(self):
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["MagneticField", "x", "i"], TOL=TOLEJHB
+                )
+            )
+
+        def test_HB_CrossCheck_hyi_Jform(self):
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["MagneticField", "y", "i"], TOL=TOLEJHB
+                )
+            )
+
+        def test_HB_CrossCheck_hzi_Jform(self):
+            self.assertTrue(
+                crossCheckTest(
+                    SrcList, "h", "b", ["MagneticField", "z", "i"], TOL=TOLEJHB
+                )
+            )
+
+
+if __name__ == "__main__":
     unittest.main()

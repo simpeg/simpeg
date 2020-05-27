@@ -10,9 +10,9 @@ from matplotlib.colors import LogNorm
 from scipy.constants import mu_0, inch, foot
 import time
 
-from SimPEG.EM import TDEM
-from SimPEG import Utils, Maps
-from SimPEG.Utils import Zero
+from SimPEG.electromagnetics import time_domain as tdem
+from SimPEG import utils, maps
+from SimPEG.utils import Zero
 
 from pymatsolver import Pardiso
 
@@ -21,7 +21,6 @@ TOL = 1e-4
 
 
 class TestInductiveSourcesPermeability(unittest.TestCase):
-
     def setUp(self):
         target_mur = [1, 50, 100, 200]
         target_l = 500
@@ -32,8 +31,8 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         model_names = ["target_{}".format(mur) for mur in target_mur]
 
         # Set up a Cyl mesh
-        csx = 5.  # cell size in the x-direction
-        csz = 5.  # cell size in the z-direction
+        csx = 5.0  # cell size in the x-direction
+        csz = 5.0  # cell size in the z-direction
         domainx = 100  # go out 500m from the well
 
         # padding parameters
@@ -41,13 +40,15 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         pfx = 1.4  # expansion factor for the padding to infinity
         pfz = 1.4
 
-        ncz = int(target_l/csz)
-        mesh = discretize.CylMesh([
-            [(csx, int(domainx/csx)), (csx, npadx, pfx)],
-            1,
-            [(csz, npadz, -pfz), (csz, ncz), (csz, npadz, pfz)]
-        ])
-        mesh.x0 = [0, 0, -mesh.hz[:npadz + ncz].sum()]
+        ncz = int(target_l / csz)
+        mesh = discretize.CylMesh(
+            [
+                [(csx, int(domainx / csx)), (csx, npadx, pfx)],
+                1,
+                [(csz, npadz, -pfz), (csz, ncz), (csz, npadz, pfz)],
+            ]
+        )
+        mesh.x0 = [0, 0, -mesh.hz[: npadz + ncz].sum()]
 
         # Plot the mesh
         if plotIt:
@@ -76,83 +77,93 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         def populate_target(mur):
             mu_model = np.ones(mesh.nC)
             x_inds = mesh.gridCC[:, 0] < target_r
-            z_inds = (
-                (mesh.gridCC[:, 2] <= 0) & (mesh.gridCC[:, 2] >= -target_l)
-            )
+            z_inds = (mesh.gridCC[:, 2] <= 0) & (mesh.gridCC[:, 2] >= -target_l)
             mu_model[x_inds & z_inds] = mur
             return mu_0 * mu_model
 
-        mu_dict = {
-            key: populate_target(mu) for key, mu in
-            zip(model_names, target_mur)
-        }
+        mu_dict = {key: populate_target(mu) for key, mu in zip(model_names, target_mur)}
         sigma = np.ones(mesh.nC) * sigma_back
 
         # Plot the models
         if plotIt:
             xlim = np.r_[-200, 200]  # x-limits in meters
-            zlim = np.r_[-1.5*target_l, 10.]  # z-limits in meters. (z-positive up)
+            zlim = np.r_[-1.5 * target_l, 10.0]  # z-limits in meters. (z-positive up)
 
             fig, ax = plt.subplots(
-                1, len(model_names), figsize=(6*len(model_names), 5)
+                1, len(model_names), figsize=(6 * len(model_names), 5)
             )
             if len(model_names) == 1:
                 ax = [ax]
 
             for a, key in zip(ax, model_names):
-                plt.colorbar(mesh.plotImage(
-                    mu_dict[key], ax=a,
-                    pcolorOpts={'norm': LogNorm()},  # plot on a log-scale
-                    mirror=True
-                )[0], ax=a)
-                a.set_title('{}'.format(key), fontsize=13)
-            #     cylMeshGen.mesh.plotGrid(ax=a, slice='theta') # uncomment to plot the mesh on top of this
+                plt.colorbar(
+                    mesh.plotImage(
+                        mu_dict[key],
+                        ax=a,
+                        pcolorOpts={"norm": LogNorm()},  # plot on a log-scale
+                        mirror=True,
+                    )[0],
+                    ax=a,
+                )
+                a.set_title("{}".format(key), fontsize=13)
+                #     cylMeshGen.mesh.plotGrid(ax=a, slice='theta') # uncomment to plot the mesh on top of this
                 a.set_xlim(xlim)
                 a.set_ylim(zlim)
             plt.tight_layout()
             plt.show()
 
         ramp = [
-            (1e-5, 20), (1e-4, 20), (3e-4, 20), (1e-3, 20), (3e-3, 20),
-            (1e-2, 20), (3e-2, 20), (1e-1, 20), (3e-1, 20), (1,  50)
+            (1e-5, 20),
+            (1e-4, 20),
+            (3e-4, 20),
+            (1e-3, 20),
+            (3e-3, 20),
+            (1e-2, 20),
+            (3e-2, 20),
+            (1e-1, 20),
+            (3e-1, 20),
+            (1, 50),
         ]
         timeSteps = ramp
 
         time_mesh = discretize.TensorMesh([ramp])
         offTime = 10000
-        waveform = TDEM.Src.QuarterSineRampOnWaveform(
+        waveform = tdem.Src.QuarterSineRampOnWaveform(
             ramp_on=np.r_[1e-4, 20], ramp_off=offTime - np.r_[1e-4, 0]
         )
 
         if plotIt:
             wave = np.r_[[waveform.eval(t) for t in time_mesh.gridN]]
             plt.plot(time_mesh.gridN, wave)
-            plt.plot(time_mesh.gridN, np.zeros(time_mesh.nN), '-|', color='k')
+            plt.plot(time_mesh.gridN, np.zeros(time_mesh.nN), "-|", color="k")
             plt.show()
 
-        src_magnetostatic = TDEM.Src.CircularLoop(
-            [], loc=np.r_[0., 0., 0.], orientation="z", radius=100,
+        src_magnetostatic = tdem.Src.CircularLoop(
+            [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100,
         )
 
-        src_ramp_on = TDEM.Src.CircularLoop(
-            [], loc=np.r_[0., 0., 0.], orientation="z", radius=100,
-            waveform=waveform
+        src_ramp_on = tdem.Src.CircularLoop(
+            [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100, waveform=waveform
         )
 
         src_list = [src_magnetostatic]
         src_list_late_ontime = [src_ramp_on]
 
-        prob = TDEM.Problem3D_b(
-            mesh=mesh, timeSteps=timeSteps, sigmaMap=Maps.IdentityMap(mesh),
-            Solver=Pardiso
+        prob = tdem.Simulation3DMagneticFluxDensity(
+            mesh=mesh,
+            timeSteps=timeSteps,
+            sigmaMap=maps.IdentityMap(mesh),
+            Solver=Pardiso,
         )
-        prob_late_ontime = TDEM.Problem3D_b(
-            mesh=mesh, timeSteps=timeSteps, sigmaMap=Maps.IdentityMap(mesh),
-            Solver=Pardiso
+        prob_late_ontime = tdem.Simulation3DMagneticFluxDensity(
+            mesh=mesh,
+            timeSteps=timeSteps,
+            sigmaMap=maps.IdentityMap(mesh),
+            Solver=Pardiso,
         )
 
-        survey = TDEM.Survey(srcList=src_list)
-        survey_late_ontime = TDEM.Survey(src_list_late_ontime)
+        survey = tdem.Survey(srcList=src_list)
+        survey_late_ontime = tdem.Survey(src_list_late_ontime)
 
         prob.pair(survey)
         prob_late_ontime.pair(survey_late_ontime)
@@ -161,13 +172,13 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
 
         for key in model_names:
             t = time.time()
-            print('--- Running {} ---'.format(key))
+            print("--- Running {} ---".format(key))
 
             prob_late_ontime.mu = mu_dict[key]
             fields_dict[key] = prob_late_ontime.fields(sigma)
 
             print(" ... done. Elapsed time {}".format(time.time() - t))
-            print('\n')
+            print("\n")
 
             b_magnetostatic = {}
             b_late_ontime = {}
@@ -178,23 +189,18 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             b_magnetostatic[key] = src_magnetostatic.bInitial(prob)
 
             prob_late_ontime.mu = mu_dict[key]
-            b_late_ontime[key] = utils.mkvc(
-                fields_dict[key][:, 'b', -1]
-            )
+            b_late_ontime[key] = utils.mkvc(fields_dict[key][:, "b", -1])
 
         if plotIt:
             fig, ax = plt.subplots(
-                len(model_names), 2, figsize=(3*len(model_names), 5)
+                len(model_names), 2, figsize=(3 * len(model_names), 5)
             )
 
             for i, key in enumerate(model_names):
                 ax[i][0].semilogy(
-                    np.absolute(b_magnetostatic[key]),
-                    label='magnetostatic'
+                    np.absolute(b_magnetostatic[key]), label="magnetostatic"
                 )
-                ax[i][0].semilogy(
-                    np.absolute(b_late_ontime[key]), label='late on-time'
-                )
+                ax[i][0].semilogy(np.absolute(b_late_ontime[key]), label="late on-time")
                 ax[i][0].legend()
 
                 ax[i][1].semilogy(
@@ -208,20 +214,16 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         for key in model_names:
             norm_magneotstatic = np.linalg.norm(b_magnetostatic[key])
             norm_late_ontime = np.linalg.norm(b_late_ontime[key])
-            norm_diff = np.linalg.norm(
-                b_magnetostatic[key] - b_late_ontime[key]
-            )
+            norm_diff = np.linalg.norm(b_magnetostatic[key] - b_late_ontime[key])
             passed_test = (
-                norm_diff / (0.5*(norm_late_ontime + norm_magneotstatic))
-                < TOL
+                norm_diff / (0.5 * (norm_late_ontime + norm_magneotstatic)) < TOL
             )
             print("\n{}".format(key))
             print(
                 "||magnetostatic||: {:1.2e}, "
                 "||late on-time||: {:1.2e}, "
                 "||difference||: {:1.2e} passed?: {}".format(
-                    norm_magneotstatic, norm_late_ontime, norm_diff,
-                    passed_test
+                    norm_magneotstatic, norm_late_ontime, norm_diff, passed_test
                 )
             )
 
@@ -229,74 +231,48 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
 
         assert all(passed)
 
-        prob.sigma = 1e-4*np.ones(mesh.nC)
+        prob.sigma = 1e-4 * np.ones(mesh.nC)
         v = utils.mkvc(np.random.rand(mesh.nE))
         w = utils.mkvc(np.random.rand(mesh.nF))
-        assert(
-            np.all(
-                mesh.getEdgeInnerProduct(1e-4*np.ones(mesh.nC))*v ==
-                prob.MeSigma*v
-            )
+        assert np.all(
+            mesh.getEdgeInnerProduct(1e-4 * np.ones(mesh.nC)) * v == prob.MeSigma * v
         )
 
-        assert(
-            np.all(
-                mesh.getEdgeInnerProduct(
-                    1e-4*np.ones(mesh.nC), invMat=True
-                )*v ==
-                prob.MeSigmaI*v
-            )
+        assert np.all(
+            mesh.getEdgeInnerProduct(1e-4 * np.ones(mesh.nC), invMat=True) * v
+            == prob.MeSigmaI * v
         )
-        assert(
-            np.all(
-                mesh.getFaceInnerProduct(1./1e-4*np.ones(mesh.nC))*w ==
-                prob.MfRho*w
-            )
+        assert np.all(
+            mesh.getFaceInnerProduct(1.0 / 1e-4 * np.ones(mesh.nC)) * w
+            == prob.MfRho * w
         )
 
-        assert(
-            np.all(
-                mesh.getFaceInnerProduct(
-                    1./1e-4*np.ones(mesh.nC), invMat=True
-                )*w ==
-                prob.MfRhoI*w
-            )
+        assert np.all(
+            mesh.getFaceInnerProduct(1.0 / 1e-4 * np.ones(mesh.nC), invMat=True) * w
+            == prob.MfRhoI * w
         )
 
-        prob.rho = 1./1e-3*np.ones(mesh.nC)
+        prob.rho = 1.0 / 1e-3 * np.ones(mesh.nC)
         v = utils.mkvc(np.random.rand(mesh.nE))
         w = utils.mkvc(np.random.rand(mesh.nF))
-        assert(
-            np.all(
-                mesh.getEdgeInnerProduct(1e-3*np.ones(mesh.nC))*v ==
-                prob.MeSigma*v
-            )
+        assert np.all(
+            mesh.getEdgeInnerProduct(1e-3 * np.ones(mesh.nC)) * v == prob.MeSigma * v
         )
 
-        assert(
-            np.all(
-                mesh.getEdgeInnerProduct(
-                    1e-3*np.ones(mesh.nC), invMat=True
-                )*v ==
-                prob.MeSigmaI*v
-            )
+        assert np.all(
+            mesh.getEdgeInnerProduct(1e-3 * np.ones(mesh.nC), invMat=True) * v
+            == prob.MeSigmaI * v
         )
-        assert(
-            np.all(
-                mesh.getFaceInnerProduct(1./1e-3*np.ones(mesh.nC))*w ==
-                prob.MfRho*w
-            )
+        assert np.all(
+            mesh.getFaceInnerProduct(1.0 / 1e-3 * np.ones(mesh.nC)) * w
+            == prob.MfRho * w
         )
 
-        assert(
-            np.all(
-                mesh.getFaceInnerProduct(
-                    1./1e-3*np.ones(mesh.nC), invMat=True
-                )*w ==
-                prob.MfRhoI*w
-            )
+        assert np.all(
+            mesh.getFaceInnerProduct(1.0 / 1e-3 * np.ones(mesh.nC), invMat=True) * w
+            == prob.MfRhoI * w
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

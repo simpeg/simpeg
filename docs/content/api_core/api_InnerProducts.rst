@@ -191,8 +191,8 @@ Which is nice and easy to invert if necessary, however, in the fully anisotropic
 .. plot::
 
     import numpy as np
-    from SimPEG import Mesh
-    mesh = Mesh.TensorMesh([10,50,3])
+    import discretize
+    mesh = discretize.TensorMesh([10,50,3])
     m1 = np.random.rand(mesh.nC)
     m2 = np.random.rand(mesh.nC,3)
     m3 = np.random.rand(mesh.nC,6)
@@ -298,4 +298,3 @@ The API
 -------
 
 See the `discretize docs <http://discretize.simpeg.xyz/>`_
-
