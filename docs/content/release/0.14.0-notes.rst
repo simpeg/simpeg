@@ -373,7 +373,7 @@ version 0.15.0 of SimPEG. The deprecated utility models will also be removed the
 Pull Requests
 =============
 
-There were 23 pull requests contributing to this release.
+There were 25 pull requests contributing to this release.
 
 * `#786 <https://github.com/simpeg/simpeg/pull/786>`__: Simulation class refactor.
 * `#792 <https://github.com/simpeg/simpeg/pull/792>`__: Use scooby for Versions.
@@ -397,8 +397,9 @@ There were 23 pull requests contributing to this release.
 * `#869 <https://github.com/simpeg/simpeg/pull/869>`__: Simulation tutorials 2.
 * `#872 <https://github.com/simpeg/simpeg/pull/872>`__: Uncertainty rename in simulation.
 * `#874 <https://github.com/simpeg/simpeg/pull/874>`__: Release notes for simulation as part of the Documentation.
-* `#876 <https://github.com/simpeg/simpeg/pull/876>`__: Simulation tutorials cleanup
-* `#879 <https://github.com/simpeg/simpeg/pull/879>`__: Run black on SimPEG
+* `#876 <https://github.com/simpeg/simpeg/pull/876>`__: Simulation tutorials cleanup.
+* `#879 <https://github.com/simpeg/simpeg/pull/879>`__: Run black on SimPEG.
+* `#882 <https://github.com/simpeg/simpeg/pull/882>`__: Replace html links to documentation with local links.
 
 Closed Issues
 =============
