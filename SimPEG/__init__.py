@@ -33,4 +33,4 @@ from .utils.solver_utils import (
 __version__ = "0.14.0b2"
 __author__ = "SimPEG Team"
 __license__ = "MIT"
-__copyright__ = "2013 - 2019, SimPEG Team, http://simpeg.xyz"
+__copyright__ = "2013 - 2020, SimPEG Team, http://simpeg.xyz"
