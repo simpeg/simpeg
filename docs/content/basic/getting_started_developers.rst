@@ -182,13 +182,13 @@ launched from a terminal using::
 If all is well ...
 ------------------
 
-You should be able to open a terminal within SimPEG/examples and run an example, ie.::
+You should be able to open a terminal within SimPEG/tutorials and run an example, ie.::
 
-    python 01-basic/plot_inversion_linear.py
+    python 02-linear_inversion/plot_inv_1_inversion_lsq.py
 
-or you can download and run `the notebook from the docs <http://docs.simpeg.xyz/content/examples/01-basic/plot_inversion_linear.html#sphx-glr-content-examples-01-basic-plot-inversion-linear-py>`_.
+or you can download and run the :ref:`notebook from the docs <sphx_glr_content_tutorials_02-linear_inversion_plot_inv_1_inversion_lsq.py>`.
 
-.. image:: http://docs.simpeg.xyz/_images/sphx_glr_plot_inversion_linear_001.png
+.. image:: /content/tutorials/02-linear_inversion/images/sphx_glr_plot_inv_1_inversion_lsq_003.png
 
 You are now set up to SimPEG!
 
