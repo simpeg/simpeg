@@ -26,14 +26,20 @@ from discretize import TensorMesh
 from SimPEG.simulation import LinearSimulation
 from SimPEG.data import Data
 from SimPEG import (
-    simulation, maps, data_misfit, directives, optimization, regularization,
-    inverse_problem, inversion
+    simulation,
+    maps,
+    data_misfit,
+    directives,
+    optimization,
+    regularization,
+    inverse_problem,
+    inversion,
 )
 
 # sphinx_gallery_thumbnail_number = 3
 
 #############################################
-# Defining the Model and Mapping 
+# Defining the Model and Mapping
 # ------------------------------
 #
 # Here we generate a synthetic model and a mappig which goes from the model
@@ -47,7 +53,7 @@ mesh = TensorMesh([nParam])
 
 # Creating the true model
 true_model = np.zeros(mesh.nC)
-true_model[mesh.vectorCCx > 0.3] = 1.
+true_model[mesh.vectorCCx > 0.3] = 1.0
 true_model[mesh.vectorCCx > 0.45] = -0.5
 true_model[mesh.vectorCCx > 0.6] = 0
 
@@ -57,11 +63,11 @@ model_map = maps.IdentityMap(mesh)
 # Plotting the true model
 fig = plt.figure(figsize=(8, 5))
 ax = fig.add_subplot(111)
-ax.plot(mesh.vectorCCx, true_model, 'b-')
+ax.plot(mesh.vectorCCx, true_model, "b-")
 ax.set_ylim([-2, 2])
 
 #############################################
-# Defining the Linear Operator 
+# Defining the Linear Operator
 # ----------------------------
 #
 # Here we define the linear operator with dimensions (nData, nParam). In practive,
@@ -74,15 +80,16 @@ nData = 20
 
 # Create the linear operator for the tutorial. The columns of the linear operator
 # represents a set of decaying and oscillating functions.
-jk = np.linspace(1., 60., nData)
+jk = np.linspace(1.0, 60.0, nData)
 p = -0.25
 q = 0.25
 
+
 def g(k):
-    return (
-        np.exp(p*jk[k]*mesh.vectorCCx) *
-        np.cos(np.pi*q*jk[k]*mesh.vectorCCx)
+    return np.exp(p * jk[k] * mesh.vectorCCx) * np.cos(
+        np.pi * q * jk[k] * mesh.vectorCCx
     )
+
 
 G = np.empty((nData, nParam))
 
@@ -95,11 +102,11 @@ ax = fig.add_subplot(111)
 for i in range(G.shape[0]):
     ax.plot(G[i, :])
 
-ax.set_title('Columns of matrix G')
+ax.set_title("Columns of matrix G")
 
 
 #############################################
-# Defining the Simulation 
+# Defining the Simulation
 # -----------------------
 #
 # The simulation defines the relationship between the model parameters and
@@ -110,7 +117,7 @@ sim = simulation.LinearSimulation(mesh, G=G, model_map=model_map)
 
 
 #############################################
-# Predict Synthetic Data 
+# Predict Synthetic Data
 # ----------------------
 #
 # Here, we use the true model to create synthetic data which we will subsequently
@@ -152,8 +159,7 @@ reg.norms = np.c_[p, q]
 
 # Define how the optimization problem is solved.
 opt = optimization.ProjectedGNCG(
-    maxIter=100, lower=-2., upper=2.,
-    maxIterLS=20, maxIterCG=10, tolCG=1e-3
+    maxIter=100, lower=-2.0, upper=2.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
 )
 
 # Here we define the inverse problem that is to be solved
@@ -172,8 +178,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-IRLS = directives.Update_IRLS(
-    max_irls_iterations=40, minGNiter=1, f_min_change=1e-4)
+IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=1e-4)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
@@ -186,9 +191,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Define the directives as a list
-directives_list=[
-    sensitivity_weights, IRLS, starting_beta, update_Jacobi, saveDict
-]
+directives_list = [sensitivity_weights, IRLS, starting_beta, update_Jacobi, saveDict]
 
 
 #####################################################################
@@ -203,7 +206,7 @@ directives_list=[
 inv = inversion.BaseInversion(inv_prob, directives_list)
 
 # Starting model
-starting_model = 1e-4*np.ones(nParam)
+starting_model = 1e-4 * np.ones(nParam)
 
 # Run inversion
 recovered_model = inv.run(starting_model)
@@ -213,38 +216,39 @@ recovered_model = inv.run(starting_model)
 # ----------------
 #
 
-fig, ax = plt.subplots(1, 2, figsize=(12*1.2, 4*1.2))
+fig, ax = plt.subplots(1, 2, figsize=(12 * 1.2, 4 * 1.2))
 
 # True versus recovered model
-ax[0].plot(mesh.vectorCCx, true_model, 'k-')
-ax[0].plot(mesh.vectorCCx, inv_prob.l2model, 'b-')
-ax[0].plot(mesh.vectorCCx, recovered_model, 'r-')
-ax[0].legend(('True Model', 'Recovered L2 Model', 'Recovered Sparse Model'))
+ax[0].plot(mesh.vectorCCx, true_model, "k-")
+ax[0].plot(mesh.vectorCCx, inv_prob.l2model, "b-")
+ax[0].plot(mesh.vectorCCx, recovered_model, "r-")
+ax[0].legend(("True Model", "Recovered L2 Model", "Recovered Sparse Model"))
 ax[0].set_ylim([-2, 2])
 
 # Observed versus predicted data
-ax[1].plot(data_obj.dobs, 'k-')
-ax[1].plot(inv_prob.dpred, 'ko')
-ax[1].legend(('Observed Data', 'Predicted Data'))
+ax[1].plot(data_obj.dobs, "k-")
+ax[1].plot(inv_prob.dpred, "ko")
+ax[1].legend(("Observed Data", "Predicted Data"))
 
 # Plot convergence
 fig = plt.figure(figsize=(9, 5))
 ax = fig.add_axes([0.2, 0.1, 0.7, 0.85])
-ax.plot(saveDict.phi_d, 'k', lw=2)
+ax.plot(saveDict.phi_d, "k", lw=2)
 
 twin = ax.twinx()
-twin.plot(saveDict.phi_m, 'k--', lw=2)
-ax.plot(
-    np.r_[IRLS.iterStart, IRLS.iterStart],
-    np.r_[0, np.max(saveDict.phi_d)], 'k:'
-)
+twin.plot(saveDict.phi_m, "k--", lw=2)
+ax.plot(np.r_[IRLS.iterStart, IRLS.iterStart], np.r_[0, np.max(saveDict.phi_d)], "k:")
 ax.text(
-    IRLS.iterStart, 0.,
-    'IRLS Start', va='bottom', ha='center',
-    rotation='vertical', size=12,
-    bbox={'facecolor': 'white'}
+    IRLS.iterStart,
+    0.0,
+    "IRLS Start",
+    va="bottom",
+    ha="center",
+    rotation="vertical",
+    size=12,
+    bbox={"facecolor": "white"},
 )
 
-ax.set_ylabel('$\phi_d$', size=16, rotation=0)
-ax.set_xlabel('Iterations', size=14)
-twin.set_ylabel('$\phi_m$', size=16, rotation=0)
+ax.set_ylabel("$\phi_d$", size=16, rotation=0)
+ax.set_xlabel("Iterations", size=14)
+twin.set_ylabel("$\phi_m$", size=16, rotation=0)

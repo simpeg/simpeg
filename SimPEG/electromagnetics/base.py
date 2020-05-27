@@ -14,7 +14,7 @@ from ..survey import BaseSurvey, BaseSrc
 from ..utils import sdiag, Zero, mkvc
 from .. import props
 
-__all__ = ['BaseEMSimulation', 'BaseEMSrc']
+__all__ = ["BaseEMSimulation", "BaseEMSrc"]
 
 
 ###############################################################################
@@ -23,25 +23,17 @@ __all__ = ['BaseEMSimulation', 'BaseEMSrc']
 #                                                                             #
 ###############################################################################
 
+
 class BaseEMSimulation(BaseSimulation):
 
-    sigma, sigmaMap, sigmaDeriv = props.Invertible(
-        "Electrical conductivity (S/m)"
-    )
+    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
 
-    rho, rhoMap, rhoDeriv = props.Invertible(
-        "Electrical resistivity (Ohm m)"
-    )
+    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
 
     props.Reciprocal(sigma, rho)
 
-    mu = props.PhysicalProperty(
-        "Magnetic Permeability (H/m)",
-        default=mu_0
-    )
-    mui = props.PhysicalProperty(
-        "Inverse Magnetic Permeability (m/H)"
-    )
+    mu = props.PhysicalProperty("Magnetic Permeability (H/m)", default=mu_0)
+    mui = props.PhysicalProperty("Inverse Magnetic Permeability (m/H)")
 
     props.Reciprocal(mu, mui)
 
@@ -55,7 +47,7 @@ class BaseEMSimulation(BaseSimulation):
     ####################################################
     @property
     def _makeASymmetric(self):
-        if getattr(self, '__makeASymmetric', None) is None:
+        if getattr(self, "__makeASymmetric", None) is None:
             self.__makeASymmetric = True
         return self.__makeASymmetric
 
@@ -68,10 +60,7 @@ class BaseEMSimulation(BaseSimulation):
         These matrices are deleted if there is an update to the permeability
         model
         """
-        return [
-            '_MeMu', '_MeMuI', '_MfMui', '_MfMuiI',
-            '_MfMuiDeriv', '_MeMuDeriv'
-        ]
+        return ["_MeMu", "_MeMuI", "_MfMui", "_MfMuiI", "_MfMuiDeriv", "_MeMuDeriv"]
 
     @property
     def _clear_on_sigma_update(self):
@@ -80,8 +69,12 @@ class BaseEMSimulation(BaseSimulation):
         model
         """
         return [
-            '_MeSigma', '_MeSigmaI', '_MfRho', '_MfRhoI',
-            '_MeSigmaDeriv', '_MfRhoDeriv'
+            "_MeSigma",
+            "_MeSigmaI",
+            "_MfRho",
+            "_MfRhoI",
+            "_MeSigmaDeriv",
+            "_MfRhoDeriv",
         ]
 
     @property
@@ -94,61 +87,61 @@ class BaseEMSimulation(BaseSimulation):
         if self.sigmaMap is not None or self.rhoMap is not None:
             toDelete += self._clear_on_sigma_update
 
-        if hasattr(self, 'muMap') or hasattr(self, 'muiMap'):
+        if hasattr(self, "muMap") or hasattr(self, "muiMap"):
             if self.muMap is not None or self.muiMap is not None:
                 toDelete += self._clear_on_mu_update
         return toDelete
 
-    @properties.observer('mu')
+    @properties.observer("mu")
     def _clear_mu_mats_on_mu_update(self, change):
-        if change['previous'] is change['value']:
+        if change["previous"] is change["value"]:
             return
         if (
-            isinstance(change['previous'], np.ndarray) and
-            isinstance(change['value'], np.ndarray) and
-            np.allclose(change['previous'], change['value'])
+            isinstance(change["previous"], np.ndarray)
+            and isinstance(change["value"], np.ndarray)
+            and np.allclose(change["previous"], change["value"])
         ):
             return
         for mat in self._clear_on_mu_update:
             if hasattr(self, mat):
                 delattr(self, mat)
 
-    @properties.observer('mui')
+    @properties.observer("mui")
     def _clear_mu_mats_on_mui_update(self, change):
-        if change['previous'] is change['value']:
+        if change["previous"] is change["value"]:
             return
         if (
-            isinstance(change['previous'], np.ndarray) and
-            isinstance(change['value'], np.ndarray) and
-            np.allclose(change['previous'], change['value'])
+            isinstance(change["previous"], np.ndarray)
+            and isinstance(change["value"], np.ndarray)
+            and np.allclose(change["previous"], change["value"])
         ):
             return
         for mat in self._clear_on_mu_update:
             if hasattr(self, mat):
                 delattr(self, mat)
 
-    @properties.observer('sigma')
+    @properties.observer("sigma")
     def _clear_sigma_mats_on_sigma_update(self, change):
-        if change['previous'] is change['value']:
+        if change["previous"] is change["value"]:
             return
         if (
-            isinstance(change['previous'], np.ndarray) and
-            isinstance(change['value'], np.ndarray) and
-            np.allclose(change['previous'], change['value'])
+            isinstance(change["previous"], np.ndarray)
+            and isinstance(change["value"], np.ndarray)
+            and np.allclose(change["previous"], change["value"])
         ):
             return
         for mat in self._clear_on_sigma_update:
             if hasattr(self, mat):
                 delattr(self, mat)
 
-    @properties.observer('rho')
+    @properties.observer("rho")
     def _clear_sigma_mats_on_rho_update(self, change):
-        if change['previous'] is change['value']:
+        if change["previous"] is change["value"]:
             return
         if (
-            isinstance(change['previous'], np.ndarray) and
-            isinstance(change['value'], np.ndarray) and
-            np.allclose(change['previous'], change['value'])
+            isinstance(change["previous"], np.ndarray)
+            and isinstance(change["value"], np.ndarray)
+            and np.allclose(change["previous"], change["value"])
         ):
             return
         for mat in self._clear_on_sigma_update:
@@ -160,7 +153,7 @@ class BaseEMSimulation(BaseSimulation):
         """
             Edge inner product matrix
         """
-        if getattr(self, '_Me', None) is None:
+        if getattr(self, "_Me", None) is None:
             self._Me = self.mesh.getEdgeInnerProduct()
         return self._Me
 
@@ -169,7 +162,7 @@ class BaseEMSimulation(BaseSimulation):
         """
             Edge inner product matrix
         """
-        if getattr(self, '_MeI', None) is None:
+        if getattr(self, "_MeI", None) is None:
             self._MeI = self.mesh.getEdgeInnerProduct(invMat=True)
         return self._MeI
 
@@ -178,7 +171,7 @@ class BaseEMSimulation(BaseSimulation):
         """
             Face inner product matrix
         """
-        if getattr(self, '_Mf', None) is None:
+        if getattr(self, "_Mf", None) is None:
             self._Mf = self.mesh.getFaceInnerProduct()
         return self._Mf
 
@@ -187,13 +180,13 @@ class BaseEMSimulation(BaseSimulation):
         """
             Face inner product matrix
         """
-        if getattr(self, '_MfI', None) is None:
+        if getattr(self, "_MfI", None) is None:
             self._MfI = self.mesh.getFaceInnerProduct(invMat=True)
         return self._MfI
 
     @property
     def Vol(self):
-        if getattr(self, '_Vol', None) is None:
+        if getattr(self, "_Vol", None) is None:
             self._Vol = sdiag(self.mesh.vol)
         return self._Vol
 
@@ -206,7 +199,7 @@ class BaseEMSimulation(BaseSimulation):
         Face inner product matrix for \\(\\mu^{-1}\\).
         Used in the E-B formulation
         """
-        if getattr(self, '_MfMui', None) is None:
+        if getattr(self, "_MfMui", None) is None:
             self._MfMui = self.mesh.getFaceInnerProduct(self.mui)
         return self._MfMui
 
@@ -217,10 +210,13 @@ class BaseEMSimulation(BaseSimulation):
         if self.muiMap is None:
             return Zero()
 
-        if getattr(self, '_MfMuiDeriv', None) is None:
-            self._MfMuiDeriv = self.mesh.getFaceInnerProductDeriv(
-                np.ones(self.mesh.nC)
-            )(np.ones(self.mesh.nF)) * self.muiDeriv
+        if getattr(self, "_MfMuiDeriv", None) is None:
+            self._MfMuiDeriv = (
+                self.mesh.getFaceInnerProductDeriv(np.ones(self.mesh.nC))(
+                    np.ones(self.mesh.nF)
+                )
+                * self.muiDeriv
+            )
 
         if v is not None:
             if not isinstance(u, Zero):
@@ -228,10 +224,10 @@ class BaseEMSimulation(BaseSimulation):
                 if v.ndim > 1:
                     u = u[:, None]
             if adjoint is True:
-                return self._MfMuiDeriv.T*(u*v)
-            return u*(self._MfMuiDeriv*v)
+                return self._MfMuiDeriv.T * (u * v)
+            return u * (self._MfMuiDeriv * v)
         else:
-            mat = sdiag(u)*self._MfMuiDeriv
+            mat = sdiag(u) * self._MfMuiDeriv
             if adjoint is True:
                 return mat.T
             return mat
@@ -241,7 +237,7 @@ class BaseEMSimulation(BaseSimulation):
         """
         Inverse of :code:`MfMui`.
         """
-        if getattr(self, '_MfMuiI', None) is None:
+        if getattr(self, "_MfMuiI", None) is None:
             self._MfMuiI = self.mesh.getFaceInnerProduct(self.mui, invMat=True)
         return self._MfMuiI
 
@@ -259,11 +255,12 @@ class BaseEMSimulation(BaseSimulation):
                     "Full anisotropy is not implemented for MfMuiIDeriv."
                 )
 
-        dMfMuiI_dI = -self.MfMuiI**2
+        dMfMuiI_dI = -self.MfMuiI ** 2
         if adjoint is True:
             return self.MfMuiDeriv(
-                u, v=dMfMuiI_dI.T * v if v is not None else dMfMuiI_dI.T,
-                adjoint=adjoint
+                u,
+                v=dMfMuiI_dI.T * v if v is not None else dMfMuiI_dI.T,
+                adjoint=adjoint,
             )
         return dMfMuiI_dI * self.MfMuiDeriv(u, v=v)
 
@@ -273,7 +270,7 @@ class BaseEMSimulation(BaseSimulation):
         Edge inner product matrix for \\(\\mu\\).
         Used in the H-J formulation
         """
-        if getattr(self, '_MeMu', None) is None:
+        if getattr(self, "_MeMu", None) is None:
             self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
         return self._MeMu
 
@@ -284,10 +281,13 @@ class BaseEMSimulation(BaseSimulation):
         if self.muMap is None:
             return Zero()
 
-        if getattr(self, '_MeMuDeriv', None) is None:
-            self._MeMuDeriv = self.mesh.getEdgeInnerProductDeriv(
-                np.ones(self.mesh.nC)
-            )(np.ones(self.mesh.nE)) * self.muDeriv
+        if getattr(self, "_MeMuDeriv", None) is None:
+            self._MeMuDeriv = (
+                self.mesh.getEdgeInnerProductDeriv(np.ones(self.mesh.nC))(
+                    np.ones(self.mesh.nE)
+                )
+                * self.muDeriv
+            )
 
         if v is not None:
             if not isinstance(u, Zero):
@@ -296,8 +296,8 @@ class BaseEMSimulation(BaseSimulation):
                     # promote u iff v is a matrix
                     u = u[:, None]  # Avoids constructing the sparse matrix
             if adjoint:
-                return self._MeMuDeriv.T * (u*v)
-            return u*(self._MeMuDeriv * v)
+                return self._MeMuDeriv.T * (u * v)
+            return u * (self._MeMuDeriv * v)
         else:
             mat = sdiag(u) * self._MeMuDeriv
             if adjoint is True:
@@ -309,7 +309,7 @@ class BaseEMSimulation(BaseSimulation):
         """
         Inverse of :code:`MeMu`
         """
-        if getattr(self, '_MeMuI', None) is None:
+        if getattr(self, "_MeMuI", None) is None:
             self._MeMuI = self.mesh.getEdgeInnerProduct(self.mu, invMat=True)
         return self._MeMuI
 
@@ -327,11 +327,10 @@ class BaseEMSimulation(BaseSimulation):
                     "Full anisotropy is not implemented for MeMuIDeriv."
                 )
 
-        dMeMuI_dI = -self.MeMuI**2
+        dMeMuI_dI = -self.MeMuI ** 2
         if adjoint is True:
             return self.MeMuDeriv(
-                u, v=dMeMuI_dI.T * v if v is not None else dMeMuI_dI.T,
-                adjoint=adjoint
+                u, v=dMeMuI_dI.T * v if v is not None else dMeMuI_dI.T, adjoint=adjoint
             )
         return dMeMuI_dI * self.MeMuDeriv(u, v=v)
 
@@ -344,7 +343,7 @@ class BaseEMSimulation(BaseSimulation):
         Edge inner product matrix for \\(\\sigma\\).
         Used in the E-B formulation
         """
-        if getattr(self, '_MeSigma', None) is None:
+        if getattr(self, "_MeSigma", None) is None:
             self._MeSigma = self.mesh.getEdgeInnerProduct(self.sigma)
         return self._MeSigma
 
@@ -355,10 +354,13 @@ class BaseEMSimulation(BaseSimulation):
         if self.sigmaMap is None:
             return Zero()
 
-        if getattr(self, '_MeSigmaDeriv', None) is None:
-            self._MeSigmaDeriv = self.mesh.getEdgeInnerProductDeriv(
-                np.ones(self.mesh.nC)
-            )(np.ones(self.mesh.nE)) * self.sigmaDeriv
+        if getattr(self, "_MeSigmaDeriv", None) is None:
+            self._MeSigmaDeriv = (
+                self.mesh.getEdgeInnerProductDeriv(np.ones(self.mesh.nC))(
+                    np.ones(self.mesh.nE)
+                )
+                * self.sigmaDeriv
+            )
 
         if v is not None:
             if not isinstance(u, Zero):
@@ -367,8 +369,8 @@ class BaseEMSimulation(BaseSimulation):
                     # promote u iff v is a matrix
                     u = u[:, None]  # Avoids constructing the sparse matrix
             if adjoint:
-                return self._MeSigmaDeriv.T * (u*v)
-            return u*(self._MeSigmaDeriv * v)
+                return self._MeSigmaDeriv.T * (u * v)
+            return u * (self._MeSigmaDeriv * v)
         else:
             if adjoint is True:
                 return self._MeSigmaDeriv.T * sdiag(u)
@@ -379,10 +381,8 @@ class BaseEMSimulation(BaseSimulation):
         """
         Inverse of the edge inner product matrix for \\(\\sigma\\).
         """
-        if getattr(self, '_MeSigmaI', None) is None:
-            self._MeSigmaI = self.mesh.getEdgeInnerProduct(
-                self.sigma, invMat=True
-            )
+        if getattr(self, "_MeSigmaI", None) is None:
+            self._MeSigmaI = self.mesh.getEdgeInnerProduct(self.sigma, invMat=True)
         return self._MeSigmaI
 
     def MeSigmaIDeriv(self, u, v=None, adjoint=False):
@@ -397,14 +397,15 @@ class BaseEMSimulation(BaseSimulation):
                 raise NotImplementedError(
                     "Full anisotropy is not implemented for MeSigmaIDeriv."
                 )
-        dMeSigmaI_dI = -self.MeSigmaI**2
+        dMeSigmaI_dI = -self.MeSigmaI ** 2
         if adjoint is True:
             return self.MeSigmaDeriv(
-                u, v=(dMeSigmaI_dI.T*v) if v is not None else dMeSigmaI_dI.T,
-                adjoint=adjoint
+                u,
+                v=(dMeSigmaI_dI.T * v) if v is not None else dMeSigmaI_dI.T,
+                adjoint=adjoint,
             )
         else:
-            return  dMeSigmaI_dI * self.MeSigmaDeriv(u, v=v)
+            return dMeSigmaI_dI * self.MeSigmaDeriv(u, v=v)
 
     @property
     def MfRho(self):
@@ -412,7 +413,7 @@ class BaseEMSimulation(BaseSimulation):
         Face inner product matrix for \\(\\rho\\). Used in the H-J
         formulation
         """
-        if getattr(self, '_MfRho', None) is None:
+        if getattr(self, "_MfRho", None) is None:
             self._MfRho = self.mesh.getFaceInnerProduct(self.rho)
         return self._MfRho
 
@@ -423,10 +424,13 @@ class BaseEMSimulation(BaseSimulation):
         if self.rhoMap is None:
             return Zero()
 
-        if getattr(self, '_MfRhoDeriv', None) is None:
-            self._MfRhoDeriv = self.mesh.getFaceInnerProductDeriv(
-                np.ones(self.mesh.nC)
-            )(np.ones(self.mesh.nF)) * self.rhoDeriv
+        if getattr(self, "_MfRhoDeriv", None) is None:
+            self._MfRhoDeriv = (
+                self.mesh.getFaceInnerProductDeriv(np.ones(self.mesh.nC))(
+                    np.ones(self.mesh.nF)
+                )
+                * self.rhoDeriv
+            )
 
         if v is not None:
             if not isinstance(u, Zero):
@@ -435,19 +439,19 @@ class BaseEMSimulation(BaseSimulation):
                     # promote u iff v is a matrix
                     u = u[:, None]  # Avoids constructing the sparse matrix
             if adjoint is True:
-                return self._MfRhoDeriv.T.dot(u*v)
-            return u*(self._MfRhoDeriv.dot(v))
+                return self._MfRhoDeriv.T.dot(u * v)
+            return u * (self._MfRhoDeriv.dot(v))
         else:
             if adjoint is True:
                 return self._MfRhoDeriv.T.dot(sdiag(u))
-            return sdiag(u)*(self._MfRhoDeriv)
+            return sdiag(u) * (self._MfRhoDeriv)
 
     @property
     def MfRhoI(self):
         """
         Inverse of :code:`MfRho`
         """
-        if getattr(self, '_MfRhoI', None) is None:
+        if getattr(self, "_MfRhoI", None) is None:
             self._MfRhoI = self.mesh.getFaceInnerProduct(self.rho, invMat=True)
         return self._MfRhoI
 
@@ -463,12 +467,10 @@ class BaseEMSimulation(BaseSimulation):
                 raise NotImplementedError(
                     "Full anisotropy is not implemented for MfRhoIDeriv."
                 )
-        dMfRhoI_dI = -self.MfRhoI**2
+        dMfRhoI_dI = -self.MfRhoI ** 2
 
         if adjoint is True:
-            return self.MfRhoDeriv(
-                dMfRhoI_dI.T.dot(u), v=v, adjoint=adjoint
-            )
+            return self.MfRhoDeriv(dMfRhoI_dI.T.dot(u), v=v, adjoint=adjoint)
         else:
             return dMfRhoI_dI.dot(self.MfRhoDeriv(u, v=v))
 
@@ -478,6 +480,7 @@ class BaseEMSimulation(BaseSimulation):
 #                             Base EM Source                                  #
 #                                                                             #
 ###############################################################################
+
 
 class BaseEMSrc(BaseSrc):
     """
@@ -516,12 +519,12 @@ class BaseEMSrc(BaseSrc):
         if v is not None:
             return (
                 self.s_mDeriv(simulation, v, adjoint),
-                self.s_eDeriv(simulation, v, adjoint)
+                self.s_eDeriv(simulation, v, adjoint),
             )
         else:
             return (
                 lambda v: self.s_mDeriv(simulation, v, adjoint),
-                lambda v: self.s_eDeriv(simulation, v, adjoint)
+                lambda v: self.s_eDeriv(simulation, v, adjoint),
             )
 
     def s_m(self, simulation):

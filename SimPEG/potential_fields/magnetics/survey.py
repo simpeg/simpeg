@@ -41,7 +41,7 @@ class Survey(BaseSurvey):
     def vnD(self):
         """Vector number of data"""
 
-        if getattr(self, '_vnD', None) is None:
+        if getattr(self, "_vnD", None) is None:
             self._vnD = []
             for receiver in self.source_field.receiver_list:
 
@@ -54,9 +54,11 @@ class Survey(BaseSurvey):
             self._vnD = np.asarray(self._vnD)
         return self._vnD
 
-# make this look like it lives in the below module
-Survey.__module__ = 'SimPEG.potential_fields.magnetics'
 
-@deprecate_class(removal_version='0.15.0')
+# make this look like it lives in the below module
+Survey.__module__ = "SimPEG.potential_fields.magnetics"
+
+
+@deprecate_class(removal_version="0.15.0")
 class LinearSurvey(Survey):
     pass

@@ -26,8 +26,14 @@ import matplotlib.pyplot as plt
 from discretize import TensorMesh
 
 from SimPEG import (
-    simulation, maps, data_misfit, directives, optimization, regularization,
-    inverse_problem, inversion
+    simulation,
+    maps,
+    data_misfit,
+    directives,
+    optimization,
+    regularization,
+    inverse_problem,
+    inversion,
 )
 
 # sphinx_gallery_thumbnail_number = 3
@@ -47,7 +53,7 @@ mesh = TensorMesh([nParam])
 
 # Creating the true model
 true_model = np.zeros(mesh.nC)
-true_model[mesh.vectorCCx > 0.3] = 1.
+true_model[mesh.vectorCCx > 0.3] = 1.0
 true_model[mesh.vectorCCx > 0.45] = -0.5
 true_model[mesh.vectorCCx > 0.6] = 0
 
@@ -57,7 +63,7 @@ model_map = maps.IdentityMap(mesh)
 # Plotting the true model
 fig = plt.figure(figsize=(8, 5))
 ax = fig.add_subplot(111)
-ax.plot(mesh.vectorCCx, true_model, 'b-')
+ax.plot(mesh.vectorCCx, true_model, "b-")
 ax.set_ylim([-2, 2])
 
 #############################################
@@ -74,15 +80,16 @@ nData = 20
 
 # Create the linear operator for the tutorial. The columns of the linear operator
 # represents a set of decaying and oscillating functions.
-jk = np.linspace(1., 60., nData)
+jk = np.linspace(1.0, 60.0, nData)
 p = -0.25
 q = 0.25
 
+
 def g(k):
-    return (
-        np.exp(p*jk[k]*mesh.vectorCCx) *
-        np.cos(np.pi*q*jk[k]*mesh.vectorCCx)
+    return np.exp(p * jk[k] * mesh.vectorCCx) * np.cos(
+        np.pi * q * jk[k] * mesh.vectorCCx
     )
+
 
 G = np.empty((nData, nParam))
 
@@ -95,7 +102,7 @@ ax = fig.add_subplot(111)
 for i in range(G.shape[0]):
     ax.plot(G[i, :])
 
-ax.set_title('Columns of matrix G')
+ax.set_title("Columns of matrix G")
 
 
 #############################################
@@ -141,7 +148,7 @@ data_obj = sim.make_synthetic_data(true_model, relative_error=std, add_noise=Tru
 dmis = data_misfit.L2DataMisfit(simulation=sim, data=data_obj)
 
 # Define the regularization (model objective function).
-reg = regularization.Tikhonov(mesh, alpha_s=1., alpha_x=1.)
+reg = regularization.Tikhonov(mesh, alpha_s=1.0, alpha_x=1.0)
 
 # Define how the optimization problem is solved.
 opt = optimization.InexactGaussNewton(maxIter=50)
@@ -192,13 +199,13 @@ recovered_model = inv.run(starting_model)
 #
 
 # Observed versus predicted data
-fig, ax = plt.subplots(1, 2, figsize=(12*1.2, 4*1.2))
-ax[0].plot(data_obj.dobs, 'b-')
-ax[0].plot(inv_prob.dpred, 'r-')
-ax[0].legend(('Observed Data', 'Predicted Data'))
+fig, ax = plt.subplots(1, 2, figsize=(12 * 1.2, 4 * 1.2))
+ax[0].plot(data_obj.dobs, "b-")
+ax[0].plot(inv_prob.dpred, "r-")
+ax[0].legend(("Observed Data", "Predicted Data"))
 
 # True versus recovered model
-ax[1].plot(mesh.vectorCCx, true_model, 'b-')
-ax[1].plot(mesh.vectorCCx, recovered_model, 'r-')
-ax[1].legend(('True Model', 'Recovered Model'))
+ax[1].plot(mesh.vectorCCx, true_model, "b-")
+ax[1].plot(mesh.vectorCCx, recovered_model, "r-")
+ax[1].legend(("True Model", "Recovered Model"))
 ax[1].set_ylim([-2, 2])

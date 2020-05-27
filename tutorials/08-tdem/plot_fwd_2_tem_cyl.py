@@ -57,7 +57,7 @@ write_file = False
 # begins at t=0. Other waveforms are discuss in the OcTree simulation example.
 #
 
-waveform = tdem.sources.StepOffWaveform(offTime=0.)
+waveform = tdem.sources.StepOffWaveform(offTime=0.0)
 
 
 #####################################################################
@@ -90,18 +90,23 @@ for ii in range(ntx):
 
     # Define receivers at each location.
     dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
-        receiver_locations[ii, :], time_channels, 'z'
-        )
-    receivers_list = [dbzdt_receiver]  # Make a list containing all receivers even if just one
+        receiver_locations[ii, :], time_channels, "z"
+    )
+    receivers_list = [
+        dbzdt_receiver
+    ]  # Make a list containing all receivers even if just one
 
     # Must define the transmitter properties and associated receivers
     source_list.append(
         tdem.sources.MagDipole(
-            receivers_list, location=source_locations[ii],
-            waveform=waveform, moment=1., orientation='z'
+            receivers_list,
+            location=source_locations[ii],
+            waveform=waveform,
+            moment=1.0,
+            orientation="z",
         )
     )
-    
+
 survey = tdem.Survey(source_list)
 
 ###############################################################
@@ -111,17 +116,17 @@ survey = tdem.Survey(source_list)
 # Here we create the cylindrical mesh that will be used for this tutorial
 # example. We chose to design a coarser mesh to decrease the run time.
 # When designing a mesh to solve practical time domain problems:
-# 
+#
 #     - Your smallest cell size should be 10%-20% the size of your smallest diffusion distance
 #     - The thickness of your padding needs to be 2-3 times biggest than your largest diffusion distance
 #     - The diffusion distance is ~1260*np.sqrt(rho*t)
 #
 #
 
-hr = [(10., 50), (10., 10, 1.5)]
-hz = [(10., 10, -1.5), (10., 100), (10., 10, 1.5)]
+hr = [(10.0, 50), (10.0, 10, 1.5)]
+hz = [(10.0, 10, -1.5), (10.0, 100), (10.0, 10, 1.5)]
 
-mesh = CylMesh([hr, 1, hz], x0='00C')
+mesh = CylMesh([hr, 1, hz], x0="00C")
 
 ###############################################################
 # Create Conductivity/Resistivity Model and Mapping
@@ -146,20 +151,19 @@ ind_active = mesh.gridCC[:, 2] < 0
 model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
 # Define the model
-model = background_conductivity*np.ones(ind_active.sum())
-ind_layer = (
-    (mesh.gridCC[ind_active, 2] > -200.) & (mesh.gridCC[ind_active, 2] < -0)
-)
+model = background_conductivity * np.ones(ind_active.sum())
+ind_layer = (mesh.gridCC[ind_active, 2] > -200.0) & (mesh.gridCC[ind_active, 2] < -0)
 model[ind_layer] = layer_conductivity
 ind_pipe = (
-    (mesh.gridCC[ind_active, 0] < 50.) &
-    (mesh.gridCC[ind_active, 2] > -10000.) & (mesh.gridCC[ind_active, 2] < 0.)
+    (mesh.gridCC[ind_active, 0] < 50.0)
+    & (mesh.gridCC[ind_active, 2] > -10000.0)
+    & (mesh.gridCC[ind_active, 2] < 0.0)
 )
 model[ind_pipe] = pipe_conductivity
 
 
 # Plot Resistivity Model
-mpl.rcParams.update({'font.size': 12})
+mpl.rcParams.update({"font.size": 12})
 fig = plt.figure(figsize=(4.5, 6))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
@@ -167,21 +171,23 @@ log_model = np.log10(model)  # So scaling is log-scale
 
 ax1 = fig.add_axes([0.14, 0.1, 0.6, 0.85])
 mesh.plotImage(
-    plotting_map*log_model, ax=ax1, grid=False,
-    clim=(np.log10(layer_conductivity), np.log10(pipe_conductivity))
+    plotting_map * log_model,
+    ax=ax1,
+    grid=False,
+    clim=(np.log10(layer_conductivity), np.log10(pipe_conductivity)),
 )
-ax1.set_title('Conductivity Model (Survey in red)')
+ax1.set_title("Conductivity Model (Survey in red)")
 
-ax1.plot(receiver_locations[:, 0], receiver_locations[:, 2], 'r.')
+ax1.plot(receiver_locations[:, 0], receiver_locations[:, 2], "r.")
 
 ax2 = fig.add_axes([0.76, 0.1, 0.05, 0.85])
-norm = mpl.colors.Normalize(vmin=np.log10(layer_conductivity), vmax=np.log10(pipe_conductivity))
+norm = mpl.colors.Normalize(
+    vmin=np.log10(layer_conductivity), vmax=np.log10(pipe_conductivity)
+)
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', format="$10^{%.1f}$"
+    ax2, norm=norm, orientation="vertical", format="$10^{%.1f}$"
 )
-cbar.set_label(
-    'Conductivity [$S/m$]', rotation=270, labelpad=15, size=12
-)
+cbar.set_label("Conductivity [$S/m$]", rotation=270, labelpad=15, size=12)
 
 ######################################################
 # Define the Time-Stepping
@@ -215,7 +221,7 @@ simulation.time_steps = time_steps
 # Predict Data and Plot
 # ---------------------
 #
-# 
+#
 
 # Data are organized by transmitter, then by
 # receiver then by observation time. dBdt data are in T/s.
@@ -228,20 +234,21 @@ dpred = np.reshape(dpred, (ntx, len(time_channels)))
 fig = plt.figure(figsize=(5, 5))
 ax1 = fig.add_subplot(111)
 for ii in range(0, len(time_channels)):
-    ax1.plot(receiver_locations[:, 0], -dpred[:, ii], 'k', lw=2)  # -ve sign to plot -dBz/dt
+    ax1.plot(
+        receiver_locations[:, 0], -dpred[:, ii], "k", lw=2
+    )  # -ve sign to plot -dBz/dt
 ax1.set_xlim((0, np.max(xtx)))
-ax1.set_xlabel('Easting [m]')
-ax1.set_ylabel('-dBz/dt [T/s]')
-ax1.set_title('Airborne TDEM Profile')
+ax1.set_xlabel("Easting [m]")
+ax1.set_ylabel("-dBz/dt [T/s]")
+ax1.set_title("Airborne TDEM Profile")
 
 # Response over pipe for all time channels
 fig = plt.figure(figsize=(5, 5))
 ax1 = fig.add_subplot(111)
-ax1.loglog(time_channels, -dpred[0, :], 'b', lw=2)
-ax1.loglog(time_channels, -dpred[-1, :], 'r', lw=2)
+ax1.loglog(time_channels, -dpred[0, :], "b", lw=2)
+ax1.loglog(time_channels, -dpred[-1, :], "r", lw=2)
 ax1.set_xlim((np.min(time_channels), np.max(time_channels)))
-ax1.set_xlabel('time [s]')
-ax1.set_ylabel('-dBz/dt [T/s]')
-ax1.set_title('Decay Curve')
-ax1.legend(['Over pipe','Background'], loc='lower left')
-
+ax1.set_xlabel("time [s]")
+ax1.set_ylabel("-dBz/dt [T/s]")
+ax1.set_title("Decay Curve")
+ax1.legend(["Over pipe", "Background"], loc="lower left")

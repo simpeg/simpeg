@@ -1,4 +1,3 @@
-
 """
 Basic 3D Frequency-Domain Inversion
 ===================================
@@ -36,9 +35,16 @@ from discretize.utils import refine_tree_xyz
 from SimPEG.utils import plot2Ddata, surface2ind_topo, mkvc
 from SimPEG.electromagnetics import frequency_domain as fdem
 from SimPEG import (
-    maps, data, data_misfit, inverse_problem, regularization, optimization,
-    directives, inversion, utils
-    )
+    maps,
+    data,
+    data_misfit,
+    inverse_problem,
+    regularization,
+    optimization,
+    directives,
+    inversion,
+    utils,
+)
 
 try:
     from pymatsolver import Pardiso as Solver
@@ -56,9 +62,18 @@ except ImportError:
 # is loaded to compare with the inversion result.
 #
 
-topo_filename = os.path.dirname(fdem.__file__) + '\\..\\..\\..\\tutorials\\assets\\fdem\\fdem_topo.txt'
-data_filename = os.path.dirname(fdem.__file__) + '\\..\\..\\..\\tutorials\\assets\\fdem\\fdem_data.obs'
-model_filename = os.path.dirname(fdem.__file__) + '\\..\\..\\..\\tutorials\\assets\\fdem\\true_model.txt'
+topo_filename = (
+    os.path.dirname(fdem.__file__)
+    + "\\..\\..\\..\\tutorials\\assets\\fdem\\fdem_topo.txt"
+)
+data_filename = (
+    os.path.dirname(fdem.__file__)
+    + "\\..\\..\\..\\tutorials\\assets\\fdem\\fdem_data.obs"
+)
+model_filename = (
+    os.path.dirname(fdem.__file__)
+    + "\\..\\..\\..\\tutorials\\assets\\fdem\\true_model.txt"
+)
 
 
 #############################################
@@ -85,7 +100,7 @@ dobs_imag = dobs[:, 5]
 # Plot the data
 unique_frequencies = np.unique(frequencies)
 frequency_index = 0
-k = frequencies==unique_frequencies[frequency_index]
+k = frequencies == unique_frequencies[frequency_index]
 
 fig = plt.figure(figsize=(10, 4))
 
@@ -93,33 +108,41 @@ fig = plt.figure(figsize=(10, 4))
 v_max = np.max(np.abs(dobs_real[k]))
 ax1 = fig.add_axes([0.05, 0.05, 0.35, 0.9])
 plot2Ddata(
-    receiver_locations[k, 0:2], dobs_real[k], ax=ax1,
-    ncontour=30, clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
-    )
-ax1.set_title('Re[$B_z$] at 200 Hz')
+    receiver_locations[k, 0:2],
+    dobs_real[k],
+    ax=ax1,
+    ncontour=30,
+    clim=(-v_max, v_max),
+    contourOpts={"cmap": "RdBu_r"},
+)
+ax1.set_title("Re[$B_z$] at 200 Hz")
 
 ax2 = fig.add_axes([0.41, 0.05, 0.02, 0.9])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.RdBu_r
 )
-cbar.set_label('$T$', rotation=270, labelpad=15, size=12)
+cbar.set_label("$T$", rotation=270, labelpad=15, size=12)
 
 # Imaginary Component
 v_max = np.max(np.abs(dobs_imag[k]))
 ax1 = fig.add_axes([0.55, 0.05, 0.35, 0.9])
 plot2Ddata(
-    receiver_locations[k, 0:2], dobs_imag[k], ax=ax1,
-    ncontour=30, clim=(-v_max, v_max), contourOpts={"cmap": "RdBu_r"}
+    receiver_locations[k, 0:2],
+    dobs_imag[k],
+    ax=ax1,
+    ncontour=30,
+    clim=(-v_max, v_max),
+    contourOpts={"cmap": "RdBu_r"},
 )
-ax1.set_title('Im[$B_z$] at 200 Hz')
+ax1.set_title("Im[$B_z$] at 200 Hz")
 
 ax2 = fig.add_axes([0.91, 0.05, 0.02, 0.9])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.RdBu_r
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.RdBu_r
 )
-cbar.set_label('$T$', rotation=270, labelpad=15, size=12)
+cbar.set_label("$T$", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -134,12 +157,12 @@ plt.show()
 # gravity anomaly value.
 #
 
-uncertainties_real = 1e-14*np.ones(len(dobs_real))
-uncertainties_imag = 1e-14*np.ones(len(dobs_imag))
+uncertainties_real = 1e-14 * np.ones(len(dobs_real))
+uncertainties_imag = 1e-14 * np.ones(len(dobs_imag))
 
 
-#uncertainties_real = 1e-20 + 0.05*np.abs(dobs_real)
-#uncertainties_imag = 1e-20 + 0.05*np.abs(dobs_imag)
+# uncertainties_real = 1e-20 + 0.05*np.abs(dobs_real)
+# uncertainties_imag = 1e-20 + 0.05*np.abs(dobs_imag)
 
 #############################################
 # Defining the Survey
@@ -159,11 +182,11 @@ for ii in range(n_data):
 
     # Define receivers of different type at each location
     bzr_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
-            receiver_locations[ii, :], 'z', 'imag'
-            )
+        receiver_locations[ii, :], "z", "imag"
+    )
     bzi_receiver = fdem.receivers.PointMagneticFluxDensitySecondary(
-            receiver_locations[ii, :], 'z', 'imag'
-            )
+        receiver_locations[ii, :], "z", "imag"
+    )
     receivers_list = [bzr_receiver, bzi_receiver]
 
     # Must define the transmitter properties and associated receivers
@@ -171,7 +194,7 @@ for ii in range(n_data):
 
     source_list.append(
         fdem.sources.MagDipole(
-            receivers_list, frequencies[ii], source_location, orientation='z'
+            receivers_list, frequencies[ii], source_location, orientation="z"
         )
     )
 
@@ -185,7 +208,7 @@ survey = fdem.Survey(source_list)
 # the survey, the observation values and the uncertainties.
 #
 
-mu0 = 4*np.pi*1e-7
+mu0 = 4 * np.pi * 1e-7
 dobs = mkvc(np.c_[dobs_real, dobs_imag].T)
 uncertainties = mkvc(np.c_[uncertainties_real, uncertainties_imag].T)
 
@@ -207,30 +230,28 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 #
 #
 
-dh = 25.                                                     # base cell width
-dom_width = 3000.                                            # domain width
-nbc = 2**int(np.round(np.log(dom_width/dh)/np.log(2.)))      # num. base cells
+dh = 25.0  # base cell width
+dom_width = 3000.0  # domain width
+nbc = 2 ** int(np.round(np.log(dom_width / dh) / np.log(2.0)))  # num. base cells
 
 # Define the base mesh
 h = [(dh, nbc)]
-mesh = TreeMesh([h, h, h], x0='CCC')
+mesh = TreeMesh([h, h, h], x0="CCC")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, xyz_topo, octree_levels=[0, 0, 0, 1], method='surface', finalize=False
+    mesh, xyz_topo, octree_levels=[0, 0, 0, 1], method="surface", finalize=False
 )
 
 # Mesh refinement near transmitters and receivers
 mesh = refine_tree_xyz(
-    mesh, receiver_locations, octree_levels=[2, 4], method='radial', finalize=False
+    mesh, receiver_locations, octree_levels=[2, 4], method="radial", finalize=False
 )
 
 # Refine core mesh region
-xp, yp, zp = np.meshgrid([-250., 250.], [-250., 250.], [-250., 0.])
+xp, yp, zp = np.meshgrid([-250.0, 250.0], [-250.0, 250.0], [-250.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-mesh = refine_tree_xyz(
-    mesh, xyz, octree_levels=[0, 2, 4], method='box', finalize=False
-)
+mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 4], method="box", finalize=False)
 
 mesh.finalize()
 
@@ -254,10 +275,10 @@ ind_active = surface2ind_topo(mesh, xyz_topo)
 active_map = maps.InjectActiveCells(mesh, ind_active, np.exp(air_conductivity))
 nC = int(ind_active.sum())
 
-model_map = active_map*maps.ExpMap()
+model_map = active_map * maps.ExpMap()
 
 # Define model
-starting_model = background_conductivity*np.ones(nC)
+starting_model = background_conductivity * np.ones(nC)
 
 
 ##############################################
@@ -269,8 +290,8 @@ starting_model = background_conductivity*np.ones(nC)
 #
 
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
-        mesh, survey=survey, sigmaMap=model_map, Solver=Solver
-        )
+    mesh, survey=survey, sigmaMap=model_map, Solver=Solver
+)
 
 
 #######################################################################
@@ -288,27 +309,28 @@ simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
 # residual between the observed data and the data predicted for a given model.
 # The weighting is defined by the reciprocal of the uncertainties.
 dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
-dmis.W = utils.sdiag(1/uncertainties)
+dmis.W = utils.sdiag(1 / uncertainties)
 
 # Define the regularization (model objective function)
 reg = regularization.Simple(
-    mesh, indActive=ind_active, mref=starting_model,
-    alpha_s=1e-2, alpha_x=1, alpha_y=1, alpha_z=1
-    )
+    mesh,
+    indActive=ind_active,
+    mref=starting_model,
+    alpha_s=1e-2,
+    alpha_x=1,
+    alpha_y=1,
+    alpha_z=1,
+)
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
-#opt = optimization.ProjectedGNCG(
+# opt = optimization.ProjectedGNCG(
 #    maxIterCG=5, tolCG=1e-2, lower=-10, upper=5
 #    )
-opt = optimization.InexactGaussNewton(
-    maxIterCG=5, tolCG=1e-2
-    )
+opt = optimization.InexactGaussNewton(maxIterCG=5, tolCG=1e-2)
 
 # Here we define the inverse problem that is to be solved
-inv_prob = inverse_problem.BaseInvProblem(
-    dmis, reg, opt
-    )
+inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 #######################################################################
 # Define Inversion Directives
@@ -334,9 +356,7 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 target_misfit = directives.TargetMisfit(chifact=1)
 
 # The directives are defined as a list.
-directives_list = [
-        starting_beta, beta_schedule, save_iteration, target_misfit
-        ]
+directives_list = [starting_beta, beta_schedule, save_iteration, target_misfit]
 
 #####################################################################
 # Running the Inversion
@@ -369,21 +389,23 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.8])
 mesh.plotSlice(
-    plotting_map*true_model, normal='Y', ax=ax1, ind=int(mesh.hy.size/2), grid=True,
-    clim=(np.min(true_model), np.max(true_model)), pcolorOpts={'cmap': 'jet'}
-    )
-ax1.set_title('Model slice at y = 0 m')
+    plotting_map * true_model,
+    normal="Y",
+    ax=ax1,
+    ind=int(mesh.hy.size / 2),
+    grid=True,
+    clim=(np.min(true_model), np.max(true_model)),
+    pcolorOpts={"cmap": "jet"},
+)
+ax1.set_title("Model slice at y = 0 m")
 
 
 ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
 norm = mpl.colors.Normalize(vmin=np.min(true_model), vmax=np.max(true_model))
 cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='%.1f'
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.jet, format="%.1f"
 )
-cbar.set_label(
-    '$S/m$',
-    rotation=270, labelpad=15, size=12
-)
+cbar.set_label("$S/m$", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -393,17 +415,22 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
 ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.8])
 mesh.plotSlice(
-    plotting_map*recovered_model, normal='Z', ax=ax1, ind=int(mesh.hz.size/2-1), grid=True,
-    clim=(np.min(recovered_model), np.max(recovered_model)), pcolorOpts={'cmap': 'jet'}
+    plotting_map * recovered_model,
+    normal="Z",
+    ax=ax1,
+    ind=int(mesh.hz.size / 2 - 1),
+    grid=True,
+    clim=(np.min(recovered_model), np.max(recovered_model)),
+    pcolorOpts={"cmap": "jet"},
 )
-ax1.set_title('Model slice at y = 0 m')
+ax1.set_title("Model slice at y = 0 m")
 
 ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
 norm = mpl.colors.Normalize(vmin=np.min(recovered_model), vmax=np.max(recovered_model))
 cbar = mpl.colorbar.ColorbarBase(
-        ax2, norm=norm, orientation='vertical', cmap=mpl.cm.jet, format='%.1f'
-        )
-cbar.set_label('$S/m$',rotation=270, labelpad=15, size=12)
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.jet, format="%.1f"
+)
+cbar.set_label("$S/m$", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -414,45 +441,51 @@ plt.show()
 
 # Predicted data with final recovered model
 dpred = inv_prob.dpred
-misfits = (dobs-dpred)/uncertainties
+misfits = (dobs - dpred) / uncertainties
 
 
-dpred_real = dpred[0:len(dpred):2]
-dpred_imag = dpred[1:len(dpred):2]
-misfits_real = misfits[0:len(misfits):2]
-misfits_imag = misfits[1:len(misfits):2]
+dpred_real = dpred[0 : len(dpred) : 2]
+dpred_imag = dpred[1 : len(dpred) : 2]
+misfits_real = misfits[0 : len(misfits) : 2]
+misfits_imag = misfits[1 : len(misfits) : 2]
 
 # Observed data | Predicted data | Normalized data misfit
 data_array = np.c_[dobs_imag[k], dpred_imag[k], misfits_imag[k]]
 
 fig = plt.figure(figsize=(17, 4))
-plot_title=['Observed', 'Predicted', 'Normalized Misfit']
-plot_units=['mgal', 'mgal', '']
+plot_title = ["Observed", "Predicted", "Normalized Misfit"]
+plot_units = ["mgal", "mgal", ""]
 
-ax1 = 3*[None]
-ax2 = 3*[None]
-norm = 3*[None]
-cbar = 3*[None]
-cplot = 3*[None]
+ax1 = 3 * [None]
+ax2 = 3 * [None]
+norm = 3 * [None]
+cbar = 3 * [None]
+cplot = 3 * [None]
 v_lim = [
-    np.max(np.abs(dobs_imag[k])), np.max(np.abs(dobs_imag[k])), np.max(np.abs(misfits_imag[k]))
+    np.max(np.abs(dobs_imag[k])),
+    np.max(np.abs(dobs_imag[k])),
+    np.max(np.abs(misfits_imag[k])),
 ]
 
 for ii in range(0, 3):
 
-    ax1[ii] = fig.add_axes([0.33*ii+0.03, 0.11, 0.23, 0.84])
+    ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.11, 0.23, 0.84])
     cplot[ii] = plot2Ddata(
-        receiver_locations[k], data_array[:, ii], ax=ax1[ii], ncontour=30,
-        clim=(-v_lim[ii], v_lim[ii]), contourOpts={"cmap": "RdBu_r"}
+        receiver_locations[k],
+        data_array[:, ii],
+        ax=ax1[ii],
+        ncontour=30,
+        clim=(-v_lim[ii], v_lim[ii]),
+        contourOpts={"cmap": "RdBu_r"},
     )
     ax1[ii].set_title(plot_title[ii])
-    ax1[ii].set_xlabel('x (m)')
-    ax1[ii].set_ylabel('y (m)')
+    ax1[ii].set_xlabel("x (m)")
+    ax1[ii].set_ylabel("y (m)")
 
-    ax2[ii] = fig.add_axes([0.33*ii+0.27, 0.11, 0.01, 0.85])
+    ax2[ii] = fig.add_axes([0.33 * ii + 0.27, 0.11, 0.01, 0.85])
     norm[ii] = mpl.colors.Normalize(vmin=-v_lim[ii], vmax=v_lim[ii])
     cbar[ii] = mpl.colorbar.ColorbarBase(
-        ax2[ii], norm=norm[ii], orientation='vertical', cmap=mpl.cm.RdBu_r
+        ax2[ii], norm=norm[ii], orientation="vertical", cmap=mpl.cm.RdBu_r
     )
     cbar[ii].set_label(plot_units[ii], rotation=270, labelpad=15, size=12)
 

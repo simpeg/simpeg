@@ -10,6 +10,7 @@ from .regularization import BaseRegularization, BaseComboRegularization, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .utils import callHooks, timeIt
 
+
 class BaseInvProblem(BaseSimPEG):
     """BaseInvProblem(dmisfit, reg, opt)"""
 
@@ -36,7 +37,7 @@ class BaseInvProblem(BaseSimPEG):
 
     model = Model("Inversion model.")
 
-    @properties.observer('model')
+    @properties.observer("model")
     def _on_model_update(self, value):
         """
             Sets the current model, and removes dependent properties
@@ -47,14 +48,12 @@ class BaseInvProblem(BaseSimPEG):
 
     def __init__(self, dmisfit, reg, opt, **kwargs):
         super(BaseInvProblem, self).__init__(**kwargs)
-        assert(
-            isinstance(dmisfit, BaseDataMisfit) or
-            isinstance(dmisfit, BaseObjectiveFunction)
-        ), 'dmisfit must be a DataMisfit or ObjectiveFunction class.'
-        assert(
-            isinstance(reg, BaseRegularization) or
-            isinstance(reg, BaseObjectiveFunction)
-        ), 'reg must be a Regularization or Objective Function class.'
+        assert isinstance(dmisfit, BaseDataMisfit) or isinstance(
+            dmisfit, BaseObjectiveFunction
+        ), "dmisfit must be a DataMisfit or ObjectiveFunction class."
+        assert isinstance(reg, BaseRegularization) or isinstance(
+            reg, BaseObjectiveFunction
+        ), "reg must be a Regularization or Objective Function class."
         self.dmisfit = dmisfit
         self.reg = reg
         self.opt = opt
@@ -63,26 +62,25 @@ class BaseInvProblem(BaseSimPEG):
         self.reg.parent = self
         self.dmisfit.parent = self
 
-    @callHooks('startup')
+    @callHooks("startup")
     def startup(self, m0):
         """startup(m0)
 
             Called when inversion is first starting.
         """
         if self.debug:
-            print('Calling InvProblem.startup')
+            print("Calling InvProblem.startup")
 
-        if hasattr(self.reg, 'mref') and getattr(self.reg, 'mref', None) is None:
-            print('SimPEG.InvProblem will set Regularization.mref to m0.')
+        if hasattr(self.reg, "mref") and getattr(self.reg, "mref", None) is None:
+            print("SimPEG.InvProblem will set Regularization.mref to m0.")
             self.reg.mref = m0
 
-        if (
-            isinstance(self.reg, ComboObjectiveFunction) and
-            not isinstance(self.reg, BaseComboRegularization)
+        if isinstance(self.reg, ComboObjectiveFunction) and not isinstance(
+            self.reg, BaseComboRegularization
         ):
             for fct in self.reg.objfcts:
-                if hasattr(fct, 'mref') and getattr(fct, 'mref', None) is None:
-                    print('SimPEG.InvProblem will set Regularization.mref to m0.')
+                if hasattr(fct, "mref") and getattr(fct, "mref", None) is None:
+                    print("SimPEG.InvProblem will set Regularization.mref to m0.")
                     fct.mref = m0
 
         self.phi_d = np.nan
@@ -90,10 +88,10 @@ class BaseInvProblem(BaseSimPEG):
 
         self.model = m0
 
-
         if isinstance(self.dmisfit, BaseDataMisfit):
             if getattr(self.dmisfit.simulation, "solver", None) is not None:
-                print("""
+                print(
+                    """
         SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
         ***Done using same Solver and solverOpts as the problem***"""
                 )
@@ -104,7 +102,8 @@ class BaseInvProblem(BaseSimPEG):
             for objfct in self.dmisfit.objfcts:
                 if isinstance(objfct, BaseDataMisfit):
                     if getattr(objfct.simulation, "solver", None) is not None:
-                        print("""
+                        print(
+                            """
         SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
         ***Done using same Solver and solver_opts as the {} problem***""".format(
                                 objfct.simulation.__class__.__name__
@@ -115,18 +114,21 @@ class BaseInvProblem(BaseSimPEG):
                         )
                         break
 
-
     @property
     def warmstart(self):
-        return getattr(self, '_warmstart', [])
+        return getattr(self, "_warmstart", [])
 
     @warmstart.setter
     def warmstart(self, value):
-        assert type(value) is list, 'warmstart must be a list.'
+        assert type(value) is list, "warmstart must be a list."
         for v in value:
-            assert type(v) is tuple, 'warmstart must be a list of tuples (m, u).'
-            assert len(v) == 2, 'warmstart must be a list of tuples (m, u). YOURS IS NOT LENGTH 2!'
-            assert isinstance(v[0], np.ndarray), 'first warmstart value must be a model.'
+            assert type(v) is tuple, "warmstart must be a list of tuples (m, u)."
+            assert (
+                len(v) == 2
+            ), "warmstart must be a list of tuples (m, u). YOURS IS NOT LENGTH 2!"
+            assert isinstance(
+                v[0], np.ndarray
+            ), "first warmstart value must be a model."
         self._warmstart = value
 
     def getFields(self, m, store=False, deleteWarmstart=True):
@@ -136,7 +138,7 @@ class BaseInvProblem(BaseSimPEG):
             if m is mtest:
                 f = u_ofmtest
                 if self.debug:
-                    print('InvProb is Warm Starting!')
+                    print("InvProb is Warm Starting!")
                 break
 
         if f is None:
@@ -146,7 +148,7 @@ class BaseInvProblem(BaseSimPEG):
             elif isinstance(self.dmisfit, BaseObjectiveFunction):
                 f = []
                 for objfct in self.dmisfit.objfcts:
-                    if hasattr(objfct, 'simulation'):
+                    if hasattr(objfct, "simulation"):
                         f += [objfct.simulation.fields(m)]
                     else:
                         f += []
@@ -164,7 +166,7 @@ class BaseInvProblem(BaseSimPEG):
         elif isinstance(self.dmisfit, BaseObjectiveFunction):
             dpred = []
             for i, objfct in enumerate(self.dmisfit.objfcts):
-                if hasattr(objfct, 'survey'):
+                if hasattr(objfct, "survey"):
                     dpred += [objfct.survey.dpred(m, f=f[i])]
                 else:
                     dpred += []
@@ -191,12 +193,12 @@ class BaseInvProblem(BaseSimPEG):
         self.phi_m, self.phi_m_last = phi_m, self.phi_m
 
         # Only works for Tikhonov
-        if self.opt.print_type == 'ubc':
+        if self.opt.print_type == "ubc":
 
-            self.phi_s = 0.
-            self.phi_x = 0.
-            self.phi_y = 0.
-            self.phi_z = 0.
+            self.phi_s = 0.0
+            self.phi_x = 0.0
+            self.phi_y = 0.0
+            self.phi_z = 0.0
 
             if not isinstance(self.reg, BaseComboRegularization):
                 regs = self.reg.objfcts
@@ -210,21 +212,13 @@ class BaseInvProblem(BaseSimPEG):
                 else:
                     i_s, i_x, i_y, i_z = 0, 1, 3, 5
                 dim = reg.regmesh.dim
-                self.phi_s += (
-                    mult * reg.objfcts[i_s](m) * reg.alpha_s
-                )
-                self.phi_x += (
-                    mult * reg.objfcts[i_x](m) * reg.alpha_x
-                )
+                self.phi_s += mult * reg.objfcts[i_s](m) * reg.alpha_s
+                self.phi_x += mult * reg.objfcts[i_x](m) * reg.alpha_x
                 if dim > 1:
-                    self.phi_z += (
-                        mult * reg.objfcts[i_y](m) * reg.alpha_y
-                    )
+                    self.phi_z += mult * reg.objfcts[i_y](m) * reg.alpha_y
                 if dim > 2:
                     self.phi_y = self.phi_z
-                    self.phi_z += (
-                        mult * reg.objfcts[i_z](m) * reg.alpha_z
-                    )
+                    self.phi_z += mult * reg.objfcts[i_z](m) * reg.alpha_z
 
         phi = phi_d + self.beta * phi_m
 
@@ -237,12 +231,13 @@ class BaseInvProblem(BaseSimPEG):
             out += (g,)
 
         if return_H:
+
             def H_fun(v):
                 phi_d2Deriv = self.dmisfit.deriv2(m, v, f=f)
                 phi_m2Deriv = self.reg.deriv2(m, v=v)
 
                 return phi_d2Deriv + self.beta * phi_m2Deriv
 
-            H = sp.linalg.LinearOperator( (m.size, m.size), H_fun, dtype=m.dtype )
+            H = sp.linalg.LinearOperator((m.size, m.size), H_fun, dtype=m.dtype)
             out += (H,)
         return out if len(out) > 1 else out[0]

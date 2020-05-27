@@ -11,9 +11,15 @@ import matplotlib.pyplot as plt
 from discretize import TensorMesh
 from SimPEG.potential_fields import gravity
 from SimPEG import (
-    maps, data, data_misfit, regularization, optimization, inverse_problem,
-    directives, inversion
-    )
+    maps,
+    data,
+    data_misfit,
+    regularization,
+    optimization,
+    inverse_problem,
+    directives,
+    inversion,
+)
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 
 try:
@@ -37,18 +43,18 @@ import shutil
 
 
 # Create and array of observation points
-xr = np.linspace(-30., 30., 20)
-yr = np.linspace(-30., 30., 20)
+xr = np.linspace(-30.0, 30.0, 20)
+yr = np.linspace(-30.0, 30.0, 20)
 X, Y = np.meshgrid(xr, yr)
 
 # Move the observation points 5m above the topo
-Z = -np.exp((X**2 + Y**2) / 75**2)
+Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2)
 
 # Create a topo array
 topo = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
 
 # Create station locations drapped 0.1 m above topo
-rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)+0.1]
+rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T) + 0.1]
 
 ##########################################################################
 # Divided and Conquer
@@ -75,11 +81,14 @@ for local_index in local_indices:
 
     # Create a local mesh that covers all points, but refined on the local survey
     local_mesh = mesh_builder_xyz(
-            topo, h, padding_distance=padDist, depth_core=100, mesh_type='tree'
+        topo, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
     )
     local_mesh = refine_tree_xyz(
-        local_mesh, local_survey.receiver_locations,
-        method='surface', octree_levels=octree_levels, finalize=True
+        local_mesh,
+        local_survey.receiver_locations,
+        method="surface",
+        octree_levels=octree_levels,
+        finalize=True,
     )
 
     local_surveys.append(local_survey)
@@ -93,14 +102,16 @@ for local_index in local_indices:
 #
 #
 
-mesh = mesh_builder_xyz(topo, h, padding_distance=padDist, depth_core=100, mesh_type='tree')
+mesh = mesh_builder_xyz(
+    topo, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
+)
 
 # This garantees that the local meshes are always coarser or equal
 for local_mesh in local_meshes:
     mesh.insert_cells(
         local_mesh.gridCC,
         local_mesh.cell_levels_by_index(np.arange(local_mesh.nC)),
-        finalize=False
+        finalize=False,
     )
 mesh.finalize()
 
@@ -113,8 +124,7 @@ nC = int(activeCells.sum())
 # Get the indicies of the magnetized block
 model = np.zeros(mesh.nC)
 ind = utils.ModelBuilder.getIndicesBlock(
-    np.r_[-10, -10, -30], np.r_[10, 10, -10],
-    mesh.gridCC,
+    np.r_[-10, -10, -30], np.r_[10, 10, -10], mesh.gridCC,
 )[0]
 
 # Assign magnetization values
@@ -141,8 +151,8 @@ d = simulation.fields(model)
 
 # Add noise and uncertainties
 # We add some random Gaussian noise (1nT)
-synthetic_data = d + np.random.randn(len(d))*1e-3
-wd = np.ones(len(synthetic_data))*1e-3  # Assign flat uncertainties
+synthetic_data = d + np.random.randn(len(d)) * 1e-3
+wd = np.ones(len(synthetic_data)) * 1e-3  # Assign flat uncertainties
 
 ###############################################################
 # Tiled misfits
@@ -153,23 +163,23 @@ wd = np.ones(len(synthetic_data))*1e-3  # Assign flat uncertainties
 local_misfits = []
 for ii, local_survey in enumerate(local_surveys):
 
-    tile_map = maps.TileMap(
-        mesh, activeCells, local_meshes[ii]
-    )
+    tile_map = maps.TileMap(mesh, activeCells, local_meshes[ii])
 
     local_actives = tile_map.local_active
 
     # Create the forward simulation
     simulation = gravity.simulation.Simulation3DIntegral(
-        survey=local_survey, mesh=local_meshes[ii], rhoMap=tile_map,
+        survey=local_survey,
+        mesh=local_meshes[ii],
+        rhoMap=tile_map,
         actInd=local_actives,
-        sensitivity_path=f"Inversion\Tile{ii}.zarr"
+        sensitivity_path=f"Inversion\Tile{ii}.zarr",
     )
 
     data_object = data.Data(
         local_survey,
         dobs=synthetic_data[local_indices[ii]],
-        standard_deviation=wd[local_indices[ii]]
+        standard_deviation=wd[local_indices[ii]],
     )
 
     local_misfits.append(
@@ -189,9 +199,11 @@ for ii, local_misfit in enumerate(local_misfits):
 
     inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
-    ax = plt.subplot(2, 2, ii+1)
-    local_mesh.plotSlice(inject_local * (local_map * model), normal='Y', ax=ax, grid=True)
-    ax.set_aspect('equal')
+    ax = plt.subplot(2, 2, ii + 1)
+    local_mesh.plotSlice(
+        inject_local * (local_map * model), normal="Y", ax=ax, grid=True
+    )
+    ax.set_aspect("equal")
     ax.set_title(f"Mesh {ii+1}. Active cells {local_map.local_active.sum()}")
 
 
@@ -199,11 +211,10 @@ for ii, local_misfit in enumerate(local_misfits):
 inject_global = maps.InjectActiveCells(mesh, activeCells, np.nan)
 
 ax = plt.subplot(2, 1, 2)
-mesh.plotSlice(inject_global * model, normal='Y', ax=ax, grid=True)
+mesh.plotSlice(inject_global * model, normal="Y", ax=ax, grid=True)
 ax.set_title(f"Global Mesh. Active cells {activeCells.sum()}")
-ax.set_aspect('equal')
+ax.set_aspect("equal")
 plt.show()
-
 
 
 #####################################################
@@ -220,12 +231,11 @@ idenMap = maps.IdentityMap(nP=nC)
 # Create a regularization
 reg = regularization.Sparse(mesh, indActive=activeCells, mapping=idenMap)
 
-m0 = np.ones(nC)*1e-4  # Starting model
+m0 = np.ones(nC) * 1e-4  # Starting model
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(
-    maxIter=100, lower=-1., upper=1.,
-    maxIterLS=20, maxIterCG=10, tolCG=1e-3
+    maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
 )
 invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
@@ -234,17 +244,14 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 # Use pick a threshold parameter empirically based on the distribution of
 # model parameters
 update_IRLS = directives.Update_IRLS(
-    f_min_change=1e-4, max_irls_iterations=0,
-    coolEpsFact=1.5, beta_tol=1e-2,
+    f_min_change=1e-4, max_irls_iterations=0, coolEpsFact=1.5, beta_tol=1e-2,
 )
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)
 update_Jacobi = directives.UpdatePreconditioner()
 sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 inv = inversion.BaseInversion(
     invProb,
-    directiveList=[
-        update_IRLS, sensitivity_weights, betaest, update_Jacobi, saveDict
-    ]
+    directiveList=[update_IRLS, sensitivity_weights, betaest, update_Jacobi, saveDict],
 )
 
 # Run the inversion
@@ -253,12 +260,12 @@ mrec = inv.run(m0)
 
 # Plot the result
 ax = plt.subplot(1, 2, 1)
-mesh.plotSlice(inject_global*model, normal='Y', ax=ax, grid=True)
+mesh.plotSlice(inject_global * model, normal="Y", ax=ax, grid=True)
 ax.set_title("True")
-ax.set_aspect('equal')
+ax.set_aspect("equal")
 
 ax = plt.subplot(1, 2, 2)
-mesh.plotSlice(inject_global*mrec, normal='Y', ax=ax, grid=True)
+mesh.plotSlice(inject_global * mrec, normal="Y", ax=ax, grid=True)
 ax.set_title("Recovered")
-ax.set_aspect('equal')
+ax.set_aspect("equal")
 plt.show()

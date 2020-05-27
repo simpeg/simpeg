@@ -18,13 +18,19 @@ Following example will show you how user can implement a 3D DC inversion.
 
 import discretize
 from SimPEG import (
-    maps, utils,
-    data_misfit, regularization, optimization,
-    inverse_problem, directives, inversion
+    maps,
+    utils,
+    data_misfit,
+    regularization,
+    optimization,
+    inverse_problem,
+    directives,
+    inversion,
 )
 from SimPEG.electromagnetics.static import resistivity as DC, utils as DCutils
 import numpy as np
 import matplotlib.pyplot as plt
+
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
@@ -36,7 +42,7 @@ np.random.seed(12345)
 #########
 
 # Cell sizes
-csx, csy, csz = 1., 1., 0.5
+csx, csy, csz = 1.0, 1.0, 0.5
 # Number of core cells in each direction
 ncx, ncy, ncz = 41, 31, 21
 # Number of padding cells to add in each direction
@@ -52,44 +58,54 @@ mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
 ##########################
 
 # Spheres parameters
-x0, y0, z0, r0 = -6., 0., -3.5, 3.
-x1, y1, z1, r1 = 6., 0., -3.5, 3.
+x0, y0, z0, r0 = -6.0, 0.0, -3.5, 3.0
+x1, y1, z1, r1 = 6.0, 0.0, -3.5, 3.0
 
 # ln conductivity
-ln_sigback = -5.
-ln_sigc = -3.
-ln_sigr = -6.
+ln_sigback = -5.0
+ln_sigc = -3.0
+ln_sigr = -6.0
 
 # Define model
 # Background
 mtrue = ln_sigback * np.ones(mesh.nC)
 
 # Conductive sphere
-csph = (np.sqrt((mesh.gridCC[:, 0] - x0)**2. + (mesh.gridCC[:, 1] - y0)**2. +
-                (mesh.gridCC[:, 2] - z0)**2.)) < r0
+csph = (
+    np.sqrt(
+        (mesh.gridCC[:, 0] - x0) ** 2.0
+        + (mesh.gridCC[:, 1] - y0) ** 2.0
+        + (mesh.gridCC[:, 2] - z0) ** 2.0
+    )
+) < r0
 mtrue[csph] = ln_sigc * np.ones_like(mtrue[csph])
 
 # Resistive Sphere
-rsph = (np.sqrt((mesh.gridCC[:, 0] - x1)**2. + (mesh.gridCC[:, 1] - y1)**2. +
-                (mesh.gridCC[:, 2] - z1)**2.)) < r1
+rsph = (
+    np.sqrt(
+        (mesh.gridCC[:, 0] - x1) ** 2.0
+        + (mesh.gridCC[:, 1] - y1) ** 2.0
+        + (mesh.gridCC[:, 2] - z1) ** 2.0
+    )
+) < r1
 mtrue[rsph] = ln_sigr * np.ones_like(mtrue[rsph])
 
 # Extract Core Mesh
-xmin, xmax = -20., 20.
-ymin, ymax = -15., 15.
-zmin, zmax = -10., 0.
+xmin, xmax = -20.0, 20.0
+ymin, ymax = -15.0, 15.0
+zmin, zmax = -10.0, 0.0
 xyzlim = np.r_[[[xmin, xmax], [ymin, ymax], [zmin, zmax]]]
 actind, meshCore = utils.mesh_utils.ExtractCoreMesh(xyzlim, mesh)
 
 
 # Function to plot cylinder border
 def getCylinderPoints(xc, zc, r):
-    xLocOrig1 = np.arange(-r, r + r / 10., r / 10.)
-    xLocOrig2 = np.arange(r, -r - r / 10., -r / 10.)
+    xLocOrig1 = np.arange(-r, r + r / 10.0, r / 10.0)
+    xLocOrig2 = np.arange(r, -r - r / 10.0, -r / 10.0)
     # Top half of cylinder
-    zLoc1 = np.sqrt(-xLocOrig1**2. + r**2.) + zc
+    zLoc1 = np.sqrt(-(xLocOrig1 ** 2.0) + r ** 2.0) + zc
     # Bottom half of cylinder
-    zLoc2 = -np.sqrt(-xLocOrig2**2. + r**2.) + zc
+    zLoc2 = -np.sqrt(-(xLocOrig2 ** 2.0) + r ** 2.0) + zc
     # Shift from x = 0 to xc
     xLoc1 = xLocOrig1 + xc * np.ones_like(xLocOrig1)
     xLoc2 = xLocOrig2 + xc * np.ones_like(xLocOrig2)
@@ -106,39 +122,36 @@ def getCylinderPoints(xc, zc, r):
 
 # Setup a synthetic Dipole-Dipole Survey
 # Line 1
-xmin, xmax = -15., 15.
-ymin, ymax = 0., 0.
+xmin, xmax = -15.0, 15.0
+ymin, ymax = 0.0, 0.0
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey1 = DCutils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
-                                 a=3, b=3, n=8)
+survey1 = DCutils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim, a=3, b=3, n=8)
 
 # Line 2
-xmin, xmax = -15., 15.
-ymin, ymax = 5., 5.
+xmin, xmax = -15.0, 15.0
+ymin, ymax = 5.0, 5.0
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey2 = DCutils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
-                                 a=3, b=3, n=8)
+survey2 = DCutils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim, a=3, b=3, n=8)
 
 # Line 3
-xmin, xmax = -15., 15.
-ymin, ymax = -5., -5.
+xmin, xmax = -15.0, 15.0
+ymin, ymax = -5.0, -5.0
 zmin, zmax = 0, 0
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey3 = DCutils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim,
-                                 a=3, b=3, n=8)
+survey3 = DCutils.gen_DCIPsurvey(endl, "dipole-dipole", dim=mesh.dim, a=3, b=3, n=8)
 
 # Concatenate lines
 survey = DC.Survey(survey1.source_list + survey2.source_list + survey3.source_list)
 
 # Setup Problem with exponential mapping and Active cells only in the core mesh
 expmap = maps.ExpMap(mesh)
-mapactive = maps.InjectActiveCells(mesh=mesh, indActive=actind,
-                                   valInactive=-5.)
+mapactive = maps.InjectActiveCells(mesh=mesh, indActive=actind, valInactive=-5.0)
 mapping = expmap * mapactive
 problem = DC.Simulation3DCellCentered(
-    mesh, survey=survey, sigmaMap=mapping, solver=Solver, bc_type='Neumann')
+    mesh, survey=survey, sigmaMap=mapping, solver=Solver, bc_type="Neumann"
+)
 
 data = problem.make_synthetic_data(mtrue[actind], relative_error=0.05, add_noise=True)
 
@@ -150,23 +163,23 @@ m0 = np.median(ln_sigback) * np.ones(mapping.nP)
 # Data Misfit
 dmis = data_misfit.L2DataMisfit(simulation=problem, data=data)
 # Regularization
-regT = regularization.Simple(mesh, indActive=actind, alpha_s=1e-6,
-                             alpha_x=1., alpha_y=1., alpha_z=1.)
+regT = regularization.Simple(
+    mesh, indActive=actind, alpha_s=1e-6, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0
+)
 
 # Optimization Scheme
 opt = optimization.InexactGaussNewton(maxIter=10)
 
 # Form the problem
-opt.remember('xc')
+opt.remember("xc")
 invProb = inverse_problem.BaseInvProblem(dmis, regT, opt)
 
 # Directives for Inversions
-beta = directives.BetaEstimate_ByEig(beta0_ratio=1e+1)
+beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 Target = directives.TargetMisfit()
-betaSched = directives.BetaSchedule(coolingFactor=5., coolingRate=2)
+betaSched = directives.BetaSchedule(coolingFactor=5.0, coolingRate=2)
 
-inv = inversion.BaseInversion(invProb, directiveList=[beta, Target,
-                                                      betaSched])
+inv = inversion.BaseInversion(invProb, directiveList=[beta, Target, betaSched])
 # Run Inversion
 minv = inv.run(m0)
 
@@ -184,36 +197,36 @@ cyl1h = getCylinderPoints(x1, y1, r1)
 
 clim = [(mtrue[actind]).min(), (mtrue[actind]).max()]
 
-dat = meshCore.plotSlice(((mtrue[actind])), ax=ax[0], normal='Y', clim=clim,
-                         ind=int(ncy / 2))
-ax[0].set_title('Ground Truth, Vertical')
-ax[0].set_aspect('equal')
+dat = meshCore.plotSlice(
+    ((mtrue[actind])), ax=ax[0], normal="Y", clim=clim, ind=int(ncy / 2)
+)
+ax[0].set_title("Ground Truth, Vertical")
+ax[0].set_aspect("equal")
 
-meshCore.plotSlice((minv), ax=ax[1], normal='Y', clim=clim, ind=int(ncy / 2))
-ax[1].set_aspect('equal')
-ax[1].set_title('Inverted Model, Vertical')
+meshCore.plotSlice((minv), ax=ax[1], normal="Y", clim=clim, ind=int(ncy / 2))
+ax[1].set_aspect("equal")
+ax[1].set_title("Inverted Model, Vertical")
 
-meshCore.plotSlice(((mtrue[actind])), ax=ax[2], normal='Z', clim=clim,
-                   ind=int(ncz / 2))
-ax[2].set_title('Ground Truth, Horizontal')
-ax[2].set_aspect('equal')
+meshCore.plotSlice(((mtrue[actind])), ax=ax[2], normal="Z", clim=clim, ind=int(ncz / 2))
+ax[2].set_title("Ground Truth, Horizontal")
+ax[2].set_aspect("equal")
 
-meshCore.plotSlice((minv), ax=ax[3], normal='Z', clim=clim, ind=int(ncz / 2))
-ax[3].set_title('Inverted Model, Horizontal')
-ax[3].set_aspect('equal')
+meshCore.plotSlice((minv), ax=ax[3], normal="Z", clim=clim, ind=int(ncz / 2))
+ax[3].set_title("Inverted Model, Horizontal")
+ax[3].set_aspect("equal")
 
 for i in range(2):
-    ax[i].plot(cyl0v[:, 0], cyl0v[:, 1], 'k--')
-    ax[i].plot(cyl1v[:, 0], cyl1v[:, 1], 'k--')
+    ax[i].plot(cyl0v[:, 0], cyl0v[:, 1], "k--")
+    ax[i].plot(cyl1v[:, 0], cyl1v[:, 1], "k--")
 for i in range(2, 4):
-    ax[i].plot(cyl1h[:, 0], cyl1h[:, 1], 'k--')
-    ax[i].plot(cyl0h[:, 0], cyl0h[:, 1], 'k--')
+    ax[i].plot(cyl1h[:, 0], cyl1h[:, 1], "k--")
+    ax[i].plot(cyl0h[:, 0], cyl0h[:, 1], "k--")
 
 fig.subplots_adjust(right=0.8)
 cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
 cb = plt.colorbar(dat[0], ax=cbar_ax)
-cb.set_label('ln conductivity')
+cb.set_label("ln conductivity")
 
-cbar_ax.axis('off')
+cbar_ax.axis("off")
 
 plt.show()

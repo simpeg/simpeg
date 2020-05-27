@@ -8,28 +8,30 @@ from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
 
 # Trapezoidal integration for 2D DC problem
 def IntTrapezoidal(kys, Pf, y=0.0):
-    dky = np.diff(kys)/2
-    weights = np.r_[dky, 0]+np.r_[0, dky]
-    weights *= np.cos(kys*y)  # *(1.0/np.pi)
+    dky = np.diff(kys) / 2
+    weights = np.r_[dky, 0] + np.r_[0, dky]
+    weights *= np.cos(kys * y)  # *(1.0/np.pi)
     # assume constant value at 0 frequency?
-    weights[0] += kys[0]/2 * (1.0 + np.cos(kys[0]*y))
+    weights[0] += kys[0] / 2 * (1.0 + np.cos(kys[0] * y))
     weights /= np.pi
 
     return Pf.dot(weights)
+
 
 # Receiver classes
 class BaseRx(BaseSimPEGRx):
     """
     Base DC receiver
     """
+
     orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'x', 'y', 'z'",
-        ["x", "y", "z"]
+        "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
     )
 
     projField = properties.StringChoice(
         "field to be projected in the calculation of the data",
-        choices=['phi', 'e', 'j'], default='phi'
+        choices=["phi", "e", "j"],
+        default="phi",
     )
 
     _geometric_factor = None
@@ -48,11 +50,7 @@ class BaseRx(BaseSimPEGRx):
         "Type of DC-IP survey",
         required=True,
         default="volt",
-        choices=[
-           "volt",
-           "apparent_resistivity",
-           "apparent_chargeability"
-        ]
+        choices=["volt", "apparent_resistivity", "apparent_chargeability"],
     )
 
     # data_type = 'volt'
@@ -85,14 +83,14 @@ class BaseRx(BaseSimPEGRx):
 
     def eval(self, src, mesh, f):
         P = self.getP(mesh, self.projGLoc(f))
-        return P*f[src, self.projField]
+        return P * f[src, self.projField]
 
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
         if not adjoint:
-            return P*v
+            return P * v
         elif adjoint:
-            return P.T*v
+            return P.T * v
 
 
 # DC.Rx.Dipole(locations)
@@ -107,13 +105,13 @@ class Dipole(BaseRx):
     locations = properties.List(
         "list of locations of each electrode in a dipole receiver",
         RxLocationArray("location of electrode", shape=("*", "*")),
-        min_length=1, max_length=2
+        min_length=1,
+        max_length=2,
     )
 
     def __init__(self, locationsM, locationsN, **kwargs):
         if locationsM.shape != locationsN.shape:
-            raise ValueError(
-                'locationsM and locationsN need to be the same size')
+            raise ValueError("locationsM and locationsN need to be the same size")
         locations = [np.atleast_2d(locationsM), np.atleast_2d(locationsN)]
         super(Dipole, self).__init__(**kwargs)
         self.locations = locations
@@ -131,10 +129,10 @@ class Dipole(BaseRx):
         P1 = mesh.getInterpolationMat(self.locations[1], Gloc)
         P = P0 - P1
 
-        if self.data_type == 'apparent_resistivity':
-            P = sdiag(1./self.geometric_factor) * P
-        elif self.data_type == 'apparent_chargeability':
-            P = sdiag(1./self.dc_voltage) * P
+        if self.data_type == "apparent_resistivity":
+            P = sdiag(1.0 / self.geometric_factor) * P
+        elif self.data_type == "apparent_chargeability":
+            P = sdiag(1.0 / self.dc_voltage) * P
 
         if self.storeProjections:
             self._Ps[mesh] = P
@@ -167,23 +165,26 @@ class Pole(BaseRx):
 
         P = mesh.getInterpolationMat(self.locations, Gloc)
 
-        if self.data_type == 'apparent_resistivity':
-            P = sdiag(1./self.geometric_factor) * P
-        elif self.data_type == 'apparent_chargeability':
-            P = sdiag(1./self.dc_voltage) * P
+        if self.data_type == "apparent_resistivity":
+            P = sdiag(1.0 / self.geometric_factor) * P
+        elif self.data_type == "apparent_chargeability":
+            P = sdiag(1.0 / self.dc_voltage) * P
         if self.storeProjections:
             self._Ps[mesh] = P
 
         return P
+
+
 ############
 # Deprecated
 ############
 
-@deprecate_class(removal_version='0.15.0')
+
+@deprecate_class(removal_version="0.15.0")
 class Dipole_ky(Dipole):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Pole_ky(Pole):
     pass

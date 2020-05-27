@@ -11,7 +11,11 @@ from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
 from .fields import (
-    FieldsFDEM, Fields3DElectricField, Fields3DMagneticFluxDensity, Fields3DMagneticField, Fields3DCurrentDensity
+    FieldsFDEM,
+    Fields3DElectricField,
+    Fields3DMagneticFluxDensity,
+    Fields3DMagneticField,
+    Fields3DCurrentDensity,
 )
 
 
@@ -52,19 +56,13 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     fieldsPair = FieldsFDEM
 
-    mu, muMap, muDeriv = props.Invertible(
-        "Magnetic Permeability (H/m)", default=mu_0
-    )
+    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability (H/m)", default=mu_0)
 
-    mui, muiMap, muiDeriv = props.Invertible(
-        "Inverse Magnetic Permeability (m/H)"
-    )
+    mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
 
     props.Reciprocal(mu, mui)
 
-    survey = properties.Instance(
-        "a survey object", Survey, required=True
-    )
+    survey = properties.Instance("a survey object", Survey, required=True)
 
     def fields(self, m=None):
         """
@@ -119,12 +117,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
-                du_dm_v = Ainv * (- dA_dm_v + dRHS_dm_v)
+                du_dm_v = Ainv * (-dA_dm_v + dRHS_dm_v)
 
                 for rx in src.receiver_list:
-                    Jv.append(
-                        rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
-                    )
+                    Jv.append(rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v))
             Ainv.clean()
         return np.hstack(Jv)
 
@@ -164,23 +160,19 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
                     ATinvdf_duT = ATinv * df_duT
 
-                    dA_dmT = self.getADeriv(
-                        freq, u_src, ATinvdf_duT, adjoint=True
-                    )
-                    dRHS_dmT = self.getRHSDeriv(
-                        freq, src, ATinvdf_duT, adjoint=True
-                    )
+                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
 
                     df_dmT = df_dmT + du_dmT
 
                     # TODO: this should be taken care of by the reciever?
-                    if rx.component == 'real':
-                        Jtv +=   np.array(df_dmT, dtype=complex).real
-                    elif rx.component == 'imag':
-                        Jtv += - np.array(df_dmT, dtype=complex).real
+                    if rx.component == "real":
+                        Jtv += np.array(df_dmT, dtype=complex).real
+                    elif rx.component == "imag":
+                        Jtv += -np.array(df_dmT, dtype=complex).real
                     else:
-                        raise Exception('Must be real or imag')
+                        raise Exception("Must be real or imag")
 
             ATinv.clean()
 
@@ -196,10 +188,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
         :return: (s_m, s_e) (nE or nF, nSrc)
         """
         Srcs = self.survey.get_sources_by_frequency(freq)
-        if self._formulation == 'EB':
+        if self._formulation == "EB":
             s_m = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
             s_e = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
-        elif self._formulation == 'HJ':
+        elif self._formulation == "HJ":
             s_m = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
             s_e = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
 
@@ -215,6 +207,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 ###############################################################################
 #                               E-B Formulation                               #
 ###############################################################################
+
 
 class Simulation3DElectricField(BaseFDEMSimulation):
     """
@@ -241,9 +234,9 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     :param discretize.base.BaseMesh mesh: mesh
     """
 
-    _solutionType = 'eSolution'
-    _formulation  = 'EB'
-    fieldsPair    = Fields3DElectricField
+    _solutionType = "eSolution"
+    _formulation = "EB"
+    fieldsPair = Fields3DElectricField
 
     def __init__(self, mesh, **kwargs):
         super(Simulation3DElectricField, self).__init__(mesh, **kwargs)
@@ -265,7 +258,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         MeSigma = self.MeSigma
         C = self.mesh.edgeCurl
 
-        return C.T*MfMui*C + 1j*omega(freq)*MeSigma
+        return C.T * MfMui * C + 1j * omega(freq) * MeSigma
 
     # def getADeriv(self, freq, u, v, adjoint=False):
     #     return
@@ -306,15 +299,14 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         C = self.mesh.edgeCurl
 
         if adjoint:
-            return (self.MfMuiDeriv(C*u).T * (C * v))
+            return self.MfMuiDeriv(C * u).T * (C * v)
 
-        return C.T * (self.MfMuiDeriv(C*u) * v)
+        return C.T * (self.MfMuiDeriv(C * u) * v)
 
     def getADeriv(self, freq, u, v, adjoint=False):
 
-        return (
-            self.getADeriv_sigma(freq, u, v, adjoint) +
-            self.getADeriv_mui(freq, u, v, adjoint)
+        return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
+            freq, u, v, adjoint
         )
 
     def getRHS(self, freq):
@@ -352,13 +344,13 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         if adjoint:
             return (
-                s_mDeriv(MfMui * (C * v)) + MfMuiDeriv.T * (C * v) -
-                1j * omega(freq) * s_eDeriv(v)
+                s_mDeriv(MfMui * (C * v))
+                + MfMuiDeriv.T * (C * v)
+                - 1j * omega(freq) * s_eDeriv(v)
             )
-        return (
-            C.T * (MfMui * s_mDeriv(v) + MfMuiDeriv * v) -
-            1j * omega(freq) * s_eDeriv(v)
-        )
+        return C.T * (MfMui * s_mDeriv(v) + MfMuiDeriv * v) - 1j * omega(
+            freq
+        ) * s_eDeriv(v)
 
 
 class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
@@ -384,8 +376,8 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     :param discretize.base.BaseMesh mesh: mesh
     """
 
-    _solutionType = 'bSolution'
-    _formulation = 'EB'
+    _solutionType = "bSolution"
+    _formulation = "EB"
     fieldsPair = Fields3DMagneticFluxDensity
 
     def __init__(self, mesh, **kwargs):
@@ -412,7 +404,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         A = C * (MeSigmaI * (C.T * MfMui)) + iomega
 
         if self._makeASymmetric is True:
-            return MfMui.T*A
+            return MfMui.T * A
         return A
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
@@ -463,9 +455,8 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         if adjoint is True and self._makeASymmetric:
             v = self.MfMui * v
 
-        ADeriv =  (
-            self.getADeriv_sigma(freq, u, v, adjoint) +
-            self.getADeriv_mui(freq, u, v, adjoint)
+        ADeriv = self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
+            freq, u, v, adjoint
         )
 
         if adjoint is False and self._makeASymmetric:
@@ -566,9 +557,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     :param discretize.base.BaseMesh mesh: mesh
     """
 
-    _solutionType = 'jSolution'
-    _formulation  = 'HJ'
-    fieldsPair    = Fields3DCurrentDensity
+    _solutionType = "jSolution"
+    _formulation = "HJ"
+    fieldsPair = Fields3DCurrentDensity
 
     def __init__(self, mesh, **kwargs):
         super(Simulation3DCurrentDensity, self).__init__(mesh, **kwargs)
@@ -594,7 +585,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         A = C * MeMuI * C.T * MfRho + iomega
 
         if self._makeASymmetric is True:
-            return MfRho.T*A
+            return MfRho.T * A
         return A
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
@@ -658,9 +649,8 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         if adjoint and self._makeASymmetric:
             v = self.MfRho * v
 
-        ADeriv = (
-            self.getADeriv_rho(freq, u, v, adjoint) +
-            self.getADeriv_mu(freq, u, v, adjoint)
+        ADeriv = self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+            freq, u, v, adjoint
         )
 
         if not adjoint and self._makeASymmetric:
@@ -689,7 +679,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
         if self._makeASymmetric is True:
             MfRho = self.MfRho
-            return MfRho.T*RHS
+            return MfRho.T * RHS
 
         return RHS
 
@@ -719,18 +709,18 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         if adjoint:
             if self._makeASymmetric:
                 MfRho = self.MfRho
-                v = MfRho*v
-            CTv = (C.T * v)
+                v = MfRho * v
+            CTv = C.T * v
             return (
-                s_mDeriv(MeMuI.T * CTv) + MeMuIDeriv(s_m).T * CTv -
-                1j * omega(freq) * s_eDeriv(v)
+                s_mDeriv(MeMuI.T * CTv)
+                + MeMuIDeriv(s_m).T * CTv
+                - 1j * omega(freq) * s_eDeriv(v)
             )
 
         else:
-            RHSDeriv = (
-                C * (MeMuI * s_mDeriv(v) + MeMuIDeriv(s_m) * v) -
-                1j * omega(freq) * s_eDeriv(v)
-            )
+            RHSDeriv = C * (MeMuI * s_mDeriv(v) + MeMuIDeriv(s_m) * v) - 1j * omega(
+                freq
+            ) * s_eDeriv(v)
 
             if self._makeASymmetric:
                 MfRho = self.MfRho
@@ -757,9 +747,9 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     :param discretize.base.BaseMesh mesh: mesh
     """
 
-    _solutionType = 'hSolution'
-    _formulation  = 'HJ'
-    fieldsPair    = Fields3DMagneticField
+    _solutionType = "hSolution"
+    _formulation = "HJ"
+    fieldsPair = Fields3DMagneticField
 
     def __init__(self, mesh, **kwargs):
         super(Simulation3DMagneticField, self).__init__(mesh, **kwargs)
@@ -783,7 +773,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         MfRho = self.MfRho
         C = self.mesh.edgeCurl
 
-        return C.T * (MfRho * C) + 1j*omega(freq)*MeMu
+        return C.T * (MfRho * C) + 1j * omega(freq) * MeMu
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
         """
@@ -808,8 +798,8 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         MeMu = self.MeMu
         C = self.mesh.edgeCurl
         if adjoint:
-            return self.MfRhoDeriv(C*u, C*v, adjoint)
-        return C.T * self.MfRhoDeriv(C*u, v, adjoint)
+            return self.MfRhoDeriv(C * u, C * v, adjoint)
+        return C.T * self.MfRhoDeriv(C * u, v, adjoint)
 
         # MfRhoDeriv = self.MfRhoDeriv(C*u)
 
@@ -821,14 +811,13 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         MeMuDeriv = self.MeMuDeriv(u)
 
         if adjoint is True:
-            return 1j*omega(freq) * (MeMuDeriv.T * v)
+            return 1j * omega(freq) * (MeMuDeriv.T * v)
 
-        return 1j*omega(freq) * (MeMuDeriv * v)
+        return 1j * omega(freq) * (MeMuDeriv * v)
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return (
-            self.getADeriv_rho(freq, u, v, adjoint) +
-            self.getADeriv_mu(freq, u, v, adjoint)
+        return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+            freq, u, v, adjoint
         )
 
     def getRHS(self, freq):
@@ -876,7 +865,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         if not adjoint:
             RHSDeriv = C.T * (self.MfRhoDeriv(s_e, v, adjoint))
         elif adjoint:
-            RHSDeriv = self.MfRhoDeriv(s_e, C*v, adjoint)
+            RHSDeriv = self.MfRhoDeriv(s_e, C * v, adjoint)
 
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
@@ -887,21 +876,22 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 # Deprecated
 ############
 
-@deprecate_class(removal_version='0.15.0')
+
+@deprecate_class(removal_version="0.15.0")
 class Problem3D_e(Simulation3DElectricField):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Problem3D_b(Simulation3DMagneticFluxDensity):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Problem3D_h(Simulation3DMagneticField):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Problem3D_j(Simulation3DCurrentDensity):
     pass

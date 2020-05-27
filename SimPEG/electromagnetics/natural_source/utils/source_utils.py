@@ -16,6 +16,7 @@ def homo1DModelSource(mesh, freq, sigma_1d):
 
     """
     from . import get1DEfields
+
     # Get a 1d solution for a halfspace background
     if mesh.dim == 1:
         mesh1d = mesh
@@ -28,7 +29,9 @@ def homo1DModelSource(mesh, freq, sigma_1d):
     e0_1d = get1DEfields(mesh1d, sigma_1d, freq)
     if mesh.dim == 1:
         eBG_px = mkvc(e0_1d, 2)
-        eBG_py = -mkvc(e0_1d, 2) # added a minus to make the results in the correct quadrents.
+        eBG_py = -mkvc(
+            e0_1d, 2
+        )  # added a minus to make the results in the correct quadrents.
     elif mesh.dim == 2:
         ex_px = np.zeros(mesh.vnEx, dtype=complex)
         ey_px = np.zeros((mesh.nEy, 1), dtype=complex)
@@ -36,8 +39,8 @@ def homo1DModelSource(mesh, freq, sigma_1d):
             ex_px[i, :] = -e0_1d
         eBG_px = np.vstack((mkvc(ex_px, 2), ey_px))
         # Setup y (north) polarization (_py)
-        ex_py = np.zeros((mesh.nEx, 1), dtype='complex128')
-        ey_py = np.zeros(mesh.vnEy, dtype='complex128')
+        ex_py = np.zeros((mesh.nEx, 1), dtype="complex128")
+        ey_py = np.zeros(mesh.vnEy, dtype="complex128")
         # Assign the source to ey_py
         for i in np.arange(mesh.vnEy[0]):
             ey_py[i, :] = e0_1d
@@ -54,9 +57,9 @@ def homo1DModelSource(mesh, freq, sigma_1d):
                 ex_px[i, j, :] = -e0_1d
         eBG_px = np.vstack((mkvc(ex_px, 2), ey_px, ez_px))
         # Setup y (north) polarization (_py)
-        ex_py = np.zeros((mesh.nEx, 1), dtype='complex128')
-        ey_py = np.zeros(mesh.vnEy, dtype='complex128')
-        ez_py = np.zeros((mesh.nEz, 1), dtype='complex128')
+        ex_py = np.zeros((mesh.nEx, 1), dtype="complex128")
+        ey_py = np.zeros(mesh.vnEy, dtype="complex128")
+        ez_py = np.zeros((mesh.nEz, 1), dtype="complex128")
         # Assign the source to ey_py
         for i in np.arange(mesh.vnEy[0]):
             for j in np.arange(mesh.vnEy[1]):
@@ -81,6 +84,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 
     """
     from SimPEG.NSEM.Utils import getEHfields
+
     # Get a 1d solution for a halfspace background
     if mesh.dim == 1:
         mesh1d = mesh
@@ -92,11 +96,13 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
     # # Note: Everything is using e^iwt
     Eu, Ed, _, _ = getEHfields(mesh1d, sigma_1d, freq, mesh.vectorNz)
     # Make the fields into a dictionary of location and the fields
-    e0_1d = Eu+Ed
+    e0_1d = Eu + Ed
     E1dFieldDict = dict(zip(mesh.vectorNz, e0_1d))
     if mesh.dim == 1:
         eBG_px = mkvc(e0_1d, 2)
-        eBG_py = -mkvc(e0_1d, 2) # added a minus to make the results in the correct quadrents.
+        eBG_py = -mkvc(
+            e0_1d, 2
+        )  # added a minus to make the results in the correct quadrents.
     elif mesh.dim == 2:
         ex_px = np.zeros(mesh.vnEx, dtype=complex)
         ey_px = np.zeros((mesh.nEy, 1), dtype=complex)
@@ -104,8 +110,8 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
             ex_px[i, :] = -e0_1d
         eBG_px = np.vstack((mkvc(ex_px, 2), ey_px))
         # Setup y (north) polarization (_py)
-        ex_py = np.zeros((mesh.nEx, 1), dtype='complex128')
-        ey_py = np.zeros(mesh.vnEy, dtype='complex128')
+        ex_py = np.zeros((mesh.nEx, 1), dtype="complex128")
+        ey_py = np.zeros(mesh.vnEy, dtype="complex128")
         # Assign the source to ey_py
         for i in np.arange(mesh.vnEy[0]):
             ey_py[i, :] = e0_1d
@@ -119,15 +125,16 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
         # Construct the full fields
         eBG_px = np.vstack((ex_px, ey_px, ez_px))
         # Setup y (north) polarization (_py)
-        ex_py = np.zeros((mesh.nEx, 1), dtype='complex128')
+        ex_py = np.zeros((mesh.nEx, 1), dtype="complex128")
         ey_py = np.array([E1dFieldDict[i] for i in mesh.gridEy[:, 2]]).reshape(-1, 1)
-        ez_py = np.zeros((mesh.nEz, 1), dtype='complex128')
+        ez_py = np.zeros((mesh.nEz, 1), dtype="complex128")
         # Construct the full fields
         eBG_py = np.vstack((ex_py, mkvc(ey_py, 2), ez_py))
 
     # Return the electric fields
     eBG_bp = np.hstack((eBG_px, eBG_py))
     return eBG_bp
+
 
 # def homo3DModelSource(mesh, model, freq):
 #     """

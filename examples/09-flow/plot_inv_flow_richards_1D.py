@@ -43,12 +43,17 @@ from SimPEG.flow import richards
 
 def run(plotIt=True):
 
-    M = discretize.TensorMesh([np.ones(40)], x0='N')
-    M.setCellGradBC('dirichlet')
+    M = discretize.TensorMesh([np.ones(40)], x0="N")
+    M.setCellGradBC("dirichlet")
     # We will use the haverkamp empirical model with parameters from Celia1990
     k_fun, theta_fun = richards.empirical.haverkamp(
-        M, A=1.1750e+06, gamma=4.74, alpha=1.6110e+06,
-        theta_s=0.287, theta_r=0.075, beta=3.96
+        M,
+        A=1.1750e06,
+        gamma=4.74,
+        alpha=1.6110e06,
+        theta_s=0.287,
+        theta_r=0.075,
+        beta=3.96,
     )
 
     # Here we are making saturated hydraulic conductivity
@@ -62,13 +67,16 @@ def run(plotIt=True):
         M,
         hydraulic_conductivity=k_fun,
         water_retention=theta_fun,
-        boundary_conditions=bc, initial_conditions=h,
-        do_newton=False, method='mixed', debug=False
+        boundary_conditions=bc,
+        initial_conditions=h,
+        do_newton=False,
+        method="mixed",
+        debug=False,
     )
     prob.time_steps = [(5, 25, 1.1), (60, 40)]
 
     # Create the survey
-    locs = -np.arange(2, 38, 4.).reshape(-1, 1)
+    locs = -np.arange(2, 38, 4.0).reshape(-1, 1)
     times = np.arange(30, prob.time_mesh.vectorCCx[-1], 60)
     rxSat = richards.receivers.Saturation(locs, times)
     survey = richards.Survey([rxSat])
@@ -76,16 +84,18 @@ def run(plotIt=True):
 
     # Create a simple model for Ks
     Ks = 1e-3
-    mtrue = np.ones(M.nC)*np.log(Ks)
+    mtrue = np.ones(M.nC) * np.log(Ks)
     mtrue[15:20] = np.log(5e-2)
     mtrue[20:35] = np.log(3e-3)
     mtrue[35:40] = np.log(1e-2)
-    m0 = np.ones(M.nC)*np.log(Ks)
+    m0 = np.ones(M.nC) * np.log(Ks)
 
     # Create some synthetic data and fields
     relative = 0.02  # The standard deviation for the noise
     Hs = prob.fields(mtrue)
-    data = prob.make_synthetic_data(mtrue, relative_error=relative, f=Hs, add_noise=True)
+    data = prob.make_synthetic_data(
+        mtrue, relative_error=relative, f=Hs, add_noise=True
+    )
 
     # Setup a pretty standard inversion
     reg = regularization.Tikhonov(M, alpha_s=1e-1)
@@ -107,37 +117,38 @@ def run(plotIt=True):
 
         ax = plt.subplot(121)
         plt.semilogx(np.exp(np.c_[mopt, mtrue]), M.gridCC)
-        plt.xlabel('Saturated Hydraulic Conductivity, $K_s$')
-        plt.ylabel('Depth, cm')
-        plt.semilogx([10**-3.9]*len(locs), locs, 'ro')
-        plt.legend(('$m_{rec}$', '$m_{true}$', 'Data locations'), loc=4)
+        plt.xlabel("Saturated Hydraulic Conductivity, $K_s$")
+        plt.ylabel("Depth, cm")
+        plt.semilogx([10 ** -3.9] * len(locs), locs, "ro")
+        plt.legend(("$m_{rec}$", "$m_{true}$", "Data locations"), loc=4)
 
         ax = plt.subplot(222)
-        mesh2d = discretize.TensorMesh([prob.time_mesh.hx/60, prob.mesh.hx], '0N')
+        mesh2d = discretize.TensorMesh([prob.time_mesh.hx / 60, prob.mesh.hx], "0N")
         sats = [theta_fun(_) for _ in Hs]
         clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r
         clr[0].set_cmap(cmap0)
         c = plt.colorbar(clr[0])
-        c.set_label('Saturation $\\theta$')
-        plt.xlabel('Time, minutes')
-        plt.ylabel('Depth, cm')
-        plt.title('True saturation over time')
+        c.set_label("Saturation $\\theta$")
+        plt.xlabel("Time, minutes")
+        plt.ylabel("Depth, cm")
+        plt.title("True saturation over time")
 
         ax = plt.subplot(224)
-        mesh2d = discretize.TensorMesh([prob.time_mesh.hx/60, prob.mesh.hx], '0N')
+        mesh2d = discretize.TensorMesh([prob.time_mesh.hx / 60, prob.mesh.hx], "0N")
         sats = [theta_fun(_) for _ in Hs_opt]
         clr = mesh2d.plotImage(np.c_[sats][1:, :], ax=ax)
         cmap0 = matplotlib.cm.RdYlBu_r
         clr[0].set_cmap(cmap0)
         c = plt.colorbar(clr[0])
-        c.set_label('Saturation $\\theta$')
-        plt.xlabel('Time, minutes')
-        plt.ylabel('Depth, cm')
-        plt.title('Recovered saturation over time')
+        c.set_label("Saturation $\\theta$")
+        plt.xlabel("Time, minutes")
+        plt.ylabel("Depth, cm")
+        plt.title("Recovered saturation over time")
 
         plt.tight_layout()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run()
     plt.show()

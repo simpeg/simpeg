@@ -16,8 +16,14 @@ import shutil
 import tarfile
 from SimPEG.potential_fields import gravity
 from SimPEG import (
-    data, data_misfit, maps, regularization, optimization,
-    inverse_problem, directives, inversion
+    data,
+    data_misfit,
+    maps,
+    regularization,
+    optimization,
+    inverse_problem,
+    directives,
+    inversion,
 )
 from SimPEG import utils
 from SimPEG.utils import download, plot2Ddata
@@ -25,6 +31,7 @@ from SimPEG.utils import download, plot2Ddata
 import matplotlib.pyplot as plt
 import numpy as np
 from SimPEG.utils.drivers.gravity_driver import GravityDriver_Inv
+
 
 def run(plotIt=True, cleanAfterRun=True):
 
@@ -40,14 +47,14 @@ def run(plotIt=True, cleanAfterRun=True):
     tar.extractall()
     tar.close()
 
-    input_file = basePath + os.path.sep + 'LdM_input_file.inp'
+    input_file = basePath + os.path.sep + "LdM_input_file.inp"
     # %% User input
     # Plotting parameters, max and min densities in g/cc
     vmin = -0.6
     vmax = 0.6
 
     # weight exponent for default weighting
-    wgtexp = 3.
+    wgtexp = 3.0
     # %%
     # Read in the input file which included all parameters at once
     # (mesh, topo, model, survey, inv param, etc.)
@@ -56,10 +63,10 @@ def run(plotIt=True, cleanAfterRun=True):
     # Now we need to create the survey and model information.
 
     # Access the mesh and survey information
-    mesh = driver.mesh#
+    mesh = driver.mesh  #
     survey = driver.survey
     data_object = driver.data
-    #[survey, data_object] = driver.survey
+    # [survey, data_object] = driver.survey
 
     # define gravity survey locations
     rxLoc = survey.source_field.receiver_list[0].locations
@@ -78,33 +85,36 @@ def run(plotIt=True, cleanAfterRun=True):
     static = driver.staticCells
     dynamic = driver.dynamicCells
 
-    staticCells = maps.InjectActiveCells(
-        None, dynamic, driver.m0[static], nC=nC
-    )
+    staticCells = maps.InjectActiveCells(None, dynamic, driver.m0[static], nC=nC)
     mstart = driver.m0[dynamic]
 
     # Get index of the center
-    midx = int(mesh.nCx/2)
+    midx = int(mesh.nCx / 2)
     # %%
     # Now that we have a model and a survey we can build the linear system ...
     # Create the forward model operator
     simulation = gravity.simulation.Simulation3DIntegral(
         survey=survey, mesh=mesh, rhoMap=staticCells, actInd=active
-        )
+    )
 
     # %% Create inversion objects
-    reg = regularization.Sparse(mesh, indActive=active,
-                                mapping=staticCells, gradientType='total')
+    reg = regularization.Sparse(
+        mesh, indActive=active, mapping=staticCells, gradientType="total"
+    )
     reg.mref = driver.mref[dynamic]
 
-    reg.norms = np.c_[0., 1., 1., 1.]
+    reg.norms = np.c_[0.0, 1.0, 1.0, 1.0]
     # reg.norms = driver.lpnorms
 
-
     # Specify how the optimization will proceed
-    opt = optimization.ProjectedGNCG(maxIter=20, lower=driver.bounds[0],
-                                     upper=driver.bounds[1], maxIterLS=10,
-                                     maxIterCG=20, tolCG=1e-4)
+    opt = optimization.ProjectedGNCG(
+        maxIter=20,
+        lower=driver.bounds[0],
+        upper=driver.bounds[1],
+        maxIterLS=10,
+        maxIterCG=20,
+        tolCG=1e-4,
+    )
 
     # Define misfit function (obs-calc)
     dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
@@ -119,18 +129,17 @@ def run(plotIt=True, cleanAfterRun=True):
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
     IRLS = directives.Update_IRLS(
-        f_min_change=1e-4, max_irls_iterations=40,
-        coolEpsFact=1.5, beta_tol=5e-1
-        )
+        f_min_change=1e-4, max_irls_iterations=40, coolEpsFact=1.5, beta_tol=5e-1
+    )
 
     # Preconditioning refreshing for each IRLS iteration
     update_Jacobi = directives.UpdatePreconditioner()
     sensitivity_weights = directives.UpdateSensitivityWeights()
 
     # Create combined the L2 and Lp problem
-    inv = inversion.BaseInversion(invProb,
-        directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest]
-        )
+    inv = inversion.BaseInversion(
+        invProb, directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest]
+    )
 
     # %%
     # Run L2 and Lp inversion
@@ -152,7 +161,7 @@ def run(plotIt=True, cleanAfterRun=True):
         L2out = activeMap * invProb.l2model
 
         # reconstructing lp model mesh with air cells and active dynamic cells
-        Lpout = activeMap*mrec
+        Lpout = activeMap * mrec
 
         # %%
         # Plot out sections and histograms of the smooth l2 model.
@@ -161,47 +170,77 @@ def run(plotIt=True, cleanAfterRun=True):
         L2out[L2out == -100] = np.nan  # set "air" to nan
 
         plt.figure(figsize=(10, 7))
-        plt.suptitle('Smooth Inversion: Depth weight = ' + str(wgtexp))
+        plt.suptitle("Smooth Inversion: Depth weight = " + str(wgtexp))
         ax = plt.subplot(221)
-        dat1 = mesh.plotSlice(L2out, ax=ax, normal='Z', ind=-16,
-                              clim=(vmin, vmax), pcolorOpts={'cmap': 'bwr'})
-        plt.plot(np.array([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 np.array([mesh.vectorCCy[yslice], mesh.vectorCCy[yslice]]),
-                 c='gray', linestyle='--')
-        plt.scatter(rxLoc[0:, 0], rxLoc[0:, 1], color='k', s=1)
-        plt.title('Z: ' + str(mesh.vectorCCz[-16]) + ' m')
-        plt.xlabel('Easting (m)')
-        plt.ylabel('Northing (m)')
-        plt.gca().set_aspect('equal', adjustable='box')
-        cb = plt.colorbar(dat1[0], orientation="vertical",
-                          ticks=np.linspace(vmin, vmax, 4))
-        cb.set_label('Density (g/cc$^3$)')
+        dat1 = mesh.plotSlice(
+            L2out,
+            ax=ax,
+            normal="Z",
+            ind=-16,
+            clim=(vmin, vmax),
+            pcolorOpts={"cmap": "bwr"},
+        )
+        plt.plot(
+            np.array([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
+            np.array([mesh.vectorCCy[yslice], mesh.vectorCCy[yslice]]),
+            c="gray",
+            linestyle="--",
+        )
+        plt.scatter(rxLoc[0:, 0], rxLoc[0:, 1], color="k", s=1)
+        plt.title("Z: " + str(mesh.vectorCCz[-16]) + " m")
+        plt.xlabel("Easting (m)")
+        plt.ylabel("Northing (m)")
+        plt.gca().set_aspect("equal", adjustable="box")
+        cb = plt.colorbar(
+            dat1[0], orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
+        )
+        cb.set_label("Density (g/cc$^3$)")
 
         ax = plt.subplot(222)
-        dat = mesh.plotSlice(L2out, ax=ax, normal='Z', ind=-27,
-                             clim=(vmin, vmax), pcolorOpts={'cmap': 'bwr'})
-        plt.plot(np.array([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 np.array([mesh.vectorCCy[yslice], mesh.vectorCCy[yslice]]),
-                 c='gray', linestyle='--')
-        plt.scatter(rxLoc[0:, 0], rxLoc[0:, 1], color='k', s=1)
-        plt.title('Z: ' + str(mesh.vectorCCz[-27]) + ' m')
-        plt.xlabel('Easting (m)')
-        plt.ylabel('Northing (m)')
-        plt.gca().set_aspect('equal', adjustable='box')
-        cb = plt.colorbar(dat1[0], orientation="vertical",
-                          ticks=np.linspace(vmin, vmax, 4))
-        cb.set_label('Density (g/cc$^3$)')
+        dat = mesh.plotSlice(
+            L2out,
+            ax=ax,
+            normal="Z",
+            ind=-27,
+            clim=(vmin, vmax),
+            pcolorOpts={"cmap": "bwr"},
+        )
+        plt.plot(
+            np.array([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
+            np.array([mesh.vectorCCy[yslice], mesh.vectorCCy[yslice]]),
+            c="gray",
+            linestyle="--",
+        )
+        plt.scatter(rxLoc[0:, 0], rxLoc[0:, 1], color="k", s=1)
+        plt.title("Z: " + str(mesh.vectorCCz[-27]) + " m")
+        plt.xlabel("Easting (m)")
+        plt.ylabel("Northing (m)")
+        plt.gca().set_aspect("equal", adjustable="box")
+        cb = plt.colorbar(
+            dat1[0], orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
+        )
+        cb.set_label("Density (g/cc$^3$)")
 
         ax = plt.subplot(212)
-        mesh.plotSlice(L2out, ax=ax, normal='Y', ind=yslice,
-                       clim=(vmin, vmax), pcolorOpts={'cmap': 'bwr'})
-        plt.title('Cross Section')
-        plt.xlabel('Easting(m)')
-        plt.ylabel('Elevation')
-        plt.gca().set_aspect('equal', adjustable='box')
-        cb = plt.colorbar(dat1[0], orientation="vertical",
-                          ticks=np.linspace(vmin, vmax, 4), cmap='bwr')
-        cb.set_label('Density (g/cc$^3$)')
+        mesh.plotSlice(
+            L2out,
+            ax=ax,
+            normal="Y",
+            ind=yslice,
+            clim=(vmin, vmax),
+            pcolorOpts={"cmap": "bwr"},
+        )
+        plt.title("Cross Section")
+        plt.xlabel("Easting(m)")
+        plt.ylabel("Elevation")
+        plt.gca().set_aspect("equal", adjustable="box")
+        cb = plt.colorbar(
+            dat1[0],
+            orientation="vertical",
+            ticks=np.linspace(vmin, vmax, 4),
+            cmap="bwr",
+        )
+        cb.set_label("Density (g/cc$^3$)")
 
         # %%
         # Make plots of Lp model
@@ -209,50 +248,83 @@ def run(plotIt=True, cleanAfterRun=True):
         Lpout[Lpout == -100] = np.nan  # set "air" to nan
 
         plt.figure(figsize=(10, 7))
-        plt.suptitle('Compact Inversion: Depth weight = ' + str(wgtexp) +
-                     ': $\epsilon_p$ = ' + str(round(reg.eps_p, 1)) +
-                     ': $\epsilon_q$ = ' + str(round(reg.eps_q, 2)))
+        plt.suptitle(
+            "Compact Inversion: Depth weight = "
+            + str(wgtexp)
+            + ": $\epsilon_p$ = "
+            + str(round(reg.eps_p, 1))
+            + ": $\epsilon_q$ = "
+            + str(round(reg.eps_q, 2))
+        )
         ax = plt.subplot(221)
-        dat = mesh.plotSlice(Lpout, ax=ax, normal='Z', ind=-16,
-                             clim=(vmin, vmax), pcolorOpts={'cmap': 'bwr'})
-        plt.plot(np.array([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 np.array([mesh.vectorCCy[yslice], mesh.vectorCCy[yslice]]),
-                 c='gray', linestyle='--')
-        plt.scatter(rxLoc[0:, 0], rxLoc[0:, 1], color='k', s=1)
-        plt.title('Z: ' + str(mesh.vectorCCz[-16]) + ' m')
-        plt.xlabel('Easting (m)')
-        plt.ylabel('Northing (m)')
-        plt.gca().set_aspect('equal', adjustable='box')
-        cb = plt.colorbar(dat[0], orientation="vertical",
-                          ticks=np.linspace(vmin, vmax, 4))
-        cb.set_label('Density (g/cc$^3$)')
+        dat = mesh.plotSlice(
+            Lpout,
+            ax=ax,
+            normal="Z",
+            ind=-16,
+            clim=(vmin, vmax),
+            pcolorOpts={"cmap": "bwr"},
+        )
+        plt.plot(
+            np.array([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
+            np.array([mesh.vectorCCy[yslice], mesh.vectorCCy[yslice]]),
+            c="gray",
+            linestyle="--",
+        )
+        plt.scatter(rxLoc[0:, 0], rxLoc[0:, 1], color="k", s=1)
+        plt.title("Z: " + str(mesh.vectorCCz[-16]) + " m")
+        plt.xlabel("Easting (m)")
+        plt.ylabel("Northing (m)")
+        plt.gca().set_aspect("equal", adjustable="box")
+        cb = plt.colorbar(
+            dat[0], orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
+        )
+        cb.set_label("Density (g/cc$^3$)")
 
         ax = plt.subplot(222)
-        dat = mesh.plotSlice(Lpout, ax=ax, normal='Z', ind=-27,
-                             clim=(vmin, vmax), pcolorOpts={'cmap': 'bwr'})
-        plt.plot(np.array([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 np.array([mesh.vectorCCy[yslice], mesh.vectorCCy[yslice]]),
-                 c='gray', linestyle='--')
-        plt.scatter(rxLoc[0:, 0], rxLoc[0:, 1], color='k', s=1)
-        plt.title('Z: ' + str(mesh.vectorCCz[-27]) + ' m')
-        plt.xlabel('Easting (m)')
-        plt.ylabel('Northing (m)')
-        plt.gca().set_aspect('equal', adjustable='box')
-        cb = plt.colorbar(dat[0], orientation="vertical",
-                          ticks=np.linspace(vmin, vmax, 4))
-        cb.set_label('Density (g/cc$^3$)')
+        dat = mesh.plotSlice(
+            Lpout,
+            ax=ax,
+            normal="Z",
+            ind=-27,
+            clim=(vmin, vmax),
+            pcolorOpts={"cmap": "bwr"},
+        )
+        plt.plot(
+            np.array([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
+            np.array([mesh.vectorCCy[yslice], mesh.vectorCCy[yslice]]),
+            c="gray",
+            linestyle="--",
+        )
+        plt.scatter(rxLoc[0:, 0], rxLoc[0:, 1], color="k", s=1)
+        plt.title("Z: " + str(mesh.vectorCCz[-27]) + " m")
+        plt.xlabel("Easting (m)")
+        plt.ylabel("Northing (m)")
+        plt.gca().set_aspect("equal", adjustable="box")
+        cb = plt.colorbar(
+            dat[0], orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
+        )
+        cb.set_label("Density (g/cc$^3$)")
 
         ax = plt.subplot(212)
-        dat = mesh.plotSlice(Lpout, ax=ax, normal='Y', ind=yslice,
-                             clim=(vmin, vmax), pcolorOpts={'cmap': 'bwr'})
-        plt.title('Cross Section')
-        plt.xlabel('Easting (m)')
-        plt.ylabel('Elevation (m)')
-        plt.gca().set_aspect('equal', adjustable='box')
-        cb = plt.colorbar(dat[0], orientation="vertical",
-                          ticks=np.linspace(vmin, vmax, 4))
-        cb.set_label('Density (g/cc$^3$)')
+        dat = mesh.plotSlice(
+            Lpout,
+            ax=ax,
+            normal="Y",
+            ind=yslice,
+            clim=(vmin, vmax),
+            pcolorOpts={"cmap": "bwr"},
+        )
+        plt.title("Cross Section")
+        plt.xlabel("Easting (m)")
+        plt.ylabel("Elevation (m)")
+        plt.gca().set_aspect("equal", adjustable="box")
+        cb = plt.colorbar(
+            dat[0], orientation="vertical", ticks=np.linspace(vmin, vmax, 4)
+        )
+        cb.set_label("Density (g/cc$^3$)")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run()
     plt.show()

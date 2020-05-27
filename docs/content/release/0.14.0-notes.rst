@@ -398,7 +398,7 @@ There were 23 pull requests contributing to this release.
 * `#872 <https://github.com/simpeg/simpeg/pull/872>`__: Uncertainty rename in simulation.
 * `#874 <https://github.com/simpeg/simpeg/pull/874>`__: Release notes for simulation as part of the Documentation.
 * `#876 <https://github.com/simpeg/simpeg/pull/876>`__: Simulation tutorials cleanup
-
+* `#879 <https://github.com/simpeg/simpeg/pull/879>`__: Run black on SimPEG
 
 Closed Issues
 =============
@@ -411,6 +411,7 @@ Closed Issues
 * `#842 <https://github.com/simpeg/simpeg/issues/842>`__: Static drape topo not on surface.
 * `#787 <https://github.com/simpeg/simpeg/issues/787>`__: Plotting integrated sensitivity for DC resistivity problem.
 * `#765 <https://github.com/simpeg/simpeg/issues/765>`__: DOC: Source code not linked, 404
+* `#751 <https://github.com/simpeg/simpeg/issues/751>`__: run black on SimPEG
 * `#562 <https://github.com/simpeg/simpeg/issues/562>`__: What's the problem with ``Problem``?
 * `#527 <https://github.com/simpeg/simpeg/issues/527>`__: Remove MapPair, RxPair, Pair
 * `#524 <https://github.com/simpeg/simpeg/issues/524>`__: Remove rxType from BaseRx

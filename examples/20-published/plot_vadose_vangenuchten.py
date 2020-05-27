@@ -21,7 +21,7 @@ def run(plotIt=True):
     VGparams = richards.empirical.VanGenuchtenParams()
     leg = []
     for p in dir(VGparams):
-        if p[0] == '_':
+        if p[0] == "_":
             continue
         leg += [p]
         params = getattr(VGparams, p)
@@ -31,6 +31,7 @@ def run(plotIt=True):
 
     plt.legend(leg, loc=3)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     run()
     plt.show()

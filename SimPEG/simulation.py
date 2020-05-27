@@ -22,7 +22,7 @@ try:
 except ImportError:
     from SimPEG import SolverLU as DefaultSolver
 
-__all__ = ['LinearSimulation', 'ExponentialSinusoidSimulation']
+__all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
 
 ##############################################################################
@@ -30,6 +30,7 @@ __all__ = ['LinearSimulation', 'ExponentialSinusoidSimulation']
 #                             Custom Properties                              #
 #                                                                            #
 ##############################################################################
+
 
 class TimeStepArray(properties.Array):
 
@@ -46,7 +47,7 @@ class Class(properties.Property):
     class_info = "a property that is an uninstantiated class"
 
     def __init__(self, doc, **kwargs):
-        default = kwargs.pop('default', None)
+        default = kwargs.pop("default", None)
         super(Class, self).__init__(doc, **kwargs)
         if default is not None:
             self._parent_module = default.__module__
@@ -57,7 +58,7 @@ class Class(properties.Property):
     @property
     def default(self):
         """Default value of the Property"""
-        return getattr(self, '_default', self._class_default)
+        return getattr(self, "_default", self._class_default)
 
     @default.setter
     def default(self, value):
@@ -66,9 +67,7 @@ class Class(properties.Property):
 
     def validate(self, instance, value):
         if inspect.isclass(value) is False:
-            extra = (
-                "Expected an uninstantiated class. The provided value is not"
-            )
+            extra = "Expected an uninstantiated class. The provided value is not"
             self.error(instance, value, TypeError, extra)
         self._parent_module = value.__module__
         return value
@@ -82,29 +81,27 @@ class Class(properties.Property):
             module = sys.modules[".".join(name[:-1])]
         except KeyError:
             raise ImportError(
-                "{} not found. Please install {}".format(
-                    ".".join(value, name[0])
-                )
+                "{} not found. Please install {}".format(".".join(value, name[0]))
             )
         return getattr(module, name[-1])
 
     def sphinx(self):
         """Basic docstring formatted for Sphinx docs"""
         default_val = self.default
-        default_str = '{}'.format(self.default)
+        default_str = "{}".format(self.default)
         try:
             if default_val is None or default_val is undefined:
-                default_str = ''
-            elif len(default_val) == 0:                                        #pylint: disable=len-as-condition
-                default_str = ''
+                default_str = ""
+            elif len(default_val) == 0:  # pylint: disable=len-as-condition
+                default_str = ""
             else:
-                default_str = ', Default: {}'.format(default_str)
+                default_str = ", Default: {}".format(default_str)
         except TypeError:
-            default_str = ', Default: {}'.format(default_str)
+            default_str = ", Default: {}".format(default_str)
 
         prop_doc = super(properties.Property, self).sphinx()
         prop_doc = None
-        return '{doc}{default}'.format(doc=prop_doc, default=default_str)
+        return "{doc}{default}".format(doc=prop_doc, default=default_str)
 
 
 ##############################################################################
@@ -113,12 +110,12 @@ class Class(properties.Property):
 #                                                                            #
 ##############################################################################
 
+
 class BaseSimulation(props.HasModel):
     """
     BaseSimulation is the base class for all geophysical forward simulations in
     SimPEG.
     """
-
 
     ###########################################################################
     # Properties
@@ -132,9 +129,8 @@ class BaseSimulation(props.HasModel):
     counter = properties.Instance("A SimPEG.utils.Counter object", Counter)
 
     sensitivity_path = properties.String(
-        'path to store the sensitivty',
-        default="./sensitivity/"
-        )
+        "path to store the sensitivty", default="./sensitivity/"
+    )
 
     # TODO: need to implement a serializer for this & setter
     solver = Class(
@@ -142,9 +138,7 @@ class BaseSimulation(props.HasModel):
         # default=pymatsolver.Solver
     )
 
-    solver_opts = properties.Dictionary(
-        "solver options as a kwarg dict", default={}
-    )
+    solver_opts = properties.Dictionary("solver options as a kwarg dict", default={})
 
     def _reset(self, name=None):
         """Revert specified property to default value
@@ -157,11 +151,11 @@ class BaseSimulation(props.HasModel):
                     self._reset(key)
             return
         if name not in self._props:
-            raise AttributeError("Input name '{}' is not a known "
-                                 "property or attribute".format(name))
+            raise AttributeError(
+                "Input name '{}' is not a known " "property or attribute".format(name)
+            )
         if not isinstance(self._props[name], properties.basic.Property):
-            raise AttributeError("Cannot reset GettableProperty "
-                                 "'{}'".format(name))
+            raise AttributeError("Cannot reset GettableProperty " "'{}'".format(name))
         if name in self._defaults:
             val = self._defaults[name]
         else:
@@ -173,9 +167,9 @@ class BaseSimulation(props.HasModel):
     ###########################################################################
     # Properties and observers
 
-    @properties.observer('mesh')
+    @properties.observer("mesh")
     def _update_registry(self, change):
-        self._REGISTRY.update(change['value']._REGISTRY)
+        self._REGISTRY.update(change["value"]._REGISTRY)
 
     #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
     # TODO: rename to _delete_on_model_update
@@ -184,14 +178,14 @@ class BaseSimulation(props.HasModel):
     #: List of matrix names to have their factors cleared on a model update
     clean_on_model_update = []
 
-    @properties.observer('model')
+    @properties.observer("model")
     def _on_model_update(self, change):
-        if change['previous'] is change['value']:
+        if change["previous"] is change["value"]:
             return
         if (
-            isinstance(change['previous'], np.ndarray) and
-            isinstance(change['value'], np.ndarray) and
-            np.allclose(change['previous'], change['value'])
+            isinstance(change["previous"], np.ndarray)
+            and isinstance(change["value"], np.ndarray)
+            and np.allclose(change["previous"], change["value"])
         ):
             return
 
@@ -206,30 +200,32 @@ class BaseSimulation(props.HasModel):
                 getattr(self, mat).clean()  # clean factors
                 setattr(self, mat, None)  # set to none
 
-    Solver = deprecate_property(solver, 'Solver',
-        new_name='simulation.solver', removal_version='0.15.0')
+    Solver = deprecate_property(
+        solver, "Solver", new_name="simulation.solver", removal_version="0.15.0"
+    )
 
-    solverOpts = deprecate_property(solver_opts, 'solverOpts',
-        new_name='solver_opts', removal_version='0.15.0')
+    solverOpts = deprecate_property(
+        solver_opts, "solverOpts", new_name="solver_opts", removal_version="0.15.0"
+    )
 
     ###########################################################################
     # Instantiation
 
     def __init__(self, mesh=None, **kwargs):
         # raise exception if user tries to set "mapping"
-        if 'mapping' in kwargs.keys():
+        if "mapping" in kwargs.keys():
             raise Exception(
-                'Deprecated (in 0.4.0): use one of {}'.format(
-                    [p for p in self._props.keys() if 'Map' in p]
+                "Deprecated (in 0.4.0): use one of {}".format(
+                    [p for p in self._props.keys() if "Map" in p]
                 )
             )
 
         if mesh is not None:
-            kwargs['mesh'] = mesh
+            kwargs["mesh"] = mesh
 
         super(BaseSimulation, self).__init__(**kwargs)
 
-        if 'solver' not in kwargs.keys() and 'Solver' not in kwargs.keys():
+        if "solver" not in kwargs.keys() and "Solver" not in kwargs.keys():
             self.solver = DefaultSolver
 
     ###########################################################################
@@ -243,9 +239,7 @@ class BaseSimulation(props.HasModel):
         :rtype: numpy.ndarray
         :return: u, the fields
         """
-        raise NotImplementedError(
-            "fields has not been implemented for this "
-        )
+        raise NotImplementedError("fields has not been implemented for this ")
 
     def dpred(self, m=None, f=None):
         """
@@ -290,7 +284,7 @@ class BaseSimulation(props.HasModel):
         :rtype: numpy.ndarray
         :return: Jv
         """
-        raise NotImplementedError('Jvec is not yet implemented.')
+        raise NotImplementedError("Jvec is not yet implemented.")
 
     @timeIt
     def Jtvec(self, m, v, f=None):
@@ -303,7 +297,7 @@ class BaseSimulation(props.HasModel):
         :rtype: numpy.ndarray
         :return: JTv
         """
-        raise NotImplementedError('Jt is not yet implemented.')
+        raise NotImplementedError("Jt is not yet implemented.")
 
     @timeIt
     def Jvec_approx(self, m, v, f=None):
@@ -356,11 +350,11 @@ class BaseSimulation(props.HasModel):
         :param numpy.ndarray f: fields for the given model (if pre-calculated)
         """
 
-        std = kwargs.pop('std', None)
+        std = kwargs.pop("std", None)
         if std is not None:
             warnings.warn(
-                'The std parameter will be deprecated in SimPEG 0.15.0. '
-                'Please use relative_error.',
+                "The std parameter will be deprecated in SimPEG 0.15.0. "
+                "Please use relative_error.",
                 DeprecationWarning,
             )
             relative_error = std
@@ -371,15 +365,18 @@ class BaseSimulation(props.HasModel):
         dclean = self.dpred(m, f=f)
 
         if add_noise is True:
-            std = (relative_error*abs(dclean) + noise_floor)
-            noise = std*np.random.randn(*dclean.shape)
+            std = relative_error * abs(dclean) + noise_floor
+            noise = std * np.random.randn(*dclean.shape)
             dobs = dclean + noise
         else:
             dobs = dclean
 
         return SyntheticData(
-            survey=self.survey, dobs=dobs, dclean=dclean,
-            relative_error=relative_error, noise_floor=noise_floor
+            survey=self.survey,
+            dobs=dobs,
+            dclean=dclean,
+            relative_error=relative_error,
+            noise_floor=noise_floor,
         )
 
     def pair(self, survey):
@@ -391,7 +388,8 @@ class BaseSimulation(props.HasModel):
             "Simulation.pair(survey) will be deprecated. Please update your code "
             "to instead use simulation.survey = survey, or pass it upon intialization "
             "of the simulation object. This will be removed in version "
-            "0.15.0 of SimPEG", DeprecationWarning
+            "0.15.0 of SimPEG",
+            DeprecationWarning,
         )
         survey.pair(self)
 
@@ -412,34 +410,31 @@ class BaseTimeSimulation(BaseSimulation):
             sim.time_steps = np.r_[1e-6,1e-6,1e-6,1e-5,1e-4,1e-4]
 
         """,
-        dtype=float
+        dtype=float,
     )
 
-    t0 = properties.Float(
-        "Origin of the time discretization",
-        default=0.0
-    )
+    t0 = properties.Float("Origin of the time discretization", default=0.0)
 
     def __init__(self, mesh=None, **kwargs):
         super(BaseTimeSimulation, self).__init__(mesh=mesh, **kwargs)
 
-    @properties.observer('time_steps')
+    @properties.observer("time_steps")
     def _remove_time_mesh_on_time_step_update(self, change):
         del self.time_mesh
 
-    @properties.observer('t0')
+    @properties.observer("t0")
     def _remove_time_mesh_on_t0_update(self, change):
         del self.time_mesh
 
     @property
     def time_mesh(self):
-        if getattr(self, '_time_mesh', None) is None:
+        if getattr(self, "_time_mesh", None) is None:
             self._time_mesh = TensorMesh([self.time_steps], x0=[self.t0])
         return self._time_mesh
 
     @time_mesh.deleter
     def time_mesh(self):
-        if hasattr(self, '_time_mesh'):
+        if hasattr(self, "_time_mesh"):
             del self._time_mesh
 
     @property
@@ -451,9 +446,13 @@ class BaseTimeSimulation(BaseSimulation):
         "Modeling times"
         return self.time_mesh.vectorNx
 
-    timeSteps = deprecate_property(time_steps, 'timeSteps', new_name='time_steps', removal_version='0.15.0')
+    timeSteps = deprecate_property(
+        time_steps, "timeSteps", new_name="time_steps", removal_version="0.15.0"
+    )
 
-    timeMesh = deprecate_property(time_mesh, 'timeMesh', new_name='time_mesh', removal_version='0.15.0')
+    timeMesh = deprecate_property(
+        time_mesh, "timeMesh", new_name="time_mesh", removal_version="0.15.0"
+    )
 
     def dpred(self, m=None, f=None):
         """
@@ -491,6 +490,7 @@ class BaseTimeSimulation(BaseSimulation):
 #                                                                            #
 ##############################################################################
 
+
 class LinearSimulation(BaseSimulation):
     """
     Class for a linear simulation of the form
@@ -508,11 +508,7 @@ class LinearSimulation(BaseSimulation):
         "The model for a linear problem"
     )
 
-    mesh = properties.Instance(
-        "a discretize mesh instance",
-        BaseMesh,
-        required=True
-    )
+    mesh = properties.Instance("a discretize mesh instance", BaseMesh, required=True)
 
     survey = properties.Instance("a survey object", BaseSurvey)
 
@@ -524,12 +520,12 @@ class LinearSimulation(BaseSimulation):
             self.survey = BaseSurvey()
         if self.survey.nD == 0:
             # try seting the number of data to G
-            if getattr(self, 'G', None) is not None:
+            if getattr(self, "G", None) is not None:
                 self.survey._vnD = np.r_[self.G.shape[0]]
 
     @property
     def G(self):
-        if getattr(self, '_G', None) is not None:
+        if getattr(self, "_G", None) is not None:
             return self._G
         else:
             warnings.warn("G has not been implemented for the simulation")
@@ -576,30 +572,18 @@ class ExponentialSinusoidSimulation(LinearSimulation):
 
         \\int_x e^{p j_k x} \\cos(\\pi q j_k x) \\quad, j_k \\in [j_0, ..., j_n]
     """
+
     n_kernels = properties.Integer(
-        "number of kernels defining the linear problem",
-        default = 20
+        "number of kernels defining the linear problem", default=20
     )
 
-    p = properties.Float(
-        "rate of exponential decay of the kernel",
-        default=-0.25
-    )
+    p = properties.Float("rate of exponential decay of the kernel", default=-0.25)
 
-    q = properties.Float(
-        "rate of oscillation of the kernel",
-        default = 0.25
-    )
+    q = properties.Float("rate of oscillation of the kernel", default=0.25)
 
-    j0 = properties.Float(
-        "maximum value for :math:`j_k = j_0`",
-        default = 0.
-    )
+    j0 = properties.Float("maximum value for :math:`j_k = j_0`", default=0.0)
 
-    jn = properties.Float(
-        "maximum value for :math:`j_k = j_n`",
-        default = 60.
-    )
+    jn = properties.Float("maximum value for :math:`j_k = j_n`", default=60.0)
 
     def __init__(self, **kwargs):
         super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
@@ -609,7 +593,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         """
         Parameters controlling the spread of kernel functions
         """
-        if getattr(self, '_jk', None) is None:
+        if getattr(self, "_jk", None) is None:
             self._jk = np.linspace(self.j0, self.jn, self.n_kernels)
         return self._jk
 
@@ -617,9 +601,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         """
         Kernel functions for the decaying oscillating exponential functions.
         """
-        return (
-            np.exp(self.p*self.jk[k]*self.mesh.vectorCCx) *
-            np.cos(np.pi*self.q*self.jk[k]*self.mesh.vectorCCx)
+        return np.exp(self.p * self.jk[k] * self.mesh.vectorCCx) * np.cos(
+            np.pi * self.q * self.jk[k] * self.mesh.vectorCCx
         )
 
     @property
@@ -627,7 +610,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         """
         Matrix whose rows are the kernel functions
         """
-        if getattr(self, '_G', None) is None:
+        if getattr(self, "_G", None) is None:
             G = np.empty((self.n_kernels, self.mesh.nC))
 
             for i in range(self.n_kernels):

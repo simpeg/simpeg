@@ -1,19 +1,27 @@
 from __future__ import print_function
 import unittest
 import SimPEG.dask
-from SimPEG import (directives, maps,
-                    inverse_problem, optimization, data_misfit,
-                    inversion, utils, regularization)
+from SimPEG import (
+    directives,
+    maps,
+    inverse_problem,
+    optimization,
+    data_misfit,
+    inversion,
+    utils,
+    regularization,
+)
 
 from discretize.utils import meshutils
 
 import shutil
-#import SimPEG.PF as PF
+
+# import SimPEG.PF as PF
 from SimPEG.potential_fields import magnetics as mag
 import numpy as np
 
-class MagInvLinProblemTest(unittest.TestCase):
 
+class MagInvLinProblemTest(unittest.TestCase):
     def setUp(self):
 
         np.random.seed(0)
@@ -24,7 +32,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # From old convention, field orientation is given as an
         # azimuth from North (positive clockwise)
         # and dip from the horizontal (positive downward).
-        H0 = (50000., 90., 0.)
+        H0 = (50000.0, 90.0, 0.0)
 
         # Create a mesh
         h = [5, 5, 5]
@@ -34,22 +42,21 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create grid of points for topography
         # Lets create a simple Gaussian topo and set the active cells
         [xx, yy] = np.meshgrid(
-            np.linspace(-200., 200., 50),
-            np.linspace(-200., 200., 50)
+            np.linspace(-200.0, 200.0, 50), np.linspace(-200.0, 200.0, 50)
         )
 
         b = 100
         A = 50
-        zz = A*np.exp(-0.5*((xx/b)**2. + (yy/b)**2.))
+        zz = A * np.exp(-0.5 * ((xx / b) ** 2.0 + (yy / b) ** 2.0))
 
         # We would usually load a topofile
         topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
         # Create and array of observation points
-        xr = np.linspace(-100., 100., 20)
-        yr = np.linspace(-100., 100., 20)
+        xr = np.linspace(-100.0, 100.0, 20)
+        yr = np.linspace(-100.0, 100.0, 20)
         X, Y = np.meshgrid(xr, yr)
-        Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 5
+        Z = A * np.exp(-0.5 * ((X / b) ** 2.0 + (Y / b) ** 2.0)) + 5
 
         # Create a MAGsurvey
         xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -59,12 +66,13 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # self.mesh.finalize()
         self.mesh = meshutils.mesh_builder_xyz(
-            xyzLoc, h, padding_distance=padDist,
-            mesh_type='TREE',
+            xyzLoc, h, padding_distance=padDist, mesh_type="TREE",
         )
 
         self.mesh = meshutils.refine_tree_xyz(
-            self.mesh, topo, method='surface',
+            self.mesh,
+            topo,
+            method="surface",
             octree_levels=nCpad,
             octree_levels_padding=nCpad,
             finalize=True,
@@ -77,8 +85,11 @@ class MagInvLinProblemTest(unittest.TestCase):
         # We can now create a susceptibility model and generate data
         # Lets start with a simple block in half-space
         self.model = utils.model_builder.addBlock(
-            self.mesh.gridCC, np.zeros(self.mesh.nC),
-            np.r_[-20, -20, -15], np.r_[20, 20, 20], 0.05
+            self.mesh.gridCC,
+            np.zeros(self.mesh.nC),
+            np.r_[-20, -20, -15],
+            np.r_[20, 20, 20],
+            0.05,
         )[actv]
 
         # Create active map to go from reduce set to full
@@ -93,7 +104,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             survey=survey,
             chiMap=idenMap,
             actInd=actv,
-            store_sensitivities='ram'
+            store_sensitivities="ram",
         )
         self.sim = sim
         data = sim.make_synthetic_data(
@@ -111,12 +122,16 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=10, lower=0., upper=10.,
-            maxIterLS=5, maxIterCG=5, tolCG=1e-4,
-            stepOffBoundsFact=1e-4
+            maxIter=10,
+            lower=0.0,
+            upper=10.0,
+            maxIterLS=5,
+            maxIterCG=5,
+            tolCG=1e-4,
+            stepOffBoundsFact=1e-4,
         )
 
-        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e+6)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e6)
 
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of
@@ -127,16 +142,15 @@ class MagInvLinProblemTest(unittest.TestCase):
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
         self.inv = inversion.BaseInversion(
-            invProb,
-            directiveList=[IRLS, sensitivity_weights, update_Jacobi]
+            invProb, directiveList=[IRLS, sensitivity_weights, update_Jacobi]
         )
 
     def test_mag_inverse(self):
 
         # Run the inversion
-        mrec = self.inv.run(self.model*1e-4)
+        mrec = self.inv.run(self.model * 1e-4)
 
-        residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
+        residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
         # print(residual)
         # import matplotlib.pyplot as plt
         # plt.figure()
@@ -154,15 +168,14 @@ class MagInvLinProblemTest(unittest.TestCase):
         # ax.set_ylim(self.mesh.gridCC[:, 2].min(), self.mesh.gridCC[:, 2].max())
         # plt.show()
 
-
         self.assertLess(residual, 1)
         # self.assertTrue(residual < 0.05)
 
     def tearDown(self):
         # Clean up the working directory
-        if self.sim.store_sensitivities == 'disk':
+        if self.sim.store_sensitivities == "disk":
             shutil.rmtree(self.sim.sensitivity_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

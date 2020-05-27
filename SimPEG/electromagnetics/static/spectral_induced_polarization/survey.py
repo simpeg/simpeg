@@ -11,13 +11,14 @@ class Survey(BaseTimeSurvey):
     """
     Spectral induced polarization survey
     """
+
     n_pulse = 2
-    T = 8.
+    T = 8.0
 
     source_list = properties.List(
         "A list of sources for the survey",
         properties.Instance("A SimPEG source", sources.BaseSrc),
-        default=[]
+        default=[],
     )
 
     def __init__(self, source_list=None, **kwargs):
@@ -25,7 +26,7 @@ class Survey(BaseTimeSurvey):
 
     @property
     def n_locations(self):
-        return int(self.nD/self.times.size)
+        return int(self.nD / self.times.size)
 
 
 def from_dc_to_sip_survey(survey_dc, times):
@@ -48,13 +49,9 @@ def from_dc_to_sip_survey(survey_dc, times):
             rxList_sip.append(rx_sip)
 
         if isinstance(src, dc.sources.Pole):
-            src_sip = sources.Pole(
-                rxList_sip, src.loc
-            )
+            src_sip = sources.Pole(rxList_sip, src.loc)
         elif isinstance(src, dc.sources.Dipole):
-            src_sip = sources.Dipole(
-                rxList_sip, src.loc[0], src.loc[1]
-            )
+            src_sip = sources.Dipole(rxList_sip, src.loc[0], src.loc[1])
         else:
             print(src)
             raise NotImplementedError()

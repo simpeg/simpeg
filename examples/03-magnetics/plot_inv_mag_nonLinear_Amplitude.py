@@ -23,14 +23,21 @@ import shutil
 import matplotlib.pyplot as plt
 from scipy.interpolate import NearestNDInterpolator
 from SimPEG import (
-    data, data_misfit, directives, maps, inverse_problem, optimization,
-    inversion, regularization
-    )
+    data,
+    data_misfit,
+    directives,
+    maps,
+    inverse_problem,
+    optimization,
+    inversion,
+    regularization,
+)
 
 from SimPEG.potential_fields import magnetics
 from SimPEG import utils
 from SimPEG.utils import mkvc, surface2ind_topo
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz
+
 # sphinx_gallery_thumbnail_number = 4
 
 ###############################################################################
@@ -45,10 +52,10 @@ from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 #
 
 # We will assume a vertical inducing field
-H0 = (50000., 90., 0.)
+H0 = (50000.0, 90.0, 0.0)
 
 # The magnetization is set along a different direction (induced + remanence)
-M = np.array([45., 90.])
+M = np.array([45.0, 90.0])
 
 # Block with an effective susceptibility
 chi_e = 0.05
@@ -58,14 +65,14 @@ chi_e = 0.05
 [xx, yy] = np.meshgrid(np.linspace(-200, 200, 50), np.linspace(-200, 200, 50))
 b = 100
 A = 50
-zz = A*np.exp(-0.5*((xx/b)**2. + (yy/b)**2.))
+zz = A * np.exp(-0.5 * ((xx / b) ** 2.0 + (yy / b) ** 2.0))
 topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
 # Create and array of observation points
-xr = np.linspace(-100., 100., 20)
-yr = np.linspace(-100., 100., 20)
+xr = np.linspace(-100.0, 100.0, 20)
+yr = np.linspace(-100.0, 100.0, 20)
 X, Y = np.meshgrid(xr, yr)
-Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 10
+Z = A * np.exp(-0.5 * ((X / b) ** 2.0 + (Y / b) ** 2.0)) + 10
 
 # Create a MAGsurvey
 rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
@@ -76,12 +83,11 @@ survey = magnetics.survey.Survey(srcField)
 # Here how the topography looks with a quick interpolation, just a Gaussian...
 tri = sp.spatial.Delaunay(topo)
 fig = plt.figure()
-ax = fig.add_subplot(1, 1, 1, projection='3d')
+ax = fig.add_subplot(1, 1, 1, projection="3d")
 ax.plot_trisurf(
-    topo[:, 0], topo[:, 1], topo[:, 2],
-    triangles=tri.simplices, cmap=plt.cm.Spectral
+    topo[:, 0], topo[:, 1], topo[:, 2], triangles=tri.simplices, cmap=plt.cm.Spectral
 )
-ax.scatter3D(rxLoc[:, 0], rxLoc[:, 1], rxLoc[:, 2], c='k')
+ax.scatter3D(rxLoc[:, 0], rxLoc[:, 1], rxLoc[:, 2], c="k")
 plt.show()
 
 ###############################################################################
@@ -99,8 +105,12 @@ plt.show()
 h = [5, 5, 5]
 padDist = np.ones((3, 2)) * 100
 
-mesh = mesh_builder_xyz(rxLoc, h, padding_distance=padDist, depth_core=100, mesh_type='tree')
-mesh = refine_tree_xyz(mesh, topo, method='surface', octree_levels=[4,4], finalize=True)
+mesh = mesh_builder_xyz(
+    rxLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
+)
+mesh = refine_tree_xyz(
+    mesh, topo, method="surface", octree_levels=[4, 4], finalize=True
+)
 
 # Define an active cells from topo
 actv = utils.surface2ind_topo(mesh, topo)
@@ -114,12 +124,11 @@ nC = int(actv.sum())
 #
 
 # Convert the inclination declination to vector in Cartesian
-M_xyz = utils.mat_utils.dip_azimuth2cartesian(np.ones(nC)*M[0], np.ones(nC)*M[1])
+M_xyz = utils.mat_utils.dip_azimuth2cartesian(np.ones(nC) * M[0], np.ones(nC) * M[1])
 
 # Get the indicies of the magnetized block
 ind = utils.model_builder.getIndicesBlock(
-    np.r_[-20, -20, -10], np.r_[20, 20, 25],
-    mesh.gridCC,
+    np.r_[-20, -20, -10], np.r_[20, 20, 25], mesh.gridCC,
 )[0]
 
 # Assign magnetization value, inducing field strength will
@@ -135,7 +144,11 @@ idenMap = maps.IdentityMap(nP=nC)
 
 # Create the forward model operator
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv, store_sensitivities="forward_only"
+    survey=survey,
+    mesh=mesh,
+    chiMap=idenMap,
+    actInd=actv,
+    store_sensitivities="forward_only",
 )
 simulation.M = M_xyz
 
@@ -146,8 +159,8 @@ synthetic_data = simulation.dpred(model)
 nD = rxLoc.shape[0]
 
 std = 5  # nT
-synthetic_data += np.random.randn(nD)*std
-wd = np.ones(nD)*std
+synthetic_data += np.random.randn(nD) * std
+wd = np.ones(nD) * std
 
 # Assigne data and uncertainties to the survey
 data_object = data.Data(survey, dobs=synthetic_data, standard_deviation=wd)
@@ -157,11 +170,11 @@ data_object = data.Data(survey, dobs=synthetic_data, standard_deviation=wd)
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 1, 1)
 im = utils.plot_utils.plot2Ddata(
-        rxLoc, synthetic_data, ax=ax, contourOpts={"cmap": "RdBu_r"}
+    rxLoc, synthetic_data, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
-ax.set_title('Predicted data.')
-plt.gca().set_aspect('equal', adjustable='box')
+ax.set_title("Predicted data.")
+plt.gca().set_aspect("equal", adjustable="box")
 
 # Plot the vector model
 ax = plt.subplot(2, 1, 2)
@@ -169,14 +182,18 @@ ax = plt.subplot(2, 1, 2)
 # Create active map to go from reduce set to full
 actvPlot = maps.InjectActiveCells(mesh, actv, np.nan)
 mesh.plotSlice(
-    actvPlot*model, ax=ax, normal='Y', ind=66,
-    pcolorOpts={"vmin": 0., "vmax": 0.01}, grid=True,
+    actvPlot * model,
+    ax=ax,
+    normal="Y",
+    ind=66,
+    pcolorOpts={"vmin": 0.0, "vmax": 0.01},
+    grid=True,
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-plt.gca().set_aspect('equal', adjustable='box')
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+plt.gca().set_aspect("equal", adjustable="box")
 
 plt.show()
 
@@ -192,9 +209,9 @@ plt.show()
 
 # Get the active cells for equivalent source is the top only
 surf = surface2ind_topo(mesh, topo)
-#surf = utils.plot_utils.surface_layer_index(mesh, topo)
+# surf = utils.plot_utils.surface_layer_index(mesh, topo)
 nC = np.count_nonzero(surf)  # Number of active cells
-mstart = np.ones(nC)*1e-4
+mstart = np.ones(nC) * 1e-4
 
 # Create active map to go from reduce set to full
 surfMap = maps.InjectActiveCells(mesh, surf, np.nan)
@@ -204,25 +221,21 @@ idenMap = maps.IdentityMap(nP=nC)
 
 # Create static map
 simulation = magnetics.simulation.Simulation3DIntegral(
-        mesh=mesh, survey=survey, chiMap=idenMap, actInd=surf,
-        store_sensitivities='ram'
+    mesh=mesh, survey=survey, chiMap=idenMap, actInd=surf, store_sensitivities="ram"
 )
 
-wr = simulation.getJtJdiag(mstart)**0.5
-wr = (wr/np.max(np.abs(wr)))
+wr = simulation.getJtJdiag(mstart) ** 0.5
+wr = wr / np.max(np.abs(wr))
 
 # Create a regularization function, in this case l2l2
 reg = regularization.Sparse(
-    mesh, indActive=surf,
-    mapping=maps.IdentityMap(nP=nC),
-    alpha_z = 0
+    mesh, indActive=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
 )
 reg.mref = np.zeros(nC)
 
 # Specify how the optimization will proceed, set susceptibility bounds to inf
 opt = optimization.ProjectedGNCG(
-    maxIter=20, lower=-np.inf, upper=np.inf, maxIterLS=20,
-    maxIterCG=20, tolCG=1e-3
+    maxIter=20, lower=-np.inf, upper=np.inf, maxIterLS=20, maxIterCG=20, tolCG=1e-3
 )
 
 # Define misfit function (obs-calc)
@@ -236,13 +249,12 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=2)
 
 # Target misfit to stop the inversion,
 # try to fit as much as possible of the signal, we don't want to lose anything
-IRLS = directives.Update_IRLS(f_min_change=1e-3, minGNiter=1,
-                              beta_tol=1e-1,
-                              max_irls_iterations=5)
+IRLS = directives.Update_IRLS(
+    f_min_change=1e-3, minGNiter=1, beta_tol=1e-1, max_irls_iterations=5
+)
 update_Jacobi = directives.UpdatePreconditioner()
 # Put all the parts together
-inv = inversion.BaseInversion(invProb,
-                              directiveList=[betaest, IRLS, update_Jacobi])
+inv = inversion.BaseInversion(invProb, directiveList=[betaest, IRLS, update_Jacobi])
 
 # Run the equivalent source inversion
 mrec = inv.run(mstart)
@@ -255,12 +267,12 @@ mrec = inv.run(mstart)
 # components of the field and add them up: :math:`|B| = \sqrt{( Bx^2 + Bx^2 + Bx^2 )}`
 #
 
-rxList = magnetics.receivers.Point(rxLoc, components=['bx', 'by', 'bz'])
+rxList = magnetics.receivers.Point(rxLoc, components=["bx", "by", "bz"])
 srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
 surveyAmp = magnetics.survey.Survey(srcField)
 
 simulation = magnetics.simulation.Simulation3DIntegral(
-        mesh=mesh, survey=surveyAmp, chiMap=idenMap, actInd=surf, is_amplitude_data=True
+    mesh=mesh, survey=surveyAmp, chiMap=idenMap, actInd=surf, is_amplitude_data=True
 )
 
 bAmp = simulation.fields(mrec)
@@ -269,31 +281,33 @@ bAmp = simulation.fields(mrec)
 plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 2, 1)
 im = utils.plot_utils.plot2Ddata(
-        rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
+    rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
 )
 plt.colorbar(im[0])
-ax.set_title('Predicted data.')
-plt.gca().set_aspect('equal', adjustable='box')
+ax.set_title("Predicted data.")
+plt.gca().set_aspect("equal", adjustable="box")
 
 ax = plt.subplot(2, 2, 2)
-im = utils.plot_utils.plot2Ddata(
-        rxLoc, bAmp, ax=ax, contourOpts={"cmap": "RdBu_r"}
-)
+im = utils.plot_utils.plot2Ddata(rxLoc, bAmp, ax=ax, contourOpts={"cmap": "RdBu_r"})
 plt.colorbar(im[0])
-ax.set_title('Calculated amplitude')
-plt.gca().set_aspect('equal', adjustable='box')
+ax.set_title("Calculated amplitude")
+plt.gca().set_aspect("equal", adjustable="box")
 
 # Plot the equivalent layer model
 ax = plt.subplot(2, 1, 2)
 mesh.plotSlice(
-    surfMap*mrec, ax=ax, normal='Y', ind=66,
-    pcolorOpts={"vmin": 0., "vmax": 0.01}, grid=True
+    surfMap * mrec,
+    ax=ax,
+    normal="Y",
+    ind=66,
+    pcolorOpts={"vmin": 0.0, "vmax": 0.01},
+    grid=True,
 )
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-plt.gca().set_aspect('equal', adjustable='box')
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+plt.gca().set_aspect("equal", adjustable="box")
 
 plt.show()
 
@@ -312,12 +326,11 @@ nC = int(actv.sum())
 # Create identity map
 idenMap = maps.IdentityMap(nP=nC)
 
-mstart = np.ones(nC)*1e-4
+mstart = np.ones(nC) * 1e-4
 
 # Create the forward model operator
 simulation = magnetics.simulation.Simulation3DIntegral(
-   survey=surveyAmp, mesh=mesh, chiMap=idenMap, actInd=actv,
-   is_amplitude_data=True
+    survey=surveyAmp, mesh=mesh, chiMap=idenMap, actInd=actv, is_amplitude_data=True
 )
 
 data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
@@ -332,9 +345,7 @@ dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_obj)
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(
-    maxIter=30, lower=0., upper=1.,
-    maxIterLS=20, maxIterCG=20,
-    tolCG=1e-3
+    maxIter=30, lower=0.0, upper=1.0, maxIterLS=20, maxIterCG=20, tolCG=1e-3
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -346,8 +357,9 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=1)
 IRLS = directives.Update_IRLS(
     max_irls_iterations=10,
     f_min_change=1e-3,
-    minGNiter=1, coolingRate=1,
-    beta_search=False
+    minGNiter=1,
+    coolingRate=1,
+    beta_search=False,
 )
 
 # Special directive specific to the mag amplitude problem. The sensitivity
@@ -357,9 +369,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 
 # Put all together
 inv = inversion.BaseInversion(
-    invProb, directiveList=[
-        update_SensWeight, betaest, IRLS, update_Jacobi
-        ]
+    invProb, directiveList=[update_SensWeight, betaest, IRLS, update_Jacobi]
 )
 
 # Invert
@@ -381,35 +391,43 @@ mrec_Amp = inv.run(mstart)
 plt.figure(figsize=(12, 8))
 ax = plt.subplot(3, 1, 1)
 im = utils.plot_utils.plot2Ddata(
-        rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
- )
+    rxLoc, invProb.dpred, ax=ax, contourOpts={"cmap": "RdBu_r"}
+)
 plt.colorbar(im[0])
-ax.set_title('Predicted data.')
-plt.gca().set_aspect('equal', adjustable='box')
+ax.set_title("Predicted data.")
+plt.gca().set_aspect("equal", adjustable="box")
 
 # Plot the l2 model
 ax = plt.subplot(3, 1, 2)
 im = mesh.plotSlice(
-    actvPlot*invProb.l2model, ax=ax, normal='Y', ind=66,
-    pcolorOpts={"vmin": 0., "vmax": 0.01}, grid=True,
+    actvPlot * invProb.l2model,
+    ax=ax,
+    normal="Y",
+    ind=66,
+    pcolorOpts={"vmin": 0.0, "vmax": 0.01},
+    grid=True,
 )
 plt.colorbar(im[0])
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-plt.gca().set_aspect('equal', adjustable='box')
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+plt.gca().set_aspect("equal", adjustable="box")
 
 # Plot the lp model
 ax = plt.subplot(3, 1, 3)
 im = mesh.plotSlice(
-    actvPlot*invProb.model, ax=ax, normal='Y', ind=66,
-    pcolorOpts={"vmin": 0., "vmax": 0.01}, grid=True
+    actvPlot * invProb.model,
+    ax=ax,
+    normal="Y",
+    ind=66,
+    pcolorOpts={"vmin": 0.0, "vmax": 0.01},
+    grid=True,
 )
 plt.colorbar(im[0])
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-plt.gca().set_aspect('equal', adjustable='box')
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+plt.gca().set_aspect("equal", adjustable="box")
 plt.show()

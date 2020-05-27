@@ -24,12 +24,12 @@ from SimPEG.utils.io_utils import download
 
 # file origina and name
 url = "https://storage.googleapis.com/simpeg/examples/dc_data.csv"
-fname = download(url, folder='./test_url', overwrite=True)
+fname = download(url, folder="./test_url", overwrite=True)
 
 # read csv using pandas
 df = pd.read_csv(fname)
 # header for ABMN locations
-header_loc = ['Spa.'+str(i+1) for i in range(4)]
+header_loc = ["Spa." + str(i + 1) for i in range(4)]
 # Apparent resistivity
 header_apprho = df.keys()[6]
 
@@ -53,10 +53,13 @@ apprho = df[header_apprho].values
 IO = DC.IO()
 # Generate DC survey using IO object
 dc_survey = IO.from_ambn_locations_to_survey(
-    a, b, m, n,
-    survey_type='dipole-dipole',
+    a,
+    b,
+    m,
+    n,
+    survey_type="dipole-dipole",
     data_dc=apprho,
-    data_dc_type='apparent_resistivity'
+    data_dc_type="apparent_resistivity",
 )
 
 ###############################################################################
@@ -66,16 +69,12 @@ dc_survey = IO.from_ambn_locations_to_survey(
 #
 fig, ax = plt.subplots(1, 1, figsize=(10, 3))
 IO.plotPseudoSection(
-    data_type='apparent_resistivity',
-    scale='linear',
-    clim=(0, 1000),
-    ncontour=3,
-    ax=ax
+    data_type="apparent_resistivity", scale="linear", clim=(0, 1000), ncontour=3, ax=ax
 )
 plt.show()
 
 # clean up
-shutil.rmtree(os.path.expanduser('./test_url'))
+shutil.rmtree(os.path.expanduser("./test_url"))
 
 ###############################################################################
 # Print the version of SimPEG and dependencies

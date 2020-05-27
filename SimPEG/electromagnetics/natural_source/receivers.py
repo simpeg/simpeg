@@ -25,10 +25,11 @@ class BaseRxNSEM_Point(BaseRx):
     """
 
     component = properties.StringChoice(
-        "component of the field (real or imag)", {
+        "component of the field (real or imag)",
+        {
             "real": ["re", "in-phase", "in phase"],
-            "imag": ["imaginary", "im", "out-of-phase", "out of phase"]
-        }
+            "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
+        },
     )
 
     def __init__(self, locs, orientation=None, component=None):
@@ -44,7 +45,7 @@ class BaseRxNSEM_Point(BaseRx):
 
     @mesh.setter
     def mesh(self, value):
-        if value is getattr(self, '_mesh', None):
+        if value is getattr(self, "_mesh", None):
             pass
         else:
             self._mesh = value
@@ -82,256 +83,278 @@ class BaseRxNSEM_Point(BaseRx):
     # Location projection
     @property
     def Pex(self):
-        if getattr(self, '_Pex', None) is None:
-            self._Pex = self._mesh.getInterpolationMat(self._locs_e(), 'Ex')
+        if getattr(self, "_Pex", None) is None:
+            self._Pex = self._mesh.getInterpolationMat(self._locs_e(), "Ex")
         return self._Pex
 
     @property
     def Pey(self):
-        if getattr(self, '_Pey', None) is None:
-            self._Pey = self._mesh.getInterpolationMat(self._locs_e(), 'Ey')
+        if getattr(self, "_Pey", None) is None:
+            self._Pey = self._mesh.getInterpolationMat(self._locs_e(), "Ey")
         return self._Pey
 
     @property
     def Pbx(self):
-        if getattr(self, '_Pbx', None) is None:
-            self._Pbx = self._mesh.getInterpolationMat(self._locs_b(), 'Fx')
+        if getattr(self, "_Pbx", None) is None:
+            self._Pbx = self._mesh.getInterpolationMat(self._locs_b(), "Fx")
         return self._Pbx
 
     @property
     def Pby(self):
-        if getattr(self, '_Pby', None) is None:
-            self._Pby = self._mesh.getInterpolationMat(self._locs_b(), 'Fy')
+        if getattr(self, "_Pby", None) is None:
+            self._Pby = self._mesh.getInterpolationMat(self._locs_b(), "Fy")
         return self._Pby
 
     @property
     def Pbz(self):
-        if getattr(self, '_Pbz', None) is None:
-            self._Pbz = self._mesh.getInterpolationMat(self._locs_e(), 'Fz')
+        if getattr(self, "_Pbz", None) is None:
+            self._Pbz = self._mesh.getInterpolationMat(self._locs_e(), "Fz")
         return self._Pbz
 
     # Utility for convienece
     def _sDiag(self, t):
-        return sdiag(mkvc(t,2))
+        return sdiag(mkvc(t, 2))
 
     # Get the components of the fields
     # px: x-polaration and py: y-polaration.
     @property
     def _ex_px(self):
-        return self.Pex*self.f[self.src, 'e_px']
+        return self.Pex * self.f[self.src, "e_px"]
 
     @property
     def _ey_px(self):
-        return self.Pey*self.f[self.src, 'e_px']
+        return self.Pey * self.f[self.src, "e_px"]
 
     @property
     def _ex_py(self):
-        return self.Pex*self.f[self.src, 'e_py']
+        return self.Pex * self.f[self.src, "e_py"]
 
     @property
     def _ey_py(self):
-        return self.Pey*self.f[self.src, 'e_py']
+        return self.Pey * self.f[self.src, "e_py"]
 
     @property
     def _hx_px(self):
-        return self.Pbx*self.f[self.src, 'b_px']/mu_0
+        return self.Pbx * self.f[self.src, "b_px"] / mu_0
 
     @property
     def _hy_px(self):
-        return self.Pby*self.f[self.src, 'b_px']/mu_0
+        return self.Pby * self.f[self.src, "b_px"] / mu_0
 
     @property
     def _hz_px(self):
-        return self.Pbz*self.f[self.src, 'b_px']/mu_0
+        return self.Pbz * self.f[self.src, "b_px"] / mu_0
 
     @property
     def _hx_py(self):
-        return self.Pbx*self.f[self.src, 'b_py']/mu_0
+        return self.Pbx * self.f[self.src, "b_py"] / mu_0
 
     @property
     def _hy_py(self):
-        return self.Pby*self.f[self.src, 'b_py']/mu_0
+        return self.Pby * self.f[self.src, "b_py"] / mu_0
 
     @property
     def _hz_py(self):
-        return self.Pbz*self.f[self.src, 'b_py']/mu_0
+        return self.Pbz * self.f[self.src, "b_py"] / mu_0
+
     # Get the derivatives
 
     def _ex_px_u(self, vec):
-        return self.Pex*self.f._e_pxDeriv_u(self.src, vec)
+        return self.Pex * self.f._e_pxDeriv_u(self.src, vec)
 
     def _ey_px_u(self, vec):
-        return self.Pey*self.f._e_pxDeriv_u(self.src, vec)
+        return self.Pey * self.f._e_pxDeriv_u(self.src, vec)
 
     def _ex_py_u(self, vec):
-        return self.Pex*self.f._e_pyDeriv_u(self.src, vec)
+        return self.Pex * self.f._e_pyDeriv_u(self.src, vec)
 
     def _ey_py_u(self, vec):
-        return self.Pey*self.f._e_pyDeriv_u(self.src, vec)
+        return self.Pey * self.f._e_pyDeriv_u(self.src, vec)
 
     def _hx_px_u(self, vec):
-        return self.Pbx*self.f._b_pxDeriv_u(self.src, vec)/mu_0
+        return self.Pbx * self.f._b_pxDeriv_u(self.src, vec) / mu_0
 
     def _hy_px_u(self, vec):
-        return self.Pby*self.f._b_pxDeriv_u(self.src, vec)/mu_0
+        return self.Pby * self.f._b_pxDeriv_u(self.src, vec) / mu_0
 
     def _hz_px_u(self, vec):
-        return self.Pbz*self.f._b_pxDeriv_u(self.src, vec)/mu_0
+        return self.Pbz * self.f._b_pxDeriv_u(self.src, vec) / mu_0
 
     def _hx_py_u(self, vec):
-        return self.Pbx*self.f._b_pyDeriv_u(self.src, vec)/mu_0
+        return self.Pbx * self.f._b_pyDeriv_u(self.src, vec) / mu_0
 
     def _hy_py_u(self, vec):
-        return self.Pby*self.f._b_pyDeriv_u(self.src, vec)/mu_0
+        return self.Pby * self.f._b_pyDeriv_u(self.src, vec) / mu_0
 
     def _hz_py_u(self, vec):
-        return self.Pbz*self.f._b_pyDeriv_u(self.src, vec)/mu_0
+        return self.Pbz * self.f._b_pyDeriv_u(self.src, vec) / mu_0
+
     # Define the components of the derivative
 
     @property
     def _Hd(self):
-        return self._sDiag(1./(
-            self._sDiag(self._hx_px)*self._hy_py -
-            self._sDiag(self._hx_py)*self._hy_px
-        ))
+        return self._sDiag(
+            1.0
+            / (
+                self._sDiag(self._hx_px) * self._hy_py
+                - self._sDiag(self._hx_py) * self._hy_px
+            )
+        )
 
     def _Hd_uV(self, v):
         return (
-            self._sDiag(self._hy_py)*self._hx_px_u(v) +
-            self._sDiag(self._hx_px)*self._hy_py_u(v) -
-            self._sDiag(self._hx_py)*self._hy_px_u(v) -
-            self._sDiag(self._hy_px)*self._hx_py_u(v)
+            self._sDiag(self._hy_py) * self._hx_px_u(v)
+            + self._sDiag(self._hx_px) * self._hy_py_u(v)
+            - self._sDiag(self._hx_py) * self._hy_px_u(v)
+            - self._sDiag(self._hy_px) * self._hx_py_u(v)
         )
 
     # Adjoint
     @property
     def _aex_px(self):
-        return mkvc(mkvc(self.f[self.src, 'e_px'], 2).T*self.Pex.T)
+        return mkvc(mkvc(self.f[self.src, "e_px"], 2).T * self.Pex.T)
 
     @property
     def _aey_px(self):
-        return mkvc(mkvc(self.f[self.src, 'e_px'], 2).T*self.Pey.T)
+        return mkvc(mkvc(self.f[self.src, "e_px"], 2).T * self.Pey.T)
 
     @property
     def _aex_py(self):
-        return mkvc(mkvc(self.f[self.src, 'e_py'], 2).T*self.Pex.T)
+        return mkvc(mkvc(self.f[self.src, "e_py"], 2).T * self.Pex.T)
 
     @property
     def _aey_py(self):
-        return mkvc(mkvc(self.f[self.src, 'e_py'], 2).T*self.Pey.T)
+        return mkvc(mkvc(self.f[self.src, "e_py"], 2).T * self.Pey.T)
 
     @property
     def _ahx_px(self):
-        return mkvc(mkvc(self.f[self.src, 'b_px'], 2).T/mu_0*self.Pbx.T)
+        return mkvc(mkvc(self.f[self.src, "b_px"], 2).T / mu_0 * self.Pbx.T)
 
     @property
     def _ahy_px(self):
-        return mkvc(mkvc(self.f[self.src, 'b_px'], 2).T/mu_0*self.Pby.T)
+        return mkvc(mkvc(self.f[self.src, "b_px"], 2).T / mu_0 * self.Pby.T)
 
     @property
     def _ahz_px(self):
-        return mkvc(mkvc(self.f[self.src, 'b_px'], 2).T/mu_0*self.Pbz.T)
+        return mkvc(mkvc(self.f[self.src, "b_px"], 2).T / mu_0 * self.Pbz.T)
 
     @property
     def _ahx_py(self):
-        return mkvc(mkvc(self.f[self.src, 'b_py'], 2).T/mu_0*self.Pbx.T)
+        return mkvc(mkvc(self.f[self.src, "b_py"], 2).T / mu_0 * self.Pbx.T)
 
     @property
     def _ahy_py(self):
-        return mkvc(mkvc(self.f[self.src, 'b_py'], 2).T/mu_0*self.Pby.T)
+        return mkvc(mkvc(self.f[self.src, "b_py"], 2).T / mu_0 * self.Pby.T)
 
     @property
     def _ahz_py(self):
-        return mkvc(mkvc(self.f[self.src, 'b_py'], 2).T/mu_0*self.Pbz.T)
+        return mkvc(mkvc(self.f[self.src, "b_py"], 2).T / mu_0 * self.Pbz.T)
 
     # NOTE: need to add a .T at the end for the output to be (nU,)
     def _aex_px_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._e_pxDeriv_u(self.src, self.Pex.T*mkvc(vec,), adjoint=True)
+        return self.f._e_pxDeriv_u(self.src, self.Pex.T * mkvc(vec,), adjoint=True)
 
     def _aey_px_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._e_pxDeriv_u(self.src, self.Pey.T*mkvc(vec,), adjoint=True)
+        return self.f._e_pxDeriv_u(self.src, self.Pey.T * mkvc(vec,), adjoint=True)
 
     def _aex_py_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._e_pyDeriv_u(self.src, self.Pex.T*mkvc(vec,), adjoint=True)
+        return self.f._e_pyDeriv_u(self.src, self.Pex.T * mkvc(vec,), adjoint=True)
 
     def _aey_py_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._e_pyDeriv_u(self.src, self.Pey.T*mkvc(vec,), adjoint=True)
+        return self.f._e_pyDeriv_u(self.src, self.Pey.T * mkvc(vec,), adjoint=True)
 
     def _ahx_px_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._b_pxDeriv_u(self.src, self.Pbx.T*mkvc(vec,), adjoint=True)/mu_0
+        return (
+            self.f._b_pxDeriv_u(self.src, self.Pbx.T * mkvc(vec,), adjoint=True) / mu_0
+        )
 
     def _ahy_px_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._b_pxDeriv_u(self.src, self.Pby.T*mkvc(vec,), adjoint=True)/mu_0
+        return (
+            self.f._b_pxDeriv_u(self.src, self.Pby.T * mkvc(vec,), adjoint=True) / mu_0
+        )
 
     def _ahz_px_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._b_pxDeriv_u(self.src, self.Pbz.T*mkvc(vec,), adjoint=True)/mu_0
+        return (
+            self.f._b_pxDeriv_u(self.src, self.Pbz.T * mkvc(vec,), adjoint=True) / mu_0
+        )
 
     def _ahx_py_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._b_pyDeriv_u(self.src, self.Pbx.T*mkvc(vec,), adjoint=True)/mu_0
+        return (
+            self.f._b_pyDeriv_u(self.src, self.Pbx.T * mkvc(vec,), adjoint=True) / mu_0
+        )
 
     def _ahy_py_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._b_pyDeriv_u(self.src, self.Pby.T*mkvc(vec,), adjoint=True)/mu_0
+        return (
+            self.f._b_pyDeriv_u(self.src, self.Pby.T * mkvc(vec,), adjoint=True) / mu_0
+        )
 
     def _ahz_py_u(self, vec):
         """
         """
         # vec is (nD,) and returns a (nU,)
-        return self.f._b_pyDeriv_u(self.src, self.Pbz.T*mkvc(vec,), adjoint=True)/mu_0
+        return (
+            self.f._b_pyDeriv_u(self.src, self.Pbz.T * mkvc(vec,), adjoint=True) / mu_0
+        )
 
     # Define the components of the derivative
     @property
     def _aHd(self):
-        return self._sDiag(1./(
-            self._sDiag(self._ahx_px)*self._ahy_py -
-            self._sDiag(self._ahx_py)*self._ahy_px
-        ))
+        return self._sDiag(
+            1.0
+            / (
+                self._sDiag(self._ahx_px) * self._ahy_py
+                - self._sDiag(self._ahx_py) * self._ahy_px
+            )
+        )
 
     def _aHd_uV(self, x):
         return (
-            self._ahx_px_u(self._sDiag(self._ahy_py)*x) +
-            self._ahx_px_u(self._sDiag(self._ahy_py)*x) -
-            self._ahy_px_u(self._sDiag(self._ahx_py)*x) -
-            self._ahx_py_u(self._sDiag(self._ahy_px)*x)
+            self._ahx_px_u(self._sDiag(self._ahy_py) * x)
+            + self._ahx_px_u(self._sDiag(self._ahy_py) * x)
+            - self._ahy_px_u(self._sDiag(self._ahx_py) * x)
+            - self._ahx_py_u(self._sDiag(self._ahy_px) * x)
         )
 
     def eval(self, src, mesh, f, return_complex=False):
         """
         Function to evaluate datum for this receiver
         """
-        raise NotImplementedError('SimPEG.EM.NSEM receiver has to have an eval method')
+        raise NotImplementedError("SimPEG.EM.NSEM receiver has to have an eval method")
 
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         """
         Function to evaluate datum for this receiver
         """
-        raise NotImplementedError('SimPEG.EM.NSEM receiver has to have an evalDeriv method')
+        raise NotImplementedError(
+            "SimPEG.EM.NSEM receiver has to have an evalDeriv method"
+        )
 
 
 class Point1DImpedance(BaseRx):
@@ -342,15 +365,16 @@ class Point1DImpedance(BaseRx):
     """
 
     component = properties.StringChoice(
-        "component of the field (real or imag)", {
+        "component of the field (real or imag)",
+        {
             "real": ["re", "in-phase", "in phase"],
-            "imag": ["imaginary", "im", "out-of-phase", "out of phase"]
-        }
+            "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
+        },
     )
 
-    orientation = 'yx'
+    orientation = "yx"
 
-    def __init__(self, locs, component='real'):
+    def __init__(self, locs, component="real"):
         self.component = component
         BaseRx.__init__(self, locs)
 
@@ -360,7 +384,7 @@ class Point1DImpedance(BaseRx):
 
     @mesh.setter
     def mesh(self, value):
-        if value is getattr(self, '_mesh', None):
+        if value is getattr(self, "_mesh", None):
             pass
         else:
             self._mesh = value
@@ -387,23 +411,23 @@ class Point1DImpedance(BaseRx):
 
     @property
     def Pex(self):
-        if getattr(self, '_Pex', None) is None:
-            self._Pex = self._mesh.getInterpolationMat(self.locations[:, -1], 'Fx')
+        if getattr(self, "_Pex", None) is None:
+            self._Pex = self._mesh.getInterpolationMat(self.locations[:, -1], "Fx")
         return self._Pex
 
     @property
     def Pbx(self):
-        if getattr(self, '_Pbx', None) is None:
-            self._Pbx = self._mesh.getInterpolationMat(self.locations[:, -1], 'Ex')
+        if getattr(self, "_Pbx", None) is None:
+            self._Pbx = self._mesh.getInterpolationMat(self.locations[:, -1], "Ex")
         return self._Pbx
 
     @property
     def _ex(self):
-        return self.Pex * mkvc(self.f[self.src, 'e_1d'], 2)
+        return self.Pex * mkvc(self.f[self.src, "e_1d"], 2)
 
     @property
     def _hx(self):
-        return self.Pbx * mkvc(self.f[self.src, 'b_1d'], 2) / mu_0
+        return self.Pbx * mkvc(self.f[self.src, "b_1d"], 2) / mu_0
 
     def _ex_u(self, v):
         return self.Pex * self.f._eDeriv_u(self.src, v)
@@ -419,10 +443,10 @@ class Point1DImpedance(BaseRx):
 
     @property
     def _Hd(self):
-        return self._sDiag(1./self._hx)
+        return self._sDiag(1.0 / self._hx)
 
     def eval(self, src, mesh, f, return_complex=False):
-        '''
+        """
         Project the fields to natural source data.
 
         :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: NSEM source
@@ -431,7 +455,7 @@ class Point1DImpedance(BaseRx):
         :param bool (optional) return_complex: Flag for return the complex evaluation
         :rtype: numpy.ndarray
         :return: Evaluated data for the receiver
-        '''
+        """
         # NOTE: Maybe set this as a property
         self.src = src
         self.mesh = mesh
@@ -461,14 +485,19 @@ class Point1DImpedance(BaseRx):
 
         if adjoint:
             Z1d = self.eval(src, mesh, f, True)
+
             def aZ_N_uV(x):
                 return -self._aex_u(x)
+
             def aZ_D_uV(x):
                 return self._ahx_u(x)
-            rx_deriv = aZ_N_uV(self._Hd.T * v) - aZ_D_uV(self._sDiag(Z1d).T * self._Hd.T * v)
-            if self.component == 'imag':
-                rx_deriv_component = 1j*rx_deriv
-            elif self.component == 'real':
+
+            rx_deriv = aZ_N_uV(self._Hd.T * v) - aZ_D_uV(
+                self._sDiag(Z1d).T * self._Hd.T * v
+            )
+            if self.component == "imag":
+                rx_deriv_component = 1j * rx_deriv
+            elif self.component == "real":
                 rx_deriv_component = rx_deriv.astype(complex)
         else:
             Z1d = self.eval(src, mesh, f, True)
@@ -491,15 +520,15 @@ class Point3DImpedance(BaseRxNSEM_Point):
 
     orientation = properties.StringChoice(
         "orientation of the receiver. Must currently be 'xx', 'xy', 'yx', 'yy'",
-        ["xx", "xy", "yx", "yy"]
+        ["xx", "xy", "yx", "yy"],
     )
 
-    def __init__(self, locs, orientation='xy', component='real'):
+    def __init__(self, locs, orientation="xy", component="real"):
 
         super().__init__(locs, orientation=orientation, component=component)
 
     def eval(self, src, mesh, f, return_complex=False):
-        '''
+        """
         Project the fields to natural source data.
 
         :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: The source of the fields to project
@@ -507,20 +536,20 @@ class Point3DImpedance(BaseRxNSEM_Point):
         :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: Natural source fields object to project
         :rtype: numpy.ndarray
         :return: component of the impedance evaluation
-        '''
+        """
         # NOTE: Maybe set this as a property
         self.src = src
         self.mesh = mesh
         self.f = f
 
-        if 'xx' in self.orientation:
-            Zij = ( self._ex_px * self._hy_py - self._ex_py * self._hy_px)
-        elif 'xy' in self.orientation:
-            Zij = (-self._ex_px * self._hx_py + self._ex_py * self._hx_px)
-        elif 'yx' in self.orientation:
-            Zij = ( self._ey_px * self._hy_py - self._ey_py * self._hy_px)
-        elif 'yy' in self.orientation:
-            Zij = (-self._ey_px * self._hx_py + self._ey_py * self._hx_px)
+        if "xx" in self.orientation:
+            Zij = self._ex_px * self._hy_py - self._ex_py * self._hy_px
+        elif "xy" in self.orientation:
+            Zij = -self._ex_px * self._hx_py + self._ex_py * self._hx_px
+        elif "yx" in self.orientation:
+            Zij = self._ey_px * self._hy_py - self._ey_py * self._hy_px
+        elif "yy" in self.orientation:
+            Zij = -self._ey_px * self._hx_py + self._ey_py * self._hx_px
         # Calculate the complex value
         rx_eval_complex = self._Hd * Zij
 
@@ -545,56 +574,72 @@ class Point3DImpedance(BaseRxNSEM_Point):
         self.f = f
 
         if adjoint:
-            if 'xx' in self.orientation:
-                Zij = self._sDiag(self._aHd * (
-                    self._sDiag(self._ahy_py)*self._aex_px -
-                    self._sDiag(self._ahy_px)*self._aex_py
-                ))
-
-                def ZijN_uV(x):
-                    return (
-                        self._aex_px_u(self._sDiag(self._ahy_py) * x) +
-                        self._ahy_py_u(self._sDiag(self._aex_px) * x) -
-                        self._ahy_px_u(self._sDiag(self._aex_py) * x) -
-                        self._aex_py_u(self._sDiag(self._ahy_px) * x)
+            if "xx" in self.orientation:
+                Zij = self._sDiag(
+                    self._aHd
+                    * (
+                        self._sDiag(self._ahy_py) * self._aex_px
+                        - self._sDiag(self._ahy_px) * self._aex_py
                     )
-            elif 'xy' in self.orientation:
-                Zij = self._sDiag(self._aHd * (
-                    -self._sDiag(self._ahx_py) * self._aex_px +
-                    self._sDiag(self._ahx_px) * self._aex_py
-                ))
+                )
 
                 def ZijN_uV(x):
                     return (
-                        -self._aex_px_u(self._sDiag(self._ahx_py) * x) -
-                        self._ahx_py_u(self._sDiag(self._aex_px) * x) +
-                        self._ahx_px_u(self._sDiag(self._aex_py) * x) +
-                        self._aex_py_u(self._sDiag(self._ahx_px) * x)
+                        self._aex_px_u(self._sDiag(self._ahy_py) * x)
+                        + self._ahy_py_u(self._sDiag(self._aex_px) * x)
+                        - self._ahy_px_u(self._sDiag(self._aex_py) * x)
+                        - self._aex_py_u(self._sDiag(self._ahy_px) * x)
                     )
-            elif 'yx' in self.orientation:
-                Zij = self._sDiag(self._aHd * (
-                    self._sDiag(self._ahy_py) * self._aey_px -
-                    self._sDiag(self._ahy_px) * self._aey_py
-                ))
 
-                def ZijN_uV(x):
-                    return (
-                        self._aey_px_u(self._sDiag(self._ahy_py) * x) +
-                        self._ahy_py_u(self._sDiag(self._aey_px) * x) -
-                        self._ahy_px_u(self._sDiag(self._aey_py) * x) -
-                        self._aey_py_u(self._sDiag(self._ahy_px) * x)
+            elif "xy" in self.orientation:
+                Zij = self._sDiag(
+                    self._aHd
+                    * (
+                        -self._sDiag(self._ahx_py) * self._aex_px
+                        + self._sDiag(self._ahx_px) * self._aex_py
                     )
-            elif 'yy' in self.orientation:
-                Zij = self._sDiag(self._aHd * (
-                    -self._sDiag(self._ahx_py) * self._aey_px +
-                    self._sDiag(self._ahx_px) * self._aey_py))
+                )
 
                 def ZijN_uV(x):
                     return (
-                        -self._aey_px_u(self._sDiag(self._ahx_py) * x) -
-                        self._ahx_py_u(self._sDiag(self._aey_px) * x) +
-                        self._ahx_px_u(self._sDiag(self._aey_py) * x) +
-                        self._aey_py_u(self._sDiag(self._ahx_px) * x)
+                        -self._aex_px_u(self._sDiag(self._ahx_py) * x)
+                        - self._ahx_py_u(self._sDiag(self._aex_px) * x)
+                        + self._ahx_px_u(self._sDiag(self._aex_py) * x)
+                        + self._aex_py_u(self._sDiag(self._ahx_px) * x)
+                    )
+
+            elif "yx" in self.orientation:
+                Zij = self._sDiag(
+                    self._aHd
+                    * (
+                        self._sDiag(self._ahy_py) * self._aey_px
+                        - self._sDiag(self._ahy_px) * self._aey_py
+                    )
+                )
+
+                def ZijN_uV(x):
+                    return (
+                        self._aey_px_u(self._sDiag(self._ahy_py) * x)
+                        + self._ahy_py_u(self._sDiag(self._aey_px) * x)
+                        - self._ahy_px_u(self._sDiag(self._aey_py) * x)
+                        - self._aey_py_u(self._sDiag(self._ahy_px) * x)
+                    )
+
+            elif "yy" in self.orientation:
+                Zij = self._sDiag(
+                    self._aHd
+                    * (
+                        -self._sDiag(self._ahx_py) * self._aey_px
+                        + self._sDiag(self._ahx_px) * self._aey_py
+                    )
+                )
+
+                def ZijN_uV(x):
+                    return (
+                        -self._aey_px_u(self._sDiag(self._ahx_py) * x)
+                        - self._ahx_py_u(self._sDiag(self._aey_px) * x)
+                        + self._ahx_px_u(self._sDiag(self._aey_py) * x)
+                        + self._aey_py_u(self._sDiag(self._ahx_px) * x)
                     )
 
             # Calculate the complex derivative
@@ -603,38 +648,38 @@ class Point3DImpedance(BaseRxNSEM_Point):
             # rx_deriv_real = np.hstack((mkvc(rx_deriv_real[:len(rx_deriv_real)/2],2),mkvc(rx_deriv_real[len(rx_deriv_real)/2::],2)))
             rx_deriv_real = rx_deriv_real.reshape((2, self.mesh.nE)).T
             # Extract the data
-            if self.component == 'imag':
+            if self.component == "imag":
                 rx_deriv_component = 1j * rx_deriv_real
-            elif self.component == 'real':
+            elif self.component == "real":
                 rx_deriv_component = rx_deriv_real.astype(complex)
         else:
-            if 'xx' in self.orientation:
+            if "xx" in self.orientation:
                 ZijN_uV = (
-                    self._sDiag(self._hy_py) * self._ex_px_u(v) +
-                    self._sDiag(self._ex_px) * self._hy_py_u(v) -
-                    self._sDiag(self._ex_py) * self._hy_px_u(v) -
-                    self._sDiag(self._hy_px) * self._ex_py_u(v)
+                    self._sDiag(self._hy_py) * self._ex_px_u(v)
+                    + self._sDiag(self._ex_px) * self._hy_py_u(v)
+                    - self._sDiag(self._ex_py) * self._hy_px_u(v)
+                    - self._sDiag(self._hy_px) * self._ex_py_u(v)
                 )
-            elif 'xy' in self.orientation:
+            elif "xy" in self.orientation:
                 ZijN_uV = (
-                    -self._sDiag(self._hx_py) * self._ex_px_u(v) -
-                    self._sDiag(self._ex_px) * self._hx_py_u(v) +
-                    self._sDiag(self._ex_py) * self._hx_px_u(v) +
-                    self._sDiag(self._hx_px) * self._ex_py_u(v)
+                    -self._sDiag(self._hx_py) * self._ex_px_u(v)
+                    - self._sDiag(self._ex_px) * self._hx_py_u(v)
+                    + self._sDiag(self._ex_py) * self._hx_px_u(v)
+                    + self._sDiag(self._hx_px) * self._ex_py_u(v)
                 )
-            elif 'yx' in self.orientation:
+            elif "yx" in self.orientation:
                 ZijN_uV = (
-                    self._sDiag(self._hy_py) * self._ey_px_u(v) +
-                    self._sDiag(self._ey_px) * self._hy_py_u(v) -
-                    self._sDiag(self._ey_py) * self._hy_px_u(v) -
-                    self._sDiag(self._hy_px) * self._ey_py_u(v)
+                    self._sDiag(self._hy_py) * self._ey_px_u(v)
+                    + self._sDiag(self._ey_px) * self._hy_py_u(v)
+                    - self._sDiag(self._ey_py) * self._hy_px_u(v)
+                    - self._sDiag(self._hy_px) * self._ey_py_u(v)
                 )
-            elif 'yy' in self.orientation:
+            elif "yy" in self.orientation:
                 ZijN_uV = (
-                    -self._sDiag(self._hx_py) * self._ey_px_u(v) -
-                    self._sDiag(self._ey_px) * self._hx_py_u(v) +
-                    self._sDiag(self._ey_py) * self._hx_px_u(v) +
-                    self._sDiag(self._hx_px) * self._ey_py_u(v)
+                    -self._sDiag(self._hx_py) * self._ey_px_u(v)
+                    - self._sDiag(self._ey_px) * self._hx_py_u(v)
+                    + self._sDiag(self._ey_py) * self._hx_px_u(v)
+                    + self._sDiag(self._hx_px) * self._ey_py_u(v)
                 )
 
             Zij = self.eval(src, self.mesh, self.f, True)
@@ -653,17 +698,17 @@ class Point3DTipper(BaseRxNSEM_Point):
     :param string orientation: receiver orientation 'x', 'y' or 'z'
     :param string component: real or imaginary component 'real' or 'imag'
     """
+
     orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'zx', 'zy'",
-        ["zx", "zy"]
+        "orientation of the receiver. Must currently be 'zx', 'zy'", ["zx", "zy"]
     )
 
-    def __init__(self, locs, orientation='zx', component='real'):
+    def __init__(self, locs, orientation="zx", component="real"):
 
         super().__init__(locs, orientation=orientation, component=component)
 
     def eval(self, src, mesh, f, return_complex=False):
-        '''
+        """
         Project the fields to natural source data.
 
         :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: The source of the fields to project
@@ -671,16 +716,16 @@ class Point3DTipper(BaseRxNSEM_Point):
         :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: Natural source fields object to project
         :rtype: numpy.ndarray
         :return: Evaluated component of the impedance data
-        '''
+        """
         # NOTE: Maybe set this as a property
         self.src = src
         self.mesh = mesh
         self.f = f
 
-        if 'zx' in self.orientation:
-            Tij = (- self._hy_px * self._hz_py + self._hy_py * self._hz_px)
-        if 'zy' in self.orientation:
-            Tij = (self._hx_px * self._hz_py - self._hx_py * self._hz_px)
+        if "zx" in self.orientation:
+            Tij = -self._hy_px * self._hz_py + self._hy_py * self._hz_px
+        if "zy" in self.orientation:
+            Tij = self._hx_px * self._hz_py - self._hx_py * self._hz_px
         rx_eval_complex = self._Hd * Tij
 
         # Return the full impedance
@@ -705,69 +750,69 @@ class Point3DTipper(BaseRxNSEM_Point):
         self.f = f
 
         if adjoint:
-            if 'zx' in self.orientation:
-                Tij = self._sDiag(self._aHd * (
-                    -self._sDiag(self._ahz_py) * self._ahy_px +
-                    self._sDiag(self._ahz_px) * self._ahy_py)
-                )
-
-                def TijN_uV(x):
-                    return (
-                        -self._ahz_py_u(self._sDiag(self._ahy_px) * x) -
-                        self._ahy_px_u(self._sDiag(self._ahz_py) * x) +
-                        self._ahy_py_u(self._sDiag(self._ahz_px) * x) +
-                        self._ahz_px_u(self._sDiag(self._ahy_py) * x)
+            if "zx" in self.orientation:
+                Tij = self._sDiag(
+                    self._aHd
+                    * (
+                        -self._sDiag(self._ahz_py) * self._ahy_px
+                        + self._sDiag(self._ahz_px) * self._ahy_py
                     )
-            elif 'zy' in self.orientation:
-                Tij = self._sDiag(self._aHd * (
-                    self._sDiag(self._ahz_py) * self._ahx_px -
-                    self._sDiag(self._ahz_px) * self._ahx_py)
                 )
 
                 def TijN_uV(x):
                     return (
-                        self._ahx_px_u(self._sDiag(self._ahz_py) * x) +
-                        self._ahz_py_u(self._sDiag(self._ahx_px) * x) -
-                        self._ahx_py_u(self._sDiag(self._ahz_px) * x) -
-                        self._ahz_px_u(self._sDiag(self._ahx_py) * x)
+                        -self._ahz_py_u(self._sDiag(self._ahy_px) * x)
+                        - self._ahy_px_u(self._sDiag(self._ahz_py) * x)
+                        + self._ahy_py_u(self._sDiag(self._ahz_px) * x)
+                        + self._ahz_px_u(self._sDiag(self._ahy_py) * x)
+                    )
+
+            elif "zy" in self.orientation:
+                Tij = self._sDiag(
+                    self._aHd
+                    * (
+                        self._sDiag(self._ahz_py) * self._ahx_px
+                        - self._sDiag(self._ahz_px) * self._ahx_py
+                    )
+                )
+
+                def TijN_uV(x):
+                    return (
+                        self._ahx_px_u(self._sDiag(self._ahz_py) * x)
+                        + self._ahz_py_u(self._sDiag(self._ahx_px) * x)
+                        - self._ahx_py_u(self._sDiag(self._ahz_px) * x)
+                        - self._ahz_px_u(self._sDiag(self._ahx_py) * x)
                     )
 
             # Calculate the complex derivative
-            rx_deriv_real = (
-                TijN_uV(self._aHd * v) -
-                self._aHd_uV(Tij.T * self._aHd * v)
-            )
+            rx_deriv_real = TijN_uV(self._aHd * v) - self._aHd_uV(Tij.T * self._aHd * v)
             # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
             # rx_deriv_real = np.hstack((mkvc(rx_deriv_real[:len(rx_deriv_real)/2],2),mkvc(rx_deriv_real[len(rx_deriv_real)/2::],2)))
             rx_deriv_real = rx_deriv_real.reshape((2, self.mesh.nE)).T
             # Extract the data
-            if self.component == 'imag':
+            if self.component == "imag":
                 rx_deriv_component = 1j * rx_deriv_real
-            elif self.component == 'real':
+            elif self.component == "real":
                 rx_deriv_component = rx_deriv_real.astype(complex)
         else:
-            if 'zx' in self.orientation:
+            if "zx" in self.orientation:
                 TijN_uV = (
-                    -self._sDiag(self._hy_px) * self._hz_py_u(v) -
-                    self._sDiag(self._hz_py) * self._hy_px_u(v) +
-                    self._sDiag(self._hy_py) * self._hz_px_u(v) +
-                    self._sDiag(self._hz_px) * self._hy_py_u(v)
+                    -self._sDiag(self._hy_px) * self._hz_py_u(v)
+                    - self._sDiag(self._hz_py) * self._hy_px_u(v)
+                    + self._sDiag(self._hy_py) * self._hz_px_u(v)
+                    + self._sDiag(self._hz_px) * self._hy_py_u(v)
                 )
-            elif 'zy' in self.orientation:
+            elif "zy" in self.orientation:
                 TijN_uV = (
-                    self._sDiag(self._hz_py) * self._hx_px_u(v) +
-                    self._sDiag(self._hx_px) * self._hz_py_u(v) -
-                    self._sDiag(self._hx_py) * self._hz_px_u(v) -
-                    self._sDiag(self._hz_px) * self._hx_py_u(v)
+                    self._sDiag(self._hz_py) * self._hx_px_u(v)
+                    + self._sDiag(self._hx_px) * self._hz_py_u(v)
+                    - self._sDiag(self._hx_py) * self._hz_px_u(v)
+                    - self._sDiag(self._hz_px) * self._hx_py_u(v)
                 )
             Tij = self.eval(src, mesh, f, True)
             # Calculate the complex derivative
-            rx_deriv_complex = (
-                self._Hd * (TijN_uV - self._sDiag(Tij) * self._Hd_uV(v))
-            )
-            rx_deriv_component = np.array(
-                getattr(rx_deriv_complex, self.component)
-            )
+            rx_deriv_complex = self._Hd * (TijN_uV - self._sDiag(Tij) * self._Hd_uV(v))
+            rx_deriv_component = np.array(getattr(rx_deriv_complex, self.component))
 
         return rx_deriv_component
 
@@ -776,16 +821,17 @@ class Point3DTipper(BaseRxNSEM_Point):
 # Deprecated
 ############
 
-@deprecate_class(removal_version='0.15.0')
+
+@deprecate_class(removal_version="0.15.0")
 class Point_impedance1D(Point1DImpedance):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Point_impedance3D(Point3DImpedance):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Point_tipper3D(Point3DTipper):
     pass

@@ -7,7 +7,6 @@ import numpy as np
 
 
 class TestTimeSimulation(unittest.TestCase):
-
     def setUp(self):
         mesh = discretize.TensorMesh([10, 10])
         self.sim = simulation.BaseTimeSimulation(mesh)
@@ -25,5 +24,5 @@ class TestTimeSimulation(unittest.TestCase):
         self.assertTrue(np.all(self.sim.times == np.r_[0, trueTS].cumsum()))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

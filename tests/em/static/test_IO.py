@@ -9,7 +9,6 @@ import unittest
 
 
 class TestsIO(unittest.TestCase):
-
     def setUp(self):
         self.plotIt = False
         np.random.seed(1)
@@ -17,8 +16,8 @@ class TestsIO(unittest.TestCase):
         self.IO = dc.IO()
         # Obtain ABMN locations
 
-        xmin, xmax = 0., 200.
-        ymin, ymax = 0., 0.
+        xmin, xmax = 0.0, 200.0
+        ymin, ymax = 0.0, 0.0
         zmin, zmax = 0, 0
         self.endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
         # Generate DC survey object
@@ -29,14 +28,17 @@ class TestsIO(unittest.TestCase):
         )
         self.survey.getABMN_locations()
         self.survey = self.IO.from_ambn_locations_to_survey(
-            self.survey.a_locations, self.survey.b_locations,
-            self.survey.m_locations, self.survey.n_locations,
-            'dipole-dipole', data_dc_type='apparent_resistivity',
-            data_dc=np.ones(self.survey.nD)*100.
+            self.survey.a_locations,
+            self.survey.b_locations,
+            self.survey.m_locations,
+            self.survey.n_locations,
+            "dipole-dipole",
+            data_dc_type="apparent_resistivity",
+            data_dc=np.ones(self.survey.nD) * 100.0,
         )
 
         if self.plotIt:
-            self.IO.plotPseudoSection(data_type='apparent_resistivity')
+            self.IO.plotPseudoSection(data_type="apparent_resistivity")
             plt.show()
         mesh, actind = self.IO.set_mesh()
 
@@ -46,14 +48,17 @@ class TestsIO(unittest.TestCase):
         )
         self.survey.getABMN_locations()
         self.survey = self.IO.from_ambn_locations_to_survey(
-            self.survey.a_locations, self.survey.b_locations,
-            self.survey.m_locations, self.survey.n_locations,
-            'dipole-dipole', data_dc_type='apparent_resistivity',
-            data_dc=np.ones(self.survey.nD)*100.
+            self.survey.a_locations,
+            self.survey.b_locations,
+            self.survey.m_locations,
+            self.survey.n_locations,
+            "dipole-dipole",
+            data_dc_type="apparent_resistivity",
+            data_dc=np.ones(self.survey.nD) * 100.0,
         )
 
         if self.plotIt:
-            self.IO.plotPseudoSection(data_type='apparent_resistivity')
+            self.IO.plotPseudoSection(data_type="apparent_resistivity")
             plt.show()
 
         mesh, actind = self.IO.set_mesh()
@@ -64,9 +69,11 @@ class TestsIO(unittest.TestCase):
             mesh.plotImage(actind)
             plt.plot(
                 self.survey.electrode_locations[:, 0],
-                self.survey.electrode_locations[:, 1], 'k.'
-                )
+                self.survey.electrode_locations[:, 1],
+                "k.",
+            )
             plt.show()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

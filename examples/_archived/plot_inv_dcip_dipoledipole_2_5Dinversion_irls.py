@@ -22,36 +22,47 @@ But if you want share edges of the model, you can try:
 
 from SimPEG.electromagnetics.static import resistivity as DC
 from SimPEG.electromagnetics.static.utils import gen_DCIPsurvey, genTopography
-from SimPEG import (maps, utils, data_misfit, regularization,
-                    optimization, inversion, inverse_problem, directives)
+from SimPEG import (
+    maps,
+    utils,
+    data_misfit,
+    regularization,
+    optimization,
+    inversion,
+    inverse_problem,
+    directives,
+)
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
 from pylab import hist
+
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 
 
-def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
+def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     np.random.seed(1)
     # Initiate I/O class for DC
     IO = DC.IO()
     # Obtain ABMN locations
 
-    xmin, xmax = 0., 200.
-    ymin, ymax = 0., 0.
+    xmin, xmax = 0.0, 200.0
+    ymin, ymax = 0.0, 0.0
     zmin, zmax = 0, 0
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
-    survey = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2,
-                                     a=10, b=10, n=10)
+    survey = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
     survey.getABMN_locations()
     survey = IO.from_ambn_locations_to_survey(
-        survey.a_locations, survey.b_locations,
-        survey.m_locations, survey.n_locations,
-        survey_type, data_dc_type='volt'
+        survey.a_locations,
+        survey.b_locations,
+        survey.m_locations,
+        survey.n_locations,
+        survey_type,
+        data_dc_type="volt",
     )
 
     # Obtain 2D TensorMesh
@@ -62,17 +73,17 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
 
     # Build a conductivity model
     blk_inds_c = utils.model_builder.getIndicesSphere(
-        np.r_[60., -25.], 12.5, mesh.gridCC
+        np.r_[60.0, -25.0], 12.5, mesh.gridCC
     )
     blk_inds_r = utils.model_builder.getIndicesSphere(
-        np.r_[140., -25.], 12.5, mesh.gridCC
+        np.r_[140.0, -25.0], 12.5, mesh.gridCC
     )
-    layer_inds = mesh.gridCC[:, 1] > -5.
-    sigma = np.ones(mesh.nC)*1./100.
-    sigma[blk_inds_c] = 1./10.
-    sigma[blk_inds_r] = 1./1000.
-    sigma[~actind] = 1./1e8
-    rho = 1./sigma
+    layer_inds = mesh.gridCC[:, 1] > -5.0
+    sigma = np.ones(mesh.nC) * 1.0 / 100.0
+    sigma[blk_inds_c] = 1.0 / 10.0
+    sigma[blk_inds_r] = 1.0 / 1000.0
+    sigma[~actind] = 1.0 / 1e8
+    rho = 1.0 / sigma
 
     # Show the true conductivity model
     if plotIt:
@@ -81,25 +92,25 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
         temp = rho.copy()
         temp[~actind] = np.nan
         out = mesh.plotImage(
-            temp, grid=True, ax=ax, gridOpts={'alpha': 0.2},
+            temp,
+            grid=True,
+            ax=ax,
+            gridOpts={"alpha": 0.2},
             clim=(10, 1000),
-            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()}
+            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
         )
         ax.plot(
-            survey.electrode_locations[:, 0],
-            survey.electrode_locations[:, 1], 'k.'
+            survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "k."
         )
         ax.set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
         ax.set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())
         cb = plt.colorbar(out[0])
         cb.set_label("Resistivity (ohm-m)")
-        ax.set_aspect('equal')
+        ax.set_aspect("equal")
         plt.show()
 
     # Use Exponential Map: m = log(rho)
-    actmap = maps.InjectActiveCells(
-        mesh, indActive=actind, valInactive=np.log(1e8)
-    )
+    actmap = maps.InjectActiveCells(mesh, indActive=actind, valInactive=np.log(1e8))
     mapping = maps.ExpMap(mesh) * actmap
 
     # Generate mtrue
@@ -108,8 +119,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
     prb = DC.Simulation2DNodal(
-        mesh, survey=survey, rhoMap=mapping, storeJ=True,
-        Solver=Solver, verbose=True
+        mesh, survey=survey, rhoMap=mapping, storeJ=True, Solver=Solver, verbose=True
     )
 
     # Make synthetic DC data with 5% Gaussian noise
@@ -118,23 +128,21 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     IO.data_dc = data.dobs
     # Show apparent resisitivty pseudo-section
     if plotIt:
-        IO.plotPseudoSection(
-            data=data.dobs/IO.G, data_type='apparent_resistivity'
-        )
+        IO.plotPseudoSection(data=data.dobs / IO.G, data_type="apparent_resistivity")
 
     # Show apparent resisitivty histogram
     if plotIt:
         fig = plt.figure()
-        out = hist(data.dobs/IO.G, bins=20)
+        out = hist(data.dobs / IO.G, bins=20)
         plt.xlabel("Apparent Resisitivty ($\Omega$m)")
         plt.show()
 
     # Set initial model based upon histogram
-    m0 = np.ones(actmap.nP)*np.log(100.)
+    m0 = np.ones(actmap.nP) * np.log(100.0)
 
     # Set standard_deviation
     # floor
-    eps = 10**(-3.2)
+    eps = 10 ** (-3.2)
     # percentage
     relative = 0.05
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
@@ -146,14 +154,12 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
 
     # Related to inversion
     reg = regularization.Sparse(
-        mesh, indActive=actind, mapping=regmap,
-        gradientType='components'
+        mesh, indActive=actind, mapping=regmap, gradientType="components"
     )
     #     gradientType = 'components'
-    reg.norms = np.c_[p, qx, qz, 0.]
+    reg.norms = np.c_[p, qx, qz, 0.0]
     IRLS = directives.Update_IRLS(
-        max_irls_iterations=20, minGNiter=1,
-        beta_search=False, fix_Jmatrix=True
+        max_irls_iterations=20, minGNiter=1, beta_search=False, fix_Jmatrix=True
     )
 
     opt = optimization.InexactGaussNewton(maxIter=40)
@@ -162,20 +168,16 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
     target = directives.TargetMisfit()
     update_Jacobi = directives.UpdatePreconditioner()
-    inv = inversion.BaseInversion(
-        invProb, directiveList=[
-            betaest, IRLS
-        ]
-        )
+    inv = inversion.BaseInversion(invProb, directiveList=[betaest, IRLS])
     prb.counter = opt.counter = utils.Counter()
     opt.LSshorten = 0.5
-    opt.remember('xc')
+    opt.remember("xc")
 
     # Run inversion
     mopt = inv.run(m0)
 
-    rho_est = mapping*mopt
-    rho_est_l2 = mapping*invProb.l2model
+    rho_est = mapping * mopt
+    rho_est_l2 = mapping * invProb.l2model
     rho_est[~actind] = np.nan
     rho_est_l2[~actind] = np.nan
     rho_true = rho.copy()
@@ -186,27 +188,29 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
         vmin, vmax = rho.min(), rho.max()
         fig, ax = plt.subplots(3, 1, figsize=(20, 9))
         out1 = mesh.plotImage(
-                rho_true, clim=(10, 1000),
-                pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
-                ax=ax[0]
+            rho_true,
+            clim=(10, 1000),
+            pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+            ax=ax[0],
         )
         out2 = mesh.plotImage(
-            rho_est_l2, clim=(10, 1000),
+            rho_est_l2,
+            clim=(10, 1000),
             pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
-            ax=ax[1]
+            ax=ax[1],
         )
         out3 = mesh.plotImage(
-            rho_est, clim=(10, 1000),
+            rho_est,
+            clim=(10, 1000),
             pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
-            ax=ax[2]
+            ax=ax[2],
         )
 
         out = [out1, out2, out3]
-        titles = ["True", "L2", ("L%d, Lx%d, Lz%d")%(p, qx, qz)]
+        titles = ["True", "L2", ("L%d, Lx%d, Lz%d") % (p, qx, qz)]
         for i in range(3):
             ax[i].plot(
-                survey.electrode_locations[:, 0],
-                survey.electrode_locations[:, 1], 'kv'
+                survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "kv"
             )
             ax[i].set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
             ax[i].set_ylim(-IO.grids[:, 1].max(), IO.grids[:, 1].min())
@@ -214,11 +218,11 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0., qx=2., qz=2.):
             cb.set_label("Resistivity ($\Omega$m)")
             ax[i].set_xlabel("Northing (m)")
             ax[i].set_ylabel("Elevation (m)")
-            ax[i].set_aspect('equal')
+            ax[i].set_aspect("equal")
             ax[i].set_title(titles[i])
         plt.tight_layout()
         plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()
