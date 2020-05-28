@@ -25,53 +25,50 @@ class Survey(BaseSurvey):
     source_list = properties.List(
         "A list of sources for the survey",
         properties.Instance("A DC source", Src.BaseSrc),
-        default=[]
+        default=[],
     )
 
     # Survey
     survey_geometry = properties.StringChoice(
         "Survey geometry of DC surveys",
         default="surface",
-        choices=["surface", "borehole", "general"]
+        choices=["surface", "borehole", "general"],
     )
 
     survey_type = properties.StringChoice(
         "DC-IP Survey type",
         default="dipole-dipole",
-        choices=[
-            "dipole-dipole", "pole-dipole",
-            "dipole-pole", "pole-pole"
-        ]
+        choices=["dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"],
     )
 
     a_locations = properties.Array(
         "locations of the positive (+) current electrodes",
-        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float  # data are floats
+        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float,  # data are floats
     )
 
     b_locations = properties.Array(
         "locations of the negative (-) current electrodes",
-        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float  # data are floats
+        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float,  # data are floats
     )
 
     m_locations = properties.Array(
         "locations of the positive (+) potential electrodes",
-        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float  # data are floats
+        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float,  # data are floats
     )
 
     n_locations = properties.Array(
         "locations of the negative (-) potential electrodes",
-        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float  # data are floats
+        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float,  # data are floats
     )
 
     electrode_locations = properties.Array(
         "unique locations of a, b, m, n electrodes",
-        shape=('*', '*'),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float  # data are floats
+        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
+        dtype=float,  # data are floats
     )
 
     electrodes_info = None
@@ -81,16 +78,11 @@ class Survey(BaseSurvey):
         super(Survey, self).__init__(source_list, **kwargs)
 
     def set_geometric_factor(
-        self,
-        data_type="volt",
-        survey_type='dipole-dipole',
-        space_type='half-space'
+        self, data_type="volt", survey_type="dipole-dipole", space_type="half-space"
     ):
 
         geometric_factor = static_utils.geometric_factor(
-            self,
-            survey_type=survey_type,
-            space_type=space_type
+            self, survey_type=survey_type, space_type=space_type
         )
 
         geometric_factor = data.Data(self, geometric_factor)
@@ -140,7 +132,7 @@ class Survey(BaseSurvey):
         self.m_locations = np.vstack(m_locations)
         self.n_locations = np.vstack(n_locations)
 
-    def drapeTopo(self, mesh, actind, option='top', topography=None, force=False):
+    def drapeTopo(self, mesh, actind, option="top", topography=None, force=False):
         if self.a_locations is None:
             self.getABMN_locations()
 
@@ -149,22 +141,24 @@ class Survey(BaseSurvey):
             if self.survey_geometry == "surface":
                 if self.electrodes_info is None:
                     self.electrodes_info = uniqueRows(
-                        np.hstack((
-                            self.a_locations[:, 0],
-                            self.b_locations[:, 0],
-                            self.m_locations[:, 0],
-                            self.n_locations[:, 0],
-                            )).reshape([-1, 1])
-                        )
+                        np.hstack(
+                            (
+                                self.a_locations[:, 0],
+                                self.b_locations[:, 0],
+                                self.m_locations[:, 0],
+                                self.n_locations[:, 0],
+                            )
+                        ).reshape([-1, 1])
+                    )
                     self.electrode_locations = drapeTopotoLoc(
                         mesh,
                         self.electrodes_info[0].flatten(),
                         actind=actind,
-                        option=option
+                        option=option,
                     )
-                temp = (
-                    self.electrode_locations[self.electrodes_info[2], 1]
-                ).reshape((self.a_locations.shape[0], 4), order="F")
+                temp = (self.electrode_locations[self.electrodes_info[2], 1]).reshape(
+                    (self.a_locations.shape[0], 4), order="F"
+                )
                 self.a_locations = np.c_[self.a_locations[:, 0], temp[:, 0]]
                 self.b_locations = np.c_[self.b_locations[:, 0], temp[:, 1]]
                 self.m_locations = np.c_[self.m_locations[:, 0], temp[:, 2]]
@@ -173,7 +167,7 @@ class Survey(BaseSurvey):
                 # Make interpolation function
                 self.topo_function = interp1d(
                     self.electrode_locations[:, 0], self.electrode_locations[:, 1]
-                    )
+                )
 
                 # Loop over all Src and Rx locs and Drape topo
                 for source in self.source_list:
@@ -227,33 +221,32 @@ class Survey(BaseSurvey):
                                 raise Exception()
 
             elif self.survey_geometry == "borehole":
-                raise Exception(
-                    "Not implemented yet for borehole survey_geometry"
-                    )
+                raise Exception("Not implemented yet for borehole survey_geometry")
             else:
                 raise Exception(
                     "Input valid survey survey_geometry: surface or borehole"
-                    )
+                )
 
         if mesh.dim == 3:
             if self.survey_geometry == "surface":
                 if self.electrodes_info is None:
                     self.electrodes_info = uniqueRows(
-                        np.vstack((
-                            self.a_locations[:, :2],
-                            self.b_locations[:, :2],
-                            self.m_locations[:, :2],
-                            self.n_locations[:, :2],
-                            ))
+                        np.vstack(
+                            (
+                                self.a_locations[:, :2],
+                                self.b_locations[:, :2],
+                                self.m_locations[:, :2],
+                                self.n_locations[:, :2],
+                            )
                         )
+                    )
                 self.electrode_locations = drapeTopotoLoc(
-                    mesh, self.electrodes_info[0], actind=actind,
-                    topo=topography
+                    mesh, self.electrodes_info[0], actind=actind, topo=topography
                 )
 
-                temp = (
-                    self.electrode_locations[self.electrodes_info[2], 1]
-                ).reshape((self.a_locations.shape[0], 4), order="F")
+                temp = (self.electrode_locations[self.electrodes_info[2], 1]).reshape(
+                    (self.a_locations.shape[0], 4), order="F"
+                )
 
                 self.a_locations = np.c_[self.a_locations[:, :2], temp[:, 0]]
                 self.b_locations = np.c_[self.b_locations[:, :2], temp[:, 1]]
@@ -262,8 +255,7 @@ class Survey(BaseSurvey):
 
                 # Make interpolation function
                 self.topo_function = NearestNDInterpolator(
-                    self.electrode_locations[:, :2],
-                    self.electrode_locations[:, 2]
+                    self.electrode_locations[:, :2], self.electrode_locations[:, 2]
                 )
                 # Loop over all Src and Rx locs and Drape topo
                 for source in self.source_list:
@@ -317,14 +309,13 @@ class Survey(BaseSurvey):
                                 raise Exception()
 
             elif self.survey_geometry == "borehole":
-                raise Exception(
-                    "Not implemented yet for borehole survey_geometry"
-                    )
+                raise Exception("Not implemented yet for borehole survey_geometry")
             else:
                 raise Exception(
                     "Input valid survey survey_geometry: surface or borehole"
-                    )
+                )
 
-@deprecate_class(removal_version='0.15.0')
+
+@deprecate_class(removal_version="0.15.0")
 class Survey_ky(Survey):
     pass

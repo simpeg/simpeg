@@ -54,16 +54,16 @@ done by the :class:`SimPEG.maps.ExpMap` described above.
 .. code-block:: python
     :linenos:
 
-    M = Mesh.TensorMesh([7,5])
-    v1dMap = Maps.SurjectVertical1D(M)
-    expMap = Maps.ExpMap(M)
+    M = mesh.TensorMesh([7,5])
+    v1dMap = maps.SurjectVertical1D(M)
+    expMap = maps.ExpMap(M)
     myMap = expMap * v1dMap
     m = np.r_[0.2,1,0.1,2,2.9] # only 5 model parameters!
     sig = myMap * m
 
 
-.. image:: /content/examples/03-maps/images/sphx_glr_plot_combo_001.png
-    :target: /content/examples/03-maps/plot_combo.html
+.. image:: /content/examples/01-maps/images/sphx_glr_plot_combo_001.png
+    :target: /content/examples/01-maps/plot_combo.html
     :align: center
 
 If you noticed, it was pretty easy to combine maps. What is even cooler is
@@ -151,8 +151,8 @@ Mesh to Mesh Map
     :noindex:
 
 
-.. image:: /content/examples/03-maps/images/sphx_glr_plot_mesh2mesh_001.png
-    :target: /content/examples/03-maps/plot_mesh2mesh.html
+.. image:: /content/examples/01-maps/images/sphx_glr_plot_mesh2mesh_001.png
+    :target: /content/examples/01-maps/plot_mesh2mesh.html
     :align: center
 
 

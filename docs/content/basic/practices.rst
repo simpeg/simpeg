@@ -109,7 +109,7 @@ solution <https://github.com/simpeg/simpeg/blob/master/tests/em/fdem/forward/tes
 Order and Derivative Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`Order tests <http://docs.simpeg.xyz/content/api_core/api_Tests.html>`_ can be
+:ref:`Order tests <api_Tests>` can be
 used when you are testing differential operators (we are using a second-order,
 staggered grid discretization for our operators). For example, testing a 2D
 curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/master/tests/base/test_operators.py>`_

@@ -19,6 +19,8 @@ from .receivers import RxObs
 from .sources import SrcField
 
 from ...maps import IdentityMap
-@deprecate_class(removal_version='0.15.0', new_location='SimPEG.maps')
+
+
+@deprecate_class(removal_version="0.15.0", new_location="SimPEG.maps")
 class BaseMagMap(IdentityMap):
     pass

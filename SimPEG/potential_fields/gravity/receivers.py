@@ -13,6 +13,7 @@ class Point(survey.BaseRx):
          "gx", "gy", "gz", "gxx", "gxy", "gxz",
          "gyy", "gyz", "gzz", "guv", "amp" [default]
     """
+
     def __init__(self, locations, components="gz", **kwargs):
 
         super(survey.BaseRx, self).__init__(locations=locations, **kwargs)
@@ -24,18 +25,21 @@ class Point(survey.BaseRx):
 
         component_dict = {}
         for component in components:
-            component_dict[component] = np.ones(n_locations, dtype='bool')
+            component_dict[component] = np.ones(n_locations, dtype="bool")
 
-        assert np.all([component in [
-            "gx", "gy", "gz", "gxx", "gxy", "gxz",
-            "gyy", "gyz", "gzz", "guv"
-             ] for component in list(component_dict.keys())]), (
-                "Components {0!s} not known. Components must be in "
-                "'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz'"
-                "'gyy', 'gyz', 'gzz', 'guv'"
-                "Arbitrary orientations have not yet been "
-                "implemented.".format(component)
-            )
+        assert np.all(
+            [
+                component
+                in ["gx", "gy", "gz", "gxx", "gxy", "gxz", "gyy", "gyz", "gzz", "guv"]
+                for component in list(component_dict.keys())
+            ]
+        ), (
+            "Components {0!s} not known. Components must be in "
+            "'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz'"
+            "'gyy', 'gyz', 'gzz', 'guv'"
+            "Arbitrary orientations have not yet been "
+            "implemented.".format(component)
+        )
         self.components = component_dict
 
     def nD(self):
@@ -57,6 +61,6 @@ class Point(survey.BaseRx):
         return self.receiver_index
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class RxObs(Point):
     pass

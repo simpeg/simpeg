@@ -11,6 +11,6 @@ class SourceField(BaseSrc):
         super(SourceField, self).__init__(receiver_list=receiver_list, **kwargs)
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class SrcField(SourceField):
     pass

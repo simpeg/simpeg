@@ -126,7 +126,9 @@ class BaseFDEMSrc(BaseEMSrc):
         """
         return Zero()
 
-    freq = deprecate_property(frequency, 'freq', new_name='frequency', removal_version='0.15.0')
+    freq = deprecate_property(
+        frequency, "freq", new_name="frequency", removal_version="0.15.0"
+    )
 
 
 class RawVec_e(BaseFDEMSrc):
@@ -142,9 +144,7 @@ class RawVec_e(BaseFDEMSrc):
     def __init__(self, receiver_list=None, frequency=None, s_e=None, **kwargs):
         self._s_e = np.array(s_e, dtype=complex)
 
-        super(RawVec_e, self).__init__(
-            receiver_list, frequency=frequency, **kwargs
-        )
+        super(RawVec_e, self).__init__(receiver_list, frequency=frequency, **kwargs)
 
     def s_e(self, simulation):
         """
@@ -154,7 +154,7 @@ class RawVec_e(BaseFDEMSrc):
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
-        if simulation._formulation == 'EB' and self.integrate is True:
+        if simulation._formulation == "EB" and self.integrate is True:
             return simulation.Me * self._s_e
         return self._s_e
 
@@ -172,7 +172,7 @@ class RawVec_m(BaseFDEMSrc):
     def __init__(self, receiver_list=None, frequency=None, s_m=None, **kwargs):
         self._s_m = np.array(s_m, dtype=complex)
         super(RawVec_m, self).__init__(
-            receiver_list=receiver_list, frequency=frequency **kwargs
+            receiver_list=receiver_list, frequency=frequency ** kwargs
         )
 
     def s_m(self, simulation):
@@ -183,7 +183,7 @@ class RawVec_m(BaseFDEMSrc):
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
-        if simulation._formulation == 'HJ' and self.integrate is True:
+        if simulation._formulation == "HJ" and self.integrate is True:
             return simulation.Me * self._s_m
         return self._s_m
 
@@ -198,6 +198,7 @@ class RawVec(BaseFDEMSrc):
     :param numpy.ndarray s_e: electric source term
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
+
     def __init__(
         self, receiver_list=None, frequency=None, s_m=None, s_e=None, **kwargs
     ):
@@ -215,7 +216,7 @@ class RawVec(BaseFDEMSrc):
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
-        if simulation._formulation == 'HJ' and self.integrate is True:
+        if simulation._formulation == "HJ" and self.integrate is True:
             return simulation.Me * self._s_m
         return self._s_m
 
@@ -227,7 +228,7 @@ class RawVec(BaseFDEMSrc):
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
-        if simulation._formulation == 'EB' and self.integrate is True:
+        if simulation._formulation == "EB" and self.integrate is True:
             return simulation.Me * self._s_e
         return self._s_e
 
@@ -291,32 +292,31 @@ class MagDipole(BaseFDEMSrc):
     :param float mu: background magnetic permeability
 
     """
-    moment = properties.Float(
-        "dipole moment of the transmitter", default=1., min=0.
-    )
-    mu = properties.Float(
-        "permeability of the background", default=mu_0, min=0.
-    )
+
+    moment = properties.Float("dipole moment of the transmitter", default=1.0, min=0.0)
+    mu = properties.Float("permeability of the background", default=mu_0, min=0.0)
     orientation = properties.Vector3(
-        "orientation of the source", default='Z', length=1., required=True
+        "orientation of the source", default="Z", length=1.0, required=True
     )
     location = LocationVector(
-        "location of the source", default=np.r_[0.,0.,0.], shape=(3,)
+        "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
     )
-    loc = deprecate_property(location, 'loc', new_name='location', removal_version='0.15.0')
+    loc = deprecate_property(
+        location, "loc", new_name="location", removal_version="0.15.0"
+    )
 
-    def __init__(
-        self, receiver_list=None, frequency=None, location=None, **kwargs
-    ):
+    def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
         super(MagDipole, self).__init__(receiver_list, frequency=frequency, **kwargs)
         if location is not None:
             self.location = location
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
-        if getattr(self, '_dipole', None) is None:
+        if getattr(self, "_dipole", None) is None:
             self._dipole = MagneticDipoleWholeSpace(
-                mu=self.mu, orientation=self.orientation, location=self.location,
-                moment=self.moment
+                mu=self.mu,
+                orientation=self.orientation,
+                location=self.location,
+                moment=self.moment,
             )
         return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
 
@@ -331,39 +331,37 @@ class MagDipole(BaseFDEMSrc):
         formulation = simulation._formulation
         coordinates = "cartesian"
 
-        if formulation == 'EB':
+        if formulation == "EB":
             gridX = simulation.mesh.gridEx
             gridY = simulation.mesh.gridEy
             gridZ = simulation.mesh.gridEz
             C = simulation.mesh.edgeCurl
 
-        elif formulation == 'HJ':
+        elif formulation == "HJ":
             gridX = simulation.mesh.gridFx
             gridY = simulation.mesh.gridFy
             gridZ = simulation.mesh.gridFz
             C = simulation.mesh.edgeCurl.T
 
-        if simulation.mesh._meshType == 'CYL':
+        if simulation.mesh._meshType == "CYL":
             coordinates = "cylindrical"
 
             if simulation.mesh.isSymmetric is True:
-                if not (
-                    np.linalg.norm(self.orientation - np.r_[0., 0., 1.]) < 1e-6
-                ):
+                if not (np.linalg.norm(self.orientation - np.r_[0.0, 0.0, 1.0]) < 1e-6):
                     raise AssertionError(
-                        'for cylindrical symmetry, the dipole must be oriented'
-                        ' in the Z direction'
+                        "for cylindrical symmetry, the dipole must be oriented"
+                        " in the Z direction"
                     )
                 a = self._srcFct(gridY)[:, 1]
 
-                return C*a
+                return C * a
 
         ax = self._srcFct(gridX, coordinates)[:, 0]
         ay = self._srcFct(gridY, coordinates)[:, 1]
         az = self._srcFct(gridZ, coordinates)[:, 2]
         a = np.concatenate((ax, ay, az))
 
-        return C*a
+        return C * a
 
     def hPrimary(self, simulation):
         """
@@ -374,7 +372,7 @@ class MagDipole(BaseFDEMSrc):
         :return: primary magnetic field
         """
         b = self.bPrimary(simulation)
-        return 1./self.mu * b
+        return 1.0 / self.mu * b
 
     def s_m(self, simulation):
         """
@@ -386,9 +384,9 @@ class MagDipole(BaseFDEMSrc):
         """
 
         b_p = self.bPrimary(simulation)
-        if simulation._formulation == 'HJ':
+        if simulation._formulation == "HJ":
             b_p = simulation.Me * b_p
-        return -1j*omega(self.frequency)*b_p
+        return -1j * omega(self.frequency) * b_p
 
     def s_e(self, simulation):
         """
@@ -404,11 +402,11 @@ class MagDipole(BaseFDEMSrc):
         else:
             formulation = simulation._formulation
 
-            if formulation == 'EB':
-                mui_s = simulation.mui - 1./self.mu
+            if formulation == "EB":
+                mui_s = simulation.mui - 1.0 / self.mu
                 MMui_s = simulation.mesh.getFaceInnerProduct(mui_s)
                 C = simulation.mesh.edgeCurl
-            elif formulation == 'HJ':
+            elif formulation == "HJ":
                 mu_s = simulation.mu - self.mu
                 MMui_s = simulation.mesh.getEdgeInnerProduct(mu_s, invMat=True)
                 C = simulation.mesh.edgeCurl.T
@@ -416,16 +414,19 @@ class MagDipole(BaseFDEMSrc):
             return -C.T * (MMui_s * self.bPrimary(simulation))
 
     def s_eDeriv(self, simulation, v, adjoint=False):
-        if not hasattr(simulation, 'muMap') or not hasattr(simulation, 'muiMap'):
+        if not hasattr(simulation, "muMap") or not hasattr(simulation, "muiMap"):
             return Zero()
         else:
             formulation = simulation._formulation
 
-            if formulation == 'EB':
-                mui_s = simulation.mui - 1./self.mu
-                MMui_sDeriv = simulation.mesh.getFaceInnerProductDeriv(mui_s)(
-                    self.bPrimary(simulation)
-                ) * simulation.muiDeriv
+            if formulation == "EB":
+                mui_s = simulation.mui - 1.0 / self.mu
+                MMui_sDeriv = (
+                    simulation.mesh.getFaceInnerProductDeriv(mui_s)(
+                        self.bPrimary(simulation)
+                    )
+                    * simulation.muiDeriv
+                )
                 C = simulation.mesh.edgeCurl
 
                 if adjoint:
@@ -433,7 +434,7 @@ class MagDipole(BaseFDEMSrc):
 
                 return -C.T * (MMui_sDeriv * v)
 
-            elif formulation == 'HJ':
+            elif formulation == "HJ":
                 return Zero()
                 # raise NotImplementedError
                 mu_s = simulation.mu - self.mu
@@ -464,18 +465,21 @@ class MagDipole_Bfield(MagDipole):
 
     def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
         super(MagDipole_Bfield, self).__init__(
-            receiver_list=receiver_list, frequency=frequency, location=location, **kwargs
+            receiver_list=receiver_list,
+            frequency=frequency,
+            location=location,
+            **kwargs
         )
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
-        if getattr(self, '_dipole', None) is None:
+        if getattr(self, "_dipole", None) is None:
             self._dipole = MagneticDipoleWholeSpace(
-                mu=self.mu, orientation=self.orientation, location=self.location,
-                moment=self.moment
+                mu=self.mu,
+                orientation=self.orientation,
+                location=self.location,
+                moment=self.moment,
             )
-        return self._dipole.magnetic_flux_density(
-            obsLoc, coordinates=coordinates
-        )
+        return self._dipole.magnetic_flux_density(obsLoc, coordinates=coordinates)
 
     def bPrimary(self, simulation):
         """
@@ -490,17 +494,17 @@ class MagDipole_Bfield(MagDipole):
         formulation = simulation._formulation
         coordinates = "cartesian"
 
-        if formulation == 'EB':
+        if formulation == "EB":
             gridX = simulation.mesh.gridFx
             gridY = simulation.mesh.gridFy
             gridZ = simulation.mesh.gridFz
 
-        elif formulation == 'HJ':
+        elif formulation == "HJ":
             gridX = simulation.mesh.gridEx
             gridY = simulation.mesh.gridEy
             gridZ = simulation.mesh.gridEz
 
-        if simulation.mesh._meshType == 'CYL':
+        if simulation.mesh._meshType == "CYL":
             coordinates = "cylindrical"
             if simulation.mesh.isSymmetric:
                 bx = self._srcFct(gridX)[:, 0]
@@ -533,44 +537,46 @@ class CircularLoop(MagDipole):
     :param float mu: background magnetic permeability
     """
 
-    radius = properties.Float("radius of the loop", default=1., min=0.)
+    radius = properties.Float("radius of the loop", default=1.0, min=0.0)
 
-    current = properties.Float("current in the loop", default=1.)
-
+    current = properties.Float("current in the loop", default=1.0)
 
     def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
-        super(CircularLoop, self).__init__(
-            receiver_list, frequency, location, **kwargs
-        )
+        super(CircularLoop, self).__init__(receiver_list, frequency, location, **kwargs)
 
     @property
     def moment(self):
-        return np.pi*self.radius**2 * self.current
+        return np.pi * self.radius ** 2 * self.current
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
-        if getattr(self, '_loop', None) is None:
+        if getattr(self, "_loop", None) is None:
             self._loop = CircularLoopWholeSpace(
-                mu=self.mu, location=self.location,
-                orientation=self.orientation, radius=self.radius,
-                current=self.current
+                mu=self.mu,
+                location=self.location,
+                orientation=self.orientation,
+                radius=self.radius,
+                current=self.current,
             )
         return self._loop.vector_potential(obsLoc, coordinates)
 
-class PrimSecSigma(BaseFDEMSrc):
 
+class PrimSecSigma(BaseFDEMSrc):
     def __init__(
-        self, receiver_list=None, frequency=None, sigBack=None, ePrimary=None,
-        **kwargs
+        self, receiver_list=None, frequency=None, sigBack=None, ePrimary=None, **kwargs
     ):
         self.sigBack = sigBack
 
         BaseFDEMSrc.__init__(
-            self, receiver_list=receiver_list, frequency=frequency, _ePrimary=ePrimary, **kwargs
+            self,
+            receiver_list=receiver_list,
+            frequency=frequency,
+            _ePrimary=ePrimary,
+            **kwargs
         )
 
     def s_e(self, simulation):
         return (
-            simulation.MeSigma -  simulation.mesh.getEdgeInnerProduct(self.sigBack)
+            simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(self.sigBack)
         ) * self.ePrimary(simulation)
 
     def s_eDeriv(self, simulation, v, adjoint=False):
@@ -598,39 +604,47 @@ class PrimSecMappedSigma(BaseFDEMSrc):
     """
 
     def __init__(
-        self, receiver_list=None, frequency=None, primarySimulation=None,
-        primarySurvey=None, map2meshSecondary=None, **kwargs
+        self,
+        receiver_list=None,
+        frequency=None,
+        primarySimulation=None,
+        primarySurvey=None,
+        map2meshSecondary=None,
+        **kwargs
     ):
 
         self.primarySimulation = primarySimulation
         self.primarySurvey = primarySurvey
 
-        if getattr(self.primarySimulation, 'survey', None) is None:
+        if getattr(self.primarySimulation, "survey", None) is None:
             self.primarySimulation.survey = self.primarySurvey
 
         self.map2meshSecondary = map2meshSecondary
 
-        BaseFDEMSrc.__init__(self, receiver_list=receiver_list, frequency=frequency, **kwargs)
+        BaseFDEMSrc.__init__(
+            self, receiver_list=receiver_list, frequency=frequency, **kwargs
+        )
 
     def _ProjPrimary(self, simulation, locType, locTypeTo):
         # TODO: if meshes have not changed, store the projection
         # if getattr(self, '__ProjPrimary', None) is None:
 
         # TODO: implement for HJ formulation
-        if simulation._formulation == 'EB':
+        if simulation._formulation == "EB":
             pass
         else:
             raise NotImplementedError(
-                'PrimSecMappedSigma Source has not been implemented for {} '
-                'formulation'.format(simulation._formulation)
-                )
+                "PrimSecMappedSigma Source has not been implemented for {} "
+                "formulation".format(simulation._formulation)
+            )
 
         # TODO: only set up for tensot meshes (Tree meshes should be easy/done)
         # but have not been tried or tested.
-        assert simulation.mesh._meshType in ['TENSOR'], (
-            'PrimSecMappedSigma source has not been implemented for {}'.format(
-                simulation.mesh._meshType)
-            )
+        assert simulation.mesh._meshType in [
+            "TENSOR"
+        ], "PrimSecMappedSigma source has not been implemented for {}".format(
+            simulation.mesh._meshType
+        )
 
         # if EB formulation, interpolate E, elif HJ interpolate J
         # if self.primarySimulation._formulation == 'EB':
@@ -639,7 +653,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         #     locType = 'F'
 
         # get interpolation mat from primary mesh to secondary mesh
-        if self.primarySimulation.mesh._meshType == 'CYL':
+        if self.primarySimulation.mesh._meshType == "CYL":
             return self.primarySimulation.mesh.getInterpolationMatCartMesh(
                 simulation.mesh, locType=locType, locTypeTo=locTypeTo
             )
@@ -682,10 +696,11 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                 A.T, **self.primarySimulation.solver_opts
             )
             df_duTFun = getattr(
-                f, '_{0}Deriv'.format(
-                    'e' if self.primarySimulation._formulation == 'EB' else 'j'
+                f,
+                "_{0}Deriv".format(
+                    "e" if self.primarySimulation._formulation == "EB" else "j"
                 ),
-                None
+                None,
             )
             df_duT, df_dmT = df_duTFun(src, None, v, adjoint=True)
 
@@ -716,10 +731,11 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         # if self.primarySimulation._formulation == 'EB':
         df_dmFun = getattr(
-            f, '_{0}Deriv'.format(
-                'e' if self.primarySimulation._formulation == 'EB' else 'j'
+            f,
+            "_{0}Deriv".format(
+                "e" if self.primarySimulation._formulation == "EB" else "j"
             ),
-            None
+            None,
         )
         # elif self.primarySimulation._formulation == 'HJ':
         #     df_dmFun = getattr(f, '_{0}Deriv'.format('j'), None)
@@ -735,13 +751,12 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         if f is None:
             f = self._primaryFields(simulation)
 
-        if self.primarySimulation._formulation == 'EB':
-            ep = self._ProjPrimary(simulation, 'E', 'E') * f[:, 'e']
-        elif self.primarySimulation._formulation == 'HJ':
-            ep = self._ProjPrimary(simulation, 'F', 'E') * (
-                    self.primarySimulation.MfI * (
-                        self.primarySimulation.MfRho * f[:, 'j'])
-                    )
+        if self.primarySimulation._formulation == "EB":
+            ep = self._ProjPrimary(simulation, "E", "E") * f[:, "e"]
+        elif self.primarySimulation._formulation == "HJ":
+            ep = self._ProjPrimary(simulation, "F", "E") * (
+                self.primarySimulation.MfI * (self.primarySimulation.MfRho * f[:, "j"])
+            )
 
         return mkvc(ep)
 
@@ -752,43 +767,39 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         # if adjoint is True:
         #     raise NotImplementedError
-        if self.primarySimulation._formulation == 'EB':
+        if self.primarySimulation._formulation == "EB":
             if adjoint is True:
                 epDeriv = self._primaryFieldsDeriv(
-                    simulation, (self._ProjPrimary(simulation, 'E', 'E').T * v), f=f,
-                    adjoint=adjoint
+                    simulation,
+                    (self._ProjPrimary(simulation, "E", "E").T * v),
+                    f=f,
+                    adjoint=adjoint,
                 )
             else:
-                epDeriv = (
-                    self._ProjPrimary(simulation, 'E', 'E') *
-                    self._primaryFieldsDeriv(simulation, v, f=f)
-                )
-        elif self.primarySimulation._formulation == 'HJ':
+                epDeriv = self._ProjPrimary(
+                    simulation, "E", "E"
+                ) * self._primaryFieldsDeriv(simulation, v, f=f)
+        elif self.primarySimulation._formulation == "HJ":
             if adjoint is True:
-                PTv = (
-                    self.primarySimulation.MfI.T *
-                    (self._ProjPrimary(simulation, 'F', 'E').T * v)
+                PTv = self.primarySimulation.MfI.T * (
+                    self._ProjPrimary(simulation, "F", "E").T * v
                 )
-                epDeriv = (
-                    self.primarySimulation.MfRhoDeriv(f[:, 'j'], PTv, adjoint) +
-                    self._primaryFieldsDeriv(
-                        simulation, self.primarySimulation.MfRho.T * PTv,
-                        adjoint=adjoint, f=f
-                    )
+                epDeriv = self.primarySimulation.MfRhoDeriv(
+                    f[:, "j"], PTv, adjoint
+                ) + self._primaryFieldsDeriv(
+                    simulation,
+                    self.primarySimulation.MfRho.T * PTv,
+                    adjoint=adjoint,
+                    f=f,
                 )
             else:
-                epDeriv = (
-                    self._ProjPrimary(simulation, 'F', 'E') *
-                    (
-                        self.primarySimulation.MfI *
-                        (
-                            self.primarySimulation.MfRhoDeriv(
-                                f[:, 'j'], v, adjoint
-                            ) +
-                            (
-                                self.primarySimulation.MfRho *
-                                self._primaryFieldsDeriv(simulation, v, f=f)
-                            )
+                epDeriv = self._ProjPrimary(simulation, "F", "E") * (
+                    self.primarySimulation.MfI
+                    * (
+                        self.primarySimulation.MfRhoDeriv(f[:, "j"], v, adjoint)
+                        + (
+                            self.primarySimulation.MfRho
+                            * self._primaryFieldsDeriv(simulation, v, f=f)
                         )
                     )
                 )
@@ -799,17 +810,11 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         if f is None:
             f = self._primaryFields(simulation)
 
-        if self.primarySimulation._formulation == 'EB':
-            bp = self._ProjPrimary(simulation, 'F', 'F') * f[:, 'b']
-        elif self.primarySimulation._formulation == 'HJ':
-            bp = (
-                self._ProjPrimary(simulation, 'E', 'F') *
-                (
-                    self.primarySimulation.MeI *
-                    (
-                        self.primarySimulation.MeMu * f[:, 'h']
-                    )
-                )
+        if self.primarySimulation._formulation == "EB":
+            bp = self._ProjPrimary(simulation, "F", "F") * f[:, "b"]
+        elif self.primarySimulation._formulation == "HJ":
+            bp = self._ProjPrimary(simulation, "E", "F") * (
+                self.primarySimulation.MeI * (self.primarySimulation.MeMu * f[:, "h"])
             )
 
         return mkvc(bp)
@@ -818,36 +823,42 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         sigmaPrimary = self.map2meshSecondary * simulation.model
 
         return mkvc(
-            (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary)) *
-            self.ePrimary(simulation, f=f)
+            (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary))
+            * self.ePrimary(simulation, f=f)
         )
 
     def s_eDeriv(self, simulation, v, adjoint=False):
 
         sigmaPrimary = self.map2meshSecondary * simulation.model
-        sigmaPrimaryDeriv = self.map2meshSecondary.deriv(
-                simulation.model)
+        sigmaPrimaryDeriv = self.map2meshSecondary.deriv(simulation.model)
 
         f = self._primaryFields(simulation)
         ePrimary = self.ePrimary(simulation, f=f)
 
         if adjoint is True:
             return (
-                simulation.MeSigmaDeriv(ePrimary, v, adjoint) -
-                (
-                    sigmaPrimaryDeriv.T * simulation.mesh.getEdgeInnerProductDeriv(
-                        sigmaPrimary
-                    )(ePrimary).T * v
-                ) +
-                self.ePrimaryDeriv(simulation, (
-                    simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(
-                        sigmaPrimary)).T * v, adjoint=adjoint, f=f)
+                simulation.MeSigmaDeriv(ePrimary, v, adjoint)
+                - (
+                    sigmaPrimaryDeriv.T
+                    * simulation.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary).T
+                    * v
+                )
+                + self.ePrimaryDeriv(
+                    simulation,
+                    (
+                        simulation.MeSigma
+                        - simulation.mesh.getEdgeInnerProduct(sigmaPrimary)
+                    ).T
+                    * v,
+                    adjoint=adjoint,
+                    f=f,
+                )
             )
 
-        return(
-            simulation.MeSigmaDeriv(ePrimary, v, adjoint) -
-            simulation.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary) *
-            (sigmaPrimaryDeriv * v) +
-            (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary)) *
-            self.ePrimaryDeriv(simulation, v, adjoint=adjoint, f=f)
+        return (
+            simulation.MeSigmaDeriv(ePrimary, v, adjoint)
+            - simulation.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary)
+            * (sigmaPrimaryDeriv * v)
+            + (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary))
+            * self.ePrimaryDeriv(simulation, v, adjoint=adjoint, f=f)
         )

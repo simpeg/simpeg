@@ -7,6 +7,7 @@ from .sources import BaseTDEMSrc
 # Survey
 ####################################################
 
+
 class Survey(BaseSurvey):
     """
     Time domain electromagnetic survey
@@ -15,7 +16,7 @@ class Survey(BaseSurvey):
     source_list = properties.List(
         "A list of sources for the survey",
         properties.Instance("A SimPEG source", BaseTDEMSrc),
-        default=[]
+        default=[],
     )
 
     def __init__(self, source_list=None, **kwargs):

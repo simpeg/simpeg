@@ -13,7 +13,6 @@ np.random.seed(17)
 
 
 class DataMisfitTest(unittest.TestCase):
-
     def setUp(self):
         mesh = discretize.TensorMesh([30])
         sigma = np.ones(mesh.nC)
@@ -21,12 +20,11 @@ class DataMisfitTest(unittest.TestCase):
 
         # prob = DC.Simulation3DCellCentered(mesh, rhoMap=Maps.ExpMap(mesh))
 
-        receivers = survey.BaseRx(20*[[0.0]])
+        receivers = survey.BaseRx(20 * [[0.0]])
         source = survey.BaseSrc([receivers])
         sim = simulation.ExponentialSinusoidSimulation(
-            mesh=mesh,
-            survey=survey.BaseSurvey([source]),
-            model_map=maps.ExpMap(mesh))
+            mesh=mesh, survey=survey.BaseSurvey([source]), model_map=maps.ExpMap(mesh)
+        )
 
         synthetic_data = sim.make_synthetic_data(model)
         dobs = synthetic_data.dobs
@@ -59,8 +57,8 @@ class DataMisfitTest(unittest.TestCase):
         self.assertTrue(self.dmis.nP == self.mesh.nC)
 
     def test_zero_uncertainties(self):
-        self.data.relative_error = 0.
-        self.data.noise_floor = 0.
+        self.data.relative_error = 0.0
+        self.data.noise_floor = 0.0
         with self.assertRaises(Exception):
             Worig = self.dmis.W
 
@@ -84,5 +82,6 @@ class DataMisfitTest(unittest.TestCase):
         self.data.noise_floor = self.eps
         self.dmis.test(x=self.model)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

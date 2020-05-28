@@ -1,9 +1,15 @@
 from __future__ import print_function
 import numpy as np
 from SimPEG import (
-    data, data_misfit, directives, maps, inverse_problem, optimization,
-    inversion, regularization
-    )
+    data,
+    data_misfit,
+    directives,
+    maps,
+    inverse_problem,
+    optimization,
+    inversion,
+    regularization,
+)
 
 from SimPEG.potential_fields import magnetics
 from SimPEG import utils
@@ -14,13 +20,12 @@ import shutil
 
 
 class AmpProblemTest(unittest.TestCase):
-
     def setUp(self):
         # We will assume a vertical inducing field
-        H0 = (50000., 90., 0.)
+        H0 = (50000.0, 90.0, 0.0)
 
         # The magnetization is set along a different direction (induced + remanence)
-        M = np.array([45., 90.])
+        M = np.array([45.0, 90.0])
 
         # Block with an effective susceptibility
         chi_e = 0.05
@@ -30,14 +35,14 @@ class AmpProblemTest(unittest.TestCase):
         [xx, yy] = np.meshgrid(np.linspace(-200, 200, 50), np.linspace(-200, 200, 50))
         b = 100
         A = 50
-        zz = A*np.exp(-0.5*((xx/b)**2. + (yy/b)**2.))
+        zz = A * np.exp(-0.5 * ((xx / b) ** 2.0 + (yy / b) ** 2.0))
         topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
         # Create an array of observation points
-        xr = np.linspace(-100., 100., 20)
-        yr = np.linspace(-100., 100., 20)
+        xr = np.linspace(-100.0, 100.0, 20)
+        yr = np.linspace(-100.0, 100.0, 20)
         X, Y = np.meshgrid(xr, yr)
-        Z = A*np.exp(-0.5*((X/b)**2. + (Y/b)**2.)) + 10
+        Z = A * np.exp(-0.5 * ((X / b) ** 2.0 + (Y / b) ** 2.0)) + 10
 
         # Create a MAGsurvey
         rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
@@ -52,20 +57,25 @@ class AmpProblemTest(unittest.TestCase):
         h = [5, 5, 5]
         padDist = np.ones((3, 2)) * 100
 
-        mesh = mesh_builder_xyz(rxLoc, h, padding_distance=padDist, depth_core=100, mesh_type='tree')
-        mesh = refine_tree_xyz(mesh, topo, method='surface', octree_levels=[4,4], finalize=True)
+        mesh = mesh_builder_xyz(
+            rxLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
+        )
+        mesh = refine_tree_xyz(
+            mesh, topo, method="surface", octree_levels=[4, 4], finalize=True
+        )
 
         # Define an active cells from topo
         actv = utils.surface2ind_topo(mesh, topo)
         nC = int(actv.sum())
 
         # Convert the inclination declination to vector in Cartesian
-        M_xyz = utils.mat_utils.dip_azimuth2cartesian(np.ones(nC)*M[0], np.ones(nC)*M[1])
+        M_xyz = utils.mat_utils.dip_azimuth2cartesian(
+            np.ones(nC) * M[0], np.ones(nC) * M[1]
+        )
 
         # Get the indicies of the magnetized block
         ind = utils.model_builder.getIndicesBlock(
-            np.r_[-20, -20, -10], np.r_[20, 20, 25],
-            mesh.gridCC,
+            np.r_[-20, -20, -10], np.r_[20, 20, 25], mesh.gridCC,
         )[0]
 
         # Assign magnetization value, inducing field strength will
@@ -85,7 +95,7 @@ class AmpProblemTest(unittest.TestCase):
             mesh=mesh,
             chiMap=idenMap,
             actInd=actv,
-            store_sensitivities="forward_only"
+            store_sensitivities="forward_only",
         )
         simulation.M = M_xyz
 
@@ -96,8 +106,8 @@ class AmpProblemTest(unittest.TestCase):
         nD = rxLoc.shape[0]
 
         std = 5  # nT
-        synthetic_data += np.random.randn(nD)*std
-        wd = np.ones(nD)*std
+        synthetic_data += np.random.randn(nD) * std
+        wd = np.ones(nD) * std
 
         # Assigne data and uncertainties to the survey
         data_object = data.Data(survey, dobs=synthetic_data, noise_floor=wd)
@@ -108,7 +118,7 @@ class AmpProblemTest(unittest.TestCase):
         # Get the active cells for equivalent source is the top only
         surf = utils.model_utils.surface_layer_index(mesh, topo)
         nC = np.count_nonzero(surf)  # Number of active cells
-        mstart = np.ones(nC)*1e-4
+        mstart = np.ones(nC) * 1e-4
 
         # Create active map to go from reduce set to full
         surfMap = maps.InjectActiveCells(mesh, surf, np.nan)
@@ -118,23 +128,28 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create static map
         simulation = magnetics.simulation.Simulation3DIntegral(
-                mesh=mesh, survey=survey, chiMap=idenMap, actInd=surf,
-                store_sensitivities='ram'
+            mesh=mesh,
+            survey=survey,
+            chiMap=idenMap,
+            actInd=surf,
+            store_sensitivities="ram",
         )
         simulation.model = mstart
 
         # Create a regularization function, in this case l2l2
         reg = regularization.Sparse(
-            mesh, indActive=surf,
-            mapping=maps.IdentityMap(nP=nC),
-            alpha_z=0
+            mesh, indActive=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
         )
         reg.mref = np.zeros(nC)
 
         # Specify how the optimization will proceed, set susceptibility bounds to inf
         opt = optimization.ProjectedGNCG(
-            maxIter=10, lower=-np.inf, upper=np.inf, maxIterLS=5,
-            maxIterCG=5, tolCG=1e-3
+            maxIter=10,
+            lower=-np.inf,
+            upper=np.inf,
+            maxIterLS=5,
+            maxIterCG=5,
+            tolCG=1e-3,
         )
 
         # Define misfit function (obs-calc)
@@ -148,16 +163,17 @@ class AmpProblemTest(unittest.TestCase):
 
         # Target misfit to stop the inversion,
         # try to fit as much as possible of the signal, we don't want to lose anything
-        IRLS = directives.Update_IRLS(f_min_change=1e-3, minGNiter=1,
-                                      beta_tol=1e-1,
-                                      max_irls_iterations=5)
+        IRLS = directives.Update_IRLS(
+            f_min_change=1e-3, minGNiter=1, beta_tol=1e-1, max_irls_iterations=5
+        )
         update_Jacobi = directives.UpdatePreconditioner()
         # Put all the parts together
-        inv = inversion.BaseInversion(invProb,
-                                      directiveList=[betaest, IRLS, update_Jacobi])
+        inv = inversion.BaseInversion(
+            invProb, directiveList=[betaest, IRLS, update_Jacobi]
+        )
 
         # Run the equivalent source inversion
-        print('Solving for Equivalent Source')
+        print("Solving for Equivalent Source")
         mrec = inv.run(mstart)
 
         ########################################################
@@ -168,13 +184,17 @@ class AmpProblemTest(unittest.TestCase):
         # components of the field and add them up: :math:`|B| = \sqrt{( Bx^2 + Bx^2 + Bx^2 )}`
         #
 
-        rxList = magnetics.receivers.Point(rxLoc, components=['bx', 'by', 'bz'])
+        rxList = magnetics.receivers.Point(rxLoc, components=["bx", "by", "bz"])
         srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
         surveyAmp = magnetics.survey.Survey(srcField)
 
         simulation = magnetics.simulation.Simulation3DIntegral(
-                mesh=mesh, survey=surveyAmp, chiMap=idenMap,
-                actInd=surf, is_amplitude_data=True, store_sensitivities='forward_only'
+            mesh=mesh,
+            survey=surveyAmp,
+            chiMap=idenMap,
+            actInd=surf,
+            is_amplitude_data=True,
+            store_sensitivities="forward_only",
         )
 
         bAmp = simulation.fields(mrec)
@@ -194,12 +214,15 @@ class AmpProblemTest(unittest.TestCase):
         # Create identity map
         idenMap = maps.IdentityMap(nP=nC)
 
-        mstart = np.ones(nC)*1e-4
+        mstart = np.ones(nC) * 1e-4
 
         # Create the forward model operator
         simulation = magnetics.simulation.Simulation3DIntegral(
-           survey=surveyAmp, mesh=mesh, chiMap=idenMap, actInd=actv,
-            is_amplitude_data=True
+            survey=surveyAmp,
+            mesh=mesh,
+            chiMap=idenMap,
+            actInd=actv,
+            is_amplitude_data=True,
         )
 
         data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
@@ -214,9 +237,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=10, lower=0., upper=1.,
-            maxIterLS=5, maxIterCG=5,
-            tolCG=1e-3
+            maxIter=10, lower=0.0, upper=1.0, maxIterLS=5, maxIterCG=5, tolCG=1e-3
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -228,8 +249,9 @@ class AmpProblemTest(unittest.TestCase):
         IRLS = directives.Update_IRLS(
             max_irls_iterations=5,
             f_min_change=1e-3,
-            minGNiter=1, coolingRate=1,
-            beta_search=False
+            minGNiter=1,
+            coolingRate=1,
+            beta_search=False,
         )
 
         # Special directive specific to the mag amplitude problem. The sensitivity
@@ -239,9 +261,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Put all together
         self.inv = inversion.BaseInversion(
-            invProb, directiveList=[
-                update_SensWeight, betaest, IRLS, update_Jacobi
-                ]
+            invProb, directiveList=[update_SensWeight, betaest, IRLS, update_Jacobi]
         )
 
         self.mstart = mstart
@@ -252,10 +272,7 @@ class AmpProblemTest(unittest.TestCase):
         # Run the inversion
         mrec_Amp = self.inv.run(self.mstart)
 
-        residual = (
-            np.linalg.norm(mrec_Amp-self.model) /
-            np.linalg.norm(self.model)
-        )
+        residual = np.linalg.norm(mrec_Amp - self.model) / np.linalg.norm(self.model)
         # print(residual)
         # import matplotlib.pyplot as plt
 
@@ -285,13 +302,13 @@ class AmpProblemTest(unittest.TestCase):
         # plt.gca().set_aspect('equal', adjustable='box')
 
         # plt.show()
-        self.assertTrue(residual < 1.)
+        self.assertTrue(residual < 1.0)
 
     def tearDown(self):
         # Clean up the working directory
-        if self.sim.store_sensitivities == 'disk':
+        if self.sim.store_sensitivities == "disk":
             shutil.rmtree(self.sim.sensitivity_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

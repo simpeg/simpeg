@@ -8,7 +8,7 @@ from . import survey
 from .utils import mkvc
 from .utils.code_utils import deprecate_property
 
-__all__ = ['Data', 'SyntheticData']
+__all__ = ["Data", "SyntheticData"]
 
 
 class UncertaintyArray(properties.Array):
@@ -52,7 +52,8 @@ class Data(properties.HasProperties):
                     data[src, rx] = datum
 
         """,
-        shape=('*',), required=True
+        shape=("*",),
+        required=True,
     )
 
     relative_error = UncertaintyArray(
@@ -80,7 +81,7 @@ class Data(properties.HasProperties):
             data.relative_error * np.abs(data.dobs)
 
         """,
-        shape=('*',)
+        shape=("*",),
     )
 
     noise_floor = UncertaintyArray(
@@ -108,12 +109,10 @@ class Data(properties.HasProperties):
             data.noise_floor
 
         """,
-        shape=('*',)
+        shape=("*",),
     )
 
-    survey = properties.Instance(
-        "a SimPEG survey object", BaseSurvey, required=True
-    )
+    survey = properties.Instance("a SimPEG survey object", BaseSurvey, required=True)
 
     _uid = properties.Uuid("unique ID for the data")
 
@@ -121,15 +120,19 @@ class Data(properties.HasProperties):
     # Instantiate the class
     #######################
     def __init__(
-        self, survey, dobs=None, relative_error=None, noise_floor=None,
-        standard_deviation=None
+        self,
+        survey,
+        dobs=None,
+        relative_error=None,
+        noise_floor=None,
+        standard_deviation=None,
     ):
         super(Data, self).__init__()
         self.survey = survey
 
         # Observed data
         if dobs is None:
-            dobs = np.nan*np.ones(survey.nD)  # initialize data as nans
+            dobs = np.nan * np.ones(survey.nD)  # initialize data as nans
         self.dobs = dobs
 
         if relative_error is not None:
@@ -146,7 +149,11 @@ class Data(properties.HasProperties):
                 )
             self.standard_deviation = standard_deviation
 
-        if standard_deviation is None and relative_error is None and noise_floor is None:
+        if (
+            standard_deviation is None
+            and relative_error is None
+            and noise_floor is None
+        ):
             self.standard_deviation = 0.0
 
     #######################
@@ -203,14 +210,13 @@ class Data(properties.HasProperties):
     def shape(self):
         return self.dobs.shape
 
-
     ##########################
     # Observers and validators
     ##########################
 
-    @properties.validator('dobs')
+    @properties.validator("dobs")
     def _dobs_validator(self, change):
-        if self.survey.nD != len(change['value']):
+        if self.survey.nD != len(change["value"]):
             raise ValueError(
                 "{} must have the same length as the number of data. The "
                 "provided input has len {}, while the survey expects "
@@ -219,12 +225,11 @@ class Data(properties.HasProperties):
                 )
             )
 
-    @properties.validator(['relative_error', 'noise_floor'])
+    @properties.validator(["relative_error", "noise_floor"])
     def _standard_deviation_validator(self, change):
-        if isinstance(change['value'], float):
-            change['value'] = change['value'] * np.ones(self.nD)
+        if isinstance(change["value"], float):
+            change["value"] = change["value"] * np.ones(self.nD)
         self._dobs_validator(change)
-
 
     @property
     def index_dictionary(self):
@@ -241,7 +246,7 @@ class Data(properties.HasProperties):
                     data.dobs[index] = datum
 
         """
-        if getattr(self, '_index_dictionary', None) is None:
+        if getattr(self, "_index_dictionary", None) is None:
             if self.survey is None:
                 raise Exception(
                     "To set or get values by source-receiver pairs, a survey must "
@@ -288,12 +293,10 @@ class Data(properties.HasProperties):
     # Deprecated
     ##########################
     std = deprecate_property(
-        relative_error, 'std',
-        new_name='relative_error', removal_version='0.15.0'
+        relative_error, "std", new_name="relative_error", removal_version="0.15.0"
     )
     eps = deprecate_property(
-        noise_floor, 'eps',
-        new_name='noise_floor', removal_version='0.15.0'
+        noise_floor, "eps", new_name="noise_floor", removal_version="0.15.0"
     )
 
 
@@ -316,23 +319,25 @@ class SyntheticData(Data):
                     data.dclean[indices] = datum
 
         """,
-        shape=('*',), required=True
+        shape=("*",),
+        required=True,
     )
 
     def __init__(
-        self, survey, dobs=None, dclean=None, relative_error=None,
-        noise_floor=None
+        self, survey, dobs=None, dclean=None, relative_error=None, noise_floor=None
     ):
         super(SyntheticData, self).__init__(
-            survey=survey, dobs=dobs,
-            relative_error=relative_error, noise_floor=noise_floor
+            survey=survey,
+            dobs=dobs,
+            relative_error=relative_error,
+            noise_floor=noise_floor,
         )
 
         if dclean is None:
-            dclean = np.nan*np.ones(self.survey.nD)
+            dclean = np.nan * np.ones(self.survey.nD)
         self.dclean = dclean
 
-    @properties.validator('dclean')
+    @properties.validator("dclean")
     def _dclean_validator(self, change):
         self._dobs_validator(change)
 
@@ -341,11 +346,14 @@ class SyntheticData(Data):
 class _Data(Data):
     def __init__(self, *args, **kwargs):
         warnings.warn(
-            'The survey.Data class has been moved. To import the data class, '
-            'please use SimPEG.data.Data. This class will be removed in SimPEG 0.15.0',
-            DeprecationWarning)
+            "The survey.Data class has been moved. To import the data class, "
+            "please use SimPEG.data.Data. This class will be removed in SimPEG 0.15.0",
+            DeprecationWarning,
+        )
         super().__init__(*args, **kwargs)
+
+
 survey.Data = _Data
-survey.Data.__name__ = 'Data'
-survey.Data.__qualname__ = 'Data'
-survey.Data.__module__ = 'SimPEG.survey'
+survey.Data.__name__ = "Data"
+survey.Data.__qualname__ = "Data"
+survey.Data.__module__ = "SimPEG.survey"

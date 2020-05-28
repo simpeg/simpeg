@@ -7,6 +7,7 @@ import discretize
 from SimPEG import utils, maps
 from SimPEG.electromagnetics import resistivity as dc
 from SimPEG.electromagnetics import induced_polarization as ip
+
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
@@ -14,7 +15,6 @@ except ImportError:
 
 
 class IPProblemAnalyticTests(unittest.TestCase):
-
     def setUp(self):
 
         cs = 12.5
@@ -24,19 +24,19 @@ class IPProblemAnalyticTests(unittest.TestCase):
         hz = [(cs, npad, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
 
-        x = mesh.vectorCCx[(mesh.vectorCCx > -80.) & (mesh.vectorCCx < 80.)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -80.) & (mesh.vectorCCy < 80.)]
-        Aloc = np.r_[-100., 0., 0.]
-        Bloc = np.r_[100., 0., 0.]
-        M = utils.ndgrid(x-12.5, y, np.r_[0.])
-        N = utils.ndgrid(x+12.5, y, np.r_[0.])
-        radius = 50.
-        xc = np.r_[0., 0., -100]
+        x = mesh.vectorCCx[(mesh.vectorCCx > -80.0) & (mesh.vectorCCx < 80.0)]
+        y = mesh.vectorCCy[(mesh.vectorCCy > -80.0) & (mesh.vectorCCy < 80.0)]
+        Aloc = np.r_[-100.0, 0.0, 0.0]
+        Bloc = np.r_[100.0, 0.0, 0.0]
+        M = utils.ndgrid(x - 12.5, y, np.r_[0.0])
+        N = utils.ndgrid(x + 12.5, y, np.r_[0.0])
+        radius = 50.0
+        xc = np.r_[0.0, 0.0, -100]
         blkind = utils.model_builder.getIndicesSphere(xc, radius, mesh.gridCC)
-        sigmaInf = np.ones(mesh.nC)*1e-2
+        sigmaInf = np.ones(mesh.nC) * 1e-2
         eta = np.zeros(mesh.nC)
         eta[blkind] = 0.1
-        sigma0 = sigmaInf*(1.-eta)
+        sigma0 = sigmaInf * (1.0 - eta)
 
         rx = dc.receivers.Dipole(M, N)
         src = dc.sources.Dipole([rx], Aloc, Bloc)
@@ -65,12 +65,12 @@ class IPProblemAnalyticTests(unittest.TestCase):
             sigma=self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
-            _f=finf
+            _f=finf,
         )
         simulationip.Solver = Solver
         data_full = data0 - datainf
         data = simulationip.dpred(self.eta)
-        err = np.linalg.norm((data-data_full)/data_full)**2 / data_full.size
+        err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
         if err < 0.05:
             passed = True
             print(">> IP forward test for Simulation3DNodal is passed")
@@ -92,15 +92,15 @@ class IPProblemAnalyticTests(unittest.TestCase):
         simulationip = ip.simulation.Simulation3DCellCentered(
             mesh=self.mesh,
             survey=surveyip,
-            rho=1./self.sigmaInf,
+            rho=1.0 / self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
-            _f=finf
+            _f=finf,
         )
         simulationip.Solver = Solver
         data_full = data0 - datainf
         data = simulationip.dpred(self.eta)
-        err = np.linalg.norm((data-data_full)/data_full)**2 / data_full.size
+        err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
         if err < 0.05:
             passed = True
             print(">> IP forward test for Simulation3DCellCentered is passed")
@@ -109,5 +109,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
             print(">> IP forward test for Simulation3DCellCentered is failed")
         self.assertTrue(passed)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

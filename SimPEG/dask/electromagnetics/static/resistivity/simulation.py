@@ -45,45 +45,48 @@ def dask_getJ(self, m, f=None):
             # wrt f, need possibility wrt m
             PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
 
-            df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
-                                None)
+            df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
             df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
 
             # Find a block of receivers
-            n_block_col = int(np.ceil(df_duT.size *
-                                      8*1e-9 / self.max_ram))
+            n_block_col = int(np.ceil(df_duT.size * 8 * 1e-9 / self.max_ram))
 
             n_col = int(np.ceil(df_duT.shape[1] / n_block_col))
 
-            nrows = int(m_size /
-                        np.ceil(m_size *
-                                n_col * 8 * 1e-6 /
-                                self.max_chunk_size))
+            nrows = int(
+                m_size / np.ceil(m_size * n_col * 8 * 1e-6 / self.max_chunk_size)
+            )
             ind = 0
             for col in range(n_block_col):
-                ATinvdf_duT = da.asarray(self.Ainv * df_duT[:, ind:ind+n_col]).rechunk((nrows, n_col))
+                ATinvdf_duT = da.asarray(
+                    self.Ainv * df_duT[:, ind : ind + n_col]
+                ).rechunk((nrows, n_col))
 
                 dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
 
                 dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
 
                 if n_col > 1:
-                    du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
-                                             shape=(m_size, n_col),
-                                             dtype=float)
+                    du_dmT = da.from_delayed(
+                        dask.delayed(-dA_dmT), shape=(m_size, n_col), dtype=float
+                    )
                 else:
-                    du_dmT = da.from_delayed(dask.delayed(-dA_dmT),
-                                             shape=(m_size,),
-                                             dtype=float)
+                    du_dmT = da.from_delayed(
+                        dask.delayed(-dA_dmT), shape=(m_size,), dtype=float
+                    )
 
                 if not isinstance(dRHS_dmT, Zero):
-                    du_dmT += da.from_delayed(dask.delayed(dRHS_dmT), shape=(m_size, n_col), dtype=float)
+                    du_dmT += da.from_delayed(
+                        dask.delayed(dRHS_dmT), shape=(m_size, n_col), dtype=float
+                    )
 
                 if not isinstance(df_dmT, Zero):
-                    du_dmT += da.from_delayed(df_dmT, shape=(m_size, n_col), dtype=float)
+                    du_dmT += da.from_delayed(
+                        df_dmT, shape=(m_size, n_col), dtype=float
+                    )
 
                 blockName = self.sensitivity_path + "J" + str(count) + ".zarr"
-                da.to_zarr((du_dmT.T).rechunk('auto'), blockName)
+                da.to_zarr((du_dmT.T).rechunk("auto"), blockName)
                 del ATinvdf_duT
                 count += 1
 
@@ -96,11 +99,15 @@ def dask_getJ(self, m, f=None):
         # Stack all the source blocks in one big zarr
         dask_arrays.append(J)
 
-    rowChunk, colChunk = compute_chunk_sizes(self.survey.nD, m_size, self.max_chunk_size)
+    rowChunk, colChunk = compute_chunk_sizes(
+        self.survey.nD, m_size, self.max_chunk_size
+    )
     self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
     self.Ainv.clean()
 
     return self._Jmatrix
+
+
 Sim.getJ = dask_getJ
 
 
@@ -108,16 +115,18 @@ def dask_getJtJdiag(self, m, W=None):
     """
         Return the diagonal of JtJ
     """
-    if (self.gtgdiag is None):
+    if self.gtgdiag is None:
 
         # Need to check if multiplying weights makes sense
         if W is None:
-            self.gtgdiag = da.sum(self.getJ(m)**2, axis=0).compute()
+            self.gtgdiag = da.sum(self.getJ(m) ** 2, axis=0).compute()
         else:
             w = da.from_array(W.diagonal())[:, None]
-            self.gtgdiag = da.sum((w*self.getJ(m))**2, axis=0).compute()
+            self.gtgdiag = da.sum((w * self.getJ(m)) ** 2, axis=0).compute()
 
     return self.gtgdiag
+
+
 Sim.getJtJdiag = dask_getJtJdiag
 
 

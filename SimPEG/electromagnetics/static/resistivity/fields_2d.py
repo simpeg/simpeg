@@ -57,53 +57,67 @@ class Fields2D(TimeFields):
 
     def _phiDeriv(self, kyInd, src, du_dm_v, v, adjoint=False):
         if (
-            getattr(self, '_phiDeriv_u', None) is None or
-            getattr(self, '_phiDeriv_m', None) is None
+            getattr(self, "_phiDeriv_u", None) is None
+            or getattr(self, "_phiDeriv_m", None) is None
         ):
             raise NotImplementedError(
-                'Getting phiDerivs from {0!s} is not '
-                'implemented'.format(self.knownFields.keys()[0])
+                "Getting phiDerivs from {0!s} is not "
+                "implemented".format(self.knownFields.keys()[0])
             )
 
         if adjoint:
-            return (self._phiDeriv_u(kyInd, src, v, adjoint=adjoint),
-                    self._phiDeriv_m(kyInd, src, v, adjoint=adjoint))
+            return (
+                self._phiDeriv_u(kyInd, src, v, adjoint=adjoint),
+                self._phiDeriv_m(kyInd, src, v, adjoint=adjoint),
+            )
 
-        return (np.array(self._phiDeriv_u(kyInd, src, du_dm_v, adjoint) +
-                         self._phiDeriv_m(kyInd, src, v, adjoint),
-                         dtype=float))
+        return np.array(
+            self._phiDeriv_u(kyInd, src, du_dm_v, adjoint)
+            + self._phiDeriv_m(kyInd, src, v, adjoint),
+            dtype=float,
+        )
 
     def _eDeriv(self, kyInd, src, du_dm_v, v, adjoint=False):
         if (
-            getattr(self, '_eDeriv_u', None) is None or
-            getattr(self, '_eDeriv_m', None) is None
+            getattr(self, "_eDeriv_u", None) is None
+            or getattr(self, "_eDeriv_m", None) is None
         ):
             raise NotImplementedError(
-                'Getting eDerivs from {0!s} is not '
-                'implemented'.format(self.knownFields.keys()[0])
+                "Getting eDerivs from {0!s} is not "
+                "implemented".format(self.knownFields.keys()[0])
             )
 
         if adjoint:
-            return (self._eDeriv_u(kyInd, src, v, adjoint),
-                    self._eDeriv_m(kyInd, src, v, adjoint))
-        return (np.array(self._eDeriv_u(kyInd, src, du_dm_v, adjoint) +
-                         self._eDeriv_m(kyInd, src, v, adjoint), dtype=float))
+            return (
+                self._eDeriv_u(kyInd, src, v, adjoint),
+                self._eDeriv_m(kyInd, src, v, adjoint),
+            )
+        return np.array(
+            self._eDeriv_u(kyInd, src, du_dm_v, adjoint)
+            + self._eDeriv_m(kyInd, src, v, adjoint),
+            dtype=float,
+        )
 
     def _jDeriv(self, kyInd, src, du_dm_v, v, adjoint=False):
         if (
-            getattr(self, '_jDeriv_u', None) is None or
-            getattr(self, '_jDeriv_m', None) is None
+            getattr(self, "_jDeriv_u", None) is None
+            or getattr(self, "_jDeriv_m", None) is None
         ):
             raise NotImplementedError(
-                'Getting jDerivs from {0!s} is not '
-                'implemented'.format(self.knownFields.keys()[0])
+                "Getting jDerivs from {0!s} is not "
+                "implemented".format(self.knownFields.keys()[0])
             )
 
         if adjoint:
-            return (self._jDeriv_u(kyInd, src, v, adjoint),
-                    self._jDeriv_m(kyInd, src, v, adjoint))
-        return (np.array(self._jDeriv_u(kyInd, src, du_dm_v, adjoint) +
-                         self._jDeriv_m(kyInd, src, v, adjoint), dtype=float))
+            return (
+                self._jDeriv_u(kyInd, src, v, adjoint),
+                self._jDeriv_m(kyInd, src, v, adjoint),
+            )
+        return np.array(
+            self._jDeriv_u(kyInd, src, du_dm_v, adjoint)
+            + self._jDeriv_m(kyInd, src, v, adjoint),
+            dtype=float,
+        )
 
     # def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
     #     if adjoint is True:
@@ -121,28 +135,28 @@ class Fields2DCellCentered(Fields2D):
     Fancy Field Storage for a 2.5D cell centered code.
     """
 
-    knownFields = {'phiSolution': 'CC'}
+    knownFields = {"phiSolution": "CC"}
     aliasFields = {
-        'phi': ['phiSolution', 'CC', '_phi'],
-        'j': ['phiSolution', 'F', '_j'],
-        'e': ['phiSolution', 'F', '_e'],
+        "phi": ["phiSolution", "CC", "_phi"],
+        "j": ["phiSolution", "F", "_j"],
+        "e": ["phiSolution", "F", "_e"],
     }
     # primary - secondary
     # CC variables
 
     def _GLoc(self, fieldType):
-        if fieldType == 'phi':
-            return 'CC'
-        elif fieldType == 'e' or fieldType == 'j':
-            return 'F'
+        if fieldType == "phi":
+            return "CC"
+        elif fieldType == "e" or fieldType == "j":
+            return "F"
         else:
-            raise Exception('Field type must be phi, e, j')
+            raise Exception("Field type must be phi, e, j")
 
     def _phi(self, phiSolution, src, kyInd):
         return phiSolution
 
     def _phiDeriv_u(self, kyInd, src, v, adjoint=False):
-        return Identity()*v
+        return Identity() * v
 
     def _phiDeriv_m(self, kyInd, src, v, adjoint=False):
         return Zero()
@@ -158,28 +172,29 @@ class Fields2DNodal(Fields2D):
     """
     Fancy Field Storage for a 2.5D nodal code.
     """
-    knownFields = {'phiSolution': 'N'}
+
+    knownFields = {"phiSolution": "N"}
     aliasFields = {
-        'phi': ['phiSolution', 'N', '_phi'],
-        'j': ['phiSolution', 'E', '_j'],
-        'e': ['phiSolution', 'E', '_e'],
+        "phi": ["phiSolution", "N", "_phi"],
+        "j": ["phiSolution", "E", "_j"],
+        "e": ["phiSolution", "E", "_e"],
     }
     # primary - secondary
     # CC variables
 
     def _GLoc(self, fieldType):
-        if fieldType == 'phi':
-            return 'N'
-        elif fieldType == 'e' or fieldType == 'j':
-            return 'E'
+        if fieldType == "phi":
+            return "N"
+        elif fieldType == "e" or fieldType == "j":
+            return "E"
         else:
-            raise Exception('Field type must be phi, e, j')
+            raise Exception("Field type must be phi, e, j")
 
     def _phi(self, phiSolution, src, kyInd):
         return phiSolution
 
     def _phiDeriv_u(self, kyInd, src, v, adjoint=False):
-        return Identity()*v
+        return Identity() * v
 
     def _phiDeriv_m(self, kyInd, src, v, adjoint=False):
         return Zero()
@@ -197,16 +212,16 @@ Fields2DCellCentred = Fields2DCellCentered
 ############
 # Deprecated
 ############
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Fields_ky(Fields2D):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Fields_ky_CC(Fields2DCellCentered):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Fields_ky_N(Fields2DNodal):
     pass

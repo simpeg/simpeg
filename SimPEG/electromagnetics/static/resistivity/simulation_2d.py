@@ -20,27 +20,23 @@ class BaseDCSimulation2D(BaseEMSimulation):
     Base 2.5D DC problem
     """
 
-    survey = properties.Instance(
-        "a DC survey object", Survey, required=True
-    )
+    survey = properties.Instance("a DC survey object", Survey, required=True)
 
-    storeJ = properties.Bool(
-        "store the sensitivity matrix?", default=False
-    )
+    storeJ = properties.Bool("store the sensitivity matrix?", default=False)
 
     fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
     nky = 15
     kys = np.logspace(-4, 1, nky)
     Ainv = [None for i in range(nky)]
-    nT = nky-1  # Only for using TimeFields
+    nT = nky - 1  # Only for using TimeFields
     # there's actually nT+1 fields, so we don't need to store the last one
     _Jmatrix = None
     fix_Jmatrix = False
     _mini_survey = None
 
     def __init__(self, *args, **kwargs):
-        miniaturize = kwargs.pop('miniaturize', False)
+        miniaturize = kwargs.pop("miniaturize", False)
         super().__init__(*args, **kwargs)
         # Do stuff to simplify the forward and JTvec operation if number of dipole
         # sources is greater than the number of unique pole sources
@@ -56,7 +52,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     def fields(self, m):
         if self.verbose:
-            print (">> Compute fields")
+            print(">> Compute fields")
         if m is not None:
             self.model = m
         if self.Ainv[0] is not None:
@@ -73,14 +69,14 @@ class BaseDCSimulation2D(BaseEMSimulation):
             f[:, self._solutionType, iky] = u
         return f
 
-    def fields_to_space(self, f, y=0.):
+    def fields_to_space(self, f, y=0.0):
         f_fwd = self.fieldsPair_fwd(self)
         # Evaluating Integration using Trapezoidal rules
-        dky = np.diff(self.kys)/2
-        trap_weights = np.r_[dky, 0]+np.r_[0, dky]
-        trap_weights *= np.cos(self.kys*y)
+        dky = np.diff(self.kys) / 2
+        trap_weights = np.r_[dky, 0] + np.r_[0, dky]
+        trap_weights *= np.cos(self.kys * y)
         # assume constant value at 0 frequency?
-        trap_weights[0] += self.kys[0]/2 * (1.0 + np.cos(self.kys[0]*y))
+        trap_weights[0] += self.kys[0] / 2 * (1.0 + np.cos(self.kys[0] * y))
         trap_weights /= np.pi
         phi = f[:, self._solutionType, :].dot(trap_weights)
         f_fwd[:, self._solutionType] = phi
@@ -109,7 +105,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         for src in survey.source_list:
             for rx in src.receiver_list:
                 d = IntTrapezoidal(self.kys, rx.eval(src, self.mesh, f))
-                temp[count:count+len(d)] = d
+                temp[count : count + len(d)] = d
                 count += len(d)
 
         return self._mini_survey_data(temp)
@@ -151,12 +147,12 @@ class BaseDCSimulation2D(BaseEMSimulation):
         Jv = np.zeros(survey.nD)
         # Assume y=0.
         # This needs some thoughts to implement in general when src is dipole
-        y = 0.
-        dky = np.diff(self.kys)/2
-        trap_weights = np.r_[dky, 0]+np.r_[0, dky]
-        trap_weights *= np.cos(self.kys*y)  # *(1.0/np.pi)
+        y = 0.0
+        dky = np.diff(self.kys) / 2
+        trap_weights = np.r_[dky, 0] + np.r_[0, dky]
+        trap_weights *= np.cos(self.kys * y)  # *(1.0/np.pi)
         # assume constant value at 0 frequency?
-        trap_weights[0] += self.kys[0]/2 * (1.0 + np.cos(self.kys[0]*y))
+        trap_weights[0] += self.kys[0] / 2 * (1.0 + np.cos(self.kys[0] * y))
         trap_weights /= np.pi
 
         # TODO: this loop is pretty slow .. (Parellize)
@@ -169,12 +165,11 @@ class BaseDCSimulation2D(BaseEMSimulation):
                 # dRHS_dm_v = self.getRHSDeriv(ky, src, v) = 0
                 du_dm_v = self.Ainv[iky] * (-dA_dm_v)  # + dRHS_dm_v)
                 for rx in src.receiver_list:
-                    df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
-                                       None)
+                    df_dmFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
                     df_dm_v = df_dmFun(iky, src, du_dm_v, v, adjoint=False)
                     Jv1_temp = rx.evalDeriv(src, self.mesh, f, df_dm_v)
                     # Trapezoidal intergration
-                    Jv[count:count+len(Jv1_temp)] += trap_weights[iky]*Jv1_temp
+                    Jv[count : count + len(Jv1_temp)] += trap_weights[iky] * Jv1_temp
                     count += len(Jv1_temp)
 
         return self._mini_survey_data(Jv)
@@ -203,12 +198,12 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
         # Assume y=0.
         # This needs some thoughts to implement in general when src is dipole
-        y = 0.
-        dky = np.diff(self.kys)/2
-        trap_weights = np.r_[dky, 0]+np.r_[0, dky]
-        trap_weights *= np.cos(self.kys*y)  # *(1.0/np.pi)
+        y = 0.0
+        dky = np.diff(self.kys) / 2
+        trap_weights = np.r_[dky, 0] + np.r_[0, dky]
+        trap_weights *= np.cos(self.kys * y)  # *(1.0/np.pi)
         # assume constant value at 0 frequency?
-        trap_weights[0] += self.kys[0]/2 * (1.0 + np.cos(self.kys[0]*y))
+        trap_weights[0] += self.kys[0] / 2 * (1.0 + np.cos(self.kys[0] * y))
         trap_weights /= np.pi
         if self._mini_survey is not None:
             survey = self._mini_survey
@@ -231,32 +226,27 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     df_duT_sum = 0
                     df_dmT_sum = 0
                     for rx in src.receiver_list:
-                        my_v = v[count:count+rx.nD]
+                        my_v = v[count : count + rx.nD]
                         count += rx.nD
                         # wrt f, need possibility wrt m
-                        PTv = rx.evalDeriv(src, self.mesh, f, my_v,
-                                           adjoint=True)
-                        df_duTFun = getattr(
-                            f, '_{0!s}Deriv'.format(rx.projField), None
-                        )
-                        df_duT, df_dmT = df_duTFun(iky, src, None, PTv,
-                                                   adjoint=True)
+                        PTv = rx.evalDeriv(src, self.mesh, f, my_v, adjoint=True)
+                        df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
+                        df_duT, df_dmT = df_duTFun(iky, src, None, PTv, adjoint=True)
                         df_duT_sum += df_duT
                         df_dmT_sum += df_dmT
 
                     ATinvdf_duT = self.Ainv[iky] * df_duT_sum
 
-                    dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
-                                            adjoint=True)
+                    dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT, adjoint=True)
                     # dRHS_dmT = self.getRHSDeriv(ky, src, ATinvdf_duT,
                     #                            adjoint=True)
                     du_dmT = -dA_dmT  # + dRHS_dmT=0
-                    Jtv += trap_weights[iky]*(df_dmT + du_dmT).astype(float)
+                    Jtv += trap_weights[iky] * (df_dmT + du_dmT).astype(float)
             return mkvc(Jtv)
 
         else:
             # This is for forming full sensitivity matrix
-            Jt = np.zeros((self.model.size, survey.nD), order='F')
+            Jt = np.zeros((self.model.size, survey.nD), order="F")
             for iky, ky in enumerate(self.kys):
                 u_ky = f[:, self._solutionType, iky]
                 istrt = 0
@@ -268,9 +258,8 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
                         ATinvdf_duT = self.Ainv[iky] * (P.T)
 
-                        dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT,
-                                                adjoint=True)
-                        Jtv = -trap_weights[iky]*dA_dmT #RHS=0
+                        dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT, adjoint=True)
+                        Jtv = -trap_weights[iky] * dA_dmT  # RHS=0
                         iend = istrt + rx.nD
                         if rx.nD == 1:
                             Jt[:, istrt] += Jtv
@@ -294,14 +283,14 @@ class BaseDCSimulation2D(BaseEMSimulation):
         else:
             Srcs = self.survey.source_list
 
-        if self._formulation == 'EB':
+        if self._formulation == "EB":
             n = self.mesh.nN
             # return NotImplementedError
 
-        elif self._formulation == 'HJ':
+        elif self._formulation == "HJ":
             n = self.mesh.nC
 
-        q = np.zeros((n, len(Srcs)), order='F')
+        q = np.zeros((n, len(Srcs)), order="F")
 
         for i, src in enumerate(Srcs):
             q[:, i] = src.eval(self)
@@ -311,16 +300,13 @@ class BaseDCSimulation2D(BaseEMSimulation):
     def deleteTheseOnModelUpdate(self):
         toDelete = super(BaseDCSimulation2D, self).deleteTheseOnModelUpdate
         if self.sigmaMap is not None:
-            toDelete += [
-                '_MnSigma', '_MnSigmaDerivMat',
-                '_MccRhoi', '_MccRhoiDerivMat'
-            ]
+            toDelete += ["_MnSigma", "_MnSigmaDerivMat", "_MccRhoi", "_MccRhoiDerivMat"]
 
         if self.fix_Jmatrix:
             return toDelete
 
         if self._Jmatrix is not None:
-            toDelete += ['_Jmatrix']
+            toDelete += ["_Jmatrix"]
         return toDelete
 
     def _mini_survey_data(self, d_mini):
@@ -341,7 +327,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
             np.add.at(out, self._invs[0], v)  # AM
             np.subtract.at(out, self._invs[1], v[self._dipoles[0]])  # AN
             np.subtract.at(out, self._invs[2], v[self._dipoles[1]])  # BM
-            np.add.at(out, self._invs[3], v[self._dipoles[0] & self._dipoles[1]])  #BN
+            np.add.at(out, self._invs[3], v[self._dipoles[0] & self._dipoles[1]])  # BN
             return out
         else:
             out = v
@@ -358,12 +344,10 @@ class BaseDCSimulation2D(BaseEMSimulation):
             formulation
         """
         # TODO: only works isotropic sigma
-        if getattr(self, '_MnSigma', None) is None:
+        if getattr(self, "_MnSigma", None) is None:
             sigma = self.sigma
             vol = self.mesh.vol
-            self._MnSigma = sdiag(
-                self.mesh.aveN2CC.T*(vol*sigma)
-            )
+            self._MnSigma = sdiag(self.mesh.aveN2CC.T * (vol * sigma))
         return self._MnSigma
 
     @property
@@ -371,11 +355,9 @@ class BaseDCSimulation2D(BaseEMSimulation):
         """
             Derivative of MnSigma with respect to the model
         """
-        if getattr(self, '_MnSigmaDerivMat', None) is None:
+        if getattr(self, "_MnSigmaDerivMat", None) is None:
             vol = self.mesh.vol
-            self._MnSigmaDerivMat = (
-                self.mesh.aveN2CC.T * sdiag(vol) * self.sigmaDeriv
-                )
+            self._MnSigmaDerivMat = self.mesh.aveN2CC.T * sdiag(vol) * self.sigmaDeriv
         return self._MnSigmaDerivMat
 
     def MnSigmaDeriv(self, u, v, adjoint=False):
@@ -388,20 +370,16 @@ class BaseDCSimulation2D(BaseEMSimulation):
             if adjoint:
                 return self.MnSigmaDerivMat.T * (u * v)
             else:
-                return u*(self.MnSigmaDerivMat * v)
+                return u * (self.MnSigmaDerivMat * v)
         else:
             vol = self.mesh.vol
             if v.ndim > 1:
                 vol = vol[:, None]
             if adjoint:
-                return self.sigmaDeriv.T * (
-                    vol * (self.mesh.aveN2CC * (u * v))
-                )
+                return self.sigmaDeriv.T * (vol * (self.mesh.aveN2CC * (u * v)))
             else:
                 dsig_dm_v = self.sigmaDeriv * v
-                return (
-                    u * (self.mesh.aveN2CC.T * (vol * dsig_dm_v))
-                )
+                return u * (self.mesh.aveN2CC.T * (vol * dsig_dm_v))
 
     @property
     def MccRhoi(self):
@@ -410,10 +388,8 @@ class BaseDCSimulation2D(BaseEMSimulation):
             formulation
         """
         # TODO: only works isotropic rho
-        if getattr(self, '_MccRhoi', None) is None:
-            self._MccRhoi = sdiag(
-                self.mesh.vol/self.rho
-            )
+        if getattr(self, "_MccRhoi", None) is None:
+            self._MccRhoi = sdiag(self.mesh.vol / self.rho)
         return self._MccRhoi
 
     @property
@@ -421,12 +397,10 @@ class BaseDCSimulation2D(BaseEMSimulation):
         """
             Derivative of MccRho with respect to the model
         """
-        if getattr(self, '_MccRhoiDerivMat', None) is None:
+        if getattr(self, "_MccRhoiDerivMat", None) is None:
             rho = self.rho
             vol = self.mesh.vol
-            self._MccRhoiDerivMat = (
-                sdiag(vol*(-1./rho**2))*self.rhoDeriv
-            )
+            self._MccRhoiDerivMat = sdiag(vol * (-1.0 / rho ** 2)) * self.rhoDeriv
         return self._MccRhoiDerivMat
 
     def MccRhoiDeriv(self, u, v, adjoint=False):
@@ -450,9 +424,9 @@ class BaseDCSimulation2D(BaseEMSimulation):
             vol = self.mesh.vol
             rho = self.rho
             if adjoint:
-                return self.rhoDeriv.T * (sdiag(u*vol*(-1./rho**2)) * v)
+                return self.rhoDeriv.T * (sdiag(u * vol * (-1.0 / rho ** 2)) * v)
             else:
-                return (sdiag(u*vol*(-1./rho**2)))*(self.rhoDeriv * v)
+                return (sdiag(u * vol * (-1.0 / rho ** 2))) * (self.rhoDeriv * v)
 
 
 class Simulation2DCellCentered(BaseDCSimulation2D):
@@ -460,11 +434,11 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
     2.5D cell centered DC problem
     """
 
-    _solutionType = 'phiSolution'
-    _formulation = 'HJ'  # CC potentials means J is on faces
+    _solutionType = "phiSolution"
+    _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields2DCellCentered
     fieldsPair_fwd = Fields3DCellCentered
-    bc_type = 'Mixed'
+    bc_type = "Mixed"
 
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation2D.__init__(self, mesh, **kwargs)
@@ -482,9 +456,9 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         MfRhoI = self.MfRhoI
         # Get resistivity rho
         rho = self.rho
-        A = D * MfRhoI * G + ky**2 * self.MccRhoi
+        A = D * MfRhoI * G + ky ** 2 * self.MccRhoi
         if self.bc_type == "Neumann":
-            A[0, 0] = A[0, 0] + 1.
+            A[0, 0] = A[0, 0] + 1.0
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
@@ -494,15 +468,13 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         D = self.Div
         G = self.Grad
         if adjoint:
-            return (
-                self.MfRhoIDeriv(G*u.flatten(), D.T*v, adjoint=adjoint) +
-                ky**2 * self.MccRhoiDeriv(u.flatten(), v, adjoint=adjoint)
-            )
+            return self.MfRhoIDeriv(
+                G * u.flatten(), D.T * v, adjoint=adjoint
+            ) + ky ** 2 * self.MccRhoiDeriv(u.flatten(), v, adjoint=adjoint)
         else:
-            return (
-                D * self.MfRhoIDeriv(G*u.flatten(), v, adjoint=adjoint) +
-                ky**2 * self.MccRhoiDeriv(u.flatten(), v, adjoint=adjoint)
-            )
+            return D * self.MfRhoIDeriv(
+                G * u.flatten(), v, adjoint=adjoint
+            ) + ky ** 2 * self.MccRhoiDeriv(u.flatten(), v, adjoint=adjoint)
 
     def getRHS(self, ky):
         """
@@ -536,53 +508,45 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         temp_yp = np.ones_like(gBFyp[:, 1])
 
         if self.bc_type == "Neumann":
-            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
-            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
+            alpha_xm, alpha_xp = temp_xm * 0.0, temp_xp * 0.0
+            alpha_ym, alpha_yp = temp_ym * 0.0, temp_yp * 0.0
 
             beta_xm, beta_xp = temp_xm, temp_xp
             beta_ym, beta_yp = temp_ym, temp_yp
 
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+            gamma_xm, gamma_xp = temp_xm * 0.0, temp_xp * 0.0
+            gamma_ym, gamma_yp = temp_ym * 0.0, temp_yp * 0.0
 
         elif self.bc_type == "Dirichlet":
             alpha_xm, alpha_xp = temp_xm, temp_xp
             alpha_ym, alpha_yp = temp_ym, temp_yp
 
-            beta_xm, beta_xp = temp_xm*0., temp_xp*0.
-            beta_ym, beta_yp = temp_ym*0., temp_yp*0.
+            beta_xm, beta_xp = temp_xm * 0.0, temp_xp * 0.0
+            beta_ym, beta_yp = temp_ym * 0.0, temp_yp * 0.0
 
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+            gamma_xm, gamma_xp = temp_xm * 0.0, temp_xp * 0.0
+            gamma_ym, gamma_yp = temp_ym * 0.0, temp_yp * 0.0
 
         elif self.bc_type == "Mixed":
             xs = np.median(self.mesh.vectorCCx)
             ys = np.median(self.mesh.vectorCCy[-1])
 
             def r_boundary(x, y):
-                return 1./np.sqrt(
-                    (x - xs)**2 + (y - ys)**2
-                    )
+                return 1.0 / np.sqrt((x - xs) ** 2 + (y - ys) ** 2)
 
             rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1])
             rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1])
             rym = r_boundary(gBFym[:, 0], gBFym[:, 1])
 
-            alpha_xm = ky*(
-                kn(1, ky*rxm) / kn(0, ky*rxm) * (gBFxm[:, 0]-xs)
-                )
-            alpha_xp = ky*(
-                kn(1, ky*rxp) / kn(0, ky*rxp) * (gBFxp[:, 0]-xs)
-                )
-            alpha_ym = ky*(
-                kn(1, ky*rym) / kn(0, ky*rym) * (gBFym[:, 0]-ys)
-                )
-            alpha_yp = temp_yp*0.
+            alpha_xm = ky * (kn(1, ky * rxm) / kn(0, ky * rxm) * (gBFxm[:, 0] - xs))
+            alpha_xp = ky * (kn(1, ky * rxp) / kn(0, ky * rxp) * (gBFxp[:, 0] - xs))
+            alpha_ym = ky * (kn(1, ky * rym) / kn(0, ky * rym) * (gBFym[:, 0] - ys))
+            alpha_yp = temp_yp * 0.0
             beta_xm, beta_xp = temp_xm, temp_xp
             beta_ym, beta_yp = temp_ym, temp_yp
 
-            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
-            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+            gamma_xm, gamma_xp = temp_xm * 0.0, temp_xp * 0.0
+            gamma_ym, gamma_yp = temp_ym * 0.0, temp_yp * 0.0
 
         alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
         beta = [beta_xm, beta_xp, beta_ym, beta_yp]
@@ -592,8 +556,8 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         V = self.Vol
         self.Div = V * self.mesh.faceDiv
         P_BC, B = self.mesh.getBCProjWF_simple()
-        M = B*self.mesh.aveCC2F
-        self.Grad = self.Div.T - P_BC*sdiag(y_BC)*M
+        M = B * self.mesh.aveCC2F
+        self.Grad = self.Div.T - P_BC * sdiag(y_BC) * M
 
 
 class Simulation2DNodal(BaseDCSimulation2D):
@@ -601,8 +565,8 @@ class Simulation2DNodal(BaseDCSimulation2D):
     2.5D nodal DC problem
     """
 
-    _solutionType = 'phiSolution'
-    _formulation = 'EB'  # CC potentials means J is on faces
+    _solutionType = "phiSolution"
+    _formulation = "EB"  # CC potentials means J is on faces
     fieldsPair = Fields2DNodal
     fieldsPair_fwd = Fields3DNodal
     _gradT = None
@@ -610,8 +574,8 @@ class Simulation2DNodal(BaseDCSimulation2D):
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation2D.__init__(self, mesh, **kwargs)
         # self.setBC()
-        self.solver_opts['is_symmetric'] = True
-        self.solver_opts['is_positive_definite'] = True
+        self.solver_opts["is_symmetric"] = True
+        self.solver_opts["is_positive_definite"] = True
 
     def getA(self, ky):
         """
@@ -624,7 +588,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
         if self._gradT is None:
             self._gradT = Grad.T.tocsr()  # cache the .tocsr()
         GradT = self._gradT
-        A = GradT * MeSigma * Grad + ky**2*MnSigma
+        A = GradT * MeSigma * Grad + ky ** 2 * MnSigma
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
@@ -632,15 +596,13 @@ class Simulation2DNodal(BaseDCSimulation2D):
         Grad = self.mesh.nodalGrad
 
         if adjoint:
-            return (
-                self.MeSigmaDeriv(Grad*u.flatten(), Grad*v, adjoint=adjoint) +
-                ky**2*self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
-            )
+            return self.MeSigmaDeriv(
+                Grad * u.flatten(), Grad * v, adjoint=adjoint
+            ) + ky ** 2 * self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
         else:
-            return (
-                Grad.T*self.MeSigmaDeriv(Grad*u.flatten(), v, adjoint=adjoint) +
-                ky**2*self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
-            )
+            return Grad.T * self.MeSigmaDeriv(
+                Grad * u.flatten(), v, adjoint=adjoint
+            ) + ky ** 2 * self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
         # return (Grad.T*(self.MeSigmaDeriv(Grad*u.flatten(), v, adjoint)) +
         #         ky**2*self.MnSigmaDeriv(u.flatten())*v)
 
@@ -670,11 +632,12 @@ Simulation2DCellCentred = Simulation2DCellCentered  # UK and US
 # Deprecated
 ############
 
-@deprecate_class(removal_version='0.15.0')
+
+@deprecate_class(removal_version="0.15.0")
 class Problem2D_N(Simulation2DNodal):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Problem2D_CC(Simulation2DCellCentered):
     pass

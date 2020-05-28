@@ -15,14 +15,14 @@ def readSeepageModel(fname, mesh=None, xsurf=None, ysurf=None):
 
     fluiddata = pd.read_csv(fname)
     header = fluiddata.keys()
-    xyz = np.c_[fluiddata['X (m)'].values, fluiddata['Y (m)'].values]
-    h = fluiddata['Total Head (m)'].values
-    Ux = fluiddata['X-Velocity Magnitude (m/sec)'].values
-    Uy = fluiddata['Y-Velocity Magnitude (m/sec)'].values
-    Gradx = fluiddata['X-Gradient'].values
-    Grady = fluiddata['Y-Gradient'].values
+    xyz = np.c_[fluiddata["X (m)"].values, fluiddata["Y (m)"].values]
+    h = fluiddata["Total Head (m)"].values
+    Ux = fluiddata["X-Velocity Magnitude (m/sec)"].values
+    Uy = fluiddata["Y-Velocity Magnitude (m/sec)"].values
+    Gradx = fluiddata["X-Gradient"].values
+    Grady = fluiddata["Y-Gradient"].values
 
-    Pressure = fluiddata['Pressure Head (m)'].values
+    Pressure = fluiddata["Pressure Head (m)"].values
     Sw = fluiddata[fluiddata.keys()[17]].values
     Kx = fluiddata["X-Conductivity (m/sec)"]
     Ky = fluiddata["Y-Conductivity (m/sec)"]
@@ -31,22 +31,21 @@ def readSeepageModel(fname, mesh=None, xsurf=None, ysurf=None):
         # TODO: this is a specific set up ...
         xmin, ymin = xyz[:, 0].min(), xyz[:, 1].min()
         cs = 0.5
-        ncx = 152*2
-        ncy = 36*2
+        ncx = 152 * 2
+        ncy = 36 * 2
         npad = 5
         hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
         hy = [(cs, npad, -1.3), (cs, ncy)]
         mesh = Mesh.TensorMesh([hx, hy], x0=[xmin, ymin])
-        mesh._x0 = np.r_[xmin-mesh.hx[:10].sum(), xmin-mesh.hy[:10].sum()]
+        mesh._x0 = np.r_[xmin - mesh.hx[:10].sum(), xmin - mesh.hy[:10].sum()]
         # ...
         xsurf = np.r_[-1e10, 55, 90, 94, 109, 112, 126.5, +1e10]
         ysurf = np.r_[27.5, 27.5, 43.2, 43.2, 35, 35, 27.5, 27.5]
-        yup = np.ones_like(ysurf)*45
+        yup = np.ones_like(ysurf) * 45
         actind = Utils.surface2ind_topo(mesh, np.c_[xsurf, ysurf])
-        waterheight = 40.
-        waterind = (
-            (np.logical_and(~actind, mesh.gridCC[:, 1] < 40.)) &
-            (mesh.gridCC[:, 0] < 90.)
+        waterheight = 40.0
+        waterind = (np.logical_and(~actind, mesh.gridCC[:, 1] < 40.0)) & (
+            mesh.gridCC[:, 0] < 90.0
         )
 
     F_hlin = LinearNDInterpolator(xyz, h)
@@ -54,13 +53,23 @@ def readSeepageModel(fname, mesh=None, xsurf=None, ysurf=None):
     F_hnear = NearestNDInterpolator(mesh.gridCC[actind, :], hccIn)
     hcc = F_hnear(mesh.gridCC)
     fluiddata = {
-        "xyz": xyz, "h": h, "Sw": Sw,
-        "Kx": Kx, "Ky": Ky, "P": Pressure, "Ux": Ux, "Uy": Uy,
-        "Gradx": Gradx, "Grady": Grady,
-        "hcc":  hcc, "mesh": mesh,
+        "xyz": xyz,
+        "h": h,
+        "Sw": Sw,
+        "Kx": Kx,
+        "Ky": Ky,
+        "P": Pressure,
+        "Ux": Ux,
+        "Uy": Uy,
+        "Gradx": Gradx,
+        "Grady": Grady,
+        "hcc": hcc,
+        "mesh": mesh,
         "actind": actind,
-        "waterind":  waterind,
-        "xsurf": xsurf, "ysurf": ysurf, "yup": yup
+        "waterind": waterind,
+        "xsurf": xsurf,
+        "ysurf": ysurf,
+        "yup": yup,
     }
 
     return fluiddata
@@ -79,7 +88,7 @@ def writeVectorUBC(mesh, fileName, model):
 
     for ii in range(3):
         # Reshape model to a matrix
-        modelMat = mesh.r(model[:, ii], 'CC', 'CC', 'M')
+        modelMat = mesh.r(model[:, ii], "CC", "CC", "M")
         # Transpose the axes
         modelMatT = modelMat.transpose((2, 0, 1))
         # Flip UBC order
@@ -105,17 +114,17 @@ def readVectorUBC(mesh, fileName):
     # Fist line is the size of the model
     # model = np.array(model.ravel()[0].split(), dtype=float)
 
-    vx = np.reshape(model[:, 0], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
+    vx = np.reshape(model[:, 0], (mesh.nCz, mesh.nCx, mesh.nCy), order="F")
     vx = vx[::-1, :, :]
     vx = np.transpose(vx, (1, 2, 0))
     vx = Utils.mkvc(vx)
 
-    vy = np.reshape(model[:, 1], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
+    vy = np.reshape(model[:, 1], (mesh.nCz, mesh.nCx, mesh.nCy), order="F")
     vy = vy[::-1, :, :]
     vy = np.transpose(vy, (1, 2, 0))
     vy = Utils.mkvc(vy)
 
-    vz = np.reshape(model[:, 2], (mesh.nCz, mesh.nCx, mesh.nCy), order='F')
+    vz = np.reshape(model[:, 2], (mesh.nCz, mesh.nCx, mesh.nCy), order="F")
     vz = vz[::-1, :, :]
     vz = np.transpose(vz, (1, 2, 0))
     vz = Utils.mkvc(vz)

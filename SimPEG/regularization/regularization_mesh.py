@@ -12,6 +12,7 @@ from .. import utils
 #                                                                             #
 ###############################################################################
 
+
 class RegularizationMesh(props.BaseSimPEG):
     """
     **Regularization Mesh**
@@ -33,15 +34,15 @@ class RegularizationMesh(props.BaseSimPEG):
 
     indActive = properties.Array("active indices in mesh", dtype=[bool, int])
 
-    @properties.validator('indActive')
+    @properties.validator("indActive")
     def _cast_to_bool(self, change):
-        value = change['value']
+        value = change["value"]
         if value is not None:
-            if value.dtype != 'bool':  # cast it to a bool otherwise
+            if value.dtype != "bool":  # cast it to a bool otherwise
                 tmp = value
                 value = np.zeros(self.mesh.nC, dtype=bool)
                 value[tmp] = True
-                change['value'] = value
+                change["value"] = value
 
     @property
     def vol(self):
@@ -51,7 +52,7 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: numpy.ndarray
         :return: reduced cell volume
         """
-        if getattr(self, '_vol', None) is None:
+        if getattr(self, "_vol", None) is None:
             self._vol = self.Pac.T * self.mesh.vol
         return self._vol
 
@@ -75,7 +76,7 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: int
         :return: dimension
         """
-        if getattr(self, '_dim', None) is None:
+        if getattr(self, "_dim", None) is None:
             self._dim = self.mesh.dim
         return self._dim
 
@@ -88,7 +89,7 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: active cell projection matrix
         """
-        if getattr(self, '_Pac', None) is None:
+        if getattr(self, "_Pac", None) is None:
             if self.indActive is None:
                 self._Pac = utils.speye(self.mesh.nC)
             else:
@@ -104,29 +105,20 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: active face-x projection matrix
         """
-        if getattr(self, '_Pafx', None) is None:
+        if getattr(self, "_Pafx", None) is None:
             if self.indActive is None:
                 self._Pafx = utils.speye(self.mesh.nFx)
             else:
                 # if getattr(self.mesh, 'aveCC2Fx', None) is not None:
                 if self.mesh._meshType == "TREE":
                     if self.regularization_type == "Tikhonov":
-                        indActive_Fx = (
-                            (self.mesh.aveFx2CC.T * self.indActive) >= 1
-                        )
-                        self._Pafx = (
-                            utils.speye(self.mesh.nFx)[:, indActive_Fx]
-                        )
+                        indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) >= 1
+                        self._Pafx = utils.speye(self.mesh.nFx)[:, indActive_Fx]
                     else:
                         indActive_Fx = (
-                            (
-                                self.mesh._aveCC2FxStencil() *
-                                self.indActive
-                            ) >= 1
-                        )
-                        self._Pafx = (
-                            utils.speye(self.mesh.ntFx)[:, indActive_Fx]
-                        )
+                            self.mesh._aveCC2FxStencil() * self.indActive
+                        ) >= 1
+                        self._Pafx = utils.speye(self.mesh.ntFx)[:, indActive_Fx]
                 else:
                     indActive_Fx = self.mesh.aveFx2CC.T * self.indActive >= 1
 
@@ -142,29 +134,20 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: active face-y projection matrix
         """
-        if getattr(self, '_Pafy', None) is None:
+        if getattr(self, "_Pafy", None) is None:
             if self.indActive is None:
                 self._Pafy = utils.speye(self.mesh.nFy)
             else:
                 # if getattr(self.mesh, 'aveCC2Fy', None) is not None:
                 if self.mesh._meshType == "TREE":
                     if self.regularization_type == "Tikhonov":
-                        indActive_Fy = (
-                            (self.mesh.aveFy2CC.T * self.indActive) >= 1
-                        )
-                        self._Pafy = (
-                            utils.speye(self.mesh.nFy)[:, indActive_Fy]
-                        )
+                        indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) >= 1
+                        self._Pafy = utils.speye(self.mesh.nFy)[:, indActive_Fy]
                     else:
                         indActive_Fy = (
-                            (
-                                self.mesh._aveCC2FyStencil() *
-                                self.indActive
-                            ) >= 1
-                        )
-                        self._Pafy = (
-                            utils.speye(self.mesh.ntFy)[:, indActive_Fy]
-                        )
+                            self.mesh._aveCC2FyStencil() * self.indActive
+                        ) >= 1
+                        self._Pafy = utils.speye(self.mesh.ntFy)[:, indActive_Fy]
                 else:
                     indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) >= 1
                     self._Pafy = utils.speye(self.mesh.nFy)[:, indActive_Fy]
@@ -179,29 +162,20 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: active face-z projection matrix
         """
-        if getattr(self, '_Pafz', None) is None:
+        if getattr(self, "_Pafz", None) is None:
             if self.indActive is None:
                 self._Pafz = utils.speye(self.mesh.nFz)
             else:
                 # if getattr(self.mesh, 'aveCC2Fz', None) is not None:
                 if self.mesh._meshType == "TREE":
                     if self.regularization_type == "Tikhonov":
-                        indActive_Fz = (
-                            (self.mesh.aveFz2CC.T * self.indActive) >= 1
-                        )
-                        self._Pafz = (
-                            utils.speye(self.mesh.nFz)[:, indActive_Fz]
-                        )
+                        indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) >= 1
+                        self._Pafz = utils.speye(self.mesh.nFz)[:, indActive_Fz]
                     else:
                         indActive_Fz = (
-                            (
-                                self.mesh._aveCC2FzStencil() *
-                                self.indActive
-                            ) >= 1
-                        )
-                        self._Pafz = (
-                            utils.speye(self.mesh.ntFz)[:, indActive_Fz]
-                        )
+                            self.mesh._aveCC2FzStencil() * self.indActive
+                        ) >= 1
+                        self._Pafz = utils.speye(self.mesh.ntFz)[:, indActive_Fz]
                 else:
                     indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) >= 1
                     self._Pafz = utils.speye(self.mesh.nFz)[:, indActive_Fz]
@@ -215,20 +189,15 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: averaging from active cell centers to active x-faces
         """
-        if getattr(self, '_aveFx2CC', None) is None:
+        if getattr(self, "_aveFx2CC", None) is None:
             if self.mesh._meshType == "TREE":
                 if self.regularization_type == "Tikhonov":
-                    self._aveFx2CC = (
-                        self.Pac.T * self.mesh.aveFx2CC * self.Pafx
-                    )
+                    self._aveFx2CC = self.Pac.T * self.mesh.aveFx2CC * self.Pafx
 
                 else:
                     nCinRow = utils.mkvc((self.aveCC2Fx.T).sum(1))
-                    nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
-                    self._aveFx2CC = (
-                        utils.sdiag(nCinRow) *
-                        self.aveCC2Fx.T
-                    )
+                    nCinRow[nCinRow > 0] = 1.0 / nCinRow[nCinRow > 0]
+                    self._aveFx2CC = utils.sdiag(nCinRow) * self.aveCC2Fx.T
 
             else:
                 self._aveFx2CC = self.Pac.T * self.mesh.aveFx2CC * self.Pafx
@@ -243,14 +212,13 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: averaging matrix from active x-faces to active cell centers
         """
-        if getattr(self, '_aveCC2Fx', None) is None:
+        if getattr(self, "_aveCC2Fx", None) is None:
 
             # if getattr(self.mesh, 'aveCC2Fx', None) is not None:
             if self.mesh._meshType == "TREE":
                 if self.regularization_type == "Tikhonov":
                     self._aveCC2Fx = (
-                        utils.sdiag(1./(self.aveFx2CC.T).sum(1)) *
-                        self.aveFx2CC.T
+                        utils.sdiag(1.0 / (self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T
                     )
                 else:
                     self._aveCC2Fx = (
@@ -258,7 +226,7 @@ class RegularizationMesh(props.BaseSimPEG):
                     )
             else:
                 self._aveCC2Fx = (
-                    utils.sdiag(1./(self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T
+                    utils.sdiag(1.0 / (self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T
                 )
         return self._aveCC2Fx
 
@@ -270,20 +238,15 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: averaging from active cell centers to active y-faces
         """
-        if getattr(self, '_aveFy2CC', None) is None:
+        if getattr(self, "_aveFy2CC", None) is None:
             if self.mesh._meshType == "TREE":
                 if self.regularization_type == "Tikhonov":
-                    self._aveFy2CC = (
-                        self.Pac.T * self.mesh.aveFy2CC * self.Pafy
-                    )
+                    self._aveFy2CC = self.Pac.T * self.mesh.aveFy2CC * self.Pafy
 
                 else:
                     nCinRow = utils.mkvc((self.aveCC2Fy.T).sum(1))
-                    nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
-                    self._aveFy2CC = (
-                        utils.sdiag(nCinRow) *
-                        self.aveCC2Fy.T
-                    )
+                    nCinRow[nCinRow > 0] = 1.0 / nCinRow[nCinRow > 0]
+                    self._aveFy2CC = utils.sdiag(nCinRow) * self.aveCC2Fy.T
 
             else:
                 self._aveFy2CC = self.Pac.T * self.mesh.aveFy2CC * self.Pafy
@@ -298,13 +261,12 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: averaging matrix from active y-faces to active cell centers
         """
-        if getattr(self, '_aveCC2Fy', None) is None:
+        if getattr(self, "_aveCC2Fy", None) is None:
             # if getattr(self.mesh, 'aveCC2Fy', None) is not None:
             if self.mesh._meshType == "TREE":
                 if self.regularization_type == "Tikhonov":
                     self._aveCC2Fy = (
-                        utils.sdiag(1./(self.aveFy2CC.T).sum(1)) *
-                        self.aveFy2CC.T
+                        utils.sdiag(1.0 / (self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
                     )
                 else:
                     self._aveCC2Fy = (
@@ -312,7 +274,7 @@ class RegularizationMesh(props.BaseSimPEG):
                     )
             else:
                 self._aveCC2Fy = (
-                    utils.sdiag(1./(self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
+                    utils.sdiag(1.0 / (self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
                 )
         return self._aveCC2Fy
 
@@ -324,20 +286,15 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: averaging from active cell centers to active z-faces
         """
-        if getattr(self, '_aveFz2CC', None) is None:
+        if getattr(self, "_aveFz2CC", None) is None:
             if self.mesh._meshType == "TREE":
                 if self.regularization_type == "Tikhonov":
-                    self._aveFz2CC = (
-                        self.Pac.T * self.mesh.aveFz2CC * self.Pafz
-                    )
+                    self._aveFz2CC = self.Pac.T * self.mesh.aveFz2CC * self.Pafz
 
                 else:
                     nCinRow = utils.mkvc((self.aveCC2Fz.T).sum(1))
-                    nCinRow[nCinRow > 0] = 1./nCinRow[nCinRow > 0]
-                    self._aveFz2CC = (
-                        utils.sdiag(nCinRow) *
-                        self.aveCC2Fz.T
-                    )
+                    nCinRow[nCinRow > 0] = 1.0 / nCinRow[nCinRow > 0]
+                    self._aveFz2CC = utils.sdiag(nCinRow) * self.aveCC2Fz.T
 
             else:
                 self._aveFz2CC = self.Pac.T * self.mesh.aveFz2CC * self.Pafz
@@ -352,13 +309,12 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: averaging matrix from active z-faces to active cell centers
         """
-        if getattr(self, '_aveCC2Fz', None) is None:
+        if getattr(self, "_aveCC2Fz", None) is None:
             # if getattr(self.mesh, 'aveCC2Fz', None) is not None:
             if self.mesh._meshType == "TREE":
                 if self.regularization_type == "Tikhonov":
                     self._aveCC2Fz = (
-                        utils.sdiag(1./(self.aveFz2CC.T).sum(1)) *
-                        self.aveFz2CC.T
+                        utils.sdiag(1.0 / (self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T
                     )
                 else:
                     self._aveCC2Fz = (
@@ -366,7 +322,7 @@ class RegularizationMesh(props.BaseSimPEG):
                     )
             else:
                 self._aveCC2Fz = (
-                    utils.sdiag(1./(self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T
+                    utils.sdiag(1.0 / (self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T
                 )
         return self._aveCC2Fz
 
@@ -378,7 +334,7 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: differencing matrix for active cells in the x-direction
         """
-        if getattr(self, '_cellDiffx', None) is None:
+        if getattr(self, "_cellDiffx", None) is None:
             self._cellDiffx = self.Pafx.T * self.mesh.cellGradx * self.Pac
         return self._cellDiffx
 
@@ -390,7 +346,7 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: differencing matrix for active cells in the y-direction
         """
-        if getattr(self, '_cellDiffy', None) is None:
+        if getattr(self, "_cellDiffy", None) is None:
             self._cellDiffy = self.Pafy.T * self.mesh.cellGrady * self.Pac
         return self._cellDiffy
 
@@ -402,7 +358,7 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: differencing matrix for active cells in the z-direction
         """
-        if getattr(self, '_cellDiffz', None) is None:
+        if getattr(self, "_cellDiffz", None) is None:
             self._cellDiffz = self.Pafz.T * self.mesh.cellGradz * self.Pac
         return self._cellDiffz
 
@@ -414,7 +370,7 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: differencing matrix for active faces in the x-direction
         """
-        if getattr(self, '_faceDiffx', None) is None:
+        if getattr(self, "_faceDiffx", None) is None:
             self._faceDiffx = self.Pac.T * self.mesh.faceDivx * self.Pafx
         return self._faceDiffx
 
@@ -426,7 +382,7 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: differencing matrix for active faces in the y-direction
         """
-        if getattr(self, '_faceDiffy', None) is None:
+        if getattr(self, "_faceDiffy", None) is None:
             self._faceDiffy = self.Pac.T * self.mesh.faceDivy * self.Pafy
         return self._faceDiffy
 
@@ -438,7 +394,7 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: differencing matrix for active faces in the z-direction
         """
-        if getattr(self, '_faceDiffz', None) is None:
+        if getattr(self, "_faceDiffz", None) is None:
             self._faceDiffz = self.Pac.T * self.mesh.faceDivz * self.Pafz
         return self._faceDiffz
 
@@ -451,7 +407,7 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: scipy.sparse.csr_matrix
         :return: differencing matrix for active cells in the x-direction
         """
-        if getattr(self, '_cellDiffxStencil', None) is None:
+        if getattr(self, "_cellDiffxStencil", None) is None:
 
             self._cellDiffxStencil = (
                 self.Pafx.T * self.mesh._cellGradxStencil * self.Pac
@@ -469,7 +425,7 @@ class RegularizationMesh(props.BaseSimPEG):
         """
         if self.dim < 2:
             return None
-        if getattr(self, '_cellDiffyStencil', None) is None:
+        if getattr(self, "_cellDiffyStencil", None) is None:
 
             self._cellDiffyStencil = (
                 self.Pafy.T * self.mesh._cellGradyStencil * self.Pac
@@ -487,7 +443,7 @@ class RegularizationMesh(props.BaseSimPEG):
         """
         if self.dim < 3:
             return None
-        if getattr(self, '_cellDiffzStencil', None) is None:
+        if getattr(self, "_cellDiffzStencil", None) is None:
 
             self._cellDiffzStencil = (
                 self.Pafz.T * self.mesh._cellGradzStencil * self.Pac
@@ -496,4 +452,4 @@ class RegularizationMesh(props.BaseSimPEG):
 
 
 # Make it look like it's in the regularization module
-RegularizationMesh.__module__ = 'SimPEG.regularization'
+RegularizationMesh.__module__ = "SimPEG.regularization"

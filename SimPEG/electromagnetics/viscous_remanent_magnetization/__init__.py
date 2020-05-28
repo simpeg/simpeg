@@ -4,9 +4,7 @@ from . import receivers as Rx
 from . import sources as Src
 from . import waveforms
 
-from .simulation import (
-    BaseVRMSimulation, Simulation3DLinear, Simulation3DLogUniform
-)
+from .simulation import BaseVRMSimulation, Simulation3DLinear, Simulation3DLogUniform
 
 from .survey import SurveyVRM as Survey
 

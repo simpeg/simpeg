@@ -13,13 +13,9 @@ import properties
 
 class BaseSPProblem(BaseDCProblem):
 
-    h, hMap, hDeriv = Props.Invertible(
-        "Hydraulic Head (m)"
-    )
+    h, hMap, hDeriv = Props.Invertible("Hydraulic Head (m)")
 
-    q, qMap, qDeriv = Props.Invertible(
-        "Streaming current source (A/m^3)"
-    )
+    q, qMap, qDeriv = Props.Invertible("Streaming current source (A/m^3)")
 
     jsx, jsxMap, jsxDeriv = Props.Invertible(
         "Streaming current density in x-direction (A/m^2)"
@@ -33,13 +29,9 @@ class BaseSPProblem(BaseDCProblem):
         "Streaming current density in z-direction (A/m^2)"
     )
 
-    sigma = Props.PhysicalProperty(
-        "Electrical conductivity (S/m)"
-    )
+    sigma = Props.PhysicalProperty("Electrical conductivity (S/m)")
 
-    rho = Props.PhysicalProperty(
-        "Electrical resistivity (Ohm m)"
-    )
+    rho = Props.PhysicalProperty("Electrical resistivity (Ohm m)")
 
     Props.Reciprocal(sigma, rho)
 
@@ -53,29 +45,29 @@ class BaseSPProblem(BaseDCProblem):
         return toDelete
 
     def evalq(self, Qv, vel):
-        MfQviI = self.mesh.getFaceInnerProduct(1./Qv, invMat=True)
+        MfQviI = self.mesh.getFaceInnerProduct(1.0 / Qv, invMat=True)
         Mf = self.mesh.getFaceInnerProduct()
-        return self.Div*(Mf*(MfQviI*vel))
+        return self.Div * (Mf * (MfQviI * vel))
 
 
 class Problem_CC(BaseSPProblem, Simulation3DCellCentered):
 
-    _solutionType = 'phiSolution'
-    _formulation = 'HJ'  # CC potentials means J is on faces
+    _solutionType = "phiSolution"
+    _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields3DCellCentered
     modelType = None
     bc_type = "Mixed"
     coordinate_system = properties.StringChoice(
         "Type of coordinate system we are regularizing in",
-        choices=['cartesian', 'spherical'],
-        default='cartesian'
+        choices=["cartesian", "spherical"],
+        default="cartesian",
     )
 
     def __init__(self, mesh, **kwargs):
         BaseSPProblem.__init__(self, mesh, **kwargs)
         self.setBC()
 
-    def getADeriv(self, u, v, adjoint= False):
+    def getADeriv(self, u, v, adjoint=False):
         # We assume conductivity is known
         return Zero()
 
@@ -96,7 +88,7 @@ class Problem_CC_Jstore(Problem_CC):
         """
             Inverse of :code:`_G`
         """
-        if getattr(self, '_G', None) is None:
+        if getattr(self, "_G", None) is None:
             A = self.getA()
             self.Ainv = self.Solver(A, **self.solverOpts)
             src = self.survey.source_list[0]
@@ -112,7 +104,7 @@ class Problem_CC_Jstore(Problem_CC):
 
     def getJ(self, m, f=None):
 
-        if self.coordinate_system == 'cartesian':
+        if self.coordinate_system == "cartesian":
             return self.G
         else:
             self.model = m
@@ -122,7 +114,7 @@ class Problem_CC_Jstore(Problem_CC):
 
         self.model = m
 
-        if self.coordinate_system == 'cartesian':
+        if self.coordinate_system == "cartesian":
             return self.G.dot(v)
         else:
             return np.dot(self.G, self.S.dot(v))
@@ -131,17 +123,17 @@ class Problem_CC_Jstore(Problem_CC):
 
         self.model = m
 
-        if self.coordinate_system == 'cartesian':
+        if self.coordinate_system == "cartesian":
             return self.G.T.dot(v)
         else:
-            return self.S.T*(self.G.T.dot(v))
+            return self.S.T * (self.G.T.dot(v))
 
     @Utils.count
     def fields(self, m):
 
         self.model = m
 
-        if self.coordinate_system == 'spherical':
+        if self.coordinate_system == "spherical":
             m = Utils.mat_utils.atp2xyz(m)
 
         return self.G.dot(m)
@@ -151,30 +143,42 @@ class Problem_CC_Jstore(Problem_CC):
         """
             Derivatives for the spherical transformation
         """
-        if getattr(self, '_S', None) is None:
+        if getattr(self, "_S", None) is None:
             if self.verbose:
-                print ("Compute S")
+                print("Compute S")
             if self.model is None:
-                raise Exception('Requires a model')
+                raise Exception("Requires a model")
 
             # Assume it is vector model in spherical coordinates
-            nC = int(self.model.shape[0]/3)
+            nC = int(self.model.shape[0] / 3)
 
             a = self.model[:nC]
-            t = self.model[nC:2*nC]
-            p = self.model[2*nC:]
+            t = self.model[nC : 2 * nC]
+            p = self.model[2 * nC :]
 
-            Sx = sp.hstack([sp.diags(np.cos(t)*np.cos(p), 0),
-                            sp.diags(-a*np.sin(t)*np.cos(p), 0),
-                            sp.diags(-a*np.cos(t)*np.sin(p), 0)])
+            Sx = sp.hstack(
+                [
+                    sp.diags(np.cos(t) * np.cos(p), 0),
+                    sp.diags(-a * np.sin(t) * np.cos(p), 0),
+                    sp.diags(-a * np.cos(t) * np.sin(p), 0),
+                ]
+            )
 
-            Sy = sp.hstack([sp.diags(np.cos(t)*np.sin(p), 0),
-                            sp.diags(-a*np.sin(t)*np.sin(p), 0),
-                            sp.diags(a*np.cos(t)*np.cos(p), 0)])
+            Sy = sp.hstack(
+                [
+                    sp.diags(np.cos(t) * np.sin(p), 0),
+                    sp.diags(-a * np.sin(t) * np.sin(p), 0),
+                    sp.diags(a * np.cos(t) * np.cos(p), 0),
+                ]
+            )
 
-            Sz = sp.hstack([sp.diags(np.sin(t), 0),
-                            sp.diags(a*np.cos(t), 0),
-                            sp.csr_matrix((nC, nC))])
+            Sz = sp.hstack(
+                [
+                    sp.diags(np.sin(t), 0),
+                    sp.diags(a * np.cos(t), 0),
+                    sp.csr_matrix((nC, nC)),
+                ]
+            )
 
             self._S = sp.vstack([Sx, Sy, Sz])
 
@@ -184,14 +188,12 @@ class Problem_CC_Jstore(Problem_CC):
     def deleteTheseOnModelUpdate(self):
         toDelete = super(BaseDCProblem, self).deleteTheseOnModelUpdate
         if self._S is not None:
-            toDelete += ['_S']
+            toDelete += ["_S"]
         return toDelete
 
 
 class SurveySP_store(Survey):
     @Utils.count
-    @Utils.requires('prob')
+    @Utils.requires("prob")
     def dpred(self, m=None, f=None):
         return self.prob.fields(m)
-
-
