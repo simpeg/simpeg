@@ -16,6 +16,8 @@ from . import sources as Src
 from ..utils import static_utils
 from SimPEG import data
 
+import warnings
+
 
 class Survey(BaseSurvey):
     """
@@ -41,41 +43,61 @@ class Survey(BaseSurvey):
         choices=["dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"],
     )
 
-    a_locations = properties.Array(
-        "locations of the positive (+) current electrodes",
-        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float,  # data are floats
-    )
-
-    b_locations = properties.Array(
-        "locations of the negative (-) current electrodes",
-        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float,  # data are floats
-    )
-
-    m_locations = properties.Array(
-        "locations of the positive (+) potential electrodes",
-        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float,  # data are floats
-    )
-
-    n_locations = properties.Array(
-        "locations of the negative (-) potential electrodes",
-        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float,  # data are floats
-    )
-
-    electrode_locations = properties.Array(
-        "unique locations of a, b, m, n electrodes",
-        shape=("*", "*"),  # ('*', 3) for 3D or ('*', 2) for 2D
-        dtype=float,  # data are floats
-    )
-
     electrodes_info = None
     topo_function = None
 
     def __init__(self, source_list, **kwargs):
         super(Survey, self).__init__(source_list, **kwargs)
+
+    @property
+    def a_locations(self):
+        """
+        Location of the positive (+) current electrodes for each datum
+        """
+        if getattr(self, "_a_locations", None) is None:
+            self._set_abmn_locations()
+        return self._a_locations
+
+    @property
+    def b_locations(self):
+        """
+        Location of the negative (-) current electrodes for each datum
+        """
+        if getattr(self, "_b_locations", None) is None:
+            self._set_abmn_locations()
+        return self._b_locations
+
+    @property
+    def m_locations(self):
+        """
+        Location of the positive (+) potential electrodes for each datum
+        """
+        if getattr(self, "_m_locations", None) is None:
+            self._set_abmn_locations()
+        return self._m_locations
+
+    @property
+    def n_locations(self):
+        """
+        Location of the negative (-) potential electrodes for each datum
+        """
+        if getattr(self, "_n_locations", None) is None:
+            self._set_abmn_locations()
+        return self._n_locations
+
+    @property
+    def electrode_locations(self):
+        """
+        Locations of the [A, B, M, N] electrodes. Each column corresponds to
+        one electrode type
+        """
+        return np.hstack(
+            [
+                self.a_locations[:, None],
+                self.b_locations[:, None],
+                self.m_locations[:, None].self.n_locations[:, None],
+            ]
+        )
 
     def set_geometric_factor(
         self, data_type="volt", survey_type="dipole-dipole", space_type="half-space"
@@ -92,7 +114,7 @@ class Survey(BaseSurvey):
                 rx.data_type = data_type
         return geometric_factor
 
-    def getABMN_locations(self):
+    def _set_abmn_locations(self):
         a_locations = []
         b_locations = []
         m_locations = []
@@ -127,10 +149,19 @@ class Survey(BaseSurvey):
                     m_locations.append(rx.locations[0])
                     n_locations.append(rx.locations[1])
 
-        self.a_locations = np.vstack(a_locations)
-        self.b_locations = np.vstack(b_locations)
-        self.m_locations = np.vstack(m_locations)
-        self.n_locations = np.vstack(n_locations)
+        self._a_locations = np.vstack(a_locations)
+        self._b_locations = np.vstack(b_locations)
+        self._m_locations = np.vstack(m_locations)
+        self._n_locations = np.vstack(n_locations)
+
+    def getABMN_locations(self):
+        warnings.warn(
+            "The getABMN_locations method has been deprecated. Please instead "
+            "ask for the property of interest: survey.a_locations, "
+            "survey.b_locations, survey.m_locations, or survey.n_locations. "
+            "This will be removed in version 0.15.0 of SimPEG",
+            DeprecationWarning,
+        )
 
     def drapeTopo(self, mesh, actind, option="top", topography=None, force=False):
         if self.a_locations is None:
@@ -314,6 +345,11 @@ class Survey(BaseSurvey):
                 raise Exception(
                     "Input valid survey survey_geometry: surface or borehole"
                 )
+
+
+############
+# Deprecated
+############
 
 
 @deprecate_class(removal_version="0.15.0")

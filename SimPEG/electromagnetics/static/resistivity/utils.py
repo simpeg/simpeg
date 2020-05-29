@@ -4,6 +4,8 @@ from . import receivers
 from . import sources
 from .survey import Survey
 
+from ..utils import *
+
 
 def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
     """
