@@ -18,6 +18,36 @@ from ....utils import (
 )
 
 
+data_types = {
+    "apparent resistivity": [
+        "appresistivity",
+        "apparentresistivity",
+        "apparent-resistivity",
+        "apparent_resistivity",
+        "appres",
+    ],
+    "apparent conductivity": [
+        "appconductivity",
+        "apparentconductivity",
+        "apparent-conductivity",
+        "apparent_conductivity",
+        "appcon",
+    ],
+    "apparent chargeability": [
+        "appchargeability",
+        "apparentchargeability",
+        "apparent-chargeability",
+        "apparent_chargeability",
+    ],
+    "potentials": ["volt", "V", "voltages", "voltage"],
+}
+
+space_types = {
+    "half space": ["half-space", "half_space", "halfspace", "half"],
+    "whole space": ["whole-space", "whole_space", "wholespace", "whole"],
+}
+
+
 def electrode_separations(dc_survey, survey_type="dipole-dipole", electrode_pair="all"):
     """
     Calculate electrode separation distances.
@@ -36,7 +66,7 @@ def electrode_separations(dc_survey, survey_type="dipole-dipole", electrode_pair
         if electrode_pair.lower() == "all":
             electrode_pair = ["AB", "MN", "AM", "AN", "BM", "BN"]
         elif isinstance(electrode_pair, str):
-            electrode_pair = [electrode_pair]
+            electrode_pair = [electrode_pair.upper()]
         else:
             raise Exception(
                 "electrode_pair must be either a string, list of strings, or an "
@@ -184,7 +214,7 @@ def source_receiver_midpoints(survey, **kwargs):
     return np.vstack(midxy), np.hstack(midz)
 
 
-def geometric_factor(dc_survey, survey_type="dipole-dipole", space_type="half-space"):
+def geometric_factor(dc_survey, survey_type="dipole-dipole", space_type="half space"):
     """
         Calculate Geometric Factor. Assuming that data are normalized voltages
 
@@ -200,12 +230,12 @@ def geometric_factor(dc_survey, survey_type="dipole-dipole", space_type="half-sp
 
     """
     # Set factor for whole-space or half-space assumption
-    if space_type.lower() in ["whole-space", "wholespace"]:
+    if space_type.lower() in space_type["whole space"].keys():
         spaceFact = 4.0
-    elif space_type.lower() in ["half-space", "halfspace"]:
+    elif space_type.lower() in space_type["half space"].keys():
         spaceFact = 2.0
     else:
-        raise Exception("'space_type must be 'whole-space' | 'half-space'")
+        raise Exception("'space_type must be 'whole space' | 'half space'")
 
     elecSepDict = electrode_separations(
         dc_survey, survey_type=survey_type, electrode_pair=["AM", "BM", "AN", "BN"]
@@ -237,7 +267,7 @@ def geometric_factor(dc_survey, survey_type="dipole-dipole", space_type="half-sp
     return G / (spaceFact * np.pi)
 
 
-def apparent_resistivity(data, space_type="half-space", dobs=None, eps=1e-10, **kwargs):
+def apparent_resistivity(data, space_type="half space", dobs=None, eps=1e-10, **kwargs):
     """
     Calculate apparent resistivity. Assuming that data are normalized
     voltages - Vmn/I (Potential difference [V] divided by injection
@@ -285,8 +315,8 @@ def plot_pseudosection(
     data,
     ax=None,
     survey_type="dipole-dipole",
-    data_type="appConductivity",
-    space_type="half-space",
+    data_type="appparent conductivity",
+    space_type="half space",
     clim=None,
     scale="linear",
     sameratio=True,
@@ -347,13 +377,17 @@ def plot_pseudosection(
     else:
         midx = midx[:, 0]
 
-    if data_type in ["volt", "appChargeability", "misfitMap"]:
+    if data_type.lower() in (
+        data_type["potential"]
+        + data_types["apparent chargeability"].keys()
+        + ["misfit", "misfitmap"]
+    ):
         if scale == "linear":
             rho = dobs
         elif scale == "log":
             rho = np.log10(abs(dobs))
 
-    elif data_type == "appConductivity":
+    elif data_type.lower() in data_types["apparent conductivity"].keys():
         rhoApp = apparent_resistivity(
             data, dobs=dobs, survey_type=survey_type, space_type=space_type
         )
@@ -362,7 +396,7 @@ def plot_pseudosection(
         elif scale == "log":
             rho = np.log10(1.0 / rhoApp)
 
-    elif data_type == "appResistivity":
+    elif data_type.lower() in data_types["apparent resistivity"].keys():
         rhoApp = apparent_resistivity(
             data, dobs=dobs, survey_type=survey_type, space_type=space_type
         )
@@ -374,8 +408,8 @@ def plot_pseudosection(
     else:
         print()
         raise Exception(
-            """data_type must be 'volt' | 'appResistivity' |
-                'appConductivity' | 'appChargeability' | misfitMap"""
+            """data_type must be 'potential' | 'apparent resistivity' |
+                'apparent conductivity' | 'apparent chargeability' | misfit"""
             " not {}".format(data_type)
         )
 
@@ -410,19 +444,19 @@ def plot_pseudosection(
     elif scale == "linear":
         cbar = plt.colorbar(ph, format="%.2f", fraction=0.04, orientation="horizontal")
 
-    if data_type == "appConductivity":
+    if data_type.lower() in data_types["apparent conductivity"].keys():
         cbar.set_label("Apparent Conductivity (S/m)", size=12)
 
-    elif data_type == "appResistivity":
+    elif data_type.lower() in data_types["apparent resistivity"].keys():
         cbar.set_label("Apparent Resistivity ($\\Omega$m)", size=12)
 
-    elif data_type == "volt":
+    elif data_type.lower() in data_types["potential"].keys():
         cbar.set_label("Voltage (V)", size=12)
 
-    elif data_type == "appChargeability":
+    elif data_type.lower() in data_types["apparent chargeability"].keys():
         cbar.set_label("Apparent Chargeability (V/V)", size=12)
 
-    elif data_type == "misfitMap":
+    elif data_type.lower() in ["misfit", "misfitmap"]:
         cbar.set_label(None, size=12)
 
     cmin, cmax = cbar.get_clim()
