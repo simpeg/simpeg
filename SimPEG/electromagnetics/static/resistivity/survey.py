@@ -91,14 +91,42 @@ class Survey(BaseSurvey):
         Locations of the [A, B, M, N] electrodes. Each column corresponds to
         one electrode type
         """
-        return np.hstack(
-            [
-                self.a_locations[:, None],
-                self.b_locations[:, None],
-                self.m_locations[:, None],
-                self.n_locations[:, None],
-            ]
-        )
+        return [
+            self.a_locations,
+            self.b_locations,
+            self.m_locations,
+            self.n_locations,
+        ]
+
+    @property
+    def domain_x(self):
+        """
+        Extent of the survey domain in the x-dimension
+        """
+        if getattr(self, "_domain_x", None) is None:
+            unique_x = np.hstack([locs[:, 0] for locs in self.electrode_locations])
+            self._domain_x = np.r_[np.min(unique_x), np.max(unique_x)]
+        return self._domain_x
+
+    @property
+    def domain_y(self):
+        """
+        Extent of the survey domain in the y-dimension
+        """
+        if getattr(self, "_domain_y", None) is None:
+            unique_y = np.hstack([locs[:, 1] for locs in self.electrode_locations])
+            self._domain_y = np.r_[np.min(unique_y), np.max(unique_y)]
+        return self._domain_y
+
+    @property
+    def domain_z(self):
+        """
+        Extent of the survey domain in the z-dimension
+        """
+        if getattr(self, "_domain_z", None) is None:
+            unique_z = np.hstack([locs[:, -1] for locs in self.electrode_locations])
+            self._domain_z = np.r_[np.min(unique_z), np.max(unique_z)]
+        return self._domain_z
 
     def set_geometric_factor(
         self, data_type="volt", survey_type="dipole-dipole", space_type="half-space"
