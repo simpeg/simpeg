@@ -160,8 +160,6 @@ class Survey(BaseSurvey):
         )
 
     def drapeTopo(self, mesh, actind, option="top", topography=None, force=False):
-        if self.a_locations is None:
-            self.getABMN_locations()
 
         # 2D
         if mesh.dim == 2:
@@ -177,7 +175,7 @@ class Survey(BaseSurvey):
                             )
                         ).reshape([-1, 1])
                     )
-                    self.electrode_locations = drapeTopotoLoc(
+                    self._electrode_locations = drapeTopotoLoc(
                         mesh,
                         self.electrodes_info[0].flatten(),
                         actind=actind,
@@ -186,10 +184,10 @@ class Survey(BaseSurvey):
                 temp = (self.electrode_locations[self.electrodes_info[2], 1]).reshape(
                     (self.a_locations.shape[0], 4), order="F"
                 )
-                self.a_locations = np.c_[self.a_locations[:, 0], temp[:, 0]]
-                self.b_locations = np.c_[self.b_locations[:, 0], temp[:, 1]]
-                self.m_locations = np.c_[self.m_locations[:, 0], temp[:, 2]]
-                self.n_locations = np.c_[self.n_locations[:, 0], temp[:, 3]]
+                self._a_locations = np.c_[self.a_locations[:, 0], temp[:, 0]]
+                self._b_locations = np.c_[self.b_locations[:, 0], temp[:, 1]]
+                self._m_locations = np.c_[self.m_locations[:, 0], temp[:, 2]]
+                self._n_locations = np.c_[self.n_locations[:, 0], temp[:, 3]]
 
                 # Make interpolation function
                 self.topo_function = interp1d(

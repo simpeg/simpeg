@@ -309,7 +309,7 @@ def apparent_resistivity(data, space_type="half space", dobs=None, eps=1e-10, **
 
     # Calculate apparent resistivity
     # absolute value is required because of the regularizer
-    rhoApp = np.abs(data.dobs * (1.0 / (G + eps)))
+    rhoApp = np.abs(dobs * (1.0 / (G + eps)))
 
     return rhoApp
 
@@ -478,11 +478,17 @@ def plot_pseudosection(
             format="$10^{%.2f}$",
             fraction=0.06,
             orientation="horizontal",
+            ax=ax,
             **cbar_opts,
         )
     elif scale == "linear":
         cbar = plt.colorbar(
-            ph, format="%.2f", fraction=0.06, orientation="horizontal", **cbar_opts
+            ph,
+            format="%.2f",
+            fraction=0.06,
+            orientation="horizontal",
+            ax=ax,
+            **cbar_opts,
         )
 
     if data_type.lower() in data_types["apparent conductivity"]:
@@ -498,7 +504,7 @@ def plot_pseudosection(
         cbar.set_label("Apparent Chargeability (V/V)")
 
     elif data_type.lower() in ["misfit", "misfitmap"]:
-        cbar.set_label(None)
+        cbar.set_label("Misfit (V)")
 
     ticks = np.linspace(vmin, vmax, 3)
     cbar.set_ticks(ticks)
