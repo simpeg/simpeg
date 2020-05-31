@@ -5,6 +5,8 @@ from .... import survey
 from ....utils import Zero, closestPoints
 from ....utils.code_utils import deprecate_property
 
+import warnings
+
 
 class BaseSrc(survey.BaseSrc):
     """
