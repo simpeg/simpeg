@@ -20,6 +20,7 @@ from ....utils import (
 
 data_types = {
     "apparent resistivity": [
+        "apparent resistivity",
         "appresistivity",
         "apparentresistivity",
         "apparent-resistivity",
@@ -27,6 +28,7 @@ data_types = {
         "appres",
     ],
     "apparent conductivity": [
+        "apparent conductivity",
         "appconductivity",
         "apparentconductivity",
         "apparent-conductivity",
@@ -34,17 +36,18 @@ data_types = {
         "appcon",
     ],
     "apparent chargeability": [
+        "apparent chargeability",
         "appchargeability",
         "apparentchargeability",
         "apparent-chargeability",
         "apparent_chargeability",
     ],
-    "potentials": ["volt", "V", "voltages", "voltage"],
+    "potential": ["potential", "potentials", "volt", "V", "voltages", "voltage"],
 }
 
 space_types = {
-    "half space": ["half-space", "half_space", "halfspace", "half"],
-    "whole space": ["whole-space", "whole_space", "wholespace", "whole"],
+    "half space": ["half space", "half-space", "half_space", "halfspace", "half"],
+    "whole space": ["whole space", "whole-space", "whole_space", "wholespace", "whole"],
 }
 
 
@@ -230,9 +233,9 @@ def geometric_factor(dc_survey, survey_type="dipole-dipole", space_type="half sp
 
     """
     # Set factor for whole-space or half-space assumption
-    if space_type.lower() in space_type["whole space"].keys():
+    if space_type.lower() in space_types["whole space"]:
         spaceFact = 4.0
-    elif space_type.lower() in space_type["half space"].keys():
+    elif space_type.lower() in space_types["half space"]:
         spaceFact = 2.0
     else:
         raise Exception("'space_type must be 'whole space' | 'half space'")
@@ -315,15 +318,20 @@ def plot_pseudosection(
     data,
     ax=None,
     survey_type="dipole-dipole",
-    data_type="appparent conductivity",
+    data_type="apparent conductivity",
     space_type="half space",
+    plot_type="pcolor",
     clim=None,
     scale="linear",
     sameratio=True,
-    pcolorOpts={},
-    data_location=False,
+    pcolor_opts={},
+    contour_opts={},
+    cbar_opts={},
+    data_locations=False,
     dobs=None,
     dim=2,
+    pcolorOpts=None,
+    data_location=None,
 ):
     """
         Read list of 2D tx-rx location and plot a pseudo-section of apparent
@@ -346,6 +354,28 @@ def plot_pseudosection(
     """
     import pylab as plt
     from scipy.interpolate import griddata
+
+    if pcolorOpts is not None:
+        warnings.warn(
+            "The pcolorOpts keyword has been deprecated. Please use "
+            "pcolor_opts instead. This will be removed in version"
+            " 0.15.0 of SimPEG",
+            DeprecationWarning,
+        )
+
+    if data_location is not None:
+        warnings.warn(
+            "The data_location keyword has been deprecated. Please use "
+            "data_locations instead. This will be removed in version"
+            " 0.15.0 of SimPEG",
+            DeprecationWarning,
+        )
+
+    if plot_type.lower() not in ["pcolor", "contourf"]:
+        raise ValueError(
+            "plot_type must be 'pcolor' or 'contourf'. The input value of "
+            f"{plot_type} is not recognized"
+        )
 
     # Set depth to 0 for now
     z0 = 0.0
@@ -378,8 +408,8 @@ def plot_pseudosection(
         midx = midx[:, 0]
 
     if data_type.lower() in (
-        data_type["potential"]
-        + data_types["apparent chargeability"].keys()
+        data_types["potential"]
+        + data_types["apparent chargeability"]
         + ["misfit", "misfitmap"]
     ):
         if scale == "linear":
@@ -387,7 +417,7 @@ def plot_pseudosection(
         elif scale == "log":
             rho = np.log10(abs(dobs))
 
-    elif data_type.lower() in data_types["apparent conductivity"].keys():
+    elif data_type.lower() in data_types["apparent conductivity"]:
         rhoApp = apparent_resistivity(
             data, dobs=dobs, survey_type=survey_type, space_type=space_type
         )
@@ -396,7 +426,7 @@ def plot_pseudosection(
         elif scale == "log":
             rho = np.log10(1.0 / rhoApp)
 
-    elif data_type.lower() in data_types["apparent resistivity"].keys():
+    elif data_type.lower() in data_types["apparent resistivity"]:
         rhoApp = apparent_resistivity(
             data, dobs=dobs, survey_type=survey_type, space_type=space_type
         )
@@ -426,43 +456,53 @@ def plot_pseudosection(
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=(15, 3))
 
-    grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
-    ph = ax.pcolormesh(
-        grid_x[:, 0],
-        grid_z[0, :],
-        grid_rho.T,
-        clim=(vmin, vmax),
-        vmin=vmin,
-        vmax=vmax,
-        **pcolorOpts
-    )
+    ph = grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
+    if plot_type.lower() == "pcolor":
+        ph = ax.pcolormesh(
+            grid_x[:, 0],
+            grid_z[0, :],
+            grid_rho.T,
+            clim=(vmin, vmax),
+            vmin=vmin,
+            vmax=vmax,
+            **pcolor_opts,
+        )
+    elif plot_type.lower() == "contourf":
+        ph = ax.contourf(
+            grid_x[:, 0], grid_z[0, :], grid_rho.T, vmin=vmin, vmax=vmax, **contour_opts
+        )
 
     if scale == "log":
         cbar = plt.colorbar(
-            ph, format="$10^{%.2f}$", fraction=0.04, orientation="horizontal"
+            ph,
+            format="$10^{%.2f}$",
+            fraction=0.06,
+            orientation="horizontal",
+            **cbar_opts,
         )
     elif scale == "linear":
-        cbar = plt.colorbar(ph, format="%.2f", fraction=0.04, orientation="horizontal")
+        cbar = plt.colorbar(
+            ph, format="%.2f", fraction=0.06, orientation="horizontal", **cbar_opts
+        )
 
-    if data_type.lower() in data_types["apparent conductivity"].keys():
-        cbar.set_label("Apparent Conductivity (S/m)", size=12)
+    if data_type.lower() in data_types["apparent conductivity"]:
+        cbar.set_label("Apparent Conductivity (S/m)")
 
-    elif data_type.lower() in data_types["apparent resistivity"].keys():
-        cbar.set_label("Apparent Resistivity ($\\Omega$m)", size=12)
+    elif data_type.lower() in data_types["apparent resistivity"]:
+        cbar.set_label("Apparent Resistivity ($\\Omega$m)")
 
-    elif data_type.lower() in data_types["potential"].keys():
-        cbar.set_label("Voltage (V)", size=12)
+    elif data_type.lower() in data_types["potential"]:
+        cbar.set_label("Voltage (V)")
 
-    elif data_type.lower() in data_types["apparent chargeability"].keys():
-        cbar.set_label("Apparent Chargeability (V/V)", size=12)
+    elif data_type.lower() in data_types["apparent chargeability"]:
+        cbar.set_label("Apparent Chargeability (V/V)")
 
     elif data_type.lower() in ["misfit", "misfitmap"]:
-        cbar.set_label(None, size=12)
+        cbar.set_label(None)
 
-    cmin, cmax = cbar.get_clim()
-    ticks = np.linspace(cmin, cmax, 3)
+    ticks = np.linspace(vmin, vmax, 3)
     cbar.set_ticks(ticks)
-    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.tick_params()
 
     # Plot apparent resistivity
     if data_location:
@@ -1847,7 +1887,7 @@ def plot_layer(
     showlayers=False,
     xlim=None,
     depth_axis=True,
-    **kwargs
+    **kwargs,
 ):
     """
         Plot Conductivity model for the layered earth model
