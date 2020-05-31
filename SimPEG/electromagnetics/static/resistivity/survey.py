@@ -95,7 +95,8 @@ class Survey(BaseSurvey):
             [
                 self.a_locations[:, None],
                 self.b_locations[:, None],
-                self.m_locations[:, None].self.n_locations[:, None],
+                self.m_locations[:, None],
+                self.n_locations[:, None],
             ]
         )
 
