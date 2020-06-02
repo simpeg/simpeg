@@ -25,7 +25,7 @@ class Survey(BaseTimeSurvey):
         super().__init__(source_list, **kwargs)
 
     @property
-    def locations_n(self):
+    def n_locations(self):
         return int(self.nD / self.times.size)
 
 

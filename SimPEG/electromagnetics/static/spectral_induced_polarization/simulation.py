@@ -328,7 +328,7 @@ class BaseSIPSimulation(BaseEMSimulation):
         ntime = len(self.survey.times)
         JtJdiag = np.zeros_like(m)
         J = self.getJ(m, f=None)
-        wd = (Wd.diagonal()).reshape((self.survey.locations_n, ntime), order="F")
+        wd = (Wd.diagonal()).reshape((self.survey.n_locations, ntime), order="F")
         for tind in range(ntime):
             t = self.survey.times[tind]
             Jtv = self.actMap.P * J.T * Utils.sdiag(wd[:, tind])
