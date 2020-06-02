@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import numpy as np
 from scipy.interpolate import interp1d, NearestNDInterpolator
 import properties
-from ....utils.code_utils import deprecate_class
+from ....utils.code_utils import deprecate_class, deprecate_property
 
 from ....utils import uniqueRows
 from ....survey import BaseSurvey
@@ -85,15 +85,29 @@ class Survey(BaseSurvey):
             self._set_abmn_locations()
         return self._locations_n
 
+    a_locations = deprecate_property(
+        locations_a, "a_locations", new_name="locations_a", removal_version="0.15.0"
+    )
+    b_locations = deprecate_property(
+        locations_b, "b_locations", new_name="locations_b", removal_version="0.15.0"
+    )
+    m_locations = deprecate_property(
+        locations_m, "m_locations", new_name="locations_m", removal_version="0.15.0"
+    )
+    n_locations = deprecate_property(
+        locations_n, "n_locations", new_name="locations_n", removal_version="0.15.0"
+    )
+
     @property
     def electrode_locations(self):
         """
-        Locations of the A, B, M, N electrodes stacked vertically
-        [A.T, B.T, M.T, N.T].T
+        Unique locations of the A, B, M, N electrodes
         """
-        return np.vstack(
-            [self.locations_a, self.locations_b, self.locations_m, self.locations_n,]
-        )
+        loc_a = self.locations_a
+        loc_b = self.locations_b
+        loc_m = self.locations_m
+        loc_n = self.locations_n
+        return np.unique(np.vstack((loc_a, loc_b, loc_m, loc_n)), axis=0)
 
     def set_geometric_factor(
         self, data_type="volt", survey_type="dipole-dipole", space_type="half-space"
