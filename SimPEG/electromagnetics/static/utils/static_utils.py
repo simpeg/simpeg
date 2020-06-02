@@ -9,11 +9,9 @@ import warnings
 from ....data import Data
 from .. import resistivity as dc
 from ....utils import (
-    asArray_N_x_Dim,
     closestPoints,
     mkvc,
     surface2ind_topo,
-    uniqueRows,
     model_builder,
 )
 
