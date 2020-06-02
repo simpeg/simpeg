@@ -59,13 +59,13 @@ class Survey(BaseSurvey):
         return self._locations_a
 
     @property
-    def b_locations(self):
+    def locations_b(self):
         """
         Location of the negative (-) current electrodes for each datum
         """
-        if getattr(self, "_b_locations", None) is None:
+        if getattr(self, "_locations_b", None) is None:
             self._set_abmn_locations()
-        return self._b_locations
+        return self._locations_b
 
     @property
     def locations_m(self):
@@ -92,7 +92,7 @@ class Survey(BaseSurvey):
         [A.T, B.T, M.T, N.T].T
         """
         return np.vstack(
-            [self.locations_a, self.b_locations, self.locations_m, self.n_locations,]
+            [self.locations_a, self.locations_b, self.locations_m, self.n_locations,]
         )
 
     def set_geometric_factor(
@@ -112,7 +112,7 @@ class Survey(BaseSurvey):
 
     def _set_abmn_locations(self):
         locations_a = []
-        b_locations = []
+        locations_b = []
         locations_m = []
         n_locations = []
         for source in self.source_list:
@@ -123,7 +123,7 @@ class Survey(BaseSurvey):
                     locations_a.append(
                         source.location.reshape([1, -1]).repeat(nRx, axis=0)
                     )
-                    b_locations.append(
+                    locations_b.append(
                         source.location.reshape([1, -1]).repeat(nRx, axis=0)
                     )
                 # Dipole Source
@@ -131,7 +131,7 @@ class Survey(BaseSurvey):
                     locations_a.append(
                         source.location[0].reshape([1, -1]).repeat(nRx, axis=0)
                     )
-                    b_locations.append(
+                    locations_b.append(
                         source.location[1].reshape([1, -1]).repeat(nRx, axis=0)
                     )
 
@@ -146,7 +146,7 @@ class Survey(BaseSurvey):
                     n_locations.append(rx.locations[1])
 
         self._locations_a = np.vstack(locations_a)
-        self._b_locations = np.vstack(b_locations)
+        self._locations_b = np.vstack(locations_b)
         self._locations_m = np.vstack(locations_m)
         self._n_locations = np.vstack(n_locations)
 
@@ -154,7 +154,7 @@ class Survey(BaseSurvey):
         warnings.warn(
             "The getABMN_locations method has been deprecated. Please instead "
             "ask for the property of interest: survey.locations_a, "
-            "survey.b_locations, survey.locations_m, or survey.n_locations. "
+            "survey.locations_b, survey.locations_m, or survey.n_locations. "
             "This will be removed in version 0.15.0 of SimPEG",
             DeprecationWarning,
         )
@@ -169,7 +169,7 @@ class Survey(BaseSurvey):
                         np.hstack(
                             (
                                 self.locations_a[:, 0],
-                                self.b_locations[:, 0],
+                                self.locations_b[:, 0],
                                 self.locations_m[:, 0],
                                 self.n_locations[:, 0],
                             )
@@ -185,7 +185,7 @@ class Survey(BaseSurvey):
                     (self.locations_a.shape[0], 4), order="F"
                 )
                 self._locations_a = np.c_[self.locations_a[:, 0], temp[:, 0]]
-                self._b_locations = np.c_[self.b_locations[:, 0], temp[:, 1]]
+                self._locations_b = np.c_[self.locations_b[:, 0], temp[:, 1]]
                 self._locations_m = np.c_[self.locations_m[:, 0], temp[:, 2]]
                 self._n_locations = np.c_[self.n_locations[:, 0], temp[:, 3]]
 
@@ -259,7 +259,7 @@ class Survey(BaseSurvey):
                         np.vstack(
                             (
                                 self.locations_a[:, :2],
-                                self.b_locations[:, :2],
+                                self.locations_b[:, :2],
                                 self.locations_m[:, :2],
                                 self.n_locations[:, :2],
                             )
@@ -274,7 +274,7 @@ class Survey(BaseSurvey):
                 )
 
                 self.locations_a = np.c_[self.locations_a[:, :2], temp[:, 0]]
-                self.b_locations = np.c_[self.b_locations[:, :2], temp[:, 1]]
+                self.locations_b = np.c_[self.locations_b[:, :2], temp[:, 1]]
                 self.locations_m = np.c_[self.locations_m[:, :2], temp[:, 2]]
                 self.n_locations = np.c_[self.n_locations[:, :2], temp[:, 3]]
 

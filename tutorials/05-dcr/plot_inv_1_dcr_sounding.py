@@ -123,7 +123,7 @@ survey.getABMN_locations()
 # Plot apparent resistivities on sounding curve as a function of Wenner separation
 # parameter.
 electrode_separations = 0.5 * np.sqrt(
-    np.sum((survey.locations_a - survey.b_locations) ** 2, axis=1)
+    np.sum((survey.locations_a - survey.locations_b) ** 2, axis=1)
 )
 
 fig = plt.figure(figsize=(11, 5))

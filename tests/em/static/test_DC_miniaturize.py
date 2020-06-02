@@ -237,7 +237,7 @@ class DC3DMiniaturizeTest(unittest.TestCase):
         )
         survey.getABMN_locations()
         A = survey.locations_a
-        B = survey.b_locations
+        B = survey.locations_b
         M = survey.locations_m
         N = survey.n_locations
         # add some other receivers and sources to the mix

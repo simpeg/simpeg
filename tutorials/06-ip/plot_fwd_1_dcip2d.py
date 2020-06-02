@@ -131,7 +131,7 @@ mesh = refine_tree_xyz(
 dc_survey.getABMN_locations()
 electrode_locations = np.c_[
     dc_survey.locations_a,
-    dc_survey.b_locations,
+    dc_survey.locations_b,
     dc_survey.locations_m,
     dc_survey.n_locations,
 ]

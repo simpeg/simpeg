@@ -62,7 +62,7 @@ def _mini_pole_pole(survey, verbose=False):
     """
     survey.getABMN_locations()
     A = survey.locations_a
-    B = survey.b_locations
+    B = survey.locations_b
     M = survey.locations_m
     N = survey.n_locations
 

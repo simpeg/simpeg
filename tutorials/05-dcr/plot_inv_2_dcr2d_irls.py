@@ -187,7 +187,7 @@ mesh = refine_tree_xyz(
 # Mesh refinement near transmitters and receivers
 survey.getABMN_locations()
 electrode_locations = np.r_[
-    survey.locations_a, survey.b_locations, survey.locations_m, survey.n_locations
+    survey.locations_a, survey.locations_b, survey.locations_m, survey.n_locations
 ]
 
 unique_locations = np.unique(electrode_locations, axis=0)

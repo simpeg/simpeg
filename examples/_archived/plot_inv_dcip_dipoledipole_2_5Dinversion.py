@@ -50,7 +50,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     survey.getABMN_locations()
     survey = IO.from_ambn_locations_to_survey(
         survey.locations_a,
-        survey.b_locations,
+        survey.locations_b,
         survey.locations_m,
         survey.n_locations,
         survey_type,

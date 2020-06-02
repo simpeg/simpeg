@@ -44,7 +44,7 @@ class Dipole(BaseSrc):
         self,
         receiver_list=[],
         location_a=None,
-        b_location=None,
+        location_b=None,
         location=None,
         **kwargs,
     ):
@@ -59,29 +59,29 @@ class Dipole(BaseSrc):
             )
 
         if "locationB" in kwargs.keys():
-            b_location = kwargs.pop("locationB")
+            location_b = kwargs.pop("locationB")
             warnings.warn(
                 "The locationB property has been deprecated. Please set the "
-                "b_location property instead. This will be removed in version"
+                "location_b property instead. This will be removed in version"
                 " 0.15.0 of SimPEG",
                 DeprecationWarning,
             )
 
-        # if location_a set, then use location_a, b_location
+        # if location_a set, then use location_a, location_b
         if location_a is not None:
-            if b_location is None:
+            if location_b is None:
                 raise ValueError(
-                    "For a dipole source both location_a and b_location " "must be set"
+                    "For a dipole source both location_a and location_b " "must be set"
                 )
 
             if location is not None:
                 raise ValueError(
-                    "Cannot set both location and location_a, b_location. "
-                    "Please provide either location=(location_a, b_location) "
-                    "or both location_a=location_a, b_location=b_location"
+                    "Cannot set both location and location_a, location_b. "
+                    "Please provide either location=(location_a, location_b) "
+                    "or both location_a=location_a, location_b=location_b"
                 )
 
-            location = [location_a, b_location]
+            location = [location_a, location_b]
 
         elif location is not None:
             if len(location) != 2:
@@ -108,7 +108,7 @@ class Dipole(BaseSrc):
         return self.location[0]
 
     @property
-    def b_location(self):
+    def location_b(self):
         """Location of the B-electrode"""
         return self.location[1]
 

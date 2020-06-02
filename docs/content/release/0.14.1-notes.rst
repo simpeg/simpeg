@@ -25,7 +25,7 @@ or
 
 Similarly, for the, ``Dipole`` source in ``SimPEG.electromagnetics.static.resistivity.sources``,
 the ``locationA`` and ``locationB`` parameters are deprecated. They are now called
-``location_a`` and ``b_location``. There are now also two ways to create a ``Dipole`` source:
+``location_a`` and ``location_b``. There are now also two ways to create a ``Dipole`` source:
 
 .. code-block:: python
 
