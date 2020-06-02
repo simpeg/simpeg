@@ -214,7 +214,6 @@ mesh = refine_tree_xyz(
 )
 
 # Mesh refinement near transmitters and receivers
-dc_survey.getABMN_locations()
 electrode_locations = np.r_[
     dc_survey.locations_a,
     dc_survey.locations_b,

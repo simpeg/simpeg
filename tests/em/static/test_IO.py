@@ -26,7 +26,6 @@ class TestsIO(unittest.TestCase):
         self.survey = utils.gen_DCIPsurvey(
             self.endl, "dipole-dipole", dim=2, a=10, b=10, n=10
         )
-        self.survey.getABMN_locations()
         self.survey = self.IO.from_ambn_locations_to_survey(
             self.survey.locations_a,
             self.survey.locations_b,
@@ -46,7 +45,6 @@ class TestsIO(unittest.TestCase):
         self.survey = utils.gen_DCIPsurvey(
             self.endl, "dipole-dipole", dim=2, a=10, b=10, n=10
         )
-        self.survey.getABMN_locations()
         self.survey = self.IO.from_ambn_locations_to_survey(
             self.survey.locations_a,
             self.survey.locations_b,

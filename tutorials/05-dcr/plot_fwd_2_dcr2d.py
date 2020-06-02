@@ -120,7 +120,6 @@ mesh = refine_tree_xyz(
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
 # set of unique electrode locations.
-survey.getABMN_locations()
 electrode_locations = np.c_[
     survey.locations_a, survey.locations_b, survey.locations_m, survey.locations_n
 ]

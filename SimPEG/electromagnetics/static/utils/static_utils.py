@@ -1863,7 +1863,6 @@ def gen_3d_survey_from_2d_lines(
         survey_2d = gen_DCIPsurvey(endl, survey_type, a, b, n_spacing, dim=3,)
 
         srcList.append(survey_2d.source_list)
-        survey_2d.getABMN_locations()
         survey_2d = IO_2d.from_ambn_locations_to_survey(
             survey_2d.locations_a[:, [0, 2]],
             survey_2d.locations_b[:, [0, 2]],
@@ -1877,7 +1876,6 @@ def gen_3d_survey_from_2d_lines(
     line_inds = np.hstack(line_inds)
     srcList = sum(srcList, [])
     survey_3d = dc.Survey(srcList)
-    survey_3d.getABMN_locations()
     IO_3d = dc.IO()
 
     survey_3d.locations_a[:, 1] += src_offset_y

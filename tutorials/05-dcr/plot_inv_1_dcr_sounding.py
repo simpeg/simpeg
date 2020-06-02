@@ -117,9 +117,6 @@ for ii in range(0, n_sources):
 # Define survey
 survey = dc.Survey(source_list)
 
-# Compute the A, B, M and N electrode locations.
-survey.getABMN_locations()
-
 # Plot apparent resistivities on sounding curve as a function of Wenner separation
 # parameter.
 electrode_separations = 0.5 * np.sqrt(
