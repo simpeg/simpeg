@@ -35,7 +35,7 @@ from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
 from SimPEG.electromagnetics.static.utils import (
-    generate_dcip_survey_line,
+    generate_dcip_survey,
     plot_pseudoSection,
 )
 
@@ -90,7 +90,7 @@ dipole_separation = 25.0
 n = 8
 
 # Generate DC survey line
-dc_survey = generate_dcip_survey_line(
+dc_survey = generate_dcip_survey(
     survey_type,
     data_type,
     end_locations,
