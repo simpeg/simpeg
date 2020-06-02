@@ -43,12 +43,12 @@ class Point(BaseRx):
     )
 
     @property
-    def locations_n(self):
+    def n_locations(self):
         """Number of locations."""
         return self.locations.shape[0]
 
     nLocs = deprecate_property(
-        locations_n, "nLocs", new_name="locations_n", removal_version="0.15.0"
+        n_locations, "nLocs", new_name="n_locations", removal_version="0.15.0"
     )
 
     @property
