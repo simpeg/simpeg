@@ -1865,7 +1865,7 @@ def gen_3d_survey_from_2d_lines(
         srcList.append(survey_2d.source_list)
         survey_2d.getABMN_locations()
         survey_2d = IO_2d.from_ambn_locations_to_survey(
-            survey_2d.a_locations[:, [0, 2]],
+            survey_2d.locations_a[:, [0, 2]],
             survey_2d.b_locations[:, [0, 2]],
             survey_2d.locations_m[:, [0, 2]],
             survey_2d.n_locations[:, [0, 2]],
@@ -1880,11 +1880,11 @@ def gen_3d_survey_from_2d_lines(
     survey_3d.getABMN_locations()
     IO_3d = dc.IO()
 
-    survey_3d.a_locations[:, 1] += src_offset_y
+    survey_3d.locations_a[:, 1] += src_offset_y
     survey_3d.b_locations[:, 1] += src_offset_y
 
     survey_3d = IO_3d.from_ambn_locations_to_survey(
-        survey_3d.a_locations,
+        survey_3d.locations_a,
         survey_3d.b_locations,
         survey_3d.locations_m,
         survey_3d.n_locations,

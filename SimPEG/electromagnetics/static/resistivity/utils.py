@@ -61,7 +61,7 @@ def _mini_pole_pole(survey, verbose=False):
     for use in a DCSimulation only.
     """
     survey.getABMN_locations()
-    A = survey.a_locations
+    A = survey.locations_a
     B = survey.b_locations
     M = survey.locations_m
     N = survey.n_locations

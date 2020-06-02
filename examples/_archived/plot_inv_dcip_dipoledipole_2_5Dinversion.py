@@ -49,7 +49,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     survey = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
     survey.getABMN_locations()
     survey = IO.from_ambn_locations_to_survey(
-        survey.a_locations,
+        survey.locations_a,
         survey.b_locations,
         survey.locations_m,
         survey.n_locations,

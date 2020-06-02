@@ -65,7 +65,7 @@ def run(
     )
     survey.getABMN_locations()
     survey = IO.from_ambn_locations_to_survey(
-        survey.a_locations,
+        survey.locations_a,
         survey.b_locations,
         survey.locations_m,
         survey.n_locations,

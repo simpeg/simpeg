@@ -161,7 +161,7 @@ if save_file:
     noise = 0.025 * dpred * np.random.rand(len(dpred))
 
     data_array = np.c_[
-        survey.a_locations,
+        survey.locations_a,
         survey.b_locations,
         survey.locations_m,
         survey.n_locations,

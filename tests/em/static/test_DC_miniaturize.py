@@ -236,7 +236,7 @@ class DC3DMiniaturizeTest(unittest.TestCase):
             survey_end_points, "dipole-dipole", aSpacing, aSpacing, nElecs, dim=2
         )
         survey.getABMN_locations()
-        A = survey.a_locations
+        A = survey.locations_a
         B = survey.b_locations
         M = survey.locations_m
         N = survey.n_locations

@@ -28,7 +28,7 @@ class TestsIO(unittest.TestCase):
         )
         self.survey.getABMN_locations()
         self.survey = self.IO.from_ambn_locations_to_survey(
-            self.survey.a_locations,
+            self.survey.locations_a,
             self.survey.b_locations,
             self.survey.locations_m,
             self.survey.n_locations,
@@ -48,7 +48,7 @@ class TestsIO(unittest.TestCase):
         )
         self.survey.getABMN_locations()
         self.survey = self.IO.from_ambn_locations_to_survey(
-            self.survey.a_locations,
+            self.survey.locations_a,
             self.survey.b_locations,
             self.survey.locations_m,
             self.survey.n_locations,
