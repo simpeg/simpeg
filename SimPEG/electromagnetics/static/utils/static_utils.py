@@ -332,6 +332,7 @@ def plot_pseudosection(
     dim=2,
     pcolorOpts=None,
     data_location=None,
+    y_values="n-spacing",
 ):
     """
         Read list of 2D tx-rx location and plot a pseudo-section of apparent
@@ -348,6 +349,7 @@ def plot_pseudosection(
             'volt' (potential)
         :param str space_type: Either 'half-space' (default) or 'whole-space'
         :param str scale: Either 'linear' (default) or 'log'
+        :param y_values: Either "n-spacing"
 
         Output:
         :return  matplotlib.pyplot.figure plot overlayed on image
@@ -516,6 +518,14 @@ def plot_pseudosection(
 
     if sameratio:
         ax.set_aspect("equal", adjustable="box")
+
+    if y_values == "n-spacing":
+        ticks = ax.get_yticks()
+        spacing = np.abs(midz).min()
+        ax.set_yticklabels(-ticks / spacing)
+        ax.set_ylabel("n-spacing")
+    elif y_values == "pseudo-depth":
+        ax.set_ylabel("pseudo-depth")
 
     return ax
 
