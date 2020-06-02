@@ -43,9 +43,6 @@ class Survey(BaseSurvey):
         choices=["dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"],
     )
 
-    electrodes_info = None
-    topo_function = None
-
     def __init__(self, source_list, **kwargs):
         super(Survey, self).__init__(source_list, **kwargs)
 
