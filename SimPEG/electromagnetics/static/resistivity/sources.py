@@ -43,17 +43,17 @@ class Dipole(BaseSrc):
     def __init__(
         self,
         receiver_list=[],
-        a_location=None,
+        location_a=None,
         b_location=None,
         location=None,
         **kwargs,
     ):
         # Check for old keywords
         if "locationA" in kwargs.keys():
-            a_location = kwargs.pop("locationA")
+            location_a = kwargs.pop("locationA")
             warnings.warn(
                 "The locationA property has been deprecated. Please set the "
-                "a_location property instead. This will be removed in version"
+                "location_a property instead. This will be removed in version"
                 " 0.15.0 of SimPEG",
                 DeprecationWarning,
             )
@@ -67,21 +67,21 @@ class Dipole(BaseSrc):
                 DeprecationWarning,
             )
 
-        # if a_location set, then use a_location, b_location
-        if a_location is not None:
+        # if location_a set, then use location_a, b_location
+        if location_a is not None:
             if b_location is None:
                 raise ValueError(
-                    "For a dipole source both a_location and b_location " "must be set"
+                    "For a dipole source both location_a and b_location " "must be set"
                 )
 
             if location is not None:
                 raise ValueError(
-                    "Cannot set both location and a_location, b_location. "
-                    "Please provide either location=(a_location, b_location) "
-                    "or both a_location=a_location, b_location=b_location"
+                    "Cannot set both location and location_a, b_location. "
+                    "Please provide either location=(location_a, b_location) "
+                    "or both location_a=location_a, b_location=b_location"
                 )
 
-            location = [a_location, b_location]
+            location = [location_a, b_location]
 
         elif location is not None:
             if len(location) != 2:
@@ -103,7 +103,7 @@ class Dipole(BaseSrc):
         self.location = location
 
     @property
-    def a_location(self):
+    def location_a(self):
         """Location of the A-electrode"""
         return self.location[0]
 
