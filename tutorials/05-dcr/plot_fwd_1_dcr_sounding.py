@@ -164,7 +164,7 @@ if save_file:
         survey.locations_a,
         survey.locations_b,
         survey.locations_m,
-        survey.n_locations,
+        survey.locations_n,
         dpred + noise,
     ]
 

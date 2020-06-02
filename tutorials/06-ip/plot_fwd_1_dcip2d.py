@@ -133,7 +133,7 @@ electrode_locations = np.c_[
     dc_survey.locations_a,
     dc_survey.locations_b,
     dc_survey.locations_m,
-    dc_survey.n_locations,
+    dc_survey.locations_n,
 ]
 
 unique_locations = np.unique(

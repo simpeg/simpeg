@@ -64,7 +64,7 @@ def _mini_pole_pole(survey, verbose=False):
     A = survey.locations_a
     B = survey.locations_b
     M = survey.locations_m
-    N = survey.n_locations
+    N = survey.locations_n
 
     elecs, inverse = np.unique(np.r_[A, B, M, N], axis=0, return_inverse=True)
 

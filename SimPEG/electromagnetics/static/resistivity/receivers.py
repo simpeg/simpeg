@@ -110,7 +110,7 @@ class Dipole(BaseRx):
         max_length=2,
     )
 
-    def __init__(self, locations_m=None, n_locations=None, locations=None, **kwargs):
+    def __init__(self, locations_m=None, locations_n=None, locations=None, **kwargs):
 
         # Check for old keywords
         if "locationsM" in kwargs.keys():
@@ -123,30 +123,30 @@ class Dipole(BaseRx):
             )
 
         if "locationsN" in kwargs.keys():
-            n_locations = kwargs.pop("locationsN")
+            locations_n = kwargs.pop("locationsN")
             warnings.warn(
                 "The locationsN property has been deprecated. Please set the "
-                "n_locations property instead. This will be removed in version"
+                "locations_n property instead. This will be removed in version"
                 " 0.15.0 of SimPEG",
                 DeprecationWarning,
             )
 
-        # if locations_m set, then use locations_m, n_locations
+        # if locations_m set, then use locations_m, locations_n
         if locations_m is not None:
-            if n_locations is None:
+            if locations_n is None:
                 raise ValueError(
-                    "For a dipole source both locations_m and n_locations "
+                    "For a dipole source both locations_m and locations_n "
                     "must be set"
                 )
 
             if locations is not None:
                 raise ValueError(
-                    "Cannot set both locations and locations_m, n_locations. "
-                    "Please provide either locations=(locations_m, n_locations) "
-                    "or both locations_m=locations_m, n_locations=n_locations"
+                    "Cannot set both locations and locations_m, locations_n. "
+                    "Please provide either locations=(locations_m, locations_n) "
+                    "or both locations_m=locations_m, locations_n=locations_n"
                 )
 
-            locations = [np.atleast_2d(locations_m), np.atleast_2d(n_locations)]
+            locations = [np.atleast_2d(locations_m), np.atleast_2d(locations_n)]
 
         elif locations is not None:
             if len(locations) != 2:
@@ -157,11 +157,11 @@ class Dipole(BaseRx):
                 )
             locations = [np.atleast_2d(locations[0]), np.atleast_2d(locations[1])]
 
-        # check the size of locations_m, n_locations
+        # check the size of locations_m, locations_n
         if locations[0].shape != locations[1].shape:
             raise ValueError(
                 f"locations_m (shape: {locations[0].shape}) and "
-                f"n_locations (shape: {locations[1].shape}) need to be "
+                f"locations_n (shape: {locations[1].shape}) need to be "
                 f"the same size"
             )
 
@@ -175,7 +175,7 @@ class Dipole(BaseRx):
         return self.locations[0]
 
     @property
-    def n_locations(self):
+    def locations_n(self):
         """Locations of the N-electrodes"""
         return self.locations[1]
 

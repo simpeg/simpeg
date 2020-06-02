@@ -49,7 +49,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
         survey_dc.locations_a,
         survey_dc.locations_b,
         survey_dc.locations_m,
-        survey_dc.n_locations,
+        survey_dc.locations_n,
         survey_type,
         data_dc_type="volt",
         data_ip_type="volt",

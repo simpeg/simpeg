@@ -92,7 +92,7 @@ class Survey(BaseSurvey):
         [A.T, B.T, M.T, N.T].T
         """
         return np.vstack(
-            [self.locations_a, self.locations_b, self.locations_m, self.n_locations,]
+            [self.locations_a, self.locations_b, self.locations_m, self.locations_n,]
         )
 
     def set_geometric_factor(
@@ -114,7 +114,7 @@ class Survey(BaseSurvey):
         locations_a = []
         locations_b = []
         locations_m = []
-        n_locations = []
+        locations_n = []
         for source in self.source_list:
             for rx in source.receiver_list:
                 nRx = rx.nD
@@ -138,23 +138,23 @@ class Survey(BaseSurvey):
                 # Pole RX
                 if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole):
                     locations_m.append(rx.locations)
-                    n_locations.append(rx.locations)
+                    locations_n.append(rx.locations)
 
                 # Dipole RX
                 elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole):
                     locations_m.append(rx.locations[0])
-                    n_locations.append(rx.locations[1])
+                    locations_n.append(rx.locations[1])
 
         self._locations_a = np.vstack(locations_a)
         self._locations_b = np.vstack(locations_b)
         self._locations_m = np.vstack(locations_m)
-        self._n_locations = np.vstack(n_locations)
+        self._locations_n = np.vstack(locations_n)
 
     def getABMN_locations(self):
         warnings.warn(
             "The getABMN_locations method has been deprecated. Please instead "
             "ask for the property of interest: survey.locations_a, "
-            "survey.locations_b, survey.locations_m, or survey.n_locations. "
+            "survey.locations_b, survey.locations_m, or survey.locations_n. "
             "This will be removed in version 0.15.0 of SimPEG",
             DeprecationWarning,
         )
@@ -171,7 +171,7 @@ class Survey(BaseSurvey):
                                 self.locations_a[:, 0],
                                 self.locations_b[:, 0],
                                 self.locations_m[:, 0],
-                                self.n_locations[:, 0],
+                                self.locations_n[:, 0],
                             )
                         ).reshape([-1, 1])
                     )
@@ -187,7 +187,7 @@ class Survey(BaseSurvey):
                 self._locations_a = np.c_[self.locations_a[:, 0], temp[:, 0]]
                 self._locations_b = np.c_[self.locations_b[:, 0], temp[:, 1]]
                 self._locations_m = np.c_[self.locations_m[:, 0], temp[:, 2]]
-                self._n_locations = np.c_[self.n_locations[:, 0], temp[:, 3]]
+                self._locations_n = np.c_[self.locations_n[:, 0], temp[:, 3]]
 
                 # Make interpolation function
                 self.topo_function = interp1d(
@@ -261,7 +261,7 @@ class Survey(BaseSurvey):
                                 self.locations_a[:, :2],
                                 self.locations_b[:, :2],
                                 self.locations_m[:, :2],
-                                self.n_locations[:, :2],
+                                self.locations_n[:, :2],
                             )
                         )
                     )
@@ -276,7 +276,7 @@ class Survey(BaseSurvey):
                 self.locations_a = np.c_[self.locations_a[:, :2], temp[:, 0]]
                 self.locations_b = np.c_[self.locations_b[:, :2], temp[:, 1]]
                 self.locations_m = np.c_[self.locations_m[:, :2], temp[:, 2]]
-                self.n_locations = np.c_[self.n_locations[:, :2], temp[:, 3]]
+                self.locations_n = np.c_[self.locations_n[:, :2], temp[:, 3]]
 
                 # Make interpolation function
                 self.topo_function = NearestNDInterpolator(

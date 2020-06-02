@@ -11,17 +11,17 @@ Deprecations
 ============
 For the ``Dipole`` receiver in ``SimPEG.electromagnetics.static.resistivity.receivers``,
 the ``locationsM`` and ``locationsN`` parameters are deprecated. They are now called
-``locations_m`` and ``n_locations``. There are now two ways to create a ``Dipole`` receiver:
+``locations_m`` and ``locations_n``. There are now two ways to create a ``Dipole`` receiver:
 
  .. code-block:: python
 
-  rx = resistivity.receivers.Dipole(locations_m, n_locations)
+  rx = resistivity.receivers.Dipole(locations_m, locations_n)
 
 or
 
 .. code-block:: python
 
-  rx = resistivity.receivers.Dipole(locations=(locations_m, n_locations))
+  rx = resistivity.receivers.Dipole(locations=(locations_m, locations_n))
 
 Similarly, for the, ``Dipole`` source in ``SimPEG.electromagnetics.static.resistivity.sources``,
 the ``locationA`` and ``locationB`` parameters are deprecated. They are now called
