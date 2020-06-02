@@ -1,0 +1,48 @@
+.. _0.14.1_notes:
+
+===========================
+SimPEG 0.14.1 Release Notes
+===========================
+
+This release contains a few small bug fixes and parameter renaming for a few
+functions
+
+Deprecations
+============
+For the ``Dipole`` receiver in ``SimPEG.electromagnetics.static.resistivity.receivers``,
+the ``locationsM`` and ``locationsN`` parameters are deprecated. They are now called
+``m_locations`` and ``n_locations``. There are now two ways to create a ``Dipole`` receiver:
+
+ .. code-block:: python
+
+  rx = resistivity.receivers.Dipole(m_locations, n_locations)
+
+or
+
+.. code-block:: python
+
+  rx = resistivity.receivers.Dipole(locations=(m_locations, n_locations))
+
+Similarly, for the, ``Dipole`` source in ``SimPEG.electromagnetics.static.resistivity.sources``,
+the ``locationA`` and ``locationB`` parameters are deprecated. They are now called
+``a_location`` and ``b_location``. There are now also two ways to create a ``Dipole`` source:
+
+.. code-block:: python
+
+  src = resistivity.sources.Dipole(rx_list, a_loc, b_loc)
+
+or
+
+.. code-block:: python
+
+  src = resistivity.sources.Dipole(rx_list, location=(a_loc, b_loc))
+
+Contributors
+============
+
+* @lheagy
+
+Pull requests
+=============
+
+* `#884 <https://github.com/simpeg/simpeg/pull/884>`__: Transform DC updates
