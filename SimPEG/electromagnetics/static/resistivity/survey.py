@@ -77,13 +77,13 @@ class Survey(BaseSurvey):
         return self._locations_m
 
     @property
-    def n_locations(self):
+    def locations_n(self):
         """
         Location of the negative (-) potential electrodes for each datum
         """
-        if getattr(self, "_n_locations", None) is None:
+        if getattr(self, "_locations_n", None) is None:
             self._set_abmn_locations()
-        return self._n_locations
+        return self._locations_n
 
     @property
     def electrode_locations(self):
