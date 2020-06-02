@@ -18,7 +18,7 @@ from ....utils import (
 )
 
 
-data_types = {
+DATA_TYPES = {
     "apparent resistivity": [
         "apparent resistivity",
         "appresistivity",
@@ -45,7 +45,7 @@ data_types = {
     "potential": ["potential", "potentials", "volt", "V", "voltages", "voltage"],
 }
 
-space_types = {
+SPACE_TYPES = {
     "half space": ["half space", "half-space", "half_space", "halfspace", "half"],
     "whole space": ["whole space", "whole-space", "whole_space", "wholespace", "whole"],
 }
@@ -233,9 +233,9 @@ def geometric_factor(dc_survey, survey_type="dipole-dipole", space_type="half sp
 
     """
     # Set factor for whole-space or half-space assumption
-    if space_type.lower() in space_types["whole space"]:
+    if space_type.lower() in SPACE_TYPES["whole space"]:
         spaceFact = 4.0
-    elif space_type.lower() in space_types["half space"]:
+    elif space_type.lower() in SPACE_TYPES["half space"]:
         spaceFact = 2.0
     else:
         raise Exception("'space_type must be 'whole space' | 'half space'")
@@ -408,8 +408,8 @@ def plot_pseudosection(
         midx = midx[:, 0]
 
     if data_type.lower() in (
-        data_types["potential"]
-        + data_types["apparent chargeability"]
+        DATA_TYPES["potential"]
+        + DATA_TYPES["apparent chargeability"]
         + ["misfit", "misfitmap"]
     ):
         if scale == "linear":
@@ -417,7 +417,7 @@ def plot_pseudosection(
         elif scale == "log":
             rho = np.log10(abs(dobs))
 
-    elif data_type.lower() in data_types["apparent conductivity"]:
+    elif data_type.lower() in DATA_TYPES["apparent conductivity"]:
         rhoApp = apparent_resistivity(
             data, dobs=dobs, survey_type=survey_type, space_type=space_type
         )
@@ -426,7 +426,7 @@ def plot_pseudosection(
         elif scale == "log":
             rho = np.log10(1.0 / rhoApp)
 
-    elif data_type.lower() in data_types["apparent resistivity"]:
+    elif data_type.lower() in DATA_TYPES["apparent resistivity"]:
         rhoApp = apparent_resistivity(
             data, dobs=dobs, survey_type=survey_type, space_type=space_type
         )
@@ -491,16 +491,16 @@ def plot_pseudosection(
             **cbar_opts,
         )
 
-    if data_type.lower() in data_types["apparent conductivity"]:
+    if data_type.lower() in DATA_TYPES["apparent conductivity"]:
         cbar.set_label("Apparent Conductivity (S/m)")
 
-    elif data_type.lower() in data_types["apparent resistivity"]:
+    elif data_type.lower() in DATA_TYPES["apparent resistivity"]:
         cbar.set_label("Apparent Resistivity ($\\Omega$m)")
 
-    elif data_type.lower() in data_types["potential"]:
+    elif data_type.lower() in DATA_TYPES["potential"]:
         cbar.set_label("Voltage (V)")
 
-    elif data_type.lower() in data_types["apparent chargeability"]:
+    elif data_type.lower() in DATA_TYPES["apparent chargeability"]:
         cbar.set_label("Apparent Chargeability (V/V)")
 
     elif data_type.lower() in ["misfit", "misfitmap"]:

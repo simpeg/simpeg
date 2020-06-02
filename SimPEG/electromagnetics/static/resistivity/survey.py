@@ -88,7 +88,7 @@ class Survey(BaseSurvey):
     @property
     def electrode_locations(self):
         """
-        Locations of the A, B, M, N electrodes stacketd vertically
+        Locations of the A, B, M, N electrodes stacked vertically
         [A.T, B.T, M.T, N.T].T
         """
         return np.vstack(

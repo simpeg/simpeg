@@ -175,7 +175,7 @@ class Dipole(BaseRx):
         return self.locations[0]
 
     @property
-    def n_locaitons(self):
+    def n_locations(self):
         """Locations of the N-electrodes"""
         return self.locations[1]
 
