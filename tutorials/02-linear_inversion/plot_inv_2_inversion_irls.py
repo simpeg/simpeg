@@ -125,11 +125,11 @@ sim = simulation.LinearSimulation(mesh, G=G, model_map=model_map)
 #
 
 # Standard deviation of Gaussian noise being added
-std = 0.01
+std = 0.02
 np.random.seed(1)
 
 # Create a SimPEG data object
-data_obj = sim.make_synthetic_data(true_model, relative_error=std, add_noise=True)
+data_obj = sim.make_synthetic_data(true_model, noise_floor=std, add_noise=True)
 
 #######################################################################
 # Define the Inverse Problem
@@ -153,13 +153,13 @@ dmis = data_misfit.L2DataMisfit(simulation=sim, data=data_obj)
 # term.
 reg = regularization.Sparse(mesh, mapping=model_map)
 reg.mref = np.zeros(nParam)
-p = 0
-q = 0
+p = 0.
+q = 0.
 reg.norms = np.c_[p, q]
 
 # Define how the optimization problem is solved.
 opt = optimization.ProjectedGNCG(
-    maxIter=100, lower=-2.0, upper=2.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
+    maxIter=100, lower=-2.0, upper=2.0, maxIterLS=20, maxIterCG=30, tolCG=1e-4
 )
 
 # Here we define the inverse problem that is to be solved
