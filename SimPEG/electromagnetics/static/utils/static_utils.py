@@ -1751,6 +1751,9 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         Drape location right below (cell center) the topography
     """
     if mesh.dim == 2:
+        # if shape is (*, 1) or (*, 2) just grab first column
+        if pts.ndim == 2 and pts.shape[1] in [1, 2]:
+            pts = pts[:, 0]
         if pts.ndim > 1:
             raise Exception("pts should be 1d array")
     elif mesh.dim == 3:

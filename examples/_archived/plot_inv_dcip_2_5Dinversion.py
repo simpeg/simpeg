@@ -58,7 +58,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     mesh, actind = IO.set_mesh()
     topo, mesh1D = genTopography(mesh, -10, 0, its=100)
     actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
-    survey_dc.drapeTopo(mesh, actind, option="top")
+    survey_dc.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build conductivity and chargeability model
     blk_inds_c = utils.model_builder.getIndicesSphere(

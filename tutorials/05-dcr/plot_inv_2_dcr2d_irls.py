@@ -217,7 +217,7 @@ mesh.finalize()
 ind_active = surface2ind_topo(mesh, topo_xyz[:, [0, 2]])
 
 # Shift electrodes to the surface of discretized topography
-survey.drapeTopo(mesh, ind_active, option="top")
+survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 
 ########################################################
 # Starting/Reference Model and Mapping on OcTree Mesh

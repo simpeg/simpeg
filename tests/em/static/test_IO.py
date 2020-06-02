@@ -62,7 +62,7 @@ class TestsIO(unittest.TestCase):
         mesh, actind = self.IO.set_mesh()
         topo, mesh1D = utils.genTopography(mesh, -10, 0, its=100)
         mesh, actind = self.IO.set_mesh(topo=np.c_[mesh1D.vectorCCx, topo])
-        self.survey.drapeTopo(mesh, actind, option="top")
+        self.survey.drape_electrodes_on_topography(mesh, actind, option="top")
         if self.plotIt:
             mesh.plotImage(actind)
             plt.plot(

@@ -76,7 +76,7 @@ def run(
     mesh, actind = IO.set_mesh()
     # Flat topography
     actind = utils.surface2ind_topo(mesh, np.c_[mesh.vectorCCx, mesh.vectorCCx * 0.0])
-    survey.drapeTopo(mesh, actind, option="top")
+    survey.drape_electrodes_on_topography(mesh, actind, option="top")
     # Use Exponential Map: m = log(rho)
     actmap = maps.InjectActiveCells(mesh, indActive=actind, valInactive=np.log(1e8))
     parametric_block = maps.ParametricBlock(mesh, slopeFact=1e2)

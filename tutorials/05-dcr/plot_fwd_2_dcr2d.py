@@ -212,7 +212,7 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 # like on the discretized surface.
 #
 
-survey.drapeTopo(mesh, ind_active, option="top")
+survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 
 
 #######################################################################
