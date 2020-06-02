@@ -59,7 +59,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     survey = IO.from_ambn_locations_to_survey(
         survey.a_locations,
         survey.b_locations,
-        survey.m_locations,
+        survey.locations_m,
         survey.n_locations,
         survey_type,
         data_dc_type="volt",

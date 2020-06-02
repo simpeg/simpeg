@@ -122,7 +122,7 @@ mesh = refine_tree_xyz(
 # set of unique electrode locations.
 survey.getABMN_locations()
 electrode_locations = np.c_[
-    survey.a_locations, survey.b_locations, survey.m_locations, survey.n_locations
+    survey.a_locations, survey.b_locations, survey.locations_m, survey.n_locations
 ]
 
 unique_locations = np.unique(

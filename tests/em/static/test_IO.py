@@ -30,7 +30,7 @@ class TestsIO(unittest.TestCase):
         self.survey = self.IO.from_ambn_locations_to_survey(
             self.survey.a_locations,
             self.survey.b_locations,
-            self.survey.m_locations,
+            self.survey.locations_m,
             self.survey.n_locations,
             "dipole-dipole",
             data_dc_type="apparent_resistivity",
@@ -50,7 +50,7 @@ class TestsIO(unittest.TestCase):
         self.survey = self.IO.from_ambn_locations_to_survey(
             self.survey.a_locations,
             self.survey.b_locations,
-            self.survey.m_locations,
+            self.survey.locations_m,
             self.survey.n_locations,
             "dipole-dipole",
             data_dc_type="apparent_resistivity",

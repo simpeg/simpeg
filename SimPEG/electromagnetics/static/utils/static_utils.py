@@ -1867,7 +1867,7 @@ def gen_3d_survey_from_2d_lines(
         survey_2d = IO_2d.from_ambn_locations_to_survey(
             survey_2d.a_locations[:, [0, 2]],
             survey_2d.b_locations[:, [0, 2]],
-            survey_2d.m_locations[:, [0, 2]],
+            survey_2d.locations_m[:, [0, 2]],
             survey_2d.n_locations[:, [0, 2]],
             survey_type,
             dimension=2,
@@ -1886,7 +1886,7 @@ def gen_3d_survey_from_2d_lines(
     survey_3d = IO_3d.from_ambn_locations_to_survey(
         survey_3d.a_locations,
         survey_3d.b_locations,
-        survey_3d.m_locations,
+        survey_3d.locations_m,
         survey_3d.n_locations,
         survey_type,
         dimension=3,

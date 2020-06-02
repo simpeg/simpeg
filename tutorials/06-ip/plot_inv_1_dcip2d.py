@@ -218,7 +218,7 @@ dc_survey.getABMN_locations()
 electrode_locations = np.r_[
     dc_survey.a_locations,
     dc_survey.b_locations,
-    dc_survey.m_locations,
+    dc_survey.locations_m,
     dc_survey.n_locations,
 ]
 

@@ -163,7 +163,7 @@ if save_file:
     data_array = np.c_[
         survey.a_locations,
         survey.b_locations,
-        survey.m_locations,
+        survey.locations_m,
         survey.n_locations,
         dpred + noise,
     ]

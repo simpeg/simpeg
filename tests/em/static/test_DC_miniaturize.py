@@ -238,7 +238,7 @@ class DC3DMiniaturizeTest(unittest.TestCase):
         survey.getABMN_locations()
         A = survey.a_locations
         B = survey.b_locations
-        M = survey.m_locations
+        M = survey.locations_m
         N = survey.n_locations
         # add some other receivers and sources to the mix
         electrode_locations = np.unique(np.r_[A, B, M, N], axis=0)

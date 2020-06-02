@@ -68,13 +68,13 @@ class Survey(BaseSurvey):
         return self._b_locations
 
     @property
-    def m_locations(self):
+    def locations_m(self):
         """
         Location of the positive (+) potential electrodes for each datum
         """
-        if getattr(self, "_m_locations", None) is None:
+        if getattr(self, "_locations_m", None) is None:
             self._set_abmn_locations()
-        return self._m_locations
+        return self._locations_m
 
     @property
     def n_locations(self):
@@ -92,7 +92,7 @@ class Survey(BaseSurvey):
         [A.T, B.T, M.T, N.T].T
         """
         return np.vstack(
-            [self.a_locations, self.b_locations, self.m_locations, self.n_locations,]
+            [self.a_locations, self.b_locations, self.locations_m, self.n_locations,]
         )
 
     def set_geometric_factor(
@@ -113,7 +113,7 @@ class Survey(BaseSurvey):
     def _set_abmn_locations(self):
         a_locations = []
         b_locations = []
-        m_locations = []
+        locations_m = []
         n_locations = []
         for source in self.source_list:
             for rx in source.receiver_list:
@@ -137,24 +137,24 @@ class Survey(BaseSurvey):
 
                 # Pole RX
                 if isinstance(rx, Rx.Pole) or isinstance(rx, Rx.Pole):
-                    m_locations.append(rx.locations)
+                    locations_m.append(rx.locations)
                     n_locations.append(rx.locations)
 
                 # Dipole RX
                 elif isinstance(rx, Rx.Dipole) or isinstance(rx, Rx.Dipole):
-                    m_locations.append(rx.locations[0])
+                    locations_m.append(rx.locations[0])
                     n_locations.append(rx.locations[1])
 
         self._a_locations = np.vstack(a_locations)
         self._b_locations = np.vstack(b_locations)
-        self._m_locations = np.vstack(m_locations)
+        self._locations_m = np.vstack(locations_m)
         self._n_locations = np.vstack(n_locations)
 
     def getABMN_locations(self):
         warnings.warn(
             "The getABMN_locations method has been deprecated. Please instead "
             "ask for the property of interest: survey.a_locations, "
-            "survey.b_locations, survey.m_locations, or survey.n_locations. "
+            "survey.b_locations, survey.locations_m, or survey.n_locations. "
             "This will be removed in version 0.15.0 of SimPEG",
             DeprecationWarning,
         )
@@ -170,7 +170,7 @@ class Survey(BaseSurvey):
                             (
                                 self.a_locations[:, 0],
                                 self.b_locations[:, 0],
-                                self.m_locations[:, 0],
+                                self.locations_m[:, 0],
                                 self.n_locations[:, 0],
                             )
                         ).reshape([-1, 1])
@@ -186,7 +186,7 @@ class Survey(BaseSurvey):
                 )
                 self._a_locations = np.c_[self.a_locations[:, 0], temp[:, 0]]
                 self._b_locations = np.c_[self.b_locations[:, 0], temp[:, 1]]
-                self._m_locations = np.c_[self.m_locations[:, 0], temp[:, 2]]
+                self._locations_m = np.c_[self.locations_m[:, 0], temp[:, 2]]
                 self._n_locations = np.c_[self.n_locations[:, 0], temp[:, 3]]
 
                 # Make interpolation function
@@ -260,7 +260,7 @@ class Survey(BaseSurvey):
                             (
                                 self.a_locations[:, :2],
                                 self.b_locations[:, :2],
-                                self.m_locations[:, :2],
+                                self.locations_m[:, :2],
                                 self.n_locations[:, :2],
                             )
                         )
@@ -275,7 +275,7 @@ class Survey(BaseSurvey):
 
                 self.a_locations = np.c_[self.a_locations[:, :2], temp[:, 0]]
                 self.b_locations = np.c_[self.b_locations[:, :2], temp[:, 1]]
-                self.m_locations = np.c_[self.m_locations[:, :2], temp[:, 2]]
+                self.locations_m = np.c_[self.locations_m[:, :2], temp[:, 2]]
                 self.n_locations = np.c_[self.n_locations[:, :2], temp[:, 3]]
 
                 # Make interpolation function
