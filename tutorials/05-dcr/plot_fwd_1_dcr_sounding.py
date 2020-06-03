@@ -156,15 +156,13 @@ if save_file:
     dir_path.extend(["tutorials", "assets", "dcr1d"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    survey.getABMN_locations()
-
     noise = 0.025 * dpred * np.random.rand(len(dpred))
 
     data_array = np.c_[
-        survey.a_locations,
-        survey.b_locations,
-        survey.m_locations,
-        survey.n_locations,
+        survey.locations_a,
+        survey.locations_b,
+        survey.locations_m,
+        survey.locations_n,
         dpred + noise,
     ]
 

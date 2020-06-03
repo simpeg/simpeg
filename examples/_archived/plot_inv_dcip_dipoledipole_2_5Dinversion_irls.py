@@ -55,12 +55,11 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
     survey = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
-    survey.getABMN_locations()
     survey = IO.from_ambn_locations_to_survey(
-        survey.a_locations,
-        survey.b_locations,
-        survey.m_locations,
-        survey.n_locations,
+        survey.locations_a,
+        survey.locations_b,
+        survey.locations_m,
+        survey.locations_n,
         survey_type,
         data_dc_type="volt",
     )
@@ -69,7 +68,7 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     mesh, actind = IO.set_mesh()
     topo, mesh1D = genTopography(mesh, -10, 0, its=100)
     actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
-    survey.drapeTopo(mesh, actind, option="top")
+    survey.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build a conductivity model
     blk_inds_c = utils.model_builder.getIndicesSphere(

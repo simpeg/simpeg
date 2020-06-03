@@ -44,12 +44,11 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
     survey_dc = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
-    survey_dc.getABMN_locations()
     survey_dc = IO.from_ambn_locations_to_survey(
-        survey_dc.a_locations,
-        survey_dc.b_locations,
-        survey_dc.m_locations,
-        survey_dc.n_locations,
+        survey_dc.locations_a,
+        survey_dc.locations_b,
+        survey_dc.locations_m,
+        survey_dc.locations_n,
         survey_type,
         data_dc_type="volt",
         data_ip_type="volt",
@@ -59,7 +58,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     mesh, actind = IO.set_mesh()
     topo, mesh1D = genTopography(mesh, -10, 0, its=100)
     actind = utils.surface2ind_topo(mesh, np.c_[mesh1D.vectorCCx, topo])
-    survey_dc.drapeTopo(mesh, actind, option="top")
+    survey_dc.drape_electrodes_on_topography(mesh, actind, option="top")
 
     # Build conductivity and chargeability model
     blk_inds_c = utils.model_builder.getIndicesSphere(

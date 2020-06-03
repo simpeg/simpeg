@@ -30,7 +30,7 @@ from .utils.solver_utils import (
     SolverBiCG,
 )
 
-__version__ = "0.14.0b2"
+__version__ = "0.14.0"
 __author__ = "SimPEG Team"
 __license__ = "MIT"
 __copyright__ = "2013 - 2020, SimPEG Team, http://simpeg.xyz"

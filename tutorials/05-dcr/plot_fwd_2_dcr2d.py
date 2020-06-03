@@ -120,9 +120,8 @@ mesh = refine_tree_xyz(
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
 # set of unique electrode locations.
-survey.getABMN_locations()
 electrode_locations = np.c_[
-    survey.a_locations, survey.b_locations, survey.m_locations, survey.n_locations
+    survey.locations_a, survey.locations_b, survey.locations_m, survey.locations_n
 ]
 
 unique_locations = np.unique(
@@ -213,7 +212,7 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 # like on the discretized surface.
 #
 
-survey.drapeTopo(mesh, ind_active, option="top")
+survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 
 
 #######################################################################

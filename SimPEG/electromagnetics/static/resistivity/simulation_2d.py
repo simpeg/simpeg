@@ -26,7 +26,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
-    nky = 15
+    nky = 30
     kys = np.logspace(-4, 1, nky)
     Ainv = [None for i in range(nky)]
     nT = nky - 1  # Only for using TimeFields
