@@ -48,12 +48,18 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
                     print(">> Data type is apparaent chargeability")
 
                 # call dpred function in 2D DC simulation
+                # this is bit akward, but I had to since we are calling DC simulation here
+
+                for src in self.survey.source_list:
+                    for rx in src.receiver_list:
+                        rx.data_type = 'volt'
+
                 dc_voltage = super().dpred(m=[], f=self._f)
                 dc_data = Data(self.survey, dc_voltage)
                 for src in self.survey.source_list:
                     for rx in src.receiver_list:
-                        rx._dc_voltage = dc_data[src, rx]
                         rx.data_type = self.data_type
+                        rx._dc_voltage = dc_data[src, rx]
                         rx._Ps = {}
 
         self._pred = self.forward(m, f=self._f)
