@@ -12,7 +12,7 @@ from ..resistivity.simulation_2d import BaseDCSimulation2D
 from ..resistivity.receivers import IntTrapezoidal
 from ..resistivity import Simulation2DCellCentered as BaseSimulation2DCellCentered
 from ..resistivity import Simulation2DNodal as BaseSimulation2DNodal
-
+from ..resistivity import Survey
 
 class BaseIPSimulation2D(BaseDCSimulation2D):
 
@@ -43,24 +43,26 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
             # re-uses the DC simulation's fields method
             self._f = super().fields(None)
 
-            if self.data_type == "apparent_chargeability":
-                if self.verbose is True:
-                    print(">> Data type is apparaent chargeability")
+            if self.verbose is True:
+                print(">> Data type is apparaent chargeability")
 
-                # call dpred function in 2D DC simulation
-                # this is bit akward, but I had to since we are calling DC simulation here
+            # call dpred function in 2D DC simulation
+            # set data type as volt ... for DC simulation
+            data_types = []
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+                    data_types.append(rx.data_type)
+                    rx.data_type = 'volt'
 
-                for src in self.survey.source_list:
-                    for rx in src.receiver_list:
-                        rx.data_type = 'volt'
-
-                dc_voltage = super().dpred(m=[], f=self._f)
-                dc_data = Data(self.survey, dc_voltage)
-                for src in self.survey.source_list:
-                    for rx in src.receiver_list:
-                        rx.data_type = self.data_type
-                        rx._dc_voltage = dc_data[src, rx]
-                        rx._Ps = {}
+            dc_voltage = super().dpred(m=[], f=self._f)
+            dc_data = Data(self.survey, dc_voltage)
+            icount = 0
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+                    rx.data_type = data_types[icount]
+                    rx._dc_voltage = dc_data[src, rx]
+                    rx._Ps = {}
+                    icount+=1
 
         self._pred = self.forward(m, f=self._f)
 
