@@ -30,7 +30,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
 
         rx = dc.receivers.Dipole(M, N)
         src0 = dc.sources.Pole([rx], A0loc)
-        survey = dc.Survey_ky([src0])
+        survey = dc.Survey([src0])
 
         self.survey = survey
         self.mesh = mesh
@@ -48,41 +48,35 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
     def test_Simulation2DNodal(self, tolerance=0.05):
 
         simulation = dc.simulation_2d.Simulation2DNodal(
-            self.mesh, survey=self.survey, sigma=self.sigma
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            verbose=True,
         )
-        simulation.Solver = self.Solver
         data = simulation.dpred()
         err = (
             np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
             / self.data_ana.size
         )
-        if err < tolerance:
-            passed = True
-            print(">> DC analytic test for PDP Simulation2DNodal is passed")
-        else:
-            print(err)
-            passed = False
-            print(">> DC analytic test for PDP Simulation2DNodal is failed")
-        self.assertTrue(passed)
+        print(f"PDP N err: {err}")
+        self.assertLess(err, tolerance)
 
     def test_Simulation2DCellCentered(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.sigma
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            verbose=True,
         )
-        simulation.Solver = self.Solver
         data = simulation.dpred()
         err = (
             np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
             / self.data_ana.size
         )
-        if err < tolerance:
-            passed = True
-            print(">> DC analytic test for PDP Simulation2DCellCentered is passed")
-        else:
-            print(err)
-            passed = False
-            print(">> DC analytic test for PDP Simulation2DCellCentered is failed")
-        self.assertTrue(passed)
+        print(f"PDP CC err: {err}")
+        self.assertLess(err, tolerance)
 
 
 class DCProblemAnalyticTests_DPP(unittest.TestCase):
@@ -109,7 +103,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
 
         rx = dc.receivers.Pole(M)
         src0 = dc.sources.Dipole([rx], A0loc, A1loc)
-        survey = dc.survey.Survey_ky([src0])
+        survey = dc.survey.Survey([src0])
 
         self.survey = survey
         self.mesh = mesh
@@ -127,50 +121,35 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
     def test_Simulation2DNodal(self, tolerance=0.05):
 
         simulation = dc.simulation_2d.Simulation2DNodal(
-            self.mesh, survey=self.survey, sigma=self.sigma
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            verbose=True,
         )
-        simulation.Solver = self.Solver
-        simulation.pair(self.survey)
         data = simulation.dpred()
         err = (
             np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
             / self.data_ana.size
         )
-        if err < tolerance:
-            passed = True
-            print(">> DC analytic test for DPP Simulation2DNodal is passed")
-            if self.plotIt:
-                plt.plot(self.data_ana)
-                plt.plot(data, "k.")
-                plt.show()
-        else:
-            passed = False
-            print(">> DC analytic test for DPP Simulation2DNodal is failed")
-            print(err)
-        self.assertTrue(passed)
+        print(f"DPP N err: {err}")
+        self.assertLess(err, tolerance)
 
     def test_Simulation2DCellCentered(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.sigma
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            verbose=True,
         )
-        simulation.Solver = self.Solver
         data = simulation.dpred()
         err = (
             np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
             / self.data_ana.size
         )
-        if err < tolerance:
-            passed = True
-            print(">> DC analytic test for DPP Simulation2DCellCentered is passed")
-        else:
-            passed = False
-            print(">> DC analytic test for DPP Simulation2DCellCentered is failed")
-            print(err)
-            if self.plotIt:
-                plt.plot(self.data_ana)
-                plt.plot(data, "k.")
-                plt.show()
-        self.assertTrue(passed)
+        print(f"DPP CC err: {err}")
+        self.assertLess(err, tolerance)
 
 
 class DCProblemAnalyticTests_PP(unittest.TestCase):
@@ -193,7 +172,7 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
 
         rx = dc.receivers.Pole(M)
         src0 = dc.sources.Pole([rx], A0loc)
-        survey = dc.survey.Survey_ky([src0])
+        survey = dc.survey.Survey([src0])
 
         self.survey = survey
         self.mesh = mesh
@@ -209,22 +188,20 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
 
     def test_Simulation2DCellCentered(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Mixed"
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            bc_type="Mixed",
+            solver=self.Solver,
+            verbose=True,
         )
-        simulation.Solver = self.Solver
         data = simulation.dpred()
         err = (
             np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
             / self.data_ana.size
         )
-        if err < tolerance:
-            passed = True
-            print(">> DC analytic test for PP Simulation2DCellCentered is passed")
-        else:
-            passed = False
-            print(">> DC analytic test for PP Simulation2DCellCentered is failed")
-            print(err)
-        self.assertTrue(passed)
+        print(f"PP CC err: {err}")
+        self.assertLess(err, tolerance)
 
 
 if __name__ == "__main__":
