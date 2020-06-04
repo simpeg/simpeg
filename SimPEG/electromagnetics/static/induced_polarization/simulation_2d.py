@@ -9,10 +9,10 @@ from ....utils import sdiag
 from ..resistivity.fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 
 from ..resistivity.simulation_2d import BaseDCSimulation2D
-from ..resistivity.receivers import IntTrapezoidal
 from ..resistivity import Simulation2DCellCentered as BaseSimulation2DCellCentered
 from ..resistivity import Simulation2DNodal as BaseSimulation2DNodal
 from ..resistivity import Survey
+
 
 class BaseIPSimulation2D(BaseDCSimulation2D):
 
@@ -25,9 +25,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
 
     data_type = properties.StringChoice(
-        "IP data type",
-        default='volt',
-        choices=['volt', 'apparent_chargeability'],
+        "IP data type", default="volt", choices=["volt", "apparent_chargeability"],
     )
 
     fieldsPair = Fields2D
@@ -52,7 +50,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
             for src in self.survey.source_list:
                 for rx in src.receiver_list:
                     data_types.append(rx.data_type)
-                    rx.data_type = 'volt'
+                    rx.data_type = "volt"
 
             dc_voltage = super().dpred(m=[], f=self._f)
             dc_data = Data(self.survey, dc_voltage)
@@ -62,7 +60,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
                     rx.data_type = data_types[icount]
                     rx._dc_voltage = dc_data[src, rx]
                     rx._Ps = {}
-                    icount+=1
+                    icount += 1
 
         self._pred = self.forward(m, f=self._f)
 
