@@ -20,7 +20,7 @@ from .utils.code_utils import deprecate_property
 try:
     from pymatsolver import Pardiso as DefaultSolver
 except ImportError:
-    from SimPEG import SolverLU as DefaultSolver
+    from .utils.solver_utils import SolverLU as DefaultSolver
 
 __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 

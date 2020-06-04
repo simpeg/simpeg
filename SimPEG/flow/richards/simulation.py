@@ -17,7 +17,7 @@ from ... import optimization
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from .utils.solver_utils import SolverLU as Solver
 
 from .survey import Survey
 from .empirical import BaseHydraulicConductivity
