@@ -1,5 +1,8 @@
 import numpy as np
-from scipy.special import kn
+from scipy.special import k0, k1
+from scipy.optimize import minimize
+from numpy.polynomial.legendre import leggauss
+import warnings
 import properties
 from ....utils.code_utils import deprecate_class
 
@@ -8,7 +11,6 @@ from ...base import BaseEMSimulation
 from ....data import Data
 
 from .survey import Survey
-from .receivers import IntTrapezoidal
 from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from .boundary_utils import getxBCyBC_CC
@@ -24,12 +26,12 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     storeJ = properties.Bool("store the sensitivity matrix?", default=False)
 
+    nky = properties.Integer(
+        "Number of kys to use in wavenumber space", required=False, default=11
+    )
+
     fieldsPair = Fields2D  # SimPEG.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
-    nky = 30
-    kys = np.logspace(-4, 1, nky)
-    Ainv = [None for i in range(nky)]
-    nT = nky - 1  # Only for using TimeFields
     # there's actually nT+1 fields, so we don't need to store the last one
     _Jmatrix = None
     fix_Jmatrix = False
@@ -38,6 +40,91 @@ class BaseDCSimulation2D(BaseEMSimulation):
     def __init__(self, *args, **kwargs):
         miniaturize = kwargs.pop("miniaturize", False)
         super().__init__(*args, **kwargs)
+
+        # try to find an optimal set of quadrature points and weights
+        def get_phi(r):
+            e = np.ones_like(r)
+
+            def phi(k):
+                # use log10 transform to enforce positivity
+                k = 10 ** k
+                A = r[:, None] * k0(r[:, None] * k)
+                v_i = A @ np.linalg.solve(A.T @ A, A.T @ e)
+                dv = (e - v_i) / len(r)
+                return np.linalg.norm(dv)
+
+            def g(k):
+                A = r[:, None] * k0(r[:, None] * k)
+                return np.linalg.solve(A.T @ A, A.T @ e)
+
+            return phi, g
+
+        # find the minimum cell spacing, and the maximum side of the mesh
+        min_r = min(*[np.min(h) for h in self.mesh.h])
+        max_r = max(*[np.sum(h) for h in self.mesh.h])
+        # generate test points log spaced between these two end members
+        rs = np.logspace(np.log10(min_r / 4), np.log10(max_r * 4), 100)
+
+        min_rinv = -np.log10(rs).max()
+        max_rinv = -np.log10(rs).min()
+        # a decent initial guess of the k_i's for the optimization = 1/rs
+        k_i = np.linspace(min_rinv, max_rinv, self.nky)
+
+        # these functions depend on r, so grab them
+        func, g_func = get_phi(rs)
+
+        # just use scipy's minimize for ease
+        out = minimize(func, k_i)
+        if self.verbose:
+            print(f"optimized ks converged? : {out['success']}")
+            print(f"Estimated transform Error: {out['fun']}")
+        # transform the solution back to normal points
+        points = 10 ** out["x"]
+        # transform has a 2/pi and we want 1/pi, so divide by 2
+        weights = g_func(points) / 2
+
+        do_trap = False
+        if not out["success"]:
+            warnings.warn(
+                "Falling back to trapezoidal for integration. "
+                "You may need to change nky."
+            )
+            do_trap = True
+        bc_type = getattr(self, "bc_type", "Neumann")
+        if bc_type == "Mixed":
+            # default for mixed
+            do_trap = True
+            nky = kwargs.get("nkys", None)
+            if nky is None:
+                self.nky = 15
+        if do_trap:
+            if self.verbose:
+                print("doing trap")
+            y = 0.0
+            # gaussian quadrature
+            # points, weights = leggauss(self.nky)
+            # a, b = -4, 1  # log space of points
+            # points = ((b - a)*points + (b+a))/2
+            # weights = weights*(b-a)/2
+            # weights *= np.log(10)*(10**points)
+            # points = 10**points
+            #
+            # weights *= np.cos(points * y)/np.pi
+
+            points = np.logspace(-4, 1, self.nky)
+            dky = np.diff(points) / 2
+            weights = np.r_[dky, 0] + np.r_[0, dky]
+            weights *= np.cos(points * y)  # *(1.0/np.pi)
+            # assume constant value at 0 frequency?
+            weights[0] += points[0] / 2 * (1.0 + np.cos(points[0] * y))
+            weights /= np.pi
+
+        self._quad_weights = weights
+        self._quad_points = points
+
+        self.Ainv = [None for i in range(self.nky)]
+        self.nT = self.nky - 1  # Only for using TimeFields
+
         # Do stuff to simplify the forward and JTvec operation if number of dipole
         # sources is greater than the number of unique pole sources
         if miniaturize:
@@ -59,7 +146,8 @@ class BaseDCSimulation2D(BaseEMSimulation):
             for i in range(self.nky):
                 self.Ainv[i].clean()
         f = self.fieldsPair(self)
-        for iky, ky in enumerate(self.kys):
+        kys = self._quad_points
+        for iky, ky in enumerate(kys):
             A = self.getA(ky)
             if self.Ainv[iky] is not None:
                 self.Ainv[iky].clean()
@@ -71,14 +159,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     def fields_to_space(self, f, y=0.0):
         f_fwd = self.fieldsPair_fwd(self)
-        # Evaluating Integration using Trapezoidal rules
-        dky = np.diff(self.kys) / 2
-        trap_weights = np.r_[dky, 0] + np.r_[0, dky]
-        trap_weights *= np.cos(self.kys * y)
-        # assume constant value at 0 frequency?
-        trap_weights[0] += self.kys[0] / 2 * (1.0 + np.cos(self.kys[0] * y))
-        trap_weights /= np.pi
-        phi = f[:, self._solutionType, :].dot(trap_weights)
+        phi = f[:, self._solutionType, :].dot(self._quad_weights)
         f_fwd[:, self._solutionType] = phi
         return f_fwd
 
@@ -94,7 +175,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
                 m = self.model
             f = self.fields(m)
 
-        kys = self.kys
+        weights = self._quad_weights
         if self._mini_survey is not None:
             survey = self._mini_survey
         else:
@@ -104,7 +185,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         count = 0
         for src in survey.source_list:
             for rx in src.receiver_list:
-                d = IntTrapezoidal(self.kys, rx.eval(src, self.mesh, f))
+                d = rx.eval(src, self.mesh, f).dot(weights)
                 temp[count : count + len(d)] = d
                 count += len(d)
 
@@ -144,19 +225,15 @@ class BaseDCSimulation2D(BaseEMSimulation):
         else:
             survey = self.survey
 
+        kys = self._quad_points
+        weights = self._quad_weights
+
         Jv = np.zeros(survey.nD)
         # Assume y=0.
         # This needs some thoughts to implement in general when src is dipole
-        y = 0.0
-        dky = np.diff(self.kys) / 2
-        trap_weights = np.r_[dky, 0] + np.r_[0, dky]
-        trap_weights *= np.cos(self.kys * y)  # *(1.0/np.pi)
-        # assume constant value at 0 frequency?
-        trap_weights[0] += self.kys[0] / 2 * (1.0 + np.cos(self.kys[0] * y))
-        trap_weights /= np.pi
 
         # TODO: this loop is pretty slow .. (Parellize)
-        for iky, ky in enumerate(self.kys):
+        for iky, ky in enumerate(kys):
             u_ky = f[:, self._solutionType, iky]
             count = 0
             for i_src, src in enumerate(survey.source_list):
@@ -169,7 +246,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     df_dm_v = df_dmFun(iky, src, du_dm_v, v, adjoint=False)
                     Jv1_temp = rx.evalDeriv(src, self.mesh, f, df_dm_v)
                     # Trapezoidal intergration
-                    Jv[count : count + len(Jv1_temp)] += trap_weights[iky] * Jv1_temp
+                    Jv[count : count + len(Jv1_temp)] += weights[iky] * Jv1_temp
                     count += len(Jv1_temp)
 
         return self._mini_survey_data(Jv)
@@ -195,16 +272,8 @@ class BaseDCSimulation2D(BaseEMSimulation):
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
             Full J matrix can be computed by inputing v=None
         """
-
-        # Assume y=0.
-        # This needs some thoughts to implement in general when src is dipole
-        y = 0.0
-        dky = np.diff(self.kys) / 2
-        trap_weights = np.r_[dky, 0] + np.r_[0, dky]
-        trap_weights *= np.cos(self.kys * y)  # *(1.0/np.pi)
-        # assume constant value at 0 frequency?
-        trap_weights[0] += self.kys[0] / 2 * (1.0 + np.cos(self.kys[0] * y))
-        trap_weights /= np.pi
+        kys = self._quad_points
+        weights = self._quad_weights
         if self._mini_survey is not None:
             survey = self._mini_survey
         else:
@@ -218,7 +287,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
             Jtv = np.zeros(m.size, dtype=float)
 
             # TODO: this loop is pretty slow .. (Parellize)
-            for iky, ky in enumerate(self.kys):
+            for iky, ky in enumerate(kys):
                 u_ky = f[:, self._solutionType, iky]
                 count = 0
                 for i_src, src in enumerate(survey.source_list):
@@ -241,13 +310,13 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     # dRHS_dmT = self.getRHSDeriv(ky, src, ATinvdf_duT,
                     #                            adjoint=True)
                     du_dmT = -dA_dmT  # + dRHS_dmT=0
-                    Jtv += trap_weights[iky] * (df_dmT + du_dmT).astype(float)
+                    Jtv += weights[iky] * (df_dmT + du_dmT).astype(float)
             return mkvc(Jtv)
 
         else:
             # This is for forming full sensitivity matrix
             Jt = np.zeros((self.model.size, survey.nD), order="F")
-            for iky, ky in enumerate(self.kys):
+            for iky, ky in enumerate(kys):
                 u_ky = f[:, self._solutionType, iky]
                 istrt = 0
                 for i_src, src in enumerate(survey.source_list):
@@ -259,7 +328,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
                         ATinvdf_duT = self.Ainv[iky] * (P.T)
 
                         dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT, adjoint=True)
-                        Jtv = -trap_weights[iky] * dA_dmT  # RHS=0
+                        Jtv = -weights[iky] * dA_dmT  # RHS=0
                         iend = istrt + rx.nD
                         if rx.nD == 1:
                             Jt[:, istrt] += Jtv
@@ -538,9 +607,9 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1])
             rym = r_boundary(gBFym[:, 0], gBFym[:, 1])
 
-            alpha_xm = ky * (kn(1, ky * rxm) / kn(0, ky * rxm) * (gBFxm[:, 0] - xs))
-            alpha_xp = ky * (kn(1, ky * rxp) / kn(0, ky * rxp) * (gBFxp[:, 0] - xs))
-            alpha_ym = ky * (kn(1, ky * rym) / kn(0, ky * rym) * (gBFym[:, 0] - ys))
+            alpha_xm = ky * (k1(ky * rxm) / k0(ky * rxm) * (gBFxm[:, 0] - xs))
+            alpha_xp = ky * (k1(ky * rxp) / k0(ky * rxp) * (gBFxp[:, 0] - xs))
+            alpha_ym = ky * (k1(ky * rym) / k0(ky * rym) * (gBFym[:, 0] - ys))
             alpha_yp = temp_yp * 0.0
             beta_xm, beta_xp = temp_xm, temp_xp
             beta_ym, beta_yp = temp_ym, temp_yp
