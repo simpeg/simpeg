@@ -1,5 +1,6 @@
 import numpy as np
 import properties
+from scipy.constants import epsilon_0
 from ....utils.code_utils import deprecate_class
 
 from ....fields import TimeFields
@@ -119,15 +120,23 @@ class Fields2D(TimeFields):
             dtype=float,
         )
 
-    # def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-    #     if adjoint is True:
-    #         return self._eDeriv_u(tInd, src, v, adjoint), self._eDeriv_m(tInd, src, v, adjoint)
-    #     return self._eDeriv_u(tInd, src, dun_dm_v) + self._eDeriv_m(tInd, src, v)
+    def _phi_ky(self, phiSolution, srcList, kyInd):
+        return phiSolution
 
-    # def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-    #     if adjoint is True:
-    #         return self._bDeriv_u(tInd, src, v, adjoint), self._bDeriv_m(tInd, src, v, adjoint)
-    #     return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
+    def _phi(self, phiSolution, srcList):
+        return phiSolution.dot(self.simulation._quad_weights)
+
+    def _phiDeriv_u(self, kyInd, src, v, adjoint=False):
+        return Identity() * v
+
+    def _phiDeriv_m(self, kyInd, src, v, adjoint=False):
+        return Zero()
+
+    def _j(self, phiSolution, source_list):
+        raise NotImplementedError()
+
+    def _e(self, phiSolution, source_list):
+        raise NotImplementedError()
 
 
 class Fields2DCellCentered(Fields2D):
@@ -140,10 +149,11 @@ class Fields2DCellCentered(Fields2D):
         "phi": ["phiSolution", "CC", "_phi"],
         "j": ["phiSolution", "F", "_j"],
         "e": ["phiSolution", "F", "_e"],
+        "charge": ["phiSolution", "CC", "_charge"],
+        "charge_density": ["phiSolution", "CC", "_charge_density"],
     }
     # primary - secondary
     # CC variables
-
     def _GLoc(self, fieldType):
         if fieldType == "phi":
             return "CC"
@@ -152,20 +162,38 @@ class Fields2DCellCentered(Fields2D):
         else:
             raise Exception("Field type must be phi, e, j")
 
-    def _phi(self, phiSolution, src, kyInd):
-        return phiSolution
+    def _j(self, phiSolution, source_list):
+        phi = self._phi(phiSolution, source_list)
+        sim = self.simulation
+        return sim.MfRhoI * sim.Grad * phi
 
-    def _phiDeriv_u(self, kyInd, src, v, adjoint=False):
-        return Identity() * v
+    def _e(self, phiSolution, source_list):
+        phi = self._phi(phiSolution, source_list)
+        sim = self.simulation
+        return sim.MfI * sim.Grad * phi
 
-    def _phiDeriv_m(self, kyInd, src, v, adjoint=False):
-        return Zero()
+    def _charge(self, phiSolution, source_list):
+        """
+            .. math::
 
-    def _j(self, phiSolution, srcList):
-        raise NotImplementedError
+                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        """
+        sim = self.simulation
+        return (
+            epsilon_0
+            * sim.mesh.vol
+            * (sim.mesh.faceDiv * self._e(phiSolution, source_list))
+        )
 
-    def _e(self, phiSolution, srcList):
-        raise NotImplementedError
+    def _charge_density(self, phiSolution, source_list):
+        """
+            .. math::
+
+                \frac{1}{V}\int \nabla \codt \vec{e} =
+                \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
+        """
+        sim = self.simulation
+        return epsilon_0 * (sim.mesh.faceDiv * self._e(phiSolution, source_list))
 
 
 class Fields2DNodal(Fields2D):
@@ -178,6 +206,8 @@ class Fields2DNodal(Fields2D):
         "phi": ["phiSolution", "N", "_phi"],
         "j": ["phiSolution", "E", "_j"],
         "e": ["phiSolution", "E", "_e"],
+        "charge_density": ["phiSolution", "N", "_charge_density"],
+        "charge": ["phiSolution", "N", "_charge"],
     }
     # primary - secondary
     # CC variables
@@ -190,20 +220,31 @@ class Fields2DNodal(Fields2D):
         else:
             raise Exception("Field type must be phi, e, j")
 
-    def _phi(self, phiSolution, src, kyInd):
-        return phiSolution
+    def _j(self, phiSolution, source_list):
+        sim = self.simulation
+        return sim.MeI * sim.MeSigma * self._e(phiSolution, source_list)
 
-    def _phiDeriv_u(self, kyInd, src, v, adjoint=False):
-        return Identity() * v
+    def _e(self, phiSolution, source_list):
+        """
+            In HJ formulation e is not well-defined!!
+            .. math::
+                \vec{e} = -\nabla \phi
+        """
+        return -self.mesh.nodalGrad * self._phi(phiSolution, source_list)
 
-    def _phiDeriv_m(self, kyInd, src, v, adjoint=False):
-        return Zero()
+    def _charge(self, phiSolution, source_list):
+        """
+            .. math::
+                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        """
+        return -epsilon_0 * (
+            self.mesh.nodalGrad.T
+            * self.mesh.getEdgeInnerProduct()
+            * self._e(phiSolution, source_list)
+        )
 
-    def _j(self, phiSolution, srcList):
-        raise NotImplementedError
-
-    def _e(self, phiSolution, srcList):
-        raise NotImplementedError
+    def _charge_density(self, phiSolution, source_list):
+        return self._charge(phiSolution, source_list) / self.mesh.vol
 
 
 Fields2DCellCentred = Fields2DCellCentered

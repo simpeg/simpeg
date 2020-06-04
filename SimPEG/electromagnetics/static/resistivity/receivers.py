@@ -2,21 +2,10 @@ import numpy as np
 from ....utils.code_utils import deprecate_class
 
 import properties
-from ....utils import closestPoints, sdiag
+from ....utils import sdiag
 from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
 
 import warnings
-
-# Trapezoidal integration for 2D DC problem
-def IntTrapezoidal(kys, Pf, y=0.0):
-    dky = np.diff(kys) / 2
-    weights = np.r_[dky, 0] + np.r_[0, dky]
-    weights *= np.cos(kys * y)  # *(1.0/np.pi)
-    # assume constant value at 0 frequency?
-    weights[0] += kys[0] / 2 * (1.0 + np.cos(kys[0] * y))
-    weights /= np.pi
-
-    return Pf.dot(weights)
 
 
 # Receiver classes
@@ -85,7 +74,10 @@ class BaseRx(BaseSimPEGRx):
 
     def eval(self, src, mesh, f):
         P = self.getP(mesh, self.projGLoc(f))
-        return P * f[src, self.projField]
+        proj_f = self.projField
+        if proj_f == "phi":
+            proj_f = "phiSolution"
+        return P * f[src, proj_f]
 
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))

@@ -147,6 +147,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
                 self.Ainv[i].clean()
         f = self.fieldsPair(self)
         kys = self._quad_points
+        f._quad_weights = self._quad_weights
         for iky, ky in enumerate(kys):
             A = self.getA(ky)
             if self.Ainv[iky] is not None:

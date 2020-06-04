@@ -1,8 +1,6 @@
 from six import string_types
 import numpy as np
 import properties
-import discretize
-import sys
 
 from .simulation import BaseSimulation, BaseTimeSimulation
 from .utils import mkvc
@@ -303,6 +301,14 @@ class TimeFields(Fields):
             pointerFields = self._fields[alias][:, srcInd, timeInd]
             pointerShape = self._correctShape(alias, ind)
             pointerFields = pointerFields.reshape(pointerShape, order="F")
+
+            # First try to return the function as three arguments (without timeInd)
+            if timeInd == slice(None, None, None):
+                try:
+                    # assume it will take care of integrating over all times
+                    return func(pointerFields, srcInd)
+                except TypeError:
+                    pass
 
             timeII = np.arange(self.simulation.nT + 1)[timeInd]
             srcII = np.array(self.survey.source_list)[srcInd]
