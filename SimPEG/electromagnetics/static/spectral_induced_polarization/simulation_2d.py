@@ -89,7 +89,7 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
                 f = self.fields(m)
 
             Jt = np.zeros(
-                (self.actMap.nP, int(self.survey.nD / self.survey.times.size)),
+                (self.actMap.nP, int(self.survey.nD / self.survey.unique_times.size)),
                 order="F",
             )
             for iky, ky in enumerate(kys):
@@ -133,11 +133,13 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
 
         J = self.getJ(m, f=f)
 
-        ntime = len(self.survey.times)
+        ntime = len(self.survey.unique_times)
         Jv = []
         self.model = m
         for tind in range(ntime):
-            Jv.append(J.dot(self.actMap.P.T * self.get_peta(self.survey.times[tind])))
+            Jv.append(
+                J.dot(self.actMap.P.T * self.get_peta(self.survey.unique_times[tind]))
+            )
         return self.sign * np.hstack(Jv)
 
     def dpred(self, m, f=None):
@@ -158,12 +160,12 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
 
         self.model = m
         J = self.getJ(m, f=f)
-        ntime = len(self.survey.times)
+        ntime = len(self.survey.unique_times)
         Jv = []
 
         for tind in range(ntime):
 
-            t = self.survey.times[tind]
+            t = self.survey.unique_times[tind]
             v0 = self.PetaEtaDeriv(t, v)
             v1 = self.PetaTauiDeriv(t, v)
             v2 = self.PetaCDeriv(t, v)
@@ -177,12 +179,12 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
         self.model = m
         J = self.getJ(m, f=f)
 
-        ntime = len(self.survey.times)
+        ntime = len(self.survey.unique_times)
         Jtvec = np.zeros(m.size)
         v = v.reshape((int(self.survey.nD / ntime), ntime), order="F")
 
         for tind in range(ntime):
-            t = self.survey.times[tind]
+            t = self.survey.unique_times[tind]
             Jtv = self.actMap.P * J.T.dot(v[:, tind])
             Jtvec += (
                 self.PetaEtaDeriv(t, Jtv, adjoint=True)
@@ -197,11 +199,11 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
         Compute JtJ using adjoint problem. Still we never form
         JtJ
         """
-        ntime = len(self.survey.times)
+        ntime = len(self.survey.unique_times)
         JtJdiag = np.zeros_like(m)
         J = self.getJ(m, f=None)
         for tind in range(ntime):
-            t = self.survey.times[tind]
+            t = self.survey.unique_times[tind]
             Jtv = self.actMap.P * J.T
             JtJdiag += (
                 (self.PetaEtaDeriv(t, Jtv, adjoint=True) ** 2).sum(axis=1)

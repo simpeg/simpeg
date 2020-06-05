@@ -43,11 +43,71 @@ class Dipole(BaseSrc):
         location, "loc", new_name="location", removal_version="0.15.0"
     )
 
-    def __init__(self, receiver_list, locationA, locationB, **kwargs):
-        if locationA.shape != locationB.shape:
-            raise Exception("Shape of locationA and locationB should be the same")
+    def __init__(
+        self, receiver_list, location_a=None, location_b=None, location=None, **kwargs
+    ):
+        # Check for old keywords
+        if "locationA" in kwargs.keys():
+            location_a = kwargs.pop("locationA")
+            warnings.warn(
+                "The locationA property has been deprecated. Please set the "
+                "location_a property instead. This will be removed in version"
+                " 0.15.0 of SimPEG",
+                DeprecationWarning,
+            )
+
+        if "locationB" in kwargs.keys():
+            location_b = kwargs.pop("locationB")
+            warnings.warn(
+                "The locationB property has been deprecated. Please set the "
+                "location_b property instead. This will be removed in version"
+                " 0.15.0 of SimPEG",
+                DeprecationWarning,
+            )
+
+        # if location_a set, then use location_a, location_b
+        if location_a is not None:
+            if location_b is None:
+                raise ValueError(
+                    "For a dipole source both location_a and location_b " "must be set"
+                )
+
+            if location is not None:
+                raise ValueError(
+                    "Cannot set both location and location_a, location_b. "
+                    "Please provide either location=(location_a, location_b) "
+                    "or both location_a=location_a, location_b=location_b"
+                )
+
+            location = [location_a, location_b]
+
+        elif location is not None:
+            if len(location) != 2:
+                raise ValueError(
+                    "location must be a list or tuple of length 2: "
+                    "[location_a, location_b]. The input location has "
+                    f"length {len(location)}"
+                )
+
+        if location[0].shape != location[1].shape:
+            raise ValueError(
+                f"m_location (shape: {location[0].shape}) and "
+                f"n_location (shape: {location[1].shape}) need to be "
+                f"the same size"
+            )
+
         super(Dipole, self).__init__(receiver_list, **kwargs)
-        self.location = [locationA, locationB]
+        self.location = location
+
+    @property
+    def location_a(self):
+        """Location of the A-electrode"""
+        return self.location[0]
+
+    @property
+    def location_b(self):
+        """Location of the B-electrode"""
+        return self.location[1]
 
     def eval(self, simulation):
         if simulation._formulation == "HJ":

@@ -283,7 +283,7 @@ class BaseSIPSimulation(BaseEMSimulation):
                 f = self.fields(m)
 
             Jt = np.zeros(
-                (self.actMap.nP, int(self.survey.nD / self.survey.times.size)),
+                (self.actMap.nP, int(self.survey.nD / self.survey.unique_times.size)),
                 order="F",
             )
             istrt = int(0)
@@ -325,12 +325,12 @@ class BaseSIPSimulation(BaseEMSimulation):
         """
         if self.verbose:
             print(">> Compute trace(JtJ)")
-        ntime = len(self.survey.times)
+        ntime = len(self.survey.unique_times)
         JtJdiag = np.zeros_like(m)
         J = self.getJ(m, f=None)
         wd = (Wd.diagonal()).reshape((self.survey.n_locations, ntime), order="F")
         for tind in range(ntime):
-            t = self.survey.times[tind]
+            t = self.survey.unique_times[tind]
             Jtv = self.actMap.P * J.T * Utils.sdiag(wd[:, tind])
             JtJdiag += (
                 (self.PetaEtaDeriv(t, Jtv, adjoint=True) ** 2).sum(axis=1)
@@ -357,12 +357,14 @@ class BaseSIPSimulation(BaseEMSimulation):
         if self.storeJ:
             J = self.getJ(m, f=f)
 
-            ntime = len(self.survey.times)
+            ntime = len(self.survey.unique_times)
 
             self.model = m
             for tind in range(ntime):
                 Jv.append(
-                    J.dot(self.actMap.P.T * self.get_peta(self.survey.times[tind]))
+                    J.dot(
+                        self.actMap.P.T * self.get_peta(self.survey.unique_times[tind])
+                    )
                 )
             return self.sign * np.hstack(Jv)
 
@@ -373,9 +375,9 @@ class BaseSIPSimulation(BaseEMSimulation):
                 f = self.fields(m)
 
             # A = self.getA()
-            for tind in range(len(self.survey.times)):
+            for tind in range(len(self.survey.unique_times)):
                 # Pseudo-chareability
-                t = self.survey.times[tind]
+                t = self.survey.unique_times[tind]
                 v = self.get_peta(t)
                 for src in self.survey.source_list:
                     u_src = f[src, self._solutionType]  # solution vector
@@ -383,7 +385,7 @@ class BaseSIPSimulation(BaseEMSimulation):
                     dRHS_dm_v = self.getRHSDeriv(src, v)
                     du_dm_v = self.Ainv * (-dA_dm_v + dRHS_dm_v)
                     for rx in src.receiver_list:
-                        timeindex = rx.getTimeP(self.survey.times)
+                        timeindex = rx.getTimeP(self.survey.unique_times)
                         if timeindex[tind]:
                             df_dmFun = getattr(
                                 f, "_{0!s}Deriv".format(rx.projField), None
@@ -416,11 +418,11 @@ class BaseSIPSimulation(BaseEMSimulation):
         # When sensitivity matrix is stored
         if self.storeJ:
             J = self.getJ(m, f=f)
-            ntime = len(self.survey.times)
+            ntime = len(self.survey.unique_times)
 
             for tind in range(ntime):
 
-                t = self.survey.times[tind]
+                t = self.survey.unique_times[tind]
                 v0 = self.PetaEtaDeriv(t, v)
                 v1 = self.PetaTauiDeriv(t, v)
                 v2 = self.PetaCDeriv(t, v)
@@ -435,9 +437,9 @@ class BaseSIPSimulation(BaseEMSimulation):
             if f is None:
                 f = self.fields(m)
 
-            for tind in range(len(self.survey.times)):
+            for tind in range(len(self.survey.unique_times)):
 
-                t = self.survey.times[tind]
+                t = self.survey.unique_times[tind]
                 v0 = self.PetaEtaDeriv(t, v)
                 v1 = self.PetaTauiDeriv(t, v)
                 v2 = self.PetaCDeriv(t, v)
@@ -450,7 +452,7 @@ class BaseSIPSimulation(BaseEMSimulation):
 
                     for rx in src.receiver_list:
                         # Assume same # of time
-                        # timeindex = rx.getTimeP(self.survey.times)
+                        # timeindex = rx.getTimeP(self.survey.unique_times)
                         # if timeindex[tind]:
                         Jv_temp = rx.evalDeriv(src, self.mesh, f, du_dm_v)
                         Jv.append(Jv_temp)
@@ -464,12 +466,12 @@ class BaseSIPSimulation(BaseEMSimulation):
         # When sensitivity matrix is stored
         if self.storeJ:
             J = self.getJ(m, f=f)
-            ntime = len(self.survey.times)
+            ntime = len(self.survey.unique_times)
             Jtvec = np.zeros(m.size)
             v = v.reshape((int(self.survey.nD / ntime), ntime), order="F")
 
             for tind in range(ntime):
-                t = self.survey.times[tind]
+                t = self.survey.unique_times[tind]
                 Jtv = self.actMap.P * J.T.dot(v[:, tind])
                 Jtvec += (
                     self.PetaEtaDeriv(t, Jtv, adjoint=True)
@@ -490,17 +492,17 @@ class BaseSIPSimulation(BaseEMSimulation):
                 v = Data(self.survey, v)
 
             Jtv = np.zeros(m.size, dtype=float)
-            n_time = len(self.survey.times)
+            n_time = len(self.survey.unique_times)
             du_dmT = np.zeros((self.mesh.nC, n_time), dtype=float, order="F")
 
             for tind in range(n_time):
-                t = self.survey.times[tind]
+                t = self.survey.unique_times[tind]
                 for src in self.survey.source_list:
                     u_src = f[src, self._solutionType]
                     for rx in src.receiver_list:
                         # Ignore case when each rx has different # of times
 
-                        # timeindex = rx.getTimeP(self.survey.times)
+                        # timeindex = rx.getTimeP(self.survey.unique_times)
                         # if timeindex[tind]:
                         # wrt f, need possibility wrt m
                         PTv = rx.evalDeriv(
@@ -523,13 +525,13 @@ class BaseSIPSimulation(BaseEMSimulation):
 
                 Jtv += (
                     self.PetaEtaDeriv(
-                        self.survey.times[tind], du_dmT[:, tind], adjoint=True
+                        self.survey.unique_times[tind], du_dmT[:, tind], adjoint=True
                     )
                     + self.PetaTauiDeriv(
-                        self.survey.times[tind], du_dmT[:, tind], adjoint=True
+                        self.survey.unique_times[tind], du_dmT[:, tind], adjoint=True
                     )
                     + self.PetaCDeriv(
-                        self.survey.times[tind], du_dmT[:, tind], adjoint=True
+                        self.survey.unique_times[tind], du_dmT[:, tind], adjoint=True
                     )
                 )
 

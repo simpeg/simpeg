@@ -58,10 +58,14 @@ class SIPProblemTestsCC(unittest.TestCase):
         survey = sip.Survey([src])
         wires = maps.Wires(("eta", mesh.nC), ("taui", mesh.nC))
         problem = sip.Simulation2DCellCentered(
-            mesh, rho=1.0 / sigma, etaMap=wires.eta, tauiMap=wires.taui, verbose=False
+            mesh,
+            rho=1.0 / sigma,
+            etaMap=wires.eta,
+            tauiMap=wires.taui,
+            verbose=False,
+            solver=Solver,
+            survey=survey,
         )
-        problem.Solver = Solver
-        problem.pair(survey)
         mSynth = np.r_[eta, 1.0 / tau]
         problem.model = mSynth
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
@@ -110,7 +114,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
 
-class IPProblemTestsN(unittest.TestCase):
+class SIPProblemTestsN(unittest.TestCase):
     def setUp(self):
 
         cs = 25.0
@@ -145,10 +149,14 @@ class IPProblemTestsN(unittest.TestCase):
         survey = sip.Survey([src])
         wires = maps.Wires(("eta", mesh.nC), ("taui", mesh.nC))
         problem = sip.Simulation2DNodal(
-            mesh, sigma=sigma, etaMap=wires.eta, tauiMap=wires.taui, verbose=False
+            mesh,
+            sigma=sigma,
+            etaMap=wires.eta,
+            tauiMap=wires.taui,
+            verbose=False,
+            solver=Solver,
+            survey=survey,
         )
-        problem.Solver = Solver
-        problem.pair(survey)
         mSynth = np.r_[eta, 1.0 / tau]
         problem.model = mSynth
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
@@ -196,7 +204,7 @@ class IPProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
 
-class IPProblemTestsN_air(unittest.TestCase):
+class SIPProblemTestsN_air(unittest.TestCase):
     def setUp(self):
 
         cs = 25.0
@@ -247,10 +255,9 @@ class IPProblemTestsN_air(unittest.TestCase):
             tauiMap=actmaptau * wires.taui,
             cMap=actmapc * wires.c,
             actinds=~airind,
+            solver=Solver,
+            survey=survey,
         )
-
-        problem.Solver = Solver
-        problem.pair(survey)
         mSynth = np.r_[eta[~airind], 1.0 / tau[~airind], c[~airind]]
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization
