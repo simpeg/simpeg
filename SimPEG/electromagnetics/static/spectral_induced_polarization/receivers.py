@@ -51,6 +51,13 @@ class BaseRx(BaseTimeRx):
         time_inds = np.in1d(timesall, self.times)
         return time_inds
 
+    def eval(self, src, mesh, f):
+        P = self.getP(mesh, self.projGLoc(f))
+        proj_f = self.projField
+        if proj_f == "phi":
+            proj_f = "phiSolution"
+        return P * f[src, proj_f]
+
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
         if not adjoint:
