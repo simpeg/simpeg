@@ -1,4 +1,5 @@
 import numpy as np
+import properties
 from ....utils.code_utils import deprecate_class
 
 from .... import props
@@ -10,6 +11,7 @@ from ..resistivity.fields_2d import Fields2D, Fields2DCellCentered, Fields2DNoda
 from ..resistivity.simulation_2d import BaseDCSimulation2D
 from ..resistivity import Simulation2DCellCentered as BaseSimulation2DCellCentered
 from ..resistivity import Simulation2DNodal as BaseSimulation2DNodal
+from ..resistivity import Survey
 
 
 class BaseIPSimulation2D(BaseDCSimulation2D):
@@ -22,32 +24,15 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
 
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
 
+    data_type = properties.StringChoice(
+        "IP data type", default="volt", choices=["volt", "apparent_chargeability"],
+    )
+
     fieldsPair = Fields2D
     _Jmatrix = None
     _f = None
     sign = None
     _pred = None
-
-    def set_dc_data(
-        self, dc_voltage, data_type="apparent_chargeability", dc_survey=None
-    ):
-        if dc_survey is None:
-            dc_data = Data(self.survey, dc_voltage)
-            for src in self.survey.source_list:
-                for rx in src.receiver_list:
-                    rx._dc_voltage = dc_data[src, rx]
-                    rx.data_type = data_type
-                    rx._Ps = {}
-        else:
-            dc_data = Data(dc_survey, dc_voltage)
-            for isrc, src in enumerate(self.survey.source_list):
-                dc_src = dc_survey.source_list[isrc]
-                for irx, rx in enumerate(src.receiver_list):
-                    dc_rx = dc_src.receiver_list[irx]
-                    rx._dc_voltage = dc_data[dc_src, dc_rx]
-                    rx.data_type = data_type
-                    rx._Ps = {}
-        return dc_data
 
     def fields(self, m):
         if self.verbose:
@@ -55,6 +40,27 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
         if self._f is None:
             # re-uses the DC simulation's fields method
             self._f = super().fields(None)
+
+            if self.verbose is True:
+                print(">> Data type is apparaent chargeability")
+
+            # call dpred function in 2D DC simulation
+            # set data type as volt ... for DC simulation
+            data_types = []
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+                    data_types.append(rx.data_type)
+                    rx.data_type = "volt"
+
+            dc_voltage = super().dpred(m=[], f=self._f)
+            dc_data = Data(self.survey, dc_voltage)
+            icount = 0
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+                    rx.data_type = data_types[icount]
+                    rx._dc_voltage = dc_data[src, rx]
+                    rx._Ps = {}
+                    icount += 1
 
         self._pred = self.forward(m, f=self._f)
 

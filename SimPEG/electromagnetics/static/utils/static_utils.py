@@ -518,7 +518,7 @@ def plot_pseudosection(
         ax.set_aspect("equal", adjustable="box")
 
     if y_values == "n-spacing":
-        ticks = ax.get_yticks()
+        ticks = ax.get_yticks() * 2  # pseudo-depth divides by 2
         spacing = np.abs(midz).min()
         ax.set_yticklabels(-ticks / spacing)
         ax.set_ylabel("n-spacing")

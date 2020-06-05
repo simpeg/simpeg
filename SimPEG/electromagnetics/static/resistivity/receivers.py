@@ -25,6 +25,7 @@ class BaseRx(BaseSimPEGRx):
     )
 
     _geometric_factor = None
+    _dc_voltage = None
 
     def __init__(self, locations=None, **kwargs):
         super(BaseRx, self).__init__(**kwargs)
