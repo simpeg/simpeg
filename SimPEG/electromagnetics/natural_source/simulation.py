@@ -130,6 +130,73 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             ATinv.clean()
         return Jtv
 
+    def getJ(self, m, f=None):
+        """
+        Function to calculate the sensitivity matrix.
+        :param numpy.ndarray m: inversion model (nP,)
+        :param SimPEG.EM.NSEM.FieldsNSEM f (optional): NSEM fields object, if not given it is calculated
+        :rtype: numpy.ndarray
+        :return: J (nD, nP) Data sensitivities wrt m
+        """
+
+        if f is None:
+            f = self.fields(m)
+
+        self.model = m
+
+        J = np.empty((self.survey.nD, self.model.size))
+
+        istrt = 0
+        for freq in self.survey.frequencies:
+            AT = self.getA(freq).T
+
+            ATinv = self.Solver(AT, **self.solverOpts)
+
+            for src in self.survey.get_sources_by_frequency(freq):
+                # u_src needs to have both polarizations
+                u_src = f[src, :]
+
+                for rx in src.receiver_list:
+                    # Get the adjoint evalDeriv
+
+                    # Need to make PT
+                    # Ideally rx.evalDeriv will be updated to return a matrix,
+                    # but for now just calculate it like so...
+                    PT = np.empty((AT.shape[0], rx.nD*2), dtype=complex, order='F')
+                    for i in range(rx.nD):
+                        v = np.zeros(rx.nD)
+                        v[i] = 1.0
+                        PTv = rx.evalDeriv(src, self.mesh, f, v, adjoint=True)
+                        PT[:, 2*i:2*i+2] = PTv
+
+                    dA_duIT = ATinv * PT
+                    dA_duIT = dA_duIT.reshape(-1, rx.nD, order='F')  # shape now nUxnD
+
+                    # getADeriv and getRHSDeriv should be updated to accept and return
+                    # matrices, but for now this works.
+                    # They should also be update to return the real parts as well.
+                    dA_dmT = np.empty((rx.nD, J.shape[1]))
+                    dRHS_dmT = np.empty((rx.nD, J.shape[1]))
+                    for i in range(rx.nD):
+                        dA_dmT[i, :] = self.getADeriv(freq, u_src, dA_duIT[:, i], adjoint=True).real
+                        dRHS_dmT[i, :] = self.getRHSDeriv(freq, dA_duIT[:, i], adjoint=True).real
+                    # Make du_dmT
+                    du_dmT = -dA_dmT + dRHS_dmT
+                    # Now just need to put it in the right spot.....
+                    real_or_imag = rx.component
+                    if real_or_imag == 'real':
+                        J_rows = du_dmT
+                    elif real_or_imag == 'imag':
+                        J_rows = -du_dmT
+                    else:
+                        raise Exception('Must be real or imag')
+                    iend = istrt + rx.nD
+                    J[istrt:iend, :] = J_rows
+                    istrt = iend
+            # Clean the factorization, clear memory.
+            ATinv.clean()
+        return J
+
 ###################################
 # 1D problems
 ###################################
