@@ -5,7 +5,7 @@ SimPEG 0.14.1 Release Notes
 ===========================
 
 This release contains a few small bug fixes and parameter renaming for a few
-functions
+functions.
 
 New Things
 ==========
@@ -86,13 +86,24 @@ Contributors
 
 * @lheagy
 * @jcapriot
+* @sgkang
+* @domfournier
+* @adamkosik
 
 Pull requests
 =============
 
+* `#881 <https://github.com/simpeg/simpeg/pull/881>`__: Bug fixes for 3D IP simulation
 * `#884 <https://github.com/simpeg/simpeg/pull/884>`__: Transform DC updates
+* `#885 <https://github.com/simpeg/simpeg/pull/885>`__: Fix IRLS Tutorial
+* `#889 <https://github.com/simpeg/simpeg/pull/889>`__: Import SolverLU straight from utils.
+* `#890 <https://github.com/simpeg/simpeg/pull/890>`__: Update CODE_OF_CONDUCT.md
 
 Closed issues
 =============
 
-* TODO: issues to be closed
+* `#856 <https://github.com/simpeg/simpeg/issues/856>`__
+* `#877 <https://github.com/simpeg/simpeg/issues/877>`__
+* `#878 <https://github.com/simpeg/simpeg/issues/878>`__
+* `#887 <https://github.com/simpeg/simpeg/issues/887>`__
+* `#888 <https://github.com/simpeg/simpeg/issues/888>`__
