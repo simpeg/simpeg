@@ -107,6 +107,10 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         f = simulation.fields(self.sigma)
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
         jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
+        # also test we can get charge and charge density
+        f[:, "charge"]
+        f[:, "charge_density"]
+
         errE = np.linalg.norm(
             jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]
         ) / np.linalg.norm(self.J_analytic[self.ROIfaceInds])
@@ -277,6 +281,10 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
         f = simulation.fields(self.sigma)
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
         jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
+        # also test if we can get charge and charge_density
+        f[:, "charge"]
+        f[:, "charge_density"]
+
         errE = np.linalg.norm(
             jNumeric[self.ROIedgeInds] - self.J_analytic[self.ROIedgeInds]
         ) / np.linalg.norm(self.J_analytic[self.ROIedgeInds])

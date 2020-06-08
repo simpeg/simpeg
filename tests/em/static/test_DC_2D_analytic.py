@@ -294,6 +294,20 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
         except ImportError:
             self.Solver = SolverLU
 
+    def test_Simulation2DCellCentered(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
+            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.Solver,
+        )
+        field = simulation.fields(self.sigma)
+
+        # just test if we can get each property of the field
+        field[:, "phi"][:, 0]
+        field[:, "j"]
+        field[:, "e"]
+        field[:, "charge"]
+        field[:, "charge_density"]
+        print("got fields CC")
+
     def test_Simulation2DNodal(self, tolerance=0.05):
 
         simulation = dc.simulation_2d.Simulation2DNodal(
@@ -301,6 +315,14 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
         )
         field = simulation.fields(self.sigma)
         data = field[:, "phi"][:, 0]
+
+        # also test if we can get the other things charge and charge_density
+        field[:, "j"]
+        field[:, "e"]
+        field[:, "charge"]
+        field[:, "charge_density"]
+        print("got fields N")
+
         ROI_inds = self.ROI_inds
         diff_norm = np.linalg.norm((data[ROI_inds] - self.data_ana[ROI_inds]))
         err = diff_norm / np.linalg.norm(self.data_ana[ROI_inds])
