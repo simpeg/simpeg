@@ -26,12 +26,11 @@ class TestsIO(unittest.TestCase):
         self.survey = utils.gen_DCIPsurvey(
             self.endl, "dipole-dipole", dim=2, a=10, b=10, n=10
         )
-        self.survey.getABMN_locations()
         self.survey = self.IO.from_ambn_locations_to_survey(
-            self.survey.a_locations,
-            self.survey.b_locations,
-            self.survey.m_locations,
-            self.survey.n_locations,
+            self.survey.locations_a,
+            self.survey.locations_b,
+            self.survey.locations_m,
+            self.survey.locations_n,
             "dipole-dipole",
             data_dc_type="apparent_resistivity",
             data_dc=np.ones(self.survey.nD) * 100.0,
@@ -46,12 +45,11 @@ class TestsIO(unittest.TestCase):
         self.survey = utils.gen_DCIPsurvey(
             self.endl, "dipole-dipole", dim=2, a=10, b=10, n=10
         )
-        self.survey.getABMN_locations()
         self.survey = self.IO.from_ambn_locations_to_survey(
-            self.survey.a_locations,
-            self.survey.b_locations,
-            self.survey.m_locations,
-            self.survey.n_locations,
+            self.survey.locations_a,
+            self.survey.locations_b,
+            self.survey.locations_m,
+            self.survey.locations_n,
             "dipole-dipole",
             data_dc_type="apparent_resistivity",
             data_dc=np.ones(self.survey.nD) * 100.0,
@@ -64,7 +62,7 @@ class TestsIO(unittest.TestCase):
         mesh, actind = self.IO.set_mesh()
         topo, mesh1D = utils.genTopography(mesh, -10, 0, its=100)
         mesh, actind = self.IO.set_mesh(topo=np.c_[mesh1D.vectorCCx, topo])
-        self.survey.drapeTopo(mesh, actind, option="top")
+        self.survey.drape_electrodes_on_topography(mesh, actind, option="top")
         if self.plotIt:
             mesh.plotImage(actind)
             plt.plot(

@@ -235,11 +235,10 @@ class DC3DMiniaturizeTest(unittest.TestCase):
         survey = gen_DCIPsurvey(
             survey_end_points, "dipole-dipole", aSpacing, aSpacing, nElecs, dim=2
         )
-        survey.getABMN_locations()
-        A = survey.a_locations
-        B = survey.b_locations
-        M = survey.m_locations
-        N = survey.n_locations
+        A = survey.locations_a
+        B = survey.locations_b
+        M = survey.locations_m
+        N = survey.locations_n
         # add some other receivers and sources to the mix
         electrode_locations = np.unique(np.r_[A, B, M, N], axis=0)
 

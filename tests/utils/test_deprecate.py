@@ -145,7 +145,7 @@ class DeprecateTest(unittest.TestCase):
                 with self.assertWarns(DeprecationWarning):
                     try:
                         Rx(locs)  # for "Pole like" receiver
-                    except TypeError:
+                    except (TypeError, ValueError):
                         Rx(locs, locs)  # for either Dipole, or Time receivers
                 print("ok")
 

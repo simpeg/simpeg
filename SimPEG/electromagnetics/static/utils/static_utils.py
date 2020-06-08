@@ -9,13 +9,44 @@ import warnings
 from ....data import Data
 from .. import resistivity as dc
 from ....utils import (
-    asArray_N_x_Dim,
     closestPoints,
     mkvc,
     surface2ind_topo,
-    uniqueRows,
     model_builder,
 )
+
+
+DATA_TYPES = {
+    "apparent resistivity": [
+        "apparent resistivity",
+        "appresistivity",
+        "apparentresistivity",
+        "apparent-resistivity",
+        "apparent_resistivity",
+        "appres",
+    ],
+    "apparent conductivity": [
+        "apparent conductivity",
+        "appconductivity",
+        "apparentconductivity",
+        "apparent-conductivity",
+        "apparent_conductivity",
+        "appcon",
+    ],
+    "apparent chargeability": [
+        "apparent chargeability",
+        "appchargeability",
+        "apparentchargeability",
+        "apparent-chargeability",
+        "apparent_chargeability",
+    ],
+    "potential": ["potential", "potentials", "volt", "V", "voltages", "voltage"],
+}
+
+SPACE_TYPES = {
+    "half space": ["half space", "half-space", "half_space", "halfspace", "half"],
+    "whole space": ["whole space", "whole-space", "whole_space", "wholespace", "whole"],
+}
 
 
 def electrode_separations(dc_survey, survey_type="dipole-dipole", electrode_pair="all"):
@@ -36,7 +67,7 @@ def electrode_separations(dc_survey, survey_type="dipole-dipole", electrode_pair
         if electrode_pair.lower() == "all":
             electrode_pair = ["AB", "MN", "AM", "AN", "BM", "BN"]
         elif isinstance(electrode_pair, str):
-            electrode_pair = [electrode_pair]
+            electrode_pair = [electrode_pair.upper()]
         else:
             raise Exception(
                 "electrode_pair must be either a string, list of strings, or an "
@@ -184,7 +215,7 @@ def source_receiver_midpoints(survey, **kwargs):
     return np.vstack(midxy), np.hstack(midz)
 
 
-def geometric_factor(dc_survey, survey_type="dipole-dipole", space_type="half-space"):
+def geometric_factor(dc_survey, survey_type="dipole-dipole", space_type="half space"):
     """
         Calculate Geometric Factor. Assuming that data are normalized voltages
 
@@ -200,12 +231,12 @@ def geometric_factor(dc_survey, survey_type="dipole-dipole", space_type="half-sp
 
     """
     # Set factor for whole-space or half-space assumption
-    if space_type.lower() in ["whole-space", "wholespace"]:
+    if space_type.lower() in SPACE_TYPES["whole space"]:
         spaceFact = 4.0
-    elif space_type.lower() in ["half-space", "halfspace"]:
+    elif space_type.lower() in SPACE_TYPES["half space"]:
         spaceFact = 2.0
     else:
-        raise Exception("'space_type must be 'whole-space' | 'half-space'")
+        raise Exception("'space_type must be 'whole space' | 'half space'")
 
     elecSepDict = electrode_separations(
         dc_survey, survey_type=survey_type, electrode_pair=["AM", "BM", "AN", "BN"]
@@ -237,7 +268,7 @@ def geometric_factor(dc_survey, survey_type="dipole-dipole", space_type="half-sp
     return G / (spaceFact * np.pi)
 
 
-def apparent_resistivity(data, space_type="half-space", dobs=None, eps=1e-10, **kwargs):
+def apparent_resistivity(data, space_type="half space", dobs=None, eps=1e-10, **kwargs):
     """
     Calculate apparent resistivity. Assuming that data are normalized
     voltages - Vmn/I (Potential difference [V] divided by injection
@@ -276,24 +307,30 @@ def apparent_resistivity(data, space_type="half-space", dobs=None, eps=1e-10, **
 
     # Calculate apparent resistivity
     # absolute value is required because of the regularizer
-    rhoApp = np.abs(data.dobs * (1.0 / (G + eps)))
+    rhoApp = np.abs(dobs * (1.0 / (G + eps)))
 
     return rhoApp
 
 
-def plot_pseudoSection(
+def plot_pseudosection(
     data,
     ax=None,
     survey_type="dipole-dipole",
-    data_type="appConductivity",
-    space_type="half-space",
+    data_type="apparent conductivity",
+    space_type="half space",
+    plot_type="pcolor",
     clim=None,
     scale="linear",
     sameratio=True,
-    pcolorOpts={},
-    data_location=False,
+    pcolor_opts={},
+    contour_opts={},
+    cbar_opts={},
+    data_locations=False,
     dobs=None,
     dim=2,
+    pcolorOpts=None,
+    data_location=None,
+    y_values="n-spacing",
 ):
     """
         Read list of 2D tx-rx location and plot a pseudo-section of apparent
@@ -310,12 +347,35 @@ def plot_pseudoSection(
             'volt' (potential)
         :param str space_type: Either 'half-space' (default) or 'whole-space'
         :param str scale: Either 'linear' (default) or 'log'
+        :param y_values: Either "n-spacing"
 
         Output:
         :return  matplotlib.pyplot.figure plot overlayed on image
     """
     import pylab as plt
     from scipy.interpolate import griddata
+
+    if pcolorOpts is not None:
+        warnings.warn(
+            "The pcolorOpts keyword has been deprecated. Please use "
+            "pcolor_opts instead. This will be removed in version"
+            " 0.15.0 of SimPEG",
+            DeprecationWarning,
+        )
+
+    if data_location is not None:
+        warnings.warn(
+            "The data_location keyword has been deprecated. Please use "
+            "data_locations instead. This will be removed in version"
+            " 0.15.0 of SimPEG",
+            DeprecationWarning,
+        )
+
+    if plot_type.lower() not in ["pcolor", "contourf"]:
+        raise ValueError(
+            "plot_type must be 'pcolor' or 'contourf'. The input value of "
+            f"{plot_type} is not recognized"
+        )
 
     # Set depth to 0 for now
     z0 = 0.0
@@ -347,13 +407,17 @@ def plot_pseudoSection(
     else:
         midx = midx[:, 0]
 
-    if data_type in ["volt", "appChargeability", "misfitMap"]:
+    if data_type.lower() in (
+        DATA_TYPES["potential"]
+        + DATA_TYPES["apparent chargeability"]
+        + ["misfit", "misfitmap"]
+    ):
         if scale == "linear":
             rho = dobs
         elif scale == "log":
             rho = np.log10(abs(dobs))
 
-    elif data_type == "appConductivity":
+    elif data_type.lower() in DATA_TYPES["apparent conductivity"]:
         rhoApp = apparent_resistivity(
             data, dobs=dobs, survey_type=survey_type, space_type=space_type
         )
@@ -362,7 +426,7 @@ def plot_pseudoSection(
         elif scale == "log":
             rho = np.log10(1.0 / rhoApp)
 
-    elif data_type == "appResistivity":
+    elif data_type.lower() in DATA_TYPES["apparent resistivity"]:
         rhoApp = apparent_resistivity(
             data, dobs=dobs, survey_type=survey_type, space_type=space_type
         )
@@ -374,8 +438,8 @@ def plot_pseudoSection(
     else:
         print()
         raise Exception(
-            """data_type must be 'volt' | 'appResistivity' |
-                'appConductivity' | 'appChargeability' | misfitMap"""
+            """data_type must be 'potential' | 'apparent resistivity' |
+                'apparent conductivity' | 'apparent chargeability' | misfit"""
             " not {}".format(data_type)
         )
 
@@ -392,43 +456,59 @@ def plot_pseudoSection(
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=(15, 3))
 
-    grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
-    ph = ax.pcolormesh(
-        grid_x[:, 0],
-        grid_z[0, :],
-        grid_rho.T,
-        clim=(vmin, vmax),
-        vmin=vmin,
-        vmax=vmax,
-        **pcolorOpts
-    )
+    ph = grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
+    if plot_type.lower() == "pcolor":
+        ph = ax.pcolormesh(
+            grid_x[:, 0],
+            grid_z[0, :],
+            grid_rho.T,
+            clim=(vmin, vmax),
+            vmin=vmin,
+            vmax=vmax,
+            **pcolor_opts,
+        )
+    elif plot_type.lower() == "contourf":
+        ph = ax.contourf(
+            grid_x[:, 0], grid_z[0, :], grid_rho.T, vmin=vmin, vmax=vmax, **contour_opts
+        )
 
     if scale == "log":
         cbar = plt.colorbar(
-            ph, format="$10^{%.2f}$", fraction=0.04, orientation="horizontal"
+            ph,
+            format="$10^{%.2f}$",
+            fraction=0.06,
+            orientation="horizontal",
+            ax=ax,
+            **cbar_opts,
         )
     elif scale == "linear":
-        cbar = plt.colorbar(ph, format="%.2f", fraction=0.04, orientation="horizontal")
+        cbar = plt.colorbar(
+            ph,
+            format="%.2f",
+            fraction=0.06,
+            orientation="horizontal",
+            ax=ax,
+            **cbar_opts,
+        )
 
-    if data_type == "appConductivity":
-        cbar.set_label("Apparent Conductivity (S/m)", size=12)
+    if data_type.lower() in DATA_TYPES["apparent conductivity"]:
+        cbar.set_label("Apparent Conductivity (S/m)")
 
-    elif data_type == "appResistivity":
-        cbar.set_label("Apparent Resistivity ($\\Omega$m)", size=12)
+    elif data_type.lower() in DATA_TYPES["apparent resistivity"]:
+        cbar.set_label("Apparent Resistivity ($\\Omega$m)")
 
-    elif data_type == "volt":
-        cbar.set_label("Voltage (V)", size=12)
+    elif data_type.lower() in DATA_TYPES["potential"]:
+        cbar.set_label("Voltage (V)")
 
-    elif data_type == "appChargeability":
-        cbar.set_label("Apparent Chargeability (V/V)", size=12)
+    elif data_type.lower() in DATA_TYPES["apparent chargeability"]:
+        cbar.set_label("Apparent Chargeability (V/V)")
 
-    elif data_type == "misfitMap":
-        cbar.set_label(None, size=12)
+    elif data_type.lower() in ["misfit", "misfitmap"]:
+        cbar.set_label("Misfit (V)")
 
-    cmin, cmax = cbar.get_clim()
-    ticks = np.linspace(cmin, cmax, 3)
+    ticks = np.linspace(vmin, vmax, 3)
     cbar.set_ticks(ticks)
-    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.tick_params()
 
     # Plot apparent resistivity
     if data_location:
@@ -437,10 +517,19 @@ def plot_pseudoSection(
     if sameratio:
         ax.set_aspect("equal", adjustable="box")
 
+    if y_values == "n-spacing":
+        ticks = ax.get_yticks() * 2  # pseudo-depth divides by 2
+        spacing = np.abs(midz).min()
+        ax.set_yticklabels(-ticks / spacing)
+        ax.set_ylabel("n-spacing")
+    elif y_values == "pseudo-depth":
+        ax.set_ylabel("pseudo-depth")
+
     return ax
 
 
-def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag="2.5D"):
+def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, d2flag="2.5D"):
+
     """
         Load in endpoints and survey specifications to generate Tx, Rx location
         stations.
@@ -1660,6 +1749,9 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         Drape location right below (cell center) the topography
     """
     if mesh.dim == 2:
+        # if shape is (*, 1) or (*, 2) just grab first column
+        if pts.ndim == 2 and pts.shape[1] in [1, 2]:
+            pts = pts[:, 0]
         if pts.ndim > 1:
             raise Exception("pts should be 1d array")
     elif mesh.dim == 3:
@@ -1772,12 +1864,11 @@ def gen_3d_survey_from_2d_lines(
         survey_2d = gen_DCIPsurvey(endl, survey_type, a, b, n_spacing, dim=3,)
 
         srcList.append(survey_2d.source_list)
-        survey_2d.getABMN_locations()
         survey_2d = IO_2d.from_ambn_locations_to_survey(
-            survey_2d.a_locations[:, [0, 2]],
-            survey_2d.b_locations[:, [0, 2]],
-            survey_2d.m_locations[:, [0, 2]],
-            survey_2d.n_locations[:, [0, 2]],
+            survey_2d.locations_a[:, [0, 2]],
+            survey_2d.locations_b[:, [0, 2]],
+            survey_2d.locations_m[:, [0, 2]],
+            survey_2d.locations_n[:, [0, 2]],
             survey_type,
             dimension=2,
         )
@@ -1786,17 +1877,16 @@ def gen_3d_survey_from_2d_lines(
     line_inds = np.hstack(line_inds)
     srcList = sum(srcList, [])
     survey_3d = dc.Survey(srcList)
-    survey_3d.getABMN_locations()
     IO_3d = dc.IO()
 
-    survey_3d.a_locations[:, 1] += src_offset_y
-    survey_3d.b_locations[:, 1] += src_offset_y
+    survey_3d.locations_a[:, 1] += src_offset_y
+    survey_3d.locations_b[:, 1] += src_offset_y
 
     survey_3d = IO_3d.from_ambn_locations_to_survey(
-        survey_3d.a_locations,
-        survey_3d.b_locations,
-        survey_3d.m_locations,
-        survey_3d.n_locations,
+        survey_3d.locations_a,
+        survey_3d.locations_b,
+        survey_3d.locations_m,
+        survey_3d.locations_n,
         survey_type,
         dimension=3,
         line_inds=line_inds,
@@ -1812,7 +1902,7 @@ def plot_layer(
     showlayers=False,
     xlim=None,
     depth_axis=True,
-    **kwargs
+    **kwargs,
 ):
     """
         Plot Conductivity model for the layered earth model
@@ -1871,3 +1961,57 @@ def plot_layer(
                     lw=0.5,
                 )
         return ax.plot(resistivity, z, "k-", **kwargs)
+
+
+############
+# Deprecated
+############
+
+
+def plot_pseudoSection(
+    data,
+    ax=None,
+    survey_type="dipole-dipole",
+    data_type="appConductivity",
+    space_type="half-space",
+    clim=None,
+    scale="linear",
+    sameratio=True,
+    pcolorOpts={},
+    data_location=False,
+    dobs=None,
+    dim=2,
+):
+
+    warnings.warn(
+        "The plot_pseudoSection method has been deprecated. Please use "
+        "plot_pseudosection instead. This will be removed in version"
+        " 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )
+
+    return plot_pseudosection(
+        data=data,
+        ax=ax,
+        survey_type=survey_type,
+        data_type=data_type,
+        space_type=space_type,
+        clim=clim,
+        scale=scale,
+        sameratio=sameratio,
+        pcolorOpts=pcolorOpts,
+        data_locations=data_location,
+        dobs=dobs,
+        dim=dim,
+    )
+
+
+def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag="2.5D"):
+    warnings.warn(
+        "The gen_DCIPsurvey method has been deprecated. Please use "
+        "generate_dcip_survey instead. This will be removed in version"
+        " 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )
+
+    return generate_dcip_survey(endl, survey_type, a, b, n, dim, d2flag)

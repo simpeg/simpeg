@@ -185,9 +185,8 @@ mesh = refine_tree_xyz(
 )
 
 # Mesh refinement near transmitters and receivers
-survey.getABMN_locations()
 electrode_locations = np.r_[
-    survey.a_locations, survey.b_locations, survey.m_locations, survey.n_locations
+    survey.locations_a, survey.locations_b, survey.locations_m, survey.locations_n
 ]
 
 unique_locations = np.unique(electrode_locations, axis=0)
@@ -218,7 +217,7 @@ mesh.finalize()
 ind_active = surface2ind_topo(mesh, topo_xyz[:, [0, 2]])
 
 # Shift electrodes to the surface of discretized topography
-survey.drapeTopo(mesh, ind_active, option="top")
+survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 
 ########################################################
 # Starting/Reference Model and Mapping on OcTree Mesh

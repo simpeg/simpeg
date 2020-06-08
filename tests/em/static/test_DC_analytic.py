@@ -50,9 +50,8 @@ class DCProblemAnalyticTests(unittest.TestCase):
 
     def test_Simulation3DNodal(self, tolerance=0.2):
         simulation = dc.simulation.Simulation3DNodal(
-            self.mesh, survey=self.survey, sigma=self.sigma
+            self.mesh, survey=self.survey, sigma=self.sigma, solver=Solver
         )
-        simulation.Solver = Solver
         data = simulation.dpred()
         err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
         if err < 0.2:
@@ -67,10 +66,14 @@ class DCProblemAnalyticTests(unittest.TestCase):
 
     def test_Simulation3DCellCentered_Mixed(self, tolerance=0.2):
         simulation = dc.Simulation3DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Mixed"
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            bc_type="Mixed",
+            solver=Solver,
         )
-        simulation.Solver = Solver
         data = simulation.dpred()
+
         err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
         if err < tolerance:
             print(err)
@@ -84,9 +87,12 @@ class DCProblemAnalyticTests(unittest.TestCase):
 
     def test_Simulation3DCellCentered_Neumann(self, tolerance=0.2):
         simulation = dc.simulation.Simulation3DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Neumann"
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            bc_type="Neumann",
+            solver=Solver,
         )
-        simulation.Solver = Solver
         data = simulation.dpred()
         err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
         if err < tolerance:
@@ -138,10 +144,13 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
 
     def test_Simulation3DCellCentered_Dirichlet(self, tolerance=0.2):
         simulation = dc.simulation.Simulation3DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Dirichlet"
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            bc_type="Dirichlet",
+            solver=Solver,
         )
 
-        simulation.Solver = Solver
         data = simulation.dpred()
         err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
         if err < tolerance:
@@ -186,9 +195,12 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
 
     def test_Simulation3DCellCentered_Mixed(self, tolerance=0.2):
         simulation = dc.simulation.Simulation3DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Mixed"
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            bc_type="Mixed",
+            solver=Solver,
         )
-        simulation.Solver = Solver
         data = simulation.dpred()
         err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
         if err < tolerance:

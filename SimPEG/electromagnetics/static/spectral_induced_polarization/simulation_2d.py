@@ -78,66 +78,41 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
         if self._Jmatrix is not None:
             return self._Jmatrix
         else:
+            if self._mini_survey is not None:
+                survey = self._mini_survey
+            else:
+                survey = self.survey
+            kys = self._quad_points
+            weights = self._quad_weights
 
             if f is None:
                 f = self.fields(m)
 
             Jt = np.zeros(
-                (self.actMap.nP, int(self.survey.nD / self.survey.times.size)),
+                (self.actMap.nP, int(self.survey.nD / self.survey.unique_times.size)),
                 order="F",
             )
-            istrt = int(0)
-            iend = int(0)
-
-            # Assume y=0.
-            dky = np.diff(self.kys)
-            dky = np.r_[dky[0], dky]
-            y = 0.0
-            for src in self.survey.source_list:
-                for rx in src.receiver_list:
-                    iend = istrt + rx.nD
-                    Jtv_temp1 = np.zeros((self.actinds.sum(), rx.nD), dtype=float)
-                    Jtv_temp0 = np.zeros((self.actinds.sum(), rx.nD), dtype=float)
-                    # TODO: this loop is pretty slow .. (Parellize)
-                    for iky in range(self.nky):
-                        u_src = f[src, self._solutionType, iky]
-                        ky = self.kys[iky]
-
+            for iky, ky in enumerate(kys):
+                u_ky = f[:, self._solutionType, iky]
+                istrt = 0
+                for i_src, src in enumerate(survey.source_list):
+                    u_src = u_ky[:, i_src]
+                    for rx in src.receiver_list:
                         # wrt f, need possibility wrt m
                         P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
 
                         ATinvdf_duT = self.Ainv[iky] * (P.T)
 
                         dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT, adjoint=True)
-                        Jtv_temp1 = 1.0 / np.pi * (-dA_dmT)
-                        # Trapezoidal intergration
-                        if iky == 0:
-                            # First assigment
-                            if rx.nD == 1:
-                                Jt[:, istrt] += Jtv_temp1 * dky[iky] * np.cos(ky * y)
-                            else:
-                                Jt[:, istrt:iend] += (
-                                    Jtv_temp1 * dky[iky] * np.cos(ky * y)
-                                )
+                        Jtv = -weights[iky] * dA_dmT  # RHS=0
+                        iend = istrt + rx.nD
+                        if rx.nD == 1:
+                            Jt[:, istrt] += Jtv
                         else:
-                            if rx.nD == 1:
-                                Jt[:, istrt] += (
-                                    Jtv_temp1 * dky[iky] / 2.0 * np.cos(ky * y)
-                                )
-                                Jt[:, istrt] += (
-                                    Jtv_temp0 * dky[iky] / 2.0 * np.cos(ky * y)
-                                )
-                            else:
-                                Jt[:, istrt:iend] += (
-                                    Jtv_temp1 * dky[iky] / 2.0 * np.cos(ky * y)
-                                )
-                                Jt[:, istrt:iend] += (
-                                    Jtv_temp0 * dky[iky] / 2.0 * np.cos(ky * y)
-                                )
-                        Jtv_temp0 = Jtv_temp1.copy()
-                    istrt += rx.nD
+                            Jt[:, istrt:iend] += Jtv
+                        istrt += rx.nD
 
-            self._Jmatrix = Jt.T
+            self._Jmatrix = self._mini_survey_data(Jt.T)
             # delete fields after computing sensitivity
             del f
             if self._f is not None:
@@ -158,11 +133,13 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
 
         J = self.getJ(m, f=f)
 
-        ntime = len(self.survey.times)
+        ntime = len(self.survey.unique_times)
         Jv = []
         self.model = m
         for tind in range(ntime):
-            Jv.append(J.dot(self.actMap.P.T * self.get_peta(self.survey.times[tind])))
+            Jv.append(
+                J.dot(self.actMap.P.T * self.get_peta(self.survey.unique_times[tind]))
+            )
         return self.sign * np.hstack(Jv)
 
     def dpred(self, m, f=None):
@@ -183,12 +160,12 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
 
         self.model = m
         J = self.getJ(m, f=f)
-        ntime = len(self.survey.times)
+        ntime = len(self.survey.unique_times)
         Jv = []
 
         for tind in range(ntime):
 
-            t = self.survey.times[tind]
+            t = self.survey.unique_times[tind]
             v0 = self.PetaEtaDeriv(t, v)
             v1 = self.PetaTauiDeriv(t, v)
             v2 = self.PetaCDeriv(t, v)
@@ -202,12 +179,12 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
         self.model = m
         J = self.getJ(m, f=f)
 
-        ntime = len(self.survey.times)
+        ntime = len(self.survey.unique_times)
         Jtvec = np.zeros(m.size)
         v = v.reshape((int(self.survey.nD / ntime), ntime), order="F")
 
         for tind in range(ntime):
-            t = self.survey.times[tind]
+            t = self.survey.unique_times[tind]
             Jtv = self.actMap.P * J.T.dot(v[:, tind])
             Jtvec += (
                 self.PetaEtaDeriv(t, Jtv, adjoint=True)
@@ -222,11 +199,11 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
         Compute JtJ using adjoint problem. Still we never form
         JtJ
         """
-        ntime = len(self.survey.times)
+        ntime = len(self.survey.unique_times)
         JtJdiag = np.zeros_like(m)
         J = self.getJ(m, f=None)
         for tind in range(ntime):
-            t = self.survey.times[tind]
+            t = self.survey.unique_times[tind]
             Jtv = self.actMap.P * J.T
             JtJdiag += (
                 (self.PetaEtaDeriv(t, Jtv, adjoint=True) ** 2).sum(axis=1)

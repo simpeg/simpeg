@@ -4,6 +4,8 @@ from . import receivers
 from . import sources
 from .survey import Survey
 
+from ..utils import *
+
 
 def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
     """
@@ -58,11 +60,10 @@ def _mini_pole_pole(survey, verbose=False):
     combinations for AM, AN, BM, BN pairs (also taking into account reciprocity),
     for use in a DCSimulation only.
     """
-    survey.getABMN_locations()
-    A = survey.a_locations
-    B = survey.b_locations
-    M = survey.m_locations
-    N = survey.n_locations
+    A = survey.locations_a
+    B = survey.locations_b
+    M = survey.locations_m
+    N = survey.locations_n
 
     elecs, inverse = np.unique(np.r_[A, B, M, N], axis=0, return_inverse=True)
 
