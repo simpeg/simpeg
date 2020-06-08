@@ -569,11 +569,12 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
     def initialize(self):
         self.outDict = {}
-        print(
-            "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(
-                self.fileName
+        if self.saveOnDisk:
+            print(
+                "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(
+                    self.fileName
+                )
             )
-        )
 
     def endIter(self):
 
