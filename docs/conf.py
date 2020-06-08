@@ -15,6 +15,7 @@ import sys
 import os
 from sphinx_gallery.sorting import FileNameSortKey
 import glob
+import SimPEG
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -34,7 +35,7 @@ sys.path.append(os.path.abspath(".{}_ext".format(os.path.sep)))
 extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.mathjax",
-    "sphinx.ext.viewcode",
+    "sphinx.ext.linkcode",
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     # 'sphinxcontrib.napoleon',
@@ -58,8 +59,8 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"SimPEG"
-copyright = u"2013 - 2020, SimPEG Team, http://simpeg.xyz"
+project = "SimPEG"
+copyright = "2013 - 2020, SimPEG Team, http://simpeg.xyz"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -114,6 +115,58 @@ pygments_style = "sphinx"
 edit_on_github_project = "simpeg/simpeg"
 edit_on_github_branch = "master/docs"
 check_meta = False
+
+# source code links
+import inspect
+from os.path import relpath, dirname
+
+
+def linkcode_resolve(domain, info):
+    if domain != "py":
+        return None
+
+    modname = info["module"]
+    fullname = info["fullname"]
+
+    submod = sys.modules.get(modname)
+    if submod is None:
+        return None
+
+    obj = submod
+    for part in fullname.split("."):
+        try:
+            obj = getattr(obj, part)
+        except Exception:
+            return None
+
+    try:
+        unwrap = inspect.unwrap
+    except AttributeError:
+        pass
+    else:
+        obj = unwrap(obj)
+
+    try:
+        fn = inspect.getsourcefile(obj)
+    except Exception:
+        fn = None
+    if not fn:
+        return None
+
+    try:
+        source, lineno = inspect.getsourcelines(obj)
+    except Exception:
+        lineno = None
+
+    if lineno:
+        linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
+    else:
+        linespec = ""
+
+    fn = relpath(fn, start=dirname(SimPEG.__file__))
+
+    return f"https://github.com/simpeg/simpeg/blob/master/SimPEG/{fn}{linespec}"
+
 
 # -- Options for HTML output ---------------------------------------------------
 
@@ -216,7 +269,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ("index", "SimPEG.tex", u"SimPEG Documentation", u"SimPEG Team", "manual"),
+    ("index", "SimPEG.tex", "SimPEG Documentation", "SimPEG Team", "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -244,7 +297,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "simpeg", u"SimPEG Documentation", [u"SimPEG Team"], 1)]
+man_pages = [("index", "simpeg", "SimPEG Documentation", ["SimPEG Team"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -269,8 +322,8 @@ texinfo_documents = [
     (
         "index",
         "SimPEG",
-        u"SimPEG Documentation",
-        u"SimPEG Team",
+        "SimPEG Documentation",
+        "SimPEG Team",
         "SimPEG",
         "Simulation and parameter estimation in geophyiscs.",
         "Miscellaneous",
