@@ -14,11 +14,6 @@ from ... import utils
 from ...simulation import BaseTimeSimulation
 from ... import optimization
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
-
 from .survey import Survey
 from .empirical import BaseHydraulicConductivity
 from .empirical import BaseWaterRetention
@@ -37,8 +32,6 @@ class SimulationNDCellCentered(BaseTimeSimulation):
     initial_conditions = properties.Array("initial conditions")
 
     debug = properties.Bool("Show all messages", default=False)
-
-    solver = Solver
 
     method = properties.StringChoice(
         "Formulation used, See notes in Celia et al., 1990",
