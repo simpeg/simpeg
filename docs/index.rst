@@ -1,11 +1,7 @@
 .. include:: ../README.rst
 
-
-About SimPEG
-************
-
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Getting Started
 
    content/basic/big_picture
@@ -15,23 +11,18 @@ About SimPEG
    content/basic/practices
    content/examples/index
 
-Tutorials
-*********
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials
+   :name: simpeg_tuts
+   :glob:
+
+   content/tutorials/*/index
+
 
 .. toctree::
    :maxdepth: 2
-   :caption: Tutorials
-
-   content/tutorials/mesh_generation/index
-   content/tutorials/models_mapping/index
-   
-
-Packages
-********
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Documentation
+   :caption: Packages
 
    content/em/index
    content/dc/index
@@ -40,11 +31,8 @@ Packages
    content/vrm/index
    content/flow/index
 
-API
-***
-
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    :caption: API
 
    content/api_core/api_FiniteVolume
@@ -54,8 +42,14 @@ API
    content/api_core/api_Utilities
 
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Meta Information
+
+   content/release/index
+
 Project Index & Search
-**********************
+======================
 
 * :ref:`genindex`
 * :ref:`modindex`

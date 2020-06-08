@@ -1,17 +1,23 @@
 import unittest
-from SimPEG import Mesh, Utils, PF, Maps, Problem, Survey, mkvc
+import discretize
+from SimPEG import utils, maps
+from SimPEG.utils.model_builder import getIndicesSphere
+from SimPEG.potential_fields import magnetics as mag
+
 import numpy as np
-import matplotlib.pyplot as plt
+
+nx = 5
+ny = 5
 
 
 class MagFwdProblemTests(unittest.TestCase):
-
     def setUp(self):
 
         # Define inducing field and sphere parameters
-        H0 = (50000., 60., 270.)
-        self.b0 = PF.MagAnalytics.IDTtoxyz(-H0[1], H0[2], H0[0])
-        self.rad = 2.
+        H0 = (50000.0, 60.0, 250.0)
+        # H0 = (50000., 90., 0.)
+        self.b0 = mag.analytics.IDTtoxyz(-H0[1], H0[2], H0[0])
+        self.rad = 2.0
         self.chi = 0.01
 
         # Define a mesh
@@ -19,75 +25,74 @@ class MagFwdProblemTests(unittest.TestCase):
         hxind = [(cs, 21)]
         hyind = [(cs, 21)]
         hzind = [(cs, 21)]
-        mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
+        mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
 
         # Get cells inside the sphere
-        sph_ind = PF.MagAnalytics.spheremodel(mesh, 0., 0., 0., self.rad)
+        sph_ind = getIndicesSphere([0.0, 0.0, 0.0], self.rad, mesh.gridCC)
 
         # Adjust susceptibility for volume difference
-        Vratio = (4./3.*np.pi*self.rad**3.) / (np.sum(sph_ind)*cs**3.)
-        model = np.ones(mesh.nC)*self.chi*Vratio
+        Vratio = (4.0 / 3.0 * np.pi * self.rad ** 3.0) / (np.sum(sph_ind) * cs ** 3.0)
+        model = np.ones(mesh.nC) * self.chi * Vratio
         self.model = model[sph_ind]
 
         # Creat reduced identity map for Linear Pproblem
-        idenMap = Maps.IdentityMap(nP=int(sum(sph_ind)))
+        idenMap = maps.IdentityMap(nP=int(sum(sph_ind)))
 
         # Create plane of observations
-        xr = np.linspace(-20, 20, 21)
-        yr = np.linspace(-20, 20, 21)
+        xr = np.linspace(-20, 20, nx)
+        yr = np.linspace(-20, 20, ny)
+        self.xr = xr
+        self.yr = yr
         X, Y = np.meshgrid(xr, yr)
+        components = ["bx", "by", "bz", "tmi"]
 
         # Move obs plane 2 radius away from sphere
-        Z = np.ones((xr.size, yr.size))*2.*self.rad
-        self.locXyz = np.c_[Utils.mkvc(X), Utils.mkvc(Y), Utils.mkvc(Z)]
-        rxLoc = PF.BaseMag.RxObs(self.locXyz)
-        srcField = PF.BaseMag.SrcField([rxLoc], param=H0)
-        self.survey = PF.BaseMag.LinearSurvey(srcField)
+        Z = np.ones((xr.size, yr.size)) * 2.0 * self.rad
+        self.locXyz = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
+        rxLoc = mag.Point(self.locXyz, components=components)
+        srcField = mag.SourceField([rxLoc], parameters=H0)
+        self.survey = mag.Survey(srcField)
 
-        self.prob_xyz = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
-                                                      actInd=sph_ind,
-                                                      forwardOnly=True,
-                                                      rx_type='xyz')
-
-        self.prob_tmi = PF.Magnetics.MagneticIntegral(mesh, chiMap=idenMap,
-                                                      actInd=sph_ind,
-                                                      forwardOnly=True,
-                                                      rx_type='tmi')
+        self.sim = mag.Simulation3DIntegral(
+            mesh,
+            survey=self.survey,
+            chiMap=idenMap,
+            actInd=sph_ind,
+            store_sensitivities="forward_only",
+        )
 
     def test_ana_forward(self):
 
         # Compute 3-component mag data
-        self.survey.pair(self.prob_xyz)
-        d = self.prob_xyz.fields(self.model)
-
-        ndata = self.locXyz.shape[0]
-        dbx = d[0:ndata]
-        dby = d[ndata:2*ndata]
-        dbz = d[2*ndata:]
-
-        # Compute tmi mag data
-        self.survey.unpair()
-        self.survey.pair(self.prob_tmi)
-        dtmi = self.prob_tmi.fields(self.model)
+        data = self.sim.dpred(self.model)
+        d_x = data[0::4]
+        d_y = data[1::4]
+        d_z = data[2::4]
+        d_t = data[3::4]
 
         # Compute analytical response from a magnetized sphere
-        bxa, bya, bza = PF.MagAnalytics.MagSphereFreeSpace(self.locXyz[:, 0],
-                                                           self.locXyz[:, 1],
-                                                           self.locXyz[:, 2],
-                                                           self.rad, 0, 0, 0,
-                                                           self.chi, self.b0)
+        bxa, bya, bza, btmi = mag.analytics.MagSphereFreeSpace(
+            self.locXyz[:, 0],
+            self.locXyz[:, 1],
+            self.locXyz[:, 2],
+            self.rad,
+            0,
+            0,
+            0,
+            self.chi,
+            self.b0,
+        )
 
-        # Projection matrix
-        Ptmi = mkvc(self.b0)/np.sqrt(np.sum(self.b0**2.))
+        err_x = np.linalg.norm(d_x - bxa) / np.linalg.norm(bxa)
+        err_y = np.linalg.norm(d_y - bya) / np.linalg.norm(bya)
+        err_z = np.linalg.norm(d_z - bza) / np.linalg.norm(bza)
+        err_t = np.linalg.norm(d_t - btmi) / np.linalg.norm(btmi)
 
-        btmi = mkvc(Ptmi.dot(np.vstack((bxa, bya, bza))))
-
-        err_xyz = (np.linalg.norm(d-np.r_[bxa, bya, bza]) /
-                   np.linalg.norm(np.r_[bxa, bya, bza]))
-
-        err_tmi = np.linalg.norm(dtmi-btmi)/np.linalg.norm(btmi)
-        self.assertTrue(err_xyz < 0.005 and err_tmi < 0.005)
+        self.assertLess(err_x, 0.005)
+        self.assertLess(err_y, 0.005)
+        self.assertLess(err_z, 0.005)
+        self.assertLess(err_t, 0.005)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

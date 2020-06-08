@@ -8,10 +8,10 @@ API
 Below describes the classes, methods and properties relevant to forward modeling and inverting VRM responses in the time domain.
 
 
-VRM Problem
-===========
+VRM Simulation
+==============
 
-.. automodule:: SimPEG.VRM.ProblemVRM
+.. automodule:: SimPEG.electromagnetics.viscous_remanent_magnetization.simulation
     :show-inheritance:
     :members:
     :undoc-members:
@@ -21,7 +21,7 @@ VRM Problem
 Waveform
 ========
 
-.. automodule:: SimPEG.VRM.WaveformVRM
+.. automodule:: SimPEG.electromagnetics.viscous_remanent_magnetization.waveforms
     :show-inheritance:
     :members:
     :undoc-members:
@@ -30,16 +30,16 @@ Waveform
 Sources
 =======
 
-.. .. automodule:: SimPEG.VRM.SrcVRM
-..     :show-inheritance:
-..     :members:
-..     :undoc-members:
-..     :inherited-members:
+.. automodule:: SimPEG.electromagnetics.viscous_remanent_magnetization.sources
+    :show-inheritance:
+    :members:
+    :undoc-members:
+    :inherited-members:
 
 Receivers
 =========
 
-.. automodule:: SimPEG.VRM.RxVRM
+.. automodule:: SimPEG.electromagnetics.viscous_remanent_magnetization.receivers
     :show-inheritance:
     :members:
     :undoc-members:
@@ -48,10 +48,8 @@ Receivers
 Survey
 ======
 
-.. automodule:: SimPEG.VRM.SurveyVRM
+.. automodule:: SimPEG.electromagnetics.viscous_remanent_magnetization.survey
     :show-inheritance:
     :members:
     :undoc-members:
     :inherited-members:
-
-

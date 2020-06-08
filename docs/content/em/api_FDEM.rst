@@ -99,10 +99,10 @@ For the frequency range typical of most geophysical surveys, the contribution of
 
 Geophysical methods where the quasi-static approximation, often called diffusive approximation, does not hold are high-frequency methods such as ground-penetrating radar or dielectric well-log measurements.
 
-Implementation in SimPEG.EM
-===========================
+Implementation in SimPEG.electromagnetics
+=========================================
 
-We consider two formulations in SimPEG.EM, both first-order and both in terms of one field and one flux. We allow for the definition of magnetic and electric sources (see for example: Ward and Hohmann, starting on page 144). The E-B formulation is in terms of the electric field and the magnetic flux:
+We consider two formulations in SimPEG.electromagnetics, both first-order and both in terms of one field and one flux. We allow for the definition of magnetic and electric sources (see for example: Ward and Hohmann, starting on page 144). The E-B formulation is in terms of the electric field and the magnetic flux:
 
 .. math ::
     \nabla \times \vec{E} + i \omega \vec{B} = \vec{S}_m \\
@@ -152,19 +152,13 @@ H-J Formulation
     \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
 
-.. Forward Problem
-.. ===============
-
-.. Inverse Problem
-.. ===============
-
 API
 ===
 
-FDEM Problem
-------------
+FDEM Simulation
+---------------
 
-.. automodule:: SimPEG.EM.FDEM.ProblemFDEM
+.. automodule:: SimPEG.electromagnetics.frequency_domain.simulation
     :show-inheritance:
     :members:
     :undoc-members:
@@ -173,17 +167,17 @@ FDEM Problem
 FDEM Survey
 -----------
 
-.. automodule:: SimPEG.EM.FDEM.SurveyFDEM
+.. automodule:: SimPEG.electromagnetics.frequency_domain.survey
     :show-inheritance:
     :members:
     :undoc-members:
 
-.. automodule:: SimPEG.EM.FDEM.SrcFDEM
+.. automodule:: SimPEG.electromagnetics.frequency_domain.sources
     :show-inheritance:
     :members:
     :undoc-members:
 
-.. automodule:: SimPEG.EM.FDEM.RxFDEM
+.. automodule:: SimPEG.electromagnetics.frequency_domain.receivers
     :show-inheritance:
     :members:
     :undoc-members:
@@ -191,8 +185,7 @@ FDEM Survey
 FDEM Fields
 -----------
 
-.. automodule:: SimPEG.EM.FDEM.FieldsFDEM
+.. automodule:: SimPEG.electromagnetics.frequency_domain.fields
     :show-inheritance:
     :members:
     :undoc-members:
-

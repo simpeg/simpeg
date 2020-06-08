@@ -363,10 +363,10 @@ where:
 
 
 
-TDEM Problem
-============
+TDEM Simulation
+===============
 
-.. automodule:: SimPEG.EM.TDEM.ProblemTDEM
+.. automodule:: SimPEG.electromagnetics.time_domain.simulation
     :show-inheritance:
     :members:
     :undoc-members:
@@ -375,7 +375,7 @@ TDEM Problem
 Fields
 ======
 
-.. automodule:: SimPEG.EM.TDEM.FieldsTDEM
+.. automodule:: SimPEG.electromagnetics.time_domain.fields
     :show-inheritance:
     :members:
     :undoc-members:
@@ -385,28 +385,28 @@ Fields
 Sources
 =======
 
-.. automodule:: SimPEG.EM.TDEM.SrcTDEM
+.. automodule:: SimPEG.electromagnetics.time_domain.sources
     :show-inheritance:
     :members:
     :undoc-members:
     :inherited-members:
+
+
+Receivers
+=========
+
+.. automodule:: SimPEG.electromagnetics.time_domain.receivers
+    :show-inheritance:
+    :members:
+    :undoc-members:
+    :inherited-members:
+
 
 Survey
 ======
 
-.. automodule:: SimPEG.EM.TDEM.SurveyTDEM
+.. automodule:: SimPEG.electromagnetics.time_domain.survey
     :show-inheritance:
     :members:
     :undoc-members:
     :inherited-members:
-
-
-.. Base Classes
-.. ============
-
-.. .. automodule:: SimPEG.EM.TDEM.BaseTDEM
-..     :show-inheritance:
-..     :members:
-..     :undoc-members:
-..     :inherited-members:
-

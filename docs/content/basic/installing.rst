@@ -83,7 +83,8 @@ Success?
 ========
 
 If you have been successful at downloading and installing SimPEG, you should
-be able to download and run any of the `Examples <http://docs.simpeg.xyz/content/examples/index.html>`_.
+be able to download and run any of the :ref:`Examples <sphx_glr_content_examples>`
+or :ref:`Tutorials <simpeg_tuts>`.
 
 If not, you can reach out to other people developing and using SimPEG on the
 `google forum <https://groups.google.com/forum/#!forum/simpeg>`_ or on
@@ -109,7 +110,7 @@ Python for scientific computing
 Numpy and Matlab
 ----------------
 
-* `NumPy for Matlab Users <https://docs.scipy.org/doc/numpy-dev/user/numpy-for-matlab-users.html>`_
+* `NumPy for Matlab Users <https://numpy.org/doc/stable/user/numpy-for-matlab-users.html>`_
 * `Python vs Matlab <https://sites.google.com/site/pythonforscientists/python-vs-matlab>`_
 
 Lessons in Python

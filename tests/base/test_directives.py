@@ -3,127 +3,130 @@ import warnings
 import pytest
 import numpy as np
 
+import discretize
 from SimPEG import (
-    Mesh, Maps, Directives, Regularization, DataMisfit, Optimization,
-    Inversion, InvProblem
+    maps,
+    directives,
+    regularization,
+    data_misfit,
+    optimization,
+    inversion,
+    inverse_problem,
 )
-from SimPEG import PF
+from SimPEG.potential_fields import magnetics as mag
+import shutil
 
 
-class DirectivesValidation(unittest.TestCase):
-
+class directivesValidation(unittest.TestCase):
     def test_validation_pass(self):
-        betaest = Directives.BetaEstimate_ByEig()
+        betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = Directives.Update_IRLS(
-            f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
-        )
-        update_Jacobi = Directives.UpdatePreconditioner()
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
+        update_Jacobi = directives.UpdatePreconditioner()
         dList = [betaest, IRLS, update_Jacobi]
-        directiveList = Directives.DirectiveList(*dList)
+        directiveList = directives.DirectiveList(*dList)
 
         self.assertTrue(directiveList.validate())
 
     def test_validation_fail(self):
-        betaest = Directives.BetaEstimate_ByEig()
+        betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = Directives.Update_IRLS(
-            f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
-        )
-        update_Jacobi = Directives.UpdatePreconditioner()
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
+        update_Jacobi = directives.UpdatePreconditioner()
         dList = [betaest, update_Jacobi, IRLS]
-        directiveList = Directives.DirectiveList(*dList)
+        directiveList = directives.DirectiveList(*dList)
 
         with self.assertRaises(AssertionError):
             self.assertTrue(directiveList.validate())
 
     def test_validation_warning(self):
-        betaest = Directives.BetaEstimate_ByEig()
+        betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = Directives.Update_IRLS(
-            f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
-        )
-        update_Jacobi = Directives.UpdatePreconditioner()
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
+        update_Jacobi = directives.UpdatePreconditioner()
         dList = [betaest, IRLS]
-        directiveList = Directives.DirectiveList(*dList)
+        directiveList = directives.DirectiveList(*dList)
 
         with pytest.warns(UserWarning):
             self.assertTrue(directiveList.validate())
 
 
 class ValidationInInversion(unittest.TestCase):
-
     def setUp(self):
-        mesh = Mesh.TensorMesh([4, 4, 4])
+        mesh = discretize.TensorMesh([4, 4, 4])
 
         # Magnetic inducing field parameter (A,I,D)
         B = [50000, 90, 0]
 
         # Create a MAGsurvey
-        rx = PF.BaseMag.RxObs(
-            np.vstack([[0.25, 0.25, 0.25], [-0.25, -0.25, 0.25]])
-        )
-        srcField = PF.BaseMag.SrcField([rx], param=(B[0], B[1], B[2]))
-        survey = PF.BaseMag.LinearSurvey(srcField)
+        rx = mag.Point(np.vstack([[0.25, 0.25, 0.25], [-0.25, -0.25, 0.25]]))
+        srcField = mag.SourceField([rx], parameters=(B[0], B[1], B[2]))
+        survey = mag.Survey(srcField)
 
         # Create the forward model operator
-        prob = PF.Magnetics.MagneticIntegral(
-            mesh, chiMap=Maps.IdentityMap(mesh)
+        sim = mag.Simulation3DIntegral(
+            mesh, survey=survey, chiMap=maps.IdentityMap(mesh)
         )
-
-        # Pair the survey and problem
-        survey.pair(prob)
 
         # Compute forward model some data
         m = np.random.rand(mesh.nC)
-        survey.makeSyntheticData(m)
+        data = sim.make_synthetic_data(m, add_noise=True)
 
-        reg = Regularization.Sparse(mesh)
+        reg = regularization.Sparse(mesh)
         reg.mref = np.zeros(mesh.nC)
-
-        wr = np.sum(prob.G**2., axis=0)**0.5
-        reg.cell_weights = wr
         reg.norms = np.c_[0, 1, 1, 1]
         reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
         # Data misfit function
-        dmis = DataMisfit.l2_DataMisfit(survey)
-        dmis.W = 1./survey.std
+        dmis = data_misfit.L2DataMisfit(data)
+        dmis.W = 1.0 / data.relative_error
 
         # Add directives to the inversion
-        opt = Optimization.ProjectedGNCG(
-            maxIter=2, lower=-10., upper=10.,
-            maxIterCG=2
+        opt = optimization.ProjectedGNCG(
+            maxIter=2, lower=-10.0, upper=10.0, maxIterCG=2
         )
 
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
         self.mesh = mesh
         self.invProb = invProb
+        self.sim = sim
 
     def test_validation_in_inversion(self):
-        betaest = Directives.BetaEstimate_ByEig()
+        betaest = directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
-        IRLS = Directives.Update_IRLS(
-            f_min_change=1e-4, minGNiter=3, beta_tol=1e-2
-        )
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
 
-        update_Jacobi = Directives.UpdatePreconditioner()
-
+        update_Jacobi = directives.UpdatePreconditioner()
+        sensitivity_weights = directives.UpdateSensitivityWeights()
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
             # (IRLS needs to be before update_Jacobi)
-            inv = Inversion.BaseInversion(
+            inv = inversion.BaseInversion(
                 self.invProb, directiveList=[betaest, update_Jacobi, IRLS]
             )
 
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
-            # (IRLS needs to be before update_Jacobi)
-            inv = Inversion.BaseInversion(self.invProb)
-            inv.directiveList = [betaest, update_Jacobi, IRLS]
+            # (sensitivity_weights needs to be before betaest)
+            inv = inversion.BaseInversion(
+                self.invProb, directiveList=[betaest, sensitivity_weights]
+            )
+
+        with self.assertRaises(AssertionError):
+            # validation should happen and this will fail
+            # (sensitivity_weights needs to be before update_Jacobi)
+            inv = inversion.BaseInversion(self.invProb)
+            inv.directiveList = [update_Jacobi, sensitivity_weights]
+
+    def tearDown(self):
+        # Clean up the working directory
+        try:
+            shutil.rmtree(self.sim.sensitivity_path)
+        except FileNotFoundError:
+            pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

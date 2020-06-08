@@ -35,14 +35,35 @@ nosetests.xml
 .project
 .pydevproject
 
+# zarr files from sensitivity calcs
+*.zarr
+
 *.sublime-project
 *.sublime-workspace
 docs/_build/
 docs/warnings.txt
 .DS_Store
 docs/content/examples/*
-docs/content/tutorials/models_mapping*
+docs/content/tutorials/*
 docs/modules/*
-examples/00_published/bookpurnong_inversion/*
-examples/00_published/*.tar.gz
-examples/00_published/*.png
+
+# paths to where data are downloaded
+examples/20-published/bookpurnong_inversion/*
+examples/20-published/._bookpurnong_inversion
+examples/20-published/*.tar.gz
+examples/20-published/*.png
+tutorials/03-gravity/gravity/*
+tutorials/04-magnetics/magnetics/*
+tutorials/05-dcr/dcip1d/*
+tutorials/05-dcr/dcip2d/*
+tutorials/06-ip/dcip2d/*
+tutorials/12-seismic/seismic/*
+
+# jupyter
+*.ipynb
+
+# results and testing files
+*.xyz
+*.npy
+*.mod
+*.tar.gz
