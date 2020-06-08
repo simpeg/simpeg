@@ -190,7 +190,7 @@ class Fields3DNodal(FieldsDC):
         "phi": ["phiSolution", "N", "_phi"],
         "j": ["phiSolution", "E", "_j"],
         "e": ["phiSolution", "E", "_e"],
-        "charge_density": ["phiSolution", "N", "_charge_density"],
+        "charge_density": ["phiSolution", "CC", "_charge_density"],
         "charge": ["phiSolution", "N", "_charge"],
     }
     # primary - secondary
@@ -248,7 +248,9 @@ class Fields3DNodal(FieldsDC):
         )
 
     def _charge_density(self, phiSolution, source_list):
-        return self._charge(phiSolution, source_list) / self.mesh.vol
+        return (
+            self.mesh.aveN2CC * self._charge(phiSolution, source_list)
+        ) / self.mesh.vol[:, None]
 
 
 Fields3DCellCentred = Fields3DCellCentered
