@@ -875,17 +875,12 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         :param (n,3) array locations: points defining src path
         """
 
-        locations = properties.Array(
-            "locations of the source line segment vertices", shape=("*", 3)
-        )
-
-        def __init__(self, rxList, **kwargs):
-            super(LineCurrent, self).__init__(rxList, **kwargs)
+        location = properties.Array("location of the source", shape=("*", 3))
 
         def Mejs(self, simulation):
             if getattr(self, "_Mejs", None) is None:
                 mesh = simulation.mesh
-                locs = self.locations
+                locs = self.location
                 self._Mejs = segmented_line_current_source_term(mesh, locs)
             return self._Mejs
 

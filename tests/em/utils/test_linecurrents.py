@@ -1,8 +1,9 @@
 import numpy as np
 from SimPEG.electromagnetics.utils import (
     getStraightLineCurrentIntegral,
-    getSourceTermLineCurrentPolygon,
+    segmented_line_current_source_term,
 )
+import discretize
 import unittest
 from SimPEG.utils import download
 
@@ -46,7 +47,9 @@ class LineCurrentTests(unittest.TestCase):
 
         xorig = np.r_[0.0, 0.0, 0.0]
 
-        out = getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz)
+        mesh = discretize.TensorMesh((hx, hy, hz), x0=xorig)
+        locs = np.c_[px, py, pz]
+        out = segmented_line_current_source_term(mesh, locs)
         fname = self.basePath
         out_true = np.load(fname)
         err = np.linalg.norm(out - out_true)

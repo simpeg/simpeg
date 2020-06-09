@@ -86,14 +86,15 @@ def segmented_line_current_source_term(mesh, locs):
     locs : numpy.ndarray
         The array of locations of consecutive points along the polygonal path.
         in a shape of (n_points, 3)
-    px, py, pz : 1D numpy.array
-        The 1D arrays contain the x, y, and z, locations of consecutive points
-        along the polygonal path
 
     Returns
     -------
     numpy.array of length (mesh.nE)
         Contains the source term for all x, y, and z edges of the OcTreeMesh.
+
+    Notes
+    -----
+    You can create a closed loop by setting the first and end point to be the same.
     """
     if isinstance(mesh, discretize.TensorMesh):
         return _poly_line_source_tens(mesh, locs)
@@ -320,3 +321,14 @@ def _poly_line_source_tree(mesh, locs):
     s = R.T.dot(s)
 
     return s
+
+
+def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
+    warnings.warn(
+        "getSourceTermLineCurrentPolygon has been deprecated and will be"
+        "removed in SimPEG 0.15.0. Please use segmented_line_current_source_term.",
+        DeprecationWarning,
+    )
+    mesh = discretize.TensorMesh((hx, hy, hz), x0=xorig)
+    locs = np.c_[px, py, pz]
+    return segmented_line_current_source_term(mesh, locs)
