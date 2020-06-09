@@ -312,7 +312,7 @@ class SimpleComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 
         # update regmesh indActive
         if getattr(self, 'regmesh', None) is not None:
-            self.regmesh.indActive = mkvc(value)
+            self.regmesh.indActive = Utils.mkvc(value)
 
     @properties.observer('indActive')
     def _update_regmesh_indActive(self, change):

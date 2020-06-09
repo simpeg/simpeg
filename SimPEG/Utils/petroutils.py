@@ -1461,6 +1461,7 @@ def ICM_PottsDenoising(mesh, minit, log_univar, Pottmatrix,
         idxmin = np.where(logprobnoise == logprobnoise.min())
         #logprobnoise[idxmin] = -np.inf
         probnoise = np.exp(logprobnoise - logsumexp(logprobnoise))
+        probnoise = probnoise/np.sum(probnoise)
         choice = np.arange(len(minit))
         if maxit is None:
             maxit = int(
@@ -1510,6 +1511,7 @@ def ICM_PottsDenoising(mesh, minit, log_univar, Pottmatrix,
             logprobnoise[j] = - \
                 np.sum(np.r_[Pottmatrix[denoised[j], denoised[idx[j]]]])
             probnoise = np.exp(logprobnoise - logsumexp(logprobnoise))
+            probnoise = probnoise/np.sum(probnoise)
 
     if compute_score and weighted_selection:
         return [denoised, probnoise, logprob_obj]
