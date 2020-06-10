@@ -102,6 +102,10 @@ class Dipole(BaseSrc):
         super(Dipole, self).__init__(receiver_list, **kwargs)
         self.location = location
 
+    def __repr__(self):
+        return (f"{self.__class__.__name__}("
+                f"a: {self.location_a}; b: {self.location_b})")
+
     @property
     def location_a(self):
         """Location of the A-electrode"""
