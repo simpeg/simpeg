@@ -42,13 +42,6 @@ class BaseVRMSimulation(BaseSimulation):
         removal_version="0.15.0",
     )
 
-    ref_factor = deprecate_property(
-        refinement_factor, "ref_factor", removal_version="0.15.0"
-    )
-    ref_radius = deprecate_property(
-        refinement_distance, "ref_radius", removal_version="0.15.0"
-    )
-
     def __init__(self, mesh=None, **kwargs):
 
         refinement_factor = kwargs.pop("refinement_factor", None)

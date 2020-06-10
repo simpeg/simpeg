@@ -23,8 +23,6 @@ class BaseDCSimulation(BaseEMSimulation):
 
     _mini_survey = None
 
-    _mini_survey = None
-
     Ainv = None
     _Jmatrix = None
     gtgdiag = None
