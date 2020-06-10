@@ -26,7 +26,6 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
     # surveyPair = Survey
     # dataPair = Data
 
-
     # Notes:
     # Use the fields and devs methods from BaseFDEMProblem
 
@@ -61,17 +60,25 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 # We need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
                 # NOTE: need to account for the 2 polarizations in the derivatives.
-                u_src = f[src, :]  # u should be a vector by definition. Need to fix this...
+                u_src = f[
+                    src, :
+                ]  # u should be a vector by definition. Need to fix this...
                 # dA_dm and dRHS_dm should be of size nE,2, so that we can multiply by Ainv.
                 # The 2 columns are each of the polarizations.
-                dA_dm_v = self.getADeriv(freq, u_src, v) # Size: nE,2 (u_px,u_py) in the columns.
-                dRHS_dm_v = self.getRHSDeriv(freq, v) # Size: nE,2 (u_px,u_py) in the columns.
+                dA_dm_v = self.getADeriv(
+                    freq, u_src, v
+                )  # Size: nE,2 (u_px,u_py) in the columns.
+                dRHS_dm_v = self.getRHSDeriv(
+                    freq, v
+                )  # Size: nE,2 (u_px,u_py) in the columns.
                 # Calculate du/dm*v
                 du_dm_v = Ainv * (-dA_dm_v + dRHS_dm_v)
                 # Calculate the projection derivatives
                 for rx in src.receiver_list:
                     # Calculate dP/du*du/dm*v
-                    Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, mkvc(du_dm_v)) # wrt uPDeriv_u(mkvc(du_dm))
+                    Jv[src, rx] = rx.evalDeriv(
+                        src, self.mesh, f, mkvc(du_dm_v)
+                    )  # wrt uPDeriv_u(mkvc(du_dm))
             Ainv.clean()
         # Return the vectorized sensitivities
         return mkvc(Jv)
@@ -110,9 +117,11 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 for rx in src.receiver_list:
                     # Get the adjoint evalDeriv
                     # PTv needs to be nE,2
-                    PTv = rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx]), adjoint=True) # wrt f, need possibility wrt m
+                    PTv = rx.evalDeriv(
+                        src, self.mesh, f, mkvc(v[src, rx]), adjoint=True
+                    )  # wrt f, need possibility wrt m
                     # Get the
-                    dA_duIT = mkvc(ATinv * PTv) # Force (nU,) shape
+                    dA_duIT = mkvc(ATinv * PTv)  # Force (nU,) shape
                     dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
                     dRHS_dmT = self.getRHSDeriv(freq, dA_duIT, adjoint=True)
                     # Make du_dmT
@@ -120,12 +129,12 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                     # Select the correct component
                     # du_dmT needs to be of size (nP,) number of model parameters
                     real_or_imag = rx.component
-                    if real_or_imag == 'real':
-                        Jtv +=  np.array(du_dmT, dtype=complex).real
-                    elif real_or_imag == 'imag':
-                        Jtv +=  -np.array(du_dmT, dtype=complex).real
+                    if real_or_imag == "real":
+                        Jtv += np.array(du_dmT, dtype=complex).real
+                    elif real_or_imag == "imag":
+                        Jtv += -np.array(du_dmT, dtype=complex).real
                     else:
-                        raise Exception('Must be real or imag')
+                        raise Exception("Must be real or imag")
             # Clean the factorization, clear memory.
             ATinv.clean()
         return Jtv
@@ -162,15 +171,15 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                     # Need to make PT
                     # Ideally rx.evalDeriv will be updated to return a matrix,
                     # but for now just calculate it like so...
-                    PT = np.empty((AT.shape[0], rx.nD*2), dtype=complex, order='F')
+                    PT = np.empty((AT.shape[0], rx.nD * 2), dtype=complex, order="F")
                     for i in range(rx.nD):
                         v = np.zeros(rx.nD)
                         v[i] = 1.0
                         PTv = rx.evalDeriv(src, self.mesh, f, v, adjoint=True)
-                        PT[:, 2*i:2*i+2] = PTv
+                        PT[:, 2 * i : 2 * i + 2] = PTv
 
                     dA_duIT = ATinv * PT
-                    dA_duIT = dA_duIT.reshape(-1, rx.nD, order='F')  # shape now nUxnD
+                    dA_duIT = dA_duIT.reshape(-1, rx.nD, order="F")  # shape now nUxnD
 
                     # getADeriv and getRHSDeriv should be updated to accept and return
                     # matrices, but for now this works.
@@ -178,24 +187,29 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                     dA_dmT = np.empty((rx.nD, J.shape[1]))
                     dRHS_dmT = np.empty((rx.nD, J.shape[1]))
                     for i in range(rx.nD):
-                        dA_dmT[i, :] = self.getADeriv(freq, u_src, dA_duIT[:, i], adjoint=True).real
-                        dRHS_dmT[i, :] = self.getRHSDeriv(freq, dA_duIT[:, i], adjoint=True).real
+                        dA_dmT[i, :] = self.getADeriv(
+                            freq, u_src, dA_duIT[:, i], adjoint=True
+                        ).real
+                        dRHS_dmT[i, :] = self.getRHSDeriv(
+                            freq, dA_duIT[:, i], adjoint=True
+                        ).real
                     # Make du_dmT
                     du_dmT = -dA_dmT + dRHS_dmT
                     # Now just need to put it in the right spot.....
                     real_or_imag = rx.component
-                    if real_or_imag == 'real':
+                    if real_or_imag == "real":
                         J_rows = du_dmT
-                    elif real_or_imag == 'imag':
+                    elif real_or_imag == "imag":
                         J_rows = -du_dmT
                     else:
-                        raise Exception('Must be real or imag')
+                        raise Exception("Must be real or imag")
                     iend = istrt + rx.nD
                     J[istrt:iend, :] = J_rows
                     istrt = iend
             # Clean the factorization, clear memory.
             ATinv.clean()
         return J
+
 
 ###################################
 # 1D problems
@@ -226,8 +240,8 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     """
 
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
-    _solutionType = 'e_1dSolution'
-    _formulation  = 'EF'
+    _solutionType = "e_1dSolution"
+    _formulation = "EF"
     fieldsPair = Fields1DPrimarySecondary
 
     # Initiate properties
@@ -242,8 +256,8 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
         """
             Edge inner product matrix
         """
-        if getattr(self, '_MeMui', None) is None:
-            self._MeMui = self.mesh.getEdgeInnerProduct(1.0/mu_0)
+        if getattr(self, "_MeMui", None) is None:
+            self._MeMui = self.mesh.getEdgeInnerProduct(1.0 / mu_0)
         return self._MeMui
 
     @property
@@ -260,7 +274,9 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
             Edge inner product matrix
         """
         # if getattr(self, '_MfSigmaDeriv', None) is None:
-        self._MfSigmaDeriv = self.mesh.getFaceInnerProductDeriv(self.sigma)(u) * self.sigmaDeriv
+        self._MfSigmaDeriv = (
+            self.mesh.getFaceInnerProductDeriv(self.sigma)(u) * self.sigmaDeriv
+        )
         return self._MfSigmaDeriv
 
     @property
@@ -292,7 +308,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
         MfSigma = self.MfSigma
         C = self.mesh.nodalGrad
         # Make A
-        A = C.T*MeMui*C + 1j*omega(freq)*MfSigma
+        A = C.T * MeMui * C + 1j * omega(freq) * MfSigma
         # Either return full or only the inner part of A
         return A
 
@@ -301,7 +317,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
         The derivative of A wrt sigma
         """
 
-        u_src = u['e_1dSolution']
+        u_src = u["e_1dSolution"]
         dMfSigma_dm = self.MfSigmaDeriv(u_src)
         if adjoint:
             return 1j * omega(freq) * mkvc(dMfSigma_dm.T * v,)
@@ -351,20 +367,20 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
         for freq in self.survey.frequencies:
             if self.verbose:
                 startTime = time.time()
-                print('Starting work for {:.3e}'.format(freq))
+                print("Starting work for {:.3e}".format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
-            rhs  = self.getRHS(freq)
+            rhs = self.getRHS(freq)
             Ainv = self.Solver(A, **self.solver_opts)
             e_s = Ainv * rhs
 
             # Store the fields
             Src = self.survey.get_sources_by_frequency(freq)[0]
             # NOTE: only store the e_solution(secondary), all other components calculated in the fields object
-            F[Src, 'e_1dSolution'] = e_s
+            F[Src, "e_1dSolution"] = e_s
 
             if self.verbose:
-                print('Ran for {:f} seconds'.format(time.time()-startTime))
+                print("Ran for {:f} seconds".format(time.time() - startTime))
                 sys.stdout.flush()
         return F
 
@@ -396,8 +412,8 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     """
 
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
-    _solutionType = ['e_pxSolution', 'e_pySolution']  # Forces order on the object
-    _formulation  = 'EB'
+    _solutionType = ["e_pxSolution", "e_pySolution"]  # Forces order on the object
+    _formulation = "EB"
     fieldsPair = Fields3DPrimarySecondary
 
     # Initiate properties
@@ -432,7 +448,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
         Mesig = self.MeSigma
         C = self.mesh.edgeCurl
 
-        return C.T*Mfmui*C + 1j*omega(freq)*Mesig
+        return C.T * Mfmui * C + 1j * omega(freq) * Mesig
 
     def getADeriv(self, freq, u, v, adjoint=False):
         """
@@ -453,16 +469,15 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
         sol0, sol1 = self._solutionType
 
         if adjoint:
-            dMe_dsigV = (
-                self.MeSigmaDeriv(u[sol0], v[:self.mesh.nE], adjoint) +
-                self.MeSigmaDeriv(u[sol1], v[self.mesh.nE:], adjoint)
-            )
+            dMe_dsigV = self.MeSigmaDeriv(
+                u[sol0], v[: self.mesh.nE], adjoint
+            ) + self.MeSigmaDeriv(u[sol1], v[self.mesh.nE :], adjoint)
         else:
             # Need a nE,2 matrix to be returned
             dMe_dsigV = np.hstack(
                 (
                     mkvc(self.MeSigmaDeriv(u[sol0], v, adjoint), 2),
-                    mkvc(self.MeSigmaDeriv(u[sol1], v, adjoint), 2)
+                    mkvc(self.MeSigmaDeriv(u[sol1], v, adjoint), 2),
                 )
             )
         return 1j * omega(freq) * dMe_dsigV
@@ -519,7 +534,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
         for freq in self.survey.frequencies:
             if self.verbose:
                 startTime = time.time()
-                print('Starting work for {:.3e}'.format(freq))
+                print("Starting work for {:.3e}".format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs = self.getRHS(freq)
@@ -531,12 +546,12 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
             Src = self.survey.get_sources_by_frequency(freq)[0]
             # Store the fields
             # Use self._solutionType
-            F[Src, 'e_pxSolution'] = e_s[:, 0]
-            F[Src, 'e_pySolution'] = e_s[:, 1]
+            F[Src, "e_pxSolution"] = e_s[:, 0]
+            F[Src, "e_pySolution"] = e_s[:, 1]
             # Note curl e = -iwb so b = -curl/iw
 
             if self.verbose:
-                print('Ran for {:f} seconds'.format(time.time()-startTime))
+                print("Ran for {:f} seconds".format(time.time() - startTime))
                 sys.stdout.flush()
             Ainv.clean()
         return F
@@ -647,11 +662,12 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
 # Deprecated
 ############
 
-@deprecate_class(removal_version='0.15.0')
+
+@deprecate_class(removal_version="0.15.0")
 class Problem3D_ePrimSec(Simulation3DPrimarySecondary):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Problem1D_ePrimSec(Simulation1DPrimarySecondary):
     pass

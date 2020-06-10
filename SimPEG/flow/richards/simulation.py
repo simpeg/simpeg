@@ -13,10 +13,6 @@ import warnings
 from ... import utils
 from ...simulation import BaseTimeSimulation
 from ... import optimization
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 
 from .survey import Survey
 from .empirical import BaseHydraulicConductivity
@@ -27,44 +23,33 @@ class SimulationNDCellCentered(BaseTimeSimulation):
     """Richards Simulation"""
 
     hydraulic_conductivity = properties.Instance(
-        'hydraulic conductivity function',
-        BaseHydraulicConductivity
+        "hydraulic conductivity function", BaseHydraulicConductivity
     )
-    water_retention = properties.Instance(
-        'water retention curve',
-        BaseWaterRetention
-    )
+    water_retention = properties.Instance("water retention curve", BaseWaterRetention)
 
     # TODO: This can also be a function(time, u_ii)
-    boundary_conditions = properties.Array('boundary conditions')
-    initial_conditions = properties.Array('initial conditions')
+    boundary_conditions = properties.Array("boundary conditions")
+    initial_conditions = properties.Array("initial conditions")
 
-    debug = properties.Bool('Show all messages', default=False)
-
-    solver = Solver
+    debug = properties.Bool("Show all messages", default=False)
 
     method = properties.StringChoice(
-        'Formulation used, See notes in Celia et al., 1990',
-        default='mixed',
-        choices=['mixed', 'head']
+        "Formulation used, See notes in Celia et al., 1990",
+        default="mixed",
+        choices=["mixed", "head"],
     )
 
     do_newton = properties.Bool(
-        'Do a Newton iteration vs. a Picard iteration',
-        default=False
+        "Do a Newton iteration vs. a Picard iteration", default=False
     )
 
     root_finder_max_iter = properties.Integer(
-        'Maximum iterations for root_finder iteration',
-        default=30
+        "Maximum iterations for root_finder iteration", default=30
     )
 
-    root_finder_tol = properties.Float(
-        'tolerance of the root_finder',
-        default=1e-4
-    )
+    root_finder_tol = properties.Float("tolerance of the root_finder", default=1e-4)
 
-    @properties.observer('model')
+    @properties.observer("model")
     def _on_model_change(self, change):
         """Update the nested model functions when the
         model of the problem changes.
@@ -74,13 +59,13 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         """
 
         if (
-            not self.hydraulic_conductivity.needs_model and
-            not self.water_retention.needs_model
-       ):
-            warnings.warn('There is no model to set.')
+            not self.hydraulic_conductivity.needs_model
+            and not self.water_retention.needs_model
+        ):
+            warnings.warn("There is no model to set.")
             return
 
-        model = change['value']
+        model = change["value"]
 
         if self.hydraulic_conductivity.needs_model:
             self.hydraulic_conductivity.model = model
@@ -96,25 +81,23 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
         return self.boundary_conditions(time, u_ii)
 
-    @properties.observer([
-        'do_newton', 'root_finder_max_iter', 'root_finder_tol'
-    ])
+    @properties.observer(["do_newton", "root_finder_max_iter", "root_finder_tol"])
     def _on_root_finder_update(self, change):
         """Setting do_newton etc. will clear the root_finder,
         which will be reinitialized when called
         """
-        if hasattr(self, '_root_finder'):
+        if hasattr(self, "_root_finder"):
             del self._root_finder
 
     @property
     def root_finder(self):
         """Root-finding Algorithm"""
-        if getattr(self, '_root_finder', None) is None:
+        if getattr(self, "_root_finder", None) is None:
             self._root_finder = optimization.NewtonRoot(
                 doLS=self.do_newton,
                 maxIter=self.root_finder_max_iter,
                 tol=self.root_finder_tol,
-                Solver=self.solver
+                Solver=self.solver,
             )
         return self._root_finder
 
@@ -126,25 +109,25 @@ class SimulationNDCellCentered(BaseTimeSimulation):
             assert m is None
 
         tic = time.time()
-        u = list(range(self.nT+1))
+        u = list(range(self.nT + 1))
         u[0] = self.initial_conditions
         for ii, dt in enumerate(self.time_steps):
             bc = self.getBoundaryConditions(ii, u[ii])
-            u[ii+1] = self.root_finder.root(
+            u[ii + 1] = self.root_finder.root(
                 lambda hn1m, return_g=True: self.getResidual(
                     m, u[ii], hn1m, dt, bc, return_g=return_g
                 ),
-                u[ii]
+                u[ii],
             )
             if self.debug:
                 print(
-                    'Solving Fields ({0:4d}/{1:d} - {2:3.1f}% Done) {3:d} '
-                    'Iterations, {4:4.2f} seconds'.format(
-                        ii+1,
+                    "Solving Fields ({0:4d}/{1:d} - {2:3.1f}% Done) {3:d} "
+                    "Iterations, {4:4.2f} seconds".format(
+                        ii + 1,
                         self.nT,
-                        100.0*(ii+1)/self.nT,
+                        100.0 * (ii + 1) / self.nT,
                         self.root_finder.iter,
-                        time.time() - tic
+                        time.time() - tic,
                     )
                 )
         return u
@@ -176,16 +159,13 @@ class SimulationNDCellCentered(BaseTimeSimulation):
             return self.mesh.faceDivx
 
         if self.mesh.dim == 2:
-            mats = (
-                utils.spzeros(self.mesh.nC, self.mesh.vnF[0]),
-                self.mesh.faceDivy
-            )
+            mats = (utils.spzeros(self.mesh.nC, self.mesh.vnF[0]), self.mesh.faceDivy)
         elif self.mesh.dim == 3:
             mats = (
-                utils.spzeros(self.mesh.nC, self.mesh.vnF[0]+self.mesh.vnF[1]),
-                self.mesh.faceDivz
+                utils.spzeros(self.mesh.nC, self.mesh.vnF[0] + self.mesh.vnF[1]),
+                self.mesh.faceDivz,
             )
-        return sp.hstack(mats, format='csr')
+        return sp.hstack(mats, format="csr")
 
     @utils.timeIt
     def diagsJacobian(self, m, hn, hn1, dt, bc):
@@ -223,25 +203,24 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         #
         #       DIV*diag(GRAD*hn1+BC*bc)*(AV*(1.0/K))^-1
 
-        DdiagGh1 = DIV*utils.sdiag(GRAD*hn1+BC*bc)
+        DdiagGh1 = DIV * utils.sdiag(GRAD * hn1 + BC * bc)
         diagAVk2_AVdiagK2 = (
-            utils.sdiag((AV*(1./K1))**(-2)) *
-            AV*utils.sdiag(K1**(-2))
+            utils.sdiag((AV * (1.0 / K1)) ** (-2)) * AV * utils.sdiag(K1 ** (-2))
         )
 
-        Asub = (-1.0/dt)*dT
+        Asub = (-1.0 / dt) * dT
 
         Adiag = (
-            (1.0/dt)*dT1 -
-            DdiagGh1*diagAVk2_AVdiagK2*dK1 -
-            DIV*utils.sdiag(1./(AV*(1./K1)))*GRAD -
-            Dz*diagAVk2_AVdiagK2*dK1
+            (1.0 / dt) * dT1
+            - DdiagGh1 * diagAVk2_AVdiagK2 * dK1
+            - DIV * utils.sdiag(1.0 / (AV * (1.0 / K1))) * GRAD
+            - Dz * diagAVk2_AVdiagK2 * dK1
         )
 
         B = (
-            DdiagGh1*diagAVk2_AVdiagK2*dKm1 +
-            Dz*diagAVk2_AVdiagK2*dKm1 +
-            (1.0/dt)*(dTm - dTm1)
+            DdiagGh1 * diagAVk2_AVdiagK2 * dKm1
+            + Dz * diagAVk2_AVdiagK2 * dKm1
+            + (1.0 / dt) * (dTm - dTm1)
         )
 
         return Asub, Adiag, B
@@ -267,21 +246,21 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         K = self.hydraulic_conductivity(h)
         dK = self.hydraulic_conductivity.derivU(h)
 
-        aveK = 1./(AV*(1./K))
+        aveK = 1.0 / (AV * (1.0 / K))
 
-        RHS = DIV*utils.sdiag(aveK)*(GRAD*h+BC*bc) + Dz*aveK
-        if self.method == 'mixed':
-            r = (T-Tn)/dt - RHS
-        elif self.method == 'head':
-            r = dT*(h - hn)/dt - RHS
+        RHS = DIV * utils.sdiag(aveK) * (GRAD * h + BC * bc) + Dz * aveK
+        if self.method == "mixed":
+            r = (T - Tn) / dt - RHS
+        elif self.method == "head":
+            r = dT * (h - hn) / dt - RHS
 
         if not return_g:
             return r
 
-        J = dT/dt - DIV*utils.sdiag(aveK)*GRAD
+        J = dT / dt - DIV * utils.sdiag(aveK) * GRAD
         if self.do_newton:
-            DDharmAve = utils.sdiag(aveK**2)*AV*utils.sdiag(K**(-2)) * dK
-            J = J - DIV*utils.sdiag(GRAD*h + BC*bc)*DDharmAve - Dz*DDharmAve
+            DDharmAve = utils.sdiag(aveK ** 2) * AV * utils.sdiag(K ** (-2)) * dK
+            J = J - DIV * utils.sdiag(GRAD * h + BC * bc) * DDharmAve - Dz * DDharmAve
 
         return r, J
 
@@ -290,21 +269,17 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         if f is None:
             f = self.fields(m)
 
-        nn = len(f)-1
+        nn = len(f) - 1
         Asubs, Adiags, Bs = list(range(nn)), list(range(nn)), list(range(nn))
         for ii in range(nn):
             dt = self.time_steps[ii]
             bc = self.getBoundaryConditions(ii, f[ii])
             Asubs[ii], Adiags[ii], Bs[ii] = self.diagsJacobian(
-                m, f[ii], f[ii+1], dt, bc
+                m, f[ii], f[ii + 1], dt, bc
             )
         Ad = sp.block_diag(Adiags)
-        zRight = utils.spzeros(
-            (len(Asubs)-1)*Asubs[0].shape[0], Adiags[0].shape[1]
-        )
-        zTop = utils.spzeros(
-            Adiags[0].shape[0], len(Adiags)*Adiags[0].shape[1]
-        )
+        zRight = utils.spzeros((len(Asubs) - 1) * Asubs[0].shape[0], Adiags[0].shape[1])
+        zTop = utils.spzeros(Adiags[0].shape[0], len(Adiags) * Adiags[0].shape[1])
         As = sp.vstack((zTop, sp.hstack((sp.block_diag(Asubs[1:]), zRight))))
         A = As + Ad
         B = np.array(sp.vstack(Bs).todense())
@@ -321,23 +296,21 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         if f is None:
             f = self.fields(m)
 
-        JvC = list(range(len(f)-1))  # Cell to hold each row of the long vector
+        JvC = list(range(len(f) - 1))  # Cell to hold each row of the long vector
 
         # This is done via forward substitution.
         bc = self.getBoundaryConditions(0, f[0])
-        temp, Adiag, B = self.diagsJacobian(
-            m, f[0], f[1], self.time_steps[0], bc
-        )
+        temp, Adiag, B = self.diagsJacobian(m, f[0], f[1], self.time_steps[0], bc)
         Adiaginv = self.solver(Adiag, **self.solver_opts)
-        JvC[0] = Adiaginv * (B*v)
+        JvC[0] = Adiaginv * (B * v)
 
-        for ii in range(1, len(f)-1):
+        for ii in range(1, len(f) - 1):
             bc = self.getBoundaryConditions(ii, f[ii])
             Asub, Adiag, B = self.diagsJacobian(
-                m, f[ii], f[ii+1], self.time_steps[ii], bc
+                m, f[ii], f[ii + 1], self.time_steps[ii], bc
             )
             Adiaginv = self.solver(Adiag, **self.solver_opts)
-            JvC[ii] = Adiaginv * (B*v - Asub*JvC[ii-1])
+            JvC[ii] = Adiaginv * (B * v - Asub * JvC[ii - 1])
 
         du_dm_v = np.concatenate([np.zeros(self.mesh.nC)] + JvC)
         Jv = self.survey.deriv(self, f, du_dm_v=du_dm_v, v=v)
@@ -353,17 +326,17 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         # This is done via backward substitution.
         minus = 0
         BJtv = 0
-        for ii in range(len(f)-1, 0, -1):
-            bc = self.getBoundaryConditions(ii-1, f[ii-1])
+        for ii in range(len(f) - 1, 0, -1):
+            bc = self.getBoundaryConditions(ii - 1, f[ii - 1])
             Asub, Adiag, B = self.diagsJacobian(
-                m, f[ii-1], f[ii], self.time_steps[ii-1], bc
+                m, f[ii - 1], f[ii], self.time_steps[ii - 1], bc
             )
             # select the correct part of v
-            vpart = list(range((ii)*Adiag.shape[0], (ii+1)*Adiag.shape[0]))
+            vpart = list(range((ii) * Adiag.shape[0], (ii + 1) * Adiag.shape[0]))
             AdiaginvT = self.solver(Adiag.T, **self.solver_opts)
             JTvC = AdiaginvT * (PTv[vpart] - minus)
-            minus = Asub.T*JTvC  # this is now the super diagonal.
-            BJtv = BJtv + B.T*JTvC
+            minus = Asub.T * JTvC  # this is now the super diagonal.
+            BJtv = BJtv + B.T * JTvC
 
         return BJtv + PTdv
 
@@ -375,6 +348,7 @@ SimulationNDCellCentred = SimulationNDCellCentered
 # Deprecated
 ############
 
-@deprecate_class(removal_version='0.15.0')
+
+@deprecate_class(removal_version="0.15.0")
 class RichardsProblem(SimulationNDCellCentered):
     pass

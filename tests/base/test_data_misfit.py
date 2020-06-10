@@ -13,7 +13,6 @@ np.random.seed(17)
 
 
 class DataMisfitTest(unittest.TestCase):
-
     def setUp(self):
         mesh = discretize.TensorMesh([30])
         sigma = np.ones(mesh.nC)
@@ -21,20 +20,19 @@ class DataMisfitTest(unittest.TestCase):
 
         # prob = DC.Simulation3DCellCentered(mesh, rhoMap=Maps.ExpMap(mesh))
 
-        receivers = survey.BaseRx(20*[[0.0]])
+        receivers = survey.BaseRx(20 * [[0.0]])
         source = survey.BaseSrc([receivers])
         sim = simulation.ExponentialSinusoidSimulation(
-            mesh=mesh,
-            survey=survey.BaseSurvey([source]),
-            model_map=maps.ExpMap(mesh))
+            mesh=mesh, survey=survey.BaseSurvey([source]), model_map=maps.ExpMap(mesh)
+        )
 
         synthetic_data = sim.make_synthetic_data(model)
         dobs = synthetic_data.dobs
 
-        self.std = 0.01
+        self.relative = 0.01
         self.eps = 1e-8
 
-        synthetic_data.standard_deviation = self.std
+        synthetic_data.relative_error = self.relative
         synthetic_data.noise_floor = self.eps
 
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=synthetic_data)
@@ -59,13 +57,13 @@ class DataMisfitTest(unittest.TestCase):
         self.assertTrue(self.dmis.nP == self.mesh.nC)
 
     def test_zero_uncertainties(self):
-        self.data.standard_deviation = 0.
-        self.data.noise_floor = 0.
+        self.data.relative_error = 0.0
+        self.data.noise_floor = 0.0
         with self.assertRaises(Exception):
             Worig = self.dmis.W
 
     def test_setting_W(self):
-        self.data.standard_deviation = self.std
+        self.data.relative_error = self.relative
         self.data.noise_floor = self.eps
         Worig = self.dmis.W
         v = np.random.rand(self.survey.nD)
@@ -80,9 +78,10 @@ class DataMisfitTest(unittest.TestCase):
         self.dmis.W = Worig
 
     def test_DataMisfitOrder(self):
-        self.data.standard_deviation = self.std
+        self.data.relative_error = self.relative
         self.data.noise_floor = self.eps
         self.dmis.test(x=self.model)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

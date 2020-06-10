@@ -82,6 +82,10 @@ Simulation
     :members:
     :undoc-members:
 
+.. autoclass:: SimPEG.simulation.TimeStepArray
+    :members:
+    :undoc-members:
+
 
 Fields
 ------
@@ -101,15 +105,7 @@ Survey
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.survey.BaseSrc
-    :members:
-    :undoc-members:
-
-.. autoclass:: SimPEG.survey.BaseRx
-    :members:
-    :undoc-members:
-
-.. autoclass:: SimPEG.survey.BaseTimeRx
+.. autoclass:: SimPEG.survey.BaseTimeSurvey
     :members:
     :undoc-members:
 
@@ -121,5 +117,35 @@ Data
     :undoc-members:
 
 .. autoclass:: SimPEG.data.SyntheticData
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.data.UncertaintyArray
+    :members:
+    :undoc-members:
+
+Sources
+-------
+
+.. autoclass:: SimPEG.survey.BaseSrc
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.survey.SourceLocationArray
+    :members:
+    :undoc-members:
+
+Receivers
+---------
+
+.. autoclass:: SimPEG.survey.BaseRx
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.survey.BaseTimeRx
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.survey.RxLocationArray
     :members:
     :undoc-members:

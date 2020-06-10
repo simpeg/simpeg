@@ -16,9 +16,9 @@ def edge_basis_function(t, a1, l1, h1, a2, l2, h2):
     """
     x1 = line(a1, t, l1)
     x2 = line(a2, t, l2)
-    w0 = (1. - x1 / h1) * (1. - x2 / h2)
-    w1 = (x1 / h1) * (1. - x2 / h2)
-    w2 = (1. - x1 / h1) * (x2 / h2)
+    w0 = (1.0 - x1 / h1) * (1.0 - x2 / h2)
+    w1 = (x1 / h1) * (1.0 - x2 / h2)
+    w2 = (1.0 - x1 / h1) * (x2 / h2)
     w3 = (x1 / h1) * (x2 / h2)
     return np.r_[w0, w1, w2, w3]
 
@@ -36,7 +36,7 @@ def getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz):
     lx = bx - ax
     ly = by - ay
     lz = bz - az
-    l = np.sqrt(lx**2+ly**2+lz**2)
+    l = np.sqrt(lx ** 2 + ly ** 2 + lz ** 2)
 
     if l == 0:
         sx = np.zeros(4, 1)
@@ -44,22 +44,22 @@ def getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz):
         sz = np.zeros(4, 1)
 
     # integration using Simpson's rule
-    wx0 = edge_basis_function(0., ay, ly, hy, az, lz, hz)
+    wx0 = edge_basis_function(0.0, ay, ly, hy, az, lz, hz)
     wx0_5 = edge_basis_function(0.5, ay, ly, hy, az, lz, hz)
-    wx1 = edge_basis_function(1., ay, ly, hy, az, lz, hz)
+    wx1 = edge_basis_function(1.0, ay, ly, hy, az, lz, hz)
 
-    wy0 = edge_basis_function(0., ax, lx, hx, az, lz, hz)
+    wy0 = edge_basis_function(0.0, ax, lx, hx, az, lz, hz)
     wy0_5 = edge_basis_function(0.5, ax, lx, hx, az, lz, hz)
-    wy1 = edge_basis_function(1., ax, lx, hx, az, lz, hz)
+    wy1 = edge_basis_function(1.0, ax, lx, hx, az, lz, hz)
 
-    wz0 = edge_basis_function(0., ax, lx, hx, ay, ly, hy)
+    wz0 = edge_basis_function(0.0, ax, lx, hx, ay, ly, hy)
     wz0_5 = edge_basis_function(0.5, ax, lx, hx, ay, ly, hy)
-    wz1 = edge_basis_function(1., ax, lx, hx, ay, ly, hy)
+    wz1 = edge_basis_function(1.0, ax, lx, hx, ay, ly, hy)
 
-    sx = (wx0 + 4. * wx0_5 + wx1) * (lx / 6.)
+    sx = (wx0 + 4.0 * wx0_5 + wx1) * (lx / 6.0)
 
-    sy = (wy0 + 4. * wy0_5 + wy1) * (ly / 6.)
-    sz = (wz0 + 4. * wz0_5 + wz1) * (lz / 6.)
+    sy = (wy0 + 4.0 * wy0_5 + wy1) * (ly / 6.0)
+    sz = (wz0 + 4.0 * wz0_5 + wz1) * (lz / 6.0)
 
     return sx, sy, sz
 
@@ -86,32 +86,33 @@ def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
 
     """
     import numpy as np
+
     # number of cells
     nx = len(hx)
     ny = len(hy)
     nz = len(hz)
     x0, y0, z0 = xorig[0], xorig[1], xorig[2]
     # nodal grid
-    x = np.r_[x0, x0+np.cumsum(hx)]
-    y = np.r_[y0, y0+np.cumsum(hy)]
-    z = np.r_[z0, z0+np.cumsum(hz)]
+    x = np.r_[x0, x0 + np.cumsum(hx)]
+    y = np.r_[y0, y0 + np.cumsum(hy)]
+    z = np.r_[z0, z0 + np.cumsum(hz)]
 
     # discrete edge function
-    sx = np.zeros((nx, ny+1, nz+1))
-    sy = np.zeros((nx+1, ny, nz+1))
-    sz = np.zeros((nx+1, ny+1, nz))
+    sx = np.zeros((nx, ny + 1, nz + 1))
+    sy = np.zeros((nx + 1, ny, nz + 1))
+    sz = np.zeros((nx + 1, ny + 1, nz))
 
     # number of line segments
     nP = len(px) - 1
 
     # check that all polygon vertices are inside the mesh
-    for ip in range(nP+1):
+    for ip in range(nP + 1):
         ax = px[ip]
         ay = py[ip]
         az = pz[ip]
-        ix = findlast(np.logical_and(ax >= x[:nx-1], ax <= x[1:nx]))
-        iy = findlast(np.logical_and(ay >= y[:ny-1], ay <= y[1:ny]))
-        iz = findlast(np.logical_and(az >= z[:nz-1], az <= z[1:nz]))
+        ix = findlast(np.logical_and(ax >= x[: nx - 1], ax <= x[1:nx]))
+        iy = findlast(np.logical_and(ay >= y[: ny - 1], ay <= y[1:ny]))
+        iz = findlast(np.logical_and(az >= z[: nz - 1], az <= z[1:nz]))
 
         if (ix < 0) or (iy < 0) or (iz < 0):
             msg = "Polygon vertex (%.1f, %.1f, %.1f) is outside the mesh"
@@ -123,15 +124,15 @@ def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
         ax = px[ip]
         ay = py[ip]
         az = pz[ip]
-        bx = px[ip+1]
-        by = py[ip+1]
-        bz = pz[ip+1]
+        bx = px[ip + 1]
+        by = py[ip + 1]
+        bz = pz[ip + 1]
 
         # find intersection with mesh planes
         dx = bx - ax
         dy = by - ay
         dz = bz - az
-        d = np.sqrt(dx**2+dy**2+dz**2)
+        d = np.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
 
         tol = d * np.finfo(float).eps
 
@@ -153,9 +154,9 @@ def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
         else:
             tz = []
 
-        t = np.unique(np.r_[0., tx, ty, tz, 1.])
+        t = np.unique(np.r_[0.0, tx, ty, tz, 1.0])
         nq = len(t) - 1
-        tc = 0.5 * (t[:nq] + t[1:nq+1])
+        tc = 0.5 * (t[:nq] + t[1 : nq + 1])
 
         for iq in range(nq):
 
@@ -165,30 +166,27 @@ def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
 
             # locate cell id
 
-            ix = findlast(np.logical_and(cx >= x[:nx-1], cx <= x[1:nx]))
-            iy = findlast(np.logical_and(cy >= y[:ny-1], cy <= y[1:ny]))
-            iz = findlast(np.logical_and(cz >= z[:nz-1], cz <= z[1:nz]))
+            ix = findlast(np.logical_and(cx >= x[: nx - 1], cx <= x[1:nx]))
+            iy = findlast(np.logical_and(cy >= y[: ny - 1], cy <= y[1:ny]))
+            iz = findlast(np.logical_and(cz >= z[: nz - 1], cz <= z[1:nz]))
 
             # local coordinates
             hxloc = hx[ix]
             hyloc = hy[iy]
             hzloc = hz[iz]
-            axloc = ax + t[iq]   * dx - x[ix]
-            ayloc = ay + t[iq]   * dy - y[iy]
-            azloc = az + t[iq]   * dz - z[iz]
-            bxloc = ax + t[iq+1] * dx - x[ix]
-            byloc = ay + t[iq+1] * dy - y[iy]
-            bzloc = az + t[iq+1] * dz - z[iz]
+            axloc = ax + t[iq] * dx - x[ix]
+            ayloc = ay + t[iq] * dy - y[iy]
+            azloc = az + t[iq] * dz - z[iz]
+            bxloc = ax + t[iq + 1] * dx - x[ix]
+            byloc = ay + t[iq + 1] * dy - y[iy]
+            bzloc = az + t[iq + 1] * dz - z[iz]
             # integrate
-            sxloc, syloc, szloc = getStraightLineCurrentIntegral(hxloc, hyloc,
-                                                                 hzloc, axloc,
-                                                                 ayloc, azloc,
-                                                                 bxloc, byloc,
-                                                                 bzloc)
+            sxloc, syloc, szloc = getStraightLineCurrentIntegral(
+                hxloc, hyloc, hzloc, axloc, ayloc, azloc, bxloc, byloc, bzloc
+            )
             # integrate
-            sx[ix, iy:iy+2, iz:iz+2] += np.reshape(sxloc, (2, 2), order="F")
-            sy[ix:ix+2, iy, iz:iz+2] += np.reshape(syloc, (2, 2), order="F")
-            sz[ix:ix+2, iy:iy+2, iz] += np.reshape(szloc, (2, 2), order="F")
+            sx[ix, iy : iy + 2, iz : iz + 2] += np.reshape(sxloc, (2, 2), order="F")
+            sy[ix : ix + 2, iy, iz : iz + 2] += np.reshape(syloc, (2, 2), order="F")
+            sz[ix : ix + 2, iy : iy + 2, iz] += np.reshape(szloc, (2, 2), order="F")
 
     return np.r_[mkvc(sx), mkvc(sy), mkvc(sz)]
-

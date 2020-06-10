@@ -13,6 +13,22 @@ realistic candidate for the solution of our problem. The norm can penalize
 variation from a reference model, spatial derivatives of the model, or some
 combination of these.
 
+
+The API
+=======
+
+.. autoclass:: SimPEG.regularization.RegularizationMesh
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.regularization.BaseRegularization
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.regularization.BaseComboRegularization
+    :members:
+    :undoc-members:
+
 Tikhonov Regularization
 =======================
 
@@ -103,10 +119,50 @@ Then we can write
 The API
 -------
 
-.. automodule:: SimPEG.regularization
+.. autoclass:: SimPEG.regularization.Tikhonov
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.regularization.RegularizationMesh
+.. autoclass:: SimPEG.regularization.Small
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.regularization.SmoothDeriv
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.regularization.SmoothDeriv2
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.regularization.Simple
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.regularization.SimpleSmall
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.regularization.SimpleSmoothDeriv
+    :members:
+    :undoc-members:
+
+Sparse Regularization
+=====================
+
+We have also implemented several sparse regularizations with a variable norm.
+
+The API
+-------
+
+.. autoclass:: SimPEG.regularization.Sparse
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.regularization.SparseSmall
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.regularization.SparseDeriv
     :members:
     :undoc-members:

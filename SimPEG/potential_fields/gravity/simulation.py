@@ -15,10 +15,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     """
 
-    rho, rhoMap, rhoDeriv = props.Invertible(
-        "Physical property",
-        default=1.
-    )
+    rho, rhoMap, rhoDeriv = props.Invertible("Physical property", default=1.0)
 
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh, **kwargs)
@@ -29,12 +26,12 @@ class Simulation3DIntegral(BasePFSimulation):
     def fields(self, m):
         self.model = m
 
-        if self.store_sensitivities == 'forward_only':
+        if self.store_sensitivities == "forward_only":
             self.model = m
             # Compute the linear operation without forming the full dense G
             fields = mkvc(self.linear_operator())
         else:
-            fields = self.G@(self.rhoMap@m).astype(np.float32)
+            fields = self.G @ (self.rhoMap @ m).astype(np.float32)
 
         return np.asarray(fields)
 
@@ -47,16 +44,16 @@ class Simulation3DIntegral(BasePFSimulation):
         if W is None:
             W = np.ones(self.nD)
         else:
-            W = W.diagonal()**2
+            W = W.diagonal() ** 2
         if getattr(self, "_gtg_diagonal", None) is None:
 
             diag = np.zeros(self.G.shape[1])
             for i in range(len(W)):
-                diag += W[i]*(self.G[i]*self.G[i])
+                diag += W[i] * (self.G[i] * self.G[i])
             self._gtg_diagonal = diag
         else:
             diag = self._gtg_diagonal
-        return mkvc((sdiag(np.sqrt(diag))@self.rhoDeriv).power(2).sum(axis=0))
+        return mkvc((sdiag(np.sqrt(diag)) @ self.rhoDeriv).power(2).sum(axis=0))
 
     def getJ(self, m, f=None):
         """
@@ -68,22 +65,22 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Sensitivity times a vector
         """
-        dmu_dm_v = (self.rhoDeriv @ v)
-        return self.G@dmu_dm_v.astype(np.float32)
+        dmu_dm_v = self.rhoDeriv @ v
+        return self.G @ dmu_dm_v.astype(np.float32)
 
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transposed times a vector
         """
-        Jtvec = self.G.T@v.astype(np.float32)
-        return np.asarray(self.rhoDeriv.T@Jtvec)
+        Jtvec = self.G.T @ v.astype(np.float32)
+        return np.asarray(self.rhoDeriv.T @ Jtvec)
 
     @property
     def G(self):
         """
         Gravity forward operator
         """
-        if getattr(self, '_G', None) is None:
+        if getattr(self, "_G", None) is None:
 
             self._G = self.linear_operator()
 
@@ -94,7 +91,7 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Diagonal of GtG
         """
-        if getattr(self, '_gtg_diagonal', None) is None:
+        if getattr(self, "_gtg_diagonal", None) is None:
 
             return None
 
@@ -137,10 +134,10 @@ class Simulation3DIntegral(BasePFSimulation):
                 for cc in range(2):
 
                     r = (
-                            mkvc(dx[:, aa]) ** 2 +
-                            mkvc(dy[:, bb]) ** 2 +
-                            mkvc(dz[:, cc]) ** 2
-                        ) ** (0.50) + eps
+                        mkvc(dx[:, aa]) ** 2
+                        + mkvc(dy[:, bb]) ** 2
+                        + mkvc(dz[:, cc]) ** 2
+                    ) ** (0.50) + eps
 
                     dz_r = dz[:, cc] + r + eps
                     dy_r = dy[:, bb] + r + eps
@@ -154,95 +151,153 @@ class Simulation3DIntegral(BasePFSimulation):
                     dxdy = dx[:, aa] * dy[:, bb]
                     dxdz = dx[:, aa] * dz[:, cc]
 
-                    if 'gx' in components:
-                        rows['gx'] += (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            dy[:, bb] * np.log(dz_r) +
-                            dz[:, cc] * np.log(dy_r) -
-                            dx[:, aa] * np.arctan(dydz /
-                                                  dxr)
+                    if "gx" in components:
+                        rows["gx"] += (
+                            (-1) ** aa
+                            * (-1) ** bb
+                            * (-1) ** cc
+                            * (
+                                dy[:, bb] * np.log(dz_r)
+                                + dz[:, cc] * np.log(dy_r)
+                                - dx[:, aa] * np.arctan(dydz / dxr)
+                            )
                         )
 
-                    if 'gy' in components:
-                        rows['gy'] += (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            dx[:, aa] * np.log(dz_r) +
-                            dz[:, cc] * np.log(dx_r) -
-                            dy[:, bb] * np.arctan(dxdz /
-                                                  dyr)
+                    if "gy" in components:
+                        rows["gy"] += (
+                            (-1) ** aa
+                            * (-1) ** bb
+                            * (-1) ** cc
+                            * (
+                                dx[:, aa] * np.log(dz_r)
+                                + dz[:, cc] * np.log(dx_r)
+                                - dy[:, bb] * np.arctan(dxdz / dyr)
+                            )
                         )
 
-                    if 'gz' in components:
-                        rows['gz'] += (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            dx[:, aa] * np.log(dy_r) +
-                            dy[:, bb] * np.log(dx_r) -
-                            dz[:, cc] * np.arctan(dxdy /
-                                                  dzr)
+                    if "gz" in components:
+                        rows["gz"] += (
+                            (-1) ** aa
+                            * (-1) ** bb
+                            * (-1) ** cc
+                            * (
+                                dx[:, aa] * np.log(dy_r)
+                                + dy[:, bb] * np.log(dx_r)
+                                - dz[:, cc] * np.arctan(dxdy / dzr)
+                            )
                         )
 
                     arg = dy[:, bb] * dz[:, cc] / dxr
 
-                    if ('gxx' in components) or ("gzz" in components) or ("guv" in components):
-                        gxx -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            dxdy / (r * dz_r + eps) +
-                            dxdz / (r * dy_r + eps) -
-                            np.arctan(arg+eps) +
-                            dx[:, aa] * (1./ (1+arg**2.)) *
-                            dydz/dxr**2. *
-                            (r + dx[:, aa]**2./r)
+                    if (
+                        ("gxx" in components)
+                        or ("gzz" in components)
+                        or ("guv" in components)
+                    ):
+                        gxx -= (
+                            (-1) ** aa
+                            * (-1) ** bb
+                            * (-1) ** cc
+                            * (
+                                dxdy / (r * dz_r + eps)
+                                + dxdz / (r * dy_r + eps)
+                                - np.arctan(arg + eps)
+                                + dx[:, aa]
+                                * (1.0 / (1 + arg ** 2.0))
+                                * dydz
+                                / dxr ** 2.0
+                                * (r + dx[:, aa] ** 2.0 / r)
+                            )
                         )
 
-                    if 'gxy' in components:
-                        rows['gxy'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            np.log(dz_r) + dy[:, bb]**2./ (r*dz_r) +
-                            dz[:, cc] / r  -
-                            1. / (1+arg**2.+ eps) * (dz[:, cc]/r**2) * (r - dy[:, bb]**2./r)
-
+                    if "gxy" in components:
+                        rows["gxy"] -= (
+                            (-1) ** aa
+                            * (-1) ** bb
+                            * (-1) ** cc
+                            * (
+                                np.log(dz_r)
+                                + dy[:, bb] ** 2.0 / (r * dz_r)
+                                + dz[:, cc] / r
+                                - 1.0
+                                / (1 + arg ** 2.0 + eps)
+                                * (dz[:, cc] / r ** 2)
+                                * (r - dy[:, bb] ** 2.0 / r)
+                            )
                         )
 
-                    if 'gxz' in components:
-                        rows['gxz'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            np.log(dy_r) + dz[:, cc]**2./ (r*dy_r) +
-                            dy[:, bb] / r  -
-                            1. / (1+arg**2.) * (dy[:, bb]/(r**2)) * (r - dz[:, cc]**2./r)
-
+                    if "gxz" in components:
+                        rows["gxz"] -= (
+                            (-1) ** aa
+                            * (-1) ** bb
+                            * (-1) ** cc
+                            * (
+                                np.log(dy_r)
+                                + dz[:, cc] ** 2.0 / (r * dy_r)
+                                + dy[:, bb] / r
+                                - 1.0
+                                / (1 + arg ** 2.0)
+                                * (dy[:, bb] / (r ** 2))
+                                * (r - dz[:, cc] ** 2.0 / r)
+                            )
                         )
 
-                    arg = dx[:, aa]*dz[:, cc]/dyr
+                    arg = dx[:, aa] * dz[:, cc] / dyr
 
-                    if ('gyy' in components) or ("gzz" in components) or ("guv" in components):
-                        gyy -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            dxdy / (r*dz_r+ eps) +
-                            dydz / (r*dx_r+ eps) -
-                            np.arctan(arg+eps) +
-                            dy[:, bb] * (1./ (1+arg**2.+ eps)) *
-                            dxdz/dyr**2. *
-                            (r + dy[:, bb]**2./r)
+                    if (
+                        ("gyy" in components)
+                        or ("gzz" in components)
+                        or ("guv" in components)
+                    ):
+                        gyy -= (
+                            (-1) ** aa
+                            * (-1) ** bb
+                            * (-1) ** cc
+                            * (
+                                dxdy / (r * dz_r + eps)
+                                + dydz / (r * dx_r + eps)
+                                - np.arctan(arg + eps)
+                                + dy[:, bb]
+                                * (1.0 / (1 + arg ** 2.0 + eps))
+                                * dxdz
+                                / dyr ** 2.0
+                                * (r + dy[:, bb] ** 2.0 / r)
+                            )
                         )
 
-                    if 'gyz' in components:
-                        rows['gyz'] -= (-1) ** aa * (-1) ** bb * (-1) ** cc * (
-                            np.log(dx_r) + dz[:, cc]**2./ (r*(dx_r)) +
-                            dx[:, aa] / r  -
-                            1. / (1+arg**2.) * (dx[:, aa]/(r**2)) * (r - dz[:, cc]**2./r)
-
+                    if "gyz" in components:
+                        rows["gyz"] -= (
+                            (-1) ** aa
+                            * (-1) ** bb
+                            * (-1) ** cc
+                            * (
+                                np.log(dx_r)
+                                + dz[:, cc] ** 2.0 / (r * (dx_r))
+                                + dx[:, aa] / r
+                                - 1.0
+                                / (1 + arg ** 2.0)
+                                * (dx[:, aa] / (r ** 2))
+                                * (r - dz[:, cc] ** 2.0 / r)
+                            )
                         )
 
-        if 'gyy' in components:
-            rows['gyy'] = gyy
+        if "gyy" in components:
+            rows["gyy"] = gyy
 
-        if 'gxx' in components:
-            rows['gxx'] = gxx
+        if "gxx" in components:
+            rows["gxx"] = gxx
 
-        if 'gzz' in components:
-            rows['gzz'] = -gxx - gyy
+        if "gzz" in components:
+            rows["gzz"] = -gxx - gyy
 
-        if 'guv' in components:
-            rows['guv'] = -0.5*(gxx - gyy)
+        if "guv" in components:
+            rows["guv"] = -0.5 * (gxx - gyy)
 
         for component in components:
             if len(component) == 3:
-                rows[component] *= constants.G*1E12  # conversion for Eotvos
+                rows[component] *= constants.G * 1e12  # conversion for Eotvos
             else:
-                rows[component] *= constants.G*1E8  # conversion for mGal
+                rows[component] *= constants.G * 1e8  # conversion for mGal
 
         return np.vstack([rows[component] for component in components])
 
@@ -252,32 +307,31 @@ class Simulation3DDifferential(BaseSimulation):
         Gravity in differential equations!
     """
 
-    _deprecate_main_map = 'rhoMap'
+    _deprecate_main_map = "rhoMap"
 
-    rho, rhoMap, rhoDeriv = props.Invertible(
-        "Specific density (g/cc)",
-        default=1.
-    )
+    rho, rhoMap, rhoDeriv = props.Invertible("Specific density (g/cc)", default=1.0)
 
     solver = None
 
     def __init__(self, mesh, **kwargs):
         BaseSimulation.__init__(self, mesh, **kwargs)
 
-        self.mesh.setCellGradBC('dirichlet')
+        self.mesh.setCellGradBC("dirichlet")
 
         self._Div = self.mesh.cellGrad
 
     @property
-    def MfI(self): return self._MfI
+    def MfI(self):
+        return self._MfI
 
     @property
-    def Mfi(self): return self._Mfi
+    def Mfi(self):
+        return self._Mfi
 
     def makeMassMatrices(self, m):
         self.model = m
         self._Mfi = self.mesh.getFaceInnerProduct()
-        self._MfI = utils.sdiag(1. / self._Mfi.diagonal())
+        self._MfI = utils.sdiag(1.0 / self._Mfi.diagonal())
 
     def getRHS(self, m):
         """
@@ -327,20 +381,21 @@ class Simulation3DDifferential(BaseSimulation):
         Ainv = self.solver(A)
         u = Ainv * RHS
 
-        gField = 4. * np.pi * NewtG * 1e+8 * self._Div * u
+        gField = 4.0 * np.pi * NewtG * 1e8 * self._Div * u
 
-        return {'G': gField, 'u': u}
+        return {"G": gField, "u": u}
 
 
 ############
 # Deprecated
 ############
 
-@deprecate_class(removal_version='0.15.0')
+
+@deprecate_class(removal_version="0.15.0")
 class GravityIntegral(Simulation3DIntegral):
     pass
 
 
-@deprecate_class(removal_version='0.15.0')
+@deprecate_class(removal_version="0.15.0")
 class Problem3D_Diff(Simulation3DDifferential):
     pass

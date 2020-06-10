@@ -109,7 +109,7 @@ solution <https://github.com/simpeg/simpeg/blob/master/tests/em/fdem/forward/tes
 Order and Derivative Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`Order tests <http://docs.simpeg.xyz/content/api_core/api_Tests.html>`_ can be
+:ref:`Order tests <api_Tests>` can be
 used when you are testing differential operators (we are using a second-order,
 staggered grid discretization for our operators). For example, testing a 2D
 curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/master/tests/base/test_operators.py>`_
@@ -158,7 +158,7 @@ have first order convergence (e.g. the improvement in the approximation is
 directly related to how small :math:`\Delta x` is, while if we include the
 first derivative in our approximation, we expect that :math:`\|f(x) +
 J(x)\Delta x - f(x + \Delta x)\|` to converge at a second-order rate. For
-example, all `maps have an associated derivative test <https://github.com/simpeg/simpeg/blob/master/SimPEG/maps.py#L95>`_ . An example from `test_FDEM_derivs.py <ht
+example, all `maps have an associated derivative test <https://github.com/simpeg/simpeg/blob/master/SimPEG/maps.py#L127>`_ . An example from `test_FDEM_derivs.py <ht
 tps://github.com/simpeg/simpeg/blob/master/tests/em/fdem/inverse/derivs/test_F
 DEM_derivs.py>`_
 

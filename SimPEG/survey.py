@@ -36,31 +36,24 @@ class BaseRx(properties.HasProperties):
     # BaseSimulation
     # TODO: location
     locations = RxLocationArray(
-        "Locations of the receivers (nRx x nDim)",
-        shape=("*", "*"),
-        required=True
+        "Locations of the receivers (nRx x nDim)", shape=("*", "*"), required=True
     )
 
     # TODO: project_grid?
     projGLoc = properties.StringChoice(
         "Projection grid location, default is CC",
         choices=["CC", "Fx", "Fy", "Fz", "Ex", "Ey", "Ez", "N"],
-        default="CC"
+        default="CC",
     )
 
     # TODO: store_projections
     storeProjections = properties.Bool(
-        "Store calls to getP (organized by mesh)",
-        default=True
+        "Store calls to getP (organized by mesh)", default=True
     )
 
-    _uid = properties.Uuid(
-        "unique ID for the receiver"
-    )
+    _uid = properties.Uuid("unique ID for the receiver")
 
-    _Ps = properties.Dictionary(
-        "dictonary for storing projections",
-    )
+    _Ps = properties.Dictionary("dictonary for storing projections",)
 
     def __init__(self, locations=None, **kwargs):
         super(BaseRx, self).__init__(**kwargs)
@@ -72,10 +65,12 @@ class BaseRx(properties.HasProperties):
                 "BaseRx no longer has an rxType. Each rxType should instead "
                 "be a different receiver class."
             )
-        if getattr(self, '_Ps', None) is None:
+        if getattr(self, "_Ps", None) is None:
             self._Ps = {}
 
-    locs = deprecate_property(locations, 'locs', removal_version='0.15.0')
+    locs = deprecate_property(
+        locations, "locs", new_name="locations", removal_version="0.15.0"
+    )
 
     @property
     def nD(self):
@@ -118,15 +113,13 @@ class BaseTimeRx(BaseRx):
     """SimPEG Receiver Object for time-domain simulations"""
 
     times = properties.Array(
-        "times where the recievers measure data",
-        shape=("*",),
-        required=True
+        "times where the recievers measure data", shape=("*",), required=True
     )
 
     projTLoc = properties.StringChoice(
         "location on the time mesh where the data are projected from",
         choices=["N", "CC"],
-        default="N"
+        default="N",
     )
 
     def __init__(self, locations=None, times=None, **kwargs):
@@ -191,43 +184,37 @@ class BaseSrc(BaseSimPEG):
     )
 
     receiver_list = properties.List(
-        "receiver list", properties.Instance("a SimPEG receiver", BaseRx),
-        default=[]
+        "receiver list", properties.Instance("a SimPEG receiver", BaseRx), default=[]
     )
 
-    _uid = properties.Uuid(
-        "unique identifier for the source"
+    _uid = properties.Uuid("unique identifier for the source")
+
+    loc = deprecate_property(
+        location, "loc", new_name="location", removal_version="0.15.0"
     )
 
-    loc = deprecate_property(location, 'loc', removal_version='0.15.0')
-
-    @properties.validator('receiver_list')
+    @properties.validator("receiver_list")
     def _receiver_list_validator(self, change):
-        value = change['value']
-        assert len(set(value)) == len(value), 'The receiver_list must be unique'
+        value = change["value"]
+        assert len(set(value)) == len(value), "The receiver_list must be unique"
         self._rxOrder = dict()
-        [
-            self._rxOrder.setdefault(rx._uid, ii) for ii, rx in
-            enumerate(value)
-        ]
+        [self._rxOrder.setdefault(rx._uid, ii) for ii, rx in enumerate(value)]
 
-    rxList = deprecate_property(receiver_list, 'rxList', removal_version='0.15.0')
+    rxList = deprecate_property(
+        receiver_list, "rxList", new_name="receiver_list", removal_version="0.15.0"
+    )
 
     def getReceiverIndex(self, receiver):
         if type(receiver) is not list:
             receiver = [receiver]
         for rx in receiver:
-            if getattr(rx, '_uid', None) is None:
-                raise KeyError(
-                    'Source does not have a _uid: {0!s}'.format(str(rx))
-                )
-        inds = list(map(
-            lambda rx: self._rxOrder.get(rx._uid, None), receiver
-        ))
+            if getattr(rx, "_uid", None) is None:
+                raise KeyError("Source does not have a _uid: {0!s}".format(str(rx)))
+        inds = list(map(lambda rx: self._rxOrder.get(rx._uid, None), receiver))
         if None in inds:
             raise KeyError(
-                'Some of the receiver specified are not in this survey. '
-                '{0!s}'.format(str(inds))
+                "Some of the receiver specified are not in this survey. "
+                "{0!s}".format(str(inds))
             )
         return inds
 
@@ -256,15 +243,12 @@ class BaseSurvey(properties.HasProperties):
     Survey holds the sources and receivers for a survey
     """
 
-    counter = properties.Instance(
-        "A SimPEG counter object",
-        Counter
-    )
+    counter = properties.Instance("A SimPEG counter object", Counter)
 
     source_list = properties.List(
         "A list of sources for the survey",
         properties.Instance("A SimPEG source", BaseSrc),
-        default=[]
+        default=[],
     )
 
     def __init__(self, source_list=None, **kwargs):
@@ -272,16 +256,13 @@ class BaseSurvey(properties.HasProperties):
         if source_list is not None:
             self.source_list = source_list
 
-    @properties.validator('source_list')
+    @properties.validator("source_list")
     def _source_list_validator(self, change):
-        value = change['value']
+        value = change["value"]
         if len(set(value)) != len(value):
-            raise Exception('The source_list must be unique')
+            raise Exception("The source_list must be unique")
         self._sourceOrder = dict()
-        [
-            self._sourceOrder.setdefault(src._uid, ii) for ii, src in
-            enumerate(value)
-        ]
+        [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(value)]
 
     # TODO: this should be private
     def getSourceIndex(self, sources):
@@ -289,17 +270,13 @@ class BaseSurvey(properties.HasProperties):
             sources = [sources]
 
         for src in sources:
-            if getattr(src, '_uid', None) is None:
-                raise KeyError(
-                    'Source does not have a _uid: {0!s}'.format(str(src))
-                )
-        inds = list(map(
-            lambda src: self._sourceOrder.get(src._uid, None), sources
-        ))
+            if getattr(src, "_uid", None) is None:
+                raise KeyError("Source does not have a _uid: {0!s}".format(str(src)))
+        inds = list(map(lambda src: self._sourceOrder.get(src._uid, None), sources))
         if None in inds:
             raise KeyError(
-                'Some of the sources specified are not in this survey. '
-                '{0!s}'.format(str(inds))
+                "Some of the sources specified are not in this survey. "
+                "{0!s}".format(str(inds))
             )
         return inds
 
@@ -311,7 +288,7 @@ class BaseSurvey(properties.HasProperties):
     @property
     def vnD(self):
         """Vector number of data"""
-        if getattr(self, '_vnD', None) is None:
+        if getattr(self, "_vnD", None) is None:
             self._vnD = np.array([src.nD for src in self.source_list])
         return self._vnD
 
@@ -323,7 +300,9 @@ class BaseSurvey(properties.HasProperties):
     #############
     # Deprecated
     #############
-    srcList = deprecate_property(source_list, 'srcList', removal_version='0.15.0')
+    srcList = deprecate_property(
+        source_list, "srcList", new_name="source_list", removal_version="0.15.0"
+    )
 
     def dpred(self, m=None, f=None):
         raise Exception(
@@ -342,7 +321,8 @@ class BaseSurvey(properties.HasProperties):
             "survey.pair(simulation) will be deprecated. Please update your code "
             "to instead use simulation.survey = survey, or pass it upon intialization "
             "of the simulation object. This will be removed in version "
-            "0.15.0 of SimPEG", DeprecationWarning
+            "0.15.0 of SimPEG",
+            DeprecationWarning,
         )
         simulation.survey = self
         self.simulation = simulation
@@ -351,55 +331,58 @@ class BaseSurvey(properties.HasProperties):
             warnings.warn(
                 "The Survey.dpred method has been deprecated. Please use "
                 "simulation.dpred instead. This will be removed in version "
-                "0.15.0 of SimPEG", DeprecationWarning
+                "0.15.0 of SimPEG",
+                DeprecationWarning,
             )
             return target.simulation.dpred(m=m, f=f)
+
         self.dpred = types.MethodType(dep_dpred, self)
 
         def dep_makeSyntheticData(target, m, std=None, f=None, **kwargs):
             warnings.warn(
                 "The Survey.makeSyntheticData method has been deprecated. Please use "
                 "simulation.make_synthetic_data instead. This will be removed in version "
-                "0.15.0 of SimPEG", DeprecationWarning
+                "0.15.0 of SimPEG",
+                DeprecationWarning,
             )
-            if std is None and getattr(target, 'std', None) is None:
+            if std is None and getattr(target, "std", None) is None:
                 rel_err = 0.05
-                print(
-                        'SimPEG.Survey assigned default rel_err '
-                        'of 5%'
-                    )
+                print("SimPEG.Survey assigned default rel_err " "of 5%")
             elif std is None:
                 rel_err = target.std
             else:
                 rel_err = std
                 print(
-                        'SimPEG.Survey assigned new rel_err '
-                        'of {:.2f}%'.format(100.*rel_err)
-                    )
+                    "SimPEG.Survey assigned new rel_err "
+                    "of {:.2f}%".format(100.0 * rel_err)
+                )
 
             data = target.simulation.make_synthetic_data(
-                m, relative_error=rel_err, f=f, add_noise=True)
+                m, relative_error=rel_err, f=f, add_noise=True
+            )
             target.dtrue = data.dclean
             target.dobs = data.dobs
             target.std = data.relative_error
             return target.dobs
+
         self.makeSyntheticData = types.MethodType(dep_makeSyntheticData, self)
 
         def dep_residual(target, m, f=None):
             warnings.warn(
                 "The Survey.residual method has been deprecated. Please use "
                 "L2DataMisfit.residual instead. This will be removed in version "
-                "0.15.0 of SimPEG", DeprecationWarning
+                "0.15.0 of SimPEG",
+                DeprecationWarning,
             )
             return mkvc(target.dpred(m, f=f) - target.dobs)
+
         self.residual = types.MethodType(dep_residual, self)
 
 
 class BaseTimeSurvey(BaseSurvey):
-
     @property
     def unique_times(self):
-        if getattr(self, '_unique_times', None) is None:
+        if getattr(self, "_unique_times", None) is None:
             rx_times = []
             for source in self.source_list:
                 for receiver in source.receiver_list:
@@ -407,7 +390,9 @@ class BaseTimeSurvey(BaseSurvey):
             self._unique_times = np.unique(np.hstack(rx_times))
         return self._unique_times
 
-    times = deprecate_property(unique_times, 'times', removal_version='0.15.0')
+    times = deprecate_property(
+        unique_times, "times", new_name="unique_times", removal_version="0.15.0"
+    )
 
 
 ###############################################################################
@@ -416,9 +401,11 @@ class BaseTimeSurvey(BaseSurvey):
 #
 ###############################################################################
 
-@deprecate_class(removal_version='0.15.0')
+
+@deprecate_class(removal_version="0.15.0")
 class LinearSurvey(BaseSurvey):
     pass
+
 
 #  The data module will add this to survey when SimPEG is initialized.
 # class Data:

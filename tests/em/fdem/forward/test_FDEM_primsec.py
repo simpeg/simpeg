@@ -6,6 +6,7 @@ from scipy.constants import mu_0
 from SimPEG import maps, tests, utils
 from SimPEG.electromagnetics import frequency_domain as fdem
 from SimPEG.electromagnetics.utils import omega
+
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
@@ -17,10 +18,10 @@ import numpy as np
 import unittest
 
 # This could be reduced if we refine the meshes
-TOL_FWD = 5e-1 # relative tolerance for prim-sec comparison
+TOL_FWD = 5e-1  # relative tolerance for prim-sec comparison
 
 TOL_JT = 1e-10
-FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
+FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 
 np.random.seed(2016)
 
@@ -34,63 +35,59 @@ np.random.seed(2016)
 sigmaback = 1e-1
 sigmablock = 5e-1
 
-block_x = np.r_[125., 225.]
-block_y = np.r_[-50., 50.]
-block_z = np.r_[-50., 50.]
+block_x = np.r_[125.0, 225.0]
+block_y = np.r_[-50.0, 50.0]
+block_z = np.r_[-50.0, 50.0]
 
 # model
-model = np.r_[np.log(sigmaback),
-              np.log(sigmablock),
-              np.mean(block_z),
-              np.diff(block_z),
-              np.mean(block_x),
-              np.diff(block_x),
-              np.mean(block_y),
-              np.diff(block_y)]
+model = np.r_[
+    np.log(sigmaback),
+    np.log(sigmablock),
+    np.mean(block_z),
+    np.diff(block_z),
+    np.mean(block_x),
+    np.diff(block_x),
+    np.mean(block_y),
+    np.diff(block_y),
+]
 
 # source
-src_loc = np.r_[0., 0., 0.]
+src_loc = np.r_[0.0, 0.0, 0.0]
 freq = 10
 
 # receivers
-rx_x = np.linspace(-175., 175., 8)
+rx_x = np.linspace(-175.0, 175.0, 8)
 rx_y = rx_x.copy()
-rx_z = np.r_[175.]
+rx_z = np.r_[175.0]
 rx_locs = utils.ndgrid(rx_x, rx_y, rx_z)
 
 # mesh
-csx, ncx, npadx = 25., 16, 10
-csz, ncz, npadz = 25., 8, 10
+csx, ncx, npadx = 25.0, 16, 10
+csz, ncz, npadz = 25.0, 8, 10
 pf = 1.5
 
 # primary mesh
 hx = [(csx, ncx), (csx, npadx, pf)]
 hz = [(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)]
-meshp = discretize.CylMesh([hx, 1., hz], x0='0CC')
+meshp = discretize.CylMesh([hx, 1.0, hz], x0="0CC")
 
 # secondary mesh
-h = [(csz, npadz-4, -pf), (csz, ncz), (csz, npadz-4, pf)]
-meshs = discretize.TensorMesh(3*[h], x0 = 'CCC')
+h = [(csz, npadz - 4, -pf), (csz, ncz), (csz, npadz - 4, pf)]
+meshs = discretize.TensorMesh(3 * [h], x0="CCC")
 
 # mappings
 primaryMapping = (
-    maps.ExpMap(meshp) *
-    maps.SurjectFull(meshp) *
-    maps.Projection(nP=8, index=[0])
+    maps.ExpMap(meshp) * maps.SurjectFull(meshp) * maps.Projection(nP=8, index=[0])
 )
 
 mapping = (
-    maps.ExpMap(meshs) *
-    maps.ParametricBlockInLayer(meshs) *
-    maps.Projection(
-        nP=8, index=np.hstack([np.r_[0], np.arange(0, 8)])
-    )
+    maps.ExpMap(meshs)
+    * maps.ParametricBlockInLayer(meshs)
+    * maps.Projection(nP=8, index=np.hstack([np.r_[0], np.arange(0, 8)]))
 )
 
 primaryMap2Meshs = (
-    maps.ExpMap(meshs) *
-    maps.SurjectFull(meshs) *
-    maps.Projection(nP=8, index=[0])
+    maps.ExpMap(meshs) * maps.SurjectFull(meshs) * maps.Projection(nP=8, index=[0])
 )
 
 
@@ -98,11 +95,9 @@ class PrimSecFDEMTest(object):
 
     # --------------------- Run some tests! --------------------- #
     def DataTest(self):
-        print('\nTesting Data')
-        dpred_primsec = self.secondarySimulation.dpred(
-            model, f=self.fields_primsec)
-        dpred_3D = self.simulation3D.dpred(
-            model, f=self.fields_3D)
+        print("\nTesting Data")
+        dpred_primsec = self.secondarySimulation.dpred(model, f=self.fields_primsec)
+        dpred_3D = self.simulation3D.dpred(model, f=self.fields_3D)
 
         nrx_locs = rx_locs.shape[0]
         dpred_primsec = dpred_primsec.reshape(nrx_locs, len(self.rxlist))
@@ -115,32 +110,36 @@ class PrimSecFDEMTest(object):
             normdiff = np.linalg.norm(dpred_primsec[:, i] - dpred_3D[:, i])
             passed = normdiff < TOL_FWD * np.mean([normps, norm3D])
             print(
-                '  Testing {rxfield}{rxorient} {rxcomp}...   '
-                'prim-sec: {normps:10.5e}, 3D: {norm3D:10.5e}, '
-                'diff: {diff:10.5e}, passed? {passed}'.format(
-                    rxfield=rx.projField, rxorient=rx.projComp,
-                    rxcomp=rx.component, normps=normps, norm3D=norm3D,
-                    diff=normdiff, passed=passed
-                ) )
+                "  Testing {rxfield}{rxorient} {rxcomp}...   "
+                "prim-sec: {normps:10.5e}, 3D: {norm3D:10.5e}, "
+                "diff: {diff:10.5e}, passed? {passed}".format(
+                    rxfield=rx.projField,
+                    rxorient=rx.projComp,
+                    rxcomp=rx.component,
+                    normps=normps,
+                    norm3D=norm3D,
+                    diff=normdiff,
+                    passed=passed,
+                )
+            )
 
             self.assertTrue(passed)
         return True
 
     def JvecTest(self):
-        print('\nTesting Jvec')
+        print("\nTesting Jvec")
         x0 = model
 
         def fun(x):
             return [
                 self.secondarySimulation.dpred(x),
-                lambda x: self.secondarySimulation.Jvec(
-                    x0, x, f=self.fields_primsec
-                )
+                lambda x: self.secondarySimulation.Jvec(x0, x, f=self.fields_primsec),
             ]
+
         return tests.checkDerivative(fun, x0, num=2, plotIt=False)
 
     def AdjointTest(self):
-        print('\nTesting adjoint')
+        print("\nTesting adjoint")
 
         m = model
         f = self.fields_primsec
@@ -149,59 +148,72 @@ class PrimSecFDEMTest(object):
 
         vJw = v.dot(self.secondarySimulation.Jvec(m, w, f))
         wJtv = w.dot(self.secondarySimulation.Jtvec(m, v, f))
-        tol = np.max([TOL_JT*(10**int(np.log10(np.abs(vJw)))), FLR])
+        tol = np.max([TOL_JT * (10 ** int(np.log10(np.abs(vJw)))), FLR])
         passed = np.abs(vJw - wJtv) < tol
-        print(' J: {}, JT: {}, diff: {}, tol: {}, passed? {}'.format(
-            vJw, wJtv, vJw - wJtv, tol, passed))
+        print(
+            " J: {}, JT: {}, diff: {}, tol: {}, passed? {}".format(
+                vJw, wJtv, vJw - wJtv, tol, passed
+            )
+        )
 
         return passed
 
 
 class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
-
     @classmethod
     def setUpClass(self):
 
-        print('\n------- Testing Primary Secondary Source EB -> EB --------\n')
+        print("\n------- Testing Primary Secondary Source EB -> EB --------\n")
         # receivers
         self.rxlist = []
-        for rxtype in ['MagneticFluxDensity', 'ElectricField']:
-            rx = getattr(fdem.Rx, 'Point{}'.format(rxtype))
-            for orientation in ['x', 'y', 'z']:
-                for comp in ['real', 'imag']:
-                    self.rxlist.append(rx(rx_locs, component=comp,
-                                       orientation=orientation))
+        for rxtype in ["MagneticFluxDensity", "ElectricField"]:
+            rx = getattr(fdem.Rx, "Point{}".format(rxtype))
+            for orientation in ["x", "y", "z"]:
+                for comp in ["real", "imag"]:
+                    self.rxlist.append(
+                        rx(rx_locs, component=comp, orientation=orientation)
+                    )
 
         # primary
-        self.primarySimulation = fdem.Simulation3DMagneticFluxDensity(meshp, sigmaMap=primaryMapping)
+        self.primarySimulation = fdem.Simulation3DMagneticFluxDensity(
+            meshp, sigmaMap=primaryMapping
+        )
         self.primarySimulation.solver = Solver
         primarySrc = fdem.Src.MagDipole(self.rxlist, freq=freq, loc=src_loc)
         self.primarySurvey = fdem.Survey([primarySrc])
 
         # Secondary Problem
-        self.secondarySimulation = fdem.Simulation3DMagneticFluxDensity(meshs, sigmaMap=mapping)
+        self.secondarySimulation = fdem.Simulation3DMagneticFluxDensity(
+            meshs, sigmaMap=mapping
+        )
         self.secondarySimulation.Solver = Solver
         self.secondarySrc = fdem.Src.PrimSecMappedSigma(
-                self.rxlist, freq, self.primarySimulation,
-                self.primarySurvey, primaryMap2Meshs)
+            self.rxlist,
+            freq,
+            self.primarySimulation,
+            self.primarySurvey,
+            primaryMap2Meshs,
+        )
         self.secondarySurvey = fdem.Survey([self.secondarySrc])
         self.secondarySimulation.pair(self.secondarySurvey)
 
         # Full 3D problem to compare with
-        self.simulation3D = fdem.Simulation3DMagneticFluxDensity(meshs, sigmaMap=mapping)
+        self.simulation3D = fdem.Simulation3DMagneticFluxDensity(
+            meshs, sigmaMap=mapping
+        )
         self.simulation3D.Solver = Solver
         self.survey3D = fdem.Survey([primarySrc])
         self.simulation3D.pair(self.survey3D)
 
         # solve and store fields
-        print('   solving primary - secondary')
+        print("   solving primary - secondary")
         self.fields_primsec = self.secondarySimulation.fields(model)
-        print('     ... done')
+        print("     ... done")
 
         self.fields_primsec = self.secondarySimulation.fields(model)
-        print('   solving 3D')
+        print("   solving 3D")
         self.fields_3D = self.simulation3D.fields(model)
-        print('     ... done')
+        print("     ... done")
 
         return None
 
@@ -217,37 +229,42 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
 
 
 class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
-
     @classmethod
     def setUpClass(self):
 
-        print('\n------- Testing Primary Secondary Source HJ -> EB --------\n')
+        print("\n------- Testing Primary Secondary Source HJ -> EB --------\n")
         # receivers
         self.rxlist = []
-        for rxtype in ['MagneticFluxDensity', 'ElectricField']:
-            rx = getattr(fdem.Rx, 'Point{}'.format(rxtype))
-            for orientation in ['x', 'y', 'z']:
-                for comp in ['real', 'imag']:
-                    self.rxlist.append(rx(rx_locs, component=comp,
-                                       orientation=orientation))
+        for rxtype in ["MagneticFluxDensity", "ElectricField"]:
+            rx = getattr(fdem.Rx, "Point{}".format(rxtype))
+            for orientation in ["x", "y", "z"]:
+                for comp in ["real", "imag"]:
+                    self.rxlist.append(
+                        rx(rx_locs, component=comp, orientation=orientation)
+                    )
 
         # primary
-        self.primarySimulation = fdem.Simulation3DCurrentDensity(meshp, sigmaMap=primaryMapping)
+        self.primarySimulation = fdem.Simulation3DCurrentDensity(
+            meshp, sigmaMap=primaryMapping
+        )
         self.primarySimulation.solver = Solver
         s_e = np.zeros(meshp.nF)
-        inds = meshp.nFx + utils.closestPoints(meshp, src_loc, gridLoc='Fz')
-        s_e[inds] = 1./csz
-        primarySrc = fdem.Src.RawVec_e(
-            self.rxlist, freq=freq, s_e=s_e/meshp.area
-        )
+        inds = meshp.nFx + utils.closestPoints(meshp, src_loc, gridLoc="Fz")
+        s_e[inds] = 1.0 / csz
+        primarySrc = fdem.Src.RawVec_e(self.rxlist, freq=freq, s_e=s_e / meshp.area)
         self.primarySurvey = fdem.Survey([primarySrc])
 
         # Secondary Problem
-        self.secondarySimulation = fdem.Simulation3DElectricField(meshs, sigmaMap=mapping)
+        self.secondarySimulation = fdem.Simulation3DElectricField(
+            meshs, sigmaMap=mapping
+        )
         self.secondarySimulation.Solver = Solver
         self.secondarySrc = fdem.Src.PrimSecMappedSigma(
-                self.rxlist, freq, self.primarySimulation,
-                self.primarySurvey, primaryMap2Meshs
+            self.rxlist,
+            freq,
+            self.primarySimulation,
+            self.primarySurvey,
+            primaryMap2Meshs,
         )
         self.secondarySurvey = fdem.Survey([self.secondarySrc])
         self.secondarySimulation.pair(self.secondarySurvey)
@@ -256,23 +273,22 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.simulation3D = fdem.Simulation3DElectricField(meshs, sigmaMap=mapping)
         self.simulation3D.Solver = Solver
         s_e3D = np.zeros(meshs.nE)
-        inds = (meshs.nEx + meshs.nEy +
-                utils.closestPoints(meshs, src_loc, gridLoc='Ez'))
-        s_e3D[inds] = [1./(len(inds))] * len(inds)
+        inds = meshs.nEx + meshs.nEy + utils.closestPoints(meshs, src_loc, gridLoc="Ez")
+        s_e3D[inds] = [1.0 / (len(inds))] * len(inds)
         self.simulation3D.model = model
         src3D = fdem.Src.RawVec_e(self.rxlist, freq=freq, s_e=s_e3D)
         self.survey3D = fdem.Survey([src3D])
         self.simulation3D.pair(self.survey3D)
 
         # solve and store fields
-        print('   solving primary - secondary')
+        print("   solving primary - secondary")
         self.fields_primsec = self.secondarySimulation.fields(model)
-        print('     ... done')
+        print("     ... done")
 
         self.fields_primsec = self.secondarySimulation.fields(model)
-        print('   solving 3D')
+        print("   solving 3D")
         self.fields_3D = self.simulation3D.fields(model)
-        print('     ... done')
+        print("     ... done")
 
         return None
 
@@ -287,5 +303,5 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.AdjointTest()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

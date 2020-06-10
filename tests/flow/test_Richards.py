@@ -15,13 +15,12 @@ except Exception:
     from SimPEG import Solver
 
 
-TOL = 1E-8
+TOL = 1e-8
 
 np.random.seed(0)
 
 
 class BaseRichardsTest(unittest.TestCase):
-
     def setUp(self):
         mesh = self.get_mesh()
         params = richards.empirical.HaverkampParams().celia1990
@@ -34,9 +33,12 @@ class BaseRichardsTest(unittest.TestCase):
             mesh,
             hydraulic_conductivity=k_fun,
             water_retention=theta_fun,
-            root_finder_tol=1e-6, debug=False,
-            boundary_conditions=bc, initial_conditions=h,
-            do_newton=False, method='mixed'
+            root_finder_tol=1e-6,
+            debug=False,
+            boundary_conditions=bc,
+            initial_conditions=h,
+            do_newton=False,
+            method="mixed",
         )
         prob.time_steps = [(40, 3), (60, 3)]
         prob.Solver = Solver
@@ -48,18 +50,19 @@ class BaseRichardsTest(unittest.TestCase):
 
         self.h0 = h
         self.mesh = mesh
-        self.Ks = params['Ks'] * np.ones(self.mesh.nC)
-        self.A = params['A'] * np.ones(self.mesh.nC)
-        self.theta_s = params['theta_s'] * np.ones(self.mesh.nC)
+        self.Ks = params["Ks"] * np.ones(self.mesh.nC)
+        self.A = params["A"] * np.ones(self.mesh.nC)
+        self.theta_s = params["theta_s"] * np.ones(self.mesh.nC)
         self.prob = prob
         self.survey = survey
         self.setup_model()
 
     def _dotest_getResidual(self, newton):
-        print('Testing richards get residual newton={}, dim={}'.format(
-            newton,
-            self.mesh.dim
-        ))
+        print(
+            "Testing richards get residual newton={}, dim={}".format(
+                newton, self.mesh.dim
+            )
+        )
         self.prob.do_newton = newton
         passed = checkDerivative(
             lambda hn1: self.prob.getResidual(
@@ -67,11 +70,11 @@ class BaseRichardsTest(unittest.TestCase):
                 self.h0,
                 hn1,
                 self.prob.time_steps[0],
-                self.prob.boundary_conditions
+                self.prob.boundary_conditions,
             ),
             self.h0,
             expectedOrder=2 if newton else 1,
-            plotIt=False
+            plotIt=False,
         )
         self.assertTrue(passed, True)
 
@@ -81,52 +84,44 @@ class BaseRichardsTest(unittest.TestCase):
         Hs = self.prob.fields(self.mtrue)
         vJz = v.dot(self.prob.Jvec(self.mtrue, z, f=Hs))
         zJv = z.dot(self.prob.Jtvec(self.mtrue, v, f=Hs))
-        tol = TOL*(10**int(np.log10(np.abs(zJv))))
+        tol = TOL * (10 ** int(np.log10(np.abs(zJv))))
         passed = np.abs(vJz - zJv) < tol
-        print('Richards Adjoint Test - PressureHead dim={}'.format(
-            self.mesh.dim
-        ))
-        print('{0:4.4e} === {1:4.4e}, diff={2:4.4e} < {3:4e}'.format(
-            vJz, zJv, np.abs(vJz - zJv), tol)
+        print("Richards Adjoint Test - PressureHead dim={}".format(self.mesh.dim))
+        print(
+            "{0:4.4e} === {1:4.4e}, diff={2:4.4e} < {3:4e}".format(
+                vJz, zJv, np.abs(vJz - zJv), tol
+            )
         )
         self.assertTrue(passed, True)
 
     def _dotest_sensitivity(self):
-        print('Testing Richards Derivative dim={}'.format(
-            self.mesh.dim
-        ))
+        print("Testing Richards Derivative dim={}".format(self.mesh.dim))
         passed = checkDerivative(
             lambda m: [self.prob.dpred(m), lambda v: self.prob.Jvec(m, v)],
             self.mtrue,
             num=4,
-            plotIt=False
+            plotIt=False,
         )
         self.assertTrue(passed, True)
 
     def _dotest_sensitivity_full(self):
-        print('Testing Richards Derivative FULL dim={}'.format(
-            self.mesh.dim
-        ))
+        print("Testing Richards Derivative FULL dim={}".format(self.mesh.dim))
         J = self.prob.Jfull(self.mtrue)
         passed = checkDerivative(
-            lambda m: [self.prob.dpred(m), J],
-            self.mtrue,
-            num=4,
-            plotIt=False
+            lambda m: [self.prob.dpred(m), J], self.mtrue, num=4, plotIt=False
         )
         self.assertTrue(passed, True)
 
 
 class RichardsTests1D(BaseRichardsTest):
-
     def get_mesh(self):
         mesh = discretize.TensorMesh([np.ones(20)])
-        mesh.setCellGradBC('dirichlet')
+        mesh.setCellGradBC("dirichlet")
         print(mesh.dim)
         return mesh
 
     def get_rx_list(self, prob):
-        locs = np.array([[5.], [10], [15]])
+        locs = np.array([[5.0], [10], [15]])
         times = prob.times[3:5]
         rxSat = richards.receivers.Saturation(locations=locs, times=times)
         rxPre = richards.receivers.Pressure(locations=locs, times=times)
@@ -160,7 +155,6 @@ class RichardsTests1D(BaseRichardsTest):
 
 
 class RichardsTests1D_Saturation(RichardsTests1D):
-
     def setup_maps(self, mesh, k_fun, theta_fun):
         theta_fun.theta_sMap = maps.IdentityMap(nP=mesh.nC)
 
@@ -169,7 +163,7 @@ class RichardsTests1D_Saturation(RichardsTests1D):
         self.mtrue = self.theta_s
 
     def get_rx_list(self, prob):
-        locs = np.array([[5.], [10], [15]])
+        locs = np.array([[5.0], [10], [15]])
         times = prob.times[3:5]
         rxSat = richards.receivers.Saturation(locs, times)
         rxPre = richards.receivers.Pressure(locs, times)
@@ -186,11 +180,8 @@ class RichardsTests1D_Saturation(RichardsTests1D):
 
 
 class RichardsTests1D_Multi(RichardsTests1D):
-
     def setup_maps(self, mesh, k_fun, theta_fun):
-        wires = maps.Wires(
-            ('Ks', mesh.nC), ('A', mesh.nC), ('theta_s', mesh.nC)
-        )
+        wires = maps.Wires(("Ks", mesh.nC), ("A", mesh.nC), ("theta_s", mesh.nC))
         k_fun.KsMap = maps.ExpMap(nP=mesh.nC) * wires.Ks
         k_fun.AMap = wires.A
         theta_fun.theta_sMap = wires.theta_s
@@ -209,14 +200,13 @@ class RichardsTests1D_Multi(RichardsTests1D):
 
 
 class RichardsTests2D(BaseRichardsTest):
-
     def get_mesh(self):
         mesh = discretize.TensorMesh([np.ones(8), np.ones(30)])
-        mesh.setCellGradBC(['neumann', 'dirichlet'])
+        mesh.setCellGradBC(["neumann", "dirichlet"])
         return mesh
 
     def get_rx_list(self, prob):
-        locs = utils.ndgrid(np.array([5, 7.]), np.array([5, 15, 25.]))
+        locs = utils.ndgrid(np.array([5, 7.0]), np.array([5, 15, 25.0]))
         times = prob.times[3:5]
         rxSat = richards.receivers.Saturation(locs, times)
         rxPre = richards.receivers.Pressure(locs, times)
@@ -225,9 +215,7 @@ class RichardsTests2D(BaseRichardsTest):
     def get_conditions(self, mesh):
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
-            np.zeros(mesh.nCy*2),
-            np.ones(mesh.nCx)*bc[0],
-            np.ones(mesh.nCx)*bc[1]
+            np.zeros(mesh.nCy * 2), np.ones(mesh.nCx) * bc[0], np.ones(mesh.nCx) * bc[1]
         ]
         h = np.zeros(mesh.nC) + bc[0]
         return bc, h
@@ -255,14 +243,13 @@ class RichardsTests2D(BaseRichardsTest):
 
 
 class RichardsTests3D(BaseRichardsTest):
-
     def get_mesh(self):
         mesh = discretize.TensorMesh([np.ones(8), np.ones(20), np.ones(10)])
-        mesh.setCellGradBC(['neumann', 'neumann', 'dirichlet'])
+        mesh.setCellGradBC(["neumann", "neumann", "dirichlet"])
         return mesh
 
     def get_rx_list(self, prob):
-        locs = utils.ndgrid(np.r_[5, 7.], np.r_[5, 15.], np.r_[6, 8.])
+        locs = utils.ndgrid(np.r_[5, 7.0], np.r_[5, 15.0], np.r_[6, 8.0])
         times = prob.times[3:5]
         rxSat = richards.receivers.Saturation(locs, times)
         rxPre = richards.receivers.Pressure(locs, times)
@@ -271,10 +258,10 @@ class RichardsTests3D(BaseRichardsTest):
     def get_conditions(self, mesh):
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
-            np.zeros(mesh.nCy*mesh.nCz*2),
-            np.zeros(mesh.nCx*mesh.nCz*2),
-            np.ones(mesh.nCx*mesh.nCy)*bc[0],
-            np.ones(mesh.nCx*mesh.nCy)*bc[1]
+            np.zeros(mesh.nCy * mesh.nCz * 2),
+            np.zeros(mesh.nCx * mesh.nCz * 2),
+            np.ones(mesh.nCx * mesh.nCy) * bc[0],
+            np.ones(mesh.nCx * mesh.nCy) * bc[1],
         ]
         h = np.zeros(mesh.nC) + bc[0]
         return bc, h
@@ -301,5 +288,5 @@ class RichardsTests3D(BaseRichardsTest):
         self._dotest_sensitivity_full()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

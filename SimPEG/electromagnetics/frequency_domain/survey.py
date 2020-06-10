@@ -16,7 +16,7 @@ class Survey(BaseSurvey):
     source_list = properties.List(
         "A list of sources for the survey",
         properties.Instance("A SimPEG source", BaseFDEMSrc),
-        default=[]
+        default=[],
     )
 
     def __init__(self, source_list=None, **kwargs):
@@ -39,25 +39,34 @@ class Survey(BaseSurvey):
         """
         return self._frequencies
 
-    freqs = deprecate_property(frequencies, 'freq', removal_version='0.15.0')
+    freqs = deprecate_property(
+        frequencies, "freq", new_name="frequencies", removal_version="0.15.0"
+    )
 
     @property
     def num_frequencies(self):
         """Number of frequencies"""
         return len(self._frequency_dict)
 
-    nFreq = deprecate_property(num_frequencies, 'nFreq', removal_version='0.15.0')
+    nFreq = deprecate_property(
+        num_frequencies, "nFreq", new_name="num_frequencies", removal_version="0.15.0"
+    )
 
     @property
     def num_sources_by_frequency(self):
         """Number of sources at each frequency"""
-        if getattr(self, '_num_sources_by_frequency', None) is None:
+        if getattr(self, "_num_sources_by_frequency", None) is None:
             self._num_sources_by_frequency = {}
             for freq in self.frequencies:
                 self._num_sources_by_frequency[freq] = len(self.getSrcByFreq(freq))
         return self._num_sources_by_frequency
 
-    nSrcByFreq = deprecate_property(num_sources_by_frequency, 'nSrcByFreq', '0.15.0')
+    nSrcByFreq = deprecate_property(
+        num_sources_by_frequency,
+        "nSrcByFreq",
+        new_name="num_sources_by_frequency",
+        removal_version="0.15.0",
+    )
 
     def get_sources_by_frequency(self, frequency):
         """
@@ -66,9 +75,9 @@ class Survey(BaseSurvey):
         :rtype: dictionary
         :return: sources at the sepcified frequency
         """
-        assert frequency in self._frequency_dict, (
-            "The requested frequency is not in this survey."
-        )
+        assert (
+            frequency in self._frequency_dict
+        ), "The requested frequency is not in this survey."
         return self._frequency_dict[frequency]
 
-    getSrcByFreq = deprecate_method(get_sources_by_frequency, 'getSrcByFreq', '0.15.0')
+    getSrcByFreq = deprecate_method(get_sources_by_frequency, "getSrcByFreq", "0.15.0")

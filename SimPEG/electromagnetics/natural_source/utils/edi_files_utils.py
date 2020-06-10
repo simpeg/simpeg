@@ -1,4 +1,5 @@
 from __future__ import print_function
+
 # Functions to import and export MT EDI files.
 from SimPEG import mkvc
 from scipy.constants import mu_0
@@ -16,12 +17,11 @@ class EDIimporter:
 
     """
 
-
     # Define data converters
     # Convert Z[mV/km/nT] (as in EDI)to Z[V/A] SI unit
     _impUnitEDI2SI = 4 * np.pi * 1e-4
     # ConvertZ[V/A] SI unit to Z[mV/km/nT] (as in EDI)_
-    _impUnitSI2EDI = 1. /_impUnitEDI2SI
+    _impUnitSI2EDI = 1.0 / _impUnitEDI2SI
 
     # Properties
     filesList = None
@@ -29,7 +29,7 @@ class EDIimporter:
 
     # Hidden properties
     _outEPSG = None  # Project info
-    _2out = None    # The projection operator
+    _2out = None  # The projection operator
 
     def __init__(self, EDIfilesList, compList=None, outEPSG=None):
 
@@ -38,9 +38,19 @@ class EDIimporter:
         # Set the components to import
         if compList is None:
             self.comps = [
-                'ZXXR', 'ZXYR', 'ZYXR', 'ZYYR',
-                'ZXXI', 'ZXYI', 'ZYXI', 'ZYYI',
-                'ZXX.VAR', 'ZXY.VAR', 'ZYX.VAR', 'ZYY.VAR']
+                "ZXXR",
+                "ZXYR",
+                "ZYXR",
+                "ZYYR",
+                "ZXXI",
+                "ZXYI",
+                "ZYXI",
+                "ZYYI",
+                "ZXX.VAR",
+                "ZXY.VAR",
+                "ZYX.VAR",
+                "ZYY.VAR",
+            ]
         else:
             self.comps = compList
         if outEPSG is not None:
@@ -65,54 +75,54 @@ class EDIimporter:
         # Temp lists
         tmpStaList = []
 
-        tmpCompList = ['freq', 'x', 'y', 'z']
+        tmpCompList = ["freq", "x", "y", "z"]
         tmpCompList.extend(self.comps)
         # List of how to "rotate/shift" the data to comply with
-        shift_list = [['xx', 'yy'], ['xy', 'yx'], ['yx', 'xy'], ['yy', 'xx']]
+        shift_list = [["xx", "yy"], ["xy", "yx"], ["yx", "xy"], ["yy", "xx"]]
         # Make the outarray
-        dtRI = [(compS.lower().replace('.', ''), float)
-                for compS in tmpCompList]
+        dtRI = [(compS.lower().replace(".", ""), float) for compS in tmpCompList]
         # Loop through all the files
         for nrEDI, EDIfile in enumerate(self.filesList):
             # Read the file into a list of the lines
-            with open(EDIfile, 'r') as fid:
+            with open(EDIfile, "r") as fid:
                 EDIlines = fid.readlines()
             # Find the location
             latD, longD, elevM = _findLatLong(EDIlines)
             # Transfrom coordinates
             transCoord = self._transfromPoints(longD, latD)
             # Extract the name of the file (station)
-            EDIname = EDIfile.split(os.sep)[-1].split('.')[0]
+            EDIname = EDIfile.split(os.sep)[-1].split(".")[0]
             # Arrange the data
-            staList = [
-                EDIname, EDIfile, transCoord[0], transCoord[1], elevM[0]]
+            staList = [EDIname, EDIfile, transCoord[0], transCoord[1], elevM[0]]
             # Add to the station list
             tmpStaList.extend(staList)
 
             # Read the frequency data
-            freq = _findEDIcomp('>FREQ', EDIlines)
+            freq = _findEDIcomp(">FREQ", EDIlines)
             # Make the temporary rec array.
             tArrRec = (np.nan * np.ones((len(freq), len(dtRI)))).view(dtRI)
-            tArrRec['freq'] = mkvc(freq, 2)
-            tArrRec['x'] = mkvc(np.ones((len(freq), 1)) * transCoord[0], 2)
-            tArrRec['y'] = mkvc(np.ones((len(freq), 1)) * transCoord[1], 2)
-            tArrRec['z'] = mkvc(np.ones((len(freq), 1)) * elevM[0], 2)
+            tArrRec["freq"] = mkvc(freq, 2)
+            tArrRec["x"] = mkvc(np.ones((len(freq), 1)) * transCoord[0], 2)
+            tArrRec["y"] = mkvc(np.ones((len(freq), 1)) * transCoord[1], 2)
+            tArrRec["z"] = mkvc(np.ones((len(freq), 1)) * elevM[0], 2)
             for comp in self.comps:
                 # Deal with converting units of the impedance tensor
-                if 'Z' in comp:
+                if "Z" in comp:
                     unitConvert = self._impUnitEDI2SI
                 else:
                     unitConvert = 1
                 # Rotate the data since EDI x is *north, y *east but Simpeg
                 # uses x *east, y *north (* means internal reference frame)
-                key = [comp.lower().replace('.', '').replace(s, t)
-                       for s, t in shift_list if s in comp.lower()][0]
-                tArrRec[key] = mkvc(
-                    unitConvert * _findEDIcomp('>' + comp, EDIlines), 2)
+                key = [
+                    comp.lower().replace(".", "").replace(s, t)
+                    for s, t in shift_list
+                    if s in comp.lower()
+                ][0]
+                tArrRec[key] = mkvc(unitConvert * _findEDIcomp(">" + comp, EDIlines), 2)
             # Make a masked array
             mArrRec = np.ma.MaskedArray(
-                rec_to_ndarr(tArrRec),
-                mask=np.isnan(rec_to_ndarr(tArrRec))).view(dtype=tArrRec.dtype)
+                rec_to_ndarr(tArrRec), mask=np.isnan(rec_to_ndarr(tArrRec))
+            ).view(dtype=tArrRec.dtype)
             try:
                 outTemp = recFunc.stack_arrays((outTemp, mArrRec))
             except NameError:
@@ -129,9 +139,12 @@ class EDIimporter:
         try:
             import osr
         except ImportError as e:
-            print((
-                'Could not import osr, missing the gdal' +
-                'package\nCan not project coordinates'))
+            print(
+                (
+                    "Could not import osr, missing the gdal"
+                    + "package\nCan not project coordinates"
+                )
+            )
             raise e
         # Coordinates convertor
         if self._2out is None:
@@ -148,29 +161,27 @@ class EDIimporter:
         # Return the transfrom
         return self._2out.TransformPoint(longD, latD)
 
+
 # Hidden functions
 def _findLatLong(fileLines):
     latDMS = np.array(
-        fileLines[
-            _findLine(
-                'LAT=', fileLines)[0]].split('=')[1].split()[0].split(':'),
-        float)
+        fileLines[_findLine("LAT=", fileLines)[0]].split("=")[1].split()[0].split(":"),
+        float,
+    )
     longDMS = np.array(
-        fileLines[
-            _findLine(
-                'LONG=', fileLines)[0]].split('=')[1].split()[0].split(':'),
-        float)
+        fileLines[_findLine("LONG=", fileLines)[0]].split("=")[1].split()[0].split(":"),
+        float,
+    )
     elevM = np.array(
-        [fileLines[
-            _findLine(
-                'ELEV=', fileLines)[0]].split('=')[1].split()[0]],
-        float)
+        [fileLines[_findLine("ELEV=", fileLines)[0]].split("=")[1].split()[0]], float
+    )
     # Convert to D.ddddd values
     latS = np.sign(latDMS[0])
     longS = np.sign(longDMS[0])
     latD = latDMS[0] + latS * latDMS[1] / 60 + latS * latDMS[2] / 3600
     longD = longDMS[0] + longS * longDMS[1] / 60 + longS * longDMS[2] / 3600
     return latD, longD, elevM
+
 
 def _findLine(comp, fileLines):
     """ Find a line number in the file"""
@@ -188,6 +199,7 @@ def _findLine(comp, fileLines):
     # Return the found indices
     return found
 
+
 def _findEDIcomp(comp, fileLines, dt=float):
     """
     Extract the data vector.
@@ -196,9 +208,10 @@ def _findEDIcomp(comp, fileLines, dt=float):
     """
     # Find the data
     headLine, indHead = [
-        (st, nr) for nr, st in enumerate(fileLines) if re.search(comp, st)][0]
+        (st, nr) for nr, st in enumerate(fileLines) if re.search(comp, st)
+    ][0]
     # Extract the data
-    nrVec = int(headLine.split('//')[-1])
+    nrVec = int(headLine.split("//")[-1])
     c = 0
     dataList = []
     while c < nrVec:

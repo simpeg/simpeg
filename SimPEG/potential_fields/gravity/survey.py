@@ -1,12 +1,13 @@
 from ...survey import BaseSurvey
+from ...utils.code_utils import deprecate_class
 
 
-class GravitySurvey(BaseSurvey):
+class Survey(BaseSurvey):
     """Base Gravity Survey"""
 
     receiver_locations = None  #: receiver locations
     rxType = None  #: receiver type
-    components = ['gz']
+    components = ["gz"]
 
     def __init__(self, source_field, **kwargs):
         self.source_field = source_field
@@ -30,23 +31,29 @@ class GravitySurvey(BaseSurvey):
     @property
     def components(self):
         return self.source_field.receiver_list[0].components
-    
+
     @property
     def Qfx(self):
-        if getattr(self, '_Qfx', None) is None:
-            self._Qfx = self.prob.mesh.getInterpolationMat(self.receiver_locations, 'Fx')
+        if getattr(self, "_Qfx", None) is None:
+            self._Qfx = self.prob.mesh.getInterpolationMat(
+                self.receiver_locations, "Fx"
+            )
         return self._Qfx
 
     @property
     def Qfy(self):
-        if getattr(self, '_Qfy', None) is None:
-            self._Qfy = self.prob.mesh.getInterpolationMat(self.receiver_locations, 'Fy')
+        if getattr(self, "_Qfy", None) is None:
+            self._Qfy = self.prob.mesh.getInterpolationMat(
+                self.receiver_locations, "Fy"
+            )
         return self._Qfy
 
     @property
     def Qfz(self):
-        if getattr(self, '_Qfz', None) is None:
-            self._Qfz = self.prob.mesh.getInterpolationMat(self.receiver_locations, 'Fz')
+        if getattr(self, "_Qfz", None) is None:
+            self._Qfz = self.prob.mesh.getInterpolationMat(
+                self.receiver_locations, "Fz"
+            )
         return self._Qfz
 
     def projectFields(self, u):
@@ -68,9 +75,14 @@ class GravitySurvey(BaseSurvey):
         """
         # TODO: There can be some different tyes of data like |B| or B
 
-        gfx = self.Qfx * u['G']
-        gfy = self.Qfy * u['G']
-        gfz = self.Qfz * u['G']
+        gfx = self.Qfx * u["G"]
+        gfy = self.Qfy * u["G"]
+        gfz = self.Qfz * u["G"]
 
-        fields = {'gx': gfx, 'gy': gfy, 'gz': gfz}
+        fields = {"gx": gfx, "gy": gfy, "gz": gfz}
         return fields
+
+
+@deprecate_class(removal_version="0.15.0")
+class LinearSurvey(Survey):
+    pass

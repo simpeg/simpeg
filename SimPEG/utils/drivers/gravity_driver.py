@@ -1,6 +1,7 @@
 import re
 import os
 from discretize import TensorMesh
+
 try:
     from SimPEG import utils
 except:
@@ -14,9 +15,7 @@ class GravityDriver_Inv(object):
 
     def __init__(self, input_file=None):
         if input_file is not None:
-            self.basePath = os.path.sep.join(
-                input_file.split(os.path.sep)[:-1]
-            )
+            self.basePath = os.path.sep.join(input_file.split(os.path.sep)[:-1])
             if len(self.basePath) > 0:
                 self.basePath += os.path.sep
             self.readDriverFile(input_file.split(os.path.sep)[-1])
@@ -45,16 +44,16 @@ class GravityDriver_Inv(object):
 
         """
 
-        fid = open(self.basePath + input_file, 'r')
+        fid = open(self.basePath + input_file, "r")
 
         # Line 1: Mesh
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
+        l_input = re.split("[!\s]", line)
         mshfile = l_input[1].rstrip()
 
         # Line 2: Observation file
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
+        l_input = re.split("[!\s]", line)
         obsfile = l_input[1].rstrip()
 
         # Line 3: Topo, active-dyn, active-static
@@ -62,72 +61,72 @@ class GravityDriver_Inv(object):
         staticInput = None
 
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        if l_input[0] == 'TOPO':
+        l_input = re.split("[!\s]", line)
+        if l_input[0] == "TOPO":
             topofile = l_input[1].rstrip()
 
-        elif l_input[0] == 'VALUE':
+        elif l_input[0] == "VALUE":
             staticInput = float(l_input[1])
 
-        elif l_input[0] == 'FILE':
+        elif l_input[0] == "FILE":
             staticInput = l_input[1].rstrip()
 
         # Line 4: Starting model
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        if l_input[0] == 'VALUE':
+        l_input = re.split("[!\s]", line)
+        if l_input[0] == "VALUE":
             mstart = float(l_input[1])
 
-        elif l_input[0] == 'FILE':
+        elif l_input[0] == "FILE":
             mstart = l_input[1].rstrip()
 
         # Line 5: Reference model
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        if l_input[0] == 'VALUE':
+        l_input = re.split("[!\s]", line)
+        if l_input[0] == "VALUE":
             mref = float(l_input[1])
 
-        elif l_input[0] == 'FILE':
+        elif l_input[0] == "FILE":
             mref = l_input[1].rstrip()
 
         # Line 6: Cell weights
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        if l_input[0] == 'DEFAULT':
+        l_input = re.split("[!\s]", line)
+        if l_input[0] == "DEFAULT":
             wgtfile = None
 
-        elif l_input[0] == 'FILE':
+        elif l_input[0] == "FILE":
             wgtfile = l_input[1].rstrip()
 
         # Line 7: Target chi-factor
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        if l_input[0] == 'DEFAULT':
-            chi = 1.
+        l_input = re.split("[!\s]", line)
+        if l_input[0] == "DEFAULT":
+            chi = 1.0
 
-        elif l_input[0] == 'VALUE':
+        elif l_input[0] == "VALUE":
             chi = float(l_input[1])
 
         # Line 8: Alpha values
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        if l_input[0] == 'VALUE':
+        l_input = re.split("[!\s]", line)
+        if l_input[0] == "VALUE":
 
             val = np.array(l_input[1:5])
             alphas = val.astype(np.float)
 
-        elif l_input[0] == 'DEFAULT':
+        elif l_input[0] == "DEFAULT":
 
             alphas = np.ones(4)
 
         # Line 9: Bounds
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        if l_input[0] == 'VALUE':
+        l_input = re.split("[!\s]", line)
+        if l_input[0] == "VALUE":
             val = np.array(l_input[1:3])
             bounds = val.astype(np.float)
 
-        elif l_input[0] == 'FILE':
+        elif l_input[0] == "FILE":
             bounds = l_input[1].rstrip()
 
         else:
@@ -135,22 +134,22 @@ class GravityDriver_Inv(object):
 
         # Line 10: Norms
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        if l_input[0] == 'VALUE':
+        l_input = re.split("[!\s]", line)
+        if l_input[0] == "VALUE":
             val = np.array(l_input[1:6])
             lpnorms = val.astype(np.float)
 
-        elif l_input[0] == 'FILE':
+        elif l_input[0] == "FILE":
             lpnorms = l_input[1].rstrip()
 
         # Line 11: Treshold values
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        if l_input[0] == 'VALUE':
+        l_input = re.split("[!\s]", line)
+        if l_input[0] == "VALUE":
             val = np.array(l_input[1:3])
             eps = val.astype(np.float)
 
-        elif l_input[0] == 'DEFAULT':
+        elif l_input[0] == "DEFAULT":
             eps = None
 
         self.mshfile = mshfile
@@ -168,7 +167,7 @@ class GravityDriver_Inv(object):
 
     @property
     def mesh(self):
-        if getattr(self, '_mesh', None) is None:
+        if getattr(self, "_mesh", None) is None:
             self._mesh = TensorMesh.readUBC(self.basePath + self.mshfile)
         return self._mesh
 
@@ -178,7 +177,7 @@ class GravityDriver_Inv(object):
 
     @property
     def data(self):
-        if getattr(self, '_data', None) is None:
+        if getattr(self, "_data", None) is None:
             self._data = utils.io_utils.readUBCgravityObservations(
                 self.basePath + self.obsfile
             )
@@ -186,13 +185,11 @@ class GravityDriver_Inv(object):
 
     @property
     def activeCells(self):
-        if getattr(self, '_activeCells', None) is None:
-            if getattr(self, 'topofile', None) is not None:
-                topo = np.genfromtxt(
-                    self.basePath + self.topofile, skip_header=1
-                )
+        if getattr(self, "_activeCells", None) is None:
+            if getattr(self, "topofile", None) is not None:
+                topo = np.genfromtxt(self.basePath + self.topofile, skip_header=1)
                 # Find the active cells
-                active = utils.surface2ind_topo(self.mesh, topo, 'N')
+                active = utils.surface2ind_topo(self.mesh, topo, "N")
 
             elif isinstance(self._staticInput, float):
                 active = self.m0 != self._staticInput
@@ -212,7 +209,7 @@ class GravityDriver_Inv(object):
 
     @property
     def staticCells(self):
-        if getattr(self, '_staticCells', None) is None:
+        if getattr(self, "_staticCells", None) is None:
 
             # Cells with value 1 in active model are dynamic
             staticCells = self.activeModel[self._activeCells] == -1
@@ -224,7 +221,7 @@ class GravityDriver_Inv(object):
 
     @property
     def dynamicCells(self):
-        if getattr(self, '_dynamicCells', None) is None:
+        if getattr(self, "_dynamicCells", None) is None:
 
             # Cells with value 1 in active model are dynamic
             dynamicCells = self.activeModel[self._activeCells] == 1
@@ -237,13 +234,13 @@ class GravityDriver_Inv(object):
 
     @property
     def nC(self):
-        if getattr(self, '_nC', None) is None:
+        if getattr(self, "_nC", None) is None:
             self._nC = len(self.activeCells)
         return self._nC
 
     @property
     def m0(self):
-        if getattr(self, '_m0', None) is None:
+        if getattr(self, "_m0", None) is None:
             if isinstance(self.mstart, float):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
@@ -256,7 +253,7 @@ class GravityDriver_Inv(object):
 
     @property
     def mref(self):
-        if getattr(self, '_mref', None) is None:
+        if getattr(self, "_mref", None) is None:
             if isinstance(self._mrefInput, float):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
@@ -268,7 +265,7 @@ class GravityDriver_Inv(object):
 
     @property
     def activeModel(self):
-        if getattr(self, '_activeModel', None) is None:
+        if getattr(self, "_activeModel", None) is None:
             if isinstance(self._staticInput, str):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
                 self._activeModel = TensorMesh.readModelUBC(
