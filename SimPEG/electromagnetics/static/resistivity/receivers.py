@@ -163,10 +163,8 @@ class Dipole(BaseRx):
         self.locations = locations
 
     def __repr__(self):
-        out = ""
-        for m, n in zip(self.locations_m, self.locations_n):
-            out += f"{self.__class__.__name__}(m: {m}; n: {n}),\n"
-        return out
+        return "".join([f"{self.__class__.__name__}(m: {m}; n: {n}),\n" for
+                        (m, n) in zip(self.locations_m, self.locations_n)])
 
     @property
     def locations_m(self):
