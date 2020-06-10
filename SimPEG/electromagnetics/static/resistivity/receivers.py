@@ -214,6 +214,10 @@ class Pole(BaseRx):
     #     # We may not need this ...
     #     BaseRx.__init__(self, locations)
 
+    def __repr__(self):
+        return "".join([f"{self.__class__.__name__}(m: {m}),\n" for
+                        m in self.locations])
+
     @property
     def nD(self):
         """Number of data in the receiver."""
