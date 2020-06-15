@@ -3,9 +3,32 @@ import unittest
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 from SimPEG.electromagnetics.time_domain.sources import (
-    HalfSineWaveform,
+    StepOffWaveform,
+    RampOffWaveform,
+    TriangularWaveform,
+    VTEMWaveform,
+    TrapezoidWaveform,
     QuarterSineRampOnWaveform,
+    HalfSineWaveform,
 )
+
+
+class TestStepOffWaveform(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.times = np.linspace(start=0, stop=1e-2, num=11)
+
+    def test_waveform_with_default_eps(self):
+        step_off = StepOffWaveform()
+        result = [step_off.eval(t) for t in self.times]
+        expected = np.array([1.0] + [0.0] * 10)
+        assert_array_almost_equal(result, expected)
+
+    def test_waveform_with_custom_off_time(self):
+        step_off = StepOffWaveform(offTime=1e-3)
+        result = [step_off.eval(t) for t in self.times]
+        expected = np.array([0.0, 1.0] + [0.0] * 9)
+        assert_array_almost_equal(result, expected)
 
 
 class TestQuarterSineRampOnWaveform(unittest.TestCase):

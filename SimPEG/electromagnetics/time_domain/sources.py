@@ -47,7 +47,7 @@ class StepOffWaveform(BaseWaveform):
         BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
 
     def eval(self, time):
-        if abs(time - 0.0) < self.eps:
+        if abs(time - self.offTime) < self.eps:
             return 1.0
         else:
             return 0.0
