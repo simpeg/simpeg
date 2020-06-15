@@ -75,16 +75,6 @@ class RawWaveform(BaseWaveform):
         return self.waveFct(time)
 
 
-class TriangularWaveform(BaseWaveform):
-    def __init__(self, offTime=0.0):
-        BaseWaveform.__init__(self, offTime, hasInitialFields=True)
-
-    def eval(self, time):
-        raise NotImplementedError(
-            "TriangularWaveform has not been implemented, you should write it!"
-        )
-
-
 class VTEMWaveform(BaseWaveform):
 
     offTime = properties.Float("off-time of the source", default=4.2e-3)
@@ -151,6 +141,21 @@ class TrapezoidWaveform(BaseWaveform):
             )
         else:
             return 0
+
+
+class TriangularWaveform(TrapezoidWaveform):
+    """
+    TriangularWaveform is a special case of TrapezoidWaveform where there's no pleateau
+    """
+
+    offTime = properties.Float("off-time of the source")
+    peakTime = properties.Float("Time at which the Triangular waveform is at its peak")
+
+    def __init__(self, **kwargs):
+        super(TriangularWaveform, self).__init__(**kwargs)
+        self.hasInitialFields = False
+        self.ramp_on = np.r_[0.0, self.peakTime]
+        self.ramp_off = np.r_[self.peakTime, self.offTime]
 
 
 class QuarterSineRampOnWaveform(BaseWaveform):

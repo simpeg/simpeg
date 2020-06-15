@@ -5,9 +5,9 @@ from numpy.testing import assert_array_almost_equal
 from SimPEG.electromagnetics.time_domain.sources import (
     StepOffWaveform,
     RampOffWaveform,
-    TriangularWaveform,
     VTEMWaveform,
     TrapezoidWaveform,
+    TriangularWaveform,
     QuarterSineRampOnWaveform,
     HalfSineWaveform,
 )
@@ -91,6 +91,24 @@ class TestTrapezoidWaveform(unittest.TestCase):
         )
         result = [trapezoid.eval(t) for t in self.times]
         expected = np.array([0.0, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 0.75, 0.5, 0.25, 0.0])
+        assert_array_almost_equal(result, expected)
+
+
+class TestTriangularWaveform(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.times = np.linspace(start=0, stop=1e-2, num=11)
+
+    def test_waveform_with_symmetric_on_off(self):
+        triangular = TriangularWaveform(peakTime=4e-3, offTime=8e-3)
+        result = [triangular.eval(t) for t in self.times]
+        expected = np.array([0.0, 0.25, 0.5, 0.75, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0, 0.0])
+        assert_array_almost_equal(result, expected)
+
+    def test_waveform_with_asymmetric_on_off(self):
+        triangular = TriangularWaveform(peakTime=2e-3, offTime=6e-3)
+        result = [triangular.eval(t) for t in self.times]
+        expected = np.array([0.0, 0.5, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0])
         assert_array_almost_equal(result, expected)
 
 
