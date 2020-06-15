@@ -190,6 +190,43 @@ class QuarterSineRampOnWaveform(BaseWaveform):
             return 0
 
 
+class HalfSineWaveform(BaseWaveform):
+    """
+    A waveform that has a quarter-sine ramp-on and a quarter-cosine ramp-off.
+    When the end of ramp-on and start of ramp off are on the same spot, it looks
+    like a half sine wave.
+    """
+
+    ramp_on = properties.Array(
+        "times over which the transmitter ramps on", shape=(2,), dtype=float
+    )
+    ramp_off = properties.Array(
+        "times over which we ramp off the waveform", shape=(2,), dtype=float
+    )
+
+    def __init__(self, **kwargs):
+        super(HalfSineWaveform, self).__init__(**kwargs)
+        self.hasInitialFields = False
+
+    def eval(self, time):
+        if time < self.ramp_on[0]:
+            return 0
+        elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
+            return np.sin(
+                (np.pi / 2)
+                * ((time - self.ramp_on[0]) / (self.ramp_on[1] - self.ramp_on[0]))
+            )
+        elif time > self.ramp_on[1] and time < self.ramp_off[0]:
+            return 1
+        elif time >= self.ramp_off[0] and time <= self.ramp_off[1]:
+            return np.cos(
+                (np.pi / 2)
+                * ((time - self.ramp_off[0]) / (self.ramp_off[1] - self.ramp_off[0]))
+            )
+        else:
+            return 0
+
+
 ###############################################################################
 #                                                                             #
 #                                    Sources                                  #
