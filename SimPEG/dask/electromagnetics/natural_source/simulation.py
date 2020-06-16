@@ -84,7 +84,6 @@ def dask_Jtvec(self, m, v, f=None):
 
     # if f is None:
     #     f = self.fields(m)
-    print('dask')
     self.model = m
 
     # Ensure v is a data object.
@@ -174,7 +173,7 @@ def dask_getJ(self, m, f=None):
         # run solver in serial due to pardiso not being thread safe
         dA_duIT_list = []
         for ii in range(count):
-            blockName = self.j_path + "P" + str(ii) + ".zarr"
+            blockName = self.j_path + "F" + str(fcount) + "_P" + str(count) + ".zarr"
             dA_duIT = ATinv * da.from_zarr(blockName).compute()
             dA_duIT_list.append(dA_duIT.reshape(-1, rx.nD, order='F')) # shape now nUxnD
         # [Clean the factorization, clear memory.
@@ -185,7 +184,8 @@ def dask_getJ(self, m, f=None):
         for src in self.survey.get_sources_by_frequency(freq):
             # u_src needs to have both polarizations
             for rx in src.receiver_list:
-                Jsub = da.from_delayed(self.constructJsubMatrix(freq, src, rx, f[src, :], dA_duIT_list[count]), shape=(rx.nD, self.model.size), dtype=float)
+                # Jsub = da.from_delayed(self.constructJsubMatrix(freq, src, rx, f[src, :], dA_duIT_list[count]), shape=(rx.nD, self.model.size), dtype=float)
+                Jsub = dask.delayed(self.constructJsubMatrix)(freq, src, rx, f[src, :], dA_duIT_list[count])
                 blockName = self.j_path + "F" + str(fcount) + "_J" + str(count) + ".zarr"
                 da.to_zarr(Jsub.rechunk('auto'), blockName)
                 Jmatrix_pointers.append(blockName)
