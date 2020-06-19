@@ -7,6 +7,8 @@ from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
 from .utils.source_utils import homo1DModelSource
 
+import properties
+
 #################
 ###   Sources ###
 #################
@@ -254,3 +256,21 @@ class Planewave_xy_3Dprimary(BaseFDEMSrc):
         else:
             # v should be nC size
             return MsigmaDeriv * v
+
+
+
+
+
+###########################################
+# Source for 1D solution
+
+class AnalyticPlanewave1D(BaseFDEMSrc):
+    """
+    Source class for the 1D and pseudo-3D problems.
+
+    :param list receiver_list: List of SimPEG.electromagnetics.natural_sources.receivers.AnalyticReceiver1D
+    :param float frequency: frequency for the source
+    """
+
+    def __init__(self, receiver_list, frequency):
+        super(AnalyticPlanewave1D, self).__init__(receiver_list, frequency)
