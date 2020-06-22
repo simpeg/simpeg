@@ -222,6 +222,7 @@ def _poly_line_source_tens(mesh, locs):
             sx[ix, iy : iy + 2, iz : iz + 2] += np.reshape(sxloc, (2, 2), order="F")
             sy[ix : ix + 2, iy, iz : iz + 2] += np.reshape(syloc, (2, 2), order="F")
             sz[ix : ix + 2, iy : iy + 2, iz] += np.reshape(szloc, (2, 2), order="F")
+    return np.r_[mkvc(sx), mkvc(sy), mkvc(sz)]
 
 
 def _poly_line_source_tree(mesh, locs):
