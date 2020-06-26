@@ -130,6 +130,39 @@ def dask_getJtJdiag(self, m, W=None):
 Sim.getJtJdiag = dask_getJtJdiag
 
 
+# def dask_Jvec(self, m, v, f=None):
+#     """
+#         Compute sensitivity matrix (J) and vector (v) product.
+#     """
+
+#     if f is None:
+#         f = self.fields(m)
+
+#     if self.storeJ:
+#         J = self.getJ(m, f=f)
+#         return J.dot(v)
+
+#     self.model = m
+
+#     if self._mini_survey is not None:
+#         survey = self._mini_survey
+#     else:
+#         survey = self.survey
+
+#     Jv = []
+#     for source in survey.source_list:
+#         u_source = f[source, self._solutionType]  # solution vector
+#         dA_dm_v = self.getADeriv(u_source, v)
+#         dRHS_dm_v = self.getRHSDeriv(source, v)
+#         du_dm_v = self.Ainv * (-dA_dm_v + dRHS_dm_v)
+#         for rx in source.receiver_list:
+#             df_dmFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
+#             df_dm_v = df_dmFun(source, du_dm_v, v, adjoint=False)
+#             Jv.append(rx.evalDeriv(source, self.mesh, f, df_dm_v))
+#     Jv = np.hstack(Jv)
+#     return self._mini_survey_data(Jv)
+
+
 # def J_func(src_list, rx_list_per_source):
 #     func_nD = sum([rx.nD for rx in rx_list_per_source])
 #     J = np.empty((func_nD, len(m)))
