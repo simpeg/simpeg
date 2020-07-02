@@ -89,8 +89,8 @@ def segmented_line_current_source_term(mesh, locs):
 
     Returns
     -------
-    numpy.array of length (mesh.nE)
-        Contains the source term for all x, y, and z edges of the OcTreeMesh.
+    numpy.ndarray of length (mesh.nE)
+        Contains the source term for all x, y, and z edges of the mesh.
 
     Notes
     -----
@@ -241,7 +241,7 @@ def _poly_line_source_tree(mesh, locs):
 
     Returns
     -------
-    numpy.array of length (mesh.nE)
+    numpy.ndarray of length (mesh.nE)
         Contains the source term for all x, y, and z edges of the OcTreeMesh.
     """
 

@@ -77,13 +77,27 @@ class BaseFDEMSimulation(BaseEMSimulation):
         if m is not None:
             self.model = m
 
+        try:
+            self.Ainv
+        except AttributeError:
+            if self.verbose:
+                print("nFreq =", self.survey.nFreq)
+            self.Ainv = [None for i in range(self.survey.nFreq)]
+
+        if self.Ainv[0] is not None:
+            for i in range(self.survey.nFreq):
+                self.Ainv[i].clean()
+
+            if self.verbose:
+                print("Cleaning Ainv")
+
         f = self.fieldsPair(self)
 
-        for freq in self.survey.frequencies:
+        for nf, freq in enumerate(self.survey.freqs):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solver_opts)
-            u = Ainv * rhs
+            self.Ainv[nf] = self.Solver(A, **self.solverOpts)
+            u = self.Ainv[nf] * rhs
             Srcs = self.survey.get_sources_by_frequency(freq)
             f[Srcs, self._solutionType] = u
         return f
@@ -109,20 +123,15 @@ class BaseFDEMSimulation(BaseEMSimulation):
         # Jv = Data(self.survey)
         Jv = []
 
-        for freq in self.survey.frequencies:
-            A = self.getA(freq)
-            # create the concept of Ainv (actually a solve)
-            Ainv = self.Solver(A, **self.solver_opts)
-
+        for nf, freq in enumerate(self.survey.freqs):
             for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
-                du_dm_v = Ainv * (-dA_dm_v + dRHS_dm_v)
+                du_dm_v = self.Ainv[nf] * (-dA_dm_v + dRHS_dm_v)
 
                 for rx in src.receiver_list:
                     Jv.append(rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v))
-            Ainv.clean()
         return np.hstack(Jv)
 
     # @profile
@@ -148,13 +157,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         Jtv = np.zeros(m.size)
 
-        for freq in self.survey.frequencies:
-            AT = self.getA(freq).T
-            ATinv = self.Solver(AT, **self.solver_opts)
-
+        for nf, freq in enumerate(self.survey.freqs):
             for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, self._solutionType]
-
                 for rx in src.receiver_list:
                     df_duT, df_dmT = rx.evalDeriv(
                         src, self.mesh, f, v=v[src, rx], adjoint=True
@@ -175,8 +180,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
                         Jtv += -np.array(df_dmT, dtype=complex).real
                     else:
                         raise Exception("Must be real or imag")
-
-            # ATinv.clean()
 
         return mkvc(Jtv)
 
