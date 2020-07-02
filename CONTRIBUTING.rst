@@ -17,8 +17,8 @@ Questions
 ---------
 
 Please do not create an issue to ask a question. You will get a faster
-response by posting on our mailing list:
-https://groups.google.com/forum/#!forum/simpeg. If you prefer real-time chat,
+response by posting on our Discourse discussion forum:
+https://simpeg.discourse.group/. If you prefer real-time chat,
 you can join our slack group at http://slack.simpeg.xyz.
 
 .. _bugs:
