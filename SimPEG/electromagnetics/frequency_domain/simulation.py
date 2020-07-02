@@ -160,26 +160,24 @@ class BaseFDEMSimulation(BaseEMSimulation):
         for nf, freq in enumerate(self.survey.freqs):
             for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, self._solutionType]
+                df_duT_sum = 0
+                df_dmT_sum = 0
                 for rx in src.receiver_list:
                     df_duT, df_dmT = rx.evalDeriv(
                         src, self.mesh, f, v=v[src, rx], adjoint=True
                     )
+                    df_duT_sum += df_duT
+                    df_dmT_sum += df_dmT
 
-                    ATinvdf_duT = self.Ainv[nf] * df_duT
+                ATinvdf_duT = self.Ainv[nf] * df_duT_sum
 
-                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
-                    du_dmT = -dA_dmT + dRHS_dmT
+                dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+                du_dmT = -dA_dmT + dRHS_dmT
+                df_dmT = df_dmT + du_dmT
 
-                    df_dmT = df_dmT + du_dmT
-
-                    # TODO: this should be taken care of by the reciever?
-                    if rx.component == "real":
-                        Jtv += np.array(df_dmT, dtype=complex).real
-                    elif rx.component == "imag":
-                        Jtv += -np.array(df_dmT, dtype=complex).real
-                    else:
-                        raise Exception("Must be real or imag")
+                df_dmT_sum += du_dmT
+                Jtv += np.real(df_dmT_sum)
 
         return mkvc(Jtv)
 
