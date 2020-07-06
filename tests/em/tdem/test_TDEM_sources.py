@@ -140,7 +140,6 @@ class TestQuarterSineRampOnWaveform(unittest.TestCase):
         assert_array_almost_equal(result, expected)
 
     def test_waveform_negative_plateau(self):
-        """TODO: should this throw a ValueError instead?"""
         quarter_sine = QuarterSineRampOnWaveform(
             ramp_on=np.r_[0.0, 8e-3], ramp_off=np.r_[2e-3, 1e-2]
         )
