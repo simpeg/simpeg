@@ -2,7 +2,7 @@
 Optimize
 ********
 
-.. automodule:: SimPEG.Optimization
+.. automodule:: SimPEG.optimization
     :show-inheritance:
     :private-members:
     :members:

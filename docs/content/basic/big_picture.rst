@@ -80,34 +80,29 @@ empirical by nature and our software package is designed to facilitate this
 iterative process. To accomplish this, we have divided the inversion
 methodology into eight major components (See figure above). The
 :class:`discretize.base.BaseMesh` class handles the discretization of the
-earth and also provides numerical operators. The forward simulation is split
-into two classes, the :class:`SimPEG.Survey.BaseSurvey` and the
-:class:`SimPEG.Problem.BaseProblem`. The :class:`SimPEG.Survey.BaseSurvey`
-class handles the geometry of a geophysical problem as well as sources. The
-:class:`SimPEG.Problem.BaseProblem` class handles the simulation of the
-physics for the geophysical problem of interest. Although created
-independently, these two classes must be paired to form all of the components
-necessary for a geophysical forward simulation and calculation of the
-sensitivity. The :class:`SimPEG.Problem.BaseProblem` creates geophysical
-fields given a source from the :class:`SimPEG.Survey.BaseSurvey`. The
-:class:`SimPEG.Survey.BaseSurvey` interpolates these fields to the receiver
-locations and converts them to the appropriate data type, for example, by
-selecting only the measured components of the field. Each of these operations
-may have associated derivatives with respect to the model and the computed
-field; these are included in the calculation of the sensitivity. For the
-inversion, a :class:`SimPEG.DataMisfit.BaseDataMisfit` is chosen to capture
+earth and also provides numerical operators. The :class:`SimPEG.survey.BaseSurvey`
+class handles the geometry of a geophysical problem as well as sources and
+receivers. The :class:`SimPEG.simulation.BaseSimulation` class handles the
+simulation of the physics for the geophysical problem of interest. The
+:class:`SimPEG.simulation.BaseSimulation` creates geophysical fields given a
+source from the :class:`SimPEG.survey.BaseSurvey`, interpolates these fields to
+the receiver locations, and converts them to the appropriate data type, for
+example, by selecting only the measured components of the field. Each of these
+operations may have associated derivatives with respect to the model and the
+computed field; these are included in the calculation of the sensitivity. For
+the inversion, a :class:`SimPEG.data_misfit.BaseDataMisfit` is chosen to capture
 the goodness of fit of the predicted data and a
-:class:`SimPEG.Regularization.BaseRegularization` is chosen to handle the non-
+:class:`SimPEG.regularization.BaseRegularization` is chosen to handle the non-
 uniqueness. These inversion elements and an Optimization routine are combined
-into an inverse problem class :class:`SimPEG.InvProblem.BaseInvProblem`.
-:class:`SimPEG.InvProblem.BaseInvProblem` is the mathematical statement that
+into an inverse problem class :class:`SimPEG.inverse_problem.BaseInvProblem`.
+:class:`SimPEG.inverse_problem.BaseInvProblem` is the mathematical statement that
 will be numerically solved by running an Inversion. The
-:class:`SimPEG.Inversion.BaseInversion` class handles organization and
+:class:`SimPEG.inversion.BaseInversion` class handles organization and
 dispatch of directives between all of the various pieces of the framework.
 
 The arrows in the figure above indicate what each class takes as a primary
-argument. For example, both the :class:`SimPEG.Problem.BaseProblem` and
-:class:`SimPEG.Regularization.BaseRegularization` classes take a
+argument. For example, both the :class:`SimPEG.simulation.BaseSimulation` and
+:class:`SimPEG.regularization.BaseRegularization` classes take a
 :class:`discretize.base.BaseMesh` class as an argument. The diagram does
 not show class inheritance, as each of the base classes outlined have many
 subtypes that can be interchanged. The :class:`discretize.base.BaseMesh`

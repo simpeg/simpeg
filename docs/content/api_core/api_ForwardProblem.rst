@@ -1,11 +1,11 @@
 .. _api_ForwardProblem:
 
 
-Forward Problem
-***************
+Forward Simulation
+******************
 
-Problem Class
-=============
+Simulation Class
+================
 
 The problem is a partial differential equation of the form:
 
@@ -67,47 +67,85 @@ stored, as \\(J\\) is a large dense matrix.
 The API
 =======
 
-Problem
--------
+Simulation
+----------
 
-.. autoclass:: SimPEG.Problem.BaseProblem
+.. autoclass:: SimPEG.simulation.BaseSimulation
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Problem.BaseTimeProblem
+.. autoclass:: SimPEG.simulation.BaseTimeSimulation
     :members:
     :undoc-members:
+
+.. autoclass:: SimPEG.simulation.LinearSimulation
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.simulation.TimeStepArray
+    :members:
+    :undoc-members:
+
 
 Fields
 ------
 
-.. autoclass:: SimPEG.Fields.Fields
+.. autoclass:: SimPEG.fields.Fields
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Fields.TimeFields
+.. autoclass:: SimPEG.fields.TimeFields
     :members:
     :undoc-members:
 
 Survey
 ------
 
-.. autoclass:: SimPEG.Survey.BaseSurvey
+.. autoclass:: SimPEG.survey.BaseSurvey
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Survey.BaseSrc
+.. autoclass:: SimPEG.survey.BaseTimeSurvey
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Survey.BaseRx
+Data
+----
+
+.. autoclass:: SimPEG.data.Data
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Survey.BaseTimeRx
+.. autoclass:: SimPEG.data.SyntheticData
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Survey.Data
+.. autoclass:: SimPEG.data.UncertaintyArray
+    :members:
+    :undoc-members:
+
+Sources
+-------
+
+.. autoclass:: SimPEG.survey.BaseSrc
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.survey.SourceLocationArray
+    :members:
+    :undoc-members:
+
+Receivers
+---------
+
+.. autoclass:: SimPEG.survey.BaseRx
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.survey.BaseTimeRx
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.survey.RxLocationArray
     :members:
     :undoc-members:

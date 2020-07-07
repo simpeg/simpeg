@@ -1,5 +1,5 @@
 import unittest
-from SimPEG.EM import NSEM
+from SimPEG.electromagnetics import natural_source as nsem
 import numpy as np
 
 # Define the tolerances
@@ -10,50 +10,49 @@ TOLp = 5e-1
 def appRes_psFieldNorm(sigmaHalf):
 
     # Make the survey
-    survey, sigma, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(
-        sigmaHalf, False
+    survey, sigma, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(sigmaHalf, False)
+    simulation = nsem.Simulation1DPrimarySecondary(
+        mesh, sigmaPrimary=sigBG, sigma=sigma
     )
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary=sigBG, sigma=sigma)
-    problem.pair(survey)
+    simulation.pair(survey)
 
     # Get the fields
-    fields = problem.fields()
+    fields = simulation.fields()
 
     # Project the data
-    data = survey.eval(fields)
+    data = simulation.dpred(f=fields)
 
     # Calculate the app res and phs
-    app_r = np.array(NSEM.Utils.testUtils.getAppResPhs(data))[:, 0]
+    app_r = np.array(nsem.utils.test_utils.getAppResPhs(data, survey=survey))[:, 0]
 
     return np.linalg.norm(
-        np.abs(np.log(app_r) - np.log(np.ones(survey.nFreq) / sigmaHalf)) *
-        np.log(sigmaHalf)
+        np.abs(np.log(app_r) - np.log(np.ones(survey.nFreq) / sigmaHalf))
+        * np.log(sigmaHalf)
     )
 
 
 def appPhs_psFieldNorm(sigmaHalf):
 
     # Make the survey
-    survey, sigma, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(
-        sigmaHalf, False
+    survey, sigma, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(sigmaHalf, False)
+    simulation = nsem.Simulation1DPrimarySecondary(
+        mesh, sigmaPrimary=sigBG, sigma=sigma
     )
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary=sigBG, sigma=sigma)
-    problem.pair(survey)
+    simulation.pair(survey)
 
     # Get the fields
-    fields = problem.fields()
+    fields = simulation.fields()
 
     # Project the data
-    data = survey.eval(fields)
+    data = simulation.dpred(f=fields)
 
     # Calculate the app  phs
-    app_p = np.array(NSEM.Utils.testUtils.getAppResPhs(data))[:, 1]
+    app_p = np.array(nsem.utils.test_utils.getAppResPhs(data, survey))[:, 1]
 
-    return np.linalg.norm(np.abs(app_p - np.ones(survey.nFreq)*45) / 45)
+    return np.linalg.norm(np.abs(app_p - np.ones(survey.nFreq) * 45) / 45)
 
 
 class TestAnalytics(unittest.TestCase):
-
     def setUp(self):
         pass
 
@@ -77,5 +76,5 @@ class TestAnalytics(unittest.TestCase):
         self.assertLess(appPhs_psFieldNorm(2e-3), TOLp)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
