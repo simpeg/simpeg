@@ -46,7 +46,7 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
             self.solver = fun(self.A, **kwargs)
 
     def __mul__(self, b):
-        if type(b) is not np.ndarray:
+        if not isinstance(b, np.ndarray):
             raise TypeError("Can only multiply by a numpy array.")
 
         if len(b.shape) == 1 or b.shape[1] == 1:
@@ -111,14 +111,14 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
         self.kwargs = kwargs
 
     def __mul__(self, b):
-        if type(b) is not np.ndarray:
+        if not isinstance(b, np.ndarray):
             raise TypeError("Can only multiply by a numpy array.")
 
         if len(b.shape) == 1 or b.shape[1] == 1:
             b = b.flatten()
             # Just one RHS
             out = fun(self.A, b, **self.kwargs)
-            if type(out) is tuple and len(out) == 2:
+            if isinstance(out, tuple) and len(out) == 2:
                 # We are dealing with scipy output with an info!
                 X = out[0]
                 self.info = out[1]
@@ -128,7 +128,7 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
             X = np.empty_like(b)
             for i in range(b.shape[1]):
                 out = fun(self.A, b[:, i], **self.kwargs)
-                if type(out) is tuple and len(out) == 2:
+                if isinstance(out, tuple) and len(out) == 2:
                     # We are dealing with scipy output with an info!
                     X[:, i] = out[0]
                     self.info = out[1]
