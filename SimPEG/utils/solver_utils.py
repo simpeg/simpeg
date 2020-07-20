@@ -93,6 +93,9 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
             _checkAccuracy(self.A, b, X, self.accuracyTol)
         return X
 
+    def __matmul__(self, other):
+        return self * other
+
     def clean(self):
         if factorize and hasattr(self.solver, "clean"):
             return self.solver.clean()
@@ -100,7 +103,12 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
     return type(
         name if name is not None else fun.__name__,
         (object,),
-        {"__init__": __init__, "clean": clean, "__mul__": __mul__},
+        {
+            "__init__": __init__,
+            "clean": clean,
+            "__mul__": __mul__,
+            "__matmul__": __matmul__,
+        },
     )
 
 
@@ -172,13 +180,21 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
             _checkAccuracy(self.A, b, X, self.accuracyTol)
         return X
 
+    def __matmul__(self, other):
+        return self * other
+
     def clean(self):
         pass
 
     return type(
         name if name is not None else fun.__name__,
         (object,),
-        {"__init__": __init__, "clean": clean, "__mul__": __mul__},
+        {
+            "__init__": __init__,
+            "clean": clean,
+            "__mul__": __mul__,
+            "__matmul__": __matmul__,
+        },
     )
 
 
@@ -194,6 +210,8 @@ class SolverDiag(object):
     def __init__(self, A, **kwargs):
         self.A = A
         self._diagonal = A.diagonal()
+        for kwarg in kwargs:
+            warnings.warn(f"{kwarg} is not recognized and will be ignored")
 
     def __mul__(self, rhs):
         n = self.A.shape[0]
@@ -209,6 +227,9 @@ class SolverDiag(object):
             return x.flatten()
         elif nrhs > 1:
             return x.reshape((n, nrhs), order="F")
+
+    def __matmul__(self, other):
+        return self * other
 
     def _solve1(self, rhs):
         return rhs.flatten() / self._diagonal
