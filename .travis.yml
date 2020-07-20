@@ -51,12 +51,12 @@ install:
     fi
   - python setup.py install
   - if [ "$TEST_DIR" = "tests/docs" ]; then
-      cd docs/content ;
-      wget https://storage.googleapis.com/simpeg/simulation/${TRAVIS_PYTHON_VERSION}/examples.tar.gz
-      wget https://storage.googleapis.com/simpeg/simulation/${TRAVIS_PYTHON_VERSION}/tutorials.tar.gz
+      cd docs/content;
+      wget https://storage.googleapis.com/simpeg/simulation/$TRAVIS_PYTHON_VERSION/examples.tar.gz;
+      wget https://storage.googleapis.com/simpeg/simulation/$TRAVIS_PYTHON_VERSION/tutorials.tar.gz;
       tar -xzf examples.tar.gz examples;
       tar -xzf tutorials.tar.gz tutorials;
-      cd ../../ ;
+      cd ../../;
     fi
 
 # Run test
