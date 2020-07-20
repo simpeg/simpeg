@@ -74,7 +74,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
             self.water_retention.model = model
 
     def getBoundaryConditions(self, ii, u_ii):
-        if type(self.boundary_conditions) is np.ndarray:
+        if isinstance(self.boundary_conditions, np.ndarray):
             return self.boundary_conditions
 
         time = self.time_mesh.vectorCCx[ii]

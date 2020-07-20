@@ -88,7 +88,7 @@ def count(f):
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         counter = getattr(self, "counter", None)
-        if type(counter) is Counter:
+        if isinstance(counter, Counter):
             counter.count(self.__class__.__name__ + "." + f.__name__)
         out = f(self, *args, **kwargs)
         return out
@@ -100,10 +100,10 @@ def timeIt(f):
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         counter = getattr(self, "counter", None)
-        if type(counter) is Counter:
+        if isinstance(counter, Counter):
             counter.countTic(self.__class__.__name__ + "." + f.__name__)
         out = f(self, *args, **kwargs)
-        if type(counter) is Counter:
+        if isinstance(counter, Counter):
             counter.countToc(self.__class__.__name__ + "." + f.__name__)
         return out
 
