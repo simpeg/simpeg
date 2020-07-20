@@ -181,7 +181,7 @@ class Fields2DCellCentered(Fields2D):
         sim = self.simulation
         return (
             epsilon_0
-            * sim.mesh.vol
+            * sim.mesh.vol[:, None]
             * (sim.mesh.faceDiv * self._e(phiSolution, source_list))
         )
 
