@@ -3,6 +3,7 @@ import numpy as np
 from scipy.sparse import linalg
 from .mat_utils import mkvc
 import warnings
+import inspect
 
 
 def _checkAccuracy(A, b, X, accuracyTol):
@@ -33,12 +34,28 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
     def __init__(self, A, **kwargs):
         self.A = A.tocsc()
 
-        self.checkAccuracy = kwargs.get("checkAccuracy", checkAccuracy)
-        if "checkAccuracy" in kwargs:
-            del kwargs["checkAccuracy"]
-        self.accuracyTol = kwargs.get("accuracyTol", accuracyTol)
-        if "accuracyTol" in kwargs:
-            del kwargs["accuracyTol"]
+        self.checkAccuracy = kwargs.pop("checkAccuracy", checkAccuracy)
+        self.accuracyTol = kwargs.pop("accuracyTol", accuracyTol)
+
+        func_params = inspect.signature(fun).parameters
+        # First test if function excepts **kwargs,
+        # in which case we do not need to cull the kwargs
+        do_cull = True
+        for param_name in func_params:
+            param = func_params[param_name]
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                do_cull = False
+        if do_cull:
+            # build a dictionary of valid kwargs
+            culled_args = {}
+            for item in kwargs:
+                if item in func_params:
+                    culled_args[item] = kwargs[item]
+                else:
+                    warnings.warn(
+                        f"{item} is not a valid keyword for {fun.__name__} and will be ignored"
+                    )
+            kwargs = culled_args
 
         self.kwargs = kwargs
 
@@ -101,12 +118,28 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
     def __init__(self, A, **kwargs):
         self.A = A
 
-        self.checkAccuracy = kwargs.get("checkAccuracy", checkAccuracy)
-        if "checkAccuracy" in kwargs:
-            del kwargs["checkAccuracy"]
-        self.accuracyTol = kwargs.get("accuracyTol", accuracyTol)
-        if "accuracyTol" in kwargs:
-            del kwargs["accuracyTol"]
+        self.checkAccuracy = kwargs.pop("checkAccuracy", checkAccuracy)
+        self.accuracyTol = kwargs.pop("accuracyTol", accuracyTol)
+
+        func_params = inspect.signature(fun).parameters
+        # First test if function excepts **kwargs,
+        # in which case we do not need to cull the kwargs
+        do_cull = True
+        for param_name in func_params:
+            param = func_params[param_name]
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                do_cull = False
+        if do_cull:
+            # build a dictionary of valid kwargs
+            culled_args = {}
+            for item in kwargs:
+                if item in func_params:
+                    culled_args[item] = kwargs[item]
+                else:
+                    warnings.warn(
+                        f"{item} is not a valid keyword for {fun.__name__} and will be ignored"
+                    )
+            kwargs = culled_args
 
         self.kwargs = kwargs
 
@@ -158,7 +191,7 @@ SolverBiCG = SolverWrapI(linalg.bicgstab, name="SolverBiCG")
 class SolverDiag(object):
     """docstring for SolverDiag"""
 
-    def __init__(self, A):
+    def __init__(self, A, **kwargs):
         self.A = A
         self._diagonal = A.diagonal()
 
