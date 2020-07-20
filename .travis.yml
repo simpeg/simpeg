@@ -44,7 +44,7 @@ before_install:
 
 install:
   - conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib ipython h5py;
-  - conda install -c conda-forge pymatsolver discretize empymod geoana properties vectormath pandas
+  - conda install --quite --yes -c conda-forge pymatsolver discretize empymod geoana properties vectormath pandas
   - pip install -r requirements_dev.txt
   - if [ "$TEST_DIR" = "tests/dask" ]; then
       pip install -r requirements_dask.txt;
