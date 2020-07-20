@@ -96,7 +96,7 @@ dz = 5  # minimum cell width (base mesh cell width) in z
 
 x_length = 240.0  # domain width in x
 y_length = 240.0  # domain width in y
-z_length = 120.0  # domain width in y
+z_length = 120.0  # domain width in z
 
 # Compute number of base mesh cells required in x and y
 nbcx = 2 ** int(np.round(np.log(x_length / dx) / np.log(2.0)))
