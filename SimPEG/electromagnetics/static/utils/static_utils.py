@@ -491,21 +491,6 @@ def plot_pseudosection(
             **cbar_opts,
         )
 
-    if data_type.lower() in DATA_TYPES["apparent conductivity"]:
-        cbar.set_label("Apparent Conductivity (S/m)")
-
-    elif data_type.lower() in DATA_TYPES["apparent resistivity"]:
-        cbar.set_label("Apparent Resistivity ($\\Omega$m)")
-
-    elif data_type.lower() in DATA_TYPES["potential"]:
-        cbar.set_label("Voltage (V)")
-
-    elif data_type.lower() in DATA_TYPES["apparent chargeability"]:
-        cbar.set_label("Apparent Chargeability (V/V)")
-
-    elif data_type.lower() in ["misfit", "misfitmap"]:
-        cbar.set_label("Misfit (V)")
-
     ticks = np.linspace(vmin, vmax, 3)
     cbar.set_ticks(ticks)
     cbar.ax.tick_params()
@@ -524,6 +509,21 @@ def plot_pseudosection(
         ax.set_ylabel("n-spacing")
     elif y_values == "pseudo-depth":
         ax.set_ylabel("pseudo-depth")
+
+    if data_type.lower() in DATA_TYPES["apparent conductivity"]:
+        cbar.set_label("Apparent Conductivity (S/m)")
+
+    elif data_type.lower() in DATA_TYPES["apparent resistivity"]:
+        cbar.set_label("Apparent Resistivity ($\\Omega$m)")
+
+    elif data_type.lower() in DATA_TYPES["potential"]:
+        cbar.set_label("Voltage (V)")
+
+    elif data_type.lower() in DATA_TYPES["apparent chargeability"]:
+        cbar.set_label("Apparent Chargeability (V/V)")
+
+    elif data_type.lower() in ["misfit", "misfitmap"]:
+        cbar.set_label("Misfit (V)")
 
     return ax
 
