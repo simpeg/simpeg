@@ -84,6 +84,7 @@ after_success:
       gcloud config set project $GAE_PROJECT;
       gcloud app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
     fi;
+  - sh ci/deploy-pypi.sh
 
 deploy:
   # pypi release

@@ -10,7 +10,7 @@ echo ""
 echo "Building source package and wheels for ${TRAVIS_TAG}"
 echo ""
 # Build source distributions and wheels
-python setup.py sdist bdist_wheel
+python setup.py sdist bdist_wheel --universal
 
 echo ""
 echo "Packages built:"
@@ -21,7 +21,8 @@ echo "Deploy to PyPI using twine."
 echo ""
 # Upload to PyPI. Credentials are set using the TWINCE_PASSWORD and
 # TWINE_USERNAME env variables.
-twine upload --skip-existing dist/*
+#twine upload --skip-existing dist/*
+twine upload --repository testpypi dist/*
 
 # Workaround for https://github.com/travis-ci/travis-ci/issues/6522
 # Turn off exit on failure.
