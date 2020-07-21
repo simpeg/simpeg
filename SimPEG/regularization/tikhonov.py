@@ -4,7 +4,7 @@ import warnings
 import properties
 
 from .base import BaseRegularization, BaseComboRegularization
-from .. import Utils
+from .. import utils
 
 
 ###############################################################################
@@ -12,6 +12,7 @@ from .. import Utils
 #              Simple Regularization (no volume contribution)                 #
 #                                                                             #
 ###############################################################################
+
 
 class SimpleSmall(BaseRegularization):
     """
@@ -41,13 +42,11 @@ class SimpleSmall(BaseRegularization):
 
     """
 
-    _multiplier_pair = 'alpha_s'
+    _multiplier_pair = "alpha_s"
 
     def __init__(self, mesh=None, **kwargs):
 
-        super(SimpleSmall, self).__init__(
-            mesh=mesh, **kwargs
-        )
+        super(SimpleSmall, self).__init__(mesh=mesh, **kwargs)
 
     @property
     def W(self):
@@ -55,11 +54,11 @@ class SimpleSmall(BaseRegularization):
         Weighting matrix
         """
         if self.cell_weights is not None:
-            return Utils.sdiag(np.sqrt(self.cell_weights))
-        elif self._nC_residual != '*':
+            return utils.sdiag(np.sqrt(self.cell_weights))
+        elif self._nC_residual != "*":
             return sp.eye(self._nC_residual)
         else:
-            return Utils.Identity()
+            return utils.Identity()
 
 
 class SimpleSmoothDeriv(BaseRegularization):
@@ -80,29 +79,27 @@ class SimpleSmoothDeriv(BaseRegularization):
     :param numpy.ndarray cell_weights: vector of cell weights (applied in all terms)
     """
 
-    def __init__(
-        self, mesh, orientation='x', **kwargs
-    ):
+    def __init__(self, mesh, orientation="x", **kwargs):
         self.orientation = orientation
-        assert self.orientation in ['x', 'y', 'z'], (
-            "Orientation must be 'x', 'y' or 'z'"
-        )
+        assert self.orientation in [
+            "x",
+            "y",
+            "z",
+        ], "Orientation must be 'x', 'y' or 'z'"
 
-        if self.orientation == 'y':
+        if self.orientation == "y":
             assert mesh.dim > 1, (
                 "Mesh must have at least 2 dimensions to regularize along the "
                 "y-direction"
             )
 
-        elif self.orientation == 'z':
+        elif self.orientation == "z":
             assert mesh.dim > 2, (
                 "Mesh must have at least 3 dimensions to regularize along the "
                 "z-direction"
             )
 
-        super(SimpleSmoothDeriv, self).__init__(
-            mesh=mesh, **kwargs
-        )
+        super(SimpleSmoothDeriv, self).__init__(mesh=mesh, **kwargs)
 
     mrefInSmooth = properties.Bool(
         "include mref in the smoothness calculation?", default=False
@@ -110,7 +107,7 @@ class SimpleSmoothDeriv(BaseRegularization):
 
     @property
     def _multiplier_pair(self):
-        return 'alpha_{orientation}'.format(orientation=self.orientation)
+        return "alpha_{orientation}".format(orientation=self.orientation)
 
     @property
     def W(self):
@@ -118,26 +115,16 @@ class SimpleSmoothDeriv(BaseRegularization):
         Weighting matrix that takes the first spatial difference
         with normalized length scales in the specified orientation
         """
-        Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
-        W = Utils.sdiag(self.length_scales) * getattr(
+        Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
+        W = utils.sdiag(self.length_scales) * getattr(
             self.regmesh,
-            "cellDiff{orientation}Stencil".format(
-                orientation=self.orientation
-            )
+            "cellDiff{orientation}Stencil".format(orientation=self.orientation),
         )
         if self.cell_weights is not None:
 
-            W = (
-                Utils.sdiag(
-                    (Ave*(self.cell_weights))**0.5
-                ) * W
-            )
+            W = utils.sdiag((Ave * (self.cell_weights)) ** 0.5) * W
         else:
-            W = (
-                Utils.sdiag(
-                    (Ave*self.regmesh.vol)**0.5
-                ) * W
-            )
+            W = utils.sdiag((Ave * self.regmesh.vol) ** 0.5) * W
 
         return W
 
@@ -147,13 +134,13 @@ class SimpleSmoothDeriv(BaseRegularization):
             Normalized cell based weighting
 
         """
-        if getattr(self, '_length_scales', None) is None:
-            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+        if getattr(self, "_length_scales", None) is None:
+            Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
 
-            index = 'xyz'.index(self.orientation)
+            index = "xyz".index(self.orientation)
 
             length_scales = Ave * (
-                self.regmesh.Pac.T*self.regmesh.mesh.h_gridded[:, index]
+                self.regmesh.Pac.T * self.regmesh.mesh.h_gridded[:, index]
             )
 
             self._length_scales = length_scales.min() / length_scales
@@ -163,6 +150,7 @@ class SimpleSmoothDeriv(BaseRegularization):
     @length_scales.setter
     def length_scales(self, value):
         self._length_scales = value
+
 
 class Simple(BaseComboRegularization):
 
@@ -177,10 +165,10 @@ class Simple(BaseComboRegularization):
 
     where:
 
-    - :math:`\phi_s` is a :class:`SimPEG.Regularization.Small` instance
-    - :math:`\phi_x` is a :class:`SimPEG.Regularization.SimpleSmoothDeriv` instance, with :code:`orientation='x'`
-    - :math:`\phi_y` is a :class:`SimPEG.Regularization.SimpleSmoothDeriv` instance, with :code:`orientation='y'`
-    - :math:`\phi_z` is a :class:`SimPEG.Regularization.SimpleSmoothDeriv` instance, with :code:`orientation='z'`
+    - :math:`\phi_s` is a :class:`SimPEG.regularization.Small` instance
+    - :math:`\phi_x` is a :class:`SimPEG.regularization.SimpleSmoothDeriv` instance, with :code:`orientation='x'`
+    - :math:`\phi_y` is a :class:`SimPEG.regularization.SimpleSmoothDeriv` instance, with :code:`orientation='y'`
+    - :math:`\phi_z` is a :class:`SimPEG.regularization.SimpleSmoothDeriv` instance, with :code:`orientation='z'`
 
 
     **Required Inputs**
@@ -206,45 +194,37 @@ class Simple(BaseComboRegularization):
     """
 
     def __init__(
-        self, mesh,
-        alpha_s=1.0, alpha_x=1.0, alpha_y=1.0,
-        alpha_z=1.0, **kwargs
+        self, mesh, alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, **kwargs
     ):
 
         objfcts = [
             SimpleSmall(mesh=mesh, **kwargs),
-            SimpleSmoothDeriv(
-                mesh=mesh, orientation='x',
-                **kwargs
-            )
+            SimpleSmoothDeriv(mesh=mesh, orientation="x", **kwargs),
         ]
 
         if mesh.dim > 1:
-            objfcts.append(
-                SimpleSmoothDeriv(
-                    mesh=mesh, orientation='y',
-                    **kwargs
-                )
-            )
+            objfcts.append(SimpleSmoothDeriv(mesh=mesh, orientation="y", **kwargs))
 
         if mesh.dim > 2:
-            objfcts.append(
-                SimpleSmoothDeriv(
-                    mesh=mesh, orientation='z',
-                    **kwargs
-                )
-            )
+            objfcts.append(SimpleSmoothDeriv(mesh=mesh, orientation="z", **kwargs))
 
         super(Simple, self).__init__(
-            mesh=mesh, objfcts=objfcts, alpha_s=alpha_s, alpha_x=alpha_x,
-            alpha_y=alpha_y, alpha_z=alpha_z, **kwargs
+            mesh=mesh,
+            objfcts=objfcts,
+            alpha_s=alpha_s,
+            alpha_x=alpha_x,
+            alpha_y=alpha_y,
+            alpha_z=alpha_z,
+            **kwargs
         )
+
 
 ###############################################################################
 #                                                                             #
 #         Tikhonov-Style Regularization (includes volume contribution)        #
 #                                                                             #
 ###############################################################################
+
 
 class Small(BaseRegularization):
     """
@@ -274,13 +254,11 @@ class Small(BaseRegularization):
 
     """
 
-    _multiplier_pair = 'alpha_s'
+    _multiplier_pair = "alpha_s"
 
     def __init__(self, mesh=None, **kwargs):
 
-        super(Small, self).__init__(
-            mesh=mesh, **kwargs
-        )
+        super(Small, self).__init__(mesh=mesh, **kwargs)
 
     @property
     def W(self):
@@ -288,8 +266,8 @@ class Small(BaseRegularization):
         Weighting matrix
         """
         if self.cell_weights is not None:
-            return Utils.sdiag(np.sqrt(self.regmesh.vol * self.cell_weights))
-        return Utils.sdiag(np.sqrt(self.regmesh.vol))
+            return utils.sdiag(np.sqrt(self.regmesh.vol * self.cell_weights))
+        return utils.sdiag(np.sqrt(self.regmesh.vol))
 
 
 class SmoothDeriv(BaseRegularization):
@@ -313,38 +291,32 @@ class SmoothDeriv(BaseRegularization):
         "include mref in the smoothness calculation?", default=False
     )
 
-    def __init__(
-        self, mesh, orientation='x', **kwargs
-    ):
+    def __init__(self, mesh, orientation="x", **kwargs):
 
         self.orientation = orientation
 
-        assert orientation in ['x', 'y', 'z'], (
-                "Orientation must be 'x', 'y' or 'z'"
-            )
+        assert orientation in ["x", "y", "z"], "Orientation must be 'x', 'y' or 'z'"
 
-        if self.orientation == 'y':
+        if self.orientation == "y":
             assert mesh.dim > 1, (
                 "Mesh must have at least 2 dimensions to regularize along the "
                 "y-direction"
             )
 
-        elif self.orientation == 'z':
+        elif self.orientation == "z":
             assert mesh.dim > 2, (
                 "Mesh must have at least 3 dimensions to regularize along the "
                 "z-direction"
             )
 
-        super(SmoothDeriv, self).__init__(
-            mesh=mesh, **kwargs
-        )
+        super(SmoothDeriv, self).__init__(mesh=mesh, **kwargs)
 
         if self.mrefInSmooth is False:
-            self.mref = Utils.Zero()
+            self.mref = utils.Zero()
 
     @property
     def _multiplier_pair(self):
-        return 'alpha_{orientation}'.format(orientation=self.orientation)
+        return "alpha_{orientation}".format(orientation=self.orientation)
 
     @property
     def W(self):
@@ -357,15 +329,12 @@ class SmoothDeriv(BaseRegularization):
             vol *= self.cell_weights
 
         D = getattr(
-            self.regmesh,
-            "cellDiff{orientation}".format(
-                orientation=self.orientation
-            )
+            self.regmesh, "cellDiff{orientation}".format(orientation=self.orientation)
         )
 
-        Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
+        Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
 
-        return Utils.sdiag(np.sqrt(Ave * vol)) * D
+        return utils.sdiag(np.sqrt(Ave * vol)) * D
 
 
 class SmoothDeriv2(BaseRegularization):
@@ -385,34 +354,26 @@ class SmoothDeriv2(BaseRegularization):
     :param numpy.ndarray cell_weights: vector of cell weights (applied in all terms)
     """
 
-    def __init__(
-        self, mesh,
-        orientation='x',
-        **kwargs
-    ):
+    def __init__(self, mesh, orientation="x", **kwargs):
         self.orientation = orientation
 
-        if self.orientation == 'y':
+        if self.orientation == "y":
             assert mesh.dim > 1, (
                 "Mesh must have at least 2 dimensions to regularize along the "
                 "y-direction"
             )
 
-        elif self.orientation == 'z':
+        elif self.orientation == "z":
             assert mesh.dim > 2, (
                 "Mesh must have at least 3 dimensions to regularize along the "
                 "z-direction"
             )
 
-        super(SmoothDeriv2, self).__init__(
-            mesh=mesh, **kwargs
-        )
+        super(SmoothDeriv2, self).__init__(mesh=mesh, **kwargs)
 
     @property
     def _multiplier_pair(self):
-        return 'alpha_{orientation}{orientation}'.format(
-            orientation=self.orientation
-        )
+        return "alpha_{orientation}{orientation}".format(orientation=self.orientation)
 
     @property
     def W(self):
@@ -425,18 +386,14 @@ class SmoothDeriv2(BaseRegularization):
             vol *= self.cell_weights
 
         W = (
-            Utils.sdiag(vol**0.5) *
-            getattr(
+            utils.sdiag(vol ** 0.5)
+            * getattr(
                 self.regmesh,
-                'faceDiff{orientation}'.format(
-                    orientation=self.orientation
-                )
-            ) *
-            getattr(
+                "faceDiff{orientation}".format(orientation=self.orientation),
+            )
+            * getattr(
                 self.regmesh,
-                'cellDiff{orientation}'.format(
-                    orientation=self.orientation
-                )
+                "cellDiff{orientation}".format(orientation=self.orientation),
             )
         )
         return W
@@ -470,34 +427,46 @@ class Tikhonov(BaseComboRegularization):
     """
 
     def __init__(
-        self, mesh,
-        alpha_s=1e-6, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
-        alpha_xx=0., alpha_yy=0., alpha_zz=0.,
+        self,
+        mesh,
+        alpha_s=1e-6,
+        alpha_x=1.0,
+        alpha_y=1.0,
+        alpha_z=1.0,
+        alpha_xx=0.0,
+        alpha_yy=0.0,
+        alpha_zz=0.0,
         **kwargs
     ):
         objfcts = [
             Small(mesh=mesh, **kwargs),
-            SmoothDeriv(mesh=mesh, orientation='x', **kwargs),
-            SmoothDeriv2(mesh=mesh, orientation='x', **kwargs)
+            SmoothDeriv(mesh=mesh, orientation="x", **kwargs),
+            SmoothDeriv2(mesh=mesh, orientation="x", **kwargs),
         ]
 
         if mesh.dim > 1:
             objfcts += [
-                SmoothDeriv(mesh=mesh, orientation='y', **kwargs),
-                SmoothDeriv2(mesh=mesh, orientation='y', **kwargs)
+                SmoothDeriv(mesh=mesh, orientation="y", **kwargs),
+                SmoothDeriv2(mesh=mesh, orientation="y", **kwargs),
             ]
 
         if mesh.dim > 2:
             objfcts += [
-                SmoothDeriv(mesh=mesh, orientation='z', **kwargs),
-                SmoothDeriv2(mesh=mesh, orientation='z', **kwargs)
+                SmoothDeriv(mesh=mesh, orientation="z", **kwargs),
+                SmoothDeriv2(mesh=mesh, orientation="z", **kwargs),
             ]
 
         super(Tikhonov, self).__init__(
             mesh,
-            alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
-            alpha_xx=alpha_xx, alpha_yy=alpha_yy, alpha_zz=alpha_zz,
-            objfcts=objfcts, **kwargs
+            alpha_s=alpha_s,
+            alpha_x=alpha_x,
+            alpha_y=alpha_y,
+            alpha_z=alpha_z,
+            alpha_xx=alpha_xx,
+            alpha_yy=alpha_yy,
+            alpha_zz=alpha_zz,
+            objfcts=objfcts,
+            **kwargs
         )
 
-        self.regmesh.regularization_type = 'Tikhonov'
+        self.regmesh.regularization_type = "Tikhonov"

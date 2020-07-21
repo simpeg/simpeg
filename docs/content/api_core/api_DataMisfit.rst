@@ -37,7 +37,7 @@ The second derivative is:
 The API
 =======
 
-.. autoclass:: SimPEG.DataMisfit.BaseDataMisfit
+.. autoclass:: SimPEG.data_misfit.BaseDataMisfit
     :members:
     :undoc-members:
 
@@ -47,6 +47,6 @@ Common Data Misfits
 l2 norm
 -------
 
-.. autoclass:: SimPEG.DataMisfit.l2_DataMisfit
+.. autoclass:: SimPEG.data_misfit.L2DataMisfit
     :members:
     :undoc-members:

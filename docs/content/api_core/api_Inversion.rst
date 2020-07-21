@@ -3,7 +3,7 @@
 InvProblem
 **********
 
-.. autoclass:: SimPEG.InvProblem.BaseInvProblem
+.. autoclass:: SimPEG.inverse_problem.BaseInvProblem
     :show-inheritance:
     :members:
     :undoc-members:
@@ -12,7 +12,7 @@ InvProblem
 Inversion
 *********
 
-.. autoclass:: SimPEG.Inversion.BaseInversion
+.. autoclass:: SimPEG.inversion.BaseInversion
     :show-inheritance:
     :members:
     :undoc-members:
@@ -20,8 +20,7 @@ Inversion
 Directives
 **********
 
-.. automodule:: SimPEG.Directives
+.. automodule:: SimPEG.directives
     :show-inheritance:
     :members:
     :undoc-members:
-

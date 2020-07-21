@@ -1,14 +1,7 @@
 Utils
 *****
 
-.. automodule:: SimPEG.Utils
-    :members:
-    :undoc-members:
-
-Version
-=======
-
-.. automodule:: SimPEG.Utils.printinfo
+.. automodule:: SimPEG.utils
     :members:
     :undoc-members:
 
@@ -16,7 +9,7 @@ Version
 Matrix Utilities
 ================
 
-.. automodule:: SimPEG.Utils.matutils
+.. automodule:: SimPEG.utils.mat_utils
     :members:
     :undoc-members:
 
@@ -24,28 +17,28 @@ Matrix Utilities
 Solver Utilities
 ================
 
-.. automodule:: SimPEG.Utils.SolverUtils
+.. automodule:: SimPEG.utils.solver_utils
     :members:
     :undoc-members:
 
 Curv Utilities
 ==============
 
-.. automodule:: SimPEG.Utils.curvutils
+.. automodule:: SimPEG.utils.curv_utils
     :members:
     :undoc-members:
 
 Mesh Utilities
 ==============
 
-.. automodule:: SimPEG.Utils.meshutils
+.. automodule:: SimPEG.utils.mesh_utils
     :members:
     :undoc-members:
 
 Model Builder Utilities
 =======================
 
-.. automodule:: SimPEG.Utils.ModelBuilder
+.. automodule:: SimPEG.utils.model_builder
     :members:
     :undoc-members:
 
@@ -94,7 +87,6 @@ Counter Utilities
 The API
 -------
 
-.. automodule:: SimPEG.Utils.CounterUtils
+.. automodule:: SimPEG.utils.counter_utils
     :members:
     :undoc-members:
-

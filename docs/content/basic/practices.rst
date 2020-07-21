@@ -62,7 +62,7 @@ we setup a 3D :code:`BaseRectangularMesh` and assert that it has 3 dimensions.
 
     import unittest
     import sys
-    from SimPEG.Mesh.base import BaseRectangularMesh
+    from discretize.base import BaseRectangularMesh
     import numpy as np
 
     class TestBaseMesh(unittest.TestCase):
@@ -90,9 +90,9 @@ tolerance. For instance in `test_maps.py <https://github.com/simpeg/simpeg/blob/
         # method setUp is used to create meshes
 
         def test_mapMultiplication(self):
-            M = Mesh.TensorMesh([2,3])
-            expMap = Maps.ExpMap(M)
-            vertMap = Maps.SurjectVertical1D(M)
+            M = discretize.TensorMesh([2,3])
+            expMap = maps.ExpMap(M)
+            vertMap = maps.SurjectVertical1D(M)
             combo = expMap*vertMap
             m = np.arange(3.0)
             t_true = np.exp(np.r_[0,0,1,1,2,2.])
@@ -109,7 +109,7 @@ solution <https://github.com/simpeg/simpeg/blob/master/tests/em/fdem/forward/tes
 Order and Derivative Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`Order tests <http://docs.simpeg.xyz/content/api_core/api_Tests.html>`_ can be
+:ref:`Order tests <api_Tests>` can be
 used when you are testing differential operators (we are using a second-order,
 staggered grid discretization for our operators). For example, testing a 2D
 curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/master/tests/base/test_operators.py>`_
@@ -118,7 +118,7 @@ curl operator in `test_operators.py <https://github.com/simpeg/discretize/blob/m
 
     import numpy as np
     import unittest
-    from SimPEG.Tests import OrderTest
+    from SimPEG.tests import OrderTest
 
     class TestCurl2D(OrderTest):
         name = "Cell Grad 2D - Dirichlet"
@@ -158,7 +158,7 @@ have first order convergence (e.g. the improvement in the approximation is
 directly related to how small :math:`\Delta x` is, while if we include the
 first derivative in our approximation, we expect that :math:`\|f(x) +
 J(x)\Delta x - f(x + \Delta x)\|` to converge at a second-order rate. For
-example, all `maps have an associated derivative test <https://github.com/simpeg/simpeg/blob/master/SimPEG/Maps.py#L95>`_ . An example from `test_FDEM_derivs.py <ht
+example, all `maps have an associated derivative test <https://github.com/simpeg/simpeg/blob/master/SimPEG/maps.py#L127>`_ . An example from `test_FDEM_derivs.py <ht
 tps://github.com/simpeg/simpeg/blob/master/tests/em/fdem/inverse/derivs/test_F
 DEM_derivs.py>`_
 
@@ -201,7 +201,7 @@ For example:
         Note if the key word argument `mrefInSmooth` is False, then mref is not
         included in the smoothness contribution.
 
-        :param SimPEG.Mesh.base.BaseMesh mesh: SimPEG mesh
+        :param discretize.base.BaseMesh mesh: SimPEG mesh
         :param IdentityMap mapping: regularization mapping, takes the model from model space to the thing you want to regularize
         :param numpy.ndarray indActive: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
         :param bool mrefInSmooth: (default = False) put mref in the smoothness component?
@@ -343,5 +343,3 @@ SimPEG is licensed under the `MIT license
 <https://github.com/simpeg/simpeg/blob/master/LICENSE>`_ which is allows open
 and commercial use and extension of SimPEG. It does not force packages that
 use SimPEG to be open source nor does it restrict commercial use.
-
-

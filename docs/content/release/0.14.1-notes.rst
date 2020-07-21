@@ -1,0 +1,109 @@
+.. _0.14.1_notes:
+
+===========================
+SimPEG 0.14.1 Release Notes
+===========================
+
+This release contains a few small bug fixes and parameter renaming for a few
+functions.
+
+New Things
+==========
+
+The ``resitivity.Fields2D`` object now knows how to integrate its own fields! Meaning
+that you call get the ``phi``, ``j``, ``e``, ``charge``, and ``charge_density``
+directly from the object itself without having to first call
+``resistivity.simulation2D.fields_to_space(fields)``.
+
+Also behind the scenes on the ``resitivity.Simulation2D`` class, we have hopefully
+improved the accuracy of the underlying transformation from the wavenumber domain
+(where the solution is) to the space domain (where the world is).
+
+Deprecations
+============
+
+Resistivity Fields
+------------------
+
+Because of the improvement to the ``resitivity.Fields2D`` object, the previous
+``resistivity.simulation2D.fields_to_space(fields)`` method has been deprecated.
+
+Resistivity Dipole source and receiver
+--------------------------------------
+
+For the ``Dipole`` receiver in ``SimPEG.electromagnetics.static.resistivity.receivers``,
+the ``locationsM`` and ``locationsN`` parameters are deprecated. They are now called
+``locations_m`` and ``locations_n``. There are now two ways to create a ``Dipole`` receiver:
+
+ .. code-block:: python
+
+  rx = resistivity.receivers.Dipole(locations_m, locations_n)
+
+or
+
+.. code-block:: python
+
+  rx = resistivity.receivers.Dipole(locations=(locations_m, locations_n))
+
+Similarly, for the, ``Dipole`` source in ``SimPEG.electromagnetics.static.resistivity.sources``,
+the ``locationA`` and ``locationB`` parameters are deprecated. They are now called
+``location_a`` and ``location_b``. There are now also two ways to create a ``Dipole`` source:
+
+.. code-block:: python
+
+  src = resistivity.sources.Dipole(rx_list, a_loc, b_loc)
+
+or
+
+.. code-block:: python
+
+  src = resistivity.sources.Dipole(rx_list, location=(a_loc, b_loc))
+
+``static`` module cleanups
+--------------------------
+
+The following attributes and methods have been deprecated and renamed
+
+* ``resistivity.Survey.m_locations`` -> ``resistivity.Survey.locations_m``
+* ``resistivity.Survey.n_locations`` -> ``resistivity.Survey.locations_n``
+* ``resistivity.Survey.a_locations`` -> ``resistivity.Survey.locations_a``
+* ``resistivity.Survey.b_locations`` -> ``resistivity.Survey.locations_b``
+* ``resistivity.Survey.drapeTopo`` -> ``resistivity.Survey.drape_electrodes_on_topography``
+* ``utils.static_utils.gen_DCIPsurvey`` -> ``utils.static_utils.generate_dcip_survey``
+
+
+Additionally the following method has been deprecated, renamed, and had a few keyword
+arguments deprecated as well.
+
+* ``utils.static_utils.plot_pseudoSection`` -> ``utils.static_utils.plot_pseudosection``
+  * ``pcolorOpts`` -> ``pcolor_opts``
+  * ``data_location`` -> ``data_locations``
+
+The ``resistivity.Survey.getABMN_locations`` method is no longer necessary.
+
+Contributors
+============
+
+* @lheagy
+* @jcapriot
+* @sgkang
+* @domfournier
+* @adamkosik
+
+Pull requests
+=============
+
+* `#881 <https://github.com/simpeg/simpeg/pull/881>`__: Bug fixes for 3D IP simulation
+* `#884 <https://github.com/simpeg/simpeg/pull/884>`__: Transform DC updates
+* `#885 <https://github.com/simpeg/simpeg/pull/885>`__: Fix IRLS Tutorial
+* `#889 <https://github.com/simpeg/simpeg/pull/889>`__: Import SolverLU straight from utils.
+* `#890 <https://github.com/simpeg/simpeg/pull/890>`__: Update CODE_OF_CONDUCT.md
+
+Closed issues
+=============
+
+* `#856 <https://github.com/simpeg/simpeg/issues/856>`__
+* `#877 <https://github.com/simpeg/simpeg/issues/877>`__
+* `#878 <https://github.com/simpeg/simpeg/issues/878>`__
+* `#887 <https://github.com/simpeg/simpeg/issues/887>`__
+* `#888 <https://github.com/simpeg/simpeg/issues/888>`__
