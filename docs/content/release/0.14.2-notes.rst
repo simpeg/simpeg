@@ -63,6 +63,7 @@ Pull requests
 * `#910 <https://github.com/simpeg/simpeg/pull/910>`__: Update plot_1a_gravity_anomaly.py
 * `#911 <https://github.com/simpeg/simpeg/pull/911>`__: Allows logic to cull unused kwargs from inputs to a function
 * `#912 <https://github.com/simpeg/simpeg/pull/912>`__: bug fix for 3D tensor mesh drape topo.
+* `#914 <https://github.com/simpeg/simpeg/pull/914>`__: Docs/0.14.2 docs
 
 Closed issues
 =============
