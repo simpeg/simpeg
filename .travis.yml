@@ -68,20 +68,6 @@ script:
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 
-  # early exit if not on a deplotment branch
-  - if ! [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" -o "$TRAVIS_TAG" = "true" ]; then
-      echo "Not deploying (because this is not a deployment branch)" ;
-      exit 0 ;
-    fi
-  - if ! [ "$TEST_DIR" = "$DEPLOY_DIR" ]; then
-      echo "Not deploying (because this is not a deployment directory)" ;
-      exit 0 ;
-    fi
-  - if ! [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
-      echo "Not deploying (because this is a pull request)" ;
-      exit 0 ;
-    fi
-
   # deploy docs
   - if [ "$TRAVIS_BRANCH" = "$MASTER_BRANCH" ]; then
       export PATH=$PATH:${HOME}/google-cloud-sdk/bin;
@@ -99,11 +85,14 @@ after_success:
       gcloud app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
     fi;
 
-  #deploy to pypi
-  - if [ "$TRAVIS_TAG" = "true" ]; then
-      mv credentials/.pypirc ~/.pypirc;
-      python setup.py sdist bdist_wheel --universal upload;
-    fi
+deploy:
+  # pypi release
+  - provider: script
+    script: sh ci/deploy-pypi.sh
+    skip_cleanup: true
+    on:
+      tags: true
+      condition: '$TEST_DIR == $DEPLOY_DIR'
 
 notifications:
   slack: simpeg:1KZq5giMtlJJ58TijIPgqf7n
