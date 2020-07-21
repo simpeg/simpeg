@@ -17,3 +17,4 @@ empymod
 scooby
 black
 pre-commit
+twine

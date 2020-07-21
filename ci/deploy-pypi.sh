@@ -10,7 +10,7 @@ echo ""
 echo "Building source package and wheels for ${TRAVIS_TAG}"
 echo ""
 # Build source distributions and wheels
-python setup.py sdist bdist_wheel --universal
+python setup.py sdist bdist_wheel
 
 echo ""
 echo "Packages built:"
