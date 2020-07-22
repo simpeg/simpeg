@@ -17,3 +17,4 @@
 - John Kuttai (`@JKutt <https://github.com/JKutt>`_)
 - Thibaut Astic (`@thast <https://github.com/thast>`_)
 - Michael Mitchell (`@micmitch <https://github.com/micmitch/>`_)
+- I-Kang Ding, (`@ikding <https://github.com/ikding>`_)
