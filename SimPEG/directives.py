@@ -236,21 +236,77 @@ class BetaEstimate_ByEig(InversionDirective):
         self.invProb.beta = self.beta0
 
 
-class BetaSchedule(InversionDirective):
-    """BetaSchedule"""
+# class BetaSchedule(InversionDirective):
+#     """BetaSchedule"""
 
-    coolingFactor = 8.0
-    coolingRate = 3
+#     coolingFactor = 8.0
+#     coolingRate = 3
+
+#     def endIter(self):
+#         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
+#             if self.debug:
+#                 print(
+#                     "BetaSchedule is cooling Beta. Iteration: {0:d}".format(
+#                         self.opt.iter
+#                     )
+#                 )
+#             self.invProb.beta /= self.coolingFactor
+
+
+''' Xiaolong Wei, Aug 1, 2020'''
+class BetaSchedule(InversionDirective):
+    '''
+        Directive for beta cooling schedule to determine the tradeoff
+        parameters of the joint inverse problem.
+        We borrow some code from Update_IRLS.
+    '''
+    chifact_target = 1.
+    beta_tol = 1e-1
+    update_beta = True
+    coolingRate = 1
+    coolingFactor = 2
+    dmis_met = False
+
+    @property
+    def target(self):
+        if getattr(self, '_target', None) is None:
+            nD = 0
+            for survey in self.survey:
+                nD += survey.nD
+
+            self._target = nD*0.5*self.chifact_target
+
+        return self._target
+
+    @target.setter
+    def target(self, val):
+        self._target = val
 
     def endIter(self):
-        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-            if self.debug:
-                print(
-                    "BetaSchedule is cooling Beta. Iteration: {0:d}".format(
-                        self.opt.iter
-                    )
-                )
-            self.invProb.beta /= self.coolingFactor
+
+        if self.invProb.phi_d < self.target:
+            self.dmis_met = True
+
+        if np.all(
+            [
+                np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol,
+                self.update_beta, 
+                self.dmis_met, 
+                self.opt.iter%self.coolingRate==0
+            ]
+        ):
+            
+            ratio = self.target / self.invProb.phi_d
+            
+            if ratio>1:
+                ratio = np.minimum(1.5, ratio)
+            else:
+                ratio = np.maximum(0.75, ratio)
+
+            self.invProb.beta = self.invProb.beta * ratio
+
+        elif np.all([self.opt.iter%self.coolingRate==0, self.dmis_met == False]):
+            self.invProb.beta = self.invProb.beta / self.coolingFactor
 
 
 class TargetMisfit(InversionDirective):
