@@ -215,7 +215,7 @@ class IterationPrinters(object):
     }
 
 
-    ''' Xiaolong Wei'''
+    ''' Xiaolong Wei, Aug 1, 2020'''
     iterationCG = {
         "title": "iterCG", "value": lambda M: M.cg_count, "width": 10,
         "format": "%3d"
@@ -1213,7 +1213,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             findSearchDirection()
             Finds the search direction based on projected CG
         """
-        self.cg_count = 0 # Xiaolong Wei
+        self.cg_count = 0 # Xiaolong Wei, Aug 1, 2020
         Active = self.activeSet(self.xc)
         temp = sum((np.ones_like(self.xc.size) - Active))
 

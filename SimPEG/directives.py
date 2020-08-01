@@ -558,7 +558,7 @@ class SaveModelEveryIteration(SaveEveryIteration):
 #             fig.savefig(fname, dpi=dpi)
 
 
-'''Xiaolong Wei '''
+'''Xiaolong Wei, Aug 1, 2020 '''
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveOutputEveryIteration"""
 
@@ -576,7 +576,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                 "progress as: '###-{0!s}.txt'".format(self.fileName)
             )
             f = open(self.fileName + ".txt", "w")
-            self.header = "  #     beta     phi_d     phi_m      phi\n"
+            self.header = "  #     beta     phi_d     phi_m      phi       cg_iter\n"
             f.write(self.header)
             f.close()
 
@@ -597,12 +597,13 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         if self.save_txt:
             f = open(self.fileName + ".txt", "a")
             f.write(
-                " {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e}\n".format(
+                " {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e} {5:3d}\n".format(
                     self.opt.iter,
                     self.beta[self.opt.iter - 1],
                     self.phi_d[self.opt.iter - 1],
                     self.phi_m[self.opt.iter - 1],
                     self.phi[self.opt.iter - 1],
+                    self.opt.cg_count
                 )
             )
             f.close()
