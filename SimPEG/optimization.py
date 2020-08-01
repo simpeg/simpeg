@@ -67,12 +67,20 @@ class StoppingCriteria(object):
         "stopType": "optimal",
     }
 
+    '''Xiaolong Wei, Aug 1, 2020'''
     moving_x = {
         "str": "%d : |xc-x_last| = %1.4e <= tolX*(1+|x0|) = %1.4e",
-        "left": lambda M: 1 if M.iter == 0 else norm(M.xc - M.x_last),
+        "left": lambda M: 1 if M.iter == 0 else norm(M.xc - M.x_last)/norm(M.x_last),
         "right": lambda M: 0 if M.iter == 0 else M.tolX * (1 + norm(M.x0)),
         "stopType": "optimal",
     }
+
+#    moving_x = {
+#        "str": "%d : |xc-x_last| = %1.4e <= tolX*(1+|x0|) = %1.4e",
+#        "left": lambda M: 1 if M.iter == 0 else norm(M.xc - M.x_last),
+#        "right": lambda M: 0 if M.iter == 0 else M.tolX * (1 + norm(M.x0)),
+#        "stopType": "optimal",
+#    }
 
     tolerance_g = {
         "str": "%d : |proj(x-g)-x|    = %1.4e <= tolG          = %1.4e",
