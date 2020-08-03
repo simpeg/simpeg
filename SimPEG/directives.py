@@ -1152,6 +1152,311 @@ class Update_IRLS(InversionDirective):
             )
         return True
 
+''' Xiaolong Wei, Aug 2, 2020 '''
+class Update_IRLS_beta_fixed(InversionDirective):
+
+    f_old = 0
+    f_min_change = 1e-2
+    beta_tol = 1e-1
+    beta_ratio_l2 = None
+    prctile = 100
+    chifact_start = 1.0
+    chifact_target = 1.0
+
+    # Solving parameter for IRLS (mode:2)
+    irls_iteration = 0
+    minGNiter = 1
+    max_irls_iterations = properties.Integer("maximum irls iterations", default=20)
+    iterStart = 0
+    sphericalDomain = False
+    beta_IRLS = 100 # Xiaolong Wei, Aug 2, 2020
+
+    # Beta schedule
+    update_beta = properties.Bool("Update beta", default=True)
+    beta_search = properties.Bool("Do a beta serarch", default=False)
+    coolingFactor = properties.Float("Cooling factor", default=2.0)
+    coolingRate = properties.Integer("Cooling rate", default=1)
+    ComboObjFun = False
+    mode = 1
+    coolEpsOptimized = True
+    coolEps_p = True
+    coolEps_q = True
+    floorEps_p = 1e-8
+    floorEps_q = 1e-8
+    coolEpsFact = 1.2
+    silent = False
+    fix_Jmatrix = False
+
+    maxIRLSiters = deprecate_property(
+        max_irls_iterations,
+        "maxIRLSiters",
+        new_name="max_irls_iterations",
+        removal_version="0.15.0",
+    )
+    updateBeta = deprecate_property(
+        update_beta, "updateBeta", new_name="update_beta", removal_version="0.15.0"
+    )
+    betaSearch = deprecate_property(
+        beta_search, "betaSearch", new_name="beta_search", removal_version="0.15.0"
+    )
+
+    @property
+    def target(self):
+        if getattr(self, "_target", None) is None:
+            nD = 0
+            for survey in self.survey:
+                nD += survey.nD
+
+            self._target = nD * 0.5 * self.chifact_target
+
+        return self._target
+
+    @target.setter
+    def target(self, val):
+        self._target = val
+
+    @property
+    def start(self):
+        if getattr(self, "_start", None) is None:
+            if isinstance(self.survey, list):
+                self._start = 0
+                for survey in self.survey:
+                    self._start += survey.nD * 0.5 * self.chifact_start
+
+            else:
+
+                self._start = self.survey.nD * 0.5 * self.chifact_start
+        return self._start
+
+    @start.setter
+    def start(self, val):
+        self._start = val
+
+    def initialize(self):
+
+        if self.mode == 1:
+
+            self.norms = []
+            for reg in self.reg.objfcts:
+                self.norms.append(reg.norms)
+                reg.norms = np.c_[2.0, 2.0, 2.0, 2.0]
+                reg.model = self.invProb.model
+
+        # Update the model used by the regularization
+        for reg in self.reg.objfcts:
+            reg.model = self.invProb.model
+
+        if self.sphericalDomain:
+            self.angleScale()
+
+    def endIter(self):
+
+        if self.sphericalDomain:
+            self.angleScale()
+
+        # Check if misfit is within the tolerance, otherwise scale beta
+        # if np.all(
+        #     [
+        #         np.abs(1.0 - self.invProb.phi_d / self.target) > self.beta_tol,
+        #         self.update_beta,
+        #         self.mode != 1,
+        #     ]
+        # ):
+
+        #     ratio = self.target / self.invProb.phi_d
+
+        #     if ratio > 1:
+        #         ratio = np.mean([2.0, ratio])
+
+        #     else:
+        #         ratio = np.mean([0.75, ratio])
+
+        #     self.invProb.beta = self.invProb.beta * ratio
+
+        #     if np.all([self.mode != 1, self.beta_search]):
+        #         print("Beta search step")
+        #         # self.update_beta = False
+        #         # Re-use previous model and continue with new beta
+        #         self.invProb.model = self.reg.objfcts[0].model
+        #         self.opt.xc = self.reg.objfcts[0].model
+        #         self.opt.iter -= 1
+        #         return
+
+        # elif np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):
+
+        #     self.invProb.beta = self.invProb.beta / self.coolingFactor
+
+        phim_new = 0
+        for reg in self.reg.objfcts:
+            for comp, multipier in zip(reg.objfcts, reg.multipliers):
+                if multipier > 0:
+                    phim_new += np.sum(
+                        comp.f_m ** 2.0
+                        / (comp.f_m ** 2.0 + comp.epsilon ** 2.0)
+                        ** (1 - comp.norm / 2.0)
+                    )
+
+        # Update the model used by the regularization
+        phi_m_last = []
+        for reg in self.reg.objfcts:
+            reg.model = self.invProb.model
+            phi_m_last += [reg(self.invProb.model)]
+
+        # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
+        if np.all([self.invProb.phi_d < self.start, self.mode == 1]):
+            self.startIRLS()
+
+        # Only update after GN iterations
+        if np.all(
+            [(self.opt.iter - self.iterStart) % self.minGNiter == 0, self.mode != 1]
+        ):
+
+            if self.fix_Jmatrix:
+                print(">> Fix Jmatrix")
+                self.invProb.dmisfit.simulation.fix_Jmatrix = True
+            # Check for maximum number of IRLS cycles
+            if self.irls_iteration == self.max_irls_iterations:
+                if not self.silent:
+                    print(
+                        "Reach maximum number of IRLS cycles:"
+                        + " {0:d}".format(self.max_irls_iterations)
+                    )
+
+                self.opt.stopNextIteration = True
+                return
+
+            # Print to screen
+            for reg in self.reg.objfcts:
+
+                if reg.eps_p > self.floorEps_p and self.coolEps_p:
+                    reg.eps_p /= self.coolEpsFact
+                    # print('Eps_p: ' + str(reg.eps_p))
+                if reg.eps_q > self.floorEps_q and self.coolEps_q:
+                    reg.eps_q /= self.coolEpsFact
+                    # print('Eps_q: ' + str(reg.eps_q))
+
+            # Remember the value of the norm from previous R matrices
+            # self.f_old = self.reg(self.invProb.model)
+
+            self.irls_iteration += 1
+
+            # Reset the regularization matrices so that it is
+            # recalculated for current model. Do it to all levels of comboObj
+            for reg in self.reg.objfcts:
+
+                # If comboObj, go down one more level
+                for comp in reg.objfcts:
+                    comp.stashedR = None
+
+            for dmis in self.dmisfit.objfcts:
+                if getattr(dmis, "stashedR", None) is not None:
+                    dmis.stashedR = None
+
+            # Compute new model objective function value
+            f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
+
+            # Check if the function has changed enough
+            if np.all(
+                [
+                    f_change < self.f_min_change,
+                    self.irls_iteration > 1,
+                    # np.abs(1.0 - self.invProb.phi_d / self.target) < self.beta_tol,
+                ]
+            ):
+
+                print("Minimum decrease in regularization." + "End of IRLS")
+                self.opt.stopNextIteration = True
+                return
+
+            self.f_old = phim_new
+
+            self.update_beta = True
+            self.invProb.phi_m_last = self.reg(self.invProb.model)
+
+    def startIRLS(self):
+        if not self.silent:
+            print(
+                "Reached starting chifact with l2-norm regularization:"
+                + " Start IRLS steps..."
+            )
+
+        self.mode = 2
+        
+        self.invProb.beta = self.beta_IRLS #Xiaolong Wei, Aug 2, 2020
+        
+        if getattr(self.opt, "iter", None) is None:
+            self.iterStart = 0
+        else:
+            self.iterStart = self.opt.iter
+
+        self.invProb.phi_m_last = self.reg(self.invProb.model)
+
+        # Either use the supplied epsilon, or fix base on distribution of
+        # model values
+        for reg in self.reg.objfcts:
+
+            if getattr(reg, "eps_p", None) is None:
+
+                reg.eps_p = np.percentile(
+                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
+                )
+
+            if getattr(reg, "eps_q", None) is None:
+
+                reg.eps_q = np.percentile(
+                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
+                )
+
+        # Re-assign the norms supplied by user l2 -> lp
+        for reg, norms in zip(self.reg.objfcts, self.norms):
+            reg.norms = norms
+
+        # Save l2-model
+        self.invProb.l2model = self.invProb.model.copy()
+
+        # Print to screen
+        for reg in self.reg.objfcts:
+            if not self.silent:
+                print("eps_p: " + str(reg.eps_p) + " eps_q: " + str(reg.eps_q))
+
+    def angleScale(self):
+        """
+            Update the scales used by regularization for the
+            different block of models
+        """
+        # Currently implemented for MVI-S only
+        max_p = []
+        for reg in self.reg.objfcts[0].objfcts:
+            eps_p = reg.epsilon
+            f_m = abs(reg.f_m)
+            max_p += [np.max(f_m)]
+
+        max_p = np.asarray(max_p).max()
+
+        max_s = [np.pi, np.pi]
+        for obj, var in zip(self.reg.objfcts[1:3], max_s):
+            obj.scales = np.ones(obj.scales.shape) * max_p / var
+
+    def validate(self, directiveList):
+        # check if a linear preconditioner is in the list, if not warn else
+        # assert that it is listed after the IRLS directive
+        dList = directiveList.dList
+        self_ind = dList.index(self)
+        lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in dList]
+
+        if any(lin_precond_ind):
+            assert lin_precond_ind.index(True) > self_ind, (
+                "The directive 'UpdatePreconditioner' must be after Update_IRLS "
+                "in the directiveList"
+            )
+        else:
+            warnings.warn(
+                "Without a Linear preconditioner, convergence may be slow. "
+                "Consider adding `Directives.UpdatePreconditioner` to your "
+                "directives list"
+            )
+        return True
+
 
 class UpdatePreconditioner(InversionDirective):
     """
