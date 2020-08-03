@@ -1678,3 +1678,94 @@ class ProjectSphericalBounds(InversionDirective):
             sim.model = m
 
         self.opt.xc = m
+
+
+'''
+Xiaolong Wei, Aug 3, 2020
+This part of code borrowed from Jae
+
+'''
+class JointInversion_Directive(InversionDirective):
+    '''
+        Directive for joint inversions. Sets Printers and StoppingCriteria.
+        Methods assume we are working with two models.
+    '''
+    class JointInversionPrinters(IterationPrinters):
+        betas = {
+            "title": "betas", "value": lambda M: ["{:.2e}".format(elem)
+            for elem in M.parent.betas], "width": 26,
+            "format":   "%s"
+        }
+        lambd = {
+            "title": "lambda", "value": lambda M: M.parent.lambd, "width": 10,
+            "format":   "%1.2e"
+        }
+        phi_d_joint = {
+            "title": "phi_d", "value": lambda M: ["{:.2e}".format(elem)
+            for elem in M.parent.phi_d_joint], "width": 26,
+            "format":   "%s"
+        }
+        phi_m_joint = {
+            "title": "phi_m", "value": lambda M: ["{:.2e}".format(elem)
+            for elem in M.parent.phi_m_joint], "width": 26,
+            "format":   "%s"
+        }
+        phi_c = {
+            "title": "phi_c", "value": lambda M: M.parent.phi_c, "width": 10,
+            "format":   "%1.2e"
+        }
+        iterationCG = {
+            "title": "iterCG", "value": lambda M: M.cg_count, "width": 10, "format": "%3d"
+        }
+
+    printers = [
+            IterationPrinters.iteration, JointInversionPrinters.betas,
+            JointInversionPrinters.lambd, IterationPrinters.f,
+            JointInversionPrinters.phi_d_joint, JointInversionPrinters.phi_m_joint,
+            JointInversionPrinters.phi_c, JointInversionPrinters.iterationCG
+        ]
+
+    def initialize(self):
+        ### define relevant attributes
+        self.betas = self.reg.multipliers[:-1]
+        self.lambd = self.reg.multipliers[-1]
+        self.phi_d_joint = []
+        self.phi_m_joint = []
+        self.phi_c = 0.0
+
+        ### pass attributes to invProb
+        self.invProb.betas = self.betas
+        self.invProb.num_models = len(self.betas)
+        self.invProb.lambd = self.lambd
+        self.invProb.phi_d_joint = self.phi_d_joint
+        self.invProb.phi_m_joint = self.phi_m_joint
+        self.invProb.phi_c = self.phi_c
+
+        self.opt.printers = self.printers
+        self.opt.stoppers = [StoppingCriteria.iteration]
+
+    def validate(self, directiveList):
+        # check that this directive is first in the DirectiveList
+        dList = directiveList.dList
+        self_ind = dList.index(self)
+        assert(self_ind==0), ('The JointInversion_Directive must be first.')
+
+        return True
+
+    def endIter(self):
+        ### compute attribute values
+        phi_d = []
+        for dmis in self.dmisfit.objfcts:
+            phi_d.append(dmis(self.opt.xc))
+
+        phi_m = []
+        for reg in self.reg.objfcts:
+            phi_m.append(reg(self.opt.xc))
+
+        ### pass attributes values to invProb
+        ### Assume last reg.objfct is the coupling
+        self.invProb.phi_d_joint = phi_d
+        self.invProb.phi_m_joint = phi_m[:-1]
+        self.invProb.phi_c = phi_m[-1]
+        self.invProb.betas = self.reg.multipliers[:-1]
+        self.invProb.lambd = self.reg.multipliers[-1]
