@@ -290,14 +290,14 @@ class BetaSchedule(InversionDirective):
         if np.all(
             [
                 np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol,
-                self.update_beta, 
-                self.dmis_met, 
+                self.update_beta,
+                self.dmis_met,
                 self.opt.iter%self.coolingRate==0
             ]
         ):
-            
+
             ratio = self.target / self.invProb.phi_d
-            
+
             if ratio>1:
                 ratio = np.minimum(1.5, ratio)
             else:
@@ -1254,38 +1254,6 @@ class Update_IRLS_beta_fixed(InversionDirective):
         if self.sphericalDomain:
             self.angleScale()
 
-        # Check if misfit is within the tolerance, otherwise scale beta
-        # if np.all(
-        #     [
-        #         np.abs(1.0 - self.invProb.phi_d / self.target) > self.beta_tol,
-        #         self.update_beta,
-        #         self.mode != 1,
-        #     ]
-        # ):
-
-        #     ratio = self.target / self.invProb.phi_d
-
-        #     if ratio > 1:
-        #         ratio = np.mean([2.0, ratio])
-
-        #     else:
-        #         ratio = np.mean([0.75, ratio])
-
-        #     self.invProb.beta = self.invProb.beta * ratio
-
-        #     if np.all([self.mode != 1, self.beta_search]):
-        #         print("Beta search step")
-        #         # self.update_beta = False
-        #         # Re-use previous model and continue with new beta
-        #         self.invProb.model = self.reg.objfcts[0].model
-        #         self.opt.xc = self.reg.objfcts[0].model
-        #         self.opt.iter -= 1
-        #         return
-
-        # elif np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):
-
-        #     self.invProb.beta = self.invProb.beta / self.coolingFactor
-
         phim_new = 0
         for reg in self.reg.objfcts:
             for comp, multipier in zip(reg.objfcts, reg.multipliers):
@@ -1359,8 +1327,7 @@ class Update_IRLS_beta_fixed(InversionDirective):
             if np.all(
                 [
                     f_change < self.f_min_change,
-                    self.irls_iteration > 1,
-                    # np.abs(1.0 - self.invProb.phi_d / self.target) < self.beta_tol,
+                    self.irls_iteration > 1
                 ]
             ):
 
@@ -1381,9 +1348,9 @@ class Update_IRLS_beta_fixed(InversionDirective):
             )
 
         self.mode = 2
-        
-        self.invProb.beta = self.beta_IRLS #Xiaolong Wei, Aug 2, 2020
-        
+
+        self.invProb.beta = self.beta_IRLS # Xiaolong Wei, Aug 2, 2020
+
         if getattr(self.opt, "iter", None) is None:
             self.iterStart = 0
         else:
