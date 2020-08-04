@@ -1769,3 +1769,175 @@ class JointInversion_Directive(InversionDirective):
         self.invProb.phi_c = phi_m[-1]
         self.invProb.betas = self.reg.multipliers[:-1]
         self.invProb.lambd = self.reg.multipliers[-1]
+
+
+class SaveOutputEveryIteration_JointInversion(SaveEveryIteration, InversionDirective):
+    '''
+    SaveOutputEveryIteration for Joint Inversions.
+    Saves information on the tradeoff parameters, data misfits, regularizations,
+    coupling term, number of CG iterations, and value of cost function.
+    '''
+    header = None
+    save_txt = True
+    betas = None
+    phi_d = None
+    phi_m = None
+    phi_c = None
+    phi = None
+
+    def initialize(self):
+        if self.save_txt is True:
+            print(
+                "SimPEG.SaveOutputEveryIteration will save your inversion "
+                "progress as: '###-{0!s}.txt'".format(self.fileName)
+            )
+            f = open(self.fileName+'.txt', 'w')
+            self.header = "  #          betas            lambda         joint_phi_d                joint_phi_m            phi_c       iterCG     phi    \n"
+            f.write(self.header)
+            f.close()
+
+        # Create a list of each
+        self.betas = []
+        self.lambd = []
+        self.phi_d = []
+        self.phi_m = []
+        self.phi = []
+        self.phi_c = []
+
+    def endIter(self):
+
+        self.betas.append(["{:.2e}".format(elem) for elem in self.invProb.betas])
+        self.phi_d.append(["{:.3e}".format(elem) for elem in self.invProb.phi_d_joint])
+        self.phi_m.append(["{:.3e}".format(elem) for elem in self.invProb.phi_m_joint])
+        self.lambd.append("{:.2e}".format(self.invProb.lambd))
+        self.phi_c.append(self.invProb.phi_c)
+        self.phi.append(self.opt.f)
+
+        if self.save_txt:
+            f = open(self.fileName+'.txt', 'a')
+            f.write(
+                ' {0:2d}  {1}  {2}  {3}  {4}  {5:1.4e}  {6:d}  {7:1.4e}\n'.format(
+                self.opt.iter,
+                self.betas[self.opt.iter-1],
+                self.lambd[self.opt.iter-1],
+                self.phi_d[self.opt.iter-1],
+                self.phi_m[self.opt.iter-1],
+                self.phi_c[self.opt.iter-1],
+                self.opt.cg_count,
+                self.phi[self.opt.iter-1] )
+            )
+            f.close()
+
+    def load_results(self):
+        results = np.loadtxt(self.fileName+str(".txt"), comments="#")
+        self.betas = results[:, 1]
+        self.lambd = results[:, 2]
+        self.phi_d = results[:, 3]
+        self.phi_m = results[:, 4]
+        self.phi_c = results[:, 5]
+        self.f = results[:, 7]
+
+
+class BetaSchedule_Joint(InversionDirective):
+    '''
+        Directive for beta cooling schedule to determine the tradeoff
+        parameters of the joint inverse problem.
+        We borrow some code from Update_IRLS.
+    '''
+    chifact_target = 1.
+    beta_tol = 1e-1
+    update_beta = True
+    coolingRate = 1
+    coolingFactor = 2
+    beta_initial_estimate = True
+    beta_ratio = 1
+    dmis_met = False
+
+    @property
+    def target(self):
+        if getattr(self, '_target', None) is None:
+            nD = []
+            for survey in self.survey:
+                nD += [survey.nD]
+            nD = np.array(nD)
+
+            self._target = nD*0.5*self.chifact_target
+
+        return self._target
+
+    @target.setter
+    def target(self, val):
+        self._target = val
+
+    def estimate_betas_eig(self, beta_ratio):
+        '''
+            Estimate initial betas by eigen values.
+            Method uses one iteration of the Power Method to estimate
+            eigenvectors for each separate inverse problem.
+        '''
+        m = self.invProb.model
+        f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
+
+        # Fix the seed for random vector for consistent results
+        np.random.seed(0)
+        x0 = np.random.rand(*m.shape)
+
+        t = []
+        b = []
+        i_count = 0
+        betas = []
+        # assume dmisfit and reg are combo objective functions.
+        # assume last regularization object is the coupling
+        for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts[:-1]):
+            t.append(x0.dot(dmis.deriv2(m, x0, f=f[i_count])))
+            b.append(x0.dot(reg.deriv2(m, x0, f=f)))
+            i_count += 1
+
+        t = np.array(t)
+        b = np.array(b)
+
+        betas = beta_ratio*(t/b)
+        self.betas = betas
+        self.invProb.betas = self.betas
+        self.reg.multipliers[:-1] = self.invProb.betas
+
+    def initialize(self):
+
+        if self.beta_initial_estimate or np.any(self.invProb.betas==0):
+            self.estimate_betas_eig(self.beta_ratio)
+        else:
+            self.betas = self.invProb.betas
+
+        self.dmis_met = np.zeros_like(self.betas, dtype=int)
+        self.dmis_met = self.dmis_met.astype(bool)
+
+    def endIter(self):
+
+        # Check if target misfit has been reached, if so, set dmis_met to True
+        for i in range(self.invProb.num_models):
+            if self.invProb.phi_d_joint[i] < self.target[i]:
+                self.dmis_met[i] = True
+
+        # check separately if misfits are within the tolerance,
+        # otherwise, scale beta individually
+        for i in range(self.invProb.num_models):
+            if np.all(
+                [
+                    np.abs(1. - self.invProb.phi_d_joint[i] / self.target[i]) > self.beta_tol,
+                    self.update_beta,
+                    self.dmis_met[i],
+                    self.opt.iter%self.coolingRate==0
+                ]
+            ):
+                ratio = self.target[i] / self.invProb.phi_d_joint[i]
+                if ratio>1:
+                    ratio = np.minimum(1.5, ratio)
+                else:
+                    ratio = np.maximum(0.75, ratio)
+
+                self.invProb.betas[i] = self.invProb.betas[i] * ratio
+
+            elif np.all([self.opt.iter%self.coolingRate==0, self.dmis_met[i] == False]):
+                self.invProb.betas[i] = self.invProb.betas[i] / self.coolingFactor
+
+        self.reg.multipliers[:-1] = self.invProb.betas
