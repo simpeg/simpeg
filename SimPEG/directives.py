@@ -1682,7 +1682,7 @@ class ProjectSphericalBounds(InversionDirective):
 
 '''
 Xiaolong Wei, Aug 3, 2020
-This part of code borrowed from Jae
+This part of code is borrowed from Jae (kimjd9311@gmail.com)
 
 '''
 class JointInversion_Directive(InversionDirective):
