@@ -1685,6 +1685,8 @@ Xiaolong Wei, Aug 3, 2020
 This part of code is borrowed from Jae (kimjd9311@gmail.com)
 
 '''
+IterationPrinters = Optimization.IterationPrinters
+StoppingCriteria = Optimization.StoppingCriteria
 class JointInversion_Directive(InversionDirective):
     '''
         Directive for joint inversions. Sets Printers and StoppingCriteria.
