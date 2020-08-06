@@ -17,6 +17,8 @@ from SimPEG import props
 import properties
 from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
 
+import time
+
 
 class Simulation3DIntegral(BasePFSimulation):
     """
@@ -111,8 +113,9 @@ class Simulation3DIntegral(BasePFSimulation):
     def G(self):
 
         if getattr(self, "_G", None) is None:
-
+            start = time.time()
             self._G = self.linear_operator()
+            print("Linear forward calculation ended in: " + str(time.time()-start) + " sec")
 
         return self._G
 
