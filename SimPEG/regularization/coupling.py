@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 
-from .. import Utils
+from .. import utils
 from .base import BaseRegularization
 
 class BaseCoupling(BaseRegularization):
