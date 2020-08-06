@@ -18,6 +18,7 @@ from .utils import (
     cartesian2spherical,
 )
 from .utils.code_utils import deprecate_property
+from .import optimization
 
 
 class InversionDirective(properties.HasProperties):
@@ -1685,8 +1686,8 @@ Xiaolong Wei, Aug 3, 2020
 This part of code is borrowed from Jae (kimjd9311@gmail.com)
 
 '''
-IterationPrinters = Optimization.IterationPrinters
-StoppingCriteria = Optimization.StoppingCriteria
+IterationPrinters = optimization.IterationPrinters
+StoppingCriteria = optimization.StoppingCriteria
 class JointInversion_Directive(InversionDirective):
     '''
         Directive for joint inversions. Sets Printers and StoppingCriteria.
