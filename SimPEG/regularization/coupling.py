@@ -411,9 +411,9 @@ class CrossGradient(BaseCoupling):
                 if j==i:
                     continue
                 else:
-                    D_result += 2*(D[i].T.dot(Utils.sdiag(grad1[j]*grad2[i])).dot(D[j]))
-                    D_result -= D[i].T.dot(Utils.sdiag(grad1[j]*grad2[j])).dot(D[i])
-                    D_result -= D[j].T.dot(Utils.sdiag(grad1[j]*grad2[i])).dot(D[i])
+                    D_result += 2*(D[i].T.dot(utils.sdiag(grad1[j]*grad2[i])).dot(D[j]))
+                    D_result -= D[i].T.dot(utils.sdiag(grad1[j]*grad2[j])).dot(D[i])
+                    D_result -= D[j].T.dot(utils.sdiag(grad1[j]*grad2[i])).dot(D[i])
 
         D_result = sp.csr_matrix(D_result)
         return D_result
@@ -449,13 +449,13 @@ class CrossGradient(BaseCoupling):
             Dx_m2, Dy_m2 = Dx.dot(m2), Dy.dot(m2)
             a = Dx_m2**2 + Dy_m2**2
             b = Dx_m1**2 + Dy_m1**2
-            A = Dx.T.dot(Utils.sdiag(Dx_m2)) + Dy.T.dot(Utils.sdiag(Dy_m2))
-            B = Dx.T.dot(Utils.sdiag(Dx_m1)) + Dy.T.dot(Utils.sdiag(Dy_m1))
+            A = Dx.T.dot(utils.sdiag(Dx_m2)) + Dy.T.dot(utils.sdiag(Dy_m2))
+            B = Dx.T.dot(utils.sdiag(Dx_m1)) + Dy.T.dot(utils.sdiag(Dy_m1))
 
-            d2t_dm1 = (Dx.T.dot(Utils.sdiag(a)).dot(Dx) +
-                       Dy.T.dot(Utils.sdiag(a)).dot(Dy) - A.dot(A.T))
-            d2t_dm2 = (Dx.T.dot(Utils.sdiag(b)).dot(Dx) +
-                       Dy.T.dot(Utils.sdiag(b)).dot(Dy) - B.dot(B.T))
+            d2t_dm1 = (Dx.T.dot(utils.sdiag(a)).dot(Dx) +
+                       Dy.T.dot(utils.sdiag(a)).dot(Dy) - A.dot(A.T))
+            d2t_dm2 = (Dx.T.dot(utils.sdiag(b)).dot(Dx) +
+                       Dy.T.dot(utils.sdiag(b)).dot(Dy) - B.dot(B.T))
 
             d_dm2_dt_dm1 = func1((Dx, Dy), (Dx_m1, Dy_m1), (Dx_m2, Dy_m2))
             d_dm1_dt_dm2 = d_dm2_dt_dm1.T
@@ -469,17 +469,17 @@ class CrossGradient(BaseCoupling):
             Dx_m2, Dy_m2, Dz_m2 = Dx.dot(m2), Dy.dot(m2), Dz.dot(m2)
             a = Dx_m2**2 + Dy_m2**2 + Dz_m2**2
             b = Dx_m1**2 + Dy_m1**2 + Dz_m1**2
-            A = (Dx.T.dot(Utils.sdiag(Dx_m2)) + Dy.T.dot(Utils.sdiag(Dy_m2)) +
-                 Dz.T.dot(Utils.sdiag(Dz_m2)))
-            B = (Dx.T.dot(Utils.sdiag(Dx_m1)) + Dy.T.dot(Utils.sdiag(Dy_m1)) +
-                 Dz.T.dot(Utils.sdiag(Dz_m1)))
+            A = (Dx.T.dot(utils.sdiag(Dx_m2)) + Dy.T.dot(utils.sdiag(Dy_m2)) +
+                 Dz.T.dot(utils.sdiag(Dz_m2)))
+            B = (Dx.T.dot(utils.sdiag(Dx_m1)) + Dy.T.dot(utils.sdiag(Dy_m1)) +
+                 Dz.T.dot(utils.sdiag(Dz_m1)))
 
-            d2t_dm1 = (Dx.T.dot(Utils.sdiag(a)).dot(Dx) +
-                       Dy.T.dot(Utils.sdiag(a)).dot(Dy) +
-                       Dz.T.dot(Utils.sdiag(a)).dot(Dz) - A.dot(A.T))
-            d2t_dm2 = (Dx.T.dot(Utils.sdiag(b)).dot(Dx) +
-                       Dy.T.dot(Utils.sdiag(b)).dot(Dy) +
-                       Dz.T.dot(Utils.sdiag(b)).dot(Dz) - B.dot(B.T))
+            d2t_dm1 = (Dx.T.dot(utils.sdiag(a)).dot(Dx) +
+                       Dy.T.dot(utils.sdiag(a)).dot(Dy) +
+                       Dz.T.dot(utils.sdiag(a)).dot(Dz) - A.dot(A.T))
+            d2t_dm2 = (Dx.T.dot(utils.sdiag(b)).dot(Dx) +
+                       Dy.T.dot(utils.sdiag(b)).dot(Dy) +
+                       Dz.T.dot(utils.sdiag(b)).dot(Dz) - B.dot(B.T))
 
             d_dm2_dt_dm1 = func1((Dx, Dy, Dz), (Dx_m1, Dy_m1, Dz_m1), (Dx_m2, Dy_m2, Dz_m2))
             d_dm1_dt_dm2 = d_dm2_dt_dm1.T
@@ -675,9 +675,9 @@ class JTV(BaseCoupling):
         D = self.D
         core = self.JTV_core(m1, m2)
 
-        temp1 = A.T.dot(Utils.sdiag(core**(-0.5))).dot(V) # dimension: 3M*1
-        dc_dm1 = D.T.dot(Utils.sdiag(temp1)).dot(D.dot(m1))
-        dc_dm2 = D.T.dot(Utils.sdiag(temp1)).dot(D.dot(m2))
+        temp1 = A.T.dot(utils.sdiag(core**(-0.5))).dot(V) # dimension: 3M*1
+        dc_dm1 = D.T.dot(utils.sdiag(temp1)).dot(D.dot(m1))
+        dc_dm2 = D.T.dot(utils.sdiag(temp1)).dot(D.dot(m2))
 
         result = np.concatenate((dc_dm1,dc_dm2))
 
@@ -714,30 +714,30 @@ class JTV(BaseCoupling):
             v2 = self.map2*v
 
         # h12
-        temp1 = D.T.dot(Utils.sdiag(D.dot(m2))) # M*3M
-        temp2 = A.T.dot(Utils.sdiag(core**(-1.5))) # 3M*M
-        temp3 = D.T.dot(Utils.sdiag(D.dot(m1))).dot(A.T.dot(Utils.sdiag(V))) #M*M
+        temp1 = D.T.dot(utils.sdiag(D.dot(m2))) # M*3M
+        temp2 = A.T.dot(utils.sdiag(core**(-1.5))) # 3M*M
+        temp3 = D.T.dot(utils.sdiag(D.dot(m1))).dot(A.T.dot(utils.sdiag(V))) #M*M
         d_dm2_dc_dm1 = -temp1.dot(temp2).dot(temp3.T)
 
         # h21
-        temp1 = D.T.dot(Utils.sdiag(D.dot(m1))) # M*3M
-        temp3 = D.T.dot(Utils.sdiag(D.dot(m2))).dot(A.T.dot(Utils.sdiag(V))) #M*M
+        temp1 = D.T.dot(utils.sdiag(D.dot(m1))) # M*3M
+        temp3 = D.T.dot(utils.sdiag(D.dot(m2))).dot(A.T.dot(utils.sdiag(V))) #M*M
         d_dm1_dc_dm2 = -temp1.dot(temp2).dot(temp3.T)
 
         # h11
-        temp1 = A.T.dot(Utils.sdiag(core**(-0.5))).dot(V)
-        term1 = D.T.dot(Utils.sdiag(temp1)).dot(D)
+        temp1 = A.T.dot(utils.sdiag(core**(-0.5))).dot(V)
+        term1 = D.T.dot(utils.sdiag(temp1)).dot(D)
 
-        temp1 = D.T.dot(Utils.sdiag(D.dot(m1)))
-        temp2 = A.T.dot(Utils.sdiag(core**(-1.5))).dot(Utils.sdiag(V))
-        temp3 = A.dot(Utils.sdiag(D.dot(m1))).dot(D)
+        temp1 = D.T.dot(utils.sdiag(D.dot(m1)))
+        temp2 = A.T.dot(utils.sdiag(core**(-1.5))).dot(utils.sdiag(V))
+        temp3 = A.dot(utils.sdiag(D.dot(m1))).dot(D)
         term2 = temp1.dot(temp2).dot(temp3)
         d2c_dm1 = term1 - term2
 
         # h22
-        temp1 = D.T.dot(Utils.sdiag(D.dot(m2)))
-        temp2 = A.T.dot(Utils.sdiag(core**(-1.5))).dot(Utils.sdiag(V))
-        temp3 = A.dot(Utils.sdiag(D.dot(m2))).dot(D)
+        temp1 = D.T.dot(utils.sdiag(D.dot(m2)))
+        temp2 = A.T.dot(utils.sdiag(core**(-1.5))).dot(utils.sdiag(V))
+        temp3 = A.dot(utils.sdiag(D.dot(m2))).dot(D)
         term2 = temp1.dot(temp2).dot(temp3)
         d2c_dm2 = term1 - term2
 
