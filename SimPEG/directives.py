@@ -18,7 +18,7 @@ from .utils import (
     cartesian2spherical,
 )
 from .utils.code_utils import deprecate_property
-from .import optimization
+from .import optimization # Xiaolong Wei, Aug 6, 2020
 
 
 class InversionDirective(properties.HasProperties):
