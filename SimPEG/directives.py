@@ -18,7 +18,7 @@ from .utils import (
     cartesian2spherical,
 )
 from .utils.code_utils import deprecate_property
-from .import optimization # Xiaolong Wei, Aug 6, 2020
+from .import optimization
 
 
 class InversionDirective(properties.HasProperties):
@@ -1745,7 +1745,7 @@ class JointInversion_Directive(InversionDirective):
         self.invProb.phi_c = self.phi_c
 
         self.opt.printers = self.printers
-        self.opt.stoppers = [StoppingCriteria.iteration]
+        self.opt.stoppers = [StoppingCriteria.iteration, StoppingCriteria.moving_x]
 
     def validate(self, directiveList):
         # check that this directive is first in the DirectiveList
@@ -1774,7 +1774,7 @@ class JointInversion_Directive(InversionDirective):
         self.invProb.lambd = self.reg.multipliers[-1]
 
 
-class SaveOutputEveryIteration_JointInversion(SaveEveryIteration, InversionDirective):
+class SaveOutputEveryIteration_Joint(SaveEveryIteration, InversionDirective):
     '''
     SaveOutputEveryIteration for Joint Inversions.
     Saves information on the tradeoff parameters, data misfits, regularizations,
@@ -1840,6 +1840,40 @@ class SaveOutputEveryIteration_JointInversion(SaveEveryIteration, InversionDirec
         self.phi_c = results[:, 5]
         self.f = results[:, 7]
 
+class BetaEstimate_ByEig_Joint(InversionDirective):
+
+    betas = None
+    beta0_ratio = 1
+
+    def initialize(self):
+        '''
+            Estimate initial betas by eigen values.
+            Method uses one iteration of the Power Method to estimate
+            eigenvectors for each separate inverse problem.
+        '''
+        m = self.invProb.model
+        f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
+
+        # Fix the seed for random vector for consistent results
+        np.random.seed(0)
+        x0 = np.random.rand(*m.shape)
+
+        t = []
+        b = []
+        i_count = 0
+        # assume dmisfit and reg are combo objective functions.
+        # assume last regularization object is the coupling
+        for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts[:-1]):
+            t.append(x0.dot(dmis.deriv2(m, x0, f=f[i_count])))
+            b.append(x0.dot(reg.deriv2(m, x0, f=f)))
+            i_count += 1
+
+        t = np.array(t)
+        b = np.array(b)
+
+        self.betas = self.beta0_ratio*(t/b)
+        self.invProb.betas = self.betas
+        self.reg.multipliers[:-1] = self.invProb.betas
 
 class BetaSchedule_Joint(InversionDirective):
     '''
@@ -1852,8 +1886,6 @@ class BetaSchedule_Joint(InversionDirective):
     update_beta = True
     coolingRate = 1
     coolingFactor = 2
-    beta_initial_estimate = True
-    beta_ratio = 1
     dmis_met = False
 
     @property
@@ -1872,45 +1904,9 @@ class BetaSchedule_Joint(InversionDirective):
     def target(self, val):
         self._target = val
 
-    def estimate_betas_eig(self, beta_ratio):
-        '''
-            Estimate initial betas by eigen values.
-            Method uses one iteration of the Power Method to estimate
-            eigenvectors for each separate inverse problem.
-        '''
-        m = self.invProb.model
-        f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
-
-        # Fix the seed for random vector for consistent results
-        np.random.seed(0)
-        x0 = np.random.rand(*m.shape)
-
-        t = []
-        b = []
-        i_count = 0
-        betas = []
-        # assume dmisfit and reg are combo objective functions.
-        # assume last regularization object is the coupling
-        for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts[:-1]):
-            t.append(x0.dot(dmis.deriv2(m, x0, f=f[i_count])))
-            b.append(x0.dot(reg.deriv2(m, x0, f=f)))
-            i_count += 1
-
-        t = np.array(t)
-        b = np.array(b)
-
-        betas = beta_ratio*(t/b)
-        self.betas = betas
-        self.invProb.betas = self.betas
-        self.reg.multipliers[:-1] = self.invProb.betas
-
     def initialize(self):
 
-        if self.beta_initial_estimate or np.any(self.invProb.betas==0):
-            self.estimate_betas_eig(self.beta_ratio)
-        else:
-            self.betas = self.invProb.betas
-
+        self.betas = self.invProb.betas
         self.dmis_met = np.zeros_like(self.betas, dtype=int)
         self.dmis_met = self.dmis_met.astype(bool)
 
