@@ -118,23 +118,23 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
     sigma1d = M.r(sigBG, "CC", "CC", "M")[0, 0, :]
 
     if expMap:
-        problem = Simulation3DPrimarySecondary(M, sigmaPrimary=np.log(sigma1d))
-        problem.sigmaMap = maps.ExpMap(problem.mesh)
-        problem.model = np.log(sig)
+        simulation = Simulation3DPrimarySecondary(mesh=M, survey=survey, sigmaPrimary=np.log(sigma1d))
+        simulation.sigmaMap = maps.ExpMap(simulation.mesh)
+        simulation.model = np.log(sig)
     else:
-        problem = Simulation3DPrimarySecondary(M, sigmaPrimary=sigma1d)
-        problem.sigmaMap = maps.IdentityMap(problem.mesh)
-        problem.model = sig
-    problem.pair(survey)
-    problem.verbose = False
+        simulation = Simulation3DPrimarySecondary(mesh=M, survey=survey, sigmaPrimary=sigma1d)
+        simulation.sigmaMap = maps.IdentityMap(simulation.mesh)
+        simulation.model = sig
+    # problem.pair(survey)
+    simulation.verbose = False
     try:
         from pymatsolver import Pardiso
 
-        problem.Solver = Pardiso
+        simulation.Solver = Pardiso
     except:
         pass
 
-    return (survey, problem)
+    return (survey, simulation)
 
 
 def getInputs():
