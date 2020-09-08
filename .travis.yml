@@ -21,7 +21,7 @@ env:
 
   matrix:
     - TEST_DIR=tests/docs
-    - TEST_DIR="tests/em/fdem/inverse/derivs tests/em/fdem/inverse/muinverse"
+    - TEST_DIR="tests/em/fdem/inverse/derivs tests/em/fdem/muinverse"
     - TEST_DIR=tests/em/tdem
     - TEST_DIR="tests/em/static tests/seis tests/base tests/utils"
     - TEST_DIR=tests/flow
