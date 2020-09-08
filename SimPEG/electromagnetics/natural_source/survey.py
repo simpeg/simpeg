@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from numpy.lib import recfunctions as recFunc
 
-# from ..frequency_domain.survey import Survey
+from ..frequency_domain.survey import Survey
 from ...data import Data as BaseData
 from ...utils import mkvc
 from .sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
@@ -18,12 +18,12 @@ import properties
 #########
 
 
-class Survey(BaseSurvey):
-    """
-    Survey class for NSEM.
+# class Survey(BaseSurvey):
+#     """
+#     Survey class for NSEM.
 
-    **Requried**
-    :param list srcList: List of sources associated with the survey
+#     **Requried**
+#     :param list srcList: List of sources associated with the survey
 
 
 #     **Optional**

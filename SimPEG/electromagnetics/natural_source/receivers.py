@@ -114,7 +114,7 @@ class BaseRxNSEM_Point(BaseRx):
     @property
     def Pbz(self):
         if getattr(self, "_Pbz", None) is None:
-            self._Pbz = self._mesh.getInterpolationMat(self._locs_e(), "Fz")
+            self._Pbz = self._mesh.getInterpolationMat(self._locs_b(), "Fz")
         return self._Pbz
 
     # Utility for convienece

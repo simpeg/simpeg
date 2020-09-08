@@ -246,7 +246,7 @@ def fieldByFrequency(self, freq, freq_index):
     if self.verbose:
         print('Starting work for {:.3e}'.format(freq))
         sys.stdout.flush()
-    mkl_set_num_threads(self.n_cpu)
+    mkl_set_num_threads(1)
     if self.Ainv[int(freq_index)] is not None:
         self.Ainv[int(freq_index)].clean()
 
