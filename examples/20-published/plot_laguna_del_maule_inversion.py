@@ -152,7 +152,9 @@ def run(plotIt=True, cleanAfterRun=True):
     # %%
     if plotIt:
         # Plot observed data
-        plot2Ddata(rxLoc, d)
+        # The sign of the data is flipped here for the change of convention 
+        # between Cartesian (SimPEG) and traditional gravity data (positive down)
+        plot2Ddata(rxLoc, -d)
 
         # %%
         # Write output model and data files and print misfit stats.
