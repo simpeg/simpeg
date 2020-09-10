@@ -99,6 +99,9 @@ dobs = np.loadtxt(str(data_filename))
 receiver_locations = dobs[:, 0:3]
 dobs = dobs[:, -1]
 
+# Flip the data sign for SimPEG cartesian convention
+dobs = dobs * -1
+
 # Plot
 mpl.rcParams.update({"font.size": 12})
 fig = plt.figure(figsize=(7, 5))
