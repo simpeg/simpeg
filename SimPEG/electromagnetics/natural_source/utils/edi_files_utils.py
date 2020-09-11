@@ -9,6 +9,7 @@ from .data_utils import rec_to_ndarr
 # Import modules
 import numpy as np
 import os, sys, re
+import utm
 
 
 class EDIimporter:
@@ -136,30 +137,31 @@ class EDIimporter:
     # obj.data(nOutData+1:nOutData+length(TEMP.data),:) = TEMP.data;
     def _transfromPoints(self, longD, latD):
         # Import the coordinate projections
-        try:
-            import osr
-        except ImportError as e:
-            print(
-                (
-                    "Could not import osr, missing the gdal"
-                    + "package\nCan not project coordinates"
-                )
-            )
-            raise e
-        # Coordinates convertor
-        if self._2out is None:
-            src = osr.SpatialReference()
-            src.ImportFromEPSG(4326)
-            out = osr.SpatialReference()
-            if self._outEPSG is None:
-                # Find the UTM EPSG number
-                Nnr = 700 if latD < 0.0 else 600
-                utmZ = int(1 + (longD + 180.0) / 6.0)
-                self._outEPSG = 32000 + Nnr + utmZ
-            out.ImportFromEPSG(self._outEPSG)
-            self._2out = osr.CoordinateTransformation(src, out)
-        # Return the transfrom
-        return self._2out.TransformPoint(longD, latD)
+        # try:
+        #     import osr
+        # except ImportError as e:
+        #     print(
+        #         (
+        #             "Could not import osr, missing the gdal"
+        #             + "package\nCan not project coordinates"
+        #         )
+        #     )
+        #     raise e
+        # # Coordinates convertor
+        # if self._2out is None:
+        #     src = osr.SpatialReference()
+        #     src.ImportFromEPSG(4326)
+        #     out = osr.SpatialReference()
+        #     if self._outEPSG is None:
+        #         # Find the UTM EPSG number
+        #         Nnr = 700 if latD < 0.0 else 600
+        #         utmZ = int(1 + (longD + 180.0) / 6.0)
+        #         self._outEPSG = 32000 + Nnr + utmZ
+        #     out.ImportFromEPSG(self._outEPSG)
+        #     self._2out = osr.CoordinateTransformation(src, out)
+        # # Return the transfrom
+        # return self._2out.TransformPoint(longD, latD)
+        return utm.from_latlon(latD, longD)
 
 
 # Hidden functions
@@ -169,17 +171,17 @@ def _findLatLong(fileLines):
         float,
     )
     longDMS = np.array(
-        fileLines[_findLine("LONG=", fileLines)[0]].split("=")[1].split()[0].split(":"),
+        fileLines[_findLine("LON=", fileLines)[0]].split("=")[1].split()[0].split(":"),
         float,
     )
     elevM = np.array(
         [fileLines[_findLine("ELEV=", fileLines)[0]].split("=")[1].split()[0]], float
     )
     # Convert to D.ddddd values
-    latS = np.sign(latDMS[0])
-    longS = np.sign(longDMS[0])
-    latD = latDMS[0] + latS * latDMS[1] / 60 + latS * latDMS[2] / 3600
-    longD = longDMS[0] + longS * longDMS[1] / 60 + longS * longDMS[2] / 3600
+    # latS = np.sign(latDMS[0])
+    # longS = np.sign(longDMS[0])
+    latD = latDMS[0] # + latS * latDMS[1] / 60 + latS * latDMS[2] / 3600
+    longD = longDMS[0] # + longS * longDMS[1] / 60 + longS * longDMS[2] / 3600
     return latD, longD, elevM
 
 
