@@ -51,4 +51,4 @@ def dask_deriv2(self, m, v, f=None):
         m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
     )
 
-Dmis.deriv = dask_deriv2
+Dmis.deriv2 = dask_deriv2
