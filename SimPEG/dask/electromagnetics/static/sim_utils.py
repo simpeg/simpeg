@@ -10,7 +10,7 @@ import numpy as np
 def create_sub_simulations(source_list,
                            dem,
                            base_mesh,
-                           oct_levels=[25, 5, 3, 2, 2],
+                           oct_levels=[5, 3, 2, 2],
                            remote_quadrant=0,
                            output_meshes=False,
                            padLen=800,
