@@ -1,10 +1,8 @@
-from ..data_misfit import L2DataMisfit as Dmis
+from ..data_misfit import L2DataMisfit
 
 import dask
 import dask.array as da
-import os
-import shutil
-import numpy as np
+from scipy.sparse import csr_matrix as csr
 
 
 def dask_deriv(self, m, f=None):
@@ -24,11 +22,15 @@ def dask_deriv(self, m, f=None):
     if f is None:
         f = self.simulation.fields(m)
 
-    return self.simulation.Jtvec(
-        m, self.W.T * (self.W * self.residual(m, f=f)), f=f
-    )
+    w_d = dask.delayed(csr.dot)(self.W, self.residual(m, f=f))
 
-Dmis.deriv = dask_deriv
+    wtw_d = dask.delayed(csr.dot)(self.scale * w_d, self.W)
+
+    row = da.from_delayed(wtw_d, dtype=float, shape=[self.W.shape[0]])
+    return self.prob.Jtvec(m, row, f=f)
+
+
+L2DataMisfit.deriv = dask_deriv
 
 
 def dask_deriv2(self, m, v, f=None):
@@ -47,8 +49,14 @@ def dask_deriv2(self, m, v, f=None):
     if f is None:
         f = self.simulation.fields(m)
 
-    return self.simulation.Jtvec_approx(
-        m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
-    )
+    jtvec = self.simulation.Jtvec_approx(m, v, f=f)
 
-Dmis.deriv2 = dask_deriv2
+    w_jtvec = dask.delayed(csr.dot)(self.W, jtvec)
+
+    wtw_jtvec = dask.delayed(csr.dot)(w_jtvec, self.W)
+
+    row = da.from_delayed(wtw_jtvec, dtype=float, shape=[self.W.shape[0]])
+    return self.simulation.Jtvec_approx(m, row, f=f)
+
+
+L2DataMisfit.deriv2 = dask_deriv2
