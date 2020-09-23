@@ -14,6 +14,7 @@ def create_sub_simulations(source_list,
                            oct_levels=[5, 3, 2, 2],
                            remote_quadrant=0,
                            output_meshes=False,
+                           depth_core=1000,
                            padLen=800,
                            remote_present=True):
 
@@ -56,7 +57,7 @@ def create_sub_simulations(source_list,
         electrodes, h,
         padding_distance=padding_distance,
         mesh_type='TREE', base_mesh=base_mesh,
-        depth_core=1000
+        depth_core=depth_core
     )
     mesh = discretize.utils.refine_tree_xyz(
         mesh, topo,
@@ -72,14 +73,14 @@ def create_sub_simulations(source_list,
         )
         mesh = discretize.utils.refine_tree_xyz(
             mesh, no_remote_db,
-            method='box', octree_levels=oct_levels,
+            method='surface', octree_levels=oct_levels,
             # octree_levels_padding=[4, 4, 2, 2],
             finalize=True
         )
     else:
         mesh = discretize.utils.refine_tree_xyz(
             mesh, electrodes,
-            method='box', octree_levels=oct_levels,
+            method='surface', octree_levels=oct_levels,
             # octree_levels_padding=[4, 4, 2, 2],
             finalize=True
         )
@@ -91,10 +92,8 @@ def create_sub_simulations(source_list,
         )
 
     # actinds = mesh.gridCC[:, 2] < 0
-    local_active = utils.surface2ind_topo(mesh, topo, method='linear')
+    # local_active = utils.surface2ind_topo(mesh, topo, method='linear')
     # print(actinds.shape)
-    # drape topo
-    sub_survey.drape_electrodes_on_topography(mesh, local_active)
 
     # actmap = maps.InjectActiveCells(
     #     mesh, indActive=actinds, valInactive=np.log(1e-8)
@@ -102,6 +101,12 @@ def create_sub_simulations(source_list,
     # mapping = maps.ExpMap(mesh) * actmap
 
     tile_map = maps.TileMap(base_mesh, global_active, mesh)
+
+    # local active
+    local_active = tile_map.local_active
+    print(local_active.shape, local_active.sum(), mesh.nC, base_mesh.nC)
+    # drape topo
+    sub_survey.drape_electrodes_on_topography(mesh, local_active)
 
     # Generate 3D DC problem
     # "CC" means potential is defined at center
