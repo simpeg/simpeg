@@ -78,14 +78,38 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         f = self.fieldsPair(self)
 
-        for freq in self.survey.frequencies:
-            A = self.getA(freq)
-            rhs = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solver_opts)
-            u = Ainv * rhs
-            Srcs = self.survey.get_sources_by_frequency(freq)
-            f[Srcs, self._solutionType] = u
-            Ainv.clean()
+        if 'emg3d' in str(self.Solver):
+
+            # Create solver instance
+            Solver = self.solver(
+                grid_tuple=(self.mesh, ),  # Each src could have own grid/model
+                model_tuple=(self.model, ),  # <= TODO
+                mapping='Conductivity',      # <= TODO
+                sfield_tuple=[s._s_e for s in self.survey.source_list],
+                frequencies=[s.frequency for s in self.survey.source_list],
+                solver_opts=self.solver_opts,
+            )
+
+            # Get fields list.
+            fields_list = Solver.fields()
+
+            # Print convergence warnings from emg3d.
+            Solver.print_warnings("- Source ")
+
+            # Extract and store the fields.
+            for i, src in enumerate(self.survey.source_list):
+                f[src, self._solutionType] = fields_list[i].field
+
+        else:
+            for freq in self.survey.frequencies:
+                A = self.getA(freq)
+                rhs = self.getRHS(freq)
+                Ainv = self.Solver(A, **self.solver_opts)
+                u = Ainv * rhs
+                Srcs = self.survey.get_sources_by_frequency(freq)
+                f[Srcs, self._solutionType] = u
+                Ainv.clean()
+
         return f
 
     def Jvec(self, m, v, f=None):
@@ -99,6 +123,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
         :rtype: numpy.ndarray
         :return: Jv (ndata,)
         """
+
+        if 'emg3d' in str(self.Solver):
+            msg = "Jvec is not yet implemented for `emg3d.solver.Solver`."
+            raise NotImplementedError(msg)
 
         if f is None:
             f = self.fields(m)
@@ -134,6 +162,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
         :rtype: numpy.ndarray
         :return: Jv (ndata,)
         """
+
+        if 'emg3d' in str(self.Solver):
+            msg = "Jvec is not yet implemented for `emg3d.solver.Solver`."
+            raise NotImplementedError(msg)
 
         if f is None:
             f = self.fields(m)
