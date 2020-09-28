@@ -80,6 +80,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         if 'emg3d' in str(self.Solver):
 
+            if self._solutionType != "eSolution":
+                msg = "Solver `emg3d.solver.Solver` only works for 'eSolution'."
+                raise NotImplementedError(msg)
+
             # Create solver instance
             Solver = self.solver(
                 grid_tuple=(self.mesh, ),  # Each src could have own grid/model
@@ -164,7 +168,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         """
 
         if 'emg3d' in str(self.Solver):
-            msg = "Jvec is not yet implemented for `emg3d.solver.Solver`."
+            msg = "Jtvec is not yet implemented for `emg3d.solver.Solver`."
             raise NotImplementedError(msg)
 
         if f is None:
