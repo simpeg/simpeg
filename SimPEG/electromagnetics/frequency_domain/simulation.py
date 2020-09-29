@@ -84,21 +84,21 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 msg = "Solver `emg3d.solver.Solver` only works for 'eSolution'."
                 raise NotImplementedError(msg)
 
-            # Create solver instance
-            Solver = self.solver(
+            # Create solver instance.
+            if not hasattr(self, '_Solver'):
+                self._Solver = self.solver(**self.solver_opts)
+
+            # Compute fields.
+            fields_list = self._Solver.solve(
                 grid_tuple=(self.mesh, ),  # Each src could have own grid/model
                 model_tuple=(self.model, ),  # <= TODO
                 mapping='Conductivity',      # <= TODO
                 sfield_tuple=[s._s_e for s in self.survey.source_list],
                 frequencies=[s.frequency for s in self.survey.source_list],
-                solver_opts=self.solver_opts,
             )
 
-            # Get fields list.
-            fields_list = Solver.fields()
-
             # Print convergence warnings from emg3d.
-            Solver.print_warnings("- Source ")
+            self._Solver.print_warnings("- Source ")
 
             # Extract and store the fields.
             for i, src in enumerate(self.survey.source_list):
