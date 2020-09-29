@@ -90,9 +90,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
             # Compute fields.
             fields_list = self._Solver.solve(
-                grid_tuple=(self.mesh, ),  # Each src could have own grid/model
-                model_tuple=(self.model, ),  # <= TODO
-                mapping='Conductivity',      # <= TODO
+                grid_tuple=(self.mesh, ),  # Each src could have its own grid/model
+                model_tuple=(self.sigma.reshape(self.model.shape, order='F'), ),
+                mapping='Conductivity',
                 sfield_tuple=[s._s_e for s in self.survey.source_list],
                 frequencies=[s.frequency for s in self.survey.source_list],
             )
