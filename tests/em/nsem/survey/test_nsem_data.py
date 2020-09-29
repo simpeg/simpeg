@@ -34,5 +34,5 @@ class TestNSEMData:
         for src in data_obj.survey.source_list:
             assert len(src.receiver_list) == 2  # one real, one imaginary component
             for rx in src.receiver_list:
-                np.testing.assert_almost_equal(rx.locations, self.loc)
+                np.testing.assert_almost_equal(rx.locations, [self.loc])
         np.testing.assert_almost_equal(data_obj.dobs, np.array([0.5, 0.0, 0.5, 1.0]))
