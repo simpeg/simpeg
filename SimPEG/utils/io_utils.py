@@ -245,11 +245,11 @@ def readUBCmagneticsObservations(obs_file):
 
     # First line has the inclination,declination and amplitude of B0
     line = fid.readline()
-    B = np.array(line.split(), dtype=float)
+    B = np.array(line.split()[:3], dtype=float)
 
     # Second line has the magnetization orientation and a flag
     line = fid.readline()
-    M = np.array(line.split(), dtype=float)
+    M = np.array(line.split()[:3], dtype=float)
 
     # Third line has the number of rows
     line = fid.readline()
@@ -327,12 +327,13 @@ def writeUBCmagneticsObservations(filename, data_object):
     print("Observation file saved to: " + filename)
 
 
-def readUBCgravityObservations(obs_file):
+def readUBCgravityObservations(obs_file, ftype='dobs'):
     """
     Read UBC grav file format
 
     INPUT:
     :param fileName, path to the UBC obs grav file
+    :param ftype, 'dobs' 'dpred' 'survey'
 
     OUTPUT:
     :param survey
@@ -354,16 +355,42 @@ def readUBCgravityObservations(obs_file):
     wd = np.zeros(ndat, dtype=float)
     locXYZ = np.zeros((ndat, 3), dtype=float)
 
-    ii = 0
-    while ii < ndat:
-        temp = np.array(line.split(), dtype=float)
-        if len(temp) > 0:
-            locXYZ[ii, :] = temp[:3]
-            d[ii] = temp[3]
-            wd[ii] = temp[4]
-            ii += 1
-        line = fid.readline()
-    fid.close()
+    if ftype == 'survey':
+        ii = 0
+        while ii < ndat:
+            temp = np.array(line.split(), dtype=float)
+            if len(temp) > 0:
+                locXYZ[ii, :] = temp
+                ii += 1
+            line = fid.readline()
+        fid.close()
+        d = None
+        wd = None
+
+    elif ftype == 'dpred':
+        ii = 0
+        while ii < ndat:
+            temp = np.array(line.split(), dtype=float)
+            if len(temp) > 0:
+                locXYZ[ii, :] = temp[:3]
+                d[ii] = temp[3]
+                ii += 1
+            line = fid.readline()
+        fid.close()
+        wd=None
+
+    else:
+
+        ii = 0
+        while ii < ndat:
+            temp = np.array(line.split(), dtype=float)
+            if len(temp) > 0:
+                locXYZ[ii, :] = temp[:3]
+                d[ii] = temp[3]
+                wd[ii] = temp[4]
+                ii += 1
+            line = fid.readline()
+        fid.close()
 
     rxLoc = gravity.receivers.Point(locXYZ)
     srcField = gravity.sources.SourceField([rxLoc])
