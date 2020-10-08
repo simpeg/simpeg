@@ -247,8 +247,8 @@ class Simulation3DIntegral(BasePFSimulation):
             Tz = [Tzx Tzy Tzz]
         """
         # TODO: This should probably be converted to C
-        tol1 = 1e-8   # Tolerance 1 for numerical stability over nodes and edges
-        tol2 = 1000. # Tolerance 2 for numerical stability over nodes and edges
+        tol1 = 1e-10    # Tolerance 1 for numerical stability over nodes and edges
+        tol2 = 1e-4     # Tolerance 2 for numerical stability over nodes and edges
 
         rows = {component: np.zeros(3 * self.Xn.shape[0]) for component in components}
 
@@ -260,19 +260,19 @@ class Simulation3DIntegral(BasePFSimulation):
 
         # comp. pos. differences for tne, bsw nodes
         dz2 = self.Zn[:, 1] - receiver_location[2]
-        dz2[np.abs(dz2) < tol1] = min_hz / tol2
+        dz2[np.abs(dz2)/min_hz < tol2] = tol2 * min_hz
         dz1 = self.Zn[:, 0] - receiver_location[2]
-        dz1[np.abs(dz1) < tol1] = min_hz / tol2
+        dz1[np.abs(dz1)/min_hz < tol2] = tol2 * min_hz
 
         dy2 = self.Yn[:, 1] - receiver_location[1]
-        dy2[np.abs(dy2) < tol1] = min_hy / tol2
+        dy2[np.abs(dy2)/min_hy < tol2] = tol2 * min_hy
         dy1 = self.Yn[:, 0] - receiver_location[1]
-        dy1[np.abs(dy1) < tol1] = min_hy / tol2
+        dy1[np.abs(dy1)/min_hy < tol2] = tol2 * min_hy
 
         dx2 = self.Xn[:, 1] - receiver_location[0]
-        dx2[np.abs(dx2) < tol1] = min_hx / tol2
+        dx2[np.abs(dx2)/min_hx < tol2] = tol2 * min_hx
         dx1 = self.Xn[:, 0] - receiver_location[0]
-        dx1[np.abs(dx1) < tol1] = min_hx / tol2
+        dx1[np.abs(dx1)/min_hx < tol2] = tol2 * min_hx
 
         # comp. squared diff
         dx2dx2 = dx2 ** 2.0
@@ -535,14 +535,14 @@ class Simulation3DIntegral(BasePFSimulation):
             rows["bx"] = np.zeros((1, 3 * nC))
 
             rows["bx"][0, 0:nC] = (
-                (-2 * np.arctan2(dx1, arg1))
-                - (-2 * np.arctan2(dx2, arg6))
-                + (-2 * np.arctan2(dx2, arg11))
-                - (-2 * np.arctan2(dx1, arg16))
-                + (-2 * np.arctan2(dx2, arg21))
-                - (-2 * np.arctan2(dx1, arg26))
-                + (-2 * np.arctan2(dx1, arg31))
-                - (-2 * np.arctan2(dx2, arg36))
+                (-2 * np.arctan2(dx1, arg1 + tol1))
+                - (-2 * np.arctan2(dx2, arg6 + tol1))
+                + (-2 * np.arctan2(dx2, arg11 + tol1))
+                - (-2 * np.arctan2(dx1, arg16 + tol1))
+                + (-2 * np.arctan2(dx2, arg21 + tol1))
+                - (-2 * np.arctan2(dx1, arg26 + tol1))
+                + (-2 * np.arctan2(dx1, arg31 + tol1))
+                - (-2 * np.arctan2(dx2, arg36 + tol1))
             )
             rows["bx"][0, nC : 2 * nC] = (
                 np.log(arg5)
