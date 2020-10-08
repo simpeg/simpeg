@@ -279,6 +279,12 @@ def readUBCmagneticsObservations(obs_file):
         line = fid.readline()
     fid.close()
 
+    if np.all(wd==0.):
+    	wd = None
+
+    if np.all(d==0.):
+    	d = None
+
     rxLoc = magnetics.receivers.Point(locXYZ)
     srcField = magnetics.sources.SourceField([rxLoc], parameters=(B[2], B[0], B[1]))
     survey = magnetics.survey.Survey(srcField)
@@ -309,16 +315,18 @@ def writeUBCmagneticsObservations(filename, data_object):
 
     B = survey.source_field.parameters
 
-    rxLoc = survey.source_field.receiver_list[0].locations
+    data = survey.source_field.receiver_list[0].locations
+    
+    if data_object.dobs is not None:
+    	data = np.c_[data, data_object.dobs]
+    
+    if data_object.standard_deviation is not None:
+    	data = np.c_[data, data_object.standard_deviation]
 
-    d = data_object.dobs
-    wd = data_object.standard_deviation
-
-    data = np.c_[rxLoc, d, wd]
     head = (
         "%6.2f %6.2f %6.2f\n" % (B[1], B[2], B[0])
         + "%6.2f %6.2f %6.2f\n" % (B[1], B[2], 1)
-        + "%i\n" % len(d)
+        + "%i\n" % survey.nD
     )
     np.savetxt(
         filename, data, fmt="%e", delimiter=" ", newline="\n", header=head, comments=""
@@ -327,7 +335,7 @@ def writeUBCmagneticsObservations(filename, data_object):
     print("Observation file saved to: " + filename)
 
 
-def readUBCgravityObservations(obs_file, ftype='dobs'):
+def readUBCgravityObservations(obs_file):
     """
     Read UBC grav file format
 
@@ -355,42 +363,27 @@ def readUBCgravityObservations(obs_file, ftype='dobs'):
     wd = np.zeros(ndat, dtype=float)
     locXYZ = np.zeros((ndat, 3), dtype=float)
 
-    if ftype == 'survey':
-        ii = 0
-        while ii < ndat:
-            temp = np.array(line.split(), dtype=float)
-            if len(temp) > 0:
-                locXYZ[ii, :] = temp
-                ii += 1
-            line = fid.readline()
-        fid.close()
-        d = None
-        wd = None
+    ii = 0
+    while ii < ndat:
 
-    elif ftype == 'dpred':
-        ii = 0
-        while ii < ndat:
-            temp = np.array(line.split(), dtype=float)
-            if len(temp) > 0:
-                locXYZ[ii, :] = temp[:3]
+        temp = np.array(line.split(), dtype=float)
+        if len(temp) > 0:
+            locXYZ[ii, :] = temp[:3]
+
+            if len(temp) > 3:
                 d[ii] = temp[3]
-                ii += 1
-            line = fid.readline()
-        fid.close()
-        wd=None
 
-    else:
+                if len(temp) == 5:
+                    wd[ii] = temp[4]
+            ii += 1
+        line = fid.readline()
+    fid.close()
 
-        ii = 0
-        while ii < ndat:
-            temp = np.array(line.split(), dtype=float)
-            if len(temp) > 0:
-                locXYZ[ii, :] = temp[:3]
-                d[ii] = temp[3]
-                wd[ii] = temp[4]
-                ii += 1
-            line = fid.readline()
-        fid.close()
+    if np.all(wd == 0.):
+    	wd = None
+
+    if np.all(d == 0.):
+    	d = None
 
     rxLoc = gravity.receivers.Point(locXYZ)
     srcField = gravity.sources.SourceField([rxLoc])
@@ -410,14 +403,16 @@ def writeUBCgravityObservations(filename, data_object):
 
     """
     survey = data_object.survey
-    rxLoc = survey.source_field.receiver_list[0].locations
+    
+    data = survey.source_field.receiver_list[0].locations
+    
+    if data_object.dobs is not None:
+    	data = np.c_[data, data_object.dobs]
+    
+    if data_object.standard_deviation is not None:
+    	data = np.c_[data, data_object.standard_deviation]
 
-    d = data_object.dobs
-
-    wd = data_object.standard_deviation
-
-    data = np.c_[rxLoc, d, wd]
-    head = "%i\n" % len(d)
+    head = "%i\n" % survey.nD
     np.savetxt(
         filename, data, fmt="%e", delimiter=" ", newline="\n", header=head, comments=""
     )
