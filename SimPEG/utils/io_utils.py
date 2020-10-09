@@ -253,7 +253,7 @@ def readUBCmagneticsObservations(obs_file):
 
     # Third line has the number of rows
     line = fid.readline()
-    ndat = int(line.strip())
+    ndat = int(line.split()[0])
 
     # Pre-allocate space for obsx, obsy, obsz, data, uncert
     line = fid.readline()
