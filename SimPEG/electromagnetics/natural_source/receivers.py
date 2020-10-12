@@ -29,6 +29,8 @@ class BaseRxNSEM_Point(BaseRx):
         {
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
+            "apparent_resistivity": ["app_rho"],
+            "phase": ["phi"],
         },
     )
 
@@ -561,8 +563,18 @@ class Point3DImpedance(BaseRxNSEM_Point):
 
         # Return the full impedance
         if return_complex:
+            print('returning complex')
             return rx_eval_complex
-        return getattr(rx_eval_complex, self.component)
+
+        if self.component is 'apparent_resistivity':
+            rx_eval_component = np.abs(rx_eval_complex)**2 / (2 * np.pi * src.frequency * mu_0)
+        elif self.component is 'phase':
+            rx_eval_component = (180./np.pi) * np.arctan(
+                np.imag(rx_eval_complex) / np.real(rx_eval_complex))
+        else:
+            rx_eval_component = getattr(rx_eval_complex, self.component)
+
+        return rx_eval_component
 
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         """
@@ -650,14 +662,21 @@ class Point3DImpedance(BaseRxNSEM_Point):
 
             # Calculate the complex derivative
             rx_deriv_real = ZijN_uV(self._aHd * v) - self._aHd_uV(Zij.T * self._aHd * v)
+
             # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
             # rx_deriv_real = np.hstack((mkvc(rx_deriv_real[:len(rx_deriv_real)/2],2),mkvc(rx_deriv_real[len(rx_deriv_real)/2::],2)))
-            rx_deriv_real = rx_deriv_real.reshape((2, self.mesh.nE)).T
+            
             # Extract the data
             if self.component == "imag":
                 rx_deriv_component = 1j * rx_deriv_real
             elif self.component == "real":
                 rx_deriv_component = rx_deriv_real.astype(complex)
+            elif self.component is 'apparent_resistivity':
+                print('shapes: ', Zij.shape, rx_deriv_real.shape)
+                rx_deriv_component = 1 / (np.pi * src.frequency * mu_0) * Zij * rx_deriv_real
+            elif self.component is 'phase':
+                rx_deriv_component = 1 / (1 + (np.imag(Zij)/ np.real(Zij))**2) * ((np.imag(rx_deriv_real) * np.real(Zij) - np.imag(Zij) * np.real(rx_deriv_real)) / (np.real(Zij)**2))
+            rx_deriv_component = rx_deriv_component.reshape((2, self.mesh.nE)).T
         else:
             if "xx" in self.orientation:
                 ZijN_uV = (
@@ -691,7 +710,17 @@ class Point3DImpedance(BaseRxNSEM_Point):
             Zij = self.eval(src, self.mesh, self.f, True)
             # Calculate the complex derivative
             rx_deriv_real = self._Hd * (ZijN_uV - self._sDiag(Zij) * self._Hd_uV(v))
-            rx_deriv_component = np.array(getattr(rx_deriv_real, self.component))
+            # rx_deriv_component = np.array(getattr(rx_deriv_real, self.component))
+
+            if self.component is 'apparent_resistivity':
+                print('\n', self.component)
+                rx_deriv_component = 1 / (np.pi * src.frequency * mu_0) * self._sDiag(Zij) * rx_deriv_real
+            elif self.component is 'phase':
+                print('\n', self.component)
+                rx_deriv_component = (np.imag(rx_deriv_real) * np.real(Zij) - np.imag(Zij) * np.real(rx_deriv_real)) / (np.real(Zij)**2)
+            else:
+                rx_deriv_component = np.array(getattr(rx_deriv_real, self.component))
+            print('shapes: ', rx_deriv_component.shape, Zij.shape, rx_deriv_real.shape)
 
         return rx_deriv_component
 

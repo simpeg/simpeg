@@ -133,6 +133,10 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                         Jtv += np.array(du_dmT, dtype=complex).real
                     elif real_or_imag == "imag":
                         Jtv += -np.array(du_dmT, dtype=complex).real
+                    elif real_or_imag == "apparent_resistivity":
+                        Jtv += np.array(du_dmT, dtype=complex).real
+                    elif real_or_imag == "phase":
+                        Jtv += -np.array(du_dmT, dtype=complex).real
                     else:
                         raise Exception("Must be real or imag")
             # Clean the factorization, clear memory.
