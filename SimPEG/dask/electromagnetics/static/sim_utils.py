@@ -7,7 +7,7 @@ from pymatsolver import Pardiso as Solver
 import numpy as np
 
 
-def create_sub_simulations(source_list,
+def create_tile_meshes(source_list,
                            global_electrodes,
                            dem,
                            base_mesh,
