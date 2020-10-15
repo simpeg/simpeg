@@ -715,7 +715,7 @@ def generate_dcip_survey_line(
         :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
             'dipole-pole' | 'pole-pole'
         :param str data_type: 'volt' | 'apparent_conductivity' |
-        	'apparent_resistivity' | 'apparent_chargeability'
+            'apparent_resistivity' | 'apparent_chargeability'
         :param np.array endl: horizontal end points [x1, x2] or [x1, x2, y1, y2]
         :param float , (N, 2) np.array or (N, 3) np.array: topography
         :param int ds: station seperation
@@ -1440,6 +1440,157 @@ def readUBC_DC2Dpre(fileName):
     data = Data(survey=survey, dobs=np.asarray(d))
 
     return data
+
+
+def read_dcip3d_ubc(file_name, file_type='dobs'):
+    """
+    Read DC/IP survey, predicted and observation files in UBC-GIF format.
+
+    Parameters
+    ----------
+
+    file_name : str
+        Path to the file.
+    file_type : str
+        File type. Choose from {'loc','dpred','dobs'}
+
+    Returns
+    -------
+    SimPEG.electromagnetic.static.survey
+        A DC/IP survey object. Locations will be defined. Observed data
+        and uncertainties defined in the survey object will depend on
+        **file_type**.
+
+    """ 
+
+    # Load file
+    obsfile = np.genfromtxt(file_name, delimiter=" \n", dtype=np.str, comments="!")
+
+    # Pre-allocate
+    srcLists = []
+    Rx = []
+    d = []
+    wd = []
+    
+    # Flag for z value provided
+    is_surface = False
+    is_pole_tx = False
+    is_pole_rx = False
+
+    # Countdown for number of obs/tx
+    count = 0
+    for ii in range(obsfile.shape[0]):
+
+        if not obsfile[ii]:
+            continue
+
+        # First line is transmitter with number of receivers
+        if count == 0:
+            rx = []
+            temp = np.fromstring(obsfile[ii], dtype=float, sep=" ").T
+            count = int(temp[-1])
+            
+            # Check if z value is provided, if False -> nan
+            if len(temp) == 5:
+                # check if pole|dipole
+                if np.allclose(temp[0:2], temp[2:4]):
+                    tx = np.r_[temp[0:2], np.nan]
+                    is_pole_tx = True
+
+                else:
+                    tx = np.r_[temp[0:2], np.nan, temp[2:4], np.nan]
+                is_surface = True
+
+            else:
+                # check if pole|dipole
+                if np.allclose(temp[0:3], temp[3:6]):
+                    tx = np.r_[temp[0:3]]
+                    is_pole_tx = True
+                    temp[2] = -temp[2]
+                else:
+                    # Flip z values
+                    temp[2] = -temp[2]
+                    temp[5] = -temp[5]
+                    tx = temp[:-1]
+
+            continue
+
+        temp = np.fromstring(obsfile[ii], dtype=float, sep=" ")
+
+        if is_surface:
+            
+            len_d = 4  # Since dpred for dc has app_res
+            
+            # Check if Pole Receiver
+            if np.allclose(temp[0:2], temp[2:4]):
+                is_pole_rx = True
+                # Flip z values
+                rx.append(temp[:2])
+            else:
+                rx.append(np.r_[temp[0:2], np.nan, temp[2:4], np.nan])
+
+        else:
+            
+            len_d = 6  # Since dpred for dc has app_res
+            
+            # Check if Pole Receiver
+            if np.allclose(temp[0:3], temp[3:6]):
+                is_pole_rx = True
+                # Flip z values
+                temp[2] = -temp[2]
+                rx.append(temp[:3])
+            else:
+                temp[2] = -temp[2]
+                temp[5] = -temp[5]
+                rx.append(temp[:6])
+            
+        
+        if file_type == 'dpred':
+            d.append(temp[len_d])
+        elif file_type == 'dobs':
+            d.append(temp[-2])
+            wd.append(temp[-1])
+
+        count = count - 1
+
+        # Reach the end of transmitter block
+        if count == 0:
+            rx = np.asarray(rx)
+            if is_pole_rx:
+                Rx = dc.Rx.Pole(rx[:, :3])
+            else:
+                Rx = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
+            if is_pole_tx:
+                srcLists.append(dc.Src.Pole([Rx], tx[:3]))
+            else:
+                srcLists.append(dc.Src.Dipole([Rx], tx[:3], tx[3:]))
+
+    if len(d) == 0:
+        d = None
+    else:
+        d = np.asarray(d)
+    
+    if len(wd) == 0:
+        wd = None
+    else:
+        wd = np.asarray(wd)
+    
+    survey = dc.Survey(srcLists)
+    data = Data(survey=survey, dobs=d, standard_deviation=wd)
+    return data
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def readUBC_DC3Dobs(fileName):
