@@ -613,11 +613,6 @@ def plot_3d_pseudosection(
     if scale == 'log':
         dvec = np.log10(dvec)
     
-    color_lim = dvec
-    if clim != None:
-        color_lim[color_lim<clim[0]] = clim[0]
-        color_lim[color_lim>clim[1]] = clim[1]
-    
     # Marker size for scatter plot
     if s == None:
         s = 80
@@ -629,6 +624,12 @@ def plot_3d_pseudosection(
     # 3D scatter plot
     if plot_type == 'scatter':
         if plane_points == None:
+
+            color_lim = dvec
+            if clim != None:
+                color_lim[color_lim<clim[0]] = clim[0]
+                color_lim[color_lim>clim[1]] = clim[1]
+
             data_plot = ax.scatter(
                 midxy[:, 0], midxy[:, 1], midz, dvec,
                 s=s, c=color_lim, depthshade=False, **scatter_opts
@@ -637,10 +638,16 @@ def plot_3d_pseudosection(
             p1, p2, p3 = plane_points
             a, b, c, d = define_plane_from_points(p1, p2, p3)
             
-            k = np.abs(a*midxy[:, 0] + b*midxy[:, 1] + c*midz)/np.sqrt(a**2 + b**2 + c**2) < plane_distance
+            k = np.abs(a*midxy[:, 0] + b*midxy[:, 1] + c*midz + d)/np.sqrt(a**2 + b**2 + c**2) < plane_distance
+
+            color_lim = dvec[k]
+            if clim != None:
+                color_lim[color_lim<clim[0]] = clim[0]
+                color_lim[color_lim>clim[1]] = clim[1]
+
             data_plot = ax.scatter(
                 midxy[k, 0], midxy[k, 1], midz[k], dvec[k],
-                s=s, c=color_lim[k], depthshade=False, **scatter_opts
+                s=s, c=color_lim, depthshade=False, **scatter_opts
             )
     
     # Surface plot on plane (not possible right now)
@@ -654,7 +661,7 @@ def plot_3d_pseudosection(
     #         p1, p2, p3 = plane_points
     #         a, b, c, d = define_plane_from_points(p1, p2, p3)
             
-    #         k = np.abs(a*midxy[:, 0] + b*midxy[:, 1] + c*midz)/np.sqrt(a**2 + b**2 + c**2) < plane_distance
+    #         k = np.abs(a*midxy[:, 0] + b*midxy[:, 1] + c*midz + d)/np.sqrt(a**2 + b**2 + c**2) < plane_distance
             
     #         ds = -(d + a*midxy[k, 0] + b*midxy[k, 1] + c*midz[k])/(a**2 + b**2 + c**2)
             
@@ -672,7 +679,7 @@ def plot_3d_pseudosection(
         if scale == "log":
             cbar = plt.colorbar(
                 data_plot,
-                format="$10^{%.2f}$",
+                format="$10^{%.3f}$",
                 fraction=0.06,
                 orientation="vertical",
                 ax=ax,
@@ -682,7 +689,7 @@ def plot_3d_pseudosection(
         elif scale == "linear":
             cbar = plt.colorbar(
                 data_plot,
-                format="%.2f",
+                format="%.2e",
                 fraction=0.06,
                 orientation="vertical",
                 ax=ax,
