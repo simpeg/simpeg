@@ -540,6 +540,7 @@ def plot_3d_pseudosection(
         dvec,
         survey_type=None,
         ax=None,
+        cax=None,
         s=100,
         clim=None,
         scale='linear',
@@ -549,7 +550,8 @@ def plot_3d_pseudosection(
         plot_type='scatter',
         scatter_opts={},
         contour_opts={},
-        cbar_opts={}
+        cbar_opts={},
+        units=''
         
     ):
     """
@@ -570,8 +572,10 @@ def plot_3d_pseudosection(
         Survey type. One of {'pole-pole', 'pole-dipole', 'dipole-pole', dipole-dipole}.
         If *None* is entered, the function will examine the type defined by the
         survey object.
-    ax: mpl_toolkits.mplot3d.axes3d.Axes3D
-        A 3D axis object
+    ax: mpl_toolkits.mplot3d.axes3d.Axes3D, optional
+        A 3D axis object for the 3D plot
+    cax : mpl_toolkits.mplot3d.axes.Axes or mpl_toolkits.mplot3d.axes3d.Axes3D, optional
+        An axis object for the colorbar
     clim : list
         list containing the minimum and maximum value for the color range,
         i.e. [vmin, vmax]
@@ -596,6 +600,9 @@ def plot_3d_pseudosection(
         Dictionary defining kwargs for surface plot
     cbar_opts : dict
         Dictionary defining kwargs for colorbars
+    units : str
+        A LateX formatted string stating the desired units for the
+        data; e.g. 'S/m', '$\Omega m$'
 
     Returns
     -------
@@ -620,6 +627,7 @@ def plot_3d_pseudosection(
     if ax == None:
         fig = plt.figure(figsize=(10, 4))
         ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection='3d', azim=-60, elev=30)
+        cax = fig.add_axes([0.85, 0.1, 0.05, 0.8])
     
     # 3D scatter plot
     if plot_type == 'scatter':
@@ -676,29 +684,33 @@ def plot_3d_pseudosection(
     
     # Define colorbar
     if output_colorbar:
-        if scale == "log":
-            cbar = plt.colorbar(
-                data_plot,
-                format="$10^{%.3f}$",
-                fraction=0.06,
-                orientation="vertical",
-                ax=ax,
-                shrink=0.7,
-                **cbar_opts,
-            )
-        elif scale == "linear":
-            cbar = plt.colorbar(
-                data_plot,
-                format="%.2e",
-                fraction=0.06,
-                orientation="vertical",
-                ax=ax,
-                shrink=0.7,
-                **cbar_opts,
-            )
+        if cax == None:
+            if scale == "log":
+                cbar = plt.colorbar(
+                    data_plot, format="$10^{%.3f}$", fraction=0.06,
+                    orientation="vertical", ax=ax, shrink=0.7, **cbar_opts,
+                )
+            elif scale == "linear":
+                cbar = plt.colorbar(
+                    data_plot, format="%.2e", fraction=0.06,
+                    orientation="vertical", ax=ax, shrink=0.7, **cbar_opts,
+                )
+
+        else:
+            if scale == "log":
+                cbar = plt.colorbar(
+                    data_plot, format="$10^{%.3f}$",
+                    cax=cax, **cbar_opts,
+                )
+            elif scale == "linear":
+                cbar = plt.colorbar(
+                    data_plot, format="%.2e",
+                    cax=cax, **cbar_opts,
+                )
 
         ticks = np.linspace(color_lim.min(), color_lim.max(), 5)
         cbar.set_ticks(ticks)
+        cbar.set_label(units, labelpad=12)
         cbar.ax.tick_params()
     
     return ax
