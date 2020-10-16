@@ -28,6 +28,7 @@ from .mat_utils import (
     cartesian2spherical,
     spherical2cartesian,
     coterminal,
+    define_plane_from_points,
 )
 from .code_utils import (
     memProfileWrapper,

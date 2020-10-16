@@ -13,6 +13,7 @@ from ....utils import (
     mkvc,
     surface2ind_topo,
     model_builder,
+    define_plane_from_points
 )
 
 
@@ -161,14 +162,20 @@ def electrode_separations(dc_survey, survey_type="dipole-dipole", electrode_pair
 
 def source_receiver_midpoints(survey, **kwargs):
     """
-        Calculate source receiver midpoints.
+    Calculates the pseudo-sensitivity locations for 2D and 3D surveys.
 
-        Input:
-        :param SimPEG.electromagnetics.static.resistivity.Survey survey: DC survey object
+    Parameters
+    ----------
+    survey : SimPEG.electromagnetics.static.resistivity.Survey
+        A DC or IP survey
 
-        Output:
-        :return numpy.ndarray midx: midpoints x location
-        :return numpy.ndarray midz: midpoints z location
+    Returns
+    -------
+    tuple of numpy.ndarray of the form (midxy, midz)
+        For 2D surveys, *midxy* is a vector containing the along line position.
+        For 3D surveys, *midxy* is an (n, 2) numpy array containing the (x,y) positions.
+        In eithere case, *midz* is a vector containing the pseudo-depth locations.
+
     """
 
     if not isinstance(survey, dc.Survey):
@@ -528,6 +535,168 @@ def plot_pseudosection(
     return ax
 
 
+def plot_3d_pseudosection(
+        survey,
+        dvec,
+        survey_type=None,
+        ax=None,
+        s=100,
+        clim=None,
+        scale='linear',
+        plane_points=None,
+        plane_distance=10.,
+        output_colorbar=True,
+        plot_type='scatter',
+        scatter_opts={},
+        contour_opts={},
+        cbar_opts={}
+        
+    ):
+    """
+    Plot 3D DC/IP data in pseudo-section.
+    
+    This utility allows the user to produce a scatter plot of 3D DC/IP data at
+    all pseudo-locations. If a plane is specified, the user may create a scatter
+    plot or contour plot on that plane.
+
+    Parameters
+    ----------
+    survey : SimPEG.electromagnetics.static.survey.Survey
+        A DC or IP survey object
+    dvec : numpy.ndarray
+        A data vector containing volts, integrated chargeabilities, apparent
+        resistivities or apparent chargeabilities.
+    survey_type : str
+        Survey type. One of {'pole-pole', 'pole-dipole', 'dipole-pole', dipole-dipole}.
+        If *None* is entered, the function will examine the type defined by the
+        survey object.
+    ax: mpl_toolkits.mplot3d.axes3d.Axes3D
+        A 3D axis object
+    clim : list
+        list containing the minimum and maximum value for the color range,
+        i.e. [vmin, vmax]
+    scale: str
+        Plot on linear or log base 10 scale {'linear','log'}
+    plot_type: str
+        Plot type. 'scatter' creates a scatter plot and 'surface' creates a
+        surface plot. 'surface' can only be used if the **plane_points** feature
+        is used.
+    plane_points : list of numpy.ndarray
+        A list of length 3 which contains the three xyz locations required to
+        define a plane; i.e. [xyz1, xyz2, xyz3]. This functionality is used to
+        plot only data that lie near this plane.
+    plane_distance : float
+        Distance tolerance for plotting data that are near the plane defined by
+        **plane_points**.
+    output_colorbar : bool
+        If *True*, a colorbar is automatically generated. If *False*, it is not.
+    scatter_opts : dict
+        Dictionary defining kwargs for scatter plot
+    contour_opts : dict
+        Dictionary defining kwargs for surface plot
+    cbar_opts : dict
+        Dictionary defining kwargs for colorbars
+
+    Returns
+    -------
+    mpl_toolkits.mplot3d.axes3d.Axes3D
+        The axis object that holds the plot
+
+    """
+    
+    # Define survey type and compute pseudo-locations
+    if survey_type == None:
+        survey_type = survey.survey_type
+    
+    midxy, midz = source_receiver_midpoints(survey)
+    
+    if scale == 'log':
+        dvec = np.log10(dvec)
+    
+    color_lim = dvec
+    if clim != None:
+        color_lim[color_lim<clim[0]] = clim[0]
+        color_lim[color_lim>clim[1]] = clim[1]
+    
+    # Marker size for scatter plot
+    if s == None:
+        s = 80
+    
+    if ax == None:
+        fig = plt.figure(figsize=(10, 4))
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection='3d', azim=-60, elev=30)
+    
+    # 3D scatter plot
+    if plot_type == 'scatter':
+        if plane_points == None:
+            data_plot = ax.scatter(
+                midxy[:, 0], midxy[:, 1], midz, dvec,
+                s=s, c=color_lim, depthshade=False, **scatter_opts
+            )
+        else:
+            p1, p2, p3 = plane_points
+            a, b, c, d = define_plane_from_points(p1, p2, p3)
+            
+            k = np.abs(a*midxy[:, 0] + b*midxy[:, 1] + c*midz)/np.sqrt(a**2 + b**2 + c**2) < plane_distance
+            data_plot = ax.scatter(
+                midxy[k, 0], midxy[k, 1], midz[k], dvec[k],
+                s=s, c=color_lim[k], depthshade=False, **scatter_opts
+            )
+    
+    # Surface plot on plane (not possible right now)
+    # else:
+    #     if plane_points == None:
+    #         raise Exception(
+    #         "To plot data as a surface, you must define the plane using the 'plane_points' keyword argument."
+    #     )
+            
+    #     else:
+    #         p1, p2, p3 = plane_points
+    #         a, b, c, d = define_plane_from_points(p1, p2, p3)
+            
+    #         k = np.abs(a*midxy[:, 0] + b*midxy[:, 1] + c*midz)/np.sqrt(a**2 + b**2 + c**2) < plane_distance
+            
+    #         ds = -(d + a*midxy[k, 0] + b*midxy[k, 1] + c*midz[k])/(a**2 + b**2 + c**2)
+            
+    #         midxy = np.c_[midxy[k, 0] + ds*a, midxy[k, 1] + ds*b]
+    #         midz = midz[k] + ds*c
+            
+    #         data_plot = ax.contour3D(
+    #             midxy[:, 0], midxy[:, 1], midz, dvec[k],
+    #             **contour_opts
+    #         )
+            
+    
+    # Define colorbar
+    if output_colorbar:
+        if scale == "log":
+            cbar = plt.colorbar(
+                data_plot,
+                format="$10^{%.2f}$",
+                fraction=0.06,
+                orientation="vertical",
+                ax=ax,
+                shrink=0.7,
+                **cbar_opts,
+            )
+        elif scale == "linear":
+            cbar = plt.colorbar(
+                data_plot,
+                format="%.2f",
+                fraction=0.06,
+                orientation="vertical",
+                ax=ax,
+                shrink=0.7,
+                **cbar_opts,
+            )
+
+        ticks = np.linspace(color_lim.min(), color_lim.max(), 5)
+        cbar.set_ticks(ticks)
+        cbar.ax.tick_params()
+    
+    return ax
+
+
 def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, d2flag="2.5D"):
 
     """
@@ -708,24 +877,27 @@ def generate_dcip_survey_line(
     survey_type, data_type, endl, topo, ds, dh, n, dim_flag="2.5D", sources_only=False
 ):
     """
-        Generate DCIP survey line for modeling in 2D, 2.5D or 3D. Takes into accounted true surface
-        topography.
+    Generate 2D, 2.5D or 3D DC/IP survey line.
 
-        Input:
-        :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-            'dipole-pole' | 'pole-pole'
-        :param str data_type: 'volt' | 'apparent_conductivity' |
-            'apparent_resistivity' | 'apparent_chargeability'
-        :param np.array endl: horizontal end points [x1, x2] or [x1, x2, y1, y2]
-        :param float , (N, 2) np.array or (N, 3) np.array: topography
-        :param int ds: station seperation
-        :param int dh: dipole separation (unused if pole-pole)
-        :param int n: number of rx per tx
-        :param str dim: '2D', '2.5D' or '3D'
-        :param bool sources_only: Outputs a survey object if False. Outputs sources list if True.
+    This utility will create the list of DC/IP source objects for a single line of
+    2D, 2.5D or 3D data. The topography, orientation, spacing and number of receivers
+    can be specified by the user.
 
-        Output:
-        :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    Input:
+    :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
+        'dipole-pole' | 'pole-pole'
+    :param str data_type: 'volt' | 'apparent_conductivity' |
+        'apparent_resistivity' | 'apparent_chargeability'
+    :param np.array endl: horizontal end points [x1, x2] or [x1, x2, y1, y2]
+    :param float , (N, 2) np.array or (N, 3) np.array: topography
+    :param int ds: station seperation
+    :param int dh: dipole separation (unused if pole-pole)
+    :param int n: number of rx per tx
+    :param str dim: '2D', '2.5D' or '3D'
+    :param bool sources_only: Outputs a survey object if False. Outputs sources list if True.
+
+    Output:
+    :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
     """
 
     accepted_surveys = ["pole-pole", "pole-dipole", "dipole-pole", "dipole-dipole"]
@@ -1574,22 +1746,23 @@ def read_dcip3d_ubc(file_name, file_type='dobs'):
         wd = None
     else:
         wd = np.asarray(wd)
-    
-    survey = dc.Survey(srcLists)
+
+    # Define survey type
+    if is_pole_tx:
+        str1 = 'pole-'
+    else:
+        str1 = 'dipole-'
+
+    if is_pole_rx:
+        str2 = 'pole'
+    else:
+        str2 = 'dipole'
+
+    survey_type = str1 + str2
+
+    survey = dc.Survey(srcLists, survey_type=survey_type)
     data = Data(survey=survey, dobs=d, standard_deviation=wd)
     return data
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1702,7 +1875,20 @@ def readUBC_DC3Dobs(fileName):
             else:
                 srcLists.append(dc.Src.Dipole([Rx], tx[:3], tx[3:]))
 
-    survey = dc.Survey(srcLists)
+    # Define survey type
+    if poletx:
+        str1 = 'pole-'
+    else:
+        str1 = 'dipole-'
+
+    if polerx:
+        str2 = 'pole'
+    else:
+        str2 = 'dipole'
+
+    survey_type = str1 + st2
+
+    survey = dc.Survey(srcLists, survey_type=survey_type)
     data = Data(survey=survey, dobs=np.asarray(d), relative_error=np.asarray(wd))
     return data
 

@@ -5,6 +5,7 @@ from .static_utils import (
     apparent_resistivity,
     plot_pseudosection,
     plot_pseudoSection,
+    plot_3d_pseudosection,
     gen_DCIPsurvey,
     generate_dcip_survey,
     generate_dcip_survey_line,
