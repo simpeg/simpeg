@@ -4,6 +4,7 @@ from scipy.spatial import cKDTree
 from numpy import matlib
 import discretize
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import warnings
 
 from ....data import Data
@@ -542,11 +543,11 @@ def plot_3d_pseudosection(
         ax=None,
         cax=None,
         s=100,
-        clim=None,
+        vlim=None,
         scale='linear',
         plane_points=None,
         plane_distance=10.,
-        output_colorbar=True,
+        create_colorbar=True,
         plot_type='scatter',
         scatter_opts={},
         contour_opts={},
@@ -576,7 +577,7 @@ def plot_3d_pseudosection(
         A 3D axis object for the 3D plot
     cax : mpl_toolkits.mplot3d.axes.Axes or mpl_toolkits.mplot3d.axes3d.Axes3D, optional
         An axis object for the colorbar
-    clim : list
+    vlim : list
         list containing the minimum and maximum value for the color range,
         i.e. [vmin, vmax]
     scale: str
@@ -592,8 +593,10 @@ def plot_3d_pseudosection(
     plane_distance : float
         Distance tolerance for plotting data that are near the plane defined by
         **plane_points**.
-    output_colorbar : bool
+    create_colorbar : bool
         If *True*, a colorbar is automatically generated. If *False*, it is not.
+        If multiple planes are being plotted, only set the first scatter plot
+        to *True*
     scatter_opts : dict
         Dictionary defining kwargs for scatter plot
     contour_opts : dict
@@ -602,7 +605,7 @@ def plot_3d_pseudosection(
         Dictionary defining kwargs for colorbars
     units : str
         A LateX formatted string stating the desired units for the
-        data; e.g. 'S/m', '$\Omega m$'
+        data; e.g. 'S/m', '$\Omega m$', '%'
 
     Returns
     -------
@@ -619,6 +622,9 @@ def plot_3d_pseudosection(
     
     if scale == 'log':
         dvec = np.log10(dvec)
+        if vlim != None:
+            vlim[0] = np.log10(vlim[0])
+            vlim[1] = np.log10(vlim[1])
     
     # Marker size for scatter plot
     if s == None:
@@ -627,35 +633,51 @@ def plot_3d_pseudosection(
     if ax == None:
         fig = plt.figure(figsize=(10, 4))
         ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection='3d', azim=-60, elev=30)
-        cax = fig.add_axes([0.85, 0.1, 0.05, 0.8])
+        cax = fig.add_axes([0.85, 0.1, 0.05, 0.8])    
     
     # 3D scatter plot
     if plot_type == 'scatter':
         if plane_points == None:
+            
+            if vlim == None:
+                norm = mpl.colors.Normalize(vmin=dvec.min(), vmax=dvec.max())
+            else:
+                norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])
 
-            color_lim = dvec
-            if clim != None:
-                color_lim[color_lim<clim[0]] = clim[0]
-                color_lim[color_lim>clim[1]] = clim[1]
+            # color_val = dvec
+            # if clim != None:
+            #     color_val[color_val<clim[0]] = clim[0]
+            #     color_val[color_val>clim[1]] = clim[1]
 
             data_plot = ax.scatter(
                 midxy[:, 0], midxy[:, 1], midz, dvec,
-                s=s, c=color_lim, depthshade=False, **scatter_opts
+                s=s, c=dvec, depthshade=False, norm=norm, **scatter_opts
             )
         else:
             p1, p2, p3 = plane_points
             a, b, c, d = define_plane_from_points(p1, p2, p3)
             
             k = np.abs(a*midxy[:, 0] + b*midxy[:, 1] + c*midz + d)/np.sqrt(a**2 + b**2 + c**2) < plane_distance
+            if np.all(k == 0):
+                raise Exception(
+                    """No locations are within *plane_distance* of the plane
+                    defined by *plane_points*. Try increasing *plane_distance*."""
+                )
+                
+            
+            if vlim == None:
+                norm = mpl.colors.Normalize(vmin=dvec[k].min(), vmax=dvec[k].max())
+            else:
+                norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])            
 
-            color_lim = dvec[k]
-            if clim != None:
-                color_lim[color_lim<clim[0]] = clim[0]
-                color_lim[color_lim>clim[1]] = clim[1]
+# color_val = dvec[k]
+            # if clim != None:
+            #     color_val[color_val<clim[0]] = clim[0]
+            #     color_val[color_val>clim[1]] = clim[1]
 
             data_plot = ax.scatter(
                 midxy[k, 0], midxy[k, 1], midz[k], dvec[k],
-                s=s, c=color_lim, depthshade=False, **scatter_opts
+                s=s, c=dvec[k], depthshade=False, norm=norm, **scatter_opts
             )
     
     # Surface plot on plane (not possible right now)
@@ -683,32 +705,33 @@ def plot_3d_pseudosection(
             
     
     # Define colorbar
-    if output_colorbar:
+    if create_colorbar:
         if cax == None:
             if scale == "log":
                 cbar = plt.colorbar(
                     data_plot, format="$10^{%.3f}$", fraction=0.06,
-                    orientation="vertical", ax=ax, shrink=0.7, **cbar_opts,
+                    orientation="vertical", ax=ax, norm=norm, shrink=0.7, **cbar_opts,
                 )
             elif scale == "linear":
                 cbar = plt.colorbar(
                     data_plot, format="%.2e", fraction=0.06,
-                    orientation="vertical", ax=ax, shrink=0.7, **cbar_opts,
+                    orientation="vertical", ax=ax, norm=norm, shrink=0.7, **cbar_opts,
                 )
 
         else:
             if scale == "log":
                 cbar = plt.colorbar(
-                    data_plot, format="$10^{%.3f}$",
+                    data_plot, format="$10^{%.3f}$", norm=norm,
                     cax=cax, **cbar_opts,
                 )
             elif scale == "linear":
                 cbar = plt.colorbar(
-                    data_plot, format="%.2e",
+                    data_plot, format="%.2e", norm=norm,
                     cax=cax, **cbar_opts,
                 )
 
-        ticks = np.linspace(color_lim.min(), color_lim.max(), 5)
+        ticks = np.linspace(norm.vmin, norm.vmax, 5)
+            
         cbar.set_ticks(ticks)
         cbar.set_label(units, labelpad=12)
         cbar.ax.tick_params()
