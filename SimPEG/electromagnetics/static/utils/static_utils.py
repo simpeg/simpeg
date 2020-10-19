@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.interpolate import LinearNDInterpolator, interp1d
+from scipy.interpolate import LinearNDInterpolator, interp1d, griddata
 from scipy.spatial import cKDTree
 from numpy import matlib
 import discretize
@@ -361,7 +361,6 @@ def plot_pseudosection(
         :return  matplotlib.pyplot.figure plot overlayed on image
     """
     import pylab as plt
-    from scipy.interpolate import griddata
 
     if pcolorOpts is not None:
         warnings.warn(
@@ -548,9 +547,7 @@ def plot_3d_pseudosection(
         plane_points=None,
         plane_distance=10.,
         create_colorbar=True,
-        plot_type='scatter',
         scatter_opts={},
-        contour_opts={},
         cbar_opts={},
         units=''
         
@@ -589,10 +586,12 @@ def plot_3d_pseudosection(
     plane_points : list of numpy.ndarray
         A list of length 3 which contains the three xyz locations required to
         define a plane; i.e. [xyz1, xyz2, xyz3]. This functionality is used to
-        plot only data that lie near this plane.
-    plane_distance : float
-        Distance tolerance for plotting data that are near the plane defined by
-        **plane_points**.
+        plot only data that lie near this plane. A list of [xyz1, xyz2, xyz3]
+        can be entered for multiple planes.
+    plane_distance : float or list of float
+        Distance tolerance for plotting data that are near the plane(s) defined by
+        **plane_points**. A list is used if the *plane_distance* is different
+        for each plane.
     create_colorbar : bool
         If *True*, a colorbar is automatically generated. If *False*, it is not.
         If multiple planes are being plotted, only set the first scatter plot
@@ -636,72 +635,50 @@ def plot_3d_pseudosection(
         cax = fig.add_axes([0.85, 0.1, 0.05, 0.8])    
     
     # 3D scatter plot
-    if plot_type == 'scatter':
-        if plane_points == None:
-            
-            if vlim == None:
-                norm = mpl.colors.Normalize(vmin=dvec.min(), vmax=dvec.max())
-            else:
-                norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])
-
-            # color_val = dvec
-            # if clim != None:
-            #     color_val[color_val<clim[0]] = clim[0]
-            #     color_val[color_val>clim[1]] = clim[1]
-
-            data_plot = ax.scatter(
-                midxy[:, 0], midxy[:, 1], midz, dvec,
-                s=s, c=dvec, depthshade=False, norm=norm, **scatter_opts
-            )
+    if plane_points == None:
+        
+        if vlim == None:
+            norm = mpl.colors.Normalize(vmin=dvec.min(), vmax=dvec.max())
         else:
-            p1, p2, p3 = plane_points
-            a, b, c, d = define_plane_from_points(p1, p2, p3)
-            
-            k = np.abs(a*midxy[:, 0] + b*midxy[:, 1] + c*midz + d)/np.sqrt(a**2 + b**2 + c**2) < plane_distance
-            if np.all(k == 0):
-                raise Exception(
-                    """No locations are within *plane_distance* of the plane
-                    defined by *plane_points*. Try increasing *plane_distance*."""
-                )
-                
-            
-            if vlim == None:
-                norm = mpl.colors.Normalize(vmin=dvec[k].min(), vmax=dvec[k].max())
-            else:
-                norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])            
+            norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])
 
-# color_val = dvec[k]
-            # if clim != None:
-            #     color_val[color_val<clim[0]] = clim[0]
-            #     color_val[color_val>clim[1]] = clim[1]
-
-            data_plot = ax.scatter(
-                midxy[k, 0], midxy[k, 1], midz[k], dvec[k],
-                s=s, c=dvec[k], depthshade=False, norm=norm, **scatter_opts
-            )
+        data_plot = ax.scatter(
+            midxy[:, 0], midxy[:, 1], midz, dvec,
+            s=s, c=dvec, depthshade=False, norm=norm, **scatter_opts
+        )
+    else:
+        # Place in list if only one plane defined
+        if isinstance(plane_points[0], np.ndarray):
+            plane_points = [plane_points]
+        
+        # Expand to list of only one plane distance for all planes
+        if isinstance(plane_distance, list) != True:
+            plane_distance = len(plane_points)*[plane_distance]
+            
+        # Pre-allocate index for points on plane(s)
+        k = np.zeros(len(dvec), dtype=bool)
+        for ii in range(0, len(plane_points)):
     
-    # Surface plot on plane (not possible right now)
-    # else:
-    #     if plane_points == None:
-    #         raise Exception(
-    #         "To plot data as a surface, you must define the plane using the 'plane_points' keyword argument."
-    #     )
+            p1, p2, p3 = plane_points[ii]
+            a, b, c, d = define_plane_from_points(p1, p2, p3)
+        
+            k = k | (np.abs(a*midxy[:, 0] + b*midxy[:, 1] + c*midz + d)/np.sqrt(a**2 + b**2 + c**2) < plane_distance[ii])
             
-    #     else:
-    #         p1, p2, p3 = plane_points
-    #         a, b, c, d = define_plane_from_points(p1, p2, p3)
-            
-    #         k = np.abs(a*midxy[:, 0] + b*midxy[:, 1] + c*midz + d)/np.sqrt(a**2 + b**2 + c**2) < plane_distance
-            
-    #         ds = -(d + a*midxy[k, 0] + b*midxy[k, 1] + c*midz[k])/(a**2 + b**2 + c**2)
-            
-    #         midxy = np.c_[midxy[k, 0] + ds*a, midxy[k, 1] + ds*b]
-    #         midz = midz[k] + ds*c
-            
-    #         data_plot = ax.contour3D(
-    #             midxy[:, 0], midxy[:, 1], midz, dvec[k],
-    #             **contour_opts
-    #         )
+        if np.all(k == 0):
+            raise Exception(
+                """No locations are within *plane_distance* of any plane(s)
+                defined by *plane_points*. Try increasing *plane_distance*."""
+            )
+                
+        if vlim == None:
+            norm = mpl.colors.Normalize(vmin=dvec[k].min(), vmax=dvec[k].max())
+        else:
+            norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])
+
+        data_plot = ax.scatter(
+            midxy[k, 0], midxy[k, 1], midz[k], dvec[k],
+            s=s, c=dvec[k], depthshade=False, norm=norm, **scatter_opts
+        )
             
     
     # Define colorbar
