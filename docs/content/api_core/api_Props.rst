@@ -7,36 +7,45 @@ The API
 Property
 --------
 
-.. autoclass:: SimPEG.Props.Model
+.. autoclass:: SimPEG.props.Model
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Props.Mapping
+.. autoclass:: SimPEG.props.Mapping
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Props.PhysicalProperty
+.. autoclass:: SimPEG.props.PhysicalProperty
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Props.Derivative
+.. autoclass:: SimPEG.props.Derivative
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Props.BaseSimPEG
+.. autoclass:: SimPEG.props.BaseSimPEG
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Props.Array
-    :members:
-    :undoc-members:
-
-
-.. autoclass:: SimPEG.Props.Float
+.. autoclass:: SimPEG.props.Array
     :members:
     :undoc-members:
 
 
-.. autoclass:: SimPEG.Props.Integer
+.. autoclass:: SimPEG.props.Float
+    :members:
+    :undoc-members:
+
+
+.. autoclass:: SimPEG.props.Integer
+    :members:
+    :undoc-members:
+
+
+.. autoclass:: SimPEG.props.LocationVector
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.props.HasModel
     :members:
     :undoc-members:

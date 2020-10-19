@@ -1,0 +1,3 @@
+dask
+zarr
+fsspec>=0.3.3

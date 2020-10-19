@@ -33,15 +33,15 @@ However, it can be shown that this does not conserve mass in the discrete formul
 
 Here we reproduce the results from Celia et al. (1990):
 
-.. image:: /content/examples/10-flow/images/sphx_glr_plot_richards_celia1990_001.png
-    :target: /content/examples/10-flow/plot_richards_celia1990.html
+.. image:: /content/examples/20-published/images/sphx_glr_plot_richards_celia1990_001.png
+    :target: /content/examples/20-published/plot_richards_celia1990.html
     :align: center
 
 
-Richards Problem
-================
+Richards Simulation
+===================
 
-.. automodule:: SimPEG.FLOW.Richards.RichardsProblem
+.. automodule:: SimPEG.flow.richards.simulation
     :show-inheritance:
     :members:
     :undoc-members:
@@ -49,7 +49,15 @@ Richards Problem
 Richards Survey
 ===============
 
-.. automodule:: SimPEG.FLOW.Richards.RichardsSurvey
+.. automodule:: SimPEG.flow.richards.survey
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+Richards receivers
+==================
+
+.. automodule:: SimPEG.flow.richards.receivers
     :show-inheritance:
     :members:
     :undoc-members:
@@ -58,7 +66,7 @@ Richards Survey
 Vadose Zone Empirical Relationships
 ===================================
 
-.. automodule:: SimPEG.FLOW.Richards.Empirical
+.. automodule:: SimPEG.flow.richards.empirical
     :show-inheritance:
     :members:
     :undoc-members:

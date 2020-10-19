@@ -7,14 +7,14 @@ import unittest
 # SimPEG, discretize
 import discretize
 from discretize import utils
-from SimPEG.EM import TDEM
-from SimPEG import Utils, Maps, Tests
+from SimPEG.electromagnetics import time_domain as tdem
+from SimPEG import maps, tests
 from pymatsolver import Pardiso
 
 
 class TestGroundedSourceTDEM_j(unittest.TestCase):
 
-    prob_type = "j"
+    prob_type = "CurrentDensity"
 
     @classmethod
     def setUpClass(self):
@@ -27,16 +27,19 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         mesh = discretize.TensorMesh([h, h, h], x0="CCC")
 
         # source
-        src_a = np.r_[-cs*2, 0., 0.]
-        src_b = np.r_[cs*2, 0., 0.]
+        src_a = np.r_[-cs * 2, 0.0, 0.0]
+        src_b = np.r_[cs * 2, 0.0, 0.0]
 
         s_e = np.zeros(mesh.nFx)
         src_inds = (
-            (mesh.gridFx[:, 0] >= src_a[0]) & (mesh.gridFx[:, 0] <= src_b[0]) &
-            (mesh.gridFx[:, 1] >= src_a[1]) & (mesh.gridFx[:, 1] <= src_b[1]) &
-            (mesh.gridFx[:, 2] >= src_a[2]) & (mesh.gridFx[:, 2] <= src_b[2])
+            (mesh.gridFx[:, 0] >= src_a[0])
+            & (mesh.gridFx[:, 0] <= src_b[0])
+            & (mesh.gridFx[:, 1] >= src_a[1])
+            & (mesh.gridFx[:, 1] <= src_b[1])
+            & (mesh.gridFx[:, 2] >= src_a[2])
+            & (mesh.gridFx[:, 2] <= src_b[2])
         )
-        s_e[src_inds] = 1.
+        s_e[src_inds] = 1.0
         s_e = np.hstack([s_e, np.zeros(mesh.nFy + mesh.nFz)])
 
         # define a model with a conductive, permeable target
@@ -44,13 +47,16 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         sigma1 = 1
 
         mu0 = mu_0
-        mu1 = 100*mu_0
+        mu1 = 100 * mu_0
 
         h_target = np.r_[-30, 30]
         target_inds = (
-            (mesh.gridCC[:, 0] >= h_target[0]) & (mesh.gridCC[:, 0] <= h_target[1]) &
-            (mesh.gridCC[:, 1] >= h_target[0]) & (mesh.gridCC[:, 1] <= h_target[1]) &
-            (mesh.gridCC[:, 2] >= h_target[0]) & (mesh.gridCC[:, 2] <= h_target[1])
+            (mesh.gridCC[:, 0] >= h_target[0])
+            & (mesh.gridCC[:, 0] <= h_target[1])
+            & (mesh.gridCC[:, 1] >= h_target[0])
+            & (mesh.gridCC[:, 1] <= h_target[1])
+            & (mesh.gridCC[:, 2] >= h_target[0])
+            & (mesh.gridCC[:, 2] <= h_target[1])
         )
 
         sigma = sigma0 * np.ones(mesh.nC)
@@ -59,17 +65,21 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         mu = mu0 * np.ones(mesh.nC)
         mu[target_inds] = mu1
 
-        src = TDEM.Src.RawVec_Grounded([], s_e=s_e)
+        src = tdem.Src.RawVec_Grounded([], s_e=s_e)
 
         timeSteps = [
-            (1e-6, 20), (1e-5, 30), (3e-5, 30), (1e-4, 40), (3e-4, 30),
-            (1e-3, 20), (1e-2, 17)
+            (1e-6, 20),
+            (1e-5, 30),
+            (3e-5, 30),
+            (1e-4, 40),
+            (3e-4, 30),
+            (1e-3, 20),
+            (1e-2, 17),
         ]
-        prob = getattr(TDEM, "Problem3D_{}".format(self.prob_type))(
-            mesh, timeSteps=timeSteps, mu=mu, sigmaMap=Maps.ExpMap(mesh),
-            Solver=Pardiso
+        prob = getattr(tdem, "Simulation3D{}".format(self.prob_type))(
+            mesh, timeSteps=timeSteps, mu=mu, sigmaMap=maps.ExpMap(mesh), Solver=Pardiso
         )
-        survey = TDEM.Survey([src])
+        survey = tdem.Survey([src])
 
         prob.model = sigma
 
@@ -87,36 +97,36 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         m0 = np.log(self.sigma) + np.random.rand(self.mesh.nC)
         self.prob.model = m0
 
-        return Tests.checkDerivative(deriv_fct, np.log(self.sigma), num=3, plotIt=False)
+        return tests.checkDerivative(deriv_fct, np.log(self.sigma), num=3, plotIt=False)
 
     def test_deriv_phi(self):
-
         def deriv_check(m):
             self.prob.model = m
             return [
                 self.src.phiInitial(self.prob),
-                lambda mx: self.src._phiInitialDeriv(self.prob, v=mx)
+                lambda mx: self.src._phiInitialDeriv(self.prob, v=mx),
             ]
+
         self.derivtest(deriv_check)
 
     def test_deriv_j(self):
-
         def deriv_check(m):
             self.prob.model = m
             return [
                 self.src.jInitial(self.prob),
-                lambda mx: self.src.jInitialDeriv(self.prob, v=mx)
+                lambda mx: self.src.jInitialDeriv(self.prob, v=mx),
             ]
+
         self.derivtest(deriv_check)
 
     def test_deriv_h(self):
-
         def deriv_check(m):
             self.prob.model = m
             return [
                 self.src.hInitial(self.prob),
-                lambda mx: self.src.hInitialDeriv(self.prob, v=mx)
+                lambda mx: self.src.hInitialDeriv(self.prob, v=mx),
             ]
+
         self.derivtest(deriv_check)
 
     def test_adjoint_phi(self):
@@ -145,8 +155,8 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
 
 class TestGroundedSourceTDEM_h(TestGroundedSourceTDEM_j):
 
-    prob_type = "h"
+    prob_type = "MagneticField"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

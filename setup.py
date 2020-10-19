@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+
 """SimPEG: Simulation and Parameter Estimation in Geophysics
 
 SimPEG is a python package for simulation and gradient based
@@ -10,41 +11,40 @@ from distutils.core import setup
 from setuptools import find_packages
 
 CLASSIFIERS = [
-    'Development Status :: 4 - Beta',
-    'Intended Audience :: Developers',
-    'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python',
-    'Topic :: Scientific/Engineering',
-    'Topic :: Scientific/Engineering :: Mathematics',
-    'Topic :: Scientific/Engineering :: Physics',
-    'Operating System :: Microsoft :: Windows',
-    'Operating System :: POSIX',
-    'Operating System :: Unix',
-    'Operating System :: MacOS',
-    'Natural Language :: English',
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Natural Language :: English",
 ]
 
 with open("README.rst") as f:
-    LONG_DESCRIPTION = ''.join(f.readlines())
+    LONG_DESCRIPTION = "".join(f.readlines())
 
 setup(
     name="SimPEG",
-    version="0.12.0",
-    packages=find_packages(exclude=['tests*']),
+    version="0.14.2",
+    packages=find_packages(exclude=["tests*", "examples*", "tutorials*"]),
     install_requires=[
         'numpy>=1.7',
         'scipy>=1.0.0',
-        'cython',
-        'pymatsolver>=0.1.1',
-        'ipython',
-        'matplotlib',
         'scikit-learn>=0.19.1',
-        'seaborn',
+        'pymatsolver>=0.1.1',
+        'matplotlib',
         'properties>=0.5.2',
         'vectormath>=0.2.0',
         'discretize>=0.4.0',
-        'geoana>=0.0.4'
+        'geoana>=0.0.4',
+        "empymod",
+        "pandas",
     ],
     author="Rowan Cockett",
     author_email="rowanc1@gmail.com",
@@ -57,5 +57,8 @@ setup(
     classifiers=CLASSIFIERS,
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3=False,
+<<<<<<< HEAD
     python_requires=">=3.6"
+=======
+>>>>>>> master
 )

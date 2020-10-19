@@ -1,0 +1,433 @@
+.. _0.14.0_notes:
+
+===========================
+SimPEG 0.14.0 Release Notes
+===========================
+
+This release marks a major change in the structure of SimPEG, and it all started
+with this,
+
+* `#562 <https://github.com/simpeg/simpeg/issues/562>`__: What's the problem with ``Problem``?
+
+We hope to answer that question with this release!
+
+This release will break backward compatibility as many modules and classes have
+been renamed. Check out the :ref:`sphx_glr_content_examples` and :ref:`simpeg_tuts`
+(which have also been improved) to see how it's done.
+
+We are also only supporting Python versions >=3.6 at this time. We have dropped all
+testing and development on Python versions previous to this (especially
+2.7).
+
+Highlights
+==========
+
+* No more ``Problem``-s, only ``Simulation``-s
+* ``Data`` is important
+* PEP 8 renaming
+* Dask parallelism
+* Resistivity Simulation improvements
+
+Simulation
+==========
+We will refer to this update as the simulation update, and there are a few large
+changes that we will attempt to describe here.
+
+We (the developers) believed that there were some significant challenges with the
+overall structure of the SimPEG framework, which all revolved around constructing
+a forward simulation by ``pair``-ing a ``Survey`` and a ``Problem``. The ``Survey``
+handled things like sources, receivers, and the ``Problem`` handled the physics
+engine of the forward simulation. These two items had to be created separately,
+then ``pair``-ed afterwards for both the ``Problem`` to be able to use sources, and for
+the ``Survey`` to predict data. We found that this structure made it difficult to
+interface with other packages and was also generally difficult to explain. Also,
+field data was then attached to the ``Survey`` class.
+
+These changes within this section are also the ones which will require the most
+changes to code (which are still hopefully small).
+
+The ``Simulation`` class
+------------------------
+``Problem`` has been renamed to ``Simulation``
+
+We decided to refactor this code into something a little more understandable.
+The ``Simulation`` class is now the workhorse of the SimPEG forward simulations.
+It handles things like modeling fields and projecting those fields to the data
+locations defined by its ``survey``. The ``Survey`` class is much lighter weight,
+now only handling the sources and receivers. Also a single ``survey`` can now be
+attached to many ``Simulation``-s.
+
+Previously we had something like,
+
+.. code-block:: python
+
+    survey = DC.Survey(srcList)
+    prob = DC.Problem3D_CC(mesh, rhoMap=mapping)
+    prob.pair(survey)
+
+    # Compute the fields from `prob`
+    fields = prob.fields(model)
+    # And predict data using the `survey`
+    dpred = survey.dpred(model, f=fields)
+
+Now,
+
+.. code-block:: python
+
+    survey = resistivity.Survey([source_list])
+    sim = resistivity.Simulation3DCellCentered(
+        mesh,
+        survey=survey,
+        rhoMap=mapping
+    )
+
+    # Compute the fields from `sim`
+    fields = sim.fields(model)
+    # Predict data also using `sim`
+    dpred = sim.dpred(model, f=fields)
+
+See? The ``Simulation`` handles predicting data. This change will also make it
+easier to interface with external codes for inversion purposes, as all that is
+needed to be defined to use a ``Simulation`` for an ``InvProblem``, is
+``sim.dpred``, ``sim.Jvec`` and ``sim.Jtvec``.
+
+Please see the documentation for the :class:`SimPEG.simulation.BaseSimulation` class
+as well as the individual methods' ``Simulation``-s, for a detailed description of
+arguments, but largely it accepts the same arguments as the ``Problem`` class,
+but now also requires a ``Survey`` to be set.
+
+The ``Data`` class
+------------------
+Previously, field data would also live within the ``Survey`` class. Which was not
+only confusing, but placed the importance on the wrong component. When inverting geophysical
+data, we are concerned with the data. Thus we would like to enforce this importance
+by making data live in a dedicated ``Data`` class. This ``Data`` class can act like a smart
+dictionary to grab data associated with a specific source, receiver combination.
+More importantly, this ``Data`` class is where we store information related to observed
+data and its errors. This class started in the ``SimPEG.Survey`` module, but has
+now been moved into its own new module ``SimPEG.data``. See the documentation for
+the :class:`SimPEG.data.Data` for all of the details.
+
+Previously,
+
+.. code-block:: python
+
+    # Add data to the survey
+    survey.dobs = dobs
+    survey.std = 0.05  # a 5% relative error
+    survey.eps = 1.0E-6  # a noise floor
+
+Now,
+
+.. code-block:: python
+
+    # Create a data object
+    data = data.Data(dobs=dobs, relative_error=0.05, noise_floor=1e-6)
+
+You might also notice that we changed the name of the terms used to construct
+the standard deviation. See issue `#846 <https://github.com/simpeg/simpeg/issues/846>`__.
+Previously ``survey.std`` represented an error that was relative to the absolute
+value of the data. The name of this term is misleading, as it is not actually
+the classic statistical standard deviation.
+
+Previously the uncertainty was constructed as:
+
+.. code-block:: python
+
+    uncertainty = survey.std * np.abs(survey.dobs) + survey.eps
+
+We now have updated the names to be clearer and more in line with what we would
+naturally expect, which is accessed from `data.standard_deviation`. The value
+that is returned from this is now defined as:
+
+.. code-block:: python
+
+    data.standard_deviation = (
+        data.relative_error * np.abs(data.dobs) +
+        data.noise_floor
+    )
+
+You can also directly set the value of ``data.standard_deviation`` if you prefer
+to work with that quantity.
+
+.. code-block:: python
+
+    data.standard_deviation = 0.01
+
+This ``Data`` class is now also the object that is returned from:
+
+.. code-block:: python
+
+    data = sim.make_synthetic_data(
+        m, relative_error=0.05, noise_floor=0.0, f=None, add_noise=True
+    )
+
+The ``DataMisfit`` class
+------------------------
+
+Previously, because the ``Survey`` class handled predicting data at the receivers,
+and it also had knowledge of the observed data and its noise, we constructed the
+data misfit measure using only the survey. Now we have specifically broken this
+piece up into a forward ``Simulation`` object, and a ``Data`` object. This mimics
+the definition of the classic data misfit measure.
+
+.. math::
+
+    \phi_d = \frac{1}{2}||\textbf{W}_d(\mathcal{F}(\vec{m}) - \vec{d}_{obs})||_2^2
+
+The ``Simulation`` class handles the forward operation, :math:`\mathcal{F}`, and
+the ``Data`` class handles the noise, :math:`\textbf{W}_d=diag(\frac{1}{\sigma_i})`,
+and the observed data, :math:`\vec{d}_{obs}`. See the documentation for the
+:class:`SimPEG.data_misfit.L2DataMisfit` for all of the details.
+
+Previously,
+
+.. code-block:: python
+
+    # Survey knows how to predict data, knows the observed data,
+    # and its standard deviation
+    dmis = DataMisfit.l2_DataMisfit(survey)
+
+Now,
+
+.. code-block:: python
+
+    # Create a data misfit
+    # The data class now knows the observed data and its standard deviation.
+    # The simulation knows how to create data from a model.
+    dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
+
+
+Dask
+====
+
+We have begun a concerted effort to incorporate ``dask`` as a means to allow SimPEG
+to scale to larger computers (and take advantage of parallelism). Checkout the
+``dask`` docs at https://docs.dask.org/en/latest/.
+
+This feature is experimental at the moment and can be toggled on like so,
+
+.. code-block:: python
+
+    import SimPEG.dask
+
+which will then enable parallel operations for a few modules. It will specifically
+replace these functions with ``dask`` versions,
+
+* ``SimPEG.potential_fields.BasePFSimulation.linear_operator``
+* ``SimPEG.potential_fields.magnetics.Simulation3DIntegral.getJtJdiag``
+* ``SimPEG.potential_fields.gravity.Simulation3DIntegral.getJtJdiag``
+* ``SimPEG.electromagnetics.static.resistivity.simulation.BaseDCSimulation.getJ``
+* ``SimPEG.electromagnetics.static.resistivity.simulation.BaseDCSimulation.getJtJdiag``
+* ``SimPEG.electromagnetics.static.induced_polarization.simulation.BaseDCSimulation.getJ``
+* ``SimPEG.electromagnetics.static.induced_polarization.simulation.BaseDCSimulation.getJtJdiag``
+
+Changelog
+=========
+
+As can be expected, there are many changes in this release, and we hope to identify
+most of them here (or at least point you in the right direction).
+
+Renamed Modules
+---------------
+
+We have taken steps to rename the modules of SimPEG to a more PEP 8 friendly
+system. The previous locations do not exist.
+
+* ``EM`` → ``electromagnetics``
+* ``EM.FDEM`` → ``electromagnetics.frequency_domain``
+* ``EM.TDEM`` → ``electromagnetics.time_domain``
+* ``EM.NSEM`` → ``electromagnetics.natural_source``
+* ``EM.Static`` → ``electromagnetics.static``
+* ``EM.Static.DC`` → ``electromagnetics.static.resistivity``
+* ``EM.Static.DC.Utils`` → ``electromagnetics.static.resistivity.utils``
+* ``EM.Static.IP`` → ``electromagnetics.static.induced_polarization``
+* ``EM.Static.SIP`` → ``electromagnetics.static.spectral_induced_polarization``
+* ``EM.Static.Utils`` → ``electromagnetics.static.utils``
+* ``EM.Utils`` → ``electromagnetics.utils``
+* ``VRM`` → ``electromagnetics.viscous_remanent_magnetization``
+* ``FLOW`` → ``flow``
+* ``SEIS`` → ``seismic``
+* ``PF`` → ``potential_fields``
+* ``PF.Gravity`` → ``potential_fields.gravity``
+* ``PF.GravAnalytics`` → ``potential_fields.gravity.analytics``
+* ``PF.Magnetics`` → ``potential_fields.magnetics``
+* ``PF.MagAnalytics`` → ``potential_fields.magnetics.analytics``
+* ``Utils`` → ``utils``
+* ``DataMisfit`` → ``data_misfit``
+* ``Directives`` → ``directives``
+* ``Fields`` → ``fields``
+* ``InvProblem`` → ``inverse_problem``
+* ``Inversion`` → ``inversion``
+* ``Maps`` → ``maps``
+* ``Models`` → ``models``
+* ``ObjectiveFunction`` → ``objective_function``
+* ``Optimization`` → ``optimization``
+* ``Props`` → ``props``
+* ``Survey`` → ``survey``
+* ``Problem`` → ``simulation``
+
+Also generally modules with the following names have changed:
+
+* ``METHOD.SurveyMETHOD`` → ``method_name.survey``
+* ``METHOD.SrcMETHOD`` → ``method_name.sources``
+* ``METHOD.RxMETHOD`` → ``method_name.receivers``
+* ``METHOD.ProblemMETHOD_xD`` → ``method_name.simulation_xd``
+* ``METHOD.FieldsMETHOD`` → ``method_name.fields``
+
+where ``METHOD`` was the old module name for the method and ``method_name`` is the new name.
+
+Also many of the utilities modules within these are also being deprecated. Their
+old names are still around and should throw a deprecation warning when loaded pointing
+to the correct name.
+
+For example,
+
+* ``Utils.codeutils`` → ``utils.code_utils``
+* ``Utils.ModelBuilder`` → ``utils.model_builder``
+* ``EM.Utils.EMUtils`` → ``electromagnetics.utils.waveform_utils`` (this one is a little less obvious)
+
+``Problem`` to ``Simulation``
+-----------------------------
+Many of the previous ``Problem`` classes are still within the modules, but
+will now throw a deprecation warning which points to the updated ``Simulation``.
+The renaming scheme for the ``Simulation``-s was decided in
+`#857 <https://github.com/simpeg/simpeg/issues/847>`__.
+
+For example,
+
+* ``Problem3D_CC`` → ``Simulation3DCellCentered``
+* ``Problem2D_CC`` → ``Simulation2DCellCentered``
+* ``Problem3D_e`` → ``Simulation3DElectricField``
+* ``Problem3D_b`` → ``Simulation3DMagneticFluxDensity``
+* ``Problem3D_h`` → ``Simulation3DMagneticField``
+* ``Problem3D_j`` → ``Simulation3DCurrentDensity``
+* etc.
+
+Our current plan is to remove these deprecated versions in the 0.15.0 SimPEG
+release.
+
+Potential field reorganization
+------------------------------
+
+The ``potential_fields`` module has likely received the largest amount of reorganization
+to make it more in line with the structure of the other modules, and some things have
+moved around and been renamed. There are now two separate modules within ``potential_fields``:
+``gravity`` and ``magnetics``. All of the classes in ``PF.BaseGrav`` have been
+moved to ``potential_fields.gravity``, and the classes in ``PF.BaseMag`` have been
+moved to ``potential_fields.magnetics``. The ``Map``-s that were within them have
+been deprecated and can instead be found in ``SimPEG.maps``.
+
+The option of a ``coordinate_system`` for the magnetics simulation is no longer
+valid and will throw an ``AttributeError``. Instead use the :class:`SimPEG.maps.SphericalSystem`.
+
+Improvements and Additions to ``resistivity``
+---------------------------------------------
+
+We have made a few improvements to the ``SimPEG.electromagnetics.static.resistivity``
+that were motivated by our work under the Geoscientists Without Borders project.
+
+One is that we now have a 1D layered Earth simulation class,
+:class:`SimPEG.electromagnetics.static.resistivity.simulation_1d.Simulation1DLayers`,
+that can be used to invert resistivity sounding data for conductivity and/or
+thicknesses of a set number of layers.
+
+The second, is a new ``miniaturize`` option for the 2D and 3D resistivity simulations.
+This option causes the class to internally replace ``Dipole`` sources and receivers
+with only unique ``Pole`` sources and receivers. This can result in a dramatic speedup
+and reduced memory requirements when the input ``survey`` contains many more
+``Dipole``-s than electrode locations. This is especially common in the wenner
+type survey acquisitions that use a unique source and receiver for each measured
+data point. This option is disabled by default, and can be enabled by passing the
+``minaturize=True`` keyword to the resistivity ``Simulation`` upon initialization.
+
+The third is automated ``TreeMesh`` construction within the ``resistivity.IO`` class for
+a 2D survey.
+
+
+Deprecations
+------------
+
+Some functions and properties have been renamed to more PEP 8 friendly names,
+for example:
+
+* ``Survey.makeSyntheticData`` → ``Simulation.make_synthetic_data``
+* ``Survey.srcList`` → ``Survey.source_list``
+* ``Source.rxList`` → ``Source.receiver_list``
+* ``Source.loc`` → ``Source.location``
+* ``Receiver.locs`` → ``Receiver.locations``
+* etc...
+
+As mentioned before, the old names of these items will still be around, but
+will throw ``DeprecationWarnings`` pointing the user to the new names.
+
+We have done work to make this release as backwards compatible as possible, but can
+not guarantee that all code will work. At the minimum, module imports must be changed.
+The old style of ``pair``-ing a survey will still work, in which case all of the older
+functions will still work. This is only intended for old code to continue working,
+and should not be relied upon for developing new code.
+
+As noted all of the ``Problem``-s are being deprecated and will be removed as of
+version 0.15.0 of SimPEG. The deprecated utility models will also be removed then.
+
+Pull Requests
+=============
+
+There were 25 pull requests contributing to this release.
+
+* `#786 <https://github.com/simpeg/simpeg/pull/786>`__: Simulation class refactor.
+* `#792 <https://github.com/simpeg/simpeg/pull/792>`__: Use scooby for Versions.
+* `#802 <https://github.com/simpeg/simpeg/pull/802>`__: Simulation jk.
+* `#819 <https://github.com/simpeg/simpeg/pull/819>`__: Simulation jk df.
+* `#835 <https://github.com/simpeg/simpeg/pull/835>`__: Add simulation PF tutorials to simulation PF branch
+* `#843 <https://github.com/simpeg/simpeg/pull/843>`__: Fix drapeTopoLoc.
+* `#844 <https://github.com/simpeg/simpeg/pull/844>`__: Static receiver midpoint 3D.
+* `#845 <https://github.com/simpeg/simpeg/pull/845>`__: Tile map.
+* `#848 <https://github.com/simpeg/simpeg/pull/848>`__: Fix Ward and Hohmann example.
+* `#849 <https://github.com/simpeg/simpeg/pull/849>`__: Update and fix tutorials.
+* `#851 <https://github.com/simpeg/simpeg/pull/851>`__: Simulation method names .
+* `#853 <https://github.com/simpeg/simpeg/pull/853>`__: CSEM TDEM 3D example.
+* `#854 <https://github.com/simpeg/simpeg/pull/854>`__: Simulation dc2.5 d speedup.
+* `#861 <https://github.com/simpeg/simpeg/pull/861>`__: Fix typo.
+* `#863 <https://github.com/simpeg/simpeg/pull/863>`__: light formatting to be closer to black, update filepaths to be os independent.
+* `#864 <https://github.com/simpeg/simpeg/pull/864>`__: Sim dask split.
+* `#865 <https://github.com/simpeg/simpeg/pull/865>`__: simulation fdem testing bug.
+* `#866 <https://github.com/simpeg/simpeg/pull/866>`__: waveform logic bug.
+* `#868 <https://github.com/simpeg/simpeg/pull/868>`__: This change was necessary for fields to be called correctly for dcip2...
+* `#869 <https://github.com/simpeg/simpeg/pull/869>`__: Simulation tutorials 2.
+* `#872 <https://github.com/simpeg/simpeg/pull/872>`__: Uncertainty rename in simulation.
+* `#874 <https://github.com/simpeg/simpeg/pull/874>`__: Release notes for simulation as part of the Documentation.
+* `#876 <https://github.com/simpeg/simpeg/pull/876>`__: Simulation tutorials cleanup.
+* `#879 <https://github.com/simpeg/simpeg/pull/879>`__: Run black on SimPEG.
+* `#882 <https://github.com/simpeg/simpeg/pull/882>`__: Replace html links to documentation with local links.
+
+Closed Issues
+=============
+
+* `#865 <https://github.com/simpeg/simpeg/issues/865>`__: FDEM: derivative test seems to ignore imag-real-flag
+* `#857 <https://github.com/simpeg/simpeg/issues/857>`__: DOC: Broken link
+* `#850 <https://github.com/simpeg/simpeg/issues/850>`__: Can't set a waveform on initialized BaseTDEMSrc object
+* `#847 <https://github.com/simpeg/simpeg/issues/847>`__: Renaming of methods' Problems
+* `#846 <https://github.com/simpeg/simpeg/issues/846>`__: Standard deviation and it's place in the code base
+* `#842 <https://github.com/simpeg/simpeg/issues/842>`__: Static drape topo not on surface.
+* `#787 <https://github.com/simpeg/simpeg/issues/787>`__: Plotting integrated sensitivity for DC resistivity problem.
+* `#765 <https://github.com/simpeg/simpeg/issues/765>`__: DOC: Source code not linked, 404
+* `#751 <https://github.com/simpeg/simpeg/issues/751>`__: run black on SimPEG
+* `#562 <https://github.com/simpeg/simpeg/issues/562>`__: What's the problem with ``Problem``?
+* `#527 <https://github.com/simpeg/simpeg/issues/527>`__: Remove MapPair, RxPair, Pair
+* `#524 <https://github.com/simpeg/simpeg/issues/524>`__: Remove rxType from BaseRx
+* `#202 <https://github.com/simpeg/simpeg/issues/202>`__: Using the DataClass
+
+Contributors
+============
+
+Combining to produce over 500 commits (listed in no particular order):
+
+* `@lheagy <https://github.com/lheagy>`__
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@fourndo <https://github.com/fourndo>`__  / `@domfournier <https://github.com/domfournier>`__
+* `@sgkang <https://github.com/sgkang>`__
+* `@dccowan <https://github.com/dccowan>`__
+* `@JKutt <https://github.com/JKutt>`__
+* `@prisae <https://github.com/prisae>`__
+* `@craigmillernz <https://github.com/craigmillernz>`__

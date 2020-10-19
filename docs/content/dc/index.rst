@@ -40,7 +40,7 @@
 Direct Current Resistivity
 **************************
 
-`SimPEG.EM.Static.DC` and `SimPEG.EM.Static.IP` uses SimPEG as the framework for the forward and inverse
+`SimPEG.electromagnetics.static.resistivity` and `SimPEG.electromagnetics.static.induced_polarization` uses SimPEG as the framework for the forward and inverse
 direct current (DC) resistivity and induced polarization (IP) geophysical problems.
 
 
@@ -146,24 +146,30 @@ where
 Here \\(\\bm\\) indicates model parameters in discretized space.
 
 
-.. image:: /content/examples/06-dc/images/sphx_glr_plot_analytic_dipole_001.png
-    :target: /content/examples/06-dc/plot_analytic_dipole.html
+.. image:: /content/examples/04-dcip/images/sphx_glr_plot_dc_analytic_001.png
+    :target: /content/examples/04-dcip/plot_dc_analytic.html
     :align: center
 
 
 API for DC codes
 ================
 
-Problem
--------
+Simulation
+----------
 
-.. automodule:: SimPEG.EM.Static.DC.ProblemDC
+.. automodule:: SimPEG.electromagnetics.static.resistivity.simulation
     :show-inheritance:
     :members:
     :undoc-members:
 
 
-.. automodule:: SimPEG.EM.Static.DC.ProblemDC_2D
+.. automodule:: SimPEG.electromagnetics.static.resistivity.simulation_2d
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+
+.. automodule:: SimPEG.electromagnetics.static.resistivity.simulation_1d
     :show-inheritance:
     :members:
     :undoc-members:
@@ -171,17 +177,17 @@ Problem
 Survey
 ------
 
-.. automodule:: SimPEG.EM.Static.DC.SurveyDC
+.. automodule:: SimPEG.electromagnetics.static.resistivity.survey
     :show-inheritance:
     :members:
     :undoc-members:
 
-.. automodule:: SimPEG.EM.Static.DC.SrcDC
+.. automodule:: SimPEG.electromagnetics.static.resistivity.sources
     :show-inheritance:
     :members:
     :undoc-members:
 
-.. automodule:: SimPEG.EM.Static.DC.RxDC
+.. automodule:: SimPEG.electromagnetics.static.resistivity.receivers
     :show-inheritance:
     :members:
     :undoc-members:
@@ -189,12 +195,12 @@ Survey
 Fields
 ------
 
-.. automodule:: SimPEG.EM.Static.DC.FieldsDC
+.. automodule:: SimPEG.electromagnetics.static.resistivity.fields
     :show-inheritance:
     :members:
     :undoc-members:
 
-.. automodule:: SimPEG.EM.Static.DC.FieldsDC_2D
+.. automodule:: SimPEG.electromagnetics.static.resistivity.fields_2d
     :show-inheritance:
     :members:
     :undoc-members:
@@ -202,12 +208,17 @@ Fields
 Utils
 -----
 
-.. automodule:: SimPEG.EM.Static.DC.Utils
+.. automodule:: SimPEG.electromagnetics.static.utils
     :show-inheritance:
     :members:
     :undoc-members:
 
-.. automodule:: SimPEG.EM.Static.DC.BoundaryUtils
+.. automodule:: SimPEG.electromagnetics.static.resistivity.utils
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.electromagnetics.static.resistivity.boundary_utils
     :show-inheritance:
     :members:
     :undoc-members:
