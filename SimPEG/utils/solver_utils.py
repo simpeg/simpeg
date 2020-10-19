@@ -3,6 +3,7 @@ import numpy as np
 from scipy.sparse import linalg
 from .mat_utils import mkvc
 import warnings
+import inspect
 
 
 def _checkAccuracy(A, b, X, accuracyTol):
@@ -33,12 +34,28 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
     def __init__(self, A, **kwargs):
         self.A = A.tocsc()
 
-        self.checkAccuracy = kwargs.get("checkAccuracy", checkAccuracy)
-        if "checkAccuracy" in kwargs:
-            del kwargs["checkAccuracy"]
-        self.accuracyTol = kwargs.get("accuracyTol", accuracyTol)
-        if "accuracyTol" in kwargs:
-            del kwargs["accuracyTol"]
+        self.checkAccuracy = kwargs.pop("checkAccuracy", checkAccuracy)
+        self.accuracyTol = kwargs.pop("accuracyTol", accuracyTol)
+
+        func_params = inspect.signature(fun).parameters
+        # First test if function excepts **kwargs,
+        # in which case we do not need to cull the kwargs
+        do_cull = True
+        for param_name in func_params:
+            param = func_params[param_name]
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                do_cull = False
+        if do_cull:
+            # build a dictionary of valid kwargs
+            culled_args = {}
+            for item in kwargs:
+                if item in func_params:
+                    culled_args[item] = kwargs[item]
+                else:
+                    warnings.warn(
+                        f"{item} is not a valid keyword for {fun.__name__} and will be ignored"
+                    )
+            kwargs = culled_args
 
         self.kwargs = kwargs
 
@@ -46,7 +63,7 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
             self.solver = fun(self.A, **kwargs)
 
     def __mul__(self, b):
-        if type(b) is not np.ndarray:
+        if not isinstance(b, np.ndarray):
             raise TypeError("Can only multiply by a numpy array.")
 
         if len(b.shape) == 1 or b.shape[1] == 1:
@@ -76,6 +93,9 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
             _checkAccuracy(self.A, b, X, self.accuracyTol)
         return X
 
+    def __matmul__(self, other):
+        return self * other
+
     def clean(self):
         if factorize and hasattr(self.solver, "clean"):
             return self.solver.clean()
@@ -83,7 +103,12 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
     return type(
         name if name is not None else fun.__name__,
         (object,),
-        {"__init__": __init__, "clean": clean, "__mul__": __mul__},
+        {
+            "__init__": __init__,
+            "clean": clean,
+            "__mul__": __mul__,
+            "__matmul__": __matmul__,
+        },
     )
 
 
@@ -101,24 +126,40 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
     def __init__(self, A, **kwargs):
         self.A = A
 
-        self.checkAccuracy = kwargs.get("checkAccuracy", checkAccuracy)
-        if "checkAccuracy" in kwargs:
-            del kwargs["checkAccuracy"]
-        self.accuracyTol = kwargs.get("accuracyTol", accuracyTol)
-        if "accuracyTol" in kwargs:
-            del kwargs["accuracyTol"]
+        self.checkAccuracy = kwargs.pop("checkAccuracy", checkAccuracy)
+        self.accuracyTol = kwargs.pop("accuracyTol", accuracyTol)
+
+        func_params = inspect.signature(fun).parameters
+        # First test if function excepts **kwargs,
+        # in which case we do not need to cull the kwargs
+        do_cull = True
+        for param_name in func_params:
+            param = func_params[param_name]
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                do_cull = False
+        if do_cull:
+            # build a dictionary of valid kwargs
+            culled_args = {}
+            for item in kwargs:
+                if item in func_params:
+                    culled_args[item] = kwargs[item]
+                else:
+                    warnings.warn(
+                        f"{item} is not a valid keyword for {fun.__name__} and will be ignored"
+                    )
+            kwargs = culled_args
 
         self.kwargs = kwargs
 
     def __mul__(self, b):
-        if type(b) is not np.ndarray:
+        if not isinstance(b, np.ndarray):
             raise TypeError("Can only multiply by a numpy array.")
 
         if len(b.shape) == 1 or b.shape[1] == 1:
             b = b.flatten()
             # Just one RHS
             out = fun(self.A, b, **self.kwargs)
-            if type(out) is tuple and len(out) == 2:
+            if isinstance(out, tuple) and len(out) == 2:
                 # We are dealing with scipy output with an info!
                 X = out[0]
                 self.info = out[1]
@@ -128,7 +169,7 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
             X = np.empty_like(b)
             for i in range(b.shape[1]):
                 out = fun(self.A, b[:, i], **self.kwargs)
-                if type(out) is tuple and len(out) == 2:
+                if isinstance(out, tuple) and len(out) == 2:
                     # We are dealing with scipy output with an info!
                     X[:, i] = out[0]
                     self.info = out[1]
@@ -139,13 +180,21 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
             _checkAccuracy(self.A, b, X, self.accuracyTol)
         return X
 
+    def __matmul__(self, other):
+        return self * other
+
     def clean(self):
         pass
 
     return type(
         name if name is not None else fun.__name__,
         (object,),
-        {"__init__": __init__, "clean": clean, "__mul__": __mul__},
+        {
+            "__init__": __init__,
+            "clean": clean,
+            "__mul__": __mul__,
+            "__matmul__": __matmul__,
+        },
     )
 
 
@@ -158,9 +207,11 @@ SolverBiCG = SolverWrapI(linalg.bicgstab, name="SolverBiCG")
 class SolverDiag(object):
     """docstring for SolverDiag"""
 
-    def __init__(self, A):
+    def __init__(self, A, **kwargs):
         self.A = A
         self._diagonal = A.diagonal()
+        for kwarg in kwargs:
+            warnings.warn(f"{kwarg} is not recognized and will be ignored")
 
     def __mul__(self, rhs):
         n = self.A.shape[0]
@@ -176,6 +227,9 @@ class SolverDiag(object):
             return x.flatten()
         elif nrhs > 1:
             return x.reshape((n, nrhs), order="F")
+
+    def __matmul__(self, other):
+        return self * other
 
     def _solve1(self, rhs):
         return rhs.flatten() / self._diagonal

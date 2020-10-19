@@ -97,7 +97,7 @@ class Fields(properties.HasProperties):
 
         loc = self.knownFields[name]
 
-        if type(self.dtype) is dict:
+        if isinstance(self.dtype, dict):
             dtype = self.dtype[name]
         else:
             dtype = self.dtype
@@ -142,7 +142,7 @@ class Fields(properties.HasProperties):
         return name
 
     def _indexAndNameFromKey(self, key, accessType):
-        if type(key) is not tuple:
+        if not isinstance(key, tuple):
             key = (key,)
         if len(key) == 1:
             key += (None,)
@@ -158,7 +158,7 @@ class Fields(properties.HasProperties):
         ind, name = self._indexAndNameFromKey(key, "set")
         if name is None:
             assert (
-                type(value) is dict
+                isinstance(value, dict)
             ), "New fields must be a dictionary, if field is not specified."
             newFields = value
         elif name in self.knownFields:
@@ -239,7 +239,7 @@ class TimeFields(Fields):
         return (nP, nSrc, nT)
 
     def _indexAndNameFromKey(self, key, accessType):
-        if type(key) is not tuple:
+        if not isinstance(key, tuple):
             key = (key,)
         if len(key) == 1:
             key += (None,)
