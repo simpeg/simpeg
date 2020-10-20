@@ -12,8 +12,8 @@ from ..utils import (
     Identity, Zero, order_clusters_GM_weight,
     ComputeConstantTerm, coterminal
 )
-from .. import maps
-from .. import objective_function
+from ..maps import IdentityMap, Wires
+#from .. import objective_function
 from .. import props
 
 from .base import (
@@ -270,7 +270,7 @@ class SimplePetroRegularization(SimpleComboRegularization):
         self.mesh = mesh
         self._approx_gradient = approx_gradient
         self._evaltype = evaltype
-        self.mapping = Maps.IdentityMap(mesh, nP=self.wiresmap.nP)
+        self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
 
         objfcts = [
             SimplePetroSmallness(mesh=mesh, GMmodel=self.GMmodel, wiresmap=self.wiresmap,
@@ -336,7 +336,7 @@ class SimplePetroRegularization(SimpleComboRegularization):
     @property
     def wiresmap(self):
         if getattr(self, '_wiresmap', None) is None:
-            self._wiresmap = Maps.Wires(('m', self._mesh.nC))
+            self._wiresmap = Wires(('m', self._mesh.nC))
         return self._wiresmap
 
     @wiresmap.setter
@@ -348,7 +348,7 @@ class SimplePetroRegularization(SimpleComboRegularization):
     @property
     def maplist(self):
         if getattr(self, '_maplist', None) is None:
-            self._maplist = [Maps.IdentityMap(
+            self._maplist = [IdentityMap(
                 self._mesh) for maps in self.wiresmap.maps]
         return self._maplist
 
@@ -603,7 +603,7 @@ class PetroRegularization(SimpleComboRegularization):
         self.mesh = mesh
         self._approx_gradient = approx_gradient
         self._evaltype = evaltype
-        self.mapping = Maps.IdentityMap(mesh, nP=self.wiresmap.nP)
+        self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
 
         objfcts = [
             PetroSmallness(mesh=mesh, GMmodel=self.GMmodel,
@@ -671,7 +671,7 @@ class PetroRegularization(SimpleComboRegularization):
     @property
     def wiresmap(self):
         if getattr(self, '_wiresmap', None) is None:
-            self._wiresmap = Maps.Wires(('m', self._mesh.nC))
+            self._wiresmap = Wires(('m', self._mesh.nC))
         return self._wiresmap
 
     @wiresmap.setter
@@ -683,7 +683,7 @@ class PetroRegularization(SimpleComboRegularization):
     @property
     def maplist(self):
         if getattr(self, '_maplist', None) is None:
-            self._maplist = [Maps.IdentityMap(
+            self._maplist = [IdentityMap(
                 self._mesh) for maps in self.wiresmap.maps]
         return self._maplist
 
@@ -951,7 +951,7 @@ class SimplePetroWithMappingRegularization(SimpleComboRegularization):
         self.mesh = mesh
         self._approx_gradient = approx_gradient
         self._evaltype = evaltype
-        self.mapping = Maps.IdentityMap(mesh, nP=self.wiresmap.nP)
+        self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
 
         objfcts = [
             SimplePetroWithMappingSmallness(
@@ -1022,7 +1022,7 @@ class SimplePetroWithMappingRegularization(SimpleComboRegularization):
     @property
     def wiresmap(self):
         if getattr(self, '_wiresmap', None) is None:
-            self._wiresmap = Maps.Wires(('m', self._mesh.nC))
+            self._wiresmap = Wires(('m', self._mesh.nC))
         return self._wiresmap
 
     @wiresmap.setter
@@ -1034,7 +1034,7 @@ class SimplePetroWithMappingRegularization(SimpleComboRegularization):
     @property
     def maplist(self):
         if getattr(self, '_maplist', None) is None:
-            self._maplist = [Maps.IdentityMap(
+            self._maplist = [IdentityMap(
                 self._mesh) for maps in self.wiresmap.maps]
         return self._maplist
 
@@ -1070,12 +1070,12 @@ def MakeSimplePetroRegularization(
 ):
 
     if wiresmap is None:
-        wrmp = Maps.Wires(('m', mesh.nC))
+        wrmp = Wires(('m', mesh.nC))
     else:
         wrmp = wiresmap
 
     if maplist is None:
-        mplst = [Maps.IdentityMap(mesh) for maps in wrmp.maps]
+        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
     else:
         mplst = maplist
 
@@ -1140,12 +1140,12 @@ def MakePetroRegularization(
 ):
 
     if wiresmap is None:
-        wrmp = Maps.Wires(('m', mesh.nC))
+        wrmp = Wires(('m', mesh.nC))
     else:
         wrmp = wiresmap
 
     if maplist is None:
-        mplst = [Maps.IdentityMap(mesh) for maps in wrmp.maps]
+        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
     else:
         mplst = maplist
 
@@ -1210,12 +1210,12 @@ def MakeSimplePetroWithMappingRegularization(
 ):
 
     if wiresmap is None:
-        wrmp = Maps.Wires(('m', mesh.nC))
+        wrmp = Wires(('m', mesh.nC))
     else:
         wrmp = wiresmap
 
     if maplist is None:
-        mplst = [Maps.IdentityMap(mesh) for maps in wrmp.maps]
+        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
     else:
         mplst = maplist
 

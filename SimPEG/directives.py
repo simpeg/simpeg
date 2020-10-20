@@ -15,6 +15,12 @@ from .regularization import (
     BaseRegularization,
     SimplePetroRegularization,
     PetroRegularization,
+    SimplePetroWithMappingSmallness,
+    SimplePetroSmallness,
+    PetroSmallness,
+    SmoothDeriv,
+    SimpleSmoothDeriv,
+    SparseDeriv,
     SimplePetroWithMappingRegularization,
 )
 from .utils import (
@@ -1126,15 +1132,15 @@ class GaussianMixtureUpdateModel(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroRegularization
+                            SimplePetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.PetroRegularization
+                            PetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroWithMappingRegularization
+                            SimplePetroWithMappingRegularization
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -1246,15 +1252,15 @@ class GMMRFUpdateModel(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroRegularization
+                            SimplePetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.PetroRegularization
+                            PetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroWithMappingRegularization
+                            SimplePetroWithMappingRegularization
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -1364,15 +1370,15 @@ class UpdateReference(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroRegularization
+                            SimplePetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.PetroRegularization
+                            PetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroWithMappingRegularization
+                            SimplePetroWithMappingRegularization
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -1489,15 +1495,15 @@ class BoreholeLithologyConstraints(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroRegularization
+                            SimplePetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.PetroRegularization
+                            PetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroWithMappingRegularization
+                            SimplePetroWithMappingRegularization
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -1545,15 +1551,15 @@ class BoreholeLithologyConstraintsEllipsoidMixture(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroRegularization
+                            SimplePetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.PetroRegularization
+                            PetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroWithMappingRegularization
+                            SimplePetroWithMappingRegularization
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -1617,9 +1623,9 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     (np.r_[
                         i, j,
                         (
-                            isinstance(regpart, Regularization.SimplePetroWithMappingSmallness) or
-                            isinstance(regpart, Regularization.SimplePetroSmallness) or
-                            isinstance(regpart, Regularization.PetroSmallness)
+                            isinstance(regpart, SimplePetroWithMappingSmallness) or
+                            isinstance(regpart, SimplePetroSmallness) or
+                            isinstance(regpart, PetroSmallness)
                         )
                     ])
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
@@ -1636,12 +1642,12 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 [
                     (np.r_[
                         i, j,
-                        ((isinstance(regpart, Regularization.SmoothDeriv) or
-                          isinstance(regpart, Regularization.SimpleSmoothDeriv) or
-                          isinstance(regpart, Regularization.SparseDeriv)) and not
-                         (isinstance(regobjcts, Regularization.SimplePetroRegularization) or
-                          isinstance(regobjcts, Regularization.PetroRegularization) or
-                          isinstance(regobjcts, Regularization.SimplePetroWithMappingRegularization))
+                        ((isinstance(regpart, SmoothDeriv) or
+                          isinstance(regpart, SimpleSmoothDeriv) or
+                          isinstance(regpart, SparseDeriv)) and not
+                         (isinstance(regobjcts, SimplePetroRegularization) or
+                          isinstance(regobjcts, PetroRegularization) or
+                          isinstance(regobjcts, SimplePetroWithMappingRegularization))
                          )])
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
                     for j, regpart in enumerate(regobjcts.objfcts)
@@ -1653,9 +1659,9 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             Smooth = np.r_[
                 [
                     (
-                        isinstance(regpart, Regularization.SmoothDeriv) or
-                        isinstance(regpart, Regularization.SimpleSmoothDeriv) or
-                          isinstance(regpart, Regularization.SparseDeriv)
+                        isinstance(regpart, SmoothDeriv) or
+                        isinstance(regpart, SimpleSmoothDeriv) or
+                          isinstance(regpart, SparseDeriv)
                     )
                     for regpart in self.invProb.reg.objfcts
                 ]
@@ -1744,7 +1750,7 @@ class JointTargetMisfit(InversionDirective):
             # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
             if self.phi_d_star is None:
                 # Check if it is a ComboObjective
-                if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+                if isinstance(self.dmisfit, ComboObjectiveFunction):
                     self.phi_d_star = np.r_[
                         [0.5 * survey.nD for survey in self.survey]]
                 else:
@@ -1816,9 +1822,9 @@ class PetroTargetMisfit(InversionDirective):
                     (np.r_[
                         i, j,
                         (
-                            isinstance(regpart, Regularization.SimplePetroWithMappingSmallness) or
-                            isinstance(regpart, Regularization.SimplePetroSmallness) or
-                            isinstance(regpart, Regularization.PetroSmallness)
+                            isinstance(regpart, SimplePetroWithMappingSmallness) or
+                            isinstance(regpart, SimplePetroSmallness) or
+                            isinstance(regpart, PetroSmallness)
                         )
                     ])
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
@@ -1845,9 +1851,9 @@ class PetroTargetMisfit(InversionDirective):
                     (np.r_[
                         j,
                         (
-                            isinstance(regpart, Regularization.SimplePetroWithMappingSmallness) or
-                            isinstance(regpart, Regularization.SimplePetroSmallness) or
-                            isinstance(regpart, Regularization.PetroSmallness)
+                            isinstance(regpart, SimplePetroWithMappingSmallness) or
+                            isinstance(regpart, SimplePetroSmallness) or
+                            isinstance(regpart, PetroSmallness)
                         )
                     ])
 
@@ -1874,7 +1880,7 @@ class PetroTargetMisfit(InversionDirective):
             # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
             if self.phi_d_star is None:
                 # Check if it is a ComboObjective
-                if isinstance(self.dmisfit, ObjectiveFunction.ComboObjectiveFunction):
+                if isinstance(self.dmisfit, ComboObjectiveFunction):
                     self.phi_d_star = np.r_[
                         [0.5 * survey.nD for survey in self.survey]]
                 else:
@@ -2174,15 +2180,15 @@ class PetroBetaReWeighting(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroRegularization
+                            SimplePetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.PetroRegularization
+                            PetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroWithMappingRegularization
+                            SimplePetroWithMappingRegularization
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -2436,15 +2442,15 @@ class AddMrefInSmooth(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroRegularization
+                            SimplePetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.PetroRegularization
+                            PetroRegularization
                         ) or
                         isinstance(
                             regpart,
-                            Regularization.SimplePetroWithMappingRegularization
+                            SimplePetroWithMappingRegularization
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -2478,12 +2484,12 @@ class AddMrefInSmooth(InversionDirective):
                 [
                     (np.r_[
                         i, j,
-                        ((isinstance(regpart, Regularization.SmoothDeriv) or
-                          isinstance(regpart, Regularization.SimpleSmoothDeriv) or
-                          isinstance(regpart, Regularization.SparseDeriv)) and not
-                         (isinstance(regobjcts, Regularization.SimplePetroRegularization) or
-                          isinstance(regobjcts, Regularization.PetroRegularization) or
-                          isinstance(regobjcts, Regularization.SimplePetroWithMappingRegularization))
+                        ((isinstance(regpart, SmoothDeriv) or
+                          isinstance(regpart, SimpleSmoothDeriv) or
+                          isinstance(regpart, SparseDeriv)) and not
+                         (isinstance(regobjcts, SimplePetroRegularization) or
+                          isinstance(regobjcts, PetroRegularization) or
+                          isinstance(regobjcts, SimplePetroWithMappingRegularization))
                          )])
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
                     for j, regpart in enumerate(regobjcts.objfcts)
@@ -2495,9 +2501,9 @@ class AddMrefInSmooth(InversionDirective):
             self.Smooth = np.r_[
                 [
                     (
-                        isinstance(regpart, Regularization.SmoothDeriv) or
-                        isinstance(regpart, Regularization.SimpleSmoothDeriv) or
-                          isinstance(regpart, Regularization.SparseDeriv)
+                        isinstance(regpart, SmoothDeriv) or
+                        isinstance(regpart, SimpleSmoothDeriv) or
+                          isinstance(regpart, SparseDeriv)
                     )
                     for regpart in self.invProb.reg.objfcts
                 ]
