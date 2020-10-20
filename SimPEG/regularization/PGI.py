@@ -7,14 +7,14 @@ import properties
 from scipy.stats import multivariate_normal
 from scipy.special import logsumexp
 import copy
-from ..Utils import (
+from ..utils import (
     speye, setKwargs, sdiag, mkvc, timeIt,
     Identity, Zero, order_clusters_GM_weight,
     ComputeConstantTerm, coterminal
 )
-from .. import Maps
-from .. import ObjectiveFunction
-from .. import Props
+from .. import maps
+from .. import objective_function
+from .. import props
 
 from .base import (
     BaseRegularization,
@@ -316,7 +316,7 @@ class SimplePetroRegularization(SimpleComboRegularization):
         #setKwargs(self, **kwargs)
 
     # Properties
-    alpha_s = Props.Float("PetroPhysics weights")
+    alpha_s = props.Float("PetroPhysics weights")
 
     @property
     def GMmodel(self):
@@ -651,7 +651,7 @@ class PetroRegularization(SimpleComboRegularization):
         # setKwargs(self, **kwargs)
 
     # Properties
-    alpha_s = Props.Float("PetroPhysics weights")
+    alpha_s = props.Float("PetroPhysics weights")
 
     @property
     def GMmodel(self):
@@ -1001,7 +1001,7 @@ class SimplePetroWithMappingRegularization(SimpleComboRegularization):
         #setKwargs(self, **kwargs)
 
     # Properties
-    alpha_s = Props.Float("PetroPhysics weights")
+    alpha_s = props.Float("PetroPhysics weights")
 
     @property
     def GMmodel(self):

@@ -600,7 +600,11 @@ class Minimize(object):
         self.iterLS = 0
         while self.iterLS < self.maxIterLS:
             self._LS_xt = self.projection(self.xc + self._LS_t * p)
-            self._LS_ft = self.evalFunction(self._LS_xt, return_g=False, return_H=False)
+            self._LS_ft, self._LS_ft_descent = self.evalFunction(
+                self._LS_xt, 
+                return_g=True, 
+                return_H=False
+            )
             self._LS_ft_descent = np.inner(
                 self._LS_ft_descent, self._LS_xt - self.xc
             ) # This is the curvature WolfeCurvature condition
