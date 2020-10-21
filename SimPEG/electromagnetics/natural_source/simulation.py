@@ -48,6 +48,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         self.model = m
         # Initiate the Jv object
         Jv = Data(self.survey)
+        # Jv = []
 
         # Loop all the frequenies
         for freq in self.survey.frequencies:
@@ -81,6 +82,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                     )  # wrt uPDeriv_u(mkvc(du_dm))
             Ainv.clean()
         # Return the vectorized sensitivities
+        # return np.concatenate(Jv, axis=0)
         return mkvc(Jv)
 
     def Jtvec(self, m, v, f=None):
@@ -113,32 +115,29 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             for src in self.survey.get_sources_by_frequency(freq):
                 # u_src needs to have both polarizations
                 u_src = f[src, :]
-
+                # Get the adjoint evalDeriv
+                # PTv needs to be nE,2
                 for rx in src.receiver_list:
-                    # Get the adjoint evalDeriv
-                    # PTv needs to be nE,2
                     PTv = rx.evalDeriv(
                         src, self.mesh, f, mkvc(v[src, rx]), adjoint=True
                     )  # wrt f, need possibility wrt m
+                    print(PTv.shape)
                     # Get the
-                    dA_duIT = mkvc(ATinv * PTv)  # Force (nU,) shape
-                    dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv(freq, dA_duIT, adjoint=True)
-                    # Make du_dmT
-                    du_dmT = -dA_dmT + dRHS_dmT
-                    # Select the correct component
-                    # du_dmT needs to be of size (nP,) number of model parameters
-                    real_or_imag = rx.component
-                    if real_or_imag == "real":
-                        Jtv += np.array(du_dmT, dtype=complex).real
-                    elif real_or_imag == "imag":
-                        Jtv += -np.array(du_dmT, dtype=complex).real
-                    elif real_or_imag == "apparent_resistivity":
-                        Jtv += np.array(du_dmT, dtype=complex).real
-                    elif real_or_imag == "phase":
-                        Jtv += -np.array(du_dmT, dtype=complex).real
-                    else:
-                        raise Exception("Must be real or imag")
+                dA_duIT = mkvc(ATinv * PTv)  # Force (nU,) shape
+                dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(freq, dA_duIT, adjoint=True)
+                # Make du_dmT
+                du_dmT = -dA_dmT + dRHS_dmT
+                # Select the correct component
+                # du_dmT needs to be of size (nP,) number of model parameters
+
+                real_or_imag = rx.component
+                if real_or_imag == "real":
+                    Jtv += np.array(du_dmT, dtype=complex).real
+                elif real_or_imag == "imag":
+                    Jtv += -np.array(du_dmT, dtype=complex).real
+                else:
+                    raise Exception("Must be real or imag")
             # Clean the factorization, clear memory.
             ATinv.clean()
         return Jtv
