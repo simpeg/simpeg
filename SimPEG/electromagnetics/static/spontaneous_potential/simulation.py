@@ -15,6 +15,7 @@ class BaseSimulation(BaseDCSimulation):
     _G = None
     _S = None
     fieldsPair = FieldsDC
+    indActive = None
 
     survey = properties.Instance("an SP survey object", Survey, required=True)
 
@@ -62,8 +63,7 @@ class BaseSimulation(BaseDCSimulation):
         Mf = self.mesh.getFaceInnerProduct()
         return self.Div * (Mf * (MfQviI * vel))
     
-    def dpred(self, m=None, f=None):
-        return self.fields(m)
+
 
     @property
     def Pafx(self):
@@ -123,20 +123,15 @@ class BaseSimulation(BaseDCSimulation):
         return self._Pafz
 
 
-    def getADeriv(self, u, v, adjoint=False):
-        # We assume conductivity is known
-        return Zero()
+    # def getADeriv(self, u, v, adjoint=False):
+    #     # We assume conductivity is known
+    #     return Zero()
 
-    def getRHSDeriv(self, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
-        """
-        return self.get_source_term_derivative(self, v=v, adjoint=adjoint)
-
+    
     @property
     def G(self):
         """
-            Inverse of :code:`_G`
+        Creates the operation G=P*Ainv*RHS such that d=G*m
         """
         if getattr(self, "_G", None) is None:
             A = self.getA()
@@ -144,40 +139,30 @@ class BaseSimulation(BaseDCSimulation):
             src = self.survey.source_list[0]
             rx = src.receiver_list[0]
             P = rx.getP(self.mesh, "CC").toarray()
-            self._G = (self.Ainv * P.T).T * self.get_source_term_derivative(
-                v=utils.sdiag(np.ones_like(self.model))
-            )
+            self._G = (self.Ainv * P.T).T * self.get_rhs_operator()
             self.Ainv.clean()
             del self.Ainv
         return self._G
 
-    def getJ(self, m, f=None):
 
-        if self.coordinate_system == "cartesian":
-            return self.G
-        else:
-            self.model = m
-            return self.G * self.S
 
-    def Jvec(self, m, v, f=None):
 
-        self.model = m
+        # if getattr(self, "_G", None) is None:
+        #     A = self.getA()
+        #     self.Ainv = self.Solver(A, **self.solverOpts)
+        #     src = self.survey.source_list[0]
+        #     rx = src.receiver_list[0]
+        #     P = rx.getP(self.mesh, "CC").toarray()
+        #     self._G = (self.Ainv * P.T).T * self.getRHSDeriv(
+        #         v=utils.sdiag(np.ones_like(self.model)
+        #         )
+        #     )
 
-        if self.coordinate_system == "cartesian":
-            return self.G.dot(v)
-        else:
-            return np.dot(self.G, self.S.dot(v))
+        #     self.Ainv.clean()
+        #     del self.Ainv
+        # return self._G
 
-    def Jtvec(self, m, v, f=None):
 
-        self.model = m
-
-        if self.coordinate_system == "cartesian":
-            return self.G.T.dot(v)
-        else:
-            return self.S.T * (self.G.T.dot(v))
-
-    @utils.count
     def fields(self, m):
 
         self.model = m
@@ -186,6 +171,49 @@ class BaseSimulation(BaseDCSimulation):
             m = utils.mat_utils.atp2xyz(m)
 
         return self.G.dot(m)
+
+
+    def dpred(self, m=None, f=None):
+        if f == None:
+            return self.fields(m)
+        else:
+            return f
+
+
+    def getJ(self, m, f=None):
+
+        self.model = m
+        if self.coordinate_system == "cartesian":
+            return self.G * self.model_derivative(m)
+        else:
+            return self.G * (self.S * self.model_derivative(m))
+
+    def Jvec(self, m, v, f=None):
+
+        self.model = m
+
+        if self.coordinate_system == "cartesian":
+            return self.G.dot(
+                self.model_derivative(m).dot(v)
+            )
+        else:
+            return np.dot(self.G, self.S.dot(
+                self.model_derivative(m).dot(v))
+            )
+
+    def Jtvec(self, m, v, f=None):
+
+        self.model = m
+
+        if self.coordinate_system == "cartesian":
+            return self.model_derivative(m).T.dot(self.G.T.dot(v))
+        else:
+            return self.model_derivative(m).T.dot(self.S.T * (self.G.T.dot(v)))
+
+
+
+
+
 
     @property
     def S(self):
@@ -247,16 +275,8 @@ class BaseSimulation(BaseDCSimulation):
 
 class SimulationCurrentDensity(BaseSimulation, DCSimulation3DCellCentered):
 
-    jsx, jsxMap, jsxDeriv = props.Invertible(
-        "Streaming current density in x-direction (A/m^2)"
-    )
-
-    jsy, jsyMap, jsyDeriv = props.Invertible(
-        "Streaming current density in y-direction (A/m^2)"
-    )
-
-    jsz, jszMap, jszDeriv = props.Invertible(
-        "Streaming current density in z-direction (A/m^2)"
+    js, jsMap, jsDeriv = props.Invertible(
+        "Streaming current density in (A/m^2). Vector np.r_[jx, jy, jz] or np._[jp, js, jt]"
     )
 
     _solutionType = "phiSolution"
@@ -286,59 +306,50 @@ class SimulationCurrentDensity(BaseSimulation, DCSimulation3DCellCentered):
             )
 
 
-    def getq_from_j(self, j):
-        q = self.Grad.T * self.mesh.aveCCV2F * j
-        return q
+    # def getRHS(self):
+    #     """
+        
+    #     """
 
-    def get_source_term(self):
+    #     return (
+    #         self.Grad.T
+    #         * self.mesh.aveCCV2F
+    #         * np.r_[self.jsx, self.jsy, self.jsz]
+    #     )
+
+    # def getRHSDeriv(self, v=None, adjoint=False):
+    #     """Computing the derivative of the source terms with respect to the model"""
+
+    #     if adjoint:
+    #         jsDeriv = sp.vstack((self.jsxDeriv, self.jsyDeriv, self.jszDeriv))
+    #         srcDeriv = jsDeriv.T * self.mesh.aveCCV2F.T * (self.Grad * v)
+    #     else:
+    #         jsDeriv = sp.vstack((self.jsxDeriv, self.jsyDeriv, self.jszDeriv))
+    #         srcDeriv = self.Grad.T * self.mesh.aveCCV2F * (jsDeriv * v)
+
+    #     return srcDeriv
+
+
+    def get_rhs_operator(self):
+        """
+        Returns the operator B such that RHS = B*m
         """
 
-            Computing source term using:
+        return - self.Grad.T * self.mesh.aveCCV2F
 
-            - Hydraulic head: h
-            - Cross coupling coefficient: L
 
-            .. math::
+    def model_derivative(self, m):
+        return selt.jDeriv(m)
 
-                -\nabla \cdot \vec{j}^s = \nabla \cdot L \nabla \phi \\
-
-        """
-
-        q = (
-            self.Grad.T
-            * self.mesh.aveCCV2F
-            * np.r_[self.jsx, self.jsy, self.jsz]
-        )
-
-        return q
 
 
     
-
-    def get_source_term_derivative(self, v=None, adjoint=False):
-        """Computing the derivative of the source terms with respect to the model"""
-
-        if adjoint:
-            jsDeriv = sp.vstack((self.jsxDeriv, self.jsyDeriv, self.jszDeriv))
-            srcDeriv = jsDeriv.T * self.mesh.aveCCV2F.T * (self.Grad * v)
-        else:
-            jsDeriv = sp.vstack((self.jsxDeriv, self.jsyDeriv, self.jszDeriv))
-            srcDeriv = self.Grad.T * self.mesh.aveCCV2F * (jsDeriv * v)
-
-        return srcDeriv
-
-    
-
-
-
-
-
 
 
 
 class SimulationCurrentSource(BaseSimulation, DCSimulation3DCellCentered):
 
-    q, qMap, qDeriv = props.Invertible("Streaming current source (A/m^3)")
+    qs, qsMap, qsDeriv = props.Invertible("Streaming current source (A/m^3)")
 
     _solutionType = "phiSolution"
     _formulation = "HJ"  # CC potentials means J is on faces
@@ -354,32 +365,36 @@ class SimulationCurrentSource(BaseSimulation, DCSimulation3DCellCentered):
         BaseSimulation.__init__(self, mesh, **kwargs)
         self.setBC()
 
-    def get_source_term(self):
+    # def getRHS(self):
+    #     """
+    #     Compute the right-hand side diag(vol)*qs
+
+    #     """
+        
+    #     return self.V * self.q
+
+    # def getRHSDeriv(self, v=None, adjoint=False):
+    #     """Computing the derivative of the source terms with respect to the model"""
+
+    #     if adjoint:
+    #         srcDeriv = self.qDeriv.T * (self.V * v)
+    #     else:
+    #         srcDeriv = self.V * (self.qDeriv * v)
+                
+    #     return srcDeriv
+
+
+    def get_rhs_operator(self):
         """
-
-            Computing source term using:
-
-            - Hydraulic head: h
-            - Cross coupling coefficient: L
-
-            .. math::
-
-                -\nabla \cdot \vec{j}^s = \nabla \cdot L \nabla \phi \\
+        Compute the right-hand side diag(vol)*qs
 
         """
         
-        return self.V * self.q
+        return - self.V
 
-    def get_source_term_derivative(self, v=None, adjoint=False):
-        """Computing the derivative of the source terms with respect to the model"""
 
-        if adjoint:
-            srcDeriv = self.qDeriv.T * (self.V * v)
-        else:
-            srcDeriv = self.V * (self.qDeriv * v)
-                
-        return srcDeriv
-
+    def model_derivative(self, m):
+        return selt.qsDeriv(m)
 
 
 
@@ -423,7 +438,36 @@ class SimulationHydrolicHead(BaseSimulation, DCSimulation3DCellCentered):
             self._MfLiI = self.mesh.getFaceInnerProduct(1.0 / self.L, invMat=True)
         return self._MfLiI
 
-    def get_source_term(self):
+    # def getRHS(self):
+    #     """
+
+    #         Computing source term using:
+
+    #         - Hydraulic head: h
+    #         - Cross coupling coefficient: L
+
+    #         .. math::
+
+    #             -\nabla \cdot \vec{j}^s = \nabla \cdot L \nabla \phi \\
+
+    #     """
+
+    #     return self.Grad.T * self.MfLi * self.Grad * self.h
+            
+
+    # def getRHSDeriv(self, v=None, adjoint=False):
+    #     """Computing the derivative of the source terms with respect to the model"""
+
+    #     if adjoint:
+    #         srcDeriv = (
+    #             self.hDeriv.T * self.Grad.T * self.MfLiI.T * (self.Grad * v)
+    #         )
+    #     else:
+    #         srcDeriv = self.Grad.T * self.MfLiI * self.Grad * (self.hDeriv * v)
+                
+    #     return srcDeriv
+
+    def get_rhs_operator(self):
         """
 
             Computing source term using:
@@ -437,24 +481,11 @@ class SimulationHydrolicHead(BaseSimulation, DCSimulation3DCellCentered):
 
         """
 
-        return self.Grad.T * self.MfLiI * self.Grad * self.h
-            
-
-    def get_source_term_derivative(self, v=None, adjoint=False):
-        """Computing the derivative of the source terms with respect to the model"""
-
-        if adjoint:
-            srcDeriv = (
-                self.hDeriv.T * self.Grad.T * self.MfLiI.T * (self.Grad * v)
-            )
-        else:
-            srcDeriv = self.Grad.T * self.MfLiI * self.Grad * (self.hDeriv * v)
-                
-        return srcDeriv
+        return - self.Grad.T * self.MfLi * self.Grad
 
 
-
-
+    def model_derivative(self, m):
+        return selt.hDeriv(m)
 
 
 
