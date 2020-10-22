@@ -7,7 +7,7 @@ from scipy.sparse import diags
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
 from sklearn.utils import check_array
-from sklearn.mixture.gaussian_mixture import (
+from sklearn.mixture._gaussian_mixture import (
     _compute_precision_cholesky, _compute_log_det_cholesky,
     _estimate_gaussian_covariances_full,
     _estimate_gaussian_covariances_tied,
@@ -17,7 +17,7 @@ from sklearn.mixture.gaussian_mixture import (
     _check_precisions,
     _check_shape,
 )
-from sklearn.mixture.base import (
+from sklearn.mixture._base import (
     _check_X, check_random_state, ConvergenceWarning
 )
 import warnings

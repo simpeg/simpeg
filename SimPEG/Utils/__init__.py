@@ -53,7 +53,7 @@ from .coord_utils import rotatePointsFromNormals, rotationMatrixFromNormals
 from .model_utils import surface2ind_topo
 from .plot_utils import plot2Ddata, plotLayer
 from .io_utils import download
-from .petroutils import (
+from .pgi_utils import (
     ComputeDistances,
     order_clusters_GM_weight, order_cluster,
     computePrecision, computeCovariance, ComputeConstantTerm,
