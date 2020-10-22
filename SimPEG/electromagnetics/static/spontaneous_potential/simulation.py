@@ -11,9 +11,12 @@ import scipy.sparse as sp
 import properties
 
 class BaseSimulationCellCenters(BaseDCSimulation):
+    """
+    Base simulation class for electric potentials defined at nodes
+    """
 
-    _G = None
-    _S = None
+    _G = None  # A stored operator the performs P*Ainv*RHS
+    _S = None  # A stored operator the converts from spherical to cartesian
     fieldsPair = FieldsDC
     indActive = None
 
