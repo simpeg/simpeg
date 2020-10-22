@@ -258,7 +258,8 @@ class Simulation3DIntegral(BasePFSimulation):
         # base cell dimensions
         min_hx, min_hy, min_hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
 
-        # comp. pos. differences for tne, bsw nodes
+        # comp. pos. differences for tne, bsw nodes. Adjust if location within
+        # tolerance of a node or edge
         dz2 = self.Zn[:, 1] - receiver_location[2]
         dz2[np.abs(dz2)/min_hz < tol2] = tol2 * min_hz
         dz1 = self.Zn[:, 0] - receiver_location[2]
