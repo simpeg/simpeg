@@ -668,12 +668,9 @@ class Point3DComplexResistivity(BaseRxNSEM_Point):
             if self.component == "phase":
                 ratio = 1 + (Zij.imag / Zij.real)**2
                 # calculate the components
-                print((1 / ratio).T.shape, (Zij.real.T**2).shape, Zij.shape, Zij.real.diagonal().shape, (alpha * self._aHd * v * Zij.real).shape)
-                print((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)).shape)
-                rx_deriv_imag_real = ZijN_uV(self._aHd * v * Zij.real * (1 / ratio.diagonal()).T / (Zij.real.T.diagonal()**2)) - self._aHd_uV((1 / ratio).T * Zij.real.T**2 * self._aHd * v / (Zij.real.T.diagonal()**2))
-                rx_deriv_real_imag = ZijN_uV(self._aHd * v * Zij.imag * (1 / ratio.diagonal()).T / (Zij.real.T.diagonal()**2)) - self._aHd_uV((1 / ratio).T * Zij.imag.T**2 * self._aHd * v / (Zij.real.T.diagonal()**2))
+                rx_deriv_imag_real = ZijN_uV((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)) * Zij.real) - self._aHd_uV((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)) * Zij.imag**2)
+                rx_deriv_real_imag = ZijN_uV((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)) * Zij.imag) - self._aHd_uV((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)) * Zij.real**2)
                 rx_deriv_component = (180 / np.pi) * (rx_deriv_imag_real.imag - rx_deriv_real_imag.real)
-                print(rx_deriv_component.shape)
             # if self.component == "imag":
             #     rx_deriv_component = 1j * rx_deriv_real
             # elif self.component == "real":
