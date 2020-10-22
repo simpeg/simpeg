@@ -10,7 +10,7 @@ import numpy as np
 import scipy.sparse as sp
 import properties
 
-class BaseSimulation(BaseDCSimulation):
+class BaseSimulationCellCenters(BaseDCSimulation):
 
     _G = None
     _S = None
@@ -273,7 +273,7 @@ class BaseSimulation(BaseDCSimulation):
 
 
 
-class SimulationCurrentDensity(BaseSimulation, DCSimulation3DCellCentered):
+class SimulationCurrentDensityCellCenters(BaseSimulationCellCenters, DCSimulation3DCellCentered):
 
     js, jsMap, jsDeriv = props.Invertible(
         "Streaming current density in (A/m^2). Vector np.r_[jx, jy, jz] or np._[jp, js, jt]"
@@ -290,7 +290,7 @@ class SimulationCurrentDensity(BaseSimulation, DCSimulation3DCellCentered):
     )
 
     def __init__(self, mesh, **kwargs):
-        BaseSimulation.__init__(self, mesh, **kwargs)
+        BaseSimulationCellCenters.__init__(self, mesh, **kwargs)
         self.setBC()
 
         # This is for setting a Neuman condition on the topographic faces
@@ -335,11 +335,11 @@ class SimulationCurrentDensity(BaseSimulation, DCSimulation3DCellCentered):
         Returns the operator B such that RHS = B*m
         """
 
-        return - self.Grad.T * self.mesh.aveCCV2F
+        return self.Grad.T * self.mesh.aveCCV2F
 
 
     def model_derivative(self, m):
-        return selt.jDeriv(m)
+        return self.jDeriv(m)
 
 
 
@@ -347,7 +347,7 @@ class SimulationCurrentDensity(BaseSimulation, DCSimulation3DCellCentered):
 
 
 
-class SimulationCurrentSource(BaseSimulation, DCSimulation3DCellCentered):
+class SimulationCurrentSourceCellCenters(BaseSimulationCellCenters, DCSimulation3DCellCentered):
 
     qs, qsMap, qsDeriv = props.Invertible("Streaming current source (A/m^3)")
 
@@ -362,7 +362,7 @@ class SimulationCurrentSource(BaseSimulation, DCSimulation3DCellCentered):
     )
 
     def __init__(self, mesh, **kwargs):
-        BaseSimulation.__init__(self, mesh, **kwargs)
+        BaseSimulationCellCenters.__init__(self, mesh, **kwargs)
         self.setBC()
 
     # def getRHS(self):
@@ -390,15 +390,15 @@ class SimulationCurrentSource(BaseSimulation, DCSimulation3DCellCentered):
 
         """
         
-        return - self.V
+        return self.V
 
 
     def model_derivative(self, m):
-        return selt.qsDeriv(m)
+        return self.qsDeriv(m)
 
 
 
-class SimulationHydrolicHead(BaseSimulation, DCSimulation3DCellCentered):
+class SimulationHydrolicHeadCellCenters(BaseSimulationCellCenters, DCSimulation3DCellCentered):
 
     h, hMap, hDeriv = props.Invertible("Hydraulic Head (m)")
 
@@ -416,7 +416,7 @@ class SimulationHydrolicHead(BaseSimulation, DCSimulation3DCellCentered):
     )
 
     def __init__(self, mesh, **kwargs):
-        BaseSimulation.__init__(self, mesh, **kwargs)
+        BaseSimulationCellCenters.__init__(self, mesh, **kwargs)
         self.setBC()
 
 
@@ -481,11 +481,11 @@ class SimulationHydrolicHead(BaseSimulation, DCSimulation3DCellCentered):
 
         """
 
-        return - self.Grad.T * self.MfLi * self.Grad
+        return self.Grad.T * self.MfLi * self.Grad
 
 
     def model_derivative(self, m):
-        return selt.hDeriv(m)
+        return self.hDeriv(m)
 
 
 

@@ -1,6 +1,6 @@
 from .simulation import (
-    BaseSimulation, SimulationCurrentDensity,
-    SimulationCurrentSource, SimulationHydrolicHead
+    BaseSimulationCellCenters, SimulationCurrentDensityCellCenters,
+    SimulationCurrentSourceCellCenters, SimulationHydrolicHeadCellCenters
 )
 from . import survey
 from . import sources
