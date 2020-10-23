@@ -1114,9 +1114,9 @@ class GaussianMixtureUpdateModel(InversionDirective):
     coolingRate = 1
     update_covariances = True
     verbose = False
-    alphadir = None
-    nu = None
-    kappa = None
+    alphadir = 1e8 #default: keep GMM fixed
+    nu = 1e8
+    kappa = 1e8
     fixed_membership = None
     keep_ref_fixed_in_Smooth = True
     boreholeidx = None
@@ -1166,16 +1166,6 @@ class GaussianMixtureUpdateModel(InversionDirective):
             modellist = self.invProb.reg.wiresmap * m
         model = np.c_[
             [a * b for a, b in zip(self.petroregularizer.maplist, modellist)]].T
-
-        if (self.alphadir is None):
-            self.alphadir = (self.petroregularizer.gamma) * \
-                np.ones(self.petroregularizer.GMmref.n_components)
-        if (self.nu is None):
-            self.nu = self.petroregularizer.gamma * \
-                np.ones(self.petroregularizer.GMmref.n_components)
-        if (self.kappa is None):
-            self.kappa = self.petroregularizer.gamma * \
-                np.ones(self.petroregularizer.GMmref.n_components)
 
         if self.petroregularizer.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
             self.fixed_membership = self.petroregularizer.membership(
@@ -1230,9 +1220,9 @@ class GMMRFUpdateModel(InversionDirective):
     coolingRate = 1
     update_covariances = True
     verbose = False
-    alphadir = None
-    nu = None
-    kappa = None
+    alphadir = 1e8 #default: keep GMM fixed
+    nu = 1e8
+    kappa = 1e8
     fixed_membership = None
     keep_ref_fixed_in_Smooth = True
     neighbors = 8
@@ -1287,19 +1277,10 @@ class GMMRFUpdateModel(InversionDirective):
         model = np.c_[
             [a * b for a, b in zip(self.petroregularizer.maplist, modellist)]].T
 
-        if (self.alphadir is None):
-            self.alphadir = (self.petroregularizer.gamma) * \
-                np.ones(self.petroregularizer.GMmref.n_components)
-        if (self.nu is None):
-            self.nu = self.petroregularizer.gamma * \
-                np.ones(self.petroregularizer.GMmref.n_components)
-        if (self.kappa is None):
-            self.kappa = self.petroregularizer.gamma * \
-                np.ones(self.petroregularizer.GMmref.n_components)
-
         if self.petroregularizer.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
             self.fixed_membership = self.petroregularizer.membership(
-                self.petroregularizer.mref)
+                self.petroregularizer.mref
+            )
 
         # TEMPORARY FOR WEIGHTS ACCROSS THE MESH
         # self.petroregularizer.GMmodel.weights_ = self.petroregularizer.GMmref.weights_
@@ -1536,9 +1517,9 @@ class BoreholeLithologyConstraints(InversionDirective):
         )
 
 
-class BoreholeLithologyConstraintsEllipsoidMixture(InversionDirective):
+class PGI_local_GMM_proportions(InversionDirective):
 
-    borehole_weights = None
+    local_proportions = None
 
     def initialize(self):
         if getattr(
@@ -1589,7 +1570,7 @@ class BoreholeLithologyConstraintsEllipsoidMixture(InversionDirective):
                     )
                 ]
             ].T
-            self.petroregularizer.GMmodel.weights_ = self.borehole_weights
+            self.petroregularizer.GMmodel.weights_ = self.local_proportions
             membership = self.petroregularizer.GMmodel.predict(model)
             self.petroregularizer.mref = mkvc(
                 self.petroregularizer.GMmodel.means_[membership])
@@ -1789,7 +1770,7 @@ class PetroTargetMisfit(InversionDirective):
 
     WeightsInTarget = 0
     verbose = False
-    # Chi factor for Data Misfit
+    # Chi factor for Geophsyical Data Misfit
     chifact = 1.
     phi_d_star = None
 
@@ -1798,15 +1779,15 @@ class PetroTargetMisfit(InversionDirective):
     chiSmall = 1.
     phi_ms_star = None
 
-    # Tolerance for Distribution parameters
-    TriggerTheta = False
+    # Tolerance for parameters difference with their priors
+    TriggerTheta = False #deactivated by default
     ToleranceTheta = 1.
     distance_norm = np.inf
 
     AllStop = False
-    DM = False
-    CL = False
-    DP = False
+    DM = False #geophysical fit condition
+    CL = False #petrophysical fit condition
+    DP = False #parameters difference with their priors condition
 
     def initialize(self):
         self.dmlist = np.r_[[dmis(self.invProb.model)
@@ -2418,7 +2399,7 @@ class AddMrefInSmooth(InversionDirective):
     chifact = 1.
     tolerance_phid = 0.
     phi_d_target = None
-    wait_till_stable = False
+    wait_till_stable = True
     tolerance = 0.
     verbose = False
 

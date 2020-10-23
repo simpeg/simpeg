@@ -8,7 +8,8 @@ from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
 from sklearn.utils import check_array
 from sklearn.mixture._gaussian_mixture import (
-    _compute_precision_cholesky, _compute_log_det_cholesky,
+    _compute_precision_cholesky,
+    _compute_log_det_cholesky,
     _estimate_gaussian_covariances_full,
     _estimate_gaussian_covariances_tied,
     _estimate_gaussian_covariances_diag,
@@ -22,7 +23,7 @@ from sklearn.mixture._base import (
 )
 import warnings
 from .matutils import mkvc
-from ..maps import *  # IdentityMap
+from ..maps import IdentityMap
 
 
 def ComputeDistances(a, b):
@@ -142,7 +143,11 @@ def order_cluster(GMmodel, GMref, outputindex=False):
         return indx
 
 
-def computePrecision(GMmodel):
+def compute_clusters_precision(GMmodel):
+    GMmodel.precisions_cholesky_ = _compute_precision_cholesky(
+        GMmodel.covariances_, 
+        GMmodel.covariance_type
+    )
     if GMmodel.covariance_type == 'full':
         GMmodel.precisions_ = np.empty(GMmodel.precisions_cholesky_.shape)
         for k, prec_chol in enumerate(GMmodel.precisions_cholesky_):
@@ -192,7 +197,7 @@ def UpdateGaussianMixtureModel(
     prior_type="semi"
 ):
 
-    computePrecision(GMmodel)
+    compute_clusters_precision(GMmodel)
     order_cluster(GMmodel, GMref)
 
     if verbose:
@@ -238,7 +243,7 @@ def UpdateGaussianMixtureModel(
                 1. / (1. + np.sum(GMref.weights_ * nu))) * (GMmodel.covariances_ + np.sum(GMref.weights_ * nu) * GMref.covariances_)
             GMmodel.precisions_cholesky_ = _compute_precision_cholesky(
                 GMmodel.covariances_, GMmodel.covariance_type)
-            computePrecision(GMmodel)
+            compute_clusters_precision(GMmodel)
         else:
             GMmodel.precisions_ = (
                 1. / (1. + np.sum(GMref.weights_ * nu))) * (GMmodel.precisions_ + np.sum(GMref.weights_ * nu) * GMref.precisions_)
@@ -250,7 +255,7 @@ def UpdateGaussianMixtureModel(
     elif update_covariances:
         GMmodel.precisions_cholesky_ = _compute_precision_cholesky(
             GMmodel.covariances_, GMmodel.covariance_type)
-        computePrecision(GMmodel)
+        compute_clusters_precision(GMmodel)
     else:
         GMmodel.covariances_cholesky_ = _compute_precision_cholesky(
             GMmodel.precisions_, GMmodel.covariance_type)
@@ -440,7 +445,7 @@ class FuzzyGaussianMixtureWithPrior(GaussianMixture):
 
             self.precisions_cholesky_ = _compute_precision_cholesky(
                 self.covariances_, self.covariance_type)
-            computePrecision(self)
+            compute_clusters_precision(self)
             if self.verbose:
                 print('iteration: ', it)
                 print('Maximum relative change done to parameters: ', change)

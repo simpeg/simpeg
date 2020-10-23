@@ -56,7 +56,7 @@ from .io_utils import download
 from .pgi_utils import (
     ComputeDistances,
     order_clusters_GM_weight, order_cluster,
-    computePrecision, computeCovariance, ComputeConstantTerm,
+    compute_clusters_precision, computeCovariance, ComputeConstantTerm,
     _compute_precision_cholesky, GaussianMixture, WeightedGaussianMixture,
     GaussianMixtureWithPrior, GaussianMixtureMarkovRandomField,
     FuzzyGaussianMixtureWithPrior,
