@@ -15,24 +15,22 @@ For that purpose, we first start by running a PGI with full petrophysical inform
 # Import
 import discretize as Mesh
 from SimPEG import (
-    maps as Maps,
+    maps,
     data,
-    utils as Utils,
-    data_misfit as DataMisfit,
-    regularization as Regularization,
-    optimization as Optimization,
-    inverse_problem as InvProblem,
-    directives as Directives,
-    inversion as Inversion
+    utils,
+    data_misfit,
+    regularization,
+    optimization,
+    inverse_problem,
+    directives,
+    inversion
 )
-from SimPEG.electromagnetics.static import resistivity as DC, utils as DCUtils
+from SimPEG.electromagnetics.static import resistivity as DC, utils as DCutils
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
-import matplotlib.patheffects as pe
 from pymatsolver import PardisoSolver
 from scipy.stats import norm
-import scipy.sparse as sp
 
 ## Reproducible science
 seed = 12345
@@ -110,7 +108,7 @@ mtrue[rsph] = ln_sigr * np.ones_like(mtrue[rsph]) + \
 xmin,  xmax = -15., 15
 ymin,  ymax = -15., 0.
 xyzlim = np.r_[[[xmin, xmax], [ymin, ymax]]]
-actcore,  meshCore = Utils.ExtractCoreMesh(xyzlim, mesh)
+actcore,  meshCore = utils.ExtractCoreMesh(xyzlim, mesh)
 actind = np.ones_like(actcore)
 
 # Survey
@@ -122,11 +120,11 @@ ymin, ymax = 0., 0.
 zmin, zmax = 0, 0
 
 endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-survey1 = DCUtils.gen_DCIPsurvey(
+survey1 = DCutils.gen_DCIPsurvey(
     endl, survey_type="dipole-dipole", dim=mesh.dim,
     a=1, b=1, n=16, d2flag='2.5D'
 )
-survey2 = DCUtils.gen_DCIPsurvey(
+survey2 = DCutils.gen_DCIPsurvey(
     endl, survey_type="dipole-dipole", dim=mesh.dim,
     a=2, b=2, n=16, d2flag='2.5D'
 )
@@ -134,8 +132,8 @@ survey2 = DCUtils.gen_DCIPsurvey(
 survey = DC.Survey_ky(survey1.srcList + survey2.srcList)
 
 # Setup Problem with exponential mapping and Active cells only in the core mesh
-expmap = Maps.ExpMap(mesh)
-mapactive = Maps.InjectActiveCells(
+expmap = maps.ExpMap(mesh)
+mapactive = maps.InjectActiveCells(
     mesh=mesh,  indActive=actcore,
     valInactive=-np.log(100)
 )
@@ -158,7 +156,7 @@ survey.eps = 1e-4
 
 # Generate the GMM petrophysical distribution
 n = 3
-clf = Utils.WeightedGaussianMixture(
+clf = utils.WeightedGaussianMixture(
     n_components=n,mesh=meshCore,  covariance_type='full', reg_covar=1e-3, 
     means_init= np.r_[-np.log(100.), -np.log(50.), -np.log(250.)][:,np.newaxis]
 )
@@ -167,7 +165,7 @@ clf.fit(mtrue[actcore].reshape(-1, 1))
 
 # Manually setting the GMM parameters
 ## Order cluster by order of importance
-Utils.order_clusters_GM_weight(clf)
+utils.order_clusters_GM_weight(clf)
 ## Set cluster means
 clf.means_ = np.r_[-np.log(100.), -np.log(50.), -np.log(250.)][:,np.newaxis]
 ## Set clusters variance
@@ -175,7 +173,7 @@ clf.covariances_ = np.array([[[0.001]],
                              [[0.001]],
                              [[0.001]],])
 ##Set clusters precision and Cholesky decomposition from variances
-Utils.compute_clusters_precision(clf)
+utils.compute_clusters_precision(clf)
 
 # PGI with full petrophysical information
 #########################################
@@ -184,12 +182,12 @@ Utils.compute_clusters_precision(clf)
 m0 = -np.log(100.) * np.ones(mapping.nP)
 
 # Create data misfit object
-dmis = DataMisfit.L2DataMisfit(data=dc_data, simulation=simulation)
+dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
 
 # Create the regularization with GMM information
-idenMap = Maps.IdentityMap(nP=m0.shape[0])
-wires = Maps.Wires(('m', m0.shape[0]))
-reg_mean = Regularization.SimplePetroRegularization(
+idenMap = maps.IdentityMap(nP=m0.shape[0])
+wires = maps.Wires(('m', m0.shape[0]))
+reg_mean = regularization.SimplePetroRegularization(
     GMmref=clf,  mesh=mesh,
     wiresmap=wires,
     maplist=[idenMap],
@@ -208,43 +206,43 @@ reg_mean.alpha_y = alpha_y
 reg_mean.mrefInSmooth = False
 
 # Optimization
-opt = Optimization.ProjectedGNCG(
+opt = optimization.ProjectedGNCG(
     maxIter=30, lower=-10, upper=10,
     maxIterLS=20, maxIterCG=100, tolCG=1e-5)
 opt.remember('xc')
 
 # Set the inverse problem
-invProb = InvProblem.BaseInvProblem(dmis, reg_mean, opt)
+invProb = inverse_problem.BaseInvProblem(dmis, reg_mean, opt)
 ## Starting beta
 invProb.beta = betavalue
 
 # Inversion directives
 ## Beta Strategy with Beta and Alpha
-beta_alpha_iteration = Directives.PetroBetaReWeighting(
+beta_alpha_iteration = directives.PetroBetaReWeighting(
     verbose=True, 
     rateCooling=5.,
     tolerance=0.05, #Tolerance on Phi_d for beta-cooling
     progress=0.1 #Minimum progress, else beta-cooling
 )
 ## PGI multi-target misfits
-targets = Directives.PetroTargetMisfit(
+targets = directives.PetroTargetMisfit(
     verbose=True,
 )
 ## Put learned reference model in Smoothness once stable
-MrefInSmooth = Directives.AddMrefInSmooth(verbose=True)
+MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
 ## PGI update to the GMM and Smallness reference model and weights
-petrodir = Directives.GaussianMixtureUpdateModel()
+petrodir = directives.GaussianMixtureUpdateModel()
 ## Sensitivity weights based on the starting half-space
-updateSensW = Directives.UpdateSensitivityWeights(
+updateSensW = directives.UpdateSensitivityWeights(
     threshold=1e-3, everyIter=False
 )
 ## Preconditioner
-update_Jacobi = Directives.UpdatePreconditioner()
+update_Jacobi = directives.UpdatePreconditioner()
 
 # Inversion
-inv = Inversion.BaseInversion(
+inv = inversion.BaseInversion(
     invProb,
-    #Directives list: the order matters!
+    #directives list: the order matters!
     directiveList=[
         updateSensW,
         petrodir,
@@ -262,11 +260,11 @@ m_pgi = inv.run(m0)
 ##############################
 
 # We start from the best fitting half-space value
-m0 = -np.log(np.median((DCUtils.apparent_resistivity(dc_data)))) * np.ones(mapping.nP)
+m0 = -np.log(np.median((DCutils.apparent_resistivity(dc_data)))) * np.ones(mapping.nP)
 
 # We now learn a suitable GMM
 # Create an initial GMM with guest values
-clfnomean = Utils.WeightedGaussianMixture(
+clfnomean = utils.WeightedGaussianMixture(
     n_components=n,
     mesh=meshCore,  
     covariance_type='full', 
@@ -274,23 +272,23 @@ clfnomean = Utils.WeightedGaussianMixture(
     n_init=20,
 )
 clfnomean.fit(mtrue[actcore].reshape(-1, 1))
-Utils.order_clusters_GM_weight(clfnomean)
+utils.order_clusters_GM_weight(clfnomean)
 # Set qualitative initial means; the value chosen here are based on 
 # the range of apparent conductivities from the data
 clfnomean.means_ = np.r_[
     #background is guest as the best fitting half-space value 
-    -np.log(np.median((DCUtils.apparent_resistivity(dc_data)))),
+    -np.log(np.median((DCutils.apparent_resistivity(dc_data)))),
     #conductive and resistive are min and max of the apparent conducitivities
-    -np.log(np.min((DCUtils.apparent_resistivity(dc_data)))), 
-    -np.log(np.max((DCUtils.apparent_resistivity(dc_data))))
+    -np.log(np.min((DCutils.apparent_resistivity(dc_data)))), 
+    -np.log(np.max((DCutils.apparent_resistivity(dc_data))))
 ][:,np.newaxis]
 clfnomean.covariances_ = np.array([[[0.001]],
                              [[0.001]],
                              [[0.001]],])
-Utils.compute_clusters_precision(clfnomean)
+utils.compute_clusters_precision(clfnomean)
 
 # Create the PGI regularization
-reg_nomean = Regularization.SimplePetroRegularization(
+reg_nomean = regularization.SimplePetroRegularization(
     GMmref=clfnomean,  mesh=mesh,
     wiresmap=wires,
     maplist=[idenMap],
@@ -303,38 +301,38 @@ reg_nomean.alpha_x = alpha_x
 reg_nomean.alpha_y = alpha_y
 
 # Optimization
-opt = Optimization.ProjectedGNCG(
+opt = optimization.ProjectedGNCG(
     maxIter=30, lower=-10, upper=10,
     maxIterLS=20, maxIterCG=100, tolCG=1e-5)
 opt.remember('xc')
 
 # Set the inverse problem
-invProb = InvProblem.BaseInvProblem(dmis, reg_nomean, opt)
+invProb = inverse_problem.BaseInvProblem(dmis, reg_nomean, opt)
 invProb.beta = betavalue
 
 # Inversion directives
-betaIt = Directives.PetroBetaReWeighting(
+betaIt = directives.PetroBetaReWeighting(
     verbose=True, 
     rateCooling=5.,
     tolerance=.05,
     progress=0.1
 )
-targets = Directives.PetroTargetMisfit(
+targets = directives.PetroTargetMisfit(
     verbose=True,
 )
 # kappa, nu and alphadir set the learning of the GMM
-petrodir = Directives.GaussianMixtureUpdateModel(
+petrodir = directives.GaussianMixtureUpdateModel(
     kappa=0., # No influence from Prior means in the learning
     nu=1e8, # Fixed variances
     alphadir=0. # Prior GMM proportions have no influeance
 )
-updateSensW = Directives.UpdateSensitivityWeights(
+updateSensW = directives.UpdateSensitivityWeights(
     threshold=1e-3, everyIter=False
 )
-update_Jacobi = Directives.UpdatePreconditioner()
-MrefInSmooth = Directives.AddMrefInSmooth(verbose=True)
+update_Jacobi = directives.UpdatePreconditioner()
+MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
 
-inv = Inversion.BaseInversion(
+inv = inversion.BaseInversion(
     invProb,
     directiveList=[
         updateSensW,
@@ -371,11 +369,11 @@ proportions_mesh[between_2m_8m] = np.ones(3)/3. # equal probabilities
 
 # initialize the GMM with the one learned from PGI without mean information
 clf_with_depth_info = copy.deepcopy(reg_nomean.objfcts[0].GMmodel)
-Utils.order_clusters_GM_weight(clf_with_depth_info)
+utils.order_clusters_GM_weight(clf_with_depth_info)
 
 # Re-initiliaze a PGI
 # Create the regularization with GMM information
-reg_nomean_geo = Regularization.SimplePetroRegularization(
+reg_nomean_geo = regularization.SimplePetroRegularization(
     GMmref=clf_with_depth_info,  
     mesh=mesh,
     wiresmap=wires,
@@ -390,44 +388,44 @@ reg_nomean_geo.alpha_y = alpha_y
 reg_nomean_geo.mrefInSmooth = False
 
 # Optimization
-opt = Optimization.ProjectedGNCG(
+opt = optimization.ProjectedGNCG(
     maxIter=30, lower=-10, upper=10,
     maxIterLS=20, maxIterCG=50, tolCG=1e-4
 )
 opt.remember('xc')
 
 # Set the inverse problem
-invProb = InvProblem.BaseInvProblem(dmis, reg_nomean_geo, opt)
+invProb = inverse_problem.BaseInvProblem(dmis, reg_nomean_geo, opt)
 invProb.beta = betavalue
 
 # Inversion directives
-betaIt = Directives.PetroBetaReWeighting(
+betaIt = directives.PetroBetaReWeighting(
     verbose=True, 
     rateCooling=5.,
     tolerance=0.05,
     progress=0.1
 )
-targets = Directives.PetroTargetMisfit(
+targets = directives.PetroTargetMisfit(
     chifact = 1.,
     TriggerSmall=True,
     TriggerTheta=False,
     verbose=True,
 )
-MrefInSmooth = Directives.AddMrefInSmooth(verbose=True)
-petrodir = Directives.GaussianMixtureUpdateModel(
+MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
+petrodir = directives.GaussianMixtureUpdateModel(
     update_covariances=True,
     kappa=0,
     nu=1e8,
     alphadir=0)
 
-update_Jacobi = Directives.UpdatePreconditioner()
-updateSensW = Directives.UpdateSensitivityWeights(threshold=1e-3,everyIter=False)
+update_Jacobi = directives.UpdatePreconditioner()
+updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3,everyIter=False)
 #Include the local proportions 
-local_proportions = Directives.PGI_local_GMM_proportions(
+local_proportions = directives.PGI_local_GMM_proportions(
     local_proportions=proportions_mesh
 )
 
-inv = Inversion.BaseInversion(
+inv = inversion.BaseInversion(
     invProb,
     directiveList=[
         updateSensW,
