@@ -14,13 +14,15 @@ class SPProblemAnalyticTests_CellCenters(unittest.TestCase):
     def setUp(self):
 
         # Design Mesh
-        dh = 0.5
-        nc = 40
-        npad = 10
-        exp = 1.3
-        h = [(dh, npad, -exp), (dh, nc), (dh, npad, exp)]
-        mesh = TensorMesh([h,h,h], 'CCC')
-
+        dh = 0.25
+        nc = 10
+        npad1 = 10
+        npad2 = 10
+        exp1 = 1.2
+        exp2 = 1.5
+        hx = [(dh, npad2, -exp2), (dh, npad1, -exp1), (dh, nc), (dh, npad1, exp1), (dh, npad2, exp2)]
+        
+        mesh = TensorMesh([hx,hx,hx], 'CCC')
         # Background conductivity
         sig = 1e-3
         sig_model = sig*np.ones(mesh.nC)
@@ -29,13 +31,13 @@ class SPProblemAnalyticTests_CellCenters(unittest.TestCase):
         theta = np.random.uniform(0, np.pi, 10)
         phi = np.random.uniform(-np.pi, np.pi, 10)
 
-        R = 5
+        R = 3
         x = R*np.sin(theta)*np.cos(phi)
         y = R*np.sin(theta)*np.sin(phi)
         z = R*np.cos(theta)
         m_loc = np.c_[x, y, z]
         
-        R = 7
+        R = 5
         x = R*np.sin(theta)*np.cos(phi)
         y = R*np.sin(theta)*np.sin(phi)
         z = R*np.cos(theta)
@@ -156,7 +158,7 @@ class SPProblemAnalyticTests_CellCenters(unittest.TestCase):
             (self.n_loc[:, 0]-xyz[0])**2 + (self.n_loc[:, 1]-xyz[1])**2 + (self.n_loc[:, 2]-xyz[2])**2
         )
 
-        dpred_anal = C * (r2**-1 - r1**-1)
+        dpred_anal = C * (r1**-1 - r2**-1)
 
         err = np.abs((dpred_anal - dpred_num)/dpred_anal)
         print('ERROR FOR QS SOURCE WITH DIPOLE RECEIVER')
@@ -196,7 +198,7 @@ class SPProblemAnalyticTests_CellCenters(unittest.TestCase):
         r1 = np.sqrt(np.sum(self.m_loc**2, 1))
         r2 = np.sqrt(np.sum(self.n_loc**2, 1))
 
-        dpred_anal = C * (r2**-1 - r1**-1)
+        dpred_anal = C * (r1**-1 - r2**-1)
 
         err = np.abs((dpred_anal - dpred_num)/dpred_anal)
         print('ERROR FOR JS SOURCE WITH DIPOLE RECEIVER')
