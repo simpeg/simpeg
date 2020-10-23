@@ -246,7 +246,7 @@ class BetaEstimate_ByEig(InversionDirective):
         ratio = []
         x0 = np.random.rand(*m.shape)
         x0 = x0 / np.linalg.norm(x0)
-        for i in range(self.ninit):
+        for i in range(self.ninit-1):
             x1 = 0.
             t = 0.
             i_count = 0
@@ -270,7 +270,7 @@ class BetaEstimate_ByEig(InversionDirective):
 
         x0 = np.random.rand(*m.shape)
         x0 = x0 / np.linalg.norm(x0)
-        for i in range(self.ninit):
+        for i in range(self.ninit-1):
             x1 = 0.
             for mult, reg in zip(self.reg.multipliers, self.reg.objfcts):
                 x1 += mult * reg.deriv2(m, v=x0)
@@ -280,10 +280,9 @@ class BetaEstimate_ByEig(InversionDirective):
         for mult, reg in zip(self.reg.multipliers, self.reg.objfcts):
             b += mult * x0.dot(reg.deriv2(m, v=x0))
 
-        ratio = (t / b)
 
-        self.ratio = ratio
-        self.beta0 = self.beta0_ratio * ratio
+        self.ratio = (t / b)
+        self.beta0 = self.beta0_ratio * self.ratio
 
         self.invProb.beta = self.beta0
 
@@ -1581,7 +1580,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
     alpha0 = 1.       #: The initial Alha (regularization parameter)
     alpha0_ratio = 1e-2  #: estimateAlha0 is used with this ratio
-    ninit = 10
+    ninit = 1
     verbose = False
     debug = False
 
@@ -2016,14 +2015,12 @@ class ScalingEstimate_ByEig(InversionDirective):
         for j in range(ndm):
             x0 = np.random.rand(*m.shape)
             x0 = x0 / np.linalg.norm(x0)
-            for i in range(self.ninit):
+            for i in range(self.ninit-1):
                 x0 = self.dmisfit.objfcts[j].deriv2(m, x0, f=f[0])
                 x0 = x0 / np.linalg.norm(x0)
             t[j] = x0.dot(self.dmisfit.objfcts[j].deriv2(m, x0, f=f[0]))
 
-        ratio = t[0]/t[1:]
-
-        self.ratio = ratio
+        self.ratio = t[0]/t[1:]
         self.Chi0[1:] = self.Chi0[1:] * self.ratio
         self.dmisfit.multipliers = self.Chi0
         self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
