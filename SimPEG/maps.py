@@ -3466,7 +3466,7 @@ class PolynomialPetroClusterMap(IdentityMap):
             mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
-        out = copy.deepcopy(m)
+        out = m.copy()
         out[:, 0] = self.polynomialxx(m[:, 0]) + self.polynomialxy(m[:, 1])
         out[:, 1] = self.polynomialyx(m[:, 0]) + self.polynomialyy(m[:, 1])
         return out
@@ -3485,20 +3485,8 @@ class PolynomialPetroClusterMap(IdentityMap):
                 m = \log{\sigma}
 
         """
-        #coeffxx_inverse = np.r_[0.,1.,0.] - self.coeffxx
-        #coeffxy_inverse = - self.coeffxy
-        #coeffyx_inverse = - self.coeffyx
-        #coeffyy_inverse = np.r_[0.,1.,0.] - self.coeffyy
-
-        #polynomialxx_inverse = polynomial.Polynomial(coeffxx_inverse)
-        #polynomialxy_inverse = polynomial.Polynomial(coeffxy_inverse)
-        #polynomialyx_inverse = polynomial.Polynomial(coeffyx_inverse)
-        #polynomialyy_inverse = polynomial.Polynomial(coeffyy_inverse)
         raise Exception('Not implemented')
-        #out = copy.deepcopy(D)
-        #out[:,0] = polynomialxx_inverse(D[:,0]) + polynomialxy_inverse(D[:,1])
-        #out[:,1] = polynomialyx_inverse(D[:,0]) + polynomialyy_inverse(D[:,1])
-        # return out
+        
 
     def _derivmatrix(self, m):
         return np.r_[
