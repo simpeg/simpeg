@@ -21,6 +21,8 @@ class BaseDCSimulation(BaseEMSimulation):
 
     storeJ = properties.Bool("store the sensitivity matrix?", default=False)
 
+    primary_secondary = properties.Bool("Use primary-secondary approach", default=False)
+
     _mini_survey = None
 
     Ainv = None
@@ -217,8 +219,23 @@ class BaseDCSimulation(BaseEMSimulation):
 
         q = np.zeros((n, len(Srcs)), order="F")
 
-        for i, source in enumerate(Srcs):
-            q[:, i] = source.eval(self)
+        if self.primary_secondary:
+            if self._formulation == "EB":
+                loc_grid = self.mesh.gridN
+            elif self._formulation == "HJ":
+                loc_grid = self.mesh.gridCC
+
+            A0 = self.getA0()
+
+            for i, source in enumerate(Srcs):
+                q[:, i] = source.compute_phi_primary(loc_grid)
+
+            q = A0 * q
+        
+        else:
+            for i, source in enumerate(Srcs):
+                q[:, i] = source.eval(self)
+        
         return q
 
     @property
@@ -280,6 +297,30 @@ class Simulation3DCellCentered(BaseDCSimulation):
         G = self.Grad
         MfRhoI = self.MfRhoI
         A = D @ MfRhoI @ G
+
+        if self.bc_type == "Neumann":
+            if self.verbose:
+                print("Perturbing first row of A to remove nullspace for Neumann BC.")
+
+            # Handling Null space of A
+            I, J, V = sp.sparse.find(A[0, :])
+            for jj in J:
+                A[0, jj] = 0.0
+            A[0, 0] = 1.0
+
+        return A
+
+    def getA0(self):
+        """
+        Make the A matrix for the cell centered DC resistivity problem
+        A = D MfRhoI G
+        """
+
+        D = self.Div
+        G = self.Grad
+        rho0 = np.ones(self.mesh.nC)
+        MfRho0I = self.mesh.getFaceInnerProduct(rho0, invMat=True)
+        A = D @ MfRho0I @ G
 
         if self.bc_type == "Neumann":
             if self.verbose:

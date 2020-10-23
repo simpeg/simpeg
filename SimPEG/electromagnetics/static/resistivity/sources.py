@@ -147,3 +147,13 @@ class Pole(BaseSrc):
                 q = prob.mesh.getInterpolationMat(self.location, locType="N")
                 self._q = self.current * q.toarray()
             return self._q
+
+    def compute_phi_primary(self, loc_grid):
+
+        R = np.sqrt(
+            (loc_grid[:, 0] - self.location[0])**2 +
+            (loc_grid[:, 1] - self.location[1])**2 +
+            (loc_grid[:, 2] - self.location[2])**2
+        )
+
+        return (self.current/(2*np.pi)) * R**-1
