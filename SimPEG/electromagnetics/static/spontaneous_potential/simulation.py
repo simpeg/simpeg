@@ -68,62 +68,7 @@ class BaseSimulationCellCenters(BaseDCSimulation):
     
 
 
-    @property
-    def Pafx(self):
-        """
-        diagonal matrix that nulls out inactive x-faces
-        to full modelling space (ie. nFx x nindActive_Fx )
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: active face-x diagonal matrix
-        """
-        if getattr(self, "_Pafx", None) is None:
-            if self.indActive is None:
-                self._Pafx = utils.speye(self.mesh.nFx)
-            else:
-                indActive_Fx = self.mesh.aveFx2CC.T * self.indActive >= 1
-                e = np.zeros(self.mesh.nFx)
-                e[indActive_Fx] = 1.0
-                self._Pafx = utils.sdiag(e)
-        return self._Pafx
-
-    @property
-    def Pafy(self):
-        """
-        diagonal matrix that nulls out inactive y-faces
-        to full modelling space (ie. nFy x nindActive_Fy )
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: active face-y diagonal matrix
-        """
-        if getattr(self, "_Pafy", None) is None:
-            if self.indActive is None:
-                self._Pafy = utils.speye(self.mesh.nFy)
-            else:
-                indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) >= 1
-                e = np.zeros(self.mesh.nFy)
-                e[indActive_Fy] = 1.0
-                self._Pafy = utils.sdiag(e)
-        return self._Pafy
-
-    @property
-    def Pafz(self):
-        """
-        diagonal matrix that nulls out inactive z-faces
-        to full modelling space (ie. nFz x nindActive_Fz )
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: active face-z diagonal matrix
-        """
-        if getattr(self, "_Pafz", None) is None:
-            if self.indActive is None:
-                self._Pafz = utils.speye(self.mesh.nFz)
-            else:
-                indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) >= 1
-                e = np.zeros(self.mesh.nFz)
-                e[indActive_Fz] = 1.0
-                self._Pafz = utils.sdiag(e)
-        return self._Pafz
+    
 
 
     # def getADeriv(self, u, v, adjoint=False):
@@ -177,7 +122,7 @@ class BaseSimulationCellCenters(BaseDCSimulation):
 
 
     def dpred(self, m=None, f=None):
-        if f == None:
+        if f is None:
             return self.fields(m)
         else:
             return f
@@ -187,9 +132,9 @@ class BaseSimulationCellCenters(BaseDCSimulation):
 
         self.model = m
         if self.coordinate_system == "cartesian":
-            return self.G * self.model_derivative(m)
+            return self.G * self.model_derivative()
         else:
-            return self.G * (self.S * self.model_derivative(m))
+            return self.G * (self.S * self.model_derivative())
 
     def Jvec(self, m, v, f=None):
 
@@ -197,11 +142,11 @@ class BaseSimulationCellCenters(BaseDCSimulation):
 
         if self.coordinate_system == "cartesian":
             return self.G.dot(
-                self.model_derivative(m).dot(v)
+                self.model_derivative().dot(v)
             )
         else:
             return np.dot(self.G, self.S.dot(
-                self.model_derivative(m).dot(v))
+                self.model_derivative().dot(v))
             )
 
     def Jtvec(self, m, v, f=None):
@@ -209,9 +154,9 @@ class BaseSimulationCellCenters(BaseDCSimulation):
         self.model = m
 
         if self.coordinate_system == "cartesian":
-            return self.model_derivative(m).T.dot(self.G.T.dot(v))
+            return self.model_derivative().T.dot(self.G.T.dot(v))
         else:
-            return self.model_derivative(m).T.dot(self.S.T * (self.G.T.dot(v)))
+            return self.model_derivative().T.dot(self.S.T * (self.G.T.dot(v)))
 
 
 
@@ -309,6 +254,63 @@ class SimulationCurrentDensityCellCenters(BaseSimulationCellCenters, DCSimulatio
             )
 
 
+    @property
+    def Pafx(self):
+        """
+        diagonal matrix that nulls out inactive x-faces
+        to full modelling space (ie. nFx x nindActive_Fx )
+
+        :rtype: scipy.sparse.csr_matrix
+        :return: active face-x diagonal matrix
+        """
+        if getattr(self, "_Pafx", None) is None:
+            if self.indActive is None:
+                self._Pafx = utils.speye(self.mesh.nFx)
+            else:
+                indActive_Fx = self.mesh.aveFx2CC.T * self.indActive >= 1
+                e = np.zeros(self.mesh.nFx)
+                e[indActive_Fx] = 1.0
+                self._Pafx = utils.sdiag(e)
+        return self._Pafx
+
+    @property
+    def Pafy(self):
+        """
+        diagonal matrix that nulls out inactive y-faces
+        to full modelling space (ie. nFy x nindActive_Fy )
+
+        :rtype: scipy.sparse.csr_matrix
+        :return: active face-y diagonal matrix
+        """
+        if getattr(self, "_Pafy", None) is None:
+            if self.indActive is None:
+                self._Pafy = utils.speye(self.mesh.nFy)
+            else:
+                indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) >= 1
+                e = np.zeros(self.mesh.nFy)
+                e[indActive_Fy] = 1.0
+                self._Pafy = utils.sdiag(e)
+        return self._Pafy
+
+    @property
+    def Pafz(self):
+        """
+        diagonal matrix that nulls out inactive z-faces
+        to full modelling space (ie. nFz x nindActive_Fz )
+
+        :rtype: scipy.sparse.csr_matrix
+        :return: active face-z diagonal matrix
+        """
+        if getattr(self, "_Pafz", None) is None:
+            if self.indActive is None:
+                self._Pafz = utils.speye(self.mesh.nFz)
+            else:
+                indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) >= 1
+                e = np.zeros(self.mesh.nFz)
+                e[indActive_Fz] = 1.0
+                self._Pafz = utils.sdiag(e)
+        return self._Pafz
+
     # def getRHS(self):
     #     """
         
@@ -341,8 +343,8 @@ class SimulationCurrentDensityCellCenters(BaseSimulationCellCenters, DCSimulatio
         return self.Grad.T * self.mesh.aveCCV2F
 
 
-    def model_derivative(self, m):
-        return self.jDeriv(m)
+    def model_derivative(self):
+        return self.jsDeriv
 
 
 
@@ -396,8 +398,8 @@ class SimulationCurrentSourceCellCenters(BaseSimulationCellCenters, DCSimulation
         return self.V
 
 
-    def model_derivative(self, m):
-        return self.qsDeriv(m)
+    def model_derivative(self):
+        return self.qsDeriv
 
 
 
@@ -487,8 +489,8 @@ class SimulationHydrolicHeadCellCenters(BaseSimulationCellCenters, DCSimulation3
         return self.Grad.T * self.MfLi * self.Grad
 
 
-    def model_derivative(self, m):
-        return self.hDeriv(m)
+    def model_derivative(self):
+        return self.hDeriv
 
 
 
