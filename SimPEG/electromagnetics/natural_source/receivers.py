@@ -331,6 +331,151 @@ class BaseRxNSEM_Point(BaseRx):
             self.f._b_pyDeriv_u(self.src, self.Pbz.T * mkvc(vec,), adjoint=True) / mu_0
         )
 
+    # definitions used for resistivity and phase
+    def _aex_px_real_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return self.f._e_pxDeriv_u(self.src, self.Pex.real.T * mkvc(vec,), adjoint=True)
+
+    def _aex_px_imag_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return self.f._e_pxDeriv_u(self.src, self.Pex.imag.T * mkvc(vec,), adjoint=True)
+
+    def _aey_px_real_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return self.f._e_pxDeriv_u(self.src, self.Pey.real.T * mkvc(vec,), adjoint=True)
+
+    def _aey_px_imag_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return self.f._e_pxDeriv_u(self.src, self.Pey.imag.T * mkvc(vec,), adjoint=True)
+
+    def _aex_py_real_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return self.f._e_pyDeriv_u(self.src, self.Pex.real.T * mkvc(vec,), adjoint=True)
+
+    def _aex_py_imag_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return self.f._e_pyDeriv_u(self.src, self.Pex.imag.T * mkvc(vec,), adjoint=True)
+
+    def _aey_py_real_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return self.f._e_pyDeriv_u(self.src, self.Pey.real.T * mkvc(vec,), adjoint=True)
+
+    def _aey_py_imag_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return self.f._e_pyDeriv_u(self.src, self.Pey.imag.T * mkvc(vec,), adjoint=True)
+
+    def _ahx_px_real_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pxDeriv_u(self.src, self.Pbx.real.T * mkvc(vec,), adjoint=True) / mu_0
+        )
+
+    def _ahx_px_imag_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pxDeriv_u(self.src, self.Pbx.imag.T * mkvc(vec,), adjoint=True) / mu_0
+        )
+
+    def _ahy_px_real_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pxDeriv_u(self.src, self.Pby.real.T * mkvc(vec,), adjoint=True) / mu_0
+        )
+
+    def _ahy_px_imag_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pxDeriv_u(self.src, self.Pby.imag.T * mkvc(vec,), adjoint=True) / mu_0
+        )
+
+    def _ahz_px_real_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pxDeriv_u(self.src, self.Pbz.real.T * mkvc(vec,), adjoint=True) / mu_0
+        )
+
+    def _ahz_px_imag_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pxDeriv_u(self.src, self.Pbz.imag.T * mkvc(vec,), adjoint=True) / mu_0
+        )
+
+    def _ahx_py_real_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pyDeriv_u(self.src, self.Pbx.real.T * mkvc(vec,), adjoint=True) / mu_0
+        )
+
+    def _ahx_py_imag_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pyDeriv_u(self.src, self.Pbx.imag.T * mkvc(vec,), adjoint=True) / mu_0
+        )
+
+    def _ahy_py_real_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pyDeriv_u(self.src, self.Pby.real.T * mkvc(vec,), adjoint=True) / mu_0
+        )
+
+    def _ahy_py_imag_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pyDeriv_u(self.src, self.Pby.imag.T * mkvc(vec,), adjoint=True) / mu_0
+        )
+
+    def _ahz_py_real_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pyDeriv_u(self.src, self.Pbz.real.T * mkvc(vec,), adjoint=True) / mu_0
+        )
+
+    def _ahz_py_imag_u(self, vec):
+        """
+        """
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pyDeriv_u(self.src, self.Pbz.imag.T * mkvc(vec,), adjoint=True) / mu_0
+        )
+
     # Define the components of the derivative
     @property
     def _aHd(self):
@@ -345,6 +490,23 @@ class BaseRxNSEM_Point(BaseRx):
     def _aHd_uV(self, x):
         return (
             self._ahx_px_u(self._sDiag(self._ahy_py) * x)
+            + self._ahx_px_u(self._sDiag(self._ahy_py) * x)
+            - self._ahy_px_u(self._sDiag(self._ahx_py) * x)
+            - self._ahx_py_u(self._sDiag(self._ahy_px) * x)
+        )
+
+    # used for resistivity and phase
+    def _aHd_real_uV(self, x):
+        return (
+            self._ahx_px_real_u(self._sDiag(self._ahy_py) * x)
+            + self._ahx_px_real_u(self._sDiag(self._ahy_py) * x)
+            - self._ahy_px_real_u(self._sDiag(self._ahx_py) * x)
+            - self._ahx_py_real_u(self._sDiag(self._ahy_px) * x)
+        )
+
+    def _aHd_imag_uV(self, x):
+        return (
+            self._ahx_px_imag_u(self._sDiag(self._ahy_py) * x)
             + self._ahx_px_u(self._sDiag(self._ahy_py) * x)
             - self._ahy_px_u(self._sDiag(self._ahx_py) * x)
             - self._ahx_py_u(self._sDiag(self._ahy_px) * x)
@@ -566,10 +728,11 @@ class Point3DComplexResistivity(BaseRxNSEM_Point):
         # Return the full impedance
         if return_complex:
             return rx_eval_complex
-        if self.component == "apparent_resistivity":
-            return alpha * (rx_eval_complex.real**2 + rx_eval_complex.imag**2)**0.5
-        elif self.component == "phase":
-            return 180 / np.pi * np.arctan(rx_eval_complex.imag / rx_eval_complex.real)
+        else:
+            if self.component == "apparent_resistivity":
+                return alpha * (rx_eval_complex.real**2 + rx_eval_complex.imag**2)
+            elif self.component == "phase":
+                return 180 / np.pi * np.arctan(rx_eval_complex.imag / rx_eval_complex.real)
 
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         """
@@ -596,12 +759,20 @@ class Point3DComplexResistivity(BaseRxNSEM_Point):
                     )
                 )
 
-                def ZijN_uV(x):
+                def ZijN_real_uV(x):
                     return (
-                        self._aex_px_u(self._sDiag(self._ahy_py) * x)
-                        + self._ahy_py_u(self._sDiag(self._aex_px) * x)
-                        - self._ahy_px_u(self._sDiag(self._aex_py) * x)
-                        - self._aex_py_u(self._sDiag(self._ahy_px) * x)
+                        self._aex_px_real_u(self._sDiag(self._ahy_py.real) * x)
+                        + self._ahy_py_real_u(self._sDiag(self._aex_px.real) * x)
+                        - self._ahy_px_real_u(self._sDiag(self._aex_py.real) * x)
+                        - self._aex_py_real_u(self._sDiag(self._ahy_px.real) * x)
+                    )
+
+                def ZijN_imag_uV(x):
+                    return (
+                        self._aex_px_imag_u(self._sDiag(self._ahy_py.imag) * x)
+                        + self._ahy_py_imag_u(self._sDiag(self._aex_px.imag) * x)
+                        - self._ahy_px_imag_u(self._sDiag(self._aex_py.imag) * x)
+                        - self._aex_py_imag_u(self._sDiag(self._ahy_px.imag) * x)
                     )
 
             elif "xy" in self.orientation:
@@ -613,12 +784,20 @@ class Point3DComplexResistivity(BaseRxNSEM_Point):
                     )
                 )
 
-                def ZijN_uV(x):
+                def ZijN_real_uV(x):
                     return (
-                        -self._aex_px_u(self._sDiag(self._ahx_py) * x)
-                        - self._ahx_py_u(self._sDiag(self._aex_px) * x)
-                        + self._ahx_px_u(self._sDiag(self._aex_py) * x)
-                        + self._aex_py_u(self._sDiag(self._ahx_px) * x)
+                        -self._aex_px_real_u(self._sDiag(self._ahx_py.real) * x)
+                        - self._ahx_py_real_u(self._sDiag(self._aex_px.real) * x)
+                        + self._ahx_px_real_u(self._sDiag(self._aex_py.real) * x)
+                        + self._aex_py_real_u(self._sDiag(self._ahx_px.real) * x)
+                    )
+
+                def ZijN_imag_uV(x):
+                    return (
+                        -self._aex_px_imag_u(self._sDiag(self._ahx_py.imag) * x)
+                        - self._ahx_py_imag_u(self._sDiag(self._aex_px.imag) * x)
+                        + self._ahx_px_imag_u(self._sDiag(self._aex_py.imag) * x)
+                        + self._aex_py_imag_u(self._sDiag(self._ahx_px.imag) * x)
                     )
 
             elif "yx" in self.orientation:
@@ -630,12 +809,20 @@ class Point3DComplexResistivity(BaseRxNSEM_Point):
                     )
                 )
 
-                def ZijN_uV(x):
+                def ZijN_imag_uV(x):
                     return (
-                        self._aey_px_u(self._sDiag(self._ahy_py) * x)
-                        + self._ahy_py_u(self._sDiag(self._aey_px) * x)
-                        - self._ahy_px_u(self._sDiag(self._aey_py) * x)
-                        - self._aey_py_u(self._sDiag(self._ahy_px) * x)
+                        self._aey_px_imag_u(self._sDiag(self._ahy_py.imag) * x)
+                        + self._ahy_py_imag_u(self._sDiag(self._aey_px.imag) * x)
+                        - self._ahy_px_imag_u(self._sDiag(self._aey_py.imag) * x)
+                        - self._aey_py_imag_u(self._sDiag(self._ahy_px.imag) * x)
+                    )
+
+                def ZijN_real_uV(x):
+                    return (
+                        self._aey_px_real_u(self._sDiag(self._ahy_py.real) * x)
+                        + self._ahy_py_real_u(self._sDiag(self._aey_px.real) * x)
+                        - self._ahy_px_real_u(self._sDiag(self._aey_py.real) * x)
+                        - self._aey_py_real_u(self._sDiag(self._ahy_px.real) * x)
                     )
 
             elif "yy" in self.orientation:
@@ -647,30 +834,40 @@ class Point3DComplexResistivity(BaseRxNSEM_Point):
                     )
                 )
 
-                def ZijN_uV(x):
+                def ZijN_real_uV(x):
                     return (
-                        -self._aey_px_u(self._sDiag(self._ahx_py) * x)
-                        - self._ahx_py_u(self._sDiag(self._aey_px) * x)
-                        + self._ahx_px_u(self._sDiag(self._aey_py) * x)
-                        + self._aey_py_u(self._sDiag(self._ahx_px) * x)
+                        -self._aey_px_real_u(self._sDiag(self._ahx_py.real) * x)
+                        - self._ahx_py_real_u(self._sDiag(self._aey_px.real) * x)
+                        + self._ahx_px_real_u(self._sDiag(self._aey_py.real) * x)
+                        + self._aey_py_real_u(self._sDiag(self._ahx_px.real) * x)
+                    )
+
+                def ZijN_imag_uV(x):
+                    return (
+                        -self._aey_px_imag_u(self._sDiag(self._ahx_py.imag) * x)
+                        - self._ahx_py_imag_u(self._sDiag(self._aey_px.imag) * x)
+                        + self._ahx_px_imag_u(self._sDiag(self._aey_py.imag) * x)
+                        + self._aey_py_imag_u(self._sDiag(self._ahx_px.imag) * x)
                     )
 
             # Calculate the complex derivative
             alpha = 1 / (2 * np.pi * mu_0 * src.frequency)
-            rx_deriv = ZijN_uV(alpha * self._aHd * v * Zij) - self._aHd_uV(alpha * Zij.T**2 * self._aHd * v)
+            rx_deriv_real = ZijN_real_uV(self._aHd.real * Zij.real * v.real) - self._aHd_real_uV(Zij.real.T**2 * self._aHd.real * v.real)
+            rx_deriv_imag = ZijN_imag_uV(self._aHd.imag * Zij.imag * v.imag) - self._aHd_imag_uV(Zij.imag.T**2 * self._aHd.imag * v.imag)
             # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
             # rx_deriv_real = np.hstack((mkvc(rx_deriv_real[:len(rx_deriv_real)/2],2),mkvc(rx_deriv_real[len(rx_deriv_real)/2::],2)))
-            rx_deriv = rx_deriv.reshape((2, self.mesh.nE)).T
+            # rx_deriv = rx_deriv.reshape((2, self.mesh.nE)).T
             # Extract the data
             if self.component == "apparent_resistivity":
                 # Zij_mag = (Zij.real**2 + Zij.imag**2)**0.5
-                rx_deriv_component = (rx_deriv.real**2 + rx_deriv.imag**2)**0.5
-            if self.component == "phase":
-                ratio = 1 + (Zij.imag / Zij.real)**2
-                # calculate the components
-                rx_deriv_imag_real = ZijN_uV((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)) * Zij.real) - self._aHd_uV((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)) * Zij.imag**2)
-                rx_deriv_real_imag = ZijN_uV((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)) * Zij.imag) - self._aHd_uV((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)) * Zij.real**2)
-                rx_deriv_component = (180 / np.pi) * (rx_deriv_imag_real.imag - rx_deriv_real_imag.real)
+                rx_deriv_component = 2 * alpha * (rx_deriv_real + rx_deriv_imag)
+            # if self.component == "phase":
+            #     ratio = 1 + (Zij.imag / Zij.real)**2
+            #     # calculate the components
+            #     rx_deriv_imag_real = ZijN_uV((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)) * Zij.real) - self._aHd_uV((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)) * Zij.imag**2)
+            #     rx_deriv_real_imag = ZijN_uV((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)) * Zij.imag) - self._aHd_uV((self._aHd * v * mkvc(((1 / ratio.diagonal()) / (Zij.real.diagonal()**2)).T)) * Zij.real**2)
+            #     rx_deriv_component = (180 / np.pi) * (rx_deriv_imag_real.imag - rx_deriv_real_imag.real)
+            rx_deriv_component = rx_deriv_component.reshape((2, self.mesh.nE)).T
             # if self.component == "imag":
             #     rx_deriv_component = 1j * rx_deriv_real
             # elif self.component == "real":
@@ -704,20 +901,22 @@ class Point3DComplexResistivity(BaseRxNSEM_Point):
                     + self._sDiag(self._ey_py) * self._hx_px_u(v)
                     + self._sDiag(self._hx_px) * self._ey_py_u(v)
                 )
-
             Zij = self.eval(src, self.mesh, self.f, True)
-
             # Calculate the complex derivative
             rx_deriv = self._Hd * (ZijN_uV - self._sDiag(Zij) * self._Hd_uV(v))
             alpha = 1 / (2 * np.pi * mu_0 * src.frequency)
             if self.component == "apparent_resistivity":
-                Zij_mag = (Zij.real**2 + Zij.imag**2)**0.5
-                rx_deriv_mag = (rx_deriv.real**2 + rx_deriv.imag**2)**0.5
-                rx_deriv_component = 1 / alpha * Zij_mag.T * rx_deriv_mag
+                # Zij_mag = (Zij.real**2 + Zij.imag**2)**0.5
+                # rx_deriv_mag = (rx_deriv.real**2 + rx_deriv.imag**2)**0.5
+                # rx_deriv_component = 1 / alpha * Zij_mag.T * rx_deriv_mag
+                # print(Zij.shape, rx_deriv.shape)
+                rx_deriv_component = 2 * alpha * (Zij.real.T * rx_deriv.real + Zij.imag.T * rx_deriv.imag)
             if self.component == "phase":
-                ratio = 1 + (Zij.imag / Zij.real)**2
-                rx_deriv_component = (180 / np.pi) * (1 / ratio).T * ((rx_deriv.imag * Zij.real.T - Zij.imag.T * rx_deriv.imag) / (Zij.real.T**2))
+                denom = np.abs(Zij)**2
+                # ratio = 1 + (Zij.imag / Zij.real)**2
+                rx_deriv_component = (180 / np.pi) * ((-Zij.imag / denom).T * rx_deriv.real + (Zij.real / denom).T * rx_deriv.imag)
         return rx_deriv_component
+
 
 class Point3DImpedance(BaseRxNSEM_Point):
     """

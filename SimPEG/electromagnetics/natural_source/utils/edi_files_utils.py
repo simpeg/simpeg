@@ -171,17 +171,17 @@ def _findLatLong(fileLines):
         float,
     )
     longDMS = np.array(
-        fileLines[_findLine("LON=", fileLines)[0]].split("=")[1].split()[0].split(":"),
+        fileLines[_findLine("LONG=", fileLines)[0]].split("=")[1].split()[0].split(":"),
         float,
     )
     elevM = np.array(
         [fileLines[_findLine("ELEV=", fileLines)[0]].split("=")[1].split()[0]], float
     )
     # Convert to D.ddddd values
-    # latS = np.sign(latDMS[0])
-    # longS = np.sign(longDMS[0])
-    latD = latDMS[0] # + latS * latDMS[1] / 60 + latS * latDMS[2] / 3600
-    longD = longDMS[0] # + longS * longDMS[1] / 60 + longS * longDMS[2] / 3600
+    latS = np.sign(latDMS[0])
+    longS = np.sign(longDMS[0])
+    latD = latDMS[0] + latS * latDMS[1] / 60 + latS * latDMS[2] / 3600
+    longD = longDMS[0] + longS * longDMS[1] / 60 + longS * longDMS[2] / 3600
     return latD, longD, elevM
 
 
@@ -213,7 +213,13 @@ def _findEDIcomp(comp, fileLines, dt=float):
         (st, nr) for nr, st in enumerate(fileLines) if re.search(comp, st)
     ][0]
     # Extract the data
-    nrVec = int(headLine.split("//")[-1])
+    if 'NFREQ' in headLine:
+        breakup = headLine.split("=")
+        breakup2 = breakup[1].split()[0]
+        # print(breakup, breakup2)
+        nrVec = int(breakup2)
+    else:
+        nrVec = int(headLine.split("//")[-1])
     c = 0
     dataList = []
     while c < nrVec:

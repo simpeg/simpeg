@@ -137,7 +137,8 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 elif real_or_imag == "imag":
                     Jtv += -np.array(du_dmT, dtype=complex).real
                 else:
-                    raise Exception("Must be real or imag")
+                    Jtv += np.array(du_dmT, dtype=complex).real
+                    # raise Exception("Must be real or imag")
             # Clean the factorization, clear memory.
             ATinv.clean()
         return Jtv
