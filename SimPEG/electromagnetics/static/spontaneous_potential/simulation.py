@@ -10,9 +10,14 @@ import numpy as np
 import scipy.sparse as sp
 import properties
 
+
+##############################################################################
+# SELF-POTENTIAL SIMULATION FOR POTENTIAL AT CELL CENTERS
+##############################################################################
+
 class BaseSimulationCellCenters(BaseDCSimulation):
     """
-    Base simulation class for electric potentials defined at nodes
+    Base simulation class for electric potentials defined at cell centers
     """
 
     _G = None  # A stored operator the performs P*Ainv*RHS
@@ -65,15 +70,6 @@ class BaseSimulationCellCenters(BaseDCSimulation):
         MfQviI = self.mesh.getFaceInnerProduct(1.0 / Qv, invMat=True)
         Mf = self.mesh.getFaceInnerProduct()
         return self.Div * (Mf * (MfQviI * vel))
-    
-
-
-    
-
-
-    # def getADeriv(self, u, v, adjoint=False):
-    #     # We assume conductivity is known
-    #     return Zero()
 
     
     @property
@@ -91,24 +87,6 @@ class BaseSimulationCellCenters(BaseDCSimulation):
             self.Ainv.clean()
             del self.Ainv
         return self._G
-
-
-
-
-        # if getattr(self, "_G", None) is None:
-        #     A = self.getA()
-        #     self.Ainv = self.Solver(A, **self.solverOpts)
-        #     src = self.survey.source_list[0]
-        #     rx = src.receiver_list[0]
-        #     P = rx.getP(self.mesh, "CC").toarray()
-        #     self._G = (self.Ainv * P.T).T * self.getRHSDeriv(
-        #         v=utils.sdiag(np.ones_like(self.model)
-        #         )
-        #     )
-
-        #     self.Ainv.clean()
-        #     del self.Ainv
-        # return self._G
 
 
     def fields(self, m):
@@ -311,29 +289,6 @@ class SimulationCurrentDensityCellCenters(BaseSimulationCellCenters, DCSimulatio
                 self._Pafz = utils.sdiag(e)
         return self._Pafz
 
-    # def getRHS(self):
-    #     """
-        
-    #     """
-
-    #     return (
-    #         self.Grad.T
-    #         * self.mesh.aveCCV2F
-    #         * np.r_[self.jsx, self.jsy, self.jsz]
-    #     )
-
-    # def getRHSDeriv(self, v=None, adjoint=False):
-    #     """Computing the derivative of the source terms with respect to the model"""
-
-    #     if adjoint:
-    #         jsDeriv = sp.vstack((self.jsxDeriv, self.jsyDeriv, self.jszDeriv))
-    #         srcDeriv = jsDeriv.T * self.mesh.aveCCV2F.T * (self.Grad * v)
-    #     else:
-    #         jsDeriv = sp.vstack((self.jsxDeriv, self.jsyDeriv, self.jszDeriv))
-    #         srcDeriv = self.Grad.T * self.mesh.aveCCV2F * (jsDeriv * v)
-
-    #     return srcDeriv
-
 
     def get_rhs_operator(self):
         """
@@ -345,10 +300,6 @@ class SimulationCurrentDensityCellCenters(BaseSimulationCellCenters, DCSimulatio
 
     def model_derivative(self):
         return self.jsDeriv
-
-
-
-    
 
 
 
@@ -369,24 +320,6 @@ class SimulationCurrentSourceCellCenters(BaseSimulationCellCenters, DCSimulation
     def __init__(self, mesh, **kwargs):
         BaseSimulationCellCenters.__init__(self, mesh, **kwargs)
         self.setBC()
-
-    # def getRHS(self):
-    #     """
-    #     Compute the right-hand side diag(vol)*qs
-
-    #     """
-        
-    #     return self.V * self.q
-
-    # def getRHSDeriv(self, v=None, adjoint=False):
-    #     """Computing the derivative of the source terms with respect to the model"""
-
-    #     if adjoint:
-    #         srcDeriv = self.qDeriv.T * (self.V * v)
-    #     else:
-    #         srcDeriv = self.V * (self.qDeriv * v)
-                
-    #     return srcDeriv
 
 
     def get_rhs_operator(self):
@@ -443,34 +376,6 @@ class SimulationHydrolicHeadCellCenters(BaseSimulationCellCenters, DCSimulation3
             self._MfLiI = self.mesh.getFaceInnerProduct(1.0 / self.L, invMat=True)
         return self._MfLiI
 
-    # def getRHS(self):
-    #     """
-
-    #         Computing source term using:
-
-    #         - Hydraulic head: h
-    #         - Cross coupling coefficient: L
-
-    #         .. math::
-
-    #             -\nabla \cdot \vec{j}^s = \nabla \cdot L \nabla \phi \\
-
-    #     """
-
-    #     return self.Grad.T * self.MfLi * self.Grad * self.h
-            
-
-    # def getRHSDeriv(self, v=None, adjoint=False):
-    #     """Computing the derivative of the source terms with respect to the model"""
-
-    #     if adjoint:
-    #         srcDeriv = (
-    #             self.hDeriv.T * self.Grad.T * self.MfLiI.T * (self.Grad * v)
-    #         )
-    #     else:
-    #         srcDeriv = self.Grad.T * self.MfLiI * self.Grad * (self.hDeriv * v)
-                
-    #     return srcDeriv
 
     def get_rhs_operator(self):
         """
@@ -493,10 +398,3 @@ class SimulationHydrolicHeadCellCenters(BaseSimulationCellCenters, DCSimulation3
         return self.hDeriv
 
 
-
-
-# class SurveySP_store(Survey):
-#     @utils.count
-#     @utils.requires("prob")
-#     def dpred(self, m=None, f=None):
-#         return self.fields(m)
