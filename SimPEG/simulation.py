@@ -546,7 +546,7 @@ class LinearSimulation(BaseSimulation):
             self.model = m
         if f is not None:
             return f
-        return self.fields(self.model)
+        return self.fields(self.model_map * self.model)
 
     def getJ(self, m, f=None):
         self.model = m
