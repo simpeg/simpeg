@@ -539,7 +539,7 @@ class LinearSimulation(BaseSimulation):
 
     def fields(self, m):
         self.model = m
-        return self.G.dot(self.model)
+        return self.G.dot(self.model_map * self.model)
 
     def dpred(self, m=None, f=None):
         if m is not None:
