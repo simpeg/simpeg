@@ -539,14 +539,14 @@ class LinearSimulation(BaseSimulation):
 
     def fields(self, m):
         self.model = m
-        return self.G.dot(self.model)
+        return self.G.dot(self.model_map * self.model)
 
     def dpred(self, m=None, f=None):
         if m is not None:
             self.model = m
         if f is not None:
             return f
-        return self.fields(self.model_map * self.model)
+        return self.fields(self.model)
 
     def getJ(self, m, f=None):
         self.model = m
