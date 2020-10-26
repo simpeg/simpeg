@@ -58,8 +58,4 @@ setup(
     classifiers=CLASSIFIERS,
     platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3=False,
-<<<<<<< HEAD
-    python_requires=">=3.6"
-=======
->>>>>>> master
 )
