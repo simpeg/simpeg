@@ -34,7 +34,6 @@ setup(
     version="0.14.2",
     packages=find_packages(exclude=["tests*", "examples*", "tutorials*"]),
     install_requires=[
-        'copy',
         'numpy>=1.7',
         'scipy>=1.0.0',
         'scikit-learn>=0.19.1',
