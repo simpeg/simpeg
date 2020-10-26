@@ -184,6 +184,8 @@ class BetaEstimate_ByEig(InversionDirective):
 
     beta0 = None  #: The initial Beta (regularization parameter)
     beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
+    ninit = 4          #: number of vector for estimation.
+    seed = 518936      #: Random Seed
 
     def initialize(self):
         """
@@ -210,6 +212,7 @@ class BetaEstimate_ByEig(InversionDirective):
             :rtype: float
             :return: beta0
         """
+        np.random.seed(self.seed)
 
         if self.debug:
             print("Calculating the beta0 parameter.")
@@ -217,22 +220,47 @@ class BetaEstimate_ByEig(InversionDirective):
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
-        # Fix the seed for random vector for consistent result
-        np.random.seed(1)
+        ratio = []
         x0 = np.random.rand(*m.shape)
-
-        t, b = 0, 0
+        x0 = x0 / np.linalg.norm(x0)
+        for i in range(self.ninit-1):
+            x1 = 0.
+            t = 0.
+            i_count = 0
+            for mult, dmis in zip(self.dmisfit.multipliers, self.dmisfit.objfcts):
+                # check if f is list
+                if len(self.dmisfit.objfcts) > 1:
+                    x1 += mult * dmis.deriv2(m, x0, f=f[i_count])
+                    i_count += 1
+                else:
+                    x1 = mult * dmis.deriv2(m, x0, f=f)
+            x0 = x1 / np.linalg.norm(x1)
         i_count = 0
-        for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts):
+        t = 0.
+        for mult, dmis in zip(self.dmisfit.multipliers, self.dmisfit.objfcts):
             # check if f is list
             if len(self.dmisfit.objfcts) > 1:
-                t += x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
+                t += mult * x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
+                i_count += 1
             else:
-                t += x0.dot(dmis.deriv2(m, x0, f=f))
-            b += x0.dot(reg.deriv2(m, v=x0))
-            i_count += 1
+                t = mult * x0.dot(dmis.deriv2(m, x0, f=f))
 
-        self.beta0 = self.beta0_ratio * (t / b)
+        x0 = np.random.rand(*m.shape)
+        x0 = x0 / np.linalg.norm(x0)
+        for i in range(self.ninit-1):
+            x1 = 0.
+            for mult, reg in zip(self.reg.multipliers, self.reg.objfcts):
+                x1 += mult * reg.deriv2(m, v=x0)
+            x0 = x1 / np.linalg.norm(x1)
+
+        b=0.
+        for mult, reg in zip(self.reg.multipliers, self.reg.objfcts):
+            b += mult * x0.dot(reg.deriv2(m, v=x0))
+
+
+        self.ratio = (t / b)
+        self.beta0 = self.beta0_ratio * self.ratio
+
         self.invProb.beta = self.beta0
 
 
