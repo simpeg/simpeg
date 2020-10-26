@@ -538,28 +538,28 @@ class LinearSimulation(BaseSimulation):
         self._G = G
 
     def fields(self, m):
-        self.linear_model = m
+        self.model = m
         return self.G.dot(self.linear_model)
 
     def dpred(self, m=None, f=None):
         if m is not None:
-            self.linear_model = m
+            self.model = m
         if f is not None:
             return f
-        return self.fields(self.linear_model)
+        return self.fields(self.model)
 
     def getJ(self, m, f=None):
-        self.linear_model = m
+        self.model = m
         # self.model_deriv is likely a sparse matrix
         # and G is possibly dense, thus we need to do..
         return (self.model_deriv.T.dot(self.G.T)).T
 
     def Jvec(self, m, v, f=None):
-        self.linear_model = m
+        self.model = m
         return self.G.dot(self.model_deriv * v)
 
     def Jtvec(self, m, v, f=None):
-        self.linear_model = m
+        self.model = m
         return self.model_deriv.T * self.G.T.dot(v)
 
 
