@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import numpy as np
 import unittest
 from scipy.stats import multivariate_normal
-from scipy.sparse.linalg import dsolve, LinearOperator, bicgstab
+from scipy.sparse.linalg import spsolve, LinearOperator, bicgstab
 import inspect
 
 import discretize
@@ -20,16 +20,16 @@ testRegMesh = True
 np.random.seed(639)
 
 IGNORE_ME = [
-    'BaseRegularization',
-    'BaseComboRegularization',
-    'SimpleComboRegularization',
-    'BaseSparse',
-    'SimplePetroRegularization',
-    'PetroRegularization',
-    'SimplePetroWithMappingRegularization',
-    'SimplePetroWithMappingSmallness',
-    'PetroSmallness',
-    'SimplePetroSmallness',
+    "BaseRegularization",
+    "BaseComboRegularization",
+    "SimpleComboRegularization",
+    "BaseSparse",
+    "SimplePetroRegularization",
+    "PetroRegularization",
+    "SimplePetroWithMappingRegularization",
+    "SimplePetroWithMappingSmallness",
+    "PetroSmallness",
+    "SimplePetroSmallness",
 ]
 
 
@@ -90,18 +90,18 @@ class RegularizationTests(unittest.TestCase):
             s0 = rv0.rvs(700)
             s1 = rv1.rvs(300)
             s = np.r_[s0, s1]
-            model = Utils.mkvc(s)
+            model = utils.mkvc(s)
 
-            mesh = Mesh.TensorMesh([s.shape[0]])
-            wires = Maps.Wires(('s0', mesh.nC), ('s1', mesh.nC))
+            mesh = discretize.TensorMesh([s.shape[0]])
+            wires = maps.Wires(('s0', mesh.nC), ('s1', mesh.nC))
 
             n = 2
-            clfref = Utils.GaussianMixture(n_components=n,
+            clfref = utils.GaussianMixture(n_components=n,
                                            covariance_type='full',
                                            max_iter=1000, n_init=20)
             clfref.fit(s)
 
-            reg = Regularization.SimplePetroRegularization(mesh=mesh,
+            reg = regularization.SimplePetroRegularization(mesh=mesh,
                                                            GMmref=clfref,
                                                            wiresmap=wires,
                                                            evaltype='full',
