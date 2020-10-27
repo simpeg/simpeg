@@ -182,7 +182,7 @@ def plot2Ddata(
         defaultstreamplotOpts = {zorder=4, color="w"}
         for key in streamplotOpts.keys():
             defaultstreamplotOpts[key] = streamplotOpts[key]
-        ax.streamplot(X, Y, DATAx, DATAy, **defaultcontourOpts)
+        ax.streamplot(X, Y, DATAx, DATAy, **defaultstreamplotOpts)
         
         if level:
             defaultlevelOpts = {'levels':levels, 'zorder':3}
