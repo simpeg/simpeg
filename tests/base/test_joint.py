@@ -66,15 +66,15 @@ class DataMisfitTest(unittest.TestCase):
 
         self.dmiscombo = self.dmis0 + self.dmis1
 
-    # def test_multiDataMisfit(self):
-    #     self.dmis0.test()
-    #     self.dmis1.test()
-    #     self.dmiscombo.test(x=self.model)
+    def test_multiDataMisfit(self):
+         self.dmis0.test()
+         self.dmis1.test()
+         self.dmiscombo.test(x=self.model)
 
     def test_inv(self):
         reg = regularization.Tikhonov(self.mesh)
         opt = optimization.InexactGaussNewton(maxIter=10)
-        invProb = inverse_problem.BaseInvProblem(self.dmiscobmo, reg, opt)
+        invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
             directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
             directives.PetroTargetMisfit(TriggerSmall=False),
@@ -90,7 +90,7 @@ class DataMisfitTest(unittest.TestCase):
         reg1 = regularization.Tikhonov(self.mesh)
         reg2 = regularization.Tikhonov(self.mesh)
         reg = reg1 + reg2
-        opt = optimization.InexactGaussNewton(
+        opt = optimization.ProjectedGNCG(
             maxIter=30, 
             lower=-10, 
             upper=10,
@@ -98,7 +98,7 @@ class DataMisfitTest(unittest.TestCase):
             maxIterCG=50, 
             tolCG=1e-4
         )
-        invProb = inverse_problem.BaseInvProblem(self.dmiscobmo, reg, opt)
+        invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
             directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
             directives.PetroTargetMisfit(TriggerSmall=False, verbose=True),
