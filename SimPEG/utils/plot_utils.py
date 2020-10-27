@@ -29,7 +29,9 @@ def plot2Ddata(
     shadeOpts={},
 ):
     """
+
         Take unstructured xy points, interpolate, then plot in 2D
+
         :param numpy.ndarray xyz: data locations
         :param numpy.ndarray data: data values
         :param bool vec: plot streamplot?
@@ -54,6 +56,7 @@ def plot2Ddata(
         :param float shade_angle_altitude: angle altitude for the light source
                                 in shading
         :param dict shaeOpts: :meth:`matplotlib.pyplot.contourf` options
+
     """
 
     # Error checking and set vmin, vmax
@@ -91,7 +94,7 @@ def plot2Ddata(
     y = np.linspace(ymin, ymax, ny)
     X, Y = np.meshgrid(x, y)
     xy = np.c_[X.flatten(), Y.flatten()]
-    
+
     if vec is False:
         if method == "nearest":
             F = NearestNDInterpolator(xyz[:, :2], data)
@@ -188,7 +191,7 @@ def plot2Ddata(
             CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **defaultlevelOpts)
 
     if shade:
-        
+
         def hillshade(array, azimuth, angle_altitude):
             """
             coded copied from https://www.neonscience.org/create-hillshade-py
