@@ -177,8 +177,6 @@ class JointInversionTest(unittest.TestCase):
 
         if self.PlotIt:
             import matplotlib.pyplot as plt
-            import seaborn
-            seaborn.set()
 
             fig, axes = plt.subplots(1, 4, figsize=(15, 5))
             axes = axes.reshape(4)
