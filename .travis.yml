@@ -67,7 +67,7 @@ script:
 # Calculate coverage
 after_success:
   - bash <(curl -s https://codecov.io/bash)
-  
+
   # deploy docs
   - if [[("$TRAVIS_BRANCH" == "$MASTER_BRANCH") && ("$TRAVIS_PULL_REQUEST" == "false") && ("$TEST_DIR" == "tests/docs")]]; then
       export PATH=$PATH:${HOME}/google-cloud-sdk/bin;
