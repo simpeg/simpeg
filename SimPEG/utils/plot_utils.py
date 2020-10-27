@@ -125,9 +125,7 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
-        defaultcontourOpts = {
-            'levels':levels, 'norm':norm, 'vmin':vmin, 'vmax':vmax, 'zorder':1
-            }
+        defaultcontourOpts = {'levels':levels, 'norm':norm, 'zorder':1}
         for key in contourOpts.keys():
             defaultcontourOpts[key] = contourOpts[key]
         cont = ax.contourf(X, Y, DATA, **defaultcontourOpts)
@@ -176,9 +174,7 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
-        defaultcontourOpts = {
-            'levels':levels, 'norm':norm, 'vmin':vmin, 'vmax':vmax, 'zorder':1
-        }
+        defaultcontourOpts = {'levels':levels, 'norm':norm, 'zorder':1}
         for key in contourOpts.keys():
             defaultcontourOpts[key] = contourOpts[key]
         cont = ax.contourf(X, Y, DATA, **defaultcontourOpts)
