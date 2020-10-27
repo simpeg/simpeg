@@ -207,7 +207,7 @@ class BetaEstimate_ByEig(InversionDirective):
 
     beta0 = None  #: The initial Beta (regularization parameter)
     beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
-    ninit = 1          #: number of vector for estimation.
+    ninit = 4          #: number of vector for estimation.
     seed = 518936      #: Random Seed
 
     def initialize(self):
