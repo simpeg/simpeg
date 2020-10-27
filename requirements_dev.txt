@@ -8,7 +8,6 @@ pylint
 numpy>=1.7
 scikit-learn>=0.19.1
 scipy>=1.0.0
-seaborn
 sympy
 wheel
 pytest
