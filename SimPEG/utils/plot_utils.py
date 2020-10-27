@@ -18,6 +18,7 @@ def plot2Ddata(
     dataloc=False,
     contourOpts={},
     levelOpts={},
+    streamplotOpts={},
     scale="linear",
     clim=None,
     method="linear",
@@ -28,9 +29,7 @@ def plot2Ddata(
     shadeOpts={},
 ):
     """
-
         Take unstructured xy points, interpolate, then plot in 2D
-
         :param numpy.ndarray xyz: data locations
         :param numpy.ndarray data: data values
         :param bool vec: plot streamplot?
@@ -55,43 +54,30 @@ def plot2Ddata(
         :param float shade_angle_altitude: angle altitude for the light source
                                 in shading
         :param dict shaeOpts: :meth:`matplotlib.pyplot.contourf` options
-
     """
 
     # Error checking and set vmin, vmax
-    vmin = None
-    vmax = None
+    vlimits = [None, None]
 
     if clim is not None:
-        vmin = np.min(clim)
-        vmax = np.max(clim)
+        vlimits = [np.min(clim), np.max(clim)]
 
-    if 'vmax' in contourOpts.keys():
-        if vmax is None:
-            vmax = contourOpts.pop('vmax')
-        else:
-            if not np.isclose(contourOpts['vmax'], vmax):
-                raise Exception(
-                    "The values provided in the colorbar limit, clim {} "
-                    "does not match the value of {} provided in the "
-                    "contourOpts: {}. Only one value should be provided or "
-                    "the two values must be equal.".format(
-                        vmax, 'vmax', contourOpts.pop('vmax')
+    for i, key in enumerate(["vmin", "vmax"]):
+        if key in contourOpts.keys():
+            if vlimits[i] is None:
+                vlimits[i] = contourOpts.pop(key)
+            else:
+                if not np.isclose(contourOpts[key], vlimits[i]):
+                    raise Exception(
+                        "The values provided in the colorbar limit, clim {} "
+                        "does not match the value of {} provided in the "
+                        "contourOpts: {}. Only one value should be provided or "
+                        "the two values must be equal.".format(
+                            vlimits[i], key, contourOpts[key]
+                        )
                     )
-                )
-    if 'vmin' in contourOpts.keys():
-        if vmin is None:
-            vmin = contourOpts.pop('vmin')
-        else:
-            if not np.isclose(contourOpts['vmax'], vmax):
-                raise Exception(
-                    "The values provided in the colorbar limit, clim {} "
-                    "does not match the value of {} provided in the "
-                    "contourOpts: {}. Only one value should be provided or "
-                    "the two values must be equal.".format(
-                        vmin, 'vmin', contourOpts.pop('vmin')
-                    )
-                )
+                contourOpts.pop(key)
+    vmin, vmax = vlimits[0], vlimits[1]
 
     # create a figure if it doesn't exist
     if ax is None:
@@ -105,6 +91,7 @@ def plot2Ddata(
     y = np.linspace(ymin, ymax, ny)
     X, Y = np.meshgrid(x, y)
     xy = np.c_[X.flatten(), Y.flatten()]
+    
     if vec is False:
         if method == "nearest":
             F = NearestNDInterpolator(xyz[:, :2], data)
@@ -112,8 +99,6 @@ def plot2Ddata(
             F = LinearNDInterpolator(xyz[:, :2], data)
         DATA = F(xy)
         DATA = DATA.reshape(X.shape)
-        if scale == "log":
-            DATA = np.log10(abs(DATA))
 
         # Levels definitions
         dataselection = np.logical_and(~np.isnan(DATA), np.abs(DATA) != np.inf)
@@ -123,13 +108,6 @@ def plot2Ddata(
         # set vmin, vmax if they are not already set
         vmin = DATA[dataselection].min() if vmin is None else vmin
         vmax = DATA[dataselection].max() if vmax is None else vmax
-        if scale == "log":
-            if vmin <= 0 or vmax <= 0:
-                raise Exception(
-                    "All values must be strictly positive in order to use the log-scale. The given values are {} and {}".format(vmin,vmax)
-                )
-            vmin = np.log10(vmin)
-            vmax = np.log10(vmax)
 
         if scale == "log":
             levels = np.logspace(np.log10(vmin), np.log10(vmax), ncontour + 1)
@@ -144,21 +122,15 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
-        defaultcontourOpts = {
-        'levels':levels, 'vmin':vmin, 'vmax':vmax, 'zorder':1
-        }
+        defaultcontourOpts = {'levels':levels, 'vmin':vmin, 'vmax':vmax, 'zorder':1}
         for key in contourOpts.keys():
             defaultcontourOpts[key] = contourOpts[key]
-
-        cont = ax.contourf(
-            X, Y, DATA, **defaultcontourOpts
-        )
+        cont = ax.contourf(X, Y, DATA, **defaultcontourOpts)
+        
         if level:
-
             defaultlevelOpts = {'levels':levels, 'zorder':3}
             for key in levelOpts.keys():
                 defaultlevelOpts[key] = levelOpts[key]
-
             CS = ax.contour(X, Y, DATA, **defaultlevelOpts)
 
     else:
@@ -199,20 +171,24 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
-        defaultcontourOpts = {'levels':levels,
-            'vmin':vmin, 'vmax':vmax, 'zorder':1,}
+        defaultcontourOpts = {'levels':levels,'vmin':vmin, 'vmax':vmax, 'zorder':1,}
         for key in contourOpts.keys():
             defaultcontourOpts[key] = contourOpts[key]
-
-        cont = ax.contourf(
-            X, Y, DATA, **defaultcontourOpts
-        )
-
-        ax.streamplot(X, Y, DATAx, DATAy, zorder=4, color="w")
+        cont = ax.contourf(X, Y, DATA, **defaultcontourOpts)
+        
+        defaultstreamplotOpts = {zorder=4, color="w"}
+        for key in streamplotOpts.keys():
+            defaultstreamplotOpts[key] = contourOpts[key]
+        ax.streamplot(X, Y, DATAx, DATAy, **defaultcontourOpts)
+        
         if level:
-            CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **levelOpts)
+            defaultlevelOpts = {'levels':levels, 'zorder':3}
+            for key in levelOpts.keys():
+                defaultlevelOpts[key] = levelOpts[key]
+            CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **defaultlevelOpts)
 
     if shade:
+        
         def hillshade(array, azimuth, angle_altitude):
             """
             coded copied from https://www.neonscience.org/create-hillshade-py
