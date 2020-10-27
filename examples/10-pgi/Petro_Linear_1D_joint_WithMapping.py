@@ -13,10 +13,6 @@ from SimPEG import (
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Better rendering
-import seaborn
-seaborn.set()
-
 # Random seed for reproductibility
 np.random.seed(1)
 # Mesh
@@ -258,11 +254,11 @@ inv = inversion.BaseInversion(invProb, directiveList=[Scales, beta,
                                                       ])
 
 mtik = inv.run(minit)
-import seaborn
-seaborn.set()
+
+
+# Final Plot
 fig, axes = plt.subplots(3, 4, figsize=(25, 15))
 axes = axes.reshape(12)
-
 left, width = .25, .5
 bottom, height = .25, .5
 right = left + width
