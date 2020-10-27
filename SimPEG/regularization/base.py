@@ -375,7 +375,7 @@ class BaseComboRegularization(SimpleComboRegularization):
     @properties.observer("mapping")
     def _mirror_mapping_to_objfctlist(self, change):
         for fct in self.objfcts:
-            fct.mapping = change['value']
+            fct.mapping = change["value"]
 
     @properties.validator('cell_weights')
     def _validate_cell_weights(self, change):
