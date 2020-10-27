@@ -455,8 +455,7 @@ class RegularizationTests(unittest.TestCase):
         reg = regularization.Simple(regMesh)
 
         self.assertTrue(reg._nC_residual == regMesh.nC)
-        self.assertTrue(
-            all([fct._nC_residual == regMesh.nC for fct in reg.objfcts]))
+        self.assertTrue(all([fct._nC_residual == regMesh.nC for fct in reg.objfcts]))
 
     def test_indActive_nc_residual(self):
         # x-direction
