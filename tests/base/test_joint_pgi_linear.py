@@ -1,11 +1,18 @@
 from __future__ import print_function
 
 import unittest
-
+import discretize as Mesh
 from SimPEG import (
-    Mesh, Problem, Survey, Maps, Utils, DataMisfit,
-    Regularization, Optimization, InvProblem,
-    Directives, Inversion)
+    simulation,
+    maps,
+    data_misfit,
+    directives,
+    optimization,
+    regularization,
+    inverse_problem,
+    inversion,
+    utils
+)
 import numpy as np
 
 np.random.seed(1)
@@ -15,7 +22,7 @@ class JointInversionTest(unittest.TestCase):
 
     def setUp(self):
 
-        self.PlotIt = False
+        self.PlotIt = True
 
         # Mesh
         N = 100
@@ -45,13 +52,11 @@ class JointInversionTest(unittest.TestCase):
         m0[41:57] = np.linspace(-1, 0., 16)
 
         # Nonlinear relationships
-        poly0 = Maps.PolynomialPetroClusterMap(coeffyx=np.r_[0., -2., 2.])
-        poly1 = Maps.PolynomialPetroClusterMap(coeffyx=np.r_[-0., 3, 6, 4.])
-        poly0_inverse = Maps.PolynomialPetroClusterMap(
-            coeffyx=-np.r_[-0., -2., 2.])
-        poly1_inverse = Maps.PolynomialPetroClusterMap(
-            coeffyx=-np.r_[0., 3, 6, 4.])
-        cluster_mapping = [Maps.IdentityMap(), poly0_inverse, poly1_inverse]
+        poly0 = maps.PolynomialPetroClusterMap(coeffyx=np.r_[0., -2., 2.])
+        poly1 = maps.PolynomialPetroClusterMap(coeffyx=np.r_[-0., 3, 6, 4.])
+        poly0_inverse = maps.PolynomialPetroClusterMap(coeffyx=-np.r_[-0., -2., 2.])
+        poly1_inverse = maps.PolynomialPetroClusterMap(coeffyx=-np.r_[0., 3, 6, 4.])
+        cluster_mapping = [maps.IdentityMap(), poly0_inverse, poly1_inverse]
 
         # model 2nd problem
         m1 = np.zeros(100)
@@ -59,17 +64,20 @@ class JointInversionTest(unittest.TestCase):
         m1[41:57] = -1. + (poly1 * np.vstack([m0[41:57], m1[41:57]]).T)[:, 1]
 
         model = np.vstack([m0, m1]).T
-        m = Utils.mkvc(model)
+        m = utils.mkvc(model)
 
-        clfmapping = Utils.GaussianMixtureWithMapping(
-            n_components=3, covariance_type='full', tol=1e-3,
-            reg_covar=1e-3, max_iter=100, n_init=20, init_params='kmeans',
+        clfmapping = utils.GaussianMixtureWithMapping(
+            n_components=3, covariance_type='full', tol=1e-6,
+            reg_covar=1e-3, max_iter=100, n_init=100, init_params='kmeans',
             random_state=None, warm_start=False,
+            means_init=np.array([[0,  0],
+                [m0[20:41].mean(), m1[20:41].mean()],
+                [m0[41:57].mean(), m1[41:57].mean()]]),
             verbose=0, verbose_interval=10, cluster_mapping=cluster_mapping
         )
         clfmapping = clfmapping.fit(model)
 
-        clfnomapping = Utils.GaussianMixture(
+        clfnomapping = utils.GaussianMixture(
             n_components=3, covariance_type='full', tol=1e-3,
             reg_covar=1e-3, max_iter=100, n_init=10, init_params='kmeans',
             random_state=None, warm_start=False,
@@ -77,21 +85,18 @@ class JointInversionTest(unittest.TestCase):
         )
         clfnomapping = clfnomapping.fit(model)
 
-        wires = Maps.Wires(('m1', mesh.nC), ('m2', mesh.nC))
-        prob1 = Problem.LinearProblem(mesh, G=G, modelMap=wires.m1)
-        survey1 = Survey.LinearSurvey()
-        survey1.pair(prob1)
-        survey1.makeSyntheticData(m, std=0.01)
+        wires = maps.Wires(('m1', mesh.nC), ('m2', mesh.nC))
+        std=0.01
+        prob1 = simulation.LinearSimulation(mesh, G=G, model_map=wires.m1)
+        survey1 = prob1.make_synthetic_data(m, relative_error=std, add_noise=True)
         survey1.eps = 0.
 
-        prob2 = Problem.LinearProblem(mesh, G=G, modelMap=wires.m2)
-        survey2 = Survey.LinearSurvey()
-        survey2.pair(prob2)
-        survey2.makeSyntheticData(m, std=0.01)
+        prob2 = simulation.LinearSimulation(mesh, G=G, model_map=wires.m2)
+        survey2 = prob2.make_synthetic_data(m, relative_error=std, add_noise=True)
         survey2.eps = 0.
 
-        dmis1 = DataMisfit.l2_DataMisfit(survey1)
-        dmis2 = DataMisfit.l2_DataMisfit(survey2)
+        dmis1 = data_misfit.L2DataMisfit(simulation=prob1, data=survey1)
+        dmis2 = data_misfit.L2DataMisfit(simulation=prob2, data=survey2)
         dmis = dmis1 + dmis2
 
         self.mesh = mesh
@@ -112,59 +117,56 @@ class JointInversionTest(unittest.TestCase):
         self.minit = np.zeros_like(self.model)
 
         # Distance weighting
-        wr1 = np.sum(prob1.getJ(self.minit)**2., axis=0)**0.5
+        wr1 = np.sum(prob1.G**2., axis=0)**0.5
         wr1 = wr1 / np.max(wr1)
-        wr2 = np.sum(prob2.getJ(self.minit)**2., axis=0)**0.5
+        wr2 = np.sum(prob2.G**2., axis=0)**0.5
         wr2 = wr2 / np.max(wr2)
-        wr = wr1 + wr2
-
+        wr = [wr1, wr2]
         self.W = wr
 
     def test_joint_petro_inv_with_mapping(self):
 
         print("test_joint_petro_inv_with_mapping: ")
-        reg_simple = Regularization.SimplePetroWithMappingRegularization(
+        reg_simple = regularization.MakeSimplePetroWithMappingRegularization(
             mesh=self.mesh,
             GMmref=self.clfmapping,
             GMmodel=self.clfmapping,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
-            evaltype='approx'
-        )
-        reg_simple.objfcts[0].cell_weights = self.W
-
-        opt = Optimization.ProjectedGNCG(
-            maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-3
+            evaltype='approx',
+            cell_weights_list=self.W,
         )
 
-        invProb = InvProblem.BaseInvProblem(self.dmiscombo, reg_simple, opt)
-
-        # Directives
-        Alphas = Directives.AlphasSmoothEstimate_ByEig(
-            alpha0_ratio=5e-2, ninit=10, verbose=True
+        opt = optimization.ProjectedGNCG(
+            maxIter=30, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
         )
-        Scales = Directives.ScalingEstimate_ByEig(
-            Chi0_ratio=.1, verbose=True, ninit=100)
-        beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
-        betaIt = Directives.PetroBetaReWeighting(
-            verbose=True, rateCooling=5., rateWarming=1.,
-            tolerance=0.02, UpdateRate=1,
+
+        invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg_simple, opt)
+
+        # directives
+        alpha0_ratio = np.r_[
+            np.zeros(len(reg_simple.objfcts[0].objfcts)),
+            100. * np.ones(len(reg_simple.objfcts[1].objfcts)),
+            .4 * np.ones(len(reg_simple.objfcts[2].objfcts))
+        ]
+        Alphas = directives.AlphasSmoothEstimate_ByEig(
+            alpha0_ratio=alpha0_ratio, ninit=10, verbose=True)
+        Scales = directives.ScalingEstimate_ByEig(Chi0_ratio=.4, verbose=True, ninit=10)
+        beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
+        betaIt = directives.PetroBetaReWeighting(
+            verbose=True, rateCooling=2., rateWarming=1.,
+            tolerance=0., UpdateRate=1,
             ratio_in_cooling=False,
-            progress=0.1,
-            update_prior_confidence=False,
-            ratio_in_gamma_cooling=False,
-            alphadir_rateCooling=1.,
-            kappa_rateCooling=1.,
-            nu_rateCooling=1.,)
-        targets = Directives.PetroTargetMisfit(
-            TriggerSmall=True, TriggerTheta=False,
-            verbose=True
+            progress=0.2,
         )
-        petrodir = Directives.UpdateReference()
+        targets = directives.PetroTargetMisfit(verbose=True)
+        petrodir = directives.UpdateReference()
+
 
         # Setup Inversion
-        inv = Inversion.BaseInversion(
-            invProb, directiveList=[
+        inv = inversion.BaseInversion(
+            invProb, 
+            directiveList=[
                 Alphas, Scales, beta,
                 petrodir, targets,
                 betaIt
@@ -236,47 +238,41 @@ class JointInversionTest(unittest.TestCase):
     def test_joint_petro_inv(self):
 
         print("test_joint_petro_inv: ")
-        reg_simple = Regularization.SimplePetroRegularization(
+        reg_simple = regularization.MakeSimplePetroRegularization(
             mesh=self.mesh,
             GMmref=self.clfnomapping,
             GMmodel=self.clfnomapping,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
-            evaltype='approx'
+            evaltype='approx',
+            cell_weights_list=self.W,
         )
-        reg_simple.objfcts[0].cell_weights = self.W
-        reg_simple.gamma = np.ones(self.clfnomapping.n_components) * 1e8
 
-        opt = Optimization.ProjectedGNCG(
+        opt = optimization.ProjectedGNCG(
             maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-3
         )
 
-        invProb = InvProblem.BaseInvProblem(self.dmiscombo, reg_simple, opt)
+        invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg_simple, opt)
         # Directives
-        Alphas = Directives.AlphasSmoothEstimate_ByEig(
+        Alphas = directives.AlphasSmoothEstimate_ByEig(
             alpha0_ratio=5e-2, ninit=10, verbose=True)
-        Scales = Directives.ScalingEstimate_ByEig(
+        Scales = directives.ScalingEstimate_ByEig(
             Chi0_ratio=1., verbose=True, ninit=100)
-        beta = Directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
-        betaIt = Directives.PetroBetaReWeighting(
-            verbose=True, rateCooling=5., rateWarming=1.,
-            tolerance=0.02, UpdateRate=1,
-            ratio_in_cooling=False,
+        beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
+        betaIt = directives.PetroBetaReWeighting(
+            verbose=True, 
+            rateCooling=5., 
+            rateWarming=1.,
+            tolerance=0.02,
             progress=0.1,
-            update_prior_confidence=False,
-            ratio_in_gamma_cooling=False,
-            alphadir_rateCooling=1.,
-            kappa_rateCooling=1.,
-            nu_rateCooling=1.,)
-        targets = Directives.PetroTargetMisfit(
-            TriggerSmall=True, TriggerTheta=False,
-            verbose=True
         )
-        petrodir = Directives.GaussianMixtureUpdateModel()
+        targets = directives.PetroTargetMisfit(verbose=True)
+        petrodir = directives.UpdateReference()
 
         # Setup Inversion
-        inv = Inversion.BaseInversion(
-            invProb, directiveList=[
+        inv = inversion.BaseInversion(
+            invProb, 
+            directiveList=[
                 Alphas, Scales, beta,
                 petrodir, targets,
                 betaIt

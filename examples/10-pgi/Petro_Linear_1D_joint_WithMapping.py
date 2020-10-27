@@ -71,9 +71,6 @@ clfnomapping = utils.GaussianMixture(
     n_components=3, covariance_type='full', tol=1e-6,
     reg_covar=1e-3, max_iter=100, n_init=100, init_params='kmeans',
     random_state=None, warm_start=False,
-    #means_init=np.array([[0,  0],
-    #   [m0[20:41].mean(), m1[20:41].mean()],
-    #   [m0[41:57].mean(), m1[41:57].mean()]]),
     verbose=0, verbose_interval=10,
 )
 clfnomapping = clfnomapping.fit(model2d)
@@ -95,11 +92,10 @@ dmis = dmis1 + dmis2
 minit = np.zeros_like(m)
 print('dmsi1', dmis1(minit))
 print('dmsi2', dmis2(minit))
+
 # Distance weighting
 wr1 = np.sum(prob1.G**2., axis=0)**0.5
 wr1 = wr1 / np.max(wr1)
-
-# Distance weighting
 wr2 = np.sum(prob2.G**2., axis=0)**0.5
 wr2 = wr2 / np.max(wr2)
 print(wr2.shape)
@@ -108,16 +104,12 @@ W = utils.sdiag(wr)
 
 reg_simple = regularization.MakeSimplePetroWithMappingRegularization(
     mesh=mesh,
-    #mref = np.zeros_like(m),
     GMmref=clfmapping,
     GMmodel=clfmapping,
     approx_gradient=True, alpha_x=0.,
     wiresmap=wires,
     evaltype='approx',
     cell_weights_list=[wr1, wr2])
-#reg_simple.objfcts[0].cell_weights = wr
-#reg_simple.objfcts[1].cell_weights = wr1[0:100]
-#reg_simple.objfcts[2].cell_weights = wr2[100:200]
 
 opt = optimization.ProjectedGNCG(
     maxIter=30, tolX=1e-6, maxIterCG=100, tolCG=1e-3,
@@ -127,35 +119,22 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple, opt)
 
 # directives
-alpha0_ratio = np.r_[np.zeros(len(reg_simple.objfcts[0].objfcts)),
-                     100. * np.ones(len(reg_simple.objfcts[1].objfcts)),
-                     .4 * np.ones(len(reg_simple.objfcts[2].objfcts))]
-Alphas = directives.AlphasSmoothEstimate_ByEig(
-    alpha0_ratio=alpha0_ratio, ninit=10, verbose=True)
-Scales = directives.ScalingEstimate_ByEig(
-    Chi0_ratio=.4, verbose=True, ninit=10)
+alpha0_ratio = np.r_[
+    np.zeros(len(reg_simple.objfcts[0].objfcts)),
+    100. * np.ones(len(reg_simple.objfcts[1].objfcts)),
+    .4 * np.ones(len(reg_simple.objfcts[2].objfcts))
+]
+Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, ninit=10, verbose=True)
+Scales = directives.ScalingEstimate_ByEig(Chi0_ratio=.4, verbose=True, ninit=10)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
 betaIt = directives.PetroBetaReWeighting(
     verbose=True, rateCooling=2., rateWarming=1.,
     tolerance=0., UpdateRate=1,
     ratio_in_cooling=False,
     progress=0.2,
-    update_prior_confidence=False,
-    ratio_in_gamma_cooling=False,
-    alphadir_rateCooling=1.,
-    kappa_rateCooling=1.,
-    nu_rateCooling=1.,)
-targets = directives.PetroTargetMisfit(
-    chiSmall=1.,
-    TriggerSmall=True,
-    TriggerTheta=False,
-    verbose=True
 )
-gamma_petro = np.ones(clfmapping.n_components) * 1e8
-#membership = np.zeros_like(mtrue, dtype='int')
+targets = directives.PetroTargetMisfit(verbose=True)
 petrodir = directives.UpdateReference()
-invProb.reg.gamma = gamma_petro
-#addmref = directives.AddMrefInSmooth(verbose=True)
 
 # Setup Inversion
 inv = inversion.BaseInversion(invProb, directiveList=[Alphas, Scales, beta,
@@ -167,16 +146,12 @@ mcluster_map = inv.run(minit)
 # Inversion with no nonlinear mapping
 reg_simple_no_map = regularization.MakeSimplePetroRegularization(
     mesh=mesh,
-    #mref = np.zeros_like(m),
     GMmref=clfnomapping,
     GMmodel=clfnomapping,
     approx_gradient=True, alpha_x=0.,
     wiresmap=wires,
     evaltype='approx',
     cell_weights_list=[wr1, wr2])
-# reg_simple.objfcts[0].cell_weights = wr
-# reg_simple.objfcts[1].cell_weights = wr1[0:100]
-# reg_simple.objfcts[2].cell_weights = wr2[100:200]
 
 opt = optimization.ProjectedGNCG(
     maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-3,
@@ -196,18 +171,10 @@ betaIt = directives.PetroBetaReWeighting(
     tolerance=0.0, UpdateRate=1,
     ratio_in_cooling=False,
     progress=0.2,
-    update_prior_confidence=False,
-    ratio_in_gamma_cooling=False,
-    alphadir_rateCooling=1.,
-    kappa_rateCooling=1.,
-    nu_rateCooling=1.,)
+)
 targets = directives.PetroTargetMisfit(chiSmall=1.,
                                        TriggerSmall=True, TriggerTheta=False, verbose=True)
-gamma_petro = np.ones(clfmapping.n_components) * 1e8
-#membership = np.zeros_like(mtrue, dtype='int')
 petrodir = directives.UpdateReference()
-invProb.reg.gamma = gamma_petro
-#addmref = directives.AddMrefInSmooth(verbose=True)
 
 # Setup Inversion
 inv = inversion.BaseInversion(invProb, directiveList=[Alphas, Scales, beta,
