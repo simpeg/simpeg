@@ -18,6 +18,7 @@ def plot2Ddata(
     dataloc=False,
     contourOpts={},
     levelOpts={},
+    streamplotOpts={},
     scale="linear",
     clim=None,
     method="linear",
@@ -107,6 +108,7 @@ def plot2Ddata(
         if scale == "log":
             DATA = np.abs(DATA)
 
+        # set vmin, vmax if they are not already set
         vmin = DATA[dataselection].min() if vmin is None else vmin
         vmax = DATA[dataselection].max() if vmax is None else vmax
 
@@ -123,9 +125,16 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
-        cont = ax.contourf(X, Y, DATA, levels=levels, norm=norm, **contourOpts)
+        defaultcontourOpts = {'levels':levels, 'vmin':vmin, 'vmax':vmax, 'zorder':1}
+        for key in contourOpts.keys():
+            defaultcontourOpts[key] = contourOpts[key]
+        cont = ax.contourf(X, Y, DATA, **defaultcontourOpts)
+        
         if level:
-            CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **levelOpts)
+            defaultlevelOpts = {'levels':levels, 'zorder':3}
+            for key in levelOpts.keys():
+                defaultlevelOpts[key] = levelOpts[key]
+            CS = ax.contour(X, Y, DATA, **defaultlevelOpts)
 
     else:
         # Assume size of data is (N,2)
@@ -165,10 +174,21 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
-        cont = ax.contourf(X, Y, DATA, levels=levels, norm=norm, **contourOpts)
-        ax.streamplot(X, Y, DATAx, DATAy, zorder=4, color="w")
+        defaultcontourOpts = {'levels':levels,'vmin':vmin, 'vmax':vmax, 'zorder':1,}
+        for key in contourOpts.keys():
+            defaultcontourOpts[key] = contourOpts[key]
+        cont = ax.contourf(X, Y, DATA, **defaultcontourOpts)
+        
+        defaultstreamplotOpts = {zorder=4, color="w"}
+        for key in streamplotOpts.keys():
+            defaultstreamplotOpts[key] = contourOpts[key]
+        ax.streamplot(X, Y, DATAx, DATAy, **defaultcontourOpts)
+        
         if level:
-            CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **levelOpts)
+            defaultlevelOpts = {'levels':levels, 'zorder':3}
+            for key in levelOpts.keys():
+                defaultlevelOpts[key] = levelOpts[key]
+            CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **defaultlevelOpts)
 
     if shade:
 
