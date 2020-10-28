@@ -255,10 +255,12 @@ class MapTests(unittest.TestCase):
             maps.InjectActiveCells(M, M.vectorCCy <= 0, 10, nC=M.nCy),
             maps.ActiveCells(M, M.vectorCCy <= 0, 10, nC=M.nCy),
         ]:
+
             vertMap = maps.SurjectVertical1D(M)
             combo = vertMap * actMap
             m = np.r_[1.0, 2.0]
             mod = models.Model(m, combo)
+
             self.assertLess(
                 np.linalg.norm(mod.transform - np.r_[1, 1, 2, 2, 10, 10, 10, 10.0]), TOL
             )
@@ -335,6 +337,7 @@ class MapTests(unittest.TestCase):
             maps.Surject2Dto3D(M3, normal="Z"),
             maps.Map2Dto3D(M3, normal="Z"),
         ]:
+
             # m2to3 = maps.Surject2Dto3D(M3, normal='Z')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
@@ -554,7 +557,6 @@ class TestWires(unittest.TestCase):
 
 
 class TestSCEMT(unittest.TestCase):
-
     def test_sphericalInclusions(self):
         mesh = discretize.TensorMesh([4, 5, 3])
         mapping = maps.SelfConsistentEffectiveMedium(mesh, sigma0=1e-1, sigma1=1.0)

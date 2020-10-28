@@ -199,7 +199,6 @@ class SimpleComboRegularization(ComboObjectiveFunction):
     def __init__(self, mesh, objfcts=[], **kwargs):
 
         super(SimpleComboRegularization, self).__init__(objfcts=objfcts, multipliers=None)
-
         self.regmesh = RegularizationMesh(mesh)
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
@@ -207,9 +206,7 @@ class SimpleComboRegularization(ComboObjectiveFunction):
         utils.setKwargs(self, **kwargs)
 
         # link these attributes
-        linkattrs = [
-            "regmesh", "indActive",
-        ]
+        linkattrs = ["regmesh", "indActive",]
 
         for attr in linkattrs:
             val = getattr(self, attr)
@@ -357,9 +354,7 @@ class BaseComboRegularization(SimpleComboRegularization):
         )
 
         # link these attributes
-        linkattrs = [
-            "regmesh", "indActive", "cell_weights", "mapping"
-        ]
+        linkattrs = ["regmesh", "indActive", "cell_weights", "mapping"]
 
         for attr in linkattrs:
             val = getattr(self, attr)

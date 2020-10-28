@@ -3,8 +3,6 @@ import numpy as np
 import discretize
 from SimPEG.electromagnetics import viscous_remanent_magnetization as vrm
 
-np.random.seed(518936)
-
 
 class VRM_fwd_tests(unittest.TestCase):
 
