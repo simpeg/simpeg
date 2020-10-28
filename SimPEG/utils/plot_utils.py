@@ -179,7 +179,7 @@ def plot2Ddata(
             defaultcontourOpts[key] = contourOpts[key]
         cont = ax.contourf(X, Y, DATA, **defaultcontourOpts)
         
-        defaultstreamplotOpts = {zorder=4, color="w"}
+        defaultstreamplotOpts = {zorder:4, color:"w"}
         for key in streamplotOpts.keys():
             defaultstreamplotOpts[key] = streamplotOpts[key]
         ax.streamplot(X, Y, DATAx, DATAy, **defaultstreamplotOpts)
