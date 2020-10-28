@@ -194,12 +194,11 @@ class BaseRegularization(BaseObjectiveFunction):
 #                                                                             #
 ###############################################################################
 
+
 class SimpleComboRegularization(ComboObjectiveFunction):
     def __init__(self, mesh, objfcts=[], **kwargs):
 
-        super(SimpleComboRegularization, self).__init__(
-            objfcts=objfcts, multipliers=None
-        )
+        super(SimpleComboRegularization, self).__init__(objfcts=objfcts, multipliers=None)
 
         self.regmesh = RegularizationMesh(mesh)
         if "indActive" in kwargs.keys():
@@ -209,7 +208,7 @@ class SimpleComboRegularization(ComboObjectiveFunction):
 
         # link these attributes
         linkattrs = [
-            'regmesh', 'indActive',
+            "regmesh", "indActive",
         ]
 
         for attr in linkattrs:
@@ -313,7 +312,7 @@ class SimpleComboRegularization(ComboObjectiveFunction):
         if getattr(self, "regmesh", None) is not None:
             self.regmesh.indActive = change["value"]
 
-    @properties.observer('mref')
+    @properties.observer("mref")
     def _mirror_mref_to_objfctlist(self, change):
         for fct in self.objfcts:
             if getattr(fct, "mrefInSmooth", None) is not None:
@@ -359,7 +358,7 @@ class BaseComboRegularization(SimpleComboRegularization):
 
         # link these attributes
         linkattrs = [
-            'regmesh', 'indActive', 'cell_weights', 'mapping'
+            "regmesh", "indActive", "cell_weights", "mapping"
         ]
 
         for attr in linkattrs:
@@ -377,13 +376,13 @@ class BaseComboRegularization(SimpleComboRegularization):
         for fct in self.objfcts:
             fct.mapping = change["value"]
 
-    @properties.validator('cell_weights')
+    @properties.validator("cell_weights")
     def _validate_cell_weights(self, change):
-        if change['value'] is not None:
+        if change["value"] is not None:
             # todo: residual size? we need to know the expected end shape
-            if self._nC_residual != '*':
-                assert len(change['value']) == self._nC_residual, (
-                    'cell_weights must be length {} not {}'.format(
-                        self._nC_residual, len(change['value'])
+            if self._nC_residual != "*":
+                assert len(change["value"]) == self._nC_residual, (
+                    "cell_weights must be length {} not {}".format(
+                        self._nC_residual, len(change["value"])
                     )
                 )
