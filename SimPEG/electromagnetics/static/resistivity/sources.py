@@ -4,6 +4,7 @@ import properties
 from .... import survey
 from ....utils import Zero, closestPoints
 from ....utils.code_utils import deprecate_property
+from discretize import TensorMesh, TreeMesh
 
 import warnings
 
@@ -20,10 +21,10 @@ class BaseSrc(survey.BaseSrc):
     def __init__(self, receiver_list, **kwargs):
         super(BaseSrc, self).__init__(receiver_list, **kwargs)
 
-    def eval(self, prob):
+    def eval(self, sim):
         raise NotImplementedError
 
-    def evalDeriv(self, prob):
+    def evalDeriv(self, sim):
         return Zero()
 
 
@@ -112,19 +113,19 @@ class Dipole(BaseSrc):
         """Location of the B-electrode"""
         return self.location[1]
 
-    def eval(self, prob):
+    def eval(self, sim):
         if self._q is not None:
             return self._q
         else:
-            if prob._formulation == "HJ":
-                inds = closestPoints(prob.mesh, self.location, gridLoc="CC")
-                self._q = np.zeros(prob.mesh.nC)
+            if sim._formulation == "HJ":
+                inds = closestPoints(sim.mesh, self.location, gridLoc="CC")
+                self._q = np.zeros(sim.mesh.nC)
                 self._q[inds] = self.current * np.r_[1.0, -1.0]
-            elif prob._formulation == "EB":
-                qa = prob.mesh.getInterpolationMat(
+            elif sim._formulation == "EB":
+                qa = sim.mesh.getInterpolationMat(
                     self.location[0], locType="N"
                 ).toarray()
-                qb = -prob.mesh.getInterpolationMat(
+                qb = -sim.mesh.getInterpolationMat(
                     self.location[1], locType="N"
                 ).toarray()
                 self._q = self.current * (qa + qb)
@@ -135,16 +136,16 @@ class Pole(BaseSrc):
     def __init__(self, receiver_list=[], location=None, **kwargs):
         super(Pole, self).__init__(receiver_list, location=location, **kwargs)
 
-    def eval(self, prob):
+    def eval(self, sim):
         if self._q is not None:
             return self._q
         else:
-            if prob._formulation == "HJ":
-                inds = closestPoints(prob.mesh, self.location)
-                self._q = np.zeros(prob.mesh.nC)
+            if sim._formulation == "HJ":
+                inds = closestPoints(sim.mesh, self.location)
+                self._q = np.zeros(sim.mesh.nC)
                 self._q[inds] = self.current * np.r_[1.0]
-            elif prob._formulation == "EB":
-                q = prob.mesh.getInterpolationMat(self.location, locType="N")
+            elif sim._formulation == "EB":
+                q = sim.mesh.getInterpolationMat(self.location, locType="N")
                 self._q = self.current * q.toarray()
             return self._q
 
@@ -157,3 +158,57 @@ class Pole(BaseSrc):
         )
 
         return (self.current/(2*np.pi)) * R**-1
+
+
+    def eval_interpolation(self, sim):
+
+        mesh = sim.mesh        
+        q = np.zeros(mesh.nN)
+        xyz = self.location
+        k_center = closestPoints(sim.mesh, xyz)[0]
+
+        if isinstance(mesh, TreeMesh):
+            k_nodes = mesh[k_center].nodes
+            hx, hy, hz = mesh[k_center].h
+            
+        else:
+            z_ind = k_center // (mesh.nCx * mesh.nCy)
+            z_remainder = k_center % (mesh.nCx * mesh.nCy)
+            y_ind = z_remainder // mesh.nCx
+            x_ind = z_remainder % mesh.nCx
+
+            k_nodes = np.ones(8, dtype=int) * z_ind*(mesh.nNx * mesh.nNy) + y_ind*mesh.nNx + x_ind
+            k_nodes[4:] += mesh.nNx*mesh.nNy
+            k_nodes[[2, 3, 6, 7]] += mesh.nNx
+            k_nodes[1::2] += 1
+
+            hx, hy, hz = mesh.hx[x_ind], mesh.hy[y_ind], mesh.hz[z_ind]
+
+        v = hx*hy*hz        
+        xyz_nodes = mesh.grid_nodes[k_nodes, :]     
+        
+        n = 2
+        eps = 1e-10
+
+        dx = np.abs(xyz[0]-xyz_nodes[:, 0]) + eps*hx
+        dy = np.abs(xyz[1]-xyz_nodes[:, 1]) + eps*hy
+        dz = np.abs(xyz[2]-xyz_nodes[:, 2]) + eps*hz
+        q[k_nodes] = (np.sum((dx*dy*dz/v)**-n) * (dx*dy*dz/v)**n)**-1
+
+        # r = np.sqrt(
+        #     (xyz[0]-xyz_nodes[:, 0])**2 +
+        #     (xyz[1]-xyz_nodes[:, 1])**2 +
+        #     (xyz[2]-xyz_nodes[:, 2])**2
+        # ) + eps * hx
+        # q[k_nodes] = (np.sum(r**-n) * r**n)**-1
+
+        
+
+        return self.current * q
+
+
+
+            
+
+
+

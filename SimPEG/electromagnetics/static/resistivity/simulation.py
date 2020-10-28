@@ -21,7 +21,10 @@ class BaseDCSimulation(BaseEMSimulation):
 
     storeJ = properties.Bool("store the sensitivity matrix?", default=False)
 
-    primary_secondary = properties.Bool("Use primary-secondary approach", default=False)
+    rhs_option = properties.StringChoice(
+        choices=["nearest", "interpolation", "primary_secondary"],
+        doc="Discretization of RHS",
+        default="nearest")
 
     _mini_survey = None
 
@@ -219,7 +222,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         q = np.zeros((n, len(Srcs)), order="F")
 
-        if self.primary_secondary:
+        if self.rhs_option == "primary_secondary":
             if self._formulation == "EB":
                 loc_grid = self.mesh.gridN
             elif self._formulation == "HJ":
@@ -232,6 +235,10 @@ class BaseDCSimulation(BaseEMSimulation):
 
             q = A0 * q
         
+        elif self.rhs_option == "interpolation":
+            for i, source in enumerate(Srcs):
+                q[:, i] = source.eval_interpolation(self)
+
         else:
             for i, source in enumerate(Srcs):
                 q[:, i] = source.eval(self)
@@ -318,7 +325,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
         D = self.Div
         G = self.Grad
-        rho0 = np.ones(self.mesh.nC)
+        rho0 = 100*np.ones(self.mesh.nC)
         MfRho0I = self.mesh.getFaceInnerProduct(rho0, invMat=True)
         A = D @ MfRho0I @ G
 
