@@ -24,12 +24,12 @@ IGNORE_ME = [
     "BaseComboRegularization",
     "SimpleComboRegularization",
     "BaseSparse",
-    "SimplePetroRegularization",
-    "PetroRegularization",
-    "SimplePetroWithMappingRegularization",
-    "SimplePetroWithMappingSmallness",
-    "PetroSmallness",
-    "SimplePetroSmallness",
+    "SimplePGI",
+    "PGI",
+    "SimplePGIwithRelationships",
+    "SimplePGIwithRelationshipsSmallness",
+    "PGIsmallness",
+    "SimplePGIsmallness",
 ]
 
 
@@ -101,7 +101,7 @@ class RegularizationTests(unittest.TestCase):
                                            max_iter=1000, n_init=20)
             clfref.fit(s)
 
-            reg = regularization.SimplePetroRegularization(mesh=mesh,
+            reg = regularization.SimplePGI(mesh=mesh,
                                                            GMmref=clfref,
                                                            wiresmap=wires,
                                                            evaltype='full',
@@ -153,7 +153,7 @@ class RegularizationTests(unittest.TestCase):
             )
 
             self.assertTrue(np.max([error00, error01, error10, error11]) < tol)
-            print('Petro Tested')
+            print('PGI Tested')
 
         def test_regularization_ActiveCells(self):
             for R in dir(regularization):

@@ -1,17 +1,15 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
 import unittest
-from SimPEG import Mesh, Maps, Regularization, Utils
+import discretize as Mesh
+from SimPEG import regularization
+from SimPEG.maps import Wires
+from SimPEG.utils import mkvc, WeightedGaussianMixture
 from scipy.stats import multivariate_normal
 from scipy.sparse.linalg import LinearOperator, bicgstab
 from pymatsolver import PardisoSolver
 
 
-class TestPetroRegularization(unittest.TestCase):
+class TestPGI(unittest.TestCase):
 
     def setUp(self):
 
@@ -39,18 +37,19 @@ class TestPetroRegularization(unittest.TestCase):
         self.reference = np.r_[np.ones_like(
             self.s0) * self.means[0], np.ones_like(self.s1) * self.means[1]]
         self.mesh = Mesh.TensorMesh([self.samples.shape[0]])
-        self.wires = Maps.Wires(('s0', self.mesh.nC), ('s1', self.mesh.nC))
+        self.wires = Wires(('s0', self.mesh.nC), ('s1', self.mesh.nC))
         self.cell_weights_list = [
         np.random.randn(self.mesh.nC)**2.,
         np.random.randn(self.mesh.nC)**2.
         ]
-        self.PlotIt = True
+        self.PlotIt = False
 
     def test_full_covariances(self):
 
         print('Test Full covariances: ')
         # Fit a Gaussian Mixture
-        clf = Utils.GaussianMixture(
+        clf = WeightedGaussianMixture(
+            mesh=self.mesh,
             n_components=self.n_components,
             covariance_type='full',
             max_iter=1000, n_init=10,
@@ -61,7 +60,7 @@ class TestPetroRegularization(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg Simple
-        reg_simple = Regularization.MakeSimplePetroRegularization(
+        reg_simple = regularization.MakeSimplePGI(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
@@ -71,7 +70,7 @@ class TestPetroRegularization(unittest.TestCase):
 
         )
         # Define reg with volumes
-        reg = Regularization.MakePetroRegularization(
+        reg = regularization.MakePGI(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
@@ -82,23 +81,23 @@ class TestPetroRegularization(unittest.TestCase):
         )
 
         # check score value
-        score_approx = reg_simple(Utils.mkvc(self.samples))
+        score_approx = reg_simple(mkvc(self.samples))
         reg_simple.objfcts[0].evaltype = 'full'
-        score = reg_simple(Utils.mkvc(self.samples))
+        score = reg_simple(mkvc(self.samples))
         passed_score_simple = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
         print(
-            'scores for SimplePetro are ok. Difference is: ',
+            'scores for SimplePGI are ok. Difference is: ',
             np.max(np.abs(score_approx - score))
         )
 
-        score_approx = reg(Utils.mkvc(self.samples))
+        score_approx = reg(mkvc(self.samples))
         reg.objfcts[0].evaltype = 'full'
-        score = reg(Utils.mkvc(self.samples))
+        score = reg(mkvc(self.samples))
         passed_score = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score)
         print(
-            'scores for Petro are ok. Difference is: ',
+            'scores for PGI are ok. Difference is: ',
             np.max(np.abs(score_approx - score))
         )
 
@@ -107,73 +106,58 @@ class TestPetroRegularization(unittest.TestCase):
 
         reference = clf.means_[clf.predict(self.samples)]
 
-        deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
+        deriv_simple = reg_simple.deriv(mkvc(self.samples))
         reg_simple.approx_gradient = False
-        deriv_simple_full = reg_simple.deriv(Utils.mkvc(self.samples))
+        deriv_simple_full = reg_simple.deriv(mkvc(self.samples))
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print(
-            '1st derivatives for SimplePetro are ok. Difference is: ',
+            '1st derivatives for SimplePGI are ok. Difference is: ',
             np.max(np.abs(deriv_simple_full - deriv_simple))
         )
-        deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
-        # Hessian_simple = lambda x: reg_simple.deriv2(
-        #     Utils.mkvc(self.samples), x)
-        # HV_simple = LinearOperator(
-        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-        #     matvec=Hessian_simple,
-        #     rmatvec=Hessian_simple
-        # )
-        # p_simple = bicgstab(HV_simple, deriv_simple,tol=1e-10)
-        Hinv = PardisoSolver(reg_simple.deriv2(Utils.mkvc(self.samples)))
+        deriv_simple = reg_simple.deriv(mkvc(self.samples))
+        Hinv = PardisoSolver(reg_simple.deriv2(mkvc(self.samples)))
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
-            Utils.mkvc(self.samples - direction2_simple),
-            Utils.mkvc(reference), rtol=1e-1
+            mkvc(self.samples - direction2_simple),
+            mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative_simple)
         print(
-            '2nd derivatives for SimplePetro are ok. Difference is: ',
+            '2nd derivatives for SimplePGI are ok. Difference is: ',
             np.max(
                 np.abs(
-                    Utils.mkvc(self.samples - direction2_simple) -
-                    Utils.mkvc(reference)
+                    mkvc(self.samples - direction2_simple) -
+                    mkvc(reference)
                 )
             )
         )
 
         # With volumes
-        deriv = reg.deriv(Utils.mkvc(self.samples))
+        deriv = reg.deriv(mkvc(self.samples))
         reg.approx_gradient = False
-        deriv_full = reg.deriv(Utils.mkvc(self.samples))
+        deriv_full = reg.deriv(mkvc(self.samples))
         passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print(
-            '1st derivatives for Petro are ok. Difference is: ',
+            '1st derivatives for PGI are ok. Difference is: ',
             np.max(np.abs(deriv_full - deriv))
         )
-        # Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
-        # HV = LinearOperator(
-        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-        #     matvec=Hessian,
-        #     rmatvec=Hessian
-        # )
-        # p = bicgstab(HV, deriv,tol=1e-10)
-        Hinv = PardisoSolver(reg.deriv2(Utils.mkvc(self.samples)))
+        Hinv = PardisoSolver(reg.deriv2(mkvc(self.samples)))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
-            Utils.mkvc(self.samples - direction2),
-            Utils.mkvc(reference), rtol=1e-1
+            mkvc(self.samples - direction2),
+            mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative)
         print(
-            '2nd derivatives for Petro are ok. Difference is: ',
+            '2nd derivatives for PGI are ok. Difference is: ',
             np.max(
                 np.abs(
-                    Utils.mkvc(self.samples - direction2) -
-                    Utils.mkvc(reference)
+                    mkvc(self.samples - direction2) -
+                    mkvc(reference)
                 )
             )
         )
@@ -218,7 +202,7 @@ class TestPetroRegularization(unittest.TestCase):
                 s=50.)
             axfull[0].set_xlabel('Property 1')
             axfull[0].set_ylabel('Property 2')
-            axfull[0].set_title('SimplePetro')
+            axfull[0].set_title('SimplePGI')
             # With W
             axfull[1].contourf(x, y, rvm.reshape(
                 x.shape), alpha=0.25, cmap='brg')
@@ -248,7 +232,7 @@ class TestPetroRegularization(unittest.TestCase):
                 s=50.)
             axfull[1].set_xlabel('Property 1')
             axfull[1].set_ylabel('Property 2')
-            axfull[1].set_title('Petro with W')
+            axfull[1].set_title('PGI with W')
 
             plt.show()
 
@@ -256,7 +240,8 @@ class TestPetroRegularization(unittest.TestCase):
 
         print('Test Tied covariances: ')
         # Fit a Gaussian Mixture
-        clf = Utils.GaussianMixture(
+        clf = WeightedGaussianMixture(
+            mesh=self.mesh,
             n_components=self.n_components,
             covariance_type='tied',
             max_iter=1000, n_init=10,
@@ -266,7 +251,7 @@ class TestPetroRegularization(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg Simple
-        reg_simple = Regularization.MakeSimplePetroRegularization(
+        reg_simple = regularization.MakeSimplePGI(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
@@ -276,7 +261,7 @@ class TestPetroRegularization(unittest.TestCase):
 
         )
         # Define reg with volumes
-        reg = Regularization.MakePetroRegularization(
+        reg = regularization.MakePGI(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
@@ -287,23 +272,23 @@ class TestPetroRegularization(unittest.TestCase):
         )
 
         # check score value
-        score_approx = reg_simple(Utils.mkvc(self.samples))
+        score_approx = reg_simple(mkvc(self.samples))
         reg_simple.objfcts[0].evaltype = 'full'
-        score = reg_simple(Utils.mkvc(self.samples))
+        score = reg_simple(mkvc(self.samples))
         passed_score_simple = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
         print(
-            'scores for SimplePetro are ok. Difference is: ',
+            'scores for SimplePGI are ok. Difference is: ',
             np.max(np.abs(score_approx - score))
         )
 
-        score_approx = reg(Utils.mkvc(self.samples))
+        score_approx = reg(mkvc(self.samples))
         reg.objfcts[0].evaltype = 'full'
-        score = reg(Utils.mkvc(self.samples))
+        score = reg(mkvc(self.samples))
         passed_score = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score)
         print(
-            'scores for Petro are ok. Difference is: ',
+            'scores for PGI are ok. Difference is: ',
             np.max(np.abs(score_approx - score))
         )
 
@@ -312,73 +297,65 @@ class TestPetroRegularization(unittest.TestCase):
 
         reference = clf.means_[clf.predict(self.samples)]
 
-        deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
+        deriv_simple = reg_simple.deriv(mkvc(self.samples))
         reg_simple.approx_gradient = False
-        deriv_simple_full = reg_simple.deriv(Utils.mkvc(self.samples))
+        deriv_simple_full = reg_simple.deriv(mkvc(self.samples))
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print(
-            '1st derivatives for SimplePetro are ok. Difference is: ',
+            '1st derivatives for SimplePGI are ok. Difference is: ',
             np.max(np.abs(deriv_simple_full - deriv_simple))
         )
-        deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
-        # Hessian_simple = lambda x: reg_simple.deriv2(
-        #     Utils.mkvc(self.samples), x)
-        # HV_simple = LinearOperator(
-        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-        #     matvec=Hessian_simple,
-        #     rmatvec=Hessian_simple
-        # )
-        # p_simple = bicgstab(HV_simple, deriv_simple,tol=1e-10)
-        Hinv = PardisoSolver(reg_simple.deriv2(Utils.mkvc(self.samples)))
+        deriv_simple = reg_simple.deriv(mkvc(self.samples))
+        Hinv = PardisoSolver(reg_simple.deriv2(mkvc(self.samples)))
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
-            Utils.mkvc(self.samples - direction2_simple),
-            Utils.mkvc(reference), rtol=1e-1
+            mkvc(self.samples - direction2_simple),
+            mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative_simple)
         print(
-            '2nd derivatives for SimplePetro are ok. Difference is: ',
+            '2nd derivatives for SimplePGI are ok. Difference is: ',
             np.max(
                 np.abs(
-                    Utils.mkvc(self.samples - direction2_simple) -
-                    Utils.mkvc(reference)
+                    mkvc(self.samples - direction2_simple) -
+                    mkvc(reference)
                 )
             )
         )
 
         # With volumes
-        deriv = reg.deriv(Utils.mkvc(self.samples))
+        deriv = reg.deriv(mkvc(self.samples))
         reg.approx_gradient = False
-        deriv_full = reg.deriv(Utils.mkvc(self.samples))
+        deriv_full = reg.deriv(mkvc(self.samples))
         passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print(
-            '1st derivatives for Petro are ok. Difference is: ',
+            '1st derivatives for PGI are ok. Difference is: ',
             np.max(np.abs(deriv_full - deriv))
         )
-        # Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
+        # Hessian = lambda x: reg.deriv2(mkvc(self.samples), x)
         # HV = LinearOperator(
         #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
         #     matvec=Hessian,
         #     rmatvec=Hessian
         # )
         # p = bicgstab(HV, deriv,tol=1e-10)
-        Hinv = PardisoSolver(reg.deriv2(Utils.mkvc(self.samples)))
+        Hinv = PardisoSolver(reg.deriv2(mkvc(self.samples)))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
-            Utils.mkvc(self.samples - direction2),
-            Utils.mkvc(reference), rtol=1e-1
+            mkvc(self.samples - direction2),
+            mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative)
         print(
-            '2nd derivatives for Petro are ok. Difference is: ',
+            '2nd derivatives for PGI are ok. Difference is: ',
             np.max(
                 np.abs(
-                    Utils.mkvc(self.samples - direction2) -
-                    Utils.mkvc(reference)
+                    mkvc(self.samples - direction2) -
+                    mkvc(reference)
                 )
             )
         )
@@ -423,7 +400,7 @@ class TestPetroRegularization(unittest.TestCase):
                 s=50.)
             axtied[0].set_xlabel('Property 1')
             axtied[0].set_ylabel('Property 2')
-            axtied[0].set_title('SimplePetro')
+            axtied[0].set_title('SimplePGI')
             # With W
             axtied[1].contourf(x, y, rvm.reshape(
                 x.shape), alpha=0.25, cmap='brg')
@@ -453,7 +430,7 @@ class TestPetroRegularization(unittest.TestCase):
                 s=50.)
             axtied[1].set_xlabel('Property 1')
             axtied[1].set_ylabel('Property 2')
-            axtied[1].set_title('Petro with W')
+            axtied[1].set_title('PGI with W')
 
             plt.show()
 
@@ -461,7 +438,8 @@ class TestPetroRegularization(unittest.TestCase):
 
         print('Test Diagonal covariances: ')
         # Fit a Gaussian Mixture
-        clf = Utils.GaussianMixture(
+        clf = WeightedGaussianMixture(
+            mesh=self.mesh,
             n_components=self.n_components,
             covariance_type='diag',
             max_iter=1000, n_init=10,
@@ -471,7 +449,7 @@ class TestPetroRegularization(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg Simple
-        reg_simple = Regularization.MakeSimplePetroRegularization(
+        reg_simple = regularization.MakeSimplePGI(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
@@ -481,7 +459,7 @@ class TestPetroRegularization(unittest.TestCase):
 
         )
         # Define reg with volumes
-        reg = Regularization.MakePetroRegularization(
+        reg = regularization.MakePGI(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
@@ -492,23 +470,23 @@ class TestPetroRegularization(unittest.TestCase):
         )
 
         # check score value
-        score_approx = reg_simple(Utils.mkvc(self.samples))
+        score_approx = reg_simple(mkvc(self.samples))
         reg_simple.objfcts[0].evaltype = 'full'
-        score = reg_simple(Utils.mkvc(self.samples))
+        score = reg_simple(mkvc(self.samples))
         passed_score_simple = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
         print(
-            'scores for SimplePetro are ok. Difference is: ',
+            'scores for SimplePGI are ok. Difference is: ',
             np.max(np.abs(score_approx - score))
         )
 
-        score_approx = reg(Utils.mkvc(self.samples))
+        score_approx = reg(mkvc(self.samples))
         reg.objfcts[0].evaltype = 'full'
-        score = reg(Utils.mkvc(self.samples))
+        score = reg(mkvc(self.samples))
         passed_score = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score)
         print(
-            'scores for Petro are ok. Difference is: ',
+            'scores for PGI are ok. Difference is: ',
             np.max(np.abs(score_approx - score))
         )
 
@@ -517,73 +495,58 @@ class TestPetroRegularization(unittest.TestCase):
 
         reference = clf.means_[clf.predict(self.samples)]
 
-        deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
+        deriv_simple = reg_simple.deriv(mkvc(self.samples))
         reg_simple.approx_gradient = False
-        deriv_simple_full = reg_simple.deriv(Utils.mkvc(self.samples))
+        deriv_simple_full = reg_simple.deriv(mkvc(self.samples))
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print(
-            '1st derivatives for SimplePetro are ok. Difference is: ',
+            '1st derivatives for SimplePGI are ok. Difference is: ',
             np.max(np.abs(deriv_simple_full - deriv_simple))
         )
-        deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
-        # Hessian_simple = lambda x: reg_simple.deriv2(
-        #     Utils.mkvc(self.samples), x)
-        # HV_simple = LinearOperator(
-        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-        #     matvec=Hessian_simple,
-        #     rmatvec=Hessian_simple
-        # )
-        # p_simple = bicgstab(HV_simple, deriv_simple,tol=1e-10)
-        Hinv = PardisoSolver(reg_simple.deriv2(Utils.mkvc(self.samples)))
+        deriv_simple = reg_simple.deriv(mkvc(self.samples))
+        Hinv = PardisoSolver(reg_simple.deriv2(mkvc(self.samples)))
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
-            Utils.mkvc(self.samples - direction2_simple),
-            Utils.mkvc(reference), rtol=1e-1
+            mkvc(self.samples - direction2_simple),
+            mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative_simple)
         print(
-            '2nd derivatives for SimplePetro are ok. Difference is: ',
+            '2nd derivatives for SimplePGI are ok. Difference is: ',
             np.max(
                 np.abs(
-                    Utils.mkvc(self.samples - direction2_simple) -
-                    Utils.mkvc(reference)
+                    mkvc(self.samples - direction2_simple) -
+                    mkvc(reference)
                 )
             )
         )
 
         # With volumes
-        deriv = reg.deriv(Utils.mkvc(self.samples))
+        deriv = reg.deriv(mkvc(self.samples))
         reg.approx_gradient = False
-        deriv_full = reg.deriv(Utils.mkvc(self.samples))
+        deriv_full = reg.deriv(mkvc(self.samples))
         passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print(
-            '1st derivatives for Petro are ok. Difference is: ',
+            '1st derivatives for PGI are ok. Difference is: ',
             np.max(np.abs(deriv_full - deriv))
         )
-        # Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
-        # HV = LinearOperator(
-        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-        #     matvec=Hessian,
-        #     rmatvec=Hessian
-        # )
-        # p = bicgstab(HV, deriv,tol=1e-10)
-        Hinv = PardisoSolver(reg.deriv2(Utils.mkvc(self.samples)))
+        Hinv = PardisoSolver(reg.deriv2(mkvc(self.samples)))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
-            Utils.mkvc(self.samples - direction2),
-            Utils.mkvc(reference), rtol=1e-1
+            mkvc(self.samples - direction2),
+            mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative)
         print(
-            '2nd derivatives for Petro are ok. Difference is: ',
+            '2nd derivatives for PGI are ok. Difference is: ',
             np.max(
                 np.abs(
-                    Utils.mkvc(self.samples - direction2) -
-                    Utils.mkvc(reference)
+                    mkvc(self.samples - direction2) -
+                    mkvc(reference)
                 )
             )
         )
@@ -628,7 +591,7 @@ class TestPetroRegularization(unittest.TestCase):
                 s=50.)
             axdiag[0].set_xlabel('Property 1')
             axdiag[0].set_ylabel('Property 2')
-            axdiag[0].set_title('SimplePetro')
+            axdiag[0].set_title('SimplePGI')
             # With W
             axdiag[1].contourf(x, y, rvm.reshape(
                 x.shape), alpha=0.25, cmap='brg')
@@ -658,7 +621,7 @@ class TestPetroRegularization(unittest.TestCase):
                 s=50.)
             axdiag[1].set_xlabel('Property 1')
             axdiag[1].set_ylabel('Property 2')
-            axdiag[1].set_title('Petro with W')
+            axdiag[1].set_title('PGI with W')
 
             plt.show()
 
@@ -666,7 +629,8 @@ class TestPetroRegularization(unittest.TestCase):
 
         print('Test Spherical covariances: ')
         # Fit a Gaussian Mixture
-        clf = Utils.GaussianMixture(
+        clf = WeightedGaussianMixture(
+            mesh=self.mesh,
             n_components=self.n_components,
             covariance_type='spherical',
             max_iter=1000, n_init=10,
@@ -676,7 +640,7 @@ class TestPetroRegularization(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg Simple
-        reg_simple = Regularization.MakeSimplePetroRegularization(
+        reg_simple = regularization.MakeSimplePGI(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
@@ -686,7 +650,7 @@ class TestPetroRegularization(unittest.TestCase):
 
         )
         # Define reg with volumes
-        reg = Regularization.MakePetroRegularization(
+        reg = regularization.MakePGI(
             mesh=self.mesh,
             GMmref=clf,
             approx_gradient=True, alpha_x=0.,
@@ -696,23 +660,23 @@ class TestPetroRegularization(unittest.TestCase):
         )
 
         # check score value
-        score_approx = reg_simple(Utils.mkvc(self.samples))
+        score_approx = reg_simple(mkvc(self.samples))
         reg_simple.objfcts[0].evaltype = 'full'
-        score = reg_simple(Utils.mkvc(self.samples))
+        score = reg_simple(mkvc(self.samples))
         passed_score_simple = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
         print(
-            'scores for SimplePetro are ok. Difference is: ',
+            'scores for SimplePGI are ok. Difference is: ',
             np.max(np.abs(score_approx - score))
         )
 
-        score_approx = reg(Utils.mkvc(self.samples))
+        score_approx = reg(mkvc(self.samples))
         reg.objfcts[0].evaltype = 'full'
-        score = reg(Utils.mkvc(self.samples))
+        score = reg(mkvc(self.samples))
         passed_score = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score)
         print(
-            'scores for Petro are ok. Difference is: ',
+            'scores for PGI are ok. Difference is: ',
             np.max(np.abs(score_approx - score))
         )
 
@@ -721,73 +685,65 @@ class TestPetroRegularization(unittest.TestCase):
 
         reference = clf.means_[clf.predict(self.samples)]
 
-        deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
+        deriv_simple = reg_simple.deriv(mkvc(self.samples))
         reg_simple.approx_gradient = False
-        deriv_simple_full = reg_simple.deriv(Utils.mkvc(self.samples))
+        deriv_simple_full = reg_simple.deriv(mkvc(self.samples))
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print(
-            '1st derivatives for SimplePetro are ok. Difference is: ',
+            '1st derivatives for SimplePGI are ok. Difference is: ',
             np.max(np.abs(deriv_simple_full - deriv_simple))
         )
-        deriv_simple = reg_simple.deriv(Utils.mkvc(self.samples))
-        # Hessian_simple = lambda x: reg_simple.deriv2(
-        #     Utils.mkvc(self.samples), x)
-        # HV_simple = LinearOperator(
-        #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
-        #     matvec=Hessian_simple,
-        #     rmatvec=Hessian_simple
-        # )
-        # p_simple = bicgstab(HV_simple, deriv_simple,tol=1e-10)
-        Hinv = PardisoSolver(reg_simple.deriv2(Utils.mkvc(self.samples)))
+        deriv_simple = reg_simple.deriv(mkvc(self.samples))
+        Hinv = PardisoSolver(reg_simple.deriv2(mkvc(self.samples)))
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
-            Utils.mkvc(self.samples - direction2_simple),
-            Utils.mkvc(reference), rtol=1e-1
+            mkvc(self.samples - direction2_simple),
+            mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative_simple)
         print(
-            '2nd derivatives for SimplePetro are ok. Difference is: ',
+            '2nd derivatives for SimplePGI are ok. Difference is: ',
             np.max(
                 np.abs(
-                    Utils.mkvc(self.samples - direction2_simple) -
-                    Utils.mkvc(reference)
+                    mkvc(self.samples - direction2_simple) -
+                    mkvc(reference)
                 )
             )
         )
 
         # With volumes
-        deriv = reg.deriv(Utils.mkvc(self.samples))
+        deriv = reg.deriv(mkvc(self.samples))
         reg.approx_gradient = False
-        deriv_full = reg.deriv(Utils.mkvc(self.samples))
+        deriv_full = reg.deriv(mkvc(self.samples))
         passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print(
-            '1st derivatives for Petro are ok. Difference is: ',
+            '1st derivatives for PGI are ok. Difference is: ',
             np.max(np.abs(deriv_full - deriv))
         )
-        # Hessian = lambda x: reg.deriv2(Utils.mkvc(self.samples), x)
+        # Hessian = lambda x: reg.deriv2(mkvc(self.samples), x)
         # HV = LinearOperator(
         #     [len(self.samples) * self.ndim, len(self.samples) * self.ndim],
         #     matvec=Hessian,
         #     rmatvec=Hessian
         # )
         # p = bicgstab(HV, deriv,tol=1e-10)
-        Hinv = PardisoSolver(reg.deriv2(Utils.mkvc(self.samples)))
+        Hinv = PardisoSolver(reg.deriv2(mkvc(self.samples)))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
-            Utils.mkvc(self.samples - direction2),
-            Utils.mkvc(reference), rtol=1e-1
+            mkvc(self.samples - direction2),
+            mkvc(reference), rtol=1e-1
         )
         self.assertTrue(passed_derivative)
         print(
-            '2nd derivatives for Petro are ok. Difference is: ',
+            '2nd derivatives for PGI are ok. Difference is: ',
             np.max(
                 np.abs(
-                    Utils.mkvc(self.samples - direction2) -
-                    Utils.mkvc(reference)
+                    mkvc(self.samples - direction2) -
+                    mkvc(reference)
                 )
             )
         )
@@ -832,7 +788,7 @@ class TestPetroRegularization(unittest.TestCase):
                 s=50.)
             axspherical[0].set_xlabel('Property 1')
             axspherical[0].set_ylabel('Property 2')
-            axspherical[0].set_title('SimplePetro')
+            axspherical[0].set_title('SimplePGI')
             # With W
             axspherical[1].contourf(x, y, rvm.reshape(
                 x.shape), alpha=0.25, cmap='brg')
@@ -862,7 +818,7 @@ class TestPetroRegularization(unittest.TestCase):
                 s=50.)
             axspherical[1].set_xlabel('Property 1')
             axspherical[1].set_ylabel('Property 2')
-            axspherical[1].set_title('Petro with W')
+            axspherical[1].set_title('PGI with W')
 
             plt.show()
 

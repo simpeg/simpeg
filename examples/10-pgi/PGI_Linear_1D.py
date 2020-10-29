@@ -107,7 +107,7 @@ clf.fit(mtrue.reshape(-1, 1))
 minit = m0
 
 # Petrophyically constrained regularization
-reg = regularization.PetroRegularization(
+reg = regularization.PGI(
     GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0,
     alpha_s=1.
 )
@@ -123,14 +123,14 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # directives
 Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=10.)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-6)
-betaIt = directives.PetroBetaReWeighting(
+betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True, rateCooling=2., rateWarming=1.,
     tolerance=0.1, UpdateRate=1,
     progress=0.2,
 )
-targets = directives.PetroTargetMisfit(TriggerSmall=True, verbose=True)
+targets = directives.PGI_MultiTargetMisfits(TriggerSmall=True, verbose=True)
 petrodir = directives.GaussianMixtureUpdateModel(verbose=False) 
-addmref = directives.AddMrefInSmooth(verbose=True)
+addmref = directives.AddMrefInSmooth(verbose=True, tolerance=1)
 
 # Setup Inversion
 inv = inversion.BaseInversion(

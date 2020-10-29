@@ -67,9 +67,9 @@ class DataMisfitTest(unittest.TestCase):
         self.dmiscombo = self.dmis0 + self.dmis1
 
     def test_multiDataMisfit(self):
-         self.dmis0.test()
-         self.dmis1.test()
-         self.dmiscombo.test(x=self.model)
+        self.dmis0.test()
+        self.dmis1.test()
+        self.dmiscombo.test(x=self.model)
 
     def test_inv(self):
         reg = regularization.Tikhonov(self.mesh)
@@ -77,7 +77,7 @@ class DataMisfitTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
             directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
-            directives.PetroTargetMisfit(TriggerSmall=False),
+            directives.PGI_MultiTargetMisfits(TriggerSmall=False),
             directives.BetaSchedule()
         ]
         print(len(directives_list))
@@ -101,7 +101,7 @@ class DataMisfitTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
             directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
-            directives.PetroTargetMisfit(TriggerSmall=False, verbose=True),
+            directives.PGI_MultiTargetMisfits(TriggerSmall=False, verbose=True),
             directives.BetaSchedule()
             ]
         inv = inversion.BaseInversion(invProb, directiveList=directives_list)

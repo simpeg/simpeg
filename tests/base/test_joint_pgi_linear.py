@@ -22,7 +22,7 @@ class JointInversionTest(unittest.TestCase):
 
     def setUp(self):
 
-        self.PlotIt = True
+        self.PlotIt = False
 
         # Mesh
         N = 100
@@ -127,7 +127,7 @@ class JointInversionTest(unittest.TestCase):
     def test_joint_petro_inv_with_mapping(self):
 
         print("test_joint_petro_inv_with_mapping: ")
-        reg_simple = regularization.MakeSimplePetroWithMappingRegularization(
+        reg_simple = regularization.MakeSimplePGIwithRelationships(
             mesh=self.mesh,
             GMmref=self.clfmapping,
             GMmodel=self.clfmapping,
@@ -153,13 +153,13 @@ class JointInversionTest(unittest.TestCase):
             alpha0_ratio=alpha0_ratio, ninit=10, verbose=True)
         Scales = directives.ScalingEstimate_ByEig(Chi0_ratio=.4, verbose=True, ninit=10)
         beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
-        betaIt = directives.PetroBetaReWeighting(
+        betaIt = directives.PGI_BetaAlphaSchedule(
             verbose=True, rateCooling=2., rateWarming=1.,
             tolerance=0., UpdateRate=1,
             ratio_in_cooling=False,
             progress=0.2,
         )
-        targets = directives.PetroTargetMisfit(verbose=True)
+        targets = directives.PGI_MultiTargetMisfits(verbose=True)
         petrodir = directives.UpdateReference()
 
 
@@ -236,7 +236,7 @@ class JointInversionTest(unittest.TestCase):
     def test_joint_petro_inv(self):
 
         print("test_joint_petro_inv: ")
-        reg_simple = regularization.MakeSimplePetroRegularization(
+        reg_simple = regularization.MakeSimplePGI(
             mesh=self.mesh,
             GMmref=self.clfnomapping,
             GMmodel=self.clfnomapping,
@@ -257,14 +257,14 @@ class JointInversionTest(unittest.TestCase):
         Scales = directives.ScalingEstimate_ByEig(
             Chi0_ratio=1., verbose=True, ninit=100)
         beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
-        betaIt = directives.PetroBetaReWeighting(
+        betaIt = directives.PGI_BetaAlphaSchedule(
             verbose=True, 
             rateCooling=5., 
             rateWarming=1.,
             tolerance=0.02,
             progress=0.1,
         )
-        targets = directives.PetroTargetMisfit(verbose=True)
+        targets = directives.PGI_MultiTargetMisfits(verbose=True)
         petrodir = directives.UpdateReference()
 
         # Setup Inversion

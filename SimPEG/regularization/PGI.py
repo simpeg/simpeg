@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import numpy as np
 import scipy.sparse as sp
 import warnings
@@ -13,21 +11,13 @@ from ..utils import (
     ComputeConstantTerm, coterminal
 )
 from ..maps import IdentityMap, Wires
-#from .. import objective_function
 from .. import props
-
 from .base import (
     BaseRegularization,
     SimpleComboRegularization,
     BaseComboRegularization,
 )
 from .tikhonov import *
-
-__all__ = [
-    'SimpleSmall', 'SimpleSmoothDeriv', 'Simple',
-    'Small', 'SmoothDeriv', 'SmoothDeriv2', 'Tikhonov',
-    'SparseSmall', 'SparseDeriv', 'Sparse',
-]
 
 
 ###############################################################################
@@ -41,7 +31,7 @@ __all__ = [
 #####################################
 
 
-class SimplePetroSmallness(BaseRegularization):
+class SimplePGIsmallness(BaseRegularization):
     """
     Smallness term for the petrophysically constrained regularization
     """
@@ -57,7 +47,7 @@ class SimplePetroSmallness(BaseRegularization):
         self.approx_gradient = approx_gradient
         self.evaltype = evaltype
 
-        super(SimplePetroSmallness, self).__init__(
+        super(SimplePGIsmallness, self).__init__(
             mesh=mesh, **kwargs
         )
         self.GMmodel = GMmodel
@@ -251,7 +241,7 @@ class SimplePetroSmallness(BaseRegularization):
             return (mD.T * mD) * (self.W * (Hr))
 
 
-class SimplePetroRegularization(SimpleComboRegularization):
+class SimplePGI(SimpleComboRegularization):
 
     def __init__(
         self, mesh, GMmref, GMmodel=None,
@@ -273,7 +263,7 @@ class SimplePetroRegularization(SimpleComboRegularization):
         self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
 
         objfcts = [
-            SimplePetroSmallness(mesh=mesh, GMmodel=self.GMmodel, wiresmap=self.wiresmap,
+            SimplePGIsmallness(mesh=mesh, GMmodel=self.GMmodel, wiresmap=self.wiresmap,
                                  maplist=self.maplist, approx_gradient=approx_gradient,
                                  evaltype=evaltype,
                                  mapping=self.mapping, **kwargs)
@@ -307,7 +297,7 @@ class SimplePetroRegularization(SimpleComboRegularization):
                              mapping=maps * wire[1], **kwargs)
                 for wire, maps in zip(self._wiresmap.maps, self._maplist)]
 
-        super(SimplePetroRegularization, self).__init__(
+        super(SimplePGI, self).__init__(
             mesh=mesh,
             alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
             alpha_xx=alpha_xx, alpha_yy=alpha_yy, alpha_zz=alpha_zz,
@@ -371,7 +361,7 @@ class SimplePetroRegularization(SimpleComboRegularization):
         self.objfcts[0].approx_gradient = self.approx_gradient
 
 
-class PetroSmallness(SimplePetroSmallness):
+class PGIsmallness(SimplePGIsmallness):
     """
     Smallness term for the petrophysically constrained regularization
     """
@@ -384,7 +374,7 @@ class PetroSmallness(SimplePetroSmallness):
                  evaltype='approx',
                  **kwargs):
 
-        super(PetroSmallness, self).__init__(
+        super(PGIsmallness, self).__init__(
             GMmodel=GMmodel, wiresmap=wiresmap,
             maplist=maplist, mesh=mesh,
             approx_gradient=True,
@@ -584,7 +574,7 @@ class PetroSmallness(SimplePetroSmallness):
     #         return (mDW.T * mDW) * Hr
 
 
-class PetroRegularization(SimpleComboRegularization):
+class PGI(SimpleComboRegularization):
 
     def __init__(
         self, mesh, GMmref, GMmodel=None,
@@ -606,7 +596,7 @@ class PetroRegularization(SimpleComboRegularization):
         self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
 
         objfcts = [
-            PetroSmallness(mesh=mesh, GMmodel=self.GMmodel,
+            PGIsmallness(mesh=mesh, GMmodel=self.GMmodel,
                            wiresmap=self.wiresmap,
                            maplist=self.maplist,
                            approx_gradient=approx_gradient,
@@ -642,7 +632,7 @@ class PetroRegularization(SimpleComboRegularization):
                              mapping=maps * wire[1], **kwargs)
                 for wire, maps in zip(self._wiresmap.maps, self._maplist)]
 
-        super(PetroRegularization, self).__init__(
+        super(PGI, self).__init__(
             mesh=mesh,
             alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
             alpha_xx=alpha_xx, alpha_yy=alpha_yy, alpha_zz=alpha_zz,
@@ -706,7 +696,7 @@ class PetroRegularization(SimpleComboRegularization):
         self.objfcts[0].approx_gradient = self.approx_gradient
 
 
-class SimplePetroWithMappingSmallness(BaseRegularization):
+class SimplePGIwithRelationshipsSmallness(BaseRegularization):
     """
     Smallness term for the petrophysically constrained regularization
     """
@@ -722,7 +712,7 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
         self.approx_gradient = approx_gradient
         self.evaltype = evaltype
 
-        super(SimplePetroWithMappingSmallness, self).__init__(
+        super(SimplePGIwithRelationshipsSmallness, self).__init__(
             mesh=mesh, **kwargs
         )
         self.GMmodel = GMmodel
@@ -932,7 +922,7 @@ class SimplePetroWithMappingSmallness(BaseRegularization):
             return (mDW.T * mDW) * Hr
 
 
-class SimplePetroWithMappingRegularization(SimpleComboRegularization):
+class SimplePGIwithRelationships(SimpleComboRegularization):
 
     def __init__(
         self, mesh, GMmref, GMmodel=None,
@@ -954,7 +944,7 @@ class SimplePetroWithMappingRegularization(SimpleComboRegularization):
         self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
 
         objfcts = [
-            SimplePetroWithMappingSmallness(
+            SimplePGIwithRelationshipsSmallness(
                 mesh=mesh,
                 GMmodel=self.GMmodel,
                 wiresmap=self.wiresmap,
@@ -992,7 +982,7 @@ class SimplePetroWithMappingRegularization(SimpleComboRegularization):
                              mapping=maps * wire[1], **kwargs)
                 for wire, maps in zip(self._wiresmap.maps, self._maplist)]
 
-        super(SimplePetroWithMappingRegularization, self).__init__(
+        super(SimplePGIwithRelationships, self).__init__(
             mesh=mesh,
             alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
             alpha_xx=alpha_xx, alpha_yy=alpha_yy, alpha_zz=alpha_zz,
@@ -1057,7 +1047,7 @@ class SimplePetroWithMappingRegularization(SimpleComboRegularization):
         self.objfcts[0].approx_gradient = self.approx_gradient
 
 
-def MakeSimplePetroRegularization(
+def MakeSimplePGI(
     mesh, GMmref, GMmodel=None,
     wiresmap=None, maplist=None,
     approx_gradient=True,
@@ -1084,7 +1074,7 @@ def MakeSimplePetroRegularization(
     else:
         clwhtlst = cell_weights_list
 
-    reg = SimplePetroRegularization(
+    reg = SimplePGI(
         mesh=mesh, GMmref=GMmref, GMmodel=GMmodel,
         wiresmap=wiresmap, maplist=maplist,
         approx_gradient=approx_gradient,
@@ -1127,7 +1117,7 @@ def MakeSimplePetroRegularization(
     return reg
 
 
-def MakePetroRegularization(
+def MakePGI(
     mesh, GMmref, GMmodel=None,
     wiresmap=None, maplist=None,
     approx_gradient=True,
@@ -1154,7 +1144,7 @@ def MakePetroRegularization(
     else:
         clwhtlst = cell_weights_list
 
-    reg = PetroRegularization(
+    reg = PGI(
         mesh=mesh, GMmref=GMmref, GMmodel=GMmodel,
         wiresmap=wiresmap, maplist=maplist,
         approx_gradient=approx_gradient,
@@ -1197,7 +1187,7 @@ def MakePetroRegularization(
     return reg
 
 
-def MakeSimplePetroWithMappingRegularization(
+def MakeSimplePGIwithRelationships(
     mesh, GMmref, GMmodel=None,
     wiresmap=None, maplist=None,
     approx_gradient=True,
@@ -1224,7 +1214,7 @@ def MakeSimplePetroWithMappingRegularization(
     else:
         clwhtlst = cell_weights_list
 
-    reg = SimplePetroWithMappingRegularization(
+    reg = SimplePGIwithRelationships(
         mesh=mesh, GMmref=GMmref, GMmodel=GMmodel,
         wiresmap=wiresmap, maplist=maplist,
         approx_gradient=approx_gradient,

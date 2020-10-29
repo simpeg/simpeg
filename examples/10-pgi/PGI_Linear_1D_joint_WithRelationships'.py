@@ -102,7 +102,7 @@ print(wr2.shape)
 wr = np.r_[wr1, wr2]
 W = utils.sdiag(wr)
 
-reg_simple = regularization.MakeSimplePetroWithMappingRegularization(
+reg_simple = regularization.MakeSimplePGIwithRelationships(
     mesh=mesh,
     GMmref=clfmapping,
     GMmodel=clfmapping,
@@ -127,13 +127,13 @@ alpha0_ratio = np.r_[
 Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, ninit=10, verbose=True)
 Scales = directives.ScalingEstimate_ByEig(Chi0_ratio=.4, verbose=True, ninit=10)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
-betaIt = directives.PetroBetaReWeighting(
+betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True, rateCooling=2., rateWarming=1.,
     tolerance=0., UpdateRate=1,
     ratio_in_cooling=False,
     progress=0.2,
 )
-targets = directives.PetroTargetMisfit(verbose=True)
+targets = directives.PGI_MultiTargetMisfits(verbose=True)
 petrodir = directives.UpdateReference()
 
 # Setup Inversion
@@ -144,7 +144,7 @@ inv = inversion.BaseInversion(invProb, directiveList=[Alphas, Scales, beta,
 mcluster_map = inv.run(minit)
 
 # Inversion with no nonlinear mapping
-reg_simple_no_map = regularization.MakeSimplePetroRegularization(
+reg_simple_no_map = regularization.MakeSimplePGI(
     mesh=mesh,
     GMmref=clfnomapping,
     GMmodel=clfnomapping,
@@ -166,13 +166,13 @@ Alphas = directives.AlphasSmoothEstimate_ByEig(
 Scales = directives.ScalingEstimate_ByEig(
     Chi0_ratio=.4, verbose=True, ninit=100)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
-betaIt = directives.PetroBetaReWeighting(
+betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True, rateCooling=2., rateWarming=1.,
     tolerance=0.0, UpdateRate=1,
     ratio_in_cooling=False,
     progress=0.2,
 )
-targets = directives.PetroTargetMisfit(chiSmall=1.,
+targets = directives.PGI_MultiTargetMisfits(chiSmall=1.,
                                        TriggerSmall=True, TriggerTheta=False, verbose=True)
 petrodir = directives.UpdateReference()
 
@@ -208,7 +208,7 @@ Alphas = directives.AlphasSmoothEstimate_ByEig(
 Scales = directives.ScalingEstimate_ByEig(
     Chi0_ratio=.4, verbose=True, ninit=100)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
-targets = directives.PetroTargetMisfit(
+targets = directives.PGI_MultiTargetMisfits(
     chiSmall=1.,
     TriggerSmall=False,
     TriggerTheta=False,

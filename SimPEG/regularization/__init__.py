@@ -10,11 +10,11 @@ from .tikhonov import (
     Tikhonov,
 )
 from .sparse import SparseSmall, SparseDeriv, Sparse
-from .PGI import (
-    SimplePetroSmallness, PetroSmallness,
-    SimplePetroRegularization, PetroRegularization,
-    SimplePetroWithMappingSmallness, SimplePetroWithMappingRegularization,
-    MakeSimplePetroRegularization,
-    MakePetroRegularization,
-    MakeSimplePetroWithMappingRegularization,
+from .pgi import (
+    SimplePGIsmallness, PGIsmallness,
+    SimplePGI, PGI,
+    SimplePGIwithRelationshipsSmallness, SimplePGIwithRelationships,
+    MakeSimplePGI,
+    MakePGI,
+    MakeSimplePGIwithRelationships,
 )

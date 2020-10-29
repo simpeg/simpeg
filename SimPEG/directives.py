@@ -13,15 +13,15 @@ from .maps import SphericalSystem, ComboMap
 from .regularization import (
     BaseComboRegularization,
     BaseRegularization,
-    SimplePetroRegularization,
-    PetroRegularization,
-    SimplePetroWithMappingSmallness,
-    SimplePetroSmallness,
-    PetroSmallness,
+    SimplePGI,
+    PGI,
+    SimplePGIwithRelationshipsSmallness,
+    SimplePGIsmallness,
+    PGIsmallness,
     SmoothDeriv,
     SimpleSmoothDeriv,
     SparseDeriv,
-    SimplePetroWithMappingRegularization,
+    SimplePGIwithRelationships,
 )
 from .utils import (
     mkvc,
@@ -307,8 +307,7 @@ class BetaSchedule(InversionDirective):
 class TargetMisfit(InversionDirective):
     """
      ... note:: Currently this target misfit is not set up for joint inversion.
-     Get `in touch <https://github.com/simpeg/simpeg/issues/new>`_
-     if you would like to help with the upgrade; or check out PetroTargetMisfit
+     Check out PGI_MultiTargetMisfits
     """
 
     chifact = 1.0
@@ -317,7 +316,7 @@ class TargetMisfit(InversionDirective):
     @property
     def target(self):
         if getattr(self, "_target", None) is None:
-            # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+            # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
             if self.phi_d_star is None:
 
                 nD = 0
@@ -337,7 +336,6 @@ class TargetMisfit(InversionDirective):
         if self.invProb.phi_d < self.target:
             self.opt.stopNextIteration = True
             self.print_final_misfit()
-            # print (("   >> Target misfit: %.1f (# of data) is achieved") % (self.target * self.invProb.opt.factor))
 
     def print_final_misfit(self):
         if self.opt.print_type == "ubc":
@@ -1123,7 +1121,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
     def initialize(self):
         if getattr(
             self.invProb.reg.objfcts[0],
-            'objfcts',
+            "objfcts",
             None
         ) is not None:
             petrosmallness = np.where(np.r_[
@@ -1131,15 +1129,15 @@ class GaussianMixtureUpdateModel(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            SimplePetroRegularization
+                            SimplePGI
                         ) or
                         isinstance(
                             regpart,
-                            PetroRegularization
+                            PGI
                         ) or
                         isinstance(
                             regpart,
-                            SimplePetroWithMappingRegularization
+                            SimplePGIwithRelationships
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -1179,7 +1177,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
             kappa=self.kappa,
             nu=self.nu,
             verbose=self.verbose,
-            prior_type='semi',
+            prior_type="semi",
             update_covariances=self.update_covariances,
             max_iter=self.petroregularizer.GMmodel.max_iter,
             n_init=self.petroregularizer.GMmodel.n_init,
@@ -1233,7 +1231,7 @@ class GMMRFUpdateModel(InversionDirective):
     def initialize(self):
         if getattr(
             self.invProb.reg.objfcts[0],
-            'objfcts',
+            "objfcts",
             None
         ) is not None:
             petrosmallness = np.where(np.r_[
@@ -1241,15 +1239,15 @@ class GMMRFUpdateModel(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            SimplePetroRegularization
+                            SimplePGI
                         ) or
                         isinstance(
                             regpart,
-                            PetroRegularization
+                            PGI
                         ) or
                         isinstance(
                             regpart,
-                            SimplePetroWithMappingRegularization
+                            SimplePGIwithRelationships
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -1284,9 +1282,9 @@ class GMMRFUpdateModel(InversionDirective):
         # TEMPORARY FOR WEIGHTS ACCROSS THE MESH
         # self.petroregularizer.GMmodel.weights_ = self.petroregularizer.GMmref.weights_
         if self.unit_anisotropy is not None:
-            self.unit_anisotropy['index'] = []
-            for i, unit in enumerate(self.unit_anisotropy['unit']):
-                self.unit_anisotropy['index'].append(self.petroregularizer.membership(
+            self.unit_anisotropy["index"] = []
+            for i, unit in enumerate(self.unit_anisotropy["unit"]):
+                self.unit_anisotropy["index"].append(self.petroregularizer.membership(
                 self.petroregularizer.mref) == unit)
 
         clfupdate = GaussianMixtureMarkovRandomField(
@@ -1301,7 +1299,7 @@ class GMMRFUpdateModel(InversionDirective):
             kappa=self.kappa,
             nu=self.nu,
             verbose=self.verbose,
-            prior_type='semi',
+            prior_type="semi",
             boreholeidx=self.boreholeidx,
             update_covariances=self.update_covariances,
             max_iter=self.petroregularizer.GMmodel.max_iter,
@@ -1342,7 +1340,7 @@ class UpdateReference(InversionDirective):
     def initialize(self):
         if getattr(
             self.invProb.reg.objfcts[0],
-            'objfcts',
+            "objfcts",
             None
         ) is not None:
             petrosmallness = np.where(np.r_[
@@ -1350,15 +1348,15 @@ class UpdateReference(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            SimplePetroRegularization
+                            SimplePGI
                         ) or
                         isinstance(
                             regpart,
-                            PetroRegularization
+                            PGI
                         ) or
                         isinstance(
                             regpart,
-                            SimplePetroWithMappingRegularization
+                            SimplePGIwithRelationships
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -1397,7 +1395,7 @@ class SmoothUpdateReferenceModel(InversionDirective):
     compute_score = False
     maxit = None
     verbose = False
-    method = 'ICM'  # 'Gibbs'
+    method = "ICM"  # "Gibbs"
     offdiag = 0.
     indiag = 1.
     Pottmatrix = None
@@ -1428,7 +1426,7 @@ class SmoothUpdateReferenceModel(InversionDirective):
             model
         )
 
-        if self.method == 'Gibbs':
+        if self.method == "Gibbs":
             denoised = GibbsSampling_PottsDenoising(
                 mesh, minit,
                 self.log_univar,
@@ -1441,7 +1439,7 @@ class SmoothUpdateReferenceModel(InversionDirective):
                 maxit=self.maxit,
                 verbose=self.verbose
             )
-        elif self.method == 'ICM':
+        elif self.method == "ICM":
             denoised = ICM_PottsDenoising(
                 mesh, minit,
                 self.log_univar,
@@ -1467,7 +1465,7 @@ class BoreholeLithologyConstraints(InversionDirective):
     def initialize(self):
         if getattr(
             self.invProb.reg.objfcts[0],
-            'objfcts',
+            "objfcts",
             None
         ) is not None:
             petrosmallness = np.where(np.r_[
@@ -1475,15 +1473,15 @@ class BoreholeLithologyConstraints(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            SimplePetroRegularization
+                            SimplePGI
                         ) or
                         isinstance(
                             regpart,
-                            PetroRegularization
+                            PGI
                         ) or
                         isinstance(
                             regpart,
-                            SimplePetroWithMappingRegularization
+                            SimplePGIwithRelationships
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -1523,7 +1521,7 @@ class PGI_local_GMM_proportions(InversionDirective):
     def initialize(self):
         if getattr(
             self.invProb.reg.objfcts[0],
-            'objfcts',
+            "objfcts",
             None
         ) is not None:
             petrosmallness = np.where(np.r_[
@@ -1531,15 +1529,15 @@ class PGI_local_GMM_proportions(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            SimplePetroRegularization
+                            SimplePGI
                         ) or
                         isinstance(
                             regpart,
-                            PetroRegularization
+                            PGI
                         ) or
                         isinstance(
                             regpart,
-                            SimplePetroWithMappingRegularization
+                            SimplePGIwithRelationships
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -1589,7 +1587,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         """
         if getattr(
             self.invProb.reg.objfcts[0],
-            'objfcts',
+            "objfcts",
             None
         ) is not None:
             nbr = np.sum(
@@ -1603,9 +1601,9 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     (np.r_[
                         i, j,
                         (
-                            isinstance(regpart, SimplePetroWithMappingSmallness) or
-                            isinstance(regpart, SimplePetroSmallness) or
-                            isinstance(regpart, PetroSmallness)
+                            isinstance(regpart, SimplePGIwithRelationshipsSmallness) or
+                            isinstance(regpart, SimplePGIsmallness) or
+                            isinstance(regpart, PGIsmallness)
                         )
                     ])
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
@@ -1625,9 +1623,9 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                         ((isinstance(regpart, SmoothDeriv) or
                           isinstance(regpart, SimpleSmoothDeriv) or
                           isinstance(regpart, SparseDeriv)) and not
-                         (isinstance(regobjcts, SimplePetroRegularization) or
-                          isinstance(regobjcts, PetroRegularization) or
-                          isinstance(regobjcts, SimplePetroWithMappingRegularization))
+                         (isinstance(regobjcts, SimplePGI) or
+                          isinstance(regobjcts, PGI) or
+                          isinstance(regobjcts, SimplePGIwithRelationships))
                          )])
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
                     for j, regpart in enumerate(regobjcts.objfcts)
@@ -1655,7 +1653,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             self.alpha0 = self.alpha0 * np.ones(nbr)
 
         if self.debug:
-            print('Calculating the Alpha0 parameter.')
+            print("Calculating the Alpha0 parameter.")
 
         m = self.invProb.model
 
@@ -1712,10 +1710,10 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                         idx[0]], mtype, self.alpha0[i])
 
         if self.verbose:
-            print('Alpha scales: ', self.invProb.reg.multipliers)
+            print("Alpha scales: ", self.invProb.reg.multipliers)
             if mode == 1:
                 for objf in self.invProb.reg.objfcts:
-                    print('Alpha scales: ', objf.multipliers)
+                    print("Alpha scales: ", objf.multipliers)
 
 
 class JointTargetMisfit(InversionDirective):
@@ -1726,7 +1724,7 @@ class JointTargetMisfit(InversionDirective):
 
     @property
     def DMtarget(self):
-        if getattr(self, '_DMtarget', None) is None:
+        if getattr(self, "_DMtarget", None) is None:
             # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
             if self.phi_d_star is None:
                 # Check if it is a ComboObjective
@@ -1759,13 +1757,13 @@ class JointTargetMisfit(InversionDirective):
 
         if self.verbose:
             print(
-                'DM: ', self.dmlist, self.targetlist,
+                "DM: ", self.dmlist, self.targetlist,
             )
         if self.DM:
             self.opt.stopNextIteration = True
 
 
-class PetroTargetMisfit(InversionDirective):
+class PGI_MultiTargetMisfits(InversionDirective):
 
     WeightsInTarget = 0
     verbose = False
@@ -1794,7 +1792,7 @@ class PetroTargetMisfit(InversionDirective):
 
         if getattr(
             self.invProb.reg.objfcts[0],
-            'objfcts',
+            "objfcts",
             None
         ) is not None:
             Small = np.r_[
@@ -1802,9 +1800,9 @@ class PetroTargetMisfit(InversionDirective):
                     (np.r_[
                         i, j,
                         (
-                            isinstance(regpart, SimplePetroWithMappingSmallness) or
-                            isinstance(regpart, SimplePetroSmallness) or
-                            isinstance(regpart, PetroSmallness)
+                            isinstance(regpart, SimplePGIwithRelationshipsSmallness) or
+                            isinstance(regpart, SimplePGIsmallness) or
+                            isinstance(regpart, PGIsmallness)
                         )
                     ])
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
@@ -1813,7 +1811,7 @@ class PetroTargetMisfit(InversionDirective):
             ]
             if Small[Small[:, 2] == 1][:, :2].size == 0:
                 warnings.warn(
-                    'There is no petroregularization. No Smallness target possible'
+                    "There is no PGI regularization. No Smallness target possible"
                 )
                 self.Small = -1
             else:
@@ -1831,9 +1829,9 @@ class PetroTargetMisfit(InversionDirective):
                     (np.r_[
                         j,
                         (
-                            isinstance(regpart, SimplePetroWithMappingSmallness) or
-                            isinstance(regpart, SimplePetroSmallness) or
-                            isinstance(regpart, PetroSmallness)
+                            isinstance(regpart, SimplePGIwithRelationshipsSmallness) or
+                            isinstance(regpart, SimplePGIsmallness) or
+                            isinstance(regpart, PGIsmallness)
                         )
                     ])
 
@@ -1842,7 +1840,7 @@ class PetroTargetMisfit(InversionDirective):
             ]
             if Small[Small[:, 1] == 1][:, :1].size == 0:
                 warnings.warn(
-                    'There is no petroregularization. No Smallness target possible'
+                    "There is no PGI regularization. No Smallness target possible"
                 )
                 self.Small = -1
             else:
@@ -1856,7 +1854,7 @@ class PetroTargetMisfit(InversionDirective):
 
     @property
     def DMtarget(self):
-        if getattr(self, '_DMtarget', None) is None:
+        if getattr(self, "_DMtarget", None) is None:
             # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
             if self.phi_d_star is None:
                 # Check if it is a ComboObjective
@@ -1876,7 +1874,7 @@ class PetroTargetMisfit(InversionDirective):
 
     @property
     def CLtarget(self):
-        if getattr(self, '_CLtarget', None) is None:
+        if getattr(self, "_CLtarget", None) is None:
             # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
             if self.phi_ms_star is None:
                 # Expected value is number of active cells * number of physical
@@ -1936,7 +1934,7 @@ class PetroTargetMisfit(InversionDirective):
                                       ord=self.distance_norm)
             maxdiff = np.maximum(maxdiff, meandiff)
 
-            if self.invProb.reg.GMmodel.covariance_type == 'full' or self.invProb.reg.GMmodel.covariance_type == 'spherical':
+            if self.invProb.reg.GMmodel.covariance_type == "full" or self.invProb.reg.GMmodel.covariance_type == "spherical":
                 covdiff = np.linalg.norm((self.invProb.reg.GMmodel.covariances_[i] - self.invProb.reg.GMmref.covariances_[i]) / self.invProb.reg.GMmref.covariances_[i],
                                          ord=self.distance_norm)
             else:
@@ -1974,14 +1972,27 @@ class PetroTargetMisfit(InversionDirective):
 
         self.AllStop = self.DM and self.CL and self.DP
         if self.verbose:
-            print(
-                'DM: ', self.dmlist, self.targetlist,
-                '; CL: ', self.phims(), self.CL,
-                '; DP: ', self.DP,
-                '; All:', self.AllStop
+            message = "All targets reached: {}".format(self.AllStop)
+            message += " | geophys. misfits: " + "; ".join(
+                map(str,['{0} (target {1} [{2}])'.format(val,tgt,cond) for val,tgt,cond in zip(
+                    np.round(self.dmlist, 1),
+                    np.round(self.DMtarget, 1),
+                    self.targetlist
+                )]))
+            if self.TriggerSmall:
+                message += " | smallness misfit: {0:.1f} (target: {1:.1f} [{2}])".format(
+                    self.phims(), 
+                    self.CLtarget,
+                    self.CL
             )
+            if self.TriggerTheta:
+                message += " | GMM parameters within tolerance: {}".format(self.DP)
+            print(message)
+
         if self.AllStop:
             self.opt.stopNextIteration = True
+            if self.verbose:
+                print("All targets have been reached")
 
 
 class ScalingEstimate_ByEig(InversionDirective):
@@ -1998,10 +2009,10 @@ class ScalingEstimate_ByEig(InversionDirective):
         """
 
         if self.debug:
-            print('Calculating the scaling parameter.')
+            print("Calculating the scaling parameter.")
 
         if len(self.dmisfit.objfcts) == 1:
-            raise Exception('This Directives only applies ot joint inversion')
+            raise Exception("This Directives only applies ot joint inversion")
 
         ndm = len(self.dmisfit.objfcts)
         self.Chi0 = self.Chi0 *np.ones(ndm)
@@ -2026,7 +2037,7 @@ class ScalingEstimate_ByEig(InversionDirective):
         self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
 
         if self.verbose:
-            print('Scale Multipliers: ', self.dmisfit.multipliers)
+            print("Scale Multipliers: ", self.dmisfit.multipliers)
 
 
 class JointScalingSchedule(InversionDirective):
@@ -2044,7 +2055,7 @@ class JointScalingSchedule(InversionDirective):
     def initialize(self):
 
         targetclass = np.r_[[isinstance(
-            dirpart, PetroTargetMisfit) or isinstance(
+            dirpart, PGI_MultiTargetMisfits) or isinstance(
             dirpart, JointTargetMisfit) for dirpart in self.inversion.directiveList.dList]]
         if ~np.any(targetclass):
             self.DMtarget = None
@@ -2084,11 +2095,11 @@ class JointScalingSchedule(InversionDirective):
                         self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
 
                         if self.verbose:
-                            print('update scaling for data misfit by ', multipliers)
-                            print('new scale:', self.dmisfit.multipliers)
+                            print("update scaling for data misfit by ", multipliers)
+                            print("new scale:", self.dmisfit.multipliers)
 
 
-class PetroBetaReWeighting(InversionDirective):
+class PGI_BetaAlphaSchedule(InversionDirective):
 
     verbose = False
     tolerance = 0.
@@ -2121,10 +2132,10 @@ class PetroBetaReWeighting(InversionDirective):
 
     def initialize(self):
         targetclass = np.r_[[isinstance(
-            dirpart, PetroTargetMisfit) for dirpart in self.inversion.directiveList.dList]]
+            dirpart, PGI_MultiTargetMisfits) for dirpart in self.inversion.directiveList.dList]]
         if ~np.any(targetclass):
             raise Exception(
-                'You need to have a PetroTargetMisfit directives to use the PetroBetaReWeighting directive')
+                "You need to have a PGI_MultiTargetMisfits directives to use the PGI_BetaAlphaSchedule directive")
         else:
             self.targetclass = np.where(targetclass)[0][-1]
             self.DMtarget = np.sum(
@@ -2150,7 +2161,7 @@ class PetroBetaReWeighting(InversionDirective):
 
         if getattr(
             self.invProb.reg.objfcts[0],
-            'objfcts',
+            "objfcts",
             None
         ) is not None:
             petrosmallness = np.where(np.r_[
@@ -2158,15 +2169,15 @@ class PetroBetaReWeighting(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            SimplePetroRegularization
+                            SimplePGI
                         ) or
                         isinstance(
                             regpart,
-                            PetroRegularization
+                            PGI
                         ) or
                         isinstance(
                             regpart,
-                            SimplePetroWithMappingRegularization
+                            SimplePGIwithRelationships
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -2227,15 +2238,15 @@ class PetroBetaReWeighting(InversionDirective):
 
                 if self.verbose:
                     print(
-                        'Mode 2 started. Increased GMM Prior. New confidences:\n',
-                        'nu: ', self.updategaussianclass.nu,
-                        '\nkappa: ', self.updategaussianclass.kappa,
-                        '\nalphadir: ', self.updategaussianclass.alphadir
+                        "Mode 2 started. Increased GMM Prior. New confidences:\n",
+                        "nu: ", self.updategaussianclass.nu,
+                        "\nkappa: ", self.updategaussianclass.kappa,
+                        "\nalphadir: ", self.updategaussianclass.alphadir
                     )
 
         if self.opt.iter > 0 and self.opt.iter % self.UpdateRate == 0:
             if self.verbose:
-                print('progress', self.dmlist, '><',
+                print("progress", self.dmlist, "><",
                     np.maximum(
                         (1. - self.progress) * self.previous_dmlist,
                         (1. + self.tolerance) * self.DMtarget
@@ -2277,8 +2288,8 @@ class PetroBetaReWeighting(InversionDirective):
                     #self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
 
                     if self.verbose:
-                        #print('update beta for countering plateau')
-                        print('update beta for countering plateau')
+                        #print("update beta for countering plateau")
+                        print("update beta for countering plateau")
 
             elif np.all([self.DM,
                          self.mode == 2]):
@@ -2290,7 +2301,7 @@ class PetroBetaReWeighting(InversionDirective):
                     self.petroregularizer.alpha_s *= self.rateWarming * ratio
 
                     if self.verbose:
-                        print('update alpha_s for clustering: ',
+                        print("update alpha_s for clustering: ",
                             self.petroregularizer.alpha_s)
 
                 if np.all([
@@ -2325,10 +2336,10 @@ class PetroBetaReWeighting(InversionDirective):
 
                     if self.verbose:
                         print(
-                            'Decreased GMM Prior. New confidences:\n',
-                            'nu: ', self.updategaussianclass.nu,
-                            '\nkappa: ', self.updategaussianclass.kappa,
-                            '\nalphadir: ', self.updategaussianclass.alphadir
+                            "Decreased GMM Prior. New confidences:\n",
+                            "nu: ", self.updategaussianclass.nu,
+                            "\nkappa: ", self.updategaussianclass.kappa,
+                            "\nalphadir: ", self.updategaussianclass.alphadir
                         )
 
                 elif np.all([
@@ -2363,10 +2374,10 @@ class PetroBetaReWeighting(InversionDirective):
 
                     if self.verbose:
                         print(
-                            'Increased GMM Prior. New confidences:\n',
-                            'nu: ', self.updategaussianclass.nu,
-                            '\nkappa: ', self.updategaussianclass.kappa,
-                            '\nalphadir: ', self.updategaussianclass.alphadir
+                            "Increased GMM Prior. New confidences:\n",
+                            "nu: ", self.updategaussianclass.nu,
+                            "\nkappa: ", self.updategaussianclass.kappa,
+                            "\nalphadir: ", self.updategaussianclass.alphadir
                         )
             elif np.all([
                     np.any(self.dmlist > (1. + self.tolerance) * self.DMtarget),
@@ -2383,7 +2394,7 @@ class PetroBetaReWeighting(InversionDirective):
                     self.invProb.beta /= (self.rateCooling * ratio)
                     # self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
                     if self.verbose:
-                        print('update beta for countering plateau')
+                        print("update beta for countering plateau")
 
         self.previous_score = copy.deepcopy(self.score)
         self.previous_dmlist = copy.deepcopy(
@@ -2402,7 +2413,7 @@ class AddMrefInSmooth(InversionDirective):
 
     def initialize(self):
         targetclass = np.r_[[isinstance(
-            dirpart, PetroTargetMisfit) for dirpart in self.inversion.directiveList.dList]]
+            dirpart, PGI_MultiTargetMisfits) for dirpart in self.inversion.directiveList.dList]]
         if ~np.any(targetclass):
             self.DMtarget = None
         else:
@@ -2412,7 +2423,7 @@ class AddMrefInSmooth(InversionDirective):
 
         if getattr(
             self.invProb.reg.objfcts[0],
-            'objfcts',
+            "objfcts",
             None
         ) is not None:
             petrosmallness = np.where(np.r_[
@@ -2420,15 +2431,15 @@ class AddMrefInSmooth(InversionDirective):
                     (
                         isinstance(
                             regpart,
-                            SimplePetroRegularization
+                            SimplePGI
                         ) or
                         isinstance(
                             regpart,
-                            PetroRegularization
+                            PGI
                         ) or
                         isinstance(
                             regpart,
-                            SimplePetroWithMappingRegularization
+                            SimplePGIwithRelationships
                         )
                     )
                     for regpart in self.invProb.reg.objfcts
@@ -2449,7 +2460,7 @@ class AddMrefInSmooth(InversionDirective):
 
         if getattr(
             self.invProb.reg.objfcts[0],
-            'objfcts',
+            "objfcts",
             None
         ) is not None:
             self.nbr = np.sum(
@@ -2465,9 +2476,9 @@ class AddMrefInSmooth(InversionDirective):
                         ((isinstance(regpart, SmoothDeriv) or
                           isinstance(regpart, SimpleSmoothDeriv) or
                           isinstance(regpart, SparseDeriv)) and not
-                         (isinstance(regobjcts, SimplePetroRegularization) or
-                          isinstance(regobjcts, PetroRegularization) or
-                          isinstance(regobjcts, SimplePetroWithMappingRegularization))
+                         (isinstance(regobjcts, SimplePGI) or
+                          isinstance(regobjcts, PGI) or
+                          isinstance(regobjcts, SimplePGIwithRelationships))
                          )])
                     for i, regobjcts in enumerate(self.invProb.reg.objfcts)
                     for j, regpart in enumerate(regobjcts.objfcts)
@@ -2493,7 +2504,7 @@ class AddMrefInSmooth(InversionDirective):
 
     @property
     def DMtarget(self):
-        if getattr(self, '_DMtarget', None) is None:
+        if getattr(self, "_DMtarget", None) is None:
             self.phi_d_target = 0.5 * self.invProb.dmisfit.survey.nD
             self._DMtarget = self.chifact * self.phi_d_target
         return self._DMtarget
@@ -2516,11 +2527,11 @@ class AddMrefInSmooth(InversionDirective):
                 ))/len(self.membership)
         if self.verbose:
             print(
-                'mref changes in ',
+                "mref changed in ",
                 len(self.membership) - np.count_nonzero(
                     self.previous_membership == self.membership
                 ),
-                ' places'
+                " places"
             )
         if (self.DM or np.all(self.dmlist<(1+self.tolerance_phid)*self.DMtarget)) and (same_mref or not self.wait_till_stable or percent_diff<=self.tolerance):
             self.invProb.reg.mrefInSmooth = True
@@ -2532,7 +2543,7 @@ class AddMrefInSmooth(InversionDirective):
                         self.invProb.reg.objfcts[
                             i].mref = self.petroregularizer.mref
                 if self.verbose:
-                    print('add mref to Smoothness. Percent_diff is ', percent_diff)
+                    print("add mref to Smoothness. Changes in mref happened in {} % of the cells".format(percent_diff))
 
             elif self._regmode == 1:
                 for i in range(self.nbr):
@@ -2544,7 +2555,7 @@ class AddMrefInSmooth(InversionDirective):
                         self.invProb.reg.objfcts[idx[0]].objfcts[
                             idx[1]].mref = self.petroregularizer.mref
                 if self.verbose:
-                    print('add mref to Smoothness. Percent_diff is ', percent_diff)
+                    print("add mref to Smoothness. Changes in mref happened in {} % of the cells".format(percent_diff))
 
         self.previous_membership = copy.deepcopy(self.membership)
 

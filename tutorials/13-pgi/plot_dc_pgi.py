@@ -187,7 +187,7 @@ dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
 # Create the regularization with GMM information
 idenMap = maps.IdentityMap(nP=m0.shape[0])
 wires = maps.Wires(('m', m0.shape[0]))
-reg_mean = regularization.SimplePetroRegularization(
+reg_mean = regularization.SimplePGI(
     GMmref=clf,  mesh=mesh,
     wiresmap=wires,
     maplist=[idenMap],
@@ -218,14 +218,14 @@ invProb.beta = betavalue
 
 # Inversion directives
 ## Beta Strategy with Beta and Alpha
-beta_alpha_iteration = directives.PetroBetaReWeighting(
+beta_alpha_iteration = directives.PGI_BetaAlphaSchedule(
     verbose=True, 
     rateCooling=5.,
     tolerance=0.05, #Tolerance on Phi_d for beta-cooling
     progress=0.1 #Minimum progress, else beta-cooling
 )
 ## PGI multi-target misfits
-targets = directives.PetroTargetMisfit(
+targets = directives.PGI_MultiTargetMisfits(
     verbose=True,
 )
 ## Put learned reference model in Smoothness once stable
@@ -288,7 +288,7 @@ clfnomean.covariances_ = np.array([[[0.001]],
 utils.compute_clusters_precision(clfnomean)
 
 # Create the PGI regularization
-reg_nomean = regularization.SimplePetroRegularization(
+reg_nomean = regularization.SimplePGI(
     GMmref=clfnomean,  mesh=mesh,
     wiresmap=wires,
     maplist=[idenMap],
@@ -311,13 +311,13 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg_nomean, opt)
 invProb.beta = betavalue
 
 # Inversion directives
-betaIt = directives.PetroBetaReWeighting(
+betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True, 
     rateCooling=5.,
     tolerance=.05,
     progress=0.1
 )
-targets = directives.PetroTargetMisfit(
+targets = directives.PGI_MultiTargetMisfits(
     verbose=True,
 )
 # kappa, nu and alphadir set the learning of the GMM
@@ -373,7 +373,7 @@ utils.order_clusters_GM_weight(clf_with_depth_info)
 
 # Re-initiliaze a PGI
 # Create the regularization with GMM information
-reg_nomean_geo = regularization.SimplePetroRegularization(
+reg_nomean_geo = regularization.SimplePGI(
     GMmref=clf_with_depth_info,  
     mesh=mesh,
     wiresmap=wires,
@@ -399,13 +399,13 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg_nomean_geo, opt)
 invProb.beta = betavalue
 
 # Inversion directives
-betaIt = directives.PetroBetaReWeighting(
+betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True, 
     rateCooling=5.,
     tolerance=0.05,
     progress=0.1
 )
-targets = directives.PetroTargetMisfit(
+targets = directives.PGI_MultiTargetMisfits(
     chifact = 1.,
     TriggerSmall=True,
     TriggerTheta=False,
