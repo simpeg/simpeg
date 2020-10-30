@@ -22,7 +22,7 @@ from sklearn.mixture._base import (
     _check_X, check_random_state, ConvergenceWarning
 )
 import warnings
-from .matutils import mkvc
+from .mat_utils import mkvc
 from ..maps import IdentityMap
 
 
