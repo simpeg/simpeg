@@ -129,8 +129,8 @@ class JointInversionTest(unittest.TestCase):
         print("test_joint_petro_inv_with_mapping: ")
         reg_simple = regularization.MakeSimplePGIwithRelationships(
             mesh=self.mesh,
-            GMmref=self.clfmapping,
-            GMmodel=self.clfmapping,
+            gmmref=self.clfmapping,
+            gmm=self.clfmapping,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
             evaltype='approx',
@@ -238,8 +238,8 @@ class JointInversionTest(unittest.TestCase):
         print("test_joint_petro_inv: ")
         reg_simple = regularization.MakeSimplePGI(
             mesh=self.mesh,
-            GMmref=self.clfnomapping,
-            GMmodel=self.clfnomapping,
+            gmmref=self.clfnomapping,
+            gmm=self.clfnomapping,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
             evaltype='approx',

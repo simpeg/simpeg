@@ -38,7 +38,7 @@ class SimplePGIsmallness(BaseRegularization):
 
     _multiplier_pair = 'alpha_s'
 
-    def __init__(self, GMmodel, wiresmap=None,
+    def __init__(self, gmm, wiresmap=None,
                  maplist=None, mesh=None,
                  approx_gradient=True,
                  evaltype='approx',
@@ -50,7 +50,7 @@ class SimplePGIsmallness(BaseRegularization):
         super(SimplePGIsmallness, self).__init__(
             mesh=mesh, **kwargs
         )
-        self.GMmodel = GMmodel
+        self.gmm = gmm
         self.wiresmap = wiresmap
         self.maplist = maplist
 
@@ -91,7 +91,7 @@ class SimplePGIsmallness(BaseRegularization):
     def membership(self, m):
         modellist = self.wiresmap * m
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        return self.GMmodel.predict(model)  # mkvc(m, numDims=2))
+        return self.gmm.predict(model)  # mkvc(m, numDims=2))
 
     @timeIt
     def __call__(self, m, externalW=True):
@@ -102,7 +102,7 @@ class SimplePGIsmallness(BaseRegularization):
             W = Identity()
 
         if getattr(self, 'mref', None) is None:
-            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.evaltype == 'approx':
             membership = self.membership(self.mref)
@@ -113,14 +113,14 @@ class SimplePGIsmallness(BaseRegularization):
             dmr = dmm - dmmref
             r0 = (W * mkvc(dmr)).reshape(dmr.shape, order='F')
 
-            if self.GMmodel.covariance_type == 'tied':
-                r1 = np.r_[[np.dot(self.GMmodel.precisions_, np.r_[r0[i]])
+            if self.gmm.covariance_type == 'tied':
+                r1 = np.r_[[np.dot(self.gmm.precisions_, np.r_[r0[i]])
                             for i in range(len(r0))]]
-            elif self.GMmodel.covariance_type == 'diag' or self.GMmodel.covariance_type == 'spherical':
-                r1 = np.r_[[np.dot(self.GMmodel.precisions_[membership[i]] * np.eye(len(self.wiresmap.maps)),
+            elif self.gmm.covariance_type == 'diag' or self.gmm.covariance_type == 'spherical':
+                r1 = np.r_[[np.dot(self.gmm.precisions_[membership[i]] * np.eye(len(self.wiresmap.maps)),
                                    np.r_[r0[i]]) for i in range(len(r0))]]
             else:
-                r1 = np.r_[[np.dot(self.GMmodel.precisions_[membership[i]],
+                r1 = np.r_[[np.dot(self.gmm.precisions_[membership[i]],
                                    np.r_[r0[i]]) for i in range(len(r0))]]
 
             return 0.5 * mkvc(r0).dot(mkvc(r1))
@@ -128,8 +128,8 @@ class SimplePGIsmallness(BaseRegularization):
         elif self.evaltype == 'full':
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-            score = self.GMmodel.score_samples(
-                model) + ComputeConstantTerm(self.GMmodel)
+            score = self.gmm.score_samples(
+                model) + ComputeConstantTerm(self.gmm)
             score_vec = mkvc(
                 np.r_[[score for maps in self.wiresmap.maps]])
             return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
@@ -138,7 +138,7 @@ class SimplePGIsmallness(BaseRegularization):
     def deriv(self, m):
 
         if getattr(self, 'mref', None) is None:
-            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
         membership = self.membership(self.mref)
         modellist = self.wiresmap * m
@@ -152,40 +152,40 @@ class SimplePGIsmallness(BaseRegularization):
             dm = dmmodel - dmmref
             r0 = (self.W * (mkvc(dm))).reshape(dm.shape, order='F')
 
-            if self.GMmodel.covariance_type == 'tied':
+            if self.gmm.covariance_type == 'tied':
                 r = mkvc(
-                    np.r_[[np.dot(self.GMmodel.precisions_, r0[i]) for i in range(len(r0))]])
-            elif self.GMmodel.covariance_type == 'diag' or self.GMmodel.covariance_type == 'spherical':
-                r = mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
+                    np.r_[[np.dot(self.gmm.precisions_, r0[i]) for i in range(len(r0))]])
+            elif self.gmm.covariance_type == 'diag' or self.gmm.covariance_type == 'spherical':
+                r = mkvc(np.r_[[np.dot(self.gmm.precisions_[
                                membership[i]] * np.eye(len(self.wiresmap.maps)), r0[i]) for i in range(len(r0))]])
             else:
-                r = mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
+                r = mkvc(np.r_[[np.dot(self.gmm.precisions_[
                                membership[i]], r0[i]) for i in range(len(r0))]])
             return mkvc(mD.T * (self.W * r))
 
         else:
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-            score = self.GMmodel.score_samples(model)
+            score = self.gmm.score_samples(model)
             score_vec = np.hstack([score for maps in self.wiresmap.maps])
-            logP = np.zeros((len(model), self.GMmodel.n_components))
+            logP = np.zeros((len(model), self.gmm.n_components))
             W = []
-            for k in range(self.GMmodel.n_components):
-                if self.GMmodel.covariance_type == 'tied':
+            for k in range(self.gmm.n_components):
+                if self.gmm.covariance_type == 'tied':
                     logP[:, k] = mkvc(multivariate_normal(
-                        self.GMmodel.means_[k], self.GMmodel.covariances_).logpdf(model))
-                    W.append(self.GMmodel.weights_[k] * mkvc(np.r_[[np.dot(
-                        self.GMmodel.precisions_, (model[i] - self.GMmodel.means_[k]).T)for i in range(len(model))]]))
-                elif self.GMmodel.covariance_type == 'diag' or self.GMmodel.covariance_type == 'spherical':
+                        self.gmm.means_[k], self.gmm.covariances_).logpdf(model))
+                    W.append(self.gmm.weights_[k] * mkvc(np.r_[[np.dot(
+                        self.gmm.precisions_, (model[i] - self.gmm.means_[k]).T)for i in range(len(model))]]))
+                elif self.gmm.covariance_type == 'diag' or self.gmm.covariance_type == 'spherical':
                     logP[:, k] = mkvc(multivariate_normal(
-                        self.GMmodel.means_[k], self.GMmodel.covariances_[k] * np.eye(len(self.wiresmap.maps))).logpdf(model))
-                    W.append(self.GMmodel.weights_[k] * mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
-                             k] * np.eye(len(self.wiresmap.maps)), (model[i] - self.GMmodel.means_[k]).T)for i in range(len(model))]]))
+                        self.gmm.means_[k], self.gmm.covariances_[k] * np.eye(len(self.wiresmap.maps))).logpdf(model))
+                    W.append(self.gmm.weights_[k] * mkvc(np.r_[[np.dot(self.gmm.precisions_[
+                             k] * np.eye(len(self.wiresmap.maps)), (model[i] - self.gmm.means_[k]).T)for i in range(len(model))]]))
                 else:
                     logP[:, k] = mkvc(multivariate_normal(
-                        self.GMmodel.means_[k], self.GMmodel.covariances_[k]).logpdf(model))
-                    W.append(self.GMmodel.weights_[k] * mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
-                             k], (model[i] - self.GMmodel.means_[k]).T)for i in range(len(model))]]))
+                        self.gmm.means_[k], self.gmm.covariances_[k]).logpdf(model))
+                    W.append(self.gmm.weights_[k] * mkvc(np.r_[[np.dot(self.gmm.precisions_[
+                             k], (model[i] - self.gmm.means_[k]).T)for i in range(len(model))]]))
             W = (np.c_[W].T)
             logP = np.vstack([logP for maps in self.wiresmap.maps])
             numer, sign = logsumexp(logP, axis=1, b=W, return_sign=True)
@@ -197,7 +197,7 @@ class SimplePGIsmallness(BaseRegularization):
     def deriv2(self, m, v=None):
 
         if getattr(self, 'mref', None) is None:
-            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
         # For a positive definite Hessian,
         # we approximate it with the covariance of the cluster
@@ -207,14 +207,14 @@ class SimplePGIsmallness(BaseRegularization):
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
         mD = sp.block_diag(mD)
 
-        if self.GMmodel.covariance_type == 'tied':
-            r = self.GMmodel.precisions_[np.newaxis, :, :][
+        if self.gmm.covariance_type == 'tied':
+            r = self.gmm.precisions_[np.newaxis, :, :][
                 np.zeros_like(membership)]
-        elif self.GMmodel.covariance_type == 'spherical' or self.GMmodel.covariance_type == 'diag':
-            r = np.r_[[self.GMmodel.precisions_[memb] *
+        elif self.gmm.covariance_type == 'spherical' or self.gmm.covariance_type == 'diag':
+            r = np.r_[[self.gmm.precisions_[memb] *
                        np.eye(len(self.wiresmap.maps)) for memb in membership]]
         else:
-            r = self.GMmodel.precisions_[membership]
+            r = self.gmm.precisions_[membership]
 
         if v is not None:
             mDv = self.wiresmap * (mD * v)
@@ -244,16 +244,16 @@ class SimplePGIsmallness(BaseRegularization):
 class SimplePGI(SimpleComboRegularization):
 
     def __init__(
-        self, mesh, GMmref, GMmodel=None,
+        self, mesh, gmmref, gmm=None,
         wiresmap=None, maplist=None, approx_gradient=True,
         evaltype='approx',
         alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
         alpha_xx=0., alpha_yy=0., alpha_zz=0.,
         **kwargs
     ):
-        self.GMmref = copy.deepcopy(GMmref)
-        order_clusters_GM_weight(self.GMmref)
-        self._GMmodel = copy.deepcopy(GMmodel)
+        self.gmmref = copy.deepcopy(gmmref)
+        order_clusters_GM_weight(self.gmmref)
+        self._gmm = copy.deepcopy(gmm)
         self._wiresmap = wiresmap
         self._maplist = maplist
         self._mesh = mesh
@@ -263,7 +263,7 @@ class SimplePGI(SimpleComboRegularization):
         self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
 
         objfcts = [
-            SimplePGIsmallness(mesh=mesh, GMmodel=self.GMmodel, wiresmap=self.wiresmap,
+            SimplePGIsmallness(mesh=mesh, gmm=self.gmm, wiresmap=self.wiresmap,
                                  maplist=self.maplist, approx_gradient=approx_gradient,
                                  evaltype=evaltype,
                                  mapping=self.mapping, **kwargs)
@@ -309,16 +309,16 @@ class SimplePGI(SimpleComboRegularization):
     alpha_s = props.Float("PetroPhysics weights")
 
     @property
-    def GMmodel(self):
-        if getattr(self, '_GMmodel', None) is None:
-            self._GMmodel = copy.deepcopy(self.GMmref)
-        return self._GMmodel
+    def gmm(self):
+        if getattr(self, '_gmm', None) is None:
+            self._gmm = copy.deepcopy(self.gmmref)
+        return self._gmm
 
-    @GMmodel.setter
-    def GMmodel(self, gm):
+    @gmm.setter
+    def gmm(self, gm):
         if gm is not None:
-            self._GMmodel = copy.deepcopy(gm)
-        self.objfcts[0].GMmodel = self.GMmodel
+            self._gmm = copy.deepcopy(gm)
+        self.objfcts[0].gmm = self.gmm
 
     def membership(self, m):
         return self.objfcts[0].membership(m)
@@ -368,14 +368,14 @@ class PGIsmallness(SimplePGIsmallness):
 
     _multiplier_pair = 'alpha_s'
 
-    def __init__(self, GMmodel, wiresmap=None,
+    def __init__(self, gmm, wiresmap=None,
                  maplist=None, mesh=None,
                  approx_gradient=True,
                  evaltype='approx',
                  **kwargs):
 
         super(PGIsmallness, self).__init__(
-            GMmodel=GMmodel, wiresmap=wiresmap,
+            gmm=gmm, wiresmap=wiresmap,
             maplist=maplist, mesh=mesh,
             approx_gradient=True,
             evaltype=evaltype,
@@ -424,7 +424,7 @@ class PGIsmallness(SimplePGIsmallness):
     # def membership(self, m):
     #     modellist = self.wiresmap * m
     #     model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-    #     return self.GMmodel.predict(model)  # mkvc(m, numDims=2))
+    #     return self.gmm.predict(model)  # mkvc(m, numDims=2))
 
     # @timeIt
     # def __call__(self, m, externalW=True):
@@ -435,7 +435,7 @@ class PGIsmallness(SimplePGIsmallness):
     #         W = Identity()
 
     #     if getattr(self, 'mref', None) is None:
-    #         self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
+    #         self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
     #     if self.evaltype == 'approx':
     #         membership = self.membership(self.mref)
@@ -446,14 +446,14 @@ class PGIsmallness(SimplePGIsmallness):
     #         dmr = dmm - dmmref
     #         r0 = W * mkvc(dmr)
 
-    #         if self.GMmodel.covariance_type == 'tied':
-    #             r1 = np.r_[[np.dot(self.GMmodel.precisions_, np.r_[dmr[i]])
+    #         if self.gmm.covariance_type == 'tied':
+    #             r1 = np.r_[[np.dot(self.gmm.precisions_, np.r_[dmr[i]])
     #                         for i in range(len(dmr))]]
-    #         elif self.GMmodel.covariance_type == 'diag' or self.GMmodel.covariance_type == 'spherical':
-    #             r1 = np.r_[[np.dot(self.GMmodel.precisions_[membership[i]] * np.eye(len(self.wiresmap.maps)),
+    #         elif self.gmm.covariance_type == 'diag' or self.gmm.covariance_type == 'spherical':
+    #             r1 = np.r_[[np.dot(self.gmm.precisions_[membership[i]] * np.eye(len(self.wiresmap.maps)),
     #                                np.r_[dmr[i]]) for i in range(len(dmr))]]
     #         else:
-    #             r1 = np.r_[[np.dot(self.GMmodel.precisions_[membership[i]],
+    #             r1 = np.r_[[np.dot(self.gmm.precisions_[membership[i]],
     #                                np.r_[dmr[i]]) for i in range(len(dmr))]]
 
     #         return 0.5 * r0.dot(W * mkvc(r1))
@@ -461,8 +461,8 @@ class PGIsmallness(SimplePGIsmallness):
     #     elif self.evaltype == 'full':
     #         modellist = self.wiresmap * m
     #         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-    #         score = self.GMmodel.score_samples(
-    #             model) + ComputeConstantTerm(self.GMmodel)
+    #         score = self.gmm.score_samples(
+    #             model) + ComputeConstantTerm(self.gmm)
     #         score_vec = mkvc(
     #             np.r_[[score for maps in self.wiresmap.maps]])
     #         return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
@@ -471,7 +471,7 @@ class PGIsmallness(SimplePGIsmallness):
     # def deriv(self, m):
 
     #     if getattr(self, 'mref', None) is None:
-    #         self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
+    #         self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
     #     membership = self.membership(self.mref)
     #     modellist = self.wiresmap * m
@@ -484,43 +484,43 @@ class PGIsmallness(SimplePGIsmallness):
     #         dmmref = np.c_[[a for a in mreflist]].T
     #         dm = dmmodel - dmmref
 
-    #         if self.GMmodel.covariance_type == 'tied':
+    #         if self.gmm.covariance_type == 'tied':
     #             r = self.W * \
     #                 mkvc(
-    #                     np.r_[[np.dot(self.GMmodel.precisions_, dm[i]) for i in range(len(dm))]])
-    #         elif self.GMmodel.covariance_type == 'diag' or self.GMmodel.covariance_type == 'spherical':
+    #                     np.r_[[np.dot(self.gmm.precisions_, dm[i]) for i in range(len(dm))]])
+    #         elif self.gmm.covariance_type == 'diag' or self.gmm.covariance_type == 'spherical':
     #             r = self.W * \
-    #                 mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
+    #                 mkvc(np.r_[[np.dot(self.gmm.precisions_[
     #                            membership[i]] * np.eye(len(self.wiresmap.maps)), dm[i]) for i in range(len(dm))]])
     #         else:
     #             r = self.W * \
-    #                 mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
+    #                 mkvc(np.r_[[np.dot(self.gmm.precisions_[
     #                            membership[i]], dm[i]) for i in range(len(dm))]])
     #         return mkvc(mD.T * (self.W.T * r))
 
     #     else:
     #         modellist = self.wiresmap * m
     #         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-    #         score = self.GMmodel.score_samples(model)
+    #         score = self.gmm.score_samples(model)
     #         score_vec = np.hstack([score for maps in self.wiresmap.maps])
-    #         logP = np.zeros((len(model), self.GMmodel.n_components))
+    #         logP = np.zeros((len(model), self.gmm.n_components))
     #         W = []
-    #         for k in range(self.GMmodel.n_components):
-    #             if self.GMmodel.covariance_type == 'tied':
+    #         for k in range(self.gmm.n_components):
+    #             if self.gmm.covariance_type == 'tied':
     #                 logP[:, k] = mkvc(multivariate_normal(
-    #                     self.GMmodel.means_[k], self.GMmodel.covariances_).logpdf(model))
-    #                 W.append(self.GMmodel.weights_[k] * mkvc(np.r_[[np.dot(
-    #                     self.GMmodel.precisions_, (model[i] - self.GMmodel.means_[k]).T)for i in range(len(model))]]))
-    #             elif self.GMmodel.covariance_type == 'diag' or self.GMmodel.covariance_type == 'spherical':
+    #                     self.gmm.means_[k], self.gmm.covariances_).logpdf(model))
+    #                 W.append(self.gmm.weights_[k] * mkvc(np.r_[[np.dot(
+    #                     self.gmm.precisions_, (model[i] - self.gmm.means_[k]).T)for i in range(len(model))]]))
+    #             elif self.gmm.covariance_type == 'diag' or self.gmm.covariance_type == 'spherical':
     #                 logP[:, k] = mkvc(multivariate_normal(
-    #                     self.GMmodel.means_[k], self.GMmodel.covariances_[k] * np.eye(len(self.wiresmap.maps))).logpdf(model))
-    #                 W.append(self.GMmodel.weights_[k] * mkvc(np.r_[[np.dot(self.GMmodel.precisions_[k] * np.eye(
-    #                     len(self.wiresmap.maps)), (model[i] - self.GMmodel.means_[k]).T)for i in range(len(model))]]))
+    #                     self.gmm.means_[k], self.gmm.covariances_[k] * np.eye(len(self.wiresmap.maps))).logpdf(model))
+    #                 W.append(self.gmm.weights_[k] * mkvc(np.r_[[np.dot(self.gmm.precisions_[k] * np.eye(
+    #                     len(self.wiresmap.maps)), (model[i] - self.gmm.means_[k]).T)for i in range(len(model))]]))
     #             else:
     #                 logP[:, k] = mkvc(multivariate_normal(
-    #                     self.GMmodel.means_[k], self.GMmodel.covariances_[k]).logpdf(model))
-    #                 W.append(self.GMmodel.weights_[k] * mkvc(np.r_[[np.dot(self.GMmodel.precisions_[
-    #                          k], (model[i] - self.GMmodel.means_[k]).T)for i in range(len(model))]]))
+    #                     self.gmm.means_[k], self.gmm.covariances_[k]).logpdf(model))
+    #                 W.append(self.gmm.weights_[k] * mkvc(np.r_[[np.dot(self.gmm.precisions_[
+    #                          k], (model[i] - self.gmm.means_[k]).T)for i in range(len(model))]]))
     #         W = (np.c_[W].T)
     #         logP = np.vstack([logP for maps in self.wiresmap.maps])
     #         numer, sign = logsumexp(logP, axis=1, b=W, return_sign=True)
@@ -532,7 +532,7 @@ class PGIsmallness(SimplePGIsmallness):
     # def deriv2(self, m, v=None):
 
     #     if getattr(self, 'mref', None) is None:
-    #         self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
+    #         self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
     #     # For a positive definite Hessian,
     #     # we approximate it with the covariance of the cluster
@@ -542,14 +542,14 @@ class PGIsmallness(SimplePGIsmallness):
     #     mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
     #     mD = sp.block_diag(mD)
 
-    #     if self.GMmodel.covariance_type == 'tied':
-    #         r = self.GMmodel.precisions_[np.newaxis, :, :][
+    #     if self.gmm.covariance_type == 'tied':
+    #         r = self.gmm.precisions_[np.newaxis, :, :][
     #             np.zeros_like(membership)]
-    #     elif self.GMmodel.covariance_type == 'spherical' or self.GMmodel.covariance_type == 'diag':
-    #         r = np.r_[[self.GMmodel.precisions_[memb] *
+    #     elif self.gmm.covariance_type == 'spherical' or self.gmm.covariance_type == 'diag':
+    #         r = np.r_[[self.gmm.precisions_[memb] *
     #                    np.eye(len(self.wiresmap.maps)) for memb in membership]]
     #     else:
-    #         r = self.GMmodel.precisions_[membership]
+    #         r = self.gmm.precisions_[membership]
 
     #     if v is not None:
     #         mDv = self.wiresmap * (mD * v)
@@ -577,16 +577,16 @@ class PGIsmallness(SimplePGIsmallness):
 class PGI(SimpleComboRegularization):
 
     def __init__(
-        self, mesh, GMmref, GMmodel=None,
+        self, mesh, gmmref, gmm=None,
         wiresmap=None, maplist=None, approx_gradient=True,
         evaltype='approx',
         alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
         alpha_xx=0., alpha_yy=0., alpha_zz=0.,
         **kwargs
     ):
-        self.GMmref = copy.deepcopy(GMmref)
-        order_clusters_GM_weight(self.GMmref)
-        self._GMmodel = copy.deepcopy(GMmodel)
+        self.gmmref = copy.deepcopy(gmmref)
+        order_clusters_GM_weight(self.gmmref)
+        self._gmm = copy.deepcopy(gmm)
         self._wiresmap = wiresmap
         self._maplist = maplist
         self._mesh = mesh
@@ -596,7 +596,7 @@ class PGI(SimpleComboRegularization):
         self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
 
         objfcts = [
-            PGIsmallness(mesh=mesh, GMmodel=self.GMmodel,
+            PGIsmallness(mesh=mesh, gmm=self.gmm,
                            wiresmap=self.wiresmap,
                            maplist=self.maplist,
                            approx_gradient=approx_gradient,
@@ -644,16 +644,16 @@ class PGI(SimpleComboRegularization):
     alpha_s = props.Float("PetroPhysics weights")
 
     @property
-    def GMmodel(self):
-        if getattr(self, '_GMmodel', None) is None:
-            self._GMmodel = copy.deepcopy(self.GMmref)
-        return self._GMmodel
+    def gmm(self):
+        if getattr(self, '_gmm', None) is None:
+            self._gmm = copy.deepcopy(self.gmmref)
+        return self._gmm
 
-    @GMmodel.setter
-    def GMmodel(self, gm):
+    @gmm.setter
+    def gmm(self, gm):
         if gm is not None:
-            self._GMmodel = copy.deepcopy(gm)
-        self.objfcts[0].GMmodel = self.GMmodel
+            self._gmm = copy.deepcopy(gm)
+        self.objfcts[0].gmm = self.gmm
 
     def membership(self, m):
         return self.objfcts[0].membership(m)
@@ -703,7 +703,7 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
 
     _multiplier_pair = 'alpha_s'
 
-    def __init__(self, GMmodel, wiresmap=None,
+    def __init__(self, gmm, wiresmap=None,
                  maplist=None, mesh=None,
                  approx_gradient=True,
                  evaltype='approx',
@@ -715,7 +715,7 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
         super(SimplePGIwithRelationshipsSmallness, self).__init__(
             mesh=mesh, **kwargs
         )
-        self.GMmodel = GMmodel
+        self.gmm = gmm
         self.wiresmap = wiresmap
         self.maplist = maplist
 
@@ -755,7 +755,7 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
     def membership(self, m):
         modellist = self.wiresmap * m
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        return self.GMmodel.predict(model)
+        return self.gmm.predict(model)
 
     @timeIt
     def __call__(self, m, externalW=True):
@@ -766,7 +766,7 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
             W = Identity()
 
         if getattr(self, 'mref', None) is None:
-            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.evaltype == 'approx':
             membership = self.membership(self.mref)
@@ -775,21 +775,21 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
             dmm = np.r_[
                 [
-                    self.GMmodel.cluster_mapping[membership[i]] * dmm[i].reshape(-1, 2) for i in range(dmm.shape[0])
+                    self.gmm.cluster_mapping[membership[i]] * dmm[i].reshape(-1, 2) for i in range(dmm.shape[0])
                 ]
             ].reshape(-1, 2)
             dmmref = np.c_[[a for a in dmref]].T
             dmr = dmm - dmmref
             r0 = W * mkvc(dmr)
 
-            if self.GMmodel.covariance_type == 'tied':
-                r1 = np.r_[[np.dot(self.GMmodel.precisions_, np.r_[dmr[i]])
+            if self.gmm.covariance_type == 'tied':
+                r1 = np.r_[[np.dot(self.gmm.precisions_, np.r_[dmr[i]])
                             for i in range(len(dmr))]]
-            elif self.GMmodel.covariance_type == 'diag' or self.GMmodel.covariance_type == 'spherical':
-                r1 = np.r_[[np.dot(self.GMmodel.precisions_[membership[i]] * np.eye(len(self.wiresmap.maps)),
+            elif self.gmm.covariance_type == 'diag' or self.gmm.covariance_type == 'spherical':
+                r1 = np.r_[[np.dot(self.gmm.precisions_[membership[i]] * np.eye(len(self.wiresmap.maps)),
                                    np.r_[dmr[i]]) for i in range(len(dmr))]]
             else:
-                r1 = np.r_[[np.dot(self.GMmodel.precisions_[membership[i]],
+                r1 = np.r_[[np.dot(self.gmm.precisions_[membership[i]],
                                    np.r_[dmr[i]]) for i in range(len(dmr))]]
 
             return 0.5 * r0.dot(W * mkvc(r1))
@@ -797,8 +797,8 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
         elif self.evaltype == 'full':
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-            score = self.GMmodel.score_samples(
-                model) + ComputeConstantTerm(self.GMmodel)
+            score = self.gmm.score_samples(
+                model) + ComputeConstantTerm(self.gmm)
             score_vec = mkvc(
                 np.r_[[score for maps in self.wiresmap.maps]])
             return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
@@ -807,7 +807,7 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
     def deriv(self, m):
 
         if getattr(self, 'mref', None) is None:
-            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
         membership = self.membership(self.mref)
         modellist = self.wiresmap * m
@@ -819,22 +819,22 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
         if self.approx_gradient == True:
             dmm = np.r_[
                 [
-                    self.GMmodel.cluster_mapping[membership[i]] * dmmodel[i].reshape(-1, 2) for i in range(dmmodel.shape[0])
+                    self.gmm.cluster_mapping[membership[i]] * dmmodel[i].reshape(-1, 2) for i in range(dmmodel.shape[0])
                 ]
             ].reshape(-1, 2)
             dmmref = np.c_[[a for a in mreflist]].T
             dm = dmm - dmmref
 
-            if self.GMmodel.covariance_type == 'tied':
+            if self.gmm.covariance_type == 'tied':
                 raise Exception('Not implemented')
             else:
                 r = self.W * \
                     mkvc(np.r_[
                         [
                             mkvc(
-                                self.GMmodel.cluster_mapping[membership[i]].deriv(
+                                self.gmm.cluster_mapping[membership[i]].deriv(
                                     dmmodel[i],
-                                    v=np.dot(self.GMmodel.precisions_[membership[i]], dm[i])))
+                                    v=np.dot(self.gmm.precisions_[membership[i]], dm[i])))
                             for i in range(dmmodel.shape[0])]])
             return mkvc(mD.T * (self.W.T * r))
 
@@ -845,7 +845,7 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
     def deriv2(self, m, v=None):
 
         if getattr(self, 'mref', None) is None:
-            self.mref = mkvc(self.GMmodel.means_[self.membership(m)])
+            self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
         # For a positive definite Hessian,
         # we approximate it with the covariance of the cluster
@@ -857,27 +857,27 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
         mD = sp.block_diag(mD)
 
         if self._r_second_deriv is None:
-            if self.GMmodel.covariance_type == 'tied':
+            if self.gmm.covariance_type == 'tied':
                 r = np.r_[
                     [
-                        self.GMmodel.cluster_mapping[membership[i]].deriv(
+                        self.gmm.cluster_mapping[membership[i]].deriv(
                             dmmodel[i],
-                            v=(self.GMmodel.cluster_mapping[membership[i]].deriv(
+                            v=(self.gmm.cluster_mapping[membership[i]].deriv(
                                 dmmodel[i],
-                                v=self.GMmodel.precisions_
+                                v=self.gmm.precisions_
                             )).T
                         )
                         for i in range(len(dmmodel))
                     ]
                 ]
-            elif self.GMmodel.covariance_type == 'spherical' or self.GMmodel.covariance_type == 'diag':
+            elif self.gmm.covariance_type == 'spherical' or self.gmm.covariance_type == 'diag':
                 r = np.r_[
                     [
-                        self.GMmodel.cluster_mapping[membership[i]].deriv(
+                        self.gmm.cluster_mapping[membership[i]].deriv(
                             dmmodel[i],
-                            v=(self.GMmodel.cluster_mapping[membership[i]].deriv(
+                            v=(self.gmm.cluster_mapping[membership[i]].deriv(
                                 dmmodel[i],
-                                v=self.GMmodel.precisions_[membership[i]] *
+                                v=self.gmm.precisions_[membership[i]] *
                                 np.eye(len(self.wiresmap.maps))
                             )).T
                         )
@@ -887,11 +887,11 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
             else:
                 r = np.r_[
                     [
-                        self.GMmodel.cluster_mapping[membership[i]].deriv(
+                        self.gmm.cluster_mapping[membership[i]].deriv(
                             dmmodel[i],
-                            v=(self.GMmodel.cluster_mapping[membership[i]].deriv(
+                            v=(self.gmm.cluster_mapping[membership[i]].deriv(
                                 dmmodel[i],
-                                v=self.GMmodel.precisions_[membership[i]]
+                                v=self.gmm.precisions_[membership[i]]
                             )).T
                         )
                         for i in range(len(dmmodel))
@@ -925,16 +925,16 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
 class SimplePGIwithRelationships(SimpleComboRegularization):
 
     def __init__(
-        self, mesh, GMmref, GMmodel=None,
+        self, mesh, gmmref, gmm=None,
         wiresmap=None, maplist=None, approx_gradient=True,
         evaltype='approx',
         alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
         alpha_xx=0., alpha_yy=0., alpha_zz=0.,
         **kwargs
     ):
-        self.GMmref = copy.deepcopy(GMmref)
-        order_clusters_GM_weight(self.GMmref)
-        self._GMmodel = copy.deepcopy(GMmodel)
+        self.gmmref = copy.deepcopy(gmmref)
+        order_clusters_GM_weight(self.gmmref)
+        self._gmm = copy.deepcopy(gmm)
         self._wiresmap = wiresmap
         self._maplist = maplist
         self._mesh = mesh
@@ -946,7 +946,7 @@ class SimplePGIwithRelationships(SimpleComboRegularization):
         objfcts = [
             SimplePGIwithRelationshipsSmallness(
                 mesh=mesh,
-                GMmodel=self.GMmodel,
+                gmm=self.gmm,
                 wiresmap=self.wiresmap,
                 maplist=self.maplist,
                 approx_gradient=approx_gradient,
@@ -994,16 +994,16 @@ class SimplePGIwithRelationships(SimpleComboRegularization):
     alpha_s = props.Float("PetroPhysics weights")
 
     @property
-    def GMmodel(self):
-        if getattr(self, '_GMmodel', None) is None:
-            self._GMmodel = copy.deepcopy(self.GMmref)
-        return self._GMmodel
+    def gmm(self):
+        if getattr(self, '_gmm', None) is None:
+            self._gmm = copy.deepcopy(self.gmmref)
+        return self._gmm
 
-    @GMmodel.setter
-    def GMmodel(self, gm):
+    @gmm.setter
+    def gmm(self, gm):
         if gm is not None:
-            self._GMmodel = copy.deepcopy(gm)
-        self.objfcts[0].GMmodel = self.GMmodel
+            self._gmm = copy.deepcopy(gm)
+        self.objfcts[0].gmm = self.gmm
 
     #@classmethod
     def membership(self, m):
@@ -1048,7 +1048,7 @@ class SimplePGIwithRelationships(SimpleComboRegularization):
 
 
 def MakeSimplePGI(
-    mesh, GMmref, GMmodel=None,
+    mesh, gmmref, gmm=None,
     wiresmap=None, maplist=None,
     approx_gradient=True,
     evaltype='approx',
@@ -1075,7 +1075,7 @@ def MakeSimplePGI(
         clwhtlst = cell_weights_list
 
     reg = SimplePGI(
-        mesh=mesh, GMmref=GMmref, GMmodel=GMmodel,
+        mesh=mesh, gmmref=gmmref, gmm=gmm,
         wiresmap=wiresmap, maplist=maplist,
         approx_gradient=approx_gradient,
         evaltype=evaltype,
@@ -1118,7 +1118,7 @@ def MakeSimplePGI(
 
 
 def MakePGI(
-    mesh, GMmref, GMmodel=None,
+    mesh, gmmref, gmm=None,
     wiresmap=None, maplist=None,
     approx_gradient=True,
     evaltype='approx',
@@ -1145,7 +1145,7 @@ def MakePGI(
         clwhtlst = cell_weights_list
 
     reg = PGI(
-        mesh=mesh, GMmref=GMmref, GMmodel=GMmodel,
+        mesh=mesh, gmmref=gmmref, gmm=gmm,
         wiresmap=wiresmap, maplist=maplist,
         approx_gradient=approx_gradient,
         evaltype=evaltype,
@@ -1188,7 +1188,7 @@ def MakePGI(
 
 
 def MakeSimplePGIwithRelationships(
-    mesh, GMmref, GMmodel=None,
+    mesh, gmmref, gmm=None,
     wiresmap=None, maplist=None,
     approx_gradient=True,
     evaltype='approx',
@@ -1215,7 +1215,7 @@ def MakeSimplePGIwithRelationships(
         clwhtlst = cell_weights_list
 
     reg = SimplePGIwithRelationships(
-        mesh=mesh, GMmref=GMmref, GMmodel=GMmodel,
+        mesh=mesh, gmmref=gmmref, gmm=gmm,
         wiresmap=wiresmap, maplist=maplist,
         approx_gradient=approx_gradient,
         evaltype=evaltype,

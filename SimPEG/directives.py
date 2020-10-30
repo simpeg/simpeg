@@ -1101,7 +1101,7 @@ class Update_Wj(InversionDirective):
 
 ###############################################################################
 #                                                                             #
-#         Directives for Petrophysically-Constrained Regularization           #
+#         Directives for PGI: Petrophysically guided Regularization           #
 #                                                                             #
 ###############################################################################
 
@@ -1111,12 +1111,11 @@ class GaussianMixtureUpdateModel(InversionDirective):
     coolingRate = 1
     update_covariances = True
     verbose = False
-    alphadir = 1e8 #default: keep GMM fixed
+    zeta = 1e8 #default: keep GMM fixed
     nu = 1e8
     kappa = 1e8
     fixed_membership = None
     keep_ref_fixed_in_Smooth = True
-    boreholeidx = None
 
     def initialize(self):
         if getattr(
@@ -1154,61 +1153,61 @@ class GaussianMixtureUpdateModel(InversionDirective):
 
         m = self.invProb.model
         if self._regmode == 1:
-            self.petroregularizer = self.invProb.reg.objfcts[
+            self.pgi_reg = self.invProb.reg.objfcts[
                 self.petrosmallness]
             modellist = self.invProb.reg.objfcts[
                 self.petrosmallness].wiresmap * m
         else:
-            self.petroregularizer = self.invProb.reg
+            self.pgi_reg = self.invProb.reg
             modellist = self.invProb.reg.wiresmap * m
         model = np.c_[
-            [a * b for a, b in zip(self.petroregularizer.maplist, modellist)]].T
+            [a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
 
-        if self.petroregularizer.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
-            self.fixed_membership = self.petroregularizer.membership(
-                self.petroregularizer.mref)
+        if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
+            self.fixed_membership = np.c_[
+                np.arange(len(self.pgi_reg.gmmref.mesh.vol)),
+                self.pgi_reg.membership(self.pgi_reg.mref)
+            ]
 
         # TEMPORARY FOR WEIGHTS ACCROSS THE MESH
-        self.petroregularizer.GMmodel.weights_ = self.petroregularizer.GMmref.weights_
+        # self.pgi_reg.gmm.weights_ = self.pgi_reg.gmmref.weights_
 
         clfupdate = GaussianMixtureWithPrior(
-            GMref=self.petroregularizer.GMmref,
-            alphadir=self.alphadir,
+            gmmref=self.pgi_reg.gmmref,
+            zeta=self.zeta,
             kappa=self.kappa,
             nu=self.nu,
             verbose=self.verbose,
             prior_type="semi",
             update_covariances=self.update_covariances,
-            max_iter=self.petroregularizer.GMmodel.max_iter,
-            n_init=self.petroregularizer.GMmodel.n_init,
-            reg_covar=self.petroregularizer.GMmodel.reg_covar,
-            weights_init=self.petroregularizer.GMmodel.weights_,
-            means_init=self.petroregularizer.GMmodel.means_,
-            precisions_init=self.petroregularizer.GMmodel.precisions_,
-            random_state=self.petroregularizer.GMmodel.random_state,
-            tol=self.petroregularizer.GMmodel.tol,
-            verbose_interval=self.petroregularizer.GMmodel.verbose_interval,
-            warm_start=self.petroregularizer.GMmodel.warm_start,
+            max_iter=self.pgi_reg.gmm.max_iter,
+            n_init=self.pgi_reg.gmm.n_init,
+            reg_covar=self.pgi_reg.gmm.reg_covar,
+            weights_init=self.pgi_reg.gmm.weights_,
+            means_init=self.pgi_reg.gmm.means_,
+            precisions_init=self.pgi_reg.gmm.precisions_,
+            random_state=self.pgi_reg.gmm.random_state,
+            tol=self.pgi_reg.gmm.tol,
+            verbose_interval=self.pgi_reg.gmm.verbose_interval,
+            warm_start=self.pgi_reg.gmm.warm_start,
             fixed_membership=self.fixed_membership,
-            boreholeidx=self.boreholeidx,
         )
         clfupdate = clfupdate.fit(model)
-        #order_cluster(clfupdate, self.petroregularizer.GMmref)
-        self.petroregularizer.GMmodel = clfupdate
-        if self.fixed_membership is None:
-            membership = clfupdate.predict(model)
-            if self._regmode == 1:
-                self.invProb.reg.objfcts[self.petrosmallness].mref = mkvc(
-                    clfupdate.means_[membership])
-                self.invProb.reg.objfcts[
-                    self.petrosmallness]._r_second_deriv = None
-            else:
-                self.invProb.reg.mref = mkvc(
-                    clfupdate.means_[membership])
-                self.invProb.reg._r_second_deriv = None
+        #order_cluster(clfupdate, self.pgi_reg.gmmref)
+        self.pgi_reg.gmm = clfupdate
+        membership = clfupdate.predict(model)
+        
+        if self.fixed_membership is not None:
+            membership[self.fixed_membership[:,0]] = self.fixed_membership[:,1]
+        
+        mref = clfupdate.means_[membership]
+        
+        if self._regmode == 1:
+            self.invProb.reg.objfcts[self.petrosmallness].mref = mkvc(mref)
+            self.invProb.reg.objfcts[self.petrosmallness]._r_second_deriv = None
         else:
-            self.petroregularizer.mref = mkvc(
-                clfupdate.means_[self.fixed_membership])
+            self.invProb.reg.mref = mkvc(mref)
+            self.invProb.reg._r_second_deriv = None
 
 
 class GMMRFUpdateModel(InversionDirective):
@@ -1217,14 +1216,13 @@ class GMMRFUpdateModel(InversionDirective):
     coolingRate = 1
     update_covariances = True
     verbose = False
-    alphadir = 1e8 #default: keep GMM fixed
+    zeta = 1e8 #default: keep GMM fixed
     nu = 1e8
     kappa = 1e8
     fixed_membership = None
     keep_ref_fixed_in_Smooth = True
     neighbors = 8
     temperature = 12.
-    boreholeidx = None
     unit_anisotropy = None  # Dictionary with unit, anisotropy
     index_anisotropy = None  # Dictionary with index, anisotropy, TODOs: to implement
 
@@ -1264,61 +1262,61 @@ class GMMRFUpdateModel(InversionDirective):
 
         m = self.invProb.model
         if self._regmode == 1:
-            self.petroregularizer = self.invProb.reg.objfcts[
+            self.pgi_reg = self.invProb.reg.objfcts[
                 self.petrosmallness]
             modellist = self.invProb.reg.objfcts[
                 self.petrosmallness].wiresmap * m
         else:
-            self.petroregularizer = self.invProb.reg
+            self.pgi_reg = self.invProb.reg
             modellist = self.invProb.reg.wiresmap * m
         model = np.c_[
-            [a * b for a, b in zip(self.petroregularizer.maplist, modellist)]].T
+            [a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
 
-        if self.petroregularizer.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
-            self.fixed_membership = self.petroregularizer.membership(
-                self.petroregularizer.mref
-            )
+        if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
+            self.fixed_membership = np.c_[
+                np.arange(len(self.pgi_reg.gmmref.mesh.vol)),
+                self.pgi_reg.membership(self.pgi_reg.mref)
+            ]
 
         # TEMPORARY FOR WEIGHTS ACCROSS THE MESH
-        # self.petroregularizer.GMmodel.weights_ = self.petroregularizer.GMmref.weights_
+        # self.pgi_reg.gmm.weights_ = self.pgi_reg.gmmref.weights_
         if self.unit_anisotropy is not None:
             self.unit_anisotropy["index"] = []
             for i, unit in enumerate(self.unit_anisotropy["unit"]):
-                self.unit_anisotropy["index"].append(self.petroregularizer.membership(
-                self.petroregularizer.mref) == unit)
+                self.unit_anisotropy["index"].append(self.pgi_reg.membership(
+                self.pgi_reg.mref) == unit)
 
         clfupdate = GaussianMixtureMarkovRandomField(
-            GMref=self.petroregularizer.GMmref,
+            gmmref=self.pgi_reg.gmmref,
             kneighbors=self.neighbors,
-            kdtree=getattr(self.petroregularizer.GMmodel, "kdtree", None),
-            indexneighbors=getattr(self.petroregularizer.GMmodel, "indexneighbors", None),
+            kdtree=getattr(self.pgi_reg.gmm, "kdtree", None),
+            indexneighbors=getattr(self.pgi_reg.gmm, "indexneighbors", None),
             index_anisotropy=self.unit_anisotropy,
-            index_kdtree=getattr(self.petroregularizer.GMmodel, "index_kdtree", None),
+            index_kdtree=getattr(self.pgi_reg.gmm, "index_kdtree", None),
             T=self.temperature,
-            alphadir=self.alphadir,
+            zeta=self.zeta,
             kappa=self.kappa,
             nu=self.nu,
             verbose=self.verbose,
             prior_type="semi",
-            boreholeidx=self.boreholeidx,
             update_covariances=self.update_covariances,
-            max_iter=self.petroregularizer.GMmodel.max_iter,
-            n_init=self.petroregularizer.GMmodel.n_init,
-            reg_covar=self.petroregularizer.GMmodel.reg_covar,
-            weights_init=self.petroregularizer.GMmodel.weights_*np.ones(
-                (len(model),self.petroregularizer.GMmref.n_components)
+            max_iter=self.pgi_reg.gmm.max_iter,
+            n_init=self.pgi_reg.gmm.n_init,
+            reg_covar=self.pgi_reg.gmm.reg_covar,
+            weights_init=self.pgi_reg.gmm.weights_*np.ones(
+                (len(model),self.pgi_reg.gmmref.n_components)
             ),
-            means_init=self.petroregularizer.GMmodel.means_,
-            precisions_init=self.petroregularizer.GMmodel.precisions_,
-            random_state=self.petroregularizer.GMmodel.random_state,
-            tol=self.petroregularizer.GMmodel.tol,
-            verbose_interval=self.petroregularizer.GMmodel.verbose_interval,
-            warm_start=self.petroregularizer.GMmodel.warm_start,
+            means_init=self.pgi_reg.gmm.means_,
+            precisions_init=self.pgi_reg.gmm.precisions_,
+            random_state=self.pgi_reg.gmm.random_state,
+            tol=self.pgi_reg.gmm.tol,
+            verbose_interval=self.pgi_reg.gmm.verbose_interval,
+            warm_start=self.pgi_reg.gmm.warm_start,
             fixed_membership=self.fixed_membership,
         )
         clfupdate = clfupdate.fit(model)
-        #order_cluster(clfupdate, self.petroregularizer.GMmref)
-        self.petroregularizer.GMmodel = clfupdate
+        #order_cluster(clfupdate, self.pgi_reg.gmmref)
+        self.pgi_reg.gmm = clfupdate
         if self.fixed_membership is None:
             membership = clfupdate.predict(model)
             if self._regmode == 1:
@@ -1331,7 +1329,7 @@ class GMMRFUpdateModel(InversionDirective):
                     clfupdate.means_[membership])
                 self.invProb.reg._r_second_deriv = None
         else:
-            self.petroregularizer.mref = mkvc(
+            self.pgi_reg.mref = mkvc(
                 clfupdate.means_[self.fixed_membership])
 
 
@@ -1370,21 +1368,21 @@ class UpdateReference(InversionDirective):
             self._regmode = 2
 
         if self._regmode == 1:
-            self.petroregularizer = self.invProb.reg.objfcts[
+            self.pgi_reg = self.invProb.reg.objfcts[
                 self.petrosmallness]
         else:
-            self.petroregularizer = self.invProb.reg
+            self.pgi_reg = self.invProb.reg
 
     def endIter(self):
         m = self.invProb.model
-        modellist = self.petroregularizer.wiresmap * m
+        modellist = self.pgi_reg.wiresmap * m
         model = np.c_[
-            [a * b for a, b in zip(self.petroregularizer.maplist, modellist)]].T
+            [a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
 
-        membership = self.petroregularizer.GMmref.predict(model)
-        self.petroregularizer.mref = mkvc(
-            self.petroregularizer.GMmref.means_[membership])
-        self.petroregularizer.objfcts[0]._r_second_deriv = None
+        membership = self.pgi_reg.gmmref.predict(model)
+        self.pgi_reg.mref = mkvc(
+            self.pgi_reg.gmmref.means_[membership])
+        self.pgi_reg.objfcts[0]._r_second_deriv = None
 
 
 class SmoothUpdateReferenceModel(InversionDirective):
@@ -1410,19 +1408,19 @@ class SmoothUpdateReferenceModel(InversionDirective):
         modellist = self.invProb.reg.wiresmap * m
         model = np.c_[
             [a * b for a, b in zip(self.invProb.reg.maplist, modellist)]].T
-        minit = self.invProb.reg.GMmodel.predict(model)
+        minit = self.invProb.reg.gmm.predict(model)
 
         indActive = self.invProb.reg.indActive
 
         if self.Pottmatrix is None:
-            n_unit = self.invProb.reg.GMmodel.n_components
+            n_unit = self.invProb.reg.gmm.n_components
             Pott = np.ones([n_unit, n_unit]) * self.offdiag
             for i in range(Pott.shape[0]):
                 Pott[i, i] = self.indiag
             self.Pottmatrix = Pott
 
         # if self.log_univar is None:
-        _, self.log_univar = self.invProb.reg.GMmodel._estimate_log_prob_resp(
+        _, self.log_univar = self.invProb.reg.gmm._estimate_log_prob_resp(
             model
         )
 
@@ -1454,64 +1452,7 @@ class SmoothUpdateReferenceModel(InversionDirective):
             )
 
         self.invProb.reg.mref = mkvc(
-            self.invProb.reg.GMmodel.means_[denoised[0]])
-
-
-class BoreholeLithologyConstraints(InversionDirective):
-
-    borehole_index = None
-    borehole_lithology = None
-
-    def initialize(self):
-        if getattr(
-            self.invProb.reg.objfcts[0],
-            "objfcts",
-            None
-        ) is not None:
-            petrosmallness = np.where(np.r_[
-                [
-                    (
-                        isinstance(
-                            regpart,
-                            SimplePGI
-                        ) or
-                        isinstance(
-                            regpart,
-                            PGI
-                        ) or
-                        isinstance(
-                            regpart,
-                            SimplePGIwithRelationships
-                        )
-                    )
-                    for regpart in self.invProb.reg.objfcts
-                ]
-            ])[0][0]
-            self.petrosmallness = petrosmallness
-            if self.debug:
-                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
-            self._regmode = 1
-        else:
-            self._regmode = 2
-
-        if self._regmode == 1:
-            self.petroregularizer = self.invProb.reg.objfcts[
-                self.petrosmallness]
-        else:
-            self.petroregularizer = self.invProb.reg
-
-    def endIter(self):
-        order_cluster(
-            self.petroregularizer.GMmodel,
-            self.petroregularizer.GMmref
-        )
-        membership = self.petroregularizer.membership(self.petroregularizer.mref)
-        for bidx, lth in zip(self.borehole_index, self.borehole_lithology):
-            membership[bidx] = lth
-
-        self.petroregularizer.mref = mkvc(
-            self.petroregularizer.GMmodel.means_[membership]
-        )
+            self.invProb.reg.gmm.means_[denoised[0]])
 
 
 class PGI_local_GMM_proportions(InversionDirective):
@@ -1551,26 +1492,26 @@ class PGI_local_GMM_proportions(InversionDirective):
             self._regmode = 2
 
         if self._regmode == 1:
-            self.petroregularizer = self.invProb.reg.objfcts[
+            self.pgi_reg = self.invProb.reg.objfcts[
                 self.petrosmallness]
         else:
-            self.petroregularizer = self.invProb.reg
+            self.pgi_reg = self.invProb.reg
 
     def endIter(self):
-        if not self.petroregularizer.mrefInSmooth:
+        if not self.pgi_reg.mrefInSmooth:
             m = self.invProb.model
-            modellist = self.petroregularizer.wiresmap * m
+            modellist = self.pgi_reg.wiresmap * m
             model = np.c_[
                 [
                     a * b for a, b in zip(
-                        self.petroregularizer.maplist, modellist
+                        self.pgi_reg.maplist, modellist
                     )
                 ]
             ].T
-            self.petroregularizer.GMmodel.weights_ = self.local_proportions
-            membership = self.petroregularizer.GMmodel.predict(model)
-            self.petroregularizer.mref = mkvc(
-                self.petroregularizer.GMmodel.means_[membership])
+            self.pgi_reg.gmm.weights_ = self.local_proportions
+            membership = self.pgi_reg.gmm.predict(model)
+            self.pgi_reg.mref = mkvc(
+                self.pgi_reg.gmm.means_[membership])
 
 
 class AlphasSmoothEstimate_ByEig(InversionDirective):
@@ -1929,20 +1870,20 @@ class PGI_MultiTargetMisfits(InversionDirective):
     def ThetaTarget(self):
         maxdiff = 0.
 
-        for i in range(self.invProb.reg.GMmodel.n_components):
-            meandiff = np.linalg.norm((self.invProb.reg.GMmodel.means_[i] - self.invProb.reg.GMmref.means_[i]) / self.invProb.reg.GMmref.means_[i],
+        for i in range(self.invProb.reg.gmm.n_components):
+            meandiff = np.linalg.norm((self.invProb.reg.gmm.means_[i] - self.invProb.reg.gmmref.means_[i]) / self.invProb.reg.gmmref.means_[i],
                                       ord=self.distance_norm)
             maxdiff = np.maximum(maxdiff, meandiff)
 
-            if self.invProb.reg.GMmodel.covariance_type == "full" or self.invProb.reg.GMmodel.covariance_type == "spherical":
-                covdiff = np.linalg.norm((self.invProb.reg.GMmodel.covariances_[i] - self.invProb.reg.GMmref.covariances_[i]) / self.invProb.reg.GMmref.covariances_[i],
+            if self.invProb.reg.gmm.covariance_type == "full" or self.invProb.reg.gmm.covariance_type == "spherical":
+                covdiff = np.linalg.norm((self.invProb.reg.gmm.covariances_[i] - self.invProb.reg.gmmref.covariances_[i]) / self.invProb.reg.gmmref.covariances_[i],
                                          ord=self.distance_norm)
             else:
-                covdiff = np.linalg.norm((self.invProb.reg.GMmodel.covariances_ - self.invProb.reg.GMmref.covariances_) / self.invProb.reg.GMmref.covariances_,
+                covdiff = np.linalg.norm((self.invProb.reg.gmm.covariances_ - self.invProb.reg.gmmref.covariances_) / self.invProb.reg.gmmref.covariances_,
                                          ord=self.distance_norm)
             maxdiff = np.maximum(maxdiff, covdiff)
 
-            pidiff = np.linalg.norm([(self.invProb.reg.GMmodel.weights_[i] - self.invProb.reg.GMmref.weights_[i]) / self.invProb.reg.GMmref.weights_[i]],
+            pidiff = np.linalg.norm([(self.invProb.reg.gmm.weights_[i] - self.invProb.reg.gmmref.weights_[i]) / self.invProb.reg.gmmref.weights_[i]],
                                     ord=self.distance_norm)
             maxdiff = np.maximum(maxdiff, pidiff)
 
@@ -2095,8 +2036,8 @@ class JointScalingSchedule(InversionDirective):
                         self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
 
                         if self.verbose:
-                            print("update scaling for data misfit by ", multipliers)
-                            print("new scale:", self.dmisfit.multipliers)
+                            print("Updating scaling for data misfits by ", multipliers)
+                            print("New scales:", self.dmisfit.multipliers)
 
 
 class PGI_BetaAlphaSchedule(InversionDirective):
@@ -2120,10 +2061,10 @@ class PGI_BetaAlphaSchedule(InversionDirective):
     gamma_min = 1e-1
     ratio_in_gamma_cooling = True
     ratio_in_gamma_warming = True
-    alphadir_rateCooling = 1.
+    zeta_rateCooling = 1.
     kappa_rateCooling = 1.
     nu_rateCooling = 1.
-    alphadir_rateWarming = 1.
+    zeta_rateWarming = 1.
     kappa_rateWarming = 1.
     nu_rateWarming = 1.
 
@@ -2135,7 +2076,8 @@ class PGI_BetaAlphaSchedule(InversionDirective):
             dirpart, PGI_MultiTargetMisfits) for dirpart in self.inversion.directiveList.dList]]
         if ~np.any(targetclass):
             raise Exception(
-                "You need to have a PGI_MultiTargetMisfits directives to use the PGI_BetaAlphaSchedule directive")
+                "You need to have a PGI_MultiTargetMisfits directives to use the PGI_BetaAlphaSchedule directive"
+            )
         else:
             self.targetclass = np.where(targetclass)[0][-1]
             self.DMtarget = np.sum(
@@ -2191,10 +2133,10 @@ class PGI_BetaAlphaSchedule(InversionDirective):
             self._regmode = 2
 
         if self._regmode == 1:
-            self.petroregularizer = self.invProb.reg.objfcts[
+            self.pgi_reg = self.invProb.reg.objfcts[
                 self.petrosmallness]
         else:
-            self.petroregularizer = self.invProb.reg
+            self.pgi_reg = self.invProb.reg
 
     def endIter(self):
 
@@ -2217,11 +2159,11 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     ratio = self.score / self.CLtarget
                 else:
                     ratio = 1.
-                self.updategaussianclass.alphadir *= self.force_prior_increase_rate * ratio
-                self.updategaussianclass.alphadir = np.minimum(
+                self.updategaussianclass.zeta *= self.force_prior_increase_rate * ratio
+                self.updategaussianclass.zeta = np.minimum(
                     self.gamma_max *
-                    np.ones_like(self.updategaussianclass.alphadir),
-                    self.updategaussianclass.alphadir
+                    np.ones_like(self.updategaussianclass.zeta),
+                    self.updategaussianclass.zeta
                 )
                 self.updategaussianclass.kappa *= self.force_prior_increase_rate * ratio
                 self.updategaussianclass.kappa = np.minimum(
@@ -2241,12 +2183,12 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                         "Mode 2 started. Increased GMM Prior. New confidences:\n",
                         "nu: ", self.updategaussianclass.nu,
                         "\nkappa: ", self.updategaussianclass.kappa,
-                        "\nalphadir: ", self.updategaussianclass.alphadir
+                        "\nzeta: ", self.updategaussianclass.zeta
                     )
 
         if self.opt.iter > 0 and self.opt.iter % self.UpdateRate == 0:
             if self.verbose:
-                print("progress", self.dmlist, "><",
+                print("progress:", self.dmlist, "; progress targets:",
                     np.maximum(
                         (1. - self.progress) * self.previous_dmlist,
                         (1. + self.tolerance) * self.DMtarget
@@ -2285,24 +2227,24 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                         ratio = np.median(
                             [self.dmlist[indx] / self.DMtarget[indx]])
                     self.invProb.beta /= (self.rateCooling * ratio)
-                    #self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
+                    #self.pgi_reg.alpha_s /= (self.rateCooling * ratio)
 
                     if self.verbose:
                         #print("update beta for countering plateau")
-                        print("update beta for countering plateau")
+                        print("Decreasing beta to counter data misfit decrase plateau")
 
             elif np.all([self.DM,
                          self.mode == 2]):
 
-                if np.all([self.petroregularizer.alpha_s < self.alphasmax]):
+                if np.all([self.pgi_reg.alpha_s < self.alphasmax]):
 
                     ratio = np.median(self.DMtarget / self.dmlist)
                     #self.invProb.beta = self.rateWarming * self.invProb.beta * ratio
-                    self.petroregularizer.alpha_s *= self.rateWarming * ratio
+                    self.pgi_reg.alpha_s *= self.rateWarming * ratio
 
                     if self.verbose:
-                        print("update alpha_s for clustering: ",
-                            self.petroregularizer.alpha_s)
+                        print("Warming alpha_s to favor clustering: ",
+                            self.pgi_reg.alpha_s)
 
                 if np.all([
                     self.update_prior_confidence,
@@ -2315,11 +2257,11 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                         ratio = self.score / self.CLtarget
                     else:
                         ratio = 1.
-                    self.updategaussianclass.alphadir /= self.alphadir_rateCooling * ratio
-                    self.updategaussianclass.alphadir = np.maximum(
+                    self.updategaussianclass.zeta /= self.zeta_rateCooling * ratio
+                    self.updategaussianclass.zeta = np.maximum(
                         self.gamma_min *
-                        np.ones_like(self.updategaussianclass.alphadir),
-                        self.updategaussianclass.alphadir
+                        np.ones_like(self.updategaussianclass.zeta),
+                        self.updategaussianclass.zeta
                     )
                     self.updategaussianclass.kappa /= self.kappa_rateCooling * ratio
                     self.updategaussianclass.kappa = np.maximum(
@@ -2339,7 +2281,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                             "Decreased GMM Prior. New confidences:\n",
                             "nu: ", self.updategaussianclass.nu,
                             "\nkappa: ", self.updategaussianclass.kappa,
-                            "\nalphadir: ", self.updategaussianclass.alphadir
+                            "\nzeta: ", self.updategaussianclass.zeta
                         )
 
                 elif np.all([
@@ -2353,11 +2295,11 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                         ratio = self.score / self.CLtarget
                     else:
                         ratio = 1.
-                    self.updategaussianclass.alphadir *= self.alphadir_rateWarming * ratio
-                    self.updategaussianclass.alphadir = np.minimum(
+                    self.updategaussianclass.zeta *= self.zeta_rateWarming * ratio
+                    self.updategaussianclass.zeta = np.minimum(
                         self.gamma_max *
-                        np.ones_like(self.updategaussianclass.alphadir),
-                        self.updategaussianclass.alphadir
+                        np.ones_like(self.updategaussianclass.zeta),
+                        self.updategaussianclass.zeta
                     )
                     self.updategaussianclass.kappa *= self.kappa_rateWarming * ratio
                     self.updategaussianclass.kappa = np.minimum(
@@ -2377,7 +2319,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                             "Increased GMM Prior. New confidences:\n",
                             "nu: ", self.updategaussianclass.nu,
                             "\nkappa: ", self.updategaussianclass.kappa,
-                            "\nalphadir: ", self.updategaussianclass.alphadir
+                            "\nzeta: ", self.updategaussianclass.zeta
                         )
             elif np.all([
                     np.any(self.dmlist > (1. + self.tolerance) * self.DMtarget),
@@ -2392,9 +2334,9 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                         ratio = np.median(
                             [self.dmlist[indx] / self.DMtarget[indx]])
                     self.invProb.beta /= (self.rateCooling * ratio)
-                    # self.petroregularizer.alpha_s /= (self.rateCooling * ratio)
+                    # self.pgi_reg.alpha_s /= (self.rateCooling * ratio)
                     if self.verbose:
-                        print("update beta for countering plateau")
+                        print("Decrease beta for countering plateau")
 
         self.previous_score = copy.deepcopy(self.score)
         self.previous_dmlist = copy.deepcopy(
@@ -2453,10 +2395,10 @@ class AddMrefInSmooth(InversionDirective):
             self._regmode = 2
 
         if self._regmode == 1:
-            self.petroregularizer = self.invProb.reg.objfcts[
+            self.pgi_reg = self.invProb.reg.objfcts[
                 self.petrosmallness]
         else:
-            self.petroregularizer = self.invProb.reg
+            self.pgi_reg = self.invProb.reg
 
         if getattr(
             self.invProb.reg.objfcts[0],
@@ -2499,8 +2441,8 @@ class AddMrefInSmooth(InversionDirective):
             ]
             self._regmode = 2
 
-        self.previous_membership = self.petroregularizer.membership(
-            self.petroregularizer.mref)
+        self.previous_membership = self.pgi_reg.membership(
+            self.pgi_reg.mref)
 
     @property
     def DMtarget(self):
@@ -2518,8 +2460,8 @@ class AddMrefInSmooth(InversionDirective):
         self.dmlist = self.inversion.directiveList.dList[
             self.targetclass].dmlist
 
-        self.membership = self.petroregularizer.membership(
-            self.petroregularizer.mref)
+        self.membership = self.pgi_reg.membership(
+            self.pgi_reg.mref)
 
         same_mref = np.all(self.membership == self.previous_membership)
         percent_diff = (len(self.membership) - np.count_nonzero(
@@ -2535,15 +2477,15 @@ class AddMrefInSmooth(InversionDirective):
             )
         if (self.DM or np.all(self.dmlist<(1+self.tolerance_phid)*self.DMtarget)) and (same_mref or not self.wait_till_stable or percent_diff<=self.tolerance):
             self.invProb.reg.mrefInSmooth = True
-            self.petroregularizer.mrefInSmooth = True
+            self.pgi_reg.mrefInSmooth = True
 
             if self._regmode == 2:
                 for i in range(self.nbr):
                     if self.Smooth[i]:
                         self.invProb.reg.objfcts[
-                            i].mref = self.petroregularizer.mref
+                            i].mref = self.pgi_reg.mref
                 if self.verbose:
-                    print("add mref to Smoothness. Changes in mref happened in {} % of the cells".format(percent_diff))
+                    print("Add mref to Smoothness. Changes in mref happened in {} % of the cells".format(percent_diff))
 
             elif self._regmode == 1:
                 for i in range(self.nbr):
@@ -2553,9 +2495,9 @@ class AddMrefInSmooth(InversionDirective):
                             print(type(self.invProb.reg.objfcts[
                                   idx[0]].objfcts[idx[1]]))
                         self.invProb.reg.objfcts[idx[0]].objfcts[
-                            idx[1]].mref = self.petroregularizer.mref
+                            idx[1]].mref = self.pgi_reg.mref
                 if self.verbose:
-                    print("add mref to Smoothness. Changes in mref happened in {} % of the cells".format(percent_diff))
+                    print("Add mref to Smoothness. Changes in mref happened in {} % of the cells".format(percent_diff))
 
         self.previous_membership = copy.deepcopy(self.membership)
 

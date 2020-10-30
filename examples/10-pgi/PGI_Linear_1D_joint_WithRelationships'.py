@@ -104,8 +104,8 @@ W = utils.sdiag(wr)
 
 reg_simple = regularization.MakeSimplePGIwithRelationships(
     mesh=mesh,
-    GMmref=clfmapping,
-    GMmodel=clfmapping,
+    gmmref=clfmapping,
+    gmm=clfmapping,
     approx_gradient=True, alpha_x=0.,
     wiresmap=wires,
     evaltype='approx',
@@ -146,8 +146,8 @@ mcluster_map = inv.run(minit)
 # Inversion with no nonlinear mapping
 reg_simple_no_map = regularization.MakeSimplePGI(
     mesh=mesh,
-    GMmref=clfnomapping,
-    GMmodel=clfnomapping,
+    gmmref=clfnomapping,
+    gmm=clfnomapping,
     approx_gradient=True, alpha_x=0.,
     wiresmap=wires,
     evaltype='approx',

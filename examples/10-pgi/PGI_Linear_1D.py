@@ -108,7 +108,7 @@ minit = m0
 
 # Petrophyically constrained regularization
 reg = regularization.PGI(
-    GMmref=clf, GMmodel=clf, mesh=mesh, mref=m0,
+    gmmref=clf, gmm=clf, mesh=mesh, mref=m0,
     alpha_s=1.
 )
 

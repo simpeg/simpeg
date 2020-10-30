@@ -62,7 +62,7 @@ class TestPGI(unittest.TestCase):
         # Define reg Simple
         reg_simple = regularization.MakeSimplePGI(
             mesh=self.mesh,
-            GMmref=clf,
+            gmmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
             evaltype='approx',
@@ -72,7 +72,7 @@ class TestPGI(unittest.TestCase):
         # Define reg with volumes
         reg = regularization.MakePGI(
             mesh=self.mesh,
-            GMmref=clf,
+            gmmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
             evaltype='approx',
@@ -253,7 +253,7 @@ class TestPGI(unittest.TestCase):
         # Define reg Simple
         reg_simple = regularization.MakeSimplePGI(
             mesh=self.mesh,
-            GMmref=clf,
+            gmmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
             evaltype='approx',
@@ -263,7 +263,7 @@ class TestPGI(unittest.TestCase):
         # Define reg with volumes
         reg = regularization.MakePGI(
             mesh=self.mesh,
-            GMmref=clf,
+            gmmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
             evaltype='approx',
@@ -451,7 +451,7 @@ class TestPGI(unittest.TestCase):
         # Define reg Simple
         reg_simple = regularization.MakeSimplePGI(
             mesh=self.mesh,
-            GMmref=clf,
+            gmmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
             evaltype='approx',
@@ -461,7 +461,7 @@ class TestPGI(unittest.TestCase):
         # Define reg with volumes
         reg = regularization.MakePGI(
             mesh=self.mesh,
-            GMmref=clf,
+            gmmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
             evaltype='approx',
@@ -642,7 +642,7 @@ class TestPGI(unittest.TestCase):
         # Define reg Simple
         reg_simple = regularization.MakeSimplePGI(
             mesh=self.mesh,
-            GMmref=clf,
+            gmmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
             evaltype='approx',
@@ -652,7 +652,7 @@ class TestPGI(unittest.TestCase):
         # Define reg with volumes
         reg = regularization.MakePGI(
             mesh=self.mesh,
-            GMmref=clf,
+            gmmref=clf,
             approx_gradient=True, alpha_x=0.,
             wiresmap=self.wires,
             evaltype='approx',

@@ -139,7 +139,7 @@ mapactive = maps.InjectActiveCells(
 )
 mapping = expmap * mapactive
 simulation = DC.simulation_2d.Simulation2DNodal(
-    mesh, survey=survey, sigmaMap=mapping, Solver=PardisoSolver, nky=15
+    mesh, survey=survey, sigmaMap=mapping, Solver=PardisoSolver, nky=8
 )
 
 relative_measurement_error = 0.02
@@ -188,7 +188,7 @@ dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
 idenMap = maps.IdentityMap(nP=m0.shape[0])
 wires = maps.Wires(('m', m0.shape[0]))
 reg_mean = regularization.SimplePGI(
-    GMmref=clf,  mesh=mesh,
+    gmmref=clf,  mesh=mesh,
     wiresmap=wires,
     maplist=[idenMap],
     mref=m0,
@@ -289,7 +289,7 @@ utils.compute_clusters_precision(clfnomean)
 
 # Create the PGI regularization
 reg_nomean = regularization.SimplePGI(
-    GMmref=clfnomean,  mesh=mesh,
+    gmmref=clfnomean,  mesh=mesh,
     wiresmap=wires,
     maplist=[idenMap],
     mref=m0,
@@ -320,11 +320,11 @@ betaIt = directives.PGI_BetaAlphaSchedule(
 targets = directives.PGI_MultiTargetMisfits(
     verbose=True,
 )
-# kappa, nu and alphadir set the learning of the GMM
+# kappa, nu and zeta set the learning of the GMM
 petrodir = directives.GaussianMixtureUpdateModel(
     kappa=0., # No influence from Prior means in the learning
     nu=1e8, # Fixed variances
-    alphadir=0. # Prior GMM proportions have no influeance
+    zeta=0. # Prior GMM proportions have no influeance
 )
 updateSensW = directives.UpdateSensitivityWeights(
     threshold=1e-3, everyIter=False
@@ -348,6 +348,7 @@ inv = inversion.BaseInversion(
 m_pgi_nomean = inv.run(m0)
 
 
+
 # PGI with local proportions
 ############################
 
@@ -368,13 +369,15 @@ proportions_mesh[between_2m_8m] = np.ones(3)/3. # equal probabilities
 
 
 # initialize the GMM with the one learned from PGI without mean information
-clf_with_depth_info = copy.deepcopy(reg_nomean.objfcts[0].GMmodel)
+clf_with_depth_info = copy.deepcopy(reg_nomean.objfcts[0].gmm)
 utils.order_clusters_GM_weight(clf_with_depth_info)
+#Include the local proportions
+clf_with_depth_info.weights_ = proportions_mesh
 
 # Re-initiliaze a PGI
 # Create the regularization with GMM information
 reg_nomean_geo = regularization.SimplePGI(
-    GMmref=clf_with_depth_info,  
+    gmmref=clf_with_depth_info,  
     mesh=mesh,
     wiresmap=wires,
     maplist=[idenMap],
@@ -416,21 +419,19 @@ petrodir = directives.GaussianMixtureUpdateModel(
     update_covariances=True,
     kappa=0,
     nu=1e8,
-    alphadir=0)
+    zeta=1e8)
 
 update_Jacobi = directives.UpdatePreconditioner()
 updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3,everyIter=False)
-#Include the local proportions 
-local_proportions = directives.PGI_local_GMM_proportions(
-    local_proportions=proportions_mesh
-)
+#local_proportions = directives.PGI_local_GMM_proportions(
+#    local_proportions=proportions_mesh
+#)
 
 inv = inversion.BaseInversion(
     invProb,
     directiveList=[
         updateSensW,
         petrodir,
-        local_proportions,
         targets, betaIt,
         MrefInSmooth,
         update_Jacobi,

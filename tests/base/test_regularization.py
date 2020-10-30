@@ -102,7 +102,7 @@ class RegularizationTests(unittest.TestCase):
             clfref.fit(s)
 
             reg = regularization.SimplePGI(mesh=mesh,
-                                                           GMmref=clfref,
+                                                           gmmref=clfref,
                                                            wiresmap=wires,
                                                            evaltype='full',
                                                            approx_gradient=True,
