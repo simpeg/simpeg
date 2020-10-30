@@ -8,9 +8,9 @@ from scipy.spatial import Delaunay
 import sys
 
 if sys.version_info < (3,):
-    num_types = [int, long, float]
+    num_types = (int, long, float)
 else:
-    num_types = [int, float]
+    num_types = (int, float)
 
 
 def addBlock(gridCC, modelCC, p0, p1, blockProp):
@@ -327,7 +327,7 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
         seed = np.random.randint(1e3)
         print("Using a seed of: ", seed)
 
-    if type(shape) in num_types:
+    if isinstance(shape, num_types):
         shape = (shape,)  # make it a tuple for consistency
 
     np.random.seed(seed)

@@ -746,9 +746,9 @@ class ProjectedGradient(Minimize, Remember):
 
     def _startup(self, x0):
         # ensure bound vectors are the same size as the model
-        if type(self.lower) is not np.ndarray:
+        if not isinstance(self.lower, np.ndarray):
             self.lower = np.ones_like(x0) * self.lower
-        if type(self.upper) is not np.ndarray:
+        if not isinstance(self.upper, np.ndarray):
             self.upper = np.ones_like(x0) * self.upper
 
         self.explorePG = True
@@ -1156,9 +1156,9 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
     def _startup(self, x0):
         # ensure bound vectors are the same size as the model
-        if type(self.lower) is not np.ndarray:
+        if not isinstance(self.lower, np.ndarray):
             self.lower = np.ones_like(x0) * self.lower
-        if type(self.upper) is not np.ndarray:
+        if not isinstance(self.upper, np.ndarray):
             self.upper = np.ones_like(x0) * self.upper
 
     @count

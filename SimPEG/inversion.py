@@ -27,7 +27,7 @@ class BaseInversion(object):
 
     @directiveList.setter
     def directiveList(self, value):
-        if type(value) is list:
+        if isinstance(value, list):
             value = DirectiveList(*value)
         assert isinstance(value, DirectiveList), "Must be a DirectiveList"
         value.validate()  # validate before setting

@@ -3,3 +3,69 @@
 ===========================
 SimPEG 0.14.2 Release Notes
 ===========================
+
+This release contains some bug fixes that have cropped up since the last release,
+as well as a few additions from some new contributors!
+
+New Things
+==========
+
+@ikding was kind enough to add in more predefined EM waveforms: the
+``SimPEG.electromagnetics.time_domain.source.TriangularWaveform`` and
+``SimPEG.electromagnetics.time_domain.source.HalfSineWaveform``.
+
+
+Changes
+=======
+
+The defaults solvers located in ``SimPEG.utils.solver_utils`` will now accept arbitrary
+unused kwargs when wrapping a solver. It will warn the user that a kwarg will be unused.
+This should allow us to set method specific solver options that wont break the
+default solvers when they are not used.
+
+
+Bugs Squashed
+=============
+
+We unfortunately allowed a small bug in the ``drape_electrodes_to_topography`` function
+in the last release. This should now work properly for 3D ``discretize.TensorMesh`` again.
+
+There was also a syntax error in ``SimPEG.electromagnetics.frequency_domain.sources.RawVec_m``
+that was identified and fixed.
+
+There were also typos fixed, type checks were converted to ``isinstance`` checks instead,
+we updated the contributing guide to point towards the discourse group, and we've added
+a few more authors to the list.
+
+
+Contributors
+============
+
+* @jcapriot
+* @lheagy
+* @ikding
+* @Zhuoliulz
+* @bluetyson
+* @thast
+* @rowanc1
+
+Pull requests
+=============
+
+* `#892 <https://github.com/simpeg/simpeg/pull/892>`__: only print the filename if we are going to save the dictionary on disk
+* `#894 <https://github.com/simpeg/simpeg/pull/894>`__: Missing comma fixed
+* `#900 <https://github.com/simpeg/simpeg/pull/900>`__: Update CONTRIBUTING.rst
+* `#903 <https://github.com/simpeg/simpeg/pull/903>`__: Implement new TDEM waveform (HalfSineWaveform and TriangularWaveform) & add waveform unit tests
+* `#905 <https://github.com/simpeg/simpeg/pull/905>`__: Typo cleanup & use isinstance for type checks
+* `#907 <https://github.com/simpeg/simpeg/pull/907>`__: Update AUTHORS.rst
+* `#908 <https://github.com/simpeg/simpeg/pull/908>`__: Update plot_1b_gravity_gradiometry.py
+* `#909 <https://github.com/simpeg/simpeg/pull/909>`__: Charge bug fix for 2D cell centered DC field
+* `#910 <https://github.com/simpeg/simpeg/pull/910>`__: Update plot_1a_gravity_anomaly.py
+* `#911 <https://github.com/simpeg/simpeg/pull/911>`__: Allows logic to cull unused kwargs from inputs to a function
+* `#912 <https://github.com/simpeg/simpeg/pull/912>`__: bug fix for 3D tensor mesh drape topo.
+* `#914 <https://github.com/simpeg/simpeg/pull/914>`__: Docs/0.14.2 docs
+
+Closed issues
+=============
+
+* `#896 <https://github.com/simpeg/simpeg/issues/896>`__
