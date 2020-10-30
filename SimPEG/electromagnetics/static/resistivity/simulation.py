@@ -223,6 +223,16 @@ class BaseDCSimulation(BaseEMSimulation):
         q = np.zeros((n, len(Srcs)), order="F")
 
         if self.rhs_option == "primary_secondary":
+            
+            rho0 = self.get_background_resistivity()
+
+            # Surface of half-space or wholespace
+            z_top = self.mesh.x0[2] + np.sum(self.mesh.hz)
+            tol = 1e-3*np.min(self.mesh.hz)
+            if np.any(self.survey.a_locations[:, 2] > z_top-tol) | np.any(self.survey.m_locations[:, 2] > z_top-tol):
+                rho0 *= 2.
+            
+            dh = np.min(self.mesh.hx)
             if self._formulation == "EB":
                 loc_grid = self.mesh.gridN
             elif self._formulation == "HJ":
@@ -231,7 +241,7 @@ class BaseDCSimulation(BaseEMSimulation):
             A0 = self.getA0()
 
             for i, source in enumerate(Srcs):
-                q[:, i] = source.compute_phi_primary(loc_grid)
+                q[:, i] = source.compute_phi_primary(loc_grid, rho0, dh)
 
             q = A0 * q
         
@@ -244,6 +254,12 @@ class BaseDCSimulation(BaseEMSimulation):
                 q[:, i] = source.eval(self)
         
         return q
+    
+    def get_background_resistivity(self):
+        
+        ground_ind = self.rho < 1e8
+        return np.exp(np.average(np.log(self.rho[ground_ind])))
+        
 
     @property
     def deleteTheseOnModelUpdate(self):
@@ -325,7 +341,8 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
         D = self.Div
         G = self.Grad
-        rho0 = 100*np.ones(self.mesh.nC)
+        rho0 = self.get_background_resistivity()
+        rho0 = rho0*np.ones(self.mesh.nC)
         MfRho0I = self.mesh.getFaceInnerProduct(rho0, invMat=True)
         A = D @ MfRho0I @ G
 
@@ -532,6 +549,26 @@ class Simulation3DNodal(BaseDCSimulation):
         """
 
         MeSigma = self.MeSigma
+        Grad = self.mesh.nodalGrad
+        A = Grad.T @ MeSigma @ Grad
+
+        # Handling Null space of A
+        I, J, V = sp.sparse.find(A[0, :])
+        for jj in J:
+            A[0, jj] = 0.0
+        A[0, 0] = 1.0
+
+        return A
+
+    def getA0(self):
+        """
+        Make the A matrix for the cell centered DC resistivity problem
+        A = G.T MeSigma G
+        """
+
+        sig0 = 1/self.get_background_resistivity()
+        sig0 = sig0*np.ones(self.mesh.nC)
+        MeSigma = self.mesh.getEdgeInnerProduct(sig0)
         Grad = self.mesh.nodalGrad
         A = Grad.T @ MeSigma @ Grad
 

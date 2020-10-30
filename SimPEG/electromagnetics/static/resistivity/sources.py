@@ -131,6 +131,22 @@ class Dipole(BaseSrc):
                 self._q = self.current * (qa + qb)
             return self._q
 
+    def compute_phi_primary(self, loc_grid, rho0, dh):
+
+        Ra = np.sqrt(
+            (loc_grid[:, 0] - self.location[0][0])**2 +
+            (loc_grid[:, 1] - self.location[0][1])**2 +
+            (loc_grid[:, 2] - self.location[0][2])**2
+        ) + dh/100.
+
+        Rb = np.sqrt(
+            (loc_grid[:, 0] - self.location[1][0])**2 +
+            (loc_grid[:, 1] - self.location[1][1])**2 +
+            (loc_grid[:, 2] - self.location[1][2])**2
+        ) + dh/100.
+
+        return (self.current*rho0/(4*np.pi)) * (Ra**-1 - Rb**-1)
+
 
 class Pole(BaseSrc):
     def __init__(self, receiver_list=[], location=None, **kwargs):
@@ -149,15 +165,15 @@ class Pole(BaseSrc):
                 self._q = self.current * q.toarray()
             return self._q
 
-    def compute_phi_primary(self, loc_grid):
+    def compute_phi_primary(self, loc_grid, rho0, dh):
 
         R = np.sqrt(
             (loc_grid[:, 0] - self.location[0])**2 +
             (loc_grid[:, 1] - self.location[1])**2 +
             (loc_grid[:, 2] - self.location[2])**2
-        )
+        ) + dh/100.
 
-        return (self.current/(2*np.pi)) * R**-1
+        return (self.current*rho0/(4*np.pi)) * R**-1
 
 
     def eval_interpolation(self, sim):

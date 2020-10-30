@@ -1318,7 +1318,7 @@ def writeUBC_DClocs(
 
     count = 0
 
-    for ii in range(dc_survey.nSrc):
+    for ii in range(len(dc_survey.source_list)):
 
         rx = dc_survey.source_list[ii].receiver_list[0].locations
         nD = dc_survey.source_list[ii].nD
@@ -1905,7 +1905,7 @@ def readUBC_DC3Dobs(fileName):
     else:
         str2 = 'dipole'
 
-    survey_type = str1 + st2
+    survey_type = str1 + str2
 
     survey = dc.Survey(srcLists, survey_type=survey_type)
     data = Data(survey=survey, dobs=np.asarray(d), relative_error=np.asarray(wd))
