@@ -198,7 +198,9 @@ class BaseRegularization(BaseObjectiveFunction):
 class SimpleComboRegularization(ComboObjectiveFunction):
     def __init__(self, mesh, objfcts=[], **kwargs):
 
-        super(SimpleComboRegularization, self).__init__(objfcts=objfcts, multipliers=None)
+        super(SimpleComboRegularization, self).__init__(
+            objfcts=objfcts, multipliers=None
+        )
         self.regmesh = RegularizationMesh(mesh)
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
@@ -206,7 +208,10 @@ class SimpleComboRegularization(ComboObjectiveFunction):
         utils.setKwargs(self, **kwargs)
 
         # link these attributes
-        linkattrs = ["regmesh", "indActive",]
+        linkattrs = [
+            "regmesh",
+            "indActive",
+        ]
 
         for attr in linkattrs:
             val = getattr(self, attr)
@@ -344,10 +349,7 @@ class SimpleComboRegularization(ComboObjectiveFunction):
 
 
 class BaseComboRegularization(SimpleComboRegularization):
-
-    def __init__(
-        self, mesh, objfcts=[], **kwargs
-    ):
+    def __init__(self, mesh, objfcts=[], **kwargs):
 
         super(BaseComboRegularization, self).__init__(
             mesh=mesh, objfcts=objfcts, **kwargs
@@ -376,8 +378,8 @@ class BaseComboRegularization(SimpleComboRegularization):
         if change["value"] is not None:
             # todo: residual size? we need to know the expected end shape
             if self._nC_residual != "*":
-                assert len(change["value"]) == self._nC_residual, (
-                    "cell_weights must be length {} not {}".format(
-                        self._nC_residual, len(change["value"])
-                    )
+                assert (
+                    len(change["value"]) == self._nC_residual
+                ), "cell_weights must be length {} not {}".format(
+                    self._nC_residual, len(change["value"])
                 )

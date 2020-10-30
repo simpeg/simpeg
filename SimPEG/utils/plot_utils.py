@@ -125,13 +125,13 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
-        defaultcontourOpts = {'levels':levels, 'norm':norm, 'zorder':1}
+        defaultcontourOpts = {"levels": levels, "norm": norm, "zorder": 1}
         for key in contourOpts.keys():
             defaultcontourOpts[key] = contourOpts[key]
         cont = ax.contourf(X, Y, DATA, **defaultcontourOpts)
-        
+
         if level:
-            defaultlevelOpts = {'levels':levels, 'zorder':3}
+            defaultlevelOpts = {"levels": levels, "zorder": 3}
             for key in levelOpts.keys():
                 defaultlevelOpts[key] = levelOpts[key]
             CS = ax.contour(X, Y, DATA, **defaultlevelOpts)
@@ -174,18 +174,18 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
-        defaultcontourOpts = {'levels':levels, 'norm':norm, 'zorder':1}
+        defaultcontourOpts = {"levels": levels, "norm": norm, "zorder": 1}
         for key in contourOpts.keys():
             defaultcontourOpts[key] = contourOpts[key]
         cont = ax.contourf(X, Y, DATA, **defaultcontourOpts)
-        
-        defaultstreamplotOpts = {zorder:4, color:"w"}
+
+        defaultstreamplotOpts = {zorder: 4, color: "w"}
         for key in streamplotOpts.keys():
             defaultstreamplotOpts[key] = streamplotOpts[key]
         ax.streamplot(X, Y, DATAx, DATAy, **defaultstreamplotOpts)
-        
+
         if level:
-            defaultlevelOpts = {'levels':levels, 'zorder':3}
+            defaultlevelOpts = {"levels": levels, "zorder": 3}
             for key in levelOpts.keys():
                 defaultlevelOpts[key] = levelOpts[key]
             CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **defaultlevelOpts)

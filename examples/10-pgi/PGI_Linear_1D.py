@@ -22,7 +22,7 @@ from SimPEG import (
     regularization,
     inverse_problem,
     inversion,
-    utils
+    utils,
 )
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,17 +35,17 @@ mesh = Mesh.TensorMesh([N])
 
 # Survey design parameters
 nk = 20
-jk = np.linspace(1., 60., nk)
+jk = np.linspace(1.0, 60.0, nk)
 p = -0.25
 q = 0.25
 
 
 # Physics
 def g(k):
-    return (
-        np.exp(p * jk[k] * mesh.vectorCCx) *
-        np.cos(np.pi * q * jk[k] * mesh.vectorCCx)
+    return np.exp(p * jk[k] * mesh.vectorCCx) * np.cos(
+        np.pi * q * jk[k] * mesh.vectorCCx
     )
+
 
 G = np.empty((nk, mesh.nC))
 
@@ -54,11 +54,11 @@ for i in range(nk):
 
 # True model
 mtrue = np.zeros(mesh.nC)
-mtrue[mesh.vectorCCx > 0.2] = 1.
-mtrue[mesh.vectorCCx > 0.35] = 0.
+mtrue[mesh.vectorCCx > 0.2] = 1.0
+mtrue[mesh.vectorCCx > 0.35] = 0.0
 t = (mesh.vectorCCx - 0.65) / 0.25
 indx = np.abs(t) < 1
-mtrue[indx] = -(((1 - t**2.)**2.)[indx])
+mtrue[indx] = -(((1 - t ** 2.0) ** 2.0)[indx])
 
 mtrue = np.zeros(mesh.nC)
 mtrue[mesh.vectorCCx > 0.3] = 1.0
@@ -67,17 +67,17 @@ mtrue[mesh.vectorCCx > 0.6] = 0
 
 # SimPEG problem and survey
 prob = simulation.LinearSimulation(mesh, G=G, model_map=maps.IdentityMap())
-std  = 0.01
+std = 0.01
 survey = prob.make_synthetic_data(mtrue, relative_error=std, add_noise=True)
 
 # Setup the inverse problem
-reg = regularization.Tikhonov(mesh, alpha_s=1., alpha_x=1.)
+reg = regularization.Tikhonov(mesh, alpha_s=1.0, alpha_x=1.0)
 dmis = data_misfit.L2DataMisfit(data=survey, simulation=prob)
-opt = optimization.ProjectedGNCG(maxIter=10, maxIterCG=50,tolCG=1e-4)
+opt = optimization.ProjectedGNCG(maxIter=10, maxIterCG=50, tolCG=1e-4)
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 directiveslist = [
     directives.BetaEstimate_ByEig(beta0_ratio=1e-5),
-    directives.BetaSchedule(coolingFactor=10., coolingRate=2),
+    directives.BetaSchedule(coolingFactor=10.0, coolingRate=2),
     directives.TargetMisfit(),
 ]
 
@@ -98,8 +98,10 @@ n = 3
 clf = utils.WeightedGaussianMixture(
     mesh=mesh,
     n_components=n,
-    covariance_type='full', max_iter=100,
-    n_init=3, reg_covar=1e-3
+    covariance_type="full",
+    max_iter=100,
+    n_init=3,
+    reg_covar=1e-3,
 )
 clf.fit(mtrue.reshape(-1, 1))
 
@@ -107,35 +109,34 @@ clf.fit(mtrue.reshape(-1, 1))
 minit = m0
 
 # Petrophyically constrained regularization
-reg = regularization.PGI(
-    gmmref=clf, gmm=clf, mesh=mesh, mref=m0,
-    alpha_s=1.
-)
+reg = regularization.PGI(gmmref=clf, gmm=clf, mesh=mesh, mref=m0, alpha_s=1.0)
 
 
 # For some reason we need to reinitialize the optimization
-opt = optimization.ProjectedGNCG(maxIter=60, maxIterCG=50,tolCG=1e-4)
-opt.remember('xc')
+opt = optimization.ProjectedGNCG(maxIter=60, maxIterCG=50, tolCG=1e-4)
+opt.remember("xc")
 
 # Setup new inverse problem
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # directives
-Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=10.)
+Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=10.0)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-6)
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True, rateCooling=2., rateWarming=1.,
-    tolerance=0.1, UpdateRate=1,
+    verbose=True,
+    rateCooling=2.0,
+    rateWarming=1.0,
+    tolerance=0.1,
+    UpdateRate=1,
     progress=0.2,
 )
 targets = directives.PGI_MultiTargetMisfits(TriggerSmall=True, verbose=True)
-petrodir = directives.GaussianMixtureUpdateModel(verbose=False) 
+petrodir = directives.GaussianMixtureUpdateModel(verbose=False)
 addmref = directives.AddMrefInSmooth(verbose=True, tolerance=1)
 
 # Setup Inversion
 inv = inversion.BaseInversion(
-    invProb, 
-    directiveList=[Alphas, beta, petrodir, targets, addmref, betaIt]
+    invProb, directiveList=[Alphas, beta, petrodir, targets, addmref, betaIt]
 )
 
 
@@ -145,20 +146,20 @@ mcluster = inv.run(minit)
 fig, axes = plt.subplots(1, 3, figsize=(12 * 1.2, 4 * 1.2))
 for i in range(prob.G.shape[0]):
     axes[0].plot(prob.G[i, :])
-axes[0].set_title('Columns of matrix G')
+axes[0].set_title("Columns of matrix G")
 
-axes[1].hist(mtrue, bins=10, linewidth=3., density=True)
-axes[1].set_xlabel('Model value')
-axes[1].set_xlabel('Occurence')
+axes[1].hist(mtrue, bins=10, linewidth=3.0, density=True)
+axes[1].set_xlabel("Model value")
+axes[1].set_xlabel("Occurence")
 axes[1].hist(invProb.model, bins=10, density=True)
-axes[1].legend(['Mtrue Hist.', 'Model Hist.'])
+axes[1].legend(["Mtrue Hist.", "Model Hist."])
 
-axes[2].plot(mesh.vectorCCx, mtrue, color='black')
-axes[2].plot(mesh.vectorCCx, mnormal, color='blue')
-axes[2].plot(mesh.vectorCCx, mcluster, 'r-')
-axes[2].plot(mesh.vectorCCx, invProb.reg.mref, 'r--')
+axes[2].plot(mesh.vectorCCx, mtrue, color="black")
+axes[2].plot(mesh.vectorCCx, mnormal, color="blue")
+axes[2].plot(mesh.vectorCCx, mcluster, "r-")
+axes[2].plot(mesh.vectorCCx, invProb.reg.mref, "r--")
 
-axes[2].legend(('True Model', 'L2 Model', 'Petro Model', 'Learned Mref'))
+axes[2].legend(("True Model", "L2 Model", "Petro Model", "Learned Mref"))
 axes[2].set_ylim([-2, 2])
 
 plt.show()

@@ -80,11 +80,11 @@ class RegularizationTests(unittest.TestCase):
                     self.assertTrue(passed)
 
         def test_petroregularization_approxDeriv(self):
-            mean0 = np.r_[2., 0.]
-            sigma0 = np.r_[[[1.0, -1.], [-1., 2.]]]
+            mean0 = np.r_[2.0, 0.0]
+            sigma0 = np.r_[[[1.0, -1.0], [-1.0, 2.0]]]
             rv0 = multivariate_normal(mean0, sigma0)
 
-            mean1 = mean0 - 2.
+            mean1 = mean0 - 2.0
             sigma1 = np.r_[[[0.5, 0.3], [0.3, 0.5]]]
             rv1 = multivariate_normal(mean1, sigma1)
             s0 = rv0.rvs(700)
@@ -93,20 +93,22 @@ class RegularizationTests(unittest.TestCase):
             model = utils.mkvc(s)
 
             mesh = discretize.TensorMesh([s.shape[0]])
-            wires = maps.Wires(('s0', mesh.nC), ('s1', mesh.nC))
+            wires = maps.Wires(("s0", mesh.nC), ("s1", mesh.nC))
 
             n = 2
-            clfref = utils.GaussianMixture(n_components=n,
-                                           covariance_type='full',
-                                           max_iter=1000, n_init=20)
+            clfref = utils.GaussianMixture(
+                n_components=n, covariance_type="full", max_iter=1000, n_init=20
+            )
             clfref.fit(s)
 
-            reg = regularization.SimplePGI(mesh=mesh,
-                                                           gmmref=clfref,
-                                                           wiresmap=wires,
-                                                           evaltype='full',
-                                                           approx_gradient=True,
-                                                           alpha_x=0.)
+            reg = regularization.SimplePGI(
+                mesh=mesh,
+                gmmref=clfref,
+                wiresmap=wires,
+                evaltype="full",
+                approx_gradient=True,
+                alpha_x=0.0,
+            )
 
             deriv = reg.deriv(model)
             H = lambda x: reg.deriv2(model, x)
@@ -119,41 +121,31 @@ class RegularizationTests(unittest.TestCase):
             tol = 1e-10
             error00 = np.max(
                 np.minimum(
-                    np.abs(
-                        (wires * (model - deriv2))[0] - clfref.means_[0][0]
-                    ),
-                    np.abs(
-                        (wires * (model - deriv2))[0] - clfref.means_[1][0])
+                    np.abs((wires * (model - deriv2))[0] - clfref.means_[0][0]),
+                    np.abs((wires * (model - deriv2))[0] - clfref.means_[1][0]),
                 )
             )
             error01 = np.max(
                 np.minimum(
-                    np.abs(
-                        (wires * (model - deriv2))[1] - clfref.means_[0][1]
-                    ),
-                    np.abs(
-                        (wires * (model - deriv2))[1] - clfref.means_[1][1])
+                    np.abs((wires * (model - deriv2))[1] - clfref.means_[0][1]),
+                    np.abs((wires * (model - deriv2))[1] - clfref.means_[1][1]),
                 )
             )
             error10 = np.max(
                 np.minimum(
-                    np.abs((wires * (model - deriv2bis))[0] - clfref.means_[0][0]
-                           ),
-                    np.abs(
-                        (wires * (model - deriv2bis))[0] - clfref.means_[1][0])
+                    np.abs((wires * (model - deriv2bis))[0] - clfref.means_[0][0]),
+                    np.abs((wires * (model - deriv2bis))[0] - clfref.means_[1][0]),
                 )
             )
             error11 = np.max(
                 np.minimum(
-                    np.abs((wires * (model - deriv2bis))[1] - clfref.means_[0][1]
-                           ),
-                    np.abs((wires * (model - deriv2bis))
-                           [1] - clfref.means_[1][1])
+                    np.abs((wires * (model - deriv2bis))[1] - clfref.means_[0][1]),
+                    np.abs((wires * (model - deriv2bis))[1] - clfref.means_[1][1]),
                 )
             )
 
             self.assertTrue(np.max([error00, error01, error10, error11]) < tol)
-            print('PGI Tested')
+            print("PGI Tested")
 
         def test_regularization_ActiveCells(self):
             for R in dir(regularization):

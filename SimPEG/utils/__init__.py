@@ -55,13 +55,21 @@ from .plot_utils import plot2Ddata, plotLayer
 from .io_utils import download
 from .pgi_utils import (
     ComputeDistances,
-    order_clusters_GM_weight, order_cluster,
-    compute_clusters_precision, computeCovariance, ComputeConstantTerm,
-    _compute_precision_cholesky, GaussianMixture, WeightedGaussianMixture,
-    GaussianMixtureWithPrior, GaussianMixtureMarkovRandomField,
+    order_clusters_GM_weight,
+    order_cluster,
+    compute_clusters_precision,
+    computeCovariance,
+    ComputeConstantTerm,
+    _compute_precision_cholesky,
+    GaussianMixture,
+    WeightedGaussianMixture,
+    GaussianMixtureWithPrior,
+    GaussianMixtureMarkovRandomField,
     FuzzyGaussianMixtureWithPrior,
-    GaussianMixtureWithMapping, GaussianMixtureWithMappingWithPrior,
-    GibbsSampling_PottsDenoising, ICM_PottsDenoising
+    GaussianMixtureWithMapping,
+    GaussianMixtureWithMappingWithPrior,
+    GibbsSampling_PottsDenoising,
+    ICM_PottsDenoising,
 )
 
 

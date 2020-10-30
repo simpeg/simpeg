@@ -78,7 +78,7 @@ class DataMisfitTest(unittest.TestCase):
         directives_list = [
             directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
             directives.PGI_MultiTargetMisfits(TriggerSmall=False),
-            directives.BetaSchedule()
+            directives.BetaSchedule(),
         ]
         print(len(directives_list))
         inv = inversion.BaseInversion(invProb, directiveList=directives_list)
@@ -91,19 +91,14 @@ class DataMisfitTest(unittest.TestCase):
         reg2 = regularization.Tikhonov(self.mesh)
         reg = reg1 + reg2
         opt = optimization.ProjectedGNCG(
-            maxIter=30, 
-            lower=-10, 
-            upper=10,
-            maxIterLS=20, 
-            maxIterCG=50, 
-            tolCG=1e-4
+            maxIter=30, lower=-10, upper=10, maxIterLS=20, maxIterCG=50, tolCG=1e-4
         )
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
             directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
             directives.PGI_MultiTargetMisfits(TriggerSmall=False, verbose=True),
-            directives.BetaSchedule()
-            ]
+            directives.BetaSchedule(),
+        ]
         inv = inversion.BaseInversion(invProb, directiveList=directives_list)
         m0 = self.model.mean() * np.ones_like(self.model)
 
