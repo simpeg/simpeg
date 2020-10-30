@@ -20,17 +20,17 @@ env:
     - PYPI_PY=3.6  # deploy to pypi from python 3.6
 
   matrix:
-    - TEST_DIR=tests/docs
-    - TEST_DIR=tests/em/fdem/inverse/derivs
-    - TEST_DIR=tests/em/tdem
-    - TEST_DIR="tests/em/static tests/seis tests/base tests/utils"
-    - TEST_DIR=tests/flow
-    - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
-    - TEST_DIR=tests/em/fdem/inverse/adjoint
+#    - TEST_DIR=tests/docs
+#    - TEST_DIR=tests/em/fdem/inverse/derivs
+#    - TEST_DIR=tests/em/tdem
+#    - TEST_DIR="tests/em/static tests/seis tests/base tests/utils"
+#    - TEST_DIR=tests/flow
+#    - TEST_DIR="tests/em/nsem/forward tests/em/nsem/inversion"
+#    - TEST_DIR=tests/em/fdem/inverse/adjoint
     - TEST_DIR=tests/em/fdem/forward
-    - TEST_DIR=tests/em/vrm
-    - TEST_DIR=tests/pf
-    - TEST_DIR=tests/dask
+#    - TEST_DIR=tests/em/vrm
+#    - TEST_DIR=tests/pf
+#    - TEST_DIR=tests/dask
 
 
 # Setup anaconda
@@ -43,8 +43,8 @@ before_install:
   - conda update --yes conda
 
 install:
-  - conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib ipython h5py;
-  - conda install --quiet --yes -c conda-forge pymatsolver discretize empymod geoana properties vectormath pandas
+  - conda install --quiet --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib ipython h5py
+  - conda install --quiet --yes -c conda-forge discretize empymod geoana properties vectormath pandas
   - pip install -r requirements_dev.txt
   - if [ "$TEST_DIR" = "tests/dask" ]; then
       pip install -r requirements_dask.txt;
