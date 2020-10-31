@@ -8,8 +8,9 @@ from ....data import Data
 from ...base import BaseEMSimulation
 from .boundary_utils import getxBCyBC_CC
 from .survey import Survey
+from .sources import Pole, Dipole
 from .fields import Fields3DCellCentered, Fields3DNodal
-from .utils import _mini_pole_pole
+from .utils import _mini_pole_pole, gettopoCC
 
 
 class BaseDCSimulation(BaseEMSimulation):
@@ -225,12 +226,20 @@ class BaseDCSimulation(BaseEMSimulation):
         if self.rhs_option == "primary_secondary":
             
             rho0 = self.get_background_resistivity()
+            tol = 1e-10
+            ind_active = np.ones(self.mesh.nC, dtype=bool)
+            ind_active[self.sigma < (1e-8 + tol)] = False
+            xy_surface, z_surface = gettopoCC(self.mesh, ind_active, option='top')
+
+            kdtree = sp.spatial.KDTree(xy_surface)
+
 
             # Surface of half-space or wholespace
-            z_top = self.mesh.x0[2] + np.sum(self.mesh.hz)
-            tol = 1e-3*np.min(self.mesh.hz)
-            if np.any(self.survey.a_locations[:, 2] > z_top-tol) | np.any(self.survey.m_locations[:, 2] > z_top-tol):
-                rho0 *= 2.
+            # z_top = self.mesh.x0[2] + np.sum(self.mesh.hz)
+            # tol = 1e-3*np.min(self.mesh.hz)
+
+            # if np.any(self.survey.a_locations[:, 2] > z_top-tol) | np.any(self.survey.m_locations[:, 2] > z_top-tol):
+            #     rho0 *= 2.
             
             dh = np.min(self.mesh.hx)
             if self._formulation == "EB":
@@ -241,8 +250,16 @@ class BaseDCSimulation(BaseEMSimulation):
             A0 = self.getA0()
 
             for i, source in enumerate(Srcs):
-                q[:, i] = source.compute_phi_primary(loc_grid, rho0, dh)
-
+                if type(source) == Pole:
+                    _, ind = kdtree.query(source.location[0:2])
+                    zf = z_surface[ind]
+                elif type(source) == Dipole:
+                    _, inda = kdtree.query(source.location[0][0:2])
+                    _, indb = kdtree.query(source.location[1][0:2])
+                    zf = z_surface[[inda, indb]]
+                
+                q[:, i] = source.compute_phi_primary(loc_grid, zf, rho0, dh)
+                
             q = A0 * q
         
         elif self.rhs_option == "interpolation":

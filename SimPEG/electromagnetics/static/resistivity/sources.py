@@ -131,21 +131,36 @@ class Dipole(BaseSrc):
                 self._q = self.current * (qa + qb)
             return self._q
 
-    def compute_phi_primary(self, loc_grid, rho0, dh):
+    def compute_phi_primary(self, loc_grid, zf, rho0, dh):
 
-        Ra = np.sqrt(
+        R1a = np.sqrt(
             (loc_grid[:, 0] - self.location[0][0])**2 +
             (loc_grid[:, 1] - self.location[0][1])**2 +
             (loc_grid[:, 2] - self.location[0][2])**2
         ) + dh/100.
 
-        Rb = np.sqrt(
+        R1b = np.sqrt(
             (loc_grid[:, 0] - self.location[1][0])**2 +
             (loc_grid[:, 1] - self.location[1][1])**2 +
             (loc_grid[:, 2] - self.location[1][2])**2
         ) + dh/100.
 
-        return (self.current*rho0/(4*np.pi)) * (Ra**-1 - Rb**-1)
+        # Contribution from image source
+        z2a = 2*zf[0] - self.location[0][2]
+        R2a = np.sqrt(
+            (loc_grid[:, 0] - self.location[0][0])**2 +
+            (loc_grid[:, 1] - self.location[0][1])**2 +
+            (loc_grid[:, 2] - z2a)**2
+        ) + dh/100.
+
+        z2b = 2*zf[1] - self.location[1][2]
+        R2b = np.sqrt(
+            (loc_grid[:, 0] - self.location[1][0])**2 +
+            (loc_grid[:, 1] - self.location[1][1])**2 +
+            (loc_grid[:, 2] - z2b)**2
+        ) + dh/100.
+
+        return (self.current*rho0/(4*np.pi)) * (R1a**-1 + R2a**-1 - R1b**-1 - R2b**-1)
 
 
 class Pole(BaseSrc):
@@ -165,15 +180,24 @@ class Pole(BaseSrc):
                 self._q = self.current * q.toarray()
             return self._q
 
-    def compute_phi_primary(self, loc_grid, rho0, dh):
+    def compute_phi_primary(self, loc_grid, zf, rho0, dh):
 
-        R = np.sqrt(
+        # Distance from source to locations
+        R1 = np.sqrt(
             (loc_grid[:, 0] - self.location[0])**2 +
             (loc_grid[:, 1] - self.location[1])**2 +
             (loc_grid[:, 2] - self.location[2])**2
         ) + dh/100.
 
-        return (self.current*rho0/(4*np.pi)) * R**-1
+        # Distance from image source to locations
+        z2 = 2*zf - self.location[2]
+        R2 = np.sqrt(
+            (loc_grid[:, 0] - self.location[0])**2 +
+            (loc_grid[:, 1] - self.location[1])**2 +
+            (loc_grid[:, 2] - z2)**2
+        ) + dh/100.
+
+        return (self.current*rho0/(4*np.pi)) * (R1**-1 + R2**-1)
 
 
     def eval_interpolation(self, sim):
