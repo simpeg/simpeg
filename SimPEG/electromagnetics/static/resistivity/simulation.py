@@ -252,7 +252,9 @@ class BaseDCSimulation(BaseEMSimulation):
                 
                 q[:, i] = source.compute_phi_primary(loc_grid, zf, rho0, dh)
             
-            A0 = self.getA0()
+            background_resistivity_model = 1e8*np.ones(self.mesh.nC)
+            background_resistivity_model[ind_active] = rho0
+            A0 = self.getA0(background_resistivity_model)
             q = A0 * q
 
         # Interpolate source to centers/nodes
@@ -340,16 +342,14 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
         return A
 
-    def getA0(self):
+    def getA0(self, rho0):
         """
         Make the A matrix for the cell centered DC resistivity problem
-        A = D MfRhoI G
+        A = D MfRhoI G from a background conductivity/resistivity model
         """
 
         D = self.Div
         G = self.Grad
-        rho0 = self.get_background_resistivity()
-        rho0 = rho0*np.ones(self.mesh.nC)
         MfRho0I = self.mesh.getFaceInnerProduct(rho0, invMat=True)
         A = D @ MfRho0I @ G
 
@@ -567,15 +567,13 @@ class Simulation3DNodal(BaseDCSimulation):
 
         return A
 
-    def getA0(self):
+    def getA0(self, rho0):
         """
         Make the A matrix for the cell centered DC resistivity problem
-        A = G.T MeSigma G
+        A = G.T MeSigma G from a background conductivity/resistivity model
         """
 
-        sig0 = 1/self.get_background_resistivity()
-        sig0 = sig0*np.ones(self.mesh.nC)
-        MeSigma = self.mesh.getEdgeInnerProduct(sig0)
+        MeSigma = self.mesh.getEdgeInnerProduct(1/rho0)
         Grad = self.mesh.nodalGrad
         A = Grad.T @ MeSigma @ Grad
 
