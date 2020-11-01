@@ -200,53 +200,6 @@ class Pole(BaseSrc):
         return (self.current*rho0/(4*np.pi)) * (R1**-1 + R2**-1)
 
 
-    def eval_interpolation(self, sim):
-
-        mesh = sim.mesh        
-        q = np.zeros(mesh.nN)
-        xyz = self.location
-        k_center = closestPoints(sim.mesh, xyz)[0]
-
-        if isinstance(mesh, TreeMesh):
-            k_nodes = mesh[k_center].nodes
-            hx, hy, hz = mesh[k_center].h
-            
-        else:
-            z_ind = k_center // (mesh.nCx * mesh.nCy)
-            z_remainder = k_center % (mesh.nCx * mesh.nCy)
-            y_ind = z_remainder // mesh.nCx
-            x_ind = z_remainder % mesh.nCx
-
-            k_nodes = np.ones(8, dtype=int) * z_ind*(mesh.nNx * mesh.nNy) + y_ind*mesh.nNx + x_ind
-            k_nodes[4:] += mesh.nNx*mesh.nNy
-            k_nodes[[2, 3, 6, 7]] += mesh.nNx
-            k_nodes[1::2] += 1
-
-            hx, hy, hz = mesh.hx[x_ind], mesh.hy[y_ind], mesh.hz[z_ind]
-
-        v = hx*hy*hz        
-        xyz_nodes = mesh.grid_nodes[k_nodes, :]     
-        
-        n = 2
-        eps = 1e-10
-
-        dx = np.abs(xyz[0]-xyz_nodes[:, 0]) + eps*hx
-        dy = np.abs(xyz[1]-xyz_nodes[:, 1]) + eps*hy
-        dz = np.abs(xyz[2]-xyz_nodes[:, 2]) + eps*hz
-        q[k_nodes] = (np.sum((dx*dy*dz/v)**-n) * (dx*dy*dz/v)**n)**-1
-
-        # r = np.sqrt(
-        #     (xyz[0]-xyz_nodes[:, 0])**2 +
-        #     (xyz[1]-xyz_nodes[:, 1])**2 +
-        #     (xyz[2]-xyz_nodes[:, 2])**2
-        # ) + eps * hx
-        # q[k_nodes] = (np.sum(r**-n) * r**n)**-1
-
-        
-
-        return self.current * q
-
-
 
             
 

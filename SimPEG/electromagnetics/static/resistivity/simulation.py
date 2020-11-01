@@ -23,9 +23,9 @@ class BaseDCSimulation(BaseEMSimulation):
     storeJ = properties.Bool("store the sensitivity matrix?", default=False)
 
     rhs_option = properties.StringChoice(
-        choices=["nearest", "interpolation", "primary_secondary"],
-        doc="Discretization of RHS",
-        default="nearest")
+        choices=["interpolate", "primary_secondary"],
+        doc="Choose formation of RHS",
+        default="interpolate")
 
     _mini_survey = None
 
@@ -223,6 +223,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         q = np.zeros((n, len(Srcs)), order="F")
 
+        # Compute analytic solution for background and compute qs=A0*phi0
         if self.rhs_option == "primary_secondary":
             
             rho0 = self.get_background_resistivity()
@@ -231,23 +232,14 @@ class BaseDCSimulation(BaseEMSimulation):
             ind_active[self.sigma < (1e-8 + tol)] = False
             xy_surface, z_surface = gettopoCC(self.mesh, ind_active, option='top')
 
+            # A function for finding index of nearest neighour of surface cells
             kdtree = sp.spatial.KDTree(xy_surface)
-
-
-            # Surface of half-space or wholespace
-            # z_top = self.mesh.x0[2] + np.sum(self.mesh.hz)
-            # tol = 1e-3*np.min(self.mesh.hz)
-
-            # if np.any(self.survey.a_locations[:, 2] > z_top-tol) | np.any(self.survey.m_locations[:, 2] > z_top-tol):
-            #     rho0 *= 2.
             
             dh = np.min(self.mesh.hx)
             if self._formulation == "EB":
                 loc_grid = self.mesh.gridN
             elif self._formulation == "HJ":
                 loc_grid = self.mesh.gridCC
-
-            A0 = self.getA0()
 
             for i, source in enumerate(Srcs):
                 if type(source) == Pole:
@@ -259,13 +251,11 @@ class BaseDCSimulation(BaseEMSimulation):
                     zf = z_surface[[inda, indb]]
                 
                 q[:, i] = source.compute_phi_primary(loc_grid, zf, rho0, dh)
-                
+            
+            A0 = self.getA0()
             q = A0 * q
-        
-        elif self.rhs_option == "interpolation":
-            for i, source in enumerate(Srcs):
-                q[:, i] = source.eval_interpolation(self)
 
+        # Interpolate source to centers/nodes
         else:
             for i, source in enumerate(Srcs):
                 q[:, i] = source.eval(self)
