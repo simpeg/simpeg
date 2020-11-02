@@ -407,8 +407,10 @@ def writeUBCgravityObservations(filename, data_object):
     
     data = survey.source_field.receiver_list[0].locations
     
+    # UBC and SimPEG use opposite sign for gravity data so
+    # data are multiplied by -1.
     if data_object.dobs is not None:
-        data = np.c_[data, data_object.dobs]
+        data = np.c_[data, -data_object.dobs]
     
     if data_object.standard_deviation is not None:
         data = np.c_[data, data_object.standard_deviation]
