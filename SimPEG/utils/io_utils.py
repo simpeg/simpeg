@@ -383,8 +383,12 @@ def readUBCgravityObservations(obs_file):
     if np.all(wd == 0.):
         wd = None
 
+    # UBC and SimPEG used opposite sign convention for
+    # gravity data so must multiply by -1.
     if np.all(d == 0.):
         d = None
+    else:
+        d *= -1.
 
     rxLoc = gravity.receivers.Point(locXYZ)
     srcField = gravity.sources.SourceField([rxLoc])
