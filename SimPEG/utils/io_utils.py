@@ -370,12 +370,12 @@ def readUBCgravityObservations(obs_file):
         temp = np.array(line.split(), dtype=float)
         if len(temp) > 0:
             locXYZ[ii, :] = temp[:3]
-
             if len(temp) > 3:
                 d[ii] = temp[3]
 
                 if len(temp) == 5:
                     wd[ii] = temp[4]
+
             ii += 1
         line = fid.readline()
     fid.close()
@@ -523,6 +523,7 @@ def writeUBCgravitygradiometryObservations(filename, data_object):
     """
     survey = data_object.survey
 
+<<<<<<< HEAD
     # Convert component types from UBC to SimPEG
     components = list(survey.components.keys())
     n_comp = len(components)
@@ -559,6 +560,10 @@ def writeUBCgravitygradiometryObservations(filename, data_object):
     
     head = ("datacomp=%s\n" % components) + ("%i" % n_loc)
     
+=======
+    data = np.c_[rxLoc, -d, wd]
+    head = "%i\n" % len(d)
+>>>>>>> master
     np.savetxt(
         filename, data, fmt="%e", delimiter=" ", newline="\n", header=head, comments=""
     )
