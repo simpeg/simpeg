@@ -172,7 +172,7 @@ class RawVec_m(BaseFDEMSrc):
     def __init__(self, receiver_list=None, frequency=None, s_m=None, **kwargs):
         self._s_m = np.array(s_m, dtype=complex)
         super(RawVec_m, self).__init__(
-            receiver_list=receiver_list, frequency=frequency ** kwargs
+            receiver_list=receiver_list, frequency=frequency, ** kwargs
         )
 
     def s_m(self, simulation):

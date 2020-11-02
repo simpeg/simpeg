@@ -17,3 +17,5 @@ empymod
 scooby
 black
 pre-commit
+twine
+memory_profiler

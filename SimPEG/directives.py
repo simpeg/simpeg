@@ -297,8 +297,8 @@ class SaveEveryIteration(InversionDirective):
     """SaveEveryIteration
 
     This directive saves an array at each iteration. The default
-    direcroty is the current directoy and the models are saved as
-    `InversionModel-YYYY-MM-DD-HH-MM-iter.npy`
+    directory is the current directoy and the models are saved as
+    ``InversionModel-YYYY-MM-DD-HH-MM-iter.npy``
     """
 
     directory = properties.String("directory to save results in", default=".")
@@ -330,8 +330,8 @@ class SaveModelEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration
 
     This directive saves the model as a numpy array at each iteration. The
-    default direcroty is the current directoy and the models are saved as
-    `InversionModel-YYYY-MM-DD-HH-MM-iter.npy`
+    default directory is the current directoy and the models are saved as
+    ``InversionModel-YYYY-MM-DD-HH-MM-iter.npy``
     """
 
     def initialize(self):
@@ -560,7 +560,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
 class SaveOutputDictEveryIteration(SaveEveryIteration):
     """
-        Saves inversion parameters at every iteraion.
+        Saves inversion parameters at every iteration.
     """
 
     # Initialize the output dict
@@ -569,11 +569,12 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
     def initialize(self):
         self.outDict = {}
-        print(
-            "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(
-                self.fileName
+        if self.saveOnDisk:
+            print(
+                "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(
+                    self.fileName
+                )
             )
-        )
 
     def endIter(self):
 
@@ -586,7 +587,6 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         #     regCombo += ["phi_msz"]
 
         # Initialize the output dict
-        iterDict = None
         iterDict = {}
 
         # Save the data.

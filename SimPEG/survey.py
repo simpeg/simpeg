@@ -205,7 +205,7 @@ class BaseSrc(BaseSimPEG):
     )
 
     def getReceiverIndex(self, receiver):
-        if type(receiver) is not list:
+        if not isinstance(receiver, list):
             receiver = [receiver]
         for rx in receiver:
             if getattr(rx, "_uid", None) is None:
@@ -266,7 +266,7 @@ class BaseSurvey(properties.HasProperties):
 
     # TODO: this should be private
     def getSourceIndex(self, sources):
-        if type(sources) is not list:
+        if not isinstance(sources, list):
             sources = [sources]
 
         for src in sources:
