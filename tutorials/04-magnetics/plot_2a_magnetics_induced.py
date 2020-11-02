@@ -30,6 +30,7 @@ from discretize.utils import mkvc
 from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
 from SimPEG import maps
 from SimPEG.potential_fields import magnetics
+from SimPEG import utils, data
 
 save_file = False
 
@@ -225,9 +226,10 @@ if save_file:
     maximum_anomaly = np.max(np.abs(dpred))
     noise = 0.02 * maximum_anomaly * np.random.rand(len(dpred))
     fname = dir_path + "magnetics_data.obs"
-    np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt="%.4e")
+    data_object = data.Data(survey, dobs=dpred + noise, standard_deviation=noise)
+    utils.io_utils.writeUBCmagneticsObservations(fname, data_object)
 
     output_model = plotting_map * model
     output_model[np.isnan(output_model)] = 0.0
     fname = dir_path + "true_model.txt"
-    np.savetxt(fname, output_model, fmt="%.4e")
+    mesh.writeModelUBC(fname, output_model)
