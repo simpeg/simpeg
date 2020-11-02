@@ -1087,15 +1087,13 @@ class Update_Wj(InversionDirective):
 
 class GaussianMixtureUpdateModel(InversionDirective):
 
-    coolingFactor = 1.0
-    coolingRate = 1
-    update_covariances = True
-    verbose = False
+    update_covariances = True # Average the covariances, If false: average the precisions
+    verbose = False # print info. at each iteration
     zeta = 1e8  # default: keep GMM fixed
-    nu = 1e8
-    kappa = 1e8
-    fixed_membership = None
-    keep_ref_fixed_in_Smooth = True
+    nu = 1e8 # default: keep GMM fixed
+    kappa = 1e8 # default: keep GMM fixed
+    fixed_membership = None #keep the membership of specific cells fixed
+    keep_ref_fixed_in_Smooth = True #keep mref fixed in the Smoothness
 
     def initialize(self):
         if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
@@ -1135,9 +1133,6 @@ class GaussianMixtureUpdateModel(InversionDirective):
                 self.pgi_reg.membership(self.pgi_reg.mref),
             ]
 
-        # TEMPORARY FOR WEIGHTS ACCROSS THE MESH
-        # self.pgi_reg.gmm.weights_ = self.pgi_reg.gmmref.weights_
-
         clfupdate = GaussianMixtureWithPrior(
             gmmref=self.pgi_reg.gmmref,
             zeta=self.zeta,
@@ -1166,20 +1161,20 @@ class GaussianMixtureUpdateModel(InversionDirective):
         if self.fixed_membership is not None:
             membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
 
-        mref = clfupdate.means_[membership]
+        mref = mkvc(clfupdate.means_[membership])
 
         if self._regmode == 1:
-            self.invProb.reg.objfcts[self.petrosmallness].mref = mkvc(mref)
-            self.invProb.reg.objfcts[self.petrosmallness]._r_second_deriv = None
+            self.invProb.reg.objfcts[self.petrosmallness].mref = mref
+            if len(self.fixed_membership.shape[0]) < len(membership):
+                self.invProb.reg.objfcts[self.petrosmallness]._r_second_deriv = None
         else:
-            self.invProb.reg.mref = mkvc(mref)
-            self.invProb.reg._r_second_deriv = None
+            self.invProb.reg.mref = mref
+            if len(self.fixed_membership.shape[0]) < len(membership):
+                self.invProb.reg._r_second_deriv = None
 
 
 class GMMRFUpdateModel(InversionDirective):
 
-    coolingFactor = 1.0
-    coolingRate = 1
     update_covariances = True
     verbose = False
     zeta = 1e8  # default: keep GMM fixed
@@ -1269,18 +1264,22 @@ class GMMRFUpdateModel(InversionDirective):
         clfupdate = clfupdate.fit(model)
         # order_cluster(clfupdate, self.pgi_reg.gmmref)
         self.pgi_reg.gmm = clfupdate
-        if self.fixed_membership is None:
-            membership = clfupdate.predict(model)
-            if self._regmode == 1:
-                self.invProb.reg.objfcts[self.petrosmallness].mref = mkvc(
-                    clfupdate.means_[membership]
-                )
+        membership = clfupdate.predict(model)
+
+        if self.fixed_membership is not None:
+            membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
+
+        mref = mkvc(clfupdate.means_[membership])
+
+        if self._regmode == 1:
+            self.invProb.reg.objfcts[self.petrosmallness].mref = mref
+            if len(self.fixed_membership.shape[0]) < len(membership):
                 self.invProb.reg.objfcts[self.petrosmallness]._r_second_deriv = None
-            else:
-                self.invProb.reg.mref = mkvc(clfupdate.means_[membership])
-                self.invProb.reg._r_second_deriv = None
         else:
-            self.pgi_reg.mref = mkvc(clfupdate.means_[self.fixed_membership])
+            self.invProb.reg.mref = mref
+            if len(self.fixed_membership.shape[0]) < len(membership):
+                self.invProb.reg._r_second_deriv = None
+
 
 
 class UpdateReference(InversionDirective):
@@ -2023,23 +2022,6 @@ class PGI_BetaAlphaSchedule(InversionDirective):
     UpdateRate = 1
     ratio_in_cooling = False
 
-    update_prior_confidence = False
-    progress_gamma_warming = 0.02
-    progress_gamma_cooling = 0.02
-    gamma_max = 1e10
-    gamma_min = 1e-1
-    ratio_in_gamma_cooling = True
-    ratio_in_gamma_warming = True
-    zeta_rateCooling = 1.0
-    kappa_rateCooling = 1.0
-    nu_rateCooling = 1.0
-    zeta_rateWarming = 1.0
-    kappa_rateWarming = 1.0
-    nu_rateWarming = 1.0
-
-    force_prior_increase = False
-    force_prior_increase_rate = 10.0
-
     def initialize(self):
         targetclass = np.r_[
             [
@@ -2119,40 +2101,10 @@ class PGI_BetaAlphaSchedule(InversionDirective):
         self.targetlist = self.inversion.directiveList.dList[
             self.targetclass
         ].targetlist
+        
         if self.DM:
             self.mode = 2
             self.mode2_iter += 1
-            if self.mode2_iter == 1 and self.force_prior_increase:
-                if self.ratio_in_gamma_warming:
-                    ratio = self.score / self.CLtarget
-                else:
-                    ratio = 1.0
-                self.updategaussianclass.zeta *= self.force_prior_increase_rate * ratio
-                self.updategaussianclass.zeta = np.minimum(
-                    self.gamma_max * np.ones_like(self.updategaussianclass.zeta),
-                    self.updategaussianclass.zeta,
-                )
-                self.updategaussianclass.kappa *= self.force_prior_increase_rate * ratio
-                self.updategaussianclass.kappa = np.minimum(
-                    self.gamma_max * np.ones_like(self.updategaussianclass.kappa),
-                    self.updategaussianclass.kappa,
-                )
-                self.updategaussianclass.nu *= self.force_prior_increase_rate * ratio
-                self.updategaussianclass.nu = np.minimum(
-                    self.gamma_max * np.ones_like(self.updategaussianclass.nu),
-                    self.updategaussianclass.nu,
-                )
-
-                if self.verbose:
-                    print(
-                        "Mode 2 started. Increased GMM Prior. New confidences:\n",
-                        "nu: ",
-                        self.updategaussianclass.nu,
-                        "\nkappa: ",
-                        self.updategaussianclass.kappa,
-                        "\nzeta: ",
-                        self.updategaussianclass.zeta,
-                    )
 
         if self.opt.iter > 0 and self.opt.iter % self.UpdateRate == 0:
             if self.verbose:
@@ -2199,10 +2151,8 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     if np.any(indx) and self.ratio_in_cooling:
                         ratio = np.median([self.dmlist[indx] / self.DMtarget[indx]])
                     self.invProb.beta /= self.rateCooling * ratio
-                    # self.pgi_reg.alpha_s /= (self.rateCooling * ratio)
 
                     if self.verbose:
-                        # print("update beta for countering plateau")
                         print("Decreasing beta to counter data misfit decrase plateau")
 
             elif np.all([self.DM, self.mode == 2]):
@@ -2210,7 +2160,6 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                 if np.all([self.pgi_reg.alpha_s < self.alphasmax]):
 
                     ratio = np.median(self.DMtarget / self.dmlist)
-                    # self.invProb.beta = self.rateWarming * self.invProb.beta * ratio
                     self.pgi_reg.alpha_s *= self.rateWarming * ratio
 
                     if self.verbose:
@@ -2219,85 +2168,6 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                             self.pgi_reg.alpha_s,
                         )
 
-                if np.all(
-                    [
-                        self.update_prior_confidence,
-                        self.score > self.CLtarget,
-                        self.score
-                        > (1.0 - self.progress_gamma_cooling) * self.previous_score,
-                        self.mode2_iter > 1,
-                    ]
-                ):
-                    if self.ratio_in_gamma_cooling:
-                        ratio = self.score / self.CLtarget
-                    else:
-                        ratio = 1.0
-                    self.updategaussianclass.zeta /= self.zeta_rateCooling * ratio
-                    self.updategaussianclass.zeta = np.maximum(
-                        self.gamma_min * np.ones_like(self.updategaussianclass.zeta),
-                        self.updategaussianclass.zeta,
-                    )
-                    self.updategaussianclass.kappa /= self.kappa_rateCooling * ratio
-                    self.updategaussianclass.kappa = np.maximum(
-                        self.gamma_min * np.ones_like(self.updategaussianclass.kappa),
-                        self.updategaussianclass.kappa,
-                    )
-                    self.updategaussianclass.nu /= self.nu_rateCooling * ratio
-                    self.updategaussianclass.nu = np.maximum(
-                        self.gamma_min * np.ones_like(self.updategaussianclass.nu),
-                        self.updategaussianclass.nu,
-                    )
-
-                    if self.verbose:
-                        print(
-                            "Decreased GMM Prior. New confidences:\n",
-                            "nu: ",
-                            self.updategaussianclass.nu,
-                            "\nkappa: ",
-                            self.updategaussianclass.kappa,
-                            "\nzeta: ",
-                            self.updategaussianclass.zeta,
-                        )
-
-                elif np.all(
-                    [
-                        self.update_prior_confidence,
-                        self.score > self.CLtarget,
-                        self.score
-                        < (1.0 - self.progress_gamma_warming) * self.previous_score,
-                        self.mode2_iter > 1,
-                    ]
-                ):
-                    if self.ratio_in_gamma_warming:
-                        ratio = self.score / self.CLtarget
-                    else:
-                        ratio = 1.0
-                    self.updategaussianclass.zeta *= self.zeta_rateWarming * ratio
-                    self.updategaussianclass.zeta = np.minimum(
-                        self.gamma_max * np.ones_like(self.updategaussianclass.zeta),
-                        self.updategaussianclass.zeta,
-                    )
-                    self.updategaussianclass.kappa *= self.kappa_rateWarming * ratio
-                    self.updategaussianclass.kappa = np.minimum(
-                        self.gamma_max * np.ones_like(self.updategaussianclass.kappa),
-                        self.updategaussianclass.kappa,
-                    )
-                    self.updategaussianclass.nu *= self.nu_rateWarming * ratio
-                    self.updategaussianclass.nu = np.minimum(
-                        self.gamma_max * np.ones_like(self.updategaussianclass.nu),
-                        self.updategaussianclass.nu,
-                    )
-
-                    if self.verbose:
-                        print(
-                            "Increased GMM Prior. New confidences:\n",
-                            "nu: ",
-                            self.updategaussianclass.nu,
-                            "\nkappa: ",
-                            self.updategaussianclass.kappa,
-                            "\nzeta: ",
-                            self.updategaussianclass.zeta,
-                        )
             elif np.all(
                 [
                     np.any(self.dmlist > (1.0 + self.tolerance) * self.DMtarget),
@@ -2312,7 +2182,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     if np.any(indx) and self.ratio_in_cooling:
                         ratio = np.median([self.dmlist[indx] / self.DMtarget[indx]])
                     self.invProb.beta /= self.rateCooling * ratio
-                    # self.pgi_reg.alpha_s /= (self.rateCooling * ratio)
+
                     if self.verbose:
                         print("Decrease beta for countering plateau")
 
@@ -2346,6 +2216,13 @@ class AddMrefInSmooth(InversionDirective):
             self._DMtarget = self.inversion.directiveList.dList[
                 self.targetclass
             ].DMtarget
+
+        self.pgi_updategmm_class = np.r_[
+            [
+                isinstance(dirpart, GaussianMixtureUpdateModel)
+                for dirpart in self.inversion.directiveList.dList
+            ]
+        ]
 
         if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
             petrosmallness = np.where(
@@ -2418,7 +2295,10 @@ class AddMrefInSmooth(InversionDirective):
             ]
             self._regmode = 2
 
-        self.previous_membership = self.pgi_reg.membership(self.pgi_reg.mref)
+        if ~np.any(self.pgi_updategmm_class):
+            self.previous_membership = self.pgi_reg.membership(self.invProb.model)
+        else: 
+            self.previous_membership = self.pgi_reg.membership(self.pgi_reg.mref)
 
     @property
     def DMtarget(self):
@@ -2435,7 +2315,11 @@ class AddMrefInSmooth(InversionDirective):
         self.DM = self.inversion.directiveList.dList[self.targetclass].DM
         self.dmlist = self.inversion.directiveList.dList[self.targetclass].dmlist
 
-        self.membership = self.pgi_reg.membership(self.pgi_reg.mref)
+        
+        if ~np.any(self.pgi_updategmm_class):
+            self.membership = self.pgi_reg.membership(self.invProb.model)
+        else: 
+            self.membership = self.pgi_reg.membership(self.pgi_reg.mref)
 
         same_mref = np.all(self.membership == self.previous_membership)
         percent_diff = (
@@ -2460,7 +2344,7 @@ class AddMrefInSmooth(InversionDirective):
             if self._regmode == 2:
                 for i in range(self.nbr):
                     if self.Smooth[i]:
-                        self.invProb.reg.objfcts[i].mref = self.pgi_reg.mref
+                        self.invProb.reg.objfcts[i].mref = mkvc(self.pgi_reg.gmm.means_[self.membership])
                 if self.verbose:
                     print(
                         "Add mref to Smoothness. Changes in mref happened in {} % of the cells".format(
@@ -2478,7 +2362,7 @@ class AddMrefInSmooth(InversionDirective):
                             )
                         self.invProb.reg.objfcts[idx[0]].objfcts[
                             idx[1]
-                        ].mref = self.pgi_reg.mref
+                        ].mref = mkvc(self.pgi_reg.gmm.means_[self.membership])
                 if self.verbose:
                     print(
                         "Add mref to Smoothness. Changes in mref happened in {} % of the cells".format(
