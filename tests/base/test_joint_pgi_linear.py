@@ -65,6 +65,7 @@ class JointInversionTest(unittest.TestCase):
         m = utils.mkvc(model)
 
         clfmapping = utils.GaussianMixtureWithMapping(
+            mesh=mesh,
             n_components=3,
             covariance_type="full",
             tol=1e-6,
@@ -87,7 +88,8 @@ class JointInversionTest(unittest.TestCase):
         )
         clfmapping = clfmapping.fit(model)
 
-        clfnomapping = utils.GaussianMixture(
+        clfnomapping = utils.WeightedGaussianMixture(
+            mesh=mesh,
             n_components=3,
             covariance_type="full",
             tol=1e-3,
@@ -103,14 +105,17 @@ class JointInversionTest(unittest.TestCase):
         clfnomapping = clfnomapping.fit(model)
 
         wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC))
-        std = 0.01
+        relative_error = 0.01
+        noise_floor = 0.
         prob1 = simulation.LinearSimulation(mesh, G=G, model_map=wires.m1)
-        survey1 = prob1.make_synthetic_data(m, relative_error=std, add_noise=True)
-        survey1.eps = 0.0
+        survey1 = prob1.make_synthetic_data(
+            m, noise_floor=noise_floor, relative_error=relative_error, add_noise=True
+        )
 
         prob2 = simulation.LinearSimulation(mesh, G=G, model_map=wires.m2)
-        survey2 = prob2.make_synthetic_data(m, relative_error=std, add_noise=True)
-        survey2.eps = 0.0
+        survey2 = prob2.make_synthetic_data(
+            m, noise_floor=noise_floor, relative_error=relative_error, add_noise=True
+        )
 
         dmis1 = data_misfit.L2DataMisfit(simulation=prob1, data=survey1)
         dmis2 = data_misfit.L2DataMisfit(simulation=prob2, data=survey2)
@@ -164,14 +169,15 @@ class JointInversionTest(unittest.TestCase):
         alpha0_ratio = np.r_[
             np.zeros(len(reg_simple.objfcts[0].objfcts)),
             100.0 * np.ones(len(reg_simple.objfcts[1].objfcts)),
-            0.4 * np.ones(len(reg_simple.objfcts[2].objfcts)),
+            np.ones(len(reg_simple.objfcts[2].objfcts)),
         ]
-        Alphas = directives.AlphasSmoothEstimate_ByEig(
+        alphas = directives.AlphasSmoothEstimate_ByEig(
             alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
         )
-        Scales = directives.ScalingEstimate_ByEig(
-            Chi0_ratio=0.4, verbose=True, ninit=10
+        scales = directives.ScalingEstimate_ByEig(
+            Chi0_ratio=0.5, verbose=True, ninit=10
         )
+        scaling_schedule = directives.JointScalingSchedule(verbose=True)
         beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
         betaIt = directives.PGI_BetaAlphaSchedule(
             verbose=True,
@@ -187,7 +193,7 @@ class JointInversionTest(unittest.TestCase):
 
         # Setup Inversion
         inv = inversion.BaseInversion(
-            invProb, directiveList=[Alphas, Scales, beta, petrodir, targets, betaIt]
+            invProb, directiveList=[alphas, scales, beta, petrodir, targets, betaIt, scaling_schedule]
         )
 
         self.mcluster_map = inv.run(self.minit)
@@ -291,12 +297,13 @@ class JointInversionTest(unittest.TestCase):
 
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg_simple, opt)
         # Directives
-        Alphas = directives.AlphasSmoothEstimate_ByEig(
-            alpha0_ratio=5e-2, ninit=10, verbose=True
+        alphas = directives.AlphasSmoothEstimate_ByEig(
+            alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
         )
-        Scales = directives.ScalingEstimate_ByEig(
-            Chi0_ratio=1.0, verbose=True, ninit=100
+        scales = directives.ScalingEstimate_ByEig(
+            Chi0_ratio=[1, 0.5], verbose=True, ninit=100
         )
+        scaling_schedule = directives.JointScalingSchedule(verbose=True)
         beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
         betaIt = directives.PGI_BetaAlphaSchedule(
             verbose=True,
@@ -310,7 +317,7 @@ class JointInversionTest(unittest.TestCase):
 
         # Setup Inversion
         inv = inversion.BaseInversion(
-            invProb, directiveList=[Alphas, Scales, beta, petrodir, targets, betaIt]
+            invProb, directiveList=[alphas, scales, beta, petrodir, targets, betaIt, scaling_schedule]
         )
 
         self.mcluster_no_map = inv.run(self.minit)

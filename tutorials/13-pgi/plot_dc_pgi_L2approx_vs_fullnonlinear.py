@@ -226,8 +226,8 @@ targets = directives.MultiTargetMisfits(verbose=True,)
 ## Put learned reference model in Smoothness once stable
 MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
 ## PGI update to the GMM, Smallness reference model and weights: 
-## **This one is required when using the Least-Squares approximation of PGI 
-petrodir = directives.PGI_UpdateParameters()
+## It is required when using the Least-Squares approximation of PGI or updating the GMM
+petrodir = directives.PGI_UpdateParameters(update_gmm=False)
 ## Sensitivity weights based on the starting half-space
 updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3, everyIter=False)
 ## Preconditioner
@@ -303,7 +303,7 @@ beta_alpha_iteration = directives.PGI_BetaAlphaSchedule(
 targets = directives.MultiTargetMisfits(verbose=True,)
 ## Put learned reference model in Smoothness once stable
 MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
-## No directives.GaussianUpdateModel()
+## No directives.PGI_UpdateParameters() necessary if 1) no approximation, 2) no update of the GMM
 ## Sensitivity weights based on the starting half-space
 updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3, everyIter=False)
 ## Preconditioner
