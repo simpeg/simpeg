@@ -59,7 +59,6 @@ from .pgi_utils import (
     order_cluster,
     compute_clusters_precision,
     computeCovariance,
-    ComputeConstantTerm,
     _compute_precision_cholesky,
     GaussianMixture,
     WeightedGaussianMixture,

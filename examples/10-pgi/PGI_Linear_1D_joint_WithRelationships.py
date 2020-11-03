@@ -56,6 +56,7 @@ model2d = np.vstack([m0, m1]).T
 m = utils.mkvc(model2d)
 print(m0[20:41].mean(), m1[20:41].mean())
 clfmapping = utils.GaussianMixtureWithMapping(
+    mesh=mesh,
     n_components=3,
     covariance_type="full",
     tol=1e-6,
@@ -128,7 +129,6 @@ reg_simple = regularization.MakeSimplePGIwithRelationships(
     approx_gradient=True,
     alpha_x=0.0,
     wiresmap=wires,
-    evaltype="approx",
     cell_weights_list=[wr1, wr2],
 )
 
@@ -176,7 +176,6 @@ reg_simple_no_map = regularization.MakeSimplePGI(
     approx_gradient=True,
     alpha_x=0.0,
     wiresmap=wires,
-    evaltype="approx",
     cell_weights_list=[wr1, wr2],
 )
 

@@ -1,14 +1,14 @@
 """
-DC: Petrophysically Guided Inversion (PGI) with various levels of information
-=============================================================================
+DC: Petrophysically Guided Inversion (PGI): Approximation vs full-evaluation
+============================================================================
 
 Invert dc data with petrophysical information
 
 Example inspired by: Thibaut Astic, Douglas W Oldenburg, A framework for petrophysically and geologically guided geophysical inversion using a dynamic Gaussian mixture model prior, Geophysical Journal International, Volume 219, Issue 3, December 2019, Pages 1989–2012, https://doi.org/10.1093/gji/ggz389
 
-A DC resistivity profile is acquired over two cylinders. We illustrate the performance of this framework when no physical property mean values are available, and compared it to the result with full petrophysical information. We highlight then how geological information from borehole logs can be incorporated into this framework. 
+A DC resistivity profile is acquired over two cylinders.
 
-For that purpose, we first start by running a PGI with full petrophysical information to set benchmarks. We then run a PGI without providing any information about the physical property mean values nor the proportions. We finally run another PGI, still without means information, but with added geological information included through the use of local proportions. All inversions share the same starting weighting of the geophysical objective function terms.
+We compare the use of the full nonlinear PGI regularizer and its Least-Squares approximation.
 
 """
 
@@ -225,8 +225,8 @@ beta_alpha_iteration = directives.PGI_BetaAlphaSchedule(
 targets = directives.PGI_MultiTargetMisfits(verbose=True,)
 ## Put learned reference model in Smoothness once stable
 MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
-## PGI update to the GMM and Smallness reference model and weights
-## **This one is required when using the Least-Squares approximation of PGI (default)
+## PGI update to the GMM, Smallness reference model and weights: 
+## **This one is required when using the Least-Squares approximation of PGI 
 petrodir = directives.GaussianMixtureUpdateModel()
 ## Sensitivity weights based on the starting half-space
 updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3, everyIter=False)
@@ -251,44 +251,34 @@ inv = inversion.BaseInversion(
 m_pgi = inv.run(m0)
 
 
-# PGI without mean information
-##############################
+# PGI with Full Nonlinear Regularizer
+#####################################
 
-# We start from the best fitting half-space value
-m0 = -np.log(np.median((DCutils.apparent_resistivity(dc_data)))) * np.ones(mapping.nP)
+# Set the initial model to the true background mean
+m0 = -np.log(100.0) * np.ones(mapping.nP)
 
-# We now learn a suitable GMM
-# Create an initial GMM with guest values
-clfnomean = utils.WeightedGaussianMixture(
-    n_components=n, mesh=meshCore, covariance_type="full", reg_covar=1e-3, n_init=20,
+# Create data misfit object
+dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
+
+# Create the regularization with GMM information
+idenMap = maps.IdentityMap(nP=m0.shape[0])
+wires = maps.Wires(("m", m0.shape[0]))
+## Use the non-approximated Smallness and derivatives 
+## The directives.GaussianMixtureUpdateModel() is not necessary if the GMM stays fix.
+reg_mean = regularization.SimplePGI(
+    gmmref=clf, mesh=mesh, wiresmap=wires, maplist=[idenMap], mref=m0, indActive=actcore,
+    approx_eval=False, approx_gradient=False,
 )
-clfnomean.fit(mtrue[actcore].reshape(-1, 1))
-utils.order_clusters_GM_weight(clfnomean)
-# Set qualitative initial means; the value chosen here are based on
-# the range of apparent conductivities from the data
-clfnomean.means_ = np.r_[
-    # background is guest as the best fitting half-space value
-    -np.log(np.median((DCutils.apparent_resistivity(dc_data)))),
-    # conductive and resistive are min and max of the apparent conducitivities
-    -np.log(np.min((DCutils.apparent_resistivity(dc_data)))),
-    -np.log(np.max((DCutils.apparent_resistivity(dc_data)))),
-][:, np.newaxis]
-clfnomean.covariances_ = np.array([[[0.001]], [[0.001]], [[0.001]],])
-utils.compute_clusters_precision(clfnomean)
 
-# Create the PGI regularization
-reg_nomean = regularization.SimplePGI(
-    gmmref=clfnomean,
-    mesh=mesh,
-    wiresmap=wires,
-    maplist=[idenMap],
-    mref=m0,
-    indActive=actcore,
-)
-reg_nomean.mrefInSmooth = False
-reg_nomean.alpha_s = alpha_s
-reg_nomean.alpha_x = alpha_x
-reg_nomean.alpha_y = alpha_y
+# Regularization Weighting
+betavalue = 25.0
+alpha_s = 0.016
+alpha_x = 100.0
+alpha_y = 100.0
+reg_mean.alpha_s = alpha_s
+reg_mean.alpha_x = alpha_x
+reg_mean.alpha_y = alpha_y
+reg_mean.mrefInSmooth = False
 
 # Optimization
 opt = optimization.ProjectedGNCG(
@@ -297,128 +287,48 @@ opt = optimization.ProjectedGNCG(
 opt.remember("xc")
 
 # Set the inverse problem
-invProb = inverse_problem.BaseInvProblem(dmis, reg_nomean, opt)
+invProb = inverse_problem.BaseInvProblem(dmis, reg_mean, opt)
+## Starting beta
 invProb.beta = betavalue
 
 # Inversion directives
-betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True, rateCooling=5.0, tolerance=0.05, progress=0.1
+## Beta Strategy with Beta and Alpha
+beta_alpha_iteration = directives.PGI_BetaAlphaSchedule(
+    verbose=True,
+    rateCooling=5.0,
+    tolerance=0.05,  # Tolerance on Phi_d for beta-cooling
+    progress=0.1,  # Minimum progress, else beta-cooling
 )
+## PGI multi-target misfits
 targets = directives.PGI_MultiTargetMisfits(verbose=True,)
-# kappa, nu and zeta set the learning of the GMM
-petrodir = directives.GaussianMixtureUpdateModel(
-    kappa=0.0,  # No influence from Prior means in the learning
-    nu=1e8,  # Fixed variances
-    zeta=0.0,  # Prior GMM proportions have no influeance
-)
-updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3, everyIter=False)
-update_Jacobi = directives.UpdatePreconditioner()
+## Put learned reference model in Smoothness once stable
 MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
+## No directives.GaussianUpdateModel()
+## Sensitivity weights based on the starting half-space
+updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3, everyIter=False)
+## Preconditioner
+update_Jacobi = directives.UpdatePreconditioner()
 
+# Inversion
 inv = inversion.BaseInversion(
     invProb,
+    # directives list: the order matters!
     directiveList=[
         updateSensW,
-        petrodir,
         targets,
-        betaIt,
+        beta_alpha_iteration,
         MrefInSmooth,
         update_Jacobi,
     ],
 )
 
 # Run the inversion
-m_pgi_nomean = inv.run(m0)
-
-
-# PGI with local proportions
-############################
-
-# In this section, we force the occurrences of the resistive and conductive
-# anomalies within a certain depth range through the use of local GMM proportions
-
-## Build the local proportions over the mesh
-## Algorithm is in Log-probability, we need a minimum proportions to avoid infinities warning
-tol_log = 1e-16
-## define proportions over the mesh
-## default is only background
-proportions_mesh = np.ones((meshCore.nC, 3)) * np.r_[1.0, tol_log, tol_log]
-## Force anomalous units between depth of 2 m and 8 m
-below_2m = meshCore.gridCC[:, 1] <= -2
-above_8m = meshCore.gridCC[:, 1] >= -8
-between_2m_8m = np.logical_and(below_2m, above_8m)
-proportions_mesh[between_2m_8m] = np.ones(3) / 3.0  # equal probabilities
-
-
-# initialize the GMM with the one learned from PGI without mean information
-clf_with_depth_info = copy.deepcopy(reg_nomean.objfcts[0].gmm)
-utils.order_clusters_GM_weight(clf_with_depth_info)
-# Include the local proportions
-clf_with_depth_info.weights_ = proportions_mesh
-
-# Re-initiliaze a PGI
-# Create the regularization with GMM information
-reg_nomean_geo = regularization.SimplePGI(
-    gmmref=clf_with_depth_info,
-    mesh=mesh,
-    wiresmap=wires,
-    maplist=[idenMap],
-    mref=m0,
-    indActive=actcore,
-)
-# Weighting
-reg_nomean_geo.alpha_s = alpha_s
-reg_nomean_geo.alpha_x = alpha_x
-reg_nomean_geo.alpha_y = alpha_y
-reg_nomean_geo.mrefInSmooth = False
-
-# Optimization
-opt = optimization.ProjectedGNCG(
-    maxIter=30, lower=-10, upper=10, maxIterLS=20, maxIterCG=50, tolCG=1e-4
-)
-opt.remember("xc")
-
-# Set the inverse problem
-invProb = inverse_problem.BaseInvProblem(dmis, reg_nomean_geo, opt)
-invProb.beta = betavalue
-
-# Inversion directives
-betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True, rateCooling=5.0, tolerance=0.05, progress=0.1
-)
-targets = directives.PGI_MultiTargetMisfits(
-    chifact=1.0, TriggerSmall=True, TriggerTheta=False, verbose=True,
-)
-MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
-petrodir = directives.GaussianMixtureUpdateModel(
-    update_covariances=True, kappa=0, nu=1e8, zeta=1e8
-)
-
-update_Jacobi = directives.UpdatePreconditioner()
-updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3, everyIter=False)
-# local_proportions = directives.PGI_local_GMM_proportions(
-#    local_proportions=proportions_mesh
-# )
-
-inv = inversion.BaseInversion(
-    invProb,
-    directiveList=[
-        updateSensW,
-        petrodir,
-        targets,
-        betaIt,
-        MrefInSmooth,
-        update_Jacobi,
-    ],
-)
-
-# Run
-m_pgi_nomean_depth = inv.run(m0)
+m_pgi_full = inv.run(m0)
 
 
 # Final Plot
 ############
-fig, axx = plt.subplots(4, 1, figsize=(15, 15), sharex=True)
+fig, axx = plt.subplots(3, 1, figsize=(15, 15), sharex=True)
 fig.subplots_adjust(wspace=0.1, hspace=0.3)
 clim = [mtrue.min(), mtrue.max()]
 cyl0 = getCylinderPoints(x0, z0, r0)
@@ -426,12 +336,11 @@ cyl1 = getCylinderPoints(x1, z1, r1)
 
 title_list = [
     "a) True model",
-    "b) PGI with full petrophysical info.",
-    "c) PGI with no mean info.",
-    "d) PGI with depth but no mean info",
+    "b) PGI with Least-Squares Approximation",
+    "c) PGI with full nonlinear Regularizer",
 ]
 
-model_list = [mtrue[actcore], m_pgi, m_pgi_nomean, m_pgi_nomean_depth]
+model_list = [mtrue[actcore], m_pgi, m_pgi_full]
 
 for i, ax in enumerate(axx):
     cyl0 = getCylinderPoints(x0, z0, r0)

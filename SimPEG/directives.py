@@ -1129,7 +1129,7 @@ class GaussianMixtureUpdateModel(InversionDirective):
 
         if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
             self.fixed_membership = np.c_[
-                np.arange(len(self.pgi_reg.gmmref.mesh.vol)),
+                np.arange(len(self.pgi_reg.gmmref.vol)),
                 self.pgi_reg.membership(self.pgi_reg.mref),
             ]
 
@@ -1165,11 +1165,11 @@ class GaussianMixtureUpdateModel(InversionDirective):
 
         if self._regmode == 1:
             self.invProb.reg.objfcts[self.petrosmallness].mref = mref
-            if len(self.fixed_membership.shape[0]) < len(membership):
+            if getattr(self.fixed_membership, "shape",[0,0])[0] < len(membership):
                 self.invProb.reg.objfcts[self.petrosmallness]._r_second_deriv = None
         else:
             self.invProb.reg.mref = mref
-            if len(self.fixed_membership.shape[0]) < len(membership):
+            if getattr(self.fixed_membership, "shape",[0,0])[0] < len(membership):
                 self.invProb.reg._r_second_deriv = None
 
 
@@ -1682,8 +1682,13 @@ class PGI_MultiTargetMisfits(InversionDirective):
                     "There is no PGI regularization. No Smallness target possible"
                 )
                 self.Small = -1
+                self.pgi_reg = None
+            
             else:
                 self.Small = Small[Small[:, 2] == 1][:, :2][0]
+                self.pgi_reg = self.invProb.reg.objfcts[self.Small[0]].objfcts[
+                    self.Small[1]
+                ]
 
                 if self.debug:
                     print(
@@ -1719,11 +1724,13 @@ class PGI_MultiTargetMisfits(InversionDirective):
                 self.Small = -1
             else:
                 self.Small = Small[Small[:, 1] == 1][:, :1][0]
-
+                self.pgi_reg = self.invProb.reg.objfcts[self.Small[0]]
+                
                 if self.debug:
                     print(type(self.invProb.reg.objfcts[self.Small[0]]))
 
             self._regmode = 2
+            
 
     @property
     def DMtarget(self):
@@ -1745,17 +1752,25 @@ class PGI_MultiTargetMisfits(InversionDirective):
 
     @property
     def CLtarget(self):
-        if getattr(self, "_CLtarget", None) is None:
+        if not getattr(self.pgi_reg, "approx_eval", True):
+            # if nonlinear prior, compute targer numerically at each GMM update
+            samples, _ = self.pgi_reg.gmm.sample(len(self.pgi_reg.gmm.vol))
+            self.phi_ms_star = self.pgi_reg(mkvc(samples), externalW=self.WeightsInTarget)
+            
+            self._CLtarget = self.chiSmall * self.phi_ms_star
+
+        elif getattr(self, "_CLtarget", None) is None:
             # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
             if self.phi_ms_star is None:
                 # Expected value is number of active cells * number of physical
                 # properties
-                if self.WeightsInTarget:
-                    self.phi_ms_star = 0.5
-                else:
-                    self.phi_ms_star = 0.5 * len(self.invProb.model)
+                #if self.WeightsInTarget:
+                #    self.phi_ms_star = 0.5
+                #else:
+                self.phi_ms_star = 0.5 * len(self.invProb.model)
 
             self._CLtarget = self.chiSmall * self.phi_ms_star
+        
         return self._CLtarget
 
     @property
@@ -1763,18 +1778,9 @@ class PGI_MultiTargetMisfits(InversionDirective):
         if ~self.WeightsInTarget:
             return 1.0
         elif np.any(self.Small == -1):
-            return np.sum(sp.csr_matrix.diagonal(self.invProb.reg.objfcts[0].W) ** 2.0)
-        elif self._regmode == 2:
-            return np.sum(
-                sp.csr_matrix.diagonal(self.invProb.reg.objfcts[self.Small[0]].W) ** 2.0
-            )
+            return np.sum(sp.csr_matrix.diagonal(self.invProb.reg.objfcts[0].W) ** 2.0) / len(self.invProb.model)
         else:
-            return np.sum(
-                sp.csr_matrix.diagonal(
-                    self.invProb.reg.objfcts[self.Small[0]].objfcts[self.Small[1]].W
-                )
-                ** 2.0
-            )
+            return np.sum(sp.csr_matrix.diagonal(self.pgi_reg.W) ** 2.0) / len(self.invProb.model)
 
     @CLtarget.setter
     def CLtarget(self, val):
@@ -1783,17 +1789,10 @@ class PGI_MultiTargetMisfits(InversionDirective):
     def phims(self):
         if np.any(self.Small == -1):
             return self.invProb.reg.objfcts[0](self.invProb.model)
-        elif self._regmode == 2:
-            return (
-                self.invProb.reg.objfcts[self.Small[0]](
-                    self.invProb.model, externalW=self.WeightsInTarget
-                )
-                / self.CLnormalizedConstant
-            )
         else:
             return (
-                self.invProb.reg.objfcts[self.Small[0]].objfcts[self.Small[1]](
-                    self.invProb.model, externalW=self.WeightsInTarget
+                self.pgi_reg(
+                    self.invProb.model, externalW=self.WeightsInTarget,
                 )
                 / self.CLnormalizedConstant
             )

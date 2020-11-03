@@ -112,8 +112,8 @@ minit = m0
 reg = regularization.PGI(gmmref=clf, gmm=clf, mesh=mesh, mref=m0, alpha_s=1.0)
 
 
-# For some reason we need to reinitialize the optimization
-opt = optimization.ProjectedGNCG(maxIter=60, maxIterCG=50, tolCG=1e-4)
+# Optimization
+opt = optimization.ProjectedGNCG(maxIter=10, maxIterCG=50, tolCG=1e-4)
 opt.remember("xc")
 
 # Setup new inverse problem
@@ -130,9 +130,9 @@ betaIt = directives.PGI_BetaAlphaSchedule(
     UpdateRate=1,
     progress=0.2,
 )
-targets = directives.PGI_MultiTargetMisfits(TriggerSmall=True, verbose=True)
-petrodir = directives.GaussianMixtureUpdateModel(verbose=False)
-addmref = directives.AddMrefInSmooth(verbose=True, tolerance=1)
+targets = directives.PGI_MultiTargetMisfits(verbose=True)
+petrodir = directives.GaussianMixtureUpdateModel()
+addmref = directives.AddMrefInSmooth(verbose=True)
 
 # Setup Inversion
 inv = inversion.BaseInversion(
@@ -148,18 +148,19 @@ for i in range(prob.G.shape[0]):
     axes[0].plot(prob.G[i, :])
 axes[0].set_title("Columns of matrix G")
 
-axes[1].hist(mtrue, bins=10, linewidth=3.0, density=True)
+axes[1].hist(mtrue, bins=20, linewidth=3.0, density=True, color="k")
 axes[1].set_xlabel("Model value")
 axes[1].set_xlabel("Occurence")
-axes[1].hist(invProb.model, bins=10, density=True)
-axes[1].legend(["Mtrue Hist.", "Model Hist."])
+axes[1].hist(mnormal, bins=20, density=True, color="b")
+axes[1].hist(mcluster, bins=20, density=True, color="r")
+axes[1].legend(["Mtrue Hist.", "L2 Model Hist.", "PGI Model Hist."])
 
 axes[2].plot(mesh.vectorCCx, mtrue, color="black")
 axes[2].plot(mesh.vectorCCx, mnormal, color="blue")
 axes[2].plot(mesh.vectorCCx, mcluster, "r-")
 axes[2].plot(mesh.vectorCCx, invProb.reg.mref, "r--")
 
-axes[2].legend(("True Model", "L2 Model", "Petro Model", "Learned Mref"))
+axes[2].legend(("True Model", "L2 Model", "PGI Model", "Learned Mref"))
 axes[2].set_ylim([-2, 2])
 
 plt.show()

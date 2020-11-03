@@ -7,6 +7,7 @@ from scipy.sparse import diags
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
 from sklearn.utils import check_array
+from sklearn.utils.validation import check_is_fitted
 from sklearn.mixture._gaussian_mixture import (
     _compute_precision_cholesky,
     _compute_log_det_cholesky,
@@ -167,34 +168,6 @@ def computeCovariance(gmm):
         )
     else:
         gmm.covariances_ = gmm.covariances_cholesky_ ** 2
-
-
-def ComputeConstantTerm(gmm):
-    cste = 0.0
-    d = gmm.means_[0].shape[0]
-    for i in range(gmm.n_components):
-        if gmm.covariance_type == "tied":
-            cste += gmm.weights_[i] * (
-                (1.0 / 2.0)
-                * np.log(((2.0 * np.pi) ** d) * np.linalg.det(gmm.covariances_))
-                - np.log(gmm.weights_[i])
-            )
-        elif gmm.covariance_type == "diag" or gmm.covariance_type == "spherical":
-            cste += gmm.weights_[i] * (
-                (1.0 / 2.0)
-                * np.log(
-                    ((2.0 * np.pi) ** d)
-                    * np.linalg.det(gmm.covariances_[i] * np.eye(gmm.means_.shape[1]))
-                )
-                - np.log(gmm.weights_[i])
-            )
-        else:
-            cste += gmm.weights_[i] * (
-                (1.0 / 2.0)
-                * np.log(((2.0 * np.pi) ** d) * np.linalg.det(gmm.covariances_[i]))
-                - np.log(gmm.weights_[i])
-            )
-    return cste
 
 
 def UpdateGaussianMixtureModel(
@@ -1136,9 +1109,10 @@ class GaussianMixtureMarkovRandomField(GaussianMixtureWithPrior):
             self.precisions_cholesky_ = self.precisions_init
 
 
-class GaussianMixtureWithMapping(GaussianMixture):
+class GaussianMixtureWithMapping(WeightedGaussianMixture):
     def __init__(
         self,
+        mesh,
         n_components=1,
         covariance_type="full",
         tol=1e-3,
@@ -1162,6 +1136,7 @@ class GaussianMixtureWithMapping(GaussianMixture):
             self.cluster_mapping = cluster_mapping
 
         super(GaussianMixtureWithMapping, self).__init__(
+            mesh=mesh,
             covariance_type=covariance_type,
             init_params=init_params,
             max_iter=max_iter,
@@ -1324,7 +1299,7 @@ class GaussianMixtureWithMapping(GaussianMixture):
             Component labels
 
         """
-        self._check_is_fitted()
+        check_is_fitted(self)
 
         if n_samples < 1:
             raise ValueError(
