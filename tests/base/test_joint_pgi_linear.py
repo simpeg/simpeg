@@ -297,6 +297,11 @@ class JointInversionTest(unittest.TestCase):
 
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg_simple, opt)
         # Directives
+        alpha0_ratio = np.r_[
+            np.zeros(len(reg_simple.objfcts[0].objfcts)),
+            100.0 * np.ones(len(reg_simple.objfcts[1].objfcts)),
+            np.ones(len(reg_simple.objfcts[2].objfcts)),
+        ]
         alphas = directives.AlphasSmoothEstimate_ByEig(
             alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
         )
