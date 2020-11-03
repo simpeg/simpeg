@@ -7,12 +7,24 @@ from .base import BaseRegularization
 class BaseCoupling(BaseRegularization):
 
     '''
-    BaseCoupling
+    Base class for the coupling term in joint inversions. Inherit this for building
+    your own coupling term.  The BaseCoupling assumes couple two different
+    geophysical models through one coupling term. However, if you wish
+    to combine more than two models, e.g., 3 models,
+    you may want to add a total of three coupling terms:
 
-        ..note::
+    e.g., lambda1*(m1, m2) + lambda2*(m1, m3) + lambda3*(m2, m3)
 
-            You should inherit from this class to create your own
-            coupling term.
+    where, lambdas are weights for coupling terms. m1, m2 and m3 indicate
+    three different models.
+
+    :param discretize.base.BaseMesh mesh: SimPEG mesh
+
+    Contributors:
+    Jae Deok Kim, Xiaolong Wei, Jiajia Sun
+
+
+
     '''
     def __init__(self, mesh, indActive, mapping, **kwargs):
 
@@ -25,6 +37,7 @@ class BaseCoupling(BaseRegularization):
         Returns an array of dimensions [k*M,1],
         k: number of models we are inverting for.
         M: number of cells in each model.
+
         '''
         raise NotImplementedError(
             "The method deriv has not been implemented for {}".format(
@@ -35,10 +48,11 @@ class BaseCoupling(BaseRegularization):
     def deriv2(self):
         '''
         Second derivative of the coupling term with respect to individual models.
-        Returns either an array of dimensions [k*M,1], or
-        sparse matrix of dimensions [k*M, k*M]
+        Returns either an array of dimensions [k*M,1] (v is not None), or
+        sparse matrix of dimensions [k*M, k*M] (v is None).
         k: number of models we are inverting for.
         M: number of cells in each model.
+
         '''
         raise NotImplementedError(
             "The method _deriv2 has not been implemented for {}".format(
@@ -71,33 +85,35 @@ class CrossGradient(BaseCoupling):
         \nabla \mathbf{m_1}_i \times \nabla \mathbf{m_2}_i \|^2
 
     All methods assume that we are working with two models only.
+
     '''
     def __init__(self, mesh, indActive, mapping, **kwargs):
         self.as_super = super(CrossGradient, self)
         self.as_super.__init__(mesh, indActive, mapping, **kwargs)
-        self.map1, self.map2 = mapping.maps ### Assume a map has been passed for each model.
+        self.map1, self.map2 = mapping.maps # Assume a map has been passed for each model.
 
         assert mesh.dim in (2,3), 'Cross-Gradient is only defined for 2D or 3D'
 
     def models(self, ind_models):
         '''
-        Method to pass models to CrossGradient object and ensures models are compatible
-        for further use. Checks that models are of same size.
+        Method to pass models to CrossGradient object and ensures models are
+        compatible for further use. Checks that models are of same size.
 
         :param container of numpy.ndarray ind_models: [model1, model2,...]
 
         rtype: list of numpy.ndarray models: [model1, model2,...]
         return: models
+
         '''
         models = []
-        n = len(ind_models) # number of individual models
+        n = len(ind_models)
         for i in range(n):
-            ### check that the models are either a list, tuple, or np.ndarray
+            # check that the models are either a list, tuple, or np.ndarray
             assert isinstance(ind_models[i], (list,tuple,np.ndarray))
             if isinstance(ind_models[i], (list,tuple)):
-                ind_models[i] = np.array(ind_models[i]) ### convert to np.ndarray
+                ind_models[i] = np.array(ind_models[i])
 
-        ### check if models are of same size
+        # check if models are of same size
         it = iter(ind_models)
         length = len(next(it))
         if not all(len(l)==length for l in it):
@@ -113,8 +129,6 @@ class CrossGradient(BaseCoupling):
         Calculate the spatial gradients of the model using central difference.
 
         :param numpy.ndarray model: model
-        :param bool vectorize: return gradients in 1D if True
-        :param bool noNaN: return gradients without any numpy.nan caused by actvMap if True.
 
         :rtype: tuple of numpy.ndarray
         :return: (x-gradient, y-gradient) if 2D
@@ -180,6 +194,7 @@ class CrossGradient(BaseCoupling):
             Dx_m2, Dy_m2 = self.calculate_gradient(m2)
 
             norms_1 = np.sqrt(Dx_m1**2 + Dy_m1**2)
+            # compute (1 / applitude of gradients) and background when norms < 1e-10
             norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>1e-10)
             norms_2 = np.sqrt(Dx_m2**2 + Dy_m2**2)
             norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>1e-10)
@@ -225,7 +240,6 @@ class CrossGradient(BaseCoupling):
                 continue
             else:
                 norm_gradients[i] = gradient / norm
-
         return norm_gradients
 
     def calculate_cross_gradient(self, m1, m2, normalized=False):
@@ -242,7 +256,7 @@ class CrossGradient(BaseCoupling):
         '''
         m1, m2 = self.models([m1,m2])
 
-        ### Compute the gradients and concatenate components.
+        # Compute the gradients and concatenate components.
         if self.regmesh.mesh.dim == 2:
             Dx_m1, Dy_m1 = self.calculate_gradient(m1)
             Dx_m2, Dy_m2 = self.calculate_gradient(m2)
@@ -267,7 +281,7 @@ class CrossGradient(BaseCoupling):
 
         cross_prod_list = []
         num_cells = len(m1)
-        ### for each model cell, compute the cross product of the gradient vectors.
+        # for each model cell, compute the cross product of the gradient vectors.
         for x in range(num_cells):
             if self.regmesh.mesh.dim == 3:
                 cross_prod_vector = np.cross(grad_list_1[x],grad_list_2[x])
@@ -289,6 +303,20 @@ class CrossGradient(BaseCoupling):
 
         :rtype: float
         :returns: the computed value of the cross-gradient term.
+
+
+        ..math::
+
+            \phi_c(\mathbf{m_1},\mathbf{m_2})
+
+            = \lambda \sum_{i=1}^{M} \|\nabla \mathbf{m_1}_i \times \nabla \mathbf{m_2}_i \|^2
+
+            = \sum_{i=1}^{M} \|\nabla \mathbf{m_1}_i\|^2 \ast \|\nabla \mathbf{m_2}_i\|^2
+                - (\nabla \mathbf{m_1}_i \cdot \nabla \mathbf{m_2}_i )^2
+
+            = \|\phi_{cx}\|^2 + \|\phi_{cy}\|^2 + \|\phi_{cz}\|^2 (optional strategy, not used in this script)
+
+
         '''
         m1 = self.map1*model
         m2 = self.map2*model
@@ -348,6 +376,11 @@ class CrossGradient(BaseCoupling):
 
         :rtype: numpy.ndarray
         :return: result: gradient of the cross-gradient with respect to model1, model2
+
+        .. math::
+
+            See tutorial or documentation.
+
         '''
         m1 = self.map1*model
         m2 = self.map2*model
@@ -357,7 +390,7 @@ class CrossGradient(BaseCoupling):
             Dx = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx)
             Dy = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy)
 
-            ### common terms for dt_dm1
+            # common terms for dt_dm1
             Dx_m1, Dy_m1 = Dx.dot(m1), Dy.dot(m1)
             Dx_m2, Dy_m2 = Dx.dot(m2), Dy.dot(m2)
             v1 = Dx_m2**2 + Dy_m2**2
@@ -374,7 +407,7 @@ class CrossGradient(BaseCoupling):
             Dy = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy)
             Dz = self.regmesh.aveFz2CC.dot(self.regmesh.cellDiffz)
 
-            ### common terms for dt_dm1
+            # common terms for dt_dm1
             Dx_m1, Dy_m1, Dz_m1 = Dx.dot(m1), Dy.dot(m1), Dz.dot(m1)
             Dx_m2, Dy_m2, Dz_m2 = Dx.dot(m2), Dy.dot(m2), Dz.dot(m2)
             v1 = Dx_m2**2 + Dy_m2**2 + Dz_m2**2
@@ -403,6 +436,7 @@ class CrossGradient(BaseCoupling):
 
         :rtype: scipy.sparse.csr_matrix
         :return: off-diagonal term of Hessian matrix
+        
         '''
         n = len(D)
         D_result = np.zeros_like(D[0])
@@ -429,6 +463,12 @@ class CrossGradient(BaseCoupling):
                 numpy.ndarray if v is not None
         :return Hessian matrix if v is None
                 Hessian multiplied by vector if v is not None
+
+
+        .. math::
+
+            See tutorial or documentation.
+
         '''
         m1 = self.map1*model
         m2 = self.map2*model
@@ -444,7 +484,7 @@ class CrossGradient(BaseCoupling):
         if self.regmesh.mesh.dim == 2:
             Dx = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx)
             Dy = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy)
-            ### define common terms
+            # define common terms
             Dx_m1, Dy_m1 = Dx.dot(m1), Dy.dot(m1)
             Dx_m2, Dy_m2 = Dx.dot(m2), Dy.dot(m2)
             a = Dx_m2**2 + Dy_m2**2
@@ -464,7 +504,7 @@ class CrossGradient(BaseCoupling):
             Dx = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx)
             Dy = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy)
             Dz = self.regmesh.aveFz2CC.dot(self.regmesh.cellDiffz)
-            ### define common terms
+            # define common terms
             Dx_m1, Dy_m1, Dz_m1 = Dx.dot(m1), Dy.dot(m1), Dz.dot(m1)
             Dx_m2, Dy_m2, Dz_m2 = Dx.dot(m2), Dy.dot(m2), Dz.dot(m2)
             a = Dx_m2**2 + Dy_m2**2 + Dz_m2**2
