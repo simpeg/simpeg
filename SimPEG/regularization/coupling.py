@@ -230,6 +230,7 @@ class CrossGradient(BaseCoupling):
         :return: norm_gradient: array where the gradients have been normalized by their norms.
                  Each row represents a model cell, and each column represents the normalized
                  component of the gradient.
+                 
         '''
         elems = grad_list.shape[0]
         norm_gradients = np.zeros_like(grad_list)
@@ -253,6 +254,7 @@ class CrossGradient(BaseCoupling):
         :rtype: numpy.ndarray
         :returns: array where at each location, we've computed the cross-product
                   of the gradients of two models.
+
         '''
         m1, m2 = self.models([m1,m2])
 
@@ -436,7 +438,7 @@ class CrossGradient(BaseCoupling):
 
         :rtype: scipy.sparse.csr_matrix
         :return: off-diagonal term of Hessian matrix
-        
+
         '''
         n = len(D)
         D_result = np.zeros_like(D[0])
