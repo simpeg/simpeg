@@ -79,7 +79,7 @@ class RegularizationTests(unittest.TestCase):
                     passed = reg.test(m, eps=TOL)
                     self.assertTrue(passed)
 
-        def test_petroregularization_approxDeriv(self):
+        def test_pgi_regularization_approxDeriv(self):
             mean0 = np.r_[2.0, 0.0]
             sigma0 = np.r_[[[1.0, -1.0], [-1.0, 2.0]]]
             rv0 = multivariate_normal(mean0, sigma0)
