@@ -151,7 +151,6 @@ class JointInversionTest(unittest.TestCase):
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            evaltype="approx",
             cell_weights_list=self.W,
         )
 
@@ -283,7 +282,6 @@ class JointInversionTest(unittest.TestCase):
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            evaltype="approx",
             cell_weights_list=self.W,
         )
 

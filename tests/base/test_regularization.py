@@ -105,7 +105,7 @@ class RegularizationTests(unittest.TestCase):
                 mesh=mesh,
                 gmmref=clfref,
                 wiresmap=wires,
-                evaltype="full",
+                approx_eval=False,
                 approx_gradient=True,
                 alpha_x=0.0,
             )

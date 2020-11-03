@@ -65,7 +65,6 @@ class TestPGI(unittest.TestCase):
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            evaltype="approx",
             cell_weights_list=self.cell_weights_list,
         )
         # Define reg with volumes
@@ -75,13 +74,12 @@ class TestPGI(unittest.TestCase):
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            evaltype="approx",
             cell_weights_list=self.cell_weights_list,
         )
 
         # check score value
         score_approx = reg_simple(mkvc(self.samples))
-        reg_simple.objfcts[0].evaltype = "full"
+        reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(mkvc(self.samples))
         passed_score_simple = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
@@ -91,7 +89,7 @@ class TestPGI(unittest.TestCase):
         )
 
         score_approx = reg(mkvc(self.samples))
-        reg.objfcts[0].evaltype = "full"
+        reg.objfcts[0].approx_eval = False
         score = reg(mkvc(self.samples))
         passed_score = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score)
@@ -253,7 +251,6 @@ class TestPGI(unittest.TestCase):
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            evaltype="approx",
             cell_weights_list=self.cell_weights_list,
         )
         # Define reg with volumes
@@ -263,13 +260,12 @@ class TestPGI(unittest.TestCase):
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            evaltype="approx",
             cell_weights_list=self.cell_weights_list,
         )
 
         # check score value
         score_approx = reg_simple(mkvc(self.samples))
-        reg_simple.objfcts[0].evaltype = "full"
+        reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(mkvc(self.samples))
         passed_score_simple = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
@@ -279,7 +275,7 @@ class TestPGI(unittest.TestCase):
         )
 
         score_approx = reg(mkvc(self.samples))
-        reg.objfcts[0].evaltype = "full"
+        reg.objfcts[0].approx_eval = False
         score = reg(mkvc(self.samples))
         passed_score = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score)
@@ -448,7 +444,6 @@ class TestPGI(unittest.TestCase):
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            evaltype="approx",
             cell_weights_list=self.cell_weights_list,
         )
         # Define reg with volumes
@@ -458,13 +453,12 @@ class TestPGI(unittest.TestCase):
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            evaltype="approx",
             cell_weights_list=self.cell_weights_list,
         )
 
         # check score value
         score_approx = reg_simple(mkvc(self.samples))
-        reg_simple.objfcts[0].evaltype = "full"
+        reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(mkvc(self.samples))
         passed_score_simple = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
@@ -474,7 +468,7 @@ class TestPGI(unittest.TestCase):
         )
 
         score_approx = reg(mkvc(self.samples))
-        reg.objfcts[0].evaltype = "full"
+        reg.objfcts[0].approx_eval = False
         score = reg(mkvc(self.samples))
         passed_score = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score)
@@ -636,7 +630,6 @@ class TestPGI(unittest.TestCase):
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            evaltype="approx",
             cell_weights_list=self.cell_weights_list,
         )
         # Define reg with volumes
@@ -646,13 +639,12 @@ class TestPGI(unittest.TestCase):
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            evaltype="approx",
             cell_weights_list=self.cell_weights_list,
         )
 
         # check score value
         score_approx = reg_simple(mkvc(self.samples))
-        reg_simple.objfcts[0].evaltype = "full"
+        reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(mkvc(self.samples))
         passed_score_simple = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
@@ -662,7 +654,7 @@ class TestPGI(unittest.TestCase):
         )
 
         score_approx = reg(mkvc(self.samples))
-        reg.objfcts[0].evaltype = "full"
+        reg.objfcts[0].approx_eval = False
         score = reg(mkvc(self.samples))
         passed_score = np.allclose(score_approx, score, rtol=1e-1)
         self.assertTrue(passed_score)
