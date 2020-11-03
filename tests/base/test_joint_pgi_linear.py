@@ -175,15 +175,15 @@ class JointInversionTest(unittest.TestCase):
         beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
         betaIt = directives.PGI_BetaAlphaSchedule(
             verbose=True,
-            rateCooling=2.0,
-            rateWarming=1.0,
+            coolingFactor=2.0,
+            warmingFactor=1.0,
             tolerance=0.0,
             UpdateRate=1,
             ratio_in_cooling=False,
             progress=0.2,
         )
-        targets = directives.PGI_MultiTargetMisfits(verbose=True)
-        petrodir = directives.UpdateReference()
+        targets = directives.MultiTargetMisfits(verbose=True)
+        petrodir = directives.PGI_UpdateParameters()
 
         # Setup Inversion
         inv = inversion.BaseInversion(
@@ -300,13 +300,13 @@ class JointInversionTest(unittest.TestCase):
         beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
         betaIt = directives.PGI_BetaAlphaSchedule(
             verbose=True,
-            rateCooling=5.0,
-            rateWarming=1.0,
+            coolingFactor=5.0,
+            warmingFactor=1.0,
             tolerance=0.02,
             progress=0.1,
         )
-        targets = directives.PGI_MultiTargetMisfits(verbose=True)
-        petrodir = directives.UpdateReference()
+        targets = directives.MultiTargetMisfits(verbose=True)
+        petrodir = directives.PGI_UpdateParameters()
 
         # Setup Inversion
         inv = inversion.BaseInversion(

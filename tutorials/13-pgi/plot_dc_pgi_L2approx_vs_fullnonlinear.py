@@ -187,7 +187,7 @@ dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
 idenMap = maps.IdentityMap(nP=m0.shape[0])
 wires = maps.Wires(("m", m0.shape[0]))
 ## By default the PGI regularization uses the least-squares approximation. 
-## It requires then the directives.GaussianMixtureUpdateModel() 
+## It requires then the directives.PGI_UpdateParameters() 
 reg_mean = regularization.SimplePGI(
     gmmref=clf, mesh=mesh, wiresmap=wires, maplist=[idenMap], mref=m0, indActive=actcore
 )
@@ -217,17 +217,17 @@ invProb.beta = betavalue
 ## Beta Strategy with Beta and Alpha
 beta_alpha_iteration = directives.PGI_BetaAlphaSchedule(
     verbose=True,
-    rateCooling=5.0,
+    coolingFactor=5.0,
     tolerance=0.05,  # Tolerance on Phi_d for beta-cooling
     progress=0.1,  # Minimum progress, else beta-cooling
 )
 ## PGI multi-target misfits
-targets = directives.PGI_MultiTargetMisfits(verbose=True,)
+targets = directives.MultiTargetMisfits(verbose=True,)
 ## Put learned reference model in Smoothness once stable
 MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
 ## PGI update to the GMM, Smallness reference model and weights: 
 ## **This one is required when using the Least-Squares approximation of PGI 
-petrodir = directives.GaussianMixtureUpdateModel()
+petrodir = directives.PGI_UpdateParameters()
 ## Sensitivity weights based on the starting half-space
 updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3, everyIter=False)
 ## Preconditioner
@@ -264,7 +264,7 @@ dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
 idenMap = maps.IdentityMap(nP=m0.shape[0])
 wires = maps.Wires(("m", m0.shape[0]))
 ## Use the non-approximated Smallness and derivatives 
-## The directives.GaussianMixtureUpdateModel() is not necessary if the GMM stays fix.
+## The directives.PGI_UpdateParameters() is not necessary if the GMM stays fix.
 reg_mean = regularization.SimplePGI(
     gmmref=clf, mesh=mesh, wiresmap=wires, maplist=[idenMap], mref=m0, indActive=actcore,
     approx_eval=False, approx_gradient=False,
@@ -295,12 +295,12 @@ invProb.beta = betavalue
 ## Beta Strategy with Beta and Alpha
 beta_alpha_iteration = directives.PGI_BetaAlphaSchedule(
     verbose=True,
-    rateCooling=5.0,
+    coolingFactor=5.0,
     tolerance=0.05,  # Tolerance on Phi_d for beta-cooling
     progress=0.1,  # Minimum progress, else beta-cooling
 )
 ## PGI multi-target misfits
-targets = directives.PGI_MultiTargetMisfits(verbose=True,)
+targets = directives.MultiTargetMisfits(verbose=True,)
 ## Put learned reference model in Smoothness once stable
 MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
 ## No directives.GaussianUpdateModel()

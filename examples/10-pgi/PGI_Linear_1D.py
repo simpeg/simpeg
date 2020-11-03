@@ -124,14 +124,14 @@ Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=10.0)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-6)
 betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True,
-    rateCooling=2.0,
-    rateWarming=1.0,
+    coolingFactor=2.0,
+    warmingFactor=1.0,
     tolerance=0.1,
     UpdateRate=1,
     progress=0.2,
 )
-targets = directives.PGI_MultiTargetMisfits(verbose=True)
-petrodir = directives.GaussianMixtureUpdateModel()
+targets = directives.MultiTargetMisfits(verbose=True)
+petrodir = directives.PGI_UpdateParameters()
 addmref = directives.AddMrefInSmooth(verbose=True)
 
 # Setup Inversion

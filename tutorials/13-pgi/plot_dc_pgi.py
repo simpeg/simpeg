@@ -187,7 +187,7 @@ dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
 idenMap = maps.IdentityMap(nP=m0.shape[0])
 wires = maps.Wires(("m", m0.shape[0]))
 ## By default the PGI regularization uses the least-squares approximation. 
-## It requires then the directives.GaussianMixtureUpdateModel() 
+## It requires then the directives.PGI_UpdateParameters() 
 reg_mean = regularization.SimplePGI(
     gmmref=clf, mesh=mesh, wiresmap=wires, maplist=[idenMap], mref=m0, indActive=actcore
 )
@@ -217,17 +217,17 @@ invProb.beta = betavalue
 ## Beta Strategy with Beta and Alpha
 beta_alpha_iteration = directives.PGI_BetaAlphaSchedule(
     verbose=True,
-    rateCooling=5.0,
+    coolingFactor=5.0,
     tolerance=0.05,  # Tolerance on Phi_d for beta-cooling
     progress=0.1,  # Minimum progress, else beta-cooling
 )
 ## PGI multi-target misfits
-targets = directives.PGI_MultiTargetMisfits(verbose=True,)
+targets = directives.MultiTargetMisfits(verbose=True,)
 ## Put learned reference model in Smoothness once stable
 MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
 ## PGI update to the GMM and Smallness reference model and weights
 ## **This one is required when using the Least-Squares approximation of PGI (default)
-petrodir = directives.GaussianMixtureUpdateModel()
+petrodir = directives.PGI_UpdateParameters()
 ## Sensitivity weights based on the starting half-space
 updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3, everyIter=False)
 ## Preconditioner
@@ -302,11 +302,11 @@ invProb.beta = betavalue
 
 # Inversion directives
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True, rateCooling=5.0, tolerance=0.05, progress=0.1
+    verbose=True, coolingFactor=5.0, tolerance=0.05, progress=0.1
 )
-targets = directives.PGI_MultiTargetMisfits(verbose=True,)
+targets = directives.MultiTargetMisfits(verbose=True,)
 # kappa, nu and zeta set the learning of the GMM
-petrodir = directives.GaussianMixtureUpdateModel(
+petrodir = directives.PGI_UpdateParameters(
     kappa=0.0,  # No influence from Prior means in the learning
     nu=1e8,  # Fixed variances
     zeta=0.0,  # Prior GMM proportions have no influeance
@@ -384,21 +384,18 @@ invProb.beta = betavalue
 
 # Inversion directives
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True, rateCooling=5.0, tolerance=0.05, progress=0.1
+    verbose=True, coolingFactor=5.0, tolerance=0.05, progress=0.1
 )
-targets = directives.PGI_MultiTargetMisfits(
+targets = directives.MultiTargetMisfits(
     chifact=1.0, TriggerSmall=True, TriggerTheta=False, verbose=True,
 )
 MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
-petrodir = directives.GaussianMixtureUpdateModel(
+petrodir = directives.PGI_UpdateParameters(
     update_covariances=True, kappa=0, nu=1e8, zeta=1e8
 )
 
 update_Jacobi = directives.UpdatePreconditioner()
 updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3, everyIter=False)
-# local_proportions = directives.PGI_local_GMM_proportions(
-#    local_proportions=proportions_mesh
-# )
 
 inv = inversion.BaseInversion(
     invProb,

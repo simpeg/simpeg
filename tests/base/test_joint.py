@@ -77,7 +77,7 @@ class DataMisfitTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
             directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
-            directives.PGI_MultiTargetMisfits(TriggerSmall=False),
+            directives.MultiTargetMisfits(TriggerSmall=False),
             directives.BetaSchedule(),
         ]
         print(len(directives_list))
@@ -96,7 +96,7 @@ class DataMisfitTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
             directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
-            directives.PGI_MultiTargetMisfits(TriggerSmall=False, verbose=True),
+            directives.MultiTargetMisfits(TriggerSmall=False, verbose=True),
             directives.BetaSchedule(),
         ]
         inv = inversion.BaseInversion(invProb, directiveList=directives_list)

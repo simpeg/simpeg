@@ -1398,7 +1398,7 @@ class GaussianMixtureWithMappingWithPrior(GaussianMixtureWithPrior):
     ):
 
         if cluster_mapping is None:
-            self.cluster_mapping = [IdentityMap() for i in range(n_components)]
+            self.cluster_mapping = gmmref.cluster_mapping
         else:
             self.cluster_mapping = cluster_mapping
 

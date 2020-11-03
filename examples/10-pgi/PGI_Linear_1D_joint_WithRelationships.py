@@ -54,14 +54,14 @@ m1[41:57] = -1.0 + (poly1 * np.vstack([m0[41:57], m1[41:57]]).T)[:, 1]
 
 model2d = np.vstack([m0, m1]).T
 m = utils.mkvc(model2d)
-print(m0[20:41].mean(), m1[20:41].mean())
+
 clfmapping = utils.GaussianMixtureWithMapping(
     mesh=mesh,
     n_components=3,
     covariance_type="full",
-    tol=1e-6,
+    tol=1e-8,
     reg_covar=1e-3,
-    max_iter=100,
+    max_iter=1000,
     n_init=100,
     init_params="kmeans",
     random_state=None,
@@ -78,14 +78,14 @@ clfmapping = utils.GaussianMixtureWithMapping(
     cluster_mapping=cluster_mapping,
 )
 clfmapping = clfmapping.fit(model2d)
-print(clfmapping.covariances_)
 
-clfnomapping = utils.GaussianMixture(
+clfnomapping = utils.WeightedGaussianMixture(
+    mesh=mesh,
     n_components=3,
     covariance_type="full",
-    tol=1e-6,
+    tol=1e-8,
     reg_covar=1e-3,
-    max_iter=100,
+    max_iter=1000,
     n_init=100,
     init_params="kmeans",
     random_state=None,
@@ -94,31 +94,33 @@ clfnomapping = utils.GaussianMixture(
     verbose_interval=10,
 )
 clfnomapping = clfnomapping.fit(model2d)
-print("no mapping", clfnomapping.covariances_)
 
 wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC))
-std = 0.01
+
+relatrive_error = 0.01
+noise_floor = 0.
+
 prob1 = simulation.LinearSimulation(mesh, G=G, model_map=wires.m1)
-survey1 = prob1.make_synthetic_data(m, relative_error=std, add_noise=True)
-survey1.eps = 0.0
+survey1 = prob1.make_synthetic_data(
+    m, relative_error=relatrive_error, noise_floor=noise_floor, add_noise=True
+)
 
 prob2 = simulation.LinearSimulation(mesh, G=G, model_map=wires.m2)
-survey2 = prob2.make_synthetic_data(m, relative_error=std, add_noise=True)
-survey2.eps = 0.0
+survey2 = prob2.make_synthetic_data(
+    m, relative_error=relatrive_error, noise_floor=noise_floor, add_noise=True
+)
+
 
 dmis1 = data_misfit.L2DataMisfit(simulation=prob1, data=survey1)
 dmis2 = data_misfit.L2DataMisfit(simulation=prob2, data=survey2)
-dmis = dmis1 + dmis2
+dmis = 0.5 * dmis1 + 0.5 * dmis2
 minit = np.zeros_like(m)
-print("dmsi1", dmis1(minit))
-print("dmsi2", dmis2(minit))
 
 # Distance weighting
 wr1 = np.sum(prob1.G ** 2.0, axis=0) ** 0.5
 wr1 = wr1 / np.max(wr1)
 wr2 = np.sum(prob2.G ** 2.0, axis=0) ** 0.5
 wr2 = wr2 / np.max(wr2)
-print(wr2.shape)
 wr = np.r_[wr1, wr2]
 W = utils.sdiag(wr)
 
@@ -139,31 +141,28 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple, opt)
 
 # directives
+scales = directives.ScalingEstimate_ByEig(Chi0_ratio=0.5, verbose=True, ninit=10)
+scaling_schedule = directives.JointScalingSchedule(verbose=True)
 alpha0_ratio = np.r_[
     np.zeros(len(reg_simple.objfcts[0].objfcts)),
     100.0 * np.ones(len(reg_simple.objfcts[1].objfcts)),
-    0.4 * np.ones(len(reg_simple.objfcts[2].objfcts)),
+    1.0 * np.ones(len(reg_simple.objfcts[2].objfcts)),
 ]
-Alphas = directives.AlphasSmoothEstimate_ByEig(
+alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
 )
-Scales = directives.ScalingEstimate_ByEig(Chi0_ratio=0.4, verbose=True, ninit=10)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
 betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True,
-    rateCooling=2.0,
-    rateWarming=1.0,
-    tolerance=0.0,
-    UpdateRate=1,
-    ratio_in_cooling=False,
+    coolingFactor=2.,
     progress=0.2,
 )
-targets = directives.PGI_MultiTargetMisfits(verbose=True)
-petrodir = directives.UpdateReference()
+targets = directives.MultiTargetMisfits(verbose=True)
+petrodir = directives.PGI_UpdateParameters(update_gmm=False)
 
 # Setup Inversion
 inv = inversion.BaseInversion(
-    invProb, directiveList=[Alphas, Scales, beta, petrodir, targets, betaIt]
+    invProb, directiveList=[alphas, scales, beta, petrodir, targets, betaIt, scaling_schedule]
 )
 
 mcluster_map = inv.run(minit)
@@ -183,31 +182,29 @@ opt = optimization.ProjectedGNCG(
     maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
 )
 
+
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple_no_map, opt)
 
 # directives
-Alphas = directives.AlphasSmoothEstimate_ByEig(
+scales = directives.ScalingEstimate_ByEig(Chi0_ratio=0.5, verbose=True, ninit=10)
+scaling_schedule = directives.JointScalingSchedule(verbose=True)
+alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
 )
-Scales = directives.ScalingEstimate_ByEig(Chi0_ratio=0.4, verbose=True, ninit=100)
-beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
+beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
 betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True,
-    rateCooling=2.0,
-    rateWarming=1.0,
-    tolerance=0.0,
-    UpdateRate=1,
-    ratio_in_cooling=False,
+    coolingFactor=2.,
     progress=0.2,
 )
-targets = directives.PGI_MultiTargetMisfits(
+targets = directives.MultiTargetMisfits(
     chiSmall=1.0, TriggerSmall=True, TriggerTheta=False, verbose=True
 )
-petrodir = directives.UpdateReference()
+petrodir = directives.PGI_UpdateParameters(update_gmm=False)
 
 # Setup Inversion
 inv = inversion.BaseInversion(
-    invProb, directiveList=[Alphas, Scales, beta, petrodir, targets, betaIt]
+    invProb, directiveList=[alphas, scales, beta, petrodir, targets, betaIt, scaling_schedule]
 )
 
 mcluster_no_map = inv.run(minit)
@@ -221,23 +218,25 @@ reg2.cell_weights = wr2
 reg = reg1 + reg2
 
 opt = optimization.ProjectedGNCG(
-    maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
+    maxIter=30, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # directives
-Alphas = directives.AlphasSmoothEstimate_ByEig(
+alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=1e-1, ninit=10, verbose=True
 )
-Scales = directives.ScalingEstimate_ByEig(Chi0_ratio=0.4, verbose=True, ninit=100)
-beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
-targets = directives.PGI_MultiTargetMisfits(
-    chiSmall=1.0, TriggerSmall=False, TriggerTheta=False, verbose=False,
-)
+scales = directives.ScalingEstimate_ByEig(Chi0_ratio=0.5, verbose=True, ninit=10)
+scaling_schedule = directives.JointScalingSchedule(verbose=True)
+beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
+beta_schedule = directives.BetaSchedule(coolingFactor = 5.0, coolingRate = 1)
+targets = directives.MultiTargetMisfits(TriggerSmall=False, verbose=True,)
 
 # Setup Inversion
-inv = inversion.BaseInversion(invProb, directiveList=[Scales, beta, targets,])
+inv = inversion.BaseInversion(invProb, directiveList=[
+   alphas, scales, beta, targets, beta_schedule, scaling_schedule
+])
 
 mtik = inv.run(minit)
 

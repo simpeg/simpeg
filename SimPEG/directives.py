@@ -13,11 +13,17 @@ from .maps import SphericalSystem, ComboMap
 from .regularization import (
     BaseComboRegularization,
     BaseRegularization,
-    SimplePGI,
-    PGI,
-    SimplePGIwithRelationshipsSmallness,
+    SimpleSmall,
+    Small,
+    SparseSmall,
+    Simple,
+    Tikhonov,
+    Sparse,
     SimplePGIsmallness,
     PGIsmallness,
+    SimplePGIwithRelationshipsSmallness,
+    SimplePGI,
+    PGI,
     SmoothDeriv,
     SimpleSmoothDeriv,
     SparseDeriv,
@@ -31,7 +37,10 @@ from .utils import (
     spherical2cartesian,
     cartesian2spherical,
     order_cluster,
+    WeightedGaussianMixture,
     GaussianMixtureWithPrior,
+    GaussianMixtureWithMapping,
+    GaussianMixtureWithMappingWithPrior,
     GaussianMixtureMarkovRandomField,
     GibbsSampling_PottsDenoising,
     ICM_PottsDenoising,
@@ -306,7 +315,7 @@ class BetaSchedule(InversionDirective):
 class TargetMisfit(InversionDirective):
     """
      ... note:: Currently this target misfit is not set up for joint inversion.
-     Check out PGI_MultiTargetMisfits
+     Check out MultiTargetMisfits
     """
 
     chifact = 1.0
@@ -1078,354 +1087,6 @@ class Update_Wj(InversionDirective):
             self.reg.wght = JtJdiag
 
 
-###############################################################################
-#                                                                             #
-#         Directives for PGI: Petrophysically guided Regularization           #
-#                                                                             #
-###############################################################################
-
-
-class GaussianMixtureUpdateModel(InversionDirective):
-
-    update_covariances = True # Average the covariances, If false: average the precisions
-    verbose = False # print info. at each iteration
-    zeta = 1e8  # default: keep GMM fixed
-    nu = 1e8 # default: keep GMM fixed
-    kappa = 1e8 # default: keep GMM fixed
-    fixed_membership = None #keep the membership of specific cells fixed
-    keep_ref_fixed_in_Smooth = True #keep mref fixed in the Smoothness
-
-    def initialize(self):
-        if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
-            petrosmallness = np.where(
-                np.r_[
-                    [
-                        (
-                            isinstance(regpart, SimplePGI)
-                            or isinstance(regpart, PGI)
-                            or isinstance(regpart, SimplePGIwithRelationships)
-                        )
-                        for regpart in self.invProb.reg.objfcts
-                    ]
-                ]
-            )[0][0]
-            self.petrosmallness = petrosmallness
-            if self.debug:
-                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
-            self._regmode = 1
-        else:
-            self._regmode = 2
-
-    def endIter(self):
-
-        m = self.invProb.model
-        if self._regmode == 1:
-            self.pgi_reg = self.invProb.reg.objfcts[self.petrosmallness]
-            modellist = self.invProb.reg.objfcts[self.petrosmallness].wiresmap * m
-        else:
-            self.pgi_reg = self.invProb.reg
-            modellist = self.invProb.reg.wiresmap * m
-        model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
-
-        if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
-            self.fixed_membership = np.c_[
-                np.arange(len(self.pgi_reg.gmmref.vol)),
-                self.pgi_reg.membership(self.pgi_reg.mref),
-            ]
-
-        clfupdate = GaussianMixtureWithPrior(
-            gmmref=self.pgi_reg.gmmref,
-            zeta=self.zeta,
-            kappa=self.kappa,
-            nu=self.nu,
-            verbose=self.verbose,
-            prior_type="semi",
-            update_covariances=self.update_covariances,
-            max_iter=self.pgi_reg.gmm.max_iter,
-            n_init=self.pgi_reg.gmm.n_init,
-            reg_covar=self.pgi_reg.gmm.reg_covar,
-            weights_init=self.pgi_reg.gmm.weights_,
-            means_init=self.pgi_reg.gmm.means_,
-            precisions_init=self.pgi_reg.gmm.precisions_,
-            random_state=self.pgi_reg.gmm.random_state,
-            tol=self.pgi_reg.gmm.tol,
-            verbose_interval=self.pgi_reg.gmm.verbose_interval,
-            warm_start=self.pgi_reg.gmm.warm_start,
-            fixed_membership=self.fixed_membership,
-        )
-        clfupdate = clfupdate.fit(model)
-        # order_cluster(clfupdate, self.pgi_reg.gmmref)
-        self.pgi_reg.gmm = clfupdate
-        membership = clfupdate.predict(model)
-
-        if self.fixed_membership is not None:
-            membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
-
-        mref = mkvc(clfupdate.means_[membership])
-
-        if self._regmode == 1:
-            self.invProb.reg.objfcts[self.petrosmallness].mref = mref
-            if getattr(self.fixed_membership, "shape",[0,0])[0] < len(membership):
-                self.invProb.reg.objfcts[self.petrosmallness]._r_second_deriv = None
-        else:
-            self.invProb.reg.mref = mref
-            if getattr(self.fixed_membership, "shape",[0,0])[0] < len(membership):
-                self.invProb.reg._r_second_deriv = None
-
-
-class GMMRFUpdateModel(InversionDirective):
-
-    update_covariances = True
-    verbose = False
-    zeta = 1e8  # default: keep GMM fixed
-    nu = 1e8
-    kappa = 1e8
-    fixed_membership = None
-    keep_ref_fixed_in_Smooth = True
-    neighbors = 8
-    temperature = 12.0
-    unit_anisotropy = None  # Dictionary with unit, anisotropy
-    index_anisotropy = None  # Dictionary with index, anisotropy, TODOs: to implement
-
-    def initialize(self):
-        if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
-            petrosmallness = np.where(
-                np.r_[
-                    [
-                        (
-                            isinstance(regpart, SimplePGI)
-                            or isinstance(regpart, PGI)
-                            or isinstance(regpart, SimplePGIwithRelationships)
-                        )
-                        for regpart in self.invProb.reg.objfcts
-                    ]
-                ]
-            )[0][0]
-            self.petrosmallness = petrosmallness
-            if self.debug:
-                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
-            self._regmode = 1
-        else:
-            self._regmode = 2
-
-    def endIter(self):
-
-        m = self.invProb.model
-        if self._regmode == 1:
-            self.pgi_reg = self.invProb.reg.objfcts[self.petrosmallness]
-            modellist = self.invProb.reg.objfcts[self.petrosmallness].wiresmap * m
-        else:
-            self.pgi_reg = self.invProb.reg
-            modellist = self.invProb.reg.wiresmap * m
-        model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
-
-        if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
-            self.fixed_membership = np.c_[
-                np.arange(len(self.pgi_reg.gmmref.mesh.vol)),
-                self.pgi_reg.membership(self.pgi_reg.mref),
-            ]
-
-        # TEMPORARY FOR WEIGHTS ACCROSS THE MESH
-        # self.pgi_reg.gmm.weights_ = self.pgi_reg.gmmref.weights_
-        if self.unit_anisotropy is not None:
-            self.unit_anisotropy["index"] = []
-            for i, unit in enumerate(self.unit_anisotropy["unit"]):
-                self.unit_anisotropy["index"].append(
-                    self.pgi_reg.membership(self.pgi_reg.mref) == unit
-                )
-
-        clfupdate = GaussianMixtureMarkovRandomField(
-            gmmref=self.pgi_reg.gmmref,
-            kneighbors=self.neighbors,
-            kdtree=getattr(self.pgi_reg.gmm, "kdtree", None),
-            indexneighbors=getattr(self.pgi_reg.gmm, "indexneighbors", None),
-            index_anisotropy=self.unit_anisotropy,
-            index_kdtree=getattr(self.pgi_reg.gmm, "index_kdtree", None),
-            T=self.temperature,
-            zeta=self.zeta,
-            kappa=self.kappa,
-            nu=self.nu,
-            verbose=self.verbose,
-            prior_type="semi",
-            update_covariances=self.update_covariances,
-            max_iter=self.pgi_reg.gmm.max_iter,
-            n_init=self.pgi_reg.gmm.n_init,
-            reg_covar=self.pgi_reg.gmm.reg_covar,
-            weights_init=self.pgi_reg.gmm.weights_
-            * np.ones((len(model), self.pgi_reg.gmmref.n_components)),
-            means_init=self.pgi_reg.gmm.means_,
-            precisions_init=self.pgi_reg.gmm.precisions_,
-            random_state=self.pgi_reg.gmm.random_state,
-            tol=self.pgi_reg.gmm.tol,
-            verbose_interval=self.pgi_reg.gmm.verbose_interval,
-            warm_start=self.pgi_reg.gmm.warm_start,
-            fixed_membership=self.fixed_membership,
-        )
-        clfupdate = clfupdate.fit(model)
-        # order_cluster(clfupdate, self.pgi_reg.gmmref)
-        self.pgi_reg.gmm = clfupdate
-        membership = clfupdate.predict(model)
-
-        if self.fixed_membership is not None:
-            membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
-
-        mref = mkvc(clfupdate.means_[membership])
-
-        if self._regmode == 1:
-            self.invProb.reg.objfcts[self.petrosmallness].mref = mref
-            if len(self.fixed_membership.shape[0]) < len(membership):
-                self.invProb.reg.objfcts[self.petrosmallness]._r_second_deriv = None
-        else:
-            self.invProb.reg.mref = mref
-            if len(self.fixed_membership.shape[0]) < len(membership):
-                self.invProb.reg._r_second_deriv = None
-
-
-
-class UpdateReference(InversionDirective):
-    def initialize(self):
-        if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
-            petrosmallness = np.where(
-                np.r_[
-                    [
-                        (
-                            isinstance(regpart, SimplePGI)
-                            or isinstance(regpart, PGI)
-                            or isinstance(regpart, SimplePGIwithRelationships)
-                        )
-                        for regpart in self.invProb.reg.objfcts
-                    ]
-                ]
-            )[0][0]
-            self.petrosmallness = petrosmallness
-            if self.debug:
-                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
-            self._regmode = 1
-        else:
-            self._regmode = 2
-
-        if self._regmode == 1:
-            self.pgi_reg = self.invProb.reg.objfcts[self.petrosmallness]
-        else:
-            self.pgi_reg = self.invProb.reg
-
-    def endIter(self):
-        m = self.invProb.model
-        modellist = self.pgi_reg.wiresmap * m
-        model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
-
-        membership = self.pgi_reg.gmmref.predict(model)
-        self.pgi_reg.mref = mkvc(self.pgi_reg.gmmref.means_[membership])
-        self.pgi_reg.objfcts[0]._r_second_deriv = None
-
-
-class SmoothUpdateReferenceModel(InversionDirective):
-
-    neighbors = None
-    distance = 2
-    weigthed_random_walk = True
-    compute_score = False
-    maxit = None
-    verbose = False
-    method = "ICM"  # "Gibbs"
-    offdiag = 0.0
-    indiag = 1.0
-    Pottmatrix = None
-    log_univar = None
-
-    def endIter(self):
-        mesh = self.invProb.reg._mesh
-        if self.neighbors is None:
-            self.neighbors = 2 * mesh.dim
-
-        m = self.invProb.model
-        modellist = self.invProb.reg.wiresmap * m
-        model = np.c_[[a * b for a, b in zip(self.invProb.reg.maplist, modellist)]].T
-        minit = self.invProb.reg.gmm.predict(model)
-
-        indActive = self.invProb.reg.indActive
-
-        if self.Pottmatrix is None:
-            n_unit = self.invProb.reg.gmm.n_components
-            Pott = np.ones([n_unit, n_unit]) * self.offdiag
-            for i in range(Pott.shape[0]):
-                Pott[i, i] = self.indiag
-            self.Pottmatrix = Pott
-
-        # if self.log_univar is None:
-        _, self.log_univar = self.invProb.reg.gmm._estimate_log_prob_resp(model)
-
-        if self.method == "Gibbs":
-            denoised = GibbsSampling_PottsDenoising(
-                mesh,
-                minit,
-                self.log_univar,
-                self.Pottmatrix,
-                indActive=indActive,
-                neighbors=self.neighbors,
-                norm=self.distance,
-                weighted_selection=self.weigthed_random_walk,
-                compute_score=self.compute_score,
-                maxit=self.maxit,
-                verbose=self.verbose,
-            )
-        elif self.method == "ICM":
-            denoised = ICM_PottsDenoising(
-                mesh,
-                minit,
-                self.log_univar,
-                self.Pottmatrix,
-                indActive=indActive,
-                neighbors=self.neighbors,
-                norm=self.distance,
-                weighted_selection=self.weigthed_random_walk,
-                compute_score=self.compute_score,
-                maxit=self.maxit,
-                verbose=self.verbose,
-            )
-
-        self.invProb.reg.mref = mkvc(self.invProb.reg.gmm.means_[denoised[0]])
-
-
-class PGI_local_GMM_proportions(InversionDirective):
-
-    local_proportions = None
-
-    def initialize(self):
-        if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
-            petrosmallness = np.where(
-                np.r_[
-                    [
-                        (
-                            isinstance(regpart, SimplePGI)
-                            or isinstance(regpart, PGI)
-                            or isinstance(regpart, SimplePGIwithRelationships)
-                        )
-                        for regpart in self.invProb.reg.objfcts
-                    ]
-                ]
-            )[0][0]
-            self.petrosmallness = petrosmallness
-            if self.debug:
-                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
-            self._regmode = 1
-        else:
-            self._regmode = 2
-
-        if self._regmode == 1:
-            self.pgi_reg = self.invProb.reg.objfcts[self.petrosmallness]
-        else:
-            self.pgi_reg = self.invProb.reg
-
-    def endIter(self):
-        if not self.pgi_reg.mrefInSmooth:
-            m = self.invProb.model
-            modellist = self.pgi_reg.wiresmap * m
-            model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
-            self.pgi_reg.gmm.weights_ = self.local_proportions
-            membership = self.pgi_reg.gmm.predict(model)
-            self.pgi_reg.mref = mkvc(self.pgi_reg.gmm.means_[membership])
-
 
 class AlphasSmoothEstimate_ByEig(InversionDirective):
     """AlhaEstimate"""
@@ -1446,7 +1107,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     for i in range(len(self.invProb.reg.objfcts))
                 ]
             )
-            Small = np.r_[
+            smallness = np.r_[
                 [
                     (
                         np.r_[
@@ -1456,6 +1117,9 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                                 isinstance(regpart, SimplePGIwithRelationshipsSmallness)
                                 or isinstance(regpart, SimplePGIsmallness)
                                 or isinstance(regpart, PGIsmallness)
+                                or isinstance(regpart, SimpleSmall)
+                                or isinstance(regpart, Small)
+                                or isinstance(regpart, SparseSmall)
                             ),
                         ]
                     )
@@ -1463,12 +1127,12 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     for j, regpart in enumerate(regobjcts.objfcts)
                 ]
             ]
-            Small = Small[Small[:, 2] == 1][:, :2][0]
+            smallness = smallness[smallness[:, 2] == 1][:, :2][0]
 
             if self.debug:
-                print(type(self.invProb.reg.objfcts[Small[0]].objfcts[Small[1]]))
+                print(type(self.invProb.reg.objfcts[smallness[0]].objfcts[smallness[1]]))
 
-            Smooth = np.r_[
+            smoothness = np.r_[
                 [
                     (
                         np.r_[
@@ -1484,6 +1148,9 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                                     isinstance(regobjcts, SimplePGI)
                                     or isinstance(regobjcts, PGI)
                                     or isinstance(regobjcts, SimplePGIwithRelationships)
+                                    or isinstance(regpart, Tikhonov)
+                                    or isinstance(regpart, Simple)
+                                    or isinstance(regpart, Sparse)
                                 )
                             ),
                         ]
@@ -1495,7 +1162,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             mode = 1
         else:
             nbr = len(self.invProb.reg.objfcts)
-            Smooth = np.r_[
+            smoothness = np.r_[
                 [
                     (
                         isinstance(regpart, SmoothDeriv)
@@ -1521,7 +1188,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         if mode == 2:
             for i in range(nbr):
                 ratio = []
-                if Smooth[i]:
+                if smoothness[i]:
                     x0 = np.random.rand(*m.shape)
                     x0 = x0 / np.linalg.norm(x0)
                     x1 = np.random.rand(*m.shape)
@@ -1542,8 +1209,8 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         elif mode == 1:
             for i in range(nbr):
                 ratio = []
-                if Smooth[i, 2]:
-                    idx = Smooth[i, :2]
+                if smoothness[i, 2]:
+                    idx = smoothness[i, :2]
                     if self.debug:
                         print(type(self.invProb.reg.objfcts[idx[0]].objfcts[idx[1]]))
                     x0 = np.random.rand(*m.shape)
@@ -1552,8 +1219,8 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     x1 = x1 / np.linalg.norm(x1)
                     for j in range(self.ninit):
                         x0 = (
-                            self.invProb.reg.objfcts[Small[0]]
-                            .objfcts[Small[1]]
+                            self.invProb.reg.objfcts[smallness[0]]
+                            .objfcts[smallness[1]]
                             .deriv2(m, v=x0)
                         )
                         x1 = (
@@ -1564,8 +1231,8 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                         x0 = x0 / np.linalg.norm(x0)
                         x1 = x1 / np.linalg.norm(x1)
                     t = x0.dot(
-                        self.invProb.reg.objfcts[Small[0]]
-                        .objfcts[Small[1]]
+                        self.invProb.reg.objfcts[smallness[0]]
+                        .objfcts[smallness[1]]
                         .deriv2(m, v=x0)
                     )
                     b = x1.dot(
@@ -1588,52 +1255,8 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     print("Alpha scales: ", objf.multipliers)
 
 
-class JointTargetMisfit(InversionDirective):
 
-    chifact = 1.0
-    phi_d_star = None
-    verbose = False
-
-    @property
-    def DMtarget(self):
-        if getattr(self, "_DMtarget", None) is None:
-            # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
-            if self.phi_d_star is None:
-                # Check if it is a ComboObjective
-                if isinstance(self.dmisfit, ComboObjectiveFunction):
-                    self.phi_d_star = np.r_[[0.5 * survey.nD for survey in self.survey]]
-                else:
-                    self.phi_d_star = np.r_[[0.5 * self.invProb.dmisfit.survey.nD]]
-
-            self._DMtarget = self.chifact * self.phi_d_star
-        return self._DMtarget
-
-    @DMtarget.setter
-    def DMtarget(self, val):
-        self._DMtarget = val
-
-    def endIter(self):
-
-        self.DM = False
-
-        self.dmlist = np.r_[[dmis(self.invProb.model) for dmis in self.dmisfit.objfcts]]
-
-        self.targetlist = np.r_[
-            [dm < tgt for dm, tgt in zip(self.dmlist, self.DMtarget)]
-        ]
-
-        if np.all(self.targetlist):
-            self.DM = True
-
-        if self.verbose:
-            print(
-                "DM: ", self.dmlist, self.targetlist,
-            )
-        if self.DM:
-            self.opt.stopNextIteration = True
-
-
-class PGI_MultiTargetMisfits(InversionDirective):
+class MultiTargetMisfits(InversionDirective):
 
     WeightsInTarget = 0
     verbose = False
@@ -1660,7 +1283,7 @@ class PGI_MultiTargetMisfits(InversionDirective):
         self.dmlist = np.r_[[dmis(self.invProb.model) for dmis in self.dmisfit.objfcts]]
 
         if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
-            Small = np.r_[
+            smallness = np.r_[
                 [
                     (
                         np.r_[
@@ -1677,24 +1300,24 @@ class PGI_MultiTargetMisfits(InversionDirective):
                     for j, regpart in enumerate(regobjcts.objfcts)
                 ]
             ]
-            if Small[Small[:, 2] == 1][:, :2].size == 0:
+            if smallness[smallness[:, 2] == 1][:, :2].size == 0:
                 warnings.warn(
-                    "There is no PGI regularization. No Smallness target possible"
+                    "There is no PGI regularization. Smallness target is turned off (TriggerSmall flag)"
                 )
-                self.Small = -1
-                self.pgi_reg = None
+                self.smallness = -1
+                self.pgi_smallness = None
             
             else:
-                self.Small = Small[Small[:, 2] == 1][:, :2][0]
-                self.pgi_reg = self.invProb.reg.objfcts[self.Small[0]].objfcts[
-                    self.Small[1]
+                self.smallness = smallness[smallness[:, 2] == 1][:, :2][0]
+                self.pgi_smallness = self.invProb.reg.objfcts[self.smallness[0]].objfcts[
+                    self.smallness[1]
                 ]
 
                 if self.debug:
                     print(
                         type(
-                            self.invProb.reg.objfcts[self.Small[0]].objfcts[
-                                self.Small[1]
+                            self.invProb.reg.objfcts[self.smallness[0]].objfcts[
+                                self.smallness[1]
                             ]
                         )
                     )
@@ -1702,7 +1325,7 @@ class PGI_MultiTargetMisfits(InversionDirective):
             self._regmode = 1
 
         else:
-            Small = np.r_[
+            smallness = np.r_[
                 [
                     (
                         np.r_[
@@ -1717,17 +1340,19 @@ class PGI_MultiTargetMisfits(InversionDirective):
                     for j, regpart in enumerate(self.invProb.reg.objfcts)
                 ]
             ]
-            if Small[Small[:, 1] == 1][:, :1].size == 0:
-                warnings.warn(
-                    "There is no PGI regularization. No Smallness target possible"
-                )
-                self.Small = -1
+            if smallness[smallness[:, 1] == 1][:, :1].size == 0:
+                if self.TriggerSmall:
+                    warnings.warn(
+                        "There is no PGI regularization. Smallness target is turned off (TriggerSmall flag)."
+                    )
+                    self.TriggerSmall = False
+                self.smallness = -1
             else:
-                self.Small = Small[Small[:, 1] == 1][:, :1][0]
-                self.pgi_reg = self.invProb.reg.objfcts[self.Small[0]]
+                self.smallness = smallness[smallness[:, 1] == 1][:, :1][0]
+                self.pgi_smallness = self.invProb.reg.objfcts[self.smallness[0]]
                 
                 if self.debug:
-                    print(type(self.invProb.reg.objfcts[self.Small[0]]))
+                    print(type(self.invProb.reg.objfcts[self.smallness[0]]))
 
             self._regmode = 2
             
@@ -1752,10 +1377,10 @@ class PGI_MultiTargetMisfits(InversionDirective):
 
     @property
     def CLtarget(self):
-        if not getattr(self.pgi_reg, "approx_eval", True):
+        if not getattr(self.pgi_smallness, "approx_eval", True):
             # if nonlinear prior, compute targer numerically at each GMM update
-            samples, _ = self.pgi_reg.gmm.sample(len(self.pgi_reg.gmm.vol))
-            self.phi_ms_star = self.pgi_reg(mkvc(samples), externalW=self.WeightsInTarget)
+            samples, _ = self.pgi_smallness.gmm.sample(len(self.pgi_smallness.gmm.vol))
+            self.phi_ms_star = self.pgi_smallness(mkvc(samples), externalW=self.WeightsInTarget)
             
             self._CLtarget = self.chiSmall * self.phi_ms_star
 
@@ -1777,21 +1402,21 @@ class PGI_MultiTargetMisfits(InversionDirective):
     def CLnormalizedConstant(self):
         if ~self.WeightsInTarget:
             return 1.0
-        elif np.any(self.Small == -1):
+        elif np.any(self.smallness == -1):
             return np.sum(sp.csr_matrix.diagonal(self.invProb.reg.objfcts[0].W) ** 2.0) / len(self.invProb.model)
         else:
-            return np.sum(sp.csr_matrix.diagonal(self.pgi_reg.W) ** 2.0) / len(self.invProb.model)
+            return np.sum(sp.csr_matrix.diagonal(self.pgi_smallness.W) ** 2.0) / len(self.invProb.model)
 
     @CLtarget.setter
     def CLtarget(self, val):
         self._CLtarget = val
 
     def phims(self):
-        if np.any(self.Small == -1):
+        if np.any(self.smallness == -1):
             return self.invProb.reg.objfcts[0](self.invProb.model)
         else:
             return (
-                self.pgi_reg(
+                self.pgi_smallness(
                     self.invProb.model, externalW=self.WeightsInTarget,
                 )
                 / self.CLnormalizedConstant
@@ -1859,7 +1484,7 @@ class PGI_MultiTargetMisfits(InversionDirective):
         if np.all(self.targetlist):
             self.DM = True
 
-        if self.TriggerSmall and np.any(self.Small != -1):
+        if self.TriggerSmall and np.any(self.smallness != -1):
             if self.phims() > self.CLtarget:
                 self.CL = False
 
@@ -1945,21 +1570,17 @@ class ScalingEstimate_ByEig(InversionDirective):
 class JointScalingSchedule(InversionDirective):
 
     verbose = False
-    tolerance = 0.0
-    progress = 0.02
-    rateCooling = 1.0
-    rateWarming = 1.0
+    warmingFactor = 1.0
     mode = 1
     chimax = 1e10
     chimin = 1e-10
-    UpdateRate = 3
+    UpdateRate = 1
 
     def initialize(self):
 
         targetclass = np.r_[
             [
-                isinstance(dirpart, PGI_MultiTargetMisfits)
-                or isinstance(dirpart, JointTargetMisfit)
+                isinstance(dirpart, MultiTargetMisfits)
                 for dirpart in self.inversion.directiveList.dList
             ]
         ]
@@ -1994,7 +1615,7 @@ class JointScalingSchedule(InversionDirective):
                     # Assume only 2 data misfit
                     indx = self.dmlist > self.DMtarget
                     if np.any(indx):
-                        multipliers = self.rateWarming * np.median(
+                        multipliers = self.warmingFactor * np.median(
                             self.DMtarget[~indx] / self.dmlist[~indx]
                         )
                         if np.sum(indx) == 1:
@@ -2007,13 +1628,295 @@ class JointScalingSchedule(InversionDirective):
                             print("New scales:", self.dmisfit.multipliers)
 
 
+###############################################################################
+#                                                                             #
+#         Directives for PGI: Petrophysically guided Regularization           #
+#                                                                             #
+###############################################################################
+
+
+class PGI_UpdateParameters(InversionDirective):
+
+    verbose = False # print info. at each iteration
+    update_gmm = True # update GMM
+    zeta = 1e10  # default: keep GMM fixed
+    nu = 1e10 # default: keep GMM fixed
+    kappa = 1e10 # default: keep GMM fixed
+    update_covariances = True # Average the covariances, If false: average the precisions
+    fixed_membership = None #keep the membership of specific cells fixed
+    keep_ref_fixed_in_Smooth = True #keep mref fixed in the Smoothness
+
+    def initialize(self):
+        if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
+            pgi_reg = np.where(
+                np.r_[
+                    [
+                        (
+                            isinstance(regpart, SimplePGI)
+                            or isinstance(regpart, PGI)
+                            or isinstance(regpart, SimplePGIwithRelationships)
+                        )
+                        for regpart in self.invProb.reg.objfcts
+                    ]
+                ]
+            )[0][0]
+
+            self.pgi_reg = self.invProb.reg.objfcts[pgi_reg]
+            
+            if self.debug:
+                print(type(self.self.pgi_reg))
+            self._regmode = 1
+        
+        else:
+            self._regmode = 2
+            self.pgi_reg = self.invProb.reg
+
+    def endIter(self):
+
+        m = self.invProb.model
+        modellist = self.pgi_reg.wiresmap * m
+        model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
+
+        if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
+            self.fixed_membership = np.c_[
+                np.arange(len(self.pgi_reg.gmmref.vol)),
+                self.pgi_reg.membership(self.pgi_reg.mref),
+            ]
+        
+        if self.update_gmm and isinstance(self.pgi_reg.gmmref, GaussianMixtureWithMapping):
+            clfupdate = GaussianMixtureWithMappingWithPrior(
+                gmmref=self.pgi_reg.gmmref,
+                zeta=self.zeta,
+                kappa=self.kappa,
+                nu=self.nu,
+                verbose=self.verbose,
+                prior_type="semi",
+                update_covariances=self.update_covariances,
+                max_iter=self.pgi_reg.gmm.max_iter,
+                n_init=self.pgi_reg.gmm.n_init,
+                reg_covar=self.pgi_reg.gmm.reg_covar,
+                weights_init=self.pgi_reg.gmm.weights_,
+                means_init=self.pgi_reg.gmm.means_,
+                precisions_init=self.pgi_reg.gmm.precisions_,
+                random_state=self.pgi_reg.gmm.random_state,
+                tol=self.pgi_reg.gmm.tol,
+                verbose_interval=self.pgi_reg.gmm.verbose_interval,
+                warm_start=self.pgi_reg.gmm.warm_start,
+                fixed_membership=self.fixed_membership,
+            )
+            clfupdate = clfupdate.fit(model)
+            # order_cluster(clfupdate, self.pgi_reg.gmmref)
+
+        elif self.update_gmm and isinstance(self.pgi_reg.gmmref, WeightedGaussianMixture):
+            clfupdate = GaussianMixtureWithPrior(
+                gmmref=self.pgi_reg.gmmref,
+                zeta=self.zeta,
+                kappa=self.kappa,
+                nu=self.nu,
+                verbose=self.verbose,
+                prior_type="semi",
+                update_covariances=self.update_covariances,
+                max_iter=self.pgi_reg.gmm.max_iter,
+                n_init=self.pgi_reg.gmm.n_init,
+                reg_covar=self.pgi_reg.gmm.reg_covar,
+                weights_init=self.pgi_reg.gmm.weights_,
+                means_init=self.pgi_reg.gmm.means_,
+                precisions_init=self.pgi_reg.gmm.precisions_,
+                random_state=self.pgi_reg.gmm.random_state,
+                tol=self.pgi_reg.gmm.tol,
+                verbose_interval=self.pgi_reg.gmm.verbose_interval,
+                warm_start=self.pgi_reg.gmm.warm_start,
+                fixed_membership=self.fixed_membership,
+            )
+            clfupdate = clfupdate.fit(model)
+            # order_cluster(clfupdate, self.pgi_reg.gmmref)
+
+        else:
+            clfupdate = copy.deepcopy(self.pgi_reg.gmmref)
+
+        self.pgi_reg.gmm = clfupdate
+        membership = self.pgi_reg.gmm.predict(model)
+
+        if self.fixed_membership is not None:
+            membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
+
+        mref = mkvc(self.pgi_reg.gmm.means_[membership])
+        self.pgi_reg.mref = mref
+        if getattr(self.fixed_membership, "shape",[0,0])[0] < len(membership):
+            self.pgi_reg.objfcts[0]._r_second_deriv = None
+
+
+class GMMRFUpdateModel(InversionDirective):
+
+    update_covariances = True
+    verbose = False
+    zeta = 1e10  # default: keep GMM fixed
+    nu = 1e10
+    kappa = 1e10
+    fixed_membership = None
+    keep_ref_fixed_in_Smooth = True
+    neighbors = 8
+    temperature = 12.0
+    unit_anisotropy = None  # Dictionary with unit, anisotropy
+    index_anisotropy = None  # Dictionary with index, anisotropy, TODOs: to implement
+
+    def initialize(self):
+        if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
+            pgi_reg = np.where(
+                np.r_[
+                    [
+                        (
+                            isinstance(regpart, SimplePGI)
+                            or isinstance(regpart, PGI)
+                            or isinstance(regpart, SimplePGIwithRelationships)
+                        )
+                        for regpart in self.invProb.reg.objfcts
+                    ]
+                ]
+            )[0][0]
+
+            self.pgi_reg = self.invProb.reg.objfcts[self.petrosmallness]
+            self._regmode = 1
+            
+        else:
+            self.pgi_reg = self.invProb.reg
+            self._regmode = 2
+
+    def endIter(self):
+
+        m = self.invProb.model
+        modellist = self.pgi_reg.wiresmap * m
+        model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
+
+        if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
+            self.fixed_membership = np.c_[
+                np.arange(len(self.pgi_reg.gmmref.mesh.vol)),
+                self.pgi_reg.membership(self.pgi_reg.mref),
+            ]
+
+        if self.unit_anisotropy is not None:
+            self.unit_anisotropy["index"] = []
+            for i, unit in enumerate(self.unit_anisotropy["unit"]):
+                self.unit_anisotropy["index"].append(
+                    self.pgi_reg.membership(self.pgi_reg.mref) == unit
+                )
+
+        clfupdate = GaussianMixtureMarkovRandomField(
+            gmmref=self.pgi_reg.gmmref,
+            kneighbors=self.neighbors,
+            kdtree=getattr(self.pgi_reg.gmm, "kdtree", None),
+            indexneighbors=getattr(self.pgi_reg.gmm, "indexneighbors", None),
+            index_anisotropy=self.unit_anisotropy,
+            index_kdtree=getattr(self.pgi_reg.gmm, "index_kdtree", None),
+            T=self.temperature,
+            zeta=self.zeta,
+            kappa=self.kappa,
+            nu=self.nu,
+            verbose=self.verbose,
+            prior_type="semi",
+            update_covariances=self.update_covariances,
+            max_iter=self.pgi_reg.gmm.max_iter,
+            n_init=self.pgi_reg.gmm.n_init,
+            reg_covar=self.pgi_reg.gmm.reg_covar,
+            weights_init=self.pgi_reg.gmm.weights_
+            * np.ones((len(model), self.pgi_reg.gmmref.n_components)),
+            means_init=self.pgi_reg.gmm.means_,
+            precisions_init=self.pgi_reg.gmm.precisions_,
+            random_state=self.pgi_reg.gmm.random_state,
+            tol=self.pgi_reg.gmm.tol,
+            verbose_interval=self.pgi_reg.gmm.verbose_interval,
+            warm_start=self.pgi_reg.gmm.warm_start,
+            fixed_membership=self.fixed_membership,
+        )
+        clfupdate = clfupdate.fit(model)
+        # order_cluster(clfupdate, self.pgi_reg.gmmref)
+        self.pgi_reg.gmm = clfupdate
+        membership = self.pgi_reg.gmm.predict(model)
+
+        if self.fixed_membership is not None:
+            membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
+
+        mref = mkvc(self.pgi_reg.gmm.means_[membership])
+        self.pgi_reg.mref = mref
+        if len(self.fixed_membership.shape[0]) < len(membership):
+            self.pgi_reg.objfcts[0]._r_second_deriv = None
+
+
+class SmoothUpdateReferenceModel(InversionDirective):
+
+    neighbors = None
+    distance = 2
+    weigthed_random_walk = True
+    compute_score = False
+    maxit = None
+    verbose = False
+    method = "ICM"  # "Gibbs"
+    offdiag = 0.0
+    indiag = 1.0
+    Pottmatrix = None
+    log_univar = None
+
+    def endIter(self):
+        mesh = self.invProb.reg._mesh
+        if self.neighbors is None:
+            self.neighbors = 2 * mesh.dim
+
+        m = self.invProb.model
+        modellist = self.invProb.reg.wiresmap * m
+        model = np.c_[[a * b for a, b in zip(self.invProb.reg.maplist, modellist)]].T
+        minit = self.invProb.reg.gmm.predict(model)
+
+        indActive = self.invProb.reg.indActive
+
+        if self.Pottmatrix is None:
+            n_unit = self.invProb.reg.gmm.n_components
+            Pott = np.ones([n_unit, n_unit]) * self.offdiag
+            for i in range(Pott.shape[0]):
+                Pott[i, i] = self.indiag
+            self.Pottmatrix = Pott
+
+        # if self.log_univar is None:
+        _, self.log_univar = self.invProb.reg.gmm._estimate_log_prob_resp(model)
+
+        if self.method == "Gibbs":
+            denoised = GibbsSampling_PottsDenoising(
+                mesh,
+                minit,
+                self.log_univar,
+                self.Pottmatrix,
+                indActive=indActive,
+                neighbors=self.neighbors,
+                norm=self.distance,
+                weighted_selection=self.weigthed_random_walk,
+                compute_score=self.compute_score,
+                maxit=self.maxit,
+                verbose=self.verbose,
+            )
+        elif self.method == "ICM":
+            denoised = ICM_PottsDenoising(
+                mesh,
+                minit,
+                self.log_univar,
+                self.Pottmatrix,
+                indActive=indActive,
+                neighbors=self.neighbors,
+                norm=self.distance,
+                weighted_selection=self.weigthed_random_walk,
+                compute_score=self.compute_score,
+                maxit=self.maxit,
+                verbose=self.verbose,
+            )
+
+        self.invProb.reg.mref = mkvc(self.invProb.reg.gmm.means_[denoised[0]])
+
+
 class PGI_BetaAlphaSchedule(InversionDirective):
 
     verbose = False
     tolerance = 0.0
     progress = 0.02
-    rateCooling = 2.0
-    rateWarming = 1.0
+    coolingFactor = 2.0
+    warmingFactor = 1.0
     mode = 1
     mode2_iter = 0
     alphasmax = 1e10
@@ -2024,13 +1927,13 @@ class PGI_BetaAlphaSchedule(InversionDirective):
     def initialize(self):
         targetclass = np.r_[
             [
-                isinstance(dirpart, PGI_MultiTargetMisfits)
+                isinstance(dirpart, MultiTargetMisfits)
                 for dirpart in self.inversion.directiveList.dList
             ]
         ]
         if ~np.any(targetclass):
             raise Exception(
-                "You need to have a PGI_MultiTargetMisfits directives to use the PGI_BetaAlphaSchedule directive"
+                "You need to have a MultiTargetMisfits directives to use the PGI_BetaAlphaSchedule directive"
             )
         else:
             self.targetclass = np.where(targetclass)[0][-1]
@@ -2050,7 +1953,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
 
         updategaussianclass = np.r_[
             [
-                isinstance(dirpart, GaussianMixtureUpdateModel)
+                isinstance(dirpart, PGI_UpdateParameters)
                 for dirpart in self.inversion.directiveList.dList
             ]
         ]
@@ -2149,7 +2052,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     indx = self.dmlist > (1.0 + self.tolerance) * self.DMtarget
                     if np.any(indx) and self.ratio_in_cooling:
                         ratio = np.median([self.dmlist[indx] / self.DMtarget[indx]])
-                    self.invProb.beta /= self.rateCooling * ratio
+                    self.invProb.beta /= self.coolingFactor * ratio
 
                     if self.verbose:
                         print("Decreasing beta to counter data misfit decrase plateau")
@@ -2159,7 +2062,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                 if np.all([self.pgi_reg.alpha_s < self.alphasmax]):
 
                     ratio = np.median(self.DMtarget / self.dmlist)
-                    self.pgi_reg.alpha_s *= self.rateWarming * ratio
+                    self.pgi_reg.alpha_s *= self.warmingFactor * ratio
 
                     if self.verbose:
                         print(
@@ -2180,7 +2083,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     indx = self.dmlist > (1.0 + self.tolerance) * self.DMtarget
                     if np.any(indx) and self.ratio_in_cooling:
                         ratio = np.median([self.dmlist[indx] / self.DMtarget[indx]])
-                    self.invProb.beta /= self.rateCooling * ratio
+                    self.invProb.beta /= self.coolingFactor * ratio
 
                     if self.verbose:
                         print("Decrease beta for countering plateau")
@@ -2204,7 +2107,7 @@ class AddMrefInSmooth(InversionDirective):
     def initialize(self):
         targetclass = np.r_[
             [
-                isinstance(dirpart, PGI_MultiTargetMisfits)
+                isinstance(dirpart, MultiTargetMisfits)
                 for dirpart in self.inversion.directiveList.dList
             ]
         ]
@@ -2218,7 +2121,7 @@ class AddMrefInSmooth(InversionDirective):
 
         self.pgi_updategmm_class = np.r_[
             [
-                isinstance(dirpart, GaussianMixtureUpdateModel)
+                isinstance(dirpart, PGI_UpdateParameters)
                 for dirpart in self.inversion.directiveList.dList
             ]
         ]
