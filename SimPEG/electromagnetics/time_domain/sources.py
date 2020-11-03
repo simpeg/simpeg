@@ -520,6 +520,7 @@ class LineCurrent(BaseTDEMSrc):
     loc = deprecate_property(
         location, "loc", new_name="location", removal_version="0.15.0"
     )
+    current = properties.Float("current in the line", default=1.0)
 
     def __init__(self, receiver_list=None, **kwargs):
         self.integrate = False
@@ -529,7 +530,7 @@ class LineCurrent(BaseTDEMSrc):
     def Mejs(self, prob):
         if getattr(self, "_Mejs", None) is None:
             self._Mejs = segmented_line_current_source_term(prob.mesh, self.location)
-        return self._Mejs
+        return self.current * self._Mejs
 
     def getRHSdc(self, prob):
         Grad = prob.mesh.nodalGrad

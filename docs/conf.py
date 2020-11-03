@@ -340,6 +340,7 @@ sphinx_gallery_conf = {
     "gallery_dirs": ["content/examples"] + tut_gallery_dirs,
     "within_subsection_order": FileNameSortKey,
     "backreferences_dir": None,
+    "show_memory": True,
 }
 
 

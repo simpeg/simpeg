@@ -359,7 +359,7 @@ def readUBCgravityObservations(obs_file):
         temp = np.array(line.split(), dtype=float)
         if len(temp) > 0:
             locXYZ[ii, :] = temp[:3]
-            d[ii] = temp[3]
+            d[ii] = -temp[3]
             wd[ii] = temp[4]
             ii += 1
         line = fid.readline()
@@ -389,7 +389,7 @@ def writeUBCgravityObservations(filename, data_object):
 
     wd = data_object.standard_deviation
 
-    data = np.c_[rxLoc, d, wd]
+    data = np.c_[rxLoc, -d, wd]
     head = "%i\n" % len(d)
     np.savetxt(
         filename, data, fmt="%e", delimiter=" ", newline="\n", header=head, comments=""
