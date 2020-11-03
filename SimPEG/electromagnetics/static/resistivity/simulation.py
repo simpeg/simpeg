@@ -25,7 +25,8 @@ class BaseDCSimulation(BaseEMSimulation):
     rhs_option = properties.StringChoice(
         choices=["interpolate", "primary_secondary"],
         doc="Choose formation of RHS",
-        default="interpolate")
+        default="interpolate",
+    )
 
     _mini_survey = None
 
@@ -225,16 +226,16 @@ class BaseDCSimulation(BaseEMSimulation):
 
         # Compute analytic solution for background and compute qs=A0*phi0
         if self.rhs_option == "primary_secondary":
-            
+
             rho0 = self.get_background_resistivity()
             tol = 1e-10
             ind_active = np.ones(self.mesh.nC, dtype=bool)
             ind_active[self.sigma < (1e-8 + tol)] = False
-            xy_surface, z_surface = gettopoCC(self.mesh, ind_active, option='top')
+            xy_surface, z_surface = gettopoCC(self.mesh, ind_active, option="top")
 
             # A function for finding index of nearest neighour of surface cells
             kdtree = sp.spatial.KDTree(xy_surface)
-            
+
             dh = np.min(self.mesh.hx)
             if self._formulation == "EB":
                 loc_grid = self.mesh.gridN
@@ -249,26 +250,25 @@ class BaseDCSimulation(BaseEMSimulation):
                     _, inda = kdtree.query(source.location[0][0:2])
                     _, indb = kdtree.query(source.location[1][0:2])
                     zf = z_surface[[inda, indb]]
-                
+
                 q[:, i] = source.compute_phi_primary(loc_grid, zf, rho0, dh)
-            
-            background_resistivity_model = 1e8*np.ones(self.mesh.nC)
+
+            background_resistivity_model = 1e8 * np.ones(self.mesh.nC)
             background_resistivity_model[ind_active] = rho0
-            A0 = self.getA0(background_resistivity_model)
-            q = A0 * q
+            A = self.getA(resistivity=background_resistivity_model)
+            q = A * q
 
         # Interpolate source to centers/nodes
         else:
             for i, source in enumerate(Srcs):
                 q[:, i] = source.eval(self)
-        
+
         return q
-    
+
     def get_background_resistivity(self):
-        
+
         ground_ind = self.rho < 1e8
         return np.exp(np.average(np.log(self.rho[ground_ind])))
-        
 
     @property
     def deleteTheseOnModelUpdate(self):
@@ -319,7 +319,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         BaseDCSimulation.__init__(self, mesh, **kwargs)
         self.setBC()
 
-    def getA(self):
+    def getA(self, resistivity=None):
         """
         Make the A matrix for the cell centered DC resistivity problem
         A = D MfRhoI G
@@ -327,31 +327,11 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
         D = self.Div
         G = self.Grad
-        MfRhoI = self.MfRhoI
+        if resistivity is None:
+            MfRhoI = self.MfRhoI
+        else:
+            MfRhoI = self.mesh.getFaceInnerProduct(resistivity, invMat=True)
         A = D @ MfRhoI @ G
-
-        if self.bc_type == "Neumann":
-            if self.verbose:
-                print("Perturbing first row of A to remove nullspace for Neumann BC.")
-
-            # Handling Null space of A
-            I, J, V = sp.sparse.find(A[0, :])
-            for jj in J:
-                A[0, jj] = 0.0
-            A[0, 0] = 1.0
-
-        return A
-
-    def getA0(self, rho0):
-        """
-        Make the A matrix for the cell centered DC resistivity problem
-        A = D MfRhoI G from a background conductivity/resistivity model
-        """
-
-        D = self.Div
-        G = self.Grad
-        MfRho0I = self.mesh.getFaceInnerProduct(rho0, invMat=True)
-        A = D @ MfRho0I @ G
 
         if self.bc_type == "Neumann":
             if self.verbose:
@@ -549,31 +529,15 @@ class Simulation3DNodal(BaseDCSimulation):
         if mesh._meshType == "TREE":
             mesh.nodalGrad
 
-    def getA(self):
+    def getA(self, resistivity=None):
         """
         Make the A matrix for the cell centered DC resistivity problem
         A = G.T MeSigma G
         """
-
-        MeSigma = self.MeSigma
-        Grad = self.mesh.nodalGrad
-        A = Grad.T @ MeSigma @ Grad
-
-        # Handling Null space of A
-        I, J, V = sp.sparse.find(A[0, :])
-        for jj in J:
-            A[0, jj] = 0.0
-        A[0, 0] = 1.0
-
-        return A
-
-    def getA0(self, rho0):
-        """
-        Make the A matrix for the cell centered DC resistivity problem
-        A = G.T MeSigma G from a background conductivity/resistivity model
-        """
-
-        MeSigma = self.mesh.getEdgeInnerProduct(1/rho0)
+        if resistivity is None:
+            MeSigma = self.MeSigma
+        else:
+            MeSigma = self.mesh.getEdgeInnerProduct(1.0 / resistivity)
         Grad = self.mesh.nodalGrad
         A = Grad.T @ MeSigma @ Grad
 
