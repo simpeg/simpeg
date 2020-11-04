@@ -125,16 +125,12 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
-        defaultcontourOpts = {"levels": levels, "norm": norm, "zorder": 1}
-        for key in contourOpts.keys():
-            defaultcontourOpts[key] = contourOpts[key]
-        cont = ax.contourf(X, Y, DATA, **defaultcontourOpts)
+        contourOpts = {"levels": levels, "norm": norm, "zorder": 1, **contourOpts}
+        cont = ax.contourf(X, Y, DATA, **contourOpts)
 
         if level:
-            defaultlevelOpts = {"levels": levels, "zorder": 3}
-            for key in levelOpts.keys():
-                defaultlevelOpts[key] = levelOpts[key]
-            CS = ax.contour(X, Y, DATA, **defaultlevelOpts)
+            levelOpts = {"levels": levels, "zorder": 3, **levelOpts}
+            CS = ax.contour(X, Y, DATA, **levelOpts)
 
     else:
         # Assume size of data is (N,2)
@@ -174,21 +170,15 @@ def plot2Ddata(
             MASK = MASK.reshape(X.shape)
             DATA = np.ma.masked_array(DATA, mask=MASK)
 
-        defaultcontourOpts = {"levels": levels, "norm": norm, "zorder": 1}
-        for key in contourOpts.keys():
-            defaultcontourOpts[key] = contourOpts[key]
-        cont = ax.contourf(X, Y, DATA, **defaultcontourOpts)
+        contourOpts = {"levels": levels, "norm": norm, "zorder": 1, **contourOpts}
+        cont = ax.contourf(X, Y, DATA, **contourOpts)
 
-        defaultstreamplotOpts = {zorder: 4, color: "w"}
-        for key in streamplotOpts.keys():
-            defaultstreamplotOpts[key] = streamplotOpts[key]
-        ax.streamplot(X, Y, DATAx, DATAy, **defaultstreamplotOpts)
+        streamplotOpts = {"zorder": 4, "color": "w", **streamplotOpts}
+        ax.streamplot(X, Y, DATAx, DATAy, **streamplotOpts)
 
         if level:
-            defaultlevelOpts = {"levels": levels, "zorder": 3}
-            for key in levelOpts.keys():
-                defaultlevelOpts[key] = levelOpts[key]
-            CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **defaultlevelOpts)
+            levelOpts = {"levels": levels, "zorder": 3, **levelOpts}
+            CS = ax.contour(X, Y, DATA, levels=levels, zorder=3, **levelOpts)
 
     if shade:
 
@@ -207,21 +197,20 @@ def plot2Ddata(
             ) * np.cos((azimuthrad - np.pi / 2.0) - aspect)
             return 255 * (shaded + 1) / 2
 
-        defaultshadeOpts = {
+        shadeOpts = {
             "cmap": "Greys",
             "alpha": 0.35,
             "antialiased": True,
             "zorder": 2,
+            **shadeOpts,
         }
-        for key in shadeOpts.keys():
-            defaultshadeOpts[key] = shadeOpts[key]
 
         ax.contourf(
             X,
             Y,
             hillshade(DATA, shade_azimuth, shade_angle_altitude),
             shade_ncontour,
-            **defaultshadeOpts
+            **shadeOpts
         )
 
     if dataloc:
