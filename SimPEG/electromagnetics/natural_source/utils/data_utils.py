@@ -311,7 +311,10 @@ def rec_to_ndarr(rec_arr, data_type=float):
     """
     Function to transform a numpy record array to a nd array.
     """
-    return rec_arr.copy().view((data_type, len(rec_arr.dtype.names)))
+    # fix for numpy >= 1.16.0 with masked arrays
+    # https://numpy.org/devdocs/release/1.16.0-notes.html#multi-field-views-return-a-view-instead-of-a-copy
+    return np.array(recFunc.structured_to_unstructured(recFunc.repack_fields(rec_arr[list(rec_arr.dtype.names)])),
+                    dtype=data_type)
 
 
 def makeAnalyticSolution(mesh, model, elev, freqs):
