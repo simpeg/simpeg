@@ -4,7 +4,7 @@ import time as tm
 import re
 import warnings
 from discretize.utils import mkvc
-from discretize.utils.code_utils import deprecate_method
+from SimPEG.utils.code_utils import deprecate_method
 
 
 def read_magnetics_3d_ubc(obs_file):
@@ -219,6 +219,8 @@ def read_gravity_gradiometry_3d_ubc(obs_file, file_type):
     :param survey
 
     """
+    assert(file_type in ['survey', 'dpred', 'dobs'], "file_type must be one of: 'survey', 'dpred', 'dobs'")
+
     from SimPEG.potential_fields import gravity
     from SimPEG import data
 
@@ -321,7 +323,7 @@ def write_gravity_gradiometry_3d_ubc(filename, data_object):
     n_loc = np.shape(data)[0]
     
     if np.any(data_object.standard_deviation!=0):
-        for ii in range(0, len(components)):
+        for ii in range(0, n_comp):
             data = np.c_[
                 data,
                 factor[ii]*data_object.dobs[ii::n_comp],
