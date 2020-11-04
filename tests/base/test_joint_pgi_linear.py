@@ -106,7 +106,7 @@ class JointInversionTest(unittest.TestCase):
 
         wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC))
         relative_error = 0.01
-        noise_floor = 0.
+        noise_floor = 0.0
         prob1 = simulation.LinearSimulation(mesh, G=G, model_map=wires.m1)
         survey1 = prob1.make_synthetic_data(
             m, noise_floor=noise_floor, relative_error=relative_error, add_noise=True
@@ -193,7 +193,16 @@ class JointInversionTest(unittest.TestCase):
 
         # Setup Inversion
         inv = inversion.BaseInversion(
-            invProb, directiveList=[alphas, scales, beta, petrodir, targets, betaIt, scaling_schedule]
+            invProb,
+            directiveList=[
+                alphas,
+                scales,
+                beta,
+                petrodir,
+                targets,
+                betaIt,
+                scaling_schedule,
+            ],
         )
 
         self.mcluster_map = inv.run(self.minit)
@@ -322,7 +331,16 @@ class JointInversionTest(unittest.TestCase):
 
         # Setup Inversion
         inv = inversion.BaseInversion(
-            invProb, directiveList=[alphas, scales, beta, petrodir, targets, betaIt, scaling_schedule]
+            invProb,
+            directiveList=[
+                alphas,
+                scales,
+                beta,
+                petrodir,
+                targets,
+                betaIt,
+                scaling_schedule,
+            ],
         )
 
         self.mcluster_no_map = inv.run(self.minit)

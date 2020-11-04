@@ -186,8 +186,8 @@ dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
 # Create the regularization with GMM information
 idenMap = maps.IdentityMap(nP=m0.shape[0])
 wires = maps.Wires(("m", m0.shape[0]))
-## By default the PGI regularization uses the least-squares approximation. 
-## It requires then the directives.PGI_UpdateParameters() 
+## By default the PGI regularization uses the least-squares approximation.
+## It requires then the directives.PGI_UpdateParameters()
 reg_mean = regularization.SimplePGI(
     gmmref=clf, mesh=mesh, wiresmap=wires, maplist=[idenMap], mref=m0, indActive=actcore
 )

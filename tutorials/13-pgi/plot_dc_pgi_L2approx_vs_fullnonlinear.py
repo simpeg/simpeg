@@ -186,8 +186,8 @@ dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
 # Create the regularization with GMM information
 idenMap = maps.IdentityMap(nP=m0.shape[0])
 wires = maps.Wires(("m", m0.shape[0]))
-## By default the PGI regularization uses the least-squares approximation. 
-## It requires then the directives.PGI_UpdateParameters() 
+## By default the PGI regularization uses the least-squares approximation.
+## It requires then the directives.PGI_UpdateParameters()
 reg_mean = regularization.SimplePGI(
     gmmref=clf, mesh=mesh, wiresmap=wires, maplist=[idenMap], mref=m0, indActive=actcore
 )
@@ -225,7 +225,7 @@ beta_alpha_iteration = directives.PGI_BetaAlphaSchedule(
 targets = directives.MultiTargetMisfits(verbose=True,)
 ## Put learned reference model in Smoothness once stable
 MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
-## PGI update to the GMM, Smallness reference model and weights: 
+## PGI update to the GMM, Smallness reference model and weights:
 ## It is required when using the Least-Squares approximation of PGI or updating the GMM
 petrodir = directives.PGI_UpdateParameters(update_gmm=False)
 ## Sensitivity weights based on the starting half-space
@@ -263,11 +263,17 @@ dmis = data_misfit.L2DataMisfit(data=dc_data, simulation=simulation)
 # Create the regularization with GMM information
 idenMap = maps.IdentityMap(nP=m0.shape[0])
 wires = maps.Wires(("m", m0.shape[0]))
-## Use the non-approximated Smallness and derivatives 
+## Use the non-approximated Smallness and derivatives
 ## The directives.PGI_UpdateParameters() is not necessary if the GMM stays fix.
 reg_mean = regularization.SimplePGI(
-    gmmref=clf, mesh=mesh, wiresmap=wires, maplist=[idenMap], mref=m0, indActive=actcore,
-    approx_eval=False, approx_gradient=False,
+    gmmref=clf,
+    mesh=mesh,
+    wiresmap=wires,
+    maplist=[idenMap],
+    mref=m0,
+    indActive=actcore,
+    approx_eval=False,
+    approx_gradient=False,
 )
 
 # Regularization Weighting

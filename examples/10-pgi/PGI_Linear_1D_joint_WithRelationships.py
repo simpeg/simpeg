@@ -98,7 +98,7 @@ clfnomapping = clfnomapping.fit(model2d)
 wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC))
 
 relatrive_error = 0.01
-noise_floor = 0.
+noise_floor = 0.0
 
 prob1 = simulation.LinearSimulation(mesh, G=G, model_map=wires.m1)
 survey1 = prob1.make_synthetic_data(
@@ -153,16 +153,15 @@ alphas = directives.AlphasSmoothEstimate_ByEig(
 )
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True,
-    coolingFactor=2.,
-    progress=0.2,
+    verbose=True, coolingFactor=2.0, progress=0.2,
 )
 targets = directives.MultiTargetMisfits(verbose=True)
 petrodir = directives.PGI_UpdateParameters(update_gmm=False)
 
 # Setup Inversion
 inv = inversion.BaseInversion(
-    invProb, directiveList=[alphas, scales, beta, petrodir, targets, betaIt, scaling_schedule]
+    invProb,
+    directiveList=[alphas, scales, beta, petrodir, targets, betaIt, scaling_schedule],
 )
 
 mcluster_map = inv.run(minit)
@@ -193,9 +192,7 @@ alphas = directives.AlphasSmoothEstimate_ByEig(
 )
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True,
-    coolingFactor=2.,
-    progress=0.2,
+    verbose=True, coolingFactor=2.0, progress=0.2,
 )
 targets = directives.MultiTargetMisfits(
     chiSmall=1.0, TriggerSmall=True, TriggerTheta=False, verbose=True
@@ -204,7 +201,8 @@ petrodir = directives.PGI_UpdateParameters(update_gmm=False)
 
 # Setup Inversion
 inv = inversion.BaseInversion(
-    invProb, directiveList=[alphas, scales, beta, petrodir, targets, betaIt, scaling_schedule]
+    invProb,
+    directiveList=[alphas, scales, beta, petrodir, targets, betaIt, scaling_schedule],
 )
 
 mcluster_no_map = inv.run(minit)
@@ -230,13 +228,14 @@ alphas = directives.AlphasSmoothEstimate_ByEig(
 scales = directives.ScalingEstimate_ByEig(Chi0_ratio=0.5, verbose=True, ninit=10)
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
-beta_schedule = directives.BetaSchedule(coolingFactor = 5.0, coolingRate = 1)
+beta_schedule = directives.BetaSchedule(coolingFactor=5.0, coolingRate=1)
 targets = directives.MultiTargetMisfits(TriggerSmall=False, verbose=True,)
 
 # Setup Inversion
-inv = inversion.BaseInversion(invProb, directiveList=[
-   alphas, scales, beta, targets, beta_schedule, scaling_schedule
-])
+inv = inversion.BaseInversion(
+    invProb,
+    directiveList=[alphas, scales, beta, targets, beta_schedule, scaling_schedule],
+)
 
 mtik = inv.run(minit)
 

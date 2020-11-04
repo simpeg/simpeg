@@ -50,8 +50,8 @@ class SimplePGIsmallness(BaseRegularization):
         wiresmap=None,
         maplist=None,
         mesh=None,
-        approx_gradient=True, #L2 approximate of the gradients 
-        approx_eval=True, #L2 approximate of the value
+        approx_gradient=True,  # L2 approximate of the gradients
+        approx_eval=True,  # L2 approximate of the value
         **kwargs
     ):
 
