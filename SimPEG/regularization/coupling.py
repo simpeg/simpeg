@@ -427,8 +427,7 @@ class CrossGradient(BaseCoupling):
 
     def hessian_offdiag(self, D, grad1, grad2):
         '''
-        Method for internal use only.
-        Computes the off-diagonals blocks of the Hessian.
+        Computes the off-diagonals blocks of the Hessian of corss-gradient.
 
         :param tuple of scipy.sparse.csr_matrix D: (Dx, Dy, Dz) in 3D
                                                    (Dx, Dy) in 2D
