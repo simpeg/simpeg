@@ -16,6 +16,9 @@ Current argument for time-domain line source
 
 Defaults for plotting
 
+Gravity Gradient UBC read in io
+Gravity and magnetic readin
+
 
 Bugs Squashed
 =============
@@ -43,6 +46,7 @@ Pull requests
 * `#922 <https://github.com/simpeg/simpeg/pull/922>`__: Update io_utils.py
 * `#927 <https://github.com/simpeg/simpeg/pull/927>`__: Show memory usage in examples
 * `#929 <https://github.com/simpeg/simpeg/pull/929>`__: Dev/jpe nsem data fix
+* `#931 <https://github.com/simpeg/simpeg/pull/931>`__: Improve mag3d computation over node locations and more versatile pf IO
 * `#936 <https://github.com/simpeg/simpeg/pull/936>`__: fix mapping in LinearSimulation
 * `#940 <https://github.com/simpeg/simpeg/pull/940>`__: plot_utils: add defaults for all contour, streamplot etc. that can be overwritten by inputs
 
