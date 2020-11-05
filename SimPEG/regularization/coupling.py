@@ -170,12 +170,8 @@ class CrossGradient(BaseCoupling):
 
         return gradient_vector
 
-<<<<<<< HEAD
+
     def gradient_applitude_inv(self, m1, m2, fltr=True, fltr_per=0.05):
-=======
-    def construct_norm_vectors(self, m1, m2, fltr=True, fltr_per=0.05):
-        # gradient_applitude_inv
->>>>>>> 114f7d02d7db7292c1425bd47d152c118aa0c928
         '''
         Computes the norms of the gradients for two models.
 
@@ -429,12 +425,7 @@ class CrossGradient(BaseCoupling):
 
         return result
 
-<<<<<<< HEAD
     def hessian_offdiag(self, D, grad1, grad2):
-=======
-    def _func_hessian(self, D, grad1, grad2):
-        # hessian_offdiag
->>>>>>> 114f7d02d7db7292c1425bd47d152c118aa0c928
         '''
         Method for internal use only.
         Computes the off-diagonals blocks of the Hessian.
