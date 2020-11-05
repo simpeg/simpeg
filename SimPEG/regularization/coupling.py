@@ -170,7 +170,12 @@ class CrossGradient(BaseCoupling):
 
         return gradient_vector
 
+<<<<<<< HEAD
+    def gradient_applitude_inv(self, m1, m2, fltr=True, fltr_per=0.05):
+=======
     def construct_norm_vectors(self, m1, m2, fltr=True, fltr_per=0.05):
+        # gradient_applitude_inv
+>>>>>>> 114f7d02d7db7292c1425bd47d152c118aa0c928
         '''
         Computes the norms of the gradients for two models.
 
@@ -230,7 +235,7 @@ class CrossGradient(BaseCoupling):
         :return: norm_gradient: array where the gradients have been normalized by their norms.
                  Each row represents a model cell, and each column represents the normalized
                  component of the gradient.
-                 
+
         '''
         elems = grad_list.shape[0]
         norm_gradients = np.zeros_like(grad_list)
@@ -337,7 +342,7 @@ class CrossGradient(BaseCoupling):
             result = term1 - term2
 
             if normalized:
-                norms1, norms2, norms = self.construct_norm_vectors(m1, m2, fltr=False)
+                norms1, norms2, norms = self.gradient_applitude_inv(m1, m2, fltr=False)
                 temp1 = (Dx_m1*norms1)**2 + (Dy_m1*norms1)**2
                 temp2 = (Dx_m2*norms2)**2 + (Dy_m2*norms2)**2
                 term1 = temp1.dot(temp2)
@@ -359,7 +364,7 @@ class CrossGradient(BaseCoupling):
             result = term1 - term2
 
             if normalized:
-                norms1, norms2, norms = self.construct_norm_vectors(m1, m2, fltr=False)
+                norms1, norms2, norms = self.gradient_applitude_inv(m1, m2, fltr=False)
                 temp1 = (Dx_m1*norms1)**2 + (Dy_m1*norms1)**2 + (Dz_m1*norms1)**2
                 temp2 = (Dx_m2*norms2)**2 + (Dy_m2*norms2)**2 + (Dz_m2*norms2)**2
                 term1 = temp1.dot(temp2)
@@ -424,7 +429,12 @@ class CrossGradient(BaseCoupling):
 
         return result
 
+<<<<<<< HEAD
+    def hessian_offdiag(self, D, grad1, grad2):
+=======
     def _func_hessian(self, D, grad1, grad2):
+        # hessian_offdiag
+>>>>>>> 114f7d02d7db7292c1425bd47d152c118aa0c928
         '''
         Method for internal use only.
         Computes the off-diagonals blocks of the Hessian.
@@ -481,7 +491,7 @@ class CrossGradient(BaseCoupling):
             v1 = self.map1*v
             v2 = self.map2*v
 
-        func1 = self._func_hessian
+        func1 = self.hessian_offdiag
 
         if self.regmesh.mesh.dim == 2:
             Dx = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx)
