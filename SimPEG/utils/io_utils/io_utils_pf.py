@@ -356,13 +356,3 @@ readUBCgravityObservations = deprecate_method(
 writeUBCgravityObservations = deprecate_method(
     write_gravity_3d_ubc, "writeUBCgravityObservations", removal_version="0.15.0"
 )
-readUBCgravitygradiometryObservations = deprecate_method(
-    read_gravity_gradiometry_3d_ubc,
-    "readUBCgravitygradiometryObservations",
-    removal_version="0.15.0",
-)
-writeUBCgravitygradiometryObservations = deprecate_method(
-    write_gravity_gradiometry_3d_ubc,
-    "writeUBCgravitygradiometryObservations",
-    removal_version="0.15.0",
-)
