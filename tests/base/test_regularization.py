@@ -96,8 +96,12 @@ class RegularizationTests(unittest.TestCase):
             wires = maps.Wires(("s0", mesh.nC), ("s1", mesh.nC))
 
             n = 2
-            clfref = utils.GaussianMixture(
-                n_components=n, covariance_type="full", max_iter=1000, n_init=20
+            clfref = utils.WeightedGaussianMixture(
+                mesh=mesh, 
+                n_components=n, 
+                covariance_type="full", 
+                max_iter=1000, 
+                n_init=20
             )
             clfref.fit(s)
 
