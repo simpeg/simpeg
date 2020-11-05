@@ -1356,7 +1356,7 @@ class MultiTargetMisfits(InversionDirective):
                 if isinstance(self.dmisfit, ComboObjectiveFunction):
                     self.phi_d_star = np.r_[[0.5 * survey.nD for survey in self.survey]]
                 else:
-                    self.phi_d_star = np.r_[[0.5 * self.invProb.dmisfit.survey.nD]]
+                    self.phi_d_star = np.r_[[0.5 * self.survey.nD]]
 
             self._DMtarget = self.chifact * self.phi_d_star
         return self._DMtarget

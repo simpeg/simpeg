@@ -33,9 +33,6 @@ from ..utils import (
     GaussianMixtureWithPrior,
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
-    GaussianMixtureMarkovRandomField,
-    GibbsSampling_PottsDenoising,
-    ICM_PottsDenoising,
     Zero,
 )
 from ..directives import InversionDirective, MultiTargetMisfits

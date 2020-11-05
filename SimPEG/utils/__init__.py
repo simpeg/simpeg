@@ -65,12 +65,8 @@ from .pgi_utils import (
     GaussianMixture,
     WeightedGaussianMixture,
     GaussianMixtureWithPrior,
-    GaussianMixtureMarkovRandomField,
-    FuzzyGaussianMixtureWithPrior,
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
-    GibbsSampling_PottsDenoising,
-    ICM_PottsDenoising,
 )
 
 
