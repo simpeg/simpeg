@@ -1,8 +1,5 @@
 from __future__ import print_function
 import numpy as np
-import time as tm
-import re
-import warnings
 from discretize.utils import mkvc
 from SimPEG.utils.code_utils import deprecate_method
 
@@ -59,10 +56,10 @@ def read_magnetics_3d_ubc(obs_file):
         line = fid.readline()
     fid.close()
 
-    if np.all(wd==0.):
+    if np.all(wd == 0.0):
         wd = None
 
-    if np.all(d==0.):
+    if np.all(d == 0.0):
         d = None
 
     rxLoc = magnetics.receivers.Point(locXYZ)
@@ -96,10 +93,10 @@ def write_magnetics_3d_ubc(filename, data_object):
     B = survey.source_field.parameters
 
     data = survey.source_field.receiver_list[0].locations
-    
+
     if data_object.dobs is not None:
         data = np.c_[data, data_object.dobs]
-    
+
     if data_object.standard_deviation is not None:
         data = np.c_[data, data_object.standard_deviation]
 
@@ -159,15 +156,15 @@ def read_gravity_3d_ubc(obs_file):
         line = fid.readline()
     fid.close()
 
-    if np.all(wd == 0.):
+    if np.all(wd == 0.0):
         wd = None
 
     # UBC and SimPEG used opposite sign convention for
     # gravity data so must multiply by -1.
-    if np.all(d == 0.):
+    if np.all(d == 0.0):
         d = None
     else:
-        d *= -1.
+        d *= -1.0
 
     rxLoc = gravity.receivers.Point(locXYZ)
     srcField = gravity.sources.SourceField([rxLoc])
@@ -187,14 +184,14 @@ def write_gravity_3d_ubc(filename, data_object):
 
     """
     survey = data_object.survey
-    
+
     data = survey.source_field.receiver_list[0].locations
-    
+
     # UBC and SimPEG use opposite sign for gravity data so
     # data are multiplied by -1.
     if data_object.dobs is not None:
         data = np.c_[data, -data_object.dobs]
-    
+
     if data_object.standard_deviation is not None:
         data = np.c_[data, data_object.standard_deviation]
 
@@ -204,7 +201,6 @@ def write_gravity_3d_ubc(filename, data_object):
     )
 
     print("Observation file saved to: " + filename)
-
 
 
 def read_gravity_gradiometry_3d_ubc(obs_file, file_type):
@@ -219,7 +215,8 @@ def read_gravity_gradiometry_3d_ubc(obs_file, file_type):
     :param survey
 
     """
-    assert(file_type in ['survey', 'dpred', 'dobs'], "file_type must be one of: 'survey', 'dpred', 'dobs'")
+    if file_type not in ["survey", "dpred", "dobs"]:
+        raise ValueError("file_type must be one of: 'survey', 'dpred', 'dobs'")
 
     from SimPEG.potential_fields import gravity
     from SimPEG import data
@@ -228,21 +225,21 @@ def read_gravity_gradiometry_3d_ubc(obs_file, file_type):
 
     # First line has components. Extract components
     line = fid.readline()
-    line = line.split('=')[1].split('!')[0].split('\n')[0]
-    line = line.replace(',', ' ').split(' ')  # UBC uses ',' or ' ' as deliminator
-    components = [s for s in line if len(s)>0]  # Remove empty string
+    line = line.split("=")[1].split("!")[0].split("\n")[0]
+    line = line.replace(",", " ").split(" ")  # UBC uses ',' or ' ' as deliminator
+    components = [s for s in line if len(s) > 0]  # Remove empty string
     factor = np.zeros(len(components))
 
     # Convert component types from UBC to SimPEG
-    ubc_types = ['xx', 'xy', 'xz', 'yy', 'yz', 'zz']
-    simpeg_types = ['gyy', 'gxy', 'gyz', 'gxx', 'gxz', 'gzz']
-    factor_list = [1., 1., -1., 1., -1., 1.]
+    ubc_types = ["xx", "xy", "xz", "yy", "yz", "zz"]
+    simpeg_types = ["gyy", "gxy", "gyz", "gxx", "gxz", "gzz"]
+    factor_list = [1.0, 1.0, -1.0, 1.0, -1.0, 1.0]
 
     for ii in range(0, len(components)):
         k = ubc_types.index(components[ii])
         factor[ii] = factor_list[k]
         components[ii] = simpeg_types[k]
-    
+
     # Second Line has number of locations
     line = fid.readline()
     ndat = int(line.split()[0])
@@ -251,34 +248,33 @@ def read_gravity_gradiometry_3d_ubc(obs_file, file_type):
     line = fid.readline()
 
     locXYZ = np.zeros((ndat, 3), dtype=float)
-    if file_type == 'survey':
+    if file_type == "survey":
         d = None
         wd = None
-    elif file_type == 'dpred':
+    elif file_type == "dpred":
         d = np.zeros((ndat, len(components)), dtype=float)
         wd = None
     else:
         d = np.zeros((ndat, len(components)), dtype=float)
         wd = np.zeros((ndat, len(components)), dtype=float)
-    
 
     ii = 0
     while ii < ndat:
 
         temp = np.array(line.split(), dtype=float)
         locXYZ[ii, :] = temp[:3]
-        
-        if file_type == 'dpred':
+
+        if file_type == "dpred":
             d[ii, :] = factor * temp[3:]
-            
-        elif file_type == 'dobs':
+
+        elif file_type == "dobs":
             d[ii, :] = factor * temp[3::2]
             wd[ii, :] = temp[4::2]
-        
+
         ii += 1
         line = fid.readline()
     fid.close()
-    
+
     # Turn into vector. For multiple components, SimPEG orders by rows
     if d is not None:
         d = mkvc(d.T)
@@ -309,37 +305,33 @@ def write_gravity_gradiometry_3d_ubc(filename, data_object):
     n_comp = len(components)
     factor = np.ones(n_comp)
 
-    ubc_types = ['xx', 'xy', 'xz', 'yy', 'yz', 'zz']
-    simpeg_types = ['gyy', 'gxy', 'gyz', 'gxx', 'gxz', 'gzz']
-    factor_list = [1., 1., -1., 1., -1., 1.]
+    ubc_types = ["xx", "xy", "xz", "yy", "yz", "zz"]
+    simpeg_types = ["gyy", "gxy", "gyz", "gxx", "gxz", "gzz"]
+    factor_list = [1.0, 1.0, -1.0, 1.0, -1.0, 1.0]
     for ii in range(0, len(components)):
         k = simpeg_types.index(components[ii])
         factor[ii] = factor_list[k]
         components[ii] = ubc_types[k]
 
-    components = ','.join(components)
-    
+    components = ",".join(components)
+
     data = survey.source_field.receiver_list[0].locations
     n_loc = np.shape(data)[0]
-    
-    if np.any(data_object.standard_deviation!=0):
+
+    if np.any(data_object.standard_deviation != 0):
         for ii in range(0, n_comp):
             data = np.c_[
                 data,
-                factor[ii]*data_object.dobs[ii::n_comp],
-                data_object.standard_deviation[ii::n_comp]
+                factor[ii] * data_object.dobs[ii::n_comp],
+                data_object.standard_deviation[ii::n_comp],
             ]
 
-    elif np.any(data_object.dobs!=0):
+    elif np.any(data_object.dobs != 0):
         for ii in range(0, n_comp):
-            data = np.c_[
-                data,
-                factor[ii]*data_object.dobs[ii::n_comp]
-            ]
-    
-    
+            data = np.c_[data, factor[ii] * data_object.dobs[ii::n_comp]]
+
     head = ("datacomp=%s\n" % components) + ("%i" % n_loc)
-    
+
     np.savetxt(
         filename, data, fmt="%e", delimiter=" ", newline="\n", header=head, comments=""
     )
@@ -353,22 +345,24 @@ def write_gravity_gradiometry_3d_ubc(filename, data_object):
 
 
 readUBCmagneticsObservations = deprecate_method(
-	read_magnetics_3d_ubc, "readUBCmagneticsObservations", removal_version="0.14.4"
+    read_magnetics_3d_ubc, "readUBCmagneticsObservations", removal_version="0.15.0"
 )
 writeUBCmagneticsObservations = deprecate_method(
-	write_magnetics_3d_ubc, "writeUBCmagneticsObservations", removal_version="0.14.4"
+    write_magnetics_3d_ubc, "writeUBCmagneticsObservations", removal_version="0.15.0"
 )
 readUBCgravityObservations = deprecate_method(
-	read_gravity_3d_ubc, "readUBCgravityObservations", removal_version="0.14.4"
+    read_gravity_3d_ubc, "readUBCgravityObservations", removal_version="0.15.0"
 )
 writeUBCgravityObservations = deprecate_method(
-	write_gravity_3d_ubc, "writeUBCgravityObservations", removal_version="0.14.4"
+    write_gravity_3d_ubc, "writeUBCgravityObservations", removal_version="0.15.0"
 )
 readUBCgravitygradiometryObservations = deprecate_method(
-	read_gravity_gradiometry_3d_ubc, "readUBCgravitygradiometryObservations", removal_version="0.14.4"
+    read_gravity_gradiometry_3d_ubc,
+    "readUBCgravitygradiometryObservations",
+    removal_version="0.15.0",
 )
 writeUBCgravitygradiometryObservations = deprecate_method(
-	write_gravity_gradiometry_3d_ubc, "writeUBCgravitygradiometryObservations", removal_version="0.14.4"
+    write_gravity_gradiometry_3d_ubc,
+    "writeUBCgravitygradiometryObservations",
+    removal_version="0.15.0",
 )
-
-

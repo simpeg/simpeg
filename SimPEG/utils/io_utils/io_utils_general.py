@@ -1,9 +1,5 @@
 from __future__ import print_function
 import numpy as np
-import time as tm
-import re
-import warnings
-from discretize.utils import mkvc
 
 
 def read_GOCAD_ts(tsfile):
@@ -29,14 +25,12 @@ def read_GOCAD_ts(tsfile):
     """
 
     import re
-    import vtk
-    import vtk.util.numpy_support as npsup
 
     fid = open(tsfile, "r")
     line = fid.readline()
 
     # Skip all the lines until the vertices
-    while re.match("TFACE", line) == None:
+    while re.match("TFACE", line) is None:
         line = fid.readline()
 
     line = fid.readline()
@@ -54,7 +48,7 @@ def read_GOCAD_ts(tsfile):
     vrtx = np.asarray(vrtx)
 
     # Skip lines to the triangles
-    while re.match("TRGL", line) == None:
+    while re.match("TRGL", line) is None:
         line = fid.readline()
 
     # Run down the list of triangles
@@ -226,5 +220,3 @@ def download(url, folder=".", overwrite=False, verbose=True):
 
     print("Download completed!")
     return downloadpath if isinstance(url, list) else downloadpath[0]
-
-
