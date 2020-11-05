@@ -116,9 +116,6 @@ class InversionDirective(properties.HasProperties):
         """
         return [objfcts.simulation.survey for objfcts in self.dmisfit.objfcts]
 
-        # else:
-        #     return self.dmisfit.survey
-
     @property
     def simulation(self):
         """
@@ -1381,9 +1378,6 @@ class MultiTargetMisfits(InversionDirective):
             if self.phi_ms_star is None:
                 # Expected value is number of active cells * number of physical
                 # properties
-                # if self.WeightsInTarget:
-                #    self.phi_ms_star = 0.5
-                # else:
                 self.phi_ms_star = 0.5 * len(self.invProb.model)
 
             self._CLtarget = self.chiSmall * self.phi_ms_star
