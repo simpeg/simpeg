@@ -21,8 +21,6 @@ from .directives import (
 
 from .pgi_directives import (
 	PGI_UpdateParameters,
-	PGI_GMMRF_ImageSegmentation_UpdateParameters,
-	PGI_GMMRF_Potts_UpdateParameters,
 	PGI_BetaAlphaSchedule,
 	PGI_AddMrefInSmooth,
 )
