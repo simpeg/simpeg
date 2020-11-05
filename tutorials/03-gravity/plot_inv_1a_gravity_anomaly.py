@@ -98,6 +98,10 @@ dobs = np.loadtxt(str(data_filename))
 receiver_locations = dobs[:, 0:3]
 dobs = dobs[:, -1]
 
+# In SimPEG we use a RHS coordinate system with z being positive up. In this
+# file though, gz is positive downward, thus we need to flip the sign.
+dobs *= -1
+
 # Plot
 mpl.rcParams.update({"font.size": 12})
 fig = plt.figure(figsize=(7, 5))
