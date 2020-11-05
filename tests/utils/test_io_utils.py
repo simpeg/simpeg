@@ -4,9 +4,14 @@ import numpy as np
 
 from SimPEG.data import Data
 from SimPEG.potential_fields import gravity, magnetics
-from SimPEG.utils.io_utils import *
-from scipy.constants import mu_0
-import shutil
+from SimPEG.utils.io_utils import (
+    write_gravity_3d_ubc,
+    read_gravity_3d_ubc,
+    write_gravity_gradiometry_3d_ubc,
+    read_gravity_gradiometry_3d_ubc,
+    write_magnetics_3d_ubc,
+    read_magnetics_3d_ubc,
+)
 import os
 
 
@@ -28,7 +33,7 @@ class TestGravityIO(unittest.TestCase):
         z = np.random.uniform(0, 100, 5)
         dobs = np.random.uniform(0, 10, 5)
         std = np.random.uniform(1, 10, 5)
-        
+
         xyz = np.c_[x, y, z]
         receiver_list = [gravity.receivers.Point(xyz, components="gz")]
         source_field = gravity.sources.SourceField(receiver_list=receiver_list)
@@ -41,53 +46,64 @@ class TestGravityIO(unittest.TestCase):
     def test_io_survey(self):
 
         data_object = Data(survey=self.survey)
-        filename = 'survey.grv'
+        filename = "survey.grv"
 
         write_gravity_3d_ubc(filename, data_object)
         data_loaded = read_gravity_3d_ubc(filename)
         os.remove(filename)
 
-        passed = np.all(np.isclose(
-            self.survey.receiver_locations, data_loaded.survey.receiver_locations
-        ))
+        passed = np.all(
+            np.isclose(
+                self.survey.receiver_locations, data_loaded.survey.receiver_locations
+            )
+        )
         self.assertTrue(passed, True)
 
-        print('SURVEY FILE IO FOR GRAV3D PASSED')
+        print("SURVEY FILE IO FOR GRAV3D PASSED")
 
     def test_io_dpred(self):
 
         data_object = Data(survey=self.survey, dobs=self.dobs)
-        filename = 'dpred.grv'
+        filename = "dpred.grv"
 
         write_gravity_3d_ubc(filename, data_object)
         data_loaded = read_gravity_3d_ubc(filename)
         os.remove(filename)
 
-        passed = np.all(np.isclose(
-            np.c_[self.survey.receiver_locations, self.dobs],
-            np.c_[data_loaded.survey.receiver_locations, data_loaded.dobs]
-        ))
+        passed = np.all(
+            np.isclose(
+                np.c_[self.survey.receiver_locations, self.dobs],
+                np.c_[data_loaded.survey.receiver_locations, data_loaded.dobs],
+            )
+        )
         self.assertTrue(passed, True)
 
-        print('PREDICTED DATA FILE IO FOR GRAV3D PASSED')
+        print("PREDICTED DATA FILE IO FOR GRAV3D PASSED")
 
     def test_io_dobs(self):
 
-        data_object = Data(survey=self.survey, dobs=self.dobs, standard_deviation=self.std)
-        filename = 'dpred.grv'
+        data_object = Data(
+            survey=self.survey, dobs=self.dobs, standard_deviation=self.std
+        )
+        filename = "dpred.grv"
 
         write_gravity_3d_ubc(filename, data_object)
         data_loaded = read_gravity_3d_ubc(filename)
         os.remove(filename)
 
-        passed = np.all(np.isclose(
-            np.c_[self.survey.receiver_locations, self.dobs, self.std],
-            np.c_[data_loaded.survey.receiver_locations, data_loaded.dobs, data_loaded.standard_deviation]
-        ))
+        passed = np.all(
+            np.isclose(
+                np.c_[self.survey.receiver_locations, self.dobs, self.std],
+                np.c_[
+                    data_loaded.survey.receiver_locations,
+                    data_loaded.dobs,
+                    data_loaded.standard_deviation,
+                ],
+            )
+        )
         self.assertTrue(passed, True)
 
-        print('OBSERVED DATA FILE IO FOR GRAV3D PASSED')
-
+        print("OBSERVED DATA FILE IO FOR GRAV3D PASSED")
 
 
 print("=================================")
@@ -102,9 +118,9 @@ class TestGravityGradiometryIO(unittest.TestCase):
         x = np.random.uniform(0, 100, 5)
         y = np.random.uniform(0, 100, 5)
         z = np.random.uniform(0, 100, 5)
-        dobs = np.random.uniform(0, 100, 6*5)
-        std = np.random.uniform(1, 10, 6*5)
-        
+        dobs = np.random.uniform(0, 100, 6 * 5)
+        std = np.random.uniform(1, 10, 6 * 5)
+
         components = ["gxx", "gxy", "gxz", "gyy", "gyz", "gzz"]
         xyz = np.c_[x, y, z]
         receiver_list = [gravity.receivers.Point(xyz, components=components)]
@@ -118,50 +134,58 @@ class TestGravityGradiometryIO(unittest.TestCase):
     def test_io_survey(self):
 
         data_object = Data(survey=self.survey)
-        filename = 'survey.gg'
+        filename = "survey.gg"
 
         write_gravity_gradiometry_3d_ubc(filename, data_object)
-        data_loaded = read_gravity_gradiometry_3d_ubc(filename, 'survey')
+        data_loaded = read_gravity_gradiometry_3d_ubc(filename, "survey")
         os.remove(filename)
 
-        passed = np.all(np.isclose(
-            self.survey.receiver_locations, data_loaded.survey.receiver_locations
-        ))
+        passed = np.all(
+            np.isclose(
+                self.survey.receiver_locations, data_loaded.survey.receiver_locations
+            )
+        )
         self.assertTrue(passed, True)
 
-        print('SURVEY FILE IO FOR GG3D PASSED')
+        print("SURVEY FILE IO FOR GG3D PASSED")
 
     def test_io_dpred(self):
 
         data_object = Data(survey=self.survey, dobs=self.dobs)
-        filename = 'dpred.gg'
+        filename = "dpred.gg"
 
         write_gravity_gradiometry_3d_ubc(filename, data_object)
-        data_loaded = read_gravity_gradiometry_3d_ubc(filename, 'dpred')
+        data_loaded = read_gravity_gradiometry_3d_ubc(filename, "dpred")
         os.remove(filename)
 
-        passed = np.all(np.isclose(
-            self.survey.receiver_locations, data_loaded.survey.receiver_locations
-        ))
+        passed = np.all(
+            np.isclose(
+                self.survey.receiver_locations, data_loaded.survey.receiver_locations
+            )
+        )
         self.assertTrue(passed, True)
 
         passed = np.all(np.isclose(self.dobs, data_loaded.dobs))
         self.assertTrue(passed, True)
 
-        print('PREDICTED DATA FILE IO FOR GG3D PASSED')
+        print("PREDICTED DATA FILE IO FOR GG3D PASSED")
 
     def test_io_dobs(self):
 
-        data_object = Data(survey=self.survey, dobs=self.dobs, standard_deviation=self.std)
-        filename = 'dpred.gg'
+        data_object = Data(
+            survey=self.survey, dobs=self.dobs, standard_deviation=self.std
+        )
+        filename = "dpred.gg"
 
         write_gravity_gradiometry_3d_ubc(filename, data_object)
-        data_loaded = read_gravity_gradiometry_3d_ubc(filename, 'dobs')
+        data_loaded = read_gravity_gradiometry_3d_ubc(filename, "dobs")
         os.remove(filename)
 
-        passed = np.all(np.isclose(
-            self.survey.receiver_locations, data_loaded.survey.receiver_locations
-        ))
+        passed = np.all(
+            np.isclose(
+                self.survey.receiver_locations, data_loaded.survey.receiver_locations
+            )
+        )
         self.assertTrue(passed, True)
 
         passed = np.all(np.isclose(self.dobs, data_loaded.dobs))
@@ -170,7 +194,7 @@ class TestGravityGradiometryIO(unittest.TestCase):
         passed = np.all(np.isclose(self.std, data_loaded.standard_deviation))
         self.assertTrue(passed, True)
 
-        print('OBSERVED DATA FILE IO FOR GG3D PASSED')
+        print("OBSERVED DATA FILE IO FOR GG3D PASSED")
 
 
 print("=================================")
@@ -187,11 +211,11 @@ class TestMagneticsIO(unittest.TestCase):
         z = np.random.uniform(0, 100, 5)
         dobs = np.random.uniform(0, 10, 5)
         std = np.random.uniform(1, 10, 5)
-        
+
         xyz = np.c_[x, y, z]
         receiver_list = [magnetics.receivers.Point(xyz, components="tmi")]
-        
-        inducing_field = (50000., 60., 15.)
+
+        inducing_field = (50000.0, 60.0, 15.0)
         source_field = magnetics.sources.SourceField(
             receiver_list=receiver_list, parameters=inducing_field
         )
@@ -204,73 +228,88 @@ class TestMagneticsIO(unittest.TestCase):
     def test_io_survey(self):
 
         data_object = Data(survey=self.survey)
-        filename = 'survey.mag'
+        filename = "survey.mag"
 
         write_magnetics_3d_ubc(filename, data_object)
         data_loaded = read_magnetics_3d_ubc(filename)
         os.remove(filename)
 
-        passed = np.all(np.isclose(
-            self.survey.receiver_locations, data_loaded.survey.receiver_locations
-        ))
+        passed = np.all(
+            np.isclose(
+                self.survey.receiver_locations, data_loaded.survey.receiver_locations
+            )
+        )
         self.assertTrue(passed, True)
 
-        passed = np.all(np.isclose(
-            self.survey.source_field.parameters, data_loaded.survey.source_field.parameters
-        ))
+        passed = np.all(
+            np.isclose(
+                self.survey.source_field.parameters,
+                data_loaded.survey.source_field.parameters,
+            )
+        )
         self.assertTrue(passed, True)
 
-        print('SURVEY FILE IO FOR MAG3D PASSED')
+        print("SURVEY FILE IO FOR MAG3D PASSED")
 
     def test_io_dpred(self):
 
         data_object = Data(survey=self.survey, dobs=self.dobs)
-        filename = 'dpred.mag'
+        filename = "dpred.mag"
 
         write_magnetics_3d_ubc(filename, data_object)
         data_loaded = read_magnetics_3d_ubc(filename)
         os.remove(filename)
 
-        passed = np.all(np.isclose(
-            np.c_[self.survey.receiver_locations, self.dobs],
-            np.c_[data_loaded.survey.receiver_locations, data_loaded.dobs]
-        ))
+        passed = np.all(
+            np.isclose(
+                np.c_[self.survey.receiver_locations, self.dobs],
+                np.c_[data_loaded.survey.receiver_locations, data_loaded.dobs],
+            )
+        )
         self.assertTrue(passed, True)
 
-        passed = np.all(np.isclose(
-            self.survey.source_field.parameters, data_loaded.survey.source_field.parameters
-        ))
+        passed = np.all(
+            np.isclose(
+                self.survey.source_field.parameters,
+                data_loaded.survey.source_field.parameters,
+            )
+        )
         self.assertTrue(passed, True)
 
-        print('PREDICTED DATA FILE IO FOR MAG3D PASSED')
+        print("PREDICTED DATA FILE IO FOR MAG3D PASSED")
 
     def test_io_dobs(self):
 
-        data_object = Data(survey=self.survey, dobs=self.dobs, standard_deviation=self.std)
-        filename = 'dpred.mag'
+        data_object = Data(
+            survey=self.survey, dobs=self.dobs, standard_deviation=self.std
+        )
+        filename = "dpred.mag"
 
         write_magnetics_3d_ubc(filename, data_object)
         data_loaded = read_magnetics_3d_ubc(filename)
         os.remove(filename)
 
-        passed = np.all(np.isclose(
-            np.c_[self.survey.receiver_locations, self.dobs, self.std],
-            np.c_[data_loaded.survey.receiver_locations, data_loaded.dobs, data_loaded.standard_deviation]
-        ))
+        passed = np.all(
+            np.isclose(
+                np.c_[self.survey.receiver_locations, self.dobs, self.std],
+                np.c_[
+                    data_loaded.survey.receiver_locations,
+                    data_loaded.dobs,
+                    data_loaded.standard_deviation,
+                ],
+            )
+        )
         self.assertTrue(passed, True)
 
-        passed = np.all(np.isclose(
-            self.survey.source_field.parameters, data_loaded.survey.source_field.parameters
-        ))
+        passed = np.all(
+            np.isclose(
+                self.survey.source_field.parameters,
+                data_loaded.survey.source_field.parameters,
+            )
+        )
         self.assertTrue(passed, True)
 
-        print('OBSERVED DATA FILE IO FOR MAG3D PASSED')
-
-
-
-
-
-
+        print("OBSERVED DATA FILE IO FOR MAG3D PASSED")
 
 
 if __name__ == "__main__":
