@@ -4,10 +4,10 @@ import discretize as Mesh
 from SimPEG import regularization
 from SimPEG.maps import Wires
 from SimPEG.utils import (
-    mkvc, 
+    mkvc,
     WeightedGaussianMixture,
     make_PGI_regularization,
-    make_SimplePGI_regularization
+    make_SimplePGI_regularization,
 )
 from scipy.stats import multivariate_normal
 from scipy.sparse.linalg import LinearOperator, bicgstab

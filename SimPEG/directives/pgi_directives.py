@@ -38,10 +38,7 @@ from ..utils import (
     ICM_PottsDenoising,
     Zero,
 )
-from ..directives import(
-    InversionDirective,
-    MultiTargetMisfits
-    )
+from ..directives import InversionDirective, MultiTargetMisfits
 from ..utils.code_utils import deprecate_property
 
 

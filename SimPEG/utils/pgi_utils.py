@@ -29,7 +29,7 @@ from ..regularization import (
     PGI,
     Tikhonov,
     SimplePGIwithRelationships,
-    )
+)
 
 
 def make_SimplePGI_regularization(
@@ -538,22 +538,21 @@ class WeightedGaussianMixture(GaussianMixture):
         else:
             indx = np.argsort(self.weights_.sum(axis=0), axis=0)[::-1]
             self.weights_ = self.weights_[:, indx].reshape(self.weights_.shape)
-        
+
         self.means_ = self.means_[indx].reshape(self.means_.shape)
-        
+
         if self.covariance_type == "tied":
             pass
         else:
             self.precisions_ = self.precisions_[indx].reshape(self.precisions_.shape)
             self.covariances_ = self.covariances_[indx].reshape(self.covariances_.shape)
-        
+
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type
         )
 
         if outputindex:
             return indx
-
 
     def order_clusters_GM_mean(self, outputindex=False):
         """
@@ -562,7 +561,7 @@ class WeightedGaussianMixture(GaussianMixture):
 
         indx = np.argsort(self.means_, axis=0)[::-1]
         self.means_ = self.means_[indx].reshape(self.means_.shape)
-        
+
         if self.weights_.ndim == 1:
             self.weights_ = self.weights_[indx].reshape(self.weights_.shape)
         else:
@@ -573,7 +572,7 @@ class WeightedGaussianMixture(GaussianMixture):
         else:
             self.precisions_ = self.precisions_[indx].reshape(self.precisions_.shape)
             self.covariances_ = self.covariances_[indx].reshape(self.covariances_.shape)
-        
+
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type
         )
@@ -1391,5 +1390,3 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type
         )
-
-
