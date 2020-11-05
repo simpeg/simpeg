@@ -3,7 +3,12 @@ import unittest
 import discretize as Mesh
 from SimPEG import regularization
 from SimPEG.maps import Wires
-from SimPEG.utils import mkvc, WeightedGaussianMixture
+from SimPEG.utils import (
+    mkvc, 
+    WeightedGaussianMixture,
+    make_PGI_regularization,
+    make_SimplePGI_regularization
+)
 from scipy.stats import multivariate_normal
 from scipy.sparse.linalg import LinearOperator, bicgstab
 from pymatsolver import PardisoSolver
@@ -59,7 +64,7 @@ class TestPGI(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg Simple
-        reg_simple = regularization.MakeSimplePGI(
+        reg_simple = make_SimplePGI_regularization(
             mesh=self.mesh,
             gmmref=clf,
             approx_gradient=True,
@@ -68,7 +73,7 @@ class TestPGI(unittest.TestCase):
             cell_weights_list=self.cell_weights_list,
         )
         # Define reg with volumes
-        reg = regularization.MakePGI(
+        reg = make_PGI_regularization(
             mesh=self.mesh,
             gmmref=clf,
             approx_gradient=True,
@@ -245,7 +250,7 @@ class TestPGI(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg Simple
-        reg_simple = regularization.MakeSimplePGI(
+        reg_simple = make_SimplePGI_regularization(
             mesh=self.mesh,
             gmmref=clf,
             approx_gradient=True,
@@ -254,7 +259,7 @@ class TestPGI(unittest.TestCase):
             cell_weights_list=self.cell_weights_list,
         )
         # Define reg with volumes
-        reg = regularization.MakePGI(
+        reg = make_PGI_regularization(
             mesh=self.mesh,
             gmmref=clf,
             approx_gradient=True,
@@ -438,7 +443,7 @@ class TestPGI(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg Simple
-        reg_simple = regularization.MakeSimplePGI(
+        reg_simple = make_SimplePGI_regularization(
             mesh=self.mesh,
             gmmref=clf,
             approx_gradient=True,
@@ -447,7 +452,7 @@ class TestPGI(unittest.TestCase):
             cell_weights_list=self.cell_weights_list,
         )
         # Define reg with volumes
-        reg = regularization.MakePGI(
+        reg = make_PGI_regularization(
             mesh=self.mesh,
             gmmref=clf,
             approx_gradient=True,
@@ -624,7 +629,7 @@ class TestPGI(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg Simple
-        reg_simple = regularization.MakeSimplePGI(
+        reg_simple = make_SimplePGI_regularization(
             mesh=self.mesh,
             gmmref=clf,
             approx_gradient=True,
@@ -633,7 +638,7 @@ class TestPGI(unittest.TestCase):
             cell_weights_list=self.cell_weights_list,
         )
         # Define reg with volumes
-        reg = regularization.MakePGI(
+        reg = make_PGI_regularization(
             mesh=self.mesh,
             gmmref=clf,
             approx_gradient=True,

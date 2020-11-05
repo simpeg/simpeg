@@ -55,7 +55,7 @@ m1[41:57] = -1.0 + (poly1 * np.vstack([m0[41:57], m1[41:57]]).T)[:, 1]
 model2d = np.vstack([m0, m1]).T
 m = utils.mkvc(model2d)
 
-clfmapping = utils.GaussianMixtureWithMapping(
+clfmapping = utils.GaussianMixtureWithNonlinearRelationships(
     mesh=mesh,
     n_components=3,
     covariance_type="full",
@@ -124,7 +124,7 @@ wr2 = wr2 / np.max(wr2)
 wr = np.r_[wr1, wr2]
 W = utils.sdiag(wr)
 
-reg_simple = regularization.MakeSimplePGIwithRelationships(
+reg_simple = utils.make_SimplePGIwithRelationships_regularization(
     mesh=mesh,
     gmmref=clfmapping,
     gmm=clfmapping,
@@ -167,7 +167,7 @@ inv = inversion.BaseInversion(
 mcluster_map = inv.run(minit)
 
 # Inversion with no nonlinear mapping
-reg_simple_no_map = regularization.MakeSimplePGI(
+reg_simple_no_map = utils.make_SimplePGI_regularization(
     mesh=mesh,
     gmmref=clfnomapping,
     gmm=clfnomapping,

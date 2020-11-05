@@ -166,7 +166,7 @@ clf.fit(mtrue[actcore].reshape(-1, 1))
 
 # Manually setting the GMM parameters
 ## Order cluster by order of importance
-utils.order_clusters_GM_weight(clf)
+clf.order_clusters_GM_weight()
 ## Set cluster means
 clf.means_ = np.r_[-np.log(100.0), -np.log(50.0), -np.log(250.0)][:, np.newaxis]
 ## Set clusters variance
@@ -224,7 +224,7 @@ beta_alpha_iteration = directives.PGI_BetaAlphaSchedule(
 ## PGI multi-target misfits
 targets = directives.MultiTargetMisfits(verbose=True,)
 ## Put learned reference model in Smoothness once stable
-MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
+MrefInSmooth = directives.PGI_AddMrefInSmooth(verbose=True)
 ## PGI update to the GMM and Smallness reference model and weights
 ## **This one is required when using the Least-Squares approximation of PGI (default)
 petrodir = directives.PGI_UpdateParameters()
@@ -263,7 +263,7 @@ clfnomean = utils.WeightedGaussianMixture(
     n_components=n, mesh=meshCore, covariance_type="full", reg_covar=1e-3, n_init=20,
 )
 clfnomean.fit(mtrue[actcore].reshape(-1, 1))
-utils.order_clusters_GM_weight(clfnomean)
+clfnomean.order_clusters_GM_weight()
 # Set qualitative initial means; the value chosen here are based on
 # the range of apparent conductivities from the data
 clfnomean.means_ = np.r_[
@@ -313,7 +313,7 @@ petrodir = directives.PGI_UpdateParameters(
 )
 updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3, everyIter=False)
 update_Jacobi = directives.UpdatePreconditioner()
-MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
+MrefInSmooth = directives.PGI_AddMrefInSmooth(verbose=True)
 
 inv = inversion.BaseInversion(
     invProb,
@@ -352,7 +352,7 @@ proportions_mesh[between_2m_8m] = np.ones(3) / 3.0  # equal probabilities
 
 # initialize the GMM with the one learned from PGI without mean information
 clf_with_depth_info = copy.deepcopy(reg_nomean.objfcts[0].gmm)
-utils.order_clusters_GM_weight(clf_with_depth_info)
+clf_with_depth_info.order_clusters_GM_weight()
 # Include the local proportions
 clf_with_depth_info.weights_ = proportions_mesh
 
@@ -389,7 +389,7 @@ betaIt = directives.PGI_BetaAlphaSchedule(
 targets = directives.MultiTargetMisfits(
     chifact=1.0, TriggerSmall=True, TriggerTheta=False, verbose=True,
 )
-MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
+MrefInSmooth = directives.PGI_AddMrefInSmooth(verbose=True)
 petrodir = directives.PGI_UpdateParameters(
     update_covariances=True, kappa=0, nu=1e8, zeta=1e8
 )

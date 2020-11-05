@@ -22,7 +22,260 @@ from sklearn.mixture._gaussian_mixture import (
 from sklearn.mixture._base import _check_X, check_random_state, ConvergenceWarning
 import warnings
 from .mat_utils import mkvc
-from ..maps import IdentityMap
+from ..maps import IdentityMap, Wires
+from ..regularization import (
+    SimplePGI,
+    Simple,
+    PGI,
+    Tikhonov,
+    SimplePGIwithRelationships,
+    )
+
+
+def make_SimplePGI_regularization(
+    mesh,
+    gmmref,
+    gmm=None,
+    wiresmap=None,
+    maplist=None,
+    approx_gradient=True,
+    approx_eval=True,
+    alpha_s=1.0,
+    alpha_x=1.0,
+    alpha_y=1.0,
+    alpha_z=1.0,
+    alpha_xx=0.0,
+    alpha_yy=0.0,
+    alpha_zz=0.0,
+    cell_weights_list=None,
+    **kwargs
+):
+
+    if wiresmap is None:
+        wrmp = Wires(("m", mesh.nC))
+    else:
+        wrmp = wiresmap
+
+    if maplist is None:
+        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
+    else:
+        mplst = maplist
+
+    if cell_weights_list is None:
+        clwhtlst = [Identity() for maps in wrmp.maps]
+    else:
+        clwhtlst = cell_weights_list
+
+    reg = SimplePGI(
+        mesh=mesh,
+        gmmref=gmmref,
+        gmm=gmm,
+        wiresmap=wiresmap,
+        maplist=maplist,
+        approx_gradient=approx_gradient,
+        approx_eval=approx_eval,
+        alpha_s=alpha_s,
+        alpha_x=0.0,
+        alpha_y=0.0,
+        alpha_z=0.0,
+        **kwargs
+    )
+
+    if cell_weights_list is not None:
+        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
+
+    if isinstance(alpha_x, float):
+        alph_x = alpha_x * np.ones(len(wrmp.maps))
+    else:
+        alph_x = alpha_x
+
+    if isinstance(alpha_y, float):
+        alph_y = alpha_y * np.ones(len(wrmp.maps))
+    else:
+        alph_y = alpha_y
+
+    if isinstance(alpha_z, float):
+        alph_z = alpha_z * np.ones(len(wrmp.maps))
+    else:
+        alph_z = alpha_z
+
+    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
+        reg += Simple(
+            mesh=mesh,
+            mapping=maps * wire[1],
+            alpha_s=0.0,
+            alpha_x=alph_x[i],
+            alpha_y=alph_y[i],
+            alpha_z=alph_z[i],
+            cell_weights=clwhtlst[i],
+            **kwargs
+        )
+
+    return reg
+
+
+def make_PGI_regularization(
+    mesh,
+    gmmref,
+    gmm=None,
+    wiresmap=None,
+    maplist=None,
+    approx_gradient=True,
+    approx_eval=True,
+    alpha_s=1.0,
+    alpha_x=1.0,
+    alpha_y=1.0,
+    alpha_z=1.0,
+    alpha_xx=0.0,
+    alpha_yy=0.0,
+    alpha_zz=0.0,
+    cell_weights_list=None,
+    **kwargs
+):
+
+    if wiresmap is None:
+        wrmp = Wires(("m", mesh.nC))
+    else:
+        wrmp = wiresmap
+
+    if maplist is None:
+        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
+    else:
+        mplst = maplist
+
+    if cell_weights_list is None:
+        clwhtlst = [Identity() for maps in wrmp.maps]
+    else:
+        clwhtlst = cell_weights_list
+
+    reg = PGI(
+        mesh=mesh,
+        gmmref=gmmref,
+        gmm=gmm,
+        wiresmap=wiresmap,
+        maplist=maplist,
+        approx_gradient=approx_gradient,
+        approx_eval=approx_eval,
+        alpha_s=alpha_s,
+        alpha_x=0.0,
+        alpha_y=0.0,
+        alpha_z=0.0,
+        **kwargs
+    )
+
+    if cell_weights_list is not None:
+        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
+
+    if isinstance(alpha_x, float):
+        alph_x = alpha_x * np.ones(len(wrmp.maps))
+    else:
+        alph_x = alpha_x
+
+    if isinstance(alpha_y, float):
+        alph_y = alpha_y * np.ones(len(wrmp.maps))
+    else:
+        alph_y = alpha_y
+
+    if isinstance(alpha_z, float):
+        alph_z = alpha_z * np.ones(len(wrmp.maps))
+    else:
+        alph_z = alpha_z
+
+    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
+        reg += Tikhonov(
+            mesh=mesh,
+            mapping=maps * wire[1],
+            alpha_s=0.0,
+            alpha_x=alph_x[i],
+            alpha_y=alph_y[i],
+            alpha_z=alph_z[i],
+            cell_weights=clwhtlst[i],
+            **kwargs
+        )
+
+    return reg
+
+
+def make_SimplePGIwithRelationships_regularization(
+    mesh,
+    gmmref,
+    gmm=None,
+    wiresmap=None,
+    maplist=None,
+    approx_gradient=True,
+    approx_eval=True,
+    alpha_s=1.0,
+    alpha_x=1.0,
+    alpha_y=1.0,
+    alpha_z=1.0,
+    alpha_xx=0.0,
+    alpha_yy=0.0,
+    alpha_zz=0.0,
+    cell_weights_list=None,
+    **kwargs
+):
+
+    if wiresmap is None:
+        wrmp = Wires(("m", mesh.nC))
+    else:
+        wrmp = wiresmap
+
+    if maplist is None:
+        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
+    else:
+        mplst = maplist
+
+    if cell_weights_list is None:
+        clwhtlst = [Identity() for maps in wrmp.maps]
+    else:
+        clwhtlst = cell_weights_list
+
+    reg = SimplePGIwithRelationships(
+        mesh=mesh,
+        gmmref=gmmref,
+        gmm=gmm,
+        wiresmap=wiresmap,
+        maplist=maplist,
+        approx_gradient=approx_gradient,
+        approx_eval=approx_eval,
+        alpha_s=alpha_s,
+        alpha_x=0.0,
+        alpha_y=0.0,
+        alpha_z=0.0,
+        **kwargs
+    )
+
+    if cell_weights_list is not None:
+        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
+
+    if isinstance(alpha_x, float):
+        alph_x = alpha_x * np.ones(len(wrmp.maps))
+    else:
+        alph_x = alpha_x
+
+    if isinstance(alpha_y, float):
+        alph_y = alpha_y * np.ones(len(wrmp.maps))
+    else:
+        alph_y = alpha_y
+
+    if isinstance(alpha_z, float):
+        alph_z = alpha_z * np.ones(len(wrmp.maps))
+    else:
+        alph_z = alpha_z
+
+    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
+        reg += Simple(
+            mesh=mesh,
+            mapping=maps * wire[1],
+            alpha_s=0.0,
+            alpha_x=alph_x[i],
+            alpha_y=alph_y[i],
+            alpha_z=alph_z[i],
+            cell_weights=clwhtlst[i],
+            **kwargs
+        )
+
+    return reg
 
 
 def ComputeDistances(a, b):
@@ -53,58 +306,8 @@ def ComputeDistances(a, b):
     return sq_dis ** 0.5, idx
 
 
-def order_clusters_GM_weight(gmm, outputindex=False):
-    """
-    order cluster by increasing mean for Gaussian Mixture scikit object
-    """
-    if gmm.weights_.ndim == 1:
-        indx = np.argsort(gmm.weights_, axis=0)[::-1]
-        gmm.weights_ = gmm.weights_[indx].reshape(gmm.weights_.shape)
-
-    else:
-        indx = np.argsort(gmm.weights_.sum(axis=0), axis=0)[::-1]
-        gmm.weights_ = gmm.weights_[:, indx].reshape(gmm.weights_.shape)
-    gmm.means_ = gmm.means_[indx].reshape(gmm.means_.shape)
-    if gmm.covariance_type == "tied":
-        pass
-    else:
-        gmm.precisions_ = gmm.precisions_[indx].reshape(gmm.precisions_.shape)
-        gmm.covariances_ = gmm.covariances_[indx].reshape(gmm.covariances_.shape)
-    gmm.precisions_cholesky_ = _compute_precision_cholesky(
-        gmm.covariances_, gmm.covariance_type
-    )
-
-    if outputindex:
-        return indx
-
-
-def order_clusters_GM_mean(gmm, outputindex=False):
-    """
-    order cluster by increasing mean for Gaussian Mixture scikit object
-    """
-
-    indx = np.argsort(gmm.means_, axis=0)[::-1]
-    gmm.means_ = gmm.means_[indx].reshape(gmm.means_.shape)
-    if gmm.weights_.ndim == 1:
-        gmm.weights_ = gmm.weights_[indx].reshape(gmm.weights_.shape)
-    else:
-        gmm.weights_ = gmm.weights_[:, indx].reshape(gmm.weights_.shape)
-
-    if gmm.covariance_type == "tied":
-        pass
-    else:
-        gmm.precisions_ = gmm.precisions_[indx].reshape(gmm.precisions_.shape)
-        gmm.covariances_ = gmm.covariances_[indx].reshape(gmm.covariances_.shape)
-    gmm.precisions_cholesky_ = _compute_precision_cholesky(
-        gmm.covariances_, gmm.covariance_type
-    )
-
-    if outputindex:
-        return indx
-
-
 def order_cluster(gmm, gmmref, outputindex=False):
-    order_clusters_GM_weight(gmm)
+    gmm.order_clusters_GM_weight()
 
     idx_ref = np.ones(len(gmmref.means_), dtype=bool)
 
@@ -540,6 +743,59 @@ class WeightedGaussianMixture(GaussianMixture):
             # **kwargs
         )
         # setKwargs(self, **kwargs)
+
+    def order_clusters_GM_weight(self, outputindex=False):
+        """
+        order cluster by increasing mean for Gaussian Mixture scikit object
+        """
+        if self.weights_.ndim == 1:
+            indx = np.argsort(self.weights_, axis=0)[::-1]
+            self.weights_ = self.weights_[indx].reshape(self.weights_.shape)
+        else:
+            indx = np.argsort(self.weights_.sum(axis=0), axis=0)[::-1]
+            self.weights_ = self.weights_[:, indx].reshape(self.weights_.shape)
+        
+        self.means_ = self.means_[indx].reshape(self.means_.shape)
+        
+        if self.covariance_type == "tied":
+            pass
+        else:
+            self.precisions_ = self.precisions_[indx].reshape(self.precisions_.shape)
+            self.covariances_ = self.covariances_[indx].reshape(self.covariances_.shape)
+        
+        self.precisions_cholesky_ = _compute_precision_cholesky(
+            self.covariances_, self.covariance_type
+        )
+
+        if outputindex:
+            return indx
+
+
+    def order_clusters_GM_mean(self, outputindex=False):
+        """
+        order cluster by increasing mean for Gaussian Mixture scikit object
+        """
+
+        indx = np.argsort(self.means_, axis=0)[::-1]
+        self.means_ = self.means_[indx].reshape(self.means_.shape)
+        
+        if self.weights_.ndim == 1:
+            self.weights_ = self.weights_[indx].reshape(self.weights_.shape)
+        else:
+            self.weights_ = self.weights_[:, indx].reshape(self.weights_.shape)
+
+        if self.covariance_type == "tied":
+            pass
+        else:
+            self.precisions_ = self.precisions_[indx].reshape(self.precisions_.shape)
+            self.covariances_ = self.covariances_[indx].reshape(self.covariances_.shape)
+        
+        self.precisions_cholesky_ = _compute_precision_cholesky(
+            self.covariances_, self.covariance_type
+        )
+
+        if outputindex:
+            return indx
 
     def _check_weights(self, weights, n_components, n_samples):
         """Check the user provided 'weights'.
@@ -1109,7 +1365,7 @@ class GaussianMixtureMarkovRandomField(GaussianMixtureWithPrior):
             self.precisions_cholesky_ = self.precisions_init
 
 
-class GaussianMixtureWithMapping(WeightedGaussianMixture):
+class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
     def __init__(
         self,
         mesh,
@@ -1135,7 +1391,7 @@ class GaussianMixtureWithMapping(WeightedGaussianMixture):
         else:
             self.cluster_mapping = cluster_mapping
 
-        super(GaussianMixtureWithMapping, self).__init__(
+        super(GaussianMixtureWithNonlinearRelationships, self).__init__(
             mesh=mesh,
             covariance_type=covariance_type,
             init_params=init_params,
@@ -1372,7 +1628,7 @@ class GaussianMixtureWithMapping(WeightedGaussianMixture):
         )
 
 
-class GaussianMixtureWithMappingWithPrior(GaussianMixtureWithPrior):
+class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrior):
     def __init__(
         self,
         gmmref,
@@ -1402,7 +1658,7 @@ class GaussianMixtureWithMappingWithPrior(GaussianMixtureWithPrior):
         else:
             self.cluster_mapping = cluster_mapping
 
-        super(GaussianMixtureWithMappingWithPrior, self).__init__(
+        super(GaussianMixtureWithNonlinearRelationshipsWithPrior, self).__init__(
             gmmref=gmmref,
             kappa=kappa,
             nu=nu,

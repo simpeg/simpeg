@@ -13,7 +13,6 @@ from ..utils import (
     timeIt,
     Identity,
     Zero,
-    order_clusters_GM_weight,
     coterminal,
 )
 from ..maps import IdentityMap, Wires
@@ -367,7 +366,7 @@ class SimplePGI(SimpleComboRegularization):
         **kwargs
     ):
         self.gmmref = copy.deepcopy(gmmref)
-        order_clusters_GM_weight(self.gmmref)
+        self.gmmref.order_clusters_GM_weight()
         self._gmm = copy.deepcopy(gmm)
         self._wiresmap = wiresmap
         self._maplist = maplist
@@ -572,7 +571,7 @@ class PGI(SimpleComboRegularization):
         **kwargs
     ):
         self.gmmref = copy.deepcopy(gmmref)
-        order_clusters_GM_weight(self.gmmref)
+        self.gmmref.order_clusters_GM_weight()
         self._gmm = copy.deepcopy(gmm)
         self._wiresmap = wiresmap
         self._maplist = maplist
@@ -997,7 +996,7 @@ class SimplePGIwithRelationships(SimpleComboRegularization):
         **kwargs
     ):
         self.gmmref = copy.deepcopy(gmmref)
-        order_clusters_GM_weight(self.gmmref)
+        self.gmmref.order_clusters_GM_weight()
         self._gmm = copy.deepcopy(gmm)
         self._wiresmap = wiresmap
         self._maplist = maplist
@@ -1127,252 +1126,3 @@ class SimplePGIwithRelationships(SimpleComboRegularization):
         if ap is not None:
             self._approx_gradient = ap
         self.objfcts[0].approx_gradient = self.approx_gradient
-
-
-def MakeSimplePGI(
-    mesh,
-    gmmref,
-    gmm=None,
-    wiresmap=None,
-    maplist=None,
-    approx_gradient=True,
-    approx_eval=True,
-    gamma=1.0,
-    alpha_s=1.0,
-    alpha_x=1.0,
-    alpha_y=1.0,
-    alpha_z=1.0,
-    alpha_xx=0.0,
-    alpha_yy=0.0,
-    alpha_zz=0.0,
-    cell_weights_list=None,
-    **kwargs
-):
-
-    if wiresmap is None:
-        wrmp = Wires(("m", mesh.nC))
-    else:
-        wrmp = wiresmap
-
-    if maplist is None:
-        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
-    else:
-        mplst = maplist
-
-    if cell_weights_list is None:
-        clwhtlst = [Identity() for maps in wrmp.maps]
-    else:
-        clwhtlst = cell_weights_list
-
-    reg = SimplePGI(
-        mesh=mesh,
-        gmmref=gmmref,
-        gmm=gmm,
-        wiresmap=wiresmap,
-        maplist=maplist,
-        approx_gradient=approx_gradient,
-        approx_eval=approx_eval,
-        alpha_s=alpha_s,
-        alpha_x=0.0,
-        alpha_y=0.0,
-        alpha_z=0.0,
-        **kwargs
-    )
-    reg.gamma = gamma
-    if cell_weights_list is not None:
-        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
-
-    if isinstance(alpha_x, float):
-        alph_x = alpha_x * np.ones(len(wrmp.maps))
-    else:
-        alph_x = alpha_x
-
-    if isinstance(alpha_y, float):
-        alph_y = alpha_y * np.ones(len(wrmp.maps))
-    else:
-        alph_y = alpha_y
-
-    if isinstance(alpha_z, float):
-        alph_z = alpha_z * np.ones(len(wrmp.maps))
-    else:
-        alph_z = alpha_z
-
-    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += Simple(
-            mesh=mesh,
-            mapping=maps * wire[1],
-            alpha_s=0.0,
-            alpha_x=alph_x[i],
-            alpha_y=alph_y[i],
-            alpha_z=alph_z[i],
-            cell_weights=clwhtlst[i],
-            **kwargs
-        )
-
-    return reg
-
-
-def MakePGI(
-    mesh,
-    gmmref,
-    gmm=None,
-    wiresmap=None,
-    maplist=None,
-    approx_gradient=True,
-    approx_eval=True,
-    gamma=1.0,
-    alpha_s=1.0,
-    alpha_x=1.0,
-    alpha_y=1.0,
-    alpha_z=1.0,
-    alpha_xx=0.0,
-    alpha_yy=0.0,
-    alpha_zz=0.0,
-    cell_weights_list=None,
-    **kwargs
-):
-
-    if wiresmap is None:
-        wrmp = Wires(("m", mesh.nC))
-    else:
-        wrmp = wiresmap
-
-    if maplist is None:
-        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
-    else:
-        mplst = maplist
-
-    if cell_weights_list is None:
-        clwhtlst = [Identity() for maps in wrmp.maps]
-    else:
-        clwhtlst = cell_weights_list
-
-    reg = PGI(
-        mesh=mesh,
-        gmmref=gmmref,
-        gmm=gmm,
-        wiresmap=wiresmap,
-        maplist=maplist,
-        approx_gradient=approx_gradient,
-        approx_eval=approx_eval,
-        alpha_s=alpha_s,
-        alpha_x=0.0,
-        alpha_y=0.0,
-        alpha_z=0.0,
-        **kwargs
-    )
-    reg.gamma = gamma
-    if cell_weights_list is not None:
-        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
-
-    if isinstance(alpha_x, float):
-        alph_x = alpha_x * np.ones(len(wrmp.maps))
-    else:
-        alph_x = alpha_x
-
-    if isinstance(alpha_y, float):
-        alph_y = alpha_y * np.ones(len(wrmp.maps))
-    else:
-        alph_y = alpha_y
-
-    if isinstance(alpha_z, float):
-        alph_z = alpha_z * np.ones(len(wrmp.maps))
-    else:
-        alph_z = alpha_z
-
-    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += Tikhonov(
-            mesh=mesh,
-            mapping=maps * wire[1],
-            alpha_s=0.0,
-            alpha_x=alph_x[i],
-            alpha_y=alph_y[i],
-            alpha_z=alph_z[i],
-            cell_weights=clwhtlst[i],
-            **kwargs
-        )
-
-    return reg
-
-
-def MakeSimplePGIwithRelationships(
-    mesh,
-    gmmref,
-    gmm=None,
-    wiresmap=None,
-    maplist=None,
-    approx_gradient=True,
-    approx_eval=True,
-    gamma=1.0,
-    alpha_s=1.0,
-    alpha_x=1.0,
-    alpha_y=1.0,
-    alpha_z=1.0,
-    alpha_xx=0.0,
-    alpha_yy=0.0,
-    alpha_zz=0.0,
-    cell_weights_list=None,
-    **kwargs
-):
-
-    if wiresmap is None:
-        wrmp = Wires(("m", mesh.nC))
-    else:
-        wrmp = wiresmap
-
-    if maplist is None:
-        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
-    else:
-        mplst = maplist
-
-    if cell_weights_list is None:
-        clwhtlst = [Identity() for maps in wrmp.maps]
-    else:
-        clwhtlst = cell_weights_list
-
-    reg = SimplePGIwithRelationships(
-        mesh=mesh,
-        gmmref=gmmref,
-        gmm=gmm,
-        wiresmap=wiresmap,
-        maplist=maplist,
-        approx_gradient=approx_gradient,
-        approx_eval=approx_eval,
-        alpha_s=alpha_s,
-        alpha_x=0.0,
-        alpha_y=0.0,
-        alpha_z=0.0,
-        **kwargs
-    )
-    reg.gamma = gamma
-    if cell_weights_list is not None:
-        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
-
-    if isinstance(alpha_x, float):
-        alph_x = alpha_x * np.ones(len(wrmp.maps))
-    else:
-        alph_x = alpha_x
-
-    if isinstance(alpha_y, float):
-        alph_y = alpha_y * np.ones(len(wrmp.maps))
-    else:
-        alph_y = alpha_y
-
-    if isinstance(alpha_z, float):
-        alph_z = alpha_z * np.ones(len(wrmp.maps))
-    else:
-        alph_z = alpha_z
-
-    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += Simple(
-            mesh=mesh,
-            mapping=maps * wire[1],
-            alpha_s=0.0,
-            alpha_x=alph_x[i],
-            alpha_y=alph_y[i],
-            alpha_z=alph_z[i],
-            cell_weights=clwhtlst[i],
-            **kwargs
-        )
-
-    return reg

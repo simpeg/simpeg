@@ -54,8 +54,10 @@ from .model_utils import surface2ind_topo
 from .plot_utils import plot2Ddata, plotLayer
 from .io_utils import download
 from .pgi_utils import (
+    make_SimplePGI_regularization,
+    make_PGI_regularization,
+    make_SimplePGIwithRelationships_regularization,
     ComputeDistances,
-    order_clusters_GM_weight,
     order_cluster,
     compute_clusters_precision,
     computeCovariance,
@@ -65,8 +67,8 @@ from .pgi_utils import (
     GaussianMixtureWithPrior,
     GaussianMixtureMarkovRandomField,
     FuzzyGaussianMixtureWithPrior,
-    GaussianMixtureWithMapping,
-    GaussianMixtureWithMappingWithPrior,
+    GaussianMixtureWithNonlinearRelationships,
+    GaussianMixtureWithNonlinearRelationshipsWithPrior,
     GibbsSampling_PottsDenoising,
     ICM_PottsDenoising,
 )

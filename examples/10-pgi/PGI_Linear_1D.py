@@ -132,7 +132,7 @@ betaIt = directives.PGI_BetaAlphaSchedule(
 )
 targets = directives.MultiTargetMisfits(verbose=True)
 petrodir = directives.PGI_UpdateParameters()
-addmref = directives.AddMrefInSmooth(verbose=True)
+addmref = directives.PGI_AddMrefInSmooth(verbose=True)
 
 # Setup Inversion
 inv = inversion.BaseInversion(

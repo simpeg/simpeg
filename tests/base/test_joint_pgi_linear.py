@@ -64,7 +64,7 @@ class JointInversionTest(unittest.TestCase):
         model = np.vstack([m0, m1]).T
         m = utils.mkvc(model)
 
-        clfmapping = utils.GaussianMixtureWithMapping(
+        clfmapping = utils.GaussianMixtureWithNonlinearRelationships(
             mesh=mesh,
             n_components=3,
             covariance_type="full",
@@ -149,7 +149,7 @@ class JointInversionTest(unittest.TestCase):
     def test_joint_petro_inv_with_mapping(self):
 
         print("test_joint_petro_inv_with_mapping: ")
-        reg_simple = regularization.MakeSimplePGIwithRelationships(
+        reg_simple = utils.make_SimplePGIwithRelationships_regularization(
             mesh=self.mesh,
             gmmref=self.clfmapping,
             gmm=self.clfmapping,
@@ -290,7 +290,7 @@ class JointInversionTest(unittest.TestCase):
     def test_joint_petro_inv(self):
 
         print("test_joint_petro_inv: ")
-        reg_simple = regularization.MakeSimplePGI(
+        reg_simple = utils.make_SimplePGI_regularization(
             mesh=self.mesh,
             gmmref=self.clfnomapping,
             gmm=self.clfnomapping,

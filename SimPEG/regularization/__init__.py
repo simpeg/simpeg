@@ -17,7 +17,4 @@ from .pgi import (
     PGI,
     SimplePGIwithRelationshipsSmallness,
     SimplePGIwithRelationships,
-    MakeSimplePGI,
-    MakePGI,
-    MakeSimplePGIwithRelationships,
 )

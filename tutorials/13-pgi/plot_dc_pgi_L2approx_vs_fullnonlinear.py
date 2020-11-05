@@ -166,7 +166,7 @@ clf.fit(mtrue[actcore].reshape(-1, 1))
 
 # Manually setting the GMM parameters
 ## Order cluster by order of importance
-utils.order_clusters_GM_weight(clf)
+clf.order_clusters_GM_weight()
 ## Set cluster means
 clf.means_ = np.r_[-np.log(100.0), -np.log(50.0), -np.log(250.0)][:, np.newaxis]
 ## Set clusters variance
@@ -224,7 +224,7 @@ beta_alpha_iteration = directives.PGI_BetaAlphaSchedule(
 ## PGI multi-target misfits
 targets = directives.MultiTargetMisfits(verbose=True,)
 ## Put learned reference model in Smoothness once stable
-MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
+MrefInSmooth = directives.PGI_AddMrefInSmooth(verbose=True)
 ## PGI update to the GMM, Smallness reference model and weights:
 ## It is required when using the Least-Squares approximation of PGI or updating the GMM
 petrodir = directives.PGI_UpdateParameters(update_gmm=False)
@@ -308,7 +308,7 @@ beta_alpha_iteration = directives.PGI_BetaAlphaSchedule(
 ## PGI multi-target misfits
 targets = directives.MultiTargetMisfits(verbose=True,)
 ## Put learned reference model in Smoothness once stable
-MrefInSmooth = directives.AddMrefInSmooth(verbose=True)
+MrefInSmooth = directives.PGI_AddMrefInSmooth(verbose=True)
 ## No directives.PGI_UpdateParameters() necessary if 1) no approximation, 2) no update of the GMM
 ## Sensitivity weights based on the starting half-space
 updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3, everyIter=False)
