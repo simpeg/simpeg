@@ -254,13 +254,13 @@ def read_gravity_gradiometry_3d_ubc(obs_file):
     while ii < ndat:
 
         temp = np.array(line.split(), dtype=float)
-        locXYZ[ii, :] = temp[:3]
+        locXYZ[ii] = temp[:3]
 
         if len(temp) == 3 + ncomp:
-            d[ii, 3:] = factor * temp[3:]
+            d[ii] = factor * temp[3:]
         elif len(temp) == 3 + ncomp * 2:
-            d[ii, :] = factor * temp[3::2]
-            wd[ii, :] = temp[4::2]
+            d[ii] = factor * temp[3::2]
+            wd[ii] = temp[4::2]
 
         ii += 1
         line = fid.readline()
