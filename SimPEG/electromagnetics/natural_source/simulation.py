@@ -122,6 +122,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                     PTv = rx.evalDeriv(
                         src, self.mesh, f, mkvc(v[src, rx]), adjoint=True
                     )  # wrt f, need possibility wrt m
+
                     # Get the
                     dA_duIT = mkvc(ATinv * PTv)  # Force (nU,) shape
                     dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
@@ -130,17 +131,12 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                     du_dmT = -dA_dmT + dRHS_dmT
                     # Select the correct component
                     # du_dmT needs to be of size (nP,) number of model parameters
-                    print(du_dmT)
-                    real_or_imag = rx.component
-                    if real_or_imag == "real":
-                        Jtv += np.array(du_dmT, dtype=complex).real
-                    elif real_or_imag == "imag":
+
+                    if rx.component == "imag":
                         Jtv += -np.array(du_dmT, dtype=complex).real
-                    elif real_or_imag == "apparent_resistivty":
+                    else:
                         Jtv += np.array(du_dmT, dtype=complex).real
-                    elif real_or_imag == "phase":
-                        Jtv += -np.array(du_dmT, dtype=complex).real
-                        # raise Exception("Must be real or imag")
+
             # Clean the factorization, clear memory.
             ATinv.clean()
         return Jtv
