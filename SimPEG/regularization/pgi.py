@@ -443,7 +443,7 @@ class SimplePGI(SimpleComboRegularization):
         # setKwargs(self, **kwargs)
 
     # Properties
-    alpha_s = props.Float("PetroPhysics weights")
+    alpha_s = props.Float("PGI smallness multiplier")
 
     @property
     def gmm(self):
@@ -495,6 +495,18 @@ class SimplePGI(SimpleComboRegularization):
         if ap is not None:
             self._approx_gradient = ap
         self.objfcts[0].approx_gradient = self.approx_gradient
+
+    @property
+    def approx_eval(self):
+        if getattr(self, "_approx_eval", None) is None:
+            self._approx_eval = True
+        return self._approx_eval
+
+    @approx_eval.setter
+    def approx_eval(self, ap):
+        if ap is not None:
+            self._approx_eval = ap
+        self.objfcts[0].approx_eval = self.approx_eval
 
 
 class PGIsmallness(SimplePGIsmallness):
@@ -646,7 +658,7 @@ class PGI(SimpleComboRegularization):
         # setKwargs(self, **kwargs)
 
     # Properties
-    alpha_s = props.Float("PetroPhysics weights")
+    alpha_s = props.Float("PGI smallness multiplier")
 
     @property
     def gmm(self):
@@ -698,6 +710,18 @@ class PGI(SimpleComboRegularization):
         if ap is not None:
             self._approx_gradient = ap
         self.objfcts[0].approx_gradient = self.approx_gradient
+
+    @property
+    def approx_eval(self):
+        if getattr(self, "_approx_eval", None) is None:
+            self._approx_eval = True
+        return self._approx_eval
+
+    @approx_eval.setter
+    def approx_eval(self, ap):
+        if ap is not None:
+            self._approx_eval = ap
+        self.objfcts[0].approx_eval = self.approx_eval
 
 
 class SimplePGIwithRelationshipsSmallness(BaseRegularization):
@@ -1073,7 +1097,7 @@ class SimplePGIwithRelationships(SimpleComboRegularization):
         # setKwargs(self, **kwargs)
 
     # Properties
-    alpha_s = props.Float("PetroPhysics weights")
+    alpha_s = props.Float("PGI smallness multiplier")
 
     @property
     def gmm(self):

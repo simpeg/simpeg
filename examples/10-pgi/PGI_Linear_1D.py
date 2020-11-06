@@ -155,7 +155,7 @@ axes[1].hist(mnormal, bins=20, density=True, color="b")
 axes[1].hist(mcluster, bins=20, density=True, color="r")
 axes[1].legend(["Mtrue Hist.", "L2 Model Hist.", "PGI Model Hist."])
 
-axes[2].plot(mesh.vectorCCx, mtrue, color="black")
+axes[2].plot(mesh.vectorCCx, mtrue, color="black",linewidth=3)
 axes[2].plot(mesh.vectorCCx, mnormal, color="blue")
 axes[2].plot(mesh.vectorCCx, mcluster, "r-")
 axes[2].plot(mesh.vectorCCx, invProb.reg.mref, "r--")

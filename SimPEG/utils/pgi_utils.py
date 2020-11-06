@@ -38,6 +38,7 @@ def make_SimplePGI_regularization(
     gmm=None,
     wiresmap=None,
     maplist=None,
+    cell_weights_list=None,
     approx_gradient=True,
     approx_eval=True,
     alpha_s=1.0,
@@ -47,9 +48,51 @@ def make_SimplePGI_regularization(
     alpha_xx=0.0,
     alpha_yy=0.0,
     alpha_zz=0.0,
-    cell_weights_list=None,
     **kwargs
 ):
+    """
+    Create a complete SimplePGI regularization term ComboObjectiveFunction with all 
+    necessary smallness and smoothness terms for any number of physical properies 
+    and associated mapping.
+
+    Parameters
+    ----------
+
+    :param TensorMesh or TreeMesh mesh: TensorMesh or Treemesh object, used to weights 
+                        the physical properties by cell volumes when updating the 
+                        Gaussian Mixture Model (GMM)
+    :param WeightedGaussianMixture gmmref: reference GMM.
+    :param WeightedGaussianMixture gmm: Initial GMM. If not provided, gmmref is used. 
+    :param Wires wiresmap: Wires map to obtain the various physical properties from the model. 
+                        Optional for single physical property inversion. Required for multi-
+                        physical properties inversion.
+    :param list maplist: List of mapping for each physical property. Default is the IdentityMap for all.
+    :param list cell_weights_list: list of numpy.ndarray for the cells weight to apply to each physical property.
+    :param boolean approx_gradient: use the PGI least-squares approximation of the full nonlinear regularizer
+                        for computing the regularizer gradient. Default is True.
+    :param boolean approx_eval: use the PGI least-squares approximation of the full nonlinear regularizer
+                        for computing the value of the regularizer. Default is True.
+    :param float alpha_s: alpha_s multiplier for the PGI smallness.
+    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 1st-derivative
+                        Smoothness terms in X-direction for each physical property.
+    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 1st-derivative
+                        Smoothness terms in Y-direction for each physical property.
+    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 1st-derivative
+                        Smoothness terms in Z-direction for each physical property.
+    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 2nd-derivatibe 
+                        Smoothness terms in X-direction for each physical property.
+    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 2nd-derivatibe 
+                        Smoothness terms in Y-direction for each physical property.
+    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 2nd-derivatibe 
+                        Smoothness terms in Z-direction for each physical property.
+
+
+    Returns
+    -------
+
+    :param SimPEG.objective_function.ComboObjectiveFunction reg: Full regularization with simplePGIsmallness
+                        and smoothness terms for all physical properties in all direction.
+    """
 
     if wiresmap is None:
         wrmp = Wires(("m", mesh.nC))
@@ -120,6 +163,7 @@ def make_PGI_regularization(
     gmm=None,
     wiresmap=None,
     maplist=None,
+    cell_weights_list=None,
     approx_gradient=True,
     approx_eval=True,
     alpha_s=1.0,
@@ -129,9 +173,51 @@ def make_PGI_regularization(
     alpha_xx=0.0,
     alpha_yy=0.0,
     alpha_zz=0.0,
-    cell_weights_list=None,
     **kwargs
 ):
+    """
+    Create a complete PGI regularization term ComboObjectiveFunction with all 
+    necessary smallness and smoothness terms for any number of physical properies 
+    and associated mapping.
+
+    Parameters
+    ----------
+
+    :param TensorMesh or TreeMesh mesh: TensorMesh or Treemesh object, used to weights 
+                        the physical properties by cell volumes when updating the 
+                        Gaussian Mixture Model (GMM)
+    :param WeightedGaussianMixture gmmref: reference GMM.
+    :param WeightedGaussianMixture gmm: Initial GMM. If not provided, gmmref is used. 
+    :param Wires wiresmap: Wires map to obtain the various physical properties from the model. 
+                        Optional for single physical property inversion. Required for multi-
+                        physical properties inversion.
+    :param list maplist: List of mapping for each physical property. Default is the IdentityMap for all.
+    :param list cell_weights_list: list of numpy.ndarray for the cells weight to apply to each physical property.
+    :param boolean approx_gradient: use the PGI least-squares approximation of the full nonlinear regularizer
+                        for computing the regularizer gradient. Default is True.
+    :param boolean approx_eval: use the PGI least-squares approximation of the full nonlinear regularizer
+                        for computing the value of the regularizer. Default is True.
+    :param float alpha_s: alpha_s multiplier for the PGI smallness.
+    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 1st-derivative
+                        Smoothness terms in X-direction for each physical property.
+    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 1st-derivative
+                        Smoothness terms in Y-direction for each physical property.
+    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 1st-derivative
+                        Smoothness terms in Z-direction for each physical property.
+    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 2nd-derivatibe 
+                        Smoothness terms in X-direction for each physical property.
+    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 2nd-derivatibe 
+                        Smoothness terms in Y-direction for each physical property.
+    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 2nd-derivatibe 
+                        Smoothness terms in Z-direction for each physical property.
+
+
+    Returns
+    -------
+
+    :param SimPEG.objective_function.ComboObjectiveFunction reg: Full regularization with PGIsmallness 
+                        and smoothness terms for all physical properties in all direction.
+    """
 
     if wiresmap is None:
         wrmp = Wires(("m", mesh.nC))
@@ -202,6 +288,7 @@ def make_SimplePGIwithRelationships_regularization(
     gmm=None,
     wiresmap=None,
     maplist=None,
+    cell_weights_list=None,
     approx_gradient=True,
     approx_eval=True,
     alpha_s=1.0,
@@ -211,9 +298,52 @@ def make_SimplePGIwithRelationships_regularization(
     alpha_xx=0.0,
     alpha_yy=0.0,
     alpha_zz=0.0,
-    cell_weights_list=None,
     **kwargs
 ):
+    """
+    Create a complete PGI, with nonlinear relationships, regularization term ComboObjectiveFunction with all 
+    necessary smallness and smoothness terms for any number of physical properies 
+    and associated mapping.
+
+    Parameters
+    ----------
+
+    :param TensorMesh or TreeMesh mesh: TensorMesh or Treemesh object, used to weights 
+                        the physical properties by cell volumes when updating the 
+                        Gaussian Mixture Model (GMM)
+    :param WeightedGaussianMixture gmmref: reference GMM.
+    :param WeightedGaussianMixture gmm: Initial GMM. If not provided, gmmref is used. 
+    :param Wires wiresmap: Wires map to obtain the various physical properties from the model. 
+                        Optional for single physical property inversion. Required for multi-
+                        physical properties inversion.
+    :param list maplist: List of mapping for each physical property. Default is the IdentityMap for all.
+    :param list cell_weights_list: list of numpy.ndarray for the cells weight to apply to each physical property.
+    :param boolean approx_gradient: use the PGI least-squares approximation of the full nonlinear regularizer
+                        for computing the regularizer gradient. Default is True.
+    :param boolean approx_eval: use the PGI least-squares approximation of the full nonlinear regularizer
+                        for computing the value of the regularizer. Default is True.
+    :param float alpha_s: alpha_s multiplier for the PGI smallness.
+    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 1st-derivative
+                        Smoothness terms in X-direction for each physical property.
+    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 1st-derivative
+                        Smoothness terms in Y-direction for each physical property.
+    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 1st-derivative
+                        Smoothness terms in Z-direction for each physical property.
+    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 2nd-derivatibe 
+                        Smoothness terms in X-direction for each physical property.
+    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 2nd-derivatibe 
+                        Smoothness terms in Y-direction for each physical property.
+    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 2nd-derivatibe 
+                        Smoothness terms in Z-direction for each physical property.
+
+
+    Returns
+    -------
+
+    :param SimPEG.objective_function.ComboObjectiveFunction reg: Full regularization with 
+                        SimplePGIwithRelationshipsSmallness and smoothness terms 
+                        for all physical properties in all direction.
+    """
 
     if wiresmap is None:
         wrmp = Wires(("m", mesh.nC))
@@ -279,6 +409,23 @@ def make_SimplePGIwithRelationships_regularization(
 
 
 def ComputeDistances(a, b):
+    """
+    Compute all the distances between two sets of datapoints in n-dimensions
+
+    Parameters
+    ----------
+    
+    :param numpy.ndarray a: sets of datapoints (one line, one point)
+    :param numpy.ndarray b: sets of datapoints (one line, one point)
+
+    Returns
+    -------
+
+    :param numpy.ndarray dis: table of all distances between 
+                        all points of a to all points of b
+    :param numpy.ndarray idx: index of dis for the closest 
+                        point of b for each point of a 
+    """
 
     if a.ndim == 1:
         x = mkvc(a, numDims=2)
@@ -307,6 +454,25 @@ def ComputeDistances(a, b):
 
 
 def order_cluster(gmm, gmmref, outputindex=False):
+    """
+    Arrange the clusters of gmm in the same order as those of gmmref,
+    based on their relative similarities and priorizing first the most proeminent
+    clusters (highest proportions)
+
+    PARAMETERS
+    ----------
+
+    :param GaussianMixture gmm: Gaussian Mixture Model (GMM) to reorder.
+    :param GaussianMixture gmmref: reference GMM.
+    :param boolean outputindex: if True, return the ordering index for the clusters of gmm.
+                            Default is False.
+
+    RETURN
+    ------
+
+    :param numpy.ndarray indx: Optional, return the ordering index for the clusters of gmm
+
+    """
     gmm.order_clusters_GM_weight()
 
     idx_ref = np.ones(len(gmmref.means_), dtype=bool)
@@ -336,41 +502,13 @@ def order_cluster(gmm, gmmref, outputindex=False):
     else:
         gmm.precisions_ = gmm.precisions_[indx].reshape(gmm.precisions_.shape)
         gmm.covariances_ = gmm.covariances_[indx].reshape(gmm.covariances_.shape)
+    
     gmm.precisions_cholesky_ = _compute_precision_cholesky(
         gmm.covariances_, gmm.covariance_type
     )
 
     if outputindex:
         return indx
-
-
-def compute_clusters_precision(gmm):
-    gmm.precisions_cholesky_ = _compute_precision_cholesky(
-        gmm.covariances_, gmm.covariance_type
-    )
-    if gmm.covariance_type == "full":
-        gmm.precisions_ = np.empty(gmm.precisions_cholesky_.shape)
-        for k, prec_chol in enumerate(gmm.precisions_cholesky_):
-            gmm.precisions_[k] = np.dot(prec_chol, prec_chol.T)
-
-    elif gmm.covariance_type == "tied":
-        gmm.precisions_ = np.dot(gmm.precisions_cholesky_, gmm.precisions_cholesky_.T)
-    else:
-        gmm.precisions_ = gmm.precisions_cholesky_ ** 2
-
-
-def computeCovariance(gmm):
-    if gmm.covariance_type == "full":
-        gmm.covariances_ = np.empty(gmm.covariances_cholesky_.shape)
-        for k, cov_chol in enumerate(gmm.covariances_cholesky_):
-            gmm.covariances_[k] = np.dot(cov_chol, cov_chol.T)
-
-    elif gmm.covariance_type == "tied":
-        gmm.covariances_ = np.dot(
-            gmm.covariances_cholesky_, gmm.covariances_cholesky_.T
-        )
-    else:
-        gmm.covariances_ = gmm.covariances_cholesky_ ** 2
 
 
 def update_gmm_with_priors(
@@ -380,11 +518,11 @@ def update_gmm_with_priors(
     nu,
     kappa,
     verbose=False,
-    update_covariances=False,
+    update_covariances=True,
     prior_type="semi",
 ):
 
-    compute_clusters_precision(gmm)
+    gmm.compute_clusters_precisions()
     order_cluster(gmm, gmmref)
 
     if verbose:
@@ -444,40 +582,30 @@ def update_gmm_with_priors(
             gmm.covariances_ = (1.0 / (1.0 + np.sum(ref_weights_ * nu))) * (
                 gmm.covariances_ + np.sum(ref_weights_ * nu) * gmmref.covariances_
             )
-            gmm.precisions_cholesky_ = _compute_precision_cholesky(
-                gmm.covariances_, gmm.covariance_type
-            )
-            compute_clusters_precision(gmm)
+            gmm.compute_clusters_precisions()
         else:
             gmm.precisions_ = (1.0 / (1.0 + np.sum(ref_weights_ * nu))) * (
                 gmm.precisions_ + np.sum(ref_weights_ * nu) * gmmref.precisions_
             )
-            gmm.covariances_cholesky_ = _compute_precision_cholesky(
-                gmm.precisions_, gmm.covariance_type
-            )
-            computeCovariance(gmm)
-            gmm.precisions_cholesky_ = _compute_precision_cholesky(
-                gmm.covariances_, gmm.covariance_type
-            )
+            gmm.compute_clusters_covariances()
     elif update_covariances:
-        gmm.precisions_cholesky_ = _compute_precision_cholesky(
-            gmm.covariances_, gmm.covariance_type
-        )
-        compute_clusters_precision(gmm)
+        gmm.compute_clusters_precisions()
     else:
-        gmm.covariances_cholesky_ = _compute_precision_cholesky(
-            gmm.precisions_, gmm.covariance_type
-        )
-        computeCovariance(gmm)
-        gmm.precisions_cholesky_ = _compute_precision_cholesky(
-            gmm.covariances_, gmm.covariance_type
-        )
+        gmm.compute_clusters_covariances()
+
 
     if verbose:
         print("after update means: ", gmm.means_)
         print("after update weights: ", gmm.weights_)
         print("after update precisions: ", gmm.precisions_)
 
+###############################################################################
+# Disclaimer: the following classes built upon the GaussianMixture class      #
+# from Scikit-Learn. New functionalitie are added, as well as modifications to#  
+# existing functions necessary to serve the purposes pursued within SimPEG.   #
+# This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)    #
+# and we are grateful for their contributions to the open-source community.   #                                                   #
+###############################################################################
 
 class WeightedGaussianMixture(GaussianMixture):
     def __init__(
@@ -498,8 +626,6 @@ class WeightedGaussianMixture(GaussianMixture):
         verbose_interval=10,
         warm_start=False,
         weights_init=None,
-        update_covariances=False,
-        fixed_membership=None,
         # **kwargs
     ):
         self.mesh = mesh
@@ -528,6 +654,41 @@ class WeightedGaussianMixture(GaussianMixture):
         )
         # setKwargs(self, **kwargs)
 
+    def compute_clusters_precisions(self):
+        self.precisions_cholesky_ = _compute_precision_cholesky(
+            self.covariances_, self.covariance_type
+        )
+        if self.covariance_type == "full":
+            self.precisions_ = np.empty(self.precisions_cholesky_.shape)
+            for k, prec_chol in enumerate(self.precisions_cholesky_):
+                self.precisions_[k] = np.dot(prec_chol, prec_chol.T)
+
+        elif self.covariance_type == "tied":
+            self.precisions_ = np.dot(self.precisions_cholesky_, self.precisions_cholesky_.T)
+        else:
+            self.precisions_ = self.precisions_cholesky_ ** 2
+
+    def compute_clusters_covariances(self):
+        
+        self.covariances_cholesky_ = _compute_precision_cholesky(
+            self.precisions_, self.covariance_type
+        )
+        if self.covariance_type == "full":
+            self.covariances_ = np.empty(self.covariances_cholesky_.shape)
+            for k, cov_chol in enumerate(self.covariances_cholesky_):
+                self.covariances_[k] = np.dot(cov_chol, cov_chol.T)
+
+        elif self.covariance_type == "tied":
+            self.covariances_ = np.dot(
+                self.covariances_cholesky_, self.covariances_cholesky_.T
+            )
+        else:
+            self.covariances_ = self.covariances_cholesky_ ** 2
+
+        self.precisions_cholesky_ = _compute_precision_cholesky(
+                self.covariances_, self.covariance_type
+        )
+    
     def order_clusters_GM_weight(self, outputindex=False):
         """
         order cluster by increasing mean for Gaussian Mixture scikit object
@@ -773,7 +934,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         nu=0.0,
         zeta=0.0,
         prior_type="semi",  # semi or full
-        update_covariances=False,
+        update_covariances=True,
         fixed_membership=None,
         init_params="kmeans",
         max_iter=100,
@@ -1210,7 +1371,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
         verbose_interval=10,
         warm_start=False,
         weights_init=None,
-        update_covariances=False,
+        update_covariances=True,
         fixed_membership=None,
     ):
 
