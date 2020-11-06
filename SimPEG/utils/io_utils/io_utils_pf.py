@@ -4,22 +4,27 @@ import time as tm
 import re
 import warnings
 from discretize.utils import mkvc
-from SimPEG.utils.code_utils import deprecate_method
+from ...utils.code_utils import deprecate_method
 
 
-def read_magnetics_3d_ubc(obs_file):
+def read_mag3d_ubc(obs_file):
     """
-        Read and write UBC mag file format
+    Read data files formatted for the UBC mag3d code.
 
-        INPUT:
-        :param fileName, path to the UBC obs mag file
+    This method can load survey locations, predicted data or observations
+    files formatted for the UBC mag3d code.
 
-        OUTPUT:
-        :param survey
-        :param M, magnetization orentiaton (MI, MD)
+    INPUT:
+    :param fileName, path to the UBC obs mag file
+
+    OUTPUT:
+    :param survey
+    :param M, magnetization orentiaton (MI, MD)
     """
-    from SimPEG.potential_fields import magnetics
-    from SimPEG import data
+
+    # Prevent circular import
+    from ...potential_fields import magnetics
+    from ...data import Data
 
     fid = open(obs_file, "r")
 
@@ -68,12 +73,12 @@ def read_magnetics_3d_ubc(obs_file):
     rxLoc = magnetics.receivers.Point(locXYZ)
     srcField = magnetics.sources.SourceField([rxLoc], parameters=(B[2], B[0], B[1]))
     survey = magnetics.survey.Survey(srcField)
-    data_object = data.Data(survey, dobs=d, standard_deviation=wd)
+    data_object = Data(survey, dobs=d, standard_deviation=wd)
 
     return data_object
 
 
-def write_magnetics_3d_ubc(filename, data_object):
+def write_mag3d_ubc(filename, data_object):
     """
     writeUBCobs(filename,B,M,rxLoc,d,wd)
 
@@ -115,7 +120,7 @@ def write_magnetics_3d_ubc(filename, data_object):
     print("Observation file saved to: " + filename)
 
 
-def read_gravity_3d_ubc(obs_file):
+def read_grav3d_ubc(obs_file):
     """
     Read UBC grav file format
 
@@ -127,8 +132,10 @@ def read_gravity_3d_ubc(obs_file):
     :param survey
 
     """
-    from SimPEG.potential_fields import gravity
-    from SimPEG import data
+
+    # Prevent circular import
+    from ...potential_fields import gravity
+    from ...data import Data
 
     fid = open(obs_file, "r")
 
@@ -172,11 +179,11 @@ def read_gravity_3d_ubc(obs_file):
     rxLoc = gravity.receivers.Point(locXYZ)
     srcField = gravity.sources.SourceField([rxLoc])
     survey = gravity.survey.Survey(srcField)
-    data_object = data.Data(survey, dobs=d, standard_deviation=wd)
+    data_object = Data(survey, dobs=d, standard_deviation=wd)
     return data_object
 
 
-def write_gravity_3d_ubc(filename, data_object):
+def write_grav3d_ubc(filename, data_object):
     """
         Write UBC grav file format
 
@@ -207,7 +214,7 @@ def write_gravity_3d_ubc(filename, data_object):
 
 
 
-def read_gravity_gradiometry_3d_ubc(obs_file, file_type):
+def read_gg3d_ubc(obs_file, file_type):
     """
     Read UBC gravity gradiometry file format
 
@@ -221,8 +228,9 @@ def read_gravity_gradiometry_3d_ubc(obs_file, file_type):
     """
     assert(file_type in ['survey', 'dpred', 'dobs'], "file_type must be one of: 'survey', 'dpred', 'dobs'")
 
-    from SimPEG.potential_fields import gravity
-    from SimPEG import data
+    # Prevent circular import
+    from ...potential_fields import gravity
+    from ...data import Data
 
     fid = open(obs_file, "r")
 
@@ -288,11 +296,11 @@ def read_gravity_gradiometry_3d_ubc(obs_file, file_type):
     rxLoc = gravity.receivers.Point(locXYZ, components=components)
     srcField = gravity.sources.SourceField([rxLoc])
     survey = gravity.survey.Survey(srcField)
-    data_object = data.Data(survey, dobs=d, standard_deviation=wd)
+    data_object = Data(survey, dobs=d, standard_deviation=wd)
     return data_object
 
 
-def write_gravity_gradiometry_3d_ubc(filename, data_object):
+def write_gg3d_ubc(filename, data_object):
     """
         Write UBC gravity gradiometry file format
 
@@ -353,22 +361,22 @@ def write_gravity_gradiometry_3d_ubc(filename, data_object):
 
 
 readUBCmagneticsObservations = deprecate_method(
-	read_magnetics_3d_ubc, "readUBCmagneticsObservations", removal_version="0.14.4"
+	read_mag3d_ubc, "readUBCmagneticsObservations", removal_version="0.14.4"
 )
 writeUBCmagneticsObservations = deprecate_method(
-	write_magnetics_3d_ubc, "writeUBCmagneticsObservations", removal_version="0.14.4"
+	write_mag3d_ubc, "writeUBCmagneticsObservations", removal_version="0.14.4"
 )
 readUBCgravityObservations = deprecate_method(
-	read_gravity_3d_ubc, "readUBCgravityObservations", removal_version="0.14.4"
+	read_grav3d_ubc, "readUBCgravityObservations", removal_version="0.14.4"
 )
 writeUBCgravityObservations = deprecate_method(
-	write_gravity_3d_ubc, "writeUBCgravityObservations", removal_version="0.14.4"
+	write_grav3d_ubc, "writeUBCgravityObservations", removal_version="0.14.4"
 )
 readUBCgravitygradiometryObservations = deprecate_method(
-	read_gravity_gradiometry_3d_ubc, "readUBCgravitygradiometryObservations", removal_version="0.14.4"
+	read_gg3d_ubc, "readUBCgravitygradiometryObservations", removal_version="0.14.4"
 )
 writeUBCgravitygradiometryObservations = deprecate_method(
-	write_gravity_gradiometry_3d_ubc, "writeUBCgravitygradiometryObservations", removal_version="0.14.4"
+	write_gg3d_ubc, "writeUBCgravitygradiometryObservations", removal_version="0.14.4"
 )
 
 

@@ -12,7 +12,6 @@ from .static_utils import (
     writeUBC_DCobs,
     writeUBC_DClocs,
     convertObs_DC3D_to_2D,
-    read_dcip3d_ubc,
     readUBC_DC2Dpre,
     readUBC_DC3Dobs,
     xy_2_lineID,
