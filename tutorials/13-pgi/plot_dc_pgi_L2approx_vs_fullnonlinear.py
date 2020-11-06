@@ -172,7 +172,7 @@ clf.means_ = np.r_[-np.log(100.0), -np.log(50.0), -np.log(250.0)][:, np.newaxis]
 ## Set clusters variance
 clf.covariances_ = np.array([[[0.001]], [[0.001]], [[0.001]],])
 ##Set clusters precision and Cholesky decomposition from variances
-utils.compute_clusters_precision(clf)
+clf.compute_clusters_precisions()
 
 # PGI with full petrophysical information and Least-Squares Approximation of the Regularizer
 ############################################################################################

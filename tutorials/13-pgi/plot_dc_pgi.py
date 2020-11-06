@@ -172,7 +172,7 @@ clf.means_ = np.r_[-np.log(100.0), -np.log(50.0), -np.log(250.0)][:, np.newaxis]
 ## Set clusters variance
 clf.covariances_ = np.array([[[0.001]], [[0.001]], [[0.001]],])
 ##Set clusters precision and Cholesky decomposition from variances
-utils.compute_clusters_precision(clf)
+clf.compute_clusters_precisions()
 
 # PGI with full petrophysical information and Least-Squares Approximation of the Regularizer
 ############################################################################################
@@ -274,7 +274,7 @@ clfnomean.means_ = np.r_[
     -np.log(np.max((DCutils.apparent_resistivity(dc_data)))),
 ][:, np.newaxis]
 clfnomean.covariances_ = np.array([[[0.001]], [[0.001]], [[0.001]],])
-utils.compute_clusters_precision(clfnomean)
+clfnomean.compute_clusters_precisions()
 
 # Create the PGI regularization
 reg_nomean = regularization.SimplePGI(
@@ -390,9 +390,7 @@ targets = directives.MultiTargetMisfits(
     chifact=1.0, TriggerSmall=True, TriggerTheta=False, verbose=True,
 )
 MrefInSmooth = directives.PGI_AddMrefInSmooth(verbose=True)
-petrodir = directives.PGI_UpdateParameters(
-    update_covariances=True, kappa=0, nu=1e8, zeta=1e8
-)
+petrodir = directives.PGI_UpdateParameters(kappa=0, nu=1e8, zeta=1e8)
 
 update_Jacobi = directives.UpdatePreconditioner()
 updateSensW = directives.UpdateSensitivityWeights(threshold=1e-3, everyIter=False)
