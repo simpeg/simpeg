@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 import properties
 from ....utils.code_utils import deprecate_class
 
@@ -6,10 +7,15 @@ from .... import props
 from ....data import Data
 from ....utils import mkvc, sdiag
 from ...base import BaseEMSimulation
+from ..utils import gettopoCC
 
 from ..resistivity.fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from ..resistivity import Simulation3DCellCentered as BaseSimulation3DCellCentered
 from ..resistivity import Simulation3DNodal as BaseSimulation3DNodal
+from ..resistivity import Simulation3DCellCenteredFictitiousSources as BaseSimulation3DCellCenteredFictitiousSources
+from ..resistivity import Simulation3DNodalFictitiousSources as BaseSimulation3DNodalFictitiousSources
+from ..resistivity.survey import Survey
+from ..resistivity.sources import Pole, Dipole
 
 
 class BaseIPSimulation(BaseEMSimulation):
@@ -234,32 +240,6 @@ class BaseIPSimulation(BaseEMSimulation):
             return Jtv
         return
 
-    def getSourceTerm(self):
-        """
-        takes concept of source and turns it into a matrix
-        """
-        """
-        Evaluates the sources, and puts them in matrix form
-
-        :rtype: (numpy.ndarray, numpy.ndarray)
-        :return: q (nC or nN, nSrc)
-        """
-
-        Srcs = self.survey.source_list
-
-        if self._formulation == "EB":
-            n = self.mesh.nN
-            # return NotImplementedError
-
-        elif self._formulation == "HJ":
-            n = self.mesh.nC
-
-        q = np.zeros((n, len(Srcs)))
-
-        for i, src in enumerate(Srcs):
-            q[:, i] = src.eval(self)
-        return q
-
     def delete_these_for_sensitivity(self):
         del self._Jmatrix, self._MfRhoI, self._MeSigma
 
@@ -352,6 +332,27 @@ class Simulation3DCellCentered(BaseIPSimulation, BaseSimulation3DCellCentered):
         self.setBC()
 
 
+    def getSourceTerm(self):
+        """
+        takes concept of source and turns it into a matrix
+        """
+        """
+        Evaluates the sources, and puts them in matrix form
+
+        :rtype: (numpy.ndarray, numpy.ndarray)
+        :return: q (nC or nN, nSrc)
+        """
+
+        Srcs = self.survey.source_list
+
+        n = self.mesh.nC
+        q = np.zeros((n, len(Srcs)))
+
+        for i, src in enumerate(Srcs):
+            q[:, i] = src.eval(self)
+        return q
+
+
 class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
 
     _solutionType = "phiSolution"
@@ -361,6 +362,141 @@ class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
 
     def __init__(self, mesh, **kwargs):
         super(Simulation3DNodal, self).__init__(mesh, **kwargs)
+
+
+    def getSourceTerm(self):
+        """
+        takes concept of source and turns it into a matrix
+        """
+        """
+        Evaluates the sources, and puts them in matrix form
+
+        :rtype: (numpy.ndarray, numpy.ndarray)
+        :return: q (nC or nN, nSrc)
+        """
+
+        Srcs = self.survey.source_list
+
+        n = self.mesh.nN
+        q = np.zeros((n, len(Srcs)))
+
+        for i, src in enumerate(Srcs):
+            q[:, i] = src.eval(self)
+        return q
+
+
+
+
+class Simulation3DCellCenteredFictitiousSources(BaseIPSimulation, BaseSimulation3DCellCenteredFictitiousSources):
+
+    _solutionType = "phiSolution"
+    _formulation = "HJ"  # CC potentials means J is on faces
+    fieldsPair = Fields3DCellCentered
+    sign = 1.0
+    bc_type = "Dirichlet"
+
+    def __init__(self, mesh, **kwargs):
+        super(Simulation3DCellCenteredFictitiousSources, self).__init__(mesh, **kwargs)
+        self.setBC()
+
+
+    def getSourceTerm(self):
+        """
+        Evaluates the sources, and puts them in matrix form
+        :rtype: tuple
+        :return: q (nC or nN, nSrc)
+        """
+
+        Srcs = self.survey.source_list
+
+        n = self.mesh.nC
+        q = np.zeros((n, len(Srcs)), order="F")
+
+        # Compute analytic solution for background and compute qs=A0*phi0
+        rho0 = self.get_background_resistivity()
+        tol = 1e-10
+        ind_active = np.ones(self.mesh.nC, dtype=bool)
+        ind_active[self.sigma < (1e-8 + tol)] = False
+        xy_surface, z_surface = gettopoCC(self.mesh, ind_active, option="top")
+
+        # A function for finding index of nearest neighour of surface cells
+        kdtree = sp.spatial.KDTree(xy_surface)
+
+        dh = np.min(self.mesh.hx)
+        loc_grid = self.mesh.gridCC
+
+        for i, source in enumerate(Srcs):
+            if type(source) == Pole:
+                _, ind = kdtree.query(source.location[0:2])
+                zf = z_surface[ind]
+            elif type(source) == Dipole:
+                _, inda = kdtree.query(source.location[0][0:2])
+                _, indb = kdtree.query(source.location[1][0:2])
+                zf = z_surface[[inda, indb]]
+
+            q[:, i] = source.compute_phi_primary(loc_grid, zf, rho0, dh)
+
+        background_resistivity_model = 1e8 * np.ones(self.mesh.nC)
+        background_resistivity_model[ind_active] = rho0
+        A = self.getA(resistivity=background_resistivity_model)
+        q = A * q
+
+        return q
+
+
+class Simulation3DNodalFictitiousSources(BaseIPSimulation, BaseSimulation3DNodalFictitiousSources):
+
+    _solutionType = "phiSolution"
+    _formulation = "EB"  # N potentials means B is on faces
+    fieldsPair = Fields3DNodal
+    sign = -1.0
+
+    def __init__(self, mesh, **kwargs):
+        super(Simulation3DNodalFictitiousSources, self).__init__(mesh, **kwargs)
+
+
+    def getSourceTerm(self):
+        """
+        Evaluates the sources, and puts them in matrix form
+        :rtype: tuple
+        :return: q (nC or nN, nSrc)
+        """
+
+        Srcs = self.survey.source_list
+
+        n = self.mesh.nN
+        q = np.zeros((n, len(Srcs)), order="F")
+
+        # Compute analytic solution for background and compute qs=A0*phi0
+        rho0 = self.get_background_resistivity()
+        tol = 1e-10
+        ind_active = np.ones(self.mesh.nC, dtype=bool)
+        ind_active[self.sigma < (1e-8 + tol)] = False
+        xy_surface, z_surface = gettopoCC(self.mesh, ind_active, option="top")
+
+        # A function for finding index of nearest neighour of surface cells
+        kdtree = sp.spatial.KDTree(xy_surface)
+
+        dh = np.min(self.mesh.hx)
+        loc_grid = self.mesh.gridN
+
+        for i, source in enumerate(Srcs):
+            if type(source) == Pole:
+                _, ind = kdtree.query(source.location[0:2])
+                zf = z_surface[ind]
+            elif type(source) == Dipole:
+                _, inda = kdtree.query(source.location[0][0:2])
+                _, indb = kdtree.query(source.location[1][0:2])
+                zf = z_surface[[inda, indb]]
+
+            q[:, i] = source.compute_phi_primary(loc_grid, zf, rho0, dh)
+
+        background_resistivity_model = 1e8 * np.ones(self.mesh.nC)
+        background_resistivity_model[ind_active] = rho0
+        A = self.getA(resistivity=background_resistivity_model)
+        q = A * q
+
+        return q
 
 
 ############
