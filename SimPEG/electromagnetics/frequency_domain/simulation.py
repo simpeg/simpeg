@@ -84,7 +84,13 @@ class BaseFDEMSimulation(BaseEMSimulation):
             Ainv = self.Solver(A, **self.solver_opts)
             u = Ainv * rhs
             Srcs = self.survey.get_sources_by_frequency(freq)
-            f[Srcs, self._solutionType] = u
+
+            # check if two polarisations
+            if type(self._solutionType) is list:
+                f[Srcs, self._solutionType[0]] = u[:, 0]
+                f[Srcs, self._solutionType[1]] = u[:, 1]
+            else:
+                f[Srcs, self._solutionType] = u
             Ainv.clean()
         return f
 

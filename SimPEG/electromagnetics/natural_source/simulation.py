@@ -390,7 +390,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 ###################################
 # 3D problems
 ###################################
-class Simulation3DPrimarySecondary(BaseNSEMSimulation):
+class Simulation3DPrimarySecondary(BaseFDEMSimulation):
     """
     A NSEM problem solving a e formulation and a primary/secondary fields decompostion.
 
@@ -519,145 +519,45 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
 
         return dRHS_dm
 
-    def fields(self, m=None):
-        """
-        Function to calculate all the fields for the model m.
-
-        :param numpy.ndarray (nC,) m: Conductivity model
-        :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
-        :return: Fields object with of the solution
-
-        """
-        # Set the current model
-        if m is not None:
-            self.model = m
-
-        F = self.fieldsPair(self)
-        for freq in self.survey.frequencies:
-            if self.verbose:
-                startTime = time.time()
-                print("Starting work for {:.3e}".format(freq))
-                sys.stdout.flush()
-            A = self.getA(freq)
-            rhs = self.getRHS(freq)
-            # Solve the system
-            Ainv = self.Solver(A, **self.solver_opts)
-            e_s = Ainv * rhs
-
-            # Store the fields
-            Src = self.survey.get_sources_by_frequency(freq)[0]
-            # Store the fields
-            # Use self._solutionType
-            F[Src, "e_pxSolution"] = e_s[:, 0]
-            F[Src, "e_pySolution"] = e_s[:, 1]
-            # Note curl e = -iwb so b = -curl/iw
-
-            if self.verbose:
-                print("Ran for {:f} seconds".format(time.time() - startTime))
-                sys.stdout.flush()
-            Ainv.clean()
-        return F
-
-    # def fields2(self, freq):
+    # def fields(self, m=None):
     #     """
     #     Function to calculate all the fields for the model m.
-    #
+
     #     :param numpy.ndarray (nC,) m: Conductivity model
     #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
     #     :return: Fields object with of the solution
-    #
+
     #     """
-    #     """
-    #     Function to calculate all the fields for the model m.
-    #
-    #     :param numpy.ndarray (nC,) m: Conductivity model
-    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
-    #     :return: Fields object with of the solution
-    #
-    #     """
-    #     A = self.getA(freq)
-    #     rhs = self.getRHS(freq)
-    #     # Solve the system
-    #     Ainv = self.Solver(A, **self.solver_opts)
-    #     e_s = Ainv * rhs
-    #
-    #     # Store the fields
-    #     # Src = self.survey.get_sources_by_frequency(freq)[0]
-    #     # Store the fields
-    #     # Use self._solutionType
-    #     # self.F[Src, 'e_pxSolution'] = e_s[:, 0]
-    #     # self.F[Src, 'e_pySolution'] = e_s[:, 1]
-    #         # Note curl e = -iwb so b = -curl/iw
-    #
-    #     Ainv.clean()
-    #     return e_s
-    #
-    # def fieldsMulti(self, freq):
-    #     """
-    #     Function to calculate all the fields for the model m.
-    #
-    #     :param numpy.ndarray (nC,) m: Conductivity model
-    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
-    #     :return: Fields object with of the solution
-    #
-    #     """
-    #     """
-    #     Function to calculate all the fields for the model m.
-    #
-    #     :param numpy.ndarray (nC,) m: Conductivity model
-    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
-    #     :return: Fields object with of the solution
-    #
-    #     """
-    #     A = self.getA(freq)
-    #     rhs = self.getRHS(freq)
-    #     # Solve the system
-    #     Ainv = self.Solver(A, **self.solver_opts)
-    #     e_s = Ainv * rhs
-    #
-    #     # Store the fields
-    #     Src = self.survey.get_sources_by_frequency(freq)[0]
-    #     # Store the fields
-    #     # Use self._solutionType
-    #     self.F[Src, 'e_pxSolution'] = e_s[:, 0]
-    #     self.F[Src, 'e_pySolution'] = e_s[:, 1]
-    #         # Note curl e = -iwb so b = -curl/iw
-    #     Ainv.clean()
-    #
-    # def fieldsParallel(self, m=None):
-    #     parallel = 'dask'
-    #
+    #     # Set the current model
     #     if m is not None:
     #         self.model = m
-    #
+
     #     F = self.fieldsPair(self)
-    #
-    #     if parallel == 'dask':
-    #         output = []
-    #         f_ = dask.delayed(self.fields2, pure=True)
-    #         for freq in self.survey.frequencies:
-    #             output.append(da.from_delayed(f_(freq), (self.model.size, 2), dtype=float))
-    #
-    #         e_s = da.hstack(output).compute()
-    #         cnt = 0
-    #         for freq in self.survey.frequencies:
-    #             index = cnt * 2
-    #             # Store the fields
-    #             Src = self.survey.get_sources_by_frequency(freq)[0]
-    #             # Store the fields
-    #             # Use self._solutionType
-    #             F[Src, 'e_pxSolution'] = e_s[:, index]
-    #             F[Src, 'e_pySolution'] = e_s[:, index + 1]
-    #             cnt += 1
-    #
-    #     elif parallel == 'multipro':
-    #         self.F = F
-    #         pool = multiprocessing.Pool()
-    #         pool.map(self.fieldsMulti, self.survey.frequencies)
-    #         pool.close()
-    #         pool.join()
-    #
+    #     for freq in self.survey.frequencies:
+    #         if self.verbose:
+    #             startTime = time.time()
+    #             print("Starting work for {:.3e}".format(freq))
+    #             sys.stdout.flush()
+    #         A = self.getA(freq)
+    #         rhs = self.getRHS(freq)
+    #         # Solve the system
+    #         Ainv = self.Solver(A, **self.solver_opts)
+    #         e_s = Ainv * rhs
+
+    #         # Store the fields
+    #         Src = self.survey.get_sources_by_frequency(freq)[0]
+    #         # Store the fields
+    #         # Use self._solutionType
+    #         F[Src, "e_pxSolution"] = e_s[:, 0]
+    #         F[Src, "e_pySolution"] = e_s[:, 1]
+    #         # Note curl e = -iwb so b = -curl/iw
+
+    #         if self.verbose:
+    #             print("Ran for {:f} seconds".format(time.time() - startTime))
+    #             sys.stdout.flush()
+    #         Ainv.clean()
     #     return F
+
 
 
 ############
