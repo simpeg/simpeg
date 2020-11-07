@@ -353,7 +353,6 @@ def write_gg3d_ubc(filename, data_object):
 
 
 readUBCmagneticsObservations = deprecate_method(
-<<<<<<< HEAD
 	read_mag3d_ubc, "readUBCmagneticsObservations", removal_version="0.14.4"
 )
 writeUBCmagneticsObservations = deprecate_method(
@@ -370,16 +369,4 @@ readUBCgravitygradiometryObservations = deprecate_method(
 )
 writeUBCgravitygradiometryObservations = deprecate_method(
 	write_gg3d_ubc, "writeUBCgravitygradiometryObservations", removal_version="0.14.4"
-=======
-    read_magnetics_3d_ubc, "readUBCmagneticsObservations", removal_version="0.15.0"
-)
-writeUBCmagneticsObservations = deprecate_method(
-    write_magnetics_3d_ubc, "writeUBCmagneticsObservations", removal_version="0.15.0"
-)
-readUBCgravityObservations = deprecate_method(
-    read_gravity_3d_ubc, "readUBCgravityObservations", removal_version="0.15.0"
-)
-writeUBCgravityObservations = deprecate_method(
-    write_gravity_3d_ubc, "writeUBCgravityObservations", removal_version="0.15.0"
->>>>>>> master
 )

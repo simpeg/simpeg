@@ -235,8 +235,8 @@ class TestIO_MAG3D(unittest.TestCase):
         data_object = Data(survey=self.survey)
         filename = "survey.mag"
 
-        write_magnetics_3d_ubc(filename, data_object)
-        data_loaded = read_magnetics_3d_ubc(filename)
+        write_mag3d_ubc(filename, data_object)
+        data_loaded = read_mag3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -261,8 +261,8 @@ class TestIO_MAG3D(unittest.TestCase):
         data_object = Data(survey=self.survey, dobs=self.dobs)
         filename = "dpred.mag"
 
-        write_magnetics_3d_ubc(filename, data_object)
-        data_loaded = read_magnetics_3d_ubc(filename)
+        write_mag3d_ubc(filename, data_object)
+        data_loaded = read_mag3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -290,8 +290,8 @@ class TestIO_MAG3D(unittest.TestCase):
         )
         filename = "dpred.mag"
 
-        write_magnetics_3d_ubc(filename, data_object)
-        data_loaded = read_magnetics_3d_ubc(filename)
+        write_mag3d_ubc(filename, data_object)
+        data_loaded = read_mag3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -340,7 +340,7 @@ class TestIO_DCIP3D(unittest.TestCase):
         zm = np.random.randn(len(xm))
         m_locs = np.c_[xm, ym, zm]
         n_locs = np.c_[xn, ym, zm]
-
+        
         # Source locations
         np.random.seed(9)
         xa = np.array([0., 10.])
@@ -349,35 +349,28 @@ class TestIO_DCIP3D(unittest.TestCase):
         za = np.random.randn(len(xa))
         a_locs = np.c_[xa, ya, za]
         b_locs = np.c_[xb, ya, za]
-
+        
         n_src = len(xa)
         n_rx = len(xm)
-
+        
         # Define survey
         pp_sources = []
         dpdp_sources = []
-
+        
         for ii in range(0, n_src):
-            
-            pp_receivers = []
-            dpdp_receivers = []
-            
-            for jj in range(0, n_rx):
                 
-                m_loc = m_locs[jj, :]
-                n_loc = n_locs[jj, :]
-                pp_receivers.append(dc.receivers.Pole(m_loc))
-                dpdp_receivers.append(dc.receivers.Dipole(m_loc, n_loc))
+            pp_receivers = [dc.receivers.Pole(m_locs)]
+            dpdp_receivers = [dc.receivers.Dipole(m_locs, n_locs)]
             
             a_loc = a_locs[ii, :]
             b_loc = b_locs[ii, :]
             
             pp_sources.append(dc.sources.Pole(pp_receivers, a_loc))
             dpdp_sources.append(dc.sources.Dipole(dpdp_receivers, a_loc, b_loc))
-
+        
         self.pp_survey = dc.survey.Survey(pp_sources, survey_type='pole-pole')
         self.dpdp_survey = dc.survey.Survey(dpdp_sources, survey_type='dipole-dipole')
-
+        
         # Define data and uncertainties. In this case nD = 6
         n_data = len(xa) * len(xm)
 
@@ -396,8 +389,8 @@ class TestIO_DCIP3D(unittest.TestCase):
         filename = 'survey.dc'
 
         # Test for pole-pole
-        write_dcip3d_ubc(filename, pp_data, file_type='survey', format_type='general', ip_type=1)
-        data_loaded = read_dcip3d_ubc(filename)
+        write_dcip3d_ubc(filename, pp_data, 'secondary_potential', 'survey', format_type='general')
+        data_loaded = read_dcip3d_ubc(filename, 'secondary_potential')
         os.remove(filename)
 
         A = np.c_[
@@ -418,8 +411,8 @@ class TestIO_DCIP3D(unittest.TestCase):
         self.assertTrue(passed, True)
 
         # Test for dipole-dipole
-        write_dcipoctree_ubc(filename, dpdp_data, file_type='survey', format_type='general')
-        data_loaded = read_dcipoctree_ubc(filename)
+        write_dcipoctree_ubc(filename, dpdp_data, 'volt', 'survey', format_type='general')
+        data_loaded = read_dcipoctree_ubc(filename, 'volt')
         os.remove(filename)
 
         A = np.c_[
@@ -449,8 +442,8 @@ class TestIO_DCIP3D(unittest.TestCase):
         filename = 'dpred.dc'
 
         # Test for pole-pole
-        write_dcip3d_ubc(filename, pp_data, file_type='dpred', format_type='general', ip_type=1)
-        data_loaded = read_dcip3d_ubc(filename)
+        write_dcip3d_ubc(filename, pp_data, 'secondary_potential', 'dpred', format_type='general')
+        data_loaded = read_dcip3d_ubc(filename, 'secondary_potential')
         os.remove(filename)
 
         A = np.c_[
@@ -473,8 +466,8 @@ class TestIO_DCIP3D(unittest.TestCase):
         self.assertTrue(passed, True)
 
         # Test for dipole-dipole
-        write_dcipoctree_ubc(filename, dpdp_data, file_type='dpred', format_type='general', ip_type=1)
-        data_loaded = read_dcipoctree_ubc(filename)
+        write_dcipoctree_ubc(filename, dpdp_data, 'volt', 'dpred', format_type='general')
+        data_loaded = read_dcipoctree_ubc(filename, 'volt')
         os.remove(filename)
 
         A = np.c_[
@@ -501,14 +494,14 @@ class TestIO_DCIP3D(unittest.TestCase):
 
     def test_io_dobs(self):
 
-        pp_data = Data(survey=self.pp_survey, dobs=self.dobs)
-        dpdp_data = Data(survey=self.dpdp_survey, dobs=self.dobs)
+        pp_data = Data(survey=self.pp_survey, dobs=self.dobs, standard_deviation=self.std)
+        dpdp_data = Data(survey=self.dpdp_survey, dobs=self.dobs, standard_deviation=self.std)
         
         filename = 'dobs.dc'
 
         # Test for pole-pole
-        write_dcip3d_ubc(filename, pp_data, file_type='dobs', format_type='general')
-        data_loaded = read_dcip3d_ubc(filename)
+        write_dcip3d_ubc(filename, pp_data, 'secondary_potential', 'dobs', format_type='general')
+        data_loaded = read_dcip3d_ubc(filename, 'secondary_potential')
         os.remove(filename)
 
         A = np.c_[
@@ -517,7 +510,7 @@ class TestIO_DCIP3D(unittest.TestCase):
             self.pp_survey.m_locations,
             self.pp_survey.n_locations,
             self.dobs,
-            self.standard_deviation
+            self.std
         ]
 
         B = np.c_[
@@ -533,8 +526,8 @@ class TestIO_DCIP3D(unittest.TestCase):
         self.assertTrue(passed, True)
 
         # Test for dipole-dipole
-        write_dcipoctree_ubc(filename, dpdp_data, file_type='dobs', format_type='general')
-        data_loaded = read_dcipoctree_ubc(filename)
+        write_dcipoctree_ubc(filename, dpdp_data, 'volt', 'dobs', format_type='general')
+        data_loaded = read_dcipoctree_ubc(filename, 'volt')
         os.remove(filename)
 
         A = np.c_[
@@ -543,7 +536,7 @@ class TestIO_DCIP3D(unittest.TestCase):
             self.dpdp_survey.m_locations,
             self.dpdp_survey.n_locations,
             self.dobs,
-            self.standard_deviation
+            self.std
         ]
 
         B = np.c_[
@@ -559,12 +552,6 @@ class TestIO_DCIP3D(unittest.TestCase):
         self.assertTrue(passed, True)
 
         print('OBSERVATIONS FILE IO FOR DCIP3D PASSED')
-
-
-
-=======
-        print("OBSERVED DATA FILE IO FOR MAG3D PASSED")
->>>>>>> master
 
 
 if __name__ == "__main__":

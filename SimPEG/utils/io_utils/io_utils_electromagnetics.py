@@ -11,17 +11,86 @@ from ...utils.code_utils import deprecate_method
 #                  DIRECT CURRENT RESISTIVITY AND INDUCED POLARIZATION
 ########################################################################################
 
-def read_dcip3d_ubc(file_name):
+def read_dcip3d_ubc(file_name, data_type):
+    """
+    Read UBC DCIP3D formatted survey, predicted or observed data files.
 
-    return _read_dcip_3d_or_octree_ubc(file_name, 'dcip3d')
+    This function loads 3D DC or IP data formatted for the UBC DCIP3D
+    coding package and outputs a SimPEG data object. The function will
+    recognize if the file is a survey, predicted data or observed data file.
+
+    Parameters
+    ----------
+    file_name : str
+        The file path to the data file
+    data_type: str {'volt', 'apparent_chargeability', 'secondary_potential'}
+        Defining the input data type:
+
+        - 'volt': DC resistivity data as voltages
+        - 'apparent_chargeability': IP data as apparent chargeabilities
+        - 'secondary_potential': IP data as secondary potentials
+
+    Returns
+    -------
+    data
+        A SimPEG.data.Data object containing:
+
+        - The survey
+        - Observed/predicted data (if present in the data file)
+        - Uncertainties (if present in the data file). Note that predicted DC data
+        files contain the apparent resistivities, which are loaded into SimPEG and
+        defined as uncertainties.
+
+    """
+    assert(
+        data_type.lower() in ['volt', 'apparent_chargeability', 'secondary_potential'],
+        "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+    )
+
+    return _read_dcip_3d_or_octree_ubc(file_name, data_type, 'dcip3d')
 
 
-def read_dcipoctree_ubc(file_name):
+def read_dcipoctree_ubc(file_name, data_type):
+    """
+    Read UBC DCIPoctree formatted survey, predicted or observed data files.
 
-    return _read_dcip_3d_or_octree_ubc(file_name, 'dcipoctree')
+    This function loads 3D DC or IP data formatted for the UBC DCIPoctree
+    coding package and outputs a SimPEG data object. The function requires
+    the user to define whether the data are DC resistivity or IP.
+
+    Parameters
+    ----------
+    file_name : str
+        The file path to the data file
+    data_type: str {'volt', 'apparent_chargeability'}
+        Defining the input data type:
+
+        - 'volt': DC resistivity data as voltages
+        - 'apparent_chargeability': IP data as apparent chargeabilities
+
+    Returns
+    -------
+    data_object
+        A SimPEG.data.Data object containing:
+
+        - The survey
+        - Observed/predicted data (if present in the data file)
+        - Uncertainties (if present in the data file). Note that predicted DC data
+        files contain the apparent resistivities, which are loaded into SimPEG and
+        defined as uncertainties.
+
+    """
+
+    # Unused for now but it will be when we manage IP types better.
+    assert(
+        data_type.lower() in ['volt', 'apparent_chargeability'],
+        "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability'}"
+    )
+
+    return _read_dcip_3d_or_octree_ubc(file_name, data_type, 'dcipoctree')
 
 
-def _read_dcip_3d_or_octree_ubc(file_name, code_type):
+def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
     """
     Read 3D DC/IP survey, predicted and observation files in UBC-GIF format.
 
@@ -29,18 +98,31 @@ def _read_dcip_3d_or_octree_ubc(file_name, code_type):
     ----------
 
     file_name : str
-        Path to the file.
-    file_type : str
-        File type. Choose from {'loc','dpred','dobs'}
+        The file path to the data file
+    code_type : str {'dcip3d', 'dcipoctree'}
+        Code type. Choose from {'dcip3d', 'dcipoctree'}
 
     Returns
     -------
-    SimPEG.electromagnetic.static.survey
-        A DC/IP survey object. Locations will be defined. Observed data
-        and uncertainties defined in the survey object will depend on
-        **file_type**.
+    data_object
+        A SimPEG.data.Data object containing:
 
-    """ 
+        - The survey
+        - Observed/predicted data (if present in the data file)
+        - Uncertainties (if present in the data file). Note that predicted DC data
+        files contain the apparent resistivities, which are loaded into SimPEG and
+        defined as uncertainties.
+
+    """
+    assert(
+        data_type.lower() in ['volt', 'apparent_chargeability', 'secondary_potential'],
+        "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+    )
+
+    assert(
+        code_type.lower() in ['dcip3d', 'dcipoctree'],
+        "Parameter 'code_type' must be one of {'dcip3d', 'dcipoctree'}"
+    )
 
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
@@ -59,6 +141,10 @@ def _read_dcip_3d_or_octree_ubc(file_name, code_type):
     is_surface = False
     is_pole_tx = False
     is_pole_rx = False
+
+    # IP data for dcip3d has a line with a flag we can remove.
+    if (code_type == 'dcip3d') | (data_type != 'volt'):
+        obsfile = obsfile[1:]
 
     # Countdown for number of obs/tx
     count = 0
@@ -172,9 +258,9 @@ def _read_dcip_3d_or_octree_ubc(file_name, code_type):
 def write_dcip3d_ubc(
     file_name,
     data_object,
-    file_type='dobs',
+    data_type,
+    file_type,
     format_type='general',
-    data_type=0,
     electrode_configuration=None,
     comment_lines=""
     ):
@@ -187,17 +273,27 @@ def write_dcip3d_ubc(
     data_object:
     file_type: 'survey', 'dpred', 'dobs'
     format_type: 'general', 'surface', 'simple'
-    data_type: 0 (DC), 1 (IP), 2 (another IP)
+    data_type: 'volt', 'apparent_chargeability', 'secondary_potential'
     electrode_configuration: 'pole-pole', 'pole-dipole', 'dipole-pole', 'dipole-dipole'
     comment_lines:)
     """
 
+    assert(
+        data_type.lower() in ['volt', 'apparent_chargeability', 'secondary_potential'],
+        "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+    )
+
+    assert(
+        file_type.lower() in ['survey', 'dpred', 'dobs'],
+        "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
+    )
+
     _write_dcip_3d_or_octree_ubc(
         file_name,
         data_object,
-        file_type=file_type,
+        data_type,
+        file_type,
         format_type=format_type,
-        data_type=data_type,
         electrode_configuration=electrode_configuration,
         code_type='dcip3d',
         comment_lines=comment_lines
@@ -207,9 +303,9 @@ def write_dcip3d_ubc(
 def write_dcipoctree_ubc(
     file_name,
     data_object,
-    file_type='dobs',
+    data_type,
+    file_type,
     format_type='general',
-    data_type=0,
     electrode_configuration=None,
     comment_lines=""
     ):
@@ -227,12 +323,22 @@ def write_dcipoctree_ubc(
     comment_lines:)
     """
 
+    assert(
+        data_type.lower() in ['volt', 'apparent_chargeability'],
+        "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability'}"
+    )
+
+    assert(
+        file_type.lower() in ['survey', 'dpred', 'dobs'],
+        "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
+    )
+
     _write_dcip_3d_or_octree_ubc(
         file_name,
         data_object,
-        file_type=file_type,
-        format_type=format_type,
-        data_type=data_type,
+        data_type,
+        file_type,
+        format_type='general',
         electrode_configuration=electrode_configuration,
         code_type='dcipoctree',
         comment_lines=comment_lines
@@ -242,9 +348,9 @@ def write_dcipoctree_ubc(
 def _write_dcip_3d_or_octree_ubc(
     file_name,
     data_object,
-    file_type='dobs',
+    data_type,
+    file_type,
     format_type='general',
-    data_type=0,
     electrode_configuration=None,
     code_type='dcip3d',
     comment_lines=""
@@ -258,7 +364,7 @@ def _write_dcip_3d_or_octree_ubc(
     data_object:
     file_type: 'survey', 'dpred', 'dobs'
     format_type: 'general', 'surface', 'simple'
-    data_type: 0 (DC), 1 (IP), 2 (another IP)
+    data_type: {'volt', 'apparent_chargeability', 'secondary_potential'}
     electrode_configuration: 'pole-pole', 'pole-dipole', 'dipole-pole', 'dipole-dipole'
     code_type: 'dcip3d', 'dcipoctree'
     comment_lines:
@@ -282,6 +388,21 @@ def _write_dcip_3d_or_octree_ubc(
             )
         )
 
+    assert(
+        data_type.lower() in ['volt', 'apparent_chargeability', 'secondary_potential'],
+        "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+    )
+
+    assert(
+        file_type.lower() in ['survey', 'dpred', 'dobs'],
+        "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
+    )
+
+    assert(
+        code_type.lower() in ['dcip3d', 'dcipoctree'],
+        "Parameter 'code_type' must be one of {'dcip3d', 'dcipoctree'}"
+    )
+
     format_type = format_type.lower()
     if format_type not in ["surface", "general", "simple"]:
         raise Exception(
@@ -294,7 +415,7 @@ def _write_dcip_3d_or_octree_ubc(
 
     # Predicted DC data will automatically contain apparent resistivity column.
     # Here we compute the apparent resistivities and treat it like an uncertainties column.
-    if (file_type.lower() == 'dpred') & (data_type == 0):
+    if (file_type.lower() == 'dpred') & (data_type == 'volt'):
         data_object.standard_deviation = apparent_resistivity(data_object)
         file_type = 'dobs'
 
@@ -305,9 +426,12 @@ def _write_dcip_3d_or_octree_ubc(
     if comment_lines:
         fid.write(comment_lines)
 
-    # DCIP3D will allow user to choose definition of IP data. DCIPoctree will not.
-    if (data_type != 0) & (code_type.lower() == 'dcip3d'):
-        fid.write("IPTYPE=%i\n" % data_type)
+    # DCIP3D will allow user to choose definition of IP data. DC data has no flag.
+    # DCIPoctree IP data is always apparent chargeability.
+    if (code_type.lower() == 'dcip3d') & (data_type == 'apparent_chargeability'):
+        fid.write("IPTYPE=%i\n" % 1)
+    elif (code_type.lower() == 'dcip3d') & (data_type == 'secondary_potential'):
+        fid.write("IPTYPE=%i\n" % 2)
 
     fid.close()
 

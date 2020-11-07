@@ -51,17 +51,22 @@ SPACE_TYPES = {
 }
 
 
-def electrode_separations(dc_survey, survey_type="dipole-dipole", electrode_pair="all"):
+def electrode_separations(survey_object, electrode_pair="all"):
     """
-    Calculate electrode separation distances.
+    Calculate horizontal separation between specific or all electrodes.
 
-    Input:
-    :param SimPEG.electromagnetics.static.resistivity.survey.Survey dc_survey: DC survey object
-    :param str survey_type: Either 'pole-dipole' | 'dipole-dipole'
-                                  | 'dipole-pole' | 'pole-pole'
+    Parameters
+    ----------
+    survey_object : SimPEG.electromagnetics.static.survey.Survey
+        A DC or IP survey object
+    electrode_pair : str or list of str
+        A string or list of strings from the following {'all', 'AB', 'MN', 'AM', 'AN', 'BM', 'BN}
 
-    Output:
-    :return list ***: electrodes [A,B] separation distances
+    Returns
+    -------
+    list of np.ndarray
+        For each electrode pair specified, the electrode distance is returned
+        in a list.
 
     """
 
@@ -85,54 +90,38 @@ def electrode_separations(dc_survey, survey_type="dipole-dipole", electrode_pair
     BM = []
     BN = []
 
-    for ii, src in enumerate(dc_survey.source_list):
-        Tx = src.location
-        Rx = src.receiver_list[0].locations
-        nDTx = src.receiver_list[0].nD
-
-        if survey_type.lower() == "dipole-dipole":
-            A = matlib.repmat(Tx[0], nDTx, 1)
-            B = matlib.repmat(Tx[1], nDTx, 1)
-            M = Rx[0]
-            N = Rx[1]
-
-            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :]) ** 2.0, axis=1)))
-            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :]) ** 2.0, axis=1)))
-            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :]) ** 2.0, axis=1)))
-            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :]) ** 2.0, axis=1)))
-            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :]) ** 2.0, axis=1)))
-            BN.append(np.sqrt(np.sum((B[:, :] - N[:, :]) ** 2.0, axis=1)))
-
-        elif survey_type.lower() == "pole-dipole":
-            A = matlib.repmat(Tx, nDTx, 1)
-            M = Rx[0]
-            N = Rx[1]
-
-            MN.append(np.sqrt(np.sum((M[:, :] - N[:, :]) ** 2.0, axis=1)))
-            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :]) ** 2.0, axis=1)))
-            AN.append(np.sqrt(np.sum((A[:, :] - N[:, :]) ** 2.0, axis=1)))
-
-        elif survey_type.lower() == "dipole-pole":
-            A = matlib.repmat(Tx[0], nDTx, 1)
-            B = matlib.repmat(Tx[1], nDTx, 1)
-            M = Rx
-
-            AB.append(np.sqrt(np.sum((A[:, :] - B[:, :]) ** 2.0, axis=1)))
-            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :]) ** 2.0, axis=1)))
-            BM.append(np.sqrt(np.sum((B[:, :] - M[:, :]) ** 2.0, axis=1)))
-
-        elif survey_type.lower() == "pole-pole":
-            A = matlib.repmat(Tx, nDTx, 1)
-            M = Rx
-
-            AM.append(np.sqrt(np.sum((A[:, :] - M[:, :]) ** 2.0, axis=1)))
-
+    for src in survey_object.source_list:
+        # pole or dipole source
+        if isinstance(src.location, list):
+            a_loc = src.location[0]
+            b_loc = src.location[1]
         else:
-            raise Exception(
-                "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
-                "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
-            )
+            a_loc = src.location
+            b_loc = np.inf * np.ones_like(src.location)
 
+        for rx in src.receiver_list:
+            # pole or dipole receiver
+            if isinstance(rx.locations, list):
+                M = rx.locations[0]
+                N = rx.locations[1]
+            else:
+                M = rx.locations
+                N = -np.inf * np.ones_like(rx.locations)
+
+            n_rx = np.shape(M)[0]
+
+            A = matlib.repmat(a_loc, n_rx, 1)
+            B = matlib.repmat(b_loc, n_rx, 1)
+
+            # Compute distances
+            AB.append(np.sqrt(np.sum((A - B) ** 2.0, axis=1)))
+            MN.append(np.sqrt(np.sum((M - N) ** 2.0, axis=1)))
+            AM.append(np.sqrt(np.sum((A - M) ** 2.0, axis=1)))
+            AN.append(np.sqrt(np.sum((A - N) ** 2.0, axis=1)))
+            BM.append(np.sqrt(np.sum((B - M) ** 2.0, axis=1)))
+            BN.append(np.sqrt(np.sum((B - N) ** 2.0, axis=1)))
+
+    # Stack to vector and define in dictionary
     if "AB" in electrode_pair:
         if AB:
             AB = np.hstack(AB)
@@ -223,7 +212,7 @@ def source_receiver_midpoints(survey, **kwargs):
     return np.vstack(midxy), np.hstack(midz)
 
 
-def geometric_factor(dc_survey, survey_type="dipole-dipole", space_type="half space"):
+def geometric_factor(survey_object, space_type="half space"):
     """
         Calculate Geometric Factor. Assuming that data are normalized voltages
 
@@ -247,36 +236,22 @@ def geometric_factor(dc_survey, survey_type="dipole-dipole", space_type="half sp
         raise Exception("'space_type must be 'whole space' | 'half space'")
 
     elecSepDict = electrode_separations(
-        dc_survey, survey_type=survey_type, electrode_pair=["AM", "BM", "AN", "BN"]
+        survey_object, electrode_pair=["AM", "BM", "AN", "BN"]
     )
     AM = elecSepDict["AM"]
     BM = elecSepDict["BM"]
     AN = elecSepDict["AN"]
     BN = elecSepDict["BN"]
 
-    # Determine geometric factor G based on electrode separation distances
-    if survey_type.lower() == "dipole-dipole":
-        G = 1 / AM - 1 / BM - 1 / AN + 1 / BN
-
-    elif survey_type.lower() == "pole-dipole":
-        G = 1 / AM - 1 / AN
-
-    elif survey_type.lower() == "dipole-pole":
-        G = 1 / AM - 1 / BM
-
-    elif survey_type.lower() == "pole-pole":
-        G = 1 / AM
-
-    else:
-        raise Exception(
-            "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
-            "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
-        )
+    # Determine geometric factor G based on electrode separation distances.
+    # For case where source and/or receivers are pole, terms will be
+    # divided by infinity.
+    G = 1 / AM - 1 / BM - 1 / AN + 1 / BN
 
     return G / (spaceFact * np.pi)
 
 
-def apparent_resistivity(data, space_type="half space", dobs=None, eps=1e-10, **kwargs):
+def apparent_resistivity(data_object, space_type="half space", dobs=None, eps=1e-10, **kwargs):
     """
     Calculate apparent resistivity. Assuming that data are normalized
     voltages - Vmn/I (Potential difference [V] divided by injection
@@ -293,25 +268,23 @@ def apparent_resistivity(data, space_type="half space", dobs=None, eps=1e-10, **
     Output:
     :return rhoApp: apparent resistivity
     """
-    if not isinstance(data, Data):
+    if not isinstance(data_object, Data):
         raise Exception(
             "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
             "provided as the second input. The provided input is a "
             "{providedcls} <{providedpref}.{providedcls}>".format(
                 datacls=Data.__name__,
                 datapref=Data.__module__,
-                providedcls=data.__class__.__name__,
-                providedpref=data.__module__,
+                providedcls=data_object.__class__.__name__,
+                providedpref=data_object.__module__,
             )
         )
 
     if dobs is None:
-        dobs = data.dobs
+        dobs = data_object.dobs
 
     # Calculate Geometric Factor
-    G = geometric_factor(
-        data.survey, survey_type=data.survey.survey_type, space_type=space_type
-    )
+    G = geometric_factor(data_object.survey, space_type=space_type)
 
     # Calculate apparent resistivity
     # absolute value is required because of the regularizer
@@ -426,7 +399,7 @@ def plot_pseudosection(
 
     elif data_type.lower() in DATA_TYPES["apparent conductivity"]:
         rhoApp = apparent_resistivity(
-            data, dobs=dobs, survey_type=survey_type, space_type=space_type
+            data, dobs=dobs, space_type=space_type
         )
         if scale == "linear":
             rho = 1.0 / rhoApp
@@ -435,7 +408,7 @@ def plot_pseudosection(
 
     elif data_type.lower() in DATA_TYPES["apparent resistivity"]:
         rhoApp = apparent_resistivity(
-            data, dobs=dobs, survey_type=survey_type, space_type=space_type
+            data, dobs=dobs, space_type=space_type
         )
         if scale == "linear":
             rho = rhoApp
@@ -538,7 +511,6 @@ def plot_pseudosection(
 def plot_3d_pseudosection(
         survey,
         dvec,
-        survey_type=None,
         ax=None,
         cax=None,
         s=100,
@@ -566,10 +538,6 @@ def plot_3d_pseudosection(
     dvec : numpy.ndarray
         A data vector containing volts, integrated chargeabilities, apparent
         resistivities or apparent chargeabilities.
-    survey_type : str
-        Survey type. One of {'pole-pole', 'pole-dipole', 'dipole-pole', dipole-dipole}.
-        If *None* is entered, the function will examine the type defined by the
-        survey object.
     ax: mpl_toolkits.mplot3d.axes3d.Axes3D, optional
         A 3D axis object for the 3D plot
     cax : mpl_toolkits.mplot3d.axes.Axes or mpl_toolkits.mplot3d.axes3d.Axes3D, optional
@@ -612,10 +580,6 @@ def plot_3d_pseudosection(
         The axis object that holds the plot
 
     """
-    
-    # Define survey type and compute pseudo-locations
-    if survey_type == None:
-        survey_type = survey.survey_type
     
     midxy, midz = source_receiver_midpoints(survey)
     
