@@ -42,8 +42,7 @@ def read_dcip3d_ubc(file_name, data_type):
         defined as uncertainties.
 
     """
-    assert(
-        data_type.lower() in ['volt', 'apparent_chargeability', 'secondary_potential'],
+    assert data_type.lower() in ['volt', 'apparent_chargeability', 'secondary_potential'], (
         "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
     )
 
@@ -82,8 +81,7 @@ def read_dcipoctree_ubc(file_name, data_type):
     """
 
     # Unused for now but it will be when we manage IP types better.
-    assert(
-        data_type.lower() in ['volt', 'apparent_chargeability'],
+    assert data_type.lower() in ['volt', 'apparent_chargeability'], (
         "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability'}"
     )
 
@@ -114,13 +112,11 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
         defined as uncertainties.
 
     """
-    assert(
-        data_type.lower() in ['volt', 'apparent_chargeability', 'secondary_potential'],
+    assert data_type.lower() in ['volt', 'apparent_chargeability', 'secondary_potential'], (
         "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
     )
 
-    assert(
-        code_type.lower() in ['dcip3d', 'dcipoctree'],
+    assert code_type.lower() in ['dcip3d', 'dcipoctree'], (
         "Parameter 'code_type' must be one of {'dcip3d', 'dcipoctree'}"
     )
 
@@ -143,7 +139,7 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
     is_pole_rx = False
 
     # IP data for dcip3d has a line with a flag we can remove.
-    if (code_type == 'dcip3d') | (data_type != 'volt'):
+    if (code_type == 'dcip3d') & (data_type != 'volt'):
         obsfile = obsfile[1:]
 
     # Countdown for number of obs/tx
@@ -202,14 +198,14 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
             else:
                 rx.append(temp[:6])
             
-        # Predicted IP data
+        # Predicted/observed data
         if len(temp) == data_column_index + 1:
-            d.append(temp[-1])
+            d.append(temp[data_column_index])
         
         # Observed data or predicted DC data (since app res column)
         elif len(temp) == data_column_index + 2:
-            d.append(temp[-2])
-            wd.append(temp[-1])
+            d.append(temp[data_column_index])
+            wd.append(temp[data_column_index+1])
 
         count = count - 1
 
@@ -225,16 +221,6 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
             else:
                 source_list.append(dc.sources.Dipole([Rx], tx[:3], tx[3:]))
 
-    if len(d) == 0:
-        d = None
-    else:
-        d = np.asarray(d)
-    
-    if len(wd) == 0:
-        wd = None
-    else:
-        wd = np.asarray(wd)
-
     # Define survey type
     if is_pole_tx:
         str1 = 'pole-'
@@ -247,9 +233,15 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
         str2 = 'dipole'
 
     electrode_configuration = str1 + str2
+    survey = dc.survey.Survey(source_list, survey_type=electrode_configuration)
+    data_out = Data(survey=survey)
 
-    survey = dc.Survey(source_list, survey_type=electrode_configuration)
-    data_out = Data(survey=survey, dobs=d, standard_deviation=wd)
+    if len(d) > 0:
+        data_out.dobs = d
+
+    if len(wd) > 0:
+        data_out.standard_deviation = wd
+
     return data_out
 
 
@@ -278,13 +270,11 @@ def write_dcip3d_ubc(
     comment_lines:)
     """
 
-    assert(
-        data_type.lower() in ['volt', 'apparent_chargeability', 'secondary_potential'],
+    assert data_type.lower() in ['volt', 'apparent_chargeability', 'secondary_potential'], (
         "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
     )
 
-    assert(
-        file_type.lower() in ['survey', 'dpred', 'dobs'],
+    assert file_type.lower() in ['survey', 'dpred', 'dobs'], (
         "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
     )
 
@@ -323,13 +313,11 @@ def write_dcipoctree_ubc(
     comment_lines:)
     """
 
-    assert(
-        data_type.lower() in ['volt', 'apparent_chargeability'],
+    assert data_type.lower() in ['volt', 'apparent_chargeability'], (
         "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability'}"
     )
 
-    assert(
-        file_type.lower() in ['survey', 'dpred', 'dobs'],
+    assert file_type.lower() in ['survey', 'dpred', 'dobs'], (
         "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
     )
 
@@ -388,18 +376,15 @@ def _write_dcip_3d_or_octree_ubc(
             )
         )
 
-    assert(
-        data_type.lower() in ['volt', 'apparent_chargeability', 'secondary_potential'],
+    assert data_type.lower() in ['volt', 'apparent_chargeability', 'secondary_potential'], (
         "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
     )
 
-    assert(
-        file_type.lower() in ['survey', 'dpred', 'dobs'],
+    assert file_type.lower() in ['survey', 'dpred', 'dobs'], (
         "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
     )
 
-    assert(
-        code_type.lower() in ['dcip3d', 'dcipoctree'],
+    assert code_type.lower() in ['dcip3d', 'dcipoctree'], (
         "Parameter 'code_type' must be one of {'dcip3d', 'dcipoctree'}"
     )
 
