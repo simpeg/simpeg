@@ -144,8 +144,8 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
 
     # Since SimPEG defines secondary potential from IP as voltage,
     # we must use this type when defining the receivers.
-    if data_type == 'secondary_potential':
-        data_type == 'volt'
+    if data_type.lower() == 'secondary_potential':
+        data_type = 'volt'
 
     # Countdown for number of obs/tx
     count = 0
