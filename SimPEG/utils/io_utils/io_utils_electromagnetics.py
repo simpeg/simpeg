@@ -142,6 +142,11 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
     if (code_type == 'dcip3d') & (data_type != 'volt'):
         obsfile = obsfile[1:]
 
+    # Since SimPEG defines secondary potential from IP as voltage,
+    # we must use this type when defining the receivers.
+    if data_type == 'secondary_potential':
+        data_type == 'volt'
+
     # Countdown for number of obs/tx
     count = 0
     for ii in range(obsfile.shape[0]):
@@ -213,9 +218,9 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
         if count == 0:
             rx = np.asarray(rx)
             if is_pole_rx:
-                Rx = dc.receivers.Pole(rx[:, :3])
+                Rx = dc.receivers.Pole(rx[:, :3], data_type=data_type)
             else:
-                Rx = dc.receivers.Dipole(rx[:, :3], rx[:, 3:])
+                Rx = dc.receivers.Dipole(rx[:, :3], rx[:, 3:], data_type=data_type)
             if is_pole_tx:
                 source_list.append(dc.sources.Pole([Rx], tx[:3]))
             else:
