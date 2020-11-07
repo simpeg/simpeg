@@ -75,16 +75,6 @@ class RawWaveform(BaseWaveform):
         return self.waveFct(time)
 
 
-class TriangularWaveform(BaseWaveform):
-    def __init__(self, offTime=0.0):
-        BaseWaveform.__init__(self, offTime, hasInitialFields=True)
-
-    def eval(self, time):
-        raise NotImplementedError(
-            "TriangularWaveform has not been implemented, you should write it!"
-        )
-
-
 class VTEMWaveform(BaseWaveform):
 
     offTime = properties.Float("off-time of the source", default=4.2e-3)
@@ -153,6 +143,21 @@ class TrapezoidWaveform(BaseWaveform):
             return 0
 
 
+class TriangularWaveform(TrapezoidWaveform):
+    """
+    TriangularWaveform is a special case of TrapezoidWaveform where there's no pleateau
+    """
+
+    offTime = properties.Float("off-time of the source")
+    peakTime = properties.Float("Time at which the Triangular waveform is at its peak")
+
+    def __init__(self, **kwargs):
+        super(TriangularWaveform, self).__init__(**kwargs)
+        self.hasInitialFields = False
+        self.ramp_on = np.r_[0.0, self.peakTime]
+        self.ramp_off = np.r_[self.peakTime, self.offTime]
+
+
 class QuarterSineRampOnWaveform(BaseWaveform):
     """
     A waveform that has a quarter-sine ramp-on and a linear ramp-off
@@ -185,6 +190,43 @@ class QuarterSineRampOnWaveform(BaseWaveform):
         elif time >= self.ramp_off[0] and time <= self.ramp_off[1]:
             return 1 - (1.0 / (self.ramp_off[1] - self.ramp_off[0])) * (
                 time - self.ramp_off[0]
+            )
+        else:
+            return 0
+
+
+class HalfSineWaveform(BaseWaveform):
+    """
+    A waveform that has a quarter-sine ramp-on and a quarter-cosine ramp-off.
+    When the end of ramp-on and start of ramp off are on the same spot, it looks
+    like a half sine wave.
+    """
+
+    ramp_on = properties.Array(
+        "times over which the transmitter ramps on", shape=(2,), dtype=float
+    )
+    ramp_off = properties.Array(
+        "times over which we ramp off the waveform", shape=(2,), dtype=float
+    )
+
+    def __init__(self, **kwargs):
+        super(HalfSineWaveform, self).__init__(**kwargs)
+        self.hasInitialFields = False
+
+    def eval(self, time):
+        if time < self.ramp_on[0]:
+            return 0
+        elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
+            return np.sin(
+                (np.pi / 2)
+                * ((time - self.ramp_on[0]) / (self.ramp_on[1] - self.ramp_on[0]))
+            )
+        elif time > self.ramp_on[1] and time < self.ramp_off[0]:
+            return 1
+        elif time >= self.ramp_off[0] and time <= self.ramp_off[1]:
+            return np.cos(
+                (np.pi / 2)
+                * ((time - self.ramp_off[0]) / (self.ramp_off[1] - self.ramp_off[0]))
             )
         else:
             return 0
@@ -478,6 +520,7 @@ class LineCurrent(BaseTDEMSrc):
     loc = deprecate_property(
         location, "loc", new_name="location", removal_version="0.15.0"
     )
+    current = properties.Float("current in the line", default=1.0)
 
     def __init__(self, receiver_list=None, **kwargs):
         self.integrate = False
@@ -494,7 +537,7 @@ class LineCurrent(BaseTDEMSrc):
             py = self.loc[:, 1]
             pz = self.loc[:, 2]
             self._Mejs = getSourceTermLineCurrentPolygon(x0, hx, hy, hz, px, py, pz)
-        return self._Mejs
+        return self.current * self._Mejs
 
     def getRHSdc(self, prob):
         Grad = prob.mesh.nodalGrad

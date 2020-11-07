@@ -491,21 +491,6 @@ def plot_pseudosection(
             **cbar_opts,
         )
 
-    if data_type.lower() in DATA_TYPES["apparent conductivity"]:
-        cbar.set_label("Apparent Conductivity (S/m)")
-
-    elif data_type.lower() in DATA_TYPES["apparent resistivity"]:
-        cbar.set_label("Apparent Resistivity ($\\Omega$m)")
-
-    elif data_type.lower() in DATA_TYPES["potential"]:
-        cbar.set_label("Voltage (V)")
-
-    elif data_type.lower() in DATA_TYPES["apparent chargeability"]:
-        cbar.set_label("Apparent Chargeability (V/V)")
-
-    elif data_type.lower() in ["misfit", "misfitmap"]:
-        cbar.set_label("Misfit (V)")
-
     ticks = np.linspace(vmin, vmax, 3)
     cbar.set_ticks(ticks)
     cbar.ax.tick_params()
@@ -524,6 +509,21 @@ def plot_pseudosection(
         ax.set_ylabel("n-spacing")
     elif y_values == "pseudo-depth":
         ax.set_ylabel("pseudo-depth")
+
+    if data_type.lower() in DATA_TYPES["apparent conductivity"]:
+        cbar.set_label("Apparent Conductivity (S/m)")
+
+    elif data_type.lower() in DATA_TYPES["apparent resistivity"]:
+        cbar.set_label("Apparent Resistivity ($\\Omega$m)")
+
+    elif data_type.lower() in DATA_TYPES["potential"]:
+        cbar.set_label("Voltage (V)")
+
+    elif data_type.lower() in DATA_TYPES["apparent chargeability"]:
+        cbar.set_label("Apparent Chargeability (V/V)")
+
+    elif data_type.lower() in ["misfit", "misfitmap"]:
+        cbar.set_label("Misfit (V)")
 
     return ax
 
@@ -1740,7 +1740,6 @@ def gettopoCC(mesh, actind, option="top"):
             dz = mesh.h_gridded[inds, -1] * 0.5
         elif option == "center":
             dz = 0.0
-
         return mesh.gridCC[inds, :-1], mesh.gridCC[inds, -1] + dz
 
 
@@ -1753,11 +1752,12 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         if pts.ndim == 2 and pts.shape[1] in [1, 2]:
             pts = pts[:, 0]
         if pts.ndim > 1:
-            raise Exception("pts should be 1d array")
+            raise ValueError("pts should be 1d array")
     elif mesh.dim == 3:
-        if pts.shape[1] == 3:
-            raise Exception("shape of pts should be (x,3)")
-        pass
+        if pts.shape[1] not in [2, 3]:
+            raise ValueError("shape of pts should be (x, 3) or (x, 2)")
+        # just grab the xy locations in the first two columns
+        pts = pts[:, :2]
     else:
         raise NotImplementedError()
     if actind is None:
@@ -1766,10 +1766,7 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         meshtemp, topoCC = gettopoCC(mesh, actind, option=option)
         inds = closestPoints(meshtemp, pts)
         topo = topoCC[inds]
-        if mesh.dim == 3:
-            out = np.c_[pts[:, :2], topo]
-        else:
-            out = np.c_[pts, topo]
+        out = np.c_[pts, topo]
 
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:

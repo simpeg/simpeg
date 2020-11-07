@@ -21,7 +21,11 @@ vtem = TDEM.Src.VTEMWaveform()
 trapezoid = TDEM.Src.TrapezoidWaveform(
     ramp_on=np.r_[0.0, 1.5e-3], ramp_off=max_t - np.r_[1.5e-3, 0]
 )
+triangular = TDEM.Src.TriangularWaveform(peakTime=max_t / 2, offTime=max_t)
 quarter_sine = TDEM.Src.QuarterSineRampOnWaveform(
+    ramp_on=np.r_[0.0, 1.5e-3], ramp_off=max_t - np.r_[1.5e-3, 0]
+)
+half_sine = TDEM.Src.HalfSineWaveform(
     ramp_on=np.r_[0.0, 1.5e-3], ramp_off=max_t - np.r_[1.5e-3, 0]
 )
 
@@ -29,16 +33,18 @@ waveforms = dict(
     zip(
         [
             "RampOffWaveform",
-            "VTEMWaveform",
             "TrapezoidWaveform",
             "QuarterSineRampOnWaveform",
+            "VTEMWaveform",
+            "TriangularWaveform",
+            "HalfSineWaveform",
         ],
-        [ramp_off, vtem, trapezoid, quarter_sine],
+        [ramp_off, trapezoid, quarter_sine, vtem, triangular, half_sine],
     )
 )
 
 # plot the waveforms
-fig, ax = plt.subplots(2, 2, figsize=(7, 7))
+fig, ax = plt.subplots(3, 2, figsize=(7, 10))
 ax = mkvc(ax)
 
 for a, key in zip(ax, waveforms):
