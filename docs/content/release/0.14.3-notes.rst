@@ -1,0 +1,54 @@
+.. _0.14.3_notes:
+
+===========================
+SimPEG 0.14.3 Release Notes
+===========================
+
+This release mostly contains bug fixes and/or smaller additions to the code base
+that add additional functionality.
+
+New Things
+==========
+
+Primary-Secondary approach for 3D DC
+
+Current argument for time-domain line source
+
+Defaults for plotting
+
+Gravity Gradient UBC read in io
+Gravity and magnetic readin
+
+
+Bugs Squashed
+=============
+
+Sign conventions in gravity files
+
+Mapping in LinearSimulation
+
+Re-enable mu inverse testing for FDEM
+
+
+Contributors
+============
+
+* everyones
+* @jcapriot
+
+Pull requests
+=============
+
+* `#916 <https://github.com/simpeg/simpeg/pull/916>`__: Update AUTHORS.rst
+* `#917 <https://github.com/simpeg/simpeg/pull/917>`__: change the way of exporting magnetic data
+* `#918 <https://github.com/simpeg/simpeg/pull/918>`__: add current argument to LineCurrent
+* `#921 <https://github.com/simpeg/simpeg/pull/921>`__: Mu Inversion Test for FDEM
+* `#922 <https://github.com/simpeg/simpeg/pull/922>`__: Update io_utils.py
+* `#927 <https://github.com/simpeg/simpeg/pull/927>`__: Show memory usage in examples
+* `#929 <https://github.com/simpeg/simpeg/pull/929>`__: Dev/jpe nsem data fix
+* `#931 <https://github.com/simpeg/simpeg/pull/931>`__: Improve mag3d computation over node locations and more versatile pf IO
+* `#936 <https://github.com/simpeg/simpeg/pull/936>`__: fix mapping in LinearSimulation
+* `#940 <https://github.com/simpeg/simpeg/pull/940>`__: plot_utils: add defaults for all contour, streamplot etc. that can be overwritten by inputs
+
+Closed issues
+=============
