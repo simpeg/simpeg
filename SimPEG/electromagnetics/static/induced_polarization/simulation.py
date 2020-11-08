@@ -1,6 +1,7 @@
 import numpy as np
 import scipy as sp
 import properties
+from discretize import TensorMesh
 from ....utils.code_utils import deprecate_class
 
 from .... import props
@@ -419,6 +420,9 @@ class Simulation3DCellCenteredFictitiousSources(BaseIPSimulation, BaseSimulation
         ind_active[self.sigma < (1e-8 + tol)] = False
         xy_surface, z_surface = gettopoCC(self.mesh, ind_active, option="top")
 
+        if isinstance(xy_surface, TensorMesh):
+            xy_surface = xy_surface.gridCC
+
         # A function for finding index of nearest neighour of surface cells
         kdtree = sp.spatial.KDTree(xy_surface)
 
@@ -473,6 +477,9 @@ class Simulation3DNodalFictitiousSources(BaseIPSimulation, BaseSimulation3DNodal
         ind_active = np.ones(self.mesh.nC, dtype=bool)
         ind_active[self.sigma < (1e-8 + tol)] = False
         xy_surface, z_surface = gettopoCC(self.mesh, ind_active, option="top")
+
+        if isinstance(xy_surface, TensorMesh):
+            xy_surface = xy_surface.gridCC
 
         # A function for finding index of nearest neighour of surface cells
         kdtree = sp.spatial.KDTree(xy_surface)

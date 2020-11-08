@@ -11,6 +11,7 @@ from .survey import Survey
 from .sources import Pole, Dipole
 from .fields import Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole, gettopoCC
+from discretize import TensorMesh
 
 
 class BaseDCSimulation(BaseEMSimulation):
@@ -627,6 +628,9 @@ class Simulation3DCellCenteredFictitiousSources(BaseDCSimulationFictitiousSource
         ind_active[self.sigma < (1e-8 + tol)] = False
         xy_surface, z_surface = gettopoCC(self.mesh, ind_active, option="top")
 
+        if isinstance(xy_surface, TensorMesh):
+            xy_surface = xy_surface.gridCC
+
         # A function for finding index of nearest neighour of surface cells
         kdtree = sp.spatial.KDTree(xy_surface)
 
@@ -681,6 +685,9 @@ class Simulation3DNodalFictitiousSources(BaseDCSimulationFictitiousSources, Simu
         ind_active[self.sigma < (1e-8 + tol)] = False
         xy_surface, z_surface = gettopoCC(self.mesh, ind_active, option="top")
 
+        if isinstance(xy_surface, TensorMesh):
+            xy_surface = xy_surface.gridCC
+        
         # A function for finding index of nearest neighour of surface cells
         kdtree = sp.spatial.KDTree(xy_surface)
 
