@@ -66,36 +66,6 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         """
         return eSolution
 
-    # Overwriting a base FDEM method, could use it.
-    # def _e(self, eSolution, source_list):
-    #     """
-    #     Total electric field is sum of primary and secondary
-
-    #     :param numpy.ndarray solution: field we solved for
-    #     :param list source_list: list of sources
-    #     :rtype: numpy.ndarray
-    #     :return: total electric field
-    #     """
-    #     return self._ePrimary(eSolution, source_list) + self._eSecondary(eSolution, source_list)
-
-    # def _eDeriv(self, src, du_dm_v, v, adjoint=False):
-    #     """
-    #     Total derivative of e with respect to the inversion model. Returns :math:`d\mathbf{e}/d\mathbf{m}` for forward and (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
-
-    #     :param Src src: source
-    #     :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
-    #     :param numpy.ndarray v: vector to take sensitivity product with
-    #     :param bool adjoint: adjoint?
-    #     :rtype: numpy.ndarray
-    #     :return: derivative times a vector (or tuple for adjoint)
-    #     """
-    #     if getattr(self, '_eDeriv_u', None) is None or getattr(self, '_eDeriv_m', None) is None:
-    #         raise NotImplementedError ('Getting eDerivs from %s is not implemented' %self.knownFields.keys()[0])
-
-    #     # if adjoint:
-    #     #     return self._eDeriv_u(src, v, adjoint), self._eDeriv_m(src, v, adjoint)
-    #     return np.array(self._eDeriv_u(src, du_dm_v, adjoint) + self._eDeriv_m(src, v, adjoint), dtype = complex)
-
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         """
         Partial derivative of the total electric field with respect to the solution.
@@ -147,35 +117,6 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         for i, src in enumerate(source_list):
             b[:, i] *= -1.0 / (1j * omega(src.freq))
         return b
-
-    # def _b(self, eSolution, source_list):
-    #     """
-    #     Total magnetic field is sum of primary and secondary
-
-    #     :param numpy.ndarray solution: field we solved for
-    #     :param list source_list: list of sources
-    #     :rtype: numpy.ndarray
-    #     :return: total magnetic field
-    #     """
-    #     return self._bPrimary(eSolution, source_list) + self._bSecondary(eSolution, source_list)
-
-    # def _bDeriv(self, src, du_dm_v, v, adjoint=False):
-    #     """
-    #     Total derivative of b with respect to the inversion model. Returns :math:`d\mathbf{b}/d\mathbf{m}` for forward and (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
-
-    #     :param Src src: source
-    #     :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
-    #     :param numpy.ndarray v: vector to take sensitivity product with
-    #     :param bool adjoint: adjoint?
-    #     :rtype: numpy.ndarray
-    #     :return: derivative times a vector (or tuple for adjoint)
-    #     """
-    #     if getattr(self, '_bDeriv_u', None) is None or getattr(self, '_bDeriv_m', None) is None:
-    #         raise NotImplementedError ('Getting bDerivs from %s is not implemented' % self.knownFields.keys()[0])
-
-    #     # if adjoint:
-    #     #     return self._bDeriv_u(src, v, adjoint), self._bDeriv_m(src, v, adjoint)
-    #     return np.array(self._bDeriv_u(src, du_dm_v, adjoint) + self._bDeriv_m(src, v, adjoint), dtype=complex)
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
         """

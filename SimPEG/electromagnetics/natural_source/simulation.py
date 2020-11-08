@@ -390,7 +390,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 ###################################
 # 3D problems
 ###################################
-class Simulation3DPrimarySecondary(BaseFDEMSimulation):
+class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     """
     A NSEM problem solving a e formulation and a primary/secondary fields decompostion.
 
@@ -519,45 +519,44 @@ class Simulation3DPrimarySecondary(BaseFDEMSimulation):
 
         return dRHS_dm
 
-    # def fields(self, m=None):
-    #     """
-    #     Function to calculate all the fields for the model m.
+    def fields(self, m=None):
+        """
+        Function to calculate all the fields for the model m.
 
-    #     :param numpy.ndarray (nC,) m: Conductivity model
-    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
-    #     :return: Fields object with of the solution
+        :param numpy.ndarray (nC,) m: Conductivity model
+        :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+        :return: Fields object with of the solution
 
-    #     """
-    #     # Set the current model
-    #     if m is not None:
-    #         self.model = m
+        """
+        # Set the current model
+        if m is not None:
+            self.model = m
 
-    #     F = self.fieldsPair(self)
-    #     for freq in self.survey.frequencies:
-    #         if self.verbose:
-    #             startTime = time.time()
-    #             print("Starting work for {:.3e}".format(freq))
-    #             sys.stdout.flush()
-    #         A = self.getA(freq)
-    #         rhs = self.getRHS(freq)
-    #         # Solve the system
-    #         Ainv = self.Solver(A, **self.solver_opts)
-    #         e_s = Ainv * rhs
+        F = self.fieldsPair(self)
+        for freq in self.survey.frequencies:
+            if self.verbose:
+                startTime = time.time()
+                print("Starting work for {:.3e}".format(freq))
+                sys.stdout.flush()
+            A = self.getA(freq)
+            rhs = self.getRHS(freq)
+            # Solve the system
+            Ainv = self.Solver(A, **self.solver_opts)
+            e_s = Ainv * rhs
 
-    #         # Store the fields
-    #         Src = self.survey.get_sources_by_frequency(freq)[0]
-    #         # Store the fields
-    #         # Use self._solutionType
-    #         F[Src, "e_pxSolution"] = e_s[:, 0]
-    #         F[Src, "e_pySolution"] = e_s[:, 1]
-    #         # Note curl e = -iwb so b = -curl/iw
+            # Store the fields
+            Src = self.survey.get_sources_by_frequency(freq)[0]
+            # Store the fields
+            # Use self._solutionType
+            F[Src, "e_pxSolution"] = e_s[:, 0]
+            F[Src, "e_pySolution"] = e_s[:, 1]
+            # Note curl e = -iwb so b = -curl/iw
 
-    #         if self.verbose:
-    #             print("Ran for {:f} seconds".format(time.time() - startTime))
-    #             sys.stdout.flush()
-    #         Ainv.clean()
-    #     return F
-
+            if self.verbose:
+                print("Ran for {:f} seconds".format(time.time() - startTime))
+                sys.stdout.flush()
+            Ainv.clean()
+        return F
 
 
 ############
