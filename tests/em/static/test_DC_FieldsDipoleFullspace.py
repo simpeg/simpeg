@@ -189,6 +189,98 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
             print(">> DC analytic test for Simulation3DCellCentered_Neumann failed")
         self.assertTrue(passed)
 
+    def test_Simulation3DCellCenteredFictitiousSources_Dirichlet(self, tolerance=0.1):
+        simulation = dc.Simulation3DCellCenteredFictitiousSources(
+            self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Dirichlet"
+        )
+        simulation.Solver = Solver
+
+        #        f = simulation.fields()
+        f = simulation.fields(self.sigma)
+        eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
+        jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
+        # also test we can get charge and charge density
+        f[:, "charge"]
+        f[:, "charge_density"]
+
+        errE = np.linalg.norm(
+            jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]
+        ) / np.linalg.norm(self.J_analytic[self.ROIfaceInds])
+        errJ = np.linalg.norm(
+            eNumeric[self.ROIfaceInds] - self.E_analytic[self.ROIfaceInds]
+        ) / np.linalg.norm(self.E_analytic[self.ROIfaceInds])
+        if errE < tolerance and errJ < tolerance:
+            print("\n")
+            print("E field error =", errE)
+            print("J field error =", errJ)
+            passed = True
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources_Dirichlet passed")
+        else:
+            print("\n")
+            print("E field error =", errE)
+            print("J field error =", errJ)
+            passed = False
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources_Dirchlet failed")
+        self.assertTrue(passed)
+
+    def test_Simulation3DCellCenteredFictitiousSources_Mixed(self, tolerance=0.1):
+        simulation = dc.simulation.Simulation3DCellCenteredFictitiousSources(
+            self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Mixed"
+        )
+        simulation.Solver = Solver
+
+        f = simulation.fields(self.sigma)
+        eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
+        jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
+        errE = np.linalg.norm(
+            jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]
+        ) / np.linalg.norm(self.J_analytic[self.ROIfaceInds])
+        errJ = np.linalg.norm(
+            eNumeric[self.ROIfaceInds] - self.E_analytic[self.ROIfaceInds]
+        ) / np.linalg.norm(self.E_analytic[self.ROIfaceInds])
+        if errE < tolerance and errJ < tolerance:
+            print("\n")
+            print("E field error =", errE)
+            print("J field error =", errJ)
+            passed = True
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources_Mixed passed")
+        else:
+            print("\n")
+            print("E field error =", errE)
+            print("J field error =", errJ)
+            passed = False
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources_Mixed failed")
+        self.assertTrue(passed)
+
+    def test_Simulation3DCellCenteredFictitiousSources_Neumann(self, tolerance=0.1):
+        simulation = dc.Simulation3DCellCenteredFictitiousSources(
+            self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Neumann"
+        )
+        simulation.Solver = Solver
+
+        f = simulation.fields(self.sigma)
+        eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
+        jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
+        errE = np.linalg.norm(
+            jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]
+        ) / np.linalg.norm(self.J_analytic[self.ROIfaceInds])
+        errJ = np.linalg.norm(
+            eNumeric[self.ROIfaceInds] - self.E_analytic[self.ROIfaceInds]
+        ) / np.linalg.norm(self.E_analytic[self.ROIfaceInds])
+        if errE < tolerance and errJ < tolerance:
+            print("\n")
+            print("E field error =", errE)
+            print("J field error =", errJ)
+            passed = True
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources_Neumann passed")
+        else:
+            print("\n")
+            print("E field error =", errE)
+            print("J field error =", errJ)
+            passed = False
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources_Neumann failed")
+        self.assertTrue(passed)
+
 
 class DC_N_DipoleFullspaceTests(unittest.TestCase):
     def setUp(self):
@@ -303,6 +395,39 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
             print("J field error =", errJ)
             passed = False
             print(">> DC analytic test for Simulation3DNodal failed")
+        self.assertTrue(passed)
+
+    def test_Simulation3DNodalFictitiousSources(self, tolerance=0.1):
+        simulation = dc.simulation.Simulation3DNodalFictitiousSources(
+            self.mesh, survey=self.survey, sigma=self.sigma
+        )
+        simulation.Solver = Solver
+
+        f = simulation.fields(self.sigma)
+        eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
+        jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
+        # also test if we can get charge and charge_density
+        f[:, "charge"]
+        f[:, "charge_density"]
+
+        errE = np.linalg.norm(
+            jNumeric[self.ROIedgeInds] - self.J_analytic[self.ROIedgeInds]
+        ) / np.linalg.norm(self.J_analytic[self.ROIedgeInds])
+        errJ = np.linalg.norm(
+            eNumeric[self.ROIedgeInds] - self.E_analytic[self.ROIedgeInds]
+        ) / np.linalg.norm(self.E_analytic[self.ROIedgeInds])
+        if errE < tolerance and errJ < tolerance:
+            print("\n")
+            print("E field error =", errE)
+            print("J field error =", errJ)
+            passed = True
+            print(">> DC analytic test for Simulation3DNodalFictitiousSources passed")
+        else:
+            print("\n")
+            print("E field error =", errE)
+            print("J field error =", errJ)
+            passed = False
+            print(">> DC analytic test for Simulation3DNodalFictitiousSources failed")
         self.assertTrue(passed)
 
 
