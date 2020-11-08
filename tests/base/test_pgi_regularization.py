@@ -31,7 +31,7 @@ class TestPGI(unittest.TestCase):
         self.rv0 = multivariate_normal(self.means[0], self.sigma[0])
         self.rv1 = multivariate_normal(self.means[1], self.sigma[1])
         self.proportions = np.r_[0.6, 0.4]
-        self.nsample = 1000.0
+        self.nsample = 1000
         self.s0 = self.rv0.rvs(int(self.nsample * self.proportions[0]))
         self.s1 = self.rv1.rvs(int(self.nsample * self.proportions[1]))
         self.samples = np.r_[self.s0, self.s1]
@@ -88,13 +88,12 @@ class TestPGI(unittest.TestCase):
         score_approx1 = 0.5 * dm.dot(reg_simple.deriv2(self.model, dm))
         print(score_approx0,score_approx1)
         passed_score_approx_simple = (score_approx0 == score_approx1)
-        print("scores": score_approx0,score_approx1, score)
         self.assertTrue(passed_score_approx_simple)
 
         reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(self.model) - reg_simple(mkvc(clf.means_[clf.predict(self.samples)]))
         passed_score_simple = np.allclose(score_approx0, score, rtol=3e-1)
-        print("scores": score_approx0,score_approx1, score)
+        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_simple)
         
         print("scores for SimplePGI are ok.")
@@ -102,13 +101,13 @@ class TestPGI(unittest.TestCase):
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model,dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
-        print("scores": score_approx0,score_approx1, score)
+        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_approx)
 
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mkvc(clf.means_[clf.predict(self.samples)]))
         passed_score = np.allclose(score_approx0, score, rtol=3e-1)
-        print("scores": score_approx0,score_approx1, score)
+        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score)
         
         print("scores for PGI are ok.")
@@ -271,24 +270,23 @@ class TestPGI(unittest.TestCase):
         dm = (self.model - mref)
         score_approx1 = 0.5 * dm.dot(reg_simple.deriv2(self.model, dm))
         passed_score_approx_simple = (score_approx0 == score_approx1)
-        print("scores": score_approx0,score_approx1, score)
         self.assertTrue(passed_score_approx_simple)
         reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(self.model) - reg_simple(mkvc(clf.means_[clf.predict(self.samples)]))
         passed_score_simple = np.allclose(score_approx0, score, rtol=3e-1)
-        print("scores": score_approx0,score_approx1, score)
+        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_simple)
         print("scores for SimplePGI are ok.")
 
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model,dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
-        print("scores": score_approx0,score_approx1, score)
+        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mkvc(clf.means_[clf.predict(self.samples)]))
         passed_score = np.allclose(score_approx0, score, rtol=3e-1)
-        print("scores": score_approx0,score_approx1, score)
+        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score)
         print("scores for PGI are ok.")
 
@@ -451,24 +449,23 @@ class TestPGI(unittest.TestCase):
         dm = (self.model - mref)
         score_approx1 = 0.5 * dm.dot(reg_simple.deriv2(self.model, dm))
         passed_score_approx_simple = (score_approx0 == score_approx1)
-        print("scores": score_approx0,score_approx1, score)
         self.assertTrue(passed_score_approx_simple)
         reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(self.model) - reg_simple(mkvc(clf.means_[clf.predict(self.samples)]))
         passed_score_simple = np.allclose(score_approx0, score, rtol=3e-1)
-        print("scores": score_approx0,score_approx1, score)
+        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_simple)
         print("scores for SimplePGI are ok.")
 
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model,dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
-        print("scores": score_approx0,score_approx1, score)
+        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mkvc(clf.means_[clf.predict(self.samples)]))
         passed_score = np.allclose(score_approx0, score, rtol=3e-1)
-        print("scores": score_approx0,score_approx1, score)
+        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score)
         print("scores for PGI are ok.")
 
@@ -630,24 +627,23 @@ class TestPGI(unittest.TestCase):
         dm = self.model - mref
         score_approx1 = 0.5 * dm.dot(reg_simple.deriv2(self.model, dm))
         passed_score_approx_simple = (score_approx0 == score_approx1)
-        print("scores": score_approx0,score_approx1, score)
         self.assertTrue(passed_score_approx_simple)
         reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(self.model) - reg_simple(mkvc(clf.means_[clf.predict(self.samples)]))
         passed_score_simple = np.allclose(score_approx0, score, rtol=3e-1)
-        print("scores": score_approx0,score_approx1, score)
+        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_simple)
         print("scores for SimplePGI are ok.")
 
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model,dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
-        print("scores": score_approx0,score_approx1, score)
+        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mkvc(clf.means_[clf.predict(self.samples)]))
         passed_score = np.allclose(score_approx0, score, rtol=3e-1)
-        print("scores": score_approx0,score_approx1, score)
+        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score)
         print("scores for PGI are ok.")
 
