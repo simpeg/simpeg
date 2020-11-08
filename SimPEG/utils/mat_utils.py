@@ -190,24 +190,22 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
     """
     Compute constants defining a plane from a set of points.
 
-    The equation defining a plane has the form ax+by+cz+d=0.
-    This utility returns the constants a, b, c and d.
+    # The equation defining a plane has the form ax+by+cz+d=0.
+    # This utility returns the constants a, b, c and d.
     
-    Parameters
-    ----------
-    xyz1 : numpy.ndarray
-        First point needed to define the plane (x1, y1, z1)
-    xyz2 : numpy.ndarray
-        Second point needed to define the plane (x2, y2, z2)
-    xyz3 : numpy.ndarray
-        Third point needed to define the plane (x3, y3, z3)
+    # Input:
+    # xyz1 : numpy.ndarray
+    #     First point needed to define the plane (x1, y1, z1)
+    # xyz2 : numpy.ndarray
+    #     Second point needed to define the plane (x2, y2, z2)
+    # xyz3 : numpy.ndarray
+    #     Third point needed to define the plane (x3, y3, z3)
 
-    Returns
-    -------
-    a : float
-    b : float
-    c : float
-    d : float
+    # Output:
+    # a : float
+    # b : float
+    # c : float
+    # d : float
 
     """
 

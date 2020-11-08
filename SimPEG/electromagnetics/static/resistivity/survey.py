@@ -238,8 +238,7 @@ class Survey(BaseSurvey):
         corresponding DC voltage to each receiver so that the IP simulation
         can simulate apparent chargeability directly.
 
-        Parameters
-        ----------
+        Input:
         self : SimPEG.electromagnetics.static.survey.Survey
         dc_voltages : numpy.ndarray
             DC resistivity data as voltages

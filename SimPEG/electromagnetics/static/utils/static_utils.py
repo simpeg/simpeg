@@ -55,15 +55,13 @@ def electrode_separations(survey_object, electrode_pair="all"):
     """
     Calculate horizontal separation between specific or all electrodes.
 
-    Parameters
-    ----------
+    Input:
     survey_object : SimPEG.electromagnetics.static.survey.Survey
         A DC or IP survey object
     electrode_pair : str or list of str
         A string or list of strings from the following {'all', 'AB', 'MN', 'AM', 'AN', 'BM', 'BN}
 
-    Returns
-    -------
+    Output:
     list of np.ndarray
         For each electrode pair specified, the electrode distance is returned
         in a list.
@@ -154,13 +152,11 @@ def source_receiver_midpoints(survey, **kwargs):
     """
     Calculates the pseudo-sensitivity locations for 2D and 3D surveys.
 
-    Parameters
-    ----------
+    Input:
     survey : SimPEG.electromagnetics.static.resistivity.Survey
         A DC or IP survey
 
-    Returns
-    -------
+    Output:
     tuple of numpy.ndarray of the form (midxy, midz)
         For 2D surveys, *midxy* is a vector containing the along line position.
         For 3D surveys, *midxy* is an (n, 2) numpy array containing the (x,y) positions.
@@ -531,8 +527,7 @@ def plot_3d_pseudosection(
     all pseudo-locations. If a plane is specified, the user may create a scatter
     plot or contour plot on that plane.
 
-    Parameters
-    ----------
+    Input:
     survey : SimPEG.electromagnetics.static.survey.Survey
         A DC or IP survey object
     dvec : numpy.ndarray
@@ -574,8 +569,7 @@ def plot_3d_pseudosection(
         A LateX formatted string stating the desired units for the
         data; e.g. 'S/m', '$\Omega m$', '%'
 
-    Returns
-    -------
+    Output:
     mpl_toolkits.mplot3d.axes3d.Axes3D
         The axis object that holds the plot
 
