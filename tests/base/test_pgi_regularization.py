@@ -53,7 +53,8 @@ class TestPGI(unittest.TestCase):
             n_components=self.n_components,
             covariance_type="full",
             max_iter=1000,
-            n_init=10,
+            n_init=100,
+            tol=1e-8,
             means_init=self.means,
             warm_start=True,
             precisions_init=np.linalg.inv(self.sigma),
@@ -91,26 +92,25 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_score_approx_simple)
 
         reg_simple.objfcts[0].approx_eval = False
-        score = reg_simple(self.model) - reg_simple(mkvc(clf.means_[clf.predict(self.samples)]))
+        score = reg_simple(self.model) - reg_simple(mref)
         passed_score_simple = np.allclose(score_approx0, score, rtol=3e-1)
         print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_simple)
         
-        print("scores for SimplePGI are ok.")
+        print("scores for SimplePGI & Full Cov. are ok.")
 
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model,dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
-        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_approx)
 
         reg.objfcts[0].approx_eval = False
-        score = reg(self.model) - reg(mkvc(clf.means_[clf.predict(self.samples)]))
+        score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=3e-1)
         print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score)
         
-        print("scores for PGI are ok.")
+        print("scores for PGI  & Full Cov. are ok.")
 
         # check derivatives as an optimization on locally quadratic function
         # Simple
@@ -120,7 +120,7 @@ class TestPGI(unittest.TestCase):
         deriv_simple_full = reg_simple.deriv(self.model)
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
-        print("1st derivatives for SimplePGI are ok.")
+        print("1st derivatives for SimplePGI & Full Cov. are ok.")
         deriv_simple = reg_simple.deriv(self.model)
         Hinv = PardisoSolver(reg_simple.deriv2(self.model))
         p_simple = Hinv * deriv_simple
@@ -129,7 +129,7 @@ class TestPGI(unittest.TestCase):
             mkvc(self.samples - direction2_simple), mkvc(mref), rtol=1e-1
         )
         self.assertTrue(passed_derivative_simple)
-        print("2nd derivatives for SimplePGI are ok.")
+        print("2nd derivatives for SimplePGI & Full Cov. are ok.")
 
         # With volumes
         deriv = reg.deriv(self.model)
@@ -137,7 +137,7 @@ class TestPGI(unittest.TestCase):
         deriv_full = reg.deriv(self.model)
         passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
-        print("1st derivatives for PGI are ok.")
+        print("1st derivatives for PGI & Full Cov. are ok.")
         Hinv = PardisoSolver(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
@@ -145,7 +145,7 @@ class TestPGI(unittest.TestCase):
             mkvc(self.samples - direction2), mkvc(mref), rtol=1e-1
         )
         self.assertTrue(passed_derivative)
-        print("2nd derivatives for PGI are ok.")
+        print("2nd derivatives for PGI & Full Cov. are ok.")
 
         if self.PlotIt:
             import matplotlib.pyplot as plt
@@ -237,7 +237,8 @@ class TestPGI(unittest.TestCase):
             n_components=self.n_components,
             covariance_type="tied",
             max_iter=1000,
-            n_init=10,
+            n_init=100,
+            tol=1e-8,
             means_init=self.means,
             warm_start=True,
             weights_init=self.proportions,
@@ -272,23 +273,22 @@ class TestPGI(unittest.TestCase):
         passed_score_approx_simple = (score_approx0 == score_approx1)
         self.assertTrue(passed_score_approx_simple)
         reg_simple.objfcts[0].approx_eval = False
-        score = reg_simple(self.model) - reg_simple(mkvc(clf.means_[clf.predict(self.samples)]))
+        score = reg_simple(self.model) - reg_simple(mref)
         passed_score_simple = np.allclose(score_approx0, score, rtol=3e-1)
         print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_simple)
-        print("scores for SimplePGI are ok.")
+        print("scores for SimplePGI & tied Cov. are ok.")
 
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model,dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
-        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
-        score = reg(self.model) - reg(mkvc(clf.means_[clf.predict(self.samples)]))
+        score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=3e-1)
         print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score)
-        print("scores for PGI are ok.")
+        print("scores for PGI & tied Cov. are ok.")
 
         # check derivatives as an optimization on locally quadratic function
         # Simple
@@ -298,7 +298,7 @@ class TestPGI(unittest.TestCase):
         deriv_simple_full = reg_simple.deriv(self.model)
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
-        print("1st derivatives for SimplePGI are ok.")
+        print("1st derivatives for SimplePGI & tied Cov. are ok.")
         deriv_simple = reg_simple.deriv(self.model)
         Hinv = PardisoSolver(reg_simple.deriv2(self.model))
         p_simple = Hinv * deriv_simple
@@ -307,7 +307,7 @@ class TestPGI(unittest.TestCase):
             mkvc(self.samples - direction2_simple), mkvc(mref), rtol=1e-1
         )
         self.assertTrue(passed_derivative_simple)
-        print("2nd derivatives for SimplePGI are ok.")
+        print("2nd derivatives for SimplePGI & tied Cov. are ok.")
 
         # With volumes
         deriv = reg.deriv(self.model)
@@ -315,7 +315,7 @@ class TestPGI(unittest.TestCase):
         deriv_full = reg.deriv(self.model)
         passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
-        print("1st derivatives for PGI are ok.")
+        print("1st derivatives for PGI & tied Cov. are ok.")
 
         Hinv = PardisoSolver(reg.deriv2(self.model))
         p = Hinv * deriv
@@ -324,7 +324,7 @@ class TestPGI(unittest.TestCase):
             mkvc(self.samples - direction2), mkvc(mref), rtol=1e-1
         )
         self.assertTrue(passed_derivative)
-        print("2nd derivatives for PGI are ok.")
+        print("2nd derivatives for PGI & tied Cov. are ok.")
 
         if self.PlotIt:
             import matplotlib.pyplot as plt
@@ -416,7 +416,8 @@ class TestPGI(unittest.TestCase):
             n_components=self.n_components,
             covariance_type="diag",
             max_iter=1000,
-            n_init=10,
+            n_init=100,
+            tol=1e-8,
             means_init=self.means,
             warm_start=True,
             weights_init=self.proportions,
@@ -451,23 +452,22 @@ class TestPGI(unittest.TestCase):
         passed_score_approx_simple = (score_approx0 == score_approx1)
         self.assertTrue(passed_score_approx_simple)
         reg_simple.objfcts[0].approx_eval = False
-        score = reg_simple(self.model) - reg_simple(mkvc(clf.means_[clf.predict(self.samples)]))
+        score = reg_simple(self.model) - reg_simple(mref)
         passed_score_simple = np.allclose(score_approx0, score, rtol=3e-1)
         print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_simple)
-        print("scores for SimplePGI are ok.")
+        print("scores for SimplePGI & diag Cov. are ok.")
 
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model,dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
-        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
-        score = reg(self.model) - reg(mkvc(clf.means_[clf.predict(self.samples)]))
+        score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=3e-1)
         print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score)
-        print("scores for PGI are ok.")
+        print("scores for PGI & diag Cov. are ok.")
 
         # check derivatives as an optimization on locally quadratic function
         # Simple
@@ -477,7 +477,7 @@ class TestPGI(unittest.TestCase):
         deriv_simple_full = reg_simple.deriv(self.model)
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
-        print("1st derivatives for SimplePGI are ok.")
+        print("1st derivatives for SimplePGI & diag Cov. are ok.")
         deriv_simple = reg_simple.deriv(self.model)
         Hinv = PardisoSolver(reg_simple.deriv2(self.model))
         p_simple = Hinv * deriv_simple
@@ -486,7 +486,7 @@ class TestPGI(unittest.TestCase):
             mkvc(self.samples - direction2_simple), mkvc(mref), rtol=1e-1
         )
         self.assertTrue(passed_derivative_simple)
-        print("2nd derivatives for SimplePGI are ok.")
+        print("2nd derivatives for SimplePGI & diag Cov. are ok.")
 
         # With volumes
         deriv = reg.deriv(self.model)
@@ -494,7 +494,7 @@ class TestPGI(unittest.TestCase):
         deriv_full = reg.deriv(self.model)
         passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
-        print("1st derivatives for PGI are ok.")
+        print("1st derivatives for PGI & diag Cov. are ok.")
         Hinv = PardisoSolver(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
@@ -502,7 +502,7 @@ class TestPGI(unittest.TestCase):
             mkvc(self.samples - direction2), mkvc(mref), rtol=1e-1
         )
         self.assertTrue(passed_derivative)
-        print("2nd derivatives for PGI are ok.")
+        print("2nd derivatives for PGI & diag Cov. are ok.")
 
         if self.PlotIt:
             import matplotlib.pyplot as plt
@@ -594,7 +594,8 @@ class TestPGI(unittest.TestCase):
             n_components=self.n_components,
             covariance_type="spherical",
             max_iter=1000,
-            n_init=10,
+            n_init=100,
+            tol=1e-8,
             means_init=self.means,
             warm_start=True,
             weights_init=self.proportions,
@@ -629,23 +630,22 @@ class TestPGI(unittest.TestCase):
         passed_score_approx_simple = (score_approx0 == score_approx1)
         self.assertTrue(passed_score_approx_simple)
         reg_simple.objfcts[0].approx_eval = False
-        score = reg_simple(self.model) - reg_simple(mkvc(clf.means_[clf.predict(self.samples)]))
+        score = reg_simple(self.model) - reg_simple(mref)
         passed_score_simple = np.allclose(score_approx0, score, rtol=3e-1)
         print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_simple)
-        print("scores for SimplePGI are ok.")
+        print("scores for SimplePGI & spherical Cov. are ok.")
 
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model,dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
-        print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
-        score = reg(self.model) - reg(mkvc(clf.means_[clf.predict(self.samples)]))
+        score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=3e-1)
         print("scores:", score_approx0,score_approx1, score)
         self.assertTrue(passed_score)
-        print("scores for PGI are ok.")
+        print("scores for PGI & spherical Cov. are ok.")
 
         # check derivatives as an optimization on locally quadratic function
         # Simple
@@ -655,7 +655,7 @@ class TestPGI(unittest.TestCase):
         deriv_simple_full = reg_simple.deriv(self.model)
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
-        print("1st derivatives for SimplePGI are ok.")
+        print("1st derivatives for SimplePGI & spherical Cov. are ok.")
         deriv_simple = reg_simple.deriv(self.model)
         Hinv = PardisoSolver(reg_simple.deriv2(self.model))
         p_simple = Hinv * deriv_simple
@@ -664,7 +664,7 @@ class TestPGI(unittest.TestCase):
             mkvc(self.samples - direction2_simple), mkvc(mref), rtol=1e-1
         )
         self.assertTrue(passed_derivative_simple)
-        print("2nd derivatives for SimplePGI are ok.")
+        print("2nd derivatives for SimplePGI & spherical Cov. are ok.")
 
         # With volumes
         deriv = reg.deriv(self.model)
@@ -672,7 +672,7 @@ class TestPGI(unittest.TestCase):
         deriv_full = reg.deriv(self.model)
         passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
-        print("1st derivatives for PGI are ok.")
+        print("1st derivatives for PGI & spherical Cov. are ok.")
   
         Hinv = PardisoSolver(reg.deriv2(self.model))
         p = Hinv * deriv
@@ -681,7 +681,7 @@ class TestPGI(unittest.TestCase):
             mkvc(self.samples - direction2), mkvc(mref), rtol=1e-1
         )
         self.assertTrue(passed_derivative)
-        print("2nd derivatives for PGI are ok.")
+        print("2nd derivatives for PGI & spherical Cov. are ok.")
 
         if self.PlotIt:
             import matplotlib.pyplot as plt
