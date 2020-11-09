@@ -27,10 +27,12 @@ options for ``norm``, ``levels``, and ``zorder`` for the ``contourOpts`` diction
 input. There is also now a ``streamplotOpts`` dictionary input as well to handle
 keyword arguments to the stream plot.
 
-
 We have added a few file readers for UBC styled data files, specifically
 gravity gradiometry and UBC's dcip3d OcTree data file format, which is slightly
 different than the normal dcip3d data file format.
+
+This release will also be compatible with upcoming changes to the ``discretize``
+package.
 
 Bugs Squashed
 =============
@@ -41,15 +43,25 @@ with z being positive upwards, whereas in the UBC file, gravity was defined as p
 downwards.
 Gravity and magnetic readin
 
-Mapping in LinearSimulation
+The user provided mapping for ``SimPEG.simulation.LinearSimulation`` was not being
+properly taken into account, and has now been fixed.
 
-Re-enable mu inverse testing for FDEM
+We have re-anabled the mu inverse testing of ``SimPEG.electromagnetics.frequency_domain``
+classes, ensuring those tests also pass.
 
 
 Contributors
 ============
+This is a combination of contributors and reviewers who've made contributions towards
+this release (in no particular order).
 
-* everyones
+* @xiaolongw1223
+* @jedman
+* @lheagy
+* @domfournier
+* @prisae
+* @dccowan
+* @thast
 * @jcapriot
 
 Pull requests
