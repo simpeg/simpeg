@@ -163,8 +163,12 @@ class Dipole(BaseRx):
         self.locations = locations
 
     def __repr__(self):
-        return "".join([f"{self.__class__.__name__}(m: {m}; n: {n}),\n" for
-                        (m, n) in zip(self.locations_m, self.locations_n)])
+        return ",\n".join(
+            [
+                f"{self.__class__.__name__}(m: {m}; n: {n})"
+                for (m, n) in zip(self.locations_m, self.locations_n)
+            ]
+        )
 
     @property
     def locations_m(self):
@@ -215,8 +219,9 @@ class Pole(BaseRx):
     #     BaseRx.__init__(self, locations)
 
     def __repr__(self):
-        return "".join([f"{self.__class__.__name__}(m: {m}),\n" for
-                        m in self.locations])
+        return ",\n".join(
+            [f"{self.__class__.__name__}(m: {m})" for m in self.locations]
+        )
 
     @property
     def nD(self):
