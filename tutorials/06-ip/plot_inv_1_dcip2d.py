@@ -14,6 +14,9 @@ optimization problems. For this tutorial, we focus on the following:
     - Applying sensitivity weighting
     - Plotting the recovered model and data misfit
 
+The DC data are measured voltages and the IP data are defined as secondary
+potentials.
+
 
 """
 
@@ -109,11 +112,11 @@ N_electrodes = dobs_dc[:, 6:8]
 dobs_dc = dobs_dc[:, -1]
 dobs_ip = dobs_ip[:, -1]
 
-# Define survey
 unique_tx, k = np.unique(np.c_[A_electrodes, B_electrodes], axis=0, return_index=True)
 n_sources = len(k)
 k = np.r_[k, len(A_electrodes) + 1]
 
+# Define DC survey
 source_list = []
 for ii in range(0, n_sources):
 
@@ -127,9 +130,23 @@ for ii in range(0, n_sources):
     B_location = B_electrodes[k[ii], :]
     source_list.append(dc.sources.Dipole(receiver_list, A_location, B_location))
 
-# Define survey
 dc_survey = dc.survey.Survey_ky(source_list)
-ip_survey = ip.from_dc_to_ip_survey(dc_survey, dim="2.5D")
+
+# Define IP survey
+source_list = []
+for ii in range(0, n_sources):
+
+    # MN electrode locations for receivers. Each is an (N, 3) numpy array
+    M_locations = M_electrodes[k[ii] : k[ii + 1], :]
+    N_locations = N_electrodes[k[ii] : k[ii + 1], :]
+    receiver_list = [dc.receivers.Dipole(M_locations, N_locations, data_type="volt")]
+
+    # AB electrode locations for source. Each is a (1, 3) numpy array
+    A_location = A_electrodes[k[ii], :]
+    B_location = B_electrodes[k[ii], :]
+    source_list.append(dc.sources.Dipole(receiver_list, A_location, B_location))
+
+ip_survey = ip.survey.Survey_ky(source_list)
 
 # Define the a data object. Uncertainties are added later
 dc_data = data.Data(dc_survey, dobs=dobs_dc)
@@ -151,7 +168,8 @@ plot_pseudoSection(
 )
 ax1.set_title("Apparent Conductivity [S/m]")
 
-# Plot apparent chargeability in pseudo-section
+# Plot apparent chargeability in pseudo-section. Since data are secondary
+# potentials, we must normalize by the DC voltage first.
 apparent_chargeability = ip_data.dobs / dc_data.dobs
 
 ax2 = fig.add_axes([0.05, 0.05, 0.8, 0.45])

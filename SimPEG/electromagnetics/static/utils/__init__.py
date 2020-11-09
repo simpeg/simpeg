@@ -9,6 +9,7 @@ from .static_utils import (
     gen_DCIPsurvey,
     generate_dcip_survey,
     generate_dcip_survey_line,
+    generate_dcip_sources_line,
     writeUBC_DCobs,
     writeUBC_DClocs,
     convertObs_DC3D_to_2D,

@@ -16,8 +16,10 @@ the following:
     - The units of the models and resulting data
 
 This tutorial is split into two parts. First we create a resistivity model and
-predict DC resistivity data. Next we create a chargeability model and a
-background conductivity model to compute IP data.
+predict DC resistivity data as measured voltages. Next we create a chargeability
+model and a background conductivity model to compute IP data defined as
+secondary potentials. We show how DC and IP in units of Volts can be plotted on
+pseudo-sections as apparent conductivities and apparent chargeabilities.
 
 
 """
@@ -35,7 +37,7 @@ from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
 from SimPEG.electromagnetics.static.utils import (
-    generate_dcip_survey_line,
+    generate_dcip_sources_line,
     plot_pseudoSection,
 )
 
@@ -83,24 +85,28 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
 # Define survey line parameters
 survey_type = "dipole-dipole"
+dimension_type = "2.5D"
 data_type = "volt"
 end_locations = np.r_[-400.0, 400]
 station_separation = 50.0
 dipole_separation = 25.0
-n = 8
+num_rx_per_src = 8
 
-# Generate DC survey line
-dc_survey = generate_dcip_survey_line(
+# Generate source list for DC survey line
+source_list = generate_dcip_sources_line(
     survey_type,
     data_type,
+    dimension_type,
     end_locations,
     xyz_topo,
+    num_rx_per_src,
     station_separation,
     dipole_separation,
-    n,
-    dim_flag="2.5D",
-    sources_only=False,
 )
+
+# Define survey
+dc_survey = dc.survey.Survey(source_list, survey_type=survey_type)
+
 
 ###############################################################
 # Create OcTree Mesh
@@ -292,14 +298,27 @@ if save_file:
     np.savetxt(fname, xyz_topo, fmt="%.4e")
 
 #######################################################################
-# Predict IP Resistivity Data
-# ---------------------------
+# Define IP Survey
+# ----------------
 #
-# The geometry of the survey was defined earlier. Here, we use SimPEG functionality
-# to make a copy for predicting IP data.
+# The geometry of the survey was defined earlier. We will define the IP
+# data as the secondary potential. Thus the data type is still 'volts'.
 #
 
-ip_survey = ip.from_dc_to_ip_survey(dc_survey, dim="2.5D")
+# Generate source list for DC survey line
+source_list = generate_dcip_sources_line(
+    survey_type,
+    data_type,
+    dimension_type,
+    end_locations,
+    xyz_topo,
+    num_rx_per_src,
+    station_separation,
+    dipole_separation,
+)
+
+# Define survey
+ip_survey = ip.survey.Survey(source_list, survey_type=survey_type)
 
 
 ###############################################################
