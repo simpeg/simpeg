@@ -1,3 +1,7 @@
+# Copyright (c) 2013 SimPEG Developers.
+# Distributed under the terms of the MIT License.
+# SPDX-License-Identifier: MIT
+# This code is part of the SimPEG project (https://simpeg.xyz)
 import numpy as np
 from ...potential_fields.base import BasePFSimulation as Sim
 import os

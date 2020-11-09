@@ -1,3 +1,7 @@
+# Copyright (c) 2013 SimPEG Developers.
+# Distributed under the terms of the MIT License.
+# SPDX-License-Identifier: MIT
+# This code is part of the SimPEG project (https://simpeg.xyz)
 """ module SimPEG.EM.NSEM.Utils
 
 Collection of utilities that are usefull for the NSEM problem

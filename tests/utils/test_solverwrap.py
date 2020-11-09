@@ -1,3 +1,7 @@
+# Copyright (c) 2013 SimPEG Developers.
+# Distributed under the terms of the MIT License.
+# SPDX-License-Identifier: MIT
+# This code is part of the SimPEG project (https://simpeg.xyz)
 import unittest
 from SimPEG.utils.solver_utils import Solver, SolverLU, SolverCG, SolverBiCG, SolverDiag
 import scipy.sparse as sp
