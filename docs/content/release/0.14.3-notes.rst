@@ -10,20 +10,36 @@ that add additional functionality.
 New Things
 ==========
 
-Primary-Secondary approach for 3D DC
+We have implemented a fictitous source solution for the 3D DC resistivity system
+that will improve accuracy when the model is close to a uniform half-space solution.
+This function works by first analytically evaluating the electric potential in
+the subsurface using a uniform halfspace. It then uses the corresponding discrete
+forward operator to construct the RHS of the underlying PDE, which is then solved
+to obtain the electric potential for the given model.
 
-Current argument for time-domain line source
+The  class ``SimPEG.electromagnetics.frequency_domain.sources.LineCurrent`` now accepts
+a keyword argument option ``current`` to set the strength of the ``LineCurrent``.
+This is similar behavoir to ```SimPEG.electromagnetics.frequency_domain.sources.CircularLoop``.
 
-Defaults for plotting
+There are now a few more default options that are setting for the plotting routines
+in ``SimPEG.utils.plot_utils.plot2Ddata``. We also now specifically overriding these default
+options for ``norm``, ``levels``, and ``zorder`` for the ``contourOpts`` dictionary
+input. There is also now a ``streamplotOpts`` dictionary input as well to handle
+keyword arguments to the stream plot.
 
-Gravity Gradient UBC read in io
-Gravity and magnetic readin
 
+We have added a few file readers for UBC styled data files, specifically
+gravity gradiometry and UBC's dcip3d OcTree data file format, which is slightly
+different than the normal dcip3d data file format.
 
 Bugs Squashed
 =============
 
-Sign conventions in gravity files
+The sign convention when reading in the UBC gravity files has been adjusted to match
+SimPEG's coordinate system convention. SimPEG uses a right handed coordinate system,
+with z being positive upwards, whereas in the UBC file, gravity was defined as positive
+downwards.
+Gravity and magnetic readin
 
 Mapping in LinearSimulation
 
