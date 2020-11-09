@@ -1,3 +1,7 @@
+# Copyright (c) 2013 SimPEG Developers.
+# Distributed under the terms of the MIT License.
+# SPDX-License-Identifier: MIT
+# This code is part of the SimPEG project (https://simpeg.xyz)
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import gen_DCIPsurvey
 from SimPEG import maps

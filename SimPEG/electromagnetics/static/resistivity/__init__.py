@@ -1,3 +1,7 @@
+# Copyright (c) 2013 SimPEG Developers.
+# Distributed under the terms of the MIT License.
+# SPDX-License-Identifier: MIT
+# This code is part of the SimPEG project (https://simpeg.xyz)
 from .simulation import Simulation3DCellCentered, Simulation3DNodal
 from .simulation_2d import Simulation2DCellCentered, Simulation2DNodal
 from .simulation_1d import Simulation1DLayers
