@@ -925,6 +925,83 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         return np.average(self.score_samples(X), weights=self.vol)
 
+    def _estimate_log_gaussian_prob_with_sensW(self, X, sensW, means, precisions_chol, covariance_type):
+        """Estimate the log Gaussian probability.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+        means : array-like, shape (n_components, n_features)
+        sensW: array-like, Sensitvity or Depth Weighting, shape(n_samples, n_features)
+        precisions_chol : array-like,
+            Cholesky decompositions of the precision matrices.
+            'full' : shape of (n_components, n_features, n_features)
+            'tied' : shape of (n_features, n_features)
+            'diag' : shape of (n_components, n_features)
+            'spherical' : shape of (n_components,)
+        covariance_type : {'full', 'tied', 'diag', 'spherical'}
+        Returns
+        -------
+        log_prob : array, shape (n_samples, n_components)
+        """
+        n_samples, n_features = X.shape
+        n_components, _ = means.shape
+        # det(precision_chol) is half of det(precision)
+        log_det = _compute_log_det_cholesky(
+            precisions_chol, covariance_type, n_features)
+
+        if covariance_type == 'full':
+            log_prob = np.empty((n_samples, n_components))
+            for k, (mu, prec_chol) in enumerate(zip(means, precisions_chol)):
+                y = np.dot(X * sensW, prec_chol) - np.dot(mu * sensW, prec_chol)
+                log_prob[:, k] = np.sum(np.square(y), axis=1)
+
+        elif covariance_type == 'tied':
+            log_prob = np.empty((n_samples, n_components))
+            for k, mu in enumerate(means):
+                y = np.dot(X * sensW, precisions_chol) - np.dot(mu * sensW, precisions_chol)
+                log_prob[:, k] = np.sum(np.square(y), axis=1)
+
+        else:
+            log_prob = np.empty((n_samples, n_components))
+            for k, (mu, prec_chol) in enumerate(zip(means, precisions_chol)):
+                prec_chol_mat = np.eye(n_components) * prec_chol
+                y = np.dot(X * sensW, prec_chol_mat) - np.dot(mu * sensW, prec_chol_mat)
+                log_prob[:, k] = np.sum(np.square(y), axis=1)
+        
+        return -.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
+
+    def _estimate_log_prob_with_sensW(self, X, sensW):
+        return self._estimate_log_gaussian_prob_with_sensW(
+            X, sensW, self.means_, self.precisions_cholesky_, self.covariance_type)
+
+    def _estimate_weighted_log_prob_with_sensW(self, X, sensW):
+        """Estimate the weighted log-probabilities, log P(X | Z) + log weights.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+        Returns
+        -------
+        weighted_log_prob : array, shape (n_samples, n_component)
+        """
+        return self._estimate_log_prob_with_sensW(X, sensW) + self._estimate_log_weights()
+
+    def score_samples_with_sensW(self, X, sensW):
+        """Compute the weighted log probabilities for each sample.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            List of n_features-dimensional data points. Each row
+            corresponds to a single data point.
+        Returns
+        -------
+        log_prob : array, shape (n_samples,)
+            Log probabilities of each data point in X.
+        """
+        check_is_fitted(self)
+        X = _check_X(X, None, self.means_.shape[1])
+
+        return logsumexp(self._estimate_weighted_log_prob_with_sensW(X, sensW), axis=1)
+
 
 class GaussianMixtureWithPrior(WeightedGaussianMixture):
     def __init__(

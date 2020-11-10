@@ -27,7 +27,7 @@ class TestPGI(unittest.TestCase):
         sigma[0] += np.eye(self.ndim)
         sigma[1] += np.eye(self.ndim) - 0.25 * np.eye(self.ndim).transpose((1, 0))
         self.sigma = sigma
-        self.means = np.abs(np.random.randn(self.ndim, self.ndim)) * np.c_[[5.0, -5.0]]
+        self.means = np.abs(np.random.randn(self.ndim, self.ndim)) * np.c_[[10.0, -10.0]]
         self.rv0 = multivariate_normal(self.means[0], self.sigma[0])
         self.rv1 = multivariate_normal(self.means[1], self.sigma[1])
         self.proportions = np.r_[0.6, 0.4]
@@ -39,8 +39,8 @@ class TestPGI(unittest.TestCase):
         self.mesh = Mesh.TensorMesh([self.samples.shape[0]])
         self.wires = Wires(("s0", self.mesh.nC), ("s1", self.mesh.nC))
         self.cell_weights_list = [
-            np.ones(self.mesh.nC) ** 2.0,
-            np.ones(self.mesh.nC) ** 2.0,
+            np.maximum(1e-1,np.random.randn(self.mesh.nC) ** 2.0),
+            np.maximum(1e-1,np.random.randn(self.mesh.nC) ** 2.0),
         ]
         self.PlotIt = False
 

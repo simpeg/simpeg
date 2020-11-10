@@ -153,9 +153,16 @@ class SimplePGIsmallness(BaseRegularization):
         else:
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-            score = self.gmm.score_samples(model)
-            score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
-            return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
+            
+            if externalW and getattr(self.W, "diagonal", None) is not None:
+                sensW = np.c_[[wire[1]*self.W.diagonal() for wire in self.wiresmap.maps]].T
+            else:
+                sensW = np.ones_like(model)
+
+            score = self.gmm.score_samples_with_sensW(model, sensW)
+            #score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
+            #return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
+            return - np.sum(score)
 
     @timeIt
     def deriv(self, m):
@@ -209,24 +216,40 @@ class SimplePGIsmallness(BaseRegularization):
         else:
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-            score = self.gmm.score_samples(model)
+
+            if getattr(self.W, "diagonal", None) is not None:
+                sensW = np.c_[[wire[1]*self.W.diagonal() for wire in self.wiresmap.maps]].T
+            else:
+                sensW = np.ones_like(model)
+
+            score = self.gmm.score_samples_with_sensW(model, sensW)
+            #score = self.gmm.score_samples(model)
             score_vec = np.hstack([score for maps in self.wiresmap.maps])
+            
             logP = np.zeros((len(model), self.gmm.n_components))
             W = []
+            logP = self.gmm._estimate_log_gaussian_prob_with_sensW(
+                model, sensW, self.gmm.means_, self.gmm.precisions_cholesky_, self.gmm.covariance_type
+            )
             for k in range(self.gmm.n_components):
                 if self.gmm.covariance_type == "tied":
-                    logP[:, k] = mkvc(
-                        multivariate_normal(
-                            self.gmm.means_[k], self.gmm.covariances_
-                        ).logpdf(model)
-                    )
+                    #logP[:, k] = mkvc(
+                    #    multivariate_normal(
+                    #        self.gmm.means_[k], self.gmm.covariances_
+                    #    ).logpdf(model)
+                    #)
+
                     W.append(
                         self.gmm.weights_[k]
                         * mkvc(
                             np.r_[
                                 [
                                     np.dot(
-                                        self.gmm.precisions_,
+                                        np.diag(sensW[i]).dot(
+                                            self.gmm.precisions_.dot(
+                                                np.diag(sensW[i])
+                                            )
+                                        ),
                                         (model[i] - self.gmm.means_[k]).T,
                                     )
                                     for i in range(len(model))
@@ -238,20 +261,24 @@ class SimplePGIsmallness(BaseRegularization):
                     self.gmm.covariance_type == "diag"
                     or self.gmm.covariance_type == "spherical"
                 ):
-                    logP[:, k] = mkvc(
-                        multivariate_normal(
-                            self.gmm.means_[k],
-                            self.gmm.covariances_[k] * np.eye(len(self.wiresmap.maps)),
-                        ).logpdf(model)
-                    )
+                    #logP[:, k] = mkvc(
+                    #    multivariate_normal(
+                    #        self.gmm.means_[k],
+                    #        self.gmm.covariances_[k] * np.eye(len(self.wiresmap.maps)),
+                    #    ).logpdf(model)
+                    #)
                     W.append(
                         self.gmm.weights_[k]
                         * mkvc(
                             np.r_[
                                 [
                                     np.dot(
-                                        self.gmm.precisions_[k]
-                                        * np.eye(len(self.wiresmap.maps)),
+                                        np.diag(sensW[i]).dot(
+                                            (self.gmm.precisions_[k]
+                                            * np.eye(len(self.wiresmap.maps))).dot(
+                                                np.diag(sensW[i])
+                                            )
+                                        ),
                                         (model[i] - self.gmm.means_[k]).T,
                                     )
                                     for i in range(len(model))
@@ -260,18 +287,22 @@ class SimplePGIsmallness(BaseRegularization):
                         )
                     )
                 else:
-                    logP[:, k] = mkvc(
-                        multivariate_normal(
-                            self.gmm.means_[k], self.gmm.covariances_[k]
-                        ).logpdf(model)
-                    )
+                    #logP[:, k] = mkvc(
+                    #    multivariate_normal(
+                    #        self.gmm.means_[k], self.gmm.covariances_[k]
+                    #    ).logpdf(model)
+                    #)
                     W.append(
                         self.gmm.weights_[k]
                         * mkvc(
                             np.r_[
                                 [
                                     np.dot(
-                                        self.gmm.precisions_[k],
+                                        np.diag(sensW[i]).dot(
+                                            self.gmm.precisions_[k].dot(
+                                                np.diag(sensW[i])
+                                            )
+                                        ),
                                         (model[i] - self.gmm.means_[k]).T,
                                     )
                                     for i in range(len(model))
@@ -284,7 +315,7 @@ class SimplePGIsmallness(BaseRegularization):
             numer, sign = logsumexp(logP, axis=1, b=W, return_sign=True)
             logderiv = numer - score_vec
             r = sign * np.exp(logderiv)
-            return mkvc(mD.T * (self.W.T * (self.W * r)))
+            return mkvc(mD.T * r)
 
     @timeIt
     def deriv2(self, m, v=None):
