@@ -231,7 +231,7 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[:, [0, 2]], ococtree_levels=[1], method="surface", finalize=False
+    mesh, topo_xyz[:, [0, 2]], octree_levels=[1], method="surface", finalize=False
 )
 
 # Mesh refinement near transmitters and receivers
@@ -245,13 +245,13 @@ electrode_locations = np.r_[
 unique_locations = np.unique(electrode_locations, axis=0)
 
 mesh = refine_tree_xyz(
-    mesh, unique_locations, ococtree_levels=[2, 4], method="radial", finalize=False
+    mesh, unique_locations, octree_levels=[2, 4], method="radial", finalize=False
 )
 
 # Refine core mesh region
 xp, zp = np.meshgrid([-800.0, 800.0], [-800.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(mesh, xyz, ococtree_levels=[0, 2, 2], method="box", finalize=False)
+mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 2], method="box", finalize=False)
 
 mesh.finalize()
 
