@@ -85,7 +85,11 @@ release = "0.14.2"
 # directories to ignore when looking for source files.
 exclude_patterns = ["_build"]
 
-linkcheck_ignore = [r"https://github.com/simpeg/simpeg*"]
+linkcheck_ignore = [
+    r"https://github.com/simpeg/simpeg*",
+    "/content/examples/*",
+    "/content/tutorials/*",
+]
 
 linkcheck_retries = 3
 linkcheck_timeout = 500

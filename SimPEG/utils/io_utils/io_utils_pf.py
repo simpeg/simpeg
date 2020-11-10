@@ -203,7 +203,7 @@ def write_gravity_3d_ubc(filename, data_object):
     print("Observation file saved to: " + filename)
 
 
-def read_gravity_gradiometry_3d_ubc(obs_file, file_type):
+def read_gravity_gradiometry_3d_ubc(obs_file):
     """
     Read UBC gravity gradiometry file format
 
@@ -215,8 +215,6 @@ def read_gravity_gradiometry_3d_ubc(obs_file, file_type):
     :param survey
 
     """
-    if file_type not in ["survey", "dpred", "dobs"]:
-        raise ValueError("file_type must be one of: 'survey', 'dpred', 'dobs'")
 
     from SimPEG.potential_fields import gravity
     from SimPEG import data
@@ -243,37 +241,35 @@ def read_gravity_gradiometry_3d_ubc(obs_file, file_type):
     # Second Line has number of locations
     line = fid.readline()
     ndat = int(line.split()[0])
+    ncomp = len(components)
 
     # Pre-allocate space for obsx, obsy, obsz, data, uncert
     line = fid.readline()
 
     locXYZ = np.zeros((ndat, 3), dtype=float)
-    if file_type == "survey":
-        d = None
-        wd = None
-    elif file_type == "dpred":
-        d = np.zeros((ndat, len(components)), dtype=float)
-        wd = None
-    else:
-        d = np.zeros((ndat, len(components)), dtype=float)
-        wd = np.zeros((ndat, len(components)), dtype=float)
+    d = np.zeros((ndat, ncomp), dtype=float)
+    wd = np.zeros((ndat, ncomp), dtype=float)
 
     ii = 0
     while ii < ndat:
 
         temp = np.array(line.split(), dtype=float)
-        locXYZ[ii, :] = temp[:3]
+        locXYZ[ii] = temp[:3]
 
-        if file_type == "dpred":
-            d[ii, :] = factor * temp[3:]
-
-        elif file_type == "dobs":
-            d[ii, :] = factor * temp[3::2]
-            wd[ii, :] = temp[4::2]
+        if len(temp) == 3 + ncomp:
+            d[ii] = factor * temp[3:]
+        elif len(temp) == 3 + ncomp * 2:
+            d[ii] = factor * temp[3::2]
+            wd[ii] = temp[4::2]
 
         ii += 1
         line = fid.readline()
     fid.close()
+
+    if np.all(wd == 0.0):
+        wd = None
+    if np.all(d == 0.0):
+        d = None
 
     # Turn into vector. For multiple components, SimPEG orders by rows
     if d is not None:
