@@ -481,7 +481,7 @@ def plot_pseudosection(
     if y_values == "n-spacing":
         ticks = ax.get_yticks() * 2  # pseudo-depth divides by 2
         spacing = np.abs(midz).min()
-        ax.set_yticklabels(-ticks / spacing)
+        ax.set_yticklabels(np.around(-ticks / spacing, 1))
         ax.set_ylabel("n-spacing")
     elif y_values == "pseudo-depth":
         ax.set_ylabel("pseudo-depth")
@@ -935,11 +935,10 @@ def generate_dcip_sources_line(
         stn_x = x1 + np.array(range(int(nstn))) * station_spacing
 
         # Station xyz locations
-        P = np.c_[stn_x, stn_y]
         if np.size(topo) == 1:
             P = np.c_[stn_x, topo * np.ones((nstn))]
         else:
-            fun_interp = LinearNDInterpolator(topo[:, 0:2], topo[:, -1])
+            fun_interp = interp1d(topo[:, 0], topo[:, -1])
             P = np.c_[stn_x, fun_interp(stn_x)]
 
     # Build list of Tx-Rx locations depending on survey type
@@ -963,7 +962,7 @@ def generate_dcip_sources_line(
             D = xy_2_r(stn_x[ii+rx_shift], x2, y1, y2)
 
         # Number of receivers to fit
-        nrec = int(np.min([np.floor(D/station_spacing - 1), num_rx_per_src]))
+        nrec = int(np.min([np.floor(D/station_spacing), num_rx_per_src]))
 
         # Check if there is enough space, else break the loop
         if nrec <= 0:

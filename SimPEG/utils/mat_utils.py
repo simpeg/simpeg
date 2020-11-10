@@ -208,8 +208,10 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
     # d : float
 
     """
+    v12 = (xyz2-xyz1)/np.sqrt(np.sum((xyz2-xyz1)**2, axis=0))
+    v13 = (xyz3-xyz1)/np.sqrt(np.sum((xyz3-xyz1)**2, axis=0))
 
-    a, b, c = np.cross(xyz2-xyz1, xyz3-xyz1)
+    a, b, c = np.cross(v12, v13)
     d = - (a*xyz1[0] + b*xyz1[1] + c*xyz1[2])
 
     return a, b, c, d
