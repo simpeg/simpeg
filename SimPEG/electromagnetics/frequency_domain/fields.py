@@ -346,10 +346,17 @@ class Fields3DElectricField(FieldsFDEM):
         :return: primary electric field as defined by the sources
         """
 
-        ePrimary = np.zeros([self.simulation.mesh.nE, len(source_list)], dtype=complex)
-        for i, src in enumerate(source_list):
+        n_fields = sum(src._fields_per_source for src in source_list)
+        ePrimary = np.zeros([self.simulation.mesh.nE, n_fields], dtype=complex)
+        i = 0
+        for src in source_list:
+            ii = i + src._fields_per_source
             ep = src.ePrimary(self.simulation)
-            ePrimary[:, i] = ePrimary[:, i] + ep
+            if not isinstance(ep, Zero) and ep.ndim == 1:
+                ep = ep[:, None]
+            ePrimary[:, i:ii] = ePrimary[:, i:ii] + ep
+            i = ii
+
         return ePrimary
 
     def _eSecondary(self, eSolution, source_list):
@@ -409,9 +416,14 @@ class Fields3DElectricField(FieldsFDEM):
             [self._edgeCurl.shape[0], eSolution.shape[1]], dtype=complex
         )
 
-        for i, src in enumerate(source_list):
+        i = 0
+        for src in source_list:
+            ii = i + src._fields_per_source
             bp = src.bPrimary(self.simulation)
-            bPrimary[:, i] = bPrimary[:, i] + bp
+            if not isinstance(bp, Zero) and bp.ndim == 1:
+                bp = bp[:, None]
+            bPrimary[:, i:ii] = bPrimary[:, i:ii] + bp
+            i = ii
         return bPrimary
 
     def _bSecondary(self, eSolution, source_list):
@@ -426,10 +438,16 @@ class Fields3DElectricField(FieldsFDEM):
 
         C = self._edgeCurl
         b = C * eSolution
-        for i, src in enumerate(source_list):
-            b[:, i] *= -1.0 / (1j * omega(src.frequency))  # freq depends on the source
+        i = 0
+        for src in source_list:
+            ii = i + src._fields_per_source
+            b[:, i:ii] *= -1.0 / (
+                1j * omega(src.frequency)
+            )  # freq depends on the source
             s_m = src.s_m(self.simulation)
-            b[:, i] = b[:, i] + 1.0 / (1j * omega(src.frequency)) * s_m
+            if not isinstance(s_m, Zero) and s_m.ndim == 1:
+                s_m = s_m[:, None]
+            b[:, i:ii] = b[:, i:ii] + 1.0 / (1j * omega(src.frequency)) * s_m
         return b
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
