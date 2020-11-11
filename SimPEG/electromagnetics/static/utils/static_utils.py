@@ -14,7 +14,7 @@ from ....utils import (
     mkvc,
     surface2ind_topo,
     model_builder,
-    define_plane_from_points
+    define_plane_from_points,
 )
 
 
@@ -51,7 +51,7 @@ SPACE_TYPES = {
 }
 
 
-def electrode_separations(survey_object, electrode_pair="all"):
+def electrode_separations(survey_object, electrode_pair="all", **kwargs):
     """
     Calculate horizontal separation between specific or all electrodes.
 
@@ -67,6 +67,12 @@ def electrode_separations(survey_object, electrode_pair="all"):
         in a list.
 
     """
+    if "survey_type" in kwargs:
+        warnings.warn(
+            "The survey_type is no longer necessary to calculate electrode separations. "
+            "Feel free to remove it from the call. This option will be removed in SimPEG 0.15.0",
+            DeprecationWarning,
+        )
 
     if not isinstance(electrode_pair, list):
         if electrode_pair.lower() == "all":
@@ -208,7 +214,7 @@ def source_receiver_midpoints(survey, **kwargs):
     return np.vstack(midxy), np.hstack(midz)
 
 
-def geometric_factor(survey_object, space_type="half space"):
+def geometric_factor(survey_object, space_type="half space", **kwargs):
     """
         Calculate Geometric Factor. Assuming that data are normalized voltages
 
@@ -223,6 +229,12 @@ def geometric_factor(survey_object, space_type="half space"):
         :return numpy.ndarray G: Geometric Factor
 
     """
+    if "survey_type" in kwargs:
+        warnings.warn(
+            "The survey_type is no longer necessary to calculate geometric factor. "
+            "Feel free to remove it from the call. This option will be removed in SimPEG 0.15.0",
+            DeprecationWarning,
+        )
     # Set factor for whole-space or half-space assumption
     if space_type.lower() in SPACE_TYPES["whole space"]:
         spaceFact = 4.0
@@ -247,7 +259,9 @@ def geometric_factor(survey_object, space_type="half space"):
     return G / (spaceFact * np.pi)
 
 
-def apparent_resistivity(data_object, space_type="half space", dobs=None, eps=1e-10, **kwargs):
+def apparent_resistivity(
+    data_object, space_type="half space", dobs=None, eps=1e-10, **kwargs
+):
     """
     Calculate apparent resistivity. Assuming that data are normalized
     voltages - Vmn/I (Potential difference [V] divided by injection
@@ -394,18 +408,14 @@ def plot_pseudosection(
             rho = np.log10(abs(dobs))
 
     elif data_type.lower() in DATA_TYPES["apparent conductivity"]:
-        rhoApp = apparent_resistivity(
-            data, dobs=dobs, space_type=space_type
-        )
+        rhoApp = apparent_resistivity(data, dobs=dobs, space_type=space_type)
         if scale == "linear":
             rho = 1.0 / rhoApp
         elif scale == "log":
             rho = np.log10(1.0 / rhoApp)
 
     elif data_type.lower() in DATA_TYPES["apparent resistivity"]:
-        rhoApp = apparent_resistivity(
-            data, dobs=dobs, space_type=space_type
-        )
+        rhoApp = apparent_resistivity(data, dobs=dobs, space_type=space_type)
         if scale == "linear":
             rho = rhoApp
         elif scale == "log":
@@ -505,24 +515,23 @@ def plot_pseudosection(
 
 
 def plot_3d_pseudosection(
-        survey,
-        dvec,
-        ax=None,
-        cax=None,
-        s=100,
-        vlim=None,
-        scale='linear',
-        plane_points=None,
-        plane_distance=10.,
-        create_colorbar=True,
-        scatter_opts={},
-        cbar_opts={},
-        units=''
-        
-    ):
+    survey,
+    dvec,
+    ax=None,
+    cax=None,
+    s=100,
+    vlim=None,
+    scale="linear",
+    plane_points=None,
+    plane_distance=10.0,
+    create_colorbar=True,
+    scatter_opts={},
+    cbar_opts={},
+    units="",
+):
     """
     Plot 3D DC/IP data in pseudo-section.
-    
+
     This utility allows the user to produce a scatter plot of 3D DC/IP data at
     all pseudo-locations. If a plane is specified, the user may create a scatter
     plot or contour plot on that plane.
@@ -574,103 +583,130 @@ def plot_3d_pseudosection(
         The axis object that holds the plot
 
     """
-    
+
     midxy, midz = source_receiver_midpoints(survey)
-    
-    if scale == 'log':
+
+    if scale == "log":
         dvec = np.log10(dvec)
         if vlim != None:
             vlim[0] = np.log10(vlim[0])
             vlim[1] = np.log10(vlim[1])
-    
+
     # Marker size for scatter plot
     if s == None:
         s = 80
-    
+
     if ax == None:
         fig = plt.figure(figsize=(10, 4))
-        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection='3d', azim=-60, elev=30)
-        cax = fig.add_axes([0.85, 0.1, 0.05, 0.8])    
-    
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection="3d", azim=-60, elev=30)
+        cax = fig.add_axes([0.85, 0.1, 0.05, 0.8])
+
     # 3D scatter plot
     if plane_points == None:
-        
+
         if vlim == None:
             norm = mpl.colors.Normalize(vmin=dvec.min(), vmax=dvec.max())
         else:
             norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])
 
         data_plot = ax.scatter(
-            midxy[:, 0], midxy[:, 1], midz, dvec,
-            s=s, c=dvec, depthshade=False, norm=norm, **scatter_opts
+            midxy[:, 0],
+            midxy[:, 1],
+            midz,
+            dvec,
+            s=s,
+            c=dvec,
+            depthshade=False,
+            norm=norm,
+            **scatter_opts,
         )
     else:
         # Place in list if only one plane defined
         if isinstance(plane_points[0], np.ndarray):
             plane_points = [plane_points]
-        
+
         # Expand to list of only one plane distance for all planes
         if isinstance(plane_distance, list) != True:
-            plane_distance = len(plane_points)*[plane_distance]
-            
+            plane_distance = len(plane_points) * [plane_distance]
+
         # Pre-allocate index for points on plane(s)
         k = np.zeros(len(dvec), dtype=bool)
         for ii in range(0, len(plane_points)):
-    
+
             p1, p2, p3 = plane_points[ii]
             a, b, c, d = define_plane_from_points(p1, p2, p3)
-        
-            k = k | (np.abs(a*midxy[:, 0] + b*midxy[:, 1] + c*midz + d)/np.sqrt(a**2 + b**2 + c**2) < plane_distance[ii])
-            
+
+            k = k | (
+                np.abs(a * midxy[:, 0] + b * midxy[:, 1] + c * midz + d)
+                / np.sqrt(a ** 2 + b ** 2 + c ** 2)
+                < plane_distance[ii]
+            )
+
         if np.all(k == 0):
             raise Exception(
                 """No locations are within *plane_distance* of any plane(s)
                 defined by *plane_points*. Try increasing *plane_distance*."""
             )
-                
+
         if vlim == None:
             norm = mpl.colors.Normalize(vmin=dvec[k].min(), vmax=dvec[k].max())
         else:
             norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])
 
         data_plot = ax.scatter(
-            midxy[k, 0], midxy[k, 1], midz[k], dvec[k],
-            s=s, c=dvec[k], depthshade=False, norm=norm, **scatter_opts
+            midxy[k, 0],
+            midxy[k, 1],
+            midz[k],
+            dvec[k],
+            s=s,
+            c=dvec[k],
+            depthshade=False,
+            norm=norm,
+            **scatter_opts,
         )
-            
-    
+
     # Define colorbar
     if create_colorbar:
         if cax == None:
             if scale == "log":
                 cbar = plt.colorbar(
-                    data_plot, format="$10^{%.3f}$", fraction=0.06,
-                    orientation="vertical", ax=ax, norm=norm, shrink=0.7, **cbar_opts,
+                    data_plot,
+                    format="$10^{%.3f}$",
+                    fraction=0.06,
+                    orientation="vertical",
+                    ax=ax,
+                    norm=norm,
+                    shrink=0.7,
+                    **cbar_opts,
                 )
             elif scale == "linear":
                 cbar = plt.colorbar(
-                    data_plot, format="%.2e", fraction=0.06,
-                    orientation="vertical", ax=ax, norm=norm, shrink=0.7, **cbar_opts,
+                    data_plot,
+                    format="%.2e",
+                    fraction=0.06,
+                    orientation="vertical",
+                    ax=ax,
+                    norm=norm,
+                    shrink=0.7,
+                    **cbar_opts,
                 )
 
         else:
             if scale == "log":
                 cbar = plt.colorbar(
-                    data_plot, format="$10^{%.3f}$", norm=norm,
-                    cax=cax, **cbar_opts,
+                    data_plot, format="$10^{%.3f}$", norm=norm, cax=cax, **cbar_opts,
                 )
             elif scale == "linear":
                 cbar = plt.colorbar(
-                    data_plot, format="%.2e", norm=norm,
-                    cax=cax, **cbar_opts,
+                    data_plot, format="%.2e", norm=norm, cax=cax, **cbar_opts,
                 )
 
         ticks = np.linspace(norm.vmin, norm.vmax, 5)
-            
+
         cbar.set_ticks(ticks)
         cbar.set_label(units, labelpad=12)
         cbar.ax.tick_params()
-    
+
     return ax
 
 
@@ -857,7 +893,7 @@ def generate_dcip_sources_line(
     end_points,
     topo,
     num_rx_per_src,
-    station_spacing
+    station_spacing,
 ):
     """
     Generate the source list for a 2D, 2.5D or 3D DC/IP survey line.
@@ -882,20 +918,25 @@ def generate_dcip_sources_line(
     :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
     """
 
-    assert survey_type.lower() in ["pole-pole", "pole-dipole", "dipole-pole", "dipole-dipole"], (
-        "survey_type must be one of 'pole-pole', 'pole-dipole', 'dipole-pole', 'dipole-dipole'"
-        )
+    assert survey_type.lower() in [
+        "pole-pole",
+        "pole-dipole",
+        "dipole-pole",
+        "dipole-dipole",
+    ], "survey_type must be one of 'pole-pole', 'pole-dipole', 'dipole-pole', 'dipole-dipole'"
 
     assert data_type.lower() in [
-        "volt", "apparent_conductivity", "apparent_resistivity", "apparent_chargeability"
-        ], (
-        "data_type must be one of 'volt', 'apparent_conductivity', 'apparent_resistivity', 'apparent_chargeability'"
-        )
+        "volt",
+        "apparent_conductivity",
+        "apparent_resistivity",
+        "apparent_chargeability",
+    ], "data_type must be one of 'volt', 'apparent_conductivity', 'apparent_resistivity', 'apparent_chargeability'"
 
-    assert dimension_type.upper() in ["2D", "2.5D", "3D"], (
-        "dimension_type must be one of '2D', '2.5D', '3D'"
-        )
-
+    assert dimension_type.upper() in [
+        "2D",
+        "2.5D",
+        "3D",
+    ], "dimension_type must be one of '2D', '2.5D', '3D'"
 
     def xy_2_r(x1, x2, y1, y2):
         r = np.sqrt(np.sum((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0))
@@ -946,23 +987,22 @@ def generate_dcip_sources_line(
     # Pole-dipole: Moving pole on one end -> [A a MN1 a MN2 ... MNn a B]
     source_list = []
 
-    if survey_type.lower() == 'pole-pole':
+    if survey_type.lower() == "pole-pole":
         rx_shift = 0
-    elif survey_type.lower() in ['pole-dipole', 'dipole-pole']:
+    elif survey_type.lower() in ["pole-dipole", "dipole-pole"]:
         rx_shift = 1
-    elif survey_type.lower() == 'dipole-dipole':
+    elif survey_type.lower() == "dipole-dipole":
         rx_shift = 2
 
-
-    for ii in range(0, int(nstn-rx_shift)):
+    for ii in range(0, int(nstn - rx_shift)):
 
         if dimension_type == "3D":
-            D = xy_2_r(stn_x[ii+rx_shift], x2, stn_y[ii+rx_shift], y2)
+            D = xy_2_r(stn_x[ii + rx_shift], x2, stn_y[ii + rx_shift], y2)
         else:
-            D = xy_2_r(stn_x[ii+rx_shift], x2, y1, y2)
+            D = xy_2_r(stn_x[ii + rx_shift], x2, y1, y2)
 
         # Number of receivers to fit
-        nrec = int(np.min([np.floor(D/station_spacing), num_rx_per_src]))
+        nrec = int(np.min([np.floor(D / station_spacing), num_rx_per_src]))
 
         # Check if there is enough space, else break the loop
         if nrec <= 0:
@@ -984,7 +1024,7 @@ def generate_dcip_sources_line(
         if survey_type.lower() in ["pole-dipole", "pole-pole"]:
             srcClass = dc.sources.Pole([rxClass], P[ii, :])
         elif survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
-            srcClass = dc.sources.Dipole([rxClass], P[ii, :], P[ii+1, :])
+            srcClass = dc.sources.Dipole([rxClass], P[ii, :], P[ii + 1, :])
 
         source_list.append(srcClass)
 
@@ -1690,14 +1730,14 @@ def readUBC_DC3Dobs(fileName):
 
     # Define survey type
     if poletx:
-        str1 = 'pole-'
+        str1 = "pole-"
     else:
-        str1 = 'dipole-'
+        str1 = "dipole-"
 
     if polerx:
-        str2 = 'pole'
+        str2 = "pole"
     else:
-        str2 = 'dipole'
+        str2 = "dipole"
 
     survey_type = str1 + str2
 
@@ -2175,7 +2215,9 @@ def generate_dcip_survey_line(
         DeprecationWarning,
     )
 
-    source_list = generate_dcip_sources_line(survey_type, data_type, dim_flag, endl, topo, n, ds, dh)
+    source_list = generate_dcip_sources_line(
+        survey_type, data_type, dim_flag, endl, topo, n, ds, dh
+    )
 
     if sources_only:
         return source_list
