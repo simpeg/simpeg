@@ -75,9 +75,9 @@ class BaseIPSimulation(BaseEMSimulation):
                         rx.data_type == "apparent_chargeability"
                         and rx._dc_voltage is None
                     ):
-                        rx.data_type == "volt"  # make the rx evaluate a voltage
+                        rx.data_type = "volt"  # make the rx evaluate a voltage
                         rx._dc_voltage = rx.eval(src, self.mesh, self._f)
-                        rx.data_type == "apparent_chargeability"
+                        rx.data_type = "apparent_chargeability"
                         rx._Ps = {}
             self._dc_data_set = True  # avoid loop through after first call
 
