@@ -5,7 +5,7 @@ from scipy.constants import mu_0
 from ...utils.code_utils import deprecate_class
 
 from ...utils import mkvc
-from ..frequency_domain.simulation import BaseFDEMSimulation
+from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
 from ..utils import omega
 from .survey import Data
 from .fields import Fields1DPrimarySecondary, Fields3DPrimarySecondary
@@ -414,7 +414,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     """
 
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
-    _solutionType = ["e_pxSolution", "e_pySolution"]  # Forces order on the object
+    _solutionType = "eSolution"  # Forces order on the object
     _formulation = "EB"
     fieldsPair = Fields3DPrimarySecondary
 
@@ -548,8 +548,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
             Src = self.survey.get_sources_by_frequency(freq)[0]
             # Store the fields
             # Use self._solutionType
-            F[Src, "e_pxSolution"] = e_s[:, 0]
-            F[Src, "e_pySolution"] = e_s[:, 1]
+            F[Src, self._solutionType] = e_s
             # Note curl e = -iwb so b = -curl/iw
 
             if self.verbose:
@@ -557,6 +556,46 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
                 sys.stdout.flush()
             Ainv.clean()
         return F
+
+
+class Simulation3DPrimarySecondary2(Simulation3DElectricField):
+    """
+    A NSEM problem solving a e formulation and a primary/secondary fields decompostion.
+
+    By eliminating the magnetic flux density using
+
+        .. math ::
+
+            \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} \\right)
+
+
+    we can write Maxwell's equations as a second order system in :math:`\mathbf{e}` only:
+
+    .. math ::
+
+        \\left[\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} + i \omega \mathbf{M_{\sigma}^e} \\right] \mathbf{e}_{s} = i \omega \mathbf{M_{\sigma_{p}}^e} \mathbf{e}_{p}
+
+    which we solve for :math:`\mathbf{e_s}`. The total field :math:`\mathbf{e} = \mathbf{e_p} + \mathbf{e_s}`.
+
+    The primary field is estimated from a background model (commonly as a 1D model).
+
+    """
+
+    # Initiate properties
+    _sigmaPrimary = None
+
+    @property
+    def sigmaPrimary(self):
+        """
+        A background model, use for the calculation of the primary fields.
+
+        """
+        return self._sigmaPrimary
+
+    @sigmaPrimary.setter
+    def sigmaPrimary(self, val):
+        # Note: TODO add logic for val, make sure it is the correct size.
+        self._sigmaPrimary = val
 
 
 ############

@@ -52,6 +52,8 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
 
     """
 
+    _fields_per_source = 2
+
     def __init__(self, receiver_list, frequency):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         self.sigma1d = None
@@ -90,7 +92,7 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
         bBG_bp = (-C * self.ePrimary(simulation)) * (1 / (1j * omega(self.frequency)))
         return bBG_bp
 
-    def S_e(self, simulation):
+    def s_e(self, simulation):
         """
         Get the electrical field source
         """
@@ -108,16 +110,16 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
         if simulation.mesh.dim == 3:
             Mesigma = simulation.MeSigma
             Mesigma_p = simulation.mesh.getEdgeInnerProduct(sigma_p)
-        return (Mesigma - Mesigma_p) * e_p
+        return Mesigma * e_p - Mesigma_p * e_p
 
-    def S_eDeriv(self, simulation, v, adjoint=False):
+    def s_eDeriv(self, simulation, v, adjoint=False):
         """
         The derivative of S_e with respect to
         """
 
-        return self.S_eDeriv_m(simulation, v, adjoint)
+        return self.s_eDeriv_m(simulation, v, adjoint)
 
-    def S_eDeriv_m(self, simulation, v, adjoint=False):
+    def s_eDeriv_m(self, simulation, v, adjoint=False):
         """
         Get the derivative of S_e wrt to sigma (m)
         """
@@ -160,6 +162,9 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
                     )
                 )
 
+    S_e = s_e
+    S_eDeriv = s_eDeriv
+
 
 class Planewave_xy_3Dprimary(BaseFDEMSrc):
     """
@@ -167,6 +172,8 @@ class Planewave_xy_3Dprimary(BaseFDEMSrc):
     It assigns fields calculated from the 1D model
     as fields in the full space of the simulation.
     """
+
+    _fields_per_source = 2
 
     def __init__(self, receiver_list, frequency):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
@@ -195,7 +202,7 @@ class Planewave_xy_3Dprimary(BaseFDEMSrc):
         bBG_bp = (-C * self.ePrimary(simulation)) * (1 / (1j * omega(self.frequency)))
         return bBG_bp
 
-    def S_e(self, simulation):
+    def s_e(self, simulation):
         """
         Get the electrical field source
         """
@@ -257,12 +264,12 @@ class Planewave_xy_3Dprimary(BaseFDEMSrc):
             # v should be nC size
             return MsigmaDeriv * v
 
-
-
+    S_e = s_e
 
 
 ###########################################
 # Source for 1D solution
+
 
 class AnalyticPlanewave1D(BaseFDEMSrc):
     """

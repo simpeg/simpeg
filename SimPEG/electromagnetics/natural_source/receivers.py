@@ -94,36 +94,30 @@ class BaseRxNSEM_Point(BaseRx):
                 loc = self.locations
         return loc
 
-    # Location projection
-    @property
-    def Pex(self):
-        if getattr(self, "_Pex", None) is None:
-            self._Pex = self._mesh.getInterpolationMat(self._locs_e(), "Ex")
-        return self._Pex
+    def getP(self, mesh, projGLoc=None, field="e"):
+        """
+            Returns the projection matrices as a
+            list for all components collected by
+            the receivers.
 
-    @property
-    def Pey(self):
-        if getattr(self, "_Pey", None) is None:
-            self._Pey = self._mesh.getInterpolationMat(self._locs_e(), "Ey")
-        return self._Pey
+            .. note::
 
-    @property
-    def Pbx(self):
-        if getattr(self, "_Pbx", None) is None:
-            self._Pbx = self._mesh.getInterpolationMat(self._locs_b(), "Fx")
-        return self._Pbx
+                Projection matrices are stored as a dictionary listed by meshes.
+        """
+        if projGLoc is None:
+            projGLoc = self.projGLoc
 
-    @property
-    def Pby(self):
-        if getattr(self, "_Pby", None) is None:
-            self._Pby = self._mesh.getInterpolationMat(self._locs_b(), "Fy")
-        return self._Pby
+        if (mesh, projGLoc) in self._Ps:
+            return self._Ps[(mesh, projGLoc, field)]
 
-    @property
-    def Pbz(self):
-        if getattr(self, "_Pbz", None) is None:
-            self._Pbz = self._mesh.getInterpolationMat(self._locs_b(), "Fz")
-        return self._Pbz
+        if field == "e":
+            locs = self._locs_e()
+        else:
+            locs = self._locs_b()
+        P = mesh.getInterpolationMat(locs, projGLoc)
+        if self.storeProjections:
+            self._Ps[(mesh, projGLoc, field)] = P
+        return P
 
     # Get the components of the fields
     # px: x-polaration and py: y-polaration.
@@ -331,7 +325,7 @@ class Point1DImpedance(BaseRx):
 
     @property
     def _ex(self):
-        return self.Pex * mkvc(self.f[self.src, "e_1d"], 2)
+        return self.Pex * mkvc(self.f[self.src, "eSolution"], 2)
 
     @property
     def _hx(self):
@@ -368,10 +362,16 @@ class Point1DImpedance(BaseRx):
         :return: Evaluated data for the receiver
         """
         # NOTE: Maybe set this as a property
+        PEx = self.getP(mesh, "Fx")
+        PBy = self.getP(mesh, "Ex")
+        ...
+
         self.src = src
         self.mesh = mesh
         self.f = f
 
+        e = f[src, "e"]
+        h = f[src, "h"]
         rx_eval_complex = -self._Hd * self._ex
         # Return the full impedance
         # if return_complex:
@@ -426,17 +426,6 @@ class Point3DImpedance(BaseRxNSEM_Point):
     def __init__(self, locs, orientation="xy", component="real"):
 
         super().__init__(locs, orientation=orientation, component=component)
-
-    def _eval_impedance_numerator(self):
-        if "xx" in self.orientation:
-            Zij_numerator = self._ex_px * self._hy_py - self._ex_py * self._hy_px
-        elif "xy" in self.orientation:
-            Zij_numerator = -self._ex_px * self._hx_py + self._ex_py * self._hx_px
-        elif "yx" in self.orientation:
-            Zij_numerator = self._ey_px * self._hy_py - self._ey_py * self._hy_px
-        elif "yy" in self.orientation:
-            Zij_numerator = -self._ey_px * self._hx_py + self._ey_py * self._hx_px
-        return Zij_numerator
 
     def _deriv_impedance_numerator(self, v, adjoint=False):
         if "xx" in self.orientation:
@@ -503,6 +492,36 @@ class Point3DImpedance(BaseRxNSEM_Point):
                 )
         return Zij_numerator_uV
 
+    def _eval_complex_impedance(self, src, mesh, f):
+        e = f[src, "e"]  # will grab both primary and secondary and sum them!
+        h = f[src, "h"]
+        if self.orientation[0] == "x":
+            Pex = self.getP(mesh, "Ex", "e")
+            e_px = Pex * e[:, 0]  # ex_px
+            e_py = Pex * e[:, 1]  # ex_py
+        else:
+            Pey = self.getP(mesh, "Ey", "e")
+            e_px = Pey * e[:, 0]  # ey_px
+            e_py = Pey * e[:, 1]  # ey_px
+
+        Pbx = self.getP(mesh, "Fx", "b")
+        hx_px = Pbx * h[:, 0]
+        hx_py = Pbx * h[:, 1]
+        Pby = self.getP(mesh, "Fy", "b")
+        hy_px = Pby * h[:, 0]
+        hy_py = Pby * h[:, 1]
+
+        if self.orientation[1] == "x":
+            h_px = hy_px
+            h_py = hy_py
+        else:
+            h_px = -hx_px
+            h_py = -hx_py
+
+        top = e_px * h_py - e_py * h_px
+        bot = hx_px * hy_py - hx_py * hy_px
+        return top / bot
+
     def eval(self, src, mesh, f, return_complex=False):
         """
         Project the fields to natural source data.
@@ -513,19 +532,12 @@ class Point3DImpedance(BaseRxNSEM_Point):
         :rtype: numpy.ndarray
         :return: component of the impedance evaluation
         """
-        # NOTE: Maybe set this as a property
-        self.src = src
-        self.mesh = mesh
-        self.f = f
 
-        Zij_numerator = self._eval_impedance_numerator()
-        # Calculate the complex value
-        rx_eval_complex = self._Hd * Zij_numerator
-
-        # # Return the full impedance
-        # if return_complex:
-        #     return rx_eval_complex
-        return getattr(rx_eval_complex, self.component)
+        imp = self._eval_complex_impedance(src, mesh, f)
+        if return_complex:
+            return imp
+        else:
+            return getattr(imp, self.component)
 
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         """

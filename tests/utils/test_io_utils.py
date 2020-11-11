@@ -137,7 +137,7 @@ class TestGravityGradiometryIO(unittest.TestCase):
         filename = "survey.gg"
 
         write_gravity_gradiometry_3d_ubc(filename, data_object)
-        data_loaded = read_gravity_gradiometry_3d_ubc(filename, "survey")
+        data_loaded = read_gravity_gradiometry_3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -155,7 +155,7 @@ class TestGravityGradiometryIO(unittest.TestCase):
         filename = "dpred.gg"
 
         write_gravity_gradiometry_3d_ubc(filename, data_object)
-        data_loaded = read_gravity_gradiometry_3d_ubc(filename, "dpred")
+        data_loaded = read_gravity_gradiometry_3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -178,7 +178,7 @@ class TestGravityGradiometryIO(unittest.TestCase):
         filename = "dpred.gg"
 
         write_gravity_gradiometry_3d_ubc(filename, data_object)
-        data_loaded = read_gravity_gradiometry_3d_ubc(filename, "dobs")
+        data_loaded = read_gravity_gradiometry_3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
