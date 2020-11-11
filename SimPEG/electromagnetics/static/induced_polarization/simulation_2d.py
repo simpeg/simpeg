@@ -33,6 +33,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
     _f = None
     sign = None
     _pred = None
+    _dc_data_set = False
 
     def fields(self, m):
         if self.verbose:
@@ -41,26 +42,19 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
             # re-uses the DC simulation's fields method
             self._f = super().fields(None)
 
-            if self.verbose is True:
-                print(">> Data type is apparaent chargeability")
-
-            # call dpred function in 2D DC simulation
-            # set data type as volt ... for DC simulation
-            data_types = []
+        if not self._dc_data_set:
+            # loop through receievers to check if they need to set the _dc_voltage
             for src in self.survey.source_list:
                 for rx in src.receiver_list:
-                    data_types.append(rx.data_type)
-                    rx.data_type = "volt"
-
-            dc_voltage = super().dpred(m=[], f=self._f)
-            dc_data = Data(self.survey, dc_voltage)
-            icount = 0
-            for src in self.survey.source_list:
-                for rx in src.receiver_list:
-                    rx.data_type = data_types[icount]
-                    rx._dc_voltage = dc_data[src, rx]
-                    rx._Ps = {}
-                    icount += 1
+                    if (
+                        rx.data_type == "apparent_chargeability"
+                        and rx._dc_voltage is None
+                    ):
+                        rx.data_type = "volt"  # make the rx evaluate a voltage
+                        rx._dc_voltage = rx.eval(src, self.mesh, self._f)
+                        rx.data_type = "apparent_chargeability"
+                        rx._Ps = {}
+            self._dc_data_set = True  # avoid loop through after first call
 
         self._pred = self.forward(m, f=self._f)
 
