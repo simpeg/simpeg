@@ -1387,7 +1387,8 @@ class SurjectVertical1D(IdentityMap):
 
            The number of cells in the
            last dimension of the mesh."""
-        return self.mesh.vnC[self.mesh.dim - 1]
+        # in discretize 0.7 the int conversion will not be required
+        return int(self.mesh.vnC[self.mesh.dim - 1])
 
     def _transform(self, m):
         """
