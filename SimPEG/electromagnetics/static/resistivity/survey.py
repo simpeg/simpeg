@@ -229,34 +229,6 @@ class Survey(BaseSurvey):
         self.drape_electrodes_on_topography(*args, **kwargs)
 
 
-    def set_dc_data_by_receiver(self, dc_voltages):
-        """
-        Set the DC data in order to simulate apparent chargeabilities directly.
-
-        To model the apparent chargeability, we must divide the secondary
-        potentials by the corresponding DC voltages. Here, we assign the
-        corresponding DC voltage to each receiver so that the IP simulation
-        can simulate apparent chargeability directly.
-
-        # Input:
-        # self : SimPEG.electromagnetics.static.survey.Survey
-        # dc_voltages : numpy.ndarray
-        #     DC resistivity data as voltages
-        """
-
-        assert self.nD == len(dc_voltages), (
-            "The number of data in the survey object does not equal" +
-            " the length of the data vector"
-        )
-
-        count = 0
-        for src in self.source_list:
-            for rx in src.receiver_list:
-                nD = rx.nD
-                rx._dc_voltage = dc_voltages[count : count+nD]
-                count += nD
-
-
 ############
 # Deprecated
 ############

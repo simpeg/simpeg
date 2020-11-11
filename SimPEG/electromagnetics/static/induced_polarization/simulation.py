@@ -13,8 +13,12 @@ from ..utils import gettopoCC
 from ..resistivity.fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from ..resistivity import Simulation3DCellCentered as BaseSimulation3DCellCentered
 from ..resistivity import Simulation3DNodal as BaseSimulation3DNodal
-from ..resistivity import Simulation3DCellCenteredFictitiousSources as BaseSimulation3DCellCenteredFictitiousSources
-from ..resistivity import Simulation3DNodalFictitiousSources as BaseSimulation3DNodalFictitiousSources
+from ..resistivity import (
+    Simulation3DCellCenteredFictitiousSources as BaseSimulation3DCellCenteredFictitiousSources,
+)
+from ..resistivity import (
+    Simulation3DNodalFictitiousSources as BaseSimulation3DNodalFictitiousSources,
+)
 from ..resistivity.survey import Survey
 from ..resistivity.sources import Pole, Dipole
 
@@ -30,9 +34,7 @@ class BaseIPSimulation(BaseEMSimulation):
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability")
 
     data_type = properties.StringChoice(
-        "IP data type",
-        default='volt',
-        choices=['volt', 'apparent_chargeability'],
+        "IP data type", default="volt", choices=["volt", "apparent_chargeability"],
     )
 
     fieldsPair = FieldsDC
@@ -44,6 +46,7 @@ class BaseIPSimulation(BaseEMSimulation):
     sign = None
     _pred = None
     gtgdiag = None
+    _dc_data_set = False
 
     def fields(self, m=None):
 
@@ -64,14 +67,19 @@ class BaseIPSimulation(BaseEMSimulation):
             Srcs = self.survey.source_list
             self._f[Srcs, self._solutionType] = self.Ainv * RHS
 
-            if self.data_type == "apparent_chargeability":
-                if self.verbose is True:
-                    print(">> Data type is apparaent chargeability")
-                for src in self.survey.source_list:
-                    for rx in src.receiver_list:
+        if not self._dc_data_set:
+            # loop through receievers to check if they need to set the _dc_voltage
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+                    if (
+                        rx.data_type == "apparent_chargeability"
+                        and rx._dc_voltage is None
+                    ):
+                        rx.data_type == "volt"  # make the rx evaluate a voltage
                         rx._dc_voltage = rx.eval(src, self.mesh, self._f)
-                        rx.data_type = self.data_type
+                        rx.data_type == "apparent_chargeability"
                         rx._Ps = {}
+            self._dc_data_set = True  # avoid loop through after first call
 
         if self.verbose is True:
             print(">> Compute predicted data")
@@ -332,7 +340,6 @@ class Simulation3DCellCentered(BaseIPSimulation, BaseSimulation3DCellCentered):
         super(Simulation3DCellCentered, self).__init__(mesh, **kwargs)
         self.setBC()
 
-
     def getSourceTerm(self):
         """
         takes concept of source and turns it into a matrix
@@ -364,7 +371,6 @@ class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
     def __init__(self, mesh, **kwargs):
         super(Simulation3DNodal, self).__init__(mesh, **kwargs)
 
-
     def getSourceTerm(self):
         """
         takes concept of source and turns it into a matrix
@@ -386,9 +392,9 @@ class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
         return q
 
 
-
-
-class Simulation3DCellCenteredFictitiousSources(BaseIPSimulation, BaseSimulation3DCellCenteredFictitiousSources):
+class Simulation3DCellCenteredFictitiousSources(
+    BaseIPSimulation, BaseSimulation3DCellCenteredFictitiousSources
+):
 
     _solutionType = "phiSolution"
     _formulation = "HJ"  # CC potentials means J is on faces
@@ -399,7 +405,6 @@ class Simulation3DCellCenteredFictitiousSources(BaseIPSimulation, BaseSimulation
     def __init__(self, mesh, **kwargs):
         super(Simulation3DCellCenteredFictitiousSources, self).__init__(mesh, **kwargs)
         self.setBC()
-
 
     def getSourceTerm(self):
         """
@@ -448,7 +453,9 @@ class Simulation3DCellCenteredFictitiousSources(BaseIPSimulation, BaseSimulation
         return q
 
 
-class Simulation3DNodalFictitiousSources(BaseIPSimulation, BaseSimulation3DNodalFictitiousSources):
+class Simulation3DNodalFictitiousSources(
+    BaseIPSimulation, BaseSimulation3DNodalFictitiousSources
+):
 
     _solutionType = "phiSolution"
     _formulation = "EB"  # N potentials means B is on faces
@@ -457,7 +464,6 @@ class Simulation3DNodalFictitiousSources(BaseIPSimulation, BaseSimulation3DNodal
 
     def __init__(self, mesh, **kwargs):
         super(Simulation3DNodalFictitiousSources, self).__init__(mesh, **kwargs)
-
 
     def getSourceTerm(self):
         """
