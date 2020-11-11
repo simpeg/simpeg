@@ -424,7 +424,7 @@ def _write_dcip_3d_or_octree_ubc(
 
     # Write comments and IP type (if applicable)
     with open(file_name, "w") as fid:
-        fid.write("! " + format_type + " FORMAT\n")
+        fid.write(f"! {format_type} FORMAT\n")
 
         if comment_lines is not None and len(comment_lines) > 0:
             # ensure comment_lines ends with a new line character
