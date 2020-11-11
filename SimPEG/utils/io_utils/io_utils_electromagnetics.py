@@ -354,7 +354,7 @@ def _write_dcip_3d_or_octree_ubc(
     format_type="general",
     electrode_configuration=None,
     code_type="dcip3d",
-    comment_lines="",
+    comment_lines=None,
 ):
     """
     Write UBC DCIP3D formatted survey, predicted or observation files.
@@ -423,83 +423,72 @@ def _write_dcip_3d_or_octree_ubc(
         file_type = "dobs"
 
     # Write comments and IP type (if applicable)
-    fid = open(file_name, "w")
-    fid.write("! " + format_type + " FORMAT\n")
+    with open(file_name, "w") as fid:
+        fid.write("! " + format_type + " FORMAT\n")
 
-    if comment_lines:
-        fid.write(comment_lines)
+        if comment_lines is not None and len(comment_lines) > 0:
+            # ensure comment_lines ends with a new line character
+            if comment_lines[-1] != "\n":
+                comment_lines += "\n"
+            fid.write(comment_lines)
 
-    # DCIP3D will allow user to choose definition of IP data. DC data has no flag.
-    # DCIPoctree IP data is always apparent chargeability.
-    if (code_type.lower() == "dcip3d") & (data_type == "apparent_chargeability"):
-        fid.write("IPTYPE=%i\n" % 1)
-    elif (code_type.lower() == "dcip3d") & (data_type == "secondary_potential"):
-        fid.write("IPTYPE=%i\n" % 2)
+        # DCIP3D will allow user to choose definition of IP data. DC data has no flag.
+        # DCIPoctree IP data is always apparent chargeability.
+        if (code_type.lower() == "dcip3d") & (data_type == "apparent_chargeability"):
+            fid.write("IPTYPE=1\n")
+        elif (code_type.lower() == "dcip3d") & (data_type == "secondary_potential"):
+            fid.write("IPTYPE=2\n")
 
-    fid.close()
+        # Index deciding if z locations are written
+        if format_type.lower() == "surface":
+            end_index = 2
+        elif format_type.lower() == "general":
+            end_index = 3
 
-    # Index deciding if z locations are written
-    if format_type.lower() == "surface":
-        end_index = 2
-    elif format_type.lower() == "general":
-        end_index = 3
+        # Loop over all sources
+        count = 0
+        for src in data_object.survey.source_list:
 
-    # Loop over all sources
-    count = 0
-    for src in data_object.survey.source_list:
+            # Write Source
+            nD = src.nD
 
-        # Write Source
-        nD = src.nD
+            if electrode_configuration.lower() in ["pole-dipole", "pole-pole"]:
+                tx = np.r_[src.location]
+                tx = np.repeat(np.r_[[tx]], 2, axis=0)
+            elif electrode_configuration.lower() in ["dipole-dipole", "dipole-pole"]:
+                tx = np.c_[src.location]
 
-        if electrode_configuration.lower() in ["pole-dipole", "pole-pole"]:
-            tx = np.r_[src.location]
-            tx = np.repeat(np.r_[[tx]], 2, axis=0)
-        elif electrode_configuration.lower() in ["dipole-dipole", "dipole-pole"]:
-            tx = np.c_[src.location]
+            fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:end_index].T))
+            fid.write(f"{nD}\n")
 
-        fid = open(file_name, "a")
-        fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:end_index].T))
-        fid.write("%i\n" % nD)
-        fid.close()
+            # Write receivers
+            for rx in src.receiver_list:
 
-        # Write receivers
-        for rx in src.receiver_list:
+                if electrode_configuration.lower() in ["pole-dipole", "dipole-dipole"]:
+                    M = rx.locations[0][0:end_index]
+                    N = rx.locations[1][0:end_index]
+                elif electrode_configuration.lower() in ["pole-pole", "dipole-pole"]:
+                    M = rx.locations[0:end_index]
+                    N = rx.locations[0:end_index]
 
-            if electrode_configuration.lower() in ["pole-dipole", "dipole-dipole"]:
-                M = rx.locations[0][0:end_index]
-                N = rx.locations[1][0:end_index]
-            elif electrode_configuration.lower() in ["pole-pole", "dipole-pole"]:
-                M = rx.locations[0:end_index]
-                N = rx.locations[0:end_index]
+                if file_type.lower() != "survey":
+                    N = np.c_[N, data_object.dobs[count : count + rx.nD]]
 
-            if file_type.lower() != "survey":
-                N = np.c_[N, data_object.dobs[count : count + rx.nD]]
+                if file_type.lower() == "dobs":
+                    N = np.c_[N, data_object.standard_deviation[count : count + rx.nD]]
 
-            if file_type.lower() == "dobs":
-                N = np.c_[N, data_object.standard_deviation[count : count + rx.nD]]
+                # Write receivers and locations
+                if isinstance(N, np.ndarray):
+                    np.savetxt(
+                        fid, np.c_[M, N], fmt="%e",
+                    )
+                else:
+                    raise Exception(
+                        """Uncertainities SurveyObject.std should be set.
+                        Either float or nunmpy.ndarray is expected, """
+                        "not {}".format(type(data_object.relative_error))
+                    )
 
-            # Write receivers and locations
-            fid = open(file_name, "ab")
-            if isinstance(N, np.ndarray):
-                np.savetxt(
-                    fid,
-                    np.c_[M, N],
-                    fmt=str("%e"),
-                    delimiter=str(" "),
-                    newline=str("\n"),
-                )
-            else:
-                raise Exception(
-                    """Uncertainities SurveyObject.std should be set.
-                    Either float or nunmpy.ndarray is expected, """
-                    "not {}".format(type(data_object.relative_error))
-                )
+                fid.write("\n")
 
-            fid.close()
-            fid = open(file_name, "a")
-            fid.write("\n")
-            fid.close()
-
-            count += rx.nD
-
-    fid.close()
+                count += rx.nD
