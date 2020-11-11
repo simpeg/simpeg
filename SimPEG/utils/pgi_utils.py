@@ -862,6 +862,27 @@ class WeightedGaussianMixture(GaussianMixture):
         if len(self.weights_.shape) == 1:
             self.weights_ = weights
 
+    def _estimate_gaussian_covariances_tied(self, resp, X, nk, means, reg_covar):
+        """Estimate the tied covariance matrix.
+        Parameters
+        ----------
+        resp : array-like, shape (n_samples, n_components)
+        X : array-like, shape (n_samples, n_features)
+        nk : array-like, shape (n_components,)
+        means : array-like, shape (n_components, n_features)
+        reg_covar : float
+        Returns
+        -------
+        covariance : array, shape (n_features, n_features)
+        The tied covariance matrix of the components.
+        """
+        avg_X2 = np.dot(self.vol * X.T, X)
+        avg_means2 = np.dot(nk * means.T, means)
+        covariance = avg_X2 - avg_means2
+        covariance /= nk.sum()
+        covariance.flat[::len(covariance) + 1] += reg_covar
+        return covariance
+
     def _estimate_gaussian_parameters(self, X, mesh, resp, reg_covar, covariance_type):
         """Estimate the Gaussian distribution parameters.
         Parameters
@@ -889,7 +910,7 @@ class WeightedGaussianMixture(GaussianMixture):
         means = np.dot(respVol.T, X) / nk[:, np.newaxis]
         covariances = {
             "full": _estimate_gaussian_covariances_full,
-            "tied": _estimate_gaussian_covariances_tied,
+            "tied": self._estimate_gaussian_covariances_tied,
             "diag": _estimate_gaussian_covariances_diag,
             "spherical": _estimate_gaussian_covariances_spherical,
         }[covariance_type](respVol, X, nk, means, reg_covar)

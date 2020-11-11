@@ -578,19 +578,19 @@ class PGIsmallness(SimplePGIsmallness):
             if len(self.cell_weights) == self.wiresmap.nP:
                 return sp.kron(
                     speye(len(self.wiresmap.maps)),
-                    sdiag(np.sqrt(self.regmesh.vol[self.indActive])),
+                    sdiag(np.sqrt(self.regmesh.vol)),
                 ) * sdiag(np.sqrt(self.cell_weights))
             else:
                 return sp.kron(
                     speye(len(self.wiresmap.maps)),
-                    sdiag(np.sqrt(self.regmesh.vol[self.indActive])),
+                    sdiag(np.sqrt(self.regmesh.vol)),
                 ) * sp.kron(
                     speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.cell_weights))
                 )
         else:
             return sp.kron(
                 speye(len(self.wiresmap.maps)),
-                sdiag(np.sqrt(self.regmesh.vol[self.indActive])),
+                sdiag(np.sqrt(self.regmesh.vol)),
             )
 
 
