@@ -710,7 +710,7 @@ def plot_3d_pseudosection(
     return ax
 
 
-def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, d2flag="2.5D"):
+def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
     """
         Load in endpoints and survey specifications to generate Tx, Rx location
@@ -726,11 +726,16 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, d2flag="2.5D"):
         :param int a: pole seperation
         :param int b: dipole separation
         :param int n: number of rx dipoles per tx
-        :param str d2flag: choose for 2D mesh between a '2D' or a '2.5D' survey
 
         Output:
         :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
     """
+    if "d2flag" in kwargs:
+        warnings.warn(
+            "The d2flag is no longer necessary to construct a survey. "
+            "Feel free to remove it from the call. This option will be removed in SimPEG 0.15.0",
+            DeprecationWarning,
+        )
 
     def xy_2_r(x1, x2, y1, y2):
         r = np.sqrt(np.sum((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0))
@@ -2201,7 +2206,7 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag="2.5D"):
         DeprecationWarning,
     )
 
-    return generate_dcip_survey(endl, survey_type, a, b, n, dim, d2flag)
+    return generate_dcip_survey(endl, survey_type, a, b, n, dim)
 
 
 def generate_dcip_survey_line(
