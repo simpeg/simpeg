@@ -198,34 +198,31 @@ class BaseDCSimulation(BaseEMSimulation):
         else:
             return (self._mini_survey_data(Jtv.T)).T
 
-    # def getSourceTerm(self):
-    #     """
-    #     Evaluates the sources, and puts them in matrix form
-    #     :rtype: tuple
-    #     :return: q (nC or nN, nSrc)
-    #     """
+    def getSourceTerm(self):
+        """
+        Evaluates the sources, and puts them in matrix form
+        :rtype: tuple
+        :return: q (nC or nN, nSrc)
+        """
 
-    #     if self._mini_survey is not None:
-    #         Srcs = self._mini_survey.source_list
-    #     else:
-    #         Srcs = self.survey.source_list
+        if self._mini_survey is not None:
+            Srcs = self._mini_survey.source_list
+        else:
+            Srcs = self.survey.source_list
 
-    #     if self._formulation == "EB":
-    #         n = self.mesh.nN
-    #         # return NotImplementedError
+        if self._formulation == "EB":
+            n = self.mesh.nN
 
-    #     elif self._formulation == "HJ":
-    #         n = self.mesh.nC
+        elif self._formulation == "HJ":
+            n = self.mesh.nC
 
-    #     q = np.zeros((n, len(Srcs)), order="F")
+        q = np.zeros((n, len(Srcs)), order="F")
 
-    #     # Interpolate source to centers/nodes
-    #     for i, source in enumerate(Srcs):
-    #         q[:, i] = source.eval(self)
+        # Interpolate source to centers/nodes
+        for i, source in enumerate(Srcs):
+            q[:, i] = source.eval(self)
 
-    #     return q
-
-    
+        return q
 
     @property
     def deleteTheseOnModelUpdate(self):
@@ -470,28 +467,6 @@ class Simulation3DCellCentered(BaseDCSimulation):
             self.Grad = self.Div.T - P_BC * sdiag(y_BC) * M
 
 
-    def getSourceTerm(self):
-        """
-        Evaluates the sources, and puts them in matrix form
-        :rtype: tuple
-        :return: q (nC or nN, nSrc)
-        """
-
-        if self._mini_survey is not None:
-            Srcs = self._mini_survey.source_list
-        else:
-            Srcs = self.survey.source_list
-
-        n = self.mesh.nC
-        q = np.zeros((n, len(Srcs)), order="F")
-
-        # Interpolate source to centers/nodes
-        for i, source in enumerate(Srcs):
-            q[:, i] = source.eval(self)
-
-        return q
-
-
 class Simulation3DNodal(BaseDCSimulation):
     """
     3D nodal DC problem
@@ -557,27 +532,6 @@ class Simulation3DNodal(BaseDCSimulation):
         # return qDeriv
         return Zero()
 
-    def getSourceTerm(self):
-        """
-        Evaluates the sources, and puts them in matrix form
-        :rtype: tuple
-        :return: q (nC or nN, nSrc)
-        """
-
-        if self._mini_survey is not None:
-            Srcs = self._mini_survey.source_list
-        else:
-            Srcs = self.survey.source_list
-
-        n = self.mesh.nN
-        q = np.zeros((n, len(Srcs)), order="F")
-
-        # Interpolate source to centers/nodes
-        for i, source in enumerate(Srcs):
-            q[:, i] = source.eval(self)
-
-        return q
-
 
 Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
 
@@ -588,23 +542,22 @@ Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
 
 class BaseDCSimulationFictitiousSources(BaseDCSimulation):
 
-    def __init__(self, mesh, **kwargs):
+    rho0 = properties.Float(
+        "Background resistivity value for the fictitous source",
+        default=None,
+        required=False,
+    )
 
-        BaseDCSimulation.__init__(self, mesh, **kwargs)
-
-    def get_background_resistivity(self):
-
-        ground_ind = self.rho < 1e8
-        return np.exp(np.average(np.log(self.rho[ground_ind])))
-    
-
-class Simulation3DCellCenteredFictitiousSources(BaseDCSimulationFictitiousSources, Simulation3DCellCentered):
-    
     def __init__(self, mesh, **kwargs):
 
         super().__init__(mesh, **kwargs)
-        self.setBC()
 
+    def get_background_resistivity(self):
+        if self.rho0 is not None:
+            return self.rho0
+        else:
+            ground_ind = self.rho < 1e8
+            return np.exp(np.average(np.log(self.rho[ground_ind])))
 
     def getSourceTerm(self):
         """
@@ -635,7 +588,7 @@ class Simulation3DCellCenteredFictitiousSources(BaseDCSimulationFictitiousSource
         kdtree = sp.spatial.KDTree(xy_surface)
 
         dh = np.min(self.mesh.hx)
-        loc_grid = self.mesh.gridCC
+        loc_grid = self._solution_grid
 
         for i, source in enumerate(Srcs):
             if type(source) == Pole:
@@ -656,63 +609,20 @@ class Simulation3DCellCenteredFictitiousSources(BaseDCSimulationFictitiousSource
         return q
 
 
-class Simulation3DNodalFictitiousSources(BaseDCSimulationFictitiousSources, Simulation3DNodal):
-    
+class Simulation3DCellCenteredFictitiousSources(
+    BaseDCSimulationFictitiousSources, Simulation3DCellCentered
+):
     def __init__(self, mesh, **kwargs):
-
         super().__init__(mesh, **kwargs)
+        self._solution_grid = self.mesh.gridCC
 
 
-    def getSourceTerm(self):
-        """
-        Evaluates the sources, and puts them in matrix form
-        :rtype: tuple
-        :return: q (nC or nN, nSrc)
-        """
-
-        if self._mini_survey is not None:
-            Srcs = self._mini_survey.source_list
-        else:
-            Srcs = self.survey.source_list
-
-        n = self.mesh.nN
-        q = np.zeros((n, len(Srcs)), order="F")
-
-        # Compute analytic solution for background and compute qs=A0*phi0
-        rho0 = self.get_background_resistivity()
-        tol = 1e-10
-        ind_active = np.ones(self.mesh.nC, dtype=bool)
-        ind_active[self.sigma < (1e-8 + tol)] = False
-        xy_surface, z_surface = gettopoCC(self.mesh, ind_active, option="top")
-
-        if isinstance(xy_surface, TensorMesh):
-            xy_surface = xy_surface.gridCC
-        
-        # A function for finding index of nearest neighour of surface cells
-        kdtree = sp.spatial.KDTree(xy_surface)
-
-        dh = np.min(self.mesh.hx)
-        loc_grid = self.mesh.gridN
-
-        for i, source in enumerate(Srcs):
-            if type(source) == Pole:
-                _, ind = kdtree.query(source.location[0:2])
-                zf = z_surface[ind]
-            elif type(source) == Dipole:
-                _, inda = kdtree.query(source.location[0][0:2])
-                _, indb = kdtree.query(source.location[1][0:2])
-                zf = z_surface[[inda, indb]]
-
-            q[:, i] = source.compute_phi_primary(loc_grid, zf, rho0, dh)
-
-        background_resistivity_model = 1e8 * np.ones(self.mesh.nC)
-        background_resistivity_model[ind_active] = rho0
-        A = self.getA(resistivity=background_resistivity_model)
-        q = A * q
-
-        return q
-
-
+class Simulation3DNodalFictitiousSources(
+    BaseDCSimulationFictitiousSources, Simulation3DNodal
+):
+    def __init__(self, mesh, **kwargs):
+        super().__init__(mesh, **kwargs)
+        self._solution_grid = self.mesh.gridN
 
 
 ############
