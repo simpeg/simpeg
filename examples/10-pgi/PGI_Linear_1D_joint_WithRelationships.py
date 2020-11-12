@@ -141,7 +141,7 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple, opt)
 
 # directives
-scales = directives.ScalingEstimate_ByEig(Chi0_ratio=0.5, verbose=True, ninit=10)
+scales = directives.ScalingDataMisfits_ByEig(Chi0_ratio=0.5, verbose=True, ninit=10)
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 alpha0_ratio = np.r_[
     np.zeros(len(reg_simple.objfcts[0].objfcts)),
@@ -185,7 +185,7 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple_no_map, opt)
 
 # directives
-scales = directives.ScalingEstimate_ByEig(Chi0_ratio=0.5, verbose=True, ninit=10)
+scales = directives.ScalingDataMisfits_ByEig(Chi0_ratio=0.5, verbose=True, ninit=10)
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
@@ -225,7 +225,7 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
 )
-scales = directives.ScalingEstimate_ByEig(Chi0_ratio=0.5, verbose=True, ninit=10)
+scales = directives.ScalingDataMisfits_ByEig(Chi0_ratio=0.5, verbose=True, ninit=10)
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
 beta_schedule = directives.BetaSchedule(coolingFactor=5.0, coolingRate=1)
