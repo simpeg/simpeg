@@ -571,9 +571,6 @@ class BaseDCSimulationFictitiousSources(BaseDCSimulation):
         else:
             Srcs = self.survey.source_list
 
-        n = self.mesh.nC
-        q = np.zeros((n, len(Srcs)), order="F")
-
         # Compute analytic solution for background and compute qs=A0*phi0
         rho0 = self.get_background_resistivity()
         tol = 1e-10
@@ -584,12 +581,21 @@ class BaseDCSimulationFictitiousSources(BaseDCSimulation):
         if isinstance(xy_surface, TensorMesh):
             xy_surface = xy_surface.gridCC
 
+        # Form system for background model
+        background_resistivity_model = 1e8 * np.ones(self.mesh.nC)
+        background_resistivity_model[ind_active] = rho0
+        A = self.getA(resistivity=background_resistivity_model)
+
         # A function for finding index of nearest neighour of surface cells
         kdtree = sp.spatial.KDTree(xy_surface)
 
+        # Compute analytic solution for each source        
+        n = np.shape(A)[1]
+        q = np.zeros((n, len(Srcs)), order="F")
+        
         dh = np.min(self.mesh.hx)
         loc_grid = self._solution_grid
-
+        
         for i, source in enumerate(Srcs):
             if type(source) == Pole:
                 _, ind = kdtree.query(source.location[0:2])
@@ -601,9 +607,7 @@ class BaseDCSimulationFictitiousSources(BaseDCSimulation):
 
             q[:, i] = source.compute_phi_primary(loc_grid, zf, rho0, dh)
 
-        background_resistivity_model = 1e8 * np.ones(self.mesh.nC)
-        background_resistivity_model[ind_active] = rho0
-        A = self.getA(resistivity=background_resistivity_model)
+        # Convert analytic background solution to fictitious RHS
         q = A * q
 
         return q
