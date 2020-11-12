@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-import discretize as Mesh
+import discretize
 from SimPEG import regularization
 from SimPEG.maps import Wires
 from SimPEG.utils import (
@@ -10,8 +10,8 @@ from SimPEG.utils import (
     make_SimplePGI_regularization,
 )
 from scipy.stats import multivariate_normal
-from scipy.sparse.linalg import LinearOperator, bicgstab
-from pymatsolver import PardisoSolver
+from scipy.sparse.linalg import spsolve, LinearOperator, bicgstab
+from pymatsolver import SolverLU
 
 
 class TestPGI(unittest.TestCase):
@@ -36,7 +36,7 @@ class TestPGI(unittest.TestCase):
         self.s1 = self.rv1.rvs(int(self.nsample * self.proportions[1]))
         self.samples = np.r_[self.s0, self.s1]
         self.model = mkvc(self.samples)
-        self.mesh = Mesh.TensorMesh([np.maximum(1e-1,np.random.randn(self.nsample) ** 2.0)])
+        self.mesh = discretize.TensorMesh([np.maximum(1e-1,np.random.randn(self.nsample) ** 2.0)])
         self.wires = Wires(("s0", self.mesh.nC), ("s1", self.mesh.nC))
         self.cell_weights_list = [
             np.maximum(1e-1,np.random.randn(self.mesh.nC) ** 2.0),
@@ -47,6 +47,7 @@ class TestPGI(unittest.TestCase):
     def test_full_covariances(self):
 
         print("Test Full covariances: ")
+        print("=======================")
         # Fit a Gaussian Mixture
         clf = WeightedGaussianMixture(
             mesh=self.mesh,
@@ -119,7 +120,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for SimplePGI & Full Cov. are ok.")
         
-        Hinv = PardisoSolver(reg_simple.deriv2(self.model))
+        Hinv = SolverLU(reg_simple.deriv2(self.model))
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
@@ -136,7 +137,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & Full Cov. are ok.")
         
-        Hinv = PardisoSolver(reg.deriv2(self.model))
+        Hinv = SolverLU(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
@@ -229,6 +230,7 @@ class TestPGI(unittest.TestCase):
     def test_tied_covariances(self):
 
         print("Test Tied covariances: ")
+        print("=======================")
         # Fit a Gaussian Mixture
         clf = WeightedGaussianMixture(
             mesh=self.mesh,
@@ -298,7 +300,7 @@ class TestPGI(unittest.TestCase):
         print("1st derivatives for SimplePGI & tied Cov. are ok.")
         
         deriv_simple = reg_simple.deriv(self.model)
-        Hinv = PardisoSolver(reg_simple.deriv2(self.model))
+        Hinv = SolverLU(reg_simple.deriv2(self.model))
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
@@ -315,7 +317,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & tied Cov. are ok.")
 
-        Hinv = PardisoSolver(reg.deriv2(self.model))
+        Hinv = SolverLU(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
@@ -408,6 +410,7 @@ class TestPGI(unittest.TestCase):
     def test_diag_covariances(self):
 
         print("Test Diagonal covariances: ")
+        print("===========================")
         # Fit a Gaussian Mixture
         clf = WeightedGaussianMixture(
             mesh=self.mesh,
@@ -475,7 +478,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for SimplePGI & diag Cov. are ok.")
         
-        Hinv = PardisoSolver(reg_simple.deriv2(self.model))
+        Hinv = SolverLU(reg_simple.deriv2(self.model))
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
@@ -492,7 +495,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & diag Cov. are ok.")
         
-        Hinv = PardisoSolver(reg.deriv2(self.model))
+        Hinv = SolverLU(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
@@ -585,6 +588,7 @@ class TestPGI(unittest.TestCase):
     def test_spherical_covariances(self):
 
         print("Test Spherical covariances: ")
+        print("============================")
         # Fit a Gaussian Mixture
         clf = WeightedGaussianMixture(
             mesh=self.mesh,
@@ -652,7 +656,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for SimplePGI & spherical Cov. are ok.")
         
-        Hinv = PardisoSolver(reg_simple.deriv2(self.model))
+        Hinv = SolverLU(reg_simple.deriv2(self.model))
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
@@ -669,7 +673,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & spherical Cov. are ok.")
   
-        Hinv = PardisoSolver(reg.deriv2(self.model))
+        Hinv = SolverLU(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
@@ -758,6 +762,84 @@ class TestPGI(unittest.TestCase):
             axspherical[1].set_title("PGI with W")
 
             plt.show()
+        
+    def test_pgi_regularization_approxDeriv(self):
+        """
+        This test might be redundant with the development
+        of the tests above.
+        """
+        print("Testing the PGI approximated derivatives for full Cov.")
+        print("======================================================")
+        mean0 = np.r_[2.0, 0.0]
+        sigma0 = np.r_[[[1.0, -1.0], [-1.0, 2.0]]]
+        rv0 = multivariate_normal(mean0, sigma0)
+
+        mean1 = mean0 - 2.0
+        sigma1 = np.r_[[[0.5, 0.3], [0.3, 0.5]]]
+        rv1 = multivariate_normal(mean1, sigma1)
+        s0 = rv0.rvs(700)
+        s1 = rv1.rvs(300)
+        s = np.r_[s0, s1]
+        model = mkvc(s)
+
+        mesh = discretize.TensorMesh([s.shape[0]])
+        wires = Wires(("s0", mesh.nC), ("s1", mesh.nC))
+
+        n = 2
+        clfref = WeightedGaussianMixture(
+            mesh=mesh, 
+            n_components=n, 
+            covariance_type="full", 
+            max_iter=1000, 
+            n_init=20
+        )
+        clfref.fit(s)
+
+        reg = regularization.SimplePGI(
+            mesh=mesh,
+            gmmref=clfref,
+            wiresmap=wires,
+            approx_eval=False,
+            approx_gradient=True,
+            alpha_x=0.0,
+        )
+
+        deriv = reg.deriv(model)
+        H = lambda x: reg.deriv2(model, x)
+        HH = LinearOperator([2000, 2000], matvec=H, rmatvec=H)
+        deriv2 = bicgstab(HH, deriv, atol=1e-8)[0]
+
+        Hfull = reg.deriv2(model)
+        deriv2bis = spsolve(Hfull, deriv)
+
+        tol = 1e-10
+        error00 = np.max(
+            np.minimum(
+                np.abs((wires * (model - deriv2))[0] - clfref.means_[0][0]),
+                np.abs((wires * (model - deriv2))[0] - clfref.means_[1][0]),
+            )
+        )
+        error01 = np.max(
+            np.minimum(
+                np.abs((wires * (model - deriv2))[1] - clfref.means_[0][1]),
+                np.abs((wires * (model - deriv2))[1] - clfref.means_[1][1]),
+            )
+        )
+        error10 = np.max(
+            np.minimum(
+                np.abs((wires * (model - deriv2bis))[0] - clfref.means_[0][0]),
+                np.abs((wires * (model - deriv2bis))[0] - clfref.means_[1][0]),
+            )
+        )
+        error11 = np.max(
+            np.minimum(
+                np.abs((wires * (model - deriv2bis))[1] - clfref.means_[0][1]),
+                np.abs((wires * (model - deriv2bis))[1] - clfref.means_[1][1]),
+            )
+        )
+
+        self.assertTrue(np.max([error00, error01, error10, error11]) < tol)
+        print("PGI approximated derivatives for full Cov. Tested and Happy")
 
 
 if __name__ == "__main__":

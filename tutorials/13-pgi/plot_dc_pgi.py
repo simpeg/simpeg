@@ -29,8 +29,12 @@ from SimPEG.electromagnetics.static import resistivity as DC, utils as DCutils
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
-from pymatsolver import PardisoSolver
 from scipy.stats import norm
+
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
 
 ## Reproducible science
 seed = 12345
@@ -137,7 +141,7 @@ mapactive = maps.InjectActiveCells(
 )
 mapping = expmap * mapactive
 simulation = DC.simulation_2d.Simulation2DNodal(
-    mesh, survey=survey, sigmaMap=mapping, Solver=PardisoSolver, nky=8
+    mesh, survey=survey, sigmaMap=mapping, Solver=Solver, nky=8
 )
 
 relative_measurement_error = 0.02
