@@ -183,7 +183,7 @@ class DirectiveList(object):
 class BetaEstimate_ByEig(InversionDirective):
     """BetaEstimate"""
 
-    beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
+    beta0_ratio = 1.  #: estimateBeta0 is used with this ratio
     n_pw_iter = 4          #: number of vector for estimation.
     seed = None # Random seed for the directive
     
@@ -254,7 +254,7 @@ class BetaSchedule(InversionDirective):
 class AlphasSmoothEstimate_ByEig(InversionDirective):
     """AlphaEstimate"""
 
-    alpha0_ratio = 1e-2  #: estimate the Alpha_smooth with this ratio
+    alpha0_ratio = 1.  #: estimate the Alpha_smooth with this ratio
     n_pw_iter = 4
     verbose = False
     debug = False
