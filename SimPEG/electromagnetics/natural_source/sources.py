@@ -54,27 +54,31 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
 
     _fields_per_source = 2
 
-    def __init__(self, receiver_list, frequency):
+    def __init__(self, receiver_list, frequency, sigma_primary=None):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         self.sigma1d = None
+        self._sigma_primary = sigma_primary
         super(Planewave_xy_1Dprimary, self).__init__(receiver_list, frequency)
 
     def ePrimary(self, simulation):
+        # check ig sigmaPrimary is set
+        if self._sigma_primary is None:
+            self._sigma_primary = simulation.sigmaPrimary
         # Get primary fields for both polarizations
         if self.sigma1d is None:
             # Set the sigma1d as the 1st column in the background model
-            if len(simulation._sigmaPrimary) == simulation.mesh.nC:
+            if len(self._sigma_primary) == simulation.mesh.nC:
                 if simulation.mesh.dim == 1:
                     self.sigma1d = simulation.mesh.r(
-                        simulation._sigmaPrimary, "CC", "CC", "M"
+                        self._sigma_primary, "CC", "CC", "M"
                     )[:]
                 elif simulation.mesh.dim == 3:
                     self.sigma1d = simulation.mesh.r(
-                        simulation._sigmaPrimary, "CC", "CC", "M"
+                        self._sigma_primary, "CC", "CC", "M"
                     )[0, 0, :]
             # Or as the 1D model that matches the vertical cell number
-            elif len(simulation._sigmaPrimary) == simulation.mesh.nCz:
-                self.sigma1d = simulation._sigmaPrimary
+            elif len(self._sigma_primary) == simulation.mesh.nCz:
+                self.sigma1d = self._sigma_primary
 
         if self._ePrimary is None:
             self._ePrimary = homo1DModelSource(
@@ -175,20 +179,23 @@ class Planewave_xy_3Dprimary(BaseFDEMSrc):
 
     _fields_per_source = 2
 
-    def __init__(self, receiver_list, frequency):
+    def __init__(self, receiver_list, frequency, sigma_primary=None):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
-        self.sigmaPrimary = None
+        self._sigma_primary = sigma_primary
         super(Planewave_xy_3Dprimary, self).__init__(receiver_list, frequency)
         # Hidden property of the ePrimary
         self._ePrimary = None
 
     def ePrimary(self, simulation):
+        # check if sigmaPrimary is set
+        if self._sigma_primary is None:
+            self._sigma_primary = simulation.sigmaPrimary
         # Get primary fields for both polarizations
-        self.sigmaPrimary = simulation._sigmaPrimary
+        self._sigma_primary = self._sigma_primary
 
         if self._ePrimary is None:
             self._ePrimary = homo3DModelSource(
-                simulation.mesh, self.sigmaPrimary, self.frequency
+                simulation.mesh, self._sigma_primary, self.frequency
             )
         return self._ePrimary
 
