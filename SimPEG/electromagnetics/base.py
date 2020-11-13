@@ -364,12 +364,21 @@ class BaseEMSimulation(BaseSimulation):
 
         if v is not None:
             if not isinstance(u, Zero):
-                u = u.flatten()  # u is either nUx1 or nU
+                # u = u.flatten()  # u is either nUx1 or nU
+                if u.ndim > 1:
+                    if u.shape[1] == 1:
+                        u = u[:, 0]
+                    elif v.ndim == 1:
+                        v = v[:, None]
                 if v.ndim > 1:
-                    # promote u iff v is a matrix
-                    u = u[:, None]  # Avoids constructing the sparse matrix
+                    # promote u iff v is a matrix and u if a vector
+                    if u.ndim == 1:
+                        u = u[:, None]  # Avoids constructing the sparse matrix
             if adjoint:
-                return self._MeSigmaDeriv.T * (u * v)
+                out = self._MeSigmaDeriv.T * (u * v)
+                if u.ndim > 1 and u.shape == v.shape:
+                    out = np.sum(out, axis=1)
+                return out
             return u * (self._MeSigmaDeriv * v)
         else:
             if adjoint is True:

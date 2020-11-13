@@ -164,54 +164,64 @@ class BaseRxNSEM_Point(BaseRx):
     # Get the derivatives
 
     def _ex_px_u(self, vec, adjoint=False):
+        Pex = self.getP(self.mesh, "Ex", "e")
         if adjoint:
-            return self.f._e_pxDeriv_u(self.src, self.Pex.T * vec, adjoint=True)
-        return self.Pex * self.f._e_pxDeriv_u(self.src, vec)
+            return self.f._e_pxDeriv_u(self.src, Pex.T * vec, adjoint=True)
+        return Pex * self.f._e_pxDeriv_u(self.src, vec)
 
     def _ey_px_u(self, vec, adjoint=False):
+        Pey = self.getP(self.mesh, "Ey", "e")
         if adjoint:
-            return self.f._e_pxDeriv_u(self.src, self.Pey.T * vec, adjoint=True)
-        return self.Pey * self.f._e_pxDeriv_u(self.src, vec)
+            return self.f._e_pxDeriv_u(self.src, Pey.T * vec, adjoint=True)
+        return Pey * self.f._e_pxDeriv_u(self.src, vec)
 
     def _ex_py_u(self, vec, adjoint=False):
+        Pex = self.getP(self.mesh, "Ex", "e")
         if adjoint:
-            return self.f._e_pyDeriv_u(self.src, self.Pex.T * vec, adjoint=True)
-        return self.Pex * self.f._e_pyDeriv_u(self.src, vec)
+            return self.f._e_pyDeriv_u(self.src, Pex.T * vec, adjoint=True)
+        return Pex * self.f._e_pyDeriv_u(self.src, vec)
 
     def _ey_py_u(self, vec, adjoint=False):
+        Pey = self.getP(self.mesh, "Ey", "e")
         if adjoint:
-            return self.f._e_pyDeriv_u(self.src, self.Pey.T * vec, adjoint=True)
-        return self.Pey * self.f._e_pyDeriv_u(self.src, vec)
+            return self.f._e_pyDeriv_u(self.src, Pey.T * vec, adjoint=True)
+        return Pey * self.f._e_pyDeriv_u(self.src, vec)
 
     def _hx_px_u(self, vec, adjoint=False):
+        Pbx = self.getP(self.mesh, "Fx", "b")
         if adjoint:
-            return self.f._b_pxDeriv_u(self.src, self.Pbx.T * vec, adjoint=True) / mu_0
-        return self.Pbx * self.f._b_pxDeriv_u(self.src, vec) / mu_0
+            return self.f._b_pxDeriv_u(self.src, Pbx.T * vec, adjoint=True) / mu_0
+        return Pbx * self.f._b_pxDeriv_u(self.src, vec) / mu_0
 
     def _hy_px_u(self, vec, adjoint=False):
+        Pby = self.getP(self.mesh, "Fy", "b")
         if adjoint:
-            return self.f._b_pxDeriv_u(self.src, self.Pby.T * vec, adjoint=True) / mu_0
-        return self.Pby * self.f._b_pxDeriv_u(self.src, vec) / mu_0
+            return self.f._b_pxDeriv_u(self.src, Pby.T * vec, adjoint=True) / mu_0
+        return Pby * self.f._b_pxDeriv_u(self.src, vec) / mu_0
 
     def _hz_px_u(self, vec, adjoint=False):
+        Pbz = self.getP(self.mesh, "Fz", "b")
         if adjoint:
-            return self.f._b_pxDeriv_u(self.src, self.Pbz.T * vec, adjoint=True) / mu_0
+            return self.f._b_pxDeriv_u(self.src, Pbz.T * vec, adjoint=True) / mu_0
         return self.Pbz * self.f._b_pxDeriv_u(self.src, vec) / mu_0
 
     def _hx_py_u(self, vec, adjoint=False):
+        Pbx = self.getP(self.mesh, "Fx", "b")
         if adjoint:
-            return self.f._b_pyDeriv_u(self.src, self.Pbx.T * vec, adjoint=True) / mu_0
-        return self.Pbx * self.f._b_pyDeriv_u(self.src, vec) / mu_0
+            return self.f._b_pyDeriv_u(self.src, Pbx.T * vec, adjoint=True) / mu_0
+        return Pbx * self.f._b_pyDeriv_u(self.src, vec) / mu_0
 
     def _hy_py_u(self, vec, adjoint=False):
+        Pby = self.getP(self.mesh, "Fy", "b")
         if adjoint:
-            return self.f._b_pyDeriv_u(self.src, self.Pby.T * vec, adjoint=True) / mu_0
-        return self.Pby * self.f._b_pyDeriv_u(self.src, vec) / mu_0
+            return self.f._b_pyDeriv_u(self.src, Pby.T * vec, adjoint=True) / mu_0
+        return Pby * self.f._b_pyDeriv_u(self.src, vec) / mu_0
 
     def _hz_py_u(self, vec, adjoint=False):
+        Pbz = self.getP(self.mesh, "Fz", "b")
         if adjoint:
-            return self.f._b_pyDeriv_u(self.src, self.Pbz.T * vec, adjoint=True) / mu_0
-        return self.Pbz * self.f._b_pyDeriv_u(self.src, vec) / mu_0
+            return self.f._b_pyDeriv_u(self.src, Pbz.T * vec, adjoint=True) / mu_0
+        return Pbz * self.f._b_pyDeriv_u(self.src, vec) / mu_0
 
     # Define the components of the derivative
 
@@ -220,19 +230,26 @@ class BaseRxNSEM_Point(BaseRx):
         return sdiag(self._hx_px) * self._hy_py - sdiag(self._hx_py) * self._hy_px
 
     def _Hd_denominator_deriv_u(self, v, adjoint=False):
+        h = self.f[self.src, "h"]
+        Pbx = self.getP(self.mesh, "Fx", "b")
+        hx_px = Pbx * h[:, 0]
+        hx_py = Pbx * h[:, 1]
+        Pby = self.getP(self.mesh, "Fy", "b")
+        hy_px = Pby * h[:, 0]
+        hy_py = Pby * h[:, 1]
         if adjoint:
             return (
-                self._hy_py_u(sdiag(self._hx_px) * v, adjoint=True)
-                + self._hx_px_u(sdiag(self._hy_py) * v, adjoint=True)
-                - self._hy_px_u(sdiag(self._hx_py) * v, adjoint=True)
-                - self._hx_py_u(sdiag(self._hy_px) * v, adjoint=True)
+                self._hy_py_u(sdiag(hx_px) * v, adjoint=True)
+                + self._hx_px_u(sdiag(hy_py) * v, adjoint=True)
+                - self._hy_px_u(sdiag(hx_py) * v, adjoint=True)
+                - self._hx_py_u(sdiag(hy_px) * v, adjoint=True)
             )
 
         return (
-            sdiag(self._hy_py) * self._hx_px_u(v)
-            + sdiag(self._hx_px) * self._hy_py_u(v)
-            - sdiag(self._hx_py) * self._hy_px_u(v)
-            - sdiag(self._hy_px) * self._hx_py_u(v)
+            sdiag(hy_py) * self._hx_px_u(v)
+            + sdiag(hx_px) * self._hy_py_u(v)
+            - sdiag(hx_py) * self._hy_px_u(v)
+            - sdiag(hy_px) * self._hx_py_u(v)
         )
 
     @property
@@ -492,7 +509,7 @@ class Point3DImpedance(BaseRxNSEM_Point):
                 )
         return Zij_numerator_uV
 
-    def _eval_complex_impedance(self, src, mesh, f):
+    def _eval_complex_impedance(self, src, mesh, f, numerator=False):
         e = f[src, "e"]  # will grab both primary and secondary and sum them!
         h = f[src, "h"]
         if self.orientation[0] == "x":
@@ -520,6 +537,8 @@ class Point3DImpedance(BaseRxNSEM_Point):
 
         top = e_px * h_py - e_py * h_px
         bot = hx_px * hy_py - hx_py * hy_px
+        if numerator:
+            return top
         return top / bot
 
     def eval(self, src, mesh, f, return_complex=False):
@@ -554,7 +573,7 @@ class Point3DImpedance(BaseRxNSEM_Point):
         self.mesh = mesh
         self.f = f
 
-        Zij_numerator = self._eval_impedance_numerator()
+        Zij_numerator = self._eval_complex_impedance(src, mesh, f, numerator=True)
 
         if adjoint:
 
@@ -598,98 +617,85 @@ class Point3DComplexResistivity(Point3DImpedance):
     def _alpha(self, src):
         return 1 / (2 * np.pi * mu_0 * src.frequency)
 
-    # def _eval_impedance(self, src, mesh, f):
-    #     e = f[src, "e"]  # will grab both primary and secondary and sum them!
-    #     h = f[src, "h"]
-    #     if self.orientation[0] == "x":
-    #         Pex = self.getP(mesh, "Ex", "e")
-    #         e_px = Pex * e[:, 0]  # ex_px
-    #         e_py = Pex * e[:, 1]  # ex_py
-    #     else:
-    #         Pey = self.getP(mesh, "Ey", "e")
-    #         e_px = Pey * e[:, 0]  # ey_px
-    #         e_py = Pey * e[:, 1]  # ey_px
+    def _deriv_impedance(self, src, mesh, f, v, adjoint=False):
+        # do the fields
+        e = f[src, "e"]  # will grab both primary and secondary and sum them!
+        h = f[src, "h"]
+        Pex = self.getP(mesh, "Ex", "e")
+        ex_px = Pex * e[:, 0]  # ex_px
+        ex_py = Pex * e[:, 1]  # ex_py
+        Pey = self.getP(mesh, "Ey", "e")
+        ey_px = Pey * e[:, 0]  # ey_px
+        ey_py = Pey * e[:, 1]  # ey_px
 
-    #     Pbx = self.getP(mesh, "Fx", "b")
-    #     hx_px = Pbx * h[:, 0]
-    #     hx_py = Pbx * h[:, 1]
-    #     Pby = self.getP(mesh, "Fy", "b")
-    #     hy_px = Pby * h[:, 0]
-    #     hy_py = Pby * h[:, 1]
+        Pbx = self.getP(mesh, "Fx", "b")
+        hx_px = Pbx * h[:, 0]
+        hx_py = Pbx * h[:, 1]
+        Pby = self.getP(mesh, "Fy", "b")
+        hy_px = Pby * h[:, 0]
+        hy_py = Pby * h[:, 1]
 
-    #     if self.orientation[1] == "x":
-    #         h_px = hy_px
-    #         h_py = hy_py
-    #     else:
-    #         h_px = -hx_px
-    #         h_py = -hx_py
-
-    #     top = e_px * h_py - e_py * h_px
-    #     bot = hx_px * hy_py - hx_py * hy_px
-    #     return top / bot
-
-    def _deriv_impedance(self, v, adjoint=False):
         if "xx" in self.orientation:
             if not adjoint:
                 ZijN_uV = (
-                    self._sDiag(self._hy_py) * self._ex_px_u(v)
-                    + self._sDiag(self._ex_px) * self._hy_py_u(v)
-                    - self._sDiag(self._ex_py) * self._hy_px_u(v)
-                    - self._sDiag(self._hy_px) * self._ex_py_u(v)
+                    sdiag(hy_py) * self._ex_px_u(v)
+                    + sdiag(ex_px) * self._hy_py_u(v)
+                    - sdiag(ex_py) * self._hy_px_u(v)
+                    - sdiag(hy_px) * self._ex_py_u(v)
                 )
             elif adjoint:
                 ZijN_uV = (
-                    self._ex_px_u(self._sDiag(self._hy_py) * v, adjoint=True)
-                    + self._hy_py_u(self._sDiag(self._ex_px) * v, adjoint=True)
-                    - self._hy_px_u(self._sDiag(self._ex_py) * v, adjoint=True)
-                    - self._ex_py_u(self._sDiag(self._hy_px) * v, adjoint=True)
+                    self._ex_px_u(sdiag(hy_py) * v, adjoint=True)
+                    + self._hy_py_u(sdiag(ex_px) * v, adjoint=True)
+                    - self._hy_px_u(sdiag(ex_py) * v, adjoint=True)
+                    - self._ex_py_u(sdiag(hy_px) * v, adjoint=True)
                 )
         elif "xy" in self.orientation:
             if not adjoint:
                 ZijN_uV = (
-                    -self._sDiag(self._hx_py) * self._ex_px_u(v)
-                    - self._sDiag(self._ex_px) * self._hx_py_u(v)
-                    + self._sDiag(self._ex_py) * self._hx_px_u(v)
-                    + self._sDiag(self._hx_px) * self._ex_py_u(v)
+                    - sdiag(hx_py) * self._ex_px_u(v)
+                    - sdiag(ex_px) * self._hx_py_u(v)
+                    + sdiag(ex_py) * self._hx_px_u(v)
+                    + sdiag(hx_px) * self._ex_py_u(v)
                 )
             elif adjoint:
                 ZijN_uV = (
-                    -self._ex_px_u(self._sDiag(self._hx_py) * v, adjoint=True)
-                    - self._hx_py_u(self._sDiag(self._ex_px) * v, adjoint=True)
-                    + self._hx_px_u(self._sDiag(self._ex_py) * v, adjoint=True)
-                    + self._ex_py_u(self._sDiag(self._hx_px) * v, adjoint=True)
+                    - self._ex_px_u(sdiag(hx_py) * v, adjoint=True)
+                    - self._hx_py_u(sdiag(ex_px) * v, adjoint=True)
+                    + self._hx_px_u(sdiag(ex_py) * v, adjoint=True)
+                    + self._ex_py_u(sdiag(hx_px) * v, adjoint=True)
                 )
 
         elif "yx" in self.orientation:
             if not adjoint:
                 ZijN_uV = (
-                    self._sDiag(self._hy_py) * self._ey_px_u(v)
-                    + self._sDiag(self._ey_px) * self._hy_py_u(v)
-                    - self._sDiag(self._ey_py) * self._hy_px_u(v)
-                    - self._sDiag(self._hy_px) * self._ey_py_u(v)
+                    sdiag(hy_py) * self._ey_px_u(v)
+                    + sdiag(ey_px) * self._hy_py_u(v)
+                    - sdiag(ey_py) * self._hy_px_u(v)
+                    - sdiag(hy_px) * self._ey_py_u(v)
                 )
             elif adjoint:
                 ZijN_uV = (
-                    self._ey_px_u(self._sDiag(self._hy_py) * v, adjoint=True)
-                    + self._hy_py_u(self._sDiag(self._ey_px) * v, adjoint=True)
-                    - self._hy_px_u(self._sDiag(self._ey_py) * v, adjoint=True)
-                    - self._ey_py_u(self._sDiag(self._hy_px) * v, adjoint=True)
+                    self._ey_px_u(sdiag(hy_py) * v, adjoint=True)
+                    + self._hy_py_u(sdiag(ey_px) * v, adjoint=True)
+                    - self._hy_px_u(sdiag(ey_py) * v, adjoint=True)
+                    - self._ey_py_u(sdiag(hy_px) * v, adjoint=True)
                 )
 
         elif "yy" in self.orientation:
             if not adjoint:
                 ZijN_uV = (
-                    -self._sDiag(self._hx_py) * self._ey_px_u(v)
-                    - self._sDiag(self._ey_px) * self._hx_py_u(v)
-                    + self._sDiag(self._ey_py) * self._hx_px_u(v)
-                    + self._sDiag(self._hx_px) * self._ey_py_u(v)
+                    -sdiag(hx_py) * self._ey_px_u(v)
+                    - sdiag(ey_px) * self._hx_py_u(v)
+                    + sdiag(ey_py) * self._hx_px_u(v)
+                    + sdiag(hx_px) * self._ey_py_u(v)
                 )
             elif adjoint:
                 ZijN_uV = (
-                    -self._ey_px_u(self._sDiag(self._hx_py) * v, adjoint=True)
-                    - self._hx_py_u(self._sDiag(self._ey_px) * v, adjoint=True)
-                    + self._hx_px_u(self._sDiag(self._ey_py) * v, adjoint=True)
-                    + self._ey_py_u(self._sDiag(self._hx_px) * v, adjoint=True)
+                    - self._ey_px_u(sdiag(hx_py) * v, adjoint=True)
+                    - self._hx_py_u(sdiag(ey_px) * v, adjoint=True)
+                    + self._hx_px_u(sdiag(ey_py) * v, adjoint=True)
+                    + self._ey_py_u(sdiag(hx_px) * v, adjoint=True)
                 )
         return ZijN_uV
 
@@ -711,7 +717,7 @@ class Point3DComplexResistivity(Point3DImpedance):
         # Zij = self._eval_impedance(src, mesh, f)
 
         # Calculate the complex value
-        rx_eval_complex = self._eval_complex_impedance(src, mesh, f)  # self._Hd * Zij
+        rx_eval_complex = self._eval_complex_impedance(src, mesh, f)
 
         # # Return the full impedance
         # if return_complex:
@@ -722,7 +728,7 @@ class Point3DComplexResistivity(Point3DImpedance):
         elif self.component == "phase":
             return 180 / np.pi * (np.arctan2(rx_eval_complex.imag, rx_eval_complex.real))
 
-    def evalDeriv(self, src, mesh, f, v, adjoint=False):
+    def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         """
         The derivative of the projection wrt u
         :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: NSEM source
@@ -738,23 +744,23 @@ class Point3DComplexResistivity(Point3DImpedance):
 
         if adjoint is True:
             alpha = self._alpha(src)
-            # Zij = self._eval_impedance()
+            Zij = self._eval_complex_impedance(src, mesh, f, numerator=True)
             HdZij = self._eval_complex_impedance(src, mesh, f) # self._Hd @ Zij  # since Hd is diagonal, don't need transpose
 
             def rx_derivT(v):
-                return self._deriv_impedance(
+                return self._deriv_impedance(src, mesh, f,
                     self._Hd * v, adjoint=adjoint
                 ) + self._deriv_Hd_uV(
-                    self._sDiag(Zij) * v, adjoint=adjoint
+                    sdiag(Zij) * v, adjoint=adjoint
                 )  # _deriv_Hd_uV(v)
 
-            if self.component == "apparent_resistivity":
+            if self.component == "apparent resistivity":
                 rx_deriv_component = (
                     2
                     * alpha
                     * (
-                        rx_derivT(self._sDiag(HdZij.real) * v)  # +  #real) #+
-                        - rx_derivT(1j * self._sDiag(HdZij.imag) * v)
+                        rx_derivT(sdiag(HdZij.real) * v)  # +  #real) #+
+                        - rx_derivT(1j * sdiag(HdZij.imag) * v)
                     ).reshape((mesh.nE, 2), order="F")
                 )
 
@@ -764,27 +770,27 @@ class Point3DComplexResistivity(Point3DImpedance):
 
                 rx_deriv_component = (180 / np.pi) * (
                     rx_derivT(
-                        self._sDiag(-HdZij_im / (HdZij_im ** 2 + HdZij_re ** 2)) * v
+                        sdiag(-HdZij_im / (HdZij_im ** 2 + HdZij_re ** 2)) * v
                     )
                     + -rx_derivT(
-                        1j * self._sDiag(HdZij_re / (HdZij_im ** 2 + HdZij_re ** 2)) * v
+                        1j * sdiag(HdZij_re / (HdZij_im ** 2 + HdZij_re ** 2)) * v
                     )
                 ).reshape((mesh.nE, 2), order="F")
 
         else:
             alpha = self._alpha(src)
-            ZijN_uV = self._deriv_impedance(v)
+            ZijN_uV = self._deriv_impedance(src, mesh, f, v)
             # Zij = self._eval_impedance()
-            HdZij = self._eval_impedance(src, mesh, f)  #self._Hd @ Zij
-            rx_deriv = self._Hd @ ZijN_uV + self._sDiag(Zij) * self._deriv_Hd_uV(v)
+            HdZij = self._eval_complex_impedance(src, mesh, f)  #self._Hd @ Zij
+            rx_deriv = self._Hd @ ZijN_uV + sdiag(Zij) * self._deriv_Hd_uV(du_dm_v)
 
-            if self.component == "apparent_resistivity":
+            if self.component == "apparent resistivity":
                 rx_deriv_component = (
                     2
                     * alpha
                     * (
-                        self._sDiag(HdZij.real) * rx_deriv.real
-                        + self._sDiag(HdZij.imag) * rx_deriv.imag
+                        sdiag(HdZij.real) * rx_deriv.real
+                        + sdiag(HdZij.imag) * rx_deriv.imag
                     )
                 )
             elif self.component == "phase":
@@ -792,11 +798,11 @@ class Point3DComplexResistivity(Point3DImpedance):
                 HdZij_im = HdZij.imag
 
                 deriv_re = (
-                    self._sDiag(-HdZij_im / (HdZij_im ** 2 + HdZij_re ** 2))
+                    sdiag(-HdZij_im / (HdZij_im ** 2 + HdZij_re ** 2))
                     * rx_deriv.real
                 )
                 deriv_im = (
-                    self._sDiag(HdZij_re / (HdZij_im ** 2 + HdZij_re ** 2))
+                    sdiag(HdZij_re / (HdZij_im ** 2 + HdZij_re ** 2))
                     * rx_deriv.imag
                 )
 

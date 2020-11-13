@@ -584,6 +584,8 @@ class Simulation3DPrimarySecondary2(Simulation3DElectricField):
     # Initiate properties
     _sigmaPrimary = None
 
+    # fieldsPair = Fields3DPrimarySecondary
+
     @property
     def sigmaPrimary(self):
         """
