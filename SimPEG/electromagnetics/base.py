@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 import properties
 from scipy.constants import mu_0
 import numpy as np
+import scipy.sparse as sp
 
 from ..data import Data
 from ..maps import IdentityMap
@@ -218,19 +219,40 @@ class BaseEMSimulation(BaseSimulation):
                 * self.muiDeriv
             )
 
+        M = self._MfMuiDeriv
         if v is not None:
             if not isinstance(u, Zero):
-                u = u.flatten()
-                if v.ndim > 1:
-                    u = u[:, None]
-            if adjoint is True:
-                return self._MfMuiDeriv.T * (u * v)
-            return u * (self._MfMuiDeriv * v)
+                if u.ndim > 1:
+                    if u.shape[1] > 1:
+                        # u has multiple fields
+                        if v.ndim == 1:
+                            v = v[:, None]
+                    else:
+                        u = u[:, 0]
+                if u.ndim == 1:
+                    if v.ndim > 1:
+                        if v.shape[1] == 1:
+                            v = v[:, 0]
+                        else:
+                            u = u[:, None]
+                if v.ndim > 2:
+                    u = u[:, :, None]
+            if adjoint:
+                if u.ndim > 1 and u.shape[1] > 1:
+                    return M.T * (u * v).sum(axis=1)
+                return M.T * (u * v)
+            if u.ndim > 1 and u.shape[1] > 1:
+                return u[:, None, :] * (M * v)[:, :, None]
+            return u * (M * v)
         else:
-            mat = sdiag(u) * self._MfMuiDeriv
-            if adjoint is True:
-                return mat.T
-            return mat
+            if u.ndim > 1:
+                U = sp.vstack([sdiag(u[:, i]) for i in range(u.shape[1])])
+            else:
+                U = sdiag(u)
+            UM = U @ M
+            if adjoint:
+                return UM.T
+            return UM
 
     @property
     def MfMuiI(self):
@@ -256,13 +278,26 @@ class BaseEMSimulation(BaseSimulation):
                 )
 
         dMfMuiI_dI = -self.MfMuiI ** 2
-        if adjoint is True:
-            return self.MfMuiDeriv(
-                u,
-                v=dMfMuiI_dI.T * v if v is not None else dMfMuiI_dI.T,
-                adjoint=adjoint,
-            )
-        return dMfMuiI_dI * self.MfMuiDeriv(u, v=v)
+        if adjoint and v is not None:
+            if v.ndim > 2:
+                # collapse last two dimensions, multiply, and shape back
+                Mv = (dMfMuiI_dI.T @ v.reshape((v.shape[0], -1))).reshape(v.shape)
+            else:
+                Mv = dMfMuiI_dI.T @ v
+            return self.MfMuiDeriv(u, v=Mv, adjoint=adjoint)
+
+        uM = self.MfMuiDeriv(u, v=v)
+        # do NOT add adjoint here (need it to default to True)
+        if v is None:
+            uMM = uM @ dMfMuiI_dI
+            if adjoint:
+                return uMM.T
+            return uMM
+        if not isinstance(uM, Zero) and uM.ndim > 2:
+            # output is of shape (n, feilds_per_source, ...)
+            # again need to collapse last two dimensions and multiply then reshape
+            return (dMfMuiI_dI * uM.reshape(uM.shape[0], -1)).reshape(uM.shape)
+        return dMfMuiI_dI * uM
 
     @property
     def MeMu(self):
@@ -362,25 +397,41 @@ class BaseEMSimulation(BaseSimulation):
                 * self.sigmaDeriv
             )
 
+        M = self._MeSigmaDeriv
         if v is not None:
             if not isinstance(u, Zero):
-                # u = u.flatten()  # u is either nUx1 or nU
                 if u.ndim > 1:
-                    if u.shape[1] == 1:
+                    if u.shape[1] > 1:
+                        # u has multiple fields
+                        if v.ndim == 1:
+                            v = v[:, None]
+                    else:
                         u = u[:, 0]
-                    elif v.ndim == 1:
-                        v = v[:, None]
-                if v.ndim > 1:
-                    # promote u iff v is a matrix and u if a vector
-                    if u.ndim == 1:
-                        u = u[:, None]  # Avoids constructing the sparse matrix
+                if u.ndim == 1:
+                    if v.ndim > 1:
+                        if v.shape[1] == 1:
+                            v = v[:, 0]
+                        else:
+                            u = u[:, None]
+                if v.ndim > 2:
+                    u = u[:, :, None]
             if adjoint:
-                out = self._MeSigmaDeriv.T * (u * v)
-                if u.ndim > 1 and u.shape == v.shape:
-                    out = np.sum(out, axis=1)
-                return out
-            return u * (self._MeSigmaDeriv * v)
+                if u.ndim > 1 and u.shape[1] > 1:
+                    return M.T * (u * v).sum(axis=1)
+                return M.T * (u * v)
+            if u.ndim > 1 and u.shape[1] > 1:
+                return u[:, None, :] * (M * v)[:, :, None]
+            return u * (M * v)
+
         else:
+            if u.ndim > 1:
+                U = sp.vstack([sdiag(u[:, i]) for i in range(u.shape[1])])
+            else:
+                U = sdiag(u)
+            UM = U @ M
+            if adjoint:
+                return UM.T
+            return UM
             if adjoint is True:
                 return self._MeSigmaDeriv.T * sdiag(u)
             return sdiag(u) * self._MeSigmaDeriv
