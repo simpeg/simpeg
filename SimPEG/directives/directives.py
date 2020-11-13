@@ -240,14 +240,14 @@ class BetaEstimate_ByEig(InversionDirective):
             print("Calculating the beta0 parameter.")
 
         m = self.invProb.model
-        f = np.r_[self.invProb.getFields(m, store=True, deleteWarmstart=False)]
+        f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
         
         dm_eigenvalue = eigenvalue_by_power_iteration(
-            self.dmisfit, m, fields_list=f, ninit=self.ninit, 
+            self.dmisfit, m, fields=f, ninit=self.ninit, 
         )
 
         reg_eigenvalue = eigenvalue_by_power_iteration(
-            self.reg, m, fields_list=f, ninit=self.ninit, 
+            self.reg, m, fields=f, ninit=self.ninit, 
         )
 
         self.ratio = (dm_eigenvalue / reg_eigenvalue)
@@ -402,7 +402,8 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
                     ratio = np.divide(
                         smallness_eigenvalue, smooth_i_eigenvalue, 
-                        out=np.zeros_like(t), where=smooth_i_eigenvalue != 0
+                        out=np.zeros_like(smallness_eigenvalue), 
+                        where=smooth_i_eigenvalue != 0
                     )
 
                     self.alpha0[i] *= self.alpha0_ratio[i] * ratio
@@ -420,19 +421,18 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     print("Alpha scales: ", objf.multipliers)
 
 
-class ScalingDataMisfits_ByEig(InversionDirective):
+class ScalingMultipleDataMisfits_ByEig(InversionDirective):
     """ScalingDataMisfitsEstimate"""
 
-    Chi0_ratio = 1  #: estimateBeta0 is used with this ratio
+    chi0 = 1  #: estimateBeta0 is used with this ratio
     ninit = 4
-    Chi0 = None  #: The initial scaling (default is data misfit multipliers)
+    chi0 = None  #: The initial scaling ratio (default is data misfit multipliers)
     verbose = False
     debug = False
     seed = None
 
     def initialize(self):
         """
-           Assume only 2 data misfits
         """
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -448,29 +448,24 @@ class ScalingDataMisfits_ByEig(InversionDirective):
             pass
 
         ndm = len(self.dmisfit.objfcts)
-        if self.Chi0 is not None:
-            self.Chi0 = self.Chi0 * np.ones(ndm)
+        if self.chi0 is not None:
+            self.chi0 = self.chi0 * np.ones(ndm)
         else:
-            self.Chi0 = self.dmisfit.multipliers
+            self.chi0 = self.dmisfit.multipliers
 
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
-        ratio = np.zeros((self.ninit, ndm - 1))
-        t = np.zeros(ndm)
-
-        for j in range(ndm):
-            x0 = np.random.rand(*m.shape)
-            x0 = x0 / np.linalg.norm(x0)
-            for i in range(self.ninit):
-                x0 = self.dmisfit.objfcts[j].deriv2(m, x0, f=f[j])
-                x0 = x0 / np.linalg.norm(x0)
-            t[j] = x0.dot(self.dmisfit.objfcts[j].deriv2(m, x0, f=f[j]))
-
-        self.ratio = t[0] / t[1:]
-        self.Chi0[1:] = self.Chi0[1:] * self.ratio
-        self.dmisfit.multipliers = self.Chi0
-        self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
+        
+        dm_eigenvalue_list = []
+        for j, dm in enumerate(self.dmisfit.objfcts):
+            dm_eigenvalue_list += [eigenvalue_by_power_iteration(
+                dm, m, fields=f[j]
+            )]
+            
+        self.chi0 = self.chi0 * np.r_[dm_eigenvalue_list]
+        self.chi0 = self.chi0 / np.sum(self.chi0)
+        self.dmisfit.multipliers = self.chi0
 
         if self.verbose:
             print("Scale Multipliers: ", self.dmisfit.multipliers)

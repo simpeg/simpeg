@@ -174,8 +174,8 @@ class JointInversionTest(unittest.TestCase):
         alphas = directives.AlphasSmoothEstimate_ByEig(
             alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
         )
-        scales = directives.ScalingDataMisfits_ByEig(
-            Chi0_ratio=0.5, verbose=True, ninit=10
+        scales = directives.ScalingMultipleDataMisfits_ByEig(
+            chi0=np.r_[1., 0.5], verbose=True, ninit=10
         )
         scaling_schedule = directives.JointScalingSchedule(verbose=True)
         beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
@@ -314,8 +314,8 @@ class JointInversionTest(unittest.TestCase):
         alphas = directives.AlphasSmoothEstimate_ByEig(
             alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
         )
-        scales = directives.ScalingDataMisfits_ByEig(
-            Chi0_ratio=[1, 0.5], verbose=True, ninit=100
+        scales = directives.ScalingMultipleDataMisfits_ByEig(
+            chi0=[1, 0.5], verbose=True, ninit=100
         )
         scaling_schedule = directives.JointScalingSchedule(verbose=True)
         beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)

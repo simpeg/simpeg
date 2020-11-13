@@ -13,7 +13,7 @@ from .directives import (
     Update_Wj,
     AlphasSmoothEstimate_ByEig,
     MultiTargetMisfits,
-    ScalingDataMisfits_ByEig,
+    ScalingMultipleDataMisfits_ByEig,
     JointScalingSchedule,
     UpdateSensitivityWeights,
     ProjectSphericalBounds,

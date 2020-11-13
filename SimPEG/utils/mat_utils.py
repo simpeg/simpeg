@@ -99,37 +99,42 @@ def uniqueRows(M):
     return unqM, unqInd, invInd
 
 
-def eigenvalue_by_power_iteration(combo_objfct, model, ninit=4, fields_list=None, seed=None):
+def eigenvalue_by_power_iteration(combo_objfct, model, ninit=4, fields=None, seed=None):
 
     if seed is not None:
         np.random.seed(seed)
     
+    # Initial guess for eigen-vector
     x0 = np.random.rand(*model.shape)
     x0 = x0 / np.linalg.norm(x0)
  
-    # transform in ComboObjectiveFunction if required
+    # transform to ComboObjectiveFunction if required
     if getattr(combo_objfct, "objfcts", None) is None:
         combo = 1. * combo_objfct
     else:
         combo = combo_objfct
     
     # create Field for data misfit if necessary and not provided
-    if fields_list is None:
+    if fields is None:
         f = []
         for k, obj in enumerate(combo.objfcts):
             if hasattr(obj, "simulation"):
                 f += [obj.simulation.fields(model)]
             else:
-                f += [None] #required to put None to conserve it in array form
+                # required to put None to conserve it in array form
+                # The idea is that the function can have a mixed of dmis and reg terms
+                f += [None] 
     else:
-        f = fields_list
-    f = np.r_[f] #transform in indexable array for all cases.
+        f = fields
+    # transform in indexable array for all cases. 
+    # [None] are conserved as None.
+    f = np.r_[f] 
 
     #Power iteration: estimate eigenvector
     for i in range(ninit):
         x1 = 0.
         for j, (mult, obj) in enumerate(zip(combo.multipliers, combo.objfcts)):
-            if hasattr(obj, "simulation"):
+            if hasattr(obj, "simulation"): # if data misfit term
                 x1 += mult * obj.deriv2(model, v=x0, f=f[j])
             else:
                 x1 += mult * obj.deriv2(model, v=x0,)
@@ -138,7 +143,7 @@ def eigenvalue_by_power_iteration(combo_objfct, model, ninit=4, fields_list=None
     # Compute highest eigenvalue from estimated eigenvector
     eigenvalue=0.
     for j, (mult, obj) in enumerate(zip(combo.multipliers, combo.objfcts)):
-        if hasattr(obj, "simulation"):
+        if hasattr(obj, "simulation"): # if data misfit term
             eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0, f=f[j]))
         else:
             eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0,))

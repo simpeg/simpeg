@@ -101,7 +101,7 @@ clf = utils.WeightedGaussianMixture(
     covariance_type="full",
     max_iter=100,
     n_init=3,
-    reg_covar=1e-3,
+    reg_covar=5e-4,
 )
 clf.fit(mtrue.reshape(-1, 1))
 
@@ -119,7 +119,7 @@ opt.remember("xc")
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # directives
-Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=10.0)
+Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=10.0, verbose=True)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-6)
 betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True,
