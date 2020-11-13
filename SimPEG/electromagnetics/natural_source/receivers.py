@@ -46,33 +46,33 @@ class BaseRxNSEM_Point(BaseRx):
 
         BaseRx.__init__(self, locs)
 
-    # Set a mesh property - TODO: remove the following properties
-    @property
-    def mesh(self):
-        return self._mesh
+    # # Set a mesh property - TODO: remove the following properties
+    # @property
+    # def mesh(self):
+    #     return self._mesh
 
-    @mesh.setter
-    def mesh(self, value):
-        if value is getattr(self, "_mesh", None):
-            pass
-        else:
-            self._mesh = value
+    # @mesh.setter
+    # def mesh(self, value):
+    #     if value is getattr(self, "_mesh", None):
+    #         pass
+    #     else:
+    #         self._mesh = value
 
-    @property
-    def src(self):
-        return self._src
+    # @property
+    # def src(self):
+    #     return self._src
 
-    @src.setter
-    def src(self, value):
-        self._src = value
+    # @src.setter
+    # def src(self, value):
+    #     self._src = value
 
-    @property
-    def f(self):
-        return self._f
+    # @property
+    # def f(self):
+    #     return self._f
 
-    @f.setter
-    def f(self, value):
-        self._f = value
+    # @f.setter
+    # def f(self, value):
+    #     self._f = value
 
     def _locs_e(self):
         if self.locations.ndim == 3:
@@ -381,7 +381,6 @@ class Point1DImpedance(BaseRx):
         # NOTE: Maybe set this as a property
         PEx = self.getP(mesh, "Fx")
         PBy = self.getP(mesh, "Ex")
-        ...
 
         self.src = src
         self.mesh = mesh
@@ -509,14 +508,62 @@ class Point3DImpedance(BaseRxNSEM_Point):
                 )
         return Zij_numerator_uV
 
-    def _eval_complex_impedance(self, src, mesh, f, numerator=False):
+    # def _eval_complex_impedance(self, src, mesh, f, numerator=False):
+    #     e = f[src, "e"]  # will grab both primary and secondary and sum them!
+    #     h = f[src, "h"]
+    #     if self.orientation[0] == "x":
+    #         Pex = self.getP(mesh, "Ex", "e")
+    #         e_px = Pex * e[:, 0]  # ex_px
+    #         e_py = Pex * e[:, 1]  # ex_py
+    #     else:
+    #         Pey = self.getP(mesh, "Ey", "e")
+    #         e_px = Pey * e[:, 0]  # ey_px
+    #         e_py = Pey * e[:, 1]  # ey_px
+
+    #     Pbx = self.getP(mesh, "Fx", "b")
+    #     hx_px = Pbx * h[:, 0]
+    #     hx_py = Pbx * h[:, 1]
+    #     Pby = self.getP(mesh, "Fy", "b")
+    #     hy_px = Pby * h[:, 0]
+    #     hy_py = Pby * h[:, 1]
+
+    #     if self.orientation[1] == "x":
+    #         h_px = hy_px
+    #         h_py = hy_py
+    #     else:
+    #         h_px = -hx_px
+    #         h_py = -hx_py
+
+    #     top = e_px * h_py - e_py * h_px
+    #     bot = hx_px * hy_py - hx_py * hy_px
+    #     if numerator:
+    #         return top
+    #     return top / bot
+
+    def eval(self, src, mesh, f):
+        """
+        Project the fields to natural source data.
+
+        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: The source of the fields to project
+        :param discretize.TensorMesh mesh: topological mesh corresponding to the fields
+        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: Natural source fields object to project
+        :rtype: numpy.ndarray
+        :return: component of the impedance evaluation
+        """
+
+        # imp = self._eval_complex_impedance(src, mesh, f)
+        # if return_complex:
+        #     return imp
+        # else:
+        #     return getattr(imp, self.component)
+
         e = f[src, "e"]  # will grab both primary and secondary and sum them!
         h = f[src, "h"]
         if self.orientation[0] == "x":
             Pex = self.getP(mesh, "Ex", "e")
             e_px = Pex * e[:, 0]  # ex_px
             e_py = Pex * e[:, 1]  # ex_py
-        else:
+        elif self.orientation[0] == "y":
             Pey = self.getP(mesh, "Ey", "e")
             e_px = Pey * e[:, 0]  # ey_px
             e_py = Pey * e[:, 1]  # ey_px
@@ -531,34 +578,16 @@ class Point3DImpedance(BaseRxNSEM_Point):
         if self.orientation[1] == "x":
             h_px = hy_px
             h_py = hy_py
-        else:
+        elif self.orientation[1] == "y":
             h_px = -hx_px
             h_py = -hx_py
 
         top = e_px * h_py - e_py * h_px
         bot = hx_px * hy_py - hx_py * hy_px
-        if numerator:
-            return top
-        return top / bot
+        impedance = top / bot
+        return getattr(impedance, self.component)
 
-    def eval(self, src, mesh, f, return_complex=False):
-        """
-        Project the fields to natural source data.
-
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: The source of the fields to project
-        :param discretize.TensorMesh mesh: topological mesh corresponding to the fields
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: Natural source fields object to project
-        :rtype: numpy.ndarray
-        :return: component of the impedance evaluation
-        """
-
-        imp = self._eval_complex_impedance(src, mesh, f)
-        if return_complex:
-            return imp
-        else:
-            return getattr(imp, self.component)
-
-    def evalDeriv(self, src, mesh, f, v, adjoint=False):
+    def evalDeriv(self, src, mesh, fields, du_dm_v=None, v=None, adjoint=False):
         """
         The derivative of the projection wrt u
 
@@ -569,32 +598,113 @@ class Point3DImpedance(BaseRxNSEM_Point):
         :rtype: numpy.ndarray
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
         """
-        self.src = src
-        self.mesh = mesh
-        self.f = f
+        # self.src = src
+        # self.mesh = mesh
+        # self.f = f
 
-        Zij_numerator = self._eval_complex_impedance(src, mesh, f, numerator=True)
+        # Zij_numerator = self._eval_complex_impedance(src, mesh, f, numerator=True)
 
-        if adjoint:
+        # if adjoint:
 
-            rx_deriv = self._deriv_impedance_numerator(
-                self._Hd * v, adjoint=True
-            ) + self._Hd_deriv_u(sdiag(Zij_numerator) * v, adjoint=True)
-            # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
-            # rx_deriv_real = np.hstack((mkvc(rx_deriv_real[:len(rx_deriv_real)/2],2),mkvc(rx_deriv_real[len(rx_deriv_real)/2::],2)))
-            rx_deriv = rx_deriv.reshape((2, self.mesh.nE)).T
-            # Extract the data
-            if self.component == "imag":
-                rx_deriv_component = 1j * rx_deriv
-            elif self.component == "real":
-                rx_deriv_component = rx_deriv.astype(complex)
+        #     rx_deriv = self._deriv_impedance_numerator(
+        #         self._Hd * v, adjoint=True
+        #     ) + self._Hd_deriv_u(sdiag(Zij_numerator) * v, adjoint=True)
+        #     # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
+        #     # rx_deriv_real = np.hstack((mkvc(rx_deriv_real[:len(rx_deriv_real)/2],2),mkvc(rx_deriv_real[len(rx_deriv_real)/2::],2)))
+        #     rx_deriv = rx_deriv.reshape((2, self.mesh.nE)).T
+        #     # Extract the data
+        #     if self.component == "imag":
+        #         rx_deriv_component = 1j * rx_deriv
+        #     elif self.component == "real":
+        #         rx_deriv_component = rx_deriv.astype(complex)
+        # else:
+        #     # Calculate the complex derivative
+        #     rx_deriv = self._Hd * (self._deriv_impedance_numerator(v)) + sdiag(
+        #         Zij_numerator
+        #     ) * self._Hd_deriv_u(v)
+        #     rx_deriv_component = np.array(getattr(rx_deriv, self.component))
+        # return rx_deriv_component
+
+        e = fields[src, "e"]  # will grab both primary and secondary and sum them!
+        h = fields[src, "h"]
+        if self.orientation[0] == "x":
+            Pex = self.getP(mesh, "Ex", "e")
+            e_px = Pex * e[:, 0]  # ex_px
+            e_py = Pex * e[:, 1]  # ex_py
+
+            if not adjoint:
+                deriv_e = Pex * fields._eDeriv(src, du_dm_v, v)
+                deriv_e_px = deriv_e[:, 0]
+                deriv_e_py = deriv_e[:, 1]
+            else:
+                pass
+
+        elif self.orientation[0] == "y":
+            Pey = self.getP(mesh, "Ey", "e")
+            e_px = Pey * e[:, 0]  # ey_px
+            e_py = Pey * e[:, 1]  # ey_px
+
+            if not adjoint:
+                deriv_e = Pey * fields._eDeriv(src, du_dm_v, v)
+                deriv_e_px = deriv_e[:, 0]
+                deriv_e_py = deriv_e[:, 1]
+            else:
+                pass
+
+        Pbx = self.getP(mesh, "Fx", "b")
+        hx_px = Pbx * h[:, 0]
+        hx_py = Pbx * h[:, 1]
+        Pby = self.getP(mesh, "Fy", "b")
+        hy_px = Pby * h[:, 0]
+        hy_py = Pby * h[:, 1]
+
+        if not adjoint:
+            deriv_h = fields._hDeriv(src, du_dm_v, v)
+            deriv_hx_px = Pbx @ deriv_h[:, 0]
+            deriv_hx_py = Pbx @ deriv_h[:, 1]
+            deriv_hy_px = Pby @ deriv_h[:, 0]
+            deriv_hy_py = Pby @ deriv_h[:, 1]
         else:
-            # Calculate the complex derivative
-            rx_deriv = self._Hd * (self._deriv_impedance_numerator(v)) + sdiag(
-                Zij_numerator
-            ) * self._Hd_deriv_u(v)
-            rx_deriv_component = np.array(getattr(rx_deriv, self.component))
-        return rx_deriv_component
+            pass
+
+        if self.orientation[1] == "x":
+            h_px = hy_px
+            h_py = hy_py
+
+            if not adjoint:
+                deriv_h_px = deriv_hy_px
+                deriv_h_py = deriv_hy_py
+            else:
+                pass
+
+        elif self.orientation[1] == "y":
+            h_px = -hx_px
+            h_py = -hx_py
+
+            if not adjoint:
+                deriv_h_px = -deriv_hx_px
+                deriv_h_py = -deriv_hy_py
+
+        top = e_px * h_py - e_py * h_px
+        bot = hx_px * hy_py - hx_py * hy_px
+
+        deriv_top = (
+            sdiag(h_py) @ deriv_e_px
+            + sdiag(e_px) @ deriv_h_py
+            - sdiag(h_px) @ deriv_e_py
+            - sdiag(e_py) @ deriv_h_px
+        )
+
+        deriv_bot = -sdiag(1 / bot ** 2) @ (
+            sdiag(hy_py) @ deriv_hx_px
+            + sdiag(hx_px) @ deriv_hy_py
+            - sdiag(hy_px) @ deriv_hx_py
+            - sdiag(hx_py) @ deriv_hy_px
+        )
+
+        deriv = sdiag(1 / bot) @ deriv_top + sdiag(top) @ deriv_bot
+
+        return getattr(deriv, self.component)
 
 
 class Point3DComplexResistivity(Point3DImpedance):
@@ -653,14 +763,14 @@ class Point3DComplexResistivity(Point3DImpedance):
         elif "xy" in self.orientation:
             if not adjoint:
                 ZijN_uV = (
-                    - sdiag(hx_py) * self._ex_px_u(v)
+                    -sdiag(hx_py) * self._ex_px_u(v)
                     - sdiag(ex_px) * self._hx_py_u(v)
                     + sdiag(ex_py) * self._hx_px_u(v)
                     + sdiag(hx_px) * self._ex_py_u(v)
                 )
             elif adjoint:
                 ZijN_uV = (
-                    - self._ex_px_u(sdiag(hx_py) * v, adjoint=True)
+                    -self._ex_px_u(sdiag(hx_py) * v, adjoint=True)
                     - self._hx_py_u(sdiag(ex_px) * v, adjoint=True)
                     + self._hx_px_u(sdiag(ex_py) * v, adjoint=True)
                     + self._ex_py_u(sdiag(hx_px) * v, adjoint=True)
@@ -692,7 +802,7 @@ class Point3DComplexResistivity(Point3DImpedance):
                 )
             elif adjoint:
                 ZijN_uV = (
-                    - self._ey_px_u(sdiag(hx_py) * v, adjoint=True)
+                    -self._ey_px_u(sdiag(hx_py) * v, adjoint=True)
                     - self._hx_py_u(sdiag(ey_px) * v, adjoint=True)
                     + self._hx_px_u(sdiag(ey_py) * v, adjoint=True)
                     + self._ey_py_u(sdiag(hx_px) * v, adjoint=True)
@@ -726,7 +836,9 @@ class Point3DComplexResistivity(Point3DImpedance):
         if self.component == "apparent resistivity":
             return alpha * (rx_eval_complex.real ** 2 + rx_eval_complex.imag ** 2)
         elif self.component == "phase":
-            return 180 / np.pi * (np.arctan2(rx_eval_complex.imag, rx_eval_complex.real))
+            return (
+                180 / np.pi * (np.arctan2(rx_eval_complex.imag, rx_eval_complex.real))
+            )
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         """
@@ -745,11 +857,13 @@ class Point3DComplexResistivity(Point3DImpedance):
         if adjoint is True:
             alpha = self._alpha(src)
             Zij = self._eval_complex_impedance(src, mesh, f, numerator=True)
-            HdZij = self._eval_complex_impedance(src, mesh, f) # self._Hd @ Zij  # since Hd is diagonal, don't need transpose
+            HdZij = self._eval_complex_impedance(
+                src, mesh, f
+            )  # self._Hd @ Zij  # since Hd is diagonal, don't need transpose
 
             def rx_derivT(v):
-                return self._deriv_impedance(src, mesh, f,
-                    self._Hd * v, adjoint=adjoint
+                return self._deriv_impedance(
+                    src, mesh, f, self._Hd * v, adjoint=adjoint
                 ) + self._deriv_Hd_uV(
                     sdiag(Zij) * v, adjoint=adjoint
                 )  # _deriv_Hd_uV(v)
@@ -769,9 +883,7 @@ class Point3DComplexResistivity(Point3DImpedance):
                 HdZij_im = HdZij.imag
 
                 rx_deriv_component = (180 / np.pi) * (
-                    rx_derivT(
-                        sdiag(-HdZij_im / (HdZij_im ** 2 + HdZij_re ** 2)) * v
-                    )
+                    rx_derivT(sdiag(-HdZij_im / (HdZij_im ** 2 + HdZij_re ** 2)) * v)
                     + -rx_derivT(
                         1j * sdiag(HdZij_re / (HdZij_im ** 2 + HdZij_re ** 2)) * v
                     )
@@ -781,7 +893,7 @@ class Point3DComplexResistivity(Point3DImpedance):
             alpha = self._alpha(src)
             ZijN_uV = self._deriv_impedance(src, mesh, f, v)
             # Zij = self._eval_impedance()
-            HdZij = self._eval_complex_impedance(src, mesh, f)  #self._Hd @ Zij
+            HdZij = self._eval_complex_impedance(src, mesh, f)  # self._Hd @ Zij
             rx_deriv = self._Hd @ ZijN_uV + sdiag(Zij) * self._deriv_Hd_uV(du_dm_v)
 
             if self.component == "apparent resistivity":
@@ -798,12 +910,10 @@ class Point3DComplexResistivity(Point3DImpedance):
                 HdZij_im = HdZij.imag
 
                 deriv_re = (
-                    sdiag(-HdZij_im / (HdZij_im ** 2 + HdZij_re ** 2))
-                    * rx_deriv.real
+                    sdiag(-HdZij_im / (HdZij_im ** 2 + HdZij_re ** 2)) * rx_deriv.real
                 )
                 deriv_im = (
-                    sdiag(HdZij_re / (HdZij_im ** 2 + HdZij_re ** 2))
-                    * rx_deriv.imag
+                    sdiag(HdZij_re / (HdZij_im ** 2 + HdZij_re ** 2)) * rx_deriv.imag
                 )
 
                 rx_deriv_component = (180 / np.pi) * (deriv_re + deriv_im)
@@ -904,7 +1014,9 @@ class Point3DTipper(BaseRxNSEM_Point):
         # self.f = f
 
         # Tij_numerator = self._eval_Tij_numerator(src, mesh, f)
-        rx_eval_complex = self._eval_Tij_numerator(src, mesh, f)  # self._Hd * Tij_numerator
+        rx_eval_complex = self._eval_Tij_numerator(
+            src, mesh, f
+        )  # self._Hd * Tij_numerator
 
         return getattr(rx_eval_complex, self.component)
 
