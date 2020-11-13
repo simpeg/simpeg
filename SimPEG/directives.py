@@ -16,6 +16,7 @@ from .utils import (
     diagEst,
     spherical2cartesian,
     cartesian2spherical,
+    eigenvalue_by_power_iteration,
 )
 from .utils.code_utils import deprecate_property
 
@@ -185,7 +186,8 @@ class BetaEstimate_ByEig(InversionDirective):
     beta0 = None  #: The initial Beta (regularization parameter)
     beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
     ninit = 4          #: number of vector for estimation.
-
+    seed = None # Random seed for the directive
+    
     def initialize(self):
         """
             The initial beta is calculated by comparing the estimated
@@ -211,52 +213,24 @@ class BetaEstimate_ByEig(InversionDirective):
             :rtype: float
             :return: beta0
         """
+        if self.seed is not None:
+            np.random.seed(self.seed)
 
         if self.debug:
             print("Calculating the beta0 parameter.")
 
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
+        
+        dm_eigenvalue = eigenvalue_by_power_iteration(
+            self.dmisfit, m, fields=f, ninit=self.ninit, 
+        )
 
-        ratio = []
-        x0 = np.random.rand(*m.shape)
-        x0 = x0 / np.linalg.norm(x0)
-        for i in range(self.ninit-1):
-            x1 = 0.
-            t = 0.
-            i_count = 0
-            for mult, dmis in zip(self.dmisfit.multipliers, self.dmisfit.objfcts):
-                # check if f is list
-                if len(self.dmisfit.objfcts) > 1:
-                    x1 += mult * dmis.deriv2(m, x0, f=f[i_count])
-                    i_count += 1
-                else:
-                    x1 = mult * dmis.deriv2(m, x0, f=f)
-            x0 = x1 / np.linalg.norm(x1)
-        i_count = 0
-        t = 0.
-        for mult, dmis in zip(self.dmisfit.multipliers, self.dmisfit.objfcts):
-            # check if f is list
-            if len(self.dmisfit.objfcts) > 1:
-                t += mult * x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
-                i_count += 1
-            else:
-                t = mult * x0.dot(dmis.deriv2(m, x0, f=f))
+        reg_eigenvalue = eigenvalue_by_power_iteration(
+            self.reg, m, fields=f, ninit=self.ninit, 
+        )
 
-        x0 = np.random.rand(*m.shape)
-        x0 = x0 / np.linalg.norm(x0)
-        for i in range(self.ninit-1):
-            x1 = 0.
-            for mult, reg in zip(self.reg.multipliers, self.reg.objfcts):
-                x1 += mult * reg.deriv2(m, v=x0)
-            x0 = x1 / np.linalg.norm(x1)
-
-        b=0.
-        for mult, reg in zip(self.reg.multipliers, self.reg.objfcts):
-            b += mult * x0.dot(reg.deriv2(m, v=x0))
-
-
-        self.ratio = (t / b)
+        self.ratio = (dm_eigenvalue / reg_eigenvalue)
         self.beta0 = self.beta0_ratio * self.ratio
 
         self.invProb.beta = self.beta0
@@ -277,6 +251,204 @@ class BetaSchedule(InversionDirective):
                     )
                 )
             self.invProb.beta /= self.coolingFactor
+
+
+class AlphasSmoothEstimate_ByEig(InversionDirective):
+    """AlhaEstimate"""
+
+    alpha0 = 1.0  #: The initial Alha (regularization parameter)
+    alpha0_ratio = 1e-2  #: estimateAlha0 is used with this ratio
+    ninit = 4
+    verbose = False
+    debug = False
+    seed = None
+
+    def initialize(self):
+        """
+        """
+        if self.seed is not None:
+            np.random.seed(self.seed)
+
+        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
+            nbr = np.sum(
+                [
+                    len(self.reg.objfcts[i].objfcts)
+                    for i in range(len(self.reg.objfcts))
+                ]
+            )
+            smallness = np.r_[
+                [
+                    (
+                        np.r_[
+                            i,
+                            j,
+                            (
+                                isinstance(regpart, SimplePGIwithRelationshipsSmallness)
+                                or isinstance(regpart, SimplePGIsmallness)
+                                or isinstance(regpart, PGIsmallness)
+                                or isinstance(regpart, SimpleSmall)
+                                or isinstance(regpart, Small)
+                                or isinstance(regpart, SparseSmall)
+                            ),
+                        ]
+                    )
+                    for i, regobjcts in enumerate(self.reg.objfcts)
+                    for j, regpart in enumerate(regobjcts.objfcts)
+                ]
+            ]
+            smallness = smallness[smallness[:, 2] == 1][:, :2][0]
+
+            smoothness = np.r_[
+                [
+                    (
+                        np.r_[
+                            i,
+                            j,
+                            (
+                                (
+                                    isinstance(regpart, SmoothDeriv)
+                                    or isinstance(regpart, SimpleSmoothDeriv)
+                                    or isinstance(regpart, SparseDeriv)
+                                )
+                                and not (
+                                    isinstance(regobjcts, SimplePGI)
+                                    or isinstance(regobjcts, PGI)
+                                    or isinstance(regobjcts, SimplePGIwithRelationships)
+                                    or isinstance(regpart, Tikhonov)
+                                    or isinstance(regpart, Simple)
+                                    or isinstance(regpart, Sparse)
+                                )
+                            ),
+                        ]
+                    )
+                    for i, regobjcts in enumerate(self.reg.objfcts)
+                    for j, regpart in enumerate(regobjcts.objfcts)
+                ]
+            ]
+            mode = 1
+        else:
+            nbr = len(self.reg.objfcts)
+            smoothness = np.r_[
+                [
+                    (
+                        isinstance(regpart, SmoothDeriv)
+                        or isinstance(regpart, SimpleSmoothDeriv)
+                        or isinstance(regpart, SparseDeriv)
+                    )
+                    for regpart in self.reg.objfcts
+                ]
+            ]
+            mode = 2
+
+        if not isinstance(self.alpha0_ratio, np.ndarray):
+            self.alpha0_ratio = self.alpha0_ratio * np.ones(nbr)
+
+        if not isinstance(self.alpha0, np.ndarray):
+            self.alpha0 = self.alpha0 * np.ones(nbr)
+
+        if self.debug:
+            print("Calculating the Alpha0 parameter.")
+
+        m = self.invProb.model
+
+        if mode == 2:
+            smallness_eigenvalue = eigenvalue_by_power_iteration(
+                self.reg.objfcts[0], m, ninit=self.ninit,
+            )
+            for i in range(nbr):
+                if smoothness[i]:
+                    smooth_i_eigenvalue = eigenvalue_by_power_iteration(
+                        self.reg.objfcts[i], m, ninit=self.ninit,
+                    )
+                    ratio = smallness_eigenvalue / smooth_i_eigenvalue
+
+                    self.alpha0[i] *= self.alpha0_ratio[i] * ratio
+                    mtype = self.reg.objfcts[i]._multiplier_pair
+                    setattr(self.reg, mtype, self.alpha0[i])
+
+        elif mode == 1:
+            smallness_eigenvalue = eigenvalue_by_power_iteration(
+                self.reg.objfcts[smallness[0]].objfcts[smallness[1]], 
+                m, ninit=self.ninit,
+            )
+            for i in range(nbr):
+                ratio = []
+                if smoothness[i, 2]:
+                    idx = smoothness[i, :2]
+                    smooth_i_eigenvalue = eigenvalue_by_power_iteration(
+                        self.reg.objfcts[idx[0]].objfcts[idx[1]], 
+                        m, ninit=self.ninit,
+                    )
+
+                    ratio = np.divide(
+                        smallness_eigenvalue, smooth_i_eigenvalue, 
+                        out=np.zeros_like(smallness_eigenvalue), 
+                        where=smooth_i_eigenvalue != 0
+                    )
+
+                    self.alpha0[i] *= self.alpha0_ratio[i] * ratio
+                    mtype = (
+                        self.reg.objfcts[idx[0]]
+                        .objfcts[idx[1]]
+                        ._multiplier_pair
+                    )
+                    setattr(self.reg.objfcts[idx[0]], mtype, self.alpha0[i])
+
+        if self.verbose:
+            print("Alpha scales: ", self.reg.multipliers)
+            if mode == 1:
+                for objf in self.reg.objfcts:
+                    print("Alpha scales: ", objf.multipliers)
+
+
+class ScalingMultipleDataMisfits_ByEig(InversionDirective):
+    """ScalingDataMisfitsEstimate"""
+
+    chi0 = 1  #: estimateBeta0 is used with this ratio
+    ninit = 4
+    chi0 = None  #: The initial scaling ratio (default is data misfit multipliers)
+    verbose = False
+    debug = False
+    seed = None
+
+    def initialize(self):
+        """
+        """
+        if self.seed is not None:
+            np.random.seed(self.seed)
+
+        if self.debug:
+            print("Calculating the scaling parameter.")
+
+        if getattr(self.dmisfit,"objfcts", None) is None:
+            raise Exception("This Directives only applies to joint inversion")
+        elif len(self.dmisfit.objfcts) == 1:
+            raise Exception("This Directives only applies to joint inversion")
+        else:
+            pass
+
+        ndm = len(self.dmisfit.objfcts)
+        if self.chi0 is not None:
+            self.chi0 = self.chi0 * np.ones(ndm)
+        else:
+            self.chi0 = self.dmisfit.multipliers
+
+        m = self.invProb.model
+        f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
+
+        
+        dm_eigenvalue_list = []
+        for j, dm in enumerate(self.dmisfit.objfcts):
+            dm_eigenvalue_list += [eigenvalue_by_power_iteration(
+                dm, m, fields=f[j]
+            )]
+            
+        self.chi0 = self.chi0 * np.r_[dm_eigenvalue_list]
+        self.chi0 = self.chi0 / np.sum(self.chi0)
+        self.dmisfit.multipliers = self.chi0
+
+        if self.verbose:
+            print("Scale Multipliers: ", self.dmisfit.multipliers)
 
 
 class TargetMisfit(InversionDirective):
