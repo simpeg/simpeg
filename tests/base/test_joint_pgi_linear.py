@@ -21,7 +21,7 @@ np.random.seed(518936)
 class JointInversionTest(unittest.TestCase):
     def setUp(self):
 
-        self.PlotIt = True
+        self.PlotIt = False
 
         # Mesh
         N = 100
@@ -347,9 +347,6 @@ class JointInversionTest(unittest.TestCase):
 
         if self.PlotIt:
             import matplotlib.pyplot as plt
-            import seaborn
-
-            seaborn.set()
 
             fig, axes = plt.subplots(1, 4, figsize=(15, 5))
             axes = axes.reshape(4)
