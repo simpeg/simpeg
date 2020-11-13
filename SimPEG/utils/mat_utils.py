@@ -122,14 +122,12 @@ def eigenvalue_by_power_iteration(combo_objfct, model, ninit=4, fields=None, see
             if hasattr(obj, "simulation"):
                 f += [obj.simulation.fields(model)]
             else:
-                # required to put None to conserve it in array form
-                # The idea is that the function can have a mixed of dmis and reg terms
+                # required to put None to conserve it in the list
+                # The idea is that the function can have a mixed of dmis and reg terms 
+                # (see test)
                 f += [None] 
     else:
         f = fields
-    # transform in indexable array for all cases. 
-    # [None] are conserved as None.
-    f = np.r_[f] 
 
     #Power iteration: estimate eigenvector
     for i in range(ninit):

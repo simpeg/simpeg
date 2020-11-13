@@ -183,7 +183,6 @@ class DirectiveList(object):
 class BetaEstimate_ByEig(InversionDirective):
     """BetaEstimate"""
 
-    beta0 = None  #: The initial Beta (regularization parameter)
     beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
     ninit = 4          #: number of vector for estimation.
     seed = None # Random seed for the directive
@@ -225,7 +224,6 @@ class BetaEstimate_ByEig(InversionDirective):
         dm_eigenvalue = eigenvalue_by_power_iteration(
             self.dmisfit, m, fields=f, ninit=self.ninit, 
         )
-
         reg_eigenvalue = eigenvalue_by_power_iteration(
             self.reg, m, fields=f, ninit=self.ninit, 
         )
@@ -254,10 +252,9 @@ class BetaSchedule(InversionDirective):
 
 
 class AlphasSmoothEstimate_ByEig(InversionDirective):
-    """AlhaEstimate"""
+    """AlphaEstimate"""
 
-    alpha0 = 1.0  #: The initial Alha (regularization parameter)
-    alpha0_ratio = 1e-2  #: estimateAlha0 is used with this ratio
+    alpha0_ratio = 1e-2  #: estimate the Alpha_smooth with this ratio
     ninit = 4
     verbose = False
     debug = False
@@ -269,6 +266,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         if self.seed is not None:
             np.random.seed(self.seed)
 
+        
         if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
             nbr = np.sum(
                 [
@@ -283,10 +281,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                             i,
                             j,
                             (
-                                isinstance(regpart, SimplePGIwithRelationshipsSmallness)
-                                or isinstance(regpart, SimplePGIsmallness)
-                                or isinstance(regpart, PGIsmallness)
-                                or isinstance(regpart, SimpleSmall)
+                                isinstance(regpart, SimpleSmall)
                                 or isinstance(regpart, Small)
                                 or isinstance(regpart, SparseSmall)
                             ),
@@ -311,10 +306,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                                     or isinstance(regpart, SparseDeriv)
                                 )
                                 and not (
-                                    isinstance(regobjcts, SimplePGI)
-                                    or isinstance(regobjcts, PGI)
-                                    or isinstance(regobjcts, SimplePGIwithRelationships)
-                                    or isinstance(regpart, Tikhonov)
+                                    isinstance(regpart, Tikhonov)
                                     or isinstance(regpart, Simple)
                                     or isinstance(regpart, Sparse)
                                 )
@@ -343,8 +335,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         if not isinstance(self.alpha0_ratio, np.ndarray):
             self.alpha0_ratio = self.alpha0_ratio * np.ones(nbr)
 
-        if not isinstance(self.alpha0, np.ndarray):
-            self.alpha0 = self.alpha0 * np.ones(nbr)
+        self.alpha0 = np.ones(nbr)
 
         if self.debug:
             print("Calculating the Alpha0 parameter.")
@@ -404,9 +395,8 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 class ScalingMultipleDataMisfits_ByEig(InversionDirective):
     """ScalingDataMisfitsEstimate"""
 
-    chi0 = 1  #: estimateBeta0 is used with this ratio
     ninit = 4
-    chi0 = None  #: The initial scaling ratio (default is data misfit multipliers)
+    chi0_ratio = None  #: The initial scaling ratio (default is data misfit multipliers)
     verbose = False
     debug = False
     seed = None
@@ -428,10 +418,10 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
             pass
 
         ndm = len(self.dmisfit.objfcts)
-        if self.chi0 is not None:
-            self.chi0 = self.chi0 * np.ones(ndm)
+        if self.chi0_ratio is not None:
+            self.chi0_ratio = self.chi0_ratio * np.ones(ndm)
         else:
-            self.chi0 = self.dmisfit.multipliers
+            self.chi0_ratio = self.dmisfit.multipliers
 
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
@@ -443,12 +433,73 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
                 dm, m, fields=f[j]
             )]
             
-        self.chi0 = self.chi0 * np.r_[dm_eigenvalue_list]
+        self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]
         self.chi0 = self.chi0 / np.sum(self.chi0)
         self.dmisfit.multipliers = self.chi0
 
         if self.verbose:
             print("Scale Multipliers: ", self.dmisfit.multipliers)
+
+
+class JointScalingSchedule(InversionDirective):
+
+    verbose = False
+    warmingFactor = 1.0
+    mode = 1
+    chimax = 1e10
+    chimin = 1e-10
+    UpdateRate = 1
+
+    def initialize(self):
+
+        targetclass = np.r_[
+            [
+                isinstance(dirpart, MultiTargetMisfits)
+                for dirpart in self.inversion.directiveList.dList
+            ]
+        ]
+        if ~np.any(targetclass):
+            self.DMtarget = None
+        else:
+            self.targetclass = np.where(targetclass)[0][-1]
+            self.DMtarget = self.inversion.directiveList.dList[
+                self.targetclass
+            ].DMtarget
+
+        if self.verbose:
+            print("initial data misfit scale: ", self.dmisfit.multipliers)
+
+    def endIter(self):
+
+        self.dmlist = self.inversion.directiveList.dList[self.targetclass].dmlist
+
+        if np.any(self.dmlist < self.DMtarget):
+            self.mode = 2
+        else:
+            self.mode = 1
+
+        if self.opt.iter > 0 and self.opt.iter % self.UpdateRate == 0:
+
+            if self.mode == 2:
+
+                if np.all(np.r_[self.dmisfit.multipliers] > self.chimin) and np.all(
+                    np.r_[self.dmisfit.multipliers] < self.chimax
+                ):
+
+                    # Assume only 2 data misfit
+                    indx = self.dmlist > self.DMtarget
+                    if np.any(indx):
+                        multipliers = self.warmingFactor * np.median(
+                            self.DMtarget[~indx] / self.dmlist[~indx]
+                        )
+                        if np.sum(indx) == 1:
+                            indx = np.where(indx)[0][0]
+                        self.dmisfit.multipliers[indx] *= multipliers
+                        self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
+
+                        if self.verbose:
+                            print("Updating scaling for data misfits by ", multipliers)
+                            print("New scales:", self.dmisfit.multipliers)
 
 
 class TargetMisfit(InversionDirective):
