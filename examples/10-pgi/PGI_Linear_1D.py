@@ -111,7 +111,6 @@ minit = m0
 # Petrophyically constrained regularization
 reg = regularization.PGI(gmmref=clf, gmm=clf, mesh=mesh, mref=m0, alpha_s=1.0)
 
-
 # Optimization
 opt = optimization.ProjectedGNCG(maxIter=10, maxIterCG=50, tolCG=1e-4)
 opt.remember("xc")

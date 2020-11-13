@@ -7,7 +7,6 @@ from scipy.special import logsumexp
 import copy
 from ..utils import (
     speye,
-    setKwargs,
     sdiag,
     mkvc,
     timeIt,
@@ -62,7 +61,7 @@ class SimplePGIsmallness(BaseRegularization):
         self.wiresmap = wiresmap
         self.maplist = maplist
 
-        # TODO: Save repetitive computations (see withmapping implementation)
+        #Save repetitive computations (see withmapping implementation)
         self._r_first_deriv = None
         self._r_second_deriv = None
 
@@ -471,8 +470,6 @@ class SimplePGI(SimpleComboRegularization):
             **kwargs
         )
 
-        # setKwargs(self, **kwargs)
-
     # Properties
     alpha_s = props.Float("PGI smallness multiplier")
 
@@ -685,8 +682,6 @@ class PGI(SimpleComboRegularization):
             objfcts=objfcts,
             **kwargs
         )
-
-        # setKwargs(self, **kwargs)
 
     # Properties
     alpha_s = props.Float("PGI smallness multiplier")
@@ -1124,8 +1119,6 @@ class SimplePGIwithRelationships(SimpleComboRegularization):
             objfcts=objfcts,
             **kwargs
         )
-
-        # setKwargs(self, **kwargs)
 
     # Properties
     alpha_s = props.Float("PGI smallness multiplier")
