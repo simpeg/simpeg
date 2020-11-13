@@ -43,9 +43,9 @@ m0[20:41] = np.linspace(0.0, 1.0, 21)
 m0[41:57] = np.linspace(-1, 0.0, 16)
 
 poly0 = maps.PolynomialPetroClusterMap(coeffyx=np.r_[0.0, -4.0, 4.0])
-poly1 = maps.PolynomialPetroClusterMap(coeffyx=np.r_[-0.0, 3, 6, 6.0])
+poly1 = maps.PolynomialPetroClusterMap(coeffyx=np.r_[-0.0, 3.0, 6.0, 6.0])
 poly0_inverse = maps.PolynomialPetroClusterMap(coeffyx=-np.r_[0.0, -4.0, 4.0])
-poly1_inverse = maps.PolynomialPetroClusterMap(coeffyx=-np.r_[0.0, 3, 6, 6.0])
+poly1_inverse = maps.PolynomialPetroClusterMap(coeffyx=-np.r_[0.0, 3.0, 6.0, 6.0])
 cluster_mapping = [maps.IdentityMap(), poly0_inverse, poly1_inverse]
 
 m1 = np.zeros(100)
@@ -113,7 +113,7 @@ survey2 = prob2.make_synthetic_data(
 
 dmis1 = data_misfit.L2DataMisfit(simulation=prob1, data=survey1)
 dmis2 = data_misfit.L2DataMisfit(simulation=prob2, data=survey2)
-dmis = 0.5 * dmis1 + 0.5 * dmis2
+dmis = dmis1 + dmis2
 minit = np.zeros_like(m)
 
 # Distance weighting
@@ -141,7 +141,7 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple, opt)
 
 # directives
-scales = directives.ScalingMultipleDataMisfits_ByEig(chi0=np.r_[1, 0.5], verbose=True, ninit=10)
+scales = directives.ScalingMultipleDataMisfits_ByEig(chi0=np.r_[0.1,1.], verbose=True, ninit=10)
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 alpha0_ratio = np.r_[
     np.zeros(len(reg_simple.objfcts[0].objfcts)),
@@ -185,7 +185,7 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple_no_map, opt)
 
 # directives
-scales = directives.ScalingMultipleDataMisfits_ByEig(chi0=np.r_[1.,0.5], verbose=True, ninit=10)
+scales = directives.ScalingMultipleDataMisfits_ByEig(chi0=np.r_[0.1,1.], verbose=True, ninit=10)
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
@@ -225,7 +225,7 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
 )
-scales = directives.ScalingMultipleDataMisfits_ByEig(chi0=np.r_[1.,0.5], verbose=True, ninit=10)
+scales = directives.ScalingMultipleDataMisfits_ByEig(chi0=np.r_[0.1,1.], verbose=True, ninit=10)
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
 beta_schedule = directives.BetaSchedule(coolingFactor=5.0, coolingRate=1)
@@ -274,7 +274,7 @@ axes[2].legend(["Recovered Model", "True Model"], loc=1)
 axes[2].set_xlabel("X")
 axes[2].set_ylabel("Property 2")
 
-x, y = np.mgrid[-1:1:0.01, -2:2:0.01]
+x, y = np.mgrid[-1:1:0.01, -4:2:0.01]
 pos = np.empty(x.shape + (2,))
 pos[:, :, 0] = x
 pos[:, :, 1] = y

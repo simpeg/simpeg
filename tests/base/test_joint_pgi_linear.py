@@ -15,13 +15,13 @@ from SimPEG import (
 )
 import numpy as np
 
-np.random.seed(1)
+np.random.seed(518936)
 
 
 class JointInversionTest(unittest.TestCase):
     def setUp(self):
 
-        self.PlotIt = False
+        self.PlotIt = True
 
         # Mesh
         N = 100
@@ -29,7 +29,7 @@ class JointInversionTest(unittest.TestCase):
 
         # Survey design parameters
         nk = 30
-        jk = np.linspace(1.0, 60.0, nk)
+        jk = np.linspace(1.0, 59.0, nk)
         p = -0.25
         q = 0.25
 
@@ -50,10 +50,10 @@ class JointInversionTest(unittest.TestCase):
         m0[41:57] = np.linspace(-1, 0.0, 16)
 
         # Nonlinear relationships
-        poly0 = maps.PolynomialPetroClusterMap(coeffyx=np.r_[0.0, -2.0, 2.0])
-        poly1 = maps.PolynomialPetroClusterMap(coeffyx=np.r_[-0.0, 3, 6, 4.0])
-        poly0_inverse = maps.PolynomialPetroClusterMap(coeffyx=-np.r_[-0.0, -2.0, 2.0])
-        poly1_inverse = maps.PolynomialPetroClusterMap(coeffyx=-np.r_[0.0, 3, 6, 4.0])
+        poly0 = maps.PolynomialPetroClusterMap(coeffyx=np.r_[0.0, -4.0, 4.0])
+        poly1 = maps.PolynomialPetroClusterMap(coeffyx=np.r_[-0.0, 3.0, 6.0, 6.0])
+        poly0_inverse = maps.PolynomialPetroClusterMap(coeffyx=-np.r_[-0.0, -4.0, 4.0])
+        poly1_inverse = maps.PolynomialPetroClusterMap(coeffyx=-np.r_[0.0, 3.0, 6.0, 6.0])
         cluster_mapping = [maps.IdentityMap(), poly0_inverse, poly1_inverse]
 
         # model 2nd problem
@@ -70,7 +70,7 @@ class JointInversionTest(unittest.TestCase):
             covariance_type="full",
             tol=1e-6,
             reg_covar=1e-3,
-            max_iter=100,
+            max_iter=1000,
             n_init=100,
             init_params="kmeans",
             random_state=None,
@@ -92,10 +92,10 @@ class JointInversionTest(unittest.TestCase):
             mesh=mesh,
             n_components=3,
             covariance_type="full",
-            tol=1e-3,
+            tol=1e-6,
             reg_covar=1e-3,
-            max_iter=100,
-            n_init=10,
+            max_iter=1000,
+            n_init=100,
             init_params="kmeans",
             random_state=None,
             warm_start=False,
@@ -175,7 +175,7 @@ class JointInversionTest(unittest.TestCase):
             alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
         )
         scales = directives.ScalingMultipleDataMisfits_ByEig(
-            chi0=np.r_[1., 0.5], verbose=True, ninit=10
+            chi0=np.r_[0.1,1.0], verbose=True, ninit=10
         )
         scaling_schedule = directives.JointScalingSchedule(verbose=True)
         beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
@@ -189,7 +189,7 @@ class JointInversionTest(unittest.TestCase):
             progress=0.2,
         )
         targets = directives.MultiTargetMisfits(verbose=True)
-        petrodir = directives.PGI_UpdateParameters()
+        petrodir = directives.PGI_UpdateParameters(update_gmm=False)
 
         # Setup Inversion
         inv = inversion.BaseInversion(
@@ -315,7 +315,7 @@ class JointInversionTest(unittest.TestCase):
             alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
         )
         scales = directives.ScalingMultipleDataMisfits_ByEig(
-            chi0=[1, 0.5], verbose=True, ninit=100
+            chi0=[0.1, 1.0], verbose=True, ninit=100
         )
         scaling_schedule = directives.JointScalingSchedule(verbose=True)
         beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
@@ -327,7 +327,7 @@ class JointInversionTest(unittest.TestCase):
             progress=0.1,
         )
         targets = directives.MultiTargetMisfits(verbose=True)
-        petrodir = directives.PGI_UpdateParameters()
+        petrodir = directives.PGI_UpdateParameters(update_gmm=False)
 
         # Setup Inversion
         inv = inversion.BaseInversion(
