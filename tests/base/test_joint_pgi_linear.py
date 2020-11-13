@@ -172,13 +172,13 @@ class JointInversionTest(unittest.TestCase):
             np.ones(len(reg_simple.objfcts[2].objfcts)),
         ]
         alphas = directives.AlphasSmoothEstimate_ByEig(
-            alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
+            alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
         )
         scales = directives.ScalingMultipleDataMisfits_ByEig(
-            chi0_ratio=np.r_[10.,1.0], verbose=True, ninit=10
+            chi0_ratio=np.r_[10.,1.0], verbose=True, n_pw_iter=10
         )
         scaling_schedule = directives.JointScalingSchedule(verbose=True)
-        beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=10)
+        beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, n_pw_iter=10)
         betaIt = directives.PGI_BetaAlphaSchedule(
             verbose=True,
             coolingFactor=2.0,
@@ -312,13 +312,13 @@ class JointInversionTest(unittest.TestCase):
             np.ones(len(reg_simple.objfcts[2].objfcts)),
         ]
         alphas = directives.AlphasSmoothEstimate_ByEig(
-            alpha0_ratio=alpha0_ratio, ninit=10, verbose=True
+            alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
         )
         scales = directives.ScalingMultipleDataMisfits_ByEig(
-            chi0_ratio=[1.0, 1.0], verbose=True, ninit=100
+            chi0_ratio=[1.0, 1.0], verbose=True, n_pw_iter=100
         )
         scaling_schedule = directives.JointScalingSchedule(verbose=True)
-        beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, ninit=100)
+        beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, n_pw_iter=100)
         betaIt = directives.PGI_BetaAlphaSchedule(
             verbose=True,
             coolingFactor=5.0,

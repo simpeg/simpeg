@@ -204,7 +204,7 @@ class BetaEstimate_ByEig(InversionDirective):
     """BetaEstimate"""
 
     beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
-    ninit = 4          #: number of vector for estimation.
+    n_pw_iter = 4          #: number of vector for estimation.
     seed = None # Random seed for the directive
     
     def initialize(self):
@@ -242,10 +242,10 @@ class BetaEstimate_ByEig(InversionDirective):
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
         
         dm_eigenvalue = eigenvalue_by_power_iteration(
-            self.dmisfit, m, fields=f, ninit=self.ninit, 
+            self.dmisfit, m, fields=f, n_pw_iter=self.n_pw_iter, 
         )
         reg_eigenvalue = eigenvalue_by_power_iteration(
-            self.reg, m, fields=f, ninit=self.ninit, 
+            self.reg, m, fields=f, n_pw_iter=self.n_pw_iter, 
         )
 
         self.ratio = (dm_eigenvalue / reg_eigenvalue)
@@ -275,7 +275,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
     """AlphaEstimate"""
 
     alpha0_ratio = 1e-2  #: estimate the Alpha_smooth with this ratio
-    ninit = 4
+    n_pw_iter = 4
     verbose = False
     debug = False
     seed = None
@@ -370,12 +370,12 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
         if mode == 2:
             smallness_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg.objfcts[0], m, ninit=self.ninit,
+                self.reg.objfcts[0], m, n_pw_iter=self.n_pw_iter,
             )
             for i in range(nbr):
                 if smoothness[i]:
                     smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-                        self.reg.objfcts[i], m, ninit=self.ninit,
+                        self.reg.objfcts[i], m, n_pw_iter=self.n_pw_iter,
                     )
                     ratio = smallness_eigenvalue / smooth_i_eigenvalue
 
@@ -386,7 +386,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         elif mode == 1:
             smallness_eigenvalue = eigenvalue_by_power_iteration(
                 self.reg.objfcts[smallness[0]].objfcts[smallness[1]], 
-                m, ninit=self.ninit,
+                m, n_pw_iter=self.n_pw_iter,
             )
             for i in range(nbr):
                 ratio = []
@@ -394,7 +394,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     idx = smoothness[i, :2]
                     smooth_i_eigenvalue = eigenvalue_by_power_iteration(
                         self.reg.objfcts[idx[0]].objfcts[idx[1]], 
-                        m, ninit=self.ninit,
+                        m, n_pw_iter=self.n_pw_iter,
                     )
 
                     ratio = np.divide(
@@ -421,7 +421,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 class ScalingMultipleDataMisfits_ByEig(InversionDirective):
     """ScalingDataMisfitsEstimate"""
 
-    ninit = 4
+    n_pw_iter = 4
     chi0_ratio = None  #: The initial scaling ratio (default is data misfit multipliers)
     verbose = False
     debug = False
