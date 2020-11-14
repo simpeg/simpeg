@@ -76,7 +76,7 @@ class TestEigenvalues(unittest.TestCase):
 		dmis_matrix = self.G.T.dot((self.dmis.W**2).dot(self.G))
 		field = self.dmis.simulation.fields(self.true_model)
 		max_eigenvalue_numpy, _ = eigsh(dmis_matrix,k=1)
-		max_eigenvalue_directive = eigenvalue_by_power_iteration(self.dmis,self.true_model, fields=field, n_pw_iter=30)
+		max_eigenvalue_directive = eigenvalue_by_power_iteration(self.dmis,self.true_model, fields_list=field, n_pw_iter=30)
 		passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
 		self.assertTrue(passed, True)
 		print("Eigenvalue Utils for one data misfit term is validated.")
