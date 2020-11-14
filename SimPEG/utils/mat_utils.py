@@ -100,7 +100,7 @@ def uniqueRows(M):
     return unqM, unqInd, invInd
 
 
-def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields=None, seed=None):
+def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=None, seed=None):
 
     if seed is not None:
         np.random.seed(seed)
@@ -116,7 +116,7 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields=None,
         combo = combo_objfct
     
     # create Field for data misfit if necessary and not provided
-    if fields is None:
+    if fields_list is None:
         f = []
         for k, obj in enumerate(combo.objfcts):
             if hasattr(obj, "simulation"):
@@ -127,7 +127,10 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields=None,
                 # (see test)
                 f += [None] 
     else:
-        f = fields
+        if (not isinstance(fields_list,list)) and (not isinstance(fields_list,np.ndarray)):
+            f = [fields_list]
+        else:
+            f = fields_list
 
     #Power iteration: estimate eigenvector
     for i in range(n_pw_iter):

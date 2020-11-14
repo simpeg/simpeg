@@ -220,12 +220,14 @@ class BetaEstimate_ByEig(InversionDirective):
 
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
-        
+        if len(self.dmisfit.objfcts) == 1:
+            f = [f]
+
         dm_eigenvalue = eigenvalue_by_power_iteration(
-            self.dmisfit, m, fields=f, n_pw_iter=self.n_pw_iter, 
+            self.dmisfit, m, fields_list=f, n_pw_iter=self.n_pw_iter, 
         )
         reg_eigenvalue = eigenvalue_by_power_iteration(
-            self.reg, m, fields=f, n_pw_iter=self.n_pw_iter, 
+            self.reg, m, fields_list=f, n_pw_iter=self.n_pw_iter, 
         )
 
         self.ratio = (dm_eigenvalue / reg_eigenvalue)
@@ -430,7 +432,7 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         dm_eigenvalue_list = []
         for j, dm in enumerate(self.dmisfit.objfcts):
             dm_eigenvalue_list += [eigenvalue_by_power_iteration(
-                dm, m, fields=f[j]
+                dm, m, fields_list=[f[j]]
             )]
             
         self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]
