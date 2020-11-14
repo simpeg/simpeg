@@ -462,88 +462,6 @@ class Point3DComplexResistivity(Point3DImpedance):
     def _alpha(self, src):
         return 1 / (2 * np.pi * mu_0 * src.frequency)
 
-    def _deriv_impedance(self, src, mesh, f, v, adjoint=False):
-        # do the fields
-        e = f[src, "e"]  # will grab both primary and secondary and sum them!
-        h = f[src, "h"]
-        Pex = self.getP(mesh, "Ex", "e")
-        ex_px = Pex * e[:, 0]  # ex_px
-        ex_py = Pex * e[:, 1]  # ex_py
-        Pey = self.getP(mesh, "Ey", "e")
-        ey_px = Pey * e[:, 0]  # ey_px
-        ey_py = Pey * e[:, 1]  # ey_px
-
-        Pbx = self.getP(mesh, "Fx", "b")
-        hx_px = Pbx * h[:, 0]
-        hx_py = Pbx * h[:, 1]
-        Pby = self.getP(mesh, "Fy", "b")
-        hy_px = Pby * h[:, 0]
-        hy_py = Pby * h[:, 1]
-
-        if "xx" in self.orientation:
-            if not adjoint:
-                ZijN_uV = (
-                    sdiag(hy_py) * self._ex_px_u(v)
-                    + sdiag(ex_px) * self._hy_py_u(v)
-                    - sdiag(ex_py) * self._hy_px_u(v)
-                    - sdiag(hy_px) * self._ex_py_u(v)
-                )
-            elif adjoint:
-                ZijN_uV = (
-                    self._ex_px_u(sdiag(hy_py) * v, adjoint=True)
-                    + self._hy_py_u(sdiag(ex_px) * v, adjoint=True)
-                    - self._hy_px_u(sdiag(ex_py) * v, adjoint=True)
-                    - self._ex_py_u(sdiag(hy_px) * v, adjoint=True)
-                )
-        elif "xy" in self.orientation:
-            if not adjoint:
-                ZijN_uV = (
-                    -sdiag(hx_py) * self._ex_px_u(v)
-                    - sdiag(ex_px) * self._hx_py_u(v)
-                    + sdiag(ex_py) * self._hx_px_u(v)
-                    + sdiag(hx_px) * self._ex_py_u(v)
-                )
-            elif adjoint:
-                ZijN_uV = (
-                    -self._ex_px_u(sdiag(hx_py) * v, adjoint=True)
-                    - self._hx_py_u(sdiag(ex_px) * v, adjoint=True)
-                    + self._hx_px_u(sdiag(ex_py) * v, adjoint=True)
-                    + self._ex_py_u(sdiag(hx_px) * v, adjoint=True)
-                )
-
-        elif "yx" in self.orientation:
-            if not adjoint:
-                ZijN_uV = (
-                    sdiag(hy_py) * self._ey_px_u(v)
-                    + sdiag(ey_px) * self._hy_py_u(v)
-                    - sdiag(ey_py) * self._hy_px_u(v)
-                    - sdiag(hy_px) * self._ey_py_u(v)
-                )
-            elif adjoint:
-                ZijN_uV = (
-                    self._ey_px_u(sdiag(hy_py) * v, adjoint=True)
-                    + self._hy_py_u(sdiag(ey_px) * v, adjoint=True)
-                    - self._hy_px_u(sdiag(ey_py) * v, adjoint=True)
-                    - self._ey_py_u(sdiag(hy_px) * v, adjoint=True)
-                )
-
-        elif "yy" in self.orientation:
-            if not adjoint:
-                ZijN_uV = (
-                    -sdiag(hx_py) * self._ey_px_u(v)
-                    - sdiag(ey_px) * self._hx_py_u(v)
-                    + sdiag(ey_py) * self._hx_px_u(v)
-                    + sdiag(hx_px) * self._ey_py_u(v)
-                )
-            elif adjoint:
-                ZijN_uV = (
-                    -self._ey_px_u(sdiag(hx_py) * v, adjoint=True)
-                    - self._hx_py_u(sdiag(ey_px) * v, adjoint=True)
-                    + self._hx_px_u(sdiag(ey_py) * v, adjoint=True)
-                    + self._ey_py_u(sdiag(hx_px) * v, adjoint=True)
-                )
-        return ZijN_uV
-
     def eval(self, src, mesh, f, return_complex=False):
         """
         Project the fields to natural source data.
@@ -626,29 +544,26 @@ class Point3DComplexResistivity(Point3DImpedance):
 
         else:
             alpha = self._alpha(src)
-            ZijN_uV = self._deriv_impedance(src, mesh, f, v)
-            # Zij = self._eval_impedance()
-            HdZij = self._eval_impedance(src, mesh, f)  # self._Hd @ Zij
-            rx_deriv = self._Hd @ ZijN_uV + sdiag(Zij) * self._deriv_Hd_uV(du_dm_v)
+            imp_deriv = self._eval_impedance_deriv(
+                src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
+            )
+            imp = self._eval_impedance(src, mesh, f)  # self._Hd @ Zij
 
             if self.component == "apparent resistivity":
                 rx_deriv_component = (
                     2
                     * alpha
                     * (
-                        sdiag(HdZij.real) * rx_deriv.real
-                        + sdiag(HdZij.imag) * rx_deriv.imag
+                        sdiag(imp.real) * imp_deriv.real
+                        + sdiag(imp.imag) * imp_deriv.imag
                     )
                 )
             elif self.component == "phase":
-                HdZij_re = HdZij.real
-                HdZij_im = HdZij.imag
-
                 deriv_re = (
-                    sdiag(-HdZij_im / (HdZij_im ** 2 + HdZij_re ** 2)) * rx_deriv.real
+                    sdiag(-imp.imag / (imp.imag ** 2 + imp.real ** 2)) * imp_deriv.real
                 )
                 deriv_im = (
-                    sdiag(HdZij_re / (HdZij_im ** 2 + HdZij_re ** 2)) * rx_deriv.imag
+                    sdiag(imp.real / (imp.imag ** 2 + imp.real ** 2)) * imp_deriv.imag
                 )
 
                 rx_deriv_component = (180 / np.pi) * (deriv_re + deriv_im)
