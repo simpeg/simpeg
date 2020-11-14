@@ -203,7 +203,7 @@ class DirectiveList(object):
 class BetaEstimate_ByEig(InversionDirective):
     """BetaEstimate"""
 
-    beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
+    beta0_ratio = 1.  #: estimateBeta0 is used with this ratio
     n_pw_iter = 4          #: number of vector for estimation.
     seed = None # Random seed for the directive
     
@@ -240,12 +240,14 @@ class BetaEstimate_ByEig(InversionDirective):
 
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
-        
+        if len(self.dmisfit.objfcts) == 1:
+            f = [f]
+
         dm_eigenvalue = eigenvalue_by_power_iteration(
-            self.dmisfit, m, fields=f, n_pw_iter=self.n_pw_iter, 
+            self.dmisfit, m, fields_list=f, n_pw_iter=self.n_pw_iter, 
         )
         reg_eigenvalue = eigenvalue_by_power_iteration(
-            self.reg, m, fields=f, n_pw_iter=self.n_pw_iter, 
+            self.reg, m, fields_list=f, n_pw_iter=self.n_pw_iter, 
         )
 
         self.ratio = (dm_eigenvalue / reg_eigenvalue)
@@ -274,7 +276,7 @@ class BetaSchedule(InversionDirective):
 class AlphasSmoothEstimate_ByEig(InversionDirective):
     """AlphaEstimate"""
 
-    alpha0_ratio = 1e-2  #: estimate the Alpha_smooth with this ratio
+    alpha0_ratio = 1.  #: estimate the Alpha_smooth with this ratio
     n_pw_iter = 4
     verbose = False
     debug = False
@@ -456,7 +458,7 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         dm_eigenvalue_list = []
         for j, dm in enumerate(self.dmisfit.objfcts):
             dm_eigenvalue_list += [eigenvalue_by_power_iteration(
-                dm, m, fields=f[j]
+                dm, m, fields_list=[f[j]]
             )]
             
         self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]

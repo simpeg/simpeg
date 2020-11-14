@@ -123,7 +123,7 @@ def run(plotIt=True, cleanAfterRun=True):
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
     # Specify how the initial beta is found
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.5, seed=518936)
 
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
