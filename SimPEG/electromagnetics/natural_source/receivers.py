@@ -40,11 +40,16 @@ class BaseRxNSEM_Point(BaseRx):
         },
     )
 
-    def __init__(self, locs, orientation=None, component=None):
+    def __init__(self, locations=None, orientation=None, component=None, locations_e=None, locations_b=None):
         self.orientation = orientation
         self.component = component
+        self.locations_e = locations_e
+        self.locations_b = locations_b
 
-        BaseRx.__init__(self, locs)
+        if locations is None:
+            locations = np.hstack([locations_e, locations_b])
+
+        BaseRx.__init__(self, locations)
 
     # # Set a mesh property - TODO: remove the following properties
     # @property
@@ -75,24 +80,24 @@ class BaseRxNSEM_Point(BaseRx):
     #     self._f = value
 
     def _locs_e(self):
-        if self.locations.ndim == 3:
-            loc = self.locations[:, :, 0]
-        else:
-            if self.locations.shape[1] == 6:
-                loc = self.locations[:, 3:]
+        if self.locations_e is None:
+            if self.locations.ndim == 3:
+                loc = self.locations[:, :, 0]
             else:
                 loc = self.locations
-        return loc
+            return loc
+        else:
+            return self.locations_e
 
     def _locs_b(self):
-        if self.locations.ndim == 3:
-            loc = self.locations[:, :, 1]
-        else:
-            if self.locations.shape[1] == 6:
-                loc = self.locations[:, :3]
+        if self.locations_b is None:
+            if self.locations.ndim == 3:
+                loc = self.locations[:, :, 1]
             else:
                 loc = self.locations
-        return loc
+            return loc
+        else:
+            return self.locations_b
 
     def getP(self, mesh, projGLoc=None, field="e"):
         """
@@ -439,9 +444,9 @@ class Point3DImpedance(BaseRxNSEM_Point):
         ["xx", "xy", "yx", "yy"],
     )
 
-    def __init__(self, locs, orientation="xy", component="real"):
+    def __init__(self, locations=None, orientation="xy", component="real", locations_e=None, locations_b=None):
 
-        super().__init__(locs, orientation=orientation, component=component)
+        super().__init__(locations=locations, orientation=orientation, component=component, locations_e=locations_e, locations_b=locations_b)
 
     def _deriv_impedance_numerator(self, v, adjoint=False):
         if "xx" in self.orientation:
@@ -720,9 +725,9 @@ class Point3DComplexResistivity(Point3DImpedance):
         ["xx", "xy", "yx", "yy"],
     )
 
-    def __init__(self, locs, orientation="xy", component="apparent_resistivity"):
+    def __init__(self, locations=None, orientation="xy", component="apparent_resistivity", locations_e=None, locations_b=None):
 
-        super().__init__(locs, orientation=orientation, component=component)
+        super().__init__(locations=locations, orientation=orientation, component=component, locations_e=locations_e, locations_b=locations_b)
 
     def _alpha(self, src):
         return 1 / (2 * np.pi * mu_0 * src.frequency)
