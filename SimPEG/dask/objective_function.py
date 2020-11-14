@@ -1,29 +1,49 @@
-from ..objective_function import ComboObjectiveFunction as Cobjfct
+from ..objective_function import ComboObjectiveFunction
 import dask
 import dask.array as da
 import os
 import shutil
 import numpy as np
+from dask.distributed import Future, get_client
 
 
 def dask_call(self, m, f=None):
-    fct = []
+    fcts = []
+    multipliers = []
     for i, phi in enumerate(self):
         multiplier, objfct = phi
         if multiplier == 0.0:  # don't evaluate the fct
             continue
         else:
+
             if f is not None and objfct._hasFields:
-                fct += [multiplier * objfct(m, f=f[i])]
+                fct = objfct(m, f=f[i])
             else:
-                fct += [multiplier * objfct(m)]
+                fct = objfct(m)
 
-    stack = da.vstack(fct)
+            if isinstance(fct, Future):
+                fcts += [fct]
+            else:
+                future = self.client.compute(
+                    self.client.submit(da.multiply, multiplier, fct).result()
+                )
+                fcts += [future]
 
-    return da.sum(stack, axis=0).compute()
+            multipliers += [multiplier]
+
+    if isinstance(fcts[0], Future):
+        phi = self.client.submit(
+            da.sum, self.client.submit(da.vstack, fcts), axis=0
+        ).result()
+        return phi
+
+    else:
+        return np.sum(
+            np.r_[multipliers][:, None] * np.vstack(fcts), axis=0
+        ).squeeze()
 
 
-Cobjfct.__call__ = dask_call
+ComboObjectiveFunction.__call__ = dask_call
 
 
 def dask_deriv(self, m, f=None):
@@ -36,30 +56,42 @@ def dask_deriv(self, m, f=None):
     :param SimPEG.Fields f: Fields object (if applicable)
     """
 
-    # @dask.delayed
-    # def rowSum(arr):
-    #     sumIt = 0
-    #     for i in range(len(arr)):
-    #         sumIt += arr[i]
-    #     return sumIt
-
     g = []
+    multipliers = []
     for i, phi in enumerate(self):
         multiplier, objfct = phi
         if multiplier == 0.0:  # don't evaluate the fct
             continue
         else:
+
             if f is not None and objfct._hasFields:
-                g += [multiplier * objfct.deriv(m, f=f[i])]
+                fct = objfct.deriv(m, f=f[i])
             else:
-                g += [multiplier * objfct.deriv(m)]
+                fct = objfct.deriv(m)
 
-    stack = da.vstack(g)
+            if isinstance(fct, Future):
+                g += [fct]
+            else:
+                future = self.client.compute(
+                    self.client.submit(da.multiply, multiplier, fct).result()
+                )
+                g += [future]
 
-    return da.sum(stack, axis=0).compute()
+            multipliers += [multiplier]
+
+    if isinstance(g[0], Future):
+        phi_deriv = self.client.submit(
+            da.sum, self.client.submit(da.vstack, g), axis=0
+        ).result()
+        return phi_deriv
+
+    else:
+        return np.sum(
+            np.r_[multipliers][:, None] * np.vstack(g), axis=0
+        ).squeeze()
 
 
-Cobjfct.deriv = dask_deriv
+ComboObjectiveFunction.deriv = dask_deriv
 
 
 def dask_deriv2(self, m, v=None, f=None):
@@ -72,36 +104,40 @@ def dask_deriv2(self, m, v=None, f=None):
     :param numpy.ndarray v: vector we are multiplying by
     :param SimPEG.Fields f: Fields object (if applicable)
     """
-    # @dask.delayed
-    # def rowSum(arr):
-    #     sumIt = 0
-    #     for i in range(len(arr)):
-    #         sumIt += arr[i]
-    #     return sumIt
 
     H = []
+    multipliers = []
     for i, phi in enumerate(self):
         multiplier, objfct = phi
         if multiplier == 0.0:  # don't evaluate the fct
             continue
         else:
+
             if f is not None and objfct._hasFields:
-
-                H += [multiplier * objfct.deriv2(m, v, f=f[i])]
+                fct = objfct.deriv2(m, v, f=f[i])
             else:
-                H += [multiplier * objfct.deriv2(m, v)]
+                fct = objfct.deriv2(m, v)
 
-    if isinstance(H[0], dask.array.Array):
+            if isinstance(fct, Future):
+                H += [fct]
+            else:
+                future = self.client.compute(
+                    self.client.submit(da.multiply, multiplier, fct).result()
+                )
+                H += [future]
 
-        stack = da.vstack(H)
+            multipliers += [multiplier]
 
-        return da.sum(stack, axis=0).compute()
+    if isinstance(H[0], Future):
+        phi_deriv2 = self.client.submit(
+            da.sum, self.client.submit(da.vstack, H), axis=0
+        ).result()
+        return phi_deriv2
 
     else:
-        sumIt = 0
-        for i in range(len(H)):
-            sumIt += H[i]
-        return sumIt
+        return np.sum(
+            np.r_[multipliers][:, None] * np.vstack(H), axis=0
+        ).squeeze()
 
 
-Cobjfct.deriv2 = dask_deriv2
+ComboObjectiveFunction.deriv2 = dask_deriv2

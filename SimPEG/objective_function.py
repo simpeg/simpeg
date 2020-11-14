@@ -6,8 +6,7 @@ from __future__ import division
 import numpy as np
 import scipy.sparse as sp
 from six import integer_types
-import warnings
-
+from dask.distributed import Client, get_client
 from discretize.Tests import checkDerivative
 
 from .maps import IdentityMap
@@ -36,6 +35,8 @@ class BaseObjectiveFunction(BaseSimPEG):
     _hasFields = False  #: should we have the option to store fields
 
     _nP = None  #: number of parameters
+    _client = None
+    _workers = None
 
     def __init__(self, nP=None, **kwargs):
         if nP is not None:
@@ -48,6 +49,26 @@ class BaseObjectiveFunction(BaseSimPEG):
                 self.__class__.__name__
             )
         )
+
+    @property
+    def client(self):
+        if getattr(self, '_client', None) is None:
+            self._client = get_client()
+
+        return self._client
+
+    @client.setter
+    def client(self, client):
+        assert isinstance(client, Client)
+        self._client = client
+
+    @property
+    def workers(self):
+        return self._workers
+
+    @workers.setter
+    def workers(self, workers):
+        self._workers = workers
 
     @property
     def nP(self):
