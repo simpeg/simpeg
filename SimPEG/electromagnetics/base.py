@@ -242,7 +242,7 @@ class BaseEMSimulation(BaseSimulation):
                     return M.T * (u * v).sum(axis=1)
                 return M.T * (u * v)
             if u.ndim > 1 and u.shape[1] > 1:
-                return u[:, None, :] * (M * v)[:, :, None]
+                return np.squeeze(u[:, None, :] * (M * v)[:, :, None])
             return u * (M * v)
         else:
             if u.ndim > 1:
@@ -420,7 +420,7 @@ class BaseEMSimulation(BaseSimulation):
                     return M.T * (u * v).sum(axis=1)
                 return M.T * (u * v)
             if u.ndim > 1 and u.shape[1] > 1:
-                return u[:, None, :] * (M * v)[:, :, None]
+                return np.squeeze(u[:, None, :] * (M * v)[:, :, None])
             return u * (M * v)
 
         else:

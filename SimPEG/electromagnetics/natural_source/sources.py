@@ -150,21 +150,19 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
             # And stack them to be of the correct size
             e_p = self.ePrimary(simulation)
             if adjoint:
-                return simulation.MeSigmaDeriv(
-                    e_p[:, 0], v[: int(v.shape[0] / 2)], adjoint
-                ) + simulation.MeSigmaDeriv(
-                    e_p[:, 1], v[int(v.shape[0] / 2) :], adjoint
-                )
-                # return sp.hstack((
-                #     simulation.MeSigmaDeriv(e_p[:, 0]).T,
-                #     simulation.MeSigmaDeriv(e_p[:, 1]).T)) * v
-            else:
-                return np.hstack(
-                    (
-                        mkvc(simulation.MeSigmaDeriv(e_p[:, 0], v, adjoint), 2),
-                        mkvc(simulation.MeSigmaDeriv(e_p[:, 1], v, adjoint), 2),
-                    )
-                )
+                return simulation.MeSigmaDeriv(e_p, v, adjoint=adjoint)
+                # return simulation.MeSigmaDeriv(
+                #     e_p[:, 0], v[: int(v.shape[0] / 2)], adjoint
+                # ) + simulation.MeSigmaDeriv(
+                #     e_p[:, 1], v[int(v.shape[0] / 2) :], adjoint
+                # )
+            return simulation.MeSigmaDeriv(e_p, v, adjoint)
+            # return np.hstack(
+            #     (
+            #         mkvc(simulation.MeSigmaDeriv(e_p[:, 0], v, adjoint), 2),
+            #         mkvc(simulation.MeSigmaDeriv(e_p[:, 1], v, adjoint), 2),
+            #     )
+            # )
 
     S_e = s_e
     S_eDeriv = s_eDeriv
