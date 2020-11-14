@@ -36,6 +36,7 @@ class BasePFSimulation(LinearSimulation):
     def __init__(self, mesh, **kwargs):
 
         LinearSimulation.__init__(self, mesh, **kwargs)
+        self.solver = None  # Overload default solver
 
         # Find non-zero cells
         if getattr(self, "actInd", None) is not None:
@@ -128,6 +129,14 @@ class BasePFSimulation(LinearSimulation):
         raise RuntimeError(
             f"Integral calculations must implemented by the subclass {self}."
         )
+
+    @property
+    def solver(self):
+        return self._solver
+
+    @solver.setter
+    def solver(self, solver):
+        self._solver = solver
 
     @property
     def forwardOnly(self):
