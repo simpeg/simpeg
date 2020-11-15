@@ -30,13 +30,7 @@ class BaseRxNSEM_Point(BaseRx):
         "component of the field (real or imag)",
         {
             "real": ["re", "in-phase", "in phase"],
-            "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-            "apparent resistivity": [
-                "apparent_resistivity",
-                "apparent-resistivity",
-                "app_rho",
-            ],
-            "phase": ["phi"],
+            "imag": ["imaginary", "im", "out-of-phase", "out of phase"]
         },
     )
 
@@ -46,37 +40,47 @@ class BaseRxNSEM_Point(BaseRx):
         orientation=None,
         component=None,
         locations_e=None,
-        locations_b=None,
+        locations_h=None,
     ):
         self.orientation = orientation
         self.component = component
-        self.locations_e = locations_e
-        self.locations_b = locations_b
 
-        if locations is None:
-            locations = np.hstack([locations_e, locations_b])
+        # check if locations_e or h have been provided
+        if (locations_e is not None) and (locations_h is not None):
+            # check that locations are same size
+            if locations_e.size == locations_h.size:
+                self._locations_e = locations_e
+                self._locations_h = locations_h
+            else:
+                raise Exception("location h needs to be same size as location e")
+
+            locations = np.hstack([locations_e, locations_h])
+        elif locations is not None:
+            # check shape of locations
+            if isinstance(locations, list):
+                if len(locations) == 2:
+                    self._locations_e = locations[:, 0]
+                    self._locations_h = locations[:, 1]
+                elif len(locations) == 1:
+                    self._locations_e = locations
+                    self._locations_h = locations
+                else:
+                    raise Exception("incorrect size of list, must be length of 1 or 2")
+            elif isinstance(locations, np.ndarray):
+                self._locations_e = locations
+                self._locations_h = locations
+            else:
+                raise Exception("locations need to be either a list or numpy array")
+        else:
+            raise Exception("locations need to be either E & H coincident or seperate items")
 
         BaseRx.__init__(self, locations)
 
-    def _locs_e(self):
-        if self.locations_e is None:
-            if self.locations.ndim == 3:
-                loc = self.locations[:, :, 0]
-            else:
-                loc = self.locations
-            return loc
-        else:
-            return self.locations_e
+    def locations_e(self):
+        return self._locations_e
 
-    def _locs_h(self):
-        if self.locations_b is None:
-            if self.locations.ndim == 3:
-                loc = self.locations[:, :, 1]
-            else:
-                loc = self.locations
-            return loc
-        else:
-            return self.locations_b
+    def locations_h(self):
+        return self._locations_h
 
     def getP(self, mesh, projGLoc=None, field="e"):
         """
@@ -95,9 +99,9 @@ class BaseRxNSEM_Point(BaseRx):
             return self._Ps[(mesh, projGLoc, field)]
 
         if field == "e":
-            locs = self._locs_e()
+            locs = self.locations_e()
         else:
-            locs = self._locs_h()
+            locs = self.locations_h()
         P = mesh.getInterpolationMat(locs, projGLoc)
         if self.storeProjections:
             self._Ps[(mesh, projGLoc, field)] = P
@@ -283,7 +287,7 @@ class Point3DImpedance(BaseRxNSEM_Point):
         orientation="xy",
         component="real",
         locations_e=None,
-        locations_b=None,
+        locations_h=None,
     ):
 
         super().__init__(
@@ -291,7 +295,7 @@ class Point3DImpedance(BaseRxNSEM_Point):
             orientation=orientation,
             component=component,
             locations_e=locations_e,
-            locations_b=locations_b,
+            locations_h=locations_h,
         )
 
     def _eval_impedance(self, src, mesh, f):
@@ -441,13 +445,25 @@ class Point3DComplexResistivity(Point3DImpedance):
         ["xx", "xy", "yx", "yy"],
     )
 
+    component = properties.StringChoice(
+        "component of the field (real or imag)",
+        {
+            "apparent resistivity": [
+                "apparent_resistivity",
+                "apparent-resistivity",
+                "app_rho",
+            ],
+            "phase": ["phi"],
+        },
+    )
+
     def __init__(
         self,
         locations=None,
         orientation="xy",
         component="apparent_resistivity",
         locations_e=None,
-        locations_b=None,
+        locations_h=None,
     ):
 
         super().__init__(
@@ -455,7 +471,7 @@ class Point3DComplexResistivity(Point3DImpedance):
             orientation=orientation,
             component=component,
             locations_e=locations_e,
-            locations_b=locations_b,
+            locations_h=locations_h,
         )
 
     def _alpha(self, src):
@@ -587,17 +603,17 @@ class Point3DTipper(BaseRxNSEM_Point):
 
         super().__init__(locs, orientation=orientation, component=component)
 
-    def _eval_Tij_numerator(self, src, mesh, f, numerator=False):
+    def _eval_tipper(self, src, mesh, f, numerator=False):
         # will grab both primary and secondary and sum them!
         h = f[src, "h"]
 
-        Pbx = self.getP(mesh, "Fx", "b")
+        Pbx = self.getP(mesh, "Fx", "h")
         hx_px = Pbx * h[:, 0]
         hx_py = Pbx * h[:, 1]
-        Pby = self.getP(mesh, "Fy", "b")
+        Pby = self.getP(mesh, "Fy", "h")
         hy_px = Pby * h[:, 0]
         hy_py = Pby * h[:, 1]
-        Pbz = self.getP(mesh, "Fz", "b")
+        Pbz = self.getP(mesh, "Fz", "h")
         hz_px = Pbz * h[:, 0]
         hz_py = Pbz * h[:, 1]
 
@@ -614,7 +630,46 @@ class Point3DTipper(BaseRxNSEM_Point):
             return top
         return top / bot
 
-    def _deriv_Tij_numerator(self, v, adjoint=False):
+    def _eval_tipper_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+        # will grab both primary and secondary and sum them!
+        h = f[src, "h"]
+
+        Pbx = self.getP(mesh, "Fx", "h")
+        hx_px = Pbx * h[:, 0]
+        hx_py = Pbx * h[:, 1]
+        Pby = self.getP(mesh, "Fy", "h")
+        hy_px = Pby * h[:, 0]
+        hy_py = Pby * h[:, 1]
+        Pbz = self.getP(mesh, "Fz", "h")
+        hz_px = Pbz * h[:, 0]
+        hz_py = Pbz * h[:, 1]
+
+        if self.orientation[1] == "x":
+            h_px = -hy_px
+            h_py = -hy_py
+        else:
+            h_px = hx_px
+            h_py = hx_py
+        Phx = self.getP(mesh, "Fx", "h")
+        Phy = self.getP(mesh, "Fy", "h")
+        hx = Phx @ h
+        hy = Phy @ h
+        if self.orientation[1] == "x":
+            h = hy
+        else:
+            h = -hx
+
+        top = h_px * hz_py - h_py * hz_px
+        bot = hx_px * hy_py - hx_py * hy_px
+        out = top / bot
+
+        dh_dm_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
+        dhx_dm_v = Phx @ dh_dm_v
+        dhy_dm_v = Phy @ dh_dm_v
+        if self.orientation[1] == "x":
+            dh_dm_v = dhy_dm_v
+        else:
+            dh_dm_v = -dhx_dm_v
         if "zx" in self.orientation:
             if not adjoint:
                 TijN_uV = (
@@ -663,7 +718,7 @@ class Point3DTipper(BaseRxNSEM_Point):
         # self.f = f
 
         # Tij_numerator = self._eval_Tij_numerator(src, mesh, f)
-        rx_eval_complex = self._eval_Tij_numerator(
+        rx_eval_complex = self._eval_tipper(
             src, mesh, f
         )  # self._Hd * Tij_numerator
 
@@ -708,7 +763,6 @@ class Point3DTipper(BaseRxNSEM_Point):
             rx_deriv_component = np.array(getattr(rx_deriv_complex, self.component))
 
         return rx_deriv_component
-
 
 ##################################################
 # Receiver for 1D Analytic
