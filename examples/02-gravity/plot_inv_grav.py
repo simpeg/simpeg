@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from dask.distributed import Client, LocalCluster
-from SimPEG import dask
-from SimPEG.utils.drivers import create_tile_meshes
+# from SimPEG.dask import data_misfit, objective_function
+# from SimPEG.dask.utils import create_tile_meshes
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -21,9 +21,9 @@ from SimPEG import (
     directives,
     inversion,
     data_misfit,
-    objective_function
+    objective_function,
 )
-
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz
 
 try:
     from SimPEG import utils
@@ -33,18 +33,6 @@ except:
     from SimPEG.Utils.Plotutils import plot2Ddata
 
 import shutil
-
-###############################################################################
-# Setup
-# -----
-#
-# Define the survey and model parameters
-#
-# Create an a global survey and mesh and simulate some data
-#
-#
-
-
 # Create and array of observation points
 xr = np.linspace(-30.0, 30.0, 20)
 yr = np.linspace(-30.0, 30.0, 20)
@@ -76,22 +64,18 @@ workers = None  # Here runs locally
 h = [5, 5, 5]
 padDist = np.ones((3, 2)) * 100
 
-# Create tiles
-indices = [
-    np.where(rxLoc[:, 0] <= 0)[0],
-    np.where(rxLoc[:, 0] > 0)[0]
-]
-
-(global_mesh, activeCells), (local_meshes, local_maps) = create_tile_meshes(
-    rxLoc,
-    topo,
-    indices,
-    base_mesh=None,
-    core_cells=h,
-    locations_refinement=[5, 5, 5],
-    topography_refinement=[0, 0, 2],
-    padding_distance=padDist
+mesh = mesh_builder_xyz(
+    rxLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
 )
+mesh = refine_tree_xyz(
+    mesh, rxLoc, method="surface", octree_levels=[5, 5, 5], finalize=False
+)
+mesh = refine_tree_xyz(
+    mesh, topo, method="surface", octree_levels=[0, 0, 2], finalize=True
+)
+
+# Define an active cells from topo
+activeCells = utils.surface2ind_topo(mesh, topo)
 
 
 ##########################################################################
@@ -101,9 +85,9 @@ indices = [
 # We can now create a density model and generate data
 # Here a simple block in half-space
 # Get the indices of the magnetized block
-model = np.zeros(global_mesh.nC)
+model = np.zeros(mesh.nC)
 ind = utils.ModelBuilder.getIndicesBlock(
-    np.r_[-10, -10, -30], np.r_[10, 10, -10], global_mesh.gridCC,
+    np.r_[-10, -10, -30], np.r_[10, 10, -10], mesh.gridCC,
 )[0]
 
 # Assign density values
@@ -122,7 +106,7 @@ survey = gravity.survey.Survey(srcField)
 
 # Create the forward simulation for the global dataset
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=global_mesh, rhoMap=idenMap, actInd=activeCells
+    survey=survey, mesh=mesh, rhoMap=idenMap, actInd=activeCells
 )
 
 # Compute linear forward operator and compute some data
@@ -130,77 +114,24 @@ d = simulation.fields(model)
 
 # Add noise and uncertainties
 # We add some random Gaussian noise (1nT)
-synthetic_data = d + np.random.randn(len(d)) * 2e-3
-wd = np.ones(len(synthetic_data)) * 2e-3  # Assign flat uncertainties
+synthetic_data = d + np.random.randn(len(d)) * 1e-3
+wd = np.ones(len(synthetic_data)) * 1e-3  # Assign flat uncertainties
 
-###############################################################
-# Tiled misfits
-#
-#
-#
-#
-local_misfits = []
-for ii, (local_index, local_mesh, local_map) in enumerate(
-        zip(indices, local_meshes, local_maps)
-):
-
-    receivers = gravity.receivers.Point(rxLoc[local_index, :])
-    srcField = gravity.sources.SourceField([receivers])
-    local_survey = gravity.survey.Survey(srcField)
-
-    # Create the forward simulation
-    simulation = gravity.simulation.Simulation3DIntegral(
-        survey=local_survey,
-        mesh=local_mesh,
-        rhoMap=local_map,
-        actInd=local_map.local_active,
-        sensitivity_path=f"Inversion\Tile{ii}.zarr",
-    )
-
-    data_object = data.Data(
-        local_survey,
-        dobs=synthetic_data[local_index],
-        standard_deviation=wd[local_index],
-    )
-
-    local_misfits += [
-        data_misfit.L2DataMisfit(
-            data=data_object, simulation=simulation,
-            workers=workers
-        )
-    ]
-
-global_misfit = objective_function.ComboObjectiveFunction(
-        local_misfits
+data_object = data.Data(
+    survey,
+    dobs=synthetic_data,
+    standard_deviation=wd,
 )
 
-# Plot the model on different meshes
-fig = plt.figure(figsize=(12, 6))
-c_code = ['r', 'g']
-for ii, local_misfit in enumerate(global_misfit.objfcts):
-
-    local_mesh = local_misfit.simulation.mesh
-    local_map = local_misfit.simulation.rhoMap
-
-    inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
-
-    ax = plt.subplot(2, 2, ii + 1)
-    local_mesh.plotSlice(
-        inject_local * (local_map * model), normal="Y", ax=ax, grid=True
-    )
-    sensors = local_misfit.simulation.survey.receiver_locations
-    ax.scatter(sensors[:, 0], sensors[:, 2], 10, c=c_code[ii])
-    ax.set_xlim(-60, 60)
-    ax.set_ylim(-50, 10)
-    ax.set_aspect("equal")
-    ax.set_title(f"Mesh {ii+1}. Active cells {local_map.local_active.sum()}")
-
+global_misfit = data_misfit.L2DataMisfit(
+            data=data_object, simulation=simulation,
+)
 
 # Create active map to go from reduce set to full
-inject_global = maps.InjectActiveCells(global_mesh, activeCells, np.nan)
+inject_global = maps.InjectActiveCells(mesh, activeCells, np.nan)
 
-ax = plt.subplot(2, 1, 2)
-global_mesh.plotSlice(inject_global * model, normal="Y", ax=ax, grid=True)
+ax = plt.subplot()
+mesh.plotSlice(inject_global * model, normal="Y", ax=ax, grid=True)
 ax.scatter(rxLoc[:, 0], rxLoc[:, 2], 10, c='b')
 ax.set_title(f"Global Mesh. Active cells {activeCells.sum()}")
 ax.set_xlim(-60, 60)
@@ -209,16 +140,8 @@ ax.set_aspect("equal")
 plt.show()
 
 
-#####################################################
-# Invert on the global mesh
-#
-#
-#
-#
-#
-
 # Create a regularization on the global mesh
-reg = regularization.Sparse(global_mesh, indActive=activeCells, mapping=idenMap)
+reg = regularization.Sparse(mesh, indActive=activeCells, mapping=idenMap)
 
 m0 = np.ones(int(activeCells.sum())) * 1e-4  # Starting model
 
@@ -233,7 +156,7 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 # Use pick a threshold parameter empirically based on the distribution of
 # model parameters
 update_IRLS = directives.Update_IRLS(
-    f_min_change=1e-4, max_irls_iterations=0, coolEpsFact=1.5, beta_tol=4.,
+    f_min_change=1e-4, max_irls_iterations=0, coolEpsFact=1.5, beta_tol=1e-2,
 )
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)
 update_Jacobi = directives.UpdatePreconditioner()
@@ -246,19 +169,15 @@ inv = inversion.BaseInversion(
 # Run the inversion
 mrec = inv.run(m0)
 
-fig = plt.figure(figsize=(12, 6))
+
 # Plot the result
 ax = plt.subplot(1, 2, 1)
-global_mesh.plotSlice(inject_global * model, normal="Y", ax=ax, grid=True)
+mesh.plotSlice(inject_global * model, normal="Y", ax=ax, grid=True)
 ax.set_title("True")
-ax.set_xlim(-60, 60)
-ax.set_ylim(-50, 10)
 ax.set_aspect("equal")
 
 ax = plt.subplot(1, 2, 2)
-global_mesh.plotSlice(inject_global * mrec, normal="Y", ax=ax, grid=True)
+mesh.plotSlice(inject_global * mrec, normal="Y", ax=ax, grid=True)
 ax.set_title("Recovered")
-ax.set_xlim(-60, 60)
-ax.set_ylim(-50, 10)
 ax.set_aspect("equal")
 plt.show()

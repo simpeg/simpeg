@@ -1,6 +1,9 @@
 import numpy as np
 from ....potential_fields.gravity import Simulation3DIntegral as Sim
 from ....utils import sdiag, mkvc
+import dask
+import dask.array as da
+from scipy.sparse import csr_matrix as csr
 
 
 def dask_getJtJdiag(self, m, W=None):
@@ -23,3 +26,46 @@ def dask_getJtJdiag(self, m, W=None):
 
 
 Sim.getJtJdiag = dask_getJtJdiag
+
+
+def dask_getJ(self, m, f=None):
+    """
+        Sensitivity matrix
+    """
+
+    prod = dask.delayed(csr.dot)(self.G, self.rhoDeriv)
+
+    return da.from_delayed(
+        prod, dtype=float, shape=(self.G.shape[0], self.rhoDeriv.shape[1])
+    )
+
+
+Sim.getJ = dask_getJ
+
+
+def dask_Jvec(self, m, v, f=None):
+    """
+    Sensitivity times a vector
+    """
+    dmu_dm_v = self.rhoDeriv @ v
+    return da.dot(self.G, dmu_dm_v.astype(np.float32))
+
+
+Sim.Jvec = dask_Jvec
+
+
+def dask_Jtvec(self, m, v, f=None):
+    """
+    Sensitivity transposed times a vector
+    """
+
+    Jtvec = da.dot(v, self.G)
+    Jtjvec_dmudm = dask.delayed(csr.dot)(Jtvec, self.rhoDeriv)
+    h_vec = da.from_delayed(
+        Jtjvec_dmudm, dtype=float, shape=[self.rhoDeriv.shape[1]]
+    )
+
+    return h_vec
+
+
+Sim.Jtvec = dask_Jtvec

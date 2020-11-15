@@ -22,12 +22,12 @@ def dask_call(self, m, f=None):
                 fct = objfct(m)
 
             if isinstance(fct, Future):
-                fcts += [fct]
-            else:
                 future = self.client.compute(
                     self.client.submit(da.multiply, multiplier, fct).result()
                 )
                 fcts += [future]
+            else:
+                fcts += [fct]
 
             multipliers += [multiplier]
 
@@ -36,7 +36,6 @@ def dask_call(self, m, f=None):
             da.sum, self.client.submit(da.vstack, fcts), axis=0
         ).result()
         return phi
-
     else:
         return np.sum(
             np.r_[multipliers][:, None] * np.vstack(fcts), axis=0
@@ -70,20 +69,20 @@ def dask_deriv(self, m, f=None):
                 fct = objfct.deriv(m)
 
             if isinstance(fct, Future):
-                g += [fct]
-            else:
                 future = self.client.compute(
-                    self.client.submit(da.multiply, multiplier, fct).result()
+                    self.client.submit(da.multiply, multiplier, fct)
                 )
                 g += [future]
+            else:
+                g += [fct]
 
             multipliers += [multiplier]
 
     if isinstance(g[0], Future):
-        phi_deriv = self.client.submit(
+        big_future = self.client.submit(
             da.sum, self.client.submit(da.vstack, g), axis=0
         ).result()
-        return phi_deriv
+        return self.client.compute(big_future).result()
 
     else:
         return np.sum(
@@ -119,25 +118,27 @@ def dask_deriv2(self, m, v=None, f=None):
                 fct = objfct.deriv2(m, v)
 
             if isinstance(fct, Future):
-                H += [fct]
-            else:
                 future = self.client.compute(
-                    self.client.submit(da.multiply, multiplier, fct).result()
+                    self.client.submit(da.multiply, multiplier, fct)
                 )
                 H += [future]
+            else:
+                H += [fct]
 
             multipliers += [multiplier]
 
     if isinstance(H[0], Future):
-        phi_deriv2 = self.client.submit(
+        big_future = self.client.submit(
             da.sum, self.client.submit(da.vstack, H), axis=0
         ).result()
-        return phi_deriv2
+        return self.client.compute(big_future).result()
 
     else:
-        return np.sum(
-            np.r_[multipliers][:, None] * np.vstack(H), axis=0
-        ).squeeze()
+        phi_deriv2 = 0
+        for multiplier, h in zip(multipliers, H):
+            phi_deriv2 += multiplier * h
+
+        return phi_deriv2
 
 
 ComboObjectiveFunction.deriv2 = dask_deriv2

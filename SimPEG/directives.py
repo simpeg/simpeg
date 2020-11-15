@@ -221,18 +221,13 @@ class BetaEstimate_ByEig(InversionDirective):
         np.random.seed(1)
         x0 = np.random.rand(*m.shape)
 
-        t, b = 0, 0
-        i_count = 0
-        for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts):
-            # check if f is list
-            if len(self.dmisfit.objfcts) > 1:
-                t += x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
-            else:
-                t += x0.dot(dmis.deriv2(m, x0, f=f))
-            b += x0.dot(reg.deriv2(m, v=x0))
-            i_count += 1
+        phi_d_deriv = self.dmisfit.deriv2(m, x0, f=f)
+        t = np.dot(x0, phi_d_deriv)
 
-        self.beta0 = self.beta0_ratio * (t / b)
+        reg = self.reg.deriv2(m, v=x0)
+        b = np.dot(x0, reg)
+
+        self.beta0 = self.beta0_ratio * np.asarray(t / b)
         self.invProb.beta = self.beta0
 
 
@@ -632,6 +627,7 @@ class Update_IRLS(InversionDirective):
     irls_iteration = 0
     minGNiter = 1
     max_irls_iterations = properties.Integer("maximum irls iterations", default=20)
+    max_beta_iterations = properties.Integer("maximum beta iterations", default=20)
     iterStart = 0
     sphericalDomain = False
 
@@ -832,10 +828,16 @@ class Update_IRLS(InversionDirective):
                 self.opt.stopNextIteration = True
                 return
 
+
             self.f_old = phim_new
 
             self.update_beta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
+
+        if self.opt.iter > self.max_beta_iterations:
+            print("Reached max beta iterations.")
+            self.opt.stopNextIteration = True
+            return
 
     def startIRLS(self):
         if not self.silent:
@@ -951,9 +953,8 @@ class UpdatePreconditioner(InversionDirective):
 
         diagA = JtJdiag + self.invProb.beta * regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.0
-        PC = sdiag((diagA))
 
-        self.opt.approxHinv = PC
+        self.opt.approxHinv = diagA
 
     def endIter(self):
         # Cool the threshold parameter

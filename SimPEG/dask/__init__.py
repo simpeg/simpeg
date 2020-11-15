@@ -8,6 +8,9 @@ try:
     import SimPEG.dask.potential_fields.magnetics.simulation
     import SimPEG.dask.data_misfit
     import SimPEG.dask.objective_function
+    import SimPEG.dask.optimization
+    import SimPEG.dask.inverse_problem
+
 except ImportError as err:
     print("unable to load dask operations")
     print(err)
