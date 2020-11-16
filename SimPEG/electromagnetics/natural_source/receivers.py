@@ -477,6 +477,90 @@ class Point3DComplexResistivity(Point3DImpedance):
     def _alpha(self, src):
         return 1 / (2 * np.pi * mu_0 * src.frequency)
 
+    def _eval_rx_deriv(self, src, mesh, f, v=None, adjoint=False):
+        alpha = self._alpha(src)
+
+        e = f[src, "e"]  # will grab both primary and secondary and sum them!
+        h = f[src, "h"]
+
+        if self.orientation[0] == "x":
+            Pe = self.getP(mesh, "Ex", "e")
+            e = Pe @ e
+        else:
+            Pe = self.getP(mesh, "Ey", "e")
+            e = Pe @ e
+
+        Phx = self.getP(mesh, "Fx", "h")
+        Phy = self.getP(mesh, "Fy", "h")
+        hx = Phx @ h
+        hy = Phy @ h
+        if self.orientation[1] == "x":
+            h = hy
+        else:
+            h = -hx
+
+        top = e[:, 0] * h[:, 1] - e[:, 1] * h[:, 0]
+        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+        out = top / bot
+
+        if self.component == "phase":
+            v_imag = -1 * out.imag / (out.real**2 + out.imag**2) * v
+        else:
+            v_imag = 1j * out.imag * v
+        # the multipliers
+        gtop_v_imag = (v_imag / bot)[:, None]
+        gbot_v_imag = (-out * v_imag / bot)[:, None]
+
+        # multiply the fields by v
+        ghx_v_imag = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v_imag
+        ghy_v_imag = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v_imag
+        ge_v_imag = np.c_[h[:, 1], -h[:, 0]] * gtop_v_imag
+        gh_v_imag = np.c_[-e[:, 1], e[:, 0]] * gtop_v_imag
+
+        if self.orientation[1] == "x":
+            ghy_v_imag += gh_v_imag
+        else:
+            ghx_v_imag -= gh_v_imag
+
+        gh_v_imag = Phx.T @ ghx_v_imag + Phy.T @ ghy_v_imag
+        ge_v_imag = Pe.T @ ge_v_imag
+
+        # take derivative
+        gfu_h_v_imag, gfm_h_v_imag = f._hDeriv(src, None, gh_v_imag, adjoint=True)
+        gfu_e_v_imag, gfm_e_v_imag = f._eDeriv(src, None, ge_v_imag, adjoint=True)
+
+        # now real
+        if self.component == "phase":
+            v_re = 1j * out.real / (out.real**2 + out.imag**2) * v
+        else:
+            v_re = out.real * v
+
+        gtop_v_re = (v_re / bot)[:, None]
+        gbot_v_re = (-out * v_re / bot)[:, None]
+
+        ghx_v_re = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v_re
+        ghy_v_re = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v_re
+        ge_v_re = np.c_[h[:, 1], -h[:, 0]] * gtop_v_re
+        gh_v_re = np.c_[-e[:, 1], e[:, 0]] * gtop_v_re
+
+        if self.orientation[1] == "x":
+            ghy_v_re += gh_v_re
+        else:
+            ghx_v_re -= gh_v_re
+
+        gh_v_re = Phx.T @ ghx_v_re + Phy.T @ ghy_v_re
+        ge_v_re = Pe.T @ ge_v_re
+
+        gfu_h_v_re, gfm_h_v_re = f._hDeriv(src, None, gh_v_re, adjoint=True)
+        gfu_e_v_re, gfm_e_v_re = f._eDeriv(src, None, ge_v_re, adjoint=True)
+
+        out_1 = (gfu_h_v_re + gfu_e_v_re) - (gfu_h_v_imag + gfu_e_v_imag)
+        out_2 = (gfm_h_v_re + gfm_e_v_re) - (gfm_h_v_imag + gfm_e_v_imag)
+
+        if self.component == "phase":
+            return -out_1, -out_2
+        return out_1, out_2
+
     def eval(self, src, mesh, f, return_complex=False):
         """
         Project the fields to natural source data.
@@ -522,47 +606,24 @@ class Point3DComplexResistivity(Point3DImpedance):
         self.mesh = mesh
         self.f = f
 
+        alpha = self._alpha(src)
+
         if adjoint is True:
-            alpha = self._alpha(src)
-            Zij = self._eval_impedance(src, mesh, f, numerator=True)
-            HdZij = self._eval_impedance(
-                src, mesh, f
-            )  # self._Hd @ Zij  # since Hd is diagonal, don't need transpose
-
-            def rx_derivT(v):
-                return self._deriv_impedance(
-                    src, mesh, f, self._Hd * v, adjoint=adjoint
-                ) + self._deriv_Hd_uV(
-                    sdiag(Zij) * v, adjoint=adjoint
-                )  # _deriv_Hd_uV(v)
-
             if self.component == "apparent resistivity":
-                rx_deriv_component = (
-                    2
-                    * alpha
-                    * (
-                        rx_derivT(sdiag(HdZij.real) * v)  # +  #real) #+
-                        - rx_derivT(1j * sdiag(HdZij.imag) * v)
-                    ).reshape((mesh.nE, 2), order="F")
+                imp_deriv = self._eval_rx_deriv(
+                    src, mesh, f, v=2 * alpha * v, adjoint=adjoint
                 )
-
             elif self.component == "phase":
-                HdZij_re = HdZij.real
-                HdZij_im = HdZij.imag
-
-                rx_deriv_component = (180 / np.pi) * (
-                    rx_derivT(sdiag(-HdZij_im / (HdZij_im ** 2 + HdZij_re ** 2)) * v)
-                    + -rx_derivT(
-                        1j * sdiag(HdZij_re / (HdZij_im ** 2 + HdZij_re ** 2)) * v
-                    )
-                ).reshape((mesh.nE, 2), order="F")
+                imp_deriv = self._eval_rx_deriv(
+                    src, mesh, f, v=180 / np.pi * v, adjoint=adjoint
+                )
+            return imp_deriv
 
         else:
-            alpha = self._alpha(src)
             imp_deriv = self._eval_impedance_deriv(
                 src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
             )
-            imp = self._eval_impedance(src, mesh, f)  # self._Hd @ Zij
+            imp = self._eval_impedance(src, mesh, f)
 
             if self.component == "apparent resistivity":
                 rx_deriv_component = (
