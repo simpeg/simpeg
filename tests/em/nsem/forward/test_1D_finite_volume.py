@@ -30,11 +30,24 @@ class FiniteVolume1DTest(unittest.TestCase):
 
         # simulation
         src_list = [nsem.sources.Planewave1D([], frequency=f) for f in self.frequencies]
-        survey = nsem.survey.Survey1D(src_list)
+        self.survey = nsem.survey.Survey1D(src_list)
 
-        self.sim = nsem.simulation.Simulation1DElectricField(
-            mesh=mesh, solver=Pardiso, survey=survey, sigmaMap=maps.IdentityMap(),
-        )
+    def get_simulation(self, formulation="e"):
+
+        if formulation == "e":
+            return nsem.simulation.Simulation1DElectricField(
+                mesh=self.mesh,
+                solver=Pardiso,
+                survey=self.survey,
+                sigmaMap=maps.IdentityMap(),
+            )
+        elif formulation == "b":
+            return nsem.simulation.Simulation1DMagneticFluxDensity(
+                mesh=self.mesh,
+                solver=Pardiso,
+                survey=self.survey,
+                sigmaMap=maps.IdentityMap(),
+            )
 
     def get_sigma(self, sigma_back):
         # conductivity model
@@ -44,9 +57,10 @@ class FiniteVolume1DTest(unittest.TestCase):
 
         return sigma
 
-    def apparent_resistivity_phase_test(self, s):
+    def apparent_resistivity_phase_test(self, s, formulation="e"):
         sigma = self.get_sigma(s)
-        f = self.sim.fields(sigma)
+        sim = self.get_simulation(formulation)
+        f = sim.fields(sigma)
 
         sig_a = f[:, "apparent conductivity"][-self.npad - 1, :]
         phase = f[:, "phase"][-self.npad - 1, :]
@@ -57,7 +71,7 @@ class FiniteVolume1DTest(unittest.TestCase):
         passed_sigma = np.all(sig_a_error < TOL_SIGMA)
         passed_phase = np.all(phase_error < TOL_PHASE)
 
-        print(f"Testing {s:1.1e} ")
+        print(f"Testing {s:1.1e} {formulation}")
         print(
             f"   App Con. max:{sig_a_error.max():1.2e}, mean:{sig_a_error.mean():1.2e}, tol:{TOL_SIGMA}, passed?: {passed_sigma}"
         )
@@ -68,11 +82,17 @@ class FiniteVolume1DTest(unittest.TestCase):
         self.assertTrue(passed_sigma)
         self.assertTrue(passed_phase)
 
-    def test_1en1(self):
-        self.apparent_resistivity_phase_test(1e-1)
+    def test_1en1_e(self):
+        self.apparent_resistivity_phase_test(1e-1, "e")
 
-    def test_3en1(self):
-        self.apparent_resistivity_phase_test(3e-1)
+    def test_3en1_e(self):
+        self.apparent_resistivity_phase_test(3e-1, "e")
+
+    def test_1en1_b(self):
+        self.apparent_resistivity_phase_test(1e-1, "b")
+
+    def test_3en1_b(self):
+        self.apparent_resistivity_phase_test(3e-1, "b")
 
 
 if __name__ == "__main__":

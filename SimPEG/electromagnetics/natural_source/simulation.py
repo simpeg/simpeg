@@ -2,6 +2,7 @@ import time
 import sys
 import numpy as np
 import properties
+from discretize.utils import isScalar
 from scipy.constants import mu_0
 from ...utils.code_utils import deprecate_class
 
@@ -9,7 +10,11 @@ from ...utils import mkvc, sdiag
 from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
 from ..utils import omega
 from .survey import Data, Survey1D
-from .fields import Fields1DPrimarySecondary, Fields1DElectricField
+from .fields import (
+    Fields1DPrimarySecondary,
+    Fields1DElectricField,
+    Fields1DMagneticFluxDensity,
+)
 
 
 class BaseNSEMSimulation(BaseFDEMSimulation):
@@ -413,12 +418,12 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
         \mathbf{b} = \frac{1}{i\omega} \left( \mathbf{M^f}^{-1} \mathbf{D}^\top \mathbf{V} \mathbf{e} - \mathbf{B} \mathbf{e^{BC}} \right)
 
-        \left( \mathbf{V} \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma} \right) \mathbf{e} = \mathbf{V} \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{B} \mathbf{e^{BC}}
+        \left( \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma} \right) \mathbf{e} = \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{B} \mathbf{e^{BC}}
 
     """
 
     _solutionType = "eSolution"
-    _formulation = "HJ"
+    _formulation = "HJ"  # magnetic component is on edges
     fieldsPair = Fields1DElectricField
     _clear_on_sigma_update = ["_MccSigma"]
 
@@ -438,7 +443,7 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         Cell centered inner product matrix for conductivity
         """
         if getattr(self, "_MccSigma", None) is None:
-            self._MccSigma = sdiag(self.mesh.vol * self.sigma)
+            self._MccSigma = sdiag(self.sigma)
         return self._MccSigma
 
     def MccSigmaDeriv(self, u, v=None, adjoint=False):
@@ -450,11 +455,11 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
         if v is not None:
             if not adjoint:
-                return u * (self.mesh.vol * (self.sigmaDeriv * v))
+                return u * (self.sigmaDeriv * v)
             elif adjoint:
-                return self.sigmaDeriv.T * (self.mesh.vol * (u * v))
+                return self.sigmaDeriv.T * (u * v)
         else:
-            mat = utils.sdiag(u) * self.Vol * self.sigmaDeriv
+            mat = sdiag(u) * self.sigmaDeriv
             if not adjoint:
                 return mat
             elif adjoint:
@@ -469,14 +474,12 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         \mathbf{A} = \mathbf{V} \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma}
 
         """
-
-        V = self.Vol
         D = self.mesh.faceDiv
         MfMui = self.MfMui
         MfI = self.MfI
         MccSigma = self.MccSigma
 
-        return V @ D @ MfMui @ MfI @ D.T - 1j * omega(freq) * MccSigma
+        return D @ MfMui @ MfI @ D.T - 1j * omega(freq) * MccSigma
 
     def getADeriv(self, freq, u, v, adjoint=False):
         """
@@ -489,7 +492,6 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         """
         Right hand side constructed using Dirichlet boundary conditions
         """
-        V = self.Vol
         D = self.mesh.faceDiv
         MfMui = self.MfMui
         B = self._B
@@ -497,7 +499,130 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
         sources = self.survey.get_sources_by_frequency(freq)
 
-        return V @ D @ MfMui @ B @ ebc
+        return D @ (MfMui @ (B @ ebc))
+
+
+class Simulation1DMagneticFluxDensity(BaseFDEMSimulation):
+    """
+    1D finite volume simulation for the natural source electromagnetic problem.
+
+    This corresponds to the TM mode 2D simulation where the magnetic flux is
+    located at cell centers and the electric field is on edges.
+    """
+
+    _solutionType = "bSolution"
+    _formulation = "EB"
+    fieldsPair = Fields1DMagneticFluxDensity
+    _clear_on_sigma_update = ["_MfSigmaI", "_MfSigma", "_MfSigmaIDeriv"]
+
+    # Must be 1D survey object
+    survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
+
+    def __init__(self, mesh, **kwargs):
+        super(Simulation1DMagneticFluxDensity, self).__init__(mesh, **kwargs)
+
+        # todo: update to enable user to input / customize boundary conditions
+        self._B = self.mesh.getBCProjWF("dirichlet")[0]
+        self._b_bc = np.r_[0, 1]  # 0 at the bottom of the domain, 1 at the top
+
+    @property
+    def MccMui(self):
+        """
+        Cell centered inner product matrix for inverse magnetic permeability
+        """
+        if getattr(self, "_MccMui", None) is None:
+            mui = self.mui
+            if isScalar(mui):
+                mui = mui * np.ones(self.mesh.nC)
+            self._MccMui = sdiag(mui)
+        return self._MccMui
+
+    @property
+    def MfSigmaI(self):
+        """
+        Inverse of the face inner product matrix for sigma
+        """
+        if getattr(self, "_MfSigmaI", None) is None:
+            self._MfSigmaI = self.mesh.getFaceInnerProduct(self.sigma, invMat=True)
+        return self._MfSigmaI
+
+    @property
+    def MfSigma(self):
+        if getattr(self, "_MfSigma", None) is None:
+            self._MfSigma = self.mesh.getFaceInnerProduct(self.sigma)
+        return self._MfSigma
+
+    def MfSigmaDeriv(self, u, v=None, adjoint=False):
+        if self.sigmaMap is None:
+            return Zero()
+
+        if getattr(self, "_MfSigmaDeriv", None) is None:
+            self._MfSigmaDeriv = (
+                self.mesh.getFaceInnerProductDeriv(np.ones(self.mesh.nC))(
+                    np.ones(sef.mesh.nF)
+                )
+            ) * self.sigmaDeriv
+
+        if v is not None:
+            u = u.flatten()
+            if v.ndim > 1:
+                # promote u iff v is a matrix
+                u = u[:, None]  # Avoids constructing the sparse matrix
+            if adjoint is True:
+                return self._MfSigmaDeriv.T.dot(u * v)
+            return u * (self._MfSigmaDeriv.dot(v))
+        else:
+            if adjoint is True:
+                return self._MfSigmaDeriv.T.dot(sdiag(u))
+            return sdiag(u) * (self._MfSigmaDeriv)
+
+    def MfSigmaIDeriv(self, u, v=None, adjoint=False):
+        if self.sigmaMap is None:
+            return Zero()
+
+        dMfSigmaI_dI = -self.MfSigmaI ** 2
+
+        if adjoint:
+            return self.MfSigmaDeriv(dMfSigmaI_dI.dot(u), v=v, adjoint=adjoint)
+        return dMfSigmaI_dI.dot(self.MfSigmaDeriv(u, v=v))
+
+    def getA(self, freq):
+        """
+        system matrix
+        """
+        MccMui = self.MccMui
+        V = self.Vol
+        D = self.mesh.faceDiv
+        MfSigmaI = self.MfSigmaI
+
+        return (
+            V @ MccMui @ D @ MfSigmaI @ D.T @ MccMui @ V - 1j * omega(freq) * MccMui @ V
+        )
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        MccMui = self.MccMui
+        V = self.Vol
+        D = self.mesh.faceDiv
+
+        # V, MccMui are symmetric
+        return (
+            V
+            @ MccMui
+            @ D
+            @ self.MfSigmaIDeriv(D.T @ MccMui @ V @ u, v, adjoint=adjoint)
+        )
+
+    def getRHS(self, freq):
+        """
+        right hand side
+        """
+        MccMui = self.MccMui
+        D = self.mesh.faceDiv
+        V = self.Vol
+        B = self._B
+        bbc = self._b_bc
+
+        return V @ (MccMui @ (D @ (B @ bbc)))
 
 
 ###################################
