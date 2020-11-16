@@ -1,10 +1,11 @@
 import numpy as np
 import scipy.sparse as sp
+from scipy.constants import mu_0
 from ...utils.code_utils import deprecate_class
 
 from ...fields import Fields
 from ..frequency_domain.fields import FieldsFDEM
-from ...utils import spzeros, Identity, Zero
+from ...utils import spzeros, Identity, Zero, sdiag
 from ..utils import omega
 
 
@@ -20,6 +21,114 @@ from ..utils import omega
 ###########
 # 1D Fields
 ###########
+
+
+class Fields1DElectricField(FieldsFDEM):
+    """
+    Fields
+    """
+
+    knownFields = {"eSolution": "CC"}
+    aliasFields = {
+        "e": ["eSolution", "CC", "_e"],
+        "j": ["eSolution", "CC", "_j"],
+        "b": ["eSolution", "F", "_b"],
+        "h": ["eSolution", "F", "_h"],
+        "impedance": ["eSolution", "CC", "_impedance"],
+        "apparent resistivity": ["eSolution", "CC", "_apparent_resistivity"],
+        "apparent conductivity": ["eSolution", "CC", "_apparent_conductivity"],
+        "phase": ["eSolution", "CC", "_phase"],
+    }
+
+    def startup(self):
+        # boundary conditions
+        self._B = self.simulation._B
+        self._e_bc = self.simulation._e_bc
+
+        # operators
+        self._D = self.mesh.faceDiv
+        self._V = self.simulation.Vol
+        self._aveN2CC = self.mesh.aveN2CC
+        self._MfMui = self.simulation.MfMui
+        self._MfI = self.simulation.MfI
+        self._MccSigma = self.simulation.MccSigma
+        self._MccSigmaDeriv = self.simulation.MccSigmaDeriv
+
+        # geometry
+        self._nC = self.mesh.nC
+        self._nF = self.mesh.nF
+
+    def _e(self, eSolution, source_list):
+        return eSolution
+
+    def _j(self, eSolution, source_list):
+        return self._MccSigma @ eSolution
+
+    def _jDeriv_u(self, src, du_dm_v, adjoint=False):
+        if adjoint:
+            return self._MccSigma.T @ du_dm_v
+        return self._MccSigma @ du_dm_v
+
+    def _jDeriv_m(self, src, v, adjoint=False):
+        e = self[src, "e"]
+        return self._MccSigmaDeriv(e, v, adjoint=adjoint)
+
+    def _b(self, eSolution, source_list):
+        b = np.zeros((self._nF, len(source_list)), dtype=complex)
+        for i, src in enumerate(source_list):
+            b[:, i] = (
+                1
+                / (1j * omega(src.frequency))
+                * (
+                    self._MfI @ (self._D.T @ (self._V @ eSolution[:, i]))
+                    - self._B @ self._e_bc
+                )
+            )
+        return b
+
+    def _dDeriv_u(self, src, du_dm_v, adjoint=False):
+        if adjoint:
+            # V, MfI are symmetric
+            return (
+                1
+                / (1j * omega(src.frequency))
+                * (self._V @ (self._D @ (self._MfI @ du_dm_v)))
+            )
+        return (
+            1
+            / (1j * omega(src.frequency))
+            * (self._MfI @ (self._D.T @ (self._V @ du_dm_v)))
+        )
+
+    def _h(self, eSolution, source_list):
+        return self._MfI @ (self._MfMui @ self._b(eSolution, source_list))
+
+    def _hDeriv_u(self, src, du_dm_v, adjoint=False):
+        if adjoint:
+            v = self._MfMui @ (self._MfI @ du_dm_v)  # MfMui, MfI are symmetric
+            return self._bDeriv_u(src, vv, adjoint=adjoint)
+        return self._MfI @ (self._MfMui @ self._bDeriv_u(src, du_dm_v))
+
+    def _impedance(self, eSolution, source_list):
+        return self._e(eSolution, source_list) / (
+            self._aveN2CC @ self._h(eSolution, source_list)
+        )
+
+    def _apparent_resistivity(self, eSolution, source_list):
+        z = self._impedance(eSolution, source_list)
+        frequencies = [src.frequency for src in source_list]
+        return (z.real ** 2 + z.imag ** 2) @ sdiag(
+            1 / (omega(np.array(frequencies)) * mu_0)
+        )
+
+    def _apparent_conductivity(self, eSolution, source_list):
+        return 1.0 / self._apparent_resistivity(eSolution, source_list)
+
+    def _phase(self, eSolution, source_list):
+        z = self._impedance(eSolution, source_list)
+        return 180 / np.pi * np.arctan2(-z.imag, z.real)
+
+
 class Fields1DPrimarySecondary(FieldsFDEM):
     """
     Fields storage for the 1D NSEM solution.

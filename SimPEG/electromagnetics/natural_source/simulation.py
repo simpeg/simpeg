@@ -1,14 +1,15 @@
 import time
 import sys
 import numpy as np
+import properties
 from scipy.constants import mu_0
 from ...utils.code_utils import deprecate_class
 
-from ...utils import mkvc
+from ...utils import mkvc, sdiag
 from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
 from ..utils import omega
-from .survey import Data
-from .fields import Fields1DPrimarySecondary
+from .survey import Data, Survey1D
+from .fields import Fields1DPrimarySecondary, Fields1DElectricField
 
 
 class BaseNSEMSimulation(BaseFDEMSimulation):
@@ -387,9 +388,132 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
         return F
 
 
+class Simulation1DElectricField(BaseFDEMSimulation):
+    """
+    1D finite volume simulation for the natural source electromagnetic problem.
+
+    This corresponds to the TE mode 2D simulation where the electric field is
+    located at cell centers and the magnetic flux is on edges.
+
+    We are solving the discrete version of
+
+    .. math::
+
+        -\partial E_y + i \omega B_x = 0
+
+        \partial_z \mu^{-1} B_x - sigma E_y = 0
+
+    with the boundary conditions that $E_y[z_max] = 1$ (a plane wave source at
+    the top of the domain), and $E_y[z_min] = 0$. This can later be updated to
+    mixed boundary conditions (see Haber, 2014).
+
+    When we discretize, we obtain:
+
+    .. math::
+
+        \mathbf{b} = \frac{1}{i\omega} \left( \mathbf{M^f}^{-1} \mathbf{D}^\top \mathbf{V} \mathbf{e} - \mathbf{B} \mathbf{e^{BC}} \right)
+
+        \left( \mathbf{V} \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma} \right) \mathbf{e} = \mathbf{V} \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{B} \mathbf{e^{BC}}
+
+    """
+
+    _solutionType = "eSolution"
+    _formulation = "HJ"
+    fieldsPair = Fields1DElectricField
+    _clear_on_sigma_update = ["_MccSigma"]
+
+    # Must be 1D survey object
+    survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
+
+    def __init__(self, mesh, **kwargs):
+        super(Simulation1DElectricField, self).__init__(mesh, **kwargs)
+
+        # todo: update to enable user to input / customize boundary conditions
+        self._B = self.mesh.getBCProjWF("dirichlet")[0]
+        self._e_bc = np.r_[0, 1]  # 0 at the bottom of the domain, 1 at the top
+
+    @property
+    def MccSigma(self):
+        """
+        Cell centered inner product matrix for conductivity
+        """
+        if getattr(self, "_MccSigma", None) is None:
+            self._MccSigma = sdiag(self.mesh.vol * self.sigma)
+        return self._MccSigma
+
+    def MccSigmaDeriv(self, u, v=None, adjoint=False):
+        """
+        Derivative of MccSigma with respect to the model times a vector
+        """
+        if self.sigmaMap is None:
+            return Zero()
+
+        if v is not None:
+            if not adjoint:
+                return u * (self.mesh.vol * (self.sigmaDeriv * v))
+            elif adjoint:
+                return self.sigmaDeriv.T * (self.mesh.vol * (u * v))
+        else:
+            mat = utils.sdiag(u) * self.Vol * self.sigmaDeriv
+            if not adjoint:
+                return mat
+            elif adjoint:
+                return mat.T
+
+    def getA(self, freq):
+        """
+        System matrix
+
+        .. math::
+
+        \mathbf{A} = \mathbf{V} \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma}
+
+        """
+
+        V = self.Vol
+        D = self.mesh.faceDiv
+        MfMui = self.MfMui
+        MfI = self.MfI
+        MccSigma = self.MccSigma
+
+        return V @ D @ MfMui @ MfI @ D.T - 1j * omega(freq) * MccSigma
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        """
+        Derivative with respect to the conductivity model
+        """
+
+        return -1j * omega(freq) * self.MccSigmaDeriv(u, v, adjoint)
+
+    def getRHS(self, freq):
+        """
+        Right hand side constructed using Dirichlet boundary conditions
+        """
+        V = self.Vol
+        D = self.mesh.faceDiv
+        MfMui = self.MfMui
+        B = self._B
+        ebc = self._e_bc
+
+        sources = self.survey.get_sources_by_frequency(freq)
+
+        return V @ D @ MfMui @ B @ ebc
+
+
+###################################
+# 2D problems
+###################################
+
+# class Simulation2DElectricField(BaseFDEMSimulation):
+#     """
+#     A
+#     """
+
+
 ###################################
 # 3D problems
 ###################################
+
 
 class Simulation3DPrimarySecondary(Simulation3DElectricField):
     """
