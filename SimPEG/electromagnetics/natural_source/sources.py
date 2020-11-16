@@ -3,6 +3,7 @@ import scipy.sparse as sp
 
 from ... import maps
 from ...utils import mkvc
+from ...utils.code_utils import deprecate_class
 from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
 from .utils.source_utils import homo1DModelSource
@@ -29,17 +30,6 @@ import properties
 
 #         self.frequency = float(frequency)
 #         BaseFDEMSrc.__init__(self, receiver_list)
-
-# 1D sources
-class Planewave_xy_1DhomotD(BaseFDEMSrc):
-    """
-    NSEM source for both polarizations (x and y) for the total Domain.
-
-    It calculates fields calculated based on conditions on the boundary of the domain.
-    """
-
-    def __init__(self, receiver_list, frequency):
-        super(Planewave_xy_1DhomotD, self).__init__(receiver_list, frequency)
 
 
 # Need to implement such that it works for all dims.
@@ -276,7 +266,7 @@ class Planewave_xy_3Dprimary(BaseFDEMSrc):
 # Source for 1D solution
 
 
-class AnalyticPlanewave1D(BaseFDEMSrc):
+class Planewave1D(BaseFDEMSrc):
     """
     Source class for the 1D and pseudo-3D problems.
 
@@ -285,4 +275,19 @@ class AnalyticPlanewave1D(BaseFDEMSrc):
     """
 
     def __init__(self, receiver_list, frequency):
-        super(AnalyticPlanewave1D, self).__init__(receiver_list, frequency)
+        super(Planewave1D, self).__init__(receiver_list, frequency)
+
+
+############
+# Deprecated
+############
+
+
+@deprecate_class(removal_version="0.15.0")
+class AnalyticPlanewave1D(Planewave1D):
+    pass
+
+
+@deprecate_class(removal_version="0.15.0")
+class Planewave_xy_1DhomotD(Planewave1D):
+    pass
