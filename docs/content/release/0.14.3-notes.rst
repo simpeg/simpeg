@@ -67,6 +67,10 @@ Pull requests
 * `#931 <https://github.com/simpeg/simpeg/pull/931>`__: Improve mag3d computation over node locations and more versatile pf IO
 * `#936 <https://github.com/simpeg/simpeg/pull/936>`__: fix mapping in LinearSimulation
 * `#940 <https://github.com/simpeg/simpeg/pull/940>`__: plot_utils: add defaults for all contour, streamplot etc. that can be overwritten by inputs
+* `#952 <https://github.com/simpeg/simpeg/pull/952>`__: 0.14.3 notes
 
 Closed issues
 =============
+* #919
+* #920
+* #933
