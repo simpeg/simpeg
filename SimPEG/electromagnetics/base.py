@@ -210,6 +210,8 @@ class BaseEMSimulation(BaseSimulation):
         """
         if self.muiMap is None:
             return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
 
         if getattr(self, "_MfMuiDeriv", None) is None:
             self._MfMuiDeriv = (
@@ -221,22 +223,21 @@ class BaseEMSimulation(BaseSimulation):
 
         M = self._MfMuiDeriv
         if v is not None:
-            if not isinstance(u, Zero):
-                if u.ndim > 1:
-                    if u.shape[1] > 1:
-                        # u has multiple fields
-                        if v.ndim == 1:
-                            v = v[:, None]
+            if u.ndim > 1:
+                if u.shape[1] > 1:
+                    # u has multiple fields
+                    if v.ndim == 1:
+                        v = v[:, None]
+                else:
+                    u = u[:, 0]
+            if u.ndim == 1:
+                if v.ndim > 1:
+                    if v.shape[1] == 1:
+                        v = v[:, 0]
                     else:
-                        u = u[:, 0]
-                if u.ndim == 1:
-                    if v.ndim > 1:
-                        if v.shape[1] == 1:
-                            v = v[:, 0]
-                        else:
-                            u = u[:, None]
-                if v.ndim > 2:
-                    u = u[:, :, None]
+                        u = u[:, None]
+            if v.ndim > 2:
+                u = u[:, :, None]
             if adjoint:
                 if u.ndim > 1 and u.shape[1] > 1:
                     return M.T * (u * v).sum(axis=1)
@@ -270,6 +271,8 @@ class BaseEMSimulation(BaseSimulation):
 
         if self.muiMap is None:
             return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
 
         if len(self.mui.shape) > 1:
             if self.mui.shape[1] > self.mesh.dim:
@@ -293,7 +296,7 @@ class BaseEMSimulation(BaseSimulation):
             if adjoint:
                 return uMM.T
             return uMM
-        if not isinstance(uM, Zero) and uM.ndim > 2:
+        if uM.ndim > 2:
             # output is of shape (n, feilds_per_source, ...)
             # again need to collapse last two dimensions and multiply then reshape
             return (dMfMuiI_dI * uM.reshape(uM.shape[0], -1)).reshape(uM.shape)
@@ -315,6 +318,8 @@ class BaseEMSimulation(BaseSimulation):
         """
         if self.muMap is None:
             return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
 
         if getattr(self, "_MeMuDeriv", None) is None:
             self._MeMuDeriv = (
@@ -325,11 +330,10 @@ class BaseEMSimulation(BaseSimulation):
             )
 
         if v is not None:
-            if not isinstance(u, Zero):
-                u = u.flatten()
-                if v.ndim > 1:
-                    # promote u iff v is a matrix
-                    u = u[:, None]  # Avoids constructing the sparse matrix
+            u = u.flatten()
+            if v.ndim > 1:
+                # promote u iff v is a matrix
+                u = u[:, None]  # Avoids constructing the sparse matrix
             if adjoint:
                 return self._MeMuDeriv.T * (u * v)
             return u * (self._MeMuDeriv * v)
@@ -354,6 +358,8 @@ class BaseEMSimulation(BaseSimulation):
         """
 
         if self.muMap is None:
+            return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
             return Zero()
 
         if len(self.mu.shape) > 1:
@@ -388,6 +394,8 @@ class BaseEMSimulation(BaseSimulation):
         """
         if self.sigmaMap is None:
             return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
 
         if getattr(self, "_MeSigmaDeriv", None) is None:
             self._MeSigmaDeriv = (
@@ -399,22 +407,21 @@ class BaseEMSimulation(BaseSimulation):
 
         M = self._MeSigmaDeriv
         if v is not None:
-            if not isinstance(u, Zero):
-                if u.ndim > 1:
-                    if u.shape[1] > 1:
-                        # u has multiple fields
-                        if v.ndim == 1:
-                            v = v[:, None]
+            if u.ndim > 1:
+                if u.shape[1] > 1:
+                    # u has multiple fields
+                    if v.ndim == 1:
+                        v = v[:, None]
+                else:
+                    u = u[:, 0]
+            if u.ndim == 1:
+                if v.ndim > 1:
+                    if v.shape[1] == 1:
+                        v = v[:, 0]
                     else:
-                        u = u[:, 0]
-                if u.ndim == 1:
-                    if v.ndim > 1:
-                        if v.shape[1] == 1:
-                            v = v[:, 0]
-                        else:
-                            u = u[:, None]
-                if v.ndim > 2:
-                    u = u[:, :, None]
+                        u = u[:, None]
+            if v.ndim > 2:
+                u = u[:, :, None]
             if adjoint:
                 if u.ndim > 1 and u.shape[1] > 1:
                     return M.T * (u * v).sum(axis=1)
@@ -451,6 +458,8 @@ class BaseEMSimulation(BaseSimulation):
         """
         if self.sigmaMap is None:
             return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
 
         if len(self.sigma.shape) > 1:
             if self.sigma.shape[1] > self.mesh.dim:
@@ -483,6 +492,8 @@ class BaseEMSimulation(BaseSimulation):
         """
         if self.rhoMap is None:
             return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
 
         if getattr(self, "_MfRhoDeriv", None) is None:
             self._MfRhoDeriv = (
@@ -493,11 +504,10 @@ class BaseEMSimulation(BaseSimulation):
             )
 
         if v is not None:
-            if not isinstance(u, Zero):
-                u = u.flatten()
-                if v.ndim > 1:
-                    # promote u iff v is a matrix
-                    u = u[:, None]  # Avoids constructing the sparse matrix
+            u = u.flatten()
+            if v.ndim > 1:
+                # promote u iff v is a matrix
+                u = u[:, None]  # Avoids constructing the sparse matrix
             if adjoint is True:
                 return self._MfRhoDeriv.T.dot(u * v)
             return u * (self._MfRhoDeriv.dot(v))
