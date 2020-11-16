@@ -539,3 +539,206 @@ class CrossGradient(BaseCoupling):
             result = sp.csr_matrix(result)
 
         return result
+
+
+###############################################################################
+#                                                                             #
+#               Linear petrophysical relationship constraint                  #
+#                                                                             #
+###############################################################################
+
+class Linear(BaseCoupling):
+    '''
+    The petrophysical linear constraint for joint inversions.
+
+    ..math::
+        \phi_c({\mathbf m}_{\mathbf1},{\mathbf m}_{\mathbf2})=\lambda\sum_{i=1}^M
+        (k_1*m_1 + k_2*m_2 + k_3)
+
+    Assuming that we are working with two models only.
+
+    '''
+    def __init__(self, mesh, indActive, mapping, **kwargs):
+        self.as_super = super(Linear, self)
+        self.as_super.__init__(mesh, indActive, mapping, **kwargs)
+        self.map1, self.map2 = mapping.maps ### Assume a map has been passed for each model.
+
+
+    def models(self, ind_models):
+        '''
+        Method to pass models to Joint Total Variation object and ensures models are compatible
+        for further use. Checks that models are of same size.
+
+        :param container of numpy.ndarray ind_models: [model1, model2,...]
+
+        rtype: list of numpy.ndarray models: [model1, model2,...]
+        return: models
+        '''
+        models = []
+        n = len(ind_models) # number of individual models
+        for i in range(n):
+            ### check that the models are either a list, tuple, or np.ndarray
+            assert isinstance(ind_models[i], (list,tuple,np.ndarray))
+            if isinstance(ind_models[i], (list,tuple)):
+                ind_models[i] = np.array(ind_models[i]) ### convert to np.ndarray
+
+        ### check if models are of same size
+        it = iter(ind_models)
+        length = len(next(it))
+        if not all(len(l)==length for l in it):
+            raise ValueError('not all models are of the same size!')
+
+        for i in range(n):
+            models.append(ind_models[i])
+
+        return models
+
+    @property
+    def coefficients(self):
+        """
+        :param list val: [k1, k2, k3]
+
+        f(m1, m2)  = k1*m1 + k2*m2 + k3
+
+        """
+        if getattr(self, '_coefficients', None) is None:
+            self._coefficients = [1, -1, 0]
+
+        return self._coefficients
+
+    @coefficients.setter
+    def coefficients(self, val):
+        """
+        :param list val: [k1, k2, k3]
+
+        f(m1, m2)  = k1*m1 + k2*m2 + k3
+
+        """
+        assert isinstance(val, (list))
+        assert len(val)==3, 'length of coefficients must be 3!'
+
+        self._coefficients = val
+
+
+    def relation(self, model):
+        """
+        Computes the values of petrophysical linear relationship between two different
+        geophysical models.
+
+        The linear relationship is defined as:
+
+        f(m1, m2)  = k1*m1 + k2*m2 + k3
+
+        :param numpy.ndarray model: stacked array of individual models
+                                    np.c_[model1, model2,...]
+
+        :rtype: float
+        :return: linearly related petrophysical values of two different models,
+                  dimension: M by 1, :M number of model parameters.
+
+        """
+
+        m1 = self.map1*model
+        m2 = self.map2*model
+        k1 = self.coefficients[0]
+        k2 = self.coefficients[1]
+        k3 = self.coefficients[2]
+
+        return k1*m1 + k2*m2 + k3
+
+
+    def __call__(self, model):
+        '''
+        Computes the sum of values of petrophysical linear relationship
+        between two different geophysical models.
+
+        :param numpy.ndarray model: stacked array of individual models
+                                    np.c_[model1, model2,...]
+
+        :rtype: float
+        :return: a scalar value.
+        '''
+
+        result = np.linalg.norm(
+            self.relation(model)
+            )
+        return result
+
+
+    def deriv(self, model):
+        '''
+        Computes the Jacobian of the coupling term.
+
+        :param list of numpy.ndarray ind_models: [model1, model2,...]
+
+        :rtype: numpy.ndarray
+        :return: result: gradient of the coupling term with respect to model1, model2,
+                 :dimension 2M by 1, :M number of model parameters.
+        '''
+
+        k1 = self.coefficients[0]
+        k2 = self.coefficients[1]
+
+        dc_dm1 = 2 * k1 * self.relation(model)
+        dc_dm2 = 2 * k2 * self.relation(model)
+
+        result = np.concatenate((dc_dm1,dc_dm2))
+
+        return result
+
+
+    def deriv2(self, model, v=None):
+        '''
+        Computes the Hessian of the linear coupling term.
+
+        :param list of numpy.ndarray ind_models: [model1, model2, ...]
+        :param numpy.ndarray v: vector to be multiplied by Hessian
+        :rtype: scipy.sparse.csr_matrix if v is None
+                numpy.ndarray if v is not None
+        :return Hessian matrix: | h11, h21 | :dimension 2M*2M.
+                                |          |
+                                | h12, h22 |
+
+        '''
+
+        k1 = self.coefficients[0]
+        k2 = self.coefficients[1]
+
+        m1 = self.map1*model
+        m2 = self.map2*model
+        n = m1.shape[0]
+
+        if v is not None:
+            assert v.size == 2*m1.size, 'vector v must be of size 2*M'
+            v1 = self.map1*v
+            v2 = self.map2*v
+
+        d2c_dm1 = utils.sdiag(
+            np.ones(n) * (2*k1**2)
+            )
+
+        d2c_dm2 = utils.sdiag(
+            np.ones(n) * (2*k2**2)
+            )
+
+        d_dm1_dc_dm2 = utils.sdiag(
+            np.ones(n) * (2*k2*k1)
+            )
+
+        d_dm2_dc_dm1 = d_dm1_dc_dm2
+
+
+        if v is not None:
+            d2c_dm1 = d2c_dm1.dot(v1)
+            d2c_dm2 = d2c_dm2.dot(v2)
+            d_dm2_dc_dm1 = d_dm2_dc_dm1.dot(v1)
+            d_dm1_dc_dm2 = d_dm1_dc_dm2.dot(v2)
+            result = np.concatenate((d2c_dm1 + d_dm1_dc_dm2, d_dm2_dc_dm1 + d2c_dm2))
+        else:
+            temp1 = sp.vstack((d2c_dm1,d_dm2_dc_dm1))
+            temp2 = sp.vstack((d_dm1_dc_dm2, d2c_dm2))
+            result = sp.hstack((temp1,temp2))
+            result = sp.csr_matrix(result)
+
+
+        return result
