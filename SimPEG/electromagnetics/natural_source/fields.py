@@ -126,7 +126,7 @@ class Fields1DElectricField(FieldsFDEM):
 
     def _phase(self, eSolution, source_list):
         z = self._impedance(eSolution, source_list)
-        return 180 / np.pi * np.arctan2(-z.imag, z.real)
+        return 180 / np.pi * np.arctan2(z.imag, z.real)
 
 
 class Fields1DPrimarySecondary(FieldsFDEM):
