@@ -5,17 +5,12 @@ SimPEG 0.14.3 Release Notes
 ===========================
 
 This release mostly contains bug fixes and/or smaller additions to the code base
-that add additional functionality.
+that add additional functionality. We apologize for the delay caused by testing
+difficulties.
 
 New Things
 ==========
-
-We have implemented a fictitous source solution for the 3D DC resistivity system
-that will improve accuracy when the model is close to a uniform half-space solution.
-This function works by first analytically evaluating the electric potential in
-the subsurface using a uniform halfspace. It then uses the corresponding discrete
-forward operator to construct the RHS of the underlying PDE, which is then solved
-to obtain the electric potential for the given model.
+There is now a file reader for UBC formatted gravity gradient data files.
 
 The  class ``SimPEG.electromagnetics.frequency_domain.sources.LineCurrent`` now accepts
 a keyword argument option ``current`` to set the strength of the ``LineCurrent``.
@@ -27,10 +22,6 @@ options for ``norm``, ``levels``, and ``zorder`` for the ``contourOpts`` diction
 input. There is also now a ``streamplotOpts`` dictionary input as well to handle
 keyword arguments to the stream plot.
 
-We have added a few file readers for UBC styled data files, specifically
-gravity gradiometry and UBC's dcip3d OcTree data file format, which is slightly
-different than the normal dcip3d data file format.
-
 This release will also be compatible with upcoming changes to the ``discretize``
 package.
 
@@ -41,7 +32,6 @@ The sign convention when reading in the UBC gravity files has been adjusted to m
 SimPEG's coordinate system convention. SimPEG uses a right handed coordinate system,
 with z being positive upwards, whereas in the UBC file, gravity was defined as positive
 downwards.
-Gravity and magnetic readin
 
 The user provided mapping for ``SimPEG.simulation.LinearSimulation`` was not being
 properly taken into account, and has now been fixed.
