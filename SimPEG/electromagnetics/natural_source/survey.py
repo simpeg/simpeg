@@ -4,12 +4,13 @@ from numpy.lib import recfunctions as recFunc
 
 from ..frequency_domain.survey import Survey
 from ...data import Data as BaseData
-from ...survey import BaseSurvey
 from ...utils import mkvc
-from .sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD, AnalyticPlanewave1D
+from ...utils.code_utils import deprecate_class
+from .sources import Planewave_xy_1Dprimary, Planewave1D
 from .receivers import Point3DImpedance, Point3DTipper
 from .utils.plot_utils import DataNSEMPlotMethods
 import properties
+
 #########
 # Survey
 #########
@@ -259,15 +260,19 @@ def _rec_to_ndarr(rec_arr, data_type=float):
     """
     # fix for numpy >= 1.16.0
     # https://numpy.org/devdocs/release/1.16.0-notes.html#multi-field-views-return-a-view-instead-of-a-copy
-    return np.array(recFunc.structured_to_unstructured(recFunc.repack_fields(rec_arr[list(rec_arr.dtype.names)])),
-                    dtype=data_type)
+    return np.array(
+        recFunc.structured_to_unstructured(
+            recFunc.repack_fields(rec_arr[list(rec_arr.dtype.names)])
+        ),
+        dtype=data_type,
+    )
 
 
 ##################################################
 # Survey for 1D analytic simulation
 
 
-class Survey1D(BaseSurvey):
+class Survey1D(Survey):
     """
     Survey class for the 1D and pseudo-3D problems
     :param List source_list: list of of SimPEG.electromagnetics.natural_sources.receivers.AnalyticPlanewave1D
@@ -275,52 +280,10 @@ class Survey1D(BaseSurvey):
 
     source_list = properties.List(
         "A list of sources for the survey",
-        properties.Instance("An AnalyticPlanewave1D source", AnalyticPlanewave1D),
-        default=[]
+        properties.Instance("An Planewave1D source", Planewave1D),
+        default=[],
     )
 
     def __init__(self, source_list=None, **kwargs):
         # Sort these by frequency
         super(Survey1D, self).__init__(source_list, **kwargs)
-
-        _frequency_dict = {}
-        for src in source_list:
-            if src.frequency not in _frequency_dict:
-                _frequency_dict[src.frequency] = []
-            _frequency_dict[src.frequency] += [src]
-
-        self._frequency_dict = _frequency_dict
-        self._frequencies = sorted([f for f in self._frequency_dict])
-
-    @property
-    def frequencies(self):
-        """
-        Frequencies in the survey
-        """
-        return self._frequencies
-
-    @property
-    def num_frequencies(self):
-        """Number of frequencies"""
-        return len(self._frequency_dict)
-
-    @property
-    def num_sources_by_frequency(self):
-        """Number of sources at each frequency"""
-        if getattr(self, '_num_sources_by_frequency', None) is None:
-            self._num_sources_by_frequency = {}
-            for freq in self.frequencies:
-                self._num_sources_by_frequency[freq] = len(self.getSrcByFreq(freq))
-        return self._num_sources_by_frequency
-
-    def get_sources_by_frequency(self, frequency):
-        """
-        Returns the sources associated with a specific frequency.
-        :param float frequency: frequency for which we look up sources
-        :rtype: dictionary
-        :return: sources at the sepcified frequency
-        """
-        assert frequency in self._frequency_dict, (
-            "The requested frequency is not in this survey."
-        )
-        return self._frequency_dict[frequency]
