@@ -21,7 +21,7 @@ def homo1DModelSource(mesh, freq, sigma_1d):
     if mesh.dim == 1:
         mesh1d = mesh
     else:
-        mesh1d = discretize.TensorMesh([mesh.h[-1],], np.array(mesh.x0[-1]))
+        mesh1d = discretize.TensorMesh([mesh.h[-1]], [mesh.x0[-1]])
 
     # Note: Everything is using e^iwt
     e0_1d = get1DEfields(mesh1d, sigma_1d, freq)
@@ -47,21 +47,21 @@ def homo1DModelSource(mesh, freq, sigma_1d):
     elif mesh.dim == 3:
         # us the z component of ex_grid as lookup for solution
         edges_u, inv_edges = np.unique(mesh.gridEx[:, -1], return_inverse=True)
-        map_to_edge_u = np.where(
-            np.isclose(mesh1d.vectorNz, edges_u[:, None], atol=0.0)
-        )[1]
+        map_to_edge_u = np.where(np.isclose(mesh1d.gridN, edges_u[:, None], atol=0.0))[
+            1
+        ]
         ex_px = -e0_1d[map_to_edge_u][inv_edges]
         ey_px = np.zeros(mesh.nEy, dtype=complex)
         ez_px = np.zeros(mesh.nEz, dtype=complex)
         eBG_px = np.r_[ex_px, ey_px, ez_px][:, None]
 
         edges_u, inv_edges = np.unique(mesh.gridEy[:, -1], return_inverse=True)
-        map_to_edge_u = np.where(
-            np.isclose(mesh1d.vectorNz, edges_u[:, None], atol=0.0)
-        )[1]
-        ex_py = np.zeros((mesh.nEx, 1), dtype=complex)
+        map_to_edge_u = np.where(np.isclose(mesh1d.gridN, edges_u[:, None], atol=0.0))[
+            1
+        ]
+        ex_py = np.zeros(mesh.nEx, dtype=complex)
         ey_py = e0_1d[map_to_edge_u][inv_edges]
-        ez_py = np.zeros((mesh.nEz, 1), dtype=complex)
+        ez_py = np.zeros(mesh.nEz, dtype=complex)
         eBG_py = np.r_[ex_py, ey_py, ez_py][:, None]
 
     # Return the electric fields

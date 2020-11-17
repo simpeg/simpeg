@@ -63,8 +63,8 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
             mesh3d = simulation.mesh
             x0 = mesh3d.x0
             hs = [
-                mesh3d.vectorNx[-1] - x0[0],
-                mesh3d.vectorNy[-1] - x0[1],
+                [mesh3d.vectorNx[-1] - x0[0]],
+                [mesh3d.vectorNy[-1] - x0[1]],
                 mesh3d.h[-1],
             ]
             mesh1d = discretize.TensorMesh(hs, x0=x0)
