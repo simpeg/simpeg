@@ -52,7 +52,7 @@ class Simulation1DRecursive(BaseEMSimulation):
 
     # Add layer thickness as invertible property
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "thicknesses of the layers"
+        "thicknesses of the layers starting from the positive end of the mesh"
     )
 
     # Storing sensitivity
