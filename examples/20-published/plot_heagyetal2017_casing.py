@@ -922,7 +922,6 @@ class PrimSecCasingExample(object):
                     vmax=vlim[1],
                 )
                 cb = plt.colorbar(f, ax=ax, label=cblabel)
-                cb.set_clim(vlim)
                 cb.formatter.set_powerlimits((0, 0))
                 ticks = [
                     "{0:1.1e}".format(a)

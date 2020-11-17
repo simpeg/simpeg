@@ -262,7 +262,6 @@ def plotBFieldResults(
         )[0],
         ax=ax,
     )
-    cb.set_clim(clim)
     ax.set_title("{}".format(view), fontsize=13)
     ax.set_xlim(xlim)
     ax.set_ylim(zlim)
