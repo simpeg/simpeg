@@ -7,6 +7,8 @@ from ...utils.code_utils import deprecate_class
 from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
 from .utils.source_utils import homo1DModelSource
+import discretize
+from discretize.utils import volume_average
 
 import properties
 
@@ -50,29 +52,41 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
         self._sigma_primary = sigma_primary
         super(Planewave_xy_1Dprimary, self).__init__(receiver_list, frequency)
 
-    def ePrimary(self, simulation):
-        # check ig sigmaPrimary is set
-        if self._sigma_primary is None:
-            self._sigma_primary = simulation.sigmaPrimary
-        # Get primary fields for both polarizations
-        if self.sigma1d is None:
-            # Set the sigma1d as the 1st column in the background model
-            if len(self._sigma_primary) == simulation.mesh.nC:
-                if simulation.mesh.dim == 1:
-                    self.sigma1d = simulation.mesh.r(
-                        self._sigma_primary, "CC", "CC", "M"
-                    )[:]
-                elif simulation.mesh.dim == 3:
-                    self.sigma1d = simulation.mesh.r(
-                        self._sigma_primary, "CC", "CC", "M"
-                    )[0, 0, :]
-            # Or as the 1D model that matches the vertical cell number
-            elif len(self._sigma_primary) == simulation.mesh.nCz:
-                self.sigma1d = self._sigma_primary
+    def _get_sigmas(self, simulation):
+        try:
+            return self._sigma1d, self._sigma_p
+        except AttributeError:
+            # set _sigma 1D
+            if self._sigma_primary is None:
+                self._sigma_primary = simulation.sigmaPrimary
+            # Create 3d_1d mesh like me...
+            mesh3d = simulation.mesh
+            x0 = mesh3d.x0
+            hs = [
+                mesh3d.vectorNx[-1] - x0[0],
+                mesh3d.vectorNy[-1] - x0[1],
+                mesh3d.h[-1],
+            ]
+            mesh1d = discretize.TensorMesh(hs, x0=x0)
+            if len(self._sigma_primary) == mesh3d.nC:
+                # volume average down to 1D mesh
+                self._sigma1d = np.exp(
+                    volume_average(mesh3d, mesh1d, np.log(self._sigma_primary))
+                )
+            elif len(self._sigma_primary) == mesh1d.nC:
+                self._sigma1d = self._sigma_primary
+            else:
+                self._sigma1d = np.ones(mesh1d.nC) * self._sigma_primary
+            self._sigma_p = np.exp(
+                volume_average(mesh1d, mesh3d, np.log(self._sigma1d))
+            )
+            return self._sigma1d, self._sigma_p
 
+    def ePrimary(self, simulation):
         if self._ePrimary is None:
+            sigma_1d, _ = self._get_sigmas(simulation)
             self._ePrimary = homo1DModelSource(
-                simulation.mesh, self.frequency, self.sigma1d
+                simulation.mesh, self.frequency, sigma_1d
             )
         return self._ePrimary
 
@@ -91,17 +105,18 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
         Get the electrical field source
         """
         e_p = self.ePrimary(simulation)
-        Map_sigma_p = maps.SurjectVertical1D(simulation.mesh)
-        sigma_p = Map_sigma_p._transform(self.sigma1d)
         # Make mass matrix
         # Note: M(sig) - M(sig_p) = M(sig - sig_p)
         # Need to deal with the edge/face discrepencies between 1d/2d/3d
         if simulation.mesh.dim == 1:
+            Map_sigma_p = maps.SurjectVertical1D(simulation.mesh)
+            sigma_p = Map_sigma_p._transform(self.sigma1d)
             Mesigma = simulation.mesh.getFaceInnerProduct(simulation.sigma)
             Mesigma_p = simulation.mesh.getFaceInnerProduct(sigma_p)
         if simulation.mesh.dim == 2:
             pass
         if simulation.mesh.dim == 3:
+            _, sigma_p = self._get_sigmas(simulation)
             Mesigma = simulation.MeSigma
             Mesigma_p = simulation.mesh.getEdgeInnerProduct(sigma_p)
         return Mesigma * e_p - Mesigma_p * e_p
