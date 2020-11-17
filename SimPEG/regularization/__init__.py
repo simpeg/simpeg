@@ -10,3 +10,4 @@ from .tikhonov import (
     Tikhonov,
 )
 from .sparse import SparseSmall, SparseDeriv, Sparse
+from .coupling import CrossGradient, Linear
