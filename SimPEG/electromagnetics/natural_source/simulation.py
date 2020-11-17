@@ -479,14 +479,14 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         MfI = self.MfI
         MccSigma = self.MccSigma
 
-        return D @ MfMui @ MfI @ D.T - 1j * omega(freq) * MccSigma
+        return D @ MfMui @ MfI @ D.T + 1j * omega(freq) * MccSigma
 
     def getADeriv(self, freq, u, v, adjoint=False):
         """
         Derivative with respect to the conductivity model
         """
 
-        return -1j * omega(freq) * self.MccSigmaDeriv(u, v, adjoint)
+        return 1j * omega(freq) * self.MccSigmaDeriv(u, v, adjoint)
 
     def getRHS(self, freq):
         """

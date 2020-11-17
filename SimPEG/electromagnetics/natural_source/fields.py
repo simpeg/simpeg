@@ -77,7 +77,7 @@ class Fields1DElectricField(FieldsFDEM):
         b = np.zeros((self._nF, len(source_list)), dtype=complex)
         for i, src in enumerate(source_list):
             b[:, i] = (
-                1
+                -1
                 / (1j * omega(src.frequency))
                 * (
                     self._MfI @ (self._D.T @ (self._V @ eSolution[:, i]))
@@ -90,7 +90,7 @@ class Fields1DElectricField(FieldsFDEM):
         if adjoint:
             # V, MfI are symmetric
             return (
-                1
+                -1
                 / (1j * omega(src.frequency))
                 * (self._V @ (self._D @ (self._MfI @ du_dm_v)))
             )

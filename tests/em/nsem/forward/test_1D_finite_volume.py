@@ -66,7 +66,13 @@ class FiniteVolume1DTest(unittest.TestCase):
         phase = f[:, "phase"][-self.npad - 1, :]
 
         sig_a_error = np.abs(sig_a - s) / s
-        phase_error = np.abs(phase - -45)
+
+        if formulation == "e":
+            p = 45
+        elif formulation == "b":
+            p = -45
+
+        phase_error = np.abs(phase - p)
 
         passed_sigma = np.all(sig_a_error < TOL_SIGMA)
         passed_phase = np.all(phase_error < TOL_PHASE)
