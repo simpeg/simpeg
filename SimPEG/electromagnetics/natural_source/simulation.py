@@ -431,6 +431,12 @@ class Simulation1DElectricField(BaseFDEMSimulation):
     survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
 
     def __init__(self, mesh, **kwargs):
+
+        if mesh.dim > 1:
+            raise ValueError(
+                f"The mesh must be a 1D mesh. The provided mesh has dimension {mesh.dim}"
+            )
+
         super(Simulation1DElectricField, self).__init__(mesh, **kwargs)
 
         # todo: update to enable user to input / customize boundary conditions
@@ -519,6 +525,11 @@ class Simulation1DMagneticFluxDensity(BaseFDEMSimulation):
     survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
 
     def __init__(self, mesh, **kwargs):
+        if mesh.dim > 1:
+            raise ValueError(
+                f"The mesh must be a 1D mesh. The provided mesh has dimension {mesh.dim}"
+            )
+
         super(Simulation1DMagneticFluxDensity, self).__init__(mesh, **kwargs)
 
         # todo: update to enable user to input / customize boundary conditions

@@ -68,9 +68,9 @@ class FiniteVolume1DTest(unittest.TestCase):
         sig_a_error = np.abs(sig_a - s) / s
 
         if formulation == "e":
-            p = 45
+            p = 45  # Zxy = ex / hy
         elif formulation == "b":
-            p = -45
+            p = -45  # Zyx = ey / hx
 
         phase_error = np.abs(phase - p)
 
