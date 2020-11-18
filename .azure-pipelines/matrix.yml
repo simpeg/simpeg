@@ -18,7 +18,6 @@ jobs:
         - job:
           displayName: ${{ os }}_${{ py_vers }}_${{ test }}
           steps:
-
           - script: echo "##vso[task.prependpath]$CONDA/bin"
             displayName: Add conda to PATH
 
