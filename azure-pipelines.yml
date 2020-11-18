@@ -44,7 +44,8 @@ stages:
           displayName: Create Anaconda environment
 
         - script: |
-            source activate docs
+            eval "$(conda shell.bash hook)"
+            conda activate docs
             conda install --yes --quiet numpy scipy matplotlib ipython h5py
             conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec
             pip install -r requirements_dev.txt
@@ -52,7 +53,8 @@ stages:
           displayName: Install requirements and build
 
         - script: |
-            source activate docs
+            eval "$(conda shell.bash hook)"
+            conda activate docs
             export KMP_WARNINGS=0
             cd docs
             make html

@@ -25,7 +25,8 @@ jobs:
             displayName: Create Anaconda environment
 
           - script: |
-              source activate test
+              eval "$(conda shell.bash hook)"
+              conda activate test
               conda install --yes --quiet numpy scipy matplotlib ipython h5py
               conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec
               pip install -r requirements_dev.txt
@@ -34,7 +35,8 @@ jobs:
             displayName: Install requirements and build
 
           - script: |
-              source activate test
+              eval "$(conda shell.bash hook)"
+              conda activate test
               export KMP_WARNINGS=0
               pytest ${{ test }} -v -s --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html
             displayName: 'Testing ${{ test }}'
