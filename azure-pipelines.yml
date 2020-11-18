@@ -15,9 +15,9 @@ pr:
     exclude:
     - '*no-ci*'
 stages:
-- stage: Testing
-  jobs:
-    - template: ./.azure-pipelines/matrix.yml
+# - stage: Testing
+#   jobs:
+#     - template: ./.azure-pipelines/matrix.yml
 
 - stage: Deploy
   # condition: and(succeeded(), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
@@ -40,8 +40,11 @@ stages:
         - script: echo '##vso[task.prependpath]$CONDA/bin'
           displayName: Add conda to PATH
 
+        - script: conda create --yes --quiet --name docs
+          displayName: Create Anaconda environment
+
         - script: |
-            source activate test
+            source activate docs
             conda install --yes --quiet --name test python=$(python.version) numpy scipy matplotlib ipython h5py
             conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec
             pip install -r requirements_dev.txt
@@ -49,7 +52,7 @@ stages:
           displayName: Install requirements and build
 
         - script: |
-            source activate test
+            source activate docs
             export KMP_WARNINGS=0
             cd docs
             make html
