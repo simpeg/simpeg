@@ -650,10 +650,10 @@ class PrimSecCasingExample(object):
         f = meshcart.plotSlice(
             jcart.real,
             normal="Y",
-            vType="F",
+            v_type="F",
             view="vec",
-            pcolorOpts={"norm": LogNorm(), "cmap": plt.get_cmap("viridis")},
-            streamOpts={"color": "k", "arrowsize": 2},
+            pcolor_opts={"norm": LogNorm(), "cmap": plt.get_cmap("viridis")},
+            stream_opts={"color": "k", "arrowsize": 2},
             ax=ax,
         )
         plt.colorbar(f[0], label="real current density (A/m$^2$)")
