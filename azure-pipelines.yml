@@ -15,7 +15,7 @@ pr:
     exclude:
     - '*no-ci*'
 stages:
-- stage: Run Tests
+- stage: Testing
   jobs:
     - template: ./.azure-pipelines/matrix.yml
 
