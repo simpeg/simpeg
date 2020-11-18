@@ -4,6 +4,7 @@ import os
 from dask import delayed, array, config
 from dask.diagnostics import ProgressBar
 from ..utils import compute_chunk_sizes
+from dask.distributed import get_client, Future, Client
 
 Sim._chunk_format = "equal"
 
@@ -22,6 +23,26 @@ def chunk_format(self, other):
 
 
 Sim.chunk_format = chunk_format
+
+
+def G(self):
+    if getattr(self, "_G", None) is None:
+        self._G = self.linear_operator()
+
+    elif isinstance(self._G, Future):
+        self._G.result()
+        self._G = array.from_zarr(self.sensitivity_path)
+
+    return self._G
+
+
+# @G.setter
+# def G(self, value):
+#     assert isinstance(value, (array.Array, Future)) or value is None, f"G must be of one of {array}, {Future} or None. Trying to assign {value}"
+#     self._G = value
+
+
+Sim.G = property(G)
 
 
 def dask_linear_operator(self):
@@ -64,7 +85,7 @@ def dask_linear_operator(self):
         stack = stack.rechunk({0: -1, 1: "auto"})
 
     if self.store_sensitivities == "disk":
-        sens_name = self.sensitivity_path + "sensitivity.zarr"
+        sens_name = self.sensitivity_path
         if os.path.exists(sens_name):
             kernel = array.from_zarr(sens_name)
             if np.all(
@@ -77,23 +98,36 @@ def dask_linear_operator(self):
                 # Check that loaded kernel matches supplied data and mesh
                 print("Zarr file detected with same shape and chunksize ... re-loading")
                 return kernel
-        else:
-            print("Writing Zarr file to disk")
-            with ProgressBar():
-                print("Saving kernel to zarr: " + sens_name)
-                kernel = array.to_zarr(
-                    stack, sens_name, compute=True, return_stored=True, overwrite=True
-                )
+
+        print("Writing Zarr file to disk")
+        try:
+        # with ProgressBar():
+            print("Saving kernel to zarr: " + sens_name)
+            if self.workers is not None:
+                workers = self.workers.copy()
+            else:
+                workers= None
+
+            return self.client.compute(
+                array.to_zarr(
+                    stack, sens_name, compute=False, return_stored=False, overwrite=True
+                ),
+                workers=workers
+            )
+        except:
+            pass
+
+
     elif self.store_sensitivities == "forward_only":
         with ProgressBar():
             print("Forward calculation: ")
             pred = (stack @ self.model).compute()
         return pred
-    else:
-        print(stack.chunks)
-        with ProgressBar():
-            print("Computing sensitivities to local ram")
-            kernel = array.asarray(stack.compute())
+
+    with ProgressBar():
+        print("Computing sensitivities to local ram")
+        kernel = array.asarray(stack.compute())
+
     return kernel
 
 

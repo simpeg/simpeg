@@ -1,7 +1,7 @@
 from ..simulation import BaseSimulation as Sim
+from dask.distributed import get_client, Client
 
 Sim._max_ram = 16
-
 
 @property
 def max_ram(self):
@@ -35,3 +35,36 @@ def max_chunk_size(self, other):
 
 
 Sim.max_chunk_size = max_chunk_size
+
+
+@property
+def client(self):
+    if getattr(self, '_client', None) is None:
+        self._client = get_client()
+
+    return self._client
+
+
+@client.setter
+def client(self, client):
+    assert isinstance(client, Client)
+    self._client = client
+
+
+Sim.client = client
+
+
+@property
+def workers(self):
+    if getattr(self, '_workers', None) is None:
+        self._workers = None
+
+    return self._workers
+
+
+@workers.setter
+def workers(self, workers):
+    self._workers = workers
+
+
+Sim.workers = workers

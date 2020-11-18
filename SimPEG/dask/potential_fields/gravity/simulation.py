@@ -3,6 +3,7 @@ from ....potential_fields.gravity import Simulation3DIntegral as Sim
 from ....utils import sdiag, mkvc
 import dask
 import dask.array as da
+from dask.distributed import get_client, Future, Client
 from scipy.sparse import csr_matrix as csr
 
 
@@ -69,3 +70,5 @@ def dask_Jtvec(self, m, v, f=None):
 
 
 Sim.Jtvec = dask_Jtvec
+
+

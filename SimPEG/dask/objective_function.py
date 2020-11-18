@@ -1,10 +1,40 @@
-from ..objective_function import ComboObjectiveFunction
+from ..objective_function import ComboObjectiveFunction, BaseObjectiveFunction
 import dask
 import dask.array as da
 import os
 import shutil
 import numpy as np
-from dask.distributed import Future, get_client
+from dask.distributed import Future, get_client, Client
+
+
+@property
+def client(self):
+    if getattr(self, '_client', None) is None:
+        self._client = get_client()
+
+    return self._client
+
+
+@client.setter
+def client(self, client):
+    assert isinstance(client, Client)
+    self._client = client
+
+
+BaseObjectiveFunction.client = client
+
+
+@property
+def workers(self):
+    return self._workers
+
+
+@workers.setter
+def workers(self, workers):
+    self._workers = workers
+
+
+BaseObjectiveFunction.workers = workers
 
 
 def dask_call(self, m, f=None):
