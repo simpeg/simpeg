@@ -549,6 +549,18 @@ class Simulation1DMagneticFluxDensity(BaseFDEMSimulation):
         return self._MccMui
 
     @property
+    def MccMu(self):
+        """
+        Cell centered inner product matrix for inverse magnetic permeability
+        """
+        if getattr(self, "_MccMu", None) is None:
+            mu = self.mu
+            if isScalar(mu):
+                mu = mu * np.ones(self.mesh.nC)
+            self._MccMu = sdiag(mu)
+        return self._MccMu
+
+    @property
     def MfSigmaI(self):
         """
         Inverse of the face inner product matrix for sigma
@@ -601,39 +613,30 @@ class Simulation1DMagneticFluxDensity(BaseFDEMSimulation):
         """
         system matrix
         """
-        MccMui = self.MccMui
+        MccMu = self.MccMu
         V = self.Vol
         D = self.mesh.faceDiv
         MfSigmaI = self.MfSigmaI
 
-        return (
-            V @ MccMui @ D @ MfSigmaI @ D.T @ MccMui @ V - 1j * omega(freq) * MccMui @ V
-        )
+        return V @ D @ MfSigmaI @ D.T @ V - 1j * omega(freq) * MccMu @ V
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        MccMui = self.MccMui
         V = self.Vol
         D = self.mesh.faceDiv
 
-        # V, MccMui are symmetric
-        return (
-            V
-            @ MccMui
-            @ D
-            @ self.MfSigmaIDeriv(D.T @ MccMui @ V @ u, v, adjoint=adjoint)
-        )
+        # V is symmetric
+        return V @ D @ self.MfSigmaIDeriv(D.T @ MccMui @ V @ u, v, adjoint=adjoint)
 
     def getRHS(self, freq):
         """
         right hand side
         """
-        MccMui = self.MccMui
         D = self.mesh.faceDiv
         V = self.Vol
         B = self._B
         bbc = self._b_bc
 
-        return V @ (MccMui @ (D @ (B @ bbc)))
+        return V @ (D @ (B @ bbc))
 
 
 ###################################
