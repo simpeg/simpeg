@@ -40,12 +40,12 @@ stages:
         - script: echo '##vso[task.prependpath]$CONDA/bin'
           displayName: Add conda to PATH
 
-        - script: conda create --yes --quiet --name docs
+        - script: conda create --yes --quiet --name docs python=$(python.version) pip
           displayName: Create Anaconda environment
 
         - script: |
             source activate docs
-            conda install --yes --quiet python=$PYTHON_VERSION numpy scipy matplotlib ipython h5py
+            conda install --yes --quiet numpy scipy matplotlib ipython h5py
             conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec
             pip install -r requirements_dev.txt
             pip install -e .

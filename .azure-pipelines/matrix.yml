@@ -21,12 +21,12 @@ jobs:
           - script: echo "##vso[task.prependpath]$CONDA/bin"
             displayName: Add conda to PATH
 
-          - script: conda create --yes --quiet --name test
+          - script: conda create --yes --quiet --name test python=${{ py_vers }} pip
             displayName: Create Anaconda environment
 
           - script: |
               source activate test
-              conda install --yes --quiet python=${{ py_vers }} numpy scipy matplotlib ipython h5py
+              conda install --yes --quiet numpy scipy matplotlib ipython h5py
               conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec
               pip install -r requirements_dev.txt
               pip install pytest-azurepipelines
