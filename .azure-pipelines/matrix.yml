@@ -26,7 +26,7 @@ jobs:
 
           - script: |
               source activate test
-              conda install --yes --quiet --name test python=${{ py_vers }} numpy scipy matplotlib ipython h5py
+              conda install --yes --quiet python=${{ py_vers }} numpy scipy matplotlib ipython h5py
               conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec
               pip install -r requirements_dev.txt
               pip install pytest-azurepipelines
