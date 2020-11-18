@@ -18,28 +18,25 @@ stages:
 - stage: Run Unittests, Tutorials, Examples
   jobs:
     - template: ./.azure-pipelines/matrix.yml
+
 - stage: Deploy
-  condition: and(succeeded(), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+  # condition: and(succeeded(), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
   jobs:
     - job:
       displayName: Deploy Docs and source
       pool:
         vmImage: ubuntu-latest
       steps:
-        - script: |
-            git config --global user.name ${GH_NAME}
-            git config --global user.email ${GH_EMAIL}
-            git config --list | grep user.
-          displayName: 'Configure git'
-          env:
-            GH_NAME: $(gh.name)
-            GH_EMAIL: $(gh.email)
-
-        - script: echo "##vso[task.prependpath]$CONDA/bin"
+        # - script: |
+        #     git config --global user.name ${GH_NAME}
+        #     git config --global user.email ${GH_EMAIL}
+        #     git config --list | grep user.
+        #   displayName: 'Configure git'
+        #   env:
+        #     GH_NAME: $(gh.name)
+        #     GH_EMAIL: $(gh.email)
+        - script: echo '##vso[task.prependpath]$CONDA/bin'
           displayName: Add conda to PATH
-
-        - script: conda create --yes --quiet --name test
-          displayName: Create Anaconda environment
 
         - script: |
             source activate test
@@ -52,31 +49,32 @@ stages:
 
         - script: |
             source activate test
+            export KMP_WARNINGS=0
             cd docs
             make html
             cd ..
           displayName: Building documentation
-        # upload documentation to simpeg-docs gh-pages on tags
-        - script: |
-            git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/discretize-docs.git
-            cd discretize-docs
-            git gc --prune=now
-            git remote prune origin
-            rm -rf en/master/*
-            cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html/* en/master/
-            touch .nojekyll
-            git add .
-            git commit -am "Azure CI commit ref $(Build.SourceVersion)"
-            git push
-          displayName: Push documentation to discretize-docs
-          env:
-            GH_TOKEN: $(gh.token)
-        - script: |
-            eval "$(conda shell.bash hook)"
-            conda activate test
-            python setup.py sdist
-            twine upload --skip-existing dist/*
-          displayName: Deploy source
-          env:
-            TWINE_USERNAME: $(twine.username)
-            TWINE_PASSWORD: $(twine.password)
+        # upload documentation to discretize-docs gh-pages on tags
+        # - script: |
+        #     git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/discretize-docs.git
+        #     cd discretize-docs
+        #     git gc --prune=now
+        #     git remote prune origin
+        #     rm -rf en/master/*
+        #     cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html/* en/master/
+        #     touch .nojekyll
+        #     git add .
+        #     git commit -am "Azure CI commit ref $(Build.SourceVersion)"
+        #     git push
+        #   displayName: Push documentation to discretize-docs
+        #   env:
+        #     GH_TOKEN: $(gh.token)
+        # - script: |
+        #     eval "$(conda shell.bash hook)"
+        #     conda activate test
+        #     python setup.py sdist
+        #     twine upload --skip-existing dist/*
+        #   displayName: Deploy source
+        #   env:
+        #     TWINE_USERNAME: $(twine.username)
+        #     TWINE_PASSWORD: $(twine.password)
