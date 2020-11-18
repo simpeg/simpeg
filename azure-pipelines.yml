@@ -26,6 +26,8 @@ stages:
       displayName: Deploy Docs and source
       pool:
         vmImage: ubuntu-latest
+      variables:
+        python.version: '3.7'
       steps:
         # - script: |
         #     git config --global user.name ${GH_NAME}
@@ -40,7 +42,7 @@ stages:
 
         - script: |
             source activate test
-            conda install --yes --quiet --name test python=${{ py_vers }} numpy scipy matplotlib ipython h5py
+            conda install --yes --quiet --name test python=$(python.version) numpy scipy matplotlib ipython h5py
             conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec
             pip install -r requirements_dev.txt
             pip install pytest-azurepipelines
