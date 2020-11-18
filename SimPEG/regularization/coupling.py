@@ -393,35 +393,35 @@ class CrossGradient(BaseCoupling):
             Dx = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx)
             Dy = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy)
 
-            # common terms for dt_dm1
+            # common terms for dc_dm1
             Dx_m1, Dy_m1 = Dx.dot(m1), Dy.dot(m1)
             Dx_m2, Dy_m2 = Dx.dot(m2), Dy.dot(m2)
             v1 = Dx_m2**2 + Dy_m2**2
             v2 = Dx_m1**2 + Dy_m1**2
             w = Dx_m1*Dx_m2 + Dy_m1*Dy_m2
 
-            dt_dm1 = (Dx.T.dot(Dx_m1*v1) + Dy.T.dot(Dy_m1*v1) -
+            dc_dm1 = (Dx.T.dot(Dx_m1*v1) + Dy.T.dot(Dy_m1*v1) -
                       Dx.T.dot(Dx_m2*w) - Dy.T.dot(Dy_m2*w))
-            dt_dm2 = (Dx.T.dot(Dx_m2*v2) + Dy.T.dot(Dy_m2*v2) -
+            dc_dm2 = (Dx.T.dot(Dx_m2*v2) + Dy.T.dot(Dy_m2*v2) -
                      Dx.T.dot(Dx_m1*w) - Dy.T.dot(Dy_m1*w))
-            result = np.concatenate((dt_dm1,dt_dm2))
+            result = np.concatenate((dc_dm1,dc_dm2))
         elif self.regmesh.mesh.dim == 3:
             Dx = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx)
             Dy = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy)
             Dz = self.regmesh.aveFz2CC.dot(self.regmesh.cellDiffz)
 
-            # common terms for dt_dm1
+            # common terms for dc_dm1
             Dx_m1, Dy_m1, Dz_m1 = Dx.dot(m1), Dy.dot(m1), Dz.dot(m1)
             Dx_m2, Dy_m2, Dz_m2 = Dx.dot(m2), Dy.dot(m2), Dz.dot(m2)
             v1 = Dx_m2**2 + Dy_m2**2 + Dz_m2**2
             v2 = Dx_m1**2 + Dy_m1**2 + Dz_m1**2
             w = Dx_m1*Dx_m2 + Dy_m1*Dy_m2 + Dz_m1*Dz_m2
 
-            dt_dm1 = (Dx.T.dot(Dx_m1*v1) + Dy.T.dot(Dy_m1*v1) + Dz.T.dot(Dz_m1*v1) -
+            dc_dm1 = (Dx.T.dot(Dx_m1*v1) + Dy.T.dot(Dy_m1*v1) + Dz.T.dot(Dz_m1*v1) -
                       Dx.T.dot(Dx_m2*w) - Dy.T.dot(Dy_m2*w) - Dz.T.dot(Dz_m2*w))
-            dt_dm2 = (Dx.T.dot(Dx_m2*v2) + Dy.T.dot(Dy_m2*v2) + Dz.T.dot(Dz_m2*v2) -
+            dc_dm2 = (Dx.T.dot(Dx_m2*v2) + Dy.T.dot(Dy_m2*v2) + Dz.T.dot(Dz_m2*v2) -
                       Dx.T.dot(Dx_m1*w) - Dy.T.dot(Dy_m1*w) - Dz.T.dot(Dz_m1*w))
-            result = np.concatenate((dt_dm1,dt_dm2))
+            result = np.concatenate((dc_dm1,dc_dm2))
 
         return result
 
@@ -494,13 +494,13 @@ class CrossGradient(BaseCoupling):
             A = Dx.T.dot(utils.sdiag(Dx_m2)) + Dy.T.dot(utils.sdiag(Dy_m2))
             B = Dx.T.dot(utils.sdiag(Dx_m1)) + Dy.T.dot(utils.sdiag(Dy_m1))
 
-            d2t_dm1 = (Dx.T.dot(utils.sdiag(a)).dot(Dx) +
+            d2c_dm1 = (Dx.T.dot(utils.sdiag(a)).dot(Dx) +
                        Dy.T.dot(utils.sdiag(a)).dot(Dy) - A.dot(A.T))
-            d2t_dm2 = (Dx.T.dot(utils.sdiag(b)).dot(Dx) +
+            d2c_dm2 = (Dx.T.dot(utils.sdiag(b)).dot(Dx) +
                        Dy.T.dot(utils.sdiag(b)).dot(Dy) - B.dot(B.T))
 
-            d_dm2_dt_dm1 = func1((Dx, Dy), (Dx_m1, Dy_m1), (Dx_m2, Dy_m2))
-            d_dm1_dt_dm2 = d_dm2_dt_dm1.T
+            d_dm2_dc_dm1 = func1((Dx, Dy), (Dx_m1, Dy_m1), (Dx_m2, Dy_m2))
+            d_dm1_dc_dm2 = d_dm2_dc_dm1.T
 
         elif self.regmesh.mesh.dim == 3:
             Dx = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx)
@@ -516,25 +516,25 @@ class CrossGradient(BaseCoupling):
             B = (Dx.T.dot(utils.sdiag(Dx_m1)) + Dy.T.dot(utils.sdiag(Dy_m1)) +
                  Dz.T.dot(utils.sdiag(Dz_m1)))
 
-            d2t_dm1 = (Dx.T.dot(utils.sdiag(a)).dot(Dx) +
+            d2c_dm1 = (Dx.T.dot(utils.sdiag(a)).dot(Dx) +
                        Dy.T.dot(utils.sdiag(a)).dot(Dy) +
                        Dz.T.dot(utils.sdiag(a)).dot(Dz) - A.dot(A.T))
-            d2t_dm2 = (Dx.T.dot(utils.sdiag(b)).dot(Dx) +
+            d2c_dm2 = (Dx.T.dot(utils.sdiag(b)).dot(Dx) +
                        Dy.T.dot(utils.sdiag(b)).dot(Dy) +
                        Dz.T.dot(utils.sdiag(b)).dot(Dz) - B.dot(B.T))
 
-            d_dm2_dt_dm1 = func1((Dx, Dy, Dz), (Dx_m1, Dy_m1, Dz_m1), (Dx_m2, Dy_m2, Dz_m2))
-            d_dm1_dt_dm2 = d_dm2_dt_dm1.T
+            d_dm2_dc_dm1 = func1((Dx, Dy, Dz), (Dx_m1, Dy_m1, Dz_m1), (Dx_m2, Dy_m2, Dz_m2))
+            d_dm1_dc_dm2 = d_dm2_dc_dm1.T
 
         if v is not None:
-            d2t_dm1 = d2t_dm1.dot(v1)
-            d2t_dm2 = d2t_dm2.dot(v2)
-            d_dm2_dt_dm1 = d_dm2_dt_dm1.dot(v1)
-            d_dm1_dt_dm2 = d_dm1_dt_dm2.dot(v2)
-            result = np.concatenate((d2t_dm1 + d_dm1_dt_dm2, d_dm2_dt_dm1 + d2t_dm2))
+            d2c_dm1 = d2c_dm1.dot(v1)
+            d2c_dm2 = d2c_dm2.dot(v2)
+            d_dm2_dc_dm1 = d_dm2_dc_dm1.dot(v1)
+            d_dm1_dc_dm2 = d_dm1_dc_dm2.dot(v2)
+            result = np.concatenate((d2c_dm1 + d_dm1_dc_dm2, d_dm2_dc_dm1 + d2c_dm2))
         else:
-            temp1 = sp.vstack((d2t_dm1,d_dm2_dt_dm1))
-            temp2 = sp.vstack((d_dm1_dt_dm2, d2t_dm2))
+            temp1 = sp.vstack((d2c_dm1,d_dm2_dc_dm1))
+            temp2 = sp.vstack((d_dm1_dc_dm2, d2c_dm2))
             result = sp.hstack((temp1,temp2))
             result = sp.csr_matrix(result)
 
