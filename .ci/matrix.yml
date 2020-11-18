@@ -43,4 +43,4 @@ jobs:
           - script: |
               bash <(curl -s https://codecov.io/bash)
             displayName: 'Upload coverage to codecov.io'
-            condition: eq(variables['python.version'], '3.7')
+            condition: eq(${{ py_vers }}, '3.7')
