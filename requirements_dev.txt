@@ -1,9 +1,7 @@
 sphinx
 sphinx_rtd_theme
 sphinx-gallery>=0.1.13
-nose
 pillow
-nose-cov
 pylint
 numpy>=1.7
 scipy>=1.0.0
@@ -11,6 +9,7 @@ scikit-learn>=0.19.1
 sympy
 wheel
 pytest
+pytest-cov
 jupyter
 sphinxcontrib-napoleon
 toolz

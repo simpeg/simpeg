@@ -1387,6 +1387,7 @@ class SurjectVertical1D(IdentityMap):
 
            The number of cells in the
            last dimension of the mesh."""
+        # in discretize 0.7 the int conversion will not be required
         return int(self.mesh.vnC[self.mesh.dim - 1])
 
     def _transform(self, m):
@@ -1395,7 +1396,7 @@ class SurjectVertical1D(IdentityMap):
             :rtype: numpy.ndarray
             :return: transformed model
         """
-        repNum = self.mesh.vnC[: self.mesh.dim - 1].prod()
+        repNum = np.prod(self.mesh.vnC[: self.mesh.dim - 1])
         return mkvc(m).repeat(repNum)
 
     def deriv(self, m, v=None):
@@ -1404,7 +1405,7 @@ class SurjectVertical1D(IdentityMap):
             :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
-        repNum = self.mesh.vnC[: self.mesh.dim - 1].prod()
+        repNum = np.prod(self.mesh.vnC[: self.mesh.dim - 1])
         repVec = sp.csr_matrix(
             (np.ones(repNum), (range(repNum), np.zeros(repNum))), shape=(repNum, 1)
         )
@@ -1450,19 +1451,19 @@ class Surject2Dto3D(IdentityMap):
         m = mkvc(m)
         if self.normal == "Z":
             return mkvc(
-                m.reshape(self.mesh.vnC[[0, 1]], order="F")[:, :, np.newaxis].repeat(
+                m.reshape(self.mesh.vnC[:2], order="F")[:, :, np.newaxis].repeat(
                     self.mesh.nCz, axis=2
                 )
             )
         elif self.normal == "Y":
             return mkvc(
-                m.reshape(self.mesh.vnC[[0, 2]], order="F")[:, np.newaxis, :].repeat(
+                m.reshape(self.mesh.vnC[::2], order="F")[:, np.newaxis, :].repeat(
                     self.mesh.nCy, axis=1
                 )
             )
         elif self.normal == "X":
             return mkvc(
-                m.reshape(self.mesh.vnC[[1, 2]], order="F")[np.newaxis, :, :].repeat(
+                m.reshape(self.mesh.vnC[1:], order="F")[np.newaxis, :, :].repeat(
                     self.mesh.nCx, axis=0
                 )
             )
