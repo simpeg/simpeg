@@ -252,17 +252,16 @@ def plotBFieldResults(
         mesh.plotImage(
             plotme,
             view="vec",
-            vType="F",
+            v_type="F",
             ax=ax,
             range_x=xlim,
             range_y=zlim,
             sample_grid=np.r_[np.diff(xlim) / 100.0, np.diff(zlim) / 100.0],
             mirror=True,
-            pcolorOpts={"norm": LogNorm()},
+            pcolor_opts={"norm": LogNorm()},
         )[0],
         ax=ax,
     )
-    cb.set_clim(clim)
     ax.set_title("{}".format(view), fontsize=13)
     ax.set_xlim(xlim)
     ax.set_ylim(zlim)
