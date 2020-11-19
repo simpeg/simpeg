@@ -101,6 +101,30 @@ def uniqueRows(M):
 
 
 def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=None, seed=None):
+    """
+    Estimate the highest eigenvalue of any objective function term or combination thereof
+    (data_misfit, regularization or ComboObjectiveFunction) for a given model.
+    The highest eigenvalue is estimated by power iterations and Rayleigh quotient.
+
+    Parameters
+    ----------
+
+    :param SimPEG.BaseObjectiveFunction combo_objfct: objective function term of which to estimate the highest eigenvalue
+    :param numpy.ndarray model: current geophysical model to estimate the objective function derivatives at
+    :param int n_pw_iter: number of power iterations to estimate the highest eigenvalue
+    :param list fiels_list: (optional) list of fields for each data misfit term in combo_objfct. If none given,
+                            they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
+                            terms, the list should contains SimPEG.fields for the data misfit terms and None for the
+                            regularization term.
+    :param int seed: Random seed for the initial random guess of eigenvector.
+
+    Return
+    ------
+
+    :return float eigenvalue: estimated value of the highest eigenvalye
+
+    """
+
 
     if seed is not None:
         np.random.seed(seed)
