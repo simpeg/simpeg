@@ -201,11 +201,17 @@ class DirectiveList(object):
 
 
 class BetaEstimate_ByEig(InversionDirective):
-    """BetaEstimate"""
+    """
+    Estimate the trade-off parameter beta between the data misfit(s) and the
+    regularization as a multiple of the ratio between the highest eigenvalue of the
+    data misfit term and the highest eigenvalue of the regularization. 
+    The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
 
-    beta0_ratio = 1.  #: estimateBeta0 is used with this ratio
-    n_pw_iter = 4          #: number of vector for estimation.
-    seed = None # Random seed for the directive
+    """
+
+    beta0_ratio = 1.  #: the estimated ratio is multplied by this to obtain beta
+    n_pw_iter = 4     #: number of power iterations for estimation.
+    seed = None       #: Random seed for the directive
     
     def initialize(self):
         """
@@ -274,13 +280,18 @@ class BetaSchedule(InversionDirective):
 
 
 class AlphasSmoothEstimate_ByEig(InversionDirective):
-    """AlphaEstimate"""
+    """
+    Estimate the alphas multpliers for the smoothness terms of the regularization
+     as a multiple of the ratio between the highest eigenvalue of the
+    smallness term and the highest eigenvalue of each smoothness term of the regularization. 
+    The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
+    """
 
-    alpha0_ratio = 1.  #: estimate the Alpha_smooth with this ratio
-    n_pw_iter = 4
-    verbose = False
-    debug = False
-    seed = None
+    alpha0_ratio = 1.  #: the estimated Alpha_smooth is multiplied by this ratio (int or array)
+    n_pw_iter = 4 #: number of power iterations for the estimate
+    verbose = False #: print the estimated alphas at the initialization
+    debug = False #: print the current process
+    seed = None # random seed for the directive
 
     def initialize(self):
         """
@@ -421,13 +432,18 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
 
 class ScalingMultipleDataMisfits_ByEig(InversionDirective):
-    """ScalingDataMisfitsEstimate"""
+    """
+    For multiple data misfits only: multiply each data misfit term 
+    by the inverse of its highest eigenvalue and then 
+    normalize the sum of the data misfit multipliers to one. 
+    The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
+    """
 
-    n_pw_iter = 4
+    n_pw_iter = 4 #: number of power iterations for the estimate
     chi0_ratio = None  #: The initial scaling ratio (default is data misfit multipliers)
-    verbose = False
-    debug = False
-    seed = None
+    verbose = False #: print the estimated data misfits multipliers
+    debug = False #: print the current process
+    seed = None # random seed for the directive
 
     def initialize(self):
         """
@@ -467,67 +483,6 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
 
         if self.verbose:
             print("Scale Multipliers: ", self.dmisfit.multipliers)
-
-
-class JointScalingSchedule(InversionDirective):
-
-    verbose = False
-    warmingFactor = 1.0
-    mode = 1
-    chimax = 1e10
-    chimin = 1e-10
-    UpdateRate = 1
-
-    def initialize(self):
-
-        targetclass = np.r_[
-            [
-                isinstance(dirpart, MultiTargetMisfits)
-                for dirpart in self.inversion.directiveList.dList
-            ]
-        ]
-        if ~np.any(targetclass):
-            self.DMtarget = None
-        else:
-            self.targetclass = np.where(targetclass)[0][-1]
-            self.DMtarget = self.inversion.directiveList.dList[
-                self.targetclass
-            ].DMtarget
-
-        if self.verbose:
-            print("initial data misfit scale: ", self.dmisfit.multipliers)
-
-    def endIter(self):
-
-        self.dmlist = self.inversion.directiveList.dList[self.targetclass].dmlist
-
-        if np.any(self.dmlist < self.DMtarget):
-            self.mode = 2
-        else:
-            self.mode = 1
-
-        if self.opt.iter > 0 and self.opt.iter % self.UpdateRate == 0:
-
-            if self.mode == 2:
-
-                if np.all(np.r_[self.dmisfit.multipliers] > self.chimin) and np.all(
-                    np.r_[self.dmisfit.multipliers] < self.chimax
-                ):
-
-                    # Assume only 2 data misfit
-                    indx = self.dmlist > self.DMtarget
-                    if np.any(indx):
-                        multipliers = self.warmingFactor * np.median(
-                            self.DMtarget[~indx] / self.dmlist[~indx]
-                        )
-                        if np.sum(indx) == 1:
-                            indx = np.where(indx)[0][0]
-                        self.dmisfit.multipliers[indx] *= multipliers
-                        self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
-
-                        if self.verbose:
-                            print("Updating scaling for data misfits by ", multipliers)
-                            print("New scales:", self.dmisfit.multipliers)
 
 
 class TargetMisfit(InversionDirective):
