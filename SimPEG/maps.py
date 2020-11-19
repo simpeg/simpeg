@@ -18,7 +18,7 @@ from scipy.constants import mu_0
 from scipy.sparse import csr_matrix as csr
 
 import properties
-from discretize.Tests import checkDerivative
+from discretize.tests import checkDerivative
 
 from .utils import (
     setKwargs,
@@ -132,7 +132,7 @@ class IdentityMap(properties.HasProperties):
 
             :param numpy.ndarray m: model
             :param kwargs: key word arguments of
-                           :meth:`discretize.Tests.checkDerivative`
+                           :meth:`discretize.tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
@@ -155,7 +155,7 @@ class IdentityMap(properties.HasProperties):
 
             :param numpy.ndarray m: model
             :param kwargs: key word arguments of
-                           :meth:`discretize.Tests.checkDerivative`
+                           :meth:`discretize.tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
