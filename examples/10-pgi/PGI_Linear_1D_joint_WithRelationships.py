@@ -28,8 +28,8 @@ q = 0.25
 
 # Physics
 def g(k):
-    return np.exp(p * jk[k] * mesh.vectorCCx) * np.cos(
-        np.pi * q * jk[k] * mesh.vectorCCx
+    return np.exp(p * jk[k] * mesh.cell_centers_x) * np.cos(
+        np.pi * q * jk[k] * mesh.cell_centers_x
     )
 
 
@@ -260,15 +260,15 @@ axes[0].text(
     transform=axes[0].transAxes,
 )
 
-axes[1].plot(mesh.vectorCCx, wires.m1 * mcluster_map, "b.-", ms=5, marker="v")
-axes[1].plot(mesh.vectorCCx, wires.m1 * m, "k--")
+axes[1].plot(mesh.cell_centers_x, wires.m1 * mcluster_map, "b.-", ms=5, marker="v")
+axes[1].plot(mesh.cell_centers_x, wires.m1 * m, "k--")
 axes[1].set_title("Problem 1")
 axes[1].legend(["Recovered Model", "True Model"], loc=1)
 axes[1].set_xlabel("X")
 axes[1].set_ylabel("Property 1")
 
-axes[2].plot(mesh.vectorCCx, wires.m2 * mcluster_map, "r.-", ms=5, marker="v")
-axes[2].plot(mesh.vectorCCx, wires.m2 * m, "k--")
+axes[2].plot(mesh.cell_centers_x, wires.m2 * mcluster_map, "r.-", ms=5, marker="v")
+axes[2].plot(mesh.cell_centers_x, wires.m2 * m, "k--")
 axes[2].set_title("Problem 2")
 axes[2].legend(["Recovered Model", "True Model"], loc=1)
 axes[2].set_xlabel("X")
@@ -312,19 +312,19 @@ axes[4].text(
     transform=axes[4].transAxes,
 )
 
-axes[5].plot(mesh.vectorCCx, wires.m1 * mcluster_no_map, "b.-", ms=5, marker="v")
-# axes[5].plot(mesh.vectorCCx, wires.m1 * reg_simple_no_map.objfcts[0].mref, 'g--')
+axes[5].plot(mesh.cell_centers_x, wires.m1 * mcluster_no_map, "b.-", ms=5, marker="v")
+# axes[5].plot(mesh.cell_centers_x, wires.m1 * reg_simple_no_map.objfcts[0].mref, 'g--')
 
-axes[5].plot(mesh.vectorCCx, wires.m1 * m, "k--")
+axes[5].plot(mesh.cell_centers_x, wires.m1 * m, "k--")
 axes[5].set_title("Problem 1")
 axes[5].legend(["Recovered Model", "True Model"], loc=1)
 axes[5].set_xlabel("X")
 axes[5].set_ylabel("Property 1")
 
-axes[6].plot(mesh.vectorCCx, wires.m2 * mcluster_no_map, "r.-", ms=5, marker="v")
-# axes[6].plot(mesh.vectorCCx, wires.m2 * reg_simple_no_map.objfcts[0].mref, 'g--')
+axes[6].plot(mesh.cell_centers_x, wires.m2 * mcluster_no_map, "r.-", ms=5, marker="v")
+# axes[6].plot(mesh.cell_centers_x, wires.m2 * reg_simple_no_map.objfcts[0].mref, 'g--')
 
-axes[6].plot(mesh.vectorCCx, wires.m2 * m, "k--")
+axes[6].plot(mesh.cell_centers_x, wires.m2 * m, "k--")
 axes[6].set_title("Problem 2")
 axes[6].legend(["Recovered Model", "True Model"], loc=1)
 axes[6].set_xlabel("X")
@@ -372,15 +372,15 @@ axes[8].text(
     transform=axes[8].transAxes,
 )
 
-axes[9].plot(mesh.vectorCCx, wires.m1 * mtik, "b.-", ms=5, marker="v")
-axes[9].plot(mesh.vectorCCx, wires.m1 * m, "k--")
+axes[9].plot(mesh.cell_centers_x, wires.m1 * mtik, "b.-", ms=5, marker="v")
+axes[9].plot(mesh.cell_centers_x, wires.m1 * m, "k--")
 axes[9].set_title("Problem 1")
 axes[9].legend(["Recovered Model", "True Model"], loc=1)
 axes[9].set_xlabel("X")
 axes[9].set_ylabel("Property 1")
 
-axes[10].plot(mesh.vectorCCx, wires.m2 * mtik, "r.-", ms=5, marker="v")
-axes[10].plot(mesh.vectorCCx, wires.m2 * m, "k--")
+axes[10].plot(mesh.cell_centers_x, wires.m2 * mtik, "r.-", ms=5, marker="v")
+axes[10].plot(mesh.cell_centers_x, wires.m2 * m, "k--")
 axes[10].set_title("Problem 2")
 axes[10].legend(["Recovered Model", "True Model"], loc=1)
 axes[10].set_xlabel("X")

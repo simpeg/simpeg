@@ -42,8 +42,8 @@ q = 0.25
 
 # Physics
 def g(k):
-    return np.exp(p * jk[k] * mesh.vectorCCx) * np.cos(
-        np.pi * q * jk[k] * mesh.vectorCCx
+    return np.exp(p * jk[k] * mesh.cell_centers_x) * np.cos(
+        np.pi * q * jk[k] * mesh.cell_centers_x
     )
 
 
@@ -54,16 +54,16 @@ for i in range(nk):
 
 # True model
 mtrue = np.zeros(mesh.nC)
-mtrue[mesh.vectorCCx > 0.2] = 1.0
-mtrue[mesh.vectorCCx > 0.35] = 0.0
-t = (mesh.vectorCCx - 0.65) / 0.25
+mtrue[mesh.cell_centers_x > 0.2] = 1.0
+mtrue[mesh.cell_centers_x > 0.35] = 0.0
+t = (mesh.cell_centers_x - 0.65) / 0.25
 indx = np.abs(t) < 1
 mtrue[indx] = -(((1 - t ** 2.0) ** 2.0)[indx])
 
 mtrue = np.zeros(mesh.nC)
-mtrue[mesh.vectorCCx > 0.3] = 1.0
-mtrue[mesh.vectorCCx > 0.45] = -0.5
-mtrue[mesh.vectorCCx > 0.6] = 0
+mtrue[mesh.cell_centers_x > 0.3] = 1.0
+mtrue[mesh.cell_centers_x > 0.45] = -0.5
+mtrue[mesh.cell_centers_x > 0.6] = 0
 
 # SimPEG problem and survey
 prob = simulation.LinearSimulation(mesh, G=G, model_map=maps.IdentityMap())
@@ -154,10 +154,10 @@ axes[1].hist(mnormal, bins=20, density=True, color="b")
 axes[1].hist(mcluster, bins=20, density=True, color="r")
 axes[1].legend(["Mtrue Hist.", "L2 Model Hist.", "PGI Model Hist."])
 
-axes[2].plot(mesh.vectorCCx, mtrue, color="black",linewidth=3)
-axes[2].plot(mesh.vectorCCx, mnormal, color="blue")
-axes[2].plot(mesh.vectorCCx, mcluster, "r-")
-axes[2].plot(mesh.vectorCCx, invProb.reg.mref, "r--")
+axes[2].plot(mesh.cell_centers_x, mtrue, color="black",linewidth=3)
+axes[2].plot(mesh.cell_centers_x, mnormal, color="blue")
+axes[2].plot(mesh.cell_centers_x, mcluster, "r-")
+axes[2].plot(mesh.cell_centers_x, invProb.reg.mref, "r--")
 
 axes[2].legend(("True Model", "L2 Model", "PGI Model", "Learned Mref"))
 axes[2].set_ylim([-2, 2])
