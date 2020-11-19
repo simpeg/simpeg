@@ -602,12 +602,36 @@ def update_gmm_with_priors(
 ###############################################################################
 # Disclaimer: the following classes built upon the GaussianMixture class      #
 # from Scikit-Learn. New functionalitie are added, as well as modifications to#  
-# existing functions necessary to serve the purposes pursued within SimPEG.   #
+# existing functions, to serve the purposes pursued within SimPEG.            #
 # This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)    #
 # and we are grateful for their contributions to the open-source community.   #                                                   #
 ###############################################################################
 
 class WeightedGaussianMixture(GaussianMixture):
+    """
+    This class upon the GaussianMixture class from Scikit-Learn. 
+    Two main modifications:
+        1: Each sample/observation is given a weight, the volume of the 
+        corresponding discretize.BaseMesh cell, when fitting the 
+        Gaussian Mixture Model (GMM). More volume gives more importance, ensuing a
+        mesh-free evaluation of the clusters of the geophysical model.
+        2: When set manually, the proportions can be set either globally (normal behavior)
+        or cell-by-cell (improvements)
+
+    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn. 
+    New functionalitie are added, as well as modifications to  
+    existing functions, to serve the purposes pursued within SimPEG.   
+    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)    
+    and we are grateful for their contributions to the open-source community.
+
+    Addtional parameters to provide, compared to sklearn.mixture.gaussian_mixture:
+
+    :param discretize.BaseMesh (TensorMesh or QuadTree or Octree) mesh: the volume
+        of the cells give each sample/observations its weight in the fitting proces
+    :param numpy.ndarry actv: (optional) active cells index
+
+    """
+
     def __init__(
         self,
         n_components,
@@ -655,6 +679,10 @@ class WeightedGaussianMixture(GaussianMixture):
         # setKwargs(self, **kwargs)
 
     def compute_clusters_precisions(self):
+        """
+        Use this function after setting covariances manually.
+        Compute the precisions matrices and their Cholesky decomposition.
+        """
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type
         )
@@ -669,7 +697,10 @@ class WeightedGaussianMixture(GaussianMixture):
             self.precisions_ = self.precisions_cholesky_ ** 2
 
     def compute_clusters_covariances(self):
-        
+        """
+        Use this function after setting precisions matrices manually.
+        Compute the precisions matrices and their Cholesky decomposition.
+        """
         self.covariances_cholesky_ = _compute_precision_cholesky(
             self.precisions_, self.covariance_type
         )
@@ -691,7 +722,7 @@ class WeightedGaussianMixture(GaussianMixture):
     
     def order_clusters_GM_weight(self, outputindex=False):
         """
-        order cluster by increasing mean for Gaussian Mixture scikit object
+        order clusters by increasing means (1D GMM only)
         """
         if self.weights_.ndim == 1:
             indx = np.argsort(self.weights_, axis=0)[::-1]
@@ -717,7 +748,7 @@ class WeightedGaussianMixture(GaussianMixture):
 
     def order_clusters_GM_mean(self, outputindex=False):
         """
-        order cluster by increasing mean for Gaussian Mixture scikit object
+        order clusters by increasing mean
         """
 
         indx = np.argsort(self.means_, axis=0)[::-1]
@@ -742,10 +773,11 @@ class WeightedGaussianMixture(GaussianMixture):
             return indx
 
     def _check_weights(self, weights, n_components, n_samples):
-        """Check the user provided 'weights'.
+        """
+        Check the user provided 'weights'.
         Parameters
         ----------
-        weights : array-like, shape (n_components,)
+        weights : array-like, shape (n_components,) or (n_samples, n_components_)
             The proportions of components of each mixture.
         n_components : int
             Number of components.
