@@ -485,6 +485,67 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
             print("Scale Multipliers: ", self.dmisfit.multipliers)
 
 
+class JointScalingSchedule(InversionDirective):
+
+    verbose = False
+    warmingFactor = 1.0
+    mode = 1
+    chimax = 1e10
+    chimin = 1e-10
+    UpdateRate = 1
+
+    def initialize(self):
+
+        targetclass = np.r_[
+            [
+                isinstance(dirpart, MultiTargetMisfits)
+                for dirpart in self.inversion.directiveList.dList
+            ]
+        ]
+        if ~np.any(targetclass):
+            self.DMtarget = None
+        else:
+            self.targetclass = np.where(targetclass)[0][-1]
+            self.DMtarget = self.inversion.directiveList.dList[
+                self.targetclass
+            ].DMtarget
+
+        if self.verbose:
+            print("initial data misfit scale: ", self.dmisfit.multipliers)
+
+    def endIter(self):
+
+        self.dmlist = self.inversion.directiveList.dList[self.targetclass].dmlist
+
+        if np.any(self.dmlist < self.DMtarget):
+            self.mode = 2
+        else:
+            self.mode = 1
+
+        if self.opt.iter > 0 and self.opt.iter % self.UpdateRate == 0:
+
+            if self.mode == 2:
+
+                if np.all(np.r_[self.dmisfit.multipliers] > self.chimin) and np.all(
+                    np.r_[self.dmisfit.multipliers] < self.chimax
+                ):
+
+                    # Assume only 2 data misfit
+                    indx = self.dmlist > self.DMtarget
+                    if np.any(indx):
+                        multipliers = self.warmingFactor * np.median(
+                            self.DMtarget[~indx] / self.dmlist[~indx]
+                        )
+                        if np.sum(indx) == 1:
+                            indx = np.where(indx)[0][0]
+                        self.dmisfit.multipliers[indx] *= multipliers
+                        self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
+
+                        if self.verbose:
+                            print("Updating scaling for data misfits by ", multipliers)
+                            print("New scales:", self.dmisfit.multipliers)
+
+
 class TargetMisfit(InversionDirective):
     """
      ... note:: Currently this target misfit is not set up for joint inversion.
