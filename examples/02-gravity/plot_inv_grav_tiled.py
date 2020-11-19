@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 from dask.distributed import Client, LocalCluster
 from SimPEG import dask
+import dask.array as da
 from dask import config
 from SimPEG.utils.drivers import create_tile_meshes
 from SimPEG.potential_fields import gravity
@@ -39,7 +40,7 @@ from time import time
 cluster = LocalCluster(processes=False)
 client = Client(cluster)
 config.set({"array.chunk-size": str(128) + "MiB"})
-config.set(scheduler="threads", pool=ThreadPool(6))
+# config.set(scheduler="threads", pool=ThreadPool(6))
 
 workers = None  # Here runs locally
 
@@ -141,7 +142,7 @@ for ii in range(4):
     )
 
     # Compute linear forward operator and compute some data
-    d = simulation.fields(model)
+    d = client.compute(simulation.fields(model)).result()
 
     # Add noise and uncertainties
     # We add some random Gaussian noise (1nT)
@@ -172,7 +173,8 @@ for ii in range(4):
             actInd=local_map.local_active,
             sensitivity_path=f"Inversion\Tile{ii}.zarr",
             chunk_format="row",
-            store_sensitivities="disk"
+            store_sensitivities="disk",
+            workers=workers
         )
 
         data_object = data.Data(
@@ -181,12 +183,14 @@ for ii in range(4):
             standard_deviation=wd[local_index],
         )
 
-        local_misfits += [
-            data_misfit.L2DataMisfit(
+        local_misfit = data_misfit.L2DataMisfit(
                 data=data_object, simulation=simulation,
                 workers=workers
-            )
-        ]
+        )
+
+        simulation.G  # Trigger calculation
+
+        local_misfits += [local_misfit]
 
     global_misfit = objective_function.ComboObjectiveFunction(
             local_misfits

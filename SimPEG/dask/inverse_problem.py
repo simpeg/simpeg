@@ -1,7 +1,52 @@
 from ..inverse_problem import BaseInvProblem
 import numpy as np
+from dask.distributed import Future, get_client
 import gc
 from ..regularization import BaseComboRegularization, Sparse
+from ..data_misfit import BaseDataMisfit
+from ..objective_function import BaseObjectiveFunction
+
+
+def dask_getFields(self, m, store=False, deleteWarmstart=True):
+    f = None
+
+    try:
+        client = get_client()
+        fields = lambda f, x, workers: client.compute(f(x), workers=workers)
+    except:
+        fields = lambda f, x: f(x)
+
+    for mtest, u_ofmtest in self.warmstart:
+        if m is mtest:
+            f = u_ofmtest
+            if self.debug:
+                print("InvProb is Warm Starting!")
+            break
+
+    if f is None:
+        if isinstance(self.dmisfit, BaseDataMisfit):
+            f = fields(self.dmisfit.simulation.fields, m)
+
+        elif isinstance(self.dmisfit, BaseObjectiveFunction):
+            f = []
+            for objfct in self.dmisfit.objfcts:
+                if hasattr(objfct, "simulation"):
+                    f += [fields(objfct.simulation.fields, m, objfct.workers)]
+                else:
+                    f += []
+
+    if isinstance(f, Future) or isinstance(f[0], Future):
+        f = client.gather(f)
+
+    if deleteWarmstart:
+        self.warmstart = []
+    if store:
+        self.warmstart += [(m, f)]
+
+    return f
+
+
+BaseInvProblem.getFields = dask_getFields
 
 
 def dask_evalFunction(self, m, return_g=True, return_H=True):

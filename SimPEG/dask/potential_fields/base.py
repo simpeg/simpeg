@@ -1,5 +1,6 @@
 import numpy as np
 from ...potential_fields.base import BasePFSimulation as Sim
+from ...potential_fields.gravity.simulation import evaluate_integral
 import os
 from dask import delayed, array, config
 from dask.diagnostics import ProgressBar
@@ -25,28 +26,11 @@ def chunk_format(self, other):
 Sim.chunk_format = chunk_format
 
 
-def G(self):
-    if getattr(self, "_G", None) is None:
-        self._G = self.linear_operator()
-
-    elif isinstance(self._G, Future):
-        self._G.result()
-        self._G = array.from_zarr(self.sensitivity_path)
-
-    return self._G
-
-
-# @G.setter
-# def G(self, value):
-#     assert isinstance(value, (array.Array, Future)) or value is None, f"G must be of one of {array}, {Future} or None. Trying to assign {value}"
-#     self._G = value
-
-
-Sim.G = property(G)
-
 
 def dask_linear_operator(self):
     self.nC = self.modelMap.shape[0]
+
+    hx, hy, hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
 
     n_data_comp = len(self.survey.components)
     components = np.array(list(self.survey.components.keys()))
@@ -54,10 +38,16 @@ def dask_linear_operator(self):
         [np.c_[values] for values in self.survey.components.values()]
     ).tolist()
 
-    row = delayed(self.evaluate_integral, pure=True)
+    row = delayed(evaluate_integral, pure=True)
+    try:
+        client = get_client()
+        Xn, Yn, Zn = client.scatter([self.Xn, self.Yn, self.Zn], workers=self.workers)
+    except:
+        Xn, Yn, Zn = self.Xn, self.Yn, self.Zn
+
     rows = [
         array.from_delayed(
-            row(receiver_location, components[component]),
+            row(Xn, Yn, Zn, hx, hy, hz, receiver_location, components[component]),
             dtype=np.float32,
             shape=(n_data_comp, self.nC),
         )
@@ -100,28 +90,29 @@ def dask_linear_operator(self):
                 return kernel
 
         print("Writing Zarr file to disk")
-        try:
-        # with ProgressBar():
-            print("Saving kernel to zarr: " + sens_name)
-            if self.workers is not None:
-                workers = self.workers.copy()
-            else:
-                workers= None
 
-            return self.client.compute(
+        # with ProgressBar():
+        print("Saving kernel to zarr: " + sens_name)
+
+        try:
+
+            client = get_client()
+            return client.compute(
                 array.to_zarr(
-                    stack, sens_name, compute=False, return_stored=False, overwrite=True
+                    stack, sens_name,
+                    compute=False, return_stored=False, overwrite=True
                 ),
-                workers=workers
+                workers=self.workers
             )
         except:
             pass
 
 
+
     elif self.store_sensitivities == "forward_only":
-        with ProgressBar():
-            print("Forward calculation: ")
-            pred = (stack @ self.model).compute()
+        # with ProgressBar():
+        print("Forward calculation: ")
+        pred = stack @ self.model
         return pred
 
     with ProgressBar():

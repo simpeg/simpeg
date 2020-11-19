@@ -7,6 +7,27 @@ from dask.distributed import get_client, Future, Client
 from scipy.sparse import csr_matrix as csr
 
 
+@property
+def G(self):
+    if getattr(self, "_G", None) is None:
+        self._G = self.linear_operator()
+
+    elif isinstance(self._G, Future):
+        self._G.result()
+        self._G = da.from_zarr(self.sensitivity_path)
+
+    return self._G
+
+
+@G.setter
+def G(self, value):
+    assert isinstance(value, (da.Array, Future)) or value is None, f"G must be of one of {array}, {Future} or None. Trying to assign {value}"
+    self._G = value
+
+
+Sim.G = G
+
+
 def dask_getJtJdiag(self, m, W=None):
     """
         Return the diagonal of JtJ
@@ -18,6 +39,7 @@ def dask_getJtJdiag(self, m, W=None):
         W = np.ones(self.nD)
     else:
         W = W.diagonal()
+
     if getattr(self, "_gtg_diagonal", None) is None:
         diag = ((W[:, None] * self.G) ** 2).sum(axis=0).compute()
         self._gtg_diagonal = diag

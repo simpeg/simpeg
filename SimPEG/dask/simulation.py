@@ -37,22 +37,22 @@ def max_chunk_size(self, other):
 Sim.max_chunk_size = max_chunk_size
 
 
-@property
-def client(self):
-    if getattr(self, '_client', None) is None:
-        self._client = get_client()
-
-    return self._client
-
-
-@client.setter
-def client(self, client):
-    assert isinstance(client, Client)
-    self._client = client
-
-
-Sim.client = client
-
+# @property
+# def client(self):
+#     if getattr(self, '_client', None) is None:
+#         self._client = get_client()
+#
+#     return self._client
+#
+#
+# @client.setter
+# def client(self, client):
+#     assert isinstance(client, Client)
+#     self._client = client
+#
+#
+# Sim.client = client
+#
 
 @property
 def workers(self):
