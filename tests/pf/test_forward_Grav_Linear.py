@@ -44,8 +44,8 @@ class GravFwdProblemTests(unittest.TestCase):
 
         components = ["gx", "gy", "gz"]
 
-        # Move obs plane 2 radius away from sphere
-        Z = np.ones((xr.size, yr.size)) * 2.0 * self.rad
+        # Move obs plane 3 radius away from sphere
+        Z = np.ones((xr.size, yr.size)) * 3.0 * self.rad
         self.locXyz = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
         receivers = gravity.Point(self.locXyz, components=components)
         sources = gravity.SourceField([receivers])
