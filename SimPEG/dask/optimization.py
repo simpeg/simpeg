@@ -18,6 +18,7 @@ def dask_findSearchDirection(self):
     p = self.approxHinv * r
     sold = np.dot(r, p)
     count = 0
+    ct = time()
     while np.all([np.linalg.norm(r) > self.tolCG, count < self.maxIterCG]):
         count += 1
         Hp = self.H(p)
@@ -29,7 +30,7 @@ def dask_findSearchDirection(self):
         snew = da.dot(r, h)
         p = (h + (snew / sold * p)).compute()
         sold = snew
-
+    self.cg_runtime = time()-ct
     delx = np.asarray(delx)
     # Take a gradient step on the active cells if exist
     if temp != self.xc.size:
