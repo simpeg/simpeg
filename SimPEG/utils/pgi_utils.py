@@ -533,15 +533,15 @@ def update_gmm_with_priors(
     if gmm.weights_.ndim == 1:
         weights_ = gmm.weights_
     else:
-        weights_ = (np.c_[gmm.vol] * gmm.weights_).sum(axis=0) / (
-            np.c_[gmm.vol] * gmm.weights_
+        weights_ = (np.c_[gmm.cell_volumes] * gmm.weights_).sum(axis=0) / (
+            np.c_[gmm.cell_volumes] * gmm.weights_
         ).sum()
 
     if gmmref.weights_.ndim == 1:
         ref_weights_ = gmmref.weights_
     else:
-        ref_weights_ = (np.c_[gmmref.vol] * gmmref.weights_).sum(axis=0) / (
-            np.c_[gmmref.vol] * gmmref.weights_
+        ref_weights_ = (np.c_[gmmref.cell_volumes] * gmmref.weights_).sum(axis=0) / (
+            np.c_[gmmref.cell_volumes] * gmmref.weights_
         ).sum()
 
     for k in range(gmm.n_components):
@@ -655,9 +655,9 @@ class WeightedGaussianMixture(GaussianMixture):
         self.mesh = mesh
         self.actv = actv
         if self.actv is None:
-            self.vol = self.mesh.vol
+            self.cell_volumes = self.mesh.cell_volumes
         else:
-            self.vol = self.mesh.vol[self.actv]
+            self.cell_volumes = self.mesh.cell_volumes[self.actv]
 
         super(WeightedGaussianMixture, self).__init__(
             covariance_type=covariance_type,
@@ -858,7 +858,7 @@ class WeightedGaussianMixture(GaussianMixture):
                 KMeans(
                     n_clusters=self.n_components, n_init=1, random_state=random_state
                 )
-                .fit(X, sample_weight=self.vol)
+                .fit(X, sample_weight=self.cell_volumes)
                 .labels_
             )
             resp[np.arange(n_samples), label] = 1
@@ -882,7 +882,7 @@ class WeightedGaussianMixture(GaussianMixture):
             the point of each sample in X.
         """
         n_samples, _ = X.shape
-        Volume = np.mean(self.vol)
+        Volume = np.mean(self.cell_volumes)
         weights, self.means_, self.covariances_ = self._estimate_gaussian_parameters(
             X, self.mesh, np.exp(log_resp), self.reg_covar, self.covariance_type
         )
@@ -908,7 +908,7 @@ class WeightedGaussianMixture(GaussianMixture):
         covariance : array, shape (n_features, n_features)
         The tied covariance matrix of the components.
         """
-        avg_X2 = np.dot(self.vol * X.T, X)
+        avg_X2 = np.dot(self.cell_volumes * X.T, X)
         avg_means2 = np.dot(nk * means.T, means)
         covariance = avg_X2 - avg_means2
         covariance /= nk.sum()
@@ -937,7 +937,7 @@ class WeightedGaussianMixture(GaussianMixture):
             The covariance matrix of the current components.
             The shape depends of the covariance_type.
         """
-        respVol = self.vol.reshape(-1, 1) * resp
+        respVol = self.cell_volumes.reshape(-1, 1) * resp
         nk = respVol.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
         means = np.dot(respVol.T, X) / nk[:, np.newaxis]
         covariances = {
@@ -962,7 +962,7 @@ class WeightedGaussianMixture(GaussianMixture):
             the point of each sample in X.
         """
         log_prob_norm, log_resp = self._estimate_log_prob_resp(X)
-        return np.average(log_prob_norm, weights=self.vol), log_resp
+        return np.average(log_prob_norm, weights=self.cell_volumes), log_resp
 
     def score(self, X, y=None):
         """Compute the per-sample average log-likelihood of the given data X.
@@ -976,7 +976,7 @@ class WeightedGaussianMixture(GaussianMixture):
         log_likelihood : float
             Log likelihood of the Gaussian mixture given X.
         """
-        return np.average(self.score_samples(X), weights=self.vol)
+        return np.average(self.score_samples(X), weights=self.cell_volumes)
 
     def _estimate_log_gaussian_prob_with_sensW(self, X, sensW, means, precisions_chol, covariance_type):
         """Estimate the log Gaussian probability.

@@ -85,7 +85,7 @@ class PGI_UpdateParameters(InversionDirective):
 
         if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
             self.fixed_membership = np.c_[
-                np.arange(len(self.pgi_reg.gmmref.vol)),
+                np.arange(len(self.pgi_reg.gmmref.cell_volumes)),
                 self.pgi_reg.membership(self.pgi_reg.mref),
             ]
 
