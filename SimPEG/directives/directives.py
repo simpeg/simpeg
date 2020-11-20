@@ -708,7 +708,7 @@ class MultiTargetMisfits(InversionDirective):
     def CLtarget(self):
         if not getattr(self.pgi_smallness, "approx_eval", True):
             # if nonlinear prior, compute targer numerically at each GMM update
-            samples, _ = self.pgi_smallness.gmm.sample(len(self.pgi_smallness.gmm.vol))
+            samples, _ = self.pgi_smallness.gmm.sample(len(self.pgi_smallness.gmm.cell_volumes))
             self.phi_ms_star = self.pgi_smallness(
                 mkvc(samples), externalW=self.WeightsInTarget
             )
