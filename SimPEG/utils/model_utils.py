@@ -260,3 +260,155 @@ def surface_layer_index(mesh, topo, index=0):
     actv[inds] = True
 
     return actv
+
+
+def tile_locations(
+        locations, n_tiles, minimize=True, method="kmeans",
+        bounding_box=False, count=False, unique_id=False
+):
+    """
+        Function to tile an survey points into smaller square subsets of points
+
+        :param numpy.ndarray locations: n x 2 array of locations [x,y]
+        :param integer n_tiles: number of tiles (for 'cluster'), or number of
+            refinement steps ('other')
+        :param Bool minimize: shrink tile sizes to minimum
+        :param string method: set to 'kmeans' to use better quality clustering, or anything
+            else to use more memory efficient method for large problems
+        :param bounding_box: bool [False]
+            Return the SW and NE corners of each tile.
+        :param count: bool [False]
+            Return the number of locations in each tile.
+        :param unique_id: bool [False]
+            Return the unique identifiers of all tiles.
+
+        RETURNS:
+        :param list: Return a list of arrays with the for the SW and NE
+                            limits of each tiles
+        :param integer binCount: Number of points in each tile
+        :param list labels: Cluster index of each point n=0:(nTargetTiles-1)
+        :param numpy.array tile_numbers: Vector of tile numbers for each count in binCount
+
+        NOTE: All X Y and xy products are legacy now values, and are only used
+        for plotting functions. They are not used in any calculations and could
+        be dropped from the return calls in future versions.
+
+
+    """
+
+    if method == "kmeans":
+        # Best for smaller problems
+        from sklearn.cluster import AgglomerativeClustering
+
+        # Cluster
+        cluster = AgglomerativeClustering(
+            n_clusters=n_tiles, affinity="euclidean", linkage="ward"
+        )
+        cluster.fit_predict(locations[:, :2])
+
+        # nData in each tile
+        binCount = np.zeros(int(n_tiles))
+
+        # x and y limits on each tile
+        X1 = np.zeros_like(binCount)
+        X2 = np.zeros_like(binCount)
+        Y1 = np.zeros_like(binCount)
+        Y2 = np.zeros_like(binCount)
+
+        for ii in range(int(n_tiles)):
+
+            mask = cluster.labels_ == ii
+            X1[ii] = locations[mask, 0].min()
+            X2[ii] = locations[mask, 0].max()
+            Y1[ii] = locations[mask, 1].min()
+            Y2[ii] = locations[mask, 1].max()
+            binCount[ii] = mask.sum()
+
+        xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
+        xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
+
+        # Get the tile numbers that exist, for compatibility with the next method
+        tile_id = np.unique(cluster.labels_)
+        labels = cluster.labels_
+
+    else:
+        # Works on larger problems
+        # Initialize variables
+        # Test each refinement level for maximum space coverage
+        nTx = 1
+        nTy = 1
+        for ii in range(int(n_tiles + 1)):
+
+            nTx += 1
+            nTy += 1
+
+            testx = np.percentile(locations[:, 0], np.arange(0, 100, 100 / nTx))
+            testy = np.percentile(locations[:, 1], np.arange(0, 100, 100 / nTy))
+
+            # if ii > 0:
+            dx = testx[:-1] - testx[1:]
+            dy = testy[:-1] - testy[1:]
+
+            if np.mean(dx) > np.mean(dy):
+                nTx -= 1
+            else:
+                nTy -= 1
+
+            print(nTx, nTy)
+        tilex = np.percentile(locations[:, 0], np.arange(0, 100, 100 / nTx))
+        tiley = np.percentile(locations[:, 1], np.arange(0, 100, 100 / nTy))
+
+        X1, Y1 = np.meshgrid(tilex, tiley)
+        X2, Y2 = np.meshgrid(
+            np.r_[tilex[1:], locations[:, 0].max()], np.r_[tiley[1:], locations[:, 1].max()]
+        )
+
+        # Plot data and tiles
+        X1, Y1, X2, Y2 = mkvc(X1), mkvc(Y1), mkvc(X2), mkvc(Y2)
+        binCount = np.zeros_like(X1)
+        labels = np.zeros_like(locations[:, 0])
+        for ii in range(X1.shape[0]):
+
+            mask = (
+                (locations[:, 0] >= X1[ii])
+                * (locations[:, 0] <= X2[ii])
+                * (locations[:, 1] >= Y1[ii])
+                * (locations[:, 1] <= Y2[ii])
+            ) == 1
+
+            # Re-adjust the window size for tight fit
+            if minimize:
+
+                if mask.sum():
+                    X1[ii], X2[ii] = locations[:, 0][mask].min(), locations[:, 0][mask].max()
+                    Y1[ii], Y2[ii] = locations[:, 1][mask].min(), locations[:, 1][mask].max()
+
+            labels[mask] = ii
+            binCount[ii] = mask.sum()
+
+        xy1 = np.c_[X1[binCount > 0], Y1[binCount > 0]]
+        xy2 = np.c_[X2[binCount > 0], Y2[binCount > 0]]
+
+        # Get the tile numbers that exist
+        # Since some tiles may have 0 data locations, and are removed by
+        # [binCount > 0], the tile numbers are no longer contiguous 0:nTiles
+        tile_id = np.unique(labels)
+
+    tiles = []
+    for id in tile_id.tolist():
+        tiles += [np.where(labels==id)[0]]
+
+    out = [tiles]
+
+    if bounding_box:
+        out.append([xy1, xy2])
+
+    if count:
+        out.append(binCount[binCount > 0])
+
+    if unique_id:
+        out.append(tile_id)
+
+    if len(out) == 1:
+        return out[0]
+    return tuple(out)
