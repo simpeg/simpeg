@@ -5,12 +5,12 @@ import numpy as np
 from SimPEG.data import Data
 from SimPEG.potential_fields import gravity, magnetics
 from SimPEG.utils.io_utils import (
-    write_gravity_3d_ubc,
-    read_gravity_3d_ubc,
-    write_gravity_gradiometry_3d_ubc,
-    read_gravity_gradiometry_3d_ubc,
-    write_magnetics_3d_ubc,
-    read_magnetics_3d_ubc,
+    write_grav3d_ubc,
+    read_grav3d_ubc,
+    write_gg3d_ubc,
+    read_gg3d_ubc,
+    write_mag3d_ubc,
+    read_mag3d_ubc,
 )
 import os
 
@@ -48,8 +48,8 @@ class TestGravityIO(unittest.TestCase):
         data_object = Data(survey=self.survey)
         filename = "survey.grv"
 
-        write_gravity_3d_ubc(filename, data_object)
-        data_loaded = read_gravity_3d_ubc(filename)
+        write_grav3d_ubc(filename, data_object)
+        data_loaded = read_grav3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -66,8 +66,8 @@ class TestGravityIO(unittest.TestCase):
         data_object = Data(survey=self.survey, dobs=self.dobs)
         filename = "dpred.grv"
 
-        write_gravity_3d_ubc(filename, data_object)
-        data_loaded = read_gravity_3d_ubc(filename)
+        write_grav3d_ubc(filename, data_object)
+        data_loaded = read_grav3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -87,8 +87,8 @@ class TestGravityIO(unittest.TestCase):
         )
         filename = "dpred.grv"
 
-        write_gravity_3d_ubc(filename, data_object)
-        data_loaded = read_gravity_3d_ubc(filename)
+        write_grav3d_ubc(filename, data_object)
+        data_loaded = read_grav3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -136,8 +136,8 @@ class TestGravityGradiometryIO(unittest.TestCase):
         data_object = Data(survey=self.survey)
         filename = "survey.gg"
 
-        write_gravity_gradiometry_3d_ubc(filename, data_object)
-        data_loaded = read_gravity_gradiometry_3d_ubc(filename, "survey")
+        write_gg3d_ubc(filename, data_object)
+        data_loaded = read_gg3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -154,8 +154,8 @@ class TestGravityGradiometryIO(unittest.TestCase):
         data_object = Data(survey=self.survey, dobs=self.dobs)
         filename = "dpred.gg"
 
-        write_gravity_gradiometry_3d_ubc(filename, data_object)
-        data_loaded = read_gravity_gradiometry_3d_ubc(filename, "dpred")
+        write_gg3d_ubc(filename, data_object)
+        data_loaded = read_gg3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -177,8 +177,8 @@ class TestGravityGradiometryIO(unittest.TestCase):
         )
         filename = "dpred.gg"
 
-        write_gravity_gradiometry_3d_ubc(filename, data_object)
-        data_loaded = read_gravity_gradiometry_3d_ubc(filename, "dobs")
+        write_gg3d_ubc(filename, data_object)
+        data_loaded = read_gg3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -230,8 +230,8 @@ class TestMagneticsIO(unittest.TestCase):
         data_object = Data(survey=self.survey)
         filename = "survey.mag"
 
-        write_magnetics_3d_ubc(filename, data_object)
-        data_loaded = read_magnetics_3d_ubc(filename)
+        write_mag3d_ubc(filename, data_object)
+        data_loaded = read_mag3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -256,8 +256,8 @@ class TestMagneticsIO(unittest.TestCase):
         data_object = Data(survey=self.survey, dobs=self.dobs)
         filename = "dpred.mag"
 
-        write_magnetics_3d_ubc(filename, data_object)
-        data_loaded = read_magnetics_3d_ubc(filename)
+        write_mag3d_ubc(filename, data_object)
+        data_loaded = read_mag3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
@@ -285,8 +285,8 @@ class TestMagneticsIO(unittest.TestCase):
         )
         filename = "dpred.mag"
 
-        write_magnetics_3d_ubc(filename, data_object)
-        data_loaded = read_magnetics_3d_ubc(filename)
+        write_mag3d_ubc(filename, data_object)
+        data_loaded = read_mag3d_ubc(filename)
         os.remove(filename)
 
         passed = np.all(
