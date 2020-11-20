@@ -8,7 +8,19 @@ import os
 from .data_misfit import BaseDataMisfit
 from .objective_function import ComboObjectiveFunction
 from .maps import SphericalSystem, ComboMap
-from .regularization import BaseComboRegularization, BaseRegularization
+from .regularization import (
+    BaseComboRegularization, 
+    BaseRegularization,
+    SimpleSmall,
+    Small,
+    SparseSmall,
+    SimpleSmoothDeriv,
+    SmoothDeriv,
+    SparseDeriv,
+    Simple,
+    Tikhonov,
+    Sparse,
+)
 from .utils import (
     mkvc,
     setKwargs,

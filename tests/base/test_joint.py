@@ -75,8 +75,10 @@ class DataMisfitTest(unittest.TestCase):
         reg = regularization.Tikhonov(self.mesh)
         opt = optimization.InexactGaussNewton(maxIter=10)
         invProb = inverse_problem.BaseInvProblem(self.dmiscobmo, reg, opt)
-        directives_list = [directives.BetaEstimate_ByEig(beta0_ratio=1e-2)]
-        print(len(directives_list))
+        beta_estimate = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
+        alpha_estimate = directives.AlphasSmoothEstimate_ByEig(verbose=True)
+        dm_scaling_estimate = directives.ScalingMultipleDataMisfits_ByEig(verbose=True)
+        directives_list = [beta_estimate, alpha_estimate, dm_scaling_estimate]
         inv = inversion.BaseInversion(invProb, directiveList=directives_list)
         m0 = self.model.mean() * np.ones_like(self.model)
 
@@ -88,7 +90,10 @@ class DataMisfitTest(unittest.TestCase):
         reg = reg1 + reg2
         opt = optimization.InexactGaussNewton(maxIter=10)
         invProb = inverse_problem.BaseInvProblem(self.dmiscobmo, reg, opt)
-        directives_list = [directives.BetaEstimate_ByEig(beta0_ratio=1e-2)]
+        beta_estimate = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
+        alpha_estimate = directives.AlphasSmoothEstimate_ByEig(verbose=True)
+        dm_scaling_estimate = directives.ScalingMultipleDataMisfits_ByEig(verbose=True)
+        directives_list = [beta_estimate, alpha_estimate, dm_scaling_estimate]
         inv = inversion.BaseInversion(invProb, directiveList=directives_list)
         m0 = self.model.mean() * np.ones_like(self.model)
 
