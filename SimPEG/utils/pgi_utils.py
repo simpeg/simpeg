@@ -408,197 +408,6 @@ def make_SimplePGIwithRelationships_regularization(
     return reg
 
 
-def ComputeDistances(a, b):
-    """
-    Compute all the distances between two sets of datapoints in n-dimensions
-
-    Parameters
-    ----------
-    
-    :param numpy.ndarray a: sets of datapoints (one line, one point)
-    :param numpy.ndarray b: sets of datapoints (one line, one point)
-
-    Returns
-    -------
-
-    :param numpy.ndarray dis: table of all distances between 
-                        all points of a to all points of b
-    :param numpy.ndarray idx: index of dis for the closest 
-                        point of b for each point of a 
-    """
-
-    if a.ndim == 1:
-        x = mkvc(a, numDims=2)
-    else:
-        x = a
-    if b.ndim == 1:
-        y = mkvc(b, numDims=2)
-    else:
-        y = b
-
-    n, d = x.shape
-    t, d1 = y.shape
-
-    if not d == d1:
-        raise Exception("vectors must have same number of columns")
-
-    sq_dis = (
-        np.dot((x ** 2.0), np.ones([d, t]))
-        + np.dot(np.ones([n, d]), (y ** 2.0).T)
-        - 2.0 * np.dot(x, y.T)
-    )
-
-    idx = np.argmin(sq_dis, axis=1)
-
-    return sq_dis ** 0.5, idx
-
-
-def order_cluster(gmm, gmmref, outputindex=False):
-    """
-    Arrange the clusters of gmm in the same order as those of gmmref,
-    based on their relative similarities and priorizing first the most proeminent
-    clusters (highest proportions)
-
-    PARAMETERS
-    ----------
-
-    :param GaussianMixture gmm: Gaussian Mixture Model (GMM) to reorder.
-    :param GaussianMixture gmmref: reference GMM.
-    :param boolean outputindex: if True, return the ordering index for the clusters of gmm.
-                            Default is False.
-
-    RETURN
-    ------
-
-    :param numpy.ndarray indx: Optional, return the ordering index for the clusters of gmm
-
-    """
-    gmm.order_clusters_GM_weight()
-
-    idx_ref = np.ones(len(gmmref.means_), dtype=bool)
-
-    indx = []
-
-    for i in range(gmm.n_components):
-        dis = gmm._estimate_log_prob(
-            gmmref.means_[idx_ref].reshape([-1] + [d for d in gmmref.means_.shape[1:]])
-        )
-        id_dis = dis.argmax(axis=0)[i]
-        idrefmean = np.where(
-            np.all(gmmref.means_ == gmmref.means_[idx_ref][id_dis], axis=1)
-        )[0][0]
-        indx.append(idrefmean)
-        idx_ref[idrefmean] = False
-
-    gmm.means_ = gmm.means_[indx].reshape(gmm.means_.shape)
-
-    if gmm.weights_.ndim == 1:
-        gmm.weights_ = gmm.weights_[indx].reshape(gmm.weights_.shape)
-    else:
-        gmm.weights_ = gmm.weights_[:, indx].reshape(gmm.weights_.shape)
-
-    if gmm.covariance_type == "tied":
-        pass
-    else:
-        gmm.precisions_ = gmm.precisions_[indx].reshape(gmm.precisions_.shape)
-        gmm.covariances_ = gmm.covariances_[indx].reshape(gmm.covariances_.shape)
-    
-    gmm.precisions_cholesky_ = _compute_precision_cholesky(
-        gmm.covariances_, gmm.covariance_type
-    )
-
-    if outputindex:
-        return indx
-
-
-def update_gmm_with_priors(
-    gmm,
-    gmmref,
-    zeta,
-    nu,
-    kappa,
-    verbose=False,
-    update_covariances=True,
-    prior_type="semi",
-):
-
-    gmm.compute_clusters_precisions()
-    order_cluster(gmm, gmmref)
-
-    if verbose:
-        print("before update means: ", gmm.means_)
-        print("before update weights: ", gmm.weights_)
-        print("before update precisions: ", gmm.precisions_)
-
-    if gmm.weights_.ndim == 1:
-        weights_ = gmm.weights_
-    else:
-        weights_ = (np.c_[gmm.cell_volumes] * gmm.weights_).sum(axis=0) / (
-            np.c_[gmm.cell_volumes] * gmm.weights_
-        ).sum()
-
-    if gmmref.weights_.ndim == 1:
-        ref_weights_ = gmmref.weights_
-    else:
-        ref_weights_ = (np.c_[gmmref.cell_volumes] * gmmref.weights_).sum(axis=0) / (
-            np.c_[gmmref.cell_volumes] * gmmref.weights_
-        ).sum()
-
-    for k in range(gmm.n_components):
-        if prior_type == "full":
-            smu = (kappa[k] * weights_[k]) * ((gmmref.means_[k] - gmm.means_[k]) ** 2.0)
-            smu /= kappa[k] + weights_[k]
-            smu *= 1.0 / (weights_[k] + ref_weights_[k] * nu[k])
-
-        gmm.means_[k] = (1.0 / (weights_[k] + ref_weights_[k] * kappa[k])) * (
-            weights_[k] * gmm.means_[k] + ref_weights_[k] * kappa[k] * gmmref.means_[k]
-        )
-
-        if gmmref.covariance_type == "tied":
-            pass
-        elif update_covariances:
-            gmm.covariances_[k] = (1.0 / (weights_[k] + ref_weights_[k] * nu[k])) * (
-                weights_[k] * gmm.covariances_[k]
-                + ref_weights_[k] * nu[k] * gmmref.covariances_[k]
-            )
-
-            if prior_type == "full":
-                gmm.covariances_[k] += smu
-                print("full", smu)
-
-        else:
-            gmm.precisions_[k] = (1.0 / (weights_[k] + ref_weights_[k] * nu[k])) * (
-                weights_[k] * gmm.precisions_[k]
-                + ref_weights_[k] * nu[k] * gmmref.precisions_[k]
-            )
-
-    gmm.weights_ = (
-        (gmm.weights_ + zeta * gmmref.weights_).T
-        * (1.0 / (1.0 + np.sum((zeta * gmmref.weights_).T, axis=0)))
-    ).T
-
-    if gmmref.covariance_type == "tied":
-        if update_covariances:
-            gmm.covariances_ = (1.0 / (1.0 + np.sum(ref_weights_ * nu))) * (
-                gmm.covariances_ + np.sum(ref_weights_ * nu) * gmmref.covariances_
-            )
-            gmm.compute_clusters_precisions()
-        else:
-            gmm.precisions_ = (1.0 / (1.0 + np.sum(ref_weights_ * nu))) * (
-                gmm.precisions_ + np.sum(ref_weights_ * nu) * gmmref.precisions_
-            )
-            gmm.compute_clusters_covariances()
-    elif update_covariances:
-        gmm.compute_clusters_precisions()
-    else:
-        gmm.compute_clusters_covariances()
-
-
-    if verbose:
-        print("after update means: ", gmm.means_)
-        print("after update weights: ", gmm.weights_)
-        print("after update precisions: ", gmm.precisions_)
-
 ###############################################################################
 # Disclaimer: the following classes built upon the GaussianMixture class      #
 # from Scikit-Learn. New functionalitie are added, as well as modifications to#  
@@ -629,7 +438,6 @@ class WeightedGaussianMixture(GaussianMixture):
     :param discretize.BaseMesh (TensorMesh or QuadTree or Octree) mesh: the volume
         of the cells give each sample/observations its weight in the fitting proces
     :param numpy.ndarry actv: (optional) active cells index
-
     """
 
     def __init__(
@@ -774,6 +582,7 @@ class WeightedGaussianMixture(GaussianMixture):
 
     def _check_weights(self, weights, n_components, n_samples):
         """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
         Check the user provided 'weights'.
         Parameters
         ----------
@@ -815,7 +624,10 @@ class WeightedGaussianMixture(GaussianMixture):
         return weights
 
     def _check_parameters(self, X):
-        """Check the Gaussian mixture parameters are well defined."""
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        Check the Gaussian mixture parameters are well defined.
+        """
         n_samples, n_features = X.shape
         if self.covariance_type not in ["spherical", "tied", "diag", "full"]:
             raise ValueError(
@@ -843,7 +655,9 @@ class WeightedGaussianMixture(GaussianMixture):
             )
 
     def _initialize_parameters(self, X, random_state):
-        """Initialize the model parameters.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        Initialize the model parameters.
         Parameters
         ----------
         X : array-like, shape  (n_samples, n_features)
@@ -873,7 +687,9 @@ class WeightedGaussianMixture(GaussianMixture):
         self._initialize(X, resp)
 
     def _m_step(self, X, log_resp):
-        """M step.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        M step.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -895,7 +711,9 @@ class WeightedGaussianMixture(GaussianMixture):
             self.weights_ = weights
 
     def _estimate_gaussian_covariances_tied(self, resp, X, nk, means, reg_covar):
-        """Estimate the tied covariance matrix.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        Estimate the tied covariance matrix.
         Parameters
         ----------
         resp : array-like, shape (n_samples, n_components)
@@ -916,7 +734,9 @@ class WeightedGaussianMixture(GaussianMixture):
         return covariance
 
     def _estimate_gaussian_parameters(self, X, mesh, resp, reg_covar, covariance_type):
-        """Estimate the Gaussian distribution parameters.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        Estimate the Gaussian distribution parameters.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -949,7 +769,9 @@ class WeightedGaussianMixture(GaussianMixture):
         return nk, means, covariances
 
     def _e_step(self, X):
-        """E step.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        E step.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -965,7 +787,9 @@ class WeightedGaussianMixture(GaussianMixture):
         return np.average(log_prob_norm, weights=self.cell_volumes), log_resp
 
     def score(self, X, y=None):
-        """Compute the per-sample average log-likelihood of the given data X.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        Compute the per-sample average log-likelihood of the given data X.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_dimensions)
@@ -979,7 +803,9 @@ class WeightedGaussianMixture(GaussianMixture):
         return np.average(self.score_samples(X), weights=self.cell_volumes)
 
     def _estimate_log_gaussian_prob_with_sensW(self, X, sensW, means, precisions_chol, covariance_type):
-        """Estimate the log Gaussian probability.
+        """
+        [New function, modified from Scikit-Learn.mixture.gaussian_mixture._estimate_log_gaussian_prob]
+        Estimate the log Gaussian probability with depth or sensitivity weighting.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -1024,11 +850,16 @@ class WeightedGaussianMixture(GaussianMixture):
         return -.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
 
     def _estimate_log_prob_with_sensW(self, X, sensW):
+        """
+        [New function, modified from Scikit-Learn.mixture.gaussian_mixture._estimate_log_prob]
+        """
         return self._estimate_log_gaussian_prob_with_sensW(
             X, sensW, self.means_, self.precisions_cholesky_, self.covariance_type)
 
     def _estimate_weighted_log_prob_with_sensW(self, X, sensW):
-        """Estimate the weighted log-probabilities, log P(X | Z) + log weights.
+        """
+        [New function, modified from Scikit-Learn.mixture.gaussian_mixture._estimate_weighted_log_prob]
+        Estimate the weighted log-probabilities, log P(X | Z) + log weights.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -1039,7 +870,9 @@ class WeightedGaussianMixture(GaussianMixture):
         return self._estimate_log_prob_with_sensW(X, sensW) + self._estimate_log_weights()
 
     def score_samples_with_sensW(self, X, sensW):
-        """Compute the weighted log probabilities for each sample.
+        """
+        [New function, modified from Scikit-Learn.mixture.gaussian_mixture.score_samples]
+        Compute the weighted log probabilities for each sample.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -1057,6 +890,39 @@ class WeightedGaussianMixture(GaussianMixture):
 
 
 class GaussianMixtureWithPrior(WeightedGaussianMixture):
+    """
+    This class built upon the WeightedGaussianMixture, which itself built upon from
+    the mixture.gaussian_mixture.GaussianMixture class from Scikit-Learn. 
+    
+    In addition to weights samples/observations by the cells volume of the mesh,
+    this class uses a posterior approach to fit the GMM parameters. This means
+    it takes prior parameters, passed through `WeightedGaussianMixture` gmmref.
+    The prior distribution for each parameters (proportions, means, covariances) is
+    defined through a conjugate or semi-conjugate approach (prior_type), to the choice of the user.
+    See the book Murphy 2012, Machine Learning: A probabilistic perspective and the article
+    Astic & Oldenburg 2019: A framework for petrophysically and geologically guided geophysical inversion
+    (https://doi.org/10.1093/gji/ggz389) for more information.
+
+    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn. 
+    New functionalitie are added, as well as modifications to  
+    existing functions, to serve the purposes pursued within SimPEG.   
+    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)    
+    and we are grateful for their contributions to the open-source community.
+
+    Addtional parameters to provide, compared to `WeightedGaussianMixture`:
+
+    :param numpy.ndarray kappa: strength of the confidence in the prior means
+    :param numpy.ndarry nu: strength of the confidence in the prior covariances
+    :param numpy.ndarry zeta: strength of the confidence in the prior proportions
+    :param str prior_type: "semi": semi-conjugate prior, the means and covariances priors are indepedent
+                           "full": conjugate prior, the means and covariances priors are inter-depedent
+    :param bool update_covariances: True: semi or conjugate prior by averaging the covariances
+                                    False: alternative (not conjugate) prior: average the precisions instead
+    :param numpy.ndarray, dtype=int, shape=(index of the fixed cell, lithology index) fixed_membership: 
+        a 2d numpy.ndarray to fix the membership to a chosen lithology of particular cells. 
+        The first column contains the numeric index of the cells, the second column the respective lithology index.
+    """
+
     def __init__(
         self,
         gmmref,
@@ -1112,10 +978,152 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         )
         # setKwargs(self, **kwargs)
 
-    def fit(self, X, y=None):
+    def order_cluster(self, outputindex=False):
         """
-        MODIFIED FROM SCIKIT-LEARN FOR MAP ESTIMATE WITH PRIOR FOR EACH CLUSTER
-        Estimate model parameters with the EM algorithm.
+        Arrange the clusters of gmm in the same order as those of gmmref,
+        based on their relative similarities and priorizing first the most proeminent
+        clusters (highest proportions)
+        
+        PARAMETERS
+        ----------
+    
+        :param GaussianMixture gmm: Gaussian Mixture Model (GMM) to reorder.
+        :param GaussianMixture gmmref: reference GMM.
+        :param boolean outputindex: if True, return the ordering index for the clusters of gmm.
+                                Default is False.
+    
+        RETURN
+        ------
+    
+        :param numpy.ndarray indx: Optional, return the ordering index for the clusters of gmm
+    
+        """
+        self.order_clusters_GM_weight()
+    
+        idx_ref = np.ones(len(self.gmmref.means_), dtype=bool)
+    
+        indx = []
+    
+        for i in range(self.n_components):
+            dis = self._estimate_log_prob(
+                self.gmmref.means_[idx_ref].reshape([-1] + [d for d in self.gmmref.means_.shape[1:]])
+            )
+            id_dis = dis.argmax(axis=0)[i]
+            idrefmean = np.where(
+                np.all(self.gmmref.means_ == self.gmmref.means_[idx_ref][id_dis], axis=1)
+            )[0][0]
+            indx.append(idrefmean)
+            idx_ref[idrefmean] = False
+    
+        self.means_ = self.means_[indx].reshape(self.means_.shape)
+    
+        if self.weights_.ndim == 1:
+            self.weights_ = self.weights_[indx].reshape(self.weights_.shape)
+        else:
+            self.weights_ = self.weights_[:, indx].reshape(self.weights_.shape)
+    
+        if self.covariance_type == "tied":
+            pass
+        else:
+            self.precisions_ = self.precisions_[indx].reshape(self.precisions_.shape)
+            self.covariances_ = self.covariances_[indx].reshape(self.covariances_.shape)
+        
+        self.precisions_cholesky_ = _compute_precision_cholesky(
+            self.covariances_, self.covariance_type
+        )
+    
+        if outputindex:
+            return indx
+    
+
+    def update_gmm_with_priors(self, debug=False):
+        """
+        This function, inserted in the fit function, modify the Maximum Likelyhood Estimation (MLE)
+        of the GMM's parameters to a Maximum A Posteriori (MAP) estimation.
+        """
+
+        self.compute_clusters_precisions()
+        self.order_cluster()
+    
+        if debug:
+            print("before update means: ", self.means_)
+            print("before update weights: ", self.weights_)
+            print("before update precisions: ", self.precisions_)
+    
+        if self.weights_.ndim == 1:
+            weights_ = self.weights_
+        else:
+            weights_ = (np.c_[self.cell_volumes] * self.weights_).sum(axis=0) / (
+                np.c_[self.cell_volumes] * self.weights_
+            ).sum()
+    
+        if self.gmmref.weights_.ndim == 1:
+            ref_weights_ = self.gmmref.weights_
+        else:
+            ref_weights_ = (np.c_[self.gmmref.cell_volumes] * self.gmmref.weights_).sum(axis=0) / (
+                np.c_[self.gmmref.cell_volumes] * self.gmmref.weights_
+            ).sum()
+    
+        for k in range(self.n_components):
+            if self.prior_type == "full":
+                smu = (self.kappa[k] * weights_[k]) * ((self.gmmref.means_[k] - self.means_[k]) ** 2.0)
+                smu /= self.kappa[k] + weights_[k]
+                smu *= 1.0 / (weights_[k] + ref_weights_[k] * self.nu[k])
+    
+            self.means_[k] = (1.0 / (weights_[k] + ref_weights_[k] * self.kappa[k])) * (
+                weights_[k] * self.means_[k] + ref_weights_[k] * self.kappa[k] * self.gmmref.means_[k]
+            )
+    
+            if self.gmmref.covariance_type == "tied":
+                pass
+            elif self.update_covariances:
+                self.covariances_[k] = (1.0 / (weights_[k] + ref_weights_[k] * self.nu[k])) * (
+                    weights_[k] * self.covariances_[k]
+                    + ref_weights_[k] * self.nu[k] * self.gmmref.covariances_[k]
+                )
+    
+                if self.prior_type == "full":
+                    self.covariances_[k] += smu
+                    print("full", smu)
+    
+            else:
+                self.precisions_[k] = (1.0 / (weights_[k] + ref_weights_[k] * self.nu[k])) * (
+                    weights_[k] * self.precisions_[k]
+                    + ref_weights_[k] * self.nu[k] * self.gmmref.precisions_[k]
+                )
+    
+        self.weights_ = (
+            (self.weights_ + self.zeta * self.gmmref.weights_).T
+            * (1.0 / (1.0 + np.sum((self.zeta * self.gmmref.weights_).T, axis=0)))
+        ).T
+    
+        if self.gmmref.covariance_type == "tied":
+            if self.update_covariances:
+                self.covariances_ = (1.0 / (1.0 + np.sum(ref_weights_ * self.nu))) * (
+                    self.covariances_ + np.sum(ref_weights_ * self.nu) * self.gmmref.covariances_
+                )
+                self.compute_clusters_precisions()
+            else:
+                self.precisions_ = (1.0 / (1.0 + np.sum(ref_weights_ * self.nu))) * (
+                    self.precisions_ + np.sum(ref_weights_ * self.nu) * self.gmmref.precisions_
+                )
+                self.compute_clusters_covariances()
+        elif self.update_covariances:
+            self.compute_clusters_precisions()
+        else:
+            self.compute_clusters_covariances()
+    
+    
+        if debug:
+            print("after update means: ", self.means_)
+            print("after update weights: ", self.weights_)
+            print("after update precisions: ", self.precisions_)
+
+    
+    def fit(self, X, y=None, debug=False):
+        """
+        [modified from Scikit-Learn for Maximum A Posteriori estimates (MAP)]
+        Estimate model parameters with the MAP-EM algorithm.
         The method fit the model `n_init` times and set the parameters with
         which the model has the largest likelihood or lower bound. Within each
         trial, the method iterates between E-step and M-step for `max_iter`
@@ -1167,17 +1175,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                     log_resp[self.fixed_membership[:, 0]] = aux
 
                 self._m_step(X, log_resp)
-
-                update_gmm_with_priors(
-                    self,
-                    self.gmmref,
-                    zeta=self.zeta,
-                    nu=self.nu,
-                    kappa=self.kappa,
-                    verbose=self.verbose,
-                    update_covariances=self.update_covariances,
-                    prior_type=self.prior_type,
-                )
+                self.update_gmm_with_priors(debug=debug)
 
                 if self.fixed_membership is not None and self.weights_.ndim == 2:
                     # force local weights

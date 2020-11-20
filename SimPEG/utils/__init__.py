@@ -59,8 +59,6 @@ from .pgi_utils import (
     make_SimplePGI_regularization,
     make_PGI_regularization,
     make_SimplePGIwithRelationships_regularization,
-    ComputeDistances,
-    order_cluster,
     GaussianMixture,
     WeightedGaussianMixture,
     GaussianMixtureWithPrior,

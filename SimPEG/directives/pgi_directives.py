@@ -28,7 +28,6 @@ from ..regularization import (
 )
 from ..utils import (
     mkvc,
-    order_cluster,
     WeightedGaussianMixture,
     GaussianMixtureWithPrior,
     GaussianMixtureWithNonlinearRelationships,
