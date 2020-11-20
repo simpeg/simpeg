@@ -64,21 +64,23 @@ class DataMisfitTest(unittest.TestCase):
         self.dmis0 = data_misfit.L2DataMisfit(data=dobs0, simulation=simulation0)
         self.dmis1 = data_misfit.L2DataMisfit(data=dobs1, simulation=simulation1)
 
-        self.dmiscobmo = self.dmis0 + self.dmis1
+        self.dmiscombo = self.dmis0 + self.dmis1
 
     def test_multiDataMisfit(self):
         self.dmis0.test()
         self.dmis1.test()
-        self.dmiscobmo.test(x=self.model)
+        self.dmiscombo.test(x=self.model)
 
     def test_inv(self):
         reg = regularization.Tikhonov(self.mesh)
         opt = optimization.InexactGaussNewton(maxIter=10)
-        invProb = inverse_problem.BaseInvProblem(self.dmiscobmo, reg, opt)
-        beta_estimate = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
-        alpha_estimate = directives.AlphasSmoothEstimate_ByEig(verbose=True)
-        dm_scaling_estimate = directives.ScalingMultipleDataMisfits_ByEig(verbose=True)
-        directives_list = [beta_estimate, alpha_estimate, dm_scaling_estimate]
+        invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
+        directives_list = [
+            directives.ScalingMultipleDataMisfits_ByEig(verbose=True),
+            directives.AlphasSmoothEstimate_ByEig(verbose=True),
+            directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+            directives.BetaSchedule(),
+        ]
         inv = inversion.BaseInversion(invProb, directiveList=directives_list)
         m0 = self.model.mean() * np.ones_like(self.model)
 
@@ -88,12 +90,16 @@ class DataMisfitTest(unittest.TestCase):
         reg1 = regularization.Tikhonov(self.mesh)
         reg2 = regularization.Tikhonov(self.mesh)
         reg = reg1 + reg2
-        opt = optimization.InexactGaussNewton(maxIter=10)
-        invProb = inverse_problem.BaseInvProblem(self.dmiscobmo, reg, opt)
-        beta_estimate = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
-        alpha_estimate = directives.AlphasSmoothEstimate_ByEig(verbose=True)
-        dm_scaling_estimate = directives.ScalingMultipleDataMisfits_ByEig(verbose=True)
-        directives_list = [beta_estimate, alpha_estimate, dm_scaling_estimate]
+        opt = optimization.ProjectedGNCG(
+            maxIter=10, lower=-10, upper=10, maxIterLS=20, maxIterCG=50, tolCG=1e-4
+        )
+        invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
+        directives_list = [
+            directives.ScalingMultipleDataMisfits_ByEig(verbose=True),
+            directives.AlphasSmoothEstimate_ByEig(verbose=True),
+            directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
+            directives.BetaSchedule(),
+        ]
         inv = inversion.BaseInversion(invProb, directiveList=directives_list)
         m0 = self.model.mean() * np.ones_like(self.model)
 
