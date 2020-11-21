@@ -73,7 +73,7 @@ class DataMisfitTest(unittest.TestCase):
 
     def test_inv(self):
         reg = regularization.Tikhonov(self.mesh)
-        opt = optimization.InexactGaussNewton(maxIter=10, use_WolfeCurvature=True))
+        opt = optimization.InexactGaussNewton(maxIter=10, use_WolfeCurvature=True)
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
             directives.ScalingMultipleDataMisfits_ByEig(verbose=True),
