@@ -53,7 +53,7 @@ class RegularizationMesh(props.BaseSimPEG):
         :return: reduced cell volume
         """
         if getattr(self, "_vol", None) is None:
-            self._vol = self.Pac.T * self.mesh.vol
+            self._vol = self.Pac.T * self.mesh.cell_volumes
         return self._vol
 
     @property
@@ -116,7 +116,7 @@ class RegularizationMesh(props.BaseSimPEG):
                         self._Pafx = utils.speye(self.mesh.nFx)[:, indActive_Fx]
                     else:
                         indActive_Fx = (
-                            self.mesh._aveCC2FxStencil() * self.indActive
+                            self.mesh.average_cell_to_total_face_x() * self.indActive
                         ) >= 1
                         self._Pafx = utils.speye(self.mesh.ntFx)[:, indActive_Fx]
                 else:
@@ -145,7 +145,7 @@ class RegularizationMesh(props.BaseSimPEG):
                         self._Pafy = utils.speye(self.mesh.nFy)[:, indActive_Fy]
                     else:
                         indActive_Fy = (
-                            self.mesh._aveCC2FyStencil() * self.indActive
+                            self.mesh.average_cell_to_total_face_y() * self.indActive
                         ) >= 1
                         self._Pafy = utils.speye(self.mesh.ntFy)[:, indActive_Fy]
                 else:
@@ -173,7 +173,7 @@ class RegularizationMesh(props.BaseSimPEG):
                         self._Pafz = utils.speye(self.mesh.nFz)[:, indActive_Fz]
                     else:
                         indActive_Fz = (
-                            self.mesh._aveCC2FzStencil() * self.indActive
+                            self.mesh.average_cell_to_total_face_z() * self.indActive
                         ) >= 1
                         self._Pafz = utils.speye(self.mesh.ntFz)[:, indActive_Fz]
                 else:
@@ -222,7 +222,7 @@ class RegularizationMesh(props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fx = (
-                        self.Pafx.T * self.mesh._aveCC2FxStencil() * self.Pac
+                        self.Pafx.T * self.mesh.average_cell_to_total_face_x() * self.Pac
                     )
             else:
                 self._aveCC2Fx = (
@@ -270,7 +270,7 @@ class RegularizationMesh(props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fy = (
-                        self.Pafy.T * self.mesh._aveCC2FyStencil() * self.Pac
+                        self.Pafy.T * self.mesh.average_cell_to_total_face_y() * self.Pac
                     )
             else:
                 self._aveCC2Fy = (
@@ -318,7 +318,7 @@ class RegularizationMesh(props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fz = (
-                        self.Pafz.T * self.mesh._aveCC2FzStencil() * self.Pac
+                        self.Pafz.T * self.mesh.average_cell_to_total_face_z() * self.Pac
                     )
             else:
                 self._aveCC2Fz = (
@@ -410,7 +410,7 @@ class RegularizationMesh(props.BaseSimPEG):
         if getattr(self, "_cellDiffxStencil", None) is None:
 
             self._cellDiffxStencil = (
-                self.Pafx.T * self.mesh._cellGradxStencil * self.Pac
+                self.Pafx.T * self.mesh.stencil_cell_gradient_x * self.Pac
             )
         return self._cellDiffxStencil
 
@@ -428,7 +428,7 @@ class RegularizationMesh(props.BaseSimPEG):
         if getattr(self, "_cellDiffyStencil", None) is None:
 
             self._cellDiffyStencil = (
-                self.Pafy.T * self.mesh._cellGradyStencil * self.Pac
+                self.Pafy.T * self.mesh.stencil_cell_gradient_y * self.Pac
             )
         return self._cellDiffyStencil
 
@@ -446,7 +446,7 @@ class RegularizationMesh(props.BaseSimPEG):
         if getattr(self, "_cellDiffzStencil", None) is None:
 
             self._cellDiffzStencil = (
-                self.Pafz.T * self.mesh._cellGradzStencil * self.Pac
+                self.Pafz.T * self.mesh.stencil_cell_gradient_z * self.Pac
             )
         return self._cellDiffzStencil
 

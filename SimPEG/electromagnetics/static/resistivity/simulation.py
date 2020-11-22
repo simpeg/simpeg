@@ -328,7 +328,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
                 print(
                     "Homogeneous Dirichlet is the natural BC for this CC discretization."
                 )
-            self.Div = sdiag(self.mesh.vol) @ self.mesh.faceDiv
+            self.Div = sdiag(self.mesh.cell_volumes) @ self.mesh.faceDiv
             self.Grad = self.Div.T
 
         else:

@@ -187,7 +187,7 @@ class BaseEMSimulation(BaseSimulation):
     @property
     def Vol(self):
         if getattr(self, "_Vol", None) is None:
-            self._Vol = sdiag(self.mesh.vol)
+            self._Vol = sdiag(self.mesh.cell_volumes)
         return self._Vol
 
     ####################################################

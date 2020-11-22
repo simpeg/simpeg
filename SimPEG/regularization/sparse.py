@@ -90,7 +90,7 @@ class SparseSmall(BaseSparse):
             return utils.sdiag((self.scale * self.cell_weights) ** 0.5) * R
 
         else:
-            return utils.sdiag((self.scale * self.regmesh.vol) ** 0.5) * R
+            return utils.sdiag((self.scale * self.regmesh.cell_volumes) ** 0.5) * R
 
     def R(self, f_m):
         # if R is stashed, return that instead
@@ -193,7 +193,7 @@ class SparseDeriv(BaseSparse):
                 W = utils.sdiag((Ave * (self.scale * self.cell_weights)) ** 0.5) * R
 
             else:
-                W = utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5) * R
+                W = utils.sdiag((Ave * (self.scale * self.regmesh.cell_volumes)) ** 0.5) * R
 
             theta = self.cellDiffStencil * (self.mapping * f_m)
             dmdx = utils.mat_utils.coterminal(theta)
@@ -279,7 +279,7 @@ class SparseDeriv(BaseSparse):
                 W = utils.sdiag(((Ave * (self.scale * self.cell_weights))) ** 0.5) * R
 
             else:
-                W = utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5) * R
+                W = utils.sdiag((Ave * (self.scale * self.regmesh.cell_volumes)) ** 0.5) * R
 
             theta = self.cellDiffStencil * (self.mapping * model)
             dmdx = utils.mat_utils.coterminal(theta)
@@ -371,7 +371,7 @@ class SparseDeriv(BaseSparse):
             )
         else:
             return (
-                utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5)
+                utils.sdiag((Ave * (self.scale * self.regmesh.cell_volumes)) ** 0.5)
                 * R
                 * self.cellDiffStencil
             )

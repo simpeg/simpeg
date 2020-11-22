@@ -44,7 +44,7 @@ def run_inversion(
         reg.alpha_z = alpha_z
     else:
         reg = regularization.Sparse(
-            mesh, indActive=actind, mapping=regmap, cell_weights=mesh.vol[actind]
+            mesh, indActive=actind, mapping=regmap, cell_weights=mesh.cell_volumes[actind]
         )
         reg.alpha_s = alpha_s
         reg.alpha_x = alpha_x

@@ -136,9 +136,9 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                     Ftopo = NearestNDInterpolator(topo[:, :2], topo[:, 2])
                 elif method == "linear":
                     # Check if Topo points are inside of the mesh
-                    xmin, xmax = mesh.x0[0], mesh.hx.sum() + mesh.x0[0]
+                    xmin, xmax = mesh.x0[0], mesh.h[0].sum() + mesh.x0[0]
                     xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 0].max()
-                    ymin, ymax = mesh.x0[1], mesh.hy.sum() + mesh.x0[1]
+                    ymin, ymax = mesh.x0[1], mesh.h[1].sum() + mesh.x0[1]
                     yminTopo, ymaxTopo = topo[:, 1].min(), topo[:, 1].max()
                     if (
                         (xminTopo > xmin)
@@ -187,7 +187,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                     Ftopo = interp1d(topo[:, 0], topo[:, -1], kind="nearest")
                 elif method == "linear":
                     # Check if Topo points are inside of the mesh
-                    xmin, xmax = mesh.x0[0], mesh.hx.sum() + mesh.x0[0]
+                    xmin, xmax = mesh.x0[0], mesh.h[0].sum() + mesh.x0[0]
                     xminTopo, xmaxTopo = topo[:, 0].min(), topo[:, 0].max()
                     if (xminTopo > xmin) or (xmaxTopo < xmax):
                         # If not, use nearest neihbor to extrapolate them
@@ -247,7 +247,7 @@ def surface_layer_index(mesh, topo, index=0):
     inds = np.unique(inds)
 
     # Extract vertical neighbors from Gradz operator
-    Dz = mesh._cellGradzStencil
+    Dz = mesh._stencil_cell_gradient_z
     Iz, Jz, _ = sp.find(Dz)
     jz = np.sort(Jz[np.argsort(Iz)].reshape((int(Iz.shape[0] / 2), 2)), axis=1)
     for ii in range(index):

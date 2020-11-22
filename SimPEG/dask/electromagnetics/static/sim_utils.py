@@ -23,7 +23,7 @@ def create_tile_meshes(source_list,
     padding_distance = np.r_[np.c_[padLen, padLen],
                                  np.c_[padLen, padLen], np.c_[padLen, padLen]]
     # creating mesh using Discretize!
-    h = [base_mesh.hx.min(), base_mesh.hy.min(), base_mesh.hy.min()]
+    h = [base_mesh.h[0].min(), base_mesh.h[1].min(), base_mesh.h[2].min()]
     # create global mesh
     global_mesh = mesh_builder_xyz(
         global_electrodes, h,
@@ -164,7 +164,7 @@ def create_sub_simulations_old(source_list,
     # combine topo
     topo = np.vstack((dem, electrodes))
     # creating mesh using Discretize!
-    h = [base_mesh.hx.min(), base_mesh.hy.min(), base_mesh.hy.min()]
+    h = [base_mesh.h[0].min(), base_mesh.h[1].min(), base_mesh.h[1].min()]
 
     padding_distance = np.r_[np.c_[padLen, padLen],
                              np.c_[padLen, padLen], np.c_[padLen, padLen]]

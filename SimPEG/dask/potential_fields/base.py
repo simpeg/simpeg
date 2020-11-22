@@ -30,7 +30,7 @@ Sim.chunk_format = chunk_format
 def dask_linear_operator(self):
     self.nC = self.modelMap.shape[0]
 
-    hx, hy, hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
+    hx, hy, hz = self.mesh.h[0].min(), self.mesh.h[1].min(), self.mesh.h[2].min()
 
     n_data_comp = len(self.survey.components)
     components = np.array(list(self.survey.components.keys()))
@@ -112,7 +112,7 @@ def dask_linear_operator(self):
     elif self.store_sensitivities == "forward_only":
         # with ProgressBar():
         print("Forward calculation: ")
-        pred = stack @ self.model
+        pred = stack @ self.model.astype(np.float32)
         return pred
 
     with ProgressBar():

@@ -82,7 +82,7 @@ def dask_Jtvec(self, m, v, f=None):
     Sensitivity transposed times a vector
     """
 
-    Jtvec = da.dot(v, self.G)
+    Jtvec = da.dot(v.astype(np.float32), self.G)
     Jtjvec_dmudm = dask.delayed(csr.dot)(Jtvec, self.rhoDeriv)
     h_vec = da.from_delayed(
         Jtjvec_dmudm, dtype=float, shape=[self.rhoDeriv.shape[1]]

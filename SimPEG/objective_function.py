@@ -7,7 +7,7 @@ import numpy as np
 import scipy.sparse as sp
 from six import integer_types
 from dask.distributed import Client, get_client
-from discretize.Tests import checkDerivative
+from discretize.tests import checkDerivative
 
 from .maps import IdentityMap
 from .props import BaseSimPEG

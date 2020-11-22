@@ -14,7 +14,7 @@ def get1DEfields(m1d, sigma, freq, sourceAmp=1.0):
     G = m1d.nodalGrad
     # Mass matrices
     # Magnetic permeability
-    Mmu = sdiag(m1d.vol * (1.0 / mu_0))
+    Mmu = sdiag(m1d.cell_volumes * (1.0 / mu_0))
     # Conductivity
     Msig = m1d.getFaceInnerProduct(sigma)
     # Set up the solution matrix

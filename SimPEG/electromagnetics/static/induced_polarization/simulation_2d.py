@@ -144,7 +144,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
         """
         if getattr(self, "_MccRhoiDerivMat", None) is None:
             rho = self.rho
-            vol = self.mesh.vol
+            vol = self.mesh.volume
             drho_dlogrho = sdiag(rho) * self.etaDeriv
             self._MccRhoiDerivMat = sdiag(vol * (-1.0 / rho ** 2)) * drho_dlogrho
         return self._MccRhoiDerivMat
@@ -164,7 +164,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
             else:
                 return sdiag(u) * (self.MccRhoiDerivMat * v)
         else:
-            vol = self.mesh.vol
+            vol = self.mesh.volume
             rho = self.rho
             drho_dlogrho = sdiag(rho) * self.etaDeriv
             if adjoint:

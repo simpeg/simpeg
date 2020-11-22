@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from discretize.utils.interputils import interpmat
+from discretize.utils import interpmat
 
 from .mat_utils import (
     mkvc,

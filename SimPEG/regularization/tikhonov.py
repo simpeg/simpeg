@@ -124,7 +124,7 @@ class SimpleSmoothDeriv(BaseRegularization):
 
             W = utils.sdiag((Ave * (self.cell_weights)) ** 0.5) * W
         else:
-            W = utils.sdiag((Ave * self.regmesh.vol) ** 0.5) * W
+            W = utils.sdiag((Ave * self.regmesh.cell_volumes) ** 0.5) * W
 
         return W
 
@@ -266,8 +266,8 @@ class Small(BaseRegularization):
         Weighting matrix
         """
         if self.cell_weights is not None:
-            return utils.sdiag(np.sqrt(self.regmesh.vol * self.cell_weights))
-        return utils.sdiag(np.sqrt(self.regmesh.vol))
+            return utils.sdiag(np.sqrt(self.regmesh.cell_volumes * self.cell_weights))
+        return utils.sdiag(np.sqrt(self.regmesh.cell_volumes))
 
 
 class SmoothDeriv(BaseRegularization):
@@ -324,7 +324,7 @@ class SmoothDeriv(BaseRegularization):
         Weighting matrix that constructs the first spatial derivative stencil
         in the specified orientation
         """
-        vol = self.regmesh.vol.copy()
+        vol = self.regmesh.cell_volumes.copy()
         if self.cell_weights is not None:
             vol *= self.cell_weights
 
@@ -381,7 +381,7 @@ class SmoothDeriv2(BaseRegularization):
         Weighting matrix that takes the second spatial derivative in the
         specified orientation
         """
-        vol = self.regmesh.vol.copy()
+        vol = self.regmesh.cell_volumes.copy()
         if self.cell_weights is not None:
             vol *= self.cell_weights
 

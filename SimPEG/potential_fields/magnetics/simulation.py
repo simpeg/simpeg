@@ -677,7 +677,7 @@ class Simulation3DDifferential(BaseSimulation):
         Pbc, Pin, self._Pout = self.mesh.getBCProjWF("neumann", discretization="CC")
 
         Dface = self.mesh.faceDiv
-        Mc = sdiag(self.mesh.vol)
+        Mc = sdiag(self.mesh.cell_volumes)
         self._Div = Mc * Dface * Pin.T * Pin
 
     @property
@@ -851,7 +851,7 @@ class Simulation3DDifferential(BaseSimulation):
         dmu_dm = self.muDeriv
         # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
-        vol = self.mesh.vol
+        vol = self.mesh.cell_volumes
         Div = self._Div
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
@@ -927,7 +927,7 @@ class Simulation3DDifferential(BaseSimulation):
         dmu_dm = self.mapping.deriv(m)
         # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
-        vol = self.mesh.vol
+        vol = self.mesh.cell_volumes
         Div = self._Div
         Dface = self.mesh.faceDiv
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix

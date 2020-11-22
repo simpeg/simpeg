@@ -18,7 +18,7 @@ from scipy.constants import mu_0
 from scipy.sparse import csr_matrix as csr
 
 import properties
-from discretize.Tests import checkDerivative
+from discretize.tests import checkDerivative
 
 from .utils import (
     setKwargs,
@@ -132,7 +132,7 @@ class IdentityMap(properties.HasProperties):
 
             :param numpy.ndarray m: model
             :param kwargs: key word arguments of
-                           :meth:`discretize.Tests.checkDerivative`
+                           :meth:`discretize.tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
@@ -155,7 +155,7 @@ class IdentityMap(properties.HasProperties):
 
             :param numpy.ndarray m: model
             :param kwargs: key word arguments of
-                           :meth:`discretize.Tests.checkDerivative`
+                           :meth:`discretize.tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
@@ -3386,7 +3386,7 @@ class TileMap(IdentityMap):
 
             P = (
                 sp.csr_matrix(
-                    (self.global_mesh.vol, (in_local, np.arange(self.global_mesh.nC))),
+                    (self.global_mesh.cell_volumes, (in_local, np.arange(self.global_mesh.nC))),
                     shape=(self.local_mesh.nC, self.global_mesh.nC),
                 )
                 * speye(self.global_mesh.nC)[:, self.global_active]
@@ -3398,7 +3398,7 @@ class TileMap(IdentityMap):
 
             self._P = sp.block_diag(
                 [
-                    sdiag(1.0 / self.local_mesh.vol[self.local_active]) * P
+                    sdiag(1.0 / self.local_mesh.cell_volumes[self.local_active]) * P
                     for ii in range(self.components)
                 ]
             )

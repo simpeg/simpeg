@@ -792,7 +792,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         """
 
         n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
-        VI = sdiag(np.kron(np.ones(n), 1.0 / self.simulation.mesh.vol))
+        VI = sdiag(np.kron(np.ones(n), 1.0 / self.simulation.mesh.cell_volumes))
 
         j = self._edgeCurl.T * (self._MfMui * bSolution)
 

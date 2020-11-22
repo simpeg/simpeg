@@ -347,7 +347,7 @@ class Simulation3DDifferential(BaseSimulation):
 
         """
 
-        Mc = utils.sdiag(self.mesh.vol)
+        Mc = utils.sdiag(self.mesh.cell_volumes)
 
         self.model = m
         rho = self.rho
