@@ -8,6 +8,7 @@ def create_tile_meshes(
     topography,
     indices,
     base_mesh=None,
+    max_distance=np.inf,
     core_cells=[10, 10, 10],
     locations_refinement=[5, 5, 5],
     topography_refinement=[0, 0, 2],
@@ -41,6 +42,7 @@ def create_tile_meshes(
         local_mesh = refine_tree_xyz(
             local_mesh, locations[ind],
             method='surface', octree_levels=locations_refinement,
+            max_distance=max_distance,
             finalize=True
         )
         global_mesh.insert_cells(
