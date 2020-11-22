@@ -1,6 +1,5 @@
 import numpy as np
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz
-from SimPEG.utils import surface2ind_topo
+from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 from SimPEG.maps import TileMap
 
 
@@ -53,7 +52,7 @@ def create_tile_meshes(
         local_meshes.append(local_mesh)
 
     global_mesh.finalize()
-    global_active = surface2ind_topo(global_mesh, topography, method='linear')
+    global_active = active_from_xyz(global_mesh, topography, method='linear')
 
     # Cycle back to all local meshes and create tile maps
     local_maps = []
