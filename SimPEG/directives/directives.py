@@ -204,7 +204,7 @@ class BetaEstimate_ByEig(InversionDirective):
     """
     Estimate the trade-off parameter beta between the data misfit(s) and the
     regularization as a multiple of the ratio between the highest eigenvalue of the
-    data misfit term and the highest eigenvalue of the regularization. 
+    data misfit term and the highest eigenvalue of the regularization.
     The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
 
     """
@@ -212,7 +212,7 @@ class BetaEstimate_ByEig(InversionDirective):
     beta0_ratio = 1.  #: the estimated ratio is multplied by this to obtain beta
     n_pw_iter = 4     #: number of power iterations for estimation.
     seed = None       #: Random seed for the directive
-    
+
     def initialize(self):
         """
             The initial beta is calculated by comparing the estimated
@@ -250,10 +250,10 @@ class BetaEstimate_ByEig(InversionDirective):
             f = [f]
 
         dm_eigenvalue = eigenvalue_by_power_iteration(
-            self.dmisfit, m, fields_list=f, n_pw_iter=self.n_pw_iter, 
+            self.dmisfit, m, fields_list=f, n_pw_iter=self.n_pw_iter,
         )
         reg_eigenvalue = eigenvalue_by_power_iteration(
-            self.reg, m, fields_list=f, n_pw_iter=self.n_pw_iter, 
+            self.reg, m, fields_list=f, n_pw_iter=self.n_pw_iter,
         )
 
         self.ratio = (dm_eigenvalue / reg_eigenvalue)
@@ -283,7 +283,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
     """
     Estimate the alphas multpliers for the smoothness terms of the regularization
      as a multiple of the ratio between the highest eigenvalue of the
-    smallness term and the highest eigenvalue of each smoothness term of the regularization. 
+    smallness term and the highest eigenvalue of each smoothness term of the regularization.
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
 
@@ -299,7 +299,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        
+
         if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
             nbr = np.sum(
                 [
@@ -398,7 +398,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
         elif mode == 1:
             smallness_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg.objfcts[smallness[0]].objfcts[smallness[1]], 
+                self.reg.objfcts[smallness[0]].objfcts[smallness[1]],
                 m, n_pw_iter=self.n_pw_iter,
             )
             for i in range(nbr):
@@ -406,13 +406,13 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 if smoothness[i, 2]:
                     idx = smoothness[i, :2]
                     smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-                        self.reg.objfcts[idx[0]].objfcts[idx[1]], 
+                        self.reg.objfcts[idx[0]].objfcts[idx[1]],
                         m, n_pw_iter=self.n_pw_iter,
                     )
 
                     ratio = np.divide(
-                        smallness_eigenvalue, smooth_i_eigenvalue, 
-                        out=np.zeros_like(smallness_eigenvalue), 
+                        smallness_eigenvalue, smooth_i_eigenvalue,
+                        out=np.zeros_like(smallness_eigenvalue),
                         where=smooth_i_eigenvalue != 0
                     )
 
@@ -433,9 +433,9 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
 class ScalingMultipleDataMisfits_ByEig(InversionDirective):
     """
-    For multiple data misfits only: multiply each data misfit term 
-    by the inverse of its highest eigenvalue and then 
-    normalize the sum of the data misfit multipliers to one. 
+    For multiple data misfits only: multiply each data misfit term
+    by the inverse of its highest eigenvalue and then
+    normalize the sum of the data misfit multipliers to one.
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
 
@@ -470,13 +470,13 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
-        
+
         dm_eigenvalue_list = []
         for j, dm in enumerate(self.dmisfit.objfcts):
             dm_eigenvalue_list += [eigenvalue_by_power_iteration(
                 dm, m, fields_list=[f[j]]
             )]
-            
+
         self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]
         self.chi0 = self.chi0 / np.sum(self.chi0)
         self.dmisfit.multipliers = self.chi0
@@ -492,7 +492,7 @@ class JointScalingSchedule(InversionDirective):
     mode = 1
     chimax = 1e10
     chimin = 1e-10
-    UpdateRate = 1
+    update_rate = 1
 
     def initialize(self):
 
@@ -522,7 +522,7 @@ class JointScalingSchedule(InversionDirective):
         else:
             self.mode = 1
 
-        if self.opt.iter > 0 and self.opt.iter % self.UpdateRate == 0:
+        if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
 
             if self.mode == 2:
 

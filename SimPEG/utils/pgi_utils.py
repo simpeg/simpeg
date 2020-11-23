@@ -51,19 +51,19 @@ def make_SimplePGI_regularization(
     **kwargs
 ):
     """
-    Create a complete SimplePGI regularization term ComboObjectiveFunction with all 
-    necessary smallness and smoothness terms for any number of physical properies 
+    Create a complete SimplePGI regularization term ComboObjectiveFunction with all
+    necessary smallness and smoothness terms for any number of physical properties
     and associated mapping.
 
     Parameters
     ----------
 
-    :param TensorMesh or TreeMesh mesh: TensorMesh or Treemesh object, used to weights 
-                        the physical properties by cell volumes when updating the 
+    :param TensorMesh or TreeMesh mesh: TensorMesh or Treemesh object, used to weights
+                        the physical properties by cell volumes when updating the
                         Gaussian Mixture Model (GMM)
     :param WeightedGaussianMixture gmmref: reference GMM.
-    :param WeightedGaussianMixture gmm: Initial GMM. If not provided, gmmref is used. 
-    :param Wires wiresmap: Wires map to obtain the various physical properties from the model. 
+    :param WeightedGaussianMixture gmm: Initial GMM. If not provided, gmmref is used.
+    :param Wires wiresmap: Wires map to obtain the various physical properties from the model.
                         Optional for single physical property inversion. Required for multi-
                         physical properties inversion.
     :param list maplist: List of mapping for each physical property. Default is the IdentityMap for all.
@@ -79,11 +79,11 @@ def make_SimplePGI_regularization(
                         Smoothness terms in Y-direction for each physical property.
     :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 1st-derivative
                         Smoothness terms in Z-direction for each physical property.
-    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 2nd-derivatibe 
+    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 2nd-derivatibe
                         Smoothness terms in X-direction for each physical property.
-    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 2nd-derivatibe 
+    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 2nd-derivatibe
                         Smoothness terms in Y-direction for each physical property.
-    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 2nd-derivatibe 
+    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 2nd-derivatibe
                         Smoothness terms in Z-direction for each physical property.
 
 
@@ -176,19 +176,19 @@ def make_PGI_regularization(
     **kwargs
 ):
     """
-    Create a complete PGI regularization term ComboObjectiveFunction with all 
-    necessary smallness and smoothness terms for any number of physical properies 
+    Create a complete PGI regularization term ComboObjectiveFunction with all
+    necessary smallness and smoothness terms for any number of physical properties
     and associated mapping.
 
     Parameters
     ----------
 
-    :param TensorMesh or TreeMesh mesh: TensorMesh or Treemesh object, used to weights 
-                        the physical properties by cell volumes when updating the 
+    :param TensorMesh or TreeMesh mesh: TensorMesh or Treemesh object, used to weights
+                        the physical properties by cell volumes when updating the
                         Gaussian Mixture Model (GMM)
     :param WeightedGaussianMixture gmmref: reference GMM.
-    :param WeightedGaussianMixture gmm: Initial GMM. If not provided, gmmref is used. 
-    :param Wires wiresmap: Wires map to obtain the various physical properties from the model. 
+    :param WeightedGaussianMixture gmm: Initial GMM. If not provided, gmmref is used.
+    :param Wires wiresmap: Wires map to obtain the various physical properties from the model.
                         Optional for single physical property inversion. Required for multi-
                         physical properties inversion.
     :param list maplist: List of mapping for each physical property. Default is the IdentityMap for all.
@@ -204,18 +204,18 @@ def make_PGI_regularization(
                         Smoothness terms in Y-direction for each physical property.
     :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 1st-derivative
                         Smoothness terms in Z-direction for each physical property.
-    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 2nd-derivatibe 
+    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 2nd-derivatibe
                         Smoothness terms in X-direction for each physical property.
-    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 2nd-derivatibe 
+    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 2nd-derivatibe
                         Smoothness terms in Y-direction for each physical property.
-    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 2nd-derivatibe 
+    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 2nd-derivatibe
                         Smoothness terms in Z-direction for each physical property.
 
 
     Returns
     -------
 
-    :param SimPEG.objective_function.ComboObjectiveFunction reg: Full regularization with PGIsmallness 
+    :param SimPEG.objective_function.ComboObjectiveFunction reg: Full regularization with PGIsmallness
                         and smoothness terms for all physical properties in all direction.
     """
 
@@ -301,19 +301,19 @@ def make_SimplePGIwithRelationships_regularization(
     **kwargs
 ):
     """
-    Create a complete PGI, with nonlinear relationships, regularization term ComboObjectiveFunction with all 
-    necessary smallness and smoothness terms for any number of physical properies 
+    Create a complete PGI, with nonlinear relationships, regularization term ComboObjectiveFunction with all
+    necessary smallness and smoothness terms for any number of physical properties
     and associated mapping.
 
     Parameters
     ----------
 
-    :param TensorMesh or TreeMesh mesh: TensorMesh or Treemesh object, used to weights 
-                        the physical properties by cell volumes when updating the 
+    :param TensorMesh or TreeMesh mesh: TensorMesh or Treemesh object, used to weights
+                        the physical properties by cell volumes when updating the
                         Gaussian Mixture Model (GMM)
     :param WeightedGaussianMixture gmmref: reference GMM.
-    :param WeightedGaussianMixture gmm: Initial GMM. If not provided, gmmref is used. 
-    :param Wires wiresmap: Wires map to obtain the various physical properties from the model. 
+    :param WeightedGaussianMixture gmm: Initial GMM. If not provided, gmmref is used.
+    :param Wires wiresmap: Wires map to obtain the various physical properties from the model.
                         Optional for single physical property inversion. Required for multi-
                         physical properties inversion.
     :param list maplist: List of mapping for each physical property. Default is the IdentityMap for all.
@@ -329,19 +329,19 @@ def make_SimplePGIwithRelationships_regularization(
                         Smoothness terms in Y-direction for each physical property.
     :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 1st-derivative
                         Smoothness terms in Z-direction for each physical property.
-    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 2nd-derivatibe 
+    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 2nd-derivatibe
                         Smoothness terms in X-direction for each physical property.
-    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 2nd-derivatibe 
+    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 2nd-derivatibe
                         Smoothness terms in Y-direction for each physical property.
-    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 2nd-derivatibe 
+    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 2nd-derivatibe
                         Smoothness terms in Z-direction for each physical property.
 
 
     Returns
     -------
 
-    :param SimPEG.objective_function.ComboObjectiveFunction reg: Full regularization with 
-                        SimplePGIwithRelationshipsSmallness and smoothness terms 
+    :param SimPEG.objective_function.ComboObjectiveFunction reg: Full regularization with
+                        SimplePGIwithRelationshipsSmallness and smoothness terms
                         for all physical properties in all direction.
     """
 
@@ -410,7 +410,7 @@ def make_SimplePGIwithRelationships_regularization(
 
 ###############################################################################
 # Disclaimer: the following classes built upon the GaussianMixture class      #
-# from Scikit-Learn. New functionalitie are added, as well as modifications to#  
+# from Scikit-Learn. New functionalitie are added, as well as modifications to#
 # existing functions, to serve the purposes pursued within SimPEG.            #
 # This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)    #
 # and we are grateful for their contributions to the open-source community.   #                                                   #
@@ -418,19 +418,19 @@ def make_SimplePGIwithRelationships_regularization(
 
 class WeightedGaussianMixture(GaussianMixture):
     """
-    This class upon the GaussianMixture class from Scikit-Learn. 
+    This class upon the GaussianMixture class from Scikit-Learn.
     Two main modifications:
-        1: Each sample/observation is given a weight, the volume of the 
-        corresponding discretize.BaseMesh cell, when fitting the 
+        1: Each sample/observation is given a weight, the volume of the
+        corresponding discretize.BaseMesh cell, when fitting the
         Gaussian Mixture Model (GMM). More volume gives more importance, ensuing a
         mesh-free evaluation of the clusters of the geophysical model.
         2: When set manually, the proportions can be set either globally (normal behavior)
         or cell-by-cell (improvements)
 
-    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn. 
-    New functionalitie are added, as well as modifications to  
-    existing functions, to serve the purposes pursued within SimPEG.   
-    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)    
+    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
+    New functionalitie are added, as well as modifications to
+    existing functions, to serve the purposes pursued within SimPEG.
+    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
     and we are grateful for their contributions to the open-source community.
 
     Addtional parameters to provide, compared to sklearn.mixture.gaussian_mixture:
@@ -527,10 +527,18 @@ class WeightedGaussianMixture(GaussianMixture):
         self.precisions_cholesky_ = _compute_precision_cholesky(
                 self.covariances_, self.covariance_type
         )
-    
+
     def order_clusters_GM_weight(self, outputindex=False):
         """
-        order clusters by increasing means (1D GMM only)
+        order clusters by decreasing weights
+
+        PARAMETERS
+        ----------
+        :param bool outputindex: if True, return the sorting index
+
+        RETURN
+        ------
+        :return np.ndarray indx: sorting index
         """
         if self.weights_.ndim == 1:
             indx = np.argsort(self.weights_, axis=0)[::-1]
@@ -540,32 +548,6 @@ class WeightedGaussianMixture(GaussianMixture):
             self.weights_ = self.weights_[:, indx].reshape(self.weights_.shape)
 
         self.means_ = self.means_[indx].reshape(self.means_.shape)
-
-        if self.covariance_type == "tied":
-            pass
-        else:
-            self.precisions_ = self.precisions_[indx].reshape(self.precisions_.shape)
-            self.covariances_ = self.covariances_[indx].reshape(self.covariances_.shape)
-
-        self.precisions_cholesky_ = _compute_precision_cholesky(
-            self.covariances_, self.covariance_type
-        )
-
-        if outputindex:
-            return indx
-
-    def order_clusters_GM_mean(self, outputindex=False):
-        """
-        order clusters by increasing mean
-        """
-
-        indx = np.argsort(self.means_, axis=0)[::-1]
-        self.means_ = self.means_[indx].reshape(self.means_.shape)
-
-        if self.weights_.ndim == 1:
-            self.weights_ = self.weights_[indx].reshape(self.weights_.shape)
-        else:
-            self.weights_ = self.weights_[:, indx].reshape(self.weights_.shape)
 
         if self.covariance_type == "tied":
             pass
@@ -846,7 +828,7 @@ class WeightedGaussianMixture(GaussianMixture):
                 prec_chol_mat = np.eye(n_components) * prec_chol
                 y = np.dot(X * sensW, prec_chol_mat) - np.dot(mu * sensW, prec_chol_mat)
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
-        
+
         return -.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
 
     def _estimate_log_prob_with_sensW(self, X, sensW):
@@ -892,8 +874,8 @@ class WeightedGaussianMixture(GaussianMixture):
 class GaussianMixtureWithPrior(WeightedGaussianMixture):
     """
     This class built upon the WeightedGaussianMixture, which itself built upon from
-    the mixture.gaussian_mixture.GaussianMixture class from Scikit-Learn. 
-    
+    the mixture.gaussian_mixture.GaussianMixture class from Scikit-Learn.
+
     In addition to weights samples/observations by the cells volume of the mesh,
     this class uses a posterior approach to fit the GMM parameters. This means
     it takes prior parameters, passed through `WeightedGaussianMixture` gmmref.
@@ -903,10 +885,10 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
     Astic & Oldenburg 2019: A framework for petrophysically and geologically guided geophysical inversion
     (https://doi.org/10.1093/gji/ggz389) for more information.
 
-    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn. 
-    New functionalitie are added, as well as modifications to  
-    existing functions, to serve the purposes pursued within SimPEG.   
-    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)    
+    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
+    New functionalitie are added, as well as modifications to
+    existing functions, to serve the purposes pursued within SimPEG.
+    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
     and we are grateful for their contributions to the open-source community.
 
     Addtional parameters to provide, compared to `WeightedGaussianMixture`:
@@ -918,8 +900,8 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                            "full": conjugate prior, the means and covariances priors are inter-depedent
     :param bool update_covariances: True: semi or conjugate prior by averaging the covariances
                                     False: alternative (not conjugate) prior: average the precisions instead
-    :param numpy.ndarray, dtype=int, shape=(index of the fixed cell, lithology index) fixed_membership: 
-        a 2d numpy.ndarray to fix the membership to a chosen lithology of particular cells. 
+    :param numpy.ndarray, dtype=int, shape=(index of the fixed cell, lithology index) fixed_membership:
+        a 2d numpy.ndarray to fix the membership to a chosen lithology of particular cells.
         The first column contains the numeric index of the cells, the second column the respective lithology index.
     """
 
@@ -983,27 +965,27 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         Arrange the clusters of gmm in the same order as those of gmmref,
         based on their relative similarities and priorizing first the most proeminent
         clusters (highest proportions)
-        
+
         PARAMETERS
         ----------
-    
+
         :param GaussianMixture gmm: Gaussian Mixture Model (GMM) to reorder.
         :param GaussianMixture gmmref: reference GMM.
         :param boolean outputindex: if True, return the ordering index for the clusters of gmm.
                                 Default is False.
-    
+
         RETURN
         ------
-    
+
         :param numpy.ndarray indx: Optional, return the ordering index for the clusters of gmm
-    
+
         """
         self.order_clusters_GM_weight()
-    
+
         idx_ref = np.ones(len(self.gmmref.means_), dtype=bool)
-    
+
         indx = []
-    
+
         for i in range(self.n_components):
             dis = self._estimate_log_prob(
                 self.gmmref.means_[idx_ref].reshape([-1] + [d for d in self.gmmref.means_.shape[1:]])
@@ -1014,27 +996,27 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
             )[0][0]
             indx.append(idrefmean)
             idx_ref[idrefmean] = False
-    
+
         self.means_ = self.means_[indx].reshape(self.means_.shape)
-    
+
         if self.weights_.ndim == 1:
             self.weights_ = self.weights_[indx].reshape(self.weights_.shape)
         else:
             self.weights_ = self.weights_[:, indx].reshape(self.weights_.shape)
-    
+
         if self.covariance_type == "tied":
             pass
         else:
             self.precisions_ = self.precisions_[indx].reshape(self.precisions_.shape)
             self.covariances_ = self.covariances_[indx].reshape(self.covariances_.shape)
-        
+
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type
         )
-    
+
         if outputindex:
             return indx
-    
+
 
     def update_gmm_with_priors(self, debug=False):
         """
@@ -1044,36 +1026,36 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
         self.compute_clusters_precisions()
         self.order_cluster()
-    
+
         if debug:
             print("before update means: ", self.means_)
             print("before update weights: ", self.weights_)
             print("before update precisions: ", self.precisions_)
-    
+
         if self.weights_.ndim == 1:
             weights_ = self.weights_
         else:
             weights_ = (np.c_[self.cell_volumes] * self.weights_).sum(axis=0) / (
                 np.c_[self.cell_volumes] * self.weights_
             ).sum()
-    
+
         if self.gmmref.weights_.ndim == 1:
             ref_weights_ = self.gmmref.weights_
         else:
             ref_weights_ = (np.c_[self.gmmref.cell_volumes] * self.gmmref.weights_).sum(axis=0) / (
                 np.c_[self.gmmref.cell_volumes] * self.gmmref.weights_
             ).sum()
-    
+
         for k in range(self.n_components):
             if self.prior_type == "full":
                 smu = (self.kappa[k] * weights_[k]) * ((self.gmmref.means_[k] - self.means_[k]) ** 2.0)
                 smu /= self.kappa[k] + weights_[k]
                 smu *= 1.0 / (weights_[k] + ref_weights_[k] * self.nu[k])
-    
+
             self.means_[k] = (1.0 / (weights_[k] + ref_weights_[k] * self.kappa[k])) * (
                 weights_[k] * self.means_[k] + ref_weights_[k] * self.kappa[k] * self.gmmref.means_[k]
             )
-    
+
             if self.gmmref.covariance_type == "tied":
                 pass
             elif self.update_covariances:
@@ -1081,22 +1063,22 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                     weights_[k] * self.covariances_[k]
                     + ref_weights_[k] * self.nu[k] * self.gmmref.covariances_[k]
                 )
-    
+
                 if self.prior_type == "full":
                     self.covariances_[k] += smu
                     print("full", smu)
-    
+
             else:
                 self.precisions_[k] = (1.0 / (weights_[k] + ref_weights_[k] * self.nu[k])) * (
                     weights_[k] * self.precisions_[k]
                     + ref_weights_[k] * self.nu[k] * self.gmmref.precisions_[k]
                 )
-    
+
         self.weights_ = (
             (self.weights_ + self.zeta * self.gmmref.weights_).T
             * (1.0 / (1.0 + np.sum((self.zeta * self.gmmref.weights_).T, axis=0)))
         ).T
-    
+
         if self.gmmref.covariance_type == "tied":
             if self.update_covariances:
                 self.covariances_ = (1.0 / (1.0 + np.sum(ref_weights_ * self.nu))) * (
@@ -1112,14 +1094,14 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
             self.compute_clusters_precisions()
         else:
             self.compute_clusters_covariances()
-    
-    
+
+
         if debug:
             print("after update means: ", self.means_)
             print("after update weights: ", self.weights_)
             print("after update precisions: ", self.precisions_)
 
-    
+
     def fit(self, X, y=None, debug=False):
         """
         [modified from Scikit-Learn for Maximum A Posteriori estimates (MAP)]
@@ -1216,6 +1198,27 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
 
 class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
+    """
+    This class built upon the WeightedGaussianMixture, which itself built upon from
+    the mixture.gaussian_mixture.GaussianMixture class from Scikit-Learn.
+
+    In addition to weights samples/observations by the cells volume of the mesh,
+    this class can be given specified nonlinear relationships between physical properties.
+    (polynomial etc.) Those nonlinear relationships are given in the form of a
+    list of mapping (cluster_mapping argument). Functions are added and modified
+    to fill that purpose, in particular the `fit` and  `samples` functions.
+
+    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
+    New functionalitie are added, as well as modifications to
+    existing functions, to serve the purposes pursued within SimPEG.
+    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
+    and we are grateful for their contributions to the open-source community.
+
+    Addtional parameters to provide, compared to `WeightedGaussianMixture`:
+
+    :param list cluster_mapping (n_components, ): list of mapping describing
+        a nonlinear relationships between physical properties; one per cluster/unit.
+    """
     def __init__(
         self,
         mesh,
@@ -1261,7 +1264,9 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         )
 
     def _initialize(self, X, resp):
-        """Initialization of the Gaussian mixture parameters.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        Initialization of the Gaussian mixture parameters.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -1300,7 +1305,9 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
     def _estimate_log_gaussian_prob(
         self, X, means, precisions_chol, covariance_type, cluster_mapping
     ):
-        """Estimate the log Gaussian probability.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        Estimate the log Gaussian probability.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -1350,6 +1357,9 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         return -0.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
 
     def _estimate_log_prob(self, X):
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        """
         return self._estimate_log_gaussian_prob(
             X,
             self.means_,
@@ -1359,7 +1369,9 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         )
 
     def _estimate_gaussian_parameters(self, X, resp, reg_covar, covariance_type):
-
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        """
         nk = resp.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
         # stupid lazy piece of junk code to get the shapes right
         means = np.dot(resp.T, X) / nk[:, np.newaxis]
@@ -1389,7 +1401,10 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
     # TODOs: Still not working because of inverse mapping not implemented
     def sample(self, n_samples=1):
-        """Generate random samples from the fitted Gaussian distribution.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        Generate random samples from the fitted Gaussian distribution
+        with nonlinear relationships.
 
         Parameters
         ----------
@@ -1456,7 +1471,9 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         return (X, y)
 
     def _m_step(self, X, log_resp):
-        """M step.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        M step.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -1479,6 +1496,34 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
 
 class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrior):
+    """
+    This class built upon the `GaussianMixtureWithPrior`, which itself built upon from
+    the `WeightedGaussianMixture`, built up from the
+    mixture.gaussian_mixture.GaussianMixture class from Scikit-Learn.
+
+    In addition to weights samples/observations by the cells volume of the mesh
+    (from `WeightedGaussianMixture`), and nonlinear relationships for each cluster
+    (from `GaussianMixtureWithNonlinearRelationships`), this class uses a
+    posterior approach to fit the GMM parameters (from `GaussianMixtureWithPrior`).
+    It takes prior parameters, passed through `WeightedGaussianMixture` gmmref.
+    The prior distribution for each parameters (proportions, means, covariances) is
+    defined through a conjugate or semi-conjugate approach (prior_type), to the choice of the user.
+    See the book Murphy 2012, Machine Learning: A probabilistic perspective and the article
+    Astic & Oldenburg 2019: A framework for petrophysically and geologically guided geophysical inversion
+    (https://doi.org/10.1093/gji/ggz389) for more information.
+
+    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
+    New functionalitie are added, as well as modifications to
+    existing functions, to serve the purposes pursued within SimPEG.
+    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
+    and we are grateful for their contributions to the open-source community.
+
+    Addtional parameters to provide, compared to `GaussianMixtureWithPrior`:
+
+    :param list cluster_mapping (n_components, ): list of mapping describing
+        a nonlinear relationships between physical properties; one per cluster/unit.
+
+    """
     def __init__(
         self,
         gmmref,
@@ -1531,7 +1576,9 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
         )
 
     def _initialize(self, X, resp):
-        """Initialization of the Gaussian mixture parameters.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        Initialization of the Gaussian mixture parameters.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -1570,7 +1617,9 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
     def _estimate_log_gaussian_prob(
         self, X, means, precisions_chol, covariance_type, cluster_mapping
     ):
-        """Estimate the log Gaussian probability.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        Estimate the log Gaussian probability.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -1582,6 +1631,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
             'diag' : shape of (n_components, n_features)
             'spherical' : shape of (n_components,)
         covariance_type : {'full', 'tied', 'diag', 'spherical'}
+        cluster_mapping: list of mapping of length (n_components,)
         Returns
         -------
         log_prob : array, shape (n_samples, n_components)
@@ -1630,7 +1680,9 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
         )
 
     def _estimate_gaussian_parameters(self, X, resp, reg_covar, covariance_type):
-
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        """
         nk = resp.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
         # stupid lazy piece of junk code to get the shapes right
         means = np.dot(resp.T, X) / nk[:, np.newaxis]
@@ -1659,7 +1711,9 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
         return nk, means, covariances
 
     def _m_step(self, X, log_resp):
-        """M step.
+        """
+        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        M step.
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)

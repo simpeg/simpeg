@@ -39,12 +39,21 @@ from ..utils.code_utils import deprecate_property
 
 
 class PGI_UpdateParameters(InversionDirective):
+    """
+    This directive is to be used with regularization from regularization.pgi.
+    It updates:
+        - the reference model and weights in the smallness (L2-approximation of PGI)
+        - the GMM as a MAP estimate between the prior and the current model
+    For more details, please consult:
+     - https://doi.org/10.1093/gji/ggz389
+    """
 
-    verbose = False  # print info. at each iteration
-    update_gmm = True  # update GMM
-    zeta = 1e10  # default: keep GMM fixed
-    nu = 1e10  # default: keep GMM fixed
-    kappa = 1e10  # default: keep GMM fixed
+    verbose = False  # print info.  about the GMM at each iteration
+    update_rate = 1 # updates at each `update_rate` iterations
+    update_gmm = True  # update the GMM
+    zeta = 1e10  # confidence in the prior proportions; default: high value, keep GMM fixed
+    nu = 1e10  # confidence in the prior covariances; default: high value, keep GMM fixed
+    kappa = 1e10  # confidence in the prior means;default: high value, keep GMM fixed
     update_covariances = (
         True  # Average the covariances, If false: average the precisions
     )
@@ -77,97 +86,102 @@ class PGI_UpdateParameters(InversionDirective):
             self.pgi_reg = self.invProb.reg
 
     def endIter(self):
+        if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
+            m = self.invProb.model
+            modellist = self.pgi_reg.wiresmap * m
+            model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
 
-        m = self.invProb.model
-        modellist = self.pgi_reg.wiresmap * m
-        model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
+            if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
+                self.fixed_membership = np.c_[
+                    np.arange(len(self.pgi_reg.gmmref.cell_volumes)),
+                    self.pgi_reg.membership(self.pgi_reg.mref),
+                    ]
 
-        if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
-            self.fixed_membership = np.c_[
-                np.arange(len(self.pgi_reg.gmmref.cell_volumes)),
-                self.pgi_reg.membership(self.pgi_reg.mref),
-            ]
+            if (self.update_rateself.update_gmm) and isinstance(
+                self.pgi_reg.gmmref, GaussianMixtureWithNonlinearRelationships
+            ):
+                clfupdate = GaussianMixtureWithNonlinearRelationshipsWithPrior(
+                    gmmref=self.pgi_reg.gmmref,
+                    zeta=self.zeta,
+                    kappa=self.kappa,
+                    nu=self.nu,
+                    verbose=self.verbose,
+                    prior_type="semi",
+                    update_covariances=self.update_covariances,
+                    max_iter=self.pgi_reg.gmm.max_iter,
+                    n_init=self.pgi_reg.gmm.n_init,
+                    reg_covar=self.pgi_reg.gmm.reg_covar,
+                    weights_init=self.pgi_reg.gmm.weights_,
+                    means_init=self.pgi_reg.gmm.means_,
+                    precisions_init=self.pgi_reg.gmm.precisions_,
+                    random_state=self.pgi_reg.gmm.random_state,
+                    tol=self.pgi_reg.gmm.tol,
+                    verbose_interval=self.pgi_reg.gmm.verbose_interval,
+                    warm_start=self.pgi_reg.gmm.warm_start,
+                    fixed_membership=self.fixed_membership,
+                )
+                clfupdate = clfupdate.fit(model)
 
-        if self.update_gmm and isinstance(
-            self.pgi_reg.gmmref, GaussianMixtureWithNonlinearRelationships
-        ):
-            clfupdate = GaussianMixtureWithNonlinearRelationshipsWithPrior(
-                gmmref=self.pgi_reg.gmmref,
-                zeta=self.zeta,
-                kappa=self.kappa,
-                nu=self.nu,
-                verbose=self.verbose,
-                prior_type="semi",
-                update_covariances=self.update_covariances,
-                max_iter=self.pgi_reg.gmm.max_iter,
-                n_init=self.pgi_reg.gmm.n_init,
-                reg_covar=self.pgi_reg.gmm.reg_covar,
-                weights_init=self.pgi_reg.gmm.weights_,
-                means_init=self.pgi_reg.gmm.means_,
-                precisions_init=self.pgi_reg.gmm.precisions_,
-                random_state=self.pgi_reg.gmm.random_state,
-                tol=self.pgi_reg.gmm.tol,
-                verbose_interval=self.pgi_reg.gmm.verbose_interval,
-                warm_start=self.pgi_reg.gmm.warm_start,
-                fixed_membership=self.fixed_membership,
-            )
-            clfupdate = clfupdate.fit(model)
-            # order_cluster(clfupdate, self.pgi_reg.gmmref)
+            elif self.update_gmm and isinstance(
+                self.pgi_reg.gmmref, WeightedGaussianMixture
+            ):
+                clfupdate = GaussianMixtureWithPrior(
+                    gmmref=self.pgi_reg.gmmref,
+                    zeta=self.zeta,
+                    kappa=self.kappa,
+                    nu=self.nu,
+                    verbose=self.verbose,
+                    prior_type="semi",
+                    update_covariances=self.update_covariances,
+                    max_iter=self.pgi_reg.gmm.max_iter,
+                    n_init=self.pgi_reg.gmm.n_init,
+                    reg_covar=self.pgi_reg.gmm.reg_covar,
+                    weights_init=self.pgi_reg.gmm.weights_,
+                    means_init=self.pgi_reg.gmm.means_,
+                    precisions_init=self.pgi_reg.gmm.precisions_,
+                    random_state=self.pgi_reg.gmm.random_state,
+                    tol=self.pgi_reg.gmm.tol,
+                    verbose_interval=self.pgi_reg.gmm.verbose_interval,
+                    warm_start=self.pgi_reg.gmm.warm_start,
+                    fixed_membership=self.fixed_membership,
+                )
+                clfupdate = clfupdate.fit(model)
 
-        elif self.update_gmm and isinstance(
-            self.pgi_reg.gmmref, WeightedGaussianMixture
-        ):
-            clfupdate = GaussianMixtureWithPrior(
-                gmmref=self.pgi_reg.gmmref,
-                zeta=self.zeta,
-                kappa=self.kappa,
-                nu=self.nu,
-                verbose=self.verbose,
-                prior_type="semi",
-                update_covariances=self.update_covariances,
-                max_iter=self.pgi_reg.gmm.max_iter,
-                n_init=self.pgi_reg.gmm.n_init,
-                reg_covar=self.pgi_reg.gmm.reg_covar,
-                weights_init=self.pgi_reg.gmm.weights_,
-                means_init=self.pgi_reg.gmm.means_,
-                precisions_init=self.pgi_reg.gmm.precisions_,
-                random_state=self.pgi_reg.gmm.random_state,
-                tol=self.pgi_reg.gmm.tol,
-                verbose_interval=self.pgi_reg.gmm.verbose_interval,
-                warm_start=self.pgi_reg.gmm.warm_start,
-                fixed_membership=self.fixed_membership,
-            )
-            clfupdate = clfupdate.fit(model)
-            # order_cluster(clfupdate, self.pgi_reg.gmmref)
+            else:
+                clfupdate = copy.deepcopy(self.pgi_reg.gmmref)
 
-        else:
-            clfupdate = copy.deepcopy(self.pgi_reg.gmmref)
+            self.pgi_reg.gmm = clfupdate
+            membership = self.pgi_reg.gmm.predict(model)
 
-        self.pgi_reg.gmm = clfupdate
-        membership = self.pgi_reg.gmm.predict(model)
+            if self.fixed_membership is not None:
+                membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
 
-        if self.fixed_membership is not None:
-            membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
-
-        mref = mkvc(self.pgi_reg.gmm.means_[membership])
-        self.pgi_reg.mref = mref
-        if getattr(self.fixed_membership, "shape", [0, 0])[0] < len(membership):
-            self.pgi_reg.objfcts[0]._r_second_deriv = None
+            mref = mkvc(self.pgi_reg.gmm.means_[membership])
+            self.pgi_reg.mref = mref
+            if getattr(self.fixed_membership, "shape", [0, 0])[0] < len(membership):
+                self.pgi_reg.objfcts[0]._r_second_deriv = None
 
 
 class PGI_BetaAlphaSchedule(InversionDirective):
+    """
+    This directive is to be used with regularization from regularization.pgi.
+    It implements the strategy described in https://doi.org/10.1093/gji/ggz389
+    for iteratively updating beta and alpha_s for fitting the
+    geophysical and smallness targets.
+    """
 
-    verbose = False
-    tolerance = 0.0
-    progress = 0.02
-    coolingFactor = 2.0
-    warmingFactor = 1.0
-    mode = 1
-    mode2_iter = 0
-    alphasmax = 1e10
-    betamin = 1e-10
-    UpdateRate = 1
-    ratio_in_cooling = False
+    verbose = False #print information (progress, updates made)
+    tolerance = 0.0 # tolerance on the geophysical target misfit for cooling
+    progress = 0.02 # minimum percentage progress (default 2%) before cooling beta
+    coolingFactor = 2.0 # when cooled, beta is divided by it
+    warmingFactor = 1.0 # when warmed, alpha_s is multiplied by the ratio of the
+        # geophysical target with their current misfit, times this factor
+    mode = 1 # mode 1: start with nothing fitted. Mode 2: warmstart with fitted geophysical data
+    mode2_iter = 0 # counts how many iteration after the fit of the geophysical data
+    alphasmax = 1e10 #max alpha_s
+    betamin = 1e-10 # minimum beta
+    update_rate = 1 #update every `update_rate` iterations
+    ratio_in_cooling = False #add the ratio of geophysical misfit with their target in cooling
 
     def initialize(self):
         targetclass = np.r_[
@@ -253,7 +267,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
             self.mode = 2
             self.mode2_iter += 1
 
-        if self.opt.iter > 0 and self.opt.iter % self.UpdateRate == 0:
+        if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
             if self.verbose:
                 print(
                     "progress:",
@@ -340,6 +354,11 @@ class PGI_BetaAlphaSchedule(InversionDirective):
 
 
 class PGI_AddMrefInSmooth(InversionDirective):
+    """
+    This directive is to be used with regularization from regularization.pgi.
+    It implements the strategy described in https://doi.org/10.1093/gji/ggz389
+    for including the learned reference model, once stable, in the smoothness terms.
+    """
 
     # Chi factor for Data Misfit
     chifact = 1.0
