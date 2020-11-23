@@ -3326,6 +3326,11 @@ class TileMap(IdentityMap):
 
     tol = 1e-8  # Tolerance to avoid zero division
     components = 1  # Number of components in the model. =3 for vector model
+    _global_mesh = None
+    _global_active = None
+    _local_mesh = None
+    _local_active = None
+    _projection = None
 
     def __init__(self, global_mesh, global_active, local_mesh, **kwargs):
         """
@@ -3343,23 +3348,47 @@ class TileMap(IdentityMap):
             raise ValueError("global_mesh must be a TreeMesh")
         if local_mesh._meshType != "TREE":
             raise ValueError("local_mesh must be a TreeMesh")
-
-        super(TileMap, self).__init__(**kwargs)
-        self.global_mesh = global_mesh
-        self.global_active = global_active
-        self.local_mesh = local_mesh
+        super().__init__(**kwargs)
+        self._global_mesh = global_mesh
+        self._global_active = global_active
+        self._local_mesh = local_mesh
 
         if not isinstance(self.global_active, bool):
             temp = np.zeros(self.global_mesh.nC, dtype="bool")
             temp[self.global_active] = True
-            self.global_active = temp
+            self._global_active = temp
 
-        self.P
+        self.projection
+
+    @property
+    def local_mesh(self):
+        """
+        The local nested TreeMesh
+        """
+        return self._local_mesh
+
+    @local_mesh.setter
+    def local_mesh(self, mesh):
+        self._local_mesh = mesh
+
+    @property
+    def global_mesh(self):
+        """
+        The global TreeMesh
+        """
+        return self._global_mesh
+
+    @property
+    def global_active(self):
+        """
+        The global active cell vector: bool
+        """
+        return self._global_active
 
     @property
     def local_active(self):
         """
-        This is the local_active of the global_active used in the global problem.
+        The local_active cell vector: bool
         """
         return getattr(self, "_local_active", None)
 
@@ -3370,19 +3399,30 @@ class TileMap(IdentityMap):
             temp = np.zeros(self.local_mesh.nC, dtype="bool")
             temp[local_active] = True
             local_active = temp
-
         self._local_active = local_active
 
     @property
-    def P(self):
+    def projection(self):
         """
             Set the projection matrix with partial volumes
         """
-        if getattr(self, "_P", None) is None:
+        if (
+            getattr(self, "_projection", None) is None and
+            getattr(self, "_local_mesh", None) is not None and
+            getattr(self, "_global_mesh", None) is not None and
+            getattr(self, "_global_active", None) is not None
+        ):
 
             in_local = self.local_mesh._get_containing_cell_indexes(
                 self.global_mesh.gridCC
             )
+            nested = (
+                self.global_mesh.cell_levels_by_index(np.arange(self.global_mesh.nC)) <
+                self.local_mesh.cell_levels_by_index(in_local)
+             ).sum()
+
+            if nested != 0:
+                print(f"TileMap warning. {nested} cells smaller in local mesh")
 
             P = (
                 sp.csr_matrix(
@@ -3396,24 +3436,24 @@ class TileMap(IdentityMap):
 
             P = P[self.local_active, :]
 
-            self._P = sp.block_diag(
+            self._projection = sp.block_diag(
                 [
                     sdiag(1.0 / self.local_mesh.cell_volumes[self.local_active]) * P
                     for ii in range(self.components)
                 ]
             )
 
-        return self._P
+        return self._projection
 
     def _transform(self, m):
-        return self.P * m
+        return self.projection * m
 
     @property
     def shape(self):
         """
         Shape of the matrix operation (number of indices x nP)
         """
-        return self.P.shape
+        return self.projection.shape
 
     def deriv(self, m, v=None):
         """
@@ -3422,8 +3462,8 @@ class TileMap(IdentityMap):
             :return: derivative of transformed model
         """
         if v is not None:
-            return self.P * v
-        return self.P
+            return self.projection * v
+        return self.projection
 
 
 ###############################################################################

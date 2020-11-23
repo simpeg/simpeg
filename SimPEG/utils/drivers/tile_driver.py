@@ -1,6 +1,8 @@
 import numpy as np
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
+from discretize import TreeMesh
 from SimPEG.maps import TileMap
+from scipy.spatial import Delaunay
 
 
 def create_tile_meshes(
@@ -64,3 +66,33 @@ def create_tile_meshes(
         )
 
     return (global_mesh, global_active), (local_meshes, local_maps)
+
+
+def create_nested_mesh(
+        locations,
+        base_mesh
+):
+    nested_mesh = TreeMesh(
+        [base_mesh.h[0], base_mesh.h[1], base_mesh.h[2]], x0=base_mesh.x0
+    )
+
+    # Find cells inside the data extant
+    tri2D = Delaunay(locations[:, :2])
+    indices = tri2D.find_simplex(base_mesh.gridCC[:, :2]) != -1
+
+    nested_mesh.insert_cells(
+        base_mesh.gridCC[indices, :],
+        base_mesh.cell_levels_by_index(np.where(indices)[0]),
+        finalize=True,
+    )
+
+    #     global_active = active_from_xyz(global_mesh, topography, method='linear')
+
+    #     # Cycle back to all local meshes and create tile maps
+    #     local_maps = []
+    #     for mesh in local_meshes:
+    #         local_maps.append(
+    #             TileMap(global_mesh, global_active, mesh)
+    #         )
+
+    return nested_mesh
