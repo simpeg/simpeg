@@ -23,12 +23,12 @@ def dask_findSearchDirection(self):
         count += 1
         Hp = self.H(p)
         q = (1 - Active) * Hp
-        alpha = sold / da.dot(p, q.T)
+        alpha = sold / np.dot(p, q.T)
         delx = delx + alpha * p
-        r = r - alpha * q
+        r = np.asarray(r - alpha * q)
         h = self.approxHinv * r
-        snew = da.dot(r, h)
-        p = (h + (snew / sold * p)).compute()
+        snew = np.dot(r, h)
+        p = (h + (snew / sold * p))
         sold = snew
     self.cg_runtime = time()-ct
     delx = np.asarray(delx)
