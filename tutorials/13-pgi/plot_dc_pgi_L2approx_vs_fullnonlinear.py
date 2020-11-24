@@ -248,7 +248,7 @@ inv = inversion.BaseInversion(
 )
 
 # Run the inversion
-m_pgi = inv.run(m0)
+#m_pgi = inv.run(m0)
 
 
 # PGI with Full Nonlinear Regularizer
@@ -329,48 +329,48 @@ inv = inversion.BaseInversion(
 )
 
 # Run the inversion
-m_pgi_full = inv.run(m0)
+#m_pgi_full = inv.run(m0)
 
 
 # Final Plot
 ############
-fig, axx = plt.subplots(3, 1, figsize=(15, 15), sharex=True)
-fig.subplots_adjust(wspace=0.1, hspace=0.3)
-clim = [mtrue.min(), mtrue.max()]
-cyl0 = getCylinderPoints(x0, z0, r0)
-cyl1 = getCylinderPoints(x1, z1, r1)
-
-title_list = [
-    "a) True model",
-    "b) PGI with Least-Squares Approximation",
-    "c) PGI with full nonlinear Regularizer",
-]
-
-model_list = [mtrue[actcore], m_pgi, m_pgi_full]
-
-for i, ax in enumerate(axx):
-    cyl0 = getCylinderPoints(x0, z0, r0)
-    cyl1 = getCylinderPoints(x1, z1, r1)
-    dat = meshCore.plotImage(
-        model_list[i], ax=ax, clim=clim, pcolorOpts={"cmap": "viridis"}
-    )
-    ax.set_title(title_list[i], fontsize=24, loc="left")
-    ax.set_aspect("equal")
-    ax.set_ylim([-15, 0])
-    ax.set_xlim([-15, 15])
-    ax.set_xlabel("", fontsize=22)
-    ax.set_ylabel("z (m)", fontsize=22)
-    ax.tick_params(labelsize=20)
-    ax.plot(cyl0[:, 0], cyl0[:, 1], "k--")
-    ax.plot(cyl1[:, 0], cyl1[:, 1], "k--")
-
-
-cbaxes_geo = fig.add_axes([0.8, 0.2, 0.02, 0.6])
-ticks = np.r_[10, 50, 100, 150, 200, 250]
-cbargeo = fig.colorbar(dat[0], cbaxes_geo, ticks=-np.log(ticks))
-cbargeo.ax.invert_yaxis()
-cbargeo.set_ticklabels(ticks)
-cbargeo.ax.tick_params(labelsize=20)
-cbargeo.set_label("Electrical resistivity ($\Omega$-m)", fontsize=24)
-
-plt.show()
+# fig, axx = plt.subplots(3, 1, figsize=(15, 15), sharex=True)
+# fig.subplots_adjust(wspace=0.1, hspace=0.3)
+# clim = [mtrue.min(), mtrue.max()]
+# cyl0 = getCylinderPoints(x0, z0, r0)
+# cyl1 = getCylinderPoints(x1, z1, r1)
+#
+# title_list = [
+#     "a) True model",
+#     "b) PGI with Least-Squares Approximation",
+#     "c) PGI with full nonlinear Regularizer",
+# ]
+#
+# model_list = [mtrue[actcore], m_pgi, m_pgi_full]
+#
+# for i, ax in enumerate(axx):
+#     cyl0 = getCylinderPoints(x0, z0, r0)
+#     cyl1 = getCylinderPoints(x1, z1, r1)
+#     dat = meshCore.plotImage(
+#         model_list[i], ax=ax, clim=clim, pcolorOpts={"cmap": "viridis"}
+#     )
+#     ax.set_title(title_list[i], fontsize=24, loc="left")
+#     ax.set_aspect("equal")
+#     ax.set_ylim([-15, 0])
+#     ax.set_xlim([-15, 15])
+#     ax.set_xlabel("", fontsize=22)
+#     ax.set_ylabel("z (m)", fontsize=22)
+#     ax.tick_params(labelsize=20)
+#     ax.plot(cyl0[:, 0], cyl0[:, 1], "k--")
+#     ax.plot(cyl1[:, 0], cyl1[:, 1], "k--")
+#
+#
+# cbaxes_geo = fig.add_axes([0.8, 0.2, 0.02, 0.6])
+# ticks = np.r_[10, 50, 100, 150, 200, 250]
+# cbargeo = fig.colorbar(dat[0], cbaxes_geo, ticks=-np.log(ticks))
+# cbargeo.ax.invert_yaxis()
+# cbargeo.set_ticklabels(ticks)
+# cbargeo.ax.tick_params(labelsize=20)
+# cbargeo.set_label("Electrical resistivity ($\Omega$-m)", fontsize=24)
+#
+# plt.show()

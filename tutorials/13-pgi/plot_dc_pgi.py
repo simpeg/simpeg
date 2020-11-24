@@ -6,7 +6,7 @@ Invert dc data with petrophysical information
 
 Example inspired by: Thibaut Astic, Douglas W Oldenburg, A framework for petrophysically and geologically guided geophysical inversion using a dynamic Gaussian mixture model prior, Geophysical Journal International, Volume 219, Issue 3, December 2019, Pages 1989–2012, https://doi.org/10.1093/gji/ggz389
 
-A DC resistivity profile is acquired over two cylinders. We illustrate the performance of this framework when no physical property mean values are available, and compared it to the result with full petrophysical information. We highlight then how geological information from borehole logs can be incorporated into this framework. 
+A DC resistivity profile is acquired over two cylinders. We illustrate the performance of this framework when no physical property mean values are available, and compared it to the result with full petrophysical information. We highlight then how geological information from borehole logs can be incorporated into this framework.
 
 For that purpose, we first start by running a PGI with full petrophysical information to set benchmarks. We then run a PGI without providing any information about the physical property mean values nor the proportions. We finally run another PGI, still without means information, but with added geological information included through the use of local proportions. All inversions share the same starting weighting of the geophysical objective function terms.
 
@@ -252,7 +252,7 @@ inv = inversion.BaseInversion(
 )
 
 # Run the inversion
-m_pgi = inv.run(m0)
+#m_pgi = inv.run(m0)
 
 
 # PGI without mean information
@@ -332,7 +332,7 @@ inv = inversion.BaseInversion(
 )
 
 # Run the inversion
-m_pgi_nomean = inv.run(m0)
+#m_pgi_nomean = inv.run(m0)
 
 
 # PGI with local proportions
@@ -412,49 +412,49 @@ inv = inversion.BaseInversion(
 )
 
 # Run
-m_pgi_nomean_depth = inv.run(m0)
+#m_pgi_nomean_depth = inv.run(m0)
 
 
 # Final Plot
 ############
-fig, axx = plt.subplots(4, 1, figsize=(15, 15), sharex=True)
-fig.subplots_adjust(wspace=0.1, hspace=0.3)
-clim = [mtrue.min(), mtrue.max()]
-cyl0 = getCylinderPoints(x0, z0, r0)
-cyl1 = getCylinderPoints(x1, z1, r1)
-
-title_list = [
-    "a) True model",
-    "b) PGI with full petrophysical info.",
-    "c) PGI with no mean info.",
-    "d) PGI with depth but no mean info",
-]
-
-model_list = [mtrue[actcore], m_pgi, m_pgi_nomean, m_pgi_nomean_depth]
-
-for i, ax in enumerate(axx):
-    cyl0 = getCylinderPoints(x0, z0, r0)
-    cyl1 = getCylinderPoints(x1, z1, r1)
-    dat = meshCore.plotImage(
-        model_list[i], ax=ax, clim=clim, pcolorOpts={"cmap": "viridis"}
-    )
-    ax.set_title(title_list[i], fontsize=24, loc="left")
-    ax.set_aspect("equal")
-    ax.set_ylim([-15, 0])
-    ax.set_xlim([-15, 15])
-    ax.set_xlabel("", fontsize=22)
-    ax.set_ylabel("z (m)", fontsize=22)
-    ax.tick_params(labelsize=20)
-    ax.plot(cyl0[:, 0], cyl0[:, 1], "k--")
-    ax.plot(cyl1[:, 0], cyl1[:, 1], "k--")
-
-
-cbaxes_geo = fig.add_axes([0.8, 0.2, 0.02, 0.6])
-ticks = np.r_[10, 50, 100, 150, 200, 250]
-cbargeo = fig.colorbar(dat[0], cbaxes_geo, ticks=-np.log(ticks))
-cbargeo.ax.invert_yaxis()
-cbargeo.set_ticklabels(ticks)
-cbargeo.ax.tick_params(labelsize=20)
-cbargeo.set_label("Electrical resistivity ($\Omega$-m)", fontsize=24)
-
-plt.show()
+# fig, axx = plt.subplots(4, 1, figsize=(15, 15), sharex=True)
+# fig.subplots_adjust(wspace=0.1, hspace=0.3)
+# clim = [mtrue.min(), mtrue.max()]
+# cyl0 = getCylinderPoints(x0, z0, r0)
+# cyl1 = getCylinderPoints(x1, z1, r1)
+#
+# title_list = [
+#     "a) True model",
+#     "b) PGI with full petrophysical info.",
+#     "c) PGI with no mean info.",
+#     "d) PGI with depth but no mean info",
+# ]
+#
+# model_list = [mtrue[actcore], m_pgi, m_pgi_nomean, m_pgi_nomean_depth]
+#
+# for i, ax in enumerate(axx):
+#     cyl0 = getCylinderPoints(x0, z0, r0)
+#     cyl1 = getCylinderPoints(x1, z1, r1)
+#     dat = meshCore.plotImage(
+#         model_list[i], ax=ax, clim=clim, pcolorOpts={"cmap": "viridis"}
+#     )
+#     ax.set_title(title_list[i], fontsize=24, loc="left")
+#     ax.set_aspect("equal")
+#     ax.set_ylim([-15, 0])
+#     ax.set_xlim([-15, 15])
+#     ax.set_xlabel("", fontsize=22)
+#     ax.set_ylabel("z (m)", fontsize=22)
+#     ax.tick_params(labelsize=20)
+#     ax.plot(cyl0[:, 0], cyl0[:, 1], "k--")
+#     ax.plot(cyl1[:, 0], cyl1[:, 1], "k--")
+#
+#
+# cbaxes_geo = fig.add_axes([0.8, 0.2, 0.02, 0.6])
+# ticks = np.r_[10, 50, 100, 150, 200, 250]
+# cbargeo = fig.colorbar(dat[0], cbaxes_geo, ticks=-np.log(ticks))
+# cbargeo.ax.invert_yaxis()
+# cbargeo.set_ticklabels(ticks)
+# cbargeo.ax.tick_params(labelsize=20)
+# cbargeo.set_label("Electrical resistivity ($\Omega$-m)", fontsize=24)
+#
+# plt.show()
