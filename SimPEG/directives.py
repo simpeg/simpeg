@@ -702,9 +702,8 @@ class Update_IRLS(InversionDirective):
                 reg.norms = np.c_[2.0, 2.0, 2.0, 2.0]
                 reg.model = self.invProb.model
 
-        # Update the model used by the regularization
-        for reg in self.reg.objfcts:
-            reg.model = self.invProb.model
+                for comp in reg.objfcts:
+                    comp.model = self.invProb.model
 
         if self.sphericalDomain:
             self.angleScale()
@@ -759,7 +758,8 @@ class Update_IRLS(InversionDirective):
         # Update the model used by the regularization
         phi_m_last = []
         for reg in self.reg.objfcts:
-            reg.model = self.invProb.model
+            for comp in reg.objfcts:
+                comp.model = self.invProb.model
             phi_m_last += [reg(self.invProb.model)]
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
