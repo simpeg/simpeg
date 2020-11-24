@@ -184,7 +184,7 @@ class JointInversionTest(unittest.TestCase):
             coolingFactor=2.0,
             warmingFactor=1.0,
             tolerance=0.0,
-            UpdateRate=1,
+            update_rate=1,
             ratio_in_cooling=False,
             progress=0.2,
         )
