@@ -27,7 +27,7 @@ IGNORE_ME = [
     "SimplePGI",
     "PGI",
     "SimplePGIwithRelationships",
-    "SimplePGIwithRelationshipsSmallness",
+    "SimplePGIwithNonlinearRelationshipsSmallness",
     "PGIsmallness",
     "SimplePGIsmallness",
 ]

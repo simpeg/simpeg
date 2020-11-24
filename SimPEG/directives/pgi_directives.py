@@ -18,7 +18,7 @@ from ..regularization import (
     Sparse,
     SimplePGIsmallness,
     PGIsmallness,
-    SimplePGIwithRelationshipsSmallness,
+    SimplePGIwithNonlinearRelationshipsSmallness,
     SimplePGI,
     PGI,
     SmoothDeriv,
@@ -97,7 +97,7 @@ class PGI_UpdateParameters(InversionDirective):
                     self.pgi_reg.membership(self.pgi_reg.mref),
                     ]
 
-            if (self.update_rateself.update_gmm) and isinstance(
+            if self.update_gmm and isinstance(
                 self.pgi_reg.gmmref, GaussianMixtureWithNonlinearRelationships
             ):
                 clfupdate = GaussianMixtureWithNonlinearRelationshipsWithPrior(

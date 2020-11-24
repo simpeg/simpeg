@@ -37,7 +37,17 @@ from .tikhonov import *
 
 class SimplePGIsmallness(BaseRegularization):
     """
-    Smallness term for the petrophysically constrained regularization
+    Smallness term for the petrophysically constrained regularization (PGI)
+    with cell_weights similar to the regularization.tikhonov.SimpleSmall class.
+
+    PARAMETERS
+    ----------
+    :param SimPEG.utils.WeightedGaussianMixture gmm: GMM to use
+    :param SimPEG.maps.Wires wiresmap: wires mapping to the various physical properties
+    :param list maplist: list of SimPEG.maps for each physical property.
+    :param discretize.BaseMesh mesh: tensor, QuadTree or Octree mesh
+    :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
+    :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
     """
 
     _multiplier_pair = "alpha_s"
@@ -152,7 +162,7 @@ class SimplePGIsmallness(BaseRegularization):
         else:
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-            
+
             if externalW and getattr(self.W, "diagonal", None) is not None:
                 sensW = np.c_[[wire[1]*self.W.diagonal() for wire in self.wiresmap.maps]].T
             else:
@@ -224,7 +234,7 @@ class SimplePGIsmallness(BaseRegularization):
             score = self.gmm.score_samples_with_sensW(model, sensW)
             #score = self.gmm.score_samples(model)
             score_vec = np.hstack([score for maps in self.wiresmap.maps])
-            
+
             logP = np.zeros((len(model), self.gmm.n_components))
             W = []
             logP = self.gmm._estimate_log_gaussian_prob_with_sensW(
@@ -377,6 +387,18 @@ class SimplePGIsmallness(BaseRegularization):
 
 
 class SimplePGI(SimpleComboRegularization):
+    """
+    class similar to regularization.tikhonov.Simple, with a SimplePGIsmallness.
+    PARAMETERS
+    ----------
+    :param SimPEG.utils.WeightedGaussianMixture gmmref: refereence/prior GMM
+    :param SimPEG.utils.WeightedGaussianMixture gmm: GMM to use
+    :param SimPEG.maps.Wires wiresmap: wires mapping to the various physical properties
+    :param list maplist: list of SimPEG.maps for each physical property.
+    :param discretize.BaseMesh mesh: tensor, QuadTree or Octree mesh
+    :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
+    :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
+    """
     def __init__(
         self,
         mesh,
@@ -539,7 +561,17 @@ class SimplePGI(SimpleComboRegularization):
 
 class PGIsmallness(SimplePGIsmallness):
     """
-    Smallness term for the petrophysically constrained regularization
+    Smallness term for the petrophysically constrained regularization (PGI) with
+    cell_weights similar to the ones used in regularization.tikhonov.Tikhonov
+
+    PARAMETERS
+    ----------
+    :param SimPEG.utils.WeightedGaussianMixture gmm: GMM to use
+    :param SimPEG.maps.Wires wiresmap: wires mapping to the various physical properties
+    :param list maplist: list of SimPEG.maps for each physical property.
+    :param discretize.BaseMesh mesh: tensor, QuadTree or Octree mesh
+    :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
+    :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
     """
 
     _multiplier_pair = "alpha_s"
@@ -592,6 +624,18 @@ class PGIsmallness(SimplePGIsmallness):
 
 
 class PGI(SimpleComboRegularization):
+    """
+    class similar to regularization.tikhonov.Simple, with a SimplePGIsmallness.
+    PARAMETERS
+    ----------
+    :param SimPEG.utils.WeightedGaussianMixture gmmref: refereence/prior GMM
+    :param SimPEG.utils.WeightedGaussianMixture gmm: GMM to use
+    :param SimPEG.maps.Wires wiresmap: wires mapping to the various physical properties
+    :param list maplist: list of SimPEG.maps for each physical property.
+    :param discretize.BaseMesh mesh: tensor, QuadTree or Octree mesh
+    :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
+    :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
+    """
     def __init__(
         self,
         mesh,
@@ -750,9 +794,20 @@ class PGI(SimpleComboRegularization):
         self.objfcts[0].approx_eval = self.approx_eval
 
 
-class SimplePGIwithRelationshipsSmallness(BaseRegularization):
+class SimplePGIwithNonlinearRelationshipsSmallness(BaseRegularization):
     """
-    Smallness term for the petrophysically constrained regularization
+    Smallness term for the petrophysically constrained regularization (PGI) with
+    nonlinear relationships between physical properties and cells_weight s
+    imilar to the ones used in regularization.tikhonov.Simple.
+
+    PARAMETERS
+    ----------
+    :param SimPEG.utils.GaussianMixtureWithNonlinearRelationships gmm: GMM to use
+    :param SimPEG.maps.Wires wiresmap: wires mapping to the various physical properties
+    :param list maplist: list of SimPEG.maps for each physical property.
+    :param discretize.BaseMesh mesh: tensor, QuadTree or Octree mesh
+    :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
+    :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
     """
 
     _multiplier_pair = "alpha_s"
@@ -771,11 +826,12 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
         self.approx_gradient = approx_gradient
         self.approx_eval = approx_eval
 
-        super(SimplePGIwithRelationshipsSmallness, self).__init__(mesh=mesh, **kwargs)
+        super(SimplePGIwithNonlinearRelationshipsSmallness, self).__init__(mesh=mesh, **kwargs)
         self.gmm = gmm
         self.wiresmap = wiresmap
         self.maplist = maplist
 
+        # storing the numpy.polynomial derivatives computations (somewhat long)
         self._r_first_deriv = None
         self._r_second_deriv = None
 
@@ -1027,6 +1083,20 @@ class SimplePGIwithRelationshipsSmallness(BaseRegularization):
 
 
 class SimplePGIwithRelationships(SimpleComboRegularization):
+    """
+    class similar to regularization.tikhonov.Simple, with a
+    SimplePGIwithNonlinearRelationshipsSmallness.
+
+    PARAMETERS
+    ----------
+    :param SimPEG.utils.GaussianMixtureWithNonlinearRelationships gmmref: refereence/prior GMM
+    :param SimPEG.utils.GaussianMixtureWithNonlinearRelationships gmm: GMM to use
+    :param SimPEG.maps.Wires wiresmap: wires mapping to the various physical properties
+    :param list maplist: list of SimPEG.maps for each physical property.
+    :param discretize.BaseMesh mesh: tensor, QuadTree or Octree mesh
+    :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
+    :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
+    """
     def __init__(
         self,
         mesh,
@@ -1057,7 +1127,7 @@ class SimplePGIwithRelationships(SimpleComboRegularization):
         self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
 
         objfcts = [
-            SimplePGIwithRelationshipsSmallness(
+            SimplePGIwithNonlinearRelationshipsSmallness(
                 mesh=mesh,
                 gmm=self.gmm,
                 wiresmap=self.wiresmap,

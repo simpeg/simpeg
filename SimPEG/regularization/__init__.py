@@ -15,6 +15,6 @@ from .pgi import (
     PGIsmallness,
     SimplePGI,
     PGI,
-    SimplePGIwithRelationshipsSmallness,
+    SimplePGIwithNonlinearRelationshipsSmallness,
     SimplePGIwithRelationships,
 )

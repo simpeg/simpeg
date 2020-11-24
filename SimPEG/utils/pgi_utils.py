@@ -341,7 +341,7 @@ def make_SimplePGIwithRelationships_regularization(
     -------
 
     :param SimPEG.objective_function.ComboObjectiveFunction reg: Full regularization with
-                        SimplePGIwithRelationshipsSmallness and smoothness terms
+                        SimplePGIwithNonlinearRelationshipsSmallness and smoothness terms
                         for all physical properties in all direction.
     """
 
@@ -534,7 +534,7 @@ class WeightedGaussianMixture(GaussianMixture):
 
         PARAMETERS
         ----------
-        :param bool outputindex: if True, return the sorting index
+        :param boolean outputindex: if True, return the sorting index
 
         RETURN
         ------
@@ -898,7 +898,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
     :param numpy.ndarry zeta: strength of the confidence in the prior proportions
     :param str prior_type: "semi": semi-conjugate prior, the means and covariances priors are indepedent
                            "full": conjugate prior, the means and covariances priors are inter-depedent
-    :param bool update_covariances: True: semi or conjugate prior by averaging the covariances
+    :param boolean update_covariances: True: semi or conjugate prior by averaging the covariances
                                     False: alternative (not conjugate) prior: average the precisions instead
     :param numpy.ndarray, dtype=int, shape=(index of the fixed cell, lithology index) fixed_membership:
         a 2d numpy.ndarray to fix the membership to a chosen lithology of particular cells.

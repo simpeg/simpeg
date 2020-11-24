@@ -20,7 +20,7 @@ from ..regularization import (
     Sparse,
     SimplePGIsmallness,
     PGIsmallness,
-    SimplePGIwithRelationshipsSmallness,
+    SimplePGIwithNonlinearRelationshipsSmallness,
     SimplePGI,
     PGI,
     SmoothDeriv,
@@ -314,7 +314,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                             i,
                             j,
                             (
-                                isinstance(regpart, SimplePGIwithRelationshipsSmallness)
+                                isinstance(regpart, SimplePGIwithNonlinearRelationshipsSmallness)
                                 or isinstance(regpart, SimplePGIsmallness)
                                 or isinstance(regpart, PGIsmallness)
                                 or isinstance(regpart, SimpleSmall)
@@ -620,7 +620,7 @@ class MultiTargetMisfits(InversionDirective):
                             i,
                             j,
                             (
-                                isinstance(regpart, SimplePGIwithRelationshipsSmallness)
+                                isinstance(regpart, SimplePGIwithNonlinearRelationshipsSmallness)
                                 or isinstance(regpart, SimplePGIsmallness)
                                 or isinstance(regpart, PGIsmallness)
                             ),
@@ -661,7 +661,7 @@ class MultiTargetMisfits(InversionDirective):
                         np.r_[
                             j,
                             (
-                                isinstance(regpart, SimplePGIwithRelationshipsSmallness)
+                                isinstance(regpart, SimplePGIwithNonlinearRelationshipsSmallness)
                                 or isinstance(regpart, SimplePGIsmallness)
                                 or isinstance(regpart, PGIsmallness)
                             ),
