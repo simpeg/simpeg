@@ -90,7 +90,7 @@ class SparseSmall(BaseSparse):
             return utils.sdiag((self.scale * self.cell_weights) ** 0.5) * R
 
         else:
-            return utils.sdiag((self.scale * self.regmesh.cell_volumes) ** 0.5) * R
+            return utils.sdiag((self.scale * self.regmesh.vol) ** 0.5) * R
 
     def R(self, f_m):
         # if R is stashed, return that instead
@@ -193,7 +193,7 @@ class SparseDeriv(BaseSparse):
                 W = utils.sdiag((Ave * (self.scale * self.cell_weights)) ** 0.5) * R
 
             else:
-                W = utils.sdiag((Ave * (self.scale * self.regmesh.cell_volumes)) ** 0.5) * R
+                W = utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5) * R
 
             theta = self.cellDiffStencil * (self.mapping * f_m)
             dmdx = utils.mat_utils.coterminal(theta)
@@ -279,7 +279,7 @@ class SparseDeriv(BaseSparse):
                 W = utils.sdiag(((Ave * (self.scale * self.cell_weights))) ** 0.5) * R
 
             else:
-                W = utils.sdiag((Ave * (self.scale * self.regmesh.cell_volumes)) ** 0.5) * R
+                W = utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5) * R
 
             theta = self.cellDiffStencil * (self.mapping * model)
             dmdx = utils.mat_utils.coterminal(theta)
@@ -371,7 +371,7 @@ class SparseDeriv(BaseSparse):
             )
         else:
             return (
-                utils.sdiag((Ave * (self.scale * self.regmesh.cell_volumes)) ** 0.5)
+                utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5)
                 * R
                 * self.cellDiffStencil
             )
@@ -430,6 +430,12 @@ class Sparse(BaseComboRegularization):
         self, mesh, alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, **kwargs
     ):
 
+        if "norms" in kwargs.keys():
+            norms = kwargs["norms"]
+            del kwargs["norms"]
+        else:
+            norms = [2., 2., 2., 2.]
+
         objfcts = [
             SparseSmall(mesh=mesh, **kwargs),
             SparseDeriv(mesh=mesh, orientation="x", **kwargs),
@@ -451,14 +457,11 @@ class Sparse(BaseComboRegularization):
             **kwargs
         )
 
+        self.norms = np.c_[norms].reshape((-1, 4))
         # Utils.setKwargs(self, **kwargs)
 
     # Properties
-    norms = properties.Array(
-        "Norms used to create the sparse regularization",
-        default=np.c_[2.0, 2.0, 2.0, 2.0],
-        shape={("*", "*")},
-    )
+    _norms = None
 
     eps_p = properties.Float("Threshold value for the model norm", required=True)
 
@@ -480,28 +483,56 @@ class Sparse(BaseComboRegularization):
     # Save the l2 result during the IRLS
     l2model = None
 
-    @properties.validator("norms")
-    def _validate_norms(self, change):
-        if change["value"].shape[0] == 1:
-            change["value"] = np.kron(
-                np.ones((self.regmesh.Pac.shape[1], 1)), change["value"]
+    @property
+    def norms(self):
+        if getattr(self, "_norms", None) is None:
+            self._norms = np.c_[2., 2., 2., 2.]
+
+        return self._norms
+
+    @norms.setter
+    def norms(self, values):
+        if values.shape[0] == 1:
+
+            values = np.kron(
+                np.ones((self.regmesh.Pac.shape[1], 1)), values
             )
-        elif change["value"].shape[0] > 1:
-            assert change["value"].shape[0] == self.regmesh.Pac.shape[1], (
+        elif values.shape[0] > 1:
+            assert values.shape[0] == self.regmesh.Pac.shape[1], (
                 "Vector of norms must be the size"
                 " of active model parameters ({})"
                 "The provided vector has length "
-                "{}".format(self.regmesh.Pac.shape[0], len(change["value"]))
+                "{}".format(self.regmesh.Pac.shape[0], len(values))
             )
+        self._norms = values
 
-    # Observers
-    @properties.observer("norms")
-    def _mirror_norms_to_objfcts(self, change):
-
-        self.objfcts[0].norm = change["value"][:, 0]
+        self.objfcts[0].norm = values[:, 0]
         for i, objfct in enumerate(self.objfcts[1:]):
             Ave = getattr(objfct.regmesh, "aveCC2F{}".format(objfct.orientation))
-            objfct.norm = Ave * change["value"][:, i + 1]
+            objfct.norm = Ave * values[:, i + 1]
+
+    # @properties.validator("norms")
+    # def _validate_norms(self, change):
+    #     if change["value"].shape[0] == 1:
+    #         change["value"] = np.kron(
+    #             np.ones((self.regmesh.Pac.shape[1], 1)), change["value"]
+    #         )
+    #     elif change["value"].shape[0] > 1:
+    #         assert change["value"].shape[0] == self.regmesh.Pac.shape[1], (
+    #             "Vector of norms must be the size"
+    #             " of active model parameters ({})"
+    #             "The provided vector has length "
+    #             "{}".format(self.regmesh.Pac.shape[0], len(change["value"]))
+    #         )
+    #
+    # # Observers
+    # @properties.observer("norms")
+    # def _mirror_norms_to_objfcts(self, change):
+    #
+    #     self.objfcts[0].norm = change["value"][:, 0]
+    #     for i, objfct in enumerate(self.objfcts[1:]):
+    #         Ave = getattr(objfct.regmesh, "aveCC2F{}".format(objfct.orientation))
+    #         objfct.norm = Ave * change["value"][:, i + 1]
 
     @properties.observer("model")
     def _mirror_model_to_objfcts(self, change):
