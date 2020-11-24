@@ -296,13 +296,13 @@ def tile_locations(
 
     if method == "kmeans":
         # Best for smaller problems
-        from sklearn.cluster import AgglomerativeClustering
+        from sklearn.cluster import KMeans
 
+        np.random.seed(0)
         # Cluster
-        cluster = AgglomerativeClustering(
-            n_clusters=n_tiles, affinity="euclidean", linkage="ward"
-        )
+        cluster = KMeans(n_clusters=n_tiles, )
         cluster.fit_predict(locations[:, :2])
+        labels = cluster.labels_
 
         # nData in each tile
         binCount = np.zeros(int(n_tiles))
@@ -314,7 +314,6 @@ def tile_locations(
         Y2 = np.zeros_like(binCount)
 
         for ii in range(int(n_tiles)):
-
             mask = cluster.labels_ == ii
             X1[ii] = locations[mask, 0].min()
             X2[ii] = locations[mask, 0].max()
@@ -327,7 +326,6 @@ def tile_locations(
 
         # Get the tile numbers that exist, for compatibility with the next method
         tile_id = np.unique(cluster.labels_)
-        labels = cluster.labels_
 
     else:
         # Works on larger problems
