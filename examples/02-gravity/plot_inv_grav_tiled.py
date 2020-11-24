@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 from dask.distributed import Client, LocalCluster
 from SimPEG import dask
-import dask.array as da
+import dask
 from dask import config
 from SimPEG.utils.drivers import create_tile_meshes, create_nested_mesh
 from SimPEG.potential_fields import gravity
@@ -39,9 +39,12 @@ import shutil
 from time import time
 cluster = LocalCluster(processes=False)
 client = Client(cluster)
-config.set({"array.chunk-size": str(128) + "MiB"})
-# config.set(scheduler="threads", pool=ThreadPool(6))
 
+# config.set(scheduler="threads", pool=ThreadPool(12))
+
+max_chunk_size = 64
+
+config.set({"array.chunk-size": str(max_chunk_size) + "MiB"})
 workers = None  # Here runs locally
 h = [2, 2, 2]
 padDist = np.ones((3, 2)) * 100
@@ -53,6 +56,14 @@ max_distance = 25
 sens_time = []
 inv_time = []
 prob_size = []
+tile_time = []
+output = "Results.dat"
+f = open(output, "w")
+header = "size ntiles chunk_size tiling sens inv\n"
+f.write(header)
+f.close()
+
+
 ###############################################################################
 # Setup
 # -----
@@ -63,16 +74,52 @@ prob_size = []
 #
 #
 
+@dask.delayed
+def create_tile(locations, obs, uncert, global_mesh, global_active, tile_id, workers=None):
+    receivers = gravity.receivers.Point(locations)
+    srcField = gravity.sources.SourceField([receivers])
+    local_survey = gravity.survey.Survey(srcField)
 
-for kk in range(4):
+    # Create tile map between global and local
+    local_mesh = create_nested_mesh(
+        receivers.locations, global_mesh,
+    )
+    local_map = maps.TileMap(global_mesh, global_active, local_mesh)
+
+    # Create the local misfit
+    simulation = gravity.simulation.Simulation3DIntegral(
+        survey=local_survey,
+        mesh=local_mesh,
+        rhoMap=local_map,
+        actInd=local_map.local_active,
+        sensitivity_path=f"Inversion\Tile{tile_id}.zarr",
+        chunk_format="row",
+        store_sensitivities="disk",
+        max_chunk_size=max_chunk_size,
+        workers=workers
+    )
+    data_object = data.Data(
+        local_survey,
+        dobs=obs,
+        standard_deviation=uncert,
+    )
+    local_misfit = data_misfit.L2DataMisfit(
+        data=data_object, simulation=simulation,
+        workers=workers
+    )
+
+    return local_misfit
+
+
+for kk in [100]:
 
     # Create and array of observation points
-    xr = np.linspace(-200.0, 200.0, 10 * 2 ** kk)
-    yr = np.linspace(-200.0, 200.0, 10 * 2 ** kk)
+    xr = np.linspace(-100.0, 100.0, kk)
+    yr = np.linspace(-100.0, 100.0, kk)
     X, Y = np.meshgrid(xr, yr)
 
     # Move the observation points 5m above the topo
-    Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2)
+    Z = np.zeros_like(X) - 0.1 #-np.exp((X ** 2 + Y ** 2) / 75 ** 2)
 
     # Create a topo array
     topo = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
@@ -84,7 +131,7 @@ for kk in range(4):
         rxLoc, h,
         padding_distance=padDist,
         mesh_type='TREE',
-        depth_core=1000
+        depth_core=200
     )
 
     global_mesh = refine_tree_xyz(
@@ -130,13 +177,14 @@ for kk in range(4):
     # Create the forward simulation for the global dataset
     simulation = gravity.simulation.Simulation3DIntegral(
         survey=survey, mesh=global_mesh, rhoMap=idenMap, actInd=activeCells,
-        store_sensitivities="forward_only"
+        store_sensitivities="forward_only",
+        max_chunk_size=max_chunk_size,
     )
 
     # Compute linear forward operator and compute some data
     print("Computing forward")
 
-    d = client.compute(simulation.fields(model)).result()
+    d = np.random.randn(rxLoc.shape[0]) #client.compute(simulation.fields(model)).result()
 
     # Add noise and uncertainties
     # We add some random Gaussian noise (1nT)
@@ -144,8 +192,9 @@ for kk in range(4):
     wd = np.ones(len(synthetic_data)) * 2e-3  # Assign flat uncertainties
 
 
-    prob_size += [activeCells.sum() * rxLoc.shape[0] * 8 * 1e-9]
-    print(f"Size {activeCells.sum()} x {rxLoc.shape[0]}, Total size {prob_size[-1]}")
+    prob_size = activeCells.sum() * rxLoc.shape[0] * 8. * 1e-9
+    print(f"Size {activeCells.sum()} x {rxLoc.shape[0]}, Total size {prob_size}")
+
 
     for jj in range(4):
         ##########################################################################
@@ -161,49 +210,34 @@ for kk in range(4):
         ct = time()
         local_misfits = []
         for ii, local_index in enumerate(indices):
-            receivers = gravity.receivers.Point(rxLoc[local_index, :])
-            srcField = gravity.sources.SourceField([receivers])
-            local_survey = gravity.survey.Survey(srcField)
+            # receivers = gravity.receivers.Point(rxLoc[local_index, :])
+            locations = rxLoc[local_index, :]
+            delayed_misfit = create_tile(
+                locations,  synthetic_data[local_index],
+                wd[local_index], global_mesh, activeCells, ii, workers=None
+            )
+            local_misfits += [client.compute(delayed_misfit)]
 
-            # Create tile map between global and local
-            local_mesh = create_nested_mesh(
-                receivers.locations, global_mesh,
-            )
-            local_map = maps.TileMap(global_mesh, activeCells, local_mesh)
+        local_misfits = client.gather(local_misfits)
 
-            # Create the local misfit
-            simulation = gravity.simulation.Simulation3DIntegral(
-                survey=local_survey,
-                mesh=local_mesh,
-                rhoMap=local_map,
-                actInd=local_map.local_active,
-                sensitivity_path=f"Inversion\Tile{ii}.zarr",
-                chunk_format="row",
-                store_sensitivities="disk",
-                workers=workers
-            )
-            data_object = data.Data(
-                local_survey,
-                dobs=synthetic_data[local_index],
-                standard_deviation=wd[local_index],
-            )
-            local_misfit = data_misfit.L2DataMisfit(
-                data=data_object, simulation=simulation,
-                workers=workers
-            )
+        tile_time = time() - ct
+        print(f"Tile creation {tile_time}")
 
-            simulation.G  # Trigger calculation and carry on
-            del local_mesh  # Don't need to keep the local mesh around
-            local_misfits += [local_misfit]
+        # Trigger sensitivity calcs
+        sens = []
+        ct = time()
+        for local in local_misfits:
+            sens += [local.simulation.G]
+            # del local.simulation.mesh
 
         global_misfit = objective_function.ComboObjectiveFunction(
                 local_misfits
         )
-
-        print(local_misfit.simulation.G)
-
-        sens_time += [time() - ct]
-        print(f"Tile creation {time() - ct}")
+        client.gather(sens)
+        # print(local_misfit.simulation.G)
+        sens_time = time() - ct
+        print(f"Sensitivity creation {sens_time}")
+        # continue
         # Plot the model on different meshes
         # fig = plt.figure(figsize=(12, 6))
         # c_code = ['r', 'g']
@@ -227,7 +261,7 @@ for kk in range(4):
             #
 
         # Create active map to go from reduce set to full
-        # inject_global = maps.InjectActiveCells(global_mesh, activeCells, np.nan)
+        inject_global = maps.InjectActiveCells(global_mesh, activeCells, 0)
 
         # ax = plt.subplot(2, 1, 2)
         # global_mesh.plot_slice(inject_global * model, normal="Y", ax=ax, grid=True)
@@ -248,13 +282,15 @@ for kk in range(4):
         #
 
         # Create a regularization on the global mesh
-        reg = regularization.Sparse(global_mesh, indActive=activeCells, mapping=idenMap)
+        reg = regularization.Sparse(
+            global_mesh, indActive=activeCells, mapping=idenMap
+        )
 
         m0 = np.ones(int(activeCells.sum())) * 1e-4  # Starting model
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=1, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
+            maxIter=1, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-16
         )
         invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
         betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
@@ -276,7 +312,10 @@ for kk in range(4):
 
         # Run the inversion
         mrec = inv.run(m0)
-        inv_time += [opt.cg_runtime]
+        inv_time = opt.cg_runtime
+        global_mesh.write_UBC(
+            f"InvMesh{kk}_{jj}.msh",
+            models={f"inv{kk}_{jj}.mod": inject_global * invProb.model})
         # fig = plt.figure(figsize=(12, 6))
         # # Plot the result
         # ax = plt.subplot(1, 2, 1)
@@ -293,7 +332,14 @@ for kk in range(4):
         # ax.set_ylim(-50, 10)
         # ax.set_aspect("equal")
         # plt.show()
+        f = open(output, "a")
+        f.write(
+            "{:1.4e} {:1.4e} {:1.4e} {:1.4e} {:1.4e} {:1.4e} \n".format(
+                prob_size, 2**jj, max_chunk_size, tile_time, sens_time, inv_time
+            )
+        )
+        f.close()
 
-np.savetxt('Runtime_CG.txt', np.vstack(inv_time))
-np.savetxt('Runtime_Sens.txt', np.vstack(sens_time))
-np.savetxt('ProblemSize.txt', np.vstack(sens_time))
+# np.savetxt('Runtime_CG.txt', np.vstack(inv_time))
+# np.savetxt('Runtime_Sens.txt', np.vstack(sens_time))
+# np.savetxt('ProblemSize.txt', np.vstack(sens_time))
