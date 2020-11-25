@@ -6,6 +6,7 @@ Invert data in tiles.
 
 """
 import numpy as np
+import gc
 import matplotlib.pyplot as plt
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 from dask.distributed import Client, LocalCluster
@@ -42,7 +43,7 @@ client = Client(cluster)
 
 # config.set(scheduler="threads", pool=ThreadPool(12))
 
-max_chunk_size = 64
+max_chunk_size = 256
 
 config.set({"array.chunk-size": str(max_chunk_size) + "MiB"})
 workers = None  # Here runs locally
@@ -111,7 +112,9 @@ def create_tile(locations, obs, uncert, global_mesh, global_active, tile_id, wor
     return local_misfit
 
 
-for kk in [100]:
+global_mesh = None
+
+for kk in [25, 50, 100, 200]:
 
     # Create and array of observation points
     xr = np.linspace(-100.0, 100.0, kk)
@@ -127,26 +130,27 @@ for kk in [100]:
     # Create station locations drapped 0.1 m above topo
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T) + 0.1]
 
-    global_mesh = mesh_builder_xyz(
-        rxLoc, h,
-        padding_distance=padDist,
-        mesh_type='TREE',
-        depth_core=200
-    )
+    if global_mesh is None:
+        global_mesh = mesh_builder_xyz(
+            rxLoc, h,
+            padding_distance=padDist,
+            mesh_type='TREE',
+            depth_core=200
+        )
+        global_mesh = refine_tree_xyz(
+            global_mesh, topo,
+            method='surface', octree_levels=topography_refinement,
+            finalize=False
+        )
 
-    global_mesh = refine_tree_xyz(
-        global_mesh, topo,
-        method='surface', octree_levels=topography_refinement,
-        finalize=False
-    )
-
-    global_mesh = refine_tree_xyz(
-        global_mesh, rxLoc,
-        method='surface', octree_levels=locations_refinement,
-        max_distance=max_distance,
-        finalize=True
-    )
-    activeCells = active_from_xyz(global_mesh, topo, method='linear')
+        global_mesh = refine_tree_xyz(
+            global_mesh, rxLoc,
+            method='surface', octree_levels=locations_refinement,
+            max_distance=max_distance,
+            finalize=True
+        )
+        activeCells = active_from_xyz(global_mesh, topo, method='linear')
+        print(activeCells.sum())
 
     ##########################################################################
     # Synthetic data simulation
@@ -192,11 +196,12 @@ for kk in [100]:
     wd = np.ones(len(synthetic_data)) * 2e-3  # Assign flat uncertainties
 
 
-    prob_size = activeCells.sum() * rxLoc.shape[0] * 8. * 1e-9
+    prob_size = activeCells.sum() * 1e-9 * rxLoc.shape[0] * 8.
     print(f"Size {activeCells.sum()} x {rxLoc.shape[0]}, Total size {prob_size}")
 
 
-    for jj in range(4):
+    for jj in range(5):
+
         ##########################################################################
         # Divided and Conquer
         # -------------------
@@ -218,8 +223,8 @@ for kk in [100]:
             )
             local_misfits += [client.compute(delayed_misfit)]
 
-        local_misfits = client.gather(local_misfits)
 
+        local_misfits = client.gather(local_misfits)
         tile_time = time() - ct
         print(f"Tile creation {tile_time}")
 
@@ -339,6 +344,7 @@ for kk in [100]:
             )
         )
         f.close()
+
 
 # np.savetxt('Runtime_CG.txt', np.vstack(inv_time))
 # np.savetxt('Runtime_Sens.txt', np.vstack(sens_time))
