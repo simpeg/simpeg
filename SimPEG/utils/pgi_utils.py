@@ -1066,7 +1066,6 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
                 if self.prior_type == "full":
                     self.covariances_[k] += smu
-                    print("full", smu)
 
             else:
                 self.precisions_[k] = (1.0 / (weights_[k] + ref_weights_[k] * self.nu[k])) * (
