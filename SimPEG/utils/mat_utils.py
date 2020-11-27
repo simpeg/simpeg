@@ -155,7 +155,7 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=
         else:
             f = fields_list
 
-    #Power iteration: estimate eigenvector
+    # Power iteration: estimate eigenvector
     for i in range(n_pw_iter):
         x1 = 0.
         for j, (mult, obj) in enumerate(zip(combo.multipliers, combo.objfcts)):
