@@ -239,7 +239,7 @@ class Minimize(object):
     maxIterLS = 10  #: Maximum number of iterations for the line-search
     maxStep = np.inf  #: Maximum step possible, used in scaling before the line-search.
     LSreduction = 1e-4  #: Expected decrease in the line-search
-    LScurvature = 0.9 #expected decrease of the slope for line search Wolfe Curvature criteria
+    LScurvature = 0.9 #: Expected decrease of the slope for line search Wolfe Curvature criteria
     LSshorten = 0.5  #: Line-search step is shortened by this amount each time.
     tolF = 1e-1  #: Tolerance on function value decrease
     tolX = 1e-1  #: Tolerance on norm(x) movement
