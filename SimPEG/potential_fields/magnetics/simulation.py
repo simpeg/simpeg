@@ -171,7 +171,7 @@ class Simulation3DIntegral(BasePFSimulation):
         return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
 
     def Jvec(self, m, v, f=None):
-        if self.chi is None:
+        if getattr(self, 'chi', None) is None:
             self.model = np.zeros(self.G.shape[1])
         dmu_dm_v = self.chiDeriv @ v
 
@@ -185,7 +185,7 @@ class Simulation3DIntegral(BasePFSimulation):
             return Jvec
 
     def Jtvec(self, m, v, f=None):
-        if self.chi is None:
+        if getattr(self, 'chi', None) is None:
             self.model = np.zeros(self.G.shape[1])
 
         if self.is_amplitude_data:
@@ -196,7 +196,7 @@ class Simulation3DIntegral(BasePFSimulation):
     @property
     def fieldDeriv(self):
 
-        if self.chi is None:
+        if getattr(self, 'chi', None) is None:
             self.model = np.zeros(self.G.shape[1])
 
         if getattr(self, "_fieldDeriv", None) is None:
