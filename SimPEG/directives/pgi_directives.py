@@ -172,7 +172,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
 
     verbose = False #print information (progress, updates made)
     tolerance = 0.0 # tolerance on the geophysical target misfit for cooling
-    progress = 0.02 # minimum percentage progress (default 2%) before cooling beta
+    progress = 0.1 # minimum percentage progress (default 10%) before cooling beta
     coolingFactor = 2.0 # when cooled, beta is divided by it
     warmingFactor = 1.0 # when warmed, alpha_s is multiplied by the ratio of the
         # geophysical target with their current misfit, times this factor
