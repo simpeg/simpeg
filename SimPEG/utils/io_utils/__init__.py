@@ -10,9 +10,10 @@ from .io_utils_pf import (
     read_gg3d_ubc,
     write_gg3d_ubc,
 )
+
 from .io_utils_electromagnetics import (
     read_dcip3d_ubc,
     read_dcipoctree_ubc,
     write_dcip3d_ubc,
-    write_dcipoctree_ubc,
+    write_dcipoctree_ubc
 )

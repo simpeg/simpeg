@@ -48,7 +48,7 @@ def run(plotIt=True):
     sigBG = np.zeros(M.nC) + conds[1]
     sigBG[M.gridCC[:, 2] > 0] = 1e-8
     if plotIt:
-        collect_obj, line_obj = M.plotSlice(np.log10(sig), grid=True, normal="X")
+        collect_obj = M.plotSlice(np.log10(sig), grid=True, normal="X")[0]
         color_bar = plt.colorbar(collect_obj)
 
     # Setup the the survey object

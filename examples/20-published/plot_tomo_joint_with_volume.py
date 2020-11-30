@@ -182,12 +182,16 @@ def run(plotIt=True):
         ax.legend(["dobs", "dpred0", "dpred w/o Vol", "dpred with Vol"])
 
         fig, ax = plt.subplots(1, 3, figsize=(16, 4))
-        cb0 = plt.colorbar(M.plotImage(phitrue, ax=ax[0])[0], ax=ax[0])
-        cb1 = plt.colorbar(M.plotImage(mopt1, ax=ax[1])[0], ax=ax[1])
-        cb2 = plt.colorbar(M.plotImage(mopt2, ax=ax[2])[0], ax=ax[2])
+        im0 = M.plotImage(phitrue, ax=ax[0])[0]
+        im1 = M.plotImage(mopt1, ax=ax[1])[0]
+        im2 = M.plotImage(mopt2, ax=ax[2])[0]
 
-        for cb in [cb0, cb1, cb2]:
-            cb.set_clim([0.0, phi1])
+        for im in [im0, im1, im2]:
+            im.set_clim([0.0, phi1])
+
+        plt.colorbar(im0, ax=ax[0])
+        plt.colorbar(im1, ax=ax[1])
+        plt.colorbar(im2, ax=ax[2])
 
         ax[0].set_title("true, vol: {:1.3e}".format(knownVolume))
         ax[1].set_title(
