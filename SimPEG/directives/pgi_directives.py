@@ -270,39 +270,30 @@ class PGI_BetaAlphaSchedule(InversionDirective):
         if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
             if self.verbose:
                 print(
-                    "progress:",
-                    self.dmlist,
-                    "; progress targets:",
-                    np.maximum(
-                        (1.0 - self.progress) * self.previous_dmlist,
-                        (1.0 + self.tolerance) * self.DMtarget,
+                    "Beta cooling evaluation: progress:",
+                    np.round(self.dmlist, decimals=1),
+                    "; minimum progress targets:",
+                    np.round(
+                        np.maximum(
+                            (1.0 - self.progress) * self.previous_dmlist,
+                            (1.0 + self.tolerance) * self.DMtarget,
+                        ),
+                        decimals=1
                     ),
                 )
-            if np.any(
-                [
-                    np.all(
-                        [
-                            np.all(
-                                self.dmlist[~self.targetlist]
-                                > np.maximum(
-                                    (1.0 - self.progress)
-                                    * self.previous_dmlist[~self.targetlist],
-                                    self.DMtarget[~self.targetlist],
-                                )
-                            ),
-                            not self.DM,
-                            self.mode == 1,
-                        ]
-                    ),
-                    np.all(
-                        [
-                            np.all(
-                                self.dmlist > (1.0 + self.tolerance) * self.DMtarget
-                            ),
-                            self.mode == 2,
-                        ]
-                    ),
-                ]
+            if np.all(
+                    [
+                        np.all(
+                            self.dmlist[~self.targetlist]
+                            > np.maximum(
+                                (1.0 - self.progress)
+                                * self.previous_dmlist[~self.targetlist],
+                                self.DMtarget[~self.targetlist],
+                            )
+                        ),
+                        not self.DM,
+                        self.mode == 1,
+                    ]
             ):
 
                 if np.all([self.invProb.beta > self.betamin]):
@@ -314,7 +305,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     self.invProb.beta /= self.coolingFactor * ratio
 
                     if self.verbose:
-                        print("Decreasing beta to counter data misfit decrase plateau")
+                        print("Decreasing beta to counter data misfit decrase plateau.")
 
             elif np.all([self.DM, self.mode == 2]):
 
@@ -345,7 +336,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                     self.invProb.beta /= self.coolingFactor * ratio
 
                     if self.verbose:
-                        print("Decrease beta for countering plateau")
+                        print("Decreasing beta to counter data misfit increase.")
 
         self.previous_score = copy.deepcopy(self.score)
         self.previous_dmlist = copy.deepcopy(

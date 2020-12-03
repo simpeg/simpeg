@@ -511,7 +511,7 @@ class JointScalingSchedule(InversionDirective):
             ].DMtarget
 
         if self.verbose:
-            print("initial data misfit scale: ", self.dmisfit.multipliers)
+            print("Initial data misfit scales: ", self.dmisfit.multipliers)
 
     def endIter(self):
 
@@ -530,7 +530,6 @@ class JointScalingSchedule(InversionDirective):
                     np.r_[self.dmisfit.multipliers] < self.chimax
                 ):
 
-                    # Assume only 2 data misfit
                     indx = self.dmlist > self.DMtarget
                     if np.any(indx):
                         multipliers = self.warmingFactor * np.median(
@@ -824,8 +823,7 @@ class MultiTargetMisfits(InversionDirective):
 
         self.AllStop = self.DM and self.CL and self.DP
         if self.verbose:
-            message = "All targets reached: {}".format(self.AllStop)
-            message += " | geophys. misfits: " + "; ".join(
+            message = "geophys. misfits: " + "; ".join(
                 map(
                     str,
                     [
