@@ -1,6 +1,5 @@
 from .simulation import (
-	Simulation3DCellCentered, Simulation3DNodal,
-	Simulation3DCellCenteredFictitiousSources, Simulation3DNodalFictitiousSources
+	Simulation3DCellCentered, Simulation3DNodal
 )
 from .simulation_2d import Simulation2DCellCentered, Simulation2DNodal
 from .simulation_1d import Simulation1DLayers
