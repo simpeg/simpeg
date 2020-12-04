@@ -260,7 +260,7 @@ dc_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 # argument *rhoMap* is defined, the simulation will expect a resistivity model.
 #
 
-dc_simulation = dc.simulation.Simulation3DNodalFictitiousSources(
+dc_simulation = dc.simulation.Simulation3DNodal(
     mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
 )
 
@@ -481,7 +481,7 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 # We use the keyword argument *sigma* to define the background conductivity on
 # the mesh. We could use the keyword argument *rho* to accomplish the same thing
 # using a background resistivity model.
-ip_simulation = ip.simulation.Simulation3DNodalFictitiousSources(
+ip_simulation = ip.simulation.Simulation3DNodal(
     mesh,
     survey=ip_survey,
     etaMap=chargeability_map,
