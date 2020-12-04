@@ -256,7 +256,7 @@ survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 # argument *rhoMap* is defined, the simulation will expect a resistivity model.
 #
 
-simulation = dc.simulation.Simulation3DNodalFictitiousSources(
+simulation = dc.simulation.Simulation3DNodal(
     mesh, survey=survey, sigmaMap=conductivity_map, Solver=Solver
 )
 
