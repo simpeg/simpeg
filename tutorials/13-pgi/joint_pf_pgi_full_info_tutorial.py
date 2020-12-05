@@ -56,7 +56,7 @@ mesh_file = io_utils.download("https://storage.googleapis.com/simpeg/pgi_tutoria
 mesh = ds.TreeMesh.read_UBC(mesh_file)
 
 # Load True geological model for comparison with inversion result
-true_geology_file = io_utils.download("https://storage.googleapis.com/simpeg/pgi_tutorial_assets/geology_true")
+true_geology_file = io_utils.download("https://storage.googleapis.com/simpeg/pgi_tutorial_assets/geology_true.mod")
 true_geology = mesh.read_model_UBC(true_geology_file)
 
 # Plot true geology model
@@ -129,7 +129,7 @@ plt.subplots_adjust(hspace=-0.25,wspace=0.1)
 plt.show()
 
 # Load Topo
-topo_file = io_utils.download('https://storage.googleapis.com/simpeg/pgi_tutorial_assets/CDED_Lake_warp.topo')
+topo_file = io_utils.download('https://storage.googleapis.com/simpeg/pgi_tutorial_assets/CDED_Lake_warp.xyz')
 topo = np.genfromtxt(topo_file, skip_header=1)
 # find the active cells
 actv = utils.surface2ind_topo(mesh, topo, gridLoc='CC')

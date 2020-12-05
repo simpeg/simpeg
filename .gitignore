@@ -58,11 +58,14 @@ tutorials/05-dcr/dcip1d/*
 tutorials/05-dcr/dcip2d/*
 tutorials/06-ip/dcip2d/*
 tutorials/12-seismic/seismic/*
+tutorials/13-pgi/pgi/*
 
 # jupyter
 *.ipynb
 
 # results and testing files
+*.obs
+*.ubc
 *.xyz
 *.npy
 *.mod
