@@ -37,7 +37,7 @@ from SimPEG import (
     optimization,
     regularization,
     data_misfit,
-    directives
+    directives,
 )
 from SimPEG.utils import io_utils
 import numpy as np
@@ -52,87 +52,159 @@ np.random.seed(518936)
 #
 
 # Load Mesh
-mesh_file = io_utils.download("https://storage.googleapis.com/simpeg/pgi_tutorial_assets/mesh_tutorial.ubc")
+mesh_file = io_utils.download(
+    "https://storage.googleapis.com/simpeg/pgi_tutorial_assets/mesh_tutorial.ubc"
+)
 mesh = ds.TreeMesh.read_UBC(mesh_file)
 
 # Load True geological model for comparison with inversion result
-true_geology_file = io_utils.download("https://storage.googleapis.com/simpeg/pgi_tutorial_assets/geology_true.mod")
+true_geology_file = io_utils.download(
+    "https://storage.googleapis.com/simpeg/pgi_tutorial_assets/geology_true.mod"
+)
 true_geology = mesh.read_model_UBC(true_geology_file)
 
 # Plot true geology model
-fig, ax = plt.subplots(1,4,figsize=(20,4))
+fig, ax = plt.subplots(1, 4, figsize=(20, 4))
 ticksize, labelsize = 14, 16
 for _, axx in enumerate(ax):
-        axx.set_aspect(1)
-        axx.tick_params(labelsize=ticksize)
-mesh.plotSlice(true_geology,normal='X', ax=ax[0], ind=-17,clim=[0,2], pcolorOpts={'cmap':'inferno_r'}, grid=True)
-mesh.plotSlice(true_geology,normal='Y', ax=ax[1], clim=[0,2], pcolorOpts={'cmap':'inferno_r'}, grid=True)
-geoplot = mesh.plotSlice(true_geology ,normal='Z', ax=ax[2], clim=[0,2],ind=-10, pcolorOpts={'cmap':'inferno_r'}, grid=True)
-geocb = plt.colorbar(geoplot[0], cax=ax[3], ticks=[0,1,2])
-geocb.set_label('True geology model\n(classification/density/mag. susc.)', fontsize=labelsize)
-geocb.set_ticklabels(['BCKGRD (0 g/cc; 0 SI)','PK (-0.8 g/cc; 5e-3 SI)','VK (-0.2 g/cc; 2e-2 SI)'])
+    axx.set_aspect(1)
+    axx.tick_params(labelsize=ticksize)
+mesh.plotSlice(
+    true_geology,
+    normal="X",
+    ax=ax[0],
+    ind=-17,
+    clim=[0, 2],
+    pcolorOpts={"cmap": "inferno_r"},
+    grid=True,
+)
+mesh.plotSlice(
+    true_geology,
+    normal="Y",
+    ax=ax[1],
+    clim=[0, 2],
+    pcolorOpts={"cmap": "inferno_r"},
+    grid=True,
+)
+geoplot = mesh.plotSlice(
+    true_geology,
+    normal="Z",
+    ax=ax[2],
+    clim=[0, 2],
+    ind=-10,
+    pcolorOpts={"cmap": "inferno_r"},
+    grid=True,
+)
+geocb = plt.colorbar(geoplot[0], cax=ax[3], ticks=[0, 1, 2])
+geocb.set_label(
+    "True geology model\n(classification/density/mag. susc.)", fontsize=labelsize
+)
+geocb.set_ticklabels(
+    ["BCKGRD (0 g/cc; 0 SI)", "PK (-0.8 g/cc; 5e-3 SI)", "VK (-0.2 g/cc; 2e-2 SI)"]
+)
 geocb.ax.tick_params(labelsize=ticksize)
 ax[3].set_aspect(10)
 plt.show()
 
 # Load geophysical data
-data_grav_file = io_utils.download("https://storage.googleapis.com/simpeg/pgi_tutorial_assets/gravity_data.obs")
+data_grav_file = io_utils.download(
+    "https://storage.googleapis.com/simpeg/pgi_tutorial_assets/gravity_data.obs"
+)
 data_grav = io_utils.read_grav3d_ubc(data_grav_file)
-data_mag_file = io_utils.download("https://storage.googleapis.com/simpeg/pgi_tutorial_assets/magnetic_data.obs")
+data_mag_file = io_utils.download(
+    "https://storage.googleapis.com/simpeg/pgi_tutorial_assets/magnetic_data.obs"
+)
 data_mag = io_utils.read_mag3d_ubc(data_mag_file)
 
 # plot data and mesh
-fig, ax = plt.subplots(2,2,figsize=(15,10))
+fig, ax = plt.subplots(2, 2, figsize=(15, 10))
 ax = ax.reshape(-1)
-plt.gca().set_aspect('equal')
+plt.gca().set_aspect("equal")
 plt.gca().set_xlim(556800, 557700)
 plt.gca().set_ylim(7133200, 7134000)
-mesh.plotSlice(np.ones(mesh.nC),normal='Z', ind=int(-10), grid=True,pcolorOpts={'cmap':'Greys'},ax=ax[0])
-mm = utils.plot2Ddata(data_grav.survey.receiver_locations, -data_grav.dobs,
-                      ax=ax[0],level=True,
-                     nx=20,ny=20, dataloc=True,ncontour=12, shade=True,
-                      contourOpts={'cmap':'Blues_r', 'alpha':0.8},
-                      levelOpts={'colors':'k','linewidths':0.5, 'linestyles':'dashed'}
-                      )
+mesh.plotSlice(
+    np.ones(mesh.nC),
+    normal="Z",
+    ind=int(-10),
+    grid=True,
+    pcolorOpts={"cmap": "Greys"},
+    ax=ax[0],
+)
+mm = utils.plot2Ddata(
+    data_grav.survey.receiver_locations,
+    -data_grav.dobs,
+    ax=ax[0],
+    level=True,
+    nx=20,
+    ny=20,
+    dataloc=True,
+    ncontour=12,
+    shade=True,
+    contourOpts={"cmap": "Blues_r", "alpha": 0.8},
+    levelOpts={"colors": "k", "linewidths": 0.5, "linestyles": "dashed"},
+)
 ax[0].set_aspect(1)
-ax[0].set_title('Gravity data values and locations,\nwith mesh and geology overlays', fontsize=16)
-plt.colorbar(mm[0],cax=ax[2], orientation='horizontal')
+ax[0].set_title(
+    "Gravity data values and locations,\nwith mesh and geology overlays", fontsize=16
+)
+plt.colorbar(mm[0], cax=ax[2], orientation="horizontal")
 ax[2].set_aspect(0.05)
-ax[2].set_title('mGal', fontsize=16)
-mesh.plotSlice(np.ones(mesh.nC),normal='Z', ind=int(-10), grid=True,pcolorOpts={'cmap':'Greys'},ax=ax[1])
-mm = utils.plot2Ddata(data_mag.survey.receiver_locations,data_mag.dobs,
-                      ax=ax[1],level=True,
-                     nx=20,ny=20, dataloc=True,ncontour=11, shade=True,
-                      contourOpts={'cmap':'Reds', 'alpha':0.8},
-                     levelOpts={'colors':'k','linewidths':0.5, 'linestyles':'dashed'}
+ax[2].set_title("mGal", fontsize=16)
+mesh.plotSlice(
+    np.ones(mesh.nC),
+    normal="Z",
+    ind=int(-10),
+    grid=True,
+    pcolorOpts={"cmap": "Greys"},
+    ax=ax[1],
+)
+mm = utils.plot2Ddata(
+    data_mag.survey.receiver_locations,
+    data_mag.dobs,
+    ax=ax[1],
+    level=True,
+    nx=20,
+    ny=20,
+    dataloc=True,
+    ncontour=11,
+    shade=True,
+    contourOpts={"cmap": "Reds", "alpha": 0.8},
+    levelOpts={"colors": "k", "linewidths": 0.5, "linestyles": "dashed"},
 )
 ax[1].set_aspect(1)
-ax[1].set_title('Magnetic data values and locations,\nwith mesh and geology overlays', fontsize=16)
-plt.colorbar(mm[0],cax=ax[3], orientation='horizontal')
+ax[1].set_title(
+    "Magnetic data values and locations,\nwith mesh and geology overlays", fontsize=16
+)
+plt.colorbar(mm[0], cax=ax[3], orientation="horizontal")
 ax[3].set_aspect(0.05)
-ax[3].set_title('nT', fontsize=16)
-#overlay true geology model for comparison
+ax[3].set_title("nT", fontsize=16)
+# overlay true geology model for comparison
 indz = -9
-indslicezplot = mesh.gridCC[:,2] == mesh.vectorCCz[indz]
+indslicezplot = mesh.gridCC[:, 2] == mesh.vectorCCz[indz]
 for i in range(2):
     utils.plot2Ddata(
-            mesh.gridCC[indslicezplot][:,[0,1]],true_geology[indslicezplot],nx=200,ny=200,
-             contourOpts={'alpha':0},
-             clim=[0,2],
-             ax=ax[i],
-             level=True,
-             ncontour=2,
-             levelOpts={'colors':'k','linewidths':2,'linestyles':'--'},
-            method='nearest'
+        mesh.gridCC[indslicezplot][:, [0, 1]],
+        true_geology[indslicezplot],
+        nx=200,
+        ny=200,
+        contourOpts={"alpha": 0},
+        clim=[0, 2],
+        ax=ax[i],
+        level=True,
+        ncontour=2,
+        levelOpts={"colors": "k", "linewidths": 2, "linestyles": "--"},
+        method="nearest",
     )
-plt.subplots_adjust(hspace=-0.25,wspace=0.1)
+plt.subplots_adjust(hspace=-0.25, wspace=0.1)
 plt.show()
 
 # Load Topo
-topo_file = io_utils.download('https://storage.googleapis.com/simpeg/pgi_tutorial_assets/CDED_Lake_warp.xyz')
+topo_file = io_utils.download(
+    "https://storage.googleapis.com/simpeg/pgi_tutorial_assets/CDED_Lake_warp.xyz"
+)
 topo = np.genfromtxt(topo_file, skip_header=1)
 # find the active cells
-actv = utils.surface2ind_topo(mesh, topo, gridLoc='CC')
+actv = utils.surface2ind_topo(mesh, topo, gridLoc="CC")
 # Create active map to go from reduce set to full
 ndv = np.nan
 actvMap = maps.InjectActiveCells(mesh, actv, ndv)
@@ -140,7 +212,7 @@ nactv = actv.sum()
 
 # Create simulations and data misfits
 # Wires mapping
-wires = maps.Wires(('den', actvMap.nP), ('sus', actvMap.nP))
+wires = maps.Wires(("den", actvMap.nP), ("sus", actvMap.nP))
 gravmap = actvMap * wires.den
 magmap = actvMap * wires.sus
 idenMap = maps.IdentityMap(nP=nactv)
@@ -175,137 +247,166 @@ m0 = np.r_[-1e-4 * np.ones(actvMap.nP), 1e-4 * np.ones(actvMap.nP)]
 #
 
 gmmref = utils.WeightedGaussianMixture(
-    n_components=3, #number of rock units: bckgrd, PK, HK
-    mesh=mesh, # inversion mesh
-    actv=actv, #actv cells
-    covariance_type='diag', # diagonal covariances
+    n_components=3,  # number of rock units: bckgrd, PK, HK
+    mesh=mesh,  # inversion mesh
+    actv=actv,  # actv cells
+    covariance_type="diag",  # diagonal covariances
 )
 # required: initialization with fit
 # fake random samples, size of the mesh, number of physical properties: 2 (density and mag.susc)
-gmmref.fit(np.random.randn(nactv,2))
+gmmref.fit(np.random.randn(nactv, 2))
 # set parameters manually
 # set phys. prop means for each unit
 gmmref.means_ = np.c_[
-    [0.,0.], # BCKGRD density contrast and mag. susc
-    [-0.8, 0.005], # PK
-    [-0.2, 0.02], # HK
+    [0.0, 0.0],  # BCKGRD density contrast and mag. susc
+    [-0.8, 0.005],  # PK
+    [-0.2, 0.02],  # HK
 ].T
 # set phys. prop covariances for each unit
-gmmref.covariances_ = np.array([[6e-04, 3.175e-07],
-       [2.4e-03, 1.5e-06],
-       [2.4e-03, 1.5e-06]])
+gmmref.covariances_ = np.array(
+    [[6e-04, 3.175e-07], [2.4e-03, 1.5e-06], [2.4e-03, 1.5e-06]]
+)
 # important after setting cov. manually: compute precision matrices and cholesky
 gmmref.compute_clusters_precisions()
-#set global proportions; low-impact as long as not 0 or 1 (total=1)
+# set global proportions; low-impact as long as not 0 or 1 (total=1)
 gmmref.weights_ = np.r_[0.9, 0.075, 0.025]
 
 # Plot the 2D GMM
 ticksize, labelsize = 10, 12
-fig = plt.figure(figsize=(10,10))
-ax1 = plt.subplot2grid((4,4), (0,1), colspan=3, rowspan=3)
-ax2 = plt.subplot2grid((4,4), (3,1), colspan=3)
-ax3 = plt.subplot2grid((4,4), (0, 0), rowspan=3)
+fig = plt.figure(figsize=(10, 10))
+ax1 = plt.subplot2grid((4, 4), (0, 1), colspan=3, rowspan=3)
+ax2 = plt.subplot2grid((4, 4), (3, 1), colspan=3)
+ax3 = plt.subplot2grid((4, 4), (0, 0), rowspan=3)
 
 ax1.set_xlim(-1.2, 0.1)
 ax1.set_ylim(-0.0025, 0.03)
 ax2.set_xlim(-1.2, 0.1)
 ax3.set_ylim(-0.0025, 0.03)
 
-ax1.set_xticks([-1.2,-1.,-0.8,-0.6,-0.4,-0.2,0.])
-ax2.set_xticks([-1.2,-1.,-0.8,-0.6,-0.4,-0.2,0.])
+ax1.set_xticks([-1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0])
+ax2.set_xticks([-1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0])
 
-ax1.set_yticks([0,0.005,0.01,0.015,0.02,0.025])
-ax3.set_yticks([0,0.005,0.01,0.015,0.02,0.025])
+ax1.set_yticks([0, 0.005, 0.01, 0.015, 0.02, 0.025])
+ax3.set_yticks([0, 0.005, 0.01, 0.015, 0.02, 0.025])
 
-x, y = np.mgrid[-1.21:0.1:.01, -0.01:0.031:.001]
+x, y = np.mgrid[-1.21:0.1:0.01, -0.01:0.031:0.001]
 pos = np.empty(x.shape + (2,))
 pos[:, :, 0] = x
 pos[:, :, 1] = y
 rvm = gmmref.predict(pos.reshape(-1, 2))
-rvsmooth = (gmmref.score_samples(pos.reshape(-1, 2)))
-surf = ax1.contourf(x,y,(rvsmooth).reshape(x.shape),25, cmap='viridis')
-ax1.contour(x,y,rvsmooth.reshape(x.shape),25,colors='k',linewidths=1.,linestyles='dashdot')
+rvsmooth = gmmref.score_samples(pos.reshape(-1, 2))
+surf = ax1.contourf(x, y, (rvsmooth).reshape(x.shape), 25, cmap="viridis")
+ax1.contour(
+    x,
+    y,
+    rvsmooth.reshape(x.shape),
+    25,
+    colors="k",
+    linewidths=1.0,
+    linestyles="dashdot",
+)
 ax1.scatter(
-    gmmref.means_[:,0], gmmref.means_[:,1], label='True petrophysical means',
-    cmap='inferno_r',c=[0,1,2], marker='v', edgecolors='k', s=200
+    gmmref.means_[:, 0],
+    gmmref.means_[:, 1],
+    label="True petrophysical means",
+    cmap="inferno_r",
+    c=[0, 1, 2],
+    marker="v",
+    edgecolors="k",
+    s=200,
 )
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-axbar = inset_axes(ax1,
-                    width="40%",
-                    height="3%",
-                    loc='upper right',
-                      borderpad=1,
-)
-cbpetro = fig.colorbar(surf,cax=axbar,orientation='horizontal')
-cbpetro.set_ticks([rvsmooth.min(),rvsmooth.max()])
-cbpetro.set_ticklabels(['Low','High'])
-cbpetro.set_label('2D Probability Density Distribution',fontsize=labelsize)
-cbpetro.ax.tick_params(labelsize=ticksize)
-cbpetro.outline.set_edgecolor('k')
 
-#create the 1D GMM profile for density
+axbar = inset_axes(
+    ax1,
+    width="40%",
+    height="3%",
+    loc="upper right",
+    borderpad=1,
+)
+cbpetro = fig.colorbar(surf, cax=axbar, orientation="horizontal")
+cbpetro.set_ticks([rvsmooth.min(), rvsmooth.max()])
+cbpetro.set_ticklabels(["Low", "High"])
+cbpetro.set_label("2D Probability Density Distribution", fontsize=labelsize)
+cbpetro.ax.tick_params(labelsize=ticksize)
+cbpetro.outline.set_edgecolor("k")
+
+# create the 1D GMM profile for density
 from sklearn.mixture import GaussianMixture
-means_init_grav = gmmref.means_[:,0].reshape(3,1)
-cov_init_grav = np.array(
-    [gmmref.covariances_[:,0]]).reshape((3,1,1))
-clfgrav = utils.pgi_utils.GaussianMixture(n_components=3,
-                      means_init=means_init_grav,
-                      precisions_init=cov_init_grav,
-                     n_init=1,
-                     max_iter=2,tol=np.inf)
-#random fit, we set values after.
-clfgrav.fit(np.random.randn(10,1))
+
+means_init_grav = gmmref.means_[:, 0].reshape(3, 1)
+cov_init_grav = np.array([gmmref.covariances_[:, 0]]).reshape((3, 1, 1))
+clfgrav = utils.pgi_utils.GaussianMixture(
+    n_components=3,
+    means_init=means_init_grav,
+    precisions_init=cov_init_grav,
+    n_init=1,
+    max_iter=2,
+    tol=np.inf,
+)
+# random fit, we set values after.
+clfgrav.fit(np.random.randn(10, 1))
 clfgrav.means_ = means_init_grav
 clfgrav.covariances_ = cov_init_grav
 from sklearn.mixture._gaussian_mixture import _compute_precision_cholesky
+
 clfgrav.precisions_cholesky_ = _compute_precision_cholesky(
     clfgrav.covariances_, clfgrav.covariance_type
 )
 clfgrav.weights_ = gmmref.weights_
-testXplot_grav = np.linspace(-1.2,0.1,1000)[:,np.newaxis]
+testXplot_grav = np.linspace(-1.2, 0.1, 1000)[:, np.newaxis]
 score_grav = clfgrav.score_samples(testXplot_grav)
-ax2.plot(testXplot_grav, np.exp(score_grav), linewidth=3.,label='1D Probability Density Distribution',c='k')
-ax2.set_ylim([0.,2])
+ax2.plot(
+    testXplot_grav,
+    np.exp(score_grav),
+    linewidth=3.0,
+    label="1D Probability Density Distribution",
+    c="k",
+)
+ax2.set_ylim([0.0, 2])
 ax2.legend(fontsize=ticksize)
 
-#create the 1D GMM profile for mag. susc.
-means_init_mag = gmmref.means_[:,1].reshape(3,1)
-cov_init_mag = np.array(
-    [gmmref.covariances_[:,1]]).reshape((3,1,1))
-clfmag = GaussianMixture(n_components=3,
-                      means_init=means_init_mag,
-                      precisions_init=cov_init_mag,
-                     n_init=1,
-                     max_iter=2,tol=np.inf)
-#random fit, we set values after.
-clfmag.fit(np.random.randn(10,1))
+# create the 1D GMM profile for mag. susc.
+means_init_mag = gmmref.means_[:, 1].reshape(3, 1)
+cov_init_mag = np.array([gmmref.covariances_[:, 1]]).reshape((3, 1, 1))
+clfmag = GaussianMixture(
+    n_components=3,
+    means_init=means_init_mag,
+    precisions_init=cov_init_mag,
+    n_init=1,
+    max_iter=2,
+    tol=np.inf,
+)
+# random fit, we set values after.
+clfmag.fit(np.random.randn(10, 1))
 clfmag.means_ = means_init_mag
 clfmag.covariances_ = cov_init_mag
 clfmag.precisions_cholesky_ = _compute_precision_cholesky(
     clfmag.covariances_, clfmag.covariance_type
 )
 clfmag.weights_ = gmmref.weights_
-testXplot_mag = np.linspace(-0.025,0.03,1000)[:,np.newaxis]
+testXplot_mag = np.linspace(-0.025, 0.03, 1000)[:, np.newaxis]
 score_mag = clfmag.score_samples(testXplot_mag)
-ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.,c='k')
+ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.0, c="k")
 
-ax3.set_xlim([0.,50])
-ax3.set_xlabel('1D Probability Density values',fontsize=labelsize,
-               rotation=-45, labelpad=0,x=0.5)
-ax2.set_xlabel('Density (g/cc)', fontsize=labelsize)
-ax3.set_ylabel('Magnetic Susceptibility (SI)', fontsize=labelsize)
+ax3.set_xlim([0.0, 50])
+ax3.set_xlabel(
+    "1D Probability Density values", fontsize=labelsize, rotation=-45, labelpad=0, x=0.5
+)
+ax2.set_xlabel("Density (g/cc)", fontsize=labelsize)
+ax3.set_ylabel("Magnetic Susceptibility (SI)", fontsize=labelsize)
 ax2.tick_params(labelsize=ticksize)
 ax3.tick_params(labelsize=ticksize)
-ax1.text(-0.9,0.0025, 'PK', fontsize=labelsize)
-ax1.text(-0.175,0.02, 'HK', fontsize=labelsize)
-ax1.text(-0.2, 0.002, 'BCKGRD', fontsize=labelsize)#, color='white')
+ax1.text(-0.9, 0.0025, "PK", fontsize=labelsize)
+ax1.text(-0.175, 0.02, "HK", fontsize=labelsize)
+ax1.text(-0.2, 0.002, "BCKGRD", fontsize=labelsize)  # , color='white')
 ax1.legend(fontsize=labelsize, loc=3)
 ax1.tick_params(labelleft=False)
 ax1.tick_params(labelbottom=False)
-ax1.set_ylabel('')
-ax1.set_xlabel('')
-ax2.tick_params(axis='both',which='both',labelsize=ticksize)
-ax3.tick_params(axis='both',which='both',labelsize=ticksize)
+ax1.set_ylabel("")
+ax1.set_xlabel("")
+ax2.tick_params(axis="both", which="both", labelsize=ticksize)
+ax3.tick_params(axis="both", which="both", labelsize=ticksize)
 plt.show()
 
 
@@ -315,11 +416,11 @@ plt.show()
 #
 
 # Sensitivity weighting
-wr_grav = np.sum(simulation_grav.G**2., axis=0)**0.5
-wr_grav = (wr_grav / np.max(wr_grav))
+wr_grav = np.sum(simulation_grav.G ** 2.0, axis=0) ** 0.5
+wr_grav = wr_grav / np.max(wr_grav)
 
-wr_mag = np.sum(simulation_mag.G**2., axis=0)**0.5
-wr_mag = (wr_mag / np.max(wr_mag))
+wr_mag = np.sum(simulation_mag.G ** 2.0, axis=0) ** 0.5
+wr_mag = wr_mag / np.max(wr_mag)
 
 # create joint PGI regularization with smoothness
 reg = utils.make_SimplePGI_regularization(
@@ -329,9 +430,14 @@ reg = utils.make_SimplePGI_regularization(
     maplist=[idenMap, idenMap],
     mref=m0,
     indActive=actv,
-    alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
-    alpha_xx=0., alpha_yy=0., alpha_zz=0.,
-    cell_weights_list=[wr_grav, wr_mag] # weights each phys. prop. by correct sensW
+    alpha_s=1.0,
+    alpha_x=1.0,
+    alpha_y=1.0,
+    alpha_z=1.0,
+    alpha_xx=0.0,
+    alpha_yy=0.0,
+    alpha_zz=0.0,
+    cell_weights_list=[wr_grav, wr_mag],  # weights each phys. prop. by correct sensW
 )
 
 #########################################################################
@@ -342,18 +448,17 @@ reg = utils.make_SimplePGI_regularization(
 # Directives
 # Add directives to the inversion
 # ratio to use for each phys prop. smoothness in each direction; roughly the ratio of range of each phys. prop.
-alpha0_ratio = np.r_[np.zeros(len(reg.objfcts[0].objfcts)),
-                    1e-4 * np.ones(len(reg.objfcts[1].objfcts)),
-                    100. * 1e-4 * np.ones(len(reg.objfcts[2].objfcts))]
-Alphas = directives.AlphasSmoothEstimate_ByEig(
-    alpha0_ratio=alpha0_ratio,
-    verbose=True
-)
+alpha0_ratio = np.r_[
+    np.zeros(len(reg.objfcts[0].objfcts)),
+    1e-4 * np.ones(len(reg.objfcts[1].objfcts)),
+    100.0 * 1e-4 * np.ones(len(reg.objfcts[2].objfcts)),
+]
+Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbose=True)
 # initialize beta and beta/alpha_s schedule
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True,
-    coolingFactor=2.,
+    coolingFactor=2.0,
     tolerance=0.2,
     progress=0.2,
 )
@@ -368,24 +473,26 @@ MrefInSmooth = directives.PGI_AddMrefInSmooth(
 )
 # update the parameters in smallness (L2-approx of PGI)
 update_smallness = directives.PGI_UpdateParameters(
-    update_gmm = False #keep GMM model fixed
+    update_gmm=False  # keep GMM model fixed
 )
 # pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
 # iteratively balance the scaling of the data misfits
-scaling_init = directives.ScalingMultipleDataMisfits_ByEig(chi0_ratio=[1.,100.])
+scaling_init = directives.ScalingMultipleDataMisfits_ByEig(chi0_ratio=[1.0, 100.0])
 scale_schedule = directives.JointScalingSchedule(verbose=True)
 
 # Create inverse problem
 # Optimization
 # set lower and upper bounds
-lowerbound = np.r_[-2. * np.ones(actvMap.nP), 0. * np.ones(actvMap.nP)]
-upperbound = np.r_[0. * np.ones(actvMap.nP), 1e-1 * np.ones(actvMap.nP)]
+lowerbound = np.r_[-2.0 * np.ones(actvMap.nP), 0.0 * np.ones(actvMap.nP)]
+upperbound = np.r_[0.0 * np.ones(actvMap.nP), 1e-1 * np.ones(actvMap.nP)]
 opt = optimization.ProjectedGNCG(
     maxIter=30,
-    lower=lowerbound, upper=upperbound,
+    lower=lowerbound,
+    upper=upperbound,
     maxIterLS=20,
-    maxIterCG=100, tolCG=1e-4
+    maxIterCG=100,
+    tolCG=1e-4,
 )
 # create inverse problem
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -396,12 +503,16 @@ inv = inversion.BaseInversion(
         Alphas,
         scaling_init,
         beta,
-        update_smallness, targets, scale_schedule,
-        betaIt, MrefInSmooth, update_Jacobi
-    ]
+        update_smallness,
+        targets,
+        scale_schedule,
+        betaIt,
+        MrefInSmooth,
+        update_Jacobi,
+    ],
 )
 
-#invert
+# invert
 pgi_model = inv.run(m0)
 
 # Extract the results
@@ -410,7 +521,7 @@ magsus_model = magmap * pgi_model
 quasi_geology_model = actvMap * reg.objfcts[0].membership(reg.objfcts[0].mref)
 
 # Plot the result with full petrophysical information
-fig, ax = plt.subplots(3,4,figsize=(15,10))
+fig, ax = plt.subplots(3, 4, figsize=(15, 10))
 for _, axx in enumerate(ax):
     for _, axxx in enumerate(axx):
         axxx.set_aspect(1)
@@ -418,174 +529,285 @@ for _, axx in enumerate(ax):
 indx = 15
 indy = 17
 indz = -9
-#geology model
-mesh.plotSlice(quasi_geology_model ,normal='X', ax=ax[0,0], clim=[0,2], ind=indx, pcolorOpts={'cmap':'inferno_r'})
-mesh.plotSlice(quasi_geology_model ,normal='Y', ax=ax[0,1], clim=[0,2], ind=indy, pcolorOpts={'cmap':'inferno_r'})
-geoplot = mesh.plotSlice(quasi_geology_model ,normal='Z', ax=ax[0,2], clim=[0,2],ind=indz, pcolorOpts={'cmap':'inferno_r'})
-geocb = plt.colorbar(geoplot[0], cax=ax[0,3], ticks=[0,1,2])
-geocb.set_ticklabels(['BCK','PK','VK'])
-geocb.set_label('Quasi-Geology model\n(Rock units classification)', fontsize=16)
-ax[0,3].set_aspect(10)
+# geology model
+mesh.plotSlice(
+    quasi_geology_model,
+    normal="X",
+    ax=ax[0, 0],
+    clim=[0, 2],
+    ind=indx,
+    pcolorOpts={"cmap": "inferno_r"},
+)
+mesh.plotSlice(
+    quasi_geology_model,
+    normal="Y",
+    ax=ax[0, 1],
+    clim=[0, 2],
+    ind=indy,
+    pcolorOpts={"cmap": "inferno_r"},
+)
+geoplot = mesh.plotSlice(
+    quasi_geology_model,
+    normal="Z",
+    ax=ax[0, 2],
+    clim=[0, 2],
+    ind=indz,
+    pcolorOpts={"cmap": "inferno_r"},
+)
+geocb = plt.colorbar(geoplot[0], cax=ax[0, 3], ticks=[0, 1, 2])
+geocb.set_ticklabels(["BCK", "PK", "VK"])
+geocb.set_label("Quasi-Geology model\n(Rock units classification)", fontsize=16)
+ax[0, 3].set_aspect(10)
 
-#gravity model
-mesh.plotSlice(density_model ,normal='X', ax=ax[1,0], clim=[-1,0], ind=indx, pcolorOpts={'cmap':'Blues_r'})
-mesh.plotSlice(density_model ,normal='Y', ax=ax[1,1], clim=[-1,0], ind=indy, pcolorOpts={'cmap':'Blues_r'})
-denplot = mesh.plotSlice(density_model ,normal='Z', ax=ax[1,2], clim=[-1,0],ind=indz, pcolorOpts={'cmap':'Blues_r'})
-dencb = plt.colorbar(denplot[0],cax=ax[1,3])
-dencb.set_label('Density contrast\nmodel (g/cc)', fontsize=16)
-ax[1,3].set_aspect(10)
+# gravity model
+mesh.plotSlice(
+    density_model,
+    normal="X",
+    ax=ax[1, 0],
+    clim=[-1, 0],
+    ind=indx,
+    pcolorOpts={"cmap": "Blues_r"},
+)
+mesh.plotSlice(
+    density_model,
+    normal="Y",
+    ax=ax[1, 1],
+    clim=[-1, 0],
+    ind=indy,
+    pcolorOpts={"cmap": "Blues_r"},
+)
+denplot = mesh.plotSlice(
+    density_model,
+    normal="Z",
+    ax=ax[1, 2],
+    clim=[-1, 0],
+    ind=indz,
+    pcolorOpts={"cmap": "Blues_r"},
+)
+dencb = plt.colorbar(denplot[0], cax=ax[1, 3])
+dencb.set_label("Density contrast\nmodel (g/cc)", fontsize=16)
+ax[1, 3].set_aspect(10)
 
-#magnetic model
-mesh.plotSlice(magsus_model ,normal='X', ax=ax[2,0], clim=[0,0.025], ind=indx, pcolorOpts={'cmap':'Reds'})
-mesh.plotSlice(magsus_model ,normal='Y', ax=ax[2,1], clim=[0,0.025], ind=indy, pcolorOpts={'cmap':'Reds'})
-susplot = mesh.plotSlice(magsus_model ,normal='Z', ax=ax[2,2], clim=[0,0.025],ind=indz, pcolorOpts={'cmap':'Reds'})
-suscb = plt.colorbar(susplot[0],cax=ax[2,3])
-suscb.set_label('Magnetic susceptibility\nmodel (SI)', fontsize=16)
-ax[2,3].set_aspect(10)
+# magnetic model
+mesh.plotSlice(
+    magsus_model,
+    normal="X",
+    ax=ax[2, 0],
+    clim=[0, 0.025],
+    ind=indx,
+    pcolorOpts={"cmap": "Reds"},
+)
+mesh.plotSlice(
+    magsus_model,
+    normal="Y",
+    ax=ax[2, 1],
+    clim=[0, 0.025],
+    ind=indy,
+    pcolorOpts={"cmap": "Reds"},
+)
+susplot = mesh.plotSlice(
+    magsus_model,
+    normal="Z",
+    ax=ax[2, 2],
+    clim=[0, 0.025],
+    ind=indz,
+    pcolorOpts={"cmap": "Reds"},
+)
+suscb = plt.colorbar(susplot[0], cax=ax[2, 3])
+suscb.set_label("Magnetic susceptibility\nmodel (SI)", fontsize=16)
+ax[2, 3].set_aspect(10)
 
-#overlay true geology model for comparison
-indslicexplot = mesh.gridCC[:,0] == mesh.vectorCCx[indx]
-indsliceyplot = mesh.gridCC[:,1] == mesh.vectorCCy[indy]
-indslicezplot = mesh.gridCC[:,2] == mesh.vectorCCz[indz]
+# overlay true geology model for comparison
+indslicexplot = mesh.gridCC[:, 0] == mesh.vectorCCx[indx]
+indsliceyplot = mesh.gridCC[:, 1] == mesh.vectorCCy[indy]
+indslicezplot = mesh.gridCC[:, 2] == mesh.vectorCCz[indz]
 for i in range(3):
-    for j, (plane, indd) in enumerate(zip([[1,2],[0,2],[0,1]], [indslicexplot,indsliceyplot,indslicezplot])):
+    for j, (plane, indd) in enumerate(
+        zip([[1, 2], [0, 2], [0, 1]], [indslicexplot, indsliceyplot, indslicezplot])
+    ):
         utils.plot2Ddata(
-            mesh.gridCC[indd][:,plane],true_geology[indd],nx=100,ny=100,
-             contourOpts={'alpha':0},
-             clim=[0,2],
-             ax=ax[i,j],
-             level=True,
-             ncontour=2,
-             levelOpts={'colors':'grey','linewidths':2,'linestyles':'--'},
-            method='nearest'
+            mesh.gridCC[indd][:, plane],
+            true_geology[indd],
+            nx=100,
+            ny=100,
+            contourOpts={"alpha": 0},
+            clim=[0, 2],
+            ax=ax[i, j],
+            level=True,
+            ncontour=2,
+            levelOpts={"colors": "grey", "linewidths": 2, "linestyles": "--"},
+            method="nearest",
         )
 
 # plot the locations of the cross-sections
 for i in range(3):
-        ax[i,0].plot(mesh.vectorCCy[indy]*np.ones(2), [-300,500], c='k', linestyle='dotted')
-        ax[i,0].plot([7133200,7134000], mesh.vectorCCz[indz]*np.ones(2), c='k', linestyle='dotted')
-        ax[i,1].plot(mesh.vectorCCx[indx]*np.ones(2), [-300,500], c='k', linestyle='dotted')
-        ax[i,1].plot([556900,557700], mesh.vectorCCz[indz]*np.ones(2), c='k', linestyle='dotted')
-        ax[i,2].plot(mesh.vectorCCx[indx]*np.ones(2), [7133200,7134000], c='k', linestyle='dotted')
-        ax[i,2].plot([556900,557700], mesh.vectorCCy[indy]*np.ones(2), c='k', linestyle='dotted')
+    ax[i, 0].plot(
+        mesh.vectorCCy[indy] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
+    )
+    ax[i, 0].plot(
+        [7133200, 7134000], mesh.vectorCCz[indz] * np.ones(2), c="k", linestyle="dotted"
+    )
+    ax[i, 1].plot(
+        mesh.vectorCCx[indx] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
+    )
+    ax[i, 1].plot(
+        [556900, 557700], mesh.vectorCCz[indz] * np.ones(2), c="k", linestyle="dotted"
+    )
+    ax[i, 2].plot(
+        mesh.vectorCCx[indx] * np.ones(2), [7133200, 7134000], c="k", linestyle="dotted"
+    )
+    ax[i, 2].plot(
+        [556900, 557700], mesh.vectorCCy[indy] * np.ones(2), c="k", linestyle="dotted"
+    )
 plt.tight_layout()
 
 # Plot the 2D GMM
 ticksize, labelsize = 10, 12
-fig = plt.figure(figsize=(10,10))
-ax1 = plt.subplot2grid((4,4), (0,1), colspan=3, rowspan=3)
-ax2 = plt.subplot2grid((4,4), (3,1), colspan=3)
-ax3 = plt.subplot2grid((4,4), (0, 0), rowspan=3)
+fig = plt.figure(figsize=(10, 10))
+ax1 = plt.subplot2grid((4, 4), (0, 1), colspan=3, rowspan=3)
+ax2 = plt.subplot2grid((4, 4), (3, 1), colspan=3)
+ax3 = plt.subplot2grid((4, 4), (0, 0), rowspan=3)
 
 ax1.set_xlim(-1.2, 0.1)
 ax1.set_ylim(-0.0025, 0.03)
 ax2.set_xlim(-1.2, 0.1)
 ax3.set_ylim(-0.0025, 0.03)
 
-ax1.set_xticks([-1.2,-1.,-0.8,-0.6,-0.4,-0.2,0.])
-ax2.set_xticks([-1.2,-1.,-0.8,-0.6,-0.4,-0.2,0.])
+ax1.set_xticks([-1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0])
+ax2.set_xticks([-1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0])
 
-ax1.set_yticks([0,0.005,0.01,0.015,0.02,0.025])
-ax3.set_yticks([0,0.005,0.01,0.015,0.02,0.025])
+ax1.set_yticks([0, 0.005, 0.01, 0.015, 0.02, 0.025])
+ax3.set_yticks([0, 0.005, 0.01, 0.015, 0.02, 0.025])
 
-x, y = np.mgrid[-1.21:0.1:.01, -0.01:0.031:.001]
+x, y = np.mgrid[-1.21:0.1:0.01, -0.01:0.031:0.001]
 pos = np.empty(x.shape + (2,))
 pos[:, :, 0] = x
 pos[:, :, 1] = y
 rvm = gmmref.predict(pos.reshape(-1, 2))
-rvsmooth = (gmmref.score_samples(pos.reshape(-1, 2)))
-surf = ax1.contourf(x,y,(rvsmooth).reshape(x.shape),25, cmap='viridis') #linestyles='dashdot', linewidths=2.,
-ax1.contour(x,y,rvsmooth.reshape(x.shape),25,colors='k',linewidths=1.,linestyles='dashdot')
-ax1.scatter(
-    density_model[actv], magsus_model[actv], c=quasi_geology_model[actv],
-    cmap='inferno_r', edgecolors='k', label='recovered PGI model',
-    alpha=0.5
+rvsmooth = gmmref.score_samples(pos.reshape(-1, 2))
+surf = ax1.contourf(
+    x, y, (rvsmooth).reshape(x.shape), 25, cmap="viridis"
+)  # linestyles='dashdot', linewidths=2.,
+ax1.contour(
+    x,
+    y,
+    rvsmooth.reshape(x.shape),
+    25,
+    colors="k",
+    linewidths=1.0,
+    linestyles="dashdot",
 )
 ax1.scatter(
-    gmmref.means_[:,0], gmmref.means_[:,1], label='True petrophysical means',
-    cmap='inferno_r',c=[0,1,2], marker='v', edgecolors='k', s=200
+    density_model[actv],
+    magsus_model[actv],
+    c=quasi_geology_model[actv],
+    cmap="inferno_r",
+    edgecolors="k",
+    label="recovered PGI model",
+    alpha=0.5,
+)
+ax1.scatter(
+    gmmref.means_[:, 0],
+    gmmref.means_[:, 1],
+    label="True petrophysical means",
+    cmap="inferno_r",
+    c=[0, 1, 2],
+    marker="v",
+    edgecolors="k",
+    s=200,
 )
 
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-axbar = inset_axes(ax1,
-                    width="40%",  # width = 50% of parent_bbox width
-                    height="3%",  # height : 5%
-                    loc='upper right',
-                      borderpad=1,
-)
-cbpetro = fig.colorbar(surf,cax=axbar,orientation='horizontal')
-cbpetro.set_ticks([rvsmooth.min(),rvsmooth.max()])
-cbpetro.set_ticklabels(['Low','High'])
-cbpetro.set_label('Probability Density',fontsize=labelsize)
-cbpetro.ax.tick_params(labelsize=ticksize)
-cbpetro.outline.set_edgecolor('k')
 
-#create the 1D GMM profile for density
+axbar = inset_axes(
+    ax1,
+    width="40%",  # width = 50% of parent_bbox width
+    height="3%",  # height : 5%
+    loc="upper right",
+    borderpad=1,
+)
+cbpetro = fig.colorbar(surf, cax=axbar, orientation="horizontal")
+cbpetro.set_ticks([rvsmooth.min(), rvsmooth.max()])
+cbpetro.set_ticklabels(["Low", "High"])
+cbpetro.set_label("Probability Density", fontsize=labelsize)
+cbpetro.ax.tick_params(labelsize=ticksize)
+cbpetro.outline.set_edgecolor("k")
+
+# create the 1D GMM profile for density
 from sklearn.mixture import GaussianMixture
-means_init_grav = gmmref.means_[:,0].reshape(3,1)
-cov_init_grav = np.array(
-    [gmmref.covariances_[:,0]]).reshape((3,1,1))
-clfgrav = utils.pgi_utils.GaussianMixture(n_components=3,
-                      means_init=means_init_grav,
-                      precisions_init=cov_init_grav,
-                     n_init=1,
-                     max_iter=2,tol=np.inf)
-#random fit, we set values after.
-clfgrav.fit(np.random.randn(10,1))
+
+means_init_grav = gmmref.means_[:, 0].reshape(3, 1)
+cov_init_grav = np.array([gmmref.covariances_[:, 0]]).reshape((3, 1, 1))
+clfgrav = utils.pgi_utils.GaussianMixture(
+    n_components=3,
+    means_init=means_init_grav,
+    precisions_init=cov_init_grav,
+    n_init=1,
+    max_iter=2,
+    tol=np.inf,
+)
+# random fit, we set values after.
+clfgrav.fit(np.random.randn(10, 1))
 clfgrav.means_ = means_init_grav
 clfgrav.covariances_ = cov_init_grav
 from sklearn.mixture._gaussian_mixture import _compute_precision_cholesky
+
 clfgrav.precisions_cholesky_ = _compute_precision_cholesky(
     clfgrav.covariances_, clfgrav.covariance_type
 )
 clfgrav.weights_ = gmmref.weights_
-testXplot_grav = np.linspace(-1.2,0.1,1000)[:,np.newaxis]
+testXplot_grav = np.linspace(-1.2, 0.1, 1000)[:, np.newaxis]
 score_grav = clfgrav.score_samples(testXplot_grav)
-ax2.plot(testXplot_grav, np.exp(score_grav), linewidth=3.,label='proba.\ndensity',c='k')
-ax2.set_ylim([0.,2])
+ax2.plot(
+    testXplot_grav, np.exp(score_grav), linewidth=3.0, label="proba.\ndensity", c="k"
+)
+ax2.set_ylim([0.0, 2])
 ax2.legend(fontsize=ticksize)
 
-#create the 1D GMM profile for mag. susc.
-means_init_mag = gmmref.means_[:,1].reshape(3,1)
-cov_init_mag = np.array(
-    [gmmref.covariances_[:,1]]).reshape((3,1,1))
-clfmag = GaussianMixture(n_components=3,
-                      means_init=means_init_mag,
-                      precisions_init=cov_init_mag,
-                     n_init=1,
-                     max_iter=2,tol=np.inf)
-#random fit, we set values after.
-clfmag.fit(np.random.randn(10,1))
+# create the 1D GMM profile for mag. susc.
+means_init_mag = gmmref.means_[:, 1].reshape(3, 1)
+cov_init_mag = np.array([gmmref.covariances_[:, 1]]).reshape((3, 1, 1))
+clfmag = GaussianMixture(
+    n_components=3,
+    means_init=means_init_mag,
+    precisions_init=cov_init_mag,
+    n_init=1,
+    max_iter=2,
+    tol=np.inf,
+)
+# random fit, we set values after.
+clfmag.fit(np.random.randn(10, 1))
 clfmag.means_ = means_init_mag
 clfmag.covariances_ = cov_init_mag
 clfmag.precisions_cholesky_ = _compute_precision_cholesky(
     clfmag.covariances_, clfmag.covariance_type
 )
 clfmag.weights_ = gmmref.weights_
-testXplot_mag = np.linspace(-0.025,0.03,1000)[:,np.newaxis]
+testXplot_mag = np.linspace(-0.025, 0.03, 1000)[:, np.newaxis]
 score_mag = clfmag.score_samples(testXplot_mag)
-ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.,c='k')
+ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.0, c="k")
 
-ax3.set_xlim([0.,50])
-ax3.set_xlabel('Probability\nDensity',fontsize=labelsize,
-               rotation=-45, labelpad=0,x=0.5)
-ax2.set_xlabel('Density (g/cc)', fontsize=labelsize)
-ax3.set_ylabel('Magnetic Susceptibility (SI)', fontsize=labelsize)
+ax3.set_xlim([0.0, 50])
+ax3.set_xlabel(
+    "Probability\nDensity", fontsize=labelsize, rotation=-45, labelpad=0, x=0.5
+)
+ax2.set_xlabel("Density (g/cc)", fontsize=labelsize)
+ax3.set_ylabel("Magnetic Susceptibility (SI)", fontsize=labelsize)
 ax2.tick_params(labelsize=ticksize)
 ax3.tick_params(labelsize=ticksize)
-ax1.text(-0.9,0.0025, 'PK/VK', fontsize=labelsize)
-ax1.text(-0.175,0.02, 'HK', fontsize=labelsize)
-ax1.text(-0.2, 0.002, 'BCKGRD', fontsize=labelsize)#, color='white')
+ax1.text(-0.9, 0.0025, "PK/VK", fontsize=labelsize)
+ax1.text(-0.175, 0.02, "HK", fontsize=labelsize)
+ax1.text(-0.2, 0.002, "BCKGRD", fontsize=labelsize)  # , color='white')
 ax1.tick_params(labelleft=False)
 ax1.tick_params(labelbottom=False)
-ax1.set_ylabel('')
-ax1.set_xlabel('')
-ax2.tick_params(axis='both',which='both',labelsize=ticksize)
-ax3.tick_params(axis='both',which='both',labelsize=ticksize)
+ax1.set_ylabel("")
+ax1.set_xlabel("")
+ax2.tick_params(axis="both", which="both", labelsize=ticksize)
+ax3.tick_params(axis="both", which="both", labelsize=ticksize)
 
 ax1.legend(fontsize=labelsize, loc=3)
-ax2.hist(density_model[actv], density=True,bins=50)
-ax3.hist(magsus_model[actv], density=True,bins=50,orientation="horizontal")
+ax2.hist(density_model[actv], density=True, bins=50)
+ax3.hist(magsus_model[actv], density=True, bins=50, orientation="horizontal")
 plt.show()
 
 
@@ -611,134 +833,163 @@ plt.show()
 #
 
 gmmref = utils.WeightedGaussianMixture(
-    n_components=3, #number of rock units: bckgrd, PK, HK
-    mesh=mesh, # inversion mesh
-    actv=actv, #actv cells
-    covariance_type='diag', # diagonal covariances
+    n_components=3,  # number of rock units: bckgrd, PK, HK
+    mesh=mesh,  # inversion mesh
+    actv=actv,  # actv cells
+    covariance_type="diag",  # diagonal covariances
 )
 # required: initialization with fit
 # fake random samples, size of the mesh, number of physical properties: 2 (density and mag.susc)
-gmmref.fit(np.random.randn(nactv,2))
+gmmref.fit(np.random.randn(nactv, 2))
 # set parameters manually
 # set phys. prop means for each unit
 gmmref.means_ = np.c_[
-    [0.,0.], # BCKGRD density contrast and mag. susc
-    [-1, 0.0], # PK
-    [0, 0.1], # HK
+    [0.0, 0.0],  # BCKGRD density contrast and mag. susc
+    [-1, 0.0],  # PK
+    [0, 0.1],  # HK
 ].T
 # set phys. prop covariances for each unit
-gmmref.covariances_ = np.array([[6e-04, 3.175e-07],
-       [2.4e-03, 1.5e-06],
-       [2.4e-03, 1.5e-06]])
+gmmref.covariances_ = np.array(
+    [[6e-04, 3.175e-07], [2.4e-03, 1.5e-06], [2.4e-03, 1.5e-06]]
+)
 # important after setting cov. manually: compute precision matrices and cholesky
 gmmref.compute_clusters_precisions()
-#set global proportions; low-impact as long as not 0 or 1 (total=1)
+# set global proportions; low-impact as long as not 0 or 1 (total=1)
 gmmref.weights_ = np.r_[0.9, 0.075, 0.025]
 
 # Plot the 2D GMM
 ticksize, labelsize = 10, 12
-fig = plt.figure(figsize=(10,10))
-ax1 = plt.subplot2grid((4,4), (0,1), colspan=3, rowspan=3)
-ax2 = plt.subplot2grid((4,4), (3,1), colspan=3)
-ax3 = plt.subplot2grid((4,4), (0, 0), rowspan=3)
+fig = plt.figure(figsize=(10, 10))
+ax1 = plt.subplot2grid((4, 4), (0, 1), colspan=3, rowspan=3)
+ax2 = plt.subplot2grid((4, 4), (3, 1), colspan=3)
+ax3 = plt.subplot2grid((4, 4), (0, 0), rowspan=3)
 
 ax1.set_xlim(-1.2, 0.1)
 ax1.set_ylim(-0.0025, 0.03)
 ax2.set_xlim(-1.2, 0.1)
 ax3.set_ylim(-0.0025, 0.03)
 
-ax1.set_xticks([-1.2,-1.,-0.8,-0.6,-0.4,-0.2,0.])
-ax2.set_xticks([-1.2,-1.,-0.8,-0.6,-0.4,-0.2,0.])
+ax1.set_xticks([-1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0])
+ax2.set_xticks([-1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0])
 
-ax1.set_yticks([0,0.02,0.04,0.06,0.08,0.1,0.12])
-ax3.set_yticks([0,0.02,0.04,0.06,0.08,0.1,0.12])
+ax1.set_yticks([0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12])
+ax3.set_yticks([0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12])
 
-x, y = np.mgrid[-1.21:0.1:.01, -0.1:0.12:.01]
+x, y = np.mgrid[-1.21:0.1:0.01, -0.1:0.12:0.01]
 pos = np.empty(x.shape + (2,))
 pos[:, :, 0] = x
 pos[:, :, 1] = y
 rvm = gmmref.predict(pos.reshape(-1, 2))
-rvsmooth = (gmmref.score_samples(pos.reshape(-1, 2)))
-surf = ax1.contourf(x,y,(rvsmooth).reshape(x.shape),25, cmap='viridis')
-ax1.contour(x,y,rvsmooth.reshape(x.shape),25,colors='k',linewidths=1.,linestyles='dashdot')
+rvsmooth = gmmref.score_samples(pos.reshape(-1, 2))
+surf = ax1.contourf(x, y, (rvsmooth).reshape(x.shape), 25, cmap="viridis")
+ax1.contour(
+    x,
+    y,
+    rvsmooth.reshape(x.shape),
+    25,
+    colors="k",
+    linewidths=1.0,
+    linestyles="dashdot",
+)
 ax1.scatter(
-    gmmref.means_[:,0], gmmref.means_[:,1], label='Initial guess\nfor the petrophysical means',
-    cmap='inferno_r',c=[0,1,2], marker='v', edgecolors='k', s=200
+    gmmref.means_[:, 0],
+    gmmref.means_[:, 1],
+    label="Initial guess\nfor the petrophysical means",
+    cmap="inferno_r",
+    c=[0, 1, 2],
+    marker="v",
+    edgecolors="k",
+    s=200,
 )
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-axbar = inset_axes(ax1,
-                    width="40%",
-                    height="3%",
-                    loc='upper right',
-                      borderpad=1,
-)
-cbpetro = fig.colorbar(surf,cax=axbar,orientation='horizontal')
-cbpetro.set_ticks([rvsmooth.min(),rvsmooth.max()])
-cbpetro.set_ticklabels(['Low','High'])
-cbpetro.set_label('2D Probability Density Distribution',fontsize=labelsize)
-cbpetro.ax.tick_params(labelsize=ticksize)
-cbpetro.outline.set_edgecolor('k')
 
-#create the 1D GMM profile for density
+axbar = inset_axes(
+    ax1,
+    width="40%",
+    height="3%",
+    loc="upper right",
+    borderpad=1,
+)
+cbpetro = fig.colorbar(surf, cax=axbar, orientation="horizontal")
+cbpetro.set_ticks([rvsmooth.min(), rvsmooth.max()])
+cbpetro.set_ticklabels(["Low", "High"])
+cbpetro.set_label("2D Probability Density Distribution", fontsize=labelsize)
+cbpetro.ax.tick_params(labelsize=ticksize)
+cbpetro.outline.set_edgecolor("k")
+
+# create the 1D GMM profile for density
 from sklearn.mixture import GaussianMixture
-means_init_grav = gmmref.means_[:,0].reshape(3,1)
-cov_init_grav = np.array(
-    [gmmref.covariances_[:,0]]).reshape((3,1,1))
-clfgrav = utils.pgi_utils.GaussianMixture(n_components=3,
-                      means_init=means_init_grav,
-                      precisions_init=cov_init_grav,
-                     n_init=1,
-                     max_iter=2,tol=np.inf)
-#random fit, we set values after.
-clfgrav.fit(np.random.randn(10,1))
+
+means_init_grav = gmmref.means_[:, 0].reshape(3, 1)
+cov_init_grav = np.array([gmmref.covariances_[:, 0]]).reshape((3, 1, 1))
+clfgrav = utils.pgi_utils.GaussianMixture(
+    n_components=3,
+    means_init=means_init_grav,
+    precisions_init=cov_init_grav,
+    n_init=1,
+    max_iter=2,
+    tol=np.inf,
+)
+# random fit, we set values after.
+clfgrav.fit(np.random.randn(10, 1))
 clfgrav.means_ = means_init_grav
 clfgrav.covariances_ = cov_init_grav
 from sklearn.mixture._gaussian_mixture import _compute_precision_cholesky
+
 clfgrav.precisions_cholesky_ = _compute_precision_cholesky(
     clfgrav.covariances_, clfgrav.covariance_type
 )
 clfgrav.weights_ = gmmref.weights_
-testXplot_grav = np.linspace(-1.2,0.1,1000)[:,np.newaxis]
+testXplot_grav = np.linspace(-1.2, 0.1, 1000)[:, np.newaxis]
 score_grav = clfgrav.score_samples(testXplot_grav)
-ax2.plot(testXplot_grav, np.exp(score_grav), linewidth=3.,label='1D Probability Density Distribution',c='k')
-ax2.set_ylim([0.,2])
+ax2.plot(
+    testXplot_grav,
+    np.exp(score_grav),
+    linewidth=3.0,
+    label="1D Probability Density Distribution",
+    c="k",
+)
+ax2.set_ylim([0.0, 2])
 ax2.legend(fontsize=ticksize)
 
-#create the 1D GMM profile for mag. susc.
-means_init_mag = gmmref.means_[:,1].reshape(3,1)
-cov_init_mag = np.array(
-    [gmmref.covariances_[:,1]]).reshape((3,1,1))
-clfmag = GaussianMixture(n_components=3,
-                      means_init=means_init_mag,
-                      precisions_init=cov_init_mag,
-                     n_init=1,
-                     max_iter=2,tol=np.inf)
-#random fit, we set values after.
-clfmag.fit(np.random.randn(10,1))
+# create the 1D GMM profile for mag. susc.
+means_init_mag = gmmref.means_[:, 1].reshape(3, 1)
+cov_init_mag = np.array([gmmref.covariances_[:, 1]]).reshape((3, 1, 1))
+clfmag = GaussianMixture(
+    n_components=3,
+    means_init=means_init_mag,
+    precisions_init=cov_init_mag,
+    n_init=1,
+    max_iter=2,
+    tol=np.inf,
+)
+# random fit, we set values after.
+clfmag.fit(np.random.randn(10, 1))
 clfmag.means_ = means_init_mag
 clfmag.covariances_ = cov_init_mag
 clfmag.precisions_cholesky_ = _compute_precision_cholesky(
     clfmag.covariances_, clfmag.covariance_type
 )
 clfmag.weights_ = gmmref.weights_
-testXplot_mag = np.linspace(-0.01,1.2,1000)[:,np.newaxis]
+testXplot_mag = np.linspace(-0.01, 1.2, 1000)[:, np.newaxis]
 score_mag = clfmag.score_samples(testXplot_mag)
-ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.,c='k')
+ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.0, c="k")
 
-ax3.set_xlim([0.,50])
-ax3.set_xlabel('1D Probability Density values',fontsize=labelsize,
-               rotation=-45, labelpad=0,x=0.5)
-ax2.set_xlabel('Density (g/cc)', fontsize=labelsize)
-ax3.set_ylabel('Magnetic Susceptibility (SI)', fontsize=labelsize)
+ax3.set_xlim([0.0, 50])
+ax3.set_xlabel(
+    "1D Probability Density values", fontsize=labelsize, rotation=-45, labelpad=0, x=0.5
+)
+ax2.set_xlabel("Density (g/cc)", fontsize=labelsize)
+ax3.set_ylabel("Magnetic Susceptibility (SI)", fontsize=labelsize)
 ax2.tick_params(labelsize=ticksize)
 ax3.tick_params(labelsize=ticksize)
 ax1.legend(fontsize=labelsize, loc=2)
 ax1.tick_params(labelleft=False)
 ax1.tick_params(labelbottom=False)
-ax1.set_ylabel('')
-ax1.set_xlabel('')
-ax2.tick_params(axis='both',which='both',labelsize=ticksize)
-ax3.tick_params(axis='both',which='both',labelsize=ticksize)
+ax1.set_ylabel("")
+ax1.set_xlabel("")
+ax2.tick_params(axis="both", which="both", labelsize=ticksize)
+ax3.tick_params(axis="both", which="both", labelsize=ticksize)
 plt.show()
 
 #########################################################################
@@ -748,11 +999,11 @@ plt.show()
 
 # Create PGI regularization
 # Sensitivity weighting
-wr_grav = np.sum(simulation_grav.G**2., axis=0)**0.5
-wr_grav = (wr_grav / np.max(wr_grav))
+wr_grav = np.sum(simulation_grav.G ** 2.0, axis=0) ** 0.5
+wr_grav = wr_grav / np.max(wr_grav)
 
-wr_mag = np.sum(simulation_mag.G**2., axis=0)**0.5
-wr_mag = (wr_mag / np.max(wr_mag))
+wr_mag = np.sum(simulation_mag.G ** 2.0, axis=0) ** 0.5
+wr_mag = wr_mag / np.max(wr_mag)
 
 # create joint PGI regularization with smoothness
 reg = utils.make_SimplePGI_regularization(
@@ -762,33 +1013,37 @@ reg = utils.make_SimplePGI_regularization(
     maplist=[idenMap, idenMap],
     mref=m0,
     indActive=actv,
-    alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
-    alpha_xx=0., alpha_yy=0., alpha_zz=0.,
-    cell_weights_list=[wr_grav, wr_mag] # weights each phys. prop. by correct sensW
+    alpha_s=1.0,
+    alpha_x=1.0,
+    alpha_y=1.0,
+    alpha_z=1.0,
+    alpha_xx=0.0,
+    alpha_yy=0.0,
+    alpha_zz=0.0,
+    cell_weights_list=[wr_grav, wr_mag],  # weights each phys. prop. by correct sensW
 )
 
 # Directives
 # Add directives to the inversion
 # ratio to use for each phys prop. smoothness in each direction; roughly the ratio of range of each phys. prop.
-alpha0_ratio = np.r_[np.zeros(len(reg.objfcts[0].objfcts)),
-                    1e-2 * np.ones(len(reg.objfcts[1].objfcts)),
-                    100. * 1e-2 * np.ones(len(reg.objfcts[2].objfcts))]
-Alphas = directives.AlphasSmoothEstimate_ByEig(
-    alpha0_ratio=alpha0_ratio,
-    verbose=True
-)
+alpha0_ratio = np.r_[
+    np.zeros(len(reg.objfcts[0].objfcts)),
+    1e-2 * np.ones(len(reg.objfcts[1].objfcts)),
+    100.0 * 1e-2 * np.ones(len(reg.objfcts[2].objfcts)),
+]
+Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbose=True)
 # initialize beta and beta/alpha_s schedule
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-4)
 betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True,
-    coolingFactor=2.,
+    coolingFactor=2.0,
     tolerance=0.2,
     progress=0.2,
 )
 # geophy. and petro. target misfits
 targets = directives.MultiTargetMisfits(
     verbose=True,
-    chiSmall= 0.5, # ask for twice as much clustering (target value is /2)
+    chiSmall=0.5,  # ask for twice as much clustering (target value is /2)
 )
 # add learned mref in smooth once stable
 MrefInSmooth = directives.PGI_AddMrefInSmooth(
@@ -797,29 +1052,40 @@ MrefInSmooth = directives.PGI_AddMrefInSmooth(
 )
 # update the parameters in smallness (L2-approx of PGI)
 update_smallness = directives.PGI_UpdateParameters(
-    update_gmm = True, #update the GMM each iteration
-    kappa = np.c_[ #confidences in each mean phys. prop. of each cluster
-    1e10*np.ones(2), # fixed background at 0 density, 0 mag. susc. (high confidences of 1e10)
-    [0,1e10], # density-contrasting cluster: updatable density mean, fixed mag. susc.
-    [1e10,0] # magnetic-contrasting cluster: fixed density mean, updatable mag. susc.
+    update_gmm=True,  # update the GMM each iteration
+    kappa=np.c_[  # confidences in each mean phys. prop. of each cluster
+        1e10
+        * np.ones(
+            2
+        ),  # fixed background at 0 density, 0 mag. susc. (high confidences of 1e10)
+        [
+            0,
+            1e10,
+        ],  # density-contrasting cluster: updatable density mean, fixed mag. susc.
+        [
+            1e10,
+            0,
+        ],  # magnetic-contrasting cluster: fixed density mean, updatable mag. susc.
     ].T,
 )
 # pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
 # iteratively balance the scaling of the data misfits
-scaling_init = directives.ScalingMultipleDataMisfits_ByEig(chi0_ratio=[1.,100.])
+scaling_init = directives.ScalingMultipleDataMisfits_ByEig(chi0_ratio=[1.0, 100.0])
 scale_schedule = directives.JointScalingSchedule(verbose=True)
 
 # Create inverse problem
 # Optimization
 # set lower and upper bounds
-lowerbound = np.r_[-2. * np.ones(actvMap.nP), 0. * np.ones(actvMap.nP)]
-upperbound = np.r_[0. * np.ones(actvMap.nP), 1e-1 * np.ones(actvMap.nP)]
+lowerbound = np.r_[-2.0 * np.ones(actvMap.nP), 0.0 * np.ones(actvMap.nP)]
+upperbound = np.r_[0.0 * np.ones(actvMap.nP), 1e-1 * np.ones(actvMap.nP)]
 opt = optimization.ProjectedGNCG(
     maxIter=30,
-    lower=lowerbound, upper=upperbound,
+    lower=lowerbound,
+    upper=upperbound,
     maxIterLS=20,
-    maxIterCG=100, tolCG=1e-4
+    maxIterCG=100,
+    tolCG=1e-4,
 )
 # create inverse problem
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -830,9 +1096,13 @@ inv = inversion.BaseInversion(
         Alphas,
         scaling_init,
         beta,
-        update_smallness, targets, scale_schedule,
-        betaIt, MrefInSmooth, update_Jacobi
-    ]
+        update_smallness,
+        targets,
+        scale_schedule,
+        betaIt,
+        MrefInSmooth,
+        update_Jacobi,
+    ],
 )
 # Invert
 pgi_model_no_info = inv.run(m0)
@@ -844,7 +1114,7 @@ magsus_model_no_info = magmap * pgi_model_no_info
 learned_gmm = reg.objfcts[0].gmm
 quasi_geology_model_no_info = actvMap * reg.objfcts[0].membership(reg.objfcts[0].mref)
 
-fig, ax = plt.subplots(3,4,figsize=(15,10))
+fig, ax = plt.subplots(3, 4, figsize=(15, 10))
 for _, axx in enumerate(ax):
     for _, axxx in enumerate(axx):
         axxx.set_aspect(1)
@@ -852,176 +1122,293 @@ for _, axx in enumerate(ax):
 indx = 15
 indy = 17
 indz = -9
-#geology model
-mesh.plotSlice(quasi_geology_model ,normal='X', ax=ax[0,0], clim=[0,2], ind=indx, pcolorOpts={'cmap':'inferno_r'})
-mesh.plotSlice(quasi_geology_model ,normal='Y', ax=ax[0,1], clim=[0,2], ind=indy, pcolorOpts={'cmap':'inferno_r'})
-geoplot = mesh.plotSlice(quasi_geology_model ,normal='Z', ax=ax[0,2], clim=[0,2],ind=indz, pcolorOpts={'cmap':'inferno_r'})
-geocb = plt.colorbar(geoplot[0], cax=ax[0,3], ticks=[0,1,2])
-geocb.set_ticklabels(['BCK','PK','VK'])
-geocb.set_label('Quasi-Geology model\n(Rock units classification)', fontsize=16)
-ax[0,3].set_aspect(10)
+# geology model
+mesh.plotSlice(
+    quasi_geology_model,
+    normal="X",
+    ax=ax[0, 0],
+    clim=[0, 2],
+    ind=indx,
+    pcolorOpts={"cmap": "inferno_r"},
+)
+mesh.plotSlice(
+    quasi_geology_model,
+    normal="Y",
+    ax=ax[0, 1],
+    clim=[0, 2],
+    ind=indy,
+    pcolorOpts={"cmap": "inferno_r"},
+)
+geoplot = mesh.plotSlice(
+    quasi_geology_model,
+    normal="Z",
+    ax=ax[0, 2],
+    clim=[0, 2],
+    ind=indz,
+    pcolorOpts={"cmap": "inferno_r"},
+)
+geocb = plt.colorbar(geoplot[0], cax=ax[0, 3], ticks=[0, 1, 2])
+geocb.set_ticklabels(["BCK", "PK", "VK"])
+geocb.set_label("Quasi-Geology model\n(Rock units classification)", fontsize=16)
+ax[0, 3].set_aspect(10)
 
-#gravity model
-mesh.plotSlice(density_model ,normal='X', ax=ax[1,0], clim=[-1,0], ind=indx, pcolorOpts={'cmap':'Blues_r'})
-mesh.plotSlice(density_model ,normal='Y', ax=ax[1,1], clim=[-1,0], ind=indy, pcolorOpts={'cmap':'Blues_r'})
-denplot = mesh.plotSlice(density_model ,normal='Z', ax=ax[1,2], clim=[-1,0],ind=indz, pcolorOpts={'cmap':'Blues_r'})
-dencb = plt.colorbar(denplot[0],cax=ax[1,3])
-dencb.set_label('Density contrast\nmodel (g/cc)', fontsize=16)
-ax[1,3].set_aspect(10)
+# gravity model
+mesh.plotSlice(
+    density_model,
+    normal="X",
+    ax=ax[1, 0],
+    clim=[-1, 0],
+    ind=indx,
+    pcolorOpts={"cmap": "Blues_r"},
+)
+mesh.plotSlice(
+    density_model,
+    normal="Y",
+    ax=ax[1, 1],
+    clim=[-1, 0],
+    ind=indy,
+    pcolorOpts={"cmap": "Blues_r"},
+)
+denplot = mesh.plotSlice(
+    density_model,
+    normal="Z",
+    ax=ax[1, 2],
+    clim=[-1, 0],
+    ind=indz,
+    pcolorOpts={"cmap": "Blues_r"},
+)
+dencb = plt.colorbar(denplot[0], cax=ax[1, 3])
+dencb.set_label("Density contrast\nmodel (g/cc)", fontsize=16)
+ax[1, 3].set_aspect(10)
 
-#magnetic model
-mesh.plotSlice(magsus_model ,normal='X', ax=ax[2,0], clim=[0,0.025], ind=indx, pcolorOpts={'cmap':'Reds'})
-mesh.plotSlice(magsus_model ,normal='Y', ax=ax[2,1], clim=[0,0.025], ind=indy, pcolorOpts={'cmap':'Reds'})
-susplot = mesh.plotSlice(magsus_model ,normal='Z', ax=ax[2,2], clim=[0,0.025],ind=indz, pcolorOpts={'cmap':'Reds'})
-suscb = plt.colorbar(susplot[0],cax=ax[2,3])
-suscb.set_label('Magnetic susceptibility\nmodel (SI)', fontsize=16)
-ax[2,3].set_aspect(10)
+# magnetic model
+mesh.plotSlice(
+    magsus_model,
+    normal="X",
+    ax=ax[2, 0],
+    clim=[0, 0.025],
+    ind=indx,
+    pcolorOpts={"cmap": "Reds"},
+)
+mesh.plotSlice(
+    magsus_model,
+    normal="Y",
+    ax=ax[2, 1],
+    clim=[0, 0.025],
+    ind=indy,
+    pcolorOpts={"cmap": "Reds"},
+)
+susplot = mesh.plotSlice(
+    magsus_model,
+    normal="Z",
+    ax=ax[2, 2],
+    clim=[0, 0.025],
+    ind=indz,
+    pcolorOpts={"cmap": "Reds"},
+)
+suscb = plt.colorbar(susplot[0], cax=ax[2, 3])
+suscb.set_label("Magnetic susceptibility\nmodel (SI)", fontsize=16)
+ax[2, 3].set_aspect(10)
 
-#overlay true geology model for comparison
-indslicexplot = mesh.gridCC[:,0] == mesh.vectorCCx[indx]
-indsliceyplot = mesh.gridCC[:,1] == mesh.vectorCCy[indy]
-indslicezplot = mesh.gridCC[:,2] == mesh.vectorCCz[indz]
+# overlay true geology model for comparison
+indslicexplot = mesh.gridCC[:, 0] == mesh.vectorCCx[indx]
+indsliceyplot = mesh.gridCC[:, 1] == mesh.vectorCCy[indy]
+indslicezplot = mesh.gridCC[:, 2] == mesh.vectorCCz[indz]
 for i in range(3):
-    for j, (plane, indd) in enumerate(zip([[1,2],[0,2],[0,1]], [indslicexplot,indsliceyplot,indslicezplot])):
+    for j, (plane, indd) in enumerate(
+        zip([[1, 2], [0, 2], [0, 1]], [indslicexplot, indsliceyplot, indslicezplot])
+    ):
         utils.plot2Ddata(
-            mesh.gridCC[indd][:,plane],true_geology[indd],nx=100,ny=100,
-             contourOpts={'alpha':0},
-             clim=[0,2],
-             ax=ax[i,j],
-             level=True,
-             ncontour=2,
-             levelOpts={'colors':'grey','linewidths':2,'linestyles':'--'},
-            method='nearest'
+            mesh.gridCC[indd][:, plane],
+            true_geology[indd],
+            nx=100,
+            ny=100,
+            contourOpts={"alpha": 0},
+            clim=[0, 2],
+            ax=ax[i, j],
+            level=True,
+            ncontour=2,
+            levelOpts={"colors": "grey", "linewidths": 2, "linestyles": "--"},
+            method="nearest",
         )
 
 # plot the locations of the cross-sections
 for i in range(3):
-        ax[i,0].plot(mesh.vectorCCy[indy]*np.ones(2), [-300,500], c='k', linestyle='dotted')
-        ax[i,0].plot([7133200,7134000], mesh.vectorCCz[indz]*np.ones(2), c='k', linestyle='dotted')
-        ax[i,1].plot(mesh.vectorCCx[indx]*np.ones(2), [-300,500], c='k', linestyle='dotted')
-        ax[i,1].plot([556900,557700], mesh.vectorCCz[indz]*np.ones(2), c='k', linestyle='dotted')
-        ax[i,2].plot(mesh.vectorCCx[indx]*np.ones(2), [7133200,7134000], c='k', linestyle='dotted')
-        ax[i,2].plot([556900,557700], mesh.vectorCCy[indy]*np.ones(2), c='k', linestyle='dotted')
+    ax[i, 0].plot(
+        mesh.vectorCCy[indy] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
+    )
+    ax[i, 0].plot(
+        [7133200, 7134000], mesh.vectorCCz[indz] * np.ones(2), c="k", linestyle="dotted"
+    )
+    ax[i, 1].plot(
+        mesh.vectorCCx[indx] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
+    )
+    ax[i, 1].plot(
+        [556900, 557700], mesh.vectorCCz[indz] * np.ones(2), c="k", linestyle="dotted"
+    )
+    ax[i, 2].plot(
+        mesh.vectorCCx[indx] * np.ones(2), [7133200, 7134000], c="k", linestyle="dotted"
+    )
+    ax[i, 2].plot(
+        [556900, 557700], mesh.vectorCCy[indy] * np.ones(2), c="k", linestyle="dotted"
+    )
 plt.tight_layout()
 
 # Plot the 2D GMM
 ticksize, labelsize = 10, 12
-fig = plt.figure(figsize=(10,10))
-ax1 = plt.subplot2grid((4,4), (0,1), colspan=3, rowspan=3)
-ax2 = plt.subplot2grid((4,4), (3,1), colspan=3)
-ax3 = plt.subplot2grid((4,4), (0, 0), rowspan=3)
+fig = plt.figure(figsize=(10, 10))
+ax1 = plt.subplot2grid((4, 4), (0, 1), colspan=3, rowspan=3)
+ax2 = plt.subplot2grid((4, 4), (3, 1), colspan=3)
+ax3 = plt.subplot2grid((4, 4), (0, 0), rowspan=3)
 
 ax1.set_xlim(-1.2, 0.1)
 ax1.set_ylim(-0.0025, 0.03)
 ax2.set_xlim(-1.2, 0.1)
 ax3.set_ylim(-0.0025, 0.03)
 
-ax1.set_xticks([-1.2,-1.,-0.8,-0.6,-0.4,-0.2,0.])
-ax2.set_xticks([-1.2,-1.,-0.8,-0.6,-0.4,-0.2,0.])
+ax1.set_xticks([-1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0])
+ax2.set_xticks([-1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0])
 
-ax1.set_yticks([0,0.005,0.01,0.015,0.02,0.025])
-ax3.set_yticks([0,0.005,0.01,0.015,0.02,0.025])
+ax1.set_yticks([0, 0.005, 0.01, 0.015, 0.02, 0.025])
+ax3.set_yticks([0, 0.005, 0.01, 0.015, 0.02, 0.025])
 
-x, y = np.mgrid[-1.21:0.1:.01, -0.01:0.031:.001]
+x, y = np.mgrid[-1.21:0.1:0.01, -0.01:0.031:0.001]
 pos = np.empty(x.shape + (2,))
 pos[:, :, 0] = x
 pos[:, :, 1] = y
 rvm = learned_gmm.predict(pos.reshape(-1, 2))
-rvsmooth = (learned_gmm.score_samples(pos.reshape(-1, 2)))
-surf = ax1.contourf(x,y,(rvsmooth).reshape(x.shape),25, cmap='viridis') #linestyles='dashdot', linewidths=2.,
-ax1.contour(x,y,rvsmooth.reshape(x.shape),25,colors='k',linewidths=1.,linestyles='dashdot')
-ax1.scatter(
-    density_model_no_info[actv], magsus_model_no_info[actv], c=quasi_geology_model_no_info[actv],
-    cmap='inferno_r', edgecolors='k', label='recovered PGI model',
-    alpha=0.5
+rvsmooth = learned_gmm.score_samples(pos.reshape(-1, 2))
+surf = ax1.contourf(
+    x, y, (rvsmooth).reshape(x.shape), 25, cmap="viridis"
+)  # linestyles='dashdot', linewidths=2.,
+ax1.contour(
+    x,
+    y,
+    rvsmooth.reshape(x.shape),
+    25,
+    colors="k",
+    linewidths=1.0,
+    linestyles="dashdot",
 )
 ax1.scatter(
-    np.r_[0,-0.8,-0.2], np.r_[0,0.005,0.02], label='True petrophysical means',
-    cmap='inferno_r',c=[0,1,2], marker='^', edgecolors='k', s=200
+    density_model_no_info[actv],
+    magsus_model_no_info[actv],
+    c=quasi_geology_model_no_info[actv],
+    cmap="inferno_r",
+    edgecolors="k",
+    label="recovered PGI model",
+    alpha=0.5,
 )
 ax1.scatter(
-    learned_gmm.means_[:,0], learned_gmm.means_[:,1], label='learned petrophysical means',
-    cmap='inferno_r',c=[0,1,2], marker='v', edgecolors='k', s=200
+    np.r_[0, -0.8, -0.2],
+    np.r_[0, 0.005, 0.02],
+    label="True petrophysical means",
+    cmap="inferno_r",
+    c=[0, 1, 2],
+    marker="^",
+    edgecolors="k",
+    s=200,
+)
+ax1.scatter(
+    learned_gmm.means_[:, 0],
+    learned_gmm.means_[:, 1],
+    label="learned petrophysical means",
+    cmap="inferno_r",
+    c=[0, 1, 2],
+    marker="v",
+    edgecolors="k",
+    s=200,
 )
 
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-axbar = inset_axes(ax1,
-                    width="40%",  # width = 50% of parent_bbox width
-                    height="3%",  # height : 5%
-                    loc='upper right',
-                      borderpad=1,
-)
-cbpetro = fig.colorbar(surf,cax=axbar,orientation='horizontal')
-cbpetro.set_ticks([rvsmooth.min(),rvsmooth.max()])
-cbpetro.set_ticklabels(['Low','High'])
-cbpetro.set_label('Probability Density',fontsize=labelsize)
-cbpetro.ax.tick_params(labelsize=ticksize)
-cbpetro.outline.set_edgecolor('k')
 
-#create the 1D GMM profile for density
+axbar = inset_axes(
+    ax1,
+    width="40%",  # width = 50% of parent_bbox width
+    height="3%",  # height : 5%
+    loc="upper right",
+    borderpad=1,
+)
+cbpetro = fig.colorbar(surf, cax=axbar, orientation="horizontal")
+cbpetro.set_ticks([rvsmooth.min(), rvsmooth.max()])
+cbpetro.set_ticklabels(["Low", "High"])
+cbpetro.set_label("Probability Density", fontsize=labelsize)
+cbpetro.ax.tick_params(labelsize=ticksize)
+cbpetro.outline.set_edgecolor("k")
+
+# create the 1D GMM profile for density
 from sklearn.mixture import GaussianMixture
-means_init_grav = learned_gmm.means_[:,0].reshape(3,1)
-cov_init_grav = np.array(
-    [learned_gmm.covariances_[:,0]]).reshape((3,1,1))
-clfgrav = utils.pgi_utils.GaussianMixture(n_components=3,
-                      means_init=means_init_grav,
-                      precisions_init=cov_init_grav,
-                     n_init=1,
-                     max_iter=2,tol=np.inf)
-#random fit, we set values after.
-clfgrav.fit(np.random.randn(10,1))
+
+means_init_grav = learned_gmm.means_[:, 0].reshape(3, 1)
+cov_init_grav = np.array([learned_gmm.covariances_[:, 0]]).reshape((3, 1, 1))
+clfgrav = utils.pgi_utils.GaussianMixture(
+    n_components=3,
+    means_init=means_init_grav,
+    precisions_init=cov_init_grav,
+    n_init=1,
+    max_iter=2,
+    tol=np.inf,
+)
+# random fit, we set values after.
+clfgrav.fit(np.random.randn(10, 1))
 clfgrav.means_ = means_init_grav
 clfgrav.covariances_ = cov_init_grav
 from sklearn.mixture._gaussian_mixture import _compute_precision_cholesky
+
 clfgrav.precisions_cholesky_ = _compute_precision_cholesky(
     clfgrav.covariances_, clfgrav.covariance_type
 )
 clfgrav.weights_ = learned_gmm.weights_
-testXplot_grav = np.linspace(-1.2,0.1,1000)[:,np.newaxis]
+testXplot_grav = np.linspace(-1.2, 0.1, 1000)[:, np.newaxis]
 score_grav = clfgrav.score_samples(testXplot_grav)
-ax2.plot(testXplot_grav, np.exp(score_grav), linewidth=3.,label='proba.\ndensity',c='k')
-ax2.set_ylim([0.,2])
+ax2.plot(
+    testXplot_grav, np.exp(score_grav), linewidth=3.0, label="proba.\ndensity", c="k"
+)
+ax2.set_ylim([0.0, 2])
 ax2.legend(fontsize=ticksize)
 
-#create the 1D GMM profile for mag. susc.
-means_init_mag = learned_gmm.means_[:,1].reshape(3,1)
-cov_init_mag = np.array(
-    [learned_gmm.covariances_[:,1]]).reshape((3,1,1))
-clfmag = GaussianMixture(n_components=3,
-                      means_init=means_init_mag,
-                      precisions_init=cov_init_mag,
-                     n_init=1,
-                     max_iter=2,tol=np.inf)
-#random fit, we set values after.
-clfmag.fit(np.random.randn(10,1))
+# create the 1D GMM profile for mag. susc.
+means_init_mag = learned_gmm.means_[:, 1].reshape(3, 1)
+cov_init_mag = np.array([learned_gmm.covariances_[:, 1]]).reshape((3, 1, 1))
+clfmag = GaussianMixture(
+    n_components=3,
+    means_init=means_init_mag,
+    precisions_init=cov_init_mag,
+    n_init=1,
+    max_iter=2,
+    tol=np.inf,
+)
+# random fit, we set values after.
+clfmag.fit(np.random.randn(10, 1))
 clfmag.means_ = means_init_mag
 clfmag.covariances_ = cov_init_mag
 clfmag.precisions_cholesky_ = _compute_precision_cholesky(
     clfmag.covariances_, clfmag.covariance_type
 )
 clfmag.weights_ = learned_gmm.weights_
-testXplot_mag = np.linspace(-0.025,0.03,1000)[:,np.newaxis]
+testXplot_mag = np.linspace(-0.025, 0.03, 1000)[:, np.newaxis]
 score_mag = clfmag.score_samples(testXplot_mag)
-ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.,c='k')
+ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.0, c="k")
 
-ax3.set_xlim([0.,50])
-ax3.set_xlabel('Probability\nDensity',fontsize=labelsize,
-               rotation=-45, labelpad=0,x=0.5)
-ax2.set_xlabel('Density (g/cc)', fontsize=labelsize)
-ax3.set_ylabel('Magnetic Susceptibility (SI)', fontsize=labelsize)
+ax3.set_xlim([0.0, 50])
+ax3.set_xlabel(
+    "Probability\nDensity", fontsize=labelsize, rotation=-45, labelpad=0, x=0.5
+)
+ax2.set_xlabel("Density (g/cc)", fontsize=labelsize)
+ax3.set_ylabel("Magnetic Susceptibility (SI)", fontsize=labelsize)
 ax2.tick_params(labelsize=ticksize)
 ax3.tick_params(labelsize=ticksize)
-ax1.text(-0.9,0.0025, 'PK/VK', fontsize=labelsize)
-ax1.text(-0.175,0.02, 'HK', fontsize=labelsize)
-ax1.text(-0.2, 0.002, 'BCKGRD', fontsize=labelsize)#, color='white')
+ax1.text(-0.9, 0.0025, "PK/VK", fontsize=labelsize)
+ax1.text(-0.175, 0.02, "HK", fontsize=labelsize)
+ax1.text(-0.2, 0.002, "BCKGRD", fontsize=labelsize)  # , color='white')
 ax1.tick_params(labelleft=False)
 ax1.tick_params(labelbottom=False)
-ax1.set_ylabel('')
-ax1.set_xlabel('')
-ax2.tick_params(axis='both',which='both',labelsize=ticksize)
-ax3.tick_params(axis='both',which='both',labelsize=ticksize)
+ax1.set_ylabel("")
+ax1.set_xlabel("")
+ax2.tick_params(axis="both", which="both", labelsize=ticksize)
+ax3.tick_params(axis="both", which="both", labelsize=ticksize)
 
 ax1.legend(fontsize=labelsize, loc=2)
-ax2.hist(density_model_no_info[actv], density=True,bins=50)
-ax3.hist(magsus_model_no_info[actv], density=True,bins=50,orientation="horizontal")
+ax2.hist(density_model_no_info[actv], density=True, bins=50)
+ax3.hist(magsus_model_no_info[actv], density=True, bins=50, orientation="horizontal")
 plt.show()
