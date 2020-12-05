@@ -73,6 +73,7 @@ geocb.set_label('True geology model\n(classification/density/mag. susc.)', fonts
 geocb.set_ticklabels(['BCKGRD (0 g/cc; 0 SI)','PK (-0.8 g/cc; 5e-3 SI)','VK (-0.2 g/cc; 2e-2 SI)'])
 geocb.ax.tick_params(labelsize=ticksize)
 ax[3].set_aspect(10)
+plt.show()
 
 # Load geophysical data
 data_grav_file = io_utils.download("https://storage.googleapis.com/simpeg/pgi_tutorial_assets/gravity_data.obs")
@@ -125,6 +126,7 @@ for i in range(2):
             method='nearest'
     )
 plt.subplots_adjust(hspace=-0.25,wspace=0.1)
+plt.show()
 
 # Load Topo
 topo_file = io_utils.download('https://storage.googleapis.com/simpeg/pgi_tutorial_assets/CDED_Lake_warp.topo')
@@ -304,6 +306,8 @@ ax1.set_ylabel('')
 ax1.set_xlabel('')
 ax2.tick_params(axis='both',which='both',labelsize=ticksize)
 ax3.tick_params(axis='both',which='both',labelsize=ticksize)
+plt.show()
+
 
 #########################################################################
 # Create PGI regularization
@@ -582,6 +586,8 @@ ax3.tick_params(axis='both',which='both',labelsize=ticksize)
 ax1.legend(fontsize=labelsize, loc=3)
 ax2.hist(density_model[actv], density=True,bins=50)
 ax3.hist(magsus_model[actv], density=True,bins=50,orientation="horizontal")
+plt.show()
+
 
 ###############################################################################
 # Inversion with no petrophysical information about the means
@@ -733,6 +739,7 @@ ax1.set_ylabel('')
 ax1.set_xlabel('')
 ax2.tick_params(axis='both',which='both',labelsize=ticksize)
 ax3.tick_params(axis='both',which='both',labelsize=ticksize)
+plt.show()
 
 #########################################################################
 # Inverse problem with no mean information
@@ -771,7 +778,7 @@ Alphas = directives.AlphasSmoothEstimate_ByEig(
     verbose=True
 )
 # initialize beta and beta/alpha_s schedule
-beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
+beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-4)
 betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True,
     coolingFactor=2.,
@@ -781,6 +788,7 @@ betaIt = directives.PGI_BetaAlphaSchedule(
 # geophy. and petro. target misfits
 targets = directives.MultiTargetMisfits(
     verbose=True,
+    chiSmall= 0.5, # ask for twice as much clustering (target value is /2)
 )
 # add learned mref in smooth once stable
 MrefInSmooth = directives.PGI_AddMrefInSmooth(
@@ -928,6 +936,10 @@ ax1.scatter(
     alpha=0.5
 )
 ax1.scatter(
+    np.r_[0,-0.8,-0.2], np.r_[0,0.005,0.02], label='True petrophysical means',
+    cmap='inferno_r',c=[0,1,2], marker='^', edgecolors='k', s=200
+)
+ax1.scatter(
     learned_gmm.means_[:,0], learned_gmm.means_[:,1], label='learned petrophysical means',
     cmap='inferno_r',c=[0,1,2], marker='v', edgecolors='k', s=200
 )
@@ -1009,6 +1021,7 @@ ax1.set_xlabel('')
 ax2.tick_params(axis='both',which='both',labelsize=ticksize)
 ax3.tick_params(axis='both',which='both',labelsize=ticksize)
 
-ax1.legend(fontsize=labelsize, loc=3)
+ax1.legend(fontsize=labelsize, loc=2)
 ax2.hist(density_model_no_info[actv], density=True,bins=50)
 ax3.hist(magsus_model_no_info[actv], density=True,bins=50,orientation="horizontal")
+plt.show()
