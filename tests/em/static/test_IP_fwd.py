@@ -79,36 +79,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
             print(">> IP forward test for Simulation3DNodal is failed")
         self.assertTrue(passed)
 
-    def test_Simulation3DNodalFictitiousSources(self):
-
-        simulationdc = dc.simulation.Simulation3DNodalFictitiousSources(
-            mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
-        )
-        simulationdc.Solver = Solver
-        data0 = simulationdc.dpred(self.sigma0)
-        finf = simulationdc.fields(self.sigmaInf)
-        datainf = simulationdc.dpred(self.sigmaInf, f=finf)
-        surveyip = ip.survey.Survey([self.src])
-        simulationip = ip.simulation.Simulation3DNodalFictitiousSources(
-            mesh=self.mesh,
-            survey=surveyip,
-            sigma=self.sigmaInf,
-            etaMap=maps.IdentityMap(self.mesh),
-            Ainv=simulationdc.Ainv,
-            _f=finf,
-        )
-        simulationip.Solver = Solver
-        data_full = data0 - datainf
-        data = simulationip.dpred(self.eta)
-        err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
-        if err < 0.05:
-            passed = True
-            print(">> IP forward test for Simulation3DNodalFictitiousSources is passed")
-        else:
-            passed = False
-            print(">> IP forward test for Simulation3DNodalFictitiousSources is failed")
-        self.assertTrue(passed)
-
     def test_Simulation3DCellCentered(self):
 
         simulationdc = dc.simulation.Simulation3DCellCentered(
@@ -138,37 +108,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
             passed = False
             print(">> IP forward test for Simulation3DCellCentered is failed")
         self.assertTrue(passed)
-
-    def test_Simulation3DCellCentered(self):
-
-        simulationdc = dc.simulation.Simulation3DCellCenteredFictitiousSources(
-            mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
-        )
-        simulationdc.Solver = Solver
-        data0 = simulationdc.dpred(self.sigma0)
-        finf = simulationdc.fields(self.sigmaInf)
-        datainf = simulationdc.dpred(self.sigmaInf, f=finf)
-        surveyip = ip.survey.Survey([self.src])
-        simulationip = ip.simulation.Simulation3DCellCenteredFictitiousSources(
-            mesh=self.mesh,
-            survey=surveyip,
-            rho=1.0 / self.sigmaInf,
-            etaMap=maps.IdentityMap(self.mesh),
-            Ainv=simulationdc.Ainv,
-            _f=finf,
-        )
-        simulationip.Solver = Solver
-        data_full = data0 - datainf
-        data = simulationip.dpred(self.eta)
-        err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
-        if err < 0.05:
-            passed = True
-            print(">> IP forward test for Simulation3DCellCenteredFictitiousSources is passed")
-        else:
-            passed = False
-            print(">> IP forward test for Simulation3DCellCenteredFictitiousSources is failed")
-        self.assertTrue(passed)
-
 
 if __name__ == "__main__":
     unittest.main()
