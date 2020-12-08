@@ -9,7 +9,7 @@ from .data_misfit import BaseDataMisfit
 from .objective_function import ComboObjectiveFunction
 from .maps import SphericalSystem, ComboMap
 from .regularization import (
-    BaseComboRegularization, 
+    BaseComboRegularization,
     BaseRegularization,
     SimpleSmall,
     Small,
@@ -196,7 +196,7 @@ class BetaEstimate_ByEig(InversionDirective):
     """
     Estimate the trade-off parameter beta between the data misfit(s) and the
     regularization as a multiple of the ratio between the highest eigenvalue of the
-    data misfit term and the highest eigenvalue of the regularization. 
+    data misfit term and the highest eigenvalue of the regularization.
     The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
 
     """
@@ -204,7 +204,7 @@ class BetaEstimate_ByEig(InversionDirective):
     beta0_ratio = 1.  #: the estimated ratio is multplied by this to obtain beta
     n_pw_iter = 4     #: number of power iterations for estimation.
     seed = None       #: Random seed for the directive
-    
+
     def initialize(self):
         """
             The initial beta is calculated by comparing the estimated
@@ -237,15 +237,12 @@ class BetaEstimate_ByEig(InversionDirective):
             print("Calculating the beta0 parameter.")
 
         m = self.invProb.model
-        f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
-        if len(self.dmisfit.objfcts) == 1:
-            f = [f]
 
         dm_eigenvalue = eigenvalue_by_power_iteration(
-            self.dmisfit, m, fields_list=f, n_pw_iter=self.n_pw_iter, 
+            self.dmisfit, m, n_pw_iter=self.n_pw_iter,
         )
         reg_eigenvalue = eigenvalue_by_power_iteration(
-            self.reg, m, fields_list=f, n_pw_iter=self.n_pw_iter, 
+            self.reg, m, n_pw_iter=self.n_pw_iter,
         )
 
         self.ratio = (dm_eigenvalue / reg_eigenvalue)
@@ -275,7 +272,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
     """
     Estimate the alphas multpliers for the smoothness terms of the regularization
      as a multiple of the ratio between the highest eigenvalue of the
-    smallness term and the highest eigenvalue of each smoothness term of the regularization. 
+    smallness term and the highest eigenvalue of each smoothness term of the regularization.
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
 
@@ -291,7 +288,6 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        
         if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
             nbr = np.sum(
                 [
@@ -299,59 +295,27 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     for i in range(len(self.reg.objfcts))
                 ]
             )
-            smallness = np.r_[
-                [
-                    (
-                        np.r_[
-                            i,
-                            j,
-                            (
-                                isinstance(regpart, SimpleSmall)
-                                or isinstance(regpart, Small)
-                                or isinstance(regpart, SparseSmall)
-                            ),
-                        ]
-                    )
-                    for i, regobjcts in enumerate(self.reg.objfcts)
-                    for j, regpart in enumerate(regobjcts.objfcts)
-                ]
-            ]
+            # Find the smallness terms in a two-levels combo-regularization.
+            smallness = []
+            for i, regobjcts in enumerate(self.reg.objfcts):
+                for j, regpart in enumerate(regobjcts.objfcts):
+                    smallness += [[i, j, isinstance(regpart, (SimpleSmall, Small, SparseSmall))]]
+            smallness = np.r_[smallness]
             smallness = smallness[smallness[:, 2] == 1][:, :2][0]
 
-            smoothness = np.r_[
-                [
-                    (
-                        np.r_[
-                            i,
-                            j,
-                            (
-                                (
-                                    isinstance(regpart, SmoothDeriv)
-                                    or isinstance(regpart, SimpleSmoothDeriv)
-                                    or isinstance(regpart, SparseDeriv)
-                                )
-                                and not (
-                                    isinstance(regpart, Tikhonov)
-                                    or isinstance(regpart, Simple)
-                                    or isinstance(regpart, Sparse)
-                                )
-                            ),
-                        ]
-                    )
-                    for i, regobjcts in enumerate(self.reg.objfcts)
-                    for j, regpart in enumerate(regobjcts.objfcts)
-                ]
-            ]
+            # Find the smoothness terms in a two-levels combo-regularization.
+            smoothness = []
+            for i, regobjcts in enumerate(self.reg.objfcts):
+                for j, regpart in enumerate(regobjcts.objfcts):
+                        smoothness += [[i, j,isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))]]
+            smoothness = np.r_[smoothness]
             mode = 1
+
         else:
             nbr = len(self.reg.objfcts)
             smoothness = np.r_[
                 [
-                    (
-                        isinstance(regpart, SmoothDeriv)
-                        or isinstance(regpart, SimpleSmoothDeriv)
-                        or isinstance(regpart, SparseDeriv)
-                    )
+                    isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))
                     for regpart in self.reg.objfcts
                 ]
             ]
@@ -384,7 +348,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
         elif mode == 1:
             smallness_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg.objfcts[smallness[0]].objfcts[smallness[1]], 
+                self.reg.objfcts[smallness[0]].objfcts[smallness[1]],
                 m, n_pw_iter=self.n_pw_iter,
             )
             for i in range(nbr):
@@ -392,13 +356,13 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 if smoothness[i, 2]:
                     idx = smoothness[i, :2]
                     smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-                        self.reg.objfcts[idx[0]].objfcts[idx[1]], 
+                        self.reg.objfcts[idx[0]].objfcts[idx[1]],
                         m, n_pw_iter=self.n_pw_iter,
                     )
 
                     ratio = np.divide(
-                        smallness_eigenvalue, smooth_i_eigenvalue, 
-                        out=np.zeros_like(smallness_eigenvalue), 
+                        smallness_eigenvalue, smooth_i_eigenvalue,
+                        out=np.zeros_like(smallness_eigenvalue),
                         where=smooth_i_eigenvalue != 0
                     )
 
@@ -419,9 +383,9 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
 class ScalingMultipleDataMisfits_ByEig(InversionDirective):
     """
-    For multiple data misfits only: multiply each data misfit term 
-    by the inverse of its highest eigenvalue and then 
-    normalize the sum of the data misfit multipliers to one. 
+    For multiple data misfits only: multiply each data misfit term
+    by the inverse of its highest eigenvalue and then
+    normalize the sum of the data misfit multipliers to one.
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
 
@@ -440,12 +404,8 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         if self.debug:
             print("Calculating the scaling parameter.")
 
-        if getattr(self.dmisfit,"objfcts", None) is None:
-            raise Exception("This Directives only applies to joint inversion")
-        elif len(self.dmisfit.objfcts) == 1:
-            raise Exception("This Directives only applies to joint inversion")
-        else:
-            pass
+        if (getattr(self.dmisfit, "objfcts", None) or len(self.dmisfit.objfcts) == 1) is None:
+            raise TypeError("ScalingMultipleDataMisfits_ByEig only applies to joint inversion")
 
         ndm = len(self.dmisfit.objfcts)
         if self.chi0_ratio is not None:
@@ -456,13 +416,13 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         m = self.invProb.model
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
-        
+
         dm_eigenvalue_list = []
         for j, dm in enumerate(self.dmisfit.objfcts):
             dm_eigenvalue_list += [eigenvalue_by_power_iteration(
                 dm, m, fields_list=[f[j]]
             )]
-            
+
         self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]
         self.chi0 = self.chi0 / np.sum(self.chi0)
         self.dmisfit.multipliers = self.chi0
