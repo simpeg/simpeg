@@ -233,8 +233,15 @@ simulation_mag = pf.magnetics.simulation.Simulation3DIntegral(
     actInd=actv,
 )
 dmis_mag = data_misfit.L2DataMisfit(data=data_mag, simulation=simulation_mag)
-# Data Misfit
+
+#########################################################################
+# Create a joint Data Misfit
+#
+
+# Joint data misfit
 dmis = 0.5 * dmis_grav + 0.5 * dmis_mag
+
+# initial model
 m0 = np.r_[-1e-4 * np.ones(actvMap.nP), 1e-4 * np.ones(actvMap.nP)]
 
 #########################################################################
