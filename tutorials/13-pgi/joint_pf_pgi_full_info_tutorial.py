@@ -173,7 +173,8 @@ mm = utils.plot2Ddata(
 )
 ax[1].set_aspect(1)
 ax[1].set_title(
-    "Magnetic data values and locations,\nwith mesh and geology overlays", fontsize=16
+    "Magnetic data values and locations,\nwith mesh and geology overlays",
+    fontsize=16
 )
 plt.colorbar(mm[0], cax=ax[3], orientation="horizontal")
 ax[3].set_aspect(0.05)
@@ -242,8 +243,18 @@ m0 = np.r_[-1e-4 * np.ones(actvMap.nP), 1e-4 * np.ones(actvMap.nP)]
 #
 
 #########################################################################
-# Create petrophysical GMM
-# ------------------------
+# Create and plot a petrophysical GMM with full information
+# ---------------------------------------------------------
+#
+# The GMM is our representation of the petrophysical and geological information.
+# Here, we focus on the petrophysical aspect, with the means and covariances of
+# the physical properties of each rock unit.
+# To generate the data above, the PK unit was populated with a density contrast
+# of -0.8 g/cc and a magnetic susceptibility of 0.005 SI. The properties of the
+# HK unit were set at -0.2 g/cc and 0.02 SI. The covariances matrices are set
+# so that we assume etrophysical noise levels of around 0.05 g/cc and 0.001 SI
+# for both unit. Finally the background unit is set at null contrasts (0 g/cc
+# 0 SI) with a petrophysical noise level of half of the above.
 #
 
 gmmref = utils.WeightedGaussianMixture(
@@ -391,7 +402,11 @@ ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.0, c="k")
 
 ax3.set_xlim([0.0, 50])
 ax3.set_xlabel(
-    "1D Probability Density values", fontsize=labelsize, rotation=-45, labelpad=0, x=0.5
+    "1D Probability Density values",
+    fontsize=labelsize,
+    rotation=-45,
+    labelpad=0,
+    x=0.5
 )
 ax2.set_xlabel("Density (g/cc)", fontsize=labelsize)
 ax3.set_ylabel("Magnetic Susceptibility (SI)", fontsize=labelsize)
@@ -447,13 +462,17 @@ reg = utils.make_SimplePGI_regularization(
 
 # Directives
 # Add directives to the inversion
-# ratio to use for each phys prop. smoothness in each direction; roughly the ratio of range of each phys. prop.
+# ratio to use for each phys prop. smoothness in each direction;
+# roughly the ratio of the order of magnitude of each phys. prop.
 alpha0_ratio = np.r_[
     np.zeros(len(reg.objfcts[0].objfcts)),
     1e-4 * np.ones(len(reg.objfcts[1].objfcts)),
     100.0 * 1e-4 * np.ones(len(reg.objfcts[2].objfcts)),
 ]
-Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbose=True)
+Alphas = directives.AlphasSmoothEstimate_ByEig(
+    alpha0_ratio=alpha0_ratio,
+    verbose=True
+)
 # initialize beta and beta/alpha_s schedule
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 betaIt = directives.PGI_BetaAlphaSchedule(
@@ -478,7 +497,9 @@ update_smallness = directives.PGI_UpdateParameters(
 # pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
 # iteratively balance the scaling of the data misfits
-scaling_init = directives.ScalingMultipleDataMisfits_ByEig(chi0_ratio=[1.0, 100.0])
+scaling_init = directives.ScalingMultipleDataMisfits_ByEig(
+    chi0_ratio=[1.0, 100.0]
+)
 scale_schedule = directives.JointScalingSchedule(verbose=True)
 
 # Create inverse problem
@@ -642,24 +663,43 @@ for i in range(3):
 # plot the locations of the cross-sections
 for i in range(3):
     ax[i, 0].plot(
-        mesh.vectorCCy[indy] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
+        mesh.vectorCCy[indy] * np.ones(2),
+        [-300, 500],
+        c="k",
+        linestyle="dotted"
     )
     ax[i, 0].plot(
-        [7133200, 7134000], mesh.vectorCCz[indz] * np.ones(2), c="k", linestyle="dotted"
+        [7133200, 7134000],
+        mesh.vectorCCz[indz] * np.ones(2),
+        c="k",
+        linestyle="dotted"
     )
     ax[i, 1].plot(
-        mesh.vectorCCx[indx] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
+        mesh.vectorCCx[indx] * np.ones(2),
+        [-300, 500],
+        c="k",
+        linestyle="dotted"
     )
     ax[i, 1].plot(
-        [556900, 557700], mesh.vectorCCz[indz] * np.ones(2), c="k", linestyle="dotted"
+        [556900, 557700],
+        mesh.vectorCCz[indz] * np.ones(2),
+        c="k",
+        linestyle="dotted"
     )
     ax[i, 2].plot(
-        mesh.vectorCCx[indx] * np.ones(2), [7133200, 7134000], c="k", linestyle="dotted"
+        mesh.vectorCCx[indx] * np.ones(2),
+        [7133200, 7134000],
+        c="k",
+        linestyle="dotted"
     )
     ax[i, 2].plot(
-        [556900, 557700], mesh.vectorCCy[indy] * np.ones(2), c="k", linestyle="dotted"
+        [556900, 557700],
+        mesh.vectorCCy[indy] * np.ones(2),
+        c="k",
+        linestyle="dotted"
     )
 plt.tight_layout()
+plt.show()
 
 # Plot the 2D GMM
 ticksize, labelsize = 10, 12
@@ -717,8 +757,6 @@ ax1.scatter(
     s=200,
 )
 
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
 axbar = inset_axes(
     ax1,
     width="40%",  # width = 50% of parent_bbox width
@@ -759,7 +797,11 @@ clfgrav.weights_ = gmmref.weights_
 testXplot_grav = np.linspace(-1.2, 0.1, 1000)[:, np.newaxis]
 score_grav = clfgrav.score_samples(testXplot_grav)
 ax2.plot(
-    testXplot_grav, np.exp(score_grav), linewidth=3.0, label="proba.\ndensity", c="k"
+    testXplot_grav,
+    np.exp(score_grav),
+    linewidth=3.0,
+    label="proba.\ndensity",
+    c="k"
 )
 ax2.set_ylim([0.0, 2])
 ax2.legend(fontsize=ticksize)
@@ -839,7 +881,8 @@ gmmref = utils.WeightedGaussianMixture(
     covariance_type="diag",  # diagonal covariances
 )
 # required: initialization with fit
-# fake random samples, size of the mesh, number of physical properties: 2 (density and mag.susc)
+# fake random samples, size of the mesh
+# number of physical properties: 2 (density and mag.susc)
 gmmref.fit(np.random.randn(nactv, 2))
 # set parameters manually
 # set phys. prop means for each unit
@@ -901,7 +944,6 @@ ax1.scatter(
     edgecolors="k",
     s=200,
 )
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 axbar = inset_axes(
     ax1,
@@ -977,7 +1019,11 @@ ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.0, c="k")
 
 ax3.set_xlim([0.0, 50])
 ax3.set_xlabel(
-    "1D Probability Density values", fontsize=labelsize, rotation=-45, labelpad=0, x=0.5
+    "1D Probability Density values",
+    fontsize=labelsize,
+    rotation=-45,
+    labelpad=0,
+    x=0.5
 )
 ax2.set_xlabel("Density (g/cc)", fontsize=labelsize)
 ax3.set_ylabel("Magnetic Susceptibility (SI)", fontsize=labelsize)
@@ -1020,18 +1066,22 @@ reg = utils.make_SimplePGI_regularization(
     alpha_xx=0.0,
     alpha_yy=0.0,
     alpha_zz=0.0,
-    cell_weights_list=[wr_grav, wr_mag],  # weights each phys. prop. by correct sensW
+    cell_weights_list=[wr_grav, wr_mag], # weights each phys. prop. by each sensW
 )
 
 # Directives
 # Add directives to the inversion
-# ratio to use for each phys prop. smoothness in each direction; roughly the ratio of range of each phys. prop.
+# ratio to use for each phys prop. smoothness in each direction:
+# roughly the ratio of range of each phys. prop.
 alpha0_ratio = np.r_[
     np.zeros(len(reg.objfcts[0].objfcts)),
     1e-2 * np.ones(len(reg.objfcts[1].objfcts)),
     100.0 * 1e-2 * np.ones(len(reg.objfcts[2].objfcts)),
 ]
-Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbose=True)
+Alphas = directives.AlphasSmoothEstimate_ByEig(
+    alpha0_ratio=alpha0_ratio,
+    verbose=True
+)
 # initialize beta and beta/alpha_s schedule
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-4)
 betaIt = directives.PGI_BetaAlphaSchedule(
@@ -1057,21 +1107,23 @@ update_smallness = directives.PGI_UpdateParameters(
         1e10
         * np.ones(
             2
-        ),  # fixed background at 0 density, 0 mag. susc. (high confidences of 1e10)
+        ), # fixed background at 0 density, 0 mag. susc. (high confidences of 1e10)
         [
             0,
             1e10,
-        ],  # density-contrasting cluster: updatable density mean, fixed mag. susc.
+        ], # density-contrasting cluster: updatable density mean, fixed mag. susc.
         [
             1e10,
             0,
-        ],  # magnetic-contrasting cluster: fixed density mean, updatable mag. susc.
+        ], # magnetic-contrasting cluster: fixed density mean, updatable mag. susc.
     ].T,
 )
 # pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
 # iteratively balance the scaling of the data misfits
-scaling_init = directives.ScalingMultipleDataMisfits_ByEig(chi0_ratio=[1.0, 100.0])
+scaling_init = directives.ScalingMultipleDataMisfits_ByEig(
+    chi0_ratio=[1.0, 100.0]
+)
 scale_schedule = directives.JointScalingSchedule(verbose=True)
 
 # Create inverse problem
@@ -1235,24 +1287,43 @@ for i in range(3):
 # plot the locations of the cross-sections
 for i in range(3):
     ax[i, 0].plot(
-        mesh.vectorCCy[indy] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
+        mesh.vectorCCy[indy] * np.ones(2),
+        [-300, 500],
+        c="k",
+        linestyle="dotted"
     )
     ax[i, 0].plot(
-        [7133200, 7134000], mesh.vectorCCz[indz] * np.ones(2), c="k", linestyle="dotted"
+        [7133200, 7134000],
+        mesh.vectorCCz[indz] * np.ones(2),
+        c="k",
+        linestyle="dotted"
     )
     ax[i, 1].plot(
-        mesh.vectorCCx[indx] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
+        mesh.vectorCCx[indx] * np.ones(2),
+        [-300, 500],
+        c="k",
+        linestyle="dotted"
     )
     ax[i, 1].plot(
-        [556900, 557700], mesh.vectorCCz[indz] * np.ones(2), c="k", linestyle="dotted"
+        [556900, 557700],
+        mesh.vectorCCz[indz] * np.ones(2),
+        c="k",
+        linestyle="dotted"
     )
     ax[i, 2].plot(
-        mesh.vectorCCx[indx] * np.ones(2), [7133200, 7134000], c="k", linestyle="dotted"
+        mesh.vectorCCx[indx] * np.ones(2),
+        [7133200, 7134000],
+        c="k",
+        linestyle="dotted"
     )
     ax[i, 2].plot(
-        [556900, 557700], mesh.vectorCCy[indy] * np.ones(2), c="k", linestyle="dotted"
+        [556900, 557700],
+        mesh.vectorCCy[indy] * np.ones(2),
+        c="k",
+        linestyle="dotted"
     )
 plt.tight_layout()
+plt.show()
 
 # Plot the 2D GMM
 ticksize, labelsize = 10, 12
@@ -1320,8 +1391,6 @@ ax1.scatter(
     s=200,
 )
 
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
 axbar = inset_axes(
     ax1,
     width="40%",  # width = 50% of parent_bbox width
@@ -1362,7 +1431,10 @@ clfgrav.weights_ = learned_gmm.weights_
 testXplot_grav = np.linspace(-1.2, 0.1, 1000)[:, np.newaxis]
 score_grav = clfgrav.score_samples(testXplot_grav)
 ax2.plot(
-    testXplot_grav, np.exp(score_grav), linewidth=3.0, label="proba.\ndensity", c="k"
+    testXplot_grav, np.exp(score_grav),
+    linewidth=3.0,
+    label="proba.\ndensity",
+    c="k"
 )
 ax2.set_ylim([0.0, 2])
 ax2.legend(fontsize=ticksize)
@@ -1392,7 +1464,11 @@ ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.0, c="k")
 
 ax3.set_xlim([0.0, 50])
 ax3.set_xlabel(
-    "Probability\nDensity", fontsize=labelsize, rotation=-45, labelpad=0, x=0.5
+    "Probability\nDensity",
+    fontsize=labelsize,
+    rotation=-45,
+    labelpad=0,
+    x=0.5
 )
 ax2.set_xlabel("Density (g/cc)", fontsize=labelsize)
 ax3.set_ylabel("Magnetic Susceptibility (SI)", fontsize=labelsize)
@@ -1410,5 +1486,10 @@ ax3.tick_params(axis="both", which="both", labelsize=ticksize)
 
 ax1.legend(fontsize=labelsize, loc=2)
 ax2.hist(density_model_no_info[actv], density=True, bins=50)
-ax3.hist(magsus_model_no_info[actv], density=True, bins=50, orientation="horizontal")
+ax3.hist(
+    magsus_model_no_info[actv],
+    density=True,
+    bins=50,
+    orientation="horizontal"
+)
 plt.show()
