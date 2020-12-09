@@ -127,17 +127,17 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=
 
     if seed is not None:
         np.random.seed(seed)
-    
+
     # Initial guess for eigen-vector
     x0 = np.random.rand(*model.shape)
     x0 = x0 / np.linalg.norm(x0)
- 
+
     # transform to ComboObjectiveFunction if required
     if getattr(combo_objfct, "objfcts", None) is None:
         combo = 1. * combo_objfct
     else:
         combo = combo_objfct
-    
+
     # create Field for data misfit if necessary and not provided
     if fields_list is None:
         f = []
@@ -146,11 +146,11 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=
                 f += [obj.simulation.fields(model)]
             else:
                 # required to put None to conserve it in the list
-                # The idea is that the function can have a mixed of dmis and reg terms 
+                # The idea is that the function can have a mixed of dmis and reg terms
                 # (see test)
-                f += [None] 
+                f += [None]
     else:
-        if (not isinstance(fields_list,list)) and (not isinstance(fields_list,np.ndarray)):
+        if not isinstance(fields_list, (list, tuple, np.ndarray)):
             f = [fields_list]
         else:
             f = fields_list
@@ -164,7 +164,7 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=
             else:
                 x1 += mult * obj.deriv2(model, v=x0,)
         x0 = x1 / np.linalg.norm(x1)
-        
+
     # Compute highest eigenvalue from estimated eigenvector
     eigenvalue=0.
     for j, (mult, obj) in enumerate(zip(combo.multipliers, combo.objfcts)):
