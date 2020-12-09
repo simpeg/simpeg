@@ -129,33 +129,33 @@ class Fields1DElectricField(FieldsFDEM):
         return 180 / np.pi * np.arctan2(z.imag, z.real)
 
 
-class Fields1DMagneticFluxDensity(Fields1DElectricField):
+class Fields1DMagneticField(Fields1DElectricField):
     """
     Fields
     """
 
-    knownFields = {"bSolution": "CC"}
+    knownFields = {"hSolution": "CC"}
     aliasFields = {
-        "e": ["bSolution", "F", "_e"],
-        "j": ["bSolution", "F", "_j"],
-        "b": ["bSolution", "CC", "_b"],
-        "h": ["bSolution", "CC", "_h"],
-        "impedance": ["bSolution", "CC", "_impedance"],
-        "apparent resistivity": ["bSolution", "CC", "_apparent_resistivity"],
-        "apparent conductivity": ["bSolution", "CC", "_apparent_conductivity"],
-        "phase": ["bSolution", "CC", "_phase"],
+        "e": ["hSolution", "F", "_e"],
+        "j": ["hSolution", "F", "_j"],
+        "b": ["hSolution", "CC", "_b"],
+        "h": ["hSolution", "CC", "_h"],
+        "impedance": ["hSolution", "CC", "_impedance"],
+        "apparent resistivity": ["hSolution", "CC", "_apparent_resistivity"],
+        "apparent conductivity": ["hSolution", "CC", "_apparent_conductivity"],
+        "phase": ["hSolution", "CC", "_phase"],
     }
 
     def startup(self):
         # boundary conditions
         self._B = self.simulation._B
-        self._b_bc = self.simulation._b_bc
+        self._h_bc = self.simulation._h_bc
 
         # operators
         self._D = self.mesh.faceDiv
         self._V = self.simulation.Vol
         self._aveN2CC = self.mesh.aveN2CC
-        self._MccMui = self.simulation.MccMui
+        self._MccMu = self.simulation.MccMu
         self._MfSigmaI = self.simulation.MfSigmaI
         self._MfSigmaIDeriv = self.simulation.MfSigmaIDeriv
         self._MfSigma = self.simulation.MfSigma
@@ -166,43 +166,44 @@ class Fields1DMagneticFluxDensity(Fields1DElectricField):
         self._nC = self.mesh.nC
         self._nF = self.mesh.nF
 
-    def _b(self, bSolution, source_list):
-        return bSolution
-
     def _h(self, hSolution, source_list):
-        return self._MccMui @ hSolution
+        return hSolution
 
-    def _hDeriv_u(self, src, du_dm_v, adjoint=False):
+    def _b(self, hSolution, source_list):
+        return self._MccMu @ hSolution
+
+    def _bDeriv_u(self, src, du_dm_v, adjoint=False):
         if adjoint:
-            return self._MccMui.T @ du_dm_v
-        return self._MccMui @ du_dm_v
+            return self._MccMu.T @ du_dm_v
+        return self._MccMu @ du_dm_v
 
-    def _e(self, bSolution, source_list):
+    def _e(self, hSolution, source_list):
         e = np.zeros((self._nF, len(source_list)), dtype=complex)
         for i, src in enumerate(source_list):
-            e[:, i] = -self._MfSigmaI @ (
-                self._D.T @ (self._MccMui @ (self._V @ bSolution[:, i]))
-            ) + self._MfSigmaI @ (self._B @ self._b_bc)
+            e[:, i] = self._MfSigmaI @ (
+                self._D.T @ (self._V @ hSolution[:, i]) - self._B @ self._h_bc
+            )
         return e
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         if adjoint:
             # V, MfI are symmetric
-            return -V @ (self._MccMui @ (self._D @ (self.MfSigmaI @ du_dm_v)))
-        return -self._MfSigmaI @ (self._D.T @ (self._MccMui @ (V @ du_dm_v)))
+            return -V @ (self._D @ (self.MfSigmaI @ du_dm_v))
+        return -self._MfSigmaI @ (self._D.T @ (V @ du_dm_v))
 
+    # TODO: pick up here
     def _eDeriv_m(self, src, v, adjoint=False):
-        b = self[src, "b"]
+        h = self[src, "h"]
         if adjoint:
             return -V @ (
-                self._MccMui @ (self._D @ self._MfSigmaIDeriv(b, v, adjoint=adjoint))
-            ) + self._MfSigmaIDeriv(self._B @ self._b_bc, v, adjoint=adjoint)
-        return -self._MfSigmaIDeriv(
-            self._D.T @ (self._MccMui @ (V @ b)), v
-        ) + self._MfSigmaIDeriv(self._B @ self._b_bc, v)
+                self._D @ self._MfSigmaIDeriv(b, v, adjoint=adjoint)
+            ) + self._MfSigmaIDeriv(self._B @ self._h_bc, v, adjoint=adjoint)
+        return -self._MfSigmaIDeriv(self._D.T @ (V @ b), v) + self._MfSigmaIDeriv(
+            self._B @ self._h_bc, v
+        )
 
     def _j(self, bSolution, source_list):
-        return self._MfI @ self._MfSigma @ self._e(bSolution, source_list)
+        return self._MfI @ self._MfSigma @ self._e(hSolution, source_list)
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         if adjoint:

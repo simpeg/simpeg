@@ -13,7 +13,7 @@ from .survey import Data, Survey1D
 from .fields import (
     Fields1DPrimarySecondary,
     Fields1DElectricField,
-    Fields1DMagneticFluxDensity,
+    Fields1DMagneticField,
 )
 
 
@@ -503,12 +503,10 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         B = self._B
         ebc = self._e_bc
 
-        sources = self.survey.get_sources_by_frequency(freq)
-
         return D @ (MfMui @ (B @ ebc))
 
 
-class Simulation1DMagneticFluxDensity(BaseFDEMSimulation):
+class Simulation1DMagneticField(BaseFDEMSimulation):
     """
     1D finite volume simulation for the natural source electromagnetic problem.
 
@@ -516,9 +514,9 @@ class Simulation1DMagneticFluxDensity(BaseFDEMSimulation):
     located at cell centers and the electric field is on edges.
     """
 
-    _solutionType = "bSolution"
+    _solutionType = "hSolution"
     _formulation = "EB"
-    fieldsPair = Fields1DMagneticFluxDensity
+    fieldsPair = Fields1DMagneticField
     _clear_on_sigma_update = ["_MfSigmaI", "_MfSigma", "_MfSigmaIDeriv"]
 
     # Must be 1D survey object
@@ -530,11 +528,11 @@ class Simulation1DMagneticFluxDensity(BaseFDEMSimulation):
                 f"The mesh must be a 1D mesh. The provided mesh has dimension {mesh.dim}"
             )
 
-        super(Simulation1DMagneticFluxDensity, self).__init__(mesh, **kwargs)
+        super(Simulation1DMagneticField, self).__init__(mesh, **kwargs)
 
         # todo: update to enable user to input / customize boundary conditions
         self._B = self.mesh.getBCProjWF("dirichlet")[0]
-        self._b_bc = np.r_[0, 1]  # 0 at the bottom of the domain, 1 at the top
+        self._h_bc = np.r_[0, 1]  # 0 at the bottom of the domain, 1 at the top
 
     @property
     def MccMui(self):
@@ -634,9 +632,18 @@ class Simulation1DMagneticFluxDensity(BaseFDEMSimulation):
         D = self.mesh.faceDiv
         V = self.Vol
         B = self._B
-        bbc = self._b_bc
+        MfSigmaI = self.MfSigmaI
+        hbc = self._h_bc
 
-        return V @ (D @ (B @ bbc))
+        return V @ (D @ (MfSigmaI @ (B @ hbc)))
+
+    def getRHSDeriv(self, freq, u, v, adjoint=False):
+        D = self.mesh.faceDiv
+        V = self.Vol
+        B = self._B
+        hbc = self._h_bc
+
+        return V @ (D @ (self.MfSigmaIDeriv(B @ hbc, v, adjoint=True)))
 
 
 ###################################
