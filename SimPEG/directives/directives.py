@@ -417,7 +417,7 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         if self.debug:
             print("Calculating the scaling parameter.")
 
-        if (getattr(self.dmisfit, "objfcts", None) or len(self.dmisfit.objfcts) == 1) is None:
+        if getattr(self.dmisfit, "objfcts", None) is None or len(self.dmisfit.objfcts) == 1:
             raise TypeError("ScalingMultipleDataMisfits_ByEig only applies to joint inversion")
 
         ndm = len(self.dmisfit.objfcts)
