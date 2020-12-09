@@ -36,7 +36,7 @@ setup(
     install_requires=[
         "numpy>=1.7",
         "scipy>=1.0.0",
-        "scikit-learn>=0.19.1",
+        "scikit-learn>=0.22",
         "pymatsolver>=0.1.1",
         "matplotlib",
         "properties>=0.5.2",

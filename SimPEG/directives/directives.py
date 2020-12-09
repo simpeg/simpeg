@@ -209,7 +209,7 @@ class BetaEstimate_ByEig(InversionDirective):
 
     """
 
-    beta0_ratio = 1.  #: the estimated ratio is multplied by this to obtain beta
+    beta0_ratio = 1.  #: the estimated ratio is multiplied by this to obtain beta
     n_pw_iter = 4     #: number of power iterations for estimation.
     seed = None       #: Random seed for the directive
 
