@@ -61,29 +61,21 @@ class PGI_UpdateParameters(InversionDirective):
     keep_ref_fixed_in_Smooth = True  # keep mref fixed in the Smoothness
 
     def initialize(self):
-        if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
+        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
             pgi_reg = np.where(
                 np.r_[
                     [
-                        (
-                            isinstance(regpart, SimplePGI)
-                            or isinstance(regpart, PGI)
-                            or isinstance(regpart, SimplePGIwithRelationships)
-                        )
-                        for regpart in self.invProb.reg.objfcts
+                        isinstance(regpart, (SimplePGI, PGI, SimplePGIwithRelationships))
+                        for regpart in self.reg.objfcts
                     ]
                 ]
             )[0][0]
-
-            self.pgi_reg = self.invProb.reg.objfcts[pgi_reg]
-
-            if self.debug:
-                print(type(self.self.pgi_reg))
+            self.pgi_reg = self.reg.objfcts[pgi_reg]
             self._regmode = 1
 
         else:
             self._regmode = 2
-            self.pgi_reg = self.invProb.reg
+            self.pgi_reg = self.reg
 
     def endIter(self):
         if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
@@ -224,30 +216,24 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                 updategaussianclass
             ]
 
-        if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
+        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
             petrosmallness = np.where(
                 np.r_[
                     [
-                        (
-                            isinstance(regpart, SimplePGI)
-                            or isinstance(regpart, PGI)
-                            or isinstance(regpart, SimplePGIwithRelationships)
-                        )
-                        for regpart in self.invProb.reg.objfcts
+                        isinstance(regpart, (SimplePGI, PGI, SimplePGIwithRelationships))
+                        for regpart in self.reg.objfcts
                     ]
                 ]
             )[0][0]
             self.petrosmallness = petrosmallness
-            if self.debug:
-                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
             self._regmode = 1
         else:
             self._regmode = 2
 
         if self._regmode == 1:
-            self.pgi_reg = self.invProb.reg.objfcts[self.petrosmallness]
+            self.pgi_reg = self.reg.objfcts[self.petrosmallness]
         else:
-            self.pgi_reg = self.invProb.reg
+            self.pgi_reg = self.reg
 
     def endIter(self):
 
@@ -381,73 +367,42 @@ class PGI_AddMrefInSmooth(InversionDirective):
             ]
         ]
 
-        if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
+        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
+            # Find the petrosmallness terms in a two-levels combo-regularization.
             petrosmallness = np.where(
                 np.r_[
                     [
-                        (
-                            isinstance(regpart, SimplePGI)
-                            or isinstance(regpart, PGI)
-                            or isinstance(regpart, SimplePGIwithRelationships)
-                        )
-                        for regpart in self.invProb.reg.objfcts
+                        isinstance(regpart, (SimplePGI, PGI, SimplePGIwithRelationships))
+                        for regpart in self.reg.objfcts
                     ]
                 ]
             )[0][0]
             self.petrosmallness = petrosmallness
-            if self.debug:
-                print(type(self.invProb.reg.objfcts[self.petrosmallness]))
-            self._regmode = 1
-        else:
-            self._regmode = 2
 
-        if self._regmode == 1:
-            self.pgi_reg = self.invProb.reg.objfcts[self.petrosmallness]
-        else:
-            self.pgi_reg = self.invProb.reg
+            # Find the smoothness terms in a two-levels combo-regularization.
+            Smooth = []
+            for i, regobjcts in enumerate(self.reg.objfcts):
+                for j, regpart in enumerate(regobjcts.objfcts):
+                    Smooth += [[i, j, isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))]]
+            self.Smooth = np.r_[Smooth]
 
-        if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
             self.nbr = np.sum(
                 [
-                    len(self.invProb.reg.objfcts[i].objfcts)
-                    for i in range(len(self.invProb.reg.objfcts))
+                    len(self.reg.objfcts[i].objfcts)
+                    for i in range(len(self.reg.objfcts))
                 ]
             )
-            self.Smooth = np.r_[
-                [
-                    (
-                        np.r_[
-                            i,
-                            j,
-                            (
-                                (
-                                    isinstance(regpart, SmoothDeriv)
-                                    or isinstance(regpart, SimpleSmoothDeriv)
-                                    or isinstance(regpart, SparseDeriv)
-                                )
-                                and not (
-                                    isinstance(regobjcts, SimplePGI)
-                                    or isinstance(regobjcts, PGI)
-                                    or isinstance(regobjcts, SimplePGIwithRelationships)
-                                )
-                            ),
-                        ]
-                    )
-                    for i, regobjcts in enumerate(self.invProb.reg.objfcts)
-                    for j, regpart in enumerate(regobjcts.objfcts)
-                ]
-            ]
             self._regmode = 1
+            self.pgi_reg = self.reg.objfcts[self.petrosmallness]
+
         else:
-            self.nbr = len(self.invProb.reg.objfcts)
+            self._regmode = 2
+            self.pgi_reg = self.reg
+            self.nbr = len(self.reg.objfcts)
             self.Smooth = np.r_[
                 [
-                    (
-                        isinstance(regpart, SmoothDeriv)
-                        or isinstance(regpart, SimpleSmoothDeriv)
-                        or isinstance(regpart, SparseDeriv)
-                    )
-                    for regpart in self.invProb.reg.objfcts
+                    isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))
+                    for regpart in self.reg.objfcts
                 ]
             ]
             self._regmode = 2
@@ -494,13 +449,13 @@ class PGI_AddMrefInSmooth(InversionDirective):
         ) and (
             same_mref or not self.wait_till_stable or percent_diff <= self.tolerance
         ):
-            self.invProb.reg.mrefInSmooth = True
+            self.reg.mrefInSmooth = True
             self.pgi_reg.mrefInSmooth = True
 
             if self._regmode == 2:
                 for i in range(self.nbr):
                     if self.Smooth[i]:
-                        self.invProb.reg.objfcts[i].mref = mkvc(
+                        self.reg.objfcts[i].mref = mkvc(
                             self.pgi_reg.gmm.means_[self.membership]
                         )
                 if self.verbose:
@@ -514,11 +469,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
                 for i in range(self.nbr):
                     if self.Smooth[i, 2]:
                         idx = self.Smooth[i, :2]
-                        if self.debug:
-                            print(
-                                type(self.invProb.reg.objfcts[idx[0]].objfcts[idx[1]])
-                            )
-                        self.invProb.reg.objfcts[idx[0]].objfcts[idx[1]].mref = mkvc(
+                        self.reg.objfcts[idx[0]].objfcts[idx[1]].mref = mkvc(
                             self.pgi_reg.gmm.means_[self.membership]
                         )
                 if self.verbose:

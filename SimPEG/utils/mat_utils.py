@@ -160,9 +160,13 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=
         x1 = 0.
         for j, (mult, obj) in enumerate(zip(combo.multipliers, combo.objfcts)):
             if hasattr(obj, "simulation"): # if data misfit term
-                x1 += mult * obj.deriv2(model, v=x0, f=f[j])
+                aux = obj.deriv2(model, v=x0, f=f[j])
+                if not isinstance(aux, Zero):
+                    x1 += mult * aux
             else:
-                x1 += mult * obj.deriv2(model, v=x0,)
+                aux = obj.deriv2(model, v=x0)
+                if not isinstance(aux, Zero):
+                    x1 += mult * aux
         x0 = x1 / np.linalg.norm(x1)
 
     # Compute highest eigenvalue from estimated eigenvector
