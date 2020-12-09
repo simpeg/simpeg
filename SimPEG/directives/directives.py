@@ -299,7 +299,6 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         if self.seed is not None:
             np.random.seed(self.seed)
 
-
         if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
             nbr = np.sum(
                 [
@@ -307,55 +306,24 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     for i in range(len(self.reg.objfcts))
                 ]
             )
-            smallness = np.r_[
-                [
-                    (
-                        np.r_[
-                            i,
-                            j,
-                            (
-                                isinstance(regpart, SimplePGIwithNonlinearRelationshipsSmallness)
-                                or isinstance(regpart, SimplePGIsmallness)
-                                or isinstance(regpart, PGIsmallness)
-                                or isinstance(regpart, SimpleSmall)
-                                or isinstance(regpart, Small)
-                                or isinstance(regpart, SparseSmall)
-                            ),
-                        ]
-                    )
-                    for i, regobjcts in enumerate(self.reg.objfcts)
-                    for j, regpart in enumerate(regobjcts.objfcts)
-                ]
-            ]
+            # Find the smallness terms in a two-levels combo-regularization.
+            smallness = []
+            for i, regobjcts in enumerate(self.reg.objfcts):
+                for j, regpart in enumerate(regobjcts.objfcts):
+                    smallness += [[i, j, isinstance(regpart, (
+                        SimpleSmall, Small, SparseSmall, SimplePGIsmallness,
+                        PGIsmallness, SimplePGIwithNonlinearRelationshipsSmallness
+                    ))]]
+            smallness = np.r_[smallness]
+            # Select the first, only considered, smallness term.
             smallness = smallness[smallness[:, 2] == 1][:, :2][0]
 
-            smoothness = np.r_[
-                [
-                    (
-                        np.r_[
-                            i,
-                            j,
-                            (
-                                (
-                                    isinstance(regpart, SmoothDeriv)
-                                    or isinstance(regpart, SimpleSmoothDeriv)
-                                    or isinstance(regpart, SparseDeriv)
-                                )
-                                and not (
-                                    isinstance(regobjcts, SimplePGI)
-                                    or isinstance(regobjcts, PGI)
-                                    or isinstance(regobjcts, SimplePGIwithRelationships)
-                                    or isinstance(regpart, Tikhonov)
-                                    or isinstance(regpart, Simple)
-                                    or isinstance(regpart, Sparse)
-                                )
-                            ),
-                        ]
-                    )
-                    for i, regobjcts in enumerate(self.reg.objfcts)
-                    for j, regpart in enumerate(regobjcts.objfcts)
-                ]
-            ]
+            # Find the smoothness terms in a two-levels combo-regularization.
+            smoothness = []
+            for i, regobjcts in enumerate(self.reg.objfcts):
+                for j, regpart in enumerate(regobjcts.objfcts):
+                        smoothness += [[i, j,isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))]]
+            smoothness = np.r_[smoothness]
             mode = 1
         else:
             nbr = len(self.reg.objfcts)
