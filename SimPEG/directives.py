@@ -201,7 +201,7 @@ class BetaEstimate_ByEig(InversionDirective):
 
     """
 
-    beta0_ratio = 1.  #: the estimated ratio is multplied by this to obtain beta
+    beta0_ratio = 1.  #: the estimated ratio is multiplied by this to obtain beta
     n_pw_iter = 4     #: number of power iterations for estimation.
     seed = None       #: Random seed for the directive
 
@@ -270,7 +270,7 @@ class BetaSchedule(InversionDirective):
 
 class AlphasSmoothEstimate_ByEig(InversionDirective):
     """
-    Estimate the alphas multpliers for the smoothness terms of the regularization
+    Estimate the alphas multipliers for the smoothness terms of the regularization
      as a multiple of the ratio between the highest eigenvalue of the
     smallness term and the highest eigenvalue of each smoothness term of the regularization.
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
@@ -315,7 +315,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
         else:
             nbr = len(self.reg.objfcts)
-            alpha0 = self.reg.multpliers
+            alpha0 = self.reg.multipliers
             smoothness = np.r_[
                 [
                     isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))
