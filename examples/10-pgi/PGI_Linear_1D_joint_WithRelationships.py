@@ -129,7 +129,7 @@ reg_simple = utils.make_SimplePGIwithRelationships_regularization(
     gmmref=clfmapping,
     gmm=clfmapping,
     approx_gradient=True,
-    alpha_x=0.0,
+    alpha_x=1.0,
     wiresmap=wires,
     cell_weights_list=[wr1, wr2],
 )
@@ -172,7 +172,7 @@ reg_simple_no_map = utils.make_SimplePGI_regularization(
     gmmref=clfnomapping,
     gmm=clfnomapping,
     approx_gradient=True,
-    alpha_x=0.0,
+    alpha_x=1.0,
     wiresmap=wires,
     cell_weights_list=[wr1, wr2],
 )
