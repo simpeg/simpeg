@@ -28,7 +28,6 @@ class BaseCoupling(BaseRegularization):
     '''
     def __init__(self, mesh, indActive, mapping, **kwargs):
 
-        self.as_super = super(BaseCoupling, self)
         self.as_super.__init__(mesh, indActive=indActive, mapping=mapping)
 
     def deriv(self):
