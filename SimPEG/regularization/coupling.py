@@ -123,7 +123,7 @@ class CrossGradient(BaseCoupling):
 
         return models
 
-    def calculate_gradient(self, model):
+    def calculate_gradient(self, model, normalize=False):
         '''
         Calculate the spatial gradients of the model using central difference.
 
