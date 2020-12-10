@@ -87,7 +87,7 @@ class CrossGradient(BaseCoupling):
 
     '''
     def __init__(self, mesh, indActive, mapping, **kwargs):
-        self.as_super = super(CrossGradient, self)
+
         self.as_super.__init__(mesh, indActive, mapping, **kwargs)
         self.map1, self.map2 = mapping.maps # Assume a map has been passed for each model.
 
