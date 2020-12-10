@@ -16,6 +16,7 @@ from .utils import (
     diagEst,
     spherical2cartesian,
     cartesian2spherical,
+    eigenvalue_by_power_iteration, # change on Dec 9, 2020
 )
 from .utils.code_utils import deprecate_property
 from .import optimization
@@ -1567,40 +1568,100 @@ class SaveOutputEveryIteration_Joint(SaveEveryIteration, InversionDirective):
         self.phi_c = results[:, 5]
         self.f = results[:, 7]
 
-class BetaEstimate_ByEig_Joint(InversionDirective):
+# class BetaEstimate_ByEig_Joint(InversionDirective):
+#
+#     betas = None
+#     beta0_ratio = 1
+#
+#     def initialize(self):
+#         '''
+#             Estimate initial betas by eigen values.
+#             Method uses one iteration of the Power Method to estimate
+#             eigenvectors for each separate inverse problem.
+#         '''
+#         m = self.invProb.model
+#         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
+#
+#         # Fix the seed for random vector for consistent results
+#         np.random.seed(0)
+#         x0 = np.random.rand(*m.shape)
+#
+#         t = []
+#         b = []
+#         i_count = 0
+#         # assume dmisfit and reg are combo objective functions.
+#         # assume last regularization object is the coupling
+#         for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts[:-1]):
+#             t.append(x0.dot(dmis.deriv2(m, x0, f=f[i_count])))
+#             b.append(x0.dot(reg.deriv2(m, x0, f=f)))
+#             i_count += 1
+#
+#         t = np.array(t)
+#         b = np.array(b)
+#
+#         self.betas = self.beta0_ratio*(t/b)
+#         self.invProb.betas = self.betas
+#         self.reg.multipliers[:-1] = self.invProb.betas
 
-    betas = None
-    beta0_ratio = 1
+
+# change on Dec 9, 2020
+class BetaEstimate_ByEig_Joint(InversionDirective):
+    """
+    Estimate the trade-off parameter beta between the data misfit(s) and the
+    regularization as a multiple of the ratio between the highest eigenvalue of the
+    data misfit term and the highest eigenvalue of the regularization.
+    The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
+
+    from Thibaut Astic
+
+    """
+
+    beta0_ratio = 1.  #: the estimated ratio is multiplied by this to obtain beta
+    n_pw_iter = 4     #: number of power iterations for estimation.
+    seed = None       #: Random seed for the directive
 
     def initialize(self):
-        '''
-            Estimate initial betas by eigen values.
-            Method uses one iteration of the Power Method to estimate
-            eigenvectors for each separate inverse problem.
-        '''
+        """
+            The initial beta is calculated by comparing the estimated
+            eigenvalues of JtJ and WtW.
+            To estimate the eigenvector of **A**, we will use one iteration
+            of the *Power Method*:
+            .. math::
+                \mathbf{x_1 = A x_0}
+            Given this (very course) approximation of the eigenvector, we can
+            use the *Rayleigh quotient* to approximate the largest eigenvalue.
+            .. math::
+                \lambda_0 = \\frac{\mathbf{x^\\top A x}}{\mathbf{x^\\top x}}
+            We will approximate the largest eigenvalue for both JtJ and WtW,
+            and use some ratio of the quotient to estimate beta0.
+            .. math::
+                \\beta_0 = \gamma \\frac{\mathbf{x^\\top J^\\top J x}}{\mathbf{x^\\top W^\\top W x}}
+            :rtype: float
+            :return: beta0
+        """
+        if self.seed is not None:
+            np.random.seed(self.seed)
+
+        if self.debug:
+            print("Calculating the beta0 parameter.")
+
         m = self.invProb.model
-        f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
-
-        # Fix the seed for random vector for consistent results
-        np.random.seed(0)
-        x0 = np.random.rand(*m.shape)
-
-        t = []
-        b = []
-        i_count = 0
-        # assume dmisfit and reg are combo objective functions.
-        # assume last regularization object is the coupling
+        dmis_eigenvalues = []
+        reg_eigenvalues = []
         for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts[:-1]):
-            t.append(x0.dot(dmis.deriv2(m, x0, f=f[i_count])))
-            b.append(x0.dot(reg.deriv2(m, x0, f=f)))
-            i_count += 1
+            dmis_eigenvalues.append(
+                eigenvalue_by_power_iteration(dmis, m, n_pw_iter=self.n_pw_iter,)
+                )
 
-        t = np.array(t)
-        b = np.array(b)
+            reg_eigenvalues.append(
+                eigenvalue_by_power_iteration(reg, m, n_pw_iter=self.n_pw_iter,)
+                )
 
-        self.betas = self.beta0_ratio*(t/b)
-        self.invProb.betas = self.betas
+        self.ratios = np.array(dmis_eigenvalues) / np.array(reg_eigenvalues)
+        self.invProb.betas = self.beta0_ratio * self.ratios
         self.reg.multipliers[:-1] = self.invProb.betas
+
+
 
 class BetaSchedule_Joint(InversionDirective):
     '''
