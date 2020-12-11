@@ -222,6 +222,10 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # directives
+alpha0_ratio = np.r_[
+    100.0 * np.ones(len(reg.objfcts[0].objfcts)),
+    1.0 * np.ones(len(reg.objfcts[1].objfcts)),
+]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
