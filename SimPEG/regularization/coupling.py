@@ -178,8 +178,7 @@ class CrossGradient(BaseCoupling):
 
 
 
-
-    def gradient_applitude_inv(self, m1, m2, fltr=True, fltr_per=0.05):
+    def gradient_amplitude_inv(self, m1, m2, fltr=True, fltr_per=0.05):
         '''
         Computes the norms of the gradients for two models.
 
@@ -199,34 +198,38 @@ class CrossGradient(BaseCoupling):
         per = int(fltr_per*self.regmesh.nC)
 
         if self.regmesh.mesh.dim == 2:
-            Dx_m1, Dy_m1 = self.calculate_gradient(m1)
-            Dx_m2, Dy_m2 = self.calculate_gradient(m2)
+            grad_m1 = self.calculate_gradient(m1)
+            grad_m2 = self.calculate_gradient(m2)
 
-            norms_1 = np.sqrt(Dx_m1**2 + Dy_m1**2)
+            norms_1 = np.linalg.norm(grad_m1, axis=-1)
             # compute (1 / applitude of gradients) and background when norms < 1e-10
             norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>1e-10)
-            norms_2 = np.sqrt(Dx_m2**2 + Dy_m2**2)
+            norms_2 = np.linalg.norm(grad_m2, axis=-1)
             norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>1e-10)
 
         elif self.regmesh.mesh.dim == 3:
-            Dx_m1, Dy_m1, Dz_m1 = self.calculate_gradient(m1)
-            Dx_m2, Dy_m2, Dz_m2 = self.calculate_gradient(m2)
+            grad_m1 = self.calculate_gradient(m1)
+            grad_m2 = self.calculate_gradient(m2)
 
-            norms_1 = np.sqrt(Dx_m1**2 + Dy_m1**2 + Dz_m1**2)
+            norms_1 = np.linalg.norm(grad_m1, axis=-1)
             norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>1e-10)
-            norms_2 = np.sqrt(Dx_m2**2 + Dy_m2**2 + Dz_m2**2)
+            norms_2 = np.linalg.norm(grad_m2, axis=-1)
             norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>1e-10)
 
         # set lowest 5% of norms (largest 5% of 1/norms) to 0.0
-        if fltr:
-            inds1 = norms_1.argsort()[-per:]
+        if fltr > 0.0:
+
+            inds1 = np.argpartition(norms_1, -per)[-per:]
             norms_1[inds1] = 0.0
-            inds2 = norms_2.argsort()[-per:]
+            inds2 = np.argpartition(norms_2, -per)[-per:]
             norms_2[inds2] = 0.0
 
         tot_norms = norms_1*norms_2
 
         return (norms_1, norms_2, tot_norms)
+
+
+
 
     def normalized_gradients(self,grad_list):
         '''
