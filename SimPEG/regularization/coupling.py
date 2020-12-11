@@ -77,7 +77,7 @@ class BaseCoupling(BaseRegularization):
 
 class CrossGradient(BaseCoupling):
 
-    norm_tol = 1e-10
+    grad_tol = 1e-10 # tolerance for avoiding the exteremly small gradient amplitude
 
     '''
     The cross-gradient constraint for joint inversions.
@@ -161,7 +161,7 @@ class CrossGradient(BaseCoupling):
 
         if normalize:
             norms = np.linalg.norm(grad_list, axis=-1)
-            norms[norms<self.norm_tol] = 1.0
+            norms[norms<self.grad_tol] = 1.0
             grad_list = grad_list/norms[:, None]
 
 
@@ -209,23 +209,23 @@ class CrossGradient(BaseCoupling):
         per = int(fltr_per*self.regmesh.nC)
 
         if self.regmesh.mesh.dim == 2:
-            grad_m1 = self.calculate_gradient(m1)
-            grad_m2 = self.calculate_gradient(m2)
+            grad_m1 = self.calculate_gradient(m1, normalize=False)
+            grad_m2 = self.calculate_gradient(m2, normalize=False)
 
             norms_1 = np.linalg.norm(grad_m1, axis=-1)
             # compute (1 / applitude of gradients) and background when norms < 1e-10
-            norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>self.norm_tol)
+            norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>self.grad_tol)
             norms_2 = np.linalg.norm(grad_m2, axis=-1)
-            norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>self.norm_tol)
+            norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>self.grad_tol)
 
         elif self.regmesh.mesh.dim == 3:
-            grad_m1 = self.calculate_gradient(m1)
-            grad_m2 = self.calculate_gradient(m2)
+            grad_m1 = self.calculate_gradient(m1, normalize=False)
+            grad_m2 = self.calculate_gradient(m2, normalize=False)
 
             norms_1 = np.linalg.norm(grad_m1, axis=-1)
-            norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>self.norm_tol)
+            norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>self.grad_tol)
             norms_2 = np.linalg.norm(grad_m2, axis=-1)
-            norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>self.norm_tol)
+            norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>self.grad_tol)
 
         # set lowest 5% of norms (largest 5% of 1/norms) to 0.0
         if fltr > 0.0:
@@ -327,49 +327,42 @@ class CrossGradient(BaseCoupling):
         m2 = self.map2*model
         m1, m2 = self.models([m1,m2])
 
-        if self.regmesh.mesh.dim == 2:
-            Dx_m1, Dy_m1 = self.calculate_gradient(m1)
-            Dx_m2, Dy_m2 = self.calculate_gradient(m2)
+        # Dx_m1, Dy_m1 = self.calculate_gradient(m1)
+        # Dx_m2, Dy_m2 = self.calculate_gradient(m2)
+        grad_m1 = self.calculate_gradient(m1, normalize=normalized)
+        grad_m2 = self.calculate_gradient(m2, normalize=normalized)
 
-            temp1 = Dx_m1**2 + Dy_m1**2
-            temp2 = Dx_m2**2 + Dy_m2**2
-            term1 = temp1.dot(temp2)
+        # temp1 = Dx_m1**2 + Dy_m1**2
+        # temp2 = Dx_m2**2 + Dy_m2**2
+        # term1 = temp1.dot(temp2)
+        term1 = np.dot(
+            np.linalg.norm(grad_m1, axis=-1)**2,
+            np.linalg.norm(grad_m2, axis=-1)**2,
+            )
 
-            temp1 = Dx_m1*Dx_m2 + Dy_m1*Dy_m2
-            term2 = (np.linalg.norm(temp1))**2
-            result = term1 - term2
+        # temp1 = Dx_m1*Dx_m2 + Dy_m1*Dy_m2
+        # term2 = (np.linalg.norm(temp1))**2
+        temp1 = np.sum(
+            np.multiply(grad_m1, grad_m2),
+            axis=-1,
+            )
+        term2 = np.linalg.norm(temp1, axis=-1)**2
 
-            if normalized:
-                norms1, norms2, norms = self.gradient_applitude_inv(m1, m2, fltr=False)
-                temp1 = (Dx_m1*norms1)**2 + (Dy_m1*norms1)**2
-                temp2 = (Dx_m2*norms2)**2 + (Dy_m2*norms2)**2
-                term1 = temp1.dot(temp2)
+        result = term1 - term2
 
-                temp1 = Dx_m1*Dx_m2*norms + Dy_m1*Dy_m2*norms
-                term2 = (np.linalg.norm(temp1))**2
-                result = term1 - term2
+        ################################
+        # may not need this part, not sure need to double check
+        ################################
+        # if normalized:
+        #     norms1, norms2, norms = self.gradient_applitude_inv(m1, m2, fltr=False)
+        #     temp1 = (Dx_m1*norms1)**2 + (Dy_m1*norms1)**2
+        #     temp2 = (Dx_m2*norms2)**2 + (Dy_m2*norms2)**2
+        #     term1 = temp1.dot(temp2)
+        #
+        #     temp1 = Dx_m1*Dx_m2*norms + Dy_m1*Dy_m2*norms
+        #     term2 = (np.linalg.norm(temp1))**2
+        #     result = term1 - term2
 
-        elif self.regmesh.mesh.dim == 3:
-            Dx_m1, Dy_m1, Dz_m1 = self.calculate_gradient(m1)
-            Dx_m2, Dy_m2, Dz_m2 = self.calculate_gradient(m2)
-
-            temp1 = Dx_m1**2 + Dy_m1**2 + Dz_m1**2
-            temp2 = Dx_m2**2 + Dy_m2**2 + Dz_m2**2
-            term1 = temp1.dot(temp2)
-
-            temp1 = Dx_m1*Dx_m2 + Dy_m1*Dy_m2 + Dz_m1*Dz_m2
-            term2 = (np.linalg.norm(temp1))**2
-            result = term1 - term2
-
-            if normalized:
-                norms1, norms2, norms = self.gradient_applitude_inv(m1, m2, fltr=False)
-                temp1 = (Dx_m1*norms1)**2 + (Dy_m1*norms1)**2 + (Dz_m1*norms1)**2
-                temp2 = (Dx_m2*norms2)**2 + (Dy_m2*norms2)**2 + (Dz_m2*norms2)**2
-                term1 = temp1.dot(temp2)
-
-                temp1 = Dx_m1*Dx_m2*norms + Dy_m1*Dy_m2*norms + Dz_m1*Dz_m2*norms
-                term2 = (np.linalg.norm(temp1))**2
-                result = term1 - term2
 
         return 0.5*result
 
