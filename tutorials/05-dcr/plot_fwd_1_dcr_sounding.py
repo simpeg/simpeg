@@ -153,7 +153,7 @@ plt.show()
 if save_file:
 
     dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-    dir_path.extend(["tutorials", "assets", "dcr1d"])
+    dir_path.extend(["tutorials", "05-dcr", "dcr1d"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
     noise = 0.025 * dpred * np.random.rand(len(dpred))

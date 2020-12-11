@@ -3,7 +3,6 @@ import properties
 from ....utils.code_utils import deprecate_class
 
 from .... import props
-from ....data import Data
 from ....utils import sdiag
 
 from ..resistivity.fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
@@ -11,7 +10,6 @@ from ..resistivity.fields_2d import Fields2D, Fields2DCellCentered, Fields2DNoda
 from ..resistivity.simulation_2d import BaseDCSimulation2D
 from ..resistivity import Simulation2DCellCentered as BaseSimulation2DCellCentered
 from ..resistivity import Simulation2DNodal as BaseSimulation2DNodal
-from ..resistivity import Survey
 
 
 class BaseIPSimulation2D(BaseDCSimulation2D):
@@ -33,6 +31,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
     _f = None
     sign = None
     _pred = None
+    _dc_data_set = False
 
     def fields(self, m):
         if self.verbose:
@@ -41,26 +40,19 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
             # re-uses the DC simulation's fields method
             self._f = super().fields(None)
 
-            if self.verbose is True:
-                print(">> Data type is apparaent chargeability")
-
-            # call dpred function in 2D DC simulation
-            # set data type as volt ... for DC simulation
-            data_types = []
+        if not self._dc_data_set:
+            # loop through receievers to check if they need to set the _dc_voltage
             for src in self.survey.source_list:
                 for rx in src.receiver_list:
-                    data_types.append(rx.data_type)
-                    rx.data_type = "volt"
-
-            dc_voltage = super().dpred(m=[], f=self._f)
-            dc_data = Data(self.survey, dc_voltage)
-            icount = 0
-            for src in self.survey.source_list:
-                for rx in src.receiver_list:
-                    rx.data_type = data_types[icount]
-                    rx._dc_voltage = dc_data[src, rx]
-                    rx._Ps = {}
-                    icount += 1
+                    if (
+                        rx.data_type == "apparent_chargeability"
+                        and rx._dc_voltage is None
+                    ):
+                        rx.data_type = "volt"  # make the rx evaluate a voltage
+                        rx._dc_voltage = rx.eval(src, self.mesh, self._f)
+                        rx.data_type = "apparent_chargeability"
+                        rx._Ps = {}
+            self._dc_data_set = True  # avoid loop through after first call
 
         self._pred = self.forward(m, f=self._f)
 
@@ -168,7 +160,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
             rho = self.rho
             drho_dlogrho = sdiag(rho) * self.etaDeriv
             if adjoint:
-                return drho_dlogrho.T * (sdia(u * vol * (-1.0 / rho ** 2)) * v)
+                return drho_dlogrho.T * (sdiag(u * vol * (-1.0 / rho ** 2)) * v)
             else:
                 return sdiag(u * vol * (-1.0 / rho ** 2)) * (drho_dlogrho * v)
 
@@ -216,7 +208,7 @@ class Simulation2DCellCentered(BaseIPSimulation2D, BaseSimulation2DCellCentered)
     sign = 1.0
 
     def __init__(self, mesh, **kwargs):
-        BaseIPSimulation2D.__init__(self, mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
     def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:
@@ -274,7 +266,7 @@ class Simulation2DNodal(BaseIPSimulation2D, BaseSimulation2DNodal):
     sign = -1.0
 
     def __init__(self, mesh, **kwargs):
-        BaseIPSimulation2D.__init__(self, mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
     def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:
