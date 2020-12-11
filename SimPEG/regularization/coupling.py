@@ -123,51 +123,60 @@ class CrossGradient(BaseCoupling):
 
         return models
 
+
     def calculate_gradient(self, model, normalize=False):
         '''
         Calculate the spatial gradients of the model using central difference.
 
+        Concatenates gradient components into a single array.
+        [[x_grad1, y_grad1, z_grad1],
+         [x_grad2, y_grad2, z_grad2],
+         [x_grad3, y_grad3, z_grad3],...]
+
         :param numpy.ndarray model: model
 
-        :rtype: tuple of numpy.ndarray
-        :return: (x-gradient, y-gradient) if 2D
-                 (x-gradient, y-gradient, z-gradient) if 3D
+        :rtype: numpy.ndarray
+        :return: gradient_vector: array where each row represents a model cell,
+                 and each column represents a component of the gradient.
+
         '''
 
         if self.regmesh.mesh.dim == 2:
             x_grad = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx.dot(model))
             y_grad = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy.dot(model))
 
-            return x_grad, y_grad
+            return np.column_stack((x_grad, y_grad))
 
         elif self.regmesh.mesh.dim == 3:
             x_grad = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx.dot(model))
             y_grad = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy.dot(model))
             z_grad = self.regmesh.aveFz2CC.dot(self.regmesh.cellDiffz.dot(model))
 
-            return x_grad, y_grad, z_grad
+            return np.column_stack((x_grad, y_grad, z_grad))
 
-    def gradient_list(self, x_grad, y_grad, z_grad=np.array([])):
-        '''
-        Concatenates gradient components into a single array.
-        [[x_grad1, y_grad1, z_grad1],
-         [x_grad2, y_grad2, z_grad2],
-         [x_grad3, y_grad3, z_grad3],...]
 
-        :param numpy.ndarray x_grad: x-gradients
-        :param numpy.ndarray y_grad: y-gradients
-        :param numpy.ndarray z_grad: z-gradients
 
-        :rtype: numpy.ndarray
-        :return: gradient_vector: array where each row represents a model cell,
-                 and each column represents a component of the gradient.
-        '''
-        if z_grad.size == 0:
-            gradient_vector = np.c_[x_grad, y_grad]
-        else:
-            gradient_vector = np.c_[x_grad, y_grad, z_grad]
 
-        return gradient_vector
+    # def gradient_list(self, x_grad, y_grad, z_grad=np.array([])):
+        # '''
+        # :param numpy.ndarray x_grad: x-gradients
+        # :param numpy.ndarray y_grad: y-gradients
+        # :param numpy.ndarray z_grad: z-gradients
+        #
+        # :rtype: numpy.ndarray
+        # :return: gradient_vector: array where each row represents a model cell,
+        #          and each column represents a component of the gradient.
+        # '''
+        # if z_grad.size == 0:
+        #     gradient_vector = np.c_[x_grad, y_grad]
+        # else:
+        #     gradient_vector = np.c_[x_grad, y_grad, z_grad]
+
+        # return gradient_vector
+
+
+
+
 
 
     def gradient_applitude_inv(self, m1, m2, fltr=True, fltr_per=0.05):
