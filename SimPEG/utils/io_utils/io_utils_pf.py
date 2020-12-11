@@ -314,25 +314,27 @@ def write_gg3d_ubc(filename, data_object):
 
     components = ",".join(components)
 
-    data = survey.source_field.receiver_list[0].locations
-    n_loc = np.shape(data)[0]
+    output = survey.source_field.receiver_list[0].locations
+    n_loc = np.shape(output)[0]
+
+    if np.any(data_object.dobs != 0):
+        dobs = data_object.dobs.reshape((n_loc, n_comp)) * factor
+        output = np.c_[output, dobs]
 
     if np.any(data_object.standard_deviation != 0):
-        for ii in range(0, n_comp):
-            data = np.c_[
-                data,
-                factor[ii] * data_object.dobs[ii::n_comp],
-                data_object.standard_deviation[ii::n_comp],
-            ]
-
-    elif np.any(data_object.dobs != 0):
-        for ii in range(0, n_comp):
-            data = np.c_[data, factor[ii] * data_object.dobs[ii::n_comp]]
+        std = data_object.standard_deviation.reshape((n_loc, n_comp))
+        output = np.c_[output, std]
 
     head = ("datacomp=%s\n" % components) + ("%i" % n_loc)
 
     np.savetxt(
-        filename, data, fmt="%e", delimiter=" ", newline="\n", header=head, comments=""
+        filename,
+        output,
+        fmt="%e",
+        delimiter=" ",
+        newline="\n",
+        header=head,
+        comments="",
     )
 
     print("Observation file saved to: " + filename)
