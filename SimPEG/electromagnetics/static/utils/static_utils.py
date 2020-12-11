@@ -319,9 +319,8 @@ def plot_pseudosection(
     data_locations=False,
     dobs=None,
     dim=2,
-    pcolorOpts=None,
-    data_location=None,
     y_values="n-spacing",
+    **kwargs,
 ):
     """
         Read list of 2D tx-rx location and plot a pseudo-section of apparent
@@ -345,21 +344,23 @@ def plot_pseudosection(
     """
     import pylab as plt
 
-    if pcolorOpts is not None:
+    if "pcolorOpts" in kwargs:
         warnings.warn(
             "The pcolorOpts keyword has been deprecated. Please use "
             "pcolor_opts instead. This will be removed in version"
             " 0.15.0 of SimPEG",
             DeprecationWarning,
         )
+        pcolor_opts = kwargs.pop("pcolorOpts")
 
-    if data_location is not None:
+    if "data_location" in kwargs:
         warnings.warn(
             "The data_location keyword has been deprecated. Please use "
             "data_locations instead. This will be removed in version"
             " 0.15.0 of SimPEG",
             DeprecationWarning,
         )
+        data_locations = kwargs.pop("data_location")
 
     if plot_type.lower() not in ["pcolor", "contourf"]:
         raise ValueError(
@@ -482,7 +483,7 @@ def plot_pseudosection(
     cbar.ax.tick_params()
 
     # Plot apparent resistivity
-    if data_location:
+    if data_locations:
         ax.plot(midx, midz, "k.", ms=1, alpha=0.4)
 
     if sameratio:
@@ -2191,7 +2192,7 @@ def plot_pseudoSection(
         clim=clim,
         scale=scale,
         sameratio=sameratio,
-        pcolorOpts=pcolorOpts,
+        pcolor_opts=pcolorOpts,
         data_locations=data_location,
         dobs=dobs,
         dim=dim,
