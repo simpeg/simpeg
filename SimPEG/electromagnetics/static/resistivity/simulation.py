@@ -8,10 +8,8 @@ from ....data import Data
 from ...base import BaseEMSimulation
 from .boundary_utils import getxBCyBC_CC
 from .survey import Survey
-from .sources import Pole, Dipole
 from .fields import Fields3DCellCentered, Fields3DNodal
-from .utils import _mini_pole_pole, gettopoCC
-from discretize import TensorMesh
+from .utils import _mini_pole_pole
 
 
 class BaseDCSimulation(BaseEMSimulation):
@@ -218,10 +216,8 @@ class BaseDCSimulation(BaseEMSimulation):
 
         q = np.zeros((n, len(Srcs)), order="F")
 
-        # Interpolate source to centers/nodes
         for i, source in enumerate(Srcs):
             q[:, i] = source.eval(self)
-
         return q
 
     @property

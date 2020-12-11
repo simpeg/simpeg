@@ -3,7 +3,6 @@ import properties
 from ....utils.code_utils import deprecate_class
 
 from .... import props
-from ....data import Data
 from ....utils import sdiag
 
 from ..resistivity.fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
@@ -11,7 +10,6 @@ from ..resistivity.fields_2d import Fields2D, Fields2DCellCentered, Fields2DNoda
 from ..resistivity.simulation_2d import BaseDCSimulation2D
 from ..resistivity import Simulation2DCellCentered as BaseSimulation2DCellCentered
 from ..resistivity import Simulation2DNodal as BaseSimulation2DNodal
-from ..resistivity import Survey
 
 
 class BaseIPSimulation2D(BaseDCSimulation2D):
@@ -162,7 +160,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
             rho = self.rho
             drho_dlogrho = sdiag(rho) * self.etaDeriv
             if adjoint:
-                return drho_dlogrho.T * (sdia(u * vol * (-1.0 / rho ** 2)) * v)
+                return drho_dlogrho.T * (sdiag(u * vol * (-1.0 / rho ** 2)) * v)
             else:
                 return sdiag(u * vol * (-1.0 / rho ** 2)) * (drho_dlogrho * v)
 
@@ -210,7 +208,7 @@ class Simulation2DCellCentered(BaseIPSimulation2D, BaseSimulation2DCellCentered)
     sign = 1.0
 
     def __init__(self, mesh, **kwargs):
-        BaseIPSimulation2D.__init__(self, mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
     def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:
@@ -268,7 +266,7 @@ class Simulation2DNodal(BaseIPSimulation2D, BaseSimulation2DNodal):
     sign = -1.0
 
     def __init__(self, mesh, **kwargs):
-        BaseIPSimulation2D.__init__(self, mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
     def delete_these_for_sensitivity(self, sigma=None, rho=None):
         if self._Jmatrix is not None:

@@ -4,7 +4,6 @@ import properties
 from .... import survey
 from ....utils import Zero, closestPoints
 from ....utils.code_utils import deprecate_property
-from discretize import TensorMesh, TreeMesh
 
 import warnings
 
@@ -131,6 +130,7 @@ class Dipole(BaseSrc):
                 self._q = self.current * (qa + qb)
             return self._q
 
+
 class Pole(BaseSrc):
     def __init__(self, receiver_list=[], location=None, **kwargs):
         super(Pole, self).__init__(receiver_list, location=location, **kwargs)
@@ -147,4 +147,3 @@ class Pole(BaseSrc):
                 q = sim.mesh.getInterpolationMat(self.location, locType="N")
                 self._q = self.current * q.toarray()
             return self._q
-

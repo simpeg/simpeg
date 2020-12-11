@@ -190,33 +190,30 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
     """
     Compute constants defining a plane from a set of points.
 
-    # The equation defining a plane has the form ax+by+cz+d=0.
-    # This utility returns the constants a, b, c and d.
-    
-    # Input:
-    # xyz1 : numpy.ndarray
-    #     First point needed to define the plane (x1, y1, z1)
-    # xyz2 : numpy.ndarray
-    #     Second point needed to define the plane (x2, y2, z2)
-    # xyz3 : numpy.ndarray
-    #     Third point needed to define the plane (x3, y3, z3)
+    The equation defining a plane has the form ax+by+cz+d=0.
+    This utility returns the constants a, b, c and d.
 
-    # Output:
-    # a : float
-    # b : float
-    # c : float
-    # d : float
+    Parameters
+    ----------
+    xyz1 : numpy.ndarray
+        First point needed to define the plane (x1, y1, z1)
+    xyz2 : numpy.ndarray
+        Second point needed to define the plane (x2, y2, z2)
+    xyz3 : numpy.ndarray
+        Third point needed to define the plane (x3, y3, z3)
+
+    Returns
+    -------
+    a : float
+    b : float
+    c : float
+    d : float
 
     """
-    v12 = (xyz2-xyz1)/np.sqrt(np.sum((xyz2-xyz1)**2, axis=0))
-    v13 = (xyz3-xyz1)/np.sqrt(np.sum((xyz3-xyz1)**2, axis=0))
+    v12 = (xyz2 - xyz1) / np.sqrt(np.sum((xyz2 - xyz1) ** 2, axis=0))
+    v13 = (xyz3 - xyz1) / np.sqrt(np.sum((xyz3 - xyz1) ** 2, axis=0))
 
     a, b, c = np.cross(v12, v13)
-    d = - (a*xyz1[0] + b*xyz1[1] + c*xyz1[2])
+    d = -(a * xyz1[0] + b * xyz1[1] + c * xyz1[2])
 
     return a, b, c, d
-
-
-
-
-

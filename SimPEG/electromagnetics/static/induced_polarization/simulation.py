@@ -1,21 +1,15 @@
 import numpy as np
-import scipy as sp
 import properties
-from discretize import TensorMesh
 from ....utils.code_utils import deprecate_class
 
 from .... import props
 from ....data import Data
 from ....utils import mkvc, sdiag
 from ...base import BaseEMSimulation
-from ..utils import gettopoCC
 
 from ..resistivity.fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from ..resistivity import Simulation3DCellCentered as BaseSimulation3DCellCentered
 from ..resistivity import Simulation3DNodal as BaseSimulation3DNodal
-
-from ..resistivity.survey import Survey
-from ..resistivity.sources import Pole, Dipole
 
 
 class BaseIPSimulation(BaseEMSimulation):
