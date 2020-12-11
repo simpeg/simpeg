@@ -366,6 +366,9 @@ class CrossGradient(BaseCoupling):
 
         return 0.5*result
 
+
+
+
     def deriv(self, model):
         '''
         Computes the Jacobian of the cross-gradient.
@@ -420,9 +423,10 @@ class CrossGradient(BaseCoupling):
 
         return result
 
-    def hessian_offdiag(self, D, grad1, grad2):
+
+    def hessian_offdiag(self, D, grad1, grad2, v=None):
         '''
-        Computes the off-diagonals blocks of the Hessian of corss-gradient.
+        Computes the off-diagonals blocks of the Hessian of cross-gradient.
 
         :param tuple of scipy.sparse.csr_matrix D: (Dx, Dy, Dz) in 3D
                                                    (Dx, Dy) in 2D
@@ -446,8 +450,14 @@ class CrossGradient(BaseCoupling):
                     D_result -= D[i].T.dot(utils.sdiag(grad1[j]*grad2[j])).dot(D[i])
                     D_result -= D[j].T.dot(utils.sdiag(grad1[j]*grad2[i])).dot(D[i])
 
-        D_result = sp.csr_matrix(D_result)
+        if v is not None:
+            D_result = D_result.dot(v)
+
+        else:
+            D_result = sp.csr_matrix(D_result)
+
         return D_result
+
 
     def deriv2(self, model, v=None):
         '''
