@@ -251,28 +251,22 @@ def read_gg3d_ubc(obs_file):
         line = fid.readline()
         ndat = int(line.split()[0])
 
-        # Pre-allocate space for obsx, obsy, obsz, data, uncert
-        line = fid.readline()
-
         locXYZ = np.zeros((ndat, 3), dtype=float)
         d = []
         wd = []
-        # d = np.zeros((ndat, len(components)), dtype=float)
-        # wd = np.zeros((ndat, len(components)), dtype=float)
 
         ii = 0
         while ii < ndat:
             try:
+                line = fid.readline()
                 temp = np.array(line.split(), dtype=float)
                 locXYZ[ii, :] = temp[:3]
                 if len(temp) == 3 + n_comp:
                     d.append(factor * temp[3:])
                 elif len(temp) == 3 + n_comp * 2:
-                    d.append(factor * temp[3::2])
-                    wd.append(temp[4::2])
-
+                    d.append(factor * temp[3 : 3 + n_comp])
+                    wd.append(temp[3 + n_comp :])
                 ii += 1
-                line = fid.readline()
             except:
                 raise IOError(f"Unable to read data line {ii}: {line}")
 
