@@ -76,6 +76,9 @@ class BaseCoupling(BaseRegularization):
 
 
 class CrossGradient(BaseCoupling):
+
+    norm_tol = 1e-10
+
     '''
     The cross-gradient constraint for joint inversions.
 
@@ -142,19 +145,27 @@ class CrossGradient(BaseCoupling):
         '''
 
         if self.regmesh.mesh.dim == 2:
+
             x_grad = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx.dot(model))
             y_grad = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy.dot(model))
+            grad_list = np.column_stack((x_grad, y_grad))
 
-            return np.column_stack((x_grad, y_grad))
 
         elif self.regmesh.mesh.dim == 3:
+
             x_grad = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx.dot(model))
             y_grad = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy.dot(model))
             z_grad = self.regmesh.aveFz2CC.dot(self.regmesh.cellDiffz.dot(model))
+            grad_list = np.column_stack((x_grad, y_grad, z_grad))
 
-            return np.column_stack((x_grad, y_grad, z_grad))
+
+        if normalize:
+            norms = np.linalg.norm(grad_list, axis=-1)
+            norms[norms<self.norm_tol] = 1.0
+            grad_list = grad_list/norms[:, None]
 
 
+        return grad_list
 
 
     # def gradient_list(self, x_grad, y_grad, z_grad=np.array([])):
@@ -203,18 +214,18 @@ class CrossGradient(BaseCoupling):
 
             norms_1 = np.linalg.norm(grad_m1, axis=-1)
             # compute (1 / applitude of gradients) and background when norms < 1e-10
-            norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>1e-10)
+            norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>self.norm_tol)
             norms_2 = np.linalg.norm(grad_m2, axis=-1)
-            norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>1e-10)
+            norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>self.norm_tol)
 
         elif self.regmesh.mesh.dim == 3:
             grad_m1 = self.calculate_gradient(m1)
             grad_m2 = self.calculate_gradient(m2)
 
             norms_1 = np.linalg.norm(grad_m1, axis=-1)
-            norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>1e-10)
+            norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>self.norm_tol)
             norms_2 = np.linalg.norm(grad_m2, axis=-1)
-            norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>1e-10)
+            norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>self.norm_tol)
 
         # set lowest 5% of norms (largest 5% of 1/norms) to 0.0
         if fltr > 0.0:
@@ -231,29 +242,31 @@ class CrossGradient(BaseCoupling):
 
 
 
-    def normalized_gradients(self,grad_list):
-        '''
-        Normalizes the spatial gradients of a model.
+    # def normalized_gradients(self,grad_list):
+    #     '''
+    #     Normalizes the spatial gradients of a model.
+    #
+    #     :param numpy.ndarray grad_list: array where each row represents a model cell,
+    #                                     and each column represents a component of the gradient.
+    #
+    #     :rtype: numpy.ndarray
+    #     :return: norm_gradient: array where the gradients have been normalized by their norms.
+    #              Each row represents a model cell, and each column represents the normalized
+    #              component of the gradient.
+    #
+    #     '''
+    #     elems = grad_list.shape[0]
+    #     norm_gradients = np.zeros_like(grad_list)
+    #     for i in range(elems):
+    #         gradient = grad_list[i]
+    #         norm = np.linalg.norm(gradient)
+    #         if norm<1e-10:
+    #             continue
+    #         else:
+    #             norm_gradients[i] = gradient / norm
+    #     return norm_gradients
 
-        :param numpy.ndarray grad_list: array where each row represents a model cell,
-                                        and each column represents a component of the gradient.
 
-        :rtype: numpy.ndarray
-        :return: norm_gradient: array where the gradients have been normalized by their norms.
-                 Each row represents a model cell, and each column represents the normalized
-                 component of the gradient.
-
-        '''
-        elems = grad_list.shape[0]
-        norm_gradients = np.zeros_like(grad_list)
-        for i in range(elems):
-            gradient = grad_list[i]
-            norm = np.linalg.norm(gradient)
-            if norm<1e-10:
-                continue
-            else:
-                norm_gradients[i] = gradient / norm
-        return norm_gradients
 
     def calculate_cross_gradient(self, m1, m2, normalized=False):
         '''
@@ -271,41 +284,19 @@ class CrossGradient(BaseCoupling):
         m1, m2 = self.models([m1,m2])
 
         # Compute the gradients and concatenate components.
-        if self.regmesh.mesh.dim == 2:
-            Dx_m1, Dy_m1 = self.calculate_gradient(m1)
-            Dx_m2, Dy_m2 = self.calculate_gradient(m2)
+        grad_m1 = self.calculate_gradient(m1, normalize=normalized)
+        grad_m2 = self.calculate_gradient(m2, normalize=normalized)
 
-            grad_list_1 = self.gradient_list(Dx_m1, Dy_m1)
-            grad_list_2 = self.gradient_list(Dx_m2, Dy_m2)
-
-            if normalized:
-                grad_list_1 = self.normalized_gradients(grad_list_1)
-                grad_list_2 = self.normalized_gradients(grad_list_2)
-
-        elif self.regmesh.mesh.dim == 3:
-            Dx_m1, Dy_m1, Dz_m1 = self.calculate_gradient(m1)
-            Dx_m2, Dy_m2, Dz_m2 = self.calculate_gradient(m2)
-
-            grad_list_1 = self.gradient_list(Dx_m1, Dy_m1, Dz_m1)
-            grad_list_2 = self.gradient_list(Dx_m2, Dy_m2, Dz_m2)
-
-            if normalized:
-                grad_list_1 = self.normalized_gradients(grad_list_1)
-                grad_list_2 = self.normalized_gradients(grad_list_2)
-
-        cross_prod_list = []
-        num_cells = len(m1)
         # for each model cell, compute the cross product of the gradient vectors.
-        for x in range(num_cells):
-            if self.regmesh.mesh.dim == 3:
-                cross_prod_vector = np.cross(grad_list_1[x],grad_list_2[x])
-                cross_prod = np.linalg.norm(cross_prod_vector)
-            else:
-                cross_prod = np.cross(grad_list_1[x],grad_list_2[x])
-            cross_prod_list.append(cross_prod)
-        cross_prod = np.array(cross_prod_list)
+        if self.regmesh.mesh.dim == 3:
+            cross_prod_vector = np.cross(grad_m1, grad_m2)
+            cross_prod = np.linalg.norm(cross_prod_vector, axis=-1)
+        else:
+            cross_prod = np.cross(grad_m1, grad_m2)
 
         return cross_prod
+
+
 
     def __call__(self, model, normalized=False):
         '''
