@@ -94,7 +94,15 @@ class CrossGradient(BaseCoupling):
         self.as_super.__init__(mesh, indActive, mapping, **kwargs)
         self.map1, self.map2 = mapping.maps # Assume a map has been passed for each model.
 
-        assert mesh.dim in (2,3), 'Cross-Gradient is only defined for 2D or 3D'
+        regmesh = self.regmesh
+        self._Dx = regmesh.aveFx2CC @ regmesh.cellDiffx
+        self._Dy = regmesh.aveFy2CC @ regmesh.cellDiffy
+        if regmesh.mesh.dim == 3:
+            self._Dz = regmesh.aveFz2CC @ regmesh.cellDiffz
+
+        self._dim = regmesh.mesh.dim
+        assert self._dim in (2,3), 'Cross-Gradient is only defined for 2D or 3D'
+
 
     def models(self, ind_models):
         '''
@@ -144,128 +152,26 @@ class CrossGradient(BaseCoupling):
 
         '''
 
-        if self.regmesh.mesh.dim == 2:
+        if self._dim == 2:
 
-            x_grad = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx.dot(model))
-            y_grad = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy.dot(model))
+            x_grad = self._Dx.dot(model)
+            y_grad = self._Dy.dot(model)
             grad_list = np.column_stack((x_grad, y_grad))
 
+        elif self._dim == 3:
 
-        elif self.regmesh.mesh.dim == 3:
-
-            x_grad = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx.dot(model))
-            y_grad = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy.dot(model))
-            z_grad = self.regmesh.aveFz2CC.dot(self.regmesh.cellDiffz.dot(model))
+            x_grad = self._Dx.dot(model)
+            y_grad = self._Dy.dot(model)
+            z_grad = self._Dz.dot(model)
             grad_list = np.column_stack((x_grad, y_grad, z_grad))
-
 
         if normalize:
             norms = np.linalg.norm(grad_list, axis=-1)
-            norms[norms<self.grad_tol] = 1.0
+            norms[norms<self.grad_tol] = 1.0 # avoid exteremly large values of 1/norms
             grad_list = grad_list/norms[:, None]
 
 
         return grad_list
-
-
-    # def gradient_list(self, x_grad, y_grad, z_grad=np.array([])):
-        # '''
-        # :param numpy.ndarray x_grad: x-gradients
-        # :param numpy.ndarray y_grad: y-gradients
-        # :param numpy.ndarray z_grad: z-gradients
-        #
-        # :rtype: numpy.ndarray
-        # :return: gradient_vector: array where each row represents a model cell,
-        #          and each column represents a component of the gradient.
-        # '''
-        # if z_grad.size == 0:
-        #     gradient_vector = np.c_[x_grad, y_grad]
-        # else:
-        #     gradient_vector = np.c_[x_grad, y_grad, z_grad]
-
-        # return gradient_vector
-
-
-
-
-
-    def gradient_amplitude_inv(self, m1, m2, fltr=True, fltr_per=0.05):
-        '''
-        Computes the norms of the gradients for two models.
-
-        :param numpy.ndarray m1: model1
-        :param numpy.ndarray m2: model2
-        :param bool reduced_space: if True, return only norms of active cells.
-        :param bool fltr: if True, filter out predefined percentage of lowest norms.
-        :param float fltr_per: Percentage of lowest norms to be filtered out.
-                               Default is 0.05
-
-        :rtype tuple of numpy.ndarray
-        :return (norms_1, norms_2, tot_norms)
-                norms_1: np.array containing reciprocals of the gradient norms for model1
-                norms_2: np.array containing reciprocals of the gradient norms for model2
-                tot_norms: np.array containing element-wise product of norms_1 and norms_2.
-        '''
-        per = int(fltr_per*self.regmesh.nC)
-
-        if self.regmesh.mesh.dim == 2:
-            grad_m1 = self.calculate_gradient(m1, normalize=False)
-            grad_m2 = self.calculate_gradient(m2, normalize=False)
-
-            norms_1 = np.linalg.norm(grad_m1, axis=-1)
-            # compute (1 / applitude of gradients) and background when norms < 1e-10
-            norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>self.grad_tol)
-            norms_2 = np.linalg.norm(grad_m2, axis=-1)
-            norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>self.grad_tol)
-
-        elif self.regmesh.mesh.dim == 3:
-            grad_m1 = self.calculate_gradient(m1, normalize=False)
-            grad_m2 = self.calculate_gradient(m2, normalize=False)
-
-            norms_1 = np.linalg.norm(grad_m1, axis=-1)
-            norms_1 = np.divide(1, norms_1, out=np.zeros_like(norms_1), where=norms_1>self.grad_tol)
-            norms_2 = np.linalg.norm(grad_m2, axis=-1)
-            norms_2 = np.divide(1, norms_2, out=np.zeros_like(norms_2), where=norms_2>self.grad_tol)
-
-        # set lowest 5% of norms (largest 5% of 1/norms) to 0.0
-        if fltr > 0.0:
-
-            inds1 = np.argpartition(norms_1, -per)[-per:]
-            norms_1[inds1] = 0.0
-            inds2 = np.argpartition(norms_2, -per)[-per:]
-            norms_2[inds2] = 0.0
-
-        tot_norms = norms_1*norms_2
-
-        return (norms_1, norms_2, tot_norms)
-
-
-
-
-    # def normalized_gradients(self,grad_list):
-    #     '''
-    #     Normalizes the spatial gradients of a model.
-    #
-    #     :param numpy.ndarray grad_list: array where each row represents a model cell,
-    #                                     and each column represents a component of the gradient.
-    #
-    #     :rtype: numpy.ndarray
-    #     :return: norm_gradient: array where the gradients have been normalized by their norms.
-    #              Each row represents a model cell, and each column represents the normalized
-    #              component of the gradient.
-    #
-    #     '''
-    #     elems = grad_list.shape[0]
-    #     norm_gradients = np.zeros_like(grad_list)
-    #     for i in range(elems):
-    #         gradient = grad_list[i]
-    #         norm = np.linalg.norm(gradient)
-    #         if norm<1e-10:
-    #             continue
-    #         else:
-    #             norm_gradients[i] = gradient / norm
-    #     return norm_gradients
-
 
 
     def calculate_cross_gradient(self, m1, m2, normalized=False):
@@ -288,7 +194,7 @@ class CrossGradient(BaseCoupling):
         grad_m2 = self.calculate_gradient(m2, normalize=normalized)
 
         # for each model cell, compute the cross product of the gradient vectors.
-        if self.regmesh.mesh.dim == 3:
+        if self._dim == 3:
             cross_prod_vector = np.cross(grad_m1, grad_m2)
             cross_prod = np.linalg.norm(cross_prod_vector, axis=-1)
         else:
@@ -327,45 +233,20 @@ class CrossGradient(BaseCoupling):
         m2 = self.map2*model
         m1, m2 = self.models([m1,m2])
 
-        # Dx_m1, Dy_m1 = self.calculate_gradient(m1)
-        # Dx_m2, Dy_m2 = self.calculate_gradient(m2)
         grad_m1 = self.calculate_gradient(m1, normalize=normalized)
         grad_m2 = self.calculate_gradient(m2, normalize=normalized)
 
-        # temp1 = Dx_m1**2 + Dy_m1**2
-        # temp2 = Dx_m2**2 + Dy_m2**2
-        # term1 = temp1.dot(temp2)
         term1 = np.dot(
             np.linalg.norm(grad_m1, axis=-1)**2,
             np.linalg.norm(grad_m2, axis=-1)**2,
             )
 
-        # temp1 = Dx_m1*Dx_m2 + Dy_m1*Dy_m2
-        # term2 = (np.linalg.norm(temp1))**2
-        temp1 = np.sum(
-            np.multiply(grad_m1, grad_m2),
-            axis=-1,
-            )
+        temp1 = np.sum(grad_m1*grad_m2, axis=-1)
         term2 = np.linalg.norm(temp1, axis=-1)**2
 
         result = term1 - term2
 
-        ################################
-        # may not need this part, not sure need to double check
-        ################################
-        # if normalized:
-        #     norms1, norms2, norms = self.gradient_applitude_inv(m1, m2, fltr=False)
-        #     temp1 = (Dx_m1*norms1)**2 + (Dy_m1*norms1)**2
-        #     temp2 = (Dx_m2*norms2)**2 + (Dy_m2*norms2)**2
-        #     term1 = temp1.dot(temp2)
-        #
-        #     temp1 = Dx_m1*Dx_m2*norms + Dy_m1*Dy_m2*norms
-        #     term2 = (np.linalg.norm(temp1))**2
-        #     result = term1 - term2
-
-
         return 0.5*result
-
 
 
 
@@ -387,38 +268,32 @@ class CrossGradient(BaseCoupling):
         m2 = self.map2*model
         m1, m2 = self.models([m1,m2])
 
-        if self.regmesh.mesh.dim == 2:
-            Dx = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx)
-            Dy = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy)
-
+        if self._dim == 2:
             # common terms for dc_dm1
-            Dx_m1, Dy_m1 = Dx.dot(m1), Dy.dot(m1)
-            Dx_m2, Dy_m2 = Dx.dot(m2), Dy.dot(m2)
+            Dx_m1, Dy_m1 = self._Dx.dot(m1), self._Dy.dot(m1)
+            Dx_m2, Dy_m2 = self._Dx.dot(m2), self._Dy.dot(m2)
             v1 = Dx_m2**2 + Dy_m2**2
             v2 = Dx_m1**2 + Dy_m1**2
             w = Dx_m1*Dx_m2 + Dy_m1*Dy_m2
 
-            dc_dm1 = (Dx.T.dot(Dx_m1*v1) + Dy.T.dot(Dy_m1*v1) -
-                      Dx.T.dot(Dx_m2*w) - Dy.T.dot(Dy_m2*w))
-            dc_dm2 = (Dx.T.dot(Dx_m2*v2) + Dy.T.dot(Dy_m2*v2) -
-                     Dx.T.dot(Dx_m1*w) - Dy.T.dot(Dy_m1*w))
+            dc_dm1 = (self._Dx.T.dot(Dx_m1*v1) + self._Dy.T.dot(Dy_m1*v1) -
+                      self._Dx.T.dot(Dx_m2*w) - self._Dy.T.dot(Dy_m2*w))
+            dc_dm2 = (self._Dx.T.dot(Dx_m2*v2) + self._Dy.T.dot(Dy_m2*v2) -
+                     self._Dx.T.dot(Dx_m1*w) - self._Dy.T.dot(Dy_m1*w))
             result = np.concatenate((dc_dm1,dc_dm2))
-        elif self.regmesh.mesh.dim == 3:
-            Dx = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx)
-            Dy = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy)
-            Dz = self.regmesh.aveFz2CC.dot(self.regmesh.cellDiffz)
 
+        elif self._dim == 3:
             # common terms for dc_dm1
-            Dx_m1, Dy_m1, Dz_m1 = Dx.dot(m1), Dy.dot(m1), Dz.dot(m1)
-            Dx_m2, Dy_m2, Dz_m2 = Dx.dot(m2), Dy.dot(m2), Dz.dot(m2)
+            Dx_m1, Dy_m1, Dz_m1 = self._Dx.dot(m1), self._Dy.dot(m1), self._Dz.dot(m1)
+            Dx_m2, Dy_m2, Dz_m2 = self._Dx.dot(m2), self._Dy.dot(m2), self._Dz.dot(m2)
             v1 = Dx_m2**2 + Dy_m2**2 + Dz_m2**2
             v2 = Dx_m1**2 + Dy_m1**2 + Dz_m1**2
             w = Dx_m1*Dx_m2 + Dy_m1*Dy_m2 + Dz_m1*Dz_m2
 
-            dc_dm1 = (Dx.T.dot(Dx_m1*v1) + Dy.T.dot(Dy_m1*v1) + Dz.T.dot(Dz_m1*v1) -
-                      Dx.T.dot(Dx_m2*w) - Dy.T.dot(Dy_m2*w) - Dz.T.dot(Dz_m2*w))
-            dc_dm2 = (Dx.T.dot(Dx_m2*v2) + Dy.T.dot(Dy_m2*v2) + Dz.T.dot(Dz_m2*v2) -
-                      Dx.T.dot(Dx_m1*w) - Dy.T.dot(Dy_m1*w) - Dz.T.dot(Dz_m1*w))
+            dc_dm1 = (self._Dx.T.dot(Dx_m1*v1) + self._Dy.T.dot(Dy_m1*v1) + self._Dz.T.dot(Dz_m1*v1) -
+                      self._Dx.T.dot(Dx_m2*w) - self._Dy.T.dot(Dy_m2*w) - self._Dz.T.dot(Dz_m2*w))
+            dc_dm2 = (self._Dx.T.dot(Dx_m2*v2) + self._Dy.T.dot(Dy_m2*v2) + self._Dz.T.dot(Dz_m2*v2) -
+                      self._Dx.T.dot(Dx_m1*w) - self._Dy.T.dot(Dy_m1*w) - self._Dz.T.dot(Dz_m1*w))
             result = np.concatenate((dc_dm1,dc_dm2))
 
         return result
@@ -488,45 +363,40 @@ class CrossGradient(BaseCoupling):
 
         func1 = self.hessian_offdiag
 
-        if self.regmesh.mesh.dim == 2:
-            Dx = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx)
-            Dy = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy)
+        if self._dim == 2:
             # define common terms
-            Dx_m1, Dy_m1 = Dx.dot(m1), Dy.dot(m1)
-            Dx_m2, Dy_m2 = Dx.dot(m2), Dy.dot(m2)
+            Dx_m1, Dy_m1 = self._Dx.dot(m1), self._Dy.dot(m1)
+            Dx_m2, Dy_m2 = self._Dx.dot(m2), self._Dy.dot(m2)
             a = Dx_m2**2 + Dy_m2**2
             b = Dx_m1**2 + Dy_m1**2
-            A = Dx.T.dot(utils.sdiag(Dx_m2)) + Dy.T.dot(utils.sdiag(Dy_m2))
-            B = Dx.T.dot(utils.sdiag(Dx_m1)) + Dy.T.dot(utils.sdiag(Dy_m1))
+            A = self._Dx.T.dot(utils.sdiag(Dx_m2)) + self._Dy.T.dot(utils.sdiag(Dy_m2))
+            B = self._Dx.T.dot(utils.sdiag(Dx_m1)) + self._Dy.T.dot(utils.sdiag(Dy_m1))
 
-            d2c_dm1 = (Dx.T.dot(utils.sdiag(a)).dot(Dx) +
-                       Dy.T.dot(utils.sdiag(a)).dot(Dy) - A.dot(A.T))
-            d2c_dm2 = (Dx.T.dot(utils.sdiag(b)).dot(Dx) +
-                       Dy.T.dot(utils.sdiag(b)).dot(Dy) - B.dot(B.T))
+            d2c_dm1 = (self._Dx.T.dot(utils.sdiag(a)).dot(Dx) +
+                       self._Dy.T.dot(utils.sdiag(a)).dot(Dy) - A.dot(A.T))
+            d2c_dm2 = (self._Dx.T.dot(utils.sdiag(b)).dot(Dx) +
+                       self._Dy.T.dot(utils.sdiag(b)).dot(Dy) - B.dot(B.T))
 
             d_dm2_dc_dm1 = func1((Dx, Dy), (Dx_m1, Dy_m1), (Dx_m2, Dy_m2))
             d_dm1_dc_dm2 = d_dm2_dc_dm1.T
 
-        elif self.regmesh.mesh.dim == 3:
-            Dx = self.regmesh.aveFx2CC.dot(self.regmesh.cellDiffx)
-            Dy = self.regmesh.aveFy2CC.dot(self.regmesh.cellDiffy)
-            Dz = self.regmesh.aveFz2CC.dot(self.regmesh.cellDiffz)
+        elif self._dim == 3:
             # define common terms
-            Dx_m1, Dy_m1, Dz_m1 = Dx.dot(m1), Dy.dot(m1), Dz.dot(m1)
-            Dx_m2, Dy_m2, Dz_m2 = Dx.dot(m2), Dy.dot(m2), Dz.dot(m2)
+            Dx_m1, Dy_m1, Dz_m1 = self._Dx.dot(m1), self._Dy.dot(m1), self._Dz.dot(m1)
+            Dx_m2, Dy_m2, Dz_m2 = self._Dx.dot(m2), self._Dy.dot(m2), self._Dz.dot(m2)
             a = Dx_m2**2 + Dy_m2**2 + Dz_m2**2
             b = Dx_m1**2 + Dy_m1**2 + Dz_m1**2
-            A = (Dx.T.dot(utils.sdiag(Dx_m2)) + Dy.T.dot(utils.sdiag(Dy_m2)) +
-                 Dz.T.dot(utils.sdiag(Dz_m2)))
-            B = (Dx.T.dot(utils.sdiag(Dx_m1)) + Dy.T.dot(utils.sdiag(Dy_m1)) +
-                 Dz.T.dot(utils.sdiag(Dz_m1)))
+            A = (self._Dx.T.dot(utils.sdiag(Dx_m2)) + self._Dy.T.dot(utils.sdiag(Dy_m2)) +
+                 self._Dz.T.dot(utils.sdiag(Dz_m2)))
+            B = (self._Dx.T.dot(utils.sdiag(Dx_m1)) + self._Dy.T.dot(utils.sdiag(Dy_m1)) +
+                 self._Dz.T.dot(utils.sdiag(Dz_m1)))
 
-            d2c_dm1 = (Dx.T.dot(utils.sdiag(a)).dot(Dx) +
-                       Dy.T.dot(utils.sdiag(a)).dot(Dy) +
-                       Dz.T.dot(utils.sdiag(a)).dot(Dz) - A.dot(A.T))
-            d2c_dm2 = (Dx.T.dot(utils.sdiag(b)).dot(Dx) +
-                       Dy.T.dot(utils.sdiag(b)).dot(Dy) +
-                       Dz.T.dot(utils.sdiag(b)).dot(Dz) - B.dot(B.T))
+            d2c_dm1 = (self._Dx.T.dot(utils.sdiag(a)).dot(Dx) +
+                       self._Dy.T.dot(utils.sdiag(a)).dot(Dy) +
+                       self._Dz.T.dot(utils.sdiag(a)).dot(Dz) - A.dot(A.T))
+            d2c_dm2 = (self._Dx.T.dot(utils.sdiag(b)).dot(Dx) +
+                       self._Dy.T.dot(utils.sdiag(b)).dot(Dy) +
+                       self._Dz.T.dot(utils.sdiag(b)).dot(Dz) - B.dot(B.T))
 
             d_dm2_dc_dm1 = func1((Dx, Dy, Dz), (Dx_m1, Dy_m1, Dz_m1), (Dx_m2, Dy_m2, Dz_m2))
             d_dm1_dc_dm2 = d_dm2_dc_dm1.T
