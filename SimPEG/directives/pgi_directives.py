@@ -156,7 +156,7 @@ class PGI_UpdateParameters(InversionDirective):
 
 class PGI_BetaAlphaSchedule(InversionDirective):
     """
-    This directive is to be used with regularization from regularization.pgi.
+    This directive is to be used with regularizations from regularization.pgi.
     It implements the strategy described in https://doi.org/10.1093/gji/ggz389
     for iteratively updating beta and alpha_s for fitting the
     geophysical and smallness targets.
@@ -332,7 +332,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
 
 class PGI_AddMrefInSmooth(InversionDirective):
     """
-    This directive is to be used with regularization from regularization.pgi.
+    This directive is to be used with regularizations from regularization.pgi.
     It implements the strategy described in https://doi.org/10.1093/gji/ggz389
     for including the learned reference model, once stable, in the smoothness terms.
     """
