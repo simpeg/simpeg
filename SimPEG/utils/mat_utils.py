@@ -124,7 +124,6 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=
 
     """
 
-
     if seed is not None:
         np.random.seed(seed)
 
@@ -134,33 +133,28 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=
 
     # transform to ComboObjectiveFunction if required
     if getattr(combo_objfct, "objfcts", None) is None:
-        combo = 1. * combo_objfct
-    else:
-        combo = combo_objfct
+        combo_objfct = 1. * combo_objfct
 
     # create Field for data misfit if necessary and not provided
     if fields_list is None:
-        f = []
-        for k, obj in enumerate(combo.objfcts):
+        fields_list = []
+        for k, obj in enumerate(combo_objfct.objfcts):
             if hasattr(obj, "simulation"):
-                f += [obj.simulation.fields(model)]
+                fields_list += [obj.simulation.fields(model)]
             else:
                 # required to put None to conserve it in the list
                 # The idea is that the function can have a mixed of dmis and reg terms
                 # (see test)
-                f += [None]
-    else:
-        if not isinstance(fields_list, (list, tuple, np.ndarray)):
-            f = [fields_list]
-        else:
-            f = fields_list
+                fields_list += [None]
+    elif not isinstance(fields_list, (list, tuple, np.ndarray)):
+            fields_list = [fields_list]
 
     # Power iteration: estimate eigenvector
     for i in range(n_pw_iter):
         x1 = 0.
-        for j, (mult, obj) in enumerate(zip(combo.multipliers, combo.objfcts)):
+        for j, (mult, obj) in enumerate(zip(combo_objfct.multipliers, combo_objfct.objfcts)):
             if hasattr(obj, "simulation"): # if data misfit term
-                aux = obj.deriv2(model, v=x0, f=f[j])
+                aux = obj.deriv2(model, v=x0, f=fields_list[j])
                 if not isinstance(aux, Zero):
                     x1 += mult * aux
             else:
@@ -171,9 +165,9 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=
 
     # Compute highest eigenvalue from estimated eigenvector
     eigenvalue=0.
-    for j, (mult, obj) in enumerate(zip(combo.multipliers, combo.objfcts)):
+    for j, (mult, obj) in enumerate(zip(combo_objfct.multipliers, combo_objfct.objfcts)):
         if hasattr(obj, "simulation"): # if data misfit term
-            eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0, f=f[j]))
+            eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0, f=fields_list[j]))
         else:
             eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0,))
 
