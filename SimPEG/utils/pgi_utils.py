@@ -881,9 +881,8 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
     it takes prior parameters, passed through `WeightedGaussianMixture` gmmref.
     The prior distribution for each parameters (proportions, means, covariances) is
     defined through a conjugate or semi-conjugate approach (prior_type), to the choice of the user.
-    See the book Murphy 2012, Machine Learning: A probabilistic perspective and the article
-    Astic & Oldenburg 2019: A framework for petrophysically and geologically guided geophysical inversion
-    (https://doi.org/10.1093/gji/ggz389) for more information.
+    See Astic & Oldenburg 2019: A framework for petrophysically and geologically
+    guided geophysical inversion (https://doi.org/10.1093/gji/ggz389) for more information.
 
     Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
     New functionalitie are added, as well as modifications to
@@ -1507,9 +1506,8 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
     It takes prior parameters, passed through `WeightedGaussianMixture` gmmref.
     The prior distribution for each parameters (proportions, means, covariances) is
     defined through a conjugate or semi-conjugate approach (prior_type), to the choice of the user.
-    See the book Murphy 2012, Machine Learning: A probabilistic perspective and the article
-    Astic & Oldenburg 2019: A framework for petrophysically and geologically guided geophysical inversion
-    (https://doi.org/10.1093/gji/ggz389) for more information.
+    See Astic & Oldenburg 2019: A framework for petrophysically and geologically
+    guided geophysical inversion (https://doi.org/10.1093/gji/ggz389) for more information.
 
     Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
     New functionalitie are added, as well as modifications to

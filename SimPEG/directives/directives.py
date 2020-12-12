@@ -441,7 +441,12 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
 
 
 class JointScalingSchedule(InversionDirective):
-
+    """
+    For multiple data misfits only: rebalance each data misfit term
+    during the inversion when some datasets are fit, and others not
+    using the ratios of current misfits and their respective target.
+    It implements the strategy described in https://doi.org/10.1093/gji/ggaa378.
+    """
     verbose = False
     warmingFactor = 1.0
     mode = 1
@@ -450,6 +455,9 @@ class JointScalingSchedule(InversionDirective):
     update_rate = 1
 
     def initialize(self):
+
+        if getattr(self.dmisfit, "objfcts", None) is None or len(self.dmisfit.objfcts) == 1:
+            raise TypeError("JointScalingSchedule only applies to joint inversion")
 
         targetclass = np.r_[
             [
