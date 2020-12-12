@@ -366,7 +366,7 @@ update_sensitivity_weighting = directives.UpdateSensitivityWeights()
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=2e1)
 
 # Set the rate of reduction in trade-off parameter (beta) each time the
 # the inverse problem is solved. And set the number of Gauss-Newton iterations
