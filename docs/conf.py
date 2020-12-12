@@ -89,6 +89,7 @@ linkcheck_ignore = [
     r"https://github.com/simpeg/simpeg*",
     "/content/examples/*",
     "/content/tutorials/*",
+    r"https://www.pardiso-project.org",
 ]
 
 linkcheck_retries = 3

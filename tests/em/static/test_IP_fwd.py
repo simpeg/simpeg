@@ -109,6 +109,5 @@ class IPProblemAnalyticTests(unittest.TestCase):
             print(">> IP forward test for Simulation3DCellCentered is failed")
         self.assertTrue(passed)
 
-
 if __name__ == "__main__":
     unittest.main()
