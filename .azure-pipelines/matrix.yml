@@ -38,7 +38,7 @@ jobs:
               eval "$(conda shell.bash hook)"
               conda activate test
               export KMP_WARNINGS=0
-              pytest ${{ test }} -v -s --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html
+              pytest ${{ test }} -v -s --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
             displayName: 'Testing ${{ test }}'
 
           - script: |

@@ -208,7 +208,7 @@ class DCUtilsTests_fullspace(unittest.TestCase):
 
         # Compute apparent resistivity from survey
         rhoapp = utils.apparent_resistivity(
-            self.data, survey_type="dipole-dipole", space_type="whole-space", eps=1e-16
+            self.data, space_type="whole-space", eps=1e-16
         )
 
         # Load benchmarks files from UBC-GIF codes

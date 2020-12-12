@@ -23,9 +23,7 @@ class BaseIPSimulation(BaseEMSimulation):
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability")
 
     data_type = properties.StringChoice(
-        "IP data type",
-        default='volt',
-        choices=['volt', 'apparent_chargeability'],
+        "IP data type", default="volt", choices=["volt", "apparent_chargeability"],
     )
 
     fieldsPair = FieldsDC
@@ -37,6 +35,7 @@ class BaseIPSimulation(BaseEMSimulation):
     sign = None
     _pred = None
     gtgdiag = None
+    _dc_data_set = False
 
     def fields(self, m=None):
 
@@ -57,14 +56,19 @@ class BaseIPSimulation(BaseEMSimulation):
             Srcs = self.survey.source_list
             self._f[Srcs, self._solutionType] = self.Ainv * RHS
 
-            if self.data_type == "apparent_chargeability":
-                if self.verbose is True:
-                    print(">> Data type is apparaent chargeability")
-                for src in self.survey.source_list:
-                    for rx in src.receiver_list:
+        if not self._dc_data_set:
+            # loop through receievers to check if they need to set the _dc_voltage
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+                    if (
+                        rx.data_type == "apparent_chargeability"
+                        and rx._dc_voltage is None
+                    ):
+                        rx.data_type = "volt"  # make the rx evaluate a voltage
                         rx._dc_voltage = rx.eval(src, self.mesh, self._f)
-                        rx.data_type = self.data_type
+                        rx.data_type = "apparent_chargeability"
                         rx._Ps = {}
+            self._dc_data_set = True  # avoid loop through after first call
 
         if self.verbose is True:
             print(">> Compute predicted data")
@@ -234,32 +238,6 @@ class BaseIPSimulation(BaseEMSimulation):
             return Jtv
         return
 
-    def getSourceTerm(self):
-        """
-        takes concept of source and turns it into a matrix
-        """
-        """
-        Evaluates the sources, and puts them in matrix form
-
-        :rtype: (numpy.ndarray, numpy.ndarray)
-        :return: q (nC or nN, nSrc)
-        """
-
-        Srcs = self.survey.source_list
-
-        if self._formulation == "EB":
-            n = self.mesh.nN
-            # return NotImplementedError
-
-        elif self._formulation == "HJ":
-            n = self.mesh.nC
-
-        q = np.zeros((n, len(Srcs)))
-
-        for i, src in enumerate(Srcs):
-            q[:, i] = src.eval(self)
-        return q
-
     def delete_these_for_sensitivity(self):
         del self._Jmatrix, self._MfRhoI, self._MeSigma
 
@@ -347,9 +325,8 @@ class Simulation3DCellCentered(BaseIPSimulation, BaseSimulation3DCellCentered):
     sign = 1.0
     bc_type = "Dirichlet"
 
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DCellCentered, self).__init__(mesh, **kwargs)
-        self.setBC()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
@@ -359,8 +336,8 @@ class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
     fieldsPair = Fields3DNodal
     sign = -1.0
 
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DNodal, self).__init__(mesh, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 ############

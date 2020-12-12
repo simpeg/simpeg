@@ -27,8 +27,8 @@ from SimPEG.utils import model_builder, surface2ind_topo
 from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
-    generate_dcip_survey_line,
-    plot_pseudoSection,
+    generate_dcip_sources_line,
+    plot_pseudosection,
 )
 
 import os
@@ -42,7 +42,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 save_file = False
-
+mpl.rcParams.update({'font.size': 16})
 # sphinx_gallery_thumbnail_number = 2
 
 
@@ -62,6 +62,11 @@ z_topo = (1 / np.pi) * 85 * (-np.pi / 2 + np.arctan((np.abs(x_topo) - 600.0) / 5
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
+# Create 2D topography. Since our 3D topography only changes in the x direction,
+# it is easy to define the 2D topography projected along the survey line. For
+# arbitrary topography and for an arbitrary survey orientation, the user must
+# define the 2D topography along the survey line.
+topo_2d = np.unique(xyz_topo[:, [0, 2]], axis=0)
 
 #####################################################################
 # Create Dipole-Dipole Survey
@@ -75,30 +80,31 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
 # Define survey line parameters
 survey_type = "dipole-dipole"
+dimension_type = "2.5D"
 data_type = "volt"
 end_locations = np.r_[-400.0, 400]
 station_separation = 50.0
-dipole_separation = 25.0
-n = 8
+num_rx_per_src = 8
 
-# Generate DC survey line
-survey = generate_dcip_survey_line(
+# Generate source list for DC survey line
+source_list = generate_dcip_sources_line(
     survey_type,
     data_type,
+    dimension_type,
     end_locations,
-    xyz_topo,
-    station_separation,
-    dipole_separation,
-    n,
-    dim_flag="2.5D",
-    sources_only=False,
+    topo_2d,
+    num_rx_per_src,
+    station_separation
 )
 
+# Define survey
+survey = dc.survey.Survey(source_list, survey_type=survey_type)
+
 ###############################################################
-# Create OcTree Mesh
+# Create Tree Mesh
 # ------------------
 #
-# Here, we create the OcTree mesh that will be used to predict both DC
+# Here, we create the Tree mesh that will be used to predict both DC
 # resistivity and IP data.
 #
 
@@ -140,13 +146,13 @@ mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 2], method="box", finaliz
 mesh.finalize()
 
 ###############################################################
-# Create Conductivity Model and Mapping for OcTree Mesh
+# Create Conductivity Model and Mapping for Tree Mesh
 # -----------------------------------------------------
 #
-# Here we define the conductivity model that will be used to predict DC
-# resistivity data. The model consists of a conductive sphere and a
-# resistive sphere within a moderately conductive background. Note that
-# you can carry through this work flow with a resistivity model if desired.
+# It is important that electrodes are not modeled as being in the air. Even if the
+# electrodes are properly located along surface topography, they may lie above
+# the discretized topography. This step is carried out to ensure all electrodes
+# lie on the discretized surface.
 #
 
 # Define conductivity model in S/m (or resistivity model in Ohm m)
@@ -186,7 +192,7 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(np.log10(resistor_conductivity), np.log10(conductor_conductivity)),
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("Conductivity Model")
 ax1.set_xlabel("x (m)")
@@ -239,14 +245,15 @@ data_obj = data.Data(survey, dobs=dpred)
 fig = plt.figure(figsize=(12, 5))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-plot_pseudoSection(
+plot_pseudosection(
     data_obj,
     ax=ax1,
     survey_type="dipole-dipole",
     data_type="appConductivity",
     space_type="half-space",
     scale="log",
-    pcolorOpts={"cmap": "viridis"},
+    y_values='pseudo-depth',
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("Apparent Conductivity [S/m]")
 
@@ -262,7 +269,7 @@ plt.show()
 if save_file:
 
     dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-    dir_path.extend(["tutorials", "assets", "dcr2d"])
+    dir_path.extend(["tutorials", "05-dcr", "dcr2d"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
     # Add 5% Gaussian noise to each datum
