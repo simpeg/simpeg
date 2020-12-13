@@ -78,6 +78,7 @@ class BaseCoupling(BaseRegularization):
 class CrossGradient(BaseCoupling):
 
     grad_tol = 1e-10 # tolerance for avoiding the exteremly small gradient amplitude
+    normalized = False # whether implement normalized cross-gradient
 
     '''
     The cross-gradient constraint for joint inversions.
@@ -135,7 +136,7 @@ class CrossGradient(BaseCoupling):
         return models
 
 
-    def calculate_gradient(self, model, normalize=False):
+    def calculate_gradient(self, model, normalized=self.normalized):
         '''
         Calculate the spatial gradients of the model using central difference.
 
@@ -165,16 +166,18 @@ class CrossGradient(BaseCoupling):
             z_grad = self._Dz.dot(model)
             grad_list = np.column_stack((x_grad, y_grad, z_grad))
 
-        if normalize:
+        if normalized:
             norms = np.linalg.norm(grad_list, axis=-1)
-            norms[norms<self.grad_tol] = 1.0 # avoid exteremly large values of 1/norms
+            # set gradient to 0 if amplitude of gradient is extremely small
+            ind = np.where(norms<self.grad_tol)[0]
+            grad_list[ind, :] = 0
             grad_list = grad_list/norms[:, None]
 
 
         return grad_list
 
 
-    def calculate_cross_gradient(self, m1, m2, normalized=False):
+    def calculate_cross_gradient(self, m1, m2):
         '''
         Calculates the cross-gradients of two models at each cell center.
 
@@ -190,21 +193,21 @@ class CrossGradient(BaseCoupling):
         m1, m2 = self.models([m1,m2])
 
         # Compute the gradients and concatenate components.
-        grad_m1 = self.calculate_gradient(m1, normalize=normalized)
-        grad_m2 = self.calculate_gradient(m2, normalize=normalized)
+        grad_list_m1 = self.calculate_gradient(m1, normalized=self.normalized)
+        grad_list_m2 = self.calculate_gradient(m2, normalized=self.normalized)
 
         # for each model cell, compute the cross product of the gradient vectors.
         if self._dim == 3:
-            cross_prod_vector = np.cross(grad_m1, grad_m2)
+            cross_prod_vector = np.cross(grad_list_m1, grad_list_m2)
             cross_prod = np.linalg.norm(cross_prod_vector, axis=-1)
         else:
-            cross_prod = np.cross(grad_m1, grad_m2)
+            cross_prod = np.cross(grad_list_m1, grad_list_m2)
 
         return cross_prod
 
 
 
-    def __call__(self, model, normalized=False):
+    def __call__(self, model):
         '''
         Computes the sum of all cross-gradient values at all cell centers.
 
@@ -233,15 +236,15 @@ class CrossGradient(BaseCoupling):
         m2 = self.map2*model
         m1, m2 = self.models([m1,m2])
 
-        grad_m1 = self.calculate_gradient(m1, normalize=normalized)
-        grad_m2 = self.calculate_gradient(m2, normalize=normalized)
+        grad_list_m1 = self.calculate_gradient(m1, normalized=self.normalized)
+        grad_list_m2 = self.calculate_gradient(m2, normalized=self.normalized)
 
         term1 = np.dot(
-            np.linalg.norm(grad_m1, axis=-1)**2,
-            np.linalg.norm(grad_m2, axis=-1)**2,
+            np.linalg.norm(grad_list_m1, axis=-1)**2,
+            np.linalg.norm(grad_list_m2, axis=-1)**2,
             )
 
-        temp1 = np.sum(grad_m1*grad_m2, axis=-1)
+        temp1 = np.sum(grad_list_m1*grad_list_m2, axis=-1)
         term2 = np.linalg.norm(temp1, axis=-1)**2
 
         result = term1 - term2
@@ -268,13 +271,17 @@ class CrossGradient(BaseCoupling):
         m2 = self.map2*model
         m1, m2 = self.models([m1,m2])
 
+        # common terms
+        grad_list_m1 = self.calculate_gradient(m1, normalized=self.normalized)
+        grad_list_m2 = self.calculate_gradient(m2, normalized=self.normalized)
+        v1 = np.linalg.norm(grad_list_m2, axis=-1)**2
+        v2 = np.linalg.norm(grad_list_m1, axis=-1)**2
+        w = np.sum(grad_list_m1*grad_list_m2, axis=-1)
+
         if self._dim == 2:
-            # common terms for dc_dm1
-            Dx_m1, Dy_m1 = self._Dx.dot(m1), self._Dy.dot(m1)
-            Dx_m2, Dy_m2 = self._Dx.dot(m2), self._Dy.dot(m2)
-            v1 = Dx_m2**2 + Dy_m2**2
-            v2 = Dx_m1**2 + Dy_m1**2
-            w = Dx_m1*Dx_m2 + Dy_m1*Dy_m2
+
+            Dx_m1, Dy_m1 = grad_list_m1[:, 0], grad_list_m1[:, 1]
+            Dx_m2, Dy_m2 = grad_list_m2[:, 0], grad_list_m2[:, 1]
 
             dc_dm1 = (self._Dx.T.dot(Dx_m1*v1) + self._Dy.T.dot(Dy_m1*v1) -
                       self._Dx.T.dot(Dx_m2*w) - self._Dy.T.dot(Dy_m2*w))
@@ -283,12 +290,9 @@ class CrossGradient(BaseCoupling):
             result = np.concatenate((dc_dm1,dc_dm2))
 
         elif self._dim == 3:
-            # common terms for dc_dm1
-            Dx_m1, Dy_m1, Dz_m1 = self._Dx.dot(m1), self._Dy.dot(m1), self._Dz.dot(m1)
-            Dx_m2, Dy_m2, Dz_m2 = self._Dx.dot(m2), self._Dy.dot(m2), self._Dz.dot(m2)
-            v1 = Dx_m2**2 + Dy_m2**2 + Dz_m2**2
-            v2 = Dx_m1**2 + Dy_m1**2 + Dz_m1**2
-            w = Dx_m1*Dx_m2 + Dy_m1*Dy_m2 + Dz_m1*Dz_m2
+
+            Dx_m1, Dy_m1, Dz_m1 = grad_list_m1[:, 0], grad_list_m1[:, 1], grad_list_m1[:, 2]
+            Dx_m2, Dy_m2, Dz_m2 = grad_list_m2[:, 0], grad_list_m2[:, 1], grad_list_m2[:, 2]
 
             dc_dm1 = (self._Dx.T.dot(Dx_m1*v1) + self._Dy.T.dot(Dy_m1*v1) + self._Dz.T.dot(Dz_m1*v1) -
                       self._Dx.T.dot(Dx_m2*w) - self._Dy.T.dot(Dy_m2*w) - self._Dz.T.dot(Dz_m2*w))
@@ -363,12 +367,18 @@ class CrossGradient(BaseCoupling):
 
         func1 = self.hessian_offdiag
 
+        # common terms
+        grad_list_m1 = self.calculate_gradient(m1, normalized=self.normalized)
+        grad_list_m2 = self.calculate_gradient(m2, normalized=self.normalized)
+        a = np.linalg.norm(grad_list_m2, axis=-1)**2
+        b = np.linalg.norm(grad_list_m1, axis=-1)**2
+
+
         if self._dim == 2:
             # define common terms
-            Dx_m1, Dy_m1 = self._Dx.dot(m1), self._Dy.dot(m1)
-            Dx_m2, Dy_m2 = self._Dx.dot(m2), self._Dy.dot(m2)
-            a = Dx_m2**2 + Dy_m2**2
-            b = Dx_m1**2 + Dy_m1**2
+            Dx_m1, Dy_m1 = grad_list_m1[:, 0], grad_list_m1[:, 1]
+            Dx_m2, Dy_m2 = grad_list_m2[:, 0], grad_list_m2[:, 1]
+
             A = self._Dx.T.dot(utils.sdiag(Dx_m2)) + self._Dy.T.dot(utils.sdiag(Dy_m2))
             B = self._Dx.T.dot(utils.sdiag(Dx_m1)) + self._Dy.T.dot(utils.sdiag(Dy_m1))
 
@@ -377,15 +387,14 @@ class CrossGradient(BaseCoupling):
             d2c_dm2 = (self._Dx.T.dot(utils.sdiag(b)).dot(Dx) +
                        self._Dy.T.dot(utils.sdiag(b)).dot(Dy) - B.dot(B.T))
 
-            d_dm2_dc_dm1 = func1((Dx, Dy), (Dx_m1, Dy_m1), (Dx_m2, Dy_m2))
+            d_dm2_dc_dm1 = func1((self._Dx, self._Dy), grad_list_m1, grad_list_m2)
             d_dm1_dc_dm2 = d_dm2_dc_dm1.T
 
         elif self._dim == 3:
             # define common terms
-            Dx_m1, Dy_m1, Dz_m1 = self._Dx.dot(m1), self._Dy.dot(m1), self._Dz.dot(m1)
-            Dx_m2, Dy_m2, Dz_m2 = self._Dx.dot(m2), self._Dy.dot(m2), self._Dz.dot(m2)
-            a = Dx_m2**2 + Dy_m2**2 + Dz_m2**2
-            b = Dx_m1**2 + Dy_m1**2 + Dz_m1**2
+            Dx_m1, Dy_m1, Dz_m1 = grad_list_m1[:, 0], grad_list_m1[:, 1], grad_list_m1[:, 2]
+            Dx_m2, Dy_m2, Dz_m2 = grad_list_m2[:, 0], grad_list_m2[:, 1], grad_list_m2[:, 2]
+
             A = (self._Dx.T.dot(utils.sdiag(Dx_m2)) + self._Dy.T.dot(utils.sdiag(Dy_m2)) +
                  self._Dz.T.dot(utils.sdiag(Dz_m2)))
             B = (self._Dx.T.dot(utils.sdiag(Dx_m1)) + self._Dy.T.dot(utils.sdiag(Dy_m1)) +
@@ -398,7 +407,7 @@ class CrossGradient(BaseCoupling):
                        self._Dy.T.dot(utils.sdiag(b)).dot(Dy) +
                        self._Dz.T.dot(utils.sdiag(b)).dot(Dz) - B.dot(B.T))
 
-            d_dm2_dc_dm1 = func1((Dx, Dy, Dz), (Dx_m1, Dy_m1, Dz_m1), (Dx_m2, Dy_m2, Dz_m2))
+            d_dm2_dc_dm1 = func1((self._Dx, self._Dy, self._Dz), grad_list_m1, grad_list_m2)
             d_dm1_dc_dm2 = d_dm2_dc_dm1.T
 
         if v is not None:
