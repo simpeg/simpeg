@@ -132,7 +132,7 @@ class CrossGradient(BaseCoupling):
         return models
 
 
-    def calculate_gradient(self, model, normalized=self.normalized):
+    def calculate_gradient(self, model, normalized=False):
         '''
         Calculate the spatial gradients of the model using central difference.
 
@@ -378,10 +378,10 @@ class CrossGradient(BaseCoupling):
             A = self._Dx.T.dot(utils.sdiag(Dx_m2)) + self._Dy.T.dot(utils.sdiag(Dy_m2))
             B = self._Dx.T.dot(utils.sdiag(Dx_m1)) + self._Dy.T.dot(utils.sdiag(Dy_m1))
 
-            d2c_dm1 = (self._Dx.T.dot(utils.sdiag(a)).dot(Dx) +
-                       self._Dy.T.dot(utils.sdiag(a)).dot(Dy) - A.dot(A.T))
-            d2c_dm2 = (self._Dx.T.dot(utils.sdiag(b)).dot(Dx) +
-                       self._Dy.T.dot(utils.sdiag(b)).dot(Dy) - B.dot(B.T))
+            d2c_dm1 = (self._Dx.T.dot(utils.sdiag(a)).dot(self._Dx) +
+                       self._Dy.T.dot(utils.sdiag(a)).dot(self._Dy) - A.dot(A.T))
+            d2c_dm2 = (self._Dx.T.dot(utils.sdiag(b)).dot(self._Dx) +
+                       self._Dy.T.dot(utils.sdiag(b)).dot(self._Dy) - B.dot(B.T))
 
             d_dm2_dc_dm1 = func1((self._Dx, self._Dy), grad_list_m1, grad_list_m2)
             d_dm1_dc_dm2 = d_dm2_dc_dm1.T
@@ -396,12 +396,12 @@ class CrossGradient(BaseCoupling):
             B = (self._Dx.T.dot(utils.sdiag(Dx_m1)) + self._Dy.T.dot(utils.sdiag(Dy_m1)) +
                  self._Dz.T.dot(utils.sdiag(Dz_m1)))
 
-            d2c_dm1 = (self._Dx.T.dot(utils.sdiag(a)).dot(Dx) +
-                       self._Dy.T.dot(utils.sdiag(a)).dot(Dy) +
-                       self._Dz.T.dot(utils.sdiag(a)).dot(Dz) - A.dot(A.T))
-            d2c_dm2 = (self._Dx.T.dot(utils.sdiag(b)).dot(Dx) +
-                       self._Dy.T.dot(utils.sdiag(b)).dot(Dy) +
-                       self._Dz.T.dot(utils.sdiag(b)).dot(Dz) - B.dot(B.T))
+            d2c_dm1 = (self._Dx.T.dot(utils.sdiag(a)).dot(self._Dx) +
+                       self._Dy.T.dot(utils.sdiag(a)).dot(self._Dy) +
+                       self._Dz.T.dot(utils.sdiag(a)).dot(self._Dz) - A.dot(A.T))
+            d2c_dm2 = (self._Dx.T.dot(utils.sdiag(b)).dot(self._Dx) +
+                       self._Dy.T.dot(utils.sdiag(b)).dot(self._Dy) +
+                       self._Dz.T.dot(utils.sdiag(b)).dot(self._Dz) - B.dot(B.T))
 
             d_dm2_dc_dm1 = func1((self._Dx, self._Dy, self._Dz), grad_list_m1, grad_list_m2)
             d_dm1_dc_dm2 = d_dm2_dc_dm1.T
