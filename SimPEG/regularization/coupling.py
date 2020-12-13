@@ -20,10 +20,6 @@ class BaseCoupling(BaseRegularization):
 
     :param discretize.base.BaseMesh mesh: SimPEG mesh
 
-    Contributors:
-    Jae Deok Kim, Xiaolong Wei, Jiajia Sun
-
-
 
     '''
     def __init__(self, mesh, indActive, mapping, **kwargs):
