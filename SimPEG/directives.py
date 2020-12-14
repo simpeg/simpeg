@@ -238,24 +238,8 @@ class BetaEstimate_ByEig(InversionDirective):
         self.invProb.beta = self.beta0
 
 
-# class BetaSchedule(InversionDirective):
-#     """BetaSchedule"""
-
-#     coolingFactor = 8.0
-#     coolingRate = 3
-
-#     def endIter(self):
-#         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-#             if self.debug:
-#                 print(
-#                     "BetaSchedule is cooling Beta. Iteration: {0:d}".format(
-#                         self.opt.iter
-#                     )
-#                 )
-#             self.invProb.beta /= self.coolingFactor
 
 
-''' Xiaolong Wei, Aug 1, 2020'''
 class BetaSchedule(InversionDirective):
     '''
         Directive for beta cooling schedule to determine the tradeoff
@@ -265,8 +249,8 @@ class BetaSchedule(InversionDirective):
     chifact_target = 1.
     beta_tol = 1e-1
     update_beta = True
-    coolingRate = 1
-    coolingFactor = 2
+    coolingRate = 3
+    coolingFactor = 8
     dmis_met = False
 
     @property
@@ -407,216 +391,7 @@ class SaveModelEveryIteration(SaveEveryIteration):
         )
 
 
-# class SaveOutputEveryIteration(SaveEveryIteration):
-#     """SaveOutputEveryIteration"""
 
-#     header = None
-#     save_txt = True
-#     beta = None
-#     phi_d = None
-#     phi_m = None
-#     phi_m_small = None
-#     phi_m_smooth_x = None
-#     phi_m_smooth_y = None
-#     phi_m_smooth_z = None
-#     phi = None
-
-#     def initialize(self):
-#         if self.save_txt is True:
-#             print(
-#                 "SimPEG.SaveOutputEveryIteration will save your inversion "
-#                 "progress as: '###-{0!s}.txt'".format(self.fileName)
-#             )
-#             f = open(self.fileName + ".txt", "w")
-#             self.header = "  #     beta     phi_d     phi_m   phi_m_small     phi_m_smoomth_x     phi_m_smoomth_y     phi_m_smoomth_z      phi\n"
-#             f.write(self.header)
-#             f.close()
-
-#         # Create a list of each
-
-#         self.beta = []
-#         self.phi_d = []
-#         self.phi_m = []
-#         self.phi_m_small = []
-#         self.phi_m_smooth_x = []
-#         self.phi_m_smooth_y = []
-#         self.phi_m_smooth_z = []
-#         self.phi = []
-
-#     def endIter(self):
-
-#         phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
-#         for reg in self.reg.objfcts:
-#             phi_s += reg.objfcts[0](self.invProb.model) * reg.alpha_s
-#             phi_x += reg.objfcts[1](self.invProb.model) * reg.alpha_x
-
-#             if reg.regmesh.dim == 2:
-#                 phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
-#             elif reg.regmesh.dim == 3:
-#                 phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
-#                 phi_z += reg.objfcts[3](self.invProb.model) * reg.alpha_z
-
-#         self.beta.append(self.invProb.beta)
-#         self.phi_d.append(self.invProb.phi_d)
-#         self.phi_m.append(self.invProb.phi_m)
-#         self.phi_m_small.append(phi_s)
-#         self.phi_m_smooth_x.append(phi_x)
-#         self.phi_m_smooth_y.append(phi_y)
-#         self.phi_m_smooth_z.append(phi_z)
-#         self.phi.append(self.opt.f)
-
-#         if self.save_txt:
-#             f = open(self.fileName + ".txt", "a")
-#             f.write(
-#                 " {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e} {5:1.4e} "
-#                 "{6:1.4e}  {7:1.4e}  {8:1.4e}\n".format(
-#                     self.opt.iter,
-#                     self.beta[self.opt.iter - 1],
-#                     self.phi_d[self.opt.iter - 1],
-#                     self.phi_m[self.opt.iter - 1],
-#                     self.phi_m_small[self.opt.iter - 1],
-#                     self.phi_m_smooth_x[self.opt.iter - 1],
-#                     self.phi_m_smooth_y[self.opt.iter - 1],
-#                     self.phi_m_smooth_z[self.opt.iter - 1],
-#                     self.phi[self.opt.iter - 1],
-#                 )
-#             )
-#             f.close()
-
-#     def load_results(self):
-#         results = np.loadtxt(self.fileName + str(".txt"), comments="#")
-#         self.beta = results[:, 1]
-#         self.phi_d = results[:, 2]
-#         self.phi_m = results[:, 3]
-#         self.phi_m_small = results[:, 4]
-#         self.phi_m_smooth_x = results[:, 5]
-#         self.phi_m_smooth_y = results[:, 6]
-#         self.phi_m_smooth_z = results[:, 7]
-
-#         self.phi_m_smooth = (
-#             self.phi_m_smooth_x + self.phi_m_smooth_y + self.phi_m_smooth_z
-#         )
-
-#         self.f = results[:, 7]
-
-#         self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
-#         self.i_target = None
-
-#         if self.invProb.phi_d < self.target_misfit:
-#             i_target = 0
-#             while self.phi_d[i_target] > self.target_misfit:
-#                 i_target += 1
-#             self.i_target = i_target
-
-#     def plot_misfit_curves(
-#         self,
-#         fname=None,
-#         dpi=300,
-#         plot_small_smooth=False,
-#         plot_phi_m=True,
-#         plot_small=False,
-#         plot_smooth=False,
-#     ):
-
-#         self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
-#         self.i_target = None
-
-#         if self.invProb.phi_d < self.target_misfit:
-#             i_target = 0
-#             while self.phi_d[i_target] > self.target_misfit:
-#                 i_target += 1
-#             self.i_target = i_target
-
-#         fig = plt.figure(figsize=(5, 2))
-#         ax = plt.subplot(111)
-#         ax_1 = ax.twinx()
-#         ax.semilogy(
-#             np.arange(len(self.phi_d)), self.phi_d, "k-", lw=2, label="$\phi_d$"
-#         )
-
-#         if plot_phi_m:
-#             ax_1.semilogy(
-#                 np.arange(len(self.phi_d)), self.phi_m, "r", lw=2, label="$\phi_m$"
-#             )
-
-#         if plot_small_smooth or plot_small:
-#             ax_1.semilogy(
-#                 np.arange(len(self.phi_d)), self.phi_m_small, "ro", label="small"
-#             )
-#         if plot_small_smooth or plot_smooth:
-#             ax_1.semilogy(
-#                 np.arange(len(self.phi_d)), self.phi_m_smooth_x, "rx", label="smooth_x"
-#             )
-#             ax_1.semilogy(
-#                 np.arange(len(self.phi_d)), self.phi_m_smooth_y, "rx", label="smooth_y"
-#             )
-#             ax_1.semilogy(
-#                 np.arange(len(self.phi_d)), self.phi_m_smooth_z, "rx", label="smooth_z"
-#             )
-
-#         ax.legend(loc=1)
-#         ax_1.legend(loc=2)
-
-#         ax.plot(
-#             np.r_[ax.get_xlim()[0], ax.get_xlim()[1]],
-#             np.ones(2) * self.target_misfit,
-#             "k:",
-#         )
-#         ax.set_xlabel("Iteration")
-#         ax.set_ylabel("$\phi_d$")
-#         ax_1.set_ylabel("$\phi_m$", color="r")
-#         ax_1.tick_params(axis="y", which="both", colors="red")
-
-#         plt.show()
-#         if fname is not None:
-#             fig.savefig(fname, dpi=dpi)
-
-#     def plot_tikhonov_curves(self, fname=None, dpi=200):
-
-#         self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
-#         self.i_target = None
-
-#         if self.invProb.phi_d < self.target_misfit:
-#             i_target = 0
-#             while self.phi_d[i_target] > self.target_misfit:
-#                 i_target += 1
-#             self.i_target = i_target
-
-#         fig = plt.figure(figsize=(5, 8))
-#         ax1 = plt.subplot(311)
-#         ax2 = plt.subplot(312)
-#         ax3 = plt.subplot(313)
-
-#         ax1.plot(self.beta, self.phi_d, "k-", lw=2, ms=4)
-#         ax1.set_xlim(np.hstack(self.beta).min(), np.hstack(self.beta).max())
-#         ax1.set_xlabel("$\\beta$", fontsize=14)
-#         ax1.set_ylabel("$\phi_d$", fontsize=14)
-
-#         ax2.plot(self.beta, self.phi_m, "k-", lw=2)
-#         ax2.set_xlim(np.hstack(self.beta).min(), np.hstack(self.beta).max())
-#         ax2.set_xlabel("$\\beta$", fontsize=14)
-#         ax2.set_ylabel("$\phi_m$", fontsize=14)
-
-#         ax3.plot(self.phi_m, self.phi_d, "k-", lw=2)
-#         ax3.set_xlim(np.hstack(self.phi_m).min(), np.hstack(self.phi_m).max())
-#         ax3.set_xlabel("$\phi_m$", fontsize=14)
-#         ax3.set_ylabel("$\phi_d$", fontsize=14)
-
-#         if self.i_target is not None:
-#             ax1.plot(self.beta[self.i_target], self.phi_d[self.i_target], "k*", ms=10)
-#             ax2.plot(self.beta[self.i_target], self.phi_m[self.i_target], "k*", ms=10)
-#             ax3.plot(self.phi_m[self.i_target], self.phi_d[self.i_target], "k*", ms=10)
-
-#         for ax in [ax1, ax2, ax3]:
-#             ax.set_xscale("linear")
-#             ax.set_yscale("linear")
-#         plt.tight_layout()
-#         plt.show()
-#         if fname is not None:
-#             fig.savefig(fname, dpi=dpi)
-
-
-'''Xiaolong Wei, Aug 1, 2020 '''
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveOutputEveryIteration"""
 
@@ -1410,7 +1185,7 @@ class ProjectSphericalBounds(InversionDirective):
 
 ###############################################################################
 #                                                                             #
-#              Directives of joint inversion                 #
+#              Directives of joint inversion                                  #
 #                                                                             #
 ###############################################################################
 
@@ -1568,43 +1343,7 @@ class SaveOutputEveryIteration_Joint(SaveEveryIteration, InversionDirective):
         self.phi_c = results[:, 5]
         self.f = results[:, 7]
 
-# class BetaEstimate_ByEig_Joint(InversionDirective):
-#
-#     betas = None
-#     beta0_ratio = 1
-#
-#     def initialize(self):
-#         '''
-#             Estimate initial betas by eigen values.
-#             Method uses one iteration of the Power Method to estimate
-#             eigenvectors for each separate inverse problem.
-#         '''
-#         m = self.invProb.model
-#         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
-#
-#         # Fix the seed for random vector for consistent results
-#         np.random.seed(0)
-#         x0 = np.random.rand(*m.shape)
-#
-#         t = []
-#         b = []
-#         i_count = 0
-#         # assume dmisfit and reg are combo objective functions.
-#         # assume last regularization object is the coupling
-#         for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts[:-1]):
-#             t.append(x0.dot(dmis.deriv2(m, x0, f=f[i_count])))
-#             b.append(x0.dot(reg.deriv2(m, x0, f=f)))
-#             i_count += 1
-#
-#         t = np.array(t)
-#         b = np.array(b)
-#
-#         self.betas = self.beta0_ratio*(t/b)
-#         self.invProb.betas = self.betas
-#         self.reg.multipliers[:-1] = self.invProb.betas
 
-
-# change on Dec 9, 2020
 class BetaEstimate_ByEig_Joint(InversionDirective):
     """
     Estimate the trade-off parameter beta between the data misfit(s) and the

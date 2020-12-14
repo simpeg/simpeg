@@ -7,7 +7,6 @@ from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
 import scipy.constants as constants
 import numpy as np
-import time
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -82,9 +81,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Gravity forward operator
         """
         if getattr(self, "_G", None) is None:
-            start = time.time()
             self._G = self.linear_operator()
-            print("Linear forward calculation ended in: " + str(time.time()-start) + " sec")
 
         return self._G
 
