@@ -49,6 +49,72 @@ def dask_getFields(self, m, store=False, deleteWarmstart=True):
 BaseInvProblem.getFields = dask_getFields
 
 
+def get_dpred(self, m, f=None):
+    dpred = []
+    if isinstance(self.dmisfit, BaseDataMisfit):
+        return self.dmisfit.simulation.dpred(m, f=f)
+    elif isinstance(self.dmisfit, BaseObjectiveFunction):
+        try:
+            client = get_client()
+            pred = lambda pred, x, fields: client.compute(pred(x), fields=fields)
+        except:
+            pred = lambda pred, x, fields: pred(x, f=fields)
+
+        for i, objfct in enumerate(self.dmisfit.objfcts):
+            if hasattr(objfct, "simulation"):
+                dpred += [pred(objfct.simulation.dpred, m, fields=f[i])]
+            else:
+                dpred += []
+    return dpred
+
+
+BaseInvProblem.get_dpred = get_dpred
+
+
+def get_deriv(self, m, f=None):
+    _deriv = []
+    if isinstance(self.dmisfit, BaseDataMisfit):
+        return self.dmisfit.simulation.dpred(m, f=f)
+    elif isinstance(self.dmisfit, BaseObjectiveFunction):
+        try:
+            client = get_client()
+            d_x = lambda d_x, x, fields: client.compute(d_x(x), fields=fields)
+        except:
+            d_x = lambda d_x, x, fields: d_x(x, f=fields)
+
+        for i, objfct in enumerate(self.dmisfit.objfcts):
+            if hasattr(objfct, "simulation"):
+                _deriv += [d_x(objfct.deriv, m, fields=f[i])]
+            else:
+                _deriv += []
+    return _deriv
+
+
+BaseInvProblem.get_deriv = get_deriv
+
+
+def get_deriv2(self, m, v, f=None):
+    _deriv2 = []
+    if isinstance(self.dmisfit, BaseDataMisfit):
+        return self.dmisfit.deriv2(m, v, f=f)
+    elif isinstance(self.dmisfit, BaseObjectiveFunction):
+        try:
+            client = get_client()
+            d_x2 = lambda d_x, x, r, fields: client.compute(d_x2(x), r, fields=fields)
+        except:
+            d_x2 = lambda d_x, x, r, fields: d_x2(x, r, f=fields)
+
+        for i, objfct in enumerate(self.dmisfit.objfcts):
+            if hasattr(objfct, "simulation"):
+                _deriv2 += [d_x2(objfct.deriv2, m, v, fields=f[i])]
+            else:
+                _deriv2 += []
+    return _deriv2
+
+
+BaseInvProblem.get_deriv2 = get_deriv2
+
+
 def dask_evalFunction(self, m, return_g=True, return_H=True):
     """evalFunction(m, return_g=True, return_H=True)
     """
@@ -104,8 +170,12 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     out = (phi,)
     if return_g:
-        phi_dDeriv = self.dmisfit.deriv(m, f=f)
+        # phi_dDeriv = self.dmisfit.deriv(m, f=f)
+        phi_dDeriv = self.get_deriv(m, f=f)
         phi_mDeriv = self.reg2Deriv * self.reg._delta_m(m)
+
+        if isinstance(phi_dDeriv, list):
+            phi_dDeriv = np.sum(np.vstack(phi_dDeriv), axis=0)
 
         g = np.asarray(phi_dDeriv) + self.beta * phi_mDeriv
         out += (g,)
@@ -113,8 +183,13 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     if return_H:
 
         def H_fun(v):
-            phi_d2Deriv = self.dmisfit.deriv2(m, v, f=f)
+            # phi_d2Deriv = self.dmisfit.deriv2(m, v, f=f)
+            phi_d2Deriv = self.get_deriv2(m, v, f=f)
             phi_m2Deriv = self.reg2Deriv * v
+
+            if isinstance(phi_dDeriv, list):
+                phi_d2Deriv = np.sum(np.vstack(phi_d2Deriv), axis=0)
+
             H = phi_d2Deriv + self.beta * phi_m2Deriv
 
             return H
