@@ -24,7 +24,7 @@ class BaseCoupling(BaseRegularization):
     '''
     def __init__(self, mesh, indActive, mapping, **kwargs):
 
-        self.as_super.__init__(mesh, indActive=indActive, mapping=mapping)
+        super().__init__(mesh, indActive=indActive, mapping=mapping)
 
     def deriv(self):
         '''
@@ -88,7 +88,7 @@ class CrossGradient(BaseCoupling):
     '''
     def __init__(self, mesh, indActive, mapping, **kwargs):
 
-        self.as_super.__init__(mesh, indActive, mapping, **kwargs)
+        super().__init__(mesh, indActive, mapping, **kwargs)
         self.map1, self.map2 = mapping.maps # Assume a map has been passed for each model.
 
         regmesh = self.regmesh
@@ -164,8 +164,9 @@ class CrossGradient(BaseCoupling):
 
         if normalized:
             norms = np.linalg.norm(grad_list, axis=-1)
-            # set gradient to 0 if amplitude of gradient is extremely small
             ind = np.where(norms<self.grad_tol)[0]
+            norms[norms<self.grad_tol] = 1.0 # avoid denominator to be 0
+            # set gradient to 0 if amplitude of gradient is extremely small
             grad_list[ind, :] = 0
             grad_list = grad_list/norms[:, None]
 
@@ -383,7 +384,11 @@ class CrossGradient(BaseCoupling):
             d2c_dm2 = (self._Dx.T.dot(utils.sdiag(b)).dot(self._Dx) +
                        self._Dy.T.dot(utils.sdiag(b)).dot(self._Dy) - B.dot(B.T))
 
-            d_dm2_dc_dm1 = func1((self._Dx, self._Dy), grad_list_m1, grad_list_m2)
+            d_dm2_dc_dm1 = func1(
+                (self._Dx, self._Dy),
+                (Dx_m1, Dy_m1),
+                (Dx_m2, Dy_m2)
+                )
             d_dm1_dc_dm2 = d_dm2_dc_dm1.T
 
         elif self._dim == 3:
@@ -403,7 +408,11 @@ class CrossGradient(BaseCoupling):
                        self._Dy.T.dot(utils.sdiag(b)).dot(self._Dy) +
                        self._Dz.T.dot(utils.sdiag(b)).dot(self._Dz) - B.dot(B.T))
 
-            d_dm2_dc_dm1 = func1((self._Dx, self._Dy, self._Dz), grad_list_m1, grad_list_m2)
+            d_dm2_dc_dm1 = func1(
+                (self._Dx, self._Dy, self._Dz),
+                (Dx_m1, Dy_m1, Dz_m1),
+                (Dx_m2, Dy_m2, Dz_m2)
+                )
             d_dm1_dc_dm2 = d_dm2_dc_dm1.T
 
         if v is not None:
