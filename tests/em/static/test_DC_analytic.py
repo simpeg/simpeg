@@ -64,6 +64,22 @@ class DCProblemAnalyticTests(unittest.TestCase):
             print(">> DC analytic test for Simulation3DNodal is failed")
         self.assertTrue(passed)
 
+    def test_Simulation3DNodalFictitiousSources(self, tolerance=0.2):
+        simulation = dc.simulation.Simulation3DNodalFictitiousSources(
+            self.mesh, survey=self.survey, sigma=self.sigma, solver=Solver
+        )
+        data = simulation.dpred()
+        err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
+        if err < 0.2:
+            print(err)
+            passed = True
+            print(">> DC analytic test for Simulation3DNodalFictitiousSources is passed")
+        else:
+            print(err)
+            passed = False
+            print(">> DC analytic test for Simulation3DNodalFictitiousSources is failed")
+        self.assertTrue(passed)
+
     def test_Simulation3DCellCentered_Mixed(self, tolerance=0.2):
         simulation = dc.Simulation3DCellCentered(
             self.mesh,
@@ -85,6 +101,27 @@ class DCProblemAnalyticTests(unittest.TestCase):
             print(">> DC analytic test for Simulation3DCellCentered is failed")
         self.assertTrue(passed)
 
+    def test_Simulation3DCellCenteredFictitiousSources_Mixed(self, tolerance=0.2):
+        simulation = dc.Simulation3DCellCenteredFictitiousSources(
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            bc_type="Mixed",
+            solver=Solver,
+        )
+        data = simulation.dpred()
+
+        err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
+        if err < tolerance:
+            print(err)
+            passed = True
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources is passed")
+        else:
+            print(err)
+            passed = False
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources is failed")
+        self.assertTrue(passed)
+
     def test_Simulation3DCellCentered_Neumann(self, tolerance=0.2):
         simulation = dc.simulation.Simulation3DCellCentered(
             self.mesh,
@@ -103,6 +140,26 @@ class DCProblemAnalyticTests(unittest.TestCase):
             print(err)
             passed = False
             print(">> DC analytic test for Simulation3DCellCentered is failed")
+        self.assertTrue(passed)
+
+    def test_Simulation3DCellCenteredFictitiousSources_Neumann(self, tolerance=0.2):
+        simulation = dc.simulation.Simulation3DCellCenteredFictitiousSources(
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            bc_type="Neumann",
+            solver=Solver,
+        )
+        data = simulation.dpred()
+        err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
+        if err < tolerance:
+            print(err)
+            passed = True
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources is passed")
+        else:
+            print(err)
+            passed = False
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources is failed")
         self.assertTrue(passed)
 
 
@@ -162,6 +219,28 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
             passed = False
             print(">> DC analytic test for Simulation3DCellCentered_Dirchlet is failed")
         self.assertTrue(passed)
+    
+    
+    def test_Simulation3DCellCenteredFictitiousSources_Dirichlet(self, tolerance=0.2):
+        simulation = dc.simulation.Simulation3DCellCenteredFictitiousSources(
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            bc_type="Dirichlet",
+            solver=Solver,
+        )
+
+        data = simulation.dpred()
+        err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
+        if err < tolerance:
+            print(err)
+            passed = True
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources_Dirchlet is passed")
+        else:
+            print(err)
+            passed = False
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources_Dirchlet is failed")
+        self.assertTrue(passed)
 
 
 # This is for Pole-Pole case
@@ -211,6 +290,26 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
             print(err)
             passed = False
             print(">> DC analytic test for Simulation3DCellCentered_Mixed is failed")
+        self.assertTrue(passed)
+    
+    def test_Simulation3DCellCenteredFictitiousSources_Mixed(self, tolerance=0.2):
+        simulation = dc.simulation.Simulation3DCellCenteredFictitiousSources(
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            bc_type="Mixed",
+            solver=Solver,
+        )
+        data = simulation.dpred()
+        err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
+        if err < tolerance:
+            print(err)
+            passed = True
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources_Mixed is passed")
+        else:
+            print(err)
+            passed = False
+            print(">> DC analytic test for Simulation3DCellCenteredFictitiousSources_Mixed is failed")
         self.assertTrue(passed)
 
 

@@ -1,15 +1,26 @@
 import numpy as np
+import scipy as sp
 import properties
+from discretize import TensorMesh
 from ....utils.code_utils import deprecate_class
 
 from .... import props
 from ....data import Data
 from ....utils import mkvc, sdiag
 from ...base import BaseEMSimulation
+from ..utils import gettopoCC
 
 from ..resistivity.fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from ..resistivity import Simulation3DCellCentered as BaseSimulation3DCellCentered
 from ..resistivity import Simulation3DNodal as BaseSimulation3DNodal
+from ..resistivity import (
+    Simulation3DCellCenteredFictitiousSources as BaseSimulation3DCellCenteredFictitiousSources,
+)
+from ..resistivity import (
+    Simulation3DNodalFictitiousSources as BaseSimulation3DNodalFictitiousSources,
+)
+from ..resistivity.survey import Survey
+from ..resistivity.sources import Pole, Dipole
 
 
 class BaseIPSimulation(BaseEMSimulation):
@@ -330,6 +341,33 @@ class Simulation3DCellCentered(BaseIPSimulation, BaseSimulation3DCellCentered):
 
 
 class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
+
+    _solutionType = "phiSolution"
+    _formulation = "EB"  # N potentials means B is on faces
+    fieldsPair = Fields3DNodal
+    sign = -1.0
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class Simulation3DCellCenteredFictitiousSources(
+    BaseIPSimulation, BaseSimulation3DCellCenteredFictitiousSources
+):
+
+    _solutionType = "phiSolution"
+    _formulation = "HJ"  # CC potentials means J is on faces
+    fieldsPair = Fields3DCellCentered
+    sign = 1.0
+    bc_type = "Dirichlet"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class Simulation3DNodalFictitiousSources(
+    BaseIPSimulation, BaseSimulation3DNodalFictitiousSources
+):
 
     _solutionType = "phiSolution"
     _formulation = "EB"  # N potentials means B is on faces

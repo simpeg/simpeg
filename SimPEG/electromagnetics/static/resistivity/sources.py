@@ -4,6 +4,7 @@ import properties
 from .... import survey
 from ....utils import Zero, closestPoints
 from ....utils.code_utils import deprecate_property
+from discretize import TensorMesh, TreeMesh
 
 import warnings
 
@@ -130,6 +131,33 @@ class Dipole(BaseSrc):
                 self._q = self.current * (qa + qb)
             return self._q
 
+    def compute_phi_primary(self, loc_grid, zf, rho0, dh):
+
+        loc_a, loc_b = self.location
+        RA = np.linalg.norm(loc_grid - loc_a, axis=-1)
+        RB = np.linalg.norm(loc_grid - loc_b, axis=-1)
+
+        # Image source locations
+        # create new arrays (don't modify loc_a/loc_b)
+        loc_ai = loc_a.copy()
+        loc_ai[-1] += 2 * (zf[0] - loc_a[-1])
+        RAI = np.linalg.norm(loc_grid - loc_ai, axis=-1)
+
+        loc_bi = loc_b.copy()
+        loc_bi[-1] += 2 * (zf[1] - loc_b[-1])
+        RBI = np.linalg.norm(loc_grid - loc_bi, axis=-1)
+
+        # Shift if source is close to a grid point due to singularity at electrode
+        shift = dh / 100
+        RA = np.maximum(RA, shift)
+        RB = np.maximum(RB, shift)
+        RAI = np.maximum(RAI, shift)
+        RBI = np.maximum(RBI, shift)
+
+        return (self.current * rho0 / (4 * np.pi)) * (
+            RA ** -1 + RAI ** -1 - RB ** -1 - RBI ** -1
+        )
+
 
 class Pole(BaseSrc):
     def __init__(self, receiver_list=[], location=None, **kwargs):
@@ -147,3 +175,18 @@ class Pole(BaseSrc):
                 q = sim.mesh.getInterpolationMat(self.location, locType="N")
                 self._q = self.current * q.toarray()
             return self._q
+
+    def compute_phi_primary(self, loc_grid, zf, rho0, dh):
+        # Distance from source to locations
+        RP = np.linalg.norm(loc_grid - self.location, axis=-1)
+
+        # Distance from image source to locations
+        loc_i = self.location.copy()
+        loc_i[-1] += 2 * (zf - self.location[-1])
+        RI = np.linalg.norm(loc_grid - loc_i, axis=-1)
+
+        shift = dh / 100
+        RP = np.maximum(RP, shift)
+        RI = np.maximum(RI, shift)
+
+        return (self.current * rho0 / (4 * np.pi)) * (RP ** -1 + RI ** -1)
