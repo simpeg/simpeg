@@ -100,9 +100,9 @@ def get_deriv2(self, m, v, f=None):
     elif isinstance(self.dmisfit, BaseObjectiveFunction):
         try:
             client = get_client()
-            d_x2 = lambda d_x, x, r, fields: client.compute(d_x2(x), r, fields=fields)
+            d_x2 = lambda d2_x, x, r, fields: client.compute(d2_x(x, r), fields=fields)
         except:
-            d_x2 = lambda d_x, x, r, fields: d_x2(x, r, f=fields)
+            d_x2 = lambda d2_x, x, r, fields: d2_x(x, r, f=fields)
 
         for i, objfct in enumerate(self.dmisfit.objfcts):
             if hasattr(objfct, "simulation"):
@@ -187,8 +187,9 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
             phi_d2Deriv = self.get_deriv2(m, v, f=f)
             phi_m2Deriv = self.reg2Deriv * v
 
-            if isinstance(phi_dDeriv, list):
+            if isinstance(phi_d2Deriv, list):
                 phi_d2Deriv = np.sum(np.vstack(phi_d2Deriv), axis=0)
+                print('[info] ', phi_d2Deriv.shape)
 
             H = phi_d2Deriv + self.beta * phi_m2Deriv
 

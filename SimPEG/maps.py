@@ -3316,7 +3316,7 @@ class ParametricBlockInLayer(ParametricLayer):
             return sp.csr_matrix(self._deriv3d(m))
 
 
-class TileMap(IdentityMap):
+class TileMap(ExpMap):
     """
         Mapping for tiled inversion.
 
