@@ -210,7 +210,7 @@ actv = utils.surface2ind_topo(mesh, topo, gridLoc="CC")
 # Create active map to go from reduce set to full
 ndv = np.nan
 actvMap = maps.InjectActiveCells(mesh, actv, ndv)
-nactv = actv.sum()
+nactv = int(actv.sum())
 
 # Create simulations and data misfits
 # Wires mapping
