@@ -188,6 +188,11 @@ class Dipole(BaseRx):
         if self.data_type == "apparent_resistivity":
             P = sdiag(1.0 / self.geometric_factor) * P
         elif self.data_type == "apparent_chargeability":
+            if self.dc_voltage is None:
+                raise AttributeError(
+                    "DC voltages must be set to survey object in order to "
+                    "simulate apparent chargeabilities directly"
+                )
             P = sdiag(1.0 / self.dc_voltage) * P
 
         if self.storeProjections:

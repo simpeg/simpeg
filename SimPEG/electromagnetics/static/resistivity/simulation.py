@@ -210,7 +210,6 @@ class BaseDCSimulation(BaseEMSimulation):
 
         if self._formulation == "EB":
             n = self.mesh.nN
-            # return NotImplementedError
 
         elif self._formulation == "HJ":
             n = self.mesh.nC
@@ -270,7 +269,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         BaseDCSimulation.__init__(self, mesh, **kwargs)
         self.setBC()
 
-    def getA(self):
+    def getA(self, resistivity=None):
         """
         Make the A matrix for the cell centered DC resistivity problem
         A = D MfRhoI G
@@ -278,7 +277,10 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
         D = self.Div
         G = self.Grad
-        MfRhoI = self.MfRhoI
+        if resistivity is None:
+            MfRhoI = self.MfRhoI
+        else:
+            MfRhoI = self.mesh.getFaceInnerProduct(resistivity, invMat=True)
         A = D @ MfRhoI @ G
 
         if self.bc_type == "Neumann":
@@ -477,13 +479,15 @@ class Simulation3DNodal(BaseDCSimulation):
         if mesh._meshType == "TREE":
             mesh.nodalGrad
 
-    def getA(self):
+    def getA(self, resistivity=None):
         """
         Make the A matrix for the cell centered DC resistivity problem
         A = G.T MeSigma G
         """
-
-        MeSigma = self.MeSigma
+        if resistivity is None:
+            MeSigma = self.MeSigma
+        else:
+            MeSigma = self.mesh.getEdgeInnerProduct(1.0 / resistivity)
         Grad = self.mesh.nodalGrad
         A = Grad.T @ MeSigma @ Grad
 
