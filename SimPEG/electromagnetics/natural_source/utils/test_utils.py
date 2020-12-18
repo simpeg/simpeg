@@ -7,7 +7,8 @@ import numpy as np
 import discretize
 from SimPEG import maps, mkvc, utils, Data
 from ....utils import meshTensor
-from ..receivers import Point1DImpedance, Point3DImpedance, Point3DTipper
+from ..receivers import Point1DImpedance, Point3DImpedance, Point3DTipper, Point3DComplexResistivity
+#     rxList.append(ns.Rx.Point3DComplexResistivity(locations=None,locations_e=rx_loc, locations_h=rx_loc, orientation=rx_orientation, component='phase'))
 from ..survey import Survey
 from ..sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
 from ..simulation import Simulation3DPrimarySecondary
@@ -92,13 +93,19 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
         rx_type_list = ["xx", "xy", "yx", "yy"]
     elif comp == "Tip":
         rx_type_list = ["zx", "zy"]
+    elif comp == "Res":
+        rx_type_list = ["yx", "yy"]
     else:
         rx_type_list = [comp]
 
     for rx_type in rx_type_list:
         if rx_type in ["xx", "xy", "yx", "yy"]:
-            rxList.append(Point3DImpedance(rx_loc, rx_type, "real"))
-            rxList.append(Point3DImpedance(rx_loc, rx_type, "imag"))
+            if comp == "Res":
+                rxList.append(Point3DComplexResistivity(locations=rx_loc, orientation=rx_type, component='apparent_resistivity'))
+                rxList.append(Point3DComplexResistivity(locations=rx_loc, orientation=rx_type, component='phase'))
+            else:
+                rxList.append(Point3DImpedance(rx_loc, rx_type, "real"))
+                rxList.append(Point3DImpedance(rx_loc, rx_type, "imag"))
         if rx_type in ["zx", "zy"]:
             rxList.append(Point3DTipper(rx_loc, rx_type, "real"))
             rxList.append(Point3DTipper(rx_loc, rx_type, "imag"))
