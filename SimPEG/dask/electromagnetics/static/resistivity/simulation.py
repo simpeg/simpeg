@@ -16,15 +16,12 @@ def dask_getJ(self, m, f=None):
     """
         Generate Full sensitivity matrix
     """
-
     if self._Jmatrix is not None:
+        # print('[info] found Jmatrix1')
         return self._Jmatrix
     else:
         if f is None:
             f = self.fields(m)
-
-    if self.verbose:
-        print("Calculating J and storing")
 
     if self._mini_survey is not None:
         # Need to use _Jtvec for this operation currently...
@@ -137,8 +134,8 @@ def dask_Jvec(self, m, v, f=None):
         Compute sensitivity matrix (J) and vector (v) product.
     """
 
-    if f is None:
-        f = self.fields(m)
+    # if f is None:
+    #     f = self.fields(m)
 
     if self.storeJ:
         J = self.getJ(m, f=f)
@@ -168,13 +165,13 @@ def dask_Jvec(self, m, v, f=None):
 Sim.Jvec = dask_Jvec
 
 
-def Jtvec(self, m, v, f=None):
+def dask_Jtvec(self, m, v, f=None):
     """
         Compute adjoint sensitivity matrix (J^T) and vector (v) product.
     """
 
-    if f is None:
-        f = self.fields(m)
+    # if f is None:
+    #     f = self.fields(m)
 
     self.model = m
 
@@ -183,3 +180,6 @@ def Jtvec(self, m, v, f=None):
         return np.asarray(J.T.dot(v).compute())
 
     return self._Jtvec(m, v=v, f=f)
+
+
+Sim.Jtvec = dask_Jtvec
