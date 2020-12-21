@@ -34,15 +34,6 @@ except ImportError:
 
 np.random.seed(12345)
 
-# # create our dask worker managers
-cluster = LocalCluster(processes=False)
-client = Client(cluster)
-
-max_chunk_size = 256
-
-config.set({"array.chunk-size": str(max_chunk_size) + "MiB"})
-
-
 # @dask.delayed
 def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
     local_survey = dc.Survey(source)
@@ -70,7 +61,8 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
     )
 #     time_map = time.time() - time_map
 #     print('[info] ', time_map)
-    mapping = actmap * local_map
+    expmap = maps.ExpMap(local_mesh)
+    mapping = expmap * actmap * local_map
     # Create the local misfit
     max_chunk_size = 256
     simulation = dc.Simulation3DNodal(
@@ -95,13 +87,16 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
 
     return local_misfit
 
-# creating survey design helper class
+
 #####################################
+# creating survey design helper class
+# -----------------------------------
 class transmit():
     def __init__(self):
         self.receivers = []
         self.transmit = []
         self.dipoles = []
+
     def createDipoles(self, dp_min, dp_max):
         # print('len dp: ', self.receivers.shape)
         for ii in range(self.receivers.shape[1]):
@@ -113,6 +108,15 @@ class transmit():
                     self.dipoles.append([node1, node2])
 
 def run(survey_type="pole-dipole", plotIt=True):
+
+    # # create our dask worker managers
+    cluster = LocalCluster(processes=False)
+    client = Client(cluster)
+
+    max_chunk_size = 256
+
+    config.set({"array.chunk-size": str(max_chunk_size) + "MiB"})
+
     ##############################################################################
     # create rolling type survey
     # --------------------------
@@ -471,7 +475,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     # Plot the model on different meshes
     ind = 6
     fig = plt.figure(figsize=(14, 10))
-            
+
     local_mesh = global_misfit.objfcts[0].simulation.mesh
     local_map = global_misfit.objfcts[0].simulation.sigmaMap
     sub_survey = global_misfit.objfcts[0].simulation.survey
@@ -543,16 +547,16 @@ def run(survey_type="pole-dipole", plotIt=True):
     plt.show()
 
 
-    # global
-    fig2 = plt.figure(figsize=(14, 10))
+    # # global
+    # fig2 = plt.figure(figsize=(14, 10))
 
-    inject_global = maps.InjectActiveCells(global_mesh, active_cells, np.nan)
-    ax_ = plt.subplot(1, 1, 1)
-    global_mesh.plotSlice(inject_global * m0_dc, normal="z", ind=ind, ax=ax_, grid=True)
-    ax_.plot(electrodes_g[:, 0], electrodes_g[:, 1], 'om')
-    ax_.set_title(f"Global Mesh. Active cells {active_cells.sum()}")
-    ax_.set_aspect("equal")
-    plt.show()
+    # inject_global = maps.InjectActiveCells(global_mesh, active_cells, np.nan)
+    # ax_ = plt.subplot(1, 1, 1)
+    # global_mesh.plotSlice(inject_global * m0_dc, normal="z", ind=ind, ax=ax_, grid=True)
+    # ax_.plot(electrodes_g[:, 0], electrodes_g[:, 1], 'om')
+    # ax_.set_title(f"Global Mesh. Active cells {active_cells.sum()}")
+    # ax_.set_aspect("equal")
+    # plt.show()
 
     #====================================================================================
     # new implementation using the Combo Objective function and the dmis = dmis1 + dmis2
