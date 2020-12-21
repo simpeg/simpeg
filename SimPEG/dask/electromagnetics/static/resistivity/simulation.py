@@ -9,6 +9,8 @@ import os
 import shutil
 import numpy as np
 
+Sim.sensitivity_path = './sensitivity/'
+
 
 def dask_getJ(self, m, f=None):
     """

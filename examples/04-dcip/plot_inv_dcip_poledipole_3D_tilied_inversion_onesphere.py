@@ -72,6 +72,7 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
 #         max_chunk_size=max_chunk_size,
 #         workers=workers
     )
+    simulation.sensitivity_path = './sensitivity/Tile' + str(tile_id) + '/'
 #     print(simulation.getSourceTerm().shape)
     data_object = data.Data(
         local_survey,
@@ -279,12 +280,12 @@ def run(survey_type="pole-dipole", plotIt=True):
         transmits[ii].transmit = tx
         transmits[ii].receivers = rx
 
-    ax = plt.subplot(1,1,1)
-    for line in transmits:
-        ax.plot(line.transmit[0, :], line.transmit[1, :], 'or')
-        ax.plot(line.receivers[0, :], line.receivers[1, :], '.b')       
-    ax.axis("equal")
-    plt.show()
+    # ax = plt.subplot(1,1,1)
+    # for line in transmits:
+    #     ax.plot(line.transmit[0, :], line.transmit[1, :], 'or')
+    #     ax.plot(line.receivers[0, :], line.receivers[1, :], '.b')       
+    # ax.axis("equal")
+    # plt.show()
 
     #########################################################################
     # create the simpeg survey object
@@ -383,15 +384,15 @@ def run(survey_type="pole-dipole", plotIt=True):
 
     survey_dc.drapeTopo(global_mesh, active_cells, option='top') 
 
-    fig = plt.figure(figsize=(6, 6))
-    ax = fig.add_subplot(111)
-    global_mesh.plotSlice(mtrue, grid=True, normal="z", ind=5, ax=ax)
-    ax.plot(electrodes[:, 0], electrodes[:, 1], '.r')
+    # fig = plt.figure(figsize=(6, 6))
+    # ax = fig.add_subplot(111)
+    # global_mesh.plotSlice(mtrue, grid=True, normal="z", ind=5, ax=ax)
+    # ax.plot(electrodes[:, 0], electrodes[:, 1], '.r')
 
-    fig = plt.figure(figsize=(6, 6))
-    ax1 = fig.add_subplot(111)
-    global_mesh.plotSlice(mtrue, grid=True, normal="y", ind=25, ax=ax1)
-    plt.show()
+    # fig = plt.figure(figsize=(6, 6))
+    # ax1 = fig.add_subplot(111)
+    # global_mesh.plotSlice(mtrue, grid=True, normal="y", ind=25, ax=ax1)
+    # plt.show()
 
     ##########################################################################
     # Synthetic data simulation
@@ -408,10 +409,10 @@ def run(survey_type="pole-dipole", plotIt=True):
 
     global_data = simulation_g.make_synthetic_data(mtrue[active_cells], relative_error=0.05, add_noise=True)
 
-    # plot predicted data
-    plt.plot(global_data.dobs, '.')
-    plt.title('data - DC')
-    plt.show()
+    # # plot predicted data
+    # plt.plot(global_data.dobs, '.')
+    # plt.title('data - DC')
+    # plt.show()
 
     survey_dc.dobs = global_data.dobs
     survey_dc.std = np.abs(global_data.dobs) * 0.5
@@ -474,7 +475,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     m0_dc = np.log(global_mesh.vol[active_cells])
     # Plot the model on different meshes
     ind = 6
-    fig = plt.figure(figsize=(14, 10))
+    # fig = plt.figure(figsize=(14, 10))
 
     local_mesh = global_misfit.objfcts[0].simulation.mesh
     local_map = global_misfit.objfcts[0].simulation.sigmaMap
@@ -487,64 +488,64 @@ def run(survey_type="pole-dipole", plotIt=True):
 
     # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
-    ax = plt.subplot(2, 2, 1)
-    local_mesh.plotSlice((local_map * m0_dc), normal="Z", ind=ind, ax=ax, grid=True
-    )
-    ax.plot(electrodes[:, 0], electrodes[:, 1], 'om')
-    ax.set_aspect("equal")
-    # ax.set_title(f"Mesh {1}. Active cells {local_map.local_active.sum()}")
+    # ax = plt.subplot(2, 2, 1)
+    # local_mesh.plotSlice((local_map * m0_dc), normal="Z", ind=ind, ax=ax, grid=True
+    # )
+    # ax.plot(electrodes[:, 0], electrodes[:, 1], 'om')
+    # ax.set_aspect("equal")
+    # # ax.set_title(f"Mesh {1}. Active cells {local_map.local_active.sum()}")
 
-    local_mesh = global_misfit.objfcts[1].simulation.mesh
-    local_map = global_misfit.objfcts[1].simulation.sigmaMap
-    sub_survey = global_misfit.objfcts[1].simulation.survey
-    electrodes = np.vstack((sub_survey.locations_a,
-                                    sub_survey.locations_b,
-                                    sub_survey.locations_m,
-                                    sub_survey.locations_n))
+    # local_mesh = global_misfit.objfcts[1].simulation.mesh
+    # local_map = global_misfit.objfcts[1].simulation.sigmaMap
+    # sub_survey = global_misfit.objfcts[1].simulation.survey
+    # electrodes = np.vstack((sub_survey.locations_a,
+    #                                 sub_survey.locations_b,
+    #                                 sub_survey.locations_m,
+    #                                 sub_survey.locations_n))
 
-    # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
+    # # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
-    ax1 = plt.subplot(2, 2, 2)
-    local_mesh.plotSlice((local_map * m0_dc), normal="Z", ind=ind, ax=ax1, grid=True
-    )
-    ax1.plot(electrodes[:, 0], electrodes[:, 1], 'om')
-    ax1.set_aspect("equal")
-    # ax1.set_title(f"Mesh {5}. Active cells {local_map.local_active.sum()}")
+    # ax1 = plt.subplot(2, 2, 2)
+    # local_mesh.plotSlice((local_map * m0_dc), normal="Z", ind=ind, ax=ax1, grid=True
+    # )
+    # ax1.plot(electrodes[:, 0], electrodes[:, 1], 'om')
+    # ax1.set_aspect("equal")
+    # # ax1.set_title(f"Mesh {5}. Active cells {local_map.local_active.sum()}")
 
-    local_mesh = global_misfit.objfcts[2].simulation.mesh
-    local_map = global_misfit.objfcts[2].simulation.sigmaMap
-    sub_survey = global_misfit.objfcts[2].simulation.survey
-    electrodes = np.vstack((sub_survey.locations_a,
-                                    sub_survey.locations_b,
-                                    sub_survey.locations_m,
-                                    sub_survey.locations_n))
+    # local_mesh = global_misfit.objfcts[2].simulation.mesh
+    # local_map = global_misfit.objfcts[2].simulation.sigmaMap
+    # sub_survey = global_misfit.objfcts[2].simulation.survey
+    # electrodes = np.vstack((sub_survey.locations_a,
+    #                                 sub_survey.locations_b,
+    #                                 sub_survey.locations_m,
+    #                                 sub_survey.locations_n))
 
-    # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
+    # # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
-    ax2 = plt.subplot(2, 2, 3)
-    local_mesh.plotSlice((local_map * m0_dc), normal="Z", ind=ind, ax=ax2, grid=True
-    )
-    ax2.plot(electrodes[:, 0], electrodes[:, 1], 'om')
-    ax2.set_aspect("equal")
-    # ax2.set_title(f"Mesh {10}. Active cells {local_map.local_active.sum()}")
+    # ax2 = plt.subplot(2, 2, 3)
+    # local_mesh.plotSlice((local_map * m0_dc), normal="Z", ind=ind, ax=ax2, grid=True
+    # )
+    # ax2.plot(electrodes[:, 0], electrodes[:, 1], 'om')
+    # ax2.set_aspect("equal")
+    # # ax2.set_title(f"Mesh {10}. Active cells {local_map.local_active.sum()}")
 
-    local_mesh = global_misfit.objfcts[3].simulation.mesh
-    local_map = global_misfit.objfcts[3].simulation.sigmaMap
-    sub_survey = global_misfit.objfcts[3].simulation.survey
-    electrodes = np.vstack((sub_survey.locations_a,
-                                    sub_survey.locations_b,
-                                    sub_survey.locations_m,
-                                    sub_survey.locations_n))
+    # local_mesh = global_misfit.objfcts[3].simulation.mesh
+    # local_map = global_misfit.objfcts[3].simulation.sigmaMap
+    # sub_survey = global_misfit.objfcts[3].simulation.survey
+    # electrodes = np.vstack((sub_survey.locations_a,
+    #                                 sub_survey.locations_b,
+    #                                 sub_survey.locations_m,
+    #                                 sub_survey.locations_n))
 
-    # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
+    # # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
-    ax3 = plt.subplot(2, 2, 4)
-    local_mesh.plotSlice((local_map * m0_dc), normal="Z", ind=ind, ax=ax3, grid=True
-    )
-    ax3.plot(electrodes[:, 0], electrodes[:, 1], 'om')
-    ax3.set_aspect("equal")
-    # ax3.set_title(f"Mesh {15}. Active cells {local_map.local_active.sum()}")
-    plt.show()
+    # ax3 = plt.subplot(2, 2, 4)
+    # local_mesh.plotSlice((local_map * m0_dc), normal="Z", ind=ind, ax=ax3, grid=True
+    # )
+    # ax3.plot(electrodes[:, 0], electrodes[:, 1], 'om')
+    # ax3.set_aspect("equal")
+    # # ax3.set_title(f"Mesh {15}. Active cells {local_map.local_active.sum()}")
+    # plt.show()
 
 
     # # global
@@ -596,16 +597,17 @@ def run(survey_type="pole-dipole", plotIt=True):
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
 
     strt = time.time()
-    F = invProb.getFields(m0_dc)
+    J = invProb.formJ(m0_dc)
+    # F = invProb.getFields(m0_dc)
     print('time for fields: ', time.time() - strt)
-    strt_dp = time.time()
-    dpredd = invProb.get_dpred(m0_dc, f=F)
-    # dmis_deriv = invProb.dmisfit.deriv(m0_dc, f=F)
-    print('time for dpred: ', time.time() - strt_dp)
+    # strt_dp = time.time()
+    # dpredd = invProb.get_dpred(m0_dc, f=F)
+    # # dmis_deriv = invProb.dmisfit.deriv(m0_dc, f=F)
+    # print('time for dpred: ', time.time() - strt_dp)
 
-    strt_d = time.time()
-    dmis_deriv = invProb.dmisfit.deriv(m0_dc, f=F)
-    print('time for deriv: ', time.time() - strt_d)
+    # strt_d = time.time()
+    # dmis_deriv = invProb.dmisfit.deriv(m0_dc, f=F)
+    # print('time for deriv: ', time.time() - strt_d)
 
     # beta = directives.BetaSchedule(
     #     coolingFactor=coolingFactor, coolingRate=coolingRate

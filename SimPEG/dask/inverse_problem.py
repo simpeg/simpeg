@@ -50,6 +50,36 @@ def dask_getFields(self, m, store=False, deleteWarmstart=True):
 BaseInvProblem.getFields = dask_getFields
 
 
+def dask_formJ(self, m, store=False, deleteWarmstart=True):
+    j = None
+
+    try:
+        client = get_client()
+        jsub = lambda f, x, fields: client.compute(f(x), fields=None)
+    except:
+        jsub = lambda f, x: f(x)
+
+    if j is None:
+        if isinstance(self.dmisfit, BaseDataMisfit):
+            j = jsub(self.dmisfit.simulation.getJ, m)
+
+        elif isinstance(self.dmisfit, BaseObjectiveFunction):
+            j = []
+            for objfct in self.dmisfit.objfcts:
+                if hasattr(objfct, "simulation"):
+                    j += [jsub(objfct.simulation.getJ, m, None)]
+                else:
+                    j += []
+
+    if isinstance(j, Future) or isinstance(j[0], Future):
+        j = client.gather(j)
+
+    return da.vstack(j).compute()
+
+
+BaseInvProblem.formJ = dask_formJ
+
+
 def get_dpred(self, m, f=None):
     dpred = []
     client = get_client()
