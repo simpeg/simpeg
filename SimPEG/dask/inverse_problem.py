@@ -50,7 +50,7 @@ def dask_getFields(self, m, store=False, deleteWarmstart=True):
 BaseInvProblem.getFields = dask_getFields
 
 
-def dask_formJ(self, m, store=False, deleteWarmstart=True):
+def dask_formJ(self, m):
     j = None
 
     try:
@@ -80,29 +80,29 @@ def dask_formJ(self, m, store=False, deleteWarmstart=True):
 BaseInvProblem.formJ = dask_formJ
 
 
-def get_dpred(self, m, f=None):
-    dpred = []
-    client = get_client()
-    if isinstance(self.dmisfit, BaseDataMisfit):
-        return self.dmisfit.simulation.dpred(m, f=f)
-    elif isinstance(self.dmisfit, BaseObjectiveFunction):
+# def get_dpred(self, m, f=None):
+#     dpred = []
+#     client = get_client()
+#     if isinstance(self.dmisfit, BaseDataMisfit):
+#         return self.dmisfit.simulation.dpred(m, f=f)
+#     elif isinstance(self.dmisfit, BaseObjectiveFunction):
 
-        for i, objfct in enumerate(self.dmisfit.objfcts):
-            if hasattr(objfct, "simulation"):
-                future = client.compute(objfct.simulation.dpred(m, f=f[i]))
-                dpred += [future]
-            else:
-                dpred += []
+#         for i, objfct in enumerate(self.dmisfit.objfcts):
+#             if hasattr(objfct, "simulation"):
+#                 future = client.compute(objfct.simulation.dpred(m, f=f[i]))
+#                 dpred += [future]
+#             else:
+#                 dpred += []
 
-    if isinstance(dpred[0], Future):
-        print("i'm a future")
-        big_future = client.submit(da.vstack, dpred).result()
-        return client.compute(big_future).result()
-    else:
-        return da.hstack(dpred).compute()
+#     if isinstance(dpred[0], Future):
+#         print("i'm a future")
+#         big_future = client.submit(da.vstack, dpred).result()
+#         return client.compute(big_future).result()
+#     else:
+#         return da.hstack(dpred).compute()
 
 
-BaseInvProblem.get_dpred = get_dpred
+# BaseInvProblem.get_dpred = get_dpred
 
 
 def dask_evalFunction(self, m, return_g=True, return_H=True):

@@ -136,12 +136,12 @@ def dask_Jvec(self, m, v, f=None):
 
     # if f is None:
     #     f = self.fields(m)
+    self.model = m
 
     if self.storeJ:
+        # print('[info] where I should be')
         J = self.getJ(m, f=f)
         return J.dot(v).compute()
-
-    self.model = m
 
     if self._mini_survey is not None:
         survey = self._mini_survey
@@ -176,6 +176,7 @@ def dask_Jtvec(self, m, v, f=None):
     self.model = m
 
     if self.storeJ:
+        # print('[info] where I should be')
         J = self.getJ(m, f=f)
         return np.asarray(J.T.dot(v).compute())
 

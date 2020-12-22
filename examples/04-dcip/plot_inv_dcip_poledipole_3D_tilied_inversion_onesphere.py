@@ -66,7 +66,7 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
     # Create the local misfit
     max_chunk_size = 256
     simulation = dc.Simulation3DNodal(
-        local_mesh, survey=local_survey, sigmaMap=mapping, storeJ=False,
+        local_mesh, survey=local_survey, sigmaMap=mapping, storeJ=True,
         Solver=Solver,
 #         chunk_format="row",
 #         max_chunk_size=max_chunk_size,
@@ -596,50 +596,53 @@ def run(survey_type="pole-dipole", plotIt=True):
     opt = optimization.ProjectedGNCG(maxIter=10, upper=np.inf, lower=-np.inf)
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
 
-    strt = time.time()
-    J = invProb.formJ(m0_dc)
-    # F = invProb.getFields(m0_dc)
-    print('time for fields: ', time.time() - strt)
-    # strt_dp = time.time()
-    # dpredd = invProb.get_dpred(m0_dc, f=F)
-    # # dmis_deriv = invProb.dmisfit.deriv(m0_dc, f=F)
-    # print('time for dpred: ', time.time() - strt_dp)
+    # strt = time.time()
+    # J = invProb.formJ(m0_dc)
+    # # F = invProb.getFields(m0_dc)
+    # print('time for fields: ', time.time() - strt)
+    # # strt_dp = time.time()
+    # # dpredd = invProb.get_dpred(m0_dc, f=None)
+    # # # dmis_deriv = invProb.dmisfit.deriv(m0_dc, f=None)
+    # # # print(invProb.dmisfit.objfcts[0].deriv(m0_dc, f=None))
+    # # print('time for dpred: ', time.time() - strt_dp)
 
     # strt_d = time.time()
-    # dmis_deriv = invProb.dmisfit.deriv(m0_dc, f=F)
+    # dmis_deriv = invProb.dmisfit.deriv(m0_dc, f=None)
     # print('time for deriv: ', time.time() - strt_d)
 
-    # beta = directives.BetaSchedule(
-    #     coolingFactor=coolingFactor, coolingRate=coolingRate
-    # )
-    # betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
-    # target = directives.TargetMisfit()
-    # target.target = survey.nD / 2.
-    # saveIter = directives.SaveModelEveryIteration()
-    # saveIterVar = directives.SaveOutputEveryIteration()
-    # # Need to have basice saving function
-    # if use_preconditioner:
-    #     update_Jacobi = directives.UpdatePreconditioner()
-    #     updateSensW = directives.UpdateSensitivityWeights()
-    #     # updateWj = Directives.Update_Wj()
-    #     # directiveList = [
-    #     #     beta, betaest, target, updateSensW, saveIter, update_Jacobi
-    #     # ]
-    #     directiveList = [
-    #         updateSensW, beta, betaest, target, saveIter, update_Jacobi, saveIterVar 
-    #     ]
-    # else:
-    #     directiveList = [
-    #         beta, betaest, target, saveIter
-    #     ]
-    # inv = inversion.BaseInversion(
-    #     invProb, directiveList=directiveList)
-    # opt.LSshorten = 0.5
-    # opt.remember('xc')
+    beta = directives.BetaSchedule(
+        coolingFactor=coolingFactor, coolingRate=coolingRate
+    )
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
+    target = directives.TargetMisfit()
+    target.target = survey.nD / 2.
+    saveIter = directives.SaveModelEveryIteration()
+    saveIterVar = directives.SaveOutputEveryIteration()
+    # Need to have basice saving function
+    if use_preconditioner:
+        update_Jacobi = directives.UpdatePreconditioner()
+        updateSensW = directives.UpdateSensitivityWeights()
+        # updateWj = Directives.Update_Wj()
+        # directiveList = [
+        #     beta, betaest, target, updateSensW, saveIter, update_Jacobi
+        # ]
+        directiveList = [
+            updateSensW, beta, betaest, target, saveIter, update_Jacobi, saveIterVar 
+        ]
+    else:
+        directiveList = [
+            beta, betaest, target, saveIter
+        ]
+    inv = inversion.BaseInversion(
+        invProb, directiveList=directiveList)
+    opt.LSshorten = 0.5
+    opt.remember('xc')
 
-    # # Run Inversion ================================================================
-    # minv = inv.run(m0_dc)
-    # # results.append(minv)
+    # Run Inversion ================================================================
+    minv = inv.run(m0_dc)
+    rho_est = mapactive * minv
+    np.save('model_out.npy', rho_est)
+    # discretize.TreeMesh.writeUBC(global_mesh, 'OctreeMesh-test.msh', models={'ubc.con': np.exp(rho_est)})
 
 
 if __name__ == '__main__':
