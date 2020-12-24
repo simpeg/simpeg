@@ -19,13 +19,13 @@ def dask_deriv(self, m, f=None):
     Distributed :obj:`simpeg.data_misfit.L2DataMisfit.deriv`
     """
 
-    if f is None:
-        if self.simulation._Jmatrix is None:
-            f = self.simulation.fields(m)
+    # if f is None:
+    if self.simulation._Jmatrix is None:
+        self.simulation.fields(m)
 
     wtw_d = self.W.diagonal() ** 2.0 * self.residual(m, f=f)
 
-    return self.client.compute(self.simulation.Jtvec(m, wtw_d, f=f), workers=self.workers)
+    return self.client.compute(self.simulation.Jtvec(m, wtw_d), workers=self.workers)
 
 
 L2DataMisfit.deriv = dask_deriv
@@ -36,15 +36,15 @@ def dask_deriv2(self, m, v, f=None):
     Distributed :obj:`simpeg.data_misfit.L2DataMisfit.deriv2`
     """
 
-    if f is None:
-        if self.simulation._Jmatrix is None:
-            f = self.simulation.fields(m)
+    # if f is None:
+    if self.simulation._Jmatrix is None:
+        self.simulation.fields(m)
 
-    jvec = self.simulation.Jvec(m, v, f=f)
+    jvec = self.simulation.Jvec(m, v)
     w_jvec = self.W.diagonal() ** 2.0 * jvec
 
     return self.client.compute(
-            self.simulation.Jtvec(m, w_jvec, f=f), workers=self.workers
+            self.simulation.Jtvec(m, w_jvec), workers=self.workers
         )
 
 

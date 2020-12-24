@@ -50,59 +50,58 @@ def dask_getFields(self, m, store=False, deleteWarmstart=True):
 BaseInvProblem.getFields = dask_getFields
 
 
-def dask_formJ(self, m):
-    j = None
-
-    try:
-        client = get_client()
-        jsub = lambda f, x, fields: client.compute(f(x), fields=None)
-    except:
-        jsub = lambda f, x: f(x)
-
-    if j is None:
-        if isinstance(self.dmisfit, BaseDataMisfit):
-            j = jsub(self.dmisfit.simulation.getJ, m)
-
-        elif isinstance(self.dmisfit, BaseObjectiveFunction):
-            j = []
-            for objfct in self.dmisfit.objfcts:
-                if hasattr(objfct, "simulation"):
-                    j += [jsub(objfct.simulation.getJ, m, None)]
-                else:
-                    j += []
-
-    if isinstance(j, Future) or isinstance(j[0], Future):
-        j = client.gather(j)
-
-    return da.vstack(j).compute()
-
-
-BaseInvProblem.formJ = dask_formJ
+# def dask_formJ(self, m):
+#     j = None
+#
+#     try:
+#         client = get_client()
+#         jsub = lambda f, x, fields: client.compute(f(x), fields=None)
+#     except:
+#         jsub = lambda f, x: f(x)
+#
+#     if j is None:
+#         if isinstance(self.dmisfit, BaseDataMisfit):
+#             j = jsub(self.dmisfit.simulation.getJ, m)
+#
+#         elif isinstance(self.dmisfit, BaseObjectiveFunction):
+#             j = []
+#             for objfct in self.dmisfit.objfcts:
+#                 if hasattr(objfct, "simulation"):
+#                     j += [jsub(objfct.simulation.getJ, m, None)]
+#                 else:
+#                     j += []
+#
+#     if isinstance(j, Future) or isinstance(j[0], Future):
+#         j = client.gather(j)
+#
+#     return da.vstack(j).compute()
 
 
-# def get_dpred(self, m, f=None):
-#     dpred = []
-#     client = get_client()
-#     if isinstance(self.dmisfit, BaseDataMisfit):
-#         return self.dmisfit.simulation.dpred(m, f=f)
-#     elif isinstance(self.dmisfit, BaseObjectiveFunction):
-
-#         for i, objfct in enumerate(self.dmisfit.objfcts):
-#             if hasattr(objfct, "simulation"):
-#                 future = client.compute(objfct.simulation.dpred(m, f=f[i]))
-#                 dpred += [future]
-#             else:
-#                 dpred += []
-
-#     if isinstance(dpred[0], Future):
-#         print("i'm a future")
-#         big_future = client.submit(da.vstack, dpred).result()
-#         return client.compute(big_future).result()
-#     else:
-#         return da.hstack(dpred).compute()
+# BaseInvProblem.formJ = dask_formJ
 
 
-# BaseInvProblem.get_dpred = get_dpred
+def get_dpred(self, m, f=None):
+    dpred = []
+    client = get_client()
+    if isinstance(self.dmisfit, BaseDataMisfit):
+        return self.dmisfit.simulation.dpred(m)
+    elif isinstance(self.dmisfit, BaseObjectiveFunction):
+
+        for i, objfct in enumerate(self.dmisfit.objfcts):
+            if hasattr(objfct, "simulation"):
+                future = client.compute(objfct.simulation.dpred(m), workers=objfct.workers)
+                dpred += [future]
+            else:
+                dpred += []
+
+    if isinstance(dpred[0], Future):
+        # big_future = client.submit(da.vstack, dpred).result()
+        return client.gather(dpred).result()
+    else:
+        return dpred
+
+
+BaseInvProblem.get_dpred = get_dpred
 
 
 def dask_evalFunction(self, m, return_g=True, return_H=True):
@@ -113,12 +112,19 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     gc.collect()
 
     # Store fields if doing a line-search
-    f = self.getFields(m, store=(return_g is False and return_H is False))
+    # f = self.getFields(m, store=(return_g is False and return_H is False))
 
     # if isinstance(self.dmisfit, BaseDataMisfit):
-    phi_d = np.asarray(self.dmisfit(m, f=f))
-    self.dpred = self.get_dpred(m, f=f)
+    # phi_d = np.asarray(self.dmisfit(m, f=f))
+    self.dpred = self.get_dpred(m)
 
+    phi_d = 0
+    for objfct, pred in zip(self.dmisfit.objfcts, self.dpred):
+        residual = objfct.W * (objfct.data.dobs - pred)
+        phi_d += 0.5 * np.vdot(residual, residual)
+
+    phi_d = np.asarray(phi_d)
+    # print(self.dpred[0])
     self.reg2Deriv = self.reg.deriv2(m)
     # reg = np.linalg.norm(self.reg2Deriv * self.reg._delta_m(m))
     phi_m = self.reg(m)
@@ -160,7 +166,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     out = (phi,)
     if return_g:
-        phi_dDeriv = self.dmisfit.deriv(m, f=f)
+        phi_dDeriv = self.dmisfit.deriv(m)
         phi_mDeriv = self.reg2Deriv * self.reg._delta_m(m)
 
         g = np.asarray(phi_dDeriv) + self.beta * phi_mDeriv
@@ -169,7 +175,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     if return_H:
 
         def H_fun(v):
-            phi_d2Deriv = self.dmisfit.deriv2(m, v, f=f)
+            phi_d2Deriv = self.dmisfit.deriv2(m, v)
             phi_m2Deriv = self.reg2Deriv * v
             H = phi_d2Deriv + self.beta * phi_m2Deriv
 

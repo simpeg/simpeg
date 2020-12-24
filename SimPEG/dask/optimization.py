@@ -2,7 +2,10 @@ from ..optimization import ProjectedGNCG
 import dask.array as da
 import numpy as np
 from time import time
-
+from ..utils import (
+    callHooks,
+    count
+)
 
 def dask_findSearchDirection(self):
     """
@@ -53,3 +56,38 @@ def dask_findSearchDirection(self):
 
 
 ProjectedGNCG.findSearchDirection = dask_findSearchDirection
+
+
+# @count
+# @callHooks("doEndIteration")
+# def dask_doEndIteration(self, xt):
+#     """doEndIteration(xt)
+#
+#         **doEndIteration** is called at the end of each minimize iteration.
+#
+#         By default, function values and x locations are shuffled to store 1
+#         past iteration in memory.
+#
+#         self.xc must be updated in this code.
+#
+#         :param numpy.ndarray xt: tested new iterate that ensures a descent direction.
+#         :rtype: None
+#         :return: None
+#     """
+#     # store old values
+#     self.f_last = self.f
+#     self.x_last, self.xc = self.xc, xt
+#     self.iter += 1
+#     if self.debug:
+#         self.printDone()
+#
+#     for objfct in self.parent.dmisfit.objfcts:
+#         if hasattr(objfct.simulation, "_Jmatrix"):
+#             objfct.simulation._Jmatrix = None
+#         if hasattr(objfct.simulation, "gtgdiag"):
+#             objfct.simulation.gtgdiag = None
+#
+#     if self.callback is not None:
+#         self.callback(xt)
+#
+# ProjectedGNCG.doEndIteration = dask_doEndIteration
