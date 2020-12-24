@@ -350,28 +350,39 @@ class Minimize(object):
         self.evalFunction = evalFunction
         self.startup(x0)
         self.printInit()
+        self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
+        self.printIter()
 
         if self.print_type != "ubc":
             print("x0 has any nan: {:b}".format(np.any(np.isnan(x0))))
         while True:
             self.doStartIteration()
-            self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
-            self.printIter()
+
             if self.stoppingCriteria():
                 break
             self.searchDirection = self.findSearchDirection()
-            del (
-                self.H
-            )  #: Doing this saves memory, as it is not needed in the rest of the computations.
+            # del (
+            #     self.H
+            # )  #: Doing this saves memory, as it is not needed in the rest of the computations.
             p = self.scaleSearchDirection(self.searchDirection)
             xt, passLS = self.modifySearchDirection(p)
             if not passLS:
                 xt, caught = self.modifySearchDirectionBreak(p)
                 if not caught:
                     return self.xc
-            self.doEndIteration(xt)
+
             if self.stopNextIteration:
                 break
+
+            for objfct in self.parent.dmisfit.objfcts:
+                if hasattr(objfct.simulation, "_Jmatrix"):
+                    objfct.simulation._Jmatrix = None
+                if hasattr(objfct.simulation, "gtgdiag"):
+                    objfct.simulation.gtgdiag = None
+
+            self.f, self.g, self.H = evalFunction(xt, return_g=True, return_H=True)
+            self.doEndIteration(xt)
+            self.printIter()
 
         self.printDone()
         self.finish()
