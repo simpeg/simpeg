@@ -338,16 +338,24 @@ def run(survey_type="pole-dipole", plotIt=True):
     # Number of padding cells to add in each direction
     npad = 5
     # Vectors of cell lengths in each direction with padding
-    hx = [(csx, npad, -1.5), (csx, ncx), (csx, npad, 1.5)]
-    hy = [(csy, npad, -1.5), (csy, ncy), (csy, npad, 1.5)]
-    hz = [(csz, npad, -1.5), (csz, ncz)]
+    # hx = [(csx, npad, -1.5), (csx, ncx), (csx, npad, 1.5)]
+    # hy = [(csy, npad, -1.5), (csy, ncy), (csy, npad, 1.5)]
+    # hz = [(csz, npad, -1.5), (csz, ncz)]
     # Create mesh and center it
-    global_mesh = discretize.TreeMesh([hx, hy, hz], x0=[-650, -650, -200])
+    # global_mesh = discretize.TreeMesh([hx, hy, hz], x0=[-650, -650, -200])
     # padLen = 800
     # padding_distance = np.r_[np.c_[padLen, padLen], np.c_[padLen, padLen], np.c_[padLen, padLen]]
     # global_mesh = meshutils.mesh_builder_xyz(electrodes, [hx, hy, hz], mesh_type='TREE',
     #                              base_mesh=mesh, padding_distance=padding_distance,
     #                              depth_core=1000)
+    h = [25, 25, 25]
+    padDist = np.ones((3, 2)) * 500
+    global_mesh = meshutils.mesh_builder_xyz(
+        electrodes, h,
+        padding_distance=padDist,
+        mesh_type='TREE',
+        depth_core=200
+    )
     global_mesh = meshutils.refine_tree_xyz(global_mesh, electrodes,
                                  method='surface', octree_levels=[10, 5, 3, 2],
                                  finalize=True)
@@ -435,7 +443,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     src_collect = []
     for ii, source in enumerate(survey.source_list):
         source._q = None # need this for things to work
-        if cnt == 1:
+        if cnt == 10 or ii == len(survey.source_list)-1:
             src_collect.append(source)        
             idx_end = idx_end + source.receiver_list[0].nD
             dobs = survey_dc.dobs[idx_start:idx_end]
@@ -641,8 +649,9 @@ def run(survey_type="pole-dipole", plotIt=True):
     # Run Inversion ================================================================
     minv = inv.run(m0_dc)
     rho_est = mapactive * minv
-    np.save('model_out.npy', rho_est)
-    # discretize.TreeMesh.writeUBC(global_mesh, 'OctreeMesh-test.msh', models={'ubc.con': np.exp(rho_est)})
+    # np.save('model_out.npy', rho_est)
+
+    global_mesh.writeUBC('OctreeMesh-test.msh', models={'ubc.con': np.exp(rho_est)})
 
 
 if __name__ == '__main__':
