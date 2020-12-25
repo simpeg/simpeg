@@ -1,5 +1,7 @@
 from ..inverse_problem import BaseInvProblem
 import numpy as np
+
+from dask import delayed
 from dask.distributed import Future, get_client
 import dask.array as da
 import gc
@@ -81,8 +83,9 @@ BaseInvProblem.getFields = dask_getFields
 
 
 def get_dpred(self, m, f=None):
-    dpred = []
+    dpreds = []
     client = get_client()
+
     if isinstance(self.dmisfit, BaseDataMisfit):
         return self.dmisfit.simulation.dpred(m)
     elif isinstance(self.dmisfit, BaseObjectiveFunction):
@@ -90,15 +93,14 @@ def get_dpred(self, m, f=None):
         for i, objfct in enumerate(self.dmisfit.objfcts):
             if hasattr(objfct, "simulation"):
                 future = client.compute(objfct.simulation.dpred(m), workers=objfct.workers)
-                dpred += [future]
+                dpreds += [future]
             else:
-                dpred += []
+                dpreds += []
 
-    if isinstance(dpred[0], Future):
-        # big_future = client.submit(da.vstack, dpred).result()
-        return client.gather(dpred).result()
+    if isinstance(dpreds[0], Future):
+        return client.gather(dpreds)
     else:
-        return dpred
+        return dpreds
 
 
 BaseInvProblem.get_dpred = get_dpred

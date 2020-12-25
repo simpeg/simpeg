@@ -350,11 +350,13 @@ class Minimize(object):
         self.evalFunction = evalFunction
         self.startup(x0)
         self.printInit()
+
+        if self.debug:
+            print("x0 has any nan: {:b}".format(np.any(np.isnan(x0))))
+
         self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
         self.printIter()
 
-        if self.print_type != "ubc":
-            print("x0 has any nan: {:b}".format(np.any(np.isnan(x0))))
         while True:
             self.doStartIteration()
 
