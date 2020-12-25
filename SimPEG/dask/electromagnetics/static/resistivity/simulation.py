@@ -1,8 +1,9 @@
 from .....electromagnetics.static.resistivity.simulation import BaseDCSimulation as Sim
-from .....utils import Zero
+from .....utils import Zero, count
 
 from ....utils import compute_chunk_sizes
-
+import warnings
+from .....data import SyntheticData
 import dask
 import dask.array as da
 import os
@@ -11,7 +12,6 @@ import numpy as np
 
 Sim.sensitivity_path = './sensitivity/'
 
-# @dask.delayed
 def dask_fields(self, m=None):
     if m is not None:
         self.model = m
@@ -39,11 +39,6 @@ def dask_getJ(self, m, f=None):
         self.fields(m)
 
     return self._Jmatrix
-    # if self._mini_survey is not None:
-    #     # Need to use _Jtvec for this operation currently...
-    #     J = self._Jtvec(m=m, v=None, f=f).T
-    #     self._Jmatrix = da.from_array(J)
-    #     return self._Jmatrix
 
 
 Sim.getJ = dask_getJ
@@ -154,34 +149,11 @@ def dask_Jvec(self, m, v):
     """
         Compute sensitivity matrix (J) and vector (v) product.
     """
-
-    # if f is None:
-    #     f = self.fields(m)
     self.model = m
-
     if self._Jmatrix is None:
         self.fields(m, compute_J=True)
-    #     # print('[info] where I should be')
-    #     J = self.getJ(m, f=f)
-    return da.dot(self._Jmatrix, v)
 
-    # if self._mini_survey is not None:
-    #     survey = self._mini_survey
-    # else:
-    #     survey = self.survey
-    #
-    # Jv = []
-    # for source in survey.source_list:
-    #     u_source = f[source, self._solutionType]  # solution vector
-    #     dA_dm_v = self.getADeriv(u_source, v)
-    #     dRHS_dm_v = self.getRHSDeriv(source, v)
-    #     du_dm_v = Ainv * (-dA_dm_v + dRHS_dm_v)
-    #     for rx in source.receiver_list:
-    #         df_dmFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
-    #         df_dm_v = df_dmFun(source, du_dm_v, v, adjoint=False)
-    #         Jv.append(rx.evalDeriv(source, self.mesh, f, df_dm_v))
-    # Jv = np.hstack(Jv)
-    # return self._mini_survey_data(Jv)
+    return da.dot(self._Jmatrix, v)
 
 
 Sim.Jvec = dask_Jvec
@@ -191,19 +163,11 @@ def dask_Jtvec(self, m, v):
     """
         Compute adjoint sensitivity matrix (J^T) and vector (v) product.
     """
-
-    # if f is None:
-    #     f = self.fields(m)
-
     self.model = m
     if self._Jmatrix is None:
         self.fields(m)
-    # if self.storeJ:
-    #     # print('[info] where I should be')
-    #     J = self.getJ(m, f=f)
-    return da.dot(v, self._Jmatrix)
 
-    # return self._Jtvec(m, v=v, f=f)
+    return da.dot(v, self._Jmatrix)
 
 
 Sim.Jtvec = dask_Jtvec
