@@ -1,6 +1,6 @@
 from .....electromagnetics.static.resistivity.simulation import BaseDCSimulation as Sim
-from .....utils import Zero, count
-
+from .....utils import Zero, count, mkvc
+from .....data import Data
 from ....utils import compute_chunk_sizes
 import warnings
 from .....data import SyntheticData
@@ -12,7 +12,7 @@ import numpy as np
 
 Sim.sensitivity_path = './sensitivity/'
 
-def dask_fields(self, m=None):
+def dask_fields(self, m=None, compute_J=False):
     if m is not None:
         self.model = m
 
@@ -23,7 +23,7 @@ def dask_fields(self, m=None):
 
     f[:, self._solutionType] = Ainv * RHS
 
-    if self._Jmatrix is None:
+    if compute_J:
         self.compute_J(f, Ainv)
     return f
 
@@ -31,12 +31,48 @@ def dask_fields(self, m=None):
 Sim.fields = dask_fields
 
 
+def dask_dpred(self, m=None, f=None, compute_J=False):
+    """
+    dpred(m, f=None)
+    Create the projected data from a model.
+    The fields, f, (if provided) will be used for the predicted data
+    instead of recalculating the fields (which may be expensive!).
+
+    .. math::
+
+        d_\\text{pred} = P(f(m))
+
+    Where P is a projection of the fields onto the data space.
+    """
+    if self.survey is None:
+        raise AttributeError(
+            "The survey has not yet been set and is required to compute "
+            "data. Please set the survey for the simulation: "
+            "simulation.survey = survey"
+        )
+
+    if f is None:
+        if m is None:
+            m = self.model
+
+        f = self.fields(m, compute_J=compute_J)
+
+    data = Data(self.survey)
+    for src in self.survey.source_list:
+        for rx in src.receiver_list:
+            data[src, rx] = rx.eval(src, self.mesh, f)
+    return mkvc(data)
+
+
+Sim.dpred = dask_dpred
+
+
 def dask_getJ(self, m, f=None):
     """
         Generate Full sensitivity matrix
     """
     if self._Jmatrix is None:
-        self.fields(m)
+        self.fields(m, compute_J=True)
 
     return self._Jmatrix
 
@@ -165,7 +201,7 @@ def dask_Jtvec(self, m, v):
     """
     self.model = m
     if self._Jmatrix is None:
-        self.fields(m)
+        self.fields(m, compute_J=True)
 
     return da.dot(v, self._Jmatrix)
 

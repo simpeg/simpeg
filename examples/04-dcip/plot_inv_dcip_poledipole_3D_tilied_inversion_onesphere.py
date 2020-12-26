@@ -62,7 +62,7 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
 #     time_map = time.time() - time_map
 #     print('[info] ', time_map)
     expmap = maps.ExpMap(local_mesh)
-    mapping = expmap * actmap * local_map
+    mapping = expmap * actmap
     # Create the local misfit
     max_chunk_size = 256
     simulation = dc.Simulation3DNodal(
@@ -82,7 +82,7 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
     data_object.dobs = obs
     data_object.standard_deviation = uncert
     local_misfit = data_misfit.L2DataMisfit(
-        data=data_object, simulation=simulation
+        data=data_object, simulation=simulation, model_map=local_map
     )
     local_misfit.W = 1 / uncert
 

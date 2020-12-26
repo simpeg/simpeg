@@ -28,13 +28,24 @@ def dask_getFields(self, m, store=False, deleteWarmstart=True):
 
     if f is None:
         if isinstance(self.dmisfit, BaseDataMisfit):
-            f = fields(self.dmisfit.simulation.fields, m)
+
+            if self.dmisfit.model_map is not None:
+                vec = self.dmisfit.model_map @ m
+            else:
+                vec = m
+
+            f = fields(self.dmisfit.simulation.fields, vec)
 
         elif isinstance(self.dmisfit, BaseObjectiveFunction):
             f = []
             for objfct in self.dmisfit.objfcts:
                 if hasattr(objfct, "simulation"):
-                    f += [fields(objfct.simulation.fields, m, objfct.workers)]
+                    if objfct.model_map is not None:
+                        vec = objfct.model_map @ m
+                    else:
+                        vec = m
+
+                    f += [fields(objfct.simulation.fields, vec, objfct.workers)]
                 else:
                     f += []
 
@@ -82,7 +93,7 @@ BaseInvProblem.getFields = dask_getFields
 # BaseInvProblem.formJ = dask_formJ
 
 
-def get_dpred(self, m, f=None):
+def get_dpred(self, m, f=None, compute_J=False):
     dpreds = []
     client = get_client()
 
@@ -92,7 +103,12 @@ def get_dpred(self, m, f=None):
 
         for i, objfct in enumerate(self.dmisfit.objfcts):
             if hasattr(objfct, "simulation"):
-                future = client.compute(objfct.simulation.dpred(m), workers=objfct.workers)
+                if objfct.model_map is not None:
+                    vec = objfct.model_map @ m
+                else:
+                    vec = m
+
+                future = client.compute(objfct.simulation.dpred(vec, compute_J=compute_J), workers=objfct.workers)
                 dpreds += [future]
             else:
                 dpreds += []
@@ -118,7 +134,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     # if isinstance(self.dmisfit, BaseDataMisfit):
     # phi_d = np.asarray(self.dmisfit(m, f=f))
-    self.dpred = self.get_dpred(m)
+    self.dpred = self.get_dpred(m, compute_J=return_H)
 
     phi_d = 0
     for objfct, pred in zip(self.dmisfit.objfcts, self.dpred):
