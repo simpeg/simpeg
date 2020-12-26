@@ -186,9 +186,14 @@ class L2DataMisfit(BaseDataMisfit):
             )
 
         if self.model_map is not None:
-            m = self.model_map @ m
+            m = self.model_map.deriv(m) @ m
 
-        return self.simulation.getJtJdiag(m, W=self.W)
+        jtjdiag = self.simulation.getJtJdiag(m, W=self.W)
+
+        if self.model_map is not None:
+            jtjdiag = self.model_map.deriv(m).T @ jtjdiag
+
+        return jtjdiag
 
     @timeIt
     def deriv2(self, m, v, f=None):

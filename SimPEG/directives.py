@@ -941,13 +941,11 @@ class UpdatePreconditioner(InversionDirective):
 
         JtJdiag = np.zeros_like(self.invProb.model)
         for dmisfit in self.dmisfit.objfcts:
-
-            if getattr(dmisfit, "getJtJdiag", None) is None:
-                assert getattr(dmisfit.simulation, "getJ", None) is not None, (
-                    "Simulation does not have a getJ attribute."
-                    + "Cannot form the sensitivity explicitly"
-                )
-                JtJdiag += dmisfit.getJtJdiag(m)
+            assert getattr(dmisfit.simulation, "getJ", None) is not None, (
+                "Simulation does not have a getJ attribute."
+                + "Cannot form the sensitivity explicitly"
+            )
+            JtJdiag += dmisfit.getJtJdiag(m)
 
         diagA = JtJdiag + self.invProb.beta * regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.0
@@ -969,13 +967,11 @@ class UpdatePreconditioner(InversionDirective):
 
         JtJdiag = np.zeros_like(self.invProb.model)
         for dmisfit in self.dmisfit.objfcts:
-
-            if getattr(dmisfit, "getJtJdiag", None) is None:
-                assert getattr(dmisfit.simulation, "getJ", None) is not None, (
-                    "Simulation does not have a getJ attribute."
-                    + "Cannot form the sensitivity explicitly"
-                )
-                JtJdiag += dmisfit.getJtJdiag(m)
+            assert getattr(dmisfit.simulation, "getJ", None) is not None, (
+                "Simulation does not have a getJ attribute."
+                + "Cannot form the sensitivity explicitly"
+            )
+            JtJdiag += dmisfit.getJtJdiag(m)
 
         diagA = JtJdiag + self.invProb.beta * regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.0
@@ -1055,13 +1051,11 @@ class UpdateSensitivityWeights(InversionDirective):
         m = self.invProb.model
 
         for dmisfit in self.dmisfit.objfcts:
-
-            if getattr(dmisfit, "getJtJdiag", None) is None:
-                assert getattr(dmisfit.simulation, "getJ", None) is not None, (
-                    "Simulation does not have a getJ attribute."
-                    + "Cannot form the sensitivity explicitly"
-                )
-                self.JtJdiag += [dmisfit.getJtJdiag(m)]
+            assert getattr(dmisfit.simulation, "getJ", None) is not None, (
+                "Simulation does not have a getJ attribute."
+                + "Cannot form the sensitivity explicitly"
+            )
+            self.JtJdiag += [dmisfit.getJtJdiag(m)]
 
         return self.JtJdiag
 
