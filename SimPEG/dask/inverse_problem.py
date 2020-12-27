@@ -184,7 +184,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     out = (phi,)
     if return_g:
-        phi_dDeriv = self.dmisfit.deriv(m)
+        phi_dDeriv = self.dmisfit.deriv(m, f=self.dpred)
         phi_mDeriv = self.reg2Deriv * self.reg._delta_m(m)
 
         g = np.asarray(phi_dDeriv) + self.beta * phi_mDeriv

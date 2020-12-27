@@ -1,4 +1,6 @@
 from ..data_misfit import L2DataMisfit
+from ..fields import Fields
+from ..utils import mkvc
 import dask.array as da
 from scipy.sparse import csr_matrix as csr
 from dask import delayed
@@ -71,3 +73,18 @@ def dask_deriv2(self, m, v, f=None):
 
 
 L2DataMisfit.deriv2 = dask_deriv2
+
+
+def dask_residual(self, m, f=None):
+    if self.data is None:
+        raise Exception("data must be set before a residual can be calculated.")
+
+    if isinstance(f, Fields) or f is None:
+        return self.simulation.residual(m, self.data.dobs, f=f)
+    elif f.shape == self.data.dobs.shape:
+        return mkvc(f - self.data.dobs)
+    else:
+        raise Exception(f"Attribute f must be or type {Fields}, numpy.array or None.")
+
+
+L2DataMisfit.residual = dask_residual
