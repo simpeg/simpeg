@@ -85,7 +85,7 @@ def create_nested_mesh(
     else:
         tree = cKDTree(locations[:, :2])
         rad, _ = tree.query(base_mesh.gridCC[:, :2])
-        indices = np.arange(base_mesh.nC)[rad < max_distance]
+        indices = rad < max_distance
 
     nested_mesh.insert_cells(
         base_mesh.gridCC[indices, :],
