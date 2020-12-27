@@ -26,7 +26,6 @@ def chunk_format(self, other):
 Sim.chunk_format = chunk_format
 
 
-
 def dask_linear_operator(self):
     self.nC = self.modelMap.shape[0]
 
@@ -107,8 +106,6 @@ def dask_linear_operator(self):
         except:
             pass
 
-
-
     elif self.store_sensitivities == "forward_only":
         # with ProgressBar():
         print("Forward calculation: ")
@@ -123,3 +120,28 @@ def dask_linear_operator(self):
 
 
 Sim.linear_operator = dask_linear_operator
+
+
+@property
+def Jmatrix(self):
+    return self.G
+
+Sim.Jmatrix = Jmatrix
+
+
+def dask_dpred(self, m=None, f=None, compute_J=False):
+    if m is not None:
+        self.model = m
+    if f is not None:
+        return f
+    return self.fields(self.model)
+
+
+Sim.dpred = dask_dpred
+
+
+def dask_residual(self, m, dobs, f=None):
+    return self.dpred(m, f=f) - dobs
+
+
+Sim.residual = dask_residual
