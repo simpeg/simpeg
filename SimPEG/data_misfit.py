@@ -1,6 +1,6 @@
 import numpy as np
 import properties
-from .utils import Counter, sdiag, timeIt, Identity
+from .utils import Counter, sdiag, timeIt, Identity, mkvc
 from .data import Data
 from .maps import IdentityMap
 from .simulation import BaseSimulation
@@ -191,7 +191,7 @@ class L2DataMisfit(BaseDataMisfit):
         jtjdiag = self.simulation.getJtJdiag(m, W=self.W)
 
         if self.model_map is not None:
-            jtjdiag = self.model_map.deriv(m).T @ jtjdiag
+            jtjdiag = mkvc((sdiag(np.sqrt(jtjdiag)) @ self.model_map.deriv(m)).power(2).sum(axis=0))
 
         return jtjdiag
 
