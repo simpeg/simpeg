@@ -215,13 +215,13 @@ class BetaEstimate_ByEig(InversionDirective):
             print("Calculating the beta0 parameter.")
 
         m = self.invProb.model
-        f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
+        # f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
         # Fix the seed for random vector for consistent result
         np.random.seed(1)
         x0 = np.random.rand(*m.shape)
 
-        phi_d_deriv = self.dmisfit.deriv2(m, x0, f=f)
+        phi_d_deriv = self.dmisfit.deriv2(m, x0)
         t = np.dot(x0, phi_d_deriv)
 
         reg = self.reg.deriv2(m, v=x0)
@@ -940,16 +940,12 @@ class UpdatePreconditioner(InversionDirective):
             regDiag += reg.deriv2(m).diagonal()
 
         JtJdiag = np.zeros_like(self.invProb.model)
-        for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
-
-            if getattr(sim, "getJtJdiag", None) is None:
-                assert getattr(sim, "getJ", None) is not None, (
-                    "Simulation does not have a getJ attribute."
-                    + "Cannot form the sensitivity explicitly"
-                )
-                JtJdiag += np.sum(np.power((dmisfit.W * sim.getJ(m)), 2), axis=0)
-            else:
-                JtJdiag += sim.getJtJdiag(m, W=dmisfit.W)
+        for dmisfit in self.dmisfit.objfcts:
+            assert getattr(dmisfit.simulation, "getJ", None) is not None, (
+                "Simulation does not have a getJ attribute."
+                + "Cannot form the sensitivity explicitly"
+            )
+            JtJdiag += dmisfit.getJtJdiag(m)
 
         diagA = JtJdiag + self.invProb.beta * regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.0
@@ -970,16 +966,12 @@ class UpdatePreconditioner(InversionDirective):
             regDiag += reg.deriv2(m).diagonal()
 
         JtJdiag = np.zeros_like(self.invProb.model)
-        for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
-
-            if getattr(sim, "getJtJdiag", None) is None:
-                assert getattr(sim, "getJ", None) is not None, (
-                    "Simulation does not have a getJ attribute."
-                    + "Cannot form the sensitivity explicitly"
-                )
-                JtJdiag += np.sum(np.power((dmisfit.W * sim.getJ(m)), 2), axis=0)
-            else:
-                JtJdiag += sim.getJtJdiag(m, W=dmisfit.W)
+        for dmisfit in self.dmisfit.objfcts:
+            assert getattr(dmisfit.simulation, "getJ", None) is not None, (
+                "Simulation does not have a getJ attribute."
+                + "Cannot form the sensitivity explicitly"
+            )
+            JtJdiag += dmisfit.getJtJdiag(m)
 
         diagA = JtJdiag + self.invProb.beta * regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.0
@@ -1058,19 +1050,12 @@ class UpdateSensitivityWeights(InversionDirective):
         self.JtJdiag = []
         m = self.invProb.model
 
-        for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
-
-            if getattr(sim, "getJtJdiag", None) is None:
-                assert getattr(sim, "getJ", None) is not None, (
-                    "Simulation does not have a getJ attribute."
-                    + "Cannot form the sensitivity explicitly"
-                )
-
-                self.JtJdiag += [
-                    mkvc(np.sum((dmisfit.W * sim.getJ(m)) ** (2.0), axis=0))
-                ]
-            else:
-                self.JtJdiag += [sim.getJtJdiag(m, W=dmisfit.W)]
+        for dmisfit in self.dmisfit.objfcts:
+            assert getattr(dmisfit.simulation, "getJ", None) is not None, (
+                "Simulation does not have a getJ attribute."
+                + "Cannot form the sensitivity explicitly"
+            )
+            self.JtJdiag += [dmisfit.getJtJdiag(m)]
 
         return self.JtJdiag
 

@@ -2,7 +2,7 @@ import numpy as np
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 from discretize import TreeMesh
 from SimPEG.maps import TileMap
-from scipy.spatial import Delaunay
+from scipy.spatial import Delaunay, cKDTree
 
 
 def create_tile_meshes(
@@ -70,15 +70,22 @@ def create_tile_meshes(
 
 def create_nested_mesh(
         locations,
-        base_mesh
+        base_mesh,
+        method="convex_hull",
+        max_distance=100.
 ):
     nested_mesh = TreeMesh(
         [base_mesh.h[0], base_mesh.h[1], base_mesh.h[2]], x0=base_mesh.x0
     )
 
-    # Find cells inside the data extant
-    tri2D = Delaunay(locations[:, :2])
-    indices = tri2D.find_simplex(base_mesh.gridCC[:, :2]) != -1
+    if method == "convex_hull":
+        # Find cells inside the data extant
+        tri2D = Delaunay(locations[:, :2])
+        indices = tri2D.find_simplex(base_mesh.gridCC[:, :2]) != -1
+    else:
+        tree = cKDTree(locations[:, :2])
+        rad, _ = tree.query(base_mesh.gridCC[:, :2])
+        indices = rad < max_distance
 
     nested_mesh.insert_cells(
         base_mesh.gridCC[indices, :],

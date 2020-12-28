@@ -1,7 +1,8 @@
 import numpy as np
 import properties
-from .utils import Counter, sdiag, timeIt, Identity
+from .utils import Counter, sdiag, timeIt, Identity, mkvc
 from .data import Data
+from .maps import IdentityMap
 from .simulation import BaseSimulation
 from .objective_function import L2ObjectiveFunction
 from .utils.code_utils import deprecate_class, deprecate_property
@@ -24,6 +25,10 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     simulation = properties.Instance(
         "A SimPEG simulation", BaseSimulation, required=True
+    )
+
+    model_map = properties.Instance(
+        "A SimPEG mapping", IdentityMap, required=False, default=None
     )
 
     debug = properties.Bool(
@@ -169,6 +174,26 @@ class L2DataMisfit(BaseDataMisfit):
         return self.simulation.Jtvec(
             m, self.W.T * (self.W * self.residual(m, f=f)), f=f
         )
+
+    def getJtJdiag(self, m):
+        """
+        Evaluate the main diagonal of JtJ
+        """
+        if getattr(self.simulation, "getJtJdiag", None) is None:
+            assert getattr(self.simulation, "getJ", None) is not None, (
+                    "Simulation does not have a getJ attribute."
+                    + "Cannot form the sensitivity explicitly"
+            )
+
+        if self.model_map is not None:
+            m = self.model_map.deriv(m) @ m
+
+        jtjdiag = self.simulation.getJtJdiag(m, W=self.W)
+
+        if self.model_map is not None:
+            jtjdiag = mkvc((sdiag(np.sqrt(jtjdiag)) @ self.model_map.deriv(m)).power(2).sum(axis=0))
+
+        return jtjdiag
 
     @timeIt
     def deriv2(self, m, v, f=None):

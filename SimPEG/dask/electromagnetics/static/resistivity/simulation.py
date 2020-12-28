@@ -1,35 +1,86 @@
 from .....electromagnetics.static.resistivity.simulation import BaseDCSimulation as Sim
-from .....utils import Zero
-
+from .....utils import Zero, count, mkvc
+from .....data import Data
 from ....utils import compute_chunk_sizes
-
+import warnings
+from .....data import SyntheticData
 import dask
 import dask.array as da
 import os
 import shutil
 import numpy as np
 
+Sim.sensitivity_path = './sensitivity/'
+
+def dask_fields(self, m=None, compute_J=False):
+    if m is not None:
+        self.model = m
+
+    f = self.fieldsPair(self)
+    A = self.getA()
+    Ainv = self.solver(A, **self.solver_opts)
+    RHS = self.getRHS()
+
+    f[:, self._solutionType] = Ainv * RHS
+
+    if compute_J:
+        self.compute_J(f, Ainv)
+    return f
+
+
+Sim.fields = dask_fields
+
+
+def dask_dpred(self, m=None, f=None, compute_J=False):
+    """
+    dpred(m, f=None)
+    Create the projected data from a model.
+    The fields, f, (if provided) will be used for the predicted data
+    instead of recalculating the fields (which may be expensive!).
+
+    .. math::
+
+        d_\\text{pred} = P(f(m))
+
+    Where P is a projection of the fields onto the data space.
+    """
+    if self.survey is None:
+        raise AttributeError(
+            "The survey has not yet been set and is required to compute "
+            "data. Please set the survey for the simulation: "
+            "simulation.survey = survey"
+        )
+
+    if f is None:
+        if m is None:
+            m = self.model
+
+        f = self.fields(m, compute_J=compute_J)
+
+    data = Data(self.survey)
+    for src in self.survey.source_list:
+        for rx in src.receiver_list:
+            data[src, rx] = rx.eval(src, self.mesh, f)
+    return mkvc(data)
+
+
+Sim.dpred = dask_dpred
+
 
 def dask_getJ(self, m, f=None):
     """
         Generate Full sensitivity matrix
     """
+    if self._Jmatrix is None:
+        self.fields(m, compute_J=True)
 
-    if self._Jmatrix is not None:
-        return self._Jmatrix
-    else:
-        if f is None:
-            f = self.fields(m)
+    return self._Jmatrix
 
-    if self.verbose:
-        print("Calculating J and storing")
 
-    if self._mini_survey is not None:
-        # Need to use _Jtvec for this operation currently...
-        J = self._Jtvec(m=m, v=None, f=f).T
-        self._Jmatrix = da.from_array(J)
-        return self._Jmatrix
+Sim.getJ = dask_getJ
 
+
+def dask_compute_J(self, f, Ainv):
     if os.path.exists(self.sensitivity_path):
         shutil.rmtree(self.sensitivity_path, ignore_errors=True)
 
@@ -59,7 +110,7 @@ def dask_getJ(self, m, f=None):
             ind = 0
             for col in range(n_block_col):
                 ATinvdf_duT = da.asarray(
-                    self.Ainv * df_duT[:, ind : ind + n_col]
+                    Ainv * df_duT[:, ind : ind + n_col]
                 ).rechunk((nrows, n_col))
 
                 dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
@@ -103,12 +154,12 @@ def dask_getJ(self, m, f=None):
         self.survey.nD, m_size, self.max_chunk_size
     )
     self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
-    self.Ainv.clean()
+    Ainv.clean()
 
     return self._Jmatrix
 
 
-Sim.getJ = dask_getJ
+Sim.compute_J = dask_compute_J
 
 
 def dask_getJtJdiag(self, m, W=None):
@@ -130,32 +181,29 @@ def dask_getJtJdiag(self, m, W=None):
 Sim.getJtJdiag = dask_getJtJdiag
 
 
-# def J_func(src_list, rx_list_per_source):
-#     func_nD = sum([rx.nD for rx in rx_list_per_source])
-#     J = np.empty((func_nD, len(m)))
-#
-#     for source, rx_list in zip(src_list, rx_list_per_source):
-#         if f is not None:
-#             u_source = f[source, self._solutionType]
-#         else:
-#             u_source = Ainv*source.eval(self)
-#         PT_src = np.empty(np.sum([rx.nD for rx in rx_list]), len(m), order='F')
-#         start = 0
-#         for rx in rx_list:
-#             # wrt f, need possibility wrt m
-#             PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-#
-#             df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
-#                                 None)
-#             df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
-#             end = start+rx.nD
-#             PT_src[start:end] = df_dmT.reshape((rx.nD, len(m)), order='F')
-#             start = end
-#
-#         ATinvdf_duT = self.Ainv * PT_src
-#
-#         dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
-#         dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
-#         du_dmT = -dA_dmT + dRHS_dmT
-#
-#     return J
+def dask_Jvec(self, m, v):
+    """
+        Compute sensitivity matrix (J) and vector (v) product.
+    """
+    self.model = m
+    if self._Jmatrix is None:
+        self.fields(m, compute_J=True)
+
+    return da.dot(self._Jmatrix, v)
+
+
+Sim.Jvec = dask_Jvec
+
+
+def dask_Jtvec(self, m, v):
+    """
+        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+    """
+    self.model = m
+    if self._Jmatrix is None:
+        self.fields(m, compute_J=True)
+
+    return da.dot(v, self._Jmatrix)
+
+
+Sim.Jtvec = dask_Jtvec

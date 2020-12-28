@@ -166,8 +166,8 @@ class BaseInvProblem(BaseSimPEG):
         elif isinstance(self.dmisfit, BaseObjectiveFunction):
             dpred = []
             for i, objfct in enumerate(self.dmisfit.objfcts):
-                if hasattr(objfct, "survey"):
-                    dpred += [objfct.survey.dpred(m, f=f[i])]
+                if getattr(objfct, "simulation", None) is not None:
+                    dpred += [objfct.simulation.dpred(m, f=f[i])]
                 else:
                     dpred += []
             return dpred

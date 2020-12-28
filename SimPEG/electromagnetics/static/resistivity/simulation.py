@@ -221,14 +221,14 @@ class BaseDCSimulation(BaseEMSimulation):
             q[:, i] = source.eval(self)
         return q
 
-    @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super(BaseDCSimulation, self).deleteTheseOnModelUpdate
-        if self._Jmatrix is not None:
-            toDelete += ["_Jmatrix"]
-        if self.gtgdiag is not None:
-            toDelete += ["gtgdiag"]
-        return toDelete
+    # @property
+    # def deleteTheseOnModelUpdate(self):
+    #     toDelete = super(BaseDCSimulation, self).deleteTheseOnModelUpdate
+    #     if self._Jmatrix is not None:
+    #         toDelete += ["_Jmatrix"]
+    #     if self.gtgdiag is not None:
+    #         toDelete += ["gtgdiag"]
+    #     return toDelete
 
     def _mini_survey_data(self, d_mini):
         if self._mini_survey is not None:

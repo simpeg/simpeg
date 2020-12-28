@@ -96,6 +96,7 @@ def dask_deriv(self, m, f=None):
             if f is not None and objfct._has_fields:
                 fct = objfct.deriv(m, f=f[i])
             else:
+                print('[info] doing derive no fields')
                 fct = objfct.deriv(m)
 
             if isinstance(fct, Future):
@@ -142,10 +143,11 @@ def dask_deriv2(self, m, v=None, f=None):
             continue
         else:
 
-            if f is not None and objfct._has_fields:
-                fct = objfct.deriv2(m, v, f=f[i])
-            else:
-                fct = objfct.deriv2(m, v)
+            # if f is not None and objfct._has_fields:
+            #     fct = objfct.deriv2(m, v, f=f[i])
+            # else:
+                # print('[info] doing derive no fields')
+            fct = objfct.deriv2(m, v)
 
             if isinstance(fct, Future):
                 future = self.client.compute(
