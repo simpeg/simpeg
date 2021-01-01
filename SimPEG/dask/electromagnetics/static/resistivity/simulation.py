@@ -47,7 +47,7 @@ Sim.fields = dask_fields
 #                 data[src, rx] = rx.eval(src, mesh, f)
 #         return mkvc(data)
 
-
+@dask.delayed
 def dask_dpred(self, m=None, f=None, compute_J=False):
     """
     dpred(m, f=None)
@@ -68,21 +68,24 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             "simulation.survey = survey"
         )
 
-    @dask.delayed
-    def compute_data(self, m, f):
-        if f is None:
-            if m is None:
-                m = self.model
-            f, Ainv = self.fields(m, return_Ainv=True)
+    if f is None:
+        if m is None:
+            m = self.model
+        f, Ainv = self.fields(m, return_Ainv=True)
 
-        data = Data(self.survey)
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                data[src, rx] = rx.eval(src, self.mesh, f)
+    data = Data(self.survey)
+    for src in self.survey.source_list:
+        for rx in src.receiver_list:
+            data[src, rx] = rx.eval(src, self.mesh, f)
 
-        return mkvc(data)
+    if compute_J:
+        Jmatrix = self.compute_J(f=f, Ainv=Ainv)
+        return (mkvc(data), Jmatrix)
 
-    out = compute_data(self, m, f)
+    return mkvc(data)
+    # return mkvc(data)
+
+    # out = compute_data(self, m, f)
 
     # if compute_J:
     #     return (
@@ -92,7 +95,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     #         )
     #     )
     # else:
-    return da.from_delayed(out, shape=(self.survey.nD,), dtype=float)
+
 
 
 Sim.dpred = dask_dpred
@@ -104,7 +107,7 @@ def Jmatrix(self):
 
         client = get_client()
         self._Jmatrix = client.compute(
-                self.compute_J(),
+                dask.delayed(self.compute_J()),
             workers=self.workers
         )
     elif isinstance(self._Jmatrix, Future):
@@ -177,7 +180,6 @@ def dask_Jtvec(self, m, v):
 Sim.Jtvec = dask_Jtvec
 
 
-@dask.delayed
 def compute_J(self, f=None, Ainv=None):
     # if os.path.exists(self.sensitivity_path):
     #     shutil.rmtree(self.sensitivity_path, ignore_errors=True)
