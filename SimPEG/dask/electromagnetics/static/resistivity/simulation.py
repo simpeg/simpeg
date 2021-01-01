@@ -107,7 +107,7 @@ def Jmatrix(self):
 
         client = get_client()
         self._Jmatrix = client.compute(
-                dask.delayed(self.compute_J()),
+                dask.delayed(self.compute_J)(),
             workers=self.workers
         )
     elif isinstance(self._Jmatrix, Future):

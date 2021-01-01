@@ -86,10 +86,6 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id, mst
     )
     local_misfit.W = 1 / uncert
 
-    # Start the sensitivities right away
-    # simulation.model = local_map @ mstart
-    # simulation.Jmatrix
-
     return local_misfit
 
 
@@ -481,6 +477,12 @@ def run(survey_type="pole-dipole", plotIt=True):
                     local_misfits
             )
     print(len(local_misfits))
+
+    # Start computing sensitivities right away
+    for local_misfit in local_misfits:
+        local_misfit.simulation.model = local_misfit.model_map @ m0_dc
+        local_misfit.simulation.Jmatrix
+
     # m0_dc = np.log(global_mesh.vol[active_cells])
     # Plot the model on different meshes
     ind = 6
@@ -576,7 +578,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     # make intital model
 
     surface_weight = False
-    use_preconditioner = True
+    use_preconditioner = False
     coolingFactor = 2
     coolingRate = 1
     beta0_ratio = 1e1
@@ -645,7 +647,7 @@ def run(survey_type="pole-dipole", plotIt=True):
         ]
     else:
         directiveList = [
-            beta, betaest, target, saveIter
+            beta, betaest, target
         ]
     inv = inversion.BaseInversion(
         invProb, directiveList=directiveList)
