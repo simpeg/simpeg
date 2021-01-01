@@ -26,8 +26,8 @@ def dask_deriv(self, m, f=None):
     if getattr(self, "model_map", None) is not None:
         m = self.model_map @ m
 
-    if getattr(self.simulation, "_Jmatrix", None) is None:
-        self.simulation.fields(m)
+    # if getattr(self.simulation, "_Jmatrix", None) is None:
+    #     self.simulation.fields(m)
 
     wtw_d = self.W.diagonal() ** 2.0 * self.residual(m, f=f)
 
@@ -55,8 +55,8 @@ def dask_deriv2(self, m, v, f=None):
         m = self.model_map @ m
         v = self.model_map.deriv(m) @ v
 
-    if getattr(self.simulation, "_Jmatrix", None) is None:
-        self.simulation.fields(m)
+    # if getattr(self.simulation, "_Jmatrix", None) is None:
+    #     self.simulation.fields(m)
 
     jvec = self.simulation.Jvec(m, v)
     w_jvec = self.W.diagonal() ** 2.0 * jvec

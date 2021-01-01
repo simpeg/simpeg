@@ -35,7 +35,7 @@ except ImportError:
 np.random.seed(12345)
 
 # @dask.delayed
-def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
+def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id, mstart):
     local_survey = dc.Survey(source)
     electrodes = np.vstack((local_survey.locations_a,
                             local_survey.locations_b,
@@ -85,6 +85,10 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
         data=data_object, simulation=simulation, model_map=local_map
     )
     local_misfit.W = 1 / uncert
+
+    # Start the sensitivities right away
+    # simulation.model = local_map @ mstart
+    # simulation.Jmatrix
 
     return local_misfit
 
@@ -369,9 +373,9 @@ def run(survey_type="pole-dipole", plotIt=True):
     # x1, y1, z1, r1 = 6.0, 0.0, -3.5, 3.0
 
     # ln conductivity
-    ln_sigback = -5.0
-    ln_sigc = -3.0
-    ln_sigr = -6.0
+    ln_sigback = np.log(1e-5)
+    ln_sigc = np.log(1e-3)
+    ln_sigr = np.log(1e-6)
 
     # Define model
     # Background
@@ -389,8 +393,8 @@ def run(survey_type="pole-dipole", plotIt=True):
 
     active_cells = global_mesh.gridCC[:, 2] < 501
     mtrue[~active_cells] = np.log(1e-8)
-
-    survey_dc.drapeTopo(global_mesh, active_cells, option='top') 
+    m0_dc = np.ones(active_cells.sum()) * ln_sigback
+    survey_dc.drape_electrodes_on_topography(global_mesh, active_cells, option='top')
 
     # fig = plt.figure(figsize=(6, 6))
     # ax = fig.add_subplot(111)
@@ -409,30 +413,28 @@ def run(survey_type="pole-dipole", plotIt=True):
 
     # Setup Problem with exponential mapping and Active cells only in the core mesh
     expmap = maps.ExpMap(global_mesh)
-    mapactive = maps.InjectActiveCells(mesh=global_mesh, indActive=active_cells, valInactive=-5.0)
+    mapactive = maps.InjectActiveCells(mesh=global_mesh, indActive=active_cells, valInactive=np.log(1e-8))
     mapping = expmap * mapactive
     simulation_g = dc.Simulation3DNodal(
         global_mesh, survey=survey_dc, sigmaMap=mapping, solver=Solver
     )
 
-    global_data = simulation_g.make_synthetic_data(mtrue[active_cells], relative_error=0.05, add_noise=True)
+    global_data = simulation_g.make_synthetic_data(mtrue[active_cells], relative_error=0.05, noise_floor=1., add_noise=True)
 
     # # plot predicted data
     # plt.plot(global_data.dobs, '.')
     # plt.title('data - DC')
     # plt.show()
 
-    survey_dc.dobs = global_data.dobs
-    survey_dc.std = np.abs(global_data.dobs) * 0.5
+
 
     # ==============================================================================
     # finally split the simulations
     # -----------------------------
 
     print("[INFO] Creating tiled simulations over sources: ", len(survey_dc.source_list))
-    eps = np.percentile(np.abs(survey_dc.dobs), 10)
-    survey_dc.std = np.abs(survey_dc.dobs * 0.05) + eps
-    survey = survey_dc
+    survey_dc.dobs = global_data.dobs
+    survey_dc.std = np.abs(survey_dc.dobs * global_data.relative_error) + global_data.noise_floor
     start_ = time.time()
     local_misfits = []
 
@@ -441,16 +443,16 @@ def run(survey_type="pole-dipole", plotIt=True):
     # do every 5 sources
     cnt = 0
     src_collect = []
-    for ii, source in enumerate(survey.source_list):
+    for ii, source in enumerate(survey_dc.source_list):
         source._q = None # need this for things to work
-        if cnt == 10 or ii == len(survey.source_list)-1:
+        if cnt == 10 or ii == len(survey_dc.source_list)-1:
             src_collect.append(source)        
             idx_end = idx_end + source.receiver_list[0].nD
             dobs = survey_dc.dobs[idx_start:idx_end]
     #         print(dobs.shape, len(src_collect))
             delayed_misfit = create_tile_dc(
-                        src_collect,  survey.dobs[idx_start:idx_end],
-                        survey.std[idx_start:idx_end], global_mesh, active_cells, ii)
+                        src_collect,  survey_dc.dobs[idx_start:idx_end],
+                        survey_dc.std[idx_start:idx_end], global_mesh, active_cells, ii, m0_dc)
             local_misfits += [delayed_misfit]
     #         src_collect = client.scatter(src_collect)
     #         survey_dobs = client.scatter(survey.dobs[idx_start:idx_end])
@@ -479,8 +481,7 @@ def run(survey_type="pole-dipole", plotIt=True):
                     local_misfits
             )
     print(len(local_misfits))
-    # m0_dc = np.ones(activeCells.sum()) * np.log(1. / np.median(patch.getApparentResistivity()))
-    m0_dc = np.log(global_mesh.vol[active_cells])
+    # m0_dc = np.log(global_mesh.vol[active_cells])
     # Plot the model on different meshes
     ind = 6
     # fig = plt.figure(figsize=(14, 10))
@@ -573,10 +574,10 @@ def run(survey_type="pole-dipole", plotIt=True):
     #
 
     # make intital model
-    m0_dc = np.ones(active_cells.sum()) * ln_sigback
+
     surface_weight = False
-    use_preconditioner = False
-    coolingFactor = 5
+    use_preconditioner = True
+    coolingFactor = 2
     coolingRate = 1
     beta0_ratio = 1e1
 
@@ -601,8 +602,13 @@ def run(survey_type="pole-dipole", plotIt=True):
     reg.alpha_y = 1
     reg.alpha_z = 1
 
-    opt = optimization.ProjectedGNCG(maxIter=10, upper=np.inf, lower=-np.inf)
+    opt = optimization.ProjectedGNCG(maxIter=5, upper=np.inf, lower=-np.inf)
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
+
+    # preds = []
+    # for ii in range(4):
+    #     preds += [np.hstack(invProb.get_dpred(m0_dc))]
+    #
 
     # strt = time.time()
     # J = invProb.formJ(m0_dc)
@@ -623,7 +629,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     )
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
     target = directives.TargetMisfit()
-    target.target = survey.nD / 2.
+    target.target = survey_dc.nD
     saveIter = directives.SaveModelEveryIteration()
     saveIterVar = directives.SaveOutputEveryIteration()
     # Need to have basice saving function
@@ -635,7 +641,7 @@ def run(survey_type="pole-dipole", plotIt=True):
         #     beta, betaest, target, updateSensW, saveIter, update_Jacobi
         # ]
         directiveList = [
-            updateSensW, beta, betaest, target, saveIter, update_Jacobi, saveIterVar 
+            updateSensW, beta, betaest, target, update_Jacobi
         ]
     else:
         directiveList = [

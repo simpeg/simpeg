@@ -6,13 +6,16 @@ import warnings
 from .....data import SyntheticData
 import dask
 import dask.array as da
+from dask.distributed import Future
+from dask.distributed import get_client
 import os
 import shutil
 import numpy as np
 
 Sim.sensitivity_path = './sensitivity/'
 
-def dask_fields(self, m=None, compute_J=False):
+
+def dask_fields(self, m=None, return_Ainv=False):
     if m is not None:
         self.model = m
 
@@ -23,12 +26,26 @@ def dask_fields(self, m=None, compute_J=False):
 
     f[:, self._solutionType] = Ainv * RHS
 
-    if compute_J:
-        self.compute_J(f, Ainv)
-    return f
+    if return_Ainv:
+        return (f, Ainv)
+    else:
+        return (f,)
 
 
 Sim.fields = dask_fields
+
+
+# @dask.delayed
+# def delayed_fields(solver, A, RHS, mesh, survey, compute_J=False, return_dpred=False, solver_options={}, solution_type=[]):
+#
+#     Ainv = solver(A, solver_options)
+#     f[:, solution_type] = Ainv * RHS
+#     if return_dpred:
+#         data = Data(survey)
+#         for src in survey.source_list:
+#             for rx in src.receiver_list:
+#                 data[src, rx] = rx.eval(src, mesh, f)
+#         return mkvc(data)
 
 
 def dask_dpred(self, m=None, f=None, compute_J=False):
@@ -51,129 +68,80 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             "simulation.survey = survey"
         )
 
-    if f is None:
-        if m is None:
-            m = self.model
+    @dask.delayed
+    def compute_data(self, m, f):
+        if f is None:
+            if m is None:
+                m = self.model
+            f, Ainv = self.fields(m, return_Ainv=True)
 
-        f = self.fields(m, compute_J=compute_J)
+        data = Data(self.survey)
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                data[src, rx] = rx.eval(src, self.mesh, f)
 
-    data = Data(self.survey)
-    for src in self.survey.source_list:
-        for rx in src.receiver_list:
-            data[src, rx] = rx.eval(src, self.mesh, f)
-    return mkvc(data)
+        return mkvc(data)
+
+    out = compute_data(self, m, f)
+
+    # if compute_J:
+    #     return (
+    #         da.from_delayed(out[0], shape=(self.survey.nD,), dtype=float),
+    #         da.from_delayed(
+    #             dask.delayed(out[0]), shape=(self.survey.nD, self.model.shape[0]), dtype=float
+    #         )
+    #     )
+    # else:
+    return da.from_delayed(out, shape=(self.survey.nD,), dtype=float)
 
 
 Sim.dpred = dask_dpred
 
 
-def dask_getJ(self, m, f=None):
-    """
-        Generate Full sensitivity matrix
-    """
-    if self._Jmatrix is None:
-        self.fields(m, compute_J=True)
+@property
+def Jmatrix(self):
+    if getattr(self, "_Jmatrix", None) is None:
+
+        client = get_client()
+        self._Jmatrix = client.compute(
+                self.compute_J(),
+            workers=self.workers
+        )
+    elif isinstance(self._Jmatrix, Future):
+        client = get_client()
+        self._Jmatrix = client.gather(self._Jmatrix)
 
     return self._Jmatrix
 
 
-Sim.getJ = dask_getJ
+Sim.Jmatrix = Jmatrix
 
 
-def dask_compute_J(self, f, Ainv):
-    if os.path.exists(self.sensitivity_path):
-        shutil.rmtree(self.sensitivity_path, ignore_errors=True)
-
-        # Wait for the system to clear out the directory
-        while os.path.exists(self.sensitivity_path):
-            pass
-
-    m_size = self.model.size
-    count = 0
-    for source in self.survey.source_list:
-        u_source = f[source, self._solutionType]
-        for rx in source.receiver_list:
-            # wrt f, need possibility wrt m
-            PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-
-            df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
-            df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
-
-            # Find a block of receivers
-            n_block_col = int(np.ceil(df_duT.size * 8 * 1e-9 / self.max_ram))
-
-            n_col = int(np.ceil(df_duT.shape[1] / n_block_col))
-
-            nrows = int(
-                m_size / np.ceil(m_size * n_col * 8 * 1e-6 / self.max_chunk_size)
-            )
-            ind = 0
-            for col in range(n_block_col):
-                ATinvdf_duT = da.asarray(
-                    Ainv * df_duT[:, ind : ind + n_col]
-                ).rechunk((nrows, n_col))
-
-                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
-
-                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
-
-                if n_col > 1:
-                    du_dmT = da.from_delayed(
-                        dask.delayed(-dA_dmT), shape=(m_size, n_col), dtype=float
-                    )
-                else:
-                    du_dmT = da.from_delayed(
-                        dask.delayed(-dA_dmT), shape=(m_size,), dtype=float
-                    )
-
-                if not isinstance(dRHS_dmT, Zero):
-                    du_dmT += da.from_delayed(
-                        dask.delayed(dRHS_dmT), shape=(m_size, n_col), dtype=float
-                    )
-
-                if not isinstance(df_dmT, Zero):
-                    du_dmT += da.from_delayed(
-                        df_dmT, shape=(m_size, n_col), dtype=float
-                    )
-
-                blockName = self.sensitivity_path + "J" + str(count) + ".zarr"
-                da.to_zarr((du_dmT.T).rechunk("auto"), blockName)
-                del ATinvdf_duT
-                count += 1
-
-                ind += n_col
-
-    dask_arrays = []
-    for ii in range(count):
-        blockName = self.sensitivity_path + "J" + str(ii) + ".zarr"
-        J = da.from_zarr(blockName)
-        # Stack all the source blocks in one big zarr
-        dask_arrays.append(J)
-
-    rowChunk, colChunk = compute_chunk_sizes(
-        self.survey.nD, m_size, self.max_chunk_size
-    )
-    self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
-    Ainv.clean()
-
-    return self._Jmatrix
-
-
-Sim.compute_J = dask_compute_J
+# def dask_getJ(self, m, f=None):
+#     """
+#         Generate Full sensitivity matrix
+#     """
+#
+#     return self.Jmatrix
+#
+#
+# Sim.getJ = dask_getJ
 
 
 def dask_getJtJdiag(self, m, W=None):
     """
         Return the diagonal of JtJ
     """
+    self.model = m
     if self.gtgdiag is None:
-
+        if isinstance(self.Jmatrix, Future):
+            self.Jmatrix  # Wait to finish
         # Need to check if multiplying weights makes sense
         if W is None:
-            self.gtgdiag = da.sum(self.getJ(m) ** 2, axis=0).compute()
+            self.gtgdiag = da.sum(self.Jmatrix ** 2, axis=0).compute()
         else:
             w = da.from_array(W.diagonal())[:, None]
-            self.gtgdiag = da.sum((w * self.getJ(m)) ** 2, axis=0).compute()
+            self.gtgdiag = da.sum((w * self.Jmatrix) ** 2, axis=0).compute()
 
     return self.gtgdiag
 
@@ -186,10 +154,10 @@ def dask_Jvec(self, m, v):
         Compute sensitivity matrix (J) and vector (v) product.
     """
     self.model = m
-    if self._Jmatrix is None:
-        self.fields(m, compute_J=True)
+    if isinstance(self.Jmatrix, Future):
+        self.Jmatrix  # Wait to finish
 
-    return da.dot(self._Jmatrix, v)
+    return da.dot(self.Jmatrix, v)
 
 
 Sim.Jvec = dask_Jvec
@@ -200,10 +168,69 @@ def dask_Jtvec(self, m, v):
         Compute adjoint sensitivity matrix (J^T) and vector (v) product.
     """
     self.model = m
-    if self._Jmatrix is None:
-        self.fields(m, compute_J=True)
+    if isinstance(self.Jmatrix, Future):
+        self.Jmatrix  # Wait to finish
 
-    return da.dot(v, self._Jmatrix)
+    return da.dot(v, self.Jmatrix)
 
 
 Sim.Jtvec = dask_Jtvec
+
+
+@dask.delayed
+def compute_J(self, f=None, Ainv=None):
+    # if os.path.exists(self.sensitivity_path):
+    #     shutil.rmtree(self.sensitivity_path, ignore_errors=True)
+    #
+    #     # Wait for the system to clear out the directory
+    #     while os.path.exists(self.sensitivity_path):
+    #         pass
+
+    if Ainv is None:
+        A = self.getA()
+        Ainv = self.solver(A, **self.solver_opts)
+        RHS = self.getRHS()
+
+    if f is None:
+        f = self.fieldsPair(self)
+        f[:, self._solutionType] = Ainv * RHS
+
+    m_size = self.model.size
+
+    blocks = []
+    for source in self.survey.source_list:
+        u_source = f[source, self._solutionType]
+        for rx in source.receiver_list:
+            PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+            df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
+            df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
+
+            # Find a block of receivers
+            ATinvdf_duT = Ainv * df_duT
+
+            dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
+
+            dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
+
+            du_dmT = da.from_delayed(
+                dask.delayed(-dA_dmT), shape=(m_size, df_duT.shape[1]), dtype=float
+            )
+            if not isinstance(dRHS_dmT, Zero):
+                du_dmT += da.from_delayed(
+                    dask.delayed(dRHS_dmT), shape=(m_size, rx.nD), dtype=float
+                )
+            if not isinstance(df_dmT, Zero):
+                du_dmT += da.from_delayed(
+                    df_dmT, shape=(m_size, rx.nD), dtype=float
+                )
+
+            blocks += [du_dmT.T]
+
+    Jmatrix = da.to_zarr(da.vstack(blocks).rechunk('auto'), self.sensitivity_path + "J.zarr",
+                               compute=True, return_stored=True, overwrite=True
+    )
+
+    return Jmatrix
+
+
+Sim.compute_J = compute_J

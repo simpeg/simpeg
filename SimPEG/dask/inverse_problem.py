@@ -108,7 +108,10 @@ def get_dpred(self, m, f=None, compute_J=False):
                 else:
                     vec = m
 
-                future = client.compute(objfct.simulation.dpred(vec, compute_J=compute_J), workers=objfct.workers)
+                if compute_J:
+                    objfct.simulation.Jmatrix
+
+                future = client.compute(objfct.simulation.dpred(vec), workers=objfct.workers)
                 dpreds += [future]
             else:
                 dpreds += []
