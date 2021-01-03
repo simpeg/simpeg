@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 import scipy.sparse as sp
 from six import string_types
-
+from .simulation import LinearSimulation
 from .utils.solver_utils import SolverWrapI, Solver
 from .utils import (
     callHooks,
@@ -376,11 +376,13 @@ class Minimize(object):
             if self.stopNextIteration:
                 break
 
+
             for objfct in self.parent.dmisfit.objfcts:
-                if hasattr(objfct.simulation, "_Jmatrix"):
-                    objfct.simulation._Jmatrix = None
-                if hasattr(objfct.simulation, "gtgdiag"):
-                    objfct.simulation.gtgdiag = None
+                if not isinstance(objfct.simulation, LinearSimulation):
+                    if hasattr(objfct.simulation, "_Jmatrix"):
+                        objfct.simulation._Jmatrix = None
+                    if hasattr(objfct.simulation, "gtgdiag"):
+                        objfct.simulation.gtgdiag = None
 
             self.f, self.g, self.H = evalFunction(xt, return_g=True, return_H=True)
             self.doEndIteration(xt)

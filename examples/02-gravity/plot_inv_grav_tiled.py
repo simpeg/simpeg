@@ -64,7 +64,7 @@ max_distance = 25
 #
 #
 
-@dask.delayed
+# @dask.delayed
 def create_tile(locations, obs, uncert, global_mesh, global_active, tile_id, workers=None):
     receivers = gravity.receivers.Point(locations)
     srcField = gravity.sources.SourceField([receivers])
@@ -80,7 +80,7 @@ def create_tile(locations, obs, uncert, global_mesh, global_active, tile_id, wor
     simulation = gravity.simulation.Simulation3DIntegral(
         survey=local_survey,
         mesh=local_mesh,
-        rhoMap=local_map,
+        rhoMap=maps.IdentityMap(nP=int(local_map.local_active.sum())),
         actInd=local_map.local_active,
         sensitivity_path=f"Inversion\Tile{tile_id}.zarr",
         chunk_format="row",
@@ -95,7 +95,7 @@ def create_tile(locations, obs, uncert, global_mesh, global_active, tile_id, wor
     )
     local_misfit = data_misfit.L2DataMisfit(
         data=data_object, simulation=simulation,
-        workers=workers
+        workers=workers, model_map=local_map
     )
 
     return local_misfit
@@ -168,7 +168,7 @@ simulation = gravity.simulation.Simulation3DIntegral(
 )
 
 # Compute linear forward operator and compute some data
-d = client.compute(simulation.fields(model)).result()
+d = simulation.dpred(model).compute()
 
 # Add noise and uncertainties
 # We add some random Gaussian noise (1nT)
@@ -193,30 +193,31 @@ indices = tile_locations(rxLoc, 4, method="kmeans")
 ct = time()
 local_misfits = []
 for ii, local_index in enumerate(indices):
-    # receivers = gravity.receivers.Point(rxLoc[local_index, :])
     locations = rxLoc[local_index, :]
-    delayed_misfit = create_tile(
-        locations,  synthetic_data[local_index],
-        wd[local_index], global_mesh, activeCells, ii, workers=None
-    )
-    local_misfits += [client.compute(delayed_misfit)]
+
+    # sc_locs, sc_mesh = client.scatter([locations, global_mesh])
+
+    local_misfits += [
+        create_tile(
+            locations,  synthetic_data[local_index],
+            wd[local_index], global_mesh, activeCells, ii, workers=None
+        )
+    ]
 
 
-local_misfits = client.gather(local_misfits)
-tile_time = time() - ct
-print(f"Tile creation {tile_time}")
+# local_misfits = client.gather(local_misfits)
+# tile_time = time() - ct
+# print(f"Tile creation {tile_time}")
 
-# Trigger sensitivity calcs
-sens = []
-ct = time()
-for local in local_misfits:
-    sens += [local.simulation.G]
-    # del local.simulation.mesh
 
 global_misfit = objective_function.ComboObjectiveFunction(
         local_misfits
 )
-client.gather(sens)
+
+# Trigger sensitivities
+for local in local_misfits:
+    local.simulation.Jmatrix
+    local.simulation.Jmatrix
 
 # Plot the model on different meshes
 fig = plt.figure(figsize=(12, 6))
@@ -224,7 +225,7 @@ c_code = ['r', 'g', 'b', 'm']
 for ii, local_misfit in enumerate(global_misfit.objfcts):
 
     local_mesh = local_misfit.simulation.mesh
-    local_map = local_misfit.simulation.rhoMap
+    local_map = local_misfit.model_map
 
     inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
@@ -296,22 +297,22 @@ mrec = inv.run(m0)
 # global_mesh.write_UBC(
 #     f"InvMesh{kk}_{jj}.msh",
 #     models={f"inv{kk}_{jj}.mod": inject_global * invProb.model})
-# fig = plt.figure(figsize=(12, 6))
-# # Plot the result
-# ax = plt.subplot(1, 2, 1)
-# global_mesh.plot_slice(inject_global * model, normal="Y", ax=ax, grid=True)
-# ax.set_title("True")
-# ax.set_xlim(-60, 60)
-# ax.set_ylim(-50, 10)
-# ax.set_aspect("equal")
-#
-# ax = plt.subplot(1, 2, 2)
-# global_mesh.plot_slice(inject_global * mrec, normal="Y", ax=ax, grid=True)
-# ax.set_title("Recovered")
-# ax.set_xlim(-60, 60)
-# ax.set_ylim(-50, 10)
-# ax.set_aspect("equal")
-# plt.show()
+fig = plt.figure(figsize=(12, 6))
+# Plot the result
+ax = plt.subplot(1, 2, 1)
+global_mesh.plot_slice(inject_global * model, normal="Y", ax=ax, grid=True)
+ax.set_title("True")
+ax.set_xlim(-60, 60)
+ax.set_ylim(-50, 10)
+ax.set_aspect("equal")
+
+ax = plt.subplot(1, 2, 2)
+global_mesh.plot_slice(inject_global * mrec, normal="Y", ax=ax, grid=True)
+ax.set_title("Recovered")
+ax.set_xlim(-60, 60)
+ax.set_ylim(-50, 10)
+ax.set_aspect("equal")
+plt.show()
 # f = open(output, "a")
 # f.write(
 #     "{:1.4e} {:1.4e} {:1.4e} {:1.4e} {:1.4e} {:1.4e} \n".format(

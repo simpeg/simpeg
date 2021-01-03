@@ -1,6 +1,8 @@
 import numpy as np
 from ....potential_fields.magnetics import Simulation3DIntegral as Sim
 from ....utils import sdiag, mkvc
+from dask import array, delayed
+from scipy.sparse import csr_matrix as csr
 
 
 def dask_getJtJdiag(self, m, W=None):
@@ -16,7 +18,7 @@ def dask_getJtJdiag(self, m, W=None):
         W = W.diagonal()
     if getattr(self, "_gtg_diagonal", None) is None:
         if not self.is_amplitude_data:
-            diag = ((W[:, None] * self.G) ** 2).sum(axis=0)
+            diag = ((W[:, None] * self.Jmatrix) ** 2).sum(axis=0)
         else:  # self.modelType is amplitude
             fieldDeriv = self.fieldDeriv
             J = (
@@ -33,3 +35,32 @@ def dask_getJtJdiag(self, m, W=None):
 
 
 Sim.getJtJdiag = dask_getJtJdiag
+
+
+def dask_Jvec(self, _, v, f=None):
+    """
+    Sensitivity times a vector
+    """
+    dmu_dm_v = self.rhoDeriv @ v
+    return array.dot(self.Jmatrix, dmu_dm_v.astype(np.float32))
+
+
+Sim.Jvec = dask_Jvec
+
+
+def dask_Jtvec(self, _, v, f=None):
+    """
+    Sensitivity transposed times a vector
+    """
+
+    Jtvec = array.dot(v.astype(np.float32), self.Jmatrix)
+    Jtjvec_dmudm = delayed(csr.dot)(Jtvec, self.rhoDeriv)
+    h_vec = array.from_delayed(
+        Jtjvec_dmudm, dtype=float, shape=[self.rhoDeriv.shape[1]]
+    )
+
+    return h_vec
+
+
+Sim.Jtvec = dask_Jtvec
+

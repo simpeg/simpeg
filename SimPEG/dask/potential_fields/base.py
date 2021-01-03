@@ -26,7 +26,7 @@ def chunk_format(self, other):
 Sim.chunk_format = chunk_format
 
 
-def dask_linear_operator(self):
+def linear_operator(self):
     self.nC = self.modelMap.shape[0]
 
     hx, hy, hz = self.mesh.h[0].min(), self.mesh.h[1].min(), self.mesh.h[2].min()
@@ -37,13 +37,10 @@ def dask_linear_operator(self):
         [np.c_[values] for values in self.survey.components.values()]
     ).tolist()
 
-    row = delayed(evaluate_integral, pure=True)
-    try:
-        client = get_client()
-        Xn, Yn, Zn = client.scatter([self.Xn, self.Yn, self.Zn], workers=self.workers)
-    except:
-        Xn, Yn, Zn = self.Xn, self.Yn, self.Zn
+    client = get_client()
 
+    Xn, Yn, Zn = client.scatter([self.Xn, self.Yn, self.Zn], workers=self.workers)
+    row = delayed(evaluate_integral, pure=True)
     rows = [
         array.from_delayed(
             row(Xn, Yn, Zn, hx, hy, hz, receiver_location, components[component]),
@@ -93,18 +90,11 @@ def dask_linear_operator(self):
         # with ProgressBar():
         print("Saving kernel to zarr: " + sens_name)
 
-        try:
-
-            client = get_client()
-            return client.compute(
-                array.to_zarr(
-                    stack, sens_name,
-                    compute=False, return_stored=False, overwrite=True
-                ),
-                workers=self.workers
-            )
-        except:
-            pass
+        kernel = array.to_zarr(
+                stack, sens_name,
+                compute=True, return_stored=True, overwrite=True
+        )
+        return kernel
 
     elif self.store_sensitivities == "forward_only":
         # with ProgressBar():
@@ -119,12 +109,23 @@ def dask_linear_operator(self):
     return kernel
 
 
-Sim.linear_operator = dask_linear_operator
+Sim.linear_operator = linear_operator
 
 
 @property
 def Jmatrix(self):
-    return self.G
+    if getattr(self, "_Jmatrix", None) is None:
+        client = get_client()
+        self._Jmatrix = client.compute(
+                delayed(self.linear_operator)(),
+            workers=self.workers
+        )
+    elif isinstance(self._Jmatrix, Future):
+        client = get_client()
+        self._Jmatrix = client.gather(self._Jmatrix)
+
+    return self._Jmatrix
+
 
 Sim.Jmatrix = Jmatrix
 
