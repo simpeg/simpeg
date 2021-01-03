@@ -1,6 +1,6 @@
 from ..simulation import BaseSimulation as Sim
-from dask.distributed import get_client, Client
-from dask.delayed import Delayed
+from dask.distributed import get_client, Future
+from dask import array, delayed
 import warnings
 from ..data import SyntheticData
 import numpy as np
@@ -117,3 +117,52 @@ def workers(self, workers):
 
 
 Sim.workers = workers
+
+
+def dask_Jvec(self, m, v):
+    """
+        Compute sensitivity matrix (J) and vector (v) product.
+    """
+    self.model = m
+    if isinstance(self.Jmatrix, Future):
+        self.Jmatrix  # Wait to finish
+
+    return array.dot(self.Jmatrix, v)
+
+
+Sim.Jvec = dask_Jvec
+
+
+def dask_Jtvec(self, m, v):
+    """
+        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+    """
+    self.model = m
+    if isinstance(self.Jmatrix, Future):
+        self.Jmatrix  # Wait to finish
+
+    return array.dot(v, self.Jmatrix)
+
+
+Sim.Jtvec = dask_Jtvec
+
+
+@property
+def Jmatrix(self):
+    """
+    Sensitivity matrix stored on disk
+    """
+    if getattr(self, "_Jmatrix", None) is None:
+        client = get_client()
+        self._Jmatrix = client.compute(
+                delayed(self.compute_J)(),
+            workers=self.workers
+        )
+    elif isinstance(self._Jmatrix, Future):
+        client = get_client()
+        self._Jmatrix = client.gather(self._Jmatrix)
+
+    return self._Jmatrix
+
+
+Sim.Jmatrix = Jmatrix
