@@ -60,26 +60,33 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
             if self._sigma_primary is None:
                 self._sigma_primary = simulation.sigmaPrimary
             # Create 3d_1d mesh like me...
-            mesh3d = simulation.mesh
-            x0 = mesh3d.x0
-            hs = [
-                [mesh3d.vectorNx[-1] - x0[0]],
-                [mesh3d.vectorNy[-1] - x0[1]],
-                mesh3d.h[-1],
-            ]
-            mesh1d = discretize.TensorMesh(hs, x0=x0)
-            if len(self._sigma_primary) == mesh3d.nC:
-                # volume average down to 1D mesh
-                self._sigma1d = np.exp(
-                    volume_average(mesh3d, mesh1d, np.log(self._sigma_primary))
+            if simulation.mesh.dim == 3:
+                mesh3d = simulation.mesh
+                x0 = mesh3d.x0
+                hs = [
+                    [mesh3d.vectorNx[-1] - x0[0]],
+                    [mesh3d.vectorNy[-1] - x0[1]],
+                    mesh3d.h[-1],
+                ]
+                mesh1d = discretize.TensorMesh(hs, x0=x0)
+                if len(self._sigma_primary) == mesh3d.nC:
+                    # volume average down to 1D mesh
+                    self._sigma1d = np.exp(
+                        volume_average(mesh3d, mesh1d, np.log(self._sigma_primary))
+                    )
+                elif len(self._sigma_primary) == mesh1d.nC:
+                    self._sigma1d = self._sigma_primary
+                else:
+                    self._sigma1d = np.ones(mesh1d.nC) * self._sigma_primary
+                self._sigma_p = np.exp(
+                    volume_average(mesh1d, mesh3d, np.log(self._sigma1d))
                 )
-            elif len(self._sigma_primary) == mesh1d.nC:
-                self._sigma1d = self._sigma_primary
             else:
-                self._sigma1d = np.ones(mesh1d.nC) * self._sigma_primary
-            self._sigma_p = np.exp(
-                volume_average(mesh1d, mesh3d, np.log(self._sigma1d))
-            )
+                self._sigma1d = simulation.mesh.r(
+                        simulation._sigmaPrimary, "CC", "CC", "M"
+                    )[:]
+                self._sigma_p = None
+                self.sigma1d = self._sigma1d
             return self._sigma1d, self._sigma_p
 
     def ePrimary(self, simulation):
