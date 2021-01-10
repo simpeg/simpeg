@@ -29,47 +29,6 @@ def dask_fields(self, m=None, return_Ainv=False):
 Sim.fields = dask_fields
 
 
-@dask.delayed
-def dask_dpred(self, m=None, f=None, compute_J=False):
-    """
-    dpred(m, f=None)
-    Create the projected data from a model.
-    The fields, f, (if provided) will be used for the predicted data
-    instead of recalculating the fields (which may be expensive!).
-
-    .. math::
-
-        d_\\text{pred} = P(f(m))
-
-    Where P is a projection of the fields onto the data space.
-    """
-    if self.survey is None:
-        raise AttributeError(
-            "The survey has not yet been set and is required to compute "
-            "data. Please set the survey for the simulation: "
-            "simulation.survey = survey"
-        )
-
-    if f is None:
-        if m is None:
-            m = self.model
-        f, Ainv = self.fields(m, return_Ainv=True)
-
-    data = Data(self.survey)
-    for src in self.survey.source_list:
-        for rx in src.receiver_list:
-            data[src, rx] = rx.eval(src, self.mesh, f)
-
-    if compute_J:
-        Jmatrix = self.compute_J(f=f, Ainv=Ainv)
-        return (mkvc(data), Jmatrix)
-
-    return mkvc(data)
-
-
-Sim.dpred = dask_dpred
-
-
 def dask_getJtJdiag(self, m, W=None):
     """
         Return the diagonal of JtJ
@@ -121,14 +80,8 @@ Sim.Jtvec = dask_Jtvec
 
 def compute_J(self, f=None, Ainv=None):
 
-    if Ainv is None:
-        A = self.getA()
-        Ainv = self.solver(A, **self.solver_opts)
-        RHS = self.getRHS()
-
     if f is None:
-        f = self.fieldsPair(self)
-        f[:, self._solutionType] = Ainv * RHS
+        f, Ainv = self.fields(self.model, return_Ainv=True)
 
     m_size = self.model.size
 
