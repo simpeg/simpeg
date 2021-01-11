@@ -276,8 +276,11 @@ def run():
         dobs = survey.dobs[idx_start:idx_end]
     #         print(dobs.shape, len(src_collect))
         delayed_misfit = create_tile_em_misfit(
-                    sources,  survey.dobs[idx_start:idx_end],
-                    survey.std[idx_start:idx_end], mesh, active_cells, ii, model)
+            sources,
+            survey.dobs[idx_start:idx_end],
+            survey.std[idx_start:idx_end],
+            mesh, active_cells, ii, model
+        )
         local_misfits += [delayed_misfit]
 
     global_misfit = objective_function.ComboObjectiveFunction(
@@ -297,7 +300,7 @@ def run():
     #
     # Jvec = simulation_g.Jvec(mstart, v=mstart)
 
-    use_preconditioner = False
+    use_preconditioner = True
     coolingFactor = 2
     coolingRate = 1
     beta0_ratio = 1e1
@@ -350,7 +353,7 @@ def run():
     rho_est = model_map * minv
     # np.save('model_out.npy', rho_est)
 
-    mesh.writeUBC('OctreeMesh-test.msh', models={'ubc.con': np.exp(rho_est)})
+    mesh.writeUBC('OctreeMesh-test.msh', models={'ubc.con': rho_est})
 
 if __name__ == '__main__':
     run()

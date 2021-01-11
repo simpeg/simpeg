@@ -8,6 +8,7 @@ from dask.distributed import Future
 
 
 Sim.sensitivity_path = './sensitivity/'
+Sim.gtgdiag = None
 
 def fields(self, m=None, return_Ainv=False):
     if m is not None:

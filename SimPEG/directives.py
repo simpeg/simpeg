@@ -941,8 +941,8 @@ class UpdatePreconditioner(InversionDirective):
 
         JtJdiag = np.zeros_like(self.invProb.model)
         for dmisfit in self.dmisfit.objfcts:
-            assert getattr(dmisfit.simulation, "getJ", None) is not None, (
-                "Simulation does not have a getJ attribute."
+            assert getattr(dmisfit.simulation, "getJtJdiag", None) is not None, (
+                "Simulation does not have a getJtJdiag attribute."
                 + "Cannot form the sensitivity explicitly"
             )
             JtJdiag += dmisfit.getJtJdiag(m)
@@ -967,8 +967,8 @@ class UpdatePreconditioner(InversionDirective):
 
         JtJdiag = np.zeros_like(self.invProb.model)
         for dmisfit in self.dmisfit.objfcts:
-            assert getattr(dmisfit.simulation, "getJ", None) is not None, (
-                "Simulation does not have a getJ attribute."
+            assert getattr(dmisfit.simulation, "getJtJdiag", None) is not None, (
+                "Simulation does not have a getJtJdiag attribute."
                 + "Cannot form the sensitivity explicitly"
             )
             JtJdiag += dmisfit.getJtJdiag(m)
@@ -1051,8 +1051,8 @@ class UpdateSensitivityWeights(InversionDirective):
         m = self.invProb.model
 
         for dmisfit in self.dmisfit.objfcts:
-            assert getattr(dmisfit.simulation, "getJ", None) is not None, (
-                "Simulation does not have a getJ attribute."
+            assert getattr(dmisfit.simulation, "getJtJdiag", None) is not None, (
+                "Simulation does not have a getJtJdiag attribute."
                 + "Cannot form the sensitivity explicitly"
             )
             self.JtJdiag += [dmisfit.getJtJdiag(m)]
