@@ -96,7 +96,7 @@ def compute_J(self, f=None, Ainv=None):
     m_size = self.model.size
 
     blocks = []
-    count = -1
+
     for A_i, freq in zip(Ainv, self.survey.frequencies):
 
         for src in self.survey.get_sources_by_frequency(freq):
@@ -106,25 +106,31 @@ def compute_J(self, f=None, Ainv=None):
                 # PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
                 # df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
                 # df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
-                count += 1
 
-                df_duT, df_dmT = rx.evalDeriv(
-                    src, self.mesh, f, v=np.ones(1), adjoint=True
-                )
+                for i_datum in range(rx.nD):
+                    v = np.zeros(rx.nD, dtype=float)
+                    v[i_datum] = 1
+                    # PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+                    # df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
+                    # df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                    df_duT, df_dmT = rx.evalDeriv(
+                        src, self.mesh, f, v=v, adjoint=True
+                    )
 
-                ATinvdf_duT = A_i * df_duT
-                dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
-                dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
-                du_dmT = -dA_dmT
-                if not isinstance(dRHS_dmT, Zero):
-                    du_dmT += dRHS_dmT
-                if not isinstance(df_dmT, Zero):
-                    du_dmT += df_dmT
 
-                if rx.component == "real":
-                    blocks += [np.array(du_dmT, dtype=complex).real.T]
-                elif rx.component == "imag":
-                    blocks += [-np.array(du_dmT, dtype=complex).real.T]
+                    ATinvdf_duT = A_i * df_duT
+                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+                    du_dmT = -dA_dmT
+                    if not isinstance(dRHS_dmT, Zero):
+                        du_dmT += dRHS_dmT
+                    if not isinstance(df_dmT, Zero):
+                        du_dmT += df_dmT
+
+                    if rx.component == "real":
+                        blocks += [np.array(du_dmT, dtype=complex).real.T]
+                    elif rx.component == "imag":
+                        blocks += [-np.array(du_dmT, dtype=complex).real.T]
 
 
     Jmatrix = da.to_zarr(
