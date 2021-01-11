@@ -54,7 +54,7 @@ def create_tile_em_misfit(sources, obs, uncert, global_mesh, global_active, tile
     # Create the local misfit
     max_chunk_size = 256
     simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
-        local_mesh, survey=local_survey, sigmaMap=mapping, storeJ=True,
+        local_mesh, survey=local_survey, sigmaMap=mapping,
         Solver=Solver,
 #         chunk_format="row",
 #         max_chunk_size=max_chunk_size,
@@ -92,7 +92,7 @@ def run():
     xtx, ytx, ztx = np.meshgrid(np.linspace(-200, 200, N), np.linspace(-200, 200, N), [40])
     source_locations = np.c_[mkvc(xtx), mkvc(ytx), mkvc(ztx)]
     ntx = np.size(xtx)
-
+    print("Number of sources: ", ntx)
     # Define receiver locations
     xrx, yrx, zrx = np.meshgrid(np.linspace(-200, 200, N), np.linspace(-200, 200, N), [20])
     receiver_locations = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
@@ -151,18 +151,20 @@ def run():
     mesh.finalize()
 
     # Conductivity in S/m (or resistivity in Ohm m)
-    air_conductivity = 1e-8
-    background_conductivity = 1e-2
-    block_conductivity = 1e1
+    air_conductivity = np.log(1e-8)
+    background_conductivity = np.log(1e-2)
+    block_conductivity = np.log(1e1)
 
     # Find cells that are active in the forward modeling (cells below surface)
     active_cells = surface2ind_topo(mesh, topo_xyz)
 
     # Define mapping from model to active cells
-    model_map = maps.InjectActiveCells(mesh, active_cells, air_conductivity)
+    expmap = maps.ExpMap(mesh)
+    model_map = expmap * maps.InjectActiveCells(mesh, active_cells, air_conductivity)
 
     # Define model. Models in SimPEG are vector arrays
     model = background_conductivity * np.ones(active_cells.sum())
+    mstart = background_conductivity * np.ones(active_cells.sum())
     ind_block = (
         (mesh.gridCC[active_cells, 0] < 100.0)
         & (mesh.gridCC[active_cells, 0] > -100.0)
@@ -177,26 +179,20 @@ def run():
     mpl.rcParams.update({"font.size": 12})
     fig = plt.figure(figsize=(7, 6))
 
-    plotting_map = maps.InjectActiveCells(mesh, active_cells, np.nan)
-    log_model = np.log10(model)
-
+    ploting_map = expmap * maps.InjectActiveCells(mesh, active_cells, np.nan)
     ax1 = fig.add_axes([0.13, 0.1, 0.6, 0.85])
     mesh.plotSlice(
-        plotting_map * log_model,
+        np.log10(ploting_map * model),
         normal="Y",
         ax=ax1,
         ind=int(mesh.hx.size / 2),
         grid=True,
-        clim=(np.log10(background_conductivity), np.log10(block_conductivity)),
     )
     ax1.set_title("Conductivity Model at Y = 0 m")
 
     ax2 = fig.add_axes([0.75, 0.1, 0.05, 0.85])
-    norm = mpl.colors.Normalize(
-        vmin=np.log10(background_conductivity), vmax=np.log10(block_conductivity)
-    )
     cbar = mpl.colorbar.ColorbarBase(
-        ax2, norm=norm, orientation="vertical", format="$10^{%.1f}$"
+        ax2, orientation="vertical", format="$10^{%.1f}$"
     )
     cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 
@@ -207,7 +203,7 @@ def run():
 
     # Compute predicted data for a your model.
     # dpred = simulation.dpred(model)
-    global_data = simulation_g.make_synthetic_data(model, relative_error=0.05, noise_floor=1e-14, add_noise=True)
+    global_data = simulation_g.make_synthetic_data(model, relative_error=0.05, noise_floor=5e-14, add_noise=True)
 
     # Data are organized by frequency, transmitter location, then by receiver. We nFreq transmitters
     # and each transmitter had 2 receivers (real and imaginary component). So
@@ -288,10 +284,18 @@ def run():
                     local_misfits
             )
 
+    # global_misfit = data_misfit.L2DataMisfit(
+    #     data=global_data, simulation=simulation_g
+    # )
+    # global_misfit.W = 1 / global_data.std
+
     for local_misfit in global_misfit.objfcts:
         local_misfit.simulation.model = local_misfit.model_map @ model
         local_misfit.simulation.Jmatrix
-
+    # simulation_g.model = mstart
+    # simulation_g.compute_J()
+    #
+    # Jvec = simulation_g.Jvec(mstart, v=mstart)
 
     use_preconditioner = False
     coolingFactor = 2
@@ -309,6 +313,7 @@ def run():
     reg.alpha_x = 1
     reg.alpha_y = 1
     reg.alpha_z = 1
+    reg.mref = background_conductivity * np.ones(active_cells.sum())
 
     opt = optimization.ProjectedGNCG(maxIter=5, upper=np.inf, lower=-np.inf)
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
@@ -341,7 +346,7 @@ def run():
     opt.remember('xc')
 
     # Run Inversion ================================================================
-    minv = inv.run(model)
+    minv = inv.run(mstart)
     rho_est = model_map * minv
     # np.save('model_out.npy', rho_est)
 
