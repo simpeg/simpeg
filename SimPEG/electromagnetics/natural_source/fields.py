@@ -227,12 +227,13 @@ class Fields1DPrimarySecondary(FieldsFDEM):
 
     knownFields = {"e_1dSolution": "F"}
     aliasFields = {
-        "e_1d": ["e_1dSolution", "F", "_e"],
-        "e_1dPrimary": ["e_1dSolution", "F", "_ePrimary"],
-        "e_1dSecondary": ["e_1dSolution", "F", "_eSecondary"],
-        "b_1d": ["e_1dSolution", "E", "_b"],
-        "b_1dPrimary": ["e_1dSolution", "E", "_bPrimary"],
-        "b_1dSecondary": ["e_1dSolution", "E", "_bSecondary"],
+        "e": ["e_1dSolution", "F", "_e"],
+        "ePrimary": ["e_1dSolution", "F", "_ePrimary"],
+        "eSecondary": ["e_1dSolution", "F", "_eSecondary"],
+        "b": ["e_1dSolution", "E", "_b"],
+        "bPrimary": ["e_1dSolution", "E", "_bPrimary"],
+        "bSecondary": ["e_1dSolution", "E", "_bSecondary"],
+        "h": ["e_1dSolution", "E", "_h"],
     }
 
     # def __init__(self, mesh, survey, **kwargs):
@@ -346,6 +347,15 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         """
         # Neither bPrimary nor bSeconary have model dependency => return Zero
         return Zero()
+
+    def _h(self, eSolution, source_list):
+        return 1 / mu_0 * self._b(eSolution, source_list)
+
+    def _hDeriv_u(self, src, du_dm_v, adjoint=False):
+        if adjoint:
+            v = 1 / mu_0 * du_dm_v  # MfMui, MfI are symmetric
+            return self._bDeriv_u(src, v, adjoint=adjoint)
+        return 1 / mu_0 * self._bDeriv_u(src, du_dm_v)
 
 
 ###########
