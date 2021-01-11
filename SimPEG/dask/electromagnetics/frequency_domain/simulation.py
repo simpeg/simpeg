@@ -95,34 +95,35 @@ def compute_J(self, f=None, Ainv=None):
     m_size = self.model.size
 
     blocks = []
-    for freq in self.survey.frequencies:
-        AT = self.getA(freq).T
-        ATinv = self.Solver(AT, **self.solver_opts)
+    count = -1
+    for A_i, freq in zip(Ainv, self.survey.frequencies):
 
         for src in self.survey.get_sources_by_frequency(freq):
             u_src = f[src, self._solutionType]
 
             for rx in src.receiver_list:
-                PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-                df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
-                df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                # PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+                # df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
+                # df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                count += 1
 
-                # df_duT, df_dmT = rx.evalDeriv(
-                #     src, self.mesh, f, adjoint=True
-                # )
+                df_duT, df_dmT = rx.evalDeriv(
+                    src, self.mesh, f, v=np.ones(1), adjoint=True
+                )
 
-                ATinvdf_duT = ATinv * df_duT
-
+                ATinvdf_duT = A_i * df_duT
                 dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
-                du_dmT = -dA_dmT + dRHS_dmT
-
-                df_dmT = df_dmT + du_dmT
+                du_dmT = -dA_dmT
+                if not isinstance(dRHS_dmT, Zero):
+                    du_dmT += dRHS_dmT
+                if not isinstance(df_dmT, Zero):
+                    du_dmT += df_dmT
 
                 if rx.component == "real":
-                    blocks += [np.array(df_dmT, dtype=complex).real]
+                    blocks += [np.array(du_dmT, dtype=complex).real.T]
                 elif rx.component == "imag":
-                    blocks += [-np.array(df_dmT, dtype=complex).real]
+                    blocks += [-np.array(du_dmT, dtype=complex).real.T]
 
 
     Jmatrix = da.to_zarr(
