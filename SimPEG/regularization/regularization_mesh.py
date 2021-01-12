@@ -5,6 +5,7 @@ import properties
 
 from .. import props
 from .. import utils
+from SimPEG.utils.code_utils import deprecate_property
 
 ###############################################################################
 #                                                                             #
@@ -45,16 +46,18 @@ class RegularizationMesh(props.BaseSimPEG):
                 change["value"] = value
 
     @property
-    def vol(self):
+    def cell_volumes(self):
         """
         reduced volume vector
 
         :rtype: numpy.ndarray
         :return: reduced cell volume
         """
-        if getattr(self, "_vol", None) is None:
-            self._vol = self.Pac.T * self.mesh.cell_volumes
-        return self._vol
+        if getattr(self, "_cell_volumes", None) is None:
+            self._cell_volumes = self.Pac.T * self.mesh.cell_volumes
+        return self._cell_volumes
+
+    vol = deprecate_property(cell_volumes, "vol", removal_version="0.15.0")
 
     @property
     def nC(self):
@@ -453,3 +456,5 @@ class RegularizationMesh(props.BaseSimPEG):
 
 # Make it look like it's in the regularization module
 RegularizationMesh.__module__ = "SimPEG.regularization"
+
+
