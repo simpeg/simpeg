@@ -57,6 +57,8 @@ class RegularizationMesh(props.BaseSimPEG):
             self._cell_volumes = self.Pac.T * self.mesh.cell_volumes
         return self._cell_volumes
 
+    vol = deprecate_property(cell_volumes, "vol", removal_version="0.15.0")
+
     @property
     def nC(self):
         """
@@ -455,5 +457,4 @@ class RegularizationMesh(props.BaseSimPEG):
 # Make it look like it's in the regularization module
 RegularizationMesh.__module__ = "SimPEG.regularization"
 
-# DEPRECATIONS
-vol = deprecate_property("cell_volumes", "vol", removal_version="0.14.4")
+
