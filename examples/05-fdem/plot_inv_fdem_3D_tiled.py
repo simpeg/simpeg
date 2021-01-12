@@ -1,10 +1,10 @@
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
-
+from time import time
 from dask.distributed import Client, LocalCluster
 from SimPEG.utils import plot2Ddata, surface2ind_topo
 from SimPEG import maps
-from SimPEG import dask
+# from SimPEG import dask
 import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.utils.drivers import create_nested_mesh
 from SimPEG import (
@@ -270,37 +270,42 @@ def run():
     # do every 5 sources
     cnt = 0
     local_misfits = []
-    for ii, frequency in enumerate(survey.frequencies):
-        idx_start, idx_end = ii*ntx, ii*ntx+2*ntx
-        sources = survey.get_sources_by_frequency(frequency)
-        dobs = survey.dobs[idx_start:idx_end]
-    #         print(dobs.shape, len(src_collect))
-        delayed_misfit = create_tile_em_misfit(
-            sources,
-            survey.dobs[idx_start:idx_end],
-            survey.std[idx_start:idx_end],
-            mesh, active_cells, ii, model
-        )
-        local_misfits += [delayed_misfit]
+    # for ii, frequency in enumerate(survey.frequencies):
+    #     idx_start, idx_end = ii*ntx, ii*ntx+2*ntx
+    #     sources = survey.get_sources_by_frequency(frequency)
+    #     dobs = survey.dobs[idx_start:idx_end]
+    # #         print(dobs.shape, len(src_collect))
+    #     delayed_misfit = create_tile_em_misfit(
+    #         sources,
+    #         survey.dobs[idx_start:idx_end],
+    #         survey.std[idx_start:idx_end],
+    #         mesh, active_cells, ii, model
+    #     )
+    #     local_misfits += [delayed_misfit]
+
+    local_misfits = [data_misfit.L2DataMisfit(
+        data=global_data, simulation=simulation_g
+    )]
+    local_misfits[0].W = 1 / survey.std
+    local_misfits[0].simulation.model = model
+    # local_misfits[0].simulation.Jmatrix
 
     global_misfit = objective_function.ComboObjectiveFunction(
                     local_misfits
-            )
+    )
 
-    # global_misfit = data_misfit.L2DataMisfit(
-    #     data=global_data, simulation=simulation_g
-    # )
-    # global_misfit.W = 1 / global_data.std
 
-    for local_misfit in global_misfit.objfcts:
-        local_misfit.simulation.model = local_misfit.model_map @ model
-        local_misfit.simulation.Jmatrix
+
+
+    # for local_misfit in global_misfit.objfcts:
+    #     local_misfit.simulation.model = local_misfit.model_map @ model
+    #     local_misfit.simulation.Jmatrix
     # simulation_g.model = mstart
     # simulation_g.compute_J()
     #
     # Jvec = simulation_g.Jvec(mstart, v=mstart)
 
-    use_preconditioner = True
+    use_preconditioner = False
     coolingFactor = 2
     coolingRate = 1
     beta0_ratio = 1e1
@@ -318,7 +323,10 @@ def run():
     reg.alpha_z = 1
     reg.mref = background_conductivity * np.ones(active_cells.sum())
 
-    opt = optimization.ProjectedGNCG(maxIter=5, upper=np.inf, lower=-np.inf)
+    opt = optimization.ProjectedGNCG(
+        maxIter=5, upper=np.inf, lower=-np.inf, tolCG=1e-4,
+        maxIterCG=10,
+    )
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
     beta = directives.BetaSchedule(
         coolingFactor=coolingFactor, coolingRate=coolingRate
@@ -349,8 +357,10 @@ def run():
     opt.remember('xc')
 
     # Run Inversion ================================================================
+    tc = time()
     minv = inv.run(mstart)
     rho_est = model_map * minv
+    print("Total runtime: ", time()-tc)
     # np.save('model_out.npy', rho_est)
 
     mesh.writeUBC('OctreeMesh-test.msh', models={'ubc.con': rho_est})
