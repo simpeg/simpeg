@@ -172,44 +172,35 @@ class Point1DImpedance(BaseRx):
     def f(self, value):
         self._f = value
 
-    @property
-    def Pex(self):
-        if getattr(self, "_Pex", None) is None:
-            self._Pex = self._mesh.getInterpolationMat(self.locations[:, -1], "Fx")
-        return self._Pex
+    def _eval_impedance(self, src, mesh, f):
+        # NOTE: Maybe set this as a property
+        PEx = self.getP(mesh, "Fx")
+        PHy = self.getP(mesh, "Ex")
 
-    @property
-    def Pbx(self):
-        if getattr(self, "_Pbx", None) is None:
-            self._Pbx = self._mesh.getInterpolationMat(self.locations[:, -1], "Ex")
-        return self._Pbx
+        e = f[src, "e"]
+        h = f[src, "h"]
 
-    @property
-    def _ex(self):
-        return self.Pex * mkvc(self.f[self.src, "eSolution"], 2)
+        e_top = PEx @ e[:, 0]
+        h_bot = PHy @ -h[:, 0]
 
-    @property
-    def _hx(self):
-        return self.Pbx * mkvc(self.f[self.src, "b_1d"], 2) / mu_0
+        return e_top / h_bot
 
-    def _ex_u(self, v, adjoint=False):
-        if adjoint:
-            return self.f._eDeriv_u(self.src, self.Pex.T * v, adjoint=True)
-        return self.Pex * self.f._eDeriv_u(self.src, v)
+    def _eval_impedance_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+        PEx = self.getP(mesh, "Fx")
+        PHy = self.getP(mesh, "Ex")
 
-    def _hx_u(self, v, adjoint=False):
-        if adjoint:
-            return self.f._bDeriv_u(self.src, self.Pbx.T * v, adjoint=True) / mu_0
-        return self.Pbx * self.f._bDeriv_u(self.src, v) / mu_0
+        e = f[src, "e"]
+        h = f[src, "h"]
 
-    @property
-    def _Hd(self):
-        return sdiag(1.0 / self._hx)
+        top = PEx @ e[:, 0]
+        bot = PHy @ h[:, 0]
 
-    def _Hd_deriv_u(self, v, adjoint=False):
-        if adjoint:
-            return -self._hx_u(sdiag(1.0 / self._hx ** 2) * v, adjoint=True)
-        return -sdiag(1.0 / self._hx ** 2) * self._hx_u(v)
+        imp = top / -bot
+
+        de_v = PEx @ f._eDeriv(src, du_dm_v, v, adjoint=False)
+        dh_v = PHy @ f._hDeriv(src, du_dm_v, v, adjoint=False)
+
+        return (1 / bot) * (-de_v - imp * dh_v)
 
     def eval(self, src, mesh, f, return_complex=False):
         """
@@ -222,23 +213,14 @@ class Point1DImpedance(BaseRx):
         :rtype: numpy.ndarray
         :return: Evaluated data for the receiver
         """
-        # NOTE: Maybe set this as a property
-        PEx = self.getP(mesh, "Fx")
-        PBy = self.getP(mesh, "Ex")
 
-        self.src = src
-        self.mesh = mesh
-        self.f = f
+        imp = self._eval_impedance(src, mesh, f)
+        if return_complex:
+            return imp
+        else:
+            return getattr(imp, self.component)
 
-        e = f[src, "e"]
-        h = f[src, "h"]
-        rx_eval_complex = -self._Hd * self._ex
-        # Return the full impedance
-        # if return_complex:
-        #     return rx_eval_complex
-        return getattr(rx_eval_complex, self.component)
-
-    def evalDeriv(self, src, mesh, f, v, adjoint=False):
+    def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         """method evalDeriv
 
         The derivative of the projection wrt u
@@ -250,9 +232,10 @@ class Point1DImpedance(BaseRx):
         :rtype: numpy.ndarray
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
         """
-        self.src = src
-        self.mesh = mesh
-        self.f = f
+
+        imp_deriv = self._eval_impedance_deriv(
+            src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
+        )
 
         if adjoint:
             rx_deriv = -self._ex_u(self._Hd * v, adjoint=True) - self._Hd_deriv_u(
@@ -263,10 +246,9 @@ class Point1DImpedance(BaseRx):
             elif self.component == "real":
                 rx_deriv_component = rx_deriv.astype(complex)
 
-        else:
-            rx_deriv = -self._Hd * self._ex_u(v) - sdiag(self._ex) * self._Hd_deriv_u(v)
-            rx_deriv_component = np.array(getattr(rx_deriv, self.component))
-        return rx_deriv_component
+        # rx_deriv = -self._Hd * self._ex_u(v) - sdiag(self._ex) * self._Hd_deriv_u(v)
+        # rx_deriv_component = np.array(getattr(rx_deriv, self.component))
+        return getattr(imp_deriv, self.component)
 
 
 class Point3DImpedance(BaseRxNSEM_Point):

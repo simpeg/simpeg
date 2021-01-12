@@ -54,7 +54,6 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         self.model = m
         # Initiate the Jv object
         Jv = Data(self.survey)
-        # Jv = []
 
         # Loop all the frequenies
         for freq in self.survey.frequencies:
@@ -64,14 +63,10 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             Ainv = self.Solver(A, **self.solver_opts)
 
             for src in self.survey.get_sources_by_frequency(freq):
-                # We need fDeriv_m = df/du*du/dm + df/dm
-                # Construct du/dm, it requires a solve
-                # NOTE: need to account for the 2 polarizations in the derivatives.
                 u_src = f[
                     src, :
-                ]  # u should be a vector by definition. Need to fix this...
-                # dA_dm and dRHS_dm should be of size nE,2, so that we can multiply by Ainv.
-                # The 2 columns are each of the polarizations.
+                ]
+
                 dA_dm_v = self.getADeriv(
                     freq, u_src, v
                 )  # Size: nE,2 (u_px,u_py) in the columns.
@@ -87,8 +82,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                         src, self.mesh, f, mkvc(du_dm_v)
                     )  # wrt uPDeriv_u(mkvc(du_dm))
             Ainv.clean()
-        # Return the vectorized sensitivities
-        # return np.concatenate(Jv, axis=0)
+
         return mkvc(Jv)
 
     def Jtvec(self, m, v, f=None):
@@ -282,8 +276,9 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
             Edge inner product matrix
         """
         # if getattr(self, '_MfSigmaDeriv', None) is None:
+        # print('[info mfsigmad] !!!!!!!!!!! ', u[:, 0])
         self._MfSigmaDeriv = (
-            self.mesh.getFaceInnerProductDeriv(self.sigma)(u) * self.sigmaDeriv
+            self.mesh.getFaceInnerProductDeriv(self.sigma)(u[:, 0]) * self.sigmaDeriv
         )
         return self._MfSigmaDeriv
 
@@ -355,7 +350,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
         Src = self.survey.get_sources_by_frequency(freq)[0]
 
-        S_eDeriv = mkvc(Src.S_eDeriv_m(self, v, adjoint),)
+        S_eDeriv = mkvc(Src.s_eDeriv_m(self, v, adjoint),)
         return -1j * omega(freq) * S_eDeriv
 
     def fields(self, m=None):

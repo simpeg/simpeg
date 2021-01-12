@@ -357,6 +357,19 @@ class Fields1DPrimarySecondary(FieldsFDEM):
             return self._bDeriv_u(src, v, adjoint=adjoint)
         return 1 / mu_0 * self._bDeriv_u(src, du_dm_v)
 
+    def _hDeriv_m(self, src, v, adjoint=False):
+        """
+        Derivative of the magnetic flux density with respect to the inversion model.
+
+        :param SimPEG.electromagnetics.frequency_domain.Src src: source
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of the magnetic flux density derivative with respect to the inversion model with a vector
+        """
+        # Neither bPrimary nor bSeconary have model dependency => return Zero
+        return Zero()
+
 
 ###########
 # 2D Fields
