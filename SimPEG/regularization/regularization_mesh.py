@@ -45,16 +45,16 @@ class RegularizationMesh(props.BaseSimPEG):
                 change["value"] = value
 
     @property
-    def vol(self):
+    def cell_volumes(self):
         """
         reduced volume vector
 
         :rtype: numpy.ndarray
         :return: reduced cell volume
         """
-        if getattr(self, "_vol", None) is None:
-            self._vol = self.Pac.T * self.mesh.cell_volumes
-        return self._vol
+        if getattr(self, "_cell_volumes", None) is None:
+            self._cell_volumes = self.Pac.T * self.mesh.cell_volumes
+        return self._cell_volumes
 
     @property
     def nC(self):
