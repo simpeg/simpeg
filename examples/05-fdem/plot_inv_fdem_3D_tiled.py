@@ -4,7 +4,7 @@ from time import time
 from dask.distributed import Client, LocalCluster
 from SimPEG.utils import plot2Ddata, surface2ind_topo
 from SimPEG import maps
-# from SimPEG import dask
+from SimPEG import dask
 import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.utils.drivers import create_nested_mesh
 from SimPEG import (
@@ -264,7 +264,7 @@ def run():
     survey.dobs = global_data.dobs
     survey.std = np.abs(survey.dobs * global_data.relative_error) + global_data.noise_floor
 
-
+    ######### To run with tiling
     idx_start = 0
     idx_end = 0
     # do every 5 sources
@@ -283,27 +283,19 @@ def run():
     #     )
     #     local_misfits += [delayed_misfit]
 
+    ########## To run without tiling
     local_misfits = [data_misfit.L2DataMisfit(
         data=global_data, simulation=simulation_g
     )]
     local_misfits[0].W = 1 / survey.std
     local_misfits[0].simulation.model = model
-    # local_misfits[0].simulation.Jmatrix
-
     global_misfit = objective_function.ComboObjectiveFunction(
                     local_misfits
     )
 
-
-
-
     # for local_misfit in global_misfit.objfcts:
     #     local_misfit.simulation.model = local_misfit.model_map @ model
     #     local_misfit.simulation.Jmatrix
-    # simulation_g.model = mstart
-    # simulation_g.compute_J()
-    #
-    # Jvec = simulation_g.Jvec(mstart, v=mstart)
 
     use_preconditioner = False
     coolingFactor = 2
@@ -312,7 +304,6 @@ def run():
 
     # Map for a regularization
     regmap = maps.IdentityMap(nP=int(active_cells.sum()))
-    # reg = regularization.Tikhonov(mesh, indActive=global_actinds, mapping=regmap)
     reg = regularization.Sparse(mesh, indActive=active_cells, mapping=regmap)
 
     print('[INFO] Getting things started on inversion...')
