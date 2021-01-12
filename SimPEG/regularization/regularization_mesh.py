@@ -5,6 +5,7 @@ import properties
 
 from .. import props
 from .. import utils
+from SimPEG.utils.code_utils import deprecate_property
 
 ###############################################################################
 #                                                                             #
@@ -453,3 +454,6 @@ class RegularizationMesh(props.BaseSimPEG):
 
 # Make it look like it's in the regularization module
 RegularizationMesh.__module__ = "SimPEG.regularization"
+
+# DEPRECATIONS
+vol = deprecate_property("cell_volumes", "vol", removal_version="0.14.4")
