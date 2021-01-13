@@ -43,13 +43,14 @@ from SimPEG import (
     utils,
 )
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import plot_pseudoSection
+from SimPEG.electromagnetics.static.utils.static_utils import plot_pseudosection
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 
+mpl.rcParams.update({'font.size': 16})
 # sphinx_gallery_thumbnail_number = 2
 
 
@@ -132,14 +133,15 @@ mpl.rcParams.update({"font.size": 12})
 fig = plt.figure(figsize=(12, 5))
 
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-plot_pseudoSection(
+plot_pseudosection(
     dc_data,
     ax=ax1,
     survey_type="dipole-dipole",
     data_type="appConductivity",
     space_type="half-space",
     scale="log",
-    pcolorOpts={"cmap": "viridis"},
+    y_values='pseudo-depth',
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("Apparent Conductivity [S/m]")
 
@@ -161,10 +163,10 @@ std = 0.05 * np.abs(dobs)
 dc_data.standard_deviation = std
 
 ########################################################
-# Create OcTree Mesh
+# Create Tree Mesh
 # ------------------
 #
-# Here, we create the OcTree mesh that will be used to predict both DC
+# Here, we create the Tree mesh that will be used to predict both DC
 # resistivity and IP data.
 #
 
@@ -213,14 +215,20 @@ mesh.finalize()
 # like on the discretized surface.
 #
 
+# Create 2D topography. Since our 3D topography only changes in the x direction,
+# it is easy to define the 2D topography projected along the survey line. For
+# arbitrary topography and for an arbitrary survey orientation, the user must
+# define the 2D topography along the survey line.
+topo_2d = np.unique(topo_xyz[:, [0, 2]], axis=0)
+
 # Find cells that lie below surface topography
-ind_active = surface2ind_topo(mesh, topo_xyz[:, [0, 2]])
+ind_active = surface2ind_topo(mesh, topo_2d)
 
 # Shift electrodes to the surface of discretized topography
 survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 
 ########################################################
-# Starting/Reference Model and Mapping on OcTree Mesh
+# Starting/Reference Model and Mapping on Tree Mesh
 # ---------------------------------------------------
 #
 # Here, we would create starting and/or reference models for the DC inversion as
@@ -304,7 +312,7 @@ update_sensitivity_weighting = directives.UpdateSensitivityWeights()
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=2e1)
 
 # Set the rate of reduction in trade-off parameter (beta) each time the
 # the inverse problem is solved. And set the number of Gauss-Newton iterations
@@ -361,7 +369,7 @@ mesh.plotImage(
     clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
     range_x=[-700, 700],
     range_y=[-700, 0],
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("True Conductivity Model")
 ax1.set_xlabel("x (m)")
@@ -395,7 +403,7 @@ mesh.plotImage(
     clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
     range_x=[-700, 700],
     range_y=[-700, 0],
-    pcolorOpts={"cmap": "viridis"},
+    pcolor_opts={"cmap": "viridis"},
 )
 ax1.set_title("Recovered Conductivity Model")
 ax1.set_xlabel("x (m)")
@@ -439,7 +447,7 @@ cplot = 3 * [None]
 for ii in range(0, 3):
 
     ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.05, 0.25, 0.9])
-    cplot[ii] = plot_pseudoSection(
+    cplot[ii] = plot_pseudosection(
         data_array[ii],
         dobs=dobs_array[ii],
         ax=ax1[ii],
@@ -447,7 +455,8 @@ for ii in range(0, 3):
         data_type=plot_type[ii],
         scale=scale[ii],
         space_type="half-space",
-        pcolorOpts={"cmap": "viridis"},
+        y_values='pseudo-depth',
+        pcolor_opts={"cmap": "viridis"},
     )
     ax1[ii].set_title(plot_title[ii])
 

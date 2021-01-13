@@ -25,9 +25,11 @@ from .mat_utils import (
     Zero,
     Identity,
     uniqueRows,
+    eigenvalue_by_power_iteration,
     cartesian2spherical,
     spherical2cartesian,
     coterminal,
+    define_plane_from_points,
 )
 from .code_utils import (
     memProfileWrapper,
@@ -53,6 +55,7 @@ from .coord_utils import rotatePointsFromNormals, rotationMatrixFromNormals
 from .model_utils import surface2ind_topo
 from .plot_utils import plot2Ddata, plotLayer
 from .io_utils import download
+from . import io_utils
 
 """
 Deprecated,

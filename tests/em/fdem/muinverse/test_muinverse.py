@@ -7,8 +7,8 @@ from scipy.constants import mu_0
 import unittest
 
 MuMax = 50.0
-TOL = 1e-10
-EPS = 1e-20
+TOL = 1e-8
+EPS = 1e-10
 
 np.random.seed(105)
 
@@ -49,7 +49,7 @@ def setupProblem(
         rxfields_xz = ["ElectricField", "CurrentDensity"]
 
     rxList_edge = [
-        getattr(fdem.Rx, "Point{f}".format(f=f))(
+        getattr(fdem.receivers, "Point{f}".format(f=f))(
             loc, component=comp, orientation=orient
         )
         for f in rxfields_y
@@ -58,7 +58,7 @@ def setupProblem(
     ]
 
     rxList_face = [
-        getattr(fdem.Rx, "Point{f}".format(f=f))(
+        getattr(fdem.receivers, "Point{f}".format(f=f))(
             loc, component=comp, orientation=orient
         )
         for f in rxfields_xz
@@ -71,14 +71,16 @@ def setupProblem(
     src_loc = np.r_[0.0, 0.0, 0.0]
 
     if prbtype in ["ElectricField", "MagneticFluxDensity"]:
-        src = fdem.Src.MagDipole(rxList=rxList, loc=src_loc, freq=freq)
+        src = fdem.sources.MagDipole(
+            receiver_list=rxList, location=src_loc, frequency=freq
+        )
 
     elif prbtype in ["MagneticField", "CurrentDensity"]:
         ind = utils.closestPoints(mesh, src_loc, "Fz") + mesh.vnF[0]
         vec = np.zeros(mesh.nF)
         vec[ind] = 1.0
 
-        src = fdem.Src.RawVec_e(rxList=rxList, freq=freq, s_e=vec)
+        src = fdem.sources.RawVec_e(receiver_list=rxList, frequency=freq, s_e=vec)
 
     survey = fdem.Survey([src])
 
@@ -116,7 +118,7 @@ def setupProblem(
             )
         m0 = muMod
 
-    prob.pair(survey)
+    prob.survey = survey
 
     return m0, prob, survey
 
@@ -126,7 +128,7 @@ class MuTests(unittest.TestCase):
         self, prbtype="ElectricField", sigmaInInversion=False, invertMui=False
     ):
         self.mesh, muMod, sigmaMod = setupMeshModel()
-        self.m0, self.prob, self.survey = setupProblem(
+        self.m0, self.simulation, self.survey = setupProblem(
             self.mesh,
             muMod,
             sigmaMod,
@@ -137,17 +139,17 @@ class MuTests(unittest.TestCase):
 
     def test_mats_cleared(self):
         self.setUpProb()
-        u = self.prob.fields(self.m0)
+        u = self.simulation.fields(self.m0)
 
-        MeMu = self.prob.MeMu
-        MeMuI = self.prob.MeMuI
-        MfMui = self.prob.MfMui
-        MfMuiI = self.prob.MfMuiI
-        MeMuDeriv = self.prob.MeMuDeriv(u[:, "e"])
-        MfMuiDeriv = self.prob.MfMuiDeriv(u[:, "b"])
+        MeMu = self.simulation.MeMu
+        MeMuI = self.simulation.MeMuI
+        MfMui = self.simulation.MfMui
+        MfMuiI = self.simulation.MfMuiI
+        MeMuDeriv = self.simulation.MeMuDeriv(u[:, "e"])
+        MfMuiDeriv = self.simulation.MfMuiDeriv(u[:, "b"])
 
         m1 = np.random.rand(self.mesh.nC)
-        self.prob.model = m1
+        self.simulation.model = m1
 
         self.assertTrue(getattr(self, "_MeMu", None) is None)
         self.assertTrue(getattr(self, "_MeMuI", None) is None)
@@ -163,9 +165,12 @@ class MuTests(unittest.TestCase):
         print("Testing Jvec {}".format(prbtype))
 
         def fun(x):
-            return (self.prob.dpred(x), lambda x: self.prob.Jvec(self.m0, x))
+            return (
+                self.simulation.dpred(x),
+                lambda x: self.simulation.Jvec(self.m0, x),
+            )
 
-        return tests.checkDerivative(fun, self.m0, num=2, plotIt=False, eps=EPS)
+        return tests.checkDerivative(fun, self.m0, num=3, plotIt=False)
 
     def JtvecTest(
         self, prbtype="ElectricField", sigmaInInversion=False, invertMui=False
@@ -173,16 +178,16 @@ class MuTests(unittest.TestCase):
         self.setUpProb(prbtype, sigmaInInversion, invertMui)
         print("Testing Jvec {}".format(prbtype))
 
-        m = np.random.rand(self.prob.muMap.nP)
+        m = np.random.rand(self.simulation.muMap.nP)
         v = np.random.rand(self.survey.nD)
 
-        self.prob.model = self.m0
+        self.simulation.model = self.m0
 
-        V1 = v.dot(self.prob.Jvec(self.m0, m))
-        V2 = m.dot(self.prob.Jtvec(self.m0, v))
+        V1 = v.dot(self.simulation.Jvec(self.m0, m))
+        V2 = m.dot(self.simulation.Jtvec(self.m0, v))
         diff = np.abs(V1 - V2)
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
-        passed = diff < tol
+        passed = (diff < tol) | (diff < EPS)
         print(
             "AdjointTest {prbtype} {v1} {v2} {diff} {tol} {passed}".format(
                 prbtype=prbtype, v1=V1, v2=V2, diff=diff, tol=tol, passed=passed
