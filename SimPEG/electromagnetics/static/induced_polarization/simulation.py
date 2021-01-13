@@ -185,6 +185,9 @@ class BaseIPSimulation(BaseEMSimulation):
             Full J matrix can be computed by inputing v=None
         """
 
+        if f is None:
+            f = self.fields(m)
+
         if v is not None:
             # Ensure v is a data object.
             if not isinstance(v, Data):
@@ -192,7 +195,7 @@ class BaseIPSimulation(BaseEMSimulation):
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix
-            Jtv = np.zeros((self.model.size, self.survey.nD), order="F")
+            Jtv = np.zeros((self.etaMap.nP, self.survey.nD), order="F")
             istrt = int(0)
             iend = int(0)
 
