@@ -12,10 +12,6 @@ SimPEG
     :target: https://github.com/simpeg/simpeg/blob/master/LICENSE
     :alt: MIT license
 
-.. image:: https://api.travis-ci.org/simpeg/simpeg.svg?branch=master
-    :target: https://travis-ci.org/simpeg/simpeg
-    :alt: Travis CI build status
-
 .. image:: https://codecov.io/gh/simpeg/simpeg/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/simpeg/simpeg
     :alt: Coverage status
