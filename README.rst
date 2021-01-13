@@ -11,6 +11,10 @@ SimPEG
 .. image:: https://img.shields.io/github/license/simpeg/simpeg.svg
     :target: https://github.com/simpeg/simpeg/blob/master/LICENSE
     :alt: MIT license
+    
+.. image:: https://dev.azure.com/simpeg/simpeg/_apis/build/status/simpeg.simpeg?branchName=master
+    :target: https://dev.azure.com/simpeg/simpeg/_build/latest?definitionId=2&branchName=master
+    :alt: Azure pipeline
 
 .. image:: https://codecov.io/gh/simpeg/simpeg/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/simpeg/simpeg
