@@ -211,7 +211,8 @@ Pardiso_ is a direct solvers that can be used for solving large(ish)
 linear systems of equations. To install, follow the instructions to download
 and install pymatsolver_.
 
-.. _Pardiso: http://www.pardiso-project.org/
+
+.. _Pardiso: https://www.pardiso-project.org
 
 .. _pymatsolver: https://github.com/rowanc1/pymatsolver
 
