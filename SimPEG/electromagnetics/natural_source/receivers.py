@@ -197,6 +197,29 @@ class Point1DImpedance(BaseRx):
 
         imp = top / -bot
 
+        if adjoint:
+            # Work backwards!
+            # print([info bot] !!!!!! ', bot, v, imp)
+            gtop_v = (v / bot)
+            gbot_v = (-imp * v / bot)
+
+            gh_v = -h[:, 0] * gbot_v
+            ge_v = e[:, 0] * gtop_v
+
+            # print('[info shapes ] !!!!!!!!!!! ', ge_v[:, None].shape, gh_v[:, None].shape, PEx.shape, PHy.shape)
+
+            gh_v = PHy.T @ gh_v[:, None].T
+            ge_v = PEx.T @ ge_v[:, None].T
+
+            # print('[info shapes 2] !!!!!!!!!!! ', ge_v.shape, gh_v.shape)
+
+            gfu_h_v, gfm_h_v = f._hDeriv(src, None, gh_v, adjoint=True)
+            gfu_e_v, gfm_e_v = f._eDeriv(src, None, ge_v, adjoint=True)
+
+            # print('[info shapes 3] !!!!!!!!!!! ', gfu_h_v.shape, gfm_h_v, gfu_e_v.shape, gfm_e_v)
+
+            return gfu_h_v + gfu_e_v, gfm_h_v + gfm_e_v
+
         de_v = PEx @ f._eDeriv(src, du_dm_v, v, adjoint=False)
         dh_v = PHy @ f._hDeriv(src, du_dm_v, v, adjoint=False)
 
@@ -233,21 +256,17 @@ class Point1DImpedance(BaseRx):
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
         """
 
+        if adjoint:
+            if self.component == "imag":
+                v = -1j * v
+
         imp_deriv = self._eval_impedance_deriv(
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
         )
 
         if adjoint:
-            rx_deriv = -self._ex_u(self._Hd * v, adjoint=True) - self._Hd_deriv_u(
-                sdiag(self._ex) * v, adjoint=True
-            )
-            if self.component == "imag":
-                rx_deriv_component = 1j * rx_deriv
-            elif self.component == "real":
-                rx_deriv_component = rx_deriv.astype(complex)
+            return imp_deriv
 
-        # rx_deriv = -self._Hd * self._ex_u(v) - sdiag(self._ex) * self._Hd_deriv_u(v)
-        # rx_deriv_component = np.array(getattr(rx_deriv, self.component))
         return getattr(imp_deriv, self.component)
 
 

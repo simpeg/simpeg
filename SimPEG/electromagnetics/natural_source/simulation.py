@@ -119,23 +119,32 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 for rx in src.receiver_list:
                     # Get the adjoint evalDeriv
                     # PTv needs to be nE,2
-                    PTv = rx.evalDeriv(
-                        src, self.mesh, f, mkvc(v[src, rx]), adjoint=True
+                    df_duT, df_dmT = rx.evalDeriv(
+                        src, self.mesh, f, v=v[src, rx], adjoint=True
                     )  # wrt f, need possibility wrt m
+
+                    ATinvdf_duT = ATinv * df_duT
 
                     # Get the
                     dA_duIT = mkvc(ATinv * PTv)  # Force (nU,) shape
                     dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
                     dRHS_dmT = self.getRHSDeriv(freq, dA_duIT, adjoint=True)
                     # Make du_dmT
+                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
-                    # Select the correct component
-                    # du_dmT needs to be of size (nP,) number of model parameters
 
-                    if rx.component == "imag":
-                        Jtv += -np.array(du_dmT, dtype=complex).real
-                    else:
-                        Jtv += np.array(du_dmT, dtype=complex).real
+                    df_dmT = df_dmT + du_dmT
+
+                    Jtv += np.array(df_dmT, dtype=complex).real
+                    # du_dmT = -dA_dmT + dRHS_dmT
+                    # # Select the correct component
+                    # # du_dmT needs to be of size (nP,) number of model parameters
+
+                    # if rx.component == "imag":
+                    #     Jtv += -np.array(du_dmT, dtype=complex).real
+                    # else:
+                    #     Jtv += np.array(du_dmT, dtype=complex).real
 
             # Clean the factorization, clear memory.
             ATinv.clean()
