@@ -10,7 +10,7 @@ class EM1DSurveyFD(BaseEM1DSurvey):
     """
 
     def __init__(self, source_list=None, **kwargs):
-        BaseSurvey.__init__(self, source_list, **kwargs)
+        BaseEM1DSurvey.__init__(self, source_list, **kwargs)
 
     @property
     def nD(self):

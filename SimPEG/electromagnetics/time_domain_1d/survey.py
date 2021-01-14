@@ -12,7 +12,7 @@ class EM1DSurveyTD(BaseEM1DSurvey):
 
 
     def __init__(self, source_list=None, **kwargs):
-        BaseSurvey.__init__(self, source_list, **kwargs)
+        BaseEM1DSurvey.__init__(self, source_list, **kwargs)
 
         # Use Sin filter for frequency to time transform
         self.fftfilt = filters.key_81_CosSin_2009()

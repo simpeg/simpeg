@@ -10,7 +10,7 @@ from scipy import special as spec
 #############################################################################
 
 
-class HarmonicMagneticDipoleSource(survey.BaseSrc):
+class MagneticDipoleSource(survey.BaseSrc):
     """f
     Harmonic magnetic dipole source.
 
@@ -26,7 +26,7 @@ class HarmonicMagneticDipoleSource(survey.BaseSrc):
     moment_amplitude = properties.Float("Magnitude of the dipole moment", default=1.)
 
     def __init__(self, receiver_list=None, **kwargs):
-        super(HarmonicMagneticDipoleSource, self).__init__(receiver_list=receiver_list, **kwargs)
+        super(MagneticDipoleSource, self).__init__(receiver_list=receiver_list, **kwargs)
 
 
     def PrimaryField(self, xyz, is_offset=False):
@@ -61,7 +61,7 @@ class HarmonicMagneticDipoleSource(survey.BaseSrc):
         return self.moment_amplitude*np.c_[hx0, hy0, hz0]
 
 
-class HarmonicHorizontalLoopSource(survey.BaseSrc):
+class HorizontalLoopSource(survey.BaseSrc):
     """
     Harmonic horizontal loop source.
 
@@ -75,7 +75,7 @@ class HarmonicHorizontalLoopSource(survey.BaseSrc):
     a = properties.Float("Source loop radius", default=1.)
 
     def __init__(self, receiver_list=None, **kwargs):
-        super(HarmonicHorizontalLoopSource, self).__init__(receiver_list=receiver_list, **kwargs)
+        super(HorizontalLoopSource, self).__init__(receiver_list=receiver_list, **kwargs)
 
 
     def PrimaryField(self, xyz, is_offset=False):
@@ -133,7 +133,7 @@ class HarmonicHorizontalLoopSource(survey.BaseSrc):
         return np.c_[hx0, hy0, hz0]
 
 
-class HarmonicCurrentLineSource(survey.BaseSrc):
+class LineCurrentSource(survey.BaseSrc):
     """
     Harmonic current line source.
 
@@ -150,7 +150,7 @@ class HarmonicCurrentLineSource(survey.BaseSrc):
 
 
     def __init__(self, receiver_list=None, **kwargs):
-        super(HarmonicLineSource, self).__init__(receiver_list=receiver_list, **kwargs)
+        super(LineCurrentSource, self).__init__(receiver_list=receiver_list, **kwargs)
 
 
     def PrimaryField(self, xyz):

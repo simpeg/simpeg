@@ -1,11 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy
 from discretize import TensorMesh
-from SimPEG import maps, utils
-from ..analytics import skin_depth, diffusion_distance
-from ..simulation import EM1DFMSimulation, EM1DTMSimulation
-from ..survey import EM1DSurveyFD, EM1DSurveyTD
+from geoana.em.fdem.base import skin_depth
+from geoana.em.tdem import diffusion_distance
 
 def plotLayer(sig, mesh, xscale='log', ax=None, showlayers=False, xlim=None,**kwargs):
     """

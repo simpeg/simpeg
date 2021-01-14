@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from SimPEG.electromagnetics.base import BaseEM1DSimulation
+from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation
 import numpy as np
 from .sources import *
 from .survey import EM1DSurveyTD
@@ -123,6 +123,137 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                 rx.ftarg = ftarg
 
         self.frequencies_are_set = True
+
+
+    def compute_integral(self, m, output_type='response'):
+        """
+        This method evaluates the Hankel transform for each source and
+        receiver and outputs it as a list. Used for computing response
+        or sensitivities.
+        """
+
+        self.model = m
+        n_layer = self.n_layer
+        n_filter = self.n_filter
+
+        # For time-domain simulations, set frequencies for the evaluation
+        # of the Hankel transform.
+        if self.frequencies_are_set is False:
+            self.set_frequencies()
+
+
+        # Define source height above topography by mapping or from sources and receivers.
+        if self.hMap is not None:
+            h_vector = np.array(self.h)
+        else:
+            if self.topo is None:
+                h_vector = np.array([src.location[2] for src in self.survey.source_list])
+            else:
+                h_vector = np.array(
+                    [src.location[2]-self.topo[-1] for src in self.survey.source_list]
+                )
+
+
+        integral_output_list = []
+
+        for ii, src in enumerate(self.survey.source_list):
+            for jj, rx in enumerate(src.receiver_list):
+
+                n_frequency = len(rx.frequencies)
+
+                f = np.empty([n_frequency, n_filter], order='F')
+                f[:, :] = np.tile(
+                    rx.frequencies.reshape([-1, 1]), (1, n_filter)
+                )
+
+                # Create globally, not for each receiver in the future
+                sig = self.compute_sigma_matrix(rx.frequencies)
+                chi = self.compute_chi_matrix(rx.frequencies)
+
+                # Compute receiver height
+                h = h_vector[ii]
+                if rx.use_source_receiver_offset:
+                    z = h + rx.locations[2]
+                else:
+                    z = h + rx.locations[2] - src.location[2]
+
+                # Hankel transform for x, y or z magnetic dipole source
+                if isinstance(src, MagneticDipoleSource):
+
+                    # Radial distance
+                    if rx.use_source_receiver_offset:
+                        r = rx.locations[0:2]
+                    else:
+                        r = rx.locations[0:2] - src.location[0:2]
+
+                    r = np.sqrt(np.sum(r**2))
+                    r_vec = r * np.ones(n_frequency)
+
+                    # Use function from empymod to define Hankel coefficients.
+                    # Size of lambd is (n_frequency x n_filter)
+
+                    lambd = np.empty([n_frequency, n_filter], order='F')
+                    lambd[:, :], _ = get_dlf_points(
+                        self.fhtfilt, r_vec, self.hankel_pts_per_dec
+                    )
+
+                    # Get kernel function(s) at all lambda and frequencies
+                    PJ = magnetic_dipole_kernel(
+                        self, lambd, f, n_layer, sig, chi, h, z, r, src, rx, output_type
+                    )
+
+                    PJ = tuple(PJ)
+
+                    if output_type=="sensitivity_sigma":
+                        r_vec = np.tile(r_vec, (n_layer, 1))
+
+                    # Evaluate Hankel transform using digital linear filter from empymod
+                    integral_output = dlf(
+                        PJ, lambd, r_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
+                    )
+
+                # Hankel transform for horizontal loop source
+                elif isinstance(src, HorizontalLoopSource):
+
+                    # radial distance (r) and loop radius (a)
+                    if rx.use_source_receiver_offset:
+                        r = rx.locations[0:2]
+                    else:
+                        r = rx.locations[0:2] - src.location[0:2]
+
+                    r_vec = np.sqrt(np.sum(r**2)) * np.ones(n_frequency)
+                    a_vec = src.a * np.ones(n_frequency)
+
+                    # Use function from empymod to define Hankel coefficients.
+                    # Size of lambd is (n_frequency x n_filter)
+                    lambd = np.empty([n_frequency, n_filter], order='F')
+                    lambd[:, :], _ = get_dlf_points(
+                        self.fhtfilt, a_vec, self.hankel_pts_per_dec
+                    )
+
+                    # Get kernel function(s) at all lambda and frequencies
+                    hz = horizontal_loop_kernel(
+                        self, lambd, f, n_layer, sig, chi, a_vec, h, z, r,
+                        src, rx, output_type
+                    )
+
+                    # kernels associated with each bessel function (j0, j1, j2)
+                    PJ = (None, hz, None)  # PJ1
+
+                    if output_type == "sensitivity_sigma":
+                        a_vec = np.tile(a_vec, (n_layer, 1))
+
+                    # Evaluate Hankel transform using digital linear filter from empymod
+                    integral_output = dlf(
+                        PJ, lambd, a_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
+                    )
+
+                if output_type == "sensitivity_sigma":
+                    integral_output_list.append(integral_output.T)
+                else:
+                    integral_output_list.append(integral_output)
+
+        return integral_output_list
 
 
     def project_fields(self, u, output_type=None):

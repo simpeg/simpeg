@@ -117,7 +117,7 @@ class BaseTimeSrc(survey.BaseSrc):
     #         return self.n_time + self.n_time_dual_moment
 
 
-class TimeDomainMagneticDipoleSource(BaseTimeSrc):
+class MagneticDipoleSource(BaseTimeSrc):
     """
     Time-domain magnetic dipole source.
 
@@ -133,10 +133,10 @@ class TimeDomainMagneticDipoleSource(BaseTimeSrc):
     )
 
     def __init__(self, receiver_list=None, **kwargs):
-        super(TimeDomainMagneticDipoleSource, self).__init__(receiver_list=receiver_list, **kwargs)
+        super(MagneticDipoleSource, self).__init__(receiver_list=receiver_list, **kwargs)
 
 
-class TimeDomainHorizontalLoopSource(BaseTimeSrc):
+class HorizontalLoopSource(BaseTimeSrc):
     """
     Time-domain horizontal loop source.
 
@@ -150,10 +150,10 @@ class TimeDomainHorizontalLoopSource(BaseTimeSrc):
     a = properties.Float("Source loop radius", default=1.)
 
     def __init__(self, receiver_list=None, **kwargs):
-        super(TimeDomainHorizontalLoopSource, self).__init__(receiver_list=receiver_list, **kwargs)
+        super(HorizontalLoopSource, self).__init__(receiver_list=receiver_list, **kwargs)
 
 
-class TimeDomainLineSource(BaseTimeSrc):
+class LineCurrentSource(BaseTimeSrc):
     """
     Time-domain current line source.
 
@@ -169,6 +169,6 @@ class TimeDomainLineSource(BaseTimeSrc):
     )
 
     def __init__(self, receiver_list=None, **kwargs):
-        super(TimeDomainLineSource, self).__init__(receiver_list=receiver_list, **kwargs)
+        super(LineCurrentSource, self).__init__(receiver_list=receiver_list, **kwargs)
 
 

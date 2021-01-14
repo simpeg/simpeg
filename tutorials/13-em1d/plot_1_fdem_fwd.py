@@ -66,7 +66,7 @@ receiver_list.append(
 #]
 
 source_list = [
-    em1d.sources.HarmonicMagneticDipoleSource(
+    em1d.sources.MagneticDipoleSource(
         receiver_list=receiver_list, location=source_location, orientation="z",
         moment_amplitude=moment_amplitude
     )
