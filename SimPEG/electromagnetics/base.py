@@ -6,11 +6,14 @@ from __future__ import unicode_literals
 import properties
 from scipy.constants import mu_0
 import numpy as np
+from scipy import sparse as sp
+from scipy.linalg import block_diag
 
 from ..data import Data
 from ..maps import IdentityMap
 from ..simulation import BaseSimulation
 from ..survey import BaseSurvey, BaseSrc
+from .. import utils
 from ..utils import sdiag, Zero, mkvc
 from .. import props
 
@@ -19,7 +22,7 @@ __all__ = ["BaseEMSimulation", "BaseEMSrc"]
 
 ###############################################################################
 #                                                                             #
-#                             Base EM Simulation                                 #
+#                             Base EM 3D Simulation                           #
 #                                                                             #
 ###############################################################################
 
