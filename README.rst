@@ -8,6 +8,10 @@ SimPEG
     :target: https://pypi.python.org/pypi/SimPEG
     :alt: Latest PyPI version
 
+.. image:: https://img.shields.io/conda/v/conda-forge/SimPEG.svg
+    :target: https://anaconda.org/conda-forge/SimPEG
+    :alt: Latest conda-forge version
+    
 .. image:: https://img.shields.io/github/license/simpeg/simpeg.svg
     :target: https://github.com/simpeg/simpeg/blob/master/LICENSE
     :alt: MIT license
