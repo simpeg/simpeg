@@ -41,14 +41,14 @@ frequencies = np.logspace(-1, 8, 51)
 # Receiver list
 receiver_list = []
 receiver_list.append(
-    em1d.receivers.HarmonicPointReceiver(
+    em1d.receivers.PointReceiver(
         receiver_location, frequencies, orientation=receiver_orientation,
         field_type=field_type, component="real"
     )
 )
 
 receiver_list.append(
-    em1d.receivers.HarmonicPointReceiver(
+    em1d.receivers.PointReceiver(
         receiver_location, frequencies, orientation=receiver_orientation,
         field_type="secondary", component="imag"
     )
@@ -56,7 +56,7 @@ receiver_list.append(
 
 # Sources
 source_list = [
-    em1d.sources.HarmonicMagneticDipoleSource(
+    em1d.sources.MagneticDipoleSource(
         receiver_list=receiver_list, location=source_location, orientation=source_orientation,
         moment_amplitude=moment_amplitude
     )

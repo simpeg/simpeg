@@ -18,6 +18,16 @@ from ..utils import sdiag, Zero, mkvc
 from .. import props
 from empymod.utils import check_hankel
 
+try:
+    from multiprocessing import Pool
+    from sys import platform
+except ImportError:
+    print("multiprocessing is not available")
+    PARALLEL = False
+else:
+    PARALLEL = True
+    import multiprocessing
+
 __all__ = ["BaseEM1DSimulation", "BaseStitchedEM1DSimulation"]
 
 
@@ -846,11 +856,13 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         if self.topo is None:
             self.set_null_topography()
 
-        if self.survey.__class__ == EM1DSurveyFD:
-            print("Correct Run Simulation")
-            run_simulation = run_simulation_FD
-        else:
-            run_simulation = run_simulation_TD
+        # if self.survey.survey_type == "frequency_domain":
+        #     print("Correct Run Simulation")
+        #     run_simulation = run_simulation_FD
+        # else:
+        #     run_simulation = run_simulation_TD
+
+        run_simulation = self.run_simulation
 
         # if (self.parallel) & (__name__=='__main__'):
         if self.parallel:
@@ -946,10 +958,12 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             print(">> Compute J sigma")
         self.model = m
 
-        if self.survey.__class__ == EM1DSurveyFD:
-            run_simulation = run_simulation_FD
-        else:
-            run_simulation = run_simulation_TD
+        # if self.survey.__class__ == EM1DSurveyFD:
+        #     run_simulation = run_simulation_FD
+        # else:
+        #     run_simulation = run_simulation_TD
+
+        run_simulation = self.run_simulation
 
         # if (self.parallel) & (__name__=='__main__'):
         if self.parallel:
@@ -1002,10 +1016,12 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
         self.model = m
 
-        if self.survey.__class__ == EM1DSurveyFD:
-            run_simulation = run_simulation_FD
-        else:
-            run_simulation = run_simulation_TD
+        # if self.survey.__class__ == EM1DSurveyFD:
+        #     run_simulation = run_simulation_FD
+        # else:
+        #     run_simulation = run_simulation_TD
+
+        run_simulation = self.run_simulation
 
         if (self.parallel) & (__name__=='__main__'):
             pool = Pool(self.n_cpu)

@@ -44,7 +44,7 @@ receiver_orientation = "z"  # "x", "y" or "z"
 field_type = "secondary"  # "secondary", "total" or "ppm"
 
 # Receiver list
-rx = em1d.receivers.TimeDomainPointReceiver(
+rx = em1d.receivers.PointReceiver(
         receiver_location,
         times=time_HM,
         times_dual_moment=time_LM,

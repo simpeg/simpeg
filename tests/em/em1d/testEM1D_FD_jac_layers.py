@@ -2,7 +2,7 @@ import unittest
 from SimPEG import *
 from SimPEG.utils import mkvc
 import matplotlib.pyplot as plt
-import simpegEM1D as em1d
+import SimPEG.electromagnetics.frequency_domain_1d as em1d
 import numpy as np
 
 
@@ -23,37 +23,37 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="x",
                 field_type=field_type, component="both"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="x",
                 field_type=field_type, component="imag"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="y",
                 field_type=field_type, component="both"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="y",
                 field_type=field_type, component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="z",
                 field_type=field_type, component="both"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="z",
                 field_type=field_type, component="imag"
             )
@@ -62,7 +62,7 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
         I = 1.
         a = 10.
         source_list = [
-            em1d.sources.HarmonicHorizontalLoopSource(
+            em1d.sources.HorizontalLoopSource(
                 receiver_list=receiver_list, location=src_location, I=I, a=a
             )
         ]
@@ -174,37 +174,37 @@ class EM1D_FD_Jac_layers_ProblemTests_Height(unittest.TestCase):
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="x",
                 field_type=field_type, component="both"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="x",
                 field_type=field_type, component="both"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="x",
                 field_type=field_type, component="imag"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="y",
                 field_type=field_type, component="imag"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="z",
                 field_type=field_type, component="both"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="z",
                 field_type=field_type, component="imag"
             )
@@ -213,7 +213,7 @@ class EM1D_FD_Jac_layers_ProblemTests_Height(unittest.TestCase):
         I = 1.
         a = 10.
         source_list = [
-            em1d.sources.HarmonicHorizontalLoopSource(
+            em1d.sources.HorizontalLoopSource(
                 receiver_list=receiver_list, location=src_location, I=I, a=a
             )
         ]

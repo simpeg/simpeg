@@ -3,7 +3,7 @@ import properties
 from SimPEG.survey import BaseRx, BaseTimeRx
 
 
-class TimeDomainPointReceiver(BaseTimeRx):
+class PointReceiver(BaseTimeRx):
     """
     Receiver class for simulating the time-domain magnetic response at a point.
 
@@ -53,7 +53,7 @@ class TimeDomainPointReceiver(BaseTimeRx):
 
     def __init__(self, locations=None, times=None, orientation=None, component=None, use_source_receiver_offset=None, **kwargs):
 
-        super(TimeDomainPointReceiver, self).__init__(locations, times, **kwargs)
+        super(PointReceiver, self).__init__(locations, times, **kwargs)
 
         if orientation is not None:
             self.orientation = orientation

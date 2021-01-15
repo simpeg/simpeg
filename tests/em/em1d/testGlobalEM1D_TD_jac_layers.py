@@ -1,9 +1,10 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-import simpegEM1D as em1d
-from simpegEM1D.utils import get_vertical_discretization_time
-from simpegEM1D.waveforms import TriangleFun
+
+from SimPEG.electromagnetics import time_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_time
+from SimPEG.electromagnetics.time_domain_1d.waveforms import TriangleFun
 from SimPEG import *
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
@@ -54,14 +55,14 @@ class GlobalEM1DTD(unittest.TestCase):
             receiver_list = []
 
             receiver_list.append(
-                em1d.receivers.TimeDomainPointReceiver(
+                em1d.receivers.PointReceiver(
                     receiver_location, times, orientation="z",
                     component="b"
                 )
             )
 
             receiver_list.append(
-                em1d.receivers.TimeDomainPointReceiver(
+                em1d.receivers.PointReceiver(
                     receiver_location, times, orientation="z",
                     component="dbdt"
                 )
@@ -71,7 +72,7 @@ class GlobalEM1DTD(unittest.TestCase):
             input_currents = TriangleFun(time_input_currents+0.01, 5e-3, 0.01)
 
             source_list.append(
-                em1d.sources.TimeDomainHorizontalLoopSource(
+                em1d.sources.HorizontalLoopSource(
                     receiver_list=receiver_list,
                     location=source_location,
                     a=5., I=1.,
@@ -187,14 +188,14 @@ class GlobalEM1DTD_Height(unittest.TestCase):
             receiver_list = []
 
             receiver_list.append(
-                em1d.receivers.TimeDomainPointReceiver(
+                em1d.receivers.PointReceiver(
                     receiver_location, times, orientation="z",
                     component="b"
                 )
             )
 
             receiver_list.append(
-                em1d.receivers.TimeDomainPointReceiver(
+                em1d.receivers.PointReceiver(
                     receiver_location, times, orientation="z",
                     component="dbdt"
                 )
@@ -204,7 +205,7 @@ class GlobalEM1DTD_Height(unittest.TestCase):
             input_currents = TriangleFun(time_input_currents+0.01, 5e-3, 0.01)
 
             source_list.append(
-                em1d.sources.TimeDomainHorizontalLoopSource(
+                em1d.sources.HorizontalLoopSource(
                     receiver_list=receiver_list,
                     location=source_location,
                     a=5., I=1.,

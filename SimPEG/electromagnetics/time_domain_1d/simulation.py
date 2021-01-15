@@ -3,7 +3,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from ... import maps, utils
 from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation
+from ..frequency_domain_1d.supporting_functions.kernels import *
 import numpy as np
 from .sources import *
 from .survey import EM1DSurveyTD
@@ -19,17 +21,6 @@ from .known_waveforms import (
     piecewise_pulse_fast,
     butterworth_type_filter, butter_lowpass_filter
 )
-
-try:
-    from multiprocessing import Pool
-    from sys import platform
-except ImportError:
-    print("multiprocessing is not available")
-    PARALLEL = False
-else:
-    PARALLEL = True
-    import multiprocessing
-
 
 
 class EM1DTMSimulation(BaseEM1DSimulation):

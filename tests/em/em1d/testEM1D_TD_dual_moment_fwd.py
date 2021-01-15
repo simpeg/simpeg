@@ -1,10 +1,9 @@
 import unittest
 from SimPEG import maps
 import matplotlib.pyplot as plt
-import simpegEM1D as em1d
-from simpegEM1D.known_waveforms import piecewise_ramp, piecewise_pulse
-from simpegEM1D.analytics import *
-from simpegEM1D import skytem_HM_2015, skytem_LM_2015
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.time_domain_1d.known_waveforms import *
+from SimPEG.electromagnetics.analytics.em1d_analytics import *
 import numpy as np
 from scipy import io
 from scipy.interpolate import interp1d
@@ -33,7 +32,7 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         times = np.logspace(-5, -2, 41)
 
         # Receiver list
-        rx = em1d.receivers.TimeDomainPointReceiver(
+        rx = em1d.receivers.PointReceiver(
                 receiver_location,
                 times=time_HM,
                 times_dual_moment=time_LM,
@@ -50,7 +49,7 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         input_currents_LM = wave_LM.currents[-13:]
 
 
-        src = em1d.sources.TimeDomainHorizontalLoopSource(
+        src = em1d.sources.HorizontalLoopSource(
             receiver_list=receiver_list,
             location=source_location,
             I=source_current,

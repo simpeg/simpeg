@@ -19,6 +19,11 @@ class EM1DSurveyTD(BaseEM1DSurvey):
 
 
     @property
+    def survey_type(self):
+        return 'time_domain'
+
+
+    @property
     def nD(self):
         """
         Returns the number of data.

@@ -85,13 +85,13 @@ field_type = "ppm"
 # Receiver list
 receiver_list = []
 receiver_list.append(
-    em1d.receivers.HarmonicPointReceiver(
+    em1d.receivers.PointReceiver(
         receiver_location, frequencies, orientation=receiver_orientation,
         field_type=field_type, component="real"
     )
 )
 receiver_list.append(
-    em1d.receivers.HarmonicPointReceiver(
+    em1d.receivers.PointReceiver(
         receiver_location, frequencies, orientation=receiver_orientation,
         field_type=field_type, component="imag"
     )
@@ -99,14 +99,14 @@ receiver_list.append(
 
 # Sources
 #source_list = [
-#    em1d.sources.HarmonicHorizontalLoopSource(
+#    em1d.sources.HorizontalLoopSource(
 #        receiver_list=receiver_list, location=source_location, a=source_radius,
 #        I=source_current
 #    )
 #]
     
 source_list = [
-    em1d.sources.HarmonicMagneticDipoleSource(
+    em1d.sources.MagneticDipoleSource(
         receiver_list=receiver_list, location=source_location, orientation="z",
         moment_amplitude=moment_amplitude
     )

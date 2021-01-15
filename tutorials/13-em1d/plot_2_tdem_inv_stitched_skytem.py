@@ -110,7 +110,7 @@ for ii in range(0, n_sounding):
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
     receiver_list = [
-        em1d.receivers.TimeDomainPointReceiver(
+        em1d.receivers.PointReceiver(
             receiver_location,
             times=time_HM,
             times_dual_moment=time_LM,

@@ -118,13 +118,13 @@ for ii in range(0, n_sounding):
     receiver_list = []
 
     receiver_list.append(
-        em1d.receivers.HarmonicPointReceiver(
+        em1d.receivers.PointReceiver(
             receiver_location, frequencies, orientation=receiver_orientation,
             field_type=field_type, component="real"
         )
     )
     receiver_list.append(
-        em1d.receivers.HarmonicPointReceiver(
+        em1d.receivers.PointReceiver(
             receiver_location, frequencies, orientation=receiver_orientation,
             field_type=field_type, component="imag"
         )

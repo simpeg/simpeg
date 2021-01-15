@@ -2,8 +2,8 @@ import unittest
 from SimPEG import *
 import numpy as np
 import matplotlib.pyplot as plt
-import simpegEM1D as em1d
-from simpegEM1D.waveforms import TriangleFun, TriangleFunDeriv
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.time_domain_1d.waveforms import TriangleFun, TriangleFunDeriv
 
 
 class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
@@ -25,14 +25,14 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         receiver_list = []
         
         receiver_list.append(
-            em1d.receivers.TimeDomainPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, times, orientation=receiver_orientation,
                 component="b"
             )
         )
         
         receiver_list.append(
-            em1d.receivers.TimeDomainPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, times, orientation=receiver_orientation,
                 component="dbdt"
             )
@@ -41,7 +41,7 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         time_input_currents = np.r_[-np.logspace(-2, -5, 31), 0.]
         input_currents = TriangleFun(time_input_currents+0.01, 5e-3, 0.01)
         source_list = [
-            em1d.sources.TimeDomainHorizontalLoopSource(
+            em1d.sources.HorizontalLoopSource(
                 receiver_list=receiver_list,
                 location=src_location,
                 a=a, I=1.,

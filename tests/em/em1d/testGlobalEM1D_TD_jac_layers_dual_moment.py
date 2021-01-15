@@ -1,13 +1,13 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-import SimPEG.electromagnetics.em1d as em1d
-from SimPEG.electromagnetics.em1d.utils import get_vertical_discretization_time
-from SimPEG.electromagnetics.em1d.waveforms import TriangleFun
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_time
+from SimPEG.electromagnetics.time_domain_1d.waveforms import TriangleFun
+from SimPEG.electromagnetics.time_domain_1d.known_waveforms import skytem_HM_2015, skytem_LM_2015
 from SimPEG import *
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
-from SimPEG.electromagnetics.em1d import skytem_HM_2015, skytem_LM_2015
 
 
 np.random.seed(41)
@@ -70,7 +70,7 @@ class GlobalEM1DTD(unittest.TestCase):
             receiver_list = []
 
             receiver_list = [
-                em1d.receivers.TimeDomainPointReceiver(
+                em1d.receivers.PointReceiver(
                     receiver_location,
                     times=time_HM,
                     times_dual_moment=time_LM,
@@ -80,7 +80,7 @@ class GlobalEM1DTD(unittest.TestCase):
             ]
 
             receiver_list = [
-                em1d.receivers.TimeDomainPointReceiver(
+                em1d.receivers.PointReceiver(
                     receiver_location,
                     times=time_HM,
                     times_dual_moment=time_LM,
@@ -90,7 +90,7 @@ class GlobalEM1DTD(unittest.TestCase):
             ]
 
             source_list.append(
-                em1d.sources.TimeDomainMagneticDipoleSource(
+                em1d.sources.MagneticDipoleSource(
                     receiver_list=receiver_list,
                     location=source_location,
                     moment_amplitude=source_current,

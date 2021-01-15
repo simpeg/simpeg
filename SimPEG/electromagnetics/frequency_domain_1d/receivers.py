@@ -3,7 +3,7 @@ import properties
 from SimPEG.survey import BaseRx, BaseTimeRx
 
 
-class HarmonicPointReceiver(BaseRx):
+class PointReceiver(BaseRx):
     """
     Receiver class for simulating the harmonic magnetic field at a point.
 
@@ -56,7 +56,7 @@ class HarmonicPointReceiver(BaseRx):
 
     def __init__(self, locations=None, frequencies=None, orientation=None, field_type=None, component=None, use_source_receiver_offset=None, **kwargs):
 
-        super(HarmonicPointReceiver, self).__init__(locations, **kwargs)
+        super(PointReceiver, self).__init__(locations, **kwargs)
         if frequencies is not None:
             self.frequencies = frequencies
         if orientation is not None:

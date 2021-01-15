@@ -2,9 +2,8 @@ import unittest
 from SimPEG import *
 from discretize import TensorMesh
 import matplotlib.pyplot as plt
-import simpegEM1D as em1d
-from simpegEM1D.analytics import *
-#from simpegEM1D import EM1D, EM1DAnalytics, EM1DSurveyFD
+from SimPEG.electromagnetics import frequency_domain_1d as em1d
+from SimPEG.electromagnetics.analytics.em1d_analytics import *
 import numpy as np
 from scipy.constants import mu_0
 
@@ -27,32 +26,32 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="z",
                 field_type=field_type, component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="z",
                 field_type=field_type, component="imag"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="x",
                 field_type=field_type, component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="x",
                 field_type=field_type, component="imag"
             )
         )
             
         source_list = [
-            em1d.sources.HarmonicMagneticDipoleSource(
+            em1d.sources.MagneticDipoleSource(
                 receiver_list=receiver_list, location=src_location, orientation="z"
             )
         ]
@@ -204,20 +203,20 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="z",
                 field_type=field_type, component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation="z",
                 field_type=field_type, component="imag"
             )
         )
             
         source_list = [
-            em1d.sources.HarmonicMagneticDipoleSource(
+            em1d.sources.MagneticDipoleSource(
                 receiver_list=receiver_list, location=src_location, orientation="x"
             )
         ]
@@ -263,20 +262,20 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation=receiver_orientation,
                 field_type=field_type, component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation=receiver_orientation,
                 field_type=field_type, component="imag"
             )
         )
             
         source_list = [
-            em1d.sources.HarmonicHorizontalLoopSource(
+            em1d.sources.HorizontalLoopSource(
                 receiver_list=receiver_list, location=src_location, a=5.
             )
         ]
@@ -321,20 +320,20 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation=receiver_orientation,
                 field_type=field_type, component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.HarmonicPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, frequencies, orientation=receiver_orientation,
                 field_type=field_type, component="imag"
             )
         )
             
         source_list = [
-            em1d.sources.HarmonicHorizontalLoopSource(
+            em1d.sources.HorizontalLoopSource(
                 receiver_list=receiver_list, location=src_location, a=5.
             )
         ]

@@ -45,28 +45,28 @@ frequencies = np.logspace(-1, 8, 51)
 # Receiver list
 receiver_list = []
 receiver_list.append(
-    em1d.receivers.HarmonicPointReceiver(
+    em1d.receivers.PointReceiver(
         receiver_location_1, frequencies, orientation='z',
         field_type=field_type, component="real"
     )
 )
 
 receiver_list.append(
-    em1d.receivers.HarmonicPointReceiver(
+    em1d.receivers.PointReceiver(
         receiver_location_1, frequencies, orientation='z',
         field_type=field_type, component="imag"
     )
 )
     
 receiver_list.append(
-    em1d.receivers.HarmonicPointReceiver(
+    em1d.receivers.PointReceiver(
         receiver_location_2, frequencies, orientation='z',
         field_type=field_type, component="real"
     )
 )
 
 receiver_list.append(
-    em1d.receivers.HarmonicPointReceiver(
+    em1d.receivers.PointReceiver(
         receiver_location_2, frequencies, orientation='z',
         field_type=field_type, component="imag"
     )
@@ -76,28 +76,28 @@ receiver_list.append(
 source_list = []
 
 source_list.append(
-    em1d.sources.HarmonicMagneticDipoleSource(
+    em1d.sources.MagneticDipoleSource(
         receiver_list=receiver_list[0:2], location=source_location,
         orientation="z", moment_amplitude=1.
     )
 )
     
 #source_list.append(
-#    em1d.sources.HarmonicMagneticDipoleSource(
+#    em1d.sources.MagneticDipoleSource(
 #        receiver_list=receiver_list[2:], location=source_location,
 #        orientation="z", I=source_current
 #    )
 #)
     
 source_list.append(
-    em1d.sources.HarmonicHorizontalLoopSource(
+    em1d.sources.HorizontalLoopSource(
         receiver_list=receiver_list[2:], location=source_location,
         a=source_radius, I=source_current
     )
 )
 
 #source_list.append(
-#    em1d.sources.HarmonicLineSource(
+#    em1d.sources.LineSource(
 #        receiver_list=receiver_list, location=node_locations,
 #        I=source_current
 #    )

@@ -1,4 +1,4 @@
-from SimPEG import maps, utils
+from ... import maps, utils
 from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation
 import numpy as np
 from .sources import *
@@ -9,16 +9,6 @@ from empymod.utils import check_time
 from empymod import filters
 from empymod.transform import dlf, fourier_dlf, get_dlf_points
 from empymod.utils import check_hankel
-
-try:
-    from multiprocessing import Pool
-    from sys import platform
-except ImportError:
-    print("multiprocessing is not available")
-    PARALLEL = False
-else:
-    PARALLEL = True
-    import multiprocessing
 
 
 #######################################################################

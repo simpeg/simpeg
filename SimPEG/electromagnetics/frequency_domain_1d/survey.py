@@ -13,6 +13,11 @@ class EM1DSurveyFD(BaseEM1DSurvey):
         BaseEM1DSurvey.__init__(self, source_list, **kwargs)
 
     @property
+    def survey_type(self):
+        return 'frequency_domain'
+    
+
+    @property
     def nD(self):
         """
         Returns number of data.

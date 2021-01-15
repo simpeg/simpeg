@@ -85,7 +85,7 @@ times = np.logspace(-5, -2, 31)
 # Receiver list
 receiver_list = []
 receiver_list.append(
-    em1d.receivers.TimeDomainPointReceiver(
+    em1d.receivers.PointReceiver(
         receiver_location, times, orientation=receiver_orientation,
         component="b"
     )

@@ -113,7 +113,7 @@ for ii in range(0, n_sounding):
     receiver_location = mkvc(receiver_locations[ii, :])
     
     receiver_list = [
-        em1d.receivers.TimeDomainPointReceiver(
+        em1d.receivers.PointReceiver(
             receiver_location, times, orientation=receiver_orientation,
             component="dbdt"
         )
