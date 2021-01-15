@@ -228,12 +228,13 @@ class Fields1DPrimarySecondary(FieldsFDEM):
 
     knownFields = {"e_1dSolution": "F"}
     aliasFields = {
-        "e_1d": ["e_1dSolution", "F", "_e"],
-        "e_1dPrimary": ["e_1dSolution", "F", "_ePrimary"],
-        "e_1dSecondary": ["e_1dSolution", "F", "_eSecondary"],
-        "b_1d": ["e_1dSolution", "E", "_b"],
-        "b_1dPrimary": ["e_1dSolution", "E", "_bPrimary"],
-        "b_1dSecondary": ["e_1dSolution", "E", "_bSecondary"],
+        "e": ["e_1dSolution", "F", "_e"],
+        "ePrimary": ["e_1dSolution", "F", "_ePrimary"],
+        "eSecondary": ["e_1dSolution", "F", "_eSecondary"],
+        "b": ["e_1dSolution", "E", "_b"],
+        "bPrimary": ["e_1dSolution", "E", "_bPrimary"],
+        "bSecondary": ["e_1dSolution", "E", "_bSecondary"],
+        "h": ["e_1dSolution", "E", "_h"],
     }
 
     # def __init__(self, mesh, survey, **kwargs):
@@ -336,6 +337,28 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         return bSecondaryDeriv_u
 
     def _bDeriv_m(self, src, v, adjoint=False):
+        """
+        Derivative of the magnetic flux density with respect to the inversion model.
+
+        :param SimPEG.electromagnetics.frequency_domain.Src src: source
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of the magnetic flux density derivative with respect to the inversion model with a vector
+        """
+        # Neither bPrimary nor bSeconary have model dependency => return Zero
+        return Zero()
+
+    def _h(self, eSolution, source_list):
+        return 1 / mu_0 * self._b(eSolution, source_list)
+
+    def _hDeriv_u(self, src, du_dm_v, adjoint=False):
+        if adjoint:
+            v = 1 / mu_0 * du_dm_v  # MfMui, MfI are symmetric
+            return self._bDeriv_u(src, v, adjoint=adjoint)
+        return 1 / mu_0 * self._bDeriv_u(src, du_dm_v)
+
+    def _hDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the magnetic flux density with respect to the inversion model.
 

@@ -284,7 +284,7 @@ reg = regularization.Simple(inversion_mesh)
 opt = optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
 invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
-betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.25)
+betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.05, n_pw_iter=1, seed=1)
 target = directives.TargetMisfit()
 
 directiveList = [betaest, target]

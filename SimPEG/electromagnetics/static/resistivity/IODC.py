@@ -300,7 +300,7 @@ class IO(properties.HasProperties):
         in survey object
         """
         G = geometric_factor(
-            survey, survey_type=self.survey_type, space_type=self.space_type
+            survey, space_type=self.space_type
         )
         return G
 

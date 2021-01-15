@@ -48,12 +48,12 @@ class MagSensProblemTests(unittest.TestCase):
         print(driver.eps)
 
         # Write obs to file
-        io_utils.writeUBCmagneticsObservations(
+        io_utils.write_mag3d_ubc(
             os.path.sep.join([self.basePath, "FWR_data.dat"]), driver.data
         )
 
         # Read it back
-        data = io_utils.readUBCmagneticsObservations(
+        data = io_utils.read_mag3d_ubc(
             os.path.sep.join([self.basePath, "FWR_data.dat"])
         )
         # Check similarity

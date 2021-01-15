@@ -18,25 +18,24 @@ addrandoms = True
 
 
 def JvecAdjointTest(inputSetup, comp="All", freq=False):
-    (M, freqs, sig, sigBG, rx_loc) = inputSetup
-    survey, problem = nsem.utils.test_utils.setupSimpegNSEM_ePrimSec(
-        inputSetup, comp=comp, singleFreq=freq
+    m, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
+        inputSetup, [freq], comp=comp, singleFreq=False
     )
-    print("Using {0} solver for the problem".format(problem.Solver))
+
+    print("Using {0} solver for the simulation".format(simulation.Solver))
     print(
         "Adjoint test of eForm primary/secondary "
-        "for {:s} comp at {:s}\n".format(comp, str(survey.freqs))
+        "for {:s} comp at {:s}\n".format(comp, str(simulation.survey.freqs))
     )
 
-    m = sig
-    u = problem.fields(m)
+    u = simulation.fields(m)
     np.random.seed(1983)
-    v = np.random.rand(survey.nD,)
+    v = np.random.rand(simulation.survey.nD,)
     # print problem.PropMap.PropModel.nP
-    w = np.random.rand(problem.mesh.nC,)
-
-    vJw = v.ravel().dot(problem.Jvec(m, w, u))
-    wJtv = w.ravel().dot(problem.Jtvec(m, v, u))
+    w = np.random.rand(len(m),)
+    # print(problem.Jvec(m, w, u))
+    vJw = v.ravel().dot(simulation.Jvec(m, w, u))
+    wJtv = w.ravel().dot(simulation.Jtvec(m, v, u))
     tol = np.max([TOL * (10 ** int(np.log10(np.abs(vJw)))), FLR])
     print(" vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol")
     print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)

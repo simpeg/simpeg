@@ -100,6 +100,81 @@ def uniqueRows(M):
     return unqM, unqInd, invInd
 
 
+def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=None, seed=None):
+    """
+    Estimate the highest eigenvalue of any objective function term or combination thereof
+    (data_misfit, regularization or ComboObjectiveFunction) for a given model.
+    The highest eigenvalue is estimated by power iterations and Rayleigh quotient.
+
+    Parameters
+    ----------
+
+    :param SimPEG.BaseObjectiveFunction combo_objfct: objective function term of which to estimate the highest eigenvalue
+    :param numpy.ndarray model: current geophysical model to estimate the objective function derivatives at
+    :param int n_pw_iter: number of power iterations to estimate the highest eigenvalue
+    :param list fiels_list: (optional) list of fields for each data misfit term in combo_objfct. If none given,
+                            they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
+                            terms, the list should contains SimPEG.fields for the data misfit terms and None for the
+                            regularization term.
+    :param int seed: Random seed for the initial random guess of eigenvector.
+
+    Return
+    ------
+
+    :return float eigenvalue: estimated value of the highest eigenvalye
+
+    """
+
+    if seed is not None:
+        np.random.seed(seed)
+
+    # Initial guess for eigen-vector
+    x0 = np.random.rand(*model.shape)
+    x0 = x0 / np.linalg.norm(x0)
+
+    # transform to ComboObjectiveFunction if required
+    if getattr(combo_objfct, "objfcts", None) is None:
+        combo_objfct = 1. * combo_objfct
+
+    # create Field for data misfit if necessary and not provided
+    if fields_list is None:
+        fields_list = []
+        for k, obj in enumerate(combo_objfct.objfcts):
+            if hasattr(obj, "simulation"):
+                fields_list += [obj.simulation.fields(model)]
+            else:
+                # required to put None to conserve it in the list
+                # The idea is that the function can have a mixed of dmis and reg terms
+                # (see test)
+                fields_list += [None]
+    elif not isinstance(fields_list, (list, tuple, np.ndarray)):
+            fields_list = [fields_list]
+
+    #Power iteration: estimate eigenvector
+    for i in range(n_pw_iter):
+        x1 = 0.
+        for j, (mult, obj) in enumerate(zip(combo_objfct.multipliers, combo_objfct.objfcts)):
+            if hasattr(obj, "simulation"): # if data misfit term
+                aux = obj.deriv2(model, v=x0, f=fields_list[j])
+                if not isinstance(aux, Zero):
+                    x1 += mult * aux
+            else:
+                aux = obj.deriv2(model, v=x0)
+                if not isinstance(aux, Zero):
+                    x1 += mult * aux
+        x0 = x1 / np.linalg.norm(x1)
+
+    # Compute highest eigenvalue from estimated eigenvector
+    eigenvalue=0.
+    for j, (mult, obj) in enumerate(zip(combo_objfct.multipliers, combo_objfct.objfcts)):
+        if hasattr(obj, "simulation"): # if data misfit term
+            eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0, f=fields_list[j]))
+        else:
+            eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0,))
+
+    return eigenvalue
+
+
 def cartesian2spherical(m):
     """ Convert from cartesian to spherical """
 
@@ -184,3 +259,36 @@ def coterminal(theta):
     theta[np.abs(theta) >= np.pi] = sub
 
     return theta
+
+
+def define_plane_from_points(xyz1, xyz2, xyz3):
+    """
+    Compute constants defining a plane from a set of points.
+
+    The equation defining a plane has the form ax+by+cz+d=0.
+    This utility returns the constants a, b, c and d.
+
+    Parameters
+    ----------
+    xyz1 : numpy.ndarray
+        First point needed to define the plane (x1, y1, z1)
+    xyz2 : numpy.ndarray
+        Second point needed to define the plane (x2, y2, z2)
+    xyz3 : numpy.ndarray
+        Third point needed to define the plane (x3, y3, z3)
+
+    Returns
+    -------
+    a : float
+    b : float
+    c : float
+    d : float
+
+    """
+    v12 = (xyz2 - xyz1) / np.sqrt(np.sum((xyz2 - xyz1) ** 2, axis=0))
+    v13 = (xyz3 - xyz1) / np.sqrt(np.sum((xyz3 - xyz1) ** 2, axis=0))
+
+    a, b, c = np.cross(v12, v13)
+    d = -(a * xyz1[0] + b * xyz1[1] + c * xyz1[2])
+
+    return a, b, c, d

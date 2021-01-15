@@ -87,7 +87,6 @@ def run(plotIt=True):
     target = directives.TargetMisfit()
     # Create an inversion object
     beta = directives.BetaSchedule(coolingFactor=1.0, coolingRate=2.0)
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
     invProb.beta = 1e2
     inv = inversion.BaseInversion(invProb, directiveList=[beta, target])
     m0 = np.log(np.ones(mtrue.size) * sig_half)

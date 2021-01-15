@@ -2,6 +2,7 @@ import numpy as np
 import discretize
 
 from ....utils import mkvc
+from .solutions_1d import get1DEfields
 
 
 def homo1DModelSource(mesh, freq, sigma_1d):
@@ -15,17 +16,14 @@ def homo1DModelSource(mesh, freq, sigma_1d):
         :return: eBG_bp, E fields for the background model at both polarizations with shape (mesh.nE, 2).
 
     """
-    from . import get1DEfields
 
     # Get a 1d solution for a halfspace background
     if mesh.dim == 1:
         mesh1d = mesh
-    elif mesh.dim == 2:
-        mesh1d = discretize.TensorMesh([mesh.hy], np.array([mesh.x0[1]]))
-    elif mesh.dim == 3:
-        mesh1d = discretize.TensorMesh([mesh.hz], np.array([mesh.x0[2]]))
+    else:
+        mesh1d = discretize.TensorMesh([mesh.h[-1]], [mesh.x0[-1]])
 
-    # # Note: Everything is using e^iwt
+    # Note: Everything is using e^iwt
     e0_1d = get1DEfields(mesh1d, sigma_1d, freq)
     if mesh.dim == 1:
         eBG_px = mkvc(e0_1d, 2)
@@ -47,25 +45,24 @@ def homo1DModelSource(mesh, freq, sigma_1d):
         # ey_py[1:-1, 1:-1, 1:-1] = 0
         eBG_py = np.vstack((ex_py, mkvc(ey_py, 2), ez_py))
     elif mesh.dim == 3:
-        # Setup x (east) polarization (_x)
-        ex_px = np.zeros(mesh.vnEx, dtype=complex)
-        ey_px = np.zeros((mesh.nEy, 1), dtype=complex)
-        ez_px = np.zeros((mesh.nEz, 1), dtype=complex)
-        # Assign the source to ex_x
-        for i in np.arange(mesh.vnEx[0]):
-            for j in np.arange(mesh.vnEx[1]):
-                ex_px[i, j, :] = -e0_1d
-        eBG_px = np.vstack((mkvc(ex_px, 2), ey_px, ez_px))
-        # Setup y (north) polarization (_py)
-        ex_py = np.zeros((mesh.nEx, 1), dtype="complex128")
-        ey_py = np.zeros(mesh.vnEy, dtype="complex128")
-        ez_py = np.zeros((mesh.nEz, 1), dtype="complex128")
-        # Assign the source to ey_py
-        for i in np.arange(mesh.vnEy[0]):
-            for j in np.arange(mesh.vnEy[1]):
-                ey_py[i, j, :] = e0_1d
-        # ey_py[1:-1, 1:-1, 1:-1] = 0
-        eBG_py = np.vstack((ex_py, mkvc(ey_py, 2), ez_py))
+        # us the z component of ex_grid as lookup for solution
+        edges_u, inv_edges = np.unique(mesh.gridEx[:, -1], return_inverse=True)
+        map_to_edge_u = np.where(np.isclose(mesh1d.gridN, edges_u[:, None], atol=0.0))[
+            1
+        ]
+        ex_px = -e0_1d[map_to_edge_u][inv_edges]
+        ey_px = np.zeros(mesh.nEy, dtype=complex)
+        ez_px = np.zeros(mesh.nEz, dtype=complex)
+        eBG_px = np.r_[ex_px, ey_px, ez_px][:, None]
+
+        edges_u, inv_edges = np.unique(mesh.gridEy[:, -1], return_inverse=True)
+        map_to_edge_u = np.where(np.isclose(mesh1d.gridN, edges_u[:, None], atol=0.0))[
+            1
+        ]
+        ex_py = np.zeros(mesh.nEx, dtype=complex)
+        ey_py = e0_1d[map_to_edge_u][inv_edges]
+        ez_py = np.zeros(mesh.nEz, dtype=complex)
+        eBG_py = np.r_[ex_py, ey_py, ez_py][:, None]
 
     # Return the electric fields
     eBG_bp = np.hstack((eBG_px, eBG_py))
