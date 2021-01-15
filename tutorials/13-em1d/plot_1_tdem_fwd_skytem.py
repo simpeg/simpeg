@@ -17,8 +17,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from SimPEG import maps
-import simpegEM1D as em1d
-from simpegEM1D import skytem_HM_2015, skytem_LM_2015
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.time_domain_1d.known_waveforms import skytem_HM_2015, skytem_LM_2015
 
 
 #####################################################################
@@ -60,7 +60,7 @@ input_currents_HM = wave_HM.currents[-7:]
 time_input_currents_LM = wave_LM.current_times[-13:]
 input_currents_LM = wave_LM.currents[-13:]
 
-src = em1d.sources.TimeDomainMagneticDipoleSource(
+src = em1d.sources.MagneticDipoleSource(
     receiver_list=receiver_list,
     location=source_location,
     moment_amplitude=moment_amplitude,

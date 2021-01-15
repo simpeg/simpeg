@@ -17,7 +17,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from SimPEG import maps
-import simpegEM1D as em1d
+import SimPEG.electromagnetics.frequency_domain_1d as em1d
 from empymod.transform import dlf, fourier_dlf, get_dlf_points
 from empymod import filters
 

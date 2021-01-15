@@ -23,9 +23,9 @@ from SimPEG import (
     )
 
 from SimPEG.utils import mkvc
-import simpegEM1D as em1d
-from simpegEM1D import get_2d_mesh, LateralConstraint
-from simpegEM1D.utils import plotLayer, get_vertical_discretization_frequency
+import SimPEG.electromagnetics.frequency_domain_1d as em1d
+from SimPEG.regularization import LaterallyConstrained
+from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh, plot_layer, get_vertical_discretization_frequency
 
 #####################################################################
 # Load data
@@ -118,7 +118,7 @@ moment_amplitude = 1.
 for ii in range(0, n_sounding):
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
-    rx  = em1d.receivers.HarmonicPointReceiver(
+    rx  = em1d.receivers.PointReceiver(
         receiver_location, frequencies,
         orientation=receiver_orientation,
         field_type=field_type,
@@ -126,7 +126,7 @@ for ii in range(0, n_sounding):
     )
     receiver_list = [rx]
     source_list.append(
-        em1d.sources.HarmonicMagneticDipoleSource(
+        em1d.sources.MagneticDipoleSource(
             receiver_list=receiver_list, location=source_location, orientation="z",
             moment_amplitude=moment_amplitude
         )
@@ -199,11 +199,10 @@ floor = 20.
 uncertainties = std*abs(dobs)+floor
 data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
 
-from simpegEM1D import get_2d_mesh, LateralConstraint
 hz = np.r_[thicknesses, thicknesses[-1]]
 mesh_reg = get_2d_mesh(n_sounding, hz)
 # Now we can create the regularization using the 2D mesh
-reg = LateralConstraint(mesh_reg, mapping=maps.IdentityMap(nP=mesh_reg.nC))
+reg = LaterallyConstrained(mesh_reg, mapping=maps.IdentityMap(nP=mesh_reg.nC))
 
 
 tri = reg.get_grad_horizontal(xy, hz)

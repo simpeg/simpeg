@@ -28,9 +28,9 @@ from SimPEG import (
     )
 
 from SimPEG.utils import mkvc
-import simpegEM1D as em1d
-from simpegEM1D import get_2d_mesh, LateralConstraint
-from simpegEM1D.utils import plotLayer, get_vertical_discretization_time
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh,plot_layer, get_vertical_discretization_time
+from SimPEG.regularization import LaterallyConstrained
 
 save_file = True
 
@@ -121,14 +121,14 @@ for ii in range(0, n_sounding):
 
     # Sources
     source_list.append(
-        em1d.sources.TimeDomainHorizontalLoopSource(
+        em1d.sources.HorizontalLoopSource(
             receiver_list=receiver_list, location=source_location, a=source_radius,
             I=source_current
         )
     )
     
     # source_list.append(
-    #     em1d.sources.TimeDomainMagneticDipoleSource(
+    #     em1d.sources.MagneticDipoleSource(
     #         receiver_list=receiver_list, location=source_location, orientation="z",
     #         I=source_current
     #     )
@@ -238,7 +238,7 @@ dmis.W = 1./uncertainties
 # Define the regularization (model objective function)
 mesh_reg = get_2d_mesh(n_sounding, hz)
 reg_map = maps.IdentityMap(mesh_reg)
-reg = LateralConstraint(
+reg = LaterallyConstrained(
     mesh_reg, mapping=reg_map,
     alpha_s = 0.1,
     alpha_x = 1.,

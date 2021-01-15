@@ -19,8 +19,8 @@ from pymatsolver import PardisoSolver
 
 from SimPEG import maps
 from SimPEG.utils import mkvc
-import simpegEM1D as em1d
-from simpegEM1D.utils import plotLayer, get_vertical_discretization_time
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import plot_layer, get_vertical_discretization_time
 
 plt.rcParams.update({'font.size': 16})
 save_file = False
@@ -68,7 +68,7 @@ for ii in range(0, n_sounding):
     receiver_location = mkvc(receiver_locations[ii, :])
     
     receiver_list = [
-        em1d.receivers.TimeDomainPointReceiver(
+        em1d.receivers.PointReceiver(
             receiver_location, times, orientation=receiver_orientation,
             component="dbdt"
         )
@@ -76,14 +76,14 @@ for ii in range(0, n_sounding):
 
 #     Sources
     source_list.append(
-        em1d.sources.TimeDomainHorizontalLoopSource(
+        em1d.sources.HorizontalLoopSource(
             receiver_list=receiver_list, location=source_location, a=source_radius,
             I=source_current
         )
     )
     
     # source_list.append(
-    #     em1d.sources.TimeDomainMagneticDipoleSource(
+    #     em1d.sources.MagneticDipoleSource(
     #         receiver_list=receiver_list, location=source_location, orientation="z",
     #         I=source_current
     #     )

@@ -23,8 +23,8 @@ from pymatsolver import PardisoSolver
 
 from SimPEG import maps
 from SimPEG.utils import mkvc
-import simpegEM1D as em1d
-from simpegEM1D.utils import plotLayer, get_vertical_discretization_frequency
+import SimPEG.electromagnetics.frequency_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import plot_layer, get_vertical_discretization_frequency
 
 plt.rcParams.update({'font.size': 16})
 save_file = True
@@ -89,7 +89,7 @@ for ii in range(0, n_sounding):
     # )
 
     source_list.append(
-        em1d.sources.HarmonicMagneticDipoleSource(
+        em1d.sources.MagneticDipoleSource(
             receiver_list=receiver_list, location=source_location, orientation="z",
             moment_amplitude=moment_amplitude
         )

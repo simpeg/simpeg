@@ -19,8 +19,8 @@ from matplotlib import pyplot as plt
 from discretize import TensorMesh
 
 from SimPEG import maps
-import simpegEM1D as em1d
-from simpegEM1D.utils import plotLayer
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import plot_layer
 
 save_file = False
 plt.rcParams.update({'font.size': 16})
@@ -53,14 +53,14 @@ receiver_list.append(
 
 # Sources
 source_list = [
-    em1d.sources.TimeDomainHorizontalLoopSource(
+    em1d.sources.HorizontalLoopSource(
         receiver_list=receiver_list, location=source_location,
         I=source_current, a=source_radius
     )
 ]
 
 #source_list = [
-#    em1d.sources.TimeDomainMagneticDipoleSource(
+#    em1d.sources.MagneticDipoleSource(
 #        receiver_list=receiver_list, location=source_location, orientation="z",
 #        I=source_current
 #    )

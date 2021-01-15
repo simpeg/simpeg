@@ -19,8 +19,8 @@ from matplotlib import pyplot as plt
 from discretize import TensorMesh
 
 from SimPEG import maps
-import simpegEM1D as em1d
-from simpegEM1D.utils import plotLayer
+import SimPEG.electromagnetics.frequency_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import plot_layer
 
 plt.rcParams.update({'font.size': 16})
 save_file = False

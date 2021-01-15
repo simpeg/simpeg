@@ -17,13 +17,9 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from SimPEG import maps
-import simpegEM1D as em1d
-from simpegEM1D.analytics import ColeCole, LogUniform
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import ColeCole, LogUniform
 from discretize.utils import mkvc
-
-
-
-
 
 from scipy.special import expi
 
@@ -61,7 +57,7 @@ receiver_list.append(
 
 # Sources
 source_list = [
-    em1d.sources.TimeDomainHorizontalLoopSource(
+    em1d.sources.HorizontalLoopSource(
         receiver_list=receiver_list, location=source_location,
         I=source_current, a=source_radius
     )

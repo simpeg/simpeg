@@ -18,8 +18,8 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-import simpegEM1D as em1d
-from simpegEM1D.utils import get_vertical_discretization_time, plotLayer
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_time, plot_layer
 from SimPEG.utils import mkvc
 from SimPEG import (
     maps, data, data_misfit, inverse_problem, regularization, optimization,
@@ -93,14 +93,14 @@ receiver_list.append(
 
 # Sources
 source_list = [
-    em1d.sources.TimeDomainHorizontalLoopSource(
+    em1d.sources.HorizontalLoopSource(
         receiver_list=receiver_list, location=source_location,
         I=source_current, a=source_radius
     )
 ]
 
 # source_list = [
-#     em1d.sources.TimeDomainMagneticDipoleSource(
+#     em1d.sources.MagneticDipoleSource(
 #         receiver_list=receiver_list, location=source_location, orientation="z",
 #         I=source_current
 #     )

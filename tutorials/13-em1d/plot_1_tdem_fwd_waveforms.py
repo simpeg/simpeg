@@ -17,9 +17,10 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from SimPEG import maps
-import simpegEM1D as em1d
-from simpegEM1D.waveforms import TriangleFun, VTEMFun
-from simpegEM1D.analytics import ColeCole
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import ColeCole
+from SimPEG.electromagnetics.time_domain_1d.waveforms import TriangleFun, VTEMFun
+
 
 
 #####################################################################
@@ -53,7 +54,7 @@ source_list = []
 
 # Step off
 source_list.append(
-    em1d.sources.TimeDomainMagneticDipoleSource(
+    em1d.sources.MagneticDipoleSource(
         receiver_list=receiver_list, location=source_location,
         orientation=source_orientation, moment_amplitude=moment_amplitude,
         wave_type="stepoff"
@@ -64,7 +65,7 @@ source_list.append(
 time_input_currents = np.r_[-np.logspace(-2, -5, 31), 0.]
 input_currents = TriangleFun(time_input_currents+0.01, 5e-3, 0.01)
 source_list.append(
-    em1d.sources.TimeDomainMagneticDipoleSource(
+    em1d.sources.MagneticDipoleSource(
         receiver_list=receiver_list, location=source_location,
         moment_amplitude=moment_amplitude,
         orientation=source_orientation,
@@ -82,7 +83,7 @@ source_list.append(
 time_input_currents_2 = np.r_[-np.logspace(-2, -5, 31), 0.]
 input_currents_2 = VTEMFun(time_input_currents+0.01, 8e-3, 0.01, 1)
 source_list.append(
-    em1d.sources.TimeDomainMagneticDipoleSource(
+    em1d.sources.MagneticDipoleSource(
         receiver_list=receiver_list, location=source_location,
         moment_amplitude=moment_amplitude,
         orientation=source_orientation, 

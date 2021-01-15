@@ -20,7 +20,7 @@ from discretize import TensorMesh
 
 from SimPEG import maps
 from SimPEG.electromagnetics import frequency_domain_1d as em1d
-from SimPEG.electromagnetics.utils.em1d_utils import plotLayer
+from SimPEG.electromagnetics.utils.em1d_utils import plot_layer
 
 plt.rcParams.update({'font.size': 16})
 save_file = False

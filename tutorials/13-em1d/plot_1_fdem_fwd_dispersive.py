@@ -17,8 +17,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from SimPEG import maps
-import simpegEM1D as em1d
-from simpegEM1D.analytics import ColeCole
+import SimPEG.electromagnetics.frequency_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import ColeCole
 
 
 #####################################################################

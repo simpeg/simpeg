@@ -18,8 +18,8 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-import simpegEM1D as em1d
-from simpegEM1D.utils import get_vertical_discretization_frequency, plotLayer
+import SimPEG.electromagnetics.frequency_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_frequency, plotLayer
 from SimPEG.utils import mkvc
 from SimPEG import (
     maps, data, data_misfit, inverse_problem, regularization, optimization,
