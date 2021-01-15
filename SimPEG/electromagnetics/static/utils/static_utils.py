@@ -159,7 +159,7 @@ def electrode_separations(dc_survey, survey_type="dipole-dipole", electrode_pair
     return elecSepDict
 
 
-def source_receiver_midpoints(survey, **kwargs):
+def source_receiver_midpoints(survey, tol=1e-2, **kwargs):
     """
         Calculate source receiver midpoints.
 
@@ -207,7 +207,7 @@ def source_receiver_midpoints(survey, **kwargs):
 
         midxy.append((Cmid + Pmid) / 2)
         diffs = np.linalg.norm((Cmid - Pmid), axis=1)
-        if np.allclose(diffs, 0.0):  # likely a wenner type survey.
+        if diffs < tol:  # likely a wenner type survey) .
             midz = zsrc - tx_sep / 2 * np.ones_like(diffs)
         else:
             midz.append(zsrc - diffs / 2)
@@ -787,7 +787,6 @@ def generate_dcip_survey_line(
 
         # Locations of poles and dipoles
         if survey_type.lower() in ["pole-pole", "pole-dipole", "dipole-pole"]:
-            P = np.c_[stn_x, stn_y]
             if np.size(topo) == 1:
                 P = np.c_[stn_x, topo * np.ones((nstn))]
             else:
@@ -1465,7 +1464,7 @@ def readUBC_DC3Dobs(fileName):
     zflag = True
     poletx = False
     polerx = False
-
+    tol = 1e-2
     # Countdown for number of obs/tx
     count = 0
     for ii in range(obsfile.shape[0]):
@@ -1481,7 +1480,7 @@ def readUBC_DC3Dobs(fileName):
             # Check if z value is provided, if False -> nan
             if len(temp) == 5:
                 # check if pole-dipole
-                if np.allclose(temp[0:2], temp[2:4]):
+                if np.linalg.norm(np.subtract(temp[0:2], temp[2:4])) < tol:
                     tx = np.r_[temp[0:2], np.nan]
                     poletx = True
 
@@ -1491,7 +1490,7 @@ def readUBC_DC3Dobs(fileName):
 
             else:
                 # check if pole-dipole
-                if np.allclose(temp[0:3], temp[3:6]):
+                if np.linalg.norm(np.subtract(temp[0:3], temp[3:6])) < tol:
                     tx = np.r_[temp[0:3]]
                     poletx = True
                     temp[2] = -temp[2]
@@ -1508,7 +1507,7 @@ def readUBC_DC3Dobs(fileName):
         if zflag:
 
             # Check if Pole Receiver
-            if np.allclose(temp[0:3], temp[3:6]):
+            if np.linalg.norm(np.subtract(temp[0:3], temp[3:6])) < tol:
                 polerx = True
                 # Flip z values
                 temp[2] = -temp[2]
@@ -1525,7 +1524,7 @@ def readUBC_DC3Dobs(fileName):
 
         else:
             # Check if Pole Receiver
-            if np.allclose(temp[0:2], temp[2:4]):
+            if np.linalg.norm(np.subtract(temp[0:2], temp[2:4])) < tol:
                 polerx = True
                 # Flip z values
                 rx.append(temp[:2])
@@ -1541,7 +1540,9 @@ def readUBC_DC3Dobs(fileName):
 
         # Reach the end of transmitter block
         if count == 0:
-            rx = np.asarray(rx)
+
+            rx = np.vstack(rx)
+
             if polerx:
                 Rx = dc.Rx.Pole(rx[:, :3])
             else:
