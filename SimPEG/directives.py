@@ -1016,7 +1016,7 @@ class UpdateSensitivityWeights(InversionDirective):
     mapping = None
     JtJdiag = None
     everyIter = True
-    threshold = 1e-12
+    threshold = None
     switch = True
 
     def initialize(self):
@@ -1049,14 +1049,30 @@ class UpdateSensitivityWeights(InversionDirective):
         """
         self.JtJdiag = []
         m = self.invProb.model
-
-        for dmisfit in self.dmisfit.objfcts:
+        threshold = []
+        for ii, dmisfit in enumerate(self.dmisfit.objfcts):
             assert getattr(dmisfit.simulation, "getJtJdiag", None) is not None, (
                 "Simulation does not have a getJtJdiag attribute."
                 + "Cannot form the sensitivity explicitly"
             )
             self.JtJdiag += [dmisfit.getJtJdiag(m)]
 
+            if self.threshold is not None:
+                if isinstance(self.threshold, list):
+                    JtJdiag = self.threshold[ii]
+                else:
+                    JtJdiag = self.threshold
+
+                if not isinstance(JtJdiag, np.ndarray):
+                    JtJdiag = np.ones_like(self.JtJdiag[ii]) * JtJdiag
+
+            else:
+                JtJdiag = self.JtJdiag[ii]
+
+            threshold += [JtJdiag]
+
+
+        self.threshold = threshold
         return self.JtJdiag
 
     def getWr(self):
@@ -1067,11 +1083,14 @@ class UpdateSensitivityWeights(InversionDirective):
 
         wr = np.zeros_like(self.invProb.model)
         if self.switch:
-            for prob_JtJ, sim, dmisfit in zip(
-                self.JtJdiag, self.simulation, self.dmisfit.objfcts
+            for prob_JtJ, sim, dmisfit, threshold in zip(
+                self.JtJdiag, self.simulation, self.dmisfit.objfcts, self.threshold
             ):
 
-                wr += prob_JtJ + self.threshold
+                wr += prob_JtJ
+
+            wr = np.max(np.c_[wr, threshold], axis=1)
+
 
             wr = wr ** 0.5
             wr /= wr.max()

@@ -1,6 +1,7 @@
 try:
     import SimPEG.dask.simulation
     import SimPEG.dask.electromagnetics.static.resistivity.simulation
+    import SimPEG.dask.electromagnetics.static.resistivity.receivers
     import SimPEG.dask.electromagnetics.static.induced_polarization.simulation
     import SimPEG.dask.electromagnetics.frequency_domain.simulation
     import SimPEG.dask.potential_fields.base
