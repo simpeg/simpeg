@@ -1,6 +1,6 @@
 """
-Forward Simulation of Stitched Frequency-Domain Data
-====================================================
+Forward Simulation of Stitched Time-Domain Data
+===============================================
 
 
 
@@ -14,7 +14,7 @@ Forward Simulation of Stitched Frequency-Domain Data
 #
 
 import numpy as np
-import os
+import os, tarfile
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
@@ -28,9 +28,9 @@ from SimPEG import (
     )
 
 from SimPEG.utils import mkvc
-import SimPEG.electromagnetics.frequency_domain_1d as em1d
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh,plot_layer, get_vertical_discretization_time
 from SimPEG.regularization import LaterallyConstrained
-from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh, plot_layer, get_vertical_discretization_frequency
 
 save_file = True
 
@@ -46,9 +46,19 @@ plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8
 # is loaded to compare with the inversion result.
 #
 
-data_filename = os.path.dirname(em1d.__file__) + '\\..\\tutorials\\assets\\em1dfm_stitched_data.obs'
+# storage bucket where we have the data
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dtm_stitched_data.tar.gz"
 
+# download the data
+downloaded_data = utils.download(data_source, overwrite=True)
 
+# unzip the tarfile
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
+
+# filepath to data file
+data_filename = downloaded_data.split(".")[0] + ".obs"
 
 #####################################################################
 # topography
@@ -76,23 +86,20 @@ dobs = np.loadtxt(str(data_filename))
 
 
 source_locations = np.unique(dobs[:, 0:3], axis=0)
-frequencies = np.unique(dobs[:, 3])
-dobs = mkvc(dobs[:, 4:].T)
+times = mkvc(np.unique(dobs[:, 3]))
+dobs = mkvc(dobs[:, -1])
 
 n_sounding = np.shape(source_locations)[0]
 
-dobs_plotting = np.reshape(dobs, (n_sounding, 2*len(frequencies))).T
+dobs_plotting = np.reshape(dobs, (n_sounding, len(times)))
 
 fig, ax = plt.subplots(1,1, figsize = (7, 7))
 
-for ii in range(0, n_sounding):
-    ax.loglog(frequencies, np.abs(dobs_plotting[0:len(frequencies), ii]), '-', lw=2)
-    ax.loglog(frequencies, np.abs(dobs_plotting[len(frequencies):, ii]), '--', lw=2)
-
-ax.set_xlabel("Frequency (Hz)")
-ax.set_ylabel("|Hs/Hp| (ppm)")
-ax.set_title("Magnetic Field as a Function of Frequency")
-ax.legend(["real", "imaginary"])
+for ii in range(0, len(times)):
+    ax.semilogy(x, np.abs(dobs_plotting[:, ii]), '-', lw=2)
+    
+ax.set_xlabel("Times (s)")
+ax.set_ylabel("|dBdt| (T/s)")
 
 
 
@@ -102,51 +109,45 @@ ax.legend(["real", "imaginary"])
 #
 
 
-moment_amplitude = 1.
+source_current = 1.
+source_radius = 5.
 
-receiver_locations = np.c_[source_locations[:, 0]+10., source_locations[:, 1:]]
+receiver_locations = np.c_[source_locations[:, 0], source_locations[:, 1:]]
 receiver_orientation = "z"  # "x", "y" or "z"
-field_type = "ppm"  # "secondary", "total" or "ppm"
 
 source_list = []
 
 for ii in range(0, n_sounding):
-
+    
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
-
-    receiver_list = []
-
-    receiver_list.append(
+    
+    receiver_list = [
         em1d.receivers.PointReceiver(
-            receiver_location, frequencies, orientation=receiver_orientation,
-            field_type=field_type, component="real"
+            receiver_location, times, orientation=receiver_orientation,
+            component="dbdt"
         )
-    )
-    receiver_list.append(
-        em1d.receivers.PointReceiver(
-            receiver_location, frequencies, orientation=receiver_orientation,
-            field_type=field_type, component="imag"
-        )
-    )
+    ]
 
-#     Sources
-#    source_list = [
-#        em1d.sources.HorizontalLoopSource(
-#            receiver_list=receiver_list, location=source_location, a=source_radius,
-#            I=source_current
-#        )
-#    ]
-
+    # Sources
     source_list.append(
-        em1d.sources.MagneticDipoleSource(
-            receiver_list=receiver_list, location=source_location, orientation="z",
-            moment_amplitude=moment_amplitude
+        em1d.sources.HorizontalLoopSource(
+            receiver_list=receiver_list, location=source_location, a=source_radius,
+            I=source_current
         )
     )
+    
+    # source_list.append(
+    #     em1d.sources.MagneticDipoleSource(
+    #         receiver_list=receiver_list, location=source_location, orientation="z",
+    #         I=source_current
+    #     )
+    # )
+    
+
 
 # Survey
-survey = em1d.survey.EM1DSurveyFD(source_list)
+survey = em1d.survey.EM1DSurveyTD(source_list)
 
 
 
@@ -167,18 +168,18 @@ uncertainties = 0.1*np.abs(dobs)*np.ones(np.shape(dobs))
 # the survey, the observation values and the uncertainties.
 #
 
-data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
+data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 
 
 
 ###############################################
-# Defining Meshes
-# ---------------
+# Defining a Global Mesh
+# ----------------------
 #
 
-n_layer = 30
-thicknesses = get_vertical_discretization_frequency(
-    frequencies, sigma_background=0.1, n_layer=n_layer-1
+n_layer = 25
+thicknesses = get_vertical_discretization_time(
+    times, sigma_background=0.1, n_layer=n_layer-1
 )
 
 dx = 100.
@@ -188,7 +189,6 @@ mesh2D = TensorMesh([hx, np.flipud(hz)], x0='0N')
 mesh_soundings = TensorMesh([hz, hx], x0='00')
 
 n_param = n_layer*n_sounding
-
 
 
 ###############################################
@@ -209,15 +209,21 @@ starting_model = np.log(conductivity)
 
 
 # Simulate response for static conductivity
-simulation = em1d.simulation.StitchedEM1DFMSimulation(
-    survey=survey, thicknesses=thicknesses, sigmaMap=mapping, topo=topo,
-    verbose=True, Solver=PardisoSolver
+simulation = em1d.simulation.StitchedEM1DTMSimulation(
+    survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
+    topo=topo, verbose=True, Solver=PardisoSolver
 )
 
-# simulation = em1d.simulation.StitchedEM1DFMSimulation(
-#     survey=survey, thicknesses=thicknesses, sigmaMap=mapping, topo=topo,
-#     parallel=True, n_cpu=3, verbose=True, Solver=PardisoSolver
+# simulation = em1d.simulation.StitchedEM1DTMSimulation(
+#     survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
+#     topo=topo, parallel=True, n_cpu=4, verbose=True, Solver=PardisoSolver
 # )
+
+
+
+
+
+
 
 
 ########################################################################
@@ -241,7 +247,7 @@ dmis.W = 1./uncertainties
 
 # Define the regularization (model objective function)
 mesh_reg = get_2d_mesh(n_sounding, hz)
-reg_map = maps.IdentityMap(nP=n_param)
+reg_map = maps.IdentityMap(mesh_reg)
 reg = LaterallyConstrained(
     mesh_reg, mapping=reg_map,
     alpha_s = 0.1,
@@ -252,7 +258,7 @@ xy = utils.ndgrid(x, np.r_[0.])
 reg.get_grad_horizontal(xy, hz, dim=2, use_cell_weights=True)
 
 
-# reg_map = maps.IdentityMap(nP=n_param)
+# reg_map = maps.IdentityMap(nP=mesh_soundings.nC)
 # reg = regularization.Sparse(
 #     mesh_reg, mapping=reg_map,
 # )
@@ -263,16 +269,16 @@ reg.norms = np.c_[ps, px, py, 0]
 reg.mref = starting_model
 reg.mrefInSmooth = False
 
-# reg.eps_p = 1e-6
-# reg.eps_q = 1e-6
-
-
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.InexactGaussNewton(maxIter = 40, maxIterCG=20)
-
+    
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
+
+
+
+
 
 
 
@@ -292,7 +298,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
 #IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=1e-5, chifact_start=2)
 #IRLS = directives.Update_IRLS(
-#    max_irls_iterations=20, minGNiter=1, fix_Jmatrix=True, coolingRate=2,
+#    max_irls_iterations=20, minGNiter=1, fix_Jmatrix=True, coolingRate=2, 
 #    beta_tol=1e-2, f_min_change=1e-5,
 #    chifact_start = 1.
 #)
@@ -312,13 +318,11 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 
 update_IRLS = directives.Update_IRLS(
-    max_irls_iterations=20, minGNiter=1,
-    fix_Jmatrix=True,
+    max_irls_iterations=20, minGNiter=1, 
+    fix_Jmatrix=True, 
     f_min_change = 1e-3,
     coolingRate=3
 )
-
-
 
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()
@@ -333,15 +337,14 @@ target = directives.TargetMisfit()
 
 # The directives are defined as a list.
 directives_list = [
+    # sensitivity_weights,
     starting_beta,
     beta_schedule,
     save_iteration,
+    # target_misfit,
     update_IRLS,
+    # update_jacobi,
 ]
-
-
-# opt.LSshorten = 0.5
-# opt.remember('xc')
 
 #####################################################################
 # Running the Inversion
@@ -378,7 +381,7 @@ background_conductivity = 0.1
 overburden_conductivity = 0.025
 slope_conductivity = 0.4
 
-true_model = np.ones(n_param) * background_conductivity
+true_model = np.ones(mesh2D.nC) * background_conductivity
 
 layer_ind = mesh2D.gridCC[:, -1] > -30.
 true_model[layer_ind] = overburden_conductivity
@@ -392,13 +395,22 @@ pts = np.vstack((x0, x1, x2, x3, x0))
 poly_inds = PolygonInd(mesh2D, pts)
 true_model[poly_inds] = slope_conductivity
 
+# true_model = true_model.reshape(mesh_soundings.vnC, order='C')
+# true_model = np.flipud(true_model)
+# true_model = mkvc(true_model)
+
 
 l2_model = inv_prob.l2model
 dpred_l2 = simulation.dpred(l2_model)
 l2_model = np.exp(l2_model)
+# l2_model = l2_model.reshape((simulation.n_sounding, simulation.n_layer),)
+# l2_model = mkvc(l2_model)
 
 dpred = simulation.dpred(recovered_model)
 recovered_model = np.exp(recovered_model)
+# recovered_model = recovered_model.reshape((simulation.n_sounding, simulation.n_layer))
+# recovered_model = mkvc(recovered_model)
+
 
 mesh_plotting = TensorMesh([hx, np.flipud(hz)], x0='0N')
 l2_model = l2_model.reshape(mesh_plotting.vnC, order='C')
@@ -411,11 +423,11 @@ models_list = [true_model, l2_model, recovered_model]
 
 
 for ii, mod in enumerate(models_list):
-
+    
     fig = plt.figure(figsize=(9, 3))
     ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
     log_mod = np.log10(mod)
-
+    
     mesh_plotting.plotImage(
         log_mod, ax=ax1, grid=False,
         clim=(np.log10(true_model.min()), np.log10(true_model.max())),
@@ -423,11 +435,11 @@ for ii, mod in enumerate(models_list):
         pcolorOpts={"cmap": "viridis"},
     )
     ax1.set_ylim(mesh_plotting.vectorNy.min(), mesh_plotting.vectorNy.max())
-
+    
     ax1.set_title("Conductivity Model")
     ax1.set_xlabel("x (m)")
     ax1.set_ylabel("depth (m)")
-
+    
     ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
     norm = mpl.colors.Normalize(
         vmin=np.log10(true_model.min()), vmax=np.log10(true_model.max())
@@ -437,27 +449,21 @@ for ii, mod in enumerate(models_list):
         ax2, norm=norm, cmap=mpl.cm.viridis, orientation="vertical", format="$10^{%.1f}$"
     )
     cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
-
-
+    
+    
 
 
 data_list = [dobs, dpred_l2, dpred]
 color_list = ['k', 'b', 'r']
 
-fig = plt.figure(figsize = (12, 6))
-ax1 = fig.add_axes([0.05, 0.1, 0.4, 0.8])
-ax2 = fig.add_axes([0.55, 0.1, 0.4, 0.8])
+fig, ax = plt.subplots(1,1, figsize = (7, 7))
 
 for ii in range(0, len(data_list)):
-    d1 = np.reshape(data_list[ii][0::2], (n_sounding, len(frequencies)))
-    d2 = np.reshape(data_list[ii][1::2], (n_sounding, len(frequencies)))
-    ax1.semilogy(x, np.abs(d1), color_list[ii], lw=1)
-    ax2.semilogy(x, np.abs(d2), color_list[ii], lw=1)
-
-ax.set_xlabel("Frequencies (s)")
-ax.set_ylabel("Re[H] (A/m)")
-
-
+    d = np.reshape(data_list[ii], (n_sounding, len(times)))
+    ax.semilogy(x, np.abs(d), color_list[ii], lw=1)
+    
+ax.set_xlabel("Times (s)")
+ax.set_ylabel("|dBdt| (T/s)")
 
 
 

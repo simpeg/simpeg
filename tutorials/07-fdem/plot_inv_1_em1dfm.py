@@ -11,7 +11,7 @@ Inversion of 1D Frequency-Domain Data
 # --------------
 #
 
-import os, shutil
+import os, tarfile
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -39,8 +39,19 @@ plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8
 # is loaded to compare with the inversion result.
 #
 
-data_filename = os.path.dirname(em1d.__file__) + '\\..\\tutorials\\assets\\em1dfm_data.obs'
+# storage bucket where we have the data
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dfm_data.tar.gz"
 
+# download the data
+downloaded_data = utils.download(data_source, overwrite=True)
+
+# unzip the tarfile
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
+
+# filepath to data file
+data_filename = downloaded_data.split(".")[0] + ".obs"
 
 
 #############################################
@@ -78,7 +89,7 @@ source_current = 1.
 source_radius = 5.
 moment_amplitude=1.
 
-source_receiver_offset = np.array([10., 0., 0.])
+receiver_location = np.array([10., 0., 30.])
 receiver_orientation = "z"
 field_type = "ppm"
 
@@ -86,16 +97,24 @@ field_type = "ppm"
 receiver_list = []
 receiver_list.append(
     em1d.receivers.PointReceiver(
-        source_receiver_offset, frequencies, orientation=receiver_orientation,
-        field_type=field_type, component="real", use_source_receiver_offset=True
+        receiver_location, frequencies, orientation=receiver_orientation,
+        field_type=field_type, component="real"
     )
 )
 receiver_list.append(
     em1d.receivers.PointReceiver(
-        source_receiver_offset, frequencies, orientation=receiver_orientation,
-        field_type=field_type, component="imag", use_source_receiver_offset=True
+        receiver_location, frequencies, orientation=receiver_orientation,
+        field_type=field_type, component="imag"
     )
 )
+
+# Sources
+#source_list = [
+#    em1d.sources.HorizontalLoopSource(
+#        receiver_list=receiver_list, location=source_location, a=source_radius,
+#        I=source_current
+#    )
+#]
     
 source_list = [
     em1d.sources.MagneticDipoleSource(
@@ -166,14 +185,13 @@ print(mesh)
 # not converge.
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-starting_conductivity = np.log(0.1*np.ones(mesh.nC))
-starting_height = 25.
-starting_model = np.r_[starting_conductivity, starting_height]
+starting_model = np.log(0.1*np.ones(mesh.nC))
 
 # Define mapping from model to active cells.
-wires = maps.Wires(('sigma', mesh.nC),('h', 1))
-sigma_map = maps.ExpMap() * wires.sigma
-h_map = wires.h
+model_mapping = maps.ExpMap()
+
+
+
 
 
 
@@ -183,7 +201,7 @@ h_map = wires.h
 #
 
 simulation = em1d.simulation.EM1DFMSimulation(
-    survey=survey, thicknesses=inv_thicknesses, sigmaMap=sigma_map, hMap=h_map
+    survey=survey, thicknesses=inv_thicknesses, sigmaMap=model_mapping
 )
 
 
@@ -209,28 +227,21 @@ dmis.W = 1./uncertainties
 
 
 # Define the regularization (model objective function)
-reg_sigma = regularization.Sparse(
-    mesh, mapping=wires.sigma,
+reg_map = maps.IdentityMap(nP=mesh.nC)
+reg = regularization.Sparse(
+    mesh, mapping=reg_map,
 #    alpha_s=1,
 )
 
+reg.mref = starting_model
+
 # Define sparse and blocky norms p, q
-p = 0.
-q = 0.
-reg_sigma.norms = np.c_[p, q]
+p = 0
+q = 0
+reg.norms = np.c_[p, q]
 
 #reg.eps_p = 1e-3
 #reg.eps_q = 1e-3
-
-reg_height = regularization.Sparse(
-    TensorMesh([1]), mapping=wires.h,
-)
-
-p = 0.
-reg_sigma.p = p
-
-reg = reg_sigma + reg_height
-reg.mref = starting_model
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
@@ -334,13 +345,13 @@ l2_model = inv_prob.l2model
 
 # Plot true model and recovered model
 fig = plt.figure(figsize=(8, 9))
-x_min = np.min(np.r_[sigma_map * recovered_model, sigma_map * l2_model, true_model])
-x_max = np.max(np.r_[sigma_map * recovered_model, sigma_map * l2_model, true_model])
+x_min = np.min(np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model])
+x_max = np.max(np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model])
 
 ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
-plotLayer(true_model, true_layers, ax=ax1, showlayers=False, color="k")
-plotLayer(sigma_map * l2_model, mesh, ax=ax1, showlayers=False, color="b")
-plotLayer(sigma_map * recovered_model, mesh, ax=ax1, showlayers=False, color="r")
+plot_layer(true_model, true_layers, ax=ax1, showlayers=False, color="k")
+plot_layer(model_mapping * l2_model, mesh, ax=ax1, showlayers=False, color="b")
+plot_layer(model_mapping * recovered_model, mesh, ax=ax1, showlayers=False, color="r")
 ax1.set_xlim(0.01, 10)
 ax1.legend(["True Model", "L2-Model", "Sparse Model"])
 

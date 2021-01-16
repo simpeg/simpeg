@@ -293,9 +293,13 @@ plt.show()
 
 if save_file == True:
 
+    dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-3]
+    dir_path.extend(["tutorials", "08-tdem", "em1dtm_stitched_skytem"])
+    dir_path = os.path.sep.join(dir_path) + os.path.sep
+
     noise = 0.1*np.abs(dpred)*np.random.rand(len(dpred))
     dpred += noise
-    fname = os.path.dirname(em1d.__file__) + '/../tutorials/assets/em1dtm_stitched_data_skytem.obs'
+    fname = dir_path + 'em1dtm_stitched_skytem_data.obs'
 
     loc = np.repeat(source_locations, n_time, axis=0)
     fvec = np.kron(np.ones(n_sounding), np.r_[time_HM, time_LM])

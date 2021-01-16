@@ -11,15 +11,15 @@ Inversion of 1D Frequency-Domain Data
 # --------------
 #
 
-import os, shutil
+import os, tarfile
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-import SimPEG.electromagnetics.time_domain_1d as em1d
-from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_time, plot_layer
+import SimPEG.electromagnetics.frequency_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_frequency, plot_layer
 from SimPEG.utils import mkvc
 from SimPEG import (
     maps, data, data_misfit, inverse_problem, regularization, optimization,
@@ -39,8 +39,19 @@ plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8
 # is loaded to compare with the inversion result.
 #
 
-data_filename = os.path.dirname(em1d.__file__) + '\\..\\tutorials\\assets\\em1dtm_data.obs'
+# storage bucket where we have the data
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dfm_data.tar.gz"
 
+# download the data
+downloaded_data = utils.download(data_source, overwrite=True)
+
+# unzip the tarfile
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
+
+# filepath to data file
+data_filename = downloaded_data.split(".")[0] + ".obs"
 
 
 #############################################
@@ -56,14 +67,16 @@ data_filename = os.path.dirname(em1d.__file__) + '\\..\\tutorials\\assets\\em1dt
 dobs = np.loadtxt(str(data_filename))
 
 # Define receiver locations and observed data
-times = dobs[:, 0]
-dobs = mkvc(dobs[:, -1])
+frequencies = dobs[:, 0]
+dobs = mkvc(dobs[:, 1:])
 
 fig, ax = plt.subplots(1,1, figsize = (7, 7))
-ax.loglog(times, np.abs(dobs), 'k-o', lw=3)
-ax.set_xlabel("Times (s)")
-ax.set_ylabel("|B| (T)")
-ax.set_title("Magnetic Flux as a Function of Time")
+ax.loglog(frequencies, np.abs(dobs[0:len(frequencies)]), 'k-o', lw=3)
+ax.loglog(frequencies, np.abs(dobs[len(frequencies):]), 'k:o', lw=3)
+ax.set_xlabel("Frequency (Hz)")
+ax.set_ylabel("|Hs/Hp| (ppm)")
+ax.set_title("Magnetic Field as a Function of Frequency")
+ax.legend(["Real", "Imaginary"])
 
 
 
@@ -71,43 +84,39 @@ ax.set_title("Magnetic Flux as a Function of Time")
 # Defining the Survey
 # -------------------
 
-source_location = np.array([0., 0., 20.])  
-source_orientation = "z"  # "x", "y" or "z"
+source_location = np.array([0., 0., 30.]) 
 source_current = 1.
-source_radius = 6.
+source_radius = 5.
+moment_amplitude=1.
 
-receiver_location = np.array([0., 0., 20.])
-receiver_orientation = "z"  # "x", "y" or "z"
-field_type = "secondary"  # "secondary", "total" or "ppm"
-
-times = np.logspace(-5, -2, 31)
+source_receiver_offset = np.array([10., 0., 0.])
+receiver_orientation = "z"
+field_type = "ppm"
 
 # Receiver list
 receiver_list = []
 receiver_list.append(
     em1d.receivers.PointReceiver(
-        receiver_location, times, orientation=receiver_orientation,
-        component="b"
+        source_receiver_offset, frequencies, orientation=receiver_orientation,
+        field_type=field_type, component="real", use_source_receiver_offset=True
     )
 )
-
-# Sources
+receiver_list.append(
+    em1d.receivers.PointReceiver(
+        source_receiver_offset, frequencies, orientation=receiver_orientation,
+        field_type=field_type, component="imag", use_source_receiver_offset=True
+    )
+)
+    
 source_list = [
-    em1d.sources.HorizontalLoopSource(
-        receiver_list=receiver_list, location=source_location,
-        I=source_current, a=source_radius
+    em1d.sources.MagneticDipoleSource(
+        receiver_list=receiver_list, location=source_location, orientation="z",
+        moment_amplitude=moment_amplitude
     )
 ]
 
-# source_list = [
-#     em1d.sources.MagneticDipoleSource(
-#         receiver_list=receiver_list, location=source_location, orientation="z",
-#         I=source_current
-#     )
-# ]
-
 # Survey
-survey = em1d.survey.EM1DSurveyTD(source_list)
+survey = em1d.survey.EM1DSurveyFD(source_list)
 
 
 #############################################
@@ -141,7 +150,7 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 # Based on estimate of background conductivity, make layers
 
 #inv_thicknesses = get_vertical_discretization_frequency(
-#    times, sigma_background=0.1,
+#    frequencies, sigma_background=0.1,
 #    factor_fmax=20, factor_fmin=1., n_layer=50,
 #)
 
@@ -149,6 +158,8 @@ inv_thicknesses = np.logspace(0,1.5,25)
 
 # Define a mesh for plotting and regularization.
 mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], '0')
+
+print(mesh)
 
 
 ########################################################
@@ -166,13 +177,14 @@ mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], '0')
 # not converge.
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-starting_model = np.log(0.1*np.ones(mesh.nC))
+starting_conductivity = np.log(0.1*np.ones(mesh.nC))
+starting_height = 25.
+starting_model = np.r_[starting_conductivity, starting_height]
 
 # Define mapping from model to active cells.
-model_mapping = maps.ExpMap()
-
-
-
+wires = maps.Wires(('sigma', mesh.nC),('h', 1))
+sigma_map = maps.ExpMap() * wires.sigma
+h_map = wires.h
 
 
 
@@ -181,8 +193,8 @@ model_mapping = maps.ExpMap()
 # ------------------
 #
 
-simulation = em1d.simulation.EM1DTMSimulation(
-    survey=survey, thicknesses=inv_thicknesses, sigmaMap=model_mapping
+simulation = em1d.simulation.EM1DFMSimulation(
+    survey=survey, thicknesses=inv_thicknesses, sigmaMap=sigma_map, hMap=h_map
 )
 
 
@@ -208,21 +220,28 @@ dmis.W = 1./uncertainties
 
 
 # Define the regularization (model objective function)
-reg_map = maps.IdentityMap(nP=mesh.nC)
-reg = regularization.Sparse(
-    mesh, mapping=reg_map,
+reg_sigma = regularization.Sparse(
+    mesh, mapping=wires.sigma,
 #    alpha_s=1,
 )
 
-reg.mref = starting_model
-
 # Define sparse and blocky norms p, q
-p = 0
-q = 0
-reg.norms = np.c_[p, q]
+p = 0.
+q = 0.
+reg_sigma.norms = np.c_[p, q]
 
 #reg.eps_p = 1e-3
 #reg.eps_q = 1e-3
+
+reg_height = regularization.Sparse(
+    TensorMesh([1]), mapping=wires.h,
+)
+
+p = 0.
+reg_sigma.p = p
+
+reg = reg_sigma + reg_height
+reg.mref = starting_model
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
@@ -318,22 +337,21 @@ recovered_model = inv.run(starting_model)
 
 # Load the true model and layer thicknesses
 true_model = np.array([0.1, 1., 0.1])
-hz = np.r_[40., 40., 160.]
+hz = np.r_[20., 40., 160.]
 true_layers = TensorMesh([hz])
 
 # Extract Least-Squares model
 l2_model = inv_prob.l2model
-print(np.shape(l2_model))
 
 # Plot true model and recovered model
 fig = plt.figure(figsize=(8, 9))
-x_min = np.min(np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model])
-x_max = np.max(np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model])
+x_min = np.min(np.r_[sigma_map * recovered_model, sigma_map * l2_model, true_model])
+x_max = np.max(np.r_[sigma_map * recovered_model, sigma_map * l2_model, true_model])
 
 ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
-plotLayer(true_model, true_layers, ax=ax1, showlayers=False, color="k")
-plotLayer(model_mapping * l2_model, mesh, ax=ax1, showlayers=False, color="b")
-plotLayer(model_mapping * recovered_model, mesh, ax=ax1, showlayers=False, color="r")
+plot_layer(true_model, true_layers, ax=ax1, showlayers=False, color="k")
+plot_layer(sigma_map * l2_model, mesh, ax=ax1, showlayers=False, color="b")
+plot_layer(sigma_map * recovered_model, mesh, ax=ax1, showlayers=False, color="r")
 ax1.set_xlim(0.01, 10)
 ax1.legend(["True Model", "L2-Model", "Sparse Model"])
 
@@ -343,13 +361,19 @@ dpred_final = simulation.dpred(recovered_model)
 
 fig = plt.figure(figsize=(11, 6))
 ax1 = fig.add_axes([0.2, 0.1, 0.6, 0.8])
-ax1.loglog(times, np.abs(dobs), "k-o")
-ax1.loglog(times, np.abs(dpred_l2), "b-o")
-ax1.loglog(times, np.abs(dpred_final), "r-o")
-ax1.set_xlabel("times (Hz)")
+ax1.loglog(frequencies, np.abs(dobs[0:len(frequencies)]), "k-o")
+ax1.loglog(frequencies, np.abs(dobs[len(frequencies):]), "k:o")
+ax1.loglog(frequencies, np.abs(dpred_l2[0:len(frequencies)]), "b-o")
+ax1.loglog(frequencies, np.abs(dpred_l2[len(frequencies):]), "b:o")
+ax1.loglog(frequencies, np.abs(dpred_final[0:len(frequencies)]), "r-o")
+ax1.loglog(frequencies, np.abs(dpred_final[len(frequencies):]), "r:o")
+ax1.set_xlabel("Frequencies (Hz)")
 ax1.set_ylabel("|Hs/Hp| (ppm)")
 ax1.legend([
-    "Observed", "L2-Model", "Sparse"], loc="upper right"
+    "Observed (real)", "Observed (imag)",
+    "L2-Model (real)", "L2-Model (imag)",
+    "Sparse (real)", "Sparse (imag)"],
+    loc="upper left"
 )
 plt.show()
 

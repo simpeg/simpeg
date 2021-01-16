@@ -1,10 +1,6 @@
 """
-Forward Simulation of Stitched Frequency-Domain Data
-====================================================
-
-
-
-
+Forward Simulation of Stitched Time-Domain Data
+===============================================
 
 """
 
@@ -23,8 +19,8 @@ from pymatsolver import PardisoSolver
 
 from SimPEG import maps
 from SimPEG.utils import mkvc
-import SimPEG.electromagnetics.frequency_domain_1d as em1d
-from SimPEG.electromagnetics.utils.em1d_utils import plot_layer, get_vertical_discretization_frequency
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import plot_layer, get_vertical_discretization_time
 
 plt.rcParams.update({'font.size': 16})
 save_file = False
@@ -35,6 +31,7 @@ save_file = False
 # -------------
 #
 #
+
 x = np.linspace(50,4950,50)
 #x = np.linspace(50,250,3)
 y = np.zeros_like(x)
@@ -54,56 +51,46 @@ x = np.linspace(50,4950,50)
 #x = np.linspace(50,250,3)
 n_sounding = len(x)
 
-source_locations = np.c_[x, np.zeros(n_sounding), 30 *np.ones(n_sounding)]
+source_locations = np.c_[x, np.zeros(n_sounding), 20.*np.ones(n_sounding)]
 source_current = 1.
 source_radius = 5.
-moment_amplitude=1.
 
-receiver_locations = np.c_[x+10., np.zeros(n_sounding), 30 *np.ones(n_sounding)]
+receiver_locations = np.c_[x, np.zeros(n_sounding), 20.*np.ones(n_sounding)]
 receiver_orientation = "z"  # "x", "y" or "z"
-field_type = "ppm"  # "secondary", "total" or "ppm"
 
-frequencies = np.array([25., 100., 382, 1822, 7970, 35920], dtype=float)
+times = np.logspace(-5, -2, 16)
 
 source_list = []
 
 for ii in range(0, n_sounding):
-
+    
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
-
-    receiver_list = []
-
-    receiver_list.append(
+    
+    receiver_list = [
         em1d.receivers.PointReceiver(
-            receiver_location, frequencies, orientation=receiver_orientation,
-            field_type=field_type, component="both"
+            receiver_location, times, orientation=receiver_orientation,
+            component="dbdt"
+        )
+    ]
+
+#     Sources
+    source_list.append(
+        em1d.sources.HorizontalLoopSource(
+            receiver_list=receiver_list, location=source_location, a=source_radius,
+            I=source_current
         )
     )
-    # receiver_list.append(
-    #     em1d.receivers.PointReceiver(
-    #         receiver_location, frequencies, orientation=receiver_orientation,
-    #         field_type=field_type, component="imag"
+    
+    # source_list.append(
+    #     em1d.sources.MagneticDipoleSource(
+    #         receiver_list=receiver_list, location=source_location, orientation="z",
+    #         I=source_current
     #     )
     # )
 
-#     Sources
-#    source_list = [
-#        em1d.sources.HorizontalLoopSource(
-#            receiver_list=receiver_list, location=source_location, a=source_radius,
-#            I=source_current
-#        )
-#    ]
-
-    source_list.append(
-        em1d.sources.MagneticDipoleSource(
-            receiver_list=receiver_list, location=source_location, orientation="z",
-            moment_amplitude=moment_amplitude
-        )
-    )
-
 # Survey
-survey = em1d.survey.EM1DSurveyFD(source_list)
+survey = em1d.survey.EM1DSurveyTD(source_list)
 
 
 ###############################################
@@ -111,9 +98,10 @@ survey = em1d.survey.EM1DSurveyFD(source_list)
 # ----------------------
 #
 
-n_layer = 30
-thicknesses = get_vertical_discretization_frequency(
-    frequencies, sigma_background=0.1, n_layer=n_layer-1
+
+n_layer = 25
+thicknesses = get_vertical_discretization_time(
+    times, sigma_background=0.1, n_layer=n_layer-1
 )
 
 dx = 100.
@@ -124,6 +112,8 @@ mesh_soundings = TensorMesh([hz, hx], x0='00')
 
 n_param = n_layer*n_sounding
 
+
+
 ###############################################
 # Defining a Model
 # ----------------------
@@ -132,7 +122,7 @@ n_param = n_layer*n_sounding
 from scipy.spatial import Delaunay
 def PolygonInd(mesh, pts):
     hull = Delaunay(pts)
-    inds = hull.find_simplex(mesh.gridCC)>=0
+    inds = hull.find_simplex(mesh2D.gridCC)>=0
     return inds
 
 
@@ -166,16 +156,19 @@ sounding_models = model.reshape(mesh_soundings.vnC, order='C')
 sounding_models = np.flipud(sounding_models)
 sounding_models = mkvc(sounding_models)
 
+# FROM SOUNDING MODEL TO REGULAR
+# temp_model = sounding_models.reshape(mesh2D.vnC, order='C')
+# temp_model = np.fliplr(temp_model)
+# temp_model = mkvc(temp_model)
+
 chi = np.zeros_like(sounding_models)
-
-
-
 
 
 
 fig = plt.figure(figsize=(9, 3))
 ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 log_mod = np.log10(model)
+# log_mod = np.log10(temp_model)
 
 mesh2D.plotImage(
     log_mod, ax=ax1, grid=True,
@@ -235,16 +228,19 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 
 
 # Simulate response for static conductivity
-simulation = em1d.simulation.StitchedEM1DFMSimulation(
+simulation = em1d.simulation.StitchedEM1DTMSimulation(
     survey=survey, thicknesses=thicknesses, sigmaMap=mapping, chi=chi,
-    topo=topo, parallel=False, verbose=True, Solver=PardisoSolver
+    topo=topo, parallel=False, n_cpu=2, verbose=True, Solver=PardisoSolver
 )
 
-# simulation = em1d.simulation.StitchedEM1DFMSimulation(
-#     survey=survey, thicknesses=thicknesses, sigmaMap=mapping, chi=chi,
-#     topo=topo, parallel=True, n_cpu=2, verbose=True, Solver=PardisoSolver
-# )
-
+#simulation.model = sounding_models
+#
+#ARGS = simulation.input_args(0)
+#print("Number of arguments")
+#print(len(ARGS))
+#print("Print arguments")
+#for ii in range(0, len(ARGS)):
+#    print(ARGS[ii])
 
 dpred = simulation.dpred(sounding_models)
 
@@ -256,44 +252,37 @@ dpred = simulation.dpred(sounding_models)
 #
 
 
-d = np.reshape(dpred, (n_sounding, 2*len(frequencies))).T
+d = np.reshape(dpred, (n_sounding, len(times)))
 
 fig, ax = plt.subplots(1,1, figsize = (7, 7))
 
-for ii in range(0, n_sounding):
-    ax.loglog(frequencies, np.abs(d[0:len(frequencies), ii]), '-', lw=2)
-    ax.loglog(frequencies, np.abs(d[len(frequencies):, ii]), '--', lw=2)
+for ii in range(0, len(times)):
+    ax.semilogy(x, np.abs(d[:, ii]), '-', lw=2)
+    
+ax.set_xlabel("Times (s)")
+ax.set_ylabel("|dBdt| (T/s)")
 
-ax.set_xlabel("Frequency (Hz)")
-ax.set_ylabel("|Hs/Hp| (ppm)")
-ax.set_title("Magnetic Field as a Function of Frequency")
-ax.legend(["real", "imaginary"])
 
-#
-#d = np.reshape(dpred, (n_sounding, 2*len(frequencies)))
-#fig = plt.figure(figsize = (10, 5))
-#ax1 = fig.add_subplot(121)
-#ax2 = fig.add_subplot(122)
-#
-#for ii in range(0, n_sounding):
-#    ax1.semilogy(x, np.abs(d[:, 0:len(frequencies)]), 'k-', lw=2)
-#    ax2.semilogy(x, np.abs(d[:, len(frequencies):]), 'k--', lw=2)
+
 
 
 
 if save_file == True:
 
+    dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-4]
+    dir_path.extend(["tutorials", "08-tdem", "em1dtm_stitched"])
+    dir_path = os.path.sep.join(dir_path) + os.path.sep
+
     noise = 0.1*np.abs(dpred)*np.random.rand(len(dpred))
     dpred += noise
-    fname = os.path.dirname(em1d.__file__) + '\\..\\tutorials\\assets\\em1dfm_stitched_data.obs'
-
-    loc = np.repeat(source_locations, len(frequencies), axis=0)
-    fvec = np.kron(np.ones(n_sounding), frequencies)
-    dout = np.c_[dpred[0::2], dpred[1::2]]
-
+    fname = dir_path + 'em1dtm_stitched_data.obs'
+    
+    loc = np.repeat(source_locations, len(times), axis=0)
+    fvec = np.kron(np.ones(n_sounding), times)
+    
     np.savetxt(
         fname,
-        np.c_[loc, fvec, dout],
+        np.c_[loc, fvec, dpred],
         fmt='%.4e'
     )
 

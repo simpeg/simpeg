@@ -97,7 +97,7 @@ model_mapping = maps.IdentityMap(nP=n_layer)
 
 # Plot conductivity model
 plotting_mesh = TensorMesh([np.r_[thicknesses, 40.]])
-plotLayer(model, plotting_mesh, showlayers=False)
+plot_layer(model, plotting_mesh, showlayers=False)
 
 #######################################################################
 # Define the Forward Simulation and Predict Data
@@ -126,9 +126,13 @@ ax.set_title("Magnetic Flux")
 
 if save_file == True:
 
+    dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-4]
+    dir_path.extend(["tutorials", "08-tdem", "em1dtm"])
+    dir_path = os.path.sep.join(dir_path) + os.path.sep
+
     noise = 0.05*np.abs(dpred)*np.random.rand(len(dpred))
     dpred += noise
-    fname = os.path.dirname(em1d.__file__) + '\\..\\tutorials\\assets\\em1dtm_data.obs'
+    fname = dir_path + 'em1dtm_data.obs'
     np.savetxt(
         fname,
         np.c_[times, dpred],

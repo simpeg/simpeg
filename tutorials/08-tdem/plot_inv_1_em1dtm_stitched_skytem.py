@@ -14,7 +14,7 @@ Forward Simulation of Stitched SkyTEM Data
 #
 
 import numpy as np
-import os
+import os, tarfile
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
@@ -47,9 +47,19 @@ plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8
 # is loaded to compare with the inversion result.
 #
 
-data_filename = './assets/em1dtm_stitched_data_skytem.obs'
+# storage bucket where we have the data
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dtm_stitched_skytem_data.tar.gz"
 
+# download the data
+downloaded_data = utils.download(data_source, overwrite=True)
 
+# unzip the tarfile
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
+
+# filepath to data file
+data_filename = downloaded_data.split(".")[0] + ".obs"
 
 #####################################################################
 # topography

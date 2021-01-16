@@ -216,7 +216,7 @@ dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 dmis.W = 1./uncertainties
 regmap = maps.IdentityMap(mesh_reg)
 
-reg = LateralConstraint(
+reg = LaterallyConstrained(
     mesh_reg, mapping=maps.IdentityMap(nP=mesh_reg.nC),
     alpha_s = 1e-3,
     alpha_x = 1.,

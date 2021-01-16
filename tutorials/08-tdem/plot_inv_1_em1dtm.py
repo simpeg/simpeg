@@ -11,15 +11,15 @@ Inversion of 1D Frequency-Domain Data
 # --------------
 #
 
-import os, shutil
+import os, tarfile
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-import SimPEG.electromagnetics.frequency_domain_1d as em1d
-from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_frequency, plotLayer
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_time, plot_layer
 from SimPEG.utils import mkvc
 from SimPEG import (
     maps, data, data_misfit, inverse_problem, regularization, optimization,
@@ -39,9 +39,19 @@ plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8
 # is loaded to compare with the inversion result.
 #
 
-data_filename = os.path.dirname(em1d.__file__) + '\\..\\tutorials\\assets\\em1dfm_data.obs'
+# storage bucket where we have the data
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dtm_data.tar.gz"
 
+# download the data
+downloaded_data = utils.download(data_source, overwrite=True)
 
+# unzip the tarfile
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
+
+# filepath to data file
+data_filename = downloaded_data.split(".")[0] + ".obs"
 
 #############################################
 # Load Data and Plot
@@ -56,16 +66,14 @@ data_filename = os.path.dirname(em1d.__file__) + '\\..\\tutorials\\assets\\em1df
 dobs = np.loadtxt(str(data_filename))
 
 # Define receiver locations and observed data
-frequencies = dobs[:, 0]
-dobs = mkvc(dobs[:, 1:])
+times = dobs[:, 0]
+dobs = mkvc(dobs[:, -1])
 
 fig, ax = plt.subplots(1,1, figsize = (7, 7))
-ax.loglog(frequencies, np.abs(dobs[0:len(frequencies)]), 'k-o', lw=3)
-ax.loglog(frequencies, np.abs(dobs[len(frequencies):]), 'k:o', lw=3)
-ax.set_xlabel("Frequency (Hz)")
-ax.set_ylabel("|Hs/Hp| (ppm)")
-ax.set_title("Magnetic Field as a Function of Frequency")
-ax.legend(["Real", "Imaginary"])
+ax.loglog(times, np.abs(dobs), 'k-o', lw=3)
+ax.set_xlabel("Times (s)")
+ax.set_ylabel("|B| (T)")
+ax.set_title("Magnetic Flux as a Function of Time")
 
 
 
@@ -73,47 +81,43 @@ ax.legend(["Real", "Imaginary"])
 # Defining the Survey
 # -------------------
 
-source_location = np.array([0., 0., 30.]) 
+source_location = np.array([0., 0., 20.])  
+source_orientation = "z"  # "x", "y" or "z"
 source_current = 1.
-source_radius = 5.
-moment_amplitude=1.
+source_radius = 6.
 
-receiver_location = np.array([10., 0., 30.])
-receiver_orientation = "z"
-field_type = "ppm"
+receiver_location = np.array([0., 0., 20.])
+receiver_orientation = "z"  # "x", "y" or "z"
+field_type = "secondary"  # "secondary", "total" or "ppm"
+
+times = np.logspace(-5, -2, 31)
 
 # Receiver list
 receiver_list = []
 receiver_list.append(
     em1d.receivers.PointReceiver(
-        receiver_location, frequencies, orientation=receiver_orientation,
-        field_type=field_type, component="real"
-    )
-)
-receiver_list.append(
-    em1d.receivers.PointReceiver(
-        receiver_location, frequencies, orientation=receiver_orientation,
-        field_type=field_type, component="imag"
+        receiver_location, times, orientation=receiver_orientation,
+        component="b"
     )
 )
 
 # Sources
-#source_list = [
-#    em1d.sources.HorizontalLoopSource(
-#        receiver_list=receiver_list, location=source_location, a=source_radius,
-#        I=source_current
-#    )
-#]
-    
 source_list = [
-    em1d.sources.MagneticDipoleSource(
-        receiver_list=receiver_list, location=source_location, orientation="z",
-        moment_amplitude=moment_amplitude
+    em1d.sources.HorizontalLoopSource(
+        receiver_list=receiver_list, location=source_location,
+        I=source_current, a=source_radius
     )
 ]
 
+# source_list = [
+#     em1d.sources.MagneticDipoleSource(
+#         receiver_list=receiver_list, location=source_location, orientation="z",
+#         I=source_current
+#     )
+# ]
+
 # Survey
-survey = em1d.survey.EM1DSurveyFD(source_list)
+survey = em1d.survey.EM1DSurveyTD(source_list)
 
 
 #############################################
@@ -147,7 +151,7 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 # Based on estimate of background conductivity, make layers
 
 #inv_thicknesses = get_vertical_discretization_frequency(
-#    frequencies, sigma_background=0.1,
+#    times, sigma_background=0.1,
 #    factor_fmax=20, factor_fmin=1., n_layer=50,
 #)
 
@@ -155,8 +159,6 @@ inv_thicknesses = np.logspace(0,1.5,25)
 
 # Define a mesh for plotting and regularization.
 mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], '0')
-
-print(mesh)
 
 
 ########################################################
@@ -189,7 +191,7 @@ model_mapping = maps.ExpMap()
 # ------------------
 #
 
-simulation = em1d.simulation.EM1DFMSimulation(
+simulation = em1d.simulation.EM1DTMSimulation(
     survey=survey, thicknesses=inv_thicknesses, sigmaMap=model_mapping
 )
 
@@ -326,11 +328,12 @@ recovered_model = inv.run(starting_model)
 
 # Load the true model and layer thicknesses
 true_model = np.array([0.1, 1., 0.1])
-hz = np.r_[20., 40., 160.]
+hz = np.r_[40., 40., 160.]
 true_layers = TensorMesh([hz])
 
 # Extract Least-Squares model
 l2_model = inv_prob.l2model
+print(np.shape(l2_model))
 
 # Plot true model and recovered model
 fig = plt.figure(figsize=(8, 9))
@@ -338,9 +341,9 @@ x_min = np.min(np.r_[model_mapping * recovered_model, model_mapping * l2_model, 
 x_max = np.max(np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model])
 
 ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
-plotLayer(true_model, true_layers, ax=ax1, showlayers=False, color="k")
-plotLayer(model_mapping * l2_model, mesh, ax=ax1, showlayers=False, color="b")
-plotLayer(model_mapping * recovered_model, mesh, ax=ax1, showlayers=False, color="r")
+plot_layer(true_model, true_layers, ax=ax1, showlayers=False, color="k")
+plot_layer(model_mapping * l2_model, mesh, ax=ax1, showlayers=False, color="b")
+plot_layer(model_mapping * recovered_model, mesh, ax=ax1, showlayers=False, color="r")
 ax1.set_xlim(0.01, 10)
 ax1.legend(["True Model", "L2-Model", "Sparse Model"])
 
@@ -350,19 +353,13 @@ dpred_final = simulation.dpred(recovered_model)
 
 fig = plt.figure(figsize=(11, 6))
 ax1 = fig.add_axes([0.2, 0.1, 0.6, 0.8])
-ax1.loglog(frequencies, np.abs(dobs[0:len(frequencies)]), "k-o")
-ax1.loglog(frequencies, np.abs(dobs[len(frequencies):]), "k:o")
-ax1.loglog(frequencies, np.abs(dpred_l2[0:len(frequencies)]), "b-o")
-ax1.loglog(frequencies, np.abs(dpred_l2[len(frequencies):]), "b:o")
-ax1.loglog(frequencies, np.abs(dpred_final[0:len(frequencies)]), "r-o")
-ax1.loglog(frequencies, np.abs(dpred_final[len(frequencies):]), "r:o")
-ax1.set_xlabel("Frequencies (Hz)")
+ax1.loglog(times, np.abs(dobs), "k-o")
+ax1.loglog(times, np.abs(dpred_l2), "b-o")
+ax1.loglog(times, np.abs(dpred_final), "r-o")
+ax1.set_xlabel("times (Hz)")
 ax1.set_ylabel("|Hs/Hp| (ppm)")
 ax1.legend([
-    "Observed (real)", "Observed (imag)",
-    "L2-Model (real)", "L2-Model (imag)",
-    "Sparse (real)", "Sparse (imag)"],
-    loc="upper left"
+    "Observed", "L2-Model", "Sparse"], loc="upper right"
 )
 plt.show()
 
