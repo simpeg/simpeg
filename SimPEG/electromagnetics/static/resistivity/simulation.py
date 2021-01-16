@@ -472,10 +472,75 @@ class Simulation3DNodal(BaseDCSimulation):
 
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation.__init__(self, mesh, **kwargs)
+
+
         # Not sure why I need to do this
         # To evaluate mesh.aveE2CC, this is required....
         if mesh._meshType == "TREE":
             mesh.nodalGrad
+
+        self.Grad, self.Avg, self.cell_volumes
+
+    @property
+    def MeSigma(self):
+        """
+        Inner product
+        """
+        return 3 * sdiag(self.Avg.T * (self.cell_volumes * mkvc(self.sigma)))
+
+
+    def MeSigmaDeriv(self, u, v=None, adjoint=False):
+        """
+        Derivative of MeSigma with respect to the model times a vector (u)
+        """
+        if self.sigmaMap is None:
+            return Zero()
+
+        if getattr(self, "_MeSigmaDeriv", None) is None:
+            self._MeSigmaDeriv = (
+                3 * self.Avg.T * sdiag(self.cell_volumes)
+                * self.sigmaDeriv
+            )
+
+        if v is not None:
+            if not isinstance(u, Zero):
+                u = u.flatten()  # u is either nUx1 or nU
+                if v.ndim > 1:
+                    # promote u iff v is a matrix
+                    u = u[:, None]  # Avoids constructing the sparse matrix
+            if adjoint:
+                return self._MeSigmaDeriv.T * (u * v)
+            return u * (self._MeSigmaDeriv * v)
+        else:
+            if adjoint is True:
+                return self._MeSigmaDeriv.T * sdiag(u)
+            return sdiag(u) * self._MeSigmaDeriv
+
+    @property
+    def Avg(self):
+        """
+        Averaging operator
+        """
+        if getattr(self, "_Avg", None) is None:
+
+            self._Avg = getattr(self.mesh, "aveE2CC")
+
+        return self._Avg
+
+    @property
+    def cell_volumes(self):
+        if getattr(self, "_cell_volumes", None) is None:
+            self._cell_volumes = self.mesh.cell_volumes
+
+        return self._cell_volumes
+
+    @property
+    def Grad(self):
+        if getattr(self, "_Grad", None) is None:
+            self._Grad = self.mesh.nodalGrad
+
+        return self._Grad
+
 
     def getA(self):
         """
@@ -484,7 +549,7 @@ class Simulation3DNodal(BaseDCSimulation):
         """
 
         MeSigma = self.MeSigma
-        Grad = self.mesh.nodalGrad
+        Grad = self.Grad
         A = Grad.T @ MeSigma @ Grad
 
         # Handling Null space of A
@@ -500,7 +565,7 @@ class Simulation3DNodal(BaseDCSimulation):
         Product of the derivative of our system matrix with respect to the
         model and a vector
         """
-        Grad = self.mesh.nodalGrad
+        Grad = self.Grad
         if not adjoint:
             return Grad.T @ self.MeSigmaDeriv(Grad @ u, v, adjoint)
         elif adjoint:

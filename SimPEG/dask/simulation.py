@@ -205,6 +205,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
         Jmatrix = self.compute_J(f=f, Ainv=Ainv)
         return (mkvc(data), Jmatrix)
 
+    del Ainv, f
     return mkvc(data)
 
 

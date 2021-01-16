@@ -4,6 +4,7 @@ from .....data import Data
 import dask
 import dask.array as da
 from dask.distributed import Future
+import numpy as np
 
 
 Sim.sensitivity_path = './sensitivity/'
@@ -13,16 +14,18 @@ def dask_fields(self, m=None, return_Ainv=False):
     if m is not None:
         self.model = m
 
-    f = self.fieldsPair(self)
+
     A = self.getA()
     Ainv = self.solver(A, **self.solver_opts)
     RHS = self.getRHS()
 
+    f = self.fieldsPair(self, shape=RHS.shape)
     f[:, self._solutionType] = Ainv * RHS
 
     if return_Ainv:
         return (f, Ainv)
     else:
+        del Ainv
         return (f,)
 
 
@@ -107,7 +110,7 @@ def compute_J(self, f=None, Ainv=None):
         da.vstack(blocks).rechunk('auto'), self.sensitivity_path + "J.zarr",
         compute=True, return_stored=True, overwrite=True
     )
-
+    del Ainv, f, blocks
     return Jmatrix
 
 
@@ -148,9 +151,45 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 
     if compute_J:
         Jmatrix = self.compute_J(f=f, Ainv=Ainv)
+        del f, Ainv
         return (mkvc(data), Jmatrix)
 
+    del f, Ainv
     return mkvc(data)
 
 
 Sim.dpred = dask_dpred
+
+
+def dask_getSourceTerm(self):
+    """
+    Evaluates the sources, and puts them in matrix form
+    :rtype: tuple
+    :return: q (nC or nN, nSrc)
+    """
+
+    if getattr(self, "_q", None) is None:
+
+
+        if self._mini_survey is not None:
+            Srcs = self._mini_survey.source_list
+        else:
+            Srcs = self.survey.source_list
+
+        if self._formulation == "EB":
+            n = self.mesh.nN
+            # return NotImplementedError
+
+        elif self._formulation == "HJ":
+            n = self.mesh.nC
+
+        q = np.zeros((n, len(Srcs)), order="F")
+
+        for i, source in enumerate(Srcs):
+            q[:, i] = source.eval(self)
+
+        self._q = q
+
+    return self._q
+
+Sim.getSourceTerm = dask_getSourceTerm

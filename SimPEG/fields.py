@@ -37,10 +37,12 @@ class Fields(properties.HasProperties):
     dtype = float
 
     def __init__(self, simulation=None, **kwargs):
+        self._shape = None
         super(Fields, self).__init__(**kwargs)
         if simulation is not None:
             self.simulation = simulation
         self._fields = {}
+
         self.startup()
 
     @properties.validator("knownFields")
@@ -62,6 +64,17 @@ class Fields(properties.HasProperties):
         return self.simulation.mesh
 
     @property
+    def shape(self):
+        return self._shape
+
+    @shape.setter
+    def shape(self, shape):
+
+        assert isinstance(shape, tuple) and len(shape) == 2, "Shape of fields must be a tuple of len(2)"
+        self._shape = shape
+
+
+    @property
     def survey(self):
         return self.simulation.survey
 
@@ -78,6 +91,10 @@ class Fields(properties.HasProperties):
         return "{0:e} MB".format(sz)
 
     def _storageShape(self, loc):
+
+        if getattr(self, "_shape", None) is not None:
+            return self._shape
+
         nSrc = self.survey.nSrc
 
         nP = {
