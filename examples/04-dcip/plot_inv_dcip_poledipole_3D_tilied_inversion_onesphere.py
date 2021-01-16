@@ -5,6 +5,7 @@ Following example will show you how user can implement a 3D DC inversion.
 
 import discretize
 import discretize.utils as meshutils
+from discretize.tensor_mesh import TensorMesh
 from SimPEG import dask
 import dask
 from SimPEG import (
@@ -35,7 +36,7 @@ except ImportError:
 np.random.seed(12345)
 
 # @dask.delayed
-def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id, mstart):
+def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
     local_survey = dc.Survey(source)
     electrodes = np.vstack((local_survey.locations_a,
                             local_survey.locations_b,
@@ -43,24 +44,16 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id, mst
                             local_survey.locations_n))
     local_survey.dobs = obs
     local_survey.std = uncert
-
-    # Create tile map between global and local
-#     print('[info] creating nested mesh ')
-#     time_nest = time.time()
     local_mesh = create_nested_mesh(
-        electrodes, global_mesh,
+        electrodes, global_mesh, method="radial", max_distance=200.
     )
-#     time_nest = time.time() - time_nest
-#     print('[info] ', time_nest)
 
-#     print('[info] time map')
-#     time_map = time.time()
     local_map = maps.TileMap(global_mesh, global_active, local_mesh)
+
     actmap = maps.InjectActiveCells(
         local_mesh, indActive=local_map.local_active, valInactive=np.log(1e-8)
     )
-#     time_map = time.time() - time_map
-#     print('[info] ', time_map)
+
     expmap = maps.ExpMap(local_mesh)
     mapping = expmap * actmap
     # Create the local misfit
@@ -68,12 +61,22 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id, mst
     simulation = dc.Simulation3DNodal(
         local_mesh, survey=local_survey, sigmaMap=mapping, storeJ=True,
         Solver=Solver,
-#         chunk_format="row",
-#         max_chunk_size=max_chunk_size,
-#         workers=workers
     )
+
+    # Store the sources and receivers projection
+    for src in simulation.survey.source_list:
+        src.eval(simulation)
+        for rx in src.receiver_list:
+            rx.getP(simulation.mesh, rx.projGLoc(simulation.fieldsPair(simulation)))
+    simulation.getSourceTerm()
+
+    simulation.mesh = TensorMesh([1])  # Light dummy
+    del local_mesh,
+    local_map.local_mesh = None
+    actmap.mesh = None
+    expmap.mesh = None
+
     simulation.sensitivity_path = './sensitivity/Tile' + str(tile_id) + '/'
-#     print(simulation.getSourceTerm().shape)
     data_object = data.Data(
         local_survey,
         dobs=obs,
@@ -389,7 +392,7 @@ def run(survey_type="pole-dipole", plotIt=True):
 
     active_cells = global_mesh.gridCC[:, 2] < 501
     mtrue[~active_cells] = np.log(1e-8)
-    m0_dc = np.ones(active_cells.sum()) * ln_sigback
+    mstart = np.ones(active_cells.sum()) * ln_sigback
     survey_dc.drape_electrodes_on_topography(global_mesh, active_cells, option='top')
 
     # fig = plt.figure(figsize=(6, 6))
@@ -412,7 +415,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     mapactive = maps.InjectActiveCells(mesh=global_mesh, indActive=active_cells, valInactive=np.log(1e-8))
     mapping = expmap * mapactive
     simulation_g = dc.Simulation3DNodal(
-        global_mesh, survey=survey_dc, sigmaMap=mapping, solver=Solver
+        global_mesh, survey=survey_dc, sigmaMap=mapping, solver=Solver, model=mstart
     )
 
     global_data = simulation_g.make_synthetic_data(mtrue[active_cells], relative_error=0.05, noise_floor=1., add_noise=True)
@@ -437,70 +440,79 @@ def run(survey_type="pole-dipole", plotIt=True):
     idx_start = 0
     idx_end = 0
     # do every 5 sources
-    cnt = 0
-    src_collect = []
-    for ii, source in enumerate(survey_dc.source_list):
-        source._q = None # need this for things to work
-        if cnt == 10 or ii == len(survey_dc.source_list)-1:
-            src_collect.append(source)        
-            idx_end = idx_end + source.receiver_list[0].nD
-            dobs = survey_dc.dobs[idx_start:idx_end]
-    #         print(dobs.shape, len(src_collect))
-            delayed_misfit = create_tile_dc(
-                        src_collect,  survey_dc.dobs[idx_start:idx_end],
-                        survey_dc.std[idx_start:idx_end], global_mesh, active_cells, ii, m0_dc)
-            local_misfits += [delayed_misfit]
-    #         src_collect = client.scatter(src_collect)
-    #         survey_dobs = client.scatter(survey.dobs[idx_start:idx_end])
-    #         survey_std = client.scatter(survey.std[idx_start:idx_end])
-    #         global_mesh_ = client.scatter(global_mesh)
-    #         active_cells_ = client.scatter(active_cells)
-    #         ii = client.scatter(ii)
-    #         local_misfits += [client.submit(create_tile_dc,
-    #                     src_collect,  survey.dobs[idx_start:idx_end],
-    #                     survey.std[idx_start:idx_end], global_mesh, active_cells, ii)]
-            idx_start = idx_end
-            cnt = 0
-            src_collect = []
-        else:
-    #         print(idx_start, idx_end)
-            src_collect.append(source)
-            idx_end = idx_end + source.receiver_list[0].nD
-            cnt += 1
-    # Simulations tiled map ==================================================
-    # local_misfits = client.gather(local_misfits)    
+    # cnt = 0
+    # src_collect = []
+    # for ii, source in enumerate(survey_dc.source_list):
+    #     source._q = None # need this for things to work
+    #     if cnt == 5 or ii == len(survey_dc.source_list)-1:
+    #         src_collect.append(source)
+    #         idx_end = idx_end + source.receiver_list[0].nD
+    #         dobs = survey_dc.dobs[idx_start:idx_end]
+    # #         print(dobs.shape, len(src_collect))
+    #         delayed_misfit = create_tile_dc(
+    #                     src_collect,  survey_dc.dobs[idx_start:idx_end],
+    #                     survey_dc.std[idx_start:idx_end], global_mesh, active_cells, ii)
+    #         local_misfits += [delayed_misfit]
+    # #         src_collect = client.scatter(src_collect)
+    # #         survey_dobs = client.scatter(survey.dobs[idx_start:idx_end])
+    # #         survey_std = client.scatter(survey.std[idx_start:idx_end])
+    # #         global_mesh_ = client.scatter(global_mesh)
+    # #         active_cells_ = client.scatter(active_cells)
+    # #         ii = client.scatter(ii)
+    # #         local_misfits += [client.submit(create_tile_dc,
+    # #                     src_collect,  survey.dobs[idx_start:idx_end],
+    # #                     survey.std[idx_start:idx_end], global_mesh, active_cells, ii)]
+    #         idx_start = idx_end
+    #         cnt = 0
+    #         src_collect = []
+    #     else:
+    # #         print(idx_start, idx_end)
+    #         src_collect.append(source)
+    #         idx_end = idx_end + source.receiver_list[0].nD
+    #         cnt += 1
+    # # Simulations tiled map ==================================================
+    # # local_misfits = client.gather(local_misfits)
+    #
+    # print("[INFO] Completed tiling in: ", time.time() - start_)
+    #
+    # electrodes_g = electrodes
+    # global_misfit = objective_function.ComboObjectiveFunction(
+    #                 local_misfits
+    #         )
+    # print(len(local_misfits))
 
-    print("[INFO] Completed tiling in: ", time.time() - start_)
-
-    electrodes_g = electrodes
+    local_misfits = [data_misfit.L2DataMisfit(
+        data=global_data, simulation=simulation_g
+    )]
+    local_misfits[0].W = 1 / survey_dc.std
+    local_misfits[0].simulation.model = mstart
     global_misfit = objective_function.ComboObjectiveFunction(
-                    local_misfits
-            )
-    print(len(local_misfits))
+        local_misfits
+    )
 
-    # Start computing sensitivities right away
-    for local_misfit in local_misfits:
-        local_misfit.simulation.model = local_misfit.model_map @ m0_dc
-        local_misfit.simulation.Jmatrix
+    #
+    # residual = local_misfit.data.dobs - pred
+    # thresholds += [local_misfit.getJtJdiag(mstart)]
+    # local_misfit.simulation._Jmatrix = None
 
-    # m0_dc = np.log(global_mesh.vol[active_cells])
+    # mstart = np.log(global_mesh.vol[active_cells])
     # Plot the model on different meshes
     ind = 6
     # fig = plt.figure(figsize=(14, 10))
 
-    local_mesh = global_misfit.objfcts[0].simulation.mesh
-    local_map = global_misfit.objfcts[0].simulation.sigmaMap
-    sub_survey = global_misfit.objfcts[0].simulation.survey
-    print(local_mesh.nC, global_mesh.nC)
-    electrodes = np.vstack((sub_survey.locations_a,
-                                    sub_survey.locations_b,
-                                    sub_survey.locations_m,
-                                    sub_survey.locations_n))
+    # local_mesh = global_misfit.objfcts[0].simulation.mesh
+    # local_map = global_misfit.objfcts[0].simulation.sigmaMap
+    # sub_survey = global_misfit.objfcts[0].simulation.survey
+    # print(local_mesh.nC, global_mesh.nC)
+    # electrodes = np.vstack((sub_survey.locations_a,
+    #                                 sub_survey.locations_b,
+    #                                 sub_survey.locations_m,
+    #                                 sub_survey.locations_n))
 
     # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
     # ax = plt.subplot(2, 2, 1)
-    # local_mesh.plotSlice((local_map * m0_dc), normal="Z", ind=ind, ax=ax, grid=True
+    # local_mesh.plotSlice((local_map * mstart), normal="Z", ind=ind, ax=ax, grid=True
     # )
     # ax.plot(electrodes[:, 0], electrodes[:, 1], 'om')
     # ax.set_aspect("equal")
@@ -517,7 +529,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     # # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
     # ax1 = plt.subplot(2, 2, 2)
-    # local_mesh.plotSlice((local_map * m0_dc), normal="Z", ind=ind, ax=ax1, grid=True
+    # local_mesh.plotSlice((local_map * mstart), normal="Z", ind=ind, ax=ax1, grid=True
     # )
     # ax1.plot(electrodes[:, 0], electrodes[:, 1], 'om')
     # ax1.set_aspect("equal")
@@ -534,7 +546,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     # # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
     # ax2 = plt.subplot(2, 2, 3)
-    # local_mesh.plotSlice((local_map * m0_dc), normal="Z", ind=ind, ax=ax2, grid=True
+    # local_mesh.plotSlice((local_map * mstart), normal="Z", ind=ind, ax=ax2, grid=True
     # )
     # ax2.plot(electrodes[:, 0], electrodes[:, 1], 'om')
     # ax2.set_aspect("equal")
@@ -551,7 +563,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     # # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
     # ax3 = plt.subplot(2, 2, 4)
-    # local_mesh.plotSlice((local_map * m0_dc), normal="Z", ind=ind, ax=ax3, grid=True
+    # local_mesh.plotSlice((local_map * mstart), normal="Z", ind=ind, ax=ax3, grid=True
     # )
     # ax3.plot(electrodes[:, 0], electrodes[:, 1], 'om')
     # ax3.set_aspect("equal")
@@ -564,7 +576,7 @@ def run(survey_type="pole-dipole", plotIt=True):
 
     # inject_global = maps.InjectActiveCells(global_mesh, active_cells, np.nan)
     # ax_ = plt.subplot(1, 1, 1)
-    # global_mesh.plotSlice(inject_global * m0_dc, normal="z", ind=ind, ax=ax_, grid=True)
+    # global_mesh.plotSlice(inject_global * mstart, normal="z", ind=ind, ax=ax_, grid=True)
     # ax_.plot(electrodes_g[:, 0], electrodes_g[:, 1], 'om')
     # ax_.set_title(f"Global Mesh. Active cells {active_cells.sum()}")
     # ax_.set_aspect("equal")
@@ -576,9 +588,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     #
 
     # make intital model
-
-    surface_weight = False
-    use_preconditioner = False
+    use_preconditioner = True
     coolingFactor = 2
     coolingRate = 1
     beta0_ratio = 1e1
@@ -588,15 +598,6 @@ def run(survey_type="pole-dipole", plotIt=True):
     # reg = regularization.Tikhonov(mesh, indActive=global_actinds, mapping=regmap)
     reg = regularization.Sparse(global_mesh, indActive=active_cells, mapping=regmap)
 
-    # cell weights ==================================================
-    if surface_weight:
-        w_fac = np.ones(cell_depth_surface_w) * cell_weight
-        surface_weights = get_surface_weights(global_mesh, active_cells, w_fac,
-                                              octree=True)
-        # Related to inversion
-        reg.cell_weights = global_mesh.vol[active_cells] * surface_weights[active_cells]
-        print('[INFO] Surface weights used')
-
     print('[INFO] Getting things started on inversion...')
     # set alpha length scales
     reg.alpha_s = 1 # alpha_s
@@ -604,27 +605,37 @@ def run(survey_type="pole-dipole", plotIt=True):
     reg.alpha_y = 1
     reg.alpha_z = 1
 
-    opt = optimization.ProjectedGNCG(maxIter=5, upper=np.inf, lower=-np.inf)
+    opt = optimization.ProjectedGNCG(
+        maxIter=5, upper=np.inf, lower=-np.inf,
+        maxIterCG=10, tolCG=1e-4
+    )
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
 
-    # preds = []
-    # for ii in range(4):
-    #     preds += [np.hstack(invProb.get_dpred(m0_dc))]
+    pred_0 = invProb.get_dpred(mstart, compute_J=True)
+
+    # Start computing sensitivities right away
+    JtJdiag = np.zeros_like(mstart)
+    for local_misfit in local_misfits:
+        JtJdiag += local_misfit.getJtJdiag(mstart)
+
+    JtJdiag /= global_mesh.cell_volumes[active_cells] ** 2.
+
+
+    # order = np.argsort(JtJdiag)
+    # JtJdiag = JtJdiag[order]
+    # for ii in [1, 2, 4, 8]:
+    #     temp = mstart.copy()
+    #     threshold = np.percentile(JtJdiag, ii)
+    #     temp[JtJdiag < threshold] = np.log(np.exp(mstart[JtJdiag < threshold])*1.5)
+    #     pred_t = invProb.get_dpred(temp)
+    #     residual = np.abs(np.hstack(pred_0) - np.hstack(pred_t)).max()
     #
-
-    # strt = time.time()
-    # J = invProb.formJ(m0_dc)
-    # # F = invProb.getFields(m0_dc)
-    # print('time for fields: ', time.time() - strt)
-    # # strt_dp = time.time()
-    # # dpredd = invProb.get_dpred(m0_dc, f=None)
-    # # # dmis_deriv = invProb.dmisfit.deriv(m0_dc, f=None)
-    # # # print(invProb.dmisfit.objfcts[0].deriv(m0_dc, f=None))
-    # # print('time for dpred: ', time.time() - strt_dp)
-
-    # strt_d = time.time()
-    # dmis_deriv = invProb.dmisfit.deriv(m0_dc, f=None)
-    # print('time for deriv: ', time.time() - strt_d)
+    #     # threshold = global_mesh.cell_volumes[active_cells][order][np.searchsorted(JtJdiag, threshold)]
+    #     if residual > survey_dc.std.min():
+    #         print(f"Computed threshold J: {threshold} at {ii}th percentile")
+    #         print(f"{(JtJdiag < threshold).sum()} cells below threhold")
+    #         print(f"Max data residual {residual:.3e}")
+    #         break
 
     beta = directives.BetaSchedule(
         coolingFactor=coolingFactor, coolingRate=coolingRate
@@ -637,11 +648,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     # Need to have basice saving function
     if use_preconditioner:
         update_Jacobi = directives.UpdatePreconditioner()
-        updateSensW = directives.UpdateSensitivityWeights()
-        # updateWj = Directives.Update_Wj()
-        # directiveList = [
-        #     beta, betaest, target, updateSensW, saveIter, update_Jacobi
-        # ]
+        updateSensW = directives.UpdateSensitivityWeights(threshold=1e-12)
         directiveList = [
             updateSensW, beta, betaest, target, update_Jacobi
         ]
@@ -655,11 +662,17 @@ def run(survey_type="pole-dipole", plotIt=True):
     opt.remember('xc')
 
     # Run Inversion ================================================================
-    minv = inv.run(m0_dc)
+    minv = inv.run(mstart)
     rho_est = mapactive * minv
     # np.save('model_out.npy', rho_est)
 
-    global_mesh.writeUBC('OctreeMesh-test.msh', models={'ubc.con': np.exp(rho_est)})
+    global_mesh.writeUBC('OctreeMesh-test.msh', models={
+        'ubc.con': np.exp(rho_est),
+        'sensW.con': np.exp(mapactive * np.log(updateSensW.wr)),
+        'true.con': np.exp(mapactive * mtrue[active_cells])
+    })
+    # global_mesh.writeUBC('OctreeMesh-test.msh', models={})
+    # global_mesh.writeUBC('OctreeMesh-test.msh', models={'sensW.con': np.exp(mapactive * np.log(updateSensW.wr))})
 
 
 if __name__ == '__main__':
