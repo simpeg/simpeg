@@ -39,20 +39,21 @@ plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8
 # is loaded to compare with the inversion result.
 #
 
-# storage bucket where we have the data
-data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dfm_data.tar.gz"
+## storage bucket where we have the data
+#data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dfm_data.tar.gz"
+#
+## download the data
+#downloaded_data = utils.download(data_source, overwrite=True)
+#
+## unzip the tarfile
+#tar = tarfile.open(downloaded_data, "r")
+#tar.extractall()
+#tar.close()
+#
+## filepath to data file
+#data_filename = downloaded_data.split(".")[0] + ".obs"
 
-# download the data
-downloaded_data = utils.download(data_source, overwrite=True)
-
-# unzip the tarfile
-tar = tarfile.open(downloaded_data, "r")
-tar.extractall()
-tar.close()
-
-# filepath to data file
-data_filename = downloaded_data.split(".")[0] + ".obs"
-
+data_filename = ".//em1dfm//em1dfm_data.obs"
 
 #############################################
 # Load Data and Plot
@@ -64,7 +65,8 @@ data_filename = downloaded_data.split(".")[0] + ".obs"
 #
 
 # Load field data
-dobs = np.loadtxt(str(data_filename))
+#dobs = np.loadtxt(str(data_filename))
+dobs = np.loadtxt(str(data_filename), skiprows=1)
 
 # Define receiver locations and observed data
 frequencies = dobs[:, 0]

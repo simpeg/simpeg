@@ -24,11 +24,14 @@ from pymatsolver import PardisoSolver
 from SimPEG import maps
 from SimPEG.utils import mkvc
 import SimPEG.electromagnetics.frequency_domain_1d as em1d
-from SimPEG.electromagnetics.utils.em1d_utils import plot_layer, get_vertical_discretization_frequency
+from SimPEG.electromagnetics.utils.em1d_utils import (
+    plot_layer, get_vertical_discretization_frequency
+)
 
 plt.rcParams.update({'font.size': 16})
-save_file = False
+save_file = True
 
+# sphinx_gallery_thumbnail_number = 3
 
 #####################################################################
 # topography
@@ -36,14 +39,9 @@ save_file = False
 #
 #
 x = np.linspace(50,4950,50)
-#x = np.linspace(50,250,3)
 y = np.zeros_like(x)
 z = np.zeros_like(x)
 topo = np.c_[x, y, z].astype(float)
-
-
-
-
 
 #####################################################################
 # Create Survey
@@ -51,7 +49,6 @@ topo = np.c_[x, y, z].astype(float)
 #
 #
 x = np.linspace(50,4950,50)
-#x = np.linspace(50,250,3)
 n_sounding = len(x)
 
 source_locations = np.c_[x, np.zeros(n_sounding), 30 *np.ones(n_sounding)]
@@ -59,7 +56,7 @@ source_current = 1.
 source_radius = 5.
 moment_amplitude=1.
 
-receiver_locations = np.c_[x+10., np.zeros(n_sounding), 30 *np.ones(n_sounding)]
+receiver_locations = np.c_[x+10., np.zeros(n_sounding), 30*np.ones(n_sounding)]
 receiver_orientation = "z"  # "x", "y" or "z"
 field_type = "ppm"  # "secondary", "total" or "ppm"
 
@@ -77,23 +74,15 @@ for ii in range(0, n_sounding):
     receiver_list.append(
         em1d.receivers.PointReceiver(
             receiver_location, frequencies, orientation=receiver_orientation,
-            field_type=field_type, component="both"
+            field_type=field_type, component="real"
         )
     )
-    # receiver_list.append(
-    #     em1d.receivers.PointReceiver(
-    #         receiver_location, frequencies, orientation=receiver_orientation,
-    #         field_type=field_type, component="imag"
-    #     )
-    # )
-
-#     Sources
-#    source_list = [
-#        em1d.sources.HorizontalLoopSource(
-#            receiver_list=receiver_list, location=source_location, a=source_radius,
-#            I=source_current
-#        )
-#    ]
+    receiver_list.append(
+        em1d.receivers.PointReceiver(
+            receiver_location, frequencies, orientation=receiver_orientation,
+            field_type=field_type, component="imag"
+        )
+    )
 
     source_list.append(
         em1d.sources.MagneticDipoleSource(
@@ -156,25 +145,10 @@ model[poly_inds] = slope_conductivity
 
 mapping = maps.ExpMap(nP=n_param)
 
-# MODEL TO SOUNDING MODELS METHOD 1
-# sounding_models = model.reshape(mesh2D.vnC, order='F')
-# sounding_models = np.fliplr(sounding_models)
-# sounding_models = mkvc(sounding_models.T)
-
-# MODEL TO SOUNDING MODELS METHOD 2
-sounding_models = model.reshape(mesh_soundings.vnC, order='C')
-sounding_models = np.flipud(sounding_models)
-sounding_models = mkvc(sounding_models)
-
-chi = np.zeros_like(sounding_models)
-
-
-
-
 
 
 fig = plt.figure(figsize=(9, 3))
-ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
+ax1 = fig.add_axes([0.15, 0.12, 0.65, 0.78])
 log_mod = np.log10(model)
 
 mesh2D.plotImage(
@@ -188,7 +162,7 @@ ax1.set_title("Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
+ax2 = fig.add_axes([0.82, 0.12, 0.03, 0.78])
 norm = mpl.colors.Normalize(
     vmin=np.log10(overburden_conductivity), vmax=np.log10(slope_conductivity)
 )
@@ -198,10 +172,21 @@ cbar = mpl.colorbar.ColorbarBase(
 cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 
 
+###############################################
+# Reorganize to a set of Sounding Models
+# --------------------------------------
+#
 
 
-fig = plt.figure(figsize=(4, 8))
-ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
+
+
+# MODEL TO SOUNDING MODELS METHOD 2
+sounding_models = model.reshape(mesh_soundings.vnC, order='C')
+sounding_models = np.flipud(sounding_models)
+sounding_models = mkvc(sounding_models)
+
+fig = plt.figure(figsize=(4, 7.5))
+ax1 = fig.add_axes([0.15, 0.12, 0.67, 0.78])
 log_mod_sounding = np.log10(sounding_models)
 sounding_models = np.log(sounding_models)
 
@@ -212,9 +197,12 @@ mesh_soundings.plotImage(
 )
 ax1.set_ylim(mesh_soundings.vectorNy.min(), mesh_soundings.vectorNy.max())
 
-ax1.set_title("Ordered Sounding Models")
-ax1.set_xlabel("hz (m)")
-ax1.set_ylabel("Profile Distance (m)")
+ax1.set_xticks([])
+ax1.set_yticks([])
+
+ax1.set_title("Sounding Models")
+ax1.set_xlabel("Layer")
+ax1.set_ylabel("Sounding Number")
 
 ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(
@@ -228,23 +216,17 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 
 
 #######################################################################
-# Define the Forward Simulation and Predic Data
+# Define the Forward Simulation and Predict Data
 # ----------------------------------------------
 #
-
+# source, then receiver, then frequency
 
 
 # Simulate response for static conductivity
 simulation = em1d.simulation.StitchedEM1DFMSimulation(
-    survey=survey, thicknesses=thicknesses, sigmaMap=mapping, chi=chi,
-    topo=topo, parallel=False, verbose=True, Solver=PardisoSolver
+    survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
+    topo=topo, parallel=False, Solver=PardisoSolver
 )
-
-# simulation = em1d.simulation.StitchedEM1DFMSimulation(
-#     survey=survey, thicknesses=thicknesses, sigmaMap=mapping, chi=chi,
-#     topo=topo, parallel=True, n_cpu=2, verbose=True, Solver=PardisoSolver
-# )
-
 
 dpred = simulation.dpred(sounding_models)
 
@@ -255,35 +237,30 @@ dpred = simulation.dpred(sounding_models)
 #
 #
 
+N = n_sounding
 
-d = np.reshape(dpred, (n_sounding, 2*len(frequencies))).T
+d_plotting = np.reshape(dpred, (2*n_sounding, len(frequencies))).T
+
+d_real = d_plotting[:, 0::2]
+d_imag = d_plotting[:, 1::2]
 
 fig, ax = plt.subplots(1,1, figsize = (7, 7))
 
 for ii in range(0, n_sounding):
-    ax.loglog(frequencies, np.abs(d[0:len(frequencies), ii]), '-', lw=2)
-    ax.loglog(frequencies, np.abs(d[len(frequencies):, ii]), '--', lw=2)
+    ax.loglog(frequencies, np.abs(d_real[:, ii]), 'b-', lw=2)
+    ax.loglog(frequencies, np.abs(d_imag[0:len(frequencies):, ii]), 'r--', lw=2)
 
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("|Hs/Hp| (ppm)")
-ax.set_title("Magnetic Field as a Function of Frequency")
-ax.legend(["real", "imaginary"])
+ax.set_title("Secondary Magnetic Field")
+ax.legend(["Real", "Imaginary"])
 
-#
-#d = np.reshape(dpred, (n_sounding, 2*len(frequencies)))
-#fig = plt.figure(figsize = (10, 5))
-#ax1 = fig.add_subplot(121)
-#ax2 = fig.add_subplot(122)
-#
-#for ii in range(0, n_sounding):
-#    ax1.semilogy(x, np.abs(d[:, 0:len(frequencies)]), 'k-', lw=2)
-#    ax2.semilogy(x, np.abs(d[:, len(frequencies):]), 'k--', lw=2)
 
 
 
 if save_file == True:
 
-    dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-4]
+    dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "07-fdem", "em1dfm_stitched"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
@@ -293,12 +270,12 @@ if save_file == True:
 
     loc = np.repeat(source_locations, len(frequencies), axis=0)
     fvec = np.kron(np.ones(n_sounding), frequencies)
-    dout = np.c_[dpred[0::2], dpred[1::2]]
+    dout = np.c_[mkvc(d_real), mkvc(d_imag)]
 
     np.savetxt(
         fname,
         np.c_[loc, fvec, dout],
-        fmt='%.4e'
+        fmt='%.4e', header='X Y Z FREQUENCY HZ_REAL HZ_IMAG'
     )
 
 

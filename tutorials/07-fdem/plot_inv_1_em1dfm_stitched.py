@@ -46,19 +46,21 @@ plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8
 # is loaded to compare with the inversion result.
 #
 
-# storage bucket where we have the data
-data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dfm_stitched_data.tar.gz"
+## storage bucket where we have the data
+#data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dfm_stitched_data.tar.gz"
+#
+## download the data
+#downloaded_data = utils.download(data_source, overwrite=True)
+#
+## unzip the tarfile
+#tar = tarfile.open(downloaded_data, "r")
+#tar.extractall()
+#tar.close()
+#
+## filepath to data file
+#data_filename = downloaded_data.split(".")[0] + ".obs"
 
-# download the data
-downloaded_data = utils.download(data_source, overwrite=True)
-
-# unzip the tarfile
-tar = tarfile.open(downloaded_data, "r")
-tar.extractall()
-tar.close()
-
-# filepath to data file
-data_filename = downloaded_data.split(".")[0] + ".obs"
+data_filename = ".//em1dfm_stitched//em1dfm_stitched_data.obs"
 
 #####################################################################
 # topography
@@ -82,27 +84,42 @@ topo = np.c_[x, y, z].astype(float)
 #
 
 # Load field data
-dobs = np.loadtxt(str(data_filename))
-
+#dobs = np.loadtxt(str(data_filename))
+dobs = np.loadtxt(str(data_filename), skiprows=1)
 
 source_locations = np.unique(dobs[:, 0:3], axis=0)
-frequencies = np.unique(dobs[:, 3])
-dobs = mkvc(dobs[:, 4:].T)
-
 n_sounding = np.shape(source_locations)[0]
 
-dobs_plotting = np.reshape(dobs, (n_sounding, 2*len(frequencies))).T
+frequencies = np.unique(dobs[:, 3])
+n_freq = len(frequencies)
+
+d_real = np.reshape(dobs[:, 4], (n_sounding, n_freq))
+d_imag = np.reshape(dobs[:, 5], (n_sounding, n_freq))
 
 fig, ax = plt.subplots(1,1, figsize = (7, 7))
 
 for ii in range(0, n_sounding):
-    ax.loglog(frequencies, np.abs(dobs_plotting[0:len(frequencies), ii]), '-', lw=2)
-    ax.loglog(frequencies, np.abs(dobs_plotting[len(frequencies):, ii]), '--', lw=2)
+    ax.loglog(frequencies, np.abs(d_real[ii, :]), 'b-', lw=2)
+    ax.loglog(frequencies, np.abs(d_imag[ii, :]), 'r--', lw=2)
 
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("|Hs/Hp| (ppm)")
 ax.set_title("Magnetic Field as a Function of Frequency")
-ax.legend(["real", "imaginary"])
+ax.legend(["Real", "Imaginary"])
+
+
+#############################################
+# Assign Uncertainties
+# --------------------
+#
+#
+
+unc_real = 0.1*np.abs(d_real)*np.ones(np.shape(d_real))
+unc_imag = 0.1*np.abs(d_imag)*np.ones(np.shape(d_imag))
+
+
+
+
 
 
 
@@ -160,13 +177,7 @@ survey = em1d.survey.EM1DSurveyFD(source_list)
 
 
 
-#############################################
-# Assign Uncertainties
-# --------------------
-#
-#
 
-uncertainties = 0.1*np.abs(dobs)*np.ones(np.shape(dobs))
 
 
 ###############################################
@@ -176,6 +187,9 @@ uncertainties = 0.1*np.abs(dobs)*np.ones(np.shape(dobs))
 # Here is where we define the data that are inverted. The data are defined by
 # the survey, the observation values and the uncertainties.
 #
+
+dobs = mkvc(np.c_[d_real, d_imag].T)
+uncertainties = mkvc(np.c_[unc_real, unc_imag].T)
 
 data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
 
@@ -221,7 +235,7 @@ starting_model = np.log(conductivity)
 # Simulate response for static conductivity
 simulation = em1d.simulation.StitchedEM1DFMSimulation(
     survey=survey, thicknesses=thicknesses, sigmaMap=mapping, topo=topo,
-    verbose=True, Solver=PardisoSolver
+    Solver=PardisoSolver
 )
 
 # simulation = em1d.simulation.StitchedEM1DFMSimulation(
@@ -459,10 +473,14 @@ ax1 = fig.add_axes([0.05, 0.1, 0.4, 0.8])
 ax2 = fig.add_axes([0.55, 0.1, 0.4, 0.8])
 
 for ii in range(0, len(data_list)):
-    d1 = np.reshape(data_list[ii][0::2], (n_sounding, len(frequencies)))
-    d2 = np.reshape(data_list[ii][1::2], (n_sounding, len(frequencies)))
-    ax1.semilogy(x, np.abs(d1), color_list[ii], lw=1)
-    ax2.semilogy(x, np.abs(d2), color_list[ii], lw=1)
+    
+    d_plotting = np.reshape(data_list[ii], (2*n_sounding, len(frequencies)))
+
+    d_real = d_plotting[0::2, :]
+    d_imag = d_plotting[1::2, :]
+    
+    ax1.semilogy(x, np.abs(d_real), color_list[ii], lw=1)
+    ax2.semilogy(x, np.abs(d_imag), color_list[ii], lw=1)
 
 ax.set_xlabel("Frequencies (s)")
 ax.set_ylabel("Re[H] (A/m)")

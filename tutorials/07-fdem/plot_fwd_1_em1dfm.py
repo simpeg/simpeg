@@ -34,7 +34,7 @@ from SimPEG.electromagnetics import frequency_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import plot_layer
 
 plt.rcParams.update({'font.size': 16})
-save_file = False
+save_file = True
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -110,8 +110,15 @@ model[1] = layer_conductivity
 model_mapping = maps.IdentityMap(nP=n_layer)
 
 # Plot conductivity model
-plotting_mesh = TensorMesh([np.r_[thicknesses, 40.]])
-plot_layer(model, plotting_mesh, showlayers=False)
+plotting_thicknesses = np.r_[thicknesses, 40.]
+plotting_mesh = TensorMesh([plotting_thicknesses])
+
+fig = plt.figure(figsize=(6, 5))
+ax = fig.add_axes([0.15, 0.1, 0.8, 0.8])
+
+plot_layer(model, plotting_mesh, ax=ax, showlayers=False)
+
+plt.gca().invert_yaxis()
 
 #######################################################################
 # Define the Forward Simulation and Predict Data
@@ -146,7 +153,7 @@ ax.legend(["Real", "Imaginary"])
 
 if save_file == True:
 
-    dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-4]
+    dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "07-fdem", "em1dfm"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
@@ -157,6 +164,6 @@ if save_file == True:
     np.savetxt(
         fname,
         np.c_[frequencies, dpred[0:len(frequencies)], dpred[len(frequencies):]],
-        fmt='%.4e'
+        fmt='%.4e', header='FREQUENCY HZ_REAL HZ_IMAG'
     )
 

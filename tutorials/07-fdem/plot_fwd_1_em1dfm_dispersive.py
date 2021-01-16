@@ -44,11 +44,11 @@ plt.rcParams.update({'font.size': 16})
 # 
 
 # Frequencies being observed
-frequencies = np.logspace(-1, 8, 51)
+frequencies = np.logspace(0, 8, 41)
 
 # Define a list of receivers for each source. In this case we only have
 # one source so we will only make one list.
-receiver_location = np.array([10., 0., 1.])
+receiver_location = np.array([10., 0., 10.])
 receiver_orientation = "z"                   # "x", "y" or "z"
 field_type = "secondary"                     # "secondary", "total" or "ppm"
 
@@ -67,7 +67,7 @@ receiver_list.append(
 )
 
 # Define the source list.
-source_location = np.array([0., 0., 1.])
+source_location = np.array([0., 0., 10.])
 source_orientation = 'z'                      # "x", "y" or "z"
 moment_amplitude = 1.
 
@@ -100,9 +100,9 @@ n_layer = len(thicknesses) + 1
 # In SimPEG, the Cole-Cole model is used to define a frequency-dependent
 # electrical conductivity when the Earth is chargeable. 
 sigma = 1e-2
-eta = 0.5
-tau = 0.001
-c = 0.5
+eta = 0.8
+tau = 0.0001
+c = 0.8
 
 # Magnetic susceptibility
 chi = 0.2
@@ -167,7 +167,7 @@ dpred_susceptible = simulation_susceptible.dpred(sigma_model)
 # Simulate response for a chargeable Earth
 simulation_chargeable = em1d.simulation.EM1DFMSimulation(
     survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping,
-    eta=eta, tau=tau, c=c, chi=chi_model
+    eta=eta, tau=tau, c=c
 )
 
 dpred_chargeable = simulation_chargeable.dpred(sigma_model)
@@ -178,16 +178,17 @@ dpred_chargeable = simulation_chargeable.dpred(sigma_model)
 # -------------------------------------------------
 #
 
-fig, ax = plt.subplots(1,1, figsize = (7, 7))
-ax.loglog(frequencies, dpred[0:len(frequencies)], 'b-', lw=2)
-ax.loglog(frequencies, dpred[len(frequencies):], 'b--', lw=2)
-ax.loglog(frequencies, dpred_susceptible[0:len(frequencies)], 'r-', lw=2)
-ax.loglog(frequencies, dpred_susceptible[len(frequencies):], 'r--', lw=2)
-ax.loglog(frequencies, dpred_chargeable[0:len(frequencies)], 'g-', lw=2)
-ax.loglog(frequencies, dpred_chargeable[len(frequencies):], 'g--', lw=2)
+fig = plt.figure(figsize=(7, 7))
+ax = fig.add_axes([0.15, 0.1, 0.8, 0.8])
+ax.semilogx(frequencies, dpred[0:len(frequencies)], 'b-', lw=3)
+ax.semilogx(frequencies, dpred[len(frequencies):], 'b--', lw=3)
+ax.semilogx(frequencies, dpred_susceptible[0:len(frequencies)], 'r-', lw=3)
+ax.semilogx(frequencies, dpred_susceptible[len(frequencies):], 'r--', lw=3)
+ax.semilogx(frequencies, dpred_chargeable[0:len(frequencies)], 'g-', lw=3)
+ax.semilogx(frequencies, dpred_chargeable[len(frequencies):], 'g--', lw=3)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("|H| (A/m)")
-ax.set_title("Magnetic Field as a Function of Frequency")
+ax.set_title("Secondary Magnetic Field")
 ax.legend((
     'Real (conductive)', 'Imaginary (conductive)',
     'Real (susceptible)', 'Imaginary (susceptible)',
