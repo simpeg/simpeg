@@ -5,7 +5,7 @@ import dask
 import dask.array as da
 from dask.distributed import Future
 import numpy as np
-
+import zarr
 
 Sim.sensitivity_path = './sensitivity/'
 
@@ -87,10 +87,18 @@ def compute_J(self, f=None, Ainv=None):
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
     m_size = self.model.size
+    row_blocks = int(np.ceil(
+        self.survey.nD / np.ceil(m_size * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
+    ))
 
+    Jmatrix = zarr.open(self.sensitivity_path + f"J.zarr", mode='w', shape=(self.survey.nD, m_size), chunks=(row_blocks, m_size))
     blocks = []
+    count = 0
+    block_count = 0
+    dask_arrays = []
     for source in self.survey.source_list:
         u_source = f[source, self._solutionType]
+
         for rx in source.receiver_list:
             PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
             df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
@@ -104,12 +112,42 @@ def compute_J(self, f=None, Ainv=None):
             if not isinstance(df_dmT, Zero):
                 du_dmT += df_dmT
 
-            blocks += [du_dmT.T]
+            Jmatrix[count:count+rx.nD, :] = du_dmT.T
+            count += rx.nD
 
-    Jmatrix = da.to_zarr(
-        da.vstack(blocks).rechunk('auto'), self.sensitivity_path + "J.zarr",
-        compute=True, return_stored=True, overwrite=True
-    )
+            # blocks += [du_dmT.T]
+            # if (count >= row_blocks) or count == self.survey.nD:
+            #     block = da.vstack(blocks).rechunk('auto')
+            #     J = da.to_zarr(
+            #         block, self.sensitivity_path + f"J{block_count}.zarr",
+            #         compute=True, return_stored=True, overwrite=True
+            #     )
+            #     if Jmatrix is None:
+            #         Jmatrix = J
+            #
+            #     else:
+            #         Jmatrix = da.vstack([Jmatrix, J])
+            #         del J
+            #
+            #     block_count += 1
+            #     blocks = []
+            #     count = 0
+
+    # if blocks:
+    #     J = da.to_zarr(
+    #         da.vstack(blocks).rechunk('auto'), self.sensitivity_path + f"J{block_count}.zarr",
+    #         compute=True, overwrite=True
+    #     )
+    #     Jmatrix = da.vstack([Jmatrix, J])
+    #     del J
+
+
+    # for ii in range(block_count):
+    #     block_name = self.sensitivity_path + f"J{ii}.zarr"
+    #     dask_arrays.append(da.from_zarr(block_name))
+
+    # Jmatrix = da.vstack(dask_arrays)
+    Jmatrix = da.from_zarr(self.sensitivity_path + f"J.zarr")
     del Ainv, f, blocks
     return Jmatrix
 
