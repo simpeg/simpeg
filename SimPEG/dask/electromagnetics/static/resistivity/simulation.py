@@ -148,7 +148,7 @@ def compute_J(self, f=None, Ainv=None):
 
     # Jmatrix = da.vstack(dask_arrays)
     Jmatrix = da.from_zarr(self.sensitivity_path + f"J.zarr")
-    del Ainv, f, blocks
+    Ainv.clean()
     return Jmatrix
 
 
@@ -189,10 +189,9 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 
     if compute_J:
         Jmatrix = self.compute_J(f=f, Ainv=Ainv)
-        del f, Ainv
         return (mkvc(data), Jmatrix)
 
-    del f, Ainv
+    Ainv.clean()
     return mkvc(data)
 
 

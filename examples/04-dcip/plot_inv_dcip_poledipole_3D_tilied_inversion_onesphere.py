@@ -440,55 +440,55 @@ def run(survey_type="pole-dipole", plotIt=True):
     idx_start = 0
     idx_end = 0
     # do every 5 sources
-    # cnt = 0
-    # src_collect = []
-    # for ii, source in enumerate(survey_dc.source_list):
-    #     source._q = None # need this for things to work
-    #     if cnt == 5 or ii == len(survey_dc.source_list)-1:
-    #         src_collect.append(source)
-    #         idx_end = idx_end + source.receiver_list[0].nD
-    #         dobs = survey_dc.dobs[idx_start:idx_end]
-    # #         print(dobs.shape, len(src_collect))
-    #         delayed_misfit = create_tile_dc(
-    #                     src_collect,  survey_dc.dobs[idx_start:idx_end],
-    #                     survey_dc.std[idx_start:idx_end], global_mesh, active_cells, ii)
-    #         local_misfits += [delayed_misfit]
-    # #         src_collect = client.scatter(src_collect)
-    # #         survey_dobs = client.scatter(survey.dobs[idx_start:idx_end])
-    # #         survey_std = client.scatter(survey.std[idx_start:idx_end])
-    # #         global_mesh_ = client.scatter(global_mesh)
-    # #         active_cells_ = client.scatter(active_cells)
-    # #         ii = client.scatter(ii)
-    # #         local_misfits += [client.submit(create_tile_dc,
-    # #                     src_collect,  survey.dobs[idx_start:idx_end],
-    # #                     survey.std[idx_start:idx_end], global_mesh, active_cells, ii)]
-    #         idx_start = idx_end
-    #         cnt = 0
-    #         src_collect = []
-    #     else:
-    # #         print(idx_start, idx_end)
-    #         src_collect.append(source)
-    #         idx_end = idx_end + source.receiver_list[0].nD
-    #         cnt += 1
+    cnt = 0
+    src_collect = []
+    for ii, source in enumerate(survey_dc.source_list):
+        source._q = None # need this for things to work
+        if cnt == 5 or ii == len(survey_dc.source_list)-1:
+            src_collect.append(source)
+            idx_end = idx_end + source.receiver_list[0].nD
+            dobs = survey_dc.dobs[idx_start:idx_end]
+    #         print(dobs.shape, len(src_collect))
+            delayed_misfit = create_tile_dc(
+                        src_collect,  survey_dc.dobs[idx_start:idx_end],
+                        survey_dc.std[idx_start:idx_end], global_mesh, active_cells, ii)
+            local_misfits += [delayed_misfit]
+    #         src_collect = client.scatter(src_collect)
+    #         survey_dobs = client.scatter(survey.dobs[idx_start:idx_end])
+    #         survey_std = client.scatter(survey.std[idx_start:idx_end])
+    #         global_mesh_ = client.scatter(global_mesh)
+    #         active_cells_ = client.scatter(active_cells)
+    #         ii = client.scatter(ii)
+    #         local_misfits += [client.submit(create_tile_dc,
+    #                     src_collect,  survey.dobs[idx_start:idx_end],
+    #                     survey.std[idx_start:idx_end], global_mesh, active_cells, ii)]
+            idx_start = idx_end
+            cnt = 0
+            src_collect = []
+        else:
+    #         print(idx_start, idx_end)
+            src_collect.append(source)
+            idx_end = idx_end + source.receiver_list[0].nD
+            cnt += 1
     # # Simulations tiled map ==================================================
     # # local_misfits = client.gather(local_misfits)
     #
     # print("[INFO] Completed tiling in: ", time.time() - start_)
     #
     # electrodes_g = electrodes
-    # global_misfit = objective_function.ComboObjectiveFunction(
-    #                 local_misfits
-    #         )
+    global_misfit = objective_function.ComboObjectiveFunction(
+                    local_misfits
+            )
     # print(len(local_misfits))
 
-    local_misfits = [data_misfit.L2DataMisfit(
-        data=global_data, simulation=simulation_g
-    )]
-    local_misfits[0].W = 1 / survey_dc.std
-    local_misfits[0].simulation.model = mstart
-    global_misfit = objective_function.ComboObjectiveFunction(
-        local_misfits
-    )
+    # local_misfits = [data_misfit.L2DataMisfit(
+    #     data=global_data, simulation=simulation_g
+    # )]
+    # local_misfits[0].W = 1 / survey_dc.std
+    # local_misfits[0].simulation.model = mstart
+    # global_misfit = objective_function.ComboObjectiveFunction(
+    #     local_misfits
+    # )
 
     #
     # residual = local_misfit.data.dobs - pred
