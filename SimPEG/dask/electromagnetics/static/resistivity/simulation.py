@@ -6,6 +6,11 @@ import dask.array as da
 from dask.distributed import Future
 import numpy as np
 import zarr
+import os
+import shutil
+import numcodecs
+
+numcodecs.blosc.use_threads = False
 
 Sim.sensitivity_path = './sensitivity/'
 
@@ -91,7 +96,14 @@ def compute_J(self, f=None, Ainv=None):
         self.survey.nD / np.ceil(m_size * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
     ))
 
-    Jmatrix = zarr.open(self.sensitivity_path + f"J.zarr", mode='w', shape=(self.survey.nD, m_size), chunks=(row_blocks, m_size))
+    # if os.path.exists(self.sensitivity_path + f"J.zarr"):
+    #     shutil.rmtree(self.sensitivity_path + f"J.zarr")
+    Jmatrix = zarr.open(self.sensitivity_path + f"J.zarr",
+                        mode='w',
+                        shape=(self.survey.nD, m_size),
+                        chunks=(row_blocks, m_size),
+                        synchronizer=zarr.ThreadSynchronizer())
+
     blocks = []
     count = 0
     block_count = 0
