@@ -26,7 +26,7 @@ from dask import config
 from SimPEG.utils.drivers import create_tile_meshes, create_nested_mesh
 import numpy as np
 import matplotlib.pyplot as plt
-import time
+from time import time
 
 try:
     from pymatsolver import Pardiso as Solver
@@ -434,7 +434,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     print("[INFO] Creating tiled simulations over sources: ", len(survey_dc.source_list))
     survey_dc.dobs = global_data.dobs
     survey_dc.std = np.abs(survey_dc.dobs * global_data.relative_error) + global_data.noise_floor
-    start_ = time.time()
+    start_ = time()
     local_misfits = []
 
     idx_start = 0
@@ -470,16 +470,10 @@ def run(survey_type="pole-dipole", plotIt=True):
             src_collect.append(source)
             idx_end = idx_end + source.receiver_list[0].nD
             cnt += 1
-    # # Simulations tiled map ==================================================
-    # # local_misfits = client.gather(local_misfits)
-    #
-    # print("[INFO] Completed tiling in: ", time.time() - start_)
-    #
-    # electrodes_g = electrodes
     global_misfit = objective_function.ComboObjectiveFunction(
                     local_misfits
             )
-    # print(len(local_misfits))
+
 
     # local_misfits = [data_misfit.L2DataMisfit(
     #     data=global_data, simulation=simulation_g
@@ -606,7 +600,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     reg.alpha_z = 1
 
     opt = optimization.ProjectedGNCG(
-        maxIter=5, upper=np.inf, lower=-np.inf,
+        maxIter=3, upper=np.inf, lower=-np.inf,
         maxIterCG=10, tolCG=1e-4
     )
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
@@ -643,14 +637,14 @@ def run(survey_type="pole-dipole", plotIt=True):
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
     target = directives.TargetMisfit()
     target.target = survey_dc.nD
-    saveIter = directives.SaveModelEveryIteration()
-    saveIterVar = directives.SaveOutputEveryIteration()
+    save_model = directives.SaveUBCModelEveryIteration(mesh=global_mesh, mapping=mapactive, file_name="DC_", replace=False)
+
     # Need to have basice saving function
     if use_preconditioner:
         update_Jacobi = directives.UpdatePreconditioner()
         updateSensW = directives.UpdateSensitivityWeights(threshold=1e-12)
         directiveList = [
-            updateSensW, beta, betaest, target, update_Jacobi
+            save_model, updateSensW, beta, betaest, target, update_Jacobi
         ]
     else:
         directiveList = [
@@ -662,10 +656,11 @@ def run(survey_type="pole-dipole", plotIt=True):
     opt.remember('xc')
 
     # Run Inversion ================================================================
+    tc = time()
     minv = inv.run(mstart)
     rho_est = mapactive * minv
     # np.save('model_out.npy', rho_est)
-
+    print(f"Runtime {time()-tc} sec")
     global_mesh.writeUBC('OctreeMesh-test.msh', models={
         'ubc.con': np.exp(rho_est),
         'sensW.con': np.exp(mapactive * np.log(updateSensW.wr)),
@@ -673,7 +668,8 @@ def run(survey_type="pole-dipole", plotIt=True):
     })
     # global_mesh.writeUBC('OctreeMesh-test.msh', models={})
     # global_mesh.writeUBC('OctreeMesh-test.msh', models={'sensW.con': np.exp(mapactive * np.log(updateSensW.wr))})
-
+    global_data.dobs = np.hstack(invProb.dpred)
+    DCutils.writeUBC_DCobs("Predicted.pre", global_data, 3, "surface")
 
 if __name__ == '__main__':
     survey_type = 'dipole-dipole'
