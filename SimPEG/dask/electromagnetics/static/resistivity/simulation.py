@@ -98,6 +98,7 @@ def compute_J(self, f=None, Ainv=None):
 
     # if os.path.exists(self.sensitivity_path + f"J.zarr"):
     #     shutil.rmtree(self.sensitivity_path + f"J.zarr")
+    synchronizer = zarr.ProcessSynchronizer('data/example.sync')
     Jmatrix = zarr.open(self.sensitivity_path + f"J.zarr",
                         mode='w',
                         shape=(self.survey.nD, m_size),
@@ -124,7 +125,7 @@ def compute_J(self, f=None, Ainv=None):
             if not isinstance(df_dmT, Zero):
                 du_dmT += df_dmT
 
-            Jmatrix[count:count+rx.nD, :] = du_dmT.T
+            Jmatrix.set_orthogonal_selection((np.arange(count, count+rx.nD), slice(None)), du_dmT.T)
             count += rx.nD
 
             # blocks += [du_dmT.T]
