@@ -18,6 +18,7 @@ from .utils import (
     cartesian2spherical,
 )
 from .utils.code_utils import deprecate_property
+from discretize import TensorMesh, TreeMesh
 
 
 class InversionDirective(properties.HasProperties):
@@ -611,6 +612,95 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
             np.savez("{:03d}-{:s}".format(self.opt.iter, self.fileName), iterDict)
 
         self.outDict[self.opt.iter] = iterDict
+
+
+class SaveUBCModelEveryIteration(SaveEveryIteration):
+    """SaveModelEveryIteration"""
+
+    replace = True
+    saveComp = True
+    mapping = None
+    vector = False
+    mesh = None
+    file_name = "Model"
+
+    def initialize(self):
+
+        if getattr(self, "mapping", None) is None:
+            return self.mapPair()
+        print(
+            "SimPEG.SaveModelEveryIteration will save your models"
+            + f" in UBC format as: '###-{self.file_name!s}.mod'"
+        )
+
+    def endIter(self):
+
+        if not self.replace:
+            fileName = self.file_name + "Iter" + str(self.opt.iter)
+        else:
+            fileName = self.file_name
+
+        for prob, survey, reg in zip(self.prob, self.survey, self.reg.objfcts):
+
+            xc = self.mapping * self.opt.xc
+
+            if not self.vector:
+
+                if isinstance(self.mesh, TreeMesh):
+                    TreeMesh.writeUBC(
+                        self.mesh, fileName + ".msh", models={fileName + ".mod": xc}
+                    )
+
+                else:
+                    TensorMesh.writeModelUBC(self.mesh, fileName + ".mod", xc)
+            else:
+
+                nC = self.mesh.nC
+
+                if prob.coordinate_system == "spherical":
+                    vec_xyz = spherical2cartesian(
+                        xc.reshape((int(len(xc) / 3), 3), order="F")
+                    )
+                    theta = xc[nC : 2 * nC]
+                    phi = xc[2 * nC :]
+                else:
+                    vec_xyz = xc
+                    atp = cartesian2spherical(
+                        xc.reshape((int(len(xc) / 3), 3), order="F")
+                    )
+                    theta = atp[nC : 2 * nC]
+                    phi = atp[2 * nC :]
+
+                vec_x = vec_xyz[:nC]
+                vec_y = vec_xyz[nC : 2 * nC]
+                vec_z = vec_xyz[2 * nC :]
+
+                vec = np.c_[vec_x, vec_y, vec_z]
+
+                if self.saveComp:
+                    if isinstance(self.mesh, TreeMesh):
+                        TreeMesh.writeUBC(
+                            self.mesh,
+                            fileName + ".msh",
+                            models={
+                                fileName + ".dip": (np.rad2deg(theta)),
+                                fileName + ".azm": ((450 - np.rad2deg(phi)) % 360),
+                                fileName + "_TOT.mod": np.sum(vec ** 2, axis=1) ** 0.5,
+                            },
+                        )
+
+                    else:
+                        TensorMesh.writeModelUBC(
+                            self.mesh, fileName + ".dip", (np.rad2deg(theta))
+                        )
+                        TensorMesh.writeModelUBC(
+                            self.mesh, fileName + ".azm", (450 - np.rad2deg(phi)) % 360
+                        )
+                        TensorMesh.writeModelUBC(
+                            self.mesh,
+                            fileName + "_TOT.mod",
+                            np.sum(vec ** 2, axis=1) ** 0.5,
+                        )
 
 
 class Update_IRLS(InversionDirective):
