@@ -23,7 +23,7 @@ import SimPEG.electromagnetics.time_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import plot_layer, get_vertical_discretization_time
 
 plt.rcParams.update({'font.size': 16})
-save_file = False
+save_file = True
 
 
 #####################################################################
@@ -146,25 +146,6 @@ model[poly_inds] = slope_conductivity
 
 mapping = maps.ExpMap(nP=n_param)
 
-# MODEL TO SOUNDING MODELS METHOD 1
-# sounding_models = model.reshape(mesh2D.vnC, order='F')
-# sounding_models = np.fliplr(sounding_models)
-# sounding_models = mkvc(sounding_models.T)
-
-# MODEL TO SOUNDING MODELS METHOD 2
-sounding_models = model.reshape(mesh_soundings.vnC, order='C')
-sounding_models = np.flipud(sounding_models)
-sounding_models = mkvc(sounding_models)
-
-# FROM SOUNDING MODEL TO REGULAR
-# temp_model = sounding_models.reshape(mesh2D.vnC, order='C')
-# temp_model = np.fliplr(temp_model)
-# temp_model = mkvc(temp_model)
-
-chi = np.zeros_like(sounding_models)
-
-
-
 fig = plt.figure(figsize=(9, 3))
 ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
 log_mod = np.log10(model)
@@ -191,10 +172,21 @@ cbar = mpl.colorbar.ColorbarBase(
 cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 
 
+###############################################
+# Reorganize to a set of Sounding Models
+# --------------------------------------
+#
 
 
-fig = plt.figure(figsize=(4, 8))
-ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
+
+
+# MODEL TO SOUNDING MODELS METHOD 2
+sounding_models = model.reshape(mesh_soundings.vnC, order='C')
+sounding_models = np.flipud(sounding_models)
+sounding_models = mkvc(sounding_models)
+
+fig = plt.figure(figsize=(4, 7.5))
+ax1 = fig.add_axes([0.15, 0.12, 0.67, 0.78])
 log_mod_sounding = np.log10(sounding_models)
 sounding_models = np.log(sounding_models)
 
@@ -205,9 +197,12 @@ mesh_soundings.plotImage(
 )
 ax1.set_ylim(mesh_soundings.vectorNy.min(), mesh_soundings.vectorNy.max())
 
-ax1.set_title("Ordered Sounding Models")
-ax1.set_xlabel("hz (m)")
-ax1.set_ylabel("Profile Distance (m)")
+ax1.set_xticks([])
+ax1.set_yticks([])
+
+ax1.set_title("Sounding Models")
+ax1.set_xlabel("Layer")
+ax1.set_ylabel("Sounding Number")
 
 ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(
@@ -219,7 +214,6 @@ cbar = mpl.colorbar.ColorbarBase(
 cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 
 
-
 #######################################################################
 # Define the Forward Simulation and Predic Data
 # ----------------------------------------------
@@ -229,8 +223,8 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 
 # Simulate response for static conductivity
 simulation = em1d.simulation.StitchedEM1DTMSimulation(
-    survey=survey, thicknesses=thicknesses, sigmaMap=mapping, chi=chi,
-    topo=topo, parallel=False, n_cpu=2, verbose=True, Solver=PardisoSolver
+    survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
+    topo=topo, parallel=False, n_cpu=2, Solver=PardisoSolver
 )
 
 #simulation.model = sounding_models
@@ -257,7 +251,7 @@ d = np.reshape(dpred, (n_sounding, len(times)))
 fig, ax = plt.subplots(1,1, figsize = (7, 7))
 
 for ii in range(0, len(times)):
-    ax.semilogy(x, np.abs(d[:, ii]), '-', lw=2)
+    ax.semilogy(x, np.abs(d[:, ii]), 'k-', lw=3)
     
 ax.set_xlabel("Times (s)")
 ax.set_ylabel("|dBdt| (T/s)")
@@ -269,7 +263,7 @@ ax.set_ylabel("|dBdt| (T/s)")
 
 if save_file == True:
 
-    dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-4]
+    dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "08-tdem", "em1dtm_stitched"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
@@ -283,7 +277,7 @@ if save_file == True:
     np.savetxt(
         fname,
         np.c_[loc, fvec, dpred],
-        fmt='%.4e'
+        fmt='%.4e', header='X Y Z TIME DBDT_Z'
     )
 
 

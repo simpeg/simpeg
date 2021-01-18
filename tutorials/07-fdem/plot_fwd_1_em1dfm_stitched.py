@@ -2,8 +2,19 @@
 Stitched Forward Simulation for a Set of 1D Soundings
 =====================================================
 
+Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to predict
+frequency domain data for a set of "stitched" 1D soundings. That is, the data
+for each source is predicted for a separate, user-defined 1D model.
+In this tutorial, we focus on the following:
 
+    - Defining receivers, sources and the survey
+    - How to predict total field, secondary field or ppm data
+    - Interpolating a 2D/3D model to the set of sounding locations
+    - The organization of a set of 1D models
 
+For each sounding, we compute predicted data for a vertical magnetic dipole source
+located 30 m above the Earth's surface. The receiver is offset
+10 m horizontally from the source.
 
 
 """
@@ -34,10 +45,12 @@ save_file = True
 # sphinx_gallery_thumbnail_number = 3
 
 #####################################################################
-# topography
-# -------------
+# Topography
+# ----------
 #
+# The user may choose to define xyz topography here.
 #
+
 x = np.linspace(50,4950,50)
 y = np.zeros_like(x)
 z = np.zeros_like(x)
@@ -47,30 +60,34 @@ topo = np.c_[x, y, z].astype(float)
 # Create Survey
 # -------------
 #
+# Here we demonstrate a general way to define receivers, sources and the survey.
+# For this tutorial, we define a line or equally spaced soundings along the
+# Easting direction. However, there is no restriction on the spacing and position
+# of each sounding.
 #
+
 x = np.linspace(50,4950,50)
 n_sounding = len(x)
 
 source_locations = np.c_[x, np.zeros(n_sounding), 30 *np.ones(n_sounding)]
-source_current = 1.
-source_radius = 5.
 moment_amplitude=1.
 
 receiver_locations = np.c_[x+10., np.zeros(n_sounding), 30*np.ones(n_sounding)]
-receiver_orientation = "z"  # "x", "y" or "z"
-field_type = "ppm"  # "secondary", "total" or "ppm"
+receiver_orientation = "z"                    # "x", "y" or "z"
+field_type = "ppm"                            # "secondary", "total" or "ppm"
 
 frequencies = np.array([25., 100., 382, 1822, 7970, 35920], dtype=float)
 
+# For each sounding, we define the source and the associated receivers.
 source_list = []
-
 for ii in range(0, n_sounding):
-
+    
+    # Source and receiver locations
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
-
+    
+    # Define receiver list for source ii
     receiver_list = []
-
     receiver_list.append(
         em1d.receivers.PointReceiver(
             receiver_location, frequencies, orientation=receiver_orientation,
@@ -83,7 +100,8 @@ for ii in range(0, n_sounding):
             field_type=field_type, component="imag"
         )
     )
-
+        
+    # Define source ii
     source_list.append(
         em1d.sources.MagneticDipoleSource(
             receiver_list=receiver_list, location=source_location, orientation="z",
@@ -96,13 +114,28 @@ survey = em1d.survey.EM1DSurveyFD(source_list)
 
 
 ###############################################
-# Defining a Global Mesh
-# ----------------------
+# Defining a Global Mesh and Model
+# --------------------------------
+#
+# Here, we define a 2D or 3D mesh and model. Before performing the stitched 1D
+# simulation, we will find and organize the local 1D model for each sounding.
+#
+# The conductivity model for our simulation consists of a resistive overburden
+# and a conductive wedge that slopes in the Easting direction. As a result,
+# we define a global 2D model. 
 #
 
+# Conductivity values for each unit
+background_conductivity = 0.1
+overburden_conductivity = 0.025
+slope_conductivity = 0.4
+
+# For the background conductivity and set of frequencies, we want to determine
+# the optimum layer thicknesses for a set number of layers. Note that when defining
+# the thicknesses, it is the number of layers minus one.
 n_layer = 30
 thicknesses = get_vertical_discretization_frequency(
-    frequencies, sigma_background=0.1, n_layer=n_layer-1
+    frequencies, sigma_background=background_conductivity, n_layer=n_layer-1
 )
 
 dx = 100.
@@ -125,9 +158,7 @@ def PolygonInd(mesh, pts):
     return inds
 
 
-background_conductivity = 0.1
-overburden_conductivity = 0.025
-slope_conductivity = 0.4
+
 
 model = np.ones(n_param) * background_conductivity
 

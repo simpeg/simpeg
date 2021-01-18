@@ -2,20 +2,18 @@
 Forward Simulation for a Single 1D Sounding for a Susceptible and Chargeable Earth
 ==================================================================================
 
-Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to predict
-frequency domain data for a single sounding when the Earth is
-chargeable and/or susceptible In this tutorial, we focus on the following:
+Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to compare
+predicted frequency domain data for a single sounding when the Earth is
+purely conductive, conductive and magnetically susceptible, and when it is chargeable.
+In this tutorial, we focus on:
 
-    - General definition of sources and receivers
-    - How to define the survey
-    - Defining the model and all necessary mappings
-    - How to predict total field, secondary field or ppm data
-    - Defining models and mapping for dispersive conductivity and magnetic susceptibility
+    - Defining receivers, sources and the survey
+    - Defining physical properties when the Earth is chargeable and/or magnetic susceptibility
+    - Setting physical property values as constant in the simulation
 
 Our survey geometry consists of a vertical magnetic dipole source
-located 1 m above the Earth's surface. The receiver is offset
+located 30 m above the Earth's surface. The receiver is offset
 10 m horizontally from the source.
-
 
 
 """
@@ -40,14 +38,16 @@ plt.rcParams.update({'font.size': 16})
 # Create Survey
 # -------------
 #
-# Here we demonstrate a general way to define sources and receivers.
+# Here we demonstrate a general way to define the receivers, sources and survey.
+# For this tutorial, we define a single vertical magnetic dipole source as well
+# as receivers which measure real and imaginary ppm data for a set of frequencies.
 # 
 
-# Frequencies being observed
+# Frequencies being observed in Hz
 frequencies = np.logspace(0, 8, 41)
 
-# Define a list of receivers for each source. In this case we only have
-# one source so we will only make one list.
+# Define a list of receivers. The real and imaginary components are defined
+# as separate receivers.
 receiver_location = np.array([10., 0., 10.])
 receiver_orientation = "z"                   # "x", "y" or "z"
 field_type = "secondary"                     # "secondary", "total" or "ppm"
@@ -66,10 +66,11 @@ receiver_list.append(
     )
 )
 
-# Define the source list.
+# Define a source list. For each list of receivers, we define a source.
+# In this case, we define a single source.
 source_location = np.array([0., 0., 10.])
 source_orientation = 'z'                      # "x", "y" or "z"
-moment_amplitude = 1.
+moment_amplitude = 1.                         # dipole moment amplitude
 
 source_list = [
     em1d.sources.MagneticDipoleSource(
@@ -78,7 +79,7 @@ source_list = [
     )
 ]
 
-# Survey
+# Define a 1D FDEM survey
 survey = em1d.survey.EM1DSurveyFD(source_list)
 
 
@@ -86,35 +87,43 @@ survey = em1d.survey.EM1DSurveyFD(source_list)
 # Defining a Layered Earth Model
 # ------------------------------
 #
-# Here, we define the layer thicknesses and electrical resistivities for our
-# 1D simulation. If we have N layers, we define N electrical resistivity
-# values and N-1 layer thicknesses. The lowest layer is assumed to extend to
-# infinity. In the case of a halfspace, the layer thicknesses would be
-# an empty array.
+# Here, we define the layer thicknesses and physical properties for our
+# 1D simulation. If we have N layers, parameters for the physical properties
+# must be defined for each layer and we must provide N-1 layer thicknesses.
+# The lowest layer is assumed to extend to infinity.
+#
+# For this tutorial, we predict the response for a halfspace model, however
+# the script has been generalized to work for an arbitrary number of layers.
+# If the Earth is a halfspace, the thicknesses could instead be defined by
+# an empty array, and each physical property value by an array of length 1.
 #
 
 # Layer thicknesses
-thicknesses = np.array([20., 20.])
+thicknesses = np.array([20, 40])
 n_layer = len(thicknesses) + 1
 
 # In SimPEG, the Cole-Cole model is used to define a frequency-dependent
-# electrical conductivity when the Earth is chargeable. 
-sigma = 1e-2
-eta = 0.8
-tau = 0.0001
-c = 0.8
+# electrical conductivity when the Earth is chargeable.
+sigma = 1e-2        # infinite conductivity in S/m
+eta = 0.8           # intrinsice chargeability [0, 1]
+tau = 0.0001        # central time-relaxation constant in seconds
+c = 0.8             # phase constant [0, 1]
 
-# Magnetic susceptibility
+# Magnetic susceptibility in SI
 chi = 0.2
 
-# physical property models
+# For each physical property, the parameters must be defined for each layer.
+# In this case, we must define all parameters for the Cole-Cole conductive
+# as well as the magnetic susceptibility.
 sigma_model = sigma * np.ones(n_layer)
 eta_model = eta * np.ones(n_layer)
 tau_model =  tau * np.ones(n_layer)
 c_model = c * np.ones(n_layer)
 chi_model = chi * np.ones(n_layer)
 
-# Define a mapping for conductivities
+# Here, we let the infinite conductivity be the model. As a result, we only
+# need to define the mapping for this parameter. All other parameters used
+# to define physical properties will be fixed when creating the simulation.
 model_mapping = maps.IdentityMap(nP=n_layer)
 
 # Plot complex conductivity at all frequencies
@@ -139,17 +148,22 @@ plt.show()
 # Define the Forward Simulation and Predict Data
 # -----------------------------------------------
 #
-# Here we predict the FDEM sounding data. The simulation requires the user
-# define the survey, the layer thicknesses and a mapping from the model
-# to the conductivities of the layers.
+# Here we predict the FDEM sounding for several halfspace models
+# (conductive, susceptible, chargeable). Since the physical properties defining 
+# the Earth are different, it requires a separate simulation object be created
+# for each case. Each simulation requires the user
+# define the survey, the layer thicknesses and a mapping.
 # 
-# For now, only the static conductivity and static susceptibility are
-# invertible properties. Because of this, all other parameters defining
-# dispersive physical properties are permanently set when defining the
-# simulation.
+# A universal mapping was created by letting sigma be the model. All other
+# parameters used to define the physical properties are permanently set when
+# defining the simulation.
+#
+# When using the *SimPEG.electromagnetics.frequency_domain_1d* module, note that
+# predicted data are organized by source, then by receiver, then by frequency.
+#
 #
 
-# Simulate response for static conductivity
+# Response for conductive Earth
 simulation = em1d.simulation.EM1DFMSimulation(
     survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping
 )
@@ -194,28 +208,4 @@ ax.legend((
     'Real (susceptible)', 'Imaginary (susceptible)',
     'Real (chargeable)', 'Imaginary (chargeable)'
 ))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

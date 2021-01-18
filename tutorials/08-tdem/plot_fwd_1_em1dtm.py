@@ -1,9 +1,19 @@
 """
-Forward Simulation of 1D Time-Domain Data
-==============================================
+Forward Simulation for a Single 1D Sounding
+===========================================
 
+Here we use the module *SimPEG.electromangetics.time_domain_1d* to predict
+the transient response for a single sounding over a 1D layered Earth.
+In this tutorial, we focus on the following:
 
+    - Defining receivers, sources and the survey
+    - How to predict magnetic field data or its time-derivative
+    - The units of the model and resulting data
+    - Defining and running the 1D simulation for a single sounding
 
+Our survey geometry consists of a horizontal loop source with a radius of 6 m
+located 20 m above the Earth's surface. The receiver is located at the centre
+of the loop and measures the vertical component of the response.
 
 
 """
@@ -22,36 +32,42 @@ from SimPEG import maps
 import SimPEG.electromagnetics.time_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import plot_layer
 
-save_file = False
+save_file = True
 plt.rcParams.update({'font.size': 16})
+
+# sphinx_gallery_thumbnail_number = 2
 
 #####################################################################
 # Create Survey
 # -------------
 #
+# Here we demonstrate a general way to define the receivers, sources and survey.
+# For this tutorial, we define a single horizontal loop source as well
+# a receiver which measures the vertical component of the magnetic flux.
 #
 
 source_location = np.array([0., 0., 20.])  
-source_orientation = "z"  # "x", "y" or "z"
-source_current = 1.
-source_radius = 6.
+source_orientation = "z"                      # "x", "y" or "z"
+source_current = 1.                           # maximum on-time current
+source_radius = 6.                            # source loop radius
 
 receiver_location = np.array([0., 0., 20.])
-receiver_orientation = "z"  # "x", "y" or "z"
-field_type = "secondary"  # "secondary", "total" or "ppm"
+receiver_orientation = "z"                    # "x", "y" or "z"
+component = "b"                               # "h", "b", "dhdt" or "dbdt"
+field_type = "secondary"                      # "secondary" or "total"
+times = np.logspace(-5, -2, 31)               # time channels (s)
 
-times = np.logspace(-5, -2, 31)
-
-# Receiver list
+# Define receiver list. In our case, we have only a single receiver for each source.
+# When simulating the response for multiple component and/or field orientations,
+# multiple receiver objects are required.
 receiver_list = []
 receiver_list.append(
     em1d.receivers.PointReceiver(
-        receiver_location, times, orientation=receiver_orientation,
-        component="b"
+        receiver_location, times, orientation=receiver_orientation, component=component
     )
 )
 
-# Sources
+# Define source list. In our case, we have only a single source.
 source_list = [
     em1d.sources.HorizontalLoopSource(
         receiver_list=receiver_list, location=source_location,
@@ -59,14 +75,7 @@ source_list = [
     )
 ]
 
-#source_list = [
-#    em1d.sources.MagneticDipoleSource(
-#        receiver_list=receiver_list, location=source_location, orientation="z",
-#        I=source_current
-#    )
-#]
-
-# Survey
+# Define the survey
 survey = em1d.survey.EM1DSurveyTD(source_list)
 
 
@@ -126,7 +135,7 @@ ax.set_title("Magnetic Flux")
 
 if save_file == True:
 
-    dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-4]
+    dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "08-tdem", "em1dtm"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
@@ -136,7 +145,7 @@ if save_file == True:
     np.savetxt(
         fname,
         np.c_[times, dpred],
-        fmt='%.4e'
+        fmt='%.4e', header='TIME DBDT_Z'
     )
 
 

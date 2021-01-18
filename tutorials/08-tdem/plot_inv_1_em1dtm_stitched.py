@@ -46,19 +46,21 @@ plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8
 # is loaded to compare with the inversion result.
 #
 
-# storage bucket where we have the data
-data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dtm_stitched_data.tar.gz"
+## storage bucket where we have the data
+#data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dtm_stitched_data.tar.gz"
+#
+## download the data
+#downloaded_data = utils.download(data_source, overwrite=True)
+#
+## unzip the tarfile
+#tar = tarfile.open(downloaded_data, "r")
+#tar.extractall()
+#tar.close()
+#
+## filepath to data file
+#data_filename = downloaded_data.split(".")[0] + ".obs"
 
-# download the data
-downloaded_data = utils.download(data_source, overwrite=True)
-
-# unzip the tarfile
-tar = tarfile.open(downloaded_data, "r")
-tar.extractall()
-tar.close()
-
-# filepath to data file
-data_filename = downloaded_data.split(".")[0] + ".obs"
+data_filename = './em1dtm_stitched/em1dtm_stitched_data.obs'
 
 #####################################################################
 # topography
@@ -82,7 +84,7 @@ topo = np.c_[x, y, z].astype(float)
 #
 
 # Load field data
-dobs = np.loadtxt(str(data_filename))
+dobs = np.loadtxt(str(data_filename), skiprows=1)
 
 
 source_locations = np.unique(dobs[:, 0:3], axis=0)
@@ -211,7 +213,7 @@ starting_model = np.log(conductivity)
 # Simulate response for static conductivity
 simulation = em1d.simulation.StitchedEM1DTMSimulation(
     survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
-    topo=topo, verbose=True, Solver=PardisoSolver
+    topo=topo, Solver=PardisoSolver
 )
 
 # simulation = em1d.simulation.StitchedEM1DTMSimulation(
