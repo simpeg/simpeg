@@ -67,6 +67,7 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
     for src in simulation.survey.source_list:
         src.eval(simulation)
         for rx in src.receiver_list:
+            rx._Ps = {}
             rx.getP(simulation.mesh, rx.projGLoc(simulation.fieldsPair(simulation)))
     simulation.getSourceTerm()
 
