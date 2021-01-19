@@ -72,7 +72,8 @@ def create_nested_mesh(
         locations,
         base_mesh,
         method="convex_hull",
-        max_distance=100.
+        max_distance=100.,
+        finalize=True
 ):
     nested_mesh = TreeMesh(
         [base_mesh.h[0], base_mesh.h[1], base_mesh.h[2]], x0=base_mesh.x0
@@ -90,7 +91,7 @@ def create_nested_mesh(
     nested_mesh.insert_cells(
         base_mesh.gridCC[indices, :],
         base_mesh.cell_levels_by_index(np.where(indices)[0]),
-        finalize=True,
+        finalize=finalize,
     )
 
     #     global_active = active_from_xyz(global_mesh, topography, method='linear')
