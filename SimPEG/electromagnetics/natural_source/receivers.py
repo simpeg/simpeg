@@ -199,26 +199,16 @@ class Point1DImpedance(BaseRx):
 
         if adjoint:
             # Work backwards!
-            # print([info bot] !!!!!! ', bot, v, imp)
             gtop_v = (v / bot)
             gbot_v = (-imp * v / bot)
 
-            gh_v = -h[:, 0] * gbot_v
-            ge_v = e[:, 0] * gtop_v
-
-            # print('[info shapes ] !!!!!!!!!!! ', ge_v[:, None].shape, gh_v[:, None].shape, PEx.shape, PHy.shape)
-
-            gh_v = PHy.T @ gh_v[:, None].T
-            ge_v = PEx.T @ ge_v[:, None].T
-
-            # print('[info shapes 2] !!!!!!!!!!! ', ge_v.shape, gh_v.shape)
+            gh_v = PHy.T @ gbot_v
+            ge_v = PEx.T @ gtop_v
 
             gfu_h_v, gfm_h_v = f._hDeriv(src, None, gh_v, adjoint=True)
             gfu_e_v, gfm_e_v = f._eDeriv(src, None, ge_v, adjoint=True)
 
-            # print('[info shapes 3] !!!!!!!!!!! ', gfu_h_v.shape, gfm_h_v, gfu_e_v.shape, gfm_e_v)
-
-            return gfu_h_v + gfu_e_v, gfm_h_v + gfm_e_v
+            return gfu_h_v - gfu_e_v, gfm_h_v + gfm_e_v
 
         de_v = PEx @ f._eDeriv(src, du_dm_v, v, adjoint=False)
         dh_v = PHy @ f._hDeriv(src, du_dm_v, v, adjoint=False)
