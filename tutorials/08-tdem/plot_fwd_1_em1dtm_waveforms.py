@@ -1,6 +1,6 @@
 """
-Forward Simulation with Different Waveforms
-===========================================
+Forward Simulation for a Single 1D Sounding for Different Waveforms
+===================================================================
 
 
 

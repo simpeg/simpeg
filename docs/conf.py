@@ -35,7 +35,7 @@ sys.path.append(os.path.abspath(".{}_ext".format(os.path.sep)))
 extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.mathjax",
-    "sphinx.ext.linkcode",
+    # "sphinx.ext.linkcode",
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     # 'sphinxcontrib.napoleon',

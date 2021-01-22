@@ -68,6 +68,7 @@ receiver_list.append(
 )
 
 # Define source list. In our case, we have only a single source.
+# By default, the source assumes a step-off waveform.
 source_list = [
     em1d.sources.HorizontalLoopSource(
         receiver_list=receiver_list, location=source_location,
@@ -86,7 +87,11 @@ survey = em1d.survey.EM1DSurveyTD(source_list)
 # Here, we define the layer thicknesses and electrical conductivities for our
 # 1D simulation. If we have N layers, we define N electrical conductivity
 # values and N-1 layer thicknesses. The lowest layer is assumed to extend to
-# infinity.
+# infinity. If the Earth is a halfspace, the thicknesses can be defined by
+# an empty array, and the physical property values by an array of length 1.
+#
+# In this case, we have a more conductive layer within a background halfspace.
+# This can be defined as a 3 layered Earth model. 
 #
 
 # Physical properties
@@ -105,25 +110,38 @@ model[1] = layer_conductivity
 model_mapping = maps.IdentityMap(nP=n_layer)
 
 # Plot conductivity model
-plotting_mesh = TensorMesh([np.r_[thicknesses, 40.]])
-plot_layer(model, plotting_mesh, showlayers=False)
+thicknesses_for_plotting = np.r_[thicknesses, 40.]
+mesh_for_plotting = TensorMesh([thicknesses_for_plotting])
+
+fig = plt.figure(figsize=(6, 5))
+ax = fig.add_axes([0.15, 0.1, 0.8, 0.8])
+plot_layer(model, mesh_for_plotting, ax=ax, showlayers=False)
+plt.gca().invert_yaxis()
+
 
 #######################################################################
 # Define the Forward Simulation and Predict Data
 # ----------------------------------------------
 #
+# Here we define the simulation and predict the 1D TDEM sounding data.
+# The simulation requires the user define the survey, the layer thicknesses
+# and a mapping from the model to the conductivities of the layers.
+# 
+# When using the *SimPEG.electromagnetics.time_domain_1d* module,
+# predicted data are organized by source, then by receiver, then by time channel.
+#
 
-
-# Simulate response for static conductivity
+# Define the simulation
 simulation = em1d.simulation.EM1DTMSimulation(
     survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping,
 )
 
+# Predict data for a given model
 dpred = simulation.dpred(model)
 
-# Simulate response
+# Plot sounding
 fig = plt.figure(figsize = (8, 7))
-ax = fig.add_axes([0.1, 0.1, 0.8, 0.85])
+ax = fig.add_axes([0.15, 0.1, 0.8, 0.85])
 ax.loglog(times, dpred, 'k-o')
 ax.set_xlabel("Times (s)")
 ax.set_ylabel("|B| (T)")
@@ -143,9 +161,7 @@ if save_file == True:
     dpred += noise
     fname = dir_path + 'em1dtm_data.obs'
     np.savetxt(
-        fname,
-        np.c_[times, dpred],
-        fmt='%.4e', header='TIME DBDT_Z'
+        fname, np.c_[times, dpred], fmt='%.4e', header='TIME BZ'
     )
 
 

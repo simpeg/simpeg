@@ -8,7 +8,7 @@ purely conductive, conductive and magnetically susceptible, and when it is charg
 In this tutorial, we focus on:
 
     - Defining receivers, sources and the survey
-    - Defining physical properties when the Earth is chargeable and/or magnetic susceptibility
+    - Defining physical properties when the Earth is chargeable and/or magnetically susceptibility
     - Setting physical property values as constant in the simulation
 
 Our survey geometry consists of a vertical magnetic dipole source
@@ -113,7 +113,7 @@ c = 0.8             # phase constant [0, 1]
 chi = 0.2
 
 # For each physical property, the parameters must be defined for each layer.
-# In this case, we must define all parameters for the Cole-Cole conductive
+# In this case, we must define all parameters for the Cole-Cole conductivity
 # as well as the magnetic susceptibility.
 sigma_model = sigma * np.ones(n_layer)
 eta_model = eta * np.ones(n_layer)
