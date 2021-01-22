@@ -206,9 +206,9 @@ class Point1DImpedance(BaseRx):
             ge_v = PEx.T @ gtop_v
 
             gfu_h_v, gfm_h_v = f._hDeriv(src, None, gh_v, adjoint=True)
-            gfu_e_v, gfm_e_v = f._eDeriv(src, None, ge_v, adjoint=True)
+            gfu_e_v, gfm_e_v = f._eDeriv(src, None, -ge_v, adjoint=True)
 
-            return gfu_h_v - gfu_e_v, gfm_h_v + gfm_e_v
+            return gfu_h_v + gfu_e_v, gfm_h_v + gfm_e_v
 
         de_v = PEx @ f._eDeriv(src, du_dm_v, v, adjoint=False)
         dh_v = PHy @ f._hDeriv(src, du_dm_v, v, adjoint=False)
