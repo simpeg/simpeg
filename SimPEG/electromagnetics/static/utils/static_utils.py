@@ -855,12 +855,13 @@ def generate_dcip_survey_line(
 
 def writeUBC_DCobs(
     fileName,
-    data,
+    data_obj,
     dim,
     format_type,
     survey_type="dipole-dipole",
     ip_type=0,
     comment_lines="",
+    data=None
 ):
     """
     Write UBC GIF DCIP 2D or 3D observation file
@@ -878,7 +879,7 @@ def writeUBC_DCobs(
     :rtype: file
     """
 
-    if not isinstance(data, Data):
+    if not isinstance(data_obj, Data):
         raise Exception(
             "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
             "provided as the second input. The provided input is a "
@@ -890,6 +891,12 @@ def writeUBC_DCobs(
             )
         )
 
+    if data is not None:
+        assert data.shape == data_obj.dobs.shape, f"Mismatch between data vector of shape {data.shape} and data obj with shape {data_obj.dobs.shape}."
+        dobs = data
+
+    else:
+        dobs = data_obj.dobs
     if not ((dim == 2) | (dim == 3)):
         raise Exception("""dim must be either 2 or 3""" " not {}".format(dim))
 
@@ -921,7 +928,7 @@ def writeUBC_DCobs(
         fid.write(comment_lines)
 
     if dim == 2:
-        fid.write("{:d}\n".format(data.survey.nSrc))
+        fid.write("{:d}\n".format(data_obj.survey.nSrc))
 
     if ip_type != 0:
         fid.write("IPTYPE=%i\n" % ip_type)
@@ -930,7 +937,7 @@ def writeUBC_DCobs(
 
     count = 0
 
-    for src in data.survey.source_list:
+    for src in data_obj.survey.source_list:
 
         rx = src.receiver_list[0].locations
         nD = src.nD
@@ -971,8 +978,8 @@ def writeUBC_DCobs(
                         B,
                         M,
                         N,
-                        data.dobs[count : count + nD],
-                        data.relative_error[count : count + nD],
+                        dobs[count : count + nD],
+                        data_obj.relative_error[count : count + nD],
                     ],
                     delimiter=str(" "),
                     newline=str("\n"),
@@ -1009,8 +1016,8 @@ def writeUBC_DCobs(
                     np.c_[
                         M,
                         N,
-                        data.dobs[count : count + nD],
-                        data.relative_error[count : count + nD],
+                        dobs[count : count + nD],
+                        data_obj.relative_error[count : count + nD],
                     ],
                     delimiter=str(" "),
                     newline=str("\n"),
@@ -1041,17 +1048,14 @@ def writeUBC_DCobs(
             fid.close()
 
             fid = open(fileName, "ab")
-            if isinstance(data.relative_error, np.ndarray):
+            if isinstance(data_obj.relative_error, np.ndarray):
                 np.savetxt(
                     fid,
                     np.c_[
                         M,
                         N,
-                        data.dobs[count : count + nD],
-                        (
-                            data.relative_error[count : count + nD]
-                            + data.noise_floor[count : count + nD]
-                        ),
+                        dobs[count : count + nD],
+                        data_obj.standard_deviation[count : count + nD]
                     ],
                     fmt=str("%e"),
                     delimiter=str(" "),
@@ -1061,7 +1065,7 @@ def writeUBC_DCobs(
                 raise Exception(
                     """Uncertainities SurveyObject.std should be set.
                     Either float or nunmpy.ndarray is expected, """
-                    "not {}".format(type(data.relative_error))
+                    "not {}".format(type(data_obj.relative_error))
                 )
 
             fid.close()
