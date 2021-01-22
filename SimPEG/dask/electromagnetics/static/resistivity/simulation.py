@@ -129,7 +129,7 @@ def compute_J(self, f=None, Ainv=None):
                 if not isinstance(df_dmT, Zero):
                     du_dmT += df_dmT
 
-                Jmatrix.set_orthogonal_selection((np.arange(count, count+(end - start)), slice(None)), du_dmT.T)
+                Jmatrix.set_orthogonal_selection((np.arange(count, count+(end - start)), slice(None)), du_dmT.T.reshape((-1, m_size)))
                 del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
                 count += (end - start)
 
