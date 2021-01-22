@@ -93,7 +93,7 @@ def compute_J(self, f=None, Ainv=None):
 
     m_size = self.model.size
     row_blocks = int(np.ceil(
-        self.survey.nD / np.ceil(m_size * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
+        float(self.survey.nD) / np.ceil(float(m_size) * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
     ))
 
     # if os.path.exists(self.sensitivity_path + f"J.zarr"):
@@ -113,20 +113,25 @@ def compute_J(self, f=None, Ainv=None):
         u_source = f[source, self._solutionType]
 
         for rx in source.receiver_list:
-            PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-            df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
-            df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
-            ATinvdf_duT = Ainv * df_duT
-            dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
-            dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
-            du_dmT = -dA_dmT
-            if not isinstance(dRHS_dmT, Zero):
-                du_dmT += dRHS_dmT
-            if not isinstance(df_dmT, Zero):
-                du_dmT += df_dmT
 
-            Jmatrix.set_orthogonal_selection((np.arange(count, count+rx.nD), slice(None)), du_dmT.T)
-            count += rx.nD
+            PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+
+            for dd in range(int(np.ceil(PTv.shape[1] / row_blocks))):
+                start, end = dd*row_blocks, np.min([(dd+1)*row_blocks, PTv.shape[1]])
+                df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
+                df_duT, df_dmT = df_duTFun(source, None, PTv[:, start:end], adjoint=True)
+                ATinvdf_duT = Ainv * df_duT
+                dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
+                du_dmT = -dA_dmT
+                if not isinstance(dRHS_dmT, Zero):
+                    du_dmT += dRHS_dmT
+                if not isinstance(df_dmT, Zero):
+                    du_dmT += df_dmT
+
+                Jmatrix.set_orthogonal_selection((np.arange(count, count+(end - start)), slice(None)), du_dmT.T)
+                del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
+                count += (end - start)
 
             # blocks += [du_dmT.T]
             # if (count >= row_blocks) or count == self.survey.nD:
