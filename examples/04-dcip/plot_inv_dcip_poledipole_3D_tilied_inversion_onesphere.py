@@ -21,6 +21,7 @@ from SimPEG import (
     data
 )
 from SimPEG.electromagnetics.static import resistivity as dc, utils as DCutils
+from SimPEG.electromagnetics.static import induced_polarization as ip
 from dask.distributed import Client, LocalCluster
 from dask import config
 from SimPEG.utils.drivers import create_tile_meshes, create_nested_mesh
@@ -67,6 +68,7 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
     for src in simulation.survey.source_list:
         src.eval(simulation)
         for rx in src.receiver_list:
+            rx._Ps = {}
             rx.getP(simulation.mesh, rx.projGLoc(simulation.fieldsPair(simulation)))
     simulation.getSourceTerm()
 
@@ -325,7 +327,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     survey_dc = dc.Survey(src_lists)          # creates the survey
     # check if data is IP
     if data_type == "IP":
-        survey_dc = IP.from_dc_to_ip_survey(survey, dim="3D")
+        survey_dc = ip.from_dc_to_ip_survey(survey_dc, dim="3D")
 
     electrodes = utils.uniqueRows(electrodes)
     electrodes = electrodes[0]
@@ -374,7 +376,6 @@ def run(survey_type="pole-dipole", plotIt=True):
     # ln conductivity
     ln_sigback = np.log(1e-5)
     ln_sigc = np.log(1e-3)
-    ln_sigr = np.log(1e-6)
 
     # Define model
     # Background
@@ -444,7 +445,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     src_collect = []
     for ii, source in enumerate(survey_dc.source_list):
         source._q = None # need this for things to work
-        if cnt == 5 or ii == len(survey_dc.source_list)-1:
+        if cnt == 14 or ii == len(survey_dc.source_list)-1:
             src_collect.append(source)
             idx_end = idx_end + source.receiver_list[0].nD
             dobs = survey_dc.dobs[idx_start:idx_end]
@@ -673,7 +674,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     global_data.dobs = np.hstack(invProb.dpred)
     DCutils.writeUBC_DCobs("Predicted.pre", global_data, 3, "surface")
 
+
 if __name__ == '__main__':
     survey_type = 'dipole-dipole'
     run(survey_type=survey_type, plotIt=True)
-

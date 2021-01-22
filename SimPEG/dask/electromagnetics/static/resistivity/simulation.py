@@ -49,7 +49,7 @@ def dask_getJtJdiag(self, m, W=None):
         if W is None:
             self.gtgdiag = da.sum(self.Jmatrix ** 2, axis=0).compute()
         else:
-            w = da.from_array(W.diagonal())[:, None]
+            w = da.from_array(W.diagonal(), chunks='auto')[:, None]
             self.gtgdiag = da.sum((w * self.Jmatrix) ** 2, axis=0).compute()
 
     return self.gtgdiag
