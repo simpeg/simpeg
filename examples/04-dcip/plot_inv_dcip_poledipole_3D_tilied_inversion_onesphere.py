@@ -605,14 +605,14 @@ def run(survey_type="pole-dipole", plotIt=True):
     )
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
 
-    pred_0 = invProb.get_dpred(mstart, compute_J=True)
+    invProb.dpred = invProb.get_dpred(mstart, compute_J=True)
 
     # Start computing sensitivities right away
-    JtJdiag = np.zeros_like(mstart)
-    for local_misfit in local_misfits:
-        JtJdiag += local_misfit.getJtJdiag(mstart)
-
-    JtJdiag /= global_mesh.cell_volumes[active_cells] ** 2.
+    # JtJdiag = np.zeros_like(mstart)
+    # for local_misfit in local_misfits:
+    #     JtJdiag += local_misfit.getJtJdiag(mstart)
+    #
+    # JtJdiag /= global_mesh.cell_volumes[active_cells] ** 2.
 
 
     # order = np.argsort(JtJdiag)
@@ -638,13 +638,15 @@ def run(survey_type="pole-dipole", plotIt=True):
     target = directives.TargetMisfit()
     target.target = survey_dc.nD
     save_model = directives.SaveUBCModelEveryIteration(mesh=global_mesh, mapping=mapactive, file_name="DC_", replace=False)
+    save_pred = directives.SavePredictedEveryIteration(data=global_data, data_type='ubc_dc', file_name="DC_",
+                                                       replace=False)
 
     # Need to have basice saving function
     if use_preconditioner:
         update_Jacobi = directives.UpdatePreconditioner()
         updateSensW = directives.UpdateSensitivityWeights(threshold=1e-12)
         directiveList = [
-            save_model, updateSensW, beta, betaest, target, update_Jacobi
+            save_pred, save_model, updateSensW, beta, betaest, target, update_Jacobi
         ]
     else:
         directiveList = [

@@ -636,7 +636,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
     def endIter(self):
 
         if not self.replace:
-            fileName = self.file_name + "Iter" + str(self.opt.iter)
+            fileName = self.file_name + f"_{self.opt.iter}"
         else:
             fileName = self.file_name
 
@@ -648,7 +648,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
 
                 if isinstance(self.mesh, TreeMesh):
                     TreeMesh.writeUBC(
-                        self.mesh, fileName + ".msh", models={fileName + ".mod": xc}
+                        self.mesh, self.file_name + ".msh", models={fileName + ".mod": xc}
                     )
 
                 else:
@@ -681,7 +681,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                     if isinstance(self.mesh, TreeMesh):
                         TreeMesh.writeUBC(
                             self.mesh,
-                            fileName + ".msh",
+                            self.file_name + ".msh",
                             models={
                                 fileName + ".dip": (np.rad2deg(theta)),
                                 fileName + ".azm": ((450 - np.rad2deg(phi)) % 360),
@@ -701,6 +701,47 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
                             fileName + "_TOT.mod",
                             np.sum(vec ** 2, axis=1) ** 0.5,
                         )
+
+
+class SavePredictedEveryIteration(SaveEveryIteration):
+    """SaveModelEveryIteration"""
+
+    replace = True
+    data = None
+    file_name = "Predicted"
+    data_type = None
+
+    def initialize(self):
+
+        if self.data_type == 'ubc_dc':
+            from SimPEG.electromagnetics.static import utils as dc_utils
+
+        if getattr(self, "data_type", None) is not None:
+            assert self.data_type in ['ubc_dc', None], "data_type must be one of None or 'ubc_dc'"
+        print(
+            "SimPEG.SavePredictedEveryIteration will save your predicted"
+            + f" in UBC format as: '###-{self.file_name!s}.mod'"
+        )
+
+        if getattr(self.invProb, "dpred", None) is not None:
+            dpred = np.hstack(self.invProb.dpred)
+            if self.data_type == 'ubc_dc':
+                dc_utils.writeUBC_DCobs(f"{self.file_name}_0.pre", self.data, 3, "general", data=dpred)
+            else:
+                np.savetxt(f"{self.file_name}_0.pre", np.c_[self.data.survey.locations, dpred])
+
+    def endIter(self):
+        if not self.replace:
+            file_name = self.file_name + f"_{self.opt.iter}"
+        else:
+            file_name = self.file_name
+
+        dpred = np.hstack(self.invProb.dpred)
+        if self.data_type == 'ubc_dc':
+            from SimPEG.electromagnetics.static import utils as dc_utils
+            dc_utils.writeUBC_DCobs(f"{file_name}.pre", self.data, 3, "general", data=dpred)
+        else:
+            np.savetxt(f"{file_name}.pre", np.c_[self.data.survey.locations, dpred])
 
 
 class Update_IRLS(InversionDirective):
