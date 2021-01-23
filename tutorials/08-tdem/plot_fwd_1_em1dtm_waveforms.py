@@ -19,9 +19,28 @@ from matplotlib import pyplot as plt
 from SimPEG import maps
 import SimPEG.electromagnetics.time_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import ColeCole
-from SimPEG.electromagnetics.time_domain_1d.waveforms import TriangleFun, VTEMFun
 
 
+#####################################################################
+# Define Waveforms
+# ----------------
+#
+
+stepoff_waveform = em1d.waveforms.StepoffWaveform()
+
+waveform_times = np.r_[-0.01, -np.logspace(-2.01, -5, 31), 0.]
+triangle_waveform = em1d.waveforms.TriangleWaveform(
+        -0.01, -0.005, -1e-10, 1, waveform_times=waveform_times,
+        n_pulse=1, base_frequency=25
+)
+
+skytem_waveform_lm = em1d.waveforms.SkytemLM2015Waveform(
+        peak_time=-9.4274e-006, peak_current_amplitude=1.
+)
+
+skytem_waveform_hm = em1d.waveforms.SkytemHM2015Waveform(
+        -1.96368E-04, 1.
+)
 
 #####################################################################
 # Create Survey
@@ -52,48 +71,35 @@ receiver_list = [
 # Sources
 source_list = []
 
-# Step off
+# Stepoff Waveform
 source_list.append(
     em1d.sources.MagneticDipoleSource(
-        receiver_list=receiver_list, location=source_location,
-        orientation=source_orientation, moment_amplitude=moment_amplitude,
-        wave_type="stepoff"
+        receiver_list=receiver_list, location=source_location, waveform=stepoff_waveform,
+        orientation=source_orientation, moment_amplitude=moment_amplitude
     )
 )
 
 # Triangle Waveform
-time_input_currents = np.r_[-np.logspace(-2, -5, 31), 0.]
-input_currents = TriangleFun(time_input_currents+0.01, 5e-3, 0.01)
 source_list.append(
     em1d.sources.MagneticDipoleSource(
-        receiver_list=receiver_list, location=source_location,
-        moment_amplitude=moment_amplitude,
-        orientation=source_orientation,
-        wave_type="general",
-        time_input_currents=time_input_currents,
-        input_currents=input_currents,
-        n_pulse = 1,
-        base_frequency = 25.,
-        use_lowpass_filter=False,
-        high_cut_frequency=210*1e3
+        receiver_list=receiver_list, location=source_location, waveform=triangle_waveform,
+        orientation=source_orientation, moment_amplitude=moment_amplitude
     )
 )
 
-# VTEM waveform
-time_input_currents_2 = np.r_[-np.logspace(-2, -5, 31), 0.]
-input_currents_2 = VTEMFun(time_input_currents+0.01, 8e-3, 0.01, 1)
+# Skytem Waveform LM
 source_list.append(
     em1d.sources.MagneticDipoleSource(
-        receiver_list=receiver_list, location=source_location,
-        moment_amplitude=moment_amplitude,
-        orientation=source_orientation, 
-        wave_type="general",
-        time_input_currents=time_input_currents_2,
-        input_currents=input_currents_2,
-        n_pulse = 1,
-        base_frequency = 25.,
-        use_lowpass_filter=False,
-        high_cut_frequency=210*1e3
+        receiver_list=receiver_list, location=source_location, waveform=skytem_waveform_lm,
+        orientation=source_orientation, moment_amplitude=moment_amplitude
+    )
+)
+    
+    # Skytem Waveform HM
+source_list.append(
+    em1d.sources.MagneticDipoleSource(
+        receiver_list=receiver_list, location=source_location, waveform=skytem_waveform_hm,
+        orientation=source_orientation, moment_amplitude=moment_amplitude
     )
 )
 
@@ -110,11 +116,12 @@ survey = em1d.survey.EM1DSurveyTD(source_list)
 fig = plt.figure(figsize=(6, 4))
 ax = fig.add_axes([0.1, 0.1, 0.85, 0.8])
 ax.plot(np.r_[-1e-2, 0., 1e-10, 1e-3], np.r_[1., 1., 0., 0.], 'k', lw=2)
-ax.plot(time_input_currents, input_currents, 'b', lw=2)
-ax.plot(time_input_currents_2, input_currents_2, 'r', lw=2)
+ax.plot(waveform_times, triangle_waveform.waveform_currents, 'b', lw=2)
+ax.plot(skytem_waveform_lm.waveform_times, skytem_waveform_lm.waveform_currents, 'r', lw=2)
+ax.plot(skytem_waveform_hm.waveform_times, skytem_waveform_hm.waveform_currents, 'g', lw=2)
 ax.set_xlabel("Time (s)")
 ax.set_ylabel("Normalized Current (A)")
-ax.legend(["Step-off", "Triangular", "VTEM"])
+ax.legend(["Step-off", "Triangle", "SkyTEM LM", "SkyTEM HM"])
 
 
 
@@ -193,11 +200,11 @@ dpred = simulation.dpred(sigma_model)
 fig = plt.figure(figsize = (6, 5))
 d = np.reshape(dpred, (len(source_list), len(times))).T
 ax = fig.add_axes([0.1, 0.1, 0.8, 0.85])
-colorlist = ['k', 'b', 'r']
+colorlist = ['k', 'b', 'r', 'g']
 for ii, k in enumerate(colorlist):
     ax.loglog(times, np.abs(d[:, ii]), k, lw=2)
 
-ax.legend(["Step-off", "Triangular", "VTEM"])
+ax.legend(["Step-off", "Triangle", "SkyTEM LM", "SkyTEM HM"])
 ax.set_xlabel("Times (s)")
 ax.set_ylabel("|dB/dt| (T/s)")
 

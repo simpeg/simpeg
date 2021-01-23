@@ -54,24 +54,25 @@ class EM1DTMSimulation(BaseEM1DSimulation):
         """
 
         for src in self.survey.source_list:
-            if src.wave_type == "general":
+            waveform = src.waveform
+            if src.waveform.wave_type != "stepoff":
                 for rx in src.receiver_list:
 
-                    if src.moment_type == "single":
+                    if waveform.wave_type == "general":
                         time = rx.times
-                        pulse_period = src.pulse_period
-                        period = src.period
+                        pulse_period = waveform.pulse_period
+                        period = waveform.period
                     # Dual moment
                     else:
                         time = np.unique(np.r_[rx.times, rx.times_dual_moment])
                         pulse_period = np.maximum(
-                            src.pulse_period, src.pulse_period_dual_moment
+                            waveform.pulse_period, waveform.dual_pulse_period
                         )
-                        period = np.maximum(src.period, src.period_dual_moment)
+                        period = np.maximum(waveform.period, waveform.dual_period)
                     tmin = time[time>0.].min()
-                    if src.n_pulse == 1:
+                    if waveform.n_pulse == 1:
                         tmax = time.max() + pulse_period
-                    elif src.n_pulse == 2:
+                    elif waveform.n_pulse == 2:
                         tmax = time.max() + pulse_period + period/2.
                     else:
                         raise NotImplementedError("n_pulse must be either 1 or 2")
@@ -97,18 +98,17 @@ class EM1DTMSimulation(BaseEM1DSimulation):
         for src in self.survey.source_list:
             for rx in src.receiver_list:
 
-                if src.wave_type == "general":
-                    _, freq, ft, ftarg = check_time(
-                        rx.time_interval, -1, 'dlf',
-                        {'pts_per_dec': pts_per_dec, 'dlf': self.fftfilt}, 0
-                    )
-                elif src.wave_type == "stepoff":
+                if src.waveform.wave_type == "stepoff":
                     _, freq, ft, ftarg = check_time(
                         rx.times, -1, 'dlf',
                         {'pts_per_dec': pts_per_dec, 'dlf': self.fftfilt}, 0,
                     )
+
                 else:
-                    raise Exception("wave_type must be either general or stepoff")
+                    _, freq, ft, ftarg = check_time(
+                        rx.time_interval, -1, 'dlf',
+                        {'pts_per_dec': pts_per_dec, 'dlf': self.fftfilt}, 0
+                    )
 
                 rx.frequencies = freq
                 rx.ftarg = ftarg
@@ -260,13 +260,14 @@ class EM1DTMSimulation(BaseEM1DSimulation):
 
         COUNT = 0
         for ii, src in enumerate(self.survey.source_list):
+
             for jj, rx in enumerate(src.receiver_list):
 
                 u_temp = u[COUNT]
 
                 # use low-pass filter
-                if src.use_lowpass_filter:
-                    factor = src.lowpass_filter.copy()
+                if src.waveform.use_lowpass_filter:
+                    factor = src.waveform.lowpass_filter.copy()
                 else:
                     factor = np.ones_like(rx.frequencies, dtype=complex)
 
@@ -278,7 +279,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                     factor *= mu_0
 
                 # For stepoff waveform
-                if src.wave_type == 'stepoff':
+                if src.waveform.wave_type == 'stepoff':
 
                     # Compute EM responses
                     if u_temp.ndim == 1:
@@ -302,7 +303,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                 # For general waveform.
                 # Evaluate piecewise linear input current waveforms
                 # Using Fittermann's approach (19XX) with Gaussian Quadrature
-                elif src.wave_type == 'general':
+                else:
 
                     # Compute EM responses
                     if u_temp.ndim == 1:
@@ -318,20 +319,20 @@ class EM1DTMSimulation(BaseEM1DSimulation):
 
                         resp = piecewise_pulse_fast(
                             step_func, rx.times,
-                            src.time_input_currents,
-                            src.input_currents,
-                            src.period,
-                            n_pulse=src.n_pulse
+                            src.waveform.waveform_times,
+                            src.waveform.waveform_currents,
+                            src.waveform.period,
+                            n_pulse=src.waveform.n_pulse
                         )
 
                         # Compute response for the dual moment
-                        if src.moment_type == "dual":
+                        if src.waveform.wave_type == "dual":
                             resp_dual_moment = piecewise_pulse_fast(
                                 step_func, rx.times_dual_moment,
-                                src.time_input_currents_dual_moment,
-                                src.input_currents_dual_moment,
-                                src.period_dual_moment,
-                                n_pulse=src.n_pulse
+                                src.waveform.dual_waveform_times,
+                                src.waveform.dual_waveform_current,
+                                src.waveform.dual_period,
+                                n_pulse=src.waveform.n_pulse
                             )
                             # concatenate dual moment response
                             # so, ordering is the first moment data
@@ -366,20 +367,22 @@ class EM1DTMSimulation(BaseEM1DSimulation):
 
                             resp_i = piecewise_pulse_fast(
                                 step_func, rx.times,
-                                src.time_input_currents, src.input_currents,
-                                src.period, n_pulse=src.n_pulse
+                                src.waveform.waveform_times,
+                                src.waveform.waveform_currents,
+                                src.waveform.period,
+                                n_pulse=src.waveform.n_pulse
                             )
 
-                            if src.moment_type == "single":
+                            if src.waveform.wave_type != "dual":
                                 resp[:, i] = resp_i
                             else:
                                 resp_dual_moment_i = piecewise_pulse_fast(
                                     step_func,
                                     rx.times_dual_moment,
-                                    src.time_input_currents_dual_moment,
-                                    src.input_currents_dual_moment,
-                                    src.period_dual_moment,
-                                    n_pulse=src.n_pulse
+                                    src.waveform.dual_waveform_times,
+                                    src.waveform.dual_waveform_current,
+                                    src.waveform.dual_period,
+                                    n_pulse=src.waveform.n_pulse
                                 )
                                 resp[:, i] = np.r_[resp_i, resp_dual_moment_i]
 

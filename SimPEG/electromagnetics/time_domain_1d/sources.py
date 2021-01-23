@@ -18,87 +18,14 @@ class BaseTimeSrc(survey.BaseSrc):
     :param float moment_amplitude: magnitude of the dipole moment |m|
     """
 
-    wave_type = properties.StringChoice(
-        "Waveform",
-        default="stepoff",
-        choices=["stepoff", "general"]
-    )
-
-    moment_type = properties.StringChoice(
-        "Source moment type",
-        default="single",
-        choices=["single", "dual"]
-    )
-
-    n_pulse = properties.Integer(
-        "The number of pulses",
-    )
-
-    base_frequency = properties.Float(
-        "Base frequency (Hz)"
-    )
-
-    time_input_currents = properties.Array(
-        "Time for input currents", dtype=float
-    )
-
-    input_currents = properties.Array(
-        "Input currents", dtype=float
-    )
-
-    use_lowpass_filter = properties.Bool(
-        "Switch for low pass filter", default=False
-    )
-
-    high_cut_frequency = properties.Float(
-        "High cut frequency for low pass filter (Hz)",
-        default=210*1e3
-    )
-
-
-    # ------------- For dual moment ------------- #
-
-    time_input_currents_dual_moment = properties.Array(
-        "Time for input currents (dual moment)", dtype=float
-    )
-
-    input_currents_dual_moment = properties.Array(
-        "Input currents (dual moment)", dtype=float
-    )
-
-    base_frequency_dual_moment = properties.Float(
-        "Base frequency for the dual moment (Hz)"
-    )
-
-
-    def __init__(self, receiver_list=None, **kwargs):
-        super(BaseTimeSrc, self).__init__(receiver_list=receiver_list, **kwargs)
-
-
-    @property
-    def period(self):
-        return 1./self.base_frequency
-
-    @property
-    def pulse_period(self):
-        Tp = (
-            self.time_input_currents.max() -
-            self.time_input_currents.min()
+    def __init__(self, receiver_list=None, location=None, waveform=None, **kwargs):
+        super(BaseTimeSrc, self).__init__(
+            receiver_list=receiver_list, location=location, **kwargs
         )
-        return Tp
+        self.waveform = waveform
 
-    # ------------- For dual moment ------------- #
-    @property
-    def period_dual_moment(self):
-        return 1./self.base_frequency_dual_moment
 
-    @property
-    def pulse_period_dual_moment(self):
-        Tp = (
-            self.time_input_currents_dual_moment.max() -
-            self.time_input_currents_dual_moment.min()
-        )
-        return Tp
+    
 
     # Note: not relevant here
     # @property
@@ -132,8 +59,10 @@ class MagneticDipoleSource(BaseTimeSrc):
         "Dipole Orientation", default="z", choices=["z"]
     )
 
-    def __init__(self, receiver_list=None, **kwargs):
-        super(MagneticDipoleSource, self).__init__(receiver_list=receiver_list, **kwargs)
+    def __init__(self, receiver_list=None, location=None, waveform=None, **kwargs):
+        super(MagneticDipoleSource, self).__init__(
+            receiver_list=receiver_list, location=location, waveform=waveform, **kwargs
+        )
 
 
 class HorizontalLoopSource(BaseTimeSrc):
@@ -147,10 +76,12 @@ class HorizontalLoopSource(BaseTimeSrc):
 
     I = properties.Float("Source loop current", default=1.)
 
-    a = properties.Float("Source loop radius", default=1.)
+    a = properties.Float("Source loop radius", default=np.sqrt(1/np.pi))
 
-    def __init__(self, receiver_list=None, **kwargs):
-        super(HorizontalLoopSource, self).__init__(receiver_list=receiver_list, **kwargs)
+    def __init__(self, receiver_list=None, location=None, waveform=None,  **kwargs):
+        super(HorizontalLoopSource, self).__init__(
+            receiver_list=receiver_list, location=location, waveform=waveform, **kwargs
+        )
 
 
 class LineCurrentSource(BaseTimeSrc):
@@ -168,7 +99,9 @@ class LineCurrentSource(BaseTimeSrc):
         dtype=float
     )
 
-    def __init__(self, receiver_list=None, **kwargs):
-        super(LineCurrentSource, self).__init__(receiver_list=receiver_list, **kwargs)
+    def __init__(self, receiver_list=None, location=None, waveform=None,  **kwargs):
+        super(LineCurrentSource, self).__init__(
+            receiver_list=receiver_list, location=location, waveform=waveform, **kwargs
+        )
 
 
