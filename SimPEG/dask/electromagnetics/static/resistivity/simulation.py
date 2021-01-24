@@ -1,6 +1,7 @@
 from .....electromagnetics.static.resistivity.simulation import BaseDCSimulation as Sim
 from .....utils import Zero, mkvc
 from .....data import Data
+from ....utils import compute_chunk_sizes
 import dask
 import dask.array as da
 from dask.distributed import Future
@@ -95,10 +96,10 @@ def compute_J(self, f=None, Ainv=None):
     row_blocks = int(np.ceil(
         float(self.survey.nD) / np.ceil(float(m_size) * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
     ))
-
+    rowChunk, colChunk = compute_chunk_sizes(self.survey.nD, m_size, 128)
     # if os.path.exists(self.sensitivity_path + f"J.zarr"):
     #     shutil.rmtree(self.sensitivity_path + f"J.zarr")
-    synchronizer = zarr.ProcessSynchronizer('data/example.sync')
+    # synchronizer = zarr.ProcessSynchronizer('data/example.sync')
     Jmatrix = zarr.open(self.sensitivity_path + f"J.zarr",
                         mode='w',
                         shape=(self.survey.nD, m_size),
@@ -129,45 +130,41 @@ def compute_J(self, f=None, Ainv=None):
                 if not isinstance(df_dmT, Zero):
                     du_dmT += df_dmT
 
-                Jmatrix.set_orthogonal_selection((np.arange(count, count+(end - start)), slice(None)), du_dmT.T.reshape((-1, m_size)))
+                #
+                du_dmT = du_dmT.T.reshape((-1, m_size))
+
+                if len(blocks) == 0:
+                    blocks = du_dmT
+                else:
+                    blocks = np.vstack([blocks, du_dmT])
+
+                while blocks.shape[0] >= row_blocks:
+                    Jmatrix.set_orthogonal_selection(
+                        (np.arange(count, count + row_blocks), slice(None)),
+                        blocks[:row_blocks, :]
+                    )
+                    blocks = blocks[row_blocks:, :]
+                    block_count += 1
+                    count += row_blocks
+
                 del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
-                count += (end - start)
 
-            # blocks += [du_dmT.T]
-            # if (count >= row_blocks) or count == self.survey.nD:
-            #     block = da.vstack(blocks).rechunk('auto')
-            #     J = da.to_zarr(
-            #         block, self.sensitivity_path + f"J{block_count}.zarr",
-            #         compute=True, return_stored=True, overwrite=True
-            #     )
-            #     if Jmatrix is None:
-            #         Jmatrix = J
-            #
-            #     else:
-            #         Jmatrix = da.vstack([Jmatrix, J])
-            #         del J
-            #
-            #     block_count += 1
-            #     blocks = []
-            #     count = 0
+    if len(blocks) != 0:
+        Jmatrix.set_orthogonal_selection(
+            (np.arange(count, self.survey.nD), slice(None)),
+            blocks
+        )
 
-    # if blocks:
-    #     J = da.to_zarr(
-    #         da.vstack(blocks).rechunk('auto'), self.sensitivity_path + f"J{block_count}.zarr",
-    #         compute=True, overwrite=True
-    #     )
-    #     Jmatrix = da.vstack([Jmatrix, J])
-    #     del J
-
-
-    # for ii in range(block_count):
-    #     block_name = self.sensitivity_path + f"J{ii}.zarr"
-    #     dask_arrays.append(da.from_zarr(block_name))
-
-    # Jmatrix = da.vstack(dask_arrays)
-    Jmatrix = da.from_zarr(self.sensitivity_path + f"J.zarr")
+    del Jmatrix
     Ainv.clean()
-    return Jmatrix
+
+    # print("Computing Jvec")
+    # da.dot(Jmatrix, np.ones(m_size)).compute()
+    #
+    # print("Computing Jtvec")
+    # da.dot(np.ones(Jmatrix.shape[0]), Jmatrix).compute()
+    # print("Done")
+    return da.from_zarr(self.sensitivity_path + f"J.zarr")
 
 
 Sim.compute_J = compute_J
