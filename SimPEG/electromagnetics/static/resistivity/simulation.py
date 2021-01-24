@@ -481,17 +481,23 @@ class Simulation3DNodal(BaseDCSimulation):
         if mesh._meshType == "TREE":
             mesh.nodalGrad
 
+        # Form base operators
         self.Grad, self.Avg, self.cell_volumes
+
+        # Form source and receiver projections
+        for src in self.survey.source_list:
+            src.eval(self)
+            for rx in src.receiver_list:
+                rx._Ps = {}
+                rx.getP(self.mesh, rx.projGLoc(self.fieldsPair(self)))
+        self.getSourceTerm()
 
     @property
     def MeSigma(self, resistivity=None):
         """
         Inner product
         """
-        if resistivity is None:
-            return 3 * sdiag(self.Avg.T * (self.cell_volumes * mkvc(self.sigma)))
-        else:
-            return 3 * sdiag(self.Avg.T * (self.cell_volumes * mkvc(1.0 / resistivity)))
+        return 3 * sdiag(self.Avg.T * (self.cell_volumes * mkvc(self.sigma)))
 
     def MeSigmaDeriv(self, u, v=None, adjoint=False):
         """
@@ -545,15 +551,18 @@ class Simulation3DNodal(BaseDCSimulation):
 
         return self._Grad
 
-
-
     def getA(self, resistivity=None):
+
         """
         Make the A matrix for the cell centered DC resistivity problem
         A = G.T MeSigma G
         """
         Grad = self.Grad
-        MeSigma = self.MeSigma(resistivity=resistivity)
+
+        if resistivity is None:
+            MeSigma = self.MeSigma
+        else:
+            MeSigma = 3 * sdiag(self.Avg.T * (self.cell_volumes * mkvc(1.0 / resistivity)))
 
         A = Grad.T @ MeSigma @ Grad
 
