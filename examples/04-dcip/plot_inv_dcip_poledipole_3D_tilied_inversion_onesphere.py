@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 from time import time
 
 try:
-    from pymatsolver import Pardiso as Solver
+    from pymatsolver.direct import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 
@@ -61,16 +61,8 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
     max_chunk_size = 256
     simulation = dc.Simulation3DNodal(
         local_mesh, survey=local_survey, sigmaMap=mapping, storeJ=True,
-        Solver=Solver,
+        Solver=Solver, max_ram=1
     )
-
-    # Store the sources and receivers projection
-    for src in simulation.survey.source_list:
-        src.eval(simulation)
-        for rx in src.receiver_list:
-            rx._Ps = {}
-            rx.getP(simulation.mesh, rx.projGLoc(simulation.fieldsPair(simulation)))
-    simulation.getSourceTerm()
 
     simulation.mesh = TensorMesh([1])  # Light dummy
     del local_mesh,
@@ -418,8 +410,13 @@ def run(survey_type="pole-dipole", plotIt=True):
     simulation_g = dc.Simulation3DNodal(
         global_mesh, survey=survey_dc, sigmaMap=mapping, solver=Solver, model=mstart
     )
-
+    simulation_g.mesh = TensorMesh([1])  # Light dummy
+    # del local_mesh,
+    # local_map.local_mesh = None
+    expmap.mesh = None
+    mapactive.mesh = None
     global_data = simulation_g.make_synthetic_data(mtrue[active_cells], relative_error=0.05, noise_floor=1., add_noise=True)
+
 
     # # plot predicted data
     # plt.plot(global_data.dobs, '.')
@@ -607,35 +604,10 @@ def run(survey_type="pole-dipole", plotIt=True):
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
 
     invProb.dpred = invProb.get_dpred(mstart, compute_J=True)
-
-    # Start computing sensitivities right away
-    # JtJdiag = np.zeros_like(mstart)
-    # for local_misfit in local_misfits:
-    #     JtJdiag += local_misfit.getJtJdiag(mstart)
-    #
-    # JtJdiag /= global_mesh.cell_volumes[active_cells] ** 2.
-
-
-    # order = np.argsort(JtJdiag)
-    # JtJdiag = JtJdiag[order]
-    # for ii in [1, 2, 4, 8]:
-    #     temp = mstart.copy()
-    #     threshold = np.percentile(JtJdiag, ii)
-    #     temp[JtJdiag < threshold] = np.log(np.exp(mstart[JtJdiag < threshold])*1.5)
-    #     pred_t = invProb.get_dpred(temp)
-    #     residual = np.abs(np.hstack(pred_0) - np.hstack(pred_t)).max()
-    #
-    #     # threshold = global_mesh.cell_volumes[active_cells][order][np.searchsorted(JtJdiag, threshold)]
-    #     if residual > survey_dc.std.min():
-    #         print(f"Computed threshold J: {threshold} at {ii}th percentile")
-    #         print(f"{(JtJdiag < threshold).sum()} cells below threhold")
-    #         print(f"Max data residual {residual:.3e}")
-    #         break
-
     beta = directives.BetaSchedule(
         coolingFactor=coolingFactor, coolingRate=coolingRate
     )
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio, method="ratio")
     target = directives.TargetMisfit()
     target.target = survey_dc.nD
     save_model = directives.SaveUBCModelEveryIteration(mesh=global_mesh, mapping=mapactive, file_name="DC_", replace=False)

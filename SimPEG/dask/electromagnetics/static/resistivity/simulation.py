@@ -93,18 +93,22 @@ def compute_J(self, f=None, Ainv=None):
         f, Ainv = self.fields(self.model, return_Ainv=True)
 
     m_size = self.model.size
-    row_blocks = int(np.ceil(
+    row_chunks = int(np.ceil(
         float(self.survey.nD) / np.ceil(float(m_size) * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
     ))
-    rowChunk, colChunk = compute_chunk_sizes(self.survey.nD, m_size, 128)
+
+    n_blocks = int(self.max_ram * 1e+3 / self.max_chunk_size)
+    row_blocks = row_chunks * n_blocks
+    # rowChunk, colChunk = compute_chunk_sizes(self.survey.nD, m_size, 128)
     # if os.path.exists(self.sensitivity_path + f"J.zarr"):
     #     shutil.rmtree(self.sensitivity_path + f"J.zarr")
     # synchronizer = zarr.ProcessSynchronizer('data/example.sync')
-    Jmatrix = zarr.open(self.sensitivity_path + f"J.zarr",
-                        mode='w',
-                        shape=(self.survey.nD, m_size),
-                        chunks=(row_blocks, m_size),
-                        synchronizer=zarr.ThreadSynchronizer())
+    Jmatrix = zarr.open(
+        self.sensitivity_path + f"J.zarr",
+        mode='w',
+        shape=(self.survey.nD, m_size),
+        chunks=(row_chunks, m_size)
+    )
 
     blocks = []
     count = 0
@@ -117,8 +121,8 @@ def compute_J(self, f=None, Ainv=None):
 
             PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
 
-            for dd in range(int(np.ceil(PTv.shape[1] / row_blocks))):
-                start, end = dd*row_blocks, np.min([(dd+1)*row_blocks, PTv.shape[1]])
+            for dd in range(int(np.ceil(PTv.shape[1] / row_chunks))):
+                start, end = dd*row_chunks, np.min([(dd+1)*row_chunks, PTv.shape[1]])
                 df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
                 df_duT, df_dmT = df_duTFun(source, None, PTv[:, start:end], adjoint=True)
                 ATinvdf_duT = Ainv * df_duT
@@ -138,22 +142,40 @@ def compute_J(self, f=None, Ainv=None):
                 else:
                     blocks = np.vstack([blocks, du_dmT])
 
-                while blocks.shape[0] >= row_blocks:
+                while blocks.shape[0] >= row_chunks:
+                    # dask_arrays += [
+                    #     da.to_zarr(
+                    #         da.from_array(blocks, chunks=(row_chunks, m_size)),
+                    #         self.sensitivity_path + f"J{block_count}.zarr",
+                    #         overwrite=True, return_stored=True, compute=True
+                    #     )
+                    # ]
                     Jmatrix.set_orthogonal_selection(
-                        (np.arange(count, count + row_blocks), slice(None)),
-                        blocks[:row_blocks, :]
+                        (np.arange(count, count + row_chunks), slice(None)),
+                        blocks[:row_chunks, :]
                     )
-                    blocks = blocks[row_blocks:, :]
+                    blocks = blocks[row_chunks:, :]
                     block_count += 1
-                    count += row_blocks
+                    count += row_chunks
 
                 del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
 
     if len(blocks) != 0:
+        # dask_arrays += [
+        #     da.to_zarr(
+        #         da.from_array(blocks, chunks=(row_chunks, m_size)),
+        #         self.sensitivity_path + f"J{block_count}.zarr",
+        #         overwrite=True, return_stored=True, compute=True
+        #     )
+        # ]
         Jmatrix.set_orthogonal_selection(
             (np.arange(count, self.survey.nD), slice(None)),
             blocks
         )
+    else:
+        block_count -= 1
+
+    self.block_count = block_count
 
     del Jmatrix
     Ainv.clean()
