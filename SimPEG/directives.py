@@ -8,7 +8,19 @@ import os
 from .data_misfit import BaseDataMisfit
 from .objective_function import ComboObjectiveFunction
 from .maps import SphericalSystem, ComboMap
-from .regularization import BaseComboRegularization, BaseRegularization
+from .regularization import (
+    BaseComboRegularization,
+    BaseRegularization,
+    SimpleSmall,
+    Small,
+    SparseSmall,
+    SimpleSmoothDeriv,
+    SmoothDeriv,
+    SparseDeriv,
+    Simple,
+    Tikhonov,
+    Sparse,
+)
 from .utils import (
     mkvc,
     setKwargs,
@@ -16,6 +28,7 @@ from .utils import (
     diagEst,
     spherical2cartesian,
     cartesian2spherical,
+    eigenvalue_by_power_iteration,
 )
 from .utils.code_utils import deprecate_property
 from discretize import TensorMesh, TreeMesh
@@ -181,10 +194,17 @@ class DirectiveList(object):
 
 
 class BetaEstimate_ByEig(InversionDirective):
-    """BetaEstimate"""
+    """
+    Estimate the trade-off parameter beta between the data misfit(s) and the
+    regularization as a multiple of the ratio between the highest eigenvalue of the
+    data misfit term and the highest eigenvalue of the regularization.
+    The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
 
-    beta0 = None  #: The initial Beta (regularization parameter)
-    beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
+    """
+
+    beta0_ratio = 1.  #: the estimated ratio is multiplied by this to obtain beta
+    n_pw_iter = 4     #: number of power iterations for estimation.
+    seed = None       #: Random seed for the directive
 
     def initialize(self):
         """
@@ -211,24 +231,25 @@ class BetaEstimate_ByEig(InversionDirective):
             :rtype: float
             :return: beta0
         """
+        if self.seed is not None:
+            np.random.seed(self.seed)
 
         if self.debug:
             print("Calculating the beta0 parameter.")
 
         m = self.invProb.model
-        # f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
-        # Fix the seed for random vector for consistent result
-        np.random.seed(1)
-        x0 = np.random.rand(*m.shape)
+        dm_eigenvalue = eigenvalue_by_power_iteration(
+            self.dmisfit, m, n_pw_iter=self.n_pw_iter,
+        )
+        reg_eigenvalue = eigenvalue_by_power_iteration(
+            self.reg, m, n_pw_iter=self.n_pw_iter,
+        )
 
-        phi_d_deriv = self.dmisfit.deriv2(m, x0)
-        t = np.dot(x0, phi_d_deriv)
+        self.ratio = (dm_eigenvalue / reg_eigenvalue)
+        self.beta0 = self.beta0_ratio * self.ratio
 
-        reg = self.reg.deriv2(m, v=x0)
-        b = np.dot(x0, reg)
 
-        self.beta0 = self.beta0_ratio * np.asarray(t / b)
         self.invProb.beta = self.beta0
 
 
@@ -247,6 +268,166 @@ class BetaSchedule(InversionDirective):
                     )
                 )
             self.invProb.beta /= self.coolingFactor
+
+
+class AlphasSmoothEstimate_ByEig(InversionDirective):
+    """
+    Estimate the alphas multipliers for the smoothness terms of the regularization
+     as a multiple of the ratio between the highest eigenvalue of the
+    smallness term and the highest eigenvalue of each smoothness term of the regularization.
+    The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
+    """
+
+    alpha0_ratio = 1.  #: the estimated Alpha_smooth is multiplied by this ratio (int or array)
+    n_pw_iter = 4 #: number of power iterations for the estimate
+    verbose = False #: print the estimated alphas at the initialization
+    debug = False #: print the current process
+    seed = None # random seed for the directive
+
+    def initialize(self):
+        """
+        """
+        if self.seed is not None:
+            np.random.seed(self.seed)
+
+        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
+            nbr = np.sum(
+                [
+                    len(self.reg.objfcts[i].objfcts)
+                    for i in range(len(self.reg.objfcts))
+                ]
+            )
+            # Find the smallness terms in a two-levels combo-regularization.
+            smallness = []
+            alpha0 = []
+            for i, regobjcts in enumerate(self.reg.objfcts):
+                for j, regpart in enumerate(regobjcts.objfcts):
+                    alpha0 += [self.reg.multipliers[i] * regobjcts.multipliers[j]]
+                    smallness += [[i, j, isinstance(regpart, (SimpleSmall, Small, SparseSmall))]]
+            smallness = np.r_[smallness]
+            smallness = smallness[smallness[:, 2] == 1][:, :2][0]
+
+            # Find the smoothness terms in a two-levels combo-regularization.
+            smoothness = []
+            for i, regobjcts in enumerate(self.reg.objfcts):
+                for j, regpart in enumerate(regobjcts.objfcts):
+                    smoothness += [[i, j, isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))]]
+            smoothness = np.r_[smoothness]
+            mode = 1
+
+        else:
+            nbr = len(self.reg.objfcts)
+            alpha0 = self.reg.multipliers
+            smoothness = np.r_[
+                [
+                    isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))
+                    for regpart in self.reg.objfcts
+                ]
+            ]
+            mode = 2
+
+        if not isinstance(self.alpha0_ratio, np.ndarray):
+            self.alpha0_ratio = self.alpha0_ratio * np.ones(nbr)
+
+        if self.debug:
+            print("Calculating the Alpha0 parameter.")
+
+        m = self.invProb.model
+
+        if mode == 2:
+            smallness_eigenvalue = eigenvalue_by_power_iteration(
+                self.reg.objfcts[0], m, n_pw_iter=self.n_pw_iter,
+            )
+            for i in range(nbr):
+                if smoothness[i]:
+                    smooth_i_eigenvalue = eigenvalue_by_power_iteration(
+                        self.reg.objfcts[i], m, n_pw_iter=self.n_pw_iter,
+                    )
+                    ratio = smallness_eigenvalue / smooth_i_eigenvalue
+
+                    alpha0[i] *= self.alpha0_ratio[i] * ratio
+                    mtype = self.reg.objfcts[i]._multiplier_pair
+                    setattr(self.reg, mtype, alpha0[i])
+
+        elif mode == 1:
+            smallness_eigenvalue = eigenvalue_by_power_iteration(
+                self.reg.objfcts[smallness[0]].objfcts[smallness[1]],
+                m, n_pw_iter=self.n_pw_iter,
+            )
+            for i in range(nbr):
+                ratio = []
+                if smoothness[i, 2]:
+                    idx = smoothness[i, :2]
+                    smooth_i_eigenvalue = eigenvalue_by_power_iteration(
+                        self.reg.objfcts[idx[0]].objfcts[idx[1]],
+                        m, n_pw_iter=self.n_pw_iter,
+                    )
+
+                    ratio = np.divide(
+                        smallness_eigenvalue, smooth_i_eigenvalue,
+                        out=np.zeros_like(smallness_eigenvalue),
+                        where=smooth_i_eigenvalue != 0
+                    )
+
+                    alpha0[i] *= self.alpha0_ratio[i] * ratio
+                    mtype = (
+                        self.reg.objfcts[idx[0]]
+                        .objfcts[idx[1]]
+                        ._multiplier_pair
+                    )
+                    setattr(self.reg.objfcts[idx[0]], mtype, alpha0[i])
+
+        if self.verbose:
+            print("Alpha scales: ", self.reg.multipliers)
+            if mode == 1:
+                for objf in self.reg.objfcts:
+                    print("Alpha scales: ", objf.multipliers)
+
+
+class ScalingMultipleDataMisfits_ByEig(InversionDirective):
+    """
+    For multiple data misfits only: multiply each data misfit term
+    by the inverse of its highest eigenvalue and then
+    normalize the sum of the data misfit multipliers to one.
+    The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
+    """
+
+    n_pw_iter = 4 #: number of power iterations for the estimate
+    chi0_ratio = None  #: The initial scaling ratio (default is data misfit multipliers)
+    verbose = False #: print the estimated data misfits multipliers
+    debug = False #: print the current process
+    seed = None # random seed for the directive
+
+    def initialize(self):
+        """
+        """
+        if self.seed is not None:
+            np.random.seed(self.seed)
+
+        if self.debug:
+            print("Calculating the scaling parameter.")
+
+        if getattr(self.dmisfit, "objfcts", None) is None or len(self.dmisfit.objfcts) == 1:
+            raise TypeError("ScalingMultipleDataMisfits_ByEig only applies to joint inversion")
+
+        ndm = len(self.dmisfit.objfcts)
+        if self.chi0_ratio is not None:
+            self.chi0_ratio = self.chi0_ratio * np.ones(ndm)
+        else:
+            self.chi0_ratio = self.dmisfit.multipliers
+
+        m = self.invProb.model
+
+        dm_eigenvalue_list = []
+        for j, dm in enumerate(self.dmisfit.objfcts):
+            dm_eigenvalue_list += [eigenvalue_by_power_iteration(dm, m)]
+
+        self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]
+        self.chi0 = self.chi0 / np.sum(self.chi0)
+        self.dmisfit.multipliers = self.chi0
+
+        if self.verbose:
+            print("Scale Multipliers: ", self.dmisfit.multipliers)
 
 
 class TargetMisfit(InversionDirective):

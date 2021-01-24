@@ -188,7 +188,7 @@ class MagneticsDriver_Inv(object):
     @property
     def data(self):
         if getattr(self, "_data", None) is None:
-            self._data = utils.io_utils.readUBCmagneticsObservations(
+            self._data = utils.io_utils.read_mag3d_ubc(
                 self.basePath + self.obsfile
             )
         return self._data

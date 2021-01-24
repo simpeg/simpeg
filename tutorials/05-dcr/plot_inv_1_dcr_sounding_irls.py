@@ -256,7 +256,7 @@ IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=20)
 
 # Update the preconditionner
 update_Jacobi = directives.UpdatePreconditioner()

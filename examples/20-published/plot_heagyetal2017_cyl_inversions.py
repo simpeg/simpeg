@@ -109,7 +109,7 @@ def run(plotIt=True, saveFig=False):
 
     # Inversion Directives
     beta = directives.BetaSchedule(coolingFactor=4, coolingRate=3)
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=2.0)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1.0, seed=518936)
     target = directives.TargetMisfit()
     directiveList = [beta, betaest, target]
 
@@ -155,7 +155,7 @@ def run(plotIt=True, saveFig=False):
 
     # directives
     beta = directives.BetaSchedule(coolingFactor=4, coolingRate=3)
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=2.0)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1.0, seed=518936)
     target = directives.TargetMisfit()
     directiveList = [beta, betaest, target]
 

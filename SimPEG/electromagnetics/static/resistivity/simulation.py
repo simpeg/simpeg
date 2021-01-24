@@ -210,7 +210,6 @@ class BaseDCSimulation(BaseEMSimulation):
 
         if self._formulation == "EB":
             n = self.mesh.nN
-            # return NotImplementedError
 
         elif self._formulation == "HJ":
             n = self.mesh.nC
@@ -270,7 +269,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         BaseDCSimulation.__init__(self, mesh, **kwargs)
         self.setBC()
 
-    def getA(self):
+    def getA(self, resistivity=None):
         """
         Make the A matrix for the cell centered DC resistivity problem
         A = D MfRhoI G
@@ -278,7 +277,10 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
         D = self.Div
         G = self.Grad
-        MfRhoI = self.MfRhoI
+        if resistivity is None:
+            MfRhoI = self.MfRhoI
+        else:
+            MfRhoI = self.mesh.getFaceInnerProduct(resistivity, invMat=True)
         A = D @ MfRhoI @ G
 
         if self.bc_type == "Neumann":
@@ -482,12 +484,14 @@ class Simulation3DNodal(BaseDCSimulation):
         self.Grad, self.Avg, self.cell_volumes
 
     @property
-    def MeSigma(self):
+    def MeSigma(self, resistivity=None):
         """
         Inner product
         """
-        return 3 * sdiag(self.Avg.T * (self.cell_volumes * mkvc(self.sigma)))
-
+        if resistivity is None:
+            return 3 * sdiag(self.Avg.T * (self.cell_volumes * mkvc(self.sigma)))
+        else:
+            return 3 * sdiag(self.Avg.T * (self.cell_volumes * mkvc(1.0 / resistivity)))
 
     def MeSigmaDeriv(self, u, v=None, adjoint=False):
         """
@@ -542,14 +546,15 @@ class Simulation3DNodal(BaseDCSimulation):
         return self._Grad
 
 
-    def getA(self):
+
+    def getA(self, resistivity=None):
         """
         Make the A matrix for the cell centered DC resistivity problem
         A = G.T MeSigma G
         """
-
-        MeSigma = self.MeSigma
         Grad = self.Grad
+        MeSigma = self.MeSigma(resistivity=resistivity)
+
         A = Grad.T @ MeSigma @ Grad
 
         # Handling Null space of A
