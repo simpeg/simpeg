@@ -274,7 +274,7 @@ opt = optimization.ProjectedGNCG(
     maxIter=10, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-16
 )
 invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
-betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
+betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1, method="ratio")
 
 # Here is where the norms are applied
 # Use pick a threshold parameter empirically based on the distribution of
