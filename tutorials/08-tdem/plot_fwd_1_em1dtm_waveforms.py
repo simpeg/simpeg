@@ -1,7 +1,10 @@
 """
-Forward Simulation for a Single 1D Sounding for Different Waveforms
-===================================================================
+Forward Simulation for a 1D Sounding: Different Waveforms and Sources
+=====================================================================
 
+
+    - Stepoff, pre-existing and custom waveforms
+    - Source types for specific TEM systems
 
 
 
@@ -18,7 +21,6 @@ from matplotlib import pyplot as plt
 
 from SimPEG import maps
 import SimPEG.electromagnetics.time_domain_1d as em1d
-from SimPEG.electromagnetics.utils.em1d_utils import ColeCole
 
 
 #####################################################################
@@ -26,21 +28,68 @@ from SimPEG.electromagnetics.utils.em1d_utils import ColeCole
 # ----------------
 #
 
+# Unit stepoff waveform
 stepoff_waveform = em1d.waveforms.StepoffWaveform()
 
-waveform_times = np.r_[-0.01, -np.logspace(-2.01, -5, 31), 0.]
+# Triangular waveform
+waveform_times = np.r_[np.linspace(-0.02, -0.011, 10), -np.logspace(-2, -6, 61), 0.]
 triangle_waveform = em1d.waveforms.TriangleWaveform(
-        -0.01, -0.005, -1e-10, 1, waveform_times=waveform_times,
-        n_pulse=1, base_frequency=25
+        waveform_times, -0.02, -0.01, 0., 1
 )
 
-skytem_waveform_lm = em1d.waveforms.SkytemLM2015Waveform(
-        peak_time=-9.4274e-006, peak_current_amplitude=1.
+# Rectangular pulse waveform
+waveform_times = np.r_[np.linspace(-0.02, -0.011, 10), -np.logspace(-2, -6, 61), 0.]
+rectangular_waveform = em1d.waveforms.RectangularWaveform(
+        waveform_times, -0.004, 0., 1,
+        n_pulse=1, base_frequency=30
 )
 
-skytem_waveform_hm = em1d.waveforms.SkytemHM2015Waveform(
-        -1.96368E-04, 1.
+# Custom VTEM-like waveform
+waveform_times = np.r_[np.linspace(-0.02, -0.011, 10), -np.logspace(-2, -6, 61), 0.]
+vtem_waveform = em1d.waveforms.VTEMCustomWaveform(
+        waveform_times, -0.02, -0.005, 0., 200,
+        n_pulse=1, base_frequency=30
 )
+
+# VTEM plus 2015 waveform
+#vtem_waveform = em1d.waveforms.VTEMPlusWaveform(0.)
+
+# General waveform
+waveform_times = np.r_[np.linspace(-0.02, -0.011, 10), -np.logspace(-2, -6, 61), 0.]
+waveform_current = np.zeros(waveform_times.size)
+waveform_current[(waveform_times>=-0.015) & (waveform_times<0.)] = 1.
+general_waveform = em1d.waveforms.GeneralWaveform(
+        waveform_times=waveform_times, waveform_current=waveform_current
+)
+
+
+
+
+###############################################
+# Plot the Waveforms
+# ------------------
+#
+#
+
+fig = plt.figure(figsize=(6, 4))
+ax = fig.add_axes([0.1, 0.1, 0.85, 0.8])
+
+ax.plot(np.r_[-2e-2, 0., 1e-10, 1e-3], np.r_[1., 1., 0., 0.], 'k', lw=3)
+
+ax.plot(triangle_waveform.waveform_times, triangle_waveform.waveform_current, 'b', lw=2)
+
+ax.plot(rectangular_waveform.waveform_times, rectangular_waveform.waveform_current, 'r', lw=2)
+
+ax.plot(vtem_waveform.waveform_times, vtem_waveform.waveform_current, 'g', lw=2)
+
+ax.plot(general_waveform.waveform_times, general_waveform.waveform_current, 'm', lw=2)
+
+
+ax.set_xlabel("Time (s)")
+ax.set_ylabel("Normalized Current (A)")
+ax.legend(["Step-off", "Triangle", "Rectangular", "VTEM Plus", "General"])
+
+
 
 #####################################################################
 # Create Survey
@@ -58,7 +107,7 @@ receiver_location = np.array([10., 0., 0.])
 receiver_orientation = "z"  # "x", "y" or "z"
 field_type = "secondary"  # "secondary", "total" or "ppm"
 
-times = np.logspace(-5, -2, 41)
+times = np.logspace(-4, -1, 41)
 
 # Receiver list
 receiver_list = [
@@ -78,7 +127,7 @@ source_list.append(
         orientation=source_orientation, moment_amplitude=moment_amplitude
     )
 )
-
+    
 # Triangle Waveform
 source_list.append(
     em1d.sources.MagneticDipoleSource(
@@ -86,42 +135,37 @@ source_list.append(
         orientation=source_orientation, moment_amplitude=moment_amplitude
     )
 )
-
-# Skytem Waveform LM
+    
+# Rectangular Waveform
 source_list.append(
     em1d.sources.MagneticDipoleSource(
-        receiver_list=receiver_list, location=source_location, waveform=skytem_waveform_lm,
+        receiver_list=receiver_list, location=source_location, waveform=rectangular_waveform,
+        orientation=source_orientation, moment_amplitude=moment_amplitude
+    )
+)
+
+# VTEM Plus Waveform
+source_list.append(
+    em1d.sources.MagneticDipoleSource(
+        receiver_list=receiver_list, location=source_location, waveform=vtem_waveform,
         orientation=source_orientation, moment_amplitude=moment_amplitude
     )
 )
     
-    # Skytem Waveform HM
+# General Waveform
 source_list.append(
     em1d.sources.MagneticDipoleSource(
-        receiver_list=receiver_list, location=source_location, waveform=skytem_waveform_hm,
+        receiver_list=receiver_list, location=source_location, waveform=general_waveform,
         orientation=source_orientation, moment_amplitude=moment_amplitude
     )
 )
+
+
 
 
 # Survey
 survey = em1d.survey.EM1DSurveyTD(source_list)
 
-###############################################
-# Plot the Waveforms
-# ------------------
-#
-#
-
-fig = plt.figure(figsize=(6, 4))
-ax = fig.add_axes([0.1, 0.1, 0.85, 0.8])
-ax.plot(np.r_[-1e-2, 0., 1e-10, 1e-3], np.r_[1., 1., 0., 0.], 'k', lw=2)
-ax.plot(waveform_times, triangle_waveform.waveform_currents, 'b', lw=2)
-ax.plot(skytem_waveform_lm.waveform_times, skytem_waveform_lm.waveform_currents, 'r', lw=2)
-ax.plot(skytem_waveform_hm.waveform_times, skytem_waveform_hm.waveform_currents, 'g', lw=2)
-ax.set_xlabel("Time (s)")
-ax.set_ylabel("Normalized Current (A)")
-ax.legend(["Step-off", "Triangle", "SkyTEM LM", "SkyTEM HM"])
 
 
 
@@ -200,11 +244,11 @@ dpred = simulation.dpred(sigma_model)
 fig = plt.figure(figsize = (6, 5))
 d = np.reshape(dpred, (len(source_list), len(times))).T
 ax = fig.add_axes([0.1, 0.1, 0.8, 0.85])
-colorlist = ['k', 'b', 'r', 'g']
+colorlist = ['k', 'b', 'r', 'g', 'm']
 for ii, k in enumerate(colorlist):
     ax.loglog(times, np.abs(d[:, ii]), k, lw=2)
 
-ax.legend(["Step-off", "Triangle", "SkyTEM LM", "SkyTEM HM"])
+ax.legend(["Step-off", "Triangle", "Rectangular", "VTEM Plus", "General"])
 ax.set_xlabel("Times (s)")
 ax.set_ylabel("|dB/dt| (T/s)")
 

@@ -3,43 +3,17 @@ from scipy.interpolate import interp1d
 from scipy.constants import mu_0
 import properties
 
-class BaseWaveformEM1DTM(properties.HasProperties):
-    """Base waveform class for EM1DTM simulations."""
 
+class StepoffWaveform(properties.HasProperties):
+    """Waveform class for a unit stepoff function"""
 
-    wave_type = properties.StringChoice(
-        "Waveform type",
-        default="stepoff",
-        choices=["stepoff", "general", "dual"]
+    use_lowpass_filter = properties.Bool(
+        "Switch for low pass filter", default=False
     )
-
-    # moment_type = properties.StringChoice(
-    #     "Source moment type",
-    #     default="single",
-    #     choices=["single", "dual"]
-    # )
 
     n_pulse = properties.Integer(
         "The number of pulses",
         default=1
-    )
-
-    base_frequency = properties.Float(
-        "Base frequency (Hz)"
-    )
-
-    waveform_times = properties.Array(
-        "Time for input currents", dtype=float
-    )
-
-#    waveform_currents = properties.Array(
-#        "Input currents", dtype=float
-#    )
-    
-    _waveform_currents = None
-
-    use_lowpass_filter = properties.Bool(
-        "Switch for low pass filter", default=False
     )
 
     high_cut_frequency = properties.Float(
@@ -47,24 +21,35 @@ class BaseWaveformEM1DTM(properties.HasProperties):
         default=210*1e3
     )
 
-
-    # ------------- For dual moment ------------- #
-
-    dual_waveform_times = properties.Array(
-        "Time for input currents (dual moment)", dtype=float
-    )
-
-    dual_waveform_currents = properties.Array(
-        "Input currents (dual moment)", dtype=float
-    )
-
-    dual_base_frequency = properties.Float(
-        "Base frequency for the dual moment"
-    )
-    
     def __init__(self, **kwargs):
-        super(BaseWaveformEM1DTM, self).__init__(**kwargs)
+        super(StepoffWaveform, self).__init__()
 
+    @property
+    def wave_type(self):
+        return "stepoff"
+
+
+class GeneralWaveform(StepoffWaveform):
+    """Waveform class for general waveform"""
+
+    waveform_times = properties.Array(
+        "Time for input currents", dtype=float
+    )
+
+    waveform_current = properties.Array(
+        "Input currents", dtype=float
+    )
+
+    base_frequency = properties.Float(
+        "Base frequency (Hz)", default=30.
+    )
+
+    def __init__(self, **kwargs):
+        super(StepoffWaveform, self).__init__(**kwargs)
+
+    @property
+    def wave_type(self):
+        return "general"
 
     @property
     def period(self):
@@ -78,7 +63,29 @@ class BaseWaveformEM1DTM(properties.HasProperties):
         )
         return Tp
 
-    # ------------- For dual moment ------------- #
+
+class DualWaveform(GeneralWaveform):
+    """Waveform class supporting primary and dual moment waveforms"""
+
+    dual_waveform_times = properties.Array(
+        "Time for input currents (dual moment)", dtype=float
+    )
+
+    dual_waveform_current = properties.Array(
+        "Input currents (dual moment)", dtype=float
+    )
+
+    dual_base_frequency = properties.Float(
+        "Base frequency for the dual moment", default=30.
+    )
+
+    def __init__(self, **kwargs):
+        super(DualWaveform, self).__init__(**kwargs)
+
+    @property
+    def wave_type(self):
+        return "dual"
+
     @property
     def dual_period(self):
         return 1./self.dual_base_frequency
@@ -91,51 +98,30 @@ class BaseWaveformEM1DTM(properties.HasProperties):
         )
         return Tp
 
-class StepoffWaveform(BaseWaveformEM1DTM):
+class RectangularWaveform(GeneralWaveform):
+    """Rectangular waveform"""
 
-    def __init__(self, **kwargs):
-        super(StepoffWaveform, self).__init__(wave_type='stepoff', **kwargs)
+    _waveform_current = None
 
+    def __init__(self, waveform_times, start_time, end_time, peak_current_amplitude=1., **kwargs):
+        super(RectangularWaveform, self).__init__(**kwargs)
 
-class SquareWaveform(BaseWaveformEM1DTM):
-    """
-
-        Rectangular Waveform
-
-        * time: 1D array for time
-        * ta: time for transition from (+) to (-)
-        * tb: time at step-off
-
-        .. math::
-
-            I(t) = 1, 0 < t \\le t_a
-
-            I(t) = -1, t_a < t < t_b
-
-            I(t) = 0, t \\le t_a \\ \\text{or}  \\ t \\ge t_b
-
-    """
-    def __init__(self, start_time, end_time, peak_current_amplitude=1., **kwargs):
-        
-        super(SquareWaveform, self).__init__(
-            wave_type='general', **kwargs
-        )
-
+        self.waveform_times = waveform_times
         self.start_time = start_time
         self.end_time = end_time
         self.peak_current_amplitude = peak_current_amplitude
 
     @property
-    def waveform_currents(self):
+    def waveform_current(self):
 
-        if getattr(self, "_waveform_currents", None) is None:
+        if self._waveform_current is None:
             temp = np.zeros(self.waveform_times.size)
             temp[(self.waveform_times>self.start_time) & (self.waveform_times<self.end_time)] = self.peak_current_amplitude
-            self._waveform_currents = temp
+            self._waveform_current = temp
 
-        return self._waveform_currents
+        return self._waveform_current
         
-class TriangleWaveform(BaseWaveformEM1DTM):
+class TriangleWaveform(GeneralWaveform):
     """
         Triangular Waveform
         * time: 1D array for time
@@ -144,28 +130,69 @@ class TriangleWaveform(BaseWaveformEM1DTM):
         * off_time: off-time
     """
 
-    def __init__(self, start_time, peak_time, end_time, peak_current_amplitude=1., **kwargs):
-        super(TriangleWaveform, self).__init__(wave_type='general', **kwargs)
+    _waveform_current = None
 
+    def __init__(self, waveform_times, start_time, peak_time, end_time, peak_current_amplitude=1., **kwargs):
+        super(TriangleWaveform, self).__init__(**kwargs)
+
+        self.waveform_times = waveform_times
         self.start_time = start_time
         self.peak_time = peak_time
         self.end_time = end_time
         self.peak_current_amplitude = peak_current_amplitude
 
     @property
-    def waveform_currents(self):
+    def waveform_current(self):
 
-        if getattr(self, "_waveform_currents", None) is None:
+        if self._waveform_current is None:
             t = self.waveform_times
             temp = np.zeros(t.size)
             k = (t>=self.start_time) & (t<=self.peak_time)
             temp[k] = (t[k] - self.start_time) * self.peak_current_amplitude / (self.peak_time - self.start_time) 
             k = (t>=self.peak_time) & (t<=self.end_time)
             temp[k] = self.peak_current_amplitude * (1 - (t[k] - self.peak_time) / (self.end_time - self.peak_time))
+            self._waveform_current = temp
 
-            self._waveform_currents = temp
+        return self._waveform_current
 
-        return self._waveform_currents
+
+class VTEMCustomWaveform(GeneralWaveform):
+
+    _waveform_current = None
+
+    def __init__(self, waveform_times, start_time, peak_time, end_time, decay_constant, peak_current_amplitude=1., **kwargs):
+        super(VTEMCustomWaveform, self).__init__(**kwargs)
+
+        self.waveform_times = waveform_times
+        self.start_time = start_time
+        self.peak_time = peak_time
+        self.end_time = end_time
+        self.decay_constant = decay_constant
+        self.peak_current_amplitude = peak_current_amplitude
+    
+    @property
+    def waveform_current(self):
+
+        if self._waveform_current is None:
+            t = self.waveform_times
+            out = np.zeros(t.size)
+
+            k = (t>=self.start_time) & (t<=self.peak_time)
+            out[k] = (
+                self.peak_current_amplitude *
+                (1 - np.exp(-self.decay_constant*(t[k] - self.start_time))) / 
+                (1 - np.exp(-self.decay_constant*(self.peak_time - self.start_time)))
+            )
+
+            k = (t>=self.peak_time) & (t<=self.end_time)
+            out[k] = self.peak_current_amplitude * (1 - (t[k] - self.peak_time) / (self.end_time - self.peak_time))
+            
+            return out
+
+        return self._waveform_current
+
+
+
 
 
 # def TriangleFunDeriv(time, ta, tb):
@@ -197,17 +224,7 @@ class TriangleWaveform(BaseWaveformEM1DTM):
 #     return out
 
 
-# def VTEMFun(time, ta, tb, a):
-#     """
-#         VTEM Waveform
-#         * time: 1D array for time
-#         * ta: time at peak of exponential part
-#         * tb: time at step-off
-#     """
-#     out = np.zeros(time.size)
-#     out[time<=ta] = (1-np.exp(-a*time[time<=ta]/ta))/(1-np.exp(-a))
-#     out[(time>ta)&(time<tb)] = -1/(tb-ta)*(time[(time>ta)&(time<tb)]-tb)
-#     return out
+
 
 # def CausalConv(array1, array2, time):
 #     """
@@ -246,20 +263,50 @@ class TriangleWaveform(BaseWaveformEM1DTM):
 
 
 
+class VTEMPlusWaveform(GeneralWaveform):
 
 
-class SkytemHM2015Waveform(BaseWaveformEM1DTM):
+
+    def __init__(self, off_time=0.00734375, peak_current_amplitude=1., **kwargs):
+        super(VTEMPlusWaveform, self).__init__(**kwargs)
+
+        self.off_time = off_time
+        self.peak_current_amplitude = peak_current_amplitude
+
+    @property
+    def base_frequency(self):
+        return 25.
+
+    @property
+    def waveform_times(self):
+        return np.array([0. , 0.0014974 , 0.00299479, 0.00449219, 0.00598958, 0.00632813, 0.00666667, 0.00700521, 0.00734375]) - 0.00734375 + self.off_time
+
+    @property
+    def waveform_current(self):
+        return np.array([0.00682522, 0.68821963, 0.88968217, 0.95645264, 1., 0.84188057, 0.59605229, 0.296009  , 0.]) * self.peak_current_amplitude
+
+    
+
+class SkytemHM2015Waveform(GeneralWaveform):
     """
         SkyTEM High moment (HM) current waveform
     """
 
-    def __init__(self, peak_time=0., peak_current_amplitude=122.5, **kwargs):
+    def __init__(self, off_time=1.96368E-04, peak_current_amplitude=122.5, **kwargs):
         
-        super(SkytemHM2015Waveform, self).__init__(wave_type="general", **kwargs)
+        super(SkytemHM2015Waveform, self).__init__(**kwargs)
 
-        # Define the high moment
-        self.base_frequency = 30.
-        self.waveform_times = np.array([
+        self.off_time = off_time
+        self.peak_current_amplitude = peak_current_amplitude
+
+    # Define the high moment
+    @property
+    def base_frequency(self):
+        return 30.
+
+    @property
+    def waveform_times(self):
+        return np.array([
             -2.06670E-02,
             -2.05770E-02,
             -2.04670E-02,
@@ -274,9 +321,11 @@ class SkytemHM2015Waveform(BaseWaveformEM1DTM):
             1.94367E-04,
             1.95038E-04,
             1.96368E-04
-        ]) - peak_time
+            ]) - 1.96368E-04 + self.off_time
 
-        self.waveform_currents = np.array([
+    @property
+    def waveform_current(self):
+        return np.array([
             0.00000E+00,
             -5.30000E-01,
             -9.73000E-01,
@@ -291,21 +340,26 @@ class SkytemHM2015Waveform(BaseWaveformEM1DTM):
             2.81610E-03,
             1.44356E-03,
             0.00000E+00
-        ]) * peak_current_amplitude
+        ]) * self.peak_current_amplitude
 
 
-class SkytemLM2015Waveform(BaseWaveformEM1DTM):
+class SkytemLM2015Waveform(GeneralWaveform):
     """
         SkyTEM High moment (HM) current waveform
     """
 
-    def __init__(self, peak_time=0., peak_current_amplitude=8.3, **kwargs):
+    def __init__(self, off_time=9.4274e-006, peak_current_amplitude=8.3, **kwargs):
 
         super(SkytemLM2015Waveform, self).__init__(wave_type="general", **kwargs)
 
-        # Define the high moment
-        self.base_frequency = 210.
-        self.waveform_times = np.array([
+    # Define the high moment
+    @property
+    def base_frequency(self):
+        return 210.
+    
+    @property
+    def waveform_times(self):
+        return np.array([
             -3.1810e-003,
             -3.1100e-003,
             -2.7860e-003,
@@ -332,9 +386,11 @@ class SkytemLM2015Waveform(BaseWaveformEM1DTM):
             7.7420e-006,
             9.0699e-006,
             9.4274e-006,
-        ]) - peak_time
+        ]) - 9.4274e-006 + self.off_time
 
-        self.waveform_currents = np.array([
+    @property
+    def waveform_current(self):
+        return np.array([
             0,
             -1.0078e-001,
             -4.5234e-001,
@@ -361,6 +417,6 @@ class SkytemLM2015Waveform(BaseWaveformEM1DTM):
             1.3388e-002,
             4.4389e-003,
             0
-        ]) * peak_current_amplitude
+        ]) * self.peak_current_amplitude
 
     

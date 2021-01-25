@@ -320,7 +320,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                         resp = piecewise_pulse_fast(
                             step_func, rx.times,
                             src.waveform.waveform_times,
-                            src.waveform.waveform_currents,
+                            src.waveform.waveform_current,
                             src.waveform.period,
                             n_pulse=src.waveform.n_pulse
                         )
@@ -368,7 +368,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                             resp_i = piecewise_pulse_fast(
                                 step_func, rx.times,
                                 src.waveform.waveform_times,
-                                src.waveform.waveform_currents,
+                                src.waveform.waveform_current,
                                 src.waveform.period,
                                 n_pulse=src.waveform.n_pulse
                             )
