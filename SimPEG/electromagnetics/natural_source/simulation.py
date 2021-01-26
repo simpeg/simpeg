@@ -1,14 +1,20 @@
 import time
 import sys
 import numpy as np
+import properties
+from discretize.utils import isScalar
 from scipy.constants import mu_0
 from ...utils.code_utils import deprecate_class
 
-from ...utils import mkvc
-from ..frequency_domain.simulation import BaseFDEMSimulation
+from ...utils import mkvc, sdiag
+from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
 from ..utils import omega
-from .survey import Data
-from .fields import Fields1DPrimarySecondary, Fields3DPrimarySecondary
+from .survey import Data, Survey1D
+from .fields import (
+    Fields1DPrimarySecondary,
+    Fields1DElectricField,
+    Fields1DMagneticFluxDensity,
+)
 
 
 class BaseNSEMSimulation(BaseFDEMSimulation):
@@ -57,14 +63,10 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             Ainv = self.Solver(A, **self.solver_opts)
 
             for src in self.survey.get_sources_by_frequency(freq):
-                # We need fDeriv_m = df/du*du/dm + df/dm
-                # Construct du/dm, it requires a solve
-                # NOTE: need to account for the 2 polarizations in the derivatives.
                 u_src = f[
                     src, :
-                ]  # u should be a vector by definition. Need to fix this...
-                # dA_dm and dRHS_dm should be of size nE,2, so that we can multiply by Ainv.
-                # The 2 columns are each of the polarizations.
+                ]
+
                 dA_dm_v = self.getADeriv(
                     freq, u_src, v
                 )  # Size: nE,2 (u_px,u_py) in the columns.
@@ -80,7 +82,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                         src, self.mesh, f, mkvc(du_dm_v)
                     )  # wrt uPDeriv_u(mkvc(du_dm))
             Ainv.clean()
-        # Return the vectorized sensitivities
+
         return mkvc(Jv)
 
     def Jtvec(self, m, v, f=None):
@@ -117,27 +119,94 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
                 for rx in src.receiver_list:
                     # Get the adjoint evalDeriv
                     # PTv needs to be nE,2
-                    PTv = rx.evalDeriv(
-                        src, self.mesh, f, mkvc(v[src, rx]), adjoint=True
+                    df_duT, df_dmT = rx.evalDeriv(
+                        src, self.mesh, f, v=v[src, rx], adjoint=True
                     )  # wrt f, need possibility wrt m
-                    # Get the
-                    dA_duIT = mkvc(ATinv * PTv)  # Force (nU,) shape
-                    dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv(freq, dA_duIT, adjoint=True)
-                    # Make du_dmT
+
+                    ATinvdf_duT = ATinv * df_duT
+
+                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(freq, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
-                    # Select the correct component
-                    # du_dmT needs to be of size (nP,) number of model parameters
-                    real_or_imag = rx.component
-                    if real_or_imag == "real":
-                        Jtv += np.array(du_dmT, dtype=complex).real
-                    elif real_or_imag == "imag":
-                        Jtv += -np.array(du_dmT, dtype=complex).real
-                    else:
-                        raise Exception("Must be real or imag")
+
+                    df_dmT = df_dmT + du_dmT
+
+                    Jtv += np.array(df_dmT, dtype=complex).real
+
             # Clean the factorization, clear memory.
             ATinv.clean()
         return Jtv
+
+    def getJ(self, m, f=None):
+        """
+        Function to calculate the sensitivity matrix.
+        :param numpy.ndarray m: inversion model (nP,)
+        :param SimPEG.EM.NSEM.FieldsNSEM f (optional): NSEM fields object, if not given it is calculated
+        :rtype: numpy.ndarray
+        :return: J (nD, nP) Data sensitivities wrt m
+        """
+
+        if f is None:
+            f = self.fields(m)
+
+        self.model = m
+
+        J = np.empty((self.survey.nD, self.model.size))
+
+        istrt = 0
+        for freq in self.survey.frequencies:
+            AT = self.getA(freq).T
+
+            ATinv = self.Solver(AT, **self.solverOpts)
+
+            for src in self.survey.get_sources_by_frequency(freq):
+                # u_src needs to have both polarizations
+                u_src = f[src, :]
+
+                for rx in src.receiver_list:
+                    # Get the adjoint evalDeriv
+
+                    # Need to make PT
+                    # Ideally rx.evalDeriv will be updated to return a matrix,
+                    # but for now just calculate it like so...
+                    PT = np.empty((AT.shape[0], rx.nD * 2), dtype=complex, order="F")
+                    for i in range(rx.nD):
+                        v = np.zeros(rx.nD)
+                        v[i] = 1.0
+                        PTv = rx.evalDeriv(src, self.mesh, f, v, adjoint=True)
+                        PT[:, 2 * i : 2 * i + 2] = PTv
+
+                    dA_duIT = ATinv * PT
+                    dA_duIT = dA_duIT.reshape(-1, rx.nD, order="F")  # shape now nUxnD
+
+                    # getADeriv and getRHSDeriv should be updated to accept and return
+                    # matrices, but for now this works.
+                    # They should also be update to return the real parts as well.
+                    dA_dmT = np.empty((rx.nD, J.shape[1]))
+                    dRHS_dmT = np.empty((rx.nD, J.shape[1]))
+                    for i in range(rx.nD):
+                        dA_dmT[i, :] = self.getADeriv(
+                            freq, u_src, dA_duIT[:, i], adjoint=True
+                        ).real
+                        dRHS_dmT[i, :] = self.getRHSDeriv(
+                            freq, dA_duIT[:, i], adjoint=True
+                        ).real
+                    # Make du_dmT
+                    du_dmT = -dA_dmT + dRHS_dmT
+                    # Now just need to put it in the right spot.....
+                    real_or_imag = rx.component
+                    if real_or_imag == "real":
+                        J_rows = du_dmT
+                    elif real_or_imag == "imag":
+                        J_rows = -du_dmT
+                    else:
+                        raise Exception("Must be real or imag")
+                    iend = istrt + rx.nD
+                    J[istrt:iend, :] = J_rows
+                    istrt = iend
+            # Clean the factorization, clear memory.
+            ATinv.clean()
+        return J
 
 
 ###################################
@@ -203,8 +272,9 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
             Edge inner product matrix
         """
         # if getattr(self, '_MfSigmaDeriv', None) is None:
+        # print('[info mfsigmad] !!!!!!!!!!! ', u[:, 0])
         self._MfSigmaDeriv = (
-            self.mesh.getFaceInnerProductDeriv(self.sigma)(u) * self.sigmaDeriv
+            self.mesh.getFaceInnerProductDeriv(self.sigma)(u[:, 0]) * self.sigmaDeriv
         )
         return self._MfSigmaDeriv
 
@@ -276,7 +346,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
         Src = self.survey.get_sources_by_frequency(freq)[0]
 
-        S_eDeriv = mkvc(Src.S_eDeriv_m(self, v, adjoint),)
+        S_eDeriv = mkvc(Src.s_eDeriv_m(self, v, adjoint),)
         return -1j * omega(freq) * S_eDeriv
 
     def fields(self, m=None):
@@ -314,10 +384,265 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
         return F
 
 
+class Simulation1DElectricField(BaseFDEMSimulation):
+    """
+    1D finite volume simulation for the natural source electromagnetic problem.
+
+    This corresponds to the TE mode 2D simulation where the electric field is
+    located at cell centers and the magnetic flux is on edges.
+
+    We are solving the discrete version of
+
+    .. math::
+
+        -\partial E_y + i \omega B_x = 0
+
+        \partial_z \mu^{-1} B_x - sigma E_y = 0
+
+    with the boundary conditions that $E_y[z_max] = 1$ (a plane wave source at
+    the top of the domain), and $E_y[z_min] = 0$. This can later be updated to
+    mixed boundary conditions (see Haber, 2014).
+
+    When we discretize, we obtain:
+
+    .. math::
+
+        \mathbf{b} = \frac{1}{i\omega} \left( \mathbf{M^f}^{-1} \mathbf{D}^\top \mathbf{V} \mathbf{e} - \mathbf{B} \mathbf{e^{BC}} \right)
+
+        \left( \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma} \right) \mathbf{e} = \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{B} \mathbf{e^{BC}}
+
+    """
+
+    _solutionType = "eSolution"
+    _formulation = "HJ"  # magnetic component is on edges
+    fieldsPair = Fields1DElectricField
+    _clear_on_sigma_update = ["_MccSigma"]
+
+    # Must be 1D survey object
+    survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
+
+    def __init__(self, mesh, **kwargs):
+
+        if mesh.dim > 1:
+            raise ValueError(
+                f"The mesh must be a 1D mesh. The provided mesh has dimension {mesh.dim}"
+            )
+
+        super(Simulation1DElectricField, self).__init__(mesh, **kwargs)
+
+        # todo: update to enable user to input / customize boundary conditions
+        self._B = self.mesh.getBCProjWF("dirichlet")[0]
+        self._e_bc = np.r_[0, 1]  # 0 at the bottom of the domain, 1 at the top
+
+    @property
+    def MccSigma(self):
+        """
+        Cell centered inner product matrix for conductivity
+        """
+        if getattr(self, "_MccSigma", None) is None:
+            self._MccSigma = sdiag(self.sigma)
+        return self._MccSigma
+
+    def MccSigmaDeriv(self, u, v=None, adjoint=False):
+        """
+        Derivative of MccSigma with respect to the model times a vector
+        """
+        if self.sigmaMap is None:
+            return Zero()
+
+        if v is not None:
+            if not adjoint:
+                return u * (self.sigmaDeriv * v)
+            elif adjoint:
+                return self.sigmaDeriv.T * (u * v)
+        else:
+            mat = sdiag(u) * self.sigmaDeriv
+            if not adjoint:
+                return mat
+            elif adjoint:
+                return mat.T
+
+    def getA(self, freq):
+        """
+        System matrix
+
+        .. math::
+
+        \mathbf{A} = \mathbf{V} \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma}
+
+        """
+        D = self.mesh.faceDiv
+        MfMui = self.MfMui
+        MfI = self.MfI
+        MccSigma = self.MccSigma
+
+        return D @ MfMui @ MfI @ D.T + 1j * omega(freq) * MccSigma
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        """
+        Derivative with respect to the conductivity model
+        """
+
+        return 1j * omega(freq) * self.MccSigmaDeriv(u, v, adjoint)
+
+    def getRHS(self, freq):
+        """
+        Right hand side constructed using Dirichlet boundary conditions
+        """
+        D = self.mesh.faceDiv
+        MfMui = self.MfMui
+        B = self._B
+        ebc = self._e_bc
+
+        sources = self.survey.get_sources_by_frequency(freq)
+
+        return D @ (MfMui @ (B @ ebc))
+
+
+class Simulation1DMagneticFluxDensity(BaseFDEMSimulation):
+    """
+    1D finite volume simulation for the natural source electromagnetic problem.
+
+    This corresponds to the TM mode 2D simulation where the magnetic flux is
+    located at cell centers and the electric field is on edges.
+    """
+
+    _solutionType = "bSolution"
+    _formulation = "EB"
+    fieldsPair = Fields1DMagneticFluxDensity
+    _clear_on_sigma_update = ["_MfSigmaI", "_MfSigma", "_MfSigmaIDeriv"]
+
+    # Must be 1D survey object
+    survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
+
+    def __init__(self, mesh, **kwargs):
+        if mesh.dim > 1:
+            raise ValueError(
+                f"The mesh must be a 1D mesh. The provided mesh has dimension {mesh.dim}"
+            )
+
+        super(Simulation1DMagneticFluxDensity, self).__init__(mesh, **kwargs)
+
+        # todo: update to enable user to input / customize boundary conditions
+        self._B = self.mesh.getBCProjWF("dirichlet")[0]
+        self._b_bc = np.r_[0, 1]  # 0 at the bottom of the domain, 1 at the top
+
+    @property
+    def MccMui(self):
+        """
+        Cell centered inner product matrix for inverse magnetic permeability
+        """
+        if getattr(self, "_MccMui", None) is None:
+            mui = self.mui
+            if isScalar(mui):
+                mui = mui * np.ones(self.mesh.nC)
+            self._MccMui = sdiag(mui)
+        return self._MccMui
+
+    @property
+    def MfSigmaI(self):
+        """
+        Inverse of the face inner product matrix for sigma
+        """
+        if getattr(self, "_MfSigmaI", None) is None:
+            self._MfSigmaI = self.mesh.getFaceInnerProduct(self.sigma, invMat=True)
+        return self._MfSigmaI
+
+    @property
+    def MfSigma(self):
+        if getattr(self, "_MfSigma", None) is None:
+            self._MfSigma = self.mesh.getFaceInnerProduct(self.sigma)
+        return self._MfSigma
+
+    def MfSigmaDeriv(self, u, v=None, adjoint=False):
+        if self.sigmaMap is None:
+            return Zero()
+
+        if getattr(self, "_MfSigmaDeriv", None) is None:
+            self._MfSigmaDeriv = (
+                self.mesh.getFaceInnerProductDeriv(np.ones(self.mesh.nC))(
+                    np.ones(sef.mesh.nF)
+                )
+            ) * self.sigmaDeriv
+
+        if v is not None:
+            u = u.flatten()
+            if v.ndim > 1:
+                # promote u iff v is a matrix
+                u = u[:, None]  # Avoids constructing the sparse matrix
+            if adjoint is True:
+                return self._MfSigmaDeriv.T.dot(u * v)
+            return u * (self._MfSigmaDeriv.dot(v))
+        else:
+            if adjoint is True:
+                return self._MfSigmaDeriv.T.dot(sdiag(u))
+            return sdiag(u) * (self._MfSigmaDeriv)
+
+    def MfSigmaIDeriv(self, u, v=None, adjoint=False):
+        if self.sigmaMap is None:
+            return Zero()
+
+        dMfSigmaI_dI = -self.MfSigmaI ** 2
+
+        if adjoint:
+            return self.MfSigmaDeriv(dMfSigmaI_dI.dot(u), v=v, adjoint=adjoint)
+        return dMfSigmaI_dI.dot(self.MfSigmaDeriv(u, v=v))
+
+    def getA(self, freq):
+        """
+        system matrix
+        """
+        MccMui = self.MccMui
+        V = self.Vol
+        D = self.mesh.faceDiv
+        MfSigmaI = self.MfSigmaI
+
+        return (
+            V @ MccMui @ D @ MfSigmaI @ D.T @ MccMui @ V - 1j * omega(freq) * MccMui @ V
+        )
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        MccMui = self.MccMui
+        V = self.Vol
+        D = self.mesh.faceDiv
+
+        # V, MccMui are symmetric
+        return (
+            V
+            @ MccMui
+            @ D
+            @ self.MfSigmaIDeriv(D.T @ MccMui @ V @ u, v, adjoint=adjoint)
+        )
+
+    def getRHS(self, freq):
+        """
+        right hand side
+        """
+        MccMui = self.MccMui
+        D = self.mesh.faceDiv
+        V = self.Vol
+        B = self._B
+        bbc = self._b_bc
+
+        return V @ (MccMui @ (D @ (B @ bbc)))
+
+
+###################################
+# 2D problems
+###################################
+
+# class Simulation2DElectricField(BaseFDEMSimulation):
+#     """
+#     A
+#     """
+
+
 ###################################
 # 3D problems
 ###################################
-class Simulation3DPrimarySecondary(BaseNSEMSimulation):
+
+
+class Simulation3DPrimarySecondary(Simulation3DElectricField):
     """
     A NSEM problem solving a e formulation and a primary/secondary fields decompostion.
 
@@ -340,16 +665,10 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
 
     """
 
-    # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
-    _solutionType = ["e_pxSolution", "e_pySolution"]  # Forces order on the object
-    _formulation = "EB"
-    fieldsPair = Fields3DPrimarySecondary
-
     # Initiate properties
     _sigmaPrimary = None
 
-    def __init__(self, mesh, **kwargs):
-        super(Simulation3DPrimarySecondary, self).__init__(mesh, **kwargs)
+    # fieldsPair = Fields3DPrimarySecondary
 
     @property
     def sigmaPrimary(self):
@@ -363,227 +682,6 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     def sigmaPrimary(self, val):
         # Note: TODO add logic for val, make sure it is the correct size.
         self._sigmaPrimary = val
-
-    def getA(self, freq):
-        """
-        Function to get the A system.
-
-        :param float freq: Frequency
-        :rtype: scipy.sparse.csr_matrix
-        :return: A
-        """
-        Mfmui = self.MfMui
-        Mesig = self.MeSigma
-        C = self.mesh.edgeCurl
-
-        return C.T * Mfmui * C + 1j * omega(freq) * Mesig
-
-    def getADeriv(self, freq, u, v, adjoint=False):
-        """
-        Calculate the derivative of A wrt m.
-
-        :param float freq: Frequency
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM u: NSEM Fields object
-        :param numpy.ndarray v: vector of size (nU,) (adjoint=False)
-            and size (nP,) (adjoint=True)
-        :rtype: numpy.ndarray
-        :return: Calculated derivative (nP,) (adjoint=False) and (nU,)[NOTE return as a (nU/2,2)
-            columnwise polarizations] (adjoint=True) for both polarizations
-
-        """
-        # Fix u to be a matrix nE,2
-        # This considers both polarizations and returns a nE,2 matrix for each polarization
-        # The solution types
-        sol0, sol1 = self._solutionType
-
-        if adjoint:
-            dMe_dsigV = self.MeSigmaDeriv(
-                u[sol0], v[: self.mesh.nE], adjoint
-            ) + self.MeSigmaDeriv(u[sol1], v[self.mesh.nE :], adjoint)
-        else:
-            # Need a nE,2 matrix to be returned
-            dMe_dsigV = np.hstack(
-                (
-                    mkvc(self.MeSigmaDeriv(u[sol0], v, adjoint), 2),
-                    mkvc(self.MeSigmaDeriv(u[sol1], v, adjoint), 2),
-                )
-            )
-        return 1j * omega(freq) * dMe_dsigV
-
-    def getRHS(self, freq):
-        """
-        Function to return the right hand side for the system.
-
-        :param float freq: Frequency
-        :rtype: numpy.ndarray
-        :return: RHS for both polarizations, primary fields (nE, 2)
-
-        """
-
-        # Get sources for the frequncy(polarizations)
-        Src = self.survey.get_sources_by_frequency(freq)[0]
-        S_e = Src.S_e(self)
-        return -1j * omega(freq) * S_e
-
-    def getRHSDeriv(self, freq, v, adjoint=False):
-        """
-        The derivative of the RHS with respect to the model and the source
-
-        :param float freq: Frequency
-        :param numpy.ndarray v: vector of size (nU,) (adjoint=False)
-            and size (nP,) (adjoint=True)
-        :rtype: numpy.ndarray
-        :return: Calculated derivative (nP,) (adjoint=False) and (nU,2) (adjoint=True)
-            for both polarizations
-
-        """
-
-        # Note: the formulation of the derivative is the same for adjoint or not.
-        Src = self.survey.get_sources_by_frequency(freq)[0]
-        S_eDeriv = Src.S_eDeriv(self, v, adjoint)
-        dRHS_dm = -1j * omega(freq) * S_eDeriv
-
-        return dRHS_dm
-
-    def fields(self, m=None):
-        """
-        Function to calculate all the fields for the model m.
-
-        :param numpy.ndarray (nC,) m: Conductivity model
-        :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
-        :return: Fields object with of the solution
-
-        """
-        # Set the current model
-        if m is not None:
-            self.model = m
-
-        F = self.fieldsPair(self)
-        for freq in self.survey.frequencies:
-            if self.verbose:
-                startTime = time.time()
-                print("Starting work for {:.3e}".format(freq))
-                sys.stdout.flush()
-            A = self.getA(freq)
-            rhs = self.getRHS(freq)
-            # Solve the system
-            Ainv = self.Solver(A, **self.solver_opts)
-            e_s = Ainv * rhs
-
-            # Store the fields
-            Src = self.survey.get_sources_by_frequency(freq)[0]
-            # Store the fields
-            # Use self._solutionType
-            F[Src, "e_pxSolution"] = e_s[:, 0]
-            F[Src, "e_pySolution"] = e_s[:, 1]
-            # Note curl e = -iwb so b = -curl/iw
-
-            if self.verbose:
-                print("Ran for {:f} seconds".format(time.time() - startTime))
-                sys.stdout.flush()
-            Ainv.clean()
-        return F
-
-    # def fields2(self, freq):
-    #     """
-    #     Function to calculate all the fields for the model m.
-    #
-    #     :param numpy.ndarray (nC,) m: Conductivity model
-    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
-    #     :return: Fields object with of the solution
-    #
-    #     """
-    #     """
-    #     Function to calculate all the fields for the model m.
-    #
-    #     :param numpy.ndarray (nC,) m: Conductivity model
-    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
-    #     :return: Fields object with of the solution
-    #
-    #     """
-    #     A = self.getA(freq)
-    #     rhs = self.getRHS(freq)
-    #     # Solve the system
-    #     Ainv = self.Solver(A, **self.solver_opts)
-    #     e_s = Ainv * rhs
-    #
-    #     # Store the fields
-    #     # Src = self.survey.get_sources_by_frequency(freq)[0]
-    #     # Store the fields
-    #     # Use self._solutionType
-    #     # self.F[Src, 'e_pxSolution'] = e_s[:, 0]
-    #     # self.F[Src, 'e_pySolution'] = e_s[:, 1]
-    #         # Note curl e = -iwb so b = -curl/iw
-    #
-    #     Ainv.clean()
-    #     return e_s
-    #
-    # def fieldsMulti(self, freq):
-    #     """
-    #     Function to calculate all the fields for the model m.
-    #
-    #     :param numpy.ndarray (nC,) m: Conductivity model
-    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
-    #     :return: Fields object with of the solution
-    #
-    #     """
-    #     """
-    #     Function to calculate all the fields for the model m.
-    #
-    #     :param numpy.ndarray (nC,) m: Conductivity model
-    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
-    #     :return: Fields object with of the solution
-    #
-    #     """
-    #     A = self.getA(freq)
-    #     rhs = self.getRHS(freq)
-    #     # Solve the system
-    #     Ainv = self.Solver(A, **self.solver_opts)
-    #     e_s = Ainv * rhs
-    #
-    #     # Store the fields
-    #     Src = self.survey.get_sources_by_frequency(freq)[0]
-    #     # Store the fields
-    #     # Use self._solutionType
-    #     self.F[Src, 'e_pxSolution'] = e_s[:, 0]
-    #     self.F[Src, 'e_pySolution'] = e_s[:, 1]
-    #         # Note curl e = -iwb so b = -curl/iw
-    #     Ainv.clean()
-    #
-    # def fieldsParallel(self, m=None):
-    #     parallel = 'dask'
-    #
-    #     if m is not None:
-    #         self.model = m
-    #
-    #     F = self.fieldsPair(self)
-    #
-    #     if parallel == 'dask':
-    #         output = []
-    #         f_ = dask.delayed(self.fields2, pure=True)
-    #         for freq in self.survey.frequencies:
-    #             output.append(da.from_delayed(f_(freq), (self.model.size, 2), dtype=float))
-    #
-    #         e_s = da.hstack(output).compute()
-    #         cnt = 0
-    #         for freq in self.survey.frequencies:
-    #             index = cnt * 2
-    #             # Store the fields
-    #             Src = self.survey.get_sources_by_frequency(freq)[0]
-    #             # Store the fields
-    #             # Use self._solutionType
-    #             F[Src, 'e_pxSolution'] = e_s[:, index]
-    #             F[Src, 'e_pySolution'] = e_s[:, index + 1]
-    #             cnt += 1
-    #
-    #     elif parallel == 'multipro':
-    #         self.F = F
-    #         pool = multiprocessing.Pool()
-    #         pool.map(self.fieldsMulti, self.survey.frequencies)
-    #         pool.close()
-    #         pool.join()
-    #
-    #     return F
 
 
 ############

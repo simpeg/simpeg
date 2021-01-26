@@ -3,9 +3,14 @@ import scipy.sparse as sp
 
 from ... import maps
 from ...utils import mkvc
+from ...utils.code_utils import deprecate_class
 from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
 from .utils.source_utils import homo1DModelSource
+import discretize
+from discretize.utils import volume_average
+
+import properties
 
 #################
 ###   Sources ###
@@ -28,17 +33,6 @@ from .utils.source_utils import homo1DModelSource
 #         self.frequency = float(frequency)
 #         BaseFDEMSrc.__init__(self, receiver_list)
 
-# 1D sources
-class Planewave_xy_1DhomotD(BaseFDEMSrc):
-    """
-    NSEM source for both polarizations (x and y) for the total Domain.
-
-    It calculates fields calculated based on conditions on the boundary of the domain.
-    """
-
-    def __init__(self, receiver_list, frequency):
-        super(Planewave_xy_1DhomotD, self).__init__(receiver_list, frequency)
-
 
 # Need to implement such that it works for all dims.
 # Rename to be more descriptive
@@ -50,31 +44,56 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
 
     """
 
-    def __init__(self, receiver_list, frequency):
+    _fields_per_source = 2
+
+    def __init__(self, receiver_list, frequency, sigma_primary=None):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         self.sigma1d = None
+        self._sigma_primary = sigma_primary
         super(Planewave_xy_1Dprimary, self).__init__(receiver_list, frequency)
 
-    def ePrimary(self, simulation):
-        # Get primary fields for both polarizations
-        if self.sigma1d is None:
-            # Set the sigma1d as the 1st column in the background model
-            if len(simulation._sigmaPrimary) == simulation.mesh.nC:
-                if simulation.mesh.dim == 1:
-                    self.sigma1d = simulation.mesh.r(
+    def _get_sigmas(self, simulation):
+        try:
+            return self._sigma1d, self._sigma_p
+        except AttributeError:
+            # set _sigma 1D
+            if self._sigma_primary is None:
+                self._sigma_primary = simulation.sigmaPrimary
+            # Create 3d_1d mesh like me...
+            if simulation.mesh.dim == 3:
+                mesh3d = simulation.mesh
+                x0 = mesh3d.x0
+                hs = [
+                    [mesh3d.vectorNx[-1] - x0[0]],
+                    [mesh3d.vectorNy[-1] - x0[1]],
+                    mesh3d.h[-1],
+                ]
+                mesh1d = discretize.TensorMesh(hs, x0=x0)
+                if len(self._sigma_primary) == mesh3d.nC:
+                    # volume average down to 1D mesh
+                    self._sigma1d = np.exp(
+                        volume_average(mesh3d, mesh1d, np.log(self._sigma_primary))
+                    )
+                elif len(self._sigma_primary) == mesh1d.nC:
+                    self._sigma1d = self._sigma_primary
+                else:
+                    self._sigma1d = np.ones(mesh1d.nC) * self._sigma_primary
+                self._sigma_p = np.exp(
+                    volume_average(mesh1d, mesh3d, np.log(self._sigma1d))
+                )
+            else:
+                self._sigma1d = simulation.mesh.r(
                         simulation._sigmaPrimary, "CC", "CC", "M"
                     )[:]
-                elif simulation.mesh.dim == 3:
-                    self.sigma1d = simulation.mesh.r(
-                        simulation._sigmaPrimary, "CC", "CC", "M"
-                    )[0, 0, :]
-            # Or as the 1D model that matches the vertical cell number
-            elif len(simulation._sigmaPrimary) == simulation.mesh.nCz:
-                self.sigma1d = simulation._sigmaPrimary
+                self._sigma_p = None
+                self.sigma1d = self._sigma1d
+            return self._sigma1d, self._sigma_p
 
+    def ePrimary(self, simulation):
         if self._ePrimary is None:
+            sigma_1d, _ = self._get_sigmas(simulation)
             self._ePrimary = homo1DModelSource(
-                simulation.mesh, self.frequency, self.sigma1d
+                simulation.mesh, self.frequency, sigma_1d
             )
         return self._ePrimary
 
@@ -88,34 +107,35 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
         bBG_bp = (-C * self.ePrimary(simulation)) * (1 / (1j * omega(self.frequency)))
         return bBG_bp
 
-    def S_e(self, simulation):
+    def s_e(self, simulation):
         """
         Get the electrical field source
         """
         e_p = self.ePrimary(simulation)
-        Map_sigma_p = maps.SurjectVertical1D(simulation.mesh)
-        sigma_p = Map_sigma_p._transform(self.sigma1d)
         # Make mass matrix
         # Note: M(sig) - M(sig_p) = M(sig - sig_p)
         # Need to deal with the edge/face discrepencies between 1d/2d/3d
         if simulation.mesh.dim == 1:
+            Map_sigma_p = maps.SurjectVertical1D(simulation.mesh)
+            sigma_p = Map_sigma_p._transform(self.sigma1d)
             Mesigma = simulation.mesh.getFaceInnerProduct(simulation.sigma)
             Mesigma_p = simulation.mesh.getFaceInnerProduct(sigma_p)
         if simulation.mesh.dim == 2:
             pass
         if simulation.mesh.dim == 3:
+            _, sigma_p = self._get_sigmas(simulation)
             Mesigma = simulation.MeSigma
             Mesigma_p = simulation.mesh.getEdgeInnerProduct(sigma_p)
-        return (Mesigma - Mesigma_p) * e_p
+        return Mesigma * e_p - Mesigma_p * e_p
 
-    def S_eDeriv(self, simulation, v, adjoint=False):
+    def s_eDeriv(self, simulation, v, adjoint=False):
         """
         The derivative of S_e with respect to
         """
 
-        return self.S_eDeriv_m(simulation, v, adjoint)
+        return self.s_eDeriv_m(simulation, v, adjoint)
 
-    def S_eDeriv_m(self, simulation, v, adjoint=False):
+    def s_eDeriv_m(self, simulation, v, adjoint=False):
         """
         Get the derivative of S_e wrt to sigma (m)
         """
@@ -142,21 +162,22 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
             # And stack them to be of the correct size
             e_p = self.ePrimary(simulation)
             if adjoint:
-                return simulation.MeSigmaDeriv(
-                    e_p[:, 0], v[: int(v.shape[0] / 2)], adjoint
-                ) + simulation.MeSigmaDeriv(
-                    e_p[:, 1], v[int(v.shape[0] / 2) :], adjoint
-                )
-                # return sp.hstack((
-                #     simulation.MeSigmaDeriv(e_p[:, 0]).T,
-                #     simulation.MeSigmaDeriv(e_p[:, 1]).T)) * v
-            else:
-                return np.hstack(
-                    (
-                        mkvc(simulation.MeSigmaDeriv(e_p[:, 0], v, adjoint), 2),
-                        mkvc(simulation.MeSigmaDeriv(e_p[:, 1], v, adjoint), 2),
-                    )
-                )
+                return simulation.MeSigmaDeriv(e_p, v, adjoint=adjoint)
+                # return simulation.MeSigmaDeriv(
+                #     e_p[:, 0], v[: int(v.shape[0] / 2)], adjoint
+                # ) + simulation.MeSigmaDeriv(
+                #     e_p[:, 1], v[int(v.shape[0] / 2) :], adjoint
+                # )
+            return simulation.MeSigmaDeriv(e_p, v, adjoint)
+            # return np.hstack(
+            #     (
+            #         mkvc(simulation.MeSigmaDeriv(e_p[:, 0], v, adjoint), 2),
+            #         mkvc(simulation.MeSigmaDeriv(e_p[:, 1], v, adjoint), 2),
+            #     )
+            # )
+
+    S_e = s_e
+    S_eDeriv = s_eDeriv
 
 
 class Planewave_xy_3Dprimary(BaseFDEMSrc):
@@ -166,20 +187,25 @@ class Planewave_xy_3Dprimary(BaseFDEMSrc):
     as fields in the full space of the simulation.
     """
 
-    def __init__(self, receiver_list, frequency):
+    _fields_per_source = 2
+
+    def __init__(self, receiver_list, frequency, sigma_primary=None):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
-        self.sigmaPrimary = None
+        self._sigma_primary = sigma_primary
         super(Planewave_xy_3Dprimary, self).__init__(receiver_list, frequency)
         # Hidden property of the ePrimary
         self._ePrimary = None
 
     def ePrimary(self, simulation):
+        # check if sigmaPrimary is set
+        if self._sigma_primary is None:
+            self._sigma_primary = simulation.sigmaPrimary
         # Get primary fields for both polarizations
-        self.sigmaPrimary = simulation._sigmaPrimary
+        self._sigma_primary = self._sigma_primary
 
         if self._ePrimary is None:
             self._ePrimary = homo3DModelSource(
-                simulation.mesh, self.sigmaPrimary, self.frequency
+                simulation.mesh, self._sigma_primary, self.frequency
             )
         return self._ePrimary
 
@@ -193,7 +219,7 @@ class Planewave_xy_3Dprimary(BaseFDEMSrc):
         bBG_bp = (-C * self.ePrimary(simulation)) * (1 / (1j * omega(self.frequency)))
         return bBG_bp
 
-    def S_e(self, simulation):
+    def s_e(self, simulation):
         """
         Get the electrical field source
         """
@@ -254,3 +280,36 @@ class Planewave_xy_3Dprimary(BaseFDEMSrc):
         else:
             # v should be nC size
             return MsigmaDeriv * v
+
+    S_e = s_e
+
+
+###########################################
+# Source for 1D solution
+
+
+class Planewave1D(BaseFDEMSrc):
+    """
+    Source class for the 1D and pseudo-3D problems.
+
+    :param list receiver_list: List of SimPEG.electromagnetics.natural_sources.receivers.AnalyticReceiver1D
+    :param float frequency: frequency for the source
+    """
+
+    def __init__(self, receiver_list, frequency):
+        super(Planewave1D, self).__init__(receiver_list, frequency)
+
+
+############
+# Deprecated
+############
+
+
+@deprecate_class(removal_version="0.15.0")
+class AnalyticPlanewave1D(Planewave1D):
+    pass
+
+
+@deprecate_class(removal_version="0.15.0")
+class Planewave_xy_1DhomotD(Planewave1D):
+    pass

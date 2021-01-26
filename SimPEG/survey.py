@@ -189,6 +189,8 @@ class BaseSrc(BaseSimPEG):
 
     _uid = properties.Uuid("unique identifier for the source")
 
+    _fields_per_source = 1
+
     loc = deprecate_property(
         location, "loc", new_name="location", removal_version="0.15.0"
     )
@@ -221,7 +223,7 @@ class BaseSrc(BaseSimPEG):
     @property
     def nD(self):
         """Number of data"""
-        return self.vnD.sum()
+        return sum(self.vnD)
 
     @property
     def vnD(self):
@@ -262,28 +264,34 @@ class BaseSurvey(properties.HasProperties):
         if len(set(value)) != len(value):
             raise Exception("The source_list must be unique")
         self._sourceOrder = dict()
-        [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(value)]
+        ii = 0
+        for src in value:
+            n_fields = src._fields_per_source
+            self._sourceOrder[src._uid] = [ii + i for i in range(n_fields)]
+            ii += n_fields
 
     # TODO: this should be private
     def getSourceIndex(self, sources):
         if not isinstance(sources, list):
             sources = [sources]
 
+        inds = []
         for src in sources:
             if getattr(src, "_uid", None) is None:
                 raise KeyError("Source does not have a _uid: {0!s}".format(str(src)))
-        inds = list(map(lambda src: self._sourceOrder.get(src._uid, None), sources))
-        if None in inds:
-            raise KeyError(
-                "Some of the sources specified are not in this survey. "
-                "{0!s}".format(str(inds))
-            )
+            ind = self._sourceOrder.get(src._uid, None)
+            if ind is None:
+                raise KeyError(
+                    "Some of the sources specified are not in this survey. "
+                    "{0!s}".format(str(inds))
+                )
+            inds.extend(ind)
         return inds
 
     @property
     def nD(self):
         """Number of data"""
-        return self.vnD.sum()
+        return sum(self.vnD)
 
     @property
     def vnD(self):
@@ -296,6 +304,11 @@ class BaseSurvey(properties.HasProperties):
     def nSrc(self):
         """Number of Sources"""
         return len(self.source_list)
+
+    @property
+    def _n_fields(self):
+        """number of fields required for solution"""
+        return sum(src._fields_per_source for src in self.source_list)
 
     #############
     # Deprecated

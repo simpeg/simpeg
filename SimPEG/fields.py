@@ -95,8 +95,7 @@ class Fields(properties.HasProperties):
         if getattr(self, "_shape", None) is not None:
             return self._shape
 
-        nSrc = self.survey.nSrc
-
+        n_fields = self.survey._n_fields
         nP = {
             "CC": self.mesh.nC,
             "N": self.mesh.nN,
@@ -104,7 +103,7 @@ class Fields(properties.HasProperties):
             "E": self.mesh.nE,
         }[loc]
 
-        return (nP, nSrc)
+        return (nP, n_fields)
 
     def _initStore(self, name):
         if name in self._fields:
@@ -158,7 +157,7 @@ class Fields(properties.HasProperties):
             raise KeyError("Invalid field name ({0!s}) for getter".format(name))
         return name
 
-    def _indexAndNameFromKey(self, key, accessType):
+    def _index_name_srclist_from_key(self, key, accessType):
         if not isinstance(key, tuple):
             key = (key,)
         if len(key) == 1:
@@ -169,13 +168,15 @@ class Fields(properties.HasProperties):
         srcTestList, name = key
         name = self._nameIndex(name, accessType)
         ind = self._srcIndex(srcTestList)
-        return ind, name
+        if isinstance(srcTestList, slice):
+            srcTestList = self.survey.source_list[srcTestList]
+        return ind, name, srcTestList
 
     def __setitem__(self, key, value):
-        ind, name = self._indexAndNameFromKey(key, "set")
+        ind, name, src_list = self._index_name_srclist_from_key(key, "set")
         if name is None:
-            assert (
-                isinstance(value, dict)
+            assert isinstance(
+                value, dict
             ), "New fields must be a dictionary, if field is not specified."
             newFields = value
         elif name in self.knownFields:
@@ -188,13 +189,13 @@ class Fields(properties.HasProperties):
             self._setField(field, newFields[name], name, ind)
 
     def __getitem__(self, key):
-        ind, name = self._indexAndNameFromKey(key, "get")
+        ind, name, src_list = self._index_name_srclist_from_key(key, "get")
         if name is None:
             out = {}
             for name in self._fields:
-                out[name] = self._getField(name, ind)
+                out[name] = self._getField(name, ind, src_list)
             return out
-        return self._getField(name, ind)
+        return self._getField(name, ind, src_list)
 
     def _setField(self, field, val, name, ind):
         if isinstance(val, np.ndarray) and (
@@ -203,15 +204,14 @@ class Fields(properties.HasProperties):
             val = mkvc(val, 2)
         field[:, ind] = val
 
-    def _getField(self, name, ind):
+    def _getField(self, name, ind, src_list):
+        # ind will always be an list, thus the output will always
+        # be (len(fields), n_inds)
         if name in self._fields:
             out = self._fields[name][:, ind]
         else:
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
-
-            srcII = np.array(self.survey.source_list)[ind]
-            srcII = srcII.tolist()
 
             if isinstance(func, string_types):
                 assert hasattr(self, func), (
@@ -219,9 +219,11 @@ class Fields(properties.HasProperties):
                     "exist in the Fields class."
                 )
                 func = getattr(self, func)
-            out = func(self._fields[alias][:, ind], srcII)
-        if out.shape[0] == out.size or out.ndim == 1:
-            out = mkvc(out, 2)
+            if not isinstance(src_list, list):
+                src_list = [src_list]
+            out = func(self._fields[alias][:, ind], src_list)
+        # if out.shape[0] == out.size or out.ndim == 1:
+        #     out = mkvc(out, 2)
         return out
 
     def __contains__(self, other):
@@ -255,7 +257,7 @@ class TimeFields(Fields):
         nT = self.simulation.nT + 1
         return (nP, nSrc, nT)
 
-    def _indexAndNameFromKey(self, key, accessType):
+    def _index_name_srclist_from_key(self, key, accessType):
         if not isinstance(key, tuple):
             key = (key,)
         if len(key) == 1:
@@ -269,8 +271,9 @@ class TimeFields(Fields):
 
         name = self._nameIndex(name, accessType)
         srcInd = self._srcIndex(srcTestList)
-
-        return (srcInd, timeInd), name
+        if isinstance(srcTestList, slice):
+            srcTestList = self.survey.source_list[srcTestList]
+        return (srcInd, timeInd), name, srcTestList
 
     def _correctShape(self, name, ind, deflate=False):
         srcInd, timeInd = ind
@@ -301,7 +304,7 @@ class TimeFields(Fields):
         correctShape = field[:, srcInd, timeInd].shape
         field[:, srcInd, timeInd] = val.reshape(correctShape, order="F")
 
-    def _getField(self, name, ind):
+    def _getField(self, name, ind, src_list):
         srcInd, timeInd = ind
 
         if name in self._fields:
@@ -328,13 +331,13 @@ class TimeFields(Fields):
                     pass
 
             timeII = np.arange(self.simulation.nT + 1)[timeInd]
-            srcII = np.array(self.survey.source_list)[srcInd]
-            srcII = srcII.tolist()
+            if not isinstance(src_list, list):
+                src_list = [src_list]
 
             if timeII.size == 1:
                 pointerShapeDeflated = self._correctShape(alias, ind, deflate=True)
                 pointerFields = pointerFields.reshape(pointerShapeDeflated, order="F")
-                out = func(pointerFields, srcII, timeII)
+                out = func(pointerFields, src_list, timeII)
             else:  # loop over the time steps
                 nT = pointerShape[2]
                 out = list(range(nT))
@@ -342,7 +345,7 @@ class TimeFields(Fields):
                     fieldI = pointerFields[:, :, i]
                     if fieldI.shape[0] == fieldI.size:
                         fieldI = mkvc(fieldI, 2)
-                    out[i] = func(fieldI, srcII, TIND_i)
+                    out[i] = func(fieldI, src_list, TIND_i)
                     if out[i].ndim == 1:
                         out[i] = out[i][:, np.newaxis, np.newaxis]
                     elif out[i].ndim == 2:

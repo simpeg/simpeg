@@ -5,9 +5,12 @@ from numpy.lib import recfunctions as recFunc
 from ..frequency_domain.survey import Survey
 from ...data import Data as BaseData
 from ...utils import mkvc
-from .sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
+from ...utils.code_utils import deprecate_class
+from .sources import Planewave_xy_1Dprimary, Planewave1D
 from .receivers import Point3DImpedance, Point3DTipper
 from .utils.plot_utils import DataNSEMPlotMethods
+import properties
+
 #########
 # Survey
 #########
@@ -257,5 +260,30 @@ def _rec_to_ndarr(rec_arr, data_type=float):
     """
     # fix for numpy >= 1.16.0
     # https://numpy.org/devdocs/release/1.16.0-notes.html#multi-field-views-return-a-view-instead-of-a-copy
-    return np.array(recFunc.structured_to_unstructured(recFunc.repack_fields(rec_arr[list(rec_arr.dtype.names)])),
-                    dtype=data_type)
+    return np.array(
+        recFunc.structured_to_unstructured(
+            recFunc.repack_fields(rec_arr[list(rec_arr.dtype.names)])
+        ),
+        dtype=data_type,
+    )
+
+
+##################################################
+# Survey for 1D analytic simulation
+
+
+class Survey1D(Survey):
+    """
+    Survey class for the 1D and pseudo-3D problems
+    :param List source_list: list of of SimPEG.electromagnetics.natural_sources.receivers.AnalyticPlanewave1D
+    """
+
+    source_list = properties.List(
+        "A list of sources for the survey",
+        properties.Instance("An Planewave1D source", Planewave1D),
+        default=[],
+    )
+
+    def __init__(self, source_list=None, **kwargs):
+        # Sort these by frequency
+        super(Survey1D, self).__init__(source_list, **kwargs)
