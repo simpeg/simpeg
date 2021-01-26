@@ -1,7 +1,20 @@
 """
-Inversion of 1D Frequency-Domain Data
-==============================================
+1D Inversion of Frequency-Domain Data Including Flight Height
+=============================================================
 
+Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to invert
+frequency domain data and recover a 1D electrical conductivity model and the
+flight height. In this tutorial, we focus on the following:
+
+    - How to define sources and receivers in this case
+    - How to define the survey
+    - Sparse 1D inversion of with iteratively re-weighted least-squares
+
+For this tutorial, we will invert 1D frequency domain data for a single sounding.
+The end product is layered Earth model which explains the data and the estimated
+flight height of the system. The survey consisted of a vertical magnetic dipole
+source at an unknown height. The receiver measured the vertical
+component of the secondary field at a 10 m offset from the source in ppm.
 
 """
 
@@ -59,9 +72,8 @@ data_filename = ".//em1dfm//em1dfm_data.obs"
 # Load Data and Plot
 # ------------------
 #
-# Here we load and plot synthetic gravity anomaly data. Topography is generally
-# defined as an (N, 3) array. Gravity data is generally defined with 4 columns:
-# x, y, z and data.
+# Here we load and plot the 1D sounding data. In this case, we have the 
+# secondary field response in ppm for a set of frequencies.
 #
 
 # Load field data
@@ -77,25 +89,31 @@ ax.loglog(frequencies, np.abs(dobs[0:len(frequencies)]), 'k-o', lw=3)
 ax.loglog(frequencies, np.abs(dobs[len(frequencies):]), 'k:o', lw=3)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("|Hs/Hp| (ppm)")
-ax.set_title("Magnetic Field as a Function of Frequency")
+ax.set_title("Observed Data")
 ax.legend(["Real", "Imaginary"])
-
 
 
 #############################################
 # Defining the Survey
 # -------------------
+# 
+# Here we demonstrate a general way to define the receivers, sources, waveforms and survey.
+# The receiver measured the vertical component of the secondary field
+# at a 10 m offset from the source in ppm. However, we do not know the true
+# height of the source and receiver. We only know their offset.
+#
 
-source_location = np.array([0., 0., 30.]) 
-source_current = 1.
-source_radius = 5.
-moment_amplitude=1.
+# Source geometry. In this case, the vertical location is a dummy value because the
+# flight height is unknown.
+source_location = np.array([0., 0., 30.])
+moment_amplitude = 1.
 
 source_receiver_offset = np.array([10., 0., 0.])
 receiver_orientation = "z"
 field_type = "ppm"
 
-# Receiver list
+# Receiver list. Because we are inverting for the flight height, we MUST set
+# the receiver location as the offset between the source and receiver.
 receiver_list = []
 receiver_list.append(
     em1d.receivers.PointReceiver(
@@ -110,6 +128,7 @@ receiver_list.append(
     )
 )
     
+# Source list
 source_list = [
     em1d.sources.MagneticDipoleSource(
         receiver_list=receiver_list, location=source_location, orientation="z",
@@ -121,23 +140,18 @@ source_list = [
 survey = em1d.survey.EM1DSurveyFD(source_list)
 
 
-#############################################
-# Assign Uncertainties
-# --------------------
-#
-#
-
-uncertainties = 0.05*np.abs(dobs)*np.ones(np.shape(dobs))
-
-
-###############################################
-# Define Data
-# --------------------
+###############################################################
+# Assign Uncertainties and Define the Data Object
+# -----------------------------------------------
 #
 # Here is where we define the data that are inverted. The data are defined by
 # the survey, the observation values and the uncertainties.
 #
 
+# 5% of the absolute value
+uncertainties = 0.05*np.abs(dobs)*np.ones(np.shape(dobs))
+
+# Define the data object
 data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 
 
@@ -149,45 +163,42 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 # the TensorMesh class.
 #
 
-# Based on estimate of background conductivity, make layers
-
-#inv_thicknesses = get_vertical_discretization_frequency(
-#    frequencies, sigma_background=0.1,
-#    factor_fmax=20, factor_fmin=1., n_layer=50,
-#)
-
+# Layer thicknesses
 inv_thicknesses = np.logspace(0,1.5,25)
 
 # Define a mesh for plotting and regularization.
 mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], '0')
 
-print(mesh)
 
-
-########################################################
-# Define a Starting and Reference Model
-# -------------------------------------
+#################################################################
+# Define a Starting and/or Reference Model and the Mapping
+# --------------------------------------------------------
 #
 # Here, we create starting and/or reference models for the inversion as
-# well as the mapping from the model space to the active cells. Starting and
+# well as the mapping from the model space. Starting and
 # reference models can be a constant background value or contain a-priori
-# structures. Here, the starting model is log(0.001) S/m.
-#
-# Define log-conductivity values for each layer since our model is the
-# log-conductivity. Don't make the values 0!
-# Otherwise the gradient for the 1st iteration is zero and the inversion will
-# not converge.
+# structures.
+# 
+# Since we are inverting for the layer condutivity and flight height, both quantities
+# must be accounted for in the starting model, reference model and mapping
+# Here, the starting conductivity is log(0.1) S/m and our initial estimate
+# of the flight height is 25 m.
 
-# Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
+
+# Define starting model.
 starting_conductivity = np.log(0.1*np.ones(mesh.nC))
 starting_height = 25.
 starting_model = np.r_[starting_conductivity, starting_height]
 
-# Define mapping from model to active cells.
+# Use the *Wires* mapping to define which model parameters are conductivities
+# and which is the height.
 wires = maps.Wires(('sigma', mesh.nC),('h', 1))
-sigma_map = maps.ExpMap() * wires.sigma
-h_map = wires.h
 
+# Define mapping from model to conductivities
+sigma_map = maps.ExpMap() * wires.sigma
+
+# Define mapping from model to flight height
+h_map = wires.h
 
 
 #######################################################################
@@ -218,23 +229,16 @@ simulation = em1d.simulation.EM1DFMSimulation(
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 dmis.W = 1./uncertainties
 
-
-
-
-# Define the regularization (model objective function)
+# Define the regularization for the conductivity
 reg_sigma = regularization.Sparse(
-    mesh, mapping=wires.sigma,
-#    alpha_s=1,
+    mesh, mapping=wires.sigma
 )
 
-# Define sparse and blocky norms p, q
 p = 0.
 q = 0.
 reg_sigma.norms = np.c_[p, q]
 
-#reg.eps_p = 1e-3
-#reg.eps_q = 1e-3
-
+# Define the regularization for the flight height
 reg_height = regularization.Sparse(
     TensorMesh([1]), mapping=wires.h,
 )
@@ -242,12 +246,13 @@ reg_height = regularization.Sparse(
 p = 0.
 reg_sigma.p = p
 
+# Combine the regularization objects
 reg = reg_sigma + reg_height
 reg.mref = starting_model
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.ProjectedGNCG(maxIter=100, maxIterLS=20, maxIterCG=20, tolCG=1e-3)
+opt = optimization.ProjectedGNCG(maxIter=50, maxIterLS=20, maxIterCG=20, tolCG=1e-3)
 
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -262,17 +267,6 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # criteria for the inversion and saving inversion results at each iteration.
 #
 
-# Apply and update sensitivity weighting as the model updates
-#sensitivity_weights = directives.UpdateSensitivityWeights()
-
-# Reach target misfit for L2 solution, then use IRLS until model stops changing.
-#IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=1e-5, chifact_start=2)
-#IRLS = directives.Update_IRLS(
-#    max_irls_iterations=20, minGNiter=1, fix_Jmatrix=True, coolingRate=2, 
-#    beta_tol=1e-2, f_min_change=1e-5,
-#    chifact_start = 1.
-#)
-
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
@@ -283,17 +277,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
-# The directives are defined as a list.
-#directives_list = [
-#    IRLS,
-#    starting_beta,
-#    save_iteration,
-#]
-
-
-
-
-
+# Directives for IRLS
 update_IRLS = directives.Update_IRLS(
     max_irls_iterations=30, minGNiter=1,
     coolEpsFact=1.5, update_beta=True
@@ -301,9 +285,6 @@ update_IRLS = directives.Update_IRLS(
 
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()
-
-# Setting a stopping criteria for the inversion.
-#target_misfit = directives.TargetMisfit(chifact=1)
 
 # Add sensitivity weights
 sensitivity_weights = directives.UpdateSensitivityWeights()
@@ -355,9 +336,13 @@ plot_layer(true_model, true_layers, ax=ax1, showlayers=False, color="k")
 plot_layer(sigma_map * l2_model, mesh, ax=ax1, showlayers=False, color="b")
 plot_layer(sigma_map * recovered_model, mesh, ax=ax1, showlayers=False, color="r")
 ax1.set_xlim(0.01, 10)
+ax1.set_title("True and Recovered Models")
 ax1.legend(["True Model", "L2-Model", "Sparse Model"])
+ax1.text(0.15, 150, "True height = {} m".format(30))
+ax1.text(0.15, 165, "Recovered height = {0:.2f} m".format((h_map * recovered_model)[0]))
+plt.gca().invert_yaxis()
 
-# Plot the true and apparent resistivities on a sounding curve
+# Plot predicted and observed data
 dpred_l2 = simulation.dpred(l2_model)
 dpred_final = simulation.dpred(recovered_model)
 
@@ -371,6 +356,7 @@ ax1.loglog(frequencies, np.abs(dpred_final[0:len(frequencies)]), "r-o")
 ax1.loglog(frequencies, np.abs(dpred_final[len(frequencies):]), "r:o")
 ax1.set_xlabel("Frequencies (Hz)")
 ax1.set_ylabel("|Hs/Hp| (ppm)")
+ax1.set_title("Predicted and Observed Data")
 ax1.legend([
     "Observed (real)", "Observed (imag)",
     "L2-Model (real)", "L2-Model (imag)",
@@ -378,27 +364,4 @@ ax1.legend([
     loc="upper left"
 )
 plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

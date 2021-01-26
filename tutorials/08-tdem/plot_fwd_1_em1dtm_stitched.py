@@ -1,6 +1,19 @@
 """
-Forward Simulation of Stitched Time-Domain Data
-===============================================
+Stitched 1D Forward Simulation
+==============================
+
+Here we use the module *SimPEG.electromangetics.time_domain_1d* to predict
+the stepoff responses for an independent set of 1D soundings.
+In this tutorial, we focus on the following:
+
+    - Defining receivers, waveforms, sources and the survey
+    - Defining a 2D or 3D conductivity model and using the sounding locations to construct the set of local 1D models
+    - Defining and running the stitched 1D simulation
+
+Our survey geometry consists of a horizontal loop source with a radius of 6 m
+located 20 m above the Earth's surface. The receiver is located at the centre
+of the loop and measures the vertical component of the response.
+
 
 """
 
@@ -30,16 +43,14 @@ save_file = True
 # topography
 # -------------
 #
+# Here we define surface topography as an (N, 3) numpy array. Topography could
+# also be loaded from a file.
 #
 
 x = np.linspace(50,4950,50)
-#x = np.linspace(50,250,3)
 y = np.zeros_like(x)
 z = np.zeros_like(x)
 topo = np.c_[x, y, z].astype(float)
-
-
-
 
 
 #####################################################################
@@ -47,8 +58,8 @@ topo = np.c_[x, y, z].astype(float)
 # -------------
 #
 #
+
 x = np.linspace(50,4950,50)
-#x = np.linspace(50,250,3)
 n_sounding = len(x)
 
 source_locations = np.c_[x, np.zeros(n_sounding), 20.*np.ones(n_sounding)]

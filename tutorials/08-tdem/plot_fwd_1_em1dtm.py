@@ -124,8 +124,8 @@ plt.gca().invert_yaxis()
 
 
 #######################################################################
-# Define the Forward Simulation and Predict Data
-# ----------------------------------------------
+# Define the Forward Simulation, Predict Data and Plot
+# ----------------------------------------------------
 #
 # Here we define the simulation and predict the 1D TDEM sounding data.
 # The simulation requires the user define the survey, the layer thicknesses

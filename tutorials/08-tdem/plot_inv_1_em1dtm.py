@@ -1,7 +1,20 @@
 """
-Inversion of 1D Frequency-Domain Data
-==============================================
+1D Inversion of Time-Domain Data for a Single Sounding
+======================================================
 
+Here we use the module *SimPEG.electromangetics.time_domain_1d* to invert
+time domain data and recover a 1D electrical conductivity model.
+In this tutorial, we focus on the following:
+
+    - How to define sources and receivers from a survey file
+    - How to define the survey
+    - Sparse 1D inversion of with iteratively re-weighted least-squares
+
+For this tutorial, we will invert 1D time domain data for a single sounding.
+The end product is layered Earth model which explains the data. The survey
+consisted of a horizontal loop with a radius of 6 m, located 20 m above the
+surface. The receiver measured the vertical component of the magnetic flux
+at the loop's centre.
 
 """
 
@@ -59,15 +72,13 @@ data_filename = './em1dtm/em1dtm_data.obs'
 # Load Data and Plot
 # ------------------
 #
-# Here we load and plot synthetic gravity anomaly data. Topography is generally
-# defined as an (N, 3) array. Gravity data is generally defined with 4 columns:
-# x, y, z and data.
+# Here we load and plot the 1D sounding data. In this case, we have the B-field
+# response to a step-off waveform.
 #
 
 # Load field data
 dobs = np.loadtxt(str(data_filename), skiprows=1)
 
-# Define receiver locations and observed data
 times = dobs[:, 0]
 dobs = mkvc(dobs[:, -1])
 
@@ -75,24 +86,28 @@ fig, ax = plt.subplots(1,1, figsize = (7, 7))
 ax.loglog(times, np.abs(dobs), 'k-o', lw=3)
 ax.set_xlabel("Times (s)")
 ax.set_ylabel("|B| (T)")
-ax.set_title("Magnetic Flux as a Function of Time")
-
+ax.set_title("Observed Data")
 
 
 #############################################
 # Defining the Survey
 # -------------------
+#
+# Here we demonstrate a general way to define the receivers, sources, waveforms and survey.
+# For this tutorial, we define a single horizontal loop source as well
+# a receiver which measures the vertical component of the magnetic flux.
+# 
 
+# Source loop geometry
 source_location = np.array([0., 0., 20.])  
-source_orientation = "z"  # "x", "y" or "z"
-source_current = 1.
-source_radius = 6.
+source_orientation = "z"                       # "x", "y" or "z"
+source_current = 1.                            # peak current amplitude
+source_radius = 6.                             # loop radius
 
+# Receiver geometry
 receiver_location = np.array([0., 0., 20.])
-receiver_orientation = "z"  # "x", "y" or "z"
-field_type = "secondary"  # "secondary", "total" or "ppm"
-
-times = np.logspace(-5, -2, 31)
+receiver_orientation = "z"                     # "x", "y" or "z"
+field_type = "secondary"                       # "secondary", "total" or "ppm"
 
 # Receiver list
 receiver_list = []
@@ -102,44 +117,35 @@ receiver_list.append(
         component="b"
     )
 )
+    
+# Define the source waveform.
+waveform = em1d.waveforms.StepoffWaveform()
 
 # Sources
 source_list = [
     em1d.sources.HorizontalLoopSource(
-        receiver_list=receiver_list, location=source_location,
-        I=source_current, a=source_radius
+        receiver_list=receiver_list, location=source_location, waveform=waveform,
+        current_amplitude=source_current, radius=source_radius
     )
 ]
-
-# source_list = [
-#     em1d.sources.MagneticDipoleSource(
-#         receiver_list=receiver_list, location=source_location, orientation="z",
-#         I=source_current
-#     )
-# ]
 
 # Survey
 survey = em1d.survey.EM1DSurveyTD(source_list)
 
 
-#############################################
-# Assign Uncertainties
-# --------------------
-#
-#
-
-uncertainties = 0.05*np.abs(dobs)*np.ones(np.shape(dobs))
-
-
-###############################################
-# Define Data
-# --------------------
+##############################################################
+# Assign Uncertainties and Define the Data Object
+# -----------------------------------------------
 #
 # Here is where we define the data that are inverted. The data are defined by
 # the survey, the observation values and the uncertainties.
 #
 
-data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
+# 5% of the absolute value
+uncertainties = 0.05*np.abs(dobs)*np.ones(np.shape(dobs))
+
+# Define the data object
+data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
 
 
 ###############################################################
@@ -150,13 +156,7 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 # the TensorMesh class.
 #
 
-# Based on estimate of background conductivity, make layers
-
-#inv_thicknesses = get_vertical_discretization_frequency(
-#    times, sigma_background=0.1,
-#    factor_fmax=20, factor_fmin=1., n_layer=50,
-#)
-
+# Layer thicknesses
 inv_thicknesses = np.logspace(0,1.5,25)
 
 # Define a mesh for plotting and regularization.
@@ -170,7 +170,7 @@ mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], '0')
 # Here, we create starting and/or reference models for the inversion as
 # well as the mapping from the model space to the active cells. Starting and
 # reference models can be a constant background value or contain a-priori
-# structures. Here, the starting model is log(0.001) S/m.
+# structures. Here, the starting model is log(0.1) S/m.
 #
 # Define log-conductivity values for each layer since our model is the
 # log-conductivity. Don't make the values 0!
@@ -184,19 +184,14 @@ starting_model = np.log(0.1*np.ones(mesh.nC))
 model_mapping = maps.ExpMap()
 
 
-
-
-
-
 #######################################################################
-# Define the Physics
-# ------------------
+# Define the Physics using a Simulation Object
+# --------------------------------------------
 #
 
 simulation = em1d.simulation.EM1DTMSimulation(
     survey=survey, thicknesses=inv_thicknesses, sigmaMap=model_mapping
 )
-
 
 #######################################################################
 # Define Inverse Problem
@@ -216,25 +211,17 @@ simulation = em1d.simulation.EM1DTMSimulation(
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 dmis.W = 1./uncertainties
 
-
-
-
 # Define the regularization (model objective function)
 reg_map = maps.IdentityMap(nP=mesh.nC)
-reg = regularization.Sparse(
-    mesh, mapping=reg_map,
-#    alpha_s=1,
-)
+reg = regularization.Sparse(mesh, mapping=reg_map)
 
+# set reference model
 reg.mref = starting_model
 
 # Define sparse and blocky norms p, q
 p = 0
 q = 0
 reg.norms = np.c_[p, q]
-
-#reg.eps_p = 1e-3
-#reg.eps_q = 1e-3
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
@@ -253,17 +240,6 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # criteria for the inversion and saving inversion results at each iteration.
 #
 
-# Apply and update sensitivity weighting as the model updates
-#sensitivity_weights = directives.UpdateSensitivityWeights()
-
-# Reach target misfit for L2 solution, then use IRLS until model stops changing.
-#IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=1e-5, chifact_start=2)
-#IRLS = directives.Update_IRLS(
-#    max_irls_iterations=20, minGNiter=1, fix_Jmatrix=True, coolingRate=2, 
-#    beta_tol=1e-2, f_min_change=1e-5,
-#    chifact_start = 1.
-#)
-
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
@@ -274,17 +250,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
-# The directives are defined as a list.
-#directives_list = [
-#    IRLS,
-#    starting_beta,
-#    save_iteration,
-#]
-
-
-
-
-
+# Directives for the IRLS
 update_IRLS = directives.Update_IRLS(
     max_irls_iterations=30, minGNiter=1,
     coolEpsFact=1.5, update_beta=True
@@ -292,9 +258,6 @@ update_IRLS = directives.Update_IRLS(
 
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()
-
-# Setting a stopping criteria for the inversion.
-#target_misfit = directives.TargetMisfit(chifact=1)
 
 # Add sensitivity weights
 sensitivity_weights = directives.UpdateSensitivityWeights()
@@ -327,7 +290,6 @@ recovered_model = inv.run(starting_model)
 # Plotting Results
 # ---------------------
 
-
 # Load the true model and layer thicknesses
 true_model = np.array([0.1, 1., 0.1])
 hz = np.r_[40., 40., 160.]
@@ -347,9 +309,11 @@ plot_layer(true_model, true_layers, ax=ax1, showlayers=False, color="k")
 plot_layer(model_mapping * l2_model, mesh, ax=ax1, showlayers=False, color="b")
 plot_layer(model_mapping * recovered_model, mesh, ax=ax1, showlayers=False, color="r")
 ax1.set_xlim(0.01, 10)
+ax1.set_title("True and Recovered Models")
 ax1.legend(["True Model", "L2-Model", "Sparse Model"])
+plt.gca().invert_yaxis()
 
-# Plot the true and apparent resistivities on a sounding curve
+# Plot predicted and observed data
 dpred_l2 = simulation.dpred(l2_model)
 dpred_final = simulation.dpred(recovered_model)
 
@@ -360,31 +324,7 @@ ax1.loglog(times, np.abs(dpred_l2), "b-o")
 ax1.loglog(times, np.abs(dpred_final), "r-o")
 ax1.set_xlabel("times (Hz)")
 ax1.set_ylabel("|Hs/Hp| (ppm)")
-ax1.legend([
-    "Observed", "L2-Model", "Sparse"], loc="upper right"
-)
+ax1.set_title("Predicted and Observed Data")
+ax1.legend(["Observed", "L2-Model", "Sparse"], loc="upper right")
 plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
