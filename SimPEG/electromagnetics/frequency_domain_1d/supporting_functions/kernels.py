@@ -267,7 +267,7 @@ def horizontal_loop_kernel(
     radius = np.empty([n_frequency, n_filter], order='F')
     radius[:, :] = np.tile(a.reshape([-1, 1]), (1, n_filter))
 
-    coefficient_wavenumber = src.I*radius*0.5*lamda**2/u0
+    coefficient_wavenumber = src.current_amplitude*radius*0.5*lamda**2/u0
     thicknesses = simulation.thicknesses
     mu = (chi+1)*mu_0
     

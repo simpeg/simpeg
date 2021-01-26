@@ -1,13 +1,12 @@
 """
-Forward Simulation for a Single 1D Sounding
-===========================================
+Basic Forward Simulation for a Single 1D Sounding
+=================================================
 
 Here we use the module *SimPEG.electromangetics.time_domain_1d* to predict
-the transient response for a single sounding over a 1D layered Earth.
+the stepoff response for a single sounding over a 1D layered Earth.
 In this tutorial, we focus on the following:
 
-    - Defining receivers, sources and the survey
-    - How to predict magnetic field data or its time-derivative
+    - Defining receivers, waveforms, sources and the survey
     - The units of the model and resulting data
     - Defining and running the 1D simulation for a single sounding
 
@@ -41,16 +40,18 @@ plt.rcParams.update({'font.size': 16})
 # Create Survey
 # -------------
 #
-# Here we demonstrate a general way to define the receivers, sources and survey.
+# Here we demonstrate a general way to define the receivers, sources, waveforms and survey.
 # For this tutorial, we define a single horizontal loop source as well
 # a receiver which measures the vertical component of the magnetic flux.
 #
 
+# Source properties
 source_location = np.array([0., 0., 20.])  
 source_orientation = "z"                      # "x", "y" or "z"
 source_current = 1.                           # maximum on-time current
 source_radius = 6.                            # source loop radius
 
+# Receiver properties
 receiver_location = np.array([0., 0., 20.])
 receiver_orientation = "z"                    # "x", "y" or "z"
 component = "b"                               # "h", "b", "dhdt" or "dbdt"
@@ -59,7 +60,7 @@ times = np.logspace(-5, -2, 31)               # time channels (s)
 
 # Define receiver list. In our case, we have only a single receiver for each source.
 # When simulating the response for multiple component and/or field orientations,
-# multiple receiver objects are required.
+# the list consists of multiple receiver objects.
 receiver_list = []
 receiver_list.append(
     em1d.receivers.PointReceiver(
@@ -67,12 +68,15 @@ receiver_list.append(
     )
 )
 
+# Define the source waveform. Here we define a unit step-off. The definition of
+# other waveform types is covered in a separate tutorial.
+waveform = em1d.waveforms.StepoffWaveform()
+
 # Define source list. In our case, we have only a single source.
-# By default, the source assumes a step-off waveform.
 source_list = [
     em1d.sources.HorizontalLoopSource(
-        receiver_list=receiver_list, location=source_location,
-        I=source_current, a=source_radius
+        receiver_list=receiver_list, location=source_location, waveform=waveform,
+        current_amplitude=source_current, radius=source_radius
     )
 ]
 
@@ -140,16 +144,18 @@ simulation = em1d.simulation.EM1DTMSimulation(
 dpred = simulation.dpred(model)
 
 # Plot sounding
-fig = plt.figure(figsize = (8, 7))
+fig = plt.figure(figsize = (6, 6))
 ax = fig.add_axes([0.15, 0.1, 0.8, 0.85])
-ax.loglog(times, dpred, 'k-o')
+ax.loglog(times, dpred, 'k-o', lw=2)
 ax.set_xlabel("Times (s)")
 ax.set_ylabel("|B| (T)")
 ax.set_title("Magnetic Flux")
 
 
 ##################################################
-
+# Write Output (Optional)
+# -----------------------
+#
 
 if save_file == True:
 
@@ -163,25 +169,4 @@ if save_file == True:
     np.savetxt(
         fname, np.c_[times, dpred], fmt='%.4e', header='TIME BZ'
     )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

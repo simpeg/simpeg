@@ -7,14 +7,13 @@ predicted time domain data for a single sounding when the Earth is
 purely conductive, chargeable and/or magnetically viscous.
 In this tutorial, we focus on:
 
-    - Defining receivers, sources and the survey
+    - Defining receivers, sources, waveform and the survey
     - Defining physical properties when the Earth is chargeable and/or magnetically viscous
     - Setting physical property values as constant in the simulation
 
 Our survey geometry consists of a horizontal loop source with a radius of 10 m
 located 0.5 m above the Earth's surface. The receiver is located at the centre
 of the loop and measures the vertical component of the response.
-
 
 
 """
@@ -30,9 +29,8 @@ from matplotlib import pyplot as plt
 from SimPEG import maps
 import SimPEG.electromagnetics.time_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import ColeCole, LogUniform
-from discretize.utils import mkvc
 
-from scipy.special import expi
+# sphinx_gallery_thumbnail_number = 3
 
 #####################################################################
 # Create Survey
@@ -46,7 +44,7 @@ from scipy.special import expi
 
 source_location = np.array([0., 0., 0.5])  
 source_orientation = "z"                        # "x", "y" or "z"
-source_current = 1.                             # maximum amplitude of source current
+current_amplitude = 1.                          # maximum amplitude of source current
 source_radius = 10.                             # loop radius
 
 receiver_location = np.array([0., 0., 0.5])
@@ -66,12 +64,15 @@ receiver_list.append(
         receiver_location, times, orientation=receiver_orientation, component="dbdt"
     )
 )
+    
+# Waveform
+waveform = em1d.waveforms.StepoffWaveform()
 
 # Sources
 source_list = [
     em1d.sources.HorizontalLoopSource(
-        receiver_list=receiver_list, location=source_location,
-        I=source_current, a=source_radius
+        receiver_list=receiver_list, location=source_location, waveform=waveform,
+        current_amplitude=current_amplitude, radius=source_radius
     )
 ]
 
@@ -213,33 +214,21 @@ dpred_vrm = simulation_vrm.dpred(sigma_model)
 #
 
 
-fig = plt.figure(figsize = (6, 5))
-ax = fig.add_axes([0.15, 0.1, 0.8, 0.85])
-ax.loglog(times, np.abs(dpred_conductive[0:len(times)]), 'k', lw=3)
-ax.loglog(times, np.abs(dpred_chargeable[0:len(times)]), 'r', lw=3)
-ax.loglog(times, np.abs(dpred_vrm[0:len(times)]), 'b', lw=3)
-ax.legend(["Purely Inductive", "Chargeable", "Magnetically Viscous"])
-ax.set_xlabel("Times (s)")
-ax.set_ylabel("|B| (T)")
-ax.set_title("Magnetic Flux")
+fig = plt.figure(figsize = (12, 5))
+ax1 = fig.add_axes([0.1, 0.1, 0.38, 0.85])
+ax1.loglog(times, np.abs(dpred_conductive[0:len(times)]), 'k', lw=3)
+ax1.loglog(times, np.abs(dpred_chargeable[0:len(times)]), 'r', lw=3)
+ax1.loglog(times, np.abs(dpred_vrm[0:len(times)]), 'b', lw=3)
+ax1.legend(["Purely Inductive", "Chargeable", "Magnetically Viscous"])
+ax1.set_xlabel("Times (s)")
+ax1.set_ylabel("|B| (T)")
+ax1.set_title("Magnetic Flux")
 
-fig = plt.figure(figsize = (6, 5))
-ax = fig.add_axes([0.15, 0.1, 0.8, 0.85])
-ax.loglog(times, np.abs(dpred_conductive[len(times):]), 'k', lw=3)
-ax.loglog(times, np.abs(dpred_chargeable[len(times):]), 'r', lw=3)
-ax.loglog(times, np.abs(dpred_vrm[len(times):]), 'b', lw=3)
-ax.legend(["Purely Inductive", "Chargeable", "Magnetically Viscous"])
-ax.set_xlabel("Times (s)")
-ax.set_ylabel("|dB/dt| (T/s)")
-ax.set_title("Time-Derivative of Magnetic Flux")
-
-
-
-
-
-
-
-
-
-
-
+ax2 = fig.add_axes([0.6, 0.1, 0.38, 0.85])
+ax2.loglog(times, np.abs(dpred_conductive[len(times):]), 'k', lw=3)
+ax2.loglog(times, np.abs(dpred_chargeable[len(times):]), 'r', lw=3)
+ax2.loglog(times, np.abs(dpred_vrm[len(times):]), 'b', lw=3)
+ax2.legend(["Purely Inductive", "Chargeable", "Magnetically Viscous"])
+ax2.set_xlabel("Times (s)")
+ax2.set_ylabel("|dB/dt| (T/s)")
+ax2.set_title("Time-Derivative of Magnetic Flux")

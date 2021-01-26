@@ -74,9 +74,9 @@ class HorizontalLoopSource(BaseTimeSrc):
     :param float a: loop radius [m]
     """
 
-    I = properties.Float("Source loop current", default=1.)
+    current_amplitude = properties.Float("Source loop current", default=1.)
 
-    a = properties.Float("Source loop radius", default=np.sqrt(1/np.pi))
+    radius = properties.Float("Source loop radius", default=np.sqrt(1/np.pi))
 
     def __init__(self, receiver_list=None, location=None, waveform=None,  **kwargs):
         super(HorizontalLoopSource, self).__init__(

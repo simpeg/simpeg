@@ -1,8 +1,12 @@
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.constants import mu_0
+from .supporting_functions.waveform_functions import *
 import properties
 
+############################################################
+#               BASE WAVEFORM CLASSES
+############################################################
 
 class StepoffWaveform(properties.HasProperties):
     """Waveform class for a unit stepoff function"""
@@ -98,6 +102,10 @@ class DualWaveform(GeneralWaveform):
         )
         return Tp
 
+############################################################
+#               SIMPLE WAVEFORM CLASSES
+############################################################
+
 class RectangularWaveform(GeneralWaveform):
     """Rectangular waveform"""
 
@@ -115,9 +123,13 @@ class RectangularWaveform(GeneralWaveform):
     def waveform_current(self):
 
         if self._waveform_current is None:
-            temp = np.zeros(self.waveform_times.size)
-            temp[(self.waveform_times>self.start_time) & (self.waveform_times<self.end_time)] = self.peak_current_amplitude
-            self._waveform_current = temp
+            # temp = np.zeros(self.waveform_times.size)
+            # temp[(self.waveform_times>self.start_time) & (self.waveform_times<self.end_time)] = self.peak_current_amplitude
+            # self._waveform_current = 
+
+            self._waveform_current = rectangular_waveform_current(
+                self.waveform_times, self.start_time, self.end_time, self.peak_current_amplitude
+            )
 
         return self._waveform_current
         
@@ -145,13 +157,17 @@ class TriangleWaveform(GeneralWaveform):
     def waveform_current(self):
 
         if self._waveform_current is None:
-            t = self.waveform_times
-            temp = np.zeros(t.size)
-            k = (t>=self.start_time) & (t<=self.peak_time)
-            temp[k] = (t[k] - self.start_time) * self.peak_current_amplitude / (self.peak_time - self.start_time) 
-            k = (t>=self.peak_time) & (t<=self.end_time)
-            temp[k] = self.peak_current_amplitude * (1 - (t[k] - self.peak_time) / (self.end_time - self.peak_time))
-            self._waveform_current = temp
+            # t = self.waveform_times
+            # temp = np.zeros(t.size)
+            # k = (t>=self.start_time) & (t<=self.peak_time)
+            # temp[k] = (t[k] - self.start_time) * self.peak_current_amplitude / (self.peak_time - self.start_time) 
+            # k = (t>=self.peak_time) & (t<=self.end_time)
+            # temp[k] = self.peak_current_amplitude * (1 - (t[k] - self.peak_time) / (self.end_time - self.peak_time))
+            # self._waveform_current = temp
+
+            self._waveform_current = triangular_waveform_current(
+                self.waveform_times, self.start_time, self.peak_time, self.end_time, self.peak_current_amplitude
+            )
 
         return self._waveform_current
 
@@ -174,20 +190,24 @@ class VTEMCustomWaveform(GeneralWaveform):
     def waveform_current(self):
 
         if self._waveform_current is None:
-            t = self.waveform_times
-            out = np.zeros(t.size)
+            # t = self.waveform_times
+            # out = np.zeros(t.size)
 
-            k = (t>=self.start_time) & (t<=self.peak_time)
-            out[k] = (
-                self.peak_current_amplitude *
-                (1 - np.exp(-self.decay_constant*(t[k] - self.start_time))) / 
-                (1 - np.exp(-self.decay_constant*(self.peak_time - self.start_time)))
-            )
+            # k = (t>=self.start_time) & (t<=self.peak_time)
+            # out[k] = (
+            #     self.peak_current_amplitude *
+            #     (1 - np.exp(-self.decay_constant*(t[k] - self.start_time))) / 
+            #     (1 - np.exp(-self.decay_constant*(self.peak_time - self.start_time)))
+            # )
 
-            k = (t>=self.peak_time) & (t<=self.end_time)
-            out[k] = self.peak_current_amplitude * (1 - (t[k] - self.peak_time) / (self.end_time - self.peak_time))
+            # k = (t>=self.peak_time) & (t<=self.end_time)
+            # out[k] = self.peak_current_amplitude * (1 - (t[k] - self.peak_time) / (self.end_time - self.peak_time))
             
-            return out
+            # return out
+
+            self._waveform_current = vtem_waveform_current(
+                self.waveform_times, self.start_time, peak_time, self.end_time, self.decay_constant, self.peak_current_amplitude
+            )
 
         return self._waveform_current
 
@@ -263,15 +283,20 @@ class VTEMCustomWaveform(GeneralWaveform):
 
 
 
+############################################################
+#              WAVEFORM CLASSES FOR KNOWN SYSTEMS
+############################################################
+
 class VTEMPlusWaveform(GeneralWaveform):
 
+    off_time = None
+    peak_current_amplitude = None
 
-
-    def __init__(self, off_time=0.00734375, peak_current_amplitude=1., **kwargs):
+    def __init__(self, **kwargs):
         super(VTEMPlusWaveform, self).__init__(**kwargs)
 
-        self.off_time = off_time
-        self.peak_current_amplitude = peak_current_amplitude
+        self.off_time = kwargs.get('off_time', 0.00734375)
+        self.peak_current_amplitude = kwargs.get('peak_current_amplitude', 1.)
 
     @property
     def base_frequency(self):
@@ -279,78 +304,28 @@ class VTEMPlusWaveform(GeneralWaveform):
 
     @property
     def waveform_times(self):
-        return np.array([0. , 0.0014974 , 0.00299479, 0.00449219, 0.00598958, 0.00632813, 0.00666667, 0.00700521, 0.00734375]) - 0.00734375 + self.off_time
+        return vtem_plus_waveform_times(self.off_time)
 
     @property
     def waveform_current(self):
-        return np.array([0.00682522, 0.68821963, 0.88968217, 0.95645264, 1., 0.84188057, 0.59605229, 0.296009  , 0.]) * self.peak_current_amplitude
+        return vtem_plus_waveform_current(self.peak_current_amplitude)
 
-    
 
-class SkytemHM2015Waveform(GeneralWaveform):
+class Skytem2015LowMomentWaveform(GeneralWaveform):
     """
         SkyTEM High moment (HM) current waveform
     """
 
-    def __init__(self, off_time=1.96368E-04, peak_current_amplitude=122.5, **kwargs):
-        
-        super(SkytemHM2015Waveform, self).__init__(**kwargs)
+    off_time = None
+    peak_current_amplitude = None
 
-        self.off_time = off_time
-        self.peak_current_amplitude = peak_current_amplitude
+    def __init__(self, **kwargs):
 
-    # Define the high moment
-    @property
-    def base_frequency(self):
-        return 30.
+        super(Skytem2015LowMomentWaveform, self).__init__(**kwargs)
 
-    @property
-    def waveform_times(self):
-        return np.array([
-            -2.06670E-02,
-            -2.05770E-02,
-            -2.04670E-02,
-            -1.66670E-02,
-            -1.64726E-02,
-            -1.64720E-02,
-            -1.64706E-02,
-            -4.00000E-03,
-            -3.91000E-03,
-            -3.80000E-03,
-            0.00000E+00,
-            1.94367E-04,
-            1.95038E-04,
-            1.96368E-04
-            ]) - 1.96368E-04 + self.off_time
+        self.off_time = kwargs.get('off_time', 9.4274e-006)
+        self.peak_current_amplitude = kwargs.get('peak_current_amplitude', 8.3)
 
-    @property
-    def waveform_current(self):
-        return np.array([
-            0.00000E+00,
-            -5.30000E-01,
-            -9.73000E-01,
-            -1.00000E+00,
-            -2.81610E-03,
-            -1.44356E-03,
-            0.00000E+00,
-            0.00000E+00,
-            5.30000E-01,
-            9.73000E-01,
-            1.00000E+00,
-            2.81610E-03,
-            1.44356E-03,
-            0.00000E+00
-        ]) * self.peak_current_amplitude
-
-
-class SkytemLM2015Waveform(GeneralWaveform):
-    """
-        SkyTEM High moment (HM) current waveform
-    """
-
-    def __init__(self, off_time=9.4274e-006, peak_current_amplitude=8.3, **kwargs):
-
-        super(SkytemLM2015Waveform, self).__init__(wave_type="general", **kwargs)
 
     # Define the high moment
     @property
@@ -359,64 +334,82 @@ class SkytemLM2015Waveform(GeneralWaveform):
     
     @property
     def waveform_times(self):
-        return np.array([
-            -3.1810e-003,
-            -3.1100e-003,
-            -2.7860e-003,
-            -2.5334e-003,
-            -2.3820e-003,
-            -2.3810e-003,
-            -2.3798e-003,
-            -2.3779e-003,
-            -2.3762e-003,
-            -2.3749e-003,
-            -2.3733e-003,
-            -2.3719e-003,
-            -2.3716e-003,
-            -8.0000e-004,
-            -7.2902e-004,
-            -4.0497e-004,
-            -1.5238e-004,
-            -1.0000e-006,
-            0,
-            1.1535e-006,
-            3.0943e-006,
-            4.7797e-006,
-            6.1076e-006,
-            7.7420e-006,
-            9.0699e-006,
-            9.4274e-006,
-        ]) - 9.4274e-006 + self.off_time
+        return skytem_2015_LM_waveform_times(self.off_time)
 
     @property
     def waveform_current(self):
-        return np.array([
-            0,
-            -1.0078e-001,
-            -4.5234e-001,
-            -7.6328e-001,
-            -1.0000e+000,
-            -1.0000e+000,
-            -8.6353e-001,
-            -3.4002e-001,
-            -1.1033e-001,
-            -4.4709e-002,
-            -1.3388e-002,
-            -4.4389e-003,
-            0,
-            0,
-            1.0078e-001,
-            4.5234e-001,
-            7.6328e-001,
-            1.0000e+000,
-            1.0000e+000,
-            8.6353e-001,
-            3.4002e-001,
-            1.1033e-001,
-            4.4709e-002,
-            1.3388e-002,
-            4.4389e-003,
-            0
-        ]) * self.peak_current_amplitude
+        return skytem_2015_LM_waveform_current(self.peak_current_amplitude)
+
+class Skytem2015HighMomentWaveform(GeneralWaveform):
+    """
+        SkyTEM High moment (HM) current waveform
+    """
+
+    off_time = None
+    peak_current_amplitude = None
+
+    def __init__(self, **kwargs):
+        
+        super(Skytem2015HighMomentWaveform, self).__init__(**kwargs)
+
+        self.off_time = kwargs.get('off_time', 1.96368E-04)
+        self.peak_current_amplitude = kwargs.get('peak_current_amplitude', 122.5)
+
+    # Define the high moment
+    @property
+    def base_frequency(self):
+        return 30.
+
+    @property
+    def waveform_times(self):
+        return skytem_2015_HM_waveform_times(self.off_time)
+
+    @property
+    def waveform_current(self):
+        return skytem_2015_HM_waveform_current(self.peak_current_amplitude)
+
+
+class Skytem2015Waveform(DualWaveform):
+    """
+        Full SkyTEM 2015 waveform. Includes low monent and high moment waveforms.
+    """
+
+    off_time = None
+    peak_current_amplitude = None
+    dual_off_time = None
+    dual_peak_current_amplitude = None
+
+    def __init__(self, **kwargs):
+
+        super(Skytem2015Waveform, self).__init__(**kwargs)
+
+        self.off_time = kwargs.get('off_time', 9.4274e-006)
+        self.peak_current_amplitude = kwargs.get('peak_current_amplitude', 8.3)
+        self.dual_off_time = kwargs.get('dual_off_time', 1.96368E-04)
+        self.dual_peak_current_amplitude = kwargs.get('dual_peak_current_amplitude', 122.5)
+    
+    @property
+    def base_frequency(self):
+        return 210.
+
+    @property
+    def dual_base_frequency(self):
+        return 30.
+    
+    @property
+    def waveform_times(self):
+        return skytem_2015_LM_waveform_times(self.off_time)
+
+    @property
+    def waveform_current(self):
+        return skytem_2015_LM_waveform_current(self.peak_current_amplitude)
+
+    @property
+    def dual_waveform_times(self):
+        return skytem_2015_HM_waveform_times(self.dual_off_time)
+
+    @property
+    def dual_waveform_current(self):
+        return skytem_2015_HM_waveform_current(self.dual_peak_current_amplitude)
 
     

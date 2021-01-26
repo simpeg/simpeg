@@ -17,7 +17,7 @@ from empymod import filters
 from empymod.transform import dlf, fourier_dlf, get_dlf_points
 from empymod.utils import check_hankel
 
-from .known_waveforms import (
+from .supporting_functions.waveform_functions import (
     piecewise_pulse_fast,
     butterworth_type_filter, butter_lowpass_filter
 )
@@ -64,7 +64,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                         period = waveform.period
                     # Dual moment
                     else:
-                        time = np.unique(np.r_[rx.times, rx.times_dual_moment])
+                        time = np.unique(np.r_[rx.times, rx.dual_times])
                         pulse_period = np.maximum(
                             waveform.pulse_period, waveform.dual_pulse_period
                         )
@@ -213,7 +213,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                         r = rx.locations[0:2] - src.location[0:2]
 
                     r_vec = np.sqrt(np.sum(r**2)) * np.ones(n_frequency)
-                    a_vec = src.a * np.ones(n_frequency)
+                    a_vec = src.radius * np.ones(n_frequency)
 
                     # Use function from empymod to define Hankel coefficients.
                     # Size of lambd is (n_frequency x n_filter)
@@ -328,7 +328,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                         # Compute response for the dual moment
                         if src.waveform.wave_type == "dual":
                             resp_dual_moment = piecewise_pulse_fast(
-                                step_func, rx.times_dual_moment,
+                                step_func, rx.dual_times,
                                 src.waveform.dual_waveform_times,
                                 src.waveform.dual_waveform_current,
                                 src.waveform.dual_period,
@@ -378,7 +378,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                             else:
                                 resp_dual_moment_i = piecewise_pulse_fast(
                                     step_func,
-                                    rx.times_dual_moment,
+                                    rx.dual_times,
                                     src.waveform.dual_waveform_times,
                                     src.waveform.dual_waveform_current,
                                     src.waveform.dual_period,
@@ -470,113 +470,10 @@ def run_simulation_TD(args):
 
 class StitchedEM1DTMSimulation(BaseStitchedEM1DSimulation):
 
-    # @property
-    # def wave_type(self):
-    #     return self.survey.wave_type
-
-    # @property
-    # def input_currents(self):
-    #     return self.survey.input_currents
-
-    # @property
-    # def time_input_currents(self):
-    #     return self.survey.time_input_currents
-
-    # @property
-    # def n_pulse(self):
-    #     return self.survey.n_pulse
-
-    # @property
-    # def base_frequency(self):
-    #     return self.survey.base_frequency
-
-    # @property
-    # def time(self):
-    #     return self.survey.time
-
-    # @property
-    # def use_lowpass_filter(self):
-    #     return self.survey.use_lowpass_filter
-
-    # @property
-    # def high_cut_frequency(self):
-    #     return self.survey.high_cut_frequency
-
-    # @property
-    # def moment_type(self):
-    #     return self.survey.moment_type
-
-    # @property
-    # def time_dual_moment(self):
-    #     return self.survey.time_dual_moment
-
-    # @property
-    # def time_input_currents_dual_moment(self):
-    #     return self.survey.time_input_currents_dual_moment
-
-    # @property
-    # def input_currents_dual_moment(self):
-    #     return self.survey.input_currents_dual_moment
-
-    # @property
-    # def base_frequency_dual_moment(self):
-    #     return self.survey.base_frequency_dual_moment
-
     def run_simulation(self, args):
         if self.verbose:
             print(">> Time-domain")
         return run_simulation_TD(args)
-
-    # def forward(self, m, f=None):
-    #     self.model = m
-
-    #     if self.parallel:
-    #         pool = Pool(self.n_cpu)
-    #         # This assumes the same # of layer for each of soundings
-    #         result = pool.map(
-    #             run_simulation_TD,
-    #             [
-    #                 self.input_args(i, output_type=False) for i in range(self.n_sounding)
-    #             ]
-    #         )
-    #         pool.close()
-    #         pool.join()
-    #     else:
-    #         result = [
-    #             run_simulation_TD(self.input_args(i, output_type=False)) for i in range(self.n_sounding)
-    #         ]
-    #     return np.hstack(result)
-
-    # def getJ(self, m):
-    #     """
-    #          Compute d F / d sigma
-    #     """
-    #     if self._Jmatrix is not None:
-    #         return self._Jmatrix
-    #     if self.verbose:
-    #         print(">> Compute J")
-    #     self.model = m
-    #     if self.parallel:
-    #         pool = Pool(self.n_cpu)
-    #         self._Jmatrix = pool.map(
-    #             run_simulation_TD,
-    #             [
-    #                 self.input_args(i, output_type=True) for i in range(self.n_sounding)
-    #             ]
-    #         )
-    #         pool.close()
-    #         pool.join()
-    #         if self.parallel_jvec_jtvec is False:
-    #             self._Jmatrix = sp.block_diag(self._Jmatrix).tocsr()
-    #     else:
-    #         # _Jmatrix is block diagnoal matrix (sparse)
-    #         self._Jmatrix = sp.block_diag(
-    #             [
-    #                 run_simulation_TD(self.input_args(i, output_type=True)) for i in range(self.n_sounding)
-    #             ]
-    #         ).tocsr()
-    #     return self._Jmatrix
-
 
 
 

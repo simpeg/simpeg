@@ -47,7 +47,7 @@ class PointReceiver(BaseTimeRx):
         default=False
     )
 
-    times_dual_moment = properties.Array(
+    dual_times = properties.Array(
         "Off-time channels (s) for the dual moment", dtype=float
     )
 
@@ -71,8 +71,8 @@ class PointReceiver(BaseTimeRx):
         """
             Number of time channels
         """
-        if self.times_dual_moment is not None:
-            return int(self.times.size) + int(self.times_dual_moment.size)
+        if self.dual_times is not None:
+            return int(self.times.size) + int(self.dual_times.size)
         else:
             return int(self.times.size)
 
