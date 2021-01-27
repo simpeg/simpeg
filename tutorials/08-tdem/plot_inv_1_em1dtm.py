@@ -41,7 +41,7 @@ from SimPEG import (
 
 plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8})
 
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_number = 2
 
 #############################################
 # Define File Names
@@ -82,7 +82,8 @@ dobs = np.loadtxt(str(data_filename), skiprows=1)
 times = dobs[:, 0]
 dobs = mkvc(dobs[:, -1])
 
-fig, ax = plt.subplots(1,1, figsize = (7, 7))
+fig = plt.figure(figsize = (7, 7))
+ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 ax.loglog(times, np.abs(dobs), 'k-o', lw=3)
 ax.set_xlabel("Times (s)")
 ax.set_ylabel("|B| (T)")
@@ -317,8 +318,8 @@ plt.gca().invert_yaxis()
 dpred_l2 = simulation.dpred(l2_model)
 dpred_final = simulation.dpred(recovered_model)
 
-fig = plt.figure(figsize=(11, 6))
-ax1 = fig.add_axes([0.2, 0.1, 0.6, 0.8])
+fig = plt.figure(figsize=(7, 7))
+ax1 = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 ax1.loglog(times, np.abs(dobs), "k-o")
 ax1.loglog(times, np.abs(dpred_l2), "b-o")
 ax1.loglog(times, np.abs(dpred_final), "r-o")

@@ -1,6 +1,6 @@
 """
-Forward Simulation on a Cylindrical Mesh
-========================================
+3D Forward Simulation on a Cylindrical Mesh
+===========================================
 
 Here we use the module *SimPEG.electromagnetics.frequency_domain* to simulate the
 FDEM response for a borehole survey using a cylindrical mesh and radially symmetric
@@ -154,9 +154,7 @@ mesh.plotImage(
     grid=False,
     clim=(np.log10(layer_conductivity_2), np.log10(layer_conductivity_1)),
 )
-ax1.set_title("Conductivity Model (Survey in red)")
-
-ax1.plot(receiver_locations[:, 0], receiver_locations[:, 2], "r.")
+ax1.set_title("Conductivity Model")
 
 ax2 = fig.add_axes([0.76, 0.1, 0.05, 0.85])
 norm = mpl.colors.Normalize(
@@ -203,25 +201,25 @@ bz_imag = dpred[1 : len(dpred) : 2]
 bz_real = np.reshape(bz_real, (ntx, len(frequencies)))
 bz_imag = np.reshape(bz_imag, (ntx, len(frequencies)))
 
-# Plot secondary field along the profile at f = 1 Hz
-fig = plt.figure(figsize=(7, 5))
-ax1 = fig.add_axes([0.15, 0.1, 0.8, 0.85])
+# Plot secondary field along the profile at f = 10000 Hz
+fig = plt.figure(figsize=(5, 5))
+ax1 = fig.add_axes([0.2, 0.15, 0.75, 0.75])
 frequencies_index = 0
-ax1.plot(receiver_locations[:, -1], bz_real[:, frequencies_index], "b-", lw=3)
-ax1.plot(receiver_locations[:, -1], bz_imag[:, frequencies_index], "b--", lw=3)
-ax1.set_xlabel("Elevation [m]")
-ax1.set_ylabel("Bz secondary [T]")
-ax1.set_title("Secondary Bz-field at 1 Hz")
+ax1.plot(bz_real[:, frequencies_index], receiver_locations[:, -1], "b-", lw=3)
+ax1.plot(bz_imag[:, frequencies_index], receiver_locations[:, -1], "b--", lw=3)
+ax1.set_xlabel("Bz secondary [T]")
+ax1.set_ylabel("Elevation [m]")
+ax1.set_title("Response at 10000 Hz")
 ax1.legend(["Real", "Imaginary"], loc="upper right")
 
 # Plot FEM response for all frequencies
-fig = plt.figure(figsize=(7, 5))
-ax1 = fig.add_axes([0.15, 0.1, 0.8, 0.85])
+fig = plt.figure(figsize=(5, 5))
+ax1 = fig.add_axes([0.2, 0.15, 0.75, 0.75])
 location_index = 0
 ax1.semilogx(frequencies, bz_real[location_index, :], "b-", lw=3)
 ax1.semilogx(frequencies, bz_imag[location_index, :], "b--", lw=3)
 ax1.set_xlim((np.min(frequencies), np.max(frequencies)))
 ax1.set_xlabel("Frequency [Hz]")
 ax1.set_ylabel("Bz secondary [T]")
-ax1.set_title("Secondary Bz-field over pipe")
+ax1.set_title("Response at Smallest Offset")
 ax1.legend(["Real", "Imaginary"], loc="upper left")

@@ -47,6 +47,7 @@ save_file = True
 
 plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8})
 
+# sphinx_gallery_thumbnail_number = 4
 
 #############################################
 # Define File Names
@@ -90,10 +91,11 @@ n_sounding = np.shape(source_locations)[0]
 
 dobs_plotting = np.reshape(dobs, (n_sounding, len(times)))
 
-fig, ax = plt.subplots(1,1, figsize = (7, 7))
+fig = plt.figure(figsize = (7, 7))
+ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 
 for ii in range(0, len(times)):
-    ax.semilogy(source_locations[:, 0], np.abs(dobs_plotting[:, ii]), '-', lw=2)
+    ax.semilogy(source_locations[:, 0], np.abs(dobs_plotting[:, ii]), 'k-', lw=2)
     
 ax.set_xlabel("Sounding Location (m)")
 ax.set_ylabel("|dBdt| (T/s)")
@@ -401,8 +403,8 @@ title_list = ['True', 'L2', 'Sparse']
 models_list = [conductivity_true, conductivity_L2, conductivity_sparse]
 for ii, mod in enumerate(models_list):
 
-    fig = plt.figure(figsize=(9, 3))
-    ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
+    fig = plt.figure(figsize=(9, 4))
+    ax1 = fig.add_axes([0.15, 0.2, 0.65, 0.7])
     log_mod = np.log10(mod)
 
     mesh2D.plotImage(
@@ -416,7 +418,7 @@ for ii, mod in enumerate(models_list):
     ax1.set_xlabel("x (m)")
     ax1.set_ylabel("depth (m)")
 
-    ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
+    ax2 = fig.add_axes([0.82, 0.12, 0.03, 0.78])
     norm = mpl.colors.Normalize(
         vmin=np.log10(conductivity_true.min()), vmax=np.log10(conductivity_true.max())
     )
@@ -438,7 +440,8 @@ dpred = simulation.dpred(recovered_model)
 data_list = [dobs, dpred_l2, dpred]
 color_list = ['k', 'b', 'r']
 
-fig, ax = plt.subplots(1,1, figsize = (7, 7))
+fig = plt.figure(figsize = (7, 7))
+ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 
 for ii in range(0, len(data_list)):
     d = np.reshape(data_list[ii], (n_sounding, len(times)))

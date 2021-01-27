@@ -232,7 +232,7 @@ dpred = simulation.dpred(sigma_model)
 
 fig = plt.figure(figsize = (8, 8))
 d = np.reshape(dpred, (len(source_list), len(times))).T
-ax = fig.add_axes([0.1, 0.1, 0.8, 0.85])
+ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 colorlist = ['k', 'b', 'r', 'g', 'm']
 for ii, k in enumerate(colorlist):
     ax.loglog(times, np.abs(d[:, ii]), k, lw=2)

@@ -72,7 +72,7 @@ skytem_waveform = em1d.waveforms.Skytem2015Waveform(
 
 # Plotting the waveforms
 fig = plt.figure(figsize=(8, 6))
-ax = fig.add_axes([0.1, 0.1, 0.85, 0.8])
+ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 
 ax.plot(general_waveform.waveform_times, general_waveform.waveform_current, 'b-', lw=3)
 ax.plot(general_waveform.dual_waveform_times, general_waveform.dual_waveform_current, 'b--', lw=3)
@@ -202,7 +202,7 @@ k2 = len(dual_times_general)
 k3 = len(primary_times_skytem) 
 
 fig = plt.figure(figsize = (8, 8))
-ax = fig.add_axes([0.1, 0.1, 0.8, 0.85])
+ax = fig.add_axes([0.15, 0.1, 0.8, 0.85])
 
 ax.loglog(primary_times_general, np.abs(dpred[0:k1]), 'b-', lw=3)
 ax.loglog(dual_times_general, np.abs(dpred[k1:k1+k2]), 'b--', lw=3)

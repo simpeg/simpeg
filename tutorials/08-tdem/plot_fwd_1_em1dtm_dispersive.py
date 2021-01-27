@@ -138,8 +138,8 @@ frequencies = np.logspace(-3, 6, 91)
 sigma_complex = ColeCole(frequencies, sigma, eta, tau, c)
 chi_complex = LogUniform(frequencies, chi, dchi, tau1, tau2)
 
-fig = plt.figure()
-ax = fig.add_subplot(111)
+fig = plt.figure(figsize=(8, 6))
+ax = fig.add_axes([0.15, 0.1, 0.8, 0.75])
 ax.semilogx(frequencies, sigma*np.ones(len(frequencies)), "b", lw=3)
 ax.semilogx(frequencies, np.real(sigma_complex), "r", lw=3)
 ax.semilogx(frequencies, np.imag(sigma_complex), "r--", lw=3)
@@ -147,13 +147,14 @@ ax.set_xlim(np.min(frequencies), np.max(frequencies))
 ax.set_ylim(0., 1.1*sigma)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Conductivity")
+ax.set_title("Dispersive Electrical Conductivity")
 ax.legend(
     ["$\sigma_{DC}$", "$Re[\sigma (\omega)]$", "$Im[\sigma (\omega)]$"],
     loc="center right"
 )
 
-fig = plt.figure()
-ax = fig.add_subplot(111)
+fig = plt.figure(figsize=(8, 6))
+ax = fig.add_axes([0.15, 0.1, 0.8, 0.75])
 ax.semilogx(frequencies, chi*np.ones(len(frequencies)), "b", lw=3)
 ax.semilogx(frequencies, np.real(chi_complex), "r", lw=3)
 ax.semilogx(frequencies, np.imag(chi_complex), "r--", lw=3)
@@ -161,6 +162,7 @@ ax.set_xlim(np.min(frequencies), np.max(frequencies))
 ax.set_ylim(-1.1*chi, 1.1*(chi+dchi))
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Susceptibility")
+ax.set_title("Dispersive Magnetic Susceptibility")
 ax.legend(
     ["$\chi_{DC}$", "$Re[\chi (\omega)]$", "$Im[\chi (\omega)]$"],
     loc="lower left"

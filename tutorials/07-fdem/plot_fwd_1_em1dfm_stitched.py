@@ -42,7 +42,7 @@ from SimPEG.electromagnetics.utils.em1d_utils import (
 plt.rcParams.update({'font.size': 16})
 save_file = True
 
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_number = 1
 
 #####################################################################
 # Create Survey

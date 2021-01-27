@@ -129,8 +129,8 @@ model_mapping = maps.IdentityMap(nP=n_layer)
 # Plot complex conductivity at all frequencies
 sigma_complex = ColeCole(frequencies, sigma, eta, tau, c)
 
-fig = plt.figure()
-ax = fig.add_subplot(111)
+fig = plt.figure(figsize=(6, 5))
+ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 ax.semilogx(frequencies, sigma*np.ones(len(frequencies)), "b", lw=3)
 ax.semilogx(frequencies, np.real(sigma_complex), "r", lw=3)
 ax.semilogx(frequencies, np.imag(sigma_complex), "r--", lw=3)
@@ -201,7 +201,7 @@ ax.semilogx(frequencies, dpred_susceptible[len(frequencies):], 'r--', lw=3)
 ax.semilogx(frequencies, dpred_chargeable[0:len(frequencies)], 'g-', lw=3)
 ax.semilogx(frequencies, dpred_chargeable[len(frequencies):], 'g--', lw=3)
 ax.set_xlabel("Frequency (Hz)")
-ax.set_ylabel("|H| (A/m)")
+ax.set_ylabel("|Hs| (A/m)")
 ax.set_title("Secondary Magnetic Field")
 ax.legend((
     'Real (conductive)', 'Imaginary (conductive)',

@@ -1,6 +1,6 @@
 """
-Forward Simulation for Transient Response on a Cylindrical Mesh
-===============================================================
+3D Forward Simulation for Transient Response on a Cylindrical Mesh
+==================================================================
 
 Here we use the module *SimPEG.electromagnetics.time_domain* to simulate the
 transient response for borehole survey using a cylindrical mesh and a 
@@ -161,16 +161,14 @@ fig = plt.figure(figsize=(5, 6))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_model = np.log10(model)
 
-ax1 = fig.add_axes([0.14, 0.1, 0.6, 0.85])
+ax1 = fig.add_axes([0.20, 0.1, 0.54, 0.85])
 mesh.plotImage(
     plotting_map * log_model,
     ax=ax1,
     grid=False,
     clim=(np.log10(layer_conductivity_2), np.log10(layer_conductivity_1)),
 )
-ax1.set_title("Conductivity Model (Survey in red)")
-
-ax1.plot(receiver_locations[:, 0], receiver_locations[:, 2], "r.")
+ax1.set_title("Conductivity Model")
 
 ax2 = fig.add_axes([0.76, 0.1, 0.05, 0.85])
 norm = mpl.colors.Normalize(
@@ -224,18 +222,18 @@ dpred = np.reshape(dpred, (ntx, len(time_channels)))
 
 # TDEM Profile
 fig = plt.figure(figsize=(5, 5))
-ax1 = fig.add_subplot(111)
+ax1 = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 for ii in range(0, len(time_channels)):
-    ax1.semilogy(
-        receiver_locations[:, -1], -dpred[:, ii], "k", lw=2
+    ax1.semilogx(
+        -dpred[:, ii], receiver_locations[:, -1], "k", lw=2
     )  # -ve sign to plot -dBz/dt
-ax1.set_xlabel("Elevation [m]")
-ax1.set_ylabel("-dBz/dt [T/s]")
+ax1.set_xlabel("-dBz/dt [T/s]")
+ax1.set_ylabel("Elevation [m]")
 ax1.set_title("Airborne TDEM Profile")
 
 # Response for all time channels
 fig = plt.figure(figsize=(5, 5))
-ax1 = fig.add_subplot(111)
+ax1 = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 ax1.loglog(time_channels, -dpred[0, :], "b", lw=2)
 ax1.loglog(time_channels, -dpred[-1, :], "r", lw=2)
 ax1.set_xlim((np.min(time_channels), np.max(time_channels)))

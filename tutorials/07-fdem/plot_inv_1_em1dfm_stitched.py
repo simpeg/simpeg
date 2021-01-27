@@ -47,6 +47,8 @@ save_file = True
 
 plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8})
 
+# sphinx_gallery_thumbnail_number = 4
+
 
 #############################################
 # Define File Names
@@ -417,7 +419,7 @@ models_list = [conductivity_true, conductivity_L2, conductivity_sparse]
 for ii, mod in enumerate(models_list):
 
     fig = plt.figure(figsize=(9, 3))
-    ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
+    ax1 = fig.add_axes([0.15, 0.12, 0.65, 0.78])
     log_mod = np.log10(mod)
 
     mesh2D.plotImage(
@@ -454,8 +456,8 @@ data_list = [dobs, dpred_l2, dpred]
 color_list = ['k', 'b', 'r']
 
 fig = plt.figure(figsize = (12, 6))
-ax1 = fig.add_axes([0.05, 0.1, 0.4, 0.8])
-ax2 = fig.add_axes([0.55, 0.1, 0.4, 0.8])
+ax1 = fig.add_axes([0.1, 0.1, 0.37, 0.8])
+ax2 = fig.add_axes([0.6, 0.1, 0.37, 0.8])
 
 for ii in range(0, len(data_list)):
     

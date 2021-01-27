@@ -118,7 +118,7 @@ thicknesses_for_plotting = np.r_[thicknesses, 40.]
 mesh_for_plotting = TensorMesh([thicknesses_for_plotting])
 
 fig = plt.figure(figsize=(6, 5))
-ax = fig.add_axes([0.15, 0.1, 0.8, 0.8])
+ax = fig.add_axes([0.15, 0.15, 0.8, 0.8])
 plot_layer(model, mesh_for_plotting, ax=ax, showlayers=False)
 plt.gca().invert_yaxis()
 
@@ -145,7 +145,7 @@ dpred = simulation.dpred(model)
 
 # Plot sounding
 fig = plt.figure(figsize = (6, 6))
-ax = fig.add_axes([0.15, 0.1, 0.8, 0.85])
+ax = fig.add_axes([0.2, 0.15, 0.75, 0.78])
 ax.loglog(times, dpred, 'k-o', lw=2)
 ax.set_xlabel("Times (s)")
 ax.set_ylabel("|B| (T)")

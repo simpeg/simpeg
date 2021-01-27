@@ -136,8 +136,8 @@ poly_inds = PolygonInd(mesh2D, pts)
 model[poly_inds] = slope_conductivity
 
 # Plot global 2D model
-fig = plt.figure(figsize=(9, 3))
-ax1 = fig.add_axes([0.15, 0.12, 0.65, 0.78])
+fig = plt.figure(figsize=(9, 4))
+ax1 = fig.add_axes([0.15, 0.15, 0.65, 0.75])
 log_mod = np.log10(model)
 
 mesh2D.plot_image(
@@ -204,7 +204,7 @@ mesh_soundings = TensorMesh([hz, hx], x0='00')
 
 # Plot the organized 1D models
 fig = plt.figure(figsize=(4, 7.5))
-ax1 = fig.add_axes([0.15, 0.12, 0.67, 0.78])
+ax1 = fig.add_axes([0.12, 0.12, 0.65, 0.78])
 log_mod_sounding = np.log10(sounding_models)
 
 mesh_soundings.plot_image(
@@ -221,7 +221,7 @@ ax1.set_title("Sounding Models")
 ax1.set_xlabel("Layer")
 ax1.set_ylabel("Sounding Number")
 
-ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
+ax2 = fig.add_axes([0.8, 0.12, 0.05, 0.78])
 norm = mpl.colors.Normalize(
     vmin=np.log10(overburden_conductivity), vmax=np.log10(slope_conductivity)
 )
@@ -264,7 +264,8 @@ dpred = simulation.dpred(sounding_models)
 
 d = np.reshape(dpred, (n_sounding, len(times)))
 
-fig, ax = plt.subplots(1,1, figsize = (7, 7))
+fig= plt.figure(figsize=(7, 7))
+ax = fig.add_axes([0.15, 0.15, 0.8, 0.8])
 
 for ii in range(0, len(times)):
     ax.semilogy(receiver_locations[:, 0], np.abs(d[:, ii]), 'k-', lw=3)

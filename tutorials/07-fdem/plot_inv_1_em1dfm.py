@@ -146,7 +146,7 @@ survey = em1d.survey.EM1DSurveyFD(source_list)
 #
 
 # 5% of the absolute value
-uncertainties = 0.05*np.abs(dobs)*np.ones(np.shape(dobs))
+uncertainties = 0.1*np.abs(dobs)*np.ones(np.shape(dobs))
 
 # Define the data object
 data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
@@ -232,7 +232,7 @@ reg.norms = np.c_[p, q]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.ProjectedGNCG(maxIter=100, maxIterLS=20, maxIterCG=20, tolCG=1e-3)
+opt = optimization.ProjectedGNCG(maxIter=50, maxIterLS=20, maxIterCG=20, tolCG=1e-3)
 
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
