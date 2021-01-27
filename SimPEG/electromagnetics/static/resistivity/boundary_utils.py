@@ -109,7 +109,6 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
             raise Exception("Lenght of list, alpha should be 6")
         # fCCxm,fCCxp,fCCym,fCCyp,fCCzm,fCCzp = mesh.cellBoundaryInd
         fxm, fxp, fym, fyp, fzm, fzp = mesh.faceBoundaryInd
-        nBC = fxm.sum() + fxp.sum() + fxm.sum() + fxp.sum()
 
         alpha_xm, beta_xm, gamma_xm = alpha[0], beta[0], gamma[0]
         alpha_xp, beta_xp, gamma_xp = alpha[1], beta[1], gamma[1]

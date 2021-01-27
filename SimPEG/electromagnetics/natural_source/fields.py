@@ -43,14 +43,13 @@ class Fields1DElectricField(FieldsFDEM):
     def startup(self):
         # boundary conditions
         self._B = self.simulation._B
-        self._e_bc = self.simulation._e_bc
+        self._bc = self.simulation._bc
 
         # operators
         self._D = self.mesh.faceDiv
         self._V = self.simulation.Vol
-        self._aveN2CC = self.mesh.aveN2CC
-        self._MfMui = self.simulation.MfMui
         self._MfI = self.simulation.MfI
+        self._MfMuI = self.simulation.MfMuI
         self._MccSigma = self.simulation.MccSigma
         self._MccSigmaDeriv = self.simulation.MccSigmaDeriv
 
@@ -74,59 +73,82 @@ class Fields1DElectricField(FieldsFDEM):
         return self._MccSigmaDeriv(e, v, adjoint=adjoint)
 
     def _b(self, eSolution, source_list):
-        b = np.zeros((self._nF, len(source_list)), dtype=complex)
-        for i, src in enumerate(source_list):
-            b[:, i] = (
-                -1
-                / (1j * omega(src.frequency))
-                * (
-                    self._MfI @ (self._D.T @ (self._V @ eSolution[:, i]))
-                    - self._B @ self._e_bc
+        omegas = np.array([omega(src.frequency) for src in source_list])
+        return (
+            1
+            / (1j * omegas)
+            * (
+                self._MfI
+                @ (
+                    -self._D.T @ (self._V @ eSolution)
+                    + self._B @ self.eSolution
+                    + self._bc[:, None]
                 )
             )
-        return b
+        )
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
-        if adjoint:
-            # V, MfI are symmetric
+        if self.adjoint:
+            y = self._MfI.T @ du_dm_v
             return (
-                -1
+                1
                 / (1j * omega(src.frequency))
-                * (self._V @ (self._D @ (self._MfI @ du_dm_v)))
+                * (-self._V @ (self._D @ y) + self._B.T @ y)
             )
         return (
             1
             / (1j * omega(src.frequency))
-            * (self._MfI @ (self._D.T @ (self._V @ du_dm_v)))
+            * (self._MfI @ (-self._D.T @ (self._V @ du_dm_v) + self._B @ du_dm_v))
         )
 
     def _h(self, eSolution, source_list):
-        return self._MfI @ (self._MfMui @ self._b(eSolution, source_list))
+        omegas = np.array([omega(src.frequency) for src in source_list])
+        return (
+            1
+            / (1j * omegas)
+            * (
+                self._MfMuI
+                @ (
+                    -self._D.T @ (self._V @ eSolution)
+                    + self._B @ eSolution
+                    + self._bc[:, None]
+                )
+            )
+        )
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
-        if adjoint:
-            v = self._MfMui @ (self._MfI @ du_dm_v)  # MfMui, MfI are symmetric
-            return self._bDeriv_u(src, v, adjoint=adjoint)
-        return self._MfI @ (self._MfMui @ self._bDeriv_u(src, du_dm_v))
-
-    def _impedance(self, eSolution, source_list):
-        return self._e(eSolution, source_list) / (
-            self._aveN2CC @ self._h(eSolution, source_list)
+        if self.adjoint:
+            y = self._MfMuI.T @ du_dm_v
+            return (
+                1
+                / (1j * omega(src.frequency))
+                * (-self._V @ (self._D @ y) + self._B.T @ y)
+            )
+        return (
+            1
+            / (1j * omega(src.frequency))
+            * (self._MfMuI @ (-self._D.T @ (self._V @ du_dm_v) + self._B @ du_dm_v))
         )
 
-    def _apparent_resistivity(self, eSolution, source_list):
-        z = self._impedance(eSolution, source_list)
-        frequencies = [src.frequency for src in source_list]
-        return (z.real ** 2 + z.imag ** 2) @ sdiag(
-            1 / (omega(np.array(frequencies)) * mu_0)
-        )
-
-    def _apparent_conductivity(self, eSolution, source_list):
-        return 1.0 / self._apparent_resistivity(eSolution, source_list)
-
-    def _phase(self, eSolution, source_list):
-        z = self._impedance(eSolution, source_list)
-        return 180 / np.pi * np.arctan2(z.imag, z.real)
+    # These should be on the receiver....
+    # def _impedance(self, eSolution, source_list):
+    #     return self._e(eSolution, source_list) / (
+    #         self._aveN2CC @ self._h(eSolution, source_list)
+    #     )
+    #
+    # def _apparent_resistivity(self, eSolution, source_list):
+    #     z = self._impedance(eSolution, source_list)
+    #     frequencies = [src.frequency for src in source_list]
+    #     return (z.real ** 2 + z.imag ** 2) @ sdiag(
+    #         1 / (omega(np.array(frequencies)) * mu_0)
+    #     )
+    #
+    # def _apparent_conductivity(self, eSolution, source_list):
+    #     return 1.0 / self._apparent_resistivity(eSolution, source_list)
+    #
+    # def _phase(self, eSolution, source_list):
+    #     z = self._impedance(eSolution, source_list)
+    #     return 180 / np.pi * np.arctan2(z.imag, z.real)
 
 
 class Fields1DMagneticField(Fields1DElectricField):
@@ -140,21 +162,20 @@ class Fields1DMagneticField(Fields1DElectricField):
         "j": ["hSolution", "F", "_j"],
         "b": ["hSolution", "CC", "_b"],
         "h": ["hSolution", "CC", "_h"],
-        "impedance": ["hSolution", "CC", "_impedance"],
-        "apparent resistivity": ["hSolution", "CC", "_apparent_resistivity"],
-        "apparent conductivity": ["hSolution", "CC", "_apparent_conductivity"],
-        "phase": ["hSolution", "CC", "_phase"],
+        # "impedance": ["hSolution", "CC", "_impedance"],
+        # "apparent resistivity": ["hSolution", "CC", "_apparent_resistivity"],
+        # "apparent conductivity": ["hSolution", "CC", "_apparent_conductivity"],
+        # "phase": ["hSolution", "CC", "_phase"],
     }
 
     def startup(self):
         # boundary conditions
         self._B = self.simulation._B
-        self._h_bc = self.simulation._h_bc
+        self._bc = self.simulation._bc
 
         # operators
         self._D = self.mesh.faceDiv
         self._V = self.simulation.Vol
-        self._aveN2CC = self.mesh.aveN2CC
         self._MccMu = self.simulation.MccMu
         self._MfSigmaI = self.simulation.MfSigmaI
         self._MfSigmaIDeriv = self.simulation.MfSigmaIDeriv
@@ -178,27 +199,26 @@ class Fields1DMagneticField(Fields1DElectricField):
         return self._MccMu @ du_dm_v
 
     def _e(self, hSolution, source_list):
-        e = np.zeros((self._nF, len(source_list)), dtype=complex)
-        for i, src in enumerate(source_list):
-            e[:, i] = self._MfSigmaI @ (
-                self._D.T @ (self._V @ hSolution[:, i]) - self._B @ self._h_bc
-            )
+        e = self._MfSigmaI @ (
+            self._D.T @ (self._V @ hSolution) - self._B @ hSolution - self._bc[:, None]
+        )
         return e
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         if adjoint:
             # V, MfI are symmetric
-            return -V @ (self._D @ (self.MfSigmaI @ du_dm_v))
-        return -self._MfSigmaI @ (self._D.T @ (V @ du_dm_v))
+            y = self.MfSigmaI @ du_dm_v
+            return self._V @ (self._D @ y) - self._B.T @ y
+        return self._MfSigmaI @ (self._D.T @ (self._V @ du_dm_v) - self._B @ du_dm_v)
 
     # TODO: pick up here
     def _eDeriv_m(self, src, v, adjoint=False):
         h = self[src, "h"]
         if adjoint:
-            return -V @ (
+            return -self._V @ (
                 self._D @ self._MfSigmaIDeriv(b, v, adjoint=adjoint)
             ) + self._MfSigmaIDeriv(self._B @ self._h_bc, v, adjoint=adjoint)
-        return -self._MfSigmaIDeriv(self._D.T @ (V @ b), v) + self._MfSigmaIDeriv(
+        return -self._MfSigmaIDeriv(self._D.T @ (self._V @ b), v) + self._MfSigmaIDeriv(
             self._B @ self._h_bc, v
         )
 
@@ -207,16 +227,18 @@ class Fields1DMagneticField(Fields1DElectricField):
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         if adjoint:
-            v = self._MfSigma @ (self._MfI @ du_dm_v)  # MfMui, MfI are symmetric
+            v = self._MfSigma @ (self._MfI @ du_dm_v)
             return self._eDeriv_u(src, v, adjoint=adjoint)
         return self._MfI @ (self._MfSigma @ self._eDeriv_u(src, du_dm_v))
 
-    def _impedance(self, bSolution, source_list):
-        return (
-            self._aveN2CC
-            @ self._e(bSolution, source_list)
-            / self._h(bSolution, source_list)
-        )
+    # This should be on receiver
+    #
+    # def _impedance(self, bSolution, source_list):
+    #     return (
+    #         self._aveN2CC
+    #         @ self._e(bSolution, source_list)
+    #         / self._h(bSolution, source_list)
+    #     )
 
 
 class Fields1DPrimarySecondary(FieldsFDEM):

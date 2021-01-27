@@ -63,9 +63,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             Ainv = self.Solver(A, **self.solver_opts)
 
             for src in self.survey.get_sources_by_frequency(freq):
-                u_src = f[
-                    src, :
-                ]
+                u_src = f[src, :]
 
                 dA_dm_v = self.getADeriv(
                     freq, u_src, v
@@ -412,24 +410,24 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
         \partial_z \mu^{-1} B_x - sigma E_y = 0
 
-    with the boundary conditions that $E_y[z_max] = 1$ (a plane wave source at
-    the top of the domain), and $E_y[z_min] = 0$. This can later be updated to
-    mixed boundary conditions (see Haber, 2014).
+    with default boundary conditions that $E_y[z_max] = 1$ (a plane wave source at
+    the top of the domain), and $\partial_z E_y[z_min] = 0$ (the derivative of the field
+    vanishes at the bottom of the domain).
 
     When we discretize, we obtain:
 
     .. math::
 
-        \mathbf{b} = \frac{1}{i\omega} \left( \mathbf{M^f}^{-1} \mathbf{D}^\top \mathbf{V} \mathbf{e} - \mathbf{B} \mathbf{e^{BC}} \right)
+        \mathbf{b} = \frac{-1}{i\omega} \left( \mathbf{M^f}^{-1} \left((\mathbf{D}^\top \mathbf{V} - \mathbf{B}) \mathbf{e}\right) - \mathbf{e^{BC}} \right)
 
-        \left( \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma} \right) \mathbf{e} = \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{B} \mathbf{e^{BC}}
+        \left( \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \left(\mathbf{D^\top} \mathbf{V} - \mathbf{B}\right) + i\omega \mathbf{M^{cc}}_{\sigma}\mathbf{V} \right) \mathbf{e} = \mathbf{D} \mathbf{M^f}_{\mu^{-1}}\mathbf{e^{BC}}
 
     """
 
     _solutionType = "eSolution"
     _formulation = "HJ"  # magnetic component is on edges
     fieldsPair = Fields1DElectricField
-    _clear_on_sigma_update = ["_MccSigma"]
+    _clear_on_sigma_update = ["_MccSigma", "_MfMuI"]
 
     # Must be 1D survey object
     survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
@@ -441,11 +439,20 @@ class Simulation1DElectricField(BaseFDEMSimulation):
                 f"The mesh must be a 1D mesh. The provided mesh has dimension {mesh.dim}"
             )
 
-        super(Simulation1DElectricField, self).__init__(mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
-        # todo: update to enable user to input / customize boundary conditions
-        self._B = self.mesh.getBCProjWF("dirichlet")[0]
-        self._e_bc = np.r_[0, 1]  # 0 at the bottom of the domain, 1 at the top
+        # corresponds to a dirichlet boundary at the top (= 1)
+        # and nuemann boundary (= 0) at the bottom
+
+        # TODO: Pass these boundary parameters as simulation properties
+        alphas = np.r_[0, 1]
+        betas = np.r_[1, 0]
+        gammas = np.r_[0, 1]
+        B, bc = mesh.cell_gradient_robin_weak_form(
+            alpha=alphas, beta=betas, gamma=gammas,
+        )
+        self._B = B
+        self._bc = bc
 
     @property
     def MccSigma(self):
@@ -475,6 +482,14 @@ class Simulation1DElectricField(BaseFDEMSimulation):
             elif adjoint:
                 return mat.T
 
+    @property
+    def MfMuI(self):
+        if getattr(self, "_MfMuI", None) is None:
+            self._MfMuI = self.mesh.get_face_inner_product(self.mu, invert_matrix=True)
+        return self._MfMuI
+
+    # TODO MfMuIDeriv
+
     def getA(self, freq):
         """
         System matrix
@@ -484,30 +499,30 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         \mathbf{A} = \mathbf{V} \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma}
 
         """
-        D = self.mesh.faceDiv
-        MfMui = self.MfMui
-        MfI = self.MfI
+        V = self.Vol
+        D = V @ self.mesh.faceDiv
+        B = self._B
+        MfMuI = self.MfMuI
         MccSigma = self.MccSigma
 
-        return D @ MfMui @ MfI @ D.T + 1j * omega(freq) * MccSigma
+        return D @ MfMuI @ (D.T - B) + 1j * omega(freq) * MccSigma @ V
 
     def getADeriv(self, freq, u, v, adjoint=False):
         """
         Derivative with respect to the conductivity model
         """
 
-        return 1j * omega(freq) * self.MccSigmaDeriv(u, v, adjoint)
+        return 1j * omega(freq) * self.Vol @ self.MccSigmaDeriv(u, v, adjoint)
 
     def getRHS(self, freq):
         """
         Right hand side constructed using Dirichlet boundary conditions
         """
         D = self.mesh.faceDiv
-        MfMui = self.MfMui
-        B = self._B
-        ebc = self._e_bc
+        MfMuI = self.MfMuI
+        e_bc = self._bc
 
-        return D @ (MfMui @ (B @ ebc))
+        return self.Vol @ (D @ (MfMuI @ e_bc))
 
 
 class Simulation1DMagneticField(BaseFDEMSimulation):
@@ -532,11 +547,20 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
                 f"The mesh must be a 1D mesh. The provided mesh has dimension {mesh.dim}"
             )
 
-        super(Simulation1DMagneticField, self).__init__(mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
-        # todo: update to enable user to input / customize boundary conditions
-        self._B = self.mesh.getBCProjWF("dirichlet")[0]
-        self._h_bc = np.r_[0, 1]  # 0 at the bottom of the domain, 1 at the top
+        # corresponds to a dirichlet boundary at the top (= 1)
+        # and nuemann boundary (= 0) at the bottom
+
+        # TODO: Pass these boundary parameters as simulation properties
+        alphas = np.r_[0, 1]
+        betas = np.r_[1, 0]
+        gammas = np.r_[0, 1]
+        B, bc = mesh.cell_gradient_robin_weak_form(
+            alpha=alphas, beta=betas, gamma=gammas,
+        )
+        self._B = B
+        self._bc = bc
 
     @property
     def MccMui(self):
@@ -584,7 +608,7 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
         if getattr(self, "_MfSigmaDeriv", None) is None:
             self._MfSigmaDeriv = (
                 self.mesh.getFaceInnerProductDeriv(np.ones(self.mesh.nC))(
-                    np.ones(sef.mesh.nF)
+                    np.ones(self.mesh.nF)
                 )
             ) * self.sigmaDeriv
 
@@ -617,37 +641,46 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
         """
         MccMu = self.MccMu
         V = self.Vol
-        D = self.mesh.faceDiv
+        D = V @ self.mesh.faceDiv
         MfSigmaI = self.MfSigmaI
+        B = self._B
 
-        return V @ D @ MfSigmaI @ D.T @ V - 1j * omega(freq) * MccMu @ V
+        return D @ MfSigmaI @ (D.T - B) + 1j * omega(freq) * MccMu @ V
 
     def getADeriv(self, freq, u, v, adjoint=False):
         V = self.Vol
         D = self.mesh.faceDiv
+        B = self._B
 
-        # V is symmetric
-        return V @ D @ self.MfSigmaIDeriv(D.T @ MccMui @ V @ u, v, adjoint=adjoint)
+        if adjoint:
+            y = V @ (D.T @ u)
+        else:
+            y = V @ (D.T @ u) - B @ u
+
+        y = self.MfSigmaIDeriv(y, v, adjoint=adjoint)
+
+        if adjoint:
+            return V @ (D @ y) - B.T @ y
+        else:
+            return V @ (D @ y)
 
     def getRHS(self, freq):
         """
         right hand side
         """
-        D = self.mesh.faceDiv
         V = self.Vol
-        B = self._B
+        D = self.mesh.faceDiv
         MfSigmaI = self.MfSigmaI
-        hbc = self._h_bc
+        h_bc = self._bc
 
-        return V @ (D @ (MfSigmaI @ (B @ hbc)))
+        return V @ (D @ (MfSigmaI @ h_bc))
 
     def getRHSDeriv(self, freq, u, v, adjoint=False):
         D = self.mesh.faceDiv
         V = self.Vol
-        B = self._B
-        hbc = self._h_bc
+        hbc = self._bc
 
-        return V @ (D @ (self.MfSigmaIDeriv(B @ hbc, v, adjoint=True)))
+        return V @ (D @ (self.MfSigmaIDeriv(hbc, v, adjoint=adjoint)))
 
 
 ###################################
