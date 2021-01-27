@@ -1,13 +1,13 @@
-from ....electromagnetics.frequency_domain.simulation import BaseFDEMSimulation as Sim
+from ....electromagnetics.natural_source.simulation import BaseNSEMSimulation as Sim
 from ....utils import Zero, mkvc
 import numpy as np
 import dask.array as da
 from dask.distributed import Future
 import zarr
 
-
 Sim.sensitivity_path = './sensitivity/'
 Sim.gtgdiag = None
+
 
 def fields(self, m=None, return_Ainv=False):
     if m is not None:
@@ -110,16 +110,10 @@ def compute_J(self, f=None, Ainv=None):
             u_src = f[src, self._solutionType]
 
             for rx in src.receiver_list:
-                # PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-                # df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
-                # df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
 
                 for i_datum in range(rx.nD):
                     v = np.zeros(rx.nD, dtype=float)
                     v[i_datum] = 1
-                    # PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-                    # df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
-                    # df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
                     df_duT, df_dmT = rx.evalDeriv(
                         src, self.mesh, f, v=v, adjoint=True
                     )

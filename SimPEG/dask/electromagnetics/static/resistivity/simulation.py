@@ -96,9 +96,6 @@ def compute_J(self, f=None, Ainv=None):
     row_chunks = int(np.ceil(
         float(self.survey.nD) / np.ceil(float(m_size) * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
     ))
-
-    n_blocks = int(self.max_ram * 1e+3 / self.max_chunk_size)
-    row_blocks = row_chunks * n_blocks
     # rowChunk, colChunk = compute_chunk_sizes(self.survey.nD, m_size, 128)
     # if os.path.exists(self.sensitivity_path + f"J.zarr"):
     #     shutil.rmtree(self.sensitivity_path + f"J.zarr")
@@ -113,7 +110,6 @@ def compute_J(self, f=None, Ainv=None):
     blocks = []
     count = 0
     block_count = 0
-    dask_arrays = []
     for source in self.survey.source_list:
         u_source = f[source, self._solutionType]
 
@@ -143,13 +139,6 @@ def compute_J(self, f=None, Ainv=None):
                     blocks = np.vstack([blocks, du_dmT])
 
                 while blocks.shape[0] >= row_chunks:
-                    # dask_arrays += [
-                    #     da.to_zarr(
-                    #         da.from_array(blocks, chunks=(row_chunks, m_size)),
-                    #         self.sensitivity_path + f"J{block_count}.zarr",
-                    #         overwrite=True, return_stored=True, compute=True
-                    #     )
-                    # ]
                     Jmatrix.set_orthogonal_selection(
                         (np.arange(count, count + row_chunks), slice(None)),
                         blocks[:row_chunks, :]

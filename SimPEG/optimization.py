@@ -4,6 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 from six import string_types
 from .simulation import LinearSimulation
+from .data_misfit import L2DataMisfit
 from .utils.solver_utils import SolverWrapI, Solver
 from .utils import (
     callHooks,
@@ -396,13 +397,19 @@ class Minimize(object):
             if self.stopNextIteration:
                 break
 
-
-            for objfct in self.parent.dmisfit.objfcts:
-                if not isinstance(objfct.simulation, LinearSimulation):
-                    if hasattr(objfct.simulation, "_Jmatrix"):
-                        objfct.simulation._Jmatrix = None
-                    if hasattr(objfct.simulation, "gtgdiag"):
-                        objfct.simulation.gtgdiag = None
+            if isinstance(self.parent.dmisfit, L2DataMisfit):
+                if not isinstance(self.parent.dmisfit.simulation, LinearSimulation):
+                    if hasattr(self.parent.dmisfit.simulation, "_Jmatrix"):
+                        self.parent.dmisfit.simulation._Jmatrix = None
+                    if hasattr(self.parent.dmisfit.simulation, "gtgdiag"):
+                        self.parent.dmisfit.simulation.gtgdiag = None
+            else:
+                for objfct in self.parent.dmisfit.objfcts:
+                    if not isinstance(objfct.simulation, LinearSimulation):
+                        if hasattr(objfct.simulation, "_Jmatrix"):
+                            objfct.simulation._Jmatrix = None
+                        if hasattr(objfct.simulation, "gtgdiag"):
+                            objfct.simulation.gtgdiag = None
 
             self.f, self.g, self.H = evalFunction(xt, return_g=True, return_H=True)
             self.doEndIteration(xt)
