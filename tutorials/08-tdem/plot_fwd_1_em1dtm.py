@@ -1,6 +1,6 @@
 """
-Basic Forward Simulation for a Single 1D Sounding
-=================================================
+1D Forward Simulation for a Single Sounding
+===========================================
 
 Here we use the module *SimPEG.electromangetics.time_domain_1d* to predict
 the stepoff response for a single sounding over a 1D layered Earth.
@@ -162,7 +162,8 @@ if save_file == True:
     dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "08-tdem", "em1dtm"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
-
+    
+    np.random.seed(347)
     noise = 0.05*np.abs(dpred)*np.random.rand(len(dpred))
     dpred += noise
     fname = dir_path + 'em1dtm_data.obs'

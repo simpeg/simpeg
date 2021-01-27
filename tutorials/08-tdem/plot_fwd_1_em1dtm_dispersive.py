@@ -1,6 +1,6 @@
 """
-Forward Simulation for a Single 1D Sounding over a Chargeable and/or Magnetically Viscous Earth
-===============================================================================================
+1D Forward Simulation with Chargeable and/or Magnetic Viscosity
+===============================================================
 
 Here we use the module *SimPEG.electromangetics.time_domain_1d* to compare
 predicted time domain data for a single sounding when the Earth is

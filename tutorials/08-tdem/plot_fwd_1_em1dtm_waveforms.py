@@ -1,6 +1,6 @@
 """
-Forward Simulation for a 1D Sounding: Defining Waveforms
-========================================================
+1D Forward Simulation with User-Defined Waveforms
+=================================================
 
 For time-domain electromagnetic problems, the response depends strongly on the
 souce waveforms. In this tutorial, we construct a set of waveforms of different
@@ -66,7 +66,9 @@ triangle_waveform = em1d.waveforms.TriangleWaveform(
 # the beginning of the off-time and scale the amplitude of the waveform.
 off_time = 0.
 peak_current_amplitude = 1.
-vtem_waveform = em1d.waveforms.VTEMPlusWaveform(off_time, peak_current_amplitude)
+vtem_waveform = em1d.waveforms.VTEMPlusWaveform(
+    off_time=off_time, peak_current_amplitude=peak_current_amplitude
+)
 
 # General waveform. This is a fully general way to define the waveform.
 # The use simply provides times and the current.

@@ -1,6 +1,6 @@
 """
-1D Inversion of Frequency-Domain Data Including Flight Height
-=============================================================
+1D Inversion of for Conductivity and Flight Height
+==================================================
 
 Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to invert
 frequency domain data and recover a 1D electrical conductivity model and the

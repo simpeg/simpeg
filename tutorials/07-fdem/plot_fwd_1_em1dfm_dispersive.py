@@ -1,6 +1,6 @@
 """
-Forward Simulation for a Single 1D Sounding for a Susceptible and Chargeable Earth
-==================================================================================
+1D Forward Simulation for a Susceptible and Chargeable Earth
+============================================================
 
 Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to compare
 predicted frequency domain data for a single sounding when the Earth is

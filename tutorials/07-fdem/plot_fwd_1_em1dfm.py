@@ -1,5 +1,5 @@
 """
-Forward Simulation for a Single 1D Sounding
+1D Forward Simulation for a Single Sounding
 ===========================================
 
 Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to predict
@@ -164,7 +164,8 @@ if save_file == True:
     dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-3]
     dir_path.extend(["tutorials", "07-fdem", "em1dfm"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
-
+    
+    np.random.seed(222)
     noise = 0.05*np.abs(dpred)*np.random.rand(len(dpred))
     dpred += noise
     

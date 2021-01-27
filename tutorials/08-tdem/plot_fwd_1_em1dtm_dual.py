@@ -1,6 +1,6 @@
 """
-Forward Simulation for a 1D Sounding: Dual Waveforms
-====================================================
+1D Forward Simulation with Primary and Dual Waveforms
+=====================================================
 
 Some TDEM systems use separate waveforms to model the response at early times and
 at late times. In the tutorial, we show the user how to define sources

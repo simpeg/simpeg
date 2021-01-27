@@ -1,6 +1,6 @@
 """
-1D Inversion of Frequency-Domain Data for a Single Sounding
-===========================================================
+1D Inversion of for a Single Sounding
+=====================================
 
 Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to invert
 frequency domain data and recover a 1D electrical conductivity model.
