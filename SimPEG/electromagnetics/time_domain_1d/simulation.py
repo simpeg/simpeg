@@ -199,7 +199,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                         r_vec = np.tile(r_vec, (n_layer, 1))
 
                     # Evaluate Hankel transform using digital linear filter from empymod
-                    integral_output = dlf(
+                    integral_output = src.moment_amplitude * dlf(
                         PJ, lambd, r_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
                     )
 
@@ -235,7 +235,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                         a_vec = np.tile(a_vec, (n_layer, 1))
 
                     # Evaluate Hankel transform using digital linear filter from empymod
-                    integral_output = dlf(
+                    integral_output = src.current_amplitude * dlf(
                         PJ, lambd, a_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
                     )
 

@@ -1,6 +1,6 @@
 """
-3D Forward Simulation with User-Defined Waveform on a Tree Mesh
-===============================================================
+3D Forward Simulation with User-Defined Waveforms
+=================================================
 
 Here we use the module *SimPEG.electromagnetics.time_domain* to predict the
 TDEM response for a trapezoidal waveform. We consider an airborne survey

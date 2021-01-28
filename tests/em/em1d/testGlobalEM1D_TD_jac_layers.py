@@ -4,7 +4,7 @@ import numpy as np
 
 from SimPEG.electromagnetics import time_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_time
-from SimPEG.electromagnetics.time_domain_1d.waveforms import TriangleFun
+from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
 from SimPEG import *
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
@@ -18,6 +18,8 @@ class GlobalEM1DTD(unittest.TestCase):
     def setUp(self, parallel=True):
 
         times = np.logspace(-5, -2, 31)
+        
+
         n_layer = 20
         thicknesses = get_vertical_discretization_time(
             times, facter_tmax=0.5, factor_tmin=10., n_layer=n_layer-1
@@ -41,6 +43,10 @@ class GlobalEM1DTD(unittest.TestCase):
         z = np.ones_like(x) * 30.
         receiver_locations = np.c_[x, y, z]
         source_locations = np.c_[x, y, z]
+
+        source_orientation = 'z'
+        receiver_orientation = "z"  # "x", "y" or "z"
+
         topo = np.c_[x, y, z-30.].astype(float)
 
         sigma_map = maps.ExpMap(mesh)
@@ -55,34 +61,36 @@ class GlobalEM1DTD(unittest.TestCase):
             receiver_list = []
 
             receiver_list.append(
-                em1d.receivers.PointReceiver(
-                    receiver_location, times, orientation="z",
+            em1d.receivers.PointReceiver(
+                    receiver_location, times, orientation=receiver_orientation,
                     component="b"
                 )
             )
-
+            
             receiver_list.append(
                 em1d.receivers.PointReceiver(
-                    receiver_location, times, orientation="z",
+                    receiver_location, times, orientation=receiver_orientation,
                     component="dbdt"
                 )
             )
 
-            time_input_currents = np.r_[-np.logspace(-2, -5, 31), 0.]
-            input_currents = TriangleFun(time_input_currents+0.01, 5e-3, 0.01)
+            # Waveform
+            waveform_times = np.r_[-np.logspace(-2, -5, 31), 0.]
+            waveform_current = triangular_waveform_current(
+                waveform_times, -0.01, -0.005, 0., 1.
+            )
+            
+            waveform = em1d.waveforms.GeneralWaveform(
+                waveform_times=waveform_times, waveform_current=waveform_current,
+                n_pulse = 1, base_frequency = 25., use_lowpass_filter=False, high_cut_frequency=210*1e3
+            )
 
             source_list.append(
                 em1d.sources.HorizontalLoopSource(
                     receiver_list=receiver_list,
                     location=source_location,
-                    a=5., I=1.,
-                    wave_type="general",
-                    time_input_currents=time_input_currents,
-                    input_currents=input_currents,
-                    n_pulse = 1,
-                    base_frequency = 25.,
-                    use_lowpass_filter=False,
-                    high_cut_frequency=210*1e3
+                    waveform=waveform,
+                    radius=1.
                 )
             )
 
@@ -159,6 +167,7 @@ class GlobalEM1DTD_Height(unittest.TestCase):
 
         times = np.logspace(-5, -2, 31)
 
+        a = 1.
         hz = 1.
         n_sounding = 10
         dx = 20.
@@ -201,21 +210,23 @@ class GlobalEM1DTD_Height(unittest.TestCase):
                 )
             )
 
-            time_input_currents = np.r_[-np.logspace(-2, -5, 31), 0.]
-            input_currents = TriangleFun(time_input_currents+0.01, 5e-3, 0.01)
+            # Waveform
+            waveform_times = np.r_[-np.logspace(-2, -5, 31), 0.]
+            waveform_current = triangular_waveform_current(
+                waveform_times, -0.01, -0.005, 0., 1.
+            )
+            
+            waveform = em1d.waveforms.GeneralWaveform(
+                waveform_times=waveform_times, waveform_current=waveform_current,
+                n_pulse = 1, base_frequency = 25., use_lowpass_filter=False, high_cut_frequency=210*1e3
+            )
 
             source_list.append(
                 em1d.sources.HorizontalLoopSource(
                     receiver_list=receiver_list,
                     location=source_location,
-                    a=5., I=1.,
-                    wave_type="general",
-                    time_input_currents=time_input_currents,
-                    input_currents=input_currents,
-                    n_pulse = 1,
-                    base_frequency = 25.,
-                    use_lowpass_filter=False,
-                    high_cut_frequency=210*1e3
+                    waveform=waveform,
+                    radius=a
                 )
             )
 

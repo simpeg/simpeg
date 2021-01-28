@@ -28,6 +28,73 @@ def triangular_waveform_current(times, start_time, peak_time, end_time, peak_cur
             
     return out
 
+def triangular_derivative_waveform_current(times, ta, tb):
+    """
+        Derivative of Triangular Waveform
+    """
+    out = np.zeros(times.size)
+    out[times<=ta] = 1/ta
+    out[(times>ta)&(times<tb)] = -1/(tb-ta)
+    return out
+
+# def SineFun(time, ta):
+#     """
+#         Sine Waveform
+#         * time: 1D array for time
+#         * ta: Pulse Period
+#     """
+#     out = np.zeros(time.size)
+#     out[time<=ta] = np.sin(1./ta*np.pi*time[time<=ta])
+
+#     return out
+
+# def SineFunDeriv(time, ta):
+#     """
+#         Derivative of Sine Waveform
+#     """
+#     out = np.zeros(time.size)
+#     out[time<=ta] = 1./ta*np.pi*np.cos(1./ta*np.pi*time[time<=ta])
+#     return out
+
+
+
+
+# def CausalConv(array1, array2, time):
+#     """
+#         Evaluate convolution for two causal functions.
+#         Input
+
+#         * array1: array for \\\\(\\\\ f_1(t)\\\\)
+#         * array2: array for \\\\(\\\\ f_2(t)\\\\)
+#         * time: array for time
+
+#         .. math::
+
+#             Out(t) = \int_{0}^{t} f_1(a) f_2(t-a) da
+
+#     """
+
+#     if array1.shape == array2.shape == time.shape:
+#         out = np.convolve(array1, array2)
+#         # print time[1]-time[0]
+#         return out[0:np.size(time)]*(time[1]-time[0])
+#     else:
+#         print ("Give me same size of 1D arrays!!")
+
+
+
+
+# def CenDiff(f, tin):
+#     """
+#         Evaluating central difference of given array (f)
+#         and provide funtion handle for interpolation
+#     """
+#     dfdt = mu_0*np.diff(f, n=1)/np.diff(tin, n=1)
+#     tm = np.diff(tin, n=1)*0.5 + tin[:-1]
+#     Diffun = interp1d(tm, dfdt)
+#     return Diffun
+
+
 def vtem_waveform_current(times, start_time, peak_time, end_time, decay_constant, peak_current_amplitude):
 
     out = np.zeros(times.size)

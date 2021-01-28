@@ -63,7 +63,8 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
         a = 10.
         source_list = [
             em1d.sources.HorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location, I=I, a=a
+                receiver_list=receiver_list, location=src_location,
+                current_amplitude=I, radius=a
             )
         ]
 
@@ -214,7 +215,8 @@ class EM1D_FD_Jac_layers_ProblemTests_Height(unittest.TestCase):
         a = 10.
         source_list = [
             em1d.sources.HorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location, I=I, a=a
+                receiver_list=receiver_list, location=src_location,
+                current_amplitude=I, radius=a
             )
         ]
 

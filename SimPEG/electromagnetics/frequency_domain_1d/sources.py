@@ -70,9 +70,9 @@ class HorizontalLoopSource(survey.BaseSrc):
     :param float a: loop radius [m]
     """
 
-    I = properties.Float("Source loop current", default=1.)
+    current_amplitude = properties.Float("Source loop current", default=1.)
 
-    a = properties.Float("Source loop radius", default=1.)
+    radius = properties.Float("Source loop radius", default=1.)
 
     def __init__(self, receiver_list=None, **kwargs):
         super(HorizontalLoopSource, self).__init__(receiver_list=receiver_list, **kwargs)
@@ -88,8 +88,8 @@ class HorizontalLoopSource(survey.BaseSrc):
         :return: x,y,z components of the primary magnetic field
         """
 
-        a = self.a
-        I = self.I
+        a = self.radius
+        I = self.current_amplitude
         if is_offset:
             r0 = np.zeros(3)
         else:

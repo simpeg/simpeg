@@ -2,7 +2,7 @@ import unittest
 from SimPEG import maps
 import matplotlib.pyplot as plt
 import SimPEG.electromagnetics.time_domain_1d as em1d
-from SimPEG.electromagnetics.time_domain_1d.known_waveforms import *
+from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
 from SimPEG.electromagnetics.analytics.em1d_analytics import *
 import numpy as np
 from scipy import io
@@ -13,56 +13,54 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
 
     def setUp(self):
 
-        wave_HM = skytem_HM_2015()
-        wave_LM = skytem_LM_2015()
-        time_HM = wave_HM.time_gate_center[0::2]
-        time_LM = wave_LM.time_gate_center[0::2]
-
-
         source_location = np.array([0., 0., 0.])
         source_orientation = "z"  # "x", "y" or "z"
         source_current = 1.
         source_radius = 10.
-        moment_amplitude=1.
+        moment_amplitude = 1.
 
         receiver_location = np.array([10., 0., 0.])
         receiver_orientation = "z"  # "x", "y" or "z"
-        field_type = "secondary"  # "secondary", "total" or "ppm"
+        field_type = "secondary"  # "secondary", "total"
 
-        times = np.logspace(-5, -2, 41)
+        time_HM = skytem_2015_HM_time_channels()
+        time_LM = skytem_2015_LM_time_channels()
+        
+        # times = np.logspace(-5, -2, 41)
 
         # Receiver list
         rx = em1d.receivers.PointReceiver(
                 receiver_location,
                 times=time_HM,
-                times_dual_moment=time_LM,
+                dual_times=time_LM,
                 orientation=receiver_orientation,
                 component="dbdt"
         )
         receiver_list = [rx]
 
-        # Sources
+        # Waveforms
+        wave_HM = em1d.waveforms.Skytem2015HighMomentWaveform()
+        wave_LM = em1d.waveforms.Skytem2015LowMomentWaveform()
+        
+        waveform_times_HM = skytem_2015_HM_waveform_times()
+        waveform_current_HM = skytem_2015_HM_waveform_current()
+        waveform_times_LM = skytem_2015_LM_waveform_times()
+        waveform_current_LM = skytem_2015_LM_waveform_times()
 
-        time_input_currents_HM = wave_HM.current_times[-7:]
-        input_currents_HM = wave_HM.currents[-7:]
-        time_input_currents_LM = wave_LM.current_times[-13:]
-        input_currents_LM = wave_LM.currents[-13:]
-
+        waveform = em1d.waveforms.DualWaveform(
+            waveform_times=waveform_times_HM,
+            waveform_current=waveform_current_HM,
+            base_frequency = 25.,
+            dual_waveform_times = waveform_times_LM,
+            dual_waveform_current = waveform_current_LM,
+            dual_base_frequency = 210
+        )
 
         src = em1d.sources.HorizontalLoopSource(
             receiver_list=receiver_list,
             location=source_location,
-            I=source_current,
-            a=source_radius,
-            wave_type="general",
-            moment_type='dual',
-            time_input_currents=time_input_currents_HM,
-            input_currents=input_currents_HM,
-            n_pulse = 1,
-            base_frequency = 25.,
-            time_input_currents_dual_moment = time_input_currents_LM,
-            input_currents_dual_moment = input_currents_LM,
-            base_frequency_dual_moment = 210
+            waveform = waveform,
+            radius=source_radius,
         )
         source_list = [src]
 
@@ -94,28 +92,28 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
 
         def step_func_dBzdt(time):
             return dBzdt_horizontal_circular_loop(
-                src.a, time, self.sigma_halfspace
+                src.radius, time, self.sigma_halfspace
             )
 
         dBzdtTD_analytic_HM = piecewise_pulse(
             step_func_dBzdt, rx.times,
-            src.time_input_currents,
-            src.input_currents,
-            src.period
+            src.waveform.waveform_times,
+            src.waveform.waveform_current,
+            src.waveform.period
         )
 
         dBzdtTD_analytic_LM = piecewise_pulse(
-            step_func_dBzdt, rx.times_dual_moment,
-            src.time_input_currents_dual_moment,
-            src.input_currents_dual_moment,
-            src.period_dual_moment
+            step_func_dBzdt, rx.dual_times,
+            src.waveform.dual_waveform_times,
+            src.waveform.dual_waveform_current,
+            src.waveform.dual_period
         )
 
         if self.showIt:
             plt.loglog(rx.times, -dBzdtTD_HM)
-            plt.loglog(rx.times_dual_moment, -dBzdtTD_LM)
+            plt.loglog(rx.dual_times, -dBzdtTD_LM)
             plt.loglog(rx.times, -dBzdtTD_analytic_HM, 'x')
-            plt.loglog(rx.times_dual_moment, -dBzdtTD_analytic_LM, 'x')
+            plt.loglog(rx.dual_times, -dBzdtTD_analytic_LM, 'x')
             plt.show()
 
         err = (

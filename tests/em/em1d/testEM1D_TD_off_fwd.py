@@ -38,10 +38,12 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
             )
         )
 
+        waveform = em1d.waveforms.StepoffWaveform()
+
         source_list = [
             em1d.sources.HorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location,
-                a=a, I=1., wave_type="stepoff"
+                receiver_list=receiver_list, location=src_location, waveform=waveform,
+                radius=a, current_amplitude=1., 
             )
         ]
         # Survey

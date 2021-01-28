@@ -276,7 +276,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             
         source_list = [
             em1d.sources.HorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location, a=5.
+                receiver_list=receiver_list, location=src_location, radius=5.
             )
         ]
         
@@ -334,7 +334,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             
         source_list = [
             em1d.sources.HorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location, a=5.
+                receiver_list=receiver_list, location=src_location, radius=5.
             )
         ]
 

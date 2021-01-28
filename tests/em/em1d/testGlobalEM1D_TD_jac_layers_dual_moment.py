@@ -1,10 +1,10 @@
 from __future__ import print_function
 import unittest
 import numpy as np
+
 import SimPEG.electromagnetics.time_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_time
-from SimPEG.electromagnetics.time_domain_1d.waveforms import TriangleFun
-from SimPEG.electromagnetics.time_domain_1d.known_waveforms import skytem_HM_2015, skytem_LM_2015
+from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
 from SimPEG import *
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
@@ -16,15 +16,9 @@ np.random.seed(41)
 class GlobalEM1DTD(unittest.TestCase):
 
     def setUp(self, parallel=True):
-        wave_HM = skytem_HM_2015()
-        wave_LM = skytem_LM_2015()
-        time_HM = wave_HM.time_gate_center[0::2]
-        time_LM = wave_LM.time_gate_center[0::2]
 
-        time_input_currents_HM = wave_HM.current_times[-7:]
-        input_currents_HM = wave_HM.currents[-7:]
-        time_input_currents_LM = wave_LM.current_times[-13:]
-        input_currents_LM = wave_LM.currents[-13:]
+        time_HM = skytem_2015_HM_time_channels()
+        time_LM = skytem_2015_LM_time_channels()
 
         n_layer = 20
         thicknesses = get_vertical_discretization_time(
@@ -73,7 +67,7 @@ class GlobalEM1DTD(unittest.TestCase):
                 em1d.receivers.PointReceiver(
                     receiver_location,
                     times=time_HM,
-                    times_dual_moment=time_LM,
+                    dual_times=time_LM,
                     orientation=receiver_orientation,
                     component="dbdt"
                 )
@@ -83,27 +77,38 @@ class GlobalEM1DTD(unittest.TestCase):
                 em1d.receivers.PointReceiver(
                     receiver_location,
                     times=time_HM,
-                    times_dual_moment=time_LM,
+                    dual_times=time_LM,
                     orientation=receiver_orientation,
                     component="b"
                 )
             ]
 
+            # Waveforms
+            wave_HM = em1d.waveforms.Skytem2015HighMomentWaveform()
+            wave_LM = em1d.waveforms.Skytem2015LowMomentWaveform()
+            
+            waveform_times_HM = skytem_2015_HM_waveform_times()
+            waveform_current_HM = skytem_2015_HM_waveform_current()
+            waveform_times_LM = skytem_2015_LM_waveform_times()
+            waveform_current_LM = skytem_2015_LM_waveform_times()
+
+            waveform = em1d.waveforms.DualWaveform(
+                waveform_times=waveform_times_HM,
+                waveform_current=waveform_current_HM,
+                base_frequency = 25.,
+                dual_waveform_times = waveform_times_LM,
+                dual_waveform_current = waveform_current_LM,
+                dual_base_frequency = 210
+            )
+
+
             source_list.append(
                 em1d.sources.MagneticDipoleSource(
                     receiver_list=receiver_list,
                     location=source_location,
+                    waveform=waveform,
                     moment_amplitude=source_current,
-                    orientation=source_orientation,
-                    wave_type="general",
-                    moment_type='dual',
-                    time_input_currents=time_input_currents_HM,
-                    input_currents=input_currents_HM,
-                    n_pulse = 1,
-                    base_frequency = 25.,
-                    time_input_currents_dual_moment = time_input_currents_LM,
-                    input_currents_dual_moment = input_currents_LM,
-                    base_frequency_dual_moment = 210
+                    orientation=source_orientation
                 )
             )
 
