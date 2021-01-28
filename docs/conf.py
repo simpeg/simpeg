@@ -35,7 +35,7 @@ sys.path.append(os.path.abspath(".{}_ext".format(os.path.sep)))
 extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.mathjax",
-    # "sphinx.ext.linkcode",
+    "sphinx.ext.linkcode",
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     # 'sphinxcontrib.napoleon',
@@ -168,9 +168,9 @@ def linkcode_resolve(domain, info):
     else:
         linespec = ""
 
-    # fn = relpath(fn, start=dirname(SimPEG.__file__))
+    fn = relpath(fn, start=dirname(SimPEG.__file__))
 
-    # return f"https://github.com/simpeg/simpeg/blob/master/SimPEG/{fn}{linespec}"
+    return f"https://github.com/simpeg/simpeg/blob/master/SimPEG/{fn}{linespec}"
 
 
 # -- Options for HTML output ---------------------------------------------------
