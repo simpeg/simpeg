@@ -12,7 +12,7 @@ from scipy.interpolate import interp1d
 class EM1D_TD_FwdProblemTests(unittest.TestCase):
 
     def setUp(self):
-
+        
         source_location = np.array([0., 0., 0.])
         source_orientation = "z"  # "x", "y" or "z"
         source_current = 1.

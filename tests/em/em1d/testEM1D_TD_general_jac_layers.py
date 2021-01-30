@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import SimPEG.electromagnetics.time_domain_1d as em1d
 from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
 
-
 class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
 
     def setUp(self):    

@@ -9,7 +9,6 @@ from SimPEG import *
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
-
 np.random.seed(41)
 
 

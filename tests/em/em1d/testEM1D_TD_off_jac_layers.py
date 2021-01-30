@@ -34,7 +34,7 @@ class EM1D_TD_Jac_layers_ProblemTests(unittest.TestCase):
                 component="dbdt"
             )
         )
-            
+        
         waveform = em1d.waveforms.StepoffWaveform()
 
         source_list = [

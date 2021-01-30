@@ -18,8 +18,6 @@ class GlobalEM1DTD(unittest.TestCase):
     def setUp(self, parallel=True):
 
         times = np.logspace(-5, -2, 31)
-        
-
         n_layer = 20
         thicknesses = get_vertical_discretization_time(
             times, facter_tmax=0.5, factor_tmin=10., n_layer=n_layer-1
