@@ -9,6 +9,7 @@ from dask.distributed import Client, LocalCluster
 from scipy.spatial import cKDTree
 import matplotlib.pyplot as plt
 from pymatsolver import Pardiso as Solver
+from SimPEG.utils import plot2Ddata, surface2ind_topo
 
 def run():
     cluster = LocalCluster(processes=False)
@@ -21,27 +22,6 @@ def run():
     rx_x, rx_y = np.meshgrid(np.arange(0, 6500, 2000), np.arange(0, 6500, 2000))
     rx_loc = np.hstack((mkvc(rx_x, 2), mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1))))
     rx_loc[:, 2] = 0
-
-    # Make a receiver list
-    rxList = []
-    for rx_orientation in ['xx', 'xy', 'yx', 'yy']:
-    #     rxList.append(ns.Rx.Point3DComplexResistivity(locations=None, locations_e=rx_loc, locations_h=rx_loc, orientation=rx_orientation, component='apparent_resistivity'))
-    #     rxList.append(ns.Rx.Point3DComplexResistivity(locations=None,locations_e=rx_loc, locations_h=rx_loc, orientation=rx_orientation, component='phase'))
-        rxList.append(ns.Rx.Point3DImpedance(rx_loc, rx_orientation, 'real'))
-        rxList.append(ns.Rx.Point3DImpedance(rx_loc, rx_orientation, 'imag'))
-    # for rx_orientation in ['zx', 'zy']:
-    #     rxList.append(ns.Rx.Point3DTipper(rx_loc, rx_orientation, 'real'))
-    #     rxList.append(ns.Rx.Point3DTipper(rx_loc, rx_orientation, 'imag'))
-
-    # Source list
-    srcList = [
-        ns.Src.Planewave_xy_1Dprimary(rxList, freq, sigma_primary=sigBG)
-        for freq in [10, 50, 200]
-    ]
-
-    # Survey MT
-    survey = ns.Survey(srcList)
-    survey.m_true = model_true
 
     dh = 25.0  # base cell width
     dom_width = 3000.0  # domain width
@@ -58,17 +38,15 @@ def run():
 
     # Mesh refinement near transmitters and receivers
     mesh = refine_tree_xyz(
-        mesh, rx_loc, octree_levels=[2, 4], method="radial", finalize=False
+        mesh, rx_loc, octree_levels=[4, 4], method="radial", finalize=False
     )
 
     # Refine core mesh region
     xp, yp, zp = np.meshgrid([-250.0, 250.0], [-250.0, 250.0], [-300.0, 0.0])
     xyz = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-    mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 4], method="box", finalize=False)
+    mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 4], method="box", finalize=True)
 
     air_conductivity = np.log(1e-8)
-    background_conductivity = np.log(1e-2)
-    block_conductivity = np.log(1e1)
 
     # Find cells that are active in the forward modeling (cells below surface)
     active_cells = surface2ind_topo(mesh, topo_xyz)
@@ -100,8 +78,26 @@ def run():
     sigBG = np.zeros(mesh.nC) + 1 / background
     sigBG[~active] = 1e-8
 
+    # Make a receiver list
+    rxList = []
+    for rx_orientation in ['xx', 'xy', 'yx', 'yy']:
+    #     rxList.append(ns.Rx.Point3DComplexResistivity(locations=None, locations_e=rx_loc, locations_h=rx_loc, orientation=rx_orientation, component='apparent_resistivity'))
+    #     rxList.append(ns.Rx.Point3DComplexResistivity(locations=None,locations_e=rx_loc, locations_h=rx_loc, orientation=rx_orientation, component='phase'))
+        rxList.append(ns.Rx.Point3DImpedance(rx_loc, rx_orientation, 'real'))
+        rxList.append(ns.Rx.Point3DImpedance(rx_loc, rx_orientation, 'imag'))
+    # for rx_orientation in ['zx', 'zy']:
+    #     rxList.append(ns.Rx.Point3DTipper(rx_loc, rx_orientation, 'real'))
+    #     rxList.append(ns.Rx.Point3DTipper(rx_loc, rx_orientation, 'imag'))
 
-    mesh.finalize()
+    # Source list
+    srcList = [
+        ns.Src.Planewave_xy_1Dprimary(rxList, freq, sigma_primary=sigBG)
+        for freq in [10, 50, 200]
+    ]
+
+    # Survey MT
+    survey = ns.Survey(srcList)
+    survey.m_true = model_true
 
     actMap = maps.InjectActiveCells(
         mesh=mesh, indActive=active, valInactive=np.log(1e-8)
