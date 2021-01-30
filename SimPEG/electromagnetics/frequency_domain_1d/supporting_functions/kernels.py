@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.constants import mu_0
-from geoana.kernels import rTE_forward, rTE_gradient
+from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradient
 
 def magnetic_dipole_kernel(
     simulation, lamda, f, n_layer, sig, chi, h, z, r,
