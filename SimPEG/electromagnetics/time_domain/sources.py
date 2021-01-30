@@ -481,7 +481,7 @@ class CircularLoop(MagDipole):
 
     radius = properties.Float("radius of the loop source", default=1.0, min=0.0)
 
-    current = properties.Float("current in the loop", default=1.0)
+    current_amplitude = properties.Float("maximum current amplitude", default=1.0)
 
     N = properties.Float("number of turns in the loop", default=1.0)
 
@@ -503,7 +503,7 @@ class CircularLoop(MagDipole):
                 location=self.loc,
                 orientation=self.orientation,
                 radius=self.radius,
-                current=self.current,
+                current=self.current_amplitude,
             )
         return self._loop.vector_potential(obsLoc, coordinates)
 

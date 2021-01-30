@@ -2,10 +2,10 @@ import unittest
 import numpy as np
 from SimPEG import maps, utils
 import matplotlib.pyplot as plt
-import simpegEM1D as em1d
+import SimPEG.electromagnetics.time_domain_1d as em1d
 from scipy import io
-from simpegEM1D.supporting_functions.digital_filter import setFrequency
-from simpegEM1D.analytics import *
+from SimPEG.electromagnetics.time_domain_1d.supporting_functions.digital_filter import setFrequency
+from SimPEG.electromagnetics.analytics.em1d_analytics import *
 
 
 class EM1D_TD_FwdProblemTests(unittest.TestCase):
@@ -26,22 +26,24 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.TimeDomainPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, times, orientation=receiver_orientation,
                 component="b"
             )
         )
         receiver_list.append(
-            em1d.receivers.TimeDomainPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, times, orientation=receiver_orientation,
                 component="dbdt"
             )
         )
 
+        waveform = em1d.waveforms.StepoffWaveform()
+
         source_list = [
-            em1d.sources.TimeDomainHorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location,
-                a=a, I=1., wave_type="stepoff"
+            em1d.sources.HorizontalLoopSource(
+                receiver_list=receiver_list, location=src_location, waveform=waveform,
+                radius=a, current_amplitude=1., 
             )
         ]
         # Survey

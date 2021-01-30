@@ -2,9 +2,8 @@ import unittest
 from SimPEG import *
 import numpy as np
 import matplotlib.pyplot as plt
-import simpegEM1D as em1d
-from simpegEM1D.waveforms import TriangleFun, TriangleFunDeriv
-
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
 
 class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
 
@@ -25,33 +24,36 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         receiver_list = []
         
         receiver_list.append(
-            em1d.receivers.TimeDomainPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, times, orientation=receiver_orientation,
                 component="b"
             )
         )
         
         receiver_list.append(
-            em1d.receivers.TimeDomainPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, times, orientation=receiver_orientation,
                 component="dbdt"
             )
         )
+
+        # Waveform
+        waveform_times = np.r_[-np.logspace(-2, -5, 31), 0.]
+        waveform_current = triangular_waveform_current(
+            waveform_times, -0.01, -0.005, 0., 1.
+        )
         
-        time_input_currents = np.r_[-np.logspace(-2, -5, 31), 0.]
-        input_currents = TriangleFun(time_input_currents+0.01, 5e-3, 0.01)
+        waveform = em1d.waveforms.GeneralWaveform(
+            waveform_times=waveform_times, waveform_current=waveform_current,
+            n_pulse = 1, base_frequency = 25., use_lowpass_filter=False, high_cut_frequency=210*1e3
+        )
+
         source_list = [
-            em1d.sources.TimeDomainHorizontalLoopSource(
+            em1d.sources.HorizontalLoopSource(
                 receiver_list=receiver_list,
                 location=src_location,
-                a=a, I=1.,
-                wave_type="general",
-                time_input_currents=time_input_currents,
-                input_currents=input_currents,
-                n_pulse = 1,
-                base_frequency = 25.,
-                use_lowpass_filter=False,
-                high_cut_frequency=210*1e3
+                waveform=waveform,
+                radius=a
             )
         ]
             

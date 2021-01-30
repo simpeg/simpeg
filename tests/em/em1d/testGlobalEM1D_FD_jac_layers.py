@@ -1,8 +1,8 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-import simpegEM1D as em1d
-from simpegEM1D.utils import get_vertical_discretization_frequency
+from SimPEG.electromagnetics import frequency_domain_1d as em1d
+from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_frequency
 from SimPEG import *
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
@@ -53,20 +53,20 @@ class GlobalEM1DFD(unittest.TestCase):
             receiver_list = []
 
             receiver_list.append(
-                em1d.receivers.HarmonicPointReceiver(
+                em1d.receivers.PointReceiver(
                     receiver_location, frequencies, orientation="z",
                     field_type="secondary", component="both"
                 )
             )
             # receiver_list.append(
-            #     em1d.receivers.HarmonicPointReceiver(
+            #     em1d.receivers.PointReceiver(
             #         receiver_location, frequencies, orientation="z",
             #         field_type="secondary", component="imag"
             #     )
             # )
 
             source_list.append(
-                em1d.sources.HarmonicMagneticDipoleSource(
+                em1d.sources.MagneticDipoleSource(
                     receiver_list=receiver_list, location=source_location,
                     orientation="z", moment_amplitude=1.
                 )
@@ -181,14 +181,14 @@ class GlobalEM1DFD_Height(unittest.TestCase):
             receiver_list = []
 
             receiver_list.append(
-                em1d.receivers.HarmonicPointReceiver(
+                em1d.receivers.PointReceiver(
                     receiver_offset, frequencies, orientation="z",
                     field_type="secondary", component="both",
                     use_source_receiver_offset=True
                 )
             )
             # receiver_list.append(
-            #     em1d.receivers.HarmonicPointReceiver(
+            #     em1d.receivers.PointReceiver(
             #         receiver_offset, frequencies, orientation="z",
             #         field_type="secondary", component="imag",
             #         use_source_receiver_offset=True
@@ -196,7 +196,7 @@ class GlobalEM1DFD_Height(unittest.TestCase):
             # )
 
             source_list.append(
-                em1d.sources.HarmonicMagneticDipoleSource(
+                em1d.sources.MagneticDipoleSource(
                     receiver_list=receiver_list, location=source_location,
                     orientation="z", moment_amplitude=1.
                 )

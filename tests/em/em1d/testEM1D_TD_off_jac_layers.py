@@ -1,7 +1,7 @@
 import unittest
 from SimPEG import *
 import matplotlib.pyplot as plt
-import simpegEM1D as em1d
+import SimPEG.electromagnetics.time_domain_1d as em1d
 import numpy as np
 
 
@@ -23,22 +23,24 @@ class EM1D_TD_Jac_layers_ProblemTests(unittest.TestCase):
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.TimeDomainPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, times, orientation=receiver_orientation,
                 component="b"
             )
         )
         receiver_list.append(
-            em1d.receivers.TimeDomainPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, times, orientation=receiver_orientation,
                 component="dbdt"
             )
         )
-            
+        
+        waveform = em1d.waveforms.StepoffWaveform()
+
         source_list = [
-            em1d.sources.TimeDomainHorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location,
-                a=a, I=1., wave_type="stepoff"
+            em1d.sources.HorizontalLoopSource(
+                receiver_list=receiver_list, location=src_location, waveform=waveform,
+                radius=a, current_amplitude=1., 
             )
         ]
         # Survey
@@ -142,22 +144,24 @@ class EM1D_TD_Jac_layers_ProblemTests_Height(unittest.TestCase):
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.TimeDomainPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, times, orientation=receiver_orientation,
                 component="b"
             )
         )
         receiver_list.append(
-            em1d.receivers.TimeDomainPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, times, orientation=receiver_orientation,
                 component="dbdt"
             )
         )
+
+        waveform = em1d.waveforms.StepoffWaveform()
             
         source_list = [
-            em1d.sources.TimeDomainHorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location,
-                a=a, I=1., wave_type="stepoff"
+            em1d.sources.HorizontalLoopSource(
+                receiver_list=receiver_list, location=src_location, waveform=waveform,
+                radius=a, current_amplitude=1.
             )
         ]
         # Survey

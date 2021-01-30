@@ -2,10 +2,9 @@ import unittest
 from SimPEG import maps
 from SimPEG.utils import mkvc
 import matplotlib.pyplot as plt
-import simpegEM1D as em1d
-from simpegEM1D.known_waveforms import piecewise_ramp
-from simpegEM1D.analytics import *
-from simpegEM1D.waveforms import TriangleFun
+import SimPEG.electromagnetics.time_domain_1d as em1d
+from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
+from SimPEG.electromagnetics.analytics.em1d_analytics import *
 import numpy as np
 from scipy import io
 from scipy.interpolate import interp1d
@@ -30,33 +29,36 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         receiver_list = []
         
         receiver_list.append(
-            em1d.receivers.TimeDomainPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, times, orientation=receiver_orientation,
                 component="b"
             )
         )
         
         receiver_list.append(
-            em1d.receivers.TimeDomainPointReceiver(
+            em1d.receivers.PointReceiver(
                 rx_location, times, orientation=receiver_orientation,
                 component="dbdt"
             )
         )
+
+        # Waveform
+        waveform_times = np.r_[-np.logspace(-2, -5, 31), 0.]
+        waveform_current = triangular_waveform_current(
+            waveform_times, -0.01, -0.005, 0., 1.
+        )
         
-        time_input_currents = np.r_[-np.logspace(-2, -5, 31), 0.]
-        input_currents = TriangleFun(time_input_currents+0.01, 5e-3, 0.01)
+        waveform = em1d.waveforms.GeneralWaveform(
+            waveform_times=waveform_times, waveform_current=waveform_current,
+            n_pulse = 1, base_frequency = 25., use_lowpass_filter=False, high_cut_frequency=210*1e3
+        )
+
         source_list = [
-            em1d.sources.TimeDomainHorizontalLoopSource(
+            em1d.sources.HorizontalLoopSource(
                 receiver_list=receiver_list,
                 location=src_location,
-                a=a, I=1.,
-                wave_type="general",
-                time_input_currents=time_input_currents,
-                input_currents=input_currents,
-                n_pulse = 1,
-                base_frequency = 25.,
-                use_lowpass_filter=False,
-                high_cut_frequency=210*1e3
+                waveform=waveform,
+                radius=a
             )
         ]
             
@@ -96,8 +98,8 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
 
         bz_analytic = piecewise_ramp(
             step_func_Bzt, self.times,
-            sim.survey.source_list[0].time_input_currents,
-            sim.survey.source_list[0].input_currents
+            sim.survey.source_list[0].waveform.waveform_times,
+            sim.survey.source_list[0].waveform.waveform_current
         )
 
         if self.showIt:
@@ -121,8 +123,8 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
 
         dbdt_analytic = piecewise_ramp(
             step_func_dBzdt, self.times,
-            sim.survey.source_list[0].time_input_currents,
-            sim.survey.source_list[0].input_currents
+            sim.survey.source_list[0].waveform.waveform_times,
+            sim.survey.source_list[0].waveform.waveform_current
         )
         
         if self.showIt:
