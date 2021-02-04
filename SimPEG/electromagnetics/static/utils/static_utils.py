@@ -207,7 +207,7 @@ def source_receiver_midpoints(survey, **kwargs):
         midxy.append((Cmid + Pmid) / 2)
         diffs = np.linalg.norm((Cmid - Pmid), axis=1)
         if np.allclose(diffs, 0.0):  # likely a wenner type survey.
-            midz = zsrc - tx_sep / 2 * np.ones_like(diffs)
+            midz.append(zsrc - tx_sep / 2 * np.ones_like(diffs))
         else:
             midz.append(zsrc - diffs / 2)
 
