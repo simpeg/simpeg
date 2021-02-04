@@ -91,7 +91,7 @@ true_conductivity_filename = dir_path + "true_conductivity.txt"
 #
 # Here we load the observed data, define the DC and IP survey geometry and
 # plot the data values using pseudo-sections.
-# **Warning**: In the following example, the observation files is assumed to be
+# **Warning**: In the following example, the observations file is assumed to be
 # sorted by sources
 #
 
