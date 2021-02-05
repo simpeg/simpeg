@@ -453,6 +453,9 @@ def writeUBCgravityObservations(filename, survey, d):
 
     wd = survey.std
 
+    if d.ndim == 2:
+        d = d[0]
+    
     data = np.c_[rxLoc, -d, wd]
     head = ('%i' % len(d))
     np.savetxt(
