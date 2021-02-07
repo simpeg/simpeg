@@ -67,7 +67,7 @@ def dask_Jvec(self, m, v):
     if isinstance(self.Jmatrix, Future):
         self.Jmatrix  # Wait to finish
 
-    return da.dot(self.Jmatrix, v)
+    return da.dot(self.Jmatrix, v).astype(np.float32)
 
 
 Sim.Jvec = dask_Jvec
@@ -81,7 +81,7 @@ def dask_Jtvec(self, m, v):
     if isinstance(self.Jmatrix, Future):
         self.Jmatrix  # Wait to finish
 
-    return da.dot(v, self.Jmatrix)
+    return da.dot(v, self.Jmatrix).astype(np.float32)
 
 
 Sim.Jtvec = dask_Jtvec
@@ -152,9 +152,9 @@ def compute_J(self, f=None, Ainv=None):
                     # ]
                     Jmatrix.set_orthogonal_selection(
                         (np.arange(count, count + row_chunks), slice(None)),
-                        blocks[:row_chunks, :]
+                        blocks[:row_chunks, :].astype(np.float32)
                     )
-                    blocks = blocks[row_chunks:, :]
+                    blocks = blocks[row_chunks:, :].astype(np.float32)
                     block_count += 1
                     count += row_chunks
 
@@ -170,7 +170,7 @@ def compute_J(self, f=None, Ainv=None):
         # ]
         Jmatrix.set_orthogonal_selection(
             (np.arange(count, self.survey.nD), slice(None)),
-            blocks
+            blocks.astype(np.float32)
         )
     else:
         block_count -= 1
