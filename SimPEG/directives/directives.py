@@ -5,11 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 import os
-from .data_misfit import BaseDataMisfit
-from .objective_function import ComboObjectiveFunction
-from .maps import SphericalSystem, ComboMap
-from .regularization import BaseComboRegularization, BaseRegularization
-from .utils import (
+from ..data_misfit import BaseDataMisfit
+from ..objective_function import ComboObjectiveFunction
+from ..maps import SphericalSystem, ComboMap
+from ..regularization import BaseComboRegularization, BaseRegularization
+from ..utils import (
     mkvc,
     setKwargs,
     sdiag,
@@ -18,8 +18,8 @@ from .utils import (
     cartesian2spherical,
     eigenvalue_by_power_iteration, # change on Dec 9, 2020
 )
-from .utils.code_utils import deprecate_property
-from .import optimization
+from ..utils.code_utils import deprecate_property
+from ..import optimization
 
 
 class InversionDirective(properties.HasProperties):

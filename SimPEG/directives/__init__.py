@@ -11,10 +11,6 @@ from .directives import (
     Update_IRLS,
     UpdatePreconditioner,
     Update_Wj,
-    AlphasSmoothEstimate_ByEig,
-    MultiTargetMisfits,
-    ScalingMultipleDataMisfits_ByEig,
-    JointScalingSchedule,
     UpdateSensitivityWeights,
     ProjectSphericalBounds,
 )
