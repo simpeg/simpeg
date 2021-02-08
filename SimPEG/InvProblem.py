@@ -179,7 +179,13 @@ class BaseInvProblem(Props.BaseSimPEG):
             dpred = da.hstack(dpred).compute()
             index = np.hstack(index)
 
-            return dpred[index]
+            # Sort predicted data from tiles back to original order
+            dpred_resort = np.zeros_like(dpred)
+            dpred_resort[index] = dpred
+            return dpred_resort
+
+            # Old way (pre Feb 2021): scrambles the data
+            # return dpred[index]
 
     @Utils.timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
