@@ -67,3 +67,4 @@ tutorials/12-seismic/seismic/*
 *.npy
 *.mod
 *.tar.gz
+tutorials/13-joint_inversion/gravity/gravity_data.obs
