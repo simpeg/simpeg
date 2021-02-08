@@ -127,6 +127,7 @@ plt.show()
 
 
 
+Z = np.ones_like(X) * 1
 
 
 
