@@ -3,6 +3,9 @@ from ....potential_fields.magnetics import Simulation3DIntegral as Sim
 from ....utils import sdiag, mkvc
 from dask import array, delayed
 from scipy.sparse import csr_matrix as csr
+from dask.distributed import get_client, Future, Client
+from dask import delayed, array, config
+import os
 
 
 def dask_fields(self, m):
