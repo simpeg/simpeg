@@ -13,7 +13,7 @@ structural similarity. For this tutorial, we focus on the following:
     - Generating a mesh based on survey geometry
     - Including surface topography
     - Defining the inverse problem via combmaps (2 data misfit terms, 
-        3 regularization terms including the coupling term, optimization)
+        2 regularization terms, a coupling term and optimization)
     - Specifying directives for the inversion
     - Plotting the recovered model and data misfit
 
@@ -39,7 +39,7 @@ import tarfile
 from discretize import TensorMesh
 
 from SimPEG.utils import plot2Ddata, surface2ind_topo
-from SimPEG.potential_fields import gravity
+from SimPEG.potential_fields import gravity, magnetics
 from SimPEG import (
     maps,
     data,
@@ -93,48 +93,296 @@ model_filename = dir_path + "true_model.txt"
 #
  
 
-
 # Load topography
-xyz_topo = np.loadtxt(str(topo_filename))
+# xyz_topo = np.loadtxt(str(topo_filename))
+xyz_topo = np.loadtxt("topo.txt")
 
 # Load field data
-dobs = np.loadtxt(str(data_filename))
+# dobs_grav = np.loadtxt(str(data_filename))
+dobs_grav = np.loadtxt("gravity_data.obs")
+dobs_mag = np.loadtxt("magnetic_data.obs")
 
 # Define receiver locations and observed data
-receiver_locations = dobs[:, 0:3]
-dobs = dobs[:, -1]
+receiver_locations = dobs_grav[:, 0:3]
+
+dobs_grav = dobs_grav[:, -1]
+dobs_mag = dobs_mag[:, -1]
 
 # Plot
 mpl.rcParams.update({"font.size": 12})
+
+# gravity data
 fig = plt.figure(figsize=(7, 5))
 
 ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.85])
-plot2Ddata(receiver_locations, dobs, ax=ax1, contourOpts={"cmap": "bwr"})
+plot2Ddata(receiver_locations, dobs_grav, ax=ax1, contourOpts={"cmap": "bwr"})
 ax1.set_title("Gravity Anomaly")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("y (m)")
 
 ax2 = fig.add_axes([0.8, 0.1, 0.03, 0.85])
-norm = mpl.colors.Normalize(vmin=-np.max(np.abs(dobs)), vmax=np.max(np.abs(dobs)))
+norm = mpl.colors.Normalize(vmin=-np.max(np.abs(dobs_grav)), vmax=np.max(np.abs(dobs_grav)))
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", cmap=mpl.cm.bwr, format="%.1e"
 )
 cbar.set_label("$mgal$", rotation=270, labelpad=15, size=12)
 
+# magnetic data
+fig = plt.figure(figsize=(7, 5))
+ax1 = fig.add_axes([0.1, 0.1, 0.73, 0.85])
+plot2Ddata(receiver_locations, dobs_mag, ax=ax1, contourOpts={"cmap": "bwr"})
+ax1.set_title("Magnetic Anomaly")
+ax1.set_xlabel("x (m)")
+ax1.set_ylabel("y (m)")
+
+ax2 = fig.add_axes([0.8, 0.1, 0.03, 0.85])
+norm = mpl.colors.Normalize(vmin=-np.max(np.abs(dobs_mag)), vmax=np.max(np.abs(dobs_mag)))
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.bwr, format="%.1e"
+)
+cbar.set_label("$nT$", rotation=270, labelpad=15, size=12)
+
 plt.show()
 
 
+#############################################
+# Assign Uncertainties
+# --------------------
+#
+# Inversion with SimPEG requires that we define standard deviation on our data.
+# This represents our estimate of the noise in our data. For gravity inversion,
+# a constant floor value is generally applied to all data. For this tutorial,
+# the standard deviation on each datum will be 1% of the maximum observed
+# gravity anomaly value. For magnetic inversion, the same strategy is performed.
+#
+
+maximum_anomaly_grav = np.max(np.abs(dobs_grav))
+uncertainties_grav = 0.01 * maximum_anomaly_grav * np.ones(np.shape(dobs_grav))
+
+maximum_anomaly_mag = np.max(np.abs(dobs_mag))
+uncertainties_mag = 0.01 * maximum_anomaly_grav * np.ones(np.shape(dobs_mag))
 
 
+#############################################
+# Defining the Survey
+# -------------------
+#
+# Here, we define survey that will be used for this tutorial. Gravity
+# surveys are simple to create. The user only needs an (N, 3) array to define
+# the xyz locations of the observation locations. From this, the user can
+# define the receivers and the source field.
+#
 
-Z = np.ones_like(X) * 1
+
+# Define the receivers. The data consist of vertical gravity anomaly measurements.
+# The set of receivers must be defined as a list.
+receiver_list_grav = gravity.receivers.Point(receiver_locations, components="gz")
+receiver_list_grav = [receiver_list_grav]
+
+# Define the source field and survey for gravity data
+source_field_grav = gravity.sources.SourceField(receiver_list=receiver_list_grav)
+survey_grav = gravity.survey.Survey(source_field_grav)
 
 
+# Define the component(s) of the field we want to simulate as a list of strings.
+# Here we simulation total magnetic intensity data.
+components = ["tmi"]
+
+# Use the observation locations and components to define the receivers. To
+# simulate data, the receivers must be defined as a list.
+receiver_list_mag = magnetics.receivers.Point(receiver_locations, components=components)
+
+receiver_list_mag = [receiver_list_mag]
+
+# Define the inducing field H0 = (intensity [nT], inclination [deg], declination [deg])
+inclination = 90
+declination = 0
+strength = 50000
+inducing_field = (strength, inclination, declination)
+
+# Define the source field and survey for gravity data
+source_field_mag = magnetics.sources.SourceField(
+    receiver_list=receiver_list_mag, parameters=inducing_field
+)
+survey_mag = magnetics.survey.Survey(source_field_mag)
 
 
+#############################################
+# Defining the Data
+# -----------------
+#
+# Here is where we define the data that are inverted. The data are defined by
+# the survey, the observation values and the standard deviation.
+#
+
+data_object_grav = data.Data(survey_grav, dobs=dobs_grav, standard_deviation=uncertainties_grav)
+data_object_mag = data.Data(survey_mag, dobs=dobs_mag, standard_deviation=uncertainties_mag)
 
 
+#############################################
+# Defining a Tensor Mesh
+# ----------------------
+#
+# Here, we create the tensor mesh that will be used to invert gravity anomaly
+# data. If desired, we could define an OcTree mesh.
+#
 
+dh = 5.0
+hx = [(dh, 5, -1.3), (dh, 40), (dh, 5, 1.3)]
+hy = [(dh, 5, -1.3), (dh, 40), (dh, 5, 1.3)]
+hz = [(dh, 5, -1.3), (dh, 15)]
+mesh = TensorMesh([hx, hy, hz], "CCN")
+
+
+########################################################
+# Starting/Reference Model and Mapping on Tensor Mesh
+# ---------------------------------------------------
+#
+# Here, we create starting and/or reference models for the inversion as
+# well as the mapping from the model space to the active cells. Starting and
+# reference models can be a constant background value or contain a-priori
+# structures. Here, the backgrounds are 1e-6 g/cc and 1e-6 SI for density and 
+# susceptibility models, respectively. Note that the background values could 
+# be different for density and susceptibility models.
+#
+
+# Define density contrast values for each unit in g/cc. Don't make this 0!
+# Otherwise the gradient for the 1st iteration is zero and the inversion will
+# not converge.
+background_dens, background_mag = 1e-6, 1e-6 
+
+# Find the indecies of the active cells in forward model (ones below surface)
+ind_active = surface2ind_topo(mesh, xyz_topo)
+
+# Define mapping from model to active cells
+nC = int(ind_active.sum())
+model_map = maps.IdentityMap(nP=nC)  # model consists of a value for each active cell
+
+# Create Wires Map that maps from stacked models to individual model components
+# m1 refers to density model, m2 refers to susceptibility
+wires = maps.Wires(('m1', nC), ('m2', nC))
+
+# Define and plot starting model
+starting_model = np.r_[
+    background_dens * np.ones(nC), background_mag * np.ones(nC)
+    ]
+
+
+##############################################
+# Define the Physics
+# ------------------
+#
+# Here, we define the physics of the gravity and magnetic problems by using the simulation
+# class.
+#
+
+simulation_grav = gravity.simulation.Simulation3DIntegral(
+    survey=survey_grav, mesh=mesh, rhoMap=wires.m1, actInd=ind_active
+)
+
+simulation_mag = magnetics.simulation.Simulation3DIntegral(
+    survey=survey_mag,
+    mesh=mesh,
+    modelType="susceptibility",
+    chiMap=wires.m2,
+    actInd=ind_active,
+
+)
+
+
+#######################################################################
+# Define the Inverse Problem
+# --------------------------
+#
+# The inverse problem is defined by 4 things:
+#
+#     1) Data Misfit: a measure of how well our recovered model explains the field data
+#     2) Regularization: constraints placed on the recovered model and a priori information
+#     3) Coupling: a connection of two different physical property models
+#     4) Optimization: the numerical approach used to solve the inverse problem
+#
+
+# Define the data misfit. Here the data misfit is the L2 norm of the weighted
+# residual between the observed data and the data predicted for a given model.
+# Within the data misfit, the residual between predicted and observed data are
+# normalized by the data's standard deviation.
+dmis_grav = data_misfit.L2DataMisfit(data=data_object_grav, simulation=simulation_grav)
+dmis_mag = data_misfit.L2DataMisfit(data=data_object_mag, simulation=simulation_mag)
+
+# Define the regularization (model objective function).
+reg_grav = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m1)
+reg_mag = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m2)
+
+# Define the coupling term to connect two different physical property models
+lamda = 1e+9 # weights 
+cross_grad = regularization.CrossGradient(mesh, indActive=ind_active, mapping=(wires.m1+wires.m2))
+
+# combo
+dmis = dmis_grav + dmis_mag
+reg = reg_grav + reg_mag + lamda*cross_grad
+
+# Define how the optimization problem is solved. Here we will use a projected
+# Gauss-Newton approach that employs the conjugate gradient solver.
+opt = optimization.ProjectedGNCG(
+    maxIter=100, lower=-2.0, upper=2.0, maxIterLS=20, maxIterCG=100, tolCG=1e-3
+)
+
+# Here we define the inverse problem that is to be solved
+inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
+
+
+#######################################################################
+# Define Inversion Directives
+# ---------------------------
+#
+# Here we define any directiveas that are carried out during the inversion. This
+# includes the cooling schedule for the trade-off parameter (beta), stopping
+# criteria for the inversion and saving inversion results at each iteration.
+#
+
+# Defining a starting value for the trade-off parameter (beta) between the data
+# misfit and the regularization.
+starting_beta = directives.Joint_BetaEstimate_ByEig(beta0_ratio=1e1)
+
+# Defining the fractional decrease in beta and the number of Gauss-Newton solves
+# for each beta value.
+beta_schedule = directives.Joint_BetaSchedule(coolingFactor=5, coolingRate=1)
+
+# Options for outputting recovered models and predicted data for each beta.
+save_iteration = directives.Joint_SaveOutputEveryIteration(save_txt=False)
+
+# Updating the preconditionner if it is model dependent.
+update_jacobi = directives.UpdatePreconditioner()
+
+joint_inv_dir = directives.Joint_InversionDirective()
+
+# Setting a stopping criteria for the inversion.
+# target_misfit = directives.TargetMisfit(chifact=1)
+
+
+# The directives are defined as a list.
+directives_list = [
+    joint_inv_dir,
+    starting_beta,
+    beta_schedule,
+    save_iteration,
+    update_jacobi,
+    # target_misfit,
+]
+
+#####################################################################
+# Running the Inversion
+# ---------------------
+#
+# To define the inversion object, we need to define the inversion problem and
+# the set of directives. We can then run the inversion.
+#
+
+# Here we combine the inverse problem and the set of directives
+inv = inversion.BaseInversion(inv_prob, directives_list)
+
+# Run inversion
+recovered_model = inv.run(starting_model)
 
 
 
