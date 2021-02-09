@@ -21,4 +21,5 @@ from .joint_directives import (
     Joint_SaveOutputEveryIteration,
     Joint_BetaEstimate_ByEig,
     Joint_BetaSchedule,
+    Joint_Stopping,
 )

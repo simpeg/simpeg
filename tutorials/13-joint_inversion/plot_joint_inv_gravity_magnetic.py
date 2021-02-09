@@ -91,7 +91,6 @@ model_filename = dir_path + "true_model.txt"
 # defined as an (N, 3) array. Gravity data is generally defined with 4 columns:
 # x, y, z and data.
 #
- 
 
 # Load topography
 # xyz_topo = np.loadtxt(str(topo_filename))
@@ -314,7 +313,7 @@ reg_grav = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m1)
 reg_mag = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m2)
 
 # Define the coupling term to connect two different physical property models
-lamda = 1e+9 # weights 
+lamda = 1e+2 # weights 
 cross_grad = regularization.CrossGradient(mesh, indActive=ind_active, mapping=(wires.m1+wires.m2))
 
 # combo
@@ -324,7 +323,8 @@ reg = reg_grav + reg_mag + lamda*cross_grad
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.ProjectedGNCG(
-    maxIter=500, lower=-2.0, upper=2.0, maxIterLS=20, maxIterCG=1000, tolCG=1e-3
+    maxIter=500, lower=-2.0, upper=2.0, maxIterLS=20, 
+    maxIterCG=200, tolCG=1e-3, tolX=1e-2
 )
 
 # Here we define the inverse problem that is to be solved
@@ -356,18 +356,24 @@ update_jacobi = directives.UpdatePreconditioner()
 
 joint_inv_dir = directives.Joint_InversionDirective()
 
+stopping = directives.Joint_Stopping(tol=1e-6)
+
 # Setting a stopping criteria for the inversion.
 # target_misfit = directives.TargetMisfit(chifact=1)
 
+# Add sensitivity weights
+# sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 
 # The directives are defined as a list.
 directives_list = [
     joint_inv_dir,
+    # sensitivity_weights,
     starting_beta,
     beta_schedule,
     save_iteration,
     update_jacobi,
     # target_misfit,
+    stopping,
 ]
 
 #####################################################################
@@ -385,7 +391,119 @@ inv = inversion.BaseInversion(inv_prob, directives_list)
 recovered_model = inv.run(starting_model)
 
 
+############################################################
+# Plotting True Model and Recovered Model
+# ---------------------------------------
+#
 
+# Load the true model (was defined on the whole mesh) and extract only the
+# values on active cells.
+
+true_model_dens = np.loadtxt("true_model_dens.txt")
+true_model_dens = true_model_dens[ind_active]
+
+true_model_susc = np.loadtxt("true_model_susc.txt")
+true_model_susc = true_model_susc[ind_active]
+
+# Plot True Density Model
+fig = plt.figure(figsize=(9, 4))
+plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
+
+ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
+mesh.plotSlice(
+    plotting_map * true_model_dens,
+    normal="Y",
+    ax=ax1,
+    ind=int(mesh.nCy / 2),
+    grid=True,
+    clim=(np.min(true_model_dens), np.max(true_model_dens)),
+    pcolorOpts={"cmap": "viridis"},
+)
+ax1.set_title("Model slice at y = 0 m")
+
+ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
+norm = mpl.colors.Normalize(vmin=np.min(true_model_dens), vmax=np.max(true_model_dens))
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
+)
+cbar.set_label("g/cc", rotation=270, labelpad=15, size=12)
+
+plt.show()
+
+
+# Plot True Susceptibility Model
+fig = plt.figure(figsize=(9, 4))
+ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
+mesh.plotSlice(
+    plotting_map * true_model_susc,
+    normal="Y",
+    ax=ax1,
+    ind=int(mesh.nCy / 2),
+    grid=True,
+    clim=(np.min(true_model_susc), np.max(true_model_susc)),
+    pcolorOpts={"cmap": "viridis"},
+)
+ax1.set_title("Model slice at y = 0 m")
+
+ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
+norm = mpl.colors.Normalize(vmin=np.min(true_model_susc), vmax=np.max(true_model_susc))
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
+)
+cbar.set_label("SI", rotation=270, labelpad=15, size=12)
+
+plt.show()
+
+
+# Plot Recovered Density Model
+m_dens_joint, m_susc_joint = wires.m1*recovered_model, wires.m2*recovered_model
+fig = plt.figure(figsize=(9, 4))
+plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
+
+ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
+mesh.plotSlice(
+    plotting_map * m_dens_joint,
+    normal="Y",
+    ax=ax1,
+    ind=int(mesh.nCy / 2),
+    grid=True,
+    clim=(np.min(m_dens_joint), np.max(m_dens_joint)),
+    pcolorOpts={"cmap": "viridis"},
+)
+ax1.set_title("Model slice at y = 0 m")
+
+ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
+norm = mpl.colors.Normalize(vmin=np.min(m_dens_joint), vmax=np.max(m_dens_joint))
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
+)
+cbar.set_label("g/cc", rotation=270, labelpad=15, size=12)
+
+plt.show()
+
+
+# Plot Recovered Susceptibility Model
+fig = plt.figure(figsize=(9, 4))
+ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
+mesh.plotSlice(
+    plotting_map * m_susc_joint,
+    normal="Y",
+    ax=ax1,
+    ind=int(mesh.nCy / 2),
+    grid=True,
+    clim=(np.min(m_susc_joint), np.max(m_susc_joint)),
+    pcolorOpts={"cmap": "viridis"},
+)
+ax1.set_title("Model slice at y = 0 m")
+
+ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
+norm = mpl.colors.Normalize(vmin=np.min(m_susc_joint), vmax=np.max(m_susc_joint))
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
+)
+cbar.set_label("SI", rotation=270, labelpad=15, size=12)
+
+plt.show()
 
 
 

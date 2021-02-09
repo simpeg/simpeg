@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import properties
 import numpy as np
+norm = np.linalg.norm
 import matplotlib.pyplot as plt
 import warnings
 import os
@@ -235,6 +236,23 @@ class Joint_BetaEstimate_ByEig(InversionDirective):
                 eigenvalue_by_power_iteration(reg, m, n_pw_iter=self.n_pw_iter,)
                 )
 
+        # model = np.array_split(self.invProb.model, 2)
+        # model_zero = np.zeros_like(model)
+        # m1, m2  = np.r_[model[0], model_zero[0]], np.r_[model_zero[1], model[1]]
+        # m = [m1, m2]
+        #
+        # dmis_eigenvalues = []
+        # for i, dmis in enumerate(self.dmisfit.objfcts):
+        #     dmis_eigenvalues.append(
+        #         eigenvalue_by_power_iteration(dmis, m[i], n_pw_iter=self.n_pw_iter,)
+        #         )
+        #
+        # reg_eigenvalues = []
+        # for i, reg in enumerate(self.reg.objfcts[:-1]):
+        #     reg_eigenvalues.append(
+        #         eigenvalue_by_power_iteration(reg, m[i], n_pw_iter=self.n_pw_iter,)
+        #         )
+
         self.ratios = np.array(dmis_eigenvalues) / np.array(reg_eigenvalues)
         self.invProb.betas = self.beta0_ratio * self.ratios
         self.reg.multipliers[:-1] = self.invProb.betas
@@ -307,3 +325,39 @@ class Joint_BetaSchedule(InversionDirective):
 
         self.reg.multipliers[:-1] = self.invProb.betas
 
+
+class Joint_Stopping(InversionDirective):
+    '''
+        Directive for setting Joint_StoppingCriteria.
+        Computes the percentage change of the current model from the previous model.
+        ..math::
+        \frac {\| \mathbf{m_i} - \mathbf{m_{i-1}} \|} {\| \mathbf{m_{i-1}} \|}
+    '''
+    tol = 1e-5
+    beta_tol = 1e-1
+    chifact_target = 1.
+
+    @property
+    def target(self):
+        if getattr(self, '_target', None) is None:
+            nD = []
+            for survey in self.survey:
+                nD += [survey.nD]
+            nD = np.array(nD)
+
+            self._target = nD*0.5*self.chifact_target
+
+        return self._target
+
+    @target.setter
+    def target(self, val):
+        self._target = val
+
+    def endIter(self):
+        criteria_1 = np.abs(1. - self.invProb.phi_d_joint[0] / self.target[0]) < self.beta_tol,
+        criteria_2 = np.abs(1. - self.invProb.phi_d_joint[-1] / self.target[-1]) < self.beta_tol,
+        criteria_3 = norm(self.opt.xc - self.opt.x_last) / norm(self.opt.x_last) < self.tol
+        if np.all([criteria_1, criteria_2, criteria_3]):
+            print("stopping criteria met: ", norm(self.opt.xc - self.opt.x_last)
+                                            / norm(self.opt.x_last))
+            self.opt.stopNextIteration = True
