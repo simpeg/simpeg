@@ -324,7 +324,7 @@ reg = reg_grav + reg_mag + lamda*cross_grad
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.ProjectedGNCG(
     maxIter=500, lower=-2.0, upper=2.0, maxIterLS=20, 
-    maxIterCG=200, tolCG=1e-3, tolX=1e-2
+    maxIterCG=200, tolCG=1e-3, tolX=1e-1
 )
 
 # Here we define the inverse problem that is to be solved
@@ -356,7 +356,7 @@ update_jacobi = directives.UpdatePreconditioner()
 
 joint_inv_dir = directives.Joint_InversionDirective()
 
-stopping = directives.Joint_Stopping(tol=1e-6)
+# stopping = directives.Joint_Stopping(tol=1e-6)
 
 # Setting a stopping criteria for the inversion.
 # target_misfit = directives.TargetMisfit(chifact=1)
@@ -373,7 +373,7 @@ directives_list = [
     save_iteration,
     update_jacobi,
     # target_misfit,
-    stopping,
+    # stopping,
 ]
 
 #####################################################################
