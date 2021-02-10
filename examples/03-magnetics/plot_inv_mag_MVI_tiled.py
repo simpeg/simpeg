@@ -112,7 +112,7 @@ padDist = np.ones((3, 2)) * 100
 sp.random.seed(1)
 # We will assume a vertical inducing field
 H0 = (50000.0, 90.0, 0.0)
-components = ["bxx", "byy", "bzz", "bxz", "bxy", "byz"]
+components = ["bxx", "byy", "bzz", "bxz", "bxy", "byz", "tmi"]
 
 # The magnetization is set along a different direction (induced + remanence)
 M = np.array([45.0, 90.0])
@@ -131,6 +131,7 @@ xr = np.linspace(-100.0, 100.0, 10)
 yr = np.linspace(-100.0, 100.0, 10)
 X, Y = np.meshgrid(xr, yr)
 Z = A * np.exp(-0.5 * ((X / b) ** 2.0 + (Y / b) ** 2.0)) 
+print(Z.max(), Z.min())
 # Z = np.zeros_like(X) - 0.1
 
 ###############################################################################
@@ -191,8 +192,8 @@ model = np.zeros((global_mesh.nC, 3))
 M_xyz = utils.mat_utils.dip_azimuth2cartesian(M[0], M[1])
 
 # Get the indicies of the magnetized block
-ind = utils.ModelBuilder.getIndicesBlock(
-    np.r_[-10, -10, -30], np.r_[10, 10, -10], global_mesh.gridCC,
+ind = utils.model_builder.getIndicesBlock(
+    np.r_[-20, -20, -10], np.r_[20, 20, 25], global_mesh.gridCC,
 )[0]
 
 # Assign magnetization values
@@ -218,7 +219,7 @@ simulation = magnetics.simulation.Simulation3DIntegral(
 # Compute some data and add some random noise
 d = simulation.fields(utils.mkvc(model))
 # d = client.compute(simulation.fields(utils.mkvc(model))).result()
-std = 5  # nT
+std = 1  # nT
 
 # Add noise and uncertainties
 # We add some random Gaussian noise (1nT)
@@ -271,57 +272,57 @@ for local in local_misfits:
     local.simulation.Jmatrix
     # del local.simulation.mesh
 
-print('[info] global: ', global_mesh.nC, activeCells.sum())
+print('[info] global: ', global_mesh.nC, activeCells.sum(), synthetic_data.shape)
 # Plot the model on different meshes
-fig = plt.figure(figsize=(12, 6))
-c_code = ['r', 'g', 'b', 'm']
-for ii, local_misfit in enumerate(global_misfit.objfcts):
+# fig = plt.figure(figsize=(12, 6))
+# c_code = ['r', 'g', 'b', 'm']
+# for ii, local_misfit in enumerate(global_misfit.objfcts):
 
-    local_mesh = local_misfit.simulation.mesh
-    local_map = local_misfit.model_map
-    print('[info] type: ', type(local_map))
-    inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
+#     local_mesh = local_misfit.simulation.mesh
+#     local_map = local_misfit.model_map
+#     print('[info] type: ', type(local_map))
+#     inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
-    # Interpolate values to mesh.gridCC if not 'CC'
-    m = local_map * utils.mkvc(model)
-    # m = np.reshape(m, (local_map.local_active.sum(), 3))
-    nC_t = local_map.local_active.sum()
-    mx = m[:nC_t]
-    my = m[nC_t:2*nC_t]
-    mz = m[2*nC_t:]
+#     # Interpolate values to mesh.gridCC if not 'CC'
+#     m = local_map * utils.mkvc(model)
+#     # m = np.reshape(m, (local_map.local_active.sum(), 3))
+#     nC_t = local_map.local_active.sum()
+#     mx = m[:nC_t]
+#     my = m[nC_t:2*nC_t]
+#     mz = m[2*nC_t:]
 
-    m = np.c_[mx, my, mz]
-    amp = np.sum(m ** 2.0, axis=1) ** 0.5
+#     m = np.c_[mx, my, mz]
+#     amp = np.sum(m ** 2.0, axis=1) ** 0.5
 
-    ax = plt.subplot(2, 3, ii + 1)
-    local_mesh.plot_slice(
-        inject_local * (amp), index=100, normal="Z", ax=ax, grid=True
-    )
-    sensors = local_misfit.simulation.survey.receiver_locations
-    ax.scatter(sensors[:, 0], sensors[:, 1], 10)
-    # ax.set_xlim(-200, 200)
-    # ax.set_ylim(-200, 200)
-    ax.set_aspect("equal")
-    ax.set_title(f"Mesh {ii+1}. Active cells {local_map.local_active.sum()}")
+#     ax = plt.subplot(2, 3, ii + 1)
+#     local_mesh.plot_slice(
+#         inject_local * (amp), index=100, normal="Z", ax=ax, grid=True
+#     )
+#     sensors = local_misfit.simulation.survey.receiver_locations
+#     ax.scatter(sensors[:, 0], sensors[:, 1], 10)
+#     ax.set_xlim(-200, 200)
+#     ax.set_ylim(-200, 200)
+#     ax.set_aspect("equal")
+#     ax.set_title(f"Mesh {ii+1}. Active cells {local_map.local_active.sum()}")
 
 
 # Create active map to go from reduce set to full
 inject_global = maps.InjectActiveCells(global_mesh, activeCells, 0)
 
-ax = plt.subplot(2, 3, 6)
+# ax = plt.subplot(2, 3, 6)
 mx = model[:, 0]
 my = model[:, 1]
 mz = model[:, 2]
 
 m_ = np.c_[mx, my, mz]
 amp = np.sum(m_ ** 2.0, axis=1) ** 0.5
-global_mesh.plot_slice(inject_global * amp, index=100, normal="Z", ax=ax, grid=True)
-ax.scatter(rxLoc[:, 0], rxLoc[:, 1], 10)
-ax.set_title(f"Global Mesh. Active cells {activeCells.sum()}")
-ax.set_xlim(-200, 500)
-ax.set_ylim(-200, 500)
-ax.set_aspect("equal")
-plt.show()
+# global_mesh.plot_slice(inject_global * amp, index=100, normal="Z", ax=ax, grid=True)
+# ax.scatter(rxLoc[:, 0], rxLoc[:, 1], 10)
+# ax.set_title(f"Global Mesh. Active cells {activeCells.sum()}")
+# ax.set_xlim(-200, 200)
+# ax.set_ylim(-200, 200)
+# ax.set_aspect("equal")
+# plt.show()
 
 
 # ####################################################
@@ -405,17 +406,34 @@ amp_ = np.sum(vec ** 2.0, axis=1) ** 0.5
 
 fig = plt.figure(figsize=(12, 6))
 # Plot the result
-ax = plt.subplot(1, 2, 1)
-global_mesh.plot_slice(inject_global * amp, normal="Y", ax=ax, grid=True)
+ax = plt.subplot(3, 2, 1)
+global_mesh.plot_slice(inject_global * amp, ind=75, normal="Z", ax=ax, grid=False)
 ax.set_title("True")
-ax.set_xlim(-60, 60)
-ax.set_ylim(-50, 10)
+ax.set_xlim(-100, 100)
+ax.set_ylim(-100, 100)
 ax.set_aspect("equal")
 
-ax = plt.subplot(1, 2, 2)
-global_mesh.plot_slice(inject_global * amp_, normal="Y", ax=ax, grid=True)
-ax.set_title("Recovered")
-ax.set_xlim(-60, 60)
-ax.set_ylim(-50, 10)
+ax = plt.subplot(3, 2, 2)
+global_mesh.plot_slice(inject_global * amp, ind=64, normal="X", ax=ax, grid=False)
+ax.set_title("True")
+ax.set_xlim(-100, 100)
+ax.set_ylim(-100, 100)
 ax.set_aspect("equal")
+
+ax = plt.subplot(3, 2, 3)
+global_mesh.plot_slice(inject_global * amp_, ind=75, normal="Z", ax=ax, grid=False)
+ax.set_title("Recovered")
+ax.set_xlim(-100, 100)
+ax.set_ylim(-100, 100)
+ax.set_aspect("equal")
+
+ax = plt.subplot(3, 2, 4)
+global_mesh.plot_slice(inject_global * amp_, ind=64, normal="X", ax=ax, grid=False)
+ax.set_title("Recovered")
+ax.set_xlim(-100, 100)
+ax.set_ylim(-100, 100)
+
+ax = plt.subplot(3, 2, 5)
+ax.hist(synthetic_data - np.hstack(invProb.dpred), 100)
+ax.set_title("predicted - observed")
 plt.show()
