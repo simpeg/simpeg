@@ -28,11 +28,12 @@ def dask_fields(self, m=None, return_Ainv=False):
     f = self.fieldsPair(self, shape=RHS.shape)
     f[:, self._solutionType] = Ainv * RHS
 
+    Ainv.clean()
+
     if return_Ainv:
-        return (f, Ainv)
+        return f, self.Solver(A.T, **self.solver_opts)
     else:
-        del Ainv
-        return (f,)
+        return f, None
 
 
 Sim.fields = dask_fields
@@ -96,10 +97,6 @@ def compute_J(self, f=None, Ainv=None):
     row_chunks = int(np.ceil(
         float(self.survey.nD) / np.ceil(float(m_size) * self.survey.nD * 8. * 1e-6 / self.max_chunk_size)
     ))
-    # rowChunk, colChunk = compute_chunk_sizes(self.survey.nD, m_size, 128)
-    # if os.path.exists(self.sensitivity_path + f"J.zarr"):
-    #     shutil.rmtree(self.sensitivity_path + f"J.zarr")
-    # synchronizer = zarr.ProcessSynchronizer('data/example.sync')
     Jmatrix = zarr.open(
         self.sensitivity_path + f"J.zarr",
         mode='w',
@@ -109,7 +106,6 @@ def compute_J(self, f=None, Ainv=None):
 
     blocks = []
     count = 0
-    block_count = 0
     for source in self.survey.source_list:
         u_source = f[source, self._solutionType]
 
@@ -144,37 +140,19 @@ def compute_J(self, f=None, Ainv=None):
                         blocks[:row_chunks, :]
                     )
                     blocks = blocks[row_chunks:, :]
-                    block_count += 1
                     count += row_chunks
 
                 del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
 
     if len(blocks) != 0:
-        # dask_arrays += [
-        #     da.to_zarr(
-        #         da.from_array(blocks, chunks=(row_chunks, m_size)),
-        #         self.sensitivity_path + f"J{block_count}.zarr",
-        #         overwrite=True, return_stored=True, compute=True
-        #     )
-        # ]
         Jmatrix.set_orthogonal_selection(
             (np.arange(count, self.survey.nD), slice(None)),
             blocks
         )
-    else:
-        block_count -= 1
-
-    self.block_count = block_count
 
     del Jmatrix
     Ainv.clean()
 
-    # print("Computing Jvec")
-    # da.dot(Jmatrix, np.ones(m_size)).compute()
-    #
-    # print("Computing Jtvec")
-    # da.dot(np.ones(Jmatrix.shape[0]), Jmatrix).compute()
-    # print("Done")
     return da.from_zarr(self.sensitivity_path + f"J.zarr")
 
 
@@ -206,7 +184,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     if f is None:
         if m is None:
             m = self.model
-        f, Ainv = self.fields(m, return_Ainv=True)
+        f, Ainv = self.fields(m, return_Ainv=compute_J)
 
     data = Data(self.survey)
     for src in self.survey.source_list:
@@ -217,7 +195,6 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
         Jmatrix = self.compute_J(f=f, Ainv=Ainv)
         return (mkvc(data), Jmatrix)
 
-    Ainv.clean()
     return mkvc(data)
 
 

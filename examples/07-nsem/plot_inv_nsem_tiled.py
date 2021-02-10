@@ -1,4 +1,4 @@
-# from SimPEG import dask
+from SimPEG import dask
 from discretize import TreeMesh
 from SimPEG import maps, utils, data, optimization, maps, objective_function, regularization, inverse_problem, directives, inversion, data_misfit
 from discretize.utils import mkvc, refine_tree_xyz
@@ -43,7 +43,7 @@ def create_tile_em_misfit(sources, obs, uncert, global_mesh, global_active, tile
     mapping = expmap * actmap
     # Create the local misfit
     max_chunk_size = 256
-    simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
+    simulation = ns.simulation.Simulation3DMagneticFluxDensity(
         local_mesh, survey=local_survey, sigmaMap=mapping,
         Solver=Solver,
 #         chunk_format="row",
@@ -177,7 +177,7 @@ def run():
 
     # Assign uncertainties
     # make data object
-    global_data = simulation.make_synthetic_data(model, relative_error=0.0, noise_floor=5e-14, add_noise=True)
+    global_data = simulation.make_synthetic_data(model, relative_error=0.0, noise_floor=5e-3, add_noise=True)
 
     survey.dobs = global_data.dobs
     survey.std = np.abs(survey.dobs * global_data.relative_error) + global_data.noise_floor
@@ -221,7 +221,7 @@ def run():
                     local_misfits
     )
 
-    use_preconditioner = True
+    use_preconditioner = False
     coolingFactor = 2
     coolingRate = 1
     beta0_ratio = 1e-1
@@ -239,10 +239,10 @@ def run():
     reg.mref = background_conductivity * np.ones(active_cells.sum())
 
     opt = optimization.ProjectedGNCG(
-        maxIter=2, upper=np.inf, lower=-np.inf, tolCG=1e-5,
-        maxIterCG=40,
+        maxIter=1, upper=np.inf, lower=-np.inf, tolCG=1e-5,
+        maxIterCG=20,
     )
-    invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt, beta=1e+2)
+    invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
     beta = directives.BetaSchedule(
         coolingFactor=coolingFactor, coolingRate=coolingRate
     )
@@ -261,9 +261,9 @@ def run():
     # Need to have basice saving function
     if use_preconditioner:
         update_Jacobi = directives.UpdatePreconditioner()
-        updateSensW = directives.UpdateSensitivityWeights(threshold=1e-4)
+        updateSensW = directives.UpdateSensitivityWeights()
         directiveList = [
-            save_model, updateSensW, update_IRLS, update_Jacobi
+            save_model, updateSensW, update_IRLS, update_Jacobi, betaest
         ]
     else:
         directiveList = [

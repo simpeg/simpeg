@@ -161,8 +161,9 @@ def Jmatrix(self):
             workers=self.workers
         )
     elif isinstance(self._Jmatrix, Future):
-        client = get_client()
-        self._Jmatrix = client.gather(self._Jmatrix)
+        # client = get_client()
+        self._Jmatrix.result()
+        self._Jmatrix = array.from_zarr(self.sensitivity_path + f"J.zarr")
 
     return self._Jmatrix
 
@@ -194,7 +195,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     if f is None:
         if m is None:
             m = self.model
-        f, Ainv = self.fields(m, return_Ainv=True)
+        f, Ainv = self.fields(m, return_Ainv=compute_J)
 
     data = Data(self.survey)
     for src in self.survey.source_list:
@@ -205,7 +206,6 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
         Jmatrix = self.compute_J(f=f, Ainv=Ainv)
         return (mkvc(data), Jmatrix)
 
-    del Ainv, f
     return mkvc(data)
 
 

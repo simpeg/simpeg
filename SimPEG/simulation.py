@@ -140,6 +140,8 @@ class BaseSimulation(props.HasModel):
 
     solver_opts = properties.Dictionary("solver options as a kwarg dict", default={})
 
+    _Jmatrix = None
+
     def _reset(self, name=None):
         """Revert specified property to default value
 
@@ -272,6 +274,12 @@ class BaseSimulation(props.HasModel):
             for rx in src.receiver_list:
                 data[src, rx] = rx.eval(src, self.mesh, f)
         return mkvc(data)
+
+    def Jmatrix(self):
+        """
+        The stored sensitivities
+        """
+        raise NotImplementedError("Jmatrix is not yet implemented.")
 
     @timeIt
     def Jvec(self, m, v, f=None):
