@@ -4,7 +4,7 @@ import numpy as np
 import dask.array as da
 from dask.distributed import Future
 import zarr
-
+from time import time
 
 Sim.sensitivity_path = './sensitivity/'
 Sim.gtgdiag = None
@@ -28,10 +28,12 @@ def fields(self, m=None, return_Ainv=False):
         Srcs = self.survey.get_sources_by_frequency(freq)
         f[Srcs, self._solutionType] = u
 
+        Ainv_solve.clean()
+
     if return_Ainv:
-        return (f, Ainv)
+        return f, Ainv
     else:
-        return (f,)
+        return f, None
 
 
 Sim.fields = fields
@@ -103,7 +105,6 @@ def compute_J(self, f=None, Ainv=None):
     )
     blocks = []
     count = 0
-    block_count = 0
     for A_i, freq in zip(Ainv, self.survey.frequencies):
 
         for src in self.survey.get_sources_by_frequency(freq):
@@ -113,6 +114,8 @@ def compute_J(self, f=None, Ainv=None):
                 # PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
                 # df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
                 # df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                # tc = time()
+                df_duT, df_dmT = [], []
 
                 for i_datum in range(rx.nD):
                     v = np.zeros(rx.nD, dtype=float)
@@ -120,42 +123,70 @@ def compute_J(self, f=None, Ainv=None):
                     # PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
                     # df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
                     # df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
-                    df_duT, df_dmT = rx.evalDeriv(
+                    dfduT, dfdmT = rx.evalDeriv(
                         src, self.mesh, f, v=v, adjoint=True
                     )
+                    df_duT += [dfduT]
 
+                    if not isinstance(dfdmT, Zero):
+                        df_dmT += [dfdmT]
 
-                    ATinvdf_duT = A_i * df_duT
-                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+                # print(f"First loop {time()-tc}")
+
+                df_duT = np.hstack(df_duT)
+
+                if df_dmT:
+                    df_dmT = np.hstack(df_dmT)
+                else:
+                    df_dmT = dfdmT
+
+                # tc = time()
+                ATinvdf_duT = (A_i * df_duT).reshape((dfduT.shape[0], -1))
+                # print(f"Solve {time() - tc}")
+                nc = int(ATinvdf_duT.shape[1]/rx.nD)
+                # tc = time()
+                block = []
+                for ii in range(rx.nD):
+                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT[:, ii*nc:ii*nc+nc], adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT[:, ii*nc:ii*nc+nc], adjoint=True)
                     du_dmT = -dA_dmT
                     if not isinstance(dRHS_dmT, Zero):
                         du_dmT += dRHS_dmT
                     if not isinstance(df_dmT, Zero):
                         du_dmT += df_dmT
 
-                    if rx.component == "real":
-                        block = np.array(du_dmT, dtype=complex).real.T.reshape((-1, m_size))
-                    elif rx.component == "imag":
-                        block = -np.array(du_dmT, dtype=complex).real.T.reshape((-1, m_size))
+                    # if rx.component == "real":
+                    #     block = np.array(du_dmT, dtype=complex).real.T.reshape((-1, m_size))
+                    # elif rx.component == "imag":
+                    #     block = -np.array(du_dmT, dtype=complex).real.T.reshape((-1, m_size))
 
-                    if len(blocks) == 0:
-                        blocks = block.resh
-                    else:
-                        blocks = np.vstack([blocks, block])
-
+                    block += [np.array(du_dmT, dtype=complex).real.T]
+                # print(f"Second looop {time() - tc}")
+                block = np.vstack(block)
+                if len(blocks) == 0:
+                    blocks = block.reshape((-1, m_size))
+                else:
+                    blocks = np.vstack([blocks, block])
+                del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
                 while blocks.shape[0] >= row_chunks:
                     Jmatrix.set_orthogonal_selection(
                         (np.arange(count, count + row_chunks), slice(None)),
                         blocks[:row_chunks, :]
                     )
                     blocks = blocks[row_chunks:, :]
-                    block_count += 1
                     count += row_chunks
 
-                del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
+    if len(blocks) != 0:
+        Jmatrix.set_orthogonal_selection(
+            (np.arange(count, self.survey.nD), slice(None)),
+            blocks
+        )
 
-    return Jmatrix
+    del Jmatrix
+    for A in Ainv:
+        A.clean()
+
+    return da.from_zarr(self.sensitivity_path + f"J.zarr")
 
 
 Sim.compute_J = compute_J
