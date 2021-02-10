@@ -470,109 +470,8 @@ def run(survey_type="pole-dipole", plotIt=True):
             cnt += 1
     global_misfit = objective_function.ComboObjectiveFunction(
                     local_misfits
-            )
+    )
 
-
-    # local_misfits = [data_misfit.L2DataMisfit(
-    #     data=global_data, simulation=simulation_g
-    # )]
-    # local_misfits[0].W = 1 / survey_dc.std
-    # local_misfits[0].simulation.model = mstart
-    # global_misfit = objective_function.ComboObjectiveFunction(
-    #     local_misfits
-    # )
-
-    #
-    # residual = local_misfit.data.dobs - pred
-    # thresholds += [local_misfit.getJtJdiag(mstart)]
-    # local_misfit.simulation._Jmatrix = None
-
-    # mstart = np.log(global_mesh.vol[active_cells])
-    # Plot the model on different meshes
-    ind = 6
-    # fig = plt.figure(figsize=(14, 10))
-
-    # local_mesh = global_misfit.objfcts[0].simulation.mesh
-    # local_map = global_misfit.objfcts[0].simulation.sigmaMap
-    # sub_survey = global_misfit.objfcts[0].simulation.survey
-    # print(local_mesh.nC, global_mesh.nC)
-    # electrodes = np.vstack((sub_survey.locations_a,
-    #                                 sub_survey.locations_b,
-    #                                 sub_survey.locations_m,
-    #                                 sub_survey.locations_n))
-
-    # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
-
-    # ax = plt.subplot(2, 2, 1)
-    # local_mesh.plotSlice((local_map * mstart), normal="Z", ind=ind, ax=ax, grid=True
-    # )
-    # ax.plot(electrodes[:, 0], electrodes[:, 1], 'om')
-    # ax.set_aspect("equal")
-    # # ax.set_title(f"Mesh {1}. Active cells {local_map.local_active.sum()}")
-
-    # local_mesh = global_misfit.objfcts[1].simulation.mesh
-    # local_map = global_misfit.objfcts[1].simulation.sigmaMap
-    # sub_survey = global_misfit.objfcts[1].simulation.survey
-    # electrodes = np.vstack((sub_survey.locations_a,
-    #                                 sub_survey.locations_b,
-    #                                 sub_survey.locations_m,
-    #                                 sub_survey.locations_n))
-
-    # # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
-
-    # ax1 = plt.subplot(2, 2, 2)
-    # local_mesh.plotSlice((local_map * mstart), normal="Z", ind=ind, ax=ax1, grid=True
-    # )
-    # ax1.plot(electrodes[:, 0], electrodes[:, 1], 'om')
-    # ax1.set_aspect("equal")
-    # # ax1.set_title(f"Mesh {5}. Active cells {local_map.local_active.sum()}")
-
-    # local_mesh = global_misfit.objfcts[2].simulation.mesh
-    # local_map = global_misfit.objfcts[2].simulation.sigmaMap
-    # sub_survey = global_misfit.objfcts[2].simulation.survey
-    # electrodes = np.vstack((sub_survey.locations_a,
-    #                                 sub_survey.locations_b,
-    #                                 sub_survey.locations_m,
-    #                                 sub_survey.locations_n))
-
-    # # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
-
-    # ax2 = plt.subplot(2, 2, 3)
-    # local_mesh.plotSlice((local_map * mstart), normal="Z", ind=ind, ax=ax2, grid=True
-    # )
-    # ax2.plot(electrodes[:, 0], electrodes[:, 1], 'om')
-    # ax2.set_aspect("equal")
-    # # ax2.set_title(f"Mesh {10}. Active cells {local_map.local_active.sum()}")
-
-    # local_mesh = global_misfit.objfcts[3].simulation.mesh
-    # local_map = global_misfit.objfcts[3].simulation.sigmaMap
-    # sub_survey = global_misfit.objfcts[3].simulation.survey
-    # electrodes = np.vstack((sub_survey.locations_a,
-    #                                 sub_survey.locations_b,
-    #                                 sub_survey.locations_m,
-    #                                 sub_survey.locations_n))
-
-    # # inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
-
-    # ax3 = plt.subplot(2, 2, 4)
-    # local_mesh.plotSlice((local_map * mstart), normal="Z", ind=ind, ax=ax3, grid=True
-    # )
-    # ax3.plot(electrodes[:, 0], electrodes[:, 1], 'om')
-    # ax3.set_aspect("equal")
-    # # ax3.set_title(f"Mesh {15}. Active cells {local_map.local_active.sum()}")
-    # plt.show()
-
-
-    # # global
-    # fig2 = plt.figure(figsize=(14, 10))
-
-    # inject_global = maps.InjectActiveCells(global_mesh, active_cells, np.nan)
-    # ax_ = plt.subplot(1, 1, 1)
-    # global_mesh.plotSlice(inject_global * mstart, normal="z", ind=ind, ax=ax_, grid=True)
-    # ax_.plot(electrodes_g[:, 0], electrodes_g[:, 1], 'om')
-    # ax_.set_title(f"Global Mesh. Active cells {active_cells.sum()}")
-    # ax_.set_aspect("equal")
-    # plt.show()
 
     #====================================================================================
     # new implementation using the Combo Objective function and the dmis = dmis1 + dmis2
@@ -603,7 +502,19 @@ def run(survey_type="pole-dipole", plotIt=True):
     )
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
 
+    print("Pre-computing Jmatrix and predicted_0")
     invProb.dpred = invProb.get_dpred(mstart, compute_J=True)
+
+    wr = np.zeros_like(mstart)
+    for ii, dmisfit in enumerate(global_misfit.objfcts):
+        wr += dmisfit.getJtJdiag(mstart)/global_mesh.cell_volumes[active_cells]**2.
+
+    wr += np.percentile(wr, 40)
+    wr *= global_mesh.cell_volumes[active_cells]**2.
+    wr **= 0.5
+    wr = wr/wr.max()
+    reg.cell_weights = wr
+
     beta = directives.BetaSchedule(
         coolingFactor=coolingFactor, coolingRate=coolingRate
     )
@@ -617,7 +528,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     # Need to have basice saving function
     if use_preconditioner:
         update_Jacobi = directives.UpdatePreconditioner()
-        updateSensW = directives.UpdateSensitivityWeights(threshold=1e-12)
+        updateSensW = directives.UpdateSensitivityWeights(threshold=1e-8)
         directiveList = [
             save_pred, save_model, updateSensW, beta, betaest, target, update_Jacobi
         ]
@@ -638,7 +549,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     print(f"Runtime {time()-tc} sec")
     global_mesh.writeUBC('OctreeMesh-test.msh', models={
         'ubc.con': np.exp(rho_est),
-        'sensW.con': np.exp(mapactive * np.log(updateSensW.wr)),
+        'sensW.con': np.exp(mapactive * np.log(wr)),
         'true.con': np.exp(mapactive * mtrue[active_cells])
     })
     # global_mesh.writeUBC('OctreeMesh-test.msh', models={})

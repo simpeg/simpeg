@@ -211,6 +211,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
             s_m[:, i:ii] = s_m[:, i:ii] + smi
             s_e[:, i:ii] = s_e[:, i:ii] + sei
             i = ii
+<<<<<<< HEAD
+=======
+
+>>>>>>> 29b3f48ae56025f89bb662155bec7851af0e7895
         return s_m, s_e
 
 

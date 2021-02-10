@@ -196,7 +196,10 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     out = (phi,)
     if return_g:
         phi_dDeriv = self.dmisfit.deriv(m, f=self.dpred)
-        phi_mDeriv = self.reg2Deriv * self.reg._delta_m(m)
+        if hasattr(self.reg.objfcts[0], "space") and self.reg.objfcts[0].space == "spherical":
+            phi_mDeriv = self.reg2Deriv * self.reg._delta_m(m)
+        else:
+            phi_mDeriv = self.reg.deriv(m)
 
         g = np.asarray(phi_dDeriv) + self.beta * phi_mDeriv
         out += (g,)
@@ -205,7 +208,11 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
         def H_fun(v):
             phi_d2Deriv = self.dmisfit.deriv2(m, v)
-            phi_m2Deriv = self.reg2Deriv * v
+            if hasattr(self.reg.objfcts[0], "space") and self.reg.objfcts[0].space == "spherical":
+                phi_m2Deriv = self.reg2Deriv * v
+            else:
+                phi_m2Deriv = self.reg.deriv2(m, v=v)
+
             H = phi_d2Deriv + self.beta * phi_m2Deriv
 
             return H
