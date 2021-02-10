@@ -274,36 +274,36 @@ for local in local_misfits:
 
 print('[info] global: ', global_mesh.nC, activeCells.sum(), synthetic_data.shape)
 # Plot the model on different meshes
-# fig = plt.figure(figsize=(12, 6))
-# c_code = ['r', 'g', 'b', 'm']
-# for ii, local_misfit in enumerate(global_misfit.objfcts):
+fig = plt.figure(figsize=(12, 6))
+c_code = ['r', 'g', 'b', 'm']
+for ii, local_misfit in enumerate(global_misfit.objfcts):
 
-#     local_mesh = local_misfit.simulation.mesh
-#     local_map = local_misfit.model_map
-#     print('[info] type: ', type(local_map))
-#     inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
+    local_mesh = local_misfit.simulation.mesh
+    local_map = local_misfit.model_map
+    print('[info] type: ', type(local_map))
+    inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 
-#     # Interpolate values to mesh.gridCC if not 'CC'
-#     m = local_map * utils.mkvc(model)
-#     # m = np.reshape(m, (local_map.local_active.sum(), 3))
-#     nC_t = local_map.local_active.sum()
-#     mx = m[:nC_t]
-#     my = m[nC_t:2*nC_t]
-#     mz = m[2*nC_t:]
+    # Interpolate values to mesh.gridCC if not 'CC'
+    m = local_map * utils.mkvc(model)
+    # m = np.reshape(m, (local_map.local_active.sum(), 3))
+    nC_t = local_map.local_active.sum()
+    mx = m[:nC_t]
+    my = m[nC_t:2*nC_t]
+    mz = m[2*nC_t:]
 
-#     m = np.c_[mx, my, mz]
-#     amp = np.sum(m ** 2.0, axis=1) ** 0.5
+    m = np.c_[mx, my, mz]
+    amp = np.sum(m ** 2.0, axis=1) ** 0.5
 
-#     ax = plt.subplot(2, 3, ii + 1)
-#     local_mesh.plot_slice(
-#         inject_local * (amp), index=100, normal="Z", ax=ax, grid=True
-#     )
-#     sensors = local_misfit.simulation.survey.receiver_locations
-#     ax.scatter(sensors[:, 0], sensors[:, 1], 10)
-#     ax.set_xlim(-200, 200)
-#     ax.set_ylim(-200, 200)
-#     ax.set_aspect("equal")
-#     ax.set_title(f"Mesh {ii+1}. Active cells {local_map.local_active.sum()}")
+    ax = plt.subplot(2, 3, ii + 1)
+    local_mesh.plot_slice(
+        inject_local * (amp), index=100, normal="Z", ax=ax, grid=True
+    )
+    sensors = local_misfit.simulation.survey.receiver_locations
+    ax.scatter(sensors[:, 0], sensors[:, 1], 10)
+    ax.set_xlim(-200, 200)
+    ax.set_ylim(-200, 200)
+    ax.set_aspect("equal")
+    ax.set_title(f"Mesh {ii+1}. Active cells {local_map.local_active.sum()}")
 
 
 # Create active map to go from reduce set to full
@@ -316,13 +316,13 @@ mz = model[:, 2]
 
 m_ = np.c_[mx, my, mz]
 amp = np.sum(m_ ** 2.0, axis=1) ** 0.5
-# global_mesh.plot_slice(inject_global * amp, index=100, normal="Z", ax=ax, grid=True)
-# ax.scatter(rxLoc[:, 0], rxLoc[:, 1], 10)
-# ax.set_title(f"Global Mesh. Active cells {activeCells.sum()}")
-# ax.set_xlim(-200, 200)
-# ax.set_ylim(-200, 200)
-# ax.set_aspect("equal")
-# plt.show()
+global_mesh.plot_slice(inject_global * amp, index=100, normal="Z", ax=ax, grid=True)
+ax.scatter(rxLoc[:, 0], rxLoc[:, 1], 10)
+ax.set_title(f"Global Mesh. Active cells {activeCells.sum()}")
+ax.set_xlim(-200, 200)
+ax.set_ylim(-200, 200)
+ax.set_aspect("equal")
+plt.show()
 
 
 # ####################################################
