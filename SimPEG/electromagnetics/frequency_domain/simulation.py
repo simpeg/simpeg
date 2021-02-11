@@ -169,7 +169,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
                     df_dmT = df_dmT + du_dmT
 
-                    Jtv += np.array(df_dmT, dtype=complex).real
+                    Jtv += np.array(df_dmT.squeeze(), dtype=complex).real
                     # TODO: this should be taken care of by the reciever?
                     # if rx.component == "real":
                     #     Jtv += np.array(df_dmT, dtype=complex).real

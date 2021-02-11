@@ -424,7 +424,11 @@ class BaseEMSimulation(BaseSimulation):
                 u = u[:, :, None]
             if adjoint:
                 if u.ndim > 1 and u.shape[1] > 1:
-                    return M.T * (u * v).sum(axis=1)
+
+                    return M.T * (
+                            u[:, None, :] *
+                            v.reshape((u.shape[0], -1, u.shape[1]))
+                    ).sum(axis=2)
                 return M.T * (u * v)
             if u.ndim > 1 and u.shape[1] > 1:
                 return np.squeeze(u[:, None, :] * (M * v)[:, :, None])

@@ -108,73 +108,53 @@ def compute_J(self, f=None, Ainv=None):
     for A_i, freq in zip(Ainv, self.survey.frequencies):
 
         for src in self.survey.get_sources_by_frequency(freq):
+            df_duT, df_dmT = [], []
             u_src = f[src, self._solutionType]
 
             for rx in src.receiver_list:
-                # PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-                # df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
-                # df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
-                # tc = time()
-                df_duT, df_dmT = [], []
+                v = np.eye(rx.nD, dtype=float)
+                dfduT, dfdmT = rx.evalDeriv(
+                    src, self.mesh, f, v=v, adjoint=True
+                )
+                df_duT += [dfduT]
 
-                for i_datum in range(rx.nD):
-                    v = np.zeros(rx.nD, dtype=float)
-                    v[i_datum] = 1
-                    # PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-                    # df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
-                    # df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
-                    dfduT, dfdmT = rx.evalDeriv(
-                        src, self.mesh, f, v=v, adjoint=True
-                    )
-                    df_duT += [dfduT]
+                if not isinstance(dfdmT, Zero):
+                    df_dmT += [dfdmT]
 
-                    if not isinstance(dfdmT, Zero):
-                        df_dmT += [dfdmT]
+            df_duT = np.hstack(df_duT)
 
-                # print(f"First loop {time()-tc}")
+            if df_dmT:
+                df_dmT = np.hstack(df_dmT)
+            else:
+                df_dmT = dfdmT
 
-                df_duT = np.hstack(df_duT)
 
-                if df_dmT:
-                    df_dmT = np.hstack(df_dmT)
-                else:
-                    df_dmT = dfdmT
+            ATinvdf_duT = (A_i * df_duT).reshape((dfduT.shape[0], -1))
+            block = []
 
-                # tc = time()
-                ATinvdf_duT = (A_i * df_duT).reshape((dfduT.shape[0], -1))
-                # print(f"Solve {time() - tc}")
-                nc = int(ATinvdf_duT.shape[1]/rx.nD)
-                # tc = time()
-                block = []
-                for ii in range(rx.nD):
-                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT[:, ii*nc:ii*nc+nc], adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT[:, ii*nc:ii*nc+nc], adjoint=True)
-                    du_dmT = -dA_dmT
-                    if not isinstance(dRHS_dmT, Zero):
-                        du_dmT += dRHS_dmT
-                    if not isinstance(df_dmT, Zero):
-                        du_dmT += df_dmT
+            dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+            dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+            du_dmT = -dA_dmT
+            if not isinstance(dRHS_dmT, Zero):
+                du_dmT += dRHS_dmT
+            if not isinstance(df_dmT, Zero):
+                du_dmT += df_dmT
 
-                    # if rx.component == "real":
-                    #     block = np.array(du_dmT, dtype=complex).real.T.reshape((-1, m_size))
-                    # elif rx.component == "imag":
-                    #     block = -np.array(du_dmT, dtype=complex).real.T.reshape((-1, m_size))
+            block += [np.array(du_dmT, dtype=complex).real.T]
 
-                    block += [np.array(du_dmT, dtype=complex).real.T]
-                # print(f"Second looop {time() - tc}")
-                block = np.vstack(block)
-                if len(blocks) == 0:
-                    blocks = block.reshape((-1, m_size))
-                else:
-                    blocks = np.vstack([blocks, block])
-                del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
-                while blocks.shape[0] >= row_chunks:
-                    Jmatrix.set_orthogonal_selection(
-                        (np.arange(count, count + row_chunks), slice(None)),
-                        blocks[:row_chunks, :]
-                    )
-                    blocks = blocks[row_chunks:, :]
-                    count += row_chunks
+            block = np.vstack(block)
+            if len(blocks) == 0:
+                blocks = block.reshape((-1, m_size))
+            else:
+                blocks = np.vstack([blocks, block])
+            del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
+            while blocks.shape[0] >= row_chunks:
+                Jmatrix.set_orthogonal_selection(
+                    (np.arange(count, count + row_chunks), slice(None)),
+                    blocks[:row_chunks, :]
+                )
+                blocks = blocks[row_chunks:, :]
+                count += row_chunks
 
     if len(blocks) != 0:
         Jmatrix.set_orthogonal_selection(
