@@ -42,7 +42,7 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model = m
 
         if W is None:
-            W = np.ones(self.nD)
+            W = np.ones(self.survey.nD)
         else:
             W = W.diagonal() ** 2
         if getattr(self, "_gtg_diagonal", None) is None:

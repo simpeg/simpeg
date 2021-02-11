@@ -145,7 +145,7 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model = m
 
         if W is None:
-            W = np.ones(self.nD)
+            W = np.ones(self.survey.nD)
         else:
             W = W.diagonal() ** 2
         if getattr(self, "_gtg_diagonal", None) is None:
@@ -171,8 +171,7 @@ class Simulation3DIntegral(BasePFSimulation):
         return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
 
     def Jvec(self, m, v, f=None):
-        if getattr(self, 'chi', None) is None:
-            self.model = np.zeros(self.chiMap.nP)
+        self.model = m
         dmu_dm_v = self.chiDeriv @ v
 
         Jvec = self.G @ dmu_dm_v.astype(np.float32)
@@ -185,8 +184,7 @@ class Simulation3DIntegral(BasePFSimulation):
             return Jvec
 
     def Jtvec(self, m, v, f=None):
-        if getattr(self, 'chi', None) is None:
-            self.model = np.zeros(self.chiMap.nP)
+        self.model = m
 
         if self.is_amplitude_data:
             v = (self.fieldDeriv * v).T.reshape(-1)
@@ -196,7 +194,7 @@ class Simulation3DIntegral(BasePFSimulation):
     @property
     def fieldDeriv(self):
 
-        if getattr(self, 'chi', None) is None:
+        if getattr(self, "chi", None) is None:
             self.model = np.zeros(self.chiMap.nP)
 
         if getattr(self, "_fieldDeriv", None) is None:
@@ -247,8 +245,8 @@ class Simulation3DIntegral(BasePFSimulation):
             Tz = [Tzx Tzy Tzz]
         """
         # TODO: This should probably be converted to C
-        tol1 = 1e-10    # Tolerance 1 for numerical stability over nodes and edges
-        tol2 = 1e-4     # Tolerance 2 for numerical stability over nodes and edges
+        tol1 = 1e-10  # Tolerance 1 for numerical stability over nodes and edges
+        tol2 = 1e-4  # Tolerance 2 for numerical stability over nodes and edges
 
         rows = {component: np.zeros(3 * self.Xn.shape[0]) for component in components}
 
@@ -256,24 +254,28 @@ class Simulation3DIntegral(BasePFSimulation):
         nC = self.Xn.shape[0]
 
         # base cell dimensions
-        min_hx, min_hy, min_hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
+        min_hx, min_hy, min_hz = (
+            self.mesh.hx.min(),
+            self.mesh.hy.min(),
+            self.mesh.hz.min(),
+        )
 
         # comp. pos. differences for tne, bsw nodes. Adjust if location within
         # tolerance of a node or edge
         dz2 = self.Zn[:, 1] - receiver_location[2]
-        dz2[np.abs(dz2)/min_hz < tol2] = tol2 * min_hz
+        dz2[np.abs(dz2) / min_hz < tol2] = tol2 * min_hz
         dz1 = self.Zn[:, 0] - receiver_location[2]
-        dz1[np.abs(dz1)/min_hz < tol2] = tol2 * min_hz
+        dz1[np.abs(dz1) / min_hz < tol2] = tol2 * min_hz
 
         dy2 = self.Yn[:, 1] - receiver_location[1]
-        dy2[np.abs(dy2)/min_hy < tol2] = tol2 * min_hy
+        dy2[np.abs(dy2) / min_hy < tol2] = tol2 * min_hy
         dy1 = self.Yn[:, 0] - receiver_location[1]
-        dy1[np.abs(dy1)/min_hy < tol2] = tol2 * min_hy
+        dy1[np.abs(dy1) / min_hy < tol2] = tol2 * min_hy
 
         dx2 = self.Xn[:, 1] - receiver_location[0]
-        dx2[np.abs(dx2)/min_hx < tol2] = tol2 * min_hx
+        dx2[np.abs(dx2) / min_hx < tol2] = tol2 * min_hx
         dx1 = self.Xn[:, 0] - receiver_location[0]
-        dx1[np.abs(dx1)/min_hx < tol2] = tol2 * min_hx
+        dx1[np.abs(dx1) / min_hx < tol2] = tol2 * min_hx
 
         # comp. squared diff
         dx2dx2 = dx2 ** 2.0
