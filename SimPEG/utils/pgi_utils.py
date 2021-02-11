@@ -1370,29 +1370,30 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         """
-        nk = resp.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
+        respVol = self.cell_volumes.reshape(-1, 1) * resp
+        nk = respVol.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
         # stupid lazy piece of junk code to get the shapes right
-        means = np.dot(resp.T, X) / nk[:, np.newaxis]
+        means = np.dot(respVol.T, X) / nk[:, np.newaxis]
         covariances = {
             "full": _estimate_gaussian_covariances_full,
-            "tied": _estimate_gaussian_covariances_tied,
+            "tied": self._estimate_gaussian_covariances_tied,
             "diag": _estimate_gaussian_covariances_diag,
             "spherical": _estimate_gaussian_covariances_spherical,
-        }[covariance_type](resp, X, nk, means, reg_covar)
+        }[covariance_type](respVol, X, nk, means, reg_covar)
         # The actual calculation
         for k in range(means.shape[0]):
             means[k] = (
-                np.dot(resp.T, self.cluster_mapping[k] * X) / nk[:, np.newaxis]
+                np.dot(respVol.T, self.cluster_mapping[k] * X) / nk[:, np.newaxis]
             )[k]
         for k in range(means.shape[0]):
             covariances[k] = (
                 {
                     "full": _estimate_gaussian_covariances_full,
-                    "tied": _estimate_gaussian_covariances_tied,
+                    "tied": self._estimate_gaussian_covariances_tied,
                     "diag": _estimate_gaussian_covariances_diag,
                     "spherical": _estimate_gaussian_covariances_spherical,
                 }[covariance_type](
-                    resp, self.cluster_mapping[k] * X, nk, means, reg_covar
+                    respVol, self.cluster_mapping[k] * X, nk, means, reg_covar
                 )
             )[k]
         return nk, means, covariances
@@ -1680,29 +1681,30 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         """
-        nk = resp.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
+        respVol = self.cell_volumes.reshape(-1, 1) * resp
+        nk = respVol.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
         # stupid lazy piece of junk code to get the shapes right
-        means = np.dot(resp.T, X) / nk[:, np.newaxis]
+        means = np.dot(respVol.T, X) / nk[:, np.newaxis]
         covariances = {
             "full": _estimate_gaussian_covariances_full,
-            "tied": _estimate_gaussian_covariances_tied,
+            "tied": self._estimate_gaussian_covariances_tied,
             "diag": _estimate_gaussian_covariances_diag,
             "spherical": _estimate_gaussian_covariances_spherical,
-        }[covariance_type](resp, X, nk, means, reg_covar)
+        }[covariance_type](respVol, X, nk, means, reg_covar)
         # The actual calculation
         for k in range(means.shape[0]):
             means[k] = (
-                np.dot(resp.T, self.cluster_mapping[k] * X) / nk[:, np.newaxis]
+                np.dot(respVol.T, self.cluster_mapping[k] * X) / nk[:, np.newaxis]
             )[k]
         for k in range(means.shape[0]):
             covariances[k] = (
                 {
                     "full": _estimate_gaussian_covariances_full,
-                    "tied": _estimate_gaussian_covariances_tied,
+                    "tied": self._estimate_gaussian_covariances_tied,
                     "diag": _estimate_gaussian_covariances_diag,
                     "spherical": _estimate_gaussian_covariances_spherical,
                 }[covariance_type](
-                    resp, self.cluster_mapping[k] * X, nk, means, reg_covar
+                    respVol, self.cluster_mapping[k] * X, nk, means, reg_covar
                 )
             )[k]
         return nk, means, covariances
