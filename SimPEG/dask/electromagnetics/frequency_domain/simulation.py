@@ -103,8 +103,32 @@ def compute_J(self, f=None, Ainv=None):
         shape=(self.survey.nD, m_size),
         chunks=(row_chunks, m_size)
     )
+
+    def eval_store_block(A, freq, df_duT, df_dmT, u_src, src, row_count):
+        """
+        Evaluate the sensitivities for the block or data and store to zarr
+        """
+        df_duT = np.hstack(df_duT)
+        ATinvdf_duT = (A * df_duT).reshape((dfduT.shape[0], -1))
+        dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+        dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+        du_dmT = -dA_dmT
+        if not isinstance(dRHS_dmT, Zero):
+            du_dmT += dRHS_dmT
+        if not isinstance(df_dmT[0], Zero):
+            du_dmT += np.hstack(df_dmT)
+
+        block = np.array(du_dmT, dtype=complex).real.T
+        Jmatrix.set_orthogonal_selection(
+            (np.arange(row_count, row_count + block.shape[0]), slice(None)),
+            block
+        )
+        row_count += block.shape[0]
+        return row_count
+
     blocks = []
     count = 0
+    block_count = 0
     for A_i, freq in zip(Ainv, self.survey.frequencies):
 
         for src in self.survey.get_sources_by_frequency(freq):
@@ -113,48 +137,61 @@ def compute_J(self, f=None, Ainv=None):
 
             for rx in src.receiver_list:
                 v = np.eye(rx.nD, dtype=float)
-                dfduT, dfdmT = rx.evalDeriv(
-                    src, self.mesh, f, v=v, adjoint=True
-                )
-                df_duT += [dfduT]
+                n_blocs = np.ceil(rx.nD / row_chunks)
 
-                if not isinstance(dfdmT, Zero):
+                for block in np.array_split(v, n_blocs, axis=1):
+                    dfduT, dfdmT = rx.evalDeriv(
+                        src, self.mesh, f, v=block, adjoint=True
+                    )
+                    df_duT += [dfduT]
                     df_dmT += [dfdmT]
 
-            df_duT = np.hstack(df_duT)
+                    block_count += block.shape[1]
 
-            if df_dmT:
-                df_dmT = np.hstack(df_dmT)
-            else:
-                df_dmT = dfdmT
+                    if block_count >= row_chunks:
+                        count = eval_store_block(A_i, freq, df_duT, df_dmT, u_src, src, count)
+                        df_duT, df_dmT = [], []
+                        block_count = 0
+                        # blocks, count = store_block(blocks, count)
 
+            if df_duT:
+                count = eval_store_block(A_i, freq, df_duT, df_dmT, u_src, src, count)
+                block_count = 0
 
-            ATinvdf_duT = (A_i * df_duT).reshape((dfduT.shape[0], -1))
-            block = []
-
-            dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
-            dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
-            du_dmT = -dA_dmT
-            if not isinstance(dRHS_dmT, Zero):
-                du_dmT += dRHS_dmT
-            if not isinstance(df_dmT, Zero):
-                du_dmT += df_dmT
-
-            block += [np.array(du_dmT, dtype=complex).real.T]
-
-            block = np.vstack(block)
-            if len(blocks) == 0:
-                blocks = block.reshape((-1, m_size))
-            else:
-                blocks = np.vstack([blocks, block])
-            del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
-            while blocks.shape[0] >= row_chunks:
-                Jmatrix.set_orthogonal_selection(
-                    (np.arange(count, count + row_chunks), slice(None)),
-                    blocks[:row_chunks, :]
-                )
-                blocks = blocks[row_chunks:, :]
-                count += row_chunks
+            # df_duT = np.hstack(df_duT)
+            #
+            # if df_dmT:
+            #     df_dmT = np.hstack(df_dmT)
+            # else:
+            #     df_dmT = dfdmT
+            #
+            #
+            # ATinvdf_duT = (A_i * df_duT).reshape((dfduT.shape[0], -1))
+            # block = []
+            #
+            # dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+            # dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+            # du_dmT = -dA_dmT
+            # if not isinstance(dRHS_dmT, Zero):
+            #     du_dmT += dRHS_dmT
+            # if not isinstance(df_dmT, Zero):
+            #     du_dmT += df_dmT
+            #
+            # block += [np.array(du_dmT, dtype=complex).real.T]
+            #
+            # block = np.vstack(block)
+            # if len(blocks) == 0:
+            #     blocks = block.reshape((-1, m_size))
+            # else:
+            #     blocks = np.vstack([blocks, block])
+            # del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
+                # while blocks.shape[0] >= row_chunks:
+                #     Jmatrix.set_orthogonal_selection(
+                #         (np.arange(count, count + row_chunks), slice(None)),
+                #         blocks[:row_chunks, :]
+                #     )
+                #     blocks = blocks[row_chunks:, :]
+                #     count += row_chunks
 
     if len(blocks) != 0:
         Jmatrix.set_orthogonal_selection(
