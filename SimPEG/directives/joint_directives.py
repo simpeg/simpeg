@@ -235,7 +235,9 @@ class Joint_BetaEstimate_ByEig(InversionDirective):
             reg_eigenvalues.append(
                 eigenvalue_by_power_iteration(reg, m, n_pw_iter=self.n_pw_iter,)
                 )
-
+        
+        # split density and susceptibility models firstly, and estimates eigenvalues 
+        # separately. But it cannot work well at this time because of dimension dismatch.
         # model = np.array_split(self.invProb.model, 2)
         # model_zero = np.zeros_like(model)
         # m1, m2  = np.r_[model[0], model_zero[0]], np.r_[model_zero[1], model[1]]
