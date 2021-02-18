@@ -126,7 +126,6 @@ class SimpleSmoothDeriv(BaseRegularization):
             )
         )
         if self.cell_weights is not None:
-
             W = (
                 Utils.sdiag(
                     (Ave*(self.cell_weights))**0.5
@@ -139,6 +138,9 @@ class SimpleSmoothDeriv(BaseRegularization):
                 ) * W
             )
 
+        if self.face_weights is not None:
+            W = Utils.sdiag(self.face_weights) * W
+            
         return W
 
     @property
