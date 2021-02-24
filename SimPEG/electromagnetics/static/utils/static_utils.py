@@ -1046,7 +1046,8 @@ def writeUBC_DCobs(
     survey_type="dipole-dipole",
     ip_type=0,
     comment_lines="",
-    data=None
+    data=None,
+    predicted=False
 ):
     """
     Write UBC GIF DCIP 2D or 3D observation file
@@ -1082,6 +1083,12 @@ def writeUBC_DCobs(
 
     else:
         dobs = data_obj.dobs
+
+    if predicted:
+        data_block = np.c_[dobs, data_obj.dobs, data_obj.standard_deviation]
+    else:
+        data_block = np.c_[dobs, data_obj.standard_deviation]
+
     if not ((dim == 2) | (dim == 3)):
         raise Exception("""dim must be either 2 or 3""" " not {}".format(dim))
 
@@ -1163,8 +1170,7 @@ def writeUBC_DCobs(
                         B,
                         M,
                         N,
-                        dobs[count : count + nD],
-                        data_obj.relative_error[count : count + nD],
+                        data_block[count : count + nD, :],
                     ],
                     delimiter=str(" "),
                     newline=str("\n"),
@@ -1201,8 +1207,7 @@ def writeUBC_DCobs(
                     np.c_[
                         M,
                         N,
-                        dobs[count : count + nD],
-                        data_obj.relative_error[count : count + nD],
+                        data_block[count : count + nD, :],
                     ],
                     delimiter=str(" "),
                     newline=str("\n"),
@@ -1239,8 +1244,7 @@ def writeUBC_DCobs(
                     np.c_[
                         M,
                         N,
-                        dobs[count : count + nD],
-                        data_obj.standard_deviation[count : count + nD]
+                        data_block[count : count + nD, :],
                     ],
                     fmt=str("%e"),
                     delimiter=str(" "),
@@ -1975,11 +1979,11 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         if mesh.dim == 3:
             uniqXYlocs, topoCC = gettopoCC(mesh, actind, option=option)
             inds = closestPointsGrid(uniqXYlocs, pts)
-            out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
+            out = np.c_[pts, topoCC[inds]]
         else:
             uniqXlocs, topoCC = gettopoCC(mesh, actind, option=option)
             inds = closestPointsGrid(uniqXlocs, pts, dim=1)
-            out = np.c_[uniqXlocs[inds], topoCC[inds]]
+            out = np.c_[pts, topoCC[inds]]
     else:
         raise NotImplementedError()
 
