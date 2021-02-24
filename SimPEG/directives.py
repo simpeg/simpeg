@@ -917,7 +917,7 @@ class SavePredictedEveryIteration(SaveEveryIteration):
         if getattr(self.invProb, "dpred", None) is not None:
             dpred = np.hstack(self.invProb.dpred)
             if self.data_type == 'ubc_dc':
-                dc_utils.writeUBC_DCobs(f"{self.file_name}_0.pre", self.data, 3, "general", data=dpred)
+                dc_utils.writeUBC_DCobs(f"{self.file_name}_0.pre", self.data, 3, "surface", data=dpred, predicted=True)
             else:
                 np.savetxt(f"{self.file_name}_0.pre", np.c_[self.data.survey.locations, dpred])
 
@@ -930,7 +930,7 @@ class SavePredictedEveryIteration(SaveEveryIteration):
         dpred = np.hstack(self.invProb.dpred)
         if self.data_type == 'ubc_dc':
             from SimPEG.electromagnetics.static import utils as dc_utils
-            dc_utils.writeUBC_DCobs(f"{file_name}.pre", self.data, 3, "general", data=dpred)
+            dc_utils.writeUBC_DCobs(f"{file_name}.pre", self.data, 3, "surface", data=dpred, predicted=True)
         else:
             np.savetxt(f"{file_name}.pre", np.c_[self.data.survey.locations, dpred])
 
