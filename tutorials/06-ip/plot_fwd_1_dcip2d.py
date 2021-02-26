@@ -36,9 +36,10 @@ from SimPEG.utils import model_builder, surface2ind_topo
 from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
-from SimPEG.electromagnetics.static.utils import (
+from SimPEG.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
-    plot_pseudosection,
+    plot_2d_pseudosection,
+    convert_volts_to_resisitivities
 )
 
 import os
@@ -52,9 +53,9 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 mpl.rcParams.update({'font.size': 16})
-save_file = False
+save_file = True
 
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 5
 
 
 ###############################################################
@@ -62,14 +63,14 @@ save_file = False
 # -------------------
 #
 # Here we define surface topography as an (N, 3) numpy array. Topography could
-# also be loaded from a file. In our case, our survey takes place in a valley
-# that runs North-South.
+# also be loaded from a file. In our case, our survey takes place within a set
+# of valleys that run North-South.
 #
 
 x_topo, y_topo = np.meshgrid(
-    np.linspace(-3000, 3000, 101), np.linspace(-3000, 3000, 101)
+    np.linspace(-3000, 3000, 601), np.linspace(-3000, 3000, 101)
 )
-z_topo = (1 / np.pi) * 85 * (-np.pi / 2 + np.arctan((np.abs(x_topo) - 600.0) / 50.0))
+z_topo = 40.*np.sin(2*np.pi*x_topo/800) - 40.
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
@@ -93,9 +94,9 @@ topo_2d = np.unique(xyz_topo[:, [0, 2]], axis=0)
 survey_type = "dipole-dipole"
 dimension_type = "2.5D"
 data_type = "volt"
-end_locations = np.r_[-400.0, 400]
-station_separation = 50.0
-num_rx_per_src = 8
+end_locations = np.r_[-400., 400.]
+station_separation = 40.0
+num_rx_per_src = 10
 
 # Generate source list for DC survey line
 source_list = generate_dcip_sources_line(
@@ -120,7 +121,7 @@ dc_survey = dc.survey.Survey(source_list, survey_type=survey_type)
 # resistivity and IP data.
 #
 
-dh = 10.0  # base cell width
+dh = 8  # base cell width
 dom_width_x = 2400.0  # domain width x
 dom_width_z = 1200.0  # domain width z
 nbcx = 2 ** int(np.round(np.log(dom_width_x / dh) / np.log(2.0)))  # num. base cells x
@@ -133,7 +134,7 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, xyz_topo[:, [0, 2]], octree_levels=[1], method="surface", finalize=False
+    mesh, xyz_topo[:, [0, 2]], octree_levels=[0, 2], method="surface", finalize=False
 )
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
@@ -186,11 +187,11 @@ conductivity_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 # Define model
 conductivity_model = background_conductivity * np.ones(nC)
 
-ind_conductor = model_builder.getIndicesSphere(np.r_[-120.0, -180.0], 60.0, mesh.gridCC)
+ind_conductor = model_builder.getIndicesSphere(np.r_[-120.0, -160.0], 60.0, mesh.gridCC)
 ind_conductor = ind_conductor[ind_active]
 conductivity_model[ind_conductor] = conductor_conductivity
 
-ind_resistor = model_builder.getIndicesSphere(np.r_[120.0, -180.0], 60.0, mesh.gridCC)
+ind_resistor = model_builder.getIndicesSphere(np.r_[120.0, -100.0], 60.0, mesh.gridCC)
 ind_resistor = ind_resistor[ind_active]
 conductivity_model[ind_resistor] = resistor_conductivity
 
@@ -253,25 +254,48 @@ dc_simulation = dc.simulation_2d.Simulation2DNodal(
 # units of volts.
 dpred_dc = dc_simulation.dpred(conductivity_model)
 
-# Define a data object (required for pseudo-section plot)
-dc_data = data.Data(dc_survey, dobs=dpred_dc)
+#######################################################################
+# Plotting DC Data in Pseudo-Section
+# ----------------------------------
+#
+# Here, we demonstrate how to plot 2D DC data in pseudo-section.
+# First, we plot the voltages in pseudo-section as a scatter plot. This
+# allows us to visualize the pseudo-sensitivity locations for our survey.
+# Next, we plot the apparent conductivities in pseudo-section as a filled
+# contour plot.
+#
+
+# Plot voltages pseudo-section
+fig = plt.figure(figsize=(12, 5))
+ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+plot_2d_pseudosection(
+    dc_survey,
+    np.abs(dpred_dc),
+    'scatter',
+    ax=ax1,
+    scale="log",
+    units="V/A",
+    scatter_opts={"cmap": "viridis"},
+)
+ax1.set_title("Normalized Voltages")
+plt.show()
+
+# Get apparent conductivities from volts and survey geometry
+apparent_conductivities = 1/convert_volts_to_resisitivities(dc_survey, dpred_dc)
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))
-
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-plot_pseudosection(
-    dc_data,
+plot_2d_pseudosection(
+    dc_survey,
+    apparent_conductivities,
+    'tricontourf',
     ax=ax1,
-    survey_type="dipole-dipole",
-    data_type="appConductivity",
-    space_type="half-space",
     scale="log",
-    y_values='pseudo-depth',
-    pcolor_opts={"cmap": "viridis"},
+    units="S/m",
+    tricontourf_opts={"levels": 20, "cmap": "viridis"},
 )
-ax1.set_title("Apparent Conductivity [S/m]")
-
+ax1.set_title("Apparent Conductivity")
 plt.show()
 
 #######################################################################
@@ -288,7 +312,8 @@ if save_file:
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
     # Add 5% Gaussian noise to each datum
-    dc_noise = 0.05 * dpred_dc * np.random.rand(len(dpred_dc))
+    np.random.seed(225)
+    dc_noise = 0.05 * np.abs(dpred_dc) * np.random.rand(len(dpred_dc))
 
     # Write out data at their original electrode locations (not shifted)
     data_array = np.c_[electrode_locations, dpred_dc + dc_noise]
@@ -350,7 +375,7 @@ chargeability_map = maps.InjectActiveCells(mesh, ind_active, air_chargeability)
 chargeability_model = background_chargeability * np.ones(nC)
 
 ind_chargeable = model_builder.getIndicesSphere(
-    np.r_[-120.0, -180.0], 60.0, mesh.gridCC
+    np.r_[-120.0, -160.0], 60.0, mesh.gridCC
 )
 ind_chargeable = ind_chargeable[ind_active]
 chargeability_model[ind_chargeable] = sphere_chargeability
@@ -363,6 +388,7 @@ mesh.plotImage(
     plotting_map * chargeability_model,
     ax=ax1,
     grid=False,
+    clim=(background_chargeability, sphere_chargeability),
     pcolor_opts={"cmap": "plasma"},
 )
 ax1.set_title("Intrinsic Chargeability")
@@ -370,11 +396,13 @@ ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
 ax2 = fig.add_axes([0.87, 0.12, 0.05, 0.78])
-norm = mpl.colors.Normalize(vmin=0, vmax=sphere_chargeability)
+norm = mpl.colors.Normalize(vmin=background_chargeability, vmax=sphere_chargeability)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", cmap=mpl.cm.plasma
 )
 cbar.set_label("Intrinsic Chargeability (V/V)", rotation=270, labelpad=15, size=12)
+
+plt.show()
 
 #######################################################################
 # Predict IP Data
@@ -398,42 +426,47 @@ simulation_ip = ip.simulation_2d.Simulation2DNodal(
 # Run forward simulation and predicted IP data. The data are the voltage (V)
 dpred_ip = simulation_ip.dpred(chargeability_model)
 
-# Define a data object. Required for pseudo-section plot
-ip_data = data.Data(ip_survey, dobs=dpred_ip)
 
-# Plot apparent chargeability. To accomplish this, we must normalize the IP
+###############################################
+# Plot 2D IP Data in Pseudosection
+# --------------------------------
+#
+# We want to plot apparent chargeability. To accomplish this, we must normalize the IP
 # voltage by the DC voltage. This is then multiplied by 1000 so that our
 # apparent chargeability is in units mV/V.
-fig = plt.figure(figsize=(12, 9))
+
+fig = plt.figure(figsize=(12, 12))
 
 # Plot apparent conductivity
-ax1 = fig.add_axes([0.05, 0.55, 0.8, 0.42])
-plot_pseudosection(
-    dc_data,
+ax1 = fig.add_axes([0.05, 0.55, 0.75, 0.42])
+cax1 = fig.add_axes([0.85, 0.55, 0.05, 0.42])
+plot_2d_pseudosection(
+    dc_survey,
+    apparent_conductivities,
+    'tricontourf',
     ax=ax1,
-    survey_type="dipole-dipole",
-    data_type="appConductivity",
-    space_type="half-space",
+    cax=cax1,
     scale="log",
-    pcolor_opts={"cmap": "viridis"},
+    units="S/m",
+    tricontourf_opts={"levels": 20, "cmap": "viridis"},
 )
-ax1.set_title("Apparent Conductivity [S/m]")
+ax1.set_title("Apparent Conductivity")
 
 # Convert from voltage measurement to apparent chargeability by normalizing by
 # the DC voltage
 apparent_chargeability = dpred_ip / dpred_dc
 
-ax2 = fig.add_axes([0.05, 0.05, 0.8, 0.42])
-plot_pseudosection(
-    ip_data,
-    dobs=apparent_chargeability,
+ax2 = fig.add_axes([0.05, 0.05, 0.75, 0.42])
+cax2 = fig.add_axes([0.85, 0.05, 0.05, 0.42])
+plot_2d_pseudosection(
+    ip_survey,
+    apparent_chargeability,
+    'tricontourf',
     ax=ax2,
-    survey_type="dipole-dipole",
-    data_type="appChargeability",
-    space_type="half-space",
+    cax=cax2,
     scale="linear",
-    y_values="pseudo-depth",
-    pcolor_opts={"cmap": "plasma"},
+    units="V/V",
+    tricontourf_opts={"levels": 20, "cmap": "plasma"},
 )
 ax2.set_title("Apparent Chargeability (V/V)")
 

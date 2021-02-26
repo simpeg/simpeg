@@ -3,7 +3,7 @@ from .static_utils import (
     source_receiver_midpoints,
     geometric_factor,
     apparent_resistivity,
-    plot_pseudosection,
+    plot_2d_pseudosection,
     plot_pseudoSection,
     plot_3d_pseudosection,
     gen_DCIPsurvey,

@@ -48,7 +48,10 @@ from SimPEG import (
 )
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
-from SimPEG.electromagnetics.static.utils.static_utils import plot_pseudosection
+from SimPEG.electromagnetics.static.utils.static_utils import (
+    convert_volts_to_resisitivities,
+    plot_2d_pseudosection
+)
 
 try:
     from pymatsolver import Pardiso as Solver
@@ -71,18 +74,22 @@ mpl.rcParams.update({'font.size': 16})
 #
 
 # storage bucket where we have the data
-data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
+# data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
 
 # download the data
-downloaded_data = utils.download(data_source, overwrite=True)
+# downloaded_data = utils.download(data_source, overwrite=True)
 
 # unzip the tarfile
-tar = tarfile.open(downloaded_data, "r")
-tar.extractall()
-tar.close()
+# tar = tarfile.open(downloaded_data, "r")
+# tar.extractall()
+# tar.close()
 
 # path to the directory containing our data
-dir_path = downloaded_data.split(".")[0] + os.path.sep
+# dir_path = downloaded_data.split(".")[0] + os.path.sep
+
+dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
+dir_path.extend(["tutorials", "06-ip", "dcip2d"])
+dir_path = os.path.sep.join(dir_path) + os.path.sep
 
 # files to work with
 topo_filename = dir_path + "xyz_topo.txt"
@@ -149,50 +156,53 @@ for ii in range(0, n_sources):
 
 ip_survey = ip.survey.Survey(source_list)
 
-# Define the a data object. Uncertainties are added later
-dc_data = data.Data(dc_survey, dobs=dobs_dc)
-ip_data = data.Data(ip_survey, dobs=dobs_ip)
+#########################################################
+# Plot Observed Data in Pseudosection
+# -----------------------------------
+#
 
 # Plot apparent conductivity using pseudo-section
 mpl.rcParams.update({"font.size": 12})
-fig = plt.figure(figsize=(11, 9))
 
-ax1 = fig.add_axes([0.05, 0.55, 0.8, 0.45])
-plot_pseudosection(
-    dc_data,
+apparent_conductivities = 1/convert_volts_to_resisitivities(dc_survey, dobs_dc)
+
+# Plot apparent conductivity pseudo-section
+fig = plt.figure(figsize=(12, 5))
+ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+plot_2d_pseudosection(
+    dc_survey,
+    apparent_conductivities,
+    'tricontourf',
     ax=ax1,
-    survey_type="dipole-dipole",
-    data_type="appConductivity",
-    space_type="half-space",
     scale="log",
-    y_values='pseudo-depth',
-    pcolor_opts={"cmap": "viridis"},
+    units="S/m",
+    tricontourf_opts={"levels": 20, "cmap": "viridis"},
 )
-ax1.set_title("Apparent Conductivity [S/m]")
+ax1.set_title("Apparent Conductivity")
+plt.show()
 
 # Plot apparent chargeability in pseudo-section. Since data are secondary
 # potentials, we must normalize by the DC voltage first.
-apparent_chargeability = ip_data.dobs / dc_data.dobs
+apparent_chargeability = dobs_ip / dobs_dc
 
-ax2 = fig.add_axes([0.05, 0.05, 0.8, 0.45])
-plot_pseudosection(
-    ip_data,
-    dobs=apparent_chargeability,
-    ax=ax2,
-    survey_type="dipole-dipole",
-    data_type="appChargeability",
-    space_type="half-space",
+fig = plt.figure(figsize=(12, 5))
+ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+plot_2d_pseudosection(
+    ip_survey,
+    apparent_chargeability,
+    'tricontourf',
+    ax=ax1,
     scale="linear",
-    y_values='pseudo-depth',
-    pcolor_opts={"cmap": "plasma"},
+    units="V/V",
+    tricontourf_opts={"levels": 20, "cmap": "plasma"},
 )
-ax2.set_title("Apparent Chargeability (V/V)")
-
+ax1.set_title("Apparent Chargeability")
 plt.show()
 
+
 #############################################
-# Assign Uncertainties
-# --------------------
+# Define Data and Assign Uncertainties
+# ------------------------------------
 #
 # Inversion with SimPEG requires that we define standard deviation on our data.
 # This represents our estimate of the noise in our data. For DC data, a relative
@@ -201,6 +211,10 @@ plt.show()
 # standard deviation. For this tutorial, the standard deviation on IP data are
 # 1% of the corresponding DC data value.
 #
+
+# Define the a data object. Uncertainties are added later
+dc_data = data.Data(dc_survey, dobs=dobs_dc)
+ip_data = data.Data(ip_survey, dobs=dobs_ip)
 
 # Compute standard deviations
 std_dc = 0.05 * np.abs(dobs_dc)
@@ -214,11 +228,11 @@ ip_data.standard_deviation = std_ip
 # Create Tree Mesh
 # ----------------
 #
-# Here, we create the Tree mesh that will be used to predict both DC
+# Here, we create the Tree mesh that will be used to invert both DC
 # resistivity and IP data.
 #
 
-dh = 10.0  # base cell width
+dh = 8  # base cell width
 dom_width_x = 2400.0  # domain width x
 dom_width_z = 1200.0  # domain width z
 nbcx = 2 ** int(np.round(np.log(dom_width_x / dh) / np.log(2.0)))  # num. base cells x
@@ -231,18 +245,21 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[:, [0, 2]], octree_levels=[1], method="surface", finalize=False
+    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 2], method="surface", finalize=False
 )
 
-# Mesh refinement near transmitters and receivers
-electrode_locations = np.r_[
+# Mesh refinement near transmitters and receivers. First we need to obtain the
+# set of unique electrode locations.
+electrode_locations = np.c_[
     dc_survey.locations_a,
     dc_survey.locations_b,
     dc_survey.locations_m,
     dc_survey.locations_n,
 ]
 
-unique_locations = np.unique(electrode_locations, axis=0)
+unique_locations = np.unique(
+    np.reshape(electrode_locations, (4 * dc_survey.nD, 2)), axis=0
+)
 
 mesh = refine_tree_xyz(
     mesh, unique_locations, octree_levels=[2, 4], method="radial", finalize=False
@@ -423,10 +440,10 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
-    range_x=[-700, 700],
-    range_y=[-700, 0],
     pcolor_opts={"cmap": "viridis"},
 )
+ax1.set_xlim(-600, 600)
+ax1.set_ylim(-600, 0)
 ax1.set_title("True Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
@@ -457,10 +474,10 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
-    range_x=[-700, 700],
-    range_y=[-700, 0],
     pcolor_opts={"cmap": "viridis"},
 )
+ax1.set_xlim(-600, 600)
+ax1.set_ylim(-600, 0)
 ax1.set_title("Recovered Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
@@ -484,34 +501,32 @@ plt.show()
 
 # Predicted data from recovered model
 dpred_dc = dc_inverse_problem.dpred
-dc_data_predicted = data.Data(dc_survey, dobs=dpred_dc)
 
-data_array = [dc_data, dc_data_predicted, dc_data]
-dobs_array = [None, None, (dobs_dc - dpred_dc) / std_dc]
-
-fig = plt.figure(figsize=(17, 5.5))
+# Plot
+fig = plt.figure(figsize=(6, 10))
+data_array = [np.abs(dobs_dc), np.abs(dpred_dc), (dobs_dc - dpred_dc)/std_dc]
 plot_title = ["Observed", "Predicted", "Normalized Misfit"]
-plot_type = ["appConductivity", "appConductivity", "misfitMap"]
 plot_units = ["S/m", "S/m", ""]
 scale = ["log", "log", "linear"]
 
 ax1 = 3 * [None]
-norm = 3 * [None]
+cax1 = 3 * [None]
 cbar = 3 * [None]
 cplot = 3 * [None]
 
 for ii in range(0, 3):
 
-    ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.05, 0.25, 0.9])
-    cplot[ii] = plot_pseudosection(
+    ax1[ii] = fig.add_axes([0.1, 0.70-0.33*ii, 0.7, 0.23])
+    cax1[ii] = fig.add_axes([0.85, 0.70-0.33*ii, 0.05, 0.23])
+    cplot[ii] = plot_2d_pseudosection(
+        dc_survey,
         data_array[ii],
-        dobs=dobs_array[ii],
+        'tricontourf',
         ax=ax1[ii],
-        survey_type="dipole-dipole",
-        data_type=plot_type[ii],
+        cax=cax1[ii],
         scale=scale[ii],
-        space_type="half-space",
-        pcolor_opts={"cmap": "viridis"},
+        units=plot_units[ii],
+        tricontourf_opts={"levels": 25, "cmap": "viridis"},
     )
     ax1[ii].set_title(plot_title[ii])
 
@@ -646,10 +661,10 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(np.min(true_chargeability_model), np.max(true_chargeability_model)),
-    range_x=[-700, 700],
-    range_y=[-700, 0],
     pcolor_opts={"cmap": "plasma"},
 )
+ax1.set_xlim(-700, 700)
+ax1.set_ylim(-700, 0)
 ax1.set_title("True Chargeability Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
@@ -675,10 +690,10 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(np.min(recovered_chargeability_model), np.max(recovered_chargeability_model)),
-    range_x=[-700, 700],
-    range_y=[-700, 0],
     pcolor_opts={"cmap": "plasma"},
 )
+ax1.set_xlim(-700, 700)
+ax1.set_ylim(-700, 0)
 ax1.set_title("Recovered Chargeability Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
@@ -701,36 +716,32 @@ plt.show()
 #
 
 dpred_ip = ip_inverse_problem.dpred
-ip_data_predicted = data.Data(ip_survey, dobs=dpred_ip)
 
-# Convert from voltage measurements to apparent chargeability by normalizing by
-# the DC voltage
-dobs_array = np.c_[dobs_ip / dobs_dc, dpred_ip / dobs_dc, (dobs_ip - dpred_ip) / std_ip]
-
-fig = plt.figure(figsize=(17, 5.5))
-plot_title = ["Observed", "Predicted", "Normalized Misfit"]
-plot_type = ["appChargeability", "appChargeability", "volt"]
-scale = ["linear", "linear", "linear"]
+# Plot
+fig = plt.figure(figsize=(6, 10))
+data_array = [dobs_ip/dobs_dc, dpred_ip/dpred_dc, (dobs_ip - dpred_ip)/std_ip]
+plot_title = ["Observed (as app. chg.)", "Predicted (as app. chg.)", "Normalized Misfit"]
+plot_units = ["V/V", "V/V", ""]
 
 ax1 = 3 * [None]
-norm = 3 * [None]
+cax1 = 3 * [None]
 cbar = 3 * [None]
 cplot = 3 * [None]
 
 for ii in range(0, 3):
 
-    ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.11, 0.23, 0.85])
-    cplot[ii] = plot_pseudosection(
-        ip_data,
-        dobs=dobs_array[:, ii],
+    ax1[ii] = fig.add_axes([0.1, 0.70-0.33*ii, 0.7, 0.23])
+    cax1[ii] = fig.add_axes([0.85, 0.70-0.33*ii, 0.05, 0.23])
+    cplot[ii] = plot_2d_pseudosection(
+        ip_survey,
+        data_array[ii],
+        'tricontourf',
         ax=ax1[ii],
-        survey_type="dipole-dipole",
-        data_type=plot_type[ii],
-        space_type="half-space",
-        pcolor_opts={"cmap": "plasma"},
+        cax=cax1[ii],
+        scale='linear',
+        units=plot_units[ii],
+        tricontourf_opts={"levels": 25, "cmap": "plasma"},
     )
     ax1[ii].set_title(plot_title[ii])
-    ax1[ii].set_xlabel("x (m)")
-    ax1[ii].set_ylabel("z (m)")
 
 plt.show()

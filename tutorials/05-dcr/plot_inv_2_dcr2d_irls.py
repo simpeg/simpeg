@@ -43,7 +43,9 @@ from SimPEG import (
     utils,
 )
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import plot_pseudosection
+from SimPEG.electromagnetics.static.utils.static_utils import (
+    plot_2d_pseudosection, convert_volts_to_resisitivities
+)
 
 try:
     from pymatsolver import Pardiso as Solver
@@ -66,18 +68,23 @@ mpl.rcParams.update({'font.size': 16})
 #
 
 # storage bucket where we have the data
-data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
+# data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
 
 # download the data
-downloaded_data = utils.download(data_source, overwrite=True)
+# downloaded_data = utils.download(data_source, overwrite=True)
 
 # unzip the tarfile
-tar = tarfile.open(downloaded_data, "r")
-tar.extractall()
-tar.close()
+# tar = tarfile.open(downloaded_data, "r")
+# tar.extractall()
+# tar.close()
 
 # path to the directory containing our data
-dir_path = downloaded_data.split(".")[0] + os.path.sep
+# dir_path = downloaded_data.split(".")[0] + os.path.sep
+
+
+dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
+dir_path.extend(["tutorials", "05-dcr", "dcr2d"])
+dir_path = os.path.sep.join(dir_path) + os.path.sep
 
 # files to work with
 topo_filename = dir_path + "xyz_topo.txt"
@@ -94,7 +101,6 @@ true_conductivity_filename = dir_path + "true_conductivity.txt"
 # **Warning**: In the following example, the observations file is assumed to be
 # sorted by sources
 #
-
 
 # Load data
 topo_xyz = np.loadtxt(str(topo_filename))
@@ -128,36 +134,61 @@ for ii in range(0, n_sources):
 # Define survey
 survey = dc.survey.Survey_ky(source_list)
 
-# Define the a data object. Uncertainties are added later
-dc_data = data.Data(survey, dobs=dobs)
+#######################################################################
+# Plot Observed Data in Pseudo-Section
+# ------------------------------------
+#
+# Here, we demonstrate how to plot 2D data in pseudo-section.
+# First, we plot the actual data (voltages) in pseudo-section as a scatter plot.
+# This allows us to visualize the pseudo-sensitivity locations for our survey.
+# Next, we plot the data as apparent conductivities in pseudo-section with a filled
+# contour plot.
+#
 
-# Plot apparent conductivity using pseudo-section
-mpl.rcParams.update({"font.size": 12})
+# Plot voltages pseudo-section
 fig = plt.figure(figsize=(12, 5))
-
 ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-plot_pseudosection(
-    dc_data,
+plot_2d_pseudosection(
+    survey,
+    np.abs(dobs),
+    'scatter',
     ax=ax1,
-    survey_type="dipole-dipole",
-    data_type="appConductivity",
-    space_type="half-space",
     scale="log",
-    y_values='pseudo-depth',
-    pcolor_opts={"cmap": "viridis"},
+    units="V/A",
+    scatter_opts={"cmap": "viridis"},
 )
-ax1.set_title("Apparent Conductivity [S/m]")
+ax1.set_title("Normalized Voltages")
+plt.show()
 
+# Get apparent conductivities from volts and survey geometry
+apparent_conductivities = 1/convert_volts_to_resisitivities(survey, dobs)
+
+# Plot apparent conductivity pseudo-section
+fig = plt.figure(figsize=(12, 5))
+ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+plot_2d_pseudosection(
+    survey,
+    apparent_conductivities,
+    'tricontourf',
+    ax=ax1,
+    scale="log",
+    units="S/m",
+    tricontourf_opts={"levels": 20, "cmap": "viridis"},
+)
+ax1.set_title("Apparent Conductivity")
 plt.show()
 
 #############################################
-# Assign Uncertainties
-# --------------------
+# Define Data and Assign Uncertainties
+# ------------------------------------
 #
 # Inversion with SimPEG requires that we define standard deviation on our data.
 # This represents our estimate of the noise in our data. For DC data, a relative
 # error is applied to each datum.
 #
+
+# Define a data object
+dc_data = data.Data(survey, dobs=dobs)
 
 # Compute standard deviations
 std = 0.05 * np.abs(dobs)
@@ -169,11 +200,10 @@ dc_data.standard_deviation = std
 # Create Tree Mesh
 # ------------------
 #
-# Here, we create the Tree mesh that will be used to predict both DC
-# resistivity and IP data.
+# Here, we create the Tree mesh that will be used invert the DC data
 #
 
-dh = 10.0  # base cell width
+dh = 8  # base cell width
 dom_width_x = 2400.0  # domain width x
 dom_width_z = 1200.0  # domain width z
 nbcx = 2 ** int(np.round(np.log(dom_width_x / dh) / np.log(2.0)))  # num. base cells x
@@ -186,15 +216,21 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[:, [0, 2]], octree_levels=[1], method="surface", finalize=False
+    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 2], method="surface", finalize=False
 )
 
-# Mesh refinement near transmitters and receivers
-electrode_locations = np.r_[
-    survey.locations_a, survey.locations_b, survey.locations_m, survey.locations_n
+# Mesh refinement near transmitters and receivers. First we need to obtain the
+# set of unique electrode locations.
+electrode_locations = np.c_[
+    survey.locations_a,
+    survey.locations_b,
+    survey.locations_m,
+    survey.locations_n,
 ]
 
-unique_locations = np.unique(electrode_locations, axis=0)
+unique_locations = np.unique(
+    np.reshape(electrode_locations, (4 * survey.nD, 2)), axis=0
+)
 
 mesh = refine_tree_xyz(
     mesh, unique_locations, octree_levels=[2, 4], method="radial", finalize=False
@@ -399,10 +435,10 @@ for ii in range(0, 3):
             np.min(true_conductivity_model_log10),
             np.max(true_conductivity_model_log10),
         ),
-        range_x=[-700, 700],
-        range_y=[-600, 0],
         pcolor_opts={"cmap": "viridis"},
     )
+    ax1[ii].set_xlim(-600, 600)
+    ax1[ii].set_ylim(-600, 0)
     ax1[ii].set_title(title_str[ii])
     ax1[ii].set_xlabel("x (m)")
     ax1[ii].set_ylabel("z (m)")
@@ -429,36 +465,33 @@ plt.show()
 #
 
 # Predicted data from recovered model
-dpred = simulation.dpred(recovered_conductivity_model)
-dc_data_predicted = data.Data(survey, dobs=dpred)
+dpred = inv_prob.dpred
 
-data_array = [dc_data, dc_data_predicted, dc_data]
-dobs_array = [None, None, (dobs - dpred) / std]
-
-fig = plt.figure(figsize=(17, 5.5))
+# Plot
+fig = plt.figure(figsize=(6, 10))
+data_array = [np.abs(dobs), np.abs(dpred), (dobs - dpred)/std]
 plot_title = ["Observed", "Predicted", "Normalized Misfit"]
-plot_type = ["appConductivity", "appConductivity", "misfitMap"]
 plot_units = ["S/m", "S/m", ""]
 scale = ["log", "log", "linear"]
 
 ax1 = 3 * [None]
-norm = 3 * [None]
+cax1 = 3 * [None]
 cbar = 3 * [None]
 cplot = 3 * [None]
 
 for ii in range(0, 3):
 
-    ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.05, 0.25, 0.9])
-    cplot[ii] = plot_pseudosection(
+    ax1[ii] = fig.add_axes([0.1, 0.70-0.33*ii, 0.7, 0.23])
+    cax1[ii] = fig.add_axes([0.83, 0.70-0.33*ii, 0.05, 0.23])
+    cplot[ii] = plot_2d_pseudosection(
+        survey,
         data_array[ii],
-        dobs=dobs_array[ii],
+        'tricontourf',
         ax=ax1[ii],
-        survey_type="dipole-dipole",
-        data_type=plot_type[ii],
+        cax=cax1[ii],
         scale=scale[ii],
-        space_type="half-space",
-        y_values='pseudo-depth',
-        pcolor_opts={"cmap": "viridis"},
+        units=plot_units[ii],
+        tricontourf_opts={"levels": 25, "cmap": "viridis"},
     )
     ax1[ii].set_title(plot_title[ii])
 
