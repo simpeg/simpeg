@@ -59,7 +59,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 mpl.rcParams.update({'font.size': 16})
-# sphinx_gallery_thumbnail_number = 6
+# sphinx_gallery_thumbnail_number = 7
 
 
 #############################################
@@ -168,7 +168,7 @@ apparent_conductivities = 1/convert_volts_to_resisitivities(dc_survey, dobs_dc)
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
 plot_2d_pseudosection(
     dc_survey,
     apparent_conductivities,
@@ -176,6 +176,7 @@ plot_2d_pseudosection(
     ax=ax1,
     scale="log",
     units="S/m",
+    mask_topography=True,
     tricontourf_opts={"levels": 20, "cmap": "viridis"},
 )
 ax1.set_title("Apparent Conductivity")
@@ -186,7 +187,7 @@ plt.show()
 apparent_chargeability = dobs_ip / dobs_dc
 
 fig = plt.figure(figsize=(12, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
 plot_2d_pseudosection(
     ip_survey,
     apparent_chargeability,
@@ -194,6 +195,7 @@ plot_2d_pseudosection(
     ax=ax1,
     scale="linear",
     units="V/V",
+    mask_topography=True,
     tricontourf_opts={"levels": 20, "cmap": "plasma"},
 )
 ax1.set_title("Apparent Chargeability")
@@ -467,7 +469,7 @@ fig = plt.figure(figsize=(9, 4))
 # Make conductivities in log10
 recovered_conductivity_model_log10 = np.log10(np.exp(recovered_conductivity_model))
 
-ax1 = fig.add_axes([0.1, 0.12, 0.72, 0.8])
+ax1 = fig.add_axes([0.14, 0.15, 0.68, 0.7])
 mesh.plotImage(
     plotting_map * recovered_conductivity_model_log10,
     normal="Y",
@@ -482,7 +484,7 @@ ax1.set_title("Recovered Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.83, 0.12, 0.05, 0.8])
+ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.7])
 norm = mpl.colors.Normalize(
     vmin=np.min(true_conductivity_model_log10),
     vmax=np.max(true_conductivity_model_log10),
@@ -503,7 +505,7 @@ plt.show()
 dpred_dc = dc_inverse_problem.dpred
 
 # Plot
-fig = plt.figure(figsize=(6, 10))
+fig = plt.figure(figsize=(9, 15))
 data_array = [np.abs(dobs_dc), np.abs(dpred_dc), (dobs_dc - dpred_dc)/std_dc]
 plot_title = ["Observed", "Predicted", "Normalized Misfit"]
 plot_units = ["S/m", "S/m", ""]
@@ -517,7 +519,7 @@ cplot = 3 * [None]
 for ii in range(0, 3):
 
     ax1[ii] = fig.add_axes([0.1, 0.70-0.33*ii, 0.7, 0.23])
-    cax1[ii] = fig.add_axes([0.85, 0.70-0.33*ii, 0.05, 0.23])
+    cax1[ii] = fig.add_axes([0.83, 0.70-0.33*ii, 0.05, 0.23])
     cplot[ii] = plot_2d_pseudosection(
         dc_survey,
         data_array[ii],
@@ -526,6 +528,7 @@ for ii in range(0, 3):
         cax=cax1[ii],
         scale=scale[ii],
         units=plot_units[ii],
+        mask_topography=True,
         tricontourf_opts={"levels": 25, "cmap": "viridis"},
     )
     ax1[ii].set_title(plot_title[ii])
@@ -655,7 +658,7 @@ fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.ActiveCells(mesh, ind_active, np.nan)
 
-ax1 = fig.add_axes([0.1, 0.12, 0.72, 0.8])
+ax1 = fig.add_axes([0.14, 0.15, 0.68, 0.7])
 mesh.plotImage(
     plotting_map * true_chargeability_model,
     ax=ax1,
@@ -669,7 +672,7 @@ ax1.set_title("True Chargeability Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.83, 0.12, 0.03, 0.8])
+ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.7])
 norm = mpl.colors.Normalize(
     vmin=np.min(true_chargeability_model), vmax=np.max(true_chargeability_model)
 )
@@ -683,7 +686,7 @@ plt.show()
 # Plot Recovered Model
 fig = plt.figure(figsize=(9, 4))
 
-ax1 = fig.add_axes([0.1, 0.12, 0.72, 0.8])
+ax1 = fig.add_axes([0.13, 0.15, 0.68, 0.7])
 mesh.plotImage(
     plotting_map * recovered_chargeability_model,
     normal="Y",
@@ -698,7 +701,7 @@ ax1.set_title("Recovered Chargeability Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.83, 0.12, 0.03, 0.8])
+ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.7])
 norm = mpl.colors.Normalize(
     vmin=np.min(recovered_chargeability_model),
     vmax=np.max(recovered_chargeability_model),
@@ -718,7 +721,7 @@ plt.show()
 dpred_ip = ip_inverse_problem.dpred
 
 # Plot
-fig = plt.figure(figsize=(6, 10))
+fig = plt.figure(figsize=(9, 13))
 data_array = [dobs_ip/dobs_dc, dpred_ip/dpred_dc, (dobs_ip - dpred_ip)/std_ip]
 plot_title = ["Observed (as app. chg.)", "Predicted (as app. chg.)", "Normalized Misfit"]
 plot_units = ["V/V", "V/V", ""]
@@ -730,8 +733,8 @@ cplot = 3 * [None]
 
 for ii in range(0, 3):
 
-    ax1[ii] = fig.add_axes([0.1, 0.70-0.33*ii, 0.7, 0.23])
-    cax1[ii] = fig.add_axes([0.85, 0.70-0.33*ii, 0.05, 0.23])
+    ax1[ii] = fig.add_axes([0.15, 0.72-0.33*ii, 0.65, 0.21])
+    cax1[ii] = fig.add_axes([0.81, 0.72-0.33*ii, 0.03, 0.21])
     cplot[ii] = plot_2d_pseudosection(
         ip_survey,
         data_array[ii],
@@ -740,6 +743,7 @@ for ii in range(0, 3):
         cax=cax1[ii],
         scale='linear',
         units=plot_units[ii],
+        mask_topography=True,
         tricontourf_opts={"levels": 25, "cmap": "plasma"},
     )
     ax1[ii].set_title(plot_title[ii])

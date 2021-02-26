@@ -183,14 +183,13 @@ ind_resistor = model_builder.getIndicesSphere(np.r_[120.0, -100.0], 60.0, mesh.g
 ind_resistor = ind_resistor[ind_active]
 conductivity_model[ind_resistor] = resistor_conductivity
 
-
 # Plot Conductivity Model
-fig = plt.figure(figsize=(8.5, 4))
+fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_mod = np.log10(conductivity_model)
 
-ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
+ax1 = fig.add_axes([0.14, 0.15, 0.68, 0.7])
 mesh.plotImage(
     plotting_map * log_mod,
     ax=ax1,
@@ -202,7 +201,7 @@ ax1.set_title("Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
+ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.7])
 norm = mpl.colors.Normalize(
     vmin=np.log10(resistor_conductivity), vmax=np.log10(conductor_conductivity)
 )
@@ -255,7 +254,7 @@ dpred = simulation.dpred(conductivity_model)
 
 # Plot voltages pseudo-section
 fig = plt.figure(figsize=(12, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
 plot_2d_pseudosection(
     survey,
     np.abs(dpred),
@@ -273,7 +272,7 @@ apparent_conductivities = 1/convert_volts_to_resisitivities(survey, dpred)
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
 plot_2d_pseudosection(
     survey,
     apparent_conductivities,
@@ -281,6 +280,7 @@ plot_2d_pseudosection(
     ax=ax1,
     scale="log",
     units="S/m",
+    mask_topography=True,
     tricontourf_opts={"levels": 20, "cmap": "viridis"},
 )
 ax1.set_title("Apparent Conductivity")

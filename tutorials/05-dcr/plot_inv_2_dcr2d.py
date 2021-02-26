@@ -53,7 +53,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 mpl.rcParams.update({'font.size': 16})
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 4
 
 
 #############################################
@@ -147,7 +147,7 @@ survey = dc.survey.Survey_ky(source_list)
 
 # Plot voltages pseudo-section
 fig = plt.figure(figsize=(12, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
 plot_2d_pseudosection(
     survey,
     np.abs(dobs),
@@ -165,7 +165,7 @@ apparent_conductivities = 1/convert_volts_to_resisitivities(survey, dobs)
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
 plot_2d_pseudosection(
     survey,
     apparent_conductivities,
@@ -173,6 +173,7 @@ plot_2d_pseudosection(
     ax=ax1,
     scale="log",
     units="S/m",
+    mask_topography=True,
     tricontourf_opts={"levels": 20, "cmap": "viridis"},
 )
 ax1.set_title("Apparent Conductivity")
@@ -400,7 +401,7 @@ fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.ActiveCells(mesh, ind_active, np.nan)
 
-ax1 = fig.add_axes([0.1, 0.12, 0.72, 0.8])
+ax1 = fig.add_axes([0.13, 0.15, 0.68, 0.7])
 mesh.plotImage(
     plotting_map * true_conductivity_model_log10,
     ax=ax1,
@@ -414,7 +415,7 @@ ax1.set_title("True Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.83, 0.12, 0.05, 0.8])
+ax2 = fig.add_axes([0.83, 0.15, 0.03, 0.7])
 norm = mpl.colors.Normalize(
     vmin=np.min(true_conductivity_model_log10),
     vmax=np.max(true_conductivity_model_log10),
@@ -433,7 +434,7 @@ fig = plt.figure(figsize=(9, 4))
 # Make conductivities in log10
 recovered_conductivity_model_log10 = np.log10(np.exp(recovered_conductivity_model))
 
-ax1 = fig.add_axes([0.1, 0.12, 0.72, 0.8])
+ax1 = fig.add_axes([0.13, 0.15, 0.68, 0.7])
 mesh.plotImage(
     plotting_map * recovered_conductivity_model_log10,
     normal="Y",
@@ -448,7 +449,7 @@ ax1.set_title("Recovered Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.83, 0.12, 0.05, 0.8])
+ax2 = fig.add_axes([0.83, 0.15, 0.03, 0.7])
 norm = mpl.colors.Normalize(
     vmin=np.min(true_conductivity_model_log10),
     vmax=np.max(true_conductivity_model_log10),
@@ -469,7 +470,7 @@ plt.show()
 dpred = inv_prob.dpred
 
 # Plot
-fig = plt.figure(figsize=(6, 10))
+fig = plt.figure(figsize=(9, 13))
 data_array = [np.abs(dobs), np.abs(dpred), (dobs - dpred)/std]
 plot_title = ["Observed", "Predicted", "Normalized Misfit"]
 plot_units = ["S/m", "S/m", ""]
@@ -482,8 +483,8 @@ cplot = 3 * [None]
 
 for ii in range(0, 3):
 
-    ax1[ii] = fig.add_axes([0.1, 0.70-0.33*ii, 0.7, 0.23])
-    cax1[ii] = fig.add_axes([0.85, 0.70-0.33*ii, 0.05, 0.23])
+    ax1[ii] = fig.add_axes([0.15, 0.72-0.33*ii, 0.65, 0.21])
+    cax1[ii] = fig.add_axes([0.81, 0.72-0.33*ii, 0.03, 0.21])
     cplot[ii] = plot_2d_pseudosection(
         survey,
         data_array[ii],
@@ -492,6 +493,7 @@ for ii in range(0, 3):
         cax=cax1[ii],
         scale=scale[ii],
         units=plot_units[ii],
+        mask_topography=True,
         tricontourf_opts={"levels": 25, "cmap": "viridis"},
     )
     ax1[ii].set_title(plot_title[ii])

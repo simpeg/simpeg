@@ -224,7 +224,8 @@ def pseudo_locations(survey, **kwargs):
 
     # Pseudo depth is AB/2
     if np.any(is_wenner):
-        pseudo_depth[is_wenner, -1] = -(electrode_separations(survey, ['AB'])['AB'])/2
+        temp = np.abs(electrode_separations(survey, ['AB'])['AB'])/2
+        pseudo_depth[is_wenner, -1] = temp[is_wenner]
 
     # Takes into account topography.
     if np.any(~is_wenner):
@@ -619,25 +620,29 @@ def plot_2d_pseudosection(
     cax=None,
     vlim=None,
     scale="linear",
+    units="",
     create_colorbar=True,
+    mask_topography=False,
+    marker_size=40,
     scatter_opts={},
     tricontourf_opts={},
-    cbar_opts={},
-    units="",
+    cbar_opts={}
 ):
     """
     Plot 2D DC/IP data in pseudo-section.
 
-    This utility allows the user to produce a scatter plot of 3D DC/IP data at
-    all pseudo-locations. If a plane is specified, the user may create a scatter
-    plot or contour plot on that plane.
+    This utility allows the user to image 2D DC/IP data in pseudosection as
+    either a scatter plot or as a filled contour plot.
 
     Input:
     survey : SimPEG.electromagnetics.static.survey.Survey
-        A DC or IP survey object
-    dvec : numpy.ndarray
+        A DC or IP survey object defining a 2D survey line
+    dvec : numpy.ndarray (ndata,)
         A data vector containing volts, integrated chargeabilities, apparent
-        resistivities or apparent chargeabilities.
+        resistivities, apparent chargeabilities or data misfits.
+    plot_type: str
+        Plot type {'scatter', 'tricontourf'}. 'scatter' creates a scatter plot
+        and 'tricontourf' creates a filled contour plot.
     ax: mpl_toolkits.mplot3d.axes3d.Axes3D, optional
         A 3D axis object for the 3D plot
     cax : mpl_toolkits.mplot3d.axes.Axes or mpl_toolkits.mplot3d.axes3d.Axes3D, optional
@@ -647,32 +652,27 @@ def plot_2d_pseudosection(
         i.e. [vmin, vmax]
     scale: str
         Plot on linear or log base 10 scale {'linear','log'}
-    plot_type: str
-        Plot type. 'scatter' creates a scatter plot and 'surface' creates a
-        surface plot. 'surface' can only be used if the **plane_points** feature
-        is used.
-    plane_points : list of numpy.ndarray
-        A list of length 3 which contains the three xyz locations required to
-        define a plane; i.e. [xyz1, xyz2, xyz3]. This functionality is used to
-        plot only data that lie near this plane. A list of [xyz1, xyz2, xyz3]
-        can be entered for multiple planes.
-    plane_distance : float or list of float
-        Distance tolerance for plotting data that are near the plane(s) defined by
-        **plane_points**. A list is used if the *plane_distance* is different
-        for each plane.
+    units : str
+        A LateX formatted string stating the desired units for the
+        data; e.g. 'S/m', '$\Omega m$', '%'
     create_colorbar : bool
         If *True*, a colorbar is automatically generated. If *False*, it is not.
         If multiple planes are being plotted, only set the first scatter plot
         to *True*
+    mask_topography : bool
+        This freature should be set to True when there is significant topography and the user
+        would like to mask interpolated locations in the filled contour plot that lie
+        above the surface topography.
+    marker_size : int
+        If plot_type=='scatter', this argument can be used to set the marker size for
+        the scatter plot.
     scatter_opts : dict
-        Dictionary defining kwargs for scatter plot
-    contour_opts : dict
-        Dictionary defining kwargs for surface plot
+        Dictionary defining kwargs for scatter plot if plot_type='scatter'
+    tricontourf_opts : dict
+        Dictionary defining kwargs for filled contour plot if plot_type='tricontourf'
     cbar_opts : dict
-        Dictionary defining kwargs for colorbars
-    units : str
-        A LateX formatted string stating the desired units for the
-        data; e.g. 'S/m', '$\Omega m$', '%'
+        Dictionary defining kwargs for the colorbar
+    
 
     Output:
     mpl_toolkits.mplot3d.axes3d.Axes3D
@@ -706,7 +706,7 @@ def plot_2d_pseudosection(
         data_plot = ax.scatter(
             locations[:, 0],
             locations[:, -1],
-            80,
+            marker_size,
             dvec,
             norm=norm,
             **scatter_opts
@@ -724,40 +724,41 @@ def plot_2d_pseudosection(
             **tricontourf_opts,
         )
 
+    else:
+        raise NotImplementedError("plot_type must be 'scatter' or 'tricontourf'")
+        
+    # Use a filled polygon to mask everything above
+    # that has a pseudo-location above the positions
+    # for nearest electrode spacings    
+    
+    if mask_topography:
+        
         electrode_locations = np.unique(np.r_[
             survey.locations_a,
             survey.locations_b,
             survey.locations_m,
             survey.locations_n
         ], axis=0)
-
+        
         zmin = np.min(electrode_locations[:, 1])
         zmax = np.max(electrode_locations[:, 1])
 
-        # Use a filled polygon to mask everything above
-        # that has a pseudo-location above the positions
-        # for nearest electrode spacings
-        if (zmax-zmin) > 1e-2:
+        tree = cKDTree(locations)
+        _, nodeInds = tree.query(electrode_locations)
 
-            tree = cKDTree(locations)
-            _, nodeInds = tree.query(electrode_locations)
+        poly_locations = locations[nodeInds, :]
 
-            poly_locations = locations[nodeInds, :]
+        poly_locations = np.r_[
+            np.c_[np.min(poly_locations[:, 0]), zmax],
+            poly_locations,
+            np.c_[np.max(poly_locations[:, 0]), zmax]
+        ]
 
-            poly_locations = np.r_[
-                np.c_[np.min(poly_locations[:, 0]), zmax],
-                poly_locations,
-                np.c_[np.max(poly_locations[:, 0]), zmax]
-            ]
-
-            ax.fill(
-                poly_locations[:, 0], poly_locations[:, 1],
-                facecolor='w', linewidth=0.5
-            )
-
-    else:
-        raise NotImplementedError("plot_type must be 'scatter' or 'tricontourf'")
-
+        ax.fill(
+            poly_locations[:, 0], poly_locations[:, 1],
+            facecolor='w', linewidth=0.5
+        )    
+    
     z_top = np.max(locations[:, -1])
     z_bot = np.min(locations[:, -1])
     ax.set_ylim(z_bot - 0.03*(z_top-z_bot), z_top + 0.03*(z_top-z_bot))
@@ -812,22 +813,22 @@ def plot_3d_pseudosection(
     dvec,
     ax=None,
     cax=None,
-    s=100,
+    marker_size=50,
     vlim=None,
     scale="linear",
+    units="",
     plane_points=None,
     plane_distance=10.0,
     create_colorbar=True,
     scatter_opts={},
     cbar_opts={},
-    units="",
 ):
     """
-    Plot 3D DC/IP data in pseudo-section.
+    Plot 3D DC/IP data in pseudo-section as a scatter plot.
 
     This utility allows the user to produce a scatter plot of 3D DC/IP data at
     all pseudo-locations. If a plane is specified, the user may create a scatter
-    plot or contour plot on that plane.
+    plot using points near that plane.
 
     Input:
     survey : SimPEG.electromagnetics.static.survey.Survey
@@ -839,15 +840,16 @@ def plot_3d_pseudosection(
         A 3D axis object for the 3D plot
     cax : mpl_toolkits.mplot3d.axes.Axes or mpl_toolkits.mplot3d.axes3d.Axes3D, optional
         An axis object for the colorbar
+    marker_size : int
+        Sets the marker size for the points on the scatter plot
     vlim : list
         list containing the minimum and maximum value for the color range,
         i.e. [vmin, vmax]
     scale: str
         Plot on linear or log base 10 scale {'linear','log'}
-    plot_type: str
-        Plot type. 'scatter' creates a scatter plot and 'surface' creates a
-        surface plot. 'surface' can only be used if the **plane_points** feature
-        is used.
+    units : str
+        A LateX formatted string stating the desired units for the
+        data; e.g. 'S/m', '$\Omega m$', '%'
     plane_points : list of numpy.ndarray
         A list of length 3 which contains the three xyz locations required to
         define a plane; i.e. [xyz1, xyz2, xyz3]. This functionality is used to
@@ -862,14 +864,10 @@ def plot_3d_pseudosection(
         If multiple planes are being plotted, only set the first scatter plot
         to *True*
     scatter_opts : dict
-        Dictionary defining kwargs for scatter plot
-    contour_opts : dict
-        Dictionary defining kwargs for surface plot
+        Dictionary defining kwargs for the scatter plot
     cbar_opts : dict
-        Dictionary defining kwargs for colorbars
-    units : str
-        A LateX formatted string stating the desired units for the
-        data; e.g. 'S/m', '$\Omega m$', '%'
+        Dictionary defining kwargs for the colorbar
+    
 
     Output:
     mpl_toolkits.mplot3d.axes3d.Axes3D
@@ -884,10 +882,6 @@ def plot_3d_pseudosection(
         if vlim != None:
             vlim[0] = np.log10(vlim[0])
             vlim[1] = np.log10(vlim[1])
-
-    # Marker size for scatter plot
-    if s == None:
-        s = 80
 
     if ax == None:
         fig = plt.figure(figsize=(10, 4))
