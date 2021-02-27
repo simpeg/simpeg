@@ -28,11 +28,9 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from discretize import TensorMesh
-
 from SimPEG import maps
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
+from SimPEG.electromagnetics.static.utils.static_utils import plot_1d_layer_model
 
 save_file = False
 
@@ -108,12 +106,8 @@ model_map = maps.IdentityMap(nP=len(model))
 # Here we plot the 1D resistivity model.
 #
 
-# Define a 1D mesh for plotting. Provide a maximum depth for the plot.
-max_depth = 500
-mesh = TensorMesh([np.r_[layer_thicknesses, max_depth - layer_thicknesses.sum()]])
-
 # Plot the 1D model
-plot_layer(model_map * model, mesh)
+plot_1d_layer_model(layer_thicknesses, model_map * model)
 
 #######################################################################
 # Define the Forward Simulation and Predict DC Resistivity Data
@@ -155,7 +149,8 @@ if save_file:
     dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
     dir_path.extend(["tutorials", "05-dcr", "dcr1d"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
-
+    
+    np.random.seed(145)
     noise = 0.025 * dpred * np.random.rand(len(dpred))
 
     data_array = np.c_[
@@ -173,4 +168,4 @@ if save_file:
     np.savetxt(fname, model, fmt="%.4e")
 
     fname = dir_path + "layers.txt"
-    np.savetxt(fname, mesh.hx, fmt="%d")
+    np.savetxt(fname, layer_thicknesses, fmt="%d")

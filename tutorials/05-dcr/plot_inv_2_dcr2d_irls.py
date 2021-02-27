@@ -53,7 +53,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 mpl.rcParams.update({'font.size': 16})
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 3
 
 
 #############################################

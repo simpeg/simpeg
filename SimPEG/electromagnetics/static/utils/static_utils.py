@@ -3,6 +3,7 @@ from scipy.interpolate import LinearNDInterpolator, interp1d, griddata
 from scipy.spatial import cKDTree
 from numpy import matlib
 import discretize
+from discretize import TensorMesh
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import warnings
@@ -239,53 +240,6 @@ def pseudo_locations(survey, **kwargs):
     return midpoints-pseudo_depth
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # midxy = []
-    # midz = []
-
-    # for ii, source in enumerate(survey.source_list):
-    #     tx_locs = source.location
-    #     if isinstance(tx_locs, list):
-    #         Cmid = (tx_locs[0][:-1] + tx_locs[1][:-1]) / 2
-    #         zsrc = (tx_locs[0][-1] + tx_locs[1][-1]) / 2
-    #         tx_sep = np.linalg.norm((tx_locs[0][:-1] - tx_locs[1][:-1]))
-    #     else:
-    #         Cmid = tx_locs[:-1]
-    #         zsrc = tx_locs[-1]
-
-    #     Pmids = []
-    #     for receiver in source.receiver_list:
-    #         rx_locs = receiver.locations
-    #         if isinstance(rx_locs, list):
-    #             Pmid = (rx_locs[0][:, :-1] + rx_locs[1][:, :-1]) / 2
-    #         else:
-    #             Pmid = rx_locs[:, :-1]
-    #         Pmids.append(Pmid)
-    #     Pmid = np.vstack(Pmids)
-
-    #     midxy.append((Cmid + Pmid) / 2)
-    #     diffs = np.linalg.norm((Cmid - Pmid), axis=1)
-    #     if np.allclose(diffs, 0.0):  # likely a wenner type survey.
-    #         midz.append(zsrc - tx_sep / 2 * np.ones_like(diffs))
-    #     else:
-    #         midz.append(zsrc - diffs / 2)
-
-    # return np.vstack(midxy), np.hstack(midz)
-
-
 def geometric_factor(survey_object, space_type="half space", **kwargs):
     """
         Calculate Geometric Factor. Assuming that data are normalized voltages
@@ -353,261 +307,95 @@ def convert_volts_to_resisitivities(survey, volts, space_type="half_space", eps=
     return rhoApp
 
 
+#####################################################################
+#                               PLOTTING
+#####################################################################
 
-def apparent_resistivity(
-    data_object, space_type="half space", dobs=None, eps=1e-10, **kwargs
+
+def plot_1d_layer_model(
+    thicknesses, values, z0=0, scale="log", ax=None, plot_elevation=False, show_layers=False, **kwargs
 ):
     """
-    Calculate apparent resistivity. Assuming that data are normalized
-    voltages - Vmn/I (Potential difference [V] divided by injection
-    current [A]). For fwd modelled data an injection current of 1A is
-    assumed in SimPEG.
-
+    Plot the vertical conductivity or resistivity profile for a 1D layered Earth model.
+    
     Input:
-    :param SimPEG.Data: DC data object
-    :param numpy.ndarray dobs: normalized voltage measurements [V/A]
-    :param str survey_type: Either 'dipole-dipole' | 'pole-dipole' |
-        'dipole-pole' | 'pole-pole'
-    :param float eps: Regularizer in case of a null geometric factor
+    thicknesses : List[Float]
+        A list or numpy.array containing the layer thicknesses from the top layer down
+    values : List[Float]
+        A list or numpy.array containing the physical property values from the top layer down
+    z0 : Float
+        Elevation of the surface
+    scale: str
+        scale {'linear', 'log'}. Plot physical property values on a linear or log10 scale.
+    ax: mpl_toolkits.mplot3d.axes3d.Axes3D, optional
+        A 3D axis object for the 3D plot
+    plot_elevation : bool
+        If False, the yaxis will be the depth. If True, the yaxis is the elevation.
+    show_layers : bool
+        Plot horizontal lines to denote layers.
+    line_opts : dict
+        Dictionary defining kwargs for scatter plot if plot_type='scatter'
+    
 
     Output:
-    :return rhoApp: apparent resistivity
+    mpl_toolkits.mplot3d.axes3d.Axes3D
+        The axis object that holds the plot
+
     """
-    if not isinstance(data_object, Data):
-        raise Exception(
-            "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
-            "provided as the second input. The provided input is a "
-            "{providedcls} <{providedpref}.{providedcls}>".format(
-                datacls=Data.__name__,
-                datapref=Data.__module__,
-                providedcls=data_object.__class__.__name__,
-                providedpref=data_object.__module__,
+
+    if np.median(values) > 1.:
+        x_label = "Resistivity ($\Omega$m)"
+    else:
+        x_label = "Conductivity (S/m)"
+
+    if len(thicknesses) < len(values):
+        thicknesses = np.r_[thicknesses, thicknesses[-1]]
+    z_grid = np.r_[0., np.cumsum(thicknesses)]
+    resistivity = np.repeat(values, 2)
+    rho_min = 0.9*np.min(values)
+    rho_max = 1.1*np.max(values)
+
+    z = []
+    for i in range(0, len(thicknesses)):
+        z.append(np.r_[z_grid[i], z_grid[i + 1]])
+    z = np.hstack(z)
+    
+    if plot_elevation:
+        y_label = "Elevation (m)"
+        z = z0 - z
+        z_grid = z0 - z_grid
+        flip_axis = False
+    else:
+        y_label = "Depth (m)"
+        flip_axis = True
+        
+    if ax == None:
+        fig = plt.figure(figsize=(6, 6))
+        ax = fig.add_axes([0.15, 0.15, 0.75, 0.75])
+    
+    if show_layers:
+        for locz in z_grid:
+            plt.plot(
+                np.linspace(rho_min, rho_max, 100),
+                np.ones(100) * locz,
+                "k--",
+                lw=0.5,
+                label='_nolegend_'
             )
-        )
 
-    if dobs is None:
-        dobs = data_object.dobs
+    ax.plot(resistivity, z, **kwargs)
+    ax.set_xscale(scale)
+    ax.set_xlim(rho_min, rho_max)
+    if flip_axis:
+        ax.set_ylim(z.max(), z.min())
+    else:
+        ax.set_ylim(z.min(), z.max())
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    
 
-    # Calculate Geometric Factor
-    G = geometric_factor(data_object.survey, space_type=space_type)
+    return ax
 
-    # Calculate apparent resistivity
-    # absolute value is required because of the regularizer
-    rhoApp = np.abs(dobs * (1.0 / (G + eps)))
-
-    return rhoApp
-
-
-# def plot_pseudosection(
-#     data,
-#     ax=None,
-#     survey_type="dipole-dipole",
-#     data_type="apparent conductivity",
-#     space_type="half space",
-#     plot_type="pcolor",
-#     clim=None,
-#     scale="linear",
-#     sameratio=True,
-#     pcolor_opts={},
-#     contour_opts={},
-#     cbar_opts={},
-#     data_locations=False,
-#     dobs=None,
-#     dim=2,
-#     y_values="n-spacing",
-#     **kwargs,
-# ):
-#     """
-#         Read list of 2D tx-rx location and plot a pseudo-section of apparent
-#         resistivity.
-
-#         Assumes flat topo for now...
-
-#         Input:
-#         :param SimPEG.Data: DC data
-#         :param matplotlib.pyplot.axes ax: figure axes on which to plot
-#         :param str survey_type: Either 'dipole-dipole' | 'pole-dipole' |
-#             'dipole-pole' | 'pole-pole'
-#         :param str data_type: Either 'appResistivity' | 'appConductivity' |
-#             'volt' (potential)
-#         :param str space_type: Either 'half-space' (default) or 'whole-space'
-#         :param str scale: Either 'linear' (default) or 'log'
-#         :param y_values: Either "n-spacing"
-
-#         Output:
-#         :return  matplotlib.pyplot.figure plot overlayed on image
-#     """
-#     import pylab as plt
-
-#     if "pcolorOpts" in kwargs:
-#         warnings.warn(
-#             "The pcolorOpts keyword has been deprecated. Please use "
-#             "pcolor_opts instead. This will be removed in version"
-#             " 0.15.0 of SimPEG",
-#             DeprecationWarning,
-#         )
-#         pcolor_opts = kwargs.pop("pcolorOpts")
-
-#     if "data_location" in kwargs:
-#         warnings.warn(
-#             "The data_location keyword has been deprecated. Please use "
-#             "data_locations instead. This will be removed in version"
-#             " 0.15.0 of SimPEG",
-#             DeprecationWarning,
-#         )
-#         data_locations = kwargs.pop("data_location")
-
-#     if plot_type.lower() not in ["pcolor", "contourf"]:
-#         raise ValueError(
-#             "plot_type must be 'pcolor' or 'contourf'. The input value of "
-#             f"{plot_type} is not recognized"
-#         )
-
-#     # Set depth to 0 for now
-#     z0 = 0.0
-#     rho = []
-
-#     if not isinstance(data, Data):
-#         raise Exception(
-#             "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
-#             "provided as the second input. The provided input is a "
-#             "{providedcls} <{providedpref}.{providedcls}>".format(
-#                 datacls=Data.__name__,
-#                 datapref=Data.__module__,
-#                 providedcls=data.__name__,
-#                 providedpref=data.__module__,
-#             )
-#         )
-#     # Use dobs in survey if dobs is None
-#     if dobs is None:
-#         dobs = data.dobs
-
-#     midx, midz = source_receiver_midpoints(data.survey)
-#     if midx.shape[1] == 2:
-#         min_x, min_y = np.min(midx, axis=0)
-#         max_x, max_y = np.max(midx, axis=0)
-#         if max_x - min_x > max_y - min_y:
-#             midx = midx[:, 0]
-#         else:
-#             midx = midx[:, 1]
-#     else:
-#         midx = midx[:, 0]
-
-#     if data_type.lower() in (
-#         DATA_TYPES["potential"]
-#         + DATA_TYPES["apparent chargeability"]
-#         + ["misfit", "misfitmap"]
-#     ):
-#         if scale == "linear":
-#             rho = dobs
-#         elif scale == "log":
-#             rho = np.log10(abs(dobs))
-
-#     elif data_type.lower() in DATA_TYPES["apparent conductivity"]:
-#         rhoApp = apparent_resistivity(data, dobs=dobs, space_type=space_type)
-#         if scale == "linear":
-#             rho = 1.0 / rhoApp
-#         elif scale == "log":
-#             rho = np.log10(1.0 / rhoApp)
-
-#     elif data_type.lower() in DATA_TYPES["apparent resistivity"]:
-#         rhoApp = apparent_resistivity(data, dobs=dobs, space_type=space_type)
-#         if scale == "linear":
-#             rho = rhoApp
-#         elif scale == "log":
-#             rho = np.log10(rhoApp)
-
-#     else:
-#         print()
-#         raise Exception(
-#             """data_type must be 'potential' | 'apparent resistivity' |
-#                 'apparent conductivity' | 'apparent chargeability' | misfit"""
-#             " not {}".format(data_type)
-#         )
-
-#     # Grid points
-#     grid_x, grid_z = np.mgrid[np.min(midx) : np.max(midx), np.min(midz) : np.max(midz)]
-
-#     grid_rho = griddata(np.c_[midx, midz], rho.T, (grid_x, grid_z), method="linear")
-
-#     if clim is None:
-#         vmin, vmax = rho.min(), rho.max()
-#     else:
-#         vmin, vmax = clim[0], clim[1]
-
-#     if ax is None:
-#         fig, ax = plt.subplots(1, 1, figsize=(15, 3))
-
-#     ph = grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
-#     if plot_type.lower() == "pcolor":
-#         ph = ax.pcolormesh(
-#             grid_x[:, 0],
-#             grid_z[0, :],
-#             grid_rho.T,
-#             clim=(vmin, vmax),
-#             vmin=vmin,
-#             vmax=vmax,
-#             **pcolor_opts,
-#         )
-#     elif plot_type.lower() == "contourf":
-#         ph = ax.contourf(
-#             grid_x[:, 0], grid_z[0, :], grid_rho.T, vmin=vmin, vmax=vmax, **contour_opts
-#         )
-
-#     if scale == "log":
-#         cbar = plt.colorbar(
-#             ph,
-#             format="$10^{%.2f}$",
-#             fraction=0.06,
-#             orientation="horizontal",
-#             ax=ax,
-#             **cbar_opts,
-#         )
-#     elif scale == "linear":
-#         cbar = plt.colorbar(
-#             ph,
-#             format="%.2f",
-#             fraction=0.06,
-#             orientation="horizontal",
-#             ax=ax,
-#             **cbar_opts,
-#         )
-
-#     ticks = np.linspace(vmin, vmax, 3)
-#     cbar.set_ticks(ticks)
-#     cbar.ax.tick_params()
-
-#     # Plot apparent resistivity
-#     if data_locations:
-#         ax.plot(midx, midz, "k.", ms=1, alpha=0.4)
-
-#     if sameratio:
-#         ax.set_aspect("equal", adjustable="box")
-
-#     if y_values == "n-spacing":
-#         ticks = ax.get_yticks() * 2  # pseudo-depth divides by 2
-#         spacing = np.abs(midz).min()
-#         ax.set_yticklabels(np.around(-ticks / spacing, 1))
-#         ax.set_ylabel("n-spacing")
-#     elif y_values == "pseudo-depth":
-#         ax.set_ylabel("pseudo-depth")
-
-#     if data_type.lower() in DATA_TYPES["apparent conductivity"]:
-#         cbar.set_label("Apparent Conductivity (S/m)")
-
-#     elif data_type.lower() in DATA_TYPES["apparent resistivity"]:
-#         cbar.set_label("Apparent Resistivity ($\\Omega$m)")
-
-#     elif data_type.lower() in DATA_TYPES["potential"]:
-#         cbar.set_label("Voltage (V)")
-
-#     elif data_type.lower() in DATA_TYPES["apparent chargeability"]:
-#         cbar.set_label("Apparent Chargeability (V/V)")
-
-#     elif data_type.lower() in ["misfit", "misfitmap"]:
-#         cbar.set_label("Misfit (V)")
-
-#     return ax
 
 
 
@@ -997,6 +785,11 @@ def plot_3d_pseudosection(
     return ax
 
 
+
+#########################################################################
+#                      GENERATE SURVEYS
+#########################################################################
+
 def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
     """
@@ -1188,10 +981,10 @@ def generate_dcip_sources_line(
     station_spacing,
 ):
     """
-    Generate the source list for a 2D, 2.5D or 3D DC/IP survey line.
+    Generate the source list for a 2D or 3D DC/IP survey line.
 
     This utility will create the list of DC/IP source objects for a single line of
-    2D, 2.5D or 3D data. The topography, orientation, spacing and number of receivers
+    2D or 3D data. The topography, orientation, spacing and number of receivers
     can be specified by the user. This function can be used to define multiple lines
     of DC/IP, which can be appended to create the sources for an entire survey.
 
@@ -1200,9 +993,9 @@ def generate_dcip_sources_line(
         'dipole-pole' | 'pole-pole'
     :param str data_type: 'volt' | 'apparent_conductivity' |
         'apparent_resistivity' | 'apparent_chargeability'
-    :param str dimension_type: '2D', '2.5D' or '3D'
+    :param str dimension_type: '2D' or '3D'
     :param np.array end_points: horizontal end points [x1, x2] or [x1, x2, y1, y2]
-    :param float, (N, 2) np.array or (N, 3) np.array: topography
+    :param float, (N, 2) np.array for 2D or (N, 3) np.array for 3D: topography
     :param int num_rx_per_src: number of receivers per souces
     :param float station_spacing : distance between stations
 
@@ -1226,9 +1019,8 @@ def generate_dcip_sources_line(
 
     assert dimension_type.upper() in [
         "2D",
-        "2.5D",
         "3D",
-    ], "dimension_type must be one of '2D', '2.5D', '3D'"
+    ], "dimension_type must be one of '2D' or '3D'"
 
     def xy_2_r(x1, x2, y1, y2):
         r = np.sqrt(np.sum((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0))
@@ -2373,155 +2165,56 @@ def gen_3d_survey_from_2d_lines(
     return IO_3d, survey_3d
 
 
-def plot_layer(
-    rho,
-    mesh,
-    xscale="log",
-    ax=None,
-    showlayers=False,
-    xlim=None,
-    depth_axis=True,
-    **kwargs,
-):
-    """
-        Plot Conductivity model for the layered earth model
-    """
 
-    n_rho = rho.size
-
-    z_grid = -mesh.vectorNx
-    resistivity = np.repeat(rho, 2)
-
-    z = []
-    for i in range(n_rho):
-        z.append(np.r_[z_grid[i], z_grid[i + 1]])
-    z = np.hstack(z)
-    z = z + mesh.x0[0]
-    if xlim == None:
-        rho_min = rho[~np.isnan(rho)].min() * 0.5
-        rho_max = rho[~np.isnan(rho)].max() * 2
-    else:
-        rho_min, rho_max = xlim
-
-    if xscale == "linear" and rho.min() == 0.0:
-        if xlim == None:
-            rho_min = -rho[~np.isnan(rho)].max() * 0.5
-            rho_max = rho[~np.isnan(rho)].max() * 2
-
-    if ax == None:
-        plt.xscale(xscale)
-        plt.xlim(rho_min, rho_max)
-        plt.ylim(z.min(), z.max())
-        plt.xlabel("Resistivity ($\Omega$m)", fontsize=14)
-        plt.ylabel("Depth (m)", fontsize=14)
-        plt.ylabel("Depth (m)", fontsize=14)
-        if showlayers:
-            for locz in z_grid:
-                plt.plot(
-                    np.linspace(rho_min, rho_max, 100),
-                    np.ones(100) * locz,
-                    "b--",
-                    lw=0.5,
-                )
-        return plt.plot(resistivity, z, "k-", **kwargs)
-
-    else:
-        ax.set_xscale(xscale)
-        ax.set_xlim(rho_min, rho_max)
-        ax.set_ylim(z.min(), z.max())
-        ax.set_xlabel("Resistivity ($\Omega$m)", fontsize=14)
-        ax.set_ylabel("Depth (m)", fontsize=14)
-        if showlayers:
-            for locz in z_grid:
-                ax.plot(
-                    np.linspace(rho_min, rho_max, 100),
-                    np.ones(100) * locz,
-                    "b--",
-                    lw=0.5,
-                )
-        return ax.plot(resistivity, z, "k-", **kwargs)
 
 
 ############
 # Deprecated
 ############
 
-
-def plot_pseudoSection(
+def plot_pseudosection(
     data,
     ax=None,
     survey_type="dipole-dipole",
-    data_type="appConductivity",
-    space_type="half-space",
+    data_type="apparent conductivity",
+    space_type="half space",
+    plot_type="pcolor",
     clim=None,
     scale="linear",
     sameratio=True,
-    pcolorOpts={},
-    data_location=False,
+    pcolor_opts={},
+    contour_opts={},
+    cbar_opts={},
+    data_locations=False,
     dobs=None,
     dim=2,
+    y_values="n-spacing",
+    **kwargs,
 ):
 
     warnings.warn(
-        "The plot_pseudoSection method has been deprecated. Please use "
-        "plot_pseudosection instead. This will be removed in version"
-        " 0.15.0 of SimPEG",
-        DeprecationWarning,
-    )
-
-    return plot_pseudosection(
-        data=data,
-        ax=ax,
-        survey_type=survey_type,
-        data_type=data_type,
-        space_type=space_type,
-        clim=clim,
-        scale=scale,
-        sameratio=sameratio,
-        pcolor_opts=pcolorOpts,
-        data_locations=data_location,
-        dobs=dobs,
-        dim=dim,
-    )
-
-def source_receiver_midpoints(survey, **kwargs):
-    warnings.warn(
-        "The source_receiver_midpoint method has been deprecated. Please use "
-        "compute_pseudo_locations instead. This will be removed in version"
+        "The plot_pseudosection method has been deprecated. Please use "
+        "plot_2d_pseudosection instead. This will be removed in version"
         " 0.15.1 of SimPEG",
         DeprecationWarning,
     )
 
-    return compute_pseudo_locations(survey, kwargs)
 
-
-def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag="2.5D"):
+def source_receiver_midpoints(survey, **kwargs):
     warnings.warn(
-        "The gen_DCIPsurvey method has been deprecated. Please use "
-        "generate_dcip_survey instead. This will be removed in version"
-        " 0.15.0 of SimPEG",
+        "The source_receiver_midpoint method has been deprecated. Please use "
+        "pseudo_locations instead. This will be removed in version"
+        " 0.15.1 of SimPEG",
         DeprecationWarning,
     )
 
-    return generate_dcip_survey(endl, survey_type, a, b, n, dim)
+    return pseudo_locations(survey, kwargs)
 
-
-def generate_dcip_survey_line(
-    survey_type, data_type, endl, topo, ds, dh, n, dim_flag="2.5D", sources_only=False
-):
-
+def plot_layer(rho, mesh, **kwargs):
     warnings.warn(
-        "The gen_dcip_survey_line method has been deprecated. Please use "
-        "generate_dcip_sources_line instead. This will be removed in version"
-        " 0.15.0 of SimPEG",
+        "The plot_layer method has been deprecated. Please use "
+        "plot_1d_layer_model instead. This will be removed in version"
+        " 0.15.1 of SimPEG",
         DeprecationWarning,
     )
 
-    source_list = generate_dcip_sources_line(
-        survey_type, data_type, dim_flag, endl, topo, n, ds, dh
-    )
-
-    if sources_only:
-        return source_list
-    else:
-        return dc.Survey(source_list, survey_type=survey_type.lower())

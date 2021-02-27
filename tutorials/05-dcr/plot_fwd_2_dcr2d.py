@@ -82,7 +82,7 @@ topo_2d = np.unique(xyz_topo[:, [0, 2]], axis=0)
 
 # Define survey line parameters
 survey_type = "dipole-dipole"
-dimension_type = "2.5D"
+dimension_type = "2D"
 data_type = "volt"
 end_locations = np.r_[-400., 400.]
 station_separation = 40.0

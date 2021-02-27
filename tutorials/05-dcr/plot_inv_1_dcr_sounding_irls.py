@@ -42,7 +42,7 @@ from SimPEG import (
     utils,
 )
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
+from SimPEG.electromagnetics.static.utils.static_utils import plot_1d_layer_model
 
 
 # sphinx_gallery_thumbnail_number = 2
@@ -295,7 +295,6 @@ recovered_model = inv.run(starting_model)
 # Load the true model and layer thicknesses
 true_model = np.loadtxt(str(model_filename))
 true_layers = np.loadtxt(str(mesh_filename))
-true_layers = TensorMesh([true_layers], "N")
 
 # Extract Least-Squares model
 l2_model = inv_prob.l2model
@@ -306,9 +305,9 @@ x_min = np.min(np.r_[model_map * recovered_model, model_map * l2_model, true_mod
 x_max = np.max(np.r_[model_map * recovered_model, model_map * l2_model, true_model])
 
 ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
-plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color="k")
-plot_layer(model_map * l2_model, mesh, ax=ax1, depth_axis=False, color="b")
-plot_layer(model_map * recovered_model, mesh, ax=ax1, depth_axis=False, color="r")
+plot_1d_layer_model(true_layers, true_model, ax=ax1, color="k")
+plot_1d_layer_model(layer_thicknesses, model_map * l2_model, ax=ax1, color="b")
+plot_1d_layer_model(layer_thicknesses, model_map * recovered_model, ax=ax1, color="r")
 ax1.set_xlim(0.9 * x_min, 1.1 * x_max)
 ax1.legend(["True Model", "L2-Model", "Sparse Model"])
 

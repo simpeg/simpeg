@@ -43,7 +43,7 @@ from SimPEG import (
     utils,
 )
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
+from SimPEG.electromagnetics.static.utils.static_utils import plot_1d_layer_model
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -293,24 +293,19 @@ recovered_model = inv.run(starting_model)
 # Load the true model and layer thicknesses
 true_model = np.loadtxt(str(model_filename))
 true_layers = np.loadtxt(str(mesh_filename))
-true_layers = TensorMesh([true_layers], "0")
 
 # Plot true model and recovered model
 fig = plt.figure(figsize=(5, 5))
-plotting_mesh = TensorMesh(
-    [np.r_[layer_map * recovered_model, layer_thicknesses[-1]]], "0"
-)
+
 x_min = np.min([np.min(resistivity_map * recovered_model), np.min(true_model)])
 x_max = np.max([np.max(resistivity_map * recovered_model), np.max(true_model)])
 
 ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
-plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color="b")
-plot_layer(
+plot_1d_layer_model(true_layers, true_model, ax=ax1, plot_elevation=True, color="b")
+plot_1d_layer_model(
+    layer_map * recovered_model,
     resistivity_map * recovered_model,
-    plotting_mesh,
-    ax=ax1,
-    depth_axis=False,
-    color="r",
+    ax=ax1, plot_elevation=True, color="r"
 )
 ax1.set_xlim(0.9 * x_min, 1.1 * x_max)
 ax1.legend(["True Model", "Recovered Model"])
