@@ -44,7 +44,7 @@ from SimPEG import (
 )
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
-    plot_2d_pseudosection, convert_volts_to_resisitivities
+    plot_2d_pseudosection, apparent_resistivity_from_voltage
 )
 
 try:
@@ -132,7 +132,7 @@ for ii in range(0, n_sources):
     source_list.append(dc.sources.Dipole(receiver_list, A_location, B_location))
 
 # Define survey
-survey = dc.survey.Survey_ky(source_list)
+survey = dc.survey.Survey(source_list)
 
 #######################################################################
 # Plot Observed Data in Pseudo-Section
@@ -161,7 +161,7 @@ ax1.set_title("Normalized Voltages")
 plt.show()
 
 # Get apparent conductivities from volts and survey geometry
-apparent_conductivities = 1/convert_volts_to_resisitivities(survey, dobs)
+apparent_conductivities = 1/apparent_resistivity_from_voltage(survey, dobs)
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))

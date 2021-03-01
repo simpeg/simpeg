@@ -240,7 +240,7 @@ def pseudo_locations(survey, **kwargs):
     return midpoints-pseudo_depth
 
 
-def geometric_factor(survey_object, space_type="half space", **kwargs):
+def geometric_factor(survey_object, space_type="half_space", **kwargs):
     """
         Calculate Geometric Factor. Assuming that data are normalized voltages
 
@@ -284,7 +284,7 @@ def geometric_factor(survey_object, space_type="half space", **kwargs):
 
     return G / (spaceFact * np.pi)
 
-def convert_volts_to_resisitivities(survey, volts, space_type="half_space", eps=1e-10):
+def apparent_resistivity_from_voltage(survey, volts, space_type="half_space", eps=1e-10):
     """
     Calculate apparent resistivities from normalized voltages.
 
@@ -305,6 +305,213 @@ def convert_volts_to_resisitivities(survey, volts, space_type="half_space", eps=
     rhoApp = np.abs(volts * (1.0 / (G + eps)))
 
     return rhoApp
+
+
+def convert_survey_3d_to_2d_lines(survey, lineID, data_type='volt', output_indexing=False):
+    """
+    Convert a 3D survey into a list of local 2D surveys.
+
+    Here, the user provides a Survey whose geometry is defined
+    for use in a 3D simulation and a 1D numpy.array which defines the
+    line ID for each datum. The function returns a list of local
+    2D survey objects. The change of coordinates for electrodes is
+    [x, y, z] to [s, z], where s is the distance along the profile
+    line. For each line, s = 0 defines the A-electrode location
+    for the first source in the source list.
+
+    Input:
+    :param survey: DC survey class object
+    :param lineID: A numpy.array (nD,) containing the line ID for each datum
+
+    Output:
+    :param survey: List of 2D DC survey class object
+    :rtype: List of SimPEG.electromagnetics.static.resistivity.Survey
+    """
+    
+
+    # Find all unique line id
+    unique_lineID = np.unique(lineID)
+    
+    # If you output indexing to keep track of possible sorting
+    if output_indexing:
+        k = np.arange(0, survey.nD)
+        out_indices_list = []
+    
+    ab_locs_all = np.c_[survey.a_locations, survey.b_locations]
+    mn_locs_all = np.c_[survey.m_locations, survey.n_locations]
+    
+    # For each unique lineID
+    survey_list = []
+    for ID in unique_lineID:
+        
+        source_list = []
+        
+        # Source locations for this line
+        lineID_index = np.where(lineID == ID)[0]
+        ab_locs, ab_index = np.unique(ab_locs_all[lineID_index, :], axis=0, return_index=True)
+        
+        # Find s=0 location and heading for line
+        start_index = lineID_index[ab_index]
+        if output_indexing:
+            out_indices = []
+            kID = k[lineID_index]                     # data indices part of this line
+        r0 = mkvc(ab_locs_all[start_index[0], 0:2])   # (x0, y0) for the survey line
+        rN = mkvc(ab_locs_all[start_index[-1], 0:2])  # (x, y) for last electrode
+        uvec = (rN - r0)/np.sqrt(np.sum((rN-r0)**2))  # unit vector for line orientation
+        
+        # Along line positions and elevation for electrodes on current line
+        # in terms of position elevation
+        a_locs_s = np.c_[
+            np.dot(ab_locs_all[lineID_index, 0:2]-r0[0], uvec), ab_locs_all[lineID_index, 2]
+        ]
+        b_locs_s = np.c_[
+            np.dot(ab_locs_all[lineID_index, 3:5]-r0[0], uvec), ab_locs_all[lineID_index, -1]
+        ]
+        m_locs_s = np.c_[
+            np.dot(mn_locs_all[lineID_index, 0:2]-r0[0], uvec), mn_locs_all[lineID_index, 2]
+        ]
+        n_locs_s = np.c_[
+            np.dot(mn_locs_all[lineID_index, 3:5]-r0[0], uvec), mn_locs_all[lineID_index, -1]
+        ]
+        
+        # For each source in the line
+        for ii, ind in enumerate(ab_index):
+            
+            # Get source location
+            src_loc_a = mkvc(a_locs_s[ind, :])
+            src_loc_b = mkvc(b_locs_s[ind, :])
+            
+            # Get receiver locations
+            rx_index = np.where(
+                (a_locs_s[:, 0]==src_loc_a[0]) & (b_locs_s[:, 0]==src_loc_b[0])
+            )[0]
+            rx_loc_m = m_locs_s[rx_index, :]
+            rx_loc_n = n_locs_s[rx_index, :]
+            
+            if output_indexing:
+                out_indices.append(kID[rx_index])
+            
+            # Define Pole or Dipole Receivers
+            if np.all(rx_loc_m[:, 0]==rx_loc_n[:, 0]):
+                rx_list = [dc.receivers.Pole(rx_loc_m)]
+            elif np.all(rx_loc_m[:, 0] != rx_loc_n[:, 0]):
+                rx_list = [dc.receivers.Dipole(rx_loc_m, rx_loc_n)]
+            else:
+                raise NotImplementedError("An individual source cannot have a mix of Pole and Dipole receivers")
+            
+            # Define Pole or Dipole Sources
+            if np.all(src_loc_a==src_loc_b):
+                source_list.append(dc.sources.Pole(rx_list, src_loc_a))
+            else:
+                source_list.append(
+                    dc.sources.Dipole(rx_list, src_loc_a, src_loc_b)
+                )
+            
+        # Create a 2D survey and add to list
+        survey_list.append(dc.survey.Survey(source_list))
+        if output_indexing:
+            out_indices_list.append(np.hstack(out_indices))
+    
+    if output_indexing:
+        return survey_list, out_indices_list
+    else:
+        return survey_list
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+    
+
+    # for jj in range(len(uniqueID)):
+
+    #     indx = np.where(lineID == uniqueID[jj])[0]
+
+    #     # Find origin of survey
+    #     r = 1e8  # Initialize to some large number
+
+    #     Tx = srcMat[indx]
+
+    #     if np.all(Tx[0:3] == Tx[3:]):
+    #         survey_type = "pole-dipole"
+
+    #     else:
+    #         survey_type = "dipole-dipole"
+
+    #     x0 = Tx[0][0:2]  # Define station zero along line
+
+    #     vecTx, r1 = r_unit(x0, Tx[-1][0:2])
+
+    #     for ii in range(len(indx)):
+
+    #         # Get all receivers
+    #         Rx = survey.source_list[indx[ii]].receiver_list[0].locations
+    #         nrx = Rx[0].shape[0]
+
+    #         if flag == "local":
+    #             # Find A electrode along line
+    #             vec, r = r_unit(x0, Tx[ii][0:2])
+    #             A = stn_id(vecTx, vec, r)
+
+    #             if survey_type != "pole-dipole":
+    #                 # Find B electrode along line
+    #                 vec, r = r_unit(x0, Tx[ii][3:5])
+    #                 B = stn_id(vecTx, vec, r)
+
+    #             M = np.zeros(nrx)
+    #             N = np.zeros(nrx)
+    #             for kk in range(nrx):
+
+    #                 # Find all M electrodes along line
+    #                 vec, r = r_unit(x0, Rx[0][kk, 0:2])
+    #                 M[kk] = stn_id(vecTx, vec, r)
+
+    #                 # Find all N electrodes along line
+    #                 vec, r = r_unit(x0, Rx[1][kk, 0:2])
+    #                 N[kk] = stn_id(vecTx, vec, r)
+    #         elif flag == "Yloc":
+    #             """ Flip the XY axis locs"""
+    #             A = Tx[ii][1]
+
+    #             if survey_type != "pole-dipole":
+    #                 B = Tx[ii][4]
+
+    #             M = Rx[0][:, 1]
+    #             N = Rx[1][:, 1]
+
+    #         elif flag == "Xloc":
+    #             """ Copy the rx-tx locs"""
+    #             A = Tx[ii][0]
+
+    #             if survey_type != "pole-dipole":
+    #                 B = Tx[ii][3]
+
+    #             M = Rx[0][:, 0]
+    #             N = Rx[1][:, 0]
+
+    #         rxClass = dc.Rx.Dipole(
+    #             np.c_[M, np.zeros(nrx), Rx[0][:, 2]],
+    #             np.c_[N, np.zeros(nrx), Rx[1][:, 2]],
+    #         )
+
+    #         if survey_type == "pole-dipole":
+    #             srcList2D.append(dc.Src.Pole([rxClass], np.asarray([A, 0, Tx[ii][2]])))
+
+    #         elif survey_type == "dipole-dipole":
+    #             srcList2D.append(
+    #                 dc.Src.Dipole(
+    #                     [rxClass], np.r_[A, 0, Tx[ii][2]], np.r_[B, 0, Tx[ii][5]]
+    #                 )
+    #             )
+
+    # survey2D = dc.Survey(srcList2D)
+
+    # return survey2D
 
 
 #####################################################################
@@ -393,11 +600,7 @@ def plot_1d_layer_model(
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     
-
     return ax
-
-
-
 
 
 def plot_2d_pseudosection(
@@ -481,8 +684,8 @@ def plot_2d_pseudosection(
     # Create an axis for the pseudosection if None
     if ax == None:
         fig = plt.figure(figsize=(10, 4))
-        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-        cax = fig.add_axes([0.85, 0.1, 0.05, 0.8])
+        ax = fig.add_axes([0.1, 0.1, 0.7, 0.8])
+        cax = fig.add_axes([0.85, 0.1, 0.03, 0.8])
 
     if vlim == None:
         norm = mpl.colors.Normalize(vmin=dvec.min(), vmax=dvec.max())
@@ -495,7 +698,7 @@ def plot_2d_pseudosection(
             locations[:, 0],
             locations[:, -1],
             marker_size,
-            dvec,
+            c=dvec,
             norm=norm,
             **scatter_opts
         )
@@ -580,7 +783,7 @@ def plot_2d_pseudosection(
         else:
             if scale == "log":
                 cbar = plt.colorbar(
-                    data_plot, format="$10^{%.3f}$", norm=norm, cax=cax, **cbar_opts,
+                    data_plot, format="$10^{%.2f}$", norm=norm, cax=cax, **cbar_opts,
                 )
             elif scale == "linear":
                 cbar = plt.colorbar(
@@ -712,7 +915,7 @@ def plot_3d_pseudosection(
             a, b, c, d = define_plane_from_points(p1, p2, p3)
 
             k = k | (
-                np.abs(a * midxy[:, 0] + b * midxy[:, 1] + c * midz + d)
+                np.abs(a * locations[:, 0] + b * locations[:, 1] + c * locations[:, 2] + d)
                 / np.sqrt(a ** 2 + b ** 2 + c ** 2)
                 < plane_distance[ii]
             )
@@ -729,11 +932,11 @@ def plot_3d_pseudosection(
             norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])
 
         data_plot = ax.scatter(
-            midxy[k, 0],
-            midxy[k, 1],
-            midz[k],
+            locations[k, 0],
+            locations[k, 1],
+            locations[k, 2],
             dvec[k],
-            s=s,
+            s=marker_size,
             c=dvec[k],
             depthshade=False,
             norm=norm,
@@ -746,7 +949,7 @@ def plot_3d_pseudosection(
             if scale == "log":
                 cbar = plt.colorbar(
                     data_plot,
-                    format="$10^{%.3f}$",
+                    format="$10^{%.2f}$",
                     fraction=0.06,
                     orientation="vertical",
                     ax=ax,
@@ -769,7 +972,7 @@ def plot_3d_pseudosection(
         else:
             if scale == "log":
                 cbar = plt.colorbar(
-                    data_plot, format="$10^{%.3f}$", norm=norm, cax=cax, **cbar_opts,
+                    data_plot, format="$10^{%.2f}$", norm=norm, cax=cax, **cbar_opts,
                 )
             elif scale == "linear":
                 cbar = plt.colorbar(
@@ -790,185 +993,185 @@ def plot_3d_pseudosection(
 #                      GENERATE SURVEYS
 #########################################################################
 
-def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
+# def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
-    """
-        Load in endpoints and survey specifications to generate Tx, Rx location
-        stations.
+#     """
+#         Load in endpoints and survey specifications to generate Tx, Rx location
+#         stations.
 
-        Assumes flat topo for now...
+#         Assumes flat topo for now...
 
-        Input:
-        :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
-        :param discretize.base.BaseMesh mesh: discretize mesh object
-        :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-            'dipole-pole' | 'pole-pole' | 'gradient'
-        :param int a: pole seperation
-        :param int b: dipole separation
-        :param int n: number of rx dipoles per tx
+#         Input:
+#         :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
+#         :param discretize.base.BaseMesh mesh: discretize mesh object
+#         :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
+#             'dipole-pole' | 'pole-pole' | 'gradient'
+#         :param int a: pole seperation
+#         :param int b: dipole separation
+#         :param int n: number of rx dipoles per tx
 
-        Output:
-        :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
-    """
-    if "d2flag" in kwargs:
-        warnings.warn(
-            "The d2flag is no longer necessary to construct a survey. "
-            "Feel free to remove it from the call. This option will be removed in SimPEG 0.15.0",
-            DeprecationWarning,
-        )
+#         Output:
+#         :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+#     """
+#     if "d2flag" in kwargs:
+#         warnings.warn(
+#             "The d2flag is no longer necessary to construct a survey. "
+#             "Feel free to remove it from the call. This option will be removed in SimPEG 0.15.0",
+#             DeprecationWarning,
+#         )
 
-    def xy_2_r(x1, x2, y1, y2):
-        r = np.sqrt(np.sum((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0))
-        return r
+#     def xy_2_r(x1, x2, y1, y2):
+#         r = np.sqrt(np.sum((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0))
+#         return r
 
-    # Evenly distribute electrodes and put on surface
-    # Mesure survey length and direction
-    dl_len = xy_2_r(endl[0, 0], endl[1, 0], endl[0, 1], endl[1, 1])
+#     # Evenly distribute electrodes and put on surface
+#     # Mesure survey length and direction
+#     dl_len = xy_2_r(endl[0, 0], endl[1, 0], endl[0, 1], endl[1, 1])
 
-    dl_x = (endl[1, 0] - endl[0, 0]) / dl_len
-    dl_y = (endl[1, 1] - endl[0, 1]) / dl_len
+#     dl_x = (endl[1, 0] - endl[0, 0]) / dl_len
+#     dl_y = (endl[1, 1] - endl[0, 1]) / dl_len
 
-    nstn = int(np.floor(dl_len / a))
+#     nstn = int(np.floor(dl_len / a))
 
-    # Compute discrete pole location along line
-    stn_x = endl[0, 0] + np.array(range(int(nstn))) * dl_x * a
-    stn_y = endl[0, 1] + np.array(range(int(nstn))) * dl_y * a
+#     # Compute discrete pole location along line
+#     stn_x = endl[0, 0] + np.array(range(int(nstn))) * dl_x * a
+#     stn_y = endl[0, 1] + np.array(range(int(nstn))) * dl_y * a
 
-    if dim == 2:
-        ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
-        # Create line of P1 locations
-        M = np.c_[stn_x, ztop]
-        # Create line of P2 locations
-        N = np.c_[stn_x + a * dl_x, ztop]
+#     if dim == 2:
+#         ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
+#         # Create line of P1 locations
+#         M = np.c_[stn_x, ztop]
+#         # Create line of P2 locations
+#         N = np.c_[stn_x + a * dl_x, ztop]
 
-    elif dim == 3:
-        stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
-        # Create line of P1 locations
-        M = np.c_[stn_x, stn_y, stn_z]
-        # Create line of P2 locations
-        N = np.c_[stn_x + a * dl_x, stn_y + a * dl_y, stn_z]
+#     elif dim == 3:
+#         stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
+#         # Create line of P1 locations
+#         M = np.c_[stn_x, stn_y, stn_z]
+#         # Create line of P2 locations
+#         N = np.c_[stn_x + a * dl_x, stn_y + a * dl_y, stn_z]
 
-    # Build list of Tx-Rx locations depending on survey type
-    # Dipole-dipole: Moving tx with [a] spacing -> [AB a MN1 a MN2 ... a MNn]
-    # Pole-dipole: Moving pole on one end -> [A a MN1 a MN2 ... MNn a B]
-    SrcList = []
+#     # Build list of Tx-Rx locations depending on survey type
+#     # Dipole-dipole: Moving tx with [a] spacing -> [AB a MN1 a MN2 ... a MNn]
+#     # Pole-dipole: Moving pole on one end -> [A a MN1 a MN2 ... MNn a B]
+#     SrcList = []
 
-    if survey_type != "gradient":
+#     if survey_type != "gradient":
 
-        for ii in range(0, int(nstn) - 1):
+#         for ii in range(0, int(nstn) - 1):
 
-            if survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
-                tx = np.c_[M[ii, :], N[ii, :]]
-                # Current elctrode separation
-                AB = xy_2_r(tx[0, 1], endl[1, 0], tx[1, 1], endl[1, 1])
-            elif survey_type.lower() in ["pole-dipole", "pole-pole"]:
-                tx = np.r_[M[ii, :]]
-                # Current elctrode separation
-                AB = xy_2_r(tx[0], endl[1, 0], tx[1], endl[1, 1])
-            else:
-                raise Exception(
-                    "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
-                    "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
-                )
+#             if survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
+#                 tx = np.c_[M[ii, :], N[ii, :]]
+#                 # Current elctrode separation
+#                 AB = xy_2_r(tx[0, 1], endl[1, 0], tx[1, 1], endl[1, 1])
+#             elif survey_type.lower() in ["pole-dipole", "pole-pole"]:
+#                 tx = np.r_[M[ii, :]]
+#                 # Current elctrode separation
+#                 AB = xy_2_r(tx[0], endl[1, 0], tx[1], endl[1, 1])
+#             else:
+#                 raise Exception(
+#                     "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
+#                     "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
+#                 )
 
-            # Rx.append(np.c_[M[ii+1:indx, :], N[ii+1:indx, :]])
+#             # Rx.append(np.c_[M[ii+1:indx, :], N[ii+1:indx, :]])
 
-            # Number of receivers to fit
-            nstn = int(np.min([np.floor((AB - b) / a), n]))
+#             # Number of receivers to fit
+#             nstn = int(np.min([np.floor((AB - b) / a), n]))
 
-            # Check if there is enough space, else break the loop
-            if nstn <= 0:
-                continue
+#             # Check if there is enough space, else break the loop
+#             if nstn <= 0:
+#                 continue
 
-            # Compute discrete pole location along line
-            stn_x = N[ii, 0] + dl_x * b + np.array(range(int(nstn))) * dl_x * a
-            stn_y = N[ii, 1] + dl_y * b + np.array(range(int(nstn))) * dl_y * a
+#             # Compute discrete pole location along line
+#             stn_x = N[ii, 0] + dl_x * b + np.array(range(int(nstn))) * dl_x * a
+#             stn_y = N[ii, 1] + dl_y * b + np.array(range(int(nstn))) * dl_y * a
 
-            # Create receiver poles
+#             # Create receiver poles
 
-            if dim == 3:
-                stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
+#             if dim == 3:
+#                 stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
 
-                # Create line of P1 locations
-                P1 = np.c_[stn_x, stn_y, stn_z]
-                # Create line of P2 locations
-                P2 = np.c_[stn_x + a * dl_x, stn_y + a * dl_y, stn_z]
-                if survey_type.lower() in ["dipole-dipole", "pole-dipole"]:
-                    rxClass = dc.Rx.Dipole(P1, P2)
-                elif survey_type.lower() in ["dipole-pole", "pole-pole"]:
-                    rxClass = dc.Rx.Pole(P1)
+#                 # Create line of P1 locations
+#                 P1 = np.c_[stn_x, stn_y, stn_z]
+#                 # Create line of P2 locations
+#                 P2 = np.c_[stn_x + a * dl_x, stn_y + a * dl_y, stn_z]
+#                 if survey_type.lower() in ["dipole-dipole", "pole-dipole"]:
+#                     rxClass = dc.Rx.Dipole(P1, P2)
+#                 elif survey_type.lower() in ["dipole-pole", "pole-pole"]:
+#                     rxClass = dc.Rx.Pole(P1)
 
-            elif dim == 2:
-                ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
-                # Create line of P1 locations
-                P1 = np.c_[stn_x, np.ones(nstn).T * ztop]
-                # Create line of P2 locations
-                P2 = np.c_[stn_x + a * dl_x, np.ones(nstn).T * ztop]
-                if survey_type.lower() in ["dipole-dipole", "pole-dipole"]:
-                    rxClass = dc.Rx.Dipole(P1, P2)
-                elif survey_type.lower() in ["dipole-pole", "pole-pole"]:
-                    rxClass = dc.Rx.Pole(P1)
+#             elif dim == 2:
+#                 ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
+#                 # Create line of P1 locations
+#                 P1 = np.c_[stn_x, np.ones(nstn).T * ztop]
+#                 # Create line of P2 locations
+#                 P2 = np.c_[stn_x + a * dl_x, np.ones(nstn).T * ztop]
+#                 if survey_type.lower() in ["dipole-dipole", "pole-dipole"]:
+#                     rxClass = dc.Rx.Dipole(P1, P2)
+#                 elif survey_type.lower() in ["dipole-pole", "pole-pole"]:
+#                     rxClass = dc.Rx.Pole(P1)
 
-            if survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
-                srcClass = dc.Src.Dipole([rxClass], M[ii, :], N[ii, :])
-            elif survey_type.lower() in ["pole-dipole", "pole-pole"]:
-                srcClass = dc.Src.Pole([rxClass], M[ii, :])
-            SrcList.append(srcClass)
+#             if survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
+#                 srcClass = dc.Src.Dipole([rxClass], M[ii, :], N[ii, :])
+#             elif survey_type.lower() in ["pole-dipole", "pole-pole"]:
+#                 srcClass = dc.Src.Pole([rxClass], M[ii, :])
+#             SrcList.append(srcClass)
 
-    elif survey_type.lower() == "gradient":
+#     elif survey_type.lower() == "gradient":
 
-        # Gradient survey takes the "b" parameter to define the limits of a
-        # square survey grid. The pole seperation within the receiver grid is
-        # define the "a" parameter.
+#         # Gradient survey takes the "b" parameter to define the limits of a
+#         # square survey grid. The pole seperation within the receiver grid is
+#         # define the "a" parameter.
 
-        # Get the edge limit of survey area
-        min_x = endl[0, 0] + dl_x * b
-        min_y = endl[0, 1] + dl_y * b
+#         # Get the edge limit of survey area
+#         min_x = endl[0, 0] + dl_x * b
+#         min_y = endl[0, 1] + dl_y * b
 
-        max_x = endl[1, 0] - dl_x * b
-        max_y = endl[1, 1] - dl_y * b
+#         max_x = endl[1, 0] - dl_x * b
+#         max_y = endl[1, 1] - dl_y * b
 
-        # Define the size of the survey grid (square for now)
-        box_l = np.sqrt((min_x - max_x) ** 2.0 + (min_y - max_y) ** 2.0)
-        box_w = box_l / 2.0
+#         # Define the size of the survey grid (square for now)
+#         box_l = np.sqrt((min_x - max_x) ** 2.0 + (min_y - max_y) ** 2.0)
+#         box_w = box_l / 2.0
 
-        nstn = int(np.floor(box_l / a))
+#         nstn = int(np.floor(box_l / a))
 
-        # Compute discrete pole location along line
-        stn_x = min_x + np.array(range(int(nstn))) * dl_x * a
-        stn_y = min_y + np.array(range(int(nstn))) * dl_y * a
+#         # Compute discrete pole location along line
+#         stn_x = min_x + np.array(range(int(nstn))) * dl_x * a
+#         stn_y = min_y + np.array(range(int(nstn))) * dl_y * a
 
-        # Define number of cross lines
-        nlin = int(np.floor(box_w / a))
-        lind = range(-nlin, nlin + 1)
+#         # Define number of cross lines
+#         nlin = int(np.floor(box_w / a))
+#         lind = range(-nlin, nlin + 1)
 
-        npoles = int(nstn * len(lind))
+#         npoles = int(nstn * len(lind))
 
-        rx = np.zeros([npoles, 6])
-        for ii in range(len(lind)):
+#         rx = np.zeros([npoles, 6])
+#         for ii in range(len(lind)):
 
-            # Move station location to current survey line This is a
-            # perpendicular move then line survey orientation, hence the y, x
-            # switch
-            lxx = stn_x - lind[ii] * a * dl_y
-            lyy = stn_y + lind[ii] * a * dl_x
+#             # Move station location to current survey line This is a
+#             # perpendicular move then line survey orientation, hence the y, x
+#             # switch
+#             lxx = stn_x - lind[ii] * a * dl_y
+#             lyy = stn_y + lind[ii] * a * dl_x
 
-            M = np.c_[lxx, lyy, np.ones(nstn).T * ztop]
-            N = np.c_[lxx + a * dl_x, lyy + a * dl_y, np.ones(nstn).T * ztop]
-            rx[(ii * nstn) : ((ii + 1) * nstn), :] = np.c_[M, N]
+#             M = np.c_[lxx, lyy, np.ones(nstn).T * ztop]
+#             N = np.c_[lxx + a * dl_x, lyy + a * dl_y, np.ones(nstn).T * ztop]
+#             rx[(ii * nstn) : ((ii + 1) * nstn), :] = np.c_[M, N]
 
-            if dim == 3:
-                rxClass = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
-            elif dim == 2:
-                M = M[:, [0, 2]]
-                N = N[:, [0, 2]]
-                rxClass = dc.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
-            srcClass = dc.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
-        SrcList.append(srcClass)
-        survey_type = "dipole-dipole"
+#             if dim == 3:
+#                 rxClass = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
+#             elif dim == 2:
+#                 M = M[:, [0, 2]]
+#                 N = N[:, [0, 2]]
+#                 rxClass = dc.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
+#             srcClass = dc.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
+#         SrcList.append(srcClass)
+#         survey_type = "dipole-dipole"
 
-    survey = dc.Survey(SrcList, survey_type=survey_type.lower())
-    return survey
+#     survey = dc.Survey(SrcList, survey_type=survey_type.lower())
+#     return survey
 
 
 def generate_dcip_sources_line(
@@ -1114,6 +1317,9 @@ def generate_dcip_sources_line(
 
     return source_list
 
+
+
+########################################################################
 
 def writeUBC_DCobs(
     fileName,
@@ -1496,148 +1702,7 @@ def writeUBC_DClocs(
     fid.close()
 
 
-def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
-    """
-        Read DC survey and projects the coordinate system
-        according to the flag = 'Xloc' | 'Yloc' | 'local' (default)
-        In the 'local' system, station coordinates are referenced
-        to distance from the first srcLoc[0].location[0]
 
-        The Z value is preserved, but Y coordinates zeroed.
-
-        Input:
-        :param survey: 3D DC survey class object
-        :rtype: SimPEG.electromagnetics.static.resistivity.Survey
-
-        Output:
-        :param survey: 2D DC survey class object
-        :rtype: SimPEG.electromagnetics.static.resistivity.Survey
-    """
-
-    def stn_id(v0, v1, r):
-        """
-        Compute station ID along line
-        """
-
-        dl = int(v0.dot(v1)) * r
-
-        return dl
-
-    def r_unit(p1, p2):
-        """
-        r_unit(x, y) : Function computes the unit vector
-        between two points with coordinates p1(x1, y1) and p2(x2, y2)
-
-        """
-
-        assert len(p1) == len(p2), "locs must be the same shape."
-
-        dx = []
-        for ii in range(len(p1)):
-            dx.append((p2[ii] - p1[ii]))
-
-        # Compute length of vector
-        r = np.linalg.norm(np.asarray(dx))
-
-        if r != 0:
-            vec = dx / r
-
-        else:
-            vec = np.zeros(len(p1))
-
-        return vec, r
-
-    srcList2D = []
-
-    srcMat = getSrc_locs(survey)
-
-    # Find all unique line id
-    uniqueID = np.unique(lineID)
-
-    for jj in range(len(uniqueID)):
-
-        indx = np.where(lineID == uniqueID[jj])[0]
-
-        # Find origin of survey
-        r = 1e8  # Initialize to some large number
-
-        Tx = srcMat[indx]
-
-        if np.all(Tx[0:3] == Tx[3:]):
-            survey_type = "pole-dipole"
-
-        else:
-            survey_type = "dipole-dipole"
-
-        x0 = Tx[0][0:2]  # Define station zero along line
-
-        vecTx, r1 = r_unit(x0, Tx[-1][0:2])
-
-        for ii in range(len(indx)):
-
-            # Get all receivers
-            Rx = survey.source_list[indx[ii]].receiver_list[0].locations
-            nrx = Rx[0].shape[0]
-
-            if flag == "local":
-                # Find A electrode along line
-                vec, r = r_unit(x0, Tx[ii][0:2])
-                A = stn_id(vecTx, vec, r)
-
-                if survey_type != "pole-dipole":
-                    # Find B electrode along line
-                    vec, r = r_unit(x0, Tx[ii][3:5])
-                    B = stn_id(vecTx, vec, r)
-
-                M = np.zeros(nrx)
-                N = np.zeros(nrx)
-                for kk in range(nrx):
-
-                    # Find all M electrodes along line
-                    vec, r = r_unit(x0, Rx[0][kk, 0:2])
-                    M[kk] = stn_id(vecTx, vec, r)
-
-                    # Find all N electrodes along line
-                    vec, r = r_unit(x0, Rx[1][kk, 0:2])
-                    N[kk] = stn_id(vecTx, vec, r)
-            elif flag == "Yloc":
-                """ Flip the XY axis locs"""
-                A = Tx[ii][1]
-
-                if survey_type != "pole-dipole":
-                    B = Tx[ii][4]
-
-                M = Rx[0][:, 1]
-                N = Rx[1][:, 1]
-
-            elif flag == "Xloc":
-                """ Copy the rx-tx locs"""
-                A = Tx[ii][0]
-
-                if survey_type != "pole-dipole":
-                    B = Tx[ii][3]
-
-                M = Rx[0][:, 0]
-                N = Rx[1][:, 0]
-
-            rxClass = dc.Rx.Dipole(
-                np.c_[M, np.zeros(nrx), Rx[0][:, 2]],
-                np.c_[N, np.zeros(nrx), Rx[1][:, 2]],
-            )
-
-            if survey_type == "pole-dipole":
-                srcList2D.append(dc.Src.Pole([rxClass], np.asarray([A, 0, Tx[ii][2]])))
-
-            elif survey_type == "dipole-dipole":
-                srcList2D.append(
-                    dc.Src.Dipole(
-                        [rxClass], np.r_[A, 0, Tx[ii][2]], np.r_[B, 0, Tx[ii][5]]
-                    )
-                )
-
-    survey2D = dc.Survey(srcList2D)
-
-    return survey2D
 
 
 def readUBC_DC2Dpre(fileName):
@@ -2195,7 +2260,18 @@ def plot_pseudosection(
     warnings.warn(
         "The plot_pseudosection method has been deprecated. Please use "
         "plot_2d_pseudosection instead. This will be removed in version"
-        " 0.15.1 of SimPEG",
+        " 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )
+
+    return plot_2d_pseudosection(data.survey, data.dobs, 'scatter', ax=None, scale=scale)
+
+def apparent_resistivity(data_object, space_type='half space', dobs=None, eps=1e-10, **kwargs):
+
+    warnings.warn(
+        "The apparent_resistivity method has been deprecated. Please use "
+        "apparent_resistivity_from_voltage instead. This will be removed in version"
+        " 0.15.0 of SimPEG",
         DeprecationWarning,
     )
 
@@ -2204,7 +2280,7 @@ def source_receiver_midpoints(survey, **kwargs):
     warnings.warn(
         "The source_receiver_midpoint method has been deprecated. Please use "
         "pseudo_locations instead. This will be removed in version"
-        " 0.15.1 of SimPEG",
+        " 0.15.0 of SimPEG",
         DeprecationWarning,
     )
 
@@ -2214,7 +2290,19 @@ def plot_layer(rho, mesh, **kwargs):
     warnings.warn(
         "The plot_layer method has been deprecated. Please use "
         "plot_1d_layer_model instead. This will be removed in version"
-        " 0.15.1 of SimPEG",
+        " 0.15.0 of SimPEG",
         DeprecationWarning,
     )
+
+    return plot_1d_layer_model(mesh.hx, rho)
+
+def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
+    warnings.warn(
+        "The convertObs_DC3D_to_2D method has been deprecated. Please use "
+        "convert_3d_survey_to_2d. This will be removed in version"
+        " 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )
+
+    return convert_3d_survey_to_2d_lines(survey, lineID)
 

@@ -29,7 +29,7 @@ from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
-    convert_volts_to_resisitivities,
+    apparent_resistivity_from_voltage,
     plot_2d_pseudosection,
 )
 
@@ -268,7 +268,7 @@ ax1.set_title("Normalized Voltages")
 plt.show()
 
 # Get apparent conductivities from volts and survey geometry
-apparent_conductivities = 1/convert_volts_to_resisitivities(survey, dpred)
+apparent_conductivities = 1/apparent_resistivity_from_voltage(survey, dpred)
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))

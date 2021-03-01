@@ -49,7 +49,7 @@ from SimPEG import (
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
 from SimPEG.electromagnetics.static.utils.static_utils import (
-    convert_volts_to_resisitivities,
+    apparent_resistivity_from_voltage,
     plot_2d_pseudosection
 )
 
@@ -164,7 +164,7 @@ ip_survey = ip.survey.Survey(source_list)
 # Plot apparent conductivity using pseudo-section
 mpl.rcParams.update({"font.size": 12})
 
-apparent_conductivities = 1/convert_volts_to_resisitivities(dc_survey, dobs_dc)
+apparent_conductivities = 1/apparent_resistivity_from_voltage(dc_survey, dobs_dc)
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))

@@ -236,4 +236,11 @@ class Survey(BaseSurvey):
 
 @deprecate_class(removal_version="0.15.0")
 class Survey_ky(Survey):
+    warnings.warn(
+        "The Survey_ky class has been deprecated. Surveys for "
+        "simulation_2d are defined using the Survey class. "
+        "This will be removed in version 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )
+
     pass

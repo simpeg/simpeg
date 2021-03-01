@@ -29,11 +29,11 @@ from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
 from SimPEG.utils import model_builder, surface2ind_topo
-from SimPEG import maps, data
+from SimPEG import maps
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
-    apparent_resistivity,
+    apparent_resistivity_from_voltage,
     plot_3d_pseudosection,
 )
 
@@ -276,13 +276,12 @@ dpred = simulation.dpred(conductivity_model)
 #
 
 # Convert predicted data to apparent conductivities
-dc_data = data.Data(survey)
-apparent_conductivity = 1/apparent_resistivity(
-    dc_data, space_type="half space", dobs=dpred, eps=1e-10,
+apparent_conductivity = 1/apparent_resistivity_from_voltage(
+    survey, dpred, space_type="half space"
 )
 
 # Generate axes
-fig = plt.figure(figsize=(12, 10))
+fig = plt.figure(figsize=(7, 12))
 ax1 = fig.add_axes([0.01, 0.60, 0.75, 0.33], projection='3d', azim=-45, elev=45)
 ax2 = fig.add_axes([0.01, 0.15, 0.75, 0.33], projection='3d', azim=-45, elev=45)
 cax1 = fig.add_axes([0.83, 0.55, 0.02, 0.4])
@@ -294,7 +293,7 @@ vlim = [apparent_conductivity.min(), apparent_conductivity.max()]
 p1, p2, p3 = np.array([-1000, 0, 0]), np.array([1000, 0, 0]), np.array([1000, 0, -1000])
 plane_points = [p1,p2,p3]
 ax1 = plot_3d_pseudosection(
-    survey, apparent_conductivity, s=80, ax=ax1, scale='log', vlim=vlim, cax=cax1,
+    survey, apparent_conductivity, marker_size=40, ax=ax1, scale='log', vlim=vlim, cax=cax1,
     plane_points=plane_points, plane_distance=40., units='$S/m$'
 )
 ax1.set_xlim([-1000., 1000.])
@@ -313,7 +312,7 @@ plane_points.append([p1,p2,p3])
 p1, p2, p3 = np.array([300, -1000, 0]), np.array([300, 1000,0]), np.array([300, 1000, -1000])
 plane_points.append([p1,p2,p3])
 ax2 = plot_3d_pseudosection(
-    survey, apparent_conductivity, s=80, ax=ax2, scale='log', vlim=vlim, cax=cax2,
+    survey, apparent_conductivity, marker_size=40, ax=ax2, scale='log', vlim=vlim, cax=cax2,
     plane_points=plane_points, plane_distance=40., units='$S/m$'
 )
 ax2.set_xlim([-1000., 1000.])
@@ -337,6 +336,7 @@ if save_file:
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
     # Add 5% Gaussian noise to each datum
+    np.random.seed(433)
     noise = 0.05 * np.abs(dpred) * np.random.rand(len(dpred))
 
     # Write out data at their original electrode locations (not shifted)
