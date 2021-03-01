@@ -184,6 +184,8 @@ class SparseDeriv(BaseSparse):
         default=True
     )
 
+    face_weights = None
+
     @Utils.timeIt
     def __call__(self, m):
         """
@@ -224,6 +226,9 @@ class SparseDeriv(BaseSparse):
                 W = Utils.sdiag(
                     (Ave * (self.scale * self.regmesh.vol))**0.5
                 ) * R
+
+            if self.face_weights is not None:
+                W = Utils.sdiag(self.face_weights) * W
 
             theta = self.cellDiffStencil * (self.mapping * f_m)
             dmdx = Utils.matutils.coterminal(theta)
@@ -314,6 +319,9 @@ class SparseDeriv(BaseSparse):
                 W = Utils.sdiag(
                     (Ave * (self.scale * self.regmesh.vol))**0.5
                 ) * R
+            
+            if self.face_weights is not None:
+                W = Utils.sdiag(self.face_weights) * W                
 
             theta = self.cellDiffStencil * (self.mapping * model)
             dmdx = Utils.matutils.coterminal(theta)
@@ -398,16 +406,21 @@ class SparseDeriv(BaseSparse):
         if self.scale is None:
             self.scale = np.ones(self.mapping.shape[0])
         if self.cell_weights is not None:
-            return (
+            W = (
                 Utils.sdiag(
                     (Ave*(self.scale * self.cell_weights))**0.5
                 ) *
                 R * self.cellDiffStencil
             )
         else:
-            return Utils.sdiag(
+            W = Utils.sdiag(
                 (Ave*(self.scale * self.regmesh.vol))**0.5
-                ) * R * self.cellDiffStencil
+            ) * R * self.cellDiffStencil
+
+        if self.face_weights is not None:
+            W = Utils.sdiag(self.face_weights) * W
+
+        return W
 
     @property
     def length_scales(self):
