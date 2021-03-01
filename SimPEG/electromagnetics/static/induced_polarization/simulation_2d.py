@@ -4,6 +4,7 @@ from ....utils.code_utils import deprecate_class
 
 from .... import props
 from ....utils import sdiag
+from ....data import Data
 
 from ..resistivity.fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 
@@ -31,7 +32,8 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
     _f = None
     sign = None
     _pred = None
-    _dc_data_set = False
+    _is_dc_voltage = False
+    _dc_voltage = None
 
     def fields(self, m):
         if self.verbose:
@@ -40,19 +42,30 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
             # re-uses the DC simulation's fields method
             self._f = super().fields(None)
 
-        if not self._dc_data_set:
-            # loop through receievers to check if they need to set the _dc_voltage
+        if not self._is_dc_voltage:            
+            data_types = []
             for src in self.survey.source_list:
                 for rx in src.receiver_list:
+                    data_types.append(rx.data_type)
+                    rx.data_type = 'volt'
+            
+            self._dc_voltage = super().dpred(None, f=self._f)
+            self._dc_voltage = Data(self.survey, self._dc_voltage)
+            # loop through receievers to check if they need to set the _dc_voltage
+            icount = 0
+            for src in self.survey.source_list:
+                for rx in src.receiver_list:
+                    rx.data_type = data_types[icount]
                     if (
                         rx.data_type == "apparent_chargeability"
                         and rx._dc_voltage is None
                     ):
                         rx.data_type = "volt"  # make the rx evaluate a voltage
-                        rx._dc_voltage = rx.eval(src, self.mesh, self._f)
+                        rx._dc_voltage = self._dc_voltage[src, rx]
                         rx.data_type = "apparent_chargeability"
                         rx._Ps = {}
-            self._dc_data_set = True  # avoid loop through after first call
+                icount += 1
+            self._is_dc_voltage = True  # avoid loop through after first call
 
         self._pred = self.forward(m, f=self._f)
 
