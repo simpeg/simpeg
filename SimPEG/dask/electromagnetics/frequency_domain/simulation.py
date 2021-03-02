@@ -140,6 +140,7 @@ def compute_J(self, f=None, Ainv=None):
                 n_blocs = np.ceil(rx.nD / row_chunks)
 
                 for block in np.array_split(v, n_blocs, axis=1):
+
                     dfduT, dfdmT = rx.evalDeriv(
                         src, self.mesh, f, v=block, adjoint=True
                     )

@@ -336,6 +336,7 @@ class Point3DImpedance(BaseRxNSEM_Point):
         imp = top / bot
 
         if adjoint:
+            
             # Work backwards!
             gtop_v = np.c_[v] / bot[:, None]
             gbot_v = -imp[:, None] * np.c_[v] / bot[:, None]
@@ -506,14 +507,14 @@ class Point3DComplexResistivity(Point3DImpedance):
                 # imaginary part gets extra (-) due to conjugate transpose
 
             # the multipliers
-            gtop_v = (v / bot)[:, None]
-            gbot_v = (-imp * v / bot)[:, None]
+            gtop_v = np.c_[v] / bot[:, None]
+            gbot_v = -imp[:, None] * np.c_[v] / bot[:, None]
 
             # multiply the fields by v
-            ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
-            ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
-            ge_v = np.c_[h[:, 1], -h[:, 0]] * gtop_v
-            gh_v = np.c_[-e[:, 1], e[:, 0]] * gtop_v
+            ghx_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[hy[:, 1], -hy[:, 0]]).reshape((hy.shape[0], -1))
+            ghy_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[-hx[:, 1], hx[:, 0]]).reshape((hx.shape[0], -1))
+            ge_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[h[:, 1], -h[:, 0]]).reshape((h.shape[0], -1))
+            gh_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[-e[:, 1], e[:, 0]]).reshape((e.shape[0], -1))
 
             if self.orientation[1] == "x":
                 ghy_v += gh_v
