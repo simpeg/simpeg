@@ -29,13 +29,14 @@ from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
 from SimPEG.utils import model_builder, surface2ind_topo
-from SimPEG import maps
+from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip_xyz
+from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
     apparent_resistivity_from_voltage,
     plot_3d_pseudosection,
-)
+)    
 
 import os
 import numpy as np
@@ -48,7 +49,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 mpl.rcParams.update({'font.size': 16})
-save_file = False
+save_file = True
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -63,10 +64,10 @@ save_file = False
 #
 
 x_topo, y_topo = np.meshgrid(
-    np.linspace(-3000, 3000, 101), np.linspace(-3000, 3000, 101)
+    np.linspace(-2000, 2000, 161), np.linspace(-2000, 2000, 161)
 )
 s = np.sqrt(x_topo**2 + y_topo**2)
-z_topo = (1 / np.pi) * 85 * (-np.pi / 2 + np.arctan((s - 600.0) / 50.0))
+z_topo = (1 / np.pi) * 140 * (-np.pi / 2 + np.arctan((s - 600.0) / 80.0))
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
@@ -87,8 +88,8 @@ data_type = "volt"
 dimension_type = "3D"
 end_locations_list = [
     np.r_[-1000.0, 1000.0, 0., 0.],
-    np.r_[-300., -300., -1000.0, 1000.0],
-    np.r_[300., 300., -1000.0, 1000.0]
+    np.r_[-350., -350., -1000.0, 1000.0],
+    np.r_[350., 350., -1000.0, 1000.0]
 ]
 station_separation = 100.0
 num_rx_per_src = 10
@@ -118,10 +119,10 @@ survey = dc.survey.Survey(source_list)
 # Here, we create the OcTree mesh that will be used to predict DC data.
 #
 
-dh = 40.0  # base cell width
-dom_width_x = 10000.0  # domain width x
-dom_width_y = 10000.0  # domain width y
-dom_width_z = 2000.0  # domain width z
+dh = 25.0  # base cell width
+dom_width_x = 6000.0  # domain width x
+dom_width_y = 6000.0  # domain width y
+dom_width_z = 4000.0  # domain width z
 nbcx = 2 ** int(np.round(np.log(dom_width_x / dh) / np.log(2.0)))  # num. base cells x
 nbcy = 2 ** int(np.round(np.log(dom_width_y / dh) / np.log(2.0)))  # num. base cells y
 nbcz = 2 ** int(np.round(np.log(dom_width_z / dh) / np.log(2.0)))  # num. base cells z
@@ -133,8 +134,9 @@ hz = [(dh, nbcz)]
 mesh = TreeMesh([hx, hy, hz], x0="CCN")
 
 # Mesh refinement based on topography
+k = np.sqrt(np.sum(xyz_topo[:, 0:2]**2, axis=1)) < 1200
 mesh = refine_tree_xyz(
-    mesh, xyz_topo, octree_levels=[0, 0, 1], method="surface", finalize=False
+    mesh, xyz_topo[k, :], octree_levels=[0, 4, 8, 4], method="surface", finalize=False
 )
 
 # Mesh refinement near sources and receivers. First we need to obtain the
@@ -146,13 +148,8 @@ electrode_locations = np.r_[
 unique_locations = np.unique(electrode_locations, axis=0)
 
 mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[2, 4], method="radial", finalize=False
+    mesh, unique_locations, octree_levels=[4, 8, 4], method="radial", finalize=False
 )
-
-# Refine core mesh region
-xp, yp, zp = np.meshgrid([-1200.0, 1200.0], [-1200.0, 1200.0], [-800.0, 0.0])
-xyz = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 2], method="box", finalize=False)
 
 mesh.finalize()
 
@@ -170,7 +167,7 @@ mesh.finalize()
 air_value = 1e-8
 background_value = 1e-2
 conductor_value = 1e-1
-resistor_value = 1e-3
+resistor_value = 1e-4
 
 # Find active cells in forward modeling (cell below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
@@ -183,21 +180,21 @@ conductivity_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 conductivity_model = background_value * np.ones(nC)
 
 ind_conductor = (
-    (mesh.gridCC[ind_active, 0] > -600.0)
-    & (mesh.gridCC[ind_active, 0] < -200.0)
+    (mesh.gridCC[ind_active, 0] > -500.0)
+    & (mesh.gridCC[ind_active, 0] < -150.0)
     & (mesh.gridCC[ind_active, 1] > -400.0)
     & (mesh.gridCC[ind_active, 1] < 400.0)
-    & (mesh.gridCC[ind_active, 2] > -600.0)
+    & (mesh.gridCC[ind_active, 2] > -550.0)
     & (mesh.gridCC[ind_active, 2] < -200.0)
 )
 conductivity_model[ind_conductor] = conductor_value
 
 ind_resistor = (
-    (mesh.gridCC[ind_active, 0] > 200.0)
-    & (mesh.gridCC[ind_active, 0] < 600.0)
+    (mesh.gridCC[ind_active, 0] > 150.0)
+    & (mesh.gridCC[ind_active, 0] < 500.0)
     & (mesh.gridCC[ind_active, 1] > -400.0)
     & (mesh.gridCC[ind_active, 1] < 400.0)
-    & (mesh.gridCC[ind_active, 2] > -600.0)
+    & (mesh.gridCC[ind_active, 2] > -550.0)
     & (mesh.gridCC[ind_active, 2] < -200.0)
 )
 conductivity_model[ind_resistor] = resistor_value
@@ -216,7 +213,7 @@ mesh.plotSlice(
     ind=int(len(mesh.hy)/2),
     grid=True,
     clim=(np.log10(1e-3), np.log10(conductor_value)),
-    pcolor_opts={"cmap": "viridis"},
+    pcolor_opts={"cmap": mpl.cm.viridis},
 )
 ax1.set_title("Conductivity Model")
 ax1.set_xlabel("x (m)")
@@ -281,11 +278,11 @@ apparent_conductivity = 1/apparent_resistivity_from_voltage(
 )
 
 # Generate axes
-fig = plt.figure(figsize=(7, 12))
+fig = plt.figure(figsize=(8, 12))
 ax1 = fig.add_axes([0.01, 0.60, 0.75, 0.33], projection='3d', azim=-45, elev=45)
 ax2 = fig.add_axes([0.01, 0.15, 0.75, 0.33], projection='3d', azim=-45, elev=45)
-cax1 = fig.add_axes([0.83, 0.55, 0.02, 0.4])
-cax2 = fig.add_axes([0.83, 0.1, 0.02, 0.4])
+cax1 = fig.add_axes([0.8, 0.55, 0.02, 0.4])
+cax2 = fig.add_axes([0.8, 0.1, 0.02, 0.4])
 
 # Plot the single East-West line. A list containing 3 points [p1, p2, p3] is
 # used to define the plane near which we would like to plot the 3D data.
@@ -294,7 +291,7 @@ p1, p2, p3 = np.array([-1000, 0, 0]), np.array([1000, 0, 0]), np.array([1000, 0,
 plane_points = [p1,p2,p3]
 ax1 = plot_3d_pseudosection(
     survey, apparent_conductivity, marker_size=40, ax=ax1, scale='log', vlim=vlim, cax=cax1,
-    plane_points=plane_points, plane_distance=40., units='$S/m$'
+    plane_points=plane_points, plane_distance=15., units='$S/m$'
 )
 ax1.set_xlim([-1000., 1000.])
 ax1.set_ylim([-1000., 1000.])
@@ -307,13 +304,21 @@ ax1.set_title('Apparent Conductivity (East-West)', pad=20)
 # points.
 vlim = [apparent_conductivity.min(), apparent_conductivity.max()]
 plane_points = []
-p1, p2, p3 = np.array([-300, -1000, 0]), np.array([-300, 1000,0]), np.array([-300, 1000, -1000])
+p1, p2, p3 = (
+    np.array([-350, -1000, 0]),
+    np.array([-350, 1000, 0]),
+    np.array([-350, 1000, -1000]),
+)
 plane_points.append([p1,p2,p3])
-p1, p2, p3 = np.array([300, -1000, 0]), np.array([300, 1000,0]), np.array([300, 1000, -1000])
+p1, p2, p3 = (
+    np.array([350, -1000, 0]),
+    np.array([350, 1000, 0]),
+    np.array([350, 1000, -1000]),
+)
 plane_points.append([p1,p2,p3])
 ax2 = plot_3d_pseudosection(
     survey, apparent_conductivity, marker_size=40, ax=ax2, scale='log', vlim=vlim, cax=cax2,
-    plane_points=plane_points, plane_distance=40., units='$S/m$'
+    plane_points=plane_points, plane_distance=15., units='$S/m$'
 )
 ax2.set_xlim([-1000., 1000.])
 ax2.set_ylim([-1000., 1000.])
@@ -337,17 +342,27 @@ if save_file:
 
     # Add 5% Gaussian noise to each datum
     np.random.seed(433)
-    noise = 0.05 * np.abs(dpred) * np.random.rand(len(dpred))
-
+    std = 0.05 * np.abs(dpred)
+    noise = std * np.random.rand(len(dpred))
+    dobs = dpred + noise
+    
+    # Create dictionary that stores line IDs
+    N = int(survey.nD/3)
+    lineID = np.r_[np.ones(N), 2*np.ones(N), 3*np.ones(N)]
+    out_dict = {'LINEID': lineID}
+    
     # Write out data at their original electrode locations (not shifted)
-    data_array = np.c_[
-        np.reshape(electrode_locations, (survey.nD, 12)),
-        dpred + noise
-    ]
-
-    fname = dir_path + "dc_data.obs"
-    np.savetxt(fname, data_array, fmt="%.4e")
-
+    data_obj = data.Data(survey, dobs=dobs, standard_deviation=std)
+    
+    fname = dir_path + "dc_data.xyz"
+    write_dcip_xyz(
+        fname,
+        data_obj,
+        data_header='V/A',
+        uncertainties_header='UNCERT',
+        out_dict=out_dict
+    )
+    
     fname = dir_path + "true_conductivity.txt"
     np.savetxt(fname, conductivity_map * conductivity_model, fmt="%.4e")
 

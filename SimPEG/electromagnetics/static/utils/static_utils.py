@@ -766,7 +766,6 @@ def plot_2d_pseudosection(
                     fraction=0.06,
                     orientation="vertical",
                     ax=ax,
-                    norm=norm,
                     **cbar_opts,
                 )
             elif scale == "linear":
@@ -776,18 +775,17 @@ def plot_2d_pseudosection(
                     fraction=0.06,
                     orientation="vertical",
                     ax=ax,
-                    norm=norm,
                     **cbar_opts,
                 )
 
         else:
             if scale == "log":
                 cbar = plt.colorbar(
-                    data_plot, format="$10^{%.2f}$", norm=norm, cax=cax, **cbar_opts,
+                    data_plot, format="$10^{%.2f}$", cax=cax, **cbar_opts,
                 )
             elif scale == "linear":
                 cbar = plt.colorbar(
-                    data_plot, format="%.2e", norm=norm, cax=cax, **cbar_opts,
+                    data_plot, format="%.2e", cax=cax, **cbar_opts,
                 )
 
         ticks = np.linspace(norm.vmin, norm.vmax, 5)
@@ -869,10 +867,12 @@ def plot_3d_pseudosection(
     locations = pseudo_locations(survey)
 
     if scale == "log":
-        dvec = np.log10(dvec)
+        plot_vec = np.log10(dvec)
         if vlim != None:
             vlim[0] = np.log10(vlim[0])
             vlim[1] = np.log10(vlim[1])
+    else:
+        plot_vec = dvec
 
     if ax == None:
         fig = plt.figure(figsize=(10, 4))
@@ -883,7 +883,7 @@ def plot_3d_pseudosection(
     if plane_points == None:
 
         if vlim == None:
-            norm = mpl.colors.Normalize(vmin=dvec.min(), vmax=dvec.max())
+            norm = mpl.colors.Normalize(vmin=plot_vec.min(), vmax=plot_vec.max())
         else:
             norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])
 
@@ -891,9 +891,9 @@ def plot_3d_pseudosection(
             locations[:, 0],
             locations[:, 1],
             locations[:, 2],
-            dvec,
             s=s,
-            c=dvec,
+            c=plot_vec,
+            edgecolors='none',
             depthshade=False,
             norm=norm,
             **scatter_opts,
@@ -908,7 +908,7 @@ def plot_3d_pseudosection(
             plane_distance = len(plane_points) * [plane_distance]
 
         # Pre-allocate index for points on plane(s)
-        k = np.zeros(len(dvec), dtype=bool)
+        k = np.zeros(len(plot_vec), dtype=bool)
         for ii in range(0, len(plane_points)):
 
             p1, p2, p3 = plane_points[ii]
@@ -927,7 +927,7 @@ def plot_3d_pseudosection(
             )
 
         if vlim == None:
-            norm = mpl.colors.Normalize(vmin=dvec[k].min(), vmax=dvec[k].max())
+            norm = mpl.colors.Normalize(vmin=plot_vec[k].min(), vmax=plot_vec[k].max())
         else:
             norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])
 
@@ -935,9 +935,9 @@ def plot_3d_pseudosection(
             locations[k, 0],
             locations[k, 1],
             locations[k, 2],
-            dvec[k],
             s=marker_size,
-            c=dvec[k],
+            c=plot_vec[k],
+            edgecolors='none',
             depthshade=False,
             norm=norm,
             **scatter_opts,
@@ -953,7 +953,6 @@ def plot_3d_pseudosection(
                     fraction=0.06,
                     orientation="vertical",
                     ax=ax,
-                    norm=norm,
                     shrink=0.7,
                     **cbar_opts,
                 )
@@ -964,7 +963,6 @@ def plot_3d_pseudosection(
                     fraction=0.06,
                     orientation="vertical",
                     ax=ax,
-                    norm=norm,
                     shrink=0.7,
                     **cbar_opts,
                 )
@@ -972,11 +970,11 @@ def plot_3d_pseudosection(
         else:
             if scale == "log":
                 cbar = plt.colorbar(
-                    data_plot, format="$10^{%.2f}$", norm=norm, cax=cax, **cbar_opts,
+                    data_plot, format="$10^{%.2f}$", cax=cax, **cbar_opts,
                 )
             elif scale == "linear":
                 cbar = plt.colorbar(
-                    data_plot, format="%.2e", norm=norm, cax=cax, **cbar_opts,
+                    data_plot, format="%.2e", cax=cax, **cbar_opts,
                 )
 
         ticks = np.linspace(norm.vmin, norm.vmax, 5)

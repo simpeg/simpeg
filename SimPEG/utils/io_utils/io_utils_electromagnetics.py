@@ -7,6 +7,26 @@ from discretize.utils import mkvc
 #                  DIRECT CURRENT RESISTIVITY AND INDUCED POLARIZATION
 ########################################################################################
 
+# def read_dcip_xyz(
+#     file_name,
+#     data_type,
+#     a_headers=None,
+#     b_headers=None,
+#     m_headers=None,
+#     n_headers=None,
+#     data_header=None,
+#     uncertainties_header=None,
+#     additional_headers=None
+# )
+
+
+
+
+
+
+
+
+
 
 def read_dcip3d_ubc(file_name, data_type):
     """
@@ -492,3 +512,55 @@ def _write_dcip_3d_or_octree_ubc(
                 fid.write("\n")
 
                 count += rx.nD
+
+
+def write_dcip_xyz(file_name, data_object, data_header=None, uncertainties_header=None, out_dict=None):
+    """
+    Write 2D or 3D DC/IP data to an xyz formatted text file.
+
+    Parameters
+    ----------
+    file_name:
+    data_object:
+    data_header: String for the header for your data column. If None, the observed data in the data_object are not written to file
+    uncertainties_header: String for the header for your uncertainties column. If None, the uncertatinties in the data_object are not written to file
+    out_dict: a python dictionary containing the name and associated vector of any additional information you want to write. out_dict = {header1: vec1, header2: vec2, ...}
+
+    """
+
+    out_columns = np.c_[
+        data_object.survey.a_locations,
+        data_object.survey.b_locations,
+        data_object.survey.m_locations,
+        data_object.survey.n_locations
+    ]
+
+    # Determine if 2D or 3D survey
+    if np.shape(out_columns)[1]==8:
+        dim = 2
+        out_headers = 'XA    ZA    XB    ZB    XM    ZM    XN    ZN'
+    else:
+        dim = 3
+        out_headers = 'XA    YA    ZA    XB    YB    ZB    XM    YM    ZM    XN    YN    ZN'
+    
+    # Append data and uncertainties headers
+    if (data_object.dobs is not None) & (data_header is not None):
+        out_headers += '    ' + data_header
+
+    if (data_object.standard_deviation is not None) & (uncertainties_header is not None):
+        out_headers += '    ' + uncertainties_header
+
+    # Append additional columns from dictionary
+    if out_dict != None:
+        for k in list(out_dict.keys()):
+            out_headers += '    ' + k
+            out_columns = np.c_[out_columns, out_dict[k]]
+
+    # Write to file
+    np.savetxt(
+        file_name, out_columns, fmt="%.8e", delimiter="    ", newline="\n", header=out_headers, comments=''
+    )
+
+    print("XYZ file saved to: " + file_name)
+
+

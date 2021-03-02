@@ -155,7 +155,7 @@ plot_2d_pseudosection(
     ax=ax1,
     scale="log",
     units="V/A",
-    scatter_opts={"cmap": "viridis"},
+    scatter_opts={"cmap": mpl.cm.viridis},
 )
 ax1.set_title("Normalized Voltages")
 plt.show()
@@ -174,7 +174,7 @@ plot_2d_pseudosection(
     scale="log",
     units="S/m",
     mask_topography=True,
-    tricontourf_opts={"levels": 20, "cmap": "viridis"},
+    tricontourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
 )
 ax1.set_title("Apparent Conductivity")
 plt.show()
@@ -407,7 +407,7 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
-    pcolor_opts={"cmap": "viridis"},
+    pcolor_opts={"cmap": mpl.cm.viridis},
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -441,7 +441,7 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
-    pcolor_opts={"cmap": "viridis"},
+    pcolor_opts={"cmap": mpl.cm.viridis},
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -472,8 +472,8 @@ dpred = inv_prob.dpred
 # Plot
 fig = plt.figure(figsize=(9, 13))
 data_array = [np.abs(dobs), np.abs(dpred), (dobs - dpred)/std]
-plot_title = ["Observed", "Predicted", "Normalized Misfit"]
-plot_units = ["S/m", "S/m", ""]
+plot_title = ["Observed Voltage", "Predicted Voltage", "Normalized Misfit"]
+plot_units = ["V/A", "V/A", ""]
 scale = ["log", "log", "linear"]
 
 ax1 = 3 * [None]
@@ -494,7 +494,7 @@ for ii in range(0, 3):
         scale=scale[ii],
         units=plot_units[ii],
         mask_topography=True,
-        tricontourf_opts={"levels": 25, "cmap": "viridis"},
+        tricontourf_opts={"levels": 25, "cmap": mpl.cm.viridis},
     )
     ax1[ii].set_title(plot_title[ii])
 

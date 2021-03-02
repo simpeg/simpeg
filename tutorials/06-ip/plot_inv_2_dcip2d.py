@@ -177,7 +177,7 @@ plot_2d_pseudosection(
     scale="log",
     units="S/m",
     mask_topography=True,
-    tricontourf_opts={"levels": 20, "cmap": "viridis"},
+    tricontourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
 )
 ax1.set_title("Apparent Conductivity")
 plt.show()
@@ -196,7 +196,7 @@ plot_2d_pseudosection(
     scale="linear",
     units="V/V",
     mask_topography=True,
-    tricontourf_opts={"levels": 20, "cmap": "plasma"},
+    tricontourf_opts={"levels": 20, "cmap": mpl.cm.plasma},
 )
 ax1.set_title("Apparent Chargeability")
 plt.show()
@@ -442,7 +442,7 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
-    pcolor_opts={"cmap": "viridis"},
+    pcolor_opts={"cmap": mpl.cm.viridis},
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -476,7 +476,7 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
-    pcolor_opts={"cmap": "viridis"},
+    pcolor_opts={"cmap": mpl.cm.viridis},
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -529,7 +529,7 @@ for ii in range(0, 3):
         scale=scale[ii],
         units=plot_units[ii],
         mask_topography=True,
-        tricontourf_opts={"levels": 25, "cmap": "viridis"},
+        tricontourf_opts={"levels": 25, "cmap": mpl.cm.viridis},
     )
     ax1[ii].set_title(plot_title[ii])
 
@@ -664,7 +664,7 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(np.min(true_chargeability_model), np.max(true_chargeability_model)),
-    pcolor_opts={"cmap": "plasma"},
+    pcolor_opts={"cmap": mpl.cm.plasma},
 )
 ax1.set_xlim(-700, 700)
 ax1.set_ylim(-700, 0)
@@ -693,7 +693,7 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(np.min(recovered_chargeability_model), np.max(recovered_chargeability_model)),
-    pcolor_opts={"cmap": "plasma"},
+    pcolor_opts={"cmap": mpl.cm.plasma},
 )
 ax1.set_xlim(-700, 700)
 ax1.set_ylim(-700, 0)
@@ -744,7 +744,7 @@ for ii in range(0, 3):
         scale='linear',
         units=plot_units[ii],
         mask_topography=True,
-        tricontourf_opts={"levels": 25, "cmap": "plasma"},
+        tricontourf_opts={"levels": 25, "cmap": mpl.cm.plasma},
     )
     ax1[ii].set_title(plot_title[ii])
 

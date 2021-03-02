@@ -208,7 +208,7 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(np.log10(resistor_conductivity), np.log10(conductor_conductivity)),
-    pcolor_opts={"cmap": "viridis"},
+    pcolor_opts={"cmap": mpl.cm.viridis},
 )
 ax1.set_title("Conductivity Model")
 ax1.set_xlabel("x (m)")
@@ -275,7 +275,7 @@ plot_2d_pseudosection(
     ax=ax1,
     scale="log",
     units="V/A",
-    scatter_opts={"cmap": "viridis"},
+    scatter_opts={"cmap": mpl.cm.viridis},
 )
 ax1.set_title("Normalized Voltages")
 plt.show()
@@ -293,7 +293,7 @@ plot_2d_pseudosection(
     ax=ax1,
     scale="log",
     units="S/m",
-    tricontourf_opts={"levels": 20, "cmap": "viridis"},
+    tricontourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
 )
 ax1.set_title("Apparent Conductivity")
 plt.show()
@@ -389,7 +389,7 @@ mesh.plotImage(
     ax=ax1,
     grid=False,
     clim=(background_chargeability, sphere_chargeability),
-    pcolor_opts={"cmap": "plasma"},
+    pcolor_opts={"cmap": mpl.cm.plasma},
 )
 ax1.set_title("Intrinsic Chargeability")
 ax1.set_xlabel("x (m)")
@@ -449,7 +449,7 @@ plot_2d_pseudosection(
     scale="log",
     units="S/m",
     mask_topography=True,
-    tricontourf_opts={"levels": 20, "cmap": "viridis"},
+    tricontourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
 )
 ax1.set_title("Apparent Conductivity")
 
@@ -468,7 +468,7 @@ plot_2d_pseudosection(
     scale="linear",
     units="V/V",
     mask_topography=True,
-    tricontourf_opts={"levels": 20, "cmap": "plasma"},
+    tricontourf_opts={"levels": 20, "cmap": mpl.cm.plasma},
 )
 ax2.set_title("Apparent Chargeability (V/V)")
 

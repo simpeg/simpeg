@@ -16,6 +16,7 @@ from .io_utils_electromagnetics import (
     read_dcipoctree_ubc,
     write_dcip3d_ubc,
     write_dcipoctree_ubc,
+    write_dcip_xyz
 )
 
 # Deprecated
