@@ -55,8 +55,8 @@ examples/20-published/*.png
 tutorials/03-gravity/gravity/*
 tutorials/04-magnetics/magnetics/*
 tutorials/05-dcr/dcip1d/*
-tutorials/05-dcr/dcip2d/*
-tutorials/06-ip/dcip2d/*
+# tutorials/05-dcr/dcip2d/*
+# tutorials/06-ip/dcip2d/*
 tutorials/12-seismic/seismic/*
 
 # jupyter
