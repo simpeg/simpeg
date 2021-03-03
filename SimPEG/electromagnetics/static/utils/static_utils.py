@@ -383,7 +383,7 @@ def convert_survey_3d_to_2d_lines(survey, lineID, data_type='volt', output_index
             
             # Get receiver locations
             rx_index = np.where(
-                (a_locs_s[:, 0]==src_loc_a[0]) & (b_locs_s[:, 0]==src_loc_b[0])
+                np.isclose(a_locs_s[:, 0], src_loc_a[0], atol=1e-3) & np.isclose(b_locs_s[:, 0], src_loc_b[0], atol=1e-3)
             )[0]
             rx_loc_m = m_locs_s[rx_index, :]
             rx_loc_n = n_locs_s[rx_index, :]
@@ -392,15 +392,15 @@ def convert_survey_3d_to_2d_lines(survey, lineID, data_type='volt', output_index
                 out_indices.append(kID[rx_index])
             
             # Define Pole or Dipole Receivers
-            if np.all(rx_loc_m[:, 0]==rx_loc_n[:, 0]):
+            if np.all(np.isclose(rx_loc_m[:, 0], rx_loc_n[:, 0], atol=1e-3)):
                 rx_list = [dc.receivers.Pole(rx_loc_m)]
-            elif np.all(rx_loc_m[:, 0] != rx_loc_n[:, 0]):
+            elif np.all(np.isclose(rx_loc_m[:, 0], rx_loc_n[:, 0], atol=1e-3)==False):
                 rx_list = [dc.receivers.Dipole(rx_loc_m, rx_loc_n)]
             else:
                 raise NotImplementedError("An individual source cannot have a mix of Pole and Dipole receivers")
             
             # Define Pole or Dipole Sources
-            if np.all(src_loc_a==src_loc_b):
+            if np.all(np.isclose(src_loc_a, src_loc_b, atol=1e-3)):
                 source_list.append(dc.sources.Pole(rx_list, src_loc_a))
             else:
                 source_list.append(
@@ -416,102 +416,6 @@ def convert_survey_3d_to_2d_lines(survey, lineID, data_type='volt', output_index
         return survey_list, out_indices_list
     else:
         return survey_list
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-    
-
-    # for jj in range(len(uniqueID)):
-
-    #     indx = np.where(lineID == uniqueID[jj])[0]
-
-    #     # Find origin of survey
-    #     r = 1e8  # Initialize to some large number
-
-    #     Tx = srcMat[indx]
-
-    #     if np.all(Tx[0:3] == Tx[3:]):
-    #         survey_type = "pole-dipole"
-
-    #     else:
-    #         survey_type = "dipole-dipole"
-
-    #     x0 = Tx[0][0:2]  # Define station zero along line
-
-    #     vecTx, r1 = r_unit(x0, Tx[-1][0:2])
-
-    #     for ii in range(len(indx)):
-
-    #         # Get all receivers
-    #         Rx = survey.source_list[indx[ii]].receiver_list[0].locations
-    #         nrx = Rx[0].shape[0]
-
-    #         if flag == "local":
-    #             # Find A electrode along line
-    #             vec, r = r_unit(x0, Tx[ii][0:2])
-    #             A = stn_id(vecTx, vec, r)
-
-    #             if survey_type != "pole-dipole":
-    #                 # Find B electrode along line
-    #                 vec, r = r_unit(x0, Tx[ii][3:5])
-    #                 B = stn_id(vecTx, vec, r)
-
-    #             M = np.zeros(nrx)
-    #             N = np.zeros(nrx)
-    #             for kk in range(nrx):
-
-    #                 # Find all M electrodes along line
-    #                 vec, r = r_unit(x0, Rx[0][kk, 0:2])
-    #                 M[kk] = stn_id(vecTx, vec, r)
-
-    #                 # Find all N electrodes along line
-    #                 vec, r = r_unit(x0, Rx[1][kk, 0:2])
-    #                 N[kk] = stn_id(vecTx, vec, r)
-    #         elif flag == "Yloc":
-    #             """ Flip the XY axis locs"""
-    #             A = Tx[ii][1]
-
-    #             if survey_type != "pole-dipole":
-    #                 B = Tx[ii][4]
-
-    #             M = Rx[0][:, 1]
-    #             N = Rx[1][:, 1]
-
-    #         elif flag == "Xloc":
-    #             """ Copy the rx-tx locs"""
-    #             A = Tx[ii][0]
-
-    #             if survey_type != "pole-dipole":
-    #                 B = Tx[ii][3]
-
-    #             M = Rx[0][:, 0]
-    #             N = Rx[1][:, 0]
-
-    #         rxClass = dc.Rx.Dipole(
-    #             np.c_[M, np.zeros(nrx), Rx[0][:, 2]],
-    #             np.c_[N, np.zeros(nrx), Rx[1][:, 2]],
-    #         )
-
-    #         if survey_type == "pole-dipole":
-    #             srcList2D.append(dc.Src.Pole([rxClass], np.asarray([A, 0, Tx[ii][2]])))
-
-    #         elif survey_type == "dipole-dipole":
-    #             srcList2D.append(
-    #                 dc.Src.Dipole(
-    #                     [rxClass], np.r_[A, 0, Tx[ii][2]], np.r_[B, 0, Tx[ii][5]]
-    #                 )
-    #             )
-
-    # survey2D = dc.Survey(srcList2D)
-
-    # return survey2D
 
 
 #####################################################################
@@ -788,7 +692,7 @@ def plot_2d_pseudosection(
                     data_plot, format="%.2e", cax=cax, **cbar_opts,
                 )
 
-        ticks = np.linspace(norm.vmin, norm.vmax, 5)
+        ticks = np.linspace(norm.vmin, norm.vmax, 7)
 
         cbar.set_ticks(ticks)
         cbar.set_label(units, labelpad=10)

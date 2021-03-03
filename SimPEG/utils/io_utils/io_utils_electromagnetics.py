@@ -7,24 +7,180 @@ from discretize.utils import mkvc
 #                  DIRECT CURRENT RESISTIVITY AND INDUCED POLARIZATION
 ########################################################################################
 
-# def read_dcip_xyz(
-#     file_name,
-#     data_type,
-#     a_headers=None,
-#     b_headers=None,
-#     m_headers=None,
-#     n_headers=None,
-#     data_header=None,
-#     uncertainties_header=None,
-#     additional_headers=None
-# )
+def read_dcip_xyz(
+    file_name,
+    data_type,
+    a_headers=['XA', 'YA', 'ZA'],
+    b_headers=['XB', 'YB', 'ZB'],
+    m_headers=['XM', 'YM', 'ZM'],
+    n_headers=['XN', 'YN', 'ZN'],
+    data_header=None,
+    uncertainties_header=None,
+    dict_headers=None,
+    is_surface_data = False
+):
+    """
+    Read XYZ formatted file for 2D or 3D formatted DC/IP data.
+    
+    Parameters
+    ----------
+    
+    file_name: Path to xyz file
+    data_type: ["volt", "apparent_resistivity", "apparent_chargeability"]
+    a_headers: A list or tuple of strings representing the headers of the A-electrode location
+    b_headers: A list or tuple of strings representing the headers of the B-electrode location
+    m_headers: A list or tuple of strings representing the headers of the M-electrode location
+    n_headers: A list or tuple of strings representing the headers of the N-electrode location
+    data_header: String representing the header for the data column
+    uncertainties_header: String representing the header for the data column
+    dict_headers: list or tuple of strings for additional data columns being loaded into a dictionary
+    is_surface_data: True if surface formatted and electrode elevations are not supplied
+    """
+    
+    if data_type not in ["volt", "apparent_resistivity", "apparent_chargeability"]:
+        raise Exception(
+            "data_type must be one of 'volt', 'apparent_resistivity', 'apparent_chargeability'"
+        )
+    
+    # Prevent circular import
+    from ...electromagnetics.static import resistivity as dc
+    from ...data import Data
+    
+    # Load file headers
+    FID = open(file_name, 'r')
+    file_headers = FID.readline()
+    FID.close()
+    file_headers = file_headers.split()
 
-
-
-
-
-
-
+    # Find indices of columns being loaded
+    out_headers = a_headers + b_headers + m_headers + n_headers
+    
+    has_data = False
+    has_uncert = False
+    has_dict = False
+    non_location_columns = 0
+    if data_header is not None:
+        out_headers.append(data_header)
+        has_data = True
+        non_location_columns += 1
+    if uncertainties_header is not None:
+        out_headers.append(uncertainties_header)
+        has_uncert = True
+        non_location_columns += 1
+    if dict_headers is not None:
+        out_headers += dict_headers
+        has_dict = True
+        non_location_columns += len(dict_headers)
+    
+    col_indices = []
+    for h in out_headers:
+        col_indices.append(file_headers.index(h))
+    
+    # Load specified columns of data
+    data_array = np.loadtxt(
+        file_name, comments='!', skiprows=1, usecols=col_indices
+    )
+    n_rows = np.shape(data_array)[0]
+    num_location_columns = np.shape(data_array)[1] - non_location_columns
+    
+    # Extract columns for electrode locations
+    if num_location_columns == 12:
+        a_cols = [0, 1, 2]
+        b_cols = [3, 4, 5]
+        m_cols = [6, 7, 8]
+        n_cols = [9, 10, 11]
+    # 2D survey data or surface 3D data
+    elif num_location_columns == 8:
+        a_cols = [0, 1]
+        b_cols = [2, 3]
+        m_cols = [4, 5]
+        n_cols = [6, 7]
+    # 2D surface data
+    else:
+        a_cols = [1]
+        b_cols = [2]
+        m_cols = [3]
+        n_cols = [4]
+    
+    # Extract electrode locations
+    if is_surface_data:
+        dummy_elevation = 9999  # Taller than mount Everest
+        a_locations = np.c_[data_array[:, a_cols], dummy_elevation*np.ones(n_rows)]
+        b_locations = np.c_[data_array[:, b_cols], dummy_elevation*np.ones(n_rows)]
+        m_locations = np.c_[data_array[:, m_cols], dummy_elevation*np.ones(n_rows)]
+        n_locations = np.c_[data_array[:, n_cols], dummy_elevation*np.ones(n_rows)]
+    else:
+        a_locations = data_array[:, a_cols]
+        b_locations = data_array[:, b_cols]
+        m_locations = data_array[:, m_cols]
+        n_locations = data_array[:, n_cols]
+    
+    # Set up keeping track of sorting of rows and unique sources
+    k = np.arange(0, n_rows)
+    out_indices = []
+    unique_ab, ab_index = np.unique(np.c_[a_locations, b_locations], axis=0, return_index=True)
+    
+    # Loop over all unique source locations
+    source_list = []
+    for ii, ind in enumerate(ab_index):
+            
+        # Get source location
+        src_loc_a = mkvc(a_locations[ind, :])
+        src_loc_b = mkvc(b_locations[ind, :])
+        
+        # Get receiver locations
+        rx_index = np.where(
+            (
+                (np.sqrt(np.sum((a_locations - src_loc_a)**2, axis=1)) < 1e-3) &
+                (np.sqrt(np.sum((b_locations - src_loc_b)**2, axis=1)) < 1e-3)
+            )
+        )[0]
+        
+        rx_loc_m = m_locations[rx_index, :]
+        rx_loc_n = n_locations[rx_index, :]
+        
+        # Keep track to sorted output
+        out_indices.append(k[rx_index])
+        
+        # Define Pole or Dipole Receivers
+        if np.all(np.isclose(rx_loc_m, rx_loc_n, atol=1e-3)):
+            rx_list = [dc.receivers.Pole(rx_loc_m, data_type=data_type)]
+        elif np.all(np.any(np.isclose(rx_loc_m, rx_loc_n, atol=1e-3)==False, axis=1)):
+            rx_list = [dc.receivers.Dipole(rx_loc_m, rx_loc_n, data_type=data_type)]
+        else:
+            raise NotImplementedError("An individual source cannot have a mix of Pole and Dipole receivers")
+        
+        # Define Pole or Dipole Sources
+        if np.all(np.isclose(src_loc_a, src_loc_b, atol=1e-3)):
+            source_list.append(dc.sources.Pole(rx_list, src_loc_a))
+        else:
+            source_list.append(
+                dc.sources.Dipole(rx_list, src_loc_a, src_loc_b)
+            )
+    
+    out_indices = np.hstack(out_indices)
+    
+    # Define the survey and the data object
+    survey = dc.survey.Survey(source_list)
+    data_object = Data(survey)
+    
+    # Sort and organize all data columns
+    if has_data:
+        data_object.dobs = data_array[out_indices, file_headers.index(data_header)]
+    
+    # Sort and organize all data columns
+    if has_uncert:
+        data_object.standard_deviation = data_array[out_indices, file_headers.index(uncertainties_header)]
+    
+    # Sort and organize all data columns
+    if has_dict:
+        out_dict = {}
+        for h in dict_headers:
+            out_dict[h] = data_array[out_indices, file_headers.index(h)]
+        return data_object, out_dict
+    
+    else:
+        return data_object
 
 
 
@@ -148,7 +304,7 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
     from ...data import Data
 
     # Load file
-    obsfile = np.genfromtxt(file_name, delimiter=" \n", dtype=np.str, comments="!")
+    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=np.str, comments="!")
 
     # Pre-allocate
     source_list = []
@@ -546,9 +702,11 @@ def write_dcip_xyz(file_name, data_object, data_header=None, uncertainties_heade
     # Append data and uncertainties headers
     if (data_object.dobs is not None) & (data_header is not None):
         out_headers += '    ' + data_header
+        out_columns = np.c_[out_columns, data_object.dobs]
 
     if (data_object.standard_deviation is not None) & (uncertainties_header is not None):
         out_headers += '    ' + uncertainties_header
+        out_columns = np.c_[out_columns, data_object.standard_deviation]
 
     # Append additional columns from dictionary
     if out_dict != None:
