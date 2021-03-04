@@ -49,7 +49,8 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
                         and rx._dc_voltage is None
                     ):
                         rx.data_type = "volt"  # make the rx evaluate a voltage
-                        rx._dc_voltage = rx.eval(src, self.mesh, self._f)
+                        dc_voltage_ky = rx.eval(src, self.mesh, self._f)
+                        rx._dc_voltage = dc_voltage_ky.dot(self._quad_weights)
                         rx.data_type = "apparent_chargeability"
                         rx._Ps = {}
             self._dc_data_set = True  # avoid loop through after first call
@@ -227,12 +228,12 @@ class Simulation2DCellCentered(BaseIPSimulation2D, BaseSimulation2DCellCentered)
         Derivative of MfRho with respect to the model
         """
         if getattr(self, "_MfRhoDerivMat", None) is None:
+            drho_dlogrho = sdiag(self.rho) * self.etaDeriv
             self._MfRhoDerivMat = (
                 self.mesh.getFaceInnerProductDeriv(np.ones(self.mesh.nC))(
                     np.ones(self.mesh.nF)
                 )
-                * sdiag(self.rho)
-                * self.etaDeriv
+                * drho_dlogrho
             )
         return self._MfRhoDerivMat
 

@@ -287,7 +287,6 @@ class BaseDCSimulation2D(BaseEMSimulation):
             v = self._mini_survey_dataT(v)
             Jtv = np.zeros(m.size, dtype=float)
 
-            # TODO: this loop is pretty slow .. (Parellize)
             for iky, ky in enumerate(kys):
                 u_ky = f[:, self._solutionType, iky]
                 count = 0

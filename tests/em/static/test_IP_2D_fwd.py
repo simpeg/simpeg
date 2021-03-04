@@ -96,8 +96,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
             self.mesh, rho=1.0 / self.sigmaInf, etaMap=maps.IdentityMap(self.mesh)
         )
         problemIP.Solver = Solver
-        print("\n\n\n")
-        print(self.source_lists_ip)
+
         surveyIP = ip.Survey(self.source_lists_ip)
         problemIP.pair(surveyIP)
         data_full = data0 - datainf
@@ -117,6 +116,112 @@ class IPProblemAnalyticTests(unittest.TestCase):
             plt.show()
 
         self.assertTrue(passed)
+
+
+class ApparentChargeability2DTest(unittest.TestCase):
+    def setUp(self):
+        cs = 12.5
+        hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
+        hy = [(cs, 7, -1.3), (cs, 20)]
+        mesh = discretize.TensorMesh([hx, hy], x0="CN")
+
+        x = np.linspace(-200, 200.0, 20)
+        M = utils.ndgrid(x - 12.5, np.r_[0.0])
+        N = utils.ndgrid(x + 12.5, np.r_[0.0])
+        A0loc = np.r_[-150, 0.0]
+        A1loc = np.r_[-130, 0.0]
+        B0loc = np.r_[-130, 0.0]
+        B1loc = np.r_[-110, 0.0]
+
+        rx = dc.Rx.Dipole(M, N)
+        src0 = dc.Src.Dipole([rx], A0loc, B0loc)
+        src1 = dc.Src.Dipole([rx], A1loc, B1loc)
+
+        survey_dc = dc.Survey([src0, src1])
+
+        rx_ip = dc.Rx.Dipole(M, N, data_type="apparent_chargeability")
+        src0_ip = dc.Src.Dipole([rx_ip], A0loc, B0loc)
+        src1_ip = dc.Src.Dipole([rx_ip], A1loc, B1loc)
+
+        survey_ip = ip.Survey([src0_ip, src1_ip])
+
+        sigmaInf = np.ones(mesh.nC) * 1.0
+        blkind = utils.model_builder.getIndicesSphere(np.r_[0, -150], 40, mesh.gridCC)
+
+        eta = np.zeros(mesh.nC)
+        eta[blkind] = 0.1
+        sigma0 = sigmaInf * (1.0 - eta)
+
+        self.survey_dc = survey_dc
+        self.survey_ip = survey_ip
+        self.mesh = mesh
+        self.sigmaInf = sigmaInf
+        self.sigma0 = sigma0
+        self.eta = eta
+
+    def test_Simulation2DNodal(self):
+
+        simDC = dc.Simulation2DNodal(
+            self.mesh,
+            sigmaMap=maps.IdentityMap(self.mesh),
+            solver=Solver,
+            survey=self.survey_dc,
+        )
+        data0 = simDC.dpred(self.sigma0)
+        datainf = simDC.dpred(self.sigmaInf)
+        data_full = (data0 - datainf) / datainf
+
+        simIP = ip.Simulation2DNodal(
+            self.mesh,
+            sigma=self.sigmaInf,
+            etaMap=maps.IdentityMap(self.mesh),
+            solver=Solver,
+            survey=self.survey_ip,
+        )
+        data = simIP.dpred(self.eta)
+
+        err = np.linalg.norm(data - data_full) / (data_full.max() * data_full.size)
+        err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
+        if err > 0.05:
+            import matplotlib.pyplot as plt
+
+            plt.plot(data_full)
+            plt.plot(data, "k.")
+            plt.show()
+
+        self.assertLess(err, 0.05)
+
+    def test_Simulation2DCellCentered(self):
+
+        simDC = dc.Simulation2DCellCentered(
+            self.mesh,
+            sigmaMap=maps.IdentityMap(self.mesh),
+            solver=Solver,
+            survey=self.survey_dc,
+        )
+        data0 = simDC.dpred(self.sigma0)
+        datainf = simDC.dpred(self.sigmaInf)
+        data_full = (data0 - datainf) / datainf
+
+        simIP = ip.Simulation2DCellCentered(
+            self.mesh,
+            sigma=self.sigmaInf,
+            etaMap=maps.IdentityMap(self.mesh),
+            solver=Solver,
+            survey=self.survey_ip,
+        )
+        data = simIP.dpred(self.eta)
+
+        err = np.linalg.norm(data - data_full) / (data_full.max() * data_full.size)
+        err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
+        if err > 0.05:
+            import matplotlib.pyplot as plt
+
+            plt.plot(data_full)
+            plt.plot(data, "k.")
+            plt.show()
+
+        self.assertLess(err, 0.05)
 
 
 if __name__ == "__main__":
