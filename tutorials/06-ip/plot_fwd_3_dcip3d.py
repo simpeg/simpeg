@@ -35,8 +35,7 @@ from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
 from SimPEG.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
-    apparent_resistivity_from_voltage,
-    plot_3d_pseudosection,
+    apparent_resistivity_from_voltage
 )
 
 import os
@@ -48,6 +47,14 @@ try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
+
+try:
+    import plotly
+    from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
+    has_plotly = True
+except:
+    has_plotly = False
+    pass
 
 mpl.rcParams.update({"font.size": 16})
 save_file = True
@@ -267,10 +274,8 @@ dpred_dc = dc_simulation.dpred(conductivity_model)
 # -----------------------
 #
 # Here we demonstrate how 3D DC resistivity data can be represented on a 3D
-# pseudosection plot. Here, we represent the data as apparent conductivities.
-# This utility allows the user to specify a plane, or a list of planes, near
-# which they would like to plot data values in 3D space. Be aware that because
-# this plotting utility calls matplotlib, it is not a true 3D plotting utility.
+# pseudosection plot. To use this utility, you must have Python's *plotly*
+# package. Here, we represent the data as apparent conductivities.
 #
 
 # Convert predicted data to apparent conductivities
@@ -278,71 +283,28 @@ apparent_conductivity = 1 / apparent_resistivity_from_voltage(
     dc_survey, dpred_dc,
 )
 
-# Generate axes
-fig = plt.figure(figsize=(8, 12))
-ax1 = fig.add_axes([0.01, 0.60, 0.75, 0.33], projection='3d', azim=-45, elev=45)
-ax2 = fig.add_axes([0.01, 0.15, 0.75, 0.33], projection='3d', azim=-45, elev=45)
-cax1 = fig.add_axes([0.8, 0.55, 0.02, 0.4])
-cax2 = fig.add_axes([0.8, 0.1, 0.02, 0.4])
+if has_plotly:
 
-# Plot the single East-West line. A list containing 3 points [p1, p2, p3] is
-# used to define the plane near which we would like to plot the 3D data.
-vlim = [apparent_conductivity.min(), apparent_conductivity.max()]
-p1, p2, p3 = np.array([-1000, 0, 0]), np.array([1000, 0, 0]), np.array([1000, 0, -1000])
-plane_points = [p1, p2, p3]
-ax1 = plot_3d_pseudosection(
-    dc_survey,
-    apparent_conductivity,
-    marker_size=40,
-    ax=ax1,
-    scale="log",
-    vlim=vlim,
-    cax=cax1,
-    plane_points=plane_points,
-    plane_distance=15.0,
-    units="$S/m$",
-)
-ax1.set_xlim([-1000.0, 1000.0])
-ax1.set_ylim([-1000.0, 1000.0])
-ax1.set_xlabel("X [m]", labelpad=15)
-ax1.set_ylabel("Y [m]", labelpad=15)
-ax1.set_zlabel("Z [m]", labelpad=10)
-ax1.set_title("Apparent Conductivity (East-West)", pad=20)
+    fig = plot_3d_pseudosection(
+        dc_survey,
+        apparent_conductivity,
+        scale='log',
+        units='S/m',
+    )
 
-# Plot both North-South lines. For multiple planes, make a list of of plane
-# points.
-vlim = [apparent_conductivity.min(), apparent_conductivity.max()]
-plane_points = []
-p1, p2, p3 = (
-    np.array([-350, -1000, 0]),
-    np.array([-350, 1000, 0]),
-    np.array([-350, 1000, -1000]),
-)
-plane_points.append([p1, p2, p3])
-p1, p2, p3 = (
-    np.array([350, -1000, 0]),
-    np.array([350, 1000, 0]),
-    np.array([350, 1000, -1000]),
-)
-plane_points.append([p1, p2, p3])
-ax2 = plot_3d_pseudosection(
-    dc_survey,
-    apparent_conductivity,
-    marker_size=40,
-    ax=ax2,
-    scale="log",
-    vlim=vlim,
-    cax=cax2,
-    plane_points=plane_points,
-    plane_distance=15.0,
-    units="$S/m$",
-)
-ax2.set_xlim([-1000.0, 1000.0])
-ax2.set_ylim([-1000.0, 1000.0])
-ax2.set_xlabel("X [m]", labelpad=15)
-ax2.set_ylabel("Y [m]", labelpad=15)
-ax2.set_zlabel("Z [m]", labelpad=10)
-ax2.set_title("Apparent Conductivity (North-South)", pad=20)
+    fig.update_layout(
+        title_text='Apparent Conductivity',
+        title_x=0.5,
+        title_font_size=24,
+        width=650,
+        height=500,
+        scene_camera=dict(center=dict(x=0, y=0, z=-0.4))
+    )
+        
+    plotly.io.show(fig)
+
+else:
+    print("INSTALL 'PLOTLY' TO VISUALIZE 3D PSEUDOSECTIONS")
 
 #######################################################################
 # Optional: Write Predicted DC Data
@@ -500,80 +462,35 @@ dpred_ip = ip_simulation.dpred(chargeability_model)
 # Plot IP3D Pseudosection
 # -----------------------
 #
-# Here we demonstrate how 3D DC resistivity data can be represented on a 3D
-# pseudosection plot. Here, we represent the data as apparent conductivities.
-# This utility allows the user to specify a plane, or a list of planes, near
-# which they would like to plot data values in 3D space. Be aware that because
-# this plotting utility calls matplotlib, it is not a true 3D plotting utility.
+# Here we demonstrate how 3D IP data can be represented on a 3D
+# pseudosection plot. To use this utility, you must have Python's *plotly*
+# package. Here, we represent the data as apparent chargeabilities.
 #
 
-# Generate axes
-fig = plt.figure(figsize=(8, 12))
-ax1 = fig.add_axes([0.01, 0.60, 0.75, 0.33], projection='3d', azim=-45, elev=45)
-ax2 = fig.add_axes([0.01, 0.15, 0.75, 0.33], projection='3d', azim=-45, elev=45)
-cax1 = fig.add_axes([0.78, 0.55, 0.02, 0.4])
-cax2 = fig.add_axes([0.78, 0.1, 0.02, 0.4])
+if has_plotly:
 
-# Plot the single East-West line. A list containing 3 points [p1, p2, p3] is
-# used to define the plane near which we would like to plot the 3D data.
-vlim = [dpred_ip.min(), dpred_ip.max()]
-p1, p2, p3 = np.array([-1000, 0, 0]), np.array([1000, 0, 0]), np.array([1000, 0, -1000])
-plane_points = [p1, p2, p3]
-ax1 = plot_3d_pseudosection(
-    ip_survey,
-    dpred_ip,
-    marker_size=40,
-    ax=ax1,
-    scale="linear",
-    vlim=vlim,
-    cax=cax1,
-    plane_points=plane_points,
-    plane_distance=15.0,
-    units="$V/V$",
-    scatter_opts={'cmap': mpl.cm.plasma}
-)
-ax1.set_xlim([-1000.0, 1000.0])
-ax1.set_ylim([-1000.0, 1000.0])
-ax1.set_xlabel("X [m]", labelpad=15)
-ax1.set_ylabel("Y [m]", labelpad=15)
-ax1.set_zlabel("Z [m]", labelpad=10)
-ax1.set_title("Apparent Chargeability (East-West)", pad=20)
+    fig = plot_3d_pseudosection(
+        ip_survey,
+        dpred_ip,
+        vlim=[0., np.max(dpred_ip)],
+        scale='linear',
+        units='V/V',
+        marker_opts={'colorscale': 'plasma'}
+    )
 
-# Plot both North-South lines. For multiple planes, make a list of of plane
-# points.
-vlim = [dpred_ip.min(), dpred_ip.max()]
-plane_points = []
-p1, p2, p3 = (
-    np.array([-350, -1000, 0]),
-    np.array([-350, 1000, 0]),
-    np.array([-350, 1000, -1000]),
-)
-plane_points.append([p1, p2, p3])
-p1, p2, p3 = (
-    np.array([350, -1000, 0]),
-    np.array([350, 1000, 0]),
-    np.array([350, 1000, -1000]),
-)
-plane_points.append([p1, p2, p3])
-ax2 = plot_3d_pseudosection(
-    ip_survey,
-    dpred_ip,
-    marker_size=40,
-    ax=ax2,
-    scale="linear",
-    vlim=vlim,
-    cax=cax2,
-    plane_points=plane_points,
-    plane_distance=15.0,
-    units="$V/V$",
-    scatter_opts={'cmap': mpl.cm.plasma}
-)
-ax2.set_xlim([-1000.0, 1000.0])
-ax2.set_ylim([-1000.0, 1000.0])
-ax2.set_xlabel("X [m]", labelpad=15)
-ax2.set_ylabel("Y [m]", labelpad=15)
-ax2.set_zlabel("Z [m]", labelpad=10)
-ax2.set_title("Apparent Chargeability (North-South)", pad=20)
+    fig.update_layout(
+        title_text='Apparent Chargeability',
+        title_x=0.5,
+        title_font_size=24,
+        width=650,
+        height=500,
+        scene_camera=dict(center=dict(x=0, y=0, z=-0.4))
+    )
+    
+    plotly.io.show(fig)
+
+else:
+    print("INSTALL 'PLOTLY' TO VISUALIZE 3D PSEUDOSECTIONS")
 
 #######################################################################
 # Optional: Write predicted IP data

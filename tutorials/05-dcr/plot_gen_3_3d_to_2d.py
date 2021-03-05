@@ -30,8 +30,7 @@ from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
     apparent_resistivity_from_voltage,
     convert_survey_3d_to_2d_lines,
-    plot_2d_pseudosection,
-    plot_3d_pseudosection,
+    plot_2d_pseudosection
 )    
 
 import os
@@ -43,7 +42,7 @@ mpl.rcParams.update({'font.size': 16})
 
 try:
     import plotly
-    from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection_plotly
+    from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
     has_plotly = True
 except:
     has_plotly = False
@@ -92,10 +91,8 @@ data_3d, out_dict = read_dcip_xyz(
 # ---------------------
 #
 # Here we demonstrate how 3D DC resistivity data can be represented on a 3D
-# pseudosection plot. Here, we represent the data as apparent conductivities.
-# This utility allows the user to specify a plane, or a list of planes, near
-# which they would like to plot data values in 3D space. Be aware that because
-# this plotting utility calls matplotlib, it is not a true 3D plotting utility.
+# pseudosection plot. To use this utility, you must have Python's *plotly*
+# package. Here, we represent the data as apparent conductivities.
 #
 
 # Extract 3D survey and observed data
@@ -108,71 +105,28 @@ apparent_conductivity_3d = 1/apparent_resistivity_from_voltage(
 )
 
 if has_plotly:
-    
-    # layout = go.Layout(
-    #     title={'text': 'Log10 Apparent Conductivity', 'x': 0.5, 'xanchor': 'center'},
-    # )
-    
-    fig = plot_3d_pseudosection_plotly(
+
+    fig = plot_3d_pseudosection(
         survey_3d,
         apparent_conductivity_3d,
         scale='log',
         units='S/m',
     )
-    
-    plotly.io.show(fig)
-    
-else:
+
+    fig.update_layout(
+        title_text='Apparent Conductivity',
+        title_x=0.5,
+        title_font_size=24,
+        width=650,
+        height=500,
+        scene_camera=dict(center=dict(x=0, y=0, z=-0.4))
+    )
         
-    # Generate axes
-    fig = plt.figure(figsize=(8, 12))
-    ax1 = fig.add_axes([0.01, 0.60, 0.75, 0.33], projection='3d', azim=-45, elev=45)
-    ax2 = fig.add_axes([0.01, 0.15, 0.75, 0.33], projection='3d', azim=-45, elev=45)
-    cax1 = fig.add_axes([0.8, 0.55, 0.02, 0.4])
-    cax2 = fig.add_axes([0.8, 0.1, 0.02, 0.4])
-    
-    # Plot the single East-West line. A list containing 3 points [p1, p2, p3] is
-    # used to define the plane near which we would like to plot the 3D data.
-    vlim = [apparent_conductivity_3d.min(), apparent_conductivity_3d.max()]
-    p1, p2, p3 = np.array([-1000, 0, 0]), np.array([1000, 0, 0]), np.array([1000, 0, -1000])
-    plane_points = [p1,p2,p3]
-    ax1 = plot_3d_pseudosection(
-        survey_3d, apparent_conductivity_3d, marker_size=40, ax=ax1, scale='log', vlim=vlim, cax=cax1,
-        plane_points=plane_points, plane_distance=15., units='Apparent Conductivity [S/m]'
-    )
-    ax1.set_xlim([-1000., 1000.])
-    ax1.set_ylim([-1000., 1000.])
-    ax1.set_xlabel('X [m]', labelpad=15)
-    ax1.set_ylabel('Y [m]', labelpad=15)
-    ax1.set_zlabel('Z [m]', labelpad=10)
-    ax1.set_title('East-West Line', pad=20)
-    
-    # Plot both North-South lines. For multiple planes, make a list of of plane
-    # points.
-    vlim = [apparent_conductivity_3d.min(), apparent_conductivity_3d.max()]
-    plane_points = []
-    p1, p2, p3 = (
-        np.array([-350, -1000, 0]),
-        np.array([-350, 1000, 0]),
-        np.array([-350, 1000, -1000]),
-    )
-    plane_points.append([p1,p2,p3])
-    p1, p2, p3 = (
-        np.array([350, -1000, 0]),
-        np.array([350, 1000, 0]),
-        np.array([350, 1000, -1000]),
-    )
-    plane_points.append([p1,p2,p3])
-    ax2 = plot_3d_pseudosection(
-        survey_3d, apparent_conductivity_3d, marker_size=40, ax=ax2, scale='log', vlim=vlim, cax=cax2,
-        plane_points=plane_points, plane_distance=15., units='Apparent Conductivity [S/m]'
-    )
-    ax2.set_xlim([-1000., 1000.])
-    ax2.set_ylim([-1000., 1000.])
-    ax2.set_xlabel('X [m]', labelpad=15)
-    ax2.set_ylabel('Y [m]', labelpad=15)
-    ax2.set_zlabel('Z [m]', labelpad=10)
-    ax2.set_title('North-South Lines', pad=20)
+    plotly.io.show(fig)
+
+else:
+    print("INSTALL 'PLOTLY' TO VISUALIZE 3D PSEUDOSECTIONS")
+
 
 ######################################################################
 # Convert From 3D to 2D

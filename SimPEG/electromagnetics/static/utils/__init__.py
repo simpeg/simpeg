@@ -6,7 +6,6 @@ from .static_utils import (
     apparent_resistivity_from_voltage,
     apparent_resistivity,
     plot_2d_pseudosection,
-    plot_3d_pseudosection,
     # generate_dcip_survey,
     # generate_dcip_survey_line,
     generate_dcip_sources_line,
@@ -27,3 +26,9 @@ from .static_utils import (
     plot_1d_layer_model,
     plot_layer
 )
+
+# Import if user has plotly
+try:
+    from .static_utils import plot_3d_pseudosection
+except:
+    pass
