@@ -16,6 +16,8 @@ import os
 from sphinx_gallery.sorting import FileNameSortKey
 import glob
 import SimPEG
+import plotly.io as pio
+pio.renderers.default = 'sphinx_gallery'
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -338,6 +340,10 @@ texinfo_documents = [
 tutorial_dirs = glob.glob("../tutorials/[!_]*")
 tut_gallery_dirs = ["content/tutorials/" + os.path.basename(f) for f in tutorial_dirs]
 
+# Scaping images to generate on website
+from plotly.io._sg_scraper import plotly_sg_scraper
+image_scrapers = ('matplotlib', plotly_sg_scraper,)
+
 # Sphinx Gallery
 sphinx_gallery_conf = {
     # path to your examples scripts
@@ -346,7 +352,11 @@ sphinx_gallery_conf = {
     "within_subsection_order": FileNameSortKey,
     "backreferences_dir": None,
     "show_memory": True,
+    "image_scrapers": image_scrapers
 }
+
+
+
 
 
 # Documents to append as an appendix to all manuals.

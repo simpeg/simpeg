@@ -18,6 +18,13 @@ from ....utils import (
     define_plane_from_points,
 )
 
+try:
+    import plotly.graph_objects as grapho
+    has_plotly = True
+except:
+    has_plotly = False
+    pass
+
 
 DATA_TYPES = {
     "apparent resistivity": [
@@ -888,6 +895,170 @@ def plot_3d_pseudosection(
         cbar.ax.tick_params()
 
     return ax
+
+if has_plotly:
+    def plot_3d_pseudosection_plotly(
+        survey,
+        dvec,
+        marker_size=10,
+        vlim=None,
+        scale="linear",
+        units="",
+        plane_points=None,
+        plane_distance=10.0,
+        cbar_opts=None,
+        marker_opts=None,
+        layout_opts=None
+    ):
+        """
+        Plot 3D DC/IP data in pseudo-section as a scatter plot.
+
+        This utility allows the user to produce a scatter plot of 3D DC/IP data at
+        all pseudo-locations. If a plane is specified, the user may create a scatter
+        plot using points near that plane.
+
+        Input:
+        survey : SimPEG.electromagnetics.static.survey.Survey
+            A DC or IP survey object
+        dvec : numpy.ndarray
+            A data vector containing volts, integrated chargeabilities, apparent
+            resistivities or apparent chargeabilities.
+        ax: mpl_toolkits.mplot3d.axes3d.Axes3D, optional
+            A 3D axis object for the 3D plot
+        cax : mpl_toolkits.mplot3d.axes.Axes or mpl_toolkits.mplot3d.axes3d.Axes3D, optional
+            An axis object for the colorbar
+        marker_size : int
+            Sets the marker size for the points on the scatter plot
+        vlim : list
+            list containing the minimum and maximum value for the color range,
+            i.e. [vmin, vmax]
+        scale: str
+            Plot on linear or log base 10 scale {'linear','log'}
+        units : str
+            A LateX formatted string stating the desired units for the
+            data; e.g. 'S/m', '$\Omega m$', '%'
+        plane_points : list of numpy.ndarray
+            A list of length 3 which contains the three xyz locations required to
+            define a plane; i.e. [xyz1, xyz2, xyz3]. This functionality is used to
+            plot only data that lie near this plane. A list of [xyz1, xyz2, xyz3]
+            can be entered for multiple planes.
+        plane_distance : float or list of float
+            Distance tolerance for plotting data that are near the plane(s) defined by
+            **plane_points**. A list is used if the *plane_distance* is different
+            for each plane.
+        create_colorbar : bool
+            If *True*, a colorbar is automatically generated. If *False*, it is not.
+            If multiple planes are being plotted, only set the first scatter plot
+            to *True*
+        scatter_opts : dict
+            Dictionary defining kwargs for the scatter plot
+        cbar_opts : dict
+            Dictionary defining kwargs for the colorbar
+        
+
+        Output:
+        mpl_toolkits.mplot3d.axes3d.Axes3D
+            The axis object that holds the plot
+
+        """
+
+        locations = pseudo_locations(survey)
+
+        if scale == "log":
+            plot_vec = np.log10(dvec)
+            cbar_units = 'log10(' + units + ')'
+            if vlim != None:
+                vlim[0] = np.log10(vlim[0])
+                vlim[1] = np.log10(vlim[1])
+        else:
+            plot_vec = dvec
+            cbar_units = units
+
+        # Set colorbar properties
+        if cbar_opts is None:
+            cbar = {
+                'thickness': 20,
+                'title': cbar_units,
+                'titleside': 'right',
+                'tickformat': ".2"
+            }
+        else:
+            cbar = cbar_opts
+
+        # Set marker properties
+        if marker_opts is None:
+            marker={
+                'size': 4,
+                'colorscale': 'viridis',
+                # 'cmin': vlim[0],
+                # 'cmax': vlim[1],
+                'opacity': 0.8,
+                'colorbar': cbar
+            }
+        else:
+            marker = marker_opts
+        
+        # 3D scatter plot
+        if plane_points == None:
+
+            marker['color'] = plot_vec
+            scatter_data = [
+                grapho.Scatter3d(
+                    x=locations[:, 0],
+                    y=locations[:, 1],
+                    z=locations[:, 2],
+                    mode='markers',
+                    marker=marker,
+                )
+            ]
+
+        else:
+            # Place in list if only one plane defined
+            if isinstance(plane_points[0], np.ndarray):
+                plane_points = [plane_points]
+
+            # Expand to list of only one plane distance for all planes
+            if isinstance(plane_distance, list) != True:
+                plane_distance = len(plane_points) * [plane_distance]
+
+            # Pre-allocate index for points on plane(s)
+            k = np.zeros(len(plot_vec), dtype=bool)
+            for ii in range(0, len(plane_points)):
+
+                p1, p2, p3 = plane_points[ii]
+                a, b, c, d = define_plane_from_points(p1, p2, p3)
+
+                k = k | (
+                    np.abs(a * locations[:, 0] + b * locations[:, 1] + c * locations[:, 2] + d)
+                    / np.sqrt(a ** 2 + b ** 2 + c ** 2)
+                    < plane_distance[ii]
+                )
+
+            if np.all(k == 0):
+                raise Exception(
+                    """No locations are within *plane_distance* of any plane(s)
+                    defined by *plane_points*. Try increasing *plane_distance*."""
+                )
+
+            marker['color'] = plot_vec[k]
+            scatter_data = [
+                grapho.Scatter3d(
+                    x=locations[k, 0],
+                    y=locations[k, 1],
+                    z=locations[k, 2],
+                    mode='markers',
+                    marker=marker,
+                )
+            ]
+
+        # layout
+        if layout_opts is None:
+            fig = grapho.Figure(data=scatter_data)
+        else:
+            layout = layout_opts
+            fig = grapho.Figure(data=scatter_data, layout=layout)
+
+        return fig
 
 
 
