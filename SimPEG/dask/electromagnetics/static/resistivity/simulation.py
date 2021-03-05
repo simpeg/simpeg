@@ -17,9 +17,8 @@ def dask_getJ(self, m, f=None):
 
     if self._Jmatrix is not None:
         return self._Jmatrix
-    else:
-        if f is None:
-            f = self.fields(m)
+    if f is None:
+        f = self.fields(m)
 
     if self.verbose:
         print("Calculating J and storing")
