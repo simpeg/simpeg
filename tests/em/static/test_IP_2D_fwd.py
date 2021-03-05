@@ -149,7 +149,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
         blkind = utils.model_builder.getIndicesSphere(np.r_[0, -150], 40, mesh.gridCC)
 
         eta = np.zeros(mesh.nC)
-        eta[blkind] = 0.1
+        eta[blkind] = 0.05
         sigma0 = sigmaInf * (1.0 - eta)
 
         self.survey_dc = survey_dc

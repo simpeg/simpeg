@@ -134,7 +134,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         index = 0
         for src in self.survey.source_list:
             for rx in src.receiver_list:
-                rx._geometric_factor = geometric_factor[index]
+                rx._geometric_factor[src] = geometric_factor[index]
                 index += 1
 
     def fields(self, m):
@@ -323,9 +323,10 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     u_src = u_ky[:, i_src]
                     for rx in src.receiver_list:
                         # wrt f, need possibility wrt m
-                        P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
-
-                        ATinvdf_duT = self.Ainv[iky] * (P.T)
+                        PT = rx.evalDeriv(
+                            src, self.mesh, f, None, adjoint=True
+                        ).toarray()
+                        ATinvdf_duT = self.Ainv[iky] * (PT)
 
                         dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT, adjoint=True)
                         Jtv = -weights[iky] * dA_dmT  # RHS=0

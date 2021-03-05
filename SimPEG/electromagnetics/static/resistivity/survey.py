@@ -117,7 +117,7 @@ class Survey(BaseSurvey):
         geometric_factor = data.Data(self, geometric_factor)
         for source in self.source_list:
             for rx in source.receiver_list:
-                rx._geometric_factor = geometric_factor[source, rx]
+                rx._geometric_factor[source] = geometric_factor[source, rx]
                 rx.data_type = data_type
         return geometric_factor
 

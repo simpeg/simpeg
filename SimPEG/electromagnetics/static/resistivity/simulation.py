@@ -166,13 +166,14 @@ class BaseDCSimulation(BaseEMSimulation):
             u_source = f[source, self._solutionType].copy()
             for rx in source.receiver_list:
                 # wrt f, need possibility wrt m
+                my_v = None
                 if v is not None:
-                    PTv = rx.evalDeriv(
-                        source, self.mesh, f, v[source, rx], adjoint=True
-                    )
-                else:
-                    # This is for forming full sensitivity matrix
-                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+                    my_v = v[source, rx]
+
+                PTv = rx.evalDeriv(source, self.mesh, f, my_v, adjoint=True)
+                if v is None:
+                    PTv = PTv.toarray()
+
                 df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
                 df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
 
