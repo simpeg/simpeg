@@ -171,6 +171,20 @@ class ApparentChargeability3DTest(unittest.TestCase):
             solver=Solver,
         )
         data = simulationip.dpred(self.eta)
+
+        simulationip_stored = ip.simulation.Simulation3DNodal(
+            mesh=self.mesh,
+            survey=self.survey_ip,
+            sigma=self.sigmaInf,
+            etaMap=maps.IdentityMap(self.mesh),
+            Ainv=simulationdc.Ainv,
+            solver=Solver,
+            storeJ=True,
+        )
+        data2 = simulationip_stored.dpred(self.eta)
+
+        np.testing.assert_allclose(data, data2)
+
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
         if err > 0.05:
             import matplotlib.pyplot as plt

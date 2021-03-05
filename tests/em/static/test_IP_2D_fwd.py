@@ -180,7 +180,18 @@ class ApparentChargeability2DTest(unittest.TestCase):
         )
         data = simIP.dpred(self.eta)
 
-        err = np.linalg.norm(data - data_full) / (data_full.max() * data_full.size)
+        simIP_store = ip.Simulation2DNodal(
+            self.mesh,
+            sigma=self.sigmaInf,
+            etaMap=maps.IdentityMap(self.mesh),
+            solver=Solver,
+            survey=self.survey_ip,
+            storeJ=True,
+        )
+        data2 = simIP_store.dpred(self.eta)
+
+        np.testing.assert_allclose(data, data2)
+
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
         if err > 0.05:
             import matplotlib.pyplot as plt
