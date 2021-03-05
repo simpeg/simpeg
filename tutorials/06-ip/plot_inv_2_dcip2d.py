@@ -436,7 +436,7 @@ fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.ActiveCells(mesh, ind_active, np.nan)
 
-ax1 = fig.add_axes([0.1, 0.12, 0.72, 0.8])
+ax1 = fig.add_axes([0.14, 0.15, 0.68, 0.7])
 mesh.plotImage(
     plotting_map * true_conductivity_model_log10,
     ax=ax1,
@@ -450,7 +450,7 @@ ax1.set_title("True Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.83, 0.12, 0.05, 0.8])
+ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.7])
 norm = mpl.colors.Normalize(
     vmin=np.min(true_conductivity_model_log10),
     vmax=np.max(true_conductivity_model_log10),

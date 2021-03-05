@@ -771,12 +771,12 @@ if has_plotly:
         # Scaling
         if scale == "log":
             plot_vec = np.log10(dvec)
-            cbar_units = 'log10(' + units + ')'
             tick_format = ".2f"
+            tick_prefix = '10^'
         else:
             plot_vec = dvec
-            cbar_units = units
             tick_format = "g"
+            tick_prefix = None
 
         if vlim is None:
             vlim = [np.min(plot_vec), np.max(plot_vec)]
@@ -788,8 +788,9 @@ if has_plotly:
         # keys that need to be updated.
         cbar = {
             'thickness': 20,
-            'title': cbar_units,
+            'title': units,
             # 'titleside': 'right',
+            'tickprefix': tick_prefix,
             'tickformat': tick_format
         }
 
