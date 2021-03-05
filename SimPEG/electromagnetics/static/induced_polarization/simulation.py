@@ -46,7 +46,10 @@ class BaseIPSimulation(BaseDCSimulation):
             # loop through receievers to check if they need to set the _dc_voltage
             for src in self.survey.source_list:
                 for rx in src.receiver_list:
-                    if rx.data_type == "apparent_chargeability":
+                    if (
+                        rx.data_type == "apparent_chargeability"
+                        or self.data_type == "apparent_chargeability"
+                    ):
                         scale[src, rx] = self._sign / rx.eval(src, self.mesh, self._f)
             self._scale = scale.dobs
 
