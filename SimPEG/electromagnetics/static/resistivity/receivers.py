@@ -60,11 +60,6 @@ class BaseRx(BaseSimPEGRx):
     def geometric_factor(self):
         return self._geometric_factor
 
-    # @property
-    # def dc_voltage(self):
-    #     # This property is not good
-    #     return self._dc_voltage
-
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
         # field = self.knownRxTypes[self.rxType][0]
@@ -109,7 +104,6 @@ class BaseRx(BaseSimPEGRx):
             return P.T @ v
 
 
-# DC.Rx.Dipole(locations)
 class Dipole(BaseRx):
     """
     Dipole receiver

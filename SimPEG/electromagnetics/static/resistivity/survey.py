@@ -110,9 +110,7 @@ class Survey(BaseSurvey):
         self, data_type="volt", survey_type="dipole-dipole", space_type="half-space"
     ):
 
-        geometric_factor = static_utils.geometric_factor(
-            self, survey_type=survey_type, space_type=space_type
-        )
+        geometric_factor = static_utils.geometric_factor(self, space_type=space_type)
 
         geometric_factor = data.Data(self, geometric_factor)
         for source in self.source_list:

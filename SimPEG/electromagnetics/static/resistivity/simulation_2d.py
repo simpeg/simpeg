@@ -323,10 +323,8 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     u_src = u_ky[:, i_src]
                     for rx in src.receiver_list:
                         # wrt f, need possibility wrt m
-                        PT = rx.evalDeriv(
-                            src, self.mesh, f, None, adjoint=True
-                        ).toarray()
-                        ATinvdf_duT = self.Ainv[iky] * (PT)
+                        PT = rx.evalDeriv(src, self.mesh, f).toarray().T
+                        ATinvdf_duT = self.Ainv[iky] * PT
 
                         dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT, adjoint=True)
                         Jtv = -weights[iky] * dA_dmT  # RHS=0

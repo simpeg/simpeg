@@ -42,7 +42,7 @@ def dask_getJ(self, m, f=None):
         u_source = f[source, self._solutionType]
         for rx in source.receiver_list:
             # wrt f, need possibility wrt m
-            PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+            PTv = rx.evalDeriv(source, self.mesh, f).toarray().T
 
             df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
             df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
