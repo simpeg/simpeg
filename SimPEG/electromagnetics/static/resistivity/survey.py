@@ -108,28 +108,26 @@ class Survey(BaseSurvey):
 
     @property
     def source_locations(self):
-    """
-    Returns the source locations for all sources in the survey.
+        """
+        Returns the source locations for all sources in the survey.
 
-    Input:
-    :param self: SimPEG.electromagnetics.static.resistivity.Survey
+        Input:
+        :param self: SimPEG.electromagnetics.static.resistivity.Survey
 
-    Output:
-    :return source_locations: List of np.ndarray containing the A and B
+        Output:
+        :return source_locations: List of np.ndarray containing the A and B
         electrode locations.
+        """
+        src_a = []
+        src_b = []
 
-    """
+        for src in survey.source_list:
 
-    src_a = []
-    src_b = []
+            src_a.append(src.location_a)
+            src_b.append(src.location_b)
 
-    for src in survey.source_list:
+        return [np.vstack(src_a), np.vstack(src_b)]
 
-        src_a.append(src.location_a)
-        src_b.append(src.location_b)
-
-    return [np.vstack(src_a), np.vstack(src_b)]
-    
 
     def set_geometric_factor(
         self, data_type="volt", survey_type="dipole-dipole", space_type="half-space"
