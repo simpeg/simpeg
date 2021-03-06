@@ -130,13 +130,6 @@ class BaseDCSimulation2D(BaseEMSimulation):
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
 
-    def set_geometric_factor(self, geometric_factor):
-        index = 0
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                rx._geometric_factor[src] = geometric_factor[index]
-                index += 1
-
     def fields(self, m):
         if self.verbose:
             print(">> Compute fields")

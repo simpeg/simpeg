@@ -76,7 +76,15 @@ class BaseRx(BaseSimPEGRx):
         v = P * f[src, proj_f]
 
         if self.data_type == "apparent_resistivity":
-            return v / self.geometric_factor[src]
+            try:
+                if mesh.dim == 2:
+                    return v / self.geometric_factor[src][:, None]
+                return v / self.geometric_factor[src]
+            except KeyError:
+                raise KeyError(
+                    "Receiver geometric factor has not been set, please execute "
+                    "survey.set_geometric_factor()"
+                )
         return v
 
     def evalDeriv(self, src, mesh, f, v=None, adjoint=False):

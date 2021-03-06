@@ -93,14 +93,6 @@ class BaseIPSimulation(BaseDCSimulation):
 
         return self.gtgdiag
 
-    # def getJ(self, m, f=None):
-    #     """
-    #         Generate Full sensitivity matrix
-    #     """
-    #     if self._Jmatrix is None:
-    #         self._Jmatrix = self._Jtvec(m, v=None, f=f).T
-    #     return self._Jmatrix
-
     # @profile
     def Jvec(self, m, v, f=None):
         return self._scale * super().Jvec(m, v, f)
