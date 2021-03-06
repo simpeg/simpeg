@@ -2085,31 +2085,6 @@ def r_unit(p1, p2):
     return vec, r
 
 
-def getSrc_locs(survey):
-    """
-        Read in a DC survey class and extract the xyz location of all
-        sources.
-
-        Input:
-        :param survey: DC survey class object
-        :rtype: SimPEG.electromagnetics.static.resistivity.Survey
-
-        Output:
-        :return numpy.ndarray srcMat: Array containing the locations of sources
-
-    """
-
-    srcMat = []
-
-    for src in survey.source_list:
-
-        srcMat.append(np.hstack(src.location))
-
-    srcMat = np.vstack(srcMat)
-
-    return srcMat
-
-
 def gettopoCC(mesh, actind, option="top"):
     """
         Get topography from active indices of mesh.
@@ -2389,3 +2364,12 @@ def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
 
     return convert_3d_survey_to_2d_lines(survey, lineID)
 
+
+def getSrc_locs(survey):
+    warnings.warn(
+        "The getSrc_locs method has been deprecated. Source "
+        "locations are now computed as a method of the survey "
+        "class. Please use Survey.source_locations(). This method "
+        " will be removed in version 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )

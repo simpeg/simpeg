@@ -106,6 +106,31 @@ class Survey(BaseSurvey):
         loc_n = self.locations_n
         return np.unique(np.vstack((loc_a, loc_b, loc_m, loc_n)), axis=0)
 
+    @property
+    def source_locations(self):
+    """
+    Returns the source locations for all sources in the survey.
+
+    Input:
+    :param self: SimPEG.electromagnetics.static.resistivity.Survey
+
+    Output:
+    :return source_locations: List of np.ndarray containing the A and B
+        electrode locations.
+
+    """
+
+    src_a = []
+    src_b = []
+
+    for src in survey.source_list:
+
+        src_a.append(src.location_a)
+        src_b.append(src.location_b)
+
+    return [np.vstack(src_a), np.vstack(src_b)]
+    
+
     def set_geometric_factor(
         self, data_type="volt", survey_type="dipole-dipole", space_type="half-space"
     ):
