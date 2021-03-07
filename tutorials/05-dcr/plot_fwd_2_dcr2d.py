@@ -189,7 +189,7 @@ fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_mod = np.log10(conductivity_model)
 
-ax1 = fig.add_axes([0.14, 0.15, 0.68, 0.7])
+ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
 mesh.plotImage(
     plotting_map * log_mod,
     ax=ax1,
@@ -299,9 +299,9 @@ if save_file:
     dir_path.extend(["tutorials", "05-dcr", "dcr2d"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    # Add 5% Gaussian noise to each datum
+    # Add 10% Gaussian noise to each datum
     np.random.seed(225)
-    noise = 0.05 * np.abs(dpred) * np.random.rand(len(dpred))
+    noise = 0.1 * np.abs(dpred) * np.random.rand(len(dpred))
 
     # Write out data at their original electrode locations (not shifted)
     data_array = np.c_[electrode_locations, dpred + noise]

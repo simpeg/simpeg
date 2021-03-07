@@ -219,8 +219,8 @@ dc_data = data.Data(dc_survey, dobs=dobs_dc)
 ip_data = data.Data(ip_survey, dobs=dobs_ip)
 
 # Compute standard deviations
-std_dc = 0.05 * np.abs(dobs_dc)
-std_ip = 0.01 * np.abs(dobs_dc)
+std_dc = 0.1 * np.abs(dobs_dc)
+std_ip = 0.01 * np.abs(dobs_dc)  # yes, the uncertainties are 1% the DC datum
 
 # Add standard deviations to data object
 dc_data.standard_deviation = std_dc
@@ -363,7 +363,7 @@ dc_regularization = regularization.Simple(
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
 dc_optimization = optimization.ProjectedGNCG(
-    maxIter=5, lower=-10.0, upper=2.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
+    maxIter=10, lower=-10.0, upper=2.0, maxIterCG=30, tolCG=1e-3
 )
 
 # Here we define the inverse problem that is to be solved
@@ -385,12 +385,12 @@ update_sensitivity_weighting = directives.UpdateSensitivityWeights()
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=2e1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 
 # Set the rate of reduction in trade-off parameter (beta) each time the
 # the inverse problem is solved. And set the number of Gauss-Newton iterations
 # for each trade-off paramter value.
-beta_schedule = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
+beta_schedule = directives.BetaSchedule(coolingFactor=3, coolingRate=2)
 
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
@@ -592,14 +592,14 @@ ip_regularization = regularization.Simple(
     mesh,
     indActive=ind_active,
     mapping=maps.IdentityMap(nP=nC),
-    alpha_s=1,
+    alpha_s=0.01,
     alpha_x=1,
     alpha_y=1,
 )
 
 # Define how the optimization problem is solved.
 ip_optimization = optimization.ProjectedGNCG(
-    maxIter=10, lower=0.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
+    maxIter=10, lower=0.0, upper=1.0, maxIterCG=30, tolCG=1e-3
 )
 
 # Here we define the inverse problem that is to be solved
@@ -616,7 +616,7 @@ ip_inverse_problem = inverse_problem.BaseInvProblem(
 
 update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=2)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 target_misfit = directives.TargetMisfit(chifact=1.0)
 
@@ -629,8 +629,8 @@ directives_list = [
 ]
 
 #####################################################
-# Define IP Inversion Directives
-# ------------------------------
+# Running the IP Inversion
+# ------------------------
 #
 # Here we define the directives in the same manner as the DC inverse problem.
 #

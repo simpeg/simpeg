@@ -311,9 +311,9 @@ if save_file:
     dir_path.extend(["tutorials", "06-ip", "dcip2d"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    # Add 5% Gaussian noise to each datum
+    # Add 10% Gaussian noise to each datum
     np.random.seed(225)
-    dc_noise = 0.05 * np.abs(dpred_dc) * np.random.rand(len(dpred_dc))
+    dc_noise = 0.1 * np.abs(dpred_dc) * np.random.rand(len(dpred_dc))
 
     # Write out data at their original electrode locations (not shifted)
     data_array = np.c_[electrode_locations, dpred_dc + dc_noise]

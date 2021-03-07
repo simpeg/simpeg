@@ -192,7 +192,7 @@ plt.show()
 dc_data = data.Data(survey, dobs=dobs)
 
 # Compute standard deviations
-std = 0.05 * np.abs(dobs)
+std = 0.1 * np.abs(dobs)
 
 # Add standard deviations to data object
 dc_data.standard_deviation = std

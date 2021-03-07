@@ -192,7 +192,7 @@ plt.show()
 dc_data = data.Data(survey, dobs=dobs)
 
 # Compute standard deviations
-std = 0.05 * np.abs(dobs)
+std = 0.1 * np.abs(dobs)
 
 # Add standard deviations to data object
 dc_data.standard_deviation = std
@@ -330,14 +330,14 @@ reg = regularization.Sparse(
     mref=starting_conductivity_model,
     mapping=regmap,
     gradientType="components",
-    alpha_s=0.01,
+    alpha_s=0.001,
     alpha_x=1,
     alpha_y=1,
 )
 
 p = 0
-qx = 1
-qz = 1
+qx = 0.25
+qz = 0.25
 reg.norms = np.c_[p, qx, qz]
 
 # Define how the optimization problem is solved. Here we will use an inexact

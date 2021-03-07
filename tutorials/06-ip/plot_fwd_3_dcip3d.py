@@ -1,36 +1,45 @@
 # -*- coding: utf-8 -*-
 """
-DC Resistivity Forward Simulation in 3D
-=======================================
+DC/IP Forward Simulation in 3D
+==============================
 
 Here we use the module *SimPEG.electromagnetics.static.resistivity* to predict
-DC resistivity data on an OcTree mesh. In this tutorial, we focus on the following:
+DC resistivity data on an OcTree mesh. Then we use the module
+*SimPEG.electromagnetics.static.induced_polarization* to predict IP data.
+In this tutorial, we focus on the following:
 
     - How to define the survey
     - How to definine a tree mesh based on the survey geometry
-    - How to define the forward simulation
-    - How to predict DC resistivity data for a synthetic conductivity model
+    - How to define the forward simulations
+    - How to predict DC and IP for a synthetic conductivity model and a synthetic chargeability model
     - How to include surface topography
     - The units of the model and resulting data
-    - Plotting DC resistivity data in 3D
+    - Plotting DC and IP data in 3D
 
 
-In this case, we simulate dipole-dipole data for one East-West line and two
+In this case, we simulate dipole-dipole data for three East-West lines and two
 North-South lines.
+
 
 """
 
-#########################################################################
+##############################################################
 # Import modules
 # --------------
-#
+# 
+# 
+
+import os
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
+from SimPEG import maps, data
 from SimPEG.utils import model_builder, surface2ind_topo
 from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip_xyz
-from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
 from SimPEG.electromagnetics.static.utils.static_utils import (
@@ -38,16 +47,7 @@ from SimPEG.electromagnetics.static.utils.static_utils import (
     apparent_resistivity_from_voltage
 )
 
-import os
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
-
+# To plot DC/IP data in 3D, the user must have the plotly package
 try:
     import plotly
     from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
@@ -56,46 +56,54 @@ except:
     has_plotly = False
     pass
 
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
+
 mpl.rcParams.update({"font.size": 16})
 save_file = True
 
 # sphinx_gallery_thumbnail_number = 4
 
-
-###############################################################
+#########################################################################
 # Defining Topography
 # -------------------
 #
 # Here we define surface topography as an (N, 3) numpy array. Topography could
-# also be loaded from a file. In our case, our survey takes place in circular
+# also be loaded from a file. In our case, our survey takes place within a circular
 # depression.
-#
+# 
 
 x_topo, y_topo = np.meshgrid(
-    np.linspace(-2000, 2000, 161), np.linspace(-2000, 2000, 161)
+    np.linspace(-2100, 2100, 141), np.linspace(-2000, 2000, 141)
 )
 s = np.sqrt(x_topo**2 + y_topo**2)
 z_topo = (1 / np.pi) * 140 * (-np.pi / 2 + np.arctan((s - 600.0) / 80.0))
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
-
-#####################################################################
-# Create Dipole-Dipole Survey
-# ---------------------------
-#
-# Here we define 3 survey lines that use a dipole-dipole electrode configuration.
+#########################################################################
+# Construct the DC Survey
+# -----------------------
+# 
+# Here we define 5 DC lines that use a dipole-dipole electrode configuration;
+# three lines along the East-West direction and 2 lines along the North-South direction.
 # For each source, we must define the AB electrode locations. For each receiver
-# we must define the MN electrode location. Instead of creating the survey
+# we must define the MN electrode locations. Instead of creating the survey
 # from scratch (see 1D example), we will use the *generat_dcip_sources_line* utility.
-#
+# This utility will give us the source list for a given DC/IP line. We can append
+# the sources for multiple lines to create the survey.
+# 
 
 # Define the parameters for each survey line
 survey_type = "dipole-dipole"
 data_type = "volt"
 dimension_type = "3D"
 end_locations_list = [
+    np.r_[-1000.0, 1000.0, -500.0, -500.0],
     np.r_[-1000.0, 1000.0, 0.0, 0.0],
+    np.r_[-1000.0, 1000.0, 500.0, 500.0],
     np.r_[-350.0, -350.0, -1000.0, 1000.0],
     np.r_[350.0, 350.0, -1000.0, 1000.0],
 ]
@@ -119,14 +127,15 @@ for ii in range(0, len(end_locations_list)):
 # Define the survey
 dc_survey = dc.survey.Survey(source_list)
 
-
-###############################################################
+#################################################################
 # Create OcTree Mesh
 # ------------------
-#
+# 
 # Here, we create the OcTree mesh that will be used to predict DC data.
-#
+# 
+# 
 
+# Defining domain side and minimum cell size
 dh = 25.0  # base cell width
 dom_width_x = 6000.0  # domain width x
 dom_width_y = 6000.0  # domain width y
@@ -147,35 +156,33 @@ mesh = refine_tree_xyz(
     mesh, xyz_topo[k, :], octree_levels=[0, 4, 8, 4], method="surface", finalize=False
 )
 
-# Mesh refinement near sources and receivers. First we need to obtain the
-# set of unique electrode locations.
+# Mesh refinement near sources and receivers. 
 electrode_locations = np.r_[
     dc_survey.locations_a, dc_survey.locations_b, dc_survey.locations_m, dc_survey.locations_n
 ]
-
 unique_locations = np.unique(electrode_locations, axis=0)
-
 mesh = refine_tree_xyz(
     mesh, unique_locations, octree_levels=[4, 8, 4], method="radial", finalize=False
 )
 
+# Finalize the mesh
 mesh.finalize()
 
-###############################################################
+################################################################
 # Create Conductivity Model and Mapping for OcTree Mesh
 # -----------------------------------------------------
-#
+# 
 # Here we define the conductivity model that will be used to predict DC
 # resistivity data. The model consists of a conductive block and a
 # resistive block within a moderately conductive background. Note that
 # you can carry through this work flow with a resistivity model if desired.
-#
+# 
 
 # Define conductivity model in S/m (or resistivity model in Ohm m)
 air_value = 1e-8
 background_value = 1e-2
 conductor_value = 1e-1
-resistor_value = 1e-4
+resistor_value = 1e-3
 
 # Find active cells in forward modeling (cell below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
@@ -189,31 +196,31 @@ conductivity_model = background_value * np.ones(nC)
 
 ind_conductor = (
     (mesh.gridCC[ind_active, 0] > -500.0)
-    & (mesh.gridCC[ind_active, 0] < -150.0)
+    & (mesh.gridCC[ind_active, 0] < -200.0)
     & (mesh.gridCC[ind_active, 1] > -400.0)
     & (mesh.gridCC[ind_active, 1] < 400.0)
-    & (mesh.gridCC[ind_active, 2] > -550.0)
+    & (mesh.gridCC[ind_active, 2] > -500.0)
     & (mesh.gridCC[ind_active, 2] < -200.0)
 )
 conductivity_model[ind_conductor] = conductor_value
 
 ind_resistor = (
-    (mesh.gridCC[ind_active, 0] > 150.0)
+    (mesh.gridCC[ind_active, 0] > 200.0)
     & (mesh.gridCC[ind_active, 0] < 500.0)
     & (mesh.gridCC[ind_active, 1] > -400.0)
     & (mesh.gridCC[ind_active, 1] < 400.0)
-    & (mesh.gridCC[ind_active, 2] > -550.0)
+    & (mesh.gridCC[ind_active, 2] > -500.0)
     & (mesh.gridCC[ind_active, 2] < -200.0)
 )
 conductivity_model[ind_resistor] = resistor_value
 
 # Plot Conductivity Model
-fig = plt.figure(figsize=(11, 4))
+fig = plt.figure(figsize=(10, 4))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_mod = np.log10(conductivity_model)
 
-ax1 = fig.add_axes([0.1, 0.12, 0.7, 0.78])
+ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
 mesh.plotSlice(
     plotting_map * log_mod,
     ax=ax1,
@@ -229,7 +236,7 @@ ax1.set_ylabel("z (m)")
 ax1.set_xlim([-2000, 2000])
 ax1.set_ylim([-2000, 0])
 
-ax2 = fig.add_axes([0.83, 0.12, 0.03, 0.78])
+ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.75])
 norm = mpl.colors.Normalize(
     vmin=np.log10(resistor_value), vmax=np.log10(conductor_value)
 )
@@ -238,51 +245,71 @@ cbar = mpl.colorbar.ColorbarBase(
 )
 cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 
-
-###############################################################
+##########################################################
 # Project Survey to Discretized Topography
 # ----------------------------------------
-#
+# 
 # It is important that electrodes are not modeled as being in the air. Even if the
 # electrodes are properly located along surface topography, they may lie above
-# the discretized topography. This step is carried out to ensure all electrodes
+# the *discretized* topography. This step is carried out to ensure all electrodes
 # lie on the discretized surface.
-#
+# 
+# 
 
 dc_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 
-
-#######################################################################
+############################################################
 # Predict DC Resistivity Data
 # ---------------------------
-#
+# 
 # Here we predict DC resistivity data. If the keyword argument *sigmaMap* is
 # defined, the simulation will expect a conductivity model. If the keyword
 # argument *rhoMap* is defined, the simulation will expect a resistivity model.
-#
+# 
+# 
+# 
 
+# Define the DC simulation
 dc_simulation = dc.simulation.Simulation3DNodal(
     mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
 )
 
-# Predict the data by running the simulation. The data are the raw voltage in
-# units of volts.
+# Predict the data by running the simulation. The data are the measured voltage
+# normalized by the source current in units of V/A.
 dpred_dc = dc_simulation.dpred(conductivity_model)
 
-#######################################################################
-# Plot DC3D Pseudosection
-# -----------------------
-#
+#########################################################
+# Plot DC Data in 3D Pseudosection
+# --------------------------------
+# 
 # Here we demonstrate how 3D DC resistivity data can be represented on a 3D
 # pseudosection plot. To use this utility, you must have Python's *plotly*
 # package. Here, we represent the data as apparent conductivities.
-#
+# 
+# The *plot_3d_pseudosection* utility allows the user to plot all pseudosection
+# points, or plot the pseudosection plots that lie within some distance of
+# one or more planes.
+# 
 
-# Convert predicted data to apparent conductivities
+# Since the data are normalized voltage, we must convert predicted 
+# to apparent conductivities.
 apparent_conductivity = 1 / apparent_resistivity_from_voltage(
     dc_survey, dpred_dc,
 )
 
+# For large datasets or for surveys with unconventional electrode geometry,
+# interpretation can be challenging if we plot every datum. Here, we plot 
+# 3 out of the 5 survey lines to better image anomalous structures.
+# To plot ALL of the data, simply remove the keyword argument *plane_points*
+# when calling *plot_3d_pseudosection*.
+plane_points = []
+p1, p2, p3 = np.array([-1000, 0, 0]), np.array([1000, 0, 0]), np.array([0, 0, -1000])
+plane_points.append([p1, p2, p3])
+p1, p2, p3 = np.array([-350, -1000, 0]), np.array([-350, 1000, 0]), np.array([-350, 0, -1000])
+plane_points.append([p1, p2, p3])
+p1, p2, p3 = np.array([350, -1000, 0]), np.array([350, 1000, 0]), np.array([350, 0, -1000])
+plane_points.append([p1, p2, p3])
+              
 if has_plotly:
 
     fig = plot_3d_pseudosection(
@@ -290,6 +317,8 @@ if has_plotly:
         apparent_conductivity,
         scale='log',
         units='S/m',
+        plane_points=plane_points,
+        plane_distance=15
     )
 
     fig.update_layout(
@@ -298,7 +327,7 @@ if has_plotly:
         title_font_size=24,
         width=650,
         height=500,
-        scene_camera=dict(center=dict(x=0, y=0, z=-0.4))
+        scene_camera=dict(center=dict(x=0.05, y=0, z=-0.4))
     )
         
     plotly.io.show(fig)
@@ -306,12 +335,12 @@ if has_plotly:
 else:
     print("INSTALL 'PLOTLY' TO VISUALIZE 3D PSEUDOSECTIONS")
 
-#######################################################################
+########################################################
 # Optional: Write Predicted DC Data
 # ---------------------------------
-#
+# 
 # Write DC resistivity data, topography and true model
-#
+# 
 
 if save_file:
 
@@ -319,19 +348,34 @@ if save_file:
     dir_path.extend(["tutorials", "06-ip", "dcip3d"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    # Add 5% Gaussian noise to each datum
+    # Add 10% Gaussian noise to each datum
     np.random.seed(433)
-    std = 0.05 * np.abs(dpred_dc)
+    std = 0.1 * np.abs(dpred_dc)
     noise = std * np.random.rand(len(dpred_dc))
     dobs = dpred_dc + noise
     
     # Create dictionary that stores line IDs
-    N = int(dc_survey.nD/3)
-    lineID = np.r_[np.ones(N), 2*np.ones(N), 3*np.ones(N)]
+    N = int(dc_survey.nD/5)
+    lineID = np.r_[np.ones(N), 2*np.ones(N), 3*np.ones(N), 4*np.ones(N), 5*np.ones(N)]
     out_dict = {'LINEID': lineID}
     
+    # Create a survey with the original electrode locations
+    # and not the shifted ones
+    source_list = []
+    for ii in range(0, len(end_locations_list)):
+        source_list += generate_dcip_sources_line(
+            survey_type,
+            data_type,
+            dimension_type,
+            end_locations_list[ii],
+            xyz_topo,
+            num_rx_per_src,
+            station_separation,
+        )
+    dc_survey_original = dc.survey.Survey(source_list)
+    
     # Write out data at their original electrode locations (not shifted)
-    data_obj = data.Data(dc_survey, dobs=dobs, standard_deviation=std)
+    data_obj = data.Data(dc_survey_original, dobs=dobs, standard_deviation=std)
     
     fname = dir_path + "dc_data.xyz"
     write_dcip_xyz(
@@ -349,13 +393,14 @@ if save_file:
     np.savetxt(fname, xyz_topo, fmt="%.4e")
 
 
-#######################################################################
+############################################
 # Define IP Survey
 # ----------------
-#
-# The geometry of the survey was defined earlier. We will define the IP
-# data as apparent chargeabilities. Thus the data type is still 'V/V'.
-#
+# 
+# In the same manner as before, we use the *generate_dcip_sources_lines*
+# to generate an IP survey whose receivers define the data in
+# terms of the apparent chargeability (V/V).
+# 
 
 # Generate source list for IP survey lines
 source_list = []
@@ -376,16 +421,19 @@ ip_survey = ip.survey.Survey(source_list, survey_type=survey_type)
 # Drape to discretized topography as before
 ip_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 
-###############################################################
+
+#################################################################
 # Create Chargeability Model and Mapping for OcTree Mesh
 # ------------------------------------------------------
-#
+# 
 # Here we define the chargeability model that will be used to predict IP data.
 # Here we assume that the conductive sphere is also chargeable but the resistive
-# sphere is not. Here, the chargeability is defined as mV/V.
-#
+# sphere is not. Here, the chargeability model represents the intrinsic
+# chargeability of the Earth (V/V).
+# 
+# 
 
-# Define conductivity model in S/m (or resistivity model in Ohm m)
+# Define intrinsic chargeability model (V/V)
 air_value = 1e-8
 background_value = 1e-6
 chargeable_value = 1e-1
@@ -398,20 +446,20 @@ chargeability_model = background_value * np.ones(nC)
 
 ind_chargeable = (
     (mesh.gridCC[ind_active, 0] > -500.0)
-    & (mesh.gridCC[ind_active, 0] < -150.0)
+    & (mesh.gridCC[ind_active, 0] < -200.0)
     & (mesh.gridCC[ind_active, 1] > -400.0)
     & (mesh.gridCC[ind_active, 1] < 400.0)
-    & (mesh.gridCC[ind_active, 2] > -550.0)
+    & (mesh.gridCC[ind_active, 2] > -500.0)
     & (mesh.gridCC[ind_active, 2] < -200.0)
 )
-chargeability_model[ind_conductor] = chargeable_value
+chargeability_model[ind_chargeable] = chargeable_value
 
-# Plot Conductivity Model
-fig = plt.figure(figsize=(11, 4))
+# Plot Chargeability Model
+fig = plt.figure(figsize=(10, 4))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
-ax1 = fig.add_axes([0.1, 0.12, 0.7, 0.78])
+ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
 mesh.plotSlice(
     plotting_map * chargeability_model,
     ax=ax1,
@@ -427,7 +475,7 @@ ax1.set_ylabel("z (m)")
 ax1.set_xlim([-2000, 2000])
 ax1.set_ylim([-2000, 0])
 
-ax2 = fig.add_axes([0.83, 0.12, 0.03, 0.78])
+ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.75])
 norm = mpl.colors.Normalize(
     vmin=background_value, vmax=chargeable_value
 )
@@ -436,13 +484,14 @@ cbar = mpl.colorbar.ColorbarBase(
 )
 cbar.set_label("Intrinsic Chargeability [V/V]", rotation=270, labelpad=15, size=12)
 
-#######################################################################
+################################################
 # Predict IP Data
 # ---------------
-#
+# 
 # Here we use a chargeability model and a background conductivity/resistivity
 # model to predict IP data.
-#
+# 
+# 
 
 # We use the keyword argument *sigma* to define the background conductivity on
 # the mesh. We could use the keyword argument *rho* to accomplish the same thing
@@ -458,14 +507,17 @@ ip_simulation = ip.simulation.Simulation3DNodal(
 # Run forward simulation and predicted IP data. The data are the voltage (V)
 dpred_ip = ip_simulation.dpred(chargeability_model)
 
-#######################################################################
-# Plot IP3D Pseudosection
-# -----------------------
-#
+##################################################
+# Plot IP Data in 3D Pseudosection
+# --------------------------------
+# 
 # Here we demonstrate how 3D IP data can be represented on a 3D
 # pseudosection plot. To use this utility, you must have Python's *plotly*
 # package. Here, we represent the data as apparent chargeabilities.
-#
+# Since the IP data are already represented as apparent chargeabilities,
+# we can plot the data directly.
+# 
+# 
 
 if has_plotly:
 
@@ -475,6 +527,8 @@ if has_plotly:
         vlim=[0., np.max(dpred_ip)],
         scale='linear',
         units='V/V',
+        plane_points=plane_points,
+        plane_distance=15,
         marker_opts={'colorscale': 'plasma'}
     )
 
@@ -484,7 +538,7 @@ if has_plotly:
         title_font_size=24,
         width=650,
         height=500,
-        scene_camera=dict(center=dict(x=0, y=0, z=-0.4))
+        scene_camera=dict(center=dict(x=0.05, y=0, z=-0.4))
     )
     
     plotly.io.show(fig)
@@ -492,20 +546,37 @@ if has_plotly:
 else:
     print("INSTALL 'PLOTLY' TO VISUALIZE 3D PSEUDOSECTIONS")
 
-#######################################################################
+
+############################################################
 # Optional: Write predicted IP data
 # ---------------------------------
-#
+# 
 # Write data and true model
-#
+# 
+# 
 
 if save_file:
 
-    # Add 1% Gaussian noise based on the DC data (not the IP data)
+    # Add Gaussian noise with a standard deviation of 5e-3 V/V
     np.random.seed(444)
-    std = 0.01 * np.abs(dpred_dc) 
+    std = 5e-3 * np.ones_like(dpred_ip)
     noise = std * np.random.rand(len(dpred_ip))
     dobs = dpred_ip + noise
+    
+    # Create a survey with the original electrode locations
+    # and not the shifted ones.
+    source_list = []
+    for ii in range(0, len(end_locations_list)):
+        source_list += generate_dcip_sources_line(
+            survey_type,
+            data_type,
+            dimension_type,
+            end_locations_list[ii],
+            xyz_topo,
+            num_rx_per_src,
+            station_separation,
+        )
+    ip_survey_original = ip.survey.Survey(source_list)
     
     # Write out data at their original electrode locations (not shifted)
     data_obj = data.Data(ip_survey, dobs=dobs, standard_deviation=std)
@@ -521,3 +592,4 @@ if save_file:
 
     fname = dir_path + "true_chargeability.txt"
     np.savetxt(fname, chargeability_map * chargeability_model, fmt="%.4e")
+

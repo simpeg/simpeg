@@ -13,7 +13,7 @@ In this tutorial, we focus on the following:
     - Plotting data for each 2D survey on a 2D pseudo-section
     - Including survey topography when plotting pseudo-sections
 
-In this case, the survey consists of dipole-dipole data for one East-West line
+In this case, the survey consists of dipole-dipole data for three East-West lines
 and two North-South lines.
 
 """
@@ -48,7 +48,7 @@ except:
     has_plotly = False
     pass
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 3
 
 #############################################
 # Load the Data
@@ -119,7 +119,10 @@ if has_plotly:
         title_font_size=24,
         width=650,
         height=500,
-        scene_camera=dict(center=dict(x=0, y=0, z=-0.4))
+        scene_camera=dict(
+            center=dict(x=0, y=0, z=-0.4),
+            eye=dict(x=1.6, y=-1.6, z=1.8)
+        )
     )
         
     plotly.io.show(fig)
@@ -163,7 +166,9 @@ for ind in index_list:
 #
 
 title_str = [
+    'East-West Line at Northing = -500 m',
     'East-West Line at Northing = 0 m',
+    'East-West Line at Northing = 500 m',
     'North-South Line at Easting = -350 m',
     'North-South Line at Easting = -350 m'
 ]
