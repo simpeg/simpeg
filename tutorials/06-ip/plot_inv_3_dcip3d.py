@@ -135,13 +135,12 @@ ip_data = read_dcip_xyz(
 )
 
 ##########################################################
-# Plot Observed Data in Pseudosection
-# -----------------------------------
+# Plot Observed DC Data in Pseudosection
+# --------------------------------------
 # 
-# Here we plot the observed DC and IP data in 3D pseudosections.
+# Here we plot the observed DC data in 3D pseudosection.
 # To use this utility, you must have Python's *plotly* package.
-# Here, we represent the DC data as apparent conductivities
-# and the IP data as apparent chargeabilities.
+# Here, we represent the DC data as apparent conductivities.
 # 
 
 # Convert predicted data to apparent conductivities
@@ -152,15 +151,14 @@ apparent_conductivity = 1 / apparent_resistivity_from_voltage(
 if has_plotly:
     
     # Plot DC Data
-    fig1 = plot_3d_pseudosection(
+    fig = plot_3d_pseudosection(
         dc_data.survey,
         apparent_conductivity,
         scale='log',
-        units='S/m',
-        plane_distance=15
+        units='S/m'
     )
 
-    fig1.update_layout(
+    fig.update_layout(
         title_text='Apparent Conductivity',
         title_x=0.5,
         title_font_size=24,
@@ -172,20 +170,34 @@ if has_plotly:
         )
     )
         
-    plotly.io.show(fig1)
+    plotly.io.show(fig)
+
+else:
+    print("INSTALL 'PLOTLY' TO VISUALIZE 3D PSEUDOSECTIONS")
+
+
+##########################################################
+# Plot Observed IP Data in Pseudosection
+# --------------------------------------
+# 
+# Here we plot the observed IP data in 3D pseudosection.
+# To use this utility, you must have Python's *plotly* package.
+# Here, we represent the IP data as apparent chargeabilities.
+# 
+              
+if has_plotly:
     
     # Plot IP Data
-    fig2 = plot_3d_pseudosection(
+    fig = plot_3d_pseudosection(
         ip_data.survey,
         ip_data.dobs,
         scale='linear',
         units='V/V',
         vlim=[0, np.max(ip_data.dobs)],
-        plane_distance=15,
         marker_opts={'colorscale': 'plasma'}
     )
 
-    fig2.update_layout(
+    fig.update_layout(
         title_text='Apparent Chargeability',
         title_x=0.5,
         title_font_size=24,
@@ -197,7 +209,7 @@ if has_plotly:
         )
     )
         
-    plotly.io.show(fig2)
+    plotly.io.show(fig)
 
 else:
     print("INSTALL 'PLOTLY' TO VISUALIZE 3D PSEUDOSECTIONS")
@@ -354,10 +366,11 @@ dc_regularization = regularization.Simple(
     alpha_z=1
 )
 
-# Define how the optimization problem is solved. Here we will use a projected
-# Gauss-Newton approach that employs the conjugate gradient solver.
+dc_regularization.mrefInSmooth=True  # Include reference model in smoothness
+
+# Define how the optimization problem is solved.
 dc_optimization = optimization.ProjectedGNCG(
-    maxIter=15, lower=-10.0, upper=2.0, maxIterCG=30, tolCG=1e-3
+    maxIter=15, maxIterLS=20, maxIterCG=30, tolCG=1e-3
 )
 
 # Here we define the inverse problem that is to be solved
@@ -385,7 +398,7 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 # Set the rate of reduction in trade-off parameter (beta) each time the
 # the inverse problem is solved. And set the number of Gauss-Newton iterations
 # for each trade-off paramter value.
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=2)
+beta_schedule = directives.BetaSchedule(coolingFactor=3, coolingRate=2)
 
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
@@ -595,6 +608,8 @@ ip_regularization = regularization.Simple(
     alpha_y=1,
     alpha_z=1
 )
+
+ip_regularization.mrefInSmooth=True  # Include reference model in smoothness
 
 # Define how the optimization problem is solved.
 ip_optimization = optimization.ProjectedGNCG(

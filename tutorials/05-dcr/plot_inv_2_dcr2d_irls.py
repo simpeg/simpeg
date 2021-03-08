@@ -330,14 +330,16 @@ reg = regularization.Sparse(
     mref=starting_conductivity_model,
     mapping=regmap,
     gradientType="components",
-    alpha_s=0.001,
+    alpha_s=0.01,
     alpha_x=1,
     alpha_y=1,
 )
 
+reg.mrefInSmooth=True  # Include reference model in smoothness
+
 p = 0
-qx = 0.25
-qz = 0.25
+qx = 1
+qz = 1
 reg.norms = np.c_[p, qx, qz]
 
 # Define how the optimization problem is solved. Here we will use an inexact
@@ -366,7 +368,7 @@ update_IRLS = directives.Update_IRLS(
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=2e1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 
 # Update preconditionner
 update_Jacobi = directives.UpdatePreconditioner()

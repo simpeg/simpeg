@@ -360,11 +360,11 @@ dc_regularization = regularization.Simple(
     alpha_y=1,
 )
 
-# Define how the optimization problem is solved. Here we will use a projected
-# Gauss-Newton approach that employs the conjugate gradient solver.
-dc_optimization = optimization.ProjectedGNCG(
-    maxIter=10, lower=-10.0, upper=2.0, maxIterCG=30, tolCG=1e-3
-)
+dc_regularization.mrefInSmooth=True  # Include reference model in smoothness
+
+# Define how the optimization problem is solved. Here we will use an inexact
+# Gauss-Newton approach.
+dc_optimization = optimization.InexactGaussNewton(maxIter=40)
 
 # Here we define the inverse problem that is to be solved
 dc_inverse_problem = inverse_problem.BaseInvProblem(
@@ -597,9 +597,12 @@ ip_regularization = regularization.Simple(
     alpha_y=1,
 )
 
-# Define how the optimization problem is solved.
+ip_regularization.mrefInSmooth=True  # Include reference model in smoothness
+
+# Define how the optimization problem is solved. Here it is a projected
+# Gauss Newton with Conjugate Gradient solver.
 ip_optimization = optimization.ProjectedGNCG(
-    maxIter=10, lower=0.0, upper=1.0, maxIterCG=30, tolCG=1e-3
+    maxIter=5, lower=0.0, upper=1.0, maxIterCG=30, tolCG=1e-3
 )
 
 # Here we define the inverse problem that is to be solved

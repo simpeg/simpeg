@@ -329,11 +329,11 @@ reg = regularization.Simple(
     alpha_y=1,
 )
 
-# Define how the optimization problem is solved. Here we will use a projected
-# Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.ProjectedGNCG(
-    maxIter=5, lower=-10.0, upper=2.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
-)
+reg.mrefInSmooth=True  # Reference model in smoothness term
+
+# Define how the optimization problem is solved. Here we will use an
+# Inexact Gauss Newton approach.
+opt = optimization.InexactGaussNewton(maxIter=40)
 
 # Here we define the inverse problem that is to be solved
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -352,12 +352,12 @@ update_sensitivity_weighting = directives.UpdateSensitivityWeights()
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=2e1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 
 # Set the rate of reduction in trade-off parameter (beta) each time the
 # the inverse problem is solved. And set the number of Gauss-Newton iterations
 # for each trade-off paramter value.
-beta_schedule = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
+beta_schedule = directives.BetaSchedule(coolingFactor=3, coolingRate=2)
 
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
