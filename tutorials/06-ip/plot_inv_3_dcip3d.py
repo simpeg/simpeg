@@ -70,7 +70,7 @@ except ImportError:
 
 mpl.rcParams.update({'font.size': 16})
 
-# sphinx_gallery_thumbnail_number = 6
+# sphinx_gallery_thumbnail_number = 7
 
 ##########################################################
 # Define File Names

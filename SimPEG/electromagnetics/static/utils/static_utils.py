@@ -773,10 +773,12 @@ if has_plotly:
             plot_vec = np.log10(dvec)
             tick_format = ".2f"
             tick_prefix = '10^'
+            hovertemplate = 'x: %{x:.2f}<br>y: %{y:.2f}<br>z: %{z:.2f}<br>value: %{customdata:.3e} ' + units
         else:
             plot_vec = dvec
             tick_format = "g"
             tick_prefix = None
+            hovertemplate = 'x: %{x:.2f}<br>y: %{y:.2f}<br>z: %{z:.2f}<br>value: %{customdata:.6g} ' + units
 
         if vlim is None:
             vlim = [np.min(plot_vec), np.max(plot_vec)]
@@ -789,7 +791,6 @@ if has_plotly:
         cbar = {
             'thickness': 20,
             'title': units,
-            # 'titleside': 'right',
             'tickprefix': tick_prefix,
             'tickformat': tick_format
         }
@@ -819,6 +820,9 @@ if has_plotly:
                     x=locations[:, 0],
                     y=locations[:, 1],
                     z=locations[:, 2],
+                    customdata=dvec,
+                    hovertemplate=hovertemplate,
+                    name='',
                     mode='markers',
                     marker=marker,
                 )
@@ -858,6 +862,7 @@ if has_plotly:
                     x=locations[k, 0],
                     y=locations[k, 1],
                     z=locations[k, 2],
+                    customdata=dvec[k],
                     mode='markers',
                     marker=marker,
                 )
