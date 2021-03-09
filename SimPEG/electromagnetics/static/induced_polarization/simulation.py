@@ -89,7 +89,7 @@ class BaseIPSimulation(BaseDCSimulation):
             else:
                 W = (self._scale * W.diagonal()) ** 2
 
-            self.gtgdiag = np.einsum(W, J, J, "i,ij,ij->j")
+            self.gtgdiag = np.einsum("i,ij,ij->j", W, J, J)
 
         return self.gtgdiag
 

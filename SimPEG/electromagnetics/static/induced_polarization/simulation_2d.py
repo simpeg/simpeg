@@ -27,6 +27,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
     _sign = 1
     _pred = None
     _scale = None
+    gtgdiag = None
 
     def fields(self, m):
         if self.verbose:
@@ -75,7 +76,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
             else:
                 W = (self._scale * W.diagonal()) ** 2
 
-            self.gtgdiag = np.einsum(W, J, J, "i,ij,ij->j")
+            self.gtgdiag = np.einsum("i,ij,ij->j", W, J, J)
 
         return self.gtgdiag
 
