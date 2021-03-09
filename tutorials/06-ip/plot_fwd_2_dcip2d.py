@@ -33,6 +33,7 @@ from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
 from SimPEG.utils import model_builder, surface2ind_topo
+from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip2d_ubc
 from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
@@ -110,7 +111,7 @@ source_list = generate_dcip_sources_line(
 )
 
 # Define survey
-dc_survey = dc.survey.Survey(source_list, survey_type=survey_type)
+dc_survey = dc.survey.Survey(source_list)
 
 
 ###############################################################
@@ -293,6 +294,7 @@ plot_2d_pseudosection(
     ax=ax1,
     scale="log",
     units="S/m",
+    mask_topography=True,
     tricontourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
 )
 ax1.set_title("Apparent Conductivity")
@@ -313,13 +315,28 @@ if save_file:
 
     # Add 10% Gaussian noise to each datum
     np.random.seed(225)
-    dc_noise = 0.1 * np.abs(dpred_dc) * np.random.rand(len(dpred_dc))
-
+    std = 0.1 * np.abs(dpred_dc)
+    dc_noise = std * np.random.rand(len(dpred_dc))
+    dobs = dpred_dc + dc_noise
+    
+    # Create a survey with the original electrode locations
+    # and not the shifted ones
+    # Generate source list for DC survey line
+    source_list = generate_dcip_sources_line(
+        survey_type,
+        data_type,
+        dimension_type,
+        end_locations,
+        xyz_topo,
+        num_rx_per_src,
+        station_separation
+    )
+    dc_survey_original = dc.survey.Survey(source_list)
+    
     # Write out data at their original electrode locations (not shifted)
-    data_array = np.c_[electrode_locations, dpred_dc + dc_noise]
-
+    data_obj = data.Data(dc_survey_original, dobs=dobs, standard_deviation=std)
     fname = dir_path + "dc_data.obs"
-    np.savetxt(fname, data_array, fmt="%.4e")
+    write_dcip2d_ubc(fname, data_obj, 'volt', 'dobs')
 
     fname = dir_path + "true_conductivity.txt"
     np.savetxt(fname, conductivity_map * conductivity_model, fmt="%.4e")
@@ -457,7 +474,7 @@ ax1.set_title("Apparent Conductivity")
 # the DC voltage
 apparent_chargeability = dpred_ip / dpred_dc
 
-ax2 = fig.add_axes([0.1, 0.05, 0.72, 0.4])
+ax2 = fig.add_axes([0.1, 0.075, 0.72, 0.4])
 cax2 = fig.add_axes([0.84, 0.075, 0.05, 0.4])
 plot_2d_pseudosection(
     ip_survey,
@@ -484,12 +501,28 @@ plt.show()
 if save_file:
 
     # Add 1% Gaussian noise based on the DC data (not the IP data)
-    ip_noise = 0.01 * np.abs(dpred_dc) * np.random.rand(len(dpred_ip))
-
-    data_array = np.c_[electrode_locations, dpred_ip + ip_noise]
-
+    std = 0.01 * np.abs(dpred_dc)
+    ip_noise = std * np.random.rand(len(dpred_ip))
+    dobs = dpred_ip + ip_noise
+    
+    # Create a survey with the original electrode locations
+    # and not the shifted ones
+    # Generate source list for DC survey line
+    source_list = generate_dcip_sources_line(
+        survey_type,
+        data_type,
+        dimension_type,
+        end_locations,
+        xyz_topo,
+        num_rx_per_src,
+        station_separation
+    )
+    ip_survey_original = dc.survey.Survey(source_list)
+    
+    # Write out data at their original electrode locations (not shifted)
+    data_obj = data.Data(ip_survey_original, dobs=dobs, standard_deviation=std)
     fname = dir_path + "ip_data.obs"
-    np.savetxt(fname, data_array, fmt="%.4e")
+    write_dcip2d_ubc(fname, data_obj, 'secondary_potential', 'dobs')
 
     fname = dir_path + "true_chargeability.txt"
     np.savetxt(fname, chargeability_map * chargeability_model, fmt="%.4e")

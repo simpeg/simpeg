@@ -46,6 +46,7 @@ from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
     plot_2d_pseudosection, apparent_resistivity_from_voltage
 )
+from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
 try:
     from pymatsolver import Pardiso as Solver
@@ -104,35 +105,7 @@ true_conductivity_filename = dir_path + "true_conductivity.txt"
 
 # Load data
 topo_xyz = np.loadtxt(str(topo_filename))
-dobs = np.loadtxt(str(data_filename))
-
-# Extract source and receiver electrode locations and the observed data
-A_electrodes = dobs[:, 0:2]
-B_electrodes = dobs[:, 2:4]
-M_electrodes = dobs[:, 4:6]
-N_electrodes = dobs[:, 6:8]
-dobs = dobs[:, -1]
-
-# Define survey
-unique_tx, k = np.unique(np.c_[A_electrodes, B_electrodes], axis=0, return_index=True)
-n_sources = len(k)
-k = np.r_[k, len(A_electrodes) + 1]
-
-source_list = []
-for ii in range(0, n_sources):
-
-    # MN electrode locations for receivers. Each is an (N, 3) numpy array
-    M_locations = M_electrodes[k[ii] : k[ii + 1], :]
-    N_locations = N_electrodes[k[ii] : k[ii + 1], :]
-    receiver_list = [dc.receivers.Dipole(M_locations, N_locations, data_type="volt")]
-
-    # AB electrode locations for source. Each is a (1, 3) numpy array
-    A_location = A_electrodes[k[ii], :]
-    B_location = B_electrodes[k[ii], :]
-    source_list.append(dc.sources.Dipole(receiver_list, A_location, B_location))
-
-# Define survey
-survey = dc.survey.Survey(source_list)
+dc_data = read_dcip2d_ubc(data_filename, 'volt')
 
 #######################################################################
 # Plot Observed Data in Pseudo-Section
@@ -149,8 +122,8 @@ survey = dc.survey.Survey(source_list)
 fig = plt.figure(figsize=(12, 5))
 ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
 plot_2d_pseudosection(
-    survey,
-    np.abs(dobs),
+    dc_data.survey,
+    np.abs(dc_data.dobs),
     'scatter',
     ax=ax1,
     scale="log",
@@ -161,13 +134,15 @@ ax1.set_title("Normalized Voltages")
 plt.show()
 
 # Get apparent conductivities from volts and survey geometry
-apparent_conductivities = 1/apparent_resistivity_from_voltage(survey, dobs)
+apparent_conductivities = 1/apparent_resistivity_from_voltage(
+    dc_data.survey, dc_data.dobs
+)
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))
 ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
 plot_2d_pseudosection(
-    survey,
+    dc_data.survey,
     apparent_conductivities,
     'tricontourf',
     ax=ax1,
@@ -179,23 +154,17 @@ plot_2d_pseudosection(
 ax1.set_title("Apparent Conductivity")
 plt.show()
 
-#############################################
-# Define Data and Assign Uncertainties
-# ------------------------------------
-#
-# Inversion with SimPEG requires that we define standard deviation on our data.
-# This represents our estimate of the noise in our data. For DC data, a relative
-# error is applied to each datum.
-#
+####################################################
+# Assign Uncertainties
+# --------------------
+# 
+# Inversion with SimPEG requires that we define the uncertainties on our data.
+# This represents our estimate of the standard deviation of the
+# noise in our data. For DC data, the uncertainties are 10% of the absolute value.
+# 
+# 
 
-# Define a data object
-dc_data = data.Data(survey, dobs=dobs)
-
-# Compute standard deviations
-std = 0.1 * np.abs(dobs)
-
-# Add standard deviations to data object
-dc_data.standard_deviation = std
+dc_data.standard_deviation = 0.1 * np.abs(dc_data.dobs)
 
 ########################################################
 # Create Tree Mesh
@@ -223,14 +192,14 @@ mesh = refine_tree_xyz(
 # Mesh refinement near transmitters and receivers. First we need to obtain the
 # set of unique electrode locations.
 electrode_locations = np.c_[
-    survey.locations_a,
-    survey.locations_b,
-    survey.locations_m,
-    survey.locations_n,
+    dc_data.survey.locations_a,
+    dc_data.survey.locations_b,
+    dc_data.survey.locations_m,
+    dc_data.survey.locations_n,
 ]
 
 unique_locations = np.unique(
-    np.reshape(electrode_locations, (4 * survey.nD, 2)), axis=0
+    np.reshape(electrode_locations, (4 * dc_data.survey.nD, 2)), axis=0
 )
 
 mesh = refine_tree_xyz(
@@ -264,8 +233,15 @@ topo_2d = np.unique(topo_xyz[:, [0, 2]], axis=0)
 # Find cells that lie below surface topography
 ind_active = surface2ind_topo(mesh, topo_2d)
 
+# Extract survey from data object
+survey = dc_data.survey
+
 # Shift electrodes to the surface of discretized topography
 survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
+
+# Reset survey in data object
+dc_data.survey = survey
+
 
 ########################################################
 # Starting/Reference Model and Mapping on Tree Mesh
@@ -363,7 +339,7 @@ update_sensitivity_weighting = directives.UpdateSensitivityWeights()
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
 update_IRLS = directives.Update_IRLS(
-    max_irls_iterations=20, minGNiter=1, chifact_start=1.
+    max_irls_iterations=15, minGNiter=1, chifact_start=1.
 )
 
 # Defining a starting value for the trade-off parameter (beta) between the data
@@ -469,6 +445,8 @@ plt.show()
 
 # Predicted data from recovered model
 dpred = inv_prob.dpred
+dobs = dc_data.dobs
+std = dc_data.standard_deviation
 
 # Plot
 fig = plt.figure(figsize=(9, 13))

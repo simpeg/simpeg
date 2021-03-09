@@ -1,6 +1,7 @@
 from __future__ import print_function
 import numpy as np
 from discretize.utils import mkvc
+import warnings
 
 
 ########################################################################################
@@ -109,6 +110,11 @@ def read_dcip_xyz(
         b_locations = np.c_[data_array[:, b_cols], dummy_elevation*np.ones(n_rows)]
         m_locations = np.c_[data_array[:, m_cols], dummy_elevation*np.ones(n_rows)]
         n_locations = np.c_[data_array[:, n_cols], dummy_elevation*np.ones(n_rows)]
+        warnings.warn(
+            "Loaded data are in surface format. Elevations automatically set to 9999 m. "
+            "Use the project_to_discretized_topography method of the survey to project "
+            "electrode locations to the discretized surface."
+        )
     else:
         a_locations = data_array[:, a_cols]
         b_locations = data_array[:, b_cols]
@@ -182,6 +188,158 @@ def read_dcip_xyz(
     else:
         return data_object
 
+
+def read_dcip2d_ubc(file_name, data_type):
+    """
+    Read 2D DC/IP survey, predicted and observation files in UBC-GIF format.
+
+    Parameters
+    ----------
+
+    file_name : str
+        The file path to the data file
+
+    Returns
+    -------
+    data_object
+        A SimPEG.data.Data object containing:
+
+        - The survey
+        - Observed/predicted data (if present in the data file)
+        - Uncertainties (if present in the data file). Note that predicted DC data
+        files contain the apparent resistivities, which are loaded into SimPEG and
+        defined as uncertainties.
+
+    """
+    assert data_type.lower() in [
+        "volt",
+        "apparent_chargeability",
+        "secondary_potential",
+    ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+
+    # Prevent circular import
+    from ...electromagnetics.static import resistivity as dc
+    from ...data import Data
+
+    # Load file
+    obsfile = np.genfromtxt(file_name, delimiter="\n", dtype=np.str, comments="!")
+
+    # Pre-allocate
+    source_list = []
+    receiver_list = []
+    d = []
+    wd = []
+
+    # Flag for z value provided
+    is_surface = False
+    is_pole_tx = False
+    is_pole_rx = False
+
+    # IP data for dcip3d has a line with a flag we can remove.
+    if data_type != "volt":
+        obsfile = obsfile[1:]
+
+    # Since SimPEG defines secondary potential from IP as voltage,
+    # we must use this type when defining the receivers.
+    if data_type.lower() == "secondary_potential":
+        data_type = "volt"
+
+    # Countdown for number of obs/tx
+    count = 0
+    for ii in range(obsfile.shape[0]):
+
+        if not obsfile[ii]:
+            continue
+
+        # Extract transmitter ii and the number of receivers
+        if count == 0:
+            rx = []
+            temp = np.fromstring(obsfile[ii], dtype=float, sep=" ").T
+            count = int(temp[-1])
+
+            # Check if z value is provided, if False -> 9999
+            if len(temp) == 3:
+                # check if pole|dipole
+                if np.allclose(temp[0], temp[1]):
+                    tx = np.r_[temp[0], 9999]
+                    is_pole_tx = True
+                else:
+                    tx = np.r_[temp[0], 9999, temp[1], 9999]
+                is_surface = True
+
+            else:
+                # check if pole|dipole
+                if np.allclose(temp[0:2], temp[2:4]):
+                    tx = np.r_[temp[0:2]]
+                    is_pole_tx = True
+                else:
+                    tx = temp[:-1]
+
+            continue
+
+        # Extract receivers
+        temp = np.fromstring(obsfile[ii], dtype=float, sep=" ")
+
+        if is_surface:
+            data_column_index = 2  # Since dpred for dc has app_res
+
+            # Check if Pole Receiver
+            if np.allclose(temp[0], temp[1]):
+                is_pole_rx = True
+                rx.append(temp[0])
+            else:
+                rx.append(np.r_[temp[0], 9999, temp[1], 9999])
+
+        else:
+            data_column_index = 4  # Since dpred for dc has app_res
+
+            # Check if Pole Receiver
+            if np.allclose(temp[0:2], temp[2:4]):
+                is_pole_rx = True
+                rx.append(temp[:2])
+            else:
+                rx.append(temp[:4])
+
+        # Predicted/observed data
+        if len(temp) == data_column_index + 1:
+            d.append(temp[data_column_index])
+
+        # Observed data or predicted DC data (since app res column)
+        elif len(temp) == data_column_index + 2:
+            d.append(temp[data_column_index])
+            wd.append(temp[data_column_index + 1])
+
+        count = count - 1
+
+        # Reach the end of transmitter block
+        if count == 0:
+            rx = np.asarray(rx)
+            if is_pole_rx:
+                Rx = dc.receivers.Pole(rx[:, :2], data_type=data_type)
+            else:
+                Rx = dc.receivers.Dipole(rx[:, :2], rx[:, 2:], data_type=data_type)
+            if is_pole_tx:
+                source_list.append(dc.sources.Pole([Rx], tx[:2]))
+            else:
+                source_list.append(dc.sources.Dipole([Rx], tx[:2], tx[2:]))
+    
+    survey = dc.survey.Survey(source_list)
+    data_out = Data(survey=survey)
+
+    if len(d) > 0:
+        data_out.dobs = d
+
+    if len(wd) > 0:
+        data_out.standard_deviation = wd
+
+    if is_surface:
+        warnings.warn(
+            "Loaded data were in surface format. Elevations automatically set to 9999 m. "
+            "Use the project_to_discretized_topography method of the survey to project "
+            "electrode locations to the discretized surface."
+        )
+
+    return data_out
 
 
 def read_dcip3d_ubc(file_name, data_type):
@@ -318,7 +476,7 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
     is_pole_rx = False
 
     # IP data for dcip3d has a line with a flag we can remove.
-    if (code_type == "dcip3d") & (data_type != "volt"):
+    if data_type != "volt":
         obsfile = obsfile[1:]
 
     # Since SimPEG defines secondary potential from IP as voltage,
@@ -339,14 +497,14 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
             temp = np.fromstring(obsfile[ii], dtype=float, sep=" ").T
             count = int(temp[-1])
 
-            # Check if z value is provided, if False -> nan
+            # Check if z value is provided, if False -> 9999
             if len(temp) == 5:
                 # check if pole|dipole
                 if np.allclose(temp[0:2], temp[2:4]):
-                    tx = np.r_[temp[0:2], np.nan]
+                    tx = np.r_[temp[0:2], 9999]
                     is_pole_tx = True
                 else:
-                    tx = np.r_[temp[0:2], np.nan, temp[2:4], np.nan]
+                    tx = np.r_[temp[0:2], 9999, temp[2:4], 9999]
                 is_surface = True
 
             else:
@@ -370,7 +528,7 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
                 is_pole_rx = True
                 rx.append(temp[:2])
             else:
-                rx.append(np.r_[temp[0:2], np.nan, temp[2:4], np.nan])
+                rx.append(np.r_[temp[0:2], 9999, temp[2:4], 9999])
 
         else:
             data_column_index = 6  # Since dpred for dc has app_res
@@ -404,20 +562,8 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
                 source_list.append(dc.sources.Pole([Rx], tx[:3]))
             else:
                 source_list.append(dc.sources.Dipole([Rx], tx[:3], tx[3:]))
-
-    # Define survey type
-    if is_pole_tx:
-        str1 = "pole-"
-    else:
-        str1 = "dipole-"
-
-    if is_pole_rx:
-        str2 = "pole"
-    else:
-        str2 = "dipole"
-
-    electrode_configuration = str1 + str2
-    survey = dc.survey.Survey(source_list, survey_type=electrode_configuration)
+    
+    survey = dc.survey.Survey(source_list)
     data_out = Data(survey=survey)
 
     if len(d) > 0:
@@ -426,7 +572,156 @@ def _read_dcip_3d_or_octree_ubc(file_name, data_type, code_type):
     if len(wd) > 0:
         data_out.standard_deviation = wd
 
+    if is_surface:
+        warnings.warn(
+            "Loaded data were in surface format. Elevations automatically set to 9999 m. "
+            "Use the project_to_discretized_topography method of the survey to project "
+            "electrode locations to the discretized surface."
+        )
+
     return data_out
+
+
+
+def write_dcip2d_ubc(
+    file_name,
+    data_object,
+    data_type,
+    file_type,
+    format_type="general",
+    comment_lines=None,
+):
+    """
+    Write UBC DCIP3D formatted survey, predicted or observation files.
+
+    Parameters
+    ----------
+    file_name:
+    data_object:
+    data_type: {'volt', 'apparent_chargeability', 'secondary_potential'}
+    file_type: 'survey', 'dpred', 'dobs'
+    format_type: 'general', 'surface'
+    comment_lines:
+    """
+
+    # Prevent circular import
+    from ...electromagnetics.static import resistivity as dc
+    from ...electromagnetics.static.utils.static_utils import apparent_resistivity_from_voltage
+    from ...electromagnetics.static.resistivity.sources import Pole as PoleSrc, Dipole as DipoleSrc
+    from ...electromagnetics.static.resistivity.receivers import Pole as PoleRx, Dipole as DipoleRx
+
+    from ...data import Data
+
+    # Validate inputs
+    if not isinstance(data_object, Data):
+        raise Exception(
+            "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
+            "provided as the second input. The provided input is a "
+            "{providedcls} <{providedpref}.{providedcls}>".format(
+                datacls=Data.__name__,
+                datapref=Data.__module__,
+                providedcls=data_object.__class__.__name__,
+                providedpref=data_object.__module__,
+            )
+        )
+
+    assert data_type.lower() in [
+        "volt",
+        "apparent_chargeability",
+        "secondary_potential",
+    ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
+
+    assert file_type.lower() in [
+        "survey",
+        "dpred",
+        "dobs",
+    ], "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
+
+    assert format_type.lower() in [
+        "general",
+        "surface"
+    ], "Parameter 'format_type' must be one of {'general', 'surface'}"
+
+    # Predicted DC data will automatically contain apparent resistivity column.
+    # Here we compute the apparent resistivities and treat it like an uncertainties column.
+    if (file_type.lower() == "dpred") & (data_type == "volt"):
+        data_object.standard_deviation = apparent_resistivity_from_voltage(
+            data_object.survey, data_object.dobs
+        )
+        file_type = "dobs"
+
+    # Write comments and IP type (if applicable)
+    with open(file_name, "w") as fid:
+        fid.write(f"! {format_type} FORMAT\n")
+
+        if comment_lines is not None and len(comment_lines) > 0:
+            # ensure comment_lines ends with a new line character
+            if comment_lines[-1] != "\n":
+                comment_lines += "\n"
+            fid.write(comment_lines)
+
+        # DCIP3D will allow user to choose definition of IP data. DC data has no flag.
+        # DCIPoctree IP data is always apparent chargeability.
+        if data_type == "apparent_chargeability":
+            fid.write("IPTYPE=1\n")
+        elif data_type == "secondary_potential":
+            fid.write("IPTYPE=2\n")
+
+        # Index deciding if z locations are written
+        if format_type.lower() == "surface":
+            end_index = 1
+        elif format_type.lower() == "general":
+            end_index = 2
+
+        # Loop over all sources
+        count = 0
+        for src in data_object.survey.source_list:
+
+            # Write Source
+            nD = src.nD
+
+            if isinstance(src, PoleSrc):
+                tx = np.r_[src.location]
+                tx = np.repeat(np.r_[[tx]], 2, axis=0)
+            elif isinstance(src, DipoleSrc):
+                tx = np.c_[src.location]
+
+            fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:end_index].T))
+            fid.write(f"{nD}\n")
+
+            # Write receivers
+            for rx in src.receiver_list:
+
+                if isinstance(rx, DipoleRx):
+                    M = rx.locations[0][:, 0:end_index]
+                    N = rx.locations[1][:, 0:end_index]
+                elif isinstance(rx, PoleRx):
+                    M = rx.locations[:, 0:end_index]
+                    N = rx.locations[:, 0:end_index]
+
+                if file_type.lower() != "survey":
+                    N = np.c_[N, data_object.dobs[count : count + rx.nD]]
+
+                if file_type.lower() == "dobs":
+                    N = np.c_[N, data_object.standard_deviation[count : count + rx.nD]]
+
+                # Write receivers and locations
+                if isinstance(N, np.ndarray):
+                    np.savetxt(
+                        fid, np.c_[M, N], fmt="%e",
+                    )
+                else:
+                    raise Exception(
+                        """Uncertainities SurveyObject.std should be set.
+                        Either float or nunmpy.ndarray is expected, """
+                        "not {}".format(type(data_object.relative_error))
+                    )
+
+                fid.write("\n")
+
+                count += rx.nD
+
+
 
 
 def write_dcip3d_ubc(
@@ -435,7 +730,6 @@ def write_dcip3d_ubc(
     data_type,
     file_type,
     format_type="general",
-    electrode_configuration=None,
     comment_lines="",
 ):
     """
@@ -445,11 +739,11 @@ def write_dcip3d_ubc(
     ----------
     file_name:
     data_object:
-    file_type: 'survey', 'dpred', 'dobs'
-    format_type: 'general', 'surface', 'simple'
     data_type: 'volt', 'apparent_chargeability', 'secondary_potential'
+    file_type: 'survey', 'dpred', 'dobs'
+    format_type: 'general', 'surface'
     electrode_configuration: 'pole-pole', 'pole-dipole', 'dipole-pole', 'dipole-dipole'
-    comment_lines:)
+    comment_lines:
     """
 
     assert data_type.lower() in [
@@ -464,13 +758,17 @@ def write_dcip3d_ubc(
         "dobs",
     ], "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
 
+    assert format_type.lower() in [
+        "general",
+        "surface",
+    ], "Parameter 'format_type' must be one of {'general', 'surface'}"
+
     _write_dcip_3d_or_octree_ubc(
         file_name,
         data_object,
         data_type,
         file_type,
         format_type=format_type,
-        electrode_configuration=electrode_configuration,
         code_type="dcip3d",
         comment_lines=comment_lines,
     )
@@ -482,7 +780,6 @@ def write_dcipoctree_ubc(
     data_type,
     file_type,
     format_type="general",
-    electrode_configuration=None,
     comment_lines="",
 ):
     """
@@ -492,9 +789,9 @@ def write_dcipoctree_ubc(
     ----------
     file_name:
     data_object:
+    data_type: 'volt', 'apparent_chargeability', 'secondary_potential'
     file_type: 'survey', 'dpred', 'dobs'
-    format_type: 'general', 'surface', 'simple'
-    data_type: 0 (DC), 1 (IP), 2 (another IP)
+    format_type: 'general', 'surface'
     electrode_configuration: 'pole-pole', 'pole-dipole', 'dipole-pole', 'dipole-dipole'
     comment_lines:)
     """
@@ -510,13 +807,17 @@ def write_dcipoctree_ubc(
         "dobs",
     ], "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
 
+    assert format_type.lower() in [
+        "general",
+        "surface"
+    ], "Parameter 'format_type' must be one of {'general', 'surface', 'simple'}"
+
     _write_dcip_3d_or_octree_ubc(
         file_name,
         data_object,
         data_type,
         file_type,
         format_type="general",
-        electrode_configuration=electrode_configuration,
         code_type="dcipoctree",
         comment_lines=comment_lines,
     )
@@ -528,7 +829,6 @@ def _write_dcip_3d_or_octree_ubc(
     data_type,
     file_type,
     format_type="general",
-    electrode_configuration=None,
     code_type="dcip3d",
     comment_lines=None,
 ):
@@ -539,17 +839,16 @@ def _write_dcip_3d_or_octree_ubc(
     ----------
     file_name:
     data_object:
-    file_type: 'survey', 'dpred', 'dobs'
-    format_type: 'general', 'surface', 'simple'
     data_type: {'volt', 'apparent_chargeability', 'secondary_potential'}
-    electrode_configuration: 'pole-pole', 'pole-dipole', 'dipole-pole', 'dipole-dipole'
+    file_type: 'survey', 'dpred', 'dobs'
+    format_type: 'general', 'surface'
     code_type: 'dcip3d', 'dcipoctree'
     comment_lines:
     """
 
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
-    from ...electromagnetics.static.utils.static_utils import apparent_resistivity
+    from ...electromagnetics.static.utils.static_utils import apparent_resistivity_from_voltage
     from ...data import Data
 
     # Validate inputs
@@ -582,20 +881,21 @@ def _write_dcip_3d_or_octree_ubc(
         "dcipoctree",
     ], "Parameter 'code_type' must be one of {'dcip3d', 'dcipoctree'}"
 
-    format_type = format_type.lower()
-    if format_type not in ["surface", "general", "simple"]:
-        raise Exception(
-            "format_type must be 'surface' | 'general' | 'simple' "
-            " not {}".format(format_type)
-        )
+    assert format_type.lower() in [
+        "general",
+        "surface"
+    ], "Parameter 'format_type' must be one of {'general', 'surface'}"
 
-    if electrode_configuration is None:
-        electrode_configuration = data_object.survey.survey_type
+    # Prevent circular import
+    from ...electromagnetics.static.resistivity.sources import Pole as PoleSrc, Dipole as DipoleSrc
+    from ...electromagnetics.static.resistivity.receivers import Pole as PoleRx, Dipole as DipoleRx
 
     # Predicted DC data will automatically contain apparent resistivity column.
     # Here we compute the apparent resistivities and treat it like an uncertainties column.
     if (file_type.lower() == "dpred") & (data_type == "volt"):
-        data_object.standard_deviation = apparent_resistivity(data_object)
+        data_object.standard_deviation = apparent_resistivity_from_voltage(
+            data_object.survey, data_object.dobs
+        )
         file_type = "dobs"
 
     # Write comments and IP type (if applicable)
@@ -610,9 +910,9 @@ def _write_dcip_3d_or_octree_ubc(
 
         # DCIP3D will allow user to choose definition of IP data. DC data has no flag.
         # DCIPoctree IP data is always apparent chargeability.
-        if (code_type.lower() == "dcip3d") & (data_type == "apparent_chargeability"):
+        if data_type == "apparent_chargeability":
             fid.write("IPTYPE=1\n")
-        elif (code_type.lower() == "dcip3d") & (data_type == "secondary_potential"):
+        elif data_type == "secondary_potential":
             fid.write("IPTYPE=2\n")
 
         # Index deciding if z locations are written
@@ -628,10 +928,10 @@ def _write_dcip_3d_or_octree_ubc(
             # Write Source
             nD = src.nD
 
-            if electrode_configuration.lower() in ["pole-dipole", "pole-pole"]:
+            if isinstance(src, PoleSrc):
                 tx = np.r_[src.location]
                 tx = np.repeat(np.r_[[tx]], 2, axis=0)
-            elif electrode_configuration.lower() in ["dipole-dipole", "dipole-pole"]:
+            elif isinstance(src, DipoleSrc):
                 tx = np.c_[src.location]
 
             fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:end_index].T))
@@ -640,12 +940,12 @@ def _write_dcip_3d_or_octree_ubc(
             # Write receivers
             for rx in src.receiver_list:
 
-                if electrode_configuration.lower() in ["pole-dipole", "dipole-dipole"]:
-                    M = rx.locations[0][0:end_index]
-                    N = rx.locations[1][0:end_index]
-                elif electrode_configuration.lower() in ["pole-pole", "dipole-pole"]:
-                    M = rx.locations[0:end_index]
-                    N = rx.locations[0:end_index]
+                if isinstance(rx, DipoleRx):
+                    M = rx.locations[0][:, 0:end_index]
+                    N = rx.locations[1][:, 0:end_index]
+                elif isinstance(rx, PoleRx):
+                    M = rx.locations[:, 0:end_index]
+                    N = rx.locations[:, 0:end_index]
 
                 if file_type.lower() != "survey":
                     N = np.c_[N, data_object.dobs[count : count + rx.nD]]

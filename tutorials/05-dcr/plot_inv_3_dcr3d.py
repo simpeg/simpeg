@@ -173,11 +173,11 @@ else:
 # 
 # Inversion with SimPEG requires that we define the uncertainties on our data.
 # This represents our estimate of the standard deviation of the
-# noise in our data. For DC data, the uncertainties are 5% of the absolute value.
+# noise in our data. For DC data, the uncertainties are 10% of the absolute value.
 # 
 # 
 
-dc_data.standard_deviation = 0.05 * np.abs(dc_data.dobs)
+dc_data.standard_deviation = 0.1 * np.abs(dc_data.dobs)
 
 
 ################################################################

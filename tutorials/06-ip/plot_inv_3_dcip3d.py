@@ -221,12 +221,12 @@ else:
 # 
 # Inversion with SimPEG requires that we define the uncertainties on our data.
 # This represents our estimate of the standard deviation of the
-# noise in our data. For DC data, the uncertainties are 5% of the absolute value.
+# noise in our data. For DC data, the uncertainties are 10% of the absolute value.
 # For IP data, the uncertainties are 5e-3 V/V.
 # 
 # 
 
-dc_data.standard_deviation = 0.05 * np.abs(dc_data.dobs)
+dc_data.standard_deviation = 0.1 * np.abs(dc_data.dobs)
 ip_data.standard_deviation = 5e-3 * np.ones_like(ip_data.dobs)
 
 
@@ -630,7 +630,7 @@ ip_inverse_problem = inverse_problem.BaseInvProblem(
 
 update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=2)
+beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 target_misfit = directives.TargetMisfit(chifact=1.0)
 

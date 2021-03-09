@@ -52,6 +52,7 @@ from SimPEG.electromagnetics.static.utils.static_utils import (
     apparent_resistivity_from_voltage,
     plot_2d_pseudosection
 )
+from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
 try:
     from pymatsolver import Pardiso as Solver
@@ -109,52 +110,8 @@ true_chargeability_filename = dir_path + "true_chargeability.txt"
 
 # Load data
 topo_xyz = np.loadtxt(str(topo_filename))
-dobs_dc = np.loadtxt(str(dc_data_filename))
-dobs_ip = np.loadtxt(str(ip_data_filename))
-
-# Extract source and receiver electrode locations and the observed data
-A_electrodes = dobs_dc[:, 0:2]
-B_electrodes = dobs_dc[:, 2:4]
-M_electrodes = dobs_dc[:, 4:6]
-N_electrodes = dobs_dc[:, 6:8]
-dobs_dc = dobs_dc[:, -1]
-dobs_ip = dobs_ip[:, -1]
-
-unique_tx, k = np.unique(np.c_[A_electrodes, B_electrodes], axis=0, return_index=True)
-n_sources = len(k)
-k = np.r_[k, len(A_electrodes) + 1]
-
-# Define DC survey
-source_list = []
-for ii in range(0, n_sources):
-
-    # MN electrode locations for receivers. Each is an (N, 3) numpy array
-    M_locations = M_electrodes[k[ii] : k[ii + 1], :]
-    N_locations = N_electrodes[k[ii] : k[ii + 1], :]
-    receiver_list = [dc.receivers.Dipole(M_locations, N_locations, data_type="volt")]
-
-    # AB electrode locations for source. Each is a (1, 3) numpy array
-    A_location = A_electrodes[k[ii], :]
-    B_location = B_electrodes[k[ii], :]
-    source_list.append(dc.sources.Dipole(receiver_list, A_location, B_location))
-
-dc_survey = dc.survey.Survey(source_list)
-
-# Define IP survey
-source_list = []
-for ii in range(0, n_sources):
-
-    # MN electrode locations for receivers. Each is an (N, 3) numpy array
-    M_locations = M_electrodes[k[ii] : k[ii + 1], :]
-    N_locations = N_electrodes[k[ii] : k[ii + 1], :]
-    receiver_list = [dc.receivers.Dipole(M_locations, N_locations, data_type="volt")]
-
-    # AB electrode locations for source. Each is a (1, 3) numpy array
-    A_location = A_electrodes[k[ii], :]
-    B_location = B_electrodes[k[ii], :]
-    source_list.append(dc.sources.Dipole(receiver_list, A_location, B_location))
-
-ip_survey = ip.survey.Survey(source_list)
+dc_data = read_dcip2d_ubc(dc_data_filename, 'volt')
+ip_data = read_dcip2d_ubc(ip_data_filename, 'secondary_potential')
 
 #########################################################
 # Plot Observed Data in Pseudosection
@@ -164,13 +121,15 @@ ip_survey = ip.survey.Survey(source_list)
 # Plot apparent conductivity using pseudo-section
 mpl.rcParams.update({"font.size": 12})
 
-apparent_conductivities = 1/apparent_resistivity_from_voltage(dc_survey, dobs_dc)
+apparent_conductivities = 1/apparent_resistivity_from_voltage(
+    dc_data.survey, dc_data.dobs
+)
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))
 ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
 plot_2d_pseudosection(
-    dc_survey,
+    dc_data.survey,
     apparent_conductivities,
     'tricontourf',
     ax=ax1,
@@ -184,12 +143,12 @@ plt.show()
 
 # Plot apparent chargeability in pseudo-section. Since data are secondary
 # potentials, we must normalize by the DC voltage first.
-apparent_chargeability = dobs_ip / dobs_dc
+apparent_chargeability = ip_data.dobs / dc_data.dobs
 
 fig = plt.figure(figsize=(12, 5))
 ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
 plot_2d_pseudosection(
-    ip_survey,
+    ip_data.survey,
     apparent_chargeability,
     'tricontourf',
     ax=ax1,
@@ -202,29 +161,19 @@ ax1.set_title("Apparent Chargeability")
 plt.show()
 
 
-#############################################
-# Define Data and Assign Uncertainties
-# ------------------------------------
-#
-# Inversion with SimPEG requires that we define standard deviation on our data.
-# This represents our estimate of the noise in our data. For DC data, a relative
-# error is applied to each datum. For this tutorial, the relative error on each
-# datum will be 5%. For IP data, a percent of the DC data is used for the
-# standard deviation. For this tutorial, the standard deviation on IP data are
-# 1% of the corresponding DC data value.
-#
+####################################################
+# Assign Uncertainties
+# --------------------
+# 
+# Inversion with SimPEG requires that we define the uncertainties on our data.
+# This represents our estimate of the standard deviation of the
+# noise in our data. For DC data, the uncertainties are 10% of the absolute value.
+# For secondary potential IP data, the uncertainties are 0.5% of the DC value.
+# 
+# 
 
-# Define the a data object. Uncertainties are added later
-dc_data = data.Data(dc_survey, dobs=dobs_dc)
-ip_data = data.Data(ip_survey, dobs=dobs_ip)
-
-# Compute standard deviations
-std_dc = 0.1 * np.abs(dobs_dc)
-std_ip = 0.01 * np.abs(dobs_dc)  # yes, the uncertainties are 1% the DC datum
-
-# Add standard deviations to data object
-dc_data.standard_deviation = std_dc
-ip_data.standard_deviation = std_ip
+dc_data.standard_deviation = 0.1 * np.abs(dc_data.dobs)
+ip_data.standard_deviation = 0.01 * np.abs(dc_data.dobs)
 
 ########################################################
 # Create Tree Mesh
@@ -253,14 +202,14 @@ mesh = refine_tree_xyz(
 # Mesh refinement near transmitters and receivers. First we need to obtain the
 # set of unique electrode locations.
 electrode_locations = np.c_[
-    dc_survey.locations_a,
-    dc_survey.locations_b,
-    dc_survey.locations_m,
-    dc_survey.locations_n,
+    dc_data.survey.locations_a,
+    dc_data.survey.locations_b,
+    dc_data.survey.locations_m,
+    dc_data.survey.locations_n,
 ]
 
 unique_locations = np.unique(
-    np.reshape(electrode_locations, (4 * dc_survey.nD, 2)), axis=0
+    np.reshape(electrode_locations, (4 * dc_data.survey.nD, 2)), axis=0
 )
 
 mesh = refine_tree_xyz(
@@ -294,9 +243,18 @@ topo_2d = np.unique(topo_xyz[:, [0, 2]], axis=0)
 # Find cells that lie below surface topography
 ind_active = surface2ind_topo(mesh, topo_2d)
 
+# Extract survey from data object
+dc_survey = dc_data.survey
+ip_survey = ip_data.survey
+
 # Shift electrodes to the surface of discretized topography
 dc_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 ip_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
+
+# Reset survey in data object
+dc_data.survey = dc_survey
+ip_data.survey = ip_survey
+
 
 ########################################################
 # Starting/Reference Model and Mapping on OcTree Mesh
@@ -503,6 +461,8 @@ plt.show()
 
 # Predicted data from recovered model
 dpred_dc = dc_inverse_problem.dpred
+dobs_dc = dc_data.dobs
+std_dc = dc_data.standard_deviation
 
 # Plot
 fig = plt.figure(figsize=(9, 15))
@@ -521,7 +481,7 @@ for ii in range(0, 3):
     ax1[ii] = fig.add_axes([0.1, 0.70-0.33*ii, 0.7, 0.23])
     cax1[ii] = fig.add_axes([0.83, 0.70-0.33*ii, 0.05, 0.23])
     cplot[ii] = plot_2d_pseudosection(
-        dc_survey,
+        dc_data.survey,
         data_array[ii],
         'tricontourf',
         ax=ax1[ii],
@@ -619,7 +579,7 @@ ip_inverse_problem = inverse_problem.BaseInvProblem(
 
 update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=2)
+beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 target_misfit = directives.TargetMisfit(chifact=1.0)
 
@@ -654,7 +614,6 @@ recovered_chargeability_model = ip_inversion.run(starting_chargeability_model)
 
 true_chargeability_model = np.loadtxt(str(true_chargeability_filename))
 true_chargeability_model = true_chargeability_model[ind_active]
-
 
 # Plot True Model
 fig = plt.figure(figsize=(9, 4))
@@ -722,6 +681,8 @@ plt.show()
 #
 
 dpred_ip = ip_inverse_problem.dpred
+dobs_ip = ip_data.dobs
+std_ip = ip_data.standard_deviation
 
 # Plot
 fig = plt.figure(figsize=(9, 13))
@@ -739,7 +700,7 @@ for ii in range(0, 3):
     ax1[ii] = fig.add_axes([0.15, 0.72-0.33*ii, 0.65, 0.21])
     cax1[ii] = fig.add_axes([0.81, 0.72-0.33*ii, 0.03, 0.21])
     cplot[ii] = plot_2d_pseudosection(
-        ip_survey,
+        ip_data.survey,
         data_array[ii],
         'tricontourf',
         ax=ax1[ii],

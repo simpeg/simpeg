@@ -25,6 +25,7 @@ from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
 from SimPEG.utils import model_builder, surface2ind_topo
+from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip2d_ubc
 from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
@@ -301,13 +302,28 @@ if save_file:
 
     # Add 10% Gaussian noise to each datum
     np.random.seed(225)
-    noise = 0.1 * np.abs(dpred) * np.random.rand(len(dpred))
-
+    std = 0.1 * np.abs(dpred)
+    dc_noise = std * np.random.rand(len(dpred))
+    dobs = dpred + dc_noise
+    
+    # Create a survey with the original electrode locations
+    # and not the shifted ones
+    # Generate source list for DC survey line
+    source_list = generate_dcip_sources_line(
+        survey_type,
+        data_type,
+        dimension_type,
+        end_locations,
+        xyz_topo,
+        num_rx_per_src,
+        station_separation
+    )
+    survey_original = dc.survey.Survey(source_list)
+    
     # Write out data at their original electrode locations (not shifted)
-    data_array = np.c_[electrode_locations, dpred + noise]
-
+    data_obj = data.Data(survey_original, dobs=dobs, standard_deviation=std)
     fname = dir_path + "dc_data.obs"
-    np.savetxt(fname, data_array, fmt="%.4e")
+    write_dcip2d_ubc(fname, data_obj, 'volt', 'dobs')
 
     fname = dir_path + "true_conductivity.txt"
     np.savetxt(fname, conductivity_map * conductivity_model, fmt="%.4e")
