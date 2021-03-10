@@ -17,6 +17,12 @@ from ....utils import (
     model_builder,
     define_plane_from_points,
 )
+from ....utils.io_utils import (
+    read_dcip2d_ubc,
+    write_dcip2d_ubc,
+    read_dcip3d_ubc,
+    write_dcip3d_ubc
+)
 
 try:
     import plotly.graph_objects as grapho
@@ -883,196 +889,6 @@ if has_plotly:
 
         return fig
 
-# else:
-
-#     def plot_3d_pseudosection(
-#         survey,
-#         dvec,
-#         ax=None,
-#         cax=None,
-#         marker_size=50,
-#         vlim=None,
-#         scale="linear",
-#         units="",
-#         plane_points=None,
-#         plane_distance=10.0,
-#         create_colorbar=True,
-#         scatter_opts={},
-#         cbar_opts={},
-#     ):
-#         """
-#         Plot 3D DC/IP data in pseudo-section as a scatter plot.
-
-#         This utility allows the user to produce a scatter plot of 3D DC/IP data at
-#         all pseudo-locations. If a plane is specified, the user may create a scatter
-#         plot using points near that plane.
-
-#         Input:
-#         survey : SimPEG.electromagnetics.static.survey.Survey
-#             A DC or IP survey object
-#         dvec : numpy.ndarray
-#             A data vector containing volts, integrated chargeabilities, apparent
-#             resistivities or apparent chargeabilities.
-#         ax: mpl_toolkits.mplot3d.axes3d.Axes3D, optional
-#             A 3D axis object for the 3D plot
-#         cax : mpl_toolkits.mplot3d.axes.Axes or mpl_toolkits.mplot3d.axes3d.Axes3D, optional
-#             An axis object for the colorbar
-#         marker_size : int
-#             Sets the marker size for the points on the scatter plot
-#         vlim : list
-#             list containing the minimum and maximum value for the color range,
-#             i.e. [vmin, vmax]
-#         scale: str
-#             Plot on linear or log base 10 scale {'linear','log'}
-#         units : str
-#             A LateX formatted string stating the desired units for the
-#             data; e.g. 'S/m', '$\Omega m$', '%'
-#         plane_points : list of numpy.ndarray
-#             A list of length 3 which contains the three xyz locations required to
-#             define a plane; i.e. [xyz1, xyz2, xyz3]. This functionality is used to
-#             plot only data that lie near this plane. A list of [xyz1, xyz2, xyz3]
-#             can be entered for multiple planes.
-#         plane_distance : float or list of float
-#             Distance tolerance for plotting data that are near the plane(s) defined by
-#             **plane_points**. A list is used if the *plane_distance* is different
-#             for each plane.
-#         create_colorbar : bool
-#             If *True*, a colorbar is automatically generated. If *False*, it is not.
-#             If multiple planes are being plotted, only set the first scatter plot
-#             to *True*
-#         scatter_opts : dict
-#             Dictionary defining kwargs for the scatter plot
-#         cbar_opts : dict
-#             Dictionary defining kwargs for the colorbar
-        
-
-#         Output:
-#         mpl_toolkits.mplot3d.axes3d.Axes3D
-#             The axis object that holds the plot
-
-#         """
-
-#         locations = pseudo_locations(survey)
-
-#         if scale == "log":
-#             plot_vec = np.log10(dvec)
-#             if vlim != None:
-#                 vlim[0] = np.log10(vlim[0])
-#                 vlim[1] = np.log10(vlim[1])
-#         else:
-#             plot_vec = dvec
-
-#         if ax == None:
-#             fig = plt.figure(figsize=(10, 4))
-#             ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection="3d", azim=-60, elev=30)
-#             cax = fig.add_axes([0.85, 0.1, 0.05, 0.8])
-
-#         # 3D scatter plot
-#         if plane_points == None:
-
-#             if vlim == None:
-#                 norm = mpl.colors.Normalize(vmin=plot_vec.min(), vmax=plot_vec.max())
-#             else:
-#                 norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])
-
-#             data_plot = ax.scatter(
-#                 locations[:, 0],
-#                 locations[:, 1],
-#                 locations[:, 2],
-#                 s=s,
-#                 c=plot_vec,
-#                 edgecolors='none',
-#                 depthshade=False,
-#                 norm=norm,
-#                 **scatter_opts,
-#             )
-#         else:
-#             # Place in list if only one plane defined
-#             if isinstance(plane_points[0], np.ndarray):
-#                 plane_points = [plane_points]
-
-#             # Expand to list of only one plane distance for all planes
-#             if isinstance(plane_distance, list) != True:
-#                 plane_distance = len(plane_points) * [plane_distance]
-
-#             # Pre-allocate index for points on plane(s)
-#             k = np.zeros(len(plot_vec), dtype=bool)
-#             for ii in range(0, len(plane_points)):
-
-#                 p1, p2, p3 = plane_points[ii]
-#                 a, b, c, d = define_plane_from_points(p1, p2, p3)
-
-#                 k = k | (
-#                     np.abs(a * locations[:, 0] + b * locations[:, 1] + c * locations[:, 2] + d)
-#                     / np.sqrt(a ** 2 + b ** 2 + c ** 2)
-#                     < plane_distance[ii]
-#                 )
-
-#             if np.all(k == 0):
-#                 raise Exception(
-#                     """No locations are within *plane_distance* of any plane(s)
-#                     defined by *plane_points*. Try increasing *plane_distance*."""
-#                 )
-
-#             if vlim == None:
-#                 norm = mpl.colors.Normalize(vmin=plot_vec[k].min(), vmax=plot_vec[k].max())
-#             else:
-#                 norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])
-
-#             data_plot = ax.scatter(
-#                 locations[k, 0],
-#                 locations[k, 1],
-#                 locations[k, 2],
-#                 s=marker_size,
-#                 c=plot_vec[k],
-#                 edgecolors='none',
-#                 depthshade=False,
-#                 norm=norm,
-#                 **scatter_opts,
-#             )
-
-#         # Define colorbar
-#         if create_colorbar:
-#             if cax == None:
-#                 if scale == "log":
-#                     cbar = plt.colorbar(
-#                         data_plot,
-#                         format="$10^{%.2f}$",
-#                         fraction=0.06,
-#                         orientation="vertical",
-#                         ax=ax,
-#                         shrink=0.7,
-#                         **cbar_opts,
-#                     )
-#                 elif scale == "linear":
-#                     cbar = plt.colorbar(
-#                         data_plot,
-#                         format="%.2e",
-#                         fraction=0.06,
-#                         orientation="vertical",
-#                         ax=ax,
-#                         shrink=0.7,
-#                         **cbar_opts,
-#                     )
-
-#             else:
-#                 if scale == "log":
-#                     cbar = plt.colorbar(
-#                         data_plot, format="$10^{%.2f}$", cax=cax, **cbar_opts,
-#                     )
-#                 elif scale == "linear":
-#                     cbar = plt.colorbar(
-#                         data_plot, format="%.2e", cax=cax, **cbar_opts,
-#                     )
-
-#             ticks = np.linspace(norm.vmin, norm.vmax, 5)
-
-#             cbar.set_ticks(ticks)
-#             cbar.set_label(units, labelpad=12)
-#             cbar.ax.tick_params()
-
-#         return ax
-
 
 
 
@@ -1081,185 +897,185 @@ if has_plotly:
 #                      GENERATE SURVEYS
 #########################################################################
 
-# def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
+def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
-#     """
-#         Load in endpoints and survey specifications to generate Tx, Rx location
-#         stations.
+    """
+        Load in endpoints and survey specifications to generate Tx, Rx location
+        stations.
 
-#         Assumes flat topo for now...
+        Assumes flat topo for now...
 
-#         Input:
-#         :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
-#         :param discretize.base.BaseMesh mesh: discretize mesh object
-#         :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-#             'dipole-pole' | 'pole-pole' | 'gradient'
-#         :param int a: pole seperation
-#         :param int b: dipole separation
-#         :param int n: number of rx dipoles per tx
+        Input:
+        :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
+        :param discretize.base.BaseMesh mesh: discretize mesh object
+        :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
+            'dipole-pole' | 'pole-pole' | 'gradient'
+        :param int a: pole seperation
+        :param int b: dipole separation
+        :param int n: number of rx dipoles per tx
 
-#         Output:
-#         :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
-#     """
-#     if "d2flag" in kwargs:
-#         warnings.warn(
-#             "The d2flag is no longer necessary to construct a survey. "
-#             "Feel free to remove it from the call. This option will be removed in SimPEG 0.15.0",
-#             DeprecationWarning,
-#         )
+        Output:
+        :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    """
+    if "d2flag" in kwargs:
+        warnings.warn(
+            "The d2flag is no longer necessary to construct a survey. "
+            "Feel free to remove it from the call. This option will be removed in SimPEG 0.15.0",
+            DeprecationWarning,
+        )
 
-#     def xy_2_r(x1, x2, y1, y2):
-#         r = np.sqrt(np.sum((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0))
-#         return r
+    def xy_2_r(x1, x2, y1, y2):
+        r = np.sqrt(np.sum((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0))
+        return r
 
-#     # Evenly distribute electrodes and put on surface
-#     # Mesure survey length and direction
-#     dl_len = xy_2_r(endl[0, 0], endl[1, 0], endl[0, 1], endl[1, 1])
+    # Evenly distribute electrodes and put on surface
+    # Mesure survey length and direction
+    dl_len = xy_2_r(endl[0, 0], endl[1, 0], endl[0, 1], endl[1, 1])
 
-#     dl_x = (endl[1, 0] - endl[0, 0]) / dl_len
-#     dl_y = (endl[1, 1] - endl[0, 1]) / dl_len
+    dl_x = (endl[1, 0] - endl[0, 0]) / dl_len
+    dl_y = (endl[1, 1] - endl[0, 1]) / dl_len
 
-#     nstn = int(np.floor(dl_len / a))
+    nstn = int(np.floor(dl_len / a))
 
-#     # Compute discrete pole location along line
-#     stn_x = endl[0, 0] + np.array(range(int(nstn))) * dl_x * a
-#     stn_y = endl[0, 1] + np.array(range(int(nstn))) * dl_y * a
+    # Compute discrete pole location along line
+    stn_x = endl[0, 0] + np.array(range(int(nstn))) * dl_x * a
+    stn_y = endl[0, 1] + np.array(range(int(nstn))) * dl_y * a
 
-#     if dim == 2:
-#         ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
-#         # Create line of P1 locations
-#         M = np.c_[stn_x, ztop]
-#         # Create line of P2 locations
-#         N = np.c_[stn_x + a * dl_x, ztop]
+    if dim == 2:
+        ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
+        # Create line of P1 locations
+        M = np.c_[stn_x, ztop]
+        # Create line of P2 locations
+        N = np.c_[stn_x + a * dl_x, ztop]
 
-#     elif dim == 3:
-#         stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
-#         # Create line of P1 locations
-#         M = np.c_[stn_x, stn_y, stn_z]
-#         # Create line of P2 locations
-#         N = np.c_[stn_x + a * dl_x, stn_y + a * dl_y, stn_z]
+    elif dim == 3:
+        stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
+        # Create line of P1 locations
+        M = np.c_[stn_x, stn_y, stn_z]
+        # Create line of P2 locations
+        N = np.c_[stn_x + a * dl_x, stn_y + a * dl_y, stn_z]
 
-#     # Build list of Tx-Rx locations depending on survey type
-#     # Dipole-dipole: Moving tx with [a] spacing -> [AB a MN1 a MN2 ... a MNn]
-#     # Pole-dipole: Moving pole on one end -> [A a MN1 a MN2 ... MNn a B]
-#     SrcList = []
+    # Build list of Tx-Rx locations depending on survey type
+    # Dipole-dipole: Moving tx with [a] spacing -> [AB a MN1 a MN2 ... a MNn]
+    # Pole-dipole: Moving pole on one end -> [A a MN1 a MN2 ... MNn a B]
+    SrcList = []
 
-#     if survey_type != "gradient":
+    if survey_type != "gradient":
 
-#         for ii in range(0, int(nstn) - 1):
+        for ii in range(0, int(nstn) - 1):
 
-#             if survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
-#                 tx = np.c_[M[ii, :], N[ii, :]]
-#                 # Current elctrode separation
-#                 AB = xy_2_r(tx[0, 1], endl[1, 0], tx[1, 1], endl[1, 1])
-#             elif survey_type.lower() in ["pole-dipole", "pole-pole"]:
-#                 tx = np.r_[M[ii, :]]
-#                 # Current elctrode separation
-#                 AB = xy_2_r(tx[0], endl[1, 0], tx[1], endl[1, 1])
-#             else:
-#                 raise Exception(
-#                     "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
-#                     "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
-#                 )
+            if survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
+                tx = np.c_[M[ii, :], N[ii, :]]
+                # Current elctrode separation
+                AB = xy_2_r(tx[0, 1], endl[1, 0], tx[1, 1], endl[1, 1])
+            elif survey_type.lower() in ["pole-dipole", "pole-pole"]:
+                tx = np.r_[M[ii, :]]
+                # Current elctrode separation
+                AB = xy_2_r(tx[0], endl[1, 0], tx[1], endl[1, 1])
+            else:
+                raise Exception(
+                    "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
+                    "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
+                )
 
-#             # Rx.append(np.c_[M[ii+1:indx, :], N[ii+1:indx, :]])
+            # Rx.append(np.c_[M[ii+1:indx, :], N[ii+1:indx, :]])
 
-#             # Number of receivers to fit
-#             nstn = int(np.min([np.floor((AB - b) / a), n]))
+            # Number of receivers to fit
+            nstn = int(np.min([np.floor((AB - b) / a), n]))
 
-#             # Check if there is enough space, else break the loop
-#             if nstn <= 0:
-#                 continue
+            # Check if there is enough space, else break the loop
+            if nstn <= 0:
+                continue
 
-#             # Compute discrete pole location along line
-#             stn_x = N[ii, 0] + dl_x * b + np.array(range(int(nstn))) * dl_x * a
-#             stn_y = N[ii, 1] + dl_y * b + np.array(range(int(nstn))) * dl_y * a
+            # Compute discrete pole location along line
+            stn_x = N[ii, 0] + dl_x * b + np.array(range(int(nstn))) * dl_x * a
+            stn_y = N[ii, 1] + dl_y * b + np.array(range(int(nstn))) * dl_y * a
 
-#             # Create receiver poles
+            # Create receiver poles
 
-#             if dim == 3:
-#                 stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
+            if dim == 3:
+                stn_z = np.linspace(endl[0, 2], endl[0, 2], nstn)
 
-#                 # Create line of P1 locations
-#                 P1 = np.c_[stn_x, stn_y, stn_z]
-#                 # Create line of P2 locations
-#                 P2 = np.c_[stn_x + a * dl_x, stn_y + a * dl_y, stn_z]
-#                 if survey_type.lower() in ["dipole-dipole", "pole-dipole"]:
-#                     rxClass = dc.Rx.Dipole(P1, P2)
-#                 elif survey_type.lower() in ["dipole-pole", "pole-pole"]:
-#                     rxClass = dc.Rx.Pole(P1)
+                # Create line of P1 locations
+                P1 = np.c_[stn_x, stn_y, stn_z]
+                # Create line of P2 locations
+                P2 = np.c_[stn_x + a * dl_x, stn_y + a * dl_y, stn_z]
+                if survey_type.lower() in ["dipole-dipole", "pole-dipole"]:
+                    rxClass = dc.Rx.Dipole(P1, P2)
+                elif survey_type.lower() in ["dipole-pole", "pole-pole"]:
+                    rxClass = dc.Rx.Pole(P1)
 
-#             elif dim == 2:
-#                 ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
-#                 # Create line of P1 locations
-#                 P1 = np.c_[stn_x, np.ones(nstn).T * ztop]
-#                 # Create line of P2 locations
-#                 P2 = np.c_[stn_x + a * dl_x, np.ones(nstn).T * ztop]
-#                 if survey_type.lower() in ["dipole-dipole", "pole-dipole"]:
-#                     rxClass = dc.Rx.Dipole(P1, P2)
-#                 elif survey_type.lower() in ["dipole-pole", "pole-pole"]:
-#                     rxClass = dc.Rx.Pole(P1)
+            elif dim == 2:
+                ztop = np.linspace(endl[0, 1], endl[0, 1], nstn)
+                # Create line of P1 locations
+                P1 = np.c_[stn_x, np.ones(nstn).T * ztop]
+                # Create line of P2 locations
+                P2 = np.c_[stn_x + a * dl_x, np.ones(nstn).T * ztop]
+                if survey_type.lower() in ["dipole-dipole", "pole-dipole"]:
+                    rxClass = dc.Rx.Dipole(P1, P2)
+                elif survey_type.lower() in ["dipole-pole", "pole-pole"]:
+                    rxClass = dc.Rx.Pole(P1)
 
-#             if survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
-#                 srcClass = dc.Src.Dipole([rxClass], M[ii, :], N[ii, :])
-#             elif survey_type.lower() in ["pole-dipole", "pole-pole"]:
-#                 srcClass = dc.Src.Pole([rxClass], M[ii, :])
-#             SrcList.append(srcClass)
+            if survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
+                srcClass = dc.Src.Dipole([rxClass], M[ii, :], N[ii, :])
+            elif survey_type.lower() in ["pole-dipole", "pole-pole"]:
+                srcClass = dc.Src.Pole([rxClass], M[ii, :])
+            SrcList.append(srcClass)
 
-#     elif survey_type.lower() == "gradient":
+    elif survey_type.lower() == "gradient":
 
-#         # Gradient survey takes the "b" parameter to define the limits of a
-#         # square survey grid. The pole seperation within the receiver grid is
-#         # define the "a" parameter.
+        # Gradient survey takes the "b" parameter to define the limits of a
+        # square survey grid. The pole seperation within the receiver grid is
+        # define the "a" parameter.
 
-#         # Get the edge limit of survey area
-#         min_x = endl[0, 0] + dl_x * b
-#         min_y = endl[0, 1] + dl_y * b
+        # Get the edge limit of survey area
+        min_x = endl[0, 0] + dl_x * b
+        min_y = endl[0, 1] + dl_y * b
 
-#         max_x = endl[1, 0] - dl_x * b
-#         max_y = endl[1, 1] - dl_y * b
+        max_x = endl[1, 0] - dl_x * b
+        max_y = endl[1, 1] - dl_y * b
 
-#         # Define the size of the survey grid (square for now)
-#         box_l = np.sqrt((min_x - max_x) ** 2.0 + (min_y - max_y) ** 2.0)
-#         box_w = box_l / 2.0
+        # Define the size of the survey grid (square for now)
+        box_l = np.sqrt((min_x - max_x) ** 2.0 + (min_y - max_y) ** 2.0)
+        box_w = box_l / 2.0
 
-#         nstn = int(np.floor(box_l / a))
+        nstn = int(np.floor(box_l / a))
 
-#         # Compute discrete pole location along line
-#         stn_x = min_x + np.array(range(int(nstn))) * dl_x * a
-#         stn_y = min_y + np.array(range(int(nstn))) * dl_y * a
+        # Compute discrete pole location along line
+        stn_x = min_x + np.array(range(int(nstn))) * dl_x * a
+        stn_y = min_y + np.array(range(int(nstn))) * dl_y * a
 
-#         # Define number of cross lines
-#         nlin = int(np.floor(box_w / a))
-#         lind = range(-nlin, nlin + 1)
+        # Define number of cross lines
+        nlin = int(np.floor(box_w / a))
+        lind = range(-nlin, nlin + 1)
 
-#         npoles = int(nstn * len(lind))
+        npoles = int(nstn * len(lind))
 
-#         rx = np.zeros([npoles, 6])
-#         for ii in range(len(lind)):
+        rx = np.zeros([npoles, 6])
+        for ii in range(len(lind)):
 
-#             # Move station location to current survey line This is a
-#             # perpendicular move then line survey orientation, hence the y, x
-#             # switch
-#             lxx = stn_x - lind[ii] * a * dl_y
-#             lyy = stn_y + lind[ii] * a * dl_x
+            # Move station location to current survey line This is a
+            # perpendicular move then line survey orientation, hence the y, x
+            # switch
+            lxx = stn_x - lind[ii] * a * dl_y
+            lyy = stn_y + lind[ii] * a * dl_x
 
-#             M = np.c_[lxx, lyy, np.ones(nstn).T * ztop]
-#             N = np.c_[lxx + a * dl_x, lyy + a * dl_y, np.ones(nstn).T * ztop]
-#             rx[(ii * nstn) : ((ii + 1) * nstn), :] = np.c_[M, N]
+            M = np.c_[lxx, lyy, np.ones(nstn).T * ztop]
+            N = np.c_[lxx + a * dl_x, lyy + a * dl_y, np.ones(nstn).T * ztop]
+            rx[(ii * nstn) : ((ii + 1) * nstn), :] = np.c_[M, N]
 
-#             if dim == 3:
-#                 rxClass = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
-#             elif dim == 2:
-#                 M = M[:, [0, 2]]
-#                 N = N[:, [0, 2]]
-#                 rxClass = dc.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
-#             srcClass = dc.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
-#         SrcList.append(srcClass)
-#         survey_type = "dipole-dipole"
+            if dim == 3:
+                rxClass = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
+            elif dim == 2:
+                M = M[:, [0, 2]]
+                N = N[:, [0, 2]]
+                rxClass = dc.Rx.Dipole(rx[:, [0, 2]], rx[:, [3, 5]])
+            srcClass = dc.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
+        SrcList.append(srcClass)
+        survey_type = "dipole-dipole"
 
-#     survey = dc.Survey(SrcList, survey_type=survey_type.lower())
-#     return survey
+    survey = dc.Survey(SrcList, survey_type=survey_type.lower())
+    return survey
 
 
 def generate_dcip_sources_line(
@@ -1409,451 +1225,16 @@ def generate_dcip_sources_line(
 
 ########################################################################
 
-def writeUBC_DCobs(
-    fileName,
-    data,
-    dim,
-    format_type,
-    survey_type="dipole-dipole",
-    ip_type=0,
-    comment_lines="",
-):
-    """
-    Write UBC GIF DCIP 2D or 3D observation file
 
-    Input:
-    :param str fileName: including path where the file is written out
-    :param SimPEG.Data data: DC data object
-    :param int dim:  either 2 | 3
-    :param str format_type:  either 'surface' | 'general' | 'simple'
-    :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-        'dipole-pole' | 'pole-pole' | 'gradient'
 
-    Output:
-    :return: UBC2D-Data file
-    :rtype: file
-    """
 
-    if not isinstance(data, Data):
-        raise Exception(
-            "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
-            "provided as the second input. The provided input is a "
-            "{providedcls} <{providedpref}.{providedcls}>".format(
-                datacls=Data.__name__,
-                datapref=Data.__module__,
-                providedcls=data.__class__.__name__,
-                providedpref=data.__module__,
-            )
-        )
 
-    if not ((dim == 2) | (dim == 3)):
-        raise Exception("""dim must be either 2 or 3""" " not {}".format(dim))
 
-    format_type = format_type.lower()
-    if format_type not in ["surface", "general", "simple"]:
-        raise Exception(
-            "format_type must be 'surface' | 'general' | 'simple' "
-            " not {}".format(format_type)
-        )
 
-    # if(isinstance(dc_survey.std, float)):
-    #     print(
-    #         """survey.std was a float computing standard_deviation vector
-    #         (survey.std*survey.dobs + survey.eps)"""
-    #     )
 
-    # if(isinstance(dc_survey.eps, float)):
-    #     epsValue = dc_survey.eps
-    #     dc_survey.eps = epsValue*np.ones_like(dc_survey.dobs)
 
-    fid = open(fileName, "w")
 
-    if format_type.lower() in ["surface", "general"] and dim == 2:
-        fid.write("COMMON_CURRENT\n")
 
-    fid.write("! " + format_type + " FORMAT\n")
-
-    if comment_lines:
-        fid.write(comment_lines)
-
-    if dim == 2:
-        fid.write("{:d}\n".format(data.survey.nSrc))
-
-    if ip_type != 0:
-        fid.write("IPTYPE=%i\n" % ip_type)
-
-    fid.close()
-
-    count = 0
-
-    for src in data.survey.source_list:
-
-        rx = src.receiver_list[0].locations
-        nD = src.nD
-
-        if survey_type.lower() in ["pole-dipole", "pole-pole"]:
-            tx = np.r_[src.location]
-            tx = np.repeat(np.r_[[tx]], 2, axis=0)
-        elif survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
-            tx = np.c_[src.location]
-
-        if survey_type.lower() in ["pole-dipole", "dipole-dipole"]:
-            M = rx[0]
-            N = rx[1]
-        elif survey_type.lower() in ["pole-pole", "dipole-pole"]:
-            M = rx
-            N = rx
-
-        # Adapt source-receiver location for dim and survey_type
-        if dim == 2:
-            if format_type == "simple":
-                # fid.writelines("%e " % ii for ii in mkvc(tx[0, :]))
-                A = np.repeat(tx[0, 0], M.shape[0], axis=0)
-
-                if survey_type == "pole-dipole":
-                    B = np.repeat(tx[0, 0], M.shape[0], axis=0)
-
-                else:
-                    B = np.repeat(tx[1, 0], M.shape[0], axis=0)
-
-                M = M[:, 0]
-                N = N[:, 0]
-
-                fid = open(fileName, "ab")
-                np.savetxt(
-                    fid,
-                    np.c_[
-                        A,
-                        B,
-                        M,
-                        N,
-                        data.dobs[count : count + nD],
-                        data.relative_error[count : count + nD],
-                    ],
-                    delimiter=str(" "),
-                    newline=str("\n"),
-                )
-                fid.close()
-
-            else:
-                fid = open(fileName, "a")
-                if format_type == "surface":
-                    fid.writelines("%f " % ii for ii in mkvc(tx[:, 0]))
-                    M = M[:, 0]
-                    N = N[:, 0]
-
-                if format_type == "general":
-                    # Flip sign for z-elevation to depth
-                    tx[2::2, :] = -tx[2::2, :]
-
-                    fid.writelines(
-                        ("{:e} {:e} ").format(ii, jj) for ii, jj in tx[:, :2]
-                    )
-                    M = M[:, :2]
-                    N = N[:, :2]
-
-                    # Flip sign for z-elevation to depth
-                    M[:, 1::2] = -M[:, 1::2]
-                    N[:, 1::2] = -N[:, 1::2]
-
-                fid.write("%i\n" % nD)
-                fid.close()
-
-                fid = open(fileName, "ab")
-                np.savetxt(
-                    fid,
-                    np.c_[
-                        M,
-                        N,
-                        data.dobs[count : count + nD],
-                        data.relative_error[count : count + nD],
-                    ],
-                    delimiter=str(" "),
-                    newline=str("\n"),
-                )
-
-        if dim == 3:
-            fid = open(fileName, "a")
-            # Flip sign of z value for UBC DCoctree code
-            # tx[:, 2] = -tx[:, 2]
-            # print(tx)
-
-            # Flip sign of z value for UBC DCoctree code
-            # M[:, 2] = -M[:, 2]
-            # N[:, 2] = -N[:, 2]
-
-            if format_type.lower() == "surface":
-
-                fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:2].T))
-                M = M[:, 0:2]
-                N = N[:, 0:2]
-
-            if format_type.lower() == "general":
-
-                fid.writelines("%e " % ii for ii in mkvc(tx.T))
-
-            fid.write("%i\n" % nD)
-
-            fid.close()
-
-            fid = open(fileName, "ab")
-            if isinstance(data.relative_error, np.ndarray):
-                np.savetxt(
-                    fid,
-                    np.c_[
-                        M,
-                        N,
-                        data.dobs[count : count + nD],
-                        (
-                            data.relative_error[count : count + nD]
-                            + data.noise_floor[count : count + nD]
-                        ),
-                    ],
-                    fmt=str("%e"),
-                    delimiter=str(" "),
-                    newline=str("\n"),
-                )
-            else:
-                raise Exception(
-                    """Uncertainities SurveyObject.std should be set.
-                    Either float or nunmpy.ndarray is expected, """
-                    "not {}".format(type(data.relative_error))
-                )
-
-            fid.close()
-            fid = open(fileName, "a")
-            fid.write("\n")
-            fid.close()
-
-        count += nD
-
-    fid.close()
-
-
-def writeUBC_DClocs(
-    fileName,
-    dc_survey,
-    dim,
-    format_type,
-    survey_type="dipole-dipole",
-    ip_type=0,
-    comment_lines="",
-):
-    """
-        Write UBC GIF DCIP 2D or 3D locations file
-
-        Input:
-        :param str fileName: including path where the file is written out
-        :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
-        :param int dim:  either 2 | 3
-        :param str survey_type:  either 'SURFACE' | 'GENERAL'
-
-        Output:
-        :rtype: file
-        :return: UBC 2/3D-locations file
-    """
-
-    if not ((dim == 2) | (dim == 3)):
-        raise Exception("""dim must be either 2 or 3""" " not {}".format(dim))
-
-    if format_type.lower() not in ["surface", "general", "simple"]:
-        raise Exception(
-            "format_type must be 'SURFACE' | 'GENERAL' | 'SIMPLE' "
-            " not {}".format(format_type)
-        )
-
-    fid = open(fileName, "w")
-
-    if format_type.lower() in ["surface", "general"] and dim == 2:
-        fid.write("COMMON_CURRENT\n")
-
-    fid.write("! " + format_type + " FORMAT\n")
-
-    if comment_lines:
-        fid.write(comment_lines)
-
-    if dim == 2:
-        fid.write("{:d}\n".format(dc_survey.nSrc))
-
-    if ip_type != 0:
-        fid.write("IPTYPE=%i\n" % ip_type)
-
-    fid.close()
-
-    count = 0
-
-    for ii in range(len(dc_survey.source_list)):
-
-        rx = dc_survey.source_list[ii].receiver_list[0].locations
-        nD = dc_survey.source_list[ii].nD
-
-        if survey_type.lower() in ["pole-dipole", "pole-pole"]:
-            tx = np.r_[dc_survey.source_list[ii].locations]
-            tx = np.repeat(np.r_[[tx]], 2, axis=0)
-        elif survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
-            tx = np.c_[dc_survey.source_list[ii].locations]
-
-        if survey_type.lower() in ["pole-dipole", "dipole-dipole"]:
-            M = rx[0]
-            N = rx[1]
-        elif survey_type.lower() in ["pole-pole", "dipole-pole"]:
-            M = rx
-            N = rx
-
-        # Adapt source-receiver location for dim and survey_type
-        if dim == 2:
-
-            if format_type.lower() == "simple":
-                # fid.writelines("%e " % ii for ii in mkvc(tx[0, :]))
-                A = np.repeat(tx[0, 0], M.shape[0], axis=0)
-
-                if survey_type.lower() == "pole-dipole":
-                    B = np.repeat(tx[0, 0], M.shape[0], axis=0)
-
-                else:
-                    B = np.repeat(tx[1, 0], M.shape[0], axis=0)
-
-                M = M[:, 0]
-                N = N[:, 0]
-
-                fid = open(fileName, "ab")
-                np.savetxt(
-                    fid, np.c_[A, B, M, N], delimiter=str(" "), newline=str("\n")
-                )
-                fid.close()
-
-            else:
-                fid = open(fileName, "a")
-                if format_type.lower() == "surface":
-
-                    fid.writelines("%f " % ii for ii in mkvc(tx[:, 0]))
-                    M = M[:, 0]
-                    N = N[:, 0]
-
-                if format_type.lower() == "general":
-
-                    # Flip sign for z-elevation to depth
-                    tx[2::2, :] = -tx[2::2, :]
-
-                    fid.writelines(
-                        ("{:e} {:e} ").format(ii, jj) for ii, jj in tx[:, :2]
-                    )
-                    M = M[:, :2]
-                    N = N[:, :2]
-
-                    # Flip sign for z-elevation to depth
-                    M[:, 1::2] = -M[:, 1::2]
-                    N[:, 1::2] = -N[:, 1::2]
-
-                fid.write("%i\n" % nD)
-                fid.close()
-
-                fid = open(fileName, "ab")
-                np.savetxt(fid, np.c_[M, N,], delimiter=str(" "), newline=str("\n"))
-
-        if dim == 3:
-            fid = open(fileName, "a")
-            # Flip sign of z value for UBC DCoctree code
-            tx[:, 2] = -tx[:, 2]
-            # print(tx)
-
-            # Flip sign of z value for UBC DCoctree code
-            M[:, 2] = -M[:, 2]
-            N[:, 2] = -N[:, 2]
-
-            if format_type.lower() == "surface":
-
-                fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:2].T))
-                M = M[:, 0:2]
-                N = N[:, 0:2]
-
-            if format_type.lower() == "general":
-
-                fid.writelines("%e " % ii for ii in mkvc(tx.T))
-
-            fid.write("%i\n" % nD)
-
-            fid.close()
-
-            fid = open(fileName, "ab")
-            np.savetxt(
-                fid, np.c_[M, N], fmt=str("%e"), delimiter=str(" "), newline=str("\n")
-            )
-            fid.close()
-
-            fid = open(fileName, "a")
-            fid.write("\n")
-            fid.close()
-
-        count += nD
-
-    fid.close()
-
-
-
-
-
-def readUBC_DC2Dpre(fileName):
-    """
-        Read UBC GIF DCIP 2D observation file and generate arrays
-        for tx-rx location
-
-        Input:
-        :param string fileName: path to the UBC GIF 3D obs file
-
-        Output:
-        :return survey: 2D DC survey class object
-        :rtype: SimPEG.electromagnetics.static.resistivity.Survey
-
-        Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
-
-        @author: dominiquef
-
-    """
-
-    # Load file
-    obsfile = np.genfromtxt(fileName, delimiter=" \n", dtype=np.str, comments="!")
-
-    # Pre-allocate
-    srcLists = []
-    Rx = []
-    d = []
-    zflag = True  # Flag for z value provided
-
-    for ii in range(obsfile.shape[0]):
-
-        if not obsfile[ii]:
-            continue
-
-        # First line is transmitter with number of receivers
-
-        temp = np.fromstring(obsfile[ii], dtype=float, sep=" ").T
-
-        # Check if z value is provided, if False -> nan
-        if len(temp) == 5:
-            tx = np.r_[temp[0], np.nan, np.nan, temp[1], np.nan, np.nan]
-            zflag = False
-
-        else:
-            tx = np.r_[temp[0], np.nan, temp[1], temp[2], np.nan, temp[3]]
-
-        if zflag:
-            rx = np.c_[temp[4], np.nan, temp[5], temp[6], np.nan, temp[7]]
-
-        else:
-            rx = np.c_[temp[2], np.nan, np.nan, temp[3], np.nan, np.nan]
-            # Check if there is data with the location
-
-        d.append(temp[-1])
-
-        Rx = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
-        srcLists.append(dc.Src.Dipole([Rx], tx[:3], tx[3:]))
-
-    # Create survey class
-    survey = dc.Survey(srcLists)
-    data = Data(survey=survey, dobs=np.asarray(d))
-
-    return data
 
 def xy_2_lineID(dc_survey):
     """
@@ -2193,13 +1574,13 @@ def plot_pseudosection(
 ):
 
     warnings.warn(
-        "The plot_pseudosection method has been deprecated. Please use "
-        "plot_2d_pseudosection instead. This will be removed in version"
+        "The plot_pseudosection method has been deprecated and may not work properly!!! "
+        "Please use plot_2d_pseudosection instead. This will be removed in version"
         " 0.15.0 of SimPEG",
         DeprecationWarning,
     )
 
-    return plot_2d_pseudosection(data.survey, data.dobs, 'scatter', ax=None, scale=scale)
+    return plot_2d_pseudosection(data.survey, data.dobs, 'scatter', ax=ax, scale=scale)
 
 def apparent_resistivity(data_object, space_type='half space', dobs=None, eps=1e-10, **kwargs):
 
@@ -2209,6 +1590,11 @@ def apparent_resistivity(data_object, space_type='half space', dobs=None, eps=1e
         " 0.15.0 of SimPEG",
         DeprecationWarning,
     )
+
+    if dobs is None:
+        dobs = data_object.dobs
+
+    return apparent_resistivity_from_voltage(data_object.survey, dobs, space_type=space_type)
 
 
 def source_receiver_midpoints(survey, **kwargs):
@@ -2250,3 +1636,536 @@ def getSrc_locs(survey):
         " will be removed in version 0.15.0 of SimPEG",
         DeprecationWarning,
     )
+
+    return survey.source_locations()
+
+
+
+
+
+
+
+
+
+def writeUBC_DCobs(
+    fileName,
+    data,
+    dim,
+    format_type,
+    survey_type="dipole-dipole",
+    ip_type=0,
+    comment_lines="",
+):
+    """
+    Write UBC GIF DCIP 2D or 3D observation file
+
+    Input:
+    :param str fileName: including path where the file is written out
+    :param SimPEG.Data data: DC data object
+    :param int dim:  either 2 | 3
+    :param str format_type:  either 'surface' | 'general' | 'simple'
+    :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
+        'dipole-pole' | 'pole-pole' | 'gradient'
+
+    Output:
+    :return: UBC2D-Data file
+    :rtype: file
+    """
+
+    warnings.warn(
+        "The writeUBC_DCobs method has been deprecated. Please use "
+        "write_dcip2d_ubc or write_dcip3d_ubc instead. These are imported "
+        "from SimPEG.utils.io_utils. This function will be removed in version"
+        " 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )
+
+    if dim == 2:
+        write_dcip2d_ubc(
+            fileName,
+            data,
+            'volt',
+            'dobs',
+            format_type=format_type,
+            comment_lines=comment_lines,
+        )
+
+    elif dim == 3:
+        write_dcip2d_ubc(
+            fileName,
+            data,
+            'volt',
+            'dobs',
+            format_type=format_type,
+            comment_lines=comment_lines,
+        )
+
+    # if not isinstance(data, Data):
+    #     raise Exception(
+    #         "A Data instance ({datacls}: <{datapref}.{datacls}>) must be "
+    #         "provided as the second input. The provided input is a "
+    #         "{providedcls} <{providedpref}.{providedcls}>".format(
+    #             datacls=Data.__name__,
+    #             datapref=Data.__module__,
+    #             providedcls=data.__class__.__name__,
+    #             providedpref=data.__module__,
+    #         )
+    #     )
+
+    # if not ((dim == 2) | (dim == 3)):
+    #     raise Exception("""dim must be either 2 or 3""" " not {}".format(dim))
+
+    # format_type = format_type.lower()
+    # if format_type not in ["surface", "general", "simple"]:
+    #     raise Exception(
+    #         "format_type must be 'surface' | 'general' | 'simple' "
+    #         " not {}".format(format_type)
+    #     )
+
+    # # if(isinstance(dc_survey.std, float)):
+    # #     print(
+    # #         """survey.std was a float computing standard_deviation vector
+    # #         (survey.std*survey.dobs + survey.eps)"""
+    # #     )
+
+    # # if(isinstance(dc_survey.eps, float)):
+    # #     epsValue = dc_survey.eps
+    # #     dc_survey.eps = epsValue*np.ones_like(dc_survey.dobs)
+
+    # fid = open(fileName, "w")
+
+    # if format_type.lower() in ["surface", "general"] and dim == 2:
+    #     fid.write("COMMON_CURRENT\n")
+
+    # fid.write("! " + format_type + " FORMAT\n")
+
+    # if comment_lines:
+    #     fid.write(comment_lines)
+
+    # if dim == 2:
+    #     fid.write("{:d}\n".format(data.survey.nSrc))
+
+    # if ip_type != 0:
+    #     fid.write("IPTYPE=%i\n" % ip_type)
+
+    # fid.close()
+
+    # count = 0
+
+    # for src in data.survey.source_list:
+
+    #     rx = src.receiver_list[0].locations
+    #     nD = src.nD
+
+    #     if survey_type.lower() in ["pole-dipole", "pole-pole"]:
+    #         tx = np.r_[src.location]
+    #         tx = np.repeat(np.r_[[tx]], 2, axis=0)
+    #     elif survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
+    #         tx = np.c_[src.location]
+
+    #     if survey_type.lower() in ["pole-dipole", "dipole-dipole"]:
+    #         M = rx[0]
+    #         N = rx[1]
+    #     elif survey_type.lower() in ["pole-pole", "dipole-pole"]:
+    #         M = rx
+    #         N = rx
+
+    #     # Adapt source-receiver location for dim and survey_type
+    #     if dim == 2:
+    #         if format_type == "simple":
+    #             # fid.writelines("%e " % ii for ii in mkvc(tx[0, :]))
+    #             A = np.repeat(tx[0, 0], M.shape[0], axis=0)
+
+    #             if survey_type == "pole-dipole":
+    #                 B = np.repeat(tx[0, 0], M.shape[0], axis=0)
+
+    #             else:
+    #                 B = np.repeat(tx[1, 0], M.shape[0], axis=0)
+
+    #             M = M[:, 0]
+    #             N = N[:, 0]
+
+    #             fid = open(fileName, "ab")
+    #             np.savetxt(
+    #                 fid,
+    #                 np.c_[
+    #                     A,
+    #                     B,
+    #                     M,
+    #                     N,
+    #                     data.dobs[count : count + nD],
+    #                     data.relative_error[count : count + nD],
+    #                 ],
+    #                 delimiter=str(" "),
+    #                 newline=str("\n"),
+    #             )
+    #             fid.close()
+
+    #         else:
+    #             fid = open(fileName, "a")
+    #             if format_type == "surface":
+    #                 fid.writelines("%f " % ii for ii in mkvc(tx[:, 0]))
+    #                 M = M[:, 0]
+    #                 N = N[:, 0]
+
+    #             if format_type == "general":
+    #                 # Flip sign for z-elevation to depth
+    #                 tx[2::2, :] = -tx[2::2, :]
+
+    #                 fid.writelines(
+    #                     ("{:e} {:e} ").format(ii, jj) for ii, jj in tx[:, :2]
+    #                 )
+    #                 M = M[:, :2]
+    #                 N = N[:, :2]
+
+    #                 # Flip sign for z-elevation to depth
+    #                 M[:, 1::2] = -M[:, 1::2]
+    #                 N[:, 1::2] = -N[:, 1::2]
+
+    #             fid.write("%i\n" % nD)
+    #             fid.close()
+
+    #             fid = open(fileName, "ab")
+    #             np.savetxt(
+    #                 fid,
+    #                 np.c_[
+    #                     M,
+    #                     N,
+    #                     data.dobs[count : count + nD],
+    #                     data.relative_error[count : count + nD],
+    #                 ],
+    #                 delimiter=str(" "),
+    #                 newline=str("\n"),
+    #             )
+
+    #     if dim == 3:
+    #         fid = open(fileName, "a")
+    #         # Flip sign of z value for UBC DCoctree code
+    #         # tx[:, 2] = -tx[:, 2]
+    #         # print(tx)
+
+    #         # Flip sign of z value for UBC DCoctree code
+    #         # M[:, 2] = -M[:, 2]
+    #         # N[:, 2] = -N[:, 2]
+
+    #         if format_type.lower() == "surface":
+
+    #             fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:2].T))
+    #             M = M[:, 0:2]
+    #             N = N[:, 0:2]
+
+    #         if format_type.lower() == "general":
+
+    #             fid.writelines("%e " % ii for ii in mkvc(tx.T))
+
+    #         fid.write("%i\n" % nD)
+
+    #         fid.close()
+
+    #         fid = open(fileName, "ab")
+    #         if isinstance(data.relative_error, np.ndarray):
+    #             np.savetxt(
+    #                 fid,
+    #                 np.c_[
+    #                     M,
+    #                     N,
+    #                     data.dobs[count : count + nD],
+    #                     (
+    #                         data.relative_error[count : count + nD]
+    #                         + data.noise_floor[count : count + nD]
+    #                     ),
+    #                 ],
+    #                 fmt=str("%e"),
+    #                 delimiter=str(" "),
+    #                 newline=str("\n"),
+    #             )
+    #         else:
+    #             raise Exception(
+    #                 """Uncertainities SurveyObject.std should be set.
+    #                 Either float or nunmpy.ndarray is expected, """
+    #                 "not {}".format(type(data.relative_error))
+    #             )
+
+    #         fid.close()
+    #         fid = open(fileName, "a")
+    #         fid.write("\n")
+    #         fid.close()
+
+    #     count += nD
+
+    # fid.close()
+
+
+
+
+
+def writeUBC_DClocs(
+    fileName,
+    dc_survey,
+    dim,
+    format_type,
+    survey_type="dipole-dipole",
+    ip_type=0,
+    comment_lines="",
+):
+    """
+        Write UBC GIF DCIP 2D or 3D locations file
+
+        Input:
+        :param str fileName: including path where the file is written out
+        :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+        :param int dim:  either 2 | 3
+        :param str survey_type:  either 'SURFACE' | 'GENERAL'
+
+        Output:
+        :rtype: file
+        :return: UBC 2/3D-locations file
+    """
+
+    warnings.warn(
+        "The writeUBC_DClocs method has been deprecated. Please use "
+        "write_dcip2d_ubc or write_dcip3d_ubc instead. These are imported "
+        "from SimPEG.utils.io_utils. This function will be removed in version"
+        " 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )
+
+    if dim == 2:
+        write_dcip2d_ubc(
+            fileName,
+            data,
+            'volt',
+            'survey',
+            format_type=format_type,
+            comment_lines=comment_lines,
+        )
+
+    elif dim == 3:
+        write_dcip2d_ubc(
+            fileName,
+            data,
+            'volt',
+            'survey',
+            format_type=format_type,
+            comment_lines=comment_lines,
+        )
+
+
+
+
+
+
+
+    # if not ((dim == 2) | (dim == 3)):
+    #     raise Exception("""dim must be either 2 or 3""" " not {}".format(dim))
+
+    # if format_type.lower() not in ["surface", "general", "simple"]:
+    #     raise Exception(
+    #         "format_type must be 'SURFACE' | 'GENERAL' | 'SIMPLE' "
+    #         " not {}".format(format_type)
+    #     )
+
+    # fid = open(fileName, "w")
+
+    # if format_type.lower() in ["surface", "general"] and dim == 2:
+    #     fid.write("COMMON_CURRENT\n")
+
+    # fid.write("! " + format_type + " FORMAT\n")
+
+    # if comment_lines:
+    #     fid.write(comment_lines)
+
+    # if dim == 2:
+    #     fid.write("{:d}\n".format(dc_survey.nSrc))
+
+    # if ip_type != 0:
+    #     fid.write("IPTYPE=%i\n" % ip_type)
+
+    # fid.close()
+
+    # count = 0
+
+    # for ii in range(len(dc_survey.source_list)):
+
+    #     rx = dc_survey.source_list[ii].receiver_list[0].locations
+    #     nD = dc_survey.source_list[ii].nD
+
+    #     if survey_type.lower() in ["pole-dipole", "pole-pole"]:
+    #         tx = np.r_[dc_survey.source_list[ii].locations]
+    #         tx = np.repeat(np.r_[[tx]], 2, axis=0)
+    #     elif survey_type.lower() in ["dipole-dipole", "dipole-pole"]:
+    #         tx = np.c_[dc_survey.source_list[ii].locations]
+
+    #     if survey_type.lower() in ["pole-dipole", "dipole-dipole"]:
+    #         M = rx[0]
+    #         N = rx[1]
+    #     elif survey_type.lower() in ["pole-pole", "dipole-pole"]:
+    #         M = rx
+    #         N = rx
+
+    #     # Adapt source-receiver location for dim and survey_type
+    #     if dim == 2:
+
+    #         if format_type.lower() == "simple":
+    #             # fid.writelines("%e " % ii for ii in mkvc(tx[0, :]))
+    #             A = np.repeat(tx[0, 0], M.shape[0], axis=0)
+
+    #             if survey_type.lower() == "pole-dipole":
+    #                 B = np.repeat(tx[0, 0], M.shape[0], axis=0)
+
+    #             else:
+    #                 B = np.repeat(tx[1, 0], M.shape[0], axis=0)
+
+    #             M = M[:, 0]
+    #             N = N[:, 0]
+
+    #             fid = open(fileName, "ab")
+    #             np.savetxt(
+    #                 fid, np.c_[A, B, M, N], delimiter=str(" "), newline=str("\n")
+    #             )
+    #             fid.close()
+
+    #         else:
+    #             fid = open(fileName, "a")
+    #             if format_type.lower() == "surface":
+
+    #                 fid.writelines("%f " % ii for ii in mkvc(tx[:, 0]))
+    #                 M = M[:, 0]
+    #                 N = N[:, 0]
+
+    #             if format_type.lower() == "general":
+
+    #                 # Flip sign for z-elevation to depth
+    #                 tx[2::2, :] = -tx[2::2, :]
+
+    #                 fid.writelines(
+    #                     ("{:e} {:e} ").format(ii, jj) for ii, jj in tx[:, :2]
+    #                 )
+    #                 M = M[:, :2]
+    #                 N = N[:, :2]
+
+    #                 # Flip sign for z-elevation to depth
+    #                 M[:, 1::2] = -M[:, 1::2]
+    #                 N[:, 1::2] = -N[:, 1::2]
+
+    #             fid.write("%i\n" % nD)
+    #             fid.close()
+
+    #             fid = open(fileName, "ab")
+    #             np.savetxt(fid, np.c_[M, N,], delimiter=str(" "), newline=str("\n"))
+
+    #     if dim == 3:
+    #         fid = open(fileName, "a")
+    #         # Flip sign of z value for UBC DCoctree code
+    #         tx[:, 2] = -tx[:, 2]
+    #         # print(tx)
+
+    #         # Flip sign of z value for UBC DCoctree code
+    #         M[:, 2] = -M[:, 2]
+    #         N[:, 2] = -N[:, 2]
+
+    #         if format_type.lower() == "surface":
+
+    #             fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:2].T))
+    #             M = M[:, 0:2]
+    #             N = N[:, 0:2]
+
+    #         if format_type.lower() == "general":
+
+    #             fid.writelines("%e " % ii for ii in mkvc(tx.T))
+
+    #         fid.write("%i\n" % nD)
+
+    #         fid.close()
+
+    #         fid = open(fileName, "ab")
+    #         np.savetxt(
+    #             fid, np.c_[M, N], fmt=str("%e"), delimiter=str(" "), newline=str("\n")
+    #         )
+    #         fid.close()
+
+    #         fid = open(fileName, "a")
+    #         fid.write("\n")
+    #         fid.close()
+
+    #     count += nD
+
+    # fid.close()
+
+
+def readUBC_DC2Dpre(fileName):
+    """
+        Read UBC GIF DCIP 2D observation file and generate arrays
+        for tx-rx location
+
+        Input:
+        :param string fileName: path to the UBC GIF 3D obs file
+
+        Output:
+        :return survey: 2D DC survey class object
+        :rtype: SimPEG.electromagnetics.static.resistivity.Survey
+
+        Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
+
+        @author: dominiquef
+
+    """
+
+
+    warnings.warn(
+        "The readUBC_DC2Dpre method has been deprecated. Please use "
+        "read_dcip2d_ubc instead. This is imported "
+        "from SimPEG.utils.io_utils. This function will be removed in version"
+        " 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )
+
+    read_dcip2d_ubc(
+        fileName,
+        'volt',
+        'general'
+    )
+
+    # # Load file
+    # obsfile = np.genfromtxt(fileName, delimiter=" \n", dtype=np.str, comments="!")
+
+    # # Pre-allocate
+    # srcLists = []
+    # Rx = []
+    # d = []
+    # zflag = True  # Flag for z value provided
+
+    # for ii in range(obsfile.shape[0]):
+
+    #     if not obsfile[ii]:
+    #         continue
+
+    #     # First line is transmitter with number of receivers
+
+    #     temp = np.fromstring(obsfile[ii], dtype=float, sep=" ").T
+
+    #     # Check if z value is provided, if False -> nan
+    #     if len(temp) == 5:
+    #         tx = np.r_[temp[0], np.nan, np.nan, temp[1], np.nan, np.nan]
+    #         zflag = False
+
+    #     else:
+    #         tx = np.r_[temp[0], np.nan, temp[1], temp[2], np.nan, temp[3]]
+
+    #     if zflag:
+    #         rx = np.c_[temp[4], np.nan, temp[5], temp[6], np.nan, temp[7]]
+
+    #     else:
+    #         rx = np.c_[temp[2], np.nan, np.nan, temp[3], np.nan, np.nan]
+    #         # Check if there is data with the location
+
+    #     d.append(temp[-1])
+
+    #     Rx = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
+    #     srcLists.append(dc.Src.Dipole([Rx], tx[:3], tx[3:]))
+
+    # # Create survey class
+    # survey = dc.Survey(srcLists)
+    # data = Data(survey=survey, dobs=np.asarray(d))
+
+    # return data
