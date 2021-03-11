@@ -75,13 +75,13 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             ],
         ):
             print("\n Testing {} ... ".format(survey_type))
-            survey = utils.gen_DCIPsurvey(
+            survey = utils.generate_dcip_survey(
                 self.xyz,
-                survey_type=survey_type,
-                dim=self.mesh.dim,
-                a=self.survey_a,
-                b=self.survey_b,
-                n=self.survey_n,
+                survey_type,
+                self.survey_a,
+                self.survey_b,
+                self.survey_n,
+                self.mesh.dim
             )
 
             self.assertEqual(survey_type, survey.survey_type)
@@ -204,21 +204,6 @@ class DCUtilsTests_fullspace(unittest.TestCase):
 
         self.assertTrue(passed)
 
-    def test_apparent_resistivity(self):
-
-        # Compute apparent resistivity from survey
-        rhoapp = utils.apparent_resistivity(
-            self.data, space_type="whole-space", eps=1e-16
-        )
-
-        # Load benchmarks files from UBC-GIF codes
-        rhoappfile = os.path.sep.join([self.basePath, "RhoApp_GIF_fullspace.txt"])
-        rhogif = np.loadtxt(rhoappfile)
-        # remove value with almost null geometric factor
-        idx = rhoapp < 1e8
-        # Assert agreements between the two codes
-        passed = np.allclose(rhoapp[idx], rhogif[idx])
-        self.assertTrue(passed)
 
     def tearDown(self):
         # Clean up the working directory

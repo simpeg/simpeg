@@ -2120,11 +2120,7 @@ def readUBC_DC2Dpre(fileName):
         DeprecationWarning,
     )
 
-    read_dcip2d_ubc(
-        fileName,
-        'volt',
-        'general'
-    )
+    return read_dcip2d_ubc(fileName, 'volt', 'general')
 
     # # Load file
     # obsfile = np.genfromtxt(fileName, delimiter=" \n", dtype=np.str, comments="!")
@@ -2190,10 +2186,7 @@ def readUBC_DC3Dobs(fileName, data_type='volt'):
         DeprecationWarning,
     )
 
-    read_dcip3d_ubc(
-        fileName,
-        data_type
-    )
+    return read_dcip3d_ubc(fileName, data_type)
 
 
 
@@ -2314,3 +2307,16 @@ def readUBC_DC3Dobs(fileName, data_type='volt'):
     # survey = dc.Survey(srcLists, survey_type=survey_type)
     # data = Data(survey=survey, dobs=np.asarray(d), relative_error=np.asarray(wd))
     # return data
+
+
+def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3):
+
+    warnings.warn(
+        "The gen_DCIPsurvey method has been deprecated. Please use "
+        "gnerate_dcip_survey instead. This is imported "
+        "from SimPEG.utils.io_utils. This function will be removed in version"
+        " 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )
+
+    return generate_dcip_survey(endl, survey_type, a, b, n, dim)
