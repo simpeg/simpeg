@@ -233,9 +233,9 @@ class DC3DMiniaturizeTest(unittest.TestCase):
             [
                 [(cs, 10, -1.3), (cs, surveySize / cs), (cs, 10, 1.3)],
                 [(cs, 3, -1.3), (cs, 3, 1.3)],
-                # [(cs, 5, -1.3), (cs, 10)]
+                [(cs, 5, -1.3), (cs, 10)]
             ],
-            "CN",
+            "CNN",
         )
 
         survey_end_points = np.array([-surveySize / 2, surveySize / 2, 0, 0])
@@ -296,6 +296,7 @@ class DC3DMiniaturizeTest(unittest.TestCase):
     def test_dpred(self):
         d1 = self.sim1.dpred(self.model, f=self.f1)
         d2 = self.sim2.dpred(self.model, f=self.f2)
+        
         self.assertTrue(np.allclose(d1, d2))
 
     def test_Jvec(self):
