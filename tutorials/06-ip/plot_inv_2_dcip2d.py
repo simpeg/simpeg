@@ -110,8 +110,8 @@ true_chargeability_filename = dir_path + "true_chargeability.txt"
 
 # Load data
 topo_xyz = np.loadtxt(str(topo_filename))
-dc_data = read_dcip2d_ubc(dc_data_filename, 'volt')
-ip_data = read_dcip2d_ubc(ip_data_filename, 'secondary_potential')
+dc_data = read_dcip2d_ubc(dc_data_filename, 'volt', 'general')
+ip_data = read_dcip2d_ubc(ip_data_filename, 'secondary_potential', 'general')
 
 #########################################################
 # Plot Observed Data in Pseudosection

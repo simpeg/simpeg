@@ -105,7 +105,7 @@ true_conductivity_filename = dir_path + "true_conductivity.txt"
 
 # Load data
 topo_xyz = np.loadtxt(str(topo_filename))
-dc_data = read_dcip2d_ubc(data_filename, 'volt')
+dc_data = read_dcip2d_ubc(data_filename, 'volt', 'general')
 
 #######################################################################
 # Plot Observed Data in Pseudo-Section
