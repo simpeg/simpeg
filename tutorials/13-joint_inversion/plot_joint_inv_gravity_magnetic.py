@@ -343,6 +343,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
 starting_beta = directives.Joint_BetaEstimate_ByEig(beta0_ratio=1e1)
+starting_beta.n_pw_iter = 10
 
 # Defining the fractional decrease in beta and the number of Gauss-Newton solves
 # for each beta value.
@@ -356,24 +357,24 @@ update_jacobi = directives.UpdatePreconditioner()
 
 joint_inv_dir = directives.Joint_InversionDirective()
 
-# stopping = directives.Joint_Stopping(tol=1e-6)
+stopping = directives.Joint_Stopping(tol=1e-6)
 
 # Setting a stopping criteria for the inversion.
-# target_misfit = directives.TargetMisfit(chifact=1)
+target_misfit = directives.TargetMisfit(chifact=1)
 
 # Add sensitivity weights
-# sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 
 # The directives are defined as a list.
 directives_list = [
     joint_inv_dir,
-    # sensitivity_weights,
+    sensitivity_weights,
     starting_beta,
     beta_schedule,
     save_iteration,
     update_jacobi,
-    # target_misfit,
-    # stopping,
+    target_misfit,
+    stopping,
 ]
 
 #####################################################################
