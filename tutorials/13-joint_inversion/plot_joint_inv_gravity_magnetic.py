@@ -51,7 +51,7 @@ from SimPEG import (
     inversion,
     utils,
 )
-
+np.random.seed(0)
 
 #############################################
 # Define File Names
@@ -159,7 +159,7 @@ maximum_anomaly_grav = np.max(np.abs(dobs_grav))
 uncertainties_grav = 0.01 * maximum_anomaly_grav * np.ones(np.shape(dobs_grav))
 
 maximum_anomaly_mag = np.max(np.abs(dobs_mag))
-uncertainties_mag = 0.01 * maximum_anomaly_grav * np.ones(np.shape(dobs_mag))
+uncertainties_mag = 0.01 * maximum_anomaly_mag * np.ones(np.shape(dobs_mag))
 
 
 #############################################
@@ -313,7 +313,7 @@ reg_grav = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m1)
 reg_mag = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m2)
 
 # Define the coupling term to connect two different physical property models
-lamda = 1e+2 # weights 
+lamda = 1e+11 # weights 
 cross_grad = regularization.CrossGradient(mesh, indActive=ind_active, mapping=(wires.m1+wires.m2))
 
 # combo
@@ -324,7 +324,7 @@ reg = reg_grav + reg_mag + lamda*cross_grad
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.ProjectedGNCG(
     maxIter=500, lower=-2.0, upper=2.0, maxIterLS=20, 
-    maxIterCG=200, tolCG=1e-3, tolX=1e-1
+    maxIterCG=200, tolCG=1e-3, tolX=1e-3
 )
 
 # Here we define the inverse problem that is to be solved
@@ -342,8 +342,8 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.Joint_BetaEstimate_ByEig(beta0_ratio=1e1)
-starting_beta.n_pw_iter = 10
+starting_beta = directives.Joint_BetaEstimate_ByEig(beta0_ratio=1e0)
+# starting_beta.n_pw_iter = 10
 
 # Defining the fractional decrease in beta and the number of Gauss-Newton solves
 # for each beta value.
@@ -359,22 +359,17 @@ joint_inv_dir = directives.Joint_InversionDirective()
 
 stopping = directives.Joint_Stopping(tol=1e-6)
 
-# Setting a stopping criteria for the inversion.
-target_misfit = directives.TargetMisfit(chifact=1)
 
-# Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 
 # The directives are defined as a list.
 directives_list = [
     joint_inv_dir,
-    sensitivity_weights,
+    stopping,
     starting_beta,
     beta_schedule,
     save_iteration,
     update_jacobi,
-    target_misfit,
-    stopping,
+
 ]
 
 #####################################################################
@@ -420,7 +415,7 @@ mesh.plotSlice(
     clim=(np.min(true_model_dens), np.max(true_model_dens)),
     pcolorOpts={"cmap": "viridis"},
 )
-ax1.set_title("Model slice at y = 0 m")
+ax1.set_title("True density model slice at y = 0 m")
 
 ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
 norm = mpl.colors.Normalize(vmin=np.min(true_model_dens), vmax=np.max(true_model_dens))
@@ -444,7 +439,7 @@ mesh.plotSlice(
     clim=(np.min(true_model_susc), np.max(true_model_susc)),
     pcolorOpts={"cmap": "viridis"},
 )
-ax1.set_title("Model slice at y = 0 m")
+ax1.set_title("True susceptibility model slice at y = 0 m")
 
 ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
 norm = mpl.colors.Normalize(vmin=np.min(true_model_susc), vmax=np.max(true_model_susc))
@@ -471,7 +466,7 @@ mesh.plotSlice(
     clim=(np.min(m_dens_joint), np.max(m_dens_joint)),
     pcolorOpts={"cmap": "viridis"},
 )
-ax1.set_title("Model slice at y = 0 m")
+ax1.set_title("Density model slice at y = 0 m")
 
 ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
 norm = mpl.colors.Normalize(vmin=np.min(m_dens_joint), vmax=np.max(m_dens_joint))
@@ -495,7 +490,7 @@ mesh.plotSlice(
     clim=(np.min(m_susc_joint), np.max(m_susc_joint)),
     pcolorOpts={"cmap": "viridis"},
 )
-ax1.set_title("Model slice at y = 0 m")
+ax1.set_title("Susceptibility model slice at y = 0 m")
 
 ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
 norm = mpl.colors.Normalize(vmin=np.min(m_susc_joint), vmax=np.max(m_susc_joint))
@@ -507,10 +502,51 @@ cbar.set_label("SI", rotation=270, labelpad=15, size=12)
 plt.show()
 
 
+# Normalized Cross Gradient of Recovered Susceptibility and Density Models
+cross_grad.normazlied = True
+ncg = cross_grad.calculate_cross_gradient(m_dens_joint, m_susc_joint)
+
+fig = plt.figure(figsize=(9, 4))
+ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
+mesh.plotSlice(
+    plotting_map * ncg,
+    normal="Y",
+    ax=ax1,
+    ind=int(mesh.nCy / 2),
+    grid=True,
+    clim=(ncg.min(), ncg.max()),
+    pcolorOpts={"cmap": "viridis"},
+)
+ax1.set_title("Normalized cross gradient slice at y = 0 m")
+
+ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
+norm = mpl.colors.Normalize(vmin=ncg.min(), vmax=ncg.max())
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
+)
+cbar.set_label("SI", rotation=270, labelpad=15, size=12)
+
+plt.show()
 
 
+# Cross Plot Recovered Susceptibility and Density Models
+fig = plt.figure(figsize=(7, 5))
+ax = plt.subplot()
+ax.scatter(
+    plotting_map * m_dens_joint, 
+    plotting_map * m_susc_joint,
+    s=4, c="black", 
+    )
+ax.scatter(
+    plotting_map * true_model_dens,
+    plotting_map * true_model_susc,
+    s=4, c="red"
+    )
+ax.set_xlabel("Density", size=12)
+ax.set_ylabel("Susceptibility", size=12)
+ax.tick_params(labelsize=12)
 
-
+plt.show()
 
 
 

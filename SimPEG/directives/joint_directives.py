@@ -88,7 +88,7 @@ class Joint_InversionDirective(InversionDirective):
         self.invProb.phi_c = self.phi_c
 
         self.opt.printers = self.printers
-        self.opt.stoppers = [StoppingCriteria.iteration, StoppingCriteria.moving_x]
+        self.opt.stoppers = [StoppingCriteria.iteration]
 
     def validate(self, directiveList):
         # check that this directive is first in the DirectiveList
@@ -191,8 +191,6 @@ class Joint_BetaEstimate_ByEig(InversionDirective):
     data misfit term and the highest eigenvalue of the regularization.
     The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
 
-    from Thibaut Astic
-
     """
 
     beta0_ratio = 1.  #: the estimated ratio is multiplied by this to obtain beta
@@ -235,25 +233,7 @@ class Joint_BetaEstimate_ByEig(InversionDirective):
             reg_eigenvalues.append(
                 eigenvalue_by_power_iteration(reg, m, n_pw_iter=self.n_pw_iter,)
                 )
-        
-        # split density and susceptibility models firstly, and estimates eigenvalues 
-        # separately. But it cannot work well at this time because of dimension dismatch.
-        # model = np.array_split(self.invProb.model, 2)
-        # model_zero = np.zeros_like(model)
-        # m1, m2  = np.r_[model[0], model_zero[0]], np.r_[model_zero[1], model[1]]
-        # m = [m1, m2]
-        #
-        # dmis_eigenvalues = []
-        # for i, dmis in enumerate(self.dmisfit.objfcts):
-        #     dmis_eigenvalues.append(
-        #         eigenvalue_by_power_iteration(dmis, m[i], n_pw_iter=self.n_pw_iter,)
-        #         )
-        #
-        # reg_eigenvalues = []
-        # for i, reg in enumerate(self.reg.objfcts[:-1]):
-        #     reg_eigenvalues.append(
-        #         eigenvalue_by_power_iteration(reg, m[i], n_pw_iter=self.n_pw_iter,)
-        #         )
+
 
         self.ratios = np.array(dmis_eigenvalues) / np.array(reg_eigenvalues)
         self.invProb.betas = self.beta0_ratio * self.ratios
