@@ -122,7 +122,11 @@ class Simulation3DIntegral(BasePFSimulation):
         tol2 = 1e-10
 
         # base cell dimensions
-        min_hx, min_hy, min_hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
+        min_hx, min_hy = self.mesh.hx.min(), self.mesh.hy.min()
+        if self.mesh.hz is None:
+            min_hz = min_hx
+        else:
+            min_hz = self.mesh.hz.min()
 
         dx = self.Xn - receiver_location[0]
         dx[np.abs(dx)/min_hx < tol1] = tol1 * min_hx

@@ -58,9 +58,14 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._M = sp.identity(self.nC) * self.survey.source_field.parameters[0]
 
             else:
+                # mag = mat_utils.dip_azimuth2cartesian(
+                #     np.ones(self.nC) * self.survey.source_field.parameters[1],
+                #     np.ones(self.nC) * self.survey.source_field.parameters[2],
+                # )
+
                 mag = mat_utils.dip_azimuth2cartesian(
-                    np.ones(self.nC) * self.survey.source_field.parameters[1],
-                    np.ones(self.nC) * self.survey.source_field.parameters[2],
+                    np.ones(self.mesh.nC) * self.survey.source_field.parameters[1],
+                    np.ones(self.mesh.nC) * self.survey.source_field.parameters[2],
                 )
 
                 self._M = sp.vstack(
@@ -254,11 +259,11 @@ class Simulation3DIntegral(BasePFSimulation):
         nC = self.Xn.shape[0]
 
         # base cell dimensions
-        min_hx, min_hy, min_hz = (
-            self.mesh.hx.min(),
-            self.mesh.hy.min(),
-            self.mesh.hz.min(),
-        )
+        min_hx, min_hy = self.mesh.hx.min(), self.mesh.hy.min()
+        if self.mesh.hz is None:
+            min_hz = min_hx
+        else:
+            min_hz = self.mesh.hz.min()
 
         # comp. pos. differences for tne, bsw nodes. Adjust if location within
         # tolerance of a node or edge
