@@ -199,6 +199,10 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
 
     file_name : str
         The file path to the data file
+    data_type: str
+        Must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}
+    format_type: str
+        Parameter 'data_type' must be one of {'general', 'surface', 'simple'}
 
     Returns
     -------
@@ -640,11 +644,16 @@ def write_dcip2d_ubc(
 
     Parameters
     ----------
-    file_name:
+    file_name: str
+        file path for output file
     data_object:
-    data_type: {'volt', 'apparent_chargeability', 'secondary_potential'}
-    file_type: 'survey', 'dpred', 'dobs'
-    format_type: 'general', 'surface', 'simple'
+        SimPEG.data.Data object
+    data_type: str
+        Must be on of {'volt', 'apparent_chargeability', 'secondary_potential'}
+    file_type: str
+        Must be one of {'survey', 'dpred', 'dobs'}
+    format_type: str
+        Must be on of {'general', 'surface', 'simple'}
     comment_lines:
     """
 
@@ -689,6 +698,10 @@ def write_dcip2d_ubc(
 
     # Write comments and IP type (if applicable)
     with open(file_name, "w") as fid:
+
+        if format_type.lower() != "simple":
+            fid.write("COMMON_CURRENT\n")
+
         fid.write(f"! {format_type} FORMAT\n")
 
         if comment_lines is not None and len(comment_lines) > 0:
@@ -698,6 +711,9 @@ def write_dcip2d_ubc(
             if comment_lines[-1] != "\n":
                 comment_lines += "\n"
             fid.write(comment_lines)
+
+        if format_type.lower() != "simple":
+            fid.write("{:g}\n".format(len(data_object.survey.source_list)))
 
         # DCIP3D will allow user to choose definition of IP data. DC data has no flag.
         # DCIPoctree IP data is always apparent chargeability.
