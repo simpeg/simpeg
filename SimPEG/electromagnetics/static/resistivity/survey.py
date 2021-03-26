@@ -96,7 +96,7 @@ class Survey(BaseSurvey):
     )
 
     @property
-    def electrode_locations(self):
+    def unique_electrode_locations(self):
         """
         Unique locations of the A, B, M, N electrodes
         """
@@ -107,9 +107,20 @@ class Survey(BaseSurvey):
         return np.unique(np.vstack((loc_a, loc_b, loc_m, loc_n)), axis=0)
 
     @property
+    def electrode_locations(self):
+        warnings.warn(
+            "The electrode_locations property has been deprecated. "
+            "Unique electrode locations are now accessed though the "
+            "property unique_electrode_locations. "
+            "This will be removed in version 0.15.0 of SimPEG",
+            DeprecationWarning,
+        )
+        return self.unique_electrode_locations()
+
+    @property
     def source_locations(self):
         """
-        Returns the source locations for all sources in the survey.
+        Returns, in order, the source locations for all sources in the survey.
 
         Input:
         :param self: SimPEG.electromagnetics.static.resistivity.Survey

@@ -38,10 +38,12 @@ def read_dcip_xyz(
     is_surface_data: True if surface formatted and electrode elevations are not supplied
     """
     
-    if data_type not in ["volt", "apparent_resistivity", "apparent_chargeability"]:
+    if data_type.lower() not in ["volt", "apparent_resistivity", "apparent_chargeability"]:
         raise Exception(
             "data_type must be one of 'volt', 'apparent_resistivity', 'apparent_chargeability'"
         )
+
+    data_type = data_type.lower()
     
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
@@ -216,13 +218,17 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
         defined as uncertainties.
 
     """
-    assert data_type.lower() in [
+    data_type = data_type.lower()
+    format_type = format_type.lower()
+
+    assert data_type in [
         "volt",
         "apparent_chargeability",
         "secondary_potential",
     ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
     
-    assert format_type.lower() in [
+
+    assert format_type in [
         "general",
         "surface",
         "simple"
@@ -472,7 +478,9 @@ def read_dcip3d_ubc(file_name, data_type):
 
     """
 
-    assert data_type.lower() in [
+    data_type = data_type.lower()
+
+    assert data_type in [
         "volt",
         "apparent_chargeability",
         "secondary_potential",
@@ -502,7 +510,7 @@ def read_dcip3d_ubc(file_name, data_type):
 
     # Since SimPEG defines secondary potential from IP as voltage,
     # we must use this type when defining the receivers.
-    if data_type.lower() == "secondary_potential":
+    if data_type == "secondary_potential":
         data_type = "volt"
 
     # Countdown for number of obs/tx
@@ -678,19 +686,23 @@ def write_dcip2d_ubc(
             )
         )
 
-    assert data_type.lower() in [
+    data_type = data_type.lower()
+    file_type = file_type.lower()
+    format_type = format_type.lower()
+    
+    assert data_type in [
         "volt",
         "apparent_chargeability",
         "secondary_potential",
     ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
 
-    assert file_type.lower() in [
+    assert file_type in [
         "survey",
         "dpred",
         "dobs",
     ], "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
 
-    assert format_type.lower() in [
+    assert format_type in [
         "general",
         "surface",
         "simple"
@@ -699,7 +711,7 @@ def write_dcip2d_ubc(
     # Write comments and IP type (if applicable)
     with open(file_name, "w") as fid:
 
-        if format_type.lower() != "simple":
+        if format_type != "simple":
             fid.write("COMMON_CURRENT\n")
 
         fid.write(f"! {format_type} FORMAT\n")
@@ -731,10 +743,10 @@ def write_dcip2d_ubc(
                 data_object.survey.locations_n[:, 0],
             ]
 
-            if file_type.lower() != "survey":
+            if file_type != "survey":
                 out_array = np.c_[out_array, data_object.dobs]
 
-            if file_type.lower() == "dobs":
+            if file_type == "dobs":
                 out_array = np.c_[out_array, data_object.standard_deviation]
 
             np.savetxt(fid, out_array, fmt='%e', delimiter='    ')
@@ -742,9 +754,9 @@ def write_dcip2d_ubc(
         else:
         
             # Index deciding if z locations are written
-            if format_type.lower() == "surface":
+            if format_type == "surface":
                 end_index = 1
-            elif format_type.lower() == "general":
+            elif format_type == "general":
                 end_index = 2
 
             # Loop over all sources
@@ -837,26 +849,30 @@ def write_dcip3d_ubc(
             )
         )
 
-    assert data_type.lower() in [
+    data_type = data_type.lower()
+    file_type = file_type.lower()
+    format_type = format_type.lower()
+
+    assert data_type in [
         "volt",
         "apparent_chargeability",
         "secondary_potential",
     ], "Parameter 'data_type' must be one of {'volt', 'apparent_chargeability', 'secondary_potential'}"
 
-    assert file_type.lower() in [
+    assert file_type in [
         "survey",
         "dpred",
         "dobs",
     ], "Parameter 'file_type' must be one of {'survey', 'dpred', 'dobs'}"
 
-    assert format_type.lower() in [
+    assert format_type in [
         "general",
         "surface"
     ], "Parameter 'format_type' must be one of {'general', 'surface'}"
 
     # Predicted DC data will automatically contain apparent resistivity column.
     # Here we compute the apparent resistivities and treat it like an uncertainties column.
-    if (file_type.lower() == "dpred") & (data_type == "volt"):
+    if (file_type == "dpred") & (data_type == "volt"):
         data_object.standard_deviation = apparent_resistivity_from_voltage(
             data_object.survey, data_object.dobs
         )
@@ -880,9 +896,9 @@ def write_dcip3d_ubc(
             fid.write("IPTYPE=2\n")
 
         # Index deciding if z locations are written
-        if format_type.lower() == "surface":
+        if format_type == "surface":
             end_index = 2
-        elif format_type.lower() == "general":
+        elif format_type == "general":
             end_index = 3
 
         # Loop over all sources
@@ -911,10 +927,10 @@ def write_dcip3d_ubc(
                     M = rx.locations[:, 0:end_index]
                     N = rx.locations[:, 0:end_index]
 
-                if file_type.lower() != "survey":
+                if file_type != "survey":
                     N = np.c_[N, data_object.dobs[count : count + rx.nD]]
 
-                if file_type.lower() == "dobs":
+                if file_type == "dobs":
                     N = np.c_[N, data_object.standard_deviation[count : count + rx.nD]]
 
                 # Write receivers and locations

@@ -29,7 +29,6 @@ try:
     has_plotly = True
 except:
     has_plotly = False
-    pass
 
 
 DATA_TYPES = {
@@ -1691,7 +1690,7 @@ def writeUBC_DCobs(
         )
 
     elif dim == 3:
-        write_dcip2d_ubc(
+        write_dcip3d_ubc(
             fileName,
             data,
             'volt',
