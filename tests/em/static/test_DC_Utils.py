@@ -75,7 +75,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             ],
         ):
             print("\n Testing {} ... ".format(survey_type))
-            survey = utils.generate_dcip_survey(
+            survey = utils.gen_DCIPsurvey(
                 self.xyz,
                 survey_type,
                 self.survey_a,

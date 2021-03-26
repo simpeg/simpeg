@@ -115,7 +115,7 @@ class Survey(BaseSurvey):
             "This will be removed in version 0.15.0 of SimPEG",
             DeprecationWarning,
         )
-        return self.unique_electrode_locations()
+        return self.unique_electrode_locations
 
     @property
     def source_locations(self):
