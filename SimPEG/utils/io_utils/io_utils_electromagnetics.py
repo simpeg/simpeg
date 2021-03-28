@@ -47,6 +47,7 @@ def read_dcip_xyz(
     
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
+    from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
     from ...data import Data
     
     # Load file headers
@@ -123,54 +124,16 @@ def read_dcip_xyz(
         m_locations = data_array[:, m_cols]
         n_locations = data_array[:, n_cols]
     
-    # Set up keeping track of sorting of rows and unique sources
-    k = np.arange(0, n_rows)
-    out_indices = []
-    unique_ab, ab_index = np.unique(np.c_[a_locations, b_locations], axis=0, return_index=True)
-    ab_index = np.sort(ab_index)
     
-    # Loop over all unique source locations
-    source_list = []
-    for ii, ind in enumerate(ab_index):
-            
-        # Get source location
-        src_loc_a = mkvc(a_locations[ind, :])
-        src_loc_b = mkvc(b_locations[ind, :])
-        
-        # Get receiver locations
-        rx_index = np.where(
-            (
-                (np.sqrt(np.sum((a_locations - src_loc_a)**2, axis=1)) < 1e-3) &
-                (np.sqrt(np.sum((b_locations - src_loc_b)**2, axis=1)) < 1e-3)
-            )
-        )[0]
-        
-        rx_loc_m = m_locations[rx_index, :]
-        rx_loc_n = n_locations[rx_index, :]
-        
-        # Keep track to sorted output
-        out_indices.append(k[rx_index])
-        
-        # Define Pole or Dipole Receivers
-        if np.all(np.isclose(rx_loc_m, rx_loc_n, atol=1e-3)):
-            rx_list = [dc.receivers.Pole(rx_loc_m, data_type=data_type)]
-        elif np.all(np.any(np.isclose(rx_loc_m, rx_loc_n, atol=1e-3)==False, axis=1)):
-            rx_list = [dc.receivers.Dipole(rx_loc_m, rx_loc_n, data_type=data_type)]
-        else:
-            raise NotImplementedError("An individual source cannot have a mix of Pole and Dipole receivers")
-        
-        # Define Pole or Dipole Sources
-        if np.all(np.isclose(src_loc_a, src_loc_b, atol=1e-3)):
-            source_list.append(dc.sources.Pole(rx_list, src_loc_a))
-        else:
-            source_list.append(
-                dc.sources.Dipole(rx_list, src_loc_a, src_loc_b)
-            )
+    survey, out_indices = generate_survey_from_abmn_locations(
+        a_locations=a_locations,
+        b_locations=b_locations,
+        m_locations=m_locations,
+        n_locations=n_locations,
+        data_type=data_type,
+        output_sorting=True
+    )
     
-    out_indices = np.hstack(out_indices)
-    
-    # Define the survey and the data object
-    survey = dc.survey.Survey(source_list)
     data_object = Data(survey)
     
     # Sort and organize all data columns
@@ -236,6 +199,7 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
     
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
+    from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
     from ...data import Data
 
     # Load file
@@ -285,58 +249,20 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
         # Get ABMN electrode locations
         dummy_elevation = 9999
         
-        k = np.arange(0, n_rows)
-        out_indices = []
-        unique_ab, ab_index = np.unique(data_array[:, 0:2], axis=0, return_index=True)
-        ab_index = np.sort(ab_index)
-        
         a_locations = np.c_[data_array[:, 0], dummy_elevation*np.ones(n_rows)]
         b_locations = np.c_[data_array[:, 1], dummy_elevation*np.ones(n_rows)]
         m_locations = np.c_[data_array[:, 2], dummy_elevation*np.ones(n_rows)]
         n_locations = np.c_[data_array[:, 3], dummy_elevation*np.ones(n_rows)]
         
-        # Loop over all unique source locations
-        source_list = []
-        for ii, ind in enumerate(ab_index):
-                
-            # Get source location
-            src_loc_a = mkvc(a_locations[ind, :])
-            src_loc_b = mkvc(b_locations[ind, :])
-            
-            # Get receiver locations
-            rx_index = np.where(
-                (
-                    (np.sqrt(np.sum((a_locations - src_loc_a)**2, axis=1)) < 1e-3) &
-                    (np.sqrt(np.sum((b_locations - src_loc_b)**2, axis=1)) < 1e-3)
-                )
-            )[0]
-            
-            rx_loc_m = m_locations[rx_index, :]
-            rx_loc_n = n_locations[rx_index, :]
-            
-            # Keep track to sorted output
-            out_indices.append(k[rx_index])
-            
-            # Define Pole or Dipole Receivers
-            if np.all(np.isclose(rx_loc_m, rx_loc_n, atol=1e-3)):
-                rx_list = [dc.receivers.Pole(rx_loc_m, data_type=data_type)]
-            elif np.all(np.any(np.isclose(rx_loc_m, rx_loc_n, atol=1e-3)==False, axis=1)):
-                rx_list = [dc.receivers.Dipole(rx_loc_m, rx_loc_n, data_type=data_type)]
-            else:
-                raise NotImplementedError("An individual source cannot have a mix of Pole and Dipole receivers")
-            
-            # Define Pole or Dipole Sources
-            if np.all(np.isclose(src_loc_a, src_loc_b, atol=1e-3)):
-                source_list.append(dc.sources.Pole(rx_list, src_loc_a))
-            else:
-                source_list.append(
-                    dc.sources.Dipole(rx_list, src_loc_a, src_loc_b)
-                )
+        survey, out_indices = generate_survey_from_abmn_locations(
+            a_locations=a_locations,
+            b_locations=b_locations,
+            m_locations=m_locations,
+            n_locations=n_locations,
+            data_type=data_type,
+            output_sorting=True
+        )
         
-        out_indices = np.hstack(out_indices)
-        
-        # Define the survey and the data object
-        survey = dc.survey.Survey(source_list)
         data_out = Data(survey)
         
         # Sort and organize all data columns
@@ -488,6 +414,7 @@ def read_dcip3d_ubc(file_name, data_type):
 
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
+    from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
     from ...data import Data
 
     # Load file

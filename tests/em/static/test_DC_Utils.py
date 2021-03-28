@@ -210,5 +210,62 @@ class DCUtilsTests_fullspace(unittest.TestCase):
         shutil.rmtree(self.basePath)
 
 
+class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
+    def setUp(self):
+
+        # Define the parameters for each survey line
+        survey_type = ["dipole-dipole", "pole-pole", "pole-dipole", "dipole-pole"]
+        data_type = "volt"
+        dimension_type = "3D"
+        end_locations = np.r_[-1000.0, 1000.0, 0.0, 0.0]
+        station_separation = 200.0
+        num_rx_per_src = 5
+
+        # The source lists for each line can be appended to create the source
+        # list for the whole survey.
+        source_list = []
+        for ii in range(0, len(survey_type)):
+            source_list += utils.generate_dcip_sources_line(
+                survey_type[ii],
+                data_type,
+                dimension_type,
+                end_locations,
+                0.,
+                num_rx_per_src,
+                station_separation,
+            )
+
+        # Define the survey
+        self.survey = dc.survey.Survey(source_list)
+
+    def test_generate_survey_from_abmn_locations(self):
+
+        survey_new, sorting_index = utils.generate_survey_from_abmn_locations(
+            locations_a=self.survey.locations_a,
+            locations_b=self.survey.locations_b,
+            locations_m=self.survey.locations_m,
+            locations_n=self.survey.locations_n,
+            data_type="volt",
+            output_sorting=True
+        )
+
+        A = np.c_[
+            self.survey.locations_a[sorting_index, :],
+            self.survey.locations_b[sorting_index, :],
+            self.survey.locations_m[sorting_index, :],
+            self.survey.locations_n[sorting_index, :]
+        ]
+
+        B = np.c_[
+            survey_new.locations_a,
+            survey_new.locations_b,
+            survey_new.locations_m,
+            survey_new.locations_n
+        ]
+
+        passed = np.allclose(A,B)
+
+        self.assertTrue(passed)
+
 if __name__ == "__main__":
     unittest.main()

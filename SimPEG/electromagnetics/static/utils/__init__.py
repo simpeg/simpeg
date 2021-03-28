@@ -10,6 +10,7 @@ from .static_utils import (
     gen_DCIPsurvey,
     # generate_dcip_survey_line,
     generate_dcip_sources_line,
+    generate_survey_from_abmn_locations,
     writeUBC_DCobs,
     writeUBC_DClocs,
     convert_survey_3d_to_2d_lines,

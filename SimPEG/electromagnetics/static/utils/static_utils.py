@@ -170,13 +170,17 @@ def electrode_separations(survey_object, electrode_pair="all", **kwargs):
 
     return elecSepDict
 
-def pseudo_locations(survey, **kwargs):
+def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
     """
     Calculates the pseudo-sensitivity locations for 2D and 3D surveys.
 
     Input:
     survey : SimPEG.electromagnetics.static.resistivity.Survey
         A DC or IP survey
+    wenner_tolerance : float
+        If the center location for a source and receiver pair are within wenner_tolerance,
+        we assume the datum was collected with a wenner configuration and the pseudo-location
+        is computed based on the AB electrode spacing.
 
     Output:
     tuple of numpy.ndarray of the form (midxy, midz)
@@ -233,7 +237,7 @@ def pseudo_locations(survey, **kwargs):
     pseudo_depth = np.zeros_like(midpoints)
 
     # wenner-like electrode groups (are source and rx midpoints in same place)
-    is_wenner = np.sqrt(np.sum(ds[:,:-1]**2, axis=1)) < 0.1
+    is_wenner = np.sqrt(np.sum(ds[:,:-1]**2, axis=1)) < wenner_tolerance
 
     # Pseudo depth is AB/2
     if np.any(is_wenner):
@@ -895,6 +899,141 @@ if has_plotly:
 #########################################################################
 #                      GENERATE SURVEYS
 #########################################################################
+
+
+def generate_survey_from_abmn_locations(
+    *,
+    locations_a=None,
+    locations_b=None,
+    locations_m=None,
+    locations_n=None,
+    data_type=None,
+    output_sorting=False
+):
+    """
+    Use A, B, M and N electrode locations to construct a 2D or 3D DC/IP survey.
+
+    Parameters
+    ----------
+    
+    locations_a : numpy.array
+        An (n, dim) numpy array containing A electrode locations
+    locations_b : None or numpy.array
+        An (n, dim) numpy array containing B electrode locations. If None,
+        we assume all sources are Pole sources.
+    locations_m : numpy.array
+        An (n, dim) numpy array containing M electrode locations
+    locations_n : numpy.array
+        An (n, dim) numpy array containing N electrode locations. If None,
+        we assume all receivers are Pole receivers.
+    data_type : str
+        Must be one of {'volt', 'apparent_conductivity', 'apparent_resistivity', 'apparent_chargeability'}
+    output_sorting : bool
+        This option is used if the ABMN locations are sorted during the creation of the survey
+        and you would like to sort any data vectors associated with the electrode locations.
+        If False, the function will output a SimPEG.electromagnetic.static.survey.Survey object.
+        If True, the function will output a tuple containing the survey object and a numpy array
+        (n,) that will sort the data vector to match the order of the electrodes in the survey.
+
+
+    Returns
+    -------
+    survey
+        A SimPEG.electromagnetic.static.survey.Survey object
+    sort_index
+        A numpy array which defines any sorting that took place when creating the survey
+
+
+    """
+    
+    if locations_a is None:
+        raise AssertionError("Locations for A electrodes must be provided.")
+    if locations_m is None:
+        raise AssertionError("Locations for M electrodes must be provided.")
+
+    assert data_type.lower() in [
+        "volt",
+        "apparent_conductivity",
+        "apparent_resistivity",
+        "apparent_chargeability",
+    ], "data_type must be one of 'volt', 'apparent_conductivity', 'apparent_resistivity', 'apparent_chargeability'"
+
+    if locations_b is None:
+        locations_b = locations_a
+
+    if locations_n is None:
+        locations_n = locations_m
+    
+    if (locations_a.shape==locations_b.shape==locations_m.shape==locations_n.shape) == False:
+        raise AssertionError("Arrays containing A, B, M and N electrode locations must be same shape.")
+
+    # Set up keeping track of sorting of rows and unique sources
+    n_rows = np.shape(locations_a)[0]
+    k = np.arange(0, n_rows)
+    out_indices = []
+    unique_ab, ab_index = np.unique(np.c_[locations_a, locations_b], axis=0, return_index=True)
+    ab_index = np.sort(ab_index)
+    
+    # Loop over all unique source locations
+    source_list = []
+    for ii, ind in enumerate(ab_index):
+            
+        # Get source location
+        src_loc_a = mkvc(locations_a[ind, :])
+        src_loc_b = mkvc(locations_b[ind, :])
+        
+        # Get receiver locations
+        rx_index = np.where(
+            (
+                (np.sqrt(np.sum((locations_a - src_loc_a)**2, axis=1)) < 1e-3) &
+                (np.sqrt(np.sum((locations_b - src_loc_b)**2, axis=1)) < 1e-3)
+            )
+        )[0]
+        
+        rx_loc_m = locations_m[rx_index, :]
+        rx_loc_n = locations_n[rx_index, :]
+        
+        # Extract pole and dipole receivers
+        k_ii = k[rx_index]
+        is_pole_rx = np.all(np.isclose(rx_loc_m, rx_loc_n, atol=1e-3), axis=1)
+        rx_list = []
+        
+        if any(is_pole_rx):
+            rx_list += [dc.receivers.Pole(
+                rx_loc_m[is_pole_rx, :], data_type=data_type
+            )]
+            out_indices.append(k_ii[is_pole_rx])
+        
+        if any(~is_pole_rx):
+            rx_list += [dc.receivers.Dipole(
+                rx_loc_m[~is_pole_rx, :], rx_loc_n[~is_pole_rx, :], data_type=data_type
+            )]
+            out_indices.append(k_ii[~is_pole_rx])
+        
+        # Define Pole or Dipole Sources
+        if np.all(np.isclose(src_loc_a, src_loc_b, atol=1e-3)):
+            source_list.append(dc.sources.Pole(rx_list, src_loc_a))
+        else:
+            source_list.append(
+                dc.sources.Dipole(rx_list, src_loc_a, src_loc_b)
+            )
+    
+    # Create outputs
+    out_indices = np.hstack(out_indices)
+    survey = dc.survey.Survey(source_list)
+    
+    if any(k != out_indices):
+        warnings.warn(
+            "Ordering of ABMN locations changed when generating survey. "
+            "Associated data vectors will need sorting. Set output_sorting to "
+            "True for sorting indices."
+        )
+    
+    if output_sorting:
+        return survey, out_indices
+    else:
+        return survey
+
 
 def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
