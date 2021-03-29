@@ -47,7 +47,7 @@ def read_dcip_xyz(
     
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
-    from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
+    from ...electromagnetics.static.utils import generate_survey_from_abmlocations_n
     from ...data import Data
     
     # Load file headers
@@ -109,27 +109,27 @@ def read_dcip_xyz(
     # Extract electrode locations
     if is_surface_data:
         dummy_elevation = 9999  # Taller than mount Everest
-        a_locations = np.c_[data_array[:, a_cols], dummy_elevation*np.ones(n_rows)]
-        b_locations = np.c_[data_array[:, b_cols], dummy_elevation*np.ones(n_rows)]
-        m_locations = np.c_[data_array[:, m_cols], dummy_elevation*np.ones(n_rows)]
-        n_locations = np.c_[data_array[:, n_cols], dummy_elevation*np.ones(n_rows)]
+        locations_a = np.c_[data_array[:, a_cols], dummy_elevation*np.ones(n_rows)]
+        locations_b = np.c_[data_array[:, b_cols], dummy_elevation*np.ones(n_rows)]
+        locations_m = np.c_[data_array[:, m_cols], dummy_elevation*np.ones(n_rows)]
+        locations_n = np.c_[data_array[:, n_cols], dummy_elevation*np.ones(n_rows)]
         warnings.warn(
             "Loaded data are in surface format. Elevations automatically set to 9999 m. "
             "Use the project_to_discretized_topography method of the survey to project "
             "electrode locations to the discretized surface."
         )
     else:
-        a_locations = data_array[:, a_cols]
-        b_locations = data_array[:, b_cols]
-        m_locations = data_array[:, m_cols]
-        n_locations = data_array[:, n_cols]
+        locations_a = data_array[:, a_cols]
+        locations_b = data_array[:, b_cols]
+        locations_m = data_array[:, m_cols]
+        locations_n = data_array[:, n_cols]
     
     
-    survey, out_indices = generate_survey_from_abmn_locations(
-        a_locations=a_locations,
-        b_locations=b_locations,
-        m_locations=m_locations,
-        n_locations=n_locations,
+    survey, out_indices = generate_survey_from_abmlocations_n(
+        locations_a=locations_a,
+        locations_b=locations_b,
+        locations_m=locations_m,
+        locations_n=locations_n,
         data_type=data_type,
         output_sorting=True
     )
@@ -199,7 +199,7 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
     
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
-    from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
+    from ...electromagnetics.static.utils import generate_survey_from_abmlocations_n
     from ...data import Data
 
     # Load file
@@ -249,16 +249,16 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
         # Get ABMN electrode locations
         dummy_elevation = 9999
         
-        a_locations = np.c_[data_array[:, 0], dummy_elevation*np.ones(n_rows)]
-        b_locations = np.c_[data_array[:, 1], dummy_elevation*np.ones(n_rows)]
-        m_locations = np.c_[data_array[:, 2], dummy_elevation*np.ones(n_rows)]
-        n_locations = np.c_[data_array[:, 3], dummy_elevation*np.ones(n_rows)]
+        locations_a = np.c_[data_array[:, 0], dummy_elevation*np.ones(n_rows)]
+        locations_b = np.c_[data_array[:, 1], dummy_elevation*np.ones(n_rows)]
+        locations_m = np.c_[data_array[:, 2], dummy_elevation*np.ones(n_rows)]
+        locations_n = np.c_[data_array[:, 3], dummy_elevation*np.ones(n_rows)]
         
-        survey, out_indices = generate_survey_from_abmn_locations(
-            a_locations=a_locations,
-            b_locations=b_locations,
-            m_locations=m_locations,
-            n_locations=n_locations,
+        survey, out_indices = generate_survey_from_abmlocations_n(
+            locations_a=locations_a,
+            locations_b=locations_b,
+            locations_m=locations_m,
+            locations_n=locations_n,
             data_type=data_type,
             output_sorting=True
         )
@@ -414,7 +414,7 @@ def read_dcip3d_ubc(file_name, data_type):
 
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
-    from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
+    from ...electromagnetics.static.utils import generate_survey_from_abmlocations_n
     from ...data import Data
 
     # Load file
@@ -927,10 +927,10 @@ def write_dcip_xyz(file_name, data_object, data_header=None, uncertainties_heade
     """
 
     out_columns = np.c_[
-        data_object.survey.a_locations,
-        data_object.survey.b_locations,
-        data_object.survey.m_locations,
-        data_object.survey.n_locations
+        data_object.survey.locations_a,
+        data_object.survey.locations_b,
+        data_object.survey.locations_m,
+        data_object.survey.locations_n
     ]
 
     # Determine if 2D or 3D survey
