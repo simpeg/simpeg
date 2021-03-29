@@ -125,7 +125,7 @@ def read_dcip_xyz(
         locations_n = data_array[:, n_cols]
     
     
-    survey, out_indices = generate_survey_from_abmlocations_n(
+    survey, out_indices = generate_survey_from_abmn_locations(
         locations_a=locations_a,
         locations_b=locations_b,
         locations_m=locations_m,
@@ -254,7 +254,7 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
         locations_m = np.c_[data_array[:, 2], dummy_elevation*np.ones(n_rows)]
         locations_n = np.c_[data_array[:, 3], dummy_elevation*np.ones(n_rows)]
         
-        survey, out_indices = generate_survey_from_abmlocations_n(
+        survey, out_indices = generate_survey_from_abmn_locations(
             locations_a=locations_a,
             locations_b=locations_b,
             locations_m=locations_m,
