@@ -1,6 +1,6 @@
 import numpy as np
 import properties
-from ....utils.code_utils import deprecate_class
+from ....utils.code_utils import deprecate_class, deprecate_property
 
 from .... import props
 from ....utils import sdiag
@@ -17,8 +17,12 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
 
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
 
-    data_type = properties.StringChoice(
+    _data_type = properties.StringChoice(
         "IP data type", default="volt", choices=["volt", "apparent_chargeability"],
+    )
+
+    data_type = deprecate_property(
+        _data_type, "data_type", new_name="receiver.data_type", removal_version="0.16.0"
     )
 
     fieldsPair = Fields2D
@@ -44,7 +48,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
                 for rx in src.receiver_list:
                     if (
                         rx.data_type == "apparent_chargeability"
-                        or self.data_type == "apparent_chargeability"
+                        or self._data_type == "apparent_chargeability"
                     ):
                         scale[src, rx] = self._sign / rx.eval(src, self.mesh, f)
             self._scale = scale.dobs

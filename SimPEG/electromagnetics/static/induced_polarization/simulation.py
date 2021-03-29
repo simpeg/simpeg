@@ -1,14 +1,13 @@
 import numpy as np
 import properties
-from ....utils.code_utils import deprecate_class
+from ....utils.code_utils import deprecate_class, deprecate_property
 
 from .... import props
 from ....data import Data
-from ....utils import mkvc, sdiag
-from ...base import BaseEMSimulation
+from ....utils import sdiag
 
 from ..resistivity.simulation import BaseDCSimulation
-from ..resistivity.fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
+from ..resistivity.fields import Fields3DCellCentered, Fields3DNodal
 from ..resistivity import Simulation3DCellCentered as BaseSimulation3DCellCentered
 from ..resistivity import Simulation3DNodal as BaseSimulation3DNodal
 
@@ -17,8 +16,12 @@ class BaseIPSimulation(BaseDCSimulation):
 
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability")
 
-    data_type = properties.StringChoice(
+    _data_type = properties.StringChoice(
         "IP data type", default="volt", choices=["volt", "apparent_chargeability"],
+    )
+
+    data_type = deprecate_property(
+        _data_type, "data_type", new_name="receiver.data_type", removal_version="0.16.0"
     )
 
     Ainv = None
@@ -48,7 +51,7 @@ class BaseIPSimulation(BaseDCSimulation):
                 for rx in src.receiver_list:
                     if (
                         rx.data_type == "apparent_chargeability"
-                        or self.data_type == "apparent_chargeability"
+                        or self._data_type == "apparent_chargeability"
                     ):
                         scale[src, rx] = self._sign / rx.eval(src, self.mesh, self._f)
             self._scale = scale.dobs
