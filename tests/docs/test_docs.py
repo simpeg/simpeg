@@ -34,7 +34,7 @@ class Doc_Test(unittest.TestCase):
             print(response)
             self.assertTrue(response == 0)
         # else:
-    except:
+        except:
             response = subprocess.run(["make", "linkcheck-noplot"])
             print(response.returncode)
             self.assertTrue(response.returncode == 0)
