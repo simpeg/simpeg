@@ -47,7 +47,7 @@ def read_dcip_xyz(
     
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
-    from ...electromagnetics.static.utils import generate_survey_from_abmlocations_n
+    from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
     from ...data import Data
     
     # Load file headers
@@ -199,7 +199,7 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
     
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
-    from ...electromagnetics.static.utils import generate_survey_from_abmlocations_n
+    from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
     from ...data import Data
 
     # Load file
@@ -414,7 +414,7 @@ def read_dcip3d_ubc(file_name, data_type):
 
     # Prevent circular import
     from ...electromagnetics.static import resistivity as dc
-    from ...electromagnetics.static.utils import generate_survey_from_abmlocations_n
+    from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
     from ...data import Data
 
     # Load file
