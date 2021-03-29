@@ -1,6 +1,5 @@
 import numpy as np
 from ....utils.code_utils import deprecate_class
-from discretize.utils import Identity
 
 import properties
 from ....utils import sdiag
