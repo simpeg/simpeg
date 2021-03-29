@@ -1,7 +1,6 @@
 import subprocess
 import unittest
 import os
-import platform
 
 
 class Doc_Test(unittest.TestCase):
