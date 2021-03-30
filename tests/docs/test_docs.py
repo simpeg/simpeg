@@ -1,6 +1,7 @@
 import subprocess
 import unittest
 import os
+import platform
 
 
 class Doc_Test(unittest.TestCase):
@@ -13,12 +14,10 @@ class Doc_Test(unittest.TestCase):
         wd = os.getcwd()
         os.chdir(os.path.sep.join(self.path_to_docs))
         
-        # if platform.system() == 'Windows':
-        try:
+        if platform.system() == 'Windows':
             response = subprocess.call(["make", "html"], shell=True)  # Needed for local test on Windows
             self.assertTrue(response == 0)
-        # else:
-        except:
+        else:
             response = subprocess.run(["make", "html-noplot"])
             self.assertTrue(response.returncode == 0)
             
@@ -28,13 +27,11 @@ class Doc_Test(unittest.TestCase):
         wd = os.getcwd()
         os.chdir(os.path.sep.join(self.path_to_docs))
         
-        # if platform.system() == 'Windows':
-        try:
+        if platform.system() == 'Windows':
             response = subprocess.call(["make", "linkcheck"], shell=True)  # Needed for local test on Windows
             print(response)
             self.assertTrue(response == 0)
-        # else:
-        except:
+        else:
             response = subprocess.run(["make", "linkcheck-noplot"])
             print(response.returncode)
             self.assertTrue(response.returncode == 0)

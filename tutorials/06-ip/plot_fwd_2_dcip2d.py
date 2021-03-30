@@ -47,6 +47,7 @@ import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 try:
     from pymatsolver import Pardiso as Solver
@@ -201,28 +202,26 @@ conductivity_model[ind_resistor] = resistor_conductivity
 fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
-log_mod = np.log10(conductivity_model)
+norm = LogNorm(vmin=1e-3, vmax=1e-1)
 
-ax1 = fig.add_axes([0.14, 0.15, 0.68, 0.7])
-mesh.plotImage(
-    plotting_map * log_mod,
+ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
+mesh.plot_image(
+    plotting_map * conductivity_model,
     ax=ax1,
     grid=False,
-    clim=(np.log10(resistor_conductivity), np.log10(conductor_conductivity)),
-    pcolor_opts={"cmap": mpl.cm.viridis},
+    pcolor_opts={"norm": norm}
 )
+ax1.set_xlim(-600, 600)
+ax1.set_ylim(-600, 0)
 ax1.set_title("Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.7])
-norm = mpl.colors.Normalize(
-    vmin=np.log10(resistor_conductivity), vmax=np.log10(conductor_conductivity)
-)
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, cmap=mpl.cm.viridis, orientation="vertical", format="$10^{%.1f}$"
-)
-cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
+ax2 = fig.add_axes([0.84, 0.17, 0.03, 0.7])
+cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation="vertical")
+cbar.set_label(r"$\sigma$ (S/m)", rotation=270, labelpad=15, size=12)
+
+plt.show()
 
 
 ###############################################################
@@ -400,8 +399,8 @@ chargeability_model[ind_chargeable] = sphere_chargeability
 # Plot Chargeability Model
 fig = plt.figure(figsize=(9, 4))
 
-ax1 = fig.add_axes([0.14, 0.15, 0.68, 0.7])
-mesh.plotImage(
+ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
+mesh.plot_image(
     plotting_map * chargeability_model,
     ax=ax1,
     grid=False,
@@ -412,7 +411,7 @@ ax1.set_title("Intrinsic Chargeability")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.7])
+ax2 = fig.add_axes([0.84, 0.17, 0.03, 0.7])
 norm = mpl.colors.Normalize(vmin=background_chargeability, vmax=sphere_chargeability)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", cmap=mpl.cm.plasma

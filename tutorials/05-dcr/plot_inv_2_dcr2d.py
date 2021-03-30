@@ -25,12 +25,13 @@ import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import tarfile
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
-from SimPEG.utils import surface2ind_topo
+from SimPEG.utils import surface2ind_topo, model_builder
 from SimPEG import (
     maps,
     data,
@@ -90,7 +91,6 @@ dir_path = os.path.sep.join(dir_path) + os.path.sep
 # files to work with
 topo_filename = dir_path + "xyz_topo.txt"
 data_filename = dir_path + "dc_data.obs"
-true_conductivity_filename = dir_path + "true_conductivity.txt"
 
 
 #############################################
@@ -368,22 +368,31 @@ recovered_conductivity_model = dc_inversion.run(starting_conductivity_model)
 # ----------------------------------------------
 #
 
-# Load true conductivity model
-true_conductivity_model = np.loadtxt(str(true_conductivity_filename))
-true_conductivity_model_log10 = np.log10(true_conductivity_model[ind_active])
+# Recreate true conductivity model
+true_background_conductivity = 1e-2
+true_conductor_conductivity = 1e-1
+true_resistor_conductivity = 1e-3
+
+true_conductivity_model = true_background_conductivity * np.ones(len(mesh))
+
+ind_conductor = model_builder.getIndicesSphere(np.r_[-120.0, -180.0], 60.0, mesh.gridCC)
+true_conductivity_model[ind_conductor] = true_conductor_conductivity
+
+ind_resistor = model_builder.getIndicesSphere(np.r_[120.0, -180.0], 60.0, mesh.gridCC)
+true_conductivity_model[ind_resistor] = true_resistor_conductivity
+
+true_conductivity_model[~ind_active] = np.NaN
 
 # Plot True Model
+norm = LogNorm(vmin=1e-3, vmax=1e-1)
+
 fig = plt.figure(figsize=(9, 4))
-
-plotting_map = maps.ActiveCells(mesh, ind_active, np.nan)
-
-ax1 = fig.add_axes([0.13, 0.15, 0.68, 0.7])
-mesh.plotImage(
-    plotting_map * true_conductivity_model_log10,
+ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
+im = mesh.plot_image(
+    true_conductivity_model,
     ax=ax1,
     grid=False,
-    clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
-    pcolor_opts={"cmap": mpl.cm.viridis},
+    pcolor_opts={"norm": norm}
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -391,33 +400,25 @@ ax1.set_title("True Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.83, 0.15, 0.03, 0.7])
-norm = mpl.colors.Normalize(
-    vmin=np.min(true_conductivity_model_log10),
-    vmax=np.max(true_conductivity_model_log10),
-)
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="10^%.1f"
-)
-
-cbar.set_label("$S/m$", rotation=270, labelpad=15, size=12)
+ax2 = fig.add_axes([0.84, 0.17, 0.03, 0.7])
+cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation="vertical")
+cbar.set_label(r"$\sigma$ (S/m)", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
-# Plot Recovered Model
+# # Plot Recovered Model
 fig = plt.figure(figsize=(9, 4))
 
-# Make conductivities in log10
-recovered_conductivity_model_log10 = np.log10(np.exp(recovered_conductivity_model))
+recovered_conductivity = conductivity_map * recovered_conductivity_model
+recovered_conductivity[~ind_active] = np.NaN
 
-ax1 = fig.add_axes([0.13, 0.15, 0.68, 0.7])
-mesh.plotImage(
-    plotting_map * recovered_conductivity_model_log10,
+ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
+mesh.plot_image(
+    recovered_conductivity,
     normal="Y",
     ax=ax1,
     grid=False,
-    clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
-    pcolor_opts={"cmap": mpl.cm.viridis},
+    pcolorOpts={"norm": norm}
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -425,15 +426,9 @@ ax1.set_title("Recovered Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.83, 0.15, 0.03, 0.7])
-norm = mpl.colors.Normalize(
-    vmin=np.min(true_conductivity_model_log10),
-    vmax=np.max(true_conductivity_model_log10),
-)
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="10^%.1f"
-)
-cbar.set_label("$S/m$", rotation=270, labelpad=15, size=12)
+ax2 = fig.add_axes([0.84, 0.17, 0.03, 0.7])
+cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation="vertical")
+cbar.set_label(r"$\sigma$ (S/m)", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -472,7 +467,7 @@ for ii in range(0, 3):
         scale=scale[ii],
         units=plot_units[ii],
         mask_topography=True,
-        tricontourf_opts={"levels": 25, "cmap": mpl.cm.viridis},
+        tricontourf_opts={"levels": 25, "cmap": mpl.cm.viridis}
     )
     ax1[ii].set_title(plot_title[ii])
 
