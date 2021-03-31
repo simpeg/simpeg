@@ -170,8 +170,12 @@ def linkcode_resolve(domain, info):
     else:
         linespec = ""
 
-    # Need to fix this line to work on Windows is Python on C: drive and repo on D: drive
-    fn = relpath(fn, start=dirname(SimPEG.__file__))
+    # Exception for building locally on Windows when Python on C: drive and repo on D: drive
+    # Note that these links will not work on the local build!!!
+    try:
+    	fn = relpath(fn, start=dirname(SimPEG.__file__))
+    except Exception:
+    	pass
 
     return f"https://github.com/simpeg/simpeg/blob/master/SimPEG/{fn}{linespec}"
 
