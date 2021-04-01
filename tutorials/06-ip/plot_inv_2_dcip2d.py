@@ -76,25 +76,21 @@ mpl.rcParams.update({'font.size': 16})
 #
 
 # storage bucket where we have the data
-# data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
 
 # download the data
-# downloaded_data = utils.download(data_source, overwrite=True)
+downloaded_data = utils.download(data_source, overwrite=True)
 
 # unzip the tarfile
-# tar = tarfile.open(downloaded_data, "r")
-# tar.extractall()
-# tar.close()
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
 
 # path to the directory containing our data
-# dir_path = downloaded_data.split(".")[0] + os.path.sep
-
-dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-dir_path.extend(["tutorials", "06-ip", "dcip2d"])
-dir_path = os.path.sep.join(dir_path) + os.path.sep
+dir_path = downloaded_data.split(".")[0] + os.path.sep
 
 # files to work with
-topo_filename = dir_path + "xyz_topo.txt"
+topo_filename = dir_path + "topo_xyz.txt"
 dc_data_filename = dir_path + "dc_data.obs"
 ip_data_filename = dir_path + "ip_data.obs"
 
@@ -110,7 +106,7 @@ ip_data_filename = dir_path + "ip_data.obs"
 # Load data
 topo_xyz = np.loadtxt(str(topo_filename))
 dc_data = read_dcip2d_ubc(dc_data_filename, 'volt', 'general')
-ip_data = read_dcip2d_ubc(ip_data_filename, 'secondary_potential', 'general')
+ip_data = read_dcip2d_ubc(ip_data_filename, 'apparent_chargeability', 'general')
 
 #########################################################
 # Plot Observed Data in Pseudosection
@@ -140,9 +136,8 @@ plot_2d_pseudosection(
 ax1.set_title("Apparent Conductivity")
 plt.show()
 
-# Plot apparent chargeability in pseudo-section. Since data are secondary
-# potentials, we must normalize by the DC voltage first.
-apparent_chargeability = ip_data.dobs / dc_data.dobs
+# Plot apparent chargeability in pseudo-section
+apparent_chargeability = ip_data.dobs
 
 fig = plt.figure(figsize=(12, 5))
 ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
@@ -172,7 +167,7 @@ plt.show()
 # 
 
 dc_data.standard_deviation = 0.1 * np.abs(dc_data.dobs)
-ip_data.standard_deviation = 0.01 * np.abs(dc_data.dobs)
+ip_data.standard_deviation = 5e-3 * np.ones_like(ip_data.dobs)
 
 ########################################################
 # Create Tree Mesh
@@ -547,7 +542,7 @@ ip_regularization = regularization.Simple(
     mesh,
     indActive=ind_active,
     mapping=maps.IdentityMap(nP=nC),
-    alpha_s=0.01,
+    alpha_s=0.0001,
     alpha_x=1,
     alpha_y=1,
 )
@@ -557,7 +552,7 @@ ip_regularization.mrefInSmooth=True  # Include reference model in smoothness
 # Define how the optimization problem is solved. Here it is a projected
 # Gauss Newton with Conjugate Gradient solver.
 ip_optimization = optimization.ProjectedGNCG(
-    maxIter=5, lower=0.0, upper=1.0, maxIterCG=30, tolCG=1e-3
+    maxIter=15, lower=0.0, upper=1000., maxIterCG=30, tolCG=1e-3
 )
 
 # Here we define the inverse problem that is to be solved
@@ -573,8 +568,8 @@ ip_inverse_problem = inverse_problem.BaseInvProblem(
 #
 
 update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e3)
+beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=2)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 target_misfit = directives.TargetMisfit(chifact=1.0)
 
@@ -677,7 +672,7 @@ std_ip = ip_data.standard_deviation
 
 # Plot
 fig = plt.figure(figsize=(9, 13))
-data_array = [dobs_ip/dobs_dc, dpred_ip/dpred_dc, (dobs_ip - dpred_ip)/std_ip]
+data_array = [dobs_ip, dpred_ip, (dobs_ip - dpred_ip)/std_ip]
 plot_title = ["Observed (as app. chg.)", "Predicted (as app. chg.)", "Normalized Misfit"]
 plot_units = ["V/V", "V/V", ""]
 

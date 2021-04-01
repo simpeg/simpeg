@@ -59,7 +59,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
-save_file = True
+write_output = False
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -78,7 +78,7 @@ x_topo, y_topo = np.meshgrid(
 s = np.sqrt(x_topo**2 + y_topo**2)
 z_topo = (1 / np.pi) * 140 * (-np.pi / 2 + np.arctan((s - 600.0) / 80.0))
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
-xyz_topo = np.c_[x_topo, y_topo, z_topo]
+topo_xyz = np.c_[x_topo, y_topo, z_topo]
 
 #########################################################################
 # Construct the DC Survey
@@ -116,7 +116,7 @@ for ii in range(0, len(end_locations_list)):
         data_type,
         dimension_type,
         end_locations_list[ii],
-        xyz_topo,
+        topo_xyz,
         num_rx_per_src,
         station_separation,
     )
@@ -148,9 +148,9 @@ hz = [(dh, nbcz)]
 mesh = TreeMesh([hx, hy, hz], x0="CCN")
 
 # Mesh refinement based on topography
-k = np.sqrt(np.sum(xyz_topo[:, 0:2]**2, axis=1)) < 1200
+k = np.sqrt(np.sum(topo_xyz[:, 0:2]**2, axis=1)) < 1200
 mesh = refine_tree_xyz(
-    mesh, xyz_topo[k, :], octree_levels=[0, 4, 8, 4], method="surface", finalize=False
+    mesh, topo_xyz[k, :], octree_levels=[0, 4, 8, 4], method="surface", finalize=False
 )
 
 # Mesh refinement near sources and receivers. 
@@ -182,7 +182,7 @@ conductor_value = 1e-1
 resistor_value = 1e-3
 
 # Find active cells in forward modeling (cell below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = surface2ind_topo(mesh, topo_xyz)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -339,11 +339,14 @@ else:
 # Write DC resistivity data, topography and true model
 # 
 
-if save_file:
+if write_output:
 
-    dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-    dir_path.extend(["tutorials", "05-dcr", "dcr3d"])
+    dir_path = os.path.dirname(__file__).split(os.path.sep)
+    dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
+    
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
 
     # Add 10% Gaussian noise to each datum
     np.random.seed(433)
@@ -365,7 +368,7 @@ if save_file:
             data_type,
             dimension_type,
             end_locations_list[ii],
-            xyz_topo,
+            topo_xyz,
             num_rx_per_src,
             station_separation,
         )
@@ -383,10 +386,7 @@ if save_file:
         out_dict=out_dict
     )
 
-    fname = dir_path + "true_conductivity.txt"
-    np.savetxt(fname, conductivity_map * conductivity_model, fmt="%.4e")
-
-    fname = dir_path + "xyz_topo.txt"
-    np.savetxt(fname, xyz_topo, fmt="%.4e")
+    fname = dir_path + "topo_xyz.txt"
+    np.savetxt(fname, topo_xyz, fmt="%.4e")
 
 

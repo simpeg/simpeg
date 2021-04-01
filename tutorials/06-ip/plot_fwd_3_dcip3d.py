@@ -62,7 +62,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
-save_file = True
+write_output = False
 
 # sphinx_gallery_thumbnail_number = 4
 
@@ -81,7 +81,7 @@ x_topo, y_topo = np.meshgrid(
 s = np.sqrt(x_topo**2 + y_topo**2)
 z_topo = (1 / np.pi) * 140 * (-np.pi / 2 + np.arctan((s - 600.0) / 80.0))
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
-xyz_topo = np.c_[x_topo, y_topo, z_topo]
+topo_xyz = np.c_[x_topo, y_topo, z_topo]
 
 #########################################################################
 # Construct the DC Survey
@@ -98,7 +98,7 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
 # Define the parameters for each survey line
 survey_type = "dipole-dipole"
-data_type = "volt"
+dc_data_type = "volt"
 dimension_type = "3D"
 end_locations_list = [
     np.r_[-1000.0, 1000.0, -500.0, -500.0],
@@ -116,10 +116,10 @@ source_list = []
 for ii in range(0, len(end_locations_list)):
     source_list += generate_dcip_sources_line(
         survey_type,
-        data_type,
+        dc_data_type,
         dimension_type,
         end_locations_list[ii],
-        xyz_topo,
+        topo_xyz,
         num_rx_per_src,
         station_separation,
     )
@@ -151,9 +151,9 @@ hz = [(dh, nbcz)]
 mesh = TreeMesh([hx, hy, hz], x0="CCN")
 
 # Mesh refinement based on topography
-k = np.sqrt(np.sum(xyz_topo[:, 0:2]**2, axis=1)) < 1200
+k = np.sqrt(np.sum(topo_xyz[:, 0:2]**2, axis=1)) < 1200
 mesh = refine_tree_xyz(
-    mesh, xyz_topo[k, :], octree_levels=[0, 4, 8, 4], method="surface", finalize=False
+    mesh, topo_xyz[k, :], octree_levels=[0, 4, 8, 4], method="surface", finalize=False
 )
 
 # Mesh refinement near sources and receivers. 
@@ -185,7 +185,7 @@ conductor_value = 1e-1
 resistor_value = 1e-3
 
 # Find active cells in forward modeling (cell below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = surface2ind_topo(mesh, topo_xyz)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -335,63 +335,6 @@ if has_plotly:
 else:
     print("INSTALL 'PLOTLY' TO VISUALIZE 3D PSEUDOSECTIONS")
 
-########################################################
-# Optional: Write Predicted DC Data
-# ---------------------------------
-# 
-# Write DC resistivity data, topography and true model
-# 
-
-if save_file:
-
-    dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-    dir_path.extend(["tutorials", "06-ip", "dcip3d"])
-    dir_path = os.path.sep.join(dir_path) + os.path.sep
-
-    # Add 10% Gaussian noise to each datum
-    np.random.seed(433)
-    std = 0.1 * np.abs(dpred_dc)
-    noise = std * np.random.rand(len(dpred_dc))
-    dobs = dpred_dc + noise
-    
-    # Create dictionary that stores line IDs
-    N = int(dc_survey.nD/5)
-    lineID = np.r_[np.ones(N), 2*np.ones(N), 3*np.ones(N), 4*np.ones(N), 5*np.ones(N)]
-    out_dict = {'LINEID': lineID}
-    
-    # Create a survey with the original electrode locations
-    # and not the shifted ones
-    source_list = []
-    for ii in range(0, len(end_locations_list)):
-        source_list += generate_dcip_sources_line(
-            survey_type,
-            data_type,
-            dimension_type,
-            end_locations_list[ii],
-            xyz_topo,
-            num_rx_per_src,
-            station_separation,
-        )
-    dc_survey_original = dc.survey.Survey(source_list)
-    
-    # Write out data at their original electrode locations (not shifted)
-    data_obj = data.Data(dc_survey_original, dobs=dobs, standard_deviation=std)
-    
-    fname = dir_path + "dc_data.xyz"
-    write_dcip_xyz(
-        fname,
-        data_obj,
-        data_header='V/A',
-        uncertainties_header='UNCERT',
-        out_dict=out_dict
-    )
-
-    fname = dir_path + "true_conductivity.txt"
-    np.savetxt(fname, conductivity_map * conductivity_model, fmt="%.4e")
-
-    fname = dir_path + "xyz_topo.txt"
-    np.savetxt(fname, xyz_topo, fmt="%.4e")
-
 
 ############################################
 # Define IP Survey
@@ -403,14 +346,15 @@ if save_file:
 # 
 
 # Generate source list for IP survey lines
+ip_data_type = "apparent_chargeability"
 source_list = []
 for ii in range(0, len(end_locations_list)):
     source_list += generate_dcip_sources_line(
         survey_type,
-        "apparent_chargeability",
+        ip_data_type,
         dimension_type,
         end_locations_list[ii],
-        xyz_topo,
+        topo_xyz,
         num_rx_per_src,
         station_separation,
     )
@@ -548,14 +492,62 @@ else:
 
 
 ############################################################
-# Optional: Write predicted IP data
-# ---------------------------------
-# 
-# Write data and true model
-# 
+# Optional: Write Outputs
+# -----------------------
 # 
 
-if save_file:
+
+if write_output:
+
+    dir_path = os.path.dirname(__file__).split(os.path.sep)
+    dir_path.extend(["outputs"])
+    dir_path = os.path.sep.join(dir_path) + os.path.sep
+    
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+    
+    # Write topography
+    fname = dir_path + "topo_xyz.txt"
+    np.savetxt(fname, topo_xyz, fmt="%.4e")
+
+    # Add 10% Gaussian noise to each datum
+    np.random.seed(433)
+    std = 0.1 * np.abs(dpred_dc)
+    noise = std * np.random.rand(len(dpred_dc))
+    dobs = dpred_dc + noise
+    
+    # Create dictionary that stores line IDs
+    N = int(dc_survey.nD/5)
+    lineID = np.r_[np.ones(N), 2*np.ones(N), 3*np.ones(N), 4*np.ones(N), 5*np.ones(N)]
+    out_dict = {'LINEID': lineID}
+    
+    # Create a survey with the original electrode locations
+    # and not the shifted ones
+    source_list = []
+    for ii in range(0, len(end_locations_list)):
+        source_list += generate_dcip_sources_line(
+            survey_type,
+            dc_data_type,
+            dimension_type,
+            end_locations_list[ii],
+            topo_xyz,
+            num_rx_per_src,
+            station_separation,
+        )
+    dc_survey_original = dc.survey.Survey(source_list)
+    
+    # Write out data at their original electrode locations (not shifted)
+    data_obj = data.Data(dc_survey_original, dobs=dobs, standard_deviation=std)
+    
+    fname = dir_path + "dc_data.xyz"
+    write_dcip_xyz(
+        fname,
+        data_obj,
+        data_header='V/A',
+        uncertainties_header='UNCERT',
+        out_dict=out_dict
+    )
+
 
     # Add Gaussian noise with a standard deviation of 5e-3 V/V
     np.random.seed(444)
@@ -569,10 +561,10 @@ if save_file:
     for ii in range(0, len(end_locations_list)):
         source_list += generate_dcip_sources_line(
             survey_type,
-            data_type,
+            ip_data_type,
             dimension_type,
             end_locations_list[ii],
-            xyz_topo,
+            topo_xyz,
             num_rx_per_src,
             station_separation,
         )
@@ -589,7 +581,3 @@ if save_file:
         uncertainties_header='UNCERT',
         out_dict=out_dict
     )
-
-    fname = dir_path + "true_chargeability.txt"
-    np.savetxt(fname, chargeability_map * chargeability_model, fmt="%.4e")
-

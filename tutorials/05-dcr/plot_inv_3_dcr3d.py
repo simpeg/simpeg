@@ -71,40 +71,35 @@ mpl.rcParams.update({'font.size': 16})
 # sphinx_gallery_thumbnail_number = 3
 
 ##########################################################
-# Define File Names
-# -----------------
+# Download Assets
+# ---------------
 # 
 # Here we provide the file paths to assets we need to run the inversion. The
 # path to the true model conductivity and chargeability models are also
 # provided for comparison with the inversion results. These files are stored as a
 # tar-file on our google cloud bucket:
-# "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
+# "https://storage.googleapis.com/simpeg/doc-assets/dcr3d.tar.gz"
 # 
 # 
 # 
 
 # storage bucket where we have the data
-# data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcr3d.tar.gz"
 
 # download the data
-# downloaded_data = utils.download(data_source, overwrite=True)
+downloaded_data = utils.download(data_source, overwrite=True)
 
 # unzip the tarfile
-# tar = tarfile.open(downloaded_data, "r")
-# tar.extractall()
-# tar.close()
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
 
 # path to the directory containing our data
-# dir_path = downloaded_data.split(".")[0] + os.path.sep
-
-dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-dir_path.extend(["tutorials", "05-dcr", "dcr3d"])
-dir_path = os.path.sep.join(dir_path) + os.path.sep
+dir_path = downloaded_data.split(".")[0] + os.path.sep
 
 # files to work with
-topo_filename = dir_path + "xyz_topo.txt"
+topo_filename = dir_path + "topo_xyz.txt"
 dc_data_filename = dir_path + "dc_data.xyz"
-true_conductivity_filename = dir_path + "true_conductivity.txt"
 
 ########################################################
 # Load Data and Topography
@@ -114,7 +109,7 @@ true_conductivity_filename = dir_path + "true_conductivity.txt"
 # 
 # 
 
-xyz_topo = np.loadtxt(str(topo_filename))
+topo_xyz = np.loadtxt(str(topo_filename))
 
 dc_data = read_dcip_xyz(
     dc_data_filename, 'volt',
@@ -204,9 +199,9 @@ hz = [(dh, nbcz)]
 mesh = TreeMesh([hx, hy, hz], x0="CCN")
 
 # Mesh refinement based on topography
-k = np.sqrt(np.sum(xyz_topo[:, 0:2]**2, axis=1)) < 1200
+k = np.sqrt(np.sum(topo_xyz[:, 0:2]**2, axis=1)) < 1200
 mesh = refine_tree_xyz(
-    mesh, xyz_topo[k, :], octree_levels=[0, 4, 8, 4], method="surface", finalize=False
+    mesh, topo_xyz[k, :], octree_levels=[0, 4, 8, 4], method="surface", finalize=False
 )
 
 # Mesh refinement near sources and receivers.
@@ -235,7 +230,7 @@ mesh.finalize()
 # 
 
 # Find cells that lie below surface topography
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = surface2ind_topo(mesh, topo_xyz)
 
 # Extract survey from data object
 dc_survey = dc_data.survey
@@ -377,14 +372,47 @@ dc_inversion = inversion.BaseInversion(
 # Run inversion
 recovered_conductivity_model = dc_inversion.run(starting_conductivity_model)
 
+
+###############################################################
+# Recreate True Conductivity Model
+# --------------------------------
+#
+
+# Define conductivity model in S/m (or resistivity model in Ohm m)
+background_value = 1e-2
+conductor_value = 1e-1
+resistor_value = 1e-3
+
+# Define model
+true_conductivity_model = background_value * np.ones(nC)
+
+ind_conductor = (
+    (mesh.gridCC[ind_active, 0] > -500.0)
+    & (mesh.gridCC[ind_active, 0] < -200.0)
+    & (mesh.gridCC[ind_active, 1] > -400.0)
+    & (mesh.gridCC[ind_active, 1] < 400.0)
+    & (mesh.gridCC[ind_active, 2] > -500.0)
+    & (mesh.gridCC[ind_active, 2] < -200.0)
+)
+true_conductivity_model[ind_conductor] = conductor_value
+
+ind_resistor = (
+    (mesh.gridCC[ind_active, 0] > 200.0)
+    & (mesh.gridCC[ind_active, 0] < 500.0)
+    & (mesh.gridCC[ind_active, 1] > -400.0)
+    & (mesh.gridCC[ind_active, 1] < 400.0)
+    & (mesh.gridCC[ind_active, 2] > -500.0)
+    & (mesh.gridCC[ind_active, 2] < -200.0)
+)
+true_conductivity_model[ind_resistor] = resistor_value
+true_conductivity_model_log10 = np.log10(true_conductivity_model)
+
+
 ###############################################################
 # Plotting True and Recovered Conductivity Model
 # ----------------------------------------------
 # 
 
-# Load true conductivity model
-true_conductivity_model = np.loadtxt(str(true_conductivity_filename))
-true_conductivity_model_log10 = np.log10(true_conductivity_model[ind_active])
 
 # Plot True Model
 fig = plt.figure(figsize=(10, 4))

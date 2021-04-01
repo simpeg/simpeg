@@ -44,6 +44,7 @@ from SimPEG import (
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import plot_1d_layer_model
 
+mpl.rcParams.update({"font.size": 16})
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -54,11 +55,11 @@ from SimPEG.electromagnetics.static.utils.static_utils import plot_1d_layer_mode
 # Here we provide the file paths to assets we need to run the inversion. The
 # Path to the true model is also provided for comparison with the inversion
 # results. These files are stored as a tar-file on our google cloud bucket:
-# "https://storage.googleapis.com/simpeg/doc-assets/dcip1d.tar.gz"
+# "https://storage.googleapis.com/simpeg/doc-assets/dcr1d.tar.gz"
 #
 
 # storage bucket where we have the data
-data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip1d.tar.gz"
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcr1d.tar.gz"
 
 # download the data
 downloaded_data = utils.download(data_source, overwrite=True)
@@ -73,8 +74,6 @@ dir_path = downloaded_data.split(".")[0] + os.path.sep
 
 # files to work with
 data_filename = dir_path + "app_res_1d_data.dobs"
-model_filename = dir_path + "true_model.txt"
-mesh_filename = dir_path + "layers.txt"
 
 
 #############################################
@@ -292,9 +291,9 @@ recovered_model = inv.run(starting_model)
 # ---------------------
 #
 
-# Load the true model and layer thicknesses
-true_model = np.loadtxt(str(model_filename))
-true_layers = np.loadtxt(str(mesh_filename))
+# Define true model and layer thicknesses
+true_model = np.r_[1e3, 4e3, 2e2]
+true_layers = np.r_[100., 100.]
 
 # Extract Least-Squares model
 l2_model = inv_prob.l2model

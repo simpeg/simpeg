@@ -25,6 +25,7 @@ and two North-South lines.
 
 from discretize.utils import mkvc
 
+from SimPEG import utils
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
@@ -37,6 +38,7 @@ import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import tarfile
 
 mpl.rcParams.update({'font.size': 16})
 
@@ -50,6 +52,36 @@ except:
 
 # sphinx_gallery_thumbnail_number = 3
 
+##########################################################
+# Download Assets
+# ---------------
+# 
+# Here we provide the file paths to assets we need to run the inversion. The
+# path to the true model conductivity and chargeability models are also
+# provided for comparison with the inversion results. These files are stored as a
+# tar-file on our google cloud bucket:
+# "https://storage.googleapis.com/simpeg/doc-assets/dcr3d.tar.gz"
+# 
+# 
+
+# storage bucket where we have the data
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcr3d.tar.gz"
+
+# download the data
+downloaded_data = utils.download(data_source, overwrite=True)
+
+# unzip the tarfile
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
+
+# path to the directory containing our data
+dir_path = downloaded_data.split(".")[0] + os.path.sep
+
+# files to work with
+topo_filename = dir_path + "topo_xyz.txt"
+data_filename = dir_path + "dc_data.xyz"
+
 #############################################
 # Load the Data
 # -------------
@@ -58,14 +90,6 @@ except:
 # In this case, we load the surface topography and an XYZ formatted data file
 # containing 3D DC resistivity data.
 #
-
-dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-dir_path.extend(["tutorials", "05-dcr", "dcr3d"])
-dir_path = os.path.sep.join(dir_path) + os.path.sep
-
-# files to work with
-topo_filename = dir_path + "xyz_topo.txt"
-data_filename = dir_path + "dc_data.xyz"
 
 # Load 3D topography
 topo_xyz = np.loadtxt(str(topo_filename))

@@ -55,7 +55,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 mpl.rcParams.update({'font.size': 16})
-save_file = True
+write_output = False
 
 # sphinx_gallery_thumbnail_number = 5
 
@@ -74,13 +74,13 @@ x_topo, y_topo = np.meshgrid(
 )
 z_topo = 40.*np.sin(2*np.pi*x_topo/800) - 40.
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
-xyz_topo = np.c_[x_topo, y_topo, z_topo]
+topo_xyz = np.c_[x_topo, y_topo, z_topo]
 
 # Create 2D topography. Since our 3D topography only changes in the x direction,
 # it is easy to define the 2D topography projected along the survey line. For
 # arbitrary topography and for an arbitrary survey orientation, the user must
 # define the 2D topography along the survey line.
-topo_2d = np.unique(xyz_topo[:, [0, 2]], axis=0)
+topo_2d = np.unique(topo_xyz[:, [0, 2]], axis=0)
 
 #####################################################################
 # Create Dipole-Dipole Survey
@@ -95,7 +95,7 @@ topo_2d = np.unique(xyz_topo[:, [0, 2]], axis=0)
 # Define survey line parameters
 survey_type = "dipole-dipole"
 dimension_type = "2D"
-data_type = "volt"
+dc_data_type = "volt"
 end_locations = np.r_[-400., 400.]
 station_separation = 40.0
 num_rx_per_src = 10
@@ -103,10 +103,10 @@ num_rx_per_src = 10
 # Generate source list for DC survey line
 source_list = generate_dcip_sources_line(
     survey_type,
-    data_type,
+    dc_data_type,
     dimension_type,
     end_locations,
-    xyz_topo,
+    topo_xyz,
     num_rx_per_src,
     station_separation
 )
@@ -136,7 +136,7 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, xyz_topo[:, [0, 2]], octree_levels=[0, 2], method="surface", finalize=False
+    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 2], method="surface", finalize=False
 )
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
@@ -180,7 +180,7 @@ conductor_conductivity = 1e-1
 resistor_conductivity = 1e-3
 
 # Find active cells in forward modeling (cell below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo[:, [0, 2]])
+ind_active = surface2ind_topo(mesh, topo_xyz[:, [0, 2]])
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -299,65 +299,23 @@ plot_2d_pseudosection(
 ax1.set_title("Apparent Conductivity")
 plt.show()
 
-#######################################################################
-# Optional: Write out dpred
-# -------------------------
-#
-# Write DC resistivity data, topography and true model
-#
-
-if save_file:
-
-    dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-    dir_path.extend(["tutorials", "06-ip", "dcip2d"])
-    dir_path = os.path.sep.join(dir_path) + os.path.sep
-
-    # Add 10% Gaussian noise to each datum
-    np.random.seed(225)
-    std = 0.1 * np.abs(dpred_dc)
-    dc_noise = std * np.random.rand(len(dpred_dc))
-    dobs = dpred_dc + dc_noise
-    
-    # Create a survey with the original electrode locations
-    # and not the shifted ones
-    # Generate source list for DC survey line
-    source_list = generate_dcip_sources_line(
-        survey_type,
-        data_type,
-        dimension_type,
-        end_locations,
-        xyz_topo,
-        num_rx_per_src,
-        station_separation
-    )
-    dc_survey_original = dc.survey.Survey(source_list)
-    
-    # Write out data at their original electrode locations (not shifted)
-    data_obj = data.Data(dc_survey_original, dobs=dobs, standard_deviation=std)
-    fname = dir_path + "dc_data.obs"
-    write_dcip2d_ubc(fname, data_obj, 'volt', 'dobs')
-
-    fname = dir_path + "true_conductivity.txt"
-    np.savetxt(fname, conductivity_map * conductivity_model, fmt="%.4e")
-
-    fname = dir_path + "xyz_topo.txt"
-    np.savetxt(fname, xyz_topo, fmt="%.4e")
 
 #######################################################################
 # Define IP Survey
 # ----------------
 #
 # The geometry of the survey was defined earlier. We will define the IP
-# data as the secondary potential. Thus the data type is still 'volts'.
+# data as apparent chargeability.
 #
 
-# Generate source list for DC survey line
+# Generate source list for IP survey line
+ip_data_type = 'apparent_chargeability'
 source_list = generate_dcip_sources_line(
     survey_type,
-    data_type,
+    ip_data_type,
     dimension_type,
     end_locations,
-    xyz_topo,
+    topo_xyz,
     num_rx_per_src,
     station_separation
 )
@@ -381,7 +339,7 @@ background_chargeability = 0.0
 sphere_chargeability = 1e-1
 
 # Find active cells in forward modeling (cells below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo[:, [0, 2]])
+ind_active = surface2ind_topo(mesh, topo_xyz[:, [0, 2]])
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -407,6 +365,8 @@ mesh.plot_image(
     clim=(background_chargeability, sphere_chargeability),
     pcolor_opts={"cmap": mpl.cm.plasma},
 )
+ax1.set_xlim(-600, 600)
+ax1.set_ylim(-600, 0)
 ax1.set_title("Intrinsic Chargeability")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
@@ -469,15 +429,13 @@ plot_2d_pseudosection(
 )
 ax1.set_title("Apparent Conductivity")
 
-# Convert from voltage measurement to apparent chargeability by normalizing by
-# the DC voltage
-apparent_chargeability = dpred_ip / dpred_dc
+# Plot apparent chargeability
 
 ax2 = fig.add_axes([0.1, 0.075, 0.72, 0.4])
 cax2 = fig.add_axes([0.84, 0.075, 0.05, 0.4])
 plot_2d_pseudosection(
     ip_survey,
-    apparent_chargeability,
+    dpred_ip,
     'tricontourf',
     ax=ax2,
     cax=cax2,
@@ -491,16 +449,50 @@ ax2.set_title("Apparent Chargeability (V/V)")
 plt.show()
 
 #######################################################################
-# Write out dpred
-# ---------------
-#
-# Write data and true model
+# Write Outputs (Optional)
+# ------------------------
 #
 
-if save_file:
+if write_output:
 
-    # Add 1% Gaussian noise based on the DC data (not the IP data)
-    std = 0.01 * np.abs(dpred_dc)
+    dir_path = os.path.dirname(__file__).split(os.path.sep)
+    dir_path.extend(["outputs"])
+    dir_path = os.path.sep.join(dir_path) + os.path.sep
+    
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+    
+    # Write topography
+    fname = dir_path + "topo_xyz.txt"
+    np.savetxt(fname, topo_xyz, fmt="%.4e")
+
+    # Add 10% Gaussian noise to each DC datum
+    np.random.seed(225)
+    std = 0.1 * np.abs(dpred_dc)
+    dc_noise = std * np.random.rand(len(dpred_dc))
+    dobs = dpred_dc + dc_noise
+    
+    # Create a survey with the original electrode locations
+    # and not the shifted ones
+    # Generate source list for DC survey line
+    source_list = generate_dcip_sources_line(
+        survey_type,
+        dc_data_type,
+        dimension_type,
+        end_locations,
+        topo_xyz,
+        num_rx_per_src,
+        station_separation
+    )
+    dc_survey_original = dc.survey.Survey(source_list)
+    
+    # Write out data at their original electrode locations (not shifted)
+    data_obj = data.Data(dc_survey_original, dobs=dobs, standard_deviation=std)
+    fname = dir_path + "dc_data.obs"
+    write_dcip2d_ubc(fname, data_obj, 'volt', 'dobs')
+
+    # Add Gaussian noise equal to 5e-3 V/V
+    std = 5e-3 * np.ones_like(dpred_ip)
     ip_noise = std * np.random.rand(len(dpred_ip))
     dobs = dpred_ip + ip_noise
     
@@ -509,10 +501,10 @@ if save_file:
     # Generate source list for DC survey line
     source_list = generate_dcip_sources_line(
         survey_type,
-        data_type,
+        ip_data_type,
         dimension_type,
         end_locations,
-        xyz_topo,
+        topo_xyz,
         num_rx_per_src,
         station_separation
     )
@@ -521,7 +513,4 @@ if save_file:
     # Write out data at their original electrode locations (not shifted)
     data_obj = data.Data(ip_survey_original, dobs=dobs, standard_deviation=std)
     fname = dir_path + "ip_data.obs"
-    write_dcip2d_ubc(fname, data_obj, 'secondary_potential', 'dobs')
-
-    fname = dir_path + "true_chargeability.txt"
-    np.savetxt(fname, chargeability_map * chargeability_model, fmt="%.4e")
+    write_dcip2d_ubc(fname, data_obj, 'apparent_chargeability', 'dobs')

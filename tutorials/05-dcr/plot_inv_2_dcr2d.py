@@ -59,37 +59,32 @@ mpl.rcParams.update({'font.size': 16})
 
 
 #############################################
-# Define File Names
-# -----------------
+# Download Assets
+# ---------------
 #
 # Here we provide the file paths to assets we need to run the inversion. The
 # path to the true model conductivity and chargeability models are also
 # provided for comparison with the inversion results. These files are stored as a
 # tar-file on our google cloud bucket:
-# "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
+# "https://storage.googleapis.com/simpeg/doc-assets/dcr2d.tar.gz"
 #
 
 # storage bucket where we have the data
-# data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcr2d.tar.gz"
 
 # download the data
-# downloaded_data = utils.download(data_source, overwrite=True)
+downloaded_data = utils.download(data_source, overwrite=True)
 
 # unzip the tarfile
-# tar = tarfile.open(downloaded_data, "r")
-# tar.extractall()
-# tar.close()
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
 
 # path to the directory containing our data
-# dir_path = downloaded_data.split(".")[0] + os.path.sep
-
-
-dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-dir_path.extend(["tutorials", "05-dcr", "dcr2d"])
-dir_path = os.path.sep.join(dir_path) + os.path.sep
+dir_path = downloaded_data.split(".")[0] + os.path.sep
 
 # files to work with
-topo_filename = dir_path + "xyz_topo.txt"
+topo_filename = dir_path + "topo_xyz.txt"
 data_filename = dir_path + "dc_data.obs"
 
 
@@ -364,11 +359,10 @@ dc_inversion = inversion.BaseInversion(inv_prob, directiveList=directives_list)
 recovered_conductivity_model = dc_inversion.run(starting_conductivity_model)
 
 ############################################################
-# Plotting True and Recovered Conductivity Model
-# ----------------------------------------------
+# Recreate True Conductivity Model
+# --------------------------------
 #
 
-# Recreate true conductivity model
 true_background_conductivity = 1e-2
 true_conductor_conductivity = 1e-1
 true_resistor_conductivity = 1e-3
@@ -382,6 +376,11 @@ ind_resistor = model_builder.getIndicesSphere(np.r_[120.0, -180.0], 60.0, mesh.g
 true_conductivity_model[ind_resistor] = true_resistor_conductivity
 
 true_conductivity_model[~ind_active] = np.NaN
+
+############################################################
+# Plotting True and Recovered Conductivity Model
+# ----------------------------------------------
+#
 
 # Plot True Model
 norm = LogNorm(vmin=1e-3, vmax=1e-1)

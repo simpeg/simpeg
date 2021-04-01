@@ -26,13 +26,16 @@ electrical resistivity changes with depth.
 
 import os
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from SimPEG import maps
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import plot_1d_layer_model
 
-save_file = False
+mpl.rcParams.update({"font.size": 16})
+
+write_output = False
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -144,11 +147,14 @@ plt.show()
 # Export data and true model
 #
 
-if save_file:
+if write_output:
 
-    dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-    dir_path.extend(["tutorials", "05-dcr", "dcr1d"])
+    dir_path = os.path.dirname(__file__).split(os.path.sep)
+    dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
+    
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
     
     np.random.seed(145)
     noise = 0.025 * dpred * np.random.rand(len(dpred))
@@ -163,9 +169,3 @@ if save_file:
 
     fname = dir_path + "app_res_1d_data.dobs"
     np.savetxt(fname, data_array, fmt="%.4e")
-
-    fname = dir_path + "true_model.txt"
-    np.savetxt(fname, model, fmt="%.4e")
-
-    fname = dir_path + "layers.txt"
-    np.savetxt(fname, layer_thicknesses, fmt="%d")

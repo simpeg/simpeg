@@ -28,11 +28,10 @@ import os
 from discretize import TensorMesh
 from discretize.utils import mkvc
 from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
-from SimPEG import maps
+from SimPEG import maps, utils
 from SimPEG.potential_fields import magnetics
-from SimPEG import utils, data
 
-save_file = False
+write_output = False
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -129,7 +128,7 @@ model_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
 
 # Define model. Models in SimPEG are vector arrays
 model = background_susceptibility * np.ones(ind_active.sum())
-ind_sphere = model_builder.getIndicesSphere(np.r_[0.0, 0.0, -45.0], 15.0, mesh.gridCC)
+ind_sphere = model_builder.getIndicesSphere(np.r_[0.0, 0.0, -45.0], 15.0, mesh.cell_centers)
 ind_sphere = ind_sphere[ind_active]
 model[ind_sphere] = sphere_susceptibility
 
@@ -211,25 +210,24 @@ plt.show()
 # Optional: Export Data
 # ---------------------
 #
-# Write the data, topography and true model
+# Write the data and topography
 #
 
-if save_file:
+if write_output:
 
-    dir_path = os.path.dirname(magnetics.__file__).split(os.path.sep)[:-3]
-    dir_path.extend(["tutorials", "assets", "magnetics"])
+    dir_path = os.path.dirname(__file__).split(os.path.sep)
+    dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
+    
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
 
     fname = dir_path + "magnetics_topo.txt"
     np.savetxt(fname, np.c_[xyz_topo], fmt="%.4e")
-
+    
+    np.random.seed(211)
     maximum_anomaly = np.max(np.abs(dpred))
     noise = 0.02 * maximum_anomaly * np.random.rand(len(dpred))
     fname = dir_path + "magnetics_data.obs"
-    data_object = data.Data(survey, dobs=dpred + noise, standard_deviation=noise)
-    utils.io_utils.writeUBCmagneticsObservations(fname, data_object)
+    np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt="%.4e")
 
-    output_model = plotting_map * model
-    output_model[np.isnan(output_model)] = 0.0
-    fname = dir_path + "true_model.txt"
-    mesh.writeModelUBC(fname, output_model)
