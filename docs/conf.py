@@ -174,7 +174,7 @@ def linkcode_resolve(domain, info):
     # Note that these links will not work on the local build!!!
     try:
     	fn = relpath(fn, start=dirname(SimPEG.__file__))
-    except Exception:
+    except ValueError:
     	pass
 
     return f"https://github.com/simpeg/simpeg/blob/master/SimPEG/{fn}{linespec}"

@@ -97,7 +97,7 @@ def electrode_separations(survey_object, electrode_pair="all", **kwargs):
         elif isinstance(electrode_pair, str):
             electrode_pair = [electrode_pair.upper()]
         else:
-            raise Exception(
+            raise TypeError(
                 "electrode_pair must be either a string, list of strings, or an "
                 "ndarray containing the electrode separation distances you would "
                 "like to calculate not {}".format(type(electrode_pair))
@@ -191,7 +191,7 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
     """
 
     if not isinstance(survey, dc.Survey):
-        raise ValueError("Input must be of type {}".format(dc.Survey))
+        raise TypeError("Input must be of type {}".format(dc.Survey))
 
     if len(kwargs) > 0:
         warnings.warn(
@@ -283,7 +283,7 @@ def geometric_factor(survey_object, space_type="half_space", **kwargs):
     elif space_type.lower() in SPACE_TYPES["half space"]:
         spaceFact = 2.0
     else:
-        raise Exception("'space_type must be 'whole space' | 'half space'")
+        raise TypeError("'space_type must be 'whole space' | 'half space'")
 
     elecSepDict = electrode_separations(
         survey_object, electrode_pair=["AM", "BM", "AN", "BN"]
@@ -404,16 +404,22 @@ def convert_survey_3d_to_2d_lines(survey, lineID, data_type='volt', output_index
             rx_loc_m = m_locs_s[rx_index, :]
             rx_loc_n = n_locs_s[rx_index, :]
             
-            if output_indexing:
-                out_indices.append(kID[rx_index])
+            # Extract pole and dipole receivers
+            k_ii = kID[rx_index]
+            is_pole_rx = np.all(np.isclose(rx_loc_m, rx_loc_n, atol=1e-3), axis=1)
+            rx_list = []
             
-            # Define Pole or Dipole Receivers
-            if np.all(np.isclose(rx_loc_m[:, 0], rx_loc_n[:, 0], atol=1e-3)):
-                rx_list = [dc.receivers.Pole(rx_loc_m)]
-            elif np.all(np.isclose(rx_loc_m[:, 0], rx_loc_n[:, 0], atol=1e-3)==False):
-                rx_list = [dc.receivers.Dipole(rx_loc_m, rx_loc_n)]
-            else:
-                raise NotImplementedError("An individual source cannot have a mix of Pole and Dipole receivers")
+            if any(is_pole_rx):
+                rx_list += [dc.receivers.Pole(
+                    rx_loc_m[is_pole_rx, :], data_type=data_type
+                )]
+                out_indices.append(k_ii[is_pole_rx])
+            
+            if any(~is_pole_rx):
+                rx_list += [dc.receivers.Dipole(
+                    rx_loc_m[~is_pole_rx, :], rx_loc_n[~is_pole_rx, :], data_type=data_type
+                )]
+                out_indices.append(k_ii[~is_pole_rx])
             
             # Define Pole or Dipole Sources
             if np.all(np.isclose(src_loc_a, src_loc_b, atol=1e-3)):
@@ -860,7 +866,7 @@ if has_plotly:
                 )
 
             if np.all(k == 0):
-                raise Exception(
+                raise IndexError(
                     """No locations are within *plane_distance* of any plane(s)
                     defined by *plane_points*. Try increasing *plane_distance*."""
                 )
@@ -947,9 +953,9 @@ def generate_survey_from_abmn_locations(
     """
     
     if locations_a is None:
-        raise AssertionError("Locations for A electrodes must be provided.")
+        raise TypeError("Locations for A electrodes must be provided.")
     if locations_m is None:
-        raise AssertionError("Locations for M electrodes must be provided.")
+        raise TypeError("Locations for M electrodes must be provided.")
 
     assert data_type.lower() in [
         "volt",
@@ -965,7 +971,7 @@ def generate_survey_from_abmn_locations(
         locations_n = locations_m
     
     if (locations_a.shape==locations_b.shape==locations_m.shape==locations_n.shape) == False:
-        raise AssertionError("Arrays containing A, B, M and N electrode locations must be same shape.")
+        raise ValueError("Arrays containing A, B, M and N electrode locations must be same shape.")
 
     # Set up keeping track of sorting of rows and unique sources
     n_rows = np.shape(locations_a)[0]
@@ -1111,7 +1117,7 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
                 # Current elctrode separation
                 AB = xy_2_r(tx[0], endl[1, 0], tx[1], endl[1, 1])
             else:
-                raise Exception(
+                raise TypeError(
                     "survey_type must be 'dipole-dipole' | 'pole-dipole' | "
                     "'dipole-pole' | 'pole-pole' not {}".format(survey_type)
                 )
