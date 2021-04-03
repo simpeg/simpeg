@@ -1665,6 +1665,35 @@ def plot_pseudosection(
 
     return plot_2d_pseudosection(data.survey, data.dobs, 'scatter', ax=ax, scale=scale, **kwargs)
 
+def plot_pseudoSection(
+    data,
+    ax=None,
+    survey_type="dipole-dipole",
+    data_type="apparent conductivity",
+    space_type="half space",
+    plot_type="pcolor",
+    clim=None,
+    scale="linear",
+    sameratio=True,
+    pcolor_opts={},
+    contour_opts={},
+    cbar_opts={},
+    data_locations=False,
+    dobs=None,
+    dim=2,
+    y_values="n-spacing",
+    **kwargs,
+):
+
+    warnings.warn(
+        "The plot_pseudoSection method has been deprecated and may not work properly!!! "
+        "Please use plot_2d_pseudosection instead. This will be removed in version"
+        " 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )
+
+    return plot_2d_pseudosection(data.survey, data.dobs, 'scatter', ax=ax, scale=scale, **kwargs)
+
 def apparent_resistivity(data_object, space_type='half space', dobs=None, eps=1e-10, **kwargs):
 
     warnings.warn(
@@ -1708,7 +1737,7 @@ def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
         DeprecationWarning,
     )
 
-    return convert_3d_survey_to_2d_lines(survey, lineID)
+    return convert_survey_3d_to_2d_lines(survey, lineID)
 
 
 def getSrc_locs(survey):
@@ -1807,6 +1836,8 @@ def writeUBC_DClocs(
         " 0.15.0 of SimPEG",
         DeprecationWarning,
     )
+    
+    data = Data(dc_survey)
 
     if dim == 2:
         write_dcip2d_ubc(
