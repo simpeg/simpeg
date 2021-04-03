@@ -6,6 +6,7 @@ import discretize
 from discretize import TensorMesh
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from matplotlib import ticker
 import warnings
 
 from ....data import Data
@@ -23,6 +24,8 @@ from ....utils.io_utils import (
     read_dcip3d_ubc,
     write_dcip3d_ubc
 )
+
+from ....utils.plot_utils import plot_1d_layer_model as plot_1d
 
 try:
     import plotly.graph_objects as grapho
@@ -256,7 +259,7 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
     return midpoints-pseudo_depth
 
 
-def geometric_factor(survey_object, space_type="half_space", **kwargs):
+def geometric_factor(survey_object, space_type="half space", **kwargs):
     """
         Calculate Geometric Factor. Assuming that data are normalized voltages
 
@@ -300,7 +303,7 @@ def geometric_factor(survey_object, space_type="half_space", **kwargs):
 
     return G / (spaceFact * np.pi)
 
-def apparent_resistivity_from_voltage(survey, volts, space_type="half_space", eps=1e-10):
+def apparent_resistivity_from_voltage(survey, volts, space_type="half space", eps=1e-10):
     """
     Calculate apparent resistivities from normalized voltages.
 
@@ -476,57 +479,7 @@ def plot_1d_layer_model(
 
     """
 
-    if np.median(values) > 1.:
-        x_label = "Resistivity ($\Omega$m)"
-    else:
-        x_label = "Conductivity (S/m)"
-
-    if len(thicknesses) < len(values):
-        thicknesses = np.r_[thicknesses, thicknesses[-1]]
-    z_grid = np.r_[0., np.cumsum(thicknesses)]
-    resistivity = np.repeat(values, 2)
-    rho_min = 0.9*np.min(values)
-    rho_max = 1.1*np.max(values)
-
-    z = []
-    for i in range(0, len(thicknesses)):
-        z.append(np.r_[z_grid[i], z_grid[i + 1]])
-    z = np.hstack(z)
-    
-    if plot_elevation:
-        y_label = "Elevation (m)"
-        z = z0 - z
-        z_grid = z0 - z_grid
-        flip_axis = False
-    else:
-        y_label = "Depth (m)"
-        flip_axis = True
-        
-    if ax == None:
-        fig = plt.figure(figsize=(6, 6))
-        ax = fig.add_axes([0.15, 0.15, 0.75, 0.75])
-    
-    if show_layers:
-        for locz in z_grid:
-            plt.plot(
-                np.linspace(rho_min, rho_max, 100),
-                np.ones(100) * locz,
-                "k--",
-                lw=0.5,
-                label='_nolegend_'
-            )
-
-    ax.plot(resistivity, z, **kwargs)
-    ax.set_xscale(scale)
-    ax.set_xlim(rho_min, rho_max)
-    if flip_axis:
-        ax.set_ylim(z.max(), z.min())
-    else:
-        ax.set_ylim(z.min(), z.max())
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
-    
-    return ax
+    return plot_1d(thicknesses, values, z0, scale, ax, plot_elevation, show_layers, **kwargs)
 
 
 def plot_2d_pseudosection(
@@ -1710,7 +1663,7 @@ def plot_pseudosection(
         DeprecationWarning,
     )
 
-    return plot_2d_pseudosection(data.survey, data.dobs, 'scatter', ax=ax, scale=scale)
+    return plot_2d_pseudosection(data.survey, data.dobs, 'scatter', ax=ax, scale=scale, **kwargs)
 
 def apparent_resistivity(data_object, space_type='half space', dobs=None, eps=1e-10, **kwargs):
 
@@ -1724,7 +1677,7 @@ def apparent_resistivity(data_object, space_type='half space', dobs=None, eps=1e
     if dobs is None:
         dobs = data_object.dobs
 
-    return apparent_resistivity_from_voltage(data_object.survey, dobs, space_type=space_type)
+    return apparent_resistivity_from_voltage(data_object.survey, dobs, space_type=space_type, **kwargs)
 
 
 def source_receiver_midpoints(survey, **kwargs):
@@ -1735,7 +1688,7 @@ def source_receiver_midpoints(survey, **kwargs):
         DeprecationWarning,
     )
 
-    return pseudo_locations(survey, kwargs)
+    return pseudo_locations(survey, **kwargs)
 
 def plot_layer(rho, mesh, **kwargs):
     warnings.warn(
@@ -1745,7 +1698,7 @@ def plot_layer(rho, mesh, **kwargs):
         DeprecationWarning,
     )
 
-    return plot_1d_layer_model(mesh.hx, rho)
+    return plot_1d_layer_model(mesh.hx, rho, **kwargs)
 
 def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
     warnings.warn(
