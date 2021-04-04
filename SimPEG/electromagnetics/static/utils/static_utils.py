@@ -1663,7 +1663,23 @@ def plot_pseudosection(
         DeprecationWarning,
     )
 
-    return plot_2d_pseudosection(data.survey, data.dobs, 'scatter', ax=ax, scale=scale, **kwargs)
+    if plot_type == "pcolor":
+        warnings.warn(
+            "P color plot no longer supported. Plotting tricontourf instead",
+        DeprecationWarning,
+    )
+
+    return plot_2d_pseudosection(
+        data.survey,
+        data.dobs,
+        'tricontourf',
+        ax=ax,
+        vlim=clim,
+        scale=scale,
+        tricontourf_opts=contour_opts,
+        cbar_opts=cbar_opts,
+        **kwargs
+    )
 
 def plot_pseudoSection(
     data,
@@ -1692,7 +1708,23 @@ def plot_pseudoSection(
         DeprecationWarning,
     )
 
-    return plot_2d_pseudosection(data.survey, data.dobs, 'scatter', ax=ax, scale=scale, **kwargs)
+    if plot_type == "pcolor":
+        warnings.warn(
+            "P color plot no longer supported. Plotting tricontourf instead",
+        DeprecationWarning,
+    )
+
+    return plot_2d_pseudosection(
+        data.survey,
+        data.dobs,
+        'tricontourf',
+        ax=ax,
+        vlim=clim,
+        scale=scale,
+        tricontourf_opts=contour_opts,
+        cbar_opts=cbar_opts,
+        **kwargs
+    )
 
 def apparent_resistivity(data_object, survey_type=None, space_type='half space', dobs=None, eps=1e-10, **kwargs):
 
