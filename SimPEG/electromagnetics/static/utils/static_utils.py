@@ -1694,12 +1694,19 @@ def plot_pseudoSection(
 
     return plot_2d_pseudosection(data.survey, data.dobs, 'scatter', ax=ax, scale=scale, **kwargs)
 
-def apparent_resistivity(data_object, space_type='half space', dobs=None, eps=1e-10, **kwargs):
+def apparent_resistivity(data_object, survey_type=None, space_type='half space', dobs=None, eps=1e-10, **kwargs):
 
     warnings.warn(
         "The apparent_resistivity method has been deprecated. Please use "
         "apparent_resistivity_from_voltage instead. This will be removed in version"
         " 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )
+
+    if survey_type is not None:
+        warnings.warn(
+        "Keyword argument 'survey_type' is no longer necessary. "
+        "Survey may now have a mix of pole and dipole sources and receivers.",
         DeprecationWarning,
     )
 
