@@ -15,7 +15,7 @@ else:
 
 def addBlock(gridCC, modelCC, p0, p1, blockProp):
     """
-        Add a block to an exsisting cell centered model, modelCC
+        Add a block to an existing cell centered model, modelCC
 
         :param numpy.ndarray gridCC: mesh.gridCC is the cell centered grid
         :param numpy.ndarray modelCC: cell centered model
