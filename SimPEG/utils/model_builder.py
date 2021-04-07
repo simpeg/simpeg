@@ -360,7 +360,7 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
 
 def PolygonInd(mesh, pts):
     """
-        Finde a volxel indices included in mpolygon (2D) or polyhedra (3D)
+        Find all voxel indices included in mpolygon (2D) or polyhedra (3D)
         uniformly distributed model.
 
         :param tuple shape: shape of the model.
