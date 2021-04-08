@@ -1348,3 +1348,12 @@ class ProjectSphericalBounds(InversionDirective):
             sim.model = m
 
         self.opt.xc = m
+
+class UpdateMref(InversionDirective):
+
+    def endIter(self):
+
+        self.reg.mref = self.invProb.model
+
+
+

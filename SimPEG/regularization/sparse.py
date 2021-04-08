@@ -65,6 +65,8 @@ class SparseSmall(BaseSparse):
     _multiplier_pair = "alpha_s"
 
     def __init__(self, mesh, **kwargs):
+        if 'mrefInSmooth' in kwargs:
+            kwargs.pop('mrefInSmooth')
         super(SparseSmall, self).__init__(mesh=mesh, **kwargs)
 
     # Give the option to scale or not
