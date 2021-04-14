@@ -37,12 +37,12 @@ import shutil
 #
 # Define the survey and model parameters
 #
-# Create an a global survey and mesh and simulate some data
+# Create a global survey and mesh and simulate some data
 #
 #
 
 
-# Create and array of observation points
+# Create an array of observation points
 xr = np.linspace(-30.0, 30.0, 20)
 yr = np.linspace(-30.0, 30.0, 20)
 X, Y = np.meshgrid(xr, yr)
@@ -121,7 +121,7 @@ nC = int(activeCells.sum())
 
 # We can now create a density model and generate data
 # Here a simple block in half-space
-# Get the indicies of the magnetized block
+# Get the indices of the magnetized block
 model = np.zeros(mesh.nC)
 ind = utils.ModelBuilder.getIndicesBlock(
     np.r_[-10, -10, -30], np.r_[10, 10, -10], mesh.gridCC,
@@ -241,7 +241,7 @@ invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 
 # Here is where the norms are applied
-# Use pick a threshold parameter empirically based on the distribution of
+# Use a threshold parameter empirically based on the distribution of
 # model parameters
 update_IRLS = directives.Update_IRLS(
     f_min_change=1e-4, max_irls_iterations=0, coolEpsFact=1.5, beta_tol=1e-2,
