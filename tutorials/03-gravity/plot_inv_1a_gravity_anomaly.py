@@ -121,8 +121,8 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with SimPEG requires that we define standard deviation on our data.
-# This represents our estimate of the noise in our data. For gravity inversion,
+# Inversion with SimPEG requires that we define the standard deviation of our data.
+# This represents our estimate of the noise in our data. For a gravity inversion,
 # a constant floor value is generally applied to all data. For this tutorial,
 # the standard deviation on each datum will be 1% of the maximum observed
 # gravity anomaly value.
@@ -136,13 +136,13 @@ uncertainties = 0.01 * maximum_anomaly * np.ones(np.shape(dobs))
 # Defining the Survey
 # -------------------
 #
-# Here, we define survey that will be used for this tutorial. Gravity
+# Here, we define the survey that will be used for this tutorial. Gravity
 # surveys are simple to create. The user only needs an (N, 3) array to define
 # the xyz locations of the observation locations. From this, the user can
 # define the receivers and the source field.
 #
 
-# Define the receivers. The data consist of vertical gravity anomaly measurements.
+# Define the receivers. The data consists of vertical gravity anomaly measurements.
 # The set of receivers must be defined as a list.
 receiver_list = gravity.receivers.Point(receiver_locations, components="gz")
 
@@ -158,7 +158,7 @@ survey = gravity.survey.Survey(source_field)
 # Defining the Data
 # -----------------
 #
-# Here is where we define the data that are inverted. The data are defined by
+# Here is where we define the data that is inverted. The data is defined by
 # the survey, the observation values and the standard deviation.
 #
 
@@ -194,7 +194,7 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 # not converge.
 background_density = 1e-6
 
-# Find the indecies of the active cells in forward model (ones below surface)
+# Find the indices of the active cells in forward model (ones below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
 
 # Define mapping from model to active cells

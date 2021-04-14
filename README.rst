@@ -50,7 +50,7 @@ The vision is to create a package for finite volume simulation with applications
 * supports 1D, 2D and 3D problems
 * designed for large-scale inversions
 
-You are welcome to join forum and engage with people who use and develop SimPEG at: http://simpeg.discourse.group/.
+You are welcome to join our forum and engage with people who use and develop SimPEG at: http://simpeg.discourse.group/.
 
 Weekly meetings are open to all. They are generally held on Tuesdays at 10:30am PDT. Please see the calendar (`GCAL <https://calendar.google.com/calendar/b/0?cid=ZHVhamYzMWlibThycWdkZXM5NTdoYXV2MnNAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ>`_, `ICAL <https://calendar.google.com/calendar/ical/duajf31ibm8rqgdes957hauv2s%40group.calendar.google.com/public/basic.ics>`_) for information on the next meeting.
 

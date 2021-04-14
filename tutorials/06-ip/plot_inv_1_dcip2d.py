@@ -29,12 +29,13 @@ import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 import tarfile
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
-from SimPEG.utils import surface2ind_topo
+from SimPEG.utils import surface2ind_topo, model_builder
 from SimPEG import (
     maps,
     data,
@@ -55,7 +56,7 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
-mpl.rcParams.update({'font.size': 16})
+mpl.rcParams.update({"font.size": 16})
 # sphinx_gallery_thumbnail_number = 6
 
 
@@ -88,8 +89,6 @@ dir_path = downloaded_data.split(".")[0] + os.path.sep
 topo_filename = dir_path + "xyz_topo.txt"
 dc_data_filename = dir_path + "dc_data.obs"
 ip_data_filename = dir_path + "ip_data.obs"
-true_conductivity_filename = dir_path + "true_conductivity.txt"
-true_chargeability_filename = dir_path + "true_chargeability.txt"
 
 
 #############################################
@@ -165,8 +164,7 @@ plot_pseudosection(
     data_type="appConductivity",
     space_type="half-space",
     scale="log",
-    y_values='pseudo-depth',
-    pcolor_opts={"cmap": "viridis"},
+    y_values="pseudo-depth",
 )
 ax1.set_title("Apparent Conductivity [S/m]")
 
@@ -183,7 +181,7 @@ plot_pseudosection(
     data_type="appChargeability",
     space_type="half-space",
     scale="linear",
-    y_values='pseudo-depth',
+    y_values="pseudo-depth",
     pcolor_opts={"cmap": "plasma"},
 )
 ax2.set_title("Apparent Chargeability (V/V)")
@@ -408,72 +406,67 @@ recovered_conductivity_model = dc_inversion.run(starting_conductivity_model)
 # ----------------------------------------------
 #
 
-# Load true conductivity model
-true_conductivity_model = np.loadtxt(str(true_conductivity_filename))
-true_conductivity_model_log10 = np.log10(true_conductivity_model[ind_active])
+# Recreate true conductivity model
+true_background_conductivity = 1e-2
+true_conductor_conductivity = 1e-1
+true_resistor_conductivity = 1e-3
+
+true_conductivity_model = true_background_conductivity * np.ones(len(mesh))
+
+ind_conductor = model_builder.getIndicesSphere(np.r_[-120.0, -180.0], 60.0, mesh.gridCC)
+true_conductivity_model[ind_conductor] = true_conductor_conductivity
+
+ind_resistor = model_builder.getIndicesSphere(np.r_[120.0, -180.0], 60.0, mesh.gridCC)
+true_conductivity_model[ind_resistor] = true_resistor_conductivity
+
+true_conductivity_model[~ind_active] = np.NaN
 
 # Plot True Model
+norm = LogNorm(vmin=1e-3, vmax=1e-1)
+
 fig = plt.figure(figsize=(9, 4))
-
-plotting_map = maps.ActiveCells(mesh, ind_active, np.nan)
-
 ax1 = fig.add_axes([0.1, 0.12, 0.72, 0.8])
-mesh.plotImage(
-    plotting_map * true_conductivity_model_log10,
+im = mesh.plot_image(
+    true_conductivity_model,
     ax=ax1,
     grid=False,
-    clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
     range_x=[-700, 700],
     range_y=[-700, 0],
-    pcolor_opts={"cmap": "viridis"},
+    pcolor_opts={"norm": norm},
 )
 ax1.set_title("True Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
 ax2 = fig.add_axes([0.83, 0.12, 0.05, 0.8])
-norm = mpl.colors.Normalize(
-    vmin=np.min(true_conductivity_model_log10),
-    vmax=np.max(true_conductivity_model_log10),
-)
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="10^%.1f"
-)
-
+cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation="vertical")
 cbar.set_label("$S/m$", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
-# Plot Recovered Model
+# # Plot Recovered Model
 fig = plt.figure(figsize=(9, 4))
 
-# Make conductivities in log10
-recovered_conductivity_model_log10 = np.log10(np.exp(recovered_conductivity_model))
+recovered_conductivity = conductivity_map * recovered_conductivity_model
+recovered_conductivity[~ind_active] = np.NaN
 
 ax1 = fig.add_axes([0.1, 0.12, 0.72, 0.8])
 mesh.plotImage(
-    plotting_map * recovered_conductivity_model_log10,
+    recovered_conductivity,
     normal="Y",
     ax=ax1,
     grid=False,
-    clim=(np.min(true_conductivity_model_log10), np.max(true_conductivity_model_log10)),
     range_x=[-700, 700],
     range_y=[-700, 0],
-    pcolor_opts={"cmap": "viridis"},
+    pcolorOpts={"norm": norm},
 )
 ax1.set_title("Recovered Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
 ax2 = fig.add_axes([0.83, 0.12, 0.05, 0.8])
-norm = mpl.colors.Normalize(
-    vmin=np.min(true_conductivity_model_log10),
-    vmax=np.max(true_conductivity_model_log10),
-)
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="10^%.1f"
-)
-cbar.set_label("$S/m$", rotation=270, labelpad=15, size=12)
+cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation="vertical")
+cbar.set_label(r"$\sigma$ (S/m)", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -511,7 +504,6 @@ for ii in range(0, 3):
         data_type=plot_type[ii],
         scale=scale[ii],
         space_type="half-space",
-        pcolor_opts={"cmap": "viridis"},
     )
     ax1[ii].set_title(plot_title[ii])
 
@@ -630,34 +622,35 @@ recovered_chargeability_model = ip_inversion.run(starting_chargeability_model)
 # Plotting True Model and Recovered Chargeability Model
 # -----------------------------------------------------
 #
+sphere_chargeability = 1e-1
 
-true_chargeability_model = np.loadtxt(str(true_chargeability_filename))
-true_chargeability_model = true_chargeability_model[ind_active]
+true_chargeability_model = np.zeros(len(mesh))
+true_chargeability_model[ind_conductor] = sphere_chargeability
+true_chargeability_model[~ind_active] = np.NaN
+
+recovered_chargeability = chargeability_map * recovered_chargeability_model
+recovered_chargeability[~ind_active] = np.NaN
 
 
 # Plot True Model
 fig = plt.figure(figsize=(9, 4))
 
-plotting_map = maps.ActiveCells(mesh, ind_active, np.nan)
+norm = mpl.colors.Normalize(vmin=0, vmax=sphere_chargeability)
 
 ax1 = fig.add_axes([0.1, 0.12, 0.72, 0.8])
-mesh.plotImage(
-    plotting_map * true_chargeability_model,
+mesh.plot_image(
+    true_chargeability_model,
     ax=ax1,
     grid=False,
-    clim=(np.min(true_chargeability_model), np.max(true_chargeability_model)),
     range_x=[-700, 700],
     range_y=[-700, 0],
-    pcolor_opts={"cmap": "plasma"},
+    pcolor_opts={"cmap": "plasma", "norm": norm},
 )
 ax1.set_title("True Chargeability Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
 ax2 = fig.add_axes([0.83, 0.12, 0.03, 0.8])
-norm = mpl.colors.Normalize(
-    vmin=np.min(true_chargeability_model), vmax=np.max(true_chargeability_model)
-)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", cmap=mpl.cm.plasma
 )
@@ -670,24 +663,19 @@ fig = plt.figure(figsize=(9, 4))
 
 ax1 = fig.add_axes([0.1, 0.12, 0.72, 0.8])
 mesh.plotImage(
-    plotting_map * recovered_chargeability_model,
+    recovered_chargeability,
     normal="Y",
     ax=ax1,
     grid=False,
-    clim=(np.min(recovered_chargeability_model), np.max(recovered_chargeability_model)),
     range_x=[-700, 700],
     range_y=[-700, 0],
-    pcolor_opts={"cmap": "plasma"},
+    pcolor_opts={"cmap": "plasma", "norm": norm},
 )
 ax1.set_title("Recovered Chargeability Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
 ax2 = fig.add_axes([0.83, 0.12, 0.03, 0.8])
-norm = mpl.colors.Normalize(
-    vmin=np.min(recovered_chargeability_model),
-    vmax=np.max(recovered_chargeability_model),
-)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", cmap=mpl.cm.plasma
 )
