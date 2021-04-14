@@ -107,18 +107,30 @@ class Survey(BaseSurvey):
         return np.unique(np.vstack((loc_a, loc_b, loc_m, loc_n)), axis=0)
 
     def set_geometric_factor(
-        self, data_type="volt", survey_type="dipole-dipole", space_type="half-space"
+        self, space_type="half-space", data_type=None, survey_type=None,
     ):
+        if data_type is not None:
+            warnings.warn(
+                "The data_type kwarg is deprecated, please set the data_type on the "
+                "receiver object itself. This behavoir will be removed in SimPEG "
+                "0.16.0",
+                DeprecationWarning,
+            )
+        if survey_type is not None:
+            warnings.warn(
+                "The survey_type parameter is no longer needed, and it will be removed "
+                "in SimPEG 0.15.0."
+            )
 
-        geometric_factor = static_utils.geometric_factor(
-            self, survey_type=survey_type, space_type=space_type
-        )
+        geometric_factor = static_utils.geometric_factor(self, space_type=space_type)
 
         geometric_factor = data.Data(self, geometric_factor)
         for source in self.source_list:
             for rx in source.receiver_list:
-                rx._geometric_factor = geometric_factor[source, rx]
-                rx.data_type = data_type
+                if data_type is not None:
+                    rx.data_type = data_type
+                if rx.data_type == "apparent_resistivity":
+                    rx._geometric_factor[source] = geometric_factor[source, rx]
         return geometric_factor
 
     def _set_abmn_locations(self):
