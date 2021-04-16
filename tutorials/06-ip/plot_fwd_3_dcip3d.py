@@ -101,14 +101,12 @@ survey_type = "dipole-dipole"
 dc_data_type = "volt"
 dimension_type = "3D"
 end_locations_list = [
-    np.r_[-1000.0, 1000.0, -500.0, -500.0],
     np.r_[-1000.0, 1000.0, 0.0, 0.0],
-    np.r_[-1000.0, 1000.0, 500.0, 500.0],
     np.r_[-350.0, -350.0, -1000.0, 1000.0],
     np.r_[350.0, 350.0, -1000.0, 1000.0],
 ]
 station_separation = 100.0
-num_rx_per_src = 10
+num_rx_per_src = 8
 
 # The source lists for each line can be appended to create the source
 # list for the whole survey.
@@ -153,7 +151,7 @@ mesh = TreeMesh([hx, hy, hz], x0="CCN")
 # Mesh refinement based on topography
 k = np.sqrt(np.sum(topo_xyz[:, 0:2]**2, axis=1)) < 1200
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[k, :], octree_levels=[0, 4, 8, 4], method="surface", finalize=False
+    mesh, topo_xyz[k, :], octree_levels=[0, 6, 8], method="surface", finalize=False
 )
 
 # Mesh refinement near sources and receivers. 
@@ -162,7 +160,7 @@ electrode_locations = np.r_[
 ]
 unique_locations = np.unique(electrode_locations, axis=0)
 mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[4, 8, 4], method="radial", finalize=False
+    mesh, unique_locations, octree_levels=[4, 6, 4], method="radial", finalize=False
 )
 
 # Finalize the mesh
@@ -194,23 +192,13 @@ conductivity_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 # Define model
 conductivity_model = background_value * np.ones(nC)
 
-ind_conductor = (
-    (mesh.gridCC[ind_active, 0] > -500.0)
-    & (mesh.gridCC[ind_active, 0] < -200.0)
-    & (mesh.gridCC[ind_active, 1] > -400.0)
-    & (mesh.gridCC[ind_active, 1] < 400.0)
-    & (mesh.gridCC[ind_active, 2] > -500.0)
-    & (mesh.gridCC[ind_active, 2] < -200.0)
+ind_conductor = model_builder.getIndicesSphere(
+    np.r_[-350., 0., -300.], 160., mesh.cell_centers[ind_active, :]
 )
 conductivity_model[ind_conductor] = conductor_value
 
-ind_resistor = (
-    (mesh.gridCC[ind_active, 0] > 200.0)
-    & (mesh.gridCC[ind_active, 0] < 500.0)
-    & (mesh.gridCC[ind_active, 1] > -400.0)
-    & (mesh.gridCC[ind_active, 1] < 400.0)
-    & (mesh.gridCC[ind_active, 2] > -500.0)
-    & (mesh.gridCC[ind_active, 2] < -200.0)
+ind_resistor = model_builder.getIndicesSphere(
+    np.r_[350., 0., -300.], 160., mesh.cell_centers[ind_active, :]
 )
 conductivity_model[ind_resistor] = resistor_value
 
@@ -233,8 +221,8 @@ mesh.plotSlice(
 ax1.set_title("Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
-ax1.set_xlim([-2000, 2000])
-ax1.set_ylim([-2000, 0])
+ax1.set_xlim([-1000, 1000])
+ax1.set_ylim([-1000, 0])
 
 ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.75])
 norm = mpl.colors.Normalize(
@@ -388,14 +376,10 @@ chargeability_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 # Define model
 chargeability_model = background_value * np.ones(nC)
 
-ind_chargeable = (
-    (mesh.gridCC[ind_active, 0] > -500.0)
-    & (mesh.gridCC[ind_active, 0] < -200.0)
-    & (mesh.gridCC[ind_active, 1] > -400.0)
-    & (mesh.gridCC[ind_active, 1] < 400.0)
-    & (mesh.gridCC[ind_active, 2] > -500.0)
-    & (mesh.gridCC[ind_active, 2] < -200.0)
+ind_chargeable = model_builder.getIndicesSphere(
+    np.r_[-350., 0., -300.], 160., mesh.cell_centers[ind_active, :]
 )
+
 chargeability_model[ind_chargeable] = chargeable_value
 
 # Plot Chargeability Model
@@ -416,8 +400,8 @@ mesh.plotSlice(
 ax1.set_title("Chargeability Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
-ax1.set_xlim([-2000, 2000])
-ax1.set_ylim([-2000, 0])
+ax1.set_xlim([-1000, 1000])
+ax1.set_ylim([-1000, 0])
 
 ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.75])
 norm = mpl.colors.Normalize(
@@ -517,8 +501,8 @@ if write_output:
     dobs = dpred_dc + noise
     
     # Create dictionary that stores line IDs
-    N = int(dc_survey.nD/5)
-    lineID = np.r_[np.ones(N), 2*np.ones(N), 3*np.ones(N), 4*np.ones(N), 5*np.ones(N)]
+    N = int(dc_survey.nD/3)
+    lineID = np.r_[np.ones(N), 2*np.ones(N), 3*np.ones(N)]
     out_dict = {'LINEID': lineID}
     
     # Create a survey with the original electrode locations

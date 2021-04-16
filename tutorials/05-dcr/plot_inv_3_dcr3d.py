@@ -34,7 +34,7 @@ import tarfile
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
-from SimPEG.utils import surface2ind_topo
+from SimPEG.utils import surface2ind_topo, model_builder
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip_xyz
 from SimPEG import (
     maps,
@@ -201,7 +201,7 @@ mesh = TreeMesh([hx, hy, hz], x0="CCN")
 # Mesh refinement based on topography
 k = np.sqrt(np.sum(topo_xyz[:, 0:2]**2, axis=1)) < 1200
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[k, :], octree_levels=[0, 4, 8, 4], method="surface", finalize=False
+    mesh, topo_xyz[k, :], octree_levels=[0, 6, 8], method="surface", finalize=False
 )
 
 # Mesh refinement near sources and receivers.
@@ -213,7 +213,7 @@ electrode_locations = np.r_[
 ]
 unique_locations = np.unique(electrode_locations, axis=0)
 mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[4, 8, 4], method="radial", finalize=False
+    mesh, unique_locations, octree_levels=[4, 6, 4], method="radial", finalize=False
 )
 
 # Finalize the mesh
@@ -302,7 +302,7 @@ dc_regularization = regularization.Simple(
     mesh,
     indActive=ind_active,
     mref=starting_conductivity_model,
-    alpha_s=0.0001,
+    alpha_s=1e-2,
     alpha_x=1,
     alpha_y=1,
     alpha_z=1
@@ -311,8 +311,8 @@ dc_regularization = regularization.Simple(
 dc_regularization.mrefInSmooth=True  # Include reference model in smoothness
 
 # Define how the optimization problem is solved.
-dc_optimization = optimization.ProjectedGNCG(
-    maxIter=15, maxIterLS=20, maxIterCG=30, tolCG=1e-3
+dc_optimization = optimization.InexactGaussNewton(
+    maxIter=15, maxIterLS=20, maxIterCG=30, tolCG=1e-2
 )
 
 # Here we define the inverse problem that is to be solved
@@ -340,7 +340,7 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 # Set the rate of reduction in trade-off parameter (beta) each time the
 # the inverse problem is solved. And set the number of Gauss-Newton iterations
 # for each trade-off paramter value.
-beta_schedule = directives.BetaSchedule(coolingFactor=3, coolingRate=2)
+beta_schedule = directives.BetaSchedule(coolingFactor=2.5, coolingRate=2)
 
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
@@ -348,12 +348,16 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 # Setting a stopping criteria for the inversion.
 target_misfit = directives.TargetMisfit(chifact=1)
 
+# Apply and update preconditioner as the model updates
+update_jacobi = directives.UpdatePreconditioner()
+
 directives_list = [
     update_sensitivity_weighting,
     starting_beta,
     beta_schedule,
     save_iteration,
     target_misfit,
+    update_jacobi
 ]
 
 #########################################################
@@ -386,23 +390,13 @@ resistor_value = 1e-3
 # Define model
 true_conductivity_model = background_value * np.ones(nC)
 
-ind_conductor = (
-    (mesh.gridCC[ind_active, 0] > -500.0)
-    & (mesh.gridCC[ind_active, 0] < -200.0)
-    & (mesh.gridCC[ind_active, 1] > -400.0)
-    & (mesh.gridCC[ind_active, 1] < 400.0)
-    & (mesh.gridCC[ind_active, 2] > -500.0)
-    & (mesh.gridCC[ind_active, 2] < -200.0)
+ind_conductor = model_builder.getIndicesSphere(
+    np.r_[-350., 0., -300.], 160., mesh.cell_centers[ind_active, :]
 )
 true_conductivity_model[ind_conductor] = conductor_value
 
-ind_resistor = (
-    (mesh.gridCC[ind_active, 0] > 200.0)
-    & (mesh.gridCC[ind_active, 0] < 500.0)
-    & (mesh.gridCC[ind_active, 1] > -400.0)
-    & (mesh.gridCC[ind_active, 1] < 400.0)
-    & (mesh.gridCC[ind_active, 2] > -500.0)
-    & (mesh.gridCC[ind_active, 2] < -200.0)
+ind_resistor = model_builder.getIndicesSphere(
+    np.r_[350., 0., -300.], 160., mesh.cell_centers[ind_active, :]
 )
 true_conductivity_model[ind_resistor] = resistor_value
 true_conductivity_model_log10 = np.log10(true_conductivity_model)
@@ -432,8 +426,8 @@ mesh.plotSlice(
 ax1.set_title("True Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
-ax1.set_xlim([-2000, 2000])
-ax1.set_ylim([-2000, 0])
+ax1.set_xlim([-1000, 1000])
+ax1.set_ylim([-1000, 0])
 
 ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.75])
 norm = mpl.colors.Normalize(
@@ -462,8 +456,8 @@ mesh.plotSlice(
 ax1.set_title("Recovered Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
-ax1.set_xlim([-2000, 2000])
-ax1.set_ylim([-2000, 0])
+ax1.set_xlim([-1000, 1000])
+ax1.set_ylim([-1000, 0])
 
 ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.75])
 norm = mpl.colors.Normalize(

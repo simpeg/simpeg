@@ -190,9 +190,7 @@ for ind in index_list:
 #
 
 title_str = [
-    'East-West Line at Northing = -500 m',
     'East-West Line at Northing = 0 m',
-    'East-West Line at Northing = 500 m',
     'North-South Line at Easting = -350 m',
     'North-South Line at Easting = -350 m'
 ]
