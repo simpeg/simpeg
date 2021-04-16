@@ -159,7 +159,7 @@ plt.show()
 # 
 # 
 
-dc_data.standard_deviation = 0.1 * np.abs(dc_data.dobs)
+dc_data.standard_deviation = 0.05 * np.abs(dc_data.dobs)
 
 ########################################################
 # Create Tree Mesh
@@ -168,9 +168,9 @@ dc_data.standard_deviation = 0.1 * np.abs(dc_data.dobs)
 # Here, we create the Tree mesh that will be used invert the DC data
 #
 
-dh = 8  # base cell width
-dom_width_x = 2400.0  # domain width x
-dom_width_z = 1200.0  # domain width z
+dh = 4  # base cell width
+dom_width_x = 3200.0  # domain width x
+dom_width_z = 2400.0  # domain width z
 nbcx = 2 ** int(np.round(np.log(dom_width_x / dh) / np.log(2.0)))  # num. base cells x
 nbcz = 2 ** int(np.round(np.log(dom_width_z / dh) / np.log(2.0)))  # num. base cells z
 
@@ -181,7 +181,7 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 2], method="surface", finalize=False
+    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 0, 4, 4], method="surface", finalize=False
 )
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
@@ -198,13 +198,13 @@ unique_locations = np.unique(
 )
 
 mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[2, 4], method="radial", finalize=False
+    mesh, unique_locations, octree_levels=[4, 4], method="radial", finalize=False
 )
 
 # Refine core mesh region
-xp, zp = np.meshgrid([-800.0, 800.0], [-800.0, 0.0])
+xp, zp = np.meshgrid([-600.0, 600.0], [-400.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 2], method="box", finalize=False)
+mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False)
 
 mesh.finalize()
 
@@ -300,7 +300,7 @@ reg = regularization.Sparse(
     indActive=ind_active,
     mref=starting_conductivity_model,
     mapping=regmap,
-    gradientType="components",
+    gradientType="total",
     alpha_s=0.01,
     alpha_x=1,
     alpha_y=1,
@@ -334,24 +334,25 @@ update_sensitivity_weighting = directives.UpdateSensitivityWeights()
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
 update_IRLS = directives.Update_IRLS(
-    max_irls_iterations=20, minGNiter=1, chifact_start=1.0
+    max_irls_iterations=25, minGNiter=1, chifact_start=1.0
 )
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 
-# Update preconditionner
-update_Jacobi = directives.UpdatePreconditioner()
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
+
+# Update preconditioner
+update_jacobi = directives.UpdatePreconditioner()
 
 directives_list = [
     update_sensitivity_weighting,
     update_IRLS,
     starting_beta,
     save_iteration,
+    update_jacobi
 ]
 
 #####################################################################

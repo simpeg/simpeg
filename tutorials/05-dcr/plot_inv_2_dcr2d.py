@@ -159,7 +159,7 @@ plt.show()
 # 
 # 
 
-dc_data.standard_deviation = 0.1 * np.abs(dc_data.dobs)
+dc_data.standard_deviation = 0.05 * np.abs(dc_data.dobs)
 
 ########################################################
 # Create Tree Mesh
@@ -168,9 +168,9 @@ dc_data.standard_deviation = 0.1 * np.abs(dc_data.dobs)
 # Here, we create the Tree mesh that will be used to invert DC data.
 #
 
-dh = 8  # base cell width
-dom_width_x = 2400.0  # domain width x
-dom_width_z = 1200.0  # domain width z
+dh = 4  # base cell width
+dom_width_x = 3200.0  # domain width x
+dom_width_z = 2400.0  # domain width z
 nbcx = 2 ** int(np.round(np.log(dom_width_x / dh) / np.log(2.0)))  # num. base cells x
 nbcz = 2 ** int(np.round(np.log(dom_width_z / dh) / np.log(2.0)))  # num. base cells z
 
@@ -181,7 +181,7 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 2], method="surface", finalize=False
+    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 0, 4, 4], method="surface", finalize=False
 )
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
@@ -198,13 +198,13 @@ unique_locations = np.unique(
 )
 
 mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[2, 4], method="radial", finalize=False
+    mesh, unique_locations, octree_levels=[4, 4], method="radial", finalize=False
 )
 
 # Refine core mesh region
-xp, zp = np.meshgrid([-800.0, 800.0], [-800.0, 0.0])
+xp, zp = np.meshgrid([-600.0, 600.0], [-400.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 2], method="box", finalize=False)
+mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False)
 
 mesh.finalize()
 
@@ -336,12 +336,16 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 # Setting a stopping criteria for the inversion.
 target_misfit = directives.TargetMisfit(chifact=1)
 
+# Update preconditioner
+update_jacobi = directives.UpdatePreconditioner()
+
 directives_list = [
     update_sensitivity_weighting,
     starting_beta,
     beta_schedule,
     save_iteration,
     target_misfit,
+    update_jacobi
 ]
 
 #####################################################################

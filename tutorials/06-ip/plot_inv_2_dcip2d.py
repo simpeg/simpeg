@@ -161,12 +161,12 @@ plt.show()
 # 
 # Inversion with SimPEG requires that we define the uncertainties on our data.
 # This represents our estimate of the standard deviation of the
-# noise in our data. For DC data, the uncertainties are 10% of the absolute value.
-# For secondary potential IP data, the uncertainties are 0.5% of the DC value.
+# noise in our data. For DC data, the uncertainties are 5% of the absolute value.
+# For appanrent chargeability IP data, the uncertainties are 5e-3 V/V.
 # 
 # 
 
-dc_data.standard_deviation = 0.1 * np.abs(dc_data.dobs)
+dc_data.standard_deviation = 0.05 * np.abs(dc_data.dobs)
 ip_data.standard_deviation = 5e-3 * np.ones_like(ip_data.dobs)
 
 ########################################################
@@ -177,9 +177,9 @@ ip_data.standard_deviation = 5e-3 * np.ones_like(ip_data.dobs)
 # resistivity and IP data.
 #
 
-dh = 8  # base cell width
-dom_width_x = 2400.0  # domain width x
-dom_width_z = 1200.0  # domain width z
+dh = 4  # base cell width
+dom_width_x = 3200.0  # domain width x
+dom_width_z = 2400.0  # domain width z
 nbcx = 2 ** int(np.round(np.log(dom_width_x / dh) / np.log(2.0)))  # num. base cells x
 nbcz = 2 ** int(np.round(np.log(dom_width_z / dh) / np.log(2.0)))  # num. base cells z
 
@@ -190,7 +190,7 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 2], method="surface", finalize=False
+    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 0, 4, 4], method="surface", finalize=False
 )
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
@@ -207,13 +207,13 @@ unique_locations = np.unique(
 )
 
 mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[2, 4], method="radial", finalize=False
+    mesh, unique_locations, octree_levels=[4, 4], method="radial", finalize=False
 )
 
 # Refine core mesh region
-xp, zp = np.meshgrid([-800.0, 800.0], [-800.0, 0.0])
+xp, zp = np.meshgrid([-600.0, 600.0], [-400.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 2], method="box", finalize=False)
+mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False)
 
 mesh.finalize()
 
@@ -312,8 +312,6 @@ dc_regularization = regularization.Simple(
     alpha_y=1,
 )
 
-dc_regularization.mrefInSmooth=True  # Include reference model in smoothness
-
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach.
 dc_optimization = optimization.InexactGaussNewton(maxIter=40)
@@ -350,12 +348,16 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 # Setting a stopping criteria for the inversion.
 target_misfit = directives.TargetMisfit(chifact=1)
 
+# Update preconditioner
+update_jacobi = directives.UpdatePreconditioner()
+
 directives_list = [
     update_sensitivity_weighting,
     starting_beta,
     beta_schedule,
     save_iteration,
     target_misfit,
+    update_jacobi
 ]
 
 #####################################################################
@@ -542,17 +544,15 @@ ip_regularization = regularization.Simple(
     mesh,
     indActive=ind_active,
     mapping=maps.IdentityMap(nP=nC),
-    alpha_s=0.0001,
+    alpha_s=0.01,
     alpha_x=1,
     alpha_y=1,
 )
 
-ip_regularization.mrefInSmooth=True  # Include reference model in smoothness
-
 # Define how the optimization problem is solved. Here it is a projected
 # Gauss Newton with Conjugate Gradient solver.
 ip_optimization = optimization.ProjectedGNCG(
-    maxIter=15, lower=0.0, upper=1000., maxIterCG=30, tolCG=1e-3
+    maxIter=15, lower=0.0, upper=1000., maxIterCG=30, tolCG=1e-2
 )
 
 # Here we define the inverse problem that is to be solved
@@ -568,10 +568,11 @@ ip_inverse_problem = inverse_problem.BaseInvProblem(
 #
 
 update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold=1e-3)
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e3)
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=2)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
+beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 target_misfit = directives.TargetMisfit(chifact=1.0)
+update_jacobi = directives.UpdatePreconditioner()
 
 directives_list = [
     update_sensitivity_weighting,
@@ -579,6 +580,7 @@ directives_list = [
     beta_schedule,
     save_iteration,
     target_misfit,
+    update_jacobi
 ]
 
 #####################################################

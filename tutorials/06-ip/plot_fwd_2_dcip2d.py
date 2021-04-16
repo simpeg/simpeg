@@ -123,9 +123,9 @@ dc_survey = dc.survey.Survey(source_list)
 # resistivity and IP data.
 #
 
-dh = 8  # base cell width
-dom_width_x = 2400.0  # domain width x
-dom_width_z = 1200.0  # domain width z
+dh = 4  # base cell width
+dom_width_x = 3200.0  # domain width x
+dom_width_z = 2400.0  # domain width z
 nbcx = 2 ** int(np.round(np.log(dom_width_x / dh) / np.log(2.0)))  # num. base cells x
 nbcz = 2 ** int(np.round(np.log(dom_width_z / dh) / np.log(2.0)))  # num. base cells z
 
@@ -136,7 +136,7 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 2], method="surface", finalize=False
+    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 0, 4, 4], method="surface", finalize=False
 )
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
@@ -153,13 +153,13 @@ unique_locations = np.unique(
 )
 
 mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[2, 4], method="radial", finalize=False
+    mesh, unique_locations, octree_levels=[4, 4], method="radial", finalize=False
 )
 
 # Refine core mesh region
-xp, zp = np.meshgrid([-800.0, 800.0], [-800.0, 0.0])
+xp, zp = np.meshgrid([-600.0, 600.0], [-400.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 2], method="box", finalize=False)
+mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False)
 
 mesh.finalize()
 
@@ -305,7 +305,7 @@ plt.show()
 # ----------------
 #
 # The geometry of the survey was defined earlier. We will define the IP
-# data as apparent chargeability.
+# data as apparent chargeability in V/V.
 #
 
 # Generate source list for IP survey line
@@ -323,6 +323,8 @@ source_list = generate_dcip_sources_line(
 # Define survey
 ip_survey = ip.survey.Survey(source_list, survey_type=survey_type)
 
+# Drape over discrete topography
+ip_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 
 ###############################################################
 # Create Chargeability Model and Mapping for OcTree Mesh
@@ -335,7 +337,7 @@ ip_survey = ip.survey.Survey(source_list, survey_type=survey_type)
 
 # Define chargeability model as intrinsic chargeability (V/V).
 air_chargeability = 0.0
-background_chargeability = 0.0
+background_chargeability = 1e-6
 sphere_chargeability = 1e-1
 
 # Find active cells in forward modeling (cells below surface)
@@ -411,11 +413,11 @@ dpred_ip = simulation_ip.dpred(chargeability_model)
 # voltage by the DC voltage. This is then multiplied by 1000 so that our
 # apparent chargeability is in units mV/V.
 
-fig = plt.figure(figsize=(12, 12))
+fig = plt.figure(figsize=(12, 11))
 
 # Plot apparent conductivity
-ax1 = fig.add_axes([0.1, 0.575, 0.72, 0.4])
-cax1 = fig.add_axes([0.84, 0.575, 0.05, 0.4])
+ax1 = fig.add_axes([0.1, 0.58, 0.7, 0.35])
+cax1 = fig.add_axes([0.82, 0.58, 0.025, 0.35])
 plot_2d_pseudosection(
     dc_survey,
     apparent_conductivities,
@@ -431,8 +433,8 @@ ax1.set_title("Apparent Conductivity")
 
 # Plot apparent chargeability
 
-ax2 = fig.add_axes([0.1, 0.075, 0.72, 0.4])
-cax2 = fig.add_axes([0.84, 0.075, 0.05, 0.4])
+ax2 = fig.add_axes([0.1, 0.08, 0.7, 0.35])
+cax2 = fig.add_axes([0.82, 0.08, 0.025, 0.35])
 plot_2d_pseudosection(
     ip_survey,
     dpred_ip,
@@ -466,9 +468,9 @@ if write_output:
     fname = dir_path + "topo_xyz.txt"
     np.savetxt(fname, topo_xyz, fmt="%.4e")
 
-    # Add 10% Gaussian noise to each DC datum
+    # Add 5% Gaussian noise to each DC datum
     np.random.seed(225)
-    std = 0.1 * np.abs(dpred_dc)
+    std = 0.05 * np.abs(dpred_dc)
     dc_noise = std * np.random.rand(len(dpred_dc))
     dobs = dpred_dc + dc_noise
     
