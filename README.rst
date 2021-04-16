@@ -8,13 +8,17 @@ SimPEG
     :target: https://pypi.python.org/pypi/SimPEG
     :alt: Latest PyPI version
 
+.. image:: https://img.shields.io/conda/v/conda-forge/SimPEG.svg
+    :target: https://anaconda.org/conda-forge/SimPEG
+    :alt: Latest conda-forge version
+    
 .. image:: https://img.shields.io/github/license/simpeg/simpeg.svg
     :target: https://github.com/simpeg/simpeg/blob/master/LICENSE
     :alt: MIT license
 
-.. image:: https://api.travis-ci.org/simpeg/simpeg.svg?branch=master
-    :target: https://travis-ci.org/simpeg/simpeg
-    :alt: Travis CI build status
+.. image:: https://dev.azure.com/simpeg/simpeg/_apis/build/status/simpeg.simpeg?branchName=master
+    :target: https://dev.azure.com/simpeg/simpeg/_build/latest?definitionId=2&branchName=master
+    :alt: Azure pipeline
 
 .. image:: https://codecov.io/gh/simpeg/simpeg/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/simpeg/simpeg
@@ -46,7 +50,7 @@ The vision is to create a package for finite volume simulation with applications
 * supports 1D, 2D and 3D problems
 * designed for large-scale inversions
 
-You are welcome to join forum and engage with people who use and develop SimPEG at: http://simpeg.discourse.group/.
+You are welcome to join our forum and engage with people who use and develop SimPEG at: http://simpeg.discourse.group/.
 
 Weekly meetings are open to all. They are generally held on Tuesdays at 10:30am PDT. Please see the calendar (`GCAL <https://calendar.google.com/calendar/b/0?cid=ZHVhamYzMWlibThycWdkZXM5NTdoYXV2MnNAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ>`_, `ICAL <https://calendar.google.com/calendar/ical/duajf31ibm8rqgdes957hauv2s%40group.calendar.google.com/public/basic.ics>`_) for information on the next meeting.
 
