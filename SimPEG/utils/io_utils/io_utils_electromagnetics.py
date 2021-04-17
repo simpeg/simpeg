@@ -895,7 +895,6 @@ def write_dcipoctree_ubc(
     data_type: 'volt', 'apparent_chargeability', 'secondary_potential'
     file_type: 'survey', 'dpred', 'dobs'
     format_type: 'general', 'surface'
-    electrode_configuration: 'pole-pole', 'pole-dipole', 'dipole-pole', 'dipole-dipole'
     comment_lines:)
     """
 
