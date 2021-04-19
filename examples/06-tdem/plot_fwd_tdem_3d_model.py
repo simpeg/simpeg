@@ -4,7 +4,12 @@ Time-domain CSEM for a resistive cube in a deep marine setting
 """
 import empymod
 import discretize
-import pymatsolver
+
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
+
 import numpy as np
 import SimPEG
 from SimPEG import maps
@@ -302,7 +307,7 @@ prob = TDEM.Simulation3DElectricField(
     mesh,
     survey=survey,
     rhoMap=maps.IdentityMap(mesh),
-    Solver=pymatsolver.Pardiso,
+    Solver=Solver,
     timeSteps=time_steps,
 )
 
@@ -346,4 +351,4 @@ plt.show()
 
 
 ###############################################################################
-empymod.Report([SimPEG, discretize, pymatsolver])
+# empymod.Report([SimPEG, discretize, pymatsolver])

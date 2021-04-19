@@ -96,7 +96,7 @@ class Survey(BaseSurvey):
     )
 
     @property
-    def electrode_locations(self):
+    def unique_electrode_locations(self):
         """
         Unique locations of the A, B, M, N electrodes
         """
@@ -106,19 +106,65 @@ class Survey(BaseSurvey):
         loc_n = self.locations_n
         return np.unique(np.vstack((loc_a, loc_b, loc_m, loc_n)), axis=0)
 
-    def set_geometric_factor(
-        self, data_type="volt", survey_type="dipole-dipole", space_type="half-space"
-    ):
-
-        geometric_factor = static_utils.geometric_factor(
-            self, survey_type=survey_type, space_type=space_type
+    @property
+    def electrode_locations(self):
+        warnings.warn(
+            "The electrode_locations property has been deprecated. "
+            "Unique electrode locations are now accessed though the "
+            "property unique_electrode_locations. "
+            "This will be removed in version 0.15.0 of SimPEG",
+            DeprecationWarning,
         )
+        return self.unique_electrode_locations
+
+    @property
+    def source_locations(self):
+        """
+        Returns, in order, the source locations for all sources in the survey.
+
+        Input:
+        :param self: SimPEG.electromagnetics.static.resistivity.Survey
+
+        Output:
+        :return source_locations: List of np.ndarray containing the A and B
+        electrode locations.
+        """
+        src_a = []
+        src_b = []
+
+        for src in self.source_list:
+
+            src_a.append(src.location_a)
+            src_b.append(src.location_b)
+
+        return [np.vstack(src_a), np.vstack(src_b)]
+
+
+    def set_geometric_factor(
+        self, space_type="half-space", data_type=None, survey_type=None,
+    ):
+        if data_type is not None:
+            warnings.warn(
+                "The data_type kwarg is deprecated, please set the data_type on the "
+                "receiver object itself. This behavoir will be removed in SimPEG "
+                "0.16.0",
+                DeprecationWarning,
+            )
+        if survey_type is not None:
+            warnings.warn(
+                "The survey_type parameter is no longer needed, and it will be removed "
+                "in SimPEG 0.15.0."
+            )
+
+        geometric_factor = static_utils.geometric_factor(self, space_type=space_type)
 
         geometric_factor = data.Data(self, geometric_factor)
         for source in self.source_list:
             for rx in source.receiver_list:
-                rx._geometric_factor = geometric_factor[source, rx]
-                rx.data_type = data_type
+                if data_type is not None:
+                    rx.data_type = data_type
+                if rx.data_type == "apparent_resistivity":
+                    rx._geometric_factor[source] = geometric_factor[source, rx]
         return geometric_factor
 
     def _set_abmn_locations(self):

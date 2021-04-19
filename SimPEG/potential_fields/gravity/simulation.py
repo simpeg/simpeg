@@ -100,7 +100,7 @@ class Simulation3DIntegral(BasePFSimulation):
     def evaluate_integral(self, receiver_location, components):
         """
             Compute the forward linear relationship between the model and the physics at a point
-            and for every components of the survey.
+            and for all components of the survey.
 
             :param numpy.ndarray receiver_location:  array with shape (n_receivers, 3)
                 Array of receiver locations as x, y, z columns.

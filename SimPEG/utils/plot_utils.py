@@ -225,6 +225,99 @@ def plot2Ddata(
         return cont, ax
 
 
+def plot_1d_layer_model(
+    thicknesses, values, z0=0, scale="log", ax=None, plot_elevation=False, show_layers=False, **kwargs
+):
+    """
+    Plot the vertical profile for a 1D layered Earth model.
+    
+    Input:
+    thicknesses : List[Float]
+        A list or numpy.array containing the layer thicknesses from the top layer down
+    values : List[Float]
+        A list or numpy.array containing the physical property values from the top layer down
+    z0 : Float
+        Elevation of the surface
+    scale: str
+        scale {'linear', 'log'}. Plot physical property values on a linear or log10 scale.
+    ax: mpl_toolkits.mplot3d.axes3d.Axes3D, optional
+        A 3D axis object for the 3D plot
+    plot_elevation : bool
+        If False, the yaxis will be the depth. If True, the yaxis is the elevation.
+    show_layers : bool
+        Plot horizontal lines to denote layers.
+    line_opts : dict
+        Dictionary defining kwargs for scatter plot if plot_type='scatter'
+    
+
+    Output:
+    mpl_toolkits.mplot3d.axes3d.Axes3D
+        The axis object that holds the plot
+
+    """
+
+    if np.median(values) > 1.:
+        x_label = "Resistivity ($\Omega$m)"
+    else:
+        x_label = "Conductivity (S/m)"
+
+    if len(thicknesses) < len(values):
+        thicknesses = np.r_[thicknesses, thicknesses[-1]]
+    z_grid = np.r_[0., np.cumsum(thicknesses)]
+    resistivity = np.repeat(values, 2)
+    rho_min = 0.9*np.min(values)
+    rho_max = 1.1*np.max(values)
+
+    z = []
+    for i in range(0, len(thicknesses)):
+        z.append(np.r_[z_grid[i], z_grid[i + 1]])
+    z = np.hstack(z)
+    
+    if plot_elevation:
+        y_label = "Elevation (m)"
+        z = z0 - z
+        z_grid = z0 - z_grid
+        flip_axis = False
+    else:
+        y_label = "Depth (m)"
+        flip_axis = True
+        
+    if ax == None:
+        fig = plt.figure(figsize=(6, 6))
+        ax = fig.add_axes([0.15, 0.15, 0.75, 0.75])
+    
+    if show_layers:
+        for locz in z_grid:
+            plt.plot(
+                np.linspace(rho_min, rho_max, 100),
+                np.ones(100) * locz,
+                "k--",
+                lw=0.5,
+                label='_nolegend_'
+            )
+
+    ax.plot(resistivity, z, **kwargs)
+    ax.set_xscale(scale)
+    ax.set_xlim(rho_min, rho_max)
+    if flip_axis:
+        ax.set_ylim(z.max(), z.min())
+    else:
+        ax.set_ylim(z.min(), z.max())
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    
+    return ax
+
+
+
+
+
+
+
+
+
+
+
 def plotLayer(
     sig, LocSigZ, xscale="log", ax=None, showlayers=False, xlim=None, **kwargs
 ):
