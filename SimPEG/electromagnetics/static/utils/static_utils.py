@@ -352,9 +352,8 @@ def convert_survey_3d_to_2d_lines(survey, lineID, data_type='volt', output_index
     unique_lineID = np.unique(lineID)
     
     # If you output indexing to keep track of possible sorting
-    if output_indexing:
-        k = np.arange(0, survey.nD)
-        out_indices_list = []
+    k = np.arange(0, survey.nD)
+    out_indices_list = []
     
     ab_locs_all = np.c_[survey.a_locations, survey.b_locations]
     mn_locs_all = np.c_[survey.m_locations, survey.n_locations]
@@ -371,9 +370,8 @@ def convert_survey_3d_to_2d_lines(survey, lineID, data_type='volt', output_index
         
         # Find s=0 location and heading for line
         start_index = lineID_index[ab_index]
-        if output_indexing:
-            out_indices = []
-            kID = k[lineID_index]                     # data indices part of this line
+        out_indices = []
+        kID = k[lineID_index]                     # data indices part of this line
         r0 = mkvc(ab_locs_all[start_index[0], 0:2])   # (x0, y0) for the survey line
         rN = mkvc(ab_locs_all[start_index[-1], 0:2])  # (x, y) for last electrode
         uvec = (rN - r0)/np.sqrt(np.sum((rN-r0)**2))  # unit vector for line orientation

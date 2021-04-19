@@ -264,8 +264,62 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         ]
 
         passed = np.allclose(A,B)
-
         self.assertTrue(passed)
+        
+    def test_get_source_locations(self):
+        
+        # Sources have pole and dipole which impacts unique return
+        is_rx = np.all(np.isclose(self.survey.locations_m, self.survey.locations_n), axis=1)
+        is_rx = np.array(is_rx, dtype=float)
+        
+        _, idx = np.unique(
+            np.c_[self.survey.locations_a, self.survey.locations_b, is_rx],
+            axis=0,
+            return_index=True
+        )
+        src_locations = np.c_[
+            self.survey.locations_a[np.sort(idx), :],
+            self.survey.locations_b[np.sort(idx), :]
+        ]
+        
+        src_locations_new = self.survey.source_locations
+        has_nan = np.any(np.isnan(src_locations_new[1]), axis=1)
+        src_locations_new[1][has_nan, :] = src_locations_new[0][has_nan, :]
+        src_locations_new = np.hstack(src_locations_new)
+        
+        passed = np.allclose(src_locations, src_locations_new)
+        self.assertTrue(passed)
+    
+    def test_convert_to_2d(self):
+        
+        # Only 1 line of 3D data along x direction starting from (-1000,0,0)
+        lineID = np.ones(self.survey.nD, dtype=int)
+        survey_2d, IND = utils.convert_survey_3d_to_2d_lines(
+            self.survey, lineID, data_type='volt', output_indexing=True
+        )
+        IND = IND[0]
+        survey_2d = survey_2d[0]
+        
+        ds = np.c_[-1000., 0., 0.]
+        
+        loc3d = np.r_[
+            self.survey.locations_a[IND, :],
+            self.survey.locations_b[IND, :],
+            self.survey.locations_m[IND, :],
+            self.survey.locations_n[IND, :]
+        ] - ds
+        
+        loc2d = np.r_[
+            survey_2d.locations_a,
+            survey_2d.locations_b,
+            survey_2d.locations_m,
+            survey_2d.locations_n
+        ]
+        
+        passed = np.allclose(loc3d[:, 0::2], loc2d)
+        self.assertTrue(passed)
+        
+        
 
 if __name__ == "__main__":
     unittest.main()
