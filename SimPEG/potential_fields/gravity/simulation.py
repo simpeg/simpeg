@@ -42,7 +42,7 @@ class Simulation3DIntegral(BasePFSimulation):
         self.model = m
 
         if W is None:
-            W = np.ones(self.nD)
+            W = np.ones(self.survey.nD)
         else:
             W = W.diagonal() ** 2
         if getattr(self, "_gtg_diagonal", None) is None:
@@ -100,7 +100,7 @@ class Simulation3DIntegral(BasePFSimulation):
     def evaluate_integral(self, receiver_location, components):
         """
             Compute the forward linear relationship between the model and the physics at a point
-            and for every components of the survey.
+            and for all components of the survey.
 
             :param numpy.ndarray receiver_location:  array with shape (n_receivers, 3)
                 Array of receiver locations as x, y, z columns.
@@ -118,11 +118,18 @@ class Simulation3DIntegral(BasePFSimulation):
                         g_c = [g_cx g_cy g_cz]
 
         """
-        eps = 1e-8
+        tol1 = 1e-4
+        tol2 = 1e-10
+
+        # base cell dimensions
+        min_hx, min_hy, min_hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
 
         dx = self.Xn - receiver_location[0]
+        dx[np.abs(dx)/min_hx < tol1] = tol1 * min_hx
         dy = self.Yn - receiver_location[1]
+        dy[np.abs(dy)/min_hy < tol1] = tol1 * min_hy
         dz = self.Zn - receiver_location[2]
+        dz[np.abs(dz)/min_hz < tol1] = tol1 * min_hz
 
         rows = {component: np.zeros(self.Xn.shape[0]) for component in components}
 
@@ -137,15 +144,15 @@ class Simulation3DIntegral(BasePFSimulation):
                         mkvc(dx[:, aa]) ** 2
                         + mkvc(dy[:, bb]) ** 2
                         + mkvc(dz[:, cc]) ** 2
-                    ) ** (0.50) + eps
+                    ) ** (0.50)
 
-                    dz_r = dz[:, cc] + r + eps
-                    dy_r = dy[:, bb] + r + eps
-                    dx_r = dx[:, aa] + r + eps
+                    dz_r = dz[:, cc] + r
+                    dy_r = dy[:, bb] + r
+                    dx_r = dx[:, aa] + r
 
-                    dxr = dx[:, aa] * r + eps
-                    dyr = dy[:, bb] * r + eps
-                    dzr = dz[:, cc] * r + eps
+                    dxr = dx[:, aa] * r
+                    dyr = dy[:, bb] * r
+                    dzr = dz[:, cc] * r
 
                     dydz = dy[:, bb] * dz[:, cc]
                     dxdy = dx[:, aa] * dy[:, bb]
@@ -199,9 +206,9 @@ class Simulation3DIntegral(BasePFSimulation):
                             * (-1) ** bb
                             * (-1) ** cc
                             * (
-                                dxdy / (r * dz_r + eps)
-                                + dxdz / (r * dy_r + eps)
-                                - np.arctan(arg + eps)
+                                dxdy / (r * dz_r)
+                                + dxdz / (r * dy_r)
+                                - np.arctan(arg)
                                 + dx[:, aa]
                                 * (1.0 / (1 + arg ** 2.0))
                                 * dydz
@@ -220,7 +227,7 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dy[:, bb] ** 2.0 / (r * dz_r)
                                 + dz[:, cc] / r
                                 - 1.0
-                                / (1 + arg ** 2.0 + eps)
+                                / (1 + arg ** 2.0)
                                 * (dz[:, cc] / r ** 2)
                                 * (r - dy[:, bb] ** 2.0 / r)
                             )
@@ -254,11 +261,11 @@ class Simulation3DIntegral(BasePFSimulation):
                             * (-1) ** bb
                             * (-1) ** cc
                             * (
-                                dxdy / (r * dz_r + eps)
-                                + dydz / (r * dx_r + eps)
-                                - np.arctan(arg + eps)
+                                dxdy / (r * dz_r)
+                                + dydz / (r * dx_r)
+                                - np.arctan(arg)
                                 + dy[:, bb]
-                                * (1.0 / (1 + arg ** 2.0 + eps))
+                                * (1.0 / (1 + arg ** 2.0))
                                 * dxdz
                                 / dyr ** 2.0
                                 * (r + dy[:, bb] ** 2.0 / r)

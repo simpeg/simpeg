@@ -170,11 +170,7 @@ def run(
     reg = regularization.Simple(mesh_1d, alpha_x=0.0)
     opt = optimization.InexactGaussNewton(maxIter=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
-    beta = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
     target = directives.TargetMisfit()
-    updateSensW = directives.UpdateSensitivityWeights()
-    update_Jacobi = directives.UpdatePreconditioner()
     invProb.beta = 0.0
     inv = inversion.BaseInversion(invProb, directiveList=[target])
     prb.counter = opt.counter = utils.Counter()
@@ -190,7 +186,6 @@ def run(
     rho_est = mapping * mopt
     rho_true = rho.copy()
     # show recovered conductivity
-    vmin, vmax = rho.min(), rho.max()
     fig, ax = plt.subplots(2, 1, figsize=(20, 6))
     out1 = mesh.plotImage(
         rho_true,

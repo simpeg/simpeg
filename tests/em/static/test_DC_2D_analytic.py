@@ -330,5 +330,54 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
         self.assertLess(err, tolerance)
 
 
+class DCSimulationAppResTests(unittest.TestCase):
+    def setUp(self):
+
+        cs = 12.5
+        hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
+        hy = [(cs, 7, -1.3), (cs, 20)]
+        mesh = TensorMesh([hx, hy], x0="CN")
+        sighalf = 1e-2
+        sigma = np.ones(mesh.nC) * sighalf
+        x = np.linspace(-135, 250.0, 20)
+        M = utils.ndgrid(x - 12.5, np.r_[0.0])
+        N = utils.ndgrid(x + 12.5, np.r_[0.0])
+        A0loc = np.r_[-150, 0.0]
+        A1loc = np.r_[-130, 0.0]
+
+        rx = dc.receivers.Dipole(M, N, data_type="apparent_resistivity")
+        src0 = dc.sources.Dipole([rx], A0loc, A1loc)
+        survey = dc.Survey([src0])
+
+        self.survey = survey
+        self.mesh = mesh
+        self.sigma = sigma
+        self.sigma_half = sighalf
+        self.plotIt = False
+
+        try:
+            from pymatsolver import Pardiso
+
+            self.Solver = Pardiso
+        except ImportError:
+            self.Solver = SolverLU
+
+    def test_Simulation2DNodal(self, tolerance=0.05):
+
+        simulation = dc.simulation_2d.Simulation2DNodal(
+            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.Solver,
+        )
+        with self.assertRaises(KeyError):
+            data = simulation.dpred()
+
+        self.survey.set_geometric_factor()
+        data = simulation.dpred()
+
+        rhohalf = 1.0 / self.sigma_half
+        err = np.linalg.norm((data - rhohalf) / rhohalf) ** 2 / data.size
+        print(f"DPDP N err: {err}")
+        self.assertLess(err, tolerance)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -18,3 +18,4 @@
 - Thibaut Astic, (`@thast <https://github.com/thast/>`_)
 - Michael Mitchell, (`@micmitch <https://github.com/micmitch/>`_)
 - I-Kang Ding, (`@ikding <https://github.com/ikding/>`_)
+- Richard Scott (`@bluetyson <https://github.com/bluetyson/>`_)

@@ -130,13 +130,6 @@ class BaseDCSimulation2D(BaseEMSimulation):
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
 
-    def set_geometric_factor(self, geometric_factor):
-        index = 0
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                rx._geometric_factor = geometric_factor[index]
-                index += 1
-
     def fields(self, m):
         if self.verbose:
             print(">> Compute fields")
@@ -287,7 +280,6 @@ class BaseDCSimulation2D(BaseEMSimulation):
             v = self._mini_survey_dataT(v)
             Jtv = np.zeros(m.size, dtype=float)
 
-            # TODO: this loop is pretty slow .. (Parellize)
             for iky, ky in enumerate(kys):
                 u_ky = f[:, self._solutionType, iky]
                 count = 0
@@ -324,9 +316,8 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     u_src = u_ky[:, i_src]
                     for rx in src.receiver_list:
                         # wrt f, need possibility wrt m
-                        P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
-
-                        ATinvdf_duT = self.Ainv[iky] * (P.T)
+                        PT = rx.evalDeriv(src, self.mesh, f).toarray().T
+                        ATinvdf_duT = self.Ainv[iky] * PT
 
                         dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT, adjoint=True)
                         Jtv = -weights[iky] * dA_dmT  # RHS=0

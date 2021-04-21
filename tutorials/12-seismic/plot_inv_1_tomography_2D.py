@@ -248,7 +248,7 @@ update_IRLS = directives.Update_IRLS(
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=2e0)
 
 # Save output at each iteration
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)
