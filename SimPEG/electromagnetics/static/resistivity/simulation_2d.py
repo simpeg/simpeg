@@ -555,7 +555,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         # return qDeriv
         return Zero()
 
-    def setBC(self, ky=None):
+    def setBC(self, bc_type, ky=None):
         fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
         gBFxm = self.mesh.gridFx[fxm, :]
         gBFxp = self.mesh.gridFx[fxp, :]
@@ -568,7 +568,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         temp_ym = np.ones_like(gBFym[:, 1])
         temp_yp = np.ones_like(gBFyp[:, 1])
 
-        if self.bc_type == "Neumann":
+        if bc_type == "Neumann":
             alpha_xm, alpha_xp = temp_xm * 0.0, temp_xp * 0.0
             alpha_ym, alpha_yp = temp_ym * 0.0, temp_yp * 0.0
 
@@ -578,7 +578,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             gamma_xm, gamma_xp = temp_xm * 0.0, temp_xp * 0.0
             gamma_ym, gamma_yp = temp_ym * 0.0, temp_yp * 0.0
 
-        elif self.bc_type == "Dirichlet":
+        elif bc_type == "Dirichlet":
             alpha_xm, alpha_xp = temp_xm, temp_xp
             alpha_ym, alpha_yp = temp_ym, temp_yp
 
@@ -588,7 +588,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             gamma_xm, gamma_xp = temp_xm * 0.0, temp_xp * 0.0
             gamma_ym, gamma_yp = temp_ym * 0.0, temp_yp * 0.0
 
-        elif self.bc_type == "Mixed":
+        elif bc_type == "Mixed":
             xs = np.median(self.mesh.vectorCCx)
             ys = np.median(self.mesh.vectorCCy[-1])
 
@@ -619,6 +619,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         P_BC, B = self.mesh.getBCProjWF_simple()
         M = B * self.mesh.aveCC2F
         self.Grad = self.Div.T - P_BC * sdiag(y_BC) * M
+        self.bc_type = bc_type
 
 
 class Simulation2DNodal(BaseDCSimulation2D):
