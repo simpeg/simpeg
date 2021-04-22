@@ -13,25 +13,7 @@ class BaseSrc(survey.BaseSrc):
     Base DC source
     """
 
-    current = properties.Float("amplitude of the source current", default=1.0)
-
-    _q = None
-
-    def __init__(self, receiver_list, **kwargs):
-        super(BaseSrc, self).__init__(receiver_list, **kwargs)
-
-    def eval(self, sim):
-        raise NotImplementedError
-
-    def evalDeriv(self, sim):
-        return Zero()
-
-
-class Dipole(BaseSrc):
-    """
-    Dipole source
-    """
-
+    current = properties.List(doc="amplitudes of the source currents", default=[1.0])
     location = properties.List(
         "location of the source electrodes",
         survey.SourceLocationArray("location of electrode"),
@@ -40,13 +22,88 @@ class Dipole(BaseSrc):
         location, "loc", new_name="location", removal_version="0.15.0"
     )
 
+    _q = None
+
+    def __init__(self, receiver_list, location, current=None, **kwargs):
+        super(BaseSrc, self).__init__(receiver_list, **kwargs)
+        if type(location) is np.ndarray:
+            if location.ndim == 2:
+                location = list(location)
+            else:
+                location = [location]
+        if current is None:
+            current = self.current
+        if type(current) == float or type(current) == int:
+            current = [float(current)]
+        elif type(current) == np.ndarray:
+            if current.ndim == 2:
+                current = list(current)
+            else:
+                location = [location]
+        if len(current) != 1 and len(current) != len(location):
+            raise ValueError(
+                "Current must be constant or equal to the number of specified source locations."
+            )
+        if len(current) == 1:
+            current = np.repeat(current, len(location)).tolist()
+
+        self.current = current
+        self.location = location
+
+    def eval(self, sim):
+        if self._q is not None:
+            return self._q
+        else:
+            if sim._formulation == "HJ":
+                inds = closestPoints(sim.mesh, self.location, gridLoc="CC")
+                self._q = np.zeros(sim.mesh.nC)
+                self._q[inds] = self.current
+            elif sim._formulation == "EB":
+                loc = np.row_stack(self.location)
+                cur = np.asarray(self.current)
+                interpolation_matrix = sim.mesh.get_interpolation_matrix(loc, locType='N').toarray()
+                q = np.sum(cur[:, np.newaxis] * interpolation_matrix, axis=0)
+                self._q = q
+            return self._q
+
+    def evalDeriv(self, sim):
+        return Zero()
+
+
+class Multipole(BaseSrc):
+    """
+    Generic Multipole Source
+    """
+
+    def __init__(self, receiver_list=[], location=None, **kwargs):
+        super(Multipole, self).__init__(receiver_list, location, **kwargs)
+
+    @property
+    def location_a(self):
+        """Locations of the A electrode"""
+        return self.location
+
+    @property
+    def location_b(self):
+        """Location of the B electrode"""
+        return list(np.tile((len(self.location), 1),
+                            np.full_like(self.location[0], np.nan)
+                            )
+                    )
+
+
+class Dipole(BaseSrc):
+    """
+    Dipole source
+    """
+
     def __init__(
-        self,
-        receiver_list=[],
-        location_a=None,
-        location_b=None,
-        location=None,
-        **kwargs,
+            self,
+            receiver_list=[],
+            location_a=None,
+            location_b=None,
+            location=None,
+            **kwargs,
     ):
         # Check for old keywords
         if "locationA" in kwargs.keys():
@@ -66,6 +123,11 @@ class Dipole(BaseSrc):
                 " 0.15.0 of SimPEG",
                 DeprecationWarning,
             )
+        if "current" in kwargs.keys():
+            value = kwargs.pop('current')
+            current = [value, -value]
+        else:
+            current = [1.0, -1.0]
 
         # if location_a set, then use location_a, location_b
         if location_a is not None:
@@ -99,8 +161,7 @@ class Dipole(BaseSrc):
             )
 
         # instantiate
-        super(Dipole, self).__init__(receiver_list, **kwargs)
-        self.location = location
+        super(Dipole, self).__init__(receiver_list, location, current, **kwargs)
 
     @property
     def location_a(self):
@@ -112,48 +173,17 @@ class Dipole(BaseSrc):
         """Location of the B-electrode"""
         return self.location[1]
 
-    def eval(self, sim):
-        if self._q is not None:
-            return self._q
-        else:
-            if sim._formulation == "HJ":
-                inds = closestPoints(sim.mesh, self.location, gridLoc="CC")
-                self._q = np.zeros(sim.mesh.nC)
-                self._q[inds] = self.current * np.r_[1.0, -1.0]
-            elif sim._formulation == "EB":
-                qa = sim.mesh.getInterpolationMat(
-                    self.location[0], locType="N"
-                ).toarray()
-                qb = -sim.mesh.getInterpolationMat(
-                    self.location[1], locType="N"
-                ).toarray()
-                self._q = self.current * (qa + qb)
-            return self._q
-
 
 class Pole(BaseSrc):
     def __init__(self, receiver_list=[], location=None, **kwargs):
-        super(Pole, self).__init__(receiver_list, location=location, **kwargs)
-
-    def eval(self, sim):
-        if self._q is not None:
-            return self._q
-        else:
-            if sim._formulation == "HJ":
-                inds = closestPoints(sim.mesh, self.location)
-                self._q = np.zeros(sim.mesh.nC)
-                self._q[inds] = self.current * np.r_[1.0]
-            elif sim._formulation == "EB":
-                q = sim.mesh.getInterpolationMat(self.location, locType="N")
-                self._q = self.current * q.toarray()
-            return self._q
+        super(Pole, self).__init__(receiver_list, location, **kwargs)
 
     @property
     def location_a(self):
         """Locations of the A electrode"""
-        return self.location
+        return self.location[0]
 
     @property
     def location_b(self):
         """Location of the B electrode"""
-        return np.nan*np.ones_like(self.location)
+        return np.nan * np.ones_like(self.location[0])
