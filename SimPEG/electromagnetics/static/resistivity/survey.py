@@ -4,11 +4,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import numpy as np
-from scipy.interpolate import interp1d, NearestNDInterpolator
 import properties
 from ....utils.code_utils import deprecate_class, deprecate_property
 
-from ....utils import uniqueRows
 from ....survey import BaseSurvey
 from ..utils import drapeTopotoLoc
 from . import receivers as Rx
@@ -158,7 +156,7 @@ class Survey(BaseSurvey):
         return [np.vstack(src_a), np.vstack(src_b)]
 
     def set_geometric_factor(
-        self, space_type="half-space", data_type=None, survey_type=None,
+            self, space_type="half-space", data_type=None, survey_type=None,
     ):
         if data_type is not None:
             raise TypeError(
@@ -190,10 +188,10 @@ class Survey(BaseSurvey):
                 # Pole Source
                 if isinstance(source, Src.Pole):
                     locations_a.append(
-                        source.location.reshape([1, -1]).repeat(nRx, axis=0)
+                        source.location[0].reshape([1, -1]).repeat(nRx, axis=0)
                     )
                     locations_b.append(
-                        source.location.reshape([1, -1]).repeat(nRx, axis=0)
+                        source.location[0].reshape([1, -1]).repeat(nRx, axis=0)
                     )
                 # Dipole Source
                 elif isinstance(source, Src.Dipole):
@@ -202,6 +200,15 @@ class Survey(BaseSurvey):
                     )
                     locations_b.append(
                         source.location[1].reshape([1, -1]).repeat(nRx, axis=0)
+                    )
+                elif isinstance(source, Src.Multipole):
+                    location_as_array = np.asarray(source.location)
+                    location_as_array = np.tile(location_as_array, (nRx, 1))
+                    locations_a.append(
+                        location_as_array
+                    )
+                    locations_b.append(
+                        location_as_array
                     )
                 # Pole RX
                 if isinstance(rx, Rx.Pole):
@@ -226,7 +233,7 @@ class Survey(BaseSurvey):
         )
 
     def drape_electrodes_on_topography(
-        self, mesh, actind, option="top", topography=None, force=False
+            self, mesh, actind, option="top", topography=None, force=False
     ):
         """Shift electrode locations to be on [top] of the active cells."""
         if self.survey_geometry == "surface":
@@ -237,9 +244,9 @@ class Survey(BaseSurvey):
             unique_electrodes, inv = np.unique(
                 np.vstack((loc_a, loc_b, loc_m, loc_n)), return_inverse=True, axis=0
             )
-            inv_a, inv = inv[: len(loc_a)], inv[len(loc_a) :]
-            inv_b, inv = inv[: len(loc_b)], inv[len(loc_b) :]
-            inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m) :]
+            inv_a, inv = inv[: len(loc_a)], inv[len(loc_a):]
+            inv_b, inv = inv[: len(loc_b)], inv[len(loc_b):]
+            inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m):]
 
             electrodes_shifted = drapeTopotoLoc(
                 mesh, unique_electrodes, actind=actind, option=option
@@ -252,8 +259,8 @@ class Survey(BaseSurvey):
             ind = 0
             for src in self.source_list:
                 a_loc, b_loc = a_shifted[ind], b_shifted[ind]
-                if isinstance(src, Src.Pole):
-                    src.location = a_loc
+                if type(src) is Src.Pole or type(src) is Src.BaseSrc:
+                    src.location = [a_loc]
                 else:
                     src.location = [a_loc, b_loc]
                 for rx in src.receiver_list:

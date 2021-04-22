@@ -113,7 +113,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
 
-    def fields(self, m):
+    def fields(self, m = None):
         if self.verbose:
             print(">> Compute fields")
         if m is not None:
