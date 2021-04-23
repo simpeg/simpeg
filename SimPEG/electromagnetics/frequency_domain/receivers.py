@@ -22,6 +22,7 @@ class BaseRx(survey.BaseRx):
         {
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
+            "complex":["both"]
         },
     )
 

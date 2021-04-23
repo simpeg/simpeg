@@ -160,6 +160,30 @@ class RawVec_e(BaseFDEMSrc):
         return self._s_e
 
 
+class ElectricDipole(BaseFDEMSrc):
+    """
+    Electric Dipole source. It is defined by the user provided vector s_e
+
+    :param list receiver_list: receiver list
+    :param float freq: frequency
+    :param float freq: frequency
+    :param float freq: frequency
+
+    """    
+    moment = properties.Float("dipole moment of the transmitter", default=1.0, min=0.0)
+    
+    azimuth = properties.Float("the transmitter aximuth", default=0, min=0.0, max=180)
+    
+    dip = properties.Float("the transmitter dip", default=0, min=0.0, max=90)
+    
+    location = LocationVector(
+        "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
+    )
+
+
+    def __init__(self, receiver_list=None, frequency=None, **kwargs):
+        super(ElectricDipole, self).__init__(receiver_list, frequency=frequency, **kwargs)
+            
 class RawVec_m(BaseFDEMSrc):
     """
     RawVec magnetic source. It is defined by the user provided vector s_m
