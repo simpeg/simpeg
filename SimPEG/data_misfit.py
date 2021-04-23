@@ -146,7 +146,7 @@ class L2DataMisfit(BaseDataMisfit):
         "__call__(m, f=None)"
 
         R = self.W * self.residual(m, f=f)
-        return 0.5 * np.vdot(R, R)
+        return 0.5 * np.vdot(R, R).real
 
     @timeIt
     def deriv(self, m, f=None):
