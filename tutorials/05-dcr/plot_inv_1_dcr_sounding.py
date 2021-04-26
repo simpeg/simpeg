@@ -42,7 +42,7 @@ from SimPEG import (
     utils,
 )
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import plot_1d_layer_model
+from SimPEG.utils import plot_1d_layer_model
 
 mpl.rcParams.update({"font.size": 16})
 
@@ -127,7 +127,7 @@ mpl.rcParams.update({"font.size": 14})
 ax1 = fig.add_axes([0.15, 0.1, 0.7, 0.85])
 ax1.semilogy(electrode_separations, dobs, "b")
 ax1.set_xlabel("AB/2 (m)")
-ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
+ax1.set_ylabel(r"Apparent Resistivity ($\Omega m$)")
 plt.show()
 
 ###############################################
@@ -289,7 +289,7 @@ recovered_model = inv.run(starting_model)
 
 # Define true model and layer thicknesses
 true_model = np.r_[1e3, 4e3, 2e2]
-true_layers = np.r_[100., 100.]
+true_layers = np.r_[100.0, 100.0]
 
 # Plot true model and recovered model
 fig = plt.figure(figsize=(6, 4))
@@ -298,7 +298,14 @@ x_max = np.max([np.max(model_map * recovered_model), np.max(true_model)])
 
 ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
 plot_1d_layer_model(true_layers, true_model, ax=ax1, plot_elevation=True, color="b")
-plot_1d_layer_model(layer_thicknesses, model_map * recovered_model, ax=ax1, plot_elevation=True, color="r")
+plot_1d_layer_model(
+    layer_thicknesses,
+    model_map * recovered_model,
+    ax=ax1,
+    plot_elevation=True,
+    color="r",
+)
+ax1.set_xlabel(r"Resistivity ($\Omega m$)")
 ax1.set_xlim(0.9 * x_min, 1.1 * x_max)
 ax1.legend(["True Model", "Recovered Model"])
 

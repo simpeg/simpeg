@@ -248,18 +248,15 @@ def plot_1d_layer_model(
         Elevation of the surface
     scale: str
         scale {'linear', 'log'}. Plot physical property values on a linear or log10 scale.
-    ax: mpl_toolkits.mplot3d.axes3d.Axes3D, optional
-        A 3D axis object for the 3D plot
+    ax: matplotlib.axes.Axes, optional
+        An axis object for the plot
     plot_elevation : bool
         If False, the yaxis will be the depth. If True, the yaxis is the elevation.
     show_layers : bool
         Plot horizontal lines to denote layers.
-    line_opts : dict
-        Dictionary defining kwargs for scatter plot if plot_type='scatter'
-
 
     Output:
-    mpl_toolkits.mplot3d.axes3d.Axes3D
+    matplotlib.axes.Axes
         The axis object that holds the plot
 
     """
@@ -275,6 +272,7 @@ def plot_1d_layer_model(
     for i in range(0, len(thicknesses)):
         z.append(np.r_[z_grid[i], z_grid[i + 1]])
     z = np.hstack(z)
+    z[-1] = 1e200  # A really large number
 
     if plot_elevation:
         y_label = "Elevation (m)"
@@ -303,9 +301,9 @@ def plot_1d_layer_model(
     ax.set_xscale(scale)
     ax.set_xlim(v_min, v_max)
     if flip_axis:
-        ax.set_ylim(z.max(), z.min())
+        ax.set_ylim(z_grid.max(), z_grid.min())
     else:
-        ax.set_ylim(z.min(), z.max())
+        ax.set_ylim(z_grid.min(), z_grid.max())
     ax.set_ylabel(y_label)
 
     return ax

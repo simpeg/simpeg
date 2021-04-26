@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 
 from SimPEG import maps
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import plot_1d_layer_model
+from SimPEG.utils import plot_1d_layer_model
 
 mpl.rcParams.update({"font.size": 16})
 
@@ -111,6 +111,7 @@ model_map = maps.IdentityMap(nP=len(model))
 
 # Plot the 1D model
 ax = plot_1d_layer_model(layer_thicknesses, model_map * model)
+ax.set_xlabel(r"Resistivity ($\Omega m$)")
 
 #######################################################################
 # Define the Forward Simulation and Predict DC Resistivity Data
@@ -136,7 +137,7 @@ fig = plt.figure(figsize=(11, 5))
 ax1 = fig.add_axes([0.1, 0.1, 0.75, 0.85])
 ax1.semilogy(1.5 * electrode_separations, dpred, "b")
 ax1.set_xlabel("AB/2 (m)")
-ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
+ax1.set_ylabel(r"Apparent Resistivity ($\Omega m$)")
 plt.show()
 
 
