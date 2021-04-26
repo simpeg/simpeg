@@ -110,7 +110,7 @@ model_map = maps.IdentityMap(nP=len(model))
 #
 
 # Plot the 1D model
-plot_1d_layer_model(layer_thicknesses, model_map * model)
+ax = plot_1d_layer_model(layer_thicknesses, model_map * model)
 
 #######################################################################
 # Define the Forward Simulation and Predict DC Resistivity Data
@@ -152,10 +152,10 @@ if write_output:
     dir_path = os.path.dirname(__file__).split(os.path.sep)
     dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
-    
+
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
-    
+
     np.random.seed(145)
     noise = 0.025 * dpred * np.random.rand(len(dpred))
 

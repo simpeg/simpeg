@@ -31,8 +31,8 @@ from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
     apparent_resistivity_from_voltage,
     convert_survey_3d_to_2d_lines,
-    plot_2d_pseudosection
-)    
+    plot_pseudosection,
+)
 
 import os
 import numpy as np
@@ -40,11 +40,12 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import tarfile
 
-mpl.rcParams.update({'font.size': 16})
+mpl.rcParams.update({"font.size": 16})
 
 try:
     import plotly
     from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
+
     has_plotly = True
 except:
     has_plotly = False
@@ -55,14 +56,14 @@ except:
 ##########################################################
 # Download Assets
 # ---------------
-# 
+#
 # Here we provide the file paths to assets we need to run the inversion. The
 # path to the true model conductivity and chargeability models are also
 # provided for comparison with the inversion results. These files are stored as a
 # tar-file on our google cloud bucket:
 # "https://storage.googleapis.com/simpeg/doc-assets/dcr3d.tar.gz"
-# 
-# 
+#
+#
 
 # storage bucket where we have the data
 data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcr3d.tar.gz"
@@ -100,14 +101,14 @@ topo_xyz = np.loadtxt(str(topo_filename))
 # organize additional columns in the data file as a dictionary.
 data_3d, out_dict = read_dcip_xyz(
     data_filename,
-    'volt',
-    a_headers=['XA', 'YA', 'ZA'],
-    b_headers=['XB', 'YB', 'ZB'],
-    m_headers=['XM', 'YM', 'ZM'],
-    n_headers=['XN', 'YN', 'ZN'],
-    data_header='V/A',
-    uncertainties_header='UNCERT',
-    dict_headers=['LINEID']
+    "volt",
+    a_headers=["XA", "YA", "ZA"],
+    b_headers=["XB", "YB", "ZB"],
+    m_headers=["XM", "YM", "ZM"],
+    n_headers=["XN", "YN", "ZN"],
+    data_header="V/A",
+    uncertainties_header="UNCERT",
+    dict_headers=["LINEID"],
 )
 
 #######################################################################
@@ -124,31 +125,27 @@ survey_3d = data_3d.survey
 dobs_3d = data_3d.dobs
 
 # Convert predicted data to apparent conductivities
-apparent_conductivity_3d = 1/apparent_resistivity_from_voltage(
+apparent_conductivity_3d = 1 / apparent_resistivity_from_voltage(
     survey_3d, dobs_3d, space_type="half space"
 )
 
 if has_plotly:
 
     fig = plot_3d_pseudosection(
-        survey_3d,
-        apparent_conductivity_3d,
-        scale='log',
-        units='S/m',
+        survey_3d, apparent_conductivity_3d, scale="log", units="S/m",
     )
 
     fig.update_layout(
-        title_text='Apparent Conductivity',
+        title_text="Apparent Conductivity",
         title_x=0.5,
         title_font_size=24,
         width=650,
         height=500,
         scene_camera=dict(
-            center=dict(x=0, y=0, z=-0.4),
-            eye=dict(x=1.6, y=-1.6, z=1.8)
-        )
+            center=dict(x=0, y=0, z=-0.4), eye=dict(x=1.6, y=-1.6, z=1.8)
+        ),
     )
-        
+
     plotly.io.show(fig)
 
 else:
@@ -158,19 +155,19 @@ else:
 ######################################################################
 # Convert From 3D to 2D
 # ---------------------
-# 
+#
 # Here, we convert the 3D survey into a list of 2D surveys. A vector containing
 # a line ID for each datum is required. By setting 'output_indexing' to True,
 # we output a list containing the indices to extract the data for each 2D survey
 # from vectors associated with the 3D survey.
-# 
+#
 
 # Extract line ID from dictionary
-lineID = out_dict['LINEID']
+lineID = out_dict["LINEID"]
 
 # Convert 3D survey to a list of 3D surveys
 survey_2d_list, index_list = convert_survey_3d_to_2d_lines(
-    survey_3d, lineID, data_type='volt', output_indexing=True
+    survey_3d, lineID, data_type="volt", output_indexing=True
 )
 
 # Create list of 2D apparent conductivities. Note that if you converted observed
@@ -181,7 +178,6 @@ apparent_conductivities_2d = []
 for ind in index_list:
     dobs_2d_list.append(dobs_3d[ind])
     apparent_conductivities_2d.append(apparent_conductivity_3d[ind])
-  
 
 
 #######################################################################
@@ -190,29 +186,28 @@ for ind in index_list:
 #
 
 title_str = [
-    'East-West Line at Northing = 0 m',
-    'North-South Line at Easting = -350 m',
-    'North-South Line at Easting = -350 m'
+    "East-West Line at Northing = 0 m",
+    "North-South Line at Easting = -350 m",
+    "North-South Line at Easting = -350 m",
 ]
 
 # Plot apparent conductivity pseudo-section
 for ii in range(len(survey_2d_list)):
-    
+
     vlim = [apparent_conductivity_3d.min(), apparent_conductivity_3d.max()]
-    
+
     fig = plt.figure(figsize=(12, 5))
     ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
-    plot_2d_pseudosection(
+    plot_pseudosection(
         survey_2d_list[ii],
-        apparent_conductivities_2d[ii],
-        'tricontourf',
+        dobs=apparent_conductivities_2d[ii],
+        plot_type="contourf",
         ax=ax1,
         vlim=vlim,
         scale="log",
-        units="Apparent Conducitivty [S/m]",
+        cbar_label="Apparent Conducitivty [S/m]",
         mask_topography=True,
-        tricontourf_opts={"levels": 30, "cmap": mpl.cm.viridis},
+        contourf_opts={"levels": 30, "cmap": mpl.cm.viridis},
     )
     ax1.set_title(title_str[ii])
     plt.show()
-

@@ -22,13 +22,16 @@ from ....utils.io_utils import (
     read_dcip2d_ubc,
     write_dcip2d_ubc,
     read_dcip3d_ubc,
-    write_dcip3d_ubc
+    write_dcip3d_ubc,
 )
 
-from ....utils.plot_utils import plot_1d_layer_model as plot_1d
+from ....utils.plot_utils import plot_1d_layer_model
+
+from ....utils.code_utils import deprecate_method
 
 try:
     import plotly.graph_objects as grapho
+
     has_plotly = True
 except:
     has_plotly = False
@@ -70,6 +73,7 @@ SPACE_TYPES = {
 #######################################################################
 #                          SURVEY GEOMETRY
 #######################################################################
+
 
 def electrode_separations(survey_object, electrode_pair="all", **kwargs):
     """
@@ -173,6 +177,7 @@ def electrode_separations(survey_object, electrode_pair="all", **kwargs):
 
     return elecSepDict
 
+
 def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
     """
     Calculates the pseudo-sensitivity locations for 2D and 3D surveys.
@@ -194,7 +199,7 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
     """
 
     if not isinstance(survey, dc.Survey):
-        raise TypeError("Input must be of type {}".format(dc.Survey))
+        raise TypeError(f"Input must be instance of {dc.Survey}, not {type(survey)}")
 
     if len(kwargs) > 0:
         warnings.warn(
@@ -204,15 +209,13 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
         )
 
     # Pre-allocate
-    pseudo_locations = []
-
     midpoints = []
     ds = []
 
     for ii, source in enumerate(survey.source_list):
         src_loc = source.location
         if isinstance(src_loc, list):
-            src_midpoint = (src_loc[0] + src_loc[1])/2
+            src_midpoint = (src_loc[0] + src_loc[1]) / 2
         else:
             src_midpoint = src_loc
         src_midpoint = src_midpoint.reshape((1, len(src_midpoint)))
@@ -220,43 +223,41 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
         for receiver in source.receiver_list:
             rx_locs = receiver.locations
             if isinstance(rx_locs, list):
-                rx_midpoints = (rx_locs[0] + rx_locs[1])/2
+                rx_midpoints = (rx_locs[0] + rx_locs[1]) / 2
             else:
                 rx_midpoints = rx_locs
             n_loc = rx_midpoints.shape[0]
 
             # Midpoint locations
-            midpoints.append(
-                (np.tile(src_midpoint, (n_loc, 1)) + rx_midpoints)/2
-            )
+            midpoints.append((np.tile(src_midpoint, (n_loc, 1)) + rx_midpoints) / 2)
 
             # Vector path from source midpoint to receiver midpoints
-            ds.append(
-                (rx_midpoints - np.tile(src_midpoint, (n_loc, 1)))
-            )
-    
+            ds.append((rx_midpoints - np.tile(src_midpoint, (n_loc, 1))))
+
     midpoints = np.vstack(midpoints)
     ds = np.vstack(ds)
     pseudo_depth = np.zeros_like(midpoints)
 
     # wenner-like electrode groups (are source and rx midpoints in same place)
-    is_wenner = np.sqrt(np.sum(ds[:,:-1]**2, axis=1)) < wenner_tolerance
+    is_wenner = np.sqrt(np.sum(ds[:, :-1] ** 2, axis=1)) < wenner_tolerance
 
     # Pseudo depth is AB/2
     if np.any(is_wenner):
-        temp = np.abs(electrode_separations(survey, ['AB'])['AB'])/2
+        temp = np.abs(electrode_separations(survey, ["AB"])["AB"]) / 2
         pseudo_depth[is_wenner, -1] = temp[is_wenner]
 
     # Takes into account topography.
     if np.any(~is_wenner):
-        L = np.sqrt(np.sum(ds[~is_wenner, :]**2, axis=1))/2
+        L = np.sqrt(np.sum(ds[~is_wenner, :] ** 2, axis=1)) / 2
         dz = ds[~is_wenner, -1]
-        pseudo_depth[~is_wenner, 0] = (dz/2) * (ds[~is_wenner, 0] / L)
+        pseudo_depth[~is_wenner, 0] = (dz / 2) * (ds[~is_wenner, 0] / L)
         if np.shape(ds)[1] > 2:
-            pseudo_depth[~is_wenner, 1] = (dz/2) * (ds[~is_wenner, 1] / L)
-        pseudo_depth[~is_wenner, -1] = np.sqrt(np.sum(ds[~is_wenner,:-1]**2, axis=1))/2
+            pseudo_depth[~is_wenner, 1] = (dz / 2) * (ds[~is_wenner, 1] / L)
+        pseudo_depth[~is_wenner, -1] = (
+            np.sqrt(np.sum(ds[~is_wenner, :-1] ** 2, axis=1)) / 2
+        )
 
-    return midpoints-pseudo_depth
+    return midpoints - pseudo_depth
 
 
 def geometric_factor(survey_object, space_type="half space", **kwargs):
@@ -303,7 +304,10 @@ def geometric_factor(survey_object, space_type="half space", **kwargs):
 
     return G / (spaceFact * np.pi)
 
-def apparent_resistivity_from_voltage(survey, volts, space_type="half space", eps=1e-10):
+
+def apparent_resistivity_from_voltage(
+    survey, volts, space_type="half space", eps=1e-10
+):
     """
     Calculate apparent resistivities from normalized voltages.
 
@@ -326,7 +330,9 @@ def apparent_resistivity_from_voltage(survey, volts, space_type="half space", ep
     return rhoApp
 
 
-def convert_survey_3d_to_2d_lines(survey, lineID, data_type='volt', output_indexing=False):
+def convert_survey_3d_to_2d_lines(
+    survey, lineID, data_type="volt", output_indexing=False
+):
     """
     Convert a 3D survey into a list of local 2D surveys.
 
@@ -346,95 +352,105 @@ def convert_survey_3d_to_2d_lines(survey, lineID, data_type='volt', output_index
     :param survey: List of 2D DC survey class object
     :rtype: List of SimPEG.electromagnetics.static.resistivity.Survey
     """
-    
 
     # Find all unique line id
     unique_lineID = np.unique(lineID)
-    
+
     # If you output indexing to keep track of possible sorting
     k = np.arange(0, survey.nD)
     out_indices_list = []
-    
+
     ab_locs_all = np.c_[survey.a_locations, survey.b_locations]
     mn_locs_all = np.c_[survey.m_locations, survey.n_locations]
-    
+
     # For each unique lineID
     survey_list = []
     for ID in unique_lineID:
-        
+
         source_list = []
-        
+
         # Source locations for this line
         lineID_index = np.where(lineID == ID)[0]
-        ab_locs, ab_index = np.unique(ab_locs_all[lineID_index, :], axis=0, return_index=True)
-        
+        ab_locs, ab_index = np.unique(
+            ab_locs_all[lineID_index, :], axis=0, return_index=True
+        )
+
         # Find s=0 location and heading for line
         start_index = lineID_index[ab_index]
         out_indices = []
-        kID = k[lineID_index]                     # data indices part of this line
-        r0 = mkvc(ab_locs_all[start_index[0], 0:2])   # (x0, y0) for the survey line
+        kID = k[lineID_index]  # data indices part of this line
+        r0 = mkvc(ab_locs_all[start_index[0], 0:2])  # (x0, y0) for the survey line
         rN = mkvc(ab_locs_all[start_index[-1], 0:2])  # (x, y) for last electrode
-        uvec = (rN - r0)/np.sqrt(np.sum((rN-r0)**2))  # unit vector for line orientation
-        
+        uvec = (rN - r0) / np.sqrt(
+            np.sum((rN - r0) ** 2)
+        )  # unit vector for line orientation
+
         # Along line positions and elevation for electrodes on current line
         # in terms of position elevation
         a_locs_s = np.c_[
-            np.dot(ab_locs_all[lineID_index, 0:2]-r0[0], uvec), ab_locs_all[lineID_index, 2]
+            np.dot(ab_locs_all[lineID_index, 0:2] - r0[0], uvec),
+            ab_locs_all[lineID_index, 2],
         ]
         b_locs_s = np.c_[
-            np.dot(ab_locs_all[lineID_index, 3:5]-r0[0], uvec), ab_locs_all[lineID_index, -1]
+            np.dot(ab_locs_all[lineID_index, 3:5] - r0[0], uvec),
+            ab_locs_all[lineID_index, -1],
         ]
         m_locs_s = np.c_[
-            np.dot(mn_locs_all[lineID_index, 0:2]-r0[0], uvec), mn_locs_all[lineID_index, 2]
+            np.dot(mn_locs_all[lineID_index, 0:2] - r0[0], uvec),
+            mn_locs_all[lineID_index, 2],
         ]
         n_locs_s = np.c_[
-            np.dot(mn_locs_all[lineID_index, 3:5]-r0[0], uvec), mn_locs_all[lineID_index, -1]
+            np.dot(mn_locs_all[lineID_index, 3:5] - r0[0], uvec),
+            mn_locs_all[lineID_index, -1],
         ]
-        
+
         # For each source in the line
         for ii, ind in enumerate(ab_index):
-            
+
             # Get source location
             src_loc_a = mkvc(a_locs_s[ind, :])
             src_loc_b = mkvc(b_locs_s[ind, :])
-            
+
             # Get receiver locations
             rx_index = np.where(
-                np.isclose(a_locs_s[:, 0], src_loc_a[0], atol=1e-3) & np.isclose(b_locs_s[:, 0], src_loc_b[0], atol=1e-3)
+                np.isclose(a_locs_s[:, 0], src_loc_a[0], atol=1e-3)
+                & np.isclose(b_locs_s[:, 0], src_loc_b[0], atol=1e-3)
             )[0]
             rx_loc_m = m_locs_s[rx_index, :]
             rx_loc_n = n_locs_s[rx_index, :]
-            
+
             # Extract pole and dipole receivers
             k_ii = kID[rx_index]
             is_pole_rx = np.all(np.isclose(rx_loc_m, rx_loc_n, atol=1e-3), axis=1)
             rx_list = []
-            
+
             if any(is_pole_rx):
-                rx_list += [dc.receivers.Pole(
-                    rx_loc_m[is_pole_rx, :], data_type=data_type
-                )]
+                rx_list += [
+                    dc.receivers.Pole(rx_loc_m[is_pole_rx, :], data_type=data_type)
+                ]
                 out_indices.append(k_ii[is_pole_rx])
-            
+
             if any(~is_pole_rx):
-                rx_list += [dc.receivers.Dipole(
-                    rx_loc_m[~is_pole_rx, :], rx_loc_n[~is_pole_rx, :], data_type=data_type
-                )]
+                rx_list += [
+                    dc.receivers.Dipole(
+                        rx_loc_m[~is_pole_rx, :],
+                        rx_loc_n[~is_pole_rx, :],
+                        data_type=data_type,
+                    )
+                ]
                 out_indices.append(k_ii[~is_pole_rx])
-            
+
             # Define Pole or Dipole Sources
             if np.all(np.isclose(src_loc_a, src_loc_b, atol=1e-3)):
                 source_list.append(dc.sources.Pole(rx_list, src_loc_a))
             else:
-                source_list.append(
-                    dc.sources.Dipole(rx_list, src_loc_a, src_loc_b)
-                )
-            
+                source_list.append(dc.sources.Dipole(rx_list, src_loc_a, src_loc_b))
+
         # Create a 2D survey and add to list
         survey_list.append(dc.survey.Survey(source_list))
         if output_indexing:
             out_indices_list.append(np.hstack(out_indices))
-    
+
     if output_indexing:
         return survey_list, out_indices_list
     else:
@@ -444,57 +460,25 @@ def convert_survey_3d_to_2d_lines(survey, lineID, data_type='volt', output_index
 #####################################################################
 #                               PLOTTING
 #####################################################################
-
-
-def plot_1d_layer_model(
-    thicknesses, values, z0=0, scale="log", ax=None, plot_elevation=False, show_layers=False, **kwargs
-):
-    """
-    Plot the vertical conductivity or resistivity profile for a 1D layered Earth model.
-    
-    Input:
-    thicknesses : List[Float]
-        A list or numpy.array containing the layer thicknesses from the top layer down
-    values : List[Float]
-        A list or numpy.array containing the physical property values from the top layer down
-    z0 : Float
-        Elevation of the surface
-    scale: str
-        scale {'linear', 'log'}. Plot physical property values on a linear or log10 scale.
-    ax: mpl_toolkits.mplot3d.axes3d.Axes3D, optional
-        A 3D axis object for the 3D plot
-    plot_elevation : bool
-        If False, the yaxis will be the depth. If True, the yaxis is the elevation.
-    show_layers : bool
-        Plot horizontal lines to denote layers.
-    line_opts : dict
-        Dictionary defining kwargs for scatter plot if plot_type='scatter'
-    
-
-    Output:
-    mpl_toolkits.mplot3d.axes3d.Axes3D
-        The axis object that holds the plot
-
-    """
-
-    return plot_1d(thicknesses, values, z0, scale, ax, plot_elevation, show_layers, **kwargs)
-
-
-def plot_2d_pseudosection(
-    survey,
-    dvec,
-    plot_type,
+def plot_pseudosection(
+    data,
+    dobs=None,
+    plot_type="contourf",
     ax=None,
-    cax=None,
-    vlim=None,
+    clim=None,
     scale="linear",
-    units="",
-    create_colorbar=True,
-    mask_topography=False,
-    marker_size=40,
+    pcolor_opts={},
+    contourf_opts={},
     scatter_opts={},
-    tricontourf_opts={},
-    cbar_opts={}
+    mask_topography=False,
+    create_colorbar=True,
+    cbar_opts={},
+    cbar_label="",
+    cax=None,
+    data_locations=False,
+    data_type=None,
+    space_type="half space",
+    **kwargs,
 ):
     """
     Plot 2D DC/IP data in pseudo-section.
@@ -502,113 +486,201 @@ def plot_2d_pseudosection(
     This utility allows the user to image 2D DC/IP data in pseudosection as
     either a scatter plot or as a filled contour plot.
 
-    Input:
-    survey : SimPEG.electromagnetics.static.survey.Survey
-        A DC or IP survey object defining a 2D survey line
-    dvec : numpy.ndarray (ndata,)
+    Parameters
+    ----------
+    data : SimPEG.electromagnetics.static.survey.Survey or SimPEG.data.Data
+        A DC or IP survey object defining a 2D survey line, or a Data object containing
+        that same type of survey object.
+    dobs : numpy.ndarray (ndata,) or None
         A data vector containing volts, integrated chargeabilities, apparent
         resistivities, apparent chargeabilities or data misfits.
-    plot_type: str
-        Plot type {'scatter', 'tricontourf'}. 'scatter' creates a scatter plot
-        and 'tricontourf' creates a filled contour plot.
-    ax: mpl_toolkits.mplot3d.axes3d.Axes3D, optional
-        A 3D axis object for the 3D plot
-    cax : mpl_toolkits.mplot3d.axes.Axes or mpl_toolkits.mplot3d.axes3d.Axes3D, optional
-        An axis object for the colorbar
-    vlim : list
+    plot_type: {'contourf', 'pcolor', or 'scatter'}
+        'scatter' creates a scatter plot, 'contourf' creates a filled contour plot, and
+        'pcolor' creates a linearly interpolated plot.
+    ax: mpl_toolkits.mplot3d.axes.Axes, optional
+        An axis for the plot
+    clim : list, optional
         list containing the minimum and maximum value for the color range,
         i.e. [vmin, vmax]
-    scale: str
-        Plot on linear or log base 10 scale {'linear','log'}
-    units : str
-        A LateX formatted string stating the desired units for the
-        data; e.g. 'S/m', '$\Omega m$', '%'
-    create_colorbar : bool
-        If *True*, a colorbar is automatically generated. If *False*, it is not.
-        If multiple planes are being plotted, only set the first scatter plot
-        to *True*
+    scale: {'linear', 'log'}
+        Plot on linear or log base 10 scale
+    pcolor_opts : dict, optional
+        Dictionary defining kwargs for pcolor plot if `plot_type=='pcolor'`
+    contourf_opts : dict, optional
+        Dictionary defining kwargs for filled contour plot if `plot_type=='contourf'`
+    scatter_opts : dict, optional
+        Dictionary defining kwargs for scatter plot if `plot_type=='scatter'`
     mask_topography : bool
         This freature should be set to True when there is significant topography and the user
         would like to mask interpolated locations in the filled contour plot that lie
         above the surface topography.
-    marker_size : int
-        If plot_type=='scatter', this argument can be used to set the marker size for
-        the scatter plot.
-    scatter_opts : dict
-        Dictionary defining kwargs for scatter plot if plot_type='scatter'
-    tricontourf_opts : dict
-        Dictionary defining kwargs for filled contour plot if plot_type='tricontourf'
+    create_colorbar : bool
+        If *True*, a colorbar is automatically generated. If *False*, it is not.
+        If multiple planes are being plotted, only set the first scatter plot
+        to *True*
     cbar_opts : dict
         Dictionary defining kwargs for the colorbar
-    
+    cbar_label : str
+        A string stating the color bar label for the
+        data; e.g. 'S/m', '$\\Omega m$', '%'
+    cax : mpl_toolkits.mplot3d.axes.Axes, optional
+        An axis object for the colorbar
+    data_type: {None, "apparent_conductivity", "apparent_resistivity"}, optional
+        if dobs is None, this will transform the data vector in the `survey` parameter
+        when it is a SimPEG.data.Data object from voltage to the requested `data_type`.
+        This occurs when `dobs` is `None`.
+    space_type: {'half space', "whole space"}
+        space type to use for the transformation from voltage to `data_type`
+        if `dobs` is `None`.
+
 
     Output:
     mpl_toolkits.mplot3d.axes3d.Axes3D
         The axis object that holds the plot
 
     """
+    if "pcolorOpts" in kwargs:
+        warnings.warn(
+            "The pcolorOpts keyword has been deprecated. Please use "
+            "pcolor_opts instead. This will be removed in version"
+            " 0.15.0 of SimPEG",
+            DeprecationWarning,
+        )
+        pcolor_opts = kwargs.pop("pcolorOpts")
+
+    if "data_location" in kwargs:
+        warnings.warn(
+            "The data_location keyword has been deprecated. Please use "
+            "data_locations instead. This will be removed in version"
+            " 0.15.0 of SimPEG",
+            DeprecationWarning,
+        )
+        data_locations = kwargs.pop("data_location")
+
+    removed_kwargs = ["dim", "y_values", "sameratio", "survey_type"]
+    for kwarg in removed_kwargs:
+        if kwarg in kwargs:
+            warnings.warn(
+                r"The {kwarg} keyword has been removed. This will be come an error in "
+                "version 0.16.0 of SimPEG",
+                DeprecationWarning,
+            )
+            kwargs.pop(kwarg)
+    if len(kwargs) > 0:
+        warnings.warn("plot_pseudosection unused kwargs: {list(kwargs.keys())}")
+
+    if plot_type.lower() not in ["pcolor", "contourf", "scatter"]:
+        raise ValueError(
+            "plot_type must be 'pcolor', 'contourf', or 'scatter'. The input value of "
+            f"{plot_type} is not recognized"
+        )
 
     # Get plotting locations from survey geometry
-    locations = pseudo_locations(survey)
+    try:
+        # this should work if "data" was a Data object
+        survey = data.survey
+        if dobs is None:
+            dobs = data.dobs
+            # Transform it to the type specified in data_type (assuming it was voltage)
+            if data_type in (
+                DATA_TYPES["apparent conductivity"] + DATA_TYPES["apparent resistivity"]
+            ):
+                dobs = apparent_resistivity_from_voltage(
+                    survey, dobs, space_type=space_type
+                )
+            if data_type in DATA_TYPES["apparent conductivity"]:
+                dobs = 1.0 / dobs
+    except AttributeError:
+        # Assume "data" was a DC survey
+        survey = data
+        if dobs is None:
+            raise ValueError(
+                "If the first argument is a DC survey, dobs must not be None"
+            )
 
-    # Log or linear scale
-    if scale == "log":
-        dvec = np.log10(dvec)
-        if vlim != None:
-            vlim[0] = np.log10(vlim[0])
-            vlim[1] = np.log10(vlim[1])
+    try:
+        locations = pseudo_locations(survey)
+    except Exception:
+        raise TypeError(
+            "The first argument must be a resitivity.Survey, or a Data object with a "
+            "resistivity.Survey."
+        )
 
     # Create an axis for the pseudosection if None
-    if ax == None:
+    if ax is None:
         fig = plt.figure(figsize=(10, 4))
         ax = fig.add_axes([0.1, 0.1, 0.7, 0.8])
         cax = fig.add_axes([0.85, 0.1, 0.03, 0.8])
 
-    if vlim == None:
-        norm = mpl.colors.Normalize(vmin=dvec.min(), vmax=dvec.max())
+    if clim is None:
+        vmin = vmax = None
     else:
-        norm = mpl.colors.Normalize(vmin=vlim[0], vmax=vlim[1])
+        vmin, vmax = clim
+    # Create default norms
+    if scale == "log":
+        norm = mpl.colors.LogNorm(vmin=vmin, vmax=vmax)
+    else:
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
 
+    x, z = locations[:, 0], locations[:, -1]
     # Scatter plot
-    if plot_type == 'scatter':
-        data_plot = ax.scatter(
-            locations[:, 0],
-            locations[:, -1],
-            marker_size,
-            c=dvec,
-            norm=norm,
-            **scatter_opts
-        )
+    if plot_type == "scatter":
+        # grab a shallow copy
+        s_opts = scatter_opts.copy()
+        s = s_opts.pop("s", 40)
+        norm = s_opts.pop("norm", norm)
+        if isinstance(norm, mpl.colors.LogNorm):
+            dobs = np.abs(dobs)
 
+        data_plot = ax.scatter(x, z, s=s, c=dobs, norm=norm, **s_opts)
     # Filled contour plot
-    elif plot_type == 'tricontourf':
+    elif plot_type == "contourf":
+        opts = contourf_opts.copy()
+        norm = opts.pop("norm", norm)
+        if isinstance(norm, mpl.colors.LogNorm):
+            dobs = np.abs(dobs)
+        if scale == "log":
+            try:
+                levels = opts.get("levels", "auto")
+                locator = ticker.MaxNLocator(levels)
+                levels = locator.tick_values(np.log10(dobs.min()), np.log10(dobs.max()))
+                levels = 10 ** levels
+                opts["levels"] = levels
+            except TypeError:
+                pass
 
-        # Make initial contour plot
-        data_plot = ax.tricontourf(
-            locations[:, 0],
-            locations[:, -1],
-            dvec,
-            norm=norm,
-            **tricontourf_opts,
+        data_plot = ax.tricontourf(x, z, dobs, norm=norm, **opts,)
+        if data_locations:
+            ax.plot(x, z, "k.", ms=1, alpha=0.4)
+
+    elif plot_type == "pcolor":
+        opts = pcolor_opts.copy()
+        norm = opts.pop("norm", norm)
+        if isinstance(norm, mpl.colors.LogNorm):
+            dobs = np.abs(dobs)
+
+        data_plot = ax.tripcolor(
+            x, z, dobs, shading="gouraud", norm=norm, **pcolor_opts
         )
+        if data_locations:
+            ax.plot(x, z, "k.", ms=1, alpha=0.4)
 
-    else:
-        raise NotImplementedError("plot_type must be 'scatter' or 'tricontourf'")
-        
     # Use a filled polygon to mask everything above
     # that has a pseudo-location above the positions
-    # for nearest electrode spacings    
-    
+    # for nearest electrode spacings
+
     if mask_topography:
-        
-        electrode_locations = np.unique(np.r_[
-            survey.locations_a,
-            survey.locations_b,
-            survey.locations_m,
-            survey.locations_n
-        ], axis=0)
-        
-        zmin = np.min(electrode_locations[:, 1])
+
+        electrode_locations = np.unique(
+            np.r_[
+                survey.locations_a,
+                survey.locations_b,
+                survey.locations_m,
+                survey.locations_n,
+            ],
+            axis=0,
+        )
+
         zmax = np.max(electrode_locations[:, 1])
 
         tree = cKDTree(locations)
@@ -619,61 +691,47 @@ def plot_2d_pseudosection(
         poly_locations = np.r_[
             np.c_[np.min(poly_locations[:, 0]), zmax],
             poly_locations,
-            np.c_[np.max(poly_locations[:, 0]), zmax]
+            np.c_[np.max(poly_locations[:, 0]), zmax],
         ]
 
         ax.fill(
-            poly_locations[:, 0], poly_locations[:, 1],
-            facecolor='w', linewidth=0.5
-        )    
-    
-    z_top = np.max(locations[:, -1])
-    z_bot = np.min(locations[:, -1])
-    ax.set_ylim(z_bot - 0.03*(z_top-z_bot), z_top + 0.03*(z_top-z_bot))
+            poly_locations[:, 0], poly_locations[:, 1], facecolor="w", linewidth=0.5
+        )
+
+    z_top = np.max(z)
+    z_bot = np.min(z)
+    ax.set_ylim(z_bot - 0.03 * (z_top - z_bot), z_top + 0.03 * (z_top - z_bot))
     ax.set_xlabel("Line position (m)")
     ax.set_ylabel("Pseudo-elevation (m)")
 
     # Define colorbar
     if create_colorbar:
-        if cax == None:
-            if scale == "log":
-                cbar = plt.colorbar(
-                    data_plot,
-                    format="$10^{%.2f}$",
-                    fraction=0.06,
-                    orientation="vertical",
-                    ax=ax,
-                    **cbar_opts,
-                )
-            elif scale == "linear":
-                cbar = plt.colorbar(
-                    data_plot,
-                    format="%.2e",
-                    fraction=0.06,
-                    orientation="vertical",
-                    ax=ax,
-                    **cbar_opts,
-                )
+        cbar = plt.colorbar(
+            data_plot,
+            format="%.2e",
+            fraction=0.06,
+            orientation="vertical",
+            cax=cax,
+            ax=ax,
+            **cbar_opts,
+        )
 
+        vmin = np.nanmin(dobs)
+        vmax = np.nanmax(dobs)
+        if scale == "log":
+            ticks = np.logspace(np.log10(vmin), np.log10(vmax), 7)
         else:
-            if scale == "log":
-                cbar = plt.colorbar(
-                    data_plot, format="$10^{%.2f}$", cax=cax, **cbar_opts,
-                )
-            elif scale == "linear":
-                cbar = plt.colorbar(
-                    data_plot, format="%.2e", cax=cax, **cbar_opts,
-                )
-
-        ticks = np.linspace(norm.vmin, norm.vmax, 7)
-
+            ticks = np.linspace(vmin, vmax, 7)
         cbar.set_ticks(ticks)
-        cbar.set_label(units, labelpad=10)
+        cbar.ax.minorticks_off()
+        cbar.set_label(cbar_label, labelpad=10)
         cbar.ax.tick_params()
 
-    return ax
+    return ax, data_plot
+
 
 if has_plotly:
+
     def plot_3d_pseudosection(
         survey,
         dvec,
@@ -685,7 +743,7 @@ if has_plotly:
         plane_distance=10.0,
         cbar_opts=None,
         marker_opts=None,
-        layout_opts=None
+        layout_opts=None,
     ):
         """
         Plot 3D DC/IP data in pseudo-section as a scatter plot.
@@ -724,10 +782,10 @@ if has_plotly:
             Dictionary containing marker properties formatted according to plotly.graph_objects.scatter3d
         layout_opts : dict
             Dictionary defining figure layout properties, formatted according to plotly.Layout
-        
+
 
         Output:
-        fig: 
+        fig:
             A plotly figure
 
         """
@@ -738,27 +796,32 @@ if has_plotly:
         if scale == "log":
             plot_vec = np.log10(dvec)
             tick_format = ".2f"
-            tick_prefix = '10^'
-            hovertemplate = 'x: %{x:.2f}<br>y: %{y:.2f}<br>z: %{z:.2f}<br>value: %{customdata:.3e} ' + units
+            tick_prefix = "10^"
+            hovertemplate = (
+                "x: %{x:.2f}<br>y: %{y:.2f}<br>z: %{z:.2f}<br>value: %{customdata:.3e} "
+                + units
+            )
         else:
             plot_vec = dvec
             tick_format = "g"
             tick_prefix = None
-            hovertemplate = 'x: %{x:.2f}<br>y: %{y:.2f}<br>z: %{z:.2f}<br>value: %{customdata:.6g} ' + units
+            hovertemplate = (
+                "x: %{x:.2f}<br>y: %{y:.2f}<br>z: %{z:.2f}<br>value: %{customdata:.6g} "
+                + units
+            )
 
         if vlim is None:
             vlim = [np.min(plot_vec), np.max(plot_vec)]
         elif scale == "log":
             vlim = [np.log10(vlim[0]), np.log10(vlim[1])]
-            
 
         # Set colorbar properties. Start with default values and replace any
         # keys that need to be updated.
         cbar = {
-            'thickness': 20,
-            'title': units,
-            'tickprefix': tick_prefix,
-            'tickformat': tick_format
+            "thickness": 20,
+            "title": units,
+            "tickprefix": tick_prefix,
+            "tickformat": tick_format,
         }
 
         if cbar_opts is not None:
@@ -766,21 +829,21 @@ if has_plotly:
 
         # Set marker properties. Start with default values and replace any
         # keys that need to be updated.
-        marker={
-            'size': 4,
-            'colorscale': 'viridis',
-            'cmin': vlim[0],
-            'cmax': vlim[1],
-            'opacity': 0.8,
-            'colorbar': cbar
+        marker = {
+            "size": 4,
+            "colorscale": "viridis",
+            "cmin": vlim[0],
+            "cmax": vlim[1],
+            "opacity": 0.8,
+            "colorbar": cbar,
         }
         if marker_opts is not None:
             marker = {key: marker_opts.get(key, marker[key]) for key in marker}
-        
+
         # 3D scatter plot
         if plane_points == None:
 
-            marker['color'] = plot_vec
+            marker["color"] = plot_vec
             scatter_data = [
                 grapho.Scatter3d(
                     x=locations[:, 0],
@@ -788,8 +851,8 @@ if has_plotly:
                     z=locations[:, 2],
                     customdata=dvec,
                     hovertemplate=hovertemplate,
-                    name='',
-                    mode='markers',
+                    name="",
+                    mode="markers",
                     marker=marker,
                 )
             ]
@@ -811,7 +874,12 @@ if has_plotly:
                 a, b, c, d = define_plane_from_points(p1, p2, p3)
 
                 k = k | (
-                    np.abs(a * locations[:, 0] + b * locations[:, 1] + c * locations[:, 2] + d)
+                    np.abs(
+                        a * locations[:, 0]
+                        + b * locations[:, 1]
+                        + c * locations[:, 2]
+                        + d
+                    )
                     / np.sqrt(a ** 2 + b ** 2 + c ** 2)
                     < plane_distance[ii]
                 )
@@ -822,14 +890,14 @@ if has_plotly:
                     defined by *plane_points*. Try increasing *plane_distance*."""
                 )
 
-            marker['color'] = plot_vec[k]
+            marker["color"] = plot_vec[k]
             scatter_data = [
                 grapho.Scatter3d(
                     x=locations[k, 0],
                     y=locations[k, 1],
                     z=locations[k, 2],
                     customdata=dvec[k],
-                    mode='markers',
+                    mode="markers",
                     marker=marker,
                 )
             ]
@@ -838,19 +906,16 @@ if has_plotly:
 
         fig.update_layout(
             scene=dict(
-                xaxis=dict(title='X[m]'),
-                yaxis=dict(title='Y[m]'),
-                zaxis=dict(title='Z[m]')
+                xaxis=dict(title="X[m]"),
+                yaxis=dict(title="Y[m]"),
+                zaxis=dict(title="Z[m]"),
             ),
-            scene_camera=dict(eye=dict(x=1.5, y=-1.5, z=1.5))
+            scene_camera=dict(eye=dict(x=1.5, y=-1.5, z=1.5)),
         )
         if layout_opts is not None:
             fig.update_layout(**layout_opts)
 
         return fig
-
-
-
 
 
 #########################################################################
@@ -865,14 +930,14 @@ def generate_survey_from_abmn_locations(
     locations_m=None,
     locations_n=None,
     data_type=None,
-    output_sorting=False
+    output_sorting=False,
 ):
     """
     Use A, B, M and N electrode locations to construct a 2D or 3D DC/IP survey.
 
     Parameters
     ----------
-    
+
     locations_a : numpy.array
         An (n, dim) numpy array containing A electrode locations
     locations_b : None or numpy.array
@@ -902,7 +967,7 @@ def generate_survey_from_abmn_locations(
 
 
     """
-    
+
     if locations_a is None:
         raise TypeError("Locations for A electrodes must be provided.")
     if locations_m is None:
@@ -920,72 +985,78 @@ def generate_survey_from_abmn_locations(
 
     if locations_n is None:
         locations_n = locations_m
-    
-    if (locations_a.shape==locations_b.shape==locations_m.shape==locations_n.shape) == False:
-        raise ValueError("Arrays containing A, B, M and N electrode locations must be same shape.")
+
+    if (
+        locations_a.shape == locations_b.shape == locations_m.shape == locations_n.shape
+    ) == False:
+        raise ValueError(
+            "Arrays containing A, B, M and N electrode locations must be same shape."
+        )
 
     # Set up keeping track of sorting of rows and unique sources
     n_rows = np.shape(locations_a)[0]
     k = np.arange(0, n_rows)
     out_indices = []
-    unique_ab, ab_index = np.unique(np.c_[locations_a, locations_b], axis=0, return_index=True)
+    unique_ab, ab_index = np.unique(
+        np.c_[locations_a, locations_b], axis=0, return_index=True
+    )
     ab_index = np.sort(ab_index)
-    
+
     # Loop over all unique source locations
     source_list = []
     for ii, ind in enumerate(ab_index):
-            
+
         # Get source location
         src_loc_a = mkvc(locations_a[ind, :])
         src_loc_b = mkvc(locations_b[ind, :])
-        
+
         # Get receiver locations
         rx_index = np.where(
             (
-                (np.sqrt(np.sum((locations_a - src_loc_a)**2, axis=1)) < 1e-3) &
-                (np.sqrt(np.sum((locations_b - src_loc_b)**2, axis=1)) < 1e-3)
+                (np.sqrt(np.sum((locations_a - src_loc_a) ** 2, axis=1)) < 1e-3)
+                & (np.sqrt(np.sum((locations_b - src_loc_b) ** 2, axis=1)) < 1e-3)
             )
         )[0]
-        
+
         rx_loc_m = locations_m[rx_index, :]
         rx_loc_n = locations_n[rx_index, :]
-        
+
         # Extract pole and dipole receivers
         k_ii = k[rx_index]
         is_pole_rx = np.all(np.isclose(rx_loc_m, rx_loc_n, atol=1e-3), axis=1)
         rx_list = []
-        
+
         if any(is_pole_rx):
-            rx_list += [dc.receivers.Pole(
-                rx_loc_m[is_pole_rx, :], data_type=data_type
-            )]
+            rx_list += [dc.receivers.Pole(rx_loc_m[is_pole_rx, :], data_type=data_type)]
             out_indices.append(k_ii[is_pole_rx])
-        
+
         if any(~is_pole_rx):
-            rx_list += [dc.receivers.Dipole(
-                rx_loc_m[~is_pole_rx, :], rx_loc_n[~is_pole_rx, :], data_type=data_type
-            )]
+            rx_list += [
+                dc.receivers.Dipole(
+                    rx_loc_m[~is_pole_rx, :],
+                    rx_loc_n[~is_pole_rx, :],
+                    data_type=data_type,
+                )
+            ]
             out_indices.append(k_ii[~is_pole_rx])
-        
+
         # Define Pole or Dipole Sources
         if np.all(np.isclose(src_loc_a, src_loc_b, atol=1e-3)):
             source_list.append(dc.sources.Pole(rx_list, src_loc_a))
         else:
-            source_list.append(
-                dc.sources.Dipole(rx_list, src_loc_a, src_loc_b)
-            )
-    
+            source_list.append(dc.sources.Dipole(rx_list, src_loc_a, src_loc_b))
+
     # Create outputs
     out_indices = np.hstack(out_indices)
     survey = dc.survey.Survey(source_list)
-    
+
     if any(k != out_indices):
         warnings.warn(
             "Ordering of ABMN locations changed when generating survey. "
             "Associated data vectors will need sorting. Set output_sorting to "
             "True for sorting indices."
         )
-    
+
     if output_sorting:
         return survey, out_indices
     else:
@@ -1627,104 +1698,55 @@ def gen_3d_survey_from_2d_lines(
     return IO_3d, survey_3d
 
 
-
-
-
 ############
 # Deprecated
 ############
 
-def plot_pseudosection(
-    data,
-    ax=None,
-    survey_type="dipole-dipole",
-    data_type="apparent conductivity",
-    space_type="half space",
-    plot_type="pcolor",
-    clim=None,
-    scale="linear",
-    sameratio=True,
-    pcolor_opts={},
-    contour_opts={},
-    cbar_opts={},
-    data_locations=False,
-    dobs=None,
-    dim=2,
-    y_values="n-spacing",
-    **kwargs,
-):
-
-    warnings.warn(
-        "The plot_pseudosection method has been deprecated and may not work properly!!! "
-        "Please use plot_2d_pseudosection instead. This will be removed in version"
-        " 0.15.0 of SimPEG",
-        DeprecationWarning,
-    )
-
-    if plot_type == "pcolor":
-        warnings.warn(
-            "P color plot no longer supported. Plotting tricontourf instead",
-        DeprecationWarning,
-    )
-
-    return plot_2d_pseudosection(
-        data.survey,
-        data.dobs,
-        'tricontourf',
-        ax=ax,
-        vlim=clim,
-        scale=scale,
-        tricontourf_opts=contour_opts,
-        cbar_opts=cbar_opts,
-        **kwargs
-    )
 
 def plot_pseudoSection(
     data,
     ax=None,
     survey_type="dipole-dipole",
-    data_type="apparent conductivity",
-    space_type="half space",
-    plot_type="pcolor",
+    data_type="appConductivity",
+    space_type="half-space",
     clim=None,
     scale="linear",
     sameratio=True,
-    pcolor_opts={},
-    contour_opts={},
-    cbar_opts={},
-    data_locations=False,
+    pcolorOpts={},
+    data_location=False,
     dobs=None,
     dim=2,
-    y_values="n-spacing",
-    **kwargs,
 ):
 
     warnings.warn(
-        "The plot_pseudoSection method has been deprecated and may not work properly!!! "
-        "Please use plot_2d_pseudosection instead. This will be removed in version"
+        "The plot_pseudoSection method has been deprecated. Please use "
+        "plot_pseudosection instead. This will be removed in version"
         " 0.15.0 of SimPEG",
         DeprecationWarning,
     )
 
-    if plot_type == "pcolor":
-        warnings.warn(
-            "P color plot no longer supported. Plotting tricontourf instead",
-        DeprecationWarning,
-    )
-
-    return plot_2d_pseudosection(
-        data.survey,
-        data.dobs,
-        'tricontourf',
+    return plot_pseudosection(
+        data,
         ax=ax,
-        vlim=clim,
+        survey_type=survey_type,
+        data_type=data_type,
+        space_type=space_type,
+        clim=clim,
         scale=scale,
-        tricontourf_opts=contour_opts,
-        cbar_opts=cbar_opts,
-        **kwargs
+        pcolor_opts=pcolorOpts,
+        data_locations=data_location,
+        dobs=dobs,
     )
 
-def apparent_resistivity(data_object, survey_type=None, space_type='half space', dobs=None, eps=1e-10, **kwargs):
+
+def apparent_resistivity(
+    data_object,
+    survey_type=None,
+    space_type="half space",
+    dobs=None,
+    eps=1e-10,
+    **kwargs,
+):
 
     warnings.warn(
         "The apparent_resistivity method has been deprecated. Please use "
@@ -1735,26 +1757,23 @@ def apparent_resistivity(data_object, survey_type=None, space_type='half space',
 
     if survey_type is not None:
         warnings.warn(
-        "Keyword argument 'survey_type' is no longer necessary. "
-        "Survey may now have a mix of pole and dipole sources and receivers.",
-        DeprecationWarning,
-    )
+            "Keyword argument 'survey_type' is no longer necessary. "
+            "Survey may now have a mix of pole and dipole sources and receivers.",
+            DeprecationWarning,
+        )
 
     if dobs is None:
         dobs = data_object.dobs
 
-    return apparent_resistivity_from_voltage(data_object.survey, dobs, space_type=space_type, **kwargs)
-
-
-def source_receiver_midpoints(survey, **kwargs):
-    warnings.warn(
-        "The source_receiver_midpoint method has been deprecated. Please use "
-        "pseudo_locations instead. This will be removed in version"
-        " 0.15.0 of SimPEG",
-        DeprecationWarning,
+    return apparent_resistivity_from_voltage(
+        data_object.survey, dobs, space_type=space_type, **kwargs
     )
 
-    return pseudo_locations(survey, **kwargs)
+
+source_receiver_midpoints = deprecate_method(
+    pseudo_locations, "source_receiver_midpoints", "0.16.0"
+)
+
 
 def plot_layer(rho, mesh, **kwargs):
     warnings.warn(
@@ -1765,6 +1784,7 @@ def plot_layer(rho, mesh, **kwargs):
     )
 
     return plot_1d_layer_model(mesh.hx, rho, **kwargs)
+
 
 def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
     warnings.warn(
@@ -1826,8 +1846,8 @@ def writeUBC_DCobs(
         write_dcip2d_ubc(
             fileName,
             data,
-            'volt',
-            'dobs',
+            "volt",
+            "dobs",
             format_type=format_type,
             comment_lines=comment_lines,
         )
@@ -1836,8 +1856,8 @@ def writeUBC_DCobs(
         write_dcip3d_ubc(
             fileName,
             data,
-            'volt',
-            'dobs',
+            "volt",
+            "dobs",
             format_type=format_type,
             comment_lines=comment_lines,
         )
@@ -1873,25 +1893,25 @@ def writeUBC_DClocs(
         " 0.15.0 of SimPEG",
         DeprecationWarning,
     )
-    
+
     data = Data(dc_survey)
 
     if dim == 2:
         write_dcip2d_ubc(
             fileName,
             data,
-            'volt',
-            'survey',
+            "volt",
+            "survey",
             format_type=format_type,
             comment_lines=comment_lines,
         )
 
     elif dim == 3:
-        write_dcip2d_ubc(
+        write_dcip3d_ubc(
             fileName,
             data,
-            'volt',
-            'survey',
+            "volt",
+            "survey",
             format_type=format_type,
             comment_lines=comment_lines,
         )
@@ -1915,7 +1935,6 @@ def readUBC_DC2Dpre(fileName):
 
     """
 
-
     warnings.warn(
         "The readUBC_DC2Dpre method has been deprecated. Please use "
         "read_dcip2d_ubc instead. This is imported "
@@ -1924,10 +1943,10 @@ def readUBC_DC2Dpre(fileName):
         DeprecationWarning,
     )
 
-    return read_dcip2d_ubc(fileName, 'volt', 'general')
+    return read_dcip2d_ubc(fileName, "volt", "general")
 
 
-def readUBC_DC3Dobs(fileName, data_type='volt'):
+def readUBC_DC3Dobs(fileName, data_type="volt"):
     """
         Read UBC GIF DCIP 3D observation file and generate arrays
         for tx-rx location
@@ -1949,14 +1968,6 @@ def readUBC_DC3Dobs(fileName, data_type='volt'):
     return read_dcip3d_ubc(fileName, data_type)
 
 
-def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3):
-
-    warnings.warn(
-        "The gen_DCIPsurvey method has been deprecated. Please use "
-        "gnerate_dcip_survey instead. This is imported "
-        "from SimPEG.utils.io_utils. This function will be removed in version"
-        " 0.15.0 of SimPEG",
-        DeprecationWarning,
-    )
-
-    return generate_dcip_survey(endl, survey_type, a, b, n, dim)
+gen_DCIPsurvey = deprecate_method(
+    generate_dcip_survey, "gen_DCIPsurvey", removal_version="0.16.0"
+)

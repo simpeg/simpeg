@@ -51,7 +51,7 @@ from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static import induced_polarization as ip
 from SimPEG.electromagnetics.static.utils.static_utils import (
     apparent_resistivity_from_voltage,
-    plot_2d_pseudosection
+    plot_pseudosection,
 )
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
@@ -60,7 +60,7 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
-mpl.rcParams.update({'font.size': 16})
+mpl.rcParams.update({"font.size": 16})
 # sphinx_gallery_thumbnail_number = 7
 
 
@@ -105,8 +105,8 @@ ip_data_filename = dir_path + "ip_data.obs"
 
 # Load data
 topo_xyz = np.loadtxt(str(topo_filename))
-dc_data = read_dcip2d_ubc(dc_data_filename, 'volt', 'general')
-ip_data = read_dcip2d_ubc(ip_data_filename, 'apparent_chargeability', 'general')
+dc_data = read_dcip2d_ubc(dc_data_filename, "volt", "general")
+ip_data = read_dcip2d_ubc(ip_data_filename, "apparent_chargeability", "general")
 
 #########################################################
 # Plot Observed Data in Pseudosection
@@ -116,22 +116,22 @@ ip_data = read_dcip2d_ubc(ip_data_filename, 'apparent_chargeability', 'general')
 # Plot apparent conductivity using pseudo-section
 mpl.rcParams.update({"font.size": 12})
 
-apparent_conductivities = 1/apparent_resistivity_from_voltage(
+apparent_conductivities = 1 / apparent_resistivity_from_voltage(
     dc_data.survey, dc_data.dobs
 )
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))
 ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
-plot_2d_pseudosection(
+plot_pseudosection(
     dc_data.survey,
     apparent_conductivities,
-    'tricontourf',
+    "contourf",
     ax=ax1,
     scale="log",
-    units="S/m",
+    cbar_label="S/m",
     mask_topography=True,
-    tricontourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
+    contourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
 )
 ax1.set_title("Apparent Conductivity")
 plt.show()
@@ -141,15 +141,15 @@ apparent_chargeability = ip_data.dobs
 
 fig = plt.figure(figsize=(12, 5))
 ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
-plot_2d_pseudosection(
+plot_pseudosection(
     ip_data.survey,
     apparent_chargeability,
-    'tricontourf',
+    "contourf",
     ax=ax1,
     scale="linear",
-    units="V/V",
+    cbar_label="V/V",
     mask_topography=True,
-    tricontourf_opts={"levels": 20, "cmap": mpl.cm.plasma},
+    contourf_opts={"levels": 20, "cmap": mpl.cm.plasma},
 )
 ax1.set_title("Apparent Chargeability")
 plt.show()
@@ -158,13 +158,13 @@ plt.show()
 ####################################################
 # Assign Uncertainties
 # --------------------
-# 
+#
 # Inversion with SimPEG requires that we define the uncertainties on our data.
 # This represents our estimate of the standard deviation of the
 # noise in our data. For DC data, the uncertainties are 5% of the absolute value.
 # For appanrent chargeability IP data, the uncertainties are 5e-3 V/V.
-# 
-# 
+#
+#
 
 dc_data.standard_deviation = 0.05 * np.abs(dc_data.dobs)
 ip_data.standard_deviation = 5e-3 * np.ones_like(ip_data.dobs)
@@ -190,7 +190,11 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 0, 4, 4], method="surface", finalize=False
+    mesh,
+    topo_xyz[:, [0, 2]],
+    octree_levels=[0, 0, 4, 4],
+    method="surface",
+    finalize=False,
 )
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
@@ -213,7 +217,9 @@ mesh = refine_tree_xyz(
 # Refine core mesh region
 xp, zp = np.meshgrid([-600.0, 600.0], [-400.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False)
+mesh = refine_tree_xyz(
+    mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False
+)
 
 mesh.finalize()
 
@@ -357,7 +363,7 @@ directives_list = [
     beta_schedule,
     save_iteration,
     target_misfit,
-    update_jacobi
+    update_jacobi,
 ]
 
 #####################################################################
@@ -402,10 +408,7 @@ norm = LogNorm(vmin=1e-3, vmax=1e-1)
 fig = plt.figure(figsize=(9, 4))
 ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
 im = mesh.plot_image(
-    true_conductivity_model,
-    ax=ax1,
-    grid=False,
-    pcolor_opts={"norm": norm}
+    true_conductivity_model, ax=ax1, grid=False, pcolor_opts={"norm": norm}
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -427,11 +430,7 @@ recovered_conductivity[~ind_active] = np.NaN
 
 ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
 mesh.plotImage(
-    recovered_conductivity,
-    normal="Y",
-    ax=ax1,
-    grid=False,
-    pcolorOpts={"norm": norm}
+    recovered_conductivity, normal="Y", ax=ax1, grid=False, pcolorOpts={"norm": norm}
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -458,7 +457,7 @@ std_dc = dc_data.standard_deviation
 
 # Plot
 fig = plt.figure(figsize=(9, 15))
-data_array = [np.abs(dobs_dc), np.abs(dpred_dc), (dobs_dc - dpred_dc)/std_dc]
+data_array = [np.abs(dobs_dc), np.abs(dpred_dc), (dobs_dc - dpred_dc) / std_dc]
 plot_title = ["Observed", "Predicted", "Normalized Misfit"]
 plot_units = ["S/m", "S/m", ""]
 scale = ["log", "log", "linear"]
@@ -470,18 +469,18 @@ cplot = 3 * [None]
 
 for ii in range(0, 3):
 
-    ax1[ii] = fig.add_axes([0.1, 0.70-0.33*ii, 0.7, 0.23])
-    cax1[ii] = fig.add_axes([0.83, 0.70-0.33*ii, 0.05, 0.23])
-    cplot[ii] = plot_2d_pseudosection(
+    ax1[ii] = fig.add_axes([0.1, 0.70 - 0.33 * ii, 0.7, 0.23])
+    cax1[ii] = fig.add_axes([0.83, 0.70 - 0.33 * ii, 0.05, 0.23])
+    cplot[ii] = plot_pseudosection(
         dc_data.survey,
         data_array[ii],
-        'tricontourf',
+        "contourf",
         ax=ax1[ii],
         cax=cax1[ii],
         scale=scale[ii],
-        units=plot_units[ii],
+        cbar_label=plot_units[ii],
         mask_topography=True,
-        tricontourf_opts={"levels": 25, "cmap": mpl.cm.viridis}
+        contourf_opts={"levels": 25, "cmap": mpl.cm.viridis},
     )
     ax1[ii].set_title(plot_title[ii])
 
@@ -552,7 +551,7 @@ ip_regularization = regularization.Simple(
 # Define how the optimization problem is solved. Here it is a projected
 # Gauss Newton with Conjugate Gradient solver.
 ip_optimization = optimization.ProjectedGNCG(
-    maxIter=15, lower=0.0, upper=1000., maxIterCG=30, tolCG=1e-2
+    maxIter=15, lower=0.0, upper=1000.0, maxIterCG=30, tolCG=1e-2
 )
 
 # Here we define the inverse problem that is to be solved
@@ -580,7 +579,7 @@ directives_list = [
     beta_schedule,
     save_iteration,
     target_misfit,
-    update_jacobi
+    update_jacobi,
 ]
 
 #####################################################
@@ -622,7 +621,7 @@ mesh.plot_image(
     true_chargeability_model,
     ax=ax1,
     grid=False,
-    pcolor_opts={"cmap": "plasma", "norm": norm}
+    pcolor_opts={"cmap": "plasma", "norm": norm},
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -647,7 +646,7 @@ mesh.plot_image(
     normal="Y",
     ax=ax1,
     grid=False,
-    pcolor_opts={"cmap": "plasma", "norm": norm}
+    pcolor_opts={"cmap": "plasma", "norm": norm},
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -674,8 +673,12 @@ std_ip = ip_data.standard_deviation
 
 # Plot
 fig = plt.figure(figsize=(9, 13))
-data_array = [dobs_ip, dpred_ip, (dobs_ip - dpred_ip)/std_ip]
-plot_title = ["Observed (as app. chg.)", "Predicted (as app. chg.)", "Normalized Misfit"]
+data_array = [dobs_ip, dpred_ip, (dobs_ip - dpred_ip) / std_ip]
+plot_title = [
+    "Observed (as app. chg.)",
+    "Predicted (as app. chg.)",
+    "Normalized Misfit",
+]
 plot_units = ["V/V", "V/V", ""]
 
 ax1 = 3 * [None]
@@ -685,18 +688,18 @@ cplot = 3 * [None]
 
 for ii in range(0, 3):
 
-    ax1[ii] = fig.add_axes([0.15, 0.72-0.33*ii, 0.65, 0.21])
-    cax1[ii] = fig.add_axes([0.81, 0.72-0.33*ii, 0.03, 0.21])
-    cplot[ii] = plot_2d_pseudosection(
+    ax1[ii] = fig.add_axes([0.15, 0.72 - 0.33 * ii, 0.65, 0.21])
+    cax1[ii] = fig.add_axes([0.81, 0.72 - 0.33 * ii, 0.03, 0.21])
+    cplot[ii] = plot_pseudosection(
         ip_data.survey,
         data_array[ii],
-        'tricontourf',
+        "contourf",
         ax=ax1[ii],
         cax=cax1[ii],
-        scale='linear',
-        units=plot_units[ii],
+        scale="linear",
+        cbar_label=plot_units[ii],
         mask_topography=True,
-        tricontourf_opts={"levels": 25, "cmap": mpl.cm.plasma},
+        contourf_opts={"levels": 25, "cmap": mpl.cm.plasma},
     )
     ax1[ii].set_title(plot_title[ii])
 

@@ -6,7 +6,6 @@ from .static_utils import (
     apparent_resistivity_from_voltage,
     apparent_resistivity,
     plot_pseudosection,
-    plot_2d_pseudosection,
     generate_dcip_survey,
     gen_DCIPsurvey,
     generate_dcip_sources_line,
@@ -26,7 +25,7 @@ from .static_utils import (
     closestPointsGrid,
     gen_3d_survey_from_2d_lines,
     plot_1d_layer_model,
-    plot_layer
+    plot_layer,
 )
 
 # Import if user has plotly
