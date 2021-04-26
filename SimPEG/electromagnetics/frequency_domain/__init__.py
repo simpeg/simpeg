@@ -7,6 +7,7 @@ from .simulation import (
     Simulation3DCurrentDensity,
     Simulation3DMagneticField,
 )
+from .simulation_emg3d import Simulation3DEMG3D
 from .fields import (
     Fields3DElectricField,
     Fields3DMagneticFluxDensity,
