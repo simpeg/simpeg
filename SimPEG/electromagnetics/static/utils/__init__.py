@@ -7,6 +7,7 @@ from .static_utils import (
     apparent_resistivity,
     plot_pseudosection,
     generate_dcip_survey,
+    generate_dcip_survey_line,
     gen_DCIPsurvey,
     generate_dcip_sources_line,
     generate_survey_from_abmn_locations,
@@ -26,6 +27,7 @@ from .static_utils import (
     gen_3d_survey_from_2d_lines,
     plot_1d_layer_model,
     plot_layer,
+    plot_pseudoSection,
 )
 
 # Import if user has plotly

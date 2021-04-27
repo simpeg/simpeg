@@ -1292,6 +1292,7 @@ def generate_dcip_sources_line(
 
     assert dimension_type.upper() in [
         "2D",
+        "2.5D",
         "3D",
     ], "dimension_type must be one of '2D' or '3D'"
 
@@ -1766,7 +1767,7 @@ def apparent_resistivity(
         dobs = data_object.dobs
 
     return apparent_resistivity_from_voltage(
-        data_object.survey, dobs, space_type=space_type, **kwargs
+        data_object.survey, dobs, space_type=space_type, eps=eps, **kwargs
     )
 
 
@@ -1971,3 +1972,24 @@ def readUBC_DC3Dobs(fileName, data_type="volt"):
 gen_DCIPsurvey = deprecate_method(
     generate_dcip_survey, "gen_DCIPsurvey", removal_version="0.16.0"
 )
+
+
+def generate_dcip_survey_line(
+    survey_type, data_type, endl, topo, ds, dh, n, dim_flag="2.5D", sources_only=False
+):
+
+    warnings.warn(
+        "The gen_dcip_survey_line method has been deprecated. Please use "
+        "generate_dcip_sources_line instead. This will be removed in version"
+        " 0.15.0 of SimPEG",
+        DeprecationWarning,
+    )
+
+    source_list = generate_dcip_sources_line(
+        survey_type, data_type, dim_flag, endl, topo, n, ds
+    )
+
+    if sources_only:
+        return source_list
+    else:
+        return dc.Survey(source_list, survey_type=survey_type.lower())
