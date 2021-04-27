@@ -106,16 +106,12 @@ class Survey(BaseSurvey):
         loc_n = self.locations_n
         return np.unique(np.vstack((loc_a, loc_b, loc_m, loc_n)), axis=0)
 
-    @property
-    def electrode_locations(self):
-        warnings.warn(
-            "The electrode_locations property has been deprecated. "
-            "Unique electrode locations are now accessed though the "
-            "property unique_electrode_locations. "
-            "This will be removed in version 0.15.0 of SimPEG",
-            DeprecationWarning,
-        )
-        return self.unique_electrode_locations
+    electrode_locations = deprecate_property(
+        unique_electrode_locations,
+        "electrode_locations",
+        new_name="unique_electrode_locations",
+        removal_version="0.16.0",
+    )
 
     @property
     def source_locations(self):
@@ -138,7 +134,6 @@ class Survey(BaseSurvey):
             src_b.append(src.location_b)
 
         return [np.vstack(src_a), np.vstack(src_b)]
-
 
     def set_geometric_factor(
         self, space_type="half-space", data_type=None, survey_type=None,

@@ -45,7 +45,8 @@ from SimPEG import (
 )
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
-    plot_2d_pseudosection, apparent_resistivity_from_voltage
+    plot_pseudosection,
+    apparent_resistivity_from_voltage,
 )
 from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
@@ -54,7 +55,7 @@ try:
 except ImportError:
     from SimPEG import SolverLU as Solver
 
-mpl.rcParams.update({'font.size': 16})
+mpl.rcParams.update({"font.size": 16})
 # sphinx_gallery_thumbnail_number = 3
 
 
@@ -100,7 +101,7 @@ data_filename = dir_path + "dc_data.obs"
 
 # Load data
 topo_xyz = np.loadtxt(str(topo_filename))
-dc_data = read_dcip2d_ubc(data_filename, 'volt', 'general')
+dc_data = read_dcip2d_ubc(data_filename, "volt", "general")
 
 #######################################################################
 # Plot Observed Data in Pseudo-Section
@@ -116,35 +117,34 @@ dc_data = read_dcip2d_ubc(data_filename, 'volt', 'general')
 # Plot voltages pseudo-section
 fig = plt.figure(figsize=(12, 5))
 ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
-plot_2d_pseudosection(
-    dc_data.survey,
-    np.abs(dc_data.dobs),
-    'scatter',
+plot_pseudosection(
+    dc_data,
+    plot_type="scatter",
     ax=ax1,
     scale="log",
-    units="V/A",
+    cbar_label="V/A",
     scatter_opts={"cmap": mpl.cm.viridis},
 )
 ax1.set_title("Normalized Voltages")
 plt.show()
 
 # Get apparent conductivities from volts and survey geometry
-apparent_conductivities = 1/apparent_resistivity_from_voltage(
+apparent_conductivities = 1 / apparent_resistivity_from_voltage(
     dc_data.survey, dc_data.dobs
 )
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))
 ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
-plot_2d_pseudosection(
+plot_pseudosection(
     dc_data.survey,
     apparent_conductivities,
-    'tricontourf',
+    plot_type="contourf",
     ax=ax1,
     scale="log",
-    units="S/m",
+    cbar_label="S/m",
     mask_topography=True,
-    tricontourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
+    contourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
 )
 ax1.set_title("Apparent Conductivity")
 plt.show()
@@ -152,12 +152,12 @@ plt.show()
 ####################################################
 # Assign Uncertainties
 # --------------------
-# 
+#
 # Inversion with SimPEG requires that we define the uncertainties on our data.
 # This represents our estimate of the standard deviation of the
 # noise in our data. For DC data, the uncertainties are 10% of the absolute value.
-# 
-# 
+#
+#
 
 dc_data.standard_deviation = 0.05 * np.abs(dc_data.dobs)
 
@@ -181,7 +181,11 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 0, 4, 4], method="surface", finalize=False
+    mesh,
+    topo_xyz[:, [0, 2]],
+    octree_levels=[0, 0, 4, 4],
+    method="surface",
+    finalize=False,
 )
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
@@ -204,7 +208,9 @@ mesh = refine_tree_xyz(
 # Refine core mesh region
 xp, zp = np.meshgrid([-600.0, 600.0], [-400.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False)
+mesh = refine_tree_xyz(
+    mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False
+)
 
 mesh.finalize()
 
@@ -306,7 +312,7 @@ reg = regularization.Sparse(
     alpha_y=1,
 )
 
-reg.mrefInSmooth=True  # Include reference model in smoothness
+reg.mrefInSmooth = True  # Include reference model in smoothness
 
 p = 0
 qx = 1
@@ -352,7 +358,7 @@ directives_list = [
     update_IRLS,
     starting_beta,
     save_iteration,
-    update_jacobi
+    update_jacobi,
 ]
 
 #####################################################################
@@ -426,14 +432,14 @@ for ii in range(0, 3):
         grid=False,
         range_x=[-700, 700],
         range_y=[-600, 0],
-        pcolor_opts={"norm": norm}
+        pcolor_opts={"norm": norm},
     )
     ax1[ii].set_xlim(-600, 600)
     ax1[ii].set_ylim(-600, 0)
     ax1[ii].set_title(title_str[ii])
     ax1[ii].set_xlabel("x (m)")
     ax1[ii].set_ylabel("z (m)")
-    
+
     ax2[ii] = fig.add_axes([0.84, 0.75 - 0.3 * ii, 0.03, 0.2])
     cbar = mpl.colorbar.ColorbarBase(ax2[ii], norm=norm, orientation="vertical")
     cbar.set_label(r"$\sigma$ (S/m)", rotation=270, labelpad=15, size=12)
@@ -452,7 +458,7 @@ std = dc_data.standard_deviation
 
 # Plot
 fig = plt.figure(figsize=(9, 13))
-data_array = [np.abs(dobs), np.abs(dpred), (dobs - dpred)/std]
+data_array = [np.abs(dobs), np.abs(dpred), (dobs - dpred) / std]
 plot_title = ["Observed Voltage", "Predicted Voltage", "Normalized Misfit"]
 plot_units = ["V/A", "V/A", ""]
 scale = ["log", "log", "linear"]
@@ -464,18 +470,18 @@ cplot = 3 * [None]
 
 for ii in range(0, 3):
 
-    ax1[ii] = fig.add_axes([0.15, 0.72-0.33*ii, 0.65, 0.21])
-    cax1[ii] = fig.add_axes([0.81, 0.72-0.33*ii, 0.03, 0.21])
-    cplot[ii] = plot_2d_pseudosection(
+    ax1[ii] = fig.add_axes([0.15, 0.72 - 0.33 * ii, 0.65, 0.21])
+    cax1[ii] = fig.add_axes([0.81, 0.72 - 0.33 * ii, 0.03, 0.21])
+    cplot[ii] = plot_pseudosection(
         survey,
         data_array[ii],
-        'tricontourf',
+        "contourf",
         ax=ax1[ii],
         cax=cax1[ii],
         scale=scale[ii],
-        units=plot_units[ii],
+        cbar_label=plot_units[ii],
         mask_topography=True,
-        tricontourf_opts={"levels": 25, "cmap": mpl.cm.viridis},
+        contourf_opts={"levels": 25, "cmap": mpl.cm.viridis},
     )
     ax1[ii].set_title(plot_title[ii])
 

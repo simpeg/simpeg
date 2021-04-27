@@ -31,7 +31,7 @@ from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
     apparent_resistivity_from_voltage,
-    plot_2d_pseudosection,
+    plot_pseudosection,
 )
 
 import os
@@ -46,7 +46,7 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 write_output = False
-mpl.rcParams.update({'font.size': 16})
+mpl.rcParams.update({"font.size": 16})
 # sphinx_gallery_thumbnail_number = 3
 
 
@@ -62,7 +62,7 @@ mpl.rcParams.update({'font.size': 16})
 x_topo, y_topo = np.meshgrid(
     np.linspace(-3000, 3000, 601), np.linspace(-3000, 3000, 101)
 )
-z_topo = 40.*np.sin(2*np.pi*x_topo/800) - 40.
+z_topo = 40.0 * np.sin(2 * np.pi * x_topo / 800) - 40.0
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 topo_xyz = np.c_[x_topo, y_topo, z_topo]
 
@@ -86,7 +86,7 @@ topo_2d = np.unique(topo_xyz[:, [0, 2]], axis=0)
 survey_type = "dipole-dipole"
 dimension_type = "2D"
 data_type = "volt"
-end_locations = np.r_[-400., 400.]
+end_locations = np.r_[-400.0, 400.0]
 station_separation = 40.0
 num_rx_per_src = 10
 
@@ -98,7 +98,7 @@ source_list = generate_dcip_sources_line(
     end_locations,
     topo_2d,
     num_rx_per_src,
-    station_separation
+    station_separation,
 )
 
 # Define survey
@@ -124,16 +124,17 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[:, [0, 2]], octree_levels=[0, 0, 4, 4], method="surface", finalize=False
+    mesh,
+    topo_xyz[:, [0, 2]],
+    octree_levels=[0, 0, 4, 4],
+    method="surface",
+    finalize=False,
 )
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
 # set of unique electrode locations.
 electrode_locations = np.c_[
-    survey.locations_a,
-    survey.locations_b,
-    survey.locations_m,
-    survey.locations_n,
+    survey.locations_a, survey.locations_b, survey.locations_m, survey.locations_n,
 ]
 
 unique_locations = np.unique(
@@ -147,7 +148,9 @@ mesh = refine_tree_xyz(
 # Refine core mesh region
 xp, zp = np.meshgrid([-600.0, 600.0], [-400.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False)
+mesh = refine_tree_xyz(
+    mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False
+)
 
 mesh.finalize()
 
@@ -193,10 +196,7 @@ norm = LogNorm(vmin=1e-3, vmax=1e-1)
 
 ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
 mesh.plot_image(
-    plotting_map * conductivity_model,
-    ax=ax1,
-    grid=False,
-    pcolor_opts={"norm": norm}
+    plotting_map * conductivity_model, ax=ax1, grid=False, pcolor_opts={"norm": norm}
 )
 ax1.set_xlim(-600, 600)
 ax1.set_ylim(-600, 0)
@@ -255,33 +255,33 @@ dpred = simulation.dpred(conductivity_model)
 # Plot voltages pseudo-section
 fig = plt.figure(figsize=(12, 5))
 ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
-plot_2d_pseudosection(
+plot_pseudosection(
     survey,
-    np.abs(dpred),
-    'scatter',
+    dobs=np.abs(dpred),
+    plot_type="scatter",
     ax=ax1,
     scale="log",
-    units="V/A",
+    cbar_label="V/A",
     scatter_opts={"cmap": mpl.cm.viridis},
 )
 ax1.set_title("Normalized Voltages")
 plt.show()
 
 # Get apparent conductivities from volts and survey geometry
-apparent_conductivities = 1/apparent_resistivity_from_voltage(survey, dpred)
+apparent_conductivities = 1 / apparent_resistivity_from_voltage(survey, dpred)
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))
 ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
-plot_2d_pseudosection(
+plot_pseudosection(
     survey,
-    apparent_conductivities,
-    'tricontourf',
+    dobs=apparent_conductivities,
+    plot_type="contourf",
     ax=ax1,
     scale="log",
-    units="S/m",
+    cbar_label="S/m",
     mask_topography=True,
-    tricontourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
+    contourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
 )
 ax1.set_title("Apparent Conductivity")
 plt.show()
@@ -298,7 +298,7 @@ if write_output:
     dir_path = os.path.dirname(__file__).split(os.path.sep)
     dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
-    
+
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
 
@@ -307,7 +307,7 @@ if write_output:
     std = 0.05 * np.abs(dpred)
     dc_noise = std * np.random.rand(len(dpred))
     dobs = dpred + dc_noise
-    
+
     # Create a survey with the original electrode locations
     # and not the shifted ones
     # Generate source list for DC survey line
@@ -318,14 +318,14 @@ if write_output:
         end_locations,
         topo_xyz,
         num_rx_per_src,
-        station_separation
+        station_separation,
     )
     survey_original = dc.survey.Survey(source_list)
-    
+
     # Write out data at their original electrode locations (not shifted)
     data_obj = data.Data(survey_original, dobs=dobs, standard_deviation=std)
     fname = dir_path + "dc_data.obs"
-    write_dcip2d_ubc(fname, data_obj, 'volt', 'dobs')
+    write_dcip2d_ubc(fname, data_obj, "volt", "dobs")
 
     fname = dir_path + "topo_xyz.txt"
     np.savetxt(fname, topo_xyz, fmt="%.4e")
