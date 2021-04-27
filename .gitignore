@@ -57,6 +57,12 @@ tutorials/04-magnetics/magnetics/*
 tutorials/05-dcr/dcip1d/*
 tutorials/05-dcr/dcip2d/*
 tutorials/06-ip/dcip2d/*
+tutorials/07-fdem/em1dfm/*
+tutorials/07-fdem/em1dfm_stitched/*
+tutorials/07-fdem/outputs/*
+tutorials/08-tdem/em1dtm/*
+tutorials/08-tdem/em1dtm_stitched/*
+tutorials/08-tdem/outputs/*
 tutorials/12-seismic/seismic/*
 
 # jupyter

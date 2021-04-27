@@ -44,29 +44,32 @@ plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8
 # sphinx_gallery_thumbnail_number = 3
 
 #############################################
-# Define File Names
-# -----------------
+# Download Test Data File
+# -----------------------
 #
-# File paths for assets we are loading. To set up the inversion, we require
-# topography and field observations. The true model defined on the whole mesh
-# is loaded to compare with the inversion result.
+# Here we provide the file path to the data we plan on inverting.
+# The path to the data file is stored as a
+# tar-file on our google cloud bucket:
+# "https://storage.googleapis.com/simpeg/doc-assets/em1dfm.tar.gz"
 #
 
-## storage bucket where we have the data
-#data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dfm_data.tar.gz"
-#
-## download the data
-#downloaded_data = utils.download(data_source, overwrite=True)
-#
-## unzip the tarfile
-#tar = tarfile.open(downloaded_data, "r")
-#tar.extractall()
-#tar.close()
-#
-## filepath to data file
-#data_filename = downloaded_data.split(".")[0] + ".obs"
+# storage bucket where we have the data
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dfm.tar.gz"
 
-data_filename = ".//em1dfm//em1dfm_data.obs"
+# download the data
+downloaded_data = utils.download(data_source, overwrite=True)
+
+# unzip the tarfile
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
+
+# path to the directory containing our data
+dir_path = downloaded_data.split(".")[0] + os.path.sep
+
+# files to work with
+data_filename = dir_path + "em1dfm_data.txt"
+
 
 #############################################
 # Load Data and Plot
@@ -187,7 +190,7 @@ mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], '0')
 
 # Define starting model.
 starting_conductivity = np.log(0.1*np.ones(mesh.nC))
-starting_height = 25.
+starting_height = 35.
 starting_model = np.r_[starting_conductivity, starting_height]
 
 # Use the *Wires* mapping to define which model parameters are conductivities
@@ -231,10 +234,10 @@ dmis.W = 1./uncertainties
 
 # Define the regularization for the conductivity
 reg_sigma = regularization.Sparse(
-    mesh, mapping=wires.sigma
+    mesh, mapping=wires.sigma, alpha_s=0.1, alpha_x=1.
 )
 
-p = 0.
+p = 1.
 q = 0.
 reg_sigma.norms = np.c_[p, q]
 
@@ -243,7 +246,7 @@ reg_height = regularization.Sparse(
     TensorMesh([1]), mapping=wires.h,
 )
 
-p = 0.
+p = 1.
 reg_sigma.p = p
 
 # Combine the regularization objects

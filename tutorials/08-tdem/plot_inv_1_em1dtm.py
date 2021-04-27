@@ -44,29 +44,31 @@ plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8
 # sphinx_gallery_thumbnail_number = 2
 
 #############################################
-# Define File Names
-# -----------------
+# Download Test Data File
+# -----------------------
 #
-# File paths for assets we are loading. To set up the inversion, we require
-# topography and field observations. The true model defined on the whole mesh
-# is loaded to compare with the inversion result.
+# Here we provide the file path to the data we plan on inverting.
+# The path to the data file is stored as a
+# tar-file on our google cloud bucket:
+# "https://storage.googleapis.com/simpeg/doc-assets/em1dtm.tar.gz"
 #
 
-## storage bucket where we have the data
-#data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dtm_data.tar.gz"
-#
-## download the data
-#downloaded_data = utils.download(data_source, overwrite=True)
-#
-## unzip the tarfile
-#tar = tarfile.open(downloaded_data, "r")
-#tar.extractall()
-#tar.close()
-#
-## filepath to data file
-#data_filename = downloaded_data.split(".")[0] + ".obs"
+# storage bucket where we have the data
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dtm.tar.gz"
 
-data_filename = './em1dtm/em1dtm_data.obs'
+# download the data
+downloaded_data = utils.download(data_source, overwrite=True)
+
+# unzip the tarfile
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
+
+# path to the directory containing our data
+dir_path = downloaded_data.split(".")[0] + os.path.sep
+
+# files to work with
+data_filename = dir_path + "em1dtm_data.txt"
 
 #############################################
 # Load Data and Plot

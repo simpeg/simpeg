@@ -44,29 +44,32 @@ plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8
 # sphinx_gallery_thumbnail_number = 2
 
 #############################################
-# Define File Names
-# -----------------
+# Download Test Data File
+# -----------------------
 #
-# File paths for assets we are loading. To set up the inversion, we require
-# topography and field observations. The true model defined on the whole mesh
-# is loaded to compare with the inversion result.
+# Here we provide the file path to the data we plan on inverting.
+# The path to the data file is stored as a
+# tar-file on our google cloud bucket:
+# "https://storage.googleapis.com/simpeg/doc-assets/em1dfm.tar.gz"
 #
 
-## storage bucket where we have the data
-#data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dfm_data.tar.gz"
-#
-## download the data
-#downloaded_data = utils.download(data_source, overwrite=True)
-#
-## unzip the tarfile
-#tar = tarfile.open(downloaded_data, "r")
-#tar.extractall()
-#tar.close()
-#
-## filepath to data file
-#data_filename = downloaded_data.split(".")[0] + ".obs"
+# storage bucket where we have the data
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dfm.tar.gz"
 
-data_filename = ".//em1dfm//em1dfm_data.obs"
+# download the data
+downloaded_data = utils.download(data_source, overwrite=True)
+
+# unzip the tarfile
+tar = tarfile.open(downloaded_data, "r")
+tar.extractall()
+tar.close()
+
+# path to the directory containing our data
+dir_path = downloaded_data.split(".")[0] + os.path.sep
+
+# files to work with
+data_filename = dir_path + "em1dfm_data.txt"
+
 
 #############################################
 # Load Data and Plot
@@ -146,7 +149,7 @@ survey = em1d.survey.EM1DSurveyFD(source_list)
 #
 
 # 5% of the absolute value
-uncertainties = 0.1*np.abs(dobs)*np.ones(np.shape(dobs))
+uncertainties = 0.05*np.abs(dobs)*np.ones(np.shape(dobs))
 
 # Define the data object
 data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
@@ -219,7 +222,7 @@ dmis.W = 1./uncertainties
 # Define the regularization (model objective function)
 reg_map = maps.IdentityMap(nP=mesh.nC)
 reg = regularization.Sparse(
-    mesh, mapping=reg_map
+    mesh, mapping=reg_map, alpha_s=0.1, alpha_x=1.
 )
 
 # reference model
@@ -232,7 +235,7 @@ reg.norms = np.c_[p, q]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.ProjectedGNCG(maxIter=50, maxIterLS=20, maxIterCG=20, tolCG=1e-3)
+opt = optimization.ProjectedGNCG(maxIter=50, maxIterLS=20, maxIterCG=30, tolCG=1e-3)
 
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)

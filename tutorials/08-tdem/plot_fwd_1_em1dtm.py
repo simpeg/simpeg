@@ -31,7 +31,7 @@ from SimPEG import maps
 import SimPEG.electromagnetics.time_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import plot_layer
 
-save_file = True
+write_output = False
 plt.rcParams.update({'font.size': 16})
 
 # sphinx_gallery_thumbnail_number = 2
@@ -157,16 +157,19 @@ ax.set_title("Magnetic Flux")
 # -----------------------
 #
 
-if save_file == True:
+if write_output:
 
-    dir_path = os.path.dirname(em1d.__file__).split(os.path.sep)[:-3]
-    dir_path.extend(["tutorials", "08-tdem", "em1dtm"])
+    dir_path = os.path.dirname(__file__).split(os.path.sep)
+    dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
+
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
     
     np.random.seed(347)
     noise = 0.05*np.abs(dpred)*np.random.rand(len(dpred))
     dpred += noise
-    fname = dir_path + 'em1dtm_data.obs'
+    fname = dir_path + 'em1dtm_data.txt'
     np.savetxt(
         fname, np.c_[times, dpred], fmt='%.4e', header='TIME BZ'
     )

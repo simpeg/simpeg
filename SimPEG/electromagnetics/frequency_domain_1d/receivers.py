@@ -74,7 +74,7 @@ class PointReceiver(BaseRx):
         Number of data in the receiver.
         We assume that a receiver object, only have a single location
         """
-        if self.component is 'both':
+        if self.component == 'both':
             return int(self.frequencies.size * 2)
         else:
             return self.frequencies.size
