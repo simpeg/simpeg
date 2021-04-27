@@ -70,12 +70,6 @@ Second (from the root of the SimPEG repository)::
 
     python setup.py install
 
-.. attention:: Windows users
-	A common error when installing the setup.py is:
-	``Missing linker, needs MSC v.1500 (Microsoft Visual C++ 2008) Runtime Library``
-
-	The missing library can be found `here <https://www.microsoft.com/en-ca/download/details.aspx?id=29>`_
-
 If you are interested in contributing to SimPEG, please check out the page on :ref:`Contributing <contributing>`
 
 
