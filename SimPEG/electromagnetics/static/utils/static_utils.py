@@ -557,6 +557,15 @@ def plot_pseudosection(
         )
         data_locations = kwargs.pop("data_location")
 
+    if "contour_opts" in kwargs:
+        warnings.warn(
+            "The contour_opts keyword has been deprecated. Please use "
+            "contourf_opts instead. This will be removed in version"
+            " 0.15.0 of SimPEG",
+            DeprecationWarning,
+        )
+        contourf_opts = kwargs.pop("contour_opts")
+
     removed_kwargs = ["dim", "y_values", "sameratio", "survey_type"]
     for kwarg in removed_kwargs:
         if kwarg in kwargs:
@@ -1784,7 +1793,7 @@ def plot_layer(rho, mesh, **kwargs):
         DeprecationWarning,
     )
 
-    return plot_1d_layer_model(mesh.hx, rho, **kwargs)
+    return plot_1d_layer_model(mesh.hx, rho, z0=mesh.origin[0], **kwargs)
 
 
 def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
