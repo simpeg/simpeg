@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-DC Resistivity Forward Simulation in 3D
-=======================================
+DC/IP Forward Simulation in 3D
+==============================
 
 Here we use the module *SimPEG.electromagnetics.static.resistivity* to predict
-DC resistivity data on an OcTree mesh. In this tutorial, we focus on the following:
+DC resistivity data on an OcTree mesh. Then we use the module
+*SimPEG.electromagnetics.static.induced_polarization* to predict IP data.
+In this tutorial, we focus on the following:
 
     - How to define the survey
     - How to definine a tree mesh based on the survey geometry
     - How to define the forward simulations
-    - How to predict DC data for a synthetic conductivity model
+    - How to predict DC and IP for a synthetic conductivity model and a synthetic chargeability model
     - How to include surface topography
     - The units of the model and resulting data
-    - Plotting DC data in 3D
+    - Plotting DC and IP data in 3D
 
 
 In this case, we simulate dipole-dipole data for three East-West lines and two
@@ -39,12 +41,13 @@ from SimPEG import maps, data
 from SimPEG.utils import model_builder, surface2ind_topo
 from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip_xyz
 from SimPEG.electromagnetics.static import resistivity as dc
+from SimPEG.electromagnetics.static import induced_polarization as ip
 from SimPEG.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
     apparent_resistivity_from_voltage
 )
 
-# To plot DC data in 3D, the user must have the plotly package
+# To plot DC/IP data in 3D, the user must have the plotly package
 try:
     import plotly
     from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
@@ -61,7 +64,7 @@ except ImportError:
 mpl.rcParams.update({"font.size": 16})
 write_output = False
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 4
 
 #########################################################################
 # Defining Topography
@@ -76,7 +79,7 @@ x_topo, y_topo = np.meshgrid(
     np.linspace(-2100, 2100, 141), np.linspace(-2000, 2000, 141)
 )
 s = np.sqrt(x_topo**2 + y_topo**2)
-z_topo = 10+(1 / np.pi) * 140 * (-np.pi / 2 + np.arctan((s - 600.0) / 160.0))
+z_topo = (1 / np.pi) * 140 * (-np.pi / 2 + np.arctan((s - 600.0) / 80.0))
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 topo_xyz = np.c_[x_topo, y_topo, z_topo]
 
@@ -95,7 +98,7 @@ topo_xyz = np.c_[x_topo, y_topo, z_topo]
 
 # Define the parameters for each survey line
 survey_type = "dipole-dipole"
-data_type = "volt"
+dc_data_type = "volt"
 dimension_type = "3D"
 end_locations_list = [
     np.r_[-1000.0, 1000.0, 0.0, 0.0],
@@ -111,7 +114,7 @@ source_list = []
 for ii in range(0, len(end_locations_list)):
     source_list += generate_dcip_sources_line(
         survey_type,
-        data_type,
+        dc_data_type,
         dimension_type,
         end_locations_list[ii],
         topo_xyz,
@@ -120,7 +123,7 @@ for ii in range(0, len(end_locations_list)):
     )
 
 # Define the survey
-survey = dc.survey.Survey(source_list)
+dc_survey = dc.survey.Survey(source_list)
 
 #################################################################
 # Create OcTree Mesh
@@ -153,7 +156,7 @@ mesh = refine_tree_xyz(
 
 # Mesh refinement near sources and receivers. 
 electrode_locations = np.r_[
-    survey.locations_a, survey.locations_b, survey.locations_m, survey.locations_n
+    dc_survey.locations_a, dc_survey.locations_b, dc_survey.locations_m, dc_survey.locations_n
 ]
 unique_locations = np.unique(electrode_locations, axis=0)
 mesh = refine_tree_xyz(
@@ -168,8 +171,8 @@ mesh.finalize()
 # -----------------------------------------------------
 # 
 # Here we define the conductivity model that will be used to predict DC
-# resistivity data. The model consists of a conductive sphere and a
-# resistive sphere within a moderately conductive background. Note that
+# resistivity data. The model consists of a conductive block and a
+# resistive block within a moderately conductive background. Note that
 # you can carry through this work flow with a resistivity model if desired.
 # 
 
@@ -205,7 +208,7 @@ fig = plt.figure(figsize=(10, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 log_mod = np.log10(conductivity_model)
 
-ax1 = fig.add_axes([0.15, 0.15, 0.68, 0.75])
+ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
 mesh.plotSlice(
     plotting_map * log_mod,
     ax=ax1,
@@ -241,7 +244,7 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 # 
 # 
 
-survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
+dc_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 
 ############################################################
 # Predict DC Resistivity Data
@@ -255,13 +258,13 @@ survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 # 
 
 # Define the DC simulation
-simulation = dc.simulation.Simulation3DNodal(
-    mesh, survey=survey, sigmaMap=conductivity_map, Solver=Solver
+dc_simulation = dc.simulation.Simulation3DNodal(
+    mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
 )
 
 # Predict the data by running the simulation. The data are the measured voltage
 # normalized by the source current in units of V/A.
-dpred = simulation.dpred(conductivity_model)
+dpred_dc = dc_simulation.dpred(conductivity_model)
 
 #########################################################
 # Plot DC Data in 3D Pseudosection
@@ -279,7 +282,7 @@ dpred = simulation.dpred(conductivity_model)
 # Since the data are normalized voltage, we must convert predicted 
 # to apparent conductivities.
 apparent_conductivity = 1 / apparent_resistivity_from_voltage(
-    survey, dpred,
+    dc_survey, dpred_dc,
 )
 
 # For large datasets or for surveys with unconventional electrode geometry,
@@ -298,7 +301,7 @@ plane_points.append([p1, p2, p3])
 if has_plotly:
 
     fig = plot_3d_pseudosection(
-        survey,
+        dc_survey,
         apparent_conductivity,
         scale='log',
         units='S/m',
@@ -320,12 +323,163 @@ if has_plotly:
 else:
     print("INSTALL 'PLOTLY' TO VISUALIZE 3D PSEUDOSECTIONS")
 
-########################################################
-# Optional: Write Predicted DC Data
-# ---------------------------------
+
+############################################
+# Define IP Survey
+# ----------------
 # 
-# Write DC resistivity data, topography and true model
+# In the same manner as before, we use the *generate_dcip_sources_lines*
+# to generate an IP survey whose receivers define the data in
+# terms of the apparent chargeability (V/V).
 # 
+
+# Generate source list for IP survey lines
+ip_data_type = "apparent_chargeability"
+source_list = []
+for ii in range(0, len(end_locations_list)):
+    source_list += generate_dcip_sources_line(
+        survey_type,
+        ip_data_type,
+        dimension_type,
+        end_locations_list[ii],
+        topo_xyz,
+        num_rx_per_src,
+        station_separation,
+    )
+
+# Define survey
+ip_survey = ip.survey.Survey(source_list, survey_type=survey_type)
+
+# Drape to discretized topography as before
+ip_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
+
+
+#################################################################
+# Create Chargeability Model and Mapping for OcTree Mesh
+# ------------------------------------------------------
+# 
+# Here we define the chargeability model that will be used to predict IP data.
+# Here we assume that the conductive sphere is also chargeable but the resistive
+# sphere is not. Here, the chargeability model represents the intrinsic
+# chargeability of the Earth (V/V).
+# 
+# 
+
+# Define intrinsic chargeability model (V/V)
+air_value = 1e-8
+background_value = 1e-6
+chargeable_value = 1e-1
+
+# Define mapping from model to active cells
+chargeability_map = maps.InjectActiveCells(mesh, ind_active, air_value)
+
+# Define model
+chargeability_model = background_value * np.ones(nC)
+
+ind_chargeable = model_builder.getIndicesSphere(
+    np.r_[-350., 0., -300.], 160., mesh.cell_centers[ind_active, :]
+)
+
+chargeability_model[ind_chargeable] = chargeable_value
+
+# Plot Chargeability Model
+fig = plt.figure(figsize=(10, 4))
+
+plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
+
+ax1 = fig.add_axes([0.15, 0.15, 0.67, 0.75])
+mesh.plotSlice(
+    plotting_map * chargeability_model,
+    ax=ax1,
+    normal="Y",
+    ind=int(len(mesh.hy) / 2),
+    grid=True,
+    clim=(background_value, chargeable_value),
+    pcolor_opts={"cmap": mpl.cm.plasma},
+)
+ax1.set_title("Chargeability Model")
+ax1.set_xlabel("x (m)")
+ax1.set_ylabel("z (m)")
+ax1.set_xlim([-1000, 1000])
+ax1.set_ylim([-1000, 0])
+
+ax2 = fig.add_axes([0.84, 0.15, 0.03, 0.75])
+norm = mpl.colors.Normalize(
+    vmin=background_value, vmax=chargeable_value
+)
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, cmap=mpl.cm.plasma, norm=norm, orientation="vertical", format="%.2f"
+)
+cbar.set_label("Intrinsic Chargeability [V/V]", rotation=270, labelpad=15, size=12)
+
+################################################
+# Predict IP Data
+# ---------------
+# 
+# Here we use a chargeability model and a background conductivity/resistivity
+# model to predict IP data.
+# 
+# 
+
+# We use the keyword argument *sigma* to define the background conductivity on
+# the mesh. We could use the keyword argument *rho* to accomplish the same thing
+# using a background resistivity model.
+ip_simulation = ip.simulation.Simulation3DNodal(
+    mesh,
+    survey=ip_survey,
+    etaMap=chargeability_map,
+    sigma=conductivity_map * conductivity_model,
+    Solver=Solver,
+)
+
+# Run forward simulation and predicted IP data. The data are the voltage (V)
+dpred_ip = ip_simulation.dpred(chargeability_model)
+
+##################################################
+# Plot IP Data in 3D Pseudosection
+# --------------------------------
+# 
+# Here we demonstrate how 3D IP data can be represented on a 3D
+# pseudosection plot. To use this utility, you must have Python's *plotly*
+# package. Here, we represent the data as apparent chargeabilities.
+# Since the IP data are already represented as apparent chargeabilities,
+# we can plot the data directly.
+# 
+# 
+
+if has_plotly:
+
+    fig = plot_3d_pseudosection(
+        ip_survey,
+        dpred_ip,
+        vlim=[0., np.max(dpred_ip)],
+        scale='linear',
+        units='V/V',
+        plane_points=plane_points,
+        plane_distance=15,
+        marker_opts={'colorscale': 'plasma'}
+    )
+
+    fig.update_layout(
+        title_text='Apparent Chargeability',
+        title_x=0.5,
+        title_font_size=24,
+        width=650,
+        height=500,
+        scene_camera=dict(center=dict(x=0.05, y=0, z=-0.4))
+    )
+    
+    plotly.io.show(fig)
+
+else:
+    print("INSTALL 'PLOTLY' TO VISUALIZE 3D PSEUDOSECTIONS")
+
+
+############################################################
+# Optional: Write Outputs
+# -----------------------
+# 
+
 
 if write_output:
 
@@ -335,15 +489,19 @@ if write_output:
     
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
+    
+    # Write topography
+    fname = dir_path + "topo_xyz.txt"
+    np.savetxt(fname, topo_xyz, fmt="%.4e")
 
-    # Add 5% Gaussian noise to each datum
+    # Add 10% Gaussian noise to each datum
     np.random.seed(433)
-    std = 0.1 * np.abs(dpred)
-    noise = std * np.random.rand(len(dpred))
-    dobs = dpred + noise
+    std = 0.1 * np.abs(dpred_dc)
+    noise = std * np.random.rand(len(dpred_dc))
+    dobs = dpred_dc + noise
     
     # Create dictionary that stores line IDs
-    N = int(survey.nD/len(end_locations_list))
+    N = int(dc_survey.nD/3)
     lineID = np.r_[np.ones(N), 2*np.ones(N), 3*np.ones(N)]
     out_dict = {'LINEID': lineID}
     
@@ -353,17 +511,17 @@ if write_output:
     for ii in range(0, len(end_locations_list)):
         source_list += generate_dcip_sources_line(
             survey_type,
-            data_type,
+            dc_data_type,
             dimension_type,
             end_locations_list[ii],
             topo_xyz,
             num_rx_per_src,
             station_separation,
         )
-    survey_original = dc.survey.Survey(source_list)
+    dc_survey_original = dc.survey.Survey(source_list)
     
     # Write out data at their original electrode locations (not shifted)
-    data_obj = data.Data(survey_original, dobs=dobs, standard_deviation=std)
+    data_obj = data.Data(dc_survey_original, dobs=dobs, standard_deviation=std)
     
     fname = dir_path + "dc_data.xyz"
     write_dcip_xyz(
@@ -374,7 +532,36 @@ if write_output:
         out_dict=out_dict
     )
 
-    fname = dir_path + "topo_xyz.txt"
-    np.savetxt(fname, topo_xyz, fmt="%.4e")
 
-
+    # Add Gaussian noise with a standard deviation of 5e-3 V/V
+    np.random.seed(444)
+    std = 5e-3 * np.ones_like(dpred_ip)
+    noise = std * np.random.rand(len(dpred_ip))
+    dobs = dpred_ip + noise
+    
+    # Create a survey with the original electrode locations
+    # and not the shifted ones.
+    source_list = []
+    for ii in range(0, len(end_locations_list)):
+        source_list += generate_dcip_sources_line(
+            survey_type,
+            ip_data_type,
+            dimension_type,
+            end_locations_list[ii],
+            topo_xyz,
+            num_rx_per_src,
+            station_separation,
+        )
+    ip_survey_original = ip.survey.Survey(source_list)
+    
+    # Write out data at their original electrode locations (not shifted)
+    data_obj = data.Data(ip_survey, dobs=dobs, standard_deviation=std)
+    
+    fname = dir_path + "ip_data.xyz"
+    write_dcip_xyz(
+        fname,
+        data_obj,
+        data_header='APP_CHG',
+        uncertainties_header='UNCERT',
+        out_dict=out_dict
+    )

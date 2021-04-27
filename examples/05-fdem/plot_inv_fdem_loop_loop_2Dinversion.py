@@ -15,7 +15,10 @@ and perform the forward modelling in 3D.
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-from pymatsolver import Pardiso as Solver
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
 
 import discretize
 from SimPEG import (
