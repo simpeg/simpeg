@@ -171,8 +171,8 @@ class BaseDCSimulation(BaseEMSimulation):
                         source, self.mesh, f, v[source, rx], adjoint=True
                     )
                 else:
-                    # This is for forming full sensitivity matrix
-                    PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
+                    PTv = rx.evalDeriv(source, self.mesh, f).toarray().T
+
                 df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
                 df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
 
