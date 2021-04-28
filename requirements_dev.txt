@@ -19,3 +19,4 @@ black
 pre-commit
 twine
 memory_profiler
+plotly
