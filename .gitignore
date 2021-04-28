@@ -53,10 +53,16 @@ examples/20-published/._bookpurnong_inversion
 examples/20-published/*.tar.gz
 examples/20-published/*.png
 tutorials/03-gravity/gravity/*
+tutorials/03-gravity/outputs/*
 tutorials/04-magnetics/magnetics/*
-tutorials/05-dcr/dcip1d/*
-tutorials/05-dcr/dcip2d/*
+tutorials/04-magnetics/outputs/*
+tutorials/05-dcr/dcr1d/*
+tutorials/05-dcr/dcr2d/*
+tutorials/05-dcr/dcr3d/*
+tutorials/05-dcr/outputs/*
 tutorials/06-ip/dcip2d/*
+tutorials/06-ip/dcip3d/*
+tutorials/06-ip/outputs/*
 tutorials/12-seismic/seismic/*
 tutorials/13-pgi/pgi/*
 

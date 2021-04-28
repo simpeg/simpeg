@@ -35,7 +35,7 @@ import tarfile
 from discretize import TensorMesh
 
 from SimPEG.potential_fields import magnetics
-from SimPEG.utils import plot2Ddata, surface2ind_topo
+from SimPEG.utils import plot2Ddata, surface2ind_topo, model_builder
 from SimPEG import (
     maps,
     data,
@@ -78,7 +78,6 @@ dir_path = downloaded_data.split(".")[0] + os.path.sep
 # files to work with
 topo_filename = dir_path + "magnetics_topo.txt"
 data_filename = dir_path + "magnetics_data.obs"
-model_filename = dir_path + "true_model.txt"
 
 
 #############################################
@@ -90,7 +89,7 @@ model_filename = dir_path + "true_model.txt"
 # x, y, z and data.
 #
 
-xyz_topo = np.loadtxt(str(topo_filename))
+topo_xyz = np.loadtxt(str(topo_filename))
 dobs = np.loadtxt(str(data_filename))
 
 receiver_locations = dobs[:, 0:3]
@@ -211,7 +210,7 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 background_susceptibility = 1e-4
 
 # Find the indecies of the active cells in forward model (ones below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = surface2ind_topo(mesh, topo_xyz)
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -337,15 +336,25 @@ inv = inversion.BaseInversion(inv_prob, directives_list)
 # Run the inversion
 recovered_model = inv.run(starting_model)
 
+##############################################################
+# Recreate True Model
+# -------------------
+# 
+
+
+background_susceptibility = 0.0001
+sphere_susceptibility = 0.01
+
+true_model = background_susceptibility * np.ones(nC)
+ind_sphere = model_builder.getIndicesSphere(np.r_[0.0, 0.0, -45.0], 15.0, mesh.cell_centers)
+ind_sphere = ind_sphere[ind_active]
+true_model[ind_sphere] = sphere_susceptibility
+
+
 ############################################################
 # Plotting True Model and Recovered Model
 # ---------------------------------------
 #
-
-# Load the true model (was defined on the whole mesh) and extract only the
-# values on active cells.
-true_model = np.loadtxt(str(model_filename))
-true_model = true_model[ind_active]
 
 # Plot True Model
 fig = plt.figure(figsize=(9, 4))

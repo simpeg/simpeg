@@ -40,10 +40,12 @@ class DCProblem_2DTestsCC(unittest.TestCase):
         A0loc = np.r_[-150, 0.0]
         A1loc = np.r_[-130, 0.0]
         # rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        rx = dc.receivers.Dipole(M, N)
-        src0 = dc.sources.Pole([rx], A0loc)
-        src1 = dc.sources.Pole([rx], A1loc)
-        survey = dc.survey.Survey_ky([src0, src1])
+        rx1 = dc.receivers.Dipole(M, N)
+        rx2 = dc.receivers.Dipole(M, N, data_type="apparent_resistivity")
+        src0 = dc.sources.Pole([rx1, rx2], A0loc)
+        src1 = dc.sources.Pole([rx1, rx2], A1loc)
+        survey = dc.survey.Survey([src0, src1])
+        survey.set_geometric_factor()
         simulation = getattr(dc, self.formulation)(
             mesh,
             rhoMap=maps.IdentityMap(mesh),
