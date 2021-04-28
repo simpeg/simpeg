@@ -70,6 +70,7 @@ tutorials/08-tdem/em1dtm/*
 tutorials/08-tdem/em1dtm_stitched/*
 tutorials/08-tdem/outputs/*
 tutorials/12-seismic/seismic/*
+tutorials/13-em1d/*
 
 # jupyter
 *.ipynb
