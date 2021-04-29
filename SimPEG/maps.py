@@ -19,6 +19,7 @@ from scipy.sparse import csr_matrix as csr
 
 import properties
 from discretize.tests import checkDerivative
+from discretize import TreeMesh
 
 from .utils import (
     setKwargs,
@@ -3331,8 +3332,9 @@ class TileMap(IdentityMap):
     _local_mesh = None
     _local_active = None
     _projection = None
+    _enforce_active = True
 
-    def __init__(self, global_mesh, global_active, local_mesh, **kwargs):
+    def __init__(self, global_mesh: TreeMesh, global_active: bool, local_mesh: TreeMesh, **kwargs):
         """
         Parameters
         ----------
@@ -3431,18 +3433,25 @@ class TileMap(IdentityMap):
                 )
                 * speye(self.global_mesh.nC)[:, self.global_active]
             )
-
             self.local_active = mkvc(np.sum(P, axis=1) > 0)
+
+            # Remove cells with inactive in global
+            if self._enforce_active:
+                self.local_active[
+                    self.local_mesh._get_containing_cell_indexes(
+                        self.global_mesh.gridCC[self.global_active == False, :]
+                    )
+                ] = False
 
             P = P[self.local_active, :]
 
             self._projection = sp.block_diag(
                 [
-                    sdiag(1.0 / self.local_mesh.cell_volumes[self.local_active]) * P
+                    sdiag(1.0 / np.sum(P, axis=1)) * P
                     for ii in range(self.components)
                 ]
             )
-
+        # np.sum(P, axis=1)
         return self._projection
 
     def _transform(self, m):
