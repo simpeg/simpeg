@@ -123,7 +123,7 @@ class BaseEM1DSimulation(BaseSimulation):
     )
 
     survey = properties.Instance(
-        "a survey object", BaseEM1DSurvey, required=True
+        "a survey object", BaseSurvey, required=True
     )
 
     topo = properties.Array("Topography (x, y, z)", dtype=float)

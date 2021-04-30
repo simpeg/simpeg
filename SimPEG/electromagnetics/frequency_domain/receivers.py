@@ -22,8 +22,21 @@ class BaseRx(survey.BaseRx):
         {
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
+            "both": ["re and im", 'in-phase and out-of-phase'], 
+            "complex": ["re + im"]
         },
     )
+
+    data_type = properties.StringChoice(
+        "Data type",
+        default="field",
+        choices=["field", "ppm"]
+    )
+
+    use_source_receiver_offset = properties.Bool(
+        "Use source-receiver offset",
+        default=False
+    )    
 
     projComp = deprecate_property(
         orientation, "projComp", new_name="orientation", removal_version="0.15.0"
@@ -162,6 +175,21 @@ class PointMagneticField(BaseRx):
     def __init__(self, locations, orientation="x", component="real"):
         self.projField = "h"
         super(PointMagneticField, self).__init__(locations, orientation, component)
+
+class PointMagneticFieldSecondary(BaseRx):
+    """
+    Magnetic flux FDEM receiver
+
+    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param string component: real or imaginary component 'real' or 'imag'
+    """
+
+    def __init__(self, locations, orientation="x", component="real", **kwargs):
+        self.projField = "hSecondary"
+        super(PointMagneticFieldSecondary, self).__init__(
+            locations, orientation=orientation, component=component, **kwargs
+        )        
 
 
 class PointCurrentDensity(BaseRx):

@@ -1,7 +1,9 @@
 from ... import maps, utils
 from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation
+from ..frequency_domain.sources import MagDipole, CircularLoop
+from ..frequency_domain.receivers import PointMagneticFieldSecondary
 import numpy as np
-from .sources import *
+# from .sources import *
 from .survey import EM1DSurveyFD
 from .supporting_functions.kernels import *
 
@@ -53,32 +55,37 @@ class EM1DFMSimulation(BaseEM1DSimulation):
         for ii, src in enumerate(self.survey.source_list):
             for jj, rx in enumerate(src.receiver_list):
 
-                n_frequency = len(rx.frequencies)
+                if np.isscalar(src.frequency):
+                    n_frequency = 1
+                    frequency = np.array([src.frequency])
+                else:
+                    n_frequency = len(src.frequency)
+                    frequency = src.frequency.copy()
 
                 f = np.empty([n_frequency, n_filter], order='F')
                 f[:, :] = np.tile(
-                    rx.frequencies.reshape([-1, 1]), (1, n_filter)
+                    frequency.reshape([-1, 1]), (1, n_filter)
                 )
 
                 # Create globally, not for each receiver in the future
-                sig = self.compute_sigma_matrix(rx.frequencies)
-                chi = self.compute_chi_matrix(rx.frequencies)
+                sig = self.compute_sigma_matrix(frequency)
+                chi = self.compute_chi_matrix(frequency)
 
                 # Compute receiver height
                 h = h_vector[ii]
                 if rx.use_source_receiver_offset:
-                    z = h + rx.locations[2]
+                    z = h + rx.locations[0, 2]
                 else:
-                    z = h + rx.locations[2] - src.location[2]
+                    z = h + rx.locations[0, 2] - src.location[2]
 
                 # Hankel transform for x, y or z magnetic dipole source
-                if isinstance(src, MagneticDipoleSource):
+                if isinstance(src, MagDipole):
 
                     # Radial distance
                     if rx.use_source_receiver_offset:
-                        r = rx.locations[0:2]
+                        r = rx.locations[0, 0:2]
                     else:
-                        r = rx.locations[0:2] - src.location[0:2]
+                        r = rx.locations[0, 0:2] - src.location[0:2]
 
                     r = np.sqrt(np.sum(r**2))
                     r_vec = r * np.ones(n_frequency)
@@ -102,12 +109,12 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                         r_vec = np.tile(r_vec, (n_layer, 1))
 
                     # Evaluate Hankel transform using digital linear filter from empymod
-                    integral_output = src.moment_amplitude * dlf(
+                    integral_output = src.moment * dlf(
                         PJ, lambd, r_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
                     )
 
                 # Hankel transform for horizontal loop source
-                elif isinstance(src, HorizontalLoopSource):
+                elif isinstance(src, CircularLoop):
 
                     # radial distance (r) and loop radius (a)
                     if rx.use_source_receiver_offset:
@@ -182,21 +189,25 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                 else:
                     raise Exception()
 
-                # Either total or ppm
-                if rx.field_type != "secondary":
-                    u_primary = src.PrimaryField(rx.locations, rx.use_source_receiver_offset)
-                    if rx.field_type == "ppm":
+                if isinstance(rx, PointMagneticFieldSecondary):
+
+                    if rx.data_type == "ppm":
+                        u_primary = src.hPrimary1D(rx.locations, rx.use_source_receiver_offset)
                         k = [comp == rx.orientation for comp in ["x", "y", "z"]]
                         u_temp = 1e6 * u_temp/u_primary[0, k]
-                    else:
-                        if rx.component == 'both':
-                            if output_type == 'sensitivity_sigma':
-                                u_temp = np.vstack((u_temp_r+u_primary,u_temp_i))
-                            else:
-                                u_temp = np.r_[u_temp_r+u_primary, u_temp_i]
-
+    
+                elif isinstance(rx, PointMagneticField):
+                    u_primary = src.hPrimary1D(rx.locations, rx.use_source_receiver_offset)
+                    if rx.component == 'both':
+                        if output_type == 'sensitivity_sigma':
+                            u_temp = np.vstack((u_temp_r+u_primary,u_temp_i))
                         else:
-                            u_temp =+ u_primary
+                            u_temp = np.r_[u_temp_r+u_primary, u_temp_i]
+
+                    else:
+                        u_temp =+ u_primary
+                else:
+                    raise Exception()
 
                 u[COUNT] = u_temp
                 COUNT = COUNT + 1

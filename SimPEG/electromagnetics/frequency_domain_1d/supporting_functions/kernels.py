@@ -54,7 +54,7 @@ def magnetic_dipole_kernel(
     """
 
     # coefficient_wavenumber = 1/(4*np.pi)*lamda**2
-    C = src.moment_amplitude/(4*np.pi)
+    C = src.moment/(4*np.pi)
 
     n_frequency = len(f)
     n_filter = simulation.n_filter
@@ -91,7 +91,7 @@ def magnetic_dipole_kernel(
     else:
         v_dist = rx.locations - src.location
 
-    if src.orientation == "z":
+    if np.all(src.orientation==[0, 0, 1]):
         if rx.orientation == "z":
             kernels = [C * lamda**2 * temp, None, None]
         elif rx.orientation == "x":
@@ -100,7 +100,7 @@ def magnetic_dipole_kernel(
         elif rx.orientation == "y":
             C *= -v_dist[1]/np.sqrt(np.sum(v_dist[0:-1]**2))
             kernels = [None, C * lamda**2 * temp, None]
-    elif src.orientation == "x":
+    elif np.all(src.orientation==[1, 0, 0]):
         rho = np.sqrt(np.sum(v_dist[0:-1]**2))
         if rx.orientation == "z":
             C *= v_dist[0]/rho
@@ -113,7 +113,7 @@ def magnetic_dipole_kernel(
             C0 = C * v_dist[0]*v_dist[1]/rho**2
             C1 = C * -2*v_dist[0]*v_dist[1]/rho**3
             kernels = [C0 * lamda**2 * temp, C1 * lamda *temp, None]
-    elif src.orientation == "y":
+    elif np.all(src.orientation==[0, 1, 0]):
         rho = np.sqrt(np.sum(v_dist[0:-1]**2))
         if rx.orientation == "z":
             C *= v_dist[1]/rho
@@ -267,7 +267,7 @@ def horizontal_loop_kernel(
     radius = np.empty([n_frequency, n_filter], order='F')
     radius[:, :] = np.tile(a.reshape([-1, 1]), (1, n_filter))
 
-    coefficient_wavenumber = src.current_amplitude*radius*0.5*lamda**2/u0
+    coefficient_wavenumber = src.current*radius*0.5*lamda**2/u0
     thicknesses = simulation.thicknesses
     mu = (chi+1)*mu_0
     
