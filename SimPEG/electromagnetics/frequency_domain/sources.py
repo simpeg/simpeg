@@ -1,6 +1,7 @@
 import properties
 import numpy as np
 from scipy.constants import mu_0
+from scipy import special as spec
 import warnings
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
@@ -601,7 +602,7 @@ class CircularLoop(MagDipole):
         if is_offset:
             r0 = np.zeros(3)
         else:
-            r0 = self.location
+            r0 = self.location.ravel()
 
         theta = 0.  # Azimuthal
         alpha = 0.  # Declination

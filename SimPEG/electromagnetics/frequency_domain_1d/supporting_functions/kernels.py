@@ -87,9 +87,9 @@ def magnetic_dipole_kernel(
 
     # COMPUTE KERNEL FUNCTIONS FOR HANKEL TRANSFORM
     if rx.use_source_receiver_offset:
-        v_dist = rx.locations
+        v_dist = rx.locations.ravel()
     else:
-        v_dist = rx.locations - src.location
+        v_dist = rx.locations.ravel() - src.location
 
     if np.all(src.orientation==[0, 0, 1]):
         if rx.orientation == "z":

@@ -77,10 +77,45 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                     z = h + rx.locations[0, 2]
                 else:
                     z = h + rx.locations[0, 2] - src.location[2]
+                
+                # Hankel transform for horizontal loop source
+                if isinstance(src, CircularLoop):
+
+                    # radial distance (r) and loop radius (a)
+                    if rx.use_source_receiver_offset:
+                        r = rx.locations[0, 0:2]
+                    else:
+                        r = rx.locations[0, 0:2] - src.location[0:2]
+        
+                    r_vec = np.sqrt(np.sum(r**2)) * np.ones(n_frequency)
+                    a_vec = src.radius * np.ones(n_frequency)
+
+                    # Use function from empymod to define Hankel coefficients.
+                    # Size of lambd is (n_frequency x n_filter)
+                    lambd = np.empty([n_frequency, n_filter], order='F')
+                    lambd[:, :], _ = get_dlf_points(
+                        self.fhtfilt, a_vec, self.hankel_pts_per_dec
+                    )
+
+                    # Get kernel function(s) at all lambda and frequencies
+                    hz = horizontal_loop_kernel(
+                        self, lambd, f, n_layer, sig, chi, a_vec, h, z, r,
+                        src, rx, output_type
+                    )
+
+                    # kernels associated with each bessel function (j0, j1, j2)
+                    PJ = (None, hz, None)  # PJ1
+
+                    if output_type == "sensitivity_sigma":
+                        a_vec = np.tile(a_vec, (n_layer, 1))
+
+                    # Evaluate Hankel transform using digital linear filter from empymod
+                    integral_output = src.current * dlf(
+                        PJ, lambd, a_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
+                    )
 
                 # Hankel transform for x, y or z magnetic dipole source
-                if isinstance(src, MagDipole):
-
+                elif isinstance(src, MagDipole):
                     # Radial distance
                     if rx.use_source_receiver_offset:
                         r = rx.locations[0, 0:2]
@@ -113,42 +148,9 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                         PJ, lambd, r_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
                     )
 
-                # Hankel transform for horizontal loop source
-                elif isinstance(src, CircularLoop):
 
-                    # radial distance (r) and loop radius (a)
-                    if rx.use_source_receiver_offset:
-                        r = rx.locations[0:2]
-                    else:
-                        r = rx.locations[0:2] - src.location[0:2]
-
-                    r_vec = np.sqrt(np.sum(r**2)) * np.ones(n_frequency)
-                    a_vec = src.radius * np.ones(n_frequency)
-
-                    # Use function from empymod to define Hankel coefficients.
-                    # Size of lambd is (n_frequency x n_filter)
-                    lambd = np.empty([n_frequency, n_filter], order='F')
-                    lambd[:, :], _ = get_dlf_points(
-                        self.fhtfilt, a_vec, self.hankel_pts_per_dec
-                    )
-
-                    # Get kernel function(s) at all lambda and frequencies
-                    hz = horizontal_loop_kernel(
-                        self, lambd, f, n_layer, sig, chi, a_vec, h, z, r,
-                        src, rx, output_type
-                    )
-
-                    # kernels associated with each bessel function (j0, j1, j2)
-                    PJ = (None, hz, None)  # PJ1
-
-                    if output_type == "sensitivity_sigma":
-                        a_vec = np.tile(a_vec, (n_layer, 1))
-
-                    # Evaluate Hankel transform using digital linear filter from empymod
-                    integral_output = src.current_amplitude * dlf(
-                        PJ, lambd, a_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
-                    )
-
+                else:
+                    raise Exception()
                 if output_type == "sensitivity_sigma":
                     integral_output_list.append(integral_output.T)
                 else:
@@ -174,7 +176,6 @@ class EM1DFMSimulation(BaseEM1DSimulation):
             for jj, rx in enumerate(src.receiver_list):
 
                 u_temp = u[COUNT]
-
                 if rx.component == 'real':
                     u_temp = np.real(u_temp)
                 elif rx.component == 'imag':
