@@ -13,6 +13,8 @@ from ..data import Data
 from ..maps import IdentityMap
 from ..simulation import BaseSimulation
 from ..survey import BaseSurvey, BaseSrc
+# from ..frequency_domain.survey import FDSurvey
+# from ..time_domain.survey import TDSurvey
 from .. import utils
 from ..utils import sdiag, Zero, mkvc
 from .. import props
@@ -617,7 +619,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     topo = properties.Array("Topography (x, y, z)", dtype=float, shape=('*', 3))
 
     survey = properties.Instance(
-        "a survey object", BaseEM1DSurvey, required=True
+        "a survey object", BaseSurvey, required=True
     )
 
     def __init__(self, **kwargs):
@@ -664,7 +666,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
     @property
     def n_sounding(self):
-        return len(self.survey.source_list)
+        return len(self.survey._source_locations_by_sounding_dict)
 
 
     @property
@@ -798,7 +800,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
     def input_args(self, i_sounding, output_type='forward'):
         output = (
-            self.survey.source_list[i_sounding],
+            self.survey.get_sources_by_sounding_number(i_sounding),
             self.topo[i_sounding, :],
             self.thicknesses,
             self.Sigma[i_sounding, :],
@@ -892,8 +894,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         else:
             m = n_layer
 
-        for i in range(self.n_sounding):
-            n = self.survey.vnD_by_sounding[i]
+        for i_sounding in range(self.n_sounding):
+            n = self.survey.vnD_by_sounding[i_sounding]
             J_temp = np.tile(np.arange(m), (n, 1)) + shift_for_J
             I_temp = (
                 np.tile(np.arange(n), (1, m)).reshape((n, m), order='F') +
@@ -918,8 +920,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         shift_for_J = 0
         shift_for_I = 0
         m = self.n_layer
-        for i in range(self.n_sounding):
-            n = self.survey.vnD[i]
+        for i_sounding in range(self.n_sounding):
+            n = self.survey.vnD_by_sounding[i_sounding]
             J_temp = np.tile(np.arange(m), (n, 1)) + shift_for_J
             I_temp = (
                 np.tile(np.arange(n), (1, m)).reshape((n, m), order='F') +

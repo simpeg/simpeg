@@ -4,11 +4,11 @@ from .simulation import (
 )
 
 # Surveys
-from .survey import EM1DSurveyFD
+# from .survey import EM1DSurveyFD
 
 # Sources and receivers
-from . import sources
-from . import receivers
+# from . import sources
+# from . import receivers
 
 
 

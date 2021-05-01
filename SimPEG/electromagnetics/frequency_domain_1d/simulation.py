@@ -2,9 +2,10 @@ from ... import maps, utils
 from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation
 from ..frequency_domain.sources import MagDipole, CircularLoop
 from ..frequency_domain.receivers import PointMagneticFieldSecondary
+from ..frequency_domain.survey import Survey
 import numpy as np
 # from .sources import *
-from .survey import EM1DSurveyFD
+# from .survey import EM1DSurveyFD
 from .supporting_functions.kernels import *
 
 from empymod.utils import check_time
@@ -231,89 +232,91 @@ class EM1DFMSimulation(BaseEM1DSimulation):
 #       STITCHED 1D SIMULATION CLASS AND GLOBAL FUNCTIONS
 #######################################################################
 
-def dot(args):
-    return np.dot(args[0], args[1])
-
-
-def run_simulation_FD(args):
-    """
-    This method simulates the EM response or computes the sensitivities for
-    a single sounding. The method allows for parallelization of
-    the stitched 1D problem.
-
-    :param src: a EM1DFM source object
-    :param topo: Topographic location (x, y, z)
-    :param np.array thicknesses: np.array(N-1,) layer thicknesses for a single sounding
-    :param np.array sigma: np.array(N,) layer conductivities for a single sounding
-    :param np.array eta: np.array(N,) intrinsic chargeabilities for a single sounding
-    :param np.array tau: np.array(N,) Cole-Cole time constant for a single sounding
-    :param np.array c: np.array(N,) Cole-Cole frequency distribution constant for a single sounding
-    :param np.array chi: np.array(N,) magnetic susceptibility for a single sounding
-    :param np.array dchi: np.array(N,) DC susceptibility for magnetic viscosity for a single sounding
-    :param np.array tau1: np.array(N,) lower time-relaxation constant for magnetic viscosity for a single sounding
-    :param np.array tau2: np.array(N,) upper time-relaxation constant for magnetic viscosity for a single sounding
-    :param float h: source height for a single sounding
-    :param string output_type: "response", "sensitivity_sigma", "sensitivity_height"
-    :param bool invert_height: boolean switch for inverting for source height
-    :return: response or sensitivities
-
-    """
-
-    src, topo, thicknesses, sigma, eta, tau, c, chi, dchi, tau1, tau2, h, output_type, invert_height = args
-
-    n_layer = len(thicknesses) + 1
-    local_survey = EM1DSurveyFD([src])
-    exp_map = maps.ExpMap(nP=n_layer)
-
-    if not invert_height:
-        # Use Exponential Map
-        # This is hard-wired at the moment
-
-        sim = EM1DFMSimulation(
-            survey=local_survey, thicknesses=thicknesses,
-            sigmaMap=exp_map, eta=eta, tau=tau, c=c, chi=chi, dchi=dchi, tau1=tau1, tau2=tau2,
-            topo=topo, hankel_filter='key_101_2009'
-        )
-
-        if output_type == 'sensitivity_sigma':
-            drespdsig = sim.getJ_sigma(np.log(sigma))
-            return utils.mkvc(drespdsig * sim.sigmaDeriv)
-        else:
-            resp = sim.dpred(np.log(sigma))
-            return resp
-    else:
-
-        wires = maps.Wires(('sigma', n_layer), ('h', 1))
-        sigma_map = exp_map * wires.sigma
-
-        sim = EM1DFMSimulation(
-            survey=local_survey, thicknesses=thicknesses,
-            sigmaMap=sigma_map, hMap=wires.h, topo=topo,
-            eta=eta, tau=tau, c=c, chi=chi, dchi=dchi, tau1=tau1, tau2=tau2,
-            hankel_filter='key_101_2009'
-        )
-
-        m = np.r_[np.log(sigma), h]
-        if output_type == 'sensitivity_sigma':
-            drespdsig = sim.getJ_sigma(m)
-            return utils.mkvc(drespdsig * utils.sdiag(sigma))
-            # return utils.mkvc(drespdsig)
-        elif output_type == 'sensitivity_height':
-            drespdh = sim.getJ_height(m)
-            return utils.mkvc(drespdh)
-        else:
-            resp = sim.dpred(m)
-            return resp
-
-
-
 
 class StitchedEM1DFMSimulation(BaseStitchedEM1DSimulation):
+
+    _survey_by_sounding = None
 
     def run_simulation(self, args):
         if self.verbose:
             print(">> Frequency-domain")
-        return run_simulation_FD(args)
+        return self._run_simulation(args)
+
+    def dot(self, args):
+        return np.dot(args[0], args[1])
+
+    # def _survey_by_sounding(self):
+
+
+    def _run_simulation(self, args):
+        """
+        This method simulates the EM response or computes the sensitivities for
+        a single sounding. The method allows for parallelization of
+        the stitched 1D problem.
+
+        :param src: a EM1DFM source object
+        :param topo: Topographic location (x, y, z)
+        :param np.array thicknesses: np.array(N-1,) layer thicknesses for a single sounding
+        :param np.array sigma: np.array(N,) layer conductivities for a single sounding
+        :param np.array eta: np.array(N,) intrinsic chargeabilities for a single sounding
+        :param np.array tau: np.array(N,) Cole-Cole time constant for a single sounding
+        :param np.array c: np.array(N,) Cole-Cole frequency distribution constant for a single sounding
+        :param np.array chi: np.array(N,) magnetic susceptibility for a single sounding
+        :param np.array dchi: np.array(N,) DC susceptibility for magnetic viscosity for a single sounding
+        :param np.array tau1: np.array(N,) lower time-relaxation constant for magnetic viscosity for a single sounding
+        :param np.array tau2: np.array(N,) upper time-relaxation constant for magnetic viscosity for a single sounding
+        :param float h: source height for a single sounding
+        :param string output_type: "response", "sensitivity_sigma", "sensitivity_height"
+        :param bool invert_height: boolean switch for inverting for source height
+        :return: response or sensitivities
+
+        """
+
+        src_list, topo, thicknesses, sigma, eta, tau, c, chi, dchi, tau1, tau2, h, output_type, invert_height = args
+
+        n_layer = len(thicknesses) + 1
+        local_survey = Survey(src_list)
+        exp_map = maps.ExpMap(nP=n_layer)
+
+        if not invert_height:
+            # Use Exponential Map
+            # This is hard-wired at the moment
+
+            sim = EM1DFMSimulation(
+                survey=local_survey, thicknesses=thicknesses,
+                sigmaMap=exp_map, eta=eta, tau=tau, c=c, chi=chi, dchi=dchi, tau1=tau1, tau2=tau2,
+                topo=topo, hankel_filter='key_101_2009'
+            )
+
+            if output_type == 'sensitivity_sigma':
+                drespdsig = sim.getJ_sigma(np.log(sigma))
+                return utils.mkvc(drespdsig * sim.sigmaDeriv)
+            else:
+                resp = sim.dpred(np.log(sigma))
+                return resp
+        else:
+
+            wires = maps.Wires(('sigma', n_layer), ('h', 1))
+            sigma_map = exp_map * wires.sigma
+
+            sim = EM1DFMSimulation(
+                survey=local_survey, thicknesses=thicknesses,
+                sigmaMap=sigma_map, hMap=wires.h, topo=topo,
+                eta=eta, tau=tau, c=c, chi=chi, dchi=dchi, tau1=tau1, tau2=tau2,
+                hankel_filter='key_101_2009'
+            )
+
+            m = np.r_[np.log(sigma), h]
+            if output_type == 'sensitivity_sigma':
+                drespdsig = sim.getJ_sigma(m)
+                return utils.mkvc(drespdsig * utils.sdiag(sigma))
+                # return utils.mkvc(drespdsig)
+            elif output_type == 'sensitivity_height':
+                drespdh = sim.getJ_height(m)
+                return utils.mkvc(drespdh)
+            else:
+                resp = sim.dpred(m)
+                return resp        
 
     # @property
     # def frequency(self):

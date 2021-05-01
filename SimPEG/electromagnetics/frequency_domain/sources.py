@@ -20,11 +20,13 @@ class BaseFDEMSrc(BaseEMSrc):
     """
 
     frequency = properties.Float("frequency of the source", min=0, required=True)
+    i_sounding = properties.Integer("sounding number of the source", min=0, default=0, required=True)
 
     _ePrimary = None
     _bPrimary = None
     _hPrimary = None
     _jPrimary = None
+    
 
     def __init__(self, receiver_list=None, frequency=None, **kwargs):
         super(BaseFDEMSrc, self).__init__(receiver_list=receiver_list, **kwargs)
