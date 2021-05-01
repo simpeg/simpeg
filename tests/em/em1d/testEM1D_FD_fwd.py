@@ -299,7 +299,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            fdem.r`eceivers.PointMagneticFieldSecondary(
+            fdem.receivers.PointMagneticFieldSecondary(
                 rx_location, 
                 orientation="z",
                 component="real"
