@@ -25,7 +25,10 @@ class EM1DFMSimulation(BaseEM1DSimulation):
 
     def __init__(self, **kwargs):
         BaseEM1DSimulation.__init__(self, **kwargs)
-
+        for ii, src in enumerate(self.survey.source_list):
+            for jj, rx in enumerate(src.receiver_list):
+                if rx.locations.shape[0] > 1:
+                    raise Exception("A single location for a receiver object is assumed for the 1D EM code")
 
     def compute_integral(self, m, output_type='response'):
         """
@@ -39,7 +42,7 @@ class EM1DFMSimulation(BaseEM1DSimulation):
         n_filter = self.n_filter
 
         # Define source height above topography by mapping or from sources and receivers.
-        # Issue: this only works for a single source
+        # Issue: this only works for a single source.
         if self.hMap is not None:
             h_vector = self.h * np.ones(len(self.survey.source_list))
         else:
