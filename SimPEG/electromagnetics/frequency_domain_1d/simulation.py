@@ -56,6 +56,11 @@ class EM1DFMSimulation(BaseEM1DSimulation):
 
         integral_output_list = []
 
+        # Issue: it would be better if have an internal sorting 
+        # to combine all sources having the same location, 
+        # but different frequencies as well as receiver locations 
+        # having the same height. They do not needed to be in the for loop, 
+        # we can compute all of them once. Which could save some time. 
         for ii, src in enumerate(self.survey.source_list):
             for jj, rx in enumerate(src.receiver_list):
 
