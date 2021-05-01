@@ -39,8 +39,9 @@ class EM1DFMSimulation(BaseEM1DSimulation):
         n_filter = self.n_filter
 
         # Define source height above topography by mapping or from sources and receivers.
+        # Issue: this only works for a single source
         if self.hMap is not None:
-            h_vector = np.array(self.h)
+            h_vector = self.h * np.ones(len(self.survey.source_list))
         else:
             if self.topo is None:
                 h_vector = np.array([src.location[2] for src in self.survey.source_list])
@@ -79,6 +80,8 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                     z = h + rx.locations[0, 2] - src.location[2]
                 
                 # Hankel transform for horizontal loop source
+                # Issue: isinstance(src, CircularLoop) is true even when 
+                # src is MagDipole...
                 if isinstance(src, CircularLoop):
 
                     # radial distance (r) and loop radius (a)

@@ -299,7 +299,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            fdem.receivers.PointMagneticFieldSecondary(
+            fdem.r`eceivers.PointMagneticFieldSecondary(
                 rx_location, 
                 orientation="z",
                 component="real"
@@ -351,7 +351,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
 
         self.assertTrue(err < 1e-5)
         print ("EM1DFD-CircularLoop for complex conductivity works")
-
 
 if __name__ == '__main__':
     unittest.main()

@@ -466,21 +466,7 @@ class BaseEM1DSimulation(BaseSimulation):
 
             dudh = self.compute_integral(m, output_type="sensitivity_height")
             self._Jmatrix_height = np.hstack(self.project_fields(dudh, output_type="sensitivity_height"))
-            if self.survey.nSrc == 1:
-                self._Jmatrix_height = np.hstack(dudh).reshape([-1, 1])
-            else:
-                # COUNT = 0
-                # dudh_by_source = []
-                # for ii, src in enumerate(self.survey.source_list):
-                #     temp = np.array([])
-                #     for jj, rx in enumerate(src.receiver_list):
-                #         temp = np.r_[temp, dudh[COUNT]]
-                #         COUNT += 1
-
-                #     dudh_by_source.append(temp.reshape([-1, 1]))
-
-                # self._Jmatrix_height= block_diag(*dudh_by_source)
-                self._Jmatrix_height= block_diag(*dudh_by_source)
+            self._Jmatrix_height = np.hstack(dudh).reshape([-1, 1])
             return self._Jmatrix_height
 
 

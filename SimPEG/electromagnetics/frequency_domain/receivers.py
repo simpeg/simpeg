@@ -115,6 +115,12 @@ class BaseRx(survey.BaseRx):
             df_duT, df_dmT = df_dmFun(src, None, PTv, adjoint=True)
 
             return df_duT, df_dmT
+    @property
+    def nD(self):
+        if self.component == 'both':
+            return int(self.locations.shape[0] * 2)
+        else:
+            return self.locations.shape[0]
 
 
 class PointElectricField(BaseRx):
