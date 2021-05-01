@@ -63,10 +63,10 @@ np.random.seed(0)
 # tar-file on our google cloud bucket:
 # "https://storage.googleapis.com/simpeg/doc-assets/gravity.tar.gz"
 
-# storage bucket where we have the data
+# # storage bucket where we have the data
 data_source = "https://storage.googleapis.com/simpeg/doc-assets/gravity.tar.gz"
 
-# download the data
+# # download the data
 downloaded_data = utils.download(data_source, overwrite=True)
 
 # unzip the tarfile
@@ -245,10 +245,8 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 # be different for density and susceptibility models.
 #
 
-# Define density contrast values for each unit in g/cc. Don't make this 0!
-# Otherwise the gradient for the 1st iteration is zero and the inversion will
-# not converge.
-background_dens, background_mag = 1e-6, 1e-6 
+# Define density contrast values for each unit in g/cc. 
+background_dens, background_susc = 1e-6, 1e-6 
 
 # Find the indecies of the active cells in forward model (ones below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
@@ -263,7 +261,7 @@ wires = maps.Wires(('m1', nC), ('m2', nC))
 
 # Define and plot starting model
 starting_model = np.r_[
-    background_dens * np.ones(nC), background_mag * np.ones(nC)
+    background_dens * np.ones(nC), background_susc * np.ones(nC)
     ]
 
 
@@ -313,7 +311,7 @@ reg_grav = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m1)
 reg_mag = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m2)
 
 # Define the coupling term to connect two different physical property models
-lamda = 1e+11 # weights 
+lamda = 1e+14 # weights 
 cross_grad = regularization.CrossGradient(mesh, indActive=ind_active, mapping=(wires.m1+wires.m2))
 
 # combo
