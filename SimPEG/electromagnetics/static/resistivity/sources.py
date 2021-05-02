@@ -27,12 +27,14 @@ class BaseSrc(survey.BaseSrc):
     def __init__(self, receiver_list, location, current=None, **kwargs):
         super(BaseSrc, self).__init__(receiver_list, **kwargs)
         if current is None:
-            current = self.current[0]
-        if len(current) != 1 and len(current) != len(location):
+            current = self.current
+        if type(current) == float or type(current) == int:
+            current = np.asarray(float(current))
+        if current.size != 1 and current.size != len(location):
             raise ValueError(
                 "Current must be constant or equal to the number of specified source locations."
             )
-        if len(current) == 1:
+        if current.size == 1:
             current = np.repeat(current, len(location))
 
         self.current = current

@@ -1,12 +1,11 @@
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator, interp1d, griddata
 from scipy.spatial import cKDTree
-from numpy import matlib
 import discretize
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import warnings
-
+from ..resistivity import sources, receivers
 from ....data import Data
 from .. import resistivity as dc
 from ....utils import (
@@ -16,7 +15,6 @@ from ....utils import (
     model_builder,
     define_plane_from_points,
 )
-
 
 DATA_TYPES = {
     "apparent resistivity": [
@@ -96,16 +94,18 @@ def electrode_separations(survey_object, electrode_pair="all", **kwargs):
 
     for src in survey_object.source_list:
         # pole or dipole source
-        if isinstance(src.location, list):
+        if isinstance(src, sources.Dipole):
             a_loc = src.location[0]
             b_loc = src.location[1]
+        elif isinstance(src, sources.Pole):
+            a_loc = src.location[0]
+            b_loc = np.inf * np.ones_like(src.location[0])
         else:
-            a_loc = src.location
-            b_loc = np.inf * np.ones_like(src.location)
+            raise NotImplementedError('A_B locations for undefined for multipole sources.')
 
         for rx in src.receiver_list:
             # pole or dipole receiver
-            if isinstance(rx.locations, list):
+            if isinstance(rx, receivers.Dipole):
                 M = rx.locations[0]
                 N = rx.locations[1]
             else:
@@ -114,16 +114,16 @@ def electrode_separations(survey_object, electrode_pair="all", **kwargs):
 
             n_rx = np.shape(M)[0]
 
-            A = matlib.repmat(a_loc, n_rx, 1)
-            B = matlib.repmat(b_loc, n_rx, 1)
+            A = np.tile(a_loc, (n_rx, 1))
+            B = np.tile(b_loc, (n_rx, 1))
 
             # Compute distances
-            AB.append(np.sqrt(np.sum((A - B) ** 2.0, axis=1)))
-            MN.append(np.sqrt(np.sum((M - N) ** 2.0, axis=1)))
-            AM.append(np.sqrt(np.sum((A - M) ** 2.0, axis=1)))
-            AN.append(np.sqrt(np.sum((A - N) ** 2.0, axis=1)))
-            BM.append(np.sqrt(np.sum((B - M) ** 2.0, axis=1)))
-            BN.append(np.sqrt(np.sum((B - N) ** 2.0, axis=1)))
+            AB.append(np.linalg.norm(A - B, axis=1))
+            MN.append(np.linalg.norm(M - N, axis=1))
+            AM.append(np.linalg.norm(A - M, axis=1))
+            AN.append(np.linalg.norm(A - N, axis=1))
+            BM.append(np.linalg.norm(B - M, axis=1))
+            BN.append(np.linalg.norm(B - N, axis=1))
 
     # Stack to vector and define in dictionary
     if "AB" in electrode_pair:
@@ -260,7 +260,7 @@ def geometric_factor(survey_object, space_type="half space", **kwargs):
 
 
 def apparent_resistivity(
-    data_object, space_type="half space", dobs=None, eps=1e-10, **kwargs
+        data_object, space_type="half space", dobs=None, eps=1e-10, **kwargs
 ):
     """
     Calculate apparent resistivity. Assuming that data are normalized
@@ -304,23 +304,23 @@ def apparent_resistivity(
 
 
 def plot_pseudosection(
-    data,
-    ax=None,
-    survey_type="dipole-dipole",
-    data_type="apparent conductivity",
-    space_type="half space",
-    plot_type="pcolor",
-    clim=None,
-    scale="linear",
-    sameratio=True,
-    pcolor_opts={},
-    contour_opts={},
-    cbar_opts={},
-    data_locations=False,
-    dobs=None,
-    dim=2,
-    y_values="n-spacing",
-    **kwargs,
+        data,
+        ax=None,
+        survey_type="dipole-dipole",
+        data_type="apparent conductivity",
+        space_type="half space",
+        plot_type="pcolor",
+        clim=None,
+        scale="linear",
+        sameratio=True,
+        pcolor_opts={},
+        contour_opts={},
+        cbar_opts={},
+        data_locations=False,
+        dobs=None,
+        dim=2,
+        y_values="n-spacing",
+        **kwargs,
 ):
     """
         Read list of 2D tx-rx location and plot a pseudo-section of apparent
@@ -399,9 +399,9 @@ def plot_pseudosection(
         midx = midx[:, 0]
 
     if data_type.lower() in (
-        DATA_TYPES["potential"]
-        + DATA_TYPES["apparent chargeability"]
-        + ["misfit", "misfitmap"]
+            DATA_TYPES["potential"]
+            + DATA_TYPES["apparent chargeability"]
+            + ["misfit", "misfitmap"]
     ):
         if scale == "linear":
             rho = dobs
@@ -431,7 +431,7 @@ def plot_pseudosection(
         )
 
     # Grid points
-    grid_x, grid_z = np.mgrid[np.min(midx) : np.max(midx), np.min(midz) : np.max(midz)]
+    grid_x, grid_z = np.mgrid[np.min(midx): np.max(midx), np.min(midz): np.max(midz)]
 
     grid_rho = griddata(np.c_[midx, midz], rho.T, (grid_x, grid_z), method="linear")
 
@@ -516,19 +516,19 @@ def plot_pseudosection(
 
 
 def plot_3d_pseudosection(
-    survey,
-    dvec,
-    ax=None,
-    cax=None,
-    s=100,
-    vlim=None,
-    scale="linear",
-    plane_points=None,
-    plane_distance=10.0,
-    create_colorbar=True,
-    scatter_opts={},
-    cbar_opts={},
-    units="",
+        survey,
+        dvec,
+        ax=None,
+        cax=None,
+        s=100,
+        vlim=None,
+        scale="linear",
+        plane_points=None,
+        plane_distance=10.0,
+        create_colorbar=True,
+        scatter_opts={},
+        cbar_opts={},
+        units="",
 ):
     """
     Plot 3D DC/IP data in pseudo-section.
@@ -633,14 +633,13 @@ def plot_3d_pseudosection(
         # Pre-allocate index for points on plane(s)
         k = np.zeros(len(dvec), dtype=bool)
         for ii in range(0, len(plane_points)):
-
             p1, p2, p3 = plane_points[ii]
             a, b, c, d = define_plane_from_points(p1, p2, p3)
 
             k = k | (
-                np.abs(a * midxy[:, 0] + b * midxy[:, 1] + c * midz + d)
-                / np.sqrt(a ** 2 + b ** 2 + c ** 2)
-                < plane_distance[ii]
+                    np.abs(a * midxy[:, 0] + b * midxy[:, 1] + c * midz + d)
+                    / np.sqrt(a ** 2 + b ** 2 + c ** 2)
+                    < plane_distance[ii]
             )
 
         if np.all(k == 0):
@@ -712,7 +711,6 @@ def plot_3d_pseudosection(
 
 
 def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
-
     """
         Load in endpoints and survey specifications to generate Tx, Rx location
         stations.
@@ -876,7 +874,7 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
             M = np.c_[lxx, lyy, np.ones(nstn).T * ztop]
             N = np.c_[lxx + a * dl_x, lyy + a * dl_y, np.ones(nstn).T * ztop]
-            rx[(ii * nstn) : ((ii + 1) * nstn), :] = np.c_[M, N]
+            rx[(ii * nstn): ((ii + 1) * nstn), :] = np.c_[M, N]
 
             if dim == 3:
                 rxClass = dc.Rx.Dipole(rx[:, :3], rx[:, 3:])
@@ -893,13 +891,13 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
 
 def generate_dcip_sources_line(
-    survey_type,
-    data_type,
-    dimension_type,
-    end_points,
-    topo,
-    num_rx_per_src,
-    station_spacing,
+        survey_type,
+        data_type,
+        dimension_type,
+        end_points,
+        topo,
+        num_rx_per_src,
+        station_spacing,
 ):
     """
     Generate the source list for a 2D, 2.5D or 3D DC/IP survey line.
@@ -1017,12 +1015,12 @@ def generate_dcip_sources_line(
         # Create receivers
         if survey_type.lower() in ["dipole-pole", "pole-pole"]:
             rxClass = dc.receivers.Pole(
-                P[ii + rx_shift + 1 : ii + rx_shift + nrec + 1, :], data_type=data_type
+                P[ii + rx_shift + 1: ii + rx_shift + nrec + 1, :], data_type=data_type
             )
         elif survey_type.lower() in ["dipole-dipole", "pole-dipole"]:
             rxClass = dc.receivers.Dipole(
-                P[ii + rx_shift : ii + rx_shift + nrec, :],
-                P[ii + rx_shift + 1 : ii + rx_shift + nrec + 1, :],
+                P[ii + rx_shift: ii + rx_shift + nrec, :],
+                P[ii + rx_shift + 1: ii + rx_shift + nrec + 1, :],
                 data_type=data_type,
             )
 
@@ -1038,13 +1036,13 @@ def generate_dcip_sources_line(
 
 
 def writeUBC_DCobs(
-    fileName,
-    data,
-    dim,
-    format_type,
-    survey_type="dipole-dipole",
-    ip_type=0,
-    comment_lines="",
+        fileName,
+        data,
+        dim,
+        format_type,
+        survey_type="dipole-dipole",
+        ip_type=0,
+        comment_lines="",
 ):
     """
     Write UBC GIF DCIP 2D or 3D observation file
@@ -1155,8 +1153,8 @@ def writeUBC_DCobs(
                         B,
                         M,
                         N,
-                        data.dobs[count : count + nD],
-                        data.relative_error[count : count + nD],
+                        data.dobs[count: count + nD],
+                        data.relative_error[count: count + nD],
                     ],
                     delimiter=str(" "),
                     newline=str("\n"),
@@ -1193,8 +1191,8 @@ def writeUBC_DCobs(
                     np.c_[
                         M,
                         N,
-                        data.dobs[count : count + nD],
-                        data.relative_error[count : count + nD],
+                        data.dobs[count: count + nD],
+                        data.relative_error[count: count + nD],
                     ],
                     delimiter=str(" "),
                     newline=str("\n"),
@@ -1211,13 +1209,11 @@ def writeUBC_DCobs(
             # N[:, 2] = -N[:, 2]
 
             if format_type.lower() == "surface":
-
                 fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:2].T))
                 M = M[:, 0:2]
                 N = N[:, 0:2]
 
             if format_type.lower() == "general":
-
                 fid.writelines("%e " % ii for ii in mkvc(tx.T))
 
             fid.write("%i\n" % nD)
@@ -1231,10 +1227,10 @@ def writeUBC_DCobs(
                     np.c_[
                         M,
                         N,
-                        data.dobs[count : count + nD],
+                        data.dobs[count: count + nD],
                         (
-                            data.relative_error[count : count + nD]
-                            + data.noise_floor[count : count + nD]
+                                data.relative_error[count: count + nD]
+                                + data.noise_floor[count: count + nD]
                         ),
                     ],
                     fmt=str("%e"),
@@ -1259,13 +1255,13 @@ def writeUBC_DCobs(
 
 
 def writeUBC_DClocs(
-    fileName,
-    dc_survey,
-    dim,
-    format_type,
-    survey_type="dipole-dipole",
-    ip_type=0,
-    comment_lines="",
+        fileName,
+        dc_survey,
+        dim,
+        format_type,
+        survey_type="dipole-dipole",
+        ip_type=0,
+        comment_lines="",
 ):
     """
         Write UBC GIF DCIP 2D or 3D locations file
@@ -1353,13 +1349,11 @@ def writeUBC_DClocs(
             else:
                 fid = open(fileName, "a")
                 if format_type.lower() == "surface":
-
                     fid.writelines("%f " % ii for ii in mkvc(tx[:, 0]))
                     M = M[:, 0]
                     N = N[:, 0]
 
                 if format_type.lower() == "general":
-
                     # Flip sign for z-elevation to depth
                     tx[2::2, :] = -tx[2::2, :]
 
@@ -1390,13 +1384,11 @@ def writeUBC_DClocs(
             N[:, 2] = -N[:, 2]
 
             if format_type.lower() == "surface":
-
                 fid.writelines("%e " % ii for ii in mkvc(tx[:, 0:2].T))
                 M = M[:, 0:2]
                 N = N[:, 0:2]
 
             if format_type.lower() == "general":
-
                 fid.writelines("%e " % ii for ii in mkvc(tx.T))
 
             fid.write("%i\n" % nD)
@@ -1514,7 +1506,6 @@ def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
                 M = np.zeros(nrx)
                 N = np.zeros(nrx)
                 for kk in range(nrx):
-
                     # Find all M electrodes along line
                     vec, r = r_unit(x0, Rx[0][kk, 0:2])
                     M[kk] = stn_id(vecTx, vec, r)
@@ -1789,7 +1780,6 @@ def xy_2_lineID(dc_survey):
 
             # Deal with replicate pole location
             if np.all(xy0 == xym):
-
                 xym[0] = xym[0] + 1e-3
 
             continue
@@ -1810,7 +1800,7 @@ def xy_2_lineID(dc_survey):
 
         # If the angles are smaller then 45d, than next point is on a new line
         if ((ang1 < np.cos(np.pi / 4.0)) | (ang2 < np.cos(np.pi / 4.0))) & (
-            np.all(np.r_[r1, r2, r3, r4] > 0)
+                np.all(np.r_[r1, r2, r3, r4] > 0)
         ):
 
             # Re-initiate start and mid-point location
@@ -1819,7 +1809,6 @@ def xy_2_lineID(dc_survey):
 
             # Deal with replicate pole location
             if np.all(xy0 == xym):
-
                 xym[0] = xym[0] + 1e-3
 
             linenum += 1
@@ -1876,7 +1865,6 @@ def getSrc_locs(survey):
     srcMat = []
 
     for src in survey.source_list:
-
         srcMat.append(np.hstack(src.location))
 
     srcMat = np.vstack(srcMat)
@@ -2015,19 +2003,19 @@ def closestPointsGrid(grid, pts, dim=2):
 
 
 def gen_3d_survey_from_2d_lines(
-    survey_type,
-    a,
-    b,
-    n_spacing,
-    n_lines=5,
-    line_length=200.0,
-    line_spacing=20.0,
-    x0=0,
-    y0=0,
-    z0=0,
-    src_offset_y=0.0,
-    dim=3,
-    is_IO=True,
+        survey_type,
+        a,
+        b,
+        n_spacing,
+        n_lines=5,
+        line_length=200.0,
+        line_spacing=20.0,
+        x0=0,
+        y0=0,
+        z0=0,
+        src_offset_y=0.0,
+        dim=3,
+        is_IO=True,
 ):
     """
         Generate 3D DC survey using gen_DCIPsurvey function.
@@ -2054,7 +2042,7 @@ def gen_3d_survey_from_2d_lines(
         zmin, zmax = 0, 0
         IO_2d = dc.IO()
         endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-        survey_2d = gen_DCIPsurvey(endl, survey_type, a, b, n_spacing, dim=3,)
+        survey_2d = gen_DCIPsurvey(endl, survey_type, a, b, n_spacing, dim=3, )
 
         srcList.append(survey_2d.source_list)
         survey_2d = IO_2d.from_abmn_locations_to_survey(
@@ -2088,14 +2076,14 @@ def gen_3d_survey_from_2d_lines(
 
 
 def plot_layer(
-    rho,
-    mesh,
-    xscale="log",
-    ax=None,
-    showlayers=False,
-    xlim=None,
-    depth_axis=True,
-    **kwargs,
+        rho,
+        mesh,
+        xscale="log",
+        ax=None,
+        showlayers=False,
+        xlim=None,
+        depth_axis=True,
+        **kwargs,
 ):
     """
         Plot Conductivity model for the layered earth model
@@ -2162,20 +2150,19 @@ def plot_layer(
 
 
 def plot_pseudoSection(
-    data,
-    ax=None,
-    survey_type="dipole-dipole",
-    data_type="appConductivity",
-    space_type="half-space",
-    clim=None,
-    scale="linear",
-    sameratio=True,
-    pcolorOpts={},
-    data_location=False,
-    dobs=None,
-    dim=2,
+        data,
+        ax=None,
+        survey_type="dipole-dipole",
+        data_type="appConductivity",
+        space_type="half-space",
+        clim=None,
+        scale="linear",
+        sameratio=True,
+        pcolorOpts={},
+        data_location=False,
+        dobs=None,
+        dim=2,
 ):
-
     warnings.warn(
         "The plot_pseudoSection method has been deprecated. Please use "
         "plot_pseudosection instead. This will be removed in version"
@@ -2211,9 +2198,8 @@ def gen_DCIPsurvey(endl, survey_type, a, b, n, dim=3, d2flag="2.5D"):
 
 
 def generate_dcip_survey_line(
-    survey_type, data_type, endl, topo, ds, dh, n, dim_flag="2.5D", sources_only=False
+        survey_type, data_type, endl, topo, ds, dh, n, dim_flag="2.5D", sources_only=False
 ):
-
     warnings.warn(
         "The gen_dcip_survey_line method has been deprecated. Please use "
         "generate_dcip_sources_line instead. This will be removed in version"
