@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.special import k0, k1
 from scipy.optimize import minimize
-from numpy.polynomial.legendre import leggauss
 import warnings
 import properties
 from ....utils.code_utils import deprecate_class
@@ -13,7 +12,6 @@ from ....data import Data
 from .survey import Survey
 from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
-from .boundary_utils import getxBCyBC_CC
 from .utils import _mini_pole_pole
 
 
@@ -556,69 +554,39 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         return Zero()
 
     def setBC(self, ky=None):
-        fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
-        gBFxm = self.mesh.gridFx[fxm, :]
-        gBFxp = self.mesh.gridFx[fxp, :]
-        gBFym = self.mesh.gridFy[fym, :]
-        gBFyp = self.mesh.gridFy[fyp, :]
+        if self.bc_type == "Dirichlet":
+            alpha, beta, gamma = 1, 0, 0
+        elif self.bc_type == "Neumann":
+            alpha, beta, gamma = 0, 1, 0
+        else:
+            boundary_faces = self.mesh.boundary_faces
+            boundary_normals = self.mesh.boundary_face_outward_normals
+            n_bf = len(boundary_faces)
 
-        # Setup Mixed B.C (alpha, beta, gamma)
-        temp_xm = np.ones_like(gBFxm[:, 0])
-        temp_xp = np.ones_like(gBFxp[:, 0])
-        temp_ym = np.ones_like(gBFym[:, 1])
-        temp_yp = np.ones_like(gBFyp[:, 1])
+            # Top gets 0 Nuemann
+            alpha = np.zeros(n_bf)
+            beta = np.ones(n_bf)
+            gamma = 0
 
-        if self.bc_type == "Neumann":
-            alpha_xm, alpha_xp = temp_xm * 0.0, temp_xp * 0.0
-            alpha_ym, alpha_yp = temp_ym * 0.0, temp_yp * 0.0
+            # assume a source point at the middle of the top of the mesh
+            middle = np.median(self.mesh.nodes, axis=0)
+            top_v = np.max(self.mesh.nodes[:, -1])
+            source_point = np.r_[middle[:-1], top_v]
 
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
+            r_vec = boundary_faces - source_point
+            r = np.linalg.norm(r_vec, axis=-1)
+            r_hat = r_vec / r[:, None]
+            r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
-            gamma_xm, gamma_xp = temp_xm * 0.0, temp_xp * 0.0
-            gamma_ym, gamma_yp = temp_ym * 0.0, temp_yp * 0.0
+            not_top = boundary_faces[:, -1] != top_v
+            alpha[not_top] = (ky * k1(ky * 1 / r) / k0(ky * 1 / r) * r_dot_n)[not_top]
 
-        elif self.bc_type == "Dirichlet":
-            alpha_xm, alpha_xp = temp_xm, temp_xp
-            alpha_ym, alpha_yp = temp_ym, temp_yp
+        B, bc = self.mesh.cell_gradient_weak_form_robin(alpha, beta, gamma)
+        # bc should always be 0 because gamma was always 0 above
 
-            beta_xm, beta_xp = temp_xm * 0.0, temp_xp * 0.0
-            beta_ym, beta_yp = temp_ym * 0.0, temp_yp * 0.0
-
-            gamma_xm, gamma_xp = temp_xm * 0.0, temp_xp * 0.0
-            gamma_ym, gamma_yp = temp_ym * 0.0, temp_yp * 0.0
-
-        elif self.bc_type == "Mixed":
-            xs = np.median(self.mesh.vectorCCx)
-            ys = np.median(self.mesh.vectorCCy[-1])
-
-            def r_boundary(x, y):
-                return 1.0 / np.sqrt((x - xs) ** 2 + (y - ys) ** 2)
-
-            rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1])
-            rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1])
-            rym = r_boundary(gBFym[:, 0], gBFym[:, 1])
-
-            alpha_xm = ky * (k1(ky * rxm) / k0(ky * rxm) * (gBFxm[:, 0] - xs))
-            alpha_xp = ky * (k1(ky * rxp) / k0(ky * rxp) * (gBFxp[:, 0] - xs))
-            alpha_ym = ky * (k1(ky * rym) / k0(ky * rym) * (gBFym[:, 0] - ys))
-            alpha_yp = temp_yp * 0.0
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
-
-            gamma_xm, gamma_xp = temp_xm * 0.0, temp_xp * 0.0
-            gamma_ym, gamma_yp = temp_ym * 0.0, temp_yp * 0.0
-
-        alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-        beta = [beta_xm, beta_xp, beta_ym, beta_yp]
-        gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
-
-        x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
-        V = self.Vol
-        self.Div = V * self.mesh.faceDiv
-        P_BC, B = self.mesh.getBCProjWF_simple()
-        M = B * self.mesh.aveCC2F
-        self.Grad = self.Div.T - P_BC * sdiag(y_BC) * M
+        V = sdiag(self.mesh.cell_volumes)
+        self.Div = V @ self.mesh.face_divergence
+        self.Grad = self.Div.T - B
 
 
 class Simulation2DNodal(BaseDCSimulation2D):
