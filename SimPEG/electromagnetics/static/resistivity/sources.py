@@ -66,6 +66,12 @@ class Multipole(BaseSrc):
     """
 
     def __init__(self, receiver_list=[], location=None, **kwargs):
+        if location is not None:
+            if type(location) is np.ndarray:
+                if location.ndim == 2:
+                    location = list(location)
+                else:
+                    location = [location]
         super(Multipole, self).__init__(receiver_list, location, **kwargs)
 
 
@@ -121,6 +127,8 @@ class Dipole(BaseSrc):
             location = [location_a, location_b]
 
         elif location is not None:
+            if type(location) is np.ndarray and location.ndim == 2:
+                location = list(location)
             if len(location) != 2:
                 raise ValueError(
                     "location must be a list or tuple of length 2: "
@@ -155,4 +163,6 @@ class Pole(BaseSrc):
     """
 
     def __init__(self, receiver_list=[], location=None, **kwargs):
+        if type(location) is np.ndarray:
+            location = [np.ndarray]
         super(Pole, self).__init__(receiver_list, location, **kwargs)
