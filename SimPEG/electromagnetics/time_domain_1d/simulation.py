@@ -5,10 +5,19 @@ from __future__ import unicode_literals
 
 from ... import maps, utils
 from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation
+from ..time_domain.sources import StepOffWaveform, RawWaveform
+from ..time_domain.sources import MagDipole, CircularLoop
+from ..time_domain.receivers import (
+    PointMagneticFluxDensity, 
+    PointMagneticField, 
+    PointMagneticFluxTimeDerivative, 
+    PointMagneticFieldTimeDerivative
+)
 from ..frequency_domain_1d.supporting_functions.kernels import *
 import numpy as np
 from .sources import *
-from .survey import EM1DSurveyTD
+# from .survey import EM1DSurveyTD
+from ..time_domain.survey import Survey
 from scipy.constants import mu_0
 from scipy.interpolate import InterpolatedUnivariateSpline as iuSpline
 
@@ -19,7 +28,8 @@ from empymod.utils import check_hankel
 
 from .supporting_functions.waveform_functions import (
     piecewise_pulse_fast,
-    butterworth_type_filter, butter_lowpass_filter
+    butterworth_type_filter, 
+    butter_lowpass_filter
 )
 
 
@@ -30,9 +40,13 @@ class EM1DTMSimulation(BaseEM1DSimulation):
     """
 
 
-    time_intervals_are_set = False
-    frequencies_are_set = False
+    _time_intervals_are_set = False
+    _frequencies_are_set = False
     time_filter = 'key_81_CosSin_2009'
+
+    survey = properties.Instance(
+        "a survey object", Survey, required=True
+    )
 
 
     def __init__(self, **kwargs):
@@ -46,6 +60,14 @@ class EM1DTMSimulation(BaseEM1DSimulation):
         else:
             raise Exception()
 
+        # TODO: there should be a check if either a source or a receiver z-location is 
+        # less than topo, then throw an error message.  
+        for i_src, src in enumerate(self.survey.source_list):
+            for i_rx, rx in enumerate(src.receiver_list):
+                if rx.locations.shape[0] > 1:
+                    raise Exception(
+                        "A single location for a receiver object is assumed for the 1D EM code"
+                    )
 
 
     def set_time_intervals(self):
@@ -55,20 +77,21 @@ class EM1DTMSimulation(BaseEM1DSimulation):
 
         for src in self.survey.source_list:
             waveform = src.waveform
-            if src.waveform.wave_type != "stepoff":
+            if not isinstance(waveform, StepOffWaveform):
                 for rx in src.receiver_list:
 
-                    if waveform.wave_type == "general":
+                    if isinstance(waveform, RawWaveform):
                         time = rx.times
                         pulse_period = waveform.pulse_period
                         period = waveform.period
                     # Dual moment
-                    else:
-                        time = np.unique(np.r_[rx.times, rx.dual_times])
-                        pulse_period = np.maximum(
-                            waveform.pulse_period, waveform.dual_pulse_period
-                        )
-                        period = np.maximum(waveform.period, waveform.dual_period)
+                    # Issue: NEED TO REVISIT
+                    # else:
+                    #     time = np.unique(np.r_[rx.times, rx.dual_times])
+                    #     pulse_period = np.maximum(
+                    #         waveform.pulse_period, waveform.dual_pulse_period
+                    #     )
+                    #     period = np.maximum(waveform.period, waveform.dual_period)
                     tmin = time[time>0.].min()
                     if waveform.n_pulse == 1:
                         tmax = time.max() + pulse_period
@@ -78,11 +101,11 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                         raise NotImplementedError("n_pulse must be either 1 or 2")
                     n_time = int((np.log10(tmax)-np.log10(tmin))*10+1)
 
-                    rx.time_interval = np.logspace(
+                    rx._time_interval = np.logspace(
                         np.log10(tmin), np.log10(tmax), n_time
                     )
 
-        self.time_intervals_are_set = True
+        self._time_intervals_are_set = True
 
 
     def set_frequencies(self, pts_per_dec=-1):
@@ -92,28 +115,30 @@ class EM1DTMSimulation(BaseEM1DSimulation):
         """
 
         # Set range of time channels
-        if self.time_intervals_are_set == False:
+        if self._time_intervals_are_set == False:
             self.set_time_intervals()
 
         for src in self.survey.source_list:
             for rx in src.receiver_list:
 
-                if src.waveform.wave_type == "stepoff":
+                if ~isinstance(src.waveform, StepOffWaveform):
                     _, freq, ft, ftarg = check_time(
                         rx.times, -1, 'dlf',
                         {'pts_per_dec': pts_per_dec, 'dlf': self.fftfilt}, 0,
                     )
 
-                else:
+                elif isinstance(src.waveform, RawWaveform):
                     _, freq, ft, ftarg = check_time(
-                        rx.time_interval, -1, 'dlf',
+                        rx._time_interval, -1, 'dlf',
                         {'pts_per_dec': pts_per_dec, 'dlf': self.fftfilt}, 0
                     )
+                else:
+                    raise Exception("Expected types of the waveform are StepOffWaveform and RawWaveform")
 
                 rx.frequencies = freq
                 rx.ftarg = ftarg
 
-        self.frequencies_are_set = True
+        self._frequencies_are_set = True
 
 
     def compute_integral(self, m, output_type='response'):
@@ -129,7 +154,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
 
         # For time-domain simulations, set frequencies for the evaluation
         # of the Hankel transform.
-        if self.frequencies_are_set is False:
+        if self._frequencies_are_set is False:
             self.set_frequencies()
 
 
@@ -147,8 +172,8 @@ class EM1DTMSimulation(BaseEM1DSimulation):
 
         integral_output_list = []
 
-        for ii, src in enumerate(self.survey.source_list):
-            for jj, rx in enumerate(src.receiver_list):
+        for i_src, src in enumerate(self.survey.source_list):
+            for i_rx, rx in enumerate(src.receiver_list):
 
                 n_frequency = len(rx.frequencies)
 
@@ -162,55 +187,20 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                 chi = self.compute_chi_matrix(rx.frequencies)
 
                 # Compute receiver height
-                h = h_vector[ii]
+                h = h_vector[i_src]
                 if rx.use_source_receiver_offset:
-                    z = h + rx.locations[2]
+                    z = h + rx.locations[0,2]
                 else:
-                    z = h + rx.locations[2] - src.location[2]
-
-                # Hankel transform for x, y or z magnetic dipole source
-                if isinstance(src, MagneticDipoleSource):
-
-                    # Radial distance
-                    if rx.use_source_receiver_offset:
-                        r = rx.locations[0:2]
-                    else:
-                        r = rx.locations[0:2] - src.location[0:2]
-
-                    r = np.sqrt(np.sum(r**2))
-                    r_vec = r * np.ones(n_frequency)
-
-                    # Use function from empymod to define Hankel coefficients.
-                    # Size of lambd is (n_frequency x n_filter)
-
-                    lambd = np.empty([n_frequency, n_filter], order='F')
-                    lambd[:, :], _ = get_dlf_points(
-                        self.fhtfilt, r_vec, self.hankel_pts_per_dec
-                    )
-
-                    # Get kernel function(s) at all lambda and frequencies
-                    PJ = magnetic_dipole_kernel(
-                        self, lambd, f, n_layer, sig, chi, h, z, r, src, rx, output_type
-                    )
-
-                    PJ = tuple(PJ)
-
-                    if output_type=="sensitivity_sigma":
-                        r_vec = np.tile(r_vec, (n_layer, 1))
-
-                    # Evaluate Hankel transform using digital linear filter from empymod
-                    integral_output = src.moment_amplitude * dlf(
-                        PJ, lambd, r_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
-                    )
-
+                    z = h + rx.locations[0,2] - src.location[2]
+                
                 # Hankel transform for horizontal loop source
-                elif isinstance(src, HorizontalLoopSource):
+                if isinstance(src, CircularLoop):
 
                     # radial distance (r) and loop radius (a)
                     if rx.use_source_receiver_offset:
-                        r = rx.locations[0:2]
+                        r = rx.locations[0,0:2]
                     else:
-                        r = rx.locations[0:2] - src.location[0:2]
+                        r = rx.locations[0,0:2] - src.location[0:2]
 
                     r_vec = np.sqrt(np.sum(r**2)) * np.ones(n_frequency)
                     a_vec = src.radius * np.ones(n_frequency)
@@ -235,8 +225,43 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                         a_vec = np.tile(a_vec, (n_layer, 1))
 
                     # Evaluate Hankel transform using digital linear filter from empymod
-                    integral_output = src.current_amplitude * dlf(
+                    integral_output = src.current * dlf(
                         PJ, lambd, a_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
+                    )
+
+                # Hankel transform for x, y or z magnetic dipole source
+                elif isinstance(src, MagDipole):
+
+                    # Radial distance
+                    if rx.use_source_receiver_offset:
+                        r = rx.locations[0,0:2]
+                    else:
+                        r = rx.locations[0,0:2] - src.location[0:2]
+
+                    r = np.sqrt(np.sum(r**2))
+                    r_vec = r * np.ones(n_frequency)
+
+                    # Use function from empymod to define Hankel coefficients.
+                    # Size of lambd is (n_frequency x n_filter)
+
+                    lambd = np.empty([n_frequency, n_filter], order='F')
+                    lambd[:, :], _ = get_dlf_points(
+                        self.fhtfilt, r_vec, self.hankel_pts_per_dec
+                    )
+
+                    # Get kernel function(s) at all lambda and frequencies
+                    PJ = magnetic_dipole_kernel(
+                        self, lambd, f, n_layer, sig, chi, h, z, r, src, rx, output_type
+                    )
+
+                    PJ = tuple(PJ)
+
+                    if output_type=="sensitivity_sigma":
+                        r_vec = np.tile(r_vec, (n_layer, 1))
+
+                    # Evaluate Hankel transform using digital linear filter from empymod
+                    integral_output = src.moment * dlf(
+                        PJ, lambd, r_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
                     )
 
                 if output_type == "sensitivity_sigma":
@@ -259,9 +284,9 @@ class EM1DTMSimulation(BaseEM1DSimulation):
         """
 
         COUNT = 0
-        for ii, src in enumerate(self.survey.source_list):
+        for i_src, src in enumerate(self.survey.source_list):
 
-            for jj, rx in enumerate(src.receiver_list):
+            for i_rx, rx in enumerate(src.receiver_list):
 
                 u_temp = u[COUNT]
 
@@ -272,14 +297,14 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                     factor = np.ones_like(rx.frequencies, dtype=complex)
 
                 # Multiplication factors
-                if rx.component in ["b", "h"]:
+                if isinstance(rx, PointMagneticFluxDensity) or isinstance(rx, PointMagneticField):
                     factor *= 1./(2j*np.pi*rx.frequencies)
 
-                if rx.component in ["b", "dbdt"]:
+                if isinstance(rx, PointMagneticFluxTimeDerivative) or isinstance(rx, PointMagneticFluxDensity):
                     factor *= mu_0
 
                 # For stepoff waveform
-                if src.waveform.wave_type == 'stepoff':
+                if isinstance(src.waveform, StepOffWaveform):
 
                     # Compute EM responses
                     if u_temp.ndim == 1:
@@ -308,13 +333,13 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                     # Compute EM responses
                     if u_temp.ndim == 1:
                         resp_int, _ = fourier_dlf(
-                            u_temp.flatten()*factor, rx.time_interval, rx.frequencies, rx.ftarg
+                            u_temp.flatten()*factor, rx._time_interval, rx.frequencies, rx.ftarg
                         )
                         # step_func = interp1d(
                         #     self.time_int, resp_int
                         # )
                         step_func = iuSpline(
-                            np.log10(rx.time_interval), resp_int
+                            np.log10(rx._time_interval), resp_int
                         )
 
                         resp = piecewise_pulse_fast(
@@ -325,19 +350,20 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                             n_pulse=src.waveform.n_pulse
                         )
 
-                        # Compute response for the dual moment
-                        if src.waveform.wave_type == "dual":
-                            resp_dual_moment = piecewise_pulse_fast(
-                                step_func, rx.dual_times,
-                                src.waveform.dual_waveform_times,
-                                src.waveform.dual_waveform_current,
-                                src.waveform.dual_period,
-                                n_pulse=src.waveform.n_pulse
-                            )
-                            # concatenate dual moment response
-                            # so, ordering is the first moment data
-                            # then the second moment data.
-                            resp = np.r_[resp, resp_dual_moment]
+                        # Deprecate dual 
+                        # # Compute response for the dual moment
+                        # if src.waveform.wave_type == "dual":
+                        #     resp_dual_moment = piecewise_pulse_fast(
+                        #         step_func, rx.dual_times,
+                        #         src.waveform.dual_waveform_times,
+                        #         src.waveform.dual_waveform_current,
+                        #         src.waveform.dual_period,
+                        #         n_pulse=src.waveform.n_pulse
+                        #     )
+                        #     # concatenate dual moment response
+                        #     # so, ordering is the first moment data
+                        #     # then the second moment data.
+                        #     resp = np.r_[resp, resp_dual_moment]
 
                     # Compute EM sensitivities
                     else:
@@ -355,14 +381,14 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                         # TODO: remove for loop (?)
                         for i in range(self.n_layer):
                             resp_int_i, _ = fourier_dlf(
-                                u_temp[:, i]*factor, rx.time_interval, rx.frequencies, rx.ftarg
+                                u_temp[:, i]*factor, rx._time_interval, rx.frequencies, rx.ftarg
                             )
                             # step_func = interp1d(
                             #     self.time_int, resp_int_i
                             # )
 
                             step_func = iuSpline(
-                                np.log10(rx.time_interval), resp_int_i
+                                np.log10(rx._time_interval), resp_int_i
                             )
 
                             resp_i = piecewise_pulse_fast(
@@ -373,18 +399,19 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                                 n_pulse=src.waveform.n_pulse
                             )
 
-                            if src.waveform.wave_type != "dual":
-                                resp[:, i] = resp_i
-                            else:
-                                resp_dual_moment_i = piecewise_pulse_fast(
-                                    step_func,
-                                    rx.dual_times,
-                                    src.waveform.dual_waveform_times,
-                                    src.waveform.dual_waveform_current,
-                                    src.waveform.dual_period,
-                                    n_pulse=src.waveform.n_pulse
-                                )
-                                resp[:, i] = np.r_[resp_i, resp_dual_moment_i]
+                            # Deprecate dual
+                            # if src.waveform.wave_type != "dual":
+                            resp[:, i] = resp_i
+                            # else:
+                            #     resp_dual_moment_i = piecewise_pulse_fast(
+                            #         step_func,
+                            #         rx.dual_times,
+                            #         src.waveform.dual_waveform_times,
+                            #         src.waveform.dual_waveform_current,
+                            #         src.waveform.dual_period,
+                            #         n_pulse=src.waveform.n_pulse
+                            #     )
+                            #     resp[:, i] = np.r_[resp_i, resp_dual_moment_i]
 
                 u[COUNT] = resp * (-2.0/np.pi)
                 COUNT = COUNT + 1
@@ -427,7 +454,7 @@ def run_simulation_TD(args):
     src, topo, thicknesses, sigma, eta, tau, c, chi, dchi, tau1, tau2, h, output_type, invert_height = args
 
     n_layer = len(thicknesses) + 1
-    local_survey = EM1DSurveyTD([src])
+    local_survey = Survey([src])
     exp_map = maps.ExpMap(nP=n_layer)
 
     if not invert_height:

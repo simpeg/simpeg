@@ -4,6 +4,7 @@ from ..frequency_domain.sources import MagDipole, CircularLoop
 from ..frequency_domain.receivers import PointMagneticFieldSecondary
 from ..frequency_domain.survey import Survey
 import numpy as np
+import properties
 # from .sources import *
 # from .survey import EM1DSurveyFD
 from .supporting_functions.kernels import *
@@ -23,11 +24,15 @@ class EM1DFMSimulation(BaseEM1DSimulation):
     Simulation class for simulating the FEM response over a 1D layered Earth
     for a single sounding.
     """
+    
+    survey = properties.Instance(
+        "a survey object", Survey, required=True
+    )
 
     def __init__(self, **kwargs):
         BaseEM1DSimulation.__init__(self, **kwargs)
-        for ii, src in enumerate(self.survey.source_list):
-            for jj, rx in enumerate(src.receiver_list):
+        for i_src, src in enumerate(self.survey.source_list):
+            for i_rx, rx in enumerate(src.receiver_list):
                 if rx.locations.shape[0] > 1:
                     raise Exception("A single location for a receiver object is assumed for the 1D EM code")
 
@@ -62,8 +67,8 @@ class EM1DFMSimulation(BaseEM1DSimulation):
         # but different frequencies as well as receiver locations 
         # having the same height. They do not needed to be in the for loop, 
         # we can compute all of them once. Which could save some time. 
-        for ii, src in enumerate(self.survey.source_list):
-            for jj, rx in enumerate(src.receiver_list):
+        for i_src, src in enumerate(self.survey.source_list):
+            for i_rx, rx in enumerate(src.receiver_list):
 
                 if np.isscalar(src.frequency):
                     n_frequency = 1
@@ -82,7 +87,7 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                 chi = self.compute_chi_matrix(frequency)
 
                 # Compute receiver height
-                h = h_vector[ii]
+                h = h_vector[i_src]
                 if rx.use_source_receiver_offset:
                     z = h + rx.locations[0, 2]
                 else:
@@ -184,8 +189,8 @@ class EM1DFMSimulation(BaseEM1DSimulation):
         """
 
         COUNT = 0
-        for ii, src in enumerate(self.survey.source_list):
-            for jj, rx in enumerate(src.receiver_list):
+        for i_src, src in enumerate(self.survey.source_list):
+            for i_rx, rx in enumerate(src.receiver_list):
 
                 u_temp = u[COUNT]
                 if rx.component == 'real':

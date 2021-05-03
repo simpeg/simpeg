@@ -111,18 +111,18 @@ class Survey(BaseSurvey):
         """
         assert (
             i_sounding in self._source_location_dict
-        ), "The requested frequency is not in this survey."
+        ), "The requested sounding is not in this survey."
         return self._source_location_dict[i_sounding]
 
     @property
     def vnD_by_sounding(self):
         if getattr(self, '_vnD_by_sounding', None) is None:
-            temp = []
+            vnD = []
             for i_sounding in self.source_locations_by_sounding_dict:
                 source_list = self.get_sources_by_sounding_number(i_sounding)
                 nD = 0
                 for src in source_list:
                     nD +=src.nD
-                temp.append(nD)
-            self._vnD_by_sounding = np.array(temp)
+                vnD.append(nD)
+            self._vnD_by_sounding = np.array(vnD)
         return self._vnD_by_sounding
