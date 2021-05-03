@@ -554,8 +554,12 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         return Zero()
 
     def setBC(self, ky=None):
+        V = sdiag(self.mesh.cell_volumes)
+        self.Div = V @ self.mesh.face_divergence
+        self.Grad = self.Div.T
+
         if self.bc_type == "Dirichlet":
-            alpha, beta, gamma = 1, 0, 0
+            return
         elif self.bc_type == "Neumann":
             alpha, beta, gamma = 0, 1, 0
         else:
@@ -583,10 +587,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
         B, bc = self.mesh.cell_gradient_weak_form_robin(alpha, beta, gamma)
         # bc should always be 0 because gamma was always 0 above
-
-        V = sdiag(self.mesh.cell_volumes)
-        self.Div = V @ self.mesh.face_divergence
-        self.Grad = self.Div.T - B
+        self.Grad = self.Grad - B
 
 
 class Simulation2DNodal(BaseDCSimulation2D):

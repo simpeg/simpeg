@@ -324,13 +324,17 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return Zero()
 
     def setBC(self):
+        V = sp.diags(self.mesh.cell_volumes)
+        self.Div = V @ self.mesh.face_divergence
+        self.Grad = self.Div.T
+
         if self.bc_type == "Dirichlet":
             if self.verbose:
                 print(
                     "Homogeneous Dirichlet is the natural BC for this CC discretization."
                 )
-
-            alpha, beta, gamma = 1, 0, 0
+            # do nothing
+            return
         elif self.bc_type == "Neumann":
             alpha, beta, gamma = 0, 1, 0
         else:  # self.bc_type == "Mixed":
@@ -363,9 +367,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
         B, bc = self.mesh.cell_gradient_weak_form_robin(alpha, beta, gamma)
         # bc should always be 0 because gamma was always 0 above
-        V = sp.diags(self.mesh.cell_volumes)
-        self.Div = V @ self.mesh.face_divergence
-        self.Grad = self.Div.T - B
+        self.Grad = self.Grad - B
 
 
 class Simulation3DNodal(BaseDCSimulation):
