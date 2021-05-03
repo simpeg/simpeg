@@ -330,10 +330,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
                     "Homogeneous Dirichlet is the natural BC for this CC discretization."
                 )
 
-            boundary_faces = self.mesh.boundary_faces
-            n_bf = len(boundary_faces)
             alpha, beta, gamma = 1, 0, 0
-
         elif self.bc_type == "Neumann":
             alpha, beta, gamma = 0, 1, 0
         else:  # self.bc_type == "Mixed":
