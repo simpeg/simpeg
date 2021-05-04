@@ -33,8 +33,8 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         )        
         
         waveform = tdem.sources.RawWaveform(
-        	waveform_times=waveform_times, waveform_current=waveform_current,
-        	 n_pulse = 1, base_frequency = 25.,  high_cut_frequency=210*1e3
+                waveform_times=waveform_times, waveform_current=waveform_current,
+                n_pulse = 1, base_frequency = 25.,  high_cut_frequency=210*1e3
         )
 
         # Receiver list

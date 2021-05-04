@@ -67,20 +67,11 @@ class EM1DFMSimulation(BaseEM1DSimulation):
         # but different frequencies as well as receiver locations 
         # having the same height. They do not needed to be in the for loop, 
         # we can compute all of them once. Which could save some time. 
+
         for i_src, src in enumerate(self.survey.source_list):
             for i_rx, rx in enumerate(src.receiver_list):
-
-                if np.isscalar(src.frequency):
-                    n_frequency = 1
-                    frequency = np.array([src.frequency])
-                else:
-                    n_frequency = len(src.frequency)
-                    frequency = src.frequency.copy()
-
-                f = np.empty([n_frequency, n_filter], order='F')
-                f[:, :] = np.tile(
-                    frequency.reshape([-1, 1]), (1, n_filter)
-                )
+                frequency = np.array([src.frequency])
+                f = np.ones((1, n_filter), order='F') * frequency
 
                 # Create globally, not for each receiver in the future
                 sig = self.compute_sigma_matrix(frequency)
@@ -104,12 +95,12 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                     else:
                         r = rx.locations[0, 0:2] - src.location[0:2]
         
-                    r_vec = np.sqrt(np.sum(r**2)) * np.ones(n_frequency)
-                    a_vec = src.radius * np.ones(n_frequency)
+                    r_vec = np.sqrt(np.sum(r**2)) * np.ones(1)
+                    a_vec = src.radius * np.ones(1)
 
                     # Use function from empymod to define Hankel coefficients.
-                    # Size of lambd is (n_frequency x n_filter)
-                    lambd = np.empty([n_frequency, n_filter], order='F')
+                    # Size of lambd is (1 x n_filter)
+                    lambd = np.empty([1, n_filter], order='F')
                     lambd[:, :], _ = get_dlf_points(
                         self.fhtfilt, a_vec, self.hankel_pts_per_dec
                     )
@@ -140,12 +131,12 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                         r = rx.locations[0, 0:2] - src.location[0:2]
 
                     r = np.sqrt(np.sum(r**2))
-                    r_vec = r * np.ones(n_frequency)
+                    r_vec = r * np.ones(1)
 
                     # Use function from empymod to define Hankel coefficients.
-                    # Size of lambd is (n_frequency x n_filter)
+                    # Size of lambd is (1 x n_filter)
 
-                    lambd = np.empty([n_frequency, n_filter], order='F')
+                    lambd = np.empty([1, n_filter], order='F')
                     lambd[:, :], _ = get_dlf_points(
                         self.fhtfilt, r_vec, self.hankel_pts_per_dec
                     )

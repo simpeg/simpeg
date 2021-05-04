@@ -24,23 +24,24 @@ class Survey(BaseSurvey):
 
         _source_location_dict = {}
         _source_locations_by_sounding_dict = {}
+        _source_frequency_by_sounding_dict = {}
 
         for src in source_list:           
             if src.i_sounding not in _source_location_dict:    
                 _source_location_dict[src.i_sounding] = []
-                _source_locations_by_sounding_dict[src.i_sounding] = []
+                _source_location_by_sounding_dict[src.i_sounding] = []
             _source_location_dict[src.i_sounding] += [src]
-            _source_locations_by_sounding_dict[src.i_sounding] += [src.location]
+            _source_location_by_sounding_dict[src.i_sounding] += [src.location]
             
         self._source_location_dict = _source_location_dict
-        self._source_locations_by_sounding_dict = _source_locations_by_sounding_dict        
+        self._source_location_by_sounding_dict = _source_location_by_sounding_dict  
 
     @property
-    def source_locations_by_sounding_dict(self):
+    def source_location_by_sounding_dict(self):
         """
-        Source locations in the survey as a dictionary
+        Source location in the survey as a dictionary
         """
-        return self._source_locations_by_sounding_dict
+        return self._source_location_by_sounding_dict
 
     def get_sources_by_sounding_number(self, i_sounding):
         """
@@ -58,11 +59,11 @@ class Survey(BaseSurvey):
     def vnD_by_sounding(self):
         if getattr(self, '_vnD_by_sounding', None) is None:
             vnD = []
-            for i_sounding in self.source_locations_by_sounding_dict:
+            for i_sounding in self.source_location_by_sounding_dict:
                 source_list = self.get_sources_by_sounding_number(i_sounding)
                 nD = 0
                 for src in source_list:
                     nD +=src.nD
                 vnD.append(nD)
             self._vnD_by_sounding = np.array(vnD)
-        return self._vnD_by_sounding        
+
