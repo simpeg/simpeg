@@ -1,136 +1,134 @@
-# import unittest
-# from SimPEG import *
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import SimPEG.electromagnetics.time_domain_1d as em1d
-# from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
+import unittest
+from SimPEG import *
+import numpy as np
+import matplotlib.pyplot as plt
+import SimPEG.electromagnetics.time_domain_1d as em1d
+import SimPEG.electromagnetics.time_domain as tdem
+from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
 
-# class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
+class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
 
-#     def setUp(self):    
+    def setUp(self):    
 
-#         nearthick = np.logspace(-1, 1, 5)
-#         deepthick = np.logspace(1, 2, 10)
-#         thicknesses = np.r_[nearthick, deepthick]
-#         topo = np.r_[0., 0., 100.]
-#         a = 20.
+        nearthick = np.logspace(-1, 1, 5)
+        deepthick = np.logspace(1, 2, 10)
+        thicknesses = np.r_[nearthick, deepthick]
+        topo = np.r_[0., 0., 100.]
+
+        source_location = np.array([0., 0., 100.+1e-5])
+        receiver_locations = np.array([[0., 0., 100.+1e-5]])
+        receiver_orientation = "z"  # "x", "y" or "z"
+        times = np.logspace(-5, -2, 31)
+        radius = 20.
+
+        # Waveform
+        waveform_times = np.r_[-np.logspace(-2, -5, 31), 0.]
+        waveform_current = triangular_waveform_current(
+            waveform_times, -0.01, -0.005, 0., 1.
+        )        
         
-#         src_location = np.array([0., 0., 100.+1e-5])  
-#         rx_location = np.array([0., 0., 100.+1e-5])
-#         receiver_orientation = "z"  # "x", "y" or "z"
-#         times = np.logspace(-5, -2, 31)
+        waveform = tdem.sources.RawWaveform(
+        	waveform_times=waveform_times, waveform_current=waveform_current,
+        	 n_pulse = 1, base_frequency = 25.,  high_cut_frequency=210*1e3
+        )
+
+        # Receiver list
+
+        # Define receivers at each location.
+        b_receiver = tdem.receivers.PointMagneticFluxDensity(
+            receiver_locations, times, receiver_orientation
+        )
+        dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
+            receiver_locations, times, receiver_orientation
+        )
+        receivers_list = [
+            b_receiver, dbzdt_receiver
+        ]  # Make a list containing all receivers even if just one
+
+        # Must define the transmitter properties and associated receivers
+        source_list = [
+            tdem.sources.CircularLoop(
+                receivers_list,
+                location=source_location,
+                waveform=waveform,
+                radius=radius,
+                i_sounding=0
+            )
+        ]
+
+        survey = tdem.Survey(source_list)        
         
-#         # Receiver list
-#         receiver_list = []
+        sigma = 1e-2
+
+        self.topo = topo
+        self.survey = survey
+        self.showIt = False
+        self.sigma = sigma
+        self.times = times
+        self.thicknesses = thicknesses
+        self.nlayers = len(thicknesses)+1
+        self.a = radius
+
+
+    def test_EM1DTDJvec_Layers(self):
         
-#         receiver_list.append(
-#             em1d.receivers.PointReceiver(
-#                 rx_location, times, orientation=receiver_orientation,
-#                 component="b"
-#             )
-#         )
+        sigma_map = maps.ExpMap(nP=self.nlayers)
+        sim = em1d.simulation.EM1DTMSimulation(
+            survey=self.survey, thicknesses=self.thicknesses,
+            sigmaMap=sigma_map, topo=self.topo
+        )
         
-#         receiver_list.append(
-#             em1d.receivers.PointReceiver(
-#                 rx_location, times, orientation=receiver_orientation,
-#                 component="dbdt"
-#             )
-#         )
-
-#         # Waveform
-#         waveform_times = np.r_[-np.logspace(-2, -5, 31), 0.]
-#         waveform_current = triangular_waveform_current(
-#             waveform_times, -0.01, -0.005, 0., 1.
-#         )
+        m_1D = np.log(np.ones(self.nlayers)*self.sigma)
         
-#         waveform = em1d.waveforms.GeneralWaveform(
-#             waveform_times=waveform_times, waveform_current=waveform_current,
-#             n_pulse = 1, base_frequency = 25., use_lowpass_filter=False, high_cut_frequency=210*1e3
-#         )
+        def fwdfun(m):
+            resp = sim.dpred(m)
+            return resp
 
-#         source_list = [
-#             em1d.sources.HorizontalLoopSource(
-#                 receiver_list=receiver_list,
-#                 location=src_location,
-#                 waveform=waveform,
-#                 radius=a
-#             )
-#         ]
-            
-#         # Survey
-#         survey = em1d.survey.EM1DSurveyTD(source_list)
+        def jacfun(m, dm):
+            Jvec = sim.Jvec(m, dm)
+            return Jvec
+
+        dm = m_1D*0.5
+        derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
+        passed = tests.checkDerivative(
+            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
+        )
+
+        if passed:
+            print ("EM1DTD-layers Jvec works")
+
+    def test_EM1DTDJtvec_Layers(self):
+
+        sigma_map = maps.ExpMap(nP=self.nlayers)
+        sim = em1d.simulation.EM1DTMSimulation(
+            survey=self.survey, thicknesses=self.thicknesses,
+            sigmaMap=sigma_map, topo=self.topo
+        )        
+
+        sigma_layer = 0.1
+        sigma = np.ones(self.nlayers)*self.sigma
+        sigma[3] = sigma_layer
+        m_true = np.log(sigma)
         
-#         sigma = 1e-2
-
-#         self.topo = topo
-#         self.survey = survey
-#         self.showIt = False
-#         self.sigma = sigma
-#         self.times = times
-#         self.thicknesses = thicknesses
-#         self.nlayers = len(thicknesses)+1
-#         self.a = a
-
-
-#     def test_EM1DTDJvec_Layers(self):
+        dobs = sim.dpred(m_true)
         
-#         sigma_map = maps.ExpMap(nP=self.nlayers)
-#         sim = em1d.simulation.EM1DTMSimulation(
-#             survey=self.survey, thicknesses=self.thicknesses,
-#             sigmaMap=sigma_map, topo=self.topo
-#         )
-        
-#         m_1D = np.log(np.ones(self.nlayers)*self.sigma)
-        
-#         def fwdfun(m):
-#             resp = sim.dpred(m)
-#             return resp
+        m_ini = np.log(np.ones(self.nlayers)*self.sigma)
+        resp_ini = sim.dpred(m_ini)
+        dr = resp_ini-dobs
 
-#         def jacfun(m, dm):
-#             Jvec = sim.Jvec(m, dm)
-#             return Jvec
+        def misfit(m, dobs):
+            dpred = sim.dpred(m)
+            misfit = 0.5*np.linalg.norm(dpred-dobs)**2
+            dmisfit = sim.Jtvec(m, dr)
+            return misfit, dmisfit
 
-#         dm = m_1D*0.5
-#         derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
-#         passed = tests.checkDerivative(
-#             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
-#         )
+        derChk = lambda m: misfit(m, dobs)
+        passed = tests.checkDerivative(
+            derChk, m_ini, num=4, plotIt=False, eps=1e-26
+        )
+        self.assertTrue(passed)
+        if passed:
+            print ("EM1DTD-layers Jtvec works")
 
-#         if passed:
-#             print ("EM1DTD-layers Jvec works")
-
-#     def test_EM1DTDJtvec_Layers(self):
-
-#         sigma_map = maps.ExpMap(nP=self.nlayers)
-#         sim = em1d.simulation.EM1DTMSimulation(
-#             survey=self.survey, thicknesses=self.thicknesses,
-#             sigmaMap=sigma_map, topo=self.topo
-#         )        
-
-#         sigma_layer = 0.1
-#         sigma = np.ones(self.nlayers)*self.sigma
-#         sigma[3] = sigma_layer
-#         m_true = np.log(sigma)
-        
-#         dobs = sim.dpred(m_true)
-        
-#         m_ini = np.log(np.ones(self.nlayers)*self.sigma)
-#         resp_ini = sim.dpred(m_ini)
-#         dr = resp_ini-dobs
-
-#         def misfit(m, dobs):
-#             dpred = sim.dpred(m)
-#             misfit = 0.5*np.linalg.norm(dpred-dobs)**2
-#             dmisfit = sim.Jtvec(m, dr)
-#             return misfit, dmisfit
-
-#         derChk = lambda m: misfit(m, dobs)
-#         passed = tests.checkDerivative(
-#             derChk, m_ini, num=4, plotIt=False, eps=1e-26
-#         )
-#         self.assertTrue(passed)
-#         if passed:
-#             print ("EM1DTD-layers Jtvec works")
-
-# if __name__ == '__main__':
-#     unittest.main()
+if __name__ == '__main__':
+    unittest.main()
