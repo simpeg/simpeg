@@ -36,7 +36,7 @@ class BaseRx(BaseTimeRx):
 
     _ftarg = None
     _time_interval = None
-    
+
     def __init__(self, locations, times, orientation=None, **kwargs):
         proj = kwargs.pop("projComp", None)
         if proj is not None:
@@ -146,7 +146,16 @@ class BaseRx(BaseTimeRx):
             # dP_dF_T = P.T * v #[src, self]
             # newshape = (len(dP_dF_T)/time_mesh.nN, time_mesh.nN )
             return P.T * v  # np.reshape(dP_dF_T, newshape, order='F')
-
+        
+    @property
+    def n_time(self):
+        """
+            Number of time channels
+        """
+        # if self.dual_times is not None:
+        #     return int(self.times.size) + int(self.dual_times.size)
+        # else:
+        return int(self.times.size)
 
 class PointElectricField(BaseRx):
     """

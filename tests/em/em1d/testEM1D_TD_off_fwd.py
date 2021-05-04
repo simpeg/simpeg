@@ -63,7 +63,7 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
 
         self.topo = topo
         self.survey = survey
-        self.showIt = True
+        self.showIt = False
         self.sigma = sigma
         self.tau = tau
         self.eta = eta
@@ -120,110 +120,110 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
 
         print ("EM1DTD-CirculurLoop for real conductivity works")
 
-    # def test_EM1DTDfwd_CirLoop_ComplexCond(self):
+    def test_EM1DTDfwd_CirLoop_ComplexCond(self):
 
-    #     sigma_map = maps.IdentityMap(nP=self.nlayers)
-    #     chi = np.zeros(self.nlayers)
-    #     tau = self.tau*np.ones(self.nlayers)
-    #     c = self.c*np.ones(self.nlayers)
-    #     eta = self.eta*np.ones(self.nlayers)
+        sigma_map = maps.IdentityMap(nP=self.nlayers)
+        chi = np.zeros(self.nlayers)
+        tau = self.tau*np.ones(self.nlayers)
+        c = self.c*np.ones(self.nlayers)
+        eta = self.eta*np.ones(self.nlayers)
 
-    #     sim = em1d.simulation.EM1DTMSimulation(
-    #         survey=self.survey, thicknesses=self.thicknesses,
-    #         sigmaMap=sigma_map, topo=self.topo,
-    #         eta=eta, tau=tau, c=c, chi=chi
-    #     )
+        sim = em1d.simulation.EM1DTMSimulation(
+            survey=self.survey, thicknesses=self.thicknesses,
+            sigmaMap=sigma_map, topo=self.topo,
+            eta=eta, tau=tau, c=c, chi=chi
+        )
 
-    #     m_1D = np.ones(self.nlayers)*self.sigma
-    #     d = sim.dpred(m_1D)
-    #     bz = d[0:len(self.times)]
-    #     dbdt = d[len(self.times):]
+        m_1D = np.ones(self.nlayers)*self.sigma
+        d = sim.dpred(m_1D)
+        bz = d[0:len(self.times)]
+        dbdt = d[len(self.times):]
 
-    #     w_, _, omega_int = setFrequency(self.times)
-    #     sigCole = ColeCole(
-    #         omega_int/(2*np.pi), self.sigma,
-    #         self.eta, self.tau, self.c
-    #     )
+        w_, _, omega_int = setFrequency(self.times)
+        sigCole = ColeCole(
+            omega_int/(2*np.pi), self.sigma,
+            self.eta, self.tau, self.c
+        )
 
-    #     bzanal = Bz_horizontal_circular_loop_ColeCole(
-    #         self.a, self.times, sigCole
-    #     )
+        bzanal = Bz_horizontal_circular_loop_ColeCole(
+            self.a, self.times, sigCole
+        )
 
-    #     if self.showIt is True:
+        if self.showIt is True:
 
-    #         plt.loglog(self.times, (bz), 'b')
-    #         plt.loglog(self.times, (bzanal), 'b*')
-    #         plt.show()
+            plt.loglog(self.times, (bz), 'b')
+            plt.loglog(self.times, (bzanal), 'b*')
+            plt.show()
 
-    #     err = np.linalg.norm(bz-bzanal)/np.linalg.norm(bzanal)
-    #     print ('Bz error = ', err)
-    #     self.assertTrue(err < 1e-2)
+        err = np.linalg.norm(bz-bzanal)/np.linalg.norm(bzanal)
+        print ('Bz error = ', err)
+        self.assertTrue(err < 1e-2)
 
-    #     dbdtanal = dBzdt_horizontal_circular_loop_ColeCole(
-    #         self.a, self.times, sigCole
-    #     )
+        dbdtanal = dBzdt_horizontal_circular_loop_ColeCole(
+            self.a, self.times, sigCole
+        )
 
-    #     if self.showIt is True:
+        if self.showIt is True:
 
-    #         plt.loglog(self.times, - dbdt, 'b')
-    #         plt.loglog(self.times, - dbdtanal, 'b*')
-    #         plt.show()
+            plt.loglog(self.times, - dbdt, 'b')
+            plt.loglog(self.times, - dbdtanal, 'b*')
+            plt.show()
 
-    #     err = np.linalg.norm(dbdt-dbdtanal)/np.linalg.norm(dbdtanal)
-    #     print ('dBzdt error = ', err)
-    #     self.assertTrue(err < 5e-2)
-    #     print ("EM1DTD-CirculurLoop for Complex conductivity works")
+        err = np.linalg.norm(dbdt-dbdtanal)/np.linalg.norm(dbdtanal)
+        print ('dBzdt error = ', err)
+        self.assertTrue(err < 5e-2)
+        print ("EM1DTD-CirculurLoop for Complex conductivity works")
 
 
-    # def test_EM1DTDfwd_CirLoop_VRM(self):
+    def test_EM1DTDfwd_CirLoop_VRM(self):
 
-    #     sigma_map = maps.IdentityMap(nP=self.nlayers)
-    #     chi = np.zeros(self.nlayers)
-    #     dchi = self.dchi*np.ones(self.nlayers)
-    #     tau1 = self.tau1*np.ones(self.nlayers)
-    #     tau2 = self.tau2*np.ones(self.nlayers)
+        sigma_map = maps.IdentityMap(nP=self.nlayers)
+        chi = np.zeros(self.nlayers)
+        dchi = self.dchi*np.ones(self.nlayers)
+        tau1 = self.tau1*np.ones(self.nlayers)
+        tau2 = self.tau2*np.ones(self.nlayers)
 
-    #     sim = em1d.simulation.EM1DTMSimulation(
-    #         survey=self.survey, thicknesses=self.thicknesses,
-    #         sigmaMap=sigma_map, topo=self.topo,
-    #         chi=chi, dchi=dchi, tau1=tau1, tau2=tau2,
-    #         time_filter='key_201_CosSin_2012'
-    #     )
+        sim = em1d.simulation.EM1DTMSimulation(
+            survey=self.survey, thicknesses=self.thicknesses,
+            sigmaMap=sigma_map, topo=self.topo,
+            chi=chi, dchi=dchi, tau1=tau1, tau2=tau2,
+            time_filter='key_201_CosSin_2012'
+        )
 
-    #     m_1D = 1e-8 * np.ones(self.nlayers)
-    #     d = sim.dpred(m_1D)
-    #     bz = d[0:len(self.times)]
-    #     dbdt = d[len(self.times):]
+        m_1D = 1e-8 * np.ones(self.nlayers)
+        d = sim.dpred(m_1D)
+        bz = d[0:len(self.times)]
+        dbdt = d[len(self.times):]
 
-    #     bzanal = Bz_horizontal_circular_loop_VRM(
-    #         self.a, 1e-5, 1e-5, self.times, self.dchi, self.tau1, self.tau2
-    #     )
+        bzanal = Bz_horizontal_circular_loop_VRM(
+            self.a, 1e-5, 1e-5, self.times, self.dchi, self.tau1, self.tau2
+        )
 
-    #     if self.showIt is True:
+        if self.showIt is True:
 
-    #         plt.loglog(self.times, (bz), 'b')
-    #         plt.loglog(self.times, (bzanal), 'b*')
-    #         plt.show()
+            plt.loglog(self.times, (bz), 'b')
+            plt.loglog(self.times, (bzanal), 'b*')
+            plt.show()
 
-    #     # Not sure why, but this does not work
-    #     # err = np.linalg.norm(bz-bzanal)/np.linalg.norm(bzanal)
-    #     # print ('Bz error = ', err)
-    #     # self.assertTrue(err < 5e-2)
+        # Not sure why, but this does not work
+        # err = np.linalg.norm(bz-bzanal)/np.linalg.norm(bzanal)
+        # print ('Bz error = ', err)
+        # self.assertTrue(err < 5e-2)
 
-    #     dbdtanal = dBzdt_horizontal_circular_loop_VRM(
-    #         self.a, 1e-5, 1e-5, self.times, self.dchi, self.tau1, self.tau2
-    #     )
+        dbdtanal = dBzdt_horizontal_circular_loop_VRM(
+            self.a, 1e-5, 1e-5, self.times, self.dchi, self.tau1, self.tau2
+        )
 
-    #     if self.showIt is True:
+        if self.showIt is True:
 
-    #         plt.loglog(self.times, - dbdt, 'b')
-    #         plt.loglog(self.times, - dbdtanal, 'b*')
-    #         plt.show()
+            plt.loglog(self.times, - dbdt, 'b')
+            plt.loglog(self.times, - dbdtanal, 'b*')
+            plt.show()
 
-    #     err = np.linalg.norm(dbdt-dbdtanal)/np.linalg.norm(dbdtanal)
-    #     print ('dBzdt error = ', err)
-    #     self.assertTrue(err < 1e-2)
-    #     print ("EM1DTD-CirculurLoop for viscous remanent magnetization works")
+        err = np.linalg.norm(dbdt-dbdtanal)/np.linalg.norm(dbdtanal)
+        print ('dBzdt error = ', err)
+        self.assertTrue(err < 1e-2)
+        print ("EM1DTD-CirculurLoop for viscous remanent magnetization works")
 
 if __name__ == '__main__':
     unittest.main()
