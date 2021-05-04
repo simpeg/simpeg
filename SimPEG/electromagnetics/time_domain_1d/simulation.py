@@ -120,8 +120,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
 
         for src in self.survey.source_list:
             for rx in src.receiver_list:
-
-                if ~isinstance(src.waveform, StepOffWaveform):
+                if isinstance(src.waveform, StepOffWaveform):
                     _, freq, ft, ftarg = check_time(
                         rx.times, -1, 'dlf',
                         {'pts_per_dec': pts_per_dec, 'dlf': self.fftfilt}, 0,
@@ -305,7 +304,6 @@ class EM1DTMSimulation(BaseEM1DSimulation):
 
                 # For stepoff waveform
                 if isinstance(src.waveform, StepOffWaveform):
-
                     # Compute EM responses
                     if u_temp.ndim == 1:
                         resp, _ = fourier_dlf(
@@ -329,7 +327,6 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                 # Evaluate piecewise linear input current waveforms
                 # Using Fittermann's approach (19XX) with Gaussian Quadrature
                 else:
-
                     # Compute EM responses
                     if u_temp.ndim == 1:
                         resp_int, _ = fourier_dlf(
