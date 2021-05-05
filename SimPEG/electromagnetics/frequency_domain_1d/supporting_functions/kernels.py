@@ -68,7 +68,7 @@ def magnetic_dipole_kernel(
         )
 
         drTE, _, _ = rTE_gradient(
-            f[:,0], lamda[0,:], sig, mu, thicknesses
+            f[:,0], lamda[:,:], sig, mu, thicknesses
             )
 
         temp = drTE * np.exp(-lamda*(z+h))
@@ -78,7 +78,7 @@ def magnetic_dipole_kernel(
         )
         depth = simulation.depth
         rTE = rTE_forward(
-            f[:,0], lamda[0,:], sig, mu, thicknesses
+            f[:,0], lamda[:,:], sig, mu, thicknesses
         )
 
         temp = rTE * np.exp(-lamda*(z+h))
@@ -197,12 +197,12 @@ def magnetic_dipole_kernel(
 #         if rte_fortran is None:
 #             thick = simulation.thicknesses
 #             drTE = rTEfunjac(
-#                 n_layer, f, lamda[0,:], sig, chi, thick, simulation.halfspace_switch
+#                 n_layer, f, lamda[:,:], sig, chi, thick, simulation.halfspace_switch
 #             )
 #         else:
 #             depth = simulation.depth
 #             rte_fortran.rte_sensitivity(
-#                 f, lamda[0,:], sig, chi, depth, simulation.halfspace_switch, drTE,
+#                 f, lamda[:,:], sig, chi, depth, simulation.halfspace_switch, drTE,
 #                 n_layer, n_frequency, n_filter
 #                 )
 
@@ -214,12 +214,12 @@ def magnetic_dipole_kernel(
 #         if rte_fortran is None:
 #             thick = simulation.thicknesses
 #             rTE = rTEfunfwd(
-#                 n_layer, f, lamda[0,:], sig, chi, thick, simulation.halfspace_switch
+#                 n_layer, f, lamda[:,:], sig, chi, thick, simulation.halfspace_switch
 #             )
 #         else:
 #             depth = simulation.depth
 #             rte_fortran.rte_forward(
-#                 f, lamda[0,:], sig, chi, depth, simulation.halfspace_switch,
+#                 f, lamda[:,:], sig, chi, depth, simulation.halfspace_switch,
 #                 rTE, n_layer, n_frequency, n_filter
 #             )
 
@@ -278,7 +278,7 @@ def horizontal_loop_kernel(
         )
         
         drTE, _, _ = rTE_gradient(
-            f[:,0], lamda[0,:], sig, mu, thicknesses
+            f[:,0], lamda[:,:], sig, mu, thicknesses
         )
         kernel = drTE * np.exp(-u0*(z+h)) * coefficient_wavenumber
     else:
@@ -287,7 +287,7 @@ def horizontal_loop_kernel(
         )
 
         rTE = rTE_forward(
-            f[:,0], lamda[0,:], sig, mu, thicknesses
+            f[:,0], lamda[:,:], sig, mu, thicknesses
         )
 
         kernel = rTE * np.exp(-u0*(z+h)) * coefficient_wavenumber
@@ -322,7 +322,7 @@ def hz_kernel_horizontal_electric_dipole(
         )
         
         drTE, _, _ = rTE_gradient(
-            f[:,0], lamda[0,:], sig, mu, thicknesses
+            f[:,0], lamda[:,:], sig, mu, thicknesses
         )
 
         kernel = drTE * np.exp(-u0*(z+h)) * coefficient_wavenumber
@@ -331,7 +331,7 @@ def hz_kernel_horizontal_electric_dipole(
             [n_frequency, n_filter], dtype=np.complex128, order='F'
         )
         rTE = rTE_forward(
-            f[:,0], lamda[0,:], sig, mu, thicknesses
+            f[:,0], lamda[:,:], sig, mu, thicknesses
         )
 
         kernel = rTE * np.exp(-u0*(z+h)) * coefficient_wavenumber

@@ -1,6 +1,6 @@
 # Simulations
 from .simulation import (
-	EM1DFMSimulation, StitchedEM1DFMSimulation
+	EM1DFMSimulation, StitchedEM1DFMSimulation, Sensitivity
 )
 
 # Surveys

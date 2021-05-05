@@ -8,7 +8,8 @@ import properties
 # from .sources import *
 # from .survey import EM1DSurveyFD
 from .supporting_functions.kernels import *
-
+from .supporting_functions.kernels_by_sounding import magnetic_dipole_response_by_sounding, horizontal_loop_response_by_sounding
+from SimPEG import Data
 from empymod.utils import check_time
 from empymod import filters
 from empymod.transform import dlf, fourier_dlf, get_dlf_points
@@ -147,7 +148,6 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                     )
 
                     PJ = tuple(PJ)
-
                     if output_type=="sensitivity_sigma":
                         r_vec = np.tile(r_vec, (n_layer, 1))
 
@@ -223,11 +223,210 @@ class EM1DFMSimulation(BaseEM1DSimulation):
 
         return u
 
+    def compute_integral_by_sounding(self, m, output_type='response'):
+        """
+        This method evaluates the Hankel transform for each source and
+        receiver and outputs it as a list. Used for computing response
+        or sensitivities.
+        """
+
+        self.model = m
+        n_layer = self.n_layer
+        n_filter = self.n_filter
+        
+        # Define source height above topography by mapping or from sources and receivers.
+        # Issue: this only works for a single source.
+
+        integral_output_list = []
+
+        # Issue: it would be better if have an internal sorting 
+        # to combine all sources having the same location, 
+        # but different frequencies as well as receiver locations 
+        # having the same height. They do not needed to be in the for loop, 
+        # we can compute all of them once. Which could save some time. 
+        source_location_by_sounding_dict = self.survey.source_location_by_sounding_dict
+        if output_type == 'sensitivity_sigma':
+            data_or_sensitivity = Sensitivity(self.survey, M=n_layer)
+        else: 
+            data_or_sensitivity = Data(self.survey)
+            
+        
+        for i_sounding in source_location_by_sounding_dict:        
+            src_locations = np.vstack(source_location_by_sounding_dict[i_sounding])
+            rx_locations = self.survey.receiver_location_by_sounding_dict[i_sounding]
+            rx_use_offset = self.survey.receiver_use_offset_by_sounding_dict[i_sounding]
+            
+            n_filter = self.n_filter
+            n_frequency_rx = self.survey.vnrx_by_sounding_dict[i_sounding]
+            f = np.empty([n_frequency_rx, n_filter], order='F')
+            frequencies = self.survey.frequency_by_sounding_dict[i_sounding]
+            f = np.tile(
+                frequencies.reshape([-1, 1]), (1, n_filter)
+            )
+
+            # Create globally, not for each receiver in the future
+            sig = self.compute_sigma_matrix(frequencies)
+            chi = self.compute_chi_matrix(frequencies)
+
+            # Compute receiver height
+            # Assume all sources in i-th sounding have the same src.location
+            if self.hMap is not None:
+                h = self.h
+            elif self.topo is None:
+                h = src_locations[0, 2]
+            else:
+                h = src_locations[0, 2]-self.topo[-1]
+            
+            # Assume all receivers in i-th sounding have the same receiver height
+            if rx_use_offset[0]:
+                z = h + rx_locations[0, 2]
+            else:
+                z = h + rx_locations[0, 2] - src_locations[0, 2]            
+           
+            # Assume all receivers in i-th sounding have the same rx.use_source_receiver_offset.
+            # But, their Radial distance can be different.
+            if rx_use_offset[0]:
+                r = rx_locations[:, 0:2]
+            else:
+                r = rx_locations[:, 0:2] - src_locations[0,0:2]
+            r = np.sqrt(np.sum(r**2, axis=1))
+           
+            # Assume all sources in i-th sounding have the same type
+            source_list = self.survey.get_sources_by_sounding_number(i_sounding)
+            src = source_list[0]
+            
+            if isinstance(src, CircularLoop):
+                # Assume all sources in i-th sounding have the same radius
+                a = np.array([src.radius])
+                # Use function from empymod to define Hankel coefficients.
+                # Size of lambd is (1 x n_filter)
+                lambd = np.empty([n_frequency_rx, n_filter], order='F')
+                lambd[:, :], _ = get_dlf_points(
+                    self.fhtfilt, a, self.hankel_pts_per_dec
+                )      
+                
+                data_or_sensitivity = horizontal_loop_response_by_sounding(
+                    self, lambd, f, n_layer, sig, chi, a, h, z, 
+                    source_list, data_or_sensitivity,
+                    output_type=output_type            
+                )
+            
+            elif isinstance(src, MagDipole):                
+
+                # Use function from empymod to define Hankel coefficients.
+                # Size of lambd is (1 x n_filter)
+                lambd = np.empty([n_frequency_rx, n_filter], order='F')
+                lambd[:, :], _ = get_dlf_points(
+                    self.fhtfilt, r, self.hankel_pts_per_dec
+                )      
+                
+                data_or_sensitivity = magnetic_dipole_response_by_sounding(
+                    self, lambd, f, n_layer, sig, chi, h, z, 
+                    source_list, data_or_sensitivity, r,
+                    output_type=output_type            
+                )
+            return data_or_sensitivity
+
+    def project_fields_src_rx(self, u, src, rx, output_type='response'):
+        """
+        Project from the list of Hankel transform evaluations to the data or sensitivities.
+        Data can be real or imaginary component of: total field, secondary field or ppm.
+
+        :param list u: list containing Hankel transform outputs for each unique
+        source-receiver pair.
+        :rtype: list: list containing predicted data for each unique
+        source-receiver pair.
+        :return: predicted data or sensitivities by source-receiver
+        """
+
+        if rx.component == 'real':
+            data = np.atleast_1d(np.real(u))
+        elif rx.component == 'imag':
+            data = np.atleast_1d(np.imag(u))
+        elif rx.component == 'both':
+            data_r = np.real(u)
+            data_i = np.imag(u)
+            if output_type == 'sensitivity_sigma':
+                data = np.vstack((data_r,data_i))
+            else:
+                data = np.r_[data_r,data_i]
+        else:
+            raise Exception()
+
+        if isinstance(rx, PointMagneticFieldSecondary):
+
+            if rx.data_type == "ppm":
+                data_primary = src.hPrimary1D(rx.locations, rx.use_source_receiver_offset)
+                k = [comp == rx.orientation for comp in ["x", "y", "z"]]
+                data = 1e6 * data/data_primary[0, k]
+
+        elif isinstance(rx, PointMagneticField):
+            data_primary = src.hPrimary1D(rx.locations, rx.use_source_receiver_offset)
+            if rx.component == 'both':
+                if output_type == 'sensitivity_sigma':
+                    data = np.vstack((data_r+data_primary,data_i))
+                else:
+                    data = np.r_[data_r+data_primary, data_i]
+            else:
+                data =+ data_primary
+        else:
+            raise Exception()
+
+        return data
+
+    def fields(self, m):
+        # f = self.compute_integral(m, output_type='response')
+        # f = self.project_fields(f, output_type='response')
+        data = self.compute_integral_by_sounding(m, output_type='response')
+        return data.dobs
+
+    def getJ_height(self, m, f=None):
+        """
+        Compute the sensitivity with respect to source height(s).
+        """
+
+        # Null if source height is not parameter of the simulation.
+        if self.hMap is None:
+            return utils.Zero()
+
+        if self._Jmatrix_height is not None:
+            return self._Jmatrix_height
+
+        else:
+
+            if self.verbose:
+                print(">> Compute J height ")
+
+            dudh = self.compute_integral_by_sounding(m, output_type="sensitivity_height")
+            self._Jmatrix_height = dudh.dobs.reshape([-1, 1])
+            return self._Jmatrix_height
+
+
+    def getJ_sigma(self, m, f=None):
+        """
+        Compute the sensitivity with respect to static conductivity.
+        """
+
+        # Null if sigma is not parameter of the simulation.
+        if self.sigmaMap is None:
+            return utils.Zero()
+
+        if self._Jmatrix_sigma is not None:
+            return self._Jmatrix_sigma
+        else:
+
+            if self.verbose:
+                print(">> Compute J sigma")
+            
+            dudsig = self.compute_integral_by_sounding(m, output_type="sensitivity_sigma")
+            self._Jmatrix_sigma = dudsig.sensitivity
+            if self._Jmatrix_sigma.ndim == 1:
+                self._Jmatrix_sigma = self._Jmatrix_sigma.reshape([-1, 1])
+            return self._Jmatrix_sigma        
 
 #######################################################################
 #       STITCHED 1D SIMULATION CLASS AND GLOBAL FUNCTIONS
 #######################################################################
-
 
 class StitchedEM1DFMSimulation(BaseStitchedEM1DSimulation):
 
@@ -240,9 +439,6 @@ class StitchedEM1DFMSimulation(BaseStitchedEM1DSimulation):
 
     def dot(self, args):
         return np.dot(args[0], args[1])
-
-    # def _survey_by_sounding(self):
-
 
     def _run_simulation(self, args):
         """
@@ -312,7 +508,9 @@ class StitchedEM1DFMSimulation(BaseStitchedEM1DSimulation):
                 return utils.mkvc(drespdh)
             else:
                 resp = sim.dpred(m)
-                return resp        
+                return resp           
+
+    # def _survey_by_sounding(self):     
 
     # @property
     # def frequency(self):
@@ -324,4 +522,64 @@ class StitchedEM1DFMSimulation(BaseStitchedEM1DSimulation):
 
 
 
+class Sensitivity(Data):
+    
+    sensitivity = properties.Array(
+        """
+        Matrix of the sensitivity.
+        parameters:
 
+        .. code:: python
+
+            sensitivity = Data(survey)
+            for src in survey.source_list:
+                for rx in src.receiver_list:
+                    sensitivity[src, rx] = sensitivity_for_a_datum
+
+        """,
+        shape=("*","*"),
+        required=True,
+    )    
+
+    
+    M = properties.Integer(
+        """
+        """,
+        required=True
+    )
+    
+    #######################
+    # Instantiate the class
+    #######################
+    def __init__(
+        self,
+        survey,
+        sensitivity=None,
+        M=None,
+    ):
+        super(Data, self).__init__()
+        self.survey = survey
+        self.M=M
+
+        # Observed data
+        if sensitivity is None:
+            sensitivity = np.nan * np.ones((survey.nD, M))  # initialize data as nans
+        self.sensitivity = sensitivity
+
+
+    @properties.validator("sensitivity")
+    def _sensitivity_validator(self, change):
+        if change["value"].shape != (self.survey.nD, self.M):
+            raise ValueError()
+
+    ##########################
+    # Methods
+    ##########################
+
+    def __setitem__(self, key, value):
+        index = self.index_dictionary[key[0]][key[1]]
+        self.sensitivity[index,:] = value
+
+    def __getitem__(self, key):
+        index = self.index_dictionary[key[0]][key[1]]
+        return self.sensitivity[index,:]        

@@ -666,7 +666,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
     @property
     def n_sounding(self):
-        return len(self.survey._source_locations_by_sounding_dict)
+        return len(self.survey.source_location_by_sounding_dict)
 
 
     @property
@@ -893,9 +893,9 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             m = self.n_layer
         else:
             m = n_layer
-
+        source_location_by_sounding_dict = self.survey.source_location_by_sounding_dict
         for i_sounding in range(self.n_sounding):
-            n = self.survey.vnD_by_sounding[i_sounding]
+            n = self.survey.vnD_by_sounding_dict[i_sounding]
             J_temp = np.tile(np.arange(m), (n, 1)) + shift_for_J
             I_temp = (
                 np.tile(np.arange(n), (1, m)).reshape((n, m), order='F') +
@@ -921,7 +921,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         shift_for_I = 0
         m = self.n_layer
         for i_sounding in range(self.n_sounding):
-            n = self.survey.vnD_by_sounding[i_sounding]
+            n = self.survey.vnD_by_sounding_dict[i_sounding]
             J_temp = np.tile(np.arange(m), (n, 1)) + shift_for_J
             I_temp = (
                 np.tile(np.arange(n), (1, m)).reshape((n, m), order='F') +

@@ -13,7 +13,7 @@ np.random.seed(41)
 
 class GlobalEM1DFD(unittest.TestCase):
 
-    def setUp(self, parallel=True):
+    def setUp(self, parallel=False):
 
         n_layer = 20
         frequencies = np.array([900, 7200, 56000], dtype=float)
@@ -70,7 +70,7 @@ class GlobalEM1DFD(unittest.TestCase):
 
         simulation = em1d.simulation.StitchedEM1DFMSimulation(
             survey=survey, thicknesses=thicknesses, sigmaMap=sigma_map,
-            topo=topo, parallel=False, n_cpu=2, verbose=False, Solver=PardisoSolver
+            topo=topo, parallel=parallel, n_cpu=2, verbose=False, Solver=PardisoSolver
         )
 
         dpred = simulation.dpred(mSynth)
@@ -136,7 +136,7 @@ class GlobalEM1DFD(unittest.TestCase):
 
 class GlobalEM1DFD_Height(unittest.TestCase):
 
-    def setUp(self, parallel=True):
+    def setUp(self, parallel=False):
 
         frequencies = np.array([900, 7200, 56000], dtype=float)
         n_layer = 0
@@ -193,7 +193,7 @@ class GlobalEM1DFD_Height(unittest.TestCase):
 
         simulation = em1d.simulation.StitchedEM1DFMSimulation(
             survey=survey, sigmaMap=sigma_map, hMap=wires.height,
-            parallel=False, n_cpu=2, verbose=False, Solver=PardisoSolver
+            parallel=parallel, n_cpu=2, verbose=False, Solver=PardisoSolver
         )
 
         dpred = simulation.dpred(mSynth)
