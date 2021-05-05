@@ -430,8 +430,6 @@ class EM1DFMSimulation(BaseEM1DSimulation):
 
 class StitchedEM1DFMSimulation(BaseStitchedEM1DSimulation):
 
-    _survey_by_sounding = None
-
     def run_simulation(self, args):
         if self.verbose:
             print(">> Frequency-domain")
