@@ -23,7 +23,7 @@ class Survey(BaseSurvey):
         super(Survey, self).__init__(source_list, **kwargs)
 
         _source_location_dict = {}
-        _source_locations_by_sounding_dict = {}
+        _source_location_by_sounding_dict = {}
         _source_frequency_by_sounding_dict = {}
 
         for src in source_list:           
