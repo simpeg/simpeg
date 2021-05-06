@@ -132,10 +132,12 @@ class Survey(BaseSurvey):
             for i_sounding in self.source_location_by_sounding_dict:
                 source_list = self.get_sources_by_sounding_number(i_sounding)
                 nrx = 0
-                for src in source_list:
-                    for rx in src.receiver_list:
-                        nrx +=len(rx.locations)
-                    self._vnrx_by_sounding_dict[i_sounding] = nrx
+                # Assume all sources are having the same
+                # number of receiver locations
+                src = source_list[0]
+                for rx in src.receiver_list:
+                    nrx +=len(rx.locations)
+                self._vnrx_by_sounding_dict[i_sounding] = nrx
         return self._vnrx_by_sounding_dict        
 
     @property

@@ -71,7 +71,7 @@ class StitchedEM1DFM(unittest.TestCase):
         simulation = em1d.simulation.StitchedEM1DFMSimulation(
             survey=survey, thicknesses=thicknesses, sigmaMap=sigma_map,
             topo=topo, parallel=parallel, n_cpu=2, verbose=False, Solver=PardisoSolver,
-            n_sounding_for_chunk=10
+            n_sounding_for_chunk=10, use_sounding=True
         )
 
         dpred = simulation.dpred(mSynth)
@@ -195,7 +195,7 @@ class StitchedEM1DFMHeight(unittest.TestCase):
         simulation = em1d.simulation.StitchedEM1DFMSimulation(
             survey=survey, sigmaMap=sigma_map, hMap=wires.height,
             parallel=parallel, n_cpu=2, verbose=False, Solver=PardisoSolver,
-            n_sounding_for_chunk=10
+            n_sounding_for_chunk=10, use_sounding=True
         )
 
         dpred = simulation.dpred(mSynth)

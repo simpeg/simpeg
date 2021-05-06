@@ -72,7 +72,6 @@ class EM1DFMSimulation(BaseEM1DSimulation):
         for i_src, src in enumerate(self.survey.source_list):
             for i_rx, rx in enumerate(src.receiver_list):
                 frequency = np.array([src.frequency])
-                f = np.ones((1, n_filter), order='F') * frequency
 
                 # Create globally, not for each receiver in the future
                 sig = self.compute_sigma_matrix(frequency)
@@ -108,7 +107,7 @@ class EM1DFMSimulation(BaseEM1DSimulation):
 
                     # Get kernel function(s) at all lambda and frequencies
                     hz = horizontal_loop_kernel(
-                        self, lambd, f, n_layer, sig, chi, a_vec, h, z, r,
+                        self, lambd, frequency, n_layer, sig, chi, a_vec, h, z, r,
                         src, rx, output_type
                     )
 
@@ -144,7 +143,7 @@ class EM1DFMSimulation(BaseEM1DSimulation):
 
                     # Get kernel function(s) at all lambda and frequencies
                     PJ = magnetic_dipole_kernel(
-                        self, lambd, f, n_layer, sig, chi, h, z, r, src, rx, output_type
+                        self, lambd, frequency, n_layer, sig, chi, h, z, r, src, rx, output_type
                     )
 
                     PJ = tuple(PJ)
@@ -252,12 +251,8 @@ class EM1DFMSimulation(BaseEM1DSimulation):
             rx_use_offset = self.survey.receiver_use_offset_by_sounding_dict[i_sounding]
             
             n_filter = self.n_filter
-            n_frequency_rx = self.survey.vnrx_by_sounding_dict[i_sounding]
-            f = np.empty([n_frequency_rx, n_filter], order='F')
+            n_rx = self.survey.vnrx_by_sounding_dict[i_sounding]
             frequencies = self.survey.frequency_by_sounding_dict[i_sounding]
-            f = np.tile(
-                frequencies.reshape([-1, 1]), (1, n_filter)
-            )
 
             # Create globally, not for each receiver in the future
             sig = self.compute_sigma_matrix(frequencies)
@@ -284,8 +279,11 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                 r = rx_locations[:, 0:2]
             else:
                 r = rx_locations[:, 0:2] - src_locations[0,0:2]
+            
             r = np.sqrt(np.sum(r**2, axis=1))
-           
+            radial_distance = np.unique(r)
+            if len(radial_distance) > 1:
+                raise Exception("The receiver offsets in the sounding should be the same.")
             # Assume all sources in i-th sounding have the same type
             source_list = self.survey.get_sources_by_sounding_number(i_sounding)
             src = source_list[0]
@@ -295,13 +293,13 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                 a = np.array([src.radius])
                 # Use function from empymod to define Hankel coefficients.
                 # Size of lambd is (1 x n_filter)
-                lambd = np.empty([n_frequency_rx, n_filter], order='F')
+                lambd = np.empty([1, n_filter], order='F')
                 lambd[:, :], _ = get_dlf_points(
                     self.fhtfilt, a, self.hankel_pts_per_dec
                 )      
                 
                 data_or_sensitivity = horizontal_loop_response_by_sounding(
-                    self, lambd, f, n_layer, sig, chi, a, h, z, 
+                    self, lambd, frequencies, n_layer, sig, chi, a, h, z, 
                     source_list, data_or_sensitivity,
                     output_type=output_type            
                 )
@@ -310,14 +308,13 @@ class EM1DFMSimulation(BaseEM1DSimulation):
 
                 # Use function from empymod to define Hankel coefficients.
                 # Size of lambd is (1 x n_filter)
-                lambd = np.empty([n_frequency_rx, n_filter], order='F')
+                lambd = np.empty([1, n_filter], order='F')
                 lambd[:, :], _ = get_dlf_points(
-                    self.fhtfilt, r, self.hankel_pts_per_dec
+                    self.fhtfilt, radial_distance, self.hankel_pts_per_dec
                 )      
-                
                 data_or_sensitivity = magnetic_dipole_response_by_sounding(
-                    self, lambd, f, n_layer, sig, chi, h, z, 
-                    source_list, data_or_sensitivity, r,
+                    self, lambd, frequencies, n_layer, sig, chi, h, z, 
+                    source_list, data_or_sensitivity, radial_distance,
                     output_type=output_type            
                 )
             return data_or_sensitivity
@@ -367,57 +364,7 @@ class EM1DFMSimulation(BaseEM1DSimulation):
         else:
             raise Exception()
 
-        return data
-
-    def fields(self, m):
-        # f = self.compute_integral(m, output_type='response')
-        # f = self.project_fields(f, output_type='response')
-        data = self.compute_integral_by_sounding(m, output_type='response')
-        return data.dobs
-
-    def getJ_height(self, m, f=None):
-        """
-        Compute the sensitivity with respect to source height(s).
-        """
-
-        # Null if source height is not parameter of the simulation.
-        if self.hMap is None:
-            return utils.Zero()
-
-        if self._Jmatrix_height is not None:
-            return self._Jmatrix_height
-
-        else:
-
-            if self.verbose:
-                print(">> Compute J height ")
-
-            dudh = self.compute_integral_by_sounding(m, output_type="sensitivity_height")
-            self._Jmatrix_height = dudh.dobs.reshape([-1, 1])
-            return self._Jmatrix_height
-
-
-    def getJ_sigma(self, m, f=None):
-        """
-        Compute the sensitivity with respect to static conductivity.
-        """
-
-        # Null if sigma is not parameter of the simulation.
-        if self.sigmaMap is None:
-            return utils.Zero()
-
-        if self._Jmatrix_sigma is not None:
-            return self._Jmatrix_sigma
-        else:
-
-            if self.verbose:
-                print(">> Compute J sigma")
-            
-            dudsig = self.compute_integral_by_sounding(m, output_type="sensitivity_sigma")
-            self._Jmatrix_sigma = dudsig.sensitivity
-            if self._Jmatrix_sigma.ndim == 1:
-                self._Jmatrix_sigma = self._Jmatrix_sigma.reshape([-1, 1])
-            return self._Jmatrix_sigma        
+        return data   
 
 #######################################################################
 #       STITCHED 1D SIMULATION CLASS AND GLOBAL FUNCTIONS
@@ -470,7 +417,8 @@ class StitchedEM1DFMSimulation(BaseStitchedEM1DSimulation):
             sim = EM1DFMSimulation(
                 survey=local_survey, thicknesses=thicknesses,
                 sigmaMap=exp_map, eta=eta, tau=tau, c=c, chi=chi, dchi=dchi, tau1=tau1, tau2=tau2,
-                topo=topo, hankel_filter='key_101_2009'
+                topo=topo, hankel_filter='key_101_2009',
+                use_sounding=True
             )
 
             if output_type == 'sensitivity_sigma':
