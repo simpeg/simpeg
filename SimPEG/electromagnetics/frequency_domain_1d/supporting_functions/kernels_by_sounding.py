@@ -93,6 +93,10 @@ def magnetic_dipole_response_by_sounding(
             temp *= -2*lamda
     
     integral_output_list = []
+    
+    # Below loop can be simplified
+    # Just compute once for all sources and receivers?
+    
     if isinstance(simulation, fdem_1d.EM1DFMSimulation):
         i_count = 0
         for src in source_list:
@@ -169,6 +173,10 @@ def magnetic_dipole_response_by_sounding(
                 i_count += 1    
 
     elif isinstance(simulation, tdem_1d.EM1DTMSimulation): 
+    # This needs to be modified...
+    # Assumes all receivers in a sounding has the same radial distance ...
+    # The way this can be generalized is expanding lambd (n_frequency*n_rx, n_filter)
+
         for src in source_list:
             for rx in src.receiver_list:            
                 # COMPUTE KERNEL FUNCTIONS FOR HANKEL TRANSFORM
