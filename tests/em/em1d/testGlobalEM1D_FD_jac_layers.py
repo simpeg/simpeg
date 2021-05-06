@@ -21,7 +21,7 @@ class GlobalEM1DFD(unittest.TestCase):
             frequencies, sigma_background=0.1, n_layer=n_layer-1
         )
 
-        n_sounding = 10
+        n_sounding = 50
         dx = 20.
         hx = np.ones(n_sounding) * dx
         hz = np.r_[thicknesses, thicknesses[-1]]
@@ -70,7 +70,8 @@ class GlobalEM1DFD(unittest.TestCase):
 
         simulation = em1d.simulation.StitchedEM1DFMSimulation(
             survey=survey, thicknesses=thicknesses, sigmaMap=sigma_map,
-            topo=topo, parallel=parallel, n_cpu=2, verbose=False, Solver=PardisoSolver
+            topo=topo, parallel=parallel, n_cpu=2, verbose=False, Solver=PardisoSolver,
+            n_sounding_for_chunk=10
         )
 
         dpred = simulation.dpred(mSynth)
@@ -136,11 +137,11 @@ class GlobalEM1DFD(unittest.TestCase):
 
 class GlobalEM1DFD_Height(unittest.TestCase):
 
-    def setUp(self, parallel=False):
+    def setUp(self, parallel=True):
 
         frequencies = np.array([900, 7200, 56000], dtype=float)
         n_layer = 0
-        n_sounding = 10
+        n_sounding = 50
         dx = 20.
         hx = np.ones(n_sounding) * dx
         hz = 1.  # not used in simulation
@@ -193,7 +194,8 @@ class GlobalEM1DFD_Height(unittest.TestCase):
 
         simulation = em1d.simulation.StitchedEM1DFMSimulation(
             survey=survey, sigmaMap=sigma_map, hMap=wires.height,
-            parallel=parallel, n_cpu=2, verbose=False, Solver=PardisoSolver
+            parallel=parallel, n_cpu=2, verbose=False, Solver=PardisoSolver,
+            n_sounding_for_chunk=10
         )
 
         dpred = simulation.dpred(mSynth)

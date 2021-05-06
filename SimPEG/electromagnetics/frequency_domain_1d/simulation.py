@@ -508,18 +508,6 @@ class StitchedEM1DFMSimulation(BaseStitchedEM1DSimulation):
                 resp = sim.dpred(m)
                 return resp           
 
-    # def _survey_by_sounding(self):     
-
-    # @property
-    # def frequency(self):
-    #     return self.survey.frequency
-
-    # @property
-    # def switch_real_imag(self):
-    #     return self.survey.switch_real_imag
-
-
-
 class Sensitivity(Data):
     
     sensitivity = properties.Array(
