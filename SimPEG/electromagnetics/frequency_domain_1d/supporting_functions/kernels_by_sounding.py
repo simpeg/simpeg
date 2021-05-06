@@ -2,6 +2,9 @@ import numpy as np
 from scipy.constants import mu_0
 from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradient
 import SimPEG.electromagnetics.frequency_domain as fdem
+import SimPEG.electromagnetics.frequency_domain_1d as fdem_1d
+import SimPEG.electromagnetics.time_domain_1d as tdem_1d
+
 
 from empymod.transform import dlf
 
@@ -90,79 +93,147 @@ def magnetic_dipole_response_by_sounding(
             temp *= -2*lamda
     
     integral_output_list = []
-    i_count = 0
-    for src in source_list:
-        for rx in src.receiver_list:            
-            # COMPUTE KERNEL FUNCTIONS FOR HANKEL TRANSFORM
-            # Assume rx has only a single location
-            C = src.moment/(4*np.pi)
+    if isinstance(simulation, fdem_1d.EM1DFMSimulation):
+        i_count = 0
+        for src in source_list:
+            for rx in src.receiver_list:            
+                # COMPUTE KERNEL FUNCTIONS FOR HANKEL TRANSFORM
+                # Assume rx has only a single location
+                C = src.moment/(4*np.pi)
 
-            if rx.use_source_receiver_offset:
-                v_dist = rx.locations.ravel()
-            else:
-                v_dist = rx.locations.ravel() - src.location
-            
-            if output_type == "sensitivity_sigma":
-                temp_slice = temp[:,i_count,:].reshape((n_layer, 1, n_filter), order='F')  
-            else:
-                temp_slice = temp[i_count,:]
+                if rx.use_source_receiver_offset:
+                    v_dist = rx.locations.ravel()
+                else:
+                    v_dist = rx.locations.ravel() - src.location
+                
+                if output_type == "sensitivity_sigma":
+                    temp_slice = temp[:,i_count,:].reshape((n_layer, 1, n_filter), order='F')  
+                else:
+                    temp_slice = temp[i_count,:]
 
-            if np.all(src.orientation==[0, 0, 1]):
-                if rx.orientation == "z":
-                    kernels = [C * lamda[i_count,:]**2 * temp_slice, None, None]
-                elif rx.orientation == "x":
-                    C *= -v_dist[0]/np.sqrt(np.sum(v_dist[0:-1]**2))
-                    kernels = [None, C * lamda[i_count,:]**2 * temp_slice, None]
-                elif rx.orientation == "y":
-                    C *= -v_dist[1]/np.sqrt(np.sum(v_dist[0:-1]**2))
-                    kernels = [None, C * lamda[i_count,:]**2 * temp_slice, None]
-            elif np.all(src.orientation==[1, 0, 0]):
-                rho = np.sqrt(np.sum(v_dist[0:-1]**2))
-                if rx.orientation == "z":
-                    C *= v_dist[0]/rho
-                    kernels = [None, C * lamda[i_count,:]**2 * temp_slice, None]
-                elif rx.orientation == "x":
-                    C0 = C * v_dist[0]**2/rho**2
-                    C1 = C * (1/rho - 2*v_dist[0]**2/rho**3)
-                    kernels = [C0 * lamda[i_count,:]**2 * temp_slice, C1 * lamda[i_count,:] *temp_slice, None]
-                elif rx.orientation == "y":
-                    C0 = C * v_dist[0]*v_dist[1]/rho**2
-                    C1 = C * -2*v_dist[0]*v_dist[1]/rho**3
-                    kernels = [C0 * lamda[i_count,:]**2 * temp_slice, C1 * lamda[i_count,:] *temp_slice, None]
-            elif np.all(src.orientation==[0, 1, 0]):
-                rho = np.sqrt(np.sum(v_dist[0:-1]**2))
-                if rx.orientation == "z":
-                    C *= v_dist[1]/rho
-                    kernels = [None, C * lamda[i_count,:]**2 * temp_slice, None]
-                elif rx.orientation == "x":
-                    C0 = C * -v_dist[0]*v_dist[1]/rho**2
-                    C1 = C * 2*v_dist[0]*v_dist[1]/rho**3
-                    kernels = [C0 * lamda[i_count,:]**2 * temp_slice, C1 * lamda[i_count,:] *temp_slice, None]
-                elif rx.orientation == "y":
-                    C0 = C * v_dist[1]**2/rho**2
-                    C1 = C * (1/rho - 2*v_dist[1]**2/rho**3)
-                    kernels = [C0 * lamda[i_count,:]**2 * temp_slice, C1 * lamda[i_count,:] *temp_slice, None]
-            
-            kernels = tuple(kernels)
+                if np.all(src.orientation==[0, 0, 1]):
+                    if rx.orientation == "z":
+                        kernels = [C * lamda[i_count,:]**2 * temp_slice, None, None]
+                    elif rx.orientation == "x":
+                        C *= -v_dist[0]/np.sqrt(np.sum(v_dist[0:-1]**2))
+                        kernels = [None, C * lamda[i_count,:]**2 * temp_slice, None]
+                    elif rx.orientation == "y":
+                        C *= -v_dist[1]/np.sqrt(np.sum(v_dist[0:-1]**2))
+                        kernels = [None, C * lamda[i_count,:]**2 * temp_slice, None]
+                elif np.all(src.orientation==[1, 0, 0]):
+                    rho = np.sqrt(np.sum(v_dist[0:-1]**2))
+                    if rx.orientation == "z":
+                        C *= v_dist[0]/rho
+                        kernels = [None, C * lamda[i_count,:]**2 * temp_slice, None]
+                    elif rx.orientation == "x":
+                        C0 = C * v_dist[0]**2/rho**2
+                        C1 = C * (1/rho - 2*v_dist[0]**2/rho**3)
+                        kernels = [C0 * lamda[i_count,:]**2 * temp_slice, C1 * lamda[i_count,:] *temp_slice, None]
+                    elif rx.orientation == "y":
+                        C0 = C * v_dist[0]*v_dist[1]/rho**2
+                        C1 = C * -2*v_dist[0]*v_dist[1]/rho**3
+                        kernels = [C0 * lamda[i_count,:]**2 * temp_slice, C1 * lamda[i_count,:] *temp_slice, None]
+                elif np.all(src.orientation==[0, 1, 0]):
+                    rho = np.sqrt(np.sum(v_dist[0:-1]**2))
+                    if rx.orientation == "z":
+                        C *= v_dist[1]/rho
+                        kernels = [None, C * lamda[i_count,:]**2 * temp_slice, None]
+                    elif rx.orientation == "x":
+                        C0 = C * -v_dist[0]*v_dist[1]/rho**2
+                        C1 = C * 2*v_dist[0]*v_dist[1]/rho**3
+                        kernels = [C0 * lamda[i_count,:]**2 * temp_slice, C1 * lamda[i_count,:] *temp_slice, None]
+                    elif rx.orientation == "y":
+                        C0 = C * v_dist[1]**2/rho**2
+                        C1 = C * (1/rho - 2*v_dist[1]**2/rho**3)
+                        kernels = [C0 * lamda[i_count,:]**2 * temp_slice, C1 * lamda[i_count,:] *temp_slice, None]
+                
+                kernels = tuple(kernels)
 
-            if output_type=="sensitivity_sigma":
-                offset = np.tile(radial_distance[i_count], (n_layer, 1))
-            else:
-                offset = radial_distance[i_count]
-            # Evaluate Hankel transform using digital linear filter from empymod
-            integral_output = src.moment * dlf(
-                kernels, lamda[i_count,:], offset, simulation.fhtfilt, simulation.hankel_pts_per_dec, ang_fact=None, ab=33
-            )
-            # Project fields
-            if output_type == "sensitivity_sigma":
-                integral_output = integral_output.T
+                if output_type=="sensitivity_sigma":
+                    offset = np.tile(radial_distance[i_count], (n_layer, 1))
+                else:
+                    offset = radial_distance[i_count]
+                # Evaluate Hankel transform using digital linear filter from empymod
+                integral_output = src.moment * dlf(
+                    kernels, lamda[i_count,:], offset, simulation.fhtfilt, simulation.hankel_pts_per_dec, ang_fact=None, ab=33
+                )
+                # Project fields
+                if output_type == "sensitivity_sigma":
+                    integral_output = integral_output.T
 
-            data_or_sensitivity[src, rx] = simulation.project_fields_src_rx(
-                integral_output, src, rx, 
-                output_type=output_type
-            )
-            
-            i_count += 1    
+                data_or_sensitivity[src, rx] = simulation.project_fields_src_rx(
+                    integral_output, src.i_sounding, src, rx, 
+                    output_type=output_type
+                )
+                
+                i_count += 1    
+
+    elif isinstance(simulation, tdem_1d.EM1DTMSimulation): 
+        for src in source_list:
+            for rx in src.receiver_list:            
+                # COMPUTE KERNEL FUNCTIONS FOR HANKEL TRANSFORM
+                # Assume rx has only a single location
+                C = src.moment/(4*np.pi)
+
+                if rx.use_source_receiver_offset:
+                    v_dist = rx.locations.ravel()
+                else:
+                    v_dist = rx.locations.ravel() - src.location
+
+                if np.all(src.orientation==[0, 0, 1]):
+                    if rx.orientation == "z":
+                        kernels = [C * lamda[:,:]**2 * temp, None, None]
+                    elif rx.orientation == "x":
+                        C *= -v_dist[0]/np.sqrt(np.sum(v_dist[0:-1]**2))
+                        kernels = [None, C * lamda[:,:]**2 * temp, None]
+                    elif rx.orientation == "y":
+                        C *= -v_dist[1]/np.sqrt(np.sum(v_dist[0:-1]**2))
+                        kernels = [None, C * lamda[:,:]**2 * temp, None]
+                elif np.all(src.orientation==[1, 0, 0]):
+                    rho = np.sqrt(np.sum(v_dist[0:-1]**2))
+                    if rx.orientation == "z":
+                        C *= v_dist[0]/rho
+                        kernels = [None, C * lamda[:,:]**2 * temp, None]
+                    elif rx.orientation == "x":
+                        C0 = C * v_dist[0]**2/rho**2
+                        C1 = C * (1/rho - 2*v_dist[0]**2/rho**3)
+                        kernels = [C0 * lamda[:,:]**2 * temp, C1 * lamda[:,:] * temp, None]
+                    elif rx.orientation == "y":
+                        C0 = C * v_dist[0]*v_dist[1]/rho**2
+                        C1 = C * -2*v_dist[0]*v_dist[1]/rho**3
+                        kernels = [C0 * lamda[:,:]**2 * temp, C1 * lamda[:,:] * temp, None]
+                elif np.all(src.orientation==[0, 1, 0]):
+                    rho = np.sqrt(np.sum(v_dist[0:-1]**2))
+                    if rx.orientation == "z":
+                        C *= v_dist[1]/rho
+                        kernels = [None, C * lamda[:,:]**2 * temp, None]
+                    elif rx.orientation == "x":
+                        C0 = C * -v_dist[0]*v_dist[1]/rho**2
+                        C1 = C * 2*v_dist[0]*v_dist[1]/rho**3
+                        kernels = [C0 * lamda[:,:]**2 * temp, C1 * lamda[:,:] * temp, None]
+                    elif rx.orientation == "y":
+                        C0 = C * v_dist[1]**2/rho**2
+                        C1 = C * (1/rho - 2*v_dist[1]**2/rho**3)
+                        kernels = [C0 * lamda[:,:]**2 * temp, C1 * lamda[:,:] * temp, None]
+                
+                kernels = tuple(kernels)
+
+                if output_type=="sensitivity_sigma":
+                    offset = np.tile(radial_distance, (n_layer, 1))
+                else:
+                    offset = radial_distance
+                # Evaluate Hankel transform using digital linear filter from empymod
+                integral_output = src.moment * dlf(
+                    kernels, lamda[:,:], offset, simulation.fhtfilt, simulation.hankel_pts_per_dec, ang_fact=None, ab=33
+                )
+                # Project fields
+                if output_type == "sensitivity_sigma":
+                    integral_output = integral_output.T
+
+                data_or_sensitivity[src, rx] = simulation.project_fields_src_rx(
+                    integral_output, src.i_sounding, src, rx, 
+                    output_type=output_type
+                )
 
     return data_or_sensitivity
 
@@ -193,7 +264,6 @@ def horizontal_loop_response_by_sounding(
 
 
     """
-
     n_frequency = len(f)
     n_filter = simulation.n_filter
 
@@ -233,27 +303,49 @@ def horizontal_loop_response_by_sounding(
             kernel *= -2*u0
     
     integral_output_list = []
-    i_count = 0
-    for src in source_list:
-        for rx in src.receiver_list:     
-            if output_type == 'sensitivity_sigma':
-                kernels = (None, kernel[:,i_count,:].reshape((n_layer, 1, n_filter), order='F')  , None) 
-            else:
-                kernels = (None, kernel[i_count,:], None) 
+    if isinstance(simulation, fdem_1d.EM1DFMSimulation):
+        i_count = 0
+        for src in source_list:
+            for rx in src.receiver_list:     
+                if output_type == 'sensitivity_sigma':
+                    kernels = (None, kernel[:,i_count,:].reshape((n_layer, 1, n_filter), order='F')  , None) 
+                else:
+                    kernels = (None, kernel[i_count,:], None) 
 
-            # Evaluate Hankel transform using digital linear filter from empymod
-            integral_output = src.current * dlf(
-                kernels, lamda[i_count, :], a_vec, simulation.fhtfilt, simulation.hankel_pts_per_dec, ang_fact=None, ab=33
-            )
-            
-            # Project fields
-            if output_type == "sensitivity_sigma":
-                integral_output = integral_output.T
+                # Evaluate Hankel transform using digital linear filter from empymod
+                integral_output = src.current * dlf(
+                    kernels, lamda[i_count, :], a_vec, simulation.fhtfilt, simulation.hankel_pts_per_dec, ang_fact=None, ab=33
+                )
+                
+                # Project fields
+                if output_type == "sensitivity_sigma":
+                    integral_output = integral_output.T
 
-            data_or_sensitivity[src, rx] = simulation.project_fields_src_rx(
-                integral_output, src, rx, 
-                output_type=output_type
-            )
-            
-            i_count += 1    
+                data_or_sensitivity[src, rx] = simulation.project_fields_src_rx(
+                    integral_output, src.i_sounding, src, rx, 
+                    output_type=output_type
+                )
+                
+                i_count += 1    
+    
+    elif isinstance(simulation, tdem_1d.EM1DTMSimulation):
+        for src in source_list:
+            for rx in src.receiver_list:     
+                kernels = (None, kernel, None) 
+
+                # Evaluate Hankel transform using digital linear filter from empymod
+                integral_output = src.current * dlf(
+                    kernels, lamda, a_vec, simulation.fhtfilt, simulation.hankel_pts_per_dec, ang_fact=None, ab=33
+                )
+                
+                # Project fields
+                if output_type == "sensitivity_sigma":
+                    integral_output = integral_output.T
+                data_or_sensitivity[src, rx] = simulation.project_fields_src_rx(
+                    integral_output, src.i_sounding, src, rx, 
+                    output_type=output_type
+                )
+    else:
+        raise Exception()
+
     return data_or_sensitivity

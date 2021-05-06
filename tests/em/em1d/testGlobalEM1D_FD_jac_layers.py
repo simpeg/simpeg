@@ -11,7 +11,7 @@ from pymatsolver import PardisoSolver
 np.random.seed(41)
 
 
-class GlobalEM1DFD(unittest.TestCase):
+class StitchedEM1DFM(unittest.TestCase):
 
     def setUp(self, parallel=False):
 
@@ -135,9 +135,9 @@ class GlobalEM1DFD(unittest.TestCase):
         )
         self.assertTrue(passed)
 
-class GlobalEM1DFD_Height(unittest.TestCase):
+class StitchedEM1DFMHeight(unittest.TestCase):
 
-    def setUp(self, parallel=True):
+    def setUp(self, parallel=False):
 
         frequencies = np.array([900, 7200, 56000], dtype=float)
         n_layer = 0

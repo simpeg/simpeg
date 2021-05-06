@@ -1,5 +1,5 @@
 from ... import maps, utils
-from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation
+from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation, Sensitivity
 from ..frequency_domain.sources import MagDipole, CircularLoop
 from ..frequency_domain.receivers import PointMagneticFieldSecondary
 from ..frequency_domain.survey import Survey
@@ -239,11 +239,6 @@ class EM1DFMSimulation(BaseEM1DSimulation):
 
         integral_output_list = []
 
-        # Issue: it would be better if have an internal sorting 
-        # to combine all sources having the same location, 
-        # but different frequencies as well as receiver locations 
-        # having the same height. They do not needed to be in the for loop, 
-        # we can compute all of them once. Which could save some time. 
         source_location_by_sounding_dict = self.survey.source_location_by_sounding_dict
         if output_type == 'sensitivity_sigma':
             data_or_sensitivity = Sensitivity(self.survey, M=n_layer)
@@ -327,7 +322,7 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                 )
             return data_or_sensitivity
 
-    def project_fields_src_rx(self, u, src, rx, output_type='response'):
+    def project_fields_src_rx(self, u, i_sounding, src, rx, output_type='response'):
         """
         Project from the list of Hankel transform evaluations to the data or sensitivities.
         Data can be real or imaginary component of: total field, secondary field or ppm.
@@ -507,65 +502,3 @@ class StitchedEM1DFMSimulation(BaseStitchedEM1DSimulation):
             else:
                 resp = sim.dpred(m)
                 return resp           
-
-class Sensitivity(Data):
-    
-    sensitivity = properties.Array(
-        """
-        Matrix of the sensitivity.
-        parameters:
-
-        .. code:: python
-
-            sensitivity = Data(survey)
-            for src in survey.source_list:
-                for rx in src.receiver_list:
-                    sensitivity[src, rx] = sensitivity_for_a_datum
-
-        """,
-        shape=("*","*"),
-        required=True,
-    )    
-
-    
-    M = properties.Integer(
-        """
-        """,
-        required=True
-    )
-    
-    #######################
-    # Instantiate the class
-    #######################
-    def __init__(
-        self,
-        survey,
-        sensitivity=None,
-        M=None,
-    ):
-        super(Data, self).__init__()
-        self.survey = survey
-        self.M=M
-
-        # Observed data
-        if sensitivity is None:
-            sensitivity = np.nan * np.ones((survey.nD, M))  # initialize data as nans
-        self.sensitivity = sensitivity
-
-
-    @properties.validator("sensitivity")
-    def _sensitivity_validator(self, change):
-        if change["value"].shape != (self.survey.nD, self.M):
-            raise ValueError()
-
-    ##########################
-    # Methods
-    ##########################
-
-    def __setitem__(self, key, value):
-        index = self.index_dictionary[key[0]][key[1]]
-        self.sensitivity[index,:] = value
-
-    def __getitem__(self, key):
-        index = self.index_dictionary[key[0]][key[1]]
-        return self.sensitivity[index,:]        

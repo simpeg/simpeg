@@ -297,139 +297,6 @@ class BaseEM1DSimulation(BaseSimulation):
 
             return chi_complex
 
-
-    # def compute_integral(self, m, output_type='response'):
-    #     """
-    #     This method evaluates the Hankel transform for each source and
-    #     receiver and outputs it as a list. Used for computing response
-    #     or sensitivities.
-    #     """
-
-    #     self.model = m
-    #     n_layer = self.n_layer
-    #     n_filter = self.n_filter
-
-    #     # For time-domain simulations, set frequencies for the evaluation
-    #     # of the Hankel transform.
-    #     if isinstance(self.survey, EM1DSurveyTD):
-    #         if self.frequencies_are_set is False:
-    #             self.set_frequencies()
-
-
-    #     # Define source height above topography by mapping or from sources and receivers.
-    #     if self.hMap is not None:
-    #         h_vector = np.array(self.h)
-    #     else:
-    #         if self.topo is None:
-    #             h_vector = np.array([src.location[2] for src in self.survey.source_list])
-    #         else:
-    #             h_vector = np.array(
-    #                 [src.location[2]-self.topo[-1] for src in self.survey.source_list]
-    #             )
-
-
-    #     integral_output_list = []
-
-    #     for ii, src in enumerate(self.survey.source_list):
-    #         for jj, rx in enumerate(src.receiver_list):
-
-    #             n_frequency = len(rx.frequencies)
-
-    #             f = np.empty([n_frequency, n_filter], order='F')
-    #             f[:, :] = np.tile(
-    #                 rx.frequencies.reshape([-1, 1]), (1, n_filter)
-    #             )
-
-    #             # Create globally, not for each receiver in the future
-    #             sig = self.compute_sigma_matrix(rx.frequencies)
-    #             chi = self.compute_chi_matrix(rx.frequencies)
-
-    #             # Compute receiver height
-    #             h = h_vector[ii]
-    #             if rx.use_source_receiver_offset:
-    #                 z = h + rx.locations[2]
-    #             else:
-    #                 z = h + rx.locations[2] - src.location[2]
-
-    #             # Hankel transform for x, y or z magnetic dipole source
-    #             if isinstance(src, HarmonicMagneticDipoleSource) | isinstance(src, TimeDomainMagneticDipoleSource):
-
-    #                 # Radial distance
-    #                 if rx.use_source_receiver_offset:
-    #                     r = rx.locations[0:2]
-    #                 else:
-    #                     r = rx.locations[0:2] - src.location[0:2]
-
-    #                 r = np.sqrt(np.sum(r**2))
-    #                 r_vec = r * np.ones(n_frequency)
-
-    #                 # Use function from empymod to define Hankel coefficients.
-    #                 # Size of lambd is (n_frequency x n_filter)
-
-    #                 lambd = np.empty([n_frequency, n_filter], order='F')
-    #                 lambd[:, :], _ = get_dlf_points(
-    #                     self.fhtfilt, r_vec, self.hankel_pts_per_dec
-    #                 )
-
-    #                 # Get kernel function(s) at all lambda and frequencies
-    #                 PJ = magnetic_dipole_kernel(
-    #                     self, lambd, f, n_layer, sig, chi, h, z, r, src, rx, output_type
-    #                 )
-
-    #                 PJ = tuple(PJ)
-
-    #                 if output_type=="sensitivity_sigma":
-    #                     r_vec = np.tile(r_vec, (n_layer, 1))
-
-    #                 # Evaluate Hankel transform using digital linear filter from empymod
-    #                 integral_output = dlf(
-    #                     PJ, lambd, r_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
-    #                 )
-
-    #             # Hankel transform for horizontal loop source
-    #             elif isinstance(src, HarmonicHorizontalLoopSource) | isinstance(src, TimeDomainHorizontalLoopSource):
-
-    #                 # radial distance (r) and loop radius (a)
-    #                 if rx.use_source_receiver_offset:
-    #                     r = rx.locations[0:2]
-    #                 else:
-    #                     r = rx.locations[0:2] - src.location[0:2]
-
-    #                 r_vec = np.sqrt(np.sum(r**2)) * np.ones(n_frequency)
-    #                 a_vec = src.a * np.ones(n_frequency)
-
-    #                 # Use function from empymod to define Hankel coefficients.
-    #                 # Size of lambd is (n_frequency x n_filter)
-    #                 lambd = np.empty([n_frequency, n_filter], order='F')
-    #                 lambd[:, :], _ = get_dlf_points(
-    #                     self.fhtfilt, a_vec, self.hankel_pts_per_dec
-    #                 )
-
-    #                 # Get kernel function(s) at all lambda and frequencies
-    #                 hz = horizontal_loop_kernel(
-    #                     self, lambd, f, n_layer, sig, chi, a_vec, h, z, r,
-    #                     src, rx, output_type
-    #                 )
-
-    #                 # kernels associated with each bessel function (j0, j1, j2)
-    #                 PJ = (None, hz, None)  # PJ1
-
-    #                 if output_type == "sensitivity_sigma":
-    #                     a_vec = np.tile(a_vec, (n_layer, 1))
-
-    #                 # Evaluate Hankel transform using digital linear filter from empymod
-    #                 integral_output = dlf(
-    #                     PJ, lambd, a_vec, self.fhtfilt, self.hankel_pts_per_dec, ang_fact=None, ab=33
-    #                 )
-
-    #             if output_type == "sensitivity_sigma":
-    #                 integral_output_list.append(integral_output.T)
-    #             else:
-    #                 integral_output_list.append(integral_output)
-
-    #     return integral_output_list
-
-
     def fields(self, m):
         f = self.compute_integral(m, output_type='response')
         f = self.project_fields(f, output_type='response')
@@ -1129,3 +996,66 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
                     self.run_simulation(args_chunk[i_sounding]) for i_sounding in range(n)
         ]        
         return results
+
+
+class Sensitivity(Data):
+    
+    sensitivity = properties.Array(
+        """
+        Matrix of the sensitivity.
+        parameters:
+
+        .. code:: python
+
+            sensitivity = Data(survey)
+            for src in survey.source_list:
+                for rx in src.receiver_list:
+                    sensitivity[src, rx] = sensitivity_for_a_datum
+
+        """,
+        shape=("*","*"),
+        required=True,
+    )    
+
+    
+    M = properties.Integer(
+        """
+        """,
+        required=True
+    )
+    
+    #######################
+    # Instantiate the class
+    #######################
+    def __init__(
+        self,
+        survey,
+        sensitivity=None,
+        M=None,
+    ):
+        super(Data, self).__init__()
+        self.survey = survey
+        self.M=M
+
+        # Observed data
+        if sensitivity is None:
+            sensitivity = np.nan * np.ones((survey.nD, M))  # initialize data as nans
+        self.sensitivity = sensitivity
+
+
+    @properties.validator("sensitivity")
+    def _sensitivity_validator(self, change):
+        if change["value"].shape != (self.survey.nD, self.M):
+            raise ValueError()
+
+    ##########################
+    # Methods
+    ##########################
+
+    def __setitem__(self, key, value):
+        index = self.index_dictionary[key[0]][key[1]]
+        self.sensitivity[index,:] = value
+
+    def __getitem__(self, key):
+        index = self.index_dictionary[key[0]][key[1]]
+        return self.sensitivity[index,:]        
