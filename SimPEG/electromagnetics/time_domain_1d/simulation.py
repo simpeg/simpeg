@@ -79,74 +79,78 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                         "A single location for a receiver object is assumed for the 1D EM code"
                     )
 
-    # def set_time_intervals(self):
-    #     """
-    #     Define time interval for all source-receiver pairs.
-    #     """
+    def set_time_intervals(self):
+        """
+        Define time interval for all source-receiver pairs.
+        """
+        if self.verbose:
+            print('Calculate time intervals')
+        for src in self.survey.source_list:
+            waveform = src.waveform
+            if not isinstance(waveform, StepOffWaveform):
+                for rx in src.receiver_list:
 
-    #     for src in self.survey.source_list:
-    #         waveform = src.waveform
-    #         if not isinstance(waveform, StepOffWaveform):
-    #             for rx in src.receiver_list:
+                    if isinstance(waveform, RawWaveform):
+                        time = rx.times
+                        pulse_period = waveform.pulse_period
+                        period = waveform.period
+                    # Dual moment
+                    # Issue: NEED TO REVISIT
+                    # else:
+                    #     time = np.unique(np.r_[rx.times, rx.dual_times])
+                    #     pulse_period = np.maximum(
+                    #         waveform.pulse_period, waveform.dual_pulse_period
+                    #     )
+                    #     period = np.maximum(waveform.period, waveform.dual_period)
+                    tmin = time[time>0.].min()
+                    if waveform.n_pulse == 1:
+                        tmax = time.max() + pulse_period
+                    elif waveform.n_pulse == 2:
+                        tmax = time.max() + pulse_period + period/2.
+                    else:
+                        raise NotImplementedError("n_pulse must be either 1 or 2")
+                    n_time = int((np.log10(tmax)-np.log10(tmin))*10+1)
 
-    #                 if isinstance(waveform, RawWaveform):
-    #                     time = rx.times
-    #                     pulse_period = waveform.pulse_period
-    #                     period = waveform.period
-    #                 # Dual moment
-    #                 # Issue: NEED TO REVISIT
-    #                 # else:
-    #                 #     time = np.unique(np.r_[rx.times, rx.dual_times])
-    #                 #     pulse_period = np.maximum(
-    #                 #         waveform.pulse_period, waveform.dual_pulse_period
-    #                 #     )
-    #                 #     period = np.maximum(waveform.period, waveform.dual_period)
-    #                 tmin = time[time>0.].min()
-    #                 if waveform.n_pulse == 1:
-    #                     tmax = time.max() + pulse_period
-    #                 elif waveform.n_pulse == 2:
-    #                     tmax = time.max() + pulse_period + period/2.
-    #                 else:
-    #                     raise NotImplementedError("n_pulse must be either 1 or 2")
-    #                 n_time = int((np.log10(tmax)-np.log10(tmin))*10+1)
+                    rx._time_interval = np.logspace(
+                        np.log10(tmin), np.log10(tmax), n_time
+                    )
 
-    #                 rx._time_interval = np.logspace(
-    #                     np.log10(tmin), np.log10(tmax), n_time
-    #                 )
-
-    #     self._time_intervals_are_set = True
+        self._time_intervals_are_set = True
 
 
-    # def set_frequencies(self, pts_per_dec=-1):
-    #     """
-    #     Set frequencies required for Hankel transform computation and for accurate
-    #     computation of the IFFT.
-    #     """
+    def set_frequencies(self, pts_per_dec=-1):
+        """
+        Set frequencies required for Hankel transform computation and for accurate
+        computation of the IFFT.
+        """
 
-    #     # Set range of time channels
-    #     if self._time_intervals_are_set == False:
-    #         self.set_time_intervals()
+        # Set range of time channels
+        if self.verbose:
+            print('Calculate frequencies')
 
-    #     for src in self.survey.source_list:
-    #         for rx in src.receiver_list:
-    #             if isinstance(src.waveform, StepOffWaveform):
-    #                 _, freq, ft, ftarg = check_time(
-    #                     rx.times, -1, 'dlf',
-    #                     {'pts_per_dec': pts_per_dec, 'dlf': self.fftfilt}, 0,
-    #                 )
+        if self._time_intervals_are_set == False:
+            self.set_time_intervals()
 
-    #             elif isinstance(src.waveform, RawWaveform):
-    #                 _, freq, ft, ftarg = check_time(
-    #                     rx._time_interval, -1, 'dlf',
-    #                     {'pts_per_dec': pts_per_dec, 'dlf': self.fftfilt}, 0
-    #                 )
-    #             else:
-    #                 raise Exception("Expected types of the waveform are StepOffWaveform and RawWaveform")
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                if isinstance(src.waveform, StepOffWaveform):
+                    _, freq, ft, ftarg = check_time(
+                        rx.times, -1, 'dlf',
+                        {'pts_per_dec': pts_per_dec, 'dlf': self.fftfilt}, 0,
+                    )
 
-    #             rx.frequencies = freq
-    #             rx.ftarg = ftarg
+                elif isinstance(src.waveform, RawWaveform):
+                    _, freq, ft, ftarg = check_time(
+                        rx._time_interval, -1, 'dlf',
+                        {'pts_per_dec': pts_per_dec, 'dlf': self.fftfilt}, 0
+                    )
+                else:
+                    raise Exception("Expected types of the waveform are StepOffWaveform and RawWaveform")
+                print (freq)
+                rx.frequencies = freq
+                rx.ftarg = ftarg
 
-    #     self._frequencies_are_set = True
+        self._frequencies_are_set = True
 
 
     def compute_integral(self, m, output_type='response'):
@@ -155,7 +159,8 @@ class EM1DTMSimulation(BaseEM1DSimulation):
         receiver and outputs it as a list. Used for computing response
         or sensitivities.
         """
-
+        if self.verbose:
+            print ("Evaluate integral")
         self.model = m
         n_layer = self.n_layer
         n_filter = self.n_filter
@@ -513,7 +518,8 @@ class EM1DTMSimulation(BaseEM1DSimulation):
         receiver and outputs it as a list. Used for computing response
         or sensitivities.
         """
-
+        if self.verbose:
+            print ("Evaluate integral by sounding")
         self.model = m
         n_layer = self.n_layer
         n_filter = self.n_filter
@@ -533,8 +539,7 @@ class EM1DTMSimulation(BaseEM1DSimulation):
             data_or_sensitivity = Sensitivity(self.survey, M=n_layer)
         else: 
             data_or_sensitivity = Data(self.survey)
-            
-        
+                
         for i_sounding in source_location_by_sounding_dict:        
             src_locations = np.vstack(source_location_by_sounding_dict[i_sounding])
             rx_locations = self.survey.receiver_location_by_sounding_dict[i_sounding]
@@ -542,11 +547,6 @@ class EM1DTMSimulation(BaseEM1DSimulation):
             frequencies = self._frequencies_by_sounding[i_sounding]
             n_frequency = len(frequencies)
             n_filter = self.n_filter
-
-            f = np.empty([n_frequency, n_filter], order='F')
-            f = np.tile(
-                frequencies.reshape([-1, 1]), (1, n_filter)
-            )
 
             # Create globally, not for each receiver in the future
             sig = self.compute_sigma_matrix(frequencies)
@@ -585,13 +585,13 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                 a = np.array([src.radius])
                 # Use function from empymod to define Hankel coefficients.
                 # Size of lambd is (1 x n_filter)
-                lambd = np.empty([n_frequency, n_filter], order='F')
+                lambd = np.empty([1, n_filter], order='F')
                 lambd[:, :], _ = get_dlf_points(
                     self.fhtfilt, a, self.hankel_pts_per_dec
                 )      
                 
                 data_or_sensitivity = horizontal_loop_response_by_sounding(
-                    self, lambd, f, n_layer, sig, chi, a, h, z, 
+                    self, lambd, frequencies, n_layer, sig, chi, a, h, z, 
                     source_list, data_or_sensitivity,
                     output_type=output_type            
                 )
@@ -608,13 +608,13 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                 radial_distance = np.unique(r)
                 if len(radial_distance) > 1:
                     raise Exception("All receivers should have the same radial offset")
-                lambd = np.empty([n_frequency, n_filter], order='F')
+                lambd = np.empty([1, n_filter], order='F')
                 lambd[:, :], _ = get_dlf_points(
                     self.fhtfilt, radial_distance, self.hankel_pts_per_dec
                 )      
                 
                 data_or_sensitivity = magnetic_dipole_response_by_sounding(
-                    self, lambd, f, n_layer, sig, chi, h, z, 
+                    self, lambd, frequencies, n_layer, sig, chi, h, z, 
                     source_list, data_or_sensitivity, radial_distance,
                     output_type=output_type            
                 )
@@ -723,56 +723,6 @@ class EM1DTMSimulation(BaseEM1DSimulation):
 
         return data
 
-    def fields(self, m):
-        # f = self.compute_integral(m, output_type='response')
-        # f = self.project_fields(f, output_type='response')
-        data = self.compute_integral_by_sounding(m, output_type='response')
-        return data.dobs
-
-    def getJ_height(self, m, f=None):
-        """
-        Compute the sensitivity with respect to source height(s).
-        """
-
-        # Null if source height is not parameter of the simulation.
-        if self.hMap is None:
-            return utils.Zero()
-
-        if self._Jmatrix_height is not None:
-            return self._Jmatrix_height
-
-        else:
-
-            if self.verbose:
-                print(">> Compute J height ")
-
-            dudh = self.compute_integral_by_sounding(m, output_type="sensitivity_height")
-            self._Jmatrix_height = dudh.dobs.reshape([-1, 1])
-            return self._Jmatrix_height
-
-
-    def getJ_sigma(self, m, f=None):
-        """
-        Compute the sensitivity with respect to static conductivity.
-        """
-
-        # Null if sigma is not parameter of the simulation.
-        if self.sigmaMap is None:
-            return utils.Zero()
-
-        if self._Jmatrix_sigma is not None:
-            return self._Jmatrix_sigma
-        else:
-
-            if self.verbose:
-                print(">> Compute J sigma")
-            
-            dudsig = self.compute_integral_by_sounding(m, output_type="sensitivity_sigma")
-            self._Jmatrix_sigma = dudsig.sensitivity
-            if self._Jmatrix_sigma.ndim == 1:
-                self._Jmatrix_sigma = self._Jmatrix_sigma.reshape([-1, 1])
-            return self._Jmatrix_sigma       
-
 
 #######################################################################
 #       STITCHED 1D SIMULATION CLASS AND GLOBAL FUNCTIONS
@@ -824,7 +774,8 @@ class StitchedEM1DTMSimulation(BaseStitchedEM1DSimulation):
             sim = EM1DTMSimulation(
                 survey=local_survey, thicknesses=thicknesses,
                 sigmaMap=exp_map, eta=eta, tau=tau, c=c, chi=chi, dchi=dchi, tau1=tau1, tau2=tau2,
-                topo=topo, hankel_filter='key_101_2009'
+                topo=topo, hankel_filter='key_101_2009',
+                use_sounding=True
             )
 
             if output_type == 'sensitivity_sigma':
@@ -841,7 +792,8 @@ class StitchedEM1DTMSimulation(BaseStitchedEM1DSimulation):
                 survey=local_survey, thicknesses=thicknesses,
                 sigmaMap=sigma_map, hMap=wires.h, topo=topo,
                 eta=eta, tau=tau, c=c, chi=chi, dchi=dchi, tau1=tau1, tau2=tau2,
-                hankel_filter='key_101_2009'
+                hankel_filter='key_101_2009',
+                use_sounding=True
             )
 
             m = np.r_[np.log(sigma), h]

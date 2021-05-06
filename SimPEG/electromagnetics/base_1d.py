@@ -71,6 +71,7 @@ class BaseEM1DSimulation(BaseSimulation):
     _Jmatrix_sigma = None
     _Jmatrix_height = None
     _pred = None
+    use_sounding = False            # Default: False (not optimized)
 
     # Properties for electrical conductivity/resistivity
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
@@ -298,9 +299,14 @@ class BaseEM1DSimulation(BaseSimulation):
             return chi_complex
 
     def fields(self, m):
-        f = self.compute_integral(m, output_type='response')
-        f = self.project_fields(f, output_type='response')
-        return np.hstack(f)
+        if self.use_sounding:
+            data = self.compute_integral_by_sounding(m, output_type='response')
+            return data.dobs
+        else:
+            f = self.compute_integral(m, output_type='response')
+            f = self.project_fields(f, output_type='response')    
+            return np.hstack(f)        
+    
 
     def dpred(self, m, f=None):
         """
@@ -332,10 +338,13 @@ class BaseEM1DSimulation(BaseSimulation):
 
             if self.verbose:
                 print(">> Compute J height ")
-
-            dudh = self.compute_integral(m, output_type="sensitivity_height")
-            self._Jmatrix_height = np.hstack(self.project_fields(dudh, output_type="sensitivity_height"))
-            self._Jmatrix_height = np.hstack(dudh).reshape([-1, 1])
+            if self.use_sounding:
+                dudh = self.compute_integral_by_sounding(m, output_type="sensitivity_height")
+                self._Jmatrix_height = dudh.dobs.reshape([-1, 1])
+            else:
+                dudh = self.compute_integral(m, output_type="sensitivity_height")
+                self._Jmatrix_height = np.hstack(self.project_fields(dudh, output_type="sensitivity_height"))
+                self._Jmatrix_height = np.hstack(dudh).reshape([-1, 1])            
             return self._Jmatrix_height
 
 
@@ -354,12 +363,17 @@ class BaseEM1DSimulation(BaseSimulation):
 
             if self.verbose:
                 print(">> Compute J sigma")
+            
+            if self.use_sounding:
+                dudsig = self.compute_integral_by_sounding(m, output_type="sensitivity_sigma")
+                self._Jmatrix_sigma = dudsig.sensitivity
+            else:
+                dudsig = self.compute_integral(m, output_type="sensitivity_sigma")
+                self._Jmatrix_sigma = np.vstack(self.project_fields(dudsig,output_type="sensitivity_sigma"))
 
-            dudsig = self.compute_integral(m, output_type="sensitivity_sigma")
-            self._Jmatrix_sigma = np.vstack(self.project_fields(dudsig,output_type="sensitivity_sigma"))
             if self._Jmatrix_sigma.ndim == 1:
                 self._Jmatrix_sigma = self._Jmatrix_sigma.reshape([-1, 1])
-            return self._Jmatrix_sigma
+            return self._Jmatrix_sigma     
 
     def getJ(self, m, f=None):
         """
@@ -442,6 +456,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     fix_Jmatrix = False
     invert_height = None
     n_sounding_for_chunk = None
+    use_sounding = True
 
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "thicknesses of the layers",
