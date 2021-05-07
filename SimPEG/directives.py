@@ -938,66 +938,58 @@ class SavePredictedEveryIteration(SaveEveryIteration):
 
 class SaveIterationsGeoH5(InversionDirective):
     """
-        Saves inversion results to a geoh5 file
+    Saves inversion results to a geoh5 file
     """
 
-    # Initialize the output dict
-    h5_object = None
-    channels = ["model"]
-    attribute = "model"
     association = "VERTEX"
-    sorting = None
+    attribute_type = "model"
+    channels = [""]
+    components = [""]
+    data_type = {}
+    h5_object = None
     mapping = None
     save_objective_function = False
-    data_type = {}
-    replace_values = False
-    no_data_value = None
+    sorting = None
 
     def initialize(self):
 
-        if self.attribute == "predicted":
-            if getattr(self.dmisfit, "objfcts", None) is not None:
-                dpred = []
-                for local_misfit in self.dmisfit.objfcts:
-                    dpred.append(
-                        np.asarray(local_misfit.survey.dpred(self.invProb.model))
-                    )
-                prop = np.hstack(dpred)
-            else:
-                prop = self.dmisfit.survey.dpred(self.invProb.model)
+        if self.attribute_type == "predicted":
+            prop = np.hstack(self.invProb.get_dpred(self.invProb.model))
         else:
             prop = self.invProb.model
 
         if self.mapping is not None:
             prop = self.mapping * prop
 
-        prop = self.check_mvi_format(prop)
+        if self.sorting is not None:
+            prop = prop[self.sorting]
 
-        for ii, channel in enumerate(self.channels):
+        if self.attribute_type == "vector":
+            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1)
+        else:
+            prop = prop.reshape((len(self.channels), len(self.components), -1))
 
-            attr = prop[ii :: len(self.channels)]
+        for cc, component in enumerate(self.components):
+            for ii, channel in enumerate(self.channels):
+                if not isinstance(channel, str):
+                    channel = f"{channel: .2e}"
+                values = prop[ii, cc, :]
+                data = self.h5_object.add_data(
+                    {
+                        f"Iteration_{0}_{component}_{channel}":
+                        {"association": self.association, "values": values}
+                    }
+                )
+                data.entity_type.name = channel
+                self.data_type[channel] = data.entity_type
 
-            if self.sorting is not None:
-                attr = attr[self.sorting]
-
-            data = self.h5_object.add_data(
-                {
-                    f"Iteration_0_"
-                    + channel: {"association": self.association, "values": attr}
-                }
-            )
-
-            data.entity_type.name = channel
-            self.data_type[channel] = data.entity_type
+                if len(self.channels) > 1:
+                    self.h5_object.add_data_to_group(
+                        data, f"Iteration_{0}_{component}"
+                    )
 
         if self.save_objective_function:
-            regCombo = ["phi_ms", "phi_msx"]
-
-            if self.prob[0].mesh.dim >= 2:
-                regCombo += ["phi_msy"]
-
-            if self.prob[0].mesh.dim == 3:
-                regCombo += ["phi_msz"]
+            regCombo = ["phi_ms", "phi_msx", "phi_msy", "phi_msz"]
 
             # Save the data.
             iterDict = {"beta": f"{self.invProb.beta:.3e}"}
@@ -1014,79 +1006,51 @@ class SaveIterationsGeoH5(InversionDirective):
         self.h5_object.workspace.finalize()
 
     def endIter(self):
-        if self.attribute == "predicted":
-            if getattr(self.dmisfit, "objfcts", None) is not None:
-                dpred = []
-                for local_misfit in self.dmisfit.objfcts:
-                    dpred.append(
-                        np.asarray(local_misfit.survey.dpred(self.invProb.model))
-                    )
-                prop = np.hstack(dpred)
-            else:
-                prop = self.dmisfit.survey.dpred(self.invProb.model)
+
+        if self.attribute_type == "predicted":
+            prop = np.hstack(self.invProb.dpred)
         else:
             prop = self.invProb.model
 
         if self.mapping is not None:
             prop = self.mapping * prop
 
-        prop = self.check_mvi_format(prop)
+        if self.sorting is not None:
+            prop = prop[self.sorting]
 
-        for ii, channel in enumerate(self.channels):
-            attr = prop[ii :: len(self.channels)]
+        if self.attribute_type == "vector":
+            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1)
+        else:
+            prop = prop.reshape((len(self.channels), len(self.components), -1))
 
-            if self.sorting is not None:
-                attr = attr[self.sorting]
-
-            if self.replace_values and self.h5_object.get_data(
-                f"Iteration_{self.opt.iter-1}_" + channel
-            ):
-                data = self.h5_object.get_data(
-                    f"Iteration_{self.opt.iter-1}_" + channel
-                )[0]
-                data.name = f"Iteration_{self.opt.iter}_" + channel
-                data.values = attr
-            else:
-                self.h5_object.add_data(
+        for cc, component in enumerate(self.components):
+            for ii, channel in enumerate(self.channels):
+                values = prop[ii, cc, :]
+                if not isinstance(channel, str):
+                    channel = f"{channel: .2e}"
+                data = self.h5_object.add_data(
                     {
-                        f"Iteration_{self.opt.iter}_"
-                        + channel: {
-                            "values": attr,
-                            "association": self.association,
-                            "entity_type": self.data_type[channel],
-                        }
+                        f"Iteration_{self.opt.iter}_{component}_{channel}":
+                            {
+                                "values": values,
+                                "association": self.association,
+                                "entity_type": self.data_type[channel],
+                            }
                     }
                 )
 
+                if len(self.channels) > 1:
+                    self.h5_object.add_data_to_group(
+                        data, f"Iteration_{self.opt.iter}_{component}"
+                    )
+
         if self.save_objective_function:
-            regCombo = ["phi_ms", "phi_msx"]
+            regCombo = ["phi_ms", "phi_msx", "phi_msy", "phi_msz"]
 
-            if self.prob[0].mesh.dim >= 2:
-                regCombo += ["phi_msy"]
-
-            if self.prob[0].mesh.dim == 3:
-                regCombo += ["phi_msz"]
-
-            # Save objective function.
-            if isinstance(self.invProb.beta, float):
-                beta = self.invProb.beta
-            else:
-                beta = self.invProb.beta[0]
-
-            iterDict = {"beta": f"{beta:.3e}"}
-
-            if isinstance(self.invProb.phi_d, float):
-                phi_d = self.invProb.phi_d
-            else:
-                phi_d = self.invProb.phi_d[0]
-
-            if isinstance(self.invProb.phi_m, float):
-                phi_m = self.invProb.phi_m
-            else:
-                phi_m = self.invProb.phi_m[0]
-
-            iterDict["phi_d"] = f"{phi_d:.3e}"
-            iterDict["phi_m"] = f"{phi_m:.3e}"
+            # Save the data.
+            iterDict = {"beta": f"{self.invProb.beta:.3e}"}
+            iterDict["phi_d"] = f"{self.invProb.phi_d:.3e}"
+            iterDict["phi_m"] = f"{self.invProb.phi_m:.3e}"
 
             for label, fcts in zip(regCombo, self.reg.objfcts[0].objfcts):
                 iterDict[label] = f"{fcts(self.invProb.model):.3e}"

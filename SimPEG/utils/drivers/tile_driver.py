@@ -91,13 +91,6 @@ def create_nested_mesh(
         finalize=False,
     )
 
-    # pads = locations.copy()
-    # center = np.mean(pads, axis=0)
-    # pads -= center[None, :]
-    # pads *= 2.0
-    # pads += center[None, :]
-
-
     tree = cKDTree(locations[:, :2])
     rad, _ = tree.query(base_mesh.gridCC[:, :2])
 
@@ -125,14 +118,5 @@ def create_nested_mesh(
         base_mesh.cell_levels_by_index(np.where(indices)[0]),
         finalize=finalize,
     )
-
-    #     global_active = active_from_xyz(global_mesh, topography, method='linear')
-
-    #     # Cycle back to all local meshes and create tile maps
-    #     local_maps = []
-    #     for mesh in local_meshes:
-    #         local_maps.append(
-    #             TileMap(global_mesh, global_active, mesh)
-    #         )
 
     return nested_mesh
