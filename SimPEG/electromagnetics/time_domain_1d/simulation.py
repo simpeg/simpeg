@@ -69,15 +69,20 @@ class EM1DTMSimulation(BaseEM1DSimulation):
             self.fftfilt = filters.key_601_CosSin_2009()
         else:
             raise Exception()
+        
+        if self.topo is None:
+            self.topo = np.array([0, 0, 0], dtype=float)
 
-        # TODO: there should be a check if either a source or a receiver z-location is 
-        # less than topo, then throw an error message.  
         for i_src, src in enumerate(self.survey.source_list):
+            if src.location[2] < self.topo[2]:
+                raise Exception("Source must be located above the topography")
             for i_rx, rx in enumerate(src.receiver_list):
                 if rx.locations.shape[0] > 1:
                     raise Exception(
                         "A single location for a receiver object is assumed for the 1D EM code"
                     )
+                if rx.locations[0,2] < self.topo[2]:
+                    raise Exception("Receiver must be located above the topography")            
 
     def set_time_intervals(self):
         """
@@ -174,12 +179,9 @@ class EM1DTMSimulation(BaseEM1DSimulation):
         if self.hMap is not None:
             h_vector = np.array(self.h)
         else:
-            if self.topo is None:
-                h_vector = np.array([src.location[2] for src in self.survey.source_list])
-            else:
-                h_vector = np.array(
-                    [src.location[2]-self.topo[-1] for src in self.survey.source_list]
-                )
+            h_vector = np.array(
+                [src.location[2]-self.topo[-1] for src in self.survey.source_list]
+            )
 
         # LOOP OVER BY SOUNDING
         integral_output_list = []
@@ -543,8 +545,6 @@ class EM1DTMSimulation(BaseEM1DSimulation):
             # Assume all sources in i-th sounding have the same src.location
             if self.hMap is not None:
                 h = self.h
-            elif self.topo is None:
-                h = src_locations[0, 2]
             else:
                 h = src_locations[0, 2]-self.topo[-1]
             

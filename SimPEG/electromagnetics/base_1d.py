@@ -33,22 +33,6 @@ else:
 __all__ = ["BaseEM1DSimulation", "BaseStitchedEM1DSimulation"]
 
 
-
-###############################################################################
-#                                                                             #
-#                             Base EM1D Survey                                #
-#                                                                             #
-###############################################################################
-
-class BaseEM1DSurvey(BaseSurvey, properties.HasProperties):
-    """
-    Base EM1D survey class
-    """
-
-    def __init__(self, source_list=None, **kwargs):
-        BaseSurvey.__init__(self, source_list, **kwargs)
-
-
 ###############################################################################
 #                                                                             #
 #                             Base EM1D Simulation                            #
@@ -153,8 +137,25 @@ class BaseEM1DSimulation(BaseSimulation):
         self.hankel_pts_per_dec = htarg['pts_per_dec']      # Store pts_per_dec
         if self.verbose:
             print(">> Use "+self.hankel_filter+" filter for Hankel Transform")
-
-
+        
+        source_location_by_sounding_dict = self.survey.source_location_by_sounding_dict
+        if self.use_sounding:
+            for i_sounding in source_location_by_sounding_dict:
+                src_locations = self.survey.source_location_by_sounding_dict[i_sounding]
+                if ~np.all([np.all(src_locations[0] == val) for val in src_locations[1:]]):
+                    raise Exception(
+                        "Source locations in a sounding should be the same"
+                    )
+                rx_locations = self.survey.receiver_location_by_sounding_dict[i_sounding]
+                if ~np.all([np.all(rx_locations[0] == val) for val in rx_locations[1:]]):
+                    raise Exception(
+                        "Source locations in a sounding should be the same"
+                    )                    
+                rx_use_offset = self.survey.receiver_use_offset_by_sounding_dict[i_sounding]
+                if ~np.all([np.all(rx_use_offset[0] == val) for val in rx_use_offset[1:]]):
+                    raise Exception(
+                        "Source locations in a sounding should be the same"
+                )
     @property
     def halfspace_switch(self):
         """True = halfspace, False = layered Earth"""

@@ -32,10 +32,19 @@ class EM1DFMSimulation(BaseEM1DSimulation):
 
     def __init__(self, **kwargs):
         BaseEM1DSimulation.__init__(self, **kwargs)
+        if self.topo is None:
+            self.topo = np.array([0, 0, 0], dtype=float)
+
         for i_src, src in enumerate(self.survey.source_list):
+            if src.location[2] < self.topo[2]:
+                raise Exception("Source must be located above the topography")
             for i_rx, rx in enumerate(src.receiver_list):
                 if rx.locations.shape[0] > 1:
-                    raise Exception("A single location for a receiver object is assumed for the 1D EM code")
+                    raise Exception(
+                        "A single location for a receiver object is assumed for the 1D EM code"
+                    )
+                if rx.locations[0,2] < self.topo[2]:
+                    raise Exception("Receiver must be located above the topography")
 
     def compute_integral(self, m, output_type='response'):
         """
@@ -53,12 +62,9 @@ class EM1DFMSimulation(BaseEM1DSimulation):
         if self.hMap is not None:
             h_vector = self.h * np.ones(len(self.survey.source_list))
         else:
-            if self.topo is None:
-                h_vector = np.array([src.location[2] for src in self.survey.source_list])
-            else:
-                h_vector = np.array(
-                    [src.location[2]-self.topo[-1] for src in self.survey.source_list]
-                )
+            h_vector = np.array(
+                [src.location[2]-self.topo[-1] for src in self.survey.source_list]
+            )
 
 
         integral_output_list = []
@@ -262,8 +268,6 @@ class EM1DFMSimulation(BaseEM1DSimulation):
             # Assume all sources in i-th sounding have the same src.location
             if self.hMap is not None:
                 h = self.h
-            elif self.topo is None:
-                h = src_locations[0, 2]
             else:
                 h = src_locations[0, 2]-self.topo[-1]
             
