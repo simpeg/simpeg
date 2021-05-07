@@ -12,9 +12,14 @@ class BaseSparse(BaseRegularization):
     Base class for building up the components of the Sparse Regularization
     """
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh, weight_map=None, **kwargs):
         self._stashedR = None
         super(BaseSparse, self).__init__(mesh=mesh, **kwargs)
+
+        self.weight_map = weight_map
+        if self.weight_map is None:
+            self.weight_map = self.mapping
+
 
     model = properties.Array("current model", dtype=float)
 
@@ -73,7 +78,7 @@ class SparseSmall(BaseSparse):
     @property
     def f_m(self):
 
-        return self.mapping * self._delta_m(self.model)
+        return self.weight_map * self._delta_m(self.model)
 
     @property
     def W(self):
@@ -307,7 +312,7 @@ class SparseDeriv(BaseSparse):
             f_m = self.model
 
         if self.space == "spherical":
-            theta = self.cellDiffStencil * (self.mapping * f_m)
+            theta = self.cellDiffStencil * (self.weight_map * f_m)
             dmdx = utils.mat_utils.coterminal(theta)
 
         else:
@@ -318,7 +323,7 @@ class SparseDeriv(BaseSparse):
                 dmdx = np.abs(
                     self.regmesh.aveFx2CC
                     * self.regmesh.cellDiffxStencil
-                    * (self.mapping * f_m)
+                    * (self.weight_map * f_m)
                 )
 
                 if self.regmesh.dim > 1:
@@ -326,7 +331,7 @@ class SparseDeriv(BaseSparse):
                     dmdx += np.abs(
                         self.regmesh.aveFy2CC
                         * self.regmesh.cellDiffyStencil
-                        * (self.mapping * f_m)
+                        * (self.weight_map * f_m)
                     )
 
                 if self.regmesh.dim > 2:
@@ -334,13 +339,13 @@ class SparseDeriv(BaseSparse):
                     dmdx += np.abs(
                         self.regmesh.aveFz2CC
                         * self.regmesh.cellDiffzStencil
-                        * (self.mapping * f_m)
+                        * (self.weight_map * f_m)
                     )
 
                 dmdx = Ave * dmdx
 
             else:
-                dmdx = self.cellDiffStencil * (self.mapping * f_m)
+                dmdx = self.cellDiffStencil * (self.weight_map * f_m)
 
         return dmdx
 
@@ -441,6 +446,7 @@ class Sparse(BaseComboRegularization):
         if mesh.dim > 2:
             objfcts.append(SparseDeriv(mesh=mesh, orientation="z", **kwargs))
 
+        self.weight_map = None
         super(Sparse, self).__init__(
             mesh=mesh,
             objfcts=objfcts,

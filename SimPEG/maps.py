@@ -616,6 +616,32 @@ class SphericalSystem(IdentityMap):
         return self.sphericalDeriv(m)
 
 
+class VectorMagnitude(IdentityMap):
+    """
+    A vector map to magnitude
+    """
+
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super().__init__(mesh, nP, **kwargs)
+        self.model = None
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        # return self.n_block*len(self.indices[0]), self.n_block*len(self.indices)
+        return (self.nP, 3*self.nP)
+
+    def _transform(self, model):
+        """
+
+        :param model:
+        :return:
+        """
+        return np.linalg.norm(model.reshape((-1, 3), order="F"), axis=1)
+
+
 class Wires(object):
     def __init__(self, *args):
         for arg in args:
