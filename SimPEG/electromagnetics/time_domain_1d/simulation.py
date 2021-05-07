@@ -146,7 +146,6 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                     )
                 else:
                     raise Exception("Expected types of the waveform are StepOffWaveform and RawWaveform")
-                print (freq)
                 rx.frequencies = freq
                 rx.ftarg = ftarg
 
@@ -190,11 +189,6 @@ class EM1DTMSimulation(BaseEM1DSimulation):
 
                 n_frequency = len(rx.frequencies)
 
-                f = np.empty([n_frequency, n_filter], order='F')
-                f[:, :] = np.tile(
-                    rx.frequencies.reshape([-1, 1]), (1, n_filter)
-                )
-
                 # Create globally, not for each receiver in the future
                 sig = self.compute_sigma_matrix(rx.frequencies)
                 chi = self.compute_chi_matrix(rx.frequencies)
@@ -209,25 +203,18 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                 # Hankel transform for horizontal loop source
                 if isinstance(src, CircularLoop):
 
-                    # radial distance (r) and loop radius (a)
-                    if rx.use_source_receiver_offset:
-                        r = rx.locations[0,0:2]
-                    else:
-                        r = rx.locations[0,0:2] - src.location[0:2]
-
-                    r_vec = np.sqrt(np.sum(r**2)) * np.ones(n_frequency)
-                    a_vec = src.radius * np.ones(n_frequency)
+                    a_vec = np.array([src.radius])
 
                     # Use function from empymod to define Hankel coefficients.
                     # Size of lambd is (n_frequency x n_filter)
-                    lambd = np.empty([n_frequency, n_filter], order='F')
+                    lambd = np.empty([1, n_filter], order='F')
                     lambd[:, :], _ = get_dlf_points(
                         self.fhtfilt, a_vec, self.hankel_pts_per_dec
                     )
 
                     # Get kernel function(s) at all lambda and frequencies
                     hz = horizontal_loop_kernel(
-                        self, lambd, f, n_layer, sig, chi, a_vec, h, z, r,
+                        self, lambd, rx.frequencies, n_layer, sig, chi, a_vec, h, z,
                         src, rx, output_type
                     )
 
@@ -252,19 +239,19 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                         r = rx.locations[0,0:2] - src.location[0:2]
 
                     r = np.sqrt(np.sum(r**2))
-                    r_vec = r * np.ones(n_frequency)
+                    r_vec = np.array([r])
 
                     # Use function from empymod to define Hankel coefficients.
                     # Size of lambd is (n_frequency x n_filter)
 
-                    lambd = np.empty([n_frequency, n_filter], order='F')
+                    lambd = np.empty([1, n_filter], order='F')
                     lambd[:, :], _ = get_dlf_points(
                         self.fhtfilt, r_vec, self.hankel_pts_per_dec
                     )
 
                     # Get kernel function(s) at all lambda and frequencies
                     PJ = magnetic_dipole_kernel(
-                        self, lambd, f, n_layer, sig, chi, h, z, r, src, rx, output_type
+                        self, lambd, rx.frequencies, n_layer, sig, chi, h, z, r, src, rx, output_type
                     )
 
                     PJ = tuple(PJ)

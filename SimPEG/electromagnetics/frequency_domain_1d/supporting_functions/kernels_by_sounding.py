@@ -75,7 +75,6 @@ def magnetic_dipole_response_by_sounding(
         drTE.reshape((n_layer, n_frequency, n_filter))
         temp = drTE * np.exp(-lamda*(z+h))
     else:
-        depth = simulation.depth
         rTE = rTE_forward(
             f, lamda.reshape(-1), sig, mu, thicknesses
         )

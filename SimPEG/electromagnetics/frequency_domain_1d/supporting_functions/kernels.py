@@ -62,25 +62,15 @@ def magnetic_dipole_kernel(
     mu = (chi+1)*mu_0
     # COMPUTE TE-MODE REFLECTION COEFFICIENT
     if output_type == 'sensitivity_sigma':
-        drTE = np.zeros(
-            [n_layer, n_frequency, n_filter],
-            dtype=np.complex128, order='F'
-        )
-
         drTE, _, _ = rTE_gradient(
-            f, lamda[:,:], sig, mu, thicknesses
+            f, lamda.reshape(-1), sig, mu, thicknesses
             )
-
-        temp = drTE * np.exp(-lamda*(z+h))
+        drTE.reshape((n_layer, n_frequency, n_filter))
     else:
-        rTE = np.empty(
-            [n_frequency, n_filter], dtype=np.complex128, order='F'
-        )
-        depth = simulation.depth
         rTE = rTE_forward(
-            f, lamda[:,:], sig, mu, thicknesses
+            f, lamda.reshape(-1), sig, mu, thicknesses
         )
-
+        rTE.reshape((n_frequency, n_filter))
         temp = rTE * np.exp(-lamda*(z+h))
         if output_type == 'sensitivity_height':
             temp *= -2*lamda
@@ -233,7 +223,7 @@ def magnetic_dipole_kernel(
 
 # TODO: make this to take a vector rather than a single frequency
 def horizontal_loop_kernel(
-    simulation, lamda, f, n_layer, sig, chi, a, h, z, r,
+    simulation, lamda, f, n_layer, sig, chi, a, h, z,
     src, rx, output_type='response'
 ):
 
@@ -272,23 +262,16 @@ def horizontal_loop_kernel(
     mu = (chi+1)*mu_0
     
     if output_type == 'sensitivity_sigma':
-        drTE = np.empty(
-            [n_layer, n_frequency, n_filter],
-            dtype=np.complex128, order='F'
-        )
-        
         drTE, _, _ = rTE_gradient(
-            f, lamda[0,:], sig, mu, thicknesses
-        )
+            f, lamda.reshape(-1), sig, mu, thicknesses
+            )
+        drTE.reshape((n_layer, n_frequency, n_filter))
         kernel = drTE * np.exp(-u0*(z+h)) * coefficient_wavenumber
     else:
-        rTE = np.empty(
-            [n_frequency, n_filter], dtype=np.complex128, order='F'
-        )
-
         rTE = rTE_forward(
-            f, lamda[0,:], sig, mu, thicknesses
+            f, lamda.reshape(-1), sig, mu, thicknesses
         )
+        rTE.reshape((n_frequency, n_filter))
 
         kernel = rTE * np.exp(-u0*(z+h)) * coefficient_wavenumber
 

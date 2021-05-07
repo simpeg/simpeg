@@ -107,7 +107,7 @@ class EM1DFMSimulation(BaseEM1DSimulation):
 
                     # Get kernel function(s) at all lambda and frequencies
                     hz = horizontal_loop_kernel(
-                        self, lambd, frequency, n_layer, sig, chi, a_vec, h, z, r,
+                        self, lambd, frequency, n_layer, sig, chi, a_vec, h, z,
                         src, rx, output_type
                     )
 
@@ -436,7 +436,8 @@ class StitchedEM1DFMSimulation(BaseStitchedEM1DSimulation):
                 survey=local_survey, thicknesses=thicknesses,
                 sigmaMap=sigma_map, hMap=wires.h, topo=topo,
                 eta=eta, tau=tau, c=c, chi=chi, dchi=dchi, tau1=tau1, tau2=tau2,
-                hankel_filter='key_101_2009'
+                hankel_filter='key_101_2009',
+                use_sounding=True
             )
 
             m = np.r_[np.log(sigma), h]
