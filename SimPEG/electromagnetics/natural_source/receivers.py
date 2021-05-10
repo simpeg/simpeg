@@ -40,13 +40,11 @@ class BaseRxNSEM_Point(BaseRx):
         orientation=None,
         component=None,
         locations_e=None,
-        locations_h=None,
-        ztem=False
+        locations_h=None
     ):
         self.orientation = orientation
         self.component = component
-        self.ref_locations = None
-        self.ztem = ztem
+        self.reference_locations = None
 
         # check if locations_e or h have been provided
         if (locations_e is not None) and (locations_h is not None):
@@ -106,13 +104,11 @@ class BaseRxNSEM_Point(BaseRx):
         if field == "e":
             locs = self.locations_e()
         else:
-            if self.ztem:
+            if self.reference_locations is not None:
                 if ('x' in projGLoc) or ('y' in projGLoc):
-                    print('Projection for ref loc: ', projGLoc)
                     # if self.ref_locations != None:
-                    locs = self.ref_locations
+                    locs = self.reference_locations
                 else:
-                    print('Projection for ref Hz loc: ', projGLoc)
                     locs = self.locations_h()
                     # else:
                     #     raise NotImplementedError("please set a ref location if using ztem")
@@ -628,9 +624,9 @@ class Point3DTipper(BaseRxNSEM_Point):
         "orientation of the receiver. Must currently be 'zx', 'zy'", ["zx", "zy"]
     )
 
-    def __init__(self, locs, orientation="zx", component="real", ztem=False):
+    def __init__(self, locs, orientation="zx", component="real"):
 
-        super().__init__(locs, orientation=orientation, component=component, ztem=ztem)
+        super().__init__(locs, orientation=orientation, component=component)
 
     def _eval_tipper(self, src, mesh, f):
         # will grab both primary and secondary and sum them!

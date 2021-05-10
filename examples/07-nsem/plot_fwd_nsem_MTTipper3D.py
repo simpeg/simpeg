@@ -66,8 +66,8 @@ def run(plotIt=True):
     for rx_orientation in ["zx", "zy"]:
 
         # added ztem flag
-        rx_real = NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "real", ztem=True)
-        rx_imag = NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "imag", ztem=True)
+        rx_real = NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "real")
+        rx_imag = NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "imag")
 
         # then hacked and input to assign a reference station
         rx_real.ref_locations = np.asarray([-400, -400, 0])
