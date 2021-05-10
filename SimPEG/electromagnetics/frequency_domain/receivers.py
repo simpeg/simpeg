@@ -128,7 +128,7 @@ class PointMagneticFluxDensity(BaseRx):
     """
 
     def __init__(self, locations, orientation="x", component="real"):
-        self.projField = "b"
+        self.projField = "h"
         super(PointMagneticFluxDensity, self).__init__(
             locations, orientation, component
         )
