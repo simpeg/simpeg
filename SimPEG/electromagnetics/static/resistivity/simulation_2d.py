@@ -501,6 +501,9 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation2D.__init__(self, mesh, **kwargs)
+        V = sdiag(self.mesh.cell_volumes)
+        self.Div = V @ self.mesh.face_divergence
+        self.Grad = self.Div.T
 
     def getA(self, ky):
         """
@@ -511,21 +514,20 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         self.setBC(ky=ky)
         D = self.Div
         G = self.Grad
-        vol = self.mesh.vol
+        if self.bc_type != "Dirichlet":
+            G = G - self._MBC[ky]
         MfRhoI = self.MfRhoI
         # Get resistivity rho
-        rho = self.rho
         A = D * MfRhoI * G + ky ** 2 * self.MccRhoi
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.0
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
-        # To handle Mixed boundary condition
-        # self.setBC(ky=ky)
-
         D = self.Div
         G = self.Grad
+        if self.bc_type != "Dirichlet":
+            G = G - self._MBC[ky]
         if adjoint:
             return self.MfRhoIDeriv(
                 G * u.flatten(), D.T * v, adjoint=adjoint
@@ -554,13 +556,14 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         return Zero()
 
     def setBC(self, ky=None):
-        V = sdiag(self.mesh.cell_volumes)
-        self.Div = V @ self.mesh.face_divergence
-        self.Grad = self.Div.T
-
         if self.bc_type == "Dirichlet":
             return
-        elif self.bc_type == "Neumann":
+        if getattr(self, "_MBC", None) is None:
+            self._MBC = {}
+        if ky in self._MBC:
+            # I have already created the BC matrix for this wavenumber
+            return
+        if self.bc_type == "Neumann":
             alpha, beta, gamma = 0, 1, 0
         else:
             boundary_faces = self.mesh.boundary_faces
@@ -587,7 +590,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
         B, bc = self.mesh.cell_gradient_weak_form_robin(alpha, beta, gamma)
         # bc should always be 0 because gamma was always 0 above
-        self.Grad = self.Grad - B
+        self._MBC[ky] = B
 
 
 class Simulation2DNodal(BaseDCSimulation2D):
@@ -600,10 +603,10 @@ class Simulation2DNodal(BaseDCSimulation2D):
     fieldsPair = Fields2DNodal
     fieldsPair_fwd = Fields3DNodal
     _gradT = None
+    bc_type = "Robin"
 
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation2D.__init__(self, mesh, **kwargs)
-        # self.setBC()
         self.solver_opts["is_symmetric"] = True
         self.solver_opts["is_positive_definite"] = True
 
@@ -612,6 +615,9 @@ class Simulation2DNodal(BaseDCSimulation2D):
         Make the A matrix for the cell centered DC resistivity problem
         A = D MfRhoI G
         """
+        # To handle Mixed boundary condition
+        self.setBC(ky=ky)
+
         MeSigma = self.MeSigma
         MnSigma = self.MnSigma
         Grad = self.mesh.nodalGrad
@@ -619,6 +625,18 @@ class Simulation2DNodal(BaseDCSimulation2D):
             self._gradT = Grad.T.tocsr()  # cache the .tocsr()
         GradT = self._gradT
         A = GradT * MeSigma * Grad + ky ** 2 * MnSigma
+
+        if self.bc_type != "Neumann":
+            try:
+                A = A + sdiag(self._AvgBC[ky] @ self.sigma)
+            except ValueError as err:
+                if len(self.sigma) != len(self.mesh):
+                    raise NotImplementedError(
+                        "Anisotropic conductivity is not supported for Robin boundary "
+                        "conditions, please use 'Neumann'."
+                    )
+                else:
+                    raise err
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
@@ -626,15 +644,27 @@ class Simulation2DNodal(BaseDCSimulation2D):
         Grad = self.mesh.nodalGrad
 
         if adjoint:
-            return self.MeSigmaDeriv(
+            out = self.MeSigmaDeriv(
                 Grad * u.flatten(), Grad * v, adjoint=adjoint
             ) + ky ** 2 * self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
         else:
-            return Grad.T * self.MeSigmaDeriv(
+            out = Grad.T * self.MeSigmaDeriv(
                 Grad * u.flatten(), v, adjoint=adjoint
             ) + ky ** 2 * self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
-        # return (Grad.T*(self.MeSigmaDeriv(Grad*u.flatten(), v, adjoint)) +
-        #         ky**2*self.MnSigmaDeriv(u.flatten())*v)
+        if self.bc_type != "Neumann" and self.sigmaMap is not None:
+            if getattr(self, "_MBC_sigma", None) is None:
+                self._MBC_sigma = {}
+            if ky not in self._MBC_sigma:
+                self._MBC_sigma[ky] = self._AvgBC[ky] @ self.sigmaDeriv
+            if not isinstance(u, Zero):
+                u = u.flatten()
+                if v.ndim > 1:
+                    u = u[:, None]
+                if not adjoint:
+                    out += u * (self._MBC_sigma[ky] @ v)
+                else:
+                    out += self._MBC_sigma[ky].T @ (u * v)
+        return out
 
     def getRHS(self, ky):
         """
@@ -653,6 +683,51 @@ class Simulation2DNodal(BaseDCSimulation2D):
         # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+    def setBC(self, ky=None):
+        if self.bc_type == "Dirichlet":
+            # do nothing
+            raise ValueError(
+                "Dirichlet conditions are not supported in the Nodal formulation"
+            )
+        elif self.bc_type == "Neumann":
+            if self.verbose:
+                print(
+                    "Homogeneous Neumann is the natural BC for this Nodal discretization."
+                )
+            return
+        else:
+            if getattr(self, "_AvgBC", None) is None:
+                self._AvgBC = {}
+            if ky in self._AvgBC:
+                return
+            # calculate alpha, beta, gamma at the boundary faces
+            boundary_faces = self.mesh.boundary_faces
+            boundary_normals = self.mesh.boundary_face_outward_normals
+            n_bf = len(boundary_faces)
+
+            alpha = np.zeros(n_bf)
+
+            # assume a source point at the middle of the top of the mesh
+            middle = np.median(self.mesh.nodes, axis=0)
+            top_v = np.max(self.mesh.nodes[:, -1])
+            source_point = np.r_[middle[:-1], top_v]
+
+            r_vec = boundary_faces - source_point
+            r = np.linalg.norm(r_vec, axis=-1)
+            r_hat = r_vec / r[:, None]
+            r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
+
+            not_top = boundary_faces[:, -1] != top_v
+            alpha[not_top] = (ky * k1(ky * 1 / r) / k0(ky * 1 / r) * r_dot_n)[not_top]
+
+            P_bf = self.mesh.project_face_to_boundary_face
+
+            AvgN2Fb = P_bf @ self.mesh.average_node_to_face
+            AvgCC2Fb = P_bf @ self.mesh.average_cell_to_face
+
+            AvgCC2Fb = sdiag(alpha * (P_bf @ self.mesh.face_areas)) @ AvgCC2Fb
+            self._AvgBC[ky] = AvgN2Fb.T @ AvgCC2Fb
 
 
 Simulation2DCellCentred = Simulation2DCellCentered  # UK and US

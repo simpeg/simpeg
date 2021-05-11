@@ -456,7 +456,7 @@ class Simulation3DNodal(BaseDCSimulation):
         elif self.bc_type == "Neumann":
             if self.verbose:
                 print(
-                    "Homogeneous Dirichlet is the natural BC for this CC discretization."
+                    "Homogeneous Neumann is the natural BC for this nodal discretization."
                 )
             return
         else:
