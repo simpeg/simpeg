@@ -472,7 +472,7 @@ class SaveEveryIteration(InversionDirective):
     """SaveEveryIteration
 
     This directive saves an array at each iteration. The default
-    directory is the current directoy and the models are saved as
+    directory is the current directory and the models are saved as
     ``InversionModel-YYYY-MM-DD-HH-MM-iter.npy``
     """
 
