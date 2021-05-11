@@ -131,14 +131,24 @@ def run():
 
     # Create receivers
     rxList = []
-    for rx_orientation in ['xx', 'xy', 'yx', 'yy']:
-        #     rxList.append(ns.Rx.Point3DComplexResistivity(locations=None, locations_e=rx_loc, locations_h=rx_loc, orientation=rx_orientation, component='apparent_resistivity'))
-        #     rxList.append(ns.Rx.Point3DComplexResistivity(locations=None,locations_e=rx_loc, locations_h=rx_loc, orientation=rx_orientation, component='phase'))
-        rxList.append(ns.Rx.Point3DImpedance(receiver_locations, rx_orientation, 'real'))
-        rxList.append(ns.Rx.Point3DImpedance(receiver_locations, rx_orientation, 'imag'))
-    # for rx_orientation in ['zx', 'zy']:
-    #     rxList.append(ns.Rx.Point3DTipper(rx_loc, rx_orientation, 'real'))
-    #     rxList.append(ns.Rx.Point3DTipper(rx_loc, rx_orientation, 'imag'))
+    # for rx_orientation in ['xx', 'xy', 'yx', 'yy']:
+    #     #     rxList.append(ns.Rx.Point3DComplexResistivity(locations=None, locations_e=rx_loc, locations_h=rx_loc, orientation=rx_orientation, component='apparent_resistivity'))
+    #     #     rxList.append(ns.Rx.Point3DComplexResistivity(locations=None,locations_e=rx_loc, locations_h=rx_loc, orientation=rx_orientation, component='phase'))
+    #     rxList.append(ns.Rx.Point3DImpedance(receiver_locations, rx_orientation, 'real'))
+    #     rxList.append(ns.Rx.Point3DImpedance(receiver_locations, rx_orientation, 'imag'))
+    for rx_orientation in ['zx', 'zy']:
+
+        # added ztem flag
+        rx_real = ns.Rx.Point3DTipper(receiver_locations, rx_orientation, "real")
+        rx_imag = ns.Rx.Point3DTipper(receiver_locations, rx_orientation, "imag")
+
+        # then hacked and input to assign a reference station
+        rx_real.reference_locations = np.zeros(receiver_locations.shape) + np.asarray([-400, -400, 0])
+        rx_imag.reference_locations = np.zeros(receiver_locations.shape) + np.asarray([-400, -400, 0])
+
+        # now append
+        rxList.append(rx_real)
+        rxList.append(rx_imag)
 
     # Source list
     srcList = [
@@ -190,26 +200,26 @@ def run():
 
     cnt = 0
 
-    for freq in frequencies:
-        cnt_comp = 0
+    # for freq in frequencies:
+    #     cnt_comp = 0
     #     comps_ = ['rho_xy', 'phi_xy', 'rho_yx', 'phi_yx']
-        comps_ = ['r_xx', 'i_xx', 'r_xy', 'i_xy', 'r_yx', 'i_yx', 'r_yy', 'i_yy']
-        fig1 = plt.figure(figsize=(18, 14))
-        for rx_orientation in range(len(comps_)):
-            pert = 1e-3  # np.percentile(np.abs(dnew[cnt, num_station*rx_orientation:num_station*(rx_orientation + 1)]), 20)
-            if comps_[rx_orientation][-2:] == 'xx':
-                stdnew[cnt, num_station*rx_orientation:num_station*(rx_orientation + 1)] = stdnew[cnt, num_station*rx_orientation:num_station*(rx_orientation + 1)] + pert
-            elif comps_[rx_orientation][-2:] == 'yy':
-                stdnew[cnt, num_station*rx_orientation:num_station*(rx_orientation + 1)] = stdnew[cnt, num_station*rx_orientation:num_station*(rx_orientation + 1)] + pert
-            ax = plt.subplot(4,2, cnt_comp + 1)
-            im = utils.plot_utils.plot2Ddata(receiver_locations, dnew[cnt, num_station*rx_orientation:num_station*(rx_orientation + 1)], ax=ax)
-            ax.set_title(comps_[rx_orientation])
-            plt.colorbar(im[0])
-            cnt_comp += 1
-        cnt += 1
-        fig1.suptitle(f'{freq} Hz Forward Data', fontsize='20')
-    plt.show()
-    print(mkvc(stdnew).shape)
+    #     # comps_ = ['r_xx', 'i_xx', 'r_xy', 'i_xy', 'r_yx', 'i_yx', 'r_yy', 'i_yy']
+    #     fig1 = plt.figure(figsize=(18, 14))
+    #     for rx_orientation in range(len(comps_)):
+    #         pert = 1e-3  # np.percentile(np.abs(dnew[cnt, num_station*rx_orientation:num_station*(rx_orientation + 1)]), 20)
+    #         if comps_[rx_orientation][-2:] == 'xx':
+    #             stdnew[cnt, num_station*rx_orientation:num_station*(rx_orientation + 1)] = stdnew[cnt, num_station*rx_orientation:num_station*(rx_orientation + 1)] + pert
+    #         elif comps_[rx_orientation][-2:] == 'yy':
+    #             stdnew[cnt, num_station*rx_orientation:num_station*(rx_orientation + 1)] = stdnew[cnt, num_station*rx_orientation:num_station*(rx_orientation + 1)] + pert
+    #         ax = plt.subplot(4,2, cnt_comp + 1)
+    #         im = utils.plot_utils.plot2Ddata(receiver_locations, dnew[cnt, num_station*rx_orientation:num_station*(rx_orientation + 1)], ax=ax)
+    #         ax.set_title(comps_[rx_orientation])
+    #         plt.colorbar(im[0])
+    #         cnt_comp += 1
+    #     cnt += 1
+    #     fig1.suptitle(f'{freq} Hz Forward Data', fontsize='20')
+    # plt.show()
+    # print(mkvc(stdnew).shape)
 
     local_misfits = [data_misfit.L2DataMisfit(
         data=global_data, simulation=simulation
