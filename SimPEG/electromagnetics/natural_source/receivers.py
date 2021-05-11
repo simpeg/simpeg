@@ -105,14 +105,11 @@ class BaseRxNSEM_Point(BaseRx):
             locs = self.locations_e()
         else:
             if self.reference_locations is not None:
-                print("ZTEM!!!!")
+
                 if ('x' in projGLoc) or ('y' in projGLoc):
-                    # if self.ref_locations != None:
                     locs = self.reference_locations
                 else:
                     locs = self.locations_h()
-                    # else:
-                    #     raise NotImplementedError("please set a ref location if using ztem")
             else:
                 locs = self.locations_h()
         P = mesh.getInterpolationMat(locs, projGLoc)
@@ -675,6 +672,7 @@ class Point3DTipper(BaseRxNSEM_Point):
             ghy_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[-hx[:, 1], hx[:, 0]]).reshape((hx.shape[0], -1))
             ghz_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[-h[:, 1], h[:, 0]]).reshape((h.shape[0], -1))
             gh_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[hz[:, 1], -hz[:, 0]]).reshape((hz.shape[0], -1))
+
 
             if self.orientation[1] == "x":
                 ghy_v -= gh_v

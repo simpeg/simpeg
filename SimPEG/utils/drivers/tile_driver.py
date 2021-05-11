@@ -73,10 +73,35 @@ def create_nested_mesh(
         base_mesh,
         method="convex_hull",
         max_distance=100.,
+        pad_distance=1000.,
+        min_level=2,
         finalize=True
 ):
     nested_mesh = TreeMesh(
         [base_mesh.h[0], base_mesh.h[1], base_mesh.h[2]], x0=base_mesh.x0
+    )
+
+    min_level = (base_mesh.max_level - min_level)
+    base_refinement = base_mesh.cell_levels_by_index(np.arange(base_mesh.nC))
+    base_refinement[base_refinement > min_level] = min_level
+
+    nested_mesh.insert_cells(
+        base_mesh.gridCC,
+        base_refinement,
+        finalize=False,
+    )
+
+    tree = cKDTree(locations[:, :2])
+    rad, _ = tree.query(base_mesh.gridCC[:, :2])
+
+    indices = np.where(rad < pad_distance)[0]
+    # indices = np.where(tri2D.find_simplex(base_mesh.gridCC[:, :2]) != -1)[0]
+    levels = base_mesh.cell_levels_by_index(indices)
+    levels[levels==base_mesh.max_level] = base_mesh.max_level-1
+    nested_mesh.insert_cells(
+        base_mesh.gridCC[indices, :],
+        levels,
+        finalize=False,
     )
 
     if method == "convex_hull":
@@ -84,8 +109,8 @@ def create_nested_mesh(
         tri2D = Delaunay(locations[:, :2])
         indices = tri2D.find_simplex(base_mesh.gridCC[:, :2]) != -1
     else:
-        tree = cKDTree(locations[:, :2])
-        rad, _ = tree.query(base_mesh.gridCC[:, :2])
+        # tree = cKDTree(locations[:, :2])
+        # rad, _ = tree.query(base_mesh.gridCC[:, :2])
         indices = rad < max_distance
 
     nested_mesh.insert_cells(
@@ -93,14 +118,5 @@ def create_nested_mesh(
         base_mesh.cell_levels_by_index(np.where(indices)[0]),
         finalize=finalize,
     )
-
-    #     global_active = active_from_xyz(global_mesh, topography, method='linear')
-
-    #     # Cycle back to all local meshes and create tile maps
-    #     local_maps = []
-    #     for mesh in local_meshes:
-    #         local_maps.append(
-    #             TileMap(global_mesh, global_active, mesh)
-    #         )
 
     return nested_mesh

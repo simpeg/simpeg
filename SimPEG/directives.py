@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 import os
+import json
 from .data_misfit import BaseDataMisfit
 from .objective_function import ComboObjectiveFunction
 from .maps import SphericalSystem, ComboMap
@@ -933,6 +934,158 @@ class SavePredictedEveryIteration(SaveEveryIteration):
             dc_utils.writeUBC_DCobs(f"{file_name}.pre", self.data, 3, "surface", data=dpred, predicted=True)
         else:
             np.savetxt(f"{file_name}.pre", np.c_[self.data.survey.locations, dpred])
+
+
+class SaveIterationsGeoH5(InversionDirective):
+    """
+    Saves inversion results to a geoh5 file
+    """
+
+    association = "VERTEX"
+    attribute_type = "model"
+    channels = [""]
+    components = [""]
+    data_type = {}
+    h5_object = None
+    mapping = None
+    save_objective_function = False
+    sorting = None
+
+    def initialize(self):
+
+        if self.attribute_type == "predicted":
+            prop = np.hstack(self.invProb.get_dpred(self.invProb.model))
+        else:
+            prop = self.invProb.model
+
+        if self.mapping is not None:
+            prop = self.mapping * prop
+
+        if self.sorting is not None:
+            prop = prop[self.sorting]
+
+        if self.attribute_type == "vector":
+            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1)
+        else:
+            prop = prop.reshape((len(self.channels), len(self.components), -1))
+
+        for cc, component in enumerate(self.components):
+            for ii, channel in enumerate(self.channels):
+                if not isinstance(channel, str):
+                    channel = f"{channel: .2e}"
+                values = prop[ii, cc, :]
+                data = self.h5_object.add_data(
+                    {
+                        f"Iteration_{0}_{component}_{channel}":
+                        {"association": self.association, "values": values}
+                    }
+                )
+                data.entity_type.name = channel
+                self.data_type[channel] = data.entity_type
+
+                if len(self.channels) > 1:
+                    self.h5_object.add_data_to_group(
+                        data, f"Iteration_{0}_{component}"
+                    )
+
+        if self.save_objective_function:
+            regCombo = ["phi_ms", "phi_msx", "phi_msy", "phi_msz"]
+
+            # Save the data.
+            iterDict = {"beta": f"{self.invProb.beta:.3e}"}
+            iterDict["phi_d"] = f"{self.invProb.phi_d:.3e}"
+            iterDict["phi_m"] = f"{self.invProb.phi_m:.3e}"
+
+            for label, fcts in zip(regCombo, self.reg.objfcts[0].objfcts):
+                iterDict[label] = f"{fcts(self.invProb.model):.3e}"
+
+            self.h5_object.parent.add_comment(
+                json.dumps(iterDict), author=f"Iteration_{0}"
+            )
+
+        self.h5_object.workspace.finalize()
+
+    def endIter(self):
+
+        if self.attribute_type == "predicted":
+            prop = np.hstack(self.invProb.dpred)
+        else:
+            prop = self.invProb.model
+
+        if self.mapping is not None:
+            prop = self.mapping * prop
+
+        if self.sorting is not None:
+            prop = prop[self.sorting]
+
+        if self.attribute_type == "vector":
+            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1)
+        else:
+            prop = prop.reshape((len(self.channels), len(self.components), -1))
+
+        for cc, component in enumerate(self.components):
+            for ii, channel in enumerate(self.channels):
+                values = prop[ii, cc, :]
+                if not isinstance(channel, str):
+                    channel = f"{channel: .2e}"
+                data = self.h5_object.add_data(
+                    {
+                        f"Iteration_{self.opt.iter}_{component}_{channel}":
+                            {
+                                "values": values,
+                                "association": self.association,
+                                "entity_type": self.data_type[channel],
+                            }
+                    }
+                )
+
+                if len(self.channels) > 1:
+                    self.h5_object.add_data_to_group(
+                        data, f"Iteration_{self.opt.iter}_{component}"
+                    )
+
+        if self.save_objective_function:
+            regCombo = ["phi_ms", "phi_msx", "phi_msy", "phi_msz"]
+
+            # Save the data.
+            iterDict = {"beta": f"{self.invProb.beta:.3e}"}
+            iterDict["phi_d"] = f"{self.invProb.phi_d:.3e}"
+            iterDict["phi_m"] = f"{self.invProb.phi_m:.3e}"
+
+            for label, fcts in zip(regCombo, self.reg.objfcts[0].objfcts):
+                iterDict[label] = f"{fcts(self.invProb.model):.3e}"
+
+            self.h5_object.parent.add_comment(
+                json.dumps(iterDict), author=f"Iteration_{self.opt.iter}"
+            )
+
+        self.h5_object.workspace.finalize()
+
+    def check_mvi_format(self, values):
+        if "mvi" in self.attribute:
+            values = values.reshape((-1, 3), order="F")
+            if self.no_data_value is not None:
+                ndv_ind = values[:, 0] == self.no_data_value
+                values[ndv_ind, :] = 0
+            else:
+                ndv_ind = np.zeros(values.shape[0], dtype="bool")
+
+            if self.attribute == "mvi_model":
+                values = np.linalg.norm(values, axis=1)
+            elif self.attribute == "mvi_model_s":
+                values = values[:, 0]
+            elif self.attribute == "mvi_angles":
+                atp = cartesian2spherical(values)
+                values = atp.reshape((-1, 3), order="F")
+
+            if "model" in self.attribute:
+                values[ndv_ind] = self.no_data_value
+            elif "angles" in self.attribute:
+                values = np.rad2deg(values[:, 1:])
+                values[ndv_ind, :] = self.no_data_value
+                values = values.ravel()
+
+        return values
 
 
 class Update_IRLS(InversionDirective):
