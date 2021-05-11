@@ -105,14 +105,11 @@ class BaseRxNSEM_Point(BaseRx):
             locs = self.locations_e()
         else:
             if self.reference_locations is not None:
-                print("ZTEM!!!!")
+
                 if ('x' in projGLoc) or ('y' in projGLoc):
-                    # if self.ref_locations != None:
                     locs = self.reference_locations
                 else:
                     locs = self.locations_h()
-                    # else:
-                    #     raise NotImplementedError("please set a ref location if using ztem")
             else:
                 locs = self.locations_h()
         P = mesh.getInterpolationMat(locs, projGLoc)
