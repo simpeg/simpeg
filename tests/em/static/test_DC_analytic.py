@@ -64,6 +64,19 @@ class DCProblemAnalyticTests(unittest.TestCase):
             print(">> DC analytic test for Simulation3DNodal is failed")
         self.assertTrue(passed)
 
+    def test_Simulation3DNodal_Robin(self, tolerance=0.2):
+        simulation = dc.simulation.Simulation3DNodal(
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=Solver,
+            bc_type="Robin",
+        )
+        data = simulation.dpred()
+        err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
+        print(err)
+        self.assertLess(err, 0.2)
+
     def test_Simulation3DCellCentered_Mixed(self, tolerance=0.2):
         simulation = dc.Simulation3DCellCentered(
             self.mesh,

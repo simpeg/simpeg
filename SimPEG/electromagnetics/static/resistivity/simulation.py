@@ -378,13 +378,17 @@ class Simulation3DNodal(BaseDCSimulation):
     _solutionType = "phiSolution"
     _formulation = "EB"  # N potentials means B is on faces
     fieldsPair = Fields3DNodal
+    bc_type = "Neumann"
 
     def __init__(self, mesh, **kwargs):
-        BaseDCSimulation.__init__(self, mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
         # Not sure why I need to do this
         # To evaluate mesh.aveE2CC, this is required....
         if mesh._meshType == "TREE":
             mesh.nodalGrad
+        elif mesh._meshType == "CYL":
+            self.bc_type == "Neumann"
+        self.setBC()
 
     def getA(self, resistivity=None):
         """
@@ -398,11 +402,25 @@ class Simulation3DNodal(BaseDCSimulation):
         Grad = self.mesh.nodalGrad
         A = Grad.T @ MeSigma @ Grad
 
-        # Handling Null space of A
-        I, J, V = sp.find(A[0, :])
-        for jj in J:
-            A[0, jj] = 0.0
-        A[0, 0] = 1.0
+        if self.bc_type == "Neumann":
+            # Handling Null space of A
+            I, J, V = sp.find(A[0, :])
+            for jj in J:
+                A[0, jj] = 0.0
+            A[0, 0] = 1.0
+        else:
+            # Dirichlet BC type should already have failed
+            # Also, this will fail if sigma is anisotropic
+            try:
+                A = A + sp.diags(self._AvgBC @ self.sigma)
+            except ValueError as err:
+                if len(self.sigma) != len(self.mesh):
+                    raise NotImplementedError(
+                        "Anisotropic conductivity is not supported for Robin boundary "
+                        "conditions, please use 'Neumann'."
+                    )
+                else:
+                    raise err
 
         return A
 
@@ -413,9 +431,69 @@ class Simulation3DNodal(BaseDCSimulation):
         """
         Grad = self.mesh.nodalGrad
         if not adjoint:
-            return Grad.T @ self.MeSigmaDeriv(Grad @ u, v, adjoint)
-        elif adjoint:
-            return self.MeSigmaDeriv(Grad @ u, Grad @ v, adjoint)
+            out = Grad.T @ self.MeSigmaDeriv(Grad @ u, v, adjoint)
+        else:
+            out = self.MeSigmaDeriv(Grad @ u, Grad @ v, adjoint)
+        if self.bc_type != "Neumann" and self.sigmaMap is not None:
+            if getattr(self, "_MBC_sigma", None) is None:
+                self._MBC_sigma = self._AvgBC @ self.sigmaDeriv
+            if not isinstance(u, Zero):
+                u = u.flatten()
+                if v.ndim > 1:
+                    u = u[:, None]
+                if not adjoint:
+                    out += u * (self._MBC_sigma @ v)
+                else:
+                    out += self._MBC_sigma.T @ (u * v)
+        return out
+
+    def setBC(self):
+        if self.bc_type == "Dirichlet":
+            # do nothing
+            raise ValueError(
+                "Dirichlet conditions are not supported in the Nodal formulation"
+            )
+        elif self.bc_type == "Neumann":
+            if self.verbose:
+                print(
+                    "Homogeneous Dirichlet is the natural BC for this CC discretization."
+                )
+            return
+        else:
+            # calculate alpha, beta, gamma at the boundary faces
+            boundary_faces = self.mesh.boundary_faces
+            boundary_normals = self.mesh.boundary_face_outward_normals
+            n_bf = len(boundary_faces)
+
+            # Top gets 0 Nuemann
+            alpha = np.zeros(n_bf)
+            # beta = np.ones(n_bf) = 1.0
+
+            # not top get Robin condition
+            # assume a source point at the middle of the top of the mesh
+            middle = np.median(self.mesh.nodes, axis=0)
+            top_v = np.max(self.mesh.nodes[:, -1])
+            source_point = np.r_[middle[:-1], top_v]
+
+            # Others: Robin: alpha * phi + d phi dn = 0
+            # where alpha = 1 / r  * r_hat_dot_n
+            # TODO: Implement Zhang et al. (1995)
+
+            r_vec = boundary_faces - source_point
+            r = np.linalg.norm(r_vec, axis=-1)
+            r_hat = r_vec / r[:, None]
+            r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
+
+            not_top = boundary_faces[:, -1] != top_v
+            alpha[not_top] = (r_dot_n / r)[not_top]
+
+            P_bf = self.mesh.project_face_to_boundary_face
+
+            AvgN2Fb = P_bf @ self.mesh.average_node_to_face
+            AvgCC2Fb = P_bf @ self.mesh.average_cell_to_face
+
+            AvgCC2Fb = sp.diags(alpha * (P_bf @ self.mesh.face_areas)) @ AvgCC2Fb
+            self._AvgBC = AvgN2Fb.T @ AvgCC2Fb
 
     def getRHS(self):
         """
@@ -434,6 +512,14 @@ class Simulation3DNodal(BaseDCSimulation):
         # qDeriv = source.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+    @property
+    def _clear_on_sigma_update(self):
+        """
+        These matrices are deleted if there is an update to the conductivity
+        model
+        """
+        return super()._clear_on_sigma_update + ["_MBC_sigma"]
 
 
 Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
