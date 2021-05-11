@@ -3,7 +3,7 @@ Joint PGI of Gravity + Magnetic with an Octree mesh
 ===================================================
 
 
-This tutorial show through a joint inversion of Gravity and Magnetic data on an
+This tutorial shows through a joint inversion of Gravity and Magnetic data on an
 Octree mesh how to use functionalities introduced in Astic & Oldenburg (2019)
 and Astic et al. (2020) to include petrophysical information into geophysical
 inversions.
