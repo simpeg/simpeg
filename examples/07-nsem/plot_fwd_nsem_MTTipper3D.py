@@ -60,12 +60,22 @@ def run(plotIt=True):
 
     # Make a receiver list
     rxList = []
-    for rx_orientation in ["xx", "xy", "yx", "yy"]:
-        rxList.append(NSEM.Rx.Point3DImpedance(rx_loc, rx_orientation, "real"))
-        rxList.append(NSEM.Rx.Point3DImpedance(rx_loc, rx_orientation, "imag"))
+    # for rx_orientation in ["xx", "xy", "yx", "yy"]:
+    #     rxList.append(NSEM.Rx.Point3DImpedance(rx_loc, rx_orientation, "real"))
+    #     rxList.append(NSEM.Rx.Point3DImpedance(rx_loc, rx_orientation, "imag"))
     for rx_orientation in ["zx", "zy"]:
-        rxList.append(NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "real"))
-        rxList.append(NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "imag"))
+
+        # added ztem flag
+        rx_real = NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "real")
+        rx_imag = NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "imag")
+
+        # then hacked and input to assign a reference station
+        rx_real.ref_locations = np.asarray([-400, -400, 0])
+        rx_imag.ref_locations = np.asarray([-400, -400, 0])
+
+        # now append
+        rxList.append(rx_real)
+        rxList.append(rx_imag)
 
     # Source list
     srcList = [
@@ -103,14 +113,14 @@ def run(plotIt=True):
         ax_p.set_xlabel("Frequency [Hz]")
         # Start plotting
         ax_r = data.plot_app_res(
-            np.array([-200, 0]), components=["xy", "yx"], ax=ax_r, errorbars=True
+            np.array([-200, 0]), components=["zy", "zx"], ax=ax_r, errorbars=True
         )
         ax_r_on = data.plot_app_res(
-            np.array([-200, 0]), components=["xx", "yy"], ax=ax_r_on, errorbars=True
+            np.array([-200, 0]), components=["zx", "zy"], ax=ax_r_on, errorbars=True
         )
         ax_p = data.plot_app_phs(
             np.array([-200, 0]),
-            components=["xx", "xy", "yx", "yy"],
+            components=["zx", "zy"],
             ax=ax_p,
             errorbars=True,
         )

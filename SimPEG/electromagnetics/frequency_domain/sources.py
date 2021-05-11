@@ -10,6 +10,7 @@ from ...utils import mkvc, Zero
 from ...utils.code_utils import deprecate_property
 
 from ..utils import omega
+from ..utils import segmented_line_current_source_term
 from ..base import BaseEMSrc
 
 
@@ -862,3 +863,33 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             + (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary))
             * self.ePrimaryDeriv(simulation, v, adjoint=adjoint, f=f)
         )
+
+
+class LineCurrent(BaseFDEMSrc):
+    """
+    Line current source. Given the wire path provided by the (n,3) loc
+    array the cells intersected by the wire path are identified and integrated
+    src terms are computed
+    :param list rxList: receiver list
+    :param float freq: src frequency
+    :param (n,3) array locations: points defining src path
+    """
+
+    location = properties.Array("location of the source", shape=("*", 3))
+
+    def Mejs(self, simulation):
+        if getattr(self, "_Mejs", None) is None:
+            mesh = simulation.mesh
+            locs = self.location
+            self._Mejs = segmented_line_current_source_term(mesh, locs)
+        return self._Mejs
+
+    def getRHSdc(self, simulation):
+        Grad = simulation.mesh.nodalGrad
+        return Grad.T * self.Mejs(simulation)
+
+    def s_m(self, simulation):
+        return Zero()
+
+    def s_e(self, simulation):
+        return self.Mejs(simulation)

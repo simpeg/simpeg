@@ -40,10 +40,11 @@ class BaseRxNSEM_Point(BaseRx):
         orientation=None,
         component=None,
         locations_e=None,
-        locations_h=None,
+        locations_h=None
     ):
         self.orientation = orientation
         self.component = component
+        self.reference_locations = None
 
         # check if locations_e or h have been provided
         if (locations_e is not None) and (locations_h is not None):
@@ -103,7 +104,17 @@ class BaseRxNSEM_Point(BaseRx):
         if field == "e":
             locs = self.locations_e()
         else:
-            locs = self.locations_h()
+            if self.reference_locations is not None:
+                print("ZTEM!!!!")
+                if ('x' in projGLoc) or ('y' in projGLoc):
+                    # if self.ref_locations != None:
+                    locs = self.reference_locations
+                else:
+                    locs = self.locations_h()
+                    # else:
+                    #     raise NotImplementedError("please set a ref location if using ztem")
+            else:
+                locs = self.locations_h()
         P = mesh.getInterpolationMat(locs, projGLoc)
         if self.storeProjections:
             self._Ps[(mesh, projGLoc, field)] = P
@@ -336,7 +347,7 @@ class Point3DImpedance(BaseRxNSEM_Point):
         imp = top / bot
 
         if adjoint:
-            
+
             # Work backwards!
             gtop_v = np.c_[v] / bot[:, None]
             gbot_v = -imp[:, None] * np.c_[v] / bot[:, None]
@@ -659,18 +670,12 @@ class Point3DTipper(BaseRxNSEM_Point):
             # Work backwards!
             gtop_v = np.c_[v] / bot[:, None]
             gbot_v = -imp[:, None] * np.c_[v] / bot[:, None]
-            # gtop_v = (v / bot)[:, None]
-            # gbot_v = (-imp * v / bot)[:, None]
 
             ghx_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[hy[:, 1], -hy[:, 0]]).reshape((hy.shape[0], -1))
             ghy_v = np.einsum('ij,ik->ijk', gbot_v, np.c_[-hx[:, 1], hx[:, 0]]).reshape((hx.shape[0], -1))
-            # ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
-            # ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
-
             ghz_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[-h[:, 1], h[:, 0]]).reshape((h.shape[0], -1))
             gh_v = np.einsum('ij,ik->ijk', gtop_v, np.c_[hz[:, 1], -hz[:, 0]]).reshape((hz.shape[0], -1))
-            # ghz_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
-            # gh_v = np.c_[hz[:, 1], -hz[:, 0]] * gtop_v
+
 
             if self.orientation[1] == "x":
                 ghy_v -= gh_v
@@ -741,7 +746,6 @@ class Point3DTipper(BaseRxNSEM_Point):
         if adjoint:
             return imp_deriv
         return getattr(imp_deriv, self.component)
-
 
 ##################################################
 # Receiver for 1D Analytic
