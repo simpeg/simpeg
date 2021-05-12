@@ -44,7 +44,11 @@ from SimPEG import (
     utils,
 )
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import plot_pseudosection
+from SimPEG.electromagnetics.static.utils.static_utils import (
+    plot_pseudosection,
+    apparent_resistivity_from_voltage,
+)
+from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
 try:
     from pymatsolver import Pardiso as Solver
@@ -52,22 +56,22 @@ except ImportError:
     from SimPEG import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 4
 
 
 #############################################
-# Define File Names
-# -----------------
+# Download Assets
+# ---------------
 #
 # Here we provide the file paths to assets we need to run the inversion. The
 # path to the true model conductivity and chargeability models are also
 # provided for comparison with the inversion results. These files are stored as a
 # tar-file on our google cloud bucket:
-# "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
+# "https://storage.googleapis.com/simpeg/doc-assets/dcr2d.tar.gz"
 #
 
 # storage bucket where we have the data
-data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip2d.tar.gz"
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcr2d.tar.gz"
 
 # download the data
 downloaded_data = utils.download(data_source, overwrite=True)
@@ -81,7 +85,7 @@ tar.close()
 dir_path = downloaded_data.split(".")[0] + os.path.sep
 
 # files to work with
-topo_filename = dir_path + "xyz_topo.txt"
+topo_filename = dir_path + "topo_xyz.txt"
 data_filename = dir_path + "dc_data.obs"
 
 
@@ -91,88 +95,77 @@ data_filename = dir_path + "dc_data.obs"
 #
 # Here we load the observed data, define the DC and IP survey geometry and
 # plot the data values using pseudo-sections.
+# **Warning**: In the following example, the observations file is assumed to be
+# sorted by sources
 #
 
 # Load data
 topo_xyz = np.loadtxt(str(topo_filename))
-dobs = np.loadtxt(str(data_filename))
+dc_data = read_dcip2d_ubc(data_filename, "volt", "general")
 
-# Extract source and receiver electrode locations and the observed data
-A_electrodes = dobs[:, 0:2]
-B_electrodes = dobs[:, 2:4]
-M_electrodes = dobs[:, 4:6]
-N_electrodes = dobs[:, 6:8]
-dobs = dobs[:, -1]
+#######################################################################
+# Plot Observed Data in Pseudo-Section
+# ------------------------------------
+#
+# Here, we demonstrate how to plot 2D data in pseudo-section.
+# First, we plot the actual data (voltages) in pseudo-section as a scatter plot.
+# This allows us to visualize the pseudo-sensitivity locations for our survey.
+# Next, we plot the data as apparent conductivities in pseudo-section with a filled
+# contour plot.
+#
 
-# Define survey
-unique_tx, k = np.unique(np.c_[A_electrodes, B_electrodes], axis=0, return_index=True)
-n_sources = len(k)
-k = np.r_[k, len(A_electrodes) + 1]
-
-source_list = []
-for ii in range(0, n_sources):
-
-    # MN electrode locations for receivers. Each is an (N, 3) numpy array
-    M_locations = M_electrodes[k[ii] : k[ii + 1], :]
-    N_locations = N_electrodes[k[ii] : k[ii + 1], :]
-    receiver_list = [dc.receivers.Dipole(M_locations, N_locations, data_type="volt")]
-
-    # AB electrode locations for source. Each is a (1, 3) numpy array
-    A_location = A_electrodes[k[ii], :]
-    B_location = B_electrodes[k[ii], :]
-    source_list.append(dc.sources.Dipole(receiver_list, A_location, B_location))
-
-# Define survey
-survey = dc.survey.Survey_ky(source_list)
-
-# Define the a data object. Uncertainties are added later
-dc_data = data.Data(survey, dobs=dobs)
-
-# Plot apparent conductivity using pseudo-section
-mpl.rcParams.update({"font.size": 12})
+# Plot voltages pseudo-section
 fig = plt.figure(figsize=(12, 5))
-
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
+ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
 plot_pseudosection(
     dc_data,
+    plot_type="scatter",
     ax=ax1,
-    survey_type="dipole-dipole",
-    data_type="appConductivity",
-    space_type="half-space",
     scale="log",
-    y_values="pseudo-depth",
-    pcolor_opts={"cmap": "viridis"},
+    cbar_label="V/A",
+    scatter_opts={"cmap": mpl.cm.viridis},
 )
-ax1.set_title("Apparent Conductivity [S/m]")
-
+ax1.set_title("Normalized Voltages")
 plt.show()
 
-#############################################
+# Plot apparent conductivity pseudo-section
+fig = plt.figure(figsize=(12, 5))
+ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
+plot_pseudosection(
+    dc_data,
+    plot_type="contourf",
+    ax=ax1,
+    scale="log",
+    data_type="apparent conductivity",
+    cbar_label="S/m",
+    mask_topography=True,
+    contourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
+)
+ax1.set_title("Apparent Conductivity")
+plt.show()
+
+####################################################
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with SimPEG requires that we define standard deviation on our data.
-# This represents our estimate of the noise in our data. For DC data, a relative
-# error is applied to each datum.
+# Inversion with SimPEG requires that we define the uncertainties on our data.
+# This represents our estimate of the standard deviation of the
+# noise in our data. For DC data, the uncertainties are 10% of the absolute value
+#
 #
 
-# Compute standard deviations
-std = 0.05 * np.abs(dobs)
-
-# Add standard deviations to data object
-dc_data.standard_deviation = std
+dc_data.standard_deviation = 0.05 * np.abs(dc_data.dobs)
 
 ########################################################
 # Create Tree Mesh
 # ------------------
 #
-# Here, we create the Tree mesh that will be used to predict both DC
-# resistivity and IP data.
+# Here, we create the Tree mesh that will be used to invert DC data.
 #
 
-dh = 10.0  # base cell width
-dom_width_x = 2400.0  # domain width x
-dom_width_z = 1200.0  # domain width z
+dh = 4  # base cell width
+dom_width_x = 3200.0  # domain width x
+dom_width_z = 2400.0  # domain width z
 nbcx = 2 ** int(np.round(np.log(dom_width_x / dh) / np.log(2.0)))  # num. base cells x
 nbcz = 2 ** int(np.round(np.log(dom_width_z / dh) / np.log(2.0)))  # num. base cells z
 
@@ -183,24 +176,36 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, topo_xyz[:, [0, 2]], octree_levels=[1], method="surface", finalize=False
+    mesh,
+    topo_xyz[:, [0, 2]],
+    octree_levels=[0, 0, 4, 4],
+    method="surface",
+    finalize=False,
 )
 
-# Mesh refinement near transmitters and receivers
-electrode_locations = np.r_[
-    survey.locations_a, survey.locations_b, survey.locations_m, survey.locations_n
+# Mesh refinement near transmitters and receivers. First we need to obtain the
+# set of unique electrode locations.
+electrode_locations = np.c_[
+    dc_data.survey.locations_a,
+    dc_data.survey.locations_b,
+    dc_data.survey.locations_m,
+    dc_data.survey.locations_n,
 ]
 
-unique_locations = np.unique(electrode_locations, axis=0)
+unique_locations = np.unique(
+    np.reshape(electrode_locations, (4 * dc_data.survey.nD, 2)), axis=0
+)
 
 mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[2, 4], method="radial", finalize=False
+    mesh, unique_locations, octree_levels=[4, 4], method="radial", finalize=False
 )
 
 # Refine core mesh region
-xp, zp = np.meshgrid([-800.0, 800.0], [-800.0, 0.0])
+xp, zp = np.meshgrid([-600.0, 600.0], [-400.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 2], method="box", finalize=False)
+mesh = refine_tree_xyz(
+    mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False
+)
 
 mesh.finalize()
 
@@ -224,8 +229,15 @@ topo_2d = np.unique(topo_xyz[:, [0, 2]], axis=0)
 # Find cells that lie below surface topography
 ind_active = surface2ind_topo(mesh, topo_2d)
 
+# Extract survey from data object
+survey = dc_data.survey
+
 # Shift electrodes to the surface of discretized topography
 survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
+
+# Reset survey in data object
+dc_data.survey = survey
+
 
 ########################################################
 # Starting/Reference Model and Mapping on Tree Mesh
@@ -289,11 +301,11 @@ reg = regularization.Simple(
     alpha_y=1,
 )
 
-# Define how the optimization problem is solved. Here we will use a projected
-# Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.ProjectedGNCG(
-    maxIter=5, lower=-10.0, upper=2.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
-)
+reg.mrefInSmooth = True  # Reference model in smoothness term
+
+# Define how the optimization problem is solved. Here we will use an
+# Inexact Gauss Newton approach.
+opt = optimization.InexactGaussNewton(maxIter=40)
 
 # Here we define the inverse problem that is to be solved
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -312,12 +324,12 @@ update_sensitivity_weighting = directives.UpdateSensitivityWeights()
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=2e1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 
 # Set the rate of reduction in trade-off parameter (beta) each time the
 # the inverse problem is solved. And set the number of Gauss-Newton iterations
 # for each trade-off paramter value.
-beta_schedule = directives.BetaSchedule(coolingFactor=5, coolingRate=2)
+beta_schedule = directives.BetaSchedule(coolingFactor=3, coolingRate=2)
 
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
@@ -325,12 +337,16 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 # Setting a stopping criteria for the inversion.
 target_misfit = directives.TargetMisfit(chifact=1)
 
+# Update preconditioner
+update_jacobi = directives.UpdatePreconditioner()
+
 directives_list = [
     update_sensitivity_weighting,
     starting_beta,
     beta_schedule,
     save_iteration,
     target_misfit,
+    update_jacobi,
 ]
 
 #####################################################################
@@ -348,11 +364,10 @@ dc_inversion = inversion.BaseInversion(inv_prob, directiveList=directives_list)
 recovered_conductivity_model = dc_inversion.run(starting_conductivity_model)
 
 ############################################################
-# Plotting True and Recovered Conductivity Model
-# ----------------------------------------------
+# Recreate True Conductivity Model
+# --------------------------------
 #
 
-# Recreate true conductivity model
 true_background_conductivity = 1e-2
 true_conductor_conductivity = 1e-1
 true_resistor_conductivity = 1e-3
@@ -367,26 +382,28 @@ true_conductivity_model[ind_resistor] = true_resistor_conductivity
 
 true_conductivity_model[~ind_active] = np.NaN
 
+############################################################
+# Plotting True and Recovered Conductivity Model
+# ----------------------------------------------
+#
+
 # Plot True Model
 norm = LogNorm(vmin=1e-3, vmax=1e-1)
 
 fig = plt.figure(figsize=(9, 4))
-ax1 = fig.add_axes([0.1, 0.12, 0.72, 0.8])
+ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
 im = mesh.plot_image(
-    true_conductivity_model,
-    ax=ax1,
-    grid=False,
-    range_x=[-700, 700],
-    range_y=[-700, 0],
-    pcolor_opts={"norm": norm},
+    true_conductivity_model, ax=ax1, grid=False, pcolor_opts={"norm": norm}
 )
+ax1.set_xlim(-600, 600)
+ax1.set_ylim(-600, 0)
 ax1.set_title("True Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.83, 0.12, 0.05, 0.8])
+ax2 = fig.add_axes([0.84, 0.17, 0.03, 0.7])
 cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation="vertical")
-cbar.set_label("$S/m$", rotation=270, labelpad=15, size=12)
+cbar.set_label(r"$\sigma$ (S/m)", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -396,21 +413,17 @@ fig = plt.figure(figsize=(9, 4))
 recovered_conductivity = conductivity_map * recovered_conductivity_model
 recovered_conductivity[~ind_active] = np.NaN
 
-ax1 = fig.add_axes([0.1, 0.12, 0.72, 0.8])
-mesh.plotImage(
-    recovered_conductivity,
-    normal="Y",
-    ax=ax1,
-    grid=False,
-    range_x=[-700, 700],
-    range_y=[-700, 0],
-    pcolorOpts={"norm": norm},
+ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
+mesh.plot_image(
+    recovered_conductivity, normal="Y", ax=ax1, grid=False, pcolorOpts={"norm": norm}
 )
+ax1.set_xlim(-600, 600)
+ax1.set_ylim(-600, 0)
 ax1.set_title("Recovered Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.83, 0.12, 0.05, 0.8])
+ax2 = fig.add_axes([0.84, 0.17, 0.03, 0.7])
 cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation="vertical")
 cbar.set_label(r"$\sigma$ (S/m)", rotation=270, labelpad=15, size=12)
 
@@ -423,35 +436,35 @@ plt.show()
 
 # Predicted data from recovered model
 dpred = inv_prob.dpred
-dc_data_predicted = data.Data(survey, dobs=dpred)
+dobs = dc_data.dobs
+std = dc_data.standard_deviation
 
-data_array = [dc_data, dc_data_predicted, dc_data]
-dobs_array = [None, None, (dobs - dpred) / std]
-
-fig = plt.figure(figsize=(17, 5.5))
-plot_title = ["Observed", "Predicted", "Normalized Misfit"]
-plot_type = ["appConductivity", "appConductivity", "misfitMap"]
-plot_units = ["S/m", "S/m", ""]
+# Plot
+fig = plt.figure(figsize=(9, 13))
+data_array = [np.abs(dobs), np.abs(dpred), (dobs - dpred) / std]
+plot_title = ["Observed Voltage", "Predicted Voltage", "Normalized Misfit"]
+plot_units = ["V/A", "V/A", ""]
 scale = ["log", "log", "linear"]
 
 ax1 = 3 * [None]
-norm = 3 * [None]
+cax1 = 3 * [None]
 cbar = 3 * [None]
 cplot = 3 * [None]
 
 for ii in range(0, 3):
 
-    ax1[ii] = fig.add_axes([0.33 * ii + 0.03, 0.05, 0.25, 0.9])
+    ax1[ii] = fig.add_axes([0.15, 0.72 - 0.33 * ii, 0.65, 0.21])
+    cax1[ii] = fig.add_axes([0.81, 0.72 - 0.33 * ii, 0.03, 0.21])
     cplot[ii] = plot_pseudosection(
+        survey,
         data_array[ii],
-        dobs=dobs_array[ii],
+        "contourf",
         ax=ax1[ii],
-        survey_type="dipole-dipole",
-        data_type=plot_type[ii],
+        cax=cax1[ii],
         scale=scale[ii],
-        space_type="half-space",
-        y_values="pseudo-depth",
-        pcolor_opts={"cmap": "viridis"},
+        cbar_label=plot_units[ii],
+        mask_topography=True,
+        contourf_opts={"levels": 25, "cmap": mpl.cm.viridis},
     )
     ax1[ii].set_title(plot_title[ii])
 
