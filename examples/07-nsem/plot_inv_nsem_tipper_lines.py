@@ -77,6 +77,9 @@ def create_local_misfit(
     return local_misfit
 
 def run():
+
+    tile_buffer = 200  # Distance of refinement around local points
+
     cluster = LocalCluster(processes=False)
     client = Client(cluster)
     xx, yy = np.meshgrid(np.linspace(-3000, 3000, 101), np.linspace(-3000, 3000, 101))
@@ -89,8 +92,14 @@ def run():
     x_locs = np.linspace(-200, 200, n_stn)
     y_locs = np.linspace(-200, 200, n_lines).tolist()
     z_locs = np.zeros_like(x_locs)
-    for yy in y_locs:
-        receiver_locations = np.c_[x_locs, np.ones_like(x_locs)*yy, z_locs]
+    receiver_locations = []
+    line_ids = []
+    for ii, yy in enumerate(y_locs):
+        receiver_locations += [np.c_[x_locs, np.ones_like(x_locs)*yy, z_locs]]
+        line_ids += [np.ones_like(x_locs) * ii]
+
+    receiver_locations = np.vstack(receiver_locations)
+    line_ids = np.vstack(line_ids)
 
     # Create mesh and model
     dh = 25.0  # base cell width
@@ -111,16 +120,17 @@ def run():
         mesh, receiver_locations, octree_levels=[2, 4], method="radial", finalize=True
     )
 
-    # Conductivity in S/m (or resistivity in Ohm m)
-    air_conductivity = np.log(1e-8)
-    background_conductivity = np.log(1e-2)
-    block_conductivity = np.log(1e1)
-
     # Find cells that are active in the forward modeling (cells below surface)
     active_cells = surface2ind_topo(mesh, topo_xyz)
 
     # Define mapping from model to active cells
     expmap = maps.ExpMap(mesh)
+
+    # Conductivity in S/m (or resistivity in Ohm m)
+    air_conductivity = np.log(1e-8)
+    background_conductivity = np.log(1e-2)
+    block_conductivity = np.log(1e1)
+
     model_map = expmap * maps.InjectActiveCells(mesh, active_cells, air_conductivity)
 
     # Define model. Models in SimPEG are vector arrays
@@ -133,20 +143,16 @@ def run():
     # Create receivers
     rxList = []
     channels = []
-    for rx_orientation in ['zx', 'zy']:
+    components = ['zx', 'zy']
+    parts = ['real', 'imag']
+    for component in components:
+        for part in parts:
+            rec = ns.Rx.Point3DTipper(receiver_locations, component, part)
+            # then hacked and input to assign a reference station
+            rec.reference_locations = np.zeros_like(receiver_locations) + np.asarray([-400, -400, 0])
+            rxList.append(rec)
+            channels += [f"{component}_{part}"]
 
-        # added ztem flag
-        rx_real = ns.Rx.Point3DTipper(receiver_locations, rx_orientation, "real")
-        rx_imag = ns.Rx.Point3DTipper(receiver_locations, rx_orientation, "imag")
-
-        # then hacked and input to assign a reference station
-        rx_real.reference_locations = np.zeros(receiver_locations.shape) + np.asarray([-400, -400, 0])
-        rx_imag.reference_locations = np.zeros(receiver_locations.shape) + np.asarray([-400, -400, 0])
-
-        # now append
-        rxList.append(rx_real)
-        rxList.append(rx_imag)
-        channels += [rx_orientation + "_real", rx_orientation + "_imag"]
     # Source list
     srcList = [
         ns.Src.Planewave_xy_1Dprimary(rxList, freq, sigma_primary=model_map * m_background)
@@ -179,8 +185,6 @@ def run():
     # fwd = simulation.Jvec(sigBG[active], w)
 
     simulation.survey.dtrue = simulation.dpred(model)
-    # create observations
-    simulation.survey.dobs = survey.dtrue
 
     # Assign uncertainties
     # make data object
@@ -192,6 +196,59 @@ def run():
     data_ids = np.arange(survey.dobs.shape[0]).reshape(
         (len(frequencies), len(channels), -1)
     )
+
+    print("Creating tiles ... ")
+    local_misfits = []
+    tile_count = 0
+    data_ordering = []
+    freq_blocks = [[freq] for freq in frequencies] # Split on frequencies
+    line_segs = []
+    for ii in np.unique(line_ids).tolist():
+        line_segs += [np.where(line_ids == ii)[0]]
+
+    for freq_block in freq_blocks:
+        freq_rows = [ind for ind, freq in enumerate(frequencies) if freq in freq_block]
+        for line_seg in line_segs:
+            block_ind = data_ids[freq_rows, :, :]
+            block_ind = block_ind[:, :, line_seg].flatten()
+
+            data_ordering += [block_ind]
+            rxList = []
+            for component in components:
+                for part in parts:
+                    rxList.append(
+                        ns.Rx.Point3DTipper(
+                            receiver_locations[line_seg, :], component, part
+                        )
+                    )
+
+            source_list = []
+            for freq in freq_block:
+                source_list += [
+                    ns.Src.Planewave_xy_1Dprimary(
+                        rxList, freq, sigma_primary=[np.exp(background_conductivity)]
+                    )
+                ]
+
+            local_survey = ns.Survey(source_list)
+            local_survey.data_index = block_ind
+
+            local_survey.dobs = survey.dobs[block_ind]
+            local_survey.std = survey.std[block_ind]
+
+            local_misfits += [
+                create_local_misfit(
+                    local_survey,
+                    mesh,
+                    active_cells,
+                    tile_count,
+                    tile_buffer=tile_buffer,
+                    min_level=4,
+                )
+            ]
+
+            tile_count += 1
+            print(f"Tile {tile_count} of {len(freq_blocks) * len(line_segs)}")
 
     num_station = receiver_locations.shape[0]
     num_sets = int(survey.dobs.shape[0] / len(frequencies))
@@ -221,11 +278,11 @@ def run():
     # plt.show()
     # print(mkvc(stdnew).shape)
 
-    local_misfits = [data_misfit.L2DataMisfit(
-        data=global_data, simulation=simulation
-    )]
-    local_misfits[0].W = 1 / survey.std
-
+    # local_misfits = [data_misfit.L2DataMisfit(
+    #     data=global_data, simulation=simulation
+    # )]
+    # local_misfits[0].W = 1 / survey.std
+    #
 
     global_misfit = objective_function.ComboObjectiveFunction(
                     local_misfits
