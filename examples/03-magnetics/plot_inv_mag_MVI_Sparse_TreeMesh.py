@@ -3,8 +3,8 @@ Magnetic inversion on a TreeMesh
 ================================
 
 In this example, we demonstrate the use of a Magnetic Vector Inverison
-on 3D TreeMesh for the inversion of magnetic affected by remanence.
-The mesh is auto-generate based
+on 3D TreeMesh for the inversion of magnetics affected by remanence.
+The mesh is auto-generated based
 on the position of the observation locations and topography.
 
 We invert the data twice, first for a smooth starting model using the
@@ -66,7 +66,7 @@ zz = A * np.exp(-0.5 * ((xx / b) ** 2.0 + (yy / b) ** 2.0))
 
 topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
-# Create and array of observation points
+# Create an array of observation points
 xr = np.linspace(-100.0, 100.0, 20)
 yr = np.linspace(-100.0, 100.0, 20)
 X, Y = np.meshgrid(xr, yr)
@@ -94,8 +94,8 @@ plt.show()
 #
 # Here, we create a TreeMesh with base cell size of 5 m. We created a small
 # utility function to center the mesh around points and to figure out the
-# outer most dimension for adequate padding distance.
-# The second stage allows to refine the mesh around points or surfaces
+# outermost dimension for adequate padding distance.
+# The second stage allows us to refine the mesh around points or surfaces
 # (point assumed to follow some horizontal trend)
 # The refinement process is repeated twice to allow for a finer level around
 # the survey locations.
@@ -294,8 +294,8 @@ plt.show()
 # Inversion
 # ---------
 #
-# We can now attempt the inverse calculations. We put some great care
-# in design an inversion methology that would yield geologically
+# We can now attempt the inverse calculations. We put great care
+# into designing an inversion methology that would yield a geologically
 # reasonable solution for the non-induced problem.
 # The inversion is done in two stages. First we compute a smooth
 # solution using a Cartesian coordinate system, then a sparse
@@ -312,7 +312,7 @@ wires = maps.Wires(("p", nC), ("s", nC), ("t", nC))
 
 m0 = np.ones(3 * nC) * 1e-4  # Starting model
 
-# Create three regularization for the different components
+# Create three regularizations for the different components
 # of magnetization
 reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
 reg_p.mref = np.zeros(3 * nC)
@@ -344,7 +344,7 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 sensitivity_weights = directives.UpdateSensitivityWeights()
 
 # Here is where the norms are applied
-# Use pick a threshold parameter empirically based on the distribution of
+# Use a threshold parameter empirically based on the distribution of
 #  model parameters
 IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1)
 
@@ -362,7 +362,7 @@ mrec_MVIC = inv.run(m0)
 # Sparse Vector Inversion
 # -----------------------
 #
-# Re-run the MVI in spherical domain so we can impose
+# Re-run the MVI in the spherical domain so we can impose
 # sparsity in the vectors.
 #
 #
@@ -426,7 +426,7 @@ irls = directives.Update_IRLS(
 )
 
 # Special directive specific to the mag amplitude problem. The sensitivity
-# weights are update between each iteration.
+# weights are updated between each iteration.
 spherical_projection = directives.ProjectSphericalBounds()
 sensitivity_weights = directives.UpdateSensitivityWeights()
 update_Jacobi = directives.UpdatePreconditioner()
