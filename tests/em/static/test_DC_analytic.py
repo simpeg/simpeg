@@ -50,10 +50,16 @@ class DCProblemAnalyticTests(unittest.TestCase):
 
     def test_Simulation3DNodal(self, tolerance=0.05):
         simulation = dc.simulation.Simulation3DNodal(
-            self.mesh, survey=self.survey, sigma=self.sigma, solver=Solver
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=Solver,
+            bc_type="Neumann",
         )
         data = simulation.dpred()
-        err = np.sqrt((((data - self.data_ana) / self.data_ana)**2).sum() / self.survey.nD)
+        err = np.sqrt(
+            (((data - self.data_ana) / self.data_ana) ** 2).sum() / self.survey.nD
+        )
         if err < tolerance:
             print(err)
             passed = True
@@ -73,7 +79,9 @@ class DCProblemAnalyticTests(unittest.TestCase):
             bc_type="Robin",
         )
         data = simulation.dpred()
-        err = np.sqrt((((data - self.data_ana) / self.data_ana)**2).sum() / self.survey.nD)
+        err = np.sqrt(
+            (((data - self.data_ana) / self.data_ana) ** 2).sum() / self.survey.nD
+        )
         print(err)
         self.assertLess(err, 0.05)
 
@@ -87,7 +95,9 @@ class DCProblemAnalyticTests(unittest.TestCase):
         )
         data = simulation.dpred()
 
-        err = np.sqrt((((data - self.data_ana) / self.data_ana)**2).sum() / self.survey.nD)
+        err = np.sqrt(
+            (((data - self.data_ana) / self.data_ana) ** 2).sum() / self.survey.nD
+        )
         if err < tolerance:
             print(err)
             passed = True
@@ -107,7 +117,9 @@ class DCProblemAnalyticTests(unittest.TestCase):
             solver=Solver,
         )
         data = simulation.dpred()
-        err = np.sqrt((((data - self.data_ana) / self.data_ana)**2).sum() / self.survey.nD)
+        err = np.sqrt(
+            (((data - self.data_ana) / self.data_ana) ** 2).sum() / self.survey.nD
+        )
         if err < tolerance:
             print(err)
             passed = True
@@ -165,7 +177,9 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         )
 
         data = simulation.dpred()
-        err = np.sqrt((((data - self.data_ana) / self.data_ana)**2).sum() / self.survey.nD)
+        err = np.sqrt(
+            (((data - self.data_ana) / self.data_ana) ** 2).sum() / self.survey.nD
+        )
         if err < tolerance:
             print(err)
             passed = True
@@ -215,7 +229,9 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
             solver=Solver,
         )
         data = simulation.dpred()
-        err = np.sqrt((((data - self.data_ana) / self.data_ana)**2).sum() / self.survey.nD)
+        err = np.sqrt(
+            (((data - self.data_ana) / self.data_ana) ** 2).sum() / self.survey.nD
+        )
         if err < tolerance:
             print(err)
             passed = True

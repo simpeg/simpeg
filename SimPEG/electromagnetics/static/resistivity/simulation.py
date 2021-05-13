@@ -261,7 +261,13 @@ class Simulation3DCellCentered(BaseDCSimulation):
     _solutionType = "phiSolution"
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields3DCellCentered
-    bc_type = "Dirichlet"
+
+    bc_type = properties.StringChoice(
+        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
+        "are equivalent.",
+        choices=["Dirichlet", "Neumann", "Robin", "Mixed"],
+        default="Robin",
+    )
 
     def __init__(self, mesh, **kwargs):
 
@@ -378,7 +384,13 @@ class Simulation3DNodal(BaseDCSimulation):
     _solutionType = "phiSolution"
     _formulation = "EB"  # N potentials means B is on faces
     fieldsPair = Fields3DNodal
-    bc_type = "Neumann"
+
+    bc_type = properties.StringChoice(
+        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
+        "are equivalent.",
+        choices=["Neumann", "Robin", "Mixed"],
+        default="Robin",
+    )
 
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh, **kwargs)
