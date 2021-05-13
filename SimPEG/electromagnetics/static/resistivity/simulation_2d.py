@@ -12,7 +12,7 @@ from .survey import Survey
 from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
-from scipy.special import k0e, k1e
+from scipy.special import k0e, k1e, k0
 
 
 class BaseDCSimulation2D(BaseEMSimulation):

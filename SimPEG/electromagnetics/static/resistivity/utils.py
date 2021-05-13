@@ -5,7 +5,6 @@ from . import sources
 from .survey import Survey
 
 from ..utils import *
-from scipy.special import k0, k1
 
 
 def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
