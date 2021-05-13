@@ -12,7 +12,7 @@ from ....data import Data
 from .survey import Survey
 from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
-from .utils import _mini_pole_pole
+from .utils import _mini_pole_pole, _k1dk0
 
 
 class BaseDCSimulation2D(BaseEMSimulation):
@@ -37,77 +37,61 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     def __init__(self, *args, **kwargs):
         miniaturize = kwargs.pop("miniaturize", False)
+        do_trap = kwargs.pop("do_trap", False)
         super().__init__(*args, **kwargs)
 
-        # try to find an optimal set of quadrature points and weights
-        def get_phi(r):
-            e = np.ones_like(r)
+        if not do_trap:
+            # try to find an optimal set of quadrature points and weights
+            def get_phi(r):
+                e = np.ones_like(r)
 
-            def phi(k):
-                # use log10 transform to enforce positivity
-                k = 10 ** k
-                A = r[:, None] * k0(r[:, None] * k)
-                v_i = A @ np.linalg.solve(A.T @ A, A.T @ e)
-                dv = (e - v_i) / len(r)
-                return np.linalg.norm(dv)
+                def phi(k):
+                    # use log10 transform to enforce positivity
+                    k = 10 ** k
+                    A = r[:, None] * k0(r[:, None] * k)
+                    v_i = A @ np.linalg.solve(A.T @ A, A.T @ e)
+                    dv = (e - v_i) / len(r)
+                    return np.linalg.norm(dv)
 
-            def g(k):
-                A = r[:, None] * k0(r[:, None] * k)
-                return np.linalg.solve(A.T @ A, A.T @ e)
+                def g(k):
+                    A = r[:, None] * k0(r[:, None] * k)
+                    return np.linalg.solve(A.T @ A, A.T @ e)
 
-            return phi, g
+                return phi, g
 
-        # find the minimum cell spacing, and the maximum side of the mesh
-        min_r = min(*[np.min(h) for h in self.mesh.h])
-        max_r = max(*[np.sum(h) for h in self.mesh.h])
-        # generate test points log spaced between these two end members
-        rs = np.logspace(np.log10(min_r / 4), np.log10(max_r * 4), 100)
+            # find the minimum cell spacing, and the maximum side of the mesh
+            min_r = min(*[np.min(h) for h in self.mesh.h])
+            max_r = max(*[np.sum(h) for h in self.mesh.h])
+            # generate test points log spaced between these two end members
+            rs = np.logspace(np.log10(min_r / 4), np.log10(max_r * 4), 100)
 
-        min_rinv = -np.log10(rs).max()
-        max_rinv = -np.log10(rs).min()
-        # a decent initial guess of the k_i's for the optimization = 1/rs
-        k_i = np.linspace(min_rinv, max_rinv, self.nky)
+            min_rinv = -np.log10(rs).max()
+            max_rinv = -np.log10(rs).min()
+            # a decent initial guess of the k_i's for the optimization = 1/rs
+            k_i = np.linspace(min_rinv, max_rinv, self.nky)
 
-        # these functions depend on r, so grab them
-        func, g_func = get_phi(rs)
+            # these functions depend on r, so grab them
+            func, g_func = get_phi(rs)
 
-        # just use scipy's minimize for ease
-        out = minimize(func, k_i)
-        if self.verbose:
-            print(f"optimized ks converged? : {out['success']}")
-            print(f"Estimated transform Error: {out['fun']}")
-        # transform the solution back to normal points
-        points = 10 ** out["x"]
-        # transform has a 2/pi and we want 1/pi, so divide by 2
-        weights = g_func(points) / 2
-
-        do_trap = False
-        if not out["success"]:
-            warnings.warn(
-                "Falling back to trapezoidal for integration. "
-                "You may need to change nky."
-            )
-            do_trap = True
-        bc_type = getattr(self, "bc_type", "Neumann")
-        if bc_type == "Mixed":
-            # default for mixed
-            do_trap = True
-            nky = kwargs.get("nkys", None)
-            if nky is None:
-                self.nky = 15
+            # just use scipy's minimize for ease
+            out = minimize(func, k_i)
+            if self.verbose:
+                print(f"optimized ks converged? : {out['success']}")
+                print(f"Estimated transform Error: {out['fun']}")
+            # transform the solution back to normal points
+            points = 10 ** out["x"]
+            # transform has a 2/pi and we want 1/pi, so divide by 2
+            weights = g_func(points) / 2
+            if not out["success"]:
+                warnings.warn(
+                    "Falling back to trapezoidal for integration. "
+                    "You may need to change nky."
+                )
+                do_trap = True
         if do_trap:
             if self.verbose:
                 print("doing trap")
             y = 0.0
-            # gaussian quadrature
-            # points, weights = leggauss(self.nky)
-            # a, b = -4, 1  # log space of points
-            # points = ((b - a)*points + (b+a))/2
-            # weights = weights*(b-a)/2
-            # weights *= np.log(10)*(10**points)
-            # points = 10**points
-            #
-            # weights *= np.cos(points * y)/np.pi
 
             points = np.logspace(-4, 1, self.nky)
             dky = np.diff(points) / 2
@@ -497,7 +481,13 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields2DCellCentered
     fieldsPair_fwd = Fields3DCellCentered
-    bc_type = "Mixed"
+
+    bc_type = properties.StringChoice(
+        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
+        "are equivalent.",
+        choices=["Dirichlet", "Neumann", "Robin", "Mixed"],
+        default="Robin",
+    )
 
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation2D.__init__(self, mesh, **kwargs)
@@ -570,7 +560,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             boundary_normals = self.mesh.boundary_face_outward_normals
             n_bf = len(boundary_faces)
 
-            # Top gets 0 Nuemann
+            # Top gets 0 Neumann
             alpha = np.zeros(n_bf)
             beta = np.ones(n_bf)
             gamma = 0
@@ -586,7 +576,8 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
             not_top = boundary_faces[:, -1] != top_v
-            alpha[not_top] = (ky * k1(ky * 1 / r) / k0(ky * 1 / r) * r_dot_n)[not_top]
+
+            alpha[not_top] = (ky * _k1dk0(ky * r) * r_dot_n)[not_top]
 
         B, bc = self.mesh.cell_gradient_weak_form_robin(alpha, beta, gamma)
         # bc should always be 0 because gamma was always 0 above
@@ -603,7 +594,13 @@ class Simulation2DNodal(BaseDCSimulation2D):
     fieldsPair = Fields2DNodal
     fieldsPair_fwd = Fields3DNodal
     _gradT = None
-    bc_type = "Robin"
+
+    bc_type = properties.StringChoice(
+        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
+        "are equivalent.",
+        choices=["Neumann", "Robin", "Mixed"],
+        default="Robin",
+    )
 
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation2D.__init__(self, mesh, **kwargs)
@@ -719,7 +716,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
             not_top = boundary_faces[:, -1] != top_v
-            alpha[not_top] = (ky * k1(ky * 1 / r) / k0(ky * 1 / r) * r_dot_n)[not_top]
+            alpha[not_top] = (ky * _k1dk0(ky * r) * r_dot_n)[not_top]
 
             P_bf = self.mesh.project_face_to_boundary_face
 
