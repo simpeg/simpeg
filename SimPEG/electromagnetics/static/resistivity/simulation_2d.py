@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.special import k0, k1
 from scipy.optimize import minimize
 import warnings
 import properties
@@ -12,7 +11,8 @@ from ....data import Data
 from .survey import Survey
 from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
-from .utils import _mini_pole_pole, _k1dk0
+from .utils import _mini_pole_pole
+from scipy.special import k0e, k1e
 
 
 class BaseDCSimulation2D(BaseEMSimulation):
@@ -577,7 +577,11 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
 
             not_top = boundary_faces[:, -1] != top_v
 
-            alpha[not_top] = (ky * _k1dk0(ky * r) * r_dot_n)[not_top]
+            # use the exponentiall scaled modified bessel function of second kind,
+            # (the division will cancel out the scaling)
+            # This is more stable for large values of ky * r
+            # actual ratio is k1/k0...
+            alpha[not_top] = (ky * k1e(ky * r) / k0e(ky * r) * r_dot_n)[not_top]
 
         B, bc = self.mesh.cell_gradient_weak_form_robin(alpha, beta, gamma)
         # bc should always be 0 because gamma was always 0 above
@@ -716,7 +720,12 @@ class Simulation2DNodal(BaseDCSimulation2D):
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
             not_top = boundary_faces[:, -1] != top_v
-            alpha[not_top] = (ky * _k1dk0(ky * r) * r_dot_n)[not_top]
+
+            # use the exponentiall scaled modified bessel function of second kind,
+            # (the division will cancel out the scaling)
+            # This is more stable for large values of ky * r
+            # actual ratio is k1/k0...
+            alpha[not_top] = (ky * k1e(ky * r) / k0e(ky * r) * r_dot_n)[not_top]
 
             P_bf = self.mesh.project_face_to_boundary_face
 

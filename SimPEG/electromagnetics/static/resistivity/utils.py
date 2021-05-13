@@ -108,22 +108,3 @@ def _mini_pole_pole(survey, verbose=False):
     invs = [inv_AM, inv_AN, inv_BM, inv_BN]
     mini_survey = Survey(unique_sources)
     return dipoles, invs, mini_survey
-
-
-def _k1dk0(x):
-    """Computes k1(x)/k0(x) in a way that is also stable for large values of x"""
-    v = k1(x) / k0(x)
-    # Redo v for possible large values of x
-    # (where v is np.nan)
-    x_redo = x[np.isnan(v)]
-
-    # an approximation to k1(x)/k0(x)
-    # that's more stable for large numbers
-    def recurse(n, x, i):
-        item = (4 * n ** 2 - (2 * i - 1) ** 2) / (i * 8 * x)
-        if i == 20:
-            return 1
-        return 1 + item * recurse(n, x, i + 1)
-
-    v[np.isnan(v)] = recurse(1, x_redo, 1) / recurse(0, x_redo, 1)
-    return v
