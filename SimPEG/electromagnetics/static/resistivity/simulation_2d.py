@@ -13,6 +13,7 @@ from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
 from scipy.special import k0e, k1e, k0
+from discretize.utils import make_boundary_bool
 
 
 class BaseDCSimulation2D(BaseEMSimulation):
@@ -556,8 +557,9 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         if self.bc_type == "Neumann":
             alpha, beta, gamma = 0, 1, 0
         else:
-            boundary_faces = self.mesh.boundary_faces
-            boundary_normals = self.mesh.boundary_face_outward_normals
+            mesh = self.mesh
+            boundary_faces = mesh.boundary_faces
+            boundary_normals = mesh.boundary_face_outward_normals
             n_bf = len(boundary_faces)
 
             # Top gets 0 Neumann
@@ -566,8 +568,8 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             gamma = 0
 
             # assume a source point at the middle of the top of the mesh
-            middle = np.median(self.mesh.nodes, axis=0)
-            top_v = np.max(self.mesh.nodes[:, -1])
+            middle = np.median(mesh.nodes, axis=0)
+            top_v = np.max(mesh.nodes[:, -1])
             source_point = np.r_[middle[:-1], top_v]
 
             r_vec = boundary_faces - source_point
@@ -575,9 +577,19 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             r_hat = r_vec / r[:, None]
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
-            not_top = boundary_faces[:, -1] != top_v
+            # determine faces that are on the sides and bottom of the mesh...
+            if mesh._meshType.lower() == "tree":
+                not_top = boundary_faces[:, -1] != top_v
+            else:
+                # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                is_b = make_boundary_bool(mesh.shape_faces_y)
+                is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                is_t[:, -1] = True
+                is_t = is_t.reshape(-1, order="F")[is_b]
+                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
+                not_top[-len(is_t) :] = ~is_t
 
-            # use the exponentiall scaled modified bessel function of second kind,
+            # use the exponentialy scaled modified bessel function of second kind,
             # (the division will cancel out the scaling)
             # This is more stable for large values of ky * r
             # actual ratio is k1/k0...
@@ -702,16 +714,17 @@ class Simulation2DNodal(BaseDCSimulation2D):
                 self._AvgBC = {}
             if ky in self._AvgBC:
                 return
+            mesh = self.mesh
             # calculate alpha, beta, gamma at the boundary faces
-            boundary_faces = self.mesh.boundary_faces
-            boundary_normals = self.mesh.boundary_face_outward_normals
+            boundary_faces = mesh.boundary_faces
+            boundary_normals = mesh.boundary_face_outward_normals
             n_bf = len(boundary_faces)
 
             alpha = np.zeros(n_bf)
 
             # assume a source point at the middle of the top of the mesh
-            middle = np.median(self.mesh.nodes, axis=0)
-            top_v = np.max(self.mesh.nodes[:, -1])
+            middle = np.median(mesh.nodes, axis=0)
+            top_v = np.max(mesh.nodes[:, -1])
             source_point = np.r_[middle[:-1], top_v]
 
             r_vec = boundary_faces - source_point
@@ -719,7 +732,17 @@ class Simulation2DNodal(BaseDCSimulation2D):
             r_hat = r_vec / r[:, None]
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
-            not_top = boundary_faces[:, -1] != top_v
+            # determine faces that are on the sides and bottom of the mesh...
+            if mesh._meshType.lower() == "tree":
+                not_top = boundary_faces[:, -1] != top_v
+            else:
+                # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                is_b = make_boundary_bool(mesh.shape_faces_y)
+                is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                is_t[:, -1] = True
+                is_t = is_t.reshape(-1, order="F")[is_b]
+                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
+                not_top[-len(is_t) :] = ~is_t
 
             # use the exponentiall scaled modified bessel function of second kind,
             # (the division will cancel out the scaling)
