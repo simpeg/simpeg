@@ -357,11 +357,13 @@ joint_inv_dir = directives.Joint_InversionDirective()
 
 stopping = directives.Joint_Stopping(tol=1e-6)
 
+sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 
 
 # The directives are defined as a list.
 directives_list = [
     joint_inv_dir,
+    sensitivity_weights,     
     stopping,
     starting_beta,
     beta_schedule,
