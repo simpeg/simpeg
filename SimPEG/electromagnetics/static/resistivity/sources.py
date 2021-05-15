@@ -13,7 +13,7 @@ class BaseSrc(survey.BaseSrc):
     Generic Base DC source
     """
 
-    current = properties.Array(doc="amplitudes of the source currents", dtype=float, default=np.array([1.0]))
+    current = properties.List(doc="amplitudes of the source currents", default=[1.0])
     location = properties.List(
         "location of the source electrodes",
         survey.SourceLocationArray("location of electrode"),
@@ -29,13 +29,18 @@ class BaseSrc(survey.BaseSrc):
         if current is None:
             current = self.current
         if type(current) == float or type(current) == int:
-            current = np.asarray(float(current))
-        if current.size != 1 and current.size != len(location):
+            current = [float(current)]
+        elif type(current) == np.ndarray:
+            if current.ndim == 2:
+                current = list(current)
+            else:
+                location = [location]
+        if len(current) != 1 and len(current) != len(location):
             raise ValueError(
                 "Current must be constant or equal to the number of specified source locations."
             )
-        if current.size == 1:
-            current = np.repeat(current, len(location))
+        if len(current) == 1:
+            current = np.repeat(current, len(location)).tolist()
 
         self.current = current
         self.location = location
@@ -49,10 +54,10 @@ class BaseSrc(survey.BaseSrc):
                 self._q = np.zeros(sim.mesh.nC)
                 self._q[inds] = self.current
             elif sim._formulation == "EB":
-                q = 0.0
-                for loc, cur in zip(self.location, self.current):
-                    interpolation_matrix = sim.mesh.get_interpolation_matrix(loc, locType="N")
-                    q += cur * interpolation_matrix.toarray()
+                loc = np.row_stack(self.location)
+                cur = np.asarray(self.current)
+                interpolation_matrix = sim.mesh.get_interpolation_matrix(loc, locType='N').toarray()
+                q = np.sum(cur[:, np.newaxis] * interpolation_matrix, axis=0)
                 self._q = q
             return self._q
 
