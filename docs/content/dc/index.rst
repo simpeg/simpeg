@@ -217,8 +217,3 @@ Utils
     :show-inheritance:
     :members:
     :undoc-members:
-
-.. automodule:: SimPEG.electromagnetics.static.resistivity.boundary_utils
-    :show-inheritance:
-    :members:
-    :undoc-members:

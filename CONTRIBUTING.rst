@@ -76,12 +76,7 @@ Licensing
 *********
 
 The contributed code will be licensed under SimPEG's license
-(https://github.com/simpeg/simpeg/blob/master/LICENSE). If you did not write
+(https://github.com/simpeg/simpeg/blob/main/LICENSE). If you did not write
 the code yourself, it is your responsibility to ensure that the existing
 license is compatible and included in the contributed files or you can obtain
 permission from the original author to relicense the code.
-
-
-
-
-
