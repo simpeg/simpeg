@@ -1,12 +1,13 @@
 """
-Joint PGI of Gravity + Magnetic on an Octree mesh using full petrophysical information
+Joint PGI of Gravity + Magnetic on an Octree mesh without petrophysical information
 ======================================================================================
 
 
 This tutorial shows through a joint inversion of Gravity and Magnetic data on an
 Octree mesh how to use the PGI framework introduced in Astic & Oldenburg (2019)
-and Astic et al. (2021) to include petrophysical information into geophysical
-inversions for mutli-physics inversion.
+and Astic et al. (2021) to make geologic assumptions and learn a suitable
+petrophysical distribution when no quantitative petrophysical information is
+available.
 
 Thibaut Astic, Douglas W. Oldenburg,
 A framework for petrophysically and geologically guided geophysical inversion
@@ -125,14 +126,14 @@ plt.gca().set_aspect("equal")
 plt.gca().set_xlim(
     [
         data_mag.survey.receiver_locations[:,0].min(),
-        data_mag.survey.receiver_locations[:,0].max(),
+        data_mag.survey.receiver_locations[:,0].max()
     ],
 )
 plt.gca().set_ylim(
     [
         data_mag.survey.receiver_locations[:,1].min(),
-        data_mag.survey.receiver_locations[:,1].max(),
-    ],
+        data_mag.survey.receiver_locations[:,1].max()
+    ]
 )
 mesh.plotSlice(
     np.ones(mesh.nC),
@@ -256,23 +257,40 @@ dmis = 0.5 * dmis_grav + 0.5 * dmis_mag
 # initial model
 m0 = np.r_[-1e-4 * np.ones(actvMap.nP), 1e-4 * np.ones(actvMap.nP)]
 
-#########################################################################
-# Inversion with full petrophysical information
-# ---------------------------------------------
+
+###############################################################################
+# Inversion with no petrophysical information about the means
+# -----------------------------------------------------------
+#
+# In this scenario, we do not know the true petrophysical signature of each rock
+# unit. We thus make geologic assumptions to design a coupling term and perform
+# a multi-physics inversion. in addition to a neutral background, we assume that
+# one rock unit is only less dense, and the third one is only magnetic. As we
+# do not know their mean petrophysical values. We start with an initial guess
+#(-1 g/cc) for the updatable mean density-contrast value of the less dense unit
+# (with a fixed susceptibility of 0 SI). The magnetic-contrasting unit's updatable
+# susceptibility is initialized at a value of 0.1 SI (with a fixed 0 g/cc density
+# contrast). We then let the algorithm learn a suitable set of means under the set
+# constrained (fixed or updatable value), through the kappa argument, denoting our
+# confidences in each initial mean value (high confidence: fixed value; low
+# confidence: updatable value).
 #
 
 #########################################################################
-# Create and plot a petrophysical GMM with full information
-# ---------------------------------------------------------
+# Create a petrophysical GMM initial guess
+# ----------------------------------------
 #
 # The GMM is our representation of the petrophysical and geological information.
 # Here, we focus on the petrophysical aspect, with the means and covariances of
 # the physical properties of each rock unit.
 # To generate the data above, the PK unit was populated with a density contrast
 # of -0.8 g/cc and a magnetic susceptibility of 0.005 SI. The properties of the
-# HK unit were set at -0.2 g/cc and 0.02 SI. The covariances matrices are set
+# HK unit were set at -0.2 g/cc and 0.02 SI. But here, we assume we
+# do not have this information. Thus, we start with initial guess for the means
+# and confidences kappa such that one unit is only less dense and one unit is only
+# magnetic, both embedded in a neutral background. The covariances matrices are set
 # so that we assume petrophysical noise levels of around 0.05 g/cc and 0.001 SI
-# for both unit. Finally the background unit is set at null contrasts (0 g/cc
+# for both unit. The background unit is set at a fixed null contrasts (0 g/cc
 # 0 SI) with a petrophysical noise level of half of the above.
 #
 
@@ -283,14 +301,15 @@ gmmref = utils.WeightedGaussianMixture(
     covariance_type="diag",  # diagonal covariances
 )
 # required: initialization with fit
-# fake random samples, size of the mesh, number of physical properties: 2 (density and mag.susc)
+# fake random samples, size of the mesh
+# number of physical properties: 2 (density and mag.susc)
 gmmref.fit(np.random.randn(nactv, 2))
 # set parameters manually
 # set phys. prop means for each unit
 gmmref.means_ = np.c_[
     [0.0, 0.0],  # BCKGRD density contrast and mag. susc
-    [-0.8, 0.005],  # PK
-    [-0.2, 0.02],  # HK
+    [-1, 0.0],  # PK
+    [0, 0.1],  # HK
 ].T
 # set phys. prop covariances for each unit
 gmmref.covariances_ = np.array(
@@ -316,10 +335,10 @@ ax3.set_ylim(-0.0025, 0.03)
 ax1.set_xticks([-1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0])
 ax2.set_xticks([-1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0])
 
-ax1.set_yticks([0, 0.005, 0.01, 0.015, 0.02, 0.025])
-ax3.set_yticks([0, 0.005, 0.01, 0.015, 0.02, 0.025])
+ax1.set_yticks([0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12])
+ax3.set_yticks([0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12])
 
-x, y = np.mgrid[-1.21:0.1:0.01, -0.01:0.031:0.001]
+x, y = np.mgrid[-1.21:0.1:0.01, -0.1:0.12:0.01]
 pos = np.empty(x.shape + (2,))
 pos[:, :, 0] = x
 pos[:, :, 1] = y
@@ -338,7 +357,18 @@ ax1.contour(
 ax1.scatter(
     gmmref.means_[:, 0],
     gmmref.means_[:, 1],
-    label="True petrophysical means",
+    label="Initial guess\nfor the petrophysical means",
+    cmap="inferno_r",
+    c=[0, 1, 2],
+    marker="o",
+    edgecolors="k",
+    s=200,
+)
+
+ax1.scatter(
+    [0, -0.8, -0.02],
+    [0, 0.005, 0.02],
+    label='True petrophysical means',
     cmap="inferno_r",
     c=[0, 1, 2],
     marker="v",
@@ -414,7 +444,7 @@ clfmag.precisions_cholesky_ = _compute_precision_cholesky(
     clfmag.covariances_, clfmag.covariance_type
 )
 clfmag.weights_ = gmmref.weights_
-testXplot_mag = np.linspace(-0.025, 0.03, 1000)[:, np.newaxis]
+testXplot_mag = np.linspace(-0.01, 1.2, 1000)[:, np.newaxis]
 score_mag = clfmag.score_samples(testXplot_mag)
 ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.0, c="k")
 
@@ -430,10 +460,7 @@ ax2.set_xlabel("Density (g/cc)", fontsize=labelsize)
 ax3.set_ylabel("Magnetic Susceptibility (SI)", fontsize=labelsize)
 ax2.tick_params(labelsize=ticksize)
 ax3.tick_params(labelsize=ticksize)
-ax1.text(-0.9, 0.0025, "PK", fontsize=labelsize)
-ax1.text(-0.175, 0.02, "HK", fontsize=labelsize)
-ax1.text(-0.2, 0.002, "BCKGRD", fontsize=labelsize)  # , color='white')
-ax1.legend(fontsize=labelsize, loc=3)
+ax1.legend(fontsize=labelsize, loc=2)
 ax1.tick_params(labelleft=False)
 ax1.tick_params(labelbottom=False)
 ax1.set_ylabel("")
@@ -442,12 +469,12 @@ ax2.tick_params(axis="both", which="both", labelsize=ticksize)
 ax3.tick_params(axis="both", which="both", labelsize=ticksize)
 plt.show()
 
-
 #########################################################################
-# Create PGI regularization
-# -------------------------
+# Inverse problem with no mean information
+# ----------------------------------------
 #
 
+# Create PGI regularization
 # Sensitivity weighting
 wr_grav = np.sum(simulation_grav.G ** 2.0, axis=0) ** 0.5
 wr_grav = wr_grav / np.max(wr_grav)
@@ -470,29 +497,24 @@ reg = utils.make_SimplePGI_regularization(
     alpha_xx=0.0,
     alpha_yy=0.0,
     alpha_zz=0.0,
-    cell_weights_list=[wr_grav, wr_mag],  # weights each phys. prop. by correct sensW
+    cell_weights_list=[wr_grav, wr_mag], # weights each phys. prop. by each sensW
 )
-
-#########################################################################
-# Inverse problem with full petrophysical information
-# ---------------------------------------------------
-#
 
 # Directives
 # Add directives to the inversion
-# ratio to use for each phys prop. smoothness in each direction;
-# roughly the ratio of the order of magnitude of each phys. prop.
+# ratio to use for each phys prop. smoothness in each direction:
+# roughly the ratio of range of each phys. prop.
 alpha0_ratio = np.r_[
     np.zeros(len(reg.objfcts[0].objfcts)),
-    1e-4 * np.ones(len(reg.objfcts[1].objfcts)),
-    100.0 * 1e-4 * np.ones(len(reg.objfcts[2].objfcts)),
+    1e-2 * np.ones(len(reg.objfcts[1].objfcts)),
+    1e-2 * 100.0 * np.ones(len(reg.objfcts[2].objfcts)),
 ]
 Alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio,
     verbose=True
 )
 # initialize beta and beta/alpha_s schedule
-beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
+beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-4)
 betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True,
     coolingFactor=2.0,
@@ -502,6 +524,7 @@ betaIt = directives.PGI_BetaAlphaSchedule(
 # geophy. and petro. target misfits
 targets = directives.MultiTargetMisfits(
     verbose=True,
+    chiSmall=0.5,  # ask for twice as much clustering (target value is /2)
 )
 # add learned mref in smooth once stable
 MrefInSmooth = directives.PGI_AddMrefInSmooth(
@@ -510,7 +533,21 @@ MrefInSmooth = directives.PGI_AddMrefInSmooth(
 )
 # update the parameters in smallness (L2-approx of PGI)
 update_smallness = directives.PGI_UpdateParameters(
-    update_gmm=False  # keep GMM model fixed
+    update_gmm=True,  # update the GMM each iteration
+    kappa=np.c_[  # confidences in each mean phys. prop. of each cluster
+        1e10
+        * np.ones(
+            2
+        ), # fixed background at 0 density, 0 mag. susc. (high confidences of 1e10)
+        [
+            0,
+            1e10,
+        ], # density-contrasting cluster: updatable density mean, fixed mag. susc.
+        [
+            1e10,
+            0,
+        ], # magnetic-contrasting cluster: fixed density mean, updatable mag. susc.
+    ].T,
 )
 # pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
@@ -550,16 +587,16 @@ inv = inversion.BaseInversion(
         update_Jacobi,
     ],
 )
+# Invert
+pgi_model_no_info = inv.run(m0)
 
-# invert
-pgi_model = inv.run(m0)
-
-# Extract the results
-density_model = gravmap * pgi_model
-magsus_model = magmap * pgi_model
-quasi_geology_model = actvMap * reg.objfcts[0].membership(reg.objfcts[0].mref)
 
 # Plot the result with full petrophysical information
+density_model_no_info = gravmap * pgi_model_no_info
+magsus_model_no_info = magmap * pgi_model_no_info
+learned_gmm = reg.objfcts[0].gmm
+quasi_geology_model_no_info = actvMap * reg.objfcts[0].membership(reg.objfcts[0].mref)
+
 fig, ax = plt.subplots(3, 4, figsize=(15, 10))
 for _, axx in enumerate(ax):
     for _, axxx in enumerate(axx):
@@ -571,7 +608,7 @@ indy = 17
 indz = -9
 # geology model
 mesh.plotSlice(
-    quasi_geology_model,
+    quasi_geology_model_no_info,
     normal="X",
     ax=ax[0, 0],
     clim=[0, 2],
@@ -579,7 +616,7 @@ mesh.plotSlice(
     pcolorOpts={"cmap": "inferno_r"},
 )
 mesh.plotSlice(
-    quasi_geology_model,
+    quasi_geology_model_no_info,
     normal="Y",
     ax=ax[0, 1],
     clim=[0, 2],
@@ -587,7 +624,7 @@ mesh.plotSlice(
     pcolorOpts={"cmap": "inferno_r"},
 )
 geoplot = mesh.plotSlice(
-    quasi_geology_model,
+    quasi_geology_model_no_info,
     normal="Z",
     ax=ax[0, 2],
     clim=[0, 2],
@@ -601,7 +638,7 @@ ax[0, 3].set_aspect(10)
 
 # gravity model
 mesh.plotSlice(
-    density_model,
+    density_model_no_info,
     normal="X",
     ax=ax[1, 0],
     clim=[-1, 0],
@@ -609,7 +646,7 @@ mesh.plotSlice(
     pcolorOpts={"cmap": "Blues_r"},
 )
 mesh.plotSlice(
-    density_model,
+    density_model_no_info,
     normal="Y",
     ax=ax[1, 1],
     clim=[-1, 0],
@@ -617,7 +654,7 @@ mesh.plotSlice(
     pcolorOpts={"cmap": "Blues_r"},
 )
 denplot = mesh.plotSlice(
-    density_model,
+    density_model_no_info,
     normal="Z",
     ax=ax[1, 2],
     clim=[-1, 0],
@@ -630,7 +667,7 @@ ax[1, 3].set_aspect(10)
 
 # magnetic model
 mesh.plotSlice(
-    magsus_model,
+    magsus_model_no_info,
     normal="X",
     ax=ax[2, 0],
     clim=[0, 0.025],
@@ -638,7 +675,7 @@ mesh.plotSlice(
     pcolorOpts={"cmap": "Reds"},
 )
 mesh.plotSlice(
-    magsus_model,
+    magsus_model_no_info,
     normal="Y",
     ax=ax[2, 1],
     clim=[0, 0.025],
@@ -646,7 +683,7 @@ mesh.plotSlice(
     pcolorOpts={"cmap": "Reds"},
 )
 susplot = mesh.plotSlice(
-    magsus_model,
+    magsus_model_no_info,
     normal="Z",
     ax=ax[2, 2],
     clim=[0, 0.025],
@@ -689,8 +726,8 @@ for i in range(3):
     )
     ax[i, 0].plot(
         [
-        data_mag.survey.receiver_locations[:,1].min(),
-        data_mag.survey.receiver_locations[:,1].max(),
+            data_mag.survey.receiver_locations[:,1].min(),
+            data_mag.survey.receiver_locations[:,1].max()
         ],
         mesh.vectorCCz[indz] * np.ones(2),
         c="k",
@@ -712,7 +749,7 @@ for i in range(3):
     ax[i, 1].plot(
         [
             data_mag.survey.receiver_locations[:,0].min(),
-            data_mag.survey.receiver_locations[:,0].max(),
+            data_mag.survey.receiver_locations[:,0].max()
         ],
         mesh.vectorCCz[indz] * np.ones(2),
         c="k",
@@ -728,8 +765,8 @@ for i in range(3):
     ax[i, 2].plot(
         mesh.vectorCCx[indx] * np.ones(2),
         [
-        data_mag.survey.receiver_locations[:,1].min(),
-        data_mag.survey.receiver_locations[:,1].max(),
+            data_mag.survey.receiver_locations[:,1].min(),
+            data_mag.survey.receiver_locations[:,1].max()
         ],
         c="k",
         linestyle="dotted"
@@ -737,7 +774,7 @@ for i in range(3):
     ax[i, 2].plot(
         [
             data_mag.survey.receiver_locations[:,0].min(),
-            data_mag.survey.receiver_locations[:,0].max(),
+            data_mag.survey.receiver_locations[:,0].max()
         ],
         mesh.vectorCCy[indy] * np.ones(2),
         c="k",
@@ -781,8 +818,8 @@ x, y = np.mgrid[-1.21:0.1:0.01, -0.01:0.031:0.001]
 pos = np.empty(x.shape + (2,))
 pos[:, :, 0] = x
 pos[:, :, 1] = y
-rvm = gmmref.predict(pos.reshape(-1, 2))
-rvsmooth = gmmref.score_samples(pos.reshape(-1, 2))
+rvm = learned_gmm.predict(pos.reshape(-1, 2))
+rvsmooth = learned_gmm.score_samples(pos.reshape(-1, 2))
 surf = ax1.contourf(
     x, y, (rvsmooth).reshape(x.shape), 25, cmap="viridis"
 )  # linestyles='dashdot', linewidths=2.,
@@ -796,21 +833,31 @@ ax1.contour(
     linestyles="dashdot",
 )
 ax1.scatter(
-    density_model[actv],
-    magsus_model[actv],
-    c=quasi_geology_model[actv],
+    density_model_no_info[actv],
+    magsus_model_no_info[actv],
+    c=quasi_geology_model_no_info[actv],
     cmap="inferno_r",
     edgecolors="k",
     label="recovered PGI model",
     alpha=0.5,
 )
 ax1.scatter(
-    gmmref.means_[:, 0],
-    gmmref.means_[:, 1],
+    np.r_[0, -0.8, -0.2],
+    np.r_[0, 0.005, 0.02],
     label="True petrophysical means",
     cmap="inferno_r",
     c=[0, 1, 2],
     marker="v",
+    edgecolors="k",
+    s=200,
+)
+ax1.scatter(
+    learned_gmm.means_[:, 0],
+    learned_gmm.means_[:, 1],
+    label="learned petrophysical means",
+    cmap="inferno_r",
+    c=[0, 1, 2],
+    marker="o",
     edgecolors="k",
     s=200,
 )
@@ -832,8 +879,8 @@ cbpetro.outline.set_edgecolor("k")
 # create the 1D GMM profile for density
 from sklearn.mixture import GaussianMixture
 
-means_init_grav = gmmref.means_[:, 0].reshape(3, 1)
-cov_init_grav = np.array([gmmref.covariances_[:, 0]]).reshape((3, 1, 1))
+means_init_grav = learned_gmm.means_[:, 0].reshape(3, 1)
+cov_init_grav = np.array([learned_gmm.covariances_[:, 0]]).reshape((3, 1, 1))
 clfgrav = utils.pgi_utils.GaussianMixture(
     n_components=3,
     means_init=means_init_grav,
@@ -851,12 +898,11 @@ from sklearn.mixture._gaussian_mixture import _compute_precision_cholesky
 clfgrav.precisions_cholesky_ = _compute_precision_cholesky(
     clfgrav.covariances_, clfgrav.covariance_type
 )
-clfgrav.weights_ = gmmref.weights_
+clfgrav.weights_ = learned_gmm.weights_
 testXplot_grav = np.linspace(-1.2, 0.1, 1000)[:, np.newaxis]
 score_grav = clfgrav.score_samples(testXplot_grav)
 ax2.plot(
-    testXplot_grav,
-    np.exp(score_grav),
+    testXplot_grav, np.exp(score_grav),
     linewidth=3.0,
     label="proba.\ndensity",
     c="k"
@@ -865,8 +911,8 @@ ax2.set_ylim([0.0, 2])
 ax2.legend(fontsize=ticksize)
 
 # create the 1D GMM profile for mag. susc.
-means_init_mag = gmmref.means_[:, 1].reshape(3, 1)
-cov_init_mag = np.array([gmmref.covariances_[:, 1]]).reshape((3, 1, 1))
+means_init_mag = learned_gmm.means_[:, 1].reshape(3, 1)
+cov_init_mag = np.array([learned_gmm.covariances_[:, 1]]).reshape((3, 1, 1))
 clfmag = GaussianMixture(
     n_components=3,
     means_init=means_init_mag,
@@ -882,14 +928,18 @@ clfmag.covariances_ = cov_init_mag
 clfmag.precisions_cholesky_ = _compute_precision_cholesky(
     clfmag.covariances_, clfmag.covariance_type
 )
-clfmag.weights_ = gmmref.weights_
+clfmag.weights_ = learned_gmm.weights_
 testXplot_mag = np.linspace(-0.025, 0.03, 1000)[:, np.newaxis]
 score_mag = clfmag.score_samples(testXplot_mag)
 ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.0, c="k")
 
 ax3.set_xlim([0.0, 50])
 ax3.set_xlabel(
-    "Probability\nDensity", fontsize=labelsize, rotation=-45, labelpad=0, x=0.5
+    "Probability\nDensity",
+    fontsize=labelsize,
+    rotation=-45,
+    labelpad=0,
+    x=0.5
 )
 ax2.set_xlabel("Density (g/cc)", fontsize=labelsize)
 ax3.set_ylabel("Magnetic Susceptibility (SI)", fontsize=labelsize)
@@ -905,7 +955,12 @@ ax1.set_xlabel("")
 ax2.tick_params(axis="both", which="both", labelsize=ticksize)
 ax3.tick_params(axis="both", which="both", labelsize=ticksize)
 
-ax1.legend(fontsize=labelsize, loc=3)
-ax2.hist(density_model[actv], density=True, bins=50)
-ax3.hist(magsus_model[actv], density=True, bins=50, orientation="horizontal")
+ax1.legend(fontsize=labelsize, loc=2)
+ax2.hist(density_model_no_info[actv], density=True, bins=50)
+ax3.hist(
+    magsus_model_no_info[actv],
+    density=True,
+    bins=50,
+    orientation="horizontal"
+)
 plt.show()
