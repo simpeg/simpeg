@@ -17,7 +17,8 @@ from sphinx_gallery.sorting import FileNameSortKey
 import glob
 import SimPEG
 import plotly.io as pio
-pio.renderers.default = 'sphinx_gallery'
+
+pio.renderers.default = "sphinx_gallery"
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -120,7 +121,7 @@ pygments_style = "sphinx"
 # -- Edit on Github Extension ---------------------------------------------
 
 edit_on_github_project = "simpeg/simpeg"
-edit_on_github_branch = "master/docs"
+edit_on_github_branch = "main/docs"
 check_meta = False
 
 # source code links
@@ -173,11 +174,11 @@ def linkcode_resolve(domain, info):
     # Exception for building locally on Windows when Python on C: drive and repo on D: drive
     # Note that these links will not work on the local build!!!
     try:
-    	fn = relpath(fn, start=dirname(SimPEG.__file__))
+        fn = relpath(fn, start=dirname(SimPEG.__file__))
     except ValueError:
-    	pass
+        pass
 
-    return f"https://github.com/simpeg/simpeg/blob/master/SimPEG/{fn}{linespec}"
+    return f"https://github.com/simpeg/simpeg/blob/main/SimPEG/{fn}{linespec}"
 
 
 # -- Options for HTML output ---------------------------------------------------
@@ -321,7 +322,7 @@ intersphinx_mapping = {
     "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
     "matplotlib": ("http://matplotlib.org/stable/", None),
     "properties": ("https://propertiespy.readthedocs.io/en/latest/", None),
-    "discretize": ("http://discretize.simpeg.xyz/en/master/", None),
+    "discretize": ("http://discretize.simpeg.xyz/en/main/", None),
 }
 
 
@@ -347,7 +348,11 @@ tut_gallery_dirs = ["content/tutorials/" + os.path.basename(f) for f in tutorial
 
 # Scaping images to generate on website
 from plotly.io._sg_scraper import plotly_sg_scraper
-image_scrapers = ('matplotlib', plotly_sg_scraper,)
+
+image_scrapers = (
+    "matplotlib",
+    plotly_sg_scraper,
+)
 
 # Sphinx Gallery
 sphinx_gallery_conf = {
@@ -357,11 +362,8 @@ sphinx_gallery_conf = {
     "within_subsection_order": FileNameSortKey,
     "backreferences_dir": None,
     "show_memory": True,
-    "image_scrapers": image_scrapers
+    "image_scrapers": image_scrapers,
 }
-
-
-
 
 
 # Documents to append as an appendix to all manuals.
