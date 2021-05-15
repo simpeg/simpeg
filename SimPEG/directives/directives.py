@@ -209,9 +209,9 @@ class BetaEstimate_ByEig(InversionDirective):
 
     """
 
-    beta0_ratio = 1.  #: the estimated ratio is multiplied by this to obtain beta
-    n_pw_iter = 4     #: number of power iterations for estimation.
-    seed = None       #: Random seed for the directive
+    beta0_ratio = 1.0  #: the estimated ratio is multiplied by this to obtain beta
+    n_pw_iter = 4  #: number of power iterations for estimation.
+    seed = None  #: Random seed for the directive
 
     def initialize(self):
         """
@@ -253,7 +253,7 @@ class BetaEstimate_ByEig(InversionDirective):
             self.reg, m, n_pw_iter=self.n_pw_iter,
         )
 
-        self.ratio = (dm_eigenvalue / reg_eigenvalue)
+        self.ratio = dm_eigenvalue / reg_eigenvalue
         self.beta0 = self.beta0_ratio * self.ratio
 
         self.invProb.beta = self.beta0
@@ -284,11 +284,13 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
 
-    alpha0_ratio = 1.  #: the estimated Alpha_smooth is multiplied by this ratio (int or array)
-    n_pw_iter = 4 #: number of power iterations for the estimate
-    verbose = False #: print the estimated alphas at the initialization
-    debug = False #: print the current process
-    seed = None # random seed for the directive
+    alpha0_ratio = (
+        1.0  #: the estimated Alpha_smooth is multiplied by this ratio (int or array)
+    )
+    n_pw_iter = 4  #: number of power iterations for the estimate
+    verbose = False  #: print the estimated alphas at the initialization
+    debug = False  #: print the current process
+    seed = None  # random seed for the directive
 
     def initialize(self):
         """
@@ -298,10 +300,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
         if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
             nbr = np.sum(
-                [
-                    len(self.reg.objfcts[i].objfcts)
-                    for i in range(len(self.reg.objfcts))
-                ]
+                [len(self.reg.objfcts[i].objfcts) for i in range(len(self.reg.objfcts))]
             )
             # Find the smallness terms in a two-levels combo-regularization.
             smallness = []
@@ -309,10 +308,23 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             for i, regobjcts in enumerate(self.reg.objfcts):
                 for j, regpart in enumerate(regobjcts.objfcts):
                     alpha0 += [self.reg.multipliers[i] * regobjcts.multipliers[j]]
-                    smallness += [[i, j, isinstance(regpart, (
-                        SimpleSmall, Small, SparseSmall, SimplePGIsmallness,
-                        PGIsmallness, SimplePGIwithNonlinearRelationshipsSmallness
-                    ))]]
+                    smallness += [
+                        [
+                            i,
+                            j,
+                            isinstance(
+                                regpart,
+                                (
+                                    SimpleSmall,
+                                    Small,
+                                    SparseSmall,
+                                    SimplePGIsmallness,
+                                    PGIsmallness,
+                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                ),
+                            ),
+                        ]
+                    ]
             smallness = np.r_[smallness]
             # Select the first, only considered, smallness term.
             smallness = smallness[smallness[:, 2] == 1][:, :2][0]
@@ -321,7 +333,15 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             smoothness = []
             for i, regobjcts in enumerate(self.reg.objfcts):
                 for j, regpart in enumerate(regobjcts.objfcts):
-                    smoothness += [[i, j, isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))]]
+                    smoothness += [
+                        [
+                            i,
+                            j,
+                            isinstance(
+                                regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv)
+                            ),
+                        ]
+                    ]
             smoothness = np.r_[smoothness]
             mode = 1
 
@@ -362,7 +382,8 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         elif mode == 1:
             smallness_eigenvalue = eigenvalue_by_power_iteration(
                 self.reg.objfcts[smallness[0]].objfcts[smallness[1]],
-                m, n_pw_iter=self.n_pw_iter,
+                m,
+                n_pw_iter=self.n_pw_iter,
             )
             for i in range(nbr):
                 ratio = []
@@ -370,21 +391,19 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     idx = smoothness[i, :2]
                     smooth_i_eigenvalue = eigenvalue_by_power_iteration(
                         self.reg.objfcts[idx[0]].objfcts[idx[1]],
-                        m, n_pw_iter=self.n_pw_iter,
+                        m,
+                        n_pw_iter=self.n_pw_iter,
                     )
 
                     ratio = np.divide(
-                        smallness_eigenvalue, smooth_i_eigenvalue,
+                        smallness_eigenvalue,
+                        smooth_i_eigenvalue,
                         out=np.zeros_like(smallness_eigenvalue),
-                        where=smooth_i_eigenvalue != 0
+                        where=smooth_i_eigenvalue != 0,
                     )
 
                     alpha0[i] *= self.alpha0_ratio[i] * ratio
-                    mtype = (
-                        self.reg.objfcts[idx[0]]
-                        .objfcts[idx[1]]
-                        ._multiplier_pair
-                    )
+                    mtype = self.reg.objfcts[idx[0]].objfcts[idx[1]]._multiplier_pair
                     setattr(self.reg.objfcts[idx[0]], mtype, alpha0[i])
 
         if self.verbose:
@@ -402,11 +421,11 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
 
-    n_pw_iter = 4 #: number of power iterations for the estimate
+    n_pw_iter = 4  #: number of power iterations for the estimate
     chi0_ratio = None  #: The initial scaling ratio (default is data misfit multipliers)
-    verbose = False #: print the estimated data misfits multipliers
-    debug = False #: print the current process
-    seed = None # random seed for the directive
+    verbose = False  #: print the estimated data misfits multipliers
+    debug = False  #: print the current process
+    seed = None  # random seed for the directive
 
     def initialize(self):
         """
@@ -417,8 +436,13 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         if self.debug:
             print("Calculating the scaling parameter.")
 
-        if getattr(self.dmisfit, "objfcts", None) is None or len(self.dmisfit.objfcts) == 1:
-            raise TypeError("ScalingMultipleDataMisfits_ByEig only applies to joint inversion")
+        if (
+            getattr(self.dmisfit, "objfcts", None) is None
+            or len(self.dmisfit.objfcts) == 1
+        ):
+            raise TypeError(
+                "ScalingMultipleDataMisfits_ByEig only applies to joint inversion"
+            )
 
         ndm = len(self.dmisfit.objfcts)
         if self.chi0_ratio is not None:
@@ -447,6 +471,7 @@ class JointScalingSchedule(InversionDirective):
     using the ratios of current misfits and their respective target.
     It implements the strategy described in https://doi.org/10.1093/gji/ggaa378.
     """
+
     verbose = False
     warmingFactor = 1.0
     mode = 1
@@ -456,7 +481,10 @@ class JointScalingSchedule(InversionDirective):
 
     def initialize(self):
 
-        if getattr(self.dmisfit, "objfcts", None) is None or len(self.dmisfit.objfcts) == 1:
+        if (
+            getattr(self.dmisfit, "objfcts", None) is None
+            or len(self.dmisfit.objfcts) == 1
+        ):
             raise TypeError("JointScalingSchedule only applies to joint inversion")
 
         targetclass = np.r_[
@@ -582,7 +610,10 @@ class MultiTargetMisfits(InversionDirective):
                             i,
                             j,
                             (
-                                isinstance(regpart, SimplePGIwithNonlinearRelationshipsSmallness)
+                                isinstance(
+                                    regpart,
+                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                )
                                 or isinstance(regpart, SimplePGIsmallness)
                                 or isinstance(regpart, PGIsmallness)
                             ),
@@ -623,7 +654,10 @@ class MultiTargetMisfits(InversionDirective):
                         np.r_[
                             j,
                             (
-                                isinstance(regpart, SimplePGIwithNonlinearRelationshipsSmallness)
+                                isinstance(
+                                    regpart,
+                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                )
                                 or isinstance(regpart, SimplePGIsmallness)
                                 or isinstance(regpart, PGIsmallness)
                             ),
@@ -670,7 +704,9 @@ class MultiTargetMisfits(InversionDirective):
     def CLtarget(self):
         if not getattr(self.pgi_smallness, "approx_eval", True):
             # if nonlinear prior, compute targer numerically at each GMM update
-            samples, _ = self.pgi_smallness.gmm.sample(len(self.pgi_smallness.gmm.cell_volumes))
+            samples, _ = self.pgi_smallness.gmm.sample(
+                len(self.pgi_smallness.gmm.cell_volumes)
+            )
             self.phi_ms_star = self.pgi_smallness(
                 mkvc(samples), externalW=self.WeightsInTarget
             )
@@ -817,7 +853,7 @@ class SaveEveryIteration(InversionDirective):
     """SaveEveryIteration
 
     This directive saves an array at each iteration. The default
-    directory is the current directoy and the models are saved as
+    directory is the current directory and the models are saved as
     ``InversionModel-YYYY-MM-DD-HH-MM-iter.npy``
     """
 

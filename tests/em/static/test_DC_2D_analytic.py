@@ -11,22 +11,24 @@ from SimPEG.electromagnetics import analytics
 class DCProblemAnalyticTests_DPDP(unittest.TestCase):
     def setUp(self):
 
+        npad = 10
         cs = 12.5
-        hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
-        hy = [(cs, 7, -1.3), (cs, 20)]
+        hx = [(cs, npad, -1.4), (cs, 61), (cs, npad, 1.4)]
+        hy = [(cs, npad, -1.4), (cs, 20)]
         mesh = TensorMesh([hx, hy], x0="CN")
         sighalf = 1e-2
         sigma = np.ones(mesh.nC) * sighalf
-        x = np.linspace(-135, 250.0, 20)
-        M = utils.ndgrid(x - 12.5, np.r_[0.0])
-        N = utils.ndgrid(x + 12.5, np.r_[0.0])
-        A0loc = np.r_[-150, 0.0]
-        A1loc = np.r_[-130, 0.0]
-        rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
+        x = mesh.cell_centers_x[
+            np.logical_and(mesh.cell_centers_x > -150, mesh.cell_centers_x < 250)
+        ]
+        M = utils.ndgrid(x, np.r_[0.0])
+        N = utils.ndgrid(x + 12.5 * 4, np.r_[0.0])
+        A0loc = np.r_[-200, 0.0]
+        A1loc = np.r_[-250, 0.0]
+        rxloc = [np.c_[M, np.zeros(x.size)], np.c_[N, np.zeros(x.size)]]
         data_ana_A = analytics.DCAnalytic_Pole_Dipole(
             np.r_[A0loc, 0.0], rxloc, sighalf, earth_type="halfspace"
         )
-
         data_ana_b = analytics.DCAnalytic_Pole_Dipole(
             np.r_[A1loc, 0.0], rxloc, sighalf, earth_type="halfspace"
         )
@@ -52,10 +54,31 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
     def test_Simulation2DNodal(self, tolerance=0.05):
 
         simulation = dc.simulation_2d.Simulation2DNodal(
-            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.Solver,
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            bc_type="Robin",
         )
         data = simulation.dpred()
-        err = (
+        err = np.sqrt(
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
+        )
+        print(f"DPDP N err: {err}")
+        self.assertLess(err, tolerance)
+
+    def test_Simulation2DCellCentered(self, tolerance=0.05):
+
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            bc_type="Robin",
+        )
+        data = simulation.dpred()
+        err = np.sqrt(
             np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
             / self.data_ana.size
         )
@@ -66,18 +89,21 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
 class DCProblemAnalyticTests_PDP(unittest.TestCase):
     def setUp(self):
 
+        npad = 10
         cs = 12.5
-        hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
-        hy = [(cs, 7, -1.3), (cs, 20)]
+        hx = [(cs, npad, -1.4), (cs, 61), (cs, npad, 1.4)]
+        hy = [(cs, npad, -1.4), (cs, 20)]
         mesh = TensorMesh([hx, hy], x0="CN")
         sighalf = 1e-2
         sigma = np.ones(mesh.nC) * sighalf
-        x = np.linspace(-135, 250.0, 20)
-        M = utils.ndgrid(x - 12.5, np.r_[0.0])
-        N = utils.ndgrid(x + 12.5, np.r_[0.0])
-        A0loc = np.r_[-150, 0.0]
-        # A1loc = np.r_[-130, 0.]
-        rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
+        x = mesh.cell_centers_x[
+            np.logical_and(mesh.cell_centers_x > -150, mesh.cell_centers_x < 250)
+        ]
+        M = utils.ndgrid(x, np.r_[0.0])
+        N = utils.ndgrid(x + 12.5 * 4, np.r_[0.0])
+        A0loc = np.r_[-200, 0.0]
+        # A1loc = np.r_[-250, 0.0]
+        rxloc = [np.c_[M, np.zeros(x.size)], np.c_[N, np.zeros(x.size)]]
         data_ana = analytics.DCAnalytic_Pole_Dipole(
             np.r_[A0loc, 0.0], rxloc, sighalf, earth_type="halfspace"
         )
@@ -102,10 +128,14 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
     def test_Simulation2DNodal(self, tolerance=0.05):
 
         simulation = dc.simulation_2d.Simulation2DNodal(
-            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.Solver,
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            bc_type="Robin",
         )
         data = simulation.dpred()
-        err = (
+        err = np.sqrt(
             np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
             / self.data_ana.size
         )
@@ -114,10 +144,14 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
 
     def test_Simulation2DCellCentered(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.Solver,
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            bc_type="Robin",
         )
         data = simulation.dpred()
-        err = (
+        err = np.sqrt(
             np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
             / self.data_ana.size
         )
@@ -128,17 +162,21 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
 class DCProblemAnalyticTests_DPP(unittest.TestCase):
     def setUp(self):
 
+        npad = 10
         cs = 12.5
-        hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
-        hy = [(cs, 7, -1.3), (cs, 20)]
+        hx = [(cs, npad, -1.4), (cs, 61), (cs, npad, 1.4)]
+        hy = [(cs, npad, -1.4), (cs, 20)]
         mesh = TensorMesh([hx, hy], x0="CN")
         sighalf = 1e-2
         sigma = np.ones(mesh.nC) * sighalf
-        x = np.linspace(0, 250.0, 20)
-        M = utils.ndgrid(x - 12.5, np.r_[0.0])
-        A0loc = np.r_[-150, 0.0]
-        A1loc = np.r_[-125, 0.0]
-        rxloc = np.c_[M, np.zeros(20)]
+        x = mesh.cell_centers_x[
+            np.logical_and(mesh.cell_centers_x > -150, mesh.cell_centers_x < 250)
+        ]
+        M = utils.ndgrid(x, np.r_[0.0])
+        N = utils.ndgrid(x + 12.5 * 4, np.r_[0.0])
+        A0loc = np.r_[-200, 0.0]
+        A1loc = np.r_[-250, 0.0]
+        rxloc = np.c_[M, np.zeros(x.size)]
         data_ana = analytics.DCAnalytic_Dipole_Pole(
             [np.r_[A0loc, 0.0], np.r_[A1loc, 0.0]],
             rxloc,
@@ -166,10 +204,14 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
     def test_Simulation2DNodal(self, tolerance=0.05):
 
         simulation = dc.simulation_2d.Simulation2DNodal(
-            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.Solver,
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            bc_type="Robin",
         )
         data = simulation.dpred()
-        err = (
+        err = np.sqrt(
             np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
             / self.data_ana.size
         )
@@ -178,10 +220,14 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
 
     def test_Simulation2DCellCentered(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.Solver,
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            bc_type="Robin",
         )
         data = simulation.dpred()
-        err = (
+        err = np.sqrt(
             np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
             / self.data_ana.size
         )
@@ -192,17 +238,22 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
 class DCProblemAnalyticTests_PP(unittest.TestCase):
     def setUp(self):
         # Note: Pole-Pole requires bigger boundary to obtain good accuracy.
-        # One can use greater padding rate. Here 1.5 is used.
+        # One can use greater padding rate. Here 2 is used.
+        npad = 10
         cs = 12.5
-        hx = [(cs, 7, -1.5), (cs, 61), (cs, 7, 1.5)]
-        hy = [(cs, 7, -1.5), (cs, 20)]
+        hx = [(cs, npad, -2), (cs, 61), (cs, npad, 2)]
+        hy = [(cs, npad, -2), (cs, 20)]
         mesh = TensorMesh([hx, hy], x0="CN")
         sighalf = 1e-2
         sigma = np.ones(mesh.nC) * sighalf
-        x = np.linspace(0, 250.0, 20)
-        M = utils.ndgrid(x - 12.5, np.r_[0.0])
-        A0loc = np.r_[-150, 0.0]
-        rxloc = np.c_[M, np.zeros(20)]
+        x = mesh.cell_centers_x[
+            np.logical_and(mesh.cell_centers_x > -150, mesh.cell_centers_x < 250)
+        ]
+        M = utils.ndgrid(x, np.r_[0.0])
+        # N = utils.ndgrid(x + 12.5*4, np.r_[0.0])
+        A0loc = np.r_[-200, 0.0]
+        # A1loc = np.r_[-250, 0.0]
+        rxloc = np.c_[M, np.zeros(x.size)]
         data_ana = analytics.DCAnalytic_Pole_Pole(
             np.r_[A0loc, 0.0], rxloc, sighalf, earth_type="halfspace"
         )
@@ -228,15 +279,31 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            bc_type="Mixed",
             solver=self.Solver,
+            bc_type="Robin",
         )
         data = simulation.dpred()
-        err = (
+        err = np.sqrt(
             np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
             / self.data_ana.size
         )
         print(f"PP CC err: {err}")
+        self.assertLess(err, tolerance)
+
+    def test_Simulation2DNodal(self, tolerance=0.05):
+        simulation = dc.simulation_2d.Simulation2DNodal(
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            bc_type="Robin",
+        )
+        data = simulation.dpred()
+        err = np.sqrt(
+            np.linalg.norm((data - self.data_ana) / self.data_ana) ** 2
+            / self.data_ana.size
+        )
+        print(f"PP N err: {err}")
         self.assertLess(err, tolerance)
 
 
@@ -333,18 +400,20 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
 class DCSimulationAppResTests(unittest.TestCase):
     def setUp(self):
 
+        npad = 10
         cs = 12.5
-        hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
-        hy = [(cs, 7, -1.3), (cs, 20)]
+        hx = [(cs, npad, -1.4), (cs, 61), (cs, npad, 1.4)]
+        hy = [(cs, npad, -1.4), (cs, 20)]
         mesh = TensorMesh([hx, hy], x0="CN")
         sighalf = 1e-2
         sigma = np.ones(mesh.nC) * sighalf
-        x = np.linspace(-135, 250.0, 20)
-        M = utils.ndgrid(x - 12.5, np.r_[0.0])
-        N = utils.ndgrid(x + 12.5, np.r_[0.0])
-        A0loc = np.r_[-150, 0.0]
-        A1loc = np.r_[-130, 0.0]
-
+        x = mesh.cell_centers_x[
+            np.logical_and(mesh.cell_centers_x > -150, mesh.cell_centers_x < 250)
+        ]
+        M = utils.ndgrid(x, np.r_[0.0])
+        N = utils.ndgrid(x + 12.5 * 4, np.r_[0.0])
+        A0loc = np.r_[-200, 0.0]
+        A1loc = np.r_[-250, 0.0]
         rx = dc.receivers.Dipole(M, N, data_type="apparent_resistivity")
         src0 = dc.sources.Dipole([rx], A0loc, A1loc)
         survey = dc.Survey([src0])
@@ -365,7 +434,11 @@ class DCSimulationAppResTests(unittest.TestCase):
     def test_Simulation2DNodal(self, tolerance=0.05):
 
         simulation = dc.simulation_2d.Simulation2DNodal(
-            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.Solver,
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            bc_type="Robin",
         )
         with self.assertRaises(KeyError):
             data = simulation.dpred()
@@ -374,7 +447,27 @@ class DCSimulationAppResTests(unittest.TestCase):
         data = simulation.dpred()
 
         rhohalf = 1.0 / self.sigma_half
-        err = np.linalg.norm((data - rhohalf) / rhohalf) ** 2 / data.size
+        err = np.sqrt(np.linalg.norm((data - rhohalf) / rhohalf) ** 2 / data.size)
+        print(f"DPDP N err: {err}")
+        self.assertLess(err, tolerance)
+
+    def test_Simulation2DCellCentered(self, tolerance=0.05):
+
+        simulation = dc.simulation_2d.Simulation2DCellCentered(
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.Solver,
+            bc_type="Robin",
+        )
+        with self.assertRaises(KeyError):
+            data = simulation.dpred()
+
+        self.survey.set_geometric_factor()
+        data = simulation.dpred()
+
+        rhohalf = 1.0 / self.sigma_half
+        err = np.sqrt(np.linalg.norm((data - rhohalf) / rhohalf) ** 2 / data.size)
         print(f"DPDP N err: {err}")
         self.assertLess(err, tolerance)
 
