@@ -28,7 +28,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
     fieldsPair = Fields2D
     _Jmatrix = None
     _f = None  # the DC fields
-    _sign = 1
+    _sign = 1.0
     _pred = None
     _scale = None
     gtgdiag = None

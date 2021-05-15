@@ -147,3 +147,13 @@ class Pole(BaseSrc):
                 q = sim.mesh.getInterpolationMat(self.location, locType="N")
                 self._q = self.current * q.toarray()
             return self._q
+
+    @property
+    def location_a(self):
+        """Locations of the A electrode"""
+        return self.location
+
+    @property
+    def location_b(self):
+        """Location of the B electrode"""
+        return np.nan*np.ones_like(self.location)

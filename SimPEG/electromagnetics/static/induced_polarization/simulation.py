@@ -191,7 +191,6 @@ class Simulation3DCellCentered(BaseIPSimulation, BaseSimulation3DCellCentered):
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields3DCellCentered
     _sign = 1.0
-    bc_type = "Dirichlet"
 
 
 class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
