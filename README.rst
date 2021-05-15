@@ -1,4 +1,4 @@
-.. image:: https://raw.github.com/simpeg/simpeg/master/docs/images/simpeg-logo.png
+.. image:: https://raw.github.com/simpeg/simpeg/main/docs/images/simpeg-logo.png
     :alt: SimPEG Logo
 
 SimPEG
@@ -11,16 +11,16 @@ SimPEG
 .. image:: https://img.shields.io/conda/v/conda-forge/SimPEG.svg
     :target: https://anaconda.org/conda-forge/SimPEG
     :alt: Latest conda-forge version
-    
+
 .. image:: https://img.shields.io/github/license/simpeg/simpeg.svg
-    :target: https://github.com/simpeg/simpeg/blob/master/LICENSE
+    :target: https://github.com/simpeg/simpeg/blob/main/LICENSE
     :alt: MIT license
 
-.. image:: https://dev.azure.com/simpeg/simpeg/_apis/build/status/simpeg.simpeg?branchName=master
-    :target: https://dev.azure.com/simpeg/simpeg/_build/latest?definitionId=2&branchName=master
+.. image:: https://dev.azure.com/simpeg/simpeg/_apis/build/status/simpeg.simpeg?branchName=main
+    :target: https://dev.azure.com/simpeg/simpeg/_build/latest?definitionId=2&branchName=main
     :alt: Azure pipeline
 
-.. image:: https://codecov.io/gh/simpeg/simpeg/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/simpeg/simpeg/branch/main/graph/badge.svg
     :target: https://codecov.io/gh/simpeg/simpeg
     :alt: Coverage status
 
