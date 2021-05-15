@@ -8,7 +8,7 @@ import scipy.sparse as sp
 from six import integer_types
 import warnings
 
-from discretize.Tests import checkDerivative
+from discretize.tests import checkDerivative
 
 from .maps import IdentityMap
 from .props import BaseSimPEG
@@ -346,9 +346,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 continue
             else:
                 if f is not None and objfct._hasFields:
-                    g += multiplier * objfct.deriv(m, f=f[i])
+                    aux = objfct.deriv(m, f=f[i])
+                    if not isinstance(aux, Zero):
+                        g += multiplier * aux
                 else:
-                    g += multiplier * objfct.deriv(m)
+                    aux = objfct.deriv(m)
+                    if not isinstance(aux, Zero):
+                        g += multiplier * aux
         return g
 
     def deriv2(self, m, v=None, f=None):

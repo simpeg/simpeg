@@ -15,7 +15,7 @@ else:
 
 def addBlock(gridCC, modelCC, p0, p1, blockProp):
     """
-        Add a block to an exsisting cell centered model, modelCC
+        Add a block to an existing cell centered model, modelCC
 
         :param numpy.ndarray gridCC: mesh.gridCC is the cell centered grid
         :param numpy.ndarray modelCC: cell centered model
@@ -360,7 +360,7 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
 
 def PolygonInd(mesh, pts):
     """
-        Finde a volxel indices included in mpolygon (2D) or polyhedra (3D)
+        Find all voxel indices included in mpolygon (2D) or polyhedra (3D)
         uniformly distributed model.
 
         :param tuple shape: shape of the model.

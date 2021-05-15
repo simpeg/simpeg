@@ -1,7 +1,6 @@
 from __future__ import division
 import numpy as np
 from .code_utils import deprecate_method
-
 from discretize.utils import (
     Zero,
     Identity,
@@ -150,7 +149,7 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=
     elif not isinstance(fields_list, (list, tuple, np.ndarray)):
             fields_list = [fields_list]
 
-    #Power iteration: estimate eigenvector
+    # Power iteration: estimate eigenvector
     for i in range(n_pw_iter):
         x1 = 0.
         for j, (mult, obj) in enumerate(zip(combo_objfct.multipliers, combo_objfct.objfcts)):

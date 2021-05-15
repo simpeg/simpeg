@@ -8,7 +8,6 @@ from . import sources as Src
 from . import receivers as Rx
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
-from .boundary_utils import getxBCyBC_CC
 from . import utils
 from .IODC import IO
 from .run import run_inversion
