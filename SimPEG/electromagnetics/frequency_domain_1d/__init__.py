@@ -1,14 +1,14 @@
 # Simulations
 from .simulation import (
-	EM1DFMSimulation, StitchedEM1DFMSimulation
+	EM1DFMSimulation, StitchedEM1DFMSimulation, Sensitivity
 )
 
 # Surveys
-from .survey import EM1DSurveyFD
+# from .survey import EM1DSurveyFD
 
 # Sources and receivers
-from . import sources
-from . import receivers
+# from . import sources
+# from . import receivers
 
 
 

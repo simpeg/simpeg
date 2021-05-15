@@ -2,6 +2,7 @@ from __future__ import print_function
 import unittest
 import numpy as np
 from SimPEG.electromagnetics import frequency_domain_1d as em1d
+import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_frequency
 from SimPEG import *
 from discretize import TensorMesh
@@ -10,9 +11,9 @@ from pymatsolver import PardisoSolver
 np.random.seed(41)
 
 
-class GlobalEM1DFD(unittest.TestCase):
+class StitchedEM1DFM(unittest.TestCase):
 
-    def setUp(self, parallel=True):
+    def setUp(self, parallel=False):
 
         n_layer = 20
         frequencies = np.array([900, 7200, 56000], dtype=float)
@@ -20,7 +21,7 @@ class GlobalEM1DFD(unittest.TestCase):
             frequencies, sigma_background=0.1, n_layer=n_layer-1
         )
 
-        n_sounding = 10
+        n_sounding = 50
         dx = 20.
         hx = np.ones(n_sounding) * dx
         hz = np.r_[thicknesses, thicknesses[-1]]
@@ -45,40 +46,33 @@ class GlobalEM1DFD(unittest.TestCase):
 
         source_list = []
 
-        for ii in range(0, n_sounding):
+        for i_sounding in range(0, n_sounding):
 
-            source_location = mkvc(source_locations[ii, :])
-            receiver_location = mkvc(receiver_locations[ii, :])
-
+            source_location = mkvc(source_locations[i_sounding, :])
+            receiver_location = mkvc(receiver_locations[i_sounding, :])
             receiver_list = []
-
             receiver_list.append(
-                em1d.receivers.PointReceiver(
-                    receiver_location, frequencies, orientation="z",
-                    field_type="secondary", component="both"
-                )
-            )
-            # receiver_list.append(
-            #     em1d.receivers.PointReceiver(
-            #         receiver_location, frequencies, orientation="z",
-            #         field_type="secondary", component="imag"
-            #     )
-            # )
-
-            source_list.append(
-                em1d.sources.MagneticDipoleSource(
-                    receiver_list=receiver_list, location=source_location,
-                    orientation="z", moment_amplitude=1.
+                fdem.receivers.PointMagneticFieldSecondary(
+                    receiver_location, 
+                    orientation="z",
+                    component="both"
                 )
             )
 
-        survey = em1d.survey.EM1DSurveyFD(source_list)
+            for i_freq, frequency in enumerate(frequencies):
+                src = fdem.sources.MagDipole(
+                    receiver_list, frequency, source_location, 
+                    orientation="z", i_sounding=i_sounding
+                )
+                source_list.append(src)
+
+        survey = fdem.Survey(source_list)
 
         simulation = em1d.simulation.StitchedEM1DFMSimulation(
             survey=survey, thicknesses=thicknesses, sigmaMap=sigma_map,
-            topo=topo, parallel=False, n_cpu=2, verbose=False, Solver=PardisoSolver
+            topo=topo, parallel=parallel, n_cpu=2, verbose=False, Solver=PardisoSolver,
+            n_sounding_for_chunk=10, use_sounding=True
         )
-
 
         dpred = simulation.dpred(mSynth)
         noise = 0.1*np.abs(dpred)*np.random.rand(len(dpred))
@@ -141,13 +135,13 @@ class GlobalEM1DFD(unittest.TestCase):
         )
         self.assertTrue(passed)
 
-class GlobalEM1DFD_Height(unittest.TestCase):
+class StitchedEM1DFMHeight(unittest.TestCase):
 
-    def setUp(self, parallel=True):
+    def setUp(self, parallel=False):
 
         frequencies = np.array([900, 7200, 56000], dtype=float)
         n_layer = 0
-        n_sounding = 10
+        n_sounding = 50
         dx = 20.
         hx = np.ones(n_sounding) * dx
         hz = 1.  # not used in simulation
@@ -173,40 +167,35 @@ class GlobalEM1DFD_Height(unittest.TestCase):
 
         source_list = []
 
-        for ii in range(0, n_sounding):
+        for i_sounding in range(0, n_sounding):
 
-            source_location = mkvc(source_locations[ii, :])
-            receiver_offset = receiver_offsets[ii, :]
+            source_location = mkvc(source_locations[i_sounding, :])
+            receiver_offset = receiver_offsets[i_sounding, :]
 
             receiver_list = []
 
             receiver_list.append(
-                em1d.receivers.PointReceiver(
-                    receiver_offset, frequencies, orientation="z",
-                    field_type="secondary", component="both",
+                fdem.receivers.PointMagneticFieldSecondary(
+                    receiver_offset, 
+                    orientation="z",
+                    component="both",
                     use_source_receiver_offset=True
                 )
             )
-            # receiver_list.append(
-            #     em1d.receivers.PointReceiver(
-            #         receiver_offset, frequencies, orientation="z",
-            #         field_type="secondary", component="imag",
-            #         use_source_receiver_offset=True
-            #     )
-            # )
 
-            source_list.append(
-                em1d.sources.MagneticDipoleSource(
-                    receiver_list=receiver_list, location=source_location,
-                    orientation="z", moment_amplitude=1.
+            for i_freq, frequency in enumerate(frequencies):
+                src = fdem.sources.MagDipole(
+                    receiver_list, frequency, source_location, 
+                    orientation="z", i_sounding=i_sounding
                 )
-            )
+                source_list.append(src)
 
-        survey = em1d.survey.EM1DSurveyFD(source_list)
+        survey = fdem.Survey(source_list)
 
         simulation = em1d.simulation.StitchedEM1DFMSimulation(
             survey=survey, sigmaMap=sigma_map, hMap=wires.height,
-            parallel=False, n_cpu=2, verbose=True, Solver=PardisoSolver
+            parallel=parallel, n_cpu=2, verbose=False, Solver=PardisoSolver,
+            n_sounding_for_chunk=10, use_sounding=True
         )
 
         dpred = simulation.dpred(mSynth)

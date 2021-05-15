@@ -3,6 +3,7 @@ from SimPEG import *
 import numpy as np
 import matplotlib.pyplot as plt
 import SimPEG.electromagnetics.time_domain_1d as em1d
+import SimPEG.electromagnetics.time_domain as tdem
 from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
 
 class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
@@ -13,52 +14,49 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
         topo = np.r_[0., 0., 100.]
-        a = 20.
-        
-        src_location = np.array([0., 0., 100.+1e-5])  
-        rx_location = np.array([0., 0., 100.+1e-5])
+
+        source_location = np.array([0., 0., 100.+1e-5])
+        receiver_locations = np.array([[0., 0., 100.+1e-5]])
         receiver_orientation = "z"  # "x", "y" or "z"
         times = np.logspace(-5, -2, 31)
-        
-        # Receiver list
-        receiver_list = []
-        
-        receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, times, orientation=receiver_orientation,
-                component="b"
-            )
-        )
-        
-        receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, times, orientation=receiver_orientation,
-                component="dbdt"
-            )
-        )
+        radius = 20.
 
         # Waveform
         waveform_times = np.r_[-np.logspace(-2, -5, 31), 0.]
         waveform_current = triangular_waveform_current(
             waveform_times, -0.01, -0.005, 0., 1.
-        )
+        )        
         
-        waveform = em1d.waveforms.GeneralWaveform(
-            waveform_times=waveform_times, waveform_current=waveform_current,
-            n_pulse = 1, base_frequency = 25., use_lowpass_filter=False, high_cut_frequency=210*1e3
+        waveform = tdem.sources.RawWaveform(
+        	waveform_times=waveform_times, waveform_current=waveform_current,
+        	 n_pulse = 1, base_frequency = 25.,  high_cut_frequency=210*1e3
         )
 
+        # Receiver list
+
+        # Define receivers at each location.
+        b_receiver = tdem.receivers.PointMagneticFluxDensity(
+            receiver_locations, times, receiver_orientation
+        )
+        dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
+            receiver_locations, times, receiver_orientation
+        )
+        receivers_list = [
+            b_receiver, dbzdt_receiver
+        ]  # Make a list containing all receivers even if just one
+
+        # Must define the transmitter properties and associated receivers
         source_list = [
-            em1d.sources.HorizontalLoopSource(
-                receiver_list=receiver_list,
-                location=src_location,
+            tdem.sources.CircularLoop(
+                receivers_list,
+                location=source_location,
                 waveform=waveform,
-                radius=a
+                radius=radius,
+                i_sounding=0
             )
         ]
-            
-        # Survey
-        survey = em1d.survey.EM1DSurveyTD(source_list)
+
+        survey = tdem.Survey(source_list)        
         
         sigma = 1e-2
 
@@ -69,7 +67,7 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         self.times = times
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses)+1
-        self.a = a
+        self.a = radius
 
 
     def test_EM1DTDJvec_Layers(self):

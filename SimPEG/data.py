@@ -22,7 +22,6 @@ class UncertaintyArray(properties.Array):
             return value
         return super(properties.Array, self).validate(instance, value)
 
-
 class Data(properties.HasProperties):
     """
     Data storage. This class keeps track of observed data, relative error
@@ -350,8 +349,7 @@ class _Data(Data):
             "please use SimPEG.data.Data. This class will be removed in SimPEG 0.15.0",
             DeprecationWarning,
         )
-        super().__init__(*args, **kwargs)
-
+        super().__init__(*args, **kwargs)    
 
 survey.Data = _Data
 survey.Data.__name__ = "Data"

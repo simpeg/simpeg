@@ -2,6 +2,7 @@ from __future__ import print_function
 import unittest
 import numpy as np
 
+import SimPEG.electromagnetics.time_domain as tdem
 from SimPEG.electromagnetics import time_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_time
 from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
@@ -13,9 +14,11 @@ from pymatsolver import PardisoSolver
 np.random.seed(41)
 
 
-class GlobalEM1DTD(unittest.TestCase):
+class StitchedEM1DTM(unittest.TestCase):
 
     def setUp(self, parallel=True):
+
+        np.random.seed(41)
 
         times = np.logspace(-5, -2, 31)
         n_layer = 20
@@ -41,6 +44,7 @@ class GlobalEM1DTD(unittest.TestCase):
         z = np.ones_like(x) * 30.
         receiver_locations = np.c_[x, y, z]
         source_locations = np.c_[x, y, z]
+        source_radius = 10.
 
         source_orientation = 'z'
         receiver_orientation = "z"  # "x", "y" or "z"
@@ -49,50 +53,49 @@ class GlobalEM1DTD(unittest.TestCase):
 
         sigma_map = maps.ExpMap(mesh)
 
+        # Waveform
+        waveform_times = np.r_[-np.logspace(-2, -5, 31), 0.]
+        waveform_current = triangular_waveform_current(
+            waveform_times, -0.01, -0.005, 0., 1.
+        )        
+
+        waveform = tdem.sources.RawWaveform(
+                waveform_times=waveform_times, waveform_current=waveform_current,
+                n_pulse = 1, base_frequency = 25.,  high_cut_frequency=210*1e3
+        )
+
         source_list = []
 
-        for ii in range(0, n_sounding):
+        for i_sounding in range(0, n_sounding):
 
-            source_location = mkvc(source_locations[ii, :])
-            receiver_location = mkvc(receiver_locations[ii, :])
+            source_location = source_locations[i_sounding, :]
+            receiver_location = receiver_locations[i_sounding, :]
 
-            receiver_list = []
+            # Receiver list
 
-            receiver_list.append(
-            em1d.receivers.PointReceiver(
-                    receiver_location, times, orientation=receiver_orientation,
-                    component="b"
-                )
+            # Define receivers at each location.
+            b_receiver = tdem.receivers.PointMagneticFluxDensity(
+                receiver_location, times, receiver_orientation
             )
-            
-            receiver_list.append(
-                em1d.receivers.PointReceiver(
-                    receiver_location, times, orientation=receiver_orientation,
-                    component="dbdt"
-                )
+            dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
+                receiver_location, times, receiver_orientation
             )
+            receivers_list = [
+                b_receiver, dbzdt_receiver
+            ]  # Make a list containing all receivers even if just one
 
-            # Waveform
-            waveform_times = np.r_[-np.logspace(-2, -5, 31), 0.]
-            waveform_current = triangular_waveform_current(
-                waveform_times, -0.01, -0.005, 0., 1.
-            )
-            
-            waveform = em1d.waveforms.GeneralWaveform(
-                waveform_times=waveform_times, waveform_current=waveform_current,
-                n_pulse = 1, base_frequency = 25., use_lowpass_filter=False, high_cut_frequency=210*1e3
-            )
-
+            # Must define the transmitter properties and associated receivers
             source_list.append(
-                em1d.sources.HorizontalLoopSource(
-                    receiver_list=receiver_list,
+                tdem.sources.CircularLoop(
+                    receivers_list,
                     location=source_location,
                     waveform=waveform,
-                    radius=1.
+                    radius=source_radius,
+                    i_sounding=i_sounding
                 )
             )
 
-        survey = em1d.survey.EM1DSurveyTD(source_list)
+        survey = tdem.Survey(source_list)
 
         simulation = em1d.simulation.StitchedEM1DTMSimulation(
             survey=survey, thicknesses=thicknesses, sigmaMap=sigma_map,
@@ -159,13 +162,13 @@ class GlobalEM1DTD(unittest.TestCase):
         )
         self.assertTrue(passed)
 
-class GlobalEM1DTD_Height(unittest.TestCase):
+class StitchedEM1DTMHeight(unittest.TestCase):
 
     def setUp(self, parallel=True):
 
         times = np.logspace(-5, -2, 31)
 
-        a = 1.
+        source_radius = 1.
         hz = 1.
         n_sounding = 10
         dx = 20.
@@ -185,50 +188,53 @@ class GlobalEM1DTD_Height(unittest.TestCase):
         source_locations = np.c_[x, y, z]
         topo = np.c_[x, y, z-30.].astype(float)
 
+        source_orientation = 'z'
+        receiver_orientation = "z"  # "x", "y" or "z"
+
+
+        # Waveform
+        waveform_times = np.r_[-np.logspace(-2, -5, 31), 0.]
+        waveform_current = triangular_waveform_current(
+            waveform_times, -0.01, -0.005, 0., 1.
+        )        
+
+        waveform = tdem.sources.RawWaveform(
+                waveform_times=waveform_times, waveform_current=waveform_current,
+                n_pulse = 1, base_frequency = 25.,  high_cut_frequency=210*1e3
+        )
+
         source_list = []
 
-        for ii in range(0, n_sounding):
+        for i_sounding in range(0, n_sounding):
 
-            source_location = mkvc(source_locations[ii, :])
-            receiver_location = mkvc(receiver_locations[ii, :])
+            source_location = mkvc(source_locations[i_sounding, :])
+            receiver_location = mkvc(receiver_locations[i_sounding, :])
 
-            receiver_list = []
+            # Receiver list
 
-            receiver_list.append(
-                em1d.receivers.PointReceiver(
-                    receiver_location, times, orientation="z",
-                    component="b"
-                )
+            # Define receivers at each location.
+            b_receiver = tdem.receivers.PointMagneticFluxDensity(
+                receiver_location, times, receiver_orientation
             )
-
-            receiver_list.append(
-                em1d.receivers.PointReceiver(
-                    receiver_location, times, orientation="z",
-                    component="dbdt"
-                )
+            dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
+                receiver_location, times, receiver_orientation
             )
+            receivers_list = [
+                b_receiver, dbzdt_receiver
+            ]  # Make a list containing all receivers even if just one
 
-            # Waveform
-            waveform_times = np.r_[-np.logspace(-2, -5, 31), 0.]
-            waveform_current = triangular_waveform_current(
-                waveform_times, -0.01, -0.005, 0., 1.
-            )
-            
-            waveform = em1d.waveforms.GeneralWaveform(
-                waveform_times=waveform_times, waveform_current=waveform_current,
-                n_pulse = 1, base_frequency = 25., use_lowpass_filter=False, high_cut_frequency=210*1e3
-            )
-
+            # Must define the transmitter properties and associated receivers
             source_list.append(
-                em1d.sources.HorizontalLoopSource(
-                    receiver_list=receiver_list,
+                tdem.sources.CircularLoop(
+                    receivers_list,
                     location=source_location,
                     waveform=waveform,
-                    radius=a
+                    radius=source_radius,
+                    i_sounding=i_sounding
                 )
             )
 
-        survey = em1d.survey.EM1DSurveyTD(source_list)
+        survey = tdem.Survey(source_list)
 
         simulation = em1d.simulation.StitchedEM1DTMSimulation(
             survey=survey, sigmaMap=sigma_map, hMap=wires.height,

@@ -2,6 +2,7 @@ import unittest
 from SimPEG import *
 from discretize import TensorMesh
 import matplotlib.pyplot as plt
+import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.electromagnetics import frequency_domain_1d as em1d
 from SimPEG.electromagnetics.analytics.em1d_analytics import *
 import numpy as np
@@ -18,46 +19,51 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         topo = np.r_[0., 0., 100.]
         
         offset = 10.
-        src_location = np.array([0., 0., 100.+1e-5])  
-        rx_location = np.array([offset, 0., 100.+1e-5])
-        field_type = "secondary"  # "secondary", "total" or "ppm"
+        src_location = np.array([[0., 0., 100.+1e-5]])  
+        rx_location = np.array([[offset, 0., 100.+1e-5]])
         frequencies = np.logspace(-1, 5, 61)
         
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="z",
-                field_type=field_type, component="real"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="z",
+                component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="z",
-                field_type=field_type, component="imag"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="z",
+                component="imag"
             )
         )
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="x",
-                field_type=field_type, component="real"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="x",
+                component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="x",
-                field_type=field_type, component="imag"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="x",
+                component="imag"
             )
         )
             
-        source_list = [
-            em1d.sources.MagneticDipoleSource(
-                receiver_list=receiver_list, location=src_location, orientation="z"
+        source_list = []
+        for ii, frequency in enumerate(frequencies):
+            src = fdem.sources.MagDipole(
+                receiver_list, frequency, src_location, orientation="z"
             )
-        ]
+            source_list.append(src)
 
         # Survey
-        survey = em1d.survey.EM1DSurveyFD(source_list)
+        # survey = em1d.survey.EM1DSurveyFD(source_list)
+        survey = fdem.Survey(source_list)
         
         sigma = 1e-2
         chi = 0.
@@ -89,27 +95,21 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         m_1D = np.array([np.log(self.sigma)])
         H = sim.dpred(m_1D)
         
-        soln_anal_z = Hz_vertical_magnetic_dipole(
-            self.frequencies, self.offset, self.sigma, 'secondary'
-        )
-        soln_anal_r = Hr_vertical_magnetic_dipole(
-            self.frequencies, self.offset, self.sigma 
-        )
-        
-        if self.showIt is True:
-            N=int(len(H)/4)
-            plt.loglog(self.frequencies, abs(Hz[0:N]), 'b')
-            plt.loglog(self.frequencies, abs(soln_anal_z.real), 'b*')
-            plt.loglog(self.frequencies, abs(Hz[N:2*N]), 'r')
-            plt.loglog(self.frequencies, abs(soln_anal_z.imag), 'r*')
-            plt.show()
-        
-        soln_anal = np.r_[
-            np.real(soln_anal_z), np.imag(soln_anal_z),
-            np.real(soln_anal_r), np.imag(soln_anal_r)
-        ]
-        
-        err = np.linalg.norm(H-soln_anal)/np.linalg.norm(soln_anal)
+        H_analytic = []
+        for frequency in self.frequencies:
+            soln_analytic_z = Hz_vertical_magnetic_dipole(
+                frequency, self.offset, self.sigma, 'secondary'
+            )
+            soln_analytic_r = Hr_vertical_magnetic_dipole(
+                frequency, self.offset, self.sigma
+            )
+            soln_analytic = np.r_[
+                np.real(soln_analytic_z), np.imag(soln_analytic_z),
+                np.real(soln_analytic_r), np.imag(soln_analytic_r)
+            ]
+            H_analytic.append(soln_analytic)
+        H_analytic = np.hstack(H_analytic)
+        err = np.linalg.norm(H-H_analytic)/np.linalg.norm(H_analytic)
         self.assertTrue(err < 1e-5)
         print ("EM1DFD-VMD for halfspace works")
 
@@ -124,27 +124,22 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         m_1D = np.log(np.ones(self.nlayers)*self.sigma)
         H = sim.dpred(m_1D)
         
-        soln_anal_z = Hz_vertical_magnetic_dipole(
-            self.frequencies, self.offset, self.sigma, 'secondary'
-        )
-        soln_anal_r = Hr_vertical_magnetic_dipole(
-            self.frequencies, self.offset, self.sigma
-        )
+        H_analytic = []
+        for frequency in self.frequencies:
+            soln_analytic_z = Hz_vertical_magnetic_dipole(
+                frequency, self.offset, self.sigma, 'secondary'
+            )
+            soln_analytic_r = Hr_vertical_magnetic_dipole(
+                frequency, self.offset, self.sigma
+            )
+            soln_analytic = np.r_[
+                np.real(soln_analytic_z), np.imag(soln_analytic_z),
+                np.real(soln_analytic_r), np.imag(soln_analytic_r)
+            ]
+            H_analytic.append(soln_analytic)
         
-        if self.showIt is True:
-            N=int(len(Hz)/2)
-            plt.loglog(self.frequencies, abs(Hz[0:N]), 'b')
-            plt.loglog(self.frequencies, abs(soln_anal.real), 'b*')
-            plt.loglog(self.frequencies, abs(Hz[N:]), 'r')
-            plt.loglog(self.frequencies, abs(soln_anal.imag), 'r*')
-            plt.show()
-        
-        soln_anal = np.r_[
-            np.real(soln_anal_z), np.imag(soln_anal_z),
-            np.real(soln_anal_r), np.imag(soln_anal_r)
-        ]
-        
-        err = np.linalg.norm(H-soln_anal)/np.linalg.norm(soln_anal)
+        H_analytic = np.hstack(H_analytic)
+        err = np.linalg.norm(H-H_analytic)/np.linalg.norm(H_analytic)
         self.assertTrue(err < 1e-5)
         print ("EM1DFD-VMD for real conductivity works")
 
@@ -168,27 +163,23 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             self.frequencies, self.sigma, self.eta, self.tau, self.c
         )
         
-        soln_anal_z = Hz_vertical_magnetic_dipole(
-            self.frequencies, self.offset, sigma_colecole, 'secondary'
-        )
-        soln_anal_r = Hr_vertical_magnetic_dipole(
-            self.frequencies, self.offset, sigma_colecole
-        )
-
-        if self.showIt is True:
-            N=int(len(Hz)/2)
-            plt.loglog(self.frequencies, abs(Hz[0:N]), 'b')
-            plt.loglog(self.frequencies, abs(soln_anal.real), 'b*')
-            plt.loglog(self.frequencies, abs(Hz[N:]), 'r')
-            plt.loglog(self.frequencies, abs(soln_anal.imag), 'r*')
-            plt.show()
+        H_analytic = []
         
-        soln_anal = np.r_[
-            np.real(soln_anal_z), np.imag(soln_anal_z),
-            np.real(soln_anal_r), np.imag(soln_anal_r)
-        ]
+        for i_freq, frequency in enumerate(self.frequencies):
+            soln_analytic_z = Hz_vertical_magnetic_dipole(
+                frequency, self.offset, sigma_colecole[i_freq], 'secondary'
+            )
+            soln_analytic_r = Hr_vertical_magnetic_dipole(
+                frequency, self.offset, sigma_colecole[i_freq]
+            )
+            soln_analytic = np.r_[
+                np.real(soln_analytic_z), np.imag(soln_analytic_z),
+                np.real(soln_analytic_r), np.imag(soln_analytic_r)
+            ]
         
-        err = np.linalg.norm(H-soln_anal)/np.linalg.norm(soln_anal)
+            H_analytic.append(soln_analytic)
+        H_analytic = np.hstack(H_analytic)
+        err = np.linalg.norm(H-H_analytic)/np.linalg.norm(H_analytic)
         self.assertTrue(err < 1e-5)
         print ("EM1DFD-VMD for complex conductivity works")
 
@@ -196,32 +187,33 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         
         src_location = np.array([0., 0., 100.+1e-5])  
         rx_location = np.array([self.offset, 0., 100.+1e-5])
-        receiver_orientation = "z"  # "x", "y" or "z"
-        field_type = "secondary"  # "secondary", "total" or "ppm"
         frequencies = np.logspace(-1, 5, 61)
         
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="z",
-                field_type=field_type, component="real"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="z",
+                component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="z",
-                field_type=field_type, component="imag"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="z",
+                component="imag"
             )
         )
             
-        source_list = [
-            em1d.sources.MagneticDipoleSource(
-                receiver_list=receiver_list, location=src_location, orientation="x"
+        source_list = []
+        for ii, frequency in enumerate(frequencies):
+            src = fdem.sources.MagDipole(
+                receiver_list, frequency, src_location, orientation="x"
             )
-        ]
+            source_list.append(src)
         
-        survey = em1d.survey.EM1DSurveyFD(source_list)
+        survey = fdem.Survey(source_list)
         
         sigma_map = maps.ExpMap(nP=self.nlayers)
         sim = em1d.simulation.EM1DFMSimulation(
@@ -231,22 +223,16 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         
         m_1D = np.log(np.ones(self.nlayers)*self.sigma)
         Hz = sim.dpred(m_1D)
-        
-        soln_anal = Hz_horizontal_magnetic_dipole(
-            self.frequencies, self.offset, self.offset, self.sigma 
-        )
 
-        if self.showIt is True:
-            N=int(len(Hz)/2)
-            plt.loglog(self.frequencies, abs(Hz[0:N]), 'b')
-            plt.loglog(self.frequencies, abs(soln_anal.real), 'b*')
-            plt.loglog(self.frequencies, abs(Hz[N:]), 'r')
-            plt.loglog(self.frequencies, abs(soln_anal.imag), 'r*')
-            plt.show()
-
-        soln_anal = np.r_[np.real(soln_anal), np.imag(soln_anal)]
-        
-        err = np.linalg.norm(Hz-soln_anal)/np.linalg.norm(soln_anal)
+        H_analytic = []
+        for frequency in self.frequencies:
+            soln_analytic_complex = Hz_horizontal_magnetic_dipole(
+                frequency, self.offset, self.offset, self.sigma 
+            )
+            soln_analytic = np.r_[np.real(soln_analytic_complex), np.imag(soln_analytic_complex)]
+            H_analytic.append(soln_analytic)
+        H_analytic = np.hstack(H_analytic)
+        err = np.linalg.norm(Hz-H_analytic)/np.linalg.norm(H_analytic)
         self.assertTrue(err < 1e-5)
         print ("EM1DFD-HMD for real conductivity works")    
 
@@ -255,33 +241,34 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         
         src_location = np.array([0., 0., 100.+1e-5])  
         rx_location = np.array([0., 0., 100.+1e-5])
-        receiver_orientation = "z"  # "x", "y" or "z"
-        field_type = "secondary"  # "secondary", "total" or "ppm"
         frequencies = np.logspace(-1, 5, 61)
         
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation=receiver_orientation,
-                field_type=field_type, component="real"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="z",
+                component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation=receiver_orientation,
-                field_type=field_type, component="imag"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="z",
+                component="imag"
             )
         )
             
-        source_list = [
-            em1d.sources.HorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location, radius=5.
+        source_list = []
+        for ii, frequency in enumerate(frequencies):
+            src = fdem.sources.CircularLoop(
+                receiver_list, frequency, src_location, radius=5.
             )
-        ]
+            source_list.append(src)
         
-        survey = em1d.survey.EM1DSurveyFD(source_list)
-        
+        survey = fdem.Survey(source_list)
+      
         sigma_map = maps.ExpMap(nP=self.nlayers)
         sim = em1d.simulation.EM1DFMSimulation(
             survey=survey, thicknesses=self.thicknesses,
@@ -290,22 +277,16 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         
         m_1D = np.log(np.ones(self.nlayers)*self.sigma)
         Hz = sim.dpred(m_1D)
-        
-        soln_anal = Hz_horizontal_circular_loop(
-            self.frequencies, 1., 5., self.sigma, 'secondary'
-        )
 
-        if self.showIt is True:
-            N=int(len(Hz)/2)
-            plt.loglog(self.frequencies, abs(Hz[0:N]), 'b')
-            plt.loglog(self.frequencies, abs(soln_anal.real), 'b*')
-            plt.loglog(self.frequencies, abs(Hz[N:]), 'r')
-            plt.loglog(self.frequencies, abs(soln_anal.imag), 'r*')
-            plt.show()
-
-        soln_anal = np.r_[np.real(soln_anal), np.imag(soln_anal)]
-        
-        err = np.linalg.norm(Hz-soln_anal)/np.linalg.norm(soln_anal)
+        H_analytic = []
+        for frequency in self.frequencies:
+            soln_analytic_complex = Hz_horizontal_circular_loop(
+                frequency, 1., 5., self.sigma, 'secondary'
+            )
+            soln_analytic = np.r_[np.real(soln_analytic_complex), np.imag(soln_analytic_complex)]
+            H_analytic.append(soln_analytic)
+        H_analytic = np.hstack(H_analytic)
+        err = np.linalg.norm(Hz-H_analytic)/np.linalg.norm(H_analytic)
         self.assertTrue(err < 1e-5)
         print ("EM1DFD-CircularLoop for real conductivity works")
 
@@ -313,33 +294,33 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
 
         src_location = np.array([0., 0., 100.+1e-5])  
         rx_location = np.array([0., 0., 100.+1e-5])
-        receiver_orientation = "z"  # "x", "y" or "z"
-        field_type = "secondary"  # "secondary", "total" or "ppm"
         frequencies = np.logspace(-1, 5, 61)
         
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation=receiver_orientation,
-                field_type=field_type, component="real"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="z",
+                component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation=receiver_orientation,
-                field_type=field_type, component="imag"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="z",
+                component="imag"
             )
         )
             
-        source_list = [
-            em1d.sources.HorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location, radius=5.
+        source_list = []
+        for ii, frequency in enumerate(frequencies):
+            src = fdem.sources.CircularLoop(
+                receiver_list, frequency, src_location, radius=5.
             )
-        ]
-
-        # Survey
-        survey = em1d.survey.EM1DSurveyFD(source_list)
+            source_list.append(src)
+        
+        survey = fdem.Survey(source_list)
         
         sigma_map = maps.IdentityMap(nP=self.nlayers)
         chi = np.zeros(self.nlayers)
@@ -358,25 +339,18 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         sigma_colecole = ColeCole(
             self.frequencies, self.sigma, self.eta, self.tau, self.c
         )
-        
-        soln_anal = Hz_horizontal_circular_loop(
-            self.frequencies, 1., 5., sigma_colecole, 'secondary'
-        )
+        H_analytic = []
+        for i_freq, frequency in enumerate(self.frequencies):
+            soln_analytic_complex = Hz_horizontal_circular_loop(
+                frequency, 1., 5., sigma_colecole[i_freq], 'secondary'
+            )
+            soln_analytic = np.r_[np.real(soln_analytic_complex), np.imag(soln_analytic_complex)]
+            H_analytic.append(soln_analytic)
+        H_analytic = np.hstack(H_analytic)
+        err = np.linalg.norm(Hz-H_analytic)/np.linalg.norm(H_analytic)
 
-        if self.showIt is True:
-            N=int(len(Hz)/2)
-            plt.loglog(self.frequencies, abs(Hz[0:N]), 'b')
-            plt.loglog(self.frequencies, abs(soln_anal.real), 'b*')
-            plt.loglog(self.frequencies, abs(Hz[N:]), 'r')
-            plt.loglog(self.frequencies, abs(soln_anal.imag), 'r*')
-            plt.show()
-
-        soln_anal = np.r_[np.real(soln_anal), np.imag(soln_anal)]
-        
-        err = np.linalg.norm(Hz-soln_anal)/np.linalg.norm(soln_anal)
         self.assertTrue(err < 1e-5)
         print ("EM1DFD-CircularLoop for complex conductivity works")
-
 
 if __name__ == '__main__':
     unittest.main()

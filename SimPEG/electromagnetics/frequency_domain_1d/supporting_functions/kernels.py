@@ -54,7 +54,7 @@ def magnetic_dipole_kernel(
     """
 
     # coefficient_wavenumber = 1/(4*np.pi)*lamda**2
-    C = src.moment_amplitude/(4*np.pi)
+    C = src.moment/(4*np.pi)
 
     n_frequency = len(f)
     n_filter = simulation.n_filter
@@ -62,36 +62,26 @@ def magnetic_dipole_kernel(
     mu = (chi+1)*mu_0
     # COMPUTE TE-MODE REFLECTION COEFFICIENT
     if output_type == 'sensitivity_sigma':
-        drTE = np.zeros(
-            [n_layer, n_frequency, n_filter],
-            dtype=np.complex128, order='F'
-        )
-
         drTE, _, _ = rTE_gradient(
-            f[:,0], lamda[0,:], sig, mu, thicknesses
+            f, lamda.reshape(-1), sig, mu, thicknesses
             )
-
-        temp = drTE * np.exp(-lamda*(z+h))
+        drTE.reshape((n_layer, n_frequency, n_filter))
     else:
-        rTE = np.empty(
-            [n_frequency, n_filter], dtype=np.complex128, order='F'
-        )
-        depth = simulation.depth
         rTE = rTE_forward(
-            f[:,0], lamda[0,:], sig, mu, thicknesses
+            f, lamda.reshape(-1), sig, mu, thicknesses
         )
-
+        rTE.reshape((n_frequency, n_filter))
         temp = rTE * np.exp(-lamda*(z+h))
         if output_type == 'sensitivity_height':
             temp *= -2*lamda
 
     # COMPUTE KERNEL FUNCTIONS FOR HANKEL TRANSFORM
     if rx.use_source_receiver_offset:
-        v_dist = rx.locations
+        v_dist = rx.locations.ravel()
     else:
-        v_dist = rx.locations - src.location
+        v_dist = rx.locations.ravel() - src.location
 
-    if src.orientation == "z":
+    if np.all(src.orientation==[0, 0, 1]):
         if rx.orientation == "z":
             kernels = [C * lamda**2 * temp, None, None]
         elif rx.orientation == "x":
@@ -100,7 +90,7 @@ def magnetic_dipole_kernel(
         elif rx.orientation == "y":
             C *= -v_dist[1]/np.sqrt(np.sum(v_dist[0:-1]**2))
             kernels = [None, C * lamda**2 * temp, None]
-    elif src.orientation == "x":
+    elif np.all(src.orientation==[1, 0, 0]):
         rho = np.sqrt(np.sum(v_dist[0:-1]**2))
         if rx.orientation == "z":
             C *= v_dist[0]/rho
@@ -113,7 +103,7 @@ def magnetic_dipole_kernel(
             C0 = C * v_dist[0]*v_dist[1]/rho**2
             C1 = C * -2*v_dist[0]*v_dist[1]/rho**3
             kernels = [C0 * lamda**2 * temp, C1 * lamda *temp, None]
-    elif src.orientation == "y":
+    elif np.all(src.orientation==[0, 1, 0]):
         rho = np.sqrt(np.sum(v_dist[0:-1]**2))
         if rx.orientation == "z":
             C *= v_dist[1]/rho
@@ -197,12 +187,12 @@ def magnetic_dipole_kernel(
 #         if rte_fortran is None:
 #             thick = simulation.thicknesses
 #             drTE = rTEfunjac(
-#                 n_layer, f, lamda[0,:], sig, chi, thick, simulation.halfspace_switch
+#                 n_layer, f, lamda[:,:], sig, chi, thick, simulation.halfspace_switch
 #             )
 #         else:
 #             depth = simulation.depth
 #             rte_fortran.rte_sensitivity(
-#                 f, lamda[0,:], sig, chi, depth, simulation.halfspace_switch, drTE,
+#                 f, lamda[:,:], sig, chi, depth, simulation.halfspace_switch, drTE,
 #                 n_layer, n_frequency, n_filter
 #                 )
 
@@ -214,12 +204,12 @@ def magnetic_dipole_kernel(
 #         if rte_fortran is None:
 #             thick = simulation.thicknesses
 #             rTE = rTEfunfwd(
-#                 n_layer, f, lamda[0,:], sig, chi, thick, simulation.halfspace_switch
+#                 n_layer, f, lamda[:,:], sig, chi, thick, simulation.halfspace_switch
 #             )
 #         else:
 #             depth = simulation.depth
 #             rte_fortran.rte_forward(
-#                 f, lamda[0,:], sig, chi, depth, simulation.halfspace_switch,
+#                 f, lamda[:,:], sig, chi, depth, simulation.halfspace_switch,
 #                 rTE, n_layer, n_frequency, n_filter
 #             )
 
@@ -233,7 +223,7 @@ def magnetic_dipole_kernel(
 
 # TODO: make this to take a vector rather than a single frequency
 def horizontal_loop_kernel(
-    simulation, lamda, f, n_layer, sig, chi, a, h, z, r,
+    simulation, lamda, f, n_layer, sig, chi, a, h, z,
     src, rx, output_type='response'
 ):
 
@@ -267,28 +257,21 @@ def horizontal_loop_kernel(
     radius = np.empty([n_frequency, n_filter], order='F')
     radius[:, :] = np.tile(a.reshape([-1, 1]), (1, n_filter))
 
-    coefficient_wavenumber = src.current_amplitude*radius*0.5*lamda**2/u0
+    coefficient_wavenumber = src.current*radius*0.5*lamda**2/u0
     thicknesses = simulation.thicknesses
     mu = (chi+1)*mu_0
     
     if output_type == 'sensitivity_sigma':
-        drTE = np.empty(
-            [n_layer, n_frequency, n_filter],
-            dtype=np.complex128, order='F'
-        )
-        
         drTE, _, _ = rTE_gradient(
-            f[:,0], lamda[0,:], sig, mu, thicknesses
-        )
+            f, lamda.reshape(-1), sig, mu, thicknesses
+            )
+        drTE.reshape((n_layer, n_frequency, n_filter))
         kernel = drTE * np.exp(-u0*(z+h)) * coefficient_wavenumber
     else:
-        rTE = np.empty(
-            [n_frequency, n_filter], dtype=np.complex128, order='F'
-        )
-
         rTE = rTE_forward(
-            f[:,0], lamda[0,:], sig, mu, thicknesses
+            f, lamda.reshape(-1), sig, mu, thicknesses
         )
+        rTE.reshape((n_frequency, n_filter))
 
         kernel = rTE * np.exp(-u0*(z+h)) * coefficient_wavenumber
 
@@ -322,7 +305,7 @@ def hz_kernel_horizontal_electric_dipole(
         )
         
         drTE, _, _ = rTE_gradient(
-            f[:,0], lamda[0,:], sig, mu, thicknesses
+            f, lamda[0,:], sig, mu, thicknesses
         )
 
         kernel = drTE * np.exp(-u0*(z+h)) * coefficient_wavenumber
@@ -331,7 +314,7 @@ def hz_kernel_horizontal_electric_dipole(
             [n_frequency, n_filter], dtype=np.complex128, order='F'
         )
         rTE = rTE_forward(
-            f[:,0], lamda[0,:], sig, mu, thicknesses
+            f, lamda[0,:], sig, mu, thicknesses
         )
 
         kernel = rTE * np.exp(-u0*(z+h)) * coefficient_wavenumber

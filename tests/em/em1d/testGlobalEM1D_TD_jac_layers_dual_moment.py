@@ -2,6 +2,7 @@ from __future__ import print_function
 import unittest
 import numpy as np
 
+import SimPEG.electromagnetics.time_domain as tdem
 import SimPEG.electromagnetics.time_domain_1d as em1d
 from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_time
 from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
@@ -43,11 +44,31 @@ class GlobalEM1DTD(unittest.TestCase):
         source_locations = np.c_[x, y, z]
         source_current = 1.
         source_orientation = 'z'
+        source_radius = 10.
+
         receiver_offset_r = 13.25
         receiver_offset_z = 2.
 
         receiver_locations = np.c_[x+receiver_offset_r, np.zeros(n_sounding), 30.*np.ones(n_sounding)+receiver_offset_z]
         receiver_orientation = "z"  # "x", "y" or "z"
+
+        # Waveforms
+        wave_HM = em1d.waveforms.Skytem2015HighMomentWaveform()
+        wave_LM = em1d.waveforms.Skytem2015LowMomentWaveform()
+
+        waveform_times_HM = skytem_2015_HM_waveform_times()
+        waveform_current_HM = skytem_2015_HM_waveform_current()
+        waveform_times_LM = skytem_2015_LM_waveform_times()
+        waveform_current_LM = skytem_2015_LM_waveform_times()
+
+        waveform_hm = tdem.sources.RawWaveform(
+                waveform_times=waveform_times_HM, waveform_current=waveform_current_HM,
+                n_pulse = 1, base_frequency = 25.
+        )
+        waveform_lm = tdem.sources.RawWaveform(
+                waveform_times=waveform_times_LM, waveform_current=waveform_current_LM,
+                n_pulse = 1, base_frequency = 210.
+        )
 
         topo = np.c_[x, y, z-30.].astype(float)
 
@@ -55,63 +76,43 @@ class GlobalEM1DTD(unittest.TestCase):
 
         source_list = []
 
-        for ii in range(0, n_sounding):
+        for i_sounding in range(0, n_sounding):
 
-            source_location = mkvc(source_locations[ii, :])
-            receiver_location = mkvc(receiver_locations[ii, :])
+            source_location = source_locations[i_sounding, :]
+            receiver_location = receiver_locations[i_sounding, :]
 
-            receiver_list = []
+            # Receiver list
 
-            receiver_list = [
-                em1d.receivers.PointReceiver(
-                    receiver_location,
-                    times=time_HM,
-                    dual_times=time_LM,
-                    orientation=receiver_orientation,
-                    component="dbdt"
-                )
-            ]
+            # Define receivers at each location.
+            dbzdt_receiver_hm = tdem.receivers.PointMagneticFluxTimeDerivative(
+                receiver_location, time_HM, receiver_orientation
+            )
+            dbzdt_receiver_lm = tdem.receivers.PointMagneticFluxTimeDerivative(
+                receiver_location, time_LM, receiver_orientation
+            )
+            # Make a list containing all receivers even if just one
 
-            receiver_list = [
-                em1d.receivers.PointReceiver(
-                    receiver_location,
-                    times=time_HM,
-                    dual_times=time_LM,
-                    orientation=receiver_orientation,
-                    component="b"
-                )
-            ]
-
-            # Waveforms
-            wave_HM = em1d.waveforms.Skytem2015HighMomentWaveform()
-            wave_LM = em1d.waveforms.Skytem2015LowMomentWaveform()
-            
-            waveform_times_HM = skytem_2015_HM_waveform_times()
-            waveform_current_HM = skytem_2015_HM_waveform_current()
-            waveform_times_LM = skytem_2015_LM_waveform_times()
-            waveform_current_LM = skytem_2015_LM_waveform_times()
-
-            waveform = em1d.waveforms.DualWaveform(
-                waveform_times=waveform_times_HM,
-                waveform_current=waveform_current_HM,
-                base_frequency = 25.,
-                dual_waveform_times = waveform_times_LM,
-                dual_waveform_current = waveform_current_LM,
-                dual_base_frequency = 210
+            # Must define the transmitter properties and associated receivers
+            source_list.append(tdem.sources.MagDipole(
+                [dbzdt_receiver_hm],
+                location=source_location,
+                waveform=waveform_hm,
+                orientation=source_orientation,
+                i_sounding=i_sounding,
+            )
+            )
+                    
+            source_list.append(tdem.sources.MagDipole(
+                [dbzdt_receiver_lm],
+                location=source_location,
+                waveform=waveform_lm,
+                orientation=source_orientation,
+                i_sounding=i_sounding,
+            )
             )
 
 
-            source_list.append(
-                em1d.sources.MagneticDipoleSource(
-                    receiver_list=receiver_list,
-                    location=source_location,
-                    waveform=waveform,
-                    moment_amplitude=source_current,
-                    orientation=source_orientation
-                )
-            )
-
-        survey = em1d.survey.EM1DSurveyTD(source_list)
+        survey = tdem.Survey(source_list)
 
         simulation = em1d.simulation.StitchedEM1DTMSimulation(
             survey=survey, thicknesses=thicknesses, sigmaMap=sigma_map,

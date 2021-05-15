@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 from SimPEG import maps, utils
 import matplotlib.pyplot as plt
+import SimPEG.electromagnetics.time_domain as tdem
 import SimPEG.electromagnetics.time_domain_1d as em1d
 from scipy import io
 from SimPEG.electromagnetics.time_domain_1d.supporting_functions.digital_filter import setFrequency
@@ -17,37 +18,39 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         thicknesses = np.r_[nearthick, deepthick]
         topo = np.r_[0., 0., 100.]
 
-        src_location = np.array([0., 0., 100.+1e-5])
-        rx_location = np.array([0., 0., 100.+1e-5])
+        source_location = np.array([0., 0., 100.+1e-5])
+        nsrc = 1
+        receiver_locations = np.array([[0., 0., 100.+1e-5]])
         receiver_orientation = "z"  # "x", "y" or "z"
         times = np.logspace(-5, -2, 31)
-        a = 20.
+        radius = 20.
+        waveform = tdem.sources.StepOffWaveform(offTime=0.0)
 
         # Receiver list
-        receiver_list = []
-        receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, times, orientation=receiver_orientation,
-                component="b"
-            )
-        )
-        receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, times, orientation=receiver_orientation,
-                component="dbdt"
-            )
-        )
 
-        waveform = em1d.waveforms.StepoffWaveform()
+        # Define receivers at each location.
+        b_receiver = tdem.receivers.PointMagneticFluxDensity(
+            receiver_locations, times, "z"
+        )
+        dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
+            receiver_locations, times, "z"
+        )
+        receivers_list = [
+            b_receiver, dbzdt_receiver
+        ]  # Make a list containing all receivers even if just one
 
+        # Must define the transmitter properties and associated receivers
         source_list = [
-            em1d.sources.HorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location, waveform=waveform,
-                radius=a, current_amplitude=1., 
+            tdem.sources.CircularLoop(
+                receivers_list,
+                location=source_location,
+                waveform=waveform,
+                radius=radius,
+                i_sounding=0
             )
         ]
-        # Survey
-        survey = em1d.survey.EM1DSurveyTD(source_list)
+
+        survey = tdem.Survey(source_list)
 
         sigma = 1e-2
         chi = 0.
@@ -72,7 +75,7 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         self.times = times
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses)+1
-        self.a = a
+        self.a = radius
 
     def test_EM1DTDfwd_CirLoop_RealCond(self):
 

@@ -37,64 +37,6 @@ def triangular_derivative_waveform_current(times, ta, tb):
     out[(times>ta)&(times<tb)] = -1/(tb-ta)
     return out
 
-# def SineFun(time, ta):
-#     """
-#         Sine Waveform
-#         * time: 1D array for time
-#         * ta: Pulse Period
-#     """
-#     out = np.zeros(time.size)
-#     out[time<=ta] = np.sin(1./ta*np.pi*time[time<=ta])
-
-#     return out
-
-# def SineFunDeriv(time, ta):
-#     """
-#         Derivative of Sine Waveform
-#     """
-#     out = np.zeros(time.size)
-#     out[time<=ta] = 1./ta*np.pi*np.cos(1./ta*np.pi*time[time<=ta])
-#     return out
-
-
-
-
-# def CausalConv(array1, array2, time):
-#     """
-#         Evaluate convolution for two causal functions.
-#         Input
-
-#         * array1: array for \\\\(\\\\ f_1(t)\\\\)
-#         * array2: array for \\\\(\\\\ f_2(t)\\\\)
-#         * time: array for time
-
-#         .. math::
-
-#             Out(t) = \int_{0}^{t} f_1(a) f_2(t-a) da
-
-#     """
-
-#     if array1.shape == array2.shape == time.shape:
-#         out = np.convolve(array1, array2)
-#         # print time[1]-time[0]
-#         return out[0:np.size(time)]*(time[1]-time[0])
-#     else:
-#         print ("Give me same size of 1D arrays!!")
-
-
-
-
-# def CenDiff(f, tin):
-#     """
-#         Evaluating central difference of given array (f)
-#         and provide funtion handle for interpolation
-#     """
-#     dfdt = mu_0*np.diff(f, n=1)/np.diff(tin, n=1)
-#     tm = np.diff(tin, n=1)*0.5 + tin[:-1]
-#     Diffun = interp1d(tm, dfdt)
-#     return Diffun
-
-
 def vtem_waveform_current(times, start_time, peak_time, end_time, decay_constant, peak_current_amplitude):
 
     out = np.zeros(times.size)
@@ -111,10 +53,17 @@ def vtem_waveform_current(times, start_time, peak_time, end_time, decay_constant
     
     return out
 
+def geotem_waveform_current(pulse_period, n_segment=3):
+    t = 0.
+    T = pulse_period
+    time_input_currents = np.r_[0., T/2., np.linspace(3*T/4., T, n_segment)]
+    input_currents = np.sin(np.pi/T*time_input_currents)
+    return time_input_currents, input_currents
 
-
-
-
+def nanotem_waveform_current(ramp_off_time):
+    time_input_currents = np.r_[0, ramp_off_time]
+    input_currents = np.r_[1, 0.]
+    return time_input_currents, input_currents    
 
 
 #######################################################################
@@ -752,76 +701,3 @@ def butterworth_type_filter(frequency, highcut_frequency, order=2):
     highcut_frequency = 300*1e3
     h *= 1./(1+1j*(frequency/highcut_frequency))**1
     return h
-
-
-def rotate_origin_only(xy, radians):
-    """Only rotate a point around the origin (0, 0)."""
-    xx = xy[:, 0] * np.cos(radians) + xy[:, 1] * np.sin(radians)
-    yy = -xy[:, 0] * np.sin(radians) + xy[:, 1] * np.cos(radians)
-    return np.c_[xx, yy]
-
-
-def rotate_to_x_axis(xy, observation_point):
-    """
-    Moves each of two sequential points to origin (0,0)
-    then rotate to x-axis
-    """
-    n_pts = xy.shape[0]
-    dxy = np.empty((n_pts-1, 2), dtype=float, order='F')
-    dxy_obs = np.empty((n_pts-1, 2), dtype=float, order='F')
-    angle = np.empty(n_pts-1, dtype=float)
-    dxy = np.diff(xy, axis=0)
-    print (dxy)
-    dxy_obs = observation_point.repeat(n_pts-1).reshape((2, n_pts-1)).T
-    angle = np.arctan2(dxy[:, 1], dxy[:, 0])
-    # this is for self-check
-    xy_rot = rotate_origin_only(dxy, angle)
-    xy_obs_rot = rotate_origin_only(dxy_obs, angle)
-
-    # For computation of Hx, Hy angle is required
-    # Hx: hx cos theta + hy sin theta
-    # Hy: hx sin theta - hy cos theta
-    # Hz: hz
-    return xy_rot, xy_obs_rot, angle
-
-
-def get_geotem_wave(pulse_period, n_segment=3):
-    t = 0.
-    T = pulse_period
-    time_input_currents = np.r_[0., T/2., np.linspace(3*T/4., T, n_segment)]
-    input_currents = np.sin(np.pi/T*time_input_currents)
-    return time_input_currents, input_currents
-
-
-def get_nanotem_wave(ramp_off_time):
-    time_input_currents = np.r_[0, ramp_off_time]
-    input_currents = np.r_[1, 0.]
-    return time_input_currents, input_currents
-
-
-def get_flight_direction_from_fiducial(fiducial, lines, easting, northing):
-    lines_unique = np.unique(lines)
-    n_line = lines_unique.size
-    flight_direction = np.empty(fiducial.size, dtype=float)
-    i_start = 0
-    for i_line, line_unique in enumerate(lines_unique):
-        ind_line = lines == line_unique
-        x0, x1 = easting[ind_line][0], easting[ind_line][-1]
-        y0, y1 = northing[ind_line][0], northing[ind_line][-1]
-        dx = x1-x0
-        dy = y1-y0
-        n = ind_line.sum()
-        flight_direction[i_start:i_start+n] = np.arctan2(dy, dx)
-        i_start += n
-    return flight_direction
-
-
-def get_rx_locations_from_flight_direction(
-    flight_direction, src_locations, offset=120, dz=-45
-):
-    dx = offset*np.cos(np.deg2rad(flight_direction))
-    dy = offset*np.sin(np.deg2rad(flight_direction))
-    rx_locations = np.c_[
-        src_locations[:, 0]-dx, src_locations[:, 1]-dy, src_locations[:, 2]+dz
-    ]
-    return rx_locations

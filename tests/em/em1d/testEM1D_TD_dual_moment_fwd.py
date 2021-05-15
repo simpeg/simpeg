@@ -2,6 +2,7 @@ import unittest
 from SimPEG import maps
 import matplotlib.pyplot as plt
 import SimPEG.electromagnetics.time_domain_1d as em1d
+import SimPEG.electromagnetics.time_domain as tdem
 from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
 from SimPEG.electromagnetics.analytics.em1d_analytics import *
 import numpy as np
@@ -19,63 +20,72 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         source_radius = 10.
         moment_amplitude = 1.
 
-        receiver_location = np.array([10., 0., 0.])
+        receiver_locations = np.array([[10., 0., 0.]])
         receiver_orientation = "z"  # "x", "y" or "z"
-        field_type = "secondary"  # "secondary", "total"
 
         time_HM = skytem_2015_HM_time_channels()
         time_LM = skytem_2015_LM_time_channels()
-        
-        # times = np.logspace(-5, -2, 41)
-
-        # Receiver list
-        rx = em1d.receivers.PointReceiver(
-                receiver_location,
-                times=time_HM,
-                dual_times=time_LM,
-                orientation=receiver_orientation,
-                component="dbdt"
-        )
-        receiver_list = [rx]
 
         # Waveforms
         wave_HM = em1d.waveforms.Skytem2015HighMomentWaveform()
         wave_LM = em1d.waveforms.Skytem2015LowMomentWaveform()
-        
+
         waveform_times_HM = skytem_2015_HM_waveform_times()
         waveform_current_HM = skytem_2015_HM_waveform_current()
         waveform_times_LM = skytem_2015_LM_waveform_times()
         waveform_current_LM = skytem_2015_LM_waveform_times()
 
-        waveform = em1d.waveforms.DualWaveform(
-            waveform_times=waveform_times_HM,
-            waveform_current=waveform_current_HM,
-            base_frequency = 25.,
-            dual_waveform_times = waveform_times_LM,
-            dual_waveform_current = waveform_current_LM,
-            dual_base_frequency = 210
+        waveform_hm = tdem.sources.RawWaveform(
+                waveform_times=waveform_times_HM, waveform_current=waveform_current_HM,
+                n_pulse = 1, base_frequency = 25.
+        )
+        waveform_lm = tdem.sources.RawWaveform(
+                waveform_times=waveform_times_LM, waveform_current=waveform_current_LM,
+                n_pulse = 1, base_frequency = 210.
         )
 
-        src = em1d.sources.HorizontalLoopSource(
-            receiver_list=receiver_list,
-            location=source_location,
-            waveform = waveform,
-            radius=source_radius,
-        )
-        source_list = [src]
+        # Receiver list
 
+        # Define receivers at each location.
+        dbzdt_receiver_hm = tdem.receivers.PointMagneticFluxTimeDerivative(
+            receiver_locations, time_HM, receiver_orientation
+        )
+        dbzdt_receiver_lm = tdem.receivers.PointMagneticFluxTimeDerivative(
+            receiver_locations, time_LM, receiver_orientation
+        )
+        # Make a list containing all receivers even if just one
+
+        # Must define the transmitter properties and associated receivers
+        source_list = [
+            tdem.sources.CircularLoop(
+                [dbzdt_receiver_hm],
+                location=source_location,
+                waveform=waveform_hm,
+                radius=source_radius,
+                i_sounding=0
+            ),
+            tdem.sources.CircularLoop(
+                [dbzdt_receiver_lm],
+                location=source_location,
+                waveform=waveform_lm,
+                radius=source_radius,
+                i_sounding=0
+            )    
+        ]
+
+        survey = tdem.Survey(source_list)
+        
         thicknesses = np.ones(3)
         sigma = 1e-2
         n_layer = thicknesses.size + 1
 
         sigma_model = sigma * np.ones(n_layer)
-        survey = em1d.survey.EM1DSurveyTD(source_list)
+
         model_mapping = maps.IdentityMap(nP=n_layer)
         simulation = em1d.simulation.EM1DTMSimulation(
             survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping,
         )
-
-
+   
         self.survey = survey
         self.simulation = simulation
         self.showIt = False
@@ -84,8 +94,8 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
 
     def test_em1dtd_circular_loop_single_pulse(self):
 
-        src = self.survey.srcList[0]
-        rx = src.rxList[0]
+        src = self.survey.source_list[0]
+        rx = src.receiver_list[0]
         dBzdtTD = self.simulation.dpred(self.sigma_model)
         dBzdtTD_HM = dBzdtTD[:rx.times.size]
         dBzdtTD_LM = dBzdtTD[rx.times.size:]
@@ -102,18 +112,21 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
             src.waveform.period
         )
 
+        src_lm = self.survey.source_list[1]
+        rx_lm = src_lm.receiver_list[0]
+
         dBzdtTD_analytic_LM = piecewise_pulse(
-            step_func_dBzdt, rx.dual_times,
-            src.waveform.dual_waveform_times,
-            src.waveform.dual_waveform_current,
-            src.waveform.dual_period
+            step_func_dBzdt, rx_lm.times,
+            src_lm.waveform.waveform_times,
+            src_lm.waveform.waveform_current,
+            src_lm.waveform.period
         )
 
         if self.showIt:
             plt.loglog(rx.times, -dBzdtTD_HM)
-            plt.loglog(rx.dual_times, -dBzdtTD_LM)
+            plt.loglog(rx_lm.times, -dBzdtTD_LM)
             plt.loglog(rx.times, -dBzdtTD_analytic_HM, 'x')
-            plt.loglog(rx.dual_times, -dBzdtTD_analytic_LM, 'x')
+            plt.loglog(rx_lm.times, -dBzdtTD_analytic_LM, 'x')
             plt.show()
 
         err = (

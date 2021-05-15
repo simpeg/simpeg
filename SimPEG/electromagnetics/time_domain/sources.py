@@ -32,6 +32,32 @@ class BaseWaveform(properties.HasProperties):
         "window of time within which the waveform is considered on", default=1e-9
     )
 
+    use_lowpass_filter = properties.Bool(
+        "Switch for low pass filter", default=False
+    )
+
+    n_pulse = properties.Integer(
+        "The number of pulses",
+        default=1
+    )
+
+    high_cut_frequency = properties.Float(
+        "High cut frequency for low pass filter (Hz)",
+        default=210*1e3
+    )
+
+    waveform_times = properties.Array(
+        "Time for input currents", dtype=float
+    )
+
+    waveform_current = properties.Array(
+        "Input currents", dtype=float
+    )
+
+    base_frequency = properties.Float(
+        "Base frequency (Hz)", default=30.
+    )    
+
     def __init__(self, **kwargs):
         setKwargs(self, **kwargs)
 
@@ -40,6 +66,18 @@ class BaseWaveform(properties.HasProperties):
 
     def evalDeriv(self, time):
         raise NotImplementedError  # needed for E-formulation
+
+    @property
+    def period(self):
+        return 1./self.base_frequency
+
+    @property
+    def pulse_period(self):
+        Tp = (
+            self.waveform_times.max() -
+            self.waveform_times.min()
+        )
+        return Tp        
 
 
 class StepOffWaveform(BaseWaveform):
@@ -249,6 +287,8 @@ class BaseTDEMSrc(BaseEMSrc):
         "is the source a galvanic of inductive source",
         choices=["inductive", "galvanic"],
     )
+
+    i_sounding = properties.Integer("sounding number of the source", min=0, default=0, required=True)
 
     def __init__(self, receiver_list=None, **kwargs):
         if receiver_list is not None:
@@ -481,7 +521,7 @@ class CircularLoop(MagDipole):
 
     radius = properties.Float("radius of the loop source", default=1.0, min=0.0)
 
-    current_amplitude = properties.Float("maximum current amplitude", default=1.0)
+    current = properties.Float("maximum current amplitude", default=1.0)
 
     N = properties.Float("number of turns in the loop", default=1.0)
 
@@ -503,7 +543,7 @@ class CircularLoop(MagDipole):
                 location=self.loc,
                 orientation=self.orientation,
                 radius=self.radius,
-                current=self.current_amplitude,
+                current=self.current,
             )
         return self._loop.vector_potential(obsLoc, coordinates)
 

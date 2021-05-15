@@ -11,8 +11,10 @@ class BaseRx(BaseTimeRx):
     Time domain receiver base class
 
     :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param numpy.ndarray times: times
+    :param numpy.ndarray times: time channels [s]
     :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param numpy.array frequencies: frequencies used to compute harmonic response
+    :param bool use_source_receiver_offset: actual receiver location (False). Source-receiver offset (True)
     """
 
     orientation = properties.StringChoice(
@@ -23,12 +25,25 @@ class BaseRx(BaseTimeRx):
         orientation, "projComp", new_name="orientation", removal_version="0.15.0"
     )
 
+    frequencies = properties.Array(
+        "Frequency (Hz)", dtype=float, shape=("*",), required=True
+    )   
+
+    use_source_receiver_offset = properties.Bool(
+        "Use source-receiver offset",
+        default=False
+    )    
+
+    _ftarg = None
+    _time_interval = None
+
     def __init__(self, locations, times, orientation=None, **kwargs):
         proj = kwargs.pop("projComp", None)
         if proj is not None:
             self.projComp = proj
         else:
             self.orientation = orientation
+
         super().__init__(locations=locations, times=times, **kwargs)
 
     def projGLoc(self, f):
@@ -131,7 +146,16 @@ class BaseRx(BaseTimeRx):
             # dP_dF_T = P.T * v #[src, self]
             # newshape = (len(dP_dF_T)/time_mesh.nN, time_mesh.nN )
             return P.T * v  # np.reshape(dP_dF_T, newshape, order='F')
-
+        
+    @property
+    def n_time(self):
+        """
+            Number of time channels
+        """
+        # if self.dual_times is not None:
+        #     return int(self.times.size) + int(self.dual_times.size)
+        # else:
+        return int(self.times.size)
 
 class PointElectricField(BaseRx):
     """
@@ -225,6 +249,21 @@ class PointMagneticField(BaseRx):
         super(PointMagneticField, self).__init__(
             locations, times, orientation, **kwargs
         )
+
+class PointMagneticFieldTimeDerivative(BaseRx):
+    """
+    Magnetic field TDEM receiver
+
+    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param numpy.ndarray times: times
+    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    """
+
+    def __init__(self, locations=None, times=None, orientation="x", **kwargs):
+        self.projField = "dhdt"
+        super(PointMagneticFieldTimeDerivative, self).__init__(
+            locations, times, orientation, **kwargs
+        )        
 
 
 class PointCurrentDensity(BaseRx):

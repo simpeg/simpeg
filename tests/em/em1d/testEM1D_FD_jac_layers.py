@@ -3,6 +3,7 @@ from SimPEG import *
 from SimPEG.utils import mkvc
 import matplotlib.pyplot as plt
 import SimPEG.electromagnetics.frequency_domain_1d as em1d
+import SimPEG.electromagnetics.frequency_domain as fdem
 import numpy as np
 
 
@@ -17,59 +18,84 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
 
         src_location = np.array([0., 0., 100.+1e-5])
         rx_location = np.array([10., 0., 100.+1e-5])
-        field_type = "secondary"  # "secondary", "total" or "ppm"
         frequencies = np.logspace(1, 8, 21)
 
         # Receiver list
         receiver_list = []
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="x",
-                field_type=field_type, component="both"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="x",
+                component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="x",
-                field_type=field_type, component="imag"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="x",
+                component="imag"
             )
         )
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="y",
-                field_type=field_type, component="both"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="x",
+                component="both"
+            )
+        )        
+        receiver_list.append(
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="y",
+                component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="y",
-                field_type=field_type, component="real"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="y",
+                component="imag"
             )
         )
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="z",
-                field_type=field_type, component="both"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="y",
+                component="both"
+            )
+        )        
+        receiver_list.append(
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="z",
+                component="real"
             )
         )
         receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="z",
-                field_type=field_type, component="imag"
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="z",
+                component="imag"
             )
         )
-
+        receiver_list.append(
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, 
+                orientation="z",
+                component="both"
+            )
+        )        
         I = 1.
         a = 10.
-        source_list = [
-            em1d.sources.HorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location,
-                current_amplitude=I, radius=a
+        source_list = []
+        for ii, frequency in enumerate(frequencies):
+            src = fdem.sources.CircularLoop(
+                receiver_list, frequency, src_location, radius=a, current=I
             )
-        ]
+            source_list.append(src)
 
         # Survey
-        survey = em1d.survey.EM1DSurveyFD(source_list)
+        survey = fdem.Survey(source_list)
 
         self.topo = topo
         self.survey = survey
@@ -161,139 +187,163 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
             print ("EM1DFD-layers Jtvec works")
 
 
-class EM1D_FD_Jac_layers_ProblemTests_Height(unittest.TestCase):
+# class EM1D_FD_Jac_layers_ProblemTests_Height(unittest.TestCase):
 
-    def setUp(self):
+#     def setUp(self):
 
-        topo = np.r_[0., 0., 100.]
+#         topo = np.r_[0., 0., 100.]
 
-        src_location = np.array([0., 0., 100.+20.])
-        rx_location = np.array([10., 0., 100.+20.])
-        field_type = "secondary"  # "secondary", "total" or "ppm"
-        frequencies = np.logspace(1, 8, 21)
+#         src_location = np.array([0., 0., 100.+20.])
+#         rx_location = np.array([10., 0., 100.+20.])
+#         field_type = "secondary"  # "secondary", "total" or "ppm"
+#         frequencies = np.logspace(1, 8, 21)
+#         # Receiver list
+#         receiver_list = []
+#         receiver_list.append(
+#             fdem.receivers.PointMagneticFieldSecondary(
+#                 rx_location, 
+#                 orientation="x",
+#                 component="real"
+#             )
+#         )
+#         receiver_list.append(
+#             fdem.receivers.PointMagneticFieldSecondary(
+#                 rx_location, 
+#                 orientation="x",
+#                 component="imag"
+#             )
+#         )
+#         receiver_list.append(
+#             fdem.receivers.PointMagneticFieldSecondary(
+#                 rx_location, 
+#                 orientation="x",
+#                 component="both"
+#             )
+#         )        
+#         receiver_list.append(
+#             fdem.receivers.PointMagneticFieldSecondary(
+#                 rx_location, 
+#                 orientation="y",
+#                 component="real"
+#             )
+#         )
+#         receiver_list.append(
+#             fdem.receivers.PointMagneticFieldSecondary(
+#                 rx_location, 
+#                 orientation="y",
+#                 component="imag"
+#             )
+#         )
+#         receiver_list.append(
+#             fdem.receivers.PointMagneticFieldSecondary(
+#                 rx_location, 
+#                 orientation="y",
+#                 component="both"
+#             )
+#         )        
+#         receiver_list.append(
+#             fdem.receivers.PointMagneticFieldSecondary(
+#                 rx_location, 
+#                 orientation="z",
+#                 component="real"
+#             )
+#         )
+#         receiver_list.append(
+#             fdem.receivers.PointMagneticFieldSecondary(
+#                 rx_location, 
+#                 orientation="z",
+#                 component="imag"
+#             )
+#         )
+#         receiver_list.append(
+#             fdem.receivers.PointMagneticFieldSecondary(
+#                 rx_location, 
+#                 orientation="z",
+#                 component="both"
+#             )
+#         )        
+#         I = 1.
+#         a = 10.
+#         source_list = []
+#         for ii, frequency in enumerate(frequencies):
+#             src = fdem.sources.CircularLoop(
+#                 receiver_list, frequency, src_location, radius=a, current=I
+#             )
+#             source_list.append(src)
 
-        # Receiver list
-        receiver_list = []
-        receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="x",
-                field_type=field_type, component="both"
-            )
-        )
-        receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="x",
-                field_type=field_type, component="both"
-            )
-        )
-        receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="x",
-                field_type=field_type, component="imag"
-            )
-        )
-        receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="y",
-                field_type=field_type, component="imag"
-            )
-        )
-        receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="z",
-                field_type=field_type, component="both"
-            )
-        )
-        receiver_list.append(
-            em1d.receivers.PointReceiver(
-                rx_location, frequencies, orientation="z",
-                field_type=field_type, component="imag"
-            )
-        )
+#         # Survey
+#         survey = fdem.Survey(source_list)
 
-        I = 1.
-        a = 10.
-        source_list = [
-            em1d.sources.HorizontalLoopSource(
-                receiver_list=receiver_list, location=src_location,
-                current_amplitude=I, radius=a
-            )
-        ]
+#         wires = maps.Wires(('sigma', 1),('height', 1))
+#         expmap = maps.ExpMap(nP=1)
+#         sigma_map = expmap * wires.sigma
 
-        # Survey
-        survey = em1d.survey.EM1DSurveyFD(source_list)
+#         self.topo = topo
+#         self.survey = survey
+#         self.showIt = False
+#         self.frequencies = frequencies
+#         self.nlayers = 1
+#         self.sigma_map = sigma_map
+#         self.h_map = wires.height
 
-        wires = maps.Wires(('sigma', 1),('height', 1))
-        expmap = maps.ExpMap(nP=1)
-        sigma_map = expmap * wires.sigma
+#         sim = em1d.simulation.EM1DFMSimulation(
+#             survey=self.survey,
+#             sigmaMap=self.sigma_map, hMap=wires.height, topo=self.topo
+#         )
 
-        self.topo = topo
-        self.survey = survey
-        self.showIt = False
-        self.frequencies = frequencies
-        self.nlayers = 1
-        self.sigma_map = sigma_map
-        self.h_map = wires.height
+#         self.sim = sim
 
-        sim = em1d.simulation.EM1DFMSimulation(
-            survey=self.survey,
-            sigmaMap=self.sigma_map, hMap=wires.height, topo=self.topo
-        )
+#     def test_EM1DFDJvec_Layers(self):
 
-        self.sim = sim
+#         sigma_half = 0.01
+#         height = 20.
 
-    def test_EM1DFDJvec_Layers(self):
+#         m_1D = np.r_[np.log(sigma_half), height]
 
-        sigma_half = 0.01
-        height = 20.
+#         def fwdfun(m):
+#             resp = self.sim.dpred(m)
+#             return resp
+#             # return Hz
 
-        m_1D = np.r_[np.log(sigma_half), height]
+#         def jacfun(m, dm):
+#             Jvec = self.sim.Jvec(m, dm)
+#             return Jvec
 
-        def fwdfun(m):
-            resp = self.sim.dpred(m)
-            return resp
-            # return Hz
+#         dm = m_1D*0.5
+#         derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
+#         passed = tests.checkDerivative(
+#             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
+#         )
 
-        def jacfun(m, dm):
-            Jvec = self.sim.Jvec(m, dm)
-            return Jvec
+#         if passed:
+#             print ("EM1DFD - Jvec with height works")
 
-        dm = m_1D*0.5
-        derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
-        passed = tests.checkDerivative(
-            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
-        )
+#     def test_EM1DFDJtvec_Layers(self):
 
-        if passed:
-            print ("EM1DFD - Jvec with height works")
+#         sigma_half = 0.01
+#         height = 20.
 
-    def test_EM1DFDJtvec_Layers(self):
+#         m_true = np.r_[np.log(sigma_half), height]
 
-        sigma_half = 0.01
-        height = 20.
+#         dobs = self.sim.dpred(m_true)
 
-        m_true = np.r_[np.log(sigma_half), height]
+#         m_ini = m_true * 1.2
+#         resp_ini = self.sim.dpred(m_ini)
+#         dr = resp_ini-dobs
 
-        dobs = self.sim.dpred(m_true)
+#         def misfit(m, dobs):
+#             dpred = self.sim.dpred(m)
+#             misfit = 0.5*np.linalg.norm(dpred-dobs)**2
+#             dmisfit = self.sim.Jtvec(m, dr)
+#             return misfit, dmisfit
 
-        m_ini = m_true * 1.2
-        resp_ini = self.sim.dpred(m_ini)
-        dr = resp_ini-dobs
-
-        def misfit(m, dobs):
-            dpred = self.sim.dpred(m)
-            misfit = 0.5*np.linalg.norm(dpred-dobs)**2
-            dmisfit = self.sim.Jtvec(m, dr)
-            return misfit, dmisfit
-
-        derChk = lambda m: misfit(m, dobs)
-        passed = tests.checkDerivative(
-            derChk, m_ini, num=4, plotIt=False, eps=1e-27
-        )
-        self.assertTrue(passed)
-        if passed:
-            print ("EM1DFD - Jtvec with height works")
-
+#         derChk = lambda m: misfit(m, dobs)
+#         passed = tests.checkDerivative(
+#             derChk, m_ini, num=4, plotIt=False, eps=1e-27
+#         )
+#         self.assertTrue(passed)
+#         if passed:
+#             print ("EM1DFD - Jtvec with height works")
 
 
 if __name__ == '__main__':
