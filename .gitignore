@@ -64,11 +64,14 @@ tutorials/06-ip/dcip2d/*
 tutorials/06-ip/dcip3d/*
 tutorials/06-ip/outputs/*
 tutorials/12-seismic/seismic/*
+tutorials/13-pgi/pgi/*
 
 # jupyter
 *.ipynb
 
 # results and testing files
+*.obs
+*.ubc
 *.xyz
 *.npy
 *.mod
