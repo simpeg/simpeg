@@ -21,7 +21,7 @@ from ..utils import (
 )
 from ..utils.code_utils import deprecate_property
 from ..import optimization
-from  .directives import InversionDirective, SaveEveryIteration
+from  .directives import InversionDirective, SaveEveryIteration, UpdatePreconditioner
 
 ###############################################################################
 #                                                                             #
@@ -343,3 +343,115 @@ class Joint_Stopping(InversionDirective):
             print("stopping criteria met: ", norm(self.opt.xc - self.opt.x_last)
                                             / norm(self.opt.x_last))
             self.opt.stopNextIteration = True
+
+
+class Joint_UpdateSensitivityWeights(InversionDirective):
+    """
+    Directive to take care of re-weighting
+    the non-linear magnetic problems.
+    """
+
+    mapping = None
+    JtJdiag = None
+    everyIter = True
+    threshold = 1e-12
+    switch = True
+
+    def initialize(self):
+
+        # Calculate and update sensitivity
+        # for optimization and regularization
+        self.update()
+
+    def endIter(self):
+
+        if self.everyIter:
+            # Update inverse problem
+            self.update()
+
+    def update(self):
+
+        # Get sum square of columns of J
+        self.getJtJdiag()
+
+        # Compute normalized weights
+        self.wr = self.getWr()
+
+        # Update the regularization
+        self.updateReg()
+
+    def getJtJdiag(self):
+        """
+            Compute explicitly the main diagonal of JtJ
+            Good for any problem where J is formed explicitly
+        """
+        self.JtJdiag = []
+        m = self.invProb.model
+
+        for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
+
+            if getattr(sim, "getJtJdiag", None) is None:
+                assert getattr(sim, "getJ", None) is not None, (
+                    "Simulation does not have a getJ attribute."
+                    + "Cannot form the sensitivity explicitly"
+                )
+
+                self.JtJdiag += [
+                    mkvc(np.sum((dmisfit.W * sim.getJ(m)) ** (2.0), axis=0))
+                ]
+            else:
+                self.JtJdiag += [sim.getJtJdiag(m, W=dmisfit.W)]
+
+        return self.JtJdiag
+
+    def getWr(self):
+        """
+            Take the diagonal of JtJ and return
+            a normalized sensitivty weighting vector
+        """
+
+        wr = np.zeros_like(self.invProb.model)
+        if self.switch:
+            for prob_JtJ, sim, dmisfit in zip(
+                self.JtJdiag, self.simulation, self.dmisfit.objfcts
+            ):
+
+                wr += prob_JtJ + self.threshold
+
+            wr = wr ** 0.5
+            wr /= wr.max()
+        else:
+            wr += 1.0
+
+        return wr
+
+    def updateReg(self):
+        """
+            Update the cell weights with the approximated sensitivity
+        """
+
+        for reg in self.reg.objfcts[:-1]:
+            reg.cell_weights = reg.mapping * (self.wr)
+
+    def validate(self, directiveList):
+        # check if a beta estimator is in the list after setting the weights
+        dList = directiveList.dList
+        self_ind = dList.index(self)
+        
+        beta_estimator_ind = [isinstance(d, Joint_BetaEstimate_ByEig) for d in dList]
+
+        lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in dList]
+
+        if any(beta_estimator_ind):
+            assert beta_estimator_ind.index(True) > self_ind, (
+                "The directive 'BetaEstimate_ByEig' must be after UpdateSensitivityWeights "
+                "in the directiveList"
+            )
+
+        if any(lin_precond_ind):
+            assert lin_precond_ind.index(True) > self_ind, (
+                "The directive 'UpdatePreconditioner' must be after UpdateSensitivityWeights "
+                "in the directiveList"
+            )
+
+        return True

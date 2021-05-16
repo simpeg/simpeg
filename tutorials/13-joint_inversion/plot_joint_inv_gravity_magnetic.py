@@ -311,7 +311,7 @@ reg_grav = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m1)
 reg_mag = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m2)
 
 # Define the coupling term to connect two different physical property models
-lamda = 1e+14 # weights 
+lamda = 2.25e+13 # weight for coupling term
 cross_grad = regularization.CrossGradient(mesh, indActive=ind_active, mapping=(wires.m1+wires.m2))
 
 # combo
@@ -322,7 +322,7 @@ reg = reg_grav + reg_mag + lamda*cross_grad
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.ProjectedGNCG(
     maxIter=500, lower=-2.0, upper=2.0, maxIterLS=20, 
-    maxIterCG=200, tolCG=1e-3, tolX=1e-3
+    maxIterCG=300, tolCG=1e-3, tolX=1e-3
 )
 
 # Here we define the inverse problem that is to be solved
@@ -350,20 +350,20 @@ beta_schedule = directives.Joint_BetaSchedule(coolingFactor=5, coolingRate=1)
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.Joint_SaveOutputEveryIteration(save_txt=False)
 
-# Updating the preconditionner if it is model dependent.
-update_jacobi = directives.UpdatePreconditioner()
-
 joint_inv_dir = directives.Joint_InversionDirective()
 
 stopping = directives.Joint_Stopping(tol=1e-6)
 
-# sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.Joint_UpdateSensitivityWeights(everyIter=False)
+
+# Updating the preconditionner if it is model dependent.
+update_jacobi = directives.UpdatePreconditioner()
 
 
 # The directives are defined as a list.
 directives_list = [
     joint_inv_dir,
-    # sensitivity_weights,     
+    sensitivity_weights,     
     stopping,
     starting_beta,
     beta_schedule,
@@ -463,13 +463,13 @@ mesh.plotSlice(
     ax=ax1,
     ind=int(mesh.nCy / 2),
     grid=True,
-    clim=(np.min(m_dens_joint), np.max(m_dens_joint)),
+    clim=(-0.04, 0.03),
     pcolorOpts={"cmap": "viridis"},
 )
 ax1.set_title("Density model slice at y = 0 m")
 
 ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
-norm = mpl.colors.Normalize(vmin=np.min(m_dens_joint), vmax=np.max(m_dens_joint))
+norm = mpl.colors.Normalize(vmin=-0.04, vmax=0.03)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
 )
@@ -502,7 +502,12 @@ cbar.set_label("SI", rotation=270, labelpad=15, size=12)
 plt.show()
 
 
-# Normalized Cross Gradient of Recovered Susceptibility and Density Models
+############################################################
+# Comparing jointly and separatly recovered models
+# ---------------------------------------
+#
+
+# Normalized Cross Gradient of Jointly Recovered Susceptibility and Density Models
 cross_grad.normazlied = True
 ncg = cross_grad.calculate_cross_gradient(m_dens_joint, m_susc_joint)
 
@@ -517,7 +522,7 @@ mesh.plotSlice(
     clim=(ncg.min(), ncg.max()),
     pcolorOpts={"cmap": "viridis"},
 )
-ax1.set_title("Normalized cross gradient slice at y = 0 m")
+ax1.set_title("Normalized cross gradient for joint inversion slice at y = 0 m")
 
 ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
 norm = mpl.colors.Normalize(vmin=ncg.min(), vmax=ncg.max())
@@ -529,26 +534,66 @@ cbar.set_label("SI", rotation=270, labelpad=15, size=12)
 plt.show()
 
 
-# Cross Plot Recovered Susceptibility and Density Models
-fig = plt.figure(figsize=(7, 5))
-ax = plt.subplot()
-ax.scatter(
-    plotting_map * m_dens_joint, 
-    plotting_map * m_susc_joint,
-    s=4, c="black", 
+# Normalized Cross Gradient of Separately Recovered Susceptibility and Density Models
+m_dens_single = np.loadtxt("single_model_dens.txt")
+m_susc_single = np.loadtxt("single_model_susc.txt")
+
+ncg_single = cross_grad.calculate_cross_gradient(
+    m_dens_single[ind_active], 
+    m_susc_single[ind_active],
     )
-ax.scatter(
-    plotting_map * true_model_dens,
-    plotting_map * true_model_susc,
-    s=4, c="red"
-    )
-ax.set_xlabel("Density", size=12)
-ax.set_ylabel("Susceptibility", size=12)
-ax.tick_params(labelsize=12)
+
+fig = plt.figure(figsize=(9, 4))
+ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
+mesh.plotSlice(
+    plotting_map * ncg_single,
+    normal="Y",
+    ax=ax1,
+    ind=int(mesh.nCy / 2),
+    grid=True,
+    clim=(ncg.min(), ncg.max()),
+    pcolorOpts={"cmap": "viridis"},
+)
+ax1.set_title("Normalized cross gradient for separate inversion slice at y = 0 m")
+
+ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
+norm = mpl.colors.Normalize(vmin=ncg.min(), vmax=ncg.max())
+cbar = mpl.colorbar.ColorbarBase(
+    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
+)
+cbar.set_label("SI", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
 
+
+# Cross Plots Recovered Susceptibility and Density Models
+fig = plt.figure(figsize=(14, 5))
+ax0 = plt.subplot(121)
+ax0.scatter(
+    plotting_map * m_dens_joint,
+    plotting_map * m_susc_joint,
+    s=4, c="black", 
+    )
+
+ax0.set_xlabel("Density", size=12)
+ax0.set_ylabel("Susceptibility", size=12)
+ax0.tick_params(labelsize=12)
+ax0.set_title("Joint inversion")
+
+ax1 = plt.subplot(122)
+ax1.scatter(
+    m_dens_single, 
+    m_susc_single,
+    s=4, c="black", 
+    )
+
+ax1.set_xlabel("Density", size=12)
+ax1.set_ylabel("Susceptibility", size=12)
+ax1.tick_params(labelsize=12)
+ax1.set_title("Separate inversion")
+
+plt.show()
 
 
 

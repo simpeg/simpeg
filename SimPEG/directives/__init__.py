@@ -22,4 +22,5 @@ from .joint_directives import (
     Joint_BetaEstimate_ByEig,
     Joint_BetaSchedule,
     Joint_Stopping,
+    Joint_UpdateSensitivityWeights,
 )
