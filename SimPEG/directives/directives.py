@@ -1204,7 +1204,7 @@ class Update_IRLS(InversionDirective):
 
     # Beta schedule
     update_beta = properties.Bool("Update beta", default=True)
-    beta_search = properties.Bool("Do a beta serarch", default=False)
+    beta_search = properties.Bool("Do a beta search", default=False)
     coolingFactor = properties.Float("Cooling factor", default=2.0)
     coolingRate = properties.Integer("Cooling rate", default=1)
     ComboObjFun = False
@@ -1678,7 +1678,6 @@ class UpdateSensitivityWeights(InversionDirective):
         # check if a beta estimator is in the list after setting the weights
         dList = directiveList.dList
         self_ind = dList.index(self)
-        beta_estimator_ind = [isinstance(d, BetaEstimate_ByEig) for d in dList]
 
         beta_estimator_ind = [isinstance(d, BetaEstimate_ByEig) for d in dList]
 

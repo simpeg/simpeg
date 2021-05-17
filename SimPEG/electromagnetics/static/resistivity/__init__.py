@@ -13,7 +13,7 @@ from .IODC import IO
 from .run import run_inversion
 
 Simulation2DCellCentred = Simulation2DCellCentered
-Simulation3DCellCentred = Simulation2DCellCentered
+Simulation3DCellCentred = Simulation3DCellCentered
 Fields3DCellCentred = Fields3DCellCentered
 Fields2DCellCentred = Fields2DCellCentered
 
