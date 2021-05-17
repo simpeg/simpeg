@@ -1204,7 +1204,7 @@ class Update_IRLS(InversionDirective):
 
     # Beta schedule
     update_beta = properties.Bool("Update beta", default=True)
-    beta_search = properties.Bool("Do a beta serarch", default=False)
+    beta_search = properties.Bool("Do a beta search", default=False)
     coolingFactor = properties.Float("Cooling factor", default=2.0)
     coolingRate = properties.Integer("Cooling rate", default=1)
     ComboObjFun = False
