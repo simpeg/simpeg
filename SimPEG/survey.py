@@ -255,6 +255,7 @@ class BaseSurvey(properties.HasProperties):
 
     def __init__(self, source_list=None, **kwargs):
         super(BaseSurvey, self).__init__(**kwargs)
+
         if source_list is not None:
             self.source_list = source_list
 
@@ -390,6 +391,18 @@ class BaseSurvey(properties.HasProperties):
             return mkvc(target.dpred(m, f=f) - target.dobs)
 
         self.residual = types.MethodType(dep_residual, self)
+
+    @property
+    def unique_locations(self):
+        """
+        Get the unique xyz locations of all sources and receivers.
+        """
+        locations = []
+        for source in self.source_list:
+            if source.location is not None:
+                locations += [source.location]
+            locations += [receiver.locations for receiver in source.receiver_list]
+        return np.unique(np.vstack(locations), axis=0)
 
 
 class BaseTimeSurvey(BaseSurvey):
