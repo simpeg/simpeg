@@ -1,84 +1,25 @@
-from SimPEG import dask
 from discretize import TreeMesh
-from SimPEG import maps, utils, data, optimization, maps, objective_function, regularization, inverse_problem, directives, inversion, data_misfit
+from SimPEG import optimization, maps, objective_function, regularization, inverse_problem, directives, inversion
 from discretize.utils import mkvc, refine_tree_xyz
 from SimPEG.electromagnetics import natural_source as ns
 import numpy as np
 from dask.distributed import Client, LocalCluster
-from scipy.spatial import cKDTree
-import matplotlib.pyplot as plt
 from pymatsolver import Pardiso as Solver
-from SimPEG.utils import plot2Ddata, surface2ind_topo
+from SimPEG.utils import surface2ind_topo
+from SimPEG.utils.drivers import create_local_misfit
 from SimPEG.utils.model_builder import addBlock
-from SimPEG.utils.drivers import create_nested_mesh
 from time import time
 
 
-def create_local_misfit(
-    local_survey,
-    global_mesh,
-    global_active,
-    tile_id,
-    tile_buffer=100,
-    min_level=4,
-):
-    # local_survey = ns.Survey(sources)
-    #
-    electrodes = []
-    for source in local_survey.source_list:
-        if source.location is not None:
-            electrodes += [source.location]
-        electrodes += [receiver.locations for receiver in source.receiver_list]
-    electrodes = np.unique(np.vstack(electrodes), axis=0)
-
-    # Create tile map between global and local
-    local_mesh = create_nested_mesh(
-        electrodes,
-        global_mesh,
-        method="radial",
-        max_distance=tile_buffer,
-        pad_distance=tile_buffer * 2,
-        min_level=min_level,
-    )
-
-    local_map = maps.TileMap(global_mesh, global_active, local_mesh)
-    local_active = local_map.local_active
-
-    actmap = maps.InjectActiveCells(
-        local_mesh, indActive=local_active, valInactive=np.log(1e-8)
-    )
-    expmap = maps.ExpMap(local_mesh)
-    mapping = expmap * actmap
-
-    # Create the local misfit
-    simulation = ns.simulation.Simulation3DPrimarySecondary(
-        local_mesh,
-        survey=local_survey,
-        sigmaMap=mapping,
-        Solver=Solver,
-        #         workers=workers
-    )
-    simulation.sensitivity_path = "./sensitivity/Tile" + str(tile_id) + "/"
-
-    # if mstart is not None:
-    #     simulation.model = local_map * mstart
-    #     simulation.Jmatrix
-
-    data_object = data.Data(
-        local_survey,
-        dobs=local_survey.dobs,
-        standard_deviation=local_survey.std,
-    )
-    local_misfit = data_misfit.L2DataMisfit(
-        data=data_object, simulation=simulation, model_map=local_map
-    )
-    local_misfit.W = 1.0 / local_survey.std
-
-    return local_misfit
-
 def run():
+    """
+    Forward and tiled inversion of Tipper line data
+    """
+    dh = 25.0  # base cell width
+    dom_width = 3000.0  # domain width
+    frequencies = [10, 50, 200]
 
-    tile_buffer = 200  # Distance of refinement around local points
+    tile_buffer = 100  # Distance of refinement around local points
 
     cluster = LocalCluster(processes=False)
     client = Client(cluster)
@@ -88,10 +29,10 @@ def run():
 
     # Lines of receiver locations
     n_lines = 5
-    n_stn = 20
+    n_stn = 15
     x_locs = np.linspace(-200, 200, n_stn)
     y_locs = np.linspace(-200, 200, n_lines).tolist()
-    z_locs = np.zeros_like(x_locs)
+    z_locs = np.ones_like(x_locs) * dh
     receiver_locations = []
     line_ids = []
     for ii, yy in enumerate(y_locs):
@@ -101,11 +42,10 @@ def run():
     receiver_locations = np.vstack(receiver_locations)
     line_ids = np.vstack(line_ids)
 
+    np.savetxt("Receivers.dat", receiver_locations)
     # Create mesh and model
-    dh = 25.0  # base cell width
-    dom_width = 3000.0  # domain width
     nbc = 2 ** int(np.round(np.log(dom_width / dh) / np.log(2.0)))  # num. base cells
-    frequencies = [10, 50, 200]
+
     # Define the base mesh
     h = [(dh, nbc)]
     mesh = TreeMesh([h, h, h], x0="CCC")
@@ -117,7 +57,7 @@ def run():
 
     # Mesh refinement near transmitters and receivers
     mesh = refine_tree_xyz(
-        mesh, receiver_locations, octree_levels=[2, 4], method="radial", finalize=True
+        mesh, receiver_locations, octree_levels=[6, 6], method="radial", finalize=True
     )
 
     # Find cells that are active in the forward modeling (cells below surface)
@@ -161,7 +101,6 @@ def run():
 
     # Survey MT
     survey = ns.Survey(srcList)
-
     actMap = maps.InjectActiveCells(
         mesh=mesh, indActive=active_cells, valInactive=np.log(1e-8)
     )
@@ -174,16 +113,6 @@ def run():
                                                solver=Solver)
 
     simulation.model = model
-    # fields = simulation.fields()
-
-    # v = np.random.rand(survey.nD,)
-    # # print problem.PropMap.PropModel.nP
-    # w = np.random.rand(active.sum(),)
-    # # np.random.seed(1983)
-    # # fwd = simulation.getJ(sigBG[active])
-    # # fwd = simulation.Jtvec(sigBG[active], v)
-    # fwd = simulation.Jvec(sigBG[active], w)
-
     simulation.survey.dtrue = simulation.dpred(model)
 
     # Assign uncertainties
@@ -238,24 +167,19 @@ def run():
 
             local_misfits += [
                 create_local_misfit(
+                    ns.simulation.Simulation3DPrimarySecondary,
                     local_survey,
                     mesh,
                     active_cells,
                     tile_count,
                     tile_buffer=tile_buffer,
                     min_level=4,
+                    solver=Solver
                 )
             ]
 
             tile_count += 1
             print(f"Tile {tile_count} of {len(freq_blocks) * len(line_segs)}")
-
-    num_station = receiver_locations.shape[0]
-    num_sets = int(survey.dobs.shape[0] / len(frequencies))
-    dnew = np.reshape(survey.dobs, (3, num_sets))
-    stdnew = np.reshape(survey.std, (3, num_sets))
-
-    cnt = 0
 
     # for freq in frequencies:
     #     cnt_comp = 0
@@ -288,10 +212,10 @@ def run():
                     local_misfits
     )
 
-    use_preconditioner = False
+    use_preconditioner = True
     coolingFactor = 2
     coolingRate = 1
-    beta0_ratio = 1e-1
+    beta0_ratio = 1e+1
 
     # Map for a regularization
     regmap = maps.IdentityMap(nP=int(active_cells.sum()))
@@ -306,7 +230,7 @@ def run():
     reg.mref = background_conductivity * np.ones(active_cells.sum())
 
     opt = optimization.ProjectedGNCG(
-        maxIter=1, upper=np.inf, lower=-np.inf, tolCG=1e-5,
+        maxIter=5, upper=np.inf, lower=-np.inf, tolCG=1e-5,
         maxIterCG=20,
     )
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
