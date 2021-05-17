@@ -3,6 +3,7 @@ import scipy.sparse as sp
 from scipy.constants import mu_0
 import properties
 from ...utils.code_utils import deprecate_class
+from discretize.utils import Zero
 
 from ... import props
 from ...data import Data
@@ -166,8 +167,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
                     df_duT, df_dmT = rx.evalDeriv(
                         src, self.mesh, f, v=v[src, rx], adjoint=True
                     )
-                    df_duT_sum += df_duT
-                    df_dmT_sum += df_dmT
+                    if not isinstance(df_duT, Zero):
+                        df_duT_sum += df_duT
+                    if not isinstance(df_dmT, Zero):
+                        df_dmT_sum += df_dmT
 
                 ATinvdf_duT = self.Ainv[nf] * df_duT_sum
 
