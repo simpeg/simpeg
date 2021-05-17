@@ -1106,6 +1106,7 @@ class UpdateSensitivityWeights(InversionDirective):
         # check if a beta estimator is in the list after setting the weights
         dList = directiveList.dList
         self_ind = dList.index(self)
+        beta_estimator_ind = [isinstance(d, BetaEstimate_ByEig) for d in dList]
 
         beta_estimator_ind = [isinstance(d, BetaEstimate_ByEig) for d in dList]
 
