@@ -287,7 +287,7 @@ def surface_layer_index(mesh, topo, index=0):
 
     ..math::
 
-        W(z) = (z + z0) ** (-0.5*v)
+        w(z) = (z + z0) ** (-0.5*v)
 
         where z is depth of model cells along the z direction;
         v and z0 are two adjustable parameters.
