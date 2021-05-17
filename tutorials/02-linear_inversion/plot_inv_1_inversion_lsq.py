@@ -167,7 +167,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-4)
 
 # Setting a stopping criteria for the inversion.
 target_misfit = directives.TargetMisfit()

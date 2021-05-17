@@ -256,7 +256,6 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # Inversion directives and parameters
     target = directives.TargetMisfit()  # stop when we hit target misfit
     invProb.beta = 2.0
-    # betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
     inv = inversion.BaseInversion(invProb, directiveList=[target])
     reg.alpha_s = 1e-3
     reg.alpha_x = 1.0
@@ -370,7 +369,6 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Directives and Inversion Parameters
     target = directives.TargetMisfit()
-    # betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
     invProb.beta = 20.0
     inv = inversion.BaseInversion(invProb, directiveList=[target])
     reg.alpha_s = 1e-1

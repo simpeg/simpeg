@@ -1,8 +1,5 @@
 from __future__ import print_function
 import numpy as np
-import time as tm
-import re
-import warnings
 
 
 def read_GOCAD_ts(tsfile):
@@ -28,14 +25,12 @@ def read_GOCAD_ts(tsfile):
     """
 
     import re
-    import vtk
-    import vtk.util.numpy_support as npsup
 
     fid = open(tsfile, "r")
     line = fid.readline()
 
     # Skip all the lines until the vertices
-    while re.match("TFACE", line) == None:
+    while re.match("TFACE", line) is None:
         line = fid.readline()
 
     line = fid.readline()
@@ -53,7 +48,7 @@ def read_GOCAD_ts(tsfile):
     vrtx = np.asarray(vrtx)
 
     # Skip lines to the triangles
-    while re.match("TRGL", line) == None:
+    while re.match("TRGL", line) is None:
         line = fid.readline()
 
     # Run down the list of triangles
@@ -76,7 +71,7 @@ def read_GOCAD_ts(tsfile):
 def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     """"
     Function to read gocad polystructure file and output indexes of
-    mesh with in the structure.
+    mesh within the structure.
 
     """
     import vtk
@@ -225,174 +220,3 @@ def download(url, folder=".", overwrite=False, verbose=True):
 
     print("Download completed!")
     return downloadpath if isinstance(url, list) else downloadpath[0]
-
-
-def readUBCmagneticsObservations(obs_file):
-    """
-        Read and write UBC mag file format
-
-        INPUT:
-        :param fileName, path to the UBC obs mag file
-
-        OUTPUT:
-        :param survey
-        :param M, magnetization orentiaton (MI, MD)
-    """
-    from SimPEG.potential_fields import magnetics
-    from SimPEG import data
-
-    fid = open(obs_file, "r")
-
-    # First line has the inclination,declination and amplitude of B0
-    line = fid.readline()
-    B = np.array(line.split(), dtype=float)
-
-    # Second line has the magnetization orientation and a flag
-    line = fid.readline()
-    M = np.array(line.split(), dtype=float)
-
-    # Third line has the number of rows
-    line = fid.readline()
-    ndat = int(line.strip())
-
-    # Pre-allocate space for obsx, obsy, obsz, data, uncert
-    line = fid.readline()
-    temp = np.array(line.split(), dtype=float)
-
-    d = np.zeros(ndat, dtype=float)
-    wd = np.zeros(ndat, dtype=float)
-    locXYZ = np.zeros((ndat, 3), dtype=float)
-
-    ii = 0
-    while ii < ndat:
-
-        temp = np.array(line.split(), dtype=float)
-        if len(temp) > 0:
-            locXYZ[ii, :] = temp[:3]
-
-            if len(temp) > 3:
-                d[ii] = temp[3]
-
-                if len(temp) == 5:
-                    wd[ii] = temp[4]
-            ii += 1
-        line = fid.readline()
-    fid.close()
-
-    rxLoc = magnetics.receivers.Point(locXYZ)
-    srcField = magnetics.sources.SourceField([rxLoc], parameters=(B[2], B[0], B[1]))
-    survey = magnetics.survey.Survey(srcField)
-    data_object = data.Data(survey, dobs=d, standard_deviation=wd)
-
-    return data_object
-
-
-def writeUBCmagneticsObservations(filename, data_object):
-    """
-    writeUBCobs(filename,B,M,rxLoc,d,wd)
-
-    Function writing an observation file in UBC-MAG3D format.
-
-    INPUT
-    filename    : Name of out file including directory
-    survey
-    flag          : dobs | dpred
-
-    OUTPUT
-    Obsfile
-
-    Created on Dec, 27th 2015
-
-    @author: dominiquef
-    """
-    survey = data_object.survey
-
-    B = survey.source_field.parameters
-
-    rxLoc = survey.source_field.receiver_list[0].locations
-
-    d = data_object.dobs
-    wd = data_object.standard_deviation
-
-    data = np.c_[rxLoc, d, wd]
-    head = (
-        "%6.2f %6.2f %6.2f\n" % (B[1], B[2], B[0])
-        + "%6.2f %6.2f %6.2f\n" % (B[1], B[2], 1)
-        + "%i\n" % len(d)
-    )
-    np.savetxt(
-        filename, data, fmt="%e", delimiter=" ", newline="\n", header=head, comments=""
-    )
-
-    print("Observation file saved to: " + filename)
-
-
-def readUBCgravityObservations(obs_file):
-    """
-    Read UBC grav file format
-
-    INPUT:
-    :param fileName, path to the UBC obs grav file
-
-    OUTPUT:
-    :param survey
-
-    """
-    from SimPEG.potential_fields import gravity
-    from SimPEG import data
-
-    fid = open(obs_file, "r")
-
-    # First line has the number of rows
-    line = fid.readline()
-    ndat = int(line.split()[0])
-
-    # Pre-allocate space for obsx, obsy, obsz, data, uncert
-    line = fid.readline()
-
-    d = np.zeros(ndat, dtype=float)
-    wd = np.zeros(ndat, dtype=float)
-    locXYZ = np.zeros((ndat, 3), dtype=float)
-
-    ii = 0
-    while ii < ndat:
-        temp = np.array(line.split(), dtype=float)
-        if len(temp) > 0:
-            locXYZ[ii, :] = temp[:3]
-            d[ii] = temp[3]
-            wd[ii] = temp[4]
-            ii += 1
-        line = fid.readline()
-    fid.close()
-
-    rxLoc = gravity.receivers.Point(locXYZ)
-    srcField = gravity.sources.SourceField([rxLoc])
-    survey = gravity.survey.Survey(srcField)
-    data_object = data.Data(survey, dobs=d, standard_deviation=wd)
-    return data_object
-
-
-def writeUBCgravityObservations(filename, data_object):
-    """
-        Write UBC grav file format
-
-        INPUT:
-        :param: fileName, path to the UBC obs grav file
-        :param: survey Gravity object
-        :param: data array
-
-    """
-    survey = data_object.survey
-    rxLoc = survey.source_field.receiver_list[0].locations
-
-    d = data_object.dobs
-
-    wd = data_object.standard_deviation
-
-    data = np.c_[rxLoc, d, wd]
-    head = "%i\n" % len(d)
-    np.savetxt(
-        filename, data, fmt="%e", delimiter=" ", newline="\n", header=head, comments=""
-    )
-
-    print("Observation file saved to: " + filename)

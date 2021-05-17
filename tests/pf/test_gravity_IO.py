@@ -47,11 +47,11 @@ class GravSensProblemTests(unittest.TestCase):
         print(driver.eps)
 
         # Write obs to file
-        io_utils.writeUBCgravityObservations(
+        io_utils.write_grav3d_ubc(
             os.path.sep.join([self.basePath, "FWR_data.dat"]), driver.data
         )
         # Read it back
-        data = io_utils.readUBCgravityObservations(
+        data = io_utils.read_grav3d_ubc(
             os.path.sep.join([self.basePath, "FWR_data.dat"])
         )
         # Check similarity

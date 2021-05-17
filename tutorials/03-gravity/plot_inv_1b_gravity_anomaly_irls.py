@@ -33,7 +33,7 @@ import tarfile
 
 from discretize import TensorMesh
 
-from SimPEG.utils import plot2Ddata, surface2ind_topo
+from SimPEG.utils import plot2Ddata, surface2ind_topo, model_builder
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -261,7 +261,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 
 # Defines the directives for the IRLS regularization. This includes setting
 # the cooling schedule for the trade-off parameter.
@@ -308,14 +308,40 @@ recovered_model = inv.run(starting_model)
 
 
 ############################################################
+# Recreate True Model
+# -------------------
+#
+
+# Define density contrast values for each unit in g/cc
+background_density = 0.0
+block_density = -0.2
+sphere_density = 0.2
+
+# Define model. Models in SimPEG are vector arrays.
+true_model = background_density * np.ones(nC)
+
+# You could find the indicies of specific cells within the model and change their
+# value to add structures.
+ind_block = (
+    (mesh.gridCC[ind_active, 0] > -50.0)
+    & (mesh.gridCC[ind_active, 0] < -20.0)
+    & (mesh.gridCC[ind_active, 1] > -15.0)
+    & (mesh.gridCC[ind_active, 1] < 15.0)
+    & (mesh.gridCC[ind_active, 2] > -50.0)
+    & (mesh.gridCC[ind_active, 2] < -30.0)
+)
+true_model[ind_block] = block_density
+
+# You can also use SimPEG utilities to add structures to the model more concisely
+ind_sphere = model_builder.getIndicesSphere(np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC)
+ind_sphere = ind_sphere[ind_active]
+true_model[ind_sphere] = sphere_density
+
+
+############################################################
 # Plotting True Model and Recovered Model
 # ---------------------------------------
 #
-
-# Load the true model (was defined on the whole mesh) and extract only the
-# values on active cells.
-true_model = np.loadtxt(str(model_filename))
-true_model = true_model[ind_active]
 
 # Plot True Model
 fig = plt.figure(figsize=(9, 4))

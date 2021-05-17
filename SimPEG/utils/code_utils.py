@@ -159,7 +159,7 @@ def callHooks(match, mainFirst=False):
             pass
 
     This will call everything named _doEndIteration* at the beginning of the function call.
-    By default the master method (doEndIteration) is run after all of the sub methods (_doEndIteration*).
+    By default the main method (doEndIteration) is run after all of the sub methods (_doEndIteration*).
     This can be reversed by adding the mainFirst=True kwarg.
     """
 
