@@ -9,7 +9,7 @@ from ...utils.code_utils import deprecate_property
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
 from ..base import BaseEMSrc
-from ..utils import getSourceTermLineCurrentPolygon
+from ..utils import segmented_line_current_source_term
 from ...props import LocationVector
 from ...utils import setKwargs, sdiag, Zero, Identity
 
@@ -529,14 +529,7 @@ class LineCurrent(BaseTDEMSrc):
 
     def Mejs(self, prob):
         if getattr(self, "_Mejs", None) is None:
-            x0 = prob.mesh.x0
-            hx = prob.mesh.hx
-            hy = prob.mesh.hy
-            hz = prob.mesh.hz
-            px = self.loc[:, 0]
-            py = self.loc[:, 1]
-            pz = self.loc[:, 2]
-            self._Mejs = getSourceTermLineCurrentPolygon(x0, hx, hy, hz, px, py, pz)
+            self._Mejs = segmented_line_current_source_term(prob.mesh, self.location)
         return self.current * self._Mejs
 
     def getRHSdc(self, prob):
