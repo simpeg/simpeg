@@ -77,7 +77,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 A = self.getAdiag(tInd)
                 if self.verbose:
                     print("Factoring...   (dt = {:e})".format(dt))
-                Ainv = self.Solver(A, **self.solver_opts)
+                Ainv = self.solver(A, **self.solver_opts)
                 if self.verbose:
                     print("Done")
 
@@ -161,7 +161,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
             if Adiaginv is None:
                 A = self.getAdiag(tInd)
-                Adiaginv = self.Solver(A, **self.solver_opts)
+                Adiaginv = self.solver(A, **self.solver_opts)
 
             Asubdiag = self.getAsubdiag(tInd)
 
@@ -307,7 +307,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             # refactor if we need to
             if AdiagTinv is None:  # and tInd > -1:
                 Adiag = self.getAdiag(tInd)
-                AdiagTinv = self.Solver(Adiag.T, **self.solver_opts)
+                AdiagTinv = self.solver(Adiag.T, **self.solver_opts)
 
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd + 1)
@@ -432,7 +432,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             if self.verbose:
                 print("Factoring the system matrix for the DC problem")
             Adc = self.getAdc()
-            self._Adcinv = self.Solver(Adc)
+            self._Adcinv = self.solver(Adc)
         return self._Adcinv
 
 
@@ -756,7 +756,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             # refactor if we need to
             if AdiagTinv is None:  # and tInd > -1:
                 Adiag = self.getAdiag(tInd)
-                AdiagTinv = self.Solver(Adiag.T, **self.solver_opts)
+                AdiagTinv = self.solver(Adiag.T, **self.solver_opts)
 
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd + 1)

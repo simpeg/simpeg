@@ -66,7 +66,9 @@ class Survey(BaseSurvey):
         if getattr(self, "_num_sources_by_frequency", None) is None:
             self._num_sources_by_frequency = {}
             for freq in self.frequencies:
-                self._num_sources_by_frequency[freq] = len(self.getSrcByFreq(freq))
+                self._num_sources_by_frequency[freq] = len(
+                    self.get_sources_by_frequency(freq)
+                )
         return self._num_sources_by_frequency
 
     nSrcByFreq = deprecate_property(

@@ -199,7 +199,7 @@ class PointMagneticFluxTimeDerivative(BaseRx):
         """Grid Location projection (e.g. Ex Fy ...)"""
         if self.projField in f.aliasFields:
             return super(PointMagneticFluxTimeDerivative, self).projGLoc(f)
-        return f._GLoc(self.projField) + self.projComp
+        return f._GLoc(self.projField) + self.orientation
 
     def getTimeP(self, time_mesh, f):
         """

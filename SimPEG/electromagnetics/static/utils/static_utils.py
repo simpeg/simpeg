@@ -360,8 +360,8 @@ def convert_survey_3d_to_2d_lines(
     k = np.arange(0, survey.nD)
     out_indices_list = []
 
-    ab_locs_all = np.c_[survey.a_locations, survey.b_locations]
-    mn_locs_all = np.c_[survey.m_locations, survey.n_locations]
+    ab_locs_all = np.c_[survey.locations_a, survey.locations_b]
+    mn_locs_all = np.c_[survey.locations_m, survey.locations_n]
 
     # For each unique lineID
     survey_list = []

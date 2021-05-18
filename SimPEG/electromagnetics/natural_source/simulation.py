@@ -54,7 +54,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             # Get the system
             A = self.getA(freq)
             # Factor
-            Ainv = self.Solver(A, **self.solver_opts)
+            Ainv = self.solver(A, **self.solver_opts)
 
             for src in self.survey.get_sources_by_frequency(freq):
                 # We need fDeriv_m = df/du*du/dm + df/dm
@@ -108,7 +108,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         for freq in self.survey.frequencies:
             AT = self.getA(freq).T
 
-            ATinv = self.Solver(AT, **self.solver_opts)
+            ATinv = self.solver(AT, **self.solver_opts)
 
             for src in self.survey.get_sources_by_frequency(freq):
                 # u_src needs to have both polarizations
@@ -300,7 +300,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solver_opts)
+            Ainv = self.solver(A, **self.solver_opts)
             e_s = Ainv * rhs
 
             # Store the fields
@@ -467,7 +467,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
             # Solve the system
-            Ainv = self.Solver(A, **self.solver_opts)
+            Ainv = self.solver(A, **self.solver_opts)
             e_s = Ainv * rhs
 
             # Store the fields
@@ -504,7 +504,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     #     A = self.getA(freq)
     #     rhs = self.getRHS(freq)
     #     # Solve the system
-    #     Ainv = self.Solver(A, **self.solver_opts)
+    #     Ainv = self.solver(A, **self.solver_opts)
     #     e_s = Ainv * rhs
     #
     #     # Store the fields
@@ -538,7 +538,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     #     A = self.getA(freq)
     #     rhs = self.getRHS(freq)
     #     # Solve the system
-    #     Ainv = self.Solver(A, **self.solver_opts)
+    #     Ainv = self.solver(A, **self.solver_opts)
     #     e_s = Ainv * rhs
     #
     #     # Store the fields

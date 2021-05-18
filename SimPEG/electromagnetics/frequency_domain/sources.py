@@ -684,7 +684,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         # TODO: pull apart Jvec so that don't have to copy paste this code in
         # A = self.primarySimulation.getA(self.frequency)
-        # Ainv = self.primarySimulation.Solver(A, **self.primarySimulation.solver_opts) # create the concept of Ainv (actually a solve)
+        # Ainv = self.primarySimulation.solver(A, **self.primarySimulation.solver_opts) # create the concept of Ainv (actually a solve)
 
         if f is None:
             f = self._primaryFields(simulation.sigma, f=f)
@@ -697,7 +697,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         if adjoint is True:
             Jtv = np.zeros(simulation.sigmaMap.nP, dtype=complex)
-            ATinv = self.primarySimulation.Solver(
+            ATinv = self.primarySimulation.solver(
                 A.T, **self.primarySimulation.solver_opts
             )
             df_duTFun = getattr(
@@ -727,9 +727,9 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             return mkvc(Jtv)
 
         # create the concept of Ainv (actually a solve)
-        Ainv = self.primarySimulation.Solver(A, **self.primarySimulation.solver_opts)
+        Ainv = self.primarySimulation.solver(A, **self.primarySimulation.solver_opts)
 
-        # for src in self.survey.getSrcByFreq(freq):
+        # for src in self.survey.get_sources_by_frequency(freq):
         dA_dm_v = self.primarySimulation.getADeriv(freq, u_src, v)
         dRHS_dm_v = self.primarySimulation.getRHSDeriv(freq, src, v)
         du_dm_v = Ainv * (-dA_dm_v + dRHS_dm_v)

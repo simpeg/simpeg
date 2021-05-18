@@ -402,7 +402,7 @@ class MagDipole(BaseTDEMSrc):
             )
 
     def _phiSrc(self, prob):
-        Ainv = prob.Solver(self._getAmagnetostatic(prob))  # todo: store these
+        Ainv = prob.solver(self._getAmagnetostatic(prob))  # todo: store these
         rhs = self._rhs_magnetostatic(prob)
         Ainv.clean()
         return Ainv * rhs
@@ -669,14 +669,14 @@ class RawVec_Grounded(BaseTDEMSrc):
 
     def _aInitial(self, prob):
         A = self._getAmmr(prob)
-        Ainv = prob.Solver(A)  # todo: store this
+        Ainv = prob.solver(A)  # todo: store this
         s_e = self.s_e(prob, 0)
         rhs = s_e - self.jInitial(prob)
         return Ainv * rhs
 
     def _aInitialDeriv(self, prob, v, adjoint=False):
         A = self._getAmmr(prob)
-        Ainv = prob.Solver(A)  # todo: store this - move it to the problem
+        Ainv = prob.solver(A)  # todo: store this - move it to the problem
 
         if adjoint is True:
             return -1 * (

@@ -82,11 +82,11 @@ class BaseFDEMSimulation(BaseEMSimulation):
             self.Ainv
         except AttributeError:
             if self.verbose:
-                print("nFreq =", self.survey.nFreq)
-            self.Ainv = [None for i in range(self.survey.nFreq)]
+                print("nFreq =", self.survey.num_frequencies)
+            self.Ainv = [None for i in range(self.survey.num_frequencies)]
 
         if self.Ainv[0] is not None:
-            for i in range(self.survey.nFreq):
+            for i in range(self.survey.num_frequencies):
                 self.Ainv[i].clean()
 
             if self.verbose:
@@ -97,7 +97,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         for nf, freq in enumerate(self.survey.freqs):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            self.Ainv[nf] = self.Solver(A, **self.solverOpts)
+            self.Ainv[nf] = self.solver(A, **self.solver_opts)
             u = self.Ainv[nf] * rhs
             Srcs = self.survey.get_sources_by_frequency(freq)
             f[Srcs, self._solutionType] = u
