@@ -177,7 +177,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
                 du_dmT = -dA_dmT + dRHS_dmT
-                df_dmT = df_dmT + du_dmT
 
                 df_dmT_sum += du_dmT
                 Jtv += np.real(df_dmT_sum)
