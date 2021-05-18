@@ -111,9 +111,11 @@ class Dipole(BaseSrc):
                 " 0.15.0 of SimPEG",
                 DeprecationWarning,
             )
-        current = np.r_[1.0, -1.0]
         if "current" in kwargs.keys():
-            current *= kwargs.pop('current')
+            value = kwargs.pop('current')
+            current = [value, -value]
+        else:
+            current = [1.0, -1.0]
 
         # if location_a set, then use location_a, location_b
         if location_a is not None:
