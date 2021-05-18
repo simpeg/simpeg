@@ -674,7 +674,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
     def Jtvec(self, m, v, f=None):
 
         """
-            Jvec computes the adjoint of the sensitivity times a vector
+        Jvec computes the adjoint of the sensitivity times a vector
         """
 
         if f is None:

@@ -83,13 +83,13 @@ class BaseRx(properties.HasProperties):
 
     def getP(self, mesh, projGLoc=None):
         """
-            Returns the projection matrices as a
-            list for all components collected by
-            the receivers.
+        Returns the projection matrices as a
+        list for all components collected by
+        the receivers.
 
-            .. note::
+        .. note::
 
-                Projection matrices are stored as a dictionary listed by meshes.
+            Projection matrices are stored as a dictionary listed by meshes.
         """
         if projGLoc is None:
             projGLoc = self.projGLoc
@@ -138,34 +138,34 @@ class BaseTimeRx(BaseRx):
 
     def getSpatialP(self, mesh):
         """
-            Returns the spatial projection matrix.
+        Returns the spatial projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         return mesh.getInterpolationMat(self.locations, self.projGLoc)
 
     def getTimeP(self, timeMesh):
         """
-            Returns the time projection matrix.
+        Returns the time projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         return timeMesh.getInterpolationMat(self.times, self.projTLoc)
 
     def getP(self, mesh, timeMesh):
         """
-            Returns the projection matrices as a
-            list for all components collected by
-            the receivers.
+        Returns the projection matrices as a
+        list for all components collected by
+        the receivers.
 
-            .. note::
+        .. note::
 
-                Projection matrices are stored as a dictionary (mesh, timeMesh)
-                if storeProjections is True
+            Projection matrices are stored as a dictionary (mesh, timeMesh)
+            if storeProjections is True
         """
         if (mesh, timeMesh) in self._Ps:
             return self._Ps[(mesh, timeMesh)]

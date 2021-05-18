@@ -58,19 +58,19 @@ class Survey(BaseSurvey):
 
     def projectFields(self, u):
         """
-            This function projects the fields onto the data space.
+        This function projects the fields onto the data space.
 
-            First we project our B on to data location
+        First we project our B on to data location
 
-            .. math::
+        .. math::
 
-                \mathbf{B}_{rec} = \mathbf{P} \mathbf{B}
+            \mathbf{B}_{rec} = \mathbf{P} \mathbf{B}
 
-            then we take the dot product between B and b_0
+        then we take the dot product between B and b_0
 
-            .. math ::
+        .. math ::
 
-                \\text{TMI} = \\vec{B}_s \cdot \hat{B}_0
+            \\text{TMI} = \\vec{B}_s \cdot \hat{B}_0
 
         """
         # TODO: There can be some different tyes of data like |B| or B

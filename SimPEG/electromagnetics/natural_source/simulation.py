@@ -183,7 +183,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     @property
     def MeMui(self):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         if getattr(self, "_MeMui", None) is None:
             self._MeMui = self.mesh.getEdgeInnerProduct(1.0 / mu_0)
@@ -192,7 +192,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     @property
     def MfSigma(self):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         # if getattr(self, '_MfSigma', None) is None:
         self._MfSigma = self.mesh.getFaceInnerProduct(self.sigma)
@@ -200,7 +200,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
     def MfSigmaDeriv(self, u):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         # if getattr(self, '_MfSigmaDeriv', None) is None:
         self._MfSigmaDeriv = (
@@ -223,11 +223,11 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
     def getA(self, freq):
         """
-            Function to get the A matrix.
+        Function to get the A matrix.
 
-            :param float freq: Frequency
-            :rtype: scipy.sparse.csr_matrix
-            :return: A
+        :param float freq: Frequency
+        :rtype: scipy.sparse.csr_matrix
+        :return: A
         """
 
         # Note: need to use the code above since in the 1D problem I want
@@ -256,11 +256,11 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
     def getRHS(self, freq):
         """
-            Function to return the right hand side for the system.
+        Function to return the right hand side for the system.
 
-            :param float freq: Frequency
-            :rtype: numpy.ndarray
-            :return: RHS for 1 polarizations, primary fields (nF, 1)
+        :param float freq: Frequency
+        :rtype: numpy.ndarray
+        :return: RHS for 1 polarizations, primary fields (nF, 1)
         """
 
         # Get sources for the frequncy(polarizations)

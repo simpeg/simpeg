@@ -18,9 +18,7 @@ from .receivers import Point, SquareLoop
 
 
 class BaseVRMSimulation(BaseSimulation):
-    """
-
-    """
+    """"""
 
     _AisSet = False
     refinement_factor = properties.Integer("Sensitivity refinement factor", min=0)
@@ -123,19 +121,19 @@ class BaseVRMSimulation(BaseSimulation):
     def _getH0matrix(self, xyz, pp):
 
         """
-        Creates sparse matrix containing inducing field components
-        for source pp
+                Creates sparse matrix containing inducing field components
+                for source pp
 
-..        REQUIRED ARGUMENTS:
-..
-..        xyz: N X 3 array of locations to predict field
-..
-..        pp: Source index
-..
-..        OUTPUTS:
-..
-..        H0: A 3N X N sparse array containing Hx, Hy and Hz at all locations
-..
+        ..        REQUIRED ARGUMENTS:
+        ..
+        ..        xyz: N X 3 array of locations to predict field
+        ..
+        ..        pp: Source index
+        ..
+        ..        OUTPUTS:
+        ..
+        ..        H0: A 3N X N sparse array containing Hx, Hy and Hz at all locations
+        ..
         """
 
         srcObj = self.survey.source_list[pp]
@@ -153,20 +151,20 @@ class BaseVRMSimulation(BaseSimulation):
     def _getGeometryMatrix(self, xyzc, xyzh, pp):
 
         """
-        Creates the dense geometry matrix which maps from the magnetized voxel
-        cells to the receiver locations for source pp
-..
-..        REQUIRED ARGUMENTS:
-..
-..        xyzc: N by 3 numpy array containing cell center locations [xc,yc,zc]
-..
-..        xyzh: N by 3 numpy array containing cell dimensions [hx,hy,hz]
-..
-..        pp: Source index
-..
-..        OUTPUTS:
-..
-..        G: Linear geometry operator
+                Creates the dense geometry matrix which maps from the magnetized voxel
+                cells to the receiver locations for source pp
+        ..
+        ..        REQUIRED ARGUMENTS:
+        ..
+        ..        xyzc: N by 3 numpy array containing cell center locations [xc,yc,zc]
+        ..
+        ..        xyzh: N by 3 numpy array containing cell dimensions [hx,hy,hz]
+        ..
+        ..        pp: Source index
+        ..
+        ..        OUTPUTS:
+        ..
+        ..        G: Linear geometry operator
 
         """
 
@@ -741,24 +739,24 @@ class BaseVRMSimulation(BaseSimulation):
     def _getSubsetAcolumns(self, xyzc, xyzh, pp, qq, refFlag):
 
         """
-        This method returns the refined sensitivities for columns that will be
-        replaced in the A matrix for source pp and refinement factor qq.
-..
-..        INPUTS:
-..
-..        xyzc -- Cell centers of topo mesh cells N X 3 array
-..
-..        xyzh -- Cell widths of topo mesh cells N X 3 array
-..
-..        pp -- Source ID
-..
-..        qq -- Mesh refinement factor
-..
-..        refFlag -- refinement factors for all topo mesh cells
-..
-..        OUTPUTS:
-..
-..        Acols -- Columns containing replacement sensitivities
+                This method returns the refined sensitivities for columns that will be
+                replaced in the A matrix for source pp and refinement factor qq.
+        ..
+        ..        INPUTS:
+        ..
+        ..        xyzc -- Cell centers of topo mesh cells N X 3 array
+        ..
+        ..        xyzh -- Cell widths of topo mesh cells N X 3 array
+        ..
+        ..        pp -- Source ID
+        ..
+        ..        qq -- Mesh refinement factor
+        ..
+        ..        refFlag -- refinement factors for all topo mesh cells
+        ..
+        ..        OUTPUTS:
+        ..
+        ..        Acols -- Columns containing replacement sensitivities
 
         """
 
@@ -794,9 +792,7 @@ class BaseVRMSimulation(BaseSimulation):
 
     def dpred(self, m=None, f=None):
 
-        """
-
-        """
+        """"""
         if f is None:
             f = self.fields(m)
 
@@ -810,9 +806,7 @@ class BaseVRMSimulation(BaseSimulation):
 
 class Simulation3DLinear(BaseVRMSimulation):
 
-    """
-
-    """
+    """"""
 
     _A = None
     _T = None
@@ -977,9 +971,7 @@ class Simulation3DLinear(BaseVRMSimulation):
 
 class Simulation3DLogUniform(BaseVRMSimulation):
 
-    """
-
-    """
+    """"""
 
     _A = None
     _T = None

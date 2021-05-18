@@ -37,7 +37,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def getJtJdiag(self, m, W=None):
         """
-            Return the diagonal of JtJ
+        Return the diagonal of JtJ
         """
         self.model = m
 
@@ -57,7 +57,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def getJ(self, m, f=None):
         """
-            Sensitivity matrix
+        Sensitivity matrix
         """
         return self.G.dot(self.rhoDeriv)
 
@@ -99,23 +99,23 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def evaluate_integral(self, receiver_location, components):
         """
-            Compute the forward linear relationship between the model and the physics at a point
-            and for all components of the survey.
+        Compute the forward linear relationship between the model and the physics at a point
+        and for all components of the survey.
 
-            :param numpy.ndarray receiver_location:  array with shape (n_receivers, 3)
-                Array of receiver locations as x, y, z columns.
-            :param list[str] components: List of gravity components chosen from:
-                'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz', 'gyy', 'gyz', 'gzz', 'guv'
+        :param numpy.ndarray receiver_location:  array with shape (n_receivers, 3)
+            Array of receiver locations as x, y, z columns.
+        :param list[str] components: List of gravity components chosen from:
+            'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz', 'gyy', 'gyz', 'gzz', 'guv'
 
-            :rtype numpy.ndarray: rows
-            :returns: ndarray with shape (n_components, n_cells)
-                Dense array mapping of the contribution of all active cells to data components::
+        :rtype numpy.ndarray: rows
+        :returns: ndarray with shape (n_components, n_cells)
+            Dense array mapping of the contribution of all active cells to data components::
 
-                    rows =
-                        g_1 = [g_1x g_1y g_1z]
-                        g_2 = [g_2x g_2y g_2z]
-                               ...
-                        g_c = [g_cx g_cy g_cz]
+                rows =
+                    g_1 = [g_1x g_1y g_1z]
+                    g_2 = [g_2x g_2y g_2z]
+                           ...
+                    g_c = [g_cx g_cy g_cz]
 
         """
         tol1 = 1e-4
@@ -315,7 +315,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
 class Simulation3DDifferential(BaseSimulation):
     """
-        Gravity in differential equations!
+    Gravity in differential equations!
     """
 
     _deprecate_main_map = "rhoMap"
@@ -345,10 +345,7 @@ class Simulation3DDifferential(BaseSimulation):
         self._MfI = utils.sdiag(1.0 / self._Mfi.diagonal())
 
     def getRHS(self, m):
-        """
-
-
-        """
+        """"""
 
         Mc = utils.sdiag(self.mesh.vol)
 
@@ -372,15 +369,15 @@ class Simulation3DDifferential(BaseSimulation):
 
     def fields(self, m):
         """
-            Return magnetic potential (u) and flux (B)
-            u: defined on the cell nodes [nC x 1]
-            gField: defined on the cell faces [nF x 1]
+        Return magnetic potential (u) and flux (B)
+        u: defined on the cell nodes [nC x 1]
+        gField: defined on the cell faces [nF x 1]
 
-            After we compute u, then we update B.
+        After we compute u, then we update B.
 
-            .. math ::
+        .. math ::
 
-                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
+            \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
         from scipy.constants import G as NewtG

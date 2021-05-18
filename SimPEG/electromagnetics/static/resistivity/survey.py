@@ -230,8 +230,7 @@ class Survey(BaseSurvey):
     def drape_electrodes_on_topography(
         self, mesh, actind, option="top", topography=None, force=False
     ):
-        """Shift electrode locations to be on [top] of the active cells.
-        """
+        """Shift electrode locations to be on [top] of the active cells."""
         if self.survey_geometry == "surface":
             loc_a = self.locations_a
             loc_b = self.locations_b

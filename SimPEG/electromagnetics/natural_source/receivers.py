@@ -252,75 +252,65 @@ class BaseRxNSEM_Point(BaseRx):
 
     # NOTE: need to add a .T at the end for the output to be (nU,)
     def _aex_px_u(self, vec):
-        """
-        """
+        """"""
         # vec is (nD,) and returns a (nU,)
-        return self.f._e_pxDeriv_u(self.src, self.Pex.T * mkvc(vec,), adjoint=True)
+        return self.f._e_pxDeriv_u(self.src, self.Pex.T * mkvc(vec,), adjoint=True,)
 
     def _aey_px_u(self, vec):
-        """
-        """
+        """"""
         # vec is (nD,) and returns a (nU,)
-        return self.f._e_pxDeriv_u(self.src, self.Pey.T * mkvc(vec,), adjoint=True)
+        return self.f._e_pxDeriv_u(self.src, self.Pey.T * mkvc(vec,), adjoint=True,)
 
     def _aex_py_u(self, vec):
-        """
-        """
+        """"""
         # vec is (nD,) and returns a (nU,)
-        return self.f._e_pyDeriv_u(self.src, self.Pex.T * mkvc(vec,), adjoint=True)
+        return self.f._e_pyDeriv_u(self.src, self.Pex.T * mkvc(vec,), adjoint=True,)
 
     def _aey_py_u(self, vec):
-        """
-        """
+        """"""
         # vec is (nD,) and returns a (nU,)
-        return self.f._e_pyDeriv_u(self.src, self.Pey.T * mkvc(vec,), adjoint=True)
+        return self.f._e_pyDeriv_u(self.src, self.Pey.T * mkvc(vec,), adjoint=True,)
 
     def _ahx_px_u(self, vec):
-        """
-        """
+        """"""
         # vec is (nD,) and returns a (nU,)
         return (
-            self.f._b_pxDeriv_u(self.src, self.Pbx.T * mkvc(vec,), adjoint=True) / mu_0
+            self.f._b_pxDeriv_u(self.src, self.Pbx.T * mkvc(vec,), adjoint=True,) / mu_0
         )
 
     def _ahy_px_u(self, vec):
-        """
-        """
+        """"""
         # vec is (nD,) and returns a (nU,)
         return (
-            self.f._b_pxDeriv_u(self.src, self.Pby.T * mkvc(vec,), adjoint=True) / mu_0
+            self.f._b_pxDeriv_u(self.src, self.Pby.T * mkvc(vec,), adjoint=True,) / mu_0
         )
 
     def _ahz_px_u(self, vec):
-        """
-        """
+        """"""
         # vec is (nD,) and returns a (nU,)
         return (
-            self.f._b_pxDeriv_u(self.src, self.Pbz.T * mkvc(vec,), adjoint=True) / mu_0
+            self.f._b_pxDeriv_u(self.src, self.Pbz.T * mkvc(vec,), adjoint=True,) / mu_0
         )
 
     def _ahx_py_u(self, vec):
-        """
-        """
+        """"""
         # vec is (nD,) and returns a (nU,)
         return (
-            self.f._b_pyDeriv_u(self.src, self.Pbx.T * mkvc(vec,), adjoint=True) / mu_0
+            self.f._b_pyDeriv_u(self.src, self.Pbx.T * mkvc(vec,), adjoint=True,) / mu_0
         )
 
     def _ahy_py_u(self, vec):
-        """
-        """
+        """"""
         # vec is (nD,) and returns a (nU,)
         return (
-            self.f._b_pyDeriv_u(self.src, self.Pby.T * mkvc(vec,), adjoint=True) / mu_0
+            self.f._b_pyDeriv_u(self.src, self.Pby.T * mkvc(vec,), adjoint=True,) / mu_0
         )
 
     def _ahz_py_u(self, vec):
-        """
-        """
+        """"""
         # vec is (nD,) and returns a (nU,)
         return (
-            self.f._b_pyDeriv_u(self.src, self.Pbz.T * mkvc(vec,), adjoint=True) / mu_0
+            self.f._b_pyDeriv_u(self.src, self.Pbz.T * mkvc(vec,), adjoint=True,) / mu_0
         )
 
     # Define the components of the derivative

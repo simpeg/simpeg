@@ -45,33 +45,33 @@ class BaseRx(BaseTimeRx):
 
     def getSpatialP(self, mesh, f):
         """
-            Returns the spatial projection matrix.
+        Returns the spatial projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         return mesh.getInterpolationMat(self.locations, self.projGLoc(f))
 
     def getTimeP(self, time_mesh, f):
         """
-            Returns the time projection matrix.
+        Returns the time projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         return time_mesh.getInterpolationMat(self.times, self.projTLoc(f))
 
     def getP(self, mesh, time_mesh, f):
         """
-            Returns the projection matrices as a
-            list for all components collected by
-            the receivers.
+        Returns the projection matrices as a
+        list for all components collected by
+        the receivers.
 
-            .. note::
+        .. note::
 
-                Projection matrices are stored as a dictionary (mesh, time_mesh) if storeProjections is True
+            Projection matrices are stored as a dictionary (mesh, time_mesh) if storeProjections is True
         """
         if (mesh, time_mesh) in self._Ps:
             return self._Ps[(mesh, time_mesh)]
@@ -87,11 +87,11 @@ class BaseRx(BaseTimeRx):
 
     def getTimeP(self, time_mesh, f):
         """
-            Returns the time projection matrix.
+        Returns the time projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         # if self.projField == 'dbdt':
         #     return time_mesh.getInterpolationMat(
@@ -203,11 +203,11 @@ class PointMagneticFluxTimeDerivative(BaseRx):
 
     def getTimeP(self, time_mesh, f):
         """
-            Returns the time projection matrix.
+        Returns the time projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         if self.projField in f.aliasFields:
             return super(PointMagneticFluxTimeDerivative, self).getTimeP(time_mesh, f)

@@ -397,7 +397,7 @@ def plotMT1DModelData(problem, models, symList=None):
         meshPts = np.concatenate(
             (problem.mesh.gridN[0:1], np.kron(problem.mesh.gridN[1::], np.ones(2))[:-1])
         )
-        modelPts = np.kron(1.0 / (problem.sigmaMap * model), np.ones(2,))
+        modelPts = np.kron(1.0 / (problem.sigmaMap * model), np.ones(2,),)
         axM.semilogx(modelPts, meshPts, color=col)
 
         ## Data

@@ -68,11 +68,11 @@ class BaseIPSimulation(BaseDCSimulation):
 
     def dpred(self, m=None, f=None):
         """
-            Predicted data.
+        Predicted data.
 
-            .. math::
+        .. math::
 
-                d_\\text{pred} = Pf(m)
+            d_\\text{pred} = Pf(m)
 
         """
         if f is None:
@@ -82,7 +82,7 @@ class BaseIPSimulation(BaseDCSimulation):
 
     def getJtJdiag(self, m, W=None):
         """
-            Return the diagonal of JtJ
+        Return the diagonal of JtJ
         """
 
         if self.gtgdiag is None:
@@ -131,7 +131,7 @@ class BaseIPSimulation(BaseDCSimulation):
 
     def MfRhoIDeriv(self, u, v, adjoint=False):
         """
-            Derivative of :code:`MfRhoI` with respect to the model.
+        Derivative of :code:`MfRhoI` with respect to the model.
         """
         dMfRhoI_dI = -self.MfRhoI ** 2
         if self.storeInnerProduct:

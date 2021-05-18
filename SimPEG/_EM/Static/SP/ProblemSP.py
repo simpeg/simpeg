@@ -86,7 +86,7 @@ class Problem_CC_Jstore(Problem_CC):
     @property
     def G(self):
         """
-            Inverse of :code:`_G`
+        Inverse of :code:`_G`
         """
         if getattr(self, "_G", None) is None:
             A = self.getA()
@@ -141,7 +141,7 @@ class Problem_CC_Jstore(Problem_CC):
     @property
     def S(self):
         """
-            Derivatives for the spherical transformation
+        Derivatives for the spherical transformation
         """
         if getattr(self, "_S", None) is None:
             if self.verbose:

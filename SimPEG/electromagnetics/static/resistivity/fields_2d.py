@@ -174,9 +174,9 @@ class Fields2DCellCentered(Fields2D):
 
     def _charge(self, phiSolution, source_list):
         """
-            .. math::
+        .. math::
 
-                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+            \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         sim = self.simulation
         return (
@@ -187,10 +187,10 @@ class Fields2DCellCentered(Fields2D):
 
     def _charge_density(self, phiSolution, source_list):
         """
-            .. math::
+        .. math::
 
-                \frac{1}{V}\int \nabla \codt \vec{e} =
-                \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
+            \frac{1}{V}\int \nabla \codt \vec{e} =
+            \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
         """
         sim = self.simulation
         return epsilon_0 * (sim.mesh.faceDiv * self._e(phiSolution, source_list))
@@ -226,16 +226,16 @@ class Fields2DNodal(Fields2D):
 
     def _e(self, phiSolution, source_list):
         """
-            In HJ formulation e is not well-defined!!
-            .. math::
-                \vec{e} = -\nabla \phi
+        In HJ formulation e is not well-defined!!
+        .. math::
+            \vec{e} = -\nabla \phi
         """
         return -self.mesh.nodalGrad * self._phi(phiSolution, source_list)
 
     def _charge(self, phiSolution, source_list):
         """
-            .. math::
-                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        .. math::
+            \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return -epsilon_0 * (
             self.mesh.nodalGrad.T

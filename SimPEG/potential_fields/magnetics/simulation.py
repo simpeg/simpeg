@@ -119,7 +119,7 @@ class Simulation3DIntegral(BasePFSimulation):
     @property
     def nD(self):
         """
-            Number of data
+        Number of data
         """
         self._nD = self.survey.receiver_locations.shape[0]
 
@@ -140,7 +140,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def getJtJdiag(self, m, W=None):
         """
-            Return the diagonal of JtJ
+        Return the diagonal of JtJ
         """
         self.model = m
 
@@ -208,7 +208,7 @@ class Simulation3DIntegral(BasePFSimulation):
     @classmethod
     def normalized_fields(cls, fields):
         """
-            Return the normalized B fields
+        Return the normalized B fields
         """
 
         # Get field amplitude
@@ -219,7 +219,7 @@ class Simulation3DIntegral(BasePFSimulation):
     @classmethod
     def compute_amplitude(cls, b_xyz):
         """
-            Compute amplitude of the magnetic field
+        Compute amplitude of the magnetic field
         """
 
         amplitude = np.linalg.norm(b_xyz.reshape((3, -1), order="F"), axis=0)
@@ -228,21 +228,21 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def evaluate_integral(self, receiver_location, components):
         """
-            Load in the active nodes of a tensor mesh and computes the magnetic
-            forward relation between a cuboid and a given observation
-            location outside the Earth [obsx, obsy, obsz]
+        Load in the active nodes of a tensor mesh and computes the magnetic
+        forward relation between a cuboid and a given observation
+        location outside the Earth [obsx, obsy, obsz]
 
-            INPUT:
-            receiver_location:  [obsx, obsy, obsz] nC x 3 Array
+        INPUT:
+        receiver_location:  [obsx, obsy, obsz] nC x 3 Array
 
-            components: list[str]
-                List of magnetic components chosen from:
-                'bx', 'by', 'bz', 'bxx', 'bxy', 'bxz', 'byy', 'byz', 'bzz'
+        components: list[str]
+            List of magnetic components chosen from:
+            'bx', 'by', 'bz', 'bxx', 'bxy', 'bxz', 'byy', 'byz', 'bzz'
 
-            OUTPUT:
-            Tx = [Txx Txy Txz]
-            Ty = [Tyx Tyy Tyz]
-            Tz = [Tzx Tzy Tzz]
+        OUTPUT:
+        Tx = [Txx Txy Txz]
+        Ty = [Tyx Tyy Tyz]
+        Tz = [Tzx Tzy Tzz]
         """
         # TODO: This should probably be converted to C
         tol1 = 1e-10  # Tolerance 1 for numerical stability over nodes and edges
@@ -659,7 +659,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
 class Simulation3DDifferential(BaseSimulation):
     """
-        Secondary field approach using differential equations!
+    Secondary field approach using differential equations!
     """
 
     # surveyPair = MAG.BaseMagSurvey
@@ -749,15 +749,15 @@ class Simulation3DDifferential(BaseSimulation):
 
     def fields(self, m):
         """
-            Return magnetic potential (u) and flux (B)
-            u: defined on the cell center [nC x 1]
-            B: defined on the cell center [nG x 1]
+        Return magnetic potential (u) and flux (B)
+        u: defined on the cell center [nC x 1]
+        B: defined on the cell center [nG x 1]
 
-            After we compute u, then we update B.
+        After we compute u, then we update B.
 
-            .. math ::
+        .. math ::
 
-                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
+            \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
         self.makeMassMatrices(m)
@@ -1012,20 +1012,20 @@ class Simulation3DDifferential(BaseSimulation):
 
     def projectFields(self, u):
         """
-            This function projects the fields onto the data space.
-            Especially, here for we use total magnetic intensity (TMI) data,
-            which is common in practice.
-            First we project our B on to data location
+        This function projects the fields onto the data space.
+        Especially, here for we use total magnetic intensity (TMI) data,
+        which is common in practice.
+        First we project our B on to data location
 
-            .. math::
+        .. math::
 
-                \mathbf{B}_{rec} = \mathbf{P} \mathbf{B}
+            \mathbf{B}_{rec} = \mathbf{P} \mathbf{B}
 
-            then we take the dot product between B and b_0
+        then we take the dot product between B and b_0
 
-            .. math ::
+        .. math ::
 
-                \\text{TMI} = \\vec{B}_s \cdot \hat{B}_0
+            \\text{TMI} = \\vec{B}_s \cdot \hat{B}_0
 
         """
         # TODO: There can be some different tyes of data like |B| or B
@@ -1056,13 +1056,13 @@ class Simulation3DDifferential(BaseSimulation):
     @utils.count
     def projectFieldsDeriv(self, B):
         """
-            This function projects the fields onto the data space.
+        This function projects the fields onto the data space.
 
-            .. math::
+        .. math::
 
-                \\frac{\partial d_\\text{pred}}{\partial \mathbf{B}} = \mathbf{P}
+            \\frac{\partial d_\\text{pred}}{\partial \mathbf{B}} = \mathbf{P}
 
-            Especially, this function is for TMI data type
+        Especially, this function is for TMI data type
         """
 
         components = self.survey.components
@@ -1100,7 +1100,7 @@ class Simulation3DDifferential(BaseSimulation):
 
 def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     """
-        Inversion module for MagneticsDiffSecondary
+    Inversion module for MagneticsDiffSecondary
 
     """
     from SimPEG import Optimization, Regularization, Parameters, ObjFunction, Inversion

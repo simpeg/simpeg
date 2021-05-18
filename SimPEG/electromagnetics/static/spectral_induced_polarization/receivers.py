@@ -44,11 +44,11 @@ class BaseRx(BaseTimeRx):
 
     def getTimeP(self, timesall):
         """
-            Returns the time projection matrix.
+        Returns the time projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         time_inds = np.in1d(timesall, self.times)
         return time_inds

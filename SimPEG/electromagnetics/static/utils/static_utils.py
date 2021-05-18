@@ -262,17 +262,17 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
 
 def geometric_factor(survey_object, space_type="half space", **kwargs):
     """
-        Calculate Geometric Factor. Assuming that data are normalized voltages
+    Calculate Geometric Factor. Assuming that data are normalized voltages
 
-        Input:
-        :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
-        :param str survey_type: Either 'dipole-dipole' | 'pole-dipole'
-                               | 'dipole-pole' | 'pole-pole'
-        :param str space_type: Assuming whole-space or half-space
-                              ('whole-space' | 'half-space')
+    Input:
+    :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    :param str survey_type: Either 'dipole-dipole' | 'pole-dipole'
+                           | 'dipole-pole' | 'pole-pole'
+    :param str space_type: Assuming whole-space or half-space
+                          ('whole-space' | 'half-space')
 
-        Output:
-        :return numpy.ndarray G: Geometric Factor
+    Output:
+    :return numpy.ndarray G: Geometric Factor
 
     """
     if "survey_type" in kwargs:
@@ -1075,22 +1075,22 @@ def generate_survey_from_abmn_locations(
 def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
     """
-        Load in endpoints and survey specifications to generate Tx, Rx location
-        stations.
+    Load in endpoints and survey specifications to generate Tx, Rx location
+    stations.
 
-        Assumes flat topo for now...
+    Assumes flat topo for now...
 
-        Input:
-        :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
-        :param discretize.base.BaseMesh mesh: discretize mesh object
-        :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-            'dipole-pole' | 'pole-pole' | 'gradient'
-        :param int a: pole seperation
-        :param int b: dipole separation
-        :param int n: number of rx dipoles per tx
+    Input:
+    :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
+    :param discretize.base.BaseMesh mesh: discretize mesh object
+    :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
+        'dipole-pole' | 'pole-pole' | 'gradient'
+    :param int a: pole seperation
+    :param int b: dipole separation
+    :param int n: number of rx dipoles per tx
 
-        Output:
-        :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    Output:
+    :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
     """
     if "d2flag" in kwargs:
         warnings.warn(
@@ -1400,16 +1400,16 @@ def generate_dcip_sources_line(
 
 def xy_2_lineID(dc_survey):
     """
-        Read DC survey class and append line ID.
-        Assumes that the locations are listed in the order
-        they were collected. May need to generalize for random
-        point locations, but will be more expensive
+    Read DC survey class and append line ID.
+    Assumes that the locations are listed in the order
+    they were collected. May need to generalize for random
+    point locations, but will be more expensive
 
-        Input:
-        :param DCdict Vectors of station location
+    Input:
+    :param DCdict Vectors of station location
 
-        Output:
-        :return LineID Vector of integers
+    Output:
+    :return LineID Vector of integers
     """
 
     # Compute unit vector between two points
@@ -1507,7 +1507,7 @@ def r_unit(p1, p2):
 
 def gettopoCC(mesh, actind, option="top"):
     """
-        Get topography from active indices of mesh.
+    Get topography from active indices of mesh.
     """
 
     if mesh._meshType == "TENSOR":
@@ -1562,7 +1562,7 @@ def gettopoCC(mesh, actind, option="top"):
 
 def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     """
-        Drape location right below (cell center) the topography
+    Drape location right below (cell center) the topography
     """
     if mesh.dim == 2:
         # if shape is (*, 1) or (*, 2) just grab first column
@@ -1651,17 +1651,17 @@ def gen_3d_survey_from_2d_lines(
     is_IO=True,
 ):
     """
-        Generate 3D DC survey using gen_DCIPsurvey function.
+    Generate 3D DC survey using gen_DCIPsurvey function.
 
-        Input:
-        :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-            'dipole-pole' | 'pole-pole' | 'gradient'
-        :param int a: pole seperation
-        :param int b: dipole separation
-        :param int n_spacing: number of rx dipoles per tx
+    Input:
+    :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
+        'dipole-pole' | 'pole-pole' | 'gradient'
+    :param int a: pole seperation
+    :param int b: dipole separation
+    :param int n_spacing: number of rx dipoles per tx
 
-        Output:
-        :return SimPEG.dc.SurveyDC.Survey survey_3d: 3D DC survey object
+    Output:
+    :return SimPEG.dc.SurveyDC.Survey survey_3d: 3D DC survey object
     """
     ylocs = np.arange(n_lines) * line_spacing + y0
 
@@ -1884,17 +1884,17 @@ def writeUBC_DClocs(
     comment_lines="",
 ):
     """
-        Write UBC GIF DCIP 2D or 3D locations file
+    Write UBC GIF DCIP 2D or 3D locations file
 
-        Input:
-        :param str fileName: including path where the file is written out
-        :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
-        :param int dim:  either 2 | 3
-        :param str survey_type:  either 'SURFACE' | 'GENERAL'
+    Input:
+    :param str fileName: including path where the file is written out
+    :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    :param int dim:  either 2 | 3
+    :param str survey_type:  either 'SURFACE' | 'GENERAL'
 
-        Output:
-        :rtype: file
-        :return: UBC 2/3D-locations file
+    Output:
+    :rtype: file
+    :return: UBC 2/3D-locations file
     """
 
     warnings.warn(
@@ -1930,19 +1930,19 @@ def writeUBC_DClocs(
 
 def readUBC_DC2Dpre(fileName):
     """
-        Read UBC GIF DCIP 2D observation file and generate arrays
-        for tx-rx location
+    Read UBC GIF DCIP 2D observation file and generate arrays
+    for tx-rx location
 
-        Input:
-        :param string fileName: path to the UBC GIF 3D obs file
+    Input:
+    :param string fileName: path to the UBC GIF 3D obs file
 
-        Output:
-        :return survey: 2D DC survey class object
-        :rtype: SimPEG.electromagnetics.static.resistivity.Survey
+    Output:
+    :return survey: 2D DC survey class object
+    :rtype: SimPEG.electromagnetics.static.resistivity.Survey
 
-        Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
+    Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
 
-        @author: dominiquef
+    @author: dominiquef
 
     """
 
@@ -1959,13 +1959,13 @@ def readUBC_DC2Dpre(fileName):
 
 def readUBC_DC3Dobs(fileName, data_type="volt"):
     """
-        Read UBC GIF DCIP 3D observation file and generate arrays
-        for tx-rx location
-        Input:
-        :param string fileName: path to the UBC GIF 3D obs file
-        Output:
-        :param rx, tx, d, wd
-        :return
+    Read UBC GIF DCIP 3D observation file and generate arrays
+    for tx-rx location
+    Input:
+    :param string fileName: path to the UBC GIF 3D obs file
+    Output:
+    :param rx, tx, d, wd
+    :return
     """
 
     warnings.warn(

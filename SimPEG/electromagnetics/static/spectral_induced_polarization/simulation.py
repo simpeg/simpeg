@@ -93,7 +93,7 @@ class BaseSIPSimulation(BaseEMSimulation):
 
     def get_peta_pulse_off(self, t):
         """
-            Compute pseudo-chargeability from a single pulse waveform
+        Compute pseudo-chargeability from a single pulse waveform
         """
         T = self.survey.T
         exponent_0 = self.get_exponent(t)
@@ -123,7 +123,7 @@ class BaseSIPSimulation(BaseEMSimulation):
 
     def get_peta_eta_deriv_pulse_off(self, t):
         """
-            Compute derivative of pseudo-chargeability w.r.t eta from a single pulse waveform
+        Compute derivative of pseudo-chargeability w.r.t eta from a single pulse waveform
         """
         T = self.survey.T
         exponent_0 = self.get_exponent(t)
@@ -165,7 +165,7 @@ class BaseSIPSimulation(BaseEMSimulation):
 
     def get_peta_taui_deriv_pulse_off(self, t):
         """
-            Compute derivative of pseudo-chargeability w.r.t eta from a single pulse waveform
+        Compute derivative of pseudo-chargeability w.r.t eta from a single pulse waveform
         """
         T = self.survey.T
         exponent_0 = self.get_exponent(t)
@@ -203,7 +203,7 @@ class BaseSIPSimulation(BaseEMSimulation):
 
     def get_peta_c_deriv_pulse_off(self, t):
         """
-            Compute derivative of pseudo-chargeability w.r.t eta from a single pulse waveform
+        Compute derivative of pseudo-chargeability w.r.t eta from a single pulse waveform
         """
         T = self.survey.T
         exponent_0 = self.get_exponent(t)
@@ -271,7 +271,7 @@ class BaseSIPSimulation(BaseEMSimulation):
     # @profile
     def getJ(self, m, f=None):
         """
-            Generate Full sensitivity matrix
+        Generate Full sensitivity matrix
         """
 
         if self._Jmatrix is not None:
@@ -397,11 +397,11 @@ class BaseSIPSimulation(BaseEMSimulation):
 
     def dpred(self, m, f=None):
         """
-            Predicted data.
+        Predicted data.
 
-            .. math::
+        .. math::
 
-                d_\\text{pred} = Pf(m)
+            d_\\text{pred} = Pf(m)
 
         """
         if f is None:
@@ -593,7 +593,7 @@ class BaseSIPSimulation(BaseEMSimulation):
 
     def MfRhoIDeriv(self, u, v, adjoint=False):
         """
-            Derivative of :code:`MfRhoI` with respect to the model.
+        Derivative of :code:`MfRhoI` with respect to the model.
         """
         dMfRhoI_dI = -self.MfRhoI ** 2
 

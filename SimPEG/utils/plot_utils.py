@@ -31,32 +31,32 @@ def plot2Ddata(
 ):
     """
 
-        Take unstructured xy points, interpolate, then plot in 2D
+    Take unstructured xy points, interpolate, then plot in 2D
 
-        :param numpy.ndarray xyz: data locations
-        :param numpy.ndarray data: data values
-        :param bool vec: plot streamplot?
-        :param float nx: number of x grid locations
-        :param float ny: number of y grid locations
-        :param matplotlib.axes ax: axes
-        :param boolean numpy.ndarray mask: mask for the array
-        :param boolean level: boolean to plot (or not)
-                                :meth:`matplotlib.pyplot.contour`
-        :param string figname: figure name
-        :param float ncontour: number of :meth:`matplotlib.pyplot.contourf`
-                                contours
-        :param bool dataloc: plot the data locations
-        :param dict controuOpts: :meth:`matplotlib.pyplot.contourf` options
-        :param dict levelOpts: :meth:`matplotlib.pyplot.contour` options
-        :param numpy.ndarray clim: colorbar limits
-        :param str method: interpolation method, either 'linear' or 'nearest'
-        :param bool shade: add shading to the plot
-        :param float shade_ncontour: number of :meth:`matplotlib.pyplot.contourf`
-                                contours for the shading
-        :param float shade_azimuth: azimuth for the light source in shading
-        :param float shade_angle_altitude: angle altitude for the light source
-                                in shading
-        :param dict shaeOpts: :meth:`matplotlib.pyplot.contourf` options
+    :param numpy.ndarray xyz: data locations
+    :param numpy.ndarray data: data values
+    :param bool vec: plot streamplot?
+    :param float nx: number of x grid locations
+    :param float ny: number of y grid locations
+    :param matplotlib.axes ax: axes
+    :param boolean numpy.ndarray mask: mask for the array
+    :param boolean level: boolean to plot (or not)
+                            :meth:`matplotlib.pyplot.contour`
+    :param string figname: figure name
+    :param float ncontour: number of :meth:`matplotlib.pyplot.contourf`
+                            contours
+    :param bool dataloc: plot the data locations
+    :param dict controuOpts: :meth:`matplotlib.pyplot.contourf` options
+    :param dict levelOpts: :meth:`matplotlib.pyplot.contour` options
+    :param numpy.ndarray clim: colorbar limits
+    :param str method: interpolation method, either 'linear' or 'nearest'
+    :param bool shade: add shading to the plot
+    :param float shade_ncontour: number of :meth:`matplotlib.pyplot.contourf`
+                            contours for the shading
+    :param float shade_azimuth: azimuth for the light source in shading
+    :param float shade_angle_altitude: angle altitude for the light source
+                            in shading
+    :param dict shaeOpts: :meth:`matplotlib.pyplot.contourf` options
 
     """
 

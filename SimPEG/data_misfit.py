@@ -70,17 +70,16 @@ class BaseDataMisfit(L2ObjectiveFunction):
 
     @property
     def shape(self):
-        """
-        """
+        """"""
         return (self.nD, self.nP)
 
     @property
     def W(self):
         """W
-            The data weighting matrix.
-            The default is based on the norm of the data plus a noise floor.
-            :rtype: scipy.sparse.csr_matrix
-            :return: W
+        The data weighting matrix.
+        The default is based on the norm of the data plus a noise floor.
+        :rtype: scipy.sparse.csr_matrix
+        :return: W
         """
 
         if getattr(self, "_W", None) is None:

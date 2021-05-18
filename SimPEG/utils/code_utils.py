@@ -23,24 +23,24 @@ except ImportError:
 
 def memProfileWrapper(towrap, *funNames):
     """
-        Create a wrapper for the functions you want to use, wrapping up the
-        class, and putting profile wrappers on the functions in funNames.
+    Create a wrapper for the functions you want to use, wrapping up the
+    class, and putting profile wrappers on the functions in funNames.
 
-        :param class towrap: Class to wrap
-        :param str funNames: And amount of function names to wrap
-        :rtype: class
-        :return: memory profiled wrapped class
+    :param class towrap: Class to wrap
+    :param str funNames: And amount of function names to wrap
+    :rtype: class
+    :return: memory profiled wrapped class
 
-        For example::
+    For example::
 
-            foo_mem = memProfileWrapper(foo,['my_func'])
-            fooi = foo_mem()
-            for i in range(5):
-                fooi.my_func()
+        foo_mem = memProfileWrapper(foo,['my_func'])
+        fooi = foo_mem()
+        for i in range(5):
+            fooi.my_func()
 
-        Then run it from the command line::
+    Then run it from the command line::
 
-            python -m memory_profiler exampleMemWrapper.py
+        python -m memory_profiler exampleMemWrapper.py
     """
     from memory_profiler import profile
 
@@ -56,9 +56,9 @@ def memProfileWrapper(towrap, *funNames):
 
 def hook(obj, method, name=None, overwrite=False, silent=False):
     """
-        This dynamically binds a method to the instance of the class.
+    This dynamically binds a method to the instance of the class.
 
-        If name is None, the name of the method is used.
+    If name is None, the name of the method is used.
     """
     if name is None:
         name = method.__name__
@@ -74,8 +74,8 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
 
 def setKwargs(obj, ignore=None, **kwargs):
     """
-        Sets key word arguments (kwargs) that are present in the object,
-        throw an error if they don't exist.
+    Sets key word arguments (kwargs) that are present in the object,
+    throw an error if they don't exist.
     """
     if ignore is None:
         ignore = []
@@ -225,14 +225,14 @@ def dependentProperty(name, value, children, doc):
 
 def requires(var):
     """
-        Use this to wrap a funciton::
+    Use this to wrap a funciton::
 
-            @requires('prob')
-            def dpred(self):
-                pass
+        @requires('prob')
+        def dpred(self):
+            pass
 
-        This wrapper will ensure that a problem has been bound to the data.
-        If a problem is not bound an Exception will be raised, and an nice error message printed.
+    This wrapper will ensure that a problem has been bound to the data.
+    If a problem is not bound an Exception will be raised, and an nice error message printed.
     """
 
     def requiresVar(f):

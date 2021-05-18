@@ -112,16 +112,16 @@ class InversionDirective(properties.HasProperties):
     @property
     def survey(self):
         """
-           Assuming that dmisfit is always a ComboObjectiveFunction,
-           return a list of surveys for each dmisfit [survey1, survey2, ... ]
+        Assuming that dmisfit is always a ComboObjectiveFunction,
+        return a list of surveys for each dmisfit [survey1, survey2, ... ]
         """
         return [objfcts.simulation.survey for objfcts in self.dmisfit.objfcts]
 
     @property
     def simulation(self):
         """
-           Assuming that dmisfit is always a ComboObjectiveFunction,
-           return a list of problems for each dmisfit [prob1, prob2, ...]
+        Assuming that dmisfit is always a ComboObjectiveFunction,
+        return a list of problems for each dmisfit [prob1, prob2, ...]
         """
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
 
@@ -219,28 +219,28 @@ class BetaEstimate_ByEig(InversionDirective):
 
     def initialize(self):
         """
-            The initial beta is calculated by comparing the estimated
-            eigenvalues of JtJ and WtW.
-            To estimate the eigenvector of **A**, we will use one iteration
-            of the *Power Method*:
+        The initial beta is calculated by comparing the estimated
+        eigenvalues of JtJ and WtW.
+        To estimate the eigenvector of **A**, we will use one iteration
+        of the *Power Method*:
 
-            .. math::
-                \mathbf{x_1 = A x_0}
+        .. math::
+            \mathbf{x_1 = A x_0}
 
-            Given this (very course) approximation of the eigenvector, we can
-            use the *Rayleigh quotient* to approximate the largest eigenvalue.
+        Given this (very course) approximation of the eigenvector, we can
+        use the *Rayleigh quotient* to approximate the largest eigenvalue.
 
-            .. math::
-                \lambda_0 = \\frac{\mathbf{x^\\top A x}}{\mathbf{x^\\top x}}
+        .. math::
+            \lambda_0 = \\frac{\mathbf{x^\\top A x}}{\mathbf{x^\\top x}}
 
-            We will approximate the largest eigenvalue for both JtJ and WtW,
-            and use some ratio of the quotient to estimate beta0.
+        We will approximate the largest eigenvalue for both JtJ and WtW,
+        and use some ratio of the quotient to estimate beta0.
 
-            .. math::
-                \\beta_0 = \gamma \\frac{\mathbf{x^\\top J^\\top J x}}{\mathbf{x^\\top W^\\top W x}}
+        .. math::
+            \\beta_0 = \gamma \\frac{\mathbf{x^\\top J^\\top J x}}{\mathbf{x^\\top W^\\top W x}}
 
-            :rtype: float
-            :return: beta0
+        :rtype: float
+        :return: beta0
         """
         if self.seed is not None:
             np.random.seed(self.seed)
@@ -297,8 +297,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
     seed = None  # random seed for the directive
 
     def initialize(self):
-        """
-        """
+        """"""
         if self.seed is not None:
             np.random.seed(self.seed)
 
@@ -432,8 +431,7 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
     seed = None  # random seed for the directive
 
     def initialize(self):
-        """
-        """
+        """"""
         if self.seed is not None:
             np.random.seed(self.seed)
 
@@ -542,8 +540,8 @@ class JointScalingSchedule(InversionDirective):
 
 class TargetMisfit(InversionDirective):
     """
-     ... note:: Currently this target misfit is not set up for joint inversion.
-     Check out MultiTargetMisfits
+    ... note:: Currently this target misfit is not set up for joint inversion.
+    Check out MultiTargetMisfits
     """
 
     chifact = 1.0
@@ -1131,7 +1129,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
 class SaveOutputDictEveryIteration(SaveEveryIteration):
     """
-        Saves inversion parameters at every iteration.
+    Saves inversion parameters at every iteration.
     """
 
     # Initialize the output dict
@@ -1463,8 +1461,8 @@ class Update_IRLS(InversionDirective):
 
     def angleScale(self):
         """
-            Update the scales used by regularization for the
-            different block of models
+        Update the scales used by regularization for the
+        different block of models
         """
         # Currently implemented for MVI-S only
         max_p = []
@@ -1571,7 +1569,7 @@ class UpdatePreconditioner(InversionDirective):
 
 class Update_Wj(InversionDirective):
     """
-        Create approx-sensitivity base weighting using the probing method
+    Create approx-sensitivity base weighting using the probing method
     """
 
     k = None  # Number of probing cycles
@@ -1634,8 +1632,8 @@ class UpdateSensitivityWeights(InversionDirective):
 
     def getJtJdiag(self):
         """
-            Compute explicitly the main diagonal of JtJ
-            Good for any problem where J is formed explicitly
+        Compute explicitly the main diagonal of JtJ
+        Good for any problem where J is formed explicitly
         """
         self.JtJdiag = []
         m = self.invProb.model
@@ -1657,8 +1655,8 @@ class UpdateSensitivityWeights(InversionDirective):
 
     def getWr(self):
         """
-            Take the diagonal of JtJ and return
-            a normalized sensitivty weighting vector
+        Take the diagonal of JtJ and return
+        a normalized sensitivty weighting vector
         """
 
         wr = np.zeros_like(self.invProb.model)
@@ -1678,7 +1676,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
     def updateReg(self):
         """
-            Update the cell weights with the approximated sensitivity
+        Update the cell weights with the approximated sensitivity
         """
 
         for reg in self.reg.objfcts:
@@ -1713,10 +1711,10 @@ class UpdateSensitivityWeights(InversionDirective):
 
 class ProjectSphericalBounds(InversionDirective):
     """
-        Trick for spherical coordinate system.
-        Project \theta and \phi angles back to [-\pi,\pi] using
-        back and forth conversion.
-        spherical->cartesian->spherical
+    Trick for spherical coordinate system.
+    Project \theta and \phi angles back to [-\pi,\pi] using
+    back and forth conversion.
+    spherical->cartesian->spherical
     """
 
     def initialize(self):
