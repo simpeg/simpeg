@@ -10,4 +10,12 @@ from .tikhonov import (
     Tikhonov,
 )
 from .sparse import SparseSmall, SparseDeriv, Sparse
+from .pgi import (
+    SimplePGIsmallness,
+    PGIsmallness,
+    SimplePGI,
+    PGI,
+    SimplePGIwithNonlinearRelationshipsSmallness,
+    SimplePGIwithRelationships,
+)
 from .coupling import CrossGradient, Linear

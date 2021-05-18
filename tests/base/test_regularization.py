@@ -5,9 +5,8 @@ from __future__ import unicode_literals
 
 import numpy as np
 import unittest
-
-
-from scipy.sparse.linalg import dsolve
+from scipy.stats import multivariate_normal
+from scipy.sparse.linalg import spsolve, LinearOperator, bicgstab
 import inspect
 
 import discretize
@@ -23,7 +22,14 @@ np.random.seed(639)
 IGNORE_ME = [
     "BaseRegularization",
     "BaseComboRegularization",
+    "SimpleComboRegularization",
     "BaseSparse",
+    "SimplePGI",
+    "PGI",
+    "SimplePGIwithRelationships",
+    "SimplePGIwithNonlinearRelationshipsSmallness",
+    "PGIsmallness",
+    "SimplePGIsmallness",
 ]
 
 

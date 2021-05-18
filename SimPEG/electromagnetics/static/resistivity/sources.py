@@ -20,10 +20,10 @@ class BaseSrc(survey.BaseSrc):
     def __init__(self, receiver_list, **kwargs):
         super(BaseSrc, self).__init__(receiver_list, **kwargs)
 
-    def eval(self, prob):
+    def eval(self, sim):
         raise NotImplementedError
 
-    def evalDeriv(self, prob):
+    def evalDeriv(self, sim):
         return Zero()
 
 
@@ -112,19 +112,19 @@ class Dipole(BaseSrc):
         """Location of the B-electrode"""
         return self.location[1]
 
-    def eval(self, prob):
+    def eval(self, sim):
         if self._q is not None:
             return self._q
         else:
-            if prob._formulation == "HJ":
-                inds = closestPoints(prob.mesh, self.location, gridLoc="CC")
-                self._q = np.zeros(prob.mesh.nC)
+            if sim._formulation == "HJ":
+                inds = closestPoints(sim.mesh, self.location, gridLoc="CC")
+                self._q = np.zeros(sim.mesh.nC)
                 self._q[inds] = self.current * np.r_[1.0, -1.0]
-            elif prob._formulation == "EB":
-                qa = prob.mesh.getInterpolationMat(
+            elif sim._formulation == "EB":
+                qa = sim.mesh.getInterpolationMat(
                     self.location[0], locType="N"
                 ).toarray()
-                qb = -prob.mesh.getInterpolationMat(
+                qb = -sim.mesh.getInterpolationMat(
                     self.location[1], locType="N"
                 ).toarray()
                 self._q = self.current * (qa + qb)
@@ -135,15 +135,25 @@ class Pole(BaseSrc):
     def __init__(self, receiver_list=[], location=None, **kwargs):
         super(Pole, self).__init__(receiver_list, location=location, **kwargs)
 
-    def eval(self, prob):
+    def eval(self, sim):
         if self._q is not None:
             return self._q
         else:
-            if prob._formulation == "HJ":
-                inds = closestPoints(prob.mesh, self.location)
-                self._q = np.zeros(prob.mesh.nC)
+            if sim._formulation == "HJ":
+                inds = closestPoints(sim.mesh, self.location)
+                self._q = np.zeros(sim.mesh.nC)
                 self._q[inds] = self.current * np.r_[1.0]
-            elif prob._formulation == "EB":
-                q = prob.mesh.getInterpolationMat(self.location, locType="N")
+            elif sim._formulation == "EB":
+                q = sim.mesh.getInterpolationMat(self.location, locType="N")
                 self._q = self.current * q.toarray()
             return self._q
+
+    @property
+    def location_a(self):
+        """Locations of the A electrode"""
+        return self.location
+
+    @property
+    def location_b(self):
+        """Location of the B electrode"""
+        return np.nan*np.ones_like(self.location)

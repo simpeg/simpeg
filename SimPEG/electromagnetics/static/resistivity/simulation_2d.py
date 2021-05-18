@@ -1,7 +1,5 @@
 import numpy as np
-from scipy.special import k0, k1
 from scipy.optimize import minimize
-from numpy.polynomial.legendre import leggauss
 import warnings
 import properties
 from ....utils.code_utils import deprecate_class
@@ -13,8 +11,9 @@ from ....data import Data
 from .survey import Survey
 from .fields_2d import Fields2D, Fields2DCellCentered, Fields2DNodal
 from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
-from .boundary_utils import getxBCyBC_CC
 from .utils import _mini_pole_pole
+from scipy.special import k0e, k1e, k0
+from discretize.utils import make_boundary_bool
 
 
 class BaseDCSimulation2D(BaseEMSimulation):
@@ -39,77 +38,61 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     def __init__(self, *args, **kwargs):
         miniaturize = kwargs.pop("miniaturize", False)
+        do_trap = kwargs.pop("do_trap", False)
         super().__init__(*args, **kwargs)
 
-        # try to find an optimal set of quadrature points and weights
-        def get_phi(r):
-            e = np.ones_like(r)
+        if not do_trap:
+            # try to find an optimal set of quadrature points and weights
+            def get_phi(r):
+                e = np.ones_like(r)
 
-            def phi(k):
-                # use log10 transform to enforce positivity
-                k = 10 ** k
-                A = r[:, None] * k0(r[:, None] * k)
-                v_i = A @ np.linalg.solve(A.T @ A, A.T @ e)
-                dv = (e - v_i) / len(r)
-                return np.linalg.norm(dv)
+                def phi(k):
+                    # use log10 transform to enforce positivity
+                    k = 10 ** k
+                    A = r[:, None] * k0(r[:, None] * k)
+                    v_i = A @ np.linalg.solve(A.T @ A, A.T @ e)
+                    dv = (e - v_i) / len(r)
+                    return np.linalg.norm(dv)
 
-            def g(k):
-                A = r[:, None] * k0(r[:, None] * k)
-                return np.linalg.solve(A.T @ A, A.T @ e)
+                def g(k):
+                    A = r[:, None] * k0(r[:, None] * k)
+                    return np.linalg.solve(A.T @ A, A.T @ e)
 
-            return phi, g
+                return phi, g
 
-        # find the minimum cell spacing, and the maximum side of the mesh
-        min_r = min(*[np.min(h) for h in self.mesh.h])
-        max_r = max(*[np.sum(h) for h in self.mesh.h])
-        # generate test points log spaced between these two end members
-        rs = np.logspace(np.log10(min_r / 4), np.log10(max_r * 4), 100)
+            # find the minimum cell spacing, and the maximum side of the mesh
+            min_r = min(*[np.min(h) for h in self.mesh.h])
+            max_r = max(*[np.sum(h) for h in self.mesh.h])
+            # generate test points log spaced between these two end members
+            rs = np.logspace(np.log10(min_r / 4), np.log10(max_r * 4), 100)
 
-        min_rinv = -np.log10(rs).max()
-        max_rinv = -np.log10(rs).min()
-        # a decent initial guess of the k_i's for the optimization = 1/rs
-        k_i = np.linspace(min_rinv, max_rinv, self.nky)
+            min_rinv = -np.log10(rs).max()
+            max_rinv = -np.log10(rs).min()
+            # a decent initial guess of the k_i's for the optimization = 1/rs
+            k_i = np.linspace(min_rinv, max_rinv, self.nky)
 
-        # these functions depend on r, so grab them
-        func, g_func = get_phi(rs)
+            # these functions depend on r, so grab them
+            func, g_func = get_phi(rs)
 
-        # just use scipy's minimize for ease
-        out = minimize(func, k_i)
-        if self.verbose:
-            print(f"optimized ks converged? : {out['success']}")
-            print(f"Estimated transform Error: {out['fun']}")
-        # transform the solution back to normal points
-        points = 10 ** out["x"]
-        # transform has a 2/pi and we want 1/pi, so divide by 2
-        weights = g_func(points) / 2
-
-        do_trap = False
-        if not out["success"]:
-            warnings.warn(
-                "Falling back to trapezoidal for integration. "
-                "You may need to change nky."
-            )
-            do_trap = True
-        bc_type = getattr(self, "bc_type", "Neumann")
-        if bc_type == "Mixed":
-            # default for mixed
-            do_trap = True
-            nky = kwargs.get("nkys", None)
-            if nky is None:
-                self.nky = 15
+            # just use scipy's minimize for ease
+            out = minimize(func, k_i)
+            if self.verbose:
+                print(f"optimized ks converged? : {out['success']}")
+                print(f"Estimated transform Error: {out['fun']}")
+            # transform the solution back to normal points
+            points = 10 ** out["x"]
+            # transform has a 2/pi and we want 1/pi, so divide by 2
+            weights = g_func(points) / 2
+            if not out["success"]:
+                warnings.warn(
+                    "Falling back to trapezoidal for integration. "
+                    "You may need to change nky."
+                )
+                do_trap = True
         if do_trap:
             if self.verbose:
                 print("doing trap")
             y = 0.0
-            # gaussian quadrature
-            # points, weights = leggauss(self.nky)
-            # a, b = -4, 1  # log space of points
-            # points = ((b - a)*points + (b+a))/2
-            # weights = weights*(b-a)/2
-            # weights *= np.log(10)*(10**points)
-            # points = 10**points
-            #
-            # weights *= np.cos(points * y)/np.pi
 
             points = np.logspace(-4, 1, self.nky)
             dky = np.diff(points) / 2
@@ -129,13 +112,6 @@ class BaseDCSimulation2D(BaseEMSimulation):
         # sources is greater than the number of unique pole sources
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
-
-    def set_geometric_factor(self, geometric_factor):
-        index = 0
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                rx._geometric_factor = geometric_factor[index]
-                index += 1
 
     def fields(self, m):
         if self.verbose:
@@ -287,7 +263,6 @@ class BaseDCSimulation2D(BaseEMSimulation):
             v = self._mini_survey_dataT(v)
             Jtv = np.zeros(m.size, dtype=float)
 
-            # TODO: this loop is pretty slow .. (Parellize)
             for iky, ky in enumerate(kys):
                 u_ky = f[:, self._solutionType, iky]
                 count = 0
@@ -324,9 +299,8 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     u_src = u_ky[:, i_src]
                     for rx in src.receiver_list:
                         # wrt f, need possibility wrt m
-                        P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
-
-                        ATinvdf_duT = self.Ainv[iky] * (P.T)
+                        PT = rx.evalDeriv(src, self.mesh, f).toarray().T
+                        ATinvdf_duT = self.Ainv[iky] * PT
 
                         dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT, adjoint=True)
                         Jtv = -weights[iky] * dA_dmT  # RHS=0
@@ -508,10 +482,19 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields2DCellCentered
     fieldsPair_fwd = Fields3DCellCentered
-    bc_type = "Mixed"
+
+    bc_type = properties.StringChoice(
+        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
+        "are equivalent.",
+        choices=["Dirichlet", "Neumann", "Robin", "Mixed"],
+        default="Robin",
+    )
 
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation2D.__init__(self, mesh, **kwargs)
+        V = sdiag(self.mesh.cell_volumes)
+        self.Div = V @ self.mesh.face_divergence
+        self.Grad = self.Div.T
 
     def getA(self, ky):
         """
@@ -522,21 +505,20 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         self.setBC(ky=ky)
         D = self.Div
         G = self.Grad
-        vol = self.mesh.vol
+        if self.bc_type != "Dirichlet":
+            G = G - self._MBC[ky]
         MfRhoI = self.MfRhoI
         # Get resistivity rho
-        rho = self.rho
         A = D * MfRhoI * G + ky ** 2 * self.MccRhoi
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.0
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
-        # To handle Mixed boundary condition
-        # self.setBC(ky=ky)
-
         D = self.Div
         G = self.Grad
+        if self.bc_type != "Dirichlet":
+            G = G - self._MBC[ky]
         if adjoint:
             return self.MfRhoIDeriv(
                 G * u.flatten(), D.T * v, adjoint=adjoint
@@ -565,69 +547,57 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         return Zero()
 
     def setBC(self, ky=None):
-        fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
-        gBFxm = self.mesh.gridFx[fxm, :]
-        gBFxp = self.mesh.gridFx[fxp, :]
-        gBFym = self.mesh.gridFy[fym, :]
-        gBFyp = self.mesh.gridFy[fyp, :]
-
-        # Setup Mixed B.C (alpha, beta, gamma)
-        temp_xm = np.ones_like(gBFxm[:, 0])
-        temp_xp = np.ones_like(gBFxp[:, 0])
-        temp_ym = np.ones_like(gBFym[:, 1])
-        temp_yp = np.ones_like(gBFyp[:, 1])
-
+        if self.bc_type == "Dirichlet":
+            return
+        if getattr(self, "_MBC", None) is None:
+            self._MBC = {}
+        if ky in self._MBC:
+            # I have already created the BC matrix for this wavenumber
+            return
         if self.bc_type == "Neumann":
-            alpha_xm, alpha_xp = temp_xm * 0.0, temp_xp * 0.0
-            alpha_ym, alpha_yp = temp_ym * 0.0, temp_yp * 0.0
+            alpha, beta, gamma = 0, 1, 0
+        else:
+            mesh = self.mesh
+            boundary_faces = mesh.boundary_faces
+            boundary_normals = mesh.boundary_face_outward_normals
+            n_bf = len(boundary_faces)
 
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
+            # Top gets 0 Neumann
+            alpha = np.zeros(n_bf)
+            beta = np.ones(n_bf)
+            gamma = 0
 
-            gamma_xm, gamma_xp = temp_xm * 0.0, temp_xp * 0.0
-            gamma_ym, gamma_yp = temp_ym * 0.0, temp_yp * 0.0
+            # assume a source point at the middle of the top of the mesh
+            middle = np.median(mesh.nodes, axis=0)
+            top_v = np.max(mesh.nodes[:, -1])
+            source_point = np.r_[middle[:-1], top_v]
 
-        elif self.bc_type == "Dirichlet":
-            alpha_xm, alpha_xp = temp_xm, temp_xp
-            alpha_ym, alpha_yp = temp_ym, temp_yp
+            r_vec = boundary_faces - source_point
+            r = np.linalg.norm(r_vec, axis=-1)
+            r_hat = r_vec / r[:, None]
+            r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
-            beta_xm, beta_xp = temp_xm * 0.0, temp_xp * 0.0
-            beta_ym, beta_yp = temp_ym * 0.0, temp_yp * 0.0
+            # determine faces that are on the sides and bottom of the mesh...
+            if mesh._meshType.lower() == "tree":
+                not_top = boundary_faces[:, -1] != top_v
+            else:
+                # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                is_b = make_boundary_bool(mesh.shape_faces_y)
+                is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                is_t[:, -1] = True
+                is_t = is_t.reshape(-1, order="F")[is_b]
+                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
+                not_top[-len(is_t) :] = ~is_t
 
-            gamma_xm, gamma_xp = temp_xm * 0.0, temp_xp * 0.0
-            gamma_ym, gamma_yp = temp_ym * 0.0, temp_yp * 0.0
+            # use the exponentialy scaled modified bessel function of second kind,
+            # (the division will cancel out the scaling)
+            # This is more stable for large values of ky * r
+            # actual ratio is k1/k0...
+            alpha[not_top] = (ky * k1e(ky * r) / k0e(ky * r) * r_dot_n)[not_top]
 
-        elif self.bc_type == "Mixed":
-            xs = np.median(self.mesh.vectorCCx)
-            ys = np.median(self.mesh.vectorCCy[-1])
-
-            def r_boundary(x, y):
-                return 1.0 / np.sqrt((x - xs) ** 2 + (y - ys) ** 2)
-
-            rxm = r_boundary(gBFxm[:, 0], gBFxm[:, 1])
-            rxp = r_boundary(gBFxp[:, 0], gBFxp[:, 1])
-            rym = r_boundary(gBFym[:, 0], gBFym[:, 1])
-
-            alpha_xm = ky * (k1(ky * rxm) / k0(ky * rxm) * (gBFxm[:, 0] - xs))
-            alpha_xp = ky * (k1(ky * rxp) / k0(ky * rxp) * (gBFxp[:, 0] - xs))
-            alpha_ym = ky * (k1(ky * rym) / k0(ky * rym) * (gBFym[:, 0] - ys))
-            alpha_yp = temp_yp * 0.0
-            beta_xm, beta_xp = temp_xm, temp_xp
-            beta_ym, beta_yp = temp_ym, temp_yp
-
-            gamma_xm, gamma_xp = temp_xm * 0.0, temp_xp * 0.0
-            gamma_ym, gamma_yp = temp_ym * 0.0, temp_yp * 0.0
-
-        alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-        beta = [beta_xm, beta_xp, beta_ym, beta_yp]
-        gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
-
-        x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
-        V = self.Vol
-        self.Div = V * self.mesh.faceDiv
-        P_BC, B = self.mesh.getBCProjWF_simple()
-        M = B * self.mesh.aveCC2F
-        self.Grad = self.Div.T - P_BC * sdiag(y_BC) * M
+        B, bc = self.mesh.cell_gradient_weak_form_robin(alpha, beta, gamma)
+        # bc should always be 0 because gamma was always 0 above
+        self._MBC[ky] = B
 
 
 class Simulation2DNodal(BaseDCSimulation2D):
@@ -641,9 +611,15 @@ class Simulation2DNodal(BaseDCSimulation2D):
     fieldsPair_fwd = Fields3DNodal
     _gradT = None
 
+    bc_type = properties.StringChoice(
+        "Type of boundary condition to use for simulation. Note that Robin and Mixed "
+        "are equivalent.",
+        choices=["Neumann", "Robin", "Mixed"],
+        default="Robin",
+    )
+
     def __init__(self, mesh, **kwargs):
         BaseDCSimulation2D.__init__(self, mesh, **kwargs)
-        # self.setBC()
         self.solver_opts["is_symmetric"] = True
         self.solver_opts["is_positive_definite"] = True
 
@@ -652,6 +628,9 @@ class Simulation2DNodal(BaseDCSimulation2D):
         Make the A matrix for the cell centered DC resistivity problem
         A = D MfRhoI G
         """
+        # To handle Mixed boundary condition
+        self.setBC(ky=ky)
+
         MeSigma = self.MeSigma
         MnSigma = self.MnSigma
         Grad = self.mesh.nodalGrad
@@ -659,6 +638,18 @@ class Simulation2DNodal(BaseDCSimulation2D):
             self._gradT = Grad.T.tocsr()  # cache the .tocsr()
         GradT = self._gradT
         A = GradT * MeSigma * Grad + ky ** 2 * MnSigma
+
+        if self.bc_type != "Neumann":
+            try:
+                A = A + sdiag(self._AvgBC[ky] @ self.sigma)
+            except ValueError as err:
+                if len(self.sigma) != len(self.mesh):
+                    raise NotImplementedError(
+                        "Anisotropic conductivity is not supported for Robin boundary "
+                        "conditions, please use 'Neumann'."
+                    )
+                else:
+                    raise err
         return A
 
     def getADeriv(self, ky, u, v, adjoint=False):
@@ -666,15 +657,27 @@ class Simulation2DNodal(BaseDCSimulation2D):
         Grad = self.mesh.nodalGrad
 
         if adjoint:
-            return self.MeSigmaDeriv(
+            out = self.MeSigmaDeriv(
                 Grad * u.flatten(), Grad * v, adjoint=adjoint
             ) + ky ** 2 * self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
         else:
-            return Grad.T * self.MeSigmaDeriv(
+            out = Grad.T * self.MeSigmaDeriv(
                 Grad * u.flatten(), v, adjoint=adjoint
             ) + ky ** 2 * self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
-        # return (Grad.T*(self.MeSigmaDeriv(Grad*u.flatten(), v, adjoint)) +
-        #         ky**2*self.MnSigmaDeriv(u.flatten())*v)
+        if self.bc_type != "Neumann" and self.sigmaMap is not None:
+            if getattr(self, "_MBC_sigma", None) is None:
+                self._MBC_sigma = {}
+            if ky not in self._MBC_sigma:
+                self._MBC_sigma[ky] = self._AvgBC[ky] @ self.sigmaDeriv
+            if not isinstance(u, Zero):
+                u = u.flatten()
+                if v.ndim > 1:
+                    u = u[:, None]
+                if not adjoint:
+                    out += u * (self._MBC_sigma[ky] @ v)
+                else:
+                    out += self._MBC_sigma[ky].T @ (u * v)
+        return out
 
     def getRHS(self, ky):
         """
@@ -693,6 +696,67 @@ class Simulation2DNodal(BaseDCSimulation2D):
         # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+    def setBC(self, ky=None):
+        if self.bc_type == "Dirichlet":
+            # do nothing
+            raise ValueError(
+                "Dirichlet conditions are not supported in the Nodal formulation"
+            )
+        elif self.bc_type == "Neumann":
+            if self.verbose:
+                print(
+                    "Homogeneous Neumann is the natural BC for this Nodal discretization."
+                )
+            return
+        else:
+            if getattr(self, "_AvgBC", None) is None:
+                self._AvgBC = {}
+            if ky in self._AvgBC:
+                return
+            mesh = self.mesh
+            # calculate alpha, beta, gamma at the boundary faces
+            boundary_faces = mesh.boundary_faces
+            boundary_normals = mesh.boundary_face_outward_normals
+            n_bf = len(boundary_faces)
+
+            alpha = np.zeros(n_bf)
+
+            # assume a source point at the middle of the top of the mesh
+            middle = np.median(mesh.nodes, axis=0)
+            top_v = np.max(mesh.nodes[:, -1])
+            source_point = np.r_[middle[:-1], top_v]
+
+            r_vec = boundary_faces - source_point
+            r = np.linalg.norm(r_vec, axis=-1)
+            r_hat = r_vec / r[:, None]
+            r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
+
+            # determine faces that are on the sides and bottom of the mesh...
+            if mesh._meshType.lower() == "tree":
+                not_top = boundary_faces[:, -1] != top_v
+            else:
+                # mesh faces are ordered, faces_x, faces_y, faces_z so...
+                is_b = make_boundary_bool(mesh.shape_faces_y)
+                is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
+                is_t[:, -1] = True
+                is_t = is_t.reshape(-1, order="F")[is_b]
+                not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
+                not_top[-len(is_t) :] = ~is_t
+
+            # use the exponentiall scaled modified bessel function of second kind,
+            # (the division will cancel out the scaling)
+            # This is more stable for large values of ky * r
+            # actual ratio is k1/k0...
+            alpha[not_top] = (ky * k1e(ky * r) / k0e(ky * r) * r_dot_n)[not_top]
+
+            P_bf = self.mesh.project_face_to_boundary_face
+
+            AvgN2Fb = P_bf @ self.mesh.average_node_to_face
+            AvgCC2Fb = P_bf @ self.mesh.average_cell_to_face
+
+            AvgCC2Fb = sdiag(alpha * (P_bf @ self.mesh.face_areas)) @ AvgCC2Fb
+            self._AvgBC[ky] = AvgN2Fb.T @ AvgCC2Fb
 
 
 Simulation2DCellCentred = Simulation2DCellCentered  # UK and US

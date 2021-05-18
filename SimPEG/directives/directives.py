@@ -5,10 +5,29 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 import os
+import scipy.sparse as sp
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
 from ..maps import SphericalSystem, ComboMap
-from ..regularization import BaseComboRegularization, BaseRegularization
+from ..regularization import (
+    BaseComboRegularization,
+    BaseRegularization,
+    SimpleSmall,
+    Small,
+    SparseSmall,
+    Simple,
+    Tikhonov,
+    Sparse,
+    SimplePGIsmallness,
+    PGIsmallness,
+    SimplePGIwithNonlinearRelationshipsSmallness,
+    SimplePGI,
+    PGI,
+    SmoothDeriv,
+    SimpleSmoothDeriv,
+    SparseDeriv,
+    SimplePGIwithRelationships,
+)
 from ..utils import (
     mkvc,
     setKwargs,
@@ -16,10 +35,11 @@ from ..utils import (
     diagEst,
     spherical2cartesian,
     cartesian2spherical,
-    eigenvalue_by_power_iteration, # change on Dec 9, 2020
+    Zero,
+    eigenvalue_by_power_iteration,
 )
 from ..utils.code_utils import deprecate_property
-from ..import optimization
+from .. import optimization
 
 
 class InversionDirective(properties.HasProperties):
@@ -84,7 +104,7 @@ class InversionDirective(properties.HasProperties):
 
         assert any(
             [isinstance(value, dmisfittype) for dmisfittype in self._dmisfitPair]
-        ), "Regularization must be in {}, not {}".format(self._dmisfitPair, type(value))
+        ), "Misfit must be in {}, not {}".format(self._dmisfitPair, type(value))
 
         if not isinstance(value, ComboObjectiveFunction):
             value = 1 * value  # turn it into a combo objective function
@@ -182,10 +202,17 @@ class DirectiveList(object):
 
 
 class BetaEstimate_ByEig(InversionDirective):
-    """BetaEstimate"""
+    """
+    Estimate the trade-off parameter beta between the data misfit(s) and the
+    regularization as a multiple of the ratio between the highest eigenvalue of the
+    data misfit term and the highest eigenvalue of the regularization.
+    The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
 
-    beta0 = None  #: The initial Beta (regularization parameter)
-    beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
+    """
+
+    beta0_ratio = 1.0  #: the estimated ratio is multiplied by this to obtain beta
+    n_pw_iter = 4  #: number of power iterations for estimation.
+    seed = None  #: Random seed for the directive
 
     def initialize(self):
         """
@@ -212,41 +239,35 @@ class BetaEstimate_ByEig(InversionDirective):
             :rtype: float
             :return: beta0
         """
+        if self.seed is not None:
+            np.random.seed(self.seed)
 
         if self.debug:
             print("Calculating the beta0 parameter.")
 
         m = self.invProb.model
-        f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
-        # Fix the seed for random vector for consistent result
-        np.random.seed(1)
-        x0 = np.random.rand(*m.shape)
+        dm_eigenvalue = eigenvalue_by_power_iteration(
+            self.dmisfit, m, n_pw_iter=self.n_pw_iter,
+        )
+        reg_eigenvalue = eigenvalue_by_power_iteration(
+            self.reg, m, n_pw_iter=self.n_pw_iter,
+        )
 
-        t, b = 0, 0
-        i_count = 0
-        for dmis, reg in zip(self.dmisfit.objfcts, self.reg.objfcts):
-            # check if f is list
-            if len(self.dmisfit.objfcts) > 1:
-                t += x0.dot(dmis.deriv2(m, x0, f=f[i_count]))
-            else:
-                t += x0.dot(dmis.deriv2(m, x0, f=f))
-            b += x0.dot(reg.deriv2(m, v=x0))
-            i_count += 1
+        self.ratio = dm_eigenvalue / reg_eigenvalue
+        self.beta0 = self.beta0_ratio * self.ratio
 
-        self.beta0 = self.beta0_ratio * (t / b)
         self.invProb.beta = self.beta0
 
 
-
-
 class BetaSchedule(InversionDirective):
-    '''
+    """
         Directive for beta cooling schedule to determine the tradeoff
         parameters of the joint inverse problem.
         We borrow some code from Update_IRLS.
-    '''
-    chifact_target = 1.
+    """
+
+    chifact_target = 1.0
     beta_tol = 1e-1
     update_beta = True
     coolingRate = 3
@@ -255,12 +276,12 @@ class BetaSchedule(InversionDirective):
 
     @property
     def target(self):
-        if getattr(self, '_target', None) is None:
+        if getattr(self, "_target", None) is None:
             nD = 0
             for survey in self.survey:
                 nD += survey.nD
 
-            self._target = nD*0.5*self.chifact_target
+            self._target = nD * 0.5 * self.chifact_target
 
         return self._target
 
@@ -275,29 +296,290 @@ class BetaSchedule(InversionDirective):
 
         if np.all(
             [
-                np.abs(1. - self.invProb.phi_d / self.target) > self.beta_tol,
+                np.abs(1.0 - self.invProb.phi_d / self.target) > self.beta_tol,
                 self.update_beta,
                 self.dmis_met,
-                self.opt.iter%self.coolingRate==0
+                self.opt.iter % self.coolingRate == 0,
             ]
         ):
 
             ratio = self.target / self.invProb.phi_d
 
-            if ratio>1:
+            if ratio > 1:
                 ratio = np.minimum(1.5, ratio)
             else:
                 ratio = np.maximum(0.75, ratio)
 
             self.invProb.beta = self.invProb.beta * ratio
 
-        elif np.all([self.opt.iter%self.coolingRate==0, self.dmis_met == False]):
+        elif np.all([self.opt.iter % self.coolingRate == 0, self.dmis_met == False]):
             self.invProb.beta = self.invProb.beta / self.coolingFactor
+
+
+class AlphasSmoothEstimate_ByEig(InversionDirective):
+    """
+    Estimate the alphas multipliers for the smoothness terms of the regularization
+     as a multiple of the ratio between the highest eigenvalue of the
+    smallness term and the highest eigenvalue of each smoothness term of the regularization.
+    The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
+    """
+
+    alpha0_ratio = (
+        1.0  #: the estimated Alpha_smooth is multiplied by this ratio (int or array)
+    )
+    n_pw_iter = 4  #: number of power iterations for the estimate
+    verbose = False  #: print the estimated alphas at the initialization
+    debug = False  #: print the current process
+    seed = None  # random seed for the directive
+
+    def initialize(self):
+        """
+        """
+        if self.seed is not None:
+            np.random.seed(self.seed)
+
+        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
+            nbr = np.sum(
+                [len(self.reg.objfcts[i].objfcts) for i in range(len(self.reg.objfcts))]
+            )
+            # Find the smallness terms in a two-levels combo-regularization.
+            smallness = []
+            alpha0 = []
+            for i, regobjcts in enumerate(self.reg.objfcts):
+                for j, regpart in enumerate(regobjcts.objfcts):
+                    alpha0 += [self.reg.multipliers[i] * regobjcts.multipliers[j]]
+                    smallness += [
+                        [
+                            i,
+                            j,
+                            isinstance(
+                                regpart,
+                                (
+                                    SimpleSmall,
+                                    Small,
+                                    SparseSmall,
+                                    SimplePGIsmallness,
+                                    PGIsmallness,
+                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                ),
+                            ),
+                        ]
+                    ]
+            smallness = np.r_[smallness]
+            # Select the first, only considered, smallness term.
+            smallness = smallness[smallness[:, 2] == 1][:, :2][0]
+
+            # Find the smoothness terms in a two-levels combo-regularization.
+            smoothness = []
+            for i, regobjcts in enumerate(self.reg.objfcts):
+                for j, regpart in enumerate(regobjcts.objfcts):
+                    smoothness += [
+                        [
+                            i,
+                            j,
+                            isinstance(
+                                regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv)
+                            ),
+                        ]
+                    ]
+            smoothness = np.r_[smoothness]
+            mode = 1
+
+        else:
+            nbr = len(self.reg.objfcts)
+            alpha0 = self.reg.multipliers
+            smoothness = np.r_[
+                [
+                    isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))
+                    for regpart in self.reg.objfcts
+                ]
+            ]
+            mode = 2
+
+        if not isinstance(self.alpha0_ratio, np.ndarray):
+            self.alpha0_ratio = self.alpha0_ratio * np.ones(nbr)
+
+        if self.debug:
+            print("Calculating the Alpha0 parameter.")
+
+        m = self.invProb.model
+
+        if mode == 2:
+            smallness_eigenvalue = eigenvalue_by_power_iteration(
+                self.reg.objfcts[0], m, n_pw_iter=self.n_pw_iter,
+            )
+            for i in range(nbr):
+                if smoothness[i]:
+                    smooth_i_eigenvalue = eigenvalue_by_power_iteration(
+                        self.reg.objfcts[i], m, n_pw_iter=self.n_pw_iter,
+                    )
+                    ratio = smallness_eigenvalue / smooth_i_eigenvalue
+
+                    alpha0[i] *= self.alpha0_ratio[i] * ratio
+                    mtype = self.reg.objfcts[i]._multiplier_pair
+                    setattr(self.reg, mtype, alpha0[i])
+
+        elif mode == 1:
+            smallness_eigenvalue = eigenvalue_by_power_iteration(
+                self.reg.objfcts[smallness[0]].objfcts[smallness[1]],
+                m,
+                n_pw_iter=self.n_pw_iter,
+            )
+            for i in range(nbr):
+                ratio = []
+                if smoothness[i, 2]:
+                    idx = smoothness[i, :2]
+                    smooth_i_eigenvalue = eigenvalue_by_power_iteration(
+                        self.reg.objfcts[idx[0]].objfcts[idx[1]],
+                        m,
+                        n_pw_iter=self.n_pw_iter,
+                    )
+
+                    ratio = np.divide(
+                        smallness_eigenvalue,
+                        smooth_i_eigenvalue,
+                        out=np.zeros_like(smallness_eigenvalue),
+                        where=smooth_i_eigenvalue != 0,
+                    )
+
+                    alpha0[i] *= self.alpha0_ratio[i] * ratio
+                    mtype = self.reg.objfcts[idx[0]].objfcts[idx[1]]._multiplier_pair
+                    setattr(self.reg.objfcts[idx[0]], mtype, alpha0[i])
+
+        if self.verbose:
+            print("Alpha scales: ", self.reg.multipliers)
+            if mode == 1:
+                for objf in self.reg.objfcts:
+                    print("Alpha scales: ", objf.multipliers)
+
+
+class ScalingMultipleDataMisfits_ByEig(InversionDirective):
+    """
+    For multiple data misfits only: multiply each data misfit term
+    by the inverse of its highest eigenvalue and then
+    normalize the sum of the data misfit multipliers to one.
+    The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
+    """
+
+    n_pw_iter = 4  #: number of power iterations for the estimate
+    chi0_ratio = None  #: The initial scaling ratio (default is data misfit multipliers)
+    verbose = False  #: print the estimated data misfits multipliers
+    debug = False  #: print the current process
+    seed = None  # random seed for the directive
+
+    def initialize(self):
+        """
+        """
+        if self.seed is not None:
+            np.random.seed(self.seed)
+
+        if self.debug:
+            print("Calculating the scaling parameter.")
+
+        if (
+            getattr(self.dmisfit, "objfcts", None) is None
+            or len(self.dmisfit.objfcts) == 1
+        ):
+            raise TypeError(
+                "ScalingMultipleDataMisfits_ByEig only applies to joint inversion"
+            )
+
+        ndm = len(self.dmisfit.objfcts)
+        if self.chi0_ratio is not None:
+            self.chi0_ratio = self.chi0_ratio * np.ones(ndm)
+        else:
+            self.chi0_ratio = self.dmisfit.multipliers
+
+        m = self.invProb.model
+
+        dm_eigenvalue_list = []
+        for j, dm in enumerate(self.dmisfit.objfcts):
+            dm_eigenvalue_list += [eigenvalue_by_power_iteration(dm, m)]
+
+        self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]
+        self.chi0 = self.chi0 / np.sum(self.chi0)
+        self.dmisfit.multipliers = self.chi0
+
+        if self.verbose:
+            print("Scale Multipliers: ", self.dmisfit.multipliers)
+
+
+class JointScalingSchedule(InversionDirective):
+    """
+    For multiple data misfits only: rebalance each data misfit term
+    during the inversion when some datasets are fit, and others not
+    using the ratios of current misfits and their respective target.
+    It implements the strategy described in https://doi.org/10.1093/gji/ggaa378.
+    """
+
+    verbose = False
+    warmingFactor = 1.0
+    mode = 1
+    chimax = 1e10
+    chimin = 1e-10
+    update_rate = 1
+
+    def initialize(self):
+
+        if (
+            getattr(self.dmisfit, "objfcts", None) is None
+            or len(self.dmisfit.objfcts) == 1
+        ):
+            raise TypeError("JointScalingSchedule only applies to joint inversion")
+
+        targetclass = np.r_[
+            [
+                isinstance(dirpart, MultiTargetMisfits)
+                for dirpart in self.inversion.directiveList.dList
+            ]
+        ]
+        if ~np.any(targetclass):
+            self.DMtarget = None
+        else:
+            self.targetclass = np.where(targetclass)[0][-1]
+            self.DMtarget = self.inversion.directiveList.dList[
+                self.targetclass
+            ].DMtarget
+
+        if self.verbose:
+            print("Initial data misfit scales: ", self.dmisfit.multipliers)
+
+    def endIter(self):
+
+        self.dmlist = self.inversion.directiveList.dList[self.targetclass].dmlist
+
+        if np.any(self.dmlist < self.DMtarget):
+            self.mode = 2
+        else:
+            self.mode = 1
+
+        if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
+
+            if self.mode == 2:
+
+                if np.all(np.r_[self.dmisfit.multipliers] > self.chimin) and np.all(
+                    np.r_[self.dmisfit.multipliers] < self.chimax
+                ):
+
+                    indx = self.dmlist > self.DMtarget
+                    if np.any(indx):
+                        multipliers = self.warmingFactor * np.median(
+                            self.DMtarget[~indx] / self.dmlist[~indx]
+                        )
+                        if np.sum(indx) == 1:
+                            indx = np.where(indx)[0][0]
+                        self.dmisfit.multipliers[indx] *= multipliers
+                        self.dmisfit.multipliers /= np.sum(self.dmisfit.multipliers)
+
+                        if self.verbose:
+                            print("Updating scaling for data misfits by ", multipliers)
+                            print("New scales:", self.dmisfit.multipliers)
 
 
 class TargetMisfit(InversionDirective):
     """
-    ... note:: Currently the target misfit is not set up for joint inversions. Get `in touch <https://github.com/simpeg/simpeg/issues/new>`_ if you would like to help with the upgrade!
+     ... note:: Currently this target misfit is not set up for joint inversion.
+     Check out MultiTargetMisfits
     """
 
     chifact = 1.0
@@ -306,7 +588,7 @@ class TargetMisfit(InversionDirective):
     @property
     def target(self):
         if getattr(self, "_target", None) is None:
-            # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+            # the factor of 0.5 is because we do phid = 0.5*||dpred - dobs||^2
             if self.phi_d_star is None:
 
                 nD = 0
@@ -326,7 +608,6 @@ class TargetMisfit(InversionDirective):
         if self.invProb.phi_d < self.target:
             self.opt.stopNextIteration = True
             self.print_final_misfit()
-            # print (("   >> Target misfit: %.1f (# of data) is achieved") % (self.target * self.invProb.opt.factor))
 
     def print_final_misfit(self):
         if self.opt.print_type == "ubc":
@@ -335,11 +616,284 @@ class TargetMisfit(InversionDirective):
             ) % (self.target * self.invProb.opt.factor)
 
 
+class MultiTargetMisfits(InversionDirective):
+
+    WeightsInTarget = 0
+    verbose = False
+    # Chi factor for Geophsyical Data Misfit
+    chifact = 1.0
+    phi_d_star = None
+
+    # Chifact for Clustering/Smallness
+    TriggerSmall = True
+    chiSmall = 1.0
+    phi_ms_star = None
+
+    # Tolerance for parameters difference with their priors
+    TriggerTheta = False  # deactivated by default
+    ToleranceTheta = 1.0
+    distance_norm = np.inf
+
+    AllStop = False
+    DM = False  # geophysical fit condition
+    CL = False  # petrophysical fit condition
+    DP = False  # parameters difference with their priors condition
+
+    def initialize(self):
+        self.dmlist = np.r_[[dmis(self.invProb.model) for dmis in self.dmisfit.objfcts]]
+
+        if getattr(self.invProb.reg.objfcts[0], "objfcts", None) is not None:
+            smallness = np.r_[
+                [
+                    (
+                        np.r_[
+                            i,
+                            j,
+                            (
+                                isinstance(
+                                    regpart,
+                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                )
+                                or isinstance(regpart, SimplePGIsmallness)
+                                or isinstance(regpart, PGIsmallness)
+                            ),
+                        ]
+                    )
+                    for i, regobjcts in enumerate(self.invProb.reg.objfcts)
+                    for j, regpart in enumerate(regobjcts.objfcts)
+                ]
+            ]
+            if smallness[smallness[:, 2] == 1][:, :2].size == 0:
+                warnings.warn(
+                    "There is no PGI regularization. Smallness target is turned off (TriggerSmall flag)"
+                )
+                self.smallness = -1
+                self.pgi_smallness = None
+
+            else:
+                self.smallness = smallness[smallness[:, 2] == 1][:, :2][0]
+                self.pgi_smallness = self.invProb.reg.objfcts[
+                    self.smallness[0]
+                ].objfcts[self.smallness[1]]
+
+                if self.debug:
+                    print(
+                        type(
+                            self.invProb.reg.objfcts[self.smallness[0]].objfcts[
+                                self.smallness[1]
+                            ]
+                        )
+                    )
+
+            self._regmode = 1
+
+        else:
+            smallness = np.r_[
+                [
+                    (
+                        np.r_[
+                            j,
+                            (
+                                isinstance(
+                                    regpart,
+                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                )
+                                or isinstance(regpart, SimplePGIsmallness)
+                                or isinstance(regpart, PGIsmallness)
+                            ),
+                        ]
+                    )
+                    for j, regpart in enumerate(self.invProb.reg.objfcts)
+                ]
+            ]
+            if smallness[smallness[:, 1] == 1][:, :1].size == 0:
+                if self.TriggerSmall:
+                    warnings.warn(
+                        "There is no PGI regularization. Smallness target is turned off (TriggerSmall flag)."
+                    )
+                    self.TriggerSmall = False
+                self.smallness = -1
+            else:
+                self.smallness = smallness[smallness[:, 1] == 1][:, :1][0]
+                self.pgi_smallness = self.invProb.reg.objfcts[self.smallness[0]]
+
+                if self.debug:
+                    print(type(self.invProb.reg.objfcts[self.smallness[0]]))
+
+            self._regmode = 2
+
+    @property
+    def DMtarget(self):
+        if getattr(self, "_DMtarget", None) is None:
+            # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+            if self.phi_d_star is None:
+                # Check if it is a ComboObjective
+                if isinstance(self.dmisfit, ComboObjectiveFunction):
+                    self.phi_d_star = np.r_[[0.5 * survey.nD for survey in self.survey]]
+                else:
+                    self.phi_d_star = np.r_[[0.5 * self.survey.nD]]
+
+            self._DMtarget = self.chifact * self.phi_d_star
+        return self._DMtarget
+
+    @DMtarget.setter
+    def DMtarget(self, val):
+        self._DMtarget = val
+
+    @property
+    def CLtarget(self):
+        if not getattr(self.pgi_smallness, "approx_eval", True):
+            # if nonlinear prior, compute targer numerically at each GMM update
+            samples, _ = self.pgi_smallness.gmm.sample(
+                len(self.pgi_smallness.gmm.cell_volumes)
+            )
+            self.phi_ms_star = self.pgi_smallness(
+                mkvc(samples), externalW=self.WeightsInTarget
+            )
+
+            self._CLtarget = self.chiSmall * self.phi_ms_star
+
+        elif getattr(self, "_CLtarget", None) is None:
+            # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+            if self.phi_ms_star is None:
+                # Expected value is number of active cells * number of physical
+                # properties
+                self.phi_ms_star = 0.5 * len(self.invProb.model)
+
+            self._CLtarget = self.chiSmall * self.phi_ms_star
+
+        return self._CLtarget
+
+    @property
+    def CLnormalizedConstant(self):
+        if ~self.WeightsInTarget:
+            return 1.0
+        elif np.any(self.smallness == -1):
+            return np.sum(
+                sp.csr_matrix.diagonal(self.invProb.reg.objfcts[0].W) ** 2.0
+            ) / len(self.invProb.model)
+        else:
+            return np.sum(sp.csr_matrix.diagonal(self.pgi_smallness.W) ** 2.0) / len(
+                self.invProb.model
+            )
+
+    @CLtarget.setter
+    def CLtarget(self, val):
+        self._CLtarget = val
+
+    def phims(self):
+        if np.any(self.smallness == -1):
+            return self.invProb.reg.objfcts[0](self.invProb.model)
+        else:
+            return (
+                self.pgi_smallness(self.invProb.model, externalW=self.WeightsInTarget,)
+                / self.CLnormalizedConstant
+            )
+
+    def ThetaTarget(self):
+        maxdiff = 0.0
+
+        for i in range(self.invProb.reg.gmm.n_components):
+            meandiff = np.linalg.norm(
+                (self.invProb.reg.gmm.means_[i] - self.invProb.reg.gmmref.means_[i])
+                / self.invProb.reg.gmmref.means_[i],
+                ord=self.distance_norm,
+            )
+            maxdiff = np.maximum(maxdiff, meandiff)
+
+            if (
+                self.invProb.reg.gmm.covariance_type == "full"
+                or self.invProb.reg.gmm.covariance_type == "spherical"
+            ):
+                covdiff = np.linalg.norm(
+                    (
+                        self.invProb.reg.gmm.covariances_[i]
+                        - self.invProb.reg.gmmref.covariances_[i]
+                    )
+                    / self.invProb.reg.gmmref.covariances_[i],
+                    ord=self.distance_norm,
+                )
+            else:
+                covdiff = np.linalg.norm(
+                    (
+                        self.invProb.reg.gmm.covariances_
+                        - self.invProb.reg.gmmref.covariances_
+                    )
+                    / self.invProb.reg.gmmref.covariances_,
+                    ord=self.distance_norm,
+                )
+            maxdiff = np.maximum(maxdiff, covdiff)
+
+            pidiff = np.linalg.norm(
+                [
+                    (
+                        self.invProb.reg.gmm.weights_[i]
+                        - self.invProb.reg.gmmref.weights_[i]
+                    )
+                    / self.invProb.reg.gmmref.weights_[i]
+                ],
+                ord=self.distance_norm,
+            )
+            maxdiff = np.maximum(maxdiff, pidiff)
+
+        return maxdiff
+
+    def endIter(self):
+
+        self.AllStop = False
+        self.DM = False
+        self.CL = True
+        self.DP = True
+        self.dmlist = np.r_[[dmis(self.invProb.model) for dmis in self.dmisfit.objfcts]]
+        self.targetlist = np.r_[
+            [dm < tgt for dm, tgt in zip(self.dmlist, self.DMtarget)]
+        ]
+
+        if np.all(self.targetlist):
+            self.DM = True
+
+        if self.TriggerSmall and np.any(self.smallness != -1):
+            if self.phims() > self.CLtarget:
+                self.CL = False
+
+        if self.TriggerTheta:
+            if self.ThetaTarget() > self.ToleranceTheta:
+                self.DP = False
+
+        self.AllStop = self.DM and self.CL and self.DP
+        if self.verbose:
+            message = "geophys. misfits: " + "; ".join(
+                map(
+                    str,
+                    [
+                        "{0} (target {1} [{2}])".format(val, tgt, cond)
+                        for val, tgt, cond in zip(
+                            np.round(self.dmlist, 1),
+                            np.round(self.DMtarget, 1),
+                            self.targetlist,
+                        )
+                    ],
+                )
+            )
+            if self.TriggerSmall:
+                message += " | smallness misfit: {0:.1f} (target: {1:.1f} [{2}])".format(
+                    self.phims(), self.CLtarget, self.CL
+                )
+            if self.TriggerTheta:
+                message += " | GMM parameters within tolerance: {}".format(self.DP)
+            print(message)
+
+        if self.AllStop:
+            self.opt.stopNextIteration = True
+            if self.verbose:
+                print("All targets have been reached")
+
+
 class SaveEveryIteration(InversionDirective):
     """SaveEveryIteration
 
     This directive saves an array at each iteration. The default
-    directory is the current directoy and the models are saved as
+    directory is the current directory and the models are saved as
     ``InversionModel-YYYY-MM-DD-HH-MM-iter.npy``
     """
 
@@ -391,7 +945,6 @@ class SaveModelEveryIteration(SaveEveryIteration):
         )
 
 
-
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveOutputEveryIteration"""
 
@@ -422,6 +975,28 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
     def endIter(self):
 
+        phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
+
+        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
+            for reg in self.reg.objfcts:
+                phi_s += reg.objfcts[0](self.invProb.model) * reg.alpha_s
+                phi_x += reg.objfcts[1](self.invProb.model) * reg.alpha_x
+
+                if reg.regmesh.dim == 2:
+                    phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
+                elif reg.regmesh.dim == 3:
+                    phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
+                    phi_z += reg.objfcts[3](self.invProb.model) * reg.alpha_z
+        elif getattr(self.reg.objfcts[0], "objfcts", None) is None:
+            phi_s += self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
+            phi_x += self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
+
+            if self.reg.regmesh.dim == 2:
+                phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+            elif self.reg.regmesh.dim == 3:
+                phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
+                phi_z += self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
+
         self.beta.append(self.invProb.beta)
         self.phi_d.append(self.invProb.phi_d)
         self.phi_m.append(self.invProb.phi_m)
@@ -436,7 +1011,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                     self.phi_d[self.opt.iter - 1],
                     self.phi_m[self.opt.iter - 1],
                     self.phi[self.opt.iter - 1],
-                    self.opt.cg_count
+                    self.opt.cg_count,
                 )
             )
             f.close()
@@ -565,9 +1140,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
             fig.savefig(fname, dpi=dpi)
 
 
-
-
-
 class SaveOutputDictEveryIteration(SaveEveryIteration):
     """
         Saves inversion parameters at every iteration.
@@ -647,7 +1219,7 @@ class Update_IRLS(InversionDirective):
 
     # Beta schedule
     update_beta = properties.Bool("Update beta", default=True)
-    beta_search = properties.Bool("Do a beta serarch", default=False)
+    beta_search = properties.Bool("Do a beta search", default=False)
     coolingFactor = properties.Float("Cooling factor", default=2.0)
     coolingRate = properties.Integer("Cooling rate", default=1)
     ComboObjFun = False
@@ -906,6 +1478,7 @@ class Update_IRLS(InversionDirective):
         max_p = np.asarray(max_p).max()
 
         max_s = [np.pi, np.pi]
+
         for obj, var in zip(self.reg.objfcts[1:3], max_s):
             obj.scales = np.ones(obj.scales.shape) * max_p / var
 
@@ -929,6 +1502,7 @@ class Update_IRLS(InversionDirective):
             )
         return True
 
+
 class UpdatePreconditioner(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
@@ -944,7 +1518,9 @@ class UpdatePreconditioner(InversionDirective):
 
         for reg in self.reg.objfcts:
             # Check if regularization has a projection
-            regDiag += reg.deriv2(m).diagonal()
+            rdg = reg.deriv2(m)
+            if not isinstance(rdg, Zero):
+                regDiag += rdg.diagonal()
 
         JtJdiag = np.zeros_like(self.invProb.model)
         for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
@@ -1073,7 +1649,6 @@ class UpdateSensitivityWeights(InversionDirective):
                     "Simulation does not have a getJ attribute."
                     + "Cannot form the sensitivity explicitly"
                 )
-
                 self.JtJdiag += [
                     mkvc(np.sum((dmisfit.W * sim.getJ(m)) ** (2.0), axis=0))
                 ]
@@ -1110,12 +1685,14 @@ class UpdateSensitivityWeights(InversionDirective):
 
         for reg in self.reg.objfcts:
             reg.cell_weights = reg.mapping * (self.wr)
+            if getattr(reg, "objfcts", None) is not None:
+                for obj in reg.objfcts:
+                    obj.cell_weights = obj.mapping * (self.wr)
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights
         dList = directiveList.dList
         self_ind = dList.index(self)
-        beta_estimator_ind = [isinstance(d, BetaEstimate_ByEig) for d in dList]
 
         beta_estimator_ind = [isinstance(d, BetaEstimate_ByEig) for d in dList]
 
@@ -1182,5 +1759,3 @@ class ProjectSphericalBounds(InversionDirective):
             sim.model = m
 
         self.opt.xc = m
-
-

@@ -8,7 +8,6 @@ from ...utils import mkvc
 from .sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
 from .receivers import Point3DImpedance, Point3DTipper
 from .utils.plot_utils import DataNSEMPlotMethods
-
 #########
 # Survey
 #########
@@ -254,5 +253,9 @@ class Data(BaseData, DataNSEMPlotMethods):
 def _rec_to_ndarr(rec_arr, data_type=float):
     """
     Function to transform a numpy record array to a nd array.
+    dupe of SimPEG.electromagnetics.natural_source.utils.rec_to_ndarr to avoid circular import
     """
-    return rec_arr.view((data_type, len(rec_arr.dtype.names)))
+    # fix for numpy >= 1.16.0
+    # https://numpy.org/devdocs/release/1.16.0-notes.html#multi-field-views-return-a-view-instead-of-a-copy
+    return np.array(recFunc.structured_to_unstructured(recFunc.repack_fields(rec_arr[list(rec_arr.dtype.names)])),
+                    dtype=data_type)

@@ -60,6 +60,13 @@ class StoppingCriteria(object):
         "stopType": "optimal",
     }
 
+    WolfeCurvature = {
+        "str": "%d :    -newgradient*descent  = %1.4e <= -alp*oldgradient*descent     = %1.4e",
+        "left": lambda M: -M._LS_ft_descent,
+        "right": lambda M: -M.LScurvature * M._LS_descent,
+        "stopType": "optimal",
+    }
+
     tolerance_f = {
         "str": "%d : |fc-fOld| = %1.4e <= tolF*(1+|f0|) = %1.4e",
         "left": lambda M: 1 if M.iter == 0 else abs(M.f - M.f_last),
@@ -67,14 +74,12 @@ class StoppingCriteria(object):
         "stopType": "optimal",
     }
 
-
     moving_x = {
         "str": "%d : |xc-x_last| = %1.4e <= tolX*(1+|x0|) = %1.4e",
-        "left": lambda M: 1 if M.iter == 0 else norm(M.xc - M.x_last)/norm(M.x_last),
+        "left": lambda M: 1 if M.iter == 0 else norm(M.xc - M.x_last) / norm(M.x_last),
         "right": lambda M: 0 if M.iter == 0 else M.tolX * (1 + norm(M.x0)),
         "stopType": "optimal",
     }
-
 
     tolerance_g = {
         "str": "%d : |proj(x-g)-x|    = %1.4e <= tolG          = %1.4e",
@@ -143,6 +148,13 @@ class IterationPrinters(object):
     LS_armijoGoldstein = {
         "title": "f + alp*g.T*p",
         "value": lambda M: M.f + M.LSreduction * M._LS_descent,
+        "width": 16,
+        "format": "%1.2e",
+    }
+    LS_WolfeCurvature = {
+        "title": "alp*g.T*p",
+        "str": "%d :    ft     = %1.4e >= alp*descent     = %1.4e",
+        "value": lambda M: M.LScurvature * M._LS_descent,
         "width": 16,
         "format": "%1.2e",
     }
@@ -216,10 +228,11 @@ class IterationPrinters(object):
         "format": "%1.2e",
     }
 
-
     iterationCG = {
-        "title": "iterCG", "value": lambda M: M.cg_count, "width": 10,
-        "format": "%3d"
+        "title": "iterCG",
+        "value": lambda M: M.cg_count,
+        "width": 10,
+        "format": "%3d",
     }
 
 
@@ -234,6 +247,9 @@ class Minimize(object):
     maxIterLS = 10  #: Maximum number of iterations for the line-search
     maxStep = np.inf  #: Maximum step possible, used in scaling before the line-search.
     LSreduction = 1e-4  #: Expected decrease in the line-search
+    LScurvature = (
+        0.9  #: Expected decrease of the slope for line search Wolfe Curvature criteria
+    )
     LSshorten = 0.5  #: Line-search step is shortened by this amount each time.
     tolF = 1e-1  #: Tolerance on function value decrease
     tolX = 1e-1  #: Tolerance on norm(x) movement
@@ -241,6 +257,7 @@ class Minimize(object):
     eps = 1e-5  #: Small value
 
     stopNextIteration = False  #: Stops the optimization program nicely.
+    use_WolfeCurvature = False  #: add the Wolfe Curvature criteria for line search
 
     debug = False  #: Print debugging information
     debugLS = False  #: Print debugging information for the line-search
@@ -262,6 +279,9 @@ class Minimize(object):
             StoppingCriteria.armijoGoldstein,
             StoppingCriteria.iterationLS,
         ]
+
+        if self.use_WolfeCurvature:
+            self.stoppersLS.append(StoppingCriteria.WolfeCurvature)
 
         self.printersLS = [
             IterationPrinters.iterationLS,
@@ -589,11 +609,21 @@ class Minimize(object):
             :return: (xt, passLS) numpy.ndarray, bool
         """
         # Projected Armijo linesearch
-        self._LS_t = 1
+        self._LS_t = 1.0
         self.iterLS = 0
         while self.iterLS < self.maxIterLS:
             self._LS_xt = self.projection(self.xc + self._LS_t * p)
-            self._LS_ft = self.evalFunction(self._LS_xt, return_g=False, return_H=False)
+            if self.use_WolfeCurvature:
+                self._LS_ft, self._LS_ft_descent = self.evalFunction(
+                    self._LS_xt, return_g=self.use_WolfeCurvature, return_H=False
+                )
+                self._LS_ft_descent = np.inner(
+                    self._LS_ft_descent, self._LS_xt - self.xc
+                )  # This is the curvature WolfeCurvature condition
+            else:
+                self._LS_ft = self.evalFunction(
+                    self._LS_xt, return_g=self.use_WolfeCurvature, return_H=False
+                )
             self._LS_descent = np.inner(
                 self.g, self._LS_xt - self.xc
             )  # this takes into account multiplying by t, but is important for projection.

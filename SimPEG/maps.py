@@ -18,7 +18,7 @@ from scipy.constants import mu_0
 from scipy.sparse import csr_matrix as csr
 
 import properties
-from discretize.Tests import checkDerivative
+from discretize.tests import checkDerivative
 
 from .utils import (
     setKwargs,
@@ -132,7 +132,7 @@ class IdentityMap(properties.HasProperties):
 
             :param numpy.ndarray m: model
             :param kwargs: key word arguments of
-                           :meth:`discretize.Tests.checkDerivative`
+                           :meth:`discretize.tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
@@ -155,7 +155,7 @@ class IdentityMap(properties.HasProperties):
 
             :param numpy.ndarray m: model
             :param kwargs: key word arguments of
-                           :meth:`discretize.Tests.checkDerivative`
+                           :meth:`discretize.tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
@@ -1387,6 +1387,7 @@ class SurjectVertical1D(IdentityMap):
 
            The number of cells in the
            last dimension of the mesh."""
+        # in discretize 0.7 the int conversion will not be required
         return int(self.mesh.vnC[self.mesh.dim - 1])
 
     def _transform(self, m):
@@ -1395,7 +1396,7 @@ class SurjectVertical1D(IdentityMap):
             :rtype: numpy.ndarray
             :return: transformed model
         """
-        repNum = self.mesh.vnC[: self.mesh.dim - 1].prod()
+        repNum = np.prod(self.mesh.vnC[: self.mesh.dim - 1])
         return mkvc(m).repeat(repNum)
 
     def deriv(self, m, v=None):
@@ -1404,7 +1405,7 @@ class SurjectVertical1D(IdentityMap):
             :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
-        repNum = self.mesh.vnC[: self.mesh.dim - 1].prod()
+        repNum = np.prod(self.mesh.vnC[: self.mesh.dim - 1])
         repVec = sp.csr_matrix(
             (np.ones(repNum), (range(repNum), np.zeros(repNum))), shape=(repNum, 1)
         )
@@ -1450,19 +1451,19 @@ class Surject2Dto3D(IdentityMap):
         m = mkvc(m)
         if self.normal == "Z":
             return mkvc(
-                m.reshape(self.mesh.vnC[[0, 1]], order="F")[:, :, np.newaxis].repeat(
+                m.reshape(self.mesh.vnC[:2], order="F")[:, :, np.newaxis].repeat(
                     self.mesh.nCz, axis=2
                 )
             )
         elif self.normal == "Y":
             return mkvc(
-                m.reshape(self.mesh.vnC[[0, 2]], order="F")[:, np.newaxis, :].repeat(
+                m.reshape(self.mesh.vnC[::2], order="F")[:, np.newaxis, :].repeat(
                     self.mesh.nCy, axis=1
                 )
             )
         elif self.normal == "X":
             return mkvc(
-                m.reshape(self.mesh.vnC[[1, 2]], order="F")[np.newaxis, :, :].repeat(
+                m.reshape(self.mesh.vnC[1:], order="F")[np.newaxis, :, :].repeat(
                     self.mesh.nCx, axis=0
                 )
             )
@@ -3423,6 +3424,93 @@ class TileMap(IdentityMap):
         if v is not None:
             return self.P * v
         return self.P
+
+
+###############################################################################
+#                                                                             #
+#                       Maps for petrophsyics clusters                        #
+#                                                                             #
+###############################################################################
+
+
+class PolynomialPetroClusterMap(IdentityMap):
+    """
+        Modeling polynomial relationships between physical properties
+
+    """
+
+    def __init__(
+        self,
+        coeffxx=np.r_[0.0, 1],
+        coeffxy=np.zeros(1),
+        coeffyx=np.zeros(1),
+        coeffyy=np.r_[0.0, 1],
+        mesh=None,
+        nP=None,
+        **kwargs
+    ):
+
+        self.coeffxx = coeffxx
+        self.coeffxy = coeffxy
+        self.coeffyx = coeffyx
+        self.coeffyy = coeffyy
+        self.polynomialxx = polynomial.Polynomial(self.coeffxx)
+        self.polynomialxy = polynomial.Polynomial(self.coeffxy)
+        self.polynomialyx = polynomial.Polynomial(self.coeffyx)
+        self.polynomialyy = polynomial.Polynomial(self.coeffyy)
+        self.polynomialxx_deriv = self.polynomialxx.deriv(m=1)
+        self.polynomialxy_deriv = self.polynomialxy.deriv(m=1)
+        self.polynomialyx_deriv = self.polynomialyx.deriv(m=1)
+        self.polynomialyy_deriv = self.polynomialyy.deriv(m=1)
+
+        super(PolynomialPetroClusterMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
+    def _transform(self, m):
+        out = m.copy()
+        out[:, 0] = self.polynomialxx(m[:, 0]) + self.polynomialxy(m[:, 1])
+        out[:, 1] = self.polynomialyx(m[:, 0]) + self.polynomialyy(m[:, 1])
+        return out
+
+    def inverse(self, D):
+        """
+            :param numpy.array D: physical property
+            :rtype: numpy.array
+            :return: model
+
+            The *transformInverse* changes the physical property into the
+            model.
+
+            .. math::
+
+                m = \log{\sigma}
+
+        """
+        raise Exception("Not implemented")
+
+    def _derivmatrix(self, m):
+        return np.r_[
+            [
+                [
+                    self.polynomialxx_deriv(m[:, 0])[0],
+                    self.polynomialyx_deriv(m[:, 0])[0],
+                ],
+                [
+                    self.polynomialxy_deriv(m[:, 1])[0],
+                    self.polynomialyy_deriv(m[:, 1])[0],
+                ],
+            ]
+        ]
+
+    def deriv(self, m, v=None):
+        """
+
+        """
+        if v is None:
+            out = self._derivmatrix(m.reshape(-1, 2))
+            return out
+        else:
+            out = np.dot(self._derivmatrix(m.reshape(-1, 2)), v.reshape(2, -1))
+            return out
 
 
 ###############################################################################

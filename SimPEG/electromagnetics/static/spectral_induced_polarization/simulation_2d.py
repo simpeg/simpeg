@@ -369,10 +369,9 @@ class Simulation2DCellCentered(BaseSIPSimulation2D, BaseSimulation2DCellCentered
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields2DCellCentered
     sign = 1.0
-    bc_type = "Mixed"
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPSimulation2D.__init__(self, mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
         if self.actinds is None:
             if self.verbose:
                 print("You did not put Active indices")
@@ -393,8 +392,7 @@ class Simulation2DNodal(BaseSIPSimulation2D, BaseSimulation2DNodal):
     sign = -1.0
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPSimulation2D.__init__(self, mesh, **kwargs)
-        # self.setBC()
+        super().__init__(mesh, **kwargs)
         if self.actinds is None:
             if self.verbose:
                 print("You did not put Active indices")

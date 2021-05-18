@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 # import discretize as Mesh
 import discretize
-from discretize import Tests as tests
+from discretize import tests
 
 from .data import Data, SyntheticData
 from . import data_misfit
@@ -30,7 +30,7 @@ from .utils.solver_utils import (
     SolverBiCG,
 )
 
-__version__ = "0.14.1"
+__version__ = "0.14.3"
 __author__ = "SimPEG Team"
 __license__ = "MIT"
 __copyright__ = "2013 - 2020, SimPEG Team, http://simpeg.xyz"

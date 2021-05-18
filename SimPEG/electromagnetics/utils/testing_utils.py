@@ -57,6 +57,14 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
             Src.append(
                 fdem.Src.CircularLoop([rx0], freq=freq, loc=np.r_[0.0, 0.0, 0.0])
             )
+        elif SrcType == "LineCurrent":
+            Src.append(
+                fdem.Src.LineCurrent(
+                    [rx0],
+                    freq=freq,
+                    location=np.array([[0.0, 0.0, 0.0], [20.0, 0.0, 0.0]]),
+                )
+            )
         elif SrcType == "RawVec":
             if fdemType == "e" or fdemType == "b":
                 S_m = np.zeros(mesh.nF)
