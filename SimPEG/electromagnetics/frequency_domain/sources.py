@@ -173,7 +173,7 @@ class RawVec_m(BaseFDEMSrc):
     def __init__(self, receiver_list=None, frequency=None, s_m=None, **kwargs):
         self._s_m = np.array(s_m, dtype=complex)
         super(RawVec_m, self).__init__(
-            receiver_list=receiver_list, frequency=frequency, ** kwargs
+            receiver_list=receiver_list, frequency=frequency, **kwargs
         )
 
     def s_m(self, simulation):
@@ -864,32 +864,38 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             * self.ePrimaryDeriv(simulation, v, adjoint=adjoint, f=f)
         )
 
-    class LineCurrent(BaseFDEMSrc):
-        """
-        Line current source. Given the wire path provided by the (n,3) loc
-        array the cells intersected by the wire path are identified and integrated
-        src terms are computed
 
-        :param list rxList: receiver list
-        :param float freq: src frequency
-        :param (n,3) array locations: points defining src path
-        """
+class LineCurrent(BaseFDEMSrc):
+    """
+    Line current source. Given the wire path provided by the (n,3) loc
+    array the cells intersected by the wire path are identified and integrated
+    src terms are computed
 
-        location = properties.Array("location of the source", shape=("*", 3))
+    :param list rxList: receiver list
+    :param float freq: src frequency
+    :param (n,3) array locations: points defining src path
+    """
 
-        def Mejs(self, simulation):
-            if getattr(self, "_Mejs", None) is None:
-                mesh = simulation.mesh
-                locs = self.location
-                self._Mejs = segmented_line_current_source_term(mesh, locs)
-            return self._Mejs
+    location = properties.Array("location of the source", shape=("*", 3))
+    current = properties.Float("current in the line", default=1.0)
 
-        def getRHSdc(self, simulation):
-            Grad = simulation.mesh.nodalGrad
-            return Grad.T * self.Mejs(simulation)
+    def Mejs(self, simulation):
+        if getattr(self, "_Mejs", None) is None:
+            mesh = simulation.mesh
+            locs = self.location
+            self._Mejs = self.current * segmented_line_current_source_term(mesh, locs)
+        return self._Mejs
 
-        def s_m(self, simulation):
-            return Zero()
+    def getRHSdc(self, simulation):
+        Grad = simulation.mesh.nodalGrad
+        return Grad.T * self.Mejs(simulation)
 
-        def s_e(self, simulation):
-            return self.Mejs(simulation)
+    def s_m(self, simulation):
+        return Zero()
+
+    def s_e(self, simulation):
+        if simulation._formulation != "EB":
+            raise NotImplementedError(
+                "LineCurrents are only implemented for EB formulations"
+            )
+        return self.Mejs(simulation)
