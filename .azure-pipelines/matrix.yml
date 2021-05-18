@@ -7,7 +7,7 @@ parameters:
          'tests/examples/test_examples_2.py',
          'tests/examples/test_examples_3.py',
          'tests/examples/test_tutorials_1.py tests/examples/test_tutorials_2.py',
-         'tests/examples/test_tutorials_3.py'
+         'tests/examples/test_tutorials_3.py',
          'tests/pf tests/dask',
          ]
 
