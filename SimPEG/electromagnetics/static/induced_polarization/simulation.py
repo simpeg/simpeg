@@ -206,11 +206,11 @@ class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_N(Simulation3DNodal):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_CC(Simulation3DCellCentered):
     pass

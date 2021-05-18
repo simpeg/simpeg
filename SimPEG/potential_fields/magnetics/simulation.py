@@ -1128,11 +1128,11 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class MagneticIntegral(Simulation3DIntegral):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_Diff(Simulation3DDifferential):
     pass

@@ -33,13 +33,15 @@ class BaseVRMSimulation(BaseSimulation):
         refinement_factor,
         "ref_factor",
         new_name="refinement_factor",
-        removal_version="0.15.0",
+        removal_version="0.16.0",
+        future_warn=True,
     )
     ref_radius = deprecate_property(
         refinement_distance,
         "ref_radius",
         new_name="refinement_distance",
-        removal_version="0.15.0",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     def __init__(self, mesh=None, **kwargs):
@@ -1063,11 +1065,11 @@ class Simulation3DLogUniform(BaseVRMSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem_Linear(Simulation3DLinear):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem_LogUnifrom(Simulation3DLogUniform):
     pass

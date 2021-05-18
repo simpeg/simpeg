@@ -767,11 +767,11 @@ Simulation2DCellCentred = Simulation2DCellCentered  # UK and US
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem2D_N(Simulation2DNodal):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem2D_CC(Simulation2DCellCentered):
     pass

@@ -299,9 +299,7 @@ class IO(properties.HasProperties):
         Compute geometric factor, G, using locational informaition
         in survey object
         """
-        G = geometric_factor(
-            survey, space_type=self.space_type
-        )
+        G = geometric_factor(survey, space_type=self.space_type)
         return G
 
     def from_ambn_locations_to_survey(
@@ -870,8 +868,8 @@ class IO(properties.HasProperties):
         if uncert is not None:
             warnings.warn(
                 "The uncertainty option has been deprecated and will be removed"
-                " in SimPEG 0.15.0. Please use standard_deviation.",
-                DeprecationWarning,
+                " in SimPEG 0.16.0. Please use standard_deviation.",
+                FutureWarning,
             )
             standard_deviation = uncert
 

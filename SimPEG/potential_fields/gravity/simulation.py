@@ -122,14 +122,18 @@ class Simulation3DIntegral(BasePFSimulation):
         tol2 = 1e-10
 
         # base cell dimensions
-        min_hx, min_hy, min_hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
+        min_hx, min_hy, min_hz = (
+            self.mesh.hx.min(),
+            self.mesh.hy.min(),
+            self.mesh.hz.min(),
+        )
 
         dx = self.Xn - receiver_location[0]
-        dx[np.abs(dx)/min_hx < tol1] = tol1 * min_hx
+        dx[np.abs(dx) / min_hx < tol1] = tol1 * min_hx
         dy = self.Yn - receiver_location[1]
-        dy[np.abs(dy)/min_hy < tol1] = tol1 * min_hy
+        dy[np.abs(dy) / min_hy < tol1] = tol1 * min_hy
         dz = self.Zn - receiver_location[2]
-        dz[np.abs(dz)/min_hz < tol1] = tol1 * min_hz
+        dz[np.abs(dz) / min_hz < tol1] = tol1 * min_hz
 
         rows = {component: np.zeros(self.Xn.shape[0]) for component in components}
 
@@ -398,11 +402,11 @@ class Simulation3DDifferential(BaseSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class GravityIntegral(Simulation3DIntegral):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_Diff(Simulation3DDifferential):
     pass

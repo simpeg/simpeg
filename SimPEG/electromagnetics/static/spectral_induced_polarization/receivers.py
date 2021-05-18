@@ -89,8 +89,8 @@ class Dipole(BaseRx):
             warnings.warn(
                 "The locationsM property has been deprecated. Please set the "
                 "locations_m property instead. This will be removed in version"
-                " 0.15.0 of SimPEG",
-                DeprecationWarning,
+                " 0.16.0 of SimPEG",
+                FutureWarning,
             )
 
         if "locationsN" in kwargs.keys():
@@ -98,8 +98,8 @@ class Dipole(BaseRx):
             warnings.warn(
                 "The locationsN property has been deprecated. Please set the "
                 "locations_n property instead. This will be removed in version"
-                " 0.15.0 of SimPEG",
-                DeprecationWarning,
+                " 0.16.0 of SimPEG",
+                FutureWarning,
             )
 
         # if locations_m set, then use locations_m, locations_n
@@ -155,7 +155,9 @@ class Dipole(BaseRx):
         """Number of data in the receiver."""
         return self.locations[0].shape[0]
 
-    nRx = deprecate_property(nD, "nRx", new_name="nD", removal_version="0.15.0")
+    nRx = deprecate_property(
+        nD, "nRx", new_name="nD", removal_version="0.16.0", future_warn=True
+    )
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
@@ -187,7 +189,9 @@ class Pole(BaseRx):
         """Number of data in the receiver."""
         return self.locations.shape[0]
 
-    nRx = deprecate_property(nD, "nRx", new_name="nD", removal_version="0.15.0")
+    nRx = deprecate_property(
+        nD, "nRx", new_name="nD", removal_version="0.16.0", future_warn=True
+    )
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:

@@ -577,11 +577,11 @@ class Fields3DPrimarySecondary(Fields):
 ############
 # Deprecated
 ############
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Fields1D_ePrimSec(Fields1DPrimarySecondary):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Fields3D_ePrimSec(Fields3DPrimarySecondary):
     pass
