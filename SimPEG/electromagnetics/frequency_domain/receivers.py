@@ -188,26 +188,26 @@ class PointCurrentDensity(BaseRx):
 ############
 # Deprecated
 ############
-@deprecate_class(removal_version == "0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_e(PointElectricField):
     pass
 
 
-@deprecate_class(removal_version == "0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_b(PointMagneticFluxDensity):
     pass
 
 
-@deprecate_class(removal_version == "0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_bSecondary(PointMagneticFluxDensitySecondary):
     pass
 
 
-@deprecate_class(removal_version == "0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_h(PointMagneticField):
     pass
 
 
-@deprecate_class(removal_version == "0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_j(PointCurrentDensity):
     pass
