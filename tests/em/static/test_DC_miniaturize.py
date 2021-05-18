@@ -1,5 +1,5 @@
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import gen_DCIPsurvey
+from SimPEG.electromagnetics.static.utils.static_utils import generate_dcip_sources_line
 from SimPEG import maps
 import numpy as np
 from pymatsolver import Pardiso
@@ -31,20 +31,27 @@ class DCMini2DTestSurveyTypes(unittest.TestCase):
             "CN",
         )
 
-        survey_end_points = np.array([[-surveySize / 2, 0, 0], [surveySize / 2, 0, 0]])
+        survey_end_points = np.array([-surveySize / 2, surveySize / 2, 0, 0])
 
-        self.d_d_survey = gen_DCIPsurvey(
-            survey_end_points, "dipole-dipole", aSpacing, aSpacing, nElecs, dim=2
+        source_list = generate_dcip_sources_line(
+            "dipole-dipole", "volt", "2D", survey_end_points, 0.0, 5, 2.5
         )
-        self.d_p_survey = gen_DCIPsurvey(
-            survey_end_points, "dipole-pole", aSpacing, aSpacing, nElecs, dim=2
+        self.d_d_survey = dc.survey.Survey(source_list)
+
+        source_list = generate_dcip_sources_line(
+            "dipole-pole", "volt", "2D", survey_end_points, 0.0, 5, 2.5
         )
-        self.p_d_survey = gen_DCIPsurvey(
-            survey_end_points, "pole-dipole", aSpacing, aSpacing, nElecs, dim=2
+        self.d_p_survey = dc.survey.Survey(source_list)
+
+        source_list = generate_dcip_sources_line(
+            "pole-dipole", "volt", "2D", survey_end_points, 0.0, 5, 2.5
         )
-        self.p_p_survey = gen_DCIPsurvey(
-            survey_end_points, "pole-pole", aSpacing, aSpacing, nElecs, dim=2
+        self.p_d_survey = dc.survey.Survey(source_list)
+
+        source_list = generate_dcip_sources_line(
+            "pole-pole", "volt", "2D", survey_end_points, 0.0, 5, 2.5
         )
+        self.p_p_survey = dc.survey.Survey(source_list)
 
     def test_dipole_dipole_mini(self):
         sim1 = dc.Simulation2DNodal(
@@ -225,22 +232,25 @@ class DC3DMiniaturizeTest(unittest.TestCase):
             [
                 [(cs, 10, -1.3), (cs, surveySize / cs), (cs, 10, 1.3)],
                 [(cs, 3, -1.3), (cs, 3, 1.3)],
-                # [(cs, 5, -1.3), (cs, 10)]
+                [(cs, 5, -1.3), (cs, 10)],
             ],
-            "CN",
+            "CNN",
         )
 
-        survey_end_points = np.array([[-surveySize / 2, 0, 0], [surveySize / 2, 0, 0]])
+        survey_end_points = np.array([-surveySize / 2, surveySize / 2, 0, 0])
 
-        survey = gen_DCIPsurvey(
-            survey_end_points, "dipole-dipole", aSpacing, aSpacing, nElecs, dim=2
+        source_list = generate_dcip_sources_line(
+            "dipole-dipole", "volt", "3D", survey_end_points, 0.0, 5, 2.5
         )
+        survey = dc.survey.Survey(source_list)
+
         A = survey.locations_a
         B = survey.locations_b
         M = survey.locations_m
         N = survey.locations_n
         # add some other receivers and sources to the mix
-        electrode_locations = np.unique(np.r_[A, B, M, N], axis=0)
+        # electrode_locations = np.unique(np.r_[A, B, M, N], axis=0)
+        electrode_locations = survey.electrode_locations
 
         rx_p = dc.receivers.Pole(electrode_locations[[2]])
         rx_d = dc.receivers.Dipole(electrode_locations[[2]], electrode_locations[[3]])
@@ -285,6 +295,7 @@ class DC3DMiniaturizeTest(unittest.TestCase):
     def test_dpred(self):
         d1 = self.sim1.dpred(self.model, f=self.f1)
         d2 = self.sim2.dpred(self.model, f=self.f2)
+
         self.assertTrue(np.allclose(d1, d2))
 
     def test_Jvec(self):

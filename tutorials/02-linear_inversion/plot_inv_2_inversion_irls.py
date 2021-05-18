@@ -153,8 +153,8 @@ dmis = data_misfit.L2DataMisfit(simulation=sim, data=data_obj)
 # term.
 reg = regularization.Sparse(mesh, mapping=model_map)
 reg.mref = np.zeros(nParam)
-p = 0.
-q = 0.
+p = 0.0
+q = 0.0
 reg.norms = np.c_[p, q]
 
 # Define how the optimization problem is solved.

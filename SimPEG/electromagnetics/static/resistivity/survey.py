@@ -96,7 +96,7 @@ class Survey(BaseSurvey):
     )
 
     @property
-    def electrode_locations(self):
+    def unique_electrode_locations(self):
         """
         Unique locations of the A, B, M, N electrodes
         """
@@ -105,6 +105,35 @@ class Survey(BaseSurvey):
         loc_m = self.locations_m
         loc_n = self.locations_n
         return np.unique(np.vstack((loc_a, loc_b, loc_m, loc_n)), axis=0)
+
+    electrode_locations = deprecate_property(
+        unique_electrode_locations,
+        "electrode_locations",
+        new_name="unique_electrode_locations",
+        removal_version="0.16.0",
+    )
+
+    @property
+    def source_locations(self):
+        """
+        Returns, in order, the source locations for all sources in the survey.
+
+        Input:
+        :param self: SimPEG.electromagnetics.static.resistivity.Survey
+
+        Output:
+        :return source_locations: List of np.ndarray containing the A and B
+        electrode locations.
+        """
+        src_a = []
+        src_b = []
+
+        for src in self.source_list:
+
+            src_a.append(src.location_a)
+            src_b.append(src.location_b)
+
+        return [np.vstack(src_a), np.vstack(src_b)]
 
     def set_geometric_factor(
         self, space_type="half-space", data_type=None, survey_type=None,

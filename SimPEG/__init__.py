@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 # import discretize as Mesh
 import discretize
-from discretize import Tests as tests
+from discretize import tests
 
 from .data import Data, SyntheticData
 from . import data_misfit

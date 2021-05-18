@@ -662,11 +662,9 @@ class Simulation3DCellCentered(BaseSIPSimulation, BaseSimulation3DCellCentered):
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields3DCellCentered
     sign = 1.0
-    bc_type = "Neumann"
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPSimulation.__init__(self, mesh, **kwargs)
-        self.setBC()
+        super().__init__(mesh, **kwargs)
         self.n = self.mesh.nC
         if self.storeJ:
             if self.actinds is None:
@@ -685,7 +683,7 @@ class Simulation3DNodal(BaseSIPSimulation, BaseSimulation3DNodal):
     sign = -1.0
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPSimulation.__init__(self, mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
         self.n = self.mesh.nN
 
         if self.storeJ:

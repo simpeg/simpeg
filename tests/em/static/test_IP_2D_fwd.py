@@ -192,6 +192,8 @@ class ApparentChargeability2DTest(unittest.TestCase):
 
         np.testing.assert_allclose(data, data2)
 
+        np.testing.assert_allclose(simIP._scale, simIP._sign / datainf)
+
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
         if err > 0.05:
             import matplotlib.pyplot as plt
@@ -223,7 +225,8 @@ class ApparentChargeability2DTest(unittest.TestCase):
         )
         data = simIP.dpred(self.eta)
 
-        err = np.linalg.norm(data - data_full) / (data_full.max() * data_full.size)
+        np.testing.assert_allclose(simIP._scale, simIP._sign / datainf)
+
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
         if err > 0.05:
             import matplotlib.pyplot as plt
