@@ -228,7 +228,7 @@ if save_output:
 
     fname = dir_path + "gravity_topo.txt"
     np.savetxt(fname, np.c_[topo_xyz], fmt="%.4e")
-    
+
     np.random.seed(737)
     maximum_anomaly = np.max(np.abs(dpred))
     noise = 0.01 * maximum_anomaly * np.random.rand(len(dpred))

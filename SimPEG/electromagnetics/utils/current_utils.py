@@ -6,15 +6,15 @@ import warnings
 
 def line(a, t, l):
     """
-        Linear interpolation between a and b
-        0 <= t <= 1
+    Linear interpolation between a and b
+    0 <= t <= 1
     """
     return a + t * l
 
 
 def edge_basis_function(t, a1, l1, h1, a2, l2, h2):
     """
-        Edge basis functions
+    Edge basis functions
     """
     x1 = line(a1, t, l1)
     x2 = line(a2, t, l2)
@@ -28,10 +28,10 @@ def edge_basis_function(t, a1, l1, h1, a2, l2, h2):
 # TODO: Extend this when current is defined on cell-face
 def getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz):
     """
-      Compute integral int(W . J dx^3) in brick of size hx x hy x hz
-      where W denotes the 12 local bilinear edge basis functions
-      and where J prescribes a unit line current
-      between points (ax,ay,az) and (bx,by,bz).
+    Compute integral int(W . J dx^3) in brick of size hx x hy x hz
+    where W denotes the 12 local bilinear edge basis functions
+    and where J prescribes a unit line current
+    between points (ax,ay,az) and (bx,by,bz).
     """
 
     # length of line segment
@@ -104,16 +104,16 @@ def segmented_line_current_source_term(mesh, locs):
 
 def _poly_line_source_tens(mesh, locs):
     """
-        Given a tensor product mesh with origin at (x0,y0,z0) and cell sizes
-        hx, hy, hz, compute the source vector for a unit current flowing along
-        the polygon with vertices px, py, pz.
-        The 3-D arrays sx, sy, sz contain the source terms for all x/y/z-edges
-        of the tensor product mesh.
+    Given a tensor product mesh with origin at (x0,y0,z0) and cell sizes
+    hx, hy, hz, compute the source vector for a unit current flowing along
+    the polygon with vertices px, py, pz.
+    The 3-D arrays sx, sy, sz contain the source terms for all x/y/z-edges
+    of the tensor product mesh.
 
-        Modified from matlab code:
+    Modified from matlab code:
 
-            getSourceTermLineCurrentPolygon(x0,y0,z0,hx,hy,hz,px,py,pz)
-            Christoph Schwarzbach, February 2014
+        getSourceTermLineCurrentPolygon(x0,y0,z0,hx,hy,hz,px,py,pz)
+        Christoph Schwarzbach, February 2014
 
     """
     # number of cells

@@ -12,7 +12,7 @@ import unittest
 
 class DCMini2DTestSurveyTypes(unittest.TestCase):
     """
-        Test minaturize logic works for each individual type of survey
+    Test minaturize logic works for each individual type of survey
     """
 
     def setUp(self):

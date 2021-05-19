@@ -182,12 +182,12 @@ def read_grav3d_ubc(obs_file):
 
 def write_grav3d_ubc(filename, data_object):
     """
-        Write UBC grav file format
+    Write UBC grav file format
 
-        INPUT:
-        :param: fileName, path to the UBC obs grav file
-        :param: survey Gravity object
-        :param: data array
+    INPUT:
+    :param: fileName, path to the UBC obs grav file
+    :param: survey Gravity object
+    :param: data array
 
     """
     survey = data_object.survey
@@ -289,12 +289,12 @@ def read_gg3d_ubc(obs_file):
 
 def write_gg3d_ubc(filename, data_object):
     """
-        Write UBC gravity gradiometry file format
+    Write UBC gravity gradiometry file format
 
-        INPUT:
-        :param: fileName, path to the UBC obs grav file
-        :param: survey Gravity object
-        :param: data array
+    INPUT:
+    :param: fileName, path to the UBC obs grav file
+    :param: survey Gravity object
+    :param: data array
 
     """
     survey = data_object.survey

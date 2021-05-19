@@ -6,13 +6,13 @@ from ....utils import mkvc
 
 def homo1DModelSource(mesh, freq, sigma_1d):
     """
-        Function that calculates and return background fields
+    Function that calculates and return background fields
 
-        :param discretize.base.BaseMesh mesh: Holds information on the discretization
-        :param float freq: The frequency to solve at
-        :param numpy.ndarray sigma_1d: Background model of conductivity to base the calculations on, 1d model.
-        :rtype: numpy.ndarray
-        :return: eBG_bp, E fields for the background model at both polarizations with shape (mesh.nE, 2).
+    :param discretize.base.BaseMesh mesh: Holds information on the discretization
+    :param float freq: The frequency to solve at
+    :param numpy.ndarray sigma_1d: Background model of conductivity to base the calculations on, 1d model.
+    :rtype: numpy.ndarray
+    :return: eBG_bp, E fields for the background model at both polarizations with shape (mesh.nE, 2).
 
     """
     from . import get1DEfields
@@ -74,13 +74,13 @@ def homo1DModelSource(mesh, freq, sigma_1d):
 
 def analytic1DModelSource(mesh, freq, sigma_1d):
     """
-        Function that calculates and return background fields
+    Function that calculates and return background fields
 
-        :param discretize.base.BaseMesh mesh: Holds information on the discretization
-        :param float freq: The frequency to solve at
-        :param numpy.ndarray sigma_1d: Background model of conductivity to base the calculations on, 1d model.
-        :rtype: numpy.ndarray
-        :return: eBG_bp, E fields for the background model at both polarizations with shape (mesh.nE, 2).
+    :param discretize.base.BaseMesh mesh: Holds information on the discretization
+    :param float freq: The frequency to solve at
+    :param numpy.ndarray sigma_1d: Background model of conductivity to base the calculations on, 1d model.
+    :rtype: numpy.ndarray
+    :return: eBG_bp, E fields for the background model at both polarizations with shape (mesh.nE, 2).
 
     """
     from SimPEG.NSEM.Utils import getEHfields

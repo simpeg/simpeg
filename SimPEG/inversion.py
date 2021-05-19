@@ -57,7 +57,7 @@ class BaseInversion(object):
     def run(self, m0):
         """run(m0)
 
-            Runs the inversion!
+        Runs the inversion!
 
         """
         self.invProb.startup(m0)

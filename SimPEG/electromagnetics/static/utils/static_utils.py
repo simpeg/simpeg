@@ -94,8 +94,8 @@ def electrode_separations(survey_object, electrode_pair="all", **kwargs):
     if "survey_type" in kwargs:
         warnings.warn(
             "The survey_type is no longer necessary to calculate electrode separations. "
-            "Feel free to remove it from the call. This option will be removed in SimPEG 0.15.0",
-            DeprecationWarning,
+            "Feel free to remove it from the call. This option will be removed in SimPEG 0.16.0",
+            FutureWarning,
         )
 
     if not isinstance(electrode_pair, list):
@@ -262,24 +262,24 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
 
 def geometric_factor(survey_object, space_type="half space", **kwargs):
     """
-        Calculate Geometric Factor. Assuming that data are normalized voltages
+    Calculate Geometric Factor. Assuming that data are normalized voltages
 
-        Input:
-        :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
-        :param str survey_type: Either 'dipole-dipole' | 'pole-dipole'
-                               | 'dipole-pole' | 'pole-pole'
-        :param str space_type: Assuming whole-space or half-space
-                              ('whole-space' | 'half-space')
+    Input:
+    :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    :param str survey_type: Either 'dipole-dipole' | 'pole-dipole'
+                           | 'dipole-pole' | 'pole-pole'
+    :param str space_type: Assuming whole-space or half-space
+                          ('whole-space' | 'half-space')
 
-        Output:
-        :return numpy.ndarray G: Geometric Factor
+    Output:
+    :return numpy.ndarray G: Geometric Factor
 
     """
     if "survey_type" in kwargs:
         warnings.warn(
             "The survey_type is no longer necessary to calculate geometric factor. "
-            "Feel free to remove it from the call. This option will be removed in SimPEG 0.15.0",
-            DeprecationWarning,
+            "Feel free to remove it from the call. This option will be removed in SimPEG 0.16.0",
+            FutureWarning,
         )
     # Set factor for whole-space or half-space assumption
     if space_type.lower() in SPACE_TYPES["whole space"]:
@@ -360,8 +360,8 @@ def convert_survey_3d_to_2d_lines(
     k = np.arange(0, survey.nD)
     out_indices_list = []
 
-    ab_locs_all = np.c_[survey.a_locations, survey.b_locations]
-    mn_locs_all = np.c_[survey.m_locations, survey.n_locations]
+    ab_locs_all = np.c_[survey.locations_a, survey.locations_b]
+    mn_locs_all = np.c_[survey.locations_m, survey.locations_n]
 
     # For each unique lineID
     survey_list = []
@@ -543,8 +543,8 @@ def plot_pseudosection(
         warnings.warn(
             "The pcolorOpts keyword has been deprecated. Please use "
             "pcolor_opts instead. This will be removed in version"
-            " 0.15.0 of SimPEG",
-            DeprecationWarning,
+            " 0.16.0 of SimPEG",
+            FutureWarning,
         )
         pcolor_opts = kwargs.pop("pcolorOpts")
 
@@ -552,8 +552,8 @@ def plot_pseudosection(
         warnings.warn(
             "The data_location keyword has been deprecated. Please use "
             "data_locations instead. This will be removed in version"
-            " 0.15.0 of SimPEG",
-            DeprecationWarning,
+            " 0.16.0 of SimPEG",
+            FutureWarning,
         )
         data_locations = kwargs.pop("data_location")
 
@@ -561,8 +561,8 @@ def plot_pseudosection(
         warnings.warn(
             "The contour_opts keyword has been deprecated. Please use "
             "contourf_opts instead. This will be removed in version"
-            " 0.15.0 of SimPEG",
-            DeprecationWarning,
+            " 0.16.0 of SimPEG",
+            FutureWarning,
         )
         contourf_opts = kwargs.pop("contour_opts")
 
@@ -570,9 +570,9 @@ def plot_pseudosection(
     for kwarg in removed_kwargs:
         if kwarg in kwargs:
             warnings.warn(
-                r"The {kwarg} keyword has been removed. This will be come an error in "
+                r"The {kwarg} keyword has been removed. This will become an error in "
                 "version 0.16.0 of SimPEG",
-                DeprecationWarning,
+                DerecationWarning,
             )
             kwargs.pop(kwarg)
     if len(kwargs) > 0:
@@ -1075,28 +1075,28 @@ def generate_survey_from_abmn_locations(
 def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
 
     """
-        Load in endpoints and survey specifications to generate Tx, Rx location
-        stations.
+    Load in endpoints and survey specifications to generate Tx, Rx location
+    stations.
 
-        Assumes flat topo for now...
+    Assumes flat topo for now...
 
-        Input:
-        :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
-        :param discretize.base.BaseMesh mesh: discretize mesh object
-        :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-            'dipole-pole' | 'pole-pole' | 'gradient'
-        :param int a: pole seperation
-        :param int b: dipole separation
-        :param int n: number of rx dipoles per tx
+    Input:
+    :param numpy.ndarray endl: input endpoints [x1, y1, z1, x2, y2, z2]
+    :param discretize.base.BaseMesh mesh: discretize mesh object
+    :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
+        'dipole-pole' | 'pole-pole' | 'gradient'
+    :param int a: pole seperation
+    :param int b: dipole separation
+    :param int n: number of rx dipoles per tx
 
-        Output:
-        :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    Output:
+    :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
     """
     if "d2flag" in kwargs:
         warnings.warn(
             "The d2flag is no longer necessary to construct a survey. "
-            "Feel free to remove it from the call. This option will be removed in SimPEG 0.15.0",
-            DeprecationWarning,
+            "Feel free to remove it from the call. This option will be removed in SimPEG 0.16.0",
+            FutureWarning,
         )
 
     def xy_2_r(x1, x2, y1, y2):
@@ -1400,16 +1400,16 @@ def generate_dcip_sources_line(
 
 def xy_2_lineID(dc_survey):
     """
-        Read DC survey class and append line ID.
-        Assumes that the locations are listed in the order
-        they were collected. May need to generalize for random
-        point locations, but will be more expensive
+    Read DC survey class and append line ID.
+    Assumes that the locations are listed in the order
+    they were collected. May need to generalize for random
+    point locations, but will be more expensive
 
-        Input:
-        :param DCdict Vectors of station location
+    Input:
+    :param DCdict Vectors of station location
 
-        Output:
-        :return LineID Vector of integers
+    Output:
+    :return LineID Vector of integers
     """
 
     # Compute unit vector between two points
@@ -1507,7 +1507,7 @@ def r_unit(p1, p2):
 
 def gettopoCC(mesh, actind, option="top"):
     """
-        Get topography from active indices of mesh.
+    Get topography from active indices of mesh.
     """
 
     if mesh._meshType == "TENSOR":
@@ -1562,7 +1562,7 @@ def gettopoCC(mesh, actind, option="top"):
 
 def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     """
-        Drape location right below (cell center) the topography
+    Drape location right below (cell center) the topography
     """
     if mesh.dim == 2:
         # if shape is (*, 1) or (*, 2) just grab first column
@@ -1651,17 +1651,17 @@ def gen_3d_survey_from_2d_lines(
     is_IO=True,
 ):
     """
-        Generate 3D DC survey using gen_DCIPsurvey function.
+    Generate 3D DC survey using gen_DCIPsurvey function.
 
-        Input:
-        :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
-            'dipole-pole' | 'pole-pole' | 'gradient'
-        :param int a: pole seperation
-        :param int b: dipole separation
-        :param int n_spacing: number of rx dipoles per tx
+    Input:
+    :param str survey_type: 'dipole-dipole' | 'pole-dipole' |
+        'dipole-pole' | 'pole-pole' | 'gradient'
+    :param int a: pole seperation
+    :param int b: dipole separation
+    :param int n_spacing: number of rx dipoles per tx
 
-        Output:
-        :return SimPEG.dc.SurveyDC.Survey survey_3d: 3D DC survey object
+    Output:
+    :return SimPEG.dc.SurveyDC.Survey survey_3d: 3D DC survey object
     """
     ylocs = np.arange(n_lines) * line_spacing + y0
 
@@ -1731,8 +1731,8 @@ def plot_pseudoSection(
     warnings.warn(
         "The plot_pseudoSection method has been deprecated. Please use "
         "plot_pseudosection instead. This will be removed in version"
-        " 0.15.0 of SimPEG",
-        DeprecationWarning,
+        " 0.16.0 of SimPEG",
+        FutureWarning,
     )
 
     return plot_pseudosection(
@@ -1761,15 +1761,16 @@ def apparent_resistivity(
     warnings.warn(
         "The apparent_resistivity method has been deprecated. Please use "
         "apparent_resistivity_from_voltage instead. This will be removed in version"
-        " 0.15.0 of SimPEG",
+        " 0.16.0 of SimPEG",
         DeprecationWarning,
     )
 
     if survey_type is not None:
         warnings.warn(
             "Keyword argument 'survey_type' is no longer necessary. "
-            "Survey may now have a mix of pole and dipole sources and receivers.",
-            DeprecationWarning,
+            "Survey may now have a mix of pole and dipole sources and receivers. "
+            "This will be removed in version 0.16.0 of SimPEG",
+            FutureWarning,
         )
 
     if dobs is None:
@@ -1789,7 +1790,7 @@ def plot_layer(rho, mesh, **kwargs):
     warnings.warn(
         "The plot_layer method has been deprecated. Please use "
         "plot_1d_layer_model instead. This will be removed in version"
-        " 0.15.0 of SimPEG",
+        " 0.17.0 of SimPEG",
         DeprecationWarning,
     )
 
@@ -1800,8 +1801,8 @@ def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
     warnings.warn(
         "The convertObs_DC3D_to_2D method has been deprecated. Please use "
         "convert_3d_survey_to_2d. This will be removed in version"
-        " 0.15.0 of SimPEG",
-        DeprecationWarning,
+        " 0.16.0 of SimPEG",
+        FutureWarning,
     )
 
     return convert_survey_3d_to_2d_lines(survey, lineID)
@@ -1812,7 +1813,7 @@ def getSrc_locs(survey):
         "The getSrc_locs method has been deprecated. Source "
         "locations are now computed as a method of the survey "
         "class. Please use Survey.source_locations(). This method "
-        " will be removed in version 0.15.0 of SimPEG",
+        " will be removed in version 0.17.0 of SimPEG",
         DeprecationWarning,
     )
 
@@ -1848,7 +1849,7 @@ def writeUBC_DCobs(
         "The writeUBC_DCobs method has been deprecated. Please use "
         "write_dcip2d_ubc or write_dcip3d_ubc instead. These are imported "
         "from SimPEG.utils.io_utils. This function will be removed in version"
-        " 0.15.0 of SimPEG",
+        " 0.17.0 of SimPEG",
         DeprecationWarning,
     )
 
@@ -1883,24 +1884,24 @@ def writeUBC_DClocs(
     comment_lines="",
 ):
     """
-        Write UBC GIF DCIP 2D or 3D locations file
+    Write UBC GIF DCIP 2D or 3D locations file
 
-        Input:
-        :param str fileName: including path where the file is written out
-        :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
-        :param int dim:  either 2 | 3
-        :param str survey_type:  either 'SURFACE' | 'GENERAL'
+    Input:
+    :param str fileName: including path where the file is written out
+    :param SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
+    :param int dim:  either 2 | 3
+    :param str survey_type:  either 'SURFACE' | 'GENERAL'
 
-        Output:
-        :rtype: file
-        :return: UBC 2/3D-locations file
+    Output:
+    :rtype: file
+    :return: UBC 2/3D-locations file
     """
 
     warnings.warn(
         "The writeUBC_DClocs method has been deprecated. Please use "
         "write_dcip2d_ubc or write_dcip3d_ubc instead. These are imported "
         "from SimPEG.utils.io_utils. This function will be removed in version"
-        " 0.15.0 of SimPEG",
+        " 0.17.0 of SimPEG",
         DeprecationWarning,
     )
 
@@ -1929,19 +1930,19 @@ def writeUBC_DClocs(
 
 def readUBC_DC2Dpre(fileName):
     """
-        Read UBC GIF DCIP 2D observation file and generate arrays
-        for tx-rx location
+    Read UBC GIF DCIP 2D observation file and generate arrays
+    for tx-rx location
 
-        Input:
-        :param string fileName: path to the UBC GIF 3D obs file
+    Input:
+    :param string fileName: path to the UBC GIF 3D obs file
 
-        Output:
-        :return survey: 2D DC survey class object
-        :rtype: SimPEG.electromagnetics.static.resistivity.Survey
+    Output:
+    :return survey: 2D DC survey class object
+    :rtype: SimPEG.electromagnetics.static.resistivity.Survey
 
-        Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
+    Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
 
-        @author: dominiquef
+    @author: dominiquef
 
     """
 
@@ -1949,7 +1950,7 @@ def readUBC_DC2Dpre(fileName):
         "The readUBC_DC2Dpre method has been deprecated. Please use "
         "read_dcip2d_ubc instead. This is imported "
         "from SimPEG.utils.io_utils. This function will be removed in version"
-        " 0.15.0 of SimPEG",
+        " 0.17.0 of SimPEG",
         DeprecationWarning,
     )
 
@@ -1958,20 +1959,20 @@ def readUBC_DC2Dpre(fileName):
 
 def readUBC_DC3Dobs(fileName, data_type="volt"):
     """
-        Read UBC GIF DCIP 3D observation file and generate arrays
-        for tx-rx location
-        Input:
-        :param string fileName: path to the UBC GIF 3D obs file
-        Output:
-        :param rx, tx, d, wd
-        :return
+    Read UBC GIF DCIP 3D observation file and generate arrays
+    for tx-rx location
+    Input:
+    :param string fileName: path to the UBC GIF 3D obs file
+    Output:
+    :param rx, tx, d, wd
+    :return
     """
 
     warnings.warn(
         "The readUBC_DC3Dobs method has been deprecated. Please use "
         "read_dcip3d_ubc instead. This is imported "
         "from SimPEG.utils.io_utils. This function will be removed in version"
-        " 0.15.0 of SimPEG",
+        " 0.17.0 of SimPEG",
         DeprecationWarning,
     )
 
@@ -1990,7 +1991,7 @@ def generate_dcip_survey_line(
     warnings.warn(
         "The gen_dcip_survey_line method has been deprecated. Please use "
         "generate_dcip_sources_line instead. This will be removed in version"
-        " 0.15.0 of SimPEG",
+        " 0.17.0 of SimPEG",
         DeprecationWarning,
     )
 

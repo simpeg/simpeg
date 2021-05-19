@@ -26,7 +26,7 @@ class Survey(BaseTimeSurvey):
 
     @property
     def n_locations(self):
-        return int(self.nD / self.times.size)
+        return int(self.nD / self.unique_times.size)
 
 
 def from_dc_to_sip_survey(survey_dc, times):

@@ -34,7 +34,7 @@ from .utils import (
 
 class IdentityMap(properties.HasProperties):
     """
-        SimPEG Map
+    SimPEG Map
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
@@ -58,8 +58,8 @@ class IdentityMap(properties.HasProperties):
     @property
     def nP(self):
         """
-            :rtype: int
-            :return: number of parameters that the mapping accepts
+        :rtype: int
+        :return: number of parameters that the mapping accepts
         """
         if self._nP != "*":
             return int(self._nP)
@@ -70,12 +70,12 @@ class IdentityMap(properties.HasProperties):
     @property
     def shape(self):
         """
-            The default shape is (mesh.nC, nP) if the mesh is defined.
-            If this is a meshless mapping (i.e. nP is defined independently)
-            the shape will be the the shape (nP,nP).
+        The default shape is (mesh.nC, nP) if the mesh is defined.
+        If this is a meshless mapping (i.e. nP is defined independently)
+        the shape will be the the shape (nP,nP).
 
-            :rtype: tuple
-            :return: shape of the operator as a tuple (int,int)
+        :rtype: tuple
+        :return: shape of the operator as a tuple (int,int)
         """
         if self.mesh is None:
             return (self.nP, self.nP)
@@ -83,42 +83,42 @@ class IdentityMap(properties.HasProperties):
 
     def _transform(self, m):
         """
-            Changes the model into the physical property.
+        Changes the model into the physical property.
 
-            .. note::
+        .. note::
 
-                This can be called by the __mul__ property against a
-                :meth:numpy.ndarray.
+            This can be called by the __mul__ property against a
+            :meth:numpy.ndarray.
 
-            :param numpy.ndarray m: model
-            :rtype: numpy.ndarray
-            :return: transformed model
+        :param numpy.ndarray m: model
+        :rtype: numpy.ndarray
+        :return: transformed model
 
         """
         return m
 
     def inverse(self, D):
         """
-            Changes the physical property into the model.
+        Changes the physical property into the model.
 
-            .. note::
+        .. note::
 
-                The *transformInverse* may not be easy to create in general.
+            The *transformInverse* may not be easy to create in general.
 
-            :param numpy.ndarray D: physical property
-            :rtype: numpy.ndarray
-            :return: model
+        :param numpy.ndarray D: physical property
+        :rtype: numpy.ndarray
+        :return: model
 
         """
         raise NotImplementedError("The transformInverse is not implemented.")
 
     def deriv(self, m, v=None):
         """
-            The derivative of the transformation.
+        The derivative of the transformation.
 
-            :param numpy.ndarray m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
+        :param numpy.ndarray m: model
+        :rtype: scipy.sparse.csr_matrix
+        :return: derivative of transformed model
 
         """
         if v is not None:
@@ -130,11 +130,11 @@ class IdentityMap(properties.HasProperties):
     def test(self, m=None, num=4, **kwargs):
         """Test the derivative of the mapping.
 
-            :param numpy.ndarray m: model
-            :param kwargs: key word arguments of
-                           :meth:`discretize.tests.checkDerivative`
-            :rtype: bool
-            :return: passed the test?
+        :param numpy.ndarray m: model
+        :param kwargs: key word arguments of
+                       :meth:`discretize.tests.checkDerivative`
+        :rtype: bool
+        :return: passed the test?
 
         """
         print("Testing {0!s}".format(str(self)))
@@ -153,11 +153,11 @@ class IdentityMap(properties.HasProperties):
     def testVec(self, m=None, **kwargs):
         """Test the derivative of the mapping times a vector.
 
-            :param numpy.ndarray m: model
-            :param kwargs: key word arguments of
-                           :meth:`discretize.tests.checkDerivative`
-            :rtype: bool
-            :return: passed the test?
+        :param numpy.ndarray m: model
+        :param kwargs: key word arguments of
+                       :meth:`discretize.tests.checkDerivative`
+        :rtype: bool
+        :return: passed the test?
 
         """
         print("Testing {0!s}".format(self))
@@ -226,12 +226,12 @@ class IdentityMap(properties.HasProperties):
 
 class ComboMap(IdentityMap):
     """
-        Combination of various maps.
+    Combination of various maps.
 
-        The ComboMap holds the information for multiplying and combining
-        maps. It also uses the chain rule to create the derivative.
-        Remember, any time that you make your own combination of mappings
-        be sure to test that the derivative is correct.
+    The ComboMap holds the information for multiplying and combining
+    maps. It also uses the chain rule to create the derivative.
+    Remember, any time that you make your own combination of mappings
+    be sure to test that the derivative is correct.
 
     """
 
@@ -277,8 +277,8 @@ class ComboMap(IdentityMap):
     def nP(self):
         """Number of model properties.
 
-           The number of cells in the
-           last dimension of the mesh."""
+        The number of cells in the
+        last dimension of the mesh."""
         return self.maps[-1].nP
 
     def _transform(self, m):
@@ -310,10 +310,10 @@ class ComboMap(IdentityMap):
 
 class Projection(IdentityMap):
     """
-        A map to rearrange / select parameters
+    A map to rearrange / select parameters
 
-        :param int nP: number of model parameters
-        :param numpy.ndarray index: indices to select
+    :param int nP: number of model parameters
+    :param numpy.ndarray index: indices to select
     """
 
     def __init__(self, nP, index, **kwargs):
@@ -349,9 +349,9 @@ class Projection(IdentityMap):
 
     def deriv(self, m, v=None):
         """
-            :param numpy.ndarray m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
+        :param numpy.ndarray m: model
+        :rtype: scipy.sparse.csr_matrix
+        :return: derivative of transformed model
         """
 
         if v is not None:
@@ -361,13 +361,13 @@ class Projection(IdentityMap):
 
 class SumMap(ComboMap):
     """
-        A map to add model parameters contributing to the
-        forward operation e.g. F(m) = F(g(x) + h(y))
+    A map to add model parameters contributing to the
+    forward operation e.g. F(m) = F(g(x) + h(y))
 
-        Assumes that the model vectors defined by g(x) and h(y)
-        are equal in length.
-        Allows to assume different things about the model m:
-        i.e. parametric + voxel models
+    Assumes that the model vectors defined by g(x) and h(y)
+    are equal in length.
+    Allows to assume different things about the model m:
+    i.e. parametric + voxel models
     """
 
     def __init__(self, maps, **kwargs):
@@ -409,8 +409,8 @@ class SumMap(ComboMap):
     def nP(self):
         """Number of model properties.
 
-           The number of cells in the
-           last dimension of the mesh."""
+        The number of cells in the
+        last dimension of the mesh."""
         return self.maps[-1].shape[1]
 
     def _transform(self, m):
@@ -505,9 +505,9 @@ class SurjectUnits(IdentityMap):
 
     def deriv(self, m, v=None):
         """
-            :param numpy.ndarray m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
+        :param numpy.ndarray m: model
+        :rtype: scipy.sparse.csr_matrix
+        :return: derivative of transformed model
         """
 
         if v is not None:
@@ -606,9 +606,9 @@ class SphericalSystem(IdentityMap):
 
     def deriv(self, m, v=None):
         """
-            :param numpy.ndarray m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
+        :param numpy.ndarray m: model
+        :rtype: scipy.sparse.csr_matrix
+        :return: derivative of transformed model
         """
 
         if v is not None:
@@ -872,8 +872,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         return [sigHSlo, sigHSup]
 
     def getQ(self, alpha):
-        """Geometric factor in the depolarization tensor
-        """
+        """Geometric factor in the depolarization tensor"""
         if alpha < 1.0:  # oblate spheroid
             chi = np.sqrt((1.0 / alpha ** 2.0) - 1)
             return (
@@ -897,16 +896,14 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
             return 1.0 / 3.0
 
     def getA(self, alpha, orientation):
-        """Depolarization tensor
-        """
+        """Depolarization tensor"""
         Q = self.getQ(alpha)
         A = np.diag([Q, Q, 1 - 2 * Q])
         R = rotationMatrixFromNormals(np.r_[0.0, 0.0, 1.0], orientation)
         return (R.T).dot(A).dot(R)
 
     def getR(self, sj, se, alpha, orientation=None):
-        """Electric field concentration tensor
-        """
+        """Electric field concentration tensor"""
         if self.random is True:  # isotropic
             if alpha == 1.0:
                 return 3.0 * se / (2.0 * se + sj)
@@ -1053,24 +1050,24 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
 class ExpMap(IdentityMap):
     """
-        Electrical conductivity varies over many orders of magnitude, so it is
-        a common technique when solving the inverse problem to parameterize and
-        optimize in terms of log conductivity. This makes sense not only
-        because it ensures all conductivities will be positive, but because
-        this is fundamentally the space where conductivity
-        lives (i.e. it varies logarithmically).
+    Electrical conductivity varies over many orders of magnitude, so it is
+    a common technique when solving the inverse problem to parameterize and
+    optimize in terms of log conductivity. This makes sense not only
+    because it ensures all conductivities will be positive, but because
+    this is fundamentally the space where conductivity
+    lives (i.e. it varies logarithmically).
 
-        Changes the model into the physical property.
+    Changes the model into the physical property.
 
-        A common example of this is to invert for electrical conductivity
-        in log space. In this case, your model will be log(sigma) and to
-        get back to sigma, you can take the exponential:
+    A common example of this is to invert for electrical conductivity
+    in log space. In this case, your model will be log(sigma) and to
+    get back to sigma, you can take the exponential:
 
-        .. math::
+    .. math::
 
-            m = \log{\sigma}
+        m = \log{\sigma}
 
-            \exp{m} = \exp{\log{\sigma}} = \sigma
+        \exp{m} = \exp{\log{\sigma}} = \sigma
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
@@ -1081,42 +1078,42 @@ class ExpMap(IdentityMap):
 
     def inverse(self, D):
         """
-            :param numpy.ndarray D: physical property
-            :rtype: numpy.ndarray
-            :return: model
+        :param numpy.ndarray D: physical property
+        :rtype: numpy.ndarray
+        :return: model
 
-            The *transformInverse* changes the physical property into the
-            model.
+        The *transformInverse* changes the physical property into the
+        model.
 
-            .. math::
+        .. math::
 
-                m = \log{\sigma}
+            m = \log{\sigma}
 
         """
         return np.log(mkvc(D))
 
     def deriv(self, m, v=None):
         """
-            :param numpy.ndarray m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
+        :param numpy.ndarray m: model
+        :rtype: scipy.sparse.csr_matrix
+        :return: derivative of transformed model
 
-            The *transform* changes the model into the physical property.
-            The *transformDeriv* provides the derivative of the *transform*.
+        The *transform* changes the model into the physical property.
+        The *transformDeriv* provides the derivative of the *transform*.
 
-            If the model *transform* is:
+        If the model *transform* is:
 
-            .. math::
+        .. math::
 
-                m = \log{\sigma}
+            m = \log{\sigma}
 
-                \exp{m} = \exp{\log{\sigma}} = \sigma
+            \exp{m} = \exp{\log{\sigma}} = \sigma
 
-            Then the derivative is:
+        Then the derivative is:
 
-            .. math::
+        .. math::
 
-                \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
+            \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
         """
         deriv = sdiag(np.exp(mkvc(m)))
         if v is not None:
@@ -1126,12 +1123,12 @@ class ExpMap(IdentityMap):
 
 class ReciprocalMap(IdentityMap):
     """
-        Reciprocal mapping. For example, electrical resistivity and
-        conductivity.
+    Reciprocal mapping. For example, electrical resistivity and
+    conductivity.
 
-        .. math::
+    .. math::
 
-            \\rho = \\frac{1}{\sigma}
+        \\rho = \\frac{1}{\sigma}
 
     """
 
@@ -1154,23 +1151,23 @@ class ReciprocalMap(IdentityMap):
 
 class LogMap(IdentityMap):
     """
-        Changes the model into the physical property.
+    Changes the model into the physical property.
 
-        If \\(p\\) is the physical property and \\(m\\) is the model, then
+    If \\(p\\) is the physical property and \\(m\\) is the model, then
 
-        .. math::
+    .. math::
 
-            p = \\log(m)
+        p = \\log(m)
 
-        and
+    and
 
-        .. math::
+    .. math::
 
-            m = \\exp(p)
+        m = \\exp(p)
 
-        NOTE: If you have a model which is log conductivity
-        (ie. \\(m = \\log(\\sigma)\\)),
-        you should be using an ExpMap
+    NOTE: If you have a model which is log conductivity
+    (ie. \\(m = \\log(\\sigma)\\)),
+    you should be using an ExpMap
 
     """
 
@@ -1246,7 +1243,7 @@ class MuRelative(IdentityMap):
 
 class Weighting(IdentityMap):
     """
-        Model weight parameters.
+    Model weight parameters.
     """
 
     def __init__(self, mesh=None, nP=None, weights=None, **kwargs):
@@ -1254,8 +1251,8 @@ class Weighting(IdentityMap):
         if "nC" in kwargs:
             warnings.warn(
                 "`nC` is deprecated. Use `nP` to set the number of model "
-                "parameters, This option will be removed in version 0.15.0 of SimPEG",
-                DeprecationWarning,
+                "parameters, This option will be removed in version 0.16.0 of SimPEG",
+                FutureWarning,
             )
             nP = nC
 
@@ -1289,7 +1286,7 @@ class Weighting(IdentityMap):
 class ComplexMap(IdentityMap):
     """ComplexMap
 
-        default nP is nC in the mesh times 2 [real, imag]
+    default nP is nC in the mesh times 2 [real, imag]
 
     """
 
@@ -1352,17 +1349,17 @@ class SurjectFull(IdentityMap):
 
     def _transform(self, m):
         """
-            :param m: model (scalar)
-            :rtype: numpy.ndarray
-            :return: transformed model
+        :param m: model (scalar)
+        :rtype: numpy.ndarray
+        :return: transformed model
         """
         return np.ones(self.mesh.nC) * m
 
     def deriv(self, m, v=None):
         """
-            :param numpy.ndarray m: model
-            :rtype: numpy.ndarray
-            :return: derivative of transformed model
+        :param numpy.ndarray m: model
+        :rtype: numpy.ndarray
+        :return: derivative of transformed model
         """
         deriv = sp.csr_matrix(np.ones([self.mesh.nC, 1]))
         if v is not None:
@@ -1373,9 +1370,9 @@ class SurjectFull(IdentityMap):
 class SurjectVertical1D(IdentityMap):
     """SurjectVertical1DMap
 
-        Given a 1D vector through the last dimension
-        of the mesh, this will extend to the full
-        model space.
+    Given a 1D vector through the last dimension
+    of the mesh, this will extend to the full
+    model space.
     """
 
     def __init__(self, mesh, **kwargs):
@@ -1385,25 +1382,25 @@ class SurjectVertical1D(IdentityMap):
     def nP(self):
         """Number of model properties.
 
-           The number of cells in the
-           last dimension of the mesh."""
+        The number of cells in the
+        last dimension of the mesh."""
         # in discretize 0.7 the int conversion will not be required
         return int(self.mesh.vnC[self.mesh.dim - 1])
 
     def _transform(self, m):
         """
-            :param numpy.ndarray m: model
-            :rtype: numpy.ndarray
-            :return: transformed model
+        :param numpy.ndarray m: model
+        :rtype: numpy.ndarray
+        :return: transformed model
         """
         repNum = np.prod(self.mesh.vnC[: self.mesh.dim - 1])
         return mkvc(m).repeat(repNum)
 
     def deriv(self, m, v=None):
         """
-            :param numpy.ndarray m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
+        :param numpy.ndarray m: model
+        :rtype: scipy.sparse.csr_matrix
+        :return: derivative of transformed model
         """
         repNum = np.prod(self.mesh.vnC[: self.mesh.dim - 1])
         repVec = sp.csr_matrix(
@@ -1418,8 +1415,8 @@ class SurjectVertical1D(IdentityMap):
 class Surject2Dto3D(IdentityMap):
     """Map2Dto3D
 
-        Given a 2D vector, this will extend to the full
-        3D model space.
+    Given a 2D vector, this will extend to the full
+    3D model space.
     """
 
     normal = "Y"  #: The normal
@@ -1433,8 +1430,8 @@ class Surject2Dto3D(IdentityMap):
     def nP(self):
         """Number of model properties.
 
-           The number of cells in the
-           last dimension of the mesh."""
+        The number of cells in the
+        last dimension of the mesh."""
         if self.normal == "Z":
             return self.mesh.nCx * self.mesh.nCy
         elif self.normal == "Y":
@@ -1444,9 +1441,9 @@ class Surject2Dto3D(IdentityMap):
 
     def _transform(self, m):
         """
-            :param numpy.ndarray m: model
-            :rtype: numpy.ndarray
-            :return: transformed model
+        :param numpy.ndarray m: model
+        :rtype: numpy.ndarray
+        :return: transformed model
         """
         m = mkvc(m)
         if self.normal == "Z":
@@ -1470,9 +1467,9 @@ class Surject2Dto3D(IdentityMap):
 
     def deriv(self, m, v=None):
         """
-            :param numpy.ndarray m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
+        :param numpy.ndarray m: model
+        :rtype: scipy.sparse.csr_matrix
+        :return: derivative of transformed model
         """
         inds = self * np.arange(self.nP)
         nC, nP = self.mesh.nC, self.nP
@@ -1484,7 +1481,7 @@ class Surject2Dto3D(IdentityMap):
 
 class Mesh2Mesh(IdentityMap):
     """
-        Takes a model on one mesh are translates it to another mesh.
+    Takes a model on one mesh are translates it to another mesh.
     """
 
     indActive = properties.Array("active indices on target mesh", dtype=bool)
@@ -1536,7 +1533,7 @@ class Mesh2Mesh(IdentityMap):
 
 class InjectActiveCells(IdentityMap):
     """
-        Active model parameters.
+    Active model parameters.
 
     """
 
@@ -1598,19 +1595,19 @@ class InjectActiveCells(IdentityMap):
 class ParametricCircleMap(IdentityMap):
     """ParametricCircleMap
 
-        Parameterize the model space using a circle in a wholespace.
+    Parameterize the model space using a circle in a wholespace.
 
-        .. math::
+    .. math::
 
-            \sigma(m) = \sigma_1 + (\sigma_2 - \sigma_1)\left(
-            \\arctan\left(100*\sqrt{(\\vec{x}-x_0)^2 + (\\vec{y}-y_0)}-r
-            \\right) \pi^{-1} + 0.5\\right)
+        \sigma(m) = \sigma_1 + (\sigma_2 - \sigma_1)\left(
+        \\arctan\left(100*\sqrt{(\\vec{x}-x_0)^2 + (\\vec{y}-y_0)}-r
+        \\right) \pi^{-1} + 0.5\\right)
 
-        Define the model as:
+    Define the model as:
 
-        .. math::
+    .. math::
 
-            m = [\sigma_1, \sigma_2, x_0, y_0, r]
+        m = [\sigma_1, \sigma_2, x_0, y_0, r]
 
     """
 
@@ -1708,19 +1705,19 @@ class ParametricPolyMap(IdentityMap):
 
     """PolyMap
 
-        Parameterize the model space using a polynomials in a wholespace.
+    Parameterize the model space using a polynomials in a wholespace.
 
-        .. math::
+    .. math::
 
-            y = \mathbf{V} c
+        y = \mathbf{V} c
 
-        Define the model as:
+    Define the model as:
 
-        .. math::
+    .. math::
 
-            m = [\sigma_1, \sigma_2, c]
+        m = [\sigma_1, \sigma_2, c]
 
-        Can take in an actInd vector to account for topography.
+    Can take in an actInd vector to account for topography.
 
     """
 
@@ -1877,18 +1874,18 @@ class ParametricSplineMap(IdentityMap):
 
     """SplineMap
 
-        Parameterize the boundary of two geological units using
-        a spline interpolation
+    Parameterize the boundary of two geological units using
+    a spline interpolation
 
-        .. math::
+    .. math::
 
-            g = f(x)-y
+        g = f(x)-y
 
-        Define the model as:
+    Define the model as:
 
-        .. math::
+    .. math::
 
-            m = [\sigma_1, \sigma_2, y]
+        m = [\sigma_1, \sigma_2, y]
 
     """
 
@@ -2161,28 +2158,28 @@ class BaseParametric(IdentityMap):
 
 class ParametricLayer(BaseParametric):
     """
-        Parametric Layer Space
+    Parametric Layer Space
 
-        .. code:: python
+    .. code:: python
 
-            m = [
-                val_background,
-                val_layer,
-                layer_center,
-                layer_thickness
-            ]
+        m = [
+            val_background,
+            val_layer,
+            layer_center,
+            layer_thickness
+        ]
 
-        **Required**
+    **Required**
 
-        :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+    :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
-        **Optional**
+    **Optional**
 
-        :param float slopeFact: arctan slope factor - divided by the minimum h
-                                spacing to give the slope of the arctan
-                                functions
-        :param float slope: slope of the arctan function
-        :param numpy.ndarray indActive: bool vector with
+    :param float slopeFact: arctan slope factor - divided by the minimum h
+                            spacing to give the slope of the arctan
+                            functions
+    :param float slope: slope of the arctan function
+    :param numpy.ndarray indActive: bool vector with
 
     """
 
@@ -2293,58 +2290,58 @@ class ParametricLayer(BaseParametric):
 
 class ParametricBlock(BaseParametric):
     """
-        Parametric Block in a Homogeneous Space
+    Parametric Block in a Homogeneous Space
 
-        For 1D:
+    For 1D:
 
-        .. code:: python
+    .. code:: python
 
-            m = [
-                val_background,
-                val_block,
-                block_x0,
-                block_dx,
-            ]
+        m = [
+            val_background,
+            val_block,
+            block_x0,
+            block_dx,
+        ]
 
-        For 2D:
+    For 2D:
 
-        .. code:: python
+    .. code:: python
 
-            m = [
-                val_background,
-                val_block,
-                block_x0,
-                block_dx,
-                block_y0,
-                block_dy
-            ]
+        m = [
+            val_background,
+            val_block,
+            block_x0,
+            block_dx,
+            block_y0,
+            block_dy
+        ]
 
-        For 3D:
+    For 3D:
 
-        .. code:: python
+    .. code:: python
 
-            m = [
-                val_background,
-                val_block,
-                block_x0,
-                block_dx,
-                block_y0,
-                block_dy
-                block_z0,
-                block_dz
-            ]
+        m = [
+            val_background,
+            val_block,
+            block_x0,
+            block_dx,
+            block_y0,
+            block_dy
+            block_z0,
+            block_dz
+        ]
 
-        **Required**
+    **Required**
 
-        :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+    :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
-        **Optional**
+    **Optional**
 
-        :param float slopeFact: arctan slope factor - divided by the minimum h
-                                spacing to give the slope of the arctan
-                                functions
-        :param float slope: slope of the arctan function
-        :param numpy.ndarray indActive: bool vector with active indices
+    :param float slopeFact: arctan slope factor - divided by the minimum h
+                            spacing to give the slope of the arctan
+                            functions
+    :param float slope: slope of the arctan function
+    :param numpy.ndarray indActive: bool vector with active indices
 
     """
 
@@ -2550,21 +2547,21 @@ class ParametricEllipsoid(ParametricBlock):
 
 class ParametricCasingAndLayer(ParametricLayer):
     """
-        Parametric layered space with casing.
+    Parametric layered space with casing.
 
-        .. code:: python
+    .. code:: python
 
-            m = [val_background,
-                 val_layer,
-                 val_casing,
-                 val_insideCasing,
-                 layer_center,
-                 layer_thickness,
-                 casing_radius,
-                 casing_thickness,
-                 casing_bottom,
-                 casing_top
-            ]
+        m = [val_background,
+             val_layer,
+             val_casing,
+             val_insideCasing,
+             layer_center,
+             layer_thickness,
+             casing_radius,
+             casing_thickness,
+             casing_bottom,
+             casing_top
+        ]
 
     """
 
@@ -2872,47 +2869,47 @@ class ParametricCasingAndLayer(ParametricLayer):
 
 class ParametricBlockInLayer(ParametricLayer):
     """
-        Parametric Block in a Layered Space
+    Parametric Block in a Layered Space
 
-        For 2D:
+    For 2D:
 
-        .. code:: python
+    .. code:: python
 
-            m = [val_background,
-                 val_layer,
-                 val_block,
-                 layer_center,
-                 layer_thickness,
-                 block_x0,
-                 block_dx
-            ]
+        m = [val_background,
+             val_layer,
+             val_block,
+             layer_center,
+             layer_thickness,
+             block_x0,
+             block_dx
+        ]
 
-        For 3D:
+    For 3D:
 
-        .. code:: python
+    .. code:: python
 
-            m = [val_background,
-                 val_layer,
-                 val_block,
-                 layer_center,
-                 layer_thickness,
-                 block_x0,
-                 block_y0,
-                 block_dx,
-                 block_dy
-            ]
+        m = [val_background,
+             val_layer,
+             val_block,
+             layer_center,
+             layer_thickness,
+             block_x0,
+             block_y0,
+             block_dx,
+             block_dy
+        ]
 
-        **Required**
+    **Required**
 
-        :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+    :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
-        **Optional**
+    **Optional**
 
-        :param float slopeFact: arctan slope factor - divided by the minimum h
-                                spacing to give the slope of the arctan
-                                functions
-        :param float slope: slope of the arctan function
-        :param numpy.ndarray indActive: bool vector with
+    :param float slopeFact: arctan slope factor - divided by the minimum h
+                            spacing to give the slope of the arctan
+                            functions
+    :param float slope: slope of the arctan function
+    :param numpy.ndarray indActive: bool vector with
 
     """
 
@@ -3318,10 +3315,10 @@ class ParametricBlockInLayer(ParametricLayer):
 
 class TileMap(IdentityMap):
     """
-        Mapping for tiled inversion.
+    Mapping for tiled inversion.
 
-        Uses volume averaging to map a model defined on a global mesh to the
-        local mesh. Everycell in the local mesh must also be in the global mesh.
+    Uses volume averaging to map a model defined on a global mesh to the
+    local mesh. Everycell in the local mesh must also be in the global mesh.
     """
 
     tol = 1e-8  # Tolerance to avoid zero division
@@ -3376,7 +3373,7 @@ class TileMap(IdentityMap):
     @property
     def P(self):
         """
-            Set the projection matrix with partial volumes
+        Set the projection matrix with partial volumes
         """
         if getattr(self, "_P", None) is None:
 
@@ -3417,9 +3414,9 @@ class TileMap(IdentityMap):
 
     def deriv(self, m, v=None):
         """
-            :param numpy.ndarray m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
+        :param numpy.ndarray m: model
+        :rtype: scipy.sparse.csr_matrix
+        :return: derivative of transformed model
         """
         if v is not None:
             return self.P * v
@@ -3435,7 +3432,7 @@ class TileMap(IdentityMap):
 
 class PolynomialPetroClusterMap(IdentityMap):
     """
-        Modeling polynomial relationships between physical properties
+    Modeling polynomial relationships between physical properties
 
     """
 
@@ -3473,16 +3470,16 @@ class PolynomialPetroClusterMap(IdentityMap):
 
     def inverse(self, D):
         """
-            :param numpy.array D: physical property
-            :rtype: numpy.array
-            :return: model
+        :param numpy.array D: physical property
+        :rtype: numpy.array
+        :return: model
 
-            The *transformInverse* changes the physical property into the
-            model.
+        The *transformInverse* changes the physical property into the
+        model.
 
-            .. math::
+        .. math::
 
-                m = \log{\sigma}
+            m = \log{\sigma}
 
         """
         raise Exception("Not implemented")
@@ -3502,9 +3499,7 @@ class PolynomialPetroClusterMap(IdentityMap):
         ]
 
     def deriv(self, m, v=None):
-        """
-
-        """
+        """"""
         if v is None:
             out = self._derivmatrix(m.reshape(-1, 2))
             return out
@@ -3520,36 +3515,36 @@ class PolynomialPetroClusterMap(IdentityMap):
 ###############################################################################
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class FullMap(SurjectFull):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Vertical1DMap(SurjectVertical1D):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Map2Dto3D(Surject2Dto3D):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class ActiveCells(InjectActiveCells):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class CircleMap(ParametricCircleMap):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class PolyMap(ParametricPolyMap):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class SplineMap(ParametricSplineMap):
     pass

@@ -59,6 +59,6 @@ class Survey(BaseSurvey):
 Survey.__module__ = "SimPEG.potential_fields.magnetics"
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class LinearSurvey(Survey):
     pass

@@ -71,7 +71,7 @@ class SimplePGIsmallness(BaseRegularization):
         self.wiresmap = wiresmap
         self.maplist = maplist
 
-        #Save repetitive computations (see withmapping implementation)
+        # Save repetitive computations (see withmapping implementation)
         self._r_first_deriv = None
         self._r_second_deriv = None
 
@@ -164,14 +164,16 @@ class SimplePGIsmallness(BaseRegularization):
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
 
             if externalW and getattr(self.W, "diagonal", None) is not None:
-                sensW = np.c_[[wire[1]*self.W.diagonal() for wire in self.wiresmap.maps]].T
+                sensW = np.c_[
+                    [wire[1] * self.W.diagonal() for wire in self.wiresmap.maps]
+                ].T
             else:
                 sensW = np.ones_like(model)
 
             score = self.gmm.score_samples_with_sensW(model, sensW)
-            #score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
-            #return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
-            return - np.sum(score)
+            # score_vec = mkvc(np.r_[[score for maps in self.wiresmap.maps]])
+            # return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
+            return -np.sum(score)
 
     @timeIt
     def deriv(self, m):
@@ -227,26 +229,32 @@ class SimplePGIsmallness(BaseRegularization):
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
 
             if getattr(self.W, "diagonal", None) is not None:
-                sensW = np.c_[[wire[1]*self.W.diagonal() for wire in self.wiresmap.maps]].T
+                sensW = np.c_[
+                    [wire[1] * self.W.diagonal() for wire in self.wiresmap.maps]
+                ].T
             else:
                 sensW = np.ones_like(model)
 
             score = self.gmm.score_samples_with_sensW(model, sensW)
-            #score = self.gmm.score_samples(model)
+            # score = self.gmm.score_samples(model)
             score_vec = np.hstack([score for maps in self.wiresmap.maps])
 
             logP = np.zeros((len(model), self.gmm.n_components))
             W = []
             logP = self.gmm._estimate_log_gaussian_prob_with_sensW(
-                model, sensW, self.gmm.means_, self.gmm.precisions_cholesky_, self.gmm.covariance_type
+                model,
+                sensW,
+                self.gmm.means_,
+                self.gmm.precisions_cholesky_,
+                self.gmm.covariance_type,
             )
             for k in range(self.gmm.n_components):
                 if self.gmm.covariance_type == "tied":
-                    #logP[:, k] = mkvc(
+                    # logP[:, k] = mkvc(
                     #    multivariate_normal(
                     #        self.gmm.means_[k], self.gmm.covariances_
                     #    ).logpdf(model)
-                    #)
+                    # )
 
                     W.append(
                         self.gmm.weights_[k]
@@ -255,9 +263,7 @@ class SimplePGIsmallness(BaseRegularization):
                                 [
                                     np.dot(
                                         np.diag(sensW[i]).dot(
-                                            self.gmm.precisions_.dot(
-                                                np.diag(sensW[i])
-                                            )
+                                            self.gmm.precisions_.dot(np.diag(sensW[i]))
                                         ),
                                         (model[i] - self.gmm.means_[k]).T,
                                     )
@@ -270,12 +276,12 @@ class SimplePGIsmallness(BaseRegularization):
                     self.gmm.covariance_type == "diag"
                     or self.gmm.covariance_type == "spherical"
                 ):
-                    #logP[:, k] = mkvc(
+                    # logP[:, k] = mkvc(
                     #    multivariate_normal(
                     #        self.gmm.means_[k],
                     #        self.gmm.covariances_[k] * np.eye(len(self.wiresmap.maps)),
                     #    ).logpdf(model)
-                    #)
+                    # )
                     W.append(
                         self.gmm.weights_[k]
                         * mkvc(
@@ -283,10 +289,10 @@ class SimplePGIsmallness(BaseRegularization):
                                 [
                                     np.dot(
                                         np.diag(sensW[i]).dot(
-                                            (self.gmm.precisions_[k]
-                                            * np.eye(len(self.wiresmap.maps))).dot(
-                                                np.diag(sensW[i])
-                                            )
+                                            (
+                                                self.gmm.precisions_[k]
+                                                * np.eye(len(self.wiresmap.maps))
+                                            ).dot(np.diag(sensW[i]))
                                         ),
                                         (model[i] - self.gmm.means_[k]).T,
                                     )
@@ -296,11 +302,11 @@ class SimplePGIsmallness(BaseRegularization):
                         )
                     )
                 else:
-                    #logP[:, k] = mkvc(
+                    # logP[:, k] = mkvc(
                     #    multivariate_normal(
                     #        self.gmm.means_[k], self.gmm.covariances_[k]
                     #    ).logpdf(model)
-                    #)
+                    # )
                     W.append(
                         self.gmm.weights_[k]
                         * mkvc(
@@ -399,6 +405,7 @@ class SimplePGI(SimpleComboRegularization):
     :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
     :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
     """
+
     def __init__(
         self,
         mesh,
@@ -606,20 +613,17 @@ class PGIsmallness(SimplePGIsmallness):
         if self.cell_weights is not None:
             if len(self.cell_weights) == self.wiresmap.nP:
                 return sp.kron(
-                    speye(len(self.wiresmap.maps)),
-                    sdiag(np.sqrt(self.regmesh.vol)),
+                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.regmesh.vol)),
                 ) * sdiag(np.sqrt(self.cell_weights))
             else:
                 return sp.kron(
-                    speye(len(self.wiresmap.maps)),
-                    sdiag(np.sqrt(self.regmesh.vol)),
+                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.regmesh.vol)),
                 ) * sp.kron(
                     speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.cell_weights))
                 )
         else:
             return sp.kron(
-                speye(len(self.wiresmap.maps)),
-                sdiag(np.sqrt(self.regmesh.vol)),
+                speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.regmesh.vol)),
             )
 
 
@@ -636,6 +640,7 @@ class PGI(SimpleComboRegularization):
     :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
     :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
     """
+
     def __init__(
         self,
         mesh,
@@ -826,7 +831,9 @@ class SimplePGIwithNonlinearRelationshipsSmallness(BaseRegularization):
         self.approx_gradient = approx_gradient
         self.approx_eval = approx_eval
 
-        super(SimplePGIwithNonlinearRelationshipsSmallness, self).__init__(mesh=mesh, **kwargs)
+        super(SimplePGIwithNonlinearRelationshipsSmallness, self).__init__(
+            mesh=mesh, **kwargs
+        )
         self.gmm = gmm
         self.wiresmap = wiresmap
         self.maplist = maplist
@@ -1097,6 +1104,7 @@ class SimplePGIwithRelationships(SimpleComboRegularization):
     :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
     :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
     """
+
     def __init__(
         self,
         mesh,

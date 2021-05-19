@@ -18,9 +18,7 @@ from .survey import Survey
 
 
 class IO(properties.HasProperties):
-    """
-
-    """
+    """"""
 
     # Survey
     survey_layout = properties.StringChoice(
@@ -718,7 +716,7 @@ class IO(properties.HasProperties):
         orientation="vertical",
     ):
         """
-            Plot 2D pseudo-section for DC-IP data
+        Plot 2D pseudo-section for DC-IP data
         """
         matplotlib.rcParams["font.size"] = 12
 
@@ -876,8 +874,8 @@ class IO(properties.HasProperties):
         if uncert is not None:
             warnings.warn(
                 "The uncertainty option has been deprecated and will be removed"
-                " in SimPEG 0.15.0. Please use standard_deviation.",
-                DeprecationWarning,
+                " in SimPEG 0.16.0. Please use standard_deviation.",
+                FutureWarning,
             )
             standard_deviation = uncert
 
