@@ -140,7 +140,7 @@ class DC2DMiniaturizeTest(unittest.TestCase):
         M = ABMN[:100, 4:6]
         N = ABMN[:100, 6:8]
 
-        survey = IO.from_ambn_locations_to_survey(
+        survey = IO.from_abmn_locations_to_survey(
             A, B, M, N, survey_type="dipole-dipole"
         )
 

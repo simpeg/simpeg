@@ -300,7 +300,15 @@ class IO(properties.HasProperties):
         G = geometric_factor(survey, space_type=self.space_type)
         return G
 
-    def from_ambn_locations_to_survey(
+    def from_ambn_locations_to_survey(self, *args, **kwargs):
+        warnings.warn(
+            "from_ambn_locations_to_survey has been renamed to "
+            "from_abmn_locations_to_survey. It will be removed in a future version 0.17.0 of simpeg",
+            DeprecationWarning,
+        )
+        return self.from_abmn_locations_to_survey(*args, **kwargs)
+
+    def from_abmn_locations_to_survey(
         self,
         a_locations,
         b_locations,
@@ -853,7 +861,7 @@ class IO(properties.HasProperties):
             else:
                 survey_type = "dipole-dipole"
 
-        survey = self.from_ambn_locations_to_survey(
+        survey = self.from_abmn_locations_to_survey(
             a, b, m, n, survey_type=survey_type, data_dc=voltage
         )
         survey.dobs = voltage[self.sort_inds]
@@ -918,7 +926,7 @@ class IO(properties.HasProperties):
             else:
                 rx_type = "dipole"
             survey_type = src_type + rx_type
-            survey = self.from_ambn_locations_to_survey(
+            survey = self.from_abmn_locations_to_survey(
                 a_locations,
                 b_locations,
                 m_locations,
