@@ -1,7 +1,6 @@
 from __future__ import division
 import numpy as np
 from .code_utils import deprecate_method
-
 from discretize.utils import (
     Zero,
     Identity,
@@ -25,29 +24,31 @@ from discretize.utils import (
     invPropertyTensor,
 )
 
-avExtrap = deprecate_method(av_extrap, "avExtrap", removal_version="0.15.0")
+avExtrap = deprecate_method(
+    av_extrap, "avExtrap", removal_version="0.16.0", future_warn=True
+)
 
 
 def diagEst(matFun, n, k=None, approach="Probing"):
     """
-        Estimate the diagonal of a matrix, A. Note that the matrix may be a
-        function which returns A times a vector.
+    Estimate the diagonal of a matrix, A. Note that the matrix may be a
+    function which returns A times a vector.
 
-        Three different approaches have been implemented:
+    Three different approaches have been implemented:
 
-        1. Probing: cyclic permutations of vectors with 1's and 0's (default)
-        2. Ones: random +/- 1 entries
-        3. Random: random vectors
+    1. Probing: cyclic permutations of vectors with 1's and 0's (default)
+    2. Ones: random +/- 1 entries
+    3. Random: random vectors
 
-        :param callable matFun: takes a (numpy.ndarray) and multiplies it by a matrix to estimate the diagonal
-        :param int n: size of the vector that should be used to compute matFun(v)
-        :param int k: number of vectors to be used to estimate the diagonal
-        :param str approach: approach to be used for getting vectors
-        :rtype: numpy.ndarray
-        :return: est_diag(A)
+    :param callable matFun: takes a (numpy.ndarray) and multiplies it by a matrix to estimate the diagonal
+    :param int n: size of the vector that should be used to compute matFun(v)
+    :param int k: number of vectors to be used to estimate the diagonal
+    :param str approach: approach to be used for getting vectors
+    :rtype: numpy.ndarray
+    :return: est_diag(A)
 
-        Based on Saad http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf,
-        and https://www.cita.utoronto.ca/~niels/diagonal.pdf
+    Based on Saad http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf,
+    and https://www.cita.utoronto.ca/~niels/diagonal.pdf
     """
 
     if type(matFun).__name__ == "ndarray":
@@ -100,7 +101,9 @@ def uniqueRows(M):
     return unqM, unqInd, invInd
 
 
-def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=None, seed=None):
+def eigenvalue_by_power_iteration(
+    combo_objfct, model, n_pw_iter=4, fields_list=None, seed=None
+):
     """
     Estimate the highest eigenvalue of any objective function term or combination thereof
     (data_misfit, regularization or ComboObjectiveFunction) for a given model.
@@ -134,7 +137,7 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=
 
     # transform to ComboObjectiveFunction if required
     if getattr(combo_objfct, "objfcts", None) is None:
-        combo_objfct = 1. * combo_objfct
+        combo_objfct = 1.0 * combo_objfct
 
     # create Field for data misfit if necessary and not provided
     if fields_list is None:
@@ -148,13 +151,15 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=
                 # (see test)
                 fields_list += [None]
     elif not isinstance(fields_list, (list, tuple, np.ndarray)):
-            fields_list = [fields_list]
+        fields_list = [fields_list]
 
-    #Power iteration: estimate eigenvector
+    # Power iteration: estimate eigenvector
     for i in range(n_pw_iter):
-        x1 = 0.
-        for j, (mult, obj) in enumerate(zip(combo_objfct.multipliers, combo_objfct.objfcts)):
-            if hasattr(obj, "simulation"): # if data misfit term
+        x1 = 0.0
+        for j, (mult, obj) in enumerate(
+            zip(combo_objfct.multipliers, combo_objfct.objfcts)
+        ):
+            if hasattr(obj, "simulation"):  # if data misfit term
                 aux = obj.deriv2(model, v=x0, f=fields_list[j])
                 if not isinstance(aux, Zero):
                     x1 += mult * aux
@@ -165,9 +170,11 @@ def eigenvalue_by_power_iteration(combo_objfct, model, n_pw_iter=4, fields_list=
         x0 = x1 / np.linalg.norm(x1)
 
     # Compute highest eigenvalue from estimated eigenvector
-    eigenvalue=0.
-    for j, (mult, obj) in enumerate(zip(combo_objfct.multipliers, combo_objfct.objfcts)):
-        if hasattr(obj, "simulation"): # if data misfit term
+    eigenvalue = 0.0
+    for j, (mult, obj) in enumerate(
+        zip(combo_objfct.multipliers, combo_objfct.objfcts)
+    ):
+        if hasattr(obj, "simulation"):  # if data misfit term
             eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0, f=fields_list[j]))
         else:
             eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0,))

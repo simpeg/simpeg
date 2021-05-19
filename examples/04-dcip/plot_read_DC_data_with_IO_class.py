@@ -52,7 +52,7 @@ apprho = df[header_apprho].values
 # Create DC.IO survey Object object
 IO = DC.IO()
 # Generate DC survey using IO object
-dc_survey = IO.from_ambn_locations_to_survey(
+dc_survey = IO.from_abmn_locations_to_survey(
     a,
     b,
     m,
@@ -87,7 +87,7 @@ Report()
 # Moving Forward
 # --------------
 #
-# If you have suggestions for improving this example, please create a `pull request on the example in SimPEG <https://github.com/simpeg/simpeg/blob/master/examples/06-dc/read_plot_DC_data_with_IO_class.py>`_
+# If you have suggestions for improving this example, please create a `pull request on the example in SimPEG <https://github.com/simpeg/simpeg/blob/main/examples/06-dc/read_plot_DC_data_with_IO_class.py>`_
 #
 # You might try:
 #    - changing the contour levels
