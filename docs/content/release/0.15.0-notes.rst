@@ -23,6 +23,7 @@ joint inversion. There are also now new :ref:`tutorials <sphx_glr_content_tutori
 in both joint inversions and single-domain inversions to incorporate petrophysical
 information into the inversion! Check out the multiple PR's related to this branch
 addition for more details.
+
 * `#937 <https://github.com/simpeg/simpeg/pull/937>`__: Improving BetaEstimate_byEig (and adding other directives for the other terms of the objective function)
 * `#938 <https://github.com/simpeg/simpeg/pull/938>`__: add the Wolfe Curvature condition to the optimization
 * `#939 <https://github.com/simpeg/simpeg/pull/939>`__: PGI
