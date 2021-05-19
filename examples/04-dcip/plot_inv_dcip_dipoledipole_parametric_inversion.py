@@ -63,7 +63,7 @@ def run(
     survey = DCutils.gen_DCIPsurvey(
         endl, survey_type=survey_type, dim=2, a=10, b=10, n=10
     )
-    survey = IO.from_ambn_locations_to_survey(
+    survey = IO.from_abmn_locations_to_survey(
         survey.locations_a,
         survey.locations_b,
         survey.locations_m,
