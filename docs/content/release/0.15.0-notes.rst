@@ -1,0 +1,127 @@
+.. _0.15.0_notes:
+
+===========================
+SimPEG 0.15.0 Release Notes
+===========================
+
+This minor release encompasses many different additions and improvements that have been
+made to SimPEG since the previous release!
+
+Highlights
+==========
+* PGI formulation by @thast
+* Refactoring of ``static_utils.py``
+* :func:`SimPEG.electromagnetics.frequency_domain.sources.LineCurrent` source
+* Updates for DC Boundary Conditions
+* Bug fixes!
+
+PGI
+===
+We have merged @thast's petrophysically guided inversion (PGI) methodology into SimPEG!
+There any many new directives and objective functions related to this methodology of
+joint inversion. There are also now new :ref:`tutorials <sphx_glr_content_tutorials_13-pgi>` showing how you can implement this
+in both joint inversions and single-domain inversions to incorporate petrophysical
+information into the inversion! Check out the multiple PR's related to this branch
+addition for more details.
+* `#937 <https://github.com/simpeg/simpeg/pull/937>`__: Improving BetaEstimate_byEig (and adding other directives for the other terms of the objective function)
+* `#938 <https://github.com/simpeg/simpeg/pull/938>`__: add the Wolfe Curvature condition to the optimization
+* `#939 <https://github.com/simpeg/simpeg/pull/939>`__: PGI
+* `#959 <https://github.com/simpeg/simpeg/pull/959>`__: Tutorial: Joint PGI Grav + Mag + Octree
+
+This is a great first addition for SimPEG's joint inversion capability and we will be
+adding additional forms soon!
+
+Line Current Source
+===================
+After a long wait, and multiple testing issues, we were finally able to merge in the
+frequency domain line current source branch. This branch also enables the line current
+source to be used on TreeMeshs.
+
+Boundary Conditions
+===================
+With the most recent ``0.7.0`` version of ``discretize``, we have updated the DC boundary
+conditions to flexibly support more mesh types. As part of this, we have also changed
+the default boundary condition for the simulations in ``SimPEG.electromagnetics.static.resistivity``
+to be the ``Robin`` type condition (equivalent to the ``Mixed`` option previously).
+This enables both Pole-Pole solutions for the nodal formulation (something that was not
+possible previously). We also caught a error in the 2D DC resistivity simulations'
+previous ``Mixed`` boundary condition option that caused incorrect results.
+
+Static Utils
+============
+The ``static_utils`` module within ``SimPEG.electromagnetics.static.resistivity`` has
+been given a pass through with many internal changes to make it more flexible in its
+handling of dc resitivity surveys. Wenner-type arrays should be better supported by
+the psuedosection plotting utility. It now also includes a 3D psuedosection plotting
+command using plotly (which should display as intractable within web pages).
+
+Future Warnings
+===============
+We have changed all of the DeprecationWarning from :ref:`0.14.0 <0.14.0_notes>` to
+FutureWarning. We have done a pass to double check that all internal calls should not
+issue these warnings, but let this serve as a notice that the items that issue
+a FutureWarning will be removed in the next minor release of SimPEG (0.16.0)
+
+Bug Fixes
+=========
+There are also many individual bug fixes that went into this related to many different
+items. For the complete updates, check out the list of PR's that have been merged into
+SimPEG.
+
+Contributors
+============
+This is a combination of contributors and reviewers who've made contributions towards
+this release (in no particular order).
+
+* `@thast <https://github.com/thast>`__
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@xiaolongw1223 <https://github.com/xiaolongw1223>`__
+* `@lheagy <https://github.com/lheagy>`__
+* `@domfournier <https://github.com/domfournier>`__
+* `@micmitch <https://github.com/micmitch>`__
+* `@prisae <https://github.com/prisae>`__
+* `@dccowan <https://github.com/dccowan>`__
+* `@sgkang <https://github.com/sgkang>`__
+* `@JKutt <https://github.com/JKutt>`__
+* `@RichardScottOZ <https://github.com/RichardScottOZ>`__
+
+Pull requests
+=============
+
+* `#791 <https://github.com/simpeg/simpeg/pull/791>`__: FDEM line source
+* `#932 <https://github.com/simpeg/simpeg/pull/932>`__: Load ubc dcip datatypes and plot 3d pseudosections
+* `#937 <https://github.com/simpeg/simpeg/pull/937>`__: Improving BetaEstimate_byEig (and adding other directives for the other terms of the objective function)
+* `#938 <https://github.com/simpeg/simpeg/pull/938>`__: add the Wolfe Curvature condition to the optimization
+* `#939 <https://github.com/simpeg/simpeg/pull/939>`__: PGI
+* `#958 <https://github.com/simpeg/simpeg/pull/958>`__: Mag. Simulation: fix if statement for self.chi
+* `#959 <https://github.com/simpeg/simpeg/pull/959>`__: Tutorial: Joint PGI Grav + Mag + Octree
+* `#960 <https://github.com/simpeg/simpeg/pull/960>`__: Fix IP simulation when model or field is None
+* `#964 <https://github.com/simpeg/simpeg/pull/964>`__: Replace Travis Icon by Azure in Readme
+* `#965 <https://github.com/simpeg/simpeg/pull/965>`__: Add conda-forge badge
+* `#967 <https://github.com/simpeg/simpeg/pull/967>`__: Bug fix for gravity simulation
+* `#974 <https://github.com/simpeg/simpeg/pull/974>`__: Clean up and refactor static_utils.py
+* `#977 <https://github.com/simpeg/simpeg/pull/977>`__: Fixing 2D IP bug
+* `#982 <https://github.com/simpeg/simpeg/pull/982>`__: Update plot_inv_1a_gravity_anomaly.py
+* `#983 <https://github.com/simpeg/simpeg/pull/983>`__: Update README.rst
+* `#984 <https://github.com/simpeg/simpeg/pull/984>`__: typo in the init
+* `#986 <https://github.com/simpeg/simpeg/pull/986>`__: Update README.rst
+* `#987 <https://github.com/simpeg/simpeg/pull/987>`__: Ensure the 2D IP simulation stores it's scale array as a float
+* `#993 <https://github.com/simpeg/simpeg/pull/993>`__: Dc boundary conditions updates
+* `#994 <https://github.com/simpeg/simpeg/pull/994>`__: Update plot_inv_mag_MVI_Sparse_TreeMesh.py
+* `#997 <https://github.com/simpeg/simpeg/pull/997>`__: Update api_mag.rst
+* `#999 <https://github.com/simpeg/simpeg/pull/999>`__: Update directives.py
+* `#1002 <https://github.com/simpeg/simpeg/pull/1002>`__: typo
+* `#1003 <https://github.com/simpeg/simpeg/pull/1003>`__: Remove the duplicate code
+* `#1005 <https://github.com/simpeg/simpeg/pull/1005>`__: 0.15.0 release
+
+Closed issues
+=============
+* #766
+* #919
+* #935
+* #955
+* #976
+* #980
+* #992
+* #998
+* And many others without issues.
