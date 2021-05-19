@@ -99,6 +99,7 @@ Pull requests
 * `#964 <https://github.com/simpeg/simpeg/pull/964>`__: Replace Travis Icon by Azure in Readme
 * `#965 <https://github.com/simpeg/simpeg/pull/965>`__: Add conda-forge badge
 * `#967 <https://github.com/simpeg/simpeg/pull/967>`__: Bug fix for gravity simulation
+* `#969 <https://github.com/simpeg/simpeg/pull/967>`__: Fix dc2d: Pseudosection and add warning in examples for the observation file format
 * `#974 <https://github.com/simpeg/simpeg/pull/974>`__: Clean up and refactor static_utils.py
 * `#977 <https://github.com/simpeg/simpeg/pull/977>`__: Fixing 2D IP bug
 * `#982 <https://github.com/simpeg/simpeg/pull/982>`__: Update plot_inv_1a_gravity_anomaly.py
