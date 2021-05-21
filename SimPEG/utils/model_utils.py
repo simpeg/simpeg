@@ -274,7 +274,7 @@ def depth_weighting(mesh, indActive=None, v=2, z0=None):
         index vector for the active cells on the mesh below the topography
     v : float
         exponent constant parameter for depth weighting.
-    z0 : float
+    z0 : scalar (float or int) or np.ndarray with shape of (points, dim)
         adjustable constant parameter.
 
     Returns
@@ -319,10 +319,10 @@ def depth_weighting(mesh, indActive=None, v=2, z0=None):
             "z0 must be either a scalar or 2d array!"
             )
 
-    if indActive is not None:
-        delta_z = delta_z[indActive]
-
     wz = (delta_z) ** (-0.5*v)
+
+    if indActive is not None:
+        wz = wz[indActive]
 
 
     return wz / np.nanmax(wz)
