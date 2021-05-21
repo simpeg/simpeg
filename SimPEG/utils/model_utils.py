@@ -262,7 +262,8 @@ def surface_layer_index(mesh, topo, index=0):
     return actv
 
 
-def depth_weighting(mesh, indActive=None, v=2, z0=None):
+def depth_weighting(mesh, reference_locs, indActive=None, exponent=None, threshold=None):
+    
     """
     Create depth weighting
 
@@ -270,57 +271,62 @@ def depth_weighting(mesh, indActive=None, v=2, z0=None):
     ----------
     mesh : Mesh object
         discretize model space.
+    reference_locs : receiver locations
+        float or np.ndarray with shape of (points, dim).
     indActive : array of bool
-        index vector for the active cells on the mesh below the topography
-    v : float
-        exponent constant parameter for depth weighting.
-    z0 : scalar (float or int) or np.ndarray with shape of (points, dim)
+        index vector for the active cells on the mesh below the topography.
+    exponent : float
+        exponent parameter for depth weighting.
+    threshold : float
         adjustable constant parameter.
 
     Returns
     -------
     wz : numpy.ndarray
-        depth weighting captures decay of the potential field data.
+        normazlied depth weighting captures decay of the potential field data.
 
 
     ..math::
 
-        w(z) = (z + z0) ** (-0.5*v)
+        w(z) = (delta_z + threshold) ** (-0.5 * exponent)
 
-        where z is depth of model cells along the z direction;
-        v and z0 are two adjustable parameters.
-
-
-    Notes:
-
-        The depth weighting depends on the depth from receiver locations.
+        where delta_z is depth of model cells along the z direction from receiver locations;
+        exponent and threshold are two adjustable parameters.
 
 
       """
+    
 
+    # Default exponent value
+    if exponent is None:
+        exponent = 2.0
 
-    # Set up default value of z0
-    if z0 is None:
-        z0 = 0.5 * mesh.h_gridded.min()
+    # Default threshold value
+    if threshold is None:
+        threshold = 0.5 * mesh.h_gridded.min()
 
-    # z0 is a scalar
-    if np.isscalar(z0):
-        delta_z = np.abs(mesh.cell_centers[:, -1] - z0)
+    assert isinstance(reference_locs, (float, np.ndarray))
 
-    # z0 is a 2d array
-    elif len(z0.shape) == 2:
+    # Calculate depth from receiver locations, delta_z
+    # reference_locs is a scalar
+    if np.isscalar(reference_locs):
+        delta_z = np.abs(mesh.cell_centers[:, -1] - reference_locs)
 
-        tree = cKDTree(z0[:, :-1])
+    # reference_locs is a 2d array
+    elif len(reference_locs.shape) == 2:
+
+        tree = cKDTree(reference_locs[:, :-1])
         _, ind = tree.query(mesh.cell_centers[:, :-1])
-        delta_z = np.abs(mesh.cell_centers[:, -1] - z0[ind, -1])
+        delta_z = np.abs(mesh.cell_centers[:, -1] - reference_locs[ind, -1])
 
     else:
         raise Exception(
-            "z0 must be either a scalar or 2d array!"
+            "reference_locs must be either a scalar or 2d array!"
             )
 
-    wz = (delta_z) ** (-0.5*v)
-
+    wz = (delta_z + threshold) ** (-0.5 * exponent)
+    wz = wz * mesh.vol
+    
     if indActive is not None:
         wz = wz[indActive]
 
