@@ -262,7 +262,7 @@ def surface_layer_index(mesh, topo, index=0):
     return actv
 
 
-    def depth_weighting(mesh, topo, indActive, v, z0):
+def depth_weighting(mesh, indActive=None, v=2, z0=None):
     """
     Create depth weighting
 
@@ -270,8 +270,6 @@ def surface_layer_index(mesh, topo, index=0):
     ----------
     mesh : Mesh object
         discretize model space.
-    topo : numpy.ndarray
-        [X,Y,Z] topographic data.
     indActive : array of bool
         index vector for the active cells on the mesh below the topography
     v : float
@@ -293,40 +291,65 @@ def surface_layer_index(mesh, topo, index=0):
         v and z0 are two adjustable parameters.
 
 
-    """
+    Notes:
 
-    # Find the highest topo position
-    temp = np.abs(topo[:,2].max() - mesh.vectorNz)
-    index = temp.argmin()
+        Currently, z0 equal to the average clearance (flight hight),
+        so z0 must be either a scalar or 2d array.
+        Specifically, without the topo, the clearance (z0) is constant parameter,
+        with the topography, the clearance (z0) should be a 2d array, because of
+        elevation varing.
 
-    # Move the zero elevation to the highest topo position
-    factor = mesh.vectorNz[index]
+    Usage:
 
-    wz = np.power(
-        -mesh.vectorCCz + factor + z0,
-        -v
-        )
+        Without topo:
 
-    wz = wz ** 0.5
+            depth_weighting(
+                    mesh, v = 2, z0 = a scalar parameter
+                    )
 
-    # Normalize
-    wz /= np.nanmax(wz)
+        With topo:
 
-    # Allocate depth decay to all the cells
-    temp1 = (
+            depth_weighting(
+                    mesh, v = 2, z0 = topo_xyz
+                    )
 
-        np.outer(
-            np.ones(mesh.nCx),
-            np.ones(mesh.nCy)
+            if you want to do another minor adjustment to make the decay curve perform better,
+
+            depth_weighting(
+                    mesh, v = 2, z0 = topo_xyz + factor
+                    )
+
+
+
+      """
+
+
+    # Set up default value of z0
+    if z0 is None:
+        z0 = 0.5 * mesh.h_gridded.min()
+
+    # Without topography: z0 is a scalar
+    if np.isscalar(z0):
+        delta_z = np.abs(mesh.cell_centers[:, -1] - z0)
+
+    # With topography: z0 is a 2d array
+    elif len(z0.shape) == 2:
+
+        assert indActive is not None, "indActive cannot be None with topography!"
+
+        tree = cKDTree(z0[:, :-1])
+        _, ind = tree.query(mesh.cell_centers[:, :-1])
+        delta_z = np.abs(mesh.cell_centers[:, -1] - z0[ind, -1])
+        delta_z = delta_z[indActive]
+
+    else:
+        raise Exception(
+            "z0 must be either a scalar or 2d array!"
             )
 
-        ).flatten('F')
 
-    wr = (
-
-        np.outer(temp1, wz)
-
-        ).flatten('F')
+    wz = (delta_z) ** (-0.5*v)
 
 
-    return wr[indActive]
+
+    return wz / np.nanmax(wz)
