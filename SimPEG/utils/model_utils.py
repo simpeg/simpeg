@@ -303,11 +303,11 @@ def depth_weighting(mesh, indActive=None, v=2, z0=None):
     if z0 is None:
         z0 = 0.5 * mesh.h_gridded.min()
 
-    # Without topography: z0 is a scalar
+    # z0 is a scalar
     if np.isscalar(z0):
         delta_z = np.abs(mesh.cell_centers[:, -1] - z0)
 
-    # With topography: z0 is a 2d array
+    # z0 is a 2d array
     elif len(z0.shape) == 2:
 
         tree = cKDTree(z0[:, :-1])
