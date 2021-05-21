@@ -290,10 +290,11 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=None, thresho
 
     ..math::
 
-        w(z) = (delta_z + threshold) ** (-0.5 * exponent)
+        w(z) = volume * (delta_z + threshold) ** (-0.5 * exponent)
 
-        where delta_z is depth of model cells along the z direction from receiver locations;
-        exponent and threshold are two adjustable parameters.
+        where 'delta_z' is depth of model cells along the z direction from 
+        receiver locations; 'exponent' and 'threshold' are two adjustable parameters; 
+        'volume' contains volumetric information for each model cell.
 
 
       """
@@ -307,15 +308,15 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=None, thresho
     if threshold is None:
         threshold = 0.5 * mesh.h_gridded.min()
 
-    assert isinstance(reference_locs, (float, np.ndarray))
+    reference_locs = np.asarray(reference_locs)
 
     # Calculate depth from receiver locations, delta_z
     # reference_locs is a scalar
-    if np.isscalar(reference_locs):
+    if reference_locs.ndim == 0:
         delta_z = np.abs(mesh.cell_centers[:, -1] - reference_locs)
 
     # reference_locs is a 2d array
-    elif len(reference_locs.shape) == 2:
+    elif reference_locs.ndim == 2:
 
         tree = cKDTree(reference_locs[:, :-1])
         _, ind = tree.query(mesh.cell_centers[:, :-1])
