@@ -292,8 +292,8 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=None, thresho
 
         w(z) = volume * (delta_z + threshold) ** (-0.5 * exponent)
 
-        where 'delta_z' is depth of model cells along the z direction from 
-        receiver locations; 'exponent' and 'threshold' are two adjustable parameters; 
+        where 'delta_z' is depth of model cells along the z direction from
+        receiver locations; 'exponent' and 'threshold' are two adjustable parameters;
         'volume' contains volumetric information for each model cell.
 
 
@@ -312,7 +312,7 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=None, thresho
 
     # Calculate depth from receiver locations, delta_z
     # reference_locs is a scalar
-    if reference_locs.ndim == 0:
+    if reference_locs.ndim < 2:
         delta_z = np.abs(mesh.cell_centers[:, -1] - reference_locs)
 
     # reference_locs is a 2d array
