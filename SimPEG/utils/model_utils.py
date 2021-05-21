@@ -293,32 +293,7 @@ def depth_weighting(mesh, indActive=None, v=2, z0=None):
 
     Notes:
 
-        Currently, z0 equal to the average clearance (flight hight),
-        so z0 must be either a scalar or 2d array.
-        Specifically, without the topo, the clearance (z0) is constant parameter,
-        with the topography, the clearance (z0) should be a 2d array, because of
-        elevation varing.
-
-    Usage:
-
-        Without topo:
-
-            depth_weighting(
-                    mesh, v = 2, z0 = a scalar parameter
-                    )
-
-        With topo:
-
-            depth_weighting(
-                    mesh, v = 2, z0 = topo_xyz
-                    )
-
-            if you want to do another minor adjustment to make the decay curve perform better,
-
-            depth_weighting(
-                    mesh, v = 2, z0 = topo_xyz + factor
-                    )
-
+        The depth weighting depends on the depth from receiver locations.
 
 
       """
@@ -335,21 +310,19 @@ def depth_weighting(mesh, indActive=None, v=2, z0=None):
     # With topography: z0 is a 2d array
     elif len(z0.shape) == 2:
 
-        assert indActive is not None, "indActive cannot be None with topography!"
-
         tree = cKDTree(z0[:, :-1])
         _, ind = tree.query(mesh.cell_centers[:, :-1])
         delta_z = np.abs(mesh.cell_centers[:, -1] - z0[ind, -1])
-        delta_z = delta_z[indActive]
 
     else:
         raise Exception(
             "z0 must be either a scalar or 2d array!"
             )
 
+    if indActive is not None:
+        delta_z = delta_z[indActive]
 
     wz = (delta_z) ** (-0.5*v)
-
 
 
     return wz / np.nanmax(wz)
