@@ -273,7 +273,6 @@ plotVectorSectionsOctree(
     model,
     axs=ax,
     normal="Y",
-    ind=66,
     actvMap=actv_plot,
     scale=0.5,
     vmin=0.0,
@@ -315,26 +314,26 @@ wires = maps.Wires(("p", nC), ("s", nC), ("t", nC))
 # for n, w in wires.maps:
 #     w._transform = magnitude
 
-magnitude = maps.VectorMagnitude(nP=nC)
+magnitude = maps.VectorAmplitude(nP=nC)
 
 m0 = np.ones(3 * nC) * 1e-4  # Starting model
 
 # Create three regularization for the different components
 # of magnetization
-reg_p = regularization.Sparse(mesh, weight_map=magnitude, indActive=actv, mapping=wires.p)
+reg_p = regularization.Sparse(mesh, indActive=actv, mapping=magnitude)
 reg_p.norms = np.c_[0, 1, 1, 1]
-reg_p.mref = np.zeros(3 * nC)
+reg_p.mref = np.zeros(3*nC)
 
-reg_s = regularization.Sparse(mesh, weight_map=magnitude, indActive=actv, mapping=wires.s)
-reg_s.norms = np.c_[0, 1, 1, 1]
-reg_s.mref = np.zeros(3 * nC)
+# reg_s = regularization.Sparse(mesh, weight_map=magnitude, indActive=actv, mapping=wires.s)
+# reg_s.norms = np.c_[0, 1, 1, 1]
+# reg_s.mref = np.zeros(3 * nC)
+#
+# reg_t = regularization.Sparse(mesh, weight_map=magnitude, indActive=actv, mapping=wires.t)
+# reg_t.norms = np.c_[0, 1, 1, 1]
+# reg_t.mref = np.zeros(3 * nC)
 
-reg_t = regularization.Sparse(mesh, weight_map=magnitude, indActive=actv, mapping=wires.t)
-reg_t.norms = np.c_[0, 1, 1, 1]
-reg_t.mref = np.zeros(3 * nC)
-
-reg = reg_p + reg_s + reg_t
-reg.mref = np.zeros(3 * nC)
+reg = reg_p # + reg_s + reg_t
+# reg.mref = np.zeros(3 * nC)
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
@@ -398,17 +397,18 @@ ax.set_xlabel("x")
 ax.set_ylabel("y")
 plt.gca().set_aspect("equal", adjustable="box")
 
-ax = plt.subplot(2, 1, 2)
-plotVectorSectionsOctree(
-    mesh,
-    invProb.l2model.reshape((nC, 3), order="F"),
-    axs=ax,
-    normal="Y",
-    ind=65,
-    actvMap=actv_plot,
-    scale=0.2,
-    vmin=0.0,
-    vmax=0.005,
+if hasattr(invProb, "l2model"):
+    ax = plt.subplot(2, 1, 2)
+    plotVectorSectionsOctree(
+        mesh,
+        invProb.l2model.reshape((nC, 3), order="F"),
+        axs=ax,
+        normal="Y",
+        ind=65,
+        actvMap=actv_plot,
+        scale=0.2,
+        vmin=0.0,
+        vmax=0.005,
 )
 
 ax.set_xlim([-200, 200])

@@ -616,12 +616,20 @@ class SphericalSystem(IdentityMap):
         return self.sphericalDeriv(m)
 
 
-class VectorMagnitude(IdentityMap):
+class VectorAmplitude(IdentityMap):
     """
-    A vector map to magnitude
+    A vector amplitude map defined as
+
+    .. math::
+
+        v = (v_x^2 + v_y^2 + v_z^2)^(1/2)
+
+    where :math:`v_x`, :math:`v_y` and :math:`v_z` are the
+    vector components.
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
+
         super().__init__(mesh, nP, **kwargs)
         self.model = None
 
@@ -630,7 +638,6 @@ class VectorMagnitude(IdentityMap):
         """
         Shape of the matrix operation (number of indices x nP)
         """
-        # return self.n_block*len(self.indices[0]), self.n_block*len(self.indices)
         return (self.nP, 3*self.nP)
 
     def _transform(self, model):
@@ -640,6 +647,18 @@ class VectorMagnitude(IdentityMap):
         :return:
         """
         return np.linalg.norm(model.reshape((-1, 3), order="F"), axis=1)
+
+    def deriv(self, m, v=None):
+        """
+
+        """
+
+        if getattr(self, "P", None) is None:
+            self.P = sp.vstack(
+                [sp.identity(self.nP)] * 3
+            )
+
+        return self.P.T
 
 
 class Wires(object):
