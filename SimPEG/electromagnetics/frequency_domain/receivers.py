@@ -104,9 +104,9 @@ class BaseRx(survey.BaseRx):
                 raise NotImplementedError("must be real or imag")
 
             df_duT, df_dmT = df_dmFun(src, None, PTv, adjoint=True)
-            if self.component == "imag":  # conjugate
-                df_duT *= -1
-                df_dmT *= -1
+            # if self.component == "imag":  # conjugate
+            #     df_duT *= -1
+            #     df_dmT *= -1
 
             return df_duT, df_dmT
 
