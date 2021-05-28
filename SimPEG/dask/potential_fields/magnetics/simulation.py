@@ -137,11 +137,10 @@ def dask_getJtJdiag(self, m, W=None):
                 + fieldDeriv[2, :, None] * self.G[2::3]
             )
             diag = ((W[:, None] * J) ** 2).sum(axis=0)
-        self._gtg_diagonal = diag
-    else:
-        diag = self._gtg_diagonal
+        self._gtg_diagonal = diag.compute()
 
-    return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
+
+    return mkvc((sdiag(np.sqrt(self._gtg_diagonal)) @ self.chiDeriv).power(2).sum(axis=0))
 
 
 Sim.getJtJdiag = dask_getJtJdiag

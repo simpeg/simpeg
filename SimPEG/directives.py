@@ -958,12 +958,6 @@ class SaveIterationsGeoH5(InversionDirective):
         else:
             prop = self.invProb.model
 
-        if self.mapping is not None:
-            prop = self.mapping * prop
-
-        if self.sorting is not None:
-            prop = prop[self.sorting]
-
         if self.attribute_type == "vector":
             prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1)
         else:
@@ -974,6 +968,13 @@ class SaveIterationsGeoH5(InversionDirective):
                 if not isinstance(channel, str):
                     channel = f"{channel: .2e}"
                 values = prop[ii, cc, :]
+                if self.mapping is not None:
+                    values = self.mapping * values
+
+                if self.sorting is not None:
+                    values = values[self.sorting]
+
+
                 data = self.h5_object.add_data(
                     {
                         f"Iteration_{0}_{component}_{channel}":
@@ -1012,12 +1013,6 @@ class SaveIterationsGeoH5(InversionDirective):
         else:
             prop = self.invProb.model
 
-        if self.mapping is not None:
-            prop = self.mapping * prop
-
-        if self.sorting is not None:
-            prop = prop[self.sorting]
-
         if self.attribute_type == "vector":
             prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1)
         else:
@@ -1026,6 +1021,11 @@ class SaveIterationsGeoH5(InversionDirective):
         for cc, component in enumerate(self.components):
             for ii, channel in enumerate(self.channels):
                 values = prop[ii, cc, :]
+                if self.mapping is not None:
+                    values = self.mapping * values
+
+                if self.sorting is not None:
+                    values = values[self.sorting]
                 if not isinstance(channel, str):
                     channel = f"{channel: .2e}"
                 data = self.h5_object.add_data(
@@ -1086,6 +1086,142 @@ class SaveIterationsGeoH5(InversionDirective):
                 values = values.ravel()
 
         return values
+
+class VectorInversion(InversionDirective):
+    """
+    Control a vector inversion from Cartesian to spherical coordinates
+    """
+
+    chifact_target = 1.0
+    mref = None
+    mode = "cartesian"
+    inversion_type = "mvis"
+    norms = []
+    alphas = []
+
+    @property
+    def target(self):
+        if getattr(self, "_target", None) is None:
+            nD = 0
+            for survey in self.survey:
+                nD += survey.nD
+
+            self._target = nD * 0.5 * self.chifact_target
+
+        return self._target
+
+    @target.setter
+    def target(self, val):
+        self._target = val
+
+    def initialize(self):
+
+        for reg in self.reg.objfcts:
+            reg.model = self.invProb.model
+
+        self.mref = reg.mref
+
+        for prob in self.prob:
+            if getattr(prob, "coordinate_system", None) is not None:
+                prob.coordinate_system = self.mode
+
+    def endIter(self):
+        if (
+            self.invProb.phi_d < self.target
+        ) and self.mode == "cartesian":  # and self.inversion_type == 'mvis':
+            print("Switching MVI to spherical coordinates")
+            self.mode = "spherical"
+
+            mstart = cartesian2spherical(
+                self.invProb.model.reshape((-1, 3), order="F")
+            )
+            mref = cartesian2spherical(self.mref.reshape((-1, 3), order="F"))
+
+            self.invProb.model = mstart
+            self.invProb.beta *= 2
+            self.opt.xc = mstart
+
+            nC = mstart.reshape((-1, 3)).shape[0]
+            self.opt.lower = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
+            self.opt.upper[nC:] = np.inf
+
+            self.reg.mref = mref
+            self.reg.model = mstart
+
+            for simulation in self.simulation:
+                if getattr(simulation, "coordinate_system", None) is not None:
+                    simulation.coordinate_system = self.mode
+                    simulation.modelMap = SphericalSystem() * simulation.modelMap
+                    simulation.model = mstart
+
+            for ind, reg_fun in enumerate(self.reg.objfcts):
+
+                reg_fun.mref = mref
+                reg_fun.model = mstart
+
+                if ind > 0:
+                    reg_fun.alpha_s = 0
+                    reg_fun.eps_q = np.pi
+                    for reg in reg_fun.objfcts:
+                        reg.space = "spherical"
+
+            # Add directives
+            directiveList = []
+            update_Jacobi = []
+            IRLS = []
+            for directive in self.inversion.directiveList.dList:
+                if isinstance(directive, SaveIterationsGeoH5):
+                    channels = []
+                    for channel in directive.channels:
+                        channels.append(channel + "_s")
+                        directive.data_type[channel + "_s"] = directive.data_type[
+                            channel
+                        ]
+
+                    directive.channels = channels
+
+                    if directive.attribute_type == "mvi_model":
+                        directive.attribute_type = "mvi_model_s"
+                    elif directive.attribute_type == "mvi_angles":
+                        directive.attribute_type = "mvi_angles_s"
+
+                    directiveList.append(directive)
+
+                elif isinstance(directive, SaveUBCModelEveryIteration):
+                    directive.fileName = directive.fileName + "_S"
+                    directiveList.append(directive)
+
+                elif isinstance(directive, SavePredictedEveryIteration):
+                    directive.fileName = directive.fileName + "_S"
+                    directiveList.append(directive)
+
+                elif isinstance(directive, Update_IRLS):
+                    directive.sphericalDomain = True
+                    directive.model = mstart
+                    directive.coolingFactor = 1.5
+                    IRLS = directive
+
+                elif isinstance(directive, UpdatePreconditioner):
+                    update_Jacobi = directive
+                else:
+                    directiveList.append(directive)
+
+            directiveList = [
+                ProjectSphericalBounds(),
+                IRLS,
+                UpdateSensitivityWeights(),
+                update_Jacobi,
+            ] + directiveList
+
+            self.inversion.directiveList = directiveList
+            directiveList[1].endIter()
+            directiveList[2].endIter()
+            directiveList[3].endIter()
+        elif (self.invProb.phi_d < self.target) and self.mode == "spherical":
+
+            for directive in self.inversion.directiveList.dList:
+                if isinstance(directive, Update_IRLS) and directive.mode != 1:
+                    directive.coolingFactor = 2
 
 
 class Update_IRLS(InversionDirective):
