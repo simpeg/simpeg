@@ -1148,10 +1148,11 @@ class VectorInversion(InversionDirective):
             self.reg.mref = mref
             self.reg.model = mstart
 
-            for prob in self.prob:
-                if getattr(prob, "coordinate_system", None) is not None:
-                    prob.coordinate_system = self.mode
-                    prob.model = mstart
+            for simulation in self.simulation:
+                if getattr(simulation, "coordinate_system", None) is not None:
+                    simulation.coordinate_system = self.mode
+                    simulation.modelMap = SphericalSystem() * simulation.modelMap
+                    simulation.model = mstart
 
             for ind, reg_fun in enumerate(self.reg.objfcts):
 
