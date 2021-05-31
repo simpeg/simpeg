@@ -68,11 +68,11 @@ class BaseIPSimulation(BaseDCSimulation):
 
     def dpred(self, m=None, f=None):
         """
-            Predicted data.
+        Predicted data.
 
-            .. math::
+        .. math::
 
-                d_\\text{pred} = Pf(m)
+            d_\\text{pred} = Pf(m)
 
         """
         if f is None:
@@ -82,7 +82,7 @@ class BaseIPSimulation(BaseDCSimulation):
 
     def getJtJdiag(self, m, W=None):
         """
-            Return the diagonal of JtJ
+        Return the diagonal of JtJ
         """
 
         if self.gtgdiag is None:
@@ -131,7 +131,7 @@ class BaseIPSimulation(BaseDCSimulation):
 
     def MfRhoIDeriv(self, u, v, adjoint=False):
         """
-            Derivative of :code:`MfRhoI` with respect to the model.
+        Derivative of :code:`MfRhoI` with respect to the model.
         """
         dMfRhoI_dI = -self.MfRhoI ** 2
         if self.storeInnerProduct:
@@ -191,7 +191,6 @@ class Simulation3DCellCentered(BaseIPSimulation, BaseSimulation3DCellCentered):
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields3DCellCentered
     _sign = 1.0
-    bc_type = "Dirichlet"
 
 
 class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
@@ -207,11 +206,11 @@ class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_N(Simulation3DNodal):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_CC(Simulation3DCellCentered):
     pass

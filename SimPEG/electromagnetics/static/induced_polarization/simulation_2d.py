@@ -28,7 +28,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
     fieldsPair = Fields2D
     _Jmatrix = None
     _f = None  # the DC fields
-    _sign = 1
+    _sign = 1.0
     _pred = None
     _scale = None
     gtgdiag = None
@@ -59,11 +59,11 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
 
     def dpred(self, m=None, f=None):
         """
-            Predicted data.
+        Predicted data.
 
-            .. math::
+        .. math::
 
-                d_\\text{pred} = Pf(m)
+            d_\\text{pred} = Pf(m)
 
         """
         # return self.Jvec(m, m, f=f)
@@ -137,7 +137,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
     @property
     def MccRhoiDerivMat(self):
         """
-            Derivative of MccRho with respect to the model
+        Derivative of MccRho with respect to the model
         """
         if getattr(self, "_MccRhoiDerivMat", None) is None:
             rho = self.rho
@@ -148,7 +148,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
 
     def MccRhoiDeriv(self, u, v, adjoint=False):
         """
-            Derivative of :code:`MccRhoi` with respect to the model.
+        Derivative of :code:`MccRhoi` with respect to the model.
         """
         if len(self.rho.shape) > 1:
             if self.rho.shape[1] > self.mesh.dim:
@@ -172,7 +172,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
     @property
     def MnSigmaDerivMat(self):
         """
-            Derivative of MnSigma with respect to the model
+        Derivative of MnSigma with respect to the model
         """
         if getattr(self, "_MnSigmaDerivMat", None) is None:
             sigma = self.sigma
@@ -183,7 +183,7 @@ class BaseIPSimulation2D(BaseDCSimulation2D):
 
     def MnSigmaDeriv(self, u, v, adjoint=False):
         """
-            Derivative of MnSigma with respect to the model times a vector (u)
+        Derivative of MnSigma with respect to the model times a vector (u)
         """
         if self.storeInnerProduct:
             if adjoint:
@@ -239,7 +239,7 @@ class Simulation2DCellCentered(BaseIPSimulation2D, BaseSimulation2DCellCentered)
 
     def MfRhoIDeriv(self, u, v, adjoint=False):
         """
-            Derivative of :code:`MfRhoI` with respect to the model.
+        Derivative of :code:`MfRhoI` with respect to the model.
         """
         dMfRhoI_dI = -self.MfRhoI ** 2
         if self.storeInnerProduct:
@@ -287,11 +287,11 @@ Simulation2DCellCentred = Simulation2DCellCentered
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem2D_N(Simulation2DNodal):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem2D_CC(Simulation2DCellCentered):
     pass

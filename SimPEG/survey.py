@@ -69,7 +69,11 @@ class BaseRx(properties.HasProperties):
             self._Ps = {}
 
     locs = deprecate_property(
-        locations, "locs", new_name="locations", removal_version="0.15.0"
+        locations,
+        "locs",
+        new_name="locations",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     @property
@@ -79,13 +83,13 @@ class BaseRx(properties.HasProperties):
 
     def getP(self, mesh, projGLoc=None):
         """
-            Returns the projection matrices as a
-            list for all components collected by
-            the receivers.
+        Returns the projection matrices as a
+        list for all components collected by
+        the receivers.
 
-            .. note::
+        .. note::
 
-                Projection matrices are stored as a dictionary listed by meshes.
+            Projection matrices are stored as a dictionary listed by meshes.
         """
         if projGLoc is None:
             projGLoc = self.projGLoc
@@ -134,34 +138,34 @@ class BaseTimeRx(BaseRx):
 
     def getSpatialP(self, mesh):
         """
-            Returns the spatial projection matrix.
+        Returns the spatial projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         return mesh.getInterpolationMat(self.locations, self.projGLoc)
 
     def getTimeP(self, timeMesh):
         """
-            Returns the time projection matrix.
+        Returns the time projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         return timeMesh.getInterpolationMat(self.times, self.projTLoc)
 
     def getP(self, mesh, timeMesh):
         """
-            Returns the projection matrices as a
-            list for all components collected by
-            the receivers.
+        Returns the projection matrices as a
+        list for all components collected by
+        the receivers.
 
-            .. note::
+        .. note::
 
-                Projection matrices are stored as a dictionary (mesh, timeMesh)
-                if storeProjections is True
+            Projection matrices are stored as a dictionary (mesh, timeMesh)
+            if storeProjections is True
         """
         if (mesh, timeMesh) in self._Ps:
             return self._Ps[(mesh, timeMesh)]
@@ -190,7 +194,7 @@ class BaseSrc(BaseSimPEG):
     _uid = properties.Uuid("unique identifier for the source")
 
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.15.0"
+        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
     )
 
     @properties.validator("receiver_list")
@@ -201,7 +205,11 @@ class BaseSrc(BaseSimPEG):
         [self._rxOrder.setdefault(rx._uid, ii) for ii, rx in enumerate(value)]
 
     rxList = deprecate_property(
-        receiver_list, "rxList", new_name="receiver_list", removal_version="0.15.0"
+        receiver_list,
+        "rxList",
+        new_name="receiver_list",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     def getReceiverIndex(self, receiver):
@@ -301,7 +309,11 @@ class BaseSurvey(properties.HasProperties):
     # Deprecated
     #############
     srcList = deprecate_property(
-        source_list, "srcList", new_name="source_list", removal_version="0.15.0"
+        source_list,
+        "srcList",
+        new_name="source_list",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     def dpred(self, m=None, f=None):
@@ -321,8 +333,8 @@ class BaseSurvey(properties.HasProperties):
             "survey.pair(simulation) will be deprecated. Please update your code "
             "to instead use simulation.survey = survey, or pass it upon intialization "
             "of the simulation object. This will be removed in version "
-            "0.15.0 of SimPEG",
-            DeprecationWarning,
+            "0.16.0 of SimPEG",
+            FutureWarning,
         )
         simulation.survey = self
         self.simulation = simulation
@@ -331,8 +343,8 @@ class BaseSurvey(properties.HasProperties):
             warnings.warn(
                 "The Survey.dpred method has been deprecated. Please use "
                 "simulation.dpred instead. This will be removed in version "
-                "0.15.0 of SimPEG",
-                DeprecationWarning,
+                "0.16.0 of SimPEG",
+                FutureWarning,
             )
             return target.simulation.dpred(m=m, f=f)
 
@@ -342,8 +354,8 @@ class BaseSurvey(properties.HasProperties):
             warnings.warn(
                 "The Survey.makeSyntheticData method has been deprecated. Please use "
                 "simulation.make_synthetic_data instead. This will be removed in version "
-                "0.15.0 of SimPEG",
-                DeprecationWarning,
+                "0.16.0 of SimPEG",
+                FutureWarning,
             )
             if std is None and getattr(target, "std", None) is None:
                 rel_err = 0.05
@@ -371,8 +383,8 @@ class BaseSurvey(properties.HasProperties):
             warnings.warn(
                 "The Survey.residual method has been deprecated. Please use "
                 "L2DataMisfit.residual instead. This will be removed in version "
-                "0.15.0 of SimPEG",
-                DeprecationWarning,
+                "0.16.0 of SimPEG",
+                FutureWarning,
             )
             return mkvc(target.dpred(m, f=f) - target.dobs)
 
@@ -391,7 +403,11 @@ class BaseTimeSurvey(BaseSurvey):
         return self._unique_times
 
     times = deprecate_property(
-        unique_times, "times", new_name="unique_times", removal_version="0.15.0"
+        unique_times,
+        "times",
+        new_name="unique_times",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
 
@@ -402,7 +418,7 @@ class BaseTimeSurvey(BaseSurvey):
 ###############################################################################
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class LinearSurvey(BaseSurvey):
     pass
 

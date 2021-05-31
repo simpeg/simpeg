@@ -151,7 +151,7 @@ class BaseEMSimulation(BaseSimulation):
     @property
     def Me(self):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         if getattr(self, "_Me", None) is None:
             self._Me = self.mesh.getEdgeInnerProduct()
@@ -160,7 +160,7 @@ class BaseEMSimulation(BaseSimulation):
     @property
     def MeI(self):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         if getattr(self, "_MeI", None) is None:
             self._MeI = self.mesh.getEdgeInnerProduct(invMat=True)
@@ -169,7 +169,7 @@ class BaseEMSimulation(BaseSimulation):
     @property
     def Mf(self):
         """
-            Face inner product matrix
+        Face inner product matrix
         """
         if getattr(self, "_Mf", None) is None:
             self._Mf = self.mesh.getFaceInnerProduct()
@@ -178,7 +178,7 @@ class BaseEMSimulation(BaseSimulation):
     @property
     def MfI(self):
         """
-            Face inner product matrix
+        Face inner product matrix
         """
         if getattr(self, "_MfI", None) is None:
             self._MfI = self.mesh.getFaceInnerProduct(invMat=True)
@@ -457,7 +457,7 @@ class BaseEMSimulation(BaseSimulation):
 
     def MfRhoIDeriv(self, u, v=None, adjoint=False):
         """
-            Derivative of :code:`MfRhoI` with respect to the model.
+        Derivative of :code:`MfRhoI` with respect to the model.
         """
         if self.rhoMap is None:
             return Zero()

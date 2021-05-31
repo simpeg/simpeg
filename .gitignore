@@ -64,12 +64,19 @@ tutorials/06-ip/dcip2d/*
 tutorials/06-ip/dcip3d/*
 tutorials/06-ip/outputs/*
 tutorials/12-seismic/seismic/*
+tutorials/13-pgi/pgi/*
 
 # jupyter
 *.ipynb
 
 # results and testing files
+*.obs
+*.ubc
 *.xyz
 *.npy
 *.mod
 *.tar.gz
+tutorials/07-fdem/em1dfm/em1dfm_data.txt
+tutorials/07-fdem/em1dfm_stitched/em1dfm_stitched_data.txt
+tutorials/08-tdem/em1dtm/em1dtm_data.txt
+tutorials/08-tdem/em1dtm_stitched/em1dtm_stitched_data.txt

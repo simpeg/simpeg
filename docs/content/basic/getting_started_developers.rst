@@ -201,7 +201,7 @@ Submit an issue_
 
 .. _issue: https://github.com/simpeg/simpeg/issues
 
-..  .. _change this file: https://github.com/simpeg/simpeg/edit/master/docs/content/api_getting_started_developers.rst
+..  .. _change this file: https://github.com/simpeg/simpeg/edit/main/docs/content/api_getting_started_developers.rst
 
 
 Advanced: Installing Solvers

@@ -40,7 +40,11 @@ class Survey(BaseSurvey):
         return self._frequencies
 
     freqs = deprecate_property(
-        frequencies, "freq", new_name="frequencies", removal_version="0.15.0"
+        frequencies,
+        "freq",
+        new_name="frequencies",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     @property
@@ -49,7 +53,11 @@ class Survey(BaseSurvey):
         return len(self._frequency_dict)
 
     nFreq = deprecate_property(
-        num_frequencies, "nFreq", new_name="num_frequencies", removal_version="0.15.0"
+        num_frequencies,
+        "nFreq",
+        new_name="num_frequencies",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     @property
@@ -58,14 +66,17 @@ class Survey(BaseSurvey):
         if getattr(self, "_num_sources_by_frequency", None) is None:
             self._num_sources_by_frequency = {}
             for freq in self.frequencies:
-                self._num_sources_by_frequency[freq] = len(self.getSrcByFreq(freq))
+                self._num_sources_by_frequency[freq] = len(
+                    self.get_sources_by_frequency(freq)
+                )
         return self._num_sources_by_frequency
 
     nSrcByFreq = deprecate_property(
         num_sources_by_frequency,
         "nSrcByFreq",
         new_name="num_sources_by_frequency",
-        removal_version="0.15.0",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     def get_sources_by_frequency(self, frequency):
@@ -80,4 +91,6 @@ class Survey(BaseSurvey):
         ), "The requested frequency is not in this survey."
         return self._frequency_dict[frequency]
 
-    getSrcByFreq = deprecate_method(get_sources_by_frequency, "getSrcByFreq", "0.15.0")
+    getSrcByFreq = deprecate_method(
+        get_sources_by_frequency, "getSrcByFreq", "0.16.0", future_warn=True
+    )

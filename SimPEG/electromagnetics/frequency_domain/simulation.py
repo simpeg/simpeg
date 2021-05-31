@@ -3,6 +3,7 @@ import scipy.sparse as sp
 from scipy.constants import mu_0
 import properties
 from ...utils.code_utils import deprecate_class
+from discretize.utils import Zero
 
 from ... import props
 from ...data import Data
@@ -64,6 +65,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     survey = properties.Instance("a survey object", Survey, required=True)
 
+    # @profile
     def fields(self, m=None):
         """
         Solve the forward problem for the fields.
@@ -76,18 +78,32 @@ class BaseFDEMSimulation(BaseEMSimulation):
         if m is not None:
             self.model = m
 
+        try:
+            self.Ainv
+        except AttributeError:
+            if self.verbose:
+                print("nFreq =", self.survey.num_frequencies)
+            self.Ainv = [None for i in range(self.survey.num_frequencies)]
+
+        if self.Ainv[0] is not None:
+            for i in range(self.survey.num_frequencies):
+                self.Ainv[i].clean()
+
+            if self.verbose:
+                print("Cleaning Ainv")
+
         f = self.fieldsPair(self)
 
-        for freq in self.survey.frequencies:
+        for nf, freq in enumerate(self.survey.freqs):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solver_opts)
-            u = Ainv * rhs
+            self.Ainv[nf] = self.solver(A, **self.solver_opts)
+            u = self.Ainv[nf] * rhs
             Srcs = self.survey.get_sources_by_frequency(freq)
             f[Srcs, self._solutionType] = u
-            Ainv.clean()
         return f
 
+    # @profile
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
@@ -108,22 +124,18 @@ class BaseFDEMSimulation(BaseEMSimulation):
         # Jv = Data(self.survey)
         Jv = []
 
-        for freq in self.survey.frequencies:
-            A = self.getA(freq)
-            # create the concept of Ainv (actually a solve)
-            Ainv = self.Solver(A, **self.solver_opts)
-
+        for nf, freq in enumerate(self.survey.freqs):
             for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
-                du_dm_v = Ainv * (-dA_dm_v + dRHS_dm_v)
+                du_dm_v = self.Ainv[nf] * (-dA_dm_v + dRHS_dm_v)
 
                 for rx in src.receiver_list:
                     Jv.append(rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v))
-            Ainv.clean()
         return np.hstack(Jv)
 
+    # @profile
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector
@@ -146,38 +158,32 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         Jtv = np.zeros(m.size)
 
-        for freq in self.survey.frequencies:
-            AT = self.getA(freq).T
-            ATinv = self.Solver(AT, **self.solver_opts)
-
+        for nf, freq in enumerate(self.survey.freqs):
             for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, self._solutionType]
-
+                df_duT_sum = 0
+                df_dmT_sum = 0
                 for rx in src.receiver_list:
                     df_duT, df_dmT = rx.evalDeriv(
                         src, self.mesh, f, v=v[src, rx], adjoint=True
                     )
+                    if not isinstance(df_duT, Zero):
+                        df_duT_sum += df_duT
+                    if not isinstance(df_dmT, Zero):
+                        df_dmT_sum += df_dmT
 
-                    ATinvdf_duT = ATinv * df_duT
+                ATinvdf_duT = self.Ainv[nf] * df_duT_sum
 
-                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
-                    du_dmT = -dA_dmT + dRHS_dmT
+                dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+                du_dmT = -dA_dmT + dRHS_dmT
 
-                    df_dmT = df_dmT + du_dmT
-
-                    # TODO: this should be taken care of by the reciever?
-                    if rx.component == "real":
-                        Jtv += np.array(df_dmT, dtype=complex).real
-                    elif rx.component == "imag":
-                        Jtv += -np.array(df_dmT, dtype=complex).real
-                    else:
-                        raise Exception("Must be real or imag")
-
-            ATinv.clean()
+                df_dmT_sum += du_dmT
+                Jtv += np.real(df_dmT_sum)
 
         return mkvc(Jtv)
 
+    # @profile
     def getSourceTerm(self, freq):
         """
         Evaluates the sources for a given frequency and puts them in matrix
@@ -877,21 +883,21 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_e(Simulation3DElectricField):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_b(Simulation3DMagneticFluxDensity):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_h(Simulation3DMagneticField):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_j(Simulation3DCurrentDensity):
     pass

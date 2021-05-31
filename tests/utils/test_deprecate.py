@@ -110,7 +110,7 @@ class DeprecateTest(unittest.TestCase):
     def test_module_deprecations(self):
         for module in deprecated_modules:
             print(module, end="...")
-            with self.assertWarns(DeprecationWarning):
+            with self.assertWarns(FutureWarning):
                 import_module(module)
             print("ok")
 
@@ -120,7 +120,7 @@ class DeprecateTest(unittest.TestCase):
             for Problem in module[1]:
                 Prob = getattr(mod, Problem)
                 print(f"{module[0]}.{Problem}...", end="")
-                with self.assertWarns(DeprecationWarning):
+                with self.assertWarns(FutureWarning):
                     Prob(mesh=mesh)
                 print("ok")
 
@@ -132,7 +132,7 @@ class DeprecateTest(unittest.TestCase):
                 # Only testing for a deprecation warning so removing startup of Fields
                 field.startup = lambda self: None
                 print(f"{module[0]}.{Field}...", end="")
-                with self.assertWarns(DeprecationWarning):
+                with self.assertWarns(FutureWarning):
                     field(mesh)
                 print("ok")
 
@@ -142,7 +142,7 @@ class DeprecateTest(unittest.TestCase):
             for receiver in module[1]:
                 Rx = getattr(mod, receiver)
                 print(f"{module[0]}.{Rx}...", end="")
-                with self.assertWarns(DeprecationWarning):
+                with self.assertWarns(FutureWarning):
                     try:
                         Rx(locs)  # for "Pole like" receiver
                     except (TypeError, ValueError):
@@ -188,7 +188,7 @@ class OldStyleProblemTest(unittest.TestCase):
         problem = DC.Problem3D_N(self.mesh, sigma=self.sigma)
         problem.Solver = Solver
         problem.pair(self.survey)
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(FutureWarning):
             data = self.survey.dpred()
         err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
         if err < 0.2:
@@ -200,7 +200,7 @@ class OldStyleProblemTest(unittest.TestCase):
             passed = False
             print(">> DC analytic test for Problem3D_N is failed")
         self.assertTrue(passed)
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(FutureWarning):
             dataObject = self.survey.makeSyntheticData(self.sigma, std=0.05)
 
 

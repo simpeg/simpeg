@@ -42,5 +42,9 @@ class Survey(BaseSurvey):
         return np.sum(dd_du, axis=0), np.sum(dd_dm, axis=0)
 
     rxList = deprecate_property(
-        receiver_list, "rxList", new_name="receiver_list", removal_version="0.15.0"
+        receiver_list,
+        "rxList",
+        new_name="receiver_list",
+        removal_version="0.16.0",
+        future_warn=True,
     )
