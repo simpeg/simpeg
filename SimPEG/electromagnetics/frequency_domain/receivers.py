@@ -22,21 +22,18 @@ class BaseRx(survey.BaseRx):
         {
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-            "both": ["re and im", 'in-phase and out-of-phase'], 
-            "complex": ["re + im"]
+            "both": ["re and im", "in-phase and out-of-phase"],
+            "complex": ["re + im"],
         },
     )
 
     data_type = properties.StringChoice(
-        "Data type",
-        default="field",
-        choices=["field", "ppm"]
+        "Data type", default="field", choices=["field", "ppm"]
     )
 
     use_source_receiver_offset = properties.Bool(
-        "Use source-receiver offset",
-        default=False
-    )    
+        "Use source-receiver offset", default=False
+    )
 
     projComp = deprecate_property(
         orientation, "projComp", new_name="orientation", removal_version="0.15.0"
@@ -115,9 +112,10 @@ class BaseRx(survey.BaseRx):
             df_duT, df_dmT = df_dmFun(src, None, PTv, adjoint=True)
 
             return df_duT, df_dmT
+
     @property
     def nD(self):
-        if self.component == 'both':
+        if self.component == "both":
             return int(self.locations.shape[0] * 2)
         else:
             return self.locations.shape[0]
@@ -182,6 +180,7 @@ class PointMagneticField(BaseRx):
         self.projField = "h"
         super(PointMagneticField, self).__init__(locations, orientation, component)
 
+
 class PointMagneticFieldSecondary(BaseRx):
     """
     Magnetic flux FDEM receiver
@@ -195,7 +194,7 @@ class PointMagneticFieldSecondary(BaseRx):
         self.projField = "hSecondary"
         super(PointMagneticFieldSecondary, self).__init__(
             locations, orientation=orientation, component=component, **kwargs
-        )        
+        )
 
 
 class PointCurrentDensity(BaseRx):
