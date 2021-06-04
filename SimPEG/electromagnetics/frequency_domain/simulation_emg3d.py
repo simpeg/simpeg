@@ -83,6 +83,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 'max_workers': self.max_workers,
                 'gridding': 'same',
                 'verb': -1,
+                'receiver_interpolation': 'linear',
+                'tqdm_opts': {'disable': True},  # Avoid verb. for inv.
             }        
         return self._emg3d_simulation_inputs
     
