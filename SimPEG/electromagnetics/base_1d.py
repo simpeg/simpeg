@@ -57,6 +57,7 @@ class BaseEM1DSimulation(BaseSimulation):
     _Jmatrix_height = None
     _pred = None
     use_sounding = False  # Default: False (not optimized)
+    _formulation = "1D"
 
     # Properties for electrical conductivity/resistivity
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
@@ -67,37 +68,56 @@ class BaseEM1DSimulation(BaseSimulation):
 
     props.Reciprocal(sigma, rho)
 
-    eta, etaMap, etaDeriv = props.Invertible(
+    eta = props.PhysicalProperty(
         "Intrinsic chargeability (V/V), 0 <= eta < 1", default=0.0
     )
-
-    tau, tauMap, tauDeriv = props.Invertible(
-        "Time constant for Cole-Cole model (s)", default=1.0
-    )
-
-    c, cMap, cDeriv = props.Invertible(
+    tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)", default=1.0)
+    c = props.PhysicalProperty(
         "Frequency Dependency for Cole-Cole model, 0 < c < 1", default=0.5
     )
+    # eta, etaMap, etaDeriv = props.Invertible(
+    #     "Intrinsic chargeability (V/V), 0 <= eta < 1", default=0.0
+    # )
+    #
+    # tau, tauMap, tauDeriv = props.Invertible(
+    #     "Time constant for Cole-Cole model (s)", default=1.0
+    # )
+    #
+    # c, cMap, cDeriv = props.Invertible(
+    #     "Frequency Dependency for Cole-Cole model, 0 < c < 1", default=0.5
+    # )
 
     # Properties for magnetic susceptibility
-    chi, chiMap, chiDeriv = props.Invertible(
-        "Magnetic susceptibility at infinite frequency (SI)", default=0.0
+    mu, muMap, muDeriv = props.Invertible(
+        "Magnetic permeability at infinite frequency (SI)", default=mu_0
     )
-
-    dchi, dchiMap, dchiDeriv = props.Invertible(
+    dchi = props.PhysicalProperty(
         "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)",
         default=0.0,
     )
-
-    tau1, tau1Map, tau1Deriv = props.Invertible(
+    tau1 = props.PhysicalProperty(
         "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
         default=1e-10,
     )
-
-    tau2, tau2Map, tau2Deriv = props.Invertible(
+    tau2 = props.PhysicalProperty(
         "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
         default=10.0,
     )
+
+    # dchi, dchiMap, dchiDeriv = props.Invertible(
+    #     "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)",
+    #     default=0.0,
+    # )
+    #
+    # tau1, tau1Map, tau1Deriv = props.Invertible(
+    #     "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
+    #     default=1e-10,
+    # )
+    #
+    # tau2, tau2Map, tau2Deriv = props.Invertible(
+    #     "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
+    #     default=10.0,
+    # )
 
     # Additional properties
     h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0",)
@@ -221,9 +241,9 @@ class BaseEM1DSimulation(BaseSimulation):
 
             return sigma_complex
 
-    def compute_chi_matrix(self, frequencies):
+    def compute_mu_matrix(self, frequencies):
         """
-        Computes the complex magnetic susceptibility matrix assuming a log-uniform
+        Computes the complex magnetic permeability matrix assuming a log-uniform
         distribution of time-relaxation constants:
 
         .. math::
@@ -235,24 +255,23 @@ class BaseEM1DSimulation(BaseSimulation):
         :param numpy.array frequencies: np.array(N,) containing frequencies
         :rtype: numpy.ndarray: np.array(n_layer, n_frequency)
         :return: complex magnetic susceptibility matrix
-
         """
 
-        if np.isscalar(self.chi):
-            chi = np.ones_like(self.sigma) * self.chi
+        if np.isscalar(self.mu):
+            mu = np.ones_like(self.sigma) * self.mu
         else:
-            chi = self.chi
+            mu = self.mu
 
         n_layer = self.n_layer
         n_frequency = len(frequencies)
         # n_filter = self.n_filter
 
-        chi = np.tile(chi.reshape([-1, 1]), (1, n_frequency))
+        mu = np.tile(mu.reshape([-1, 1]), (1, n_frequency))
 
         # No magnetic viscosity
         if np.all(self.dchi) == 0.0:
 
-            return chi
+            return mu
 
         # Magnetic viscosity
         else:
@@ -268,16 +287,13 @@ class BaseEM1DSimulation(BaseSimulation):
 
             w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
 
-            chi_complex = np.empty(
-                [n_layer, n_frequency], dtype=np.complex128, order="F"
-            )
-            chi_complex[:, :] = chi + dchi * (
+            mu_complex = mu + mu_0 * dchi * (
                 1
-                - (np.log(tau2 / tau1)) ** -1
-                * np.log((1 + 1j * w * tau2) / (1 + 1j * w * tau1))
+                - np.log((1 + 1j * w * tau2) / (1 + 1j * w * tau1))
+                / np.log(tau2 / tau1)
             )
 
-            return chi_complex
+            return mu_complex
 
     def fields(self, m):
         if self.use_sounding:
