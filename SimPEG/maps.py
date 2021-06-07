@@ -2,6 +2,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+
+import discretize
+
 from .utils.code_utils import deprecate_class
 
 from six import integer_types
@@ -1890,6 +1893,10 @@ class ParametricSplineMap(IdentityMap):
     slope = 1e4
 
     def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True, normal="X"):
+        if isinstance(mesh, discretize.CurvilinearMesh):
+            raise ValueError(
+                "Curvilinear mesh is not supported."
+                )
         IdentityMap.__init__(self, mesh)
         self.logSigma = logSigma
         self.order = order

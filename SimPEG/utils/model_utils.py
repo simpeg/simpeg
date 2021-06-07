@@ -1,3 +1,5 @@
+import discretize
+
 from .mat_utils import mkvc, ndgrid, uniqueRows
 import numpy as np
 from scipy.interpolate import griddata, interp1d
@@ -28,6 +30,10 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
     :param numpy.ndarray actind: index vector for the active cells on the mesh
                                below the topography
     """
+    if isinstance(mesh, discretize.CurvilinearMesh):
+        raise ValueError(
+            "Curvilinear mesh is not supported."
+        )
     if mesh._meshType == "TENSOR":
 
         if mesh.dim == 3:

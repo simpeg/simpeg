@@ -1492,7 +1492,10 @@ def gettopoCC(mesh, actind, option="top"):
     """
     Get topography from active indices of mesh.
     """
-
+    if isinstance(mesh, discretize.CurvilinearMesh):
+        raise ValueError(
+            "Curvilinear mesh is not supported."
+        )
     if mesh._meshType == "TENSOR":
 
         if mesh.dim == 3:
@@ -1547,6 +1550,10 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     """
     Drape location right below (cell center) the topography
     """
+    if isinstance(mesh, discretize.CurvilinearMesh):
+        raise ValueError(
+            "Curvilinear mesh is not supported."
+        )
     if mesh.dim == 2:
         # if shape is (*, 1) or (*, 2) just grab first column
         if pts.ndim == 2 and pts.shape[1] in [1, 2]:
@@ -1584,6 +1591,10 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
 
 
 def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
+    if isinstance(mesh, discretize.CurvilinearMesh):
+        raise ValueError(
+            "Curvilinear mesh is not supported."
+        )
     if mesh.dim == 3:
         mesh2D = discretize.TensorMesh([mesh.hx, mesh.hy], x0=[mesh.x0[0], mesh.x0[1]])
         out = model_builder.randomModel(

@@ -2,6 +2,8 @@ import numpy as np
 from scipy.optimize import minimize
 import warnings
 import properties
+
+import discretize
 from ....utils.code_utils import deprecate_class
 
 from ....utils import mkvc, sdiag, Zero
@@ -60,9 +62,13 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
                 return phi, g
 
-            # find the minimum cell spacing, and the maximum side of the mesh
-            min_r = min(*[np.min(h) for h in self.mesh.h])
-            max_r = max(*[np.sum(h) for h in self.mesh.h])
+            if isinstance(self.mesh, discretize.CurvilinearMesh):
+                min_r = min(self.mesh.edge_lengths)
+                max_r = max(self.mesh.edge_lengths)
+            else:
+                # find the minimum cell spacing, and the maximum side of the mesh
+                min_r = min(*[np.min(h) for h in self.mesh.h])
+                max_r = max(*[np.sum(h) for h in self.mesh.h])
             # generate test points log spaced between these two end members
             rs = np.logspace(np.log10(min_r / 4), np.log10(max_r * 4), 100)
 
@@ -113,7 +119,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
 
-    def fields(self, m = None):
+    def fields(self, m=None):
         if self.verbose:
             print(">> Compute fields")
         if m is not None:
@@ -163,7 +169,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         for src in survey.source_list:
             for rx in src.receiver_list:
                 d = rx.eval(src, self.mesh, f).dot(weights)
-                temp[count : count + len(d)] = d
+                temp[count: count + len(d)] = d
                 count += len(d)
 
         return self._mini_survey_data(temp)
@@ -223,7 +229,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     df_dm_v = df_dmFun(iky, src, du_dm_v, v, adjoint=False)
                     Jv1_temp = rx.evalDeriv(src, self.mesh, f, df_dm_v)
                     # Trapezoidal intergration
-                    Jv[count : count + len(Jv1_temp)] += weights[iky] * Jv1_temp
+                    Jv[count: count + len(Jv1_temp)] += weights[iky] * Jv1_temp
                     count += len(Jv1_temp)
 
         return self._mini_survey_data(Jv)
@@ -271,7 +277,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
                     df_duT_sum = 0
                     df_dmT_sum = 0
                     for rx in src.receiver_list:
-                        my_v = v[count : count + rx.nD]
+                        my_v = v[count: count + rx.nD]
                         count += rx.nD
                         # wrt f, need possibility wrt m
                         PTv = rx.evalDeriv(src, self.mesh, f, my_v, adjoint=True)
@@ -587,7 +593,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
                 is_t[:, -1] = True
                 is_t = is_t.reshape(-1, order="F")[is_b]
                 not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
-                not_top[-len(is_t) :] = ~is_t
+                not_top[-len(is_t):] = ~is_t
 
             # use the exponentialy scaled modified bessel function of second kind,
             # (the division will cancel out the scaling)
@@ -742,7 +748,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
                 is_t[:, -1] = True
                 is_t = is_t.reshape(-1, order="F")[is_b]
                 not_top = np.zeros(boundary_faces.shape[0], dtype=bool)
-                not_top[-len(is_t) :] = ~is_t
+                not_top[-len(is_t):] = ~is_t
 
             # use the exponentiall scaled modified bessel function of second kind,
             # (the division will cancel out the scaling)
