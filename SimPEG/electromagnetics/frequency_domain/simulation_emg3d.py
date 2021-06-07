@@ -51,18 +51,18 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
     def __init__(self, mesh, **kwargs):
         super(Simulation3DEMG3D, self).__init__(mesh, **kwargs)
-  
+
     @property
     def emg3d_survey(self):
         if getattr(self, "_emg3d_survey", None) is None:
             self._emg3d_survey = self.generate_emg3d_survey_from_simpeg_survey()
         return self._emg3d_survey
-    
+
     @property
     def emg3d_sigma(self):
         self._emg3d_sigma = models.Model(
-            self.mesh, 
-            self.sigma.reshape(self.mesh.vnC, order='F'), 
+            self.mesh,
+            self.sigma.reshape(self.mesh.vnC, order='F'),
             mapping='Conductivity'
         )
         return self._emg3d_sigma
@@ -71,9 +71,9 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
     def emg3d_simulation_inputs(self):
         if getattr(self, "_emg3d_simulation_inputs", None) is None:
             solver_opts = {
-                'sslsolver': False,
-                'semicoarsening': False,
-                'linerelaxation': False,
+                'sslsolver': True,
+                'semicoarsening': True,
+                'linerelaxation': True,
             #     'tol': 5e-5,  # Reduce tolerance to speed-up
             }
             self._emg3d_simulation_inputs = {
@@ -85,19 +85,19 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 'verb': -1,
                 'receiver_interpolation': 'linear',
                 'tqdm_opts': {'disable': True},  # Avoid verb. for inv.
-            }        
+            }
         return self._emg3d_simulation_inputs
-    
-    
+
+
     def generate_emg3d_survey_from_simpeg_survey(self):
 
         source_list_emg3d = []
         src_rx_uids = []
         source_frequency = []
         for src in self.survey.srcList:
-            source_frequency.append(src.frequency)    
+            source_frequency.append(src.frequency)
             src_emg3d = emg3d.TxElectricDipole(
-                (src.location[0], src.location[1], src.location[2], src.dip, src.azimuth)
+                (src.location[0], src.location[1], src.location[2], src.azimuth, src.dip)
             )
             source_list_emg3d.append(src_emg3d)
             for rx in src.rxList:
@@ -111,7 +111,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 emg3d_rx_object = emg3d.RxElectricPoint
             elif rx.projField == 'h':
                 emg3d_rx_object = emg3d.RxMagneticPoint
-            
+
             if rx.orientation == 'x':
                 azimuth, dip = 0, 0
             elif rx.orientation == 'y':
@@ -122,11 +122,11 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 raise Exception()
             receivers = emg3d.surveys.txrx_coordinates_to_dict(
                 emg3d_rx_object,
-                (rx.locations[:,0], rx.locations[:,1], rx.locations[:,2], dip, azimuth),
-            )    
+                (rx.locations[:,0], rx.locations[:,1], rx.locations[:,2], azimuth, dip),
+            )
         else:
             raise Exception()
-        sources = emg3d.surveys.txrx_lists_to_dict(source_list_emg3d)  
+        sources = emg3d.surveys.txrx_lists_to_dict(source_list_emg3d)
         source_frequency = np.unique(np.array(source_frequency))
         emg3d_survey = surveys.Survey(
             name='emg3d survey',
@@ -150,11 +150,11 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             Jv = mkvc(np.dot(J, v))
             return Jv
 
-        self.model = m        
+        self.model = m
 
         if f is None:
-            f = self.fields(m=m)       
-        
+            f = self.fields(m=m)
+
         dsig_dm_v = self.sigmaDeriv @ v
         j_vec = optimize.jvec(f, vec=dsig_dm_v)
         return j_vec
@@ -162,7 +162,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
     def Jtvec(self, m, v, f=None):
         if self.verbose:
             print("Compute Jtvec")
-        
+
         if self.storeJ:
             J = self.getJ(m, f=f)
             Jtv = mkvc(np.dot(J.T, v))
@@ -171,10 +171,10 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         self.model = m
 
         if f is None:
-            f = self.fields(m=m)        
+            f = self.fields(m=m)
 
         return self._Jtvec(m, v=v, f=f)
-    
+
     def _Jtvec(self, m, v=None, f=None):
         """
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
@@ -189,16 +189,16 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
         else:
             # This is for forming full sensitivity matrix
-            # Currently, it is not correct. 
-            # Requires a fix in optimize.gradient 
-            # Jt is supposed to be a complex value ... 
+            # Currently, it is not correct.
+            # Requires a fix in optimize.gradient
+            # Jt is supposed to be a complex value ...
             Jt = np.zeros((self.model.size, self.survey.nD), order="F")
             for i_datum in range(self.survey.nD):
                 v = np.zeros(self.survey.nD)
                 v[i_datum] = 1.
                 jt_sigma_vec = optimize.gradient(f, vec=v)
                 Jt[:, i_datum] = self.sigmaDeriv.T @ jt_sigma_vec
-            
+
             return Jt
 
     def getJ(self, m, f=None):
@@ -223,21 +223,21 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         # currently this does not change once self.fields is computed.
         if f is None:
             f = self.fields(m=m)
-        # this may not be robust, need to be changed... 
+        # this may not be robust, need to be changed...
         data = f.data.synthetic.values.flatten()
-        return data 
-  
+        return data
+
     def fields(self, m=None):
         if self.verbose:
             print("Compute fields")
         self.model = m
- 
+
         f = simulations.Simulation(
-            model=self.emg3d_sigma, 
+            model=self.emg3d_sigma,
             **self.emg3d_simulation_inputs
         )
         std = f.survey.standard_deviation
         # Store weights
-        f.data['weights'] = std**-2        
+        f.data['weights'] = std**-2
         f.compute()
         return f
