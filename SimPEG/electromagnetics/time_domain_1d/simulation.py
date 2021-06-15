@@ -1,22 +1,11 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from ... import maps, utils
-from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation, Sensitivity
-from ..time_domain.sources import StepOffWaveform, RawWaveform
+from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation
+from ..time_domain.sources import StepOffWaveform
 from ..time_domain.sources import MagDipole, CircularLoop
 from ..time_domain.receivers import (
     PointMagneticFluxDensity,
     PointMagneticField,
     PointMagneticFluxTimeDerivative,
-    PointMagneticFieldTimeDerivative,
-)
-from ..frequency_domain_1d.supporting_functions.kernels import *
-from ..frequency_domain_1d.supporting_functions.kernels_by_sounding import (
-    horizontal_loop_response_by_sounding,
-    magnetic_dipole_response_by_sounding,
 )
 import numpy as np
 
@@ -24,18 +13,13 @@ import numpy as np
 from ..time_domain.survey import Survey
 from scipy.constants import mu_0
 from scipy.interpolate import InterpolatedUnivariateSpline as iuSpline
+from scipy.special import roots_legendre
 
-from empymod.utils import check_time
 from empymod import filters
-from empymod.transform import dlf, fourier_dlf, get_dlf_points
-from empymod.utils import check_hankel
+from empymod.transform import get_dlf_points
 
-from .supporting_functions.waveform_functions import (
-    piecewise_pulse_fast,
-    butterworth_type_filter,
-    butter_lowpass_filter,
-)
-from SimPEG import Data
+from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradient
+
 import properties
 
 
@@ -45,18 +29,13 @@ class EM1DTMSimulation(BaseEM1DSimulation):
     for a single sounding.
     """
 
-    _time_intervals_are_set = False
-    _frequencies_are_set = False
+    _coefficients_set = False
     time_filter = "key_81_CosSin_2009"
-
-    _time_intervals_by_sounding = {}
-    _frequencies_by_sounding = {}
-    _ftarg_by_sounding = {}
 
     survey = properties.Instance("a survey object", Survey, required=True)
 
     def __init__(self, **kwargs):
-        BaseEM1DSimulation.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         if self.time_filter == "key_81_CosSin_2009":
             self.fftfilt = filters.key_81_CosSin_2009()
         elif self.time_filter == "key_201_CosSin_2012":
@@ -73,723 +52,301 @@ class EM1DTMSimulation(BaseEM1DSimulation):
             if src.location[2] < self.topo[2]:
                 raise Exception("Source must be located above the topography")
             for i_rx, rx in enumerate(src.receiver_list):
-                if rx.locations.shape[0] > 1:
-                    raise Exception(
-                        "A single location for a receiver object is assumed for the 1D EM code"
-                    )
                 if rx.locations[0, 2] < self.topo[2]:
                     raise Exception("Receiver must be located above the topography")
 
-    def set_time_intervals(self):
-        """
-        Define time interval for all source-receiver pairs.
-        """
-        if self.verbose:
-            print("Calculate time intervals")
-        for src in self.survey.source_list:
-            waveform = src.waveform
-            if not isinstance(waveform, StepOffWaveform):
-                for rx in src.receiver_list:
-
-                    if isinstance(waveform, RawWaveform):
-                        time = rx.times
-                        pulse_period = waveform.pulse_period
-                        period = waveform.period
-                    # Dual moment
-                    # Issue: NEED TO REVISIT
-                    # else:
-                    #     time = np.unique(np.r_[rx.times, rx.dual_times])
-                    #     pulse_period = np.maximum(
-                    #         waveform.pulse_period, waveform.dual_pulse_period
-                    #     )
-                    #     period = np.maximum(waveform.period, waveform.dual_period)
-                    tmin = time[time > 0.0].min()
-                    if waveform.n_pulse == 1:
-                        tmax = time.max() + pulse_period
-                    elif waveform.n_pulse == 2:
-                        tmax = time.max() + pulse_period + period / 2.0
-                    else:
-                        raise NotImplementedError("n_pulse must be either 1 or 2")
-                    n_time = int((np.log10(tmax) - np.log10(tmin)) * 10 + 1)
-
-                    rx._time_interval = np.logspace(
-                        np.log10(tmin), np.log10(tmax), n_time
-                    )
-
-        self._time_intervals_are_set = True
-
-    def set_frequencies(self, pts_per_dec=-1):
-        """
-        Set frequencies required for Hankel transform computation and for accurate
-        computation of the IFFT.
-        """
-
-        # Set range of time channels
-        if self.verbose:
-            print("Calculate frequencies")
-
-        if self._time_intervals_are_set == False:
-            self.set_time_intervals()
-
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                if isinstance(src.waveform, StepOffWaveform):
-                    _, freq, ft, ftarg = check_time(
-                        rx.times,
-                        -1,
-                        "dlf",
-                        {"pts_per_dec": pts_per_dec, "dlf": self.fftfilt},
-                        0,
-                    )
-
-                elif isinstance(src.waveform, RawWaveform):
-                    _, freq, ft, ftarg = check_time(
-                        rx._time_interval,
-                        -1,
-                        "dlf",
-                        {"pts_per_dec": pts_per_dec, "dlf": self.fftfilt},
-                        0,
-                    )
-                else:
-                    raise Exception(
-                        "Expected types of the waveform are StepOffWaveform and RawWaveform"
-                    )
-                rx.frequencies = freq
-                rx.ftarg = ftarg
-
-        self._frequencies_are_set = True
-
-    def compute_integral(self, m, output_type="response"):
-        """
-        This method evaluates the Hankel transform for each source and
-        receiver and outputs it as a list. Used for computing response
-        or sensitivities.
-        """
-        if self.verbose:
-            print("Evaluate integral")
-        self.model = m
-        n_layer = self.n_layer
-        n_filter = self.n_filter
-
-        # For time-domain simulations, set frequencies for the evaluation
-        # of the Hankel transform.
-        if self._frequencies_are_set is False:
-            self.set_frequencies()
-
-        # Define source height above topography by mapping or from sources and receivers.
+    def _compute_coefficients(self):
+        if self._coefficients_set:
+            return
+        survey = self.survey
         if self.hMap is not None:
-            h_vector = np.array(self.h)
+            h_vector = np.zeros(len(survey.source_list))  # , self.h
+            # if it has an hMap, do not include the height in the
+            # pre-computed coefficients
         else:
             h_vector = np.array(
                 [src.location[2] - self.topo[-1] for src in self.survey.source_list]
             )
 
-        # LOOP OVER BY SOUNDING
-        integral_output_list = []
-
-        for i_src, src in enumerate(self.survey.source_list):
+        t_min = np.infty
+        t_max = -np.infty
+        # loop through source and receiver lists to create necessary times (and offsets)
+        for i_src, src in enumerate(survey.source_list):
+            if isinstance(src, CircularLoop):
+                if np.any(src.orientation[:-1] != 0.0):
+                    raise ValueError("Can only simulate horizontal circular loops")
             for i_rx, rx in enumerate(src.receiver_list):
+                # find the minimum and maximum time span...
+                wave = src.waveform
+                if isinstance(wave, StepOffWaveform):
+                    t_min = min(rx.times.min(), t_min)
+                    t_max = max(rx.times.max(), t_max)
+                else:
+                    try:
+                        times = rx.times - wave.time_nodes[:, None]
+                        t_min = min(times.min(), t_min)
+                        t_max = max(times.max(), t_max)
+                    except AttributeError:
+                        raise TypeError(
+                            f"Unsupported source waveform object of {src.waveform}"
+                        )
 
-                n_frequency = len(rx.frequencies)
+        t_min = max(t_min, 1e-8)  # make it slightly above zero if it happens...
+        omegas, t_spline_points = get_dlf_points(self.fftfilt, np.r_[t_min, t_max], -1)
+        omegas = omegas.reshape(-1)
+        n_omega = len(omegas)
+        n_t = len(t_spline_points)
 
-                # Create globally, not for each receiver in the future
-                sig = self.compute_sigma_matrix(rx.frequencies)
-                chi = self.compute_chi_matrix(rx.frequencies)
+        n_base = len(self.fftfilt.base)
+        A_dft = np.zeros((n_t, n_omega))
+        for i in range(n_t):
+            A_dft[i, i : i + n_base] = (
+                self.fftfilt.cos / t_spline_points[i] * (-2.0 / np.pi)
+            )
+        A_dft = A_dft[::-1]  # shuffle these back
+
+        # Calculate the interpolating spline basis functions for each spline point
+        splines = []
+        for i in range(n_t):
+            e = np.zeros(n_t)
+            e[i] = 1.0
+            sp = iuSpline(np.log(t_spline_points[::-1]), e, k=5)
+            splines.append(sp)
+        # As will go from frequency to time domain
+        As = []
+
+        # loop through source and receiver lists to create offsets
+        # get unique times for each receiver
+        # Compute coefficients for Hankel transform
+        C0s = []
+        C1s = []
+        lambs = []
+        for i_src, src in enumerate(survey.source_list):
+            h = h_vector[i_src]  # source height above topo
+            src_x, src_y, src_z = src.orientation * src.moment / (4 * np.pi)
+            # src.moment is pi * radius**2 * I for circular loop
+            for i_rx, rx in enumerate(src.receiver_list):
+                #######
+                # Hankel Transform coefficients
+                ######
 
                 # Compute receiver height
-                h = h_vector[i_src]
                 if rx.use_source_receiver_offset:
-                    z = h + rx.locations[0, 2]
+                    dxyz = rx.locations
+                    z = h + rx.locations[:, 2]
                 else:
-                    z = h + rx.locations[0, 2] - src.location[2]
+                    dxyz = rx.locations - src.location
+                    z = h + rx.locations[:, 2] - src.location[2]
 
-                # Hankel transform for horizontal loop source
+                offsets = np.linalg.norm(dxyz[:, :-1], axis=-1)
                 if isinstance(src, CircularLoop):
+                    if np.any(offsets != 0.0):
+                        raise ValueError(
+                            "Can only simulate central loop receivers with circular loop source"
+                        )
+                    offsets = src.radius * np.ones(rx.locations.shape[0])
 
-                    a_vec = np.array([src.radius])
-
-                    # Use function from empymod to define Hankel coefficients.
-                    # Size of lambd is (n_frequency x n_filter)
-                    lambd = np.empty([1, n_filter], order="F")
-                    lambd[:, :], _ = get_dlf_points(
-                        self.fhtfilt, a_vec, self.hankel_pts_per_dec
-                    )
-
-                    # Get kernel function(s) at all lambda and frequencies
-                    hz = horizontal_loop_kernel(
-                        self,
-                        lambd,
-                        rx.frequencies,
-                        n_layer,
-                        sig,
-                        chi,
-                        a_vec,
-                        h,
-                        z,
-                        src,
-                        rx,
-                        output_type,
-                    )
-
-                    # kernels associated with each bessel function (j0, j1, j2)
-                    PJ = (None, hz, None)  # PJ1
-
-                    if output_type == "sensitivity_sigma":
-                        a_vec = np.tile(a_vec, (n_layer, 1))
-
-                    # Evaluate Hankel transform using digital linear filter from empymod
-                    integral_output = src.current * dlf(
-                        PJ,
-                        lambd,
-                        a_vec,
-                        self.fhtfilt,
-                        self.hankel_pts_per_dec,
-                        ang_fact=None,
-                        ab=33,
-                    )
-
-                # Hankel transform for x, y or z magnetic dipole source
+                # computations for hankel transform...
+                lambd, _ = get_dlf_points(
+                    self.fhtfilt, offsets, self.hankel_pts_per_dec
+                )
+                # calculate the source-rx coefficients for the hankel transform
+                C0 = 0.0
+                C1 = 0.0
+                if isinstance(src, CircularLoop):
+                    # I * a/ 2 * (lambda **2 )/ (lambda)
+                    C1 += src_z * (2 / src.radius) * lambd
                 elif isinstance(src, MagDipole):
+                    if src_x != 0.0:
+                        if rx.orientation == "x":
+                            C0 += (
+                                src_x
+                                * (dxyz[:, 0] ** 2 / offsets ** 2)[:, None]
+                                * lambd ** 2
+                            )
+                            C1 += (
+                                src_x
+                                * (1 / offsets - 2 * dxyz[:, 0] ** 2 / offsets ** 3)[
+                                    :, None
+                                ]
+                                * lambd
+                            )
+                        elif rx.orientation == "y":
+                            C0 += (
+                                src_x
+                                * (dxyz[:, 0] * dxyz[:, 1] / offsets ** 2)[:, None]
+                                * lambd ** 2
+                            )
+                            C1 -= (
+                                src_x
+                                * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets ** 3)[:, None]
+                                * lambd
+                            )
+                        elif rx.orientation == "z":
+                            # C0 += 0.0
+                            C1 -= (src_x * dxyz[:, 0] / offsets)[:, None] * lambd ** 2
+                    if src_y != 0.0:
+                        if rx.orientation == "x":
+                            C0 += (
+                                src_y
+                                * (dxyz[:, 0] * dxyz[:, 1] / offsets ** 2)[:, None]
+                                * lambd ** 2
+                            )
+                            C1 -= (
+                                src_y
+                                * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets ** 3)[:, None]
+                                * lambd
+                            )
+                        elif rx.orientation == "y":
+                            C0 += (
+                                src_y
+                                * (dxyz[:, 1] ** 2 / offsets ** 2)[:, None]
+                                * lambd ** 2
+                            )
+                            C1 += (
+                                src_y
+                                * (1 / offsets - 2 * dxyz[:, 1] ** 2 / offsets ** 3)[
+                                    :, None
+                                ]
+                                * lambd
+                            )
+                        elif rx.orientation == "z":
+                            # C0 += 0.0
+                            C1 -= (src_y * dxyz[:, 1] / offsets)[:, None] * lambd ** 2
+                    if src_z != 0.0:
+                        if rx.orientation == "x":
+                            # C0 += 0.0
+                            C1 += (src_z * dxyz[:, 0] / offsets)[:, None] * lambd ** 2
+                        elif rx.orientation == "y":
+                            # C0 += 0.0
+                            C1 += (src_z * dxyz[:, 1] / offsets)[:, None] * lambd ** 2
+                        elif rx.orientation == "z":
+                            C0 += src_z * lambd ** 2
 
-                    # Radial distance
-                    if rx.use_source_receiver_offset:
-                        r = rx.locations[0, 0:2]
-                    else:
-                        r = rx.locations[0, 0:2] - src.location[0:2]
+                # divide by offsets to pre-do that part from the dft (1 less item to store)
+                C0s.append(np.exp(-lambd * (z + h)[:, None]) * C0 / offsets[:, None])
+                C1s.append(np.exp(-lambd * (z + h)[:, None]) * C1 / offsets[:, None])
+                lambs.append(lambd)
 
-                    r = np.sqrt(np.sum(r ** 2))
-                    r_vec = np.array([r])
+                #######
+                # Fourier Transform coefficients
+                ######
+                wave = src.waveform
 
-                    # Use function from empymod to define Hankel coefficients.
-                    # Size of lambd is (n_frequency x n_filter)
+                def func(t, i):
+                    out = np.zeros_like(t)
+                    out[t > 0.0] = splines[i](np.log(t[t > 0.0]))
+                    return out
 
-                    lambd = np.empty([1, n_filter], order="F")
-                    lambd[:, :], _ = get_dlf_points(
-                        self.fhtfilt, r_vec, self.hankel_pts_per_dec
-                    )
-
-                    # Get kernel function(s) at all lambda and frequencies
-                    PJ = magnetic_dipole_kernel(
-                        self,
-                        lambd,
-                        rx.frequencies,
-                        n_layer,
-                        sig,
-                        chi,
-                        h,
-                        z,
-                        r,
-                        src,
-                        rx,
-                        output_type,
-                    )
-
-                    PJ = tuple(PJ)
-
-                    if output_type == "sensitivity_sigma":
-                        r_vec = np.tile(r_vec, (n_layer, 1))
-
-                    # Evaluate Hankel transform using digital linear filter from empymod
-                    integral_output = src.moment * dlf(
-                        PJ,
-                        lambd,
-                        r_vec,
-                        self.fhtfilt,
-                        self.hankel_pts_per_dec,
-                        ang_fact=None,
-                        ab=33,
-                    )
-
-                if output_type == "sensitivity_sigma":
-                    integral_output_list.append(integral_output.T)
+                # Then calculate the values at each time
+                A = np.zeros((len(rx.times), n_t))
+                if isinstance(wave, StepOffWaveform):
+                    # do not need to do too much fancy here, just need to interpolate
+                    # from t_spline_points to rx.times...
+                    for i in range(n_t):
+                        A[:, i] = func(rx.times, i)
                 else:
-                    integral_output_list.append(integral_output)
+                    # loop over pairs of nodes and use gaussian quadrature to integrate
+                    x, w = roots_legendre(251)
 
-        return integral_output_list
-
-    def project_fields(self, u, output_type=None):
-        """
-        Project from the list of Hankel transform evaluations to the data or sensitivities.
-
-        :param list u: list containing Hankel transform outputs for each unique
-        source-receiver pair.
-        :rtype: list: list containing predicted data for each unique
-        source-receiver pair.
-        :return: predicted data or sensitivities by source-receiver
-        """
-
-        COUNT = 0
-        for i_src, src in enumerate(self.survey.source_list):
-
-            for i_rx, rx in enumerate(src.receiver_list):
-
-                u_temp = u[COUNT]
-
-                # use low-pass filter
-                if src.waveform.use_lowpass_filter:
-                    factor = src.waveform.lowpass_filter.copy()
+                    time_nodes = wave.time_nodes
+                    n_interval = len(time_nodes) - 1
+                    quad_times = []
+                    for i in range(n_interval):
+                        b = rx.times - time_nodes[i]
+                        a = rx.times - time_nodes[i + 1]
+                        quad_times = (b - a)[:, None] * (x + 1) / 2.0 + a[:, None]
+                        quad_scale = (b - a) / 2
+                        wave_eval = wave.evalDeriv(rx.times[:, None] - quad_times)
+                        for i in range(n_t):
+                            A[:, i] -= np.sum(
+                                quad_scale[:, None]
+                                * w
+                                * wave_eval
+                                * func(quad_times, i),
+                                axis=-1,
+                            )
+                if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
+                    As.append(A @ (A_dft / omegas))
                 else:
-                    factor = np.ones_like(rx.frequencies, dtype=complex)
-
-                # Multiplication factors
-                if isinstance(rx, PointMagneticFluxDensity) or isinstance(
-                    rx, PointMagneticField
+                    As.append(A @ A_dft)
+                if isinstance(
+                    rx, (PointMagneticFluxTimeDerivative, PointMagneticFluxDensity)
                 ):
-                    factor *= 1.0 / (2j * np.pi * rx.frequencies)
+                    As[-1] *= mu_0
 
-                if isinstance(rx, PointMagneticFluxTimeDerivative) or isinstance(
-                    rx, PointMagneticFluxDensity
-                ):
-                    factor *= mu_0
+        # Store these on the simulation for faster future executions
+        self._lambs = np.vstack(lambs)
+        self._unique_lambs, inv_lambs = np.unique(self._lambs, return_inverse=True)
+        self._inv_lambs = inv_lambs.reshape(self._lambs.shape)
+        self._C0s = np.vstack(C0s)
+        self._C1s = np.vstack(C1s)
+        self._frequencies = omegas / (2 * np.pi)
+        self._As = As
+        self._coefficients_set = True
 
-                # For stepoff waveform
-                if isinstance(src.waveform, StepOffWaveform):
-                    # Compute EM responses
-                    if u_temp.ndim == 1:
-                        resp, _ = fourier_dlf(
-                            u_temp.flatten() * factor,
-                            rx.times,
-                            rx.frequencies,
-                            rx.ftarg,
-                        )
-
-                    # Compute EM sensitivities
-                    else:
-
-                        resp = np.zeros(
-                            (rx.n_time, self.n_layer), dtype=np.float64, order="F"
-                        )
-                        # TODO: remove for loop
-                        for i in range(0, self.n_layer):
-                            resp_i, _ = fourier_dlf(
-                                u_temp[:, i] * factor,
-                                rx.times,
-                                rx.frequencies,
-                                rx.ftarg,
-                            )
-                            resp[:, i] = resp_i
-
-                # For general waveform.
-                # Evaluate piecewise linear input current waveforms
-                # Using Fittermann's approach (19XX) with Gaussian Quadrature
-                else:
-                    # Compute EM responses
-                    if u_temp.ndim == 1:
-                        resp_int, _ = fourier_dlf(
-                            u_temp.flatten() * factor,
-                            rx._time_interval,
-                            rx.frequencies,
-                            rx.ftarg,
-                        )
-                        # step_func = interp1d(
-                        #     self.time_int, resp_int
-                        # )
-                        step_func = iuSpline(np.log10(rx._time_interval), resp_int)
-
-                        resp = piecewise_pulse_fast(
-                            step_func,
-                            rx.times,
-                            src.waveform.waveform_times,
-                            src.waveform.waveform_current,
-                            src.waveform.period,
-                            n_pulse=src.waveform.n_pulse,
-                        )
-
-                        # Deprecate dual
-                        # # Compute response for the dual moment
-                        # if src.waveform.wave_type == "dual":
-                        #     resp_dual_moment = piecewise_pulse_fast(
-                        #         step_func, rx.dual_times,
-                        #         src.waveform.dual_waveform_times,
-                        #         src.waveform.dual_waveform_current,
-                        #         src.waveform.dual_period,
-                        #         n_pulse=src.waveform.n_pulse
-                        #     )
-                        #     # concatenate dual moment response
-                        #     # so, ordering is the first moment data
-                        #     # then the second moment data.
-                        #     resp = np.r_[resp, resp_dual_moment]
-
-                    # Compute EM sensitivities
-                    else:
-                        # if src.moment_type == "single":
-                        resp = np.zeros(
-                            (rx.n_time, self.n_layer), dtype=np.float64, order="F"
-                        )
-                        # else:
-                        #     # For dual moment
-                        #     resp = np.zeros(
-                        #         (rx.n_time, self.n_layer),
-                        #         dtype=np.float64, order='F'
-                        #     )
-
-                        # TODO: remove for loop (?)
-                        for i in range(self.n_layer):
-                            resp_int_i, _ = fourier_dlf(
-                                u_temp[:, i] * factor,
-                                rx._time_interval,
-                                rx.frequencies,
-                                rx.ftarg,
-                            )
-                            # step_func = interp1d(
-                            #     self.time_int, resp_int_i
-                            # )
-
-                            step_func = iuSpline(
-                                np.log10(rx._time_interval), resp_int_i
-                            )
-
-                            resp_i = piecewise_pulse_fast(
-                                step_func,
-                                rx.times,
-                                src.waveform.waveform_times,
-                                src.waveform.waveform_current,
-                                src.waveform.period,
-                                n_pulse=src.waveform.n_pulse,
-                            )
-
-                            # Deprecate dual
-                            # if src.waveform.wave_type != "dual":
-                            resp[:, i] = resp_i
-                            # else:
-                            #     resp_dual_moment_i = piecewise_pulse_fast(
-                            #         step_func,
-                            #         rx.dual_times,
-                            #         src.waveform.dual_waveform_times,
-                            #         src.waveform.dual_waveform_current,
-                            #         src.waveform.dual_period,
-                            #         n_pulse=src.waveform.n_pulse
-                            #     )
-                            #     resp[:, i] = np.r_[resp_i, resp_dual_moment_i]
-
-                u[COUNT] = resp * (-2.0 / np.pi)
-                COUNT = COUNT + 1
-
-        return u
-
-    def set_time_intervals_by_sounding(self):
-        """
-        Define time interval for all source-receiver pairs.
-        """
-        # LOOP OVER BY SOUNDING
-        source_location_by_sounding_dict = self.survey.source_location_by_sounding_dict
-
-        # Assume that i-th sounding shared the same step response to be convolved
-        for i_sounding in source_location_by_sounding_dict:
-            source_list = self.survey.get_sources_by_sounding_number(i_sounding)
-            tmin0 = np.Inf
-            tmax0 = 0
-            for src in source_list:
-
-                waveform = src.waveform
-
-                if not isinstance(waveform, StepOffWaveform):
-                    for rx in src.receiver_list:
-
-                        time = rx.times
-                        pulse_period = waveform.pulse_period
-                        period = waveform.period
-                        tmin = time[time > 0.0].min()
-                        if waveform.n_pulse == 1:
-                            tmax = time.max() + pulse_period
-                        elif waveform.n_pulse == 2:
-                            tmax = time.max() + pulse_period + period / 2.0
-                        else:
-                            raise NotImplementedError("n_pulse must be either 1 or 2")
-
-                        tmax = np.max([tmax, tmax0])
-                        tmin = np.min([tmin, tmin0])
-
-                        tmin0 = tmin
-                        tmax0 = tmax
-
-            if not isinstance(waveform, StepOffWaveform):
-
-                n_time = int((np.log10(tmax) - np.log10(tmin)) * 10 + 1)
-
-                self._time_intervals_by_sounding[i_sounding] = np.logspace(
-                    np.log10(tmin), np.log10(tmax), n_time
-                )
-
-        self._time_intervals_are_set = True
-
-    def set_frequencies_by_sounding(self, pts_per_dec=-1):
-        """
-        Set frequencies required for Hankel transform computation and for accurate
-        computation of the IFFT.
-        """
-
-        # Set range of time channels
-        # LOOP OVER BY SOUNDING
-        if self._time_intervals_are_set == False:
-            self.set_time_intervals_by_sounding()
-
-        source_location_by_sounding_dict = self.survey.source_location_by_sounding_dict
-
-        for i_sounding in source_location_by_sounding_dict:
-            source_list = self.survey.get_sources_by_sounding_number(i_sounding)
-            src = source_list[0]
-            rx = src.receiver_list[0]
-            if isinstance(src.waveform, StepOffWaveform):
-                _, freq, ft, ftarg = check_time(
-                    rx.times,
-                    -1,
-                    "dlf",
-                    {"pts_per_dec": pts_per_dec, "dlf": self.fftfilt},
-                    0,
-                )
-
-            elif isinstance(src.waveform, RawWaveform):
-                _, freq, ft, ftarg = check_time(
-                    self._time_intervals_by_sounding[i_sounding],
-                    -1,
-                    "dlf",
-                    {"pts_per_dec": pts_per_dec, "dlf": self.fftfilt},
-                    0,
-                )
-            else:
-                raise Exception(
-                    "Expected types of the waveform are StepOffWaveform and RawWaveform"
-                )
-
-            self._frequencies_by_sounding[i_sounding] = freq
-            self._ftarg_by_sounding[i_sounding] = ftarg
-
-        self._frequencies_are_set = True
-
-    def compute_integral_by_sounding(self, m, output_type="response"):
+    def dpred(self, m, f=None):
         """
         This method evaluates the Hankel transform for each source and
         receiver and outputs it as a list. Used for computing response
         or sensitivities.
         """
-        if self.verbose:
-            print("Evaluate integral by sounding")
+        self._compute_coefficients()
+
         self.model = m
-        n_layer = self.n_layer
-        n_filter = self.n_filter
 
-        # For time-domain simulations, set frequencies for the evaluation
-        # of the Hankel transform.
-        if self._frequencies_are_set is False:
-            self.set_frequencies_by_sounding()
+        C0s = self._C0s
+        C1s = self._C1s
+        lambs = self._lambs
+        if self.hMap is not None:
+            # Grab a copy
+            C0s = C0s.copy()
+            C1s = C1s.copy()
+            h_vec = self.h
+            i = 0
+            for i_src, src in self.survey.source_list:
+                h = h_vec[i_src]
+                nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
+                ip1 = i + nD
+                v = np.exp(-lambs[i:ip1] * h)
+                C0s[i:ip1] *= v
+                C1s[i:ip1] *= v
+                i = ip1
 
-        # Define source height above topography by mapping or from sources and receivers.
-        # Issue: this only works for a single source.
+        frequencies = self._frequencies
+        unique_lambs = self._unique_lambs
+        inv_lambs = self._inv_lambs
 
-        integral_output_list = []
+        sig = self.compute_sigma_matrix(frequencies)
+        mu = self.compute_mu_matrix(frequencies)
 
-        source_location_by_sounding_dict = self.survey.source_location_by_sounding_dict
-        if output_type == "sensitivity_sigma":
-            data_or_sensitivity = Sensitivity(self.survey, M=n_layer)
-        else:
-            data_or_sensitivity = Data(self.survey)
+        rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
+        rTE = rTE[:, inv_lambs]
+        v = (C0s * rTE) @ self.fhtfilt.j0 + (C1s * rTE) @ self.fhtfilt.j1
 
-        for i_sounding in source_location_by_sounding_dict:
-            src_locations = np.vstack(source_location_by_sounding_dict[i_sounding])
-            rx_locations = self.survey.receiver_location_by_sounding_dict[i_sounding]
-            rx_use_offset = self.survey.receiver_use_offset_by_sounding_dict[i_sounding]
-            frequencies = self._frequencies_by_sounding[i_sounding]
-            n_frequency = len(frequencies)
-            n_filter = self.n_filter
+        return self._project_to_data(v)
 
-            # Create globally, not for each receiver in the future
-            sig = self.compute_sigma_matrix(frequencies)
-            chi = self.compute_chi_matrix(frequencies)
-
-            # Compute receiver height
-            # Assume all sources in i-th sounding have the same src.location
-            if self.hMap is not None:
-                h = self.h
-            else:
-                h = src_locations[0, 2] - self.topo[-1]
-
-            # Assume all receivers in i-th sounding have the same receiver height
-            if rx_use_offset[0]:
-                z = h + rx_locations[0, 2]
-            else:
-                z = h + rx_locations[0, 2] - src_locations[0, 2]
-
-            # Assume all receivers in i-th sounding have the same rx.use_source_receiver_offset.
-            # But, their Radial distance can be different.
-            if rx_use_offset[0]:
-                r = rx_locations[:, 0:2]
-            else:
-                r = rx_locations[:, 0:2] - src_locations[0, 0:2]
-
-            r = np.sqrt(np.sum(r ** 2, axis=1))
-
-            # Assume all sources in i-th sounding have the same type
-            source_list = self.survey.get_sources_by_sounding_number(i_sounding)
-            src = source_list[0]
-
-            if isinstance(src, CircularLoop):
-                # Assume all sources in i-th sounding have the same radius
-                a = np.array([src.radius])
-                # Use function from empymod to define Hankel coefficients.
-                # Size of lambd is (1 x n_filter)
-                lambd = np.empty([1, n_filter], order="F")
-                lambd[:, :], _ = get_dlf_points(
-                    self.fhtfilt, a, self.hankel_pts_per_dec
-                )
-
-                data_or_sensitivity = horizontal_loop_response_by_sounding(
-                    self,
-                    lambd,
-                    frequencies,
-                    n_layer,
-                    sig,
-                    chi,
-                    a,
-                    h,
-                    z,
-                    source_list,
-                    data_or_sensitivity,
-                    output_type=output_type,
-                )
-
-            elif isinstance(src, MagDipole):
-
-                # Use function from empymod to define Hankel coefficients.
-                # Size of lambd is (1 x n_filter)
-
-                # This needs to be modified...
-                # Assumes all receivers in a sounding has the same radial distance ...
-                # The way this can be generalized is expanding lambd (n_frequency*n_rx, n_filter)
-
-                radial_distance = np.unique(r)
-                if len(radial_distance) > 1:
-                    raise Exception("All receivers should have the same radial offset")
-                lambd = np.empty([1, n_filter], order="F")
-                lambd[:, :], _ = get_dlf_points(
-                    self.fhtfilt, radial_distance, self.hankel_pts_per_dec
-                )
-
-                data_or_sensitivity = magnetic_dipole_response_by_sounding(
-                    self,
-                    lambd,
-                    frequencies,
-                    n_layer,
-                    sig,
-                    chi,
-                    h,
-                    z,
-                    source_list,
-                    data_or_sensitivity,
-                    radial_distance,
-                    output_type=output_type,
-                )
-            return data_or_sensitivity
-
-    def project_fields_src_rx(self, u, i_sounding, src, rx, output_type="response"):
-        """
-        Project from the list of Hankel transform evaluations to the data or sensitivities.
-        Data can be real or imaginary component of: total field, secondary field or ppm.
-
-        :param list u: list containing Hankel transform outputs for each unique
-        source-receiver pair.
-        :rtype: list: list containing predicted data for each unique
-        source-receiver pair.
-        :return: predicted data or sensitivities by source-receiver
-        """
-
-        frequencies = self._frequencies_by_sounding[i_sounding]
-        ftarg = self._ftarg_by_sounding[i_sounding]
-
-        if isinstance(src.waveform, RawWaveform):
-            time_interval = self._time_intervals_by_sounding[i_sounding]
-
-        # use low-pass filter
-        if src.waveform.use_lowpass_filter:
-            factor = src.waveform.lowpass_filter.copy()
-        else:
-            factor = np.ones_like(frequencies, dtype=complex)
-
-        # Multiplication factors
-        if isinstance(rx, PointMagneticFluxDensity) or isinstance(
-            rx, PointMagneticField
-        ):
-            factor *= 1.0 / (2j * np.pi * frequencies)
-
-        if isinstance(rx, PointMagneticFluxTimeDerivative) or isinstance(
-            rx, PointMagneticFluxDensity
-        ):
-            factor *= mu_0
-
-        # For stepoff waveform
-        if isinstance(src.waveform, StepOffWaveform):
-            # Compute EM responses
-            if output_type == "response":
-                resp, _ = fourier_dlf(
-                    u.flatten() * factor, rx.times, frequencies, ftarg
-                )
-
-            # Compute EM sensitivities
-            else:
-                resp = np.zeros((rx.n_time, self.n_layer), dtype=np.float64, order="F")
-                # TODO: remove for loop
-                for i in range(0, self.n_layer):
-                    resp_i, _ = fourier_dlf(
-                        u[:, i] * factor, rx.times, frequencies, ftarg
-                    )
-                    resp[:, i] = resp_i
-
-        # For general waveform.
-        # Evaluate piecewise linear input current waveforms
-        # Using Fittermann's approach (19XX) with Gaussian Quadrature
-        else:
-            # Compute EM responses
-            if output_type == "response":
-                resp_int, _ = fourier_dlf(
-                    u.flatten() * factor, time_interval, frequencies, ftarg
-                )
-
-                step_func = iuSpline(np.log10(time_interval), resp_int)
-
-                resp = piecewise_pulse_fast(
-                    step_func,
-                    rx.times,
-                    src.waveform.waveform_times,
-                    src.waveform.waveform_current,
-                    src.waveform.period,
-                    n_pulse=src.waveform.n_pulse,
-                )
-
-            # Compute EM sensitivities
-            else:
-                # if src.moment_type == "single":
-                resp = np.zeros((rx.n_time, self.n_layer), dtype=np.float64, order="F")
-
-                for i in range(self.n_layer):
-                    resp_int_i, _ = fourier_dlf(
-                        u[:, i] * factor, time_interval, frequencies, ftarg
-                    )
-
-                    step_func = iuSpline(np.log10(time_interval), resp_int_i)
-
-                    resp_i = piecewise_pulse_fast(
-                        step_func,
-                        rx.times,
-                        src.waveform.waveform_times,
-                        src.waveform.waveform_current,
-                        src.waveform.period,
-                        n_pulse=src.waveform.n_pulse,
-                    )
-
-                    resp[:, i] = resp_i
-
-        data = resp * (-2.0 / np.pi)
-
-        return data
+    def _project_to_data(self, v):
+        As = self._As
+        out = np.zeros(self.survey.nD)
+        i_dat = 0
+        i = 0
+        for i_src, src in enumerate(self.survey.source_list):
+            for i_rx, rx in enumerate(src.receiver_list):
+                i_datp1 = i_dat + rx.nD
+                if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
+                    d = As[i] @ (v[:, i].imag)
+                else:
+                    d = As[i] @ (v[:, i].real)
+                out[i_dat:i_datp1] = d
+                i_dat = i_datp1
+                i += 1
+        return out
 
 
 #######################################################################
 #       STITCHED 1D SIMULATION CLASS AND GLOBAL FUNCTIONS
 #######################################################################
-
-
-def dot(args):
-    return np.dot(args[0], args[1])
 
 
 class StitchedEM1DTMSimulation(BaseStitchedEM1DSimulation):
