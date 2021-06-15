@@ -3,7 +3,6 @@ from __future__ import division, print_function
 import numpy as np
 from scipy.constants import mu_0
 import properties
-import warnings
 from ...utils.code_utils import deprecate_property
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
@@ -11,264 +10,20 @@ from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 from ..base import BaseEMSrc
 from ..utils import getSourceTermLineCurrentPolygon
 from ...props import LocationVector
-from ...utils import setKwargs, sdiag, Zero, Identity
+from ...utils import sdiag, Zero
 
-###############################################################################
-#                                                                             #
-#                           Source Waveforms                                  #
-#                                                                             #
-###############################################################################
-
-
-class BaseWaveform(properties.HasProperties):
-
-    hasInitialFields = properties.Bool(
-        "Does the waveform have initial fields?", default=False
-    )
-
-    offTime = properties.Float("off-time of the source", default=0.0)
-
-    eps = properties.Float(
-        "window of time within which the waveform is considered on", default=1e-9
-    )
-
-    use_lowpass_filter = properties.Bool(
-        "Switch for low pass filter", default=False
-    )
-
-    n_pulse = properties.Integer(
-        "The number of pulses",
-        default=1
-    )
-
-    high_cut_frequency = properties.Float(
-        "High cut frequency for low pass filter (Hz)",
-        default=210*1e3
-    )
-
-    waveform_times = properties.Array(
-        "Time for input currents", dtype=float
-    )
-
-    waveform_current = properties.Array(
-        "Input currents", dtype=float
-    )
-
-    base_frequency = properties.Float(
-        "Base frequency (Hz)", default=30.
-    )    
-
-    def __init__(self, **kwargs):
-        setKwargs(self, **kwargs)
-
-    def eval(self, time):
-        raise NotImplementedError
-
-    def evalDeriv(self, time):
-        raise NotImplementedError  # needed for E-formulation
-
-    @property
-    def period(self):
-        return 1./self.base_frequency
-
-    @property
-    def pulse_period(self):
-        Tp = (
-            self.waveform_times.max() -
-            self.waveform_times.min()
-        )
-        return Tp        
-
-
-class StepOffWaveform(BaseWaveform):
-    def __init__(self, offTime=0.0):
-        BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
-
-    def eval(self, time):
-        if abs(time - 0.0) < self.eps:
-            return 1.0
-        else:
-            return 0.0
-
-
-class RampOffWaveform(BaseWaveform):
-    def __init__(self, offTime=0.0):
-        BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
-
-    def eval(self, time):
-        if abs(time - 0.0) < self.eps:
-            return 1.0
-        elif time < self.offTime:
-            return -1.0 / self.offTime * (time - self.offTime)
-        else:
-            return 0.0
-
-
-class RawWaveform(BaseWaveform):
-    def __init__(self, offTime=0.0, waveFct=None, **kwargs):
-        self.waveFct = waveFct
-        BaseWaveform.__init__(self, offTime=offTime, **kwargs)
-
-    def eval(self, time):
-        return self.waveFct(time)
-
-
-class VTEMWaveform(BaseWaveform):
-
-    offTime = properties.Float("off-time of the source", default=4.2e-3)
-
-    peakTime = properties.Float(
-        "Time at which the VTEM waveform is at its peak", default=2.73e-3
-    )
-
-    a = properties.Float(
-        "parameter controlling how quickly the waveform ramps on", default=3.0
-    )
-
-    def __init__(self, **kwargs):
-        BaseWaveform.__init__(self, hasInitialFields=False, **kwargs)
-
-    def eval(self, time):
-        if time <= self.peakTime:
-            return (1.0 - np.exp(-self.a * time / self.peakTime)) / (
-                1.0 - np.exp(-self.a)
-            )
-        elif (time < self.offTime) and (time > self.peakTime):
-            return -1.0 / (self.offTime - self.peakTime) * (time - self.offTime)
-        else:
-            return 0.0
-
-
-class TrapezoidWaveform(BaseWaveform):
-    """
-    A waveform that has a linear ramp-on and a linear ramp-off.
-    """
-
-    ramp_on = properties.Array(
-        """times over which the transmitter ramps on
-        [time starting to ramp on, time fully on]
-        """,
-        shape=(2,),
-        dtype=float,
-    )
-
-    ramp_off = properties.Array(
-        """times over which we ramp off the waveform
-        [time starting to ramp off, time off]
-        """,
-        shape=(2,),
-        dtype=float,
-    )
-
-    def __init__(self, **kwargs):
-        super(TrapezoidWaveform, self).__init__(**kwargs)
-        self.hasInitialFields = False
-
-    def eval(self, time):
-        if time < self.ramp_on[0]:
-            return 0
-        elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
-            return (1.0 / (self.ramp_on[1] - self.ramp_on[0])) * (
-                time - self.ramp_on[0]
-            )
-        elif time > self.ramp_on[1] and time < self.ramp_off[0]:
-            return 1
-        elif time >= self.ramp_off[0] and time <= self.ramp_off[1]:
-            return 1 - (1.0 / (self.ramp_off[1] - self.ramp_off[0])) * (
-                time - self.ramp_off[0]
-            )
-        else:
-            return 0
-
-
-class TriangularWaveform(TrapezoidWaveform):
-    """
-    TriangularWaveform is a special case of TrapezoidWaveform where there's no pleateau
-    """
-
-    offTime = properties.Float("off-time of the source")
-    peakTime = properties.Float("Time at which the Triangular waveform is at its peak")
-
-    def __init__(self, **kwargs):
-        super(TriangularWaveform, self).__init__(**kwargs)
-        self.hasInitialFields = False
-        self.ramp_on = np.r_[0.0, self.peakTime]
-        self.ramp_off = np.r_[self.peakTime, self.offTime]
-
-
-class QuarterSineRampOnWaveform(BaseWaveform):
-    """
-    A waveform that has a quarter-sine ramp-on and a linear ramp-off
-    """
-
-    ramp_on = properties.Array(
-        "times over which the transmitter ramps on", shape=(2,), dtype=float
-    )
-
-    ramp_off = properties.Array(
-        "times over which we ramp off the waveform", shape=(2,), dtype=float
-    )
-
-    def __init__(self, **kwargs):
-        super(QuarterSineRampOnWaveform, self).__init__(**kwargs)
-        self.hasInitialFields = False
-
-    def eval(self, time):
-        if time < self.ramp_on[0]:
-            return 0
-        elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
-            return np.sin(
-                np.pi
-                / 2
-                * (1.0 / (self.ramp_on[1] - self.ramp_on[0]))
-                * (time - self.ramp_on[0])
-            )
-        elif time > self.ramp_on[1] and time < self.ramp_off[0]:
-            return 1
-        elif time >= self.ramp_off[0] and time <= self.ramp_off[1]:
-            return 1 - (1.0 / (self.ramp_off[1] - self.ramp_off[0])) * (
-                time - self.ramp_off[0]
-            )
-        else:
-            return 0
-
-
-class HalfSineWaveform(BaseWaveform):
-    """
-    A waveform that has a quarter-sine ramp-on and a quarter-cosine ramp-off.
-    When the end of ramp-on and start of ramp off are on the same spot, it looks
-    like a half sine wave.
-    """
-
-    ramp_on = properties.Array(
-        "times over which the transmitter ramps on", shape=(2,), dtype=float
-    )
-    ramp_off = properties.Array(
-        "times over which we ramp off the waveform", shape=(2,), dtype=float
-    )
-
-    def __init__(self, **kwargs):
-        super(HalfSineWaveform, self).__init__(**kwargs)
-        self.hasInitialFields = False
-
-    def eval(self, time):
-        if time < self.ramp_on[0]:
-            return 0
-        elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
-            return np.sin(
-                (np.pi / 2)
-                * ((time - self.ramp_on[0]) / (self.ramp_on[1] - self.ramp_on[0]))
-            )
-        elif time > self.ramp_on[1] and time < self.ramp_off[0]:
-            return 1
-        elif time >= self.ramp_off[0] and time <= self.ramp_off[1]:
-            return np.cos(
-                (np.pi / 2)
-                * ((time - self.ramp_off[0]) / (self.ramp_off[1] - self.ramp_off[0]))
-            )
-        else:
-            return 0
-
+from .waveforms import (
+    BaseWaveform,
+    StepOffWaveform,
+    RampOffWaveform,
+    RawWaveform,
+    VTEMWaveform,
+    TrapezoidWaveform,
+    TriangularWaveform,
+    QuarterSineRampOnWaveform,
+    HalfSineWaveform,
+    PiecewiseLinearWaveform,
+)
 
 ###############################################################################
 #                                                                             #
@@ -288,7 +43,9 @@ class BaseTDEMSrc(BaseEMSrc):
         choices=["inductive", "galvanic"],
     )
 
-    i_sounding = properties.Integer("sounding number of the source", min=0, default=0, required=True)
+    i_sounding = properties.Integer(
+        "sounding number of the source", min=0, default=0, required=True
+    )
 
     def __init__(self, receiver_list=None, **kwargs):
         if receiver_list is not None:
