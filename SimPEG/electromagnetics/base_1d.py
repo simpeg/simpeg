@@ -144,29 +144,6 @@ class BaseEM1DSimulation(BaseSimulation):
         if self.verbose:
             print(">> Use " + self.hankel_filter + " filter for Hankel Transform")
 
-        source_location_by_sounding_dict = self.survey.source_location_by_sounding_dict
-        if self.use_sounding:
-            for i_sounding in source_location_by_sounding_dict:
-                src_locations = self.survey.source_location_by_sounding_dict[i_sounding]
-                if ~np.all(
-                    [np.all(src_locations[0] == val) for val in src_locations[1:]]
-                ):
-                    raise Exception("Source locations in a sounding should be the same")
-                rx_locations = self.survey.receiver_location_by_sounding_dict[
-                    i_sounding
-                ]
-                if ~np.all(
-                    [np.all(rx_locations[0] == val) for val in rx_locations[1:]]
-                ):
-                    raise Exception("Source locations in a sounding should be the same")
-                rx_use_offset = self.survey.receiver_use_offset_by_sounding_dict[
-                    i_sounding
-                ]
-                if ~np.all(
-                    [np.all(rx_use_offset[0] == val) for val in rx_use_offset[1:]]
-                ):
-                    raise Exception("Source locations in a sounding should be the same")
-
     @property
     def halfspace_switch(self):
         """True = halfspace, False = layered Earth"""
@@ -294,6 +271,60 @@ class BaseEM1DSimulation(BaseSimulation):
             )
 
             return mu_complex
+
+    def compute_chi_matrix(self, frequencies):
+        """
+        Computes the complex magnetic permeability matrix assuming a log-uniform
+        distribution of time-relaxation constants:
+
+        .. math::
+            \\chi (\\omega ) = \\chi + \\Delta \\chi \\Bigg [
+            1 - \\Bigg ( \\frac{1}{ln (\\tau_2 / \\tau_1 )} \\Bigg )
+            ln \\Bigg ( \\frac{1 + i\\omega \\tau_2}{1 + i\\omega tau_1} ) \\Bigg )
+            \\Bigg ]
+
+        :param numpy.array frequencies: np.array(N,) containing frequencies
+        :rtype: numpy.ndarray: np.array(n_layer, n_frequency)
+        :return: complex magnetic susceptibility matrix
+        """
+
+        if np.isscalar(self.mu):
+            mu = np.ones_like(self.sigma) * self.mu
+        else:
+            mu = self.mu
+
+        n_layer = self.n_layer
+        n_frequency = len(frequencies)
+        # n_filter = self.n_filter
+
+        mu = np.tile(mu.reshape([-1, 1]), (1, n_frequency))
+
+        # No magnetic viscosity
+        if np.all(self.dchi) == 0.0:
+
+            return mu
+
+        # Magnetic viscosity
+        else:
+
+            if np.isscalar(self.dchi):
+                dchi = self.dchi * np.ones_like(self.chi)
+                tau1 = self.tau1 * np.ones_like(self.chi)
+                tau2 = self.tau2 * np.ones_like(self.chi)
+            else:
+                dchi = np.tile(self.dchi.reshape([-1, 1]), (1, n_frequency))
+                tau1 = np.tile(self.tau1.reshape([-1, 1]), (1, n_frequency))
+                tau2 = np.tile(self.tau2.reshape([-1, 1]), (1, n_frequency))
+
+            w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
+
+            chi_complex = mu / mu_0 + dchi * (
+                1
+                - np.log((1 + 1j * w * tau2) / (1 + 1j * w * tau1))
+                / np.log(tau2 / tau1)
+            )
+
+            return chi_complex
 
     def fields(self, m):
         if self.use_sounding:
