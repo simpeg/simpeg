@@ -1,18 +1,11 @@
 from ... import maps, utils
-from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation, Sensitivity
+from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation
 from ..frequency_domain.sources import MagDipole, CircularLoop
 from ..frequency_domain.receivers import PointMagneticFieldSecondary, PointMagneticField
 from ..frequency_domain.survey import Survey
 import numpy as np
 import properties
 
-# from .sources import *
-# from .survey import EM1DSurveyFD
-# from .supporting_functions.kernels import *
-from .supporting_functions.kernels_by_sounding import (
-    magnetic_dipole_response_by_sounding,
-    horizontal_loop_response_by_sounding,
-)
 from SimPEG import Data
 from empymod.transform import get_dlf_points
 
@@ -99,7 +92,7 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                 C1 = 0.0
                 if isinstance(src, CircularLoop):
                     # I * a/ 2 * (lambda **2 )/ (lambda)
-                    C0 += src_z * (2 / src.radius) * lambd
+                    C1 += src_z * (2 / src.radius) * lambd
                 elif isinstance(src, MagDipole):
                     if src_x != 0.0:
                         if rx.orientation == "x":
