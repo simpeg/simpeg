@@ -352,7 +352,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             'receiver_interpolation': 'linear',  # Should be linear
             **self.simulation_opts,
         }
-        print(sim_input)
 
         sim = emg3d.Simulation(
             survey=self.emg3d_survey,
