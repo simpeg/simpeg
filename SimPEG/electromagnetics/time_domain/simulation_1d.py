@@ -1,16 +1,14 @@
 from ... import maps, utils
 from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation
-from ..time_domain.sources import StepOffWaveform
-from ..time_domain.sources import MagDipole, CircularLoop
-from ..time_domain.receivers import (
+from .sources import StepOffWaveform
+from .receivers import (
     PointMagneticFluxDensity,
     PointMagneticField,
     PointMagneticFluxTimeDerivative,
 )
 import numpy as np
 
-# from .survey import EM1DSurveyTD
-from ..time_domain.survey import Survey
+from .survey import Survey
 from scipy.constants import mu_0
 from scipy.interpolate import InterpolatedUnivariateSpline as iuSpline
 from scipy.special import roots_legendre
@@ -23,13 +21,12 @@ from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradi
 import properties
 
 
-class EM1DTMSimulation(BaseEM1DSimulation):
+class Simulation1DLayered(BaseEM1DSimulation):
     """
     Simulation class for simulating the TEM response over a 1D layered Earth
     for a single sounding.
     """
 
-    _coefficients_set = False
     time_filter = "key_81_CosSin_2009"
 
     survey = properties.Instance("a survey object", Survey, required=True)
@@ -58,23 +55,13 @@ class EM1DTMSimulation(BaseEM1DSimulation):
     def _compute_coefficients(self):
         if self._coefficients_set:
             return
+        self._compute_hankel_coefficients()
         survey = self.survey
-        if self.hMap is not None:
-            h_vector = np.zeros(len(survey.source_list))  # , self.h
-            # if it has an hMap, do not include the height in the
-            # pre-computed coefficients
-        else:
-            h_vector = np.array(
-                [src.location[2] - self.topo[-1] for src in self.survey.source_list]
-            )
 
         t_min = np.infty
         t_max = -np.infty
         # loop through source and receiver lists to create necessary times (and offsets)
         for i_src, src in enumerate(survey.source_list):
-            if isinstance(src, CircularLoop):
-                if np.any(src.orientation[:-1] != 0.0):
-                    raise ValueError("Can only simulate horizontal circular loops")
             for i_rx, rx in enumerate(src.receiver_list):
                 # find the minimum and maximum time span...
                 wave = src.waveform
@@ -114,120 +101,8 @@ class EM1DTMSimulation(BaseEM1DSimulation):
             splines.append(sp)
         # As will go from frequency to time domain
         As = []
-
-        # loop through source and receiver lists to create offsets
-        # get unique times for each receiver
-        # Compute coefficients for Hankel transform
-        C0s = []
-        C1s = []
-        lambs = []
         for i_src, src in enumerate(survey.source_list):
-            h = h_vector[i_src]  # source height above topo
-            src_x, src_y, src_z = src.orientation * src.moment / (4 * np.pi)
-            # src.moment is pi * radius**2 * I for circular loop
             for i_rx, rx in enumerate(src.receiver_list):
-                #######
-                # Hankel Transform coefficients
-                ######
-
-                # Compute receiver height
-                if rx.use_source_receiver_offset:
-                    dxyz = rx.locations
-                    z = h + rx.locations[:, 2]
-                else:
-                    dxyz = rx.locations - src.location
-                    z = h + rx.locations[:, 2] - src.location[2]
-
-                offsets = np.linalg.norm(dxyz[:, :-1], axis=-1)
-                if isinstance(src, CircularLoop):
-                    if np.any(offsets != 0.0):
-                        raise ValueError(
-                            "Can only simulate central loop receivers with circular loop source"
-                        )
-                    offsets = src.radius * np.ones(rx.locations.shape[0])
-
-                # computations for hankel transform...
-                lambd, _ = get_dlf_points(
-                    self.fhtfilt, offsets, self.hankel_pts_per_dec
-                )
-                # calculate the source-rx coefficients for the hankel transform
-                C0 = 0.0
-                C1 = 0.0
-                if isinstance(src, CircularLoop):
-                    # I * a/ 2 * (lambda **2 )/ (lambda)
-                    C1 += src_z * (2 / src.radius) * lambd
-                elif isinstance(src, MagDipole):
-                    if src_x != 0.0:
-                        if rx.orientation == "x":
-                            C0 += (
-                                src_x
-                                * (dxyz[:, 0] ** 2 / offsets ** 2)[:, None]
-                                * lambd ** 2
-                            )
-                            C1 += (
-                                src_x
-                                * (1 / offsets - 2 * dxyz[:, 0] ** 2 / offsets ** 3)[
-                                    :, None
-                                ]
-                                * lambd
-                            )
-                        elif rx.orientation == "y":
-                            C0 += (
-                                src_x
-                                * (dxyz[:, 0] * dxyz[:, 1] / offsets ** 2)[:, None]
-                                * lambd ** 2
-                            )
-                            C1 -= (
-                                src_x
-                                * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets ** 3)[:, None]
-                                * lambd
-                            )
-                        elif rx.orientation == "z":
-                            # C0 += 0.0
-                            C1 -= (src_x * dxyz[:, 0] / offsets)[:, None] * lambd ** 2
-                    if src_y != 0.0:
-                        if rx.orientation == "x":
-                            C0 += (
-                                src_y
-                                * (dxyz[:, 0] * dxyz[:, 1] / offsets ** 2)[:, None]
-                                * lambd ** 2
-                            )
-                            C1 -= (
-                                src_y
-                                * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets ** 3)[:, None]
-                                * lambd
-                            )
-                        elif rx.orientation == "y":
-                            C0 += (
-                                src_y
-                                * (dxyz[:, 1] ** 2 / offsets ** 2)[:, None]
-                                * lambd ** 2
-                            )
-                            C1 += (
-                                src_y
-                                * (1 / offsets - 2 * dxyz[:, 1] ** 2 / offsets ** 3)[
-                                    :, None
-                                ]
-                                * lambd
-                            )
-                        elif rx.orientation == "z":
-                            # C0 += 0.0
-                            C1 -= (src_y * dxyz[:, 1] / offsets)[:, None] * lambd ** 2
-                    if src_z != 0.0:
-                        if rx.orientation == "x":
-                            # C0 += 0.0
-                            C1 += (src_z * dxyz[:, 0] / offsets)[:, None] * lambd ** 2
-                        elif rx.orientation == "y":
-                            # C0 += 0.0
-                            C1 += (src_z * dxyz[:, 1] / offsets)[:, None] * lambd ** 2
-                        elif rx.orientation == "z":
-                            C0 += src_z * lambd ** 2
-
-                # divide by offsets to pre-do that part from the dft (1 less item to store)
-                C0s.append(np.exp(-lambd * (z + h)[:, None]) * C0 / offsets[:, None])
-                C1s.append(np.exp(-lambd * (z + h)[:, None]) * C1 / offsets[:, None])
-                lambs.append(lambd)
-
                 #######
                 # Fourier Transform coefficients
                 ######
@@ -235,6 +110,8 @@ class EM1DTMSimulation(BaseEM1DSimulation):
 
                 def func(t, i):
                     out = np.zeros_like(t)
+                    t = t.copy()
+                    t[(t >= 0.0) and (t <= t_min)] = t_min  # constant at very low ts
                     out[t > 0.0] = splines[i](np.log(t[t > 0.0]))
                     return out
 
@@ -275,12 +152,6 @@ class EM1DTMSimulation(BaseEM1DSimulation):
                 ):
                     As[-1] *= mu_0
 
-        # Store these on the simulation for faster future executions
-        self._lambs = np.vstack(lambs)
-        self._unique_lambs, inv_lambs = np.unique(self._lambs, return_inverse=True)
-        self._inv_lambs = inv_lambs.reshape(self._lambs.shape)
-        self._C0s = np.vstack(C0s)
-        self._C1s = np.vstack(C1s)
         self._frequencies = omegas / (2 * np.pi)
         self._As = As
         self._coefficients_set = True
@@ -317,30 +188,131 @@ class EM1DTMSimulation(BaseEM1DSimulation):
         unique_lambs = self._unique_lambs
         inv_lambs = self._inv_lambs
 
-        sig = self.compute_sigma_matrix(frequencies)
-        mu = self.compute_mu_matrix(frequencies)
+        sig = self.compute_complex_sigma(frequencies)
+        mu = self.compute_complex_mu(frequencies)
 
         rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
         rTE = rTE[:, inv_lambs]
+
         v = (C0s * rTE) @ self.fhtfilt.j0 + (C1s * rTE) @ self.fhtfilt.j1
 
-        return self._project_to_data(v)
+        return self._project_to_data(v.T)
+
+    def getJ(self, m, f=None):
+        if getattr(self, "_J", None) is None:
+            self._J = {}
+            self._compute_coefficients()
+
+            self.model = m
+
+            C0s = self._C0s
+            C1s = self._C1s
+            lambs = self._lambs
+            frequencies = self._frequencies
+            unique_lambs = self._unique_lambs
+            inv_lambs = self._inv_lambs
+
+            sig = self.compute_complex_sigma(frequencies)
+            mu = self.compute_complex_mu(frequencies)
+
+            if self.hMap is not None:
+                # Grab a copy
+                C0s_dh = C0s.copy()
+                C1s_dh = C1s.copy()
+                h_vec = self.h
+                i = 0
+                for i_src, src in self.survey.source_list:
+                    h = h_vec[i_src]
+                    nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
+                    ip1 = i + nD
+                    v = np.exp(-lambs[i:ip1] * h)
+                    C0s_dh[i:ip1] *= v * -lambs[i:ip1]
+                    C1s_dh[i:ip1] *= v * -lambs[i:ip1]
+                    i = ip1
+                    # J will be n_d * n_src (each source has it's own h)...
+
+                rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
+                rTE = rTE[:, inv_lambs]
+                v_dh_temp = (C0s_dh * rTE) @ self.fhtfilt.j0 + (
+                    C1s_dh * rTE
+                ) @ self.fhtfilt.j1
+                # need to re-arange v_dh as it's currently (n_data x n_freqs)
+                # however it already contains all the relevant information...
+                # just need to map it from the rx index to the source index associated..
+                v_dh = np.zeros((self.survey.nSrc, *v_dh_temp.shape))
+
+                i = 0
+                for i_src, src in enumerate(self.survey.source_list):
+                    nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
+                    ip1 = i + nD
+                    v_dh[i_src, i:ip1] = v_dh_temp[i:ip1]
+                    i = ip1
+                v_dh = np.transpose(v_dh, (1, 2, 0))
+                self._J["dh"] = self._project_to_data(v_dh)
+
+            if (
+                self.sigmaMap is not None
+                or self.muMap is not None
+                or self.thicknessesMap is not None
+            ):
+                rTE_ds, rTE_dh, rTE_dmu = rTE_gradient(
+                    frequencies, unique_lambs, sig, mu, self.thicknesses
+                )
+                if self.sigmaMap is not None:
+                    rTE_ds = rTE_ds[..., inv_lambs]
+                    v_ds = (
+                        (C0s * rTE_ds) @ self.fhtfilt.j0
+                        + (C1s * rTE_ds) @ self.fhtfilt.j1
+                    ).T
+                    self._J["ds"] = self._project_to_data(v_ds)
+                if self.muMap is not None:
+                    rTE_dmu = rTE_dmu[..., inv_lambs]
+                    v_dmu = (
+                        (C0s * rTE_ds) @ self.fhtfilt.j0
+                        + (C1s * rTE_ds) @ self.fhtfilt.j1
+                    ).T
+                    self._J["dmu"] = self._project_to_data(v_dmu)
+                if self.thicknessesMap is not None:
+                    rTE_dh = rTE_dh[..., inv_lambs]
+                    v_dthick = (
+                        (C0s * rTE_dh) @ self.fhtfilt.j0
+                        + (C1s * rTE_dh) @ self.fhtfilt.j1
+                    ).T
+                    self._J["dthick"] = self._project_to_data(v_dthick)
+        return self._J
 
     def _project_to_data(self, v):
         As = self._As
-        out = np.zeros(self.survey.nD)
+        if v.ndim == 3:
+            out = np.empty((self.survey.nD, v.shape[-1]))
+        else:
+            out = np.empty((self.survey.nD))
         i_dat = 0
+        i_A = 0
         i = 0
         for i_src, src in enumerate(self.survey.source_list):
             for i_rx, rx in enumerate(src.receiver_list):
                 i_datp1 = i_dat + rx.nD
-                if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
-                    d = As[i] @ (v[:, i].imag)
+                n_locs = rx.locations.shape[0]
+                i_p1 = i + n_locs
+                v_slice = v[np.arange(i, i_p1)]
+                # this should order it as location changing faster than time
+                # i.e. loc_1 t_1, loc_2 t_1, loc1 t2, loc2 t2
+                if v.ndim == 3:
+                    if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
+                        d = np.einsum("ij,...jk->...ik", As[i_A], v_slice.imag)
+                    else:
+                        d = np.einsum("ij,...jk->...ik", As[i_A], v_slice.real)
+                    out[i_dat:i_datp1] = d.reshape((-1, v.shape[-1]), order="F")
                 else:
-                    d = As[i] @ (v[:, i].real)
-                out[i_dat:i_datp1] = d
+                    if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
+                        d = np.einsum("ij,...j->...i", As[i_A], v_slice.imag)
+                    else:
+                        d = np.einsum("ij,...j->...i", As[i_A], v_slice.real)
+                    out[i_dat:i_datp1] = d.reshape(-1, order="F")
                 i_dat = i_datp1
-                i += 1
+                i = i_p1
+                i_A += 1
         return out
 
 
@@ -349,7 +321,10 @@ class EM1DTMSimulation(BaseEM1DSimulation):
 #######################################################################
 
 
-class StitchedEM1DTMSimulation(BaseStitchedEM1DSimulation):
+class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
+
+    survey = properties.Instance("a survey object", Survey, required=True)
+
     def run_simulation(self, args):
         if self.verbose:
             print(">> Time-domain")

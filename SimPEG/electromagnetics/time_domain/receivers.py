@@ -25,17 +25,9 @@ class BaseRx(BaseTimeRx):
         orientation, "projComp", new_name="orientation", removal_version="0.15.0"
     )
 
-    frequencies = properties.Array(
-        "Frequency (Hz)", dtype=float, shape=("*",), required=True
-    )   
-
     use_source_receiver_offset = properties.Bool(
-        "Use source-receiver offset",
-        default=False
-    )    
-
-    _ftarg = None
-    _time_interval = None
+        "Use source-receiver offset", default=False
+    )
 
     def __init__(self, locations, times, orientation=None, **kwargs):
         proj = kwargs.pop("projComp", None)
@@ -146,7 +138,7 @@ class BaseRx(BaseTimeRx):
             # dP_dF_T = P.T * v #[src, self]
             # newshape = (len(dP_dF_T)/time_mesh.nN, time_mesh.nN )
             return P.T * v  # np.reshape(dP_dF_T, newshape, order='F')
-        
+
     @property
     def n_time(self):
         """
@@ -156,6 +148,7 @@ class BaseRx(BaseTimeRx):
         #     return int(self.times.size) + int(self.dual_times.size)
         # else:
         return int(self.times.size)
+
 
 class PointElectricField(BaseRx):
     """
@@ -250,6 +243,7 @@ class PointMagneticField(BaseRx):
             locations, times, orientation, **kwargs
         )
 
+
 class PointMagneticFieldTimeDerivative(BaseRx):
     """
     Magnetic field TDEM receiver
@@ -263,7 +257,7 @@ class PointMagneticFieldTimeDerivative(BaseRx):
         self.projField = "dhdt"
         super(PointMagneticFieldTimeDerivative, self).__init__(
             locations, times, orientation, **kwargs
-        )        
+        )
 
 
 class PointCurrentDensity(BaseRx):

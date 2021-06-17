@@ -198,18 +198,19 @@ class TriangularWaveform(TrapezoidWaveform):
     TriangularWaveform is a special case of TrapezoidWaveform where there's no pleateau
     """
 
+    startTime = properties.Float("start-time of the source", default=0.0)
     offTime = properties.Float("off-time of the source")
     peakTime = properties.Float("Time at which the Triangular waveform is at its peak")
 
     def __init__(self, **kwargs):
         super(TriangularWaveform, self).__init__(**kwargs)
         self.hasInitialFields = False
-        self.ramp_on = np.r_[0.0, self.peakTime]
+        self.ramp_on = np.r_[self.startTime, self.peakTime]
         self.ramp_off = np.r_[self.peakTime, self.offTime]
 
     @property
     def time_nodes(self):
-        return np.r_[0, self.peakTime, self.offTime]
+        return np.r_[self.startTime, self.peakTime, self.offTime]
 
 
 class QuarterSineRampOnWaveform(BaseWaveform):

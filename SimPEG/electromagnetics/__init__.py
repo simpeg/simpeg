@@ -6,7 +6,5 @@ from . import time_domain
 from . import frequency_domain
 from . import natural_source
 from . import analytics
-from . import frequency_domain_1d
-from . import time_domain_1d
 from . import utils
 from .static import resistivity, induced_polarization, spectral_induced_polarization

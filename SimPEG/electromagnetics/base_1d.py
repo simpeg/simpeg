@@ -1,23 +1,16 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import properties
 from scipy.constants import mu_0
 import numpy as np
 from scipy import sparse as sp
-from scipy.linalg import block_diag
+from empymod.transform import get_dlf_points
 
 from ..data import Data
-from ..maps import IdentityMap
 from ..simulation import BaseSimulation
-from ..survey import BaseSurvey, BaseSrc
 
-# from ..frequency_domain.survey import FDSurvey
-# from ..time_domain.survey import TDSurvey
+# from .time_domain.sources import MagDipole as t_MagDipole, CircularLoop as t_CircularLoop
+# from .frequency_domain.sources import MagDipole as f_MagDipole, CircularLoop as f_CircularLoop
+
 from .. import utils
-from ..utils import sdiag, Zero, mkvc
 from .. import props
 from empymod.utils import check_hankel
 
@@ -32,7 +25,6 @@ else:
     import multiprocessing
 
 __all__ = ["BaseEM1DSimulation", "BaseStitchedEM1DSimulation"]
-
 
 ###############################################################################
 #                                                                             #
@@ -53,11 +45,8 @@ class BaseEM1DSimulation(BaseSimulation):
     hankel_pts_per_dec = None  # Default: Standard DLF
     verbose = False
     fix_Jmatrix = False
-    _Jmatrix_sigma = None
-    _Jmatrix_height = None
-    _pred = None
-    use_sounding = False  # Default: False (not optimized)
     _formulation = "1D"
+    _coefficients_set = False
 
     # Properties for electrical conductivity/resistivity
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
@@ -75,17 +64,6 @@ class BaseEM1DSimulation(BaseSimulation):
     c = props.PhysicalProperty(
         "Frequency Dependency for Cole-Cole model, 0 < c < 1", default=0.5
     )
-    # eta, etaMap, etaDeriv = props.Invertible(
-    #     "Intrinsic chargeability (V/V), 0 <= eta < 1", default=0.0
-    # )
-    #
-    # tau, tauMap, tauDeriv = props.Invertible(
-    #     "Time constant for Cole-Cole model (s)", default=1.0
-    # )
-    #
-    # c, cMap, cDeriv = props.Invertible(
-    #     "Frequency Dependency for Cole-Cole model, 0 < c < 1", default=0.5
-    # )
 
     # Properties for magnetic susceptibility
     mu, muMap, muDeriv = props.Invertible(
@@ -104,25 +82,8 @@ class BaseEM1DSimulation(BaseSimulation):
         default=10.0,
     )
 
-    # dchi, dchiMap, dchiDeriv = props.Invertible(
-    #     "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)",
-    #     default=0.0,
-    # )
-    #
-    # tau1, tau1Map, tau1Deriv = props.Invertible(
-    #     "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
-    #     default=1e-10,
-    # )
-    #
-    # tau2, tau2Map, tau2Deriv = props.Invertible(
-    #     "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
-    #     default=10.0,
-    # )
-
     # Additional properties
     h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0",)
-
-    survey = properties.Instance("a survey object", BaseSurvey, required=True)
 
     topo = properties.Array("Topography (x, y, z)", dtype=float)
 
@@ -145,20 +106,9 @@ class BaseEM1DSimulation(BaseSimulation):
             print(">> Use " + self.hankel_filter + " filter for Hankel Transform")
 
     @property
-    def halfspace_switch(self):
-        """True = halfspace, False = layered Earth"""
-        if (self.thicknesses is None) | (len(self.thicknesses) == 0):
-            return True
-        else:
-            return False
-
-    @property
     def n_layer(self):
         """number of layers"""
-        if self.halfspace_switch is False:
-            return int(self.thicknesses.size + 1)
-        elif self.halfspace_switch is True:
-            return int(1)
+        return int(self.thicknesses.size + 1)
 
     @property
     def n_filter(self):
@@ -170,8 +120,9 @@ class BaseEM1DSimulation(BaseSimulation):
         """layer depths"""
         if self.thicknesses is not None:
             return np.r_[0.0, -np.cumsum(self.thicknesses)]
+        return None
 
-    def compute_sigma_matrix(self, frequencies):
+    def compute_complex_sigma(self, frequencies):
         """
         Computes the complex conductivity matrix using Pelton's Cole-Cole model:
 
@@ -218,7 +169,7 @@ class BaseEM1DSimulation(BaseSimulation):
 
             return sigma_complex
 
-    def compute_mu_matrix(self, frequencies):
+    def compute_complex_mu(self, frequencies):
         """
         Computes the complex magnetic permeability matrix assuming a log-uniform
         distribution of time-relaxation constants:
@@ -272,184 +223,176 @@ class BaseEM1DSimulation(BaseSimulation):
 
             return mu_complex
 
-    def compute_chi_matrix(self, frequencies):
-        """
-        Computes the complex magnetic permeability matrix assuming a log-uniform
-        distribution of time-relaxation constants:
-
-        .. math::
-            \\chi (\\omega ) = \\chi + \\Delta \\chi \\Bigg [
-            1 - \\Bigg ( \\frac{1}{ln (\\tau_2 / \\tau_1 )} \\Bigg )
-            ln \\Bigg ( \\frac{1 + i\\omega \\tau_2}{1 + i\\omega tau_1} ) \\Bigg )
-            \\Bigg ]
-
-        :param numpy.array frequencies: np.array(N,) containing frequencies
-        :rtype: numpy.ndarray: np.array(n_layer, n_frequency)
-        :return: complex magnetic susceptibility matrix
-        """
-
-        if np.isscalar(self.mu):
-            mu = np.ones_like(self.sigma) * self.mu
-        else:
-            mu = self.mu
-
-        n_layer = self.n_layer
-        n_frequency = len(frequencies)
-        # n_filter = self.n_filter
-
-        mu = np.tile(mu.reshape([-1, 1]), (1, n_frequency))
-
-        # No magnetic viscosity
-        if np.all(self.dchi) == 0.0:
-
-            return mu
-
-        # Magnetic viscosity
-        else:
-
-            if np.isscalar(self.dchi):
-                dchi = self.dchi * np.ones_like(self.chi)
-                tau1 = self.tau1 * np.ones_like(self.chi)
-                tau2 = self.tau2 * np.ones_like(self.chi)
-            else:
-                dchi = np.tile(self.dchi.reshape([-1, 1]), (1, n_frequency))
-                tau1 = np.tile(self.tau1.reshape([-1, 1]), (1, n_frequency))
-                tau2 = np.tile(self.tau2.reshape([-1, 1]), (1, n_frequency))
-
-            w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
-
-            chi_complex = mu / mu_0 + dchi * (
-                1
-                - np.log((1 + 1j * w * tau2) / (1 + 1j * w * tau1))
-                / np.log(tau2 / tau1)
-            )
-
-            return chi_complex
-
-    def fields(self, m):
-        if self.use_sounding:
-            data = self.compute_integral_by_sounding(m, output_type="response")
-            return data.dobs
-        else:
-            f = self.compute_integral(m, output_type="response")
-            f = self.project_fields(f, output_type="response")
-            return np.hstack(f)
-
-    def dpred(self, m, f=None):
-        """
-        Computes predicted data.
-        Here we do not store predicted data
-        because projection (`d = P(f)`) is cheap.
-        """
-
-        if f is None:
-            if m is None:
-                m = self.model
-            f = self.fields(m)
-
-        return f
-
-    def getJ_height(self, m, f=None):
-        """
-        Compute the sensitivity with respect to source height(s).
-        """
-
-        # Null if source height is not parameter of the simulation.
-        if self.hMap is None:
-            return utils.Zero()
-
-        if self._Jmatrix_height is not None:
-            return self._Jmatrix_height
-
-        else:
-
-            if self.verbose:
-                print(">> Compute J height ")
-            if self.use_sounding:
-                dudh = self.compute_integral_by_sounding(
-                    m, output_type="sensitivity_height"
-                )
-                self._Jmatrix_height = dudh.dobs.reshape([-1, 1])
-            else:
-                dudh = self.compute_integral(m, output_type="sensitivity_height")
-                self._Jmatrix_height = np.hstack(
-                    self.project_fields(dudh, output_type="sensitivity_height")
-                )
-                self._Jmatrix_height = np.hstack(dudh).reshape([-1, 1])
-            return self._Jmatrix_height
-
-    def getJ_sigma(self, m, f=None):
-        """
-        Compute the sensitivity with respect to static conductivity.
-        """
-
-        # Null if sigma is not parameter of the simulation.
-        if self.sigmaMap is None:
-            return utils.Zero()
-
-        if self._Jmatrix_sigma is not None:
-            return self._Jmatrix_sigma
-        else:
-
-            if self.verbose:
-                print(">> Compute J sigma")
-
-            if self.use_sounding:
-                dudsig = self.compute_integral_by_sounding(
-                    m, output_type="sensitivity_sigma"
-                )
-                self._Jmatrix_sigma = dudsig.sensitivity
-            else:
-                dudsig = self.compute_integral(m, output_type="sensitivity_sigma")
-                self._Jmatrix_sigma = np.vstack(
-                    self.project_fields(dudsig, output_type="sensitivity_sigma")
-                )
-
-            if self._Jmatrix_sigma.ndim == 1:
-                self._Jmatrix_sigma = self._Jmatrix_sigma.reshape([-1, 1])
-            return self._Jmatrix_sigma
-
-    def getJ(self, m, f=None):
-        """
-        Fetch Jacobian.
-        """
-        return (
-            self.getJ_sigma(m, f=f) * self.sigmaDeriv
-            + self.getJ_height(m, f=f) * self.hDeriv
-        )
-
     def Jvec(self, m, v, f=None):
-        """
-            Computing Jacobian^T multiplied by vector.
-        """
-
-        J_sigma = self.getJ_sigma(m, f=f)
-        J_height = self.getJ_height(m, f=f)
-        Jv = np.dot(J_sigma, self.sigmaMap.deriv(m, v))
+        Js = self.getJ(m, f=f)
+        out = 0.0
         if self.hMap is not None:
-            Jv += np.dot(J_height, self.hMap.deriv(m, v))
-        return Jv
+            out = out + Js["dh"] @ (self.hDeriv @ v)
+        if self.sigmaMap is not None:
+            out = out + Js["ds"] @ (self.sigmaDeriv @ v)
+        if self.muMap is not None:
+            out = out + Js["dmu"] @ (self.muDeriv @ v)
+        if self.thicknessesMap is not None:
+            out = out + Js["dthick"] @ (self.thicknessesDeriv @ v)
+        return out
 
-    def Jtvec(self, m, v, f=None):
-        """
-            Computing Jacobian^T multiplied by vector.
-        """
-
-        J_sigma = self.getJ_sigma(m, f=f)
-        J_height = self.getJ_height(m, f=f)
-        Jtv = self.sigmaDeriv.T * np.dot(J_sigma.T, v)
+    def JTvec(self, m, v, f=None):
+        Js = self.getJ(m, f=f)
+        out = 0.0
         if self.hMap is not None:
-            Jtv += self.hDeriv.T * np.dot(J_height.T, v)
-        return Jtv
+            out = out + self.hDeriv.T @ (Js["dh"].T @ v)
+        if self.sigmaMap is not None:
+            out = out + self.sigmaDeriv.T @ (Js["ds"].T @ v)
+        if self.muMap is not None:
+            out = out + self.muDeriv.T @ (Js["dmu"].T @ v)
+        if self.thicknessesMap is not None:
+            out = out + self.thicknessesDeriv.T @ (Js["dthick"].T @ v)
+        return out
+
+    def _compute_hankel_coefficients(self):
+        survey = self.survey
+        if self.hMap is not None:
+            h_vector = np.zeros(len(survey.source_list))  # , self.h
+            # if it has an hMap, do not include the height in the
+            # pre-computed coefficients
+        else:
+            h_vector = np.array(
+                [src.location[2] - self.topo[-1] for src in self.survey.source_list]
+            )
+        C0s = []
+        C1s = []
+        lambs = []
+        for i_src, src in enumerate(survey.source_list):
+            # doing the check for source type by checking its name
+            # to avoid importing and checking "isinstance"
+            class_name = type(src).__name__
+            is_circular_loop = class_name == "CircularLoop"
+            is_mag_dipole = class_name == "MagDipole"
+            if is_circular_loop:
+                if np.any(src.orientation[:-1] != 0.0):
+                    raise ValueError("Can only simulate horizontal circular loops")
+            h = h_vector[i_src]  # source height above topo
+            src_x, src_y, src_z = src.orientation * src.moment / (4 * np.pi)
+            # src.moment is pi * radius**2 * I for circular loop
+            for i_rx, rx in enumerate(src.receiver_list):
+                #######
+                # Hankel Transform coefficients
+                ######
+
+                # Compute receiver height
+                if rx.use_source_receiver_offset:
+                    dxyz = rx.locations
+                    z = h + rx.locations[:, 2]
+                else:
+                    dxyz = rx.locations - src.location
+                    z = h + rx.locations[:, 2] - src.location[2]
+
+                offsets = np.linalg.norm(dxyz[:, :-1], axis=-1)
+                if is_circular_loop:
+                    if np.any(offsets != 0.0):
+                        raise ValueError(
+                            "Can only simulate central loop receivers with circular loop source"
+                        )
+                    offsets = src.radius * np.ones(rx.locations.shape[0])
+
+                # computations for hankel transform...
+                lambd, _ = get_dlf_points(
+                    self.fhtfilt, offsets, self.hankel_pts_per_dec
+                )
+                # calculate the source-rx coefficients for the hankel transform
+                C0 = 0.0
+                C1 = 0.0
+                if is_circular_loop:
+                    # I * a/ 2 * (lambda **2 )/ (lambda)
+                    C1 += src_z * (2 / src.radius) * lambd
+                elif is_mag_dipole:
+                    if src_x != 0.0:
+                        if rx.orientation == "x":
+                            C0 += (
+                                src_x
+                                * (dxyz[:, 0] ** 2 / offsets ** 2)[:, None]
+                                * lambd ** 2
+                            )
+                            C1 += (
+                                src_x
+                                * (1 / offsets - 2 * dxyz[:, 0] ** 2 / offsets ** 3)[
+                                    :, None
+                                ]
+                                * lambd
+                            )
+                        elif rx.orientation == "y":
+                            C0 += (
+                                src_x
+                                * (dxyz[:, 0] * dxyz[:, 1] / offsets ** 2)[:, None]
+                                * lambd ** 2
+                            )
+                            C1 -= (
+                                src_x
+                                * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets ** 3)[:, None]
+                                * lambd
+                            )
+                        elif rx.orientation == "z":
+                            # C0 += 0.0
+                            C1 -= (src_x * dxyz[:, 0] / offsets)[:, None] * lambd ** 2
+                    if src_y != 0.0:
+                        if rx.orientation == "x":
+                            C0 += (
+                                src_y
+                                * (dxyz[:, 0] * dxyz[:, 1] / offsets ** 2)[:, None]
+                                * lambd ** 2
+                            )
+                            C1 -= (
+                                src_y
+                                * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets ** 3)[:, None]
+                                * lambd
+                            )
+                        elif rx.orientation == "y":
+                            C0 += (
+                                src_y
+                                * (dxyz[:, 1] ** 2 / offsets ** 2)[:, None]
+                                * lambd ** 2
+                            )
+                            C1 += (
+                                src_y
+                                * (1 / offsets - 2 * dxyz[:, 1] ** 2 / offsets ** 3)[
+                                    :, None
+                                ]
+                                * lambd
+                            )
+                        elif rx.orientation == "z":
+                            # C0 += 0.0
+                            C1 -= (src_y * dxyz[:, 1] / offsets)[:, None] * lambd ** 2
+                    if src_z != 0.0:
+                        if rx.orientation == "x":
+                            # C0 += 0.0
+                            C1 += (src_z * dxyz[:, 0] / offsets)[:, None] * lambd ** 2
+                        elif rx.orientation == "y":
+                            # C0 += 0.0
+                            C1 += (src_z * dxyz[:, 1] / offsets)[:, None] * lambd ** 2
+                        elif rx.orientation == "z":
+                            C0 += src_z * lambd ** 2
+                else:
+                    raise TypeError(
+                        f"Unsupported source type of {type(src)}. Must be a CircularLoop or MagDipole"
+                    )
+
+                # divide by offsets to pre-do that part from the dft (1 less item to store)
+                C0s.append(np.exp(-lambd * (z + h)[:, None]) * C0 / offsets[:, None])
+                C1s.append(np.exp(-lambd * (z + h)[:, None]) * C1 / offsets[:, None])
+                lambs.append(lambd)
+
+        # Store these on the simulation for faster future executions
+        self._lambs = np.vstack(lambs)
+        self._unique_lambs, inv_lambs = np.unique(self._lambs, return_inverse=True)
+        self._inv_lambs = inv_lambs.reshape(self._lambs.shape)
+        self._C0s = np.vstack(C0s)
+        self._C1s = np.vstack(C1s)
 
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = []
         if self.fix_Jmatrix is False:
-            if self._Jmatrix_sigma is not None:
-                toDelete += ["_Jmatrix_sigma"]
-            if self._Jmatrix_height is not None:
-                toDelete += ["_Jmatrix_height"]
+            toDelete += ["_J"]
         return toDelete
 
     def depth_of_investigation_christiansen_2012(self, std, thres_hold=0.8):
@@ -468,10 +411,28 @@ class BaseEM1DSimulation(BaseSimulation):
         delta = JtJdiag[active].min()
         return delta
 
-    def get_JtJdiag(self, uncert):
-        J = self.getJ(self.model)
-        JtJdiag = (np.power((utils.sdiag(1.0 / uncert) * J), 2)).sum(axis=0)
-        return JtJdiag
+    def getJtJdiag(self, m, W=None):
+        if self.gtgdiag is None:
+            Js = self.getJ(m)
+            if W is None:
+                W = np.ones(self.survey.nD)
+            else:
+                W = W.diagonal() ** 2
+            out = 0.0
+            if self.hMap is not None:
+                J = Js["dh"] @ self.hDeriv
+                out = out + np.einsum("i,ij,ij->j", W, J, J)
+            if self.sigmaMap is not None:
+                J = Js["ds"] @ self.sigmaDeriv
+                out = out + np.einsum("i,ij,ij->j", W, J, J)
+            if self.muMap is not None:
+                J = Js["dmu"] @ self.muDeriv
+                out = out + np.einsum("i,ij,ij->j", W, J, J)
+            if self.thicknessesMap is not None:
+                J = Js["dthick"] @ self.thicknessesDeriv
+                out = out + np.einsum("i,ij,ij->j", W, J, J)
+            self.gtgdiag = out
+        return self.gtgdiag
 
 
 class BaseStitchedEM1DSimulation(BaseSimulation):
@@ -522,8 +483,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
     topo = properties.Array("Topography (x, y, z)", dtype=float, shape=("*", 3))
 
-    survey = properties.Instance("a survey object", BaseSurvey, required=True)
-
     def __init__(self, **kwargs):
         utils.setKwargs(self, **kwargs)
 
@@ -565,14 +524,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             return 1
         else:
             return len(self.thicknesses) + 1
-
-    @property
-    def n_sounding(self):
-        return len(self.survey.source_location_by_sounding_dict)
-
-    @property
-    def data_index(self):
-        return self.survey.data_index
 
     # ------------- For physical properties ------------- #
     @property
@@ -830,7 +781,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             m = self.n_layer
         else:
             m = n_layer
-        source_location_by_sounding_dict = self.survey.source_location_by_sounding_dict
         for i_sounding in range(self.n_sounding):
             n = self.survey.vnD_by_sounding_dict[i_sounding]
             J_temp = np.tile(np.arange(m), (n, 1)) + shift_for_J

@@ -1,23 +1,18 @@
 from ... import maps, utils
 from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation
-from ..frequency_domain.sources import MagDipole, CircularLoop
-from ..frequency_domain.receivers import PointMagneticFieldSecondary, PointMagneticField
-from ..frequency_domain.survey import Survey
+from .receivers import PointMagneticFieldSecondary, PointMagneticField
+from .survey import Survey
 import numpy as np
 import properties
 
-from SimPEG import Data
-from empymod.transform import get_dlf_points
-
 from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradient
-from scipy.constants import mu_0
 
 #######################################################################
 #               SIMULATION FOR A SINGLE SOUNDING
 #######################################################################
 
 
-class EM1DFMSimulation(BaseEM1DSimulation):
+class Simulation1DLayered(BaseEM1DSimulation):
     """
     Simulation class for simulating the FEM response over a 1D layered Earth
     for a single sounding.
@@ -41,138 +36,20 @@ class EM1DFMSimulation(BaseEM1DSimulation):
     def _compute_coefficients(self):
         if self._coefficients_set:
             return
-        survey = self.survey
-        if self.hMap is not None:
-            h_vector = np.zeros(len(survey.source_list))  # , self.h
-            # if it has an hMap, do not include the height in the
-            # pre-computed coefficients
-        else:
-            h_vector = np.array(
-                [src.location[2] - self.topo[-1] for src in self.survey.source_list]
-            )
 
+        self._compute_hankel_coefficients()
+        survey = self.survey
         # loop through source and receiver lists to create offsets
         # get unique source-receiver offsets
         frequencies = np.array(survey.frequencies)
         # Compute coefficients for Hankel transform
-        C0s = []
-        C1s = []
         i_freq = []
-        lambs = []
         for i_src, src in enumerate(survey.source_list):
-            if isinstance(src, CircularLoop):
-                if np.any(src.orientation[:-1] != 0.0):
-                    raise ValueError("Can only simulate horizontal circular loops")
             i_f = np.searchsorted(frequencies, src.frequency)
-
-            h = h_vector[i_src]  # source height above topo
-            src_x, src_y, src_z = src.orientation * src.moment / (4 * np.pi)
-            # src.moment is pi * radius**2 * I for circular loop
             for i_rx, rx in enumerate(src.receiver_list):
-                # Compute receiver height
-                if rx.use_source_receiver_offset:
-                    dxyz = rx.locations
-                    z = h + rx.locations[:, 2]
-                else:
-                    dxyz = rx.locations - src.location
-                    z = h + rx.locations[:, 2] - src.location[2]
-
-                offsets = np.linalg.norm(dxyz[:, :-1], axis=-1)
-                if isinstance(src, CircularLoop):
-                    if np.any(offsets != 0.0):
-                        raise ValueError(
-                            "Can only simulate central loop receivers with circular loop source"
-                        )
-                    offsets = src.radius * np.ones(rx.locations.shape[0])
-
-                lambd, _ = get_dlf_points(
-                    self.fhtfilt, offsets, self.hankel_pts_per_dec
-                )
-                C0 = 0.0
-                C1 = 0.0
-                if isinstance(src, CircularLoop):
-                    # I * a/ 2 * (lambda **2 )/ (lambda)
-                    C1 += src_z * (2 / src.radius) * lambd
-                elif isinstance(src, MagDipole):
-                    if src_x != 0.0:
-                        if rx.orientation == "x":
-                            C0 += (
-                                src_x
-                                * (dxyz[:, 0] ** 2 / offsets ** 2)[:, None]
-                                * lambd ** 2
-                            )
-                            C1 += (
-                                src_x
-                                * (1 / offsets - 2 * dxyz[:, 0] ** 2 / offsets ** 3)[
-                                    :, None
-                                ]
-                                * lambd
-                            )
-                        elif rx.orientation == "y":
-                            C0 += (
-                                src_x
-                                * (dxyz[:, 0] * dxyz[:, 1] / offsets ** 2)[:, None]
-                                * lambd ** 2
-                            )
-                            C1 -= (
-                                src_x
-                                * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets ** 3)[:, None]
-                                * lambd
-                            )
-                        elif rx.orientation == "z":
-                            # C0 += 0.0
-                            C1 -= (src_x * dxyz[:, 0] / offsets)[:, None] * lambd ** 2
-                    if src_y != 0.0:
-                        if rx.orientation == "x":
-                            C0 += (
-                                src_y
-                                * (dxyz[:, 0] * dxyz[:, 1] / offsets ** 2)[:, None]
-                                * lambd ** 2
-                            )
-                            C1 -= (
-                                src_y
-                                * (2 * dxyz[:, 0] * dxyz[:, 1] / offsets ** 3)[:, None]
-                                * lambd
-                            )
-                        elif rx.orientation == "y":
-                            C0 += (
-                                src_y
-                                * (dxyz[:, 1] ** 2 / offsets ** 2)[:, None]
-                                * lambd ** 2
-                            )
-                            C1 += (
-                                src_y
-                                * (1 / offsets - 2 * dxyz[:, 1] ** 2 / offsets ** 3)[
-                                    :, None
-                                ]
-                                * lambd
-                            )
-                        elif rx.orientation == "z":
-                            # C0 += 0.0
-                            C1 -= (src_y * dxyz[:, 1] / offsets)[:, None] * lambd ** 2
-                    if src_z != 0.0:
-                        if rx.orientation == "x":
-                            # C0 += 0.0
-                            C1 += (src_z * dxyz[:, 0] / offsets)[:, None] * lambd ** 2
-                        elif rx.orientation == "y":
-                            # C0 += 0.0
-                            C1 += (src_z * dxyz[:, 1] / offsets)[:, None] * lambd ** 2
-                        elif rx.orientation == "z":
-                            C0 += src_z * lambd ** 2
-
-                # divide by offsets to pre-do that part from the dft (1 less item to store)
-                C0s.append(np.exp(-lambd * (z + h)[:, None]) * C0 / offsets[:, None])
-                C1s.append(np.exp(-lambd * (z + h)[:, None]) * C1 / offsets[:, None])
-                lambs.append(lambd)
                 i_freq.append([i_f] * rx.locations.shape[0])
 
-        # Store these on the simulation for faster future executions
         self._i_freq = np.hstack(i_freq)
-        self._lambs = np.vstack(lambs)
-        self._unique_lambs, inv_lambs = np.unique(lambs, return_inverse=True)
-        self._inv_lambs = inv_lambs.reshape(self._lambs.shape)
-        self._C0s = np.vstack(C0s)
-        self._C1s = np.vstack(C1s)
         self._coefficients_set = True
 
     def dpred(self, m, f=None):
@@ -208,8 +85,8 @@ class EM1DFMSimulation(BaseEM1DSimulation):
         i_freq = self._i_freq
         inv_lambs = self._inv_lambs
 
-        sig = self.compute_sigma_matrix(frequencies)
-        mu = self.compute_mu_matrix(frequencies)
+        sig = self.compute_complex_sigma(frequencies)
+        mu = self.compute_complex_mu(frequencies)
 
         rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
         rTE = rTE[i_freq]
@@ -233,8 +110,8 @@ class EM1DFMSimulation(BaseEM1DSimulation):
             i_freq = self._i_freq
             inv_lambs = self._inv_lambs
 
-            sig = self.compute_sigma_matrix(frequencies)
-            mu = self.compute_mu_matrix(frequencies)
+            sig = self.compute_complex_sigma(frequencies)
+            mu = self.compute_complex_mu(frequencies)
 
             if self.hMap is not None:
                 # Grab a copy
@@ -306,32 +183,6 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                     self._J["dthick"] = self._project_to_data(v_dthick)
         return self._J
 
-    def Jvec(self, m, v, f=None):
-        Js = self.getJ(m, f=f)
-        out = 0.0
-        if self.hMap is not None:
-            out = out + Js["dh"] @ (self.hDeriv @ v)
-        if self.sigmaMap is not None:
-            out = out + Js["ds"] @ (self.sigmaDeriv @ v)
-        if self.muMap is not None:
-            out = out + Js["dmu"] @ (self.muDeriv @ v)
-        if self.thicknessesMap is not None:
-            out = out + Js["dthick"] @ (self.thicknessesDeriv @ v)
-        return out
-
-    def JTvec(self, m, v, f=None):
-        Js = self.getJ(m, f=f)
-        out = 0.0
-        if self.hMap is not None:
-            out = out + self.hDeriv.T @ (Js["dh"].T @ v)
-        if self.sigmaMap is not None:
-            out = out + self.sigmaDeriv.T @ (Js["ds"].T @ v)
-        if self.muMap is not None:
-            out = out + self.muDeriv.T @ (Js["dmu"].T @ v)
-        if self.thicknessesMap is not None:
-            out = out + self.thicknessesDeriv.T @ (Js["dthick"].T @ v)
-        return out
-
     def _project_to_data(self, v):
         i_dat = 0
         i_v = 0
@@ -363,9 +214,9 @@ class EM1DFMSimulation(BaseEM1DSimulation):
                     out[i_dat:i_dat_p1:2] = v_slice.real
                     out[i_dat + 1 : i_dat_p1 : 2] = v_slice.imag
                 elif rx.component == "real":
-                    out[i_dat:i_dat_p1] = v_slice.real()
-                elif rx.component == "complex":
-                    out[i_dat:i_dat_p1] = v_slice.complex()
+                    out[i_dat:i_dat_p1] = v_slice.real
+                elif rx.component == "imag":
+                    out[i_dat:i_dat_p1] = v_slice.imag
                 i_dat = i_dat_p1
                 i_v = i_v_p1
         return out
@@ -376,7 +227,10 @@ class EM1DFMSimulation(BaseEM1DSimulation):
 #######################################################################
 
 
-class StitchedEM1DFMSimulation(BaseStitchedEM1DSimulation):
+class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
+
+    survey = properties.Instance("a survey object", Survey, required=True)
+
     def run_simulation(self, args):
         if self.verbose:
             print(">> Frequency-domain")

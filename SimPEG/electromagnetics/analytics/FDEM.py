@@ -62,6 +62,37 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
     return hz
 
 
+def hz_horizontal_circular_loop(f, I, a, sig, secondary=True, mu=mu_0):
+
+    """
+        Hz component of analytic solution for half-space (Circular-loop source)
+        Src and Rx are on the surface and receiver is located at the center of the loop.
+
+        .. math::
+
+            H_z  = -\\frac{I}{k^2a^3} \
+                    \left( 3 -(3+\imath\ ka - k^2a^2 )e^{-\imath ka}\\right)
+
+        * a: Src-loop radius
+        * I: Current intensity
+
+    """
+
+    mu_0 = 4 * np.pi * 1e-7
+    w = 2 * np.pi * f
+    k = np.sqrt(-1j * w * mu_0 * sig)
+    Hz = (
+        -I
+        / (k ** 2 * a ** 3)
+        * (3 - (3 + 3 * 1j * k * a - k ** 2 * a ** 2) * np.exp(-1j * k * a))
+    )
+
+    if secondary:
+        Hzp = I / 2.0 / a
+        Hz = Hz - Hzp
+    return Hz
+
+
 def MagneticDipoleWholeSpace(
     XYZ, srcLoc, sig, f, moment, fieldType="b", mu_r=1, eps_r=1, **kwargs
 ):
