@@ -42,7 +42,7 @@ class BaseEM1DSimulation(BaseSimulation):
     """
 
     hankel_filter = "key_101_2009"  # Default: Hankel filter
-    hankel_pts_per_dec = None  # Default: Standard DLF
+    _hankel_pts_per_dec = 0  # Default: Standard DLF
     verbose = False
     fix_Jmatrix = False
     _formulation = "1D"
@@ -236,7 +236,7 @@ class BaseEM1DSimulation(BaseSimulation):
             out = out + Js["dthick"] @ (self.thicknessesDeriv @ v)
         return out
 
-    def JTvec(self, m, v, f=None):
+    def Jtvec(self, m, v, f=None):
         Js = self.getJ(m, f=f)
         out = 0.0
         if self.hMap is not None:
@@ -297,7 +297,7 @@ class BaseEM1DSimulation(BaseSimulation):
 
                 # computations for hankel transform...
                 lambd, _ = get_dlf_points(
-                    self.fhtfilt, offsets, self.hankel_pts_per_dec
+                    self.fhtfilt, offsets, self._hankel_pts_per_dec
                 )
                 # calculate the source-rx coefficients for the hankel transform
                 C0 = 0.0
