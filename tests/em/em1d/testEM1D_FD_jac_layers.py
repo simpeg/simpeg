@@ -8,6 +8,7 @@ import numpy as np
 
 
 class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
+    # TODO update this test to do sigma, mu, and thicknesses at the same time
     def setUp(self):
 
         nearthick = np.logspace(-1, 1, 5)
