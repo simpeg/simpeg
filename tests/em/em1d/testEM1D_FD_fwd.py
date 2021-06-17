@@ -1,12 +1,10 @@
 import unittest
-from SimPEG import *
-from discretize import TensorMesh
-import matplotlib.pyplot as plt
 import SimPEG.electromagnetics.frequency_domain as fdem
-from SimPEG.electromagnetics import frequency_domain_1d as em1d
-from SimPEG.electromagnetics.analytics.em1d_analytics import *
+from SimPEG import maps
 import numpy as np
 from scipy.constants import mu_0
+from geoana.em.fdem import MagneticDipoleHalfSpace
+from SimPEG.electromagnetics.analytics.FDEM import hz_horizontal_circular_loop
 
 
 class EM1D_FD_FwdProblemTests(unittest.TestCase):
@@ -56,7 +54,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         # survey = em1d.survey.EM1DSurveyFD(source_list)
         survey = fdem.Survey(source_list)
 
-        sigma = 1e-2
+        sigma = 1.0
         chi = 0.0
         tau = 1e-3
         eta = 2e-1
@@ -78,37 +76,33 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
     def test_EM1DFDfwd_VMD_Halfspace(self):
 
         sigma_map = maps.ExpMap(nP=1)
-        sim = em1d.simulation.EM1DFMSimulation(
+        sim = fdem.Simulation1DLayered(
             survey=self.survey, sigmaMap=sigma_map, topo=self.topo
         )
 
         m_1D = np.array([np.log(self.sigma)])
         H = sim.dpred(m_1D)
 
-        H_analytic = []
-        for frequency in self.frequencies:
-            soln_analytic_z = Hz_vertical_magnetic_dipole(
-                frequency, self.offset, self.sigma, "secondary"
-            )
-            soln_analytic_r = Hr_vertical_magnetic_dipole(
-                frequency, self.offset, self.sigma
-            )
-            soln_analytic = np.r_[
-                np.real(soln_analytic_z),
-                np.imag(soln_analytic_z),
-                np.real(soln_analytic_r),
-                np.imag(soln_analytic_r),
-            ]
-            H_analytic.append(soln_analytic)
-        H_analytic = np.hstack(H_analytic)
+        dip = MagneticDipoleHalfSpace(
+            location=np.r_[0.0, 0.0, 0.0],
+            orientation="z",
+            frequency=self.frequencies,
+            sigma=self.sigma,
+            quasistatic=True,
+        )
+        H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
+        Hx = H_analytic[:, 0]
+        Hz = H_analytic[:, 2]
+        H_analytic = np.c_[Hz.real, Hz.imag, Hx.real, Hx.imag].reshape(-1)
+
         err = np.linalg.norm(H - H_analytic) / np.linalg.norm(H_analytic)
-        self.assertTrue(err < 1e-5)
+        self.assertLess(err, 1e-5)
         print("EM1DFD-VMD for halfspace works")
 
     def test_EM1DFDfwd_VMD_RealCond(self):
 
         sigma_map = maps.ExpMap(nP=self.nlayers)
-        sim = em1d.simulation.EM1DFMSimulation(
+        sim = fdem.Simulation1DLayered(
             survey=self.survey,
             thicknesses=self.thicknesses,
             sigmaMap=sigma_map,
@@ -118,36 +112,33 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         m_1D = np.log(np.ones(self.nlayers) * self.sigma)
         H = sim.dpred(m_1D)
 
-        H_analytic = []
-        for frequency in self.frequencies:
-            soln_analytic_z = Hz_vertical_magnetic_dipole(
-                frequency, self.offset, self.sigma, "secondary"
-            )
-            soln_analytic_r = Hr_vertical_magnetic_dipole(
-                frequency, self.offset, self.sigma
-            )
-            soln_analytic = np.r_[
-                np.real(soln_analytic_z),
-                np.imag(soln_analytic_z),
-                np.real(soln_analytic_r),
-                np.imag(soln_analytic_r),
-            ]
-            H_analytic.append(soln_analytic)
+        dip = MagneticDipoleHalfSpace(
+            location=np.r_[0.0, 0.0, 0.0],
+            orientation="z",
+            frequency=self.frequencies,
+            sigma=self.sigma,
+            quasistatic=True,
+        )
+        H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
+        Hx = H_analytic[:, 0]
+        Hz = H_analytic[:, 2]
+        H_analytic = np.c_[Hz.real, Hz.imag, Hx.real, Hx.imag].reshape(-1)
 
-        H_analytic = np.hstack(H_analytic)
         err = np.linalg.norm(H - H_analytic) / np.linalg.norm(H_analytic)
-        self.assertTrue(err < 1e-5)
+        self.assertLess(err, 1e-5)
         print("EM1DFD-VMD for real conductivity works")
 
+    # TODO add supplied complex conductivity support to geoana
+    """
     def test_EM1DFDfwd_VMD_ComplexCond(self):
 
         sigma_map = maps.IdentityMap(nP=self.nlayers)
-        chi = np.zeros(self.nlayers)
+        mu = mu_0*np.ones(self.nlayers)
         tau = self.tau * np.ones(self.nlayers)
         c = self.c * np.ones(self.nlayers)
         eta = self.eta * np.ones(self.nlayers)
 
-        sim = em1d.simulation.EM1DFMSimulation(
+        sim = fdem.Simulation1DLayered(
             survey=self.survey,
             thicknesses=self.thicknesses,
             topo=self.topo,
@@ -155,37 +146,31 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             eta=eta,
             tau=tau,
             c=c,
-            chi=chi,
+            mu=mu,
         )
 
         m_1D = self.sigma * np.ones(self.nlayers)
         H = sim.dpred(m_1D)
 
-        sigma_colecole = ColeCole(
-            self.frequencies, self.sigma, self.eta, self.tau, self.c
-        )
+        sigmas = sim.compute_complex_sigma(self.frequencies)
 
         H_analytic = []
-
-        for i_freq, frequency in enumerate(self.frequencies):
-            soln_analytic_z = Hz_vertical_magnetic_dipole(
-                frequency, self.offset, sigma_colecole[i_freq], "secondary"
+        for sigma, frequency in zip(sigmas, self.frequencies):
+            dip = MagneticDipoleHalfSpace(
+                location=np.r_[0.0, 0.0, 0.0],
+                orientation='z',
+                frequency=frequency,
+                sigma=sigma,
+                quasistatic=True
             )
-            soln_analytic_r = Hr_vertical_magnetic_dipole(
-                frequency, self.offset, sigma_colecole[i_freq]
-            )
-            soln_analytic = np.r_[
-                np.real(soln_analytic_z),
-                np.imag(soln_analytic_z),
-                np.real(soln_analytic_r),
-                np.imag(soln_analytic_r),
-            ]
+            H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
 
             H_analytic.append(soln_analytic)
         H_analytic = np.hstack(H_analytic)
         err = np.linalg.norm(H - H_analytic) / np.linalg.norm(H_analytic)
         self.assertTrue(err < 1e-5)
         print("EM1DFD-VMD for complex conductivity works")
+    """
 
     def test_EM1DFDfwd_HMD_RealCond(self):
 
@@ -216,7 +201,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         survey = fdem.Survey(source_list)
 
         sigma_map = maps.ExpMap(nP=self.nlayers)
-        sim = em1d.simulation.EM1DFMSimulation(
+        sim = fdem.Simulation1DLayered(
             survey=survey,
             thicknesses=self.thicknesses,
             sigmaMap=sigma_map,
@@ -226,18 +211,20 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         m_1D = np.log(np.ones(self.nlayers) * self.sigma)
         Hz = sim.dpred(m_1D)
 
-        H_analytic = []
-        for frequency in self.frequencies:
-            soln_analytic_complex = Hz_horizontal_magnetic_dipole(
-                frequency, self.offset, self.offset, self.sigma
-            )
-            soln_analytic = np.r_[
-                np.real(soln_analytic_complex), np.imag(soln_analytic_complex)
-            ]
-            H_analytic.append(soln_analytic)
-        H_analytic = np.hstack(H_analytic)
+        dip = MagneticDipoleHalfSpace(
+            location=np.r_[0.0, 0.0, 0.0],
+            orientation="x",
+            frequency=self.frequencies,
+            sigma=self.sigma,
+            quasistatic=True,
+        )
+        H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))[
+            :, 2
+        ]
+        H_analytic = np.c_[H_analytic.real, H_analytic.imag].reshape(-1)
+
         err = np.linalg.norm(Hz - H_analytic) / np.linalg.norm(H_analytic)
-        self.assertTrue(err < 1e-5)
+        self.assertLess(err, 1e-5)
         print("EM1DFD-HMD for real conductivity works")
 
     def test_EM1DFDfwd_CircularLoop_RealCond(self):
@@ -269,7 +256,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         survey = fdem.Survey(source_list)
 
         sigma_map = maps.ExpMap(nP=self.nlayers)
-        sim = em1d.simulation.EM1DFMSimulation(
+        sim = fdem.Simulation1DLayered(
             survey=survey,
             thicknesses=self.thicknesses,
             sigmaMap=sigma_map,
@@ -281,8 +268,8 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
 
         H_analytic = []
         for frequency in self.frequencies:
-            soln_analytic_complex = Hz_horizontal_circular_loop(
-                frequency, 1.0, 5.0, self.sigma, "secondary"
+            soln_analytic_complex = hz_horizontal_circular_loop(
+                frequency, 1.0, 5.0, self.sigma,
             )
             soln_analytic = np.r_[
                 np.real(soln_analytic_complex), np.imag(soln_analytic_complex)
@@ -290,7 +277,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             H_analytic.append(soln_analytic)
         H_analytic = np.hstack(H_analytic)
         err = np.linalg.norm(Hz - H_analytic) / np.linalg.norm(H_analytic)
-        self.assertTrue(err < 1e-5)
+        self.assertLess(err, 1e-5)
         print("EM1DFD-CircularLoop for real conductivity works")
 
     def test_EM1DFDfwd_CircularLoop_ComplexCond(self):
@@ -322,12 +309,12 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         survey = fdem.Survey(source_list)
 
         sigma_map = maps.IdentityMap(nP=self.nlayers)
-        chi = np.zeros(self.nlayers)
+        mu = mu_0 * np.ones(self.nlayers)
         tau = self.tau * np.ones(self.nlayers)
         c = self.c * np.ones(self.nlayers)
         eta = self.eta * np.ones(self.nlayers)
 
-        sim = em1d.simulation.EM1DFMSimulation(
+        sim = fdem.Simulation1DLayered(
             survey=survey,
             thicknesses=self.thicknesses,
             topo=self.topo,
@@ -335,18 +322,16 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             eta=eta,
             tau=tau,
             c=c,
-            chi=chi,
+            mu=mu,
         )
 
         m_1D = self.sigma * np.ones(self.nlayers)
         Hz = sim.dpred(m_1D)
 
-        sigma_colecole = ColeCole(
-            self.frequencies, self.sigma, self.eta, self.tau, self.c
-        )
+        sigma_colecole = sim.compute_complex_sigma(self.frequencies)[0, :]
         H_analytic = []
         for i_freq, frequency in enumerate(self.frequencies):
-            soln_analytic_complex = Hz_horizontal_circular_loop(
+            soln_analytic_complex = hz_horizontal_circular_loop(
                 frequency, 1.0, 5.0, sigma_colecole[i_freq], "secondary"
             )
             soln_analytic = np.r_[
@@ -356,7 +341,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         H_analytic = np.hstack(H_analytic)
         err = np.linalg.norm(Hz - H_analytic) / np.linalg.norm(H_analytic)
 
-        self.assertTrue(err < 1e-5)
+        self.assertLess(err, 1e-5)
         print("EM1DFD-CircularLoop for complex conductivity works")
 
 
