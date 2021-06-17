@@ -95,7 +95,11 @@ def make_SimplePGI_regularization(
     """
 
     if wiresmap is None:
-        wrmp = Wires(("m", mesh.nC))
+        if "indActive" in kwargs.keys():
+            indActive = kwargs.pop("indActive")
+            wrmp = Wires(("m", indActive.sum()))
+        else:
+            wrmp = Wires(("m", mesh.nC))
     else:
         wrmp = wiresmap
 
@@ -220,7 +224,11 @@ def make_PGI_regularization(
     """
 
     if wiresmap is None:
-        wrmp = Wires(("m", mesh.nC))
+        if "indActive" in kwargs.keys():
+            indActive = kwargs.pop("indActive")
+            wrmp = Wires(("m", indActive.sum()))
+        else:
+            wrmp = Wires(("m", mesh.nC))
     else:
         wrmp = wiresmap
 
