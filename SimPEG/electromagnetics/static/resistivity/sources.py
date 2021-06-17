@@ -37,7 +37,7 @@ class Dipole(BaseSrc):
         survey.SourceLocationArray("location of electrode"),
     )
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.15.0"
+        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
     )
 
     def __init__(
@@ -54,8 +54,8 @@ class Dipole(BaseSrc):
             warnings.warn(
                 "The locationA property has been deprecated. Please set the "
                 "location_a property instead. This will be removed in version"
-                " 0.15.0 of SimPEG",
-                DeprecationWarning,
+                " 0.16.0 of SimPEG",
+                FutureWarning,
             )
 
         if "locationB" in kwargs.keys():
@@ -63,8 +63,8 @@ class Dipole(BaseSrc):
             warnings.warn(
                 "The locationB property has been deprecated. Please set the "
                 "location_b property instead. This will be removed in version"
-                " 0.15.0 of SimPEG",
-                DeprecationWarning,
+                " 0.16.0 of SimPEG",
+                FutureWarning,
             )
 
         # if location_a set, then use location_a, location_b
@@ -156,4 +156,4 @@ class Pole(BaseSrc):
     @property
     def location_b(self):
         """Location of the B electrode"""
-        return np.nan*np.ones_like(self.location)
+        return np.nan * np.ones_like(self.location)

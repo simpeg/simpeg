@@ -12,7 +12,7 @@ import numpy as np
 
 def dask_getJ(self, m, f=None):
     """
-        Generate Full sensitivity matrix
+    Generate Full sensitivity matrix
     """
 
     if self._Jmatrix is not None:
@@ -112,7 +112,7 @@ Sim.getJ = dask_getJ
 
 def dask_getJtJdiag(self, m, W=None):
     """
-        Return the diagonal of JtJ
+    Return the diagonal of JtJ
     """
     if self.gtgdiag is None:
 

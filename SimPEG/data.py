@@ -22,6 +22,7 @@ class UncertaintyArray(properties.Array):
             return value
         return super(properties.Array, self).validate(instance, value)
 
+
 class Data(properties.HasProperties):
     """
     Data storage. This class keeps track of observed data, relative error
@@ -292,10 +293,18 @@ class Data(properties.HasProperties):
     # Deprecated
     ##########################
     std = deprecate_property(
-        relative_error, "std", new_name="relative_error", removal_version="0.15.0"
+        relative_error,
+        "std",
+        new_name="relative_error",
+        removal_version="0.16.0",
+        future_warn=True,
     )
     eps = deprecate_property(
-        noise_floor, "eps", new_name="noise_floor", removal_version="0.15.0"
+        noise_floor,
+        "eps",
+        new_name="noise_floor",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
 
@@ -346,10 +355,11 @@ class _Data(Data):
     def __init__(self, *args, **kwargs):
         warnings.warn(
             "The survey.Data class has been moved. To import the data class, "
-            "please use SimPEG.data.Data. This class will be removed in SimPEG 0.15.0",
-            DeprecationWarning,
+            "please use SimPEG.data.Data. This class will be removed in SimPEG 0.16.0",
+            FutureWarning,
         )
-        super().__init__(*args, **kwargs)    
+        super().__init__(*args, **kwargs)
+
 
 survey.Data = _Data
 survey.Data.__name__ = "Data"

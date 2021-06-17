@@ -11,6 +11,7 @@ from ...utils import mkvc, Zero
 from ...utils.code_utils import deprecate_property
 
 from ..utils import omega
+from ..utils import segmented_line_current_source_term
 from ..base import BaseEMSrc
 
 
@@ -131,7 +132,11 @@ class BaseFDEMSrc(BaseEMSrc):
         return Zero()
 
     freq = deprecate_property(
-        frequency, "freq", new_name="frequency", removal_version="0.15.0"
+        frequency,
+        "freq",
+        new_name="frequency",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
 
@@ -306,7 +311,7 @@ class MagDipole(BaseFDEMSrc):
         "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
     )
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.15.0"
+        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
     )
 
     def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
@@ -721,7 +726,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         # TODO: pull apart Jvec so that don't have to copy paste this code in
         # A = self.primarySimulation.getA(self.frequency)
-        # Ainv = self.primarySimulation.Solver(A, **self.primarySimulation.solver_opts) # create the concept of Ainv (actually a solve)
+        # Ainv = self.primarySimulation.solver(A, **self.primarySimulation.solver_opts) # create the concept of Ainv (actually a solve)
 
         if f is None:
             f = self._primaryFields(simulation.sigma, f=f)
@@ -734,7 +739,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         if adjoint is True:
             Jtv = np.zeros(simulation.sigmaMap.nP, dtype=complex)
-            ATinv = self.primarySimulation.Solver(
+            ATinv = self.primarySimulation.solver(
                 A.T, **self.primarySimulation.solver_opts
             )
             df_duTFun = getattr(
@@ -764,9 +769,9 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             return mkvc(Jtv)
 
         # create the concept of Ainv (actually a solve)
-        Ainv = self.primarySimulation.Solver(A, **self.primarySimulation.solver_opts)
+        Ainv = self.primarySimulation.solver(A, **self.primarySimulation.solver_opts)
 
-        # for src in self.survey.getSrcByFreq(freq):
+        # for src in self.survey.get_sources_by_frequency(freq):
         dA_dm_v = self.primarySimulation.getADeriv(freq, u_src, v)
         dRHS_dm_v = self.primarySimulation.getRHSDeriv(freq, src, v)
         du_dm_v = Ainv * (-dA_dm_v + dRHS_dm_v)
@@ -904,3 +909,39 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             + (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary))
             * self.ePrimaryDeriv(simulation, v, adjoint=adjoint, f=f)
         )
+
+
+class LineCurrent(BaseFDEMSrc):
+    """
+    Line current source. Given the wire path provided by the (n,3) loc
+    array the cells intersected by the wire path are identified and integrated
+    src terms are computed
+
+    :param list rxList: receiver list
+    :param float freq: src frequency
+    :param (n,3) array locations: points defining src path
+    """
+
+    location = properties.Array("location of the source", shape=("*", 3))
+    current = properties.Float("current in the line", default=1.0)
+
+    def Mejs(self, simulation):
+        if getattr(self, "_Mejs", None) is None:
+            mesh = simulation.mesh
+            locs = self.location
+            self._Mejs = self.current * segmented_line_current_source_term(mesh, locs)
+        return self._Mejs
+
+    def getRHSdc(self, simulation):
+        Grad = simulation.mesh.nodalGrad
+        return Grad.T * self.Mejs(simulation)
+
+    def s_m(self, simulation):
+        return Zero()
+
+    def s_e(self, simulation):
+        if simulation._formulation != "EB":
+            raise NotImplementedError(
+                "LineCurrents are only implemented for EB formulations"
+            )
+        return self.Mejs(simulation)

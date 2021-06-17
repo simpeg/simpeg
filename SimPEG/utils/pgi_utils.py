@@ -416,6 +416,7 @@ def make_SimplePGIwithRelationships_regularization(
 # and we are grateful for their contributions to the open-source community.   #                                                   #
 ###############################################################################
 
+
 class WeightedGaussianMixture(GaussianMixture):
     """
     This class upon the GaussianMixture class from Scikit-Learn.
@@ -500,7 +501,9 @@ class WeightedGaussianMixture(GaussianMixture):
                 self.precisions_[k] = np.dot(prec_chol, prec_chol.T)
 
         elif self.covariance_type == "tied":
-            self.precisions_ = np.dot(self.precisions_cholesky_, self.precisions_cholesky_.T)
+            self.precisions_ = np.dot(
+                self.precisions_cholesky_, self.precisions_cholesky_.T
+            )
         else:
             self.precisions_ = self.precisions_cholesky_ ** 2
 
@@ -525,7 +528,7 @@ class WeightedGaussianMixture(GaussianMixture):
             self.covariances_ = self.covariances_cholesky_ ** 2
 
         self.precisions_cholesky_ = _compute_precision_cholesky(
-                self.covariances_, self.covariance_type
+            self.covariances_, self.covariance_type
         )
 
     def order_clusters_GM_weight(self, outputindex=False):
@@ -712,7 +715,7 @@ class WeightedGaussianMixture(GaussianMixture):
         avg_means2 = np.dot(nk * means.T, means)
         covariance = avg_X2 - avg_means2
         covariance /= nk.sum()
-        covariance.flat[::len(covariance) + 1] += reg_covar
+        covariance.flat[:: len(covariance) + 1] += reg_covar
         return covariance
 
     def _estimate_gaussian_parameters(self, X, mesh, resp, reg_covar, covariance_type):
@@ -784,7 +787,9 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         return np.average(self.score_samples(X), weights=self.cell_volumes)
 
-    def _estimate_log_gaussian_prob_with_sensW(self, X, sensW, means, precisions_chol, covariance_type):
+    def _estimate_log_gaussian_prob_with_sensW(
+        self, X, sensW, means, precisions_chol, covariance_type
+    ):
         """
         [New function, modified from Scikit-Learn.mixture.gaussian_mixture._estimate_log_gaussian_prob]
         Estimate the log Gaussian probability with depth or sensitivity weighting.
@@ -808,18 +813,21 @@ class WeightedGaussianMixture(GaussianMixture):
         n_components, _ = means.shape
         # det(precision_chol) is half of det(precision)
         log_det = _compute_log_det_cholesky(
-            precisions_chol, covariance_type, n_features)
+            precisions_chol, covariance_type, n_features
+        )
 
-        if covariance_type == 'full':
+        if covariance_type == "full":
             log_prob = np.empty((n_samples, n_components))
             for k, (mu, prec_chol) in enumerate(zip(means, precisions_chol)):
                 y = np.dot(X * sensW, prec_chol) - np.dot(mu * sensW, prec_chol)
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
-        elif covariance_type == 'tied':
+        elif covariance_type == "tied":
             log_prob = np.empty((n_samples, n_components))
             for k, mu in enumerate(means):
-                y = np.dot(X * sensW, precisions_chol) - np.dot(mu * sensW, precisions_chol)
+                y = np.dot(X * sensW, precisions_chol) - np.dot(
+                    mu * sensW, precisions_chol
+                )
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
         else:
@@ -829,14 +837,15 @@ class WeightedGaussianMixture(GaussianMixture):
                 y = np.dot(X * sensW, prec_chol_mat) - np.dot(mu * sensW, prec_chol_mat)
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
-        return -.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
+        return -0.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
 
     def _estimate_log_prob_with_sensW(self, X, sensW):
         """
         [New function, modified from Scikit-Learn.mixture.gaussian_mixture._estimate_log_prob]
         """
         return self._estimate_log_gaussian_prob_with_sensW(
-            X, sensW, self.means_, self.precisions_cholesky_, self.covariance_type)
+            X, sensW, self.means_, self.precisions_cholesky_, self.covariance_type
+        )
 
     def _estimate_weighted_log_prob_with_sensW(self, X, sensW):
         """
@@ -849,7 +858,9 @@ class WeightedGaussianMixture(GaussianMixture):
         -------
         weighted_log_prob : array, shape (n_samples, n_component)
         """
-        return self._estimate_log_prob_with_sensW(X, sensW) + self._estimate_log_weights()
+        return (
+            self._estimate_log_prob_with_sensW(X, sensW) + self._estimate_log_weights()
+        )
 
     def score_samples_with_sensW(self, X, sensW):
         """
@@ -987,11 +998,15 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
         for i in range(self.n_components):
             dis = self._estimate_log_prob(
-                self.gmmref.means_[idx_ref].reshape([-1] + [d for d in self.gmmref.means_.shape[1:]])
+                self.gmmref.means_[idx_ref].reshape(
+                    [-1] + [d for d in self.gmmref.means_.shape[1:]]
+                )
             )
             id_dis = dis.argmax(axis=0)[i]
             idrefmean = np.where(
-                np.all(self.gmmref.means_ == self.gmmref.means_[idx_ref][id_dis], axis=1)
+                np.all(
+                    self.gmmref.means_ == self.gmmref.means_[idx_ref][id_dis], axis=1
+                )
             )[0][0]
             indx.append(idrefmean)
             idx_ref[idrefmean] = False
@@ -1015,7 +1030,6 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
         if outputindex:
             return indx
-
 
     def update_gmm_with_priors(self, debug=False):
         """
@@ -1041,24 +1055,29 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         if self.gmmref.weights_.ndim == 1:
             ref_weights_ = self.gmmref.weights_
         else:
-            ref_weights_ = (np.c_[self.gmmref.cell_volumes] * self.gmmref.weights_).sum(axis=0) / (
-                np.c_[self.gmmref.cell_volumes] * self.gmmref.weights_
-            ).sum()
+            ref_weights_ = (np.c_[self.gmmref.cell_volumes] * self.gmmref.weights_).sum(
+                axis=0
+            ) / (np.c_[self.gmmref.cell_volumes] * self.gmmref.weights_).sum()
 
         for k in range(self.n_components):
             if self.prior_type == "full":
-                smu = (self.kappa[k] * weights_[k]) * ((self.gmmref.means_[k] - self.means_[k]) ** 2.0)
+                smu = (self.kappa[k] * weights_[k]) * (
+                    (self.gmmref.means_[k] - self.means_[k]) ** 2.0
+                )
                 smu /= self.kappa[k] + weights_[k]
                 smu *= 1.0 / (weights_[k] + ref_weights_[k] * self.nu[k])
 
             self.means_[k] = (1.0 / (weights_[k] + ref_weights_[k] * self.kappa[k])) * (
-                weights_[k] * self.means_[k] + ref_weights_[k] * self.kappa[k] * self.gmmref.means_[k]
+                weights_[k] * self.means_[k]
+                + ref_weights_[k] * self.kappa[k] * self.gmmref.means_[k]
             )
 
             if self.gmmref.covariance_type == "tied":
                 pass
             elif self.update_covariances:
-                self.covariances_[k] = (1.0 / (weights_[k] + ref_weights_[k] * self.nu[k])) * (
+                self.covariances_[k] = (
+                    1.0 / (weights_[k] + ref_weights_[k] * self.nu[k])
+                ) * (
                     weights_[k] * self.covariances_[k]
                     + ref_weights_[k] * self.nu[k] * self.gmmref.covariances_[k]
                 )
@@ -1067,7 +1086,9 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                     self.covariances_[k] += smu
 
             else:
-                self.precisions_[k] = (1.0 / (weights_[k] + ref_weights_[k] * self.nu[k])) * (
+                self.precisions_[k] = (
+                    1.0 / (weights_[k] + ref_weights_[k] * self.nu[k])
+                ) * (
                     weights_[k] * self.precisions_[k]
                     + ref_weights_[k] * self.nu[k] * self.gmmref.precisions_[k]
                 )
@@ -1080,12 +1101,14 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         if self.gmmref.covariance_type == "tied":
             if self.update_covariances:
                 self.covariances_ = (1.0 / (1.0 + np.sum(ref_weights_ * self.nu))) * (
-                    self.covariances_ + np.sum(ref_weights_ * self.nu) * self.gmmref.covariances_
+                    self.covariances_
+                    + np.sum(ref_weights_ * self.nu) * self.gmmref.covariances_
                 )
                 self.compute_clusters_precisions()
             else:
                 self.precisions_ = (1.0 / (1.0 + np.sum(ref_weights_ * self.nu))) * (
-                    self.precisions_ + np.sum(ref_weights_ * self.nu) * self.gmmref.precisions_
+                    self.precisions_
+                    + np.sum(ref_weights_ * self.nu) * self.gmmref.precisions_
                 )
                 self.compute_clusters_covariances()
         elif self.update_covariances:
@@ -1093,12 +1116,10 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         else:
             self.compute_clusters_covariances()
 
-
         if debug:
             print("after update means: ", self.means_)
             print("after update weights: ", self.weights_)
             print("after update precisions: ", self.precisions_)
-
 
     def fit(self, X, y=None, debug=False):
         """
@@ -1217,6 +1238,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
     :param list cluster_mapping (n_components, ): list of mapping describing
         a nonlinear relationships between physical properties; one per cluster/unit.
     """
+
     def __init__(
         self,
         mesh,
@@ -1522,6 +1544,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
         a nonlinear relationships between physical properties; one per cluster/unit.
 
     """
+
     def __init__(
         self,
         gmmref,

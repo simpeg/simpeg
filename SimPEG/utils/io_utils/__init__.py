@@ -19,7 +19,7 @@ from .io_utils_electromagnetics import (
     write_dcip2d_ubc,
     write_dcip3d_ubc,
     write_dcipoctree_ubc,
-    write_dcip_xyz
+    write_dcip_xyz,
 )
 
 # Deprecated
