@@ -199,11 +199,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
         return self._project_to_data(v.T)
 
     def getJ(self, m, f=None):
+        self.model = m
         if getattr(self, "_J", None) is None:
             self._J = {}
             self._compute_coefficients()
-
-            self.model = m
 
             C0s = self._C0s
             C1s = self._C1s
