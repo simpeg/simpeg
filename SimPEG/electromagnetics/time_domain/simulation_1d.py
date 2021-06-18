@@ -87,9 +87,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         n_base = len(self.fftfilt.base)
         A_dft = np.zeros((n_t, n_omega))
         for i in range(n_t):
-            A_dft[i, i : i + n_base] = (
-                self.fftfilt.cos / t_spline_points[i] * (-2.0 / np.pi)
-            )
+            A_dft[i, i : i + n_base] = self.fftfilt.cos * (-2.0 / np.pi)
         A_dft = A_dft[::-1]  # shuffle these back
 
         # Calculate the interpolating spline basis functions for each spline point
@@ -111,8 +109,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 def func(t, i):
                     out = np.zeros_like(t)
                     t = t.copy()
-                    t[(t >= 0.0) & (t <= t_min)] = t_min  # constant at very low ts
-                    out[t > 0.0] = splines[i](np.log(t[t > 0.0]))
+                    t[
+                        (t >= 0.0) & (t <= t_spline_points.min())
+                    ] = t_spline_points.min()  # constant at very low ts
+                    out[t > 0.0] = splines[i](np.log(t[t > 0.0])) / t[t > 0.0]
                     return out
 
                 # Then calculate the values at each time
