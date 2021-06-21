@@ -60,10 +60,11 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
         t_min = np.infty
         t_max = -np.infty
-        # loop through source and receiver lists to create necessary times (and offsets)
+        x, w = roots_legendre(251)
+        # loop through source and receiver lists to find the minimum and maximum
+        # evaluation times for the step response
         for i_src, src in enumerate(survey.source_list):
             for i_rx, rx in enumerate(src.receiver_list):
-                # find the minimum and maximum time span...
                 wave = src.waveform
                 if isinstance(wave, StepOffWaveform):
                     t_min = min(rx.times.min(), t_min)
@@ -71,14 +72,17 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 else:
                     try:
                         times = rx.times - wave.time_nodes[:, None]
-                        t_min = min(times.min(), t_min)
-                        t_max = max(times.max(), t_max)
+                        times[times < 0.0] = 0.0
+                        quad_points = (times[:-1] - times[1:])[..., None] * (
+                            x + 1
+                        ) + times[1:, :, None]
+                        t_min = min(quad_points[quad_points > 0].min(), t_min)
+                        t_max = max(quad_points[quad_points > 0].max(), t_max)
                     except AttributeError:
                         raise TypeError(
                             f"Unsupported source waveform object of {src.waveform}"
                         )
 
-        t_min = max(t_min, 1e-8)  # make it slightly above zero if it happens...
         omegas, t_spline_points = get_dlf_points(self.fftfilt, np.r_[t_min, t_max], -1)
         omegas = omegas.reshape(-1)
         n_omega = len(omegas)
@@ -110,7 +114,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     out = np.zeros_like(t)
                     t = t.copy()
                     t[
-                        (t >= 0.0) & (t <= t_spline_points.min())
+                        (t > 0.0) & (t <= t_spline_points.min())
                     ] = t_spline_points.min()  # constant at very low ts
                     out[t > 0.0] = splines[i](np.log(t[t > 0.0])) / t[t > 0.0]
                     return out
@@ -124,14 +128,15 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         A[:, i] = func(rx.times, i)
                 else:
                     # loop over pairs of nodes and use gaussian quadrature to integrate
-                    x, w = roots_legendre(251)
 
                     time_nodes = wave.time_nodes
                     n_interval = len(time_nodes) - 1
                     quad_times = []
                     for i in range(n_interval):
                         b = rx.times - time_nodes[i]
+                        b = np.maximum(b, 0.0)
                         a = rx.times - time_nodes[i + 1]
+                        a = np.maximum(a, 0.0)
                         quad_times = (b - a)[:, None] * (x + 1) / 2.0 + a[:, None]
                         quad_scale = (b - a) / 2
                         wave_eval = wave.evalDeriv(rx.times[:, None] - quad_times)
