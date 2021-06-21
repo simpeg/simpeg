@@ -84,13 +84,15 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
         if getattr(self, "_emg3d_survey", None) is None:
 
-            # TODO: Should link to src_id, rec_id, i; store.
-            #       This could then be used to model emg3d-data to SimPEG data.
-            src_dict = {}
-
+            # Allocate lists to create data to/from dicts.
             src_list = []
             freq_list = []
             rec_list = []
+            data_dict = {}  # emg3d -> SimPEG
+            data_list = []  # SimPEG -> emg3d
+
+            # Counter for SimPEG data object (lists the data continuously).
+            ind = 0
 
             # Loop over sources.
             for src in self.survey.source_list:
@@ -101,10 +103,19 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                     strength=src.strength, length=src.length
                 )
 
+                # New frequency: add.
+                if src.frequency not in freq_list:
+                    f_ind = len(freq_list)
+                    freq_list.append(src.frequency)
+
+                # Existing source: get index.
+                else:
+                    f_ind = freq_list.index(src.frequency)
+
                 # New source: add.
                 if source not in src_list:
                     s_ind = len(src_list)
-                    src_dict[s_ind] = {src.frequency: {}}
+                    data_dict[s_ind] = {f_ind: {}}
                     src_list.append(source)
 
                 # Existing source: get index.
@@ -112,12 +123,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                     s_ind = src_list.index(source)
 
                     # If new frequency for existing source, add:
-                    if src.frequency not in src_dict[s_ind].keys():
-                        src_dict[s_ind][src.frequency] = {}
-
-                # New frequency: add.
-                if src.frequency not in freq_list:
-                    freq_list.append(src.frequency)
+                    if f_ind not in data_dict[s_ind].keys():
+                        data_dict[s_ind][f_ind] = {}
 
                 # Loop over receiver lists.
                 rec_types = [emg3d.RxElectricPoint, emg3d.RxMagneticPoint]
@@ -148,7 +155,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                         # New receiver: add.
                         if receiver not in rec_list:
                             r_ind = len(rec_list)
-                            src_dict[s_ind][src.frequency][r_ind] = True
+                            data_dict[s_ind][f_ind][r_ind] = ind
                             rec_list.append(receiver)
 
                         # Existing receiver: get index.
@@ -156,15 +163,18 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                             r_ind = rec_list.index(receiver)
 
                             # If new receiver for existing src-freq, add:
-                            existing = src_dict[s_ind][src.frequency].keys()
+                            existing = data_dict[s_ind][f_ind].keys()
                             if r_ind not in existing:
-                                src_dict[s_ind][src.frequency][r_ind] = True
+                                data_dict[s_ind][f_ind][r_ind] = ind
 
                             # Else, throw an error.
                             else:
                                 raise ValueError(
                                     "Duplicate source-receiver-frequency."
                                 )
+
+                        data_list.append((s_ind, r_ind, f_ind))
+                        ind += 1
 
             # Create and store survey.
             self._emg3d_survey = emg3d.Survey(
@@ -175,6 +185,10 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 noise_floor=1.,       # We deal with std in SimPEG.
                 relative_error=None,  #  "   "   "
             )
+
+            # Store data mapping dict/list
+            self._dmap_emg3d_to_simpeg = data_dict  # Not really required
+            self._dmap_simpeg_to_emg3d = data_list
 
         return self._emg3d_survey
 
@@ -191,6 +205,30 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             mapping='Conductivity',
         )
         return self._emg3d_model
+
+    def _simpeg_data_to_emg3d(self, data):
+        """Map SimPEG data vector to emg3d ndarray.
+
+        This could potentially be achieved much faster/cleverer with a sparse
+        mapping or similar.
+        """
+        out = np.full(self.emg3d_survey.shape, np.nan+1j*np.nan)
+        for i, ind in enumerate(self._dmap_simpeg_to_emg3d):
+            out[ind[0], ind[1], ind[2]] = data[i]
+
+        return out
+
+    def _emg3d_data_to_simpeg(self, data):
+        """Map emg3d data ndarray to SimPEG vector.
+
+        This could potentially be achieved much faster/cleverer with a sparse
+        mapping or similar.
+        """
+        out = np.zeros(len(self._dmap_simpeg_to_emg3d), dtype=complex)
+        for i, ind in enumerate(self._dmap_simpeg_to_emg3d):
+            out[i] = data[ind[0], ind[1], ind[2]]
+
+        return out
 
     def Jvec(self, m, v, f=None):
         """
@@ -218,7 +256,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
         dsig_dm_v = self.sigmaDeriv @ v
         j_vec = emg3d.optimize.jvec(f, vec=dsig_dm_v)
-        return j_vec
+        return self._emg3d_data_to_simpeg(j_vec)
 
     def Jtvec(self, m, v, f=None):
         """
@@ -235,7 +273,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
         if self.storeJ:
             J = self.getJ(m, f=f)
-            Jtv = mkvc(np.dot(J.T, v))
+            vec = self._simpeg_data_to_emg3d(v)
+            Jtv = mkvc(np.dot(J.T, vec))
             return Jtv
 
         self.model = m
@@ -252,8 +291,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         """
 
         if v is not None:
-
-            vec = v.reshape(self.emg3d_survey.shape)
+            vec = self._simpeg_data_to_emg3d(v)
             jt_sigma_vec = emg3d.optimize.gradient(f, vector=vec)
             jt_vec = self.sigmaDeriv.T @ jt_sigma_vec.ravel('F')
             return jt_vec
@@ -308,21 +346,15 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         :return: data, the data
         """
 
-        # TODO this does not work for various frequency, or for
-        # source-receiver-frequency pairs without data, etc. Needs more
-        # generalisations and using the actual Data object.
-
         if self.verbose:
             print("Compute predicted")
 
         # currently this does not change once self.fields is computed.
+        # ^ TODO check/understand Seogi's comment; it could be achieved.
         if f is None:
             f = self.fields(m=m)
 
-        # this may not be robust, need to be changed...
-        data = f.data.synthetic.values.flatten()
-
-        return data
+        return self._emg3d_data_to_simpeg(f.data.synthetic.data)
 
     def fields(self, m=None):
         """Return the electric fields for a given model.
