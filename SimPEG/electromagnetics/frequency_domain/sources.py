@@ -11,6 +11,7 @@ from ...utils import mkvc, Zero
 from ...utils.code_utils import deprecate_property
 
 from ..utils import omega
+from ..utils import segmented_line_current_source_term
 from ..base import BaseEMSrc
 
 
@@ -20,13 +21,14 @@ class BaseFDEMSrc(BaseEMSrc):
     """
 
     frequency = properties.Float("frequency of the source", min=0, required=True)
-    i_sounding = properties.Integer("sounding number of the source", min=0, default=0, required=True)
+    i_sounding = properties.Integer(
+        "sounding number of the source", min=0, default=0, required=True
+    )
 
     _ePrimary = None
     _bPrimary = None
     _hPrimary = None
     _jPrimary = None
-    
 
     def __init__(self, receiver_list=None, frequency=None, **kwargs):
         super(BaseFDEMSrc, self).__init__(receiver_list=receiver_list, **kwargs)
@@ -130,7 +132,11 @@ class BaseFDEMSrc(BaseEMSrc):
         return Zero()
 
     freq = deprecate_property(
-        frequency, "freq", new_name="frequency", removal_version="0.15.0"
+        frequency,
+        "freq",
+        new_name="frequency",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
 
@@ -175,7 +181,7 @@ class RawVec_m(BaseFDEMSrc):
     def __init__(self, receiver_list=None, frequency=None, s_m=None, **kwargs):
         self._s_m = np.array(s_m, dtype=complex)
         super(RawVec_m, self).__init__(
-            receiver_list=receiver_list, frequency=frequency, ** kwargs
+            receiver_list=receiver_list, frequency=frequency, **kwargs
         )
 
     def s_m(self, simulation):
@@ -305,7 +311,7 @@ class MagDipole(BaseFDEMSrc):
         "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
     )
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.15.0"
+        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
     )
 
     def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
@@ -366,7 +372,6 @@ class MagDipole(BaseFDEMSrc):
 
         return C * a
 
-
     def hPrimary1D(self, xyz, is_offset=False):
         """
         Computes primary magnetic field (H) in units A/m
@@ -383,14 +388,28 @@ class MagDipole(BaseFDEMSrc):
             r0 = self.location
 
         m = self.orientation
-        r = np.sqrt((xyz[0,0]-r0[0])**2 + (xyz[0,1]-r0[1])**2 + (xyz[0,2]-r0[2])**2)
-        mdotr = m[0]*(xyz[0,0]-r0[0]) + m[1]*(xyz[0,1]-r0[1]) + m[2]*(xyz[0,2]-r0[2])
+        r = np.sqrt(
+            (xyz[0, 0] - r0[0]) ** 2
+            + (xyz[0, 1] - r0[1]) ** 2
+            + (xyz[0, 2] - r0[2]) ** 2
+        )
+        mdotr = (
+            m[0] * (xyz[0, 0] - r0[0])
+            + m[1] * (xyz[0, 1] - r0[1])
+            + m[2] * (xyz[0, 2] - r0[2])
+        )
 
-        hx0 = (1/(4*np.pi))*(3*(xyz[0,0]-r0[0])*mdotr/r**5 - m[0]/r**3)
-        hy0 = (1/(4*np.pi))*(3*(xyz[0,1]-r0[1])*mdotr/r**5 - m[1]/r**3)
-        hz0 = (1/(4*np.pi))*(3*(xyz[0,2]-r0[2])*mdotr/r**5 - m[2]/r**3)
+        hx0 = (1 / (4 * np.pi)) * (
+            3 * (xyz[0, 0] - r0[0]) * mdotr / r ** 5 - m[0] / r ** 3
+        )
+        hy0 = (1 / (4 * np.pi)) * (
+            3 * (xyz[0, 1] - r0[1]) * mdotr / r ** 5 - m[1] / r ** 3
+        )
+        hz0 = (1 / (4 * np.pi)) * (
+            3 * (xyz[0, 2] - r0[2]) * mdotr / r ** 5 - m[2] / r ** 3
+        )
 
-        return self.moment*np.c_[hx0, hy0, hz0]                
+        return self.moment * np.c_[hx0, hy0, hz0]
 
     def hPrimary(self, simulation):
         """
@@ -606,34 +625,62 @@ class CircularLoop(MagDipole):
         else:
             r0 = self.location.ravel()
 
-        theta = 0.  # Azimuthal
-        alpha = 0.  # Declination
+        theta = 0.0  # Azimuthal
+        alpha = 0.0  # Declination
 
         # Rotate x,y,z into coordinate axis of transmitter loop
         rot_x = np.r_[
             np.c_[1, 0, 0],
-            np.c_[0, np.cos(np.pi*theta/180), -np.sin(np.pi*theta/180)],
-            np.c_[0, np.sin(np.pi*theta/180), np.cos(np.pi*theta/180)]
-        ]     # CCW ROTATION OF THETA AROUND X-AXIS
+            np.c_[0, np.cos(np.pi * theta / 180), -np.sin(np.pi * theta / 180)],
+            np.c_[0, np.sin(np.pi * theta / 180), np.cos(np.pi * theta / 180)],
+        ]  # CCW ROTATION OF THETA AROUND X-AXIS
 
         rot_z = np.r_[
-            np.c_[np.cos(np.pi*alpha/180), -np.sin(np.pi*alpha/180), 0],
-            np.c_[np.sin(np.pi*alpha/180), np.cos(np.pi*alpha/180), 0],
-            np.c_[0, 0, 1]
-        ]     # CCW ROTATION OF (90-ALPHA) ABOUT Z-AXIS
+            np.c_[np.cos(np.pi * alpha / 180), -np.sin(np.pi * alpha / 180), 0],
+            np.c_[np.sin(np.pi * alpha / 180), np.cos(np.pi * alpha / 180), 0],
+            np.c_[0, 0, 1],
+        ]  # CCW ROTATION OF (90-ALPHA) ABOUT Z-AXIS
 
-        rot_mat = np.dot(rot_x, rot_z)            # THE ORDER MATTERS
+        rot_mat = np.dot(rot_x, rot_z)  # THE ORDER MATTERS
 
-        x1p = np.dot(np.c_[xyz[0,0]-r0[0], xyz[0,1]-r0[1], xyz[0,2]-r0[2]], rot_mat[0, :].T)
-        x2p = np.dot(np.c_[xyz[0,0]-r0[0], xyz[0,1]-r0[1], xyz[0,2]-r0[2]], rot_mat[1, :].T)
-        x3p = np.dot(np.c_[xyz[0,0]-r0[0], xyz[0,1]-r0[1], xyz[0,2]-r0[2]], rot_mat[2, :].T)
+        x1p = np.dot(
+            np.c_[xyz[0, 0] - r0[0], xyz[0, 1] - r0[1], xyz[0, 2] - r0[2]],
+            rot_mat[0, :].T,
+        )
+        x2p = np.dot(
+            np.c_[xyz[0, 0] - r0[0], xyz[0, 1] - r0[1], xyz[0, 2] - r0[2]],
+            rot_mat[1, :].T,
+        )
+        x3p = np.dot(
+            np.c_[xyz[0, 0] - r0[0], xyz[0, 1] - r0[1], xyz[0, 2] - r0[2]],
+            rot_mat[2, :].T,
+        )
 
-        s = np.sqrt(x1p**2 + x2p**2) + 1e-10     # Radial distance
-        k = 4*a*s/(x3p**2 + (a+s)**2)
+        s = np.sqrt(x1p ** 2 + x2p ** 2) + 1e-10  # Radial distance
+        k = 4 * a * s / (x3p ** 2 + (a + s) ** 2)
 
-        hxp = (x1p/s)*(x3p*I/(2*np.pi*s*np.sqrt(x3p**2 + (a + s)**2)))*(((a**2 + x3p**2 + s**2)/(x3p**2 + (s-a)**2))*spec.ellipe(k) - spec.ellipk(k))
-        hyp = (x2p/s)*(x3p*I/(2*np.pi*s*np.sqrt(x3p**2 + (a + s)**2)))*(((a**2 + x3p**2 + s**2)/(x3p**2 + (s-a)**2))*spec.ellipe(k) - spec.ellipk(k))
-        hzp =         (    I/(2*np.pi*  np.sqrt(x3p**2 + (a + s)**2)))*(((a**2 - x3p**2 - s**2)/(x3p**2 + (s-a)**2))*spec.ellipe(k) + spec.ellipk(k))
+        hxp = (
+            (x1p / s)
+            * (x3p * I / (2 * np.pi * s * np.sqrt(x3p ** 2 + (a + s) ** 2)))
+            * (
+                ((a ** 2 + x3p ** 2 + s ** 2) / (x3p ** 2 + (s - a) ** 2))
+                * spec.ellipe(k)
+                - spec.ellipk(k)
+            )
+        )
+        hyp = (
+            (x2p / s)
+            * (x3p * I / (2 * np.pi * s * np.sqrt(x3p ** 2 + (a + s) ** 2)))
+            * (
+                ((a ** 2 + x3p ** 2 + s ** 2) / (x3p ** 2 + (s - a) ** 2))
+                * spec.ellipe(k)
+                - spec.ellipk(k)
+            )
+        )
+        hzp = (I / (2 * np.pi * np.sqrt(x3p ** 2 + (a + s) ** 2))) * (
+            ((a ** 2 - x3p ** 2 - s ** 2) / (x3p ** 2 + (s - a) ** 2)) * spec.ellipe(k)
+            + spec.ellipk(k)
+        )
 
         # Rotate the other way to get back into original coordinates
         rot_mat_t = rot_mat.T
@@ -642,7 +689,6 @@ class CircularLoop(MagDipole):
         hz0 = np.dot(np.c_[hxp, hyp, hzp], rot_mat_t[2, :].T)
 
         return np.c_[hx0, hy0, hz0]
-
 
 
 class PrimSecSigma(BaseFDEMSrc):
@@ -764,7 +810,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         # TODO: pull apart Jvec so that don't have to copy paste this code in
         # A = self.primarySimulation.getA(self.frequency)
-        # Ainv = self.primarySimulation.Solver(A, **self.primarySimulation.solver_opts) # create the concept of Ainv (actually a solve)
+        # Ainv = self.primarySimulation.solver(A, **self.primarySimulation.solver_opts) # create the concept of Ainv (actually a solve)
 
         if f is None:
             f = self._primaryFields(simulation.sigma, f=f)
@@ -777,7 +823,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         if adjoint is True:
             Jtv = np.zeros(simulation.sigmaMap.nP, dtype=complex)
-            ATinv = self.primarySimulation.Solver(
+            ATinv = self.primarySimulation.solver(
                 A.T, **self.primarySimulation.solver_opts
             )
             df_duTFun = getattr(
@@ -807,9 +853,9 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             return mkvc(Jtv)
 
         # create the concept of Ainv (actually a solve)
-        Ainv = self.primarySimulation.Solver(A, **self.primarySimulation.solver_opts)
+        Ainv = self.primarySimulation.solver(A, **self.primarySimulation.solver_opts)
 
-        # for src in self.survey.getSrcByFreq(freq):
+        # for src in self.survey.get_sources_by_frequency(freq):
         dA_dm_v = self.primarySimulation.getADeriv(freq, u_src, v)
         dRHS_dm_v = self.primarySimulation.getRHSDeriv(freq, src, v)
         du_dm_v = Ainv * (-dA_dm_v + dRHS_dm_v)
@@ -947,3 +993,39 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             + (simulation.MeSigma - simulation.mesh.getEdgeInnerProduct(sigmaPrimary))
             * self.ePrimaryDeriv(simulation, v, adjoint=adjoint, f=f)
         )
+
+
+class LineCurrent(BaseFDEMSrc):
+    """
+    Line current source. Given the wire path provided by the (n,3) loc
+    array the cells intersected by the wire path are identified and integrated
+    src terms are computed
+
+    :param list rxList: receiver list
+    :param float freq: src frequency
+    :param (n,3) array locations: points defining src path
+    """
+
+    location = properties.Array("location of the source", shape=("*", 3))
+    current = properties.Float("current in the line", default=1.0)
+
+    def Mejs(self, simulation):
+        if getattr(self, "_Mejs", None) is None:
+            mesh = simulation.mesh
+            locs = self.location
+            self._Mejs = self.current * segmented_line_current_source_term(mesh, locs)
+        return self._Mejs
+
+    def getRHSdc(self, simulation):
+        Grad = simulation.mesh.nodalGrad
+        return Grad.T * self.Mejs(simulation)
+
+    def s_m(self, simulation):
+        return Zero()
+
+    def s_e(self, simulation):
+        if simulation._formulation != "EB":
+            raise NotImplementedError(
+                "LineCurrents are only implemented for EB formulations"
+            )
+        return self.Mejs(simulation)

@@ -23,24 +23,24 @@ except ImportError:
 
 def memProfileWrapper(towrap, *funNames):
     """
-        Create a wrapper for the functions you want to use, wrapping up the
-        class, and putting profile wrappers on the functions in funNames.
+    Create a wrapper for the functions you want to use, wrapping up the
+    class, and putting profile wrappers on the functions in funNames.
 
-        :param class towrap: Class to wrap
-        :param str funNames: And amount of function names to wrap
-        :rtype: class
-        :return: memory profiled wrapped class
+    :param class towrap: Class to wrap
+    :param str funNames: And amount of function names to wrap
+    :rtype: class
+    :return: memory profiled wrapped class
 
-        For example::
+    For example::
 
-            foo_mem = memProfileWrapper(foo,['my_func'])
-            fooi = foo_mem()
-            for i in range(5):
-                fooi.my_func()
+        foo_mem = memProfileWrapper(foo,['my_func'])
+        fooi = foo_mem()
+        for i in range(5):
+            fooi.my_func()
 
-        Then run it from the command line::
+    Then run it from the command line::
 
-            python -m memory_profiler exampleMemWrapper.py
+        python -m memory_profiler exampleMemWrapper.py
     """
     from memory_profiler import profile
 
@@ -56,9 +56,9 @@ def memProfileWrapper(towrap, *funNames):
 
 def hook(obj, method, name=None, overwrite=False, silent=False):
     """
-        This dynamically binds a method to the instance of the class.
+    This dynamically binds a method to the instance of the class.
 
-        If name is None, the name of the method is used.
+    If name is None, the name of the method is used.
     """
     if name is None:
         name = method.__name__
@@ -74,8 +74,8 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
 
 def setKwargs(obj, ignore=None, **kwargs):
     """
-        Sets key word arguments (kwargs) that are present in the object,
-        throw an error if they don't exist.
+    Sets key word arguments (kwargs) that are present in the object,
+    throw an error if they don't exist.
     """
     if ignore is None:
         ignore = []
@@ -225,14 +225,14 @@ def dependentProperty(name, value, children, doc):
 
 def requires(var):
     """
-        Use this to wrap a funciton::
+    Use this to wrap a funciton::
 
-            @requires('prob')
-            def dpred(self):
-                pass
+        @requires('prob')
+        def dpred(self):
+            pass
 
-        This wrapper will ensure that a problem has been bound to the data.
-        If a problem is not bound an Exception will be raised, and an nice error message printed.
+    This wrapper will ensure that a problem has been bound to the data.
+    If a problem is not bound an Exception will be raised, and an nice error message printed.
     """
 
     def requiresVar(f):
@@ -346,7 +346,7 @@ class Report(ScoobyReport):
         )
 
 
-def deprecate_class(removal_version=None, new_location=None):
+def deprecate_class(removal_version=None, new_location=None, future_warn=False):
     def decorator(cls):
         my_name = cls.__name__
         parent_name = cls.__bases__[0].__name__
@@ -360,7 +360,10 @@ def deprecate_class(removal_version=None, new_location=None):
         cls._old__init__ = cls.__init__
 
         def __init__(self, *args, **kwargs):
-            warnings.warn(message, DeprecationWarning)
+            if future_warn:
+                warnings.warn(message, FutureWarning)
+            else:
+                warnings.warn(message, DeprecationWarning)
             self._old__init__(*args, **kwargs)
 
         cls.__init__ = __init__
@@ -372,17 +375,22 @@ def deprecate_class(removal_version=None, new_location=None):
     return decorator
 
 
-def deprecate_module(old_name, new_name, removal_version=None):
+def deprecate_module(old_name, new_name, removal_version=None, future_warn=False):
     message = f"The {old_name} module has been deprecated, please use {new_name}."
     if removal_version is not None:
         message += f" It will be removed in version {removal_version} of SimPEG"
     else:
         message += " It will be removed in a future version of SimPEG."
     message += " Please update your code accordingly."
-    warnings.warn(message, DeprecationWarning)
+    if future_warn:
+        warnings.warn(message, FutureWarning)
+    else:
+        warnings.warn(message, DeprecationWarning)
 
 
-def deprecate_property(prop, old_name, new_name=None, removal_version=None):
+def deprecate_property(
+    prop, old_name, new_name=None, removal_version=None, future_warn=False
+):
 
     if isinstance(prop, property):
         if new_name is None:
@@ -401,11 +409,17 @@ def deprecate_property(prop, old_name, new_name=None, removal_version=None):
         message += " It will be removed in a future version of SimPEG."
 
     def get_dep(self):
-        warnings.warn(message, DeprecationWarning)
+        if future_warn:
+            warnings.warn(message, FutureWarning)
+        else:
+            warnings.warn(message, DeprecationWarning)
         return prop.fget(self)
 
     def set_dep(self, other):
-        warnings.warn(message, DeprecationWarning)
+        if future_warn:
+            warnings.warn(message, FutureWarning)
+        else:
+            warnings.warn(message, DeprecationWarning)
         prop.fset(self, other)
 
     doc = f"`{old_name}` has been deprecated. See `{new_name}` for documentation"
@@ -413,7 +427,7 @@ def deprecate_property(prop, old_name, new_name=None, removal_version=None):
     return property(get_dep, set_dep, prop.fdel, doc)
 
 
-def deprecate_method(method, old_name, removal_version=None):
+def deprecate_method(method, old_name, removal_version=None, future_warn=False):
     new_name = method.__qualname__
     split_name = new_name.split(".")
     if len(split_name) > 1:
@@ -426,7 +440,10 @@ def deprecate_method(method, old_name, removal_version=None):
         message += " It will be removed in a future version of SimPEG."
 
     def new_method(*args, **kwargs):
-        warnings.warn(message, DeprecationWarning)
+        if future_warn:
+            warnings.warn(message, FutureWarning)
+        else:
+            warnings.warn(message, DeprecationWarning)
         return method(*args, **kwargs)
 
     doc = f"`{old_name}` has been deprecated. See `{new_name}` for documentation"

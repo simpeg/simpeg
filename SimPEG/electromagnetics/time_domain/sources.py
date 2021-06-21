@@ -9,7 +9,7 @@ from ...utils.code_utils import deprecate_property
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
 from ..base import BaseEMSrc
-from ..utils import getSourceTermLineCurrentPolygon
+from ..utils import segmented_line_current_source_term
 from ...props import LocationVector
 from ...utils import setKwargs, sdiag, Zero, Identity
 
@@ -32,31 +32,19 @@ class BaseWaveform(properties.HasProperties):
         "window of time within which the waveform is considered on", default=1e-9
     )
 
-    use_lowpass_filter = properties.Bool(
-        "Switch for low pass filter", default=False
-    )
+    use_lowpass_filter = properties.Bool("Switch for low pass filter", default=False)
 
-    n_pulse = properties.Integer(
-        "The number of pulses",
-        default=1
-    )
+    n_pulse = properties.Integer("The number of pulses", default=1)
 
     high_cut_frequency = properties.Float(
-        "High cut frequency for low pass filter (Hz)",
-        default=210*1e3
+        "High cut frequency for low pass filter (Hz)", default=210 * 1e3
     )
 
-    waveform_times = properties.Array(
-        "Time for input currents", dtype=float
-    )
+    waveform_times = properties.Array("Time for input currents", dtype=float)
 
-    waveform_current = properties.Array(
-        "Input currents", dtype=float
-    )
+    waveform_current = properties.Array("Input currents", dtype=float)
 
-    base_frequency = properties.Float(
-        "Base frequency (Hz)", default=30.
-    )    
+    base_frequency = properties.Float("Base frequency (Hz)", default=30.0)
 
     def __init__(self, **kwargs):
         setKwargs(self, **kwargs)
@@ -69,15 +57,12 @@ class BaseWaveform(properties.HasProperties):
 
     @property
     def period(self):
-        return 1./self.base_frequency
+        return 1.0 / self.base_frequency
 
     @property
     def pulse_period(self):
-        Tp = (
-            self.waveform_times.max() -
-            self.waveform_times.min()
-        )
-        return Tp        
+        Tp = self.waveform_times.max() - self.waveform_times.min()
+        return Tp
 
 
 class StepOffWaveform(BaseWaveform):
@@ -288,7 +273,9 @@ class BaseTDEMSrc(BaseEMSrc):
         choices=["inductive", "galvanic"],
     )
 
-    i_sounding = properties.Integer("sounding number of the source", min=0, default=0, required=True)
+    i_sounding = properties.Integer(
+        "sounding number of the source", min=0, default=0, required=True
+    )
 
     def __init__(self, receiver_list=None, **kwargs):
         if receiver_list is not None:
@@ -360,7 +347,7 @@ class MagDipole(BaseTDEMSrc):
         "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
     )
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.15.0"
+        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
     )
 
     def __init__(self, receiver_list=None, **kwargs):
@@ -442,7 +429,7 @@ class MagDipole(BaseTDEMSrc):
             )
 
     def _phiSrc(self, prob):
-        Ainv = prob.Solver(self._getAmagnetostatic(prob))  # todo: store these
+        Ainv = prob.solver(self._getAmagnetostatic(prob))  # todo: store these
         rhs = self._rhs_magnetostatic(prob)
         Ainv.clean()
         return Ainv * rhs
@@ -558,7 +545,7 @@ class LineCurrent(BaseTDEMSrc):
 
     location = properties.Array("location of the source", shape=("*", 3))
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.15.0"
+        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
     )
     current = properties.Float("current in the line", default=1.0)
 
@@ -569,14 +556,7 @@ class LineCurrent(BaseTDEMSrc):
 
     def Mejs(self, prob):
         if getattr(self, "_Mejs", None) is None:
-            x0 = prob.mesh.x0
-            hx = prob.mesh.hx
-            hy = prob.mesh.hy
-            hz = prob.mesh.hz
-            px = self.loc[:, 0]
-            py = self.loc[:, 1]
-            pz = self.loc[:, 2]
-            self._Mejs = getSourceTermLineCurrentPolygon(x0, hx, hy, hz, px, py, pz)
+            self._Mejs = segmented_line_current_source_term(prob.mesh, self.location)
         return self.current * self._Mejs
 
     def getRHSdc(self, prob):
@@ -716,14 +696,14 @@ class RawVec_Grounded(BaseTDEMSrc):
 
     def _aInitial(self, prob):
         A = self._getAmmr(prob)
-        Ainv = prob.Solver(A)  # todo: store this
+        Ainv = prob.solver(A)  # todo: store this
         s_e = self.s_e(prob, 0)
         rhs = s_e - self.jInitial(prob)
         return Ainv * rhs
 
     def _aInitialDeriv(self, prob, v, adjoint=False):
         A = self._getAmmr(prob)
-        Ainv = prob.Solver(A)  # todo: store this - move it to the problem
+        Ainv = prob.solver(A)  # todo: store this - move it to the problem
 
         if adjoint is True:
             return -1 * (

@@ -49,10 +49,14 @@ class PGI_UpdateParameters(InversionDirective):
     """
 
     verbose = False  # print info.  about the GMM at each iteration
-    update_rate = 1 # updates at each `update_rate` iterations
+    update_rate = 1  # updates at each `update_rate` iterations
     update_gmm = True  # update the GMM
-    zeta = 1e10  # confidence in the prior proportions; default: high value, keep GMM fixed
-    nu = 1e10  # confidence in the prior covariances; default: high value, keep GMM fixed
+    zeta = (
+        1e10  # confidence in the prior proportions; default: high value, keep GMM fixed
+    )
+    nu = (
+        1e10  # confidence in the prior covariances; default: high value, keep GMM fixed
+    )
     kappa = 1e10  # confidence in the prior means;default: high value, keep GMM fixed
     update_covariances = (
         True  # Average the covariances, If false: average the precisions
@@ -65,7 +69,9 @@ class PGI_UpdateParameters(InversionDirective):
             pgi_reg = np.where(
                 np.r_[
                     [
-                        isinstance(regpart, (SimplePGI, PGI, SimplePGIwithRelationships))
+                        isinstance(
+                            regpart, (SimplePGI, PGI, SimplePGIwithRelationships)
+                        )
                         for regpart in self.reg.objfcts
                     ]
                 ]
@@ -87,7 +93,7 @@ class PGI_UpdateParameters(InversionDirective):
                 self.fixed_membership = np.c_[
                     np.arange(len(self.pgi_reg.gmmref.cell_volumes)),
                     self.pgi_reg.membership(self.pgi_reg.mref),
-                    ]
+                ]
 
             if self.update_gmm and isinstance(
                 self.pgi_reg.gmmref, GaussianMixtureWithNonlinearRelationships
@@ -162,18 +168,20 @@ class PGI_BetaAlphaSchedule(InversionDirective):
     geophysical and smallness targets.
     """
 
-    verbose = False #print information (progress, updates made)
-    tolerance = 0.0 # tolerance on the geophysical target misfit for cooling
-    progress = 0.1 # minimum percentage progress (default 10%) before cooling beta
-    coolingFactor = 2.0 # when cooled, beta is divided by it
-    warmingFactor = 1.0 # when warmed, alpha_s is multiplied by the ratio of the
-        # geophysical target with their current misfit, times this factor
-    mode = 1 # mode 1: start with nothing fitted. Mode 2: warmstart with fitted geophysical data
-    mode2_iter = 0 # counts how many iteration after the fit of the geophysical data
-    alphasmax = 1e10 #max alpha_s
-    betamin = 1e-10 # minimum beta
-    update_rate = 1 #update every `update_rate` iterations
-    ratio_in_cooling = False #add the ratio of geophysical misfit with their target in cooling
+    verbose = False  # print information (progress, updates made)
+    tolerance = 0.0  # tolerance on the geophysical target misfit for cooling
+    progress = 0.1  # minimum percentage progress (default 10%) before cooling beta
+    coolingFactor = 2.0  # when cooled, beta is divided by it
+    warmingFactor = 1.0  # when warmed, alpha_s is multiplied by the ratio of the
+    # geophysical target with their current misfit, times this factor
+    mode = 1  # mode 1: start with nothing fitted. Mode 2: warmstart with fitted geophysical data
+    mode2_iter = 0  # counts how many iteration after the fit of the geophysical data
+    alphasmax = 1e10  # max alpha_s
+    betamin = 1e-10  # minimum beta
+    update_rate = 1  # update every `update_rate` iterations
+    ratio_in_cooling = (
+        False  # add the ratio of geophysical misfit with their target in cooling
+    )
 
     def initialize(self):
         targetclass = np.r_[
@@ -220,7 +228,9 @@ class PGI_BetaAlphaSchedule(InversionDirective):
             petrosmallness = np.where(
                 np.r_[
                     [
-                        isinstance(regpart, (SimplePGI, PGI, SimplePGIwithRelationships))
+                        isinstance(
+                            regpart, (SimplePGI, PGI, SimplePGIwithRelationships)
+                        )
                         for regpart in self.reg.objfcts
                     ]
                 ]
@@ -264,22 +274,22 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                             (1.0 - self.progress) * self.previous_dmlist,
                             (1.0 + self.tolerance) * self.DMtarget,
                         ),
-                        decimals=1
+                        decimals=1,
                     ),
                 )
             if np.all(
-                    [
-                        np.all(
-                            self.dmlist[~self.targetlist]
-                            > np.maximum(
-                                (1.0 - self.progress)
-                                * self.previous_dmlist[~self.targetlist],
-                                self.DMtarget[~self.targetlist],
-                            )
-                        ),
-                        not self.DM,
-                        self.mode == 1,
-                    ]
+                [
+                    np.all(
+                        self.dmlist[~self.targetlist]
+                        > np.maximum(
+                            (1.0 - self.progress)
+                            * self.previous_dmlist[~self.targetlist],
+                            self.DMtarget[~self.targetlist],
+                        )
+                    ),
+                    not self.DM,
+                    self.mode == 1,
+                ]
             ):
 
                 if np.all([self.invProb.beta > self.betamin]):
@@ -372,7 +382,9 @@ class PGI_AddMrefInSmooth(InversionDirective):
             petrosmallness = np.where(
                 np.r_[
                     [
-                        isinstance(regpart, (SimplePGI, PGI, SimplePGIwithRelationships))
+                        isinstance(
+                            regpart, (SimplePGI, PGI, SimplePGIwithRelationships)
+                        )
                         for regpart in self.reg.objfcts
                     ]
                 ]
@@ -383,14 +395,19 @@ class PGI_AddMrefInSmooth(InversionDirective):
             Smooth = []
             for i, regobjcts in enumerate(self.reg.objfcts):
                 for j, regpart in enumerate(regobjcts.objfcts):
-                    Smooth += [[i, j, isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))]]
+                    Smooth += [
+                        [
+                            i,
+                            j,
+                            isinstance(
+                                regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv)
+                            ),
+                        ]
+                    ]
             self.Smooth = np.r_[Smooth]
 
             self.nbr = np.sum(
-                [
-                    len(self.reg.objfcts[i].objfcts)
-                    for i in range(len(self.reg.objfcts))
-                ]
+                [len(self.reg.objfcts[i].objfcts) for i in range(len(self.reg.objfcts))]
             )
             self._regmode = 1
             self.pgi_reg = self.reg.objfcts[self.petrosmallness]

@@ -22,17 +22,20 @@ class BaseRx(BaseTimeRx):
     )
 
     projComp = deprecate_property(
-        orientation, "projComp", new_name="orientation", removal_version="0.15.0"
+        orientation,
+        "projComp",
+        new_name="orientation",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     frequencies = properties.Array(
         "Frequency (Hz)", dtype=float, shape=("*",), required=True
-    )   
+    )
 
     use_source_receiver_offset = properties.Bool(
-        "Use source-receiver offset",
-        default=False
-    )    
+        "Use source-receiver offset", default=False
+    )
 
     _ftarg = None
     _time_interval = None
@@ -56,33 +59,33 @@ class BaseRx(BaseTimeRx):
 
     def getSpatialP(self, mesh, f):
         """
-            Returns the spatial projection matrix.
+        Returns the spatial projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         return mesh.getInterpolationMat(self.locations, self.projGLoc(f))
 
     def getTimeP(self, time_mesh, f):
         """
-            Returns the time projection matrix.
+        Returns the time projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         return time_mesh.getInterpolationMat(self.times, self.projTLoc(f))
 
     def getP(self, mesh, time_mesh, f):
         """
-            Returns the projection matrices as a
-            list for all components collected by
-            the receivers.
+        Returns the projection matrices as a
+        list for all components collected by
+        the receivers.
 
-            .. note::
+        .. note::
 
-                Projection matrices are stored as a dictionary (mesh, time_mesh) if storeProjections is True
+            Projection matrices are stored as a dictionary (mesh, time_mesh) if storeProjections is True
         """
         if (mesh, time_mesh) in self._Ps:
             return self._Ps[(mesh, time_mesh)]
@@ -98,11 +101,11 @@ class BaseRx(BaseTimeRx):
 
     def getTimeP(self, time_mesh, f):
         """
-            Returns the time projection matrix.
+        Returns the time projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         # if self.projField == 'dbdt':
         #     return time_mesh.getInterpolationMat(
@@ -146,7 +149,7 @@ class BaseRx(BaseTimeRx):
             # dP_dF_T = P.T * v #[src, self]
             # newshape = (len(dP_dF_T)/time_mesh.nN, time_mesh.nN )
             return P.T * v  # np.reshape(dP_dF_T, newshape, order='F')
-        
+
     @property
     def n_time(self):
         """
@@ -156,6 +159,7 @@ class BaseRx(BaseTimeRx):
         #     return int(self.times.size) + int(self.dual_times.size)
         # else:
         return int(self.times.size)
+
 
 class PointElectricField(BaseRx):
     """
@@ -219,15 +223,15 @@ class PointMagneticFluxTimeDerivative(BaseRx):
         """Grid Location projection (e.g. Ex Fy ...)"""
         if self.projField in f.aliasFields:
             return super(PointMagneticFluxTimeDerivative, self).projGLoc(f)
-        return f._GLoc(self.projField) + self.projComp
+        return f._GLoc(self.projField) + self.orientation
 
     def getTimeP(self, time_mesh, f):
         """
-            Returns the time projection matrix.
+        Returns the time projection matrix.
 
-            .. note::
+        .. note::
 
-                This is not stored in memory, but is created on demand.
+            This is not stored in memory, but is created on demand.
         """
         if self.projField in f.aliasFields:
             return super(PointMagneticFluxTimeDerivative, self).getTimeP(time_mesh, f)
@@ -250,6 +254,7 @@ class PointMagneticField(BaseRx):
             locations, times, orientation, **kwargs
         )
 
+
 class PointMagneticFieldTimeDerivative(BaseRx):
     """
     Magnetic field TDEM receiver
@@ -263,7 +268,7 @@ class PointMagneticFieldTimeDerivative(BaseRx):
         self.projField = "dhdt"
         super(PointMagneticFieldTimeDerivative, self).__init__(
             locations, times, orientation, **kwargs
-        )        
+        )
 
 
 class PointCurrentDensity(BaseRx):
@@ -295,31 +300,31 @@ class PointMagneticFieldTimeDerivative(BaseRx):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_e(PointElectricField):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_b(PointMagneticFluxDensity):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_h(PointMagneticField):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_j(PointCurrentDensity):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_dbdt(PointMagneticFluxTimeDerivative):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_dhdt(PointMagneticFieldTimeDerivative):
     pass

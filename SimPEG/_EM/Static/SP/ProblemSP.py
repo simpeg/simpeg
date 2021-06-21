@@ -86,11 +86,11 @@ class Problem_CC_Jstore(Problem_CC):
     @property
     def G(self):
         """
-            Inverse of :code:`_G`
+        Inverse of :code:`_G`
         """
         if getattr(self, "_G", None) is None:
             A = self.getA()
-            self.Ainv = self.Solver(A, **self.solverOpts)
+            self.Ainv = self.solver(A, **self.solver_spts)
             src = self.survey.source_list[0]
             rx = src.receiver_list[0]
             P = rx.getP(self.mesh, "CC").toarray()
@@ -141,7 +141,7 @@ class Problem_CC_Jstore(Problem_CC):
     @property
     def S(self):
         """
-            Derivatives for the spherical transformation
+        Derivatives for the spherical transformation
         """
         if getattr(self, "_S", None) is None:
             if self.verbose:

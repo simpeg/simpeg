@@ -128,7 +128,9 @@ model_map = maps.IdentityMap(nP=nC)  # model is a vlue for each active cell
 
 # Define model. Models in SimPEG are vector arrays
 model = background_susceptibility * np.ones(ind_active.sum())
-ind_sphere = model_builder.getIndicesSphere(np.r_[0.0, 0.0, -45.0], 15.0, mesh.cell_centers)
+ind_sphere = model_builder.getIndicesSphere(
+    np.r_[0.0, 0.0, -45.0], 15.0, mesh.cell_centers
+)
 ind_sphere = ind_sphere[ind_active]
 model[ind_sphere] = sphere_susceptibility
 
@@ -218,16 +220,15 @@ if write_output:
     dir_path = os.path.dirname(__file__).split(os.path.sep)
     dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
-    
+
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
 
     fname = dir_path + "magnetics_topo.txt"
     np.savetxt(fname, np.c_[xyz_topo], fmt="%.4e")
-    
+
     np.random.seed(211)
     maximum_anomaly = np.max(np.abs(dpred))
     noise = 0.02 * maximum_anomaly * np.random.rand(len(dpred))
     fname = dir_path + "magnetics_data.obs"
     np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt="%.4e")
-

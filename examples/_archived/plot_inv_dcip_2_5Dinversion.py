@@ -44,7 +44,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
     # Generate DC survey object
     survey_dc = gen_DCIPsurvey(endl, survey_type=survey_type, dim=2, a=10, b=10, n=10)
-    survey_dc = IO.from_ambn_locations_to_survey(
+    survey_dc = IO.from_abmn_locations_to_survey(
         survey_dc.locations_a,
         survey_dc.locations_b,
         survey_dc.locations_m,

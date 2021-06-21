@@ -28,22 +28,22 @@ class Survey(BaseSurvey):
         _source_location_dict = {}
         _source_location_by_sounding_dict = {}
         for src in source_list:
-            
+
             if src.frequency not in _frequency_dict:
                 _frequency_dict[src.frequency] = []
             _frequency_dict[src.frequency] += [src]
-            
-            if src.i_sounding not in _source_location_dict:    
+
+            if src.i_sounding not in _source_location_dict:
                 _source_location_dict[src.i_sounding] = []
                 _source_location_by_sounding_dict[src.i_sounding] = []
             _source_location_dict[src.i_sounding] += [src]
             _source_location_by_sounding_dict[src.i_sounding] += [src.location]
-            
+
         self._frequency_dict = _frequency_dict
         self._frequencies = sorted([f for f in self._frequency_dict])
         self._source_location_dict = _source_location_dict
         self._source_location_by_sounding_dict = _source_location_by_sounding_dict
-  
+
     @property
     def frequencies(self):
         """
@@ -52,7 +52,11 @@ class Survey(BaseSurvey):
         return self._frequencies
 
     freqs = deprecate_property(
-        frequencies, "freq", new_name="frequencies", removal_version="0.15.0"
+        frequencies,
+        "freq",
+        new_name="frequencies",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     @property
@@ -61,7 +65,11 @@ class Survey(BaseSurvey):
         return len(self._frequency_dict)
 
     nFreq = deprecate_property(
-        num_frequencies, "nFreq", new_name="num_frequencies", removal_version="0.15.0"
+        num_frequencies,
+        "nFreq",
+        new_name="num_frequencies",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     @property
@@ -70,14 +78,17 @@ class Survey(BaseSurvey):
         if getattr(self, "_num_sources_by_frequency", None) is None:
             self._num_sources_by_frequency = {}
             for freq in self.frequencies:
-                self._num_sources_by_frequency[freq] = len(self.getSrcByFreq(freq))
+                self._num_sources_by_frequency[freq] = len(
+                    self.get_sources_by_frequency(freq)
+                )
         return self._num_sources_by_frequency
 
     nSrcByFreq = deprecate_property(
         num_sources_by_frequency,
         "nSrcByFreq",
         new_name="num_sources_by_frequency",
-        removal_version="0.15.0",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     def get_sources_by_frequency(self, frequency):
@@ -92,7 +103,9 @@ class Survey(BaseSurvey):
         ), "The requested frequency is not in this survey."
         return self._frequency_dict[frequency]
 
-    getSrcByFreq = deprecate_method(get_sources_by_frequency, "getSrcByFreq", "0.15.0")
+    getSrcByFreq = deprecate_method(
+        get_sources_by_frequency, "getSrcByFreq", "0.16.0", future_warn=True
+    )
 
     @property
     def source_location_by_sounding_dict(self):
@@ -115,19 +128,19 @@ class Survey(BaseSurvey):
 
     @property
     def vnD_by_sounding_dict(self):
-        if getattr(self, '_vnD_by_sounding_dict', None) is None:
+        if getattr(self, "_vnD_by_sounding_dict", None) is None:
             self._vnD_by_sounding_dict = {}
             for i_sounding in self.source_location_by_sounding_dict:
                 source_list = self.get_sources_by_sounding_number(i_sounding)
                 nD = 0
                 for src in source_list:
-                    nD +=src.nD
+                    nD += src.nD
                 self._vnD_by_sounding_dict[i_sounding] = nD
         return self._vnD_by_sounding_dict
-    
+
     @property
     def vnrx_by_sounding_dict(self):
-        if getattr(self, '_vnrx_by_sounding_dict', None) is None:
+        if getattr(self, "_vnrx_by_sounding_dict", None) is None:
             self._vnrx_by_sounding_dict = {}
             for i_sounding in self.source_location_by_sounding_dict:
                 source_list = self.get_sources_by_sounding_number(i_sounding)
@@ -136,9 +149,9 @@ class Survey(BaseSurvey):
                 # number of receiver locations
                 src = source_list[0]
                 for rx in src.receiver_list:
-                    nrx +=len(rx.locations)
+                    nrx += len(rx.locations)
                 self._vnrx_by_sounding_dict[i_sounding] = nrx
-        return self._vnrx_by_sounding_dict        
+        return self._vnrx_by_sounding_dict
 
     @property
     def frequency_by_sounding_dict(self):
@@ -149,20 +162,20 @@ class Survey(BaseSurvey):
     @property
     def receiver_location_by_sounding_dict(self):
         if getattr(self, "_receiver_location_by_sounding_dict", None) is None:
-            self.get_attributes_by_sounding()        
+            self.get_attributes_by_sounding()
         return self._receiver_location_by_sounding_dict
 
     @property
     def receiver_orientation_by_sounding_dict(self):
         if getattr(self, "_receiver_orientation_by_sounding_dict", None) is None:
-            self.get_attributes_by_sounding()        
+            self.get_attributes_by_sounding()
         return self._receiver_orientation_by_sounding_dict
 
     @property
     def receiver_use_offset_by_sounding_dict(self):
         if getattr(self, "_receiver_use_offset_by_sounding_dict", None) is None:
-            self.get_attributes_by_sounding()        
-        return self._receiver_use_offset_by_sounding_dict        
+            self.get_attributes_by_sounding()
+        return self._receiver_use_offset_by_sounding_dict
 
     def get_attributes_by_sounding(self):
         self._frequency_by_sounding_dict = {}
@@ -183,6 +196,12 @@ class Survey(BaseSurvey):
                     rx_use_offset.append(rx.use_source_receiver_offset)
                     frequencies.append(src.frequency)
             self._frequency_by_sounding_dict[i_sounding] = np.hstack([frequencies])
-            self._receiver_orientation_by_sounding_dict[i_sounding] = np.hstack([rx_orientations])
-            self._receiver_location_by_sounding_dict[i_sounding] = np.vstack([rx_locations])[:,0,:]
-            self._receiver_use_offset_by_sounding_dict[i_sounding] = np.hstack([rx_use_offset])
+            self._receiver_orientation_by_sounding_dict[i_sounding] = np.hstack(
+                [rx_orientations]
+            )
+            self._receiver_location_by_sounding_dict[i_sounding] = np.vstack(
+                [rx_locations]
+            )[:, 0, :]
+            self._receiver_use_offset_by_sounding_dict[i_sounding] = np.hstack(
+                [rx_use_offset]
+            )
