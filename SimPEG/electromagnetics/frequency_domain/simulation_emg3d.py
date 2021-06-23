@@ -185,7 +185,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                         ind += 1
 
             # Create and store survey.
-            self._emg3d_survey = emg3d.Survey(
+            survey = emg3d.Survey(
                 name='Survey created by SimPEG',
                 sources=emg3d.surveys.txrx_lists_to_dict(src_list),
                 receivers=emg3d.surveys.txrx_lists_to_dict(rec_list),
@@ -193,9 +193,13 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 noise_floor=1.,       # We deal with std in SimPEG.
                 relative_error=None,  #  "   "   "
             )
+            self._emg3d_survey = survey
 
             # Store data-mapping SimPEG <-> emg3d
             self._dmap_simpeg_emg3d = tuple(indices.T)
+
+            # Create emg3d data dummy; can be re-used.
+            self._emg3d_array = np.full(survey.shape, np.nan+1j*np.nan)
 
         return self._emg3d_survey
 
@@ -256,12 +260,11 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             print("Compute Jtvec")
 
         if self.storeJ:
-            # Next two lines map SimPEG-v to emg3d-data-array
-            vec = np.full(self.emg3d_survey.shape, np.nan+1j*np.nan)
-            vec[self._dmap_simpeg_emg3d] = v
+            # Put v onto emg3d data-array.
+            self._emg3d_array[self._dmap_simpeg_emg3d] = v
 
             J = self.getJ(m, f=f)
-            Jtv = mkvc(np.dot(J.T, vec))
+            Jtv = mkvc(np.dot(J.T, self._emg3d_array))
             return Jtv
 
         self.model = m
@@ -278,11 +281,9 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         """
 
         if v is not None:
-            # Next two lines map SimPEG-v to emg3d-data-array
-            vec = np.full(self.emg3d_survey.shape, np.nan+1j*np.nan)
-            vec[self._dmap_simpeg_emg3d] = v
-
-            jt_sigma_vec = emg3d.optimize.gradient(f, vector=vec)
+            # Put v onto emg3d data-array.
+            self._emg3d_array[self._dmap_simpeg_emg3d] = v
+            jt_sigma_vec = emg3d.optimize.gradient(f, vector=self._emg3d_array)
             jt_vec = self.sigmaDeriv.T @ jt_sigma_vec.ravel('F')
             return jt_vec
 
