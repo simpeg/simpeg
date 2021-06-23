@@ -73,8 +73,15 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
     def __init__(self, mesh, **kwargs):
         """Initialize Simulation using emg3d as solver."""
-        # Store simulation options
-        self.simulation_opts = kwargs.pop('simulation_opts', {})
+
+        # Default values for inputs which can be overwritten by simulation_opts
+        self.simulation_input = {
+            'name': 'Simulation created by SimPEG',
+            'gridding': 'same',                  # Change this eventually!
+            'tqdm_opts': {'disable': True},      # Switch-off tqdm
+            'receiver_interpolation': 'linear',  # Should be linear
+            **kwargs.pop('simulation_opts', {}), # Input
+        }
 
         unknown = ['solver', 'solver_opts', 'Solver', 'solverOpts']
         for keyword in unknown:
@@ -83,8 +90,10 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                     f"Keyword input '{keyword}' is not a known input for "
                     "Simulation3DEMG3D"
                 )
-        # Should we raise a Warning if `solver` or `solver_opts` is provided?
+
         super().__init__(mesh, **kwargs)
+
+        # self._it_count = 0  # TODO @seogi - is there already a count?
 
     @property
     def emg3d_survey(self):
@@ -283,7 +292,13 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         if v is not None:
             # Put v onto emg3d data-array.
             self._emg3d_array[self._dmap_simpeg_emg3d] = v
-            jt_sigma_vec = emg3d.optimize.gradient(f, vector=self._emg3d_array)
+
+            # Replace residual by vector if provided
+            f.survey.data['residual'][...] = self._emg3d_array
+
+            # Get gradient with `v` as residual.
+            jt_sigma_vec = emg3d.optimize.gradient(f)
+
             jt_vec = self.sigmaDeriv.T @ jt_sigma_vec.ravel('F')
             return jt_vec
 
@@ -369,23 +384,19 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         # Store model.
         self.model = m
 
-        # Default values for inputs which can be overwritten by simulation_opts
-        sim_input = {
-            'name': 'Simulation created by SimPEG',
-            'gridding': 'same',                  # Change this eventually!
-            'tqdm_opts': {'disable': True},      # Switch-off tqdm
-            'receiver_interpolation': 'linear',  # Should be linear
-            **self.simulation_opts,
-        }
-
         # Create emg3d Simulation.
-        sim = emg3d.Simulation(
+        simulation = emg3d.Simulation(
             survey=self.emg3d_survey,
             model=self.emg3d_model,
-            **sim_input,
+            **self.simulation_input,
         )
 
-        # Compute forward model.
-        sim.compute()
+        # Compute forward model and sets initial residuals.
+        _ = simulation.misfit
 
-        return sim
+        # # TODO Here we could easily store the data at each step in the xarray
+        # current_data = self.emg3d_survey.data.synthetic.copy()
+        # self.emg3d_survey.data[f"it_{self._it_count}"] = current_data
+        # self._it_count += 1
+
+        return simulation
