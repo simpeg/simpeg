@@ -1,14 +1,19 @@
-import emg3d
 import numpy as np
+
+from discretize.code_utils import requires
 
 from ...utils import mkvc
 from .simulation import BaseFDEMSimulation
 from .fields import Fields3DElectricField
 
+# emg3d is a soft dependency
+try:
+    import emg3d
+except ImportError:
+    emg3d = False
 
-# TODO Have to make emg3d optional and check if it is installed or not, fail
-#      graciously otherwise (e.g., like matplotlib in discretize).
 
+@requires({"emg3d": emg3d})
 class Simulation3DEMG3D(BaseFDEMSimulation):
     """Same as Simulation3DElectricField, but using emg3d as solver.
 
