@@ -1,6 +1,6 @@
 import numpy as np
 
-from discretize.code_utils import requires
+from discretize.utils import requires
 
 from ...utils import mkvc
 from .simulation import BaseFDEMSimulation
