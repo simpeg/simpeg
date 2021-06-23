@@ -4,7 +4,6 @@ from discretize.utils import requires
 
 from ...utils import mkvc
 from .simulation import BaseFDEMSimulation
-from .fields import Fields3DElectricField
 
 # emg3d is a soft dependency
 try:
@@ -15,85 +14,55 @@ except ImportError:
 
 @requires({"emg3d": emg3d})
 class Simulation3DEMG3D(BaseFDEMSimulation):
-    """Same as Simulation3DElectricField, but using emg3d as solver.
+    """3D simulation of electromagnetic fields using emg3d as a solver.
 
-    General thought
-    ---------------
-    I still think we should simplify this and generalize this in such a way
-    that the regular class `Simulation3DElectricField` can be used, with
-    `solver=emg3d` and the `solver_opts` used as `simulation_opts`.
+    .. note::
 
-    Maybe as a mixin.
+        - Only isotropic model implemented so far. Needs extension to tri-axial
+          anisotropy, mu_r, and epsilon_r.
 
-    Or, at least, make the emg3d-dependency optional, then we can merge this
-    with the regular simulation.py.
-
-
-    Notes regarding input parameters
-    --------------------------------
-
-    - ``solver`` is ignored.
-    - ``simulation_opts`` can contain any parameter accepted in
-      ``emg3d.Simulation``.
+        - Currently, only electric "point"-dipole sources and electric/magnetic
+          point receivers are implemented. emg3d could do more, e.g., finite
+          length electric dipoles or arbitrary electric wires (and therefore
+          loops). These are *not yet* implemented here.
 
 
-    Notes
-    -----
-
-    - Only isotropic model implemented so far. Needs extension to tri-axial
-      anisotropy, mu_r, and epsilon_r.
-
-    - Currently, only electric "point"-dipole sources and electric/magnetic
-      point receivers are implemented. emg3d could do more, e.g., finite length
-      electric dipoles or arbitrary electric wires (and therefore loops). These
-      are *not yet* implemented here.
-
-    - emg3d currently supports two receiver placement types (which can be mixed
-      in an emg3d-survey):
-
-      - Positioned absolutely;
-      - Positioned relative to source position.
-
-      Here are currently only absolutely positioned receivers implemented.
-
-      Source, receiver, and frequencies are stored in an nsrc x nrec x nfreq
-      xarray in emg3d. Data  for non-existing source-receiver-frequency
-      combination contain NaN's.
-
-    - ...
+    Parameters
+    ----------
+    simulation_opts : dict
+        Input parameters forward to ``emg3d.Simulation``. See the emg3d
+        documentation for all the possibilities.
 
     """
 
     _solutionType = "eSolution"
     _formulation = "EB"
-    fieldsPair = Fields3DElectricField  # <= TODO not used yet (see fields-fct)
-
     storeJ = False
     _Jmatrix = None
 
     def __init__(self, mesh, **kwargs):
         """Initialize Simulation using emg3d as solver."""
 
-        # Default values for inputs which can be overwritten by simulation_opts
-        self.simulation_input = {
-            'name': 'Simulation created by SimPEG',
-            'gridding': 'same',                  # Change this eventually!
-            'tqdm_opts': {'disable': True},      # Switch-off tqdm
-            'receiver_interpolation': 'linear',  # Should be linear
-            **kwargs.pop('simulation_opts', {}), # Input
-        }
-
-        unknown = ['solver', 'solver_opts', 'Solver', 'solverOpts']
-        for keyword in unknown:
-            if keyword in kwargs:
-                raise AttributeError(
-                    f"Keyword input '{keyword}' is not a known input for "
-                    "Simulation3DEMG3D"
-                )
+        # Store simulation options.
+        simulation_opts = kwargs.pop('simulation_opts', {})
 
         super().__init__(mesh, **kwargs)
 
-        # self._it_count = 0  # TODO @seogi - is there already a count?
+        # Create twin Simulation in emg3d.
+        self.emg3d_sim = emg3d.Simulation(
+            survey=self.emg3d_survey,
+            model=emg3d.Model(self.mesh),  # Dummy values of 1 for initiation.
+            **{'name': 'Simulation created by SimPEG',
+               'gridding': 'same',                  # Change this eventually!
+               'tqdm_opts': {'disable': True},      # Switch-off tqdm
+               'receiver_interpolation': 'linear',  # Should be linear
+               **simulation_opts}                   # User input
+        )
+
+        # TODO : Count to store data per iteration.
+        # - Should be replaced by a proper count form SimPEG.inversion.
+        # - Should probably be made optional to store data at each step.
+        self._it_count = 0
 
     @property
     def emg3d_survey(self):
@@ -217,7 +186,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         """emg3d conductivity model; obtained from SimPEG conductivities."""
         self._emg3d_model = emg3d.Model(
             self.mesh,
-            property_x=self.sigma.reshape(self.mesh.vnC, order='F'),
+            property_x=self.sigma.reshape(self.mesh.shape_cells, order='F'),
             # property_y=None,  Not yet implemented
             # property_z=None,   "
             # mu_r=None,         "
@@ -225,6 +194,24 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             mapping='Conductivity',
         )
         return self._emg3d_model
+
+    @property
+    def _emg3d_simulation_update(self):
+        """Updates emg3d simulation with new model, resetting the fields."""
+
+        # We have to replace the model
+        # Warning:
+        # This will not work for automatic model extension possible in emg3d.
+        self.emg3d_sim.model = self.emg3d_model
+
+        # Re-initiate all dicts _except_ grids (automatic gridding)
+        self.emg3d_sim._dict_model = self.emg3d_sim._dict_initiate
+        self.emg3d_sim._dict_efield = self.emg3d_sim._dict_initiate
+        self.emg3d_sim._dict_hfield = self.emg3d_sim._dict_initiate
+        self.emg3d_sim._dict_efield_info = self.emg3d_sim._dict_initiate
+        self.emg3d_sim._gradient = None
+        self.emg3d_sim._misfit = None
+        self.emg3d_sim._vec = None  # TODO check back when emg3d-side finished!
 
     def Jvec(self, m, v, f=None):
         """
@@ -252,6 +239,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
         dsig_dm_v = self.sigmaDeriv @ v
         j_vec = emg3d.optimize.jvec(f, vec=dsig_dm_v)
+
         # Map emg3d-data-array to SimPEG-data-vector
         return j_vec[self._dmap_simpeg_emg3d]
 
@@ -269,11 +257,13 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             print("Compute Jtvec")
 
         if self.storeJ:
+
             # Put v onto emg3d data-array.
             self._emg3d_array[self._dmap_simpeg_emg3d] = v
 
             J = self.getJ(m, f=f)
             Jtv = mkvc(np.dot(J.T, self._emg3d_array))
+
             return Jtv
 
         self.model = m
@@ -355,8 +345,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         if self.verbose:
             print("Compute predicted")
 
-        # currently this does not change once self.fields is computed.
-        # ^ TODO check/understand Seogi's comment; it could be achieved.
         if f is None:
             f = self.fields(m=m)
 
@@ -371,32 +359,23 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         :return: f, the fields
         """
 
-        # TODO 1: The `fields` should return the fields, not the simulation,
-        #         using the fancy field storage fieldsPair.
-        #
-        # TODO 2: MOVE SIMULATION out of fields
-        #         should only be generated ONCE, then we just replace parts of
-        #         it. Also, combine it with survey?
-
         if self.verbose:
             print("Compute fields")
 
-        # Store model.
-        self.model = m
+        if m is not None:
+            # Store model.
+            self.model = m
 
-        # Create emg3d Simulation.
-        simulation = emg3d.Simulation(
-            survey=self.emg3d_survey,
-            model=self.emg3d_model,
-            **self.simulation_input,
-        )
+            # Update simulation.
+            self._emg3d_simulation_update
 
         # Compute forward model and sets initial residuals.
-        _ = simulation.misfit
+        _ = self.emg3d_sim.misfit
 
-        # # TODO Here we could easily store the data at each step in the xarray
-        # current_data = self.emg3d_survey.data.synthetic.copy()
-        # self.emg3d_survey.data[f"it_{self._it_count}"] = current_data
-        # self._it_count += 1
+        # Store the data at each step in the survey-xarray
+        if m is not None:
+            current_data = self.emg3d_survey.data.synthetic.copy()
+            self.emg3d_survey.data[f"it_{self._it_count}"] = current_data
+            self._it_count += 1  # Update counter
 
-        return simulation
+        return self.emg3d_sim
