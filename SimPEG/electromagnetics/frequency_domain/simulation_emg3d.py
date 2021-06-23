@@ -25,6 +25,9 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
     Maybe as a mixin.
 
+    Or, at least, make the emg3d-dependency optional, then we can merge this
+    with the regular simulation.py.
+
 
     Notes regarding input parameters
     --------------------------------
@@ -93,8 +96,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             src_list = []
             freq_list = []
             rec_list = []
-            data_dict = {}  # emg3d -> SimPEG
-            data_list = []  # SimPEG -> emg3d
+            data_dict = {}
+            indices = np.zeros((self.survey.nD, 3), dtype=int)
 
             # Counter for SimPEG data object (lists the data continuously).
             ind = 0
@@ -178,7 +181,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                                     "Duplicate source-receiver-frequency."
                                 )
 
-                        data_list.append((s_ind, r_ind, f_ind))
+                        indices[ind, :] = [s_ind, r_ind, f_ind]
                         ind += 1
 
             # Create and store survey.
@@ -191,9 +194,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 relative_error=None,  #  "   "   "
             )
 
-            # Store data mapping dict/list
-            self._dmap_emg3d_to_simpeg = data_dict  # Not really required
-            self._dmap_simpeg_to_emg3d = data_list
+            # Store data-mapping SimPEG <-> emg3d
+            self._dmap_simpeg_emg3d = tuple(indices.T)
 
         return self._emg3d_survey
 
@@ -210,30 +212,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             mapping='Conductivity',
         )
         return self._emg3d_model
-
-    def _simpeg_data_to_emg3d(self, data):
-        """Map SimPEG data vector to emg3d ndarray.
-
-        This could potentially be achieved much faster/cleverer with a sparse
-        mapping or similar.
-        """
-        out = np.full(self.emg3d_survey.shape, np.nan+1j*np.nan)
-        for i, ind in enumerate(self._dmap_simpeg_to_emg3d):
-            out[ind[0], ind[1], ind[2]] = data[i]
-
-        return out
-
-    def _emg3d_data_to_simpeg(self, data):
-        """Map emg3d data ndarray to SimPEG vector.
-
-        This could potentially be achieved much faster/cleverer with a sparse
-        mapping or similar.
-        """
-        out = np.zeros(len(self._dmap_simpeg_to_emg3d), dtype=complex)
-        for i, ind in enumerate(self._dmap_simpeg_to_emg3d):
-            out[i] = data[ind[0], ind[1], ind[2]]
-
-        return out
 
     def Jvec(self, m, v, f=None):
         """
@@ -261,7 +239,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
         dsig_dm_v = self.sigmaDeriv @ v
         j_vec = emg3d.optimize.jvec(f, vec=dsig_dm_v)
-        return self._emg3d_data_to_simpeg(j_vec)
+        # Map emg3d-data-array to SimPEG-data-vector
+        return j_vec[self._dmap_simpeg_emg3d]
 
     def Jtvec(self, m, v, f=None):
         """
@@ -277,8 +256,11 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             print("Compute Jtvec")
 
         if self.storeJ:
+            # Next two lines map SimPEG-v to emg3d-data-array
+            vec = np.full(self.emg3d_survey.shape, np.nan+1j*np.nan)
+            vec[self._dmap_simpeg_emg3d] = v
+
             J = self.getJ(m, f=f)
-            vec = self._simpeg_data_to_emg3d(v)
             Jtv = mkvc(np.dot(J.T, vec))
             return Jtv
 
@@ -296,7 +278,10 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         """
 
         if v is not None:
-            vec = self._simpeg_data_to_emg3d(v)
+            # Next two lines map SimPEG-v to emg3d-data-array
+            vec = np.full(self.emg3d_survey.shape, np.nan+1j*np.nan)
+            vec[self._dmap_simpeg_emg3d] = v
+
             jt_sigma_vec = emg3d.optimize.gradient(f, vector=vec)
             jt_vec = self.sigmaDeriv.T @ jt_sigma_vec.ravel('F')
             return jt_vec
@@ -359,7 +344,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         if f is None:
             f = self.fields(m=m)
 
-        return self._emg3d_data_to_simpeg(f.data.synthetic.data)
+        # Map emg3d-data-array to SimPEG-data-vector
+        return f.data.synthetic.data[self._dmap_simpeg_emg3d]
 
     def fields(self, m=None):
         """Return the electric fields for a given model.
