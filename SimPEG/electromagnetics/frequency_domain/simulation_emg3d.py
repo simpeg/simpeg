@@ -366,6 +366,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         if self.verbose:
             print("Compute fields")
 
+        # Store model.
         self.model = m
 
         # Default values for inputs which can be overwritten by simulation_opts
@@ -377,15 +378,14 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             **self.simulation_opts,
         }
 
+        # Create emg3d Simulation.
         sim = emg3d.Simulation(
             survey=self.emg3d_survey,
             model=self.emg3d_model,
             **sim_input,
         )
 
-        # Store weights  # WHY???
-        std = sim.survey.standard_deviation
-        sim.data['weights'] = std**-2
-
+        # Compute forward model.
         sim.compute()
+
         return sim
