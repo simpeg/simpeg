@@ -4,7 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 from six import string_types
 
-from .utils.solver_utils import SolverWrapI, Solver
+from .utils.solver_utils import SolverWrapI, Solver, SolverCG
 from .utils import (
     callHooks,
     checkStoppers,
@@ -1010,7 +1010,7 @@ class GaussNewton(Minimize, Remember):
 
     @timeIt
     def findSearchDirection(self):
-        return Solver(self.H) * (-self.g)
+        return SolverCG(self.H) * (-self.g)
 
 
 class InexactGaussNewton(BFGS, Minimize, Remember):
