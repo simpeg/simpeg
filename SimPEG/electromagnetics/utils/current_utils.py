@@ -40,11 +40,6 @@ def getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz):
     lz = bz - az
     l = np.sqrt(lx ** 2 + ly ** 2 + lz ** 2)
 
-    if l == 0:
-        sx = np.zeros((4, 1))
-        sy = np.zeros((4, 1))
-        sz = np.zeros((4, 1))
-
     # integration using Simpson's rule
     wx0 = edge_basis_function(0.0, ay, ly, hy, az, lz, hz)
     wx0_5 = edge_basis_function(0.5, ay, ly, hy, az, lz, hz)
