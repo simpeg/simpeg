@@ -1275,7 +1275,7 @@ class UpdateSensitivityWeights(InversionDirective):
         """
 
         for reg in self.reg.objfcts:
-            reg.cell_weights = reg.mapping * (self.wr)
+            reg.cell_weights = reg.weight_map * (self.wr)
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights

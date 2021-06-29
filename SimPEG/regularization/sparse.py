@@ -12,9 +12,12 @@ class BaseSparse(BaseRegularization):
     Base class for building up the components of the Sparse Regularization
     """
 
-    def __init__(self, mesh, mapping=None, **kwargs):
+    def __init__(self, mesh, mapping=None, weight_map=None, **kwargs):
         self._stashedR = None
         super(BaseSparse, self).__init__(mesh=mesh, **kwargs)
+        self.weight_map = weight_map
+        if self.weight_map is None:
+            self.weight_map = self.mapping
 
     model = properties.Array("current model", dtype=float)
 
@@ -441,6 +444,7 @@ class Sparse(BaseComboRegularization):
         if mesh.dim > 2:
             objfcts.append(SparseDeriv(mesh=mesh, orientation="z", **kwargs))
 
+        self.weight_map = None
         super(Sparse, self).__init__(
             mesh=mesh,
             objfcts=objfcts,

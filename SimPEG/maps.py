@@ -616,22 +616,27 @@ class SphericalSystem(IdentityMap):
         return self.sphericalDeriv(m)
 
 
-class VectorAmplitude(IdentityMap):
+class VectorAmplitudeSquare(IdentityMap):
     """
     A vector amplitude map defined as
 
     .. math::
 
-        v = (v_x^2 + v_y^2 + v_z^2)^(1/2)
+        v^2 = (v_x^2 + v_y^2 + v_z^2)
 
     where :math:`v_x`, :math:`v_y` and :math:`v_z` are the
-    vector components.
+    vector components. The derivative ...
     """
 
-    def __init__(self, mesh=None, nP=None, **kwargs):
+    def __init__(self, component: str, mesh=None, nP=None, **kwargs):
 
         super().__init__(mesh, nP, **kwargs)
+        assert component in "xyz", (
+            "Vector component must be one of 'x', 'y', or 'z'. "
+            f"{component} provided."
+        )
         self.model = None
+        self.component = component
 
     @property
     def shape(self):
@@ -652,13 +657,20 @@ class VectorAmplitude(IdentityMap):
         """
 
         """
-
         if getattr(self, "P", None) is None:
-            self.P = sp.vstack(
-                [sp.identity(self.nP)] * 3
+            index = self.nP * "xyz".index(self.component)
+            self.P = sp.csr_matrix(
+                (
+                    np.ones(self.nP),
+                    (range(self.nP), range(index, index + self.nP))
+                ),
+                shape=(self.nP, 3 * self.nP)
             )
 
-        return self.P.T
+        if v is not None:
+            return self.P * v
+
+        return self.P
 
 
 class Wires(object):

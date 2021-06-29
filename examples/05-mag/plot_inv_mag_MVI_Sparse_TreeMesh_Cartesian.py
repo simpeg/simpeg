@@ -274,6 +274,7 @@ plotVectorSectionsOctree(
     axs=ax,
     normal="Y",
     actvMap=actv_plot,
+    ind=65,
     scale=0.5,
     vmin=0.0,
     vmax=0.025,
@@ -314,25 +315,26 @@ wires = maps.Wires(("p", nC), ("s", nC), ("t", nC))
 # for n, w in wires.maps:
 #     w._transform = magnitude
 
-magnitude = maps.VectorAmplitude(nP=nC)
+mag_x = maps.VectorAmplitudeSquare("x", nP=nC)
+mag_y = maps.VectorAmplitudeSquare("y", nP=nC)
+mag_z = maps.VectorAmplitudeSquare("z", nP=nC)
 
 m0 = np.ones(3 * nC) * 1e-4  # Starting model
 
 # Create three regularization for the different components
 # of magnetization
-reg_p = regularization.Sparse(mesh, indActive=actv, mapping=magnitude)
+reg_p = regularization.Sparse(mesh, mapping=mag_x, weight_map=wires.p, indActive=actv)
 reg_p.norms = np.c_[0, 1, 1, 1]
 reg_p.mref = np.zeros(3*nC)
 
-# reg_s = regularization.Sparse(mesh, weight_map=magnitude, indActive=actv, mapping=wires.s)
-# reg_s.norms = np.c_[0, 1, 1, 1]
-# reg_s.mref = np.zeros(3 * nC)
-#
-# reg_t = regularization.Sparse(mesh, weight_map=magnitude, indActive=actv, mapping=wires.t)
-# reg_t.norms = np.c_[0, 1, 1, 1]
-# reg_t.mref = np.zeros(3 * nC)
+reg_s = regularization.Sparse(mesh, mapping=mag_y, weight_map=wires.s, indActive=actv)
+reg_s.norms = np.c_[0, 1, 1, 1]
+reg_s.mref = np.zeros(3 * nC)
 
-reg = reg_p # + reg_s + reg_t
+reg_t = regularization.Sparse(mesh, mapping=mag_z, weight_map=wires.t, indActive=actv)
+reg_t.mref = np.zeros(3 * nC)
+
+reg = reg_p + reg_s + reg_t
 # reg.mref = np.zeros(3 * nC)
 
 # Data misfit function
