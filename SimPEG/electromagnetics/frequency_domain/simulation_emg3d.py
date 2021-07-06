@@ -132,11 +132,11 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 rec_types = [emg3d.RxElectricPoint, emg3d.RxMagneticPoint]
                 for rec in src.receiver_list:
 
-                    # Only get unique receivers.
-                    if rec._uid in rec_uid:
-                        continue
-                    else:
-                        rec_uid.append(rec._uid)
+                    # # Only get unique receivers.
+                    # if rec._uid in rec_uid:
+                    #     continue
+                    # else:
+                    #     rec_uid.append(rec._uid)
 
                     if rec.projField not in ['e', 'h']:
                         raise NotImplementedError(
