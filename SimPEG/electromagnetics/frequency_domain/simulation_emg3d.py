@@ -83,7 +83,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             src_list = []
             freq_list = []
             rec_list = []
-            rec_uid = []
             data_dict = {}
             indices = np.zeros((self.survey.nD, 3), dtype=int)
 
@@ -131,12 +130,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 # Loop over receiver lists.
                 rec_types = [emg3d.RxElectricPoint, emg3d.RxMagneticPoint]
                 for rec in src.receiver_list:
-
-                    # Only get unique receivers.
-                    if rec._uid in rec_uid:
-                        continue
-                    else:
-                        rec_uid.append(rec._uid)
 
                     if rec.projField not in ['e', 'h']:
                         raise NotImplementedError(
