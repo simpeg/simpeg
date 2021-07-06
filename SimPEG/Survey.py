@@ -9,7 +9,6 @@ from . import Utils
 from . import Props
 
 
-
 class BaseRx(object):
     """SimPEG Receiver Object"""
 
