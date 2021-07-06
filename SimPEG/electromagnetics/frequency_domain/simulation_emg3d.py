@@ -203,15 +203,49 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 noise_floor=1.,       # We deal with std in SimPEG.
                 relative_error=None,  #  "   "   "
             )
-            self._emg3d_survey = survey
 
             # Store data-mapping SimPEG <-> emg3d
             self._dmap_simpeg_emg3d = tuple(indices.T)
+
+            # Add reverse map to emg3d-data (is saved with survey).
+            ind = np.full(survey.shape, np.nan)
+            ind[self._dmap_simpeg_emg3d] = np.arange(self.survey.nD)
+            survey.data['indices'] = survey.data.observed.copy(data=ind)
+
+            # Store survey.
+            self._emg3d_survey = survey
 
             # Create emg3d data dummy; can be re-used.
             self._emg3d_array = np.full(survey.shape, np.nan+1j*np.nan)
 
         return self._emg3d_survey
+
+    @emg3d_survey.setter
+    def emg3d_survey(self, emg3d_survey):
+        """emg3d survey; obtained from SimPEG survey."""
+
+        # Store survey.
+        self._emg3d_survey = emg3d_survey
+
+        # Store emg3d-to-SimPEG mapping.
+        try:
+
+            # Get dmap from the stored indices.
+            indices = np.zeros((self.survey.nD, 3), dtype=int)
+            for i in range(self.survey.nD):
+                indices[i, :] = np.r_[
+                        np.where(emg3d_survey.data.indices.data == i)]
+
+            # Store dmap.
+            self._dmap_simpeg_emg3d = tuple(indices.T)
+
+        except:
+            raise AttributeError(
+                "Provided emg3d-survey misses the indices data array."
+            )
+
+        # Create emg3d data dummy; can be re-used.
+        self._emg3d_array = np.full(emg3d_survey.shape, np.nan+1j*np.nan)
 
     @property
     def emg3d_model(self):
