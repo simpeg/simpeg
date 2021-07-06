@@ -4,6 +4,7 @@ from discretize.utils import requires
 
 from ...utils import mkvc
 from .simulation import BaseFDEMSimulation
+from .sources import ElectricWire
 
 # emg3d is a soft dependency
 try:
@@ -84,10 +85,16 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             for src in self.survey.source_list:
 
                 # Create emg3d source.
-                source = emg3d.TxElectricDipole(
-                    (*src.location, src.azimuth, src.elevation),
-                    strength=src.strength, length=src.length
-                )
+                if isinstance(src, ElectricWire):
+                    source = emg3d.TxElectricWire(
+                        src.locations,
+                        strength=src.strength
+                    )                    
+                else:
+                    source = emg3d.TxElectricDipole(
+                        (*src.location, src.azimuth, src.elevation),
+                        strength=src.strength, length=src.length
+                    )
 
                 # New frequency: add.
                 if src.frequency not in freq_list:
