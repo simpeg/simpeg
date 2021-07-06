@@ -65,10 +65,10 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 survey=self.emg3d_survey,
                 model=emg3d.Model(self.mesh),  # Dummy values of 1 for init.
                 **{'name': 'Simulation created by SimPEG',
-                'gridding': 'same',                  # Change this eventually!
-                'tqdm_opts': {'disable': True},      # Switch-off tqdm
-                'receiver_interpolation': 'linear',  # Should be linear
-                **self.simulation_opts}                   # User input
+                   'gridding': 'same',               # Change this eventually!
+                   'tqdm_opts': {'disable': True},   # Switch-off tqdm
+                   'receiver_interpolation': 'linear',  # Should be linear
+                   **self.simulation_opts}              # User input
             )
 
         return self._emg3d_sim
@@ -84,6 +84,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             freq_list = []
             rec_list = []
             data_dict = {}
+            rec_uid = {}
             indices = np.zeros((self.survey.nD, 3), dtype=int)
 
             # Counter for SimPEG data object (lists the data continuously).
@@ -131,6 +132,17 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 rec_types = [emg3d.RxElectricPoint, emg3d.RxMagneticPoint]
                 for rec in src.receiver_list:
 
+                    # If this SimPEG receiver was already processed, store it.
+                    if rec._uid in rec_uid.keys():
+                        li = len(rec_uid[rec._uid])
+                        indices[ind:ind+li, 0] = s_ind
+                        indices[ind:ind+li, 1] = rec_uid[rec._uid]
+                        indices[ind:ind+li, 2] = f_ind
+                        ind += li
+                        continue
+                    else:
+                        rec_uid[rec._uid] = []
+
                     if rec.projField not in ['e', 'h']:
                         raise NotImplementedError(
                             "Only projField = {'e'; 'h'} implemented."
@@ -174,6 +186,11 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                                     "Duplicate source-receiver-frequency."
                                 )
 
+                        # Store receiver index, in case the entire receiver
+                        # is used several times.
+                        rec_uid[rec._uid].append(r_ind)
+
+                        # Store the SimPEG<->emg3d mapping for this receiver
                         indices[ind, :] = [s_ind, r_ind, f_ind]
                         ind += 1
 
