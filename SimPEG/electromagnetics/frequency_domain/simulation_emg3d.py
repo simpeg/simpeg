@@ -65,10 +65,10 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 survey=self.emg3d_survey,
                 model=emg3d.Model(self.mesh),  # Dummy values of 1 for init.
                 **{'name': 'Simulation created by SimPEG',
-                'gridding': 'same',                  # Change this eventually!
-                'tqdm_opts': {'disable': True},      # Switch-off tqdm
-                'receiver_interpolation': 'linear',  # Should be linear
-                **self.simulation_opts}                   # User input
+                   'gridding': 'same',               # Change this eventually!
+                   'tqdm_opts': {'disable': True},   # Switch-off tqdm
+                   'receiver_interpolation': 'linear',  # Should be linear
+                   **self.simulation_opts}              # User input
             )
 
         return self._emg3d_sim
@@ -83,8 +83,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             src_list = []
             freq_list = []
             rec_list = []
-            rec_uid = []
             data_dict = {}
+            rec_uid = {}
             indices = np.zeros((self.survey.nD, 3), dtype=int)
 
             # Counter for SimPEG data object (lists the data continuously).
@@ -132,11 +132,16 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 rec_types = [emg3d.RxElectricPoint, emg3d.RxMagneticPoint]
                 for rec in src.receiver_list:
 
-                    # Only get unique receivers.
-                    if rec._uid in rec_uid:
+                    # If this SimPEG receiver was already processed, store it.
+                    if rec._uid in rec_uid.keys():
+                        li = len(rec_uid[rec._uid])
+                        indices[ind:ind+li, 0] = s_ind
+                        indices[ind:ind+li, 1] = rec_uid[rec._uid]
+                        indices[ind:ind+li, 2] = f_ind
+                        ind += li
                         continue
                     else:
-                        rec_uid.append(rec._uid)
+                        rec_uid[rec._uid] = []
 
                     if rec.projField not in ['e', 'h']:
                         raise NotImplementedError(
@@ -181,6 +186,11 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                                     "Duplicate source-receiver-frequency."
                                 )
 
+                        # Store receiver index, in case the entire receiver
+                        # is used several times.
+                        rec_uid[rec._uid].append(r_ind)
+
+                        # Store the SimPEG<->emg3d mapping for this receiver
                         indices[ind, :] = [s_ind, r_ind, f_ind]
                         ind += 1
 
@@ -193,15 +203,49 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 noise_floor=1.,       # We deal with std in SimPEG.
                 relative_error=None,  #  "   "   "
             )
-            self._emg3d_survey = survey
 
             # Store data-mapping SimPEG <-> emg3d
             self._dmap_simpeg_emg3d = tuple(indices.T)
+
+            # Add reverse map to emg3d-data (is saved with survey).
+            ind = np.full(survey.shape, np.nan)
+            ind[self._dmap_simpeg_emg3d] = np.arange(self.survey.nD)
+            survey.data['indices'] = survey.data.observed.copy(data=ind)
+
+            # Store survey.
+            self._emg3d_survey = survey
 
             # Create emg3d data dummy; can be re-used.
             self._emg3d_array = np.full(survey.shape, np.nan+1j*np.nan)
 
         return self._emg3d_survey
+
+    @emg3d_survey.setter
+    def emg3d_survey(self, emg3d_survey):
+        """emg3d survey; obtained from SimPEG survey."""
+
+        # Store survey.
+        self._emg3d_survey = emg3d_survey
+
+        # Store emg3d-to-SimPEG mapping.
+        try:
+
+            # Get dmap from the stored indices.
+            indices = np.zeros((self.survey.nD, 3), dtype=int)
+            for i in range(self.survey.nD):
+                indices[i, :] = np.r_[
+                        np.where(emg3d_survey.data.indices.data == i)]
+
+            # Store dmap.
+            self._dmap_simpeg_emg3d = tuple(indices.T)
+
+        except:
+            raise AttributeError(
+                "Provided emg3d-survey misses the indices data array."
+            )
+
+        # Create emg3d data dummy; can be re-used.
+        self._emg3d_array = np.full(emg3d_survey.shape, np.nan+1j*np.nan)
 
     @property
     def emg3d_model(self):
