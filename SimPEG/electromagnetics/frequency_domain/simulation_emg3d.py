@@ -45,25 +45,33 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         """Initialize Simulation using emg3d as solver."""
 
         # Store simulation options.
-        simulation_opts = kwargs.pop('simulation_opts', {})
+        self.simulation_opts = kwargs.pop('simulation_opts', {})
 
         super().__init__(mesh, **kwargs)
-
-        # Create twin Simulation in emg3d.
-        self.emg3d_sim = emg3d.Simulation(
-            survey=self.emg3d_survey,
-            model=emg3d.Model(self.mesh),  # Dummy values of 1 for initiation.
-            **{'name': 'Simulation created by SimPEG',
-               'gridding': 'same',                  # Change this eventually!
-               'tqdm_opts': {'disable': True},      # Switch-off tqdm
-               'receiver_interpolation': 'linear',  # Should be linear
-               **simulation_opts}                   # User input
-        )
 
         # TODO : Count to store data per iteration.
         # - Should be replaced by a proper count form SimPEG.inversion.
         # - Should probably be made optional to store data at each step.
         self._it_count = 0
+
+    @property
+    def emg3d_sim(self):
+        """emg3d simulation; obtained from SimPEG simulation."""
+
+        if getattr(self, "_emg3d_sim", None) is None:
+
+            # Create twin Simulation in emg3d.
+            self._emg3d_sim = emg3d.Simulation(
+                survey=self.emg3d_survey,
+                model=emg3d.Model(self.mesh),  # Dummy values of 1 for init.
+                **{'name': 'Simulation created by SimPEG',
+                'gridding': 'same',                  # Change this eventually!
+                'tqdm_opts': {'disable': True},      # Switch-off tqdm
+                'receiver_interpolation': 'linear',  # Should be linear
+                **self.simulation_opts}                   # User input
+            )
+
+        return self._emg3d_sim
 
     @property
     def emg3d_survey(self):
@@ -75,6 +83,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             src_list = []
             freq_list = []
             rec_list = []
+            rec_uid = []
             data_dict = {}
             indices = np.zeros((self.survey.nD, 3), dtype=int)
 
@@ -89,7 +98,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                     source = emg3d.TxElectricWire(
                         src.locations,
                         strength=src.strength
-                    )                    
+                    )
                 else:
                     source = emg3d.TxElectricDipole(
                         (*src.location, src.azimuth, src.elevation),
@@ -122,6 +131,12 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 # Loop over receiver lists.
                 rec_types = [emg3d.RxElectricPoint, emg3d.RxMagneticPoint]
                 for rec in src.receiver_list:
+
+                    # Only get unique receivers.
+                    if rec._uid in rec_uid:
+                        continue
+                    else:
+                        rec_uid.append(rec._uid)
 
                     if rec.projField not in ['e', 'h']:
                         raise NotImplementedError(
