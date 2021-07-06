@@ -199,8 +199,6 @@ class ElectricWire(BaseFDEMSrc):
     """
     strength = properties.Float("dipole strength", default=1.0, min=1e-15)
 
-    length = properties.Float("dipole length", default=1.0, min=1e-15)
-
     locations = WireSourceLocationArray(
         "Location of the source [x, y, z] in 3D", shape=("*","*"), required=True
     )
