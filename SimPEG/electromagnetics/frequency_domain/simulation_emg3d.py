@@ -79,141 +79,10 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
         if getattr(self, "_emg3d_survey", None) is None:
 
-            # Allocate lists to create data to/from dicts.
-            src_list = []
-            freq_list = []
-            rec_list = []
-            data_dict = {}
-            rec_uid = {}
-            indices = np.zeros((self.survey.nD, 3), dtype=int)
-
-            # Counter for SimPEG data object (lists the data continuously).
-            ind = 0
-
-            # Loop over sources.
-            for src in self.survey.source_list:
-
-                # Create emg3d source.
-                if isinstance(src, ElectricWire):
-                    source = emg3d.TxElectricWire(
-                        src.locations,
-                        strength=src.strength
-                    )
-                else:
-                    source = emg3d.TxElectricDipole(
-                        (*src.location, src.azimuth, src.elevation),
-                        strength=src.strength, length=src.length
-                    )
-
-                # New frequency: add.
-                if src.frequency not in freq_list:
-                    f_ind = len(freq_list)
-                    freq_list.append(src.frequency)
-
-                # Existing source: get index.
-                else:
-                    f_ind = freq_list.index(src.frequency)
-
-                # New source: add.
-                if source not in src_list:
-                    s_ind = len(src_list)
-                    data_dict[s_ind] = {f_ind: {}}
-                    src_list.append(source)
-
-                # Existing source: get index.
-                else:
-                    s_ind = src_list.index(source)
-
-                    # If new frequency for existing source, add:
-                    if f_ind not in data_dict[s_ind].keys():
-                        data_dict[s_ind][f_ind] = {}
-
-                # Loop over receiver lists.
-                rec_types = [emg3d.RxElectricPoint, emg3d.RxMagneticPoint]
-                for rec in src.receiver_list:
-
-                    # If this SimPEG receiver was already processed, store it.
-                    if rec._uid in rec_uid.keys():
-                        li = len(rec_uid[rec._uid])
-                        indices[ind:ind+li, 0] = s_ind
-                        indices[ind:ind+li, 1] = rec_uid[rec._uid]
-                        indices[ind:ind+li, 2] = f_ind
-                        ind += li
-                        continue
-                    else:
-                        rec_uid[rec._uid] = []
-
-                    if rec.projField not in ['e', 'h']:
-                        raise NotImplementedError(
-                            "Only projField = {'e'; 'h'} implemented."
-                        )
-
-                    if rec.orientation not in ['x', 'y', 'z']:
-                        raise NotImplementedError(
-                            "Only orientation = {'x'; 'y'; 'z'} implemented."
-                        )
-
-                    # Get type, azimuth, elevation.
-                    rec_type = rec_types[rec.projField == 'h']
-                    azimuth = [0, 90][rec.orientation == 'y']
-                    elevation = [0, 90][rec.orientation == 'z']
-
-                    # Loop over receivers.
-                    for i in range(rec.locations[:, 0].size):
-
-                        # Create emg3d receiver.
-                        receiver = rec_type(
-                                (*rec.locations[i, :], azimuth, elevation))
-
-                        # New receiver: add.
-                        if receiver not in rec_list:
-                            r_ind = len(rec_list)
-                            data_dict[s_ind][f_ind][r_ind] = ind
-                            rec_list.append(receiver)
-
-                        # Existing receiver: get index.
-                        else:
-                            r_ind = rec_list.index(receiver)
-
-                            # If new receiver for existing src-freq, add:
-                            existing = data_dict[s_ind][f_ind].keys()
-                            if r_ind not in existing:
-                                data_dict[s_ind][f_ind][r_ind] = ind
-
-                            # Else, throw an error.
-                            else:
-                                raise ValueError(
-                                    "Duplicate source-receiver-frequency."
-                                )
-
-                        # Store receiver index, in case the entire receiver
-                        # is used several times.
-                        rec_uid[rec._uid].append(r_ind)
-
-                        # Store the SimPEG<->emg3d mapping for this receiver
-                        indices[ind, :] = [s_ind, r_ind, f_ind]
-                        ind += 1
-
-            # Create and store survey.
-            survey = emg3d.Survey(
-                name='Survey created by SimPEG',
-                sources=emg3d.surveys.txrx_lists_to_dict(src_list),
-                receivers=emg3d.surveys.txrx_lists_to_dict(rec_list),
-                frequencies=freq_list,
-                noise_floor=1.,       # We deal with std in SimPEG.
-                relative_error=None,  #  "   "   "
-            )
-
-            # Store data-mapping SimPEG <-> emg3d
-            self._dmap_simpeg_emg3d = tuple(indices.T)
-
-            # Add reverse map to emg3d-data (is saved with survey).
-            ind = np.full(survey.shape, np.nan)
-            ind[self._dmap_simpeg_emg3d] = np.arange(self.survey.nD)
-            survey.data['indices'] = survey.data.observed.copy(data=ind)
-
-            # Store survey.
+            # Get and store emg3d-survey and data map.
+            survey, dmap = survey_to_emg3d(self.survey)
             self._emg3d_survey = survey
+            self._dmap_simpeg_emg3d = dmap
 
             # Create emg3d data dummy; can be re-used.
             self._emg3d_array = np.full(survey.shape, np.nan+1j*np.nan)
@@ -445,3 +314,167 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             self._it_count += 1  # Update counter
 
         return self.emg3d_sim
+
+
+def survey_to_emg3d(survey):
+    """Return emg3d survey from provided SimPEG survey.
+
+
+    Parameters
+    ----------
+    survey : Survey
+        SimPEG survey instance.
+
+
+    Returns
+    -------
+    emg3d_survey : Survey
+        emg3d survey instance, containing the data set `indices`.
+
+    data_map : tuple
+        Indices to map SimPEG-data to emg3d data and vice-versa.
+
+        To put SimPEG data array on, e.g., the emg3d synthetic xarray:
+
+           emg3d_survey.data.synthetic.data[dmap] = simpeg_array
+
+        To obtain SimPEG data array from, e.g., the emg3d synthetic xarray:
+
+           simpeg_array = emg3d_survey.data.synthetic.data[dmap]
+
+    """
+
+    # Allocate lists to create data to/from dicts.
+    src_list = []
+    freq_list = []
+    rec_list = []
+    data_dict = {}
+    rec_uid = {}
+    indices = np.zeros((survey.nD, 3), dtype=int)
+
+    # Counter for SimPEG data object (lists the data continuously).
+    ind = 0
+
+    # Loop over sources.
+    for src in survey.source_list:
+
+        # Create emg3d source.
+        if isinstance(src, ElectricWire):
+            source = emg3d.TxElectricWire(
+                src.locations,
+                strength=src.strength
+            )
+        else:
+            source = emg3d.TxElectricDipole(
+                (*src.location, src.azimuth, src.elevation),
+                strength=src.strength, length=src.length
+            )
+
+        # New frequency: add.
+        if src.frequency not in freq_list:
+            f_ind = len(freq_list)
+            freq_list.append(src.frequency)
+
+        # Existing source: get index.
+        else:
+            f_ind = freq_list.index(src.frequency)
+
+        # New source: add.
+        if source not in src_list:
+            s_ind = len(src_list)
+            data_dict[s_ind] = {f_ind: {}}
+            src_list.append(source)
+
+        # Existing source: get index.
+        else:
+            s_ind = src_list.index(source)
+
+            # If new frequency for existing source, add:
+            if f_ind not in data_dict[s_ind].keys():
+                data_dict[s_ind][f_ind] = {}
+
+        # Loop over receiver lists.
+        rec_types = [emg3d.RxElectricPoint, emg3d.RxMagneticPoint]
+        for rec in src.receiver_list:
+
+            # If this SimPEG receiver was already processed, store it.
+            if rec._uid in rec_uid.keys():
+                li = len(rec_uid[rec._uid])
+                indices[ind:ind+li, 0] = s_ind
+                indices[ind:ind+li, 1] = rec_uid[rec._uid]
+                indices[ind:ind+li, 2] = f_ind
+                ind += li
+                continue
+            else:
+                rec_uid[rec._uid] = []
+
+            if rec.projField not in ['e', 'h']:
+                raise NotImplementedError(
+                    "Only projField = {'e'; 'h'} implemented."
+                )
+
+            if rec.orientation not in ['x', 'y', 'z']:
+                raise NotImplementedError(
+                    "Only orientation = {'x'; 'y'; 'z'} implemented."
+                )
+
+            # Get type, azimuth, elevation.
+            rec_type = rec_types[rec.projField == 'h']
+            azimuth = [0, 90][rec.orientation == 'y']
+            elevation = [0, 90][rec.orientation == 'z']
+
+            # Loop over receivers.
+            for i in range(rec.locations[:, 0].size):
+
+                # Create emg3d receiver.
+                receiver = rec_type(
+                        (*rec.locations[i, :], azimuth, elevation))
+
+                # New receiver: add.
+                if receiver not in rec_list:
+                    r_ind = len(rec_list)
+                    data_dict[s_ind][f_ind][r_ind] = ind
+                    rec_list.append(receiver)
+
+                # Existing receiver: get index.
+                else:
+                    r_ind = rec_list.index(receiver)
+
+                    # If new receiver for existing src-freq, add:
+                    existing = data_dict[s_ind][f_ind].keys()
+                    if r_ind not in existing:
+                        data_dict[s_ind][f_ind][r_ind] = ind
+
+                    # Else, throw an error.
+                    else:
+                        raise ValueError(
+                            "Duplicate source-receiver-frequency."
+                        )
+
+                # Store receiver index, in case the entire receiver
+                # is used several times.
+                rec_uid[rec._uid].append(r_ind)
+
+                # Store the SimPEG<->emg3d mapping for this receiver
+                indices[ind, :] = [s_ind, r_ind, f_ind]
+                ind += 1
+
+    # Create and store survey.
+    emg3d_survey = emg3d.Survey(
+        name='Survey created by SimPEG',
+        sources=emg3d.surveys.txrx_lists_to_dict(src_list),
+        receivers=emg3d.surveys.txrx_lists_to_dict(rec_list),
+        frequencies=freq_list,
+        noise_floor=1.,       # We deal with std in SimPEG.
+        relative_error=None,  #  "   "   "
+    )
+
+    # Store data-mapping SimPEG <-> emg3d
+    data_map = tuple(indices.T)
+
+    # Add reverse map to emg3d-data (is saved with survey).
+    ind = np.full(emg3d_survey.shape, -1)
+    ind[data_map] = np.arange(survey.nD)
+    emg3d_survey.data['indices'] = emg3d_survey.data.observed.copy(data=ind)
+
+    return emg3d_survey, data_map
