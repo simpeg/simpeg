@@ -3,6 +3,7 @@ from __future__ import print_function
 import numpy as np
 import scipy.sparse as sp
 from six import string_types
+from memory_profiler import profile
 
 from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
 from .utils import (
@@ -321,6 +322,7 @@ class Minimize(object):
             )
         self._callback = value
 
+
     @timeIt
     def minimize(self, evalFunction, x0):
         """minimize(evalFunction, x0)
@@ -607,8 +609,8 @@ class Minimize(object):
             self._LS_xt = self.projection(self.xc + self._LS_t * p)
             if self.use_WolfeCurvature:
                 self._LS_ft, self._LS_ft_descent = self.evalFunction(
-                    self._LS_xt, 
-                    return_g=self.use_WolfeCurvature, 
+                    self._LS_xt,
+                    return_g=self.use_WolfeCurvature,
                     return_H=False
                 )
                 self._LS_ft_descent = np.inner(
@@ -616,8 +618,8 @@ class Minimize(object):
                 ) # This is the curvature WolfeCurvature condition
             else:
                 self._LS_ft = self.evalFunction(
-                    self._LS_xt, 
-                    return_g=self.use_WolfeCurvature, 
+                    self._LS_xt,
+                    return_g=self.use_WolfeCurvature,
                     return_H=False
                 )
             self._LS_descent = np.inner(

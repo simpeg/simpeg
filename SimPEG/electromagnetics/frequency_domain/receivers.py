@@ -22,7 +22,8 @@ class BaseRx(survey.BaseRx):
         {
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-            "complex":["both"]
+            "complex":["both"], 
+            "amp": ["amplitude"],
         },
     )
 
@@ -44,6 +45,12 @@ class BaseRx(survey.BaseRx):
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
         return f._GLoc(self.projField) + self.orientation
+    
+    def evalDataComplex(self, data_complex):
+        if self.component == 'amp':
+            return abs(data_complex)
+        else:
+            return data_complex
 
     def eval(self, src, mesh, f):
         """
