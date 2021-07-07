@@ -5,6 +5,7 @@ from discretize.utils import requires
 from ...utils import mkvc
 from .simulation import BaseFDEMSimulation
 from .sources import ElectricWire
+from memory_profiler import profile
 
 # emg3d is a soft dependency
 try:
@@ -148,6 +149,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         self.emg3d_sim._misfit = None
         self.emg3d_sim._vec = None  # TODO check back when emg3d-side finished!
 
+    @profile
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
@@ -178,6 +180,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         # Map emg3d-data-array to SimPEG-data-vector
         return j_vec[self._dmap_simpeg_emg3d]
 
+    @profile
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector
@@ -286,6 +289,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         # Map emg3d-data-array to SimPEG-data-vector
         return f.data.synthetic.data[self._dmap_simpeg_emg3d]
 
+    @profile
     def fields(self, m=None):
         """Return the electric fields for a given model.
 
