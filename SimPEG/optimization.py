@@ -3,6 +3,7 @@ from __future__ import print_function
 import numpy as np
 import scipy.sparse as sp
 from six import string_types
+from memory_profiler import profile
 
 from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
 from .utils import (
@@ -328,6 +329,7 @@ class Minimize(object):
                 "replaced.".format(self.__class__.__name__)
             )
         self._callback = value
+
 
     @timeIt
     def minimize(self, evalFunction, x0):
