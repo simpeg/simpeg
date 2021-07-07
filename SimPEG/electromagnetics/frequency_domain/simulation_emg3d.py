@@ -208,7 +208,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             self._dmap_simpeg_emg3d = tuple(indices.T)
 
             # Add reverse map to emg3d-data (is saved with survey).
-            ind = np.full(survey.shape, np.nan)
+            ind = np.full(survey.shape, -1)
             ind[self._dmap_simpeg_emg3d] = np.arange(self.survey.nD)
             survey.data['indices'] = survey.data.observed.copy(data=ind)
 
