@@ -211,6 +211,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
         return self._Jtvec(m, v=v, f=f)
 
+    @profile
     def _Jtvec(self, m, v=None, f=None):
         """Compute adjoint sensitivity matrix (J^T) and vector (v) product.
 
