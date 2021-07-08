@@ -216,7 +216,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         f.survey.data['residual'][...] = self._emg3d_array
         # Get gradient with `v` as residual.
         jt_vec = np.empty(self.model.size, dtype=float)
-        jt_vec = self.sigmaDeriv.T @ emg3d.optimize.gradient(f).ravel('F')
+        jt_vec[:] = self.sigmaDeriv.T @ f.gradient.ravel('F')
         return jt_vec
 
     # @profile

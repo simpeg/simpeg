@@ -387,9 +387,6 @@ class Minimize(object):
             )  #: Doing this saves memory, as it is not needed in the rest of the computations.
             p = self.scaleSearchDirection(self.searchDirection)
             xt, passLS = self.modifySearchDirection(p)
-            del (
-                self.g
-            )
             if not passLS:
                 xt, caught = self.modifySearchDirectionBreak(p)
                 if not caught:
