@@ -215,6 +215,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         # Replace residual by vector if provided
         f.survey.data['residual'][...] = self._emg3d_array
         # Get gradient with `v` as residual.
+        jt_vec = np.empty(self.model.size, dtype=float)
         jt_vec = self.sigmaDeriv.T @ emg3d.optimize.gradient(f).ravel('F')
         return jt_vec
 
