@@ -295,6 +295,35 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         # Map emg3d-data-array to SimPEG-data-vector
         return f.data.synthetic.data[self._dmap_simpeg_emg3d]
 
+    # def fields(self, m=None):
+    #     """Return the electric fields for a given model.
+
+    #     :param numpy.ndarray m: model
+    #     :rtype: numpy.ndarray
+    #     :return: f, the fields
+    #     """
+
+    #     if self.verbose:
+    #         print("Compute fields")
+
+    #     if m is not None:
+    #         # Store model.
+    #         self.model = m
+
+    #         # Update simulation.
+    #         self._emg3d_simulation_update
+
+    #     # Compute forward model and sets initial residuals.
+    #     _ = self.emg3d_sim.misfit
+
+    #     # Store the data at each step in the survey-xarray
+    #     if m is not None:
+    #         current_data = self.emg3d_survey.data.synthetic.copy()
+    #         self.emg3d_survey.data[f"it_{self._it_count}"] = current_data
+    #         self._it_count += 1  # Update counter
+
+    #     return self.emg3d_sim
+
     @profile
     def fields(self, m=None):
         """Return the electric fields for a given model.
@@ -311,11 +340,20 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             # Store model.
             self.model = m
 
-            # Update simulation.
-            self._emg3d_simulation_update
+        # Update simulation.
+        f = emg3d.Simulation(
+            survey=self.emg3d_survey,
+            model=emg3d.Model(self.mesh),  # Dummy values of 1 for init.
+            **{'name': 'Simulation created by SimPEG',
+               'gridding': 'same',               # Change this eventually!
+               'tqdm_opts': {'disable': True},   # Switch-off tqdm
+               'receiver_interpolation': 'linear',  # Should be linear
+               **self.simulation_opts}              # User input
+        )
+
 
         # Compute forward model and sets initial residuals.
-        _ = self.emg3d_sim.misfit
+        _ = f.misfit
 
         # Store the data at each step in the survey-xarray
         if m is not None:
@@ -323,8 +361,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             self.emg3d_survey.data[f"it_{self._it_count}"] = current_data
             self._it_count += 1  # Update counter
 
-        return self.emg3d_sim
-
+        return f
 
 def survey_to_emg3d(survey):
     """Return emg3d survey from provided SimPEG survey.
@@ -488,3 +525,5 @@ def survey_to_emg3d(survey):
     emg3d_survey.data['indices'] = emg3d_survey.data.observed.copy(data=ind)
 
     return emg3d_survey, data_map
+
+
