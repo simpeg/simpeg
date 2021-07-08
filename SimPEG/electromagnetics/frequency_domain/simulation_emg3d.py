@@ -209,40 +209,47 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         if f is None:
             f = self.fields(m=m)
 
-        return self._Jtvec(m, v=v, f=f)
+        # Put v onto emg3d data-array.
+        self._emg3d_array[self._dmap_simpeg_emg3d] = v
 
-    @profile
-    def _Jtvec(self, m, v=None, f=None):
-        """Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+        # Replace residual by vector if provided
+        f.survey.data['residual'][...] = self._emg3d_array
+        # Get gradient with `v` as residual.
+        jt_vec = self.sigmaDeriv.T @ emg3d.optimize.gradient(f).ravel('F')
+        return jt_vec
 
-        Full J matrix can be computed by setting v=None (not implemented yet).
-        """
+    # @profile
+    # def _Jtvec(self, m, v=None, f=None):
+    #     """Compute adjoint sensitivity matrix (J^T) and vector (v) product.
 
-        if v is not None:
-            # Put v onto emg3d data-array.
-            self._emg3d_array[self._dmap_simpeg_emg3d] = v
+    #     Full J matrix can be computed by setting v=None (not implemented yet).
+    #     """
 
-            # Replace residual by vector if provided
-            f.survey.data['residual'][...] = self._emg3d_array
-            # Get gradient with `v` as residual.
-            jt_vec = self.sigmaDeriv.T @ emg3d.optimize.gradient(f).ravel('F')
-            return jt_vec
+    #     if v is not None:
+    #         # Put v onto emg3d data-array.
+    #         self._emg3d_array[self._dmap_simpeg_emg3d] = v
 
-        else:
-            # This is for forming full sensitivity matrix
-            # Currently, it is not correct.
-            # Requires a fix in optimize.gradient
-            # Jt is supposed to be a complex value ...
-            # Jt = np.zeros((self.model.size, self.survey.nD), order="F")
-            # for i_datum in range(self.survey.nD):
-            #     vec = np.zeros(self.survey.nD)
-            #     vec[i_datum] = 1.
-            #     vec = vec.reshape(self.emg3d_survey.shape)
-            #     jt_sigma_vec = emg3d.optimize.gradient(f, vector=vec)
-            #     Jt[:, i_datum] = self.sigmaDeriv.T @ jt_sigma_vec
-            # return Jt
+    #         # Replace residual by vector if provided
+    #         f.survey.data['residual'][...] = self._emg3d_array
+    #         # Get gradient with `v` as residual.
+    #         jt_vec = self.sigmaDeriv.T @ emg3d.optimize.gradient(f).ravel('F')
+    #         return jt_vec
 
-            raise NotImplementedError
+    #     else:
+    #         # This is for forming full sensitivity matrix
+    #         # Currently, it is not correct.
+    #         # Requires a fix in optimize.gradient
+    #         # Jt is supposed to be a complex value ...
+    #         # Jt = np.zeros((self.model.size, self.survey.nD), order="F")
+    #         # for i_datum in range(self.survey.nD):
+    #         #     vec = np.zeros(self.survey.nD)
+    #         #     vec[i_datum] = 1.
+    #         #     vec = vec.reshape(self.emg3d_survey.shape)
+    #         #     jt_sigma_vec = emg3d.optimize.gradient(f, vector=vec)
+    #         #     Jt[:, i_datum] = self.sigmaDeriv.T @ jt_sigma_vec
+    #         # return Jt
+
+    #         raise NotImplementedError
 
     def getJ(self, m, f=None):
         """Generate full sensitivity matrix."""
