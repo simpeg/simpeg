@@ -343,7 +343,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         # Update simulation.
         f = emg3d.Simulation(
             survey=self.emg3d_survey,
-            model=emg3d.Model(self.mesh),  # Dummy values of 1 for init.
+            model=self.emg3d_model,  # Dummy values of 1 for init.
             **{'name': 'Simulation created by SimPEG',
                'gridding': 'same',               # Change this eventually!
                'tqdm_opts': {'disable': True},   # Switch-off tqdm
