@@ -227,7 +227,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             # Get gradient with `v` as residual.
             jt_sigma_vec = emg3d.optimize.gradient(f)
 
-            jt_vec = self.sigmaDeriv.T @ jt_sigma_vec.ravel('F')
+            jt_vec = self.sigmaDeriv.T @ jt_sigma_vec.flatten('F')
             return jt_vec
 
         else:
