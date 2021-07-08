@@ -323,8 +323,7 @@ class Minimize(object):
         self._callback = value
 
 
-    # @timeIt
-    @profile
+    @timeIt
     def minimize(self, evalFunction, x0):
         """minimize(evalFunction, x0)
 
