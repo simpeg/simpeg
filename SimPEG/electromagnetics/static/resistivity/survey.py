@@ -83,16 +83,32 @@ class Survey(BaseSurvey):
         return self._locations_n
 
     a_locations = deprecate_property(
-        locations_a, "a_locations", new_name="locations_a", removal_version="0.15.0"
+        locations_a,
+        "a_locations",
+        new_name="locations_a",
+        removal_version="0.16.0",
+        future_warn=True,
     )
     b_locations = deprecate_property(
-        locations_b, "b_locations", new_name="locations_b", removal_version="0.15.0"
+        locations_b,
+        "b_locations",
+        new_name="locations_b",
+        removal_version="0.16.0",
+        future_warn=True,
     )
     m_locations = deprecate_property(
-        locations_m, "m_locations", new_name="locations_m", removal_version="0.15.0"
+        locations_m,
+        "m_locations",
+        new_name="locations_m",
+        removal_version="0.16.0",
+        future_warn=True,
     )
     n_locations = deprecate_property(
-        locations_n, "n_locations", new_name="locations_n", removal_version="0.15.0"
+        locations_n,
+        "n_locations",
+        new_name="locations_n",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     @property
@@ -148,7 +164,8 @@ class Survey(BaseSurvey):
         if survey_type is not None:
             warnings.warn(
                 "The survey_type parameter is no longer needed, and it will be removed "
-                "in SimPEG 0.15.0."
+                "in SimPEG 0.16.0.",
+                FutureWarning,
             )
 
         geometric_factor = static_utils.geometric_factor(self, space_type=space_type)
@@ -206,15 +223,14 @@ class Survey(BaseSurvey):
             "The getABMN_locations method has been deprecated. Please instead "
             "ask for the property of interest: survey.locations_a, "
             "survey.locations_b, survey.locations_m, or survey.locations_n. "
-            "This will be removed in version 0.15.0 of SimPEG",
-            DeprecationWarning,
+            "This will be removed in version 0.16.0 of SimPEG",
+            FutureWarning,
         )
 
     def drape_electrodes_on_topography(
         self, mesh, actind, option="top", topography=None, force=False
     ):
-        """Shift electrode locations to be on [top] of the active cells.
-        """
+        """Shift electrode locations to be on [top] of the active cells."""
         if self.survey_geometry == "surface":
             loc_a = self.locations_a
             loc_b = self.locations_b
@@ -264,8 +280,8 @@ class Survey(BaseSurvey):
         warnings.warn(
             "The drapeTopo method has been deprecated. Please instead "
             "use the drape_electrodes_on_topography method. "
-            "This will be removed in version 0.15.0 of SimPEG",
-            DeprecationWarning,
+            "This will be removed in version 0.16.0 of SimPEG",
+            FutureWarning,
         )
         self.drape_electrodes_on_topography(*args, **kwargs)
 
@@ -275,6 +291,6 @@ class Survey(BaseSurvey):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Survey_ky(Survey):
     pass

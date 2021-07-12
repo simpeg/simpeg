@@ -12,7 +12,7 @@ import unittest
 
 class DCMini2DTestSurveyTypes(unittest.TestCase):
     """
-        Test minaturize logic works for each individual type of survey
+    Test minaturize logic works for each individual type of survey
     """
 
     def setUp(self):
@@ -34,25 +34,24 @@ class DCMini2DTestSurveyTypes(unittest.TestCase):
         survey_end_points = np.array([-surveySize / 2, surveySize / 2, 0, 0])
 
         source_list = generate_dcip_sources_line(
-            "dipole-dipole", "volt", "2D", survey_end_points, 0., 5, 2.5
+            "dipole-dipole", "volt", "2D", survey_end_points, 0.0, 5, 2.5
         )
         self.d_d_survey = dc.survey.Survey(source_list)
 
         source_list = generate_dcip_sources_line(
-            "dipole-pole", "volt", "2D", survey_end_points, 0., 5, 2.5
+            "dipole-pole", "volt", "2D", survey_end_points, 0.0, 5, 2.5
         )
         self.d_p_survey = dc.survey.Survey(source_list)
 
         source_list = generate_dcip_sources_line(
-            "pole-dipole", "volt", "2D", survey_end_points, 0., 5, 2.5
+            "pole-dipole", "volt", "2D", survey_end_points, 0.0, 5, 2.5
         )
         self.p_d_survey = dc.survey.Survey(source_list)
 
         source_list = generate_dcip_sources_line(
-            "pole-pole", "volt", "2D", survey_end_points, 0., 5, 2.5
+            "pole-pole", "volt", "2D", survey_end_points, 0.0, 5, 2.5
         )
         self.p_p_survey = dc.survey.Survey(source_list)
-
 
     def test_dipole_dipole_mini(self):
         sim1 = dc.Simulation2DNodal(
@@ -141,7 +140,7 @@ class DC2DMiniaturizeTest(unittest.TestCase):
         M = ABMN[:100, 4:6]
         N = ABMN[:100, 6:8]
 
-        survey = IO.from_ambn_locations_to_survey(
+        survey = IO.from_abmn_locations_to_survey(
             A, B, M, N, survey_type="dipole-dipole"
         )
 
@@ -233,7 +232,7 @@ class DC3DMiniaturizeTest(unittest.TestCase):
             [
                 [(cs, 10, -1.3), (cs, surveySize / cs), (cs, 10, 1.3)],
                 [(cs, 3, -1.3), (cs, 3, 1.3)],
-                [(cs, 5, -1.3), (cs, 10)]
+                [(cs, 5, -1.3), (cs, 10)],
             ],
             "CNN",
         )
@@ -241,7 +240,7 @@ class DC3DMiniaturizeTest(unittest.TestCase):
         survey_end_points = np.array([-surveySize / 2, surveySize / 2, 0, 0])
 
         source_list = generate_dcip_sources_line(
-            "dipole-dipole", "volt", "3D", survey_end_points, 0., 5, 2.5
+            "dipole-dipole", "volt", "3D", survey_end_points, 0.0, 5, 2.5
         )
         survey = dc.survey.Survey(source_list)
 
@@ -296,7 +295,7 @@ class DC3DMiniaturizeTest(unittest.TestCase):
     def test_dpred(self):
         d1 = self.sim1.dpred(self.model, f=self.f1)
         d2 = self.sim2.dpred(self.model, f=self.f2)
-        
+
         self.assertTrue(np.allclose(d1, d2))
 
     def test_Jvec(self):

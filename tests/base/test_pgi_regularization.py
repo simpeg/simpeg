@@ -27,7 +27,9 @@ class TestPGI(unittest.TestCase):
         sigma[0] += np.eye(self.ndim)
         sigma[1] += np.eye(self.ndim) - 0.25 * np.eye(self.ndim).transpose((1, 0))
         self.sigma = sigma
-        self.means = np.abs(np.random.randn(self.ndim, self.ndim)) * np.c_[[100.0, -100.0]]
+        self.means = (
+            np.abs(np.random.randn(self.ndim, self.ndim)) * np.c_[[100.0, -100.0]]
+        )
         self.rv0 = multivariate_normal(self.means[0], self.sigma[0])
         self.rv1 = multivariate_normal(self.means[1], self.sigma[1])
         self.proportions = np.r_[0.6, 0.4]
@@ -36,11 +38,13 @@ class TestPGI(unittest.TestCase):
         self.s1 = self.rv1.rvs(int(self.nsample * self.proportions[1]))
         self.samples = np.r_[self.s0, self.s1]
         self.model = mkvc(self.samples)
-        self.mesh = discretize.TensorMesh([np.maximum(1e-1,np.random.randn(self.nsample) ** 2.0)])
+        self.mesh = discretize.TensorMesh(
+            [np.maximum(1e-1, np.random.randn(self.nsample) ** 2.0)]
+        )
         self.wires = Wires(("s0", self.mesh.nC), ("s1", self.mesh.nC))
         self.cell_weights_list = [
-            np.maximum(1e-1,np.random.randn(self.mesh.nC) ** 2.0),
-            np.maximum(1e-1,np.random.randn(self.mesh.nC) ** 2.0),
+            np.maximum(1e-1, np.random.randn(self.mesh.nC) ** 2.0),
+            np.maximum(1e-1, np.random.randn(self.mesh.nC) ** 2.0),
         ]
         self.PlotIt = False
 
@@ -62,7 +66,7 @@ class TestPGI(unittest.TestCase):
             weights_init=self.proportions,
         )
         clf.fit(self.samples)
-        
+
         # Define reg Simple
         reg_simple = make_SimplePGI_regularization(
             mesh=self.mesh,
@@ -81,25 +85,25 @@ class TestPGI(unittest.TestCase):
             wiresmap=self.wires,
             cell_weights_list=self.cell_weights_list,
         )
-        
+
         mref = mkvc(clf.means_[clf.predict(self.samples)])
-        
+
         # check score value
         score_approx0 = reg_simple(self.model)
-        dm = (self.model - mref)
+        dm = self.model - mref
         score_approx1 = 0.5 * dm.dot(reg_simple.deriv2(self.model, dm))
-        passed_score_approx_simple = np.isclose(score_approx0,score_approx1)
+        passed_score_approx_simple = np.isclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx_simple)
 
         reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(self.model) - reg_simple(mref)
         passed_score_simple = np.allclose(score_approx0, score, rtol=1e-1)
         self.assertTrue(passed_score_simple)
-        
+
         print("scores for SimplePGI & Full Cov. are ok.")
 
         score_approx0 = reg(self.model)
-        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model,dm))
+        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx)
 
@@ -107,7 +111,7 @@ class TestPGI(unittest.TestCase):
         score = reg(self.model) - reg(mref)
         passed_score = np.allclose(score_approx0, score, rtol=1e-1)
         self.assertTrue(passed_score)
-        
+
         print("scores for PGI  & Full Cov. are ok.")
 
         # check derivatives as an optimization on locally quadratic function
@@ -119,7 +123,7 @@ class TestPGI(unittest.TestCase):
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for SimplePGI & Full Cov. are ok.")
-        
+
         Hinv = SolverLU(reg_simple.deriv2(self.model))
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
@@ -136,7 +140,7 @@ class TestPGI(unittest.TestCase):
         passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & Full Cov. are ok.")
-        
+
         Hinv = SolverLU(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
@@ -245,7 +249,7 @@ class TestPGI(unittest.TestCase):
             weights_init=self.proportions,
         )
         clf.fit(self.samples)
-        
+
         # Define reg Simple
         reg_simple = make_SimplePGI_regularization(
             mesh=self.mesh,
@@ -264,14 +268,14 @@ class TestPGI(unittest.TestCase):
             wiresmap=self.wires,
             cell_weights_list=self.cell_weights_list,
         )
-        
+
         mref = mkvc(clf.means_[clf.predict(self.samples)])
-        
+
         # check score value
         score_approx0 = reg_simple(self.model)
-        dm = (self.model - mref)
+        dm = self.model - mref
         score_approx1 = 0.5 * dm.dot(reg_simple.deriv2(self.model, dm))
-        passed_score_approx_simple = np.isclose(score_approx0,score_approx1)
+        passed_score_approx_simple = np.isclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx_simple)
         reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(self.model) - reg_simple(mref)
@@ -280,7 +284,7 @@ class TestPGI(unittest.TestCase):
         print("scores for SimplePGI & tied Cov. are ok.")
 
         score_approx0 = reg(self.model)
-        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model,dm))
+        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
@@ -298,7 +302,7 @@ class TestPGI(unittest.TestCase):
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for SimplePGI & tied Cov. are ok.")
-        
+
         deriv_simple = reg_simple.deriv(self.model)
         Hinv = SolverLU(reg_simple.deriv2(self.model))
         p_simple = Hinv * deriv_simple
@@ -424,7 +428,7 @@ class TestPGI(unittest.TestCase):
             weights_init=self.proportions,
         )
         clf.fit(self.samples)
-        
+
         # Define reg Simple
         reg_simple = make_SimplePGI_regularization(
             mesh=self.mesh,
@@ -443,14 +447,14 @@ class TestPGI(unittest.TestCase):
             wiresmap=self.wires,
             cell_weights_list=self.cell_weights_list,
         )
-        
+
         mref = mkvc(clf.means_[clf.predict(self.samples)])
-        
+
         # check score value
         score_approx0 = reg_simple(self.model)
-        dm = (self.model - mref)
+        dm = self.model - mref
         score_approx1 = 0.5 * dm.dot(reg_simple.deriv2(self.model, dm))
-        passed_score_approx_simple = np.isclose(score_approx0,score_approx1)
+        passed_score_approx_simple = np.isclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx_simple)
         reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(self.model) - reg_simple(mref)
@@ -459,7 +463,7 @@ class TestPGI(unittest.TestCase):
         print("scores for SimplePGI & diag Cov. are ok.")
 
         score_approx0 = reg(self.model)
-        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model,dm))
+        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
@@ -477,7 +481,7 @@ class TestPGI(unittest.TestCase):
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for SimplePGI & diag Cov. are ok.")
-        
+
         Hinv = SolverLU(reg_simple.deriv2(self.model))
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
@@ -494,7 +498,7 @@ class TestPGI(unittest.TestCase):
         passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & diag Cov. are ok.")
-        
+
         Hinv = SolverLU(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
@@ -621,14 +625,14 @@ class TestPGI(unittest.TestCase):
             wiresmap=self.wires,
             cell_weights_list=self.cell_weights_list,
         )
-        
+
         mref = mkvc(clf.means_[clf.predict(self.samples)])
-        
+
         # check score value
         score_approx0 = reg_simple(self.model)
         dm = self.model - mref
         score_approx1 = 0.5 * dm.dot(reg_simple.deriv2(self.model, dm))
-        passed_score_approx_simple = np.isclose(score_approx0,score_approx1)
+        passed_score_approx_simple = np.isclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx_simple)
         reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(self.model) - reg_simple(mref)
@@ -637,7 +641,7 @@ class TestPGI(unittest.TestCase):
         print("scores for SimplePGI & spherical Cov. are ok.")
 
         score_approx0 = reg(self.model)
-        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model,dm))
+        score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
@@ -655,7 +659,7 @@ class TestPGI(unittest.TestCase):
         passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for SimplePGI & spherical Cov. are ok.")
-        
+
         Hinv = SolverLU(reg_simple.deriv2(self.model))
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
@@ -672,7 +676,7 @@ class TestPGI(unittest.TestCase):
         passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & spherical Cov. are ok.")
-  
+
         Hinv = SolverLU(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
@@ -762,7 +766,7 @@ class TestPGI(unittest.TestCase):
             axspherical[1].set_title("PGI with W")
 
             plt.show()
-        
+
     def test_pgi_regularization_approxDeriv(self):
         """
         This test might be redundant with the development
@@ -787,11 +791,7 @@ class TestPGI(unittest.TestCase):
 
         n = 2
         clfref = WeightedGaussianMixture(
-            mesh=mesh, 
-            n_components=n, 
-            covariance_type="full", 
-            max_iter=1000, 
-            n_init=20
+            mesh=mesh, n_components=n, covariance_type="full", max_iter=1000, n_init=20
         )
         clfref.fit(s)
 

@@ -77,11 +77,11 @@ def readSeepageModel(fname, mesh=None, xsurf=None, ysurf=None):
 
 def writeVectorUBC(mesh, fileName, model):
     """
-        Writes a vector model associated with a SimPEG TensorMesh
-        to a UBC-GIF format model file.
+    Writes a vector model associated with a SimPEG TensorMesh
+    to a UBC-GIF format model file.
 
-        :param string fileName: File to write to
-        :param numpy.ndarray model: The model
+    :param string fileName: File to write to
+    :param numpy.ndarray model: The model
     """
 
     modelMatTR = np.zeros_like(model)

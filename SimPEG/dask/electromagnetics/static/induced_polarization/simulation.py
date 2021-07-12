@@ -7,7 +7,7 @@ import dask.array as da
 
 def dask_getJtJdiag(self, m, W=None):
     """
-        Return the diagonal of JtJ
+    Return the diagonal of JtJ
     """
     if self.gtgdiag is None:
 

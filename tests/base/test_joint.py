@@ -96,7 +96,9 @@ class DataMisfitTest(unittest.TestCase):
         )
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
-            directives.ScalingMultipleDataMisfits_ByEig(chi0_ratio=[0.01, 1.0], verbose=False),
+            directives.ScalingMultipleDataMisfits_ByEig(
+                chi0_ratio=[0.01, 1.0], verbose=False
+            ),
             directives.AlphasSmoothEstimate_ByEig(verbose=False),
             directives.BetaEstimate_ByEig(beta0_ratio=1e-2),
             directives.MultiTargetMisfits(TriggerSmall=False, verbose=True),

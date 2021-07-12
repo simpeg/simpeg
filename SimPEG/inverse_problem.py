@@ -40,7 +40,7 @@ class BaseInvProblem(BaseSimPEG):
     @properties.observer("model")
     def _on_model_update(self, value):
         """
-            Sets the current model, and removes dependent properties
+        Sets the current model, and removes dependent properties
         """
         for prop in self.deleteTheseOnModelUpdate:
             if hasattr(self, prop):
@@ -66,7 +66,7 @@ class BaseInvProblem(BaseSimPEG):
     def startup(self, m0):
         """startup(m0)
 
-            Called when inversion is first starting.
+        Called when inversion is first starting.
         """
         if self.debug:
             print("Calling InvProblem.startup")
@@ -174,8 +174,7 @@ class BaseInvProblem(BaseSimPEG):
 
     @timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
-        """evalFunction(m, return_g=True, return_H=True)
-        """
+        """evalFunction(m, return_g=True, return_H=True)"""
 
         self.model = m
         gc.collect()

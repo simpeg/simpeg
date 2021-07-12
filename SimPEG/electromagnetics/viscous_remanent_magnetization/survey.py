@@ -12,9 +12,7 @@ from .sources import BaseSrcVRM
 
 class SurveyVRM(BaseSurvey):
 
-    """
-
-    """
+    """"""
 
     source_list = properties.List(
         "A list of sources for the survey",

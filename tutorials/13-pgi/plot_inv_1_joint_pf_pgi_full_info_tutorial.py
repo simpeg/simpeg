@@ -124,14 +124,14 @@ ax = ax.reshape(-1)
 plt.gca().set_aspect("equal")
 plt.gca().set_xlim(
     [
-        data_mag.survey.receiver_locations[:,0].min(),
-        data_mag.survey.receiver_locations[:,0].max(),
+        data_mag.survey.receiver_locations[:, 0].min(),
+        data_mag.survey.receiver_locations[:, 0].max(),
     ],
 )
 plt.gca().set_ylim(
     [
-        data_mag.survey.receiver_locations[:,1].min(),
-        data_mag.survey.receiver_locations[:,1].max(),
+        data_mag.survey.receiver_locations[:, 1].min(),
+        data_mag.survey.receiver_locations[:, 1].max(),
     ],
 )
 mesh.plotSlice(
@@ -185,8 +185,7 @@ mm = utils.plot2Ddata(
 )
 ax[1].set_aspect(1)
 ax[1].set_title(
-    "Magnetic data values and locations,\nwith mesh and geology overlays",
-    fontsize=16
+    "Magnetic data values and locations,\nwith mesh and geology overlays", fontsize=16
 )
 plt.colorbar(mm[0], cax=ax[3], orientation="horizontal")
 ax[3].set_aspect(0.05)
@@ -231,18 +230,12 @@ magmap = actvMap * wires.sus
 idenMap = maps.IdentityMap(nP=nactv)
 # Grav problem
 simulation_grav = pf.gravity.simulation.Simulation3DIntegral(
-    survey=data_grav.survey,
-    mesh=mesh,
-    rhoMap=wires.den,
-    actInd=actv,
+    survey=data_grav.survey, mesh=mesh, rhoMap=wires.den, actInd=actv,
 )
 dmis_grav = data_misfit.L2DataMisfit(data=data_grav, simulation=simulation_grav)
 # Mag problem
 simulation_mag = pf.magnetics.simulation.Simulation3DIntegral(
-    survey=data_mag.survey,
-    mesh=mesh,
-    chiMap=wires.sus,
-    actInd=actv,
+    survey=data_mag.survey, mesh=mesh, chiMap=wires.sus, actInd=actv,
 )
 dmis_mag = data_misfit.L2DataMisfit(data=data_mag, simulation=simulation_mag)
 
@@ -346,13 +339,7 @@ ax1.scatter(
     s=200,
 )
 
-axbar = inset_axes(
-    ax1,
-    width="40%",
-    height="3%",
-    loc="upper right",
-    borderpad=1,
-)
+axbar = inset_axes(ax1, width="40%", height="3%", loc="upper right", borderpad=1,)
 cbpetro = fig.colorbar(surf, cax=axbar, orientation="horizontal")
 cbpetro.set_ticks([rvsmooth.min(), rvsmooth.max()])
 cbpetro.set_ticklabels(["Low", "High"])
@@ -420,11 +407,7 @@ ax3.plot(np.exp(score_mag), testXplot_mag, linewidth=3.0, c="k")
 
 ax3.set_xlim([0.0, 50])
 ax3.set_xlabel(
-    "1D Probability Density values",
-    fontsize=labelsize,
-    rotation=-45,
-    labelpad=0,
-    x=0.5
+    "1D Probability Density values", fontsize=labelsize, rotation=-45, labelpad=0, x=0.5
 )
 ax2.set_xlabel("Density (g/cc)", fontsize=labelsize)
 ax3.set_ylabel("Magnetic Susceptibility (SI)", fontsize=labelsize)
@@ -487,27 +470,16 @@ alpha0_ratio = np.r_[
     1e-4 * np.ones(len(reg.objfcts[1].objfcts)),
     100.0 * 1e-4 * np.ones(len(reg.objfcts[2].objfcts)),
 ]
-Alphas = directives.AlphasSmoothEstimate_ByEig(
-    alpha0_ratio=alpha0_ratio,
-    verbose=True
-)
+Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbose=True)
 # initialize beta and beta/alpha_s schedule
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True,
-    coolingFactor=2.0,
-    tolerance=0.2,
-    progress=0.2,
+    verbose=True, coolingFactor=2.0, tolerance=0.2, progress=0.2,
 )
 # geophy. and petro. target misfits
-targets = directives.MultiTargetMisfits(
-    verbose=True,
-)
+targets = directives.MultiTargetMisfits(verbose=True,)
 # add learned mref in smooth once stable
-MrefInSmooth = directives.PGI_AddMrefInSmooth(
-    wait_till_stable=True,
-    verbose=True,
-)
+MrefInSmooth = directives.PGI_AddMrefInSmooth(wait_till_stable=True, verbose=True,)
 # update the parameters in smallness (L2-approx of PGI)
 update_smallness = directives.PGI_UpdateParameters(
     update_gmm=False  # keep GMM model fixed
@@ -515,9 +487,7 @@ update_smallness = directives.PGI_UpdateParameters(
 # pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
 # iteratively balance the scaling of the data misfits
-scaling_init = directives.ScalingMultipleDataMisfits_ByEig(
-    chi0_ratio=[1.0, 100.0]
-)
+scaling_init = directives.ScalingMultipleDataMisfits_ByEig(chi0_ratio=[1.0, 100.0])
 scale_schedule = directives.JointScalingSchedule(verbose=True)
 
 # Create inverse problem
@@ -682,77 +652,71 @@ for i in range(3):
 # plot the locations of the cross-sections
 for i in range(3):
     ax[i, 0].plot(
-        mesh.vectorCCy[indy] * np.ones(2),
-        [-300, 500],
-        c="k",
-        linestyle="dotted"
+        mesh.vectorCCy[indy] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
     )
     ax[i, 0].plot(
         [
-        data_mag.survey.receiver_locations[:,1].min(),
-        data_mag.survey.receiver_locations[:,1].max(),
+            data_mag.survey.receiver_locations[:, 1].min(),
+            data_mag.survey.receiver_locations[:, 1].max(),
         ],
         mesh.vectorCCz[indz] * np.ones(2),
         c="k",
-        linestyle="dotted"
+        linestyle="dotted",
     )
     ax[i, 0].set_xlim(
         [
-            data_mag.survey.receiver_locations[:,1].min(),
-            data_mag.survey.receiver_locations[:,1].max()
+            data_mag.survey.receiver_locations[:, 1].min(),
+            data_mag.survey.receiver_locations[:, 1].max(),
         ],
     )
 
     ax[i, 1].plot(
-        mesh.vectorCCx[indx] * np.ones(2),
-        [-300, 500],
-        c="k",
-        linestyle="dotted"
+        mesh.vectorCCx[indx] * np.ones(2), [-300, 500], c="k", linestyle="dotted"
     )
     ax[i, 1].plot(
         [
-            data_mag.survey.receiver_locations[:,0].min(),
-            data_mag.survey.receiver_locations[:,0].max(),
+            data_mag.survey.receiver_locations[:, 0].min(),
+            data_mag.survey.receiver_locations[:, 0].max(),
         ],
         mesh.vectorCCz[indz] * np.ones(2),
         c="k",
-        linestyle="dotted"
+        linestyle="dotted",
     )
     ax[i, 1].set_xlim(
         [
-            data_mag.survey.receiver_locations[:,0].min(),
-            data_mag.survey.receiver_locations[:,0].max()
+            data_mag.survey.receiver_locations[:, 0].min(),
+            data_mag.survey.receiver_locations[:, 0].max(),
         ],
     )
 
     ax[i, 2].plot(
         mesh.vectorCCx[indx] * np.ones(2),
         [
-        data_mag.survey.receiver_locations[:,1].min(),
-        data_mag.survey.receiver_locations[:,1].max(),
+            data_mag.survey.receiver_locations[:, 1].min(),
+            data_mag.survey.receiver_locations[:, 1].max(),
         ],
         c="k",
-        linestyle="dotted"
+        linestyle="dotted",
     )
     ax[i, 2].plot(
         [
-            data_mag.survey.receiver_locations[:,0].min(),
-            data_mag.survey.receiver_locations[:,0].max(),
+            data_mag.survey.receiver_locations[:, 0].min(),
+            data_mag.survey.receiver_locations[:, 0].max(),
         ],
         mesh.vectorCCy[indy] * np.ones(2),
         c="k",
-        linestyle="dotted"
+        linestyle="dotted",
     )
     ax[i, 2].set_xlim(
         [
-            data_mag.survey.receiver_locations[:,0].min(),
-            data_mag.survey.receiver_locations[:,0].max()
+            data_mag.survey.receiver_locations[:, 0].min(),
+            data_mag.survey.receiver_locations[:, 0].max(),
         ],
     )
     ax[i, 2].set_ylim(
         [
-            data_mag.survey.receiver_locations[:,1].min(),
-            data_mag.survey.receiver_locations[:,1].max()
+            data_mag.survey.receiver_locations[:, 1].min(),
+            data_mag.survey.receiver_locations[:, 1].max(),
         ],
     )
 
@@ -855,11 +819,7 @@ clfgrav.weights_ = gmmref.weights_
 testXplot_grav = np.linspace(-1.2, 0.1, 1000)[:, np.newaxis]
 score_grav = clfgrav.score_samples(testXplot_grav)
 ax2.plot(
-    testXplot_grav,
-    np.exp(score_grav),
-    linewidth=3.0,
-    label="proba.\ndensity",
-    c="k"
+    testXplot_grav, np.exp(score_grav), linewidth=3.0, label="proba.\ndensity", c="k"
 )
 ax2.set_ylim([0.0, 2])
 ax2.legend(fontsize=ticksize)

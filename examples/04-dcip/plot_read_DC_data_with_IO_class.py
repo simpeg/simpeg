@@ -52,7 +52,7 @@ apprho = df[header_apprho].values
 # Create DC.IO survey Object object
 IO = DC.IO()
 # Generate DC survey using IO object
-dc_survey = IO.from_ambn_locations_to_survey(
+dc_survey = IO.from_abmn_locations_to_survey(
     a,
     b,
     m,
