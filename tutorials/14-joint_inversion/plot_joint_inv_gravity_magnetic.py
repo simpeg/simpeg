@@ -3,25 +3,23 @@
 
 """
 Cross-gradient Joint Inversion of Gravity and Magnetic Anomaly Data
-===============================================
+===================================================================
 
-Here we simultaneously invert gravity and magentic data using cross-gradient 
+Here we simultaneously invert gravity and magentic data using cross-gradient
 constraint. The recovered density and susceptibility models are supposed to have
 structural similarity. For this tutorial, we focus on the following:
-    
+
     - Defining the survey from xyz formatted data
     - Generating a mesh based on survey geometry
     - Including surface topography
-    - Defining the inverse problem via combmaps (2 data misfit terms, 
+    - Defining the inverse problem via combmaps (2 data misfit terms,
         2 regularization terms, a coupling term and optimization)
     - Specifying directives for the inversion
     - Plotting the recovered model and data misfit
 
 
-Although we consider gravity and magnetic anomaly data in this tutorial, 
+Although we consider gravity and magnetic anomaly data in this tutorial,
 the same approach can be used to invert gradiometry and other types of geophysical data.
-
-
 
 """
 
@@ -51,6 +49,7 @@ from SimPEG import (
     inversion,
     utils,
 )
+
 np.random.seed(0)
 
 #############################################
@@ -64,7 +63,9 @@ np.random.seed(0)
 # "https://storage.googleapis.com/simpeg/doc-assets/gravity.tar.gz"
 
 # # storage bucket where we have the data
-data_source = "https://storage.googleapis.com/simpeg/doc-assets/gravity.tar.gz"
+data_source = (
+    "https://storage.googleapis.com/simpeg/doc-assets/cross_gradient_data.tar.gz"
+)
 
 # # download the data
 downloaded_data = utils.download(data_source, overwrite=True)
@@ -79,7 +80,6 @@ dir_path = downloaded_data.split(".")[0] + os.path.sep
 
 # files to work with
 topo_filename = dir_path + "gravity_topo.txt"
-data_filename = dir_path + "gravity_data.obs"
 model_filename = dir_path + "true_model.txt"
 
 
@@ -93,13 +93,11 @@ model_filename = dir_path + "true_model.txt"
 #
 
 # Load topography
-# xyz_topo = np.loadtxt(str(topo_filename))
-xyz_topo = np.loadtxt("topo.txt")
+xyz_topo = np.loadtxt(topo_filename)
 
 # Load field data
-# dobs_grav = np.loadtxt(str(data_filename))
-dobs_grav = np.loadtxt("gravity_data.obs")
-dobs_mag = np.loadtxt("magnetic_data.obs")
+dobs_grav = np.loadtxt(dir_path + "gravity_data.obs")
+dobs_mag = np.loadtxt(dir_path + "magnetic_data.obs")
 
 # Define receiver locations and observed data
 receiver_locations = dobs_grav[:, 0:3]
@@ -120,7 +118,9 @@ ax1.set_xlabel("x (m)")
 ax1.set_ylabel("y (m)")
 
 ax2 = fig.add_axes([0.8, 0.1, 0.03, 0.85])
-norm = mpl.colors.Normalize(vmin=-np.max(np.abs(dobs_grav)), vmax=np.max(np.abs(dobs_grav)))
+norm = mpl.colors.Normalize(
+    vmin=-np.max(np.abs(dobs_grav)), vmax=np.max(np.abs(dobs_grav))
+)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", cmap=mpl.cm.bwr, format="%.1e"
 )
@@ -135,7 +135,9 @@ ax1.set_xlabel("x (m)")
 ax1.set_ylabel("y (m)")
 
 ax2 = fig.add_axes([0.8, 0.1, 0.03, 0.85])
-norm = mpl.colors.Normalize(vmin=-np.max(np.abs(dobs_mag)), vmax=np.max(np.abs(dobs_mag)))
+norm = mpl.colors.Normalize(
+    vmin=-np.max(np.abs(dobs_mag)), vmax=np.max(np.abs(dobs_mag))
+)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", cmap=mpl.cm.bwr, format="%.1e"
 )
@@ -214,8 +216,12 @@ survey_mag = magnetics.survey.Survey(source_field_mag)
 # the survey, the observation values and the standard deviation.
 #
 
-data_object_grav = data.Data(survey_grav, dobs=dobs_grav, standard_deviation=uncertainties_grav)
-data_object_mag = data.Data(survey_mag, dobs=dobs_mag, standard_deviation=uncertainties_mag)
+data_object_grav = data.Data(
+    survey_grav, dobs=dobs_grav, standard_deviation=uncertainties_grav
+)
+data_object_mag = data.Data(
+    survey_mag, dobs=dobs_mag, standard_deviation=uncertainties_mag
+)
 
 
 #############################################
@@ -240,13 +246,13 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 # Here, we create starting and/or reference models for the inversion as
 # well as the mapping from the model space to the active cells. Starting and
 # reference models can be a constant background value or contain a-priori
-# structures. Here, the backgrounds are 1e-6 g/cc and 1e-6 SI for density and 
-# susceptibility models, respectively. Note that the background values could 
+# structures. Here, the backgrounds are 1e-6 g/cc and 1e-6 SI for density and
+# susceptibility models, respectively. Note that the background values could
 # be different for density and susceptibility models.
 #
 
-# Define density contrast values for each unit in g/cc. 
-background_dens, background_susc = 1e-6, 1e-6 
+# Define density contrast values for each unit in g/cc.
+background_dens, background_susc = 1e-6, 1e-6
 
 # Find the indecies of the active cells in forward model (ones below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
@@ -257,12 +263,10 @@ model_map = maps.IdentityMap(nP=nC)  # model consists of a value for each active
 
 # Create Wires Map that maps from stacked models to individual model components
 # m1 refers to density model, m2 refers to susceptibility
-wires = maps.Wires(('m1', nC), ('m2', nC))
+wires = maps.Wires(("m1", nC), ("m2", nC))
 
 # Define and plot starting model
-starting_model = np.r_[
-    background_dens * np.ones(nC), background_susc * np.ones(nC)
-    ]
+starting_model = np.r_[background_dens * np.ones(nC), background_susc * np.ones(nC)]
 
 
 ##############################################
@@ -283,7 +287,6 @@ simulation_mag = magnetics.simulation.Simulation3DIntegral(
     modelType="susceptibility",
     chiMap=wires.m2,
     actInd=ind_active,
-
 )
 
 
@@ -311,18 +314,25 @@ reg_grav = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m1)
 reg_mag = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m2)
 
 # Define the coupling term to connect two different physical property models
-lamda = 2.25e+13 # weight for coupling term
-cross_grad = regularization.CrossGradient(mesh, indActive=ind_active, mapping=(wires.m1+wires.m2))
+lamda = 2.25e13  # weight for coupling term
+cross_grad = regularization.CrossGradient(
+    mesh, indActive=ind_active, mapping=(wires.m1 + wires.m2)
+)
 
 # combo
 dmis = dmis_grav + dmis_mag
-reg = reg_grav + reg_mag + lamda*cross_grad
+reg = reg_grav + reg_mag + lamda * cross_grad
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.ProjectedGNCG(
-    maxIter=500, lower=-2.0, upper=2.0, maxIterLS=20, 
-    maxIterCG=300, tolCG=1e-3, tolX=1e-3
+    maxIter=500,
+    lower=-2.0,
+    upper=2.0,
+    maxIterLS=20,
+    maxIterCG=300,
+    tolCG=1e-3,
+    tolX=1e-3,
 )
 
 # Here we define the inverse problem that is to be solved
@@ -363,13 +373,12 @@ update_jacobi = directives.UpdatePreconditioner()
 # The directives are defined as a list.
 directives_list = [
     joint_inv_dir,
-    sensitivity_weights,     
+    sensitivity_weights,
     stopping,
     starting_beta,
     beta_schedule,
     save_iteration,
     update_jacobi,
-
 ]
 
 #####################################################################
@@ -452,7 +461,7 @@ plt.show()
 
 
 # Plot Recovered Density Model
-m_dens_joint, m_susc_joint = wires.m1*recovered_model, wires.m2*recovered_model
+m_dens_joint, m_susc_joint = wires.m1 * recovered_model, wires.m2 * recovered_model
 fig = plt.figure(figsize=(9, 4))
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
@@ -539,9 +548,8 @@ m_dens_single = np.loadtxt("single_model_dens.txt")
 m_susc_single = np.loadtxt("single_model_susc.txt")
 
 ncg_single = cross_grad.calculate_cross_gradient(
-    m_dens_single[ind_active], 
-    m_susc_single[ind_active],
-    )
+    m_dens_single[ind_active], m_susc_single[ind_active],
+)
 
 fig = plt.figure(figsize=(9, 4))
 ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
@@ -566,15 +574,12 @@ cbar.set_label("SI", rotation=270, labelpad=15, size=12)
 plt.show()
 
 
-
 # Cross Plots Recovered Susceptibility and Density Models
 fig = plt.figure(figsize=(14, 5))
 ax0 = plt.subplot(121)
 ax0.scatter(
-    plotting_map * m_dens_joint,
-    plotting_map * m_susc_joint,
-    s=4, c="black", 
-    )
+    plotting_map * m_dens_joint, plotting_map * m_susc_joint, s=4, c="black",
+)
 
 ax0.set_xlabel("Density", size=12)
 ax0.set_ylabel("Susceptibility", size=12)
@@ -583,10 +588,8 @@ ax0.set_title("Joint inversion")
 
 ax1 = plt.subplot(122)
 ax1.scatter(
-    m_dens_single, 
-    m_susc_single,
-    s=4, c="black", 
-    )
+    m_dens_single, m_susc_single, s=4, c="black",
+)
 
 ax1.set_xlabel("Density", size=12)
 ax1.set_ylabel("Susceptibility", size=12)
@@ -594,6 +597,3 @@ ax1.tick_params(labelsize=12)
 ax1.set_title("Separate inversion")
 
 plt.show()
-
-
-
