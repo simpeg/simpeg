@@ -883,7 +883,6 @@ class Update_IRLS(InversionDirective):
         # Update the model used by the regularization
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
-            reg.mapping.model = self.invProb.model
 
         if self.sphericalDomain:
             self.angleScale()
@@ -892,10 +891,6 @@ class Update_IRLS(InversionDirective):
 
         if self.sphericalDomain:
             self.angleScale()
-
-        for reg in self.reg.objfcts:
-            reg.mapping._P = None
-            reg.mapping.model = self.invProb.model
 
         # Check if misfit is within the tolerance, otherwise scale beta
         if np.all(
@@ -1279,7 +1274,7 @@ class UpdateSensitivityWeights(InversionDirective):
         """
 
         for reg in self.reg.objfcts:
-            reg.cell_weights = reg.weight_map * (self.wr)
+            reg.cell_weights = reg.mapping * (self.wr)
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights

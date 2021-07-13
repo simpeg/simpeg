@@ -12,12 +12,9 @@ class BaseSparse(BaseRegularization):
     Base class for building up the components of the Sparse Regularization
     """
 
-    def __init__(self, mesh, mapping=None, weight_map=None, **kwargs):
+    def __init__(self, mesh, **kwargs):
         self._stashedR = None
         super(BaseSparse, self).__init__(mesh=mesh, **kwargs)
-        self.weight_map = weight_map
-        if self.weight_map is None:
-            self.weight_map = self.mapping
 
     model = properties.Array("current model", dtype=float)
 
@@ -123,29 +120,6 @@ class SparseSmall(BaseSparse):
 
         self.stashedR = r  # stash on the first calculation
         return r
-
-    # @utils.timeIt
-    # def deriv(self, m):
-    #     """
-    #
-    #     The regularization is:
-    #
-    #     .. math::
-    #
-    #         R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
-    #                W(m-m_\\text{ref})}
-    #
-    #     So the derivative is straight forward:
-    #
-    #     .. math::
-    #
-    #         R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
-    #
-    #     """
-    #
-    #     mD = self.mapping.deriv(self._delta_m(m))
-    #     r = self.W * (self.mapping * (self._delta_m(m)))
-    #     return mD.T * (self.W.T * r)
 
 
 class SparseDeriv(BaseSparse):
@@ -454,7 +428,6 @@ class Sparse(BaseComboRegularization):
         if mesh.dim > 2:
             objfcts.append(SparseDeriv(mesh=mesh, orientation="z", **kwargs))
 
-        self.weight_map = None
         super(Sparse, self).__init__(
             mesh=mesh,
             objfcts=objfcts,
