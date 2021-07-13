@@ -186,8 +186,10 @@ class BaseRegularization(BaseObjectiveFunction):
             R(m) = \\mathbf{W^\\top W}
 
         """
-
-        mD = self.mapping.deriv(self._delta_m(m))
+        if hasattr(self.mapping, "deriv2"):
+            mD = self.mapping.deriv2(self._delta_m(m))
+        else:
+            mD = self.mapping.deriv(self._delta_m(m))
 
         if isinstance(mD, list):
             deriv = []

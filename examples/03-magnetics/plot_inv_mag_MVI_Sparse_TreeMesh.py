@@ -399,7 +399,7 @@ if hasattr(invProb, "l2model"):
         actvMap=actv_plot,
         scale=0.4,
         vmin=0.0,
-        vmax=0.025,
+        vmax=0.01,
     )
     ax.set_xlim([-200, 200])
     ax.set_ylim([-100, 75])

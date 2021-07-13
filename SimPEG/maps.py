@@ -644,25 +644,36 @@ class VectorAmplitude(IdentityMap):
 
     def _transform(self, model):
         """
-
         :param model:
         :return:
         """
-        return np.linalg.norm(model.reshape((-1, 3), order="F"), axis=1)
+        return np.linalg.norm(self.wires*model, axis=0)
 
     def deriv(self, m, v=None):
         """
-
         """
-        deriv = []
-        A = sp.spdiags(1./(self._transform(m) + 1e-8), 0, self.nP, self.nP)
-        for comp in "xyz":
-            if v is not None:
-                deriv += [A * getattr(self.wires, comp) * v]
-            else:
-                deriv += [A * getattr(self.wires, comp).P]
+        derivs = []
+        for key, wire in self.wires.maps:
+            A = sp.spdiags((wire*m) / (self._transform(m) + 1e-16), 0, self.nP, self.nP)
 
-        return deriv
+            if v is not None:
+                derivs += [A * wire * v]
+            else:
+                derivs += [A * wire.P]
+
+        return derivs
+
+    def deriv2(self, m, v=None):
+        """
+        """
+        derivs = []
+        for key, wire in self.wires.maps:
+            if v is not None:
+                derivs += [wire * v]
+            else:
+                derivs += [wire.P]
+
+        return derivs
 
 
 class Wires(object):
