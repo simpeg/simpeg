@@ -628,15 +628,12 @@ class VectorAmplitudeSquare(IdentityMap):
     vector components. The derivative ...
     """
 
-    def __init__(self, component: str, mesh=None, nP=None, **kwargs):
+    def __init__(self, mesh=None, nP=None, **kwargs):
 
         super().__init__(mesh, nP, **kwargs)
-        assert component in "xyz", (
-            "Vector component must be one of 'x', 'y', or 'z'. "
-            f"{component} provided."
-        )
+
+        self.wires = Wires(("x", nP), ("y", nP), ("z", nP))
         self.model = None
-        self.component = component
 
     @property
     def shape(self):
@@ -657,20 +654,15 @@ class VectorAmplitudeSquare(IdentityMap):
         """
 
         """
-        if getattr(self, "P", None) is None:
-            index = self.nP * "xyz".index(self.component)
-            self.P = sp.csr_matrix(
-                (
-                    np.ones(self.nP),
-                    (range(self.nP), range(index, index + self.nP))
-                ),
-                shape=(self.nP, 3 * self.nP)
-            )
+        deriv = []
+        A = sp.spdiags(1./(self._transform(m) + 1e-8), 0, self.nP, self.nP)
+        for comp in "xyz":
+            if v is not None:
+                deriv += [A * getattr(self.wires, comp) * v]
+            else:
+                deriv += [A * getattr(self.wires, comp).P]
 
-        if v is not None:
-            return self.P * v
-
-        return self.P
+        return deriv
 
 
 class Wires(object):

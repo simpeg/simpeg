@@ -124,28 +124,28 @@ class SparseSmall(BaseSparse):
         self.stashedR = r  # stash on the first calculation
         return r
 
-    @utils.timeIt
-    def deriv(self, m):
-        """
-
-        The regularization is:
-
-        .. math::
-
-            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
-                   W(m-m_\\text{ref})}
-
-        So the derivative is straight forward:
-
-        .. math::
-
-            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
-
-        """
-
-        mD = self.mapping.deriv(self._delta_m(m))
-        r = self.W * (self.mapping * (self._delta_m(m)))
-        return mD.T * (self.W.T * r)
+    # @utils.timeIt
+    # def deriv(self, m):
+    #     """
+    #
+    #     The regularization is:
+    #
+    #     .. math::
+    #
+    #         R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
+    #                W(m-m_\\text{ref})}
+    #
+    #     So the derivative is straight forward:
+    #
+    #     .. math::
+    #
+    #         R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+    #
+    #     """
+    #
+    #     mD = self.mapping.deriv(self._delta_m(m))
+    #     r = self.W * (self.mapping * (self._delta_m(m)))
+    #     return mD.T * (self.W.T * r)
 
 
 class SparseDeriv(BaseSparse):
@@ -237,6 +237,7 @@ class SparseDeriv(BaseSparse):
             / (f_m ** 2.0 + (self.epsilon * self.length_scales) ** 2.0)
             ** (1.0 - self.norm / 2.0)
         ) ** 0.5
+
         self.stashedR = r  # stash on the first calculation
         return r
 
@@ -293,7 +294,16 @@ class SparseDeriv(BaseSparse):
             r = self.W * (self.mapping * model)
 
         mD = self.mapping.deriv(model)
-        return mD.T * (self.W.T * r)
+        if isinstance(mD, list):
+            deriv = []
+            for elem in mD:
+                deriv += [elem.T * (self.W.T * r)]
+            return np.sum(deriv, axis=0)
+        else:
+            return mD.T * (self.W.T * r)
+
+        # mD = self.mapping.deriv(model)
+        # return mD.T * (self.W.T * r)
 
     @property
     def _multiplier_pair(self):

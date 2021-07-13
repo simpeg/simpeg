@@ -879,11 +879,11 @@ class Update_IRLS(InversionDirective):
             for reg in self.reg.objfcts:
                 self.norms.append(reg.norms)
                 reg.norms = np.c_[2.0, 2.0, 2.0, 2.0]
-                reg.model = self.invProb.model
 
         # Update the model used by the regularization
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
+            reg.mapping.model = self.invProb.model
 
         if self.sphericalDomain:
             self.angleScale()
@@ -892,6 +892,10 @@ class Update_IRLS(InversionDirective):
 
         if self.sphericalDomain:
             self.angleScale()
+
+        for reg in self.reg.objfcts:
+            reg.mapping._P = None
+            reg.mapping.model = self.invProb.model
 
         # Check if misfit is within the tolerance, otherwise scale beta
         if np.all(

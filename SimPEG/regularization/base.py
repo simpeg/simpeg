@@ -154,7 +154,13 @@ class BaseRegularization(BaseObjectiveFunction):
 
         mD = self.mapping.deriv(self._delta_m(m))
         r = self.W * (self.mapping * (self._delta_m(m)))
-        return mD.T * (self.W.T * r)
+        if isinstance(mD, list):
+            deriv = []
+            for elem in mD:
+                deriv += [elem.T * (self.W.T * r)]
+            return np.sum(deriv, axis=0)
+        else:
+            return mD.T * (self.W.T * r)
 
     @utils.timeIt
     def deriv2(self, m, v=None):
@@ -182,10 +188,21 @@ class BaseRegularization(BaseObjectiveFunction):
         """
 
         mD = self.mapping.deriv(self._delta_m(m))
-        if v is None:
-            return mD.T * self.W.T * self.W * mD
 
-        return mD.T * (self.W.T * (self.W * (mD * v)))
+        if isinstance(mD, list):
+            deriv = []
+            for elem in mD:
+                if v is None:
+                    deriv += [elem.T * self.W.T * self.W * elem]
+                else:
+                    deriv += [elem.T * (self.W.T * (self.W * (elem * v)))]
+
+            return np.sum(deriv, axis=0)
+        else:
+            if v is None:
+                return mD.T * self.W.T * self.W * mD
+
+            return mD.T * (self.W.T * (self.W * (mD * v)))
 
 
 ###############################################################################
