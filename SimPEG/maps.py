@@ -616,7 +616,7 @@ class SphericalSystem(IdentityMap):
         return self.sphericalDeriv(m)
 
 
-class VectorAmplitudeSquare(IdentityMap):
+class VectorAmplitude(IdentityMap):
     """
     A vector amplitude map defined as
 

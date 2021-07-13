@@ -309,7 +309,7 @@ rxLoc = survey.source_field.receiver_list[0].locations
 # vector model
 m0 = np.ones(3 * nC) * 1e-4  # Starting model
 wires = maps.Wires(("x", nC), ("y", nC), ("z", nC))
-amp_x = maps.VectorAmplitudeSquare(nP=nC)
+amp_x = maps.VectorAmplitude(nP=nC)
 amp_x.model = m0
 
 sens_W = simulation.getJtJdiag(m0).reshape((-1, 3), order="F")
