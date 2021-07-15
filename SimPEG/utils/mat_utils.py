@@ -1,12 +1,12 @@
 from __future__ import division
 import numpy as np
-from .code_utils import deprecate_method
+from .code_utils import deprecate_method, deprecate_function
 from discretize.utils import (
     Zero,
     Identity,
     mkvc,
     sdiag,
-    sdInv,
+    sdinv,
     speye,
     kron3,
     spzeros,
@@ -16,45 +16,58 @@ from discretize.utils import (
     ndgrid,
     ind2sub,
     sub2ind,
-    getSubArray,
-    inv3X3BlockDiagonal,
-    inv2X2BlockDiagonal,
+    get_subarray,
+    inverse_3x3_block_diagonal,
+    inverse_2x2_block_diagonal,
     TensorType,
-    makePropertyTensor,
-    invPropertyTensor,
-)
-
-avExtrap = deprecate_method(
-    av_extrap, "avExtrap", removal_version="0.16.0", future_warn=True
+    make_property_tensor,
+    inverse_property_tensor
 )
 
 
-def diagEst(matFun, n, k=None, approach="Probing"):
+def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
+    """Estimate the diagonal of a matrix.
+
+    This function estimates the diagonal of a matrix using one of the following
+    iterative methods:
+
+        - *Probing:* cyclic permutations of vectors with 1's and 0's (default)
+        - *Ones:* random +/- 1 entries
+        - *Random:* random vectors with entries in the range [-1, 1]
+
+    The user can estimate the diagonal of the matrix by providing the matrix,
+    or by providing a function hangle which computes the dot product of the matrix
+    and a vector.
+
+    For background information on this method, see Saad
+    `http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf`__
+    and `https://www.cita.utoronto.ca/~niels/diagonal.pdf`__
+
+    Parameters
+    ----------
+
+    matrix_arg : numpy.ndarray or function
+        The matrix as a numpy.ndarray, or a function handle which computes the dot product
+        between the matrix and a vector.
+    n : int
+        The length of the random vectors used to compute the diagonal; equals number of columns
+    k : int
+        Number of vectors to be used to estimate the diagonal; i.e. number of iterations in estimation
+    approach : str
+        Method used for approximating diagonal. Must be one of {'probing', 'ones', 'random'}
+    
+    Returns
+    -------
+
+    numpy.ndarray
+        1D array with the estimate of the diagonal elements of the input matrix
+
     """
-    Estimate the diagonal of a matrix, A. Note that the matrix may be a
-    function which returns A times a vector.
 
-    Three different approaches have been implemented:
+    if type(matrix_arg).__name__ == "ndarray":
+        A = matrix_arg
 
-    1. Probing: cyclic permutations of vectors with 1's and 0's (default)
-    2. Ones: random +/- 1 entries
-    3. Random: random vectors
-
-    :param callable matFun: takes a (numpy.ndarray) and multiplies it by a matrix to estimate the diagonal
-    :param int n: size of the vector that should be used to compute matFun(v)
-    :param int k: number of vectors to be used to estimate the diagonal
-    :param str approach: approach to be used for getting vectors
-    :rtype: numpy.ndarray
-    :return: est_diag(A)
-
-    Based on Saad http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf,
-    and https://www.cita.utoronto.ca/~niels/diagonal.pdf
-    """
-
-    if type(matFun).__name__ == "ndarray":
-        A = matFun
-
-        def matFun(v):
+        def matrix_arg(v):
             return A.dot(v)
 
     if k is None:
@@ -85,7 +98,7 @@ def diagEst(matFun, n, k=None, approach="Probing"):
 
     for i in range(0, k):
         vk = getv(n, i)
-        Mv += matFun(vk) * vk
+        Mv += matrix_arg(vk) * vk
         vv += vk * vk
 
     d = Mv / vv
@@ -93,7 +106,24 @@ def diagEst(matFun, n, k=None, approach="Probing"):
     return d
 
 
-def uniqueRows(M):
+def unique_rows(M):
+    """Return unique rows, row indices and inverse indices.
+
+    Parameters
+    ----------
+    M : numpy.array_like
+        The input array
+
+    Returns
+    -------
+    unqM : numpy.array_like
+        Array consisting of the unique rows of the input array
+    unqInd : numpy.array_like of int
+        Indices to project from input array to output array
+    unqInd : numpy.array_like of int
+        Indices to project from output array to input array
+
+    """
     b = np.ascontiguousarray(M).view(np.dtype((np.void, M.dtype.itemsize * M.shape[1])))
     _, unqInd = np.unique(b, return_index=True)
     _, invInd = np.unique(b, return_inverse=True)
@@ -183,7 +213,40 @@ def eigenvalue_by_power_iteration(
 
 
 def cartesian2spherical(m):
-    """ Convert from cartesian to spherical """
+    """Converts a set of 3D vectors from Cartesian to spherical coordinates.
+    
+    Notes
+    -----
+
+    In Cartesian space, the components of each vector are defined as
+
+    .. math::
+        \\mathbf{v} = (v_x, v_y, v_z)
+
+    In spherical coordinates, vectors are is defined as:
+
+    .. math::
+        \\mathbf{v^\\prime} = (a, p, t)
+
+    where
+    
+        - :math:`a` is the amplitude of the vector
+        - :math:`p` is the radial angle defined positive CCW from Easting
+        - :math:`t` is the azimuthal angle defined positive from vertical
+
+    Parameters
+    ----------
+    m : numpy.array_like (*, 3)
+        An array whose columns represent the x, y and z components of
+        a set of vectors.
+
+
+    Returns
+    -------
+    numpy.array_like (*, 3)
+        An array whose columns represent the *a*, *t* and *p* components
+        of a set of vectors in spherical coordinates.
+    """
 
     # nC = int(len(m)/3)
 
@@ -205,7 +268,40 @@ def cartesian2spherical(m):
 
 
 def spherical2cartesian(m):
-    """ Convert from spherical to cartesian """
+    """Converts a set of 3D vectors from spherical to Catesian coordinates.
+    
+    Notes
+    -----
+
+    In Cartesian space, the components of each vector are defined as
+
+    .. math::
+        \\mathbf{v} = (v_x, v_y, v_z)
+
+    In spherical coordinates, vectors are is defined as:
+
+    .. math::
+        \\mathbf{v^\\prime} = (a, p, t)
+
+    where
+    
+        - :math:`a` is the amplitude of the vector
+        - :math:`p` is the radial angle defined positive CCW from Easting
+        - :math:`t` is the azimuthal angle defined positive from vertical
+
+    Parameters
+    ----------
+    m : numpy.array_like (*, 3)
+        An array whose columns represent the *a*, *t* and *p* components of
+        a set of vectors in spherical coordinates.
+
+
+    Returns
+    -------
+    numpy.array_like (*, 3)
+        An array whose columns represent the *x*, *y* and *z* components
+        of the set of vectors in Cartesian.
+    """
 
     a = m[:, 0] + 1e-8
     t = m[:, 1]
@@ -299,3 +395,46 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
     d = -(a * xyz1[0] + b * xyz1[1] + c * xyz1[2])
 
     return a, b, c, d
+
+
+
+################################################
+#             DEPRECATED FUNCTIONS
+################################################
+
+avExtrap = deprecate_method(
+    av_extrap, "avExtrap", removal_version="0.16.0", future_warn=True
+)
+
+sdInv = deprecate_method(
+    sdinv, "sdInv", removal_version="0.16.0", future_warn=True
+)
+
+getSubArray = deprecate_method(
+    get_subarray, "getSubArray", removal_version="0.16.0", future_warn=True
+)
+
+inv3X3BlockDiagonal = deprecate_method(
+    inverse_3x3_block_diagonal, "inv3X3BlockDiagonal", removal_version="0.16.0", future_warn=True
+)
+
+inv2X2BlockDiagonal = deprecate_method(
+    inverse_2x2_block_diagonal, "inv2X2BlockDiagonal", removal_version="0.16.0", future_warn=True
+)
+
+makePropertyTensor = deprecate_method(
+    make_property_tensor, "makePropertyTensor", removal_version="0.16.0", future_warn=True
+)
+
+invPropertyTensor = deprecate_method(
+    inverse_property_tensor, "makePropertyTensor", removal_version="0.16.0", future_warn=True
+)
+
+diagEst = deprecate_method(
+    estimate_diagonal, "diagEst", removal_version="0.16.0", future_warn=True
+)
+
+uniqueRows = deprecate_method(
+    unique_rows, "uniqueRows", removal_version="0.16.0", future_warn=True
+)
+
