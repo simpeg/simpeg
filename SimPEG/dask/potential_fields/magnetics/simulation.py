@@ -1,5 +1,6 @@
 import numpy as np
 from ....potential_fields.magnetics import Simulation3DIntegral as Sim
+from ....potential_fields.magnetics.simulation import evaluate_integral
 from ....utils import sdiag, mkvc
 from dask import array, delayed
 from scipy.sparse import csr_matrix as csr
@@ -40,12 +41,14 @@ def linear_operator(self):
 
     client = get_client()
 
-    # Xn, Yn, Zn = client.scatter([self.Xn, self.Yn, self.Zn], workers=self.workers)
-    row = delayed(self.evaluate_integral, pure=True)
+    Xn, Yn, Zn, M, projection = client.scatter(
+        [self.Xn, self.Yn, self.Zn, self.M, self.tmi_projection], workers=self.workers
+    )
+    min_hx, min_hy, min_hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
+    row = delayed(evaluate_integral, pure=True)
     rows = [
         array.from_delayed(
-            # row(Xn, Yn, Zn, hx, hy, hz, receiver_location, components[component]),
-            row(receiver_location, components[component]),
+            row(Xn, Yn, Zn, min_hx, min_hy, min_hz, M, projection, receiver_location, components[component]),
             dtype=np.float32,
             shape=(n_data_comp, self.nC),
         )
@@ -100,8 +103,8 @@ def linear_operator(self):
 
     elif self.store_sensitivities == "forward_only":
         # with ProgressBar():
-        print("Forward calculation: ")
-        pred = stack @ self.model.astype(np.float32)
+        print("Forward calculation (DASK): ")
+        pred = array.dot(stack, self.model.astype(np.float32))
         return pred
 
     with ProgressBar():

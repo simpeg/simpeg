@@ -81,6 +81,8 @@ class BasePFSimulation(LinearSimulation):
         ).tolist()
         nD = self.survey.nD
 
+        Xn, Yn, Zn = self.Xn, self.Yn, self.Zn
+        min_hx, min_hy, min_hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path + "sensitivity.npy"
             if os.path.exists(sens_name):
@@ -94,7 +96,7 @@ class BasePFSimulation(LinearSimulation):
         if self.store_sensitivities != "forward_only":
             kernel = np.vstack(
                 [
-                    self.evaluate_integral(receiver, components[component])
+                    self.evaluate_integral(Xn, Yn, Zn, min_hx, min_hy, min_hz, receiver, components[component])
                     for receiver, component in zip(
                         self.survey.receiver_locations.tolist(), active_components
                     )
@@ -103,7 +105,7 @@ class BasePFSimulation(LinearSimulation):
         else:
             kernel = np.hstack(
                 [
-                    self.evaluate_integral(receiver, components[component]).dot(
+                    self.evaluate_integral(Xn, Yn, Zn, min_hx, min_hy, min_hz, receiver, components[component]).dot(
                         self.model
                     )
                     for receiver, component in zip(

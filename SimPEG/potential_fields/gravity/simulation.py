@@ -22,6 +22,7 @@ class Simulation3DIntegral(BasePFSimulation):
         self._G = None
         self._gtg_diagonal = None
         self.modelMap = self.rhoMap
+        self.evaluate_integral = evaluate_integral
 
     def fields(self, m):
         self.model = m
@@ -120,20 +121,13 @@ def evaluate_integral(Xn, Yn, Zn, min_hx, min_hy, min_hz, receiver_location, com
 
     """
     tol1 = 1e-4
-    tol2 = 1e-10
-
-    # base cell dimensions
-    # min_hx, min_hy, min_hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
-
     dx = Xn - receiver_location[0]
     dx[np.abs(dx)/min_hx < tol1] = tol1 * min_hx
     dy = Yn - receiver_location[1]
     dy[np.abs(dy)/min_hy < tol1] = tol1 * min_hy
     dz = Zn - receiver_location[2]
     dz[np.abs(dz)/min_hz < tol1] = tol1 * min_hz
-
     rows = {component: np.zeros(Xn.shape[0]) for component in components}
-
     gxx = np.zeros(Xn.shape[0])
     gyy = np.zeros(Xn.shape[0])
 
