@@ -449,3 +449,28 @@ def deprecate_method(method, old_name, removal_version=None, future_warn=False):
     doc = f"`{old_name}` has been deprecated. See `{new_name}` for documentation"
     new_method.__doc__ = doc
     return new_method
+
+
+def deprecate_function(new_function, old_name, removal_version=None):
+    new_name = new_function.__name__
+    if removal_version is not None:
+        tag = f" It will be removed in version {removal_version} of SimPEG."
+    else:
+        tag = " It will be removed in a future version of SimPEG."
+
+    def dep_function(*args, **kwargs):
+        warnings.warn(
+            f"{old_name} has been deprecated, please use {new_name}." + tag,
+            DeprecationWarning,
+        )
+        return new_function(*args, **kwargs)
+
+    doc = f"""
+    `{old_name}` has been deprecated. See `{new_name}` for documentation
+
+    See Also
+    --------
+    {new_name}
+    """
+    dep_function.__doc__ = doc
+    return dep_function
