@@ -60,7 +60,7 @@ def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
     -------
 
     numpy.ndarray
-        1D array with the estimate of the diagonal elements of the input matrix
+        Estimate of the diagonal elements of the input matrix
 
     """
 
@@ -312,35 +312,38 @@ def spherical2cartesian(m):
     return m_xyz
 
 
-def dip_azimuth2cartesian(dip, azm_N):
+def dip_azimuth2cartesian(dip, azm):
+    """Convert vectors from dip-azimuth to Cartesian
+
+    This function takes the dip and azimuthal angles for a set of vectors and
+    converts to Cartesian coordinates. The output is a numpy.ndarray whose
+    columns represent the vectors' x, y and z components.
+
+    Parameters
+    ----------
+    dip : float or 1D numpy.ndarray
+        Dip angle in degrees. Values in range [0, 90]
+    azm : float or 1D numpy.ndarray
+        Asimuthal angle (strike) in degrees. Defined clockwise from Northing. Values is range [0, 360]
+
+    Returns
+    -------
+    numpy.ndarray (*, 3)
+        Numpy array whose columns represent the x, y and z components of the
+        vector(s) in Cartesian coordinates
+
     """
-    dip_azimuth2cartesian(dip,azm_N)
 
-    Function converting degree angles for dip and azimuth from north to a
-    3-components in cartesian coordinates.
-
-    INPUT
-    dip     : Value or vector of dip from horizontal in DEGREE
-    azm_N   : Value or vector of azimuth from north in DEGREE
-
-    OUTPUT
-    M       : [n-by-3] Array of xyz components of a unit vector in cartesian
-
-    Created on Dec, 20th 2015
-
-    @author: dominiquef
-    """
-
-    azm_N = np.asarray(azm_N)
+    azm = np.asarray(azm)
     dip = np.asarray(dip)
 
     # Number of elements
-    nC = azm_N.size
+    nC = azm.size
 
     M = np.zeros((nC, 3))
 
     # Modify azimuth from North to cartesian-X
-    azm_X = (450.0 - np.asarray(azm_N)) % 360.0
+    azm_X = (450.0 - np.asarray(azm)) % 360.0
     inc = -np.deg2rad(np.asarray(dip))
     dec = np.deg2rad(azm_X)
 
@@ -352,8 +355,27 @@ def dip_azimuth2cartesian(dip, azm_N):
 
 
 def coterminal(theta):
-    """
-    Compute coterminal angle so that [-pi < theta < pi]
+    """Compute coterminal angle
+
+    For a set of angles defined in radians, this function outputs their coterminal angles.
+    That is, for an angle :math:`\\theta` where:
+
+    .. math::
+        \\theta = 2\\pi N + \\gamma
+
+    and *N* is an integer, the function returns the value of :math:`\\gamma`.
+    The coterminal angle :math:`\\gamma` is within the range :math:`[-\\pi , \\pi]`.
+
+    Parameters
+    ----------
+    theta : float or numpy.array_like
+        Input angles
+
+    Returns
+    -------
+    float or numpy.array_like
+        Coterminal angles
+
     """
 
     sub = theta[np.abs(theta) >= np.pi]
@@ -365,19 +387,18 @@ def coterminal(theta):
 
 
 def define_plane_from_points(xyz1, xyz2, xyz3):
-    """
-    Compute constants defining a plane from a set of points.
+    """Compute constants defining a plane from a set of points.
 
-    The equation defining a plane has the form ax+by+cz+d=0.
-    This utility returns the constants a, b, c and d.
+    The equation defining a plane has the form :math:`ax+by+cz+d=0`.
+    This utility returns the constants a, b, c and d defining the plane.
 
     Parameters
     ----------
-    xyz1 : numpy.ndarray
+    xyz1 : numpy.ndarray (3,)
         First point needed to define the plane (x1, y1, z1)
-    xyz2 : numpy.ndarray
+    xyz2 : numpy.ndarray (3,)
         Second point needed to define the plane (x2, y2, z2)
-    xyz3 : numpy.ndarray
+    xyz3 : numpy.ndarray (3,)
         Third point needed to define the plane (x3, y3, z3)
 
     Returns
@@ -402,39 +423,39 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
 #             DEPRECATED FUNCTIONS
 ################################################
 
-avExtrap = deprecate_method(
-    av_extrap, "avExtrap", removal_version="0.16.0", future_warn=True
+avExtrap = deprecate_function(
+    av_extrap, "avExtrap", removal_version="0.16.0"
 )
 
-sdInv = deprecate_method(
-    sdinv, "sdInv", removal_version="0.16.0", future_warn=True
+sdInv = deprecate_function(
+    sdinv, "sdInv", removal_version="0.16.0"
 )
 
-getSubArray = deprecate_method(
-    get_subarray, "getSubArray", removal_version="0.16.0", future_warn=True
+getSubArray = deprecate_function(
+    get_subarray, "getSubArray", removal_version="0.16.0"
 )
 
-inv3X3BlockDiagonal = deprecate_method(
-    inverse_3x3_block_diagonal, "inv3X3BlockDiagonal", removal_version="0.16.0", future_warn=True
+inv3X3BlockDiagonal = deprecate_function(
+    inverse_3x3_block_diagonal, "inv3X3BlockDiagonal", removal_version="0.16.0"
 )
 
-inv2X2BlockDiagonal = deprecate_method(
-    inverse_2x2_block_diagonal, "inv2X2BlockDiagonal", removal_version="0.16.0", future_warn=True
+inv2X2BlockDiagonal = deprecate_function(
+    inverse_2x2_block_diagonal, "inv2X2BlockDiagonal", removal_version="0.16.0"
 )
 
-makePropertyTensor = deprecate_method(
-    make_property_tensor, "makePropertyTensor", removal_version="0.16.0", future_warn=True
+makePropertyTensor = deprecate_function(
+    make_property_tensor, "makePropertyTensor", removal_version="0.16.0"
 )
 
-invPropertyTensor = deprecate_method(
-    inverse_property_tensor, "makePropertyTensor", removal_version="0.16.0", future_warn=True
+invPropertyTensor = deprecate_function(
+    inverse_property_tensor, "makePropertyTensor", removal_version="0.16.0"
 )
 
-diagEst = deprecate_method(
-    estimate_diagonal, "diagEst", removal_version="0.16.0", future_warn=True
+diagEst = deprecate_function(
+    estimate_diagonal, "diagEst", removal_version="0.16.0"
 )
 
-uniqueRows = deprecate_method(
-    unique_rows, "uniqueRows", removal_version="0.16.0", future_warn=True
+uniqueRows = deprecate_function(
+    unique_rows, "uniqueRows", removal_version="0.16.0"
 )
 

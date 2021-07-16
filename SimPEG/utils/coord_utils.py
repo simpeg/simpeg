@@ -1,13 +1,14 @@
 from discretize.utils import rotation_matrix_from_normals, rotate_points_from_normals
+from .code_utils import deprecate_function
 
 ################################################
 #             DEPRECATED FUNCTIONS
 ################################################
 
-rotationMatrixFromNormals = deprecate_method(
-    rotation_matrix_from_normals, "rotationMatrixFromNormals", removal_version="0.16.0", future_warn=True
+rotationMatrixFromNormals = deprecate_function(
+    rotation_matrix_from_normals, "rotationMatrixFromNormals", removal_version="0.16.0"
 )
 
-rotatePointsFromNormals = deprecate_method(
-    rotate_points_from_normals, "rotatePointsFromNormals", removal_version="0.16.0", future_warn=True
+rotatePointsFromNormals = deprecate_function(
+    rotate_points_from_normals, "rotatePointsFromNormals", removal_version="0.16.0"
 )

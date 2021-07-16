@@ -53,13 +53,34 @@ from .code_utils import (
     requires,
     Report,
 )
-from .mesh_utils import exampleLrmGrid, meshTensor, closestPoints, ExtractCoreMesh
-from .curv_utils import volTetra, faceInfo, indexCube
+from .mesh_utils import (
+    meshTensor,
+    closestPoints,
+    ExtractCoreMesh,
+    unpack_widths,
+    closest_points_index,
+    extract_core_mesh
+)
+from .curv_utils import (
+    volTetra,
+    faceInfo,
+    indexCube,
+    ExampleLrmGrid,
+    volume_tetrahedron,
+    index_cube,
+    face_info,
+    example_curvilinear_grid
+)
 from .counter_utils import Counter, count, timeIt
 from . import model_builder
 from . import solver_utils
 from . import io_utils
-from .coord_utils import rotatePointsFromNormals, rotationMatrixFromNormals
+from .coord_utils import (
+    rotatePointsFromNormals,
+    rotationMatrixFromNormals,
+    rotation_matrix_from_normals,
+    rotate_points_from_normals
+)
 from .model_utils import surface2ind_topo
 from .plot_utils import plot2Ddata, plotLayer, plot_1d_layer_model
 from .io_utils import download
