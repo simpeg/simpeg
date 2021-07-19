@@ -82,7 +82,13 @@ class BasePFSimulation(LinearSimulation):
         nD = self.survey.nD
 
         Xn, Yn, Zn = self.Xn, self.Yn, self.Zn
-        min_hx, min_hy, min_hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
+        min_hx, min_hy = self.mesh.hx.min(), self.mesh.hy.min()
+
+        if getattr(self.mesh, "hz", None) is None:
+            min_hz = np.min([min_hx, min_hy])
+        else:
+            min_hz = self.mesh.hz.min()
+
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path + "sensitivity.npy"
             if os.path.exists(sens_name):
