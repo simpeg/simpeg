@@ -134,27 +134,35 @@ def unique_rows(M):
 def eigenvalue_by_power_iteration(
     combo_objfct, model, n_pw_iter=4, fields_list=None, seed=None
 ):
-    """
-    Estimate the highest eigenvalue of any objective function term or combination thereof
-    (data_misfit, regularization or ComboObjectiveFunction) for a given model.
-    The highest eigenvalue is estimated by power iterations and Rayleigh quotient.
+    """Estimate highest eigenvalue of one or a combo of objective functions using power iterations and the Rayleigh quotient.
+
+    Using power iterations and the Rayleigh quotient, this function estimates the largest
+    eigenvalue for a single :class:`SimPEG.BaseObjectiveFunction` or a combination of
+    objective functions stored in a :class:`SimPEG.ComboObjectiveFunction`.
 
     Parameters
     ----------
-
-    :param SimPEG.BaseObjectiveFunction combo_objfct: objective function term of which to estimate the highest eigenvalue
-    :param numpy.ndarray model: current geophysical model to estimate the objective function derivatives at
-    :param int n_pw_iter: number of power iterations to estimate the highest eigenvalue
-    :param list fiels_list: (optional) list of fields for each data misfit term in combo_objfct. If none given,
-                            they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
-                            terms, the list should contains SimPEG.fields for the data misfit terms and None for the
-                            regularization term.
-    :param int seed: Random seed for the initial random guess of eigenvector.
+    combo_objfct : SimPEG.BaseObjectiveFunction
+        Objective function or a combo objective function
+    model : numpy.ndarray
+        Current model
+    n_pw_iter : int
+        Number of power iterations used to estimate the highest eigenvalue
+    fields_list : list (optional)
+        List of fields object for each data misfit term in combo_objfct. If none given,
+        they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
+        terms, the list should contains SimPEG.fields for the data misfit terms and None for the
+        regularization term.
+    seed : int
+        Random seed for the initial random guess of eigenvector.
 
     Return
     ------
+    float
+        Estimated value of the highest eigenvalue
 
-    :return float eigenvalue: estimated value of the highest eigenvalye
+    Notes
+    -----
 
     """
 

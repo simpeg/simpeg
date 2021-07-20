@@ -7,26 +7,38 @@ import scipy.sparse as sp
 
 
 def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.nan):
-    """
-    Get active indices from topography
+    """Get indices of active cells from topography.
+
+    For a mesh and surface topography, this function returns the indices of cells
+    lying below the discretized surface topography.
 
     Parameters
     ----------
 
-    :param TensorMesh mesh: TensorMesh object on which to discretize the topography
-    :param numpy.ndarray topo: [X,Y,Z] topographic data
-    :param str gridLoc: 'CC' or 'N'. Default is 'CC'.
-                        Discretize the topography
-                        on cells-center 'CC' or nodes 'N'
-    :param str method: 'nearest' or 'linear' or 'cubic'. Default is 'nearest'.
-                       Interpolation method for the topographic data
-    :param float fill_value: default is np.nan. Filling value for extrapolation
+    mesh : discretize.TensorMesh or discretize.TreeMesh
+        Mesh on which you want to identify active cells
+    topo : numpy.ndarray (*, 3)
+        Topography data as a numpy array with columns [x,y,z]; can use [x,z] for 2D meshes.
+        Topography data can be unstructured.
+    gridLoc : str {'CC', 'N'}
+        If 'CC', all cells whose centers are below the topography are active cells.
+        If 'N', then cells must lie entirely below the topography in order to be active cells.
+    method : str {'nearest','linear','cubic'}
+        Interpolation method for approximating topography at cell's horizontal position.
+        Default is 'nearest'.
+    fill_value : float
+        Defines the elevation for cells outside the horizontal extent of the topography data.
+        Default is :py:class:`numpy.nan`.
 
     Returns
     -------
+    numpy.ndarray of int
+        Index vector for cells lying below the topography
 
-    :param numpy.ndarray actind: index vector for the active cells on the mesh
-                               below the topography
+    Examples
+    --------
+
+
     """
     if mesh._meshType == "TENSOR":
 
@@ -222,8 +234,23 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
 
 def surface_layer_index(mesh, topo, index=0):
-    """
-    Find the ith layer below topo
+    """Find ith layer of cells below topo for a tensor mesh.
+
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh
+        Input mesh
+    numpy.ndarray (*, 3)
+        Topography data as a numpy array with columns [x,y,z]; can use [x,z] for 2D meshes.
+        Topography data can be unstructured.
+    index : int
+        How many layers below the surface you want to find
+
+    Returns
+    -------
+    numpy.ndarray of int
+        Index vector for layer of cells
+
     """
 
     actv = np.zeros(mesh.nC, dtype="bool")
