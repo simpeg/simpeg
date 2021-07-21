@@ -879,6 +879,18 @@ class PGI(SimpleComboRegularization):
             self._approx_gradient = True
         return self._approx_gradient
 
+    @property
+    def approx_hessian(self):
+        if getattr(self, "_approx_hessian", None) is None:
+            self._approx_hessian = True
+        return self._approx_hessian
+
+    @approx_hessian.setter
+    def approx_hessian(self, ap):
+        if ap is not None:
+            self._approx_hessian = ap
+        self.objfcts[0].approx_hessian = self.approx_hessian
+
     @approx_gradient.setter
     def approx_gradient(self, ap):
         if ap is not None:
