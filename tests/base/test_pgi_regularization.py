@@ -97,7 +97,7 @@ class TestPGI(unittest.TestCase):
 
         reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(self.model) - reg_simple(mref)
-        passed_score_simple = np.allclose(score_approx0, score, rtol=1e-1)
+        passed_score_simple = np.allclose(score_approx0, score, rtol=1e-8)
         self.assertTrue(passed_score_simple)
 
         print("scores for SimplePGI & Full Cov. are ok.")
@@ -109,7 +109,7 @@ class TestPGI(unittest.TestCase):
 
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
-        passed_score = np.allclose(score_approx0, score, rtol=1e-1)
+        passed_score = np.allclose(score_approx0, score, rtol=1e-8)
         self.assertTrue(passed_score)
 
         print("scores for PGI  & Full Cov. are ok.")
@@ -119,8 +119,9 @@ class TestPGI(unittest.TestCase):
 
         deriv_simple = reg_simple.deriv(self.model)
         reg_simple.objfcts[0].approx_gradient = False
+        reg_simple.objfcts[0].approx_hessian = False
         deriv_simple_full = reg_simple.deriv(self.model)
-        passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
+        passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-8)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for SimplePGI & Full Cov. are ok.")
 
@@ -128,7 +129,7 @@ class TestPGI(unittest.TestCase):
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
-            mkvc(self.samples - direction2_simple), mkvc(mref), rtol=1e-1
+            mkvc(self.samples - direction2_simple), mkvc(mref), rtol=1e-8
         )
         self.assertTrue(passed_derivative_simple)
         print("2nd derivatives for SimplePGI & Full Cov. are ok.")
@@ -136,8 +137,9 @@ class TestPGI(unittest.TestCase):
         # With volumes
         deriv = reg.deriv(self.model)
         reg.objfcts[0].approx_gradient = False
+        reg.objfcts[0].approx_hessian = False
         deriv_full = reg.deriv(self.model)
-        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
+        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-8)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & Full Cov. are ok.")
 
@@ -145,7 +147,7 @@ class TestPGI(unittest.TestCase):
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
-            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-1
+            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-8
         )
         self.assertTrue(passed_derivative)
         print("2nd derivatives for PGI & Full Cov. are ok.")
@@ -279,7 +281,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_score_approx_simple)
         reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(self.model) - reg_simple(mref)
-        passed_score_simple = np.allclose(score_approx0, score, rtol=1e-1)
+        passed_score_simple = np.allclose(score_approx0, score, rtol=1e-8)
         self.assertTrue(passed_score_simple)
         print("scores for SimplePGI & tied Cov. are ok.")
 
@@ -289,7 +291,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
-        passed_score = np.allclose(score_approx0, score, rtol=1e-1)
+        passed_score = np.allclose(score_approx0, score, rtol=1e-8)
         self.assertTrue(passed_score)
         print("scores for PGI & tied Cov. are ok.")
 
@@ -298,8 +300,9 @@ class TestPGI(unittest.TestCase):
 
         deriv_simple = reg_simple.deriv(self.model)
         reg_simple.objfcts[0].approx_gradient = False
+        reg_simple.objfcts[0].approx_hessian = False
         deriv_simple_full = reg_simple.deriv(self.model)
-        passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
+        passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-8)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for SimplePGI & tied Cov. are ok.")
 
@@ -308,7 +311,7 @@ class TestPGI(unittest.TestCase):
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
-            mkvc(self.samples - direction2_simple), mkvc(mref), rtol=1e-1
+            mkvc(self.samples - direction2_simple), mkvc(mref), rtol=1e-8
         )
         self.assertTrue(passed_derivative_simple)
         print("2nd derivatives for SimplePGI & tied Cov. are ok.")
@@ -316,8 +319,9 @@ class TestPGI(unittest.TestCase):
         # With volumes
         deriv = reg.deriv(self.model)
         reg.objfcts[0].approx_gradient = False
+        reg.objfcts[0].approx_hessian = False
         deriv_full = reg.deriv(self.model)
-        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
+        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-8)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & tied Cov. are ok.")
 
@@ -325,7 +329,7 @@ class TestPGI(unittest.TestCase):
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
-            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-1
+            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-8
         )
         self.assertTrue(passed_derivative)
         print("2nd derivatives for PGI & tied Cov. are ok.")
@@ -458,7 +462,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_score_approx_simple)
         reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(self.model) - reg_simple(mref)
-        passed_score_simple = np.allclose(score_approx0, score, rtol=1e-1)
+        passed_score_simple = np.allclose(score_approx0, score, rtol=1e-8)
         self.assertTrue(passed_score_simple)
         print("scores for SimplePGI & diag Cov. are ok.")
 
@@ -468,7 +472,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
-        passed_score = np.allclose(score_approx0, score, rtol=1e-1)
+        passed_score = np.allclose(score_approx0, score, rtol=1e-8)
         self.assertTrue(passed_score)
         print("scores for PGI & diag Cov. are ok.")
 
@@ -477,8 +481,9 @@ class TestPGI(unittest.TestCase):
 
         deriv_simple = reg_simple.deriv(self.model)
         reg_simple.objfcts[0].approx_gradient = False
+        reg_simple.objfcts[0].approx_hessian = False
         deriv_simple_full = reg_simple.deriv(self.model)
-        passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
+        passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-8)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for SimplePGI & diag Cov. are ok.")
 
@@ -486,7 +491,7 @@ class TestPGI(unittest.TestCase):
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
-            mkvc(self.samples - direction2_simple), mkvc(mref), rtol=1e-1
+            mkvc(self.samples - direction2_simple), mkvc(mref), rtol=1e-8
         )
         self.assertTrue(passed_derivative_simple)
         print("2nd derivatives for SimplePGI & diag Cov. are ok.")
@@ -494,8 +499,9 @@ class TestPGI(unittest.TestCase):
         # With volumes
         deriv = reg.deriv(self.model)
         reg.objfcts[0].approx_gradient = False
+        reg.objfcts[0].approx_hessian = False
         deriv_full = reg.deriv(self.model)
-        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
+        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-8)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & diag Cov. are ok.")
 
@@ -503,7 +509,7 @@ class TestPGI(unittest.TestCase):
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
-            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-1
+            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-8
         )
         self.assertTrue(passed_derivative)
         print("2nd derivatives for PGI & diag Cov. are ok.")
@@ -636,7 +642,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_score_approx_simple)
         reg_simple.objfcts[0].approx_eval = False
         score = reg_simple(self.model) - reg_simple(mref)
-        passed_score_simple = np.allclose(score_approx0, score, rtol=1e-1)
+        passed_score_simple = np.allclose(score_approx0, score, rtol=1e-8)
         self.assertTrue(passed_score_simple)
         print("scores for SimplePGI & spherical Cov. are ok.")
 
@@ -646,7 +652,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
-        passed_score = np.allclose(score_approx0, score, rtol=1e-1)
+        passed_score = np.allclose(score_approx0, score, rtol=1e-8)
         self.assertTrue(passed_score)
         print("scores for PGI & spherical Cov. are ok.")
 
@@ -655,8 +661,9 @@ class TestPGI(unittest.TestCase):
 
         deriv_simple = reg_simple.deriv(self.model)
         reg_simple.objfcts[0].approx_gradient = False
+        reg_simple.objfcts[0].approx_hessian = False
         deriv_simple_full = reg_simple.deriv(self.model)
-        passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-1)
+        passed_deriv1 = np.allclose(deriv_simple, deriv_simple_full, rtol=1e-8)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for SimplePGI & spherical Cov. are ok.")
 
@@ -664,7 +671,7 @@ class TestPGI(unittest.TestCase):
         p_simple = Hinv * deriv_simple
         direction2_simple = np.c_[self.wires * p_simple]
         passed_derivative_simple = np.allclose(
-            mkvc(self.samples - direction2_simple), mkvc(mref), rtol=1e-1
+            mkvc(self.samples - direction2_simple), mkvc(mref), rtol=1e-8
         )
         self.assertTrue(passed_derivative_simple)
         print("2nd derivatives for SimplePGI & spherical Cov. are ok.")
@@ -672,8 +679,9 @@ class TestPGI(unittest.TestCase):
         # With volumes
         deriv = reg.deriv(self.model)
         reg.objfcts[0].approx_gradient = False
+        reg.objfcts[0].approx_hessian = False
         deriv_full = reg.deriv(self.model)
-        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
+        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-8)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & spherical Cov. are ok.")
 
@@ -681,7 +689,7 @@ class TestPGI(unittest.TestCase):
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
-            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-1
+            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-8
         )
         self.assertTrue(passed_derivative)
         print("2nd derivatives for PGI & spherical Cov. are ok.")
