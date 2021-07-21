@@ -330,7 +330,7 @@ class SimplePGIsmallness(BaseRegularization):
             W = np.c_[W].T
             logP = np.vstack([logP for maps in self.wiresmap.maps])
             numer = (W * np.exp(logP)).sum(axis=1)
-            r = numer/(np.exp(score_vec))
+            r = numer / (np.exp(score_vec))
             return mkvc(mD.T * r)
 
     @timeIt
@@ -414,43 +414,44 @@ class SimplePGIsmallness(BaseRegularization):
                 if self.gmm.covariance_type == "tied":
 
                     W.append(
-                                [
-                                        np.diag(sensW[i]).dot(
-                                            self.gmm.precisions_.dot(np.diag(sensW[i]))
-                                        )
-                                    for i in range(len(model))
-                                ]
+                        [
+                            np.diag(sensW[i]).dot(
+                                self.gmm.precisions_.dot(np.diag(sensW[i]))
+                            )
+                            for i in range(len(model))
+                        ]
                     )
                 elif (
                     self.gmm.covariance_type == "diag"
                     or self.gmm.covariance_type == "spherical"
                 ):
                     W.append(
-                                [
-                                        np.diag(sensW[i]).dot(
-                                            (
-                                                self.gmm.precisions_[k]
-                                                * np.eye(len(self.wiresmap.maps))
-                                            ).dot(np.diag(sensW[i]))
-                                        )
-                                    for i in range(len(model))
-                                ]
+                        [
+                            np.diag(sensW[i]).dot(
+                                (
+                                    self.gmm.precisions_[k]
+                                    * np.eye(len(self.wiresmap.maps))
+                                ).dot(np.diag(sensW[i]))
+                            )
+                            for i in range(len(model))
+                        ]
                     )
                 else:
                     W.append(
-                                [
-                                        np.diag(sensW[i]).dot(
-                                            self.gmm.precisions_[k].dot(
-                                                np.diag(sensW[i])
-                                            )
-                                        )
-                                    for i in range(len(model))
-                                ]
+                        [
+                            np.diag(sensW[i]).dot(
+                                self.gmm.precisions_[k].dot(np.diag(sensW[i]))
+                            )
+                            for i in range(len(model))
+                        ]
                     )
             W = np.c_[W]
 
             hlist = [
-                [(W[:,:, i, j].T*np.exp(2*logP)).sum(axis=1)/np.exp(2*score) for i in range(len(self.wiresmap.maps))]
+                [
+                    (W[:, :, i, j].T * np.exp(2 * logP)).sum(axis=1) / np.exp(2 * score)
+                    for i in range(len(self.wiresmap.maps))
+                ]
                 for j in range(len(self.wiresmap.maps))
             ]
 
@@ -467,7 +468,6 @@ class SimplePGIsmallness(BaseRegularization):
                 return Hr.dot(v)
             else:
                 return Hr
-
 
 
 class SimplePGI(SimpleComboRegularization):
@@ -705,18 +705,24 @@ class PGIsmallness(SimplePGIsmallness):
         """
         if self.cell_weights is not None:
             if len(self.cell_weights) == self.wiresmap.nP:
-                return sp.kron(
-                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.regmesh.vol)),
-                ) * sdiag(np.sqrt(self.cell_weights))
+                return (
+                    sp.kron(
+                        speye(len(self.wiresmap.maps)),
+                        sdiag(np.sqrt(self.regmesh.vol)),
+                    )
+                    * sdiag(np.sqrt(self.cell_weights))
+                )
             else:
                 return sp.kron(
-                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.regmesh.vol)),
+                    speye(len(self.wiresmap.maps)),
+                    sdiag(np.sqrt(self.regmesh.vol)),
                 ) * sp.kron(
                     speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.cell_weights))
                 )
         else:
             return sp.kron(
-                speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.regmesh.vol)),
+                speye(len(self.wiresmap.maps)),
+                sdiag(np.sqrt(self.regmesh.vol)),
             )
 
 
