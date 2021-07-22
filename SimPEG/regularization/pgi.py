@@ -682,6 +682,7 @@ class PGIsmallness(SimplePGIsmallness):
         wiresmap=None,
         maplist=None,
         mesh=None,
+        approx_hessian=True,
         approx_gradient=True,
         approx_eval=True,
         **kwargs
@@ -692,7 +693,8 @@ class PGIsmallness(SimplePGIsmallness):
             wiresmap=wiresmap,
             maplist=maplist,
             mesh=mesh,
-            approx_gradient=True,
+            approx_hessian=approx_hessian,
+            approx_gradient=approx_gradient,
             approx_eval=approx_eval,
             **kwargs
         )
@@ -747,6 +749,7 @@ class PGI(SimpleComboRegularization):
         gmm=None,
         wiresmap=None,
         maplist=None,
+        approx_hessian=True
         approx_gradient=True,
         approx_eval=True,
         alpha_s=1.0,
@@ -765,6 +768,7 @@ class PGI(SimpleComboRegularization):
         self._maplist = maplist
         self._mesh = mesh
         self.mesh = mesh
+        self._approx_hessian = approx_hessian
         self._approx_gradient = approx_gradient
         self._approx_eval = approx_eval
         self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
