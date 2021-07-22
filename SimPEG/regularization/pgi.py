@@ -749,7 +749,7 @@ class PGI(SimpleComboRegularization):
         gmm=None,
         wiresmap=None,
         maplist=None,
-        approx_hessian=True
+        approx_hessian=True,
         approx_gradient=True,
         approx_eval=True,
         alpha_s=1.0,
