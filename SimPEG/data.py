@@ -191,9 +191,9 @@ class Data(properties.HasProperties):
 
         uncert = np.zeros(self.nD)
         if self.relative_error is not None:
-            uncert += (self.relative_error * np.absolute(self.dobs))**2
+            uncert += np.array(self.relative_error * np.absolute(self.dobs))**2
         if self.noise_floor is not None:
-            uncert += self.noise_floor**2
+            uncert += np.array(self.noise_floor)**2
 
         return np.sqrt(uncert)
 
