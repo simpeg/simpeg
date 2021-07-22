@@ -323,7 +323,7 @@ class BetaSchedule(InversionDirective):
 class AlphasSmoothEstimate_ByEig(InversionDirective):
     """
     Estimate the alphas multipliers for the smoothness terms of the regularization
-     as a multiple of the ratio between the highest eigenvalue of the
+    as a multiple of the ratio between the highest eigenvalue of the
     smallness term and the highest eigenvalue of each smoothness term of the regularization.
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """

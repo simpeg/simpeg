@@ -41,20 +41,10 @@ class CrossGradient(BaseCoupling):
 
         regmesh = self.regmesh
 
-        self._dim = regmesh.mesh.dim
-        if self._dim not in (2, 3):
+        if regmesh.mesh.dim not in (2, 3):
             raise ValueError("Cross-Gradient is only defined for 2D or 3D")
-
-        Av = [
-            regmesh.aveFx2CC,
-            regmesh.aveFy2CC,
-        ]
-        G = [regmesh.cellDiffx, regmesh.cellDiffy]
-        if regmesh.mesh.dim == 3:
-            Av.append(regmesh.aveFz2CC)
-            G.append(regmesh.cellDiffz)
-        self._G = sp.vstack(G)
-        self._Av = sp.hstack(Av)
+        self._G = regmesh.cell_gradient
+        self._Av = sp.diags(np.sqrt(regmesh.vol)) * regmesh.average_face_to_cell
 
     def _calculate_gradient(self, model):
         """
@@ -123,14 +113,14 @@ class CrossGradient(BaseCoupling):
 
         ..math::
 
-            \phi_c(\mathbf{m_1},\mathbf{m_2})
+            \\phi_c(\\mathbf{m_1},\\mathbf{m_2})
 
-            = \lambda \sum_{i=1}^{M} \|\nabla \mathbf{m_1}_i \times \nabla \mathbf{m_2}_i \|^2
+            = \\lambda \\sum_{i=1}^{M} \\|\\nabla \\mathbf{m_1}_i \\times \\nabla \\mathbf{m_2}_i \\|^2
 
-            = \sum_{i=1}^{M} \|\nabla \mathbf{m_1}_i\|^2 \ast \|\nabla \mathbf{m_2}_i\|^2
-                - (\nabla \mathbf{m_1}_i \cdot \nabla \mathbf{m_2}_i )^2
+            = \\sum_{i=1}^{M} \\|\\nabla \\mathbf{m_1}_i\\|^2 \\ast \\|\\nabla \\mathbf{m_2}_i\\|^2
+                - (\\nabla \\mathbf{m_1}_i \\cdot \\nabla \\mathbf{m_2}_i )^2
 
-            = \|\phi_{cx}\|^2 + \|\phi_{cy}\|^2 + \|\phi_{cz}\|^2 (optional strategy, not used in this script)
+            = \\|\\phi_{cx}\\|^2 + \\|\\phi_{cy}\\|^2 + \\|\\phi_{cz}\\|^2 (optional strategy, not used in this script)
 
 
         """
@@ -249,10 +239,3 @@ class CrossGradient(BaseCoupling):
                     - (Av.T @ (Av @ (g_m2 * g_m1))) * Gv1
                 )
             return np.r_[p1, p2]
-
-
-###############################################################################
-#                                                                             #
-#               Linear petrophysical relationship constraint                  #
-#                                                                             #
-###############################################################################
