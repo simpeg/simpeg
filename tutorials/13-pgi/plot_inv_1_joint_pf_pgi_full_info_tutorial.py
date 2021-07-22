@@ -18,7 +18,7 @@ Volume 219, Issue 3, December 2019, Pages 1989–2012, DOI:
 Thibaut Astic, Lindsey J. Heagy, Douglas W Oldenburg,
 Petrophysically and geologically guided multi-physics inversion using a dynamic
 Gaussian mixture model, Geophysical Journal International,
-Volume 224, Issue 1, Januaray 2021, Pages 40-68, DOI: `10.1093/gji/ggaa378
+Volume 224, Issue 1, January 2021, Pages 40-68, DOI: `10.1093/gji/ggaa378
 <https://doi.org/10.1093/gji/ggaa378>`_.
 
 """
