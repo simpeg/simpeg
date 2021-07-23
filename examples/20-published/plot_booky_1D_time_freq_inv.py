@@ -84,7 +84,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     resolve = h5py.File(os.path.sep.join([directory, "booky_resolve.hdf5"]), "r")
     skytem = h5py.File(os.path.sep.join([directory, "booky_skytem.hdf5"]), "r")
-    river_path = resolve["river_path"].value
+    river_path = resolve["river_path"][()]
 
     # Choose a sounding location to invert
     xloc, yloc = 462100.0, 6196500.0
@@ -187,7 +187,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # Step3: Invert Resolve data
 
     # Bird height from the surface
-    b_height_resolve = resolve["src_elevation"].value
+    b_height_resolve = resolve["src_elevation"][()]
     src_height_resolve = b_height_resolve[rxind_resolve]
 
     # Set Rx (In-phase and Quadrature)
@@ -205,7 +205,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     )
 
     # Set Source (In-phase and Quadrature)
-    frequency_cp = resolve["frequency_cp"].value
+    frequency_cp = resolve["frequency_cp"][()]
     freqs = frequency_cp.copy()
     srcLoc = np.array([0.0, 0.0, src_height_resolve])
     srcList = [
@@ -270,19 +270,19 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # Step4: Invert SkyTEM data
 
     # Bird height from the surface
-    b_height_skytem = skytem["src_elevation"].value
+    b_height_skytem = skytem["src_elevation"][()]
     src_height = b_height_skytem[rxind_skytem]
     srcLoc = np.array([0.0, 0.0, src_height])
 
     # Radius of the source loop
-    area = skytem["area"].value
+    area = skytem["area"][()]
     radius = np.sqrt(area / np.pi)
     rxLoc = np.array([[radius, 0.0, src_height]])
 
     # Parameters for current waveform
-    t0 = skytem["t0"].value
-    times = skytem["times"].value
-    waveform_skytem = skytem["waveform"].value
+    t0 = skytem["t0"][()]
+    times = skytem["times"][()]
+    waveform_skytem = skytem["waveform"][()]
     offTime = t0
     times_off = times - t0
 
