@@ -937,7 +937,7 @@ class Simulation3DLinear(BaseVRMSimulation):
         v = np.atleast_2d(dxidm * v).T
 
         # Dot product with A
-        v = self.A * v
+        v = np.dot(self.A, v)
 
         # Get active time rows of T
         T = self.T.tocsr()[self.survey.t_active, :]
