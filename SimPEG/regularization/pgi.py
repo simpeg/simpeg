@@ -394,8 +394,6 @@ class SimplePGIsmallness(BaseRegularization):
             # non distinct clusters positive definite approximated Hessian
             modellist = self.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-            mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
-            mD = sp.block_diag(mD)
 
             if getattr(self.W, "diagonal", None) is not None:
                 sensW = np.c_[
@@ -403,6 +401,10 @@ class SimplePGIsmallness(BaseRegularization):
                 ].T
             else:
                 sensW = np.ones_like(model)
+
+            mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
+            mD = sp.block_diag(mD)
+
             score = self.gmm.score_samples_with_sensW(model, sensW)
             logP = np.zeros((len(model), self.gmm.n_components))
             W = []
@@ -449,7 +451,7 @@ class SimplePGIsmallness(BaseRegularization):
 
             hlist = [
                 [
-                    (W[:, :, i, j].T * np.exp(2 * logP)).sum(axis=1) / np.exp(2 * score)
+                    (W[:, :, i, j].T * np.exp(logP)).sum(axis=1) / np.exp(score)
                     for i in range(len(self.wiresmap.maps))
                 ]
                 for j in range(len(self.wiresmap.maps))
