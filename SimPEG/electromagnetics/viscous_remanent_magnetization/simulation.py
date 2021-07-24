@@ -1047,7 +1047,7 @@ class Simulation3DLogUniform(BaseVRMSimulation):
                     self.tau2,
                 )
 
-                f.append(mkvc((self.A[qq] * np.atleast_2d(eta)).T))
+                f.append(mkvc(np.dot(self.A[qq], np.atleast_2d(eta)).T))
 
         return np.array(np.hstack(f))
 
