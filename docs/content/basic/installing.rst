@@ -16,7 +16,7 @@ It installs `python <https://www.python.org/>`_,
 python libraries for scientific computing.
 
 As of version 0.11.0, we will no longer ensure compatibility with Python 2.7. Please use
-the latest version of Python 3 with SimPEG. For more ingormation on the transition of the
+the latest version of Python 3 with SimPEG. For more information on the transition of the
 Python ecosystem to Python 3, please see the `Python 3 Statement <https://python3statement.org/>`_.
 
 
@@ -24,6 +24,19 @@ Python ecosystem to Python 3, please see the `Python 3 Statement <https://python
 
 Installing SimPEG
 =================
+
+Conda Forge
+-----------
+
+You can install SimPEG using the `conda package manager <https://conda.io/>`_ that comes with the Anaconda distribution:
+
+.. code::
+
+    conda install SimPEG --channel conda-forge
+
+
+PyPi
+----
 
 SimPEG is on `pypi <https://pypi.python.org/pypi/SimPEG>`_! First, make sure
 your version of pip is up-to-date
@@ -57,12 +70,6 @@ Second (from the root of the SimPEG repository)::
 
     python setup.py install
 
-.. attention:: Windows users
-	A common error when installing the setup.py is:
-	``Missing linker, needs MSC v.1500 (Microsoft Visual C++ 2008) Runtime Library``
-
-	The missing library can be found `here <https://www.microsoft.com/en-ca/download/details.aspx?id=29>`_
-
 If you are interested in contributing to SimPEG, please check out the page on :ref:`Contributing <contributing>`
 
 
@@ -70,7 +77,8 @@ Success?
 ========
 
 If you have been successful at downloading and installing SimPEG, you should
-be able to download and run any of the `Examples <http://docs.simpeg.xyz/content/examples/index.html>`_.
+be able to download and run any of the :ref:`Examples <sphx_glr_content_examples>`
+or :ref:`Tutorials <simpeg_tuts>`.
 
 If not, you can reach out to other people developing and using SimPEG on the
 `google forum <https://groups.google.com/forum/#!forum/simpeg>`_ or on
@@ -96,7 +104,7 @@ Python for scientific computing
 Numpy and Matlab
 ----------------
 
-* `NumPy for Matlab Users <https://docs.scipy.org/doc/numpy-dev/user/numpy-for-matlab-users.html>`_
+* `NumPy for Matlab Users <https://numpy.org/doc/stable/user/numpy-for-matlab-users.html>`_
 * `Python vs Matlab <https://sites.google.com/site/pythonforscientists/python-vs-matlab>`_
 
 Lessons in Python

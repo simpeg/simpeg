@@ -45,9 +45,8 @@ To wrap up solvers in scipy.sparse.linalg it takes one line of code::
 The API
 =======
 
-.. autofunction:: SimPEG.Utils.SolverUtils.SolverWrapD
+.. autofunction:: SimPEG.utils.solver_utils.SolverWrapD
     :noindex:
 
-.. autofunction:: SimPEG.Utils.SolverUtils.SolverWrapI
+.. autofunction:: SimPEG.utils.solver_utils.SolverWrapI
     :noindex:
-
