@@ -17,10 +17,10 @@ def k(freq, sigma, mu=mu_0, eps=epsilon_0):
 
 def TriangleFun(time, ta, tb):
     """
-        Triangular Waveform
-        * time: 1D array for time
-        * ta: time at peak
-        * tb: time at step-off
+    Triangular Waveform
+    * time: 1D array for time
+    * ta: time at peak
+    * tb: time at step-off
     """
     out = np.zeros(time.size)
     out[time <= ta] = 1 / ta * time[time <= ta]
@@ -32,7 +32,7 @@ def TriangleFun(time, ta, tb):
 
 def TriangleFunDeriv(time, ta, tb):
     """
-        Derivative of Triangular Waveform
+    Derivative of Triangular Waveform
     """
     out = np.zeros(time.size)
     out[time <= ta] = 1 / ta
@@ -42,9 +42,9 @@ def TriangleFunDeriv(time, ta, tb):
 
 def SineFun(time, ta):
     """
-        Sine Waveform
-        * time: 1D array for time
-        * ta: Pulse Period
+    Sine Waveform
+    * time: 1D array for time
+    * ta: Pulse Period
     """
     out = np.zeros(time.size)
     out[time <= ta] = np.sin(1.0 / ta * np.pi * time[time <= ta])
@@ -54,7 +54,7 @@ def SineFun(time, ta):
 
 def SineFunDeriv(time, ta):
     """
-        Derivative of Sine Waveform
+    Derivative of Sine Waveform
     """
     out = np.zeros(time.size)
     out[time <= ta] = 1.0 / ta * np.pi * np.cos(1.0 / ta * np.pi * time[time <= ta])
@@ -63,10 +63,10 @@ def SineFunDeriv(time, ta):
 
 def VTEMFun(time, ta, tb, a):
     """
-        VTEM Waveform
-        * time: 1D array for time
-        * ta: time at peak of exponential part
-        * tb: time at step-off
+    VTEM Waveform
+    * time: 1D array for time
+    * ta: time at peak of exponential part
+    * tb: time at step-off
     """
     out = np.zeros(time.size)
     out[time <= ta] = (1 - np.exp(-a * time[time <= ta] / ta)) / (1 - np.exp(-a))

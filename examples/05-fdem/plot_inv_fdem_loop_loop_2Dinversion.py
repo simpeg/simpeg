@@ -15,7 +15,11 @@ and perform the forward modelling in 3D.
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-from pymatsolver import Pardiso as Solver
+
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
 
 import discretize
 from SimPEG import (
@@ -284,7 +288,7 @@ reg = regularization.Simple(inversion_mesh)
 opt = optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
 invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
-betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.25)
+betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.05, n_pw_iter=1, seed=1)
 target = directives.TargetMisfit()
 
 directiveList = [betaest, target]
@@ -354,7 +358,7 @@ Report()
 # Moving Forward
 # --------------
 #
-# If you have suggestions for improving this example, please create a `pull request on the example in SimPEG <https://github.com/simpeg/simpeg/blob/master/examples/07-fdem/plot_loop_loop_2Dinversion.py>`_
+# If you have suggestions for improving this example, please create a `pull request on the example in SimPEG <https://github.com/simpeg/simpeg/blob/main/examples/07-fdem/plot_loop_loop_2Dinversion.py>`_
 #
 # You might try:
 #    - improving the discretization

@@ -182,12 +182,12 @@ def read_grav3d_ubc(obs_file):
 
 def write_grav3d_ubc(filename, data_object):
     """
-        Write UBC grav file format
+    Write UBC grav file format
 
-        INPUT:
-        :param: fileName, path to the UBC obs grav file
-        :param: survey Gravity object
-        :param: data array
+    INPUT:
+    :param: fileName, path to the UBC obs grav file
+    :param: survey Gravity object
+    :param: data array
 
     """
     survey = data_object.survey
@@ -251,28 +251,22 @@ def read_gg3d_ubc(obs_file):
         line = fid.readline()
         ndat = int(line.split()[0])
 
-        # Pre-allocate space for obsx, obsy, obsz, data, uncert
-        line = fid.readline()
-
         locXYZ = np.zeros((ndat, 3), dtype=float)
         d = []
         wd = []
-        # d = np.zeros((ndat, len(components)), dtype=float)
-        # wd = np.zeros((ndat, len(components)), dtype=float)
 
         ii = 0
         while ii < ndat:
             try:
+                line = fid.readline()
                 temp = np.array(line.split(), dtype=float)
                 locXYZ[ii, :] = temp[:3]
                 if len(temp) == 3 + n_comp:
                     d.append(factor * temp[3:])
                 elif len(temp) == 3 + n_comp * 2:
-                    d.append(factor * temp[3::2])
-                    wd.append(temp[4::2])
-
+                    d.append(factor * temp[3 : 3 + n_comp])
+                    wd.append(temp[3 + n_comp :])
                 ii += 1
-                line = fid.readline()
             except:
                 raise IOError(f"Unable to read data line {ii}: {line}")
 
@@ -295,12 +289,12 @@ def read_gg3d_ubc(obs_file):
 
 def write_gg3d_ubc(filename, data_object):
     """
-        Write UBC gravity gradiometry file format
+    Write UBC gravity gradiometry file format
 
-        INPUT:
-        :param: fileName, path to the UBC obs grav file
-        :param: survey Gravity object
-        :param: data array
+    INPUT:
+    :param: fileName, path to the UBC obs grav file
+    :param: survey Gravity object
+    :param: data array
 
     """
     survey = data_object.survey
@@ -320,25 +314,27 @@ def write_gg3d_ubc(filename, data_object):
 
     components = ",".join(components)
 
-    data = survey.source_field.receiver_list[0].locations
-    n_loc = np.shape(data)[0]
+    output = survey.source_field.receiver_list[0].locations
+    n_loc = np.shape(output)[0]
+
+    if np.any(data_object.dobs != 0):
+        dobs = data_object.dobs.reshape((n_loc, n_comp)) * factor
+        output = np.c_[output, dobs]
 
     if np.any(data_object.standard_deviation != 0):
-        for ii in range(0, n_comp):
-            data = np.c_[
-                data,
-                factor[ii] * data_object.dobs[ii::n_comp],
-                data_object.standard_deviation[ii::n_comp],
-            ]
-
-    elif np.any(data_object.dobs != 0):
-        for ii in range(0, n_comp):
-            data = np.c_[data, factor[ii] * data_object.dobs[ii::n_comp]]
+        std = data_object.standard_deviation.reshape((n_loc, n_comp))
+        output = np.c_[output, std]
 
     head = ("datacomp=%s\n" % components) + ("%i" % n_loc)
 
     np.savetxt(
-        filename, data, fmt="%e", delimiter=" ", newline="\n", header=head, comments=""
+        filename,
+        output,
+        fmt="%e",
+        delimiter=" ",
+        newline="\n",
+        header=head,
+        comments="",
     )
 
     print("Observation file saved to: " + filename)

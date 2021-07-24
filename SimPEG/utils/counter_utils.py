@@ -7,32 +7,32 @@ from functools import wraps
 
 class Counter(object):
     """
-        Counter allows anything that calls it to record iterations and
-        timings in a simple way.
+    Counter allows anything that calls it to record iterations and
+    timings in a simple way.
 
-        Also has plotting functions that allow quick recalls of data.
+    Also has plotting functions that allow quick recalls of data.
 
-        If you want to use this, import *count* or *timeIt* and use them as
-        decorators on class methods.
+    If you want to use this, import *count* or *timeIt* and use them as
+    decorators on class methods.
 
-        ::
+    ::
 
-            class MyClass(object):
-                def __init__(self, url):
-                    self.counter = Counter()
+        class MyClass(object):
+            def __init__(self, url):
+                self.counter = Counter()
 
-                @count
-                def MyMethod(self):
-                    pass
+            @count
+            def MyMethod(self):
+                pass
 
-                @timeIt
-                def MySecondMethod(self):
-                    pass
+            @timeIt
+            def MySecondMethod(self):
+                pass
 
-            c = MyClass('blah')
-            for i in range(100): c.MyMethod()
-            for i in range(300): c.MySecondMethod()
-            c.counter.summary()
+        c = MyClass('blah')
+        for i in range(100): c.MyMethod()
+        for i in range(300): c.MySecondMethod()
+        c.counter.summary()
 
     """
 
@@ -42,7 +42,7 @@ class Counter(object):
 
     def count(self, prop):
         """
-            Increases the count of the property.
+        Increases the count of the property.
         """
         assert isinstance(prop, string_types), "The property must be a string."
         if prop not in self._countList:
@@ -51,7 +51,7 @@ class Counter(object):
 
     def countTic(self, prop):
         """
-            Times a property call, this is the init call.
+        Times a property call, this is the init call.
         """
         assert isinstance(prop, string_types), "The property must be a string."
         if prop not in self._timeList:
@@ -60,7 +60,7 @@ class Counter(object):
 
     def countToc(self, prop):
         """
-            Times a property call, this is the end call.
+        Times a property call, this is the end call.
         """
         assert isinstance(prop, string_types), "The property must be a string."
         assert prop in self._timeList, "The property must already be in the dictionary."
@@ -68,7 +68,7 @@ class Counter(object):
 
     def summary(self):
         """
-            Provides a text summary of the current counters and timers.
+        Provides a text summary of the current counters and timers.
         """
         print("Counters:")
         for prop in sorted(self._countList):

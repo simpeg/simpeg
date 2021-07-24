@@ -32,7 +32,7 @@ from SimPEG.utils import plot2Ddata, model_builder, surface2ind_topo
 from SimPEG import maps
 from SimPEG.potential_fields import gravity
 
-save_file = False
+save_output = False
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -47,7 +47,7 @@ save_file = False
 [x_topo, y_topo] = np.meshgrid(np.linspace(-200, 200, 41), np.linspace(-200, 200, 41))
 z_topo = -15 * np.exp(-(x_topo ** 2 + y_topo ** 2) / 80 ** 2)
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
-xyz_topo = np.c_[x_topo, y_topo, z_topo]
+topo_xyz = np.c_[x_topo, y_topo, z_topo]
 
 
 #############################################
@@ -115,7 +115,7 @@ block_density = -0.2
 sphere_density = 0.2
 
 # Find the indices for the active mesh cells (e.g. cells below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo)
+ind_active = surface2ind_topo(mesh, topo_xyz)
 
 # Define mapping from model to active cells. The model consists of a value for
 # each cell below the Earth's surface.
@@ -217,21 +217,20 @@ plt.show()
 # Write the data, topography and true model
 #
 
-if save_file:
+if save_output:
 
-    dir_path = os.path.dirname(gravity.__file__).split(os.path.sep)[:-3]
-    dir_path.extend(["tutorials", "assets", "gravity"])
+    dir_path = os.path.dirname(__file__).split(os.path.sep)
+    dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    fname = dir_path + "gravity_topo.txt"
-    np.savetxt(fname, np.c_[xyz_topo], fmt="%.4e")
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
 
+    fname = dir_path + "gravity_topo.txt"
+    np.savetxt(fname, np.c_[topo_xyz], fmt="%.4e")
+
+    np.random.seed(737)
     maximum_anomaly = np.max(np.abs(dpred))
     noise = 0.01 * maximum_anomaly * np.random.rand(len(dpred))
     fname = dir_path + "gravity_data.obs"
     np.savetxt(fname, np.c_[receiver_locations, dpred + noise], fmt="%.4e")
-
-    output_model = plotting_map * model
-    output_model[np.isnan(output_model)] = 0.0
-    fname = dir_path + "true_model.txt"
-    np.savetxt(fname, output_model, fmt="%.4e")

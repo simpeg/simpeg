@@ -15,7 +15,7 @@ _PCC = lambda siginf, m, t, c, f: siginf * (
 )
 
 # matrix P relating Up and Down components with E and H fields
-_P = lambda z: np.matrix([[1.0, 1,], [-1.0 / z, 1.0 / z]], dtype="complex_")
+_P = lambda z: np.matrix([[1.0, 1,], [-1.0 / z, 1.0 / z],], dtype="complex_",)
 _Pinv = lambda z: np.matrix([[1.0, -z], [1.0, z]], dtype="complex_") / 2.0
 
 # matrix T for transition of Up and Down components accross a layer
@@ -65,7 +65,7 @@ def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
         UD = UD / ((np.abs(UD[0, :] + UD[1, :])).max())
 
     for j in range(0, n + 1):
-        EH[:, j] = np.matrix([[1.0, 1,], [-1.0 / Z[j], 1.0 / Z[j]]]) * UD[:, j]
+        EH[:, j] = np.matrix([[1.0, 1,], [-1.0 / Z[j], 1.0 / Z[j]],]) * UD[:, j]
 
     return UD, EH, Z, K
 

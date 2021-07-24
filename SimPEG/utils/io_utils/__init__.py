@@ -11,8 +11,18 @@ from .io_utils_pf import (
     write_gg3d_ubc,
 )
 
+from .io_utils_electromagnetics import (
+    read_dcip2d_ubc,
+    read_dcip3d_ubc,
+    read_dcipoctree_ubc,
+    read_dcip_xyz,
+    write_dcip2d_ubc,
+    write_dcip3d_ubc,
+    write_dcipoctree_ubc,
+    write_dcip_xyz,
+)
 
-# DEPRECATED
+# Deprecated
 from .io_utils_pf import (
     readUBCmagneticsObservations,
     writeUBCmagneticsObservations,

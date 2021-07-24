@@ -157,8 +157,8 @@ class Fields(properties.HasProperties):
     def __setitem__(self, key, value):
         ind, name = self._indexAndNameFromKey(key, "set")
         if name is None:
-            assert (
-                isinstance(value, dict)
+            assert isinstance(
+                value, dict
             ), "New fields must be a dictionary, if field is not specified."
             newFields = value
         elif name in self.knownFields:

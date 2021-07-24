@@ -9,9 +9,7 @@ import properties
 
 class StepOff(properties.HasProperties):
 
-    """
-
-    """
+    """"""
 
     t0 = properties.Float("Start of off-time", default=0.0)
 
@@ -140,9 +138,7 @@ class StepOff(properties.HasProperties):
 
 class SquarePulse(properties.HasProperties):
 
-    """
-
-    """
+    """"""
 
     t0 = properties.Float("Start of off-time", default=0.0)
     delt = properties.Float("Pulse width")
@@ -314,9 +310,7 @@ class SquarePulse(properties.HasProperties):
 
 class ArbitraryDiscrete(properties.HasProperties):
 
-    """
-
-    """
+    """"""
 
     t_wave = properties.Array("Waveform times", dtype=float)
     I_wave = properties.Array("Waveform current", dtype=float)
@@ -440,9 +434,7 @@ class ArbitraryDiscrete(properties.HasProperties):
 
 class ArbitraryPiecewise(properties.HasProperties):
 
-    """
-
-    """
+    """"""
 
     t_wave = properties.Array("Waveform times", dtype=float)
     I_wave = properties.Array("Waveform current", dtype=float)
@@ -558,9 +550,7 @@ class ArbitraryPiecewise(properties.HasProperties):
 
 class Custom(properties.HasProperties):
 
-    """
-
-    """
+    """"""
 
     times = properties.Array(
         "Times at which characteristic decay function is evaluated", dtype=float

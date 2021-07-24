@@ -15,9 +15,9 @@ def E_from_ElectricDipoleWholeSpace(
 ):
 
     """
-        Computing Analytic Electric fields from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+    Computing Analytic Electric fields from Electrical Dipole in a Wholespace
+    TODO:
+        Add description of parameters
     """
     mu = mu_0 * (1 + kappa)
     epsilon = epsilon_0 * epsr
@@ -67,9 +67,9 @@ def E_galvanic_from_ElectricDipoleWholeSpace(
 ):
 
     """
-        Computing Galvanic portion of Electric fields from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+    Computing Galvanic portion of Electric fields from Electrical Dipole in a Wholespace
+    TODO:
+        Add description of parameters
     """
     mu = mu_0 * (1 + kappa)
     epsilon = epsilon_0 * epsr
@@ -119,9 +119,9 @@ def E_inductive_from_ElectricDipoleWholeSpace(
 ):
 
     """
-        Computing Inductive portion of Electric fields from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+    Computing Inductive portion of Electric fields from Electrical Dipole in a Wholespace
+    TODO:
+        Add description of parameters
     """
     mu = mu_0 * (1 + kappa)
     epsilon = epsilon_0 * epsr
@@ -170,9 +170,9 @@ def J_from_ElectricDipoleWholeSpace(
 ):
 
     """
-        Computing Current densities from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+    Computing Current densities from Electrical Dipole in a Wholespace
+    TODO:
+        Add description of parameters
     """
 
     Ex, Ey, Ez = E_from_ElectricDipoleWholeSpace(
@@ -197,9 +197,9 @@ def J_galvanic_from_ElectricDipoleWholeSpace(
 ):
 
     """
-        Computing Galvanic portion of Current densities from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+    Computing Galvanic portion of Current densities from Electrical Dipole in a Wholespace
+    TODO:
+        Add description of parameters
     """
 
     Ex_galvanic, Ey_galvanic, Ez_galvanic = E_galvanic_from_ElectricDipoleWholeSpaced(
@@ -224,9 +224,9 @@ def J_inductive_from_ElectricDipoleWholeSpace(
 ):
 
     """
-        Computing Inductive portion of Current densities from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+    Computing Inductive portion of Current densities from Electrical Dipole in a Wholespace
+    TODO:
+        Add description of parameters
     """
 
     (
@@ -255,9 +255,9 @@ def H_from_ElectricDipoleWholeSpace(
 ):
 
     """
-        Computing Magnetic fields from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+    Computing Magnetic fields from Electrical Dipole in a Wholespace
+    TODO:
+        Add description of parameters
     """
     mu = mu_0 * (1 + kappa)
     epsilon = epsilon_0 * epsr
@@ -308,9 +308,9 @@ def B_from_ElectricDipoleWholeSpace(
 ):
 
     """
-        Computing Magnetic flux densites from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+    Computing Magnetic flux densites from Electrical Dipole in a Wholespace
+    TODO:
+        Add description of parameters
     """
 
     Hx, Hy, Hz = H_from_ElectricDipoleWholeSpace(
@@ -335,9 +335,9 @@ def A_from_ElectricDipoleWholeSpace(
 ):
 
     """
-        Computing Electric vector potentials from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+    Computing Electric vector potentials from Electrical Dipole in a Wholespace
+    TODO:
+        Add description of parameters
     """
     mu = mu_0 * (1 + kappa)
     epsilon = epsilon_0 * epsr
