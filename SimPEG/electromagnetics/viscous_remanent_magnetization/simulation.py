@@ -695,7 +695,7 @@ class BaseVRMSimulation(BaseSimulation):
                         G[COUNT, :] = c * np.c_[Gxz, Gyz, Gzz]
                         COUNT = COUNT + 1
 
-        return np.atleast_2d(G)
+        return G
 
     def _getAMatricies(self):
 
@@ -917,8 +917,7 @@ class Simulation3DLinear(BaseVRMSimulation):
         self.model = m  # Initiates/updates model and initiates mapping
 
         # Project to active mesh cells
-        # m = np.atleast_2d(self.xiMap * m).T
-        m = np.atleast_2d(self.xiMap * m).T
+        m = self.xiMap * m
 
         # Must return as a numpy array
         return mkvc(sp.coo_matrix.dot(self.T, np.dot(self.A, m)))
@@ -934,10 +933,10 @@ class Simulation3DLinear(BaseVRMSimulation):
         dxidm = self.xiMap.deriv(m)
 
         # dxidm*v
-        v = np.atleast_2d(dxidm * v).T
+        v = dxidm * v
 
         # Dot product with A
-        v = np.dot(self.A, v)
+        v = self.A @ v
 
         # Get active time rows of T
         T = self.T.tocsr()[self.survey.t_active, :]
@@ -1047,7 +1046,7 @@ class Simulation3DLogUniform(BaseVRMSimulation):
                     self.tau2,
                 )
 
-                f.append(mkvc(np.dot(self.A[qq], np.atleast_2d(eta)).T))
+                f.append(mkvc(self.A[qq] @ eta))
 
         return np.array(np.hstack(f))
 
