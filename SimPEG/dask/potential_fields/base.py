@@ -6,7 +6,7 @@ from dask.diagnostics import ProgressBar
 from ..utils import compute_chunk_sizes
 from dask.distributed import get_client, Future, Client
 
-Sim._chunk_format = "equal"
+Sim._chunk_format = "row"
 
 
 @property
@@ -28,17 +28,19 @@ Sim.chunk_format = chunk_format
 @property
 def Jmatrix(self):
     if getattr(self, "_Jmatrix", None) is None:
-        client = get_client()
-        self._Jmatrix = client.compute(
-                delayed(self.linear_operator)(),
-            workers=self.workers
-        )
+        if self.store_sensitivities == "ram":
+            self._Jmatrix = np.asarray(self.linear_operator())
+        else:
+            client = get_client()
+            self._Jmatrix = client.compute(
+                    delayed(self.linear_operator)(),
+                workers=self.workers
+            )
     elif isinstance(self._Jmatrix, Future):
-        client = get_client()
-        self._Jmatrix = client.gather(self._Jmatrix)
+        self._Jmatrix.result()
+        self._Jmatrix = array.from_zarr(self.sensitivity_path)
 
     return self._Jmatrix
-
 
 Sim.Jmatrix = Jmatrix
 

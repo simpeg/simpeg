@@ -2,9 +2,11 @@ import numpy as np
 from ....potential_fields.gravity import Simulation3DIntegral as Sim
 from ....potential_fields.gravity.simulation import evaluate_integral
 from ....utils import sdiag, mkvc
-from dask import array, delayed
+from dask import array, delayed, config
 from scipy.sparse import csr_matrix as csr
 from dask.distributed import Future, get_client
+from dask.diagnostics import ProgressBar
+from ...utils import compute_chunk_sizes
 
 
 def dask_fields(self, m):
@@ -18,7 +20,8 @@ def dask_fields(self, m):
         # Compute the linear operation without forming the full dense G
         fields = self.linear_operator()
     else:
-        fields = self.G @ (self.rhoMap @ m).astype(np.float32)
+        if hasattr(self, "G"): # Trigger calculations
+            fields = self.G @ (self.rhoMap @ m).astype(np.float32)
 
     return fields
 
@@ -174,11 +177,9 @@ def linear_operator(self):
         pred = stack @ self.model.astype(np.float32)
         return pred
 
-    with ProgressBar():
-        print("Computing sensitivities to local ram")
-        kernel = array.asarray(stack.compute())
-
-    return kernel
+    # with ProgressBar():
+    #     print("Computing sensitivities to local ram")
+    return array.asarray(stack)
 
 
 Sim.linear_operator = linear_operator
