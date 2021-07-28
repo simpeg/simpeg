@@ -58,7 +58,7 @@ def read_GOCAD_ts(tsfile):
     while re.match("TRGL", line):
         l_input = re.split("[\s*]", line)
         temp = np.array(l_input[1:4])
-        trgl.append(temp.astype(np.int))
+        trgl.append(temp.astype(int))
 
         # Read next line
         line = fid.readline()

@@ -109,7 +109,7 @@ def run(plotIt=True):
     nza = 10
     # cell size, number of core cells, number of padding cells in the
     # x-direction
-    ncz, npadzu, npadzd = np.int(np.ceil(np.diff(casing_z)[0] / csz)) + 10, 68, 68
+    ncz, npadzu, npadzd = int(np.ceil(np.diff(casing_z)[0] / csz)) + 10, 68, 68
     # vector of cell widths in the z-direction
     hz = utils.meshTensor([(csz, npadzd, -1.3), (csz, ncz), (csz, npadzu, 1.3)])
 
