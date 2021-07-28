@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from ....potential_fields.gravity import Simulation3DIntegral as Sim
 from ....potential_fields.gravity.simulation import evaluate_integral
 from ....utils import sdiag, mkvc
@@ -45,7 +46,7 @@ def dask_getJtJdiag(self, m, W=None):
         W = W.diagonal()
 
     if getattr(self, "_gtg_diagonal", None) is None:
-        diag = ((W[:, None] * self.Jmatrix) ** 2).sum(axis=0).compute()
+        diag = ((W[:, None] * self.Jmatrix) ** 2).sum(axis=0)
         self._gtg_diagonal = diag
     else:
         diag = self._gtg_diagonal
@@ -146,7 +147,7 @@ def linear_operator(self):
         stack = stack.rechunk({0: -1, 1: "auto"})
 
     if self.store_sensitivities == "disk":
-        sens_name = self.sensitivity_path
+        sens_name = os.path.join(self.sensitivity_path, "J.zarr")
         if os.path.exists(sens_name):
             kernel = array.from_zarr(sens_name)
             if np.all(

@@ -6,6 +6,7 @@ from dask import array, delayed
 from scipy.sparse import csr_matrix as csr
 from dask.distributed import get_client, Future, Client
 from dask import delayed, array, config
+from ...utils import compute_chunk_sizes
 import os
 
 

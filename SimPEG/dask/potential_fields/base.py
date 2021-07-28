@@ -32,13 +32,14 @@ def Jmatrix(self):
             self._Jmatrix = np.asarray(self.linear_operator())
         else:
             client = get_client()
+            # self.linear_operator()
             self._Jmatrix = client.compute(
-                    delayed(self.linear_operator)(),
+                    self.linear_operator(),
                 workers=self.workers
             )
     elif isinstance(self._Jmatrix, Future):
         self._Jmatrix.result()
-        self._Jmatrix = array.from_zarr(self.sensitivity_path)
+        self._Jmatrix = array.from_zarr(os.path.join(self.sensitivity_path, "J.zarr"))
 
     return self._Jmatrix
 
