@@ -69,8 +69,8 @@ def make_synthetic_data(
     #     if isinstance(f, Delayed):
     #         f = f.compute()
 
-    client = get_client()
-    dclean = client.compute(self.dpred(m, f=f), workers=self.workers).result()
+    # client = get_client()
+    dclean = self.dpred(m, f=f)
 
     if add_noise is True:
         std = relative_error * abs(dclean) + noise_floor

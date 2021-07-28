@@ -954,7 +954,7 @@ class SaveIterationsGeoH5(InversionDirective):
     def initialize(self):
 
         if self.attribute_type == "predicted":
-            prop = np.hstack(self.invProb.get_dpred(self.invProb.model))
+            prop = np.asarray(self.invProb.get_dpred(self.invProb.model))
         else:
             prop = self.invProb.model
 
@@ -1230,7 +1230,7 @@ class Update_IRLS(InversionDirective):
     f_min_change = 1e-2
     beta_tol = 1e-1
     beta_ratio_l2 = None
-    prctile = 100
+    prctile = 95
     chifact_start = 1.0
     chifact_target = 1.0
 
