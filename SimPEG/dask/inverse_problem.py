@@ -138,7 +138,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     """
 
     self.model = m
-    gc.collect()
+    # gc.collect()
 
     # Store fields if doing a line-search
     # f = self.getFields(m, store=(return_g is False and return_H is False))
