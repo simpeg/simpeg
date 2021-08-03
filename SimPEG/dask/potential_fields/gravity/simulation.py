@@ -46,11 +46,14 @@ def dask_getJtJdiag(self, m, W=None):
         W = W.diagonal()
 
     if getattr(self, "_gtg_diagonal", None) is None:
-        diag = ((W[:, None] * self.Jmatrix) ** 2).sum(axis=0)
+        diag = np.einsum('i,ij,ij->j', W, self.G, self.G)
+
+        if isinstance(diag, array.Array):
+            diag = np.asarray(diag)
+
         self._gtg_diagonal = diag
-    else:
-        diag = self._gtg_diagonal
-    return mkvc((sdiag(np.sqrt(diag)) @ self.rhoDeriv).power(2).sum(axis=0))
+
+    return mkvc((sdiag(np.sqrt(self._gtg_diagonal)) @ self.rhoDeriv).power(2).sum(axis=0))
 
 
 Sim.getJtJdiag = dask_getJtJdiag
