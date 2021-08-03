@@ -150,29 +150,55 @@ def dask_getJtJdiag(self, m, W=None):
 Sim.getJtJdiag = dask_getJtJdiag
 
 
-def dask_Jvec(self, _, v, f=None):
+def dask_Jvec(self, m, v, f=None):
     """
     Sensitivity times a vector
     """
+    self.model = m
     dmu_dm_v = self.chiDeriv @ v
-    return array.dot(self.Jmatrix, dmu_dm_v.astype(np.float32))
+
+    if isinstance(self.Jmatrix, Future):
+        self.Jmatrix  # Wait to finish
+
+    if isinstance(self.Jmatrix, array.Array):
+        jvec = array.dot(self.Jmatrix, dmu_dm_v.astype(np.float32))
+
+    else:
+        jvec = self.Jmatrix @ dmu_dm_v.astype(np.float32)
+
+    if self.is_amplitude_data:
+        jvec = jvec.reshape((-1, 3)).T
+        fieldDeriv_jvec = self.fieldDeriv * jvec
+        return fieldDeriv_jvec[0] + fieldDeriv_jvec[1] + fieldDeriv_jvec[2]
+
+    return jvec
 
 
 Sim.Jvec = dask_Jvec
 
 
-def dask_Jtvec(self, _, v, f=None):
+def dask_Jtvec(self, m, v, f=None):
     """
     Sensitivity transposed times a vector
     """
+    self.model = m
 
-    Jtvec = array.dot(v.astype(np.float32), self.Jmatrix)
-    Jtjvec_dmudm = delayed(csr.dot)(Jtvec, self.chiDeriv)
-    h_vec = array.from_delayed(
-        Jtjvec_dmudm, dtype=float, shape=[self.chiDeriv.shape[1]]
-    )
+    if self.is_amplitude_data:
+        v = (self.fieldDeriv * v).T.reshape(-1)
 
-    return h_vec
+    if isinstance(self.Jmatrix, Future):
+        self.Jmatrix  # Wait to finish
+
+    if isinstance(self.Jmatrix, array.Array):
+        Jtvec = array.dot(v.astype(np.float32), self.Jmatrix)
+        Jtjvec_dmudm = delayed(csr.dot)(Jtvec, self.chiDeriv)
+        jt_vec = array.from_delayed(
+            Jtjvec_dmudm, dtype=float, shape=[self.chiDeriv.shape[1]]
+        )
+    else:
+        jt_vec = self.Jmatrix.T @ v.astype(np.float32)
+
+    return jt_vec
 
 
 Sim.Jtvec = dask_Jtvec
