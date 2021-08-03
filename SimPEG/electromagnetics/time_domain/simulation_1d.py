@@ -67,8 +67,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
             for i_rx, rx in enumerate(src.receiver_list):
                 wave = src.waveform
                 if isinstance(wave, StepOffWaveform):
-                    t_min = min(rx.times.min(), t_min)
-                    t_max = max(rx.times.max(), t_max)
+                    times = rx.times[rx.times > 0]
+                    t_min = min(times.min(), t_min)
+                    t_max = max(times.max(), t_max)
                 else:
                     try:
                         times = rx.times - wave.time_nodes[:, None]
@@ -123,7 +124,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 A = np.zeros((len(rx.times), n_t))
                 if isinstance(wave, StepOffWaveform):
                     # do not need to do too much fancy here, just need to interpolate
-                    # from t_spline_points to rx.times...
+                    # from t_spline_points to rx.times (at positive times)...
                     for i in range(n_t):
                         A[:, i] = func(rx.times, i)
                 else:
