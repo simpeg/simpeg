@@ -375,12 +375,12 @@ class Minimize(object):
         if self.debug:
             print("x0 has any nan: {:b}".format(np.any(np.isnan(x0))))
 
-        # self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
+        self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
         # self.printIter()
 
         while True:
             self.doStartIteration()
-            self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
+            # self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
             self.printIter()
             if self.stoppingCriteria():
                 break
@@ -395,14 +395,16 @@ class Minimize(object):
             if self.stopNextIteration:
                 break
 
+            self.doEndIteration(xt)
+
             for objfct in self.parent.dmisfit.objfcts:
                 if not isinstance(objfct.simulation, LinearSimulation):
                     if hasattr(objfct.simulation, "_Jmatrix"):
                         objfct.simulation._Jmatrix = None
                     if hasattr(objfct.simulation, "gtgdiag"):
                         objfct.simulation.gtgdiag = None
-            self.doEndIteration(xt)
-            # self.f, self.g, self.H = evalFunction(xt, return_g=True, return_H=True)
+
+            self.f, self.g, self.H = evalFunction(xt, return_g=True, return_H=True)
             # self.doEndIteration(xt)
             # self.printIter()
 
