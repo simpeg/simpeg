@@ -185,6 +185,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
     def _project_to_data(self, v):
         i_dat = 0
         i_v = 0
+        sign = -1
+
         if v.ndim == 1:
             out = np.zeros(self.survey.nD)
         else:
@@ -198,16 +200,16 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 if isinstance(rx, PointMagneticFieldSecondary):
                     if rx.data_type == "ppm":
                         if v_slice.ndim == 2:
-                            v_slice /= src.hPrimary(self)[i_rx][:, None]
+                            v_slice /= sign*src.hPrimary(self)[i_rx][:, None]
                         else:
-                            v_slice /= src.hPrimary(self)[i_rx]
+                            v_slice /= sign*src.hPrimary(self)[i_rx]
                         v_slice *= 1e6
                 elif isinstance(rx, PointMagneticField):
                     if v_slice.ndim == 2:
                         pass
                         # here because it was called on sensitivity (so don't add)
                     else:
-                        v_slice += src.hPrimary(self)[i_rx]
+                        v_slice += sign*src.hPrimary(self)[i_rx]
 
                 if rx.component == "both":
                     out[i_dat:i_dat_p1:2] = v_slice.real

@@ -27,7 +27,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from SimPEG import maps
-import SimPEG.electromagnetics.frequency_domain_1d as em1d
+import SimPEG.electromagnetics.frequency_domain as fdem
+from scipy.constants import mu_0
 from SimPEG.electromagnetics.utils.em1d_utils import ColeCole
 
 plt.rcParams.update({'font.size': 16})
@@ -48,39 +49,33 @@ frequencies = np.logspace(0, 8, 41)
 
 # Define a list of receivers. The real and imaginary components are defined
 # as separate receivers.
+source_location = np.array([0., 0., 30.])
+source_orientation = "z"                   # "x", "y" or "z"
+moment = 1
+
 receiver_location = np.array([10., 0., 10.])
 receiver_orientation = "z"                   # "x", "y" or "z"
-field_type = "secondary"                     # "secondary", "total" or "ppm"
+data_type = "ppm"                     # "secondary", "total" or "ppm"
 
-receiver_list = []
-receiver_list.append(
-    em1d.receivers.PointReceiver(
-        receiver_location, frequencies, orientation=receiver_orientation,
-        field_type=field_type, component="real"
+source_list = []
+for ii, frequency in enumerate(frequencies):
+    receiver_list = []
+    receiver_list.append(
+        fdem.receivers.PointMagneticFieldSecondary(
+            receiver_location, orientation="z", component="both", data_type=data_type
+        )
     )
-)
-receiver_list.append(
-    em1d.receivers.PointReceiver(
-        receiver_location, frequencies, orientation=receiver_orientation,
-        field_type=field_type, component="imag"
+    src = fdem.sources.MagDipole(
+        receiver_list=receiver_list,
+        frequency=frequency,
+        location=source_location,
+        orientation=source_orientation, 
+        moment=moment
     )
-)
-
-# Define a source list. For each list of receivers, we define a source.
-# In this case, we define a single source.
-source_location = np.array([0., 0., 10.])
-source_orientation = 'z'                      # "x", "y" or "z"
-moment_amplitude = 1.                         # dipole moment amplitude
-
-source_list = [
-    em1d.sources.MagneticDipoleSource(
-        receiver_list=receiver_list, location=source_location,
-        orientation=source_orientation, moment_amplitude=moment_amplitude
-    )
-]
+    source_list.append(src)
 
 # Define a 1D FDEM survey
-survey = em1d.survey.EM1DSurveyFD(source_list)
+survey = fdem.Survey(source_list)
 
 
 ###############################################
@@ -106,7 +101,7 @@ n_layer = len(thicknesses) + 1
 # electrical conductivity when the Earth is chargeable.
 sigma = 1e-2        # infinite conductivity in S/m
 eta = 0.8           # intrinsice chargeability [0, 1]
-tau = 0.0001        # central time-relaxation constant in seconds
+tau = 0.001        # central time-relaxation constant in seconds
 c = 0.8             # phase constant [0, 1]
 
 # Magnetic susceptibility in SI
@@ -119,7 +114,7 @@ sigma_model = sigma * np.ones(n_layer)
 eta_model = eta * np.ones(n_layer)
 tau_model =  tau * np.ones(n_layer)
 c_model = c * np.ones(n_layer)
-chi_model = chi * np.ones(n_layer)
+mu_model = mu_0*(chi+1) * np.ones(n_layer)
 
 # Here, we let the infinite conductivity be the model. As a result, we only
 # need to define the mapping for this parameter. All other parameters used
@@ -164,22 +159,22 @@ plt.show()
 #
 
 # Response for conductive Earth
-simulation = em1d.simulation.EM1DFMSimulation(
+simulation = fdem.Simulation1DLayered(
     survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping
 )
 
 dpred = simulation.dpred(sigma_model)
 
 # Simulate response for a conductive and susceptible Earth
-simulation_susceptible = em1d.simulation.EM1DFMSimulation(
+simulation_susceptible = fdem.Simulation1DLayered(
     survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping,
-    chi=chi_model
+    mu=mu_model
 )
 
 dpred_susceptible = simulation_susceptible.dpred(sigma_model)
 
 # Simulate response for a chargeable Earth
-simulation_chargeable = em1d.simulation.EM1DFMSimulation(
+simulation_chargeable = fdem.Simulation1DLayered(
     survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping,
     eta=eta, tau=tau, c=c
 )
@@ -194,12 +189,12 @@ dpred_chargeable = simulation_chargeable.dpred(sigma_model)
 
 fig = plt.figure(figsize=(7, 7))
 ax = fig.add_axes([0.15, 0.1, 0.8, 0.8])
-ax.semilogx(frequencies, dpred[0:len(frequencies)], 'b-', lw=3)
-ax.semilogx(frequencies, dpred[len(frequencies):], 'b--', lw=3)
-ax.semilogx(frequencies, dpred_susceptible[0:len(frequencies)], 'r-', lw=3)
-ax.semilogx(frequencies, dpred_susceptible[len(frequencies):], 'r--', lw=3)
-ax.semilogx(frequencies, dpred_chargeable[0:len(frequencies)], 'g-', lw=3)
-ax.semilogx(frequencies, dpred_chargeable[len(frequencies):], 'g--', lw=3)
+ax.semilogx(frequencies, dpred[::2], 'b-', lw=3)
+ax.semilogx(frequencies, dpred[1::2], 'b--', lw=3)
+ax.semilogx(frequencies, dpred_susceptible[::2], 'r-', lw=3)
+ax.semilogx(frequencies, dpred_susceptible[1::2], 'r--', lw=3)
+ax.semilogx(frequencies, dpred_chargeable[::2], 'g-', lw=3)
+ax.semilogx(frequencies, dpred_chargeable[1::2], 'g--', lw=3)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("|Hs| (A/m)")
 ax.set_title("Secondary Magnetic Field")

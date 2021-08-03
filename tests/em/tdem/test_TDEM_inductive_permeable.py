@@ -146,8 +146,8 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100, waveform=waveform
         )
 
-        src_list = [src_magnetostatic]
-        src_list_late_ontime = [src_ramp_on]
+        source_list = [src_magnetostatic]
+        source_list_late_ontime = [src_ramp_on]
 
         prob = tdem.Simulation3DMagneticFluxDensity(
             mesh=mesh,
@@ -162,8 +162,8 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             Solver=Pardiso,
         )
 
-        survey = tdem.Survey(srcList=src_list)
-        survey_late_ontime = tdem.Survey(src_list_late_ontime)
+        survey = tdem.Survey(source_list=source_list)
+        survey_late_ontime = tdem.Survey(source_list_late_ontime)
 
         prob.pair(survey)
         prob_late_ontime.pair(survey_late_ontime)
