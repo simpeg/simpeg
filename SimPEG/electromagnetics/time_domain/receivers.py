@@ -29,16 +29,9 @@ class BaseRx(BaseTimeRx):
         future_warn=True,
     )
 
-    frequencies = properties.Array(
-        "Frequency (Hz)", dtype=float, shape=("*",), required=True
-    )
-
     use_source_receiver_offset = properties.Bool(
         "Use source-receiver offset", default=False
     )
-
-    _ftarg = None
-    _time_interval = None
 
     def __init__(self, locations, times, orientation=None, **kwargs):
         proj = kwargs.pop("projComp", None)

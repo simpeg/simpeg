@@ -68,39 +68,39 @@ class Survey(BaseSurvey):
                 self._vnD_by_sounding_dict[i_sounding] = nD
         return self._vnD_by_sounding_dict
 
-    @property
-    def receiver_location_by_sounding_dict(self):
-        if getattr(self, "_receiver_location_by_sounding_dict", None) is None:
-            self.get_attributes_by_sounding()        
-        return self._receiver_location_by_sounding_dict
+    # @property
+    # def receiver_location_by_sounding_dict(self):
+    #     if getattr(self, "_receiver_location_by_sounding_dict", None) is None:
+    #         self.get_attributes_by_sounding()        
+    #     return self._receiver_location_by_sounding_dict
 
-    @property
-    def receiver_orientation_by_sounding_dict(self):
-        if getattr(self, "_receiver_orientation_by_sounding_dict", None) is None:
-            self.get_attributes_by_sounding()        
-        return self._receiver_orientation_by_sounding_dict
+    # @property
+    # def receiver_orientation_by_sounding_dict(self):
+    #     if getattr(self, "_receiver_orientation_by_sounding_dict", None) is None:
+    #         self.get_attributes_by_sounding()        
+    #     return self._receiver_orientation_by_sounding_dict
 
-    @property
-    def receiver_use_offset_by_sounding_dict(self):
-        if getattr(self, "_receiver_use_offset_by_sounding_dict", None) is None:
-            self.get_attributes_by_sounding()        
-        return self._receiver_use_offset_by_sounding_dict        
+    # @property
+    # def receiver_use_offset_by_sounding_dict(self):
+    #     if getattr(self, "_receiver_use_offset_by_sounding_dict", None) is None:
+    #         self.get_attributes_by_sounding()        
+    #     return self._receiver_use_offset_by_sounding_dict        
 
-    def get_attributes_by_sounding(self):
-        self._receiver_location_by_sounding_dict = {}
-        self._receiver_orientation_by_sounding_dict = {}
-        self._receiver_use_offset_by_sounding_dict = {}
-        source_location_by_sounding_dict = self.source_location_by_sounding_dict
-        for i_sounding in source_location_by_sounding_dict:
-            source_list = self.get_sources_by_sounding_number(i_sounding)
-            rx_locations = []
-            rx_orientations = []
-            rx_use_offset = []
-            for src in source_list:
-                for rx in src.receiver_list:
-                    rx_locations.append(rx.locations)
-                    rx_orientations.append(rx.orientation)
-                    rx_use_offset.append(rx.use_source_receiver_offset)
-            self._receiver_orientation_by_sounding_dict[i_sounding] = np.hstack([rx_orientations])
-            self._receiver_location_by_sounding_dict[i_sounding] = np.vstack([rx_locations])[:,0,:]
-            self._receiver_use_offset_by_sounding_dict[i_sounding] = np.hstack([rx_use_offset])
+    # def get_attributes_by_sounding(self):
+    #     self._receiver_location_by_sounding_dict = {}
+    #     self._receiver_orientation_by_sounding_dict = {}
+    #     self._receiver_use_offset_by_sounding_dict = {}
+    #     source_location_by_sounding_dict = self.source_location_by_sounding_dict
+    #     for i_sounding in source_location_by_sounding_dict:
+    #         source_list = self.get_sources_by_sounding_number(i_sounding)
+    #         rx_locations = []
+    #         rx_orientations = []
+    #         rx_use_offset = []
+    #         for src in source_list:
+    #             for rx in src.receiver_list:
+    #                 rx_locations.append(rx.locations)
+    #                 rx_orientations.append(rx.orientation)
+    #                 rx_use_offset.append(rx.use_source_receiver_offset)
+    #         self._receiver_orientation_by_sounding_dict[i_sounding] = np.hstack([rx_orientations])
+    #         self._receiver_location_by_sounding_dict[i_sounding] = np.vstack([rx_locations])[:,0,:]
+    #         self._receiver_use_offset_by_sounding_dict[i_sounding] = np.hstack([rx_use_offset])

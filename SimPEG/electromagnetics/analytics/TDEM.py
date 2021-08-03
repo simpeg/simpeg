@@ -3,6 +3,7 @@ import numpy as np
 from scipy.constants import mu_0, pi
 from scipy.special import erf
 from SimPEG import utils
+from geoana.em.tdem import vertical_magnetic_field_horizontal_loop
 
 
 def hzAnalyticDipoleT(r, t, sigma):
@@ -16,13 +17,7 @@ def hzAnalyticDipoleT(r, t, sigma):
 
 
 def hzAnalyticCentLoopT(a, t, sigma):
-    theta = np.sqrt((sigma * mu_0) / (4 * t))
-    ta = theta * a
-    eta = erf(ta)
-    t1 = (3 / (np.sqrt(pi) * ta)) * np.exp(-(ta ** 2))
-    t2 = (1 - (3 / (2 * ta ** 2))) * eta
-    hz = (t1 + t2) / (2 * a)
-    return hz
+    return vertical_magnetic_field_horizontal_loop(t, sigma=sigma, radius=a)
 
 
 def TransientMagneticDipoleWholeSpace(
