@@ -1,13 +1,15 @@
 import unittest
 from SimPEG import maps
 import matplotlib.pyplot as plt
-import SimPEG.electromagnetics.time_domain_1d as em1d
 import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
-from SimPEG.electromagnetics.analytics.em1d_analytics import *
 import numpy as np
-from scipy import io
-from scipy.interpolate import interp1d
+from SimPEG.electromagnetics.utils import convolve_with_waveform
+from geoana.em.tdem import (
+    vertical_magnetic_flux_horizontal_loop as b_loop,
+    vertical_magnetic_flux_time_deriv_horizontal_loop as dbdt_loop,
+)
+import numpy as np
+
 
 
 class EM1D_TD_FwdProblemTests(unittest.TestCase):
@@ -20,38 +22,28 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         source_radius = 10.
         moment_amplitude = 1.
 
-        receiver_locations = np.array([[10., 0., 0.]])
+        receiver_locations = np.array([[0., 0., 0.]])
         receiver_orientation = "z"  # "x", "y" or "z"
 
-        time_HM = skytem_2015_HM_time_channels()
-        time_LM = skytem_2015_LM_time_channels()
+        times_hm = np.logspace(-6, -3, 31)
+        times_lm = np.logspace(-5, -2, 31)
 
         # Waveforms
-        wave_HM = em1d.waveforms.Skytem2015HighMomentWaveform()
-        wave_LM = em1d.waveforms.Skytem2015LowMomentWaveform()
-
-        waveform_times_HM = skytem_2015_HM_waveform_times()
-        waveform_current_HM = skytem_2015_HM_waveform_current()
-        waveform_times_LM = skytem_2015_LM_waveform_times()
-        waveform_current_LM = skytem_2015_LM_waveform_times()
-
-        waveform_hm = tdem.sources.RawWaveform(
-                waveform_times=waveform_times_HM, waveform_current=waveform_current_HM,
-                n_pulse = 1, base_frequency = 25.
+        waveform_hm = tdem.sources.TriangularWaveform(
+            startTime=-0.01, peakTime=-0.005, offTime=0.0
         )
-        waveform_lm = tdem.sources.RawWaveform(
-                waveform_times=waveform_times_LM, waveform_current=waveform_current_LM,
-                n_pulse = 1, base_frequency = 210.
+        waveform_lm = tdem.sources.TriangularWaveform(
+            startTime=-0.01, peakTime=-0.0001, offTime=0.0
         )
 
         # Receiver list
 
         # Define receivers at each location.
         dbzdt_receiver_hm = tdem.receivers.PointMagneticFluxTimeDerivative(
-            receiver_locations, time_HM, receiver_orientation
+            receiver_locations, times_hm, receiver_orientation
         )
         dbzdt_receiver_lm = tdem.receivers.PointMagneticFluxTimeDerivative(
-            receiver_locations, time_LM, receiver_orientation
+            receiver_locations, times_lm, receiver_orientation
         )
         # Make a list containing all receivers even if just one
 
@@ -62,19 +54,17 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
                 location=source_location,
                 waveform=waveform_hm,
                 radius=source_radius,
-                i_sounding=0
-            ),
+           ),
             tdem.sources.CircularLoop(
                 [dbzdt_receiver_lm],
                 location=source_location,
                 waveform=waveform_lm,
                 radius=source_radius,
-                i_sounding=0
             )    
         ]
 
         survey = tdem.Survey(source_list)
-        
+
         thicknesses = np.ones(3)
         sigma = 1e-2
         n_layer = thicknesses.size + 1
@@ -82,67 +72,60 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         sigma_model = sigma * np.ones(n_layer)
 
         model_mapping = maps.IdentityMap(nP=n_layer)
-        simulation = em1d.simulation.EM1DTMSimulation(
-            survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping,
+        simulation = tdem.Simulation1DLayered(
+            survey=survey, 
+            thicknesses=thicknesses, 
+            sigmaMap=model_mapping,
         )
-   
+
         self.survey = survey
         self.simulation = simulation
         self.showIt = False
         self.sigma_model = sigma_model
         self.sigma_halfspace = sigma
+        self.source_radius = source_radius
+        self.waveform_hm = waveform_hm
+        self.waveform_lm = waveform_lm
+        self.times_lm = times_lm
+        self.times_hm = times_hm
 
     def test_em1dtd_circular_loop_single_pulse(self):
 
         src = self.survey.source_list[0]
         rx = src.receiver_list[0]
-        dBzdtTD = self.simulation.dpred(self.sigma_model)
-        dBzdtTD_HM = dBzdtTD[:rx.times.size]
-        dBzdtTD_LM = dBzdtTD[rx.times.size:]
+        dbzdt = self.simulation.dpred(self.sigma_model)
+        dbzdt_hm = dbzdt[:rx.times.size]
+        dbzdt_lm = dbzdt[rx.times.size:]
 
-        def step_func_dBzdt(time):
-            return dBzdt_horizontal_circular_loop(
-                src.radius, time, self.sigma_halfspace
-            )
 
-        dBzdtTD_analytic_HM = piecewise_pulse(
-            step_func_dBzdt, rx.times,
-            src.waveform.waveform_times,
-            src.waveform.waveform_current,
-            src.waveform.period
+        dbzdt_lm_analytic = convolve_with_waveform(
+            dbdt_loop,
+            self.waveform_lm,
+            self.times_lm,
+            fkwargs={"sigma": self.sigma_halfspace, "radius": self.source_radius},
         )
 
-        src_lm = self.survey.source_list[1]
-        rx_lm = src_lm.receiver_list[0]
-
-        dBzdtTD_analytic_LM = piecewise_pulse(
-            step_func_dBzdt, rx_lm.times,
-            src_lm.waveform.waveform_times,
-            src_lm.waveform.waveform_current,
-            src_lm.waveform.period
+        dbzdt_hm_analytic = convolve_with_waveform(
+            dbdt_loop,
+            self.waveform_hm,
+            self.times_hm,
+            fkwargs={"sigma": self.sigma_halfspace, "radius": self.source_radius},
         )
-
-        if self.showIt:
-            plt.loglog(rx.times, -dBzdtTD_HM)
-            plt.loglog(rx_lm.times, -dBzdtTD_LM)
-            plt.loglog(rx.times, -dBzdtTD_analytic_HM, 'x')
-            plt.loglog(rx_lm.times, -dBzdtTD_analytic_LM, 'x')
-            plt.show()
 
         err = (
-            np.linalg.norm(dBzdtTD_HM-dBzdtTD_analytic_HM)/
-            np.linalg.norm(dBzdtTD_analytic_HM)
+            np.linalg.norm(dbzdt_hm-dbzdt_hm_analytic)/
+            np.linalg.norm(dbzdt_hm_analytic)
         )
 
-        print ('dBzdt error (HM) = ', err)
+        print ('dBzdt error (hm) = ', err)
 
         self.assertTrue(err < 5e-2)
         err = (
-            np.linalg.norm(dBzdtTD_LM-dBzdtTD_analytic_LM)/
-            np.linalg.norm(dBzdtTD_analytic_LM)
+            np.linalg.norm(dbzdt_lm-dbzdt_lm_analytic)/
+            np.linalg.norm(dbzdt_lm_analytic)
         )
 
-        print ('dBzdt error (LM) = ', err)
+        print ('dBzdt error (lm) = ', err)
         self.assertTrue(err < 5e-2)
 
         print ("EM1DTD-CirculurLoop-general for real conductivity works")
