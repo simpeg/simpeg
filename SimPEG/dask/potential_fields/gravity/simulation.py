@@ -67,8 +67,14 @@ def dask_Jvec(self, _, v, f=None):
     if isinstance(self.Jmatrix, Future):
         self.Jmatrix  # Wait to finish
 
-    dmu_dm_v = self.rhoDeriv @ v
-    return array.dot(self.Jmatrix, dmu_dm_v.astype(np.float32))
+    if isinstance(self.Jmatrix, array.Array):
+        dmu_dm_v = self.rhoDeriv @ v
+        jvec = array.dot(self.Jmatrix, dmu_dm_v.astype(np.float32))
+    else:
+        dmu_dm_v = self.rhoDeriv @ v
+        jvec = self.Jmatrix @ dmu_dm_v.astype(np.float32)
+
+    return jvec
 
 
 Sim.Jvec = dask_Jvec
@@ -82,13 +88,17 @@ def dask_Jtvec(self, _, v, f=None):
     if isinstance(self.Jmatrix, Future):
         self.Jmatrix  # Wait to finish
 
-    Jtvec = array.dot(v.astype(np.float32), self.Jmatrix)
-    Jtjvec_dmudm = delayed(csr.dot)(Jtvec, self.rhoDeriv)
-    h_vec = array.from_delayed(
-        Jtjvec_dmudm, dtype=float, shape=[self.rhoDeriv.shape[1]]
-    )
+    if isinstance(self.Jmatrix, array.Array):
+        Jtvec = array.dot(v.astype(np.float32), self.Jmatrix)
+        Jtjvec_dmudm = delayed(csr.dot)(Jtvec, self.rhoDeriv)
+        jt_vec = array.from_delayed(
+            Jtjvec_dmudm, dtype=float, shape=[self.rhoDeriv.shape[1]]
+        )
+    else:
+        Jtvec = self.Jmatrix.T @ v.astype(np.float32)
+        jt_vec = np.asarray(self.rhoDeriv.T @ Jtvec)
 
-    return h_vec
+    return jt_vec
 
 
 Sim.Jtvec = dask_Jtvec
