@@ -117,8 +117,8 @@ def convolve_with_waveform(func, waveform, times, fargs=[], fkwargs={}):
             b = t - t_nodes[i]
             a = t - t_nodes[i + 1]
             # just do not evaluate the integral at negative times...
-            a = np.minimum(a, 0.0)
-            b = np.minimum(b, 0.0)
+            a = np.maximum(a, 0.0)
+            b = np.maximum(b, 0.0)
             val, _ = integrate.quadrature(integral, a, b, tol=0.0, maxiter=500)
             out[it] -= val
     return out
