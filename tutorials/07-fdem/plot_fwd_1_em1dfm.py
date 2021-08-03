@@ -29,7 +29,7 @@ from matplotlib import pyplot as plt
 from discretize import TensorMesh
 
 from SimPEG import maps
-from SimPEG.electromagnetics import frequency_domain_1d as em1d
+import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.electromagnetics.utils.em1d_utils import plot_layer
 
 plt.rcParams.update({'font.size': 16})
@@ -56,35 +56,31 @@ receiver_location = np.array([10., 0., 30.])
 receiver_orientation = "z"                   # "x", "y" or "z"
 field_type = "ppm"                           # "secondary", "total" or "ppm"
 
-receiver_list = []
-receiver_list.append(
-    em1d.receivers.PointReceiver(
-        receiver_location, frequencies, orientation=receiver_orientation,
-        field_type=field_type, component="real"
-    )
-)
-receiver_list.append(
-    em1d.receivers.PointReceiver(
-        receiver_location, frequencies, orientation=receiver_orientation,
-        field_type=field_type, component="imag"
-    )
-)
 
 # Define a source list. For each list of receivers, we define a source.
 # In this case, we define a single source.
 source_location = np.array([0., 0., 30.])
 source_orientation = 'z'                      # "x", "y" or "z"
-moment_amplitude = 1.                         # amplitude of the dipole moment
-
-source_list = [
-    em1d.sources.MagneticDipoleSource(
-        receiver_list=receiver_list, location=source_location,
-        orientation=source_orientation, moment_amplitude=moment_amplitude
+moment = 1.                         # amplitude of the dipole moment
+source_list = []
+for ii, frequency in enumerate(frequencies):
+    receiver_list = []
+    receiver_list.append(
+        fdem.receivers.PointMagneticFieldSecondary(
+            receiver_location, orientation="z", component="both"
+        )
     )
-]
+    src = fdem.sources.MagDipole(
+        receiver_list=receiver_list,
+        frequency=frequency,
+        location=source_location,
+        orientation=source_orientation, 
+        moment=moment
+    )
+    source_list.append(src)
 
 # Define a 1D FDEM survey
-survey = em1d.survey.EM1DSurveyFD(source_list)
+survey = fdem.Survey(source_list)
 
 
 ###############################################
@@ -138,7 +134,7 @@ plt.gca().invert_yaxis()
 #
 
 # Define the simulation
-simulation = em1d.simulation.EM1DFMSimulation(
+simulation = fdem.Simulation1DLayered(
     survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping,
 )
 
@@ -181,4 +177,3 @@ if write_output:
         np.c_[frequencies, dpred[0:len(frequencies)], dpred[len(frequencies):]],
         fmt='%.4e', header='FREQUENCY HZ_REAL HZ_IMAG'
     )
-
