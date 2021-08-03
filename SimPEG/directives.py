@@ -964,6 +964,10 @@ class SaveIterationsGeoH5(InversionDirective):
             prop = prop.reshape((len(self.channels), len(self.components), -1))
 
         for cc, component in enumerate(self.components):
+
+            if component not in self.data_type.keys():
+                self.data_type[component] = {}
+
             for ii, channel in enumerate(self.channels):
                 if not isinstance(channel, str):
                     channel = f"{channel: .2e}"
@@ -974,7 +978,6 @@ class SaveIterationsGeoH5(InversionDirective):
                 if self.sorting is not None:
                     values = values[self.sorting]
 
-
                 data = self.h5_object.add_data(
                     {
                         f"Iteration_{0}_{component}_{channel}":
@@ -982,7 +985,9 @@ class SaveIterationsGeoH5(InversionDirective):
                     }
                 )
                 data.entity_type.name = channel
-                self.data_type[channel] = data.entity_type
+
+                if channel not in self.data_type[component].keys():
+                    self.data_type[component][channel] = data.entity_type
 
                 if len(self.channels) > 1:
                     self.h5_object.add_data_to_group(
@@ -1034,7 +1039,7 @@ class SaveIterationsGeoH5(InversionDirective):
                             {
                                 "values": values,
                                 "association": self.association,
-                                "entity_type": self.data_type[channel],
+                                "entity_type": self.data_type[component][channel],
                             }
                     }
                 )
@@ -1701,8 +1706,6 @@ class UpdateSensitivityWeights(InversionDirective):
                 wr += prob_JtJ
 
             wr = np.max(np.c_[wr, threshold], axis=1)
-
-
             wr = wr ** 0.5
             wr /= wr.max()
         else:
