@@ -7,7 +7,6 @@ from geoana.em.tdem import diffusion_distance
 from SimPEG import utils
 from scipy.constants import mu_0, pi
 import scipy.special as spec
-from ..time_domain_1d.supporting_functions.digital_filter import transFiltImpulse, transFilt, setFrequency
 
 
 

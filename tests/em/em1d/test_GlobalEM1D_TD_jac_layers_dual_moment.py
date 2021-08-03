@@ -3,9 +3,6 @@ import unittest
 import numpy as np
 
 import SimPEG.electromagnetics.time_domain as tdem
-import SimPEG.electromagnetics.time_domain_1d as em1d
-from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_time
-from SimPEG.electromagnetics.time_domain_1d.supporting_functions.waveform_functions import *
 from SimPEG import *
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
@@ -17,13 +14,22 @@ class GlobalEM1DTD(unittest.TestCase):
 
     def setUp(self, parallel=True):
 
-        time_HM = skytem_2015_HM_time_channels()
-        time_LM = skytem_2015_LM_time_channels()
+        times_hm = np.logspace(-6, -3, 31)
+        times_lm = np.logspace(-5, -2, 31)
 
-        n_layer = 20
-        thicknesses = get_vertical_discretization_time(
-            time_LM, facter_tmax=0.5, factor_tmin=10., n_layer=n_layer-1
+        # Waveforms
+        waveform_hm = tdem.sources.TriangularWaveform(
+            startTime=-0.01, peakTime=-0.005, offTime=0.0
         )
+        waveform_lm = tdem.sources.TriangularWaveform(
+            startTime=-0.01, peakTime=-0.0001, offTime=0.0
+        )
+
+        dz = 1
+        geometric_factor = 1.1
+        n_layer = 20
+        thicknesses = dz * geometric_factor ** np.arange(n_layer-1)        
+        n_layer = 20
 
         n_sounding = 5
         dx = 20.
@@ -52,24 +58,6 @@ class GlobalEM1DTD(unittest.TestCase):
         receiver_locations = np.c_[x+receiver_offset_r, np.zeros(n_sounding), 30.*np.ones(n_sounding)+receiver_offset_z]
         receiver_orientation = "z"  # "x", "y" or "z"
 
-        # Waveforms
-        wave_HM = em1d.waveforms.Skytem2015HighMomentWaveform()
-        wave_LM = em1d.waveforms.Skytem2015LowMomentWaveform()
-
-        waveform_times_HM = skytem_2015_HM_waveform_times()
-        waveform_current_HM = skytem_2015_HM_waveform_current()
-        waveform_times_LM = skytem_2015_LM_waveform_times()
-        waveform_current_LM = skytem_2015_LM_waveform_times()
-
-        waveform_hm = tdem.sources.RawWaveform(
-                waveform_times=waveform_times_HM, waveform_current=waveform_current_HM,
-                n_pulse = 1, base_frequency = 25.
-        )
-        waveform_lm = tdem.sources.RawWaveform(
-                waveform_times=waveform_times_LM, waveform_current=waveform_current_LM,
-                n_pulse = 1, base_frequency = 210.
-        )
-
         topo = np.c_[x, y, z-30.].astype(float)
 
         sigma_map = maps.ExpMap(mesh)
@@ -85,10 +73,10 @@ class GlobalEM1DTD(unittest.TestCase):
 
             # Define receivers at each location.
             dbzdt_receiver_hm = tdem.receivers.PointMagneticFluxTimeDerivative(
-                receiver_location, time_HM, receiver_orientation
+                receiver_location, times_hm, receiver_orientation
             )
             dbzdt_receiver_lm = tdem.receivers.PointMagneticFluxTimeDerivative(
-                receiver_location, time_LM, receiver_orientation
+                receiver_location, times_lm, receiver_orientation
             )
             # Make a list containing all receivers even if just one
 
@@ -114,7 +102,7 @@ class GlobalEM1DTD(unittest.TestCase):
 
         survey = tdem.Survey(source_list)
 
-        simulation = em1d.simulation.StitchedEM1DTMSimulation(
+        simulation = tdem.Simulation1DLayeredStitched(
             survey=survey, thicknesses=thicknesses, sigmaMap=sigma_map,
             topo=topo, parallel=False, n_cpu=2, verbose=False, solver=PardisoSolver
         )

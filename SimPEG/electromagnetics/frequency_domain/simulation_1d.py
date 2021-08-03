@@ -71,7 +71,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             C1s = C1s.copy()
             h_vec = self.h
             i = 0
-            for i_src, src in self.survey.source_list:
+            for i_src, src in enumerate(self.survey.source_list):
                 h = h_vec[i_src]
                 nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
                 ip1 = i + nD
@@ -281,40 +281,40 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
 
         n_layer = len(thicknesses) + 1
         local_survey = Survey(src_list)
-        exp_map = maps.ExpMap(nP=n_layer)
+        exp_map = maps.IdentityMap(nP=n_layer)
 
         if not invert_height:
             # Use Exponential Map
             # This is hard-wired at the moment
 
-            sim = EM1DFMSimulation(
+            sim = Simulation1DLayered(
                 survey=local_survey,
                 thicknesses=thicknesses,
                 sigmaMap=exp_map,
                 eta=eta,
                 tau=tau,
                 c=c,
-                chi=chi,
-                dchi=dchi,
-                tau1=tau1,
-                tau2=tau2,
+                # chi=chi,
+                # dchi=dchi,
+                # tau1=tau1,
+                # tau2=tau2,
                 topo=topo,
                 hankel_filter="key_101_2009",
-                use_sounding=True,
             )
 
             if output_type == "sensitivity_sigma":
-                drespdsig = sim.getJ_sigma(np.log(sigma))
-                return utils.mkvc(drespdsig * sim.sigmaDeriv)
+                J = sim.getJ(np.log(sigma))
+                return utils.mkvc(J['ds'] * sim.sigmaDeriv)
             else:
                 resp = sim.dpred(np.log(sigma))
                 return resp
+
         else:
 
             wires = maps.Wires(("sigma", n_layer), ("h", 1))
             sigma_map = exp_map * wires.sigma
 
-            sim = EM1DFMSimulation(
+            sim = Simulation1DLayered(
                 survey=local_survey,
                 thicknesses=thicknesses,
                 sigmaMap=sigma_map,
@@ -323,22 +323,20 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
                 eta=eta,
                 tau=tau,
                 c=c,
-                chi=chi,
-                dchi=dchi,
-                tau1=tau1,
-                tau2=tau2,
+                # chi=chi,
+                # dchi=dchi,
+                # tau1=tau1,
+                # tau2=tau2,
                 hankel_filter="key_101_2009",
-                use_sounding=True,
             )
 
             m = np.r_[np.log(sigma), h]
             if output_type == "sensitivity_sigma":
-                drespdsig = sim.getJ_sigma(m)
-                return utils.mkvc(drespdsig * utils.sdiag(sigma))
-                # return utils.mkvc(drespdsig)
+                J = sim.getJ(m)
+                return utils.mkvc(J['ds'] * utils.sdiag(sigma))
             elif output_type == "sensitivity_height":
-                drespdh = sim.getJ_height(m)
-                return utils.mkvc(drespdh)
+                J = sim.getJ(m)
+                return utils.mkvc(J['dh'])
             else:
                 resp = sim.dpred(m)
                 return resp
