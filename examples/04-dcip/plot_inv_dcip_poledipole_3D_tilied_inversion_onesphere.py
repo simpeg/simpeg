@@ -488,39 +488,26 @@ def run(survey_type="pole-dipole", plotIt=True):
     regmap = maps.IdentityMap(nP=int(active_cells.sum()))
     # reg = regularization.Tikhonov(mesh, indActive=global_actinds, mapping=regmap)
     reg = regularization.Sparse(global_mesh, indActive=active_cells, mapping=regmap)
-
+    reg.norms = np.c_[0, 2, 2, 2]
     print('[INFO] Getting things started on inversion...')
     # set alpha length scales
-    reg.alpha_s = 1 # alpha_s
-    reg.alpha_x = 1
-    reg.alpha_y = 1
-    reg.alpha_z = 1
+
 
     opt = optimization.ProjectedGNCG(
-        maxIter=3, upper=np.inf, lower=-np.inf,
+        maxIter=15, upper=np.inf, lower=-np.inf,
         maxIterCG=10, tolCG=1e-4
     )
     invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
 
     print("Pre-computing Jmatrix and predicted_0")
     invProb.dpred = invProb.get_dpred(mstart, compute_J=True)
-
-    wr = np.zeros_like(mstart)
-    for ii, dmisfit in enumerate(global_misfit.objfcts):
-        wr += dmisfit.getJtJdiag(mstart)/global_mesh.cell_volumes[active_cells]**2.
-
-    wr += np.percentile(wr, 40)
-    wr *= global_mesh.cell_volumes[active_cells]**2.
-    wr **= 0.5
-    wr = wr/wr.max()
-    reg.cell_weights = wr
-
     beta = directives.BetaSchedule(
         coolingFactor=coolingFactor, coolingRate=coolingRate
     )
+    irls = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=beta0_ratio, method="ratio")
-    target = directives.TargetMisfit()
-    target.target = survey_dc.nD
+    # target = directives.TargetMisfit()
+    # target.target = survey_dc.nD
     save_model = directives.SaveUBCModelEveryIteration(mesh=global_mesh, mapping=mapactive, file_name="DC_", replace=False)
     save_pred = directives.SavePredictedEveryIteration(data=global_data, data_type='ubc_dc', file_name="DC_",
                                                        replace=False)
@@ -530,11 +517,11 @@ def run(survey_type="pole-dipole", plotIt=True):
         update_Jacobi = directives.UpdatePreconditioner()
         updateSensW = directives.UpdateSensitivityWeights(threshold=1e-8)
         directiveList = [
-            save_pred, save_model, updateSensW, beta, betaest, target, update_Jacobi
+            save_pred, save_model, updateSensW, irls, beta, betaest, update_Jacobi
         ]
     else:
         directiveList = [
-            beta, betaest, target
+            beta, betaest, irls
         ]
     inv = inversion.BaseInversion(
         invProb, directiveList=directiveList)
