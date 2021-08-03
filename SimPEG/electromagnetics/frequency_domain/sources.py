@@ -589,22 +589,23 @@ class CircularLoop(MagDipole):
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         return self._loop.vector_potential(obsLoc, coordinates)
 
-    def hPrimary(self, simulation):
-        if simulation._formulation == "1D":
-            if getattr(self, "_1d_h", None) is None:
-                loop = self._loop
-                out = []
-                for rx in self.receiver_list:
-                    if rx.use_source_receiver_offset:
-                        locs = rx.locations + self.location
-                    else:
-                        locs = rx.locations
-                    h_rx = loop.magnetic_field(locs)
-                    out.append(h_rx[:, {"x": 0, "y": 1, "z": 2}[rx.orientation]])
-                self._1d_h = out
-            return self._1d_h
-        else:
-            super().hprimary(simulation)
+    # Deprecated for now
+    # def hPrimary(self, simulation):
+    #     if simulation._formulation == "1D":
+    #         if getattr(self, "_1d_h", None) is None:
+    #             loop = self._loop
+    #             out = []
+    #             for rx in self.receiver_list:
+    #                 if rx.use_source_receiver_offset:
+    #                     locs = rx.locations + self.location
+    #                 else:
+    #                     locs = rx.locations
+    #                 h_rx = loop.magnetic_field(locs)
+    #                 out.append(h_rx[:, {"x": 0, "y": 1, "z": 2}[rx.orientation]])
+    #             self._1d_h = out
+    #         return self._1d_h
+    #     else:
+    #         super().hprimary(simulation)
 
 
 class PrimSecSigma(BaseFDEMSrc):
