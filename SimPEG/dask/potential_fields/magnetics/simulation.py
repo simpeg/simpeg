@@ -21,7 +21,8 @@ def dask_fields(self, m):
         # Compute the linear operation without forming the full dense G
         fields = self.linear_operator()
     else:
-        fields = self.G @ (self.chiMap @ m).astype(np.float32)
+        if hasattr(self, "G"): # Trigger calculations
+            fields = self.G @ (self.rhoMap @ m).astype(np.float32)
 
     return fields
 
@@ -105,14 +106,10 @@ def linear_operator(self):
     elif self.store_sensitivities == "forward_only":
         # with ProgressBar():
         print("Forward calculation (DASK): ")
-        pred = array.dot(stack, self.model.astype(np.float32))
+        pred = stack @ self.model.astype(np.float32)
         return pred
 
-    with ProgressBar():
-        print("Computing sensitivities to local ram")
-        kernel = array.asarray(stack.compute())
-
-    return kernel
+    return array.asarray(stack)
 
 
 Sim.linear_operator = linear_operator
