@@ -571,7 +571,7 @@ def plot_pseudosection(
             warnings.warn(
                 r"The {kwarg} keyword has been removed. This will become an error in "
                 "version 0.16.0 of SimPEG",
-                DerecationWarning,
+                DeprecationWarning,
             )
             kwargs.pop(kwarg)
     if len(kwargs) > 0:
