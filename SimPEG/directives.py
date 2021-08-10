@@ -959,7 +959,7 @@ class SaveIterationsGeoH5(InversionDirective):
             prop = self.invProb.model
 
         if self.attribute_type == "vector":
-            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1)
+            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1).reshape((1,1,-1))
         else:
             prop = prop.reshape((len(self.channels), len(self.components), -1))
 
@@ -1019,7 +1019,7 @@ class SaveIterationsGeoH5(InversionDirective):
             prop = self.invProb.model
 
         if self.attribute_type == "vector":
-            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1)
+            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1).reshape((1,1,-1))
         else:
             prop = prop.reshape((len(self.channels), len(self.components), -1))
 
@@ -1176,12 +1176,13 @@ class VectorInversion(InversionDirective):
             IRLS = []
             for directive in self.inversion.directiveList.dList:
                 if isinstance(directive, SaveIterationsGeoH5):
-                    channels = []
-                    for channel in directive.channels:
-                        channels.append(channel + "_s")
-                        directive.data_type[channel + "_s"] = directive.data_type[
-                            channel
-                        ]
+                    for comp in directive.components:
+                        channels = []
+                        for channel in directive.channels:
+                            channels.append(channel + "_s")
+                            directive.data_type[comp][channel + "_s"] = directive.data_type[comp][
+                                channel
+                            ]
 
                     directive.channels = channels
 

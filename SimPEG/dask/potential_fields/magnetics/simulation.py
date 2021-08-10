@@ -22,7 +22,7 @@ def dask_fields(self, m):
         fields = self.linear_operator()
     else:
         if hasattr(self, "G"): # Trigger calculations
-            fields = self.G @ (self.rhoMap @ m).astype(np.float32)
+            fields = self.G @ (self.chiMap @ m).astype(np.float32)
 
     return fields
 
