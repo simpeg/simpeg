@@ -78,7 +78,7 @@ def linear_operator(self):
         stack = stack.rechunk({0: -1, 1: "auto"})
 
     if self.store_sensitivities == "disk":
-        sens_name = self.sensitivity_path
+        sens_name = os.path.join(self.sensitivity_path, "J.zarr")
         if os.path.exists(sens_name):
             kernel = array.from_zarr(sens_name)
             if np.all(
@@ -99,7 +99,7 @@ def linear_operator(self):
 
         kernel = array.to_zarr(
                 stack, sens_name,
-                compute=True, return_stored=True, overwrite=True
+                compute=False, return_stored=True, overwrite=True
         )
         return kernel
 

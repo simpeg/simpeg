@@ -181,7 +181,7 @@ def linear_operator(self):
 
         kernel = array.to_zarr(
                 stack, sens_name,
-                compute=True, return_stored=True, overwrite=True
+                compute=False, return_stored=True, overwrite=True
         )
         return kernel
 
