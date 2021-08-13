@@ -189,6 +189,8 @@ simulation = gravity.simulation.Simulation3DIntegral(
 )
 
 # Compute predicted data for some model
+# SimPEG uses right handed coordinate where Z is positive upward. 
+# This causes gravity signals look "inconsistent" with density values in visualization.
 dpred = simulation.dpred(model)
 
 # Plot
