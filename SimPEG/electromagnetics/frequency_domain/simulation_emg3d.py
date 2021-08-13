@@ -5,7 +5,6 @@ from discretize.utils import requires
 from ...utils import mkvc
 from .simulation import BaseFDEMSimulation
 from .sources import ElectricWire
-from memory_profiler import profile
 
 # emg3d is a soft dependency
 try:
@@ -149,7 +148,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         self.emg3d_sim._misfit = None
         self.emg3d_sim._vec = None  # TODO check back when emg3d-side finished!
 
-    @profile
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
@@ -180,7 +178,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         # Map emg3d-data-array to SimPEG-data-vector
         return j_vec[self._dmap_simpeg_emg3d]
 
-    @profile
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector
@@ -209,47 +206,42 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         if f is None:
             f = self.fields(m=m)
 
-        # Put v onto emg3d data-array.
-        self._emg3d_array[self._dmap_simpeg_emg3d] = v
+        return self._Jtvec(m, v=v, f=f)
 
-        # Replace residual by vector if provided
-        f.survey.data['residual'][...] = self._emg3d_array
-        # Get gradient with `v` as residual.
-        jt_vec = self.sigmaDeriv.T @ f.gradient.ravel('F')
-        return jt_vec
+    def _Jtvec(self, m, v=None, f=None):
+        """Compute adjoint sensitivity matrix (J^T) and vector (v) product.
 
-    # @profile
-    # def _Jtvec(self, m, v=None, f=None):
-    #     """Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+        Full J matrix can be computed by setting v=None (not implemented yet).
+        """
 
-    #     Full J matrix can be computed by setting v=None (not implemented yet).
-    #     """
+        if v is not None:
+            # Put v onto emg3d data-array.
+            self._emg3d_array[self._dmap_simpeg_emg3d] = v
 
-    #     if v is not None:
-    #         # Put v onto emg3d data-array.
-    #         self._emg3d_array[self._dmap_simpeg_emg3d] = v
+            # Replace residual by vector if provided
+            f.survey.data['residual'][...] = self._emg3d_array
 
-    #         # Replace residual by vector if provided
-    #         f.survey.data['residual'][...] = self._emg3d_array
-    #         # Get gradient with `v` as residual.
-    #         jt_vec = self.sigmaDeriv.T @ emg3d.optimize.gradient(f).ravel('F')
-    #         return jt_vec
+            # Get gradient with `v` as residual.
+            jt_sigma_vec = emg3d.optimize.gradient(f)
 
-    #     else:
-    #         # This is for forming full sensitivity matrix
-    #         # Currently, it is not correct.
-    #         # Requires a fix in optimize.gradient
-    #         # Jt is supposed to be a complex value ...
-    #         # Jt = np.zeros((self.model.size, self.survey.nD), order="F")
-    #         # for i_datum in range(self.survey.nD):
-    #         #     vec = np.zeros(self.survey.nD)
-    #         #     vec[i_datum] = 1.
-    #         #     vec = vec.reshape(self.emg3d_survey.shape)
-    #         #     jt_sigma_vec = emg3d.optimize.gradient(f, vector=vec)
-    #         #     Jt[:, i_datum] = self.sigmaDeriv.T @ jt_sigma_vec
-    #         # return Jt
+            jt_vec = self.sigmaDeriv.T @ jt_sigma_vec.ravel('F')
+            return jt_vec
 
-    #         raise NotImplementedError
+        else:
+            # This is for forming full sensitivity matrix
+            # Currently, it is not correct.
+            # Requires a fix in optimize.gradient
+            # Jt is supposed to be a complex value ...
+            # Jt = np.zeros((self.model.size, self.survey.nD), order="F")
+            # for i_datum in range(self.survey.nD):
+            #     vec = np.zeros(self.survey.nD)
+            #     vec[i_datum] = 1.
+            #     vec = vec.reshape(self.emg3d_survey.shape)
+            #     jt_sigma_vec = emg3d.optimize.gradient(f, vector=vec)
+            #     Jt[:, i_datum] = self.sigmaDeriv.T @ jt_sigma_vec
+            # return Jt
+
+            raise NotImplementedError
 
     def getJ(self, m, f=None):
         """Generate full sensitivity matrix."""
@@ -294,36 +286,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         # Map emg3d-data-array to SimPEG-data-vector
         return f.data.synthetic.data[self._dmap_simpeg_emg3d]
 
-    # def fields(self, m=None):
-    #     """Return the electric fields for a given model.
-
-    #     :param numpy.ndarray m: model
-    #     :rtype: numpy.ndarray
-    #     :return: f, the fields
-    #     """
-
-    #     if self.verbose:
-    #         print("Compute fields")
-
-    #     if m is not None:
-    #         # Store model.
-    #         self.model = m
-
-    #         # Update simulation.
-    #         self._emg3d_simulation_update
-
-    #     # Compute forward model and sets initial residuals.
-    #     _ = self.emg3d_sim.misfit
-
-    #     # Store the data at each step in the survey-xarray
-    #     if m is not None:
-    #         current_data = self.emg3d_survey.data.synthetic.copy()
-    #         self.emg3d_survey.data[f"it_{self._it_count}"] = current_data
-    #         self._it_count += 1  # Update counter
-
-    #     return self.emg3d_sim
-
-    @profile
     def fields(self, m=None):
         """Return the electric fields for a given model.
 
@@ -339,20 +301,11 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             # Store model.
             self.model = m
 
-        # Update simulation.
-        f = emg3d.Simulation(
-            survey=self.emg3d_survey,
-            model=self.emg3d_model,  # Dummy values of 1 for init.
-            **{'name': 'Simulation created by SimPEG',
-               'gridding': 'same',               # Change this eventually!
-               'tqdm_opts': {'disable': True},   # Switch-off tqdm
-               'receiver_interpolation': 'linear',  # Should be linear
-               **self.simulation_opts}              # User input
-        )
-
+            # Update simulation.
+            self._emg3d_simulation_update
 
         # Compute forward model and sets initial residuals.
-        _ = f.misfit
+        _ = self.emg3d_sim.misfit
 
         # Store the data at each step in the survey-xarray
         if m is not None:
@@ -360,7 +313,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             self.emg3d_survey.data[f"it_{self._it_count}"] = current_data
             self._it_count += 1  # Update counter
 
-        return f
+        return self.emg3d_sim
+
 
 def survey_to_emg3d(survey):
     """Return emg3d survey from provided SimPEG survey.
@@ -524,5 +478,3 @@ def survey_to_emg3d(survey):
     emg3d_survey.data['indices'] = emg3d_survey.data.observed.copy(data=ind)
 
     return emg3d_survey, data_map
-
-
