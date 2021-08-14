@@ -20,20 +20,61 @@ from ...utils import setKwargs, sdiag, Zero, Identity
 ###############################################################################
 
 
-class BaseWaveform(properties.HasProperties):
-
-    hasInitialFields = properties.Bool(
-        "Does the waveform have initial fields?", default=False
-    )
-
-    offTime = properties.Float("off-time of the source", default=0.0)
-
-    eps = properties.Float(
-        "window of time within which the waveform is considered on", default=1e-9
-    )
-
-    def __init__(self, **kwargs):
+class BaseWaveform:
+    def __init__(self, has_initial_fields=False, off_time=0.0, epsilon=1e-9, **kwargs):
+        self.has_initial_fields = has_initial_fields
+        self.off_time = off_time
+        self.epsilon = epsilon
         setKwargs(self, **kwargs)
+
+    @property
+    def has_initial_fields(self):
+        """Does the waveform have initial fields?"""
+        return self._has_initial_fields
+
+    @has_initial_fields.setter
+    def has_initial_fields(self, value):
+        if not isinstance(value, bool):
+            raise ValueError(
+                "The value of has_initial_fields must be a bool (True / False)."
+                f" The provided value, {value} is not."
+            )
+        else:
+            self._has_initial_fields = value
+
+    @property
+    def off_time(self):
+        return self._off_time
+
+    @off_time.setter
+    def off_time(self, value):
+        """ "off-time of the source"""
+        if isinstance(value, int):
+            value = float(value)
+        if not isinstance(value, float):
+            raise ValueError(
+                f"off_time must be a float, the value provided, {value} is "
+                f"{type(value)}"
+            )
+        else:
+            self._off_time = off_time
+
+    @property
+    def epsilon(self):
+        """window of time within which the waveform is considered on"""
+        return self._epsilon
+
+    @epsilon.setter
+    def epsilon(self, value):
+        if not isinstance(value, float):
+            raise ValueError(
+                f"epsilon must be a float, the value provided, {value} is "
+                f"{type(value)}"
+            )
+        if value < 0:
+            raise ValueError(
+                f"epsilon must be greater than 0, the value provided, {value} is not"
+            )
 
     def eval(self, time):
         raise NotImplementedError
@@ -41,64 +82,160 @@ class BaseWaveform(properties.HasProperties):
     def evalDeriv(self, time):
         raise NotImplementedError  # needed for E-formulation
 
+    ##########################
+    # Deprecated
+    ##########################
+    hasInitialFields = deprecate_property(
+        has_initial_fields,
+        "hasInitialFields",
+        new_name="has_initial_fields",
+        removal_version="0.16.0",
+        future_warn=True,
+    )
+
+    offTime = deprecate_property(
+        off_time,
+        "offTime",
+        new_name="off_time",
+        removal_version="0.16.0",
+        future_warn=True,
+    )
+
+    eps = deprecate_property(
+        epsilon,
+        "eps",
+        new_name="epsilon",
+        removal_version="0.16.0",
+        future_warn=True,
+    )
+
 
 class StepOffWaveform(BaseWaveform):
-    def __init__(self, offTime=0.0):
-        BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
+    def __init__(self, off_time=0.0, **kwargs):
+        BaseWaveform.__init__(self, off_time=off_time, has_initial_fields=True)
 
     def eval(self, time):
-        if abs(time - 0.0) < self.eps:
+        if abs(time - 0.0) < self.epsilon:
             return 1.0
         else:
             return 0.0
 
 
 class RampOffWaveform(BaseWaveform):
-    def __init__(self, offTime=0.0):
-        BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
+    def __init__(self, off_time=0.0, **kwargs):
+        BaseWaveform.__init__(
+            self, off_time=off_time, has_initial_fields=True, **kwargs
+        )
 
     def eval(self, time):
-        if abs(time - 0.0) < self.eps:
+        if abs(time - 0.0) < self.epsilon:
             return 1.0
-        elif time < self.offTime:
-            return -1.0 / self.offTime * (time - self.offTime)
+        elif time < self.off_time:
+            return -1.0 / self.off_time * (time - self.off_time)
         else:
             return 0.0
 
 
 class RawWaveform(BaseWaveform):
-    def __init__(self, offTime=0.0, waveFct=None, **kwargs):
-        self.waveFct = waveFct
-        BaseWaveform.__init__(self, offTime=offTime, **kwargs)
+    def __init__(self, off_time=0.0, waveform_function=None, **kwargs):
+        BaseWaveform.__init__(self, off_time=off_time, **kwargs)
+        self.waveform_function = waveform_function
+
+    @property
+    def waveform_function(self):
+        return self._waveform_function
+
+    @waveform_function.setter
+    def waveform_function(self, value):
+        if not callable(value):
+            raise ValueError(
+                "waveform_function must be a function. The input value is type: "
+                f"{type(value)}"
+            )
 
     def eval(self, time):
-        return self.waveFct(time)
+        return self.waveform_function(time)
+
+    waveFct = deprecate_property(
+        waveform_function,
+        "waveFct",
+        new_name="waveform_function",
+        removal_version="0.16.0",
+        future_warn=True,
+    )
 
 
 class VTEMWaveform(BaseWaveform):
+    def __init__(self, off_time=4.2e-3, peak_time=2.73e-3, ramp_on_rate=3.0, **kwargs):
+        BaseWaveform.__init__(
+            self, has_initial_fields=False, off_time=off_time, **kwargs
+        )
+        self.peak_time = peak_time
+        self.ramp_on_rate = (
+            ramp_on_rate  # we should come up with a better name for this
+        )
 
-    offTime = properties.Float("off-time of the source", default=4.2e-3)
+    @property
+    def peak_time(self):
+        return self._peak_time
 
-    peakTime = properties.Float(
-        "Time at which the VTEM waveform is at its peak", default=2.73e-3
-    )
+    @peak_time.setter
+    def peak_time(self, value):
+        if not isinstance(value, float):
+            raise ValueError(
+                f"peak_time must be a float, the value provided, {value} is "
+                f"{type(value)}"
+            )
+        if value > self.off_time:
+            raise ValueError(
+                f"peak_time must be less than off_time {self.off_time}. "
+                f"The value provided {value} is not"
+            )
+        self._peak_time = peak_time
 
-    a = properties.Float(
-        "parameter controlling how quickly the waveform ramps on", default=3.0
-    )
+    @property
+    def ramp_on_rate(self):
+        return self._ramp_on_rate
 
-    def __init__(self, **kwargs):
-        BaseWaveform.__init__(self, hasInitialFields=False, **kwargs)
+    @ramp_on_rate.setter
+    def ramp_on_rate(self, value):
+        if isinstance(value, int):
+            value = float(value)
+        if not isinstance(value, float):
+            raise ValueError(
+                f"ramp_on_rate must be a float, the value provided, {value} is "
+                f"{type(value)}"
+            )
 
     def eval(self, time):
-        if time <= self.peakTime:
-            return (1.0 - np.exp(-self.a * time / self.peakTime)) / (
-                1.0 - np.exp(-self.a)
+        if time <= self.peak_time:
+            return (1.0 - np.exp(-self.ramp_on_rate * time / self.peak_time)) / (
+                1.0 - np.exp(-self.ramp_on_rate)
             )
-        elif (time < self.offTime) and (time > self.peakTime):
-            return -1.0 / (self.offTime - self.peakTime) * (time - self.offTime)
+        elif (time < self.off_time) and (time > self.peak_time):
+            return -1.0 / (self.off_time - self.peak_time) * (time - self.off_time)
         else:
             return 0.0
+
+    ##########################
+    # Deprecated
+    ##########################
+
+    peakTime = deprecate_property(
+        peak_time,
+        "peakTime",
+        new_name="peak_time",
+        removal_version="0.16.0",
+        future_warn=True,
+    )
+
+    a = deprecate_property(
+        ramp_on_rate,
+        "a",
+        new_name="ramp_on_rate",
+        removal_version="0.16.0",
+        future_warn=True,
+    )
 
 
 class TrapezoidWaveform(BaseWaveform):
@@ -106,25 +243,61 @@ class TrapezoidWaveform(BaseWaveform):
     A waveform that has a linear ramp-on and a linear ramp-off.
     """
 
-    ramp_on = properties.Array(
+    def __init__(self, ramp_on, ramp_off, off_time=None):
+        super(TrapezoidWaveform, self).__init__(has_initial_fields=False)
+        self.ramp_on = ramp_on
+        self.ramp_off = ramp_off
+        self.off_time = off_time if off_time is not None else self.ramp_off[-1]
+
+    @property
+    def ramp_on(self):
         """times over which the transmitter ramps on
         [time starting to ramp on, time fully on]
-        """,
-        shape=(2,),
-        dtype=float,
-    )
+        """
+        return self._ramp_on
 
-    ramp_off = properties.Array(
+    @ramp_on.setter
+    def ramp_on(self, value):
+        if isinstance(value, (tuple, list)):
+            value = np.array(value, dtype=float)
+        if not isinstance(value, np.ndarray):
+            raise ValueError(
+                f"ramp_on must be a numpy array, list or tuple, the value provided, {value} is "
+                f"{type(value)}"
+            )
+        if len(value) != 2:
+            raise ValueError(
+                f"ramp_on must be length 2 [start, end]. The value provided has "
+                f"length {len(value)}"
+            )
+
+        value = value.astype(float)
+        self._ramp_on = value
+
+    @property
+    def ramp_off(self):
         """times over which we ramp off the waveform
         [time starting to ramp off, time off]
-        """,
-        shape=(2,),
-        dtype=float,
-    )
+        """
+        return self._ramp_off
 
-    def __init__(self, **kwargs):
-        super(TrapezoidWaveform, self).__init__(**kwargs)
-        self.hasInitialFields = False
+    @ramp_off.setter
+    def ramp_off(self, value):
+        if isinstance(value, (tuple, list)):
+            value = np.array(value, dtype=float)
+        if not isinstance(value, np.ndarray):
+            raise ValueError(
+                f"ramp_off must be a numpy array, list or tuple, the value provided, {value} is "
+                f"{type(value)}"
+            )
+        if len(value) != 2:
+            raise ValueError(
+                f"ramp_off must be length 2 [start, end]. The value provided has "
+                f"length {len(value)}"
+            )
+
+        value = value.astype(float)
+        self._ramp_off = value
 
     def eval(self, time):
         if time < self.ramp_on[0]:
@@ -148,32 +321,39 @@ class TriangularWaveform(TrapezoidWaveform):
     TriangularWaveform is a special case of TrapezoidWaveform where there's no pleateau
     """
 
-    offTime = properties.Float("off-time of the source")
-    peakTime = properties.Float("Time at which the Triangular waveform is at its peak")
+    def __init__(self, off_time, peak_time, **kwargs):
+        ramp_on = np.r_[0.0, self.peakTime]
+        ramp_off = np.r_[self.peakTime, self.off_time]
+        super(TriangularWaveform, self).__init__(
+            off_time=off_time,
+            ramp_on=ramp_on,
+            ramp_off=ramp_off,
+            has_initial_fields=False,
+            **kwargs,
+        )
 
-    def __init__(self, **kwargs):
-        super(TriangularWaveform, self).__init__(**kwargs)
-        self.hasInitialFields = False
-        self.ramp_on = np.r_[0.0, self.peakTime]
-        self.ramp_off = np.r_[self.peakTime, self.offTime]
+    ##########################
+    # Deprecated
+    ##########################
+
+    peakTime = deprecate_property(
+        peak_time,
+        "peakTime",
+        new_name="peak_time",
+        removal_version="0.16.0",
+        future_warn=True,
+    )
 
 
-class QuarterSineRampOnWaveform(BaseWaveform):
+class QuarterSineRampOnWaveform(TrapezoidWaveform):
     """
     A waveform that has a quarter-sine ramp-on and a linear ramp-off
     """
 
-    ramp_on = properties.Array(
-        "times over which the transmitter ramps on", shape=(2,), dtype=float
-    )
-
-    ramp_off = properties.Array(
-        "times over which we ramp off the waveform", shape=(2,), dtype=float
-    )
-
-    def __init__(self, **kwargs):
-        super(QuarterSineRampOnWaveform, self).__init__(**kwargs)
-        self.hasInitialFields = False
+    def __init__(self, ramp_on, ramp_off, **kwargs):
+        super(QuarterSineRampOnWaveform, self).__init__(
+            ramp_on=ramp_on, ramp_off=ramp_off, has_initial_fields=False, **kwargs
+        )
 
     def eval(self, time):
         if time < self.ramp_on[0]:
@@ -195,23 +375,17 @@ class QuarterSineRampOnWaveform(BaseWaveform):
             return 0
 
 
-class HalfSineWaveform(BaseWaveform):
+class HalfSineWaveform(TrapezoidWaveform):
     """
     A waveform that has a quarter-sine ramp-on and a quarter-cosine ramp-off.
     When the end of ramp-on and start of ramp off are on the same spot, it looks
     like a half sine wave.
     """
 
-    ramp_on = properties.Array(
-        "times over which the transmitter ramps on", shape=(2,), dtype=float
-    )
-    ramp_off = properties.Array(
-        "times over which we ramp off the waveform", shape=(2,), dtype=float
-    )
-
-    def __init__(self, **kwargs):
-        super(HalfSineWaveform, self).__init__(**kwargs)
-        self.hasInitialFields = False
+    def __init__(self, ramp_on, ramp_off, **kwargs):
+        super(HalfSineWaveform, self).__init__(
+            ramp_on=ramp_on, ramp_off=ramp_off, has_initial_fields=False, **kwargs
+        )
 
     def eval(self, time):
         if time < self.ramp_on[0]:
