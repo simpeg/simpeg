@@ -21,22 +21,25 @@ class TestPGI(unittest.TestCase):
 
         # Create a cloud of  random points from a random gaussian mixture
         self.ndim = 2
-        self.n_components = 2
+        self.n_components = 3
         sigma = np.random.randn(self.n_components, self.ndim, self.ndim)
         sigma = np.c_[[sigma[i].dot(sigma[i].T) for i in range(sigma.shape[0])]]
         sigma[0] += np.eye(self.ndim)
         sigma[1] += np.eye(self.ndim) - 0.25 * np.eye(self.ndim).transpose((1, 0))
         self.sigma = sigma
         self.means = (
-            np.abs(np.random.randn(self.ndim, self.ndim)) * np.c_[[100.0, -100.0]]
-        )
-        self.rv0 = multivariate_normal(self.means[0], self.sigma[0])
-        self.rv1 = multivariate_normal(self.means[1], self.sigma[1])
-        self.proportions = np.r_[0.6, 0.4]
-        self.nsample = 1000
-        self.s0 = self.rv0.rvs(int(self.nsample * self.proportions[0]))
-        self.s1 = self.rv1.rvs(int(self.nsample * self.proportions[1]))
-        self.samples = np.r_[self.s0, self.s1]
+            np.abs(np.random.randn(self.n_components, self.ndim)) * np.c_[
+                [-100,100],
+                [100,1],
+                [-100,-100]
+            ].T)
+        self.rv_list = [multivariate_normal(mean, sigma) for i,(mean, sigma) in enumerate(zip(self.means,self.sigma))]
+        proportions = np.round(np.abs(np.random.rand(self.n_components)),decimals=1)
+        proportions = np.abs(np.random.rand(self.n_components))
+        self.proportions = proportions/proportions.sum()
+        nsample = 1000
+        self.samples = np.concatenate([rv.rvs(int(nsample * prp)) for i,(rv,prp) in enumerate(zip(self.rv_list,self.proportions))])
+        self.nsample = self.samples.shape[0]
         self.model = mkvc(self.samples)
         self.mesh = discretize.TensorMesh(
             [np.maximum(1e-1, np.random.randn(self.nsample) ** 2.0)]
@@ -153,6 +156,7 @@ class TestPGI(unittest.TestCase):
         print("2nd derivatives for PGI & Full Cov. are ok.")
 
         if self.PlotIt:
+            print("Plotting", self.PlotIt)
             import matplotlib.pyplot as plt
 
             xmin, xmax = ymin, ymax = self.samples.min(), self.samples.max()
@@ -168,10 +172,7 @@ class TestPGI(unittest.TestCase):
             axfull[0].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
             axfull[0].contour(x, y, rv.reshape(x.shape), 20)
             axfull[0].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
-            )
-            axfull[0].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
+                self.samples[:, 0], self.samples[:, 1], color="blue", s=5.0, alpha=0.25
             )
             axfull[0].quiver(
                 self.samples[:, 0],
