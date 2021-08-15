@@ -80,7 +80,8 @@ class DepthWeightingTest(unittest.TestCase):
     def test_depth_weighting(self):
         
         # Depth weighting
-        wz = utils.depth_weighting(self.mesh, 0, indActive=self.actv, exponent=3, threshold=1)
+        wz = utils.depth_weighting(self.mesh, 0.1, indActive=self.actv, exponent=5, threshold=0)
+        wz /= np.nanmax(wz)
         
         # Sensitivity weighting
         kernel = np.sum(self.simulation.G**2., axis=0)**0.5

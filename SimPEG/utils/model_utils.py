@@ -328,10 +328,9 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=None, thresho
             )
 
     wz = (delta_z + threshold) ** (-0.5 * exponent)
-    wz = wz * mesh.vol
 
     if indActive is not None:
         wz = wz[indActive]
 
 
-    return wz / np.nanmax(wz)
+    return wz
