@@ -160,7 +160,7 @@ class TestPGI(unittest.TestCase):
             import matplotlib.pyplot as plt
 
             xmin, xmax = ymin, ymax = self.samples.min(), self.samples.max()
-            x, y = np.mgrid[xmin:xmax:0.01, ymin:ymax:0.01]
+            x, y = np.mgrid[xmin:xmax:0.5, ymin:ymax:0.5]
             pos = np.empty(x.shape + (2,))
             pos[:, :, 0] = x
             pos[:, :, 1] = y
@@ -202,10 +202,7 @@ class TestPGI(unittest.TestCase):
             axfull[1].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
             axfull[1].contour(x, y, rv.reshape(x.shape), 20)
             axfull[1].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
-            )
-            axfull[1].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
+                self.samples[:, 0], self.samples[:, 1], color="blue", s=5.0, alpha=0.25
             )
             axfull[1].quiver(
                 self.samples[:, 0],
@@ -339,7 +336,7 @@ class TestPGI(unittest.TestCase):
             import matplotlib.pyplot as plt
 
             xmin, xmax = ymin, ymax = self.samples.min(), self.samples.max()
-            x, y = np.mgrid[xmin:xmax:0.01, ymin:ymax:0.01]
+            x, y = np.mgrid[xmin:xmax:0.5, ymin:ymax:0.5]
             pos = np.empty(x.shape + (2,))
             pos[:, :, 0] = x
             pos[:, :, 1] = y
@@ -351,10 +348,7 @@ class TestPGI(unittest.TestCase):
             axtied[0].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
             axtied[0].contour(x, y, rv.reshape(x.shape), 20)
             axtied[0].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
-            )
-            axtied[0].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
+                self.samples[:, 0], self.samples[:, 1], color="blue", s=5.0, alpha=0.25
             )
             axtied[0].quiver(
                 self.samples[:, 0],
@@ -384,10 +378,7 @@ class TestPGI(unittest.TestCase):
             axtied[1].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
             axtied[1].contour(x, y, rv.reshape(x.shape), 20)
             axtied[1].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
-            )
-            axtied[1].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
+                self.samples[:, 0], self.samples[:, 1], color="blue", s=5.0, alpha=0.25
             )
             axtied[1].quiver(
                 self.samples[:, 0],
@@ -519,7 +510,7 @@ class TestPGI(unittest.TestCase):
             import matplotlib.pyplot as plt
 
             xmin, xmax = ymin, ymax = self.samples.min(), self.samples.max()
-            x, y = np.mgrid[xmin:xmax:0.01, ymin:ymax:0.01]
+            x, y = np.mgrid[xmin:xmax:0.5, ymin:ymax:0.5]
             pos = np.empty(x.shape + (2,))
             pos[:, :, 0] = x
             pos[:, :, 1] = y
@@ -531,10 +522,7 @@ class TestPGI(unittest.TestCase):
             axdiag[0].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
             axdiag[0].contour(x, y, rv.reshape(x.shape), 20)
             axdiag[0].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
-            )
-            axdiag[0].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
+                self.samples[:, 0], self.samples[:, 1], color="blue", s=5.0, alpha=0.25
             )
             axdiag[0].quiver(
                 self.samples[:, 0],
@@ -564,10 +552,7 @@ class TestPGI(unittest.TestCase):
             axdiag[1].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
             axdiag[1].contour(x, y, rv.reshape(x.shape), 20)
             axdiag[1].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
-            )
-            axdiag[1].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
+                self.samples[:, 0], self.samples[:, 1], color="blue", s=5.0, alpha=0.25
             )
             axdiag[1].quiver(
                 self.samples[:, 0],
@@ -699,7 +684,7 @@ class TestPGI(unittest.TestCase):
             import matplotlib.pyplot as plt
 
             xmin, xmax = ymin, ymax = self.samples.min(), self.samples.max()
-            x, y = np.mgrid[xmin:xmax:0.01, ymin:ymax:0.01]
+            x, y = np.mgrid[xmin:xmax:0.5, ymin:ymax:0.5]
             pos = np.empty(x.shape + (2,))
             pos[:, :, 0] = x
             pos[:, :, 1] = y
@@ -711,10 +696,7 @@ class TestPGI(unittest.TestCase):
             axspherical[0].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
             axspherical[0].contour(x, y, rv.reshape(x.shape), 20)
             axspherical[0].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
-            )
-            axspherical[0].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
+                self.samples[:, 0], self.samples[:, 1], color="blue", s=5.0, alpha=0.25
             )
             axspherical[0].quiver(
                 self.samples[:, 0],
@@ -744,10 +726,7 @@ class TestPGI(unittest.TestCase):
             axspherical[1].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
             axspherical[1].contour(x, y, rv.reshape(x.shape), 20)
             axspherical[1].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
-            )
-            axspherical[1].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
+                self.samples[:, 0], self.samples[:, 1], color="blue", s=5.0, alpha=0.25
             )
             axspherical[1].quiver(
                 self.samples[:, 0],
