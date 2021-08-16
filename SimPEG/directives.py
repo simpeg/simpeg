@@ -984,10 +984,12 @@ class SaveIterationsGeoH5(InversionDirective):
                         {"association": self.association, "values": values}
                     }
                 )
-                data.entity_type.name = channel
 
                 if channel not in self.data_type[component].keys():
                     self.data_type[component][channel] = data.entity_type
+                    data.entity_type.name = channel
+                else:
+                    data.entity_type = self.data_type[component][channel]
 
                 if len(self.channels) > 1:
                     self.h5_object.add_data_to_group(
