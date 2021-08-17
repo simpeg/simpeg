@@ -987,7 +987,7 @@ class SaveIterationsGeoH5(InversionDirective):
 
                 if channel not in self.data_type[component].keys():
                     self.data_type[component][channel] = data.entity_type
-                    data.entity_type.name = channel
+                    data.entity_type.name = f"{self.attribute_type}_" + channel
                 else:
                     data.entity_type = self.data_type[component][channel]
 
