@@ -488,7 +488,6 @@ class Simulation3DNodal(BaseDCSimulation):
         for src in self.survey.source_list:
             src.eval(self)
             for rx in src.receiver_list:
-                rx._Ps = {}
                 rx.getP(self.mesh, rx.projGLoc(self.fieldsPair(self)))
         self.getSourceTerm()
 
@@ -562,7 +561,10 @@ class Simulation3DNodal(BaseDCSimulation):
         if resistivity is None:
             MeSigma = self.MeSigma
         else:
-            MeSigma = 3 * sdiag(self.Avg.T * (self.cell_volumes * mkvc(1.0 / resistivity)))
+            if isinstance(self.mesh, (TensorMesh, TreeMesh)):
+                MeSigma = 3 * sdiag(self.Avg.T * (self.cell_volumes * mkvc(1.0 / resistivity)))
+            else:
+                MeSigma = self.mesh.getFaceInnerProduct(resistivity, invMat=True)
 
         A = Grad.T @ MeSigma @ Grad
 
