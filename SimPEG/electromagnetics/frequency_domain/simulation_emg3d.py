@@ -5,6 +5,7 @@ from discretize.utils import requires
 from ...utils import mkvc
 from .simulation import BaseFDEMSimulation
 from .sources import ElectricWire
+from ...data import ComplexData
 from memory_profiler import profile
 
 # emg3d is a soft dependency
@@ -287,7 +288,13 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             f = self.fields(m=m)
 
         # Map emg3d-data-array to SimPEG-data-vector
-        return f.data.synthetic.data[self._dmap_simpeg_emg3d]
+        data_complex = ComplexData(survey=self.survey, dobs=f.data.synthetic.data[self._dmap_simpeg_emg3d])
+        data = ComplexData(survey=self.survey)
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                data_complex_rx = data_complex[src, rx]
+                data[src, rx] = rx.evalDataComplex(data_complex_rx)
+        return data.dobs
 
     # @profile
     def fields(self, m=None):
@@ -426,14 +433,14 @@ def survey_to_emg3d(survey):
             rec_type = rec_types[rec.projField == 'h']
             azimuth = [0, 90][rec.orientation == 'y']
             elevation = [0, 90][rec.orientation == 'z']
+            component = rec.component
 
             # Loop over receivers.
             for i in range(rec.locations[:, 0].size):
 
                 # Create emg3d receiver.
                 receiver = rec_type(
-                        (*rec.locations[i, :], azimuth, elevation))
-
+                        (*rec.locations[i, :], azimuth, elevation), data_type=component)
                 # New receiver: add.
                 if receiver not in rec_list:
                     r_ind = len(rec_list)
