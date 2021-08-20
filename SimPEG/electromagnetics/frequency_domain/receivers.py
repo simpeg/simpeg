@@ -24,8 +24,6 @@ class BaseRx(survey.BaseRx):
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
             "complex":["both"], 
             "amp": ["amplitude"],
-            "pha": ["phase"],
-            "amp_phase": ["amp_and_phase"]
         },
     )
 
@@ -51,8 +49,6 @@ class BaseRx(survey.BaseRx):
     def evalDataComplex(self, data_complex):
         if self.component == 'amp':
             return abs(data_complex)
-        elif self.component == 'pha':
-            return np.arctan2(data_complex.real, data_complex.imag)
         else:
             return data_complex
 

@@ -289,12 +289,12 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
         # Map emg3d-data-array to SimPEG-data-vector
         data_complex = ComplexData(survey=self.survey, dobs=f.data.synthetic.data[self._dmap_simpeg_emg3d])
-        data = ComplexData(survey=self.survey)
+        data = []
         for src in self.survey.source_list:
             for rx in src.receiver_list:
-                data_complex_rx = data_complex[src, rx]
-                data[src, rx] = rx.evalDataComplex(data_complex_rx)
-        return data.dobs
+                data_complex_rx = rx.evalDataComplex(data_complex[src, rx])
+                data.append(data_complex_rx)
+        return np.hstack(data)
 
     # @profile
     def fields(self, m=None):
