@@ -238,6 +238,7 @@ class Minimize(object):
 
     maxIter = 20  #: Maximum number of iterations
     maxIterLS = 10  #: Maximum number of iterations for the line-search
+    passLSForce = False
     maxStep = np.inf  #: Maximum step possible, used in scaling before the line-search.
     LSreduction = 1e-4  #: Expected decrease in the line-search
     LScurvature = (
@@ -386,10 +387,13 @@ class Minimize(object):
             )  #: Doing this saves memory, as it is not needed in the rest of the computations.
             p = self.scaleSearchDirection(self.searchDirection)
             xt, passLS = self.modifySearchDirection(p)
-            if not passLS:
-                xt, caught = self.modifySearchDirectionBreak(p)
-                if not caught:
-                    return self.xc
+            if self.passLSForce:
+                pass
+            else:
+                if not passLS:
+                    xt, caught = self.modifySearchDirectionBreak(p)
+                    if not caught:
+                        return self.xc
             self.doEndIteration(xt)
             if self.stopNextIteration:
                 break
