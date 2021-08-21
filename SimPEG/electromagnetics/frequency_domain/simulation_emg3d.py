@@ -5,6 +5,8 @@ from discretize.utils import requires
 from ...utils import mkvc
 from .simulation import BaseFDEMSimulation
 from .sources import ElectricWire
+from ...data import ComplexData
+from memory_profiler import profile
 
 # emg3d is a soft dependency
 try:
@@ -147,6 +149,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         self.emg3d_sim._gradient = None
         self.emg3d_sim._misfit = None
 
+    # @profile
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
@@ -177,6 +180,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         # Map emg3d-data-array to SimPEG-data-vector
         return j_vec[self._dmap_simpeg_emg3d]
 
+    # @profile
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector
@@ -188,7 +192,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         :return: Jtvec (nP,)
         """
         if self.verbose:
-            print("Compute Jtvec")
+            print("Compute Jtvec")  
 
         if self.storeJ:
 
@@ -285,8 +289,15 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             f = self.fields(m=m)
 
         # Map emg3d-data-array to SimPEG-data-vector
-        return f.data.synthetic.data[self._dmap_simpeg_emg3d]
+        data_complex = ComplexData(survey=self.survey, dobs=f.data.synthetic.data[self._dmap_simpeg_emg3d])
+        data = []
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                data_complex_rx = rx.evalDataComplex(data_complex[src, rx])
+                data.append(data_complex_rx)
+        return np.hstack(data)
 
+    # @profile
     def fields(self, m=None):
         """Return the electric fields for a given model.
 
@@ -423,14 +434,14 @@ def survey_to_emg3d(survey):
             rec_type = rec_types[rec.projField == 'h']
             azimuth = [0, 90][rec.orientation == 'y']
             elevation = [0, 90][rec.orientation == 'z']
+            component = rec.component
 
             # Loop over receivers.
             for i in range(rec.locations[:, 0].size):
 
                 # Create emg3d receiver.
                 receiver = rec_type(
-                        (*rec.locations[i, :], azimuth, elevation))
-
+                        (*rec.locations[i, :], azimuth, elevation), data_type=component)
                 # New receiver: add.
                 if receiver not in rec_list:
                     r_ind = len(rec_list)
