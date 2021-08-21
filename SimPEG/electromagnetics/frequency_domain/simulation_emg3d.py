@@ -148,7 +148,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         self.emg3d_sim._dict_efield_info = self.emg3d_sim._dict_initiate
         self.emg3d_sim._gradient = None
         self.emg3d_sim._misfit = None
-        self.emg3d_sim._vec = None  # TODO check back when emg3d-side finished!
 
     # @profile
     def Jvec(self, m, v, f=None):
@@ -176,7 +175,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             f = self.fields(m=m)
 
         dsig_dm_v = self.sigmaDeriv @ v
-        j_vec = emg3d.optimize.jvec(f, vec=dsig_dm_v)
+        j_vec = f._jvec(vec=dsig_dm_v)
 
         # Map emg3d-data-array to SimPEG-data-vector
         return j_vec[self._dmap_simpeg_emg3d]
@@ -226,7 +225,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             f.survey.data['residual'][...] = self._emg3d_array
 
             # Get gradient with `v` as residual.
-            jt_sigma_vec = emg3d.optimize.gradient(f)
+            f._gradient = None  # Reset gradient
+            jt_sigma_vec = f.gradient
 
             jt_vec = self.sigmaDeriv.T @ jt_sigma_vec.ravel('F')
             return jt_vec
@@ -234,14 +234,15 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         else:
             # This is for forming full sensitivity matrix
             # Currently, it is not correct.
-            # Requires a fix in optimize.gradient
+            # Requires a fix in f.gradient
             # Jt is supposed to be a complex value ...
             # Jt = np.zeros((self.model.size, self.survey.nD), order="F")
             # for i_datum in range(self.survey.nD):
             #     vec = np.zeros(self.survey.nD)
             #     vec[i_datum] = 1.
             #     vec = vec.reshape(self.emg3d_survey.shape)
-            #     jt_sigma_vec = emg3d.optimize.gradient(f, vector=vec)
+            #     f.survey.data['residual'][...] = self._emg3d_array
+            #     jt_sigma_vec = f.gradient
             #     Jt[:, i_datum] = self.sigmaDeriv.T @ jt_sigma_vec
             # return Jt
 
