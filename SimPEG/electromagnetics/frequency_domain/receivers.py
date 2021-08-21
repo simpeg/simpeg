@@ -1,4 +1,5 @@
 import properties
+import numpy as np
 from ...utils.code_utils import deprecate_class, deprecate_property
 
 from ... import survey
@@ -14,16 +15,23 @@ class BaseRx(survey.BaseRx):
     """
 
     orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
+        "orientation of the receiver (x, y, z, rotated)",
+        {
+            "x": [],
+            "y": [],
+            "z": [],
+            "rotated": ["rot", "arbitrary"],
+        },
     )
 
     component = properties.StringChoice(
-        "component of the field (real or imag)",
+        "component of the field (real, imag, complex, amplitude, phase)",
         {
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-            "complex":["both"], 
-            "amp": ["amplitude"],
+            "complex": ["comp", "both"],
+            "amplitude": ["amp"],
+            "phase": ["pha"],
         },
     )
 
@@ -47,8 +55,10 @@ class BaseRx(survey.BaseRx):
         return f._GLoc(self.projField) + self.orientation
     
     def evalDataComplex(self, data_complex):
-        if self.component == 'amp':
+        if self.component == 'amplitude':
             return abs(data_complex)
+        elif self.component == 'phase':
+            return np.angle(data_complex)
         else:
             return data_complex
 
@@ -117,13 +127,28 @@ class PointElectricField(BaseRx):
     Electric field FDEM receiver
 
     :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
+    :param string orientation: receiver orientation 'x', 'y', 'z', or 'rotated'
+    :param string component: 'real', 'imag', 'complex', 'amplitude', or 'phase'
+    :param float azimuth: azimuth, only used if `orientation='rotated'`
+    :param float elevation: elevation, only used if `orientation='rotated'`
     """
 
-    def __init__(self, locations, orientation="x", component="real"):
+    # TODO : the current implementation of azimuth/elevation is not good. It
+    #        only allows for one azimuth/elevation for all locations. Ideally
+    #        the angles should have the same size as locations (but 1D).
+
+    azimuth = properties.Float("azimuth (anticlockwise from Easting)", default=0, min=-360.0, max=360)
+
+    elevation = properties.Float("elevation (positive up)", default=0, min=-180.0, max=180)
+
+    def __init__(self, locations, orientation="x", component="real", **kwargs):
+        angles = kwargs.get("azimuth", None) or kwargs.get("elevation", None)
+        if orientation in ["x", "y", "z"] and angles:
+            raise ValueError(
+                "orientation must be 'rotated' if angles are provided."
+            )
         self.projField = "e"
-        super(PointElectricField, self).__init__(locations, orientation, component)
+        super(PointElectricField, self).__init__(locations, orientation, component, **kwargs)
 
 
 class PointMagneticFluxDensity(BaseRx):
@@ -163,13 +188,28 @@ class PointMagneticField(BaseRx):
     Magnetic field FDEM receiver
 
     :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
+    :param string orientation: receiver orientation 'x', 'y', 'z', or 'rotated'
+    :param string component: 'real', 'imag', 'complex', 'amplitude', or 'phase'
+    :param float azimuth: azimuth, only used if `orientation='rotated'`
+    :param float elevation: elevation, only used if `orientation='rotated'`
     """
 
-    def __init__(self, locations, orientation="x", component="real"):
+    # TODO : the current implementation of azimuth/elevation is not good. It
+    #        only allows for one azimuth/elevation for all locations. Ideally
+    #        the angles should have the same size as locations (but 1D).
+
+    azimuth = properties.Float("azimuth (anticlockwise from Easting)", default=0, min=-360.0, max=360)
+
+    elevation = properties.Float("elevation (positive up)", default=0, min=-180.0, max=180)
+
+    def __init__(self, locations, orientation="x", component="real", **kwargs):
+        angles = kwargs.get("azimuth", None) or kwargs.get("elevation", None)
+        if orientation in ["x", "y", "z"] and angles:
+            raise ValueError(
+                "orientation must be 'rotated' if angles are provided."
+            )
         self.projField = "h"
-        super(PointMagneticField, self).__init__(locations, orientation, component)
+        super(PointMagneticField, self).__init__(locations, orientation, component, **kwargs)
 
 
 class PointCurrentDensity(BaseRx):
