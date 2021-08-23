@@ -1560,10 +1560,11 @@ class UpdatePreconditioner(InversionDirective):
 
         JtJdiag = np.zeros_like(self.invProb.model)
         for dmisfit in self.dmisfit.objfcts:
-            assert getattr(dmisfit.simulation, "getJtJdiag", None) is not None, (
-                "Simulation does not have a getJtJdiag attribute."
-                + "Cannot form the sensitivity explicitly"
-            )
+            if getattr(dmisfit.simulation, "getJtJdiag", None) is None:
+                raise AttributeError(
+                    "Simulation does not have a getJtJdiag attribute."
+                    + "Cannot form the sensitivity explicitly"
+                )
             JtJdiag += dmisfit.getJtJdiag(m)
 
         diagA = JtJdiag + self.invProb.beta * regDiag
@@ -1678,17 +1679,16 @@ class UpdateSensitivityWeights(InversionDirective):
 
             if self.threshold is not None:
                 if isinstance(self.threshold, list):
-                    JtJdiag = self.threshold[ii]
+                    floor = self.threshold[ii]
                 else:
-                    JtJdiag = self.threshold
+                    floor = self.threshold
 
-                if not isinstance(JtJdiag, np.ndarray):
-                    JtJdiag = np.ones_like(self.JtJdiag[ii]) * JtJdiag
+                floor = np.ones_like(self.JtJdiag[ii]) * floor
 
             else:
-                JtJdiag = self.JtJdiag[ii]
+                floor = self.JtJdiag[ii]
 
-            threshold += [JtJdiag]
+            threshold += [floor]
 
 
         self.threshold = threshold
@@ -1706,7 +1706,7 @@ class UpdateSensitivityWeights(InversionDirective):
                 self.JtJdiag, self.simulation, self.dmisfit.objfcts, self.threshold
             ):
 
-                wr += prob_JtJ
+                wr += prob_JtJ / self.reg.objfcts[0].regmesh.vol**2.
 
             wr = np.max(np.c_[wr, threshold], axis=1)
             wr = wr ** 0.5
@@ -1722,7 +1722,7 @@ class UpdateSensitivityWeights(InversionDirective):
         """
 
         for reg in self.reg.objfcts:
-            reg.cell_weights = reg.mapping * (self.wr)
+            reg.cell_weights = reg.mapping * self.wr
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights

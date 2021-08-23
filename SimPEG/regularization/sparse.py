@@ -86,11 +86,12 @@ class SparseSmall(BaseSparse):
         if self.scale is None:
             self.scale = np.ones(self.mapping.shape[0])
 
-        if self.cell_weights is not None:
-            return utils.sdiag((self.scale * self.cell_weights) ** 0.5) * R
+        weights = self.scale * self.regmesh.vol
 
-        else:
-            return utils.sdiag((self.scale * self.regmesh.vol) ** 0.5) * R
+        if self.cell_weights is not None:
+            weights *= self.cell_weights
+
+        return utils.sdiag(weights ** 0.5) * R
 
     def R(self, f_m):
         # if R is stashed, return that instead
@@ -189,11 +190,12 @@ class SparseDeriv(BaseSparse):
                 r = self.R(self.f_m)
                 R = utils.sdiag(r)
 
-            if self.cell_weights is not None:
-                W = utils.sdiag((Ave * (self.scale * self.cell_weights)) ** 0.5) * R
+            weights = self.scale * self.regmesh.vol
 
-            else:
-                W = utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5) * R
+            if self.cell_weights is not None:
+                weights *= self.cell_weights
+
+            W = utils.sdiag((Ave * weights ** 0.5)) * R
 
             theta = self.cellDiffStencil * (self.mapping * f_m)
             dmdx = utils.mat_utils.coterminal(theta)
@@ -275,15 +277,14 @@ class SparseDeriv(BaseSparse):
                 r = self.R(self.f_m)
                 R = utils.sdiag(r)
 
+            weights = self.scale * self.regmesh.vol
+
             if self.cell_weights is not None:
-                W = utils.sdiag(((Ave * (self.scale * self.cell_weights))) ** 0.5) * R
+                weights *= self.cell_weights
 
-            else:
-                W = utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5) * R
-
+            W = utils.sdiag((Ave * weights) ** 0.5) * R
             theta = self.cellDiffStencil * (self.mapping * model)
             dmdx = utils.mat_utils.coterminal(theta)
-
             r = W * dmdx
 
         else:
@@ -363,18 +364,13 @@ class SparseDeriv(BaseSparse):
             R = utils.sdiag(r)
         if self.scale is None:
             self.scale = np.ones(self.mapping.shape[0])
+
+        weights = self.scale * self.regmesh.vol
+
         if self.cell_weights is not None:
-            return (
-                utils.sdiag((Ave * (self.scale * self.cell_weights)) ** 0.5)
-                * R
-                * self.cellDiffStencil
-            )
-        else:
-            return (
-                utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5)
-                * R
-                * self.cellDiffStencil
-            )
+            weights *= self.cell_weights
+
+        return utils.sdiag((Ave * weights ** 0.5)) * R * self.cellDiffStencil
 
     @property
     def length_scales(self):
