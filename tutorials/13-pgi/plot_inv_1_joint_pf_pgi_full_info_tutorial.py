@@ -527,7 +527,7 @@ pgi_model = inv.run(m0)
 # Extract the results
 density_model = gravmap * pgi_model
 magsus_model = magmap * pgi_model
-quasi_geology_model = actvMap * reg.objfcts[0].membership(reg.objfcts[0].mref)
+quasi_geology_model = actvMap * (np.abs(reg.objfcts[0].gmm.means_ - reg.objfcts[0].mref).argmin(axis=0))
 
 # Plot the result with full petrophysical information
 fig, ax = plt.subplots(3, 4, figsize=(15, 10))
