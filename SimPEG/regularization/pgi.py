@@ -123,7 +123,7 @@ class SimplePGIsmallness(BaseRegularization):
             self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.approx_eval:
-            membership = self.membership(self.mref)
+            membership = np.abs(self.gmm.means_ - self.mref).argmin(axis=0)
             dm = self.wiresmap * (m)
             dmref = self.wiresmap * (self.mref)
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
@@ -181,7 +181,7 @@ class SimplePGIsmallness(BaseRegularization):
         if getattr(self, "mref", None) is None:
             self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
-        membership = self.membership(self.mref)
+        membership = np.abs(self.gmm.means_ - self.mref).argmin(axis=0)
         modellist = self.wiresmap * m
         mreflist = self.wiresmap * self.mref
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
@@ -341,7 +341,7 @@ class SimplePGIsmallness(BaseRegularization):
         # For a positive definite Hessian,
         # we approximate it with the covariance of the cluster
         # whose each point belong
-        membership = self.membership(self.mref)
+        membership = np.abs(self.gmm.means_ - self.mref).argmin(axis=0)
         modellist = self.wiresmap * m
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
         mD = sp.block_diag(mD)
@@ -890,7 +890,7 @@ class SimplePGIwithNonlinearRelationshipsSmallness(BaseRegularization):
             self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.approx_eval:
-            membership = self.membership(self.mref)
+            membership = np.abs(self.gmm.means_ - self.mref).argmin(axis=0)
             dm = self.wiresmap * (m)
             dmref = self.wiresmap * (self.mref)
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
@@ -948,7 +948,7 @@ class SimplePGIwithNonlinearRelationshipsSmallness(BaseRegularization):
         if getattr(self, "mref", None) is None:
             self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
-        membership = self.membership(self.mref)
+        membership = np.abs(self.gmm.means_ - self.mref).argmin(axis=0)
         modellist = self.wiresmap * m
         dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
         mreflist = self.wiresmap * self.mref
@@ -997,7 +997,7 @@ class SimplePGIwithNonlinearRelationshipsSmallness(BaseRegularization):
         # For a positive definite Hessian,
         # we approximate it with the covariance of the cluster
         # whose each point belong
-        membership = self.membership(self.mref)
+        membership = np.abs(self.gmm.means_ - self.mref).argmin(axis=0)
         modellist = self.wiresmap * m
         dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
