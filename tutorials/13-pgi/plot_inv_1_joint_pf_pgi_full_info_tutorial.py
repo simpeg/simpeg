@@ -444,7 +444,6 @@ reg = utils.make_SimplePGI_regularization(
     mesh=mesh,
     wiresmap=wires,
     maplist=[idenMap, idenMap],
-    mref=m0,
     indActive=actv,
     alpha_s=1.0,
     alpha_x=1.0,
@@ -527,7 +526,7 @@ pgi_model = inv.run(m0)
 # Extract the results
 density_model = gravmap * pgi_model
 magsus_model = magmap * pgi_model
-quasi_geology_model = actvMap * (np.abs(reg.objfcts[0].gmm.means_ - reg.objfcts[0].mref).argmin(axis=0))
+quasi_geology_model = actvMap * reg.objfcts[0].compute_quasi_geology_model()
 
 # Plot the result with full petrophysical information
 fig, ax = plt.subplots(3, 4, figsize=(15, 10))

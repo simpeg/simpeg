@@ -92,7 +92,7 @@ class PGI_UpdateParameters(InversionDirective):
             if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
                 self.fixed_membership = np.c_[
                     np.arange(len(self.pgi_reg.gmmref.cell_volumes)),
-                    np.abs(self.pgi_reg.gmm.means_ - self.pgi_reg.mref).argmin(axis=0),
+                    self.pgi_reg.compute_quasi_geology_model(),
                 ]
 
             if self.update_gmm and isinstance(
@@ -155,7 +155,6 @@ class PGI_UpdateParameters(InversionDirective):
                 membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
 
             mref = mkvc(self.pgi_reg.gmm.means_[membership])
-            print("unique mref:", np.unique(mref))
             self.pgi_reg.mref = mref
             if getattr(self.fixed_membership, "shape", [0, 0])[0] < len(membership):
                 self.pgi_reg.objfcts[0]._r_second_deriv = None
@@ -428,7 +427,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
         if ~np.any(self.pgi_updategmm_class):
             self.previous_membership = self.pgi_reg.membership(self.invProb.model)
         else:
-            self.previous_membership = np.abs(self.pgi_reg.gmm.means_ - self.pgi_reg.mref).argmin(axis=0)
+            self.previous_membership = self.pgi_reg.compute_quasi_geology_model()
 
     @property
     def DMtarget(self):
@@ -448,7 +447,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
         if ~np.any(self.pgi_updategmm_class):
             self.membership = self.pgi_reg.membership(self.invProb.model)
         else:
-            self.membership = np.abs(self.pgi_reg.gmm.means_ - self.pgi_reg.mref).argmin(axis=0)
+            self.membership = self.pgi_reg.compute_quasi_geology_model()
 
         same_mref = np.all(self.membership == self.previous_membership)
         percent_diff = (

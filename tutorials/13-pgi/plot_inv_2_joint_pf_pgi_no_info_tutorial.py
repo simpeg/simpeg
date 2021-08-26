@@ -471,7 +471,6 @@ reg = utils.make_SimplePGI_regularization(
     mesh=mesh,
     wiresmap=wires,
     maplist=[idenMap, idenMap],
-    mref=m0,
     indActive=actv,
     alpha_s=1.0,
     alpha_x=1.0,
@@ -566,7 +565,7 @@ pgi_model_no_info = inv.run(m0)
 density_model_no_info = gravmap * pgi_model_no_info
 magsus_model_no_info = magmap * pgi_model_no_info
 learned_gmm = reg.objfcts[0].gmm
-quasi_geology_model_no_info = actvMap * (np.abs(reg.objfcts[0].gmm.means_ - reg.objfcts[0].mref).argmin(axis=0))
+quasi_geology_model_no_info = actvMap * reg.objfcts[0].compute_quasi_geology_model()
 
 fig, ax = plt.subplots(3, 4, figsize=(15, 10))
 for _, axx in enumerate(ax):

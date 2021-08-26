@@ -113,6 +113,13 @@ class SimplePGIsmallness(BaseRegularization):
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
         return self.gmm.predict(model)  # mkvc(m, numDims=2))
 
+    def compute_quasi_geology_model(self):
+        #used once mref is built
+        mreflist = self.wiresmap * self.mref
+        mrefarray = np.c_[[a * b for a, b in zip(self.maplist, mreflist)]].T
+        return np.c_[[((mrefarray - mean)**2).sum(axis=1) for mean in self.gmm.means_]].argmin(axis=0)
+
+
     @timeIt
     def __call__(self, m, externalW=True):
 
@@ -125,7 +132,7 @@ class SimplePGIsmallness(BaseRegularization):
             self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.approx_eval:
-            membership = np.abs(self.gmm.means_ - self.mref).argmin(axis=0)
+            membership = self.compute_quasi_geology_model()
             dm = self.wiresmap * (m)
             dmref = self.wiresmap * (self.mref)
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
@@ -183,7 +190,7 @@ class SimplePGIsmallness(BaseRegularization):
         if getattr(self, "mref", None) is None:
             self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
-        membership = np.abs(self.gmm.means_ - self.mref).argmin(axis=0)
+        membership = self.compute_quasi_geology_model()
         modellist = self.wiresmap * m
         mreflist = self.wiresmap * self.mref
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
@@ -342,7 +349,7 @@ class SimplePGIsmallness(BaseRegularization):
         if self.approx_hessian:
             # we approximate it with the covariance of the cluster
             # whose each point belong
-            membership = self.membership(self.mref)
+            membership = self.compute_quasi_geology_model()
             modellist = self.wiresmap * m
             mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
             mD = sp.block_diag(mD)
@@ -600,6 +607,9 @@ class SimplePGI(SimpleComboRegularization):
     def membership(self, m):
         return self.objfcts[0].membership(m)
 
+    def compute_quasi_geology_model(self):
+        return self.objfcts[0].compute_quasi_geology_model()
+
     @property
     def wiresmap(self):
         if getattr(self, "_wiresmap", None) is None:
@@ -855,6 +865,9 @@ class PGI(SimpleComboRegularization):
     def membership(self, m):
         return self.objfcts[0].membership(m)
 
+    def compute_quasi_geology_model(self):
+        return self.objfcts[0].compute_quasi_geology_model()
+
     @property
     def wiresmap(self):
         if getattr(self, "_wiresmap", None) is None:
@@ -995,6 +1008,13 @@ class SimplePGIwithNonlinearRelationshipsSmallness(BaseRegularization):
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
         return self.gmm.predict(model)
 
+    def compute_quasi_geology_model(self):
+        #used once mref is built
+        mreflist = self.wiresmap * self.mref
+        mrefarray = np.c_[[a * b for a, b in zip(self.maplist, mreflist)]].T
+        return np.c_[[((mrefarray - mean)**2).sum(axis=1) for mean in self.gmm.means_]].argmin(axis=0)
+
+
     @timeIt
     def __call__(self, m, externalW=True):
 
@@ -1007,7 +1027,7 @@ class SimplePGIwithNonlinearRelationshipsSmallness(BaseRegularization):
             self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.approx_eval:
-            membership = np.abs(self.gmm.means_ - self.mref).argmin(axis=0)
+            membership = self.compute_quasi_geology_model()
             dm = self.wiresmap * (m)
             dmref = self.wiresmap * (self.mref)
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
@@ -1065,7 +1085,7 @@ class SimplePGIwithNonlinearRelationshipsSmallness(BaseRegularization):
         if getattr(self, "mref", None) is None:
             self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
-        membership = np.abs(self.gmm.means_ - self.mref).argmin(axis=0)
+        membership = self.compute_quasi_geology_model()
         modellist = self.wiresmap * m
         dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
         mreflist = self.wiresmap * self.mref
@@ -1114,7 +1134,7 @@ class SimplePGIwithNonlinearRelationshipsSmallness(BaseRegularization):
         # For a positive definite Hessian,
         # we approximate it with the covariance of the cluster
         # whose each point belong
-        membership = np.abs(self.gmm.means_ - self.mref).argmin(axis=0)
+        membership = self.compute_quasi_geology_model()
         modellist = self.wiresmap * m
         dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
@@ -1333,6 +1353,9 @@ class SimplePGIwithRelationships(SimpleComboRegularization):
     # @classmethod
     def membership(self, m):
         return self.objfcts[0].membership(m)
+
+    def compute_quasi_geology_model(self):
+        return self.objfcts[0].compute_quasi_geology_model()
 
     @property
     def wiresmap(self):
