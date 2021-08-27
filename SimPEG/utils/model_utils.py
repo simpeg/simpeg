@@ -292,7 +292,7 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=2.0, threshol
     -----
     When ``reference_locs`` is a single value the function is defined as,
 
-    >>> wz = np.abs(mesh.cell_centers[:, -1] - reference_locs + threshold) ** (-0.5 * exponent)
+    >>> wz = (np.abs(mesh.cell_centers[:, -1] - reference_locs) + threshold) ** (-0.5 * exponent)
 
     When ``reference_locs`` is an array of values, the difference is between the
     nearest point (of first two dimensions) in ``reference_locs``.
