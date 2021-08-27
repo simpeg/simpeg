@@ -2,7 +2,7 @@ from __future__ import print_function
 import unittest
 import numpy as np
 
-from discretize.Tests import checkDerivative
+from discretize.tests import checkDerivative
 import discretize
 
 from SimPEG import maps

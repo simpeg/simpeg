@@ -49,7 +49,10 @@ class DataTest(unittest.TestCase):
         self.assertTrue(
             np.allclose(
                 data.standard_deviation,
-                relative * np.abs(self.dobs) + floor * np.ones(len(self.dobs)),
+                np.sqrt(
+                    ( relative * np.abs(self.dobs) ) ** 2 +
+                    floor ** 2 * np.ones(len(self.dobs)),
+                )
             )
         )
 

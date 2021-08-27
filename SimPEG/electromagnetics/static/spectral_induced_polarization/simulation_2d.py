@@ -69,7 +69,7 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
 
     def getJ(self, m, f=None):
         """
-            Generate Full sensitivity matrix
+        Generate Full sensitivity matrix
         """
 
         if self.verbose:
@@ -144,11 +144,11 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
 
     def dpred(self, m, f=None):
         """
-            Predicted data.
+        Predicted data.
 
-            .. math::
+        .. math::
 
-                d_\\text{pred} = Pf(m)
+            d_\\text{pred} = Pf(m)
 
         """
         if f is None:
@@ -229,7 +229,7 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
 
     def MfRhoIDeriv(self, u, v, adjoint=False):
         """
-            Derivative of :code:`MfRhoI` with respect to the model.
+        Derivative of :code:`MfRhoI` with respect to the model.
         """
         dMfRhoI_dI = -self.MfRhoI ** 2
 
@@ -286,7 +286,7 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
     @property
     def MnSigmaDerivMat(self):
         """
-            Derivative of MnSigma with respect to the model
+        Derivative of MnSigma with respect to the model
         """
         if getattr(self, "_MnSigmaDerivMat", None) is None:
             sigma = self.sigma
@@ -297,7 +297,7 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
 
     def MnSigmaDeriv(self, u, v, adjoint=False):
         """
-            Derivative of MnSigma with respect to the model times a vector (u)
+        Derivative of MnSigma with respect to the model times a vector (u)
         """
         if self.storeInnerProduct:
             if adjoint:
@@ -317,7 +317,7 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
     @property
     def MccRhoiDerivMat(self):
         """
-            Derivative of MccRho with respect to the model
+        Derivative of MccRho with respect to the model
         """
         if getattr(self, "_MccRhoiDerivMat", None) is None:
             rho = self.rho
@@ -328,7 +328,7 @@ class BaseSIPSimulation2D(BaseIPSimulation2D, BaseSIPSimulation):
 
     def MccRhoiDeriv(self, u, v, adjoint=False):
         """
-            Derivative of :code:`MccRhoi` with respect to the model.
+        Derivative of :code:`MccRhoi` with respect to the model.
         """
         if len(self.rho.shape) > 1:
             if self.rho.shape[1] > self.mesh.dim:
@@ -369,10 +369,9 @@ class Simulation2DCellCentered(BaseSIPSimulation2D, BaseSimulation2DCellCentered
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields2DCellCentered
     sign = 1.0
-    bc_type = "Mixed"
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPSimulation2D.__init__(self, mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
         if self.actinds is None:
             if self.verbose:
                 print("You did not put Active indices")
@@ -393,8 +392,7 @@ class Simulation2DNodal(BaseSIPSimulation2D, BaseSimulation2DNodal):
     sign = -1.0
 
     def __init__(self, mesh, **kwargs):
-        BaseSIPSimulation2D.__init__(self, mesh, **kwargs)
-        # self.setBC()
+        super().__init__(mesh, **kwargs)
         if self.actinds is None:
             if self.verbose:
                 print("You did not put Active indices")
@@ -411,11 +409,11 @@ Simulation2DCellCentred = Simulation2DCellCentered
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem2D_N(Simulation2DNodal):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem2D_CC(Simulation2DCellCentered):
     pass

@@ -119,7 +119,7 @@ class Simulation3DIntegral(BasePFSimulation):
     @property
     def nD(self):
         """
-            Number of data
+        Number of data
         """
         self._nD = self.survey.receiver_locations.shape[0]
 
@@ -140,12 +140,12 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def getJtJdiag(self, m, W=None):
         """
-            Return the diagonal of JtJ
+        Return the diagonal of JtJ
         """
         self.model = m
 
         if W is None:
-            W = np.ones(self.nD)
+            W = np.ones(self.survey.nD)
         else:
             W = W.diagonal() ** 2
         if getattr(self, "_gtg_diagonal", None) is None:
@@ -171,8 +171,7 @@ class Simulation3DIntegral(BasePFSimulation):
         return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
 
     def Jvec(self, m, v, f=None):
-        if self.chi is None:
-            self.model = np.zeros(self.G.shape[1])
+        self.model = m
         dmu_dm_v = self.chiDeriv @ v
 
         Jvec = self.G @ dmu_dm_v.astype(np.float32)
@@ -185,8 +184,7 @@ class Simulation3DIntegral(BasePFSimulation):
             return Jvec
 
     def Jtvec(self, m, v, f=None):
-        if self.chi is None:
-            self.model = np.zeros(self.G.shape[1])
+        self.model = m
 
         if self.is_amplitude_data:
             v = (self.fieldDeriv * v).T.reshape(-1)
@@ -196,8 +194,8 @@ class Simulation3DIntegral(BasePFSimulation):
     @property
     def fieldDeriv(self):
 
-        if self.chi is None:
-            self.model = np.zeros(self.G.shape[1])
+        if getattr(self, "chi", None) is None:
+            self.model = np.zeros(self.chiMap.nP)
 
         if getattr(self, "_fieldDeriv", None) is None:
             fields = np.asarray(self.G.dot((self.chiMap @ self.chi).astype(np.float32)))
@@ -210,7 +208,7 @@ class Simulation3DIntegral(BasePFSimulation):
     @classmethod
     def normalized_fields(cls, fields):
         """
-            Return the normalized B fields
+        Return the normalized B fields
         """
 
         # Get field amplitude
@@ -221,7 +219,7 @@ class Simulation3DIntegral(BasePFSimulation):
     @classmethod
     def compute_amplitude(cls, b_xyz):
         """
-            Compute amplitude of the magnetic field
+        Compute amplitude of the magnetic field
         """
 
         amplitude = np.linalg.norm(b_xyz.reshape((3, -1), order="F"), axis=0)
@@ -230,39 +228,54 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def evaluate_integral(self, receiver_location, components):
         """
-            Load in the active nodes of a tensor mesh and computes the magnetic
-            forward relation between a cuboid and a given observation
-            location outside the Earth [obsx, obsy, obsz]
+        Load in the active nodes of a tensor mesh and computes the magnetic
+        forward relation between a cuboid and a given observation
+        location outside the Earth [obsx, obsy, obsz]
 
-            INPUT:
-            receiver_location:  [obsx, obsy, obsz] nC x 3 Array
+        INPUT:
+        receiver_location:  [obsx, obsy, obsz] nC x 3 Array
 
-            components: list[str]
-                List of magnetic components chosen from:
-                'bx', 'by', 'bz', 'bxx', 'bxy', 'bxz', 'byy', 'byz', 'bzz'
+        components: list[str]
+            List of magnetic components chosen from:
+            'bx', 'by', 'bz', 'bxx', 'bxy', 'bxz', 'byy', 'byz', 'bzz'
 
-            OUTPUT:
-            Tx = [Txx Txy Txz]
-            Ty = [Tyx Tyy Tyz]
-            Tz = [Tzx Tzy Tzz]
+        OUTPUT:
+        Tx = [Txx Txy Txz]
+        Ty = [Tyx Tyy Tyz]
+        Tz = [Tzx Tzy Tzz]
         """
         # TODO: This should probably be converted to C
-        eps = 1e-8  # add a small value to the locations to avoid /0
+        tol1 = 1e-10  # Tolerance 1 for numerical stability over nodes and edges
+        tol2 = 1e-4  # Tolerance 2 for numerical stability over nodes and edges
 
         rows = {component: np.zeros(3 * self.Xn.shape[0]) for component in components}
 
         # number of cells in mesh
         nC = self.Xn.shape[0]
 
-        # comp. pos. differences for tne, bsw nodes
-        dz2 = self.Zn[:, 1] - receiver_location[2] + eps
-        dz1 = self.Zn[:, 0] - receiver_location[2] + eps
+        # base cell dimensions
+        min_hx, min_hy, min_hz = (
+            self.mesh.hx.min(),
+            self.mesh.hy.min(),
+            self.mesh.hz.min(),
+        )
 
-        dy2 = self.Yn[:, 1] - receiver_location[1] + eps
-        dy1 = self.Yn[:, 0] - receiver_location[1] + eps
+        # comp. pos. differences for tne, bsw nodes. Adjust if location within
+        # tolerance of a node or edge
+        dz2 = self.Zn[:, 1] - receiver_location[2]
+        dz2[np.abs(dz2) / min_hz < tol2] = tol2 * min_hz
+        dz1 = self.Zn[:, 0] - receiver_location[2]
+        dz1[np.abs(dz1) / min_hz < tol2] = tol2 * min_hz
 
-        dx2 = self.Xn[:, 1] - receiver_location[0] + eps
-        dx1 = self.Xn[:, 0] - receiver_location[0] + eps
+        dy2 = self.Yn[:, 1] - receiver_location[1]
+        dy2[np.abs(dy2) / min_hy < tol2] = tol2 * min_hy
+        dy1 = self.Yn[:, 0] - receiver_location[1]
+        dy1[np.abs(dy1) / min_hy < tol2] = tol2 * min_hy
+
+        dx2 = self.Xn[:, 1] - receiver_location[0]
+        dx2[np.abs(dx2) / min_hx < tol2] = tol2 * min_hx
+        dx1 = self.Xn[:, 0] - receiver_location[0]
+        dx1[np.abs(dx1) / min_hx < tol2] = tol2 * min_hx
 
         # comp. squared diff
         dx2dx2 = dx2 ** 2.0
@@ -281,14 +294,14 @@ class Simulation3DIntegral(BasePFSimulation):
         R4 = dy1dy1 + dx1dx1
 
         # radius to each cell node
-        r1 = np.sqrt(dz2dz2 + R2) + eps
-        r2 = np.sqrt(dz2dz2 + R1) + eps
-        r3 = np.sqrt(dz1dz1 + R1) + eps
-        r4 = np.sqrt(dz1dz1 + R2) + eps
-        r5 = np.sqrt(dz2dz2 + R3) + eps
-        r6 = np.sqrt(dz2dz2 + R4) + eps
-        r7 = np.sqrt(dz1dz1 + R4) + eps
-        r8 = np.sqrt(dz1dz1 + R3) + eps
+        r1 = np.sqrt(dz2dz2 + R2)
+        r2 = np.sqrt(dz2dz2 + R1)
+        r3 = np.sqrt(dz1dz1 + R1)
+        r4 = np.sqrt(dz1dz1 + R2)
+        r5 = np.sqrt(dz2dz2 + R3)
+        r6 = np.sqrt(dz2dz2 + R4)
+        r7 = np.sqrt(dz1dz1 + R4)
+        r8 = np.sqrt(dz1dz1 + R3)
 
         # compactify argument calculations
         arg1_ = dx1 + dy2 + r1
@@ -351,36 +364,36 @@ class Simulation3DIntegral(BasePFSimulation):
             rows["bxx"] = np.zeros((1, 3 * nC))
 
             rows["bxx"][0, 0:nC] = 2 * (
-                ((dx1 ** 2 - r1 * arg1) / (r1 * arg1 ** 2 + dx1 ** 2 * r1 + eps))
-                - ((dx2 ** 2 - r2 * arg6) / (r2 * arg6 ** 2 + dx2 ** 2 * r2 + eps))
-                + ((dx2 ** 2 - r3 * arg11) / (r3 * arg11 ** 2 + dx2 ** 2 * r3 + eps))
-                - ((dx1 ** 2 - r4 * arg16) / (r4 * arg16 ** 2 + dx1 ** 2 * r4 + eps))
-                + ((dx2 ** 2 - r5 * arg21) / (r5 * arg21 ** 2 + dx2 ** 2 * r5 + eps))
-                - ((dx1 ** 2 - r6 * arg26) / (r6 * arg26 ** 2 + dx1 ** 2 * r6 + eps))
-                + ((dx1 ** 2 - r7 * arg31) / (r7 * arg31 ** 2 + dx1 ** 2 * r7 + eps))
-                - ((dx2 ** 2 - r8 * arg36) / (r8 * arg36 ** 2 + dx2 ** 2 * r8 + eps))
+                ((dx1 ** 2 - r1 * arg1) / (r1 * arg1 ** 2 + dx1 ** 2 * r1))
+                - ((dx2 ** 2 - r2 * arg6) / (r2 * arg6 ** 2 + dx2 ** 2 * r2))
+                + ((dx2 ** 2 - r3 * arg11) / (r3 * arg11 ** 2 + dx2 ** 2 * r3))
+                - ((dx1 ** 2 - r4 * arg16) / (r4 * arg16 ** 2 + dx1 ** 2 * r4))
+                + ((dx2 ** 2 - r5 * arg21) / (r5 * arg21 ** 2 + dx2 ** 2 * r5))
+                - ((dx1 ** 2 - r6 * arg26) / (r6 * arg26 ** 2 + dx1 ** 2 * r6))
+                + ((dx1 ** 2 - r7 * arg31) / (r7 * arg31 ** 2 + dx1 ** 2 * r7))
+                - ((dx2 ** 2 - r8 * arg36) / (r8 * arg36 ** 2 + dx2 ** 2 * r8))
             )
 
             rows["bxx"][0, nC : 2 * nC] = (
-                dx2 / (r5 * arg25 + eps)
-                - dx2 / (r2 * arg10 + eps)
-                + dx2 / (r3 * arg15 + eps)
-                - dx2 / (r8 * arg40 + eps)
-                + dx1 / (r1 * arg5 + eps)
-                - dx1 / (r6 * arg30 + eps)
-                + dx1 / (r7 * arg35 + eps)
-                - dx1 / (r4 * arg20 + eps)
+                dx2 / (r5 * arg25)
+                - dx2 / (r2 * arg10)
+                + dx2 / (r3 * arg15)
+                - dx2 / (r8 * arg40)
+                + dx1 / (r1 * arg5)
+                - dx1 / (r6 * arg30)
+                + dx1 / (r7 * arg35)
+                - dx1 / (r4 * arg20)
             )
 
             rows["bxx"][0, 2 * nC :] = (
-                dx1 / (r1 * arg4 + eps)
-                - dx2 / (r2 * arg9 + eps)
-                + dx2 / (r3 * arg14 + eps)
-                - dx1 / (r4 * arg19 + eps)
-                + dx2 / (r5 * arg24 + eps)
-                - dx1 / (r6 * arg29 + eps)
-                + dx1 / (r7 * arg34 + eps)
-                - dx2 / (r8 * arg39 + eps)
+                dx1 / (r1 * arg4)
+                - dx2 / (r2 * arg9)
+                + dx2 / (r3 * arg14)
+                - dx1 / (r4 * arg19)
+                + dx2 / (r5 * arg24)
+                - dx1 / (r6 * arg29)
+                + dx1 / (r7 * arg34)
+                - dx2 / (r8 * arg39)
             )
 
             rows["bxx"] /= 4 * np.pi
@@ -391,34 +404,34 @@ class Simulation3DIntegral(BasePFSimulation):
             rows["byy"] = np.zeros((1, 3 * nC))
 
             rows["byy"][0, 0:nC] = (
-                dy2 / (r3 * arg15 + eps)
-                - dy2 / (r2 * arg10 + eps)
-                + dy1 / (r5 * arg25 + eps)
-                - dy1 / (r8 * arg40 + eps)
-                + dy2 / (r1 * arg5 + eps)
-                - dy2 / (r4 * arg20 + eps)
-                + dy1 / (r7 * arg35 + eps)
-                - dy1 / (r6 * arg30 + eps)
+                dy2 / (r3 * arg15)
+                - dy2 / (r2 * arg10)
+                + dy1 / (r5 * arg25)
+                - dy1 / (r8 * arg40)
+                + dy2 / (r1 * arg5)
+                - dy2 / (r4 * arg20)
+                + dy1 / (r7 * arg35)
+                - dy1 / (r6 * arg30)
             )
             rows["byy"][0, nC : 2 * nC] = 2 * (
-                ((dy2 ** 2 - r1 * arg2) / (r1 * arg2 ** 2 + dy2 ** 2 * r1 + eps))
-                - ((dy2 ** 2 - r2 * arg7) / (r2 * arg7 ** 2 + dy2 ** 2 * r2 + eps))
-                + ((dy2 ** 2 - r3 * arg12) / (r3 * arg12 ** 2 + dy2 ** 2 * r3 + eps))
-                - ((dy2 ** 2 - r4 * arg17) / (r4 * arg17 ** 2 + dy2 ** 2 * r4 + eps))
-                + ((dy1 ** 2 - r5 * arg22) / (r5 * arg22 ** 2 + dy1 ** 2 * r5 + eps))
-                - ((dy1 ** 2 - r6 * arg27) / (r6 * arg27 ** 2 + dy1 ** 2 * r6 + eps))
-                + ((dy1 ** 2 - r7 * arg32) / (r7 * arg32 ** 2 + dy1 ** 2 * r7 + eps))
-                - ((dy1 ** 2 - r8 * arg37) / (r8 * arg37 ** 2 + dy1 ** 2 * r8 + eps))
+                ((dy2 ** 2 - r1 * arg2) / (r1 * arg2 ** 2 + dy2 ** 2 * r1))
+                - ((dy2 ** 2 - r2 * arg7) / (r2 * arg7 ** 2 + dy2 ** 2 * r2))
+                + ((dy2 ** 2 - r3 * arg12) / (r3 * arg12 ** 2 + dy2 ** 2 * r3))
+                - ((dy2 ** 2 - r4 * arg17) / (r4 * arg17 ** 2 + dy2 ** 2 * r4))
+                + ((dy1 ** 2 - r5 * arg22) / (r5 * arg22 ** 2 + dy1 ** 2 * r5))
+                - ((dy1 ** 2 - r6 * arg27) / (r6 * arg27 ** 2 + dy1 ** 2 * r6))
+                + ((dy1 ** 2 - r7 * arg32) / (r7 * arg32 ** 2 + dy1 ** 2 * r7))
+                - ((dy1 ** 2 - r8 * arg37) / (r8 * arg37 ** 2 + dy1 ** 2 * r8))
             )
             rows["byy"][0, 2 * nC :] = (
-                dy2 / (r1 * arg3 + eps)
-                - dy2 / (r2 * arg8 + eps)
-                + dy2 / (r3 * arg13 + eps)
-                - dy2 / (r4 * arg18 + eps)
-                + dy1 / (r5 * arg23 + eps)
-                - dy1 / (r6 * arg28 + eps)
-                + dy1 / (r7 * arg33 + eps)
-                - dy1 / (r8 * arg38 + eps)
+                dy2 / (r1 * arg3)
+                - dy2 / (r2 * arg8)
+                + dy2 / (r3 * arg13)
+                - dy2 / (r4 * arg18)
+                + dy1 / (r5 * arg23)
+                - dy1 / (r6 * arg28)
+                + dy1 / (r7 * arg33)
+                - dy1 / (r8 * arg38)
             )
 
             rows["byy"] /= 4 * np.pi
@@ -432,24 +445,24 @@ class Simulation3DIntegral(BasePFSimulation):
             rows["bxy"] = np.zeros((1, 3 * nC))
 
             rows["bxy"][0, 0:nC] = 2 * (
-                ((dx1 * arg4) / (r1 * arg1 ** 2 + (dx1 ** 2) * r1 + eps))
-                - ((dx2 * arg9) / (r2 * arg6 ** 2 + (dx2 ** 2) * r2 + eps))
-                + ((dx2 * arg14) / (r3 * arg11 ** 2 + (dx2 ** 2) * r3 + eps))
-                - ((dx1 * arg19) / (r4 * arg16 ** 2 + (dx1 ** 2) * r4 + eps))
-                + ((dx2 * arg24) / (r5 * arg21 ** 2 + (dx2 ** 2) * r5 + eps))
-                - ((dx1 * arg29) / (r6 * arg26 ** 2 + (dx1 ** 2) * r6 + eps))
-                + ((dx1 * arg34) / (r7 * arg31 ** 2 + (dx1 ** 2) * r7 + eps))
-                - ((dx2 * arg39) / (r8 * arg36 ** 2 + (dx2 ** 2) * r8 + eps))
+                ((dx1 * arg4) / (r1 * arg1 ** 2 + (dx1 ** 2) * r1))
+                - ((dx2 * arg9) / (r2 * arg6 ** 2 + (dx2 ** 2) * r2))
+                + ((dx2 * arg14) / (r3 * arg11 ** 2 + (dx2 ** 2) * r3))
+                - ((dx1 * arg19) / (r4 * arg16 ** 2 + (dx1 ** 2) * r4))
+                + ((dx2 * arg24) / (r5 * arg21 ** 2 + (dx2 ** 2) * r5))
+                - ((dx1 * arg29) / (r6 * arg26 ** 2 + (dx1 ** 2) * r6))
+                + ((dx1 * arg34) / (r7 * arg31 ** 2 + (dx1 ** 2) * r7))
+                - ((dx2 * arg39) / (r8 * arg36 ** 2 + (dx2 ** 2) * r8))
             )
             rows["bxy"][0, nC : 2 * nC] = (
-                dy2 / (r1 * arg5 + eps)
-                - dy2 / (r2 * arg10 + eps)
-                + dy2 / (r3 * arg15 + eps)
-                - dy2 / (r4 * arg20 + eps)
-                + dy1 / (r5 * arg25 + eps)
-                - dy1 / (r6 * arg30 + eps)
-                + dy1 / (r7 * arg35 + eps)
-                - dy1 / (r8 * arg40 + eps)
+                dy2 / (r1 * arg5)
+                - dy2 / (r2 * arg10)
+                + dy2 / (r3 * arg15)
+                - dy2 / (r4 * arg20)
+                + dy1 / (r5 * arg25)
+                - dy1 / (r6 * arg30)
+                + dy1 / (r7 * arg35)
+                - dy1 / (r8 * arg40)
             )
             rows["bxy"][0, 2 * nC :] = (
                 1 / r1 - 1 / r2 + 1 / r3 - 1 / r4 + 1 / r5 - 1 / r6 + 1 / r7 - 1 / r8
@@ -463,27 +476,27 @@ class Simulation3DIntegral(BasePFSimulation):
             rows["bxz"] = np.zeros((1, 3 * nC))
 
             rows["bxz"][0, 0:nC] = 2 * (
-                ((dx1 * arg5) / (r1 * (arg1 ** 2) + (dx1 ** 2) * r1 + eps))
-                - ((dx2 * arg10) / (r2 * (arg6 ** 2) + (dx2 ** 2) * r2 + eps))
-                + ((dx2 * arg15) / (r3 * (arg11 ** 2) + (dx2 ** 2) * r3 + eps))
-                - ((dx1 * arg20) / (r4 * (arg16 ** 2) + (dx1 ** 2) * r4 + eps))
-                + ((dx2 * arg25) / (r5 * (arg21 ** 2) + (dx2 ** 2) * r5 + eps))
-                - ((dx1 * arg30) / (r6 * (arg26 ** 2) + (dx1 ** 2) * r6 + eps))
-                + ((dx1 * arg35) / (r7 * (arg31 ** 2) + (dx1 ** 2) * r7 + eps))
-                - ((dx2 * arg40) / (r8 * (arg36 ** 2) + (dx2 ** 2) * r8 + eps))
+                ((dx1 * arg5) / (r1 * (arg1 ** 2) + (dx1 ** 2) * r1))
+                - ((dx2 * arg10) / (r2 * (arg6 ** 2) + (dx2 ** 2) * r2))
+                + ((dx2 * arg15) / (r3 * (arg11 ** 2) + (dx2 ** 2) * r3))
+                - ((dx1 * arg20) / (r4 * (arg16 ** 2) + (dx1 ** 2) * r4))
+                + ((dx2 * arg25) / (r5 * (arg21 ** 2) + (dx2 ** 2) * r5))
+                - ((dx1 * arg30) / (r6 * (arg26 ** 2) + (dx1 ** 2) * r6))
+                + ((dx1 * arg35) / (r7 * (arg31 ** 2) + (dx1 ** 2) * r7))
+                - ((dx2 * arg40) / (r8 * (arg36 ** 2) + (dx2 ** 2) * r8))
             )
             rows["bxz"][0, nC : 2 * nC] = (
                 1 / r1 - 1 / r2 + 1 / r3 - 1 / r4 + 1 / r5 - 1 / r6 + 1 / r7 - 1 / r8
             )
             rows["bxz"][0, 2 * nC :] = (
-                dz2 / (r1 * arg4 + eps)
-                - dz2 / (r2 * arg9 + eps)
-                + dz1 / (r3 * arg14 + eps)
-                - dz1 / (r4 * arg19 + eps)
-                + dz2 / (r5 * arg24 + eps)
-                - dz2 / (r6 * arg29 + eps)
-                + dz1 / (r7 * arg34 + eps)
-                - dz1 / (r8 * arg39 + eps)
+                dz2 / (r1 * arg4)
+                - dz2 / (r2 * arg9)
+                + dz1 / (r3 * arg14)
+                - dz1 / (r4 * arg19)
+                + dz2 / (r5 * arg24)
+                - dz2 / (r6 * arg29)
+                + dz1 / (r7 * arg34)
+                - dz1 / (r8 * arg39)
             )
 
             rows["bxz"] /= 4 * np.pi
@@ -497,24 +510,24 @@ class Simulation3DIntegral(BasePFSimulation):
                 1 / r3 - 1 / r2 + 1 / r5 - 1 / r8 + 1 / r1 - 1 / r4 + 1 / r7 - 1 / r6
             )
             rows["byz"][0, nC : 2 * nC] = 2 * (
-                (((dy2 * arg5) / (r1 * (arg2 ** 2) + (dy2 ** 2) * r1 + eps)))
-                - (((dy2 * arg10) / (r2 * (arg7 ** 2) + (dy2 ** 2) * r2 + eps)))
-                + (((dy2 * arg15) / (r3 * (arg12 ** 2) + (dy2 ** 2) * r3 + eps)))
-                - (((dy2 * arg20) / (r4 * (arg17 ** 2) + (dy2 ** 2) * r4 + eps)))
-                + (((dy1 * arg25) / (r5 * (arg22 ** 2) + (dy1 ** 2) * r5 + eps)))
-                - (((dy1 * arg30) / (r6 * (arg27 ** 2) + (dy1 ** 2) * r6 + eps)))
-                + (((dy1 * arg35) / (r7 * (arg32 ** 2) + (dy1 ** 2) * r7 + eps)))
-                - (((dy1 * arg40) / (r8 * (arg37 ** 2) + (dy1 ** 2) * r8 + eps)))
+                (((dy2 * arg5) / (r1 * (arg2 ** 2) + (dy2 ** 2) * r1)))
+                - (((dy2 * arg10) / (r2 * (arg7 ** 2) + (dy2 ** 2) * r2)))
+                + (((dy2 * arg15) / (r3 * (arg12 ** 2) + (dy2 ** 2) * r3)))
+                - (((dy2 * arg20) / (r4 * (arg17 ** 2) + (dy2 ** 2) * r4)))
+                + (((dy1 * arg25) / (r5 * (arg22 ** 2) + (dy1 ** 2) * r5)))
+                - (((dy1 * arg30) / (r6 * (arg27 ** 2) + (dy1 ** 2) * r6)))
+                + (((dy1 * arg35) / (r7 * (arg32 ** 2) + (dy1 ** 2) * r7)))
+                - (((dy1 * arg40) / (r8 * (arg37 ** 2) + (dy1 ** 2) * r8)))
             )
             rows["byz"][0, 2 * nC :] = (
-                dz2 / (r1 * arg3 + eps)
-                - dz2 / (r2 * arg8 + eps)
-                + dz1 / (r3 * arg13 + eps)
-                - dz1 / (r4 * arg18 + eps)
-                + dz2 / (r5 * arg23 + eps)
-                - dz2 / (r6 * arg28 + eps)
-                + dz1 / (r7 * arg33 + eps)
-                - dz1 / (r8 * arg38 + eps)
+                dz2 / (r1 * arg3)
+                - dz2 / (r2 * arg8)
+                + dz1 / (r3 * arg13)
+                - dz1 / (r4 * arg18)
+                + dz2 / (r5 * arg23)
+                - dz2 / (r6 * arg28)
+                + dz1 / (r7 * arg33)
+                - dz1 / (r8 * arg38)
             )
 
             rows["byz"] /= 4 * np.pi
@@ -525,14 +538,14 @@ class Simulation3DIntegral(BasePFSimulation):
             rows["bx"] = np.zeros((1, 3 * nC))
 
             rows["bx"][0, 0:nC] = (
-                (-2 * np.arctan2(dx1, arg1 + eps))
-                - (-2 * np.arctan2(dx2, arg6 + eps))
-                + (-2 * np.arctan2(dx2, arg11 + eps))
-                - (-2 * np.arctan2(dx1, arg16 + eps))
-                + (-2 * np.arctan2(dx2, arg21 + eps))
-                - (-2 * np.arctan2(dx1, arg26 + eps))
-                + (-2 * np.arctan2(dx1, arg31 + eps))
-                - (-2 * np.arctan2(dx2, arg36 + eps))
+                (-2 * np.arctan2(dx1, arg1 + tol1))
+                - (-2 * np.arctan2(dx2, arg6 + tol1))
+                + (-2 * np.arctan2(dx2, arg11 + tol1))
+                - (-2 * np.arctan2(dx1, arg16 + tol1))
+                + (-2 * np.arctan2(dx2, arg21 + tol1))
+                - (-2 * np.arctan2(dx1, arg26 + tol1))
+                + (-2 * np.arctan2(dx1, arg31 + tol1))
+                - (-2 * np.arctan2(dx2, arg36 + tol1))
             )
             rows["bx"][0, nC : 2 * nC] = (
                 np.log(arg5)
@@ -568,14 +581,14 @@ class Simulation3DIntegral(BasePFSimulation):
                 - np.log(arg40)
             )
             rows["by"][0, nC : 2 * nC] = (
-                (-2 * np.arctan2(dy2, arg2 + eps))
-                - (-2 * np.arctan2(dy2, arg7 + eps))
-                + (-2 * np.arctan2(dy2, arg12 + eps))
-                - (-2 * np.arctan2(dy2, arg17 + eps))
-                + (-2 * np.arctan2(dy1, arg22 + eps))
-                - (-2 * np.arctan2(dy1, arg27 + eps))
-                + (-2 * np.arctan2(dy1, arg32 + eps))
-                - (-2 * np.arctan2(dy1, arg37 + eps))
+                (-2 * np.arctan2(dy2, arg2 + tol1))
+                - (-2 * np.arctan2(dy2, arg7 + tol1))
+                + (-2 * np.arctan2(dy2, arg12 + tol1))
+                - (-2 * np.arctan2(dy2, arg17 + tol1))
+                + (-2 * np.arctan2(dy1, arg22 + tol1))
+                - (-2 * np.arctan2(dy1, arg27 + tol1))
+                + (-2 * np.arctan2(dy1, arg32 + tol1))
+                - (-2 * np.arctan2(dy1, arg37 + tol1))
             )
             rows["by"][0, 2 * nC :] = (
                 (np.log(arg3) - np.log(arg8))
@@ -608,14 +621,14 @@ class Simulation3DIntegral(BasePFSimulation):
                 + (np.log(arg33) - np.log(arg38))
             )
             rows["bz"][0, 2 * nC :] = (
-                (-2 * np.arctan2(dz2, arg1_ + eps))
-                - (-2 * np.arctan2(dz2, arg6_ + eps))
-                + (-2 * np.arctan2(dz1, arg11_ + eps))
-                - (-2 * np.arctan2(dz1, arg16_ + eps))
-                + (-2 * np.arctan2(dz2, arg21_ + eps))
-                - (-2 * np.arctan2(dz2, arg26_ + eps))
-                + (-2 * np.arctan2(dz1, arg31_ + eps))
-                - (-2 * np.arctan2(dz1, arg36_ + eps))
+                (-2 * np.arctan2(dz2, arg1_ + tol1))
+                - (-2 * np.arctan2(dz2, arg6_ + tol1))
+                + (-2 * np.arctan2(dz1, arg11_ + tol1))
+                - (-2 * np.arctan2(dz1, arg16_ + tol1))
+                + (-2 * np.arctan2(dz2, arg21_ + tol1))
+                - (-2 * np.arctan2(dz2, arg26_ + tol1))
+                + (-2 * np.arctan2(dz1, arg31_ + tol1))
+                - (-2 * np.arctan2(dz1, arg36_ + tol1))
             )
             rows["bz"] /= -4 * np.pi
 
@@ -646,7 +659,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
 class Simulation3DDifferential(BaseSimulation):
     """
-        Secondary field approach using differential equations!
+    Secondary field approach using differential equations!
     """
 
     # surveyPair = MAG.BaseMagSurvey
@@ -736,15 +749,15 @@ class Simulation3DDifferential(BaseSimulation):
 
     def fields(self, m):
         """
-            Return magnetic potential (u) and flux (B)
-            u: defined on the cell center [nC x 1]
-            B: defined on the cell center [nG x 1]
+        Return magnetic potential (u) and flux (B)
+        u: defined on the cell center [nC x 1]
+        B: defined on the cell center [nG x 1]
 
-            After we compute u, then we update B.
+        After we compute u, then we update B.
 
-            .. math ::
+        .. math ::
 
-                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
+            \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
         self.makeMassMatrices(m)
@@ -999,20 +1012,20 @@ class Simulation3DDifferential(BaseSimulation):
 
     def projectFields(self, u):
         """
-            This function projects the fields onto the data space.
-            Especially, here for we use total magnetic intensity (TMI) data,
-            which is common in practice.
-            First we project our B on to data location
+        This function projects the fields onto the data space.
+        Especially, here for we use total magnetic intensity (TMI) data,
+        which is common in practice.
+        First we project our B on to data location
 
-            .. math::
+        .. math::
 
-                \mathbf{B}_{rec} = \mathbf{P} \mathbf{B}
+            \mathbf{B}_{rec} = \mathbf{P} \mathbf{B}
 
-            then we take the dot product between B and b_0
+        then we take the dot product between B and b_0
 
-            .. math ::
+        .. math ::
 
-                \\text{TMI} = \\vec{B}_s \cdot \hat{B}_0
+            \\text{TMI} = \\vec{B}_s \cdot \hat{B}_0
 
         """
         # TODO: There can be some different tyes of data like |B| or B
@@ -1043,13 +1056,13 @@ class Simulation3DDifferential(BaseSimulation):
     @utils.count
     def projectFieldsDeriv(self, B):
         """
-            This function projects the fields onto the data space.
+        This function projects the fields onto the data space.
 
-            .. math::
+        .. math::
 
-                \\frac{\partial d_\\text{pred}}{\partial \mathbf{B}} = \mathbf{P}
+            \\frac{\partial d_\\text{pred}}{\partial \mathbf{B}} = \mathbf{P}
 
-            Especially, this function is for TMI data type
+        Especially, this function is for TMI data type
         """
 
         components = self.survey.components
@@ -1087,7 +1100,7 @@ class Simulation3DDifferential(BaseSimulation):
 
 def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     """
-        Inversion module for MagneticsDiffSecondary
+    Inversion module for MagneticsDiffSecondary
 
     """
     from SimPEG import Optimization, Regularization, Parameters, ObjFunction, Inversion
@@ -1115,11 +1128,11 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class MagneticIntegral(Simulation3DIntegral):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_Diff(Simulation3DDifferential):
     pass

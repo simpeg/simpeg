@@ -650,15 +650,16 @@ class PrimSecCasingExample(object):
         f = meshcart.plotSlice(
             jcart.real,
             normal="Y",
-            vType="F",
+            v_type="F",
             view="vec",
-            pcolorOpts={"norm": LogNorm(), "cmap": plt.get_cmap("viridis")},
-            streamOpts={"color": "k", "arrowsize": 2},
+            pcolor_opts={"norm": LogNorm(), "cmap": plt.get_cmap("viridis")},
+            stream_opts={"color": "k", "arrowsize": 2},
             ax=ax,
         )
         plt.colorbar(f[0], label="real current density (A/m$^2$)")
 
-        ax.axis("equal", adjustable="box")
+        ax.set_adjustable("box")
+        ax.axis("equal")
         ax.set_ylim([-1200.0, 0.0])
         ax.set_xlim([0.0, 750.0])
         ax.set_title("Primary Current Density")
@@ -783,7 +784,8 @@ class PrimSecCasingExample(object):
         cb.formatter.set_powerlimits((0, 0))
         cb.update_ticks()
 
-        ax.axis("equal", adjustable="box")
+        ax.set_adjustable("box")
+        ax.axis("equal")
         ax.axis([-600, 600, -600, 600])
         ax.set_title("(a) -950m Depth Slice", fontsize=fontsize)
         # interact(plotMe, ind=[0, meshs_plt.vnC[2]-1])
@@ -833,7 +835,8 @@ class PrimSecCasingExample(object):
                 vmin=clim[0],
                 vmax=clim[1],
             )
-            ax.axis("equal", adjustable="box")
+            ax.set_adjustable("box")
+            ax.axis("equal")
             ax.set_xlim(xlim)
             ax.set_ylim(ylim)
             cb = plt.colorbar(f, ax=ax, label=clabel)
@@ -922,13 +925,10 @@ class PrimSecCasingExample(object):
                     vmax=vlim[1],
                 )
                 cb = plt.colorbar(f, ax=ax, label=cblabel)
-                cb.set_clim(vlim)
                 cb.formatter.set_powerlimits((0, 0))
                 ticks = [
                     "{0:1.1e}".format(a)
-                    for a in np.linspace(
-                        0.95 * cb.get_clim()[0], 0.95 * cb.get_clim()[1], 5
-                    )
+                    for a in np.linspace(0.95 * vlim[0], 0.95 * vlim[1], 5)
                 ]
                 ticks = [float(t) for t in ticks]
                 cb.set_ticks(ticks)
@@ -1435,20 +1435,20 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         return results
 
 
-def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
+def run(plotIt=True, runTests=False, reRun=False, saveFig=False):
 
     """
-        EM Heagyetal2016 CasingFwd3DPrimSecSrc
-        ======================================
+    EM Heagyetal2016 CasingFwd3DPrimSecSrc
+    ======================================
 
-        Computation of Sensitivities for the primary-secondary example shown in
-        Heagy et al 2016.
+    Computation of Sensitivities for the primary-secondary example shown in
+    Heagy et al 2016.
 
-        :param bool plotIt: plot results
-        :param bool runTests: run sensitivity tests? (slow...)
-        :param bool reRun: recompute results? or just download stored results
-            and plot
-        :param bool saveFig: save the figures?
+    :param bool plotIt: plot results
+    :param bool runTests: run sensitivity tests? (slow...)
+    :param bool reRun: recompute results? or just download stored results
+        and plot
+    :param bool saveFig: save the figures?
     """
     # recompute results?
     if reRun is True:

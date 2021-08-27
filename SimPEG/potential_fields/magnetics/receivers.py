@@ -9,7 +9,7 @@ class Point(survey.BaseRx):
     Magnetic point receiver class for integral formulation
 
     :param numpy.ndarray locs: receiver locations index (ie. :code:`np.c_[ind_1, ind_2, ...]`)
-    :param string component: receiver component
+    :param string components: receiver component (string or list)
          "bxx", "bxy", "bxz", "byy",
          "byz", "bzz", "bx", "by", "bz", "tmi" [default]
     """
@@ -61,6 +61,6 @@ class Point(survey.BaseRx):
         return self.receiver_index
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class RxObs(Point):
     pass

@@ -22,9 +22,10 @@ except ImportError:
 np.random.seed(41)
 
 
-class DCProblem_2DTestsCC(unittest.TestCase):
+class DCProblem_2DTests(unittest.TestCase):
 
     formulation = "Simulation2DCellCentered"
+    bc_type = "Robin"
     storeJ = False
     adjoint_tol = 1e-10
 
@@ -40,16 +41,19 @@ class DCProblem_2DTestsCC(unittest.TestCase):
         A0loc = np.r_[-150, 0.0]
         A1loc = np.r_[-130, 0.0]
         # rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        rx = dc.receivers.Dipole(M, N)
-        src0 = dc.sources.Pole([rx], A0loc)
-        src1 = dc.sources.Pole([rx], A1loc)
-        survey = dc.survey.Survey_ky([src0, src1])
+        rx1 = dc.receivers.Dipole(M, N)
+        rx2 = dc.receivers.Dipole(M, N, data_type="apparent_resistivity")
+        src0 = dc.sources.Pole([rx1, rx2], A0loc)
+        src1 = dc.sources.Pole([rx1, rx2], A1loc)
+        survey = dc.survey.Survey([src0, src1])
+        survey.set_geometric_factor()
         simulation = getattr(dc, self.formulation)(
             mesh,
             rhoMap=maps.IdentityMap(mesh),
             storeJ=self.storeJ,
             solver=Solver,
             survey=survey,
+            bc_type=self.bc_type,
         )
         mSynth = np.ones(mesh.nC) * 1.0
         data = simulation.make_synthetic_data(mSynth, add_noise=True)
@@ -99,25 +103,44 @@ class DCProblem_2DTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
 
-class DCProblemTestsN(DCProblem_2DTestsCC):
+class DCProblemTestsN_Nuemann(DCProblem_2DTests):
 
     formulation = "Simulation2DNodal"
     storeJ = False
     adjoint_tol = 1e-8
+    bc_type = "Neumann"
 
 
-class DCProblem_2DTestsCC_storeJ(DCProblem_2DTestsCC):
+class DCProblemTestsN_Robin(DCProblem_2DTests):
+
+    formulation = "Simulation2DNodal"
+    storeJ = False
+    adjoint_tol = 1e-8
+    bc_type = "Robin"
+
+
+class DCProblem_2DTestsCC_storeJ(DCProblem_2DTests):
 
     formulation = "Simulation2DCellCentered"
     storeJ = True
     adjoint_tol = 1e-10
+    bc_type = "Robin"
 
 
-class DCProblemTestsN_storeJ(DCProblem_2DTestsCC):
+class DCProblemTestsN_Nuemann_storeJ(DCProblem_2DTests):
 
     formulation = "Simulation2DNodal"
     storeJ = True
     adjoint_tol = 1e-8
+    bc_type = "Neumann"
+
+
+class DCProblemTestsN_Robin_storeJ(DCProblem_2DTests):
+
+    formulation = "Simulation2DNodal"
+    storeJ = True
+    adjoint_tol = 1e-8
+    bc_type = "Robin"
 
 
 if __name__ == "__main__":

@@ -62,9 +62,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                 gridTopo = griddata(
                     topo[:, :2], topo[:, 2], XY, method=method, fill_value=fill_value
                 )
-                actind = [
-                    gridTopo >= Zcc[:, ixy] for ixy in range(np.prod(mesh.vnC[2]))
-                ]
+                actind = [gridTopo >= Zcc[:, ixy] for ixy in range(mesh.vnC[2])]
                 actind = np.hstack(actind)
 
             elif gridLoc == "N":
@@ -225,7 +223,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
 def surface_layer_index(mesh, topo, index=0):
     """
-        Find the ith layer below topo
+    Find the ith layer below topo
     """
 
     actv = np.zeros(mesh.nC, dtype="bool")

@@ -42,8 +42,9 @@ from SimPEG import (
     utils,
 )
 from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
+from SimPEG.utils import plot_1d_layer_model
 
+mpl.rcParams.update({"font.size": 16})
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -54,11 +55,11 @@ from SimPEG.electromagnetics.static.utils.static_utils import plot_layer
 # Here we provide the file paths to assets we need to run the inversion. The
 # Path to the true model is also provided for comparison with the inversion
 # results. These files are stored as a tar-file on our google cloud bucket:
-# "https://storage.googleapis.com/simpeg/doc-assets/dcip1d.tar.gz"
+# "https://storage.googleapis.com/simpeg/doc-assets/dcr1d.tar.gz"
 #
 
 # storage bucket where we have the data
-data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcip1d.tar.gz"
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/dcr1d.tar.gz"
 
 # download the data
 downloaded_data = utils.download(data_source, overwrite=True)
@@ -73,8 +74,6 @@ dir_path = downloaded_data.split(".")[0] + os.path.sep
 
 # files to work with
 data_filename = dir_path + "app_res_1d_data.dobs"
-model_filename = dir_path + "true_model.txt"
-mesh_filename = dir_path + "layers.txt"
 
 
 #############################################
@@ -256,7 +255,7 @@ IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=20)
 
 # Update the preconditionner
 update_Jacobi = directives.UpdatePreconditioner()
@@ -292,10 +291,9 @@ recovered_model = inv.run(starting_model)
 # ---------------------
 #
 
-# Load the true model and layer thicknesses
-true_model = np.loadtxt(str(model_filename))
-true_layers = np.loadtxt(str(mesh_filename))
-true_layers = TensorMesh([true_layers], "N")
+# Define true model and layer thicknesses
+true_model = np.r_[1e3, 4e3, 2e2]
+true_layers = np.r_[100.0, 100.0]
 
 # Extract Least-Squares model
 l2_model = inv_prob.l2model
@@ -306,9 +304,10 @@ x_min = np.min(np.r_[model_map * recovered_model, model_map * l2_model, true_mod
 x_max = np.max(np.r_[model_map * recovered_model, model_map * l2_model, true_model])
 
 ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
-plot_layer(true_model, true_layers, ax=ax1, depth_axis=False, color="k")
-plot_layer(model_map * l2_model, mesh, ax=ax1, depth_axis=False, color="b")
-plot_layer(model_map * recovered_model, mesh, ax=ax1, depth_axis=False, color="r")
+plot_1d_layer_model(true_layers, true_model, ax=ax1, color="k")
+plot_1d_layer_model(layer_thicknesses, model_map * l2_model, ax=ax1, color="b")
+plot_1d_layer_model(layer_thicknesses, model_map * recovered_model, ax=ax1, color="r")
+ax1.set_xlabel(r"Resistivity ($\Omega m$)")
 ax1.set_xlim(0.9 * x_min, 1.1 * x_max)
 ax1.legend(["True Model", "L2-Model", "Sparse Model"])
 
@@ -319,6 +318,6 @@ ax1.semilogy(electrode_separations, dobs, "k")
 ax1.semilogy(electrode_separations, simulation.dpred(l2_model), "b")
 ax1.semilogy(electrode_separations, simulation.dpred(recovered_model), "r")
 ax1.set_xlabel("AB/2 (m)")
-ax1.set_ylabel("Apparent Resistivity ($\Omega m$)")
+ax1.set_ylabel(r"Apparent Resistivity ($\Omega m$)")
 ax1.legend(["True Sounding Curve", "Predicted (L2-Model)", "Predicted (Sparse)"])
 plt.show()

@@ -778,7 +778,7 @@ def _extract_frequency_data(
     Function to extract data at given frequency
     """
 
-    src = data.survey.getSrcByFreq(frequency)
+    src = data.survey.get_sources_by_frequency(frequency)
     rx_list = [
         rx
         for rx in src.receiver_list

@@ -175,7 +175,7 @@ opt.remember("xc")
 invProb = inverse_problem.BaseInvProblem(dmis, regT, opt)
 
 # Directives for Inversions
-beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
+beta = directives.BetaEstimate_ByEig(beta0_ratio=1.0)
 Target = directives.TargetMisfit()
 betaSched = directives.BetaSchedule(coolingFactor=5.0, coolingRate=2)
 

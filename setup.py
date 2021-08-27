@@ -31,16 +31,17 @@ with open("README.rst") as f:
 
 setup(
     name="SimPEG",
-    version="0.14.1",
+    version="0.15.0",
     packages=find_packages(exclude=["tests*", "examples*", "tutorials*"]),
     install_requires=[
         "numpy>=1.7",
-        "scipy>=0.13",
+        "scipy>=1.0.0",
+        "scikit-learn>=0.22",
         "pymatsolver>=0.1.1",
         "matplotlib",
         "properties>=0.5.2",
         "vectormath>=0.2.0",
-        "discretize>=0.4.0",
+        "discretize>=0.7.0",
         "geoana>=0.0.4",
         "empymod",
         "pandas",

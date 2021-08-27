@@ -4,11 +4,12 @@ DC Resistivity Forward Simulation in 2.5D
 =========================================
 
 Here we use the module *SimPEG.electromagnetics.static.resistivity* to predict
-DC resistivity data. In this tutorial, we focus on the following:
+DC resistivity data and plot using a pseudosection. In this tutorial, we focus
+on the following:
 
     - How to define the survey
     - How to define the forward simulation
-    - How to predict DC resistivity data for a synthetic resistivity model
+    - How to predict normalized voltage data for a synthetic conductivity model
     - How to include surface topography
     - The units of the model and resulting data
 
@@ -24,26 +25,29 @@ from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 
 from SimPEG.utils import model_builder, surface2ind_topo
+from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip2d_ubc
 from SimPEG import maps, data
 from SimPEG.electromagnetics.static import resistivity as dc
 from SimPEG.electromagnetics.static.utils.static_utils import (
-    generate_dcip_survey_line,
-    plot_pseudoSection,
+    generate_dcip_sources_line,
+    apparent_resistivity_from_voltage,
+    plot_pseudosection,
 )
 
 import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
     from SimPEG import SolverLU as Solver
 
-save_file = False
-
-# sphinx_gallery_thumbnail_number = 2
+write_output = False
+mpl.rcParams.update({"font.size": 16})
+# sphinx_gallery_thumbnail_number = 3
 
 
 ###############################################################
@@ -51,17 +55,22 @@ save_file = False
 # -------------------
 #
 # Here we define surface topography as an (N, 3) numpy array. Topography could
-# also be loaded from a file. In our case, our survey takes place in a valley
-# that runs North-South.
+# also be loaded from a file. In our case, our survey takes place within a set
+# of valleys that run North-South.
 #
 
 x_topo, y_topo = np.meshgrid(
-    np.linspace(-3000, 3000, 101), np.linspace(-3000, 3000, 101)
+    np.linspace(-3000, 3000, 601), np.linspace(-3000, 3000, 101)
 )
-z_topo = (1 / np.pi) * 85 * (-np.pi / 2 + np.arctan((np.abs(x_topo) - 600.0) / 50.0))
+z_topo = 40.0 * np.sin(2 * np.pi * x_topo / 800) - 40.0
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
-xyz_topo = np.c_[x_topo, y_topo, z_topo]
+topo_xyz = np.c_[x_topo, y_topo, z_topo]
 
+# Create 2D topography. Since our 3D topography only changes in the x direction,
+# it is easy to define the 2D topography projected along the survey line. For
+# arbitrary topography and for an arbitrary survey orientation, the user must
+# define the 2D topography along the survey line.
+topo_2d = np.unique(topo_xyz[:, [0, 2]], axis=0)
 
 #####################################################################
 # Create Dipole-Dipole Survey
@@ -75,36 +84,36 @@ xyz_topo = np.c_[x_topo, y_topo, z_topo]
 
 # Define survey line parameters
 survey_type = "dipole-dipole"
+dimension_type = "2D"
 data_type = "volt"
-end_locations = np.r_[-400.0, 400]
-station_separation = 50.0
-dipole_separation = 25.0
-n = 8
+end_locations = np.r_[-400.0, 400.0]
+station_separation = 40.0
+num_rx_per_src = 10
 
-# Generate DC survey line
-survey = generate_dcip_survey_line(
+# Generate source list for DC survey line
+source_list = generate_dcip_sources_line(
     survey_type,
     data_type,
+    dimension_type,
     end_locations,
-    xyz_topo,
+    topo_2d,
+    num_rx_per_src,
     station_separation,
-    dipole_separation,
-    n,
-    dim_flag="2.5D",
-    sources_only=False,
 )
 
+# Define survey
+survey = dc.survey.Survey(source_list, survey_type=survey_type)
+
 ###############################################################
-# Create OcTree Mesh
+# Create Tree Mesh
 # ------------------
 #
-# Here, we create the OcTree mesh that will be used to predict both DC
-# resistivity and IP data.
+# Here, we create the Tree mesh that will be used to predict DC data.
 #
 
-dh = 10.0  # base cell width
-dom_width_x = 2400.0  # domain width x
-dom_width_z = 1200.0  # domain width z
+dh = 4  # base cell width
+dom_width_x = 3200.0  # domain width x
+dom_width_z = 2400.0  # domain width z
 nbcx = 2 ** int(np.round(np.log(dom_width_x / dh) / np.log(2.0)))  # num. base cells x
 nbcz = 2 ** int(np.round(np.log(dom_width_z / dh) / np.log(2.0)))  # num. base cells z
 
@@ -115,13 +124,17 @@ mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
 mesh = refine_tree_xyz(
-    mesh, xyz_topo[:, [0, 2]], octree_levels=[1], method="surface", finalize=False
+    mesh,
+    topo_xyz[:, [0, 2]],
+    octree_levels=[0, 0, 4, 4],
+    method="surface",
+    finalize=False,
 )
 
 # Mesh refinement near transmitters and receivers. First we need to obtain the
 # set of unique electrode locations.
 electrode_locations = np.c_[
-    survey.locations_a, survey.locations_b, survey.locations_m, survey.locations_n
+    survey.locations_a, survey.locations_b, survey.locations_m, survey.locations_n,
 ]
 
 unique_locations = np.unique(
@@ -129,24 +142,26 @@ unique_locations = np.unique(
 )
 
 mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[2, 4], method="radial", finalize=False
+    mesh, unique_locations, octree_levels=[4, 4], method="radial", finalize=False
 )
 
 # Refine core mesh region
-xp, zp = np.meshgrid([-800.0, 800.0], [-800.0, 0.0])
+xp, zp = np.meshgrid([-600.0, 600.0], [-400.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(mesh, xyz, octree_levels=[0, 2, 2], method="box", finalize=False)
+mesh = refine_tree_xyz(
+    mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False
+)
 
 mesh.finalize()
 
 ###############################################################
-# Create Conductivity Model and Mapping for OcTree Mesh
+# Create Conductivity Model and Mapping for Tree Mesh
 # -----------------------------------------------------
 #
-# Here we define the conductivity model that will be used to predict DC
-# resistivity data. The model consists of a conductive sphere and a
-# resistive sphere within a moderately conductive background. Note that
-# you can carry through this work flow with a resistivity model if desired.
+# It is important that electrodes are not modeled as being in the air. Even if the
+# electrodes are properly located along surface topography, they may lie above
+# the discretized topography. This step is carried out to ensure all electrodes
+# lie on the discretized surface.
 #
 
 # Define conductivity model in S/m (or resistivity model in Ohm m)
@@ -156,7 +171,7 @@ conductor_conductivity = 1e-1
 resistor_conductivity = 1e-3
 
 # Find active cells in forward modeling (cell below surface)
-ind_active = surface2ind_topo(mesh, xyz_topo[:, [0, 2]])
+ind_active = surface2ind_topo(mesh, topo_xyz[:, [0, 2]])
 
 # Define mapping from model to active cells
 nC = int(ind_active.sum())
@@ -165,41 +180,35 @@ conductivity_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 # Define model
 conductivity_model = background_conductivity * np.ones(nC)
 
-ind_conductor = model_builder.getIndicesSphere(np.r_[-120.0, -180.0], 60.0, mesh.gridCC)
+ind_conductor = model_builder.getIndicesSphere(np.r_[-120.0, -160.0], 60.0, mesh.gridCC)
 ind_conductor = ind_conductor[ind_active]
 conductivity_model[ind_conductor] = conductor_conductivity
 
-ind_resistor = model_builder.getIndicesSphere(np.r_[120.0, -180.0], 60.0, mesh.gridCC)
+ind_resistor = model_builder.getIndicesSphere(np.r_[120.0, -100.0], 60.0, mesh.gridCC)
 ind_resistor = ind_resistor[ind_active]
 conductivity_model[ind_resistor] = resistor_conductivity
 
-
 # Plot Conductivity Model
-fig = plt.figure(figsize=(8.5, 4))
+fig = plt.figure(figsize=(9, 4))
 
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
-log_mod = np.log10(conductivity_model)
+norm = LogNorm(vmin=1e-3, vmax=1e-1)
 
-ax1 = fig.add_axes([0.1, 0.12, 0.73, 0.78])
-mesh.plotImage(
-    plotting_map * log_mod,
-    ax=ax1,
-    grid=False,
-    clim=(np.log10(resistor_conductivity), np.log10(conductor_conductivity)),
-    pcolorOpts={"cmap": "viridis"},
+ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
+mesh.plot_image(
+    plotting_map * conductivity_model, ax=ax1, grid=False, pcolor_opts={"norm": norm}
 )
+ax1.set_xlim(-600, 600)
+ax1.set_ylim(-600, 0)
 ax1.set_title("Conductivity Model")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("z (m)")
 
-ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
-norm = mpl.colors.Normalize(
-    vmin=np.log10(resistor_conductivity), vmax=np.log10(conductor_conductivity)
-)
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, cmap=mpl.cm.viridis, orientation="vertical", format="$10^{%.1f}$"
-)
-cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
+ax2 = fig.add_axes([0.84, 0.17, 0.03, 0.7])
+cbar = mpl.colorbar.ColorbarBase(ax2, norm=norm, orientation="vertical")
+cbar.set_label(r"$\sigma$ (S/m)", rotation=270, labelpad=15, size=12)
+
+plt.show()
 
 
 ###############################################################
@@ -232,24 +241,49 @@ simulation = dc.simulation_2d.Simulation2DNodal(
 # units of volts.
 dpred = simulation.dpred(conductivity_model)
 
-# Define a data object (required for pseudo-section plot)
-data_obj = data.Data(survey, dobs=dpred)
+#######################################################################
+# Plotting in Pseudo-Section
+# --------------------------
+#
+# Here, we demonstrate how to plot 2D data in pseudo-section.
+# First, we plot the voltages in pseudo-section as a scatter plot. This
+# allows us to visualize the pseudo-sensitivity locations for our survey.
+# Next, we plot the apparent conductivities in pseudo-section as a filled
+# contour plot.
+#
+
+# Plot voltages pseudo-section
+fig = plt.figure(figsize=(12, 5))
+ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
+plot_pseudosection(
+    survey,
+    dobs=np.abs(dpred),
+    plot_type="scatter",
+    ax=ax1,
+    scale="log",
+    cbar_label="V/A",
+    scatter_opts={"cmap": mpl.cm.viridis},
+)
+ax1.set_title("Normalized Voltages")
+plt.show()
+
+# Get apparent conductivities from volts and survey geometry
+apparent_conductivities = 1 / apparent_resistivity_from_voltage(survey, dpred)
 
 # Plot apparent conductivity pseudo-section
 fig = plt.figure(figsize=(12, 5))
-
-ax1 = fig.add_axes([0.05, 0.05, 0.8, 0.9])
-plot_pseudoSection(
-    data_obj,
+ax1 = fig.add_axes([0.1, 0.15, 0.75, 0.78])
+plot_pseudosection(
+    survey,
+    dobs=apparent_conductivities,
+    plot_type="contourf",
     ax=ax1,
-    survey_type="dipole-dipole",
-    data_type="appConductivity",
-    space_type="half-space",
     scale="log",
-    pcolorOpts={"cmap": "viridis"},
+    cbar_label="S/m",
+    mask_topography=True,
+    contourf_opts={"levels": 20, "cmap": mpl.cm.viridis},
 )
-ax1.set_title("Apparent Conductivity [S/m]")
-
+ax1.set_title("Apparent Conductivity")
 plt.show()
 
 #######################################################################
@@ -259,23 +293,39 @@ plt.show()
 # Write DC resistivity data, topography and true model
 #
 
-if save_file:
+if write_output:
 
-    dir_path = os.path.dirname(dc.__file__).split(os.path.sep)[:-4]
-    dir_path.extend(["tutorials", "assets", "dcr2d"])
+    dir_path = os.path.dirname(__file__).split(os.path.sep)
+    dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
 
-    # Add 5% Gaussian noise to each datum
-    noise = 0.05 * dpred * np.random.rand(len(dpred))
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+
+    # Add 10% Gaussian noise to each datum
+    np.random.seed(225)
+    std = 0.05 * np.abs(dpred)
+    dc_noise = std * np.random.rand(len(dpred))
+    dobs = dpred + dc_noise
+
+    # Create a survey with the original electrode locations
+    # and not the shifted ones
+    # Generate source list for DC survey line
+    source_list = generate_dcip_sources_line(
+        survey_type,
+        data_type,
+        dimension_type,
+        end_locations,
+        topo_xyz,
+        num_rx_per_src,
+        station_separation,
+    )
+    survey_original = dc.survey.Survey(source_list)
 
     # Write out data at their original electrode locations (not shifted)
-    data_array = np.c_[electrode_locations, dpred + noise]
-
+    data_obj = data.Data(survey_original, dobs=dobs, standard_deviation=std)
     fname = dir_path + "dc_data.obs"
-    np.savetxt(fname, data_array, fmt="%.4e")
+    write_dcip2d_ubc(fname, data_obj, "volt", "dobs")
 
-    fname = dir_path + "true_conductivity.txt"
-    np.savetxt(fname, conductivity_map * conductivity_model, fmt="%.4e")
-
-    fname = dir_path + "xyz_topo.txt"
-    np.savetxt(fname, xyz_topo, fmt="%.4e")
+    fname = dir_path + "topo_xyz.txt"
+    np.savetxt(fname, topo_xyz, fmt="%.4e")

@@ -111,7 +111,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
         raise IOError("Incorrect input type for locs. \n" + "Can be 'All' or ndarray ")
     # Sort out input frequencies
     if freqs == "All":
-        frequencies = NSEMdata.survey.freqs
+        frequencies = NSEMdata.survey.frequencies
     elif isinstance(freqs, np.ndarray):
         frequencies = freqs
     elif isinstance(freqs, list):
@@ -140,7 +140,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
 
     # Filter the data
     for src in NSEMdata.survey.source_list:
-        if src.freq in frequencies:
+        if src.frequency in frequencies:
             new_rxList = []
             for rx in src.receiver_list:
                 if rx_comp is True or np.any(
@@ -311,7 +311,14 @@ def rec_to_ndarr(rec_arr, data_type=float):
     """
     Function to transform a numpy record array to a nd array.
     """
-    return rec_arr.copy().view((data_type, len(rec_arr.dtype.names)))
+    # fix for numpy >= 1.16.0 with masked arrays
+    # https://numpy.org/devdocs/release/1.16.0-notes.html#multi-field-views-return-a-view-instead-of-a-copy
+    return np.array(
+        recFunc.structured_to_unstructured(
+            recFunc.repack_fields(rec_arr[list(rec_arr.dtype.names)])
+        ),
+        dtype=data_type,
+    )
 
 
 def makeAnalyticSolution(mesh, model, elev, freqs):
@@ -390,7 +397,7 @@ def plotMT1DModelData(problem, models, symList=None):
         meshPts = np.concatenate(
             (problem.mesh.gridN[0:1], np.kron(problem.mesh.gridN[1::], np.ones(2))[:-1])
         )
-        modelPts = np.kron(1.0 / (problem.sigmaMap * model), np.ones(2,))
+        modelPts = np.kron(1.0 / (problem.sigmaMap * model), np.ones(2,),)
         axM.semilogx(modelPts, meshPts, color=col)
 
         ## Data
