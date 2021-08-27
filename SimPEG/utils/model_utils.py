@@ -262,47 +262,44 @@ def surface_layer_index(mesh, topo, index=0):
     return actv
 
 
-def depth_weighting(mesh, reference_locs, indActive=None, exponent=None, threshold=None):
+def depth_weighting(mesh, reference_locs, indActive=None, exponent=2.0, threshold=None):
+    """ A simple depth weighting function
 
-    """
-    Create depth weighting
+    This function is a simple form of depth weighting based off of the vertical distance
+    of mesh cell centers from the reference location(s).
+
+    This is commonly used to counteract the natural decay of potential field data at
+    depth.
 
     Parameters
     ----------
-    mesh : Mesh object
+    mesh : discretize.base.BaseMesh
         discretize model space.
-    reference_locs : receiver locations
-        float or np.ndarray with shape of (points, dim).
-    indActive : array of bool
-        index vector for the active cells on the mesh below the topography.
-    exponent : float
+    reference_locs : float or (N, dim) numpy.ndarray
+        the reference values for top of the points
+    indActive : (mesh.n_cells) numpy.ndarray of bool, optional
+        index vector for the active cells on the mesh.
+        A value of `None` implies every cell is active.
+    exponent : float, optional
         exponent parameter for depth weighting.
-    threshold : float
-        adjustable constant parameter.
+    threshold : float, optional
+        The default value is half of the smallest cell width.
 
     Returns
     -------
-    wz : numpy.ndarray
-        normazlied depth weighting captures decay of the potential field data.
+    wz : (n_active) numpy.ndarray
+        Normalized depth weights for the mesh, at every active cell.
 
     Notes
     -----
+    When ``reference_locs`` is a single value the function is defined as,
 
-    ..math::
+    >>> wz = np.abs(mesh.cell_centers[:, -1] - reference_locs + threshold) ** (-0.5 * exponent)
 
-        w(z) = volume * (delta_z + threshold) ** (-0.5 * exponent)
-
-        where 'delta_z' is depth of model cells along the z direction from
-        receiver locations; 'exponent' and 'threshold' are two adjustable parameters;
-        'volume' contains volumetric information for each model cell.
-
-
-      """
-
-
-    # Default exponent value
-    if exponent is None:
-        exponent = 2.0
+    When ``reference_locs`` is an array of values, the difference is between the
+    nearest point (of first two dimensions) in ``reference_locs``.
+    'exponent' and 'threshold' are two adjustable parameters.
+    """
 
     # Default threshold value
     if threshold is None:
@@ -323,14 +320,11 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=None, thresho
         delta_z = np.abs(mesh.cell_centers[:, -1] - reference_locs[ind, -1])
 
     else:
-        raise Exception(
-            "reference_locs must be either a scalar or 2d array!"
-            )
+        raise ValueError("reference_locs must be either a scalar or 2d array!")
 
     wz = (delta_z + threshold) ** (-0.5 * exponent)
 
     if indActive is not None:
         wz = wz[indActive]
 
-
-    return wz
+    return wz / np.nanmax(wz)
