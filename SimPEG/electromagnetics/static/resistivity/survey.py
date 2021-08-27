@@ -46,6 +46,10 @@ class Survey(BaseSurvey):
     def __init__(self, source_list, **kwargs):
         super(Survey, self).__init__(source_list, **kwargs)
 
+    def __repr__(self):
+        return (f"{self.__class__.__name__}({self.survey_type}; "
+                f"#sources: {self.nSrc}; #data: {self.nD})")
+
     @property
     def locations_a(self):
         """
@@ -83,20 +87,36 @@ class Survey(BaseSurvey):
         return self._locations_n
 
     a_locations = deprecate_property(
-        locations_a, "a_locations", new_name="locations_a", removal_version="0.15.0"
+        locations_a,
+        "a_locations",
+        new_name="locations_a",
+        removal_version="0.16.0",
+        future_warn=True,
     )
     b_locations = deprecate_property(
-        locations_b, "b_locations", new_name="locations_b", removal_version="0.15.0"
+        locations_b,
+        "b_locations",
+        new_name="locations_b",
+        removal_version="0.16.0",
+        future_warn=True,
     )
     m_locations = deprecate_property(
-        locations_m, "m_locations", new_name="locations_m", removal_version="0.15.0"
+        locations_m,
+        "m_locations",
+        new_name="locations_m",
+        removal_version="0.16.0",
+        future_warn=True,
     )
     n_locations = deprecate_property(
-        locations_n, "n_locations", new_name="locations_n", removal_version="0.15.0"
+        locations_n,
+        "n_locations",
+        new_name="locations_n",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     @property
-    def electrode_locations(self):
+    def unique_electrode_locations(self):
         """
         Unique locations of the A, B, M, N electrodes
         """
@@ -106,19 +126,61 @@ class Survey(BaseSurvey):
         loc_n = self.locations_n
         return np.unique(np.vstack((loc_a, loc_b, loc_m, loc_n)), axis=0)
 
-    def set_geometric_factor(
-        self, data_type="volt", survey_type="dipole-dipole", space_type="half-space"
-    ):
+    electrode_locations = deprecate_property(
+        unique_electrode_locations,
+        "electrode_locations",
+        new_name="unique_electrode_locations",
+        removal_version="0.16.0",
+    )
 
-        geometric_factor = static_utils.geometric_factor(
-            self, survey_type=survey_type, space_type=space_type
-        )
+    @property
+    def source_locations(self):
+        """
+        Returns, in order, the source locations for all sources in the survey.
+
+        Input:
+        :param self: SimPEG.electromagnetics.static.resistivity.Survey
+
+        Output:
+        :return source_locations: List of np.ndarray containing the A and B
+        electrode locations.
+        """
+        src_a = []
+        src_b = []
+
+        for src in self.source_list:
+
+            src_a.append(src.location_a)
+            src_b.append(src.location_b)
+
+        return [np.vstack(src_a), np.vstack(src_b)]
+
+    def set_geometric_factor(
+        self, space_type="half-space", data_type=None, survey_type=None,
+    ):
+        if data_type is not None:
+            warnings.warn(
+                "The data_type kwarg is deprecated, please set the data_type on the "
+                "receiver object itself. This behavoir will be removed in SimPEG "
+                "0.16.0",
+                DeprecationWarning,
+            )
+        if survey_type is not None:
+            warnings.warn(
+                "The survey_type parameter is no longer needed, and it will be removed "
+                "in SimPEG 0.16.0.",
+                FutureWarning,
+            )
+
+        geometric_factor = static_utils.geometric_factor(self, space_type=space_type)
 
         geometric_factor = data.Data(self, geometric_factor)
         for source in self.source_list:
             for rx in source.receiver_list:
-                rx._geometric_factor = geometric_factor[source, rx]
-                rx.data_type = data_type
+                if data_type is not None:
+                    rx.data_type = data_type
+                if rx.data_type == "apparent_resistivity":
+                    rx._geometric_factor[source] = geometric_factor[source, rx]
         return geometric_factor
 
     def _set_abmn_locations(self):
@@ -165,15 +227,14 @@ class Survey(BaseSurvey):
             "The getABMN_locations method has been deprecated. Please instead "
             "ask for the property of interest: survey.locations_a, "
             "survey.locations_b, survey.locations_m, or survey.locations_n. "
-            "This will be removed in version 0.15.0 of SimPEG",
-            DeprecationWarning,
+            "This will be removed in version 0.16.0 of SimPEG",
+            FutureWarning,
         )
 
     def drape_electrodes_on_topography(
         self, mesh, actind, option="top", topography=None, force=False
     ):
-        """Shift electrode locations to be on [top] of the active cells.
-        """
+        """Shift electrode locations to be on [top] of the active cells."""
         if self.survey_geometry == "surface":
             loc_a = self.locations_a
             loc_b = self.locations_b
@@ -223,8 +284,8 @@ class Survey(BaseSurvey):
         warnings.warn(
             "The drapeTopo method has been deprecated. Please instead "
             "use the drape_electrodes_on_topography method. "
-            "This will be removed in version 0.15.0 of SimPEG",
-            DeprecationWarning,
+            "This will be removed in version 0.16.0 of SimPEG",
+            FutureWarning,
         )
         self.drape_electrodes_on_topography(*args, **kwargs)
 
@@ -234,6 +295,6 @@ class Survey(BaseSurvey):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Survey_ky(Survey):
     pass

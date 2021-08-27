@@ -275,9 +275,9 @@ class HaverkampParams(object):
     def celia1990(self):
         """Parameters used in:
 
-            Celia, Michael A., Efthimios T. Bouloutas, and Rebecca L. Zarba.
-            "A general mass-conservative numerical solution for the unsaturated
-            flow equation." Water Resources Research 26.7 (1990): 1483-1496.
+        Celia, Michael A., Efthimios T. Bouloutas, and Rebecca L. Zarba.
+        "A general mass-conservative numerical solution for the unsaturated
+        flow equation." Water Resources Research 26.7 (1990): 1483-1496.
         """
         return {
             "alpha": 1.611e06,

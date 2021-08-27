@@ -1,0 +1,47 @@
+parameters:
+  os : ['ubuntu-latest']
+  py_vers: ['3.7']
+  test: ['tests/em',
+         'tests/docs tests/base tests/flow tests/seis tests/utils',
+         'tests/examples/test_examples_1.py',
+         'tests/examples/test_examples_2.py',
+         'tests/examples/test_examples_3.py',
+         'tests/examples/test_tutorials_1.py tests/examples/test_tutorials_2.py',
+         'tests/examples/test_tutorials_3.py',
+         'tests/pf tests/dask',
+         ]
+
+jobs:
+  - ${{ each os in parameters.os }}:
+    - ${{ each py_vers in parameters.py_vers }}:
+      - ${{ each test in parameters.test }}:
+        - job:
+          displayName: ${{ os }}_${{ py_vers }}_${{ test }}
+          steps:
+          - script: echo "##vso[task.prependpath]$CONDA/bin"
+            displayName: Add conda to PATH
+
+          - script: conda create --yes --quiet --name test python=${{ py_vers }} pip
+            displayName: Create Anaconda environment
+
+          - script: |
+              eval "$(conda shell.bash hook)"
+              conda activate test
+              conda install --yes --quiet numpy scipy matplotlib ipython h5py
+              conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec
+              pip install -r requirements_dev.txt
+              pip install pytest-azurepipelines
+              pip install -e .
+            displayName: Install requirements and build
+
+          - script: |
+              eval "$(conda shell.bash hook)"
+              conda activate test
+              export KMP_WARNINGS=0
+              pytest ${{ test }} -v -s --cov-config=.coveragerc --cov=SimPEG --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
+            displayName: 'Testing ${{ test }}'
+
+          - script: |
+              bash <(curl -s https://codecov.io/bash)
+            displayName: 'Upload coverage to codecov.io'
+            condition: eq(${{ py_vers }}, '3.7')

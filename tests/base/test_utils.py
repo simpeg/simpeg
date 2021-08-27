@@ -25,7 +25,7 @@ from SimPEG.utils import (
     surface2ind_topo,
 )
 import discretize
-from discretize.Tests import checkDerivative
+from discretize.tests import checkDerivative
 
 
 TOL = 1e-8

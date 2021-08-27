@@ -201,11 +201,19 @@ class BaseSimulation(props.HasModel):
                 setattr(self, mat, None)  # set to none
 
     Solver = deprecate_property(
-        solver, "Solver", new_name="simulation.solver", removal_version="0.15.0"
+        solver,
+        "Solver",
+        new_name="simulation.solver",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     solverOpts = deprecate_property(
-        solver_opts, "solverOpts", new_name="solver_opts", removal_version="0.15.0"
+        solver_opts,
+        "solverOpts",
+        new_name="solver_opts",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     ###########################################################################
@@ -353,9 +361,9 @@ class BaseSimulation(props.HasModel):
         std = kwargs.pop("std", None)
         if std is not None:
             warnings.warn(
-                "The std parameter will be deprecated in SimPEG 0.15.0. "
+                "The std parameter will be deprecated in SimPEG 0.16.0. "
                 "Please use relative_error.",
-                DeprecationWarning,
+                FutureWarning,
             )
             relative_error = std
 
@@ -388,8 +396,8 @@ class BaseSimulation(props.HasModel):
             "Simulation.pair(survey) will be deprecated. Please update your code "
             "to instead use simulation.survey = survey, or pass it upon intialization "
             "of the simulation object. This will be removed in version "
-            "0.15.0 of SimPEG",
-            DeprecationWarning,
+            "0.16.0 of SimPEG",
+            FutureWarning,
         )
         survey.pair(self)
 
@@ -447,11 +455,19 @@ class BaseTimeSimulation(BaseSimulation):
         return self.time_mesh.vectorNx
 
     timeSteps = deprecate_property(
-        time_steps, "timeSteps", new_name="time_steps", removal_version="0.15.0"
+        time_steps,
+        "timeSteps",
+        new_name="time_steps",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     timeMesh = deprecate_property(
-        time_mesh, "timeMesh", new_name="time_mesh", removal_version="0.15.0"
+        time_mesh,
+        "timeMesh",
+        new_name="time_mesh",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     def dpred(self, m=None, f=None):
@@ -539,7 +555,7 @@ class LinearSimulation(BaseSimulation):
 
     def fields(self, m):
         self.model = m
-        return self.G.dot(self.model)
+        return self.G.dot(self.linear_model)
 
     def dpred(self, m=None, f=None):
         if m is not None:

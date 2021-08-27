@@ -22,25 +22,25 @@ class MagneticsDriver_Inv(object):
 
     def readDriverFile(self, input_file):
         """
-            Read input files for forward modeling MAG data with integral form
-            INPUT:
-            input_file: File name containing the forward parameter
+        Read input files for forward modeling MAG data with integral form
+        INPUT:
+        input_file: File name containing the forward parameter
 
-            OUTPUT:
-            mshfile
-            obsfile
-            topofile
-            start model
-            ref model
-            mag model
-            weightfile
-            chi_target
-            as, ax ,ay, az
-            upper, lower bounds
-            lp, lqx, lqy, lqz
+        OUTPUT:
+        mshfile
+        obsfile
+        topofile
+        start model
+        ref model
+        mag model
+        weightfile
+        chi_target
+        as, ax ,ay, az
+        upper, lower bounds
+        lp, lqx, lqy, lqz
 
-            # All files should be in the working directory,
-            # otherwise the path must be specified.
+        # All files should be in the working directory,
+        # otherwise the path must be specified.
 
         """
 
@@ -188,9 +188,7 @@ class MagneticsDriver_Inv(object):
     @property
     def data(self):
         if getattr(self, "_data", None) is None:
-            self._data = utils.io_utils.readUBCmagneticsObservations(
-                self.basePath + self.obsfile
-            )
+            self._data = utils.io_utils.read_mag3d_ubc(self.basePath + self.obsfile)
         return self._data
 
     @property
@@ -295,7 +293,7 @@ class MagneticsDriver_Inv(object):
     @property
     def magnetizationModel(self):
         """
-            magnetization vector
+        magnetization vector
         """
 
         if getattr(self, "magfile", None) is None:

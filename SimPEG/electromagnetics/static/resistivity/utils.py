@@ -54,7 +54,7 @@ def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
 
 
 def _mini_pole_pole(survey, verbose=False):
-    """ Function to miniaturize a survey for use in DCSimulation.
+    """Function to miniaturize a survey for use in DCSimulation.
 
     Miniaturizes the survey into the minimum number of unique pole-pole electrode
     combinations for AM, AN, BM, BN pairs (also taking into account reciprocity),

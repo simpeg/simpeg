@@ -37,12 +37,12 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def getJtJdiag(self, m, W=None):
         """
-            Return the diagonal of JtJ
+        Return the diagonal of JtJ
         """
         self.model = m
 
         if W is None:
-            W = np.ones(self.nD)
+            W = np.ones(self.survey.nD)
         else:
             W = W.diagonal() ** 2
         if getattr(self, "_gtg_diagonal", None) is None:
@@ -57,7 +57,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def getJ(self, m, f=None):
         """
-            Sensitivity matrix
+        Sensitivity matrix
         """
         return self.G.dot(self.rhoDeriv)
 
@@ -99,30 +99,41 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def evaluate_integral(self, receiver_location, components):
         """
-            Compute the forward linear relationship between the model and the physics at a point
-            and for every components of the survey.
+        Compute the forward linear relationship between the model and the physics at a point
+        and for all components of the survey.
 
-            :param numpy.ndarray receiver_location:  array with shape (n_receivers, 3)
-                Array of receiver locations as x, y, z columns.
-            :param list[str] components: List of gravity components chosen from:
-                'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz', 'gyy', 'gyz', 'gzz', 'guv'
+        :param numpy.ndarray receiver_location:  array with shape (n_receivers, 3)
+            Array of receiver locations as x, y, z columns.
+        :param list[str] components: List of gravity components chosen from:
+            'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz', 'gyy', 'gyz', 'gzz', 'guv'
 
-            :rtype numpy.ndarray: rows
-            :returns: ndarray with shape (n_components, n_cells)
-                Dense array mapping of the contribution of all active cells to data components::
+        :rtype numpy.ndarray: rows
+        :returns: ndarray with shape (n_components, n_cells)
+            Dense array mapping of the contribution of all active cells to data components::
 
-                    rows =
-                        g_1 = [g_1x g_1y g_1z]
-                        g_2 = [g_2x g_2y g_2z]
-                               ...
-                        g_c = [g_cx g_cy g_cz]
+                rows =
+                    g_1 = [g_1x g_1y g_1z]
+                    g_2 = [g_2x g_2y g_2z]
+                           ...
+                    g_c = [g_cx g_cy g_cz]
 
         """
-        eps = 1e-8
+        tol1 = 1e-4
+        tol2 = 1e-10
+
+        # base cell dimensions
+        min_hx, min_hy, min_hz = (
+            self.mesh.hx.min(),
+            self.mesh.hy.min(),
+            self.mesh.hz.min(),
+        )
 
         dx = self.Xn - receiver_location[0]
+        dx[np.abs(dx) / min_hx < tol1] = tol1 * min_hx
         dy = self.Yn - receiver_location[1]
+        dy[np.abs(dy) / min_hy < tol1] = tol1 * min_hy
         dz = self.Zn - receiver_location[2]
+        dz[np.abs(dz) / min_hz < tol1] = tol1 * min_hz
 
         rows = {component: np.zeros(self.Xn.shape[0]) for component in components}
 
@@ -137,15 +148,15 @@ class Simulation3DIntegral(BasePFSimulation):
                         mkvc(dx[:, aa]) ** 2
                         + mkvc(dy[:, bb]) ** 2
                         + mkvc(dz[:, cc]) ** 2
-                    ) ** (0.50) + eps
+                    ) ** (0.50)
 
-                    dz_r = dz[:, cc] + r + eps
-                    dy_r = dy[:, bb] + r + eps
-                    dx_r = dx[:, aa] + r + eps
+                    dz_r = dz[:, cc] + r
+                    dy_r = dy[:, bb] + r
+                    dx_r = dx[:, aa] + r
 
-                    dxr = dx[:, aa] * r + eps
-                    dyr = dy[:, bb] * r + eps
-                    dzr = dz[:, cc] * r + eps
+                    dxr = dx[:, aa] * r
+                    dyr = dy[:, bb] * r
+                    dzr = dz[:, cc] * r
 
                     dydz = dy[:, bb] * dz[:, cc]
                     dxdy = dx[:, aa] * dy[:, bb]
@@ -199,9 +210,9 @@ class Simulation3DIntegral(BasePFSimulation):
                             * (-1) ** bb
                             * (-1) ** cc
                             * (
-                                dxdy / (r * dz_r + eps)
-                                + dxdz / (r * dy_r + eps)
-                                - np.arctan(arg + eps)
+                                dxdy / (r * dz_r)
+                                + dxdz / (r * dy_r)
+                                - np.arctan(arg)
                                 + dx[:, aa]
                                 * (1.0 / (1 + arg ** 2.0))
                                 * dydz
@@ -220,7 +231,7 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dy[:, bb] ** 2.0 / (r * dz_r)
                                 + dz[:, cc] / r
                                 - 1.0
-                                / (1 + arg ** 2.0 + eps)
+                                / (1 + arg ** 2.0)
                                 * (dz[:, cc] / r ** 2)
                                 * (r - dy[:, bb] ** 2.0 / r)
                             )
@@ -254,11 +265,11 @@ class Simulation3DIntegral(BasePFSimulation):
                             * (-1) ** bb
                             * (-1) ** cc
                             * (
-                                dxdy / (r * dz_r + eps)
-                                + dydz / (r * dx_r + eps)
-                                - np.arctan(arg + eps)
+                                dxdy / (r * dz_r)
+                                + dydz / (r * dx_r)
+                                - np.arctan(arg)
                                 + dy[:, bb]
-                                * (1.0 / (1 + arg ** 2.0 + eps))
+                                * (1.0 / (1 + arg ** 2.0))
                                 * dxdz
                                 / dyr ** 2.0
                                 * (r + dy[:, bb] ** 2.0 / r)
@@ -304,7 +315,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
 class Simulation3DDifferential(BaseSimulation):
     """
-        Gravity in differential equations!
+    Gravity in differential equations!
     """
 
     _deprecate_main_map = "rhoMap"
@@ -334,10 +345,7 @@ class Simulation3DDifferential(BaseSimulation):
         self._MfI = utils.sdiag(1.0 / self._Mfi.diagonal())
 
     def getRHS(self, m):
-        """
-
-
-        """
+        """"""
 
         Mc = utils.sdiag(self.mesh.vol)
 
@@ -361,15 +369,15 @@ class Simulation3DDifferential(BaseSimulation):
 
     def fields(self, m):
         """
-            Return magnetic potential (u) and flux (B)
-            u: defined on the cell nodes [nC x 1]
-            gField: defined on the cell faces [nF x 1]
+        Return magnetic potential (u) and flux (B)
+        u: defined on the cell nodes [nC x 1]
+        gField: defined on the cell faces [nF x 1]
 
-            After we compute u, then we update B.
+        After we compute u, then we update B.
 
-            .. math ::
+        .. math ::
 
-                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
+            \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
         from scipy.constants import G as NewtG
@@ -391,11 +399,11 @@ class Simulation3DDifferential(BaseSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class GravityIntegral(Simulation3DIntegral):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_Diff(Simulation3DDifferential):
     pass

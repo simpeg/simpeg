@@ -20,10 +20,10 @@ class BaseSrc(survey.BaseSrc):
     def __init__(self, receiver_list, **kwargs):
         super(BaseSrc, self).__init__(receiver_list, **kwargs)
 
-    def eval(self, prob):
+    def eval(self, sim):
         raise NotImplementedError
 
-    def evalDeriv(self, prob):
+    def evalDeriv(self, sim):
         return Zero()
 
 
@@ -37,7 +37,7 @@ class Dipole(BaseSrc):
         survey.SourceLocationArray("location of electrode"),
     )
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.15.0"
+        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
     )
 
     def __init__(
@@ -54,8 +54,8 @@ class Dipole(BaseSrc):
             warnings.warn(
                 "The locationA property has been deprecated. Please set the "
                 "location_a property instead. This will be removed in version"
-                " 0.15.0 of SimPEG",
-                DeprecationWarning,
+                " 0.16.0 of SimPEG",
+                FutureWarning,
             )
 
         if "locationB" in kwargs.keys():
@@ -63,8 +63,8 @@ class Dipole(BaseSrc):
             warnings.warn(
                 "The locationB property has been deprecated. Please set the "
                 "location_b property instead. This will be removed in version"
-                " 0.15.0 of SimPEG",
-                DeprecationWarning,
+                " 0.16.0 of SimPEG",
+                FutureWarning,
             )
 
         # if location_a set, then use location_a, location_b
@@ -102,6 +102,10 @@ class Dipole(BaseSrc):
         super(Dipole, self).__init__(receiver_list, **kwargs)
         self.location = location
 
+    def __repr__(self):
+        return (f"{self.__class__.__name__}("
+                f"a: {self.location_a}; b: {self.location_b})")
+
     @property
     def location_a(self):
         """Location of the A-electrode"""
@@ -112,19 +116,19 @@ class Dipole(BaseSrc):
         """Location of the B-electrode"""
         return self.location[1]
 
-    def eval(self, prob):
+    def eval(self, sim):
         if self._q is not None:
             return self._q
         else:
-            if prob._formulation == "HJ":
-                inds = closestPoints(prob.mesh, self.location, gridLoc="CC")
-                self._q = np.zeros(prob.mesh.nC)
+            if sim._formulation == "HJ":
+                inds = closestPoints(sim.mesh, self.location, gridLoc="CC")
+                self._q = np.zeros(sim.mesh.nC)
                 self._q[inds] = self.current * np.r_[1.0, -1.0]
-            elif prob._formulation == "EB":
-                qa = prob.mesh.getInterpolationMat(
+            elif sim._formulation == "EB":
+                qa = sim.mesh.getInterpolationMat(
                     self.location[0], locType="N"
                 ).toarray()
-                qb = -prob.mesh.getInterpolationMat(
+                qb = -sim.mesh.getInterpolationMat(
                     self.location[1], locType="N"
                 ).toarray()
                 self._q = self.current * (qa + qb)
@@ -135,15 +139,25 @@ class Pole(BaseSrc):
     def __init__(self, receiver_list=[], location=None, **kwargs):
         super(Pole, self).__init__(receiver_list, location=location, **kwargs)
 
-    def eval(self, prob):
+    def eval(self, sim):
         if self._q is not None:
             return self._q
         else:
-            if prob._formulation == "HJ":
-                inds = closestPoints(prob.mesh, self.location)
-                self._q = np.zeros(prob.mesh.nC)
+            if sim._formulation == "HJ":
+                inds = closestPoints(sim.mesh, self.location)
+                self._q = np.zeros(sim.mesh.nC)
                 self._q[inds] = self.current * np.r_[1.0]
-            elif prob._formulation == "EB":
-                q = prob.mesh.getInterpolationMat(self.location, locType="N")
+            elif sim._formulation == "EB":
+                q = sim.mesh.getInterpolationMat(self.location, locType="N")
                 self._q = self.current * q.toarray()
             return self._q
+
+    @property
+    def location_a(self):
+        """Locations of the A electrode"""
+        return self.location
+
+    @property
+    def location_b(self):
+        """Location of the B electrode"""
+        return np.nan * np.ones_like(self.location)

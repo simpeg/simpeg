@@ -18,9 +18,7 @@ from .survey import Survey
 
 
 class IO(properties.HasProperties):
-    """
-
-    """
+    """"""
 
     # Survey
     survey_layout = properties.StringChoice(
@@ -299,12 +297,18 @@ class IO(properties.HasProperties):
         Compute geometric factor, G, using locational informaition
         in survey object
         """
-        G = geometric_factor(
-            survey, survey_type=self.survey_type, space_type=self.space_type
-        )
+        G = geometric_factor(survey, space_type=self.space_type)
         return G
 
-    def from_ambn_locations_to_survey(
+    def from_ambn_locations_to_survey(self, *args, **kwargs):
+        warnings.warn(
+            "from_ambn_locations_to_survey has been renamed to "
+            "from_abmn_locations_to_survey. It will be removed in a future version 0.17.0 of simpeg",
+            DeprecationWarning,
+        )
+        return self.from_abmn_locations_to_survey(*args, **kwargs)
+
+    def from_abmn_locations_to_survey(
         self,
         a_locations,
         b_locations,
@@ -712,7 +716,7 @@ class IO(properties.HasProperties):
         orientation="vertical",
     ):
         """
-            Plot 2D pseudo-section for DC-IP data
+        Plot 2D pseudo-section for DC-IP data
         """
         matplotlib.rcParams["font.size"] = 12
 
@@ -857,7 +861,7 @@ class IO(properties.HasProperties):
             else:
                 survey_type = "dipole-dipole"
 
-        survey = self.from_ambn_locations_to_survey(
+        survey = self.from_abmn_locations_to_survey(
             a, b, m, n, survey_type=survey_type, data_dc=voltage
         )
         survey.dobs = voltage[self.sort_inds]
@@ -870,8 +874,8 @@ class IO(properties.HasProperties):
         if uncert is not None:
             warnings.warn(
                 "The uncertainty option has been deprecated and will be removed"
-                " in SimPEG 0.15.0. Please use standard_deviation.",
-                DeprecationWarning,
+                " in SimPEG 0.16.0. Please use standard_deviation.",
+                FutureWarning,
             )
             standard_deviation = uncert
 
@@ -922,7 +926,7 @@ class IO(properties.HasProperties):
             else:
                 rx_type = "dipole"
             survey_type = src_type + rx_type
-            survey = self.from_ambn_locations_to_survey(
+            survey = self.from_abmn_locations_to_survey(
                 a_locations,
                 b_locations,
                 m_locations,

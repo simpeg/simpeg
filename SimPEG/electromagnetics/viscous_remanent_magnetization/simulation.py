@@ -18,9 +18,7 @@ from .receivers import Point, SquareLoop
 
 
 class BaseVRMSimulation(BaseSimulation):
-    """
-
-    """
+    """"""
 
     _AisSet = False
     refinement_factor = properties.Integer("Sensitivity refinement factor", min=0)
@@ -33,13 +31,15 @@ class BaseVRMSimulation(BaseSimulation):
         refinement_factor,
         "ref_factor",
         new_name="refinement_factor",
-        removal_version="0.15.0",
+        removal_version="0.16.0",
+        future_warn=True,
     )
     ref_radius = deprecate_property(
         refinement_distance,
         "ref_radius",
         new_name="refinement_distance",
-        removal_version="0.15.0",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
     def __init__(self, mesh=None, **kwargs):
@@ -121,19 +121,19 @@ class BaseVRMSimulation(BaseSimulation):
     def _getH0matrix(self, xyz, pp):
 
         """
-        Creates sparse matrix containing inducing field components
-        for source pp
+                Creates sparse matrix containing inducing field components
+                for source pp
 
-..        REQUIRED ARGUMENTS:
-..
-..        xyz: N X 3 array of locations to predict field
-..
-..        pp: Source index
-..
-..        OUTPUTS:
-..
-..        H0: A 3N X N sparse array containing Hx, Hy and Hz at all locations
-..
+        ..        REQUIRED ARGUMENTS:
+        ..
+        ..        xyz: N X 3 array of locations to predict field
+        ..
+        ..        pp: Source index
+        ..
+        ..        OUTPUTS:
+        ..
+        ..        H0: A 3N X N sparse array containing Hx, Hy and Hz at all locations
+        ..
         """
 
         srcObj = self.survey.source_list[pp]
@@ -151,20 +151,20 @@ class BaseVRMSimulation(BaseSimulation):
     def _getGeometryMatrix(self, xyzc, xyzh, pp):
 
         """
-        Creates the dense geometry matrix which maps from the magnetized voxel
-        cells to the receiver locations for source pp
-..
-..        REQUIRED ARGUMENTS:
-..
-..        xyzc: N by 3 numpy array containing cell center locations [xc,yc,zc]
-..
-..        xyzh: N by 3 numpy array containing cell dimensions [hx,hy,hz]
-..
-..        pp: Source index
-..
-..        OUTPUTS:
-..
-..        G: Linear geometry operator
+                Creates the dense geometry matrix which maps from the magnetized voxel
+                cells to the receiver locations for source pp
+        ..
+        ..        REQUIRED ARGUMENTS:
+        ..
+        ..        xyzc: N by 3 numpy array containing cell center locations [xc,yc,zc]
+        ..
+        ..        xyzh: N by 3 numpy array containing cell dimensions [hx,hy,hz]
+        ..
+        ..        pp: Source index
+        ..
+        ..        OUTPUTS:
+        ..
+        ..        G: Linear geometry operator
 
         """
 
@@ -695,7 +695,7 @@ class BaseVRMSimulation(BaseSimulation):
                         G[COUNT, :] = c * np.c_[Gxz, Gyz, Gzz]
                         COUNT = COUNT + 1
 
-        return np.matrix(G)
+        return G
 
     def _getAMatricies(self):
 
@@ -739,24 +739,24 @@ class BaseVRMSimulation(BaseSimulation):
     def _getSubsetAcolumns(self, xyzc, xyzh, pp, qq, refFlag):
 
         """
-        This method returns the refined sensitivities for columns that will be
-        replaced in the A matrix for source pp and refinement factor qq.
-..
-..        INPUTS:
-..
-..        xyzc -- Cell centers of topo mesh cells N X 3 array
-..
-..        xyzh -- Cell widths of topo mesh cells N X 3 array
-..
-..        pp -- Source ID
-..
-..        qq -- Mesh refinement factor
-..
-..        refFlag -- refinement factors for all topo mesh cells
-..
-..        OUTPUTS:
-..
-..        Acols -- Columns containing replacement sensitivities
+                This method returns the refined sensitivities for columns that will be
+                replaced in the A matrix for source pp and refinement factor qq.
+        ..
+        ..        INPUTS:
+        ..
+        ..        xyzc -- Cell centers of topo mesh cells N X 3 array
+        ..
+        ..        xyzh -- Cell widths of topo mesh cells N X 3 array
+        ..
+        ..        pp -- Source ID
+        ..
+        ..        qq -- Mesh refinement factor
+        ..
+        ..        refFlag -- refinement factors for all topo mesh cells
+        ..
+        ..        OUTPUTS:
+        ..
+        ..        Acols -- Columns containing replacement sensitivities
 
         """
 
@@ -792,9 +792,7 @@ class BaseVRMSimulation(BaseSimulation):
 
     def dpred(self, m=None, f=None):
 
-        """
-
-        """
+        """"""
         if f is None:
             f = self.fields(m)
 
@@ -808,9 +806,7 @@ class BaseVRMSimulation(BaseSimulation):
 
 class Simulation3DLinear(BaseVRMSimulation):
 
-    """
-
-    """
+    """"""
 
     _A = None
     _T = None
@@ -898,7 +894,7 @@ class Simulation3DLinear(BaseVRMSimulation):
 
                     I = sp.diags(np.ones(nLoc))
                     eta = waveObj.getCharDecay(rxList[qq].fieldType, times)
-                    eta = np.matrix(eta).T
+                    eta = np.atleast_2d(eta).T
 
                     T.append(sp.kron(I, eta))
 
@@ -921,8 +917,7 @@ class Simulation3DLinear(BaseVRMSimulation):
         self.model = m  # Initiates/updates model and initiates mapping
 
         # Project to active mesh cells
-        # m = np.matrix(self.xiMap * m).T
-        m = np.matrix(self.xiMap * m).T
+        m = self.xiMap * m
 
         # Must return as a numpy array
         return mkvc(sp.coo_matrix.dot(self.T, np.dot(self.A, m)))
@@ -938,10 +933,10 @@ class Simulation3DLinear(BaseVRMSimulation):
         dxidm = self.xiMap.deriv(m)
 
         # dxidm*v
-        v = np.matrix(dxidm * v).T
+        v = dxidm * v
 
         # Dot product with A
-        v = self.A * v
+        v = self.A @ v
 
         # Get active time rows of T
         T = self.T.tocsr()[self.survey.t_active, :]
@@ -957,7 +952,7 @@ class Simulation3DLinear(BaseVRMSimulation):
             AssertionError("A survey must be set to generate A matrix")
 
         # Define v as a column vector
-        v = np.matrix(v).T
+        v = np.atleast_2d(v).T
 
         # Get T'*Pd'*v
         T = self.T.tocsr()[self.survey.t_active, :]
@@ -975,9 +970,7 @@ class Simulation3DLinear(BaseVRMSimulation):
 
 class Simulation3DLogUniform(BaseVRMSimulation):
 
-    """
-
-    """
+    """"""
 
     _A = None
     _T = None
@@ -1053,7 +1046,7 @@ class Simulation3DLogUniform(BaseVRMSimulation):
                     self.tau2,
                 )
 
-                f.append(mkvc((self.A[qq] * np.matrix(eta)).T))
+                f.append(mkvc(self.A[qq] @ eta))
 
         return np.array(np.hstack(f))
 
@@ -1063,11 +1056,11 @@ class Simulation3DLogUniform(BaseVRMSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem_Linear(Simulation3DLinear):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem_LogUnifrom(Simulation3DLogUniform):
     pass

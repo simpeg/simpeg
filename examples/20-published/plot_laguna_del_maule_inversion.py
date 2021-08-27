@@ -123,7 +123,7 @@ def run(plotIt=True, cleanAfterRun=True):
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
     # Specify how the initial beta is found
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.5, seed=518936)
 
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
@@ -152,7 +152,13 @@ def run(plotIt=True, cleanAfterRun=True):
     # %%
     if plotIt:
         # Plot observed data
-        plot2Ddata(rxLoc, d)
+        # The sign of the data is flipped here for the change of convention
+        # between Cartesian coordinate system (internal SimPEG format that
+        # expects "positive up" gravity signal) and traditional gravity data
+        # conventions (positive down). For example a traditional negative
+        # gravity anomaly is described as "positive up" in Cartesian coordinates
+        # and hence the sign needs to be flipped for use in SimPEG.
+        plot2Ddata(rxLoc, -d)
 
         # %%
         # Write output model and data files and print misfit stats.

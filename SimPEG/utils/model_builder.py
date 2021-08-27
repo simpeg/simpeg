@@ -15,15 +15,15 @@ else:
 
 def addBlock(gridCC, modelCC, p0, p1, blockProp):
     """
-        Add a block to an exsisting cell centered model, modelCC
+    Add a block to an existing cell centered model, modelCC
 
-        :param numpy.ndarray gridCC: mesh.gridCC is the cell centered grid
-        :param numpy.ndarray modelCC: cell centered model
-        :param numpy.ndarray p0: bottom, southwest corner of block
-        :param numpy.ndarray p1: top, northeast corner of block
-        :blockProp float blockProp: property to assign to the model
+    :param numpy.ndarray gridCC: mesh.gridCC is the cell centered grid
+    :param numpy.ndarray modelCC: cell centered model
+    :param numpy.ndarray p0: bottom, southwest corner of block
+    :param numpy.ndarray p1: top, northeast corner of block
+    :blockProp float blockProp: property to assign to the model
 
-        :return numpy.ndarray, modelBlock: model with block
+    :return numpy.ndarray, modelBlock: model with block
     """
     ind = getIndicesBlock(p0, p1, gridCC)
     modelBlock = modelCC.copy()
@@ -33,18 +33,18 @@ def addBlock(gridCC, modelCC, p0, p1, blockProp):
 
 def getIndicesBlock(p0, p1, ccMesh):
     """
-        Creates a vector containing the block indices in the cell centers mesh.
-        Returns a tuple
+    Creates a vector containing the block indices in the cell centers mesh.
+    Returns a tuple
 
-        The block is defined by the points
+    The block is defined by the points
 
-        p0, describe the position of the left  upper  front corner, and
+    p0, describe the position of the left  upper  front corner, and
 
-        p1, describe the position of the right bottom back  corner.
+    p1, describe the position of the right bottom back  corner.
 
-        ccMesh represents the cell-centered mesh
+    ccMesh represents the cell-centered mesh
 
-        The points p0 and p1 must live in the the same dimensional space as the mesh.
+    The points p0 and p1 must live in the the same dimensional space as the mesh.
 
     """
 
@@ -101,9 +101,9 @@ def getIndicesBlock(p0, p1, ccMesh):
 
 def defineBlock(ccMesh, p0, p1, vals=None):
     """
-        Build a block with the conductivity specified by condVal.  Returns an array.
-        vals[0]  conductivity of the block
-        vals[1]  conductivity of the ground
+    Build a block with the conductivity specified by condVal.  Returns an array.
+    vals[0]  conductivity of the block
+    vals[1]  conductivity of the ground
     """
     if vals is None:
         vals = [0, 1]
@@ -145,18 +145,18 @@ def defineElipse(ccMesh, center=None, anisotropy=None, slope=10.0, theta=0.0):
 
 def getIndicesSphere(center, radius, ccMesh):
     """
-        Creates a vector containing the sphere indices in the cell centers mesh.
-        Returns a tuple
+    Creates a vector containing the sphere indices in the cell centers mesh.
+    Returns a tuple
 
-        The sphere is defined by the points
+    The sphere is defined by the points
 
-        p0, describe the position of the center of the cell
+    p0, describe the position of the center of the cell
 
-        r, describe the radius of the sphere.
+    r, describe the radius of the sphere.
 
-        ccMesh represents the cell-centered mesh
+    ccMesh represents the cell-centered mesh
 
-        The points p0 must live in the the same dimensional space as the mesh.
+    The points p0 must live in the the same dimensional space as the mesh.
 
     """
 
@@ -255,13 +255,13 @@ def scalarConductivity(ccMesh, pFunction):
 
 def layeredModel(ccMesh, layerTops, layerValues):
     """
-        Define a layered model from layerTops (z-positive up)
+    Define a layered model from layerTops (z-positive up)
 
-        :param numpy.ndarray ccMesh: cell-centered mesh
-        :param numpy.ndarray layerTops: z-locations of the tops of each layer
-        :param numpy.ndarray layerValue: values of the property to assign for each layer (starting at the top)
-        :rtype: numpy.ndarray
-        :return: M, layered model on the mesh
+    :param numpy.ndarray ccMesh: cell-centered mesh
+    :param numpy.ndarray layerTops: z-locations of the tops of each layer
+    :param numpy.ndarray layerValue: values of the property to assign for each layer (starting at the top)
+    :rtype: numpy.ndarray
+    :return: M, layered model on the mesh
     """
 
     descending = np.linalg.norm(sorted(layerTops, reverse=True) - layerTops) < 1e-20
@@ -298,25 +298,25 @@ def layeredModel(ccMesh, layerTops, layerValues):
 
 def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
     """
-        Create a random model by convolving a kernel with a
-        uniformly distributed model.
+    Create a random model by convolving a kernel with a
+    uniformly distributed model.
 
-        :param tuple shape: shape of the model.
-        :param int seed: pick which model to produce, prints the seed if you don't choose.
-        :param numpy.ndarray anisotropy: this is the (3 x n) blurring kernel that is used.
-        :param int its: number of smoothing iterations
-        :param list bounds: bounds on the model, len(list) == 2
-        :rtype: numpy.ndarray
-        :return: M, the model
+    :param tuple shape: shape of the model.
+    :param int seed: pick which model to produce, prints the seed if you don't choose.
+    :param numpy.ndarray anisotropy: this is the (3 x n) blurring kernel that is used.
+    :param int its: number of smoothing iterations
+    :param list bounds: bounds on the model, len(list) == 2
+    :rtype: numpy.ndarray
+    :return: M, the model
 
 
-        .. plot::
+    .. plot::
 
-            import matplotlib.pyplot as plt
-            import SimPEG.utils.model_builder as MB
-            plt.colorbar(plt.imshow(MB.randomModel((50,50),bounds=[-4,0])))
-            plt.title('A very cool, yet completely random model.')
-            plt.show()
+        import matplotlib.pyplot as plt
+        import SimPEG.utils.model_builder as MB
+        plt.colorbar(plt.imshow(MB.randomModel((50,50),bounds=[-4,0])))
+        plt.title('A very cool, yet completely random model.')
+        plt.show()
 
 
     """
@@ -360,25 +360,25 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
 
 def PolygonInd(mesh, pts):
     """
-        Finde a volxel indices included in mpolygon (2D) or polyhedra (3D)
-        uniformly distributed model.
+    Find all voxel indices included in mpolygon (2D) or polyhedra (3D)
+    uniformly distributed model.
 
-        :param tuple shape: shape of the model.
-        :param int seed: pick which model to produce, prints the seed if you don't choose.
-        :param numpy.ndarray anisotropy: this is the (3 x n) blurring kernel that is used.
-        :param int its: number of smoothing iterations
-        :param list bounds: bounds on the model, len(list) == 2
-        :rtype: numpy.ndarray
-        :return: M, the model
+    :param tuple shape: shape of the model.
+    :param int seed: pick which model to produce, prints the seed if you don't choose.
+    :param numpy.ndarray anisotropy: this is the (3 x n) blurring kernel that is used.
+    :param int its: number of smoothing iterations
+    :param list bounds: bounds on the model, len(list) == 2
+    :rtype: numpy.ndarray
+    :return: M, the model
 
 
-        .. plot::
+    .. plot::
 
-            import matplotlib.pyplot as plt
-            import SimPEG.utils.model_builder as MB
-            plt.colorbar(plt.imshow(MB.randomModel((50,50),bounds=[-4,0])))
-            plt.title('A very cool, yet completely random model.')
-            plt.show()
+        import matplotlib.pyplot as plt
+        import SimPEG.utils.model_builder as MB
+        plt.colorbar(plt.imshow(MB.randomModel((50,50),bounds=[-4,0])))
+        plt.title('A very cool, yet completely random model.')
+        plt.show()
 
 
     """

@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 
 import discretize
-from discretize.Tests import checkDerivative
+from discretize.tests import checkDerivative
 
 from SimPEG import maps
 from SimPEG.flow import richards
