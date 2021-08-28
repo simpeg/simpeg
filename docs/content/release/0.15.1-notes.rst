@@ -13,7 +13,7 @@ inversions. It is based off of the common potential fields definition:
 
 .. code-block:: python
 
-    wz = 1/(z - z_0)**q/2
+    wz = 1/(z - z_0)**(q/2)
 
 The way SimPEG handles the definition of standard deviation calculated from the mix
 of relative error and noise levels is slightly changed to respect a more statistically
@@ -21,7 +21,7 @@ accurate combination of the two components. It is now:
 
 .. code-block:: python
 
-    standard_deviation = sqrt(noise_level**2 + (relative_error * d_obs)**2)
+    standard_deviation = sqrt(noise_level**2 + (relative_error * abs(d_obs))**2)
 
 In addition,
 
