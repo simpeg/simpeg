@@ -12,6 +12,7 @@ We now have a simple depth weighting function that can be used as cell weights f
 inversions. It is based off of the common potential fields definition:
 
 .. code-block:: python
+
     wz = 1/(z - z_0)**q/2
 
 The way SimPEG handles the definition of standard deviation calculated from the mix
@@ -19,6 +20,7 @@ of relative error and noise levels is slightly changed to respect a more statist
 accurate combination of the two components. It is now:
 
 .. code-block:: python
+
     standard_deviation = sqrt(noise_level**2 + (relative_error * d_obs)**2)
 
 In addition,
