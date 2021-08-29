@@ -142,10 +142,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         self.emg3d_sim.model = self.emg3d_model
 
         # Re-initiate all dicts _except_ grids (automatic gridding)
-        self.emg3d_sim._dict_model = self.emg3d_sim._dict_initiate
         self.emg3d_sim._dict_efield = self.emg3d_sim._dict_initiate
         self.emg3d_sim._dict_bfield = self.emg3d_sim._dict_initiate
-        self.emg3d_sim._dict_hfield = self.emg3d_sim._dict_initiate
         self.emg3d_sim._dict_efield_info = self.emg3d_sim._dict_initiate
         self.emg3d_sim._dict_bfield_info = self.emg3d_sim._dict_initiate
         self.emg3d_sim._gradient = None
