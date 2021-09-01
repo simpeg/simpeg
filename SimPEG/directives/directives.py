@@ -32,6 +32,7 @@ from ..utils import (
     eigenvalue_by_power_iteration,
     io_utils
 )
+from ..maps import SphericalSystem
 from ..utils.code_utils import deprecate_property
 from discretize import TensorMesh, TreeMesh
 
@@ -1338,34 +1339,42 @@ class SaveIterationsGeoH5(InversionDirective):
     def initialize(self):
 
         if self.attribute_type == "predicted":
-            prop = np.hstack(self.invProb.get_dpred(self.invProb.model))
+            prop = np.asarray(self.invProb.get_dpred(self.invProb.model))
         else:
             prop = self.invProb.model
 
-        if self.mapping is not None:
-            prop = self.mapping * prop
-
-        if self.sorting is not None:
-            prop = prop[self.sorting]
-
         if self.attribute_type == "vector":
-            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1)
+            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1).reshape((1,1,-1))
         else:
             prop = prop.reshape((len(self.channels), len(self.components), -1))
 
         for cc, component in enumerate(self.components):
+
+            if component not in self.data_type.keys():
+                self.data_type[component] = {}
+
             for ii, channel in enumerate(self.channels):
                 if not isinstance(channel, str):
                     channel = f"{channel: .2e}"
                 values = prop[ii, cc, :]
+                if self.mapping is not None:
+                    values = self.mapping * values
+
+                if self.sorting is not None:
+                    values = values[self.sorting]
+
                 data = self.h5_object.add_data(
                     {
                         f"Iteration_{0}_{component}_{channel}":
                         {"association": self.association, "values": values}
                     }
                 )
-                data.entity_type.name = channel
-                self.data_type[channel] = data.entity_type
+
+                if channel not in self.data_type[component].keys():
+                    self.data_type[component][channel] = data.entity_type
+                    data.entity_type.name = f"{self.attribute_type}_" + channel
+                else:
+                    data.entity_type = self.data_type[component][channel]
 
                 if len(self.channels) > 1:
                     self.h5_object.add_data_to_group(
@@ -1396,20 +1405,19 @@ class SaveIterationsGeoH5(InversionDirective):
         else:
             prop = self.invProb.model
 
-        if self.mapping is not None:
-            prop = self.mapping * prop
-
-        if self.sorting is not None:
-            prop = prop[self.sorting]
-
         if self.attribute_type == "vector":
-            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1)
+            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1).reshape((1,1,-1))
         else:
             prop = prop.reshape((len(self.channels), len(self.components), -1))
 
         for cc, component in enumerate(self.components):
             for ii, channel in enumerate(self.channels):
                 values = prop[ii, cc, :]
+                if self.mapping is not None:
+                    values = self.mapping * values
+
+                if self.sorting is not None:
+                    values = values[self.sorting]
                 if not isinstance(channel, str):
                     channel = f"{channel: .2e}"
                 data = self.h5_object.add_data(
@@ -1418,7 +1426,7 @@ class SaveIterationsGeoH5(InversionDirective):
                             {
                                 "values": values,
                                 "association": self.association,
-                                "entity_type": self.data_type[channel],
+                                "entity_type": self.data_type[component][channel],
                             }
                     }
                 )
@@ -1471,6 +1479,143 @@ class SaveIterationsGeoH5(InversionDirective):
 
         return values
 
+class VectorInversion(InversionDirective):
+    """
+    Control a vector inversion from Cartesian to spherical coordinates
+    """
+
+    chifact_target = 1.0
+    mref = None
+    mode = "cartesian"
+    inversion_type = "mvis"
+    norms = []
+    alphas = []
+
+    @property
+    def target(self):
+        if getattr(self, "_target", None) is None:
+            nD = 0
+            for survey in self.survey:
+                nD += survey.nD
+
+            self._target = nD * 0.5 * self.chifact_target
+
+        return self._target
+
+    @target.setter
+    def target(self, val):
+        self._target = val
+
+    def initialize(self):
+
+        for reg in self.reg.objfcts:
+            reg.model = self.invProb.model
+
+        self.mref = reg.mref
+
+        for prob in self.prob:
+            if getattr(prob, "coordinate_system", None) is not None:
+                prob.coordinate_system = self.mode
+
+    def endIter(self):
+        if (
+            self.invProb.phi_d < self.target
+        ) and self.mode == "cartesian":  # and self.inversion_type == 'mvis':
+            print("Switching MVI to spherical coordinates")
+            self.mode = "spherical"
+
+            mstart = cartesian2spherical(
+                self.invProb.model.reshape((-1, 3), order="F")
+            )
+            mref = cartesian2spherical(self.mref.reshape((-1, 3), order="F"))
+
+            self.invProb.model = mstart
+            self.invProb.beta *= 2
+            self.opt.xc = mstart
+
+            nC = mstart.reshape((-1, 3)).shape[0]
+            self.opt.lower = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
+            self.opt.upper[nC:] = np.inf
+
+            self.reg.mref = mref
+            self.reg.model = mstart
+
+            for simulation in self.simulation:
+                if getattr(simulation, "coordinate_system", None) is not None:
+                    simulation.coordinate_system = self.mode
+                    simulation.modelMap = SphericalSystem() * simulation.modelMap
+                    simulation.model = mstart
+
+            for ind, reg_fun in enumerate(self.reg.objfcts):
+
+                reg_fun.mref = mref
+                reg_fun.model = mstart
+
+                if ind > 0:
+                    reg_fun.alpha_s = 0
+                    reg_fun.eps_q = np.pi
+                    for reg in reg_fun.objfcts:
+                        reg.space = "spherical"
+
+            # Add directives
+            directiveList = []
+            update_Jacobi = []
+            IRLS = []
+            for directive in self.inversion.directiveList.dList:
+                if isinstance(directive, SaveIterationsGeoH5):
+                    for comp in directive.components:
+                        channels = []
+                        for channel in directive.channels:
+                            channels.append(channel + "_s")
+                            directive.data_type[comp][channel + "_s"] = directive.data_type[comp][
+                                channel
+                            ]
+
+                    directive.channels = channels
+
+                    if directive.attribute_type == "mvi_model":
+                        directive.attribute_type = "mvi_model_s"
+                    elif directive.attribute_type == "mvi_angles":
+                        directive.attribute_type = "mvi_angles_s"
+
+                    directiveList.append(directive)
+
+                elif isinstance(directive, SaveUBCModelEveryIteration):
+                    directive.fileName = directive.fileName + "_S"
+                    directiveList.append(directive)
+
+                elif isinstance(directive, SavePredictedEveryIteration):
+                    directive.fileName = directive.fileName + "_S"
+                    directiveList.append(directive)
+
+                elif isinstance(directive, Update_IRLS):
+                    directive.sphericalDomain = True
+                    directive.model = mstart
+                    directive.coolingFactor = 1.5
+                    IRLS = directive
+
+                elif isinstance(directive, UpdatePreconditioner):
+                    update_Jacobi = directive
+                else:
+                    directiveList.append(directive)
+
+            directiveList = [
+                ProjectSphericalBounds(),
+                IRLS,
+                UpdateSensitivityWeights(),
+                update_Jacobi,
+            ] + directiveList
+
+            self.inversion.directiveList = directiveList
+            directiveList[1].endIter()
+            directiveList[2].endIter()
+            directiveList[3].endIter()
+        elif (self.invProb.phi_d < self.target) and self.mode == "spherical":
+
+            for directive in self.inversion.directiveList.dList:
+                if isinstance(directive, Update_IRLS) and directive.mode != 1:
+                    directive.coolingFactor = 2
+
 
 class Update_IRLS(InversionDirective):
 
@@ -1478,7 +1623,7 @@ class Update_IRLS(InversionDirective):
     f_min_change = 1e-2
     beta_tol = 1e-1
     beta_ratio_l2 = None
-    prctile = 100
+    prctile = 95
     chifact_start = 1.0
     chifact_target = 1.0
 
@@ -1812,10 +1957,11 @@ class UpdatePreconditioner(InversionDirective):
 
         JtJdiag = np.zeros_like(self.invProb.model)
         for dmisfit in self.dmisfit.objfcts:
-            assert getattr(dmisfit.simulation, "getJtJdiag", None) is not None, (
-                "Simulation does not have a getJtJdiag attribute."
-                + "Cannot form the sensitivity explicitly"
-            )
+            if getattr(dmisfit.simulation, "getJtJdiag", None) is None:
+                raise AttributeError(
+                    "Simulation does not have a getJtJdiag attribute."
+                    + "Cannot form the sensitivity explicitly"
+                )
             JtJdiag += dmisfit.getJtJdiag(m)
 
         diagA = JtJdiag + self.invProb.beta * regDiag
@@ -1930,17 +2076,16 @@ class UpdateSensitivityWeights(InversionDirective):
 
             if self.threshold is not None:
                 if isinstance(self.threshold, list):
-                    JtJdiag = self.threshold[ii]
+                    floor = self.threshold[ii]
                 else:
-                    JtJdiag = self.threshold
+                    floor = self.threshold
 
-                if not isinstance(JtJdiag, np.ndarray):
-                    JtJdiag = np.ones_like(self.JtJdiag[ii]) * JtJdiag
+                floor = np.ones_like(self.JtJdiag[ii]) * floor
 
             else:
-                JtJdiag = self.JtJdiag[ii]
+                floor = self.JtJdiag[ii]
 
-            threshold += [JtJdiag]
+            threshold += [floor]
 
 
         self.threshold = threshold
@@ -1958,11 +2103,9 @@ class UpdateSensitivityWeights(InversionDirective):
                 self.JtJdiag, self.simulation, self.dmisfit.objfcts, self.threshold
             ):
 
-                wr += prob_JtJ
+                wr += prob_JtJ / self.reg.objfcts[0].regmesh.vol**2.
 
             wr = np.max(np.c_[wr, threshold], axis=1)
-
-
             wr = wr ** 0.5
             wr /= wr.max()
         else:

@@ -5,6 +5,7 @@ import numpy as np
 import scipy.sparse as sp
 import gc
 from .data_misfit import BaseDataMisfit
+from .objective_function import ComboObjectiveFunction
 from .props import BaseSimPEG, Model
 from .regularization import BaseRegularization, BaseComboRegularization, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
@@ -48,13 +49,18 @@ class BaseInvProblem(BaseSimPEG):
 
     def __init__(self, dmisfit, reg, opt, **kwargs):
         super(BaseInvProblem, self).__init__(**kwargs)
-        assert isinstance(dmisfit, BaseDataMisfit) or isinstance(
-            dmisfit, BaseObjectiveFunction
-        ), "dmisfit must be a DataMisfit or ObjectiveFunction class."
+
         assert isinstance(reg, BaseRegularization) or isinstance(
             reg, BaseObjectiveFunction
         ), "reg must be a Regularization or Objective Function class."
-        self.dmisfit = dmisfit
+
+        if isinstance(dmisfit, BaseDataMisfit):
+            self.dmisfit = ComboObjectiveFunction([dmisfit])
+        elif isinstance(dmisfit, ComboObjectiveFunction):
+            self.dmisfit = dmisfit
+        else:
+            raise TypeError("dmisfit must be a DataMisfit or ComboObjectiveFunction class.")
+
         self.reg = reg
         self.opt = opt
         # TODO: Remove: (and make iteration printers better!)

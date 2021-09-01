@@ -45,7 +45,7 @@ class IdentityMap(properties.HasProperties):
             if isinstance(nP, string_types):
                 assert nP == "*", "nP must be an integer or '*', not {}".format(nP)
             assert isinstance(
-                nP, integer_types + (np.int64,)
+                nP, integer_types + (int,)
             ), "Number of parameters must be an integer. Not `{}`.".format(type(nP))
             nP = int(nP)
         elif mesh is not None:

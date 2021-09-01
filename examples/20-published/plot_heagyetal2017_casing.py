@@ -186,7 +186,7 @@ class PrimSecCasingExample(object):
 
             # cell size, number of core cells, number of padding cells in the
             # x-direction
-            ncz = np.int(np.ceil(np.diff(self.casing_z)[0] / csz)) + 10
+            ncz = int(np.ceil(np.diff(self.casing_z)[0] / csz)) + 10
             npadzu, npadzd = 43, 43
 
             # vector of cell widths in the z-direction

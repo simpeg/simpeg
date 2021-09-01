@@ -1,9 +1,81 @@
+from typing import List, Optional
+from SimPEG import dask
 import numpy as np
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 from discretize import TreeMesh
 from SimPEG.maps import TileMap
+from SimPEG import data, data_misfit, maps, simulation, survey
 from scipy.spatial import Delaunay, cKDTree
+from pymatsolver import Solver
 
+
+def create_local_misfit(
+    simulation_class: simulation.BaseSimulation,
+    local_survey: survey.BaseSurvey,
+    global_mesh: TreeMesh,
+    global_active: np.ndarray,
+    tile_id: int,
+    tile_buffer: float = 100,
+    min_level: int = 4,
+    workers: Optional[List] = None,
+    solver: Optional[Solver] = None,
+) -> data_misfit.BaseDataMisfit:
+    """
+    Create a nested mesh and misfit function for tiled simulation.
+
+    :param simulation_class: A :obj:`SimPEG.simulation` class type.
+    :param local_survey: Survey object used over the local tile.
+    :param global_mesh: Tree mesh defining the global inversion.
+    :param global_active: shape(global_mesh.nC,)
+        Array of bool defining the ground cells.
+    :param tile_id: Unique identifier for the tile.
+    :param tile_buffer: Horizontal distance around the local_survey to
+        preserve fine cells.
+    :param min_level: Highest octree level used outside the tile_buffer distance
+        (min_level = 0: finest).
+    :param workers: List of workers IP addresses to handle the local simulation.
+    :param solver: Solver to be used by the simulation
+
+    :return local_misfit: A local misfit
+    """
+    local_mesh = create_nested_mesh(
+        local_survey.unique_locations,
+        global_mesh,
+        method="radial",
+        max_distance=tile_buffer,
+        pad_distance=tile_buffer * 2,
+        min_level=min_level,
+    )
+
+    local_map = maps.TileMap(global_mesh, global_active, local_mesh)
+    local_active = local_map.local_active
+
+    actmap = maps.InjectActiveCells(
+        local_mesh, indActive=local_active, valInactive=np.log(1e-8)
+    )
+    expmap = maps.ExpMap(local_mesh)
+    mapping = expmap * actmap
+
+    # Create the local misfit
+    simulation = simulation_class(
+        local_mesh,
+        survey=local_survey,
+        sigmaMap=mapping,
+        Solver=solver,
+        workers=workers
+    )
+    simulation.sensitivity_path = "./sensitivity/Tile" + str(tile_id) + "/"
+    data_object = data.Data(
+        local_survey,
+        dobs=local_survey.dobs,
+        standard_deviation=local_survey.std,
+    )
+    local_misfit = data_misfit.L2DataMisfit(
+        data=data_object, simulation=simulation, model_map=local_map
+    )
+    local_misfit.W = 1.0 / local_survey.std
+
+    return local_misfit
 
 def create_tile_meshes(
     locations,

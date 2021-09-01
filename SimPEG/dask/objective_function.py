@@ -6,7 +6,6 @@ import shutil
 import numpy as np
 from dask.distributed import Future, get_client, Client
 
-
 @property
 def client(self):
     if getattr(self, '_client', None) is None:
@@ -141,17 +140,10 @@ def dask_deriv2(self, m, v=None, f=None):
         if multiplier == 0.0:  # don't evaluate the fct
             continue
         else:
-
-            # if f is not None and objfct._has_fields:
-            #     fct = objfct.deriv2(m, v, f=f[i])
-            # else:
-                # print('[info] doing derive no fields')
             fct = objfct.deriv2(m, v)
 
             if isinstance(fct, Future):
-                future = self.client.compute(
-                    self.client.submit(da.multiply, multiplier, fct)
-                )
+                future = self.client.submit(da.multiply, multiplier, fct)
                 H += [future]
             else:
                 H += [fct]
@@ -162,7 +154,8 @@ def dask_deriv2(self, m, v=None, f=None):
         big_future = self.client.submit(
             da.sum, self.client.submit(da.vstack, H), axis=0
         ).result()
-        return self.client.compute(big_future).result()
+
+        return np.asarray(big_future)
 
     else:
         phi_deriv2 = 0

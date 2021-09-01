@@ -377,17 +377,15 @@ class Minimize(object):
             print("x0 has any nan: {:b}".format(np.any(np.isnan(x0))))
 
         self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
-        self.printIter()
+        # self.printIter()
 
         while True:
             self.doStartIteration()
-
+            # self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
+            self.printIter()
             if self.stoppingCriteria():
                 break
             self.searchDirection = self.findSearchDirection()
-            # del (
-            #     self.H
-            # )  #: Doing this saves memory, as it is not needed in the rest of the computations.
             p = self.scaleSearchDirection(self.searchDirection)
             xt, passLS = self.modifySearchDirection(p)
             if not passLS:
@@ -398,23 +396,18 @@ class Minimize(object):
             if self.stopNextIteration:
                 break
 
-            if isinstance(self.parent.dmisfit, L2DataMisfit):
-                if not isinstance(self.parent.dmisfit.simulation, LinearSimulation):
-                    if hasattr(self.parent.dmisfit.simulation, "_Jmatrix"):
-                        self.parent.dmisfit.simulation._Jmatrix = None
-                    if hasattr(self.parent.dmisfit.simulation, "gtgdiag"):
-                        self.parent.dmisfit.simulation.gtgdiag = None
-            else:
-                for objfct in self.parent.dmisfit.objfcts:
-                    if not isinstance(objfct.simulation, LinearSimulation):
-                        if hasattr(objfct.simulation, "_Jmatrix"):
-                            objfct.simulation._Jmatrix = None
-                        if hasattr(objfct.simulation, "gtgdiag"):
-                            objfct.simulation.gtgdiag = None
+            self.doEndIteration(xt)
+
+            for objfct in self.parent.dmisfit.objfcts:
+                if not isinstance(objfct.simulation, LinearSimulation):
+                    if hasattr(objfct.simulation, "_Jmatrix"):
+                        objfct.simulation._Jmatrix = None
+                    if hasattr(objfct.simulation, "gtgdiag"):
+                        objfct.simulation.gtgdiag = None
 
             self.f, self.g, self.H = evalFunction(xt, return_g=True, return_H=True)
-            self.doEndIteration(xt)
-            self.printIter()
+            # self.doEndIteration(xt)
+            # self.printIter()
 
         self.printDone()
         self.finish()

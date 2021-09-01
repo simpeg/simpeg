@@ -120,13 +120,12 @@ class SimpleSmoothDeriv(BaseRegularization):
             self.regmesh,
             "cellDiff{orientation}Stencil".format(orientation=self.orientation),
         )
+
+        weights = self.regmesh.cell_volumes
         if self.cell_weights is not None:
+            weights *= self.cell_weights
 
-            W = utils.sdiag((Ave * (self.cell_weights)) ** 0.5) * W
-        else:
-            W = utils.sdiag((Ave * self.regmesh.cell_volumes) ** 0.5) * W
-
-        return W
+        return utils.sdiag((Ave * weights) ** 0.5) * W
 
     @property
     def length_scales(self):

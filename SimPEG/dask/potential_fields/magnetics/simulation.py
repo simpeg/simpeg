@@ -1,10 +1,12 @@
 import numpy as np
 from ....potential_fields.magnetics import Simulation3DIntegral as Sim
+from ....potential_fields.magnetics.simulation import evaluate_integral
 from ....utils import sdiag, mkvc
 from dask import array, delayed
 from scipy.sparse import csr_matrix as csr
 from dask.distributed import get_client, Future, Client
 from dask import delayed, array, config
+from ...utils import compute_chunk_sizes
 import os
 
 
@@ -19,7 +21,8 @@ def dask_fields(self, m):
         # Compute the linear operation without forming the full dense G
         fields = self.linear_operator()
     else:
-        fields = self.G @ (self.chiMap @ m).astype(np.float32)
+        if hasattr(self, "G"): # Trigger calculations
+            fields = self.G @ (self.chiMap @ m).astype(np.float32)
 
     return fields
 
@@ -40,12 +43,14 @@ def linear_operator(self):
 
     client = get_client()
 
-    # Xn, Yn, Zn = client.scatter([self.Xn, self.Yn, self.Zn], workers=self.workers)
-    row = delayed(self.evaluate_integral, pure=True)
+    Xn, Yn, Zn, M, projection = client.scatter(
+        [self.Xn, self.Yn, self.Zn, self.M, self.tmi_projection], workers=self.workers
+    )
+    min_hx, min_hy, min_hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
+    row = delayed(evaluate_integral, pure=True)
     rows = [
         array.from_delayed(
-            # row(Xn, Yn, Zn, hx, hy, hz, receiver_location, components[component]),
-            row(receiver_location, components[component]),
+            row(Xn, Yn, Zn, min_hx, min_hy, min_hz, M, projection, receiver_location, components[component]),
             dtype=np.float32,
             shape=(n_data_comp, self.nC),
         )
@@ -73,7 +78,7 @@ def linear_operator(self):
         stack = stack.rechunk({0: -1, 1: "auto"})
 
     if self.store_sensitivities == "disk":
-        sens_name = self.sensitivity_path
+        sens_name = os.path.join(self.sensitivity_path, "J.zarr")
         if os.path.exists(sens_name):
             kernel = array.from_zarr(sens_name)
             if np.all(
@@ -94,21 +99,17 @@ def linear_operator(self):
 
         kernel = array.to_zarr(
                 stack, sens_name,
-                compute=True, return_stored=True, overwrite=True
+                compute=False, return_stored=True, overwrite=True
         )
         return kernel
 
     elif self.store_sensitivities == "forward_only":
         # with ProgressBar():
-        print("Forward calculation: ")
+        print("Forward calculation (DASK): ")
         pred = stack @ self.model.astype(np.float32)
         return pred
 
-    with ProgressBar():
-        print("Computing sensitivities to local ram")
-        kernel = array.asarray(stack.compute())
-
-    return kernel
+    return array.asarray(stack)
 
 
 Sim.linear_operator = linear_operator
@@ -137,39 +138,64 @@ def dask_getJtJdiag(self, m, W=None):
                 + fieldDeriv[2, :, None] * self.G[2::3]
             )
             diag = ((W[:, None] * J) ** 2).sum(axis=0)
-        self._gtg_diagonal = diag
-    else:
-        diag = self._gtg_diagonal
+        self._gtg_diagonal = diag.compute()
 
-    return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
+
+    return mkvc((sdiag(np.sqrt(self._gtg_diagonal)) @ self.chiDeriv).power(2).sum(axis=0))
 
 
 Sim.getJtJdiag = dask_getJtJdiag
 
 
-def dask_Jvec(self, _, v, f=None):
+def dask_Jvec(self, m, v, f=None):
     """
     Sensitivity times a vector
     """
+    self.model = m
     dmu_dm_v = self.chiDeriv @ v
-    return array.dot(self.Jmatrix, dmu_dm_v.astype(np.float32))
+
+    if isinstance(self.Jmatrix, Future):
+        self.Jmatrix  # Wait to finish
+
+    if isinstance(self.Jmatrix, array.Array):
+        jvec = array.dot(self.Jmatrix, dmu_dm_v.astype(np.float32))
+
+    else:
+        jvec = self.Jmatrix @ dmu_dm_v.astype(np.float32)
+
+    if self.is_amplitude_data:
+        jvec = jvec.reshape((-1, 3)).T
+        fieldDeriv_jvec = self.fieldDeriv * jvec
+        return fieldDeriv_jvec[0] + fieldDeriv_jvec[1] + fieldDeriv_jvec[2]
+
+    return jvec
 
 
 Sim.Jvec = dask_Jvec
 
 
-def dask_Jtvec(self, _, v, f=None):
+def dask_Jtvec(self, m, v, f=None):
     """
     Sensitivity transposed times a vector
     """
+    self.model = m
 
-    Jtvec = array.dot(v.astype(np.float32), self.Jmatrix)
-    Jtjvec_dmudm = delayed(csr.dot)(Jtvec, self.chiDeriv)
-    h_vec = array.from_delayed(
-        Jtjvec_dmudm, dtype=float, shape=[self.chiDeriv.shape[1]]
-    )
+    if self.is_amplitude_data:
+        v = (self.fieldDeriv * v).T.reshape(-1)
 
-    return h_vec
+    if isinstance(self.Jmatrix, Future):
+        self.Jmatrix  # Wait to finish
+
+    if isinstance(self.Jmatrix, array.Array):
+        Jtvec = array.dot(v.astype(np.float32), self.Jmatrix)
+        Jtjvec_dmudm = delayed(csr.dot)(Jtvec, self.chiDeriv)
+        jt_vec = array.from_delayed(
+            Jtjvec_dmudm, dtype=float, shape=[self.chiDeriv.shape[1]]
+        )
+    else:
+        jt_vec = self.Jmatrix.T @ v.astype(np.float32)
+
+    return jt_vec
 
 
 Sim.Jtvec = dask_Jtvec

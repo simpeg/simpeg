@@ -181,8 +181,8 @@ class L2DataMisfit(BaseDataMisfit):
         Evaluate the main diagonal of JtJ
         """
         if getattr(self.simulation, "getJtJdiag", None) is None:
-            assert getattr(self.simulation, "getJ", None) is not None, (
-                    "Simulation does not have a getJ attribute."
+            raise AttributeError(
+                    "Simulation does not have a getJtJdiag attribute."
                     + "Cannot form the sensitivity explicitly"
             )
 

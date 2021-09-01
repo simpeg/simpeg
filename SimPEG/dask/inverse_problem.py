@@ -138,7 +138,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     """
 
     self.model = m
-    gc.collect()
+    # gc.collect()
 
     # Store fields if doing a line-search
     # f = self.getFields(m, store=(return_g is False and return_H is False))
@@ -209,9 +209,9 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
         def H_fun(v):
             phi_d2Deriv = self.dmisfit.deriv2(m, v)
             if hasattr(self.reg.objfcts[0], "space") and self.reg.objfcts[0].space == "spherical":
-                phi_m2Deriv = self.reg2Deriv * v
-            else:
                 phi_m2Deriv = self.reg.deriv2(m, v=v)
+            else:
+                phi_m2Deriv = self.reg2Deriv * v
 
             H = phi_d2Deriv + self.beta * phi_m2Deriv
 

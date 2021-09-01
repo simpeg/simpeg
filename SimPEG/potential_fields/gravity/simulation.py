@@ -22,6 +22,7 @@ class Simulation3DIntegral(BasePFSimulation):
         self._G = None
         self._gtg_diagonal = None
         self.modelMap = self.rhoMap
+        self.evaluate_integral = evaluate_integral
 
     def fields(self, m):
         self.model = m

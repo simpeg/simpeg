@@ -129,7 +129,7 @@ class MagDipole(BaseSrcVRM):
 
         """
 
-        refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
+        refFlag = np.zeros(np.shape(xyzc)[0], dtype=int)
 
         r = np.sqrt(
             (xyzc[:, 0] - self.location[0]) ** 2
@@ -279,7 +279,7 @@ class CircLoop(BaseSrcVRM):
 
         """
 
-        refFlag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
+        refFlag = np.zeros(np.shape(xyzc)[0], dtype=int)
 
         r0 = self.location
         a = self.radius
@@ -459,13 +459,13 @@ class LineCurrent(BaseSrcVRM):
 
         """
 
-        ref_flag = np.zeros(np.shape(xyzc)[0], dtype=np.int)
+        ref_flag = np.zeros(np.shape(xyzc)[0], dtype=int)
 
         nSeg = np.shape(self.location)[0] - 1
 
         for tt in range(0, nSeg):
 
-            ref_flag_tt = np.zeros(np.shape(xyzc)[0], dtype=np.int)
+            ref_flag_tt = np.zeros(np.shape(xyzc)[0], dtype=int)
             tx0 = self.location[tt, :]
             tx1 = self.location[tt + 1, :]
             a = (tx1[0] - tx0[0]) ** 2 + (tx1[1] - tx0[1]) ** 2 + (tx1[2] - tx0[2]) ** 2
