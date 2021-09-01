@@ -755,6 +755,7 @@ def write_dcip3d_ubc(
     data_object,
     data_type,
     file_type,
+    values=None,
     format_type="general",
     comment_lines=None,
 ):
@@ -798,6 +799,8 @@ def write_dcip3d_ubc(
                 providedpref=data_object.__module__,
             )
         )
+    if values is None:
+        values = data_object.dobs
 
     data_type = data_type.lower()
     file_type = file_type.lower()
@@ -824,7 +827,7 @@ def write_dcip3d_ubc(
     # Here we compute the apparent resistivities and treat it like an uncertainties column.
     if (file_type == "dpred") & (data_type == "volt"):
         data_object.standard_deviation = apparent_resistivity_from_voltage(
-            data_object.survey, data_object.dobs
+            data_object.survey, values
         )
         file_type = "dobs"
 
@@ -878,7 +881,7 @@ def write_dcip3d_ubc(
                     N = rx.locations[:, 0:end_index]
 
                 if file_type != "survey":
-                    N = np.c_[N, data_object.dobs[count : count + rx.nD]]
+                    N = np.c_[N, values[count : count + rx.nD]]
 
                 if file_type == "dobs":
                     N = np.c_[N, data_object.standard_deviation[count : count + rx.nD]]

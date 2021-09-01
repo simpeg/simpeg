@@ -3,7 +3,7 @@ import scipy.sparse as sp
 import properties
 from ....utils.code_utils import deprecate_class
 
-from ....utils import mkvc, Zero
+from ....utils import sdiag, mkvc, Zero
 from ....data import Data
 from ...base import BaseEMSimulation
 from .survey import Survey

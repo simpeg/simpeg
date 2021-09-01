@@ -30,6 +30,7 @@ from ..utils import (
     cartesian2spherical,
     Zero,
     eigenvalue_by_power_iteration,
+    io_utils
 )
 from ..utils.code_utils import deprecate_property
 from discretize import TensorMesh, TreeMesh
@@ -1301,7 +1302,7 @@ class SavePredictedEveryIteration(SaveEveryIteration):
         if getattr(self.invProb, "dpred", None) is not None:
             dpred = np.hstack(self.invProb.dpred)
             if self.data_type == 'ubc_dc':
-                dc_utils.writeUBC_DCobs(f"{self.file_name}_0.pre", self.data, 3, "surface", data=dpred, predicted=True)
+                io_utils.write_dcip3d_ubc(f"{self.file_name}_0.pre", self.data, "volt", "dpred", format_type="surface", values=dpred)
             else:
                 np.savetxt(f"{self.file_name}_0.pre", np.c_[self.data.survey.locations, dpred])
 
@@ -1314,7 +1315,7 @@ class SavePredictedEveryIteration(SaveEveryIteration):
         dpred = np.hstack(self.invProb.dpred)
         if self.data_type == 'ubc_dc':
             from SimPEG.electromagnetics.static import utils as dc_utils
-            dc_utils.writeUBC_DCobs(f"{file_name}.pre", self.data, 3, "surface", data=dpred, predicted=True)
+            io_utils.write_dcip3d_ubc(f"{file_name}.pre", self.data, "volt", "dpred", format_type="surface", values=dpred)
         else:
             np.savetxt(f"{file_name}.pre", np.c_[self.data.survey.locations, dpred])
 
