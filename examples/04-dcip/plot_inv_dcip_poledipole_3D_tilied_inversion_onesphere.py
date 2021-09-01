@@ -30,9 +30,9 @@ import matplotlib.pyplot as plt
 from time import time
 
 try:
-    from pymatsolver.direct import Pardiso as Solver
+    from pymatsolver.direct import Pardiso as solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from SimPEG import SolverLU as solver
 
 np.random.seed(12345)
 
@@ -61,7 +61,7 @@ def create_tile_dc(source, obs, uncert, global_mesh, global_active, tile_id):
     max_chunk_size = 256
     simulation = dc.Simulation3DNodal(
         local_mesh, survey=local_survey, sigmaMap=mapping, storeJ=True,
-        Solver=Solver, max_ram=1
+        solver=solver, max_ram=1
     )
 
     simulation.mesh = TensorMesh([1])  # Light dummy
@@ -408,7 +408,7 @@ def run(survey_type="pole-dipole", plotIt=True):
     mapactive = maps.InjectActiveCells(mesh=global_mesh, indActive=active_cells, valInactive=np.log(1e-8))
     mapping = expmap * mapactive
     simulation_g = dc.Simulation3DNodal(
-        global_mesh, survey=survey_dc, sigmaMap=mapping, solver=Solver, model=mstart
+        global_mesh, survey=survey_dc, sigmaMap=mapping, solver=solver, model=mstart
     )
     simulation_g.mesh = TensorMesh([1])  # Light dummy
     # del local_mesh,
