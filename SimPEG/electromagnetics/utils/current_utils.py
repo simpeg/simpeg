@@ -3,7 +3,6 @@ from ...utils import mkvc
 import discretize
 import warnings
 
-
 def line(a, t, l):
     """
         Linear interpolation between a and b
@@ -14,10 +13,10 @@ def line(a, t, l):
 
 def edge_basis_function(t, a1, l1, h1, a2, l2, h2):
     """
-        Edge basis functions
+    Edge basis functions
     """
-    x1 = line(a1, t, l1)
-    x2 = line(a2, t, l2)
+    x1 = a1 + t * l1
+    x2 = a2 + t * l2
     w0 = (1.0 - x1 / h1) * (1.0 - x2 / h2)
     w1 = (x1 / h1) * (1.0 - x2 / h2)
     w2 = (1.0 - x1 / h1) * (x2 / h2)
@@ -25,19 +24,28 @@ def edge_basis_function(t, a1, l1, h1, a2, l2, h2):
     return np.r_[w0, w1, w2, w3]
 
 
+def _simpsons_rule(a1, l1, h1, a2, l2, h2):
+    """Return weights for Simpson's rule."""
+    wl = edge_basis_function(0.0, a1, l1, h1, a2, l2, h2)
+    wc = edge_basis_function(0.5, a1, l1, h1, a2, l2, h2)
+    wr = edge_basis_function(1.0, a1, l1, h1, a2, l2, h2)
+    return (wl + 4.0 * wc + wr) / 6.0
+
+
 # TODO: Extend this when current is defined on cell-face
 def getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz):
     """
-      Compute integral int(W . J dx^3) in brick of size hx x hy x hz
-      where W denotes the 12 local bilinear edge basis functions
-      and where J prescribes a unit line current
-      between points (ax,ay,az) and (bx,by,bz).
+    Compute integral int(W . J dx^3) in brick of size hx x hy x hz
+    where W denotes the 12 local bilinear edge basis functions
+    and where J prescribes a unit line current
+    between points (ax,ay,az) and (bx,by,bz).
     """
 
     # length of line segment
     lx = bx - ax
     ly = by - ay
     lz = bz - az
+
     l_ = np.sqrt(lx ** 2 + ly ** 2 + lz ** 2)
 
     if l_ == 0:
@@ -45,23 +53,11 @@ def getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz):
         sy = np.zeros((4, 1))
         sz = np.zeros((4, 1))
 
+
     # integration using Simpson's rule
-    wx0 = edge_basis_function(0.0, ay, ly, hy, az, lz, hz)
-    wx0_5 = edge_basis_function(0.5, ay, ly, hy, az, lz, hz)
-    wx1 = edge_basis_function(1.0, ay, ly, hy, az, lz, hz)
-
-    wy0 = edge_basis_function(0.0, ax, lx, hx, az, lz, hz)
-    wy0_5 = edge_basis_function(0.5, ax, lx, hx, az, lz, hz)
-    wy1 = edge_basis_function(1.0, ax, lx, hx, az, lz, hz)
-
-    wz0 = edge_basis_function(0.0, ax, lx, hx, ay, ly, hy)
-    wz0_5 = edge_basis_function(0.5, ax, lx, hx, ay, ly, hy)
-    wz1 = edge_basis_function(1.0, ax, lx, hx, ay, ly, hy)
-
-    sx = (wx0 + 4.0 * wx0_5 + wx1) * (lx / 6.0)
-
-    sy = (wy0 + 4.0 * wy0_5 + wy1) * (ly / 6.0)
-    sz = (wz0 + 4.0 * wz0_5 + wz1) * (lz / 6.0)
+    sx = _simpsons_rule(ay, ly, hy, az, lz, hz) * lx
+    sy = _simpsons_rule(ax, lx, hx, az, lz, hz) * ly
+    sz = _simpsons_rule(ax, lx, hx, ay, ly, hy) * lz
 
     return sx, sy, sz
 
@@ -75,8 +71,10 @@ def findlast(x):
 
 def segmented_line_current_source_term(mesh, locs):
     """Calculate a source term for a line current source on a mesh
+
     Given a discretize mesh, compute the source vector for a unit current flowing
     along the segmented line path with vertices defined by `locs`.
+
     Parameters
     ----------
     mesh : discretize.TreeMesh or discretize.TensorMesh
@@ -84,10 +82,12 @@ def segmented_line_current_source_term(mesh, locs):
     locs : numpy.ndarray
         The array of locations of consecutive points along the polygonal path.
         in a shape of (n_points, 3)
+
     Returns
     -------
     numpy.ndarray of length (mesh.nE)
         Contains the source term for all x, y, and z edges of the mesh.
+
     Notes
     -----
     You can create a closed loop by setting the first and end point to be the same.
@@ -100,29 +100,29 @@ def segmented_line_current_source_term(mesh, locs):
 
 def _poly_line_source_tens(mesh, locs):
     """
-        Given a tensor product mesh with origin at (x0,y0,z0) and cell sizes
-        hx, hy, hz, compute the source vector for a unit current flowing along
-        the polygon with vertices px, py, pz.
-        The 3-D arrays sx, sy, sz contain the source terms for all x/y/z-edges
-        of the tensor product mesh.
-        Modified from matlab code:
-            getSourceTermLineCurrentPolygon(x0,y0,z0,hx,hy,hz,px,py,pz)
-            Christoph Schwarzbach, February 2014
+    Given a tensor product mesh with origin at (x0,y0,z0) and cell sizes
+    hx, hy, hz, compute the source vector for a unit current flowing along
+    the polygon with vertices px, py, pz.
+    The 3-D arrays sx, sy, sz contain the source terms for all x/y/z-edges
+    of the tensor product mesh.
+
+    Modified from matlab code:
+
+        getSourceTermLineCurrentPolygon(x0,y0,z0,hx,hy,hz,px,py,pz)
+        Christoph Schwarzbach, February 2014
+
     """
-    # number of cells
-    xorig = mesh.x0
+    # Get some mesh properties
+    nx, ny, nz = mesh.shape_cells
     hx, hy, hz = mesh.h
+    x = mesh.nodes_x
+    y = mesh.nodes_y
+    z = mesh.nodes_z
+
+    # Source points
     px = locs[:, 0]
     py = locs[:, 1]
     pz = locs[:, 2]
-    nx = len(hx)
-    ny = len(hy)
-    nz = len(hz)
-    x0, y0, z0 = xorig[0], xorig[1], xorig[2]
-    # nodal grid
-    x = np.r_[x0, x0 + np.cumsum(hx)]
-    y = np.r_[y0, y0 + np.cumsum(hy)]
-    z = np.r_[z0, z0 + np.cumsum(hz)]
 
     # discrete edge function
     sx = np.zeros((nx, ny + 1, nz + 1))
@@ -220,8 +220,10 @@ def _poly_line_source_tens(mesh, locs):
 
 def _poly_line_source_tree(mesh, locs):
     """Calculate a source term for a line current source on a OctTreeMesh
+
     Given an OcTreeMesh compute the source vector for a unit current flowing
     along the polygon with vertices px, py, pz.
+
     Parameters
     ----------
     mesh : discretize.TreeMesh
@@ -229,6 +231,7 @@ def _poly_line_source_tree(mesh, locs):
     px, py, pz : 1D numpy.array
         The 1D arrays contain the x, y, and z, locations of consecutive points
         along the polygonal path
+
     Returns
     -------
     numpy.ndarray of length (mesh.nE)
@@ -317,7 +320,8 @@ def _poly_line_source_tree(mesh, locs):
 def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
     warnings.warn(
         "getSourceTermLineCurrentPolygon has been deprecated and will be"
-        "removed in SimPEG 0.15.0. Please use segmented_line_current_source_term.",
+        "removed in SimPEG 0.16.0. Please use segmented_line_current_source_term.",
+
         DeprecationWarning,
     )
     mesh = discretize.TensorMesh((hx, hy, hz), x0=xorig)

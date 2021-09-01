@@ -64,8 +64,8 @@ class StoppingCriteria(object):
     WolfeCurvature = {
         "str": "%d :    -newgradient*descent  = %1.4e <= -alp*oldgradient*descent     = %1.4e",
         "left": lambda M: -M._LS_ft_descent,
-        "right": lambda M:  -M.LScurvature * M._LS_descent,
-        "stopType": "optimal"
+        "right": lambda M: -M.LScurvature * M._LS_descent,
+        "stopType": "optimal",
     }
 
     tolerance_f = {
@@ -155,8 +155,9 @@ class IterationPrinters(object):
     LS_WolfeCurvature = {
         "title": "alp*g.T*p",
         "str": "%d :    ft     = %1.4e >= alp*descent     = %1.4e",
-        "value": lambda M:  M.LScurvature * M._LS_descent, "width": 16,
-        "format": "%1.2e"
+        "value": lambda M: M.LScurvature * M._LS_descent,
+        "width": 16,
+        "format": "%1.2e",
     }
 
     itType = {
@@ -231,7 +232,7 @@ class IterationPrinters(object):
 
 class Minimize(object):
     """
-        Minimize is a general class for derivative based optimization.
+    Minimize is a general class for derivative based optimization.
     """
 
     name = "General Optimization Algorithm"  #: The name of the optimization algorithm
@@ -240,7 +241,9 @@ class Minimize(object):
     maxIterLS = 10  #: Maximum number of iterations for the line-search
     maxStep = np.inf  #: Maximum step possible, used in scaling before the line-search.
     LSreduction = 1e-4  #: Expected decrease in the line-search
-    LScurvature = 0.9 #expected decrease of the slope for line search Wolfe Curvature criteria
+    LScurvature = (
+        0.9  #: Expected decrease of the slope for line search Wolfe Curvature criteria
+    )
     LSshorten = 0.5  #: Line-search step is shortened by this amount each time.
     tolF = 1e-1  #: Tolerance on function value decrease
     tolX = 1e-1  #: Tolerance on norm(x) movement
@@ -248,7 +251,7 @@ class Minimize(object):
     eps = 1e-5  #: Small value
 
     stopNextIteration = False  #: Stops the optimization program nicely.
-    use_WolfeCurvature = False #: add the Wolfe Curvature criteria for line search
+    use_WolfeCurvature = False  #: add the Wolfe Curvature criteria for line search
 
     debug = False  #: Print debugging information
     debugLS = False  #: Print debugging information for the line-search
@@ -272,9 +275,7 @@ class Minimize(object):
         ]
 
         if self.use_WolfeCurvature:
-            self.stoppersLS.append(
-                StoppingCriteria.WolfeCurvature
-            )
+            self.stoppersLS.append(StoppingCriteria.WolfeCurvature)
 
         self.printersLS = [
             IterationPrinters.iterationLS,
@@ -423,17 +424,17 @@ class Minimize(object):
     @callHooks("startup")
     def startup(self, x0):
         """
-            **startup** is called at the start of any new minimize call.
+        **startup** is called at the start of any new minimize call.
 
-            This will set::
+        This will set::
 
-                x0 = x0
-                xc = x0
-                iter = iterLS = 0
+            x0 = x0
+            xc = x0
+            iter = iterLS = 0
 
-            :param numpy.ndarray x0: initial x
-            :rtype: None
-            :return: None
+        :param numpy.ndarray x0: initial x
+        :rtype: None
+        :return: None
         """
 
         self.iter = 0
@@ -451,21 +452,21 @@ class Minimize(object):
     def doStartIteration(self):
         """doStartIteration()
 
-            **doStartIteration** is called at the start of each minimize
-            iteration.
+        **doStartIteration** is called at the start of each minimize
+        iteration.
 
-            :rtype: None
-            :return: None
+        :rtype: None
+        :return: None
         """
         pass
 
     def printInit(self, inLS=False):
         """
-            **printInit** is called at the beginning of the optimization
-            routine.
+        **printInit** is called at the beginning of the optimization
+        routine.
 
-            If there is a parent object, printInit will check for a
-            parent.printInit function and call that.
+        If there is a parent object, printInit will check for a
+        parent.printInit function and call that.
 
         """
         pad = " " * 10 if inLS else ""
@@ -475,10 +476,10 @@ class Minimize(object):
     @callHooks("printIter")
     def printIter(self, inLS=False):
         """
-            **printIter** is called directly after function evaluations.
+        **printIter** is called directly after function evaluations.
 
-            If there is a parent object, printIter will check for a
-            parent.printIter function and call that.
+        If there is a parent object, printIter will check for a
+        parent.printIter function and call that.
 
         """
         pad = " " * 10 if inLS else ""
@@ -486,10 +487,10 @@ class Minimize(object):
 
     def printDone(self, inLS=False):
         """
-            **printDone** is called at the end of the optimization routine.
+        **printDone** is called at the end of the optimization routine.
 
-            If there is a parent object, printDone will check for a
-            parent.printDone function and call that.
+        If there is a parent object, printDone will check for a
+        parent.printDone function and call that.
 
         """
         pad = " " * 10 if inLS else ""
@@ -518,10 +519,10 @@ class Minimize(object):
     def finish(self):
         """finish()
 
-            **finish** is called at the end of the optimization.
+        **finish** is called at the end of the optimization.
 
-            :rtype: None
-            :return: None
+        :rtype: None
+        :return: None
 
         """
         pass
@@ -537,13 +538,13 @@ class Minimize(object):
     def projection(self, p):
         """projection(p)
 
-            projects the search direction.
+        projects the search direction.
 
-            by default, no projection is applied.
+        by default, no projection is applied.
 
-            :param numpy.ndarray p: searchDirection
-            :rtype: numpy.ndarray
-            :return: p, projected search direction
+        :param numpy.ndarray p: searchDirection
+        :rtype: numpy.ndarray
+        :return: p, projected search direction
         """
         return p
 
@@ -551,30 +552,30 @@ class Minimize(object):
     def findSearchDirection(self):
         """findSearchDirection()
 
-            **findSearchDirection** should return an approximation of:
+        **findSearchDirection** should return an approximation of:
 
-            .. math::
+        .. math::
 
-                H p = - g
+            H p = - g
 
-            Where you are solving for the search direction, p
+        Where you are solving for the search direction, p
 
-            The default is:
+        The default is:
 
-            .. math::
+        .. math::
 
-                H = I
+            H = I
 
-                p = - g
+            p = - g
 
-            And corresponds to SteepestDescent.
+        And corresponds to SteepestDescent.
 
-            The latest function evaluations are present in::
+        The latest function evaluations are present in::
 
-                self.f, self.g, self.H
+            self.f, self.g, self.H
 
-            :rtype: numpy.ndarray
-            :return: p, Search Direction
+        :rtype: numpy.ndarray
+        :return: p, Search Direction
         """
         return -self.g
 
@@ -582,15 +583,15 @@ class Minimize(object):
     def scaleSearchDirection(self, p):
         """scaleSearchDirection(p)
 
-            **scaleSearchDirection** should scale the search direction if
-            appropriate.
+        **scaleSearchDirection** should scale the search direction if
+        appropriate.
 
-            Set the parameter **maxStep** in the minimize object, to scale back
-            the gradient to a maximum size.
+        Set the parameter **maxStep** in the minimize object, to scale back
+        the gradient to a maximum size.
 
-            :param numpy.ndarray p: searchDirection
-            :rtype: numpy.ndarray
-            :return: p, Scaled Search Direction
+        :param numpy.ndarray p: searchDirection
+        :rtype: numpy.ndarray
+        :return: p, Scaled Search Direction
         """
 
         if self.maxStep < np.abs(p.max()):
@@ -603,44 +604,40 @@ class Minimize(object):
     def modifySearchDirection(self, p):
         """modifySearchDirection(p)
 
-            **modifySearchDirection** changes the search direction based on
-            some sort of linesearch or trust-region criteria.
+        **modifySearchDirection** changes the search direction based on
+        some sort of linesearch or trust-region criteria.
 
-            By default, an Armijo backtracking linesearch is preformed with the
-            following parameters:
+        By default, an Armijo backtracking linesearch is preformed with the
+        following parameters:
 
-                * maxIterLS, the maximum number of linesearch iterations
-                * LSreduction, the expected reduction expected, default: 1e-4
-                * LSshorten, how much the step is reduced, default: 0.5
+            * maxIterLS, the maximum number of linesearch iterations
+            * LSreduction, the expected reduction expected, default: 1e-4
+            * LSshorten, how much the step is reduced, default: 0.5
 
-            If the linesearch is completed, and a descent direction is found,
-            passLS is returned as True.
+        If the linesearch is completed, and a descent direction is found,
+        passLS is returned as True.
 
-            Else, a modifySearchDirectionBreak call is preformed.
+        Else, a modifySearchDirectionBreak call is preformed.
 
-            :param numpy.ndarray p: searchDirection
-            :rtype: tuple
-            :return: (xt, passLS) numpy.ndarray, bool
+        :param numpy.ndarray p: searchDirection
+        :rtype: tuple
+        :return: (xt, passLS) numpy.ndarray, bool
         """
         # Projected Armijo linesearch
-        self._LS_t = 1.
+        self._LS_t = 1.0
         self.iterLS = 0
         while self.iterLS < self.maxIterLS:
             self._LS_xt = self.projection(self.xc + self._LS_t * p)
             if self.use_WolfeCurvature:
                 self._LS_ft, self._LS_ft_descent = self.evalFunction(
-                    self._LS_xt, 
-                    return_g=self.use_WolfeCurvature, 
-                    return_H=False
+                    self._LS_xt, return_g=self.use_WolfeCurvature, return_H=False
                 )
                 self._LS_ft_descent = np.inner(
                     self._LS_ft_descent, self._LS_xt - self.xc
-                ) # This is the curvature WolfeCurvature condition
+                )  # This is the curvature WolfeCurvature condition
             else:
                 self._LS_ft = self.evalFunction(
-                    self._LS_xt, 
-                    return_g=self.use_WolfeCurvature, 
-                    return_H=False
+                    self._LS_xt, return_g=self.use_WolfeCurvature, return_H=False
                 )
             self._LS_descent = np.inner(
                 self.g, self._LS_xt - self.xc
@@ -663,19 +660,19 @@ class Minimize(object):
     def modifySearchDirectionBreak(self, p):
         """modifySearchDirectionBreak(p)
 
-            Code is called if modifySearchDirection fails
-            to find a descent direction.
+        Code is called if modifySearchDirection fails
+        to find a descent direction.
 
-            The search direction is passed as input and
-            this function must pass back both a new searchDirection,
-            and if the searchDirection break has been caught.
+        The search direction is passed as input and
+        this function must pass back both a new searchDirection,
+        and if the searchDirection break has been caught.
 
-            By default, no additional work is done, and the
-            evalFunction returns a False indicating the break was not caught.
+        By default, no additional work is done, and the
+        evalFunction returns a False indicating the break was not caught.
 
-            :param numpy.ndarray p: searchDirection
-            :rtype: tuple
-            :return: (xt, breakCaught) numpy.ndarray, bool
+        :param numpy.ndarray p: searchDirection
+        :rtype: tuple
+        :return: (xt, breakCaught) numpy.ndarray, bool
         """
         self.printDone(inLS=True)
         print("The linesearch got broken. Boo.")
@@ -686,16 +683,16 @@ class Minimize(object):
     def doEndIteration(self, xt):
         """doEndIteration(xt)
 
-            **doEndIteration** is called at the end of each minimize iteration.
+        **doEndIteration** is called at the end of each minimize iteration.
 
-            By default, function values and x locations are shuffled to store 1
-            past iteration in memory.
+        By default, function values and x locations are shuffled to store 1
+        past iteration in memory.
 
-            self.xc must be updated in this code.
+        self.xc must be updated in this code.
 
-            :param numpy.ndarray xt: tested new iterate that ensures a descent direction.
-            :rtype: None
-            :return: None
+        :param numpy.ndarray xt: tested new iterate that ensures a descent direction.
+        :rtype: None
+        :return: None
         """
         # store old values
         self.f_last = self.f
@@ -722,21 +719,21 @@ class Minimize(object):
 
 class Remember(object):
     """
-        This mixin remembers all the things you tend to forget.
+    This mixin remembers all the things you tend to forget.
 
-        You can remember parameters directly, naming the str in Minimize,
-        or pass a tuple with the name and the function that takes Minimize.
+    You can remember parameters directly, naming the str in Minimize,
+    or pass a tuple with the name and the function that takes Minimize.
 
-        For Example::
+    For Example::
 
-            opt.remember('f',('norm_g', lambda M: np.linalg.norm(M.g)))
+        opt.remember('f',('norm_g', lambda M: np.linalg.norm(M.g)))
 
-            opt.minimize(evalFunction, x0)
+        opt.minimize(evalFunction, x0)
 
-            opt.recall('f')
+        opt.recall('f')
 
-        The param name (str) can also be located in the parent (if no conflicts),
-        and it will be looked up by default.
+    The param name (str) can also be located in the parent (if no conflicts),
+    and it will be looked up by default.
     """
 
     _rememberThese = []
@@ -820,7 +817,7 @@ class ProjectedGradient(Minimize, Remember):
     def projection(self, x):
         """projection(x)
 
-            Make sure we are feasible.
+        Make sure we are feasible.
 
         """
         return np.median(np.c_[self.lower, x, self.upper], axis=1)
@@ -829,7 +826,7 @@ class ProjectedGradient(Minimize, Remember):
     def activeSet(self, x):
         """activeSet(x)
 
-            If we are on a bound
+        If we are on a bound
 
         """
         return np.logical_or(x == self.lower, x == self.upper)
@@ -838,7 +835,7 @@ class ProjectedGradient(Minimize, Remember):
     def inactiveSet(self, x):
         """inactiveSet(x)
 
-            The free variables.
+        The free variables.
 
         """
         return np.logical_not(self.activeSet(x))
@@ -847,10 +844,10 @@ class ProjectedGradient(Minimize, Remember):
     def bindingSet(self, x):
         """bindingSet(x)
 
-            If we are on a bound and the negative gradient points away from the
-            feasible set.
+        If we are on a bound and the negative gradient points away from the
+        feasible set.
 
-            Optimality condition. (Satisfies Kuhn-Tucker) MoreToraldo91
+        Optimality condition. (Satisfies Kuhn-Tucker) MoreToraldo91
 
         """
         bind_up = np.logical_and(x == self.lower, self.g >= 0)
@@ -861,7 +858,7 @@ class ProjectedGradient(Minimize, Remember):
     def findSearchDirection(self):
         """findSearchDirection()
 
-            Finds the search direction based on either CG or steepest descent.
+        Finds the search direction based on either CG or steepest descent.
         """
         self.aSet_prev = self.activeSet(self.xc)
         allBoundsAreActive = sum(self.aSet_prev) == self.xc.size
@@ -960,9 +957,9 @@ class BFGS(Minimize, Remember):
     @property
     def bfgsH0(self):
         """
-            Approximate Hessian used in preconditioning the problem.
+        Approximate Hessian used in preconditioning the problem.
 
-            Must be a SimPEG.Solver
+        Must be a SimPEG.Solver
         """
         if getattr(self, "_bfgsH0", None) is None:
             print(
@@ -1040,18 +1037,18 @@ class GaussNewton(Minimize, Remember):
 
 class InexactGaussNewton(BFGS, Minimize, Remember):
     """
-        Minimizes using CG as the inexact solver of
+    Minimizes using CG as the inexact solver of
 
-        .. math::
+    .. math::
 
-            \mathbf{H p = -g}
+        \mathbf{H p = -g}
 
-        By default BFGS is used as the preconditioner.
+    By default BFGS is used as the preconditioner.
 
-        Use *nbfgs* to set the memory limitation of BFGS.
+    Use *nbfgs* to set the memory limitation of BFGS.
 
-        To set the initial H0 to be used in BFGS, set *bfgsH0* to be a
-        SimPEG.Solver
+    To set the initial H0 to be used in BFGS, set *bfgsH0* to be a
+    SimPEG.Solver
 
     """
 
@@ -1066,11 +1063,11 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
     @property
     def approxHinv(self):
         """
-            The approximate Hessian inverse is used to precondition CG.
+        The approximate Hessian inverse is used to precondition CG.
 
-            Default uses BFGS, with an initial H0 of *bfgsH0*.
+        Default uses BFGS, with an initial H0 of *bfgsH0*.
 
-            Must be a scipy.sparse.linalg.LinearOperator
+        Must be a scipy.sparse.linalg.LinearOperator
         """
         _approxHinv = getattr(self, "_approxHinv", None)
         if _approxHinv is None:
@@ -1106,20 +1103,20 @@ class SteepestDescent(Minimize, Remember):
 
 class NewtonRoot(object):
     """
-        Newton Method - Root Finding
+    Newton Method - Root Finding
 
-        root = newtonRoot(fun,x);
+    root = newtonRoot(fun,x);
 
-        Where fun is the function that returns the function value as well as
-        the gradient.
+    Where fun is the function that returns the function value as well as
+    the gradient.
 
-        For iterative solving of dh = -J\\r, use O.solveTol = TOL. For direct
-        solves, use SOLVETOL = 0 (default)
+    For iterative solving of dh = -J\\r, use O.solveTol = TOL. For direct
+    solves, use SOLVETOL = 0 (default)
 
-        Rowan Cockett
-        16-May-2013 16:29:51
-        University of British Columbia
-        rcockett@eos.ubc.ca
+    Rowan Cockett
+    16-May-2013 16:29:51
+    University of British Columbia
+    rcockett@eos.ubc.ca
 
     """
 
@@ -1221,7 +1218,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     def projection(self, x):
         """projection(x)
 
-            Make sure we are feasible.
+        Make sure we are feasible.
 
         """
         return np.median(np.c_[self.lower, x, self.upper], axis=1)
@@ -1230,7 +1227,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     def activeSet(self, x):
         """activeSet(x)
 
-            If we are on a bound
+        If we are on a bound
 
         """
         return np.logical_or(x <= self.lower, x >= self.upper)
@@ -1238,11 +1235,11 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     @property
     def approxHinv(self):
         """
-            The approximate Hessian inverse is used to precondition CG.
+        The approximate Hessian inverse is used to precondition CG.
 
-            Default uses BFGS, with an initial H0 of *bfgsH0*.
+        Default uses BFGS, with an initial H0 of *bfgsH0*.
 
-            Must be a scipy.sparse.linalg.LinearOperator
+        Must be a scipy.sparse.linalg.LinearOperator
         """
         _approxHinv = getattr(self, "_approxHinv", None)
         if _approxHinv is None:
@@ -1259,8 +1256,8 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     @timeIt
     def findSearchDirection(self):
         """
-            findSearchDirection()
-            Finds the search direction based on projected CG
+        findSearchDirection()
+        Finds the search direction based on projected CG
         """
 
         Active = self.activeSet(self.xc)

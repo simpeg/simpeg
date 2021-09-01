@@ -131,7 +131,7 @@ class SimpleSmoothDeriv(BaseRegularization):
     @property
     def length_scales(self):
         """
-            Normalized cell based weighting
+        Normalized cell based weighting
 
         """
         if getattr(self, "_length_scales", None) is None:

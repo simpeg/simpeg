@@ -2,6 +2,7 @@ import numpy as np
 from scipy.interpolate import LinearNDInterpolator, NearestNDInterpolator
 import matplotlib.pyplot as plt
 from matplotlib import colors
+import warnings
 
 
 def plot2Ddata(
@@ -30,32 +31,32 @@ def plot2Ddata(
 ):
     """
 
-        Take unstructured xy points, interpolate, then plot in 2D
+    Take unstructured xy points, interpolate, then plot in 2D
 
-        :param numpy.ndarray xyz: data locations
-        :param numpy.ndarray data: data values
-        :param bool vec: plot streamplot?
-        :param float nx: number of x grid locations
-        :param float ny: number of y grid locations
-        :param matplotlib.axes ax: axes
-        :param boolean numpy.ndarray mask: mask for the array
-        :param boolean level: boolean to plot (or not)
-                                :meth:`matplotlib.pyplot.contour`
-        :param string figname: figure name
-        :param float ncontour: number of :meth:`matplotlib.pyplot.contourf`
-                                contours
-        :param bool dataloc: plot the data locations
-        :param dict controuOpts: :meth:`matplotlib.pyplot.contourf` options
-        :param dict levelOpts: :meth:`matplotlib.pyplot.contour` options
-        :param numpy.ndarray clim: colorbar limits
-        :param str method: interpolation method, either 'linear' or 'nearest'
-        :param bool shade: add shading to the plot
-        :param float shade_ncontour: number of :meth:`matplotlib.pyplot.contourf`
-                                contours for the shading
-        :param float shade_azimuth: azimuth for the light source in shading
-        :param float shade_angle_altitude: angle altitude for the light source
-                                in shading
-        :param dict shaeOpts: :meth:`matplotlib.pyplot.contourf` options
+    :param numpy.ndarray xyz: data locations
+    :param numpy.ndarray data: data values
+    :param bool vec: plot streamplot?
+    :param float nx: number of x grid locations
+    :param float ny: number of y grid locations
+    :param matplotlib.axes ax: axes
+    :param boolean numpy.ndarray mask: mask for the array
+    :param boolean level: boolean to plot (or not)
+                            :meth:`matplotlib.pyplot.contour`
+    :param string figname: figure name
+    :param float ncontour: number of :meth:`matplotlib.pyplot.contourf`
+                            contours
+    :param bool dataloc: plot the data locations
+    :param dict controuOpts: :meth:`matplotlib.pyplot.contourf` options
+    :param dict levelOpts: :meth:`matplotlib.pyplot.contour` options
+    :param numpy.ndarray clim: colorbar limits
+    :param str method: interpolation method, either 'linear' or 'nearest'
+    :param bool shade: add shading to the plot
+    :param float shade_ncontour: number of :meth:`matplotlib.pyplot.contourf`
+                            contours for the shading
+    :param float shade_azimuth: azimuth for the light source in shading
+    :param float shade_angle_altitude: angle altitude for the light source
+                            in shading
+    :param dict shaeOpts: :meth:`matplotlib.pyplot.contourf` options
 
     """
 
@@ -225,54 +226,107 @@ def plot2Ddata(
         return cont, ax
 
 
+def plot_1d_layer_model(
+    thicknesses,
+    values,
+    z0=0,
+    scale="log",
+    ax=None,
+    plot_elevation=False,
+    show_layers=False,
+    **kwargs
+):
+    """
+    Plot the vertical profile for a 1D layered Earth model.
+
+    Input:
+    thicknesses : List[Float]
+        A list or numpy.array containing the layer thicknesses from the top layer down
+    values : List[Float]
+        A list or numpy.array containing the physical property values from the top layer down
+    z0 : Float
+        Elevation of the surface
+    scale: str
+        scale {'linear', 'log'}. Plot physical property values on a linear or log10 scale.
+    ax: matplotlib.axes.Axes, optional
+        An axis object for the plot
+    plot_elevation : bool
+        If False, the yaxis will be the depth. If True, the yaxis is the elevation.
+    show_layers : bool
+        Plot horizontal lines to denote layers.
+
+    Output:
+    matplotlib.axes.Axes
+        The axis object that holds the plot
+
+    """
+
+    if len(thicknesses) < len(values):
+        thicknesses = np.r_[thicknesses, thicknesses[-1]]
+    z_grid = np.r_[0.0, np.cumsum(thicknesses)]
+    resistivity = np.repeat(values, 2)
+    v_min = 0.9 * np.min(values)
+    v_max = 1.1 * np.max(values)
+
+    z = []
+    for i in range(0, len(thicknesses)):
+        z.append(np.r_[z_grid[i], z_grid[i + 1]])
+    z = np.hstack(z)
+    z[-1] = 1e200  # A really large number
+
+    if plot_elevation:
+        y_label = "Elevation (m)"
+        z = z0 - z
+        z_grid = z0 - z_grid
+        flip_axis = False
+    else:
+        y_label = "Depth (m)"
+        flip_axis = True
+
+    if ax is None:
+        fig = plt.figure(figsize=(6, 6))
+        ax = fig.add_axes([0.15, 0.15, 0.75, 0.75])
+
+    if show_layers:
+        for locz in z_grid:
+            plt.plot(
+                np.linspace(v_min, v_max, 2),
+                np.ones(2) * locz,
+                "k--",
+                lw=0.5,
+                label="_nolegend_",
+            )
+
+    ax.plot(resistivity, z, **kwargs)
+    ax.set_xscale(scale)
+    ax.set_xlim(v_min, v_max)
+    if flip_axis:
+        ax.set_ylim(z_grid.max(), z_grid.min())
+    else:
+        ax.set_ylim(z_grid.min(), z_grid.max())
+    ax.set_ylabel(y_label)
+
+    return ax
+
+
 def plotLayer(
     sig, LocSigZ, xscale="log", ax=None, showlayers=False, xlim=None, **kwargs
 ):
-    """Plot a layered earth model"""
-    sigma = np.repeat(sig, 2, axis=0)
-    z = np.repeat(LocSigZ[1:], 2, axis=0)
-    z = np.r_[LocSigZ[0], z, LocSigZ[-1]]
-
-    if xlim is None:
-        sig_min = sig.min() * 0.5
-        sig_max = sig.max() * 2
-    else:
-        sig_min, sig_max = xlim
-
-    if xscale == "linear" and sig.min() == 0.0:
-        if xlim is None:
-            sig_min = -sig.max() * 0.5
-            sig_max = sig.max() * 2
-
-    if ax is None:
-        plt.xscale(xscale)
-        plt.xlim(sig_min, sig_max)
-        plt.ylim(z.min(), z.max())
-        plt.xlabel("Conductivity (S/m)", fontsize=14)
-        plt.ylabel("Depth (m)", fontsize=14)
-        plt.ylabel("Depth (m)", fontsize=14)
-        if showlayers is True:
-            for locz in LocSigZ:
-                plt.plot(
-                    np.linspace(sig_min, sig_max, 100),
-                    np.ones(100) * locz,
-                    "b--",
-                    lw=0.5,
-                )
-        return plt.plot(sigma, z, "k-", **kwargs)
-
-    else:
-        ax.set_xscale(xscale)
-        ax.set_xlim(sig_min, sig_max)
-        ax.set_ylim(z.min(), z.max())
-        ax.set_xlabel("Conductivity (S/m)", fontsize=14)
-        ax.set_ylabel("Depth (m)", fontsize=14)
-        if showlayers is True:
-            for locz in LocSigZ:
-                ax.plot(
-                    np.linspace(sig_min, sig_max, 100),
-                    np.ones(100) * locz,
-                    "b--",
-                    lw=0.5,
-                )
-        return ax.plot(sigma, z, "k-", **kwargs)
+    warnings.warn(
+        "plotLayer has been deprecated, please use plot_1d_layer_model",
+        DeprecationWarning,
+    )
+    thicknesses = np.diff(LocSigZ)
+    z0 = LocSigZ[0]
+    ax = plot_1d_layer_model(
+        thicknesses,
+        sig,
+        z0=z0,
+        scale=xscale,
+        ax=ax,
+        show_layers=showlayers,
+        plot_elevation=False,
+    )
+    if xlim is not None:
+        ax.xlim(0.5 * sig.min(), 2 * sig.max())
+    return ax

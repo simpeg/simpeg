@@ -60,7 +60,7 @@ max_distance = 25
 #
 # Define the survey and model parameters
 #
-# Create an a global survey and mesh and simulate some data
+# Create a global survey and mesh and simulate some data
 #
 #
 
@@ -277,7 +277,7 @@ invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1, method="ratio")
 
 # Here is where the norms are applied
-# Use pick a threshold parameter empirically based on the distribution of
+# Use a threshold parameter empirically based on the distribution of
 # model parameters
 update_IRLS = directives.Update_IRLS(
     f_min_change=1e-4, max_irls_iterations=0, coolEpsFact=1.5, beta_tol=4.,

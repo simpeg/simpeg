@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from discretize.utils import interpmat
+from discretize.utils.interpolation_utils import interpmat
 
 from .mat_utils import (
     mkvc,
@@ -51,11 +51,23 @@ from .curv_utils import volTetra, faceInfo, indexCube
 from .counter_utils import Counter, count, timeIt
 from . import model_builder
 from . import solver_utils
-from .coord_utils import rotatePointsFromNormals, rotationMatrixFromNormals
-from .model_utils import surface2ind_topo, tile_locations
-from .plot_utils import plot2Ddata, plotLayer
-from .io_utils import download
 from . import io_utils
+from .coord_utils import rotatePointsFromNormals, rotationMatrixFromNormals
+
+from .model_utils import surface2ind_topo, tile_locations, depth_weighting
+from .plot_utils import plot2Ddata, plotLayer, plot_1d_layer_model
+
+from .io_utils import download
+from .pgi_utils import (
+    make_SimplePGI_regularization,
+    make_PGI_regularization,
+    make_SimplePGIwithRelationships_regularization,
+    GaussianMixture,
+    WeightedGaussianMixture,
+    GaussianMixtureWithPrior,
+    GaussianMixtureWithNonlinearRelationships,
+    GaussianMixtureWithNonlinearRelationshipsWithPrior,
+)
 
 """
 Deprecated,

@@ -84,7 +84,6 @@ def dask_Jtvec(self, m, v):
 
     return da.dot(v, self.Jmatrix).astype(np.float32)
 
-
 Sim.Jtvec = dask_Jtvec
 
 

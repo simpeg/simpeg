@@ -117,6 +117,88 @@ class BaseRxNSEM_Point(BaseRx):
             self._Ps[(mesh, projGLoc, field)] = P
         return P
 
+    # NOTE: need to add a .T at the end for the output to be (nU,)
+    def _aex_px_u(self, vec):
+        """"""
+        # vec is (nD,) and returns a (nU,)
+        return self.f._e_pxDeriv_u(self.src, self.Pex.T * mkvc(vec,), adjoint=True,)
+
+    def _aey_px_u(self, vec):
+        """"""
+        # vec is (nD,) and returns a (nU,)
+        return self.f._e_pxDeriv_u(self.src, self.Pey.T * mkvc(vec,), adjoint=True,)
+
+    def _aex_py_u(self, vec):
+        """"""
+        # vec is (nD,) and returns a (nU,)
+        return self.f._e_pyDeriv_u(self.src, self.Pex.T * mkvc(vec,), adjoint=True,)
+
+    def _aey_py_u(self, vec):
+        """"""
+        # vec is (nD,) and returns a (nU,)
+        return self.f._e_pyDeriv_u(self.src, self.Pey.T * mkvc(vec,), adjoint=True,)
+
+    def _ahx_px_u(self, vec):
+        """"""
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pxDeriv_u(self.src, self.Pbx.T * mkvc(vec,), adjoint=True,) / mu_0
+        )
+
+    def _ahy_px_u(self, vec):
+        """"""
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pxDeriv_u(self.src, self.Pby.T * mkvc(vec,), adjoint=True,) / mu_0
+        )
+
+    def _ahz_px_u(self, vec):
+        """"""
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pxDeriv_u(self.src, self.Pbz.T * mkvc(vec,), adjoint=True,) / mu_0
+        )
+
+    def _ahx_py_u(self, vec):
+        """"""
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pyDeriv_u(self.src, self.Pbx.T * mkvc(vec,), adjoint=True,) / mu_0
+        )
+
+    def _ahy_py_u(self, vec):
+        """"""
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pyDeriv_u(self.src, self.Pby.T * mkvc(vec,), adjoint=True,) / mu_0
+        )
+
+    def _ahz_py_u(self, vec):
+        """"""
+        # vec is (nD,) and returns a (nU,)
+        return (
+            self.f._b_pyDeriv_u(self.src, self.Pbz.T * mkvc(vec,), adjoint=True,) / mu_0
+        )
+
+    # Define the components of the derivative
+    @property
+    def _aHd(self):
+        return self._sDiag(
+            1.0
+            / (
+                self._sDiag(self._ahx_px) * self._ahy_py
+                - self._sDiag(self._ahx_py) * self._ahy_px
+            )
+        )
+
+    def _aHd_uV(self, x):
+        return (
+            self._ahx_px_u(self._sDiag(self._ahy_py) * x)
+            + self._ahx_px_u(self._sDiag(self._ahy_py) * x)
+            - self._ahy_px_u(self._sDiag(self._ahx_py) * x)
+            - self._ahx_py_u(self._sDiag(self._ahy_px) * x)
+        )
+
     def eval(self, src, mesh, f, return_complex=False):
         """
         Function to evaluate datum for this receiver
@@ -791,16 +873,16 @@ class AnalyticReceiver1D(BaseRx):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_impedance1D(Point1DImpedance):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_impedance3D(Point3DImpedance):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_tipper3D(Point3DTipper):
     pass

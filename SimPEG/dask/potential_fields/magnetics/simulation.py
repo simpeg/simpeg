@@ -116,7 +116,7 @@ Sim.linear_operator = linear_operator
 
 def dask_getJtJdiag(self, m, W=None):
     """
-        Return the diagonal of JtJ
+    Return the diagonal of JtJ
     """
 
     self.model = m
