@@ -6,7 +6,7 @@ from discretize.utils import isScalar
 from scipy.constants import mu_0
 from ...utils.code_utils import deprecate_class
 
-from ...utils import mkvc, sdiag
+from ...utils import mkvc, sdiag, Zero
 from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
 from ..utils import omega
 from .survey import Data, Survey1D
@@ -782,7 +782,6 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
     #         pool.join()
     #
     #     return F
->>>>>>> main
 
 
 ############

@@ -1,5 +1,5 @@
 from __future__ import print_function
-
+import json
 import properties
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,25 +8,18 @@ import os
 import scipy.sparse as sp
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
-from ..maps import SphericalSystem, ComboMap
 from ..regularization import (
     BaseComboRegularization,
     BaseRegularization,
     SimpleSmall,
     Small,
     SparseSmall,
-    Simple,
-    Tikhonov,
-    Sparse,
     SimplePGIsmallness,
     PGIsmallness,
     SimplePGIwithNonlinearRelationshipsSmallness,
-    SimplePGI,
-    PGI,
     SmoothDeriv,
     SimpleSmoothDeriv,
     SparseDeriv,
-    SimplePGIwithRelationships,
 )
 from ..utils import (
     mkvc,
@@ -40,7 +33,6 @@ from ..utils import (
 )
 from ..utils.code_utils import deprecate_property
 from discretize import TensorMesh, TreeMesh
-
 
 
 class InversionDirective(properties.HasProperties):
@@ -214,17 +206,10 @@ class BetaEstimate_ByEig(InversionDirective):
     The highest eigenvalues are estimated through power iterations and Rayleigh quotient.
 
     """
-
-<<<<<<< HEAD:SimPEG/directives.py
     beta0_ratio = 1.  #: the estimated ratio is multiplied by this to obtain beta
     n_pw_iter = 4     #: number of power iterations for estimation.
     seed = None       #: Random seed for the directive
     method = "power_iteration"
-=======
-    beta0_ratio = 1.0  #: the estimated ratio is multiplied by this to obtain beta
-    n_pw_iter = 4  #: number of power iterations for estimation.
-    seed = None  #: Random seed for the directive
->>>>>>> main:SimPEG/directives/directives.py
 
     def initialize(self):
         """
@@ -276,13 +261,7 @@ class BetaEstimate_ByEig(InversionDirective):
 
             self.ratio = np.asarray(t / b)
 
-<<<<<<< HEAD:SimPEG/directives.py
-=======
-        self.ratio = dm_eigenvalue / reg_eigenvalue
->>>>>>> main:SimPEG/directives/directives.py
         self.beta0 = self.beta0_ratio * self.ratio
-
-
         self.invProb.beta = self.beta0
 
 
@@ -1954,20 +1933,9 @@ class UpdateSensitivityWeights(InversionDirective):
                 else:
                     JtJdiag = self.threshold
 
-<<<<<<< HEAD:SimPEG/directives.py
                 if not isinstance(JtJdiag, np.ndarray):
                     JtJdiag = np.ones_like(self.JtJdiag[ii]) * JtJdiag
 
-=======
-            if getattr(sim, "getJtJdiag", None) is None:
-                assert getattr(sim, "getJ", None) is not None, (
-                    "Simulation does not have a getJ attribute."
-                    + "Cannot form the sensitivity explicitly"
-                )
-                self.JtJdiag += [
-                    mkvc(np.sum((dmisfit.W * sim.getJ(m)) ** (2.0), axis=0))
-                ]
->>>>>>> main:SimPEG/directives/directives.py
             else:
                 JtJdiag = self.JtJdiag[ii]
 
