@@ -1217,7 +1217,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
         else:
             fileName = self.file_name
 
-        for prob, survey, reg in zip(self.prob, self.survey, self.reg.objfcts):
+        for simulation, survey, reg in zip(self.simulation, self.survey, self.reg.objfcts):
 
             xc = self.mapping * self.opt.xc
 
@@ -1234,7 +1234,7 @@ class SaveUBCModelEveryIteration(SaveEveryIteration):
 
                 nC = self.mesh.nC
 
-                if prob.coordinate_system == "spherical":
+                if simulation.coordinate_system == "spherical":
                     vec_xyz = spherical2cartesian(
                         xc.reshape((int(len(xc) / 3), 3), order="F")
                     )
@@ -1513,9 +1513,9 @@ class VectorInversion(InversionDirective):
 
         self.mref = reg.mref
 
-        for prob in self.prob:
-            if getattr(prob, "coordinate_system", None) is not None:
-                prob.coordinate_system = self.mode
+        for simulation in self.simulation:
+            if getattr(simulation, "coordinate_system", None) is not None:
+                simulation.coordinate_system = self.mode
 
     def endIter(self):
         if (
@@ -2103,7 +2103,11 @@ class UpdateSensitivityWeights(InversionDirective):
                 self.JtJdiag, self.simulation, self.dmisfit.objfcts, self.threshold
             ):
 
-                wr += prob_JtJ / self.reg.objfcts[0].regmesh.vol**2.
+                cell_volumes = self.reg.objfcts[0].regmesh.vol
+                if sim.modelType == "vector":
+                    cell_volumes = np.hstack([cell_volumes]*3)
+
+                wr += prob_JtJ / cell_volumes**2.
 
             wr = np.max(np.c_[wr, threshold], axis=1)
             wr = wr ** 0.5

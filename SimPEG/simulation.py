@@ -132,6 +132,12 @@ class BaseSimulation(props.HasModel):
         "path to store the sensitivty", default="./sensitivity/"
     )
 
+    modelType = properties.StringChoice(
+        "Type of model",
+        choices=["scalar", "vector"],
+        default="scalar",
+    )
+
     # TODO: need to implement a serializer for this & setter
     solver = Class(
         "Linear algebra solver (e.g. from pymatsolver)",

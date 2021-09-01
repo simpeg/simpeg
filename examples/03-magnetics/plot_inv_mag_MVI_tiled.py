@@ -223,7 +223,7 @@ std = 1  # nT
 
 # Add noise and uncertainties
 # We add some random Gaussian noise (1nT)
-synthetic_data = d + np.random.randn(len(d)) * std
+synthetic_data = np.asarray(d) + np.random.randn(len(d)) * std
 wd = np.ones(len(synthetic_data)) * std  # Assign flat uncertainties
 
 prob_size = activeCells.sum() * 1e-9 * rxLoc.shape[0] * 8.
