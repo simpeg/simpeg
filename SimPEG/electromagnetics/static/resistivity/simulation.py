@@ -488,6 +488,7 @@ class Simulation3DNodal(BaseDCSimulation):
         for src in self.survey.source_list:
             src.eval(self)
             for rx in src.receiver_list:
+                rx._Ps = {}
                 rx.getP(self.mesh, rx.projGLoc(self.fieldsPair(self)))
         self.getSourceTerm()
 
