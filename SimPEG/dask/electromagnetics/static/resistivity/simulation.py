@@ -31,7 +31,7 @@ def dask_fields(self, m=None, return_Ainv=False):
     Ainv.clean()
 
     if return_Ainv:
-        return f, self.Solver(A.T, **self.solver_opts)
+        return f, self.solver(A.T, **self.solver_opts)
     else:
         return f, None
 

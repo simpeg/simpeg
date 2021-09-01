@@ -1153,7 +1153,7 @@ class NewtonRoot(object):
 
             r, J = fun(x, return_g=True)
 
-            Jinv = self.Solver(J, **self.solverOpts)
+            Jinv = self.solver(J, **self.solverOpts)
             dh = -(Jinv * r)
 
             muLS = 1.0

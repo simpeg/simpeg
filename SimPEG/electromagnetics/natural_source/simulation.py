@@ -157,7 +157,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         for freq in self.survey.frequencies:
             AT = self.getA(freq).T
 
-            ATinv = self.Solver(AT, **self.solverOpts)
+            ATinv = self.solver(AT, **self.solverOpts)
 
             for src in self.survey.get_sources_by_frequency(freq):
                 # u_src needs to have both polarizations
