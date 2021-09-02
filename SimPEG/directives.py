@@ -1675,7 +1675,11 @@ class UpdateSensitivityWeights(InversionDirective):
                 "Simulation does not have a getJtJdiag attribute."
                 + "Cannot form the sensitivity explicitly"
             )
-            self.JtJdiag += [dmisfit.getJtJdiag(m)]
+            cell_volumes = self.reg.objfcts[0].regmesh.vol
+            if dmisfit.simulation.modelType == "vector":
+                cell_volumes = np.hstack([cell_volumes] * 3)
+
+            self.JtJdiag += [dmisfit.getJtJdiag(m) / cell_volumes**2.]
 
             if self.threshold is not None:
                 if isinstance(self.threshold, list):
@@ -1686,10 +1690,9 @@ class UpdateSensitivityWeights(InversionDirective):
                 floor = np.ones_like(self.JtJdiag[ii]) * floor
 
             else:
-                floor = self.JtJdiag[ii]
+                floor = np.zeros_like(self.JtJdiag[ii])
 
             threshold += [floor]
-
 
         self.threshold = threshold
         return self.JtJdiag
@@ -1702,15 +1705,14 @@ class UpdateSensitivityWeights(InversionDirective):
 
         wr = np.zeros_like(self.invProb.model)
         if self.switch:
-            for prob_JtJ, sim, dmisfit, threshold in zip(
-                self.JtJdiag, self.simulation, self.dmisfit.objfcts, self.threshold
+            for prob_JtJ, threshold in zip(
+                self.JtJdiag, self.threshold
             ):
+                wr += np.max(np.c_[prob_JtJ, threshold], axis=1)
 
-                wr += prob_JtJ / self.reg.objfcts[0].regmesh.vol**2.
-
-            wr = np.max(np.c_[wr, threshold], axis=1)
-            wr = wr ** 0.5
             wr /= wr.max()
+            wr = wr ** 0.5
+
         else:
             wr += 1.0
 
