@@ -1094,6 +1094,7 @@ class SaveIterationsGeoH5(InversionDirective):
 
         return values
 
+
 class VectorInversion(InversionDirective):
     """
     Control a vector inversion from Cartesian to spherical coordinates
@@ -1105,6 +1106,18 @@ class VectorInversion(InversionDirective):
     inversion_type = "mvis"
     norms = []
     alphas = []
+
+    def __init__(self, simulations: list, regularizations: list, **kwargs):
+
+        if not isinstance(simulations, list):
+            simulations = [simulations]
+
+        if not isinstance(regularizations, list):
+            regularizations = [regularizations]
+
+        self.simulations = simulations
+        self.regularizations = regularizations
+        setKwargs(self, **kwargs)
 
     @property
     def target(self):
@@ -1155,27 +1168,23 @@ class VectorInversion(InversionDirective):
             self.reg.mref = mref
             self.reg.model = mstart
 
-            for simulation in self.simulation:
-                if getattr(simulation, "coordinate_system", None) is not None:
-                    simulation.coordinate_system = self.mode
-                    simulation.modelMap = SphericalSystem() * simulation.modelMap
-                    simulation.model = mstart
+            for simulation in self.simulations:
+                simulation.model_map = SphericalSystem() * simulation.modelMap
+                simulation.model = mstart
 
-            for ind, reg_fun in enumerate(self.reg.objfcts):
-
-                reg_fun.mref = mref
-                reg_fun.model = mstart
-
-                if ind > 0:
-                    reg_fun.alpha_s = 0
-                    reg_fun.eps_q = np.pi
-                    for reg in reg_fun.objfcts:
-                        reg.space = "spherical"
+            for regularization in self.regularizations:
+                for ind, reg_fun in enumerate(regularization.objfcts):
+                    if ind > 0:
+                        reg_fun.alpha_s = 0
+                        reg_fun.eps_q = np.pi
+                        for reg in reg_fun.objfcts:
+                            reg.space = "spherical"
 
             # Add directives
             directiveList = []
-            update_Jacobi = []
-            IRLS = []
+            sens_w = UpdateSensitivityWeights(),
+            irls = Update_IRLS(),
+            jacobi = UpdatePreconditioner(),
             for directive in self.inversion.directiveList.dList:
                 if isinstance(directive, SaveIterationsGeoH5):
                     for comp in directive.components:
@@ -1207,18 +1216,21 @@ class VectorInversion(InversionDirective):
                     directive.sphericalDomain = True
                     directive.model = mstart
                     directive.coolingFactor = 1.5
-                    IRLS = directive
+                    irls = directive
 
                 elif isinstance(directive, UpdatePreconditioner):
-                    update_Jacobi = directive
+                    jacobi = directive
+                elif isinstance(directive, UpdateSensitivityWeights):
+                    sens_w = directive
+                    sens_w.everyIter = True
                 else:
                     directiveList.append(directive)
 
             directiveList = [
                 ProjectSphericalBounds(),
-                IRLS,
-                UpdateSensitivityWeights(),
-                update_Jacobi,
+                irls,
+                sens_w,
+                jacobi,
             ] + directiveList
 
             self.inversion.directiveList = directiveList
@@ -1676,7 +1688,7 @@ class UpdateSensitivityWeights(InversionDirective):
                 + "Cannot form the sensitivity explicitly"
             )
             cell_volumes = self.reg.objfcts[0].regmesh.vol
-            if dmisfit.simulation.modelType == "vector":
+            if dmisfit.simulation.model_type == "vector":
                 cell_volumes = np.hstack([cell_volumes] * 3)
 
             self.JtJdiag += [dmisfit.getJtJdiag(m) / cell_volumes**2.]

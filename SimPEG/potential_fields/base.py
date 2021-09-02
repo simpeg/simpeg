@@ -73,7 +73,7 @@ class BasePFSimulation(LinearSimulation):
 
     def linear_operator(self):
 
-        self.nC = self.modelMap.shape[0]
+        self.nC = self.model_map.shape[0]
 
         components = np.array(list(self.survey.components.keys()))
         active_components = np.hstack(
