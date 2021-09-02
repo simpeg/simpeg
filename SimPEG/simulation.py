@@ -171,6 +171,9 @@ class BaseSimulation(props.HasModel):
 
     @property
     def model_type(self):
+        """
+        Define the type of model. Choice of 'scalar' or 'vector' (3-components)
+        """
         return self._model_type
 
     @model_type.setter
