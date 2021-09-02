@@ -140,7 +140,7 @@ class BaseSimulation(props.HasModel):
 
     solver_opts = properties.Dictionary("solver options as a kwarg dict", default={})
 
-    _model_type = "scalar"
+    _model_type: str = "scalar"
 
     def _reset(self, name=None):
         """Revert specified property to default value
@@ -170,7 +170,7 @@ class BaseSimulation(props.HasModel):
     # Properties and observers
 
     @property
-    def model_type(self):
+    def model_type(self) -> str:
         """
         Define the type of model. Choice of 'scalar' or 'vector' (3-components)
         """
