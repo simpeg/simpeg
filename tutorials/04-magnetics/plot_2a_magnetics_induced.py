@@ -172,7 +172,7 @@ plt.show()
 simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
-    model_type="susceptibility",
+    model_type="scalar",
     chiMap=model_map,
     actInd=ind_active,
     store_sensitivities="forward_only",
