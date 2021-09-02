@@ -28,12 +28,6 @@ class Simulation3DIntegral(BasePFSimulation):
         "Magnetic Susceptibility (SI)", default=1.0
     )
 
-    modelType = properties.StringChoice(
-        "Type of magnetization model",
-        choices=["susceptibility", "vector"],
-        default="susceptibility",
-    )
-
     is_amplitude_data = properties.Boolean(
         "Whether the supplied data is amplitude data", default=False
     )
