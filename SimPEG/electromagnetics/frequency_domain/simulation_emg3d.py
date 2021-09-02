@@ -175,7 +175,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             f = self.fields(m=m)
 
         dsig_dm_v = self.sigmaDeriv @ v
-        j_vec = f._jvec(vec=dsig_dm_v)
+        j_vec = f._jvec(vector=dsig_dm_v)
 
         # Map emg3d-data-array to SimPEG-data-vector
         return j_vec[self._dmap_simpeg_emg3d]
@@ -221,15 +221,10 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             # Put v onto emg3d data-array.
             self._emg3d_array[self._dmap_simpeg_emg3d] = v
 
-            # Replace residual by vector if provided
-            f.survey.data['residual'][...] = self._emg3d_array
-
             # Get gradient with `v` as residual.
-            f._gradient = None  # Reset gradient
-            jt_sigma_vec = f.gradient
+            jt_sigma_vec = f._jtvec(self._emg3d_array)
 
-            jt_vec = self.sigmaDeriv.T @ jt_sigma_vec.ravel('F')
-            return jt_vec
+            return self.sigmaDeriv.T @ jt_sigma_vec.ravel('F')
 
         else:
             # This is for forming full sensitivity matrix
