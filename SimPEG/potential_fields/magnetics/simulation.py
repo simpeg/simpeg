@@ -28,12 +28,6 @@ class Simulation3DIntegral(BasePFSimulation):
         "Magnetic Susceptibility (SI)", default=1.0
     )
 
-    modelType = properties.StringChoice(
-        "Type of magnetization model",
-        choices=["susceptibility", "vector"],
-        default="susceptibility",
-    )
-
     is_amplitude_data = properties.Boolean(
         "Whether the supplied data is amplitude data", default=False
     )
@@ -54,7 +48,7 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         if getattr(self, "_M", None) is None:
 
-            if self.modelType == "vector":
+            if self.model_type == "vector":
                 self._M = sp.identity(self.nC) * self.survey.source_field.parameters[0]
 
             else:
@@ -80,7 +74,7 @@ class Simulation3DIntegral(BasePFSimulation):
         :parameter
         M: array (3*nC,) or (nC, 3)
         """
-        if self.modelType == "vector":
+        if self.model_type == "vector":
             self._M = sdiag(mkvc(M) * self.survey.source_field.parameters[0])
         else:
             M = M.reshape((-1, 3))

@@ -1640,16 +1640,20 @@ class UpdateSensitivityWeights(InversionDirective):
 
         for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
 
+            cell_volumes = self.reg.objfcts[0].regmesh.vol
+            if dmisfit.simulation.model_type == "vector":
+                cell_volumes = np.hstack([cell_volumes] * 3)
+
             if getattr(sim, "getJtJdiag", None) is None:
                 assert getattr(sim, "getJ", None) is not None, (
                     "Simulation does not have a getJ attribute."
                     + "Cannot form the sensitivity explicitly"
                 )
                 self.JtJdiag += [
-                    mkvc(np.sum((dmisfit.W * sim.getJ(m)) ** (2.0), axis=0))
+                    mkvc(np.sum((dmisfit.W * sim.getJ(m)) ** (2.0), axis=0)) / cell_volumes ** 2.
                 ]
             else:
-                self.JtJdiag += [sim.getJtJdiag(m, W=dmisfit.W)]
+                self.JtJdiag += [sim.getJtJdiag(m, W=dmisfit.W) / cell_volumes ** 2.]
 
         return self.JtJdiag
 
@@ -1665,10 +1669,12 @@ class UpdateSensitivityWeights(InversionDirective):
                 self.JtJdiag, self.simulation, self.dmisfit.objfcts
             ):
 
-                wr += prob_JtJ + self.threshold
+                wr += prob_JtJ
 
-            wr = wr ** 0.5
             wr /= wr.max()
+            wr += self.threshold
+            wr = wr ** 0.5
+            
         else:
             wr += 1.0
 
