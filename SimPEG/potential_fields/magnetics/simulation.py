@@ -36,9 +36,17 @@ class Simulation3DIntegral(BasePFSimulation):
         self._G = None
         self._M = None
         self._gtg_diagonal = None
-        self.model_map = self.chiMap
+        # self.model_map = self.chiMap
         self.evaluate_integral = evaluate_integral
         setKwargs(self, **kwargs)
+
+    @property
+    def model_map(self):
+        return self.chiMap
+
+    @model_map.setter
+    def model_map(self, value):
+        self.chiMap = value
 
     @property
     def M(self):
@@ -191,7 +199,7 @@ class Simulation3DIntegral(BasePFSimulation):
             self.model = np.zeros(self.chiMap.nP)
 
         if getattr(self, "_fieldDeriv", None) is None:
-            fields = np.asarray(self.G.dot((self.chiMap @ self.chi).astype(np.float32)))
+            fields = np.asarray(self.G.dot((self.chiMap @ self.model).astype(np.float32)))
             b_xyz = self.normalized_fields(fields)
 
             self._fieldDeriv = b_xyz

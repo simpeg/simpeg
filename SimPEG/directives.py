@@ -43,6 +43,7 @@ class InversionDirective(properties.HasProperties):
     debug = False  #: Print debugging information
     _regPair = [BaseComboRegularization, BaseRegularization, ComboObjectiveFunction]
     _dmisfitPair = [BaseDataMisfit, ComboObjectiveFunction]
+    verbose = False
 
     def __init__(self, **kwargs):
         setKwargs(self, **kwargs)
@@ -54,7 +55,7 @@ class InversionDirective(properties.HasProperties):
 
     @inversion.setter
     def inversion(self, i):
-        if getattr(self, "_inversion", None) is not None:
+        if getattr(self, "_inversion", None) is not None and self.verbose:
             warnings.warn(
                 "InversionDirective {0!s} has switched to a new inversion.".format(
                     self.__class__.__name__
@@ -1169,7 +1170,7 @@ class VectorInversion(InversionDirective):
             self.reg.model = mstart
 
             for simulation in self.simulations:
-                simulation.model_map = SphericalSystem() * simulation.modelMap
+                simulation.model_map = SphericalSystem() * simulation.model_map
                 simulation.model = mstart
 
             for regularization in self.regularizations:
