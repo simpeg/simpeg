@@ -132,7 +132,7 @@ class BaseSimulation(props.HasModel):
         "path to store the sensitivty", default="./sensitivity/"
     )
 
-    modelType = properties.StringChoice(
+    model_type = properties.StringChoice(
         "Type of model",
         choices=["scalar", "vector"],
         default="scalar",

@@ -21,8 +21,15 @@ class Simulation3DIntegral(BasePFSimulation):
         super().__init__(mesh, **kwargs)
         self._G = None
         self._gtg_diagonal = None
-        self.modelMap = self.rhoMap
         self.evaluate_integral = evaluate_integral
+
+    @property
+    def model_map(self):
+        return self.rhoMap
+
+    @model_map.setter
+    def model_map(self, value):
+        self.rhoMap = value
 
     def fields(self, m):
         self.model = m

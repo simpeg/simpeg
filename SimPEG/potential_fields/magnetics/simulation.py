@@ -12,7 +12,6 @@ from ..base import BasePFSimulation
 from .survey import Survey
 from .analytics import CongruousMagBC
 
-from SimPEG import Solver
 from SimPEG import props
 import properties
 from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
@@ -28,12 +27,6 @@ class Simulation3DIntegral(BasePFSimulation):
         "Magnetic Susceptibility (SI)", default=1.0
     )
 
-    modelType = properties.StringChoice(
-        "Type of magnetization model",
-        choices=["susceptibility", "vector"],
-        default="susceptibility",
-    )
-
     is_amplitude_data = properties.Boolean(
         "Whether the supplied data is amplitude data", default=False
     )
@@ -43,9 +36,17 @@ class Simulation3DIntegral(BasePFSimulation):
         self._G = None
         self._M = None
         self._gtg_diagonal = None
-        self.modelMap = self.chiMap
+        # self.model_map = self.chiMap
         self.evaluate_integral = evaluate_integral
         setKwargs(self, **kwargs)
+
+    @property
+    def model_map(self):
+        return self.chiMap
+
+    @model_map.setter
+    def model_map(self, value):
+        self.chiMap = value
 
     @property
     def M(self):
@@ -55,7 +56,7 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         if getattr(self, "_M", None) is None:
 
-            if self.modelType == "vector":
+            if self.model_type == "vector":
                 self._M = sp.identity(self.nC) * self.survey.source_field.parameters[0]
 
             else:
@@ -81,7 +82,7 @@ class Simulation3DIntegral(BasePFSimulation):
         :parameter
         M: array (3*nC,) or (nC, 3)
         """
-        if self.modelType == "vector":
+        if self.model_type == "vector":
             self._M = sdiag(mkvc(M) * self.survey.source_field.parameters[0])
         else:
             M = M.reshape((-1, 3))
@@ -152,8 +153,7 @@ class Simulation3DIntegral(BasePFSimulation):
         if getattr(self, "_gtg_diagonal", None) is None:
             diag = np.zeros(self.G.shape[1])
             if not self.is_amplitude_data:
-                for i in range(len(W)):
-                    diag += W[i] * (self.G[i] * self.G[i])
+                diag = np.einsum('i,ij,ij->j', W, self.G, self.G)
             else:
                 fieldDeriv = self.fieldDeriv
                 Gx = self.G[::3]
@@ -199,7 +199,7 @@ class Simulation3DIntegral(BasePFSimulation):
             self.model = np.zeros(self.chiMap.nP)
 
         if getattr(self, "_fieldDeriv", None) is None:
-            fields = np.asarray(self.G.dot((self.chiMap @ self.chi).astype(np.float32)))
+            fields = np.asarray(self.G.dot((self.chiMap @ self.model).astype(np.float32)))
             b_xyz = self.normalized_fields(fields)
 
             self._fieldDeriv = b_xyz
@@ -241,7 +241,8 @@ class Simulation3DIntegral(BasePFSimulation):
         )
 
     def linear_operator(self):
-        self.nC = self.modelMap.shape[0]
+
+        self.nC = self.model_map.shape[0]
 
         components = np.array(list(self.survey.components.keys()))
         active_components = np.hstack(

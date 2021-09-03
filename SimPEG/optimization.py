@@ -381,7 +381,7 @@ class Minimize(object):
 
         while True:
             self.doStartIteration()
-            # self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
+
             self.printIter()
             if self.stoppingCriteria():
                 break
@@ -405,7 +405,7 @@ class Minimize(object):
                     if hasattr(objfct.simulation, "gtgdiag"):
                         objfct.simulation.gtgdiag = None
 
-            self.f, self.g, self.H = evalFunction(xt, return_g=True, return_H=True)
+            self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
             # self.doEndIteration(xt)
             # self.printIter()
 
