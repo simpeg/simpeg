@@ -19,6 +19,7 @@ from .directives import (
     JointScalingSchedule,
     UpdateSensitivityWeights,
     ProjectSphericalBounds,
+    VectorInversion
 )
 
 from .pgi_directives import (
