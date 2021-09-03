@@ -31,6 +31,7 @@ from .utils import (
     cartesian2spherical,
     eigenvalue_by_power_iteration,
 )
+from .maps import Wires
 from .utils.code_utils import deprecate_property
 from discretize import TensorMesh, TreeMesh
 
@@ -1107,17 +1108,19 @@ class VectorInversion(InversionDirective):
     inversion_type = "mvis"
     norms = []
     alphas = []
+    cartesian_model = None
+    simulations = []
+    regularization = []
 
     def __init__(self, simulations: list, regularizations: list, **kwargs):
-
         if not isinstance(simulations, list):
             simulations = [simulations]
+        self.simulations = simulations
 
         if not isinstance(regularizations, list):
             regularizations = [regularizations]
-
-        self.simulations = simulations
         self.regularizations = regularizations
+
         setKwargs(self, **kwargs)
 
     @property
@@ -1152,7 +1155,7 @@ class VectorInversion(InversionDirective):
         ) and self.mode == "cartesian":  # and self.inversion_type == 'mvis':
             print("Switching MVI to spherical coordinates")
             self.mode = "spherical"
-
+            self.cartesian_model = self.invProb.model
             mstart = cartesian2spherical(
                 self.invProb.model.reshape((-1, 3), order="F")
             )
@@ -1165,13 +1168,8 @@ class VectorInversion(InversionDirective):
             nC = mstart.reshape((-1, 3)).shape[0]
             self.opt.lower = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
             self.opt.upper[nC:] = np.inf
-
             self.reg.mref = mref
             self.reg.model = mstart
-
-            for simulation in self.simulations:
-                simulation.model_map = SphericalSystem() * simulation.model_map
-                simulation.model = mstart
 
             for regularization in self.regularizations:
                 for ind, reg_fun in enumerate(regularization.objfcts):
@@ -1180,6 +1178,9 @@ class VectorInversion(InversionDirective):
                         reg_fun.eps_q = np.pi
                         for reg in reg_fun.objfcts:
                             reg.space = "spherical"
+
+            for simulation in self.simulations:
+                simulation.model_map = SphericalSystem() * simulation.model_map
 
             # Add directives
             directiveList = []
@@ -1235,14 +1236,15 @@ class VectorInversion(InversionDirective):
             ] + directiveList
 
             self.inversion.directiveList = directiveList
-            directiveList[1].endIter()
-            directiveList[2].endIter()
-            directiveList[3].endIter()
-        elif (self.invProb.phi_d < self.target) and self.mode == "spherical":
 
-            for directive in self.inversion.directiveList.dList:
-                if isinstance(directive, Update_IRLS) and directive.mode != 1:
-                    directive.coolingFactor = 2
+            for directive in directiveList:
+                directive.endIter()
+
+        # elif (self.invProb.phi_d < self.target) and self.mode == "spherical":
+        #
+        #     for directive in self.inversion.directiveList.dList:
+        #         if isinstance(directive, Update_IRLS) and directive.mode != 1:
+        #             directive.coolingFactor = 2
 
 
 class Update_IRLS(InversionDirective):
@@ -1509,11 +1511,6 @@ class Update_IRLS(InversionDirective):
 
         # Save l2-model
         self.invProb.l2model = self.invProb.model.copy()
-
-        # Print to screen
-        for reg in self.reg.objfcts:
-            if not self.silent:
-                print("eps_p: " + str(reg.eps_p) + " eps_q: " + str(reg.eps_q))
 
     def angleScale(self):
         """
@@ -1782,11 +1779,14 @@ class ProjectSphericalBounds(InversionDirective):
         m = cartesian2spherical(xyz.reshape((nC, 3), order="F"))
 
         self.invProb.model = m
-
-        for sim in self.simulation:
-            sim.model = m
-
         self.opt.xc = m
+
+        for misfit in self.dmisfit:
+            if getattr(misfit, "model_map", None) is not None:
+                misfit.simulation.model = misfit.model_map @ m
+            else:
+                misfit.simulation.model = m
+
 
     def endIter(self):
 
@@ -1805,8 +1805,10 @@ class ProjectSphericalBounds(InversionDirective):
             phi_m_last += [reg(self.invProb.model)]
 
         self.invProb.phi_m_last = phi_m_last
-
-        for sim in self.simulation:
-            sim.model = m
-
         self.opt.xc = m
+
+        for misfit in self.dmisfit.objfcts:
+            if getattr(misfit, "model_map", None) is not None:
+                misfit.simulation.model = misfit.model_map @ m
+            else:
+                misfit.simulation.model = m
