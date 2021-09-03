@@ -10,6 +10,7 @@ from .directives import (
     SaveOutputEveryIteration,
     SaveOutputDictEveryIteration,
     SavePredictedEveryIteration,
+    SaveIterationsGeoH5,
     Update_IRLS,
     UpdatePreconditioner,
     Update_Wj,
