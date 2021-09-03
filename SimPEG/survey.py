@@ -402,7 +402,8 @@ class BaseSurvey(properties.HasProperties):
             if source.location is not None:
                 locations += [source.location]
             locations += [receiver.locations for receiver in source.receiver_list]
-        return np.unique(np.vstack(locations), axis=0)
+        locations = np.vstack([np.vstack(np.atleast_2d(*locs)) for locs in locations])
+        return np.unique(locations, axis=0)
 
 
 class BaseTimeSurvey(BaseSurvey):

@@ -19,7 +19,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
     survey = properties.Instance("a DC survey object", Survey, required=True)
 
-    storeJ = properties.Bool("store the sensitivity matrix?", default=False)
+    store_sensitivities = properties.Bool("store the sensitivity matrix?", default=False)
 
     _mini_survey = None
 
@@ -99,7 +99,7 @@ class BaseDCSimulation(BaseEMSimulation):
         if f is None:
             f = self.fields(m)
 
-        if self.storeJ:
+        if self.store_sensitivities:
             J = self.getJ(m, f=f)
             return J.dot(v)
 
@@ -133,7 +133,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
         self.model = m
 
-        if self.storeJ:
+        if self.store_sensitivities:
             J = self.getJ(m, f=f)
             return np.asarray(J.T.dot(v))
 

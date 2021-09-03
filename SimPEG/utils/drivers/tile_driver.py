@@ -5,7 +5,7 @@ from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 from discretize import TreeMesh
 from SimPEG.maps import TileMap
 from SimPEG import data, data_misfit, maps, simulation, survey
-from scipy.spatial import Delaunay, cKDTree
+from scipy.spatial import Delaunay, cKDTree, qhull
 from pymatsolver import Solver
 
 
@@ -178,8 +178,11 @@ def create_nested_mesh(
 
     if method == "convex_hull":
         # Find cells inside the data extant
-        tri2D = Delaunay(locations[:, :2])
-        indices = tri2D.find_simplex(base_mesh.gridCC[:, :2]) != -1
+        try:
+            tri2D = Delaunay(locations[:, :2])
+            indices = tri2D.find_simplex(base_mesh.gridCC[:, :2]) != -1
+        except qhull.QhullError:
+            indices = rad < max_distance
     else:
         # tree = cKDTree(locations[:, :2])
         # rad, _ = tree.query(base_mesh.gridCC[:, :2])

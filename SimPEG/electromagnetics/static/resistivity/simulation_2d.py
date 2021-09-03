@@ -24,7 +24,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     survey = properties.Instance("a DC survey object", Survey, required=True)
 
-    storeJ = properties.Bool("store the sensitivity matrix?", default=False)
+    store_sensitivities = properties.Bool("store the sensitivity matrix?", default=False)
 
     nky = properties.Integer(
         "Number of kys to use in wavenumber space", required=False, default=11
@@ -211,7 +211,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         """
             Compute sensitivity matrix (J) and vector (v) product.
         """
-        if self.storeJ:
+        if self.store_sensitivities:
             J = self.getJ(m, f=f)
             Jv = mkvc(np.dot(J, v))
             return Jv
@@ -256,7 +256,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
         """
             Compute adjoint sensitivity matrix (J^T) and vector (v) product.
         """
-        if self.storeJ:
+        if self.store_sensitivities:
             J = self.getJ(m, f=f)
             Jtv = mkvc(np.dot(J.T, v))
             return Jtv

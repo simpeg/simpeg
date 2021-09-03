@@ -29,7 +29,7 @@ class BaseIPSimulation(BaseEMSimulation):
     fieldsPair = FieldsDC
     Ainv = None
     _f = None
-    storeJ = False
+    store_sensitivities = False
     _Jmatrix = None
     gtgdiag = None
     sign = None
@@ -75,7 +75,7 @@ class BaseIPSimulation(BaseEMSimulation):
 
         self._pred = self.forward(m, f=self._f)
 
-        # if not self.storeJ:
+        # if not self.store_sensitivities:
         #     self.Ainv.clean()
 
         return self._f
@@ -133,7 +133,7 @@ class BaseIPSimulation(BaseEMSimulation):
             f = self.fields(m)
 
         # When sensitivity matrix J is stored
-        if self.storeJ:
+        if self.store_sensitivities:
             J = self.getJ(m, f=f)
             Jv = J.dot(v)
             return self.sign * Jv
@@ -167,7 +167,7 @@ class BaseIPSimulation(BaseEMSimulation):
             f = self.fields(m)
 
         # When sensitivity matrix J is stored
-        if self.storeJ:
+        if self.store_sensitivities:
             J = self.getJ(m, f=f)
             Jtv = np.asarray(J.T.dot(v))
             return self.sign * Jtv
@@ -201,7 +201,7 @@ class BaseIPSimulation(BaseEMSimulation):
 
         for isrc, src in enumerate(self.survey.source_list):
             u_src = f[src, self._solutionType]
-            # if self.storeJ:
+            # if self.store_sensitivities:
             #     # TODO: use logging package
             #     sys.stdout.write(("\r %d / %d") % (isrc+1, self.survey.nSrc))
             #     sys.stdout.flush()

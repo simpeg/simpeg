@@ -64,7 +64,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     survey = properties.Instance("a survey object", Survey, required=True)
 
-    storeJ = properties.Bool("store the sensitivity matrix?", default=False)
+    store_sensitivities = properties.Bool("store the sensitivity matrix?", default=False)
 
     def fields(self, m=None):
         """

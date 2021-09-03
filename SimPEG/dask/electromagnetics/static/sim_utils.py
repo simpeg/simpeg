@@ -207,7 +207,7 @@ def create_sub_simulations_old(source_list,
     # Generate 3D DC problem
     # "CC" means potential is defined at center
     sim = dc.Simulation3DCellCentered(
-            mesh, survey=sub_survey, sigmaMap=mapping, storeJ=False,
+            mesh, survey=sub_survey, sigmaMap=mapping, store_sensitivities=False,
             Solver=Solver
     )
     sim.actinds = actinds

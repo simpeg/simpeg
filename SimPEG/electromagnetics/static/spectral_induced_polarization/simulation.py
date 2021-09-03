@@ -43,7 +43,7 @@ class BaseSIPSimulation(BaseEMSimulation):
     Ainv = None
     _f = None
     actinds = None
-    storeJ = False
+    store_sensitivities = False
     _Jmatrix = None
     actMap = None
     n_pulse = 1
@@ -354,7 +354,7 @@ class BaseSIPSimulation(BaseEMSimulation):
         Jv = []
 
         # When sensitivity matrix is stored
-        if self.storeJ:
+        if self.store_sensitivities:
             J = self.getJ(m, f=f)
 
             ntime = len(self.survey.unique_times)
@@ -416,7 +416,7 @@ class BaseSIPSimulation(BaseEMSimulation):
         Jv = []
 
         # When sensitivity matrix is stored
-        if self.storeJ:
+        if self.store_sensitivities:
             J = self.getJ(m, f=f)
             ntime = len(self.survey.unique_times)
 
@@ -464,7 +464,7 @@ class BaseSIPSimulation(BaseEMSimulation):
         self.model = m
 
         # When sensitivity matrix is stored
-        if self.storeJ:
+        if self.store_sensitivities:
             J = self.getJ(m, f=f)
             ntime = len(self.survey.unique_times)
             Jtvec = np.zeros(m.size)
@@ -579,7 +579,7 @@ class BaseSIPSimulation(BaseEMSimulation):
         Derivative of MfRho with respect to the model
         """
         if getattr(self, "_MfRhoDerivMat", None) is None:
-            if self.storeJ:
+            if self.store_sensitivities:
                 drho_dlogrho = sdiag(self.rho) * self.actMap.P
             else:
                 drho_dlogrho = sdiag(self.rho)
@@ -603,7 +603,7 @@ class BaseSIPSimulation(BaseEMSimulation):
             else:
                 return dMfRhoI_dI * (sdiag(u) * (self.MfRhoDerivMat * v))
         else:
-            if self.storeJ:
+            if self.store_sensitivities:
                 drho_dlogrho = sdiag(self.rho) * self.actMap.P
             else:
                 drho_dlogrho = sdiag(self.rho)
@@ -619,7 +619,7 @@ class BaseSIPSimulation(BaseEMSimulation):
         Derivative of MeSigma with respect to the model
         """
         if getattr(self, "_MeSigmaDerivMat", None) is None:
-            if self.storeJ:
+            if self.store_sensitivities:
                 dsigma_dlogsigma = sdiag(self.sigma) * self.actMap.P
             else:
                 dsigma_dlogsigma = sdiag(self.sigma)
@@ -642,7 +642,7 @@ class BaseSIPSimulation(BaseEMSimulation):
             else:
                 return sdiag(u) * (self.MeSigmaDerivMat * v)
         else:
-            if self.storeJ:
+            if self.store_sensitivities:
                 dsigma_dlogsigma = sdiag(self.sigma) * self.actMap.P
             else:
                 dsigma_dlogsigma = sdiag(self.sigma)
@@ -668,7 +668,7 @@ class Simulation3DCellCentered(BaseSIPSimulation, BaseSimulation3DCellCentered):
         BaseSIPSimulation.__init__(self, mesh, **kwargs)
         self.setBC()
         self.n = self.mesh.nC
-        if self.storeJ:
+        if self.store_sensitivities:
             if self.actinds is None:
                 print("You did not put Active indices")
                 print("So, set actMap = IdentityMap(mesh)")
@@ -688,7 +688,7 @@ class Simulation3DNodal(BaseSIPSimulation, BaseSimulation3DNodal):
         BaseSIPSimulation.__init__(self, mesh, **kwargs)
         self.n = self.mesh.nN
 
-        if self.storeJ:
+        if self.store_sensitivities:
             if self.actinds is None:
                 print("You did not put Active indices")
                 print("So, set actMap = IdentityMap(mesh)")
