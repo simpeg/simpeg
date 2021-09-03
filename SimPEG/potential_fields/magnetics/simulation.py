@@ -32,6 +32,8 @@ class Simulation3DIntegral(BasePFSimulation):
         "Whether the supplied data is amplitude data", default=False
     )
 
+    _model_type: str = "scalar"
+
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh, **kwargs)
         self._G = None
@@ -109,6 +111,23 @@ class Simulation3DIntegral(BasePFSimulation):
             self._G = self.linear_operator()
 
         return self._G
+
+    @property
+    def model_type(self) -> str:
+        """
+        Define the type of model. Choice of 'scalar' or 'vector' (3-components)
+        """
+        return self._model_type
+
+    @model_type.setter
+    def model_type(self, value: str):
+        if value not in ["scalar", "vector"]:
+            raise ValueError(
+                "'model_type' value should be a string: 'scalar' or 'vector'."
+                + f"Value {value} of type {type(value)} provided."
+            )
+
+        self._model_type = value
 
     @property
     def nD(self):

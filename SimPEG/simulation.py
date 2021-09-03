@@ -140,8 +140,6 @@ class BaseSimulation(props.HasModel):
 
     solver_opts = properties.Dictionary("solver options as a kwarg dict", default={})
 
-    _model_type: str = "scalar"
-
     def _reset(self, name=None):
         """Revert specified property to default value
 
@@ -168,21 +166,6 @@ class BaseSimulation(props.HasModel):
 
     ###########################################################################
     # Properties and observers
-
-    @property
-    def model_type(self) -> str:
-        """
-        Define the type of model. Choice of 'scalar' or 'vector' (3-components)
-        """
-        return self._model_type
-
-    @model_type.setter
-    def model_type(self, value: str):
-        if value not in ["scalar", "vector"]:
-            raise ValueError("'model_type' value should be 'scalar' or 'vector'")
-
-        self._model_type = value
-
     @properties.observer("mesh")
     def _update_registry(self, change):
         self._REGISTRY.update(change["value"]._REGISTRY)
