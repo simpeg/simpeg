@@ -1,4 +1,5 @@
 import properties
+import numpy as np
 from ...utils.code_utils import deprecate_class, deprecate_property
 
 from ... import survey
@@ -23,7 +24,8 @@ class BaseRx(survey.BaseRx):
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
             "complex":["both"], 
-            "amp": ["amplitude"],
+            "amplitude": ["amp"],
+            "phase": ["pha"],
         },
     )
 
@@ -47,8 +49,10 @@ class BaseRx(survey.BaseRx):
         return f._GLoc(self.projField) + self.orientation
     
     def evalDataComplex(self, data_complex):
-        if self.component == 'amp':
+        if self.component == 'amplitude':
             return abs(data_complex)
+        elif self.component == 'phase':
+            return np.angle(data_complex)
         else:
             return data_complex
 
