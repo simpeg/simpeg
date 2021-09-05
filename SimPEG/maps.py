@@ -1577,7 +1577,7 @@ class InjectActiveCells(IdentityMap):
         return int(self.indActive.sum())
 
     def _transform(self, m):
-        return self.P * m + self.valInactive
+        return self.P * m + self.valInactive[:, None]
 
     def inverse(self, D):
         return self.P.T * D

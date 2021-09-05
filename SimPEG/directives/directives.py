@@ -32,7 +32,7 @@ from ..utils import (
     eigenvalue_by_power_iteration,
     io_utils
 )
-from ..maps import SphericalSystem
+import SimPEG.maps as maps
 from ..utils.code_utils import deprecate_property
 
 from discretize import TensorMesh, TreeMesh
@@ -1334,21 +1334,45 @@ class SaveIterationsGeoH5(InversionDirective):
     components = [""]
     data_type = {}
     h5_object = None
-    mapping = None
+    _transforms: list = []
     save_objective_function = False
     sorting = None
 
+    def __init__(self, **kwargs):
+        setKwargs(self, **kwargs)
+
     def initialize(self):
 
+        self.save_components(0)
+
+        if self.save_objective_function:
+            self.save_log(0)
+
+        self.h5_object.workspace.finalize()
+
+    def endIter(self):
+
+        self.save_components(self.opt.iter)
+
+        if self.save_objective_function:
+            self.save_log(self.opt.iter)
+
+        self.h5_object.workspace.finalize()
+
+    def save_components(self, iteration: int):
         if self.attribute_type == "predicted":
             prop = np.asarray(self.invProb.get_dpred(self.invProb.model))
         else:
             prop = self.invProb.model
 
-        if self.attribute_type == "vector":
-            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1).reshape((1,1,-1))
-        else:
-            prop = prop.reshape((len(self.channels), len(self.components), -1))
+        for fun in self.transforms:
+            if isinstance(fun, (maps.IdentityMap, np.ndarray, float)):
+                prop = fun * prop
+            else:
+                prop = fun(prop)
+
+        prop = prop.flatten()
+        prop = prop.reshape((len(self.channels), len(self.components), -1), order='F')
 
         for cc, component in enumerate(self.components):
 
@@ -1356,22 +1380,18 @@ class SaveIterationsGeoH5(InversionDirective):
                 self.data_type[component] = {}
 
             for ii, channel in enumerate(self.channels):
-                if not isinstance(channel, str):
-                    channel = f"{channel: .2e}"
                 values = prop[ii, cc, :]
-                if self.mapping is not None:
-                    values = self.mapping * values
 
                 if self.sorting is not None:
                     values = values[self.sorting]
-
+                if not isinstance(channel, str):
+                    channel = f"{channel: .2e}"
                 data = self.h5_object.add_data(
                     {
-                        f"Iteration_{0}_{component}_{channel}":
+                        f"Iteration_{iteration}_{component}_{channel}":
                         {"association": self.association, "values": values}
                     }
                 )
-
                 if channel not in self.data_type[component].keys():
                     self.data_type[component][channel] = data.entity_type
                     data.entity_type.name = f"{self.attribute_type}_" + channel
@@ -1380,106 +1400,73 @@ class SaveIterationsGeoH5(InversionDirective):
 
                 if len(self.channels) > 1:
                     self.h5_object.add_data_to_group(
-                        data, f"Iteration_{0}_{component}"
+                        data, f"Iteration_{iteration}_{component}"
                     )
 
-        if self.save_objective_function:
-            regCombo = ["phi_ms", "phi_msx", "phi_msy", "phi_msz"]
+    def save_log(self, iteration: int):
+        """
+        Save iteration metrics to comments.
+        """
+        reg_components = ["phi_ms", "phi_msx", "phi_msy", "phi_msz"]
+        iter_block = {
+            "beta": f"{self.invProb.beta:.3e}",
+            "phi_d": f"{self.invProb.phi_d:.3e}",
+            "phi_m": f"{self.invProb.phi_m:.3e}"
+        }
 
-            # Save the data.
-            iterDict = {"beta": f"{self.invProb.beta:.3e}"}
-            iterDict["phi_d"] = f"{self.invProb.phi_d:.3e}"
-            iterDict["phi_m"] = f"{self.invProb.phi_m:.3e}"
+        for label, comp in zip(reg_components, self.reg.objfcts[0].objfcts):
+            iter_block[label] = f"{comp(self.invProb.model):.3e}"
 
-            for label, fcts in zip(regCombo, self.reg.objfcts[0].objfcts):
-                iterDict[label] = f"{fcts(self.invProb.model):.3e}"
+        self.h5_object.parent.add_comment(
+            json.dumps(iter_block), author=f"Iteration_{iteration}"
+        )
 
-            self.h5_object.parent.add_comment(
-                json.dumps(iterDict), author=f"Iteration_{0}"
-            )
+    @property
+    def transforms(self):
+        return self._transforms
 
-        self.h5_object.workspace.finalize()
+    @transforms.setter
+    def transforms(self, funcs: list):
+        if not isinstance(funcs, list):
+            funcs = [funcs]
 
-    def endIter(self):
-
-        if self.attribute_type == "predicted":
-            prop = np.hstack(self.invProb.dpred)
-        else:
-            prop = self.invProb.model
-
-        if self.attribute_type == "vector":
-            prop = np.linalg.norm(prop.reshape((-1, 3), order="F"), axis=1).reshape((1,1,-1))
-        else:
-            prop = prop.reshape((len(self.channels), len(self.components), -1))
-
-        for cc, component in enumerate(self.components):
-            for ii, channel in enumerate(self.channels):
-                values = prop[ii, cc, :]
-                if self.mapping is not None:
-                    values = self.mapping * values
-
-                if self.sorting is not None:
-                    values = values[self.sorting]
-                if not isinstance(channel, str):
-                    channel = f"{channel: .2e}"
-                data = self.h5_object.add_data(
-                    {
-                        f"Iteration_{self.opt.iter}_{component}_{channel}":
-                            {
-                                "values": values,
-                                "association": self.association,
-                                "entity_type": self.data_type[component][channel],
-                            }
-                    }
+        for fun in funcs:
+            if not any([
+                isinstance(fun, (maps.IdentityMap, np.ndarray, float)),
+                callable(fun)
+            ]):
+                raise TypeError(
+                    "Input transformation must be of type"
+                    + "SimPEG.maps, numpy.ndarray or callable function"
                 )
 
-                if len(self.channels) > 1:
-                    self.h5_object.add_data_to_group(
-                        data, f"Iteration_{self.opt.iter}_{component}"
-                    )
+        self._transforms = funcs
 
-        if self.save_objective_function:
-            regCombo = ["phi_ms", "phi_msx", "phi_msy", "phi_msz"]
-
-            # Save the data.
-            iterDict = {"beta": f"{self.invProb.beta:.3e}"}
-            iterDict["phi_d"] = f"{self.invProb.phi_d:.3e}"
-            iterDict["phi_m"] = f"{self.invProb.phi_m:.3e}"
-
-            for label, fcts in zip(regCombo, self.reg.objfcts[0].objfcts):
-                iterDict[label] = f"{fcts(self.invProb.model):.3e}"
-
-            self.h5_object.parent.add_comment(
-                json.dumps(iterDict), author=f"Iteration_{self.opt.iter}"
-            )
-
-        self.h5_object.workspace.finalize()
-
-    def check_mvi_format(self, values):
-        if "mvi" in self.attribute:
-            values = values.reshape((-1, 3), order="F")
-            if self.no_data_value is not None:
-                ndv_ind = values[:, 0] == self.no_data_value
-                values[ndv_ind, :] = 0
-            else:
-                ndv_ind = np.zeros(values.shape[0], dtype="bool")
-
-            if self.attribute == "mvi_model":
-                values = np.linalg.norm(values, axis=1)
-            elif self.attribute == "mvi_model_s":
-                values = values[:, 0]
-            elif self.attribute == "mvi_angles":
-                atp = cartesian2spherical(values)
-                values = atp.reshape((-1, 3), order="F")
-
-            if "model" in self.attribute:
-                values[ndv_ind] = self.no_data_value
-            elif "angles" in self.attribute:
-                values = np.rad2deg(values[:, 1:])
-                values[ndv_ind, :] = self.no_data_value
-                values = values.ravel()
-
-        return values
+    # def check_mvi_format(self, values):
+    #     if "mvi" in self.attribute:
+    #         values = values.reshape((-1, 3), order="F")
+    #         if self.no_data_value is not None:
+    #             ndv_ind = values[:, 0] == self.no_data_value
+    #             values[ndv_ind, :] = 0
+    #         else:
+    #             ndv_ind = np.zeros(values.shape[0], dtype="bool")
+    #
+    #         if self.attribute == "mvi_model":
+    #             values = np.linalg.norm(values, axis=1)
+    #         elif self.attribute == "mvi_model_s":
+    #             values = values[:, 0]
+    #         elif self.attribute == "mvi_angles":
+    #             atp = cartesian2spherical(values)
+    #             values = atp.reshape((-1, 3), order="F")
+    #
+    #         if "model" in self.attribute:
+    #             values[ndv_ind] = self.no_data_value
+    #         elif "angles" in self.attribute:
+    #             values = np.rad2deg(values[:, 1:])
+    #             values[ndv_ind, :] = self.no_data_value
+    #             values = values.ravel()
+    #
+    #     return values
 
 
 class VectorInversion(InversionDirective):
@@ -1565,7 +1552,7 @@ class VectorInversion(InversionDirective):
                             reg.space = "spherical"
 
             for simulation in self.simulations:
-                simulation.model_map = SphericalSystem() * simulation.model_map
+                simulation.model_map = maps.SphericalSystem() * simulation.model_map
 
             # Add directives
             directiveList = []
@@ -1584,10 +1571,11 @@ class VectorInversion(InversionDirective):
 
                     directive.channels = channels
 
-                    if directive.attribute_type == "mvi_model":
-                        directive.attribute_type = "mvi_model_s"
-                    elif directive.attribute_type == "mvi_angles":
-                        directive.attribute_type = "mvi_angles_s"
+                    if directive.attribute_type == "model":
+                        directive.transforms = (
+                            [spherical2cartesian] +
+                            directive.transforms
+                        )
 
                     directiveList.append(directive)
 
