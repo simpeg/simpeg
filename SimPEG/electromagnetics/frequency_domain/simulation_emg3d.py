@@ -4,9 +4,9 @@ from discretize.utils import requires
 
 from ...utils import mkvc
 from .simulation import BaseFDEMSimulation
-from .sources import ElectricWire
+from .sources import ElectricDipole, ElectricWire
 from ...data import ComplexData
-from memory_profiler import profile
+# from memory_profiler import profile
 
 # emg3d is a soft dependency
 try:
@@ -21,13 +21,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
     .. note::
 
-        - Only isotropic model implemented so far. Needs extension to tri-axial
-          anisotropy, mu_r, and epsilon_r.
-
-        - Currently, only electric "point"-dipole sources and electric/magnetic
-          point receivers are implemented. emg3d could do more, e.g., finite
-          length electric dipoles or arbitrary electric wires (and therefore
-          loops). These are *not yet* implemented here.
+        Currently only isotropic models are implemented, with unit relative
+        electric permittivity and unit relative magnetic permeability.
 
 
     Parameters
@@ -52,7 +47,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         super().__init__(mesh, **kwargs)
 
         # TODO : Count to store data per iteration.
-        # - Should be replaced by a proper count form SimPEG.inversion.
+        # - Should be replaced by a proper count from SimPEG.inversion.
         # - Should probably be made optional to store data at each step.
         self._it_count = 0
 
@@ -132,23 +127,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         )
         return self._emg3d_model
 
-    @property
-    def _emg3d_simulation_update(self):
-        """Updates emg3d simulation with new model, resetting the fields."""
-
-        # We have to replace the model
-        # Warning:
-        # This will not work for automatic model extension possible in emg3d.
-        self.emg3d_sim.model = self.emg3d_model
-
-        # Re-initiate all dicts _except_ grids (automatic gridding)
-        self.emg3d_sim._dict_efield = self.emg3d_sim._dict_initiate
-        self.emg3d_sim._dict_bfield = self.emg3d_sim._dict_initiate
-        self.emg3d_sim._dict_efield_info = self.emg3d_sim._dict_initiate
-        self.emg3d_sim._dict_bfield_info = self.emg3d_sim._dict_initiate
-        self.emg3d_sim._gradient = None
-        self.emg3d_sim._misfit = None
-
     # @profile
     def Jvec(self, m, v, f=None):
         """
@@ -175,7 +153,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             f = self.fields(m=m)
 
         dsig_dm_v = self.sigmaDeriv @ v
-        j_vec = f._jvec(vector=dsig_dm_v)
+        j_vec = f.jvec(vector=dsig_dm_v)
 
         # Map emg3d-data-array to SimPEG-data-vector
         return j_vec[self._dmap_simpeg_emg3d]
@@ -222,7 +200,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             self._emg3d_array[self._dmap_simpeg_emg3d] = v
 
             # Get gradient with `v` as residual.
-            jt_sigma_vec = f._jtvec(self._emg3d_array)
+            jt_sigma_vec = f.jtvec(self._emg3d_array)
 
             return self.sigmaDeriv.T @ jt_sigma_vec.ravel('F')
 
@@ -235,9 +213,8 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             # for i_datum in range(self.survey.nD):
             #     vec = np.zeros(self.survey.nD)
             #     vec[i_datum] = 1.
-            #     vec = vec.reshape(self.emg3d_survey.shape)
-            #     f.survey.data['residual'][...] = self._emg3d_array
-            #     jt_sigma_vec = f.gradient
+            #     self._emg3d_array[self._dmap_simpeg_emg3d] = vec
+            #     jt_sigma_vec = f.jtvec(self._emg3d_array)
             #     Jt[:, i_datum] = self.sigmaDeriv.T @ jt_sigma_vec
             # return Jt
 
@@ -284,7 +261,10 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             f = self.fields(m=m)
 
         # Map emg3d-data-array to SimPEG-data-vector
-        data_complex = ComplexData(survey=self.survey, dobs=f.data.synthetic.data[self._dmap_simpeg_emg3d])
+        data_complex = ComplexData(
+            survey=self.survey,
+            dobs=f.data.synthetic.data[self._dmap_simpeg_emg3d]
+        )
         data = []
         for src in self.survey.source_list:
             for rx in src.receiver_list:
@@ -305,13 +285,15 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             print("Compute fields")
 
         if m is not None:
-            # Store model.
+
+            # Store model and update emg3d equivalent.
             self.model = m
+            self.emg3d_sim.model = self.emg3d_model
 
-            # Update simulation.
-            self._emg3d_simulation_update
+            # Clean emg3d-Simulation from old computed data.
+            self.emg3d_sim.clean('computed')
 
-        # Compute forward model and sets initial residuals.
+        # Compute forward model and set initial residuals.
         _ = self.emg3d_sim.misfit
 
         # Store the data at each step in the survey-xarray
@@ -371,11 +353,13 @@ def survey_to_emg3d(survey):
                 src.locations,
                 strength=src.strength
             )
-        else:
+        elif isinstance(src, ElectricDipole):
             source = emg3d.TxElectricDipole(
                 (*src.location, src.azimuth, src.elevation),
                 strength=src.strength, length=src.length
             )
+        else:
+            raise NotImplementedError(f"Source type {src} not implemented")
 
         # New frequency: add.
         if src.frequency not in freq_list:
@@ -436,7 +420,9 @@ def survey_to_emg3d(survey):
 
                 # Create emg3d receiver.
                 receiver = rec_type(
-                        (*rec.locations[i, :], azimuth, elevation), data_type=component)
+                    (*rec.locations[i, :], azimuth, elevation),
+                    data_type=component,
+                )
                 # New receiver: add.
                 if receiver not in rec_list:
                     r_ind = len(rec_list)
