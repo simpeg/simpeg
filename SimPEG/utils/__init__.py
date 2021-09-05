@@ -28,6 +28,7 @@ from .mat_utils import (
     eigenvalue_by_power_iteration,
     cartesian2spherical,
     spherical2cartesian,
+    cartesian2amplitude_dip_azimuth,
     coterminal,
     define_plane_from_points,
 )

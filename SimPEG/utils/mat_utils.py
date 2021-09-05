@@ -194,33 +194,38 @@ def eigenvalue_by_power_iteration(
 
 def cartesian2spherical(m):
     """ Convert from cartesian to spherical """
-
-    # nC = int(len(m)/3)
-
+    m = m.reshape((-1, 3), order='F')
     x = m[:, 0]
     y = m[:, 1]
     z = m[:, 2]
-
     a = (x ** 2.0 + y ** 2.0 + z ** 2.0) ** 0.5
-
     t = np.zeros_like(x)
     t[a > 0] = np.arcsin(z[a > 0] / a[a > 0])
-
     p = np.zeros_like(x)
     p[a > 0] = np.arctan2(y[a > 0], x[a > 0])
-
     m_atp = np.r_[a, t, p]
 
     return m_atp
 
 
+def cartesian2amplitude_dip_azimuth(m):
+    """
+    Convert from cartesian to amplitude, dip (positive down) and
+    azimuth (clockwise for North), in degree.
+    """
+    atp = cartesian2spherical(m).reshape((-1, 3), order='F')
+    atp[:, 1] = np.rad2deg(-1.0 * atp[:, 1])
+    atp[:, 2] = (450.0 - np.rad2deg(atp[:, 2])) % 360.0
+
+    return atp
+
+
 def spherical2cartesian(m):
     """ Convert from spherical to cartesian """
-
+    m = m.reshape((-1, 3), order='F')
     a = m[:, 0] + 1e-8
     t = m[:, 1]
     p = m[:, 2]
-
     m_xyz = np.r_[a * np.cos(t) * np.cos(p), a * np.cos(t) * np.sin(p), a * np.sin(t)]
 
     return m_xyz
@@ -244,7 +249,6 @@ def dip_azimuth2cartesian(dip, azm_N):
 
     @author: dominiquef
     """
-
     azm_N = np.asarray(azm_N)
     dip = np.asarray(dip)
 
@@ -269,7 +273,6 @@ def coterminal(theta):
     """
     Compute coterminal angle so that [-pi < theta < pi]
     """
-
     sub = theta[np.abs(theta) >= np.pi]
     sub = -np.sign(sub) * (2 * np.pi - np.abs(sub))
 
