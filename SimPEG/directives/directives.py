@@ -36,6 +36,7 @@ import SimPEG.maps as maps
 from ..utils.code_utils import deprecate_property
 
 from discretize import TensorMesh, TreeMesh
+from geoh5py.objects import ObjectBase
 
 
 class InversionDirective(properties.HasProperties):
@@ -1328,17 +1329,19 @@ class SaveIterationsGeoH5(InversionDirective):
     Saves inversion results to a geoh5 file
     """
 
-    association = "VERTEX"
+    _association = None
     attribute_type = "model"
     channels = [""]
     components = [""]
     data_type = {}
-    h5_object = None
+    _h5_object = None
     _transforms: list = []
     save_objective_function = False
     sorting = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, h5_object, **kwargs):
+
+        self.h5_object = h5_object
         setKwargs(self, **kwargs)
 
     def initialize(self):
@@ -1398,7 +1401,7 @@ class SaveIterationsGeoH5(InversionDirective):
                 else:
                     data.entity_type = self.data_type[component][channel]
 
-                if len(self.channels) > 1:
+                if len(self.channels) > 1 and self.attribute_type == "predicted":
                     self.h5_object.add_data_to_group(
                         data, f"Iteration_{iteration}_{component}"
                     )
@@ -1442,31 +1445,32 @@ class SaveIterationsGeoH5(InversionDirective):
 
         self._transforms = funcs
 
-    # def check_mvi_format(self, values):
-    #     if "mvi" in self.attribute:
-    #         values = values.reshape((-1, 3), order="F")
-    #         if self.no_data_value is not None:
-    #             ndv_ind = values[:, 0] == self.no_data_value
-    #             values[ndv_ind, :] = 0
-    #         else:
-    #             ndv_ind = np.zeros(values.shape[0], dtype="bool")
-    #
-    #         if self.attribute == "mvi_model":
-    #             values = np.linalg.norm(values, axis=1)
-    #         elif self.attribute == "mvi_model_s":
-    #             values = values[:, 0]
-    #         elif self.attribute == "mvi_angles":
-    #             atp = cartesian2spherical(values)
-    #             values = atp.reshape((-1, 3), order="F")
-    #
-    #         if "model" in self.attribute:
-    #             values[ndv_ind] = self.no_data_value
-    #         elif "angles" in self.attribute:
-    #             values = np.rad2deg(values[:, 1:])
-    #             values[ndv_ind, :] = self.no_data_value
-    #             values = values.ravel()
-    #
-    #     return values
+    @property
+    def h5_object(self):
+        return self._h5_object
+
+    @h5_object.setter
+    def h5_object(self, entity: ObjectBase):
+        if not isinstance(entity, ObjectBase):
+            raise TypeError(f"Input entity should be of type {ObjectBase}. {type(entity)} provided")
+
+        self._h5_object = entity
+
+        if getattr(entity, "n_cells", None) is not None:
+            self.association = "CELL"
+        else:
+            self.association = "VERTEX"
+
+    @property
+    def association(self):
+        return self._association
+
+    @association.setter
+    def association(self, value):
+        if not value.upper() in ["CELL", "VERTEX"]:
+            raise ValueError(f"'association must be one of 'CELL', 'VERTEX'. {value} provided")
+
+        self._association = value.upper()
 
 
 class VectorInversion(InversionDirective):
@@ -1556,7 +1560,7 @@ class VectorInversion(InversionDirective):
 
             # Add directives
             directiveList = []
-            sens_w = UpdateSensitivityWeights(),
+            sens_w = UpdateSensitivityWeights()
             irls = Update_IRLS(),
             jacobi = UpdatePreconditioner(),
             for directive in self.inversion.directiveList.dList:
