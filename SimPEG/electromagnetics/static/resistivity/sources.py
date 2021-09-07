@@ -2,8 +2,7 @@ import numpy as np
 import properties
 
 from .... import survey
-from ....utils import Zero, closestPoints
-from ....utils.code_utils import deprecate_property
+from ....utils import Zero
 
 import warnings
 
@@ -41,7 +40,7 @@ class BaseSrc(survey.BaseSrc):
             raise ValueError(
                 "Current must be constant or equal to the number of specified source locations."
             )
-        if len(current) == 1:
+        if type(current) != list:
             current = np.repeat(current, len(location)).tolist()
 
         self.current = current
@@ -52,7 +51,7 @@ class BaseSrc(survey.BaseSrc):
             return self._q
         else:
             if sim._formulation == "HJ":
-                inds = closestPoints(sim.mesh, self.location, gridLoc="CC")
+                inds = sim.mesh.get_nearest_indices(self.location, grid_location="CC")
                 self._q = np.zeros(sim.mesh.nC)
                 self._q[inds] = self.current
             elif sim._formulation == "EB":
