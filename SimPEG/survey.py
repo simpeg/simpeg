@@ -397,12 +397,16 @@ class BaseSurvey(properties.HasProperties):
         """
         Get the unique xyz locations of all sources and receivers.
         """
-        locations = []
-        for source in self.source_list:
-            if source.location is not None:
-                locations += [source.location]
-            locations += [receiver.locations for receiver in source.receiver_list]
-        locations = np.vstack([np.vstack(np.atleast_2d(*locs)) for locs in locations])
+        if self.source_list:
+            locations = []
+            for source in self.source_list:
+                if source.location is not None:
+                    locations += [source.location]
+                locations += [receiver.locations for receiver in source.receiver_list]
+            locations = np.vstack([np.vstack(np.atleast_2d(*locs)) for locs in locations])
+        else:
+            locations = self.receiver_locations
+
         return np.unique(locations, axis=0)
 
 

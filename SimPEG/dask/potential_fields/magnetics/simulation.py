@@ -126,6 +126,8 @@ def dask_getJtJdiag(self, m, W=None):
         W = np.ones(self.nD)
     else:
         W = W.diagonal()
+    if isinstance(self.Jmatrix, Future):
+        self.Jmatrix  # Wait to finish
     if getattr(self, "_gtg_diagonal", None) is None:
         if not self.is_amplitude_data:
             # diag = ((W[:, None] * self.Jmatrix) ** 2).sum(axis=0)
