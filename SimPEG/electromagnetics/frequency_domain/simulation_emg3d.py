@@ -117,7 +117,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
     def emg3d_model(self):
         """emg3d conductivity model; obtained from SimPEG conductivities."""
         self._emg3d_model = emg3d.Model(
-            self.mesh,
+            emg3d.TensorMesh(self.mesh.h, self.mesh.origin),
             property_x=self.sigma.reshape(self.mesh.shape_cells, order='F'),
             # property_y=None,  Not yet implemented
             # property_z=None,   "
