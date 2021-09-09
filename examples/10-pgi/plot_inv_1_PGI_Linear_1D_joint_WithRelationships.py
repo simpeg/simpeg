@@ -191,6 +191,11 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
     chi0_ratio=np.r_[1.0, 1.0], verbose=True, n_pw_iter=10
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
+alpha0_ratio = np.r_[
+    np.zeros(len(reg_simple_no_map.objfcts[0].objfcts)),
+    100.0 * np.ones(len(reg_simple_no_map.objfcts[1].objfcts)),
+    1.0 * np.ones(len(reg_simple_no_map.objfcts[2].objfcts)),
+]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
