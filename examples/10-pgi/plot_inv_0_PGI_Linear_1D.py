@@ -1,6 +1,6 @@
 """
-Petrophysically constrained inversion: Linear example
-=====================================================
+Petrophysically guided inversion (PGI): Linear example
+======================================================
 
 We do a comparison between the classic Tikhonov inversion
 and our formulation of a petrophysically constrained inversion.

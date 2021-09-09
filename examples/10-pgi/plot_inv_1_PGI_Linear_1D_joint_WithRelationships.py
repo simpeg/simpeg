@@ -1,3 +1,14 @@
+"""
+Petrophysically guided inversion: Joint linear example with nonlinear relationships
+===================================================================================
+
+We do a comparison between the classic Tikhonov inversion
+and our formulation of a petrophysically guided inversion.
+We explore it through coupling two linear problems whose respective physical
+properties are linked by polynomial relationships that change between rock units.
+
+"""
+
 import discretize as Mesh
 from SimPEG import (
     simulation,
