@@ -32,7 +32,7 @@ import tarfile
 
 from discretize import TensorMesh
 
-from SimPEG.utils import plot2Ddata, surface2ind_topo
+from SimPEG.utils import plot2Ddata, surface2ind_topo, model_builder
 from SimPEG.potential_fields import gravity
 from SimPEG import (
     maps,
@@ -76,7 +76,6 @@ dir_path = downloaded_data.split(".")[0] + os.path.sep
 # files to work with
 topo_filename = dir_path + "gravity_topo.txt"
 data_filename = dir_path + "gravity_data.obs"
-model_filename = dir_path + "true_model.txt"
 
 
 #############################################
@@ -121,8 +120,8 @@ plt.show()
 # Assign Uncertainties
 # --------------------
 #
-# Inversion with SimPEG requires that we define standard deviation on our data.
-# This represents our estimate of the noise in our data. For gravity inversion,
+# Inversion with SimPEG requires that we define the standard deviation of our data.
+# This represents our estimate of the noise in our data. For a gravity inversion,
 # a constant floor value is generally applied to all data. For this tutorial,
 # the standard deviation on each datum will be 1% of the maximum observed
 # gravity anomaly value.
@@ -136,13 +135,13 @@ uncertainties = 0.01 * maximum_anomaly * np.ones(np.shape(dobs))
 # Defining the Survey
 # -------------------
 #
-# Here, we define survey that will be used for this tutorial. Gravity
+# Here, we define the survey that will be used for this tutorial. Gravity
 # surveys are simple to create. The user only needs an (N, 3) array to define
 # the xyz locations of the observation locations. From this, the user can
 # define the receivers and the source field.
 #
 
-# Define the receivers. The data consist of vertical gravity anomaly measurements.
+# Define the receivers. The data consists of vertical gravity anomaly measurements.
 # The set of receivers must be defined as a list.
 receiver_list = gravity.receivers.Point(receiver_locations, components="gz")
 
@@ -158,7 +157,7 @@ survey = gravity.survey.Survey(source_field)
 # Defining the Data
 # -----------------
 #
-# Here is where we define the data that are inverted. The data are defined by
+# Here is where we define the data that is inverted. The data is defined by
 # the survey, the observation values and the standard deviation.
 #
 
@@ -194,7 +193,7 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 # not converge.
 background_density = 1e-6
 
-# Find the indecies of the active cells in forward model (ones below surface)
+# Find the indices of the active cells in forward model (ones below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
 
 # Define mapping from model to active cells
@@ -302,14 +301,40 @@ recovered_model = inv.run(starting_model)
 
 
 ############################################################
+# Recreate True Model
+# -------------------
+#
+
+# Define density contrast values for each unit in g/cc
+background_density = 0.0
+block_density = -0.2
+sphere_density = 0.2
+
+# Define model. Models in SimPEG are vector arrays.
+true_model = background_density * np.ones(nC)
+
+# You could find the indicies of specific cells within the model and change their
+# value to add structures.
+ind_block = (
+    (mesh.gridCC[ind_active, 0] > -50.0)
+    & (mesh.gridCC[ind_active, 0] < -20.0)
+    & (mesh.gridCC[ind_active, 1] > -15.0)
+    & (mesh.gridCC[ind_active, 1] < 15.0)
+    & (mesh.gridCC[ind_active, 2] > -50.0)
+    & (mesh.gridCC[ind_active, 2] < -30.0)
+)
+true_model[ind_block] = block_density
+
+# You can also use SimPEG utilities to add structures to the model more concisely
+ind_sphere = model_builder.getIndicesSphere(np.r_[35.0, 0.0, -40.0], 15.0, mesh.gridCC)
+ind_sphere = ind_sphere[ind_active]
+true_model[ind_sphere] = sphere_density
+
+
+############################################################
 # Plotting True Model and Recovered Model
 # ---------------------------------------
 #
-
-# Load the true model (was defined on the whole mesh) and extract only the
-# values on active cells.
-true_model = np.loadtxt(str(model_filename))
-true_model = true_model[ind_active]
 
 # Plot True Model
 fig = plt.figure(figsize=(9, 4))
@@ -368,6 +393,8 @@ plt.show()
 #
 
 # Predicted data with final recovered model
+# SimPEG uses right handed coordinate where Z is positive upward. 
+# This causes gravity signals look "inconsistent" with density values in visualization.
 dpred = inv_prob.dpred
 
 # Observed data | Predicted data | Normalized data misfit

@@ -127,7 +127,7 @@ class Simulation1DLayers(BaseEMSimulation):
 
     def getJ(self, m, f=None, factor=1e-2):
         """
-            Generate Full sensitivity matrix using central difference
+        Generate Full sensitivity matrix using central difference
         """
         if self._Jmatrix is not None:
             return self._Jmatrix
@@ -154,7 +154,7 @@ class Simulation1DLayers(BaseEMSimulation):
 
     def Jvec(self, m, v, f=None):
         """
-            Compute sensitivity matrix (J) and vector (v) product.
+        Compute sensitivity matrix (J) and vector (v) product.
         """
 
         J = self.getJ(m, f=f)
@@ -164,7 +164,7 @@ class Simulation1DLayers(BaseEMSimulation):
 
     def Jtvec(self, m, v, f=None):
         """
-            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
         """
 
         J = self.getJ(m, f=f)
@@ -185,7 +185,7 @@ class Simulation1DLayers(BaseEMSimulation):
     @property
     def electrode_separations(self):
         """
-            Electrode separations
+        Electrode separations
         """
         # TODO: only works isotropic sigma
         if getattr(self, "_electrode_separations", None) is None:
@@ -197,7 +197,7 @@ class Simulation1DLayers(BaseEMSimulation):
     @property
     def offset(self):
         """
-            Offset between a current electrode and a potential electrode
+        Offset between a current electrode and a potential electrode
         """
         # TODO: only works isotropic sigma
         if getattr(self, "_offset", None) is None:
@@ -211,8 +211,8 @@ class Simulation1DLayers(BaseEMSimulation):
     @property
     def lambd(self):
         """
-            Spatial frequency in Hankel domain
-            np.sqrt(kx*2 + ky**2) = lamda
+        Spatial frequency in Hankel domain
+        np.sqrt(kx*2 + ky**2) = lamda
         """
         # TODO: only works isotropic sigma
         if getattr(self, "_lambd", None) is None:
@@ -237,7 +237,7 @@ class Simulation1DLayers(BaseEMSimulation):
     @property
     def n_layer(self):
         """
-            number of layers
+        number of layers
         """
         # TODO: only works isotropic sigma
         if getattr(self, "_n_layer", None) is None:
@@ -247,7 +247,7 @@ class Simulation1DLayers(BaseEMSimulation):
     @property
     def geometric_factor(self):
         """
-            number of layers
+        number of layers
         """
         # TODO: only works isotropic sigma
         if getattr(self, "_geometric_factor", None) is None:

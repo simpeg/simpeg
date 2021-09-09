@@ -3,8 +3,8 @@ Magnetic inversion on a TreeMesh
 ================================
 
 In this example, we demonstrate the use of a Magnetic Vector Inverison
-on 3D TreeMesh for the inversion of magnetic affected by remanence.
-The mesh is auto-generate based
+on 3D TreeMesh for the inversion of magnetics affected by remanence.
+The mesh is auto-generated based
 on the position of the observation locations and topography.
 
 We invert the data twice, first for a smooth starting model using the
@@ -66,7 +66,7 @@ zz = A * np.exp(-0.5 * ((xx / b) ** 2.0 + (yy / b) ** 2.0))
 
 topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
-# Create and array of observation points
+# Create an array of observation points
 xr = np.linspace(-100.0, 100.0, 20)
 yr = np.linspace(-100.0, 100.0, 20)
 X, Y = np.meshgrid(xr, yr)
@@ -94,8 +94,8 @@ plt.show()
 #
 # Here, we create a TreeMesh with base cell size of 5 m. We created a small
 # utility function to center the mesh around points and to figure out the
-# outer most dimension for adequate padding distance.
-# The second stage allows to refine the mesh around points or surfaces
+# outermost dimension for adequate padding distance.
+# The second stage allows us to refine the mesh around points or surfaces
 # (point assumed to follow some horizontal trend)
 # The refinement process is repeated twice to allow for a finer level around
 # the survey locations.
@@ -245,7 +245,7 @@ idenMap = maps.IdentityMap(nP=nC * 3)
 
 # Create the simulation
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv, modelType="vector"
+    survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv, model_type="vector"
 )
 
 # Compute some data and add some random noise
@@ -294,8 +294,8 @@ plt.show()
 # Inversion
 # ---------
 #
-# We can now attempt the inverse calculations. We put some great care
-# in design an inversion methology that would yield geologically
+# We can now attempt the inverse calculations. We put great care
+# into designing an inversion methology that would yield a geologically
 # reasonable solution for the non-induced problem.
 # The inversion is done in two stages. First we compute a smooth
 # solution using a Cartesian coordinate system, then a sparse
@@ -309,19 +309,21 @@ rxLoc = survey.source_field.receiver_list[0].locations
 # vector model
 wires = maps.Wires(("p", nC), ("s", nC), ("t", nC))
 
-
-m0 = np.ones(3 * nC) * 1e-4  # Starting model
-
-# Create three regularization for the different components
 # of magnetization
 reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
 reg_p.mref = np.zeros(3 * nC)
+reg_p.norms = np.c_[0, 0, 0, 0]
+reg_p.gradientType = "component"
 
 reg_s = regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
 reg_s.mref = np.zeros(3 * nC)
+reg_s.norms = np.c_[0, 0, 0, 0]
+reg_s.gradientType = "component"
 
 reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
 reg_t.mref = np.zeros(3 * nC)
+reg_t.norms = np.c_[0, 0, 0, 0]
+reg_t.gradientType = "component"
 
 reg = reg_p + reg_s + reg_t
 reg.mref = np.zeros(3 * nC)
@@ -332,111 +334,26 @@ dmis.W = 1.0 / data_object.standard_deviation
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(
-    maxIter=10, lower=-10, upper=10.0, maxIterLS=20, maxIterCG=20, tolCG=1e-4
+    maxIter=15, lower=-10, upper=10.0, maxIterLS=10, maxIterCG=20, tolCG=1e-4
 )
 
-invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
+inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
+directive_list = [
+    directives.VectorInversion(simulation, reg),
+    directives.UpdateSensitivityWeights(everyIter=False),
+    directives.Update_IRLS(),
+    directives.UpdatePreconditioner(),
+    directives.BetaEstimate_ByEig()
+]
 
-# A list of directive to control the inverson
-betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
-
-# Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights()
-
-# Here is where the norms are applied
-# Use pick a threshold parameter empirically based on the distribution of
-#  model parameters
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1)
-
-# Pre-conditioner
-update_Jacobi = directives.UpdatePreconditioner()
 
 inv = inversion.BaseInversion(
-    invProb, directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest]
+    inv_prob, directiveList=directive_list
 )
 
 # Run the inversion
-mrec_MVIC = inv.run(m0)
-
-###############################################################
-# Sparse Vector Inversion
-# -----------------------
-#
-# Re-run the MVI in spherical domain so we can impose
-# sparsity in the vectors.
-#
-#
-
-spherical_map = maps.SphericalSystem()
-m_start = utils.mat_utils.cartesian2spherical(mrec_MVIC.reshape((nC, 3), order="F"))
-beta = invProb.beta
-dmis.simulation.chiMap = spherical_map
-dmis.simulation.model = m_start
-
-# Create a block diagonal regularization
-wires = maps.Wires(("amp", nC), ("theta", nC), ("phi", nC))
-
-# Create a Combo Regularization
-# Regularize the amplitude of the vectors
-reg_a = regularization.Sparse(mesh, indActive=actv, mapping=wires.amp)
-reg_a.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Sparse on the model and its gradients
-reg_a.mref = np.zeros(3 * nC)
-
-# Regularize the vertical angle of the vectors
-reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.theta)
-reg_t.alpha_s = 0.0  # No reference angle
-reg_t.space = "spherical"
-reg_t.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
-
-# Regularize the horizontal angle of the vectors
-reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.phi)
-reg_p.alpha_s = 0.0  # No reference angle
-reg_p.space = "spherical"
-reg_p.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
-
-reg = reg_a + reg_t + reg_p
-reg.mref = np.zeros(3 * nC)
-
-lower_bound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
-upper_bound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
-
-# Add directives to the inversion
-opt = optimization.ProjectedGNCG(
-    maxIter=20,
-    lower=lower_bound,
-    upper=upper_bound,
-    maxIterLS=20,
-    maxIterCG=30,
-    tolCG=1e-3,
-    stepOffBoundsFact=1e-3,
-)
-opt.approxHinv = None
-
-invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
-
-# Here is where the norms are applied
-irls = directives.Update_IRLS(
-    f_min_change=1e-4,
-    max_irls_iterations=20,
-    minGNiter=1,
-    beta_tol=0.5,
-    coolingRate=1,
-    coolEps_q=True,
-    sphericalDomain=True,
-)
-
-# Special directive specific to the mag amplitude problem. The sensitivity
-# weights are update between each iteration.
-spherical_projection = directives.ProjectSphericalBounds()
-sensitivity_weights = directives.UpdateSensitivityWeights()
-update_Jacobi = directives.UpdatePreconditioner()
-
-inv = inversion.BaseInversion(
-    invProb,
-    directiveList=[spherical_projection, irls, sensitivity_weights, update_Jacobi],
-)
-
-mrec_MVI_S = inv.run(m_start)
+m0 = np.ones(3 * nC) * 1e-4  # Starting model
+mrec = inv.run(m0)
 
 #############################################################
 # Final Plot
@@ -451,7 +368,7 @@ plt.figure(figsize=(8, 8))
 ax = plt.subplot(2, 1, 1)
 plotVectorSectionsOctree(
     mesh,
-    mrec_MVIC.reshape((nC, 3), order="F"),
+    directive_list[0].cartesian_model.reshape((nC, 3), order="F"),
     axs=ax,
     normal="Y",
     ind=65,
@@ -470,9 +387,8 @@ plt.gca().set_aspect("equal", adjustable="box")
 
 ax = plt.subplot(2, 1, 2)
 vec_xyz = utils.mat_utils.spherical2cartesian(
-    invProb.model.reshape((nC, 3), order="F")
+    inv_prob.model.reshape((nC, 3), order="F")
 ).reshape((nC, 3), order="F")
-
 plotVectorSectionsOctree(
     mesh,
     vec_xyz,
@@ -496,11 +412,11 @@ plt.show()
 # Plot the final predicted data and the residual
 plt.figure()
 ax = plt.subplot(1, 2, 1)
-utils.plot_utils.plot2Ddata(xyzLoc, invProb.dpred, ax=ax)
+utils.plot_utils.plot2Ddata(xyzLoc, inv_prob.dpred[0], ax=ax)
 ax.set_title("Predicted data.")
 plt.gca().set_aspect("equal", adjustable="box")
 
 ax = plt.subplot(1, 2, 2)
-utils.plot_utils.plot2Ddata(xyzLoc, synthetic_data - invProb.dpred, ax=ax)
+utils.plot_utils.plot2Ddata(xyzLoc, synthetic_data - inv_prob.dpred[0], ax=ax)
 ax.set_title("Data residual.")
 plt.gca().set_aspect("equal", adjustable="box")

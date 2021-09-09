@@ -72,7 +72,7 @@ def create_tile(locations, obs, uncert, global_mesh, global_active, tile_id, com
         mesh=local_mesh,
         chiMap=maps.IdentityMap(nP=int(local_map.local_active.sum()) * 3),
         actInd=local_map.local_active,
-        modelType="vector",
+        model_type="vector",
         sensitivity_path=f"./sensitivity/Inversion/Tile{tile_id}.zarr",
         chunk_format="row",
         store_sensitivities="disk",
@@ -112,7 +112,7 @@ padDist = np.ones((3, 2)) * 100
 sp.random.seed(1)
 # We will assume a vertical inducing field
 H0 = (50000.0, 90.0, 0.0)
-components = ["bxx", "byy", "bzz", "bxz", "bxy", "byz", "tmi"]
+components = ["bxx", "byy", "tmi"]
 
 # The magnetization is set along a different direction (induced + remanence)
 M = np.array([45.0, 90.0])
@@ -127,12 +127,10 @@ zz = A * np.exp(-0.5 * ((xx / b) ** 2.0 + (yy / b) ** 2.0))
 topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
 
 # Create and array of observation points
-xr = np.linspace(-100.0, 100.0, 10)
-yr = np.linspace(-100.0, 100.0, 10)
+xr = np.linspace(-100.0, 100.0, 20)
+yr = np.linspace(-100.0, 100.0, 20)
 X, Y = np.meshgrid(xr, yr)
-Z = A * np.exp(-0.5 * ((X / b) ** 2.0 + (Y / b) ** 2.0)) 
-print(Z.max(), Z.min())
-# Z = np.zeros_like(X) - 0.1
+Z = A * np.exp(-0.5 * ((X / b) ** 2.0 + (Y / b) ** 2.0)) + 5
 
 ###############################################################################
 # Inversion Mesh
@@ -154,7 +152,7 @@ print(Z.max(), Z.min())
 # topo = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
 
 # Create station locations drapped 0.1 m above topo
-rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T) + 5.0]
+rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
 
 global_mesh = mesh_builder_xyz(
     rxLoc, h,
@@ -174,8 +172,8 @@ global_mesh = refine_tree_xyz(
     max_distance=max_distance,
     finalize=True
 )
-activeCells = active_from_xyz(global_mesh, topo, method='linear')
-nC = int(activeCells.sum())
+global_active = active_from_xyz(global_mesh, topo, method='linear')
+nC = int(global_active.sum())
 
 ###########################################################################
 # Forward modeling data
@@ -200,7 +198,7 @@ ind = utils.model_builder.getIndicesBlock(
 model[ind, :] = np.kron(np.ones((ind.shape[0], 1)), M_xyz * 0.05)
 
 # Remove air cells
-model = model[activeCells, :]
+model = model[global_active, :]
 
 # Creat reduced identity map
 idenMap = maps.IdentityMap(nP=nC * 3)
@@ -211,7 +209,7 @@ survey = magnetics.survey.Survey(srcField)
 
 # Create the simulation
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=global_mesh, chiMap=idenMap, actInd=activeCells, modelType="vector",
+    survey=survey, mesh=global_mesh, chiMap=idenMap, actInd=global_active, model_type="vector",
     store_sensitivities="forward_only",
     max_chunk_size=max_chunk_size,
 )
@@ -223,11 +221,11 @@ std = 1  # nT
 
 # Add noise and uncertainties
 # We add some random Gaussian noise (1nT)
-synthetic_data = d + np.random.randn(len(d)) * std
+synthetic_data = np.asarray(d) + np.random.randn(len(d)) * std
 wd = np.ones(len(synthetic_data)) * std  # Assign flat uncertainties
 
-prob_size = activeCells.sum() * 1e-9 * rxLoc.shape[0] * 8.
-print(f"Size {activeCells.sum()} x {rxLoc.shape[0]}, Total size {prob_size}")
+prob_size = global_active.sum() * 1e-9 * rxLoc.shape[0] * 8.
+print(f"Size {global_active.sum()} x {rxLoc.shape[0]}, Total size {prob_size}")
 
 ##########################################################################
 # Divided and Conquer
@@ -252,7 +250,7 @@ for ii, local_index in enumerate(indices):
     std_sub = np.reshape(std_sub, (std_sub.size, ))
     local_misfits += [create_tile(
         locations,  obs_sub,
-        std_sub, global_mesh, activeCells, ii, components=components, h0=H0, workers=None
+        std_sub, global_mesh, global_active, ii, components=components, h0=H0, workers=None
     )]
     # local_misfits += [client.compute(delayed_misfit)]
 
@@ -272,7 +270,7 @@ for local in local_misfits:
     local.simulation.Jmatrix
     # del local.simulation.mesh
 
-print('[info] global: ', global_mesh.nC, activeCells.sum(), synthetic_data.shape)
+print('[info] global: ', global_mesh.nC, global_active.sum(), synthetic_data.shape)
 # Plot the model on different meshes
 fig = plt.figure(figsize=(12, 6))
 c_code = ['r', 'g', 'b', 'm']
@@ -307,7 +305,7 @@ for ii, local_misfit in enumerate(global_misfit.objfcts):
 
 
 # Create active map to go from reduce set to full
-inject_global = maps.InjectActiveCells(global_mesh, activeCells, 0)
+inject_global = maps.InjectActiveCells(global_mesh, global_active, np.nan)
 
 # ax = plt.subplot(2, 3, 6)
 mx = model[:, 0]
@@ -316,9 +314,10 @@ mz = model[:, 2]
 
 m_ = np.c_[mx, my, mz]
 amp = np.sum(m_ ** 2.0, axis=1) ** 0.5
+ax = plt.subplot(2, 3, 5)
 global_mesh.plot_slice(inject_global * amp, index=100, normal="Z", ax=ax, grid=True)
 ax.scatter(rxLoc[:, 0], rxLoc[:, 1], 10)
-ax.set_title(f"Global Mesh. Active cells {activeCells.sum()}")
+ax.set_title(f"Global Mesh. Active cells {global_active.sum()}")
 ax.set_xlim(-200, 200)
 ax.set_ylim(-200, 200)
 ax.set_aspect("equal")
@@ -333,107 +332,77 @@ plt.show()
 wires = maps.Wires(("p", nC), ("s", nC), ("t", nC))
 
 
-m0 = np.ones(3 * nC) * 1e-4  # Starting model
-wr = np.zeros_like(m0)
-norm = np.tile(global_mesh.cell_volumes[activeCells]**2., 3)
-for ii, dmisfit in enumerate(global_misfit.objfcts):
-    wr += dmisfit.getJtJdiag(m0) / norm
-
-wr += np.percentile(wr, 40)
-wr *= norm
-wr **= 0.5
-wr = wr / wr.max()
-
 # Create three regularization for the different components
 # of magnetization
-reg_p = regularization.Sparse(global_mesh, indActive=activeCells, mapping=wires.p)
-reg_p.alpha_s = 3
-reg_p.cell_weights = (wires.p * wr)
+reg_p = regularization.Sparse(global_mesh, indActive=global_active, mapping=wires.p)
 reg_p.mref = np.zeros(3 * nC)
+reg_p.norms = np.c_[0, 0, 0, 0]
+reg_p.gradientType = "component"
 
-reg_s = regularization.Sparse(global_mesh, indActive=activeCells, mapping=wires.s)
-reg_s.alpha_s = 3
-reg_s.cell_weights = (wires.s * wr)
+reg_s = regularization.Sparse(global_mesh, indActive=global_active, mapping=wires.s)
 reg_s.mref = np.zeros(3 * nC)
+reg_s.norms = np.c_[0, 0, 0, 0]
+reg_s.gradientType = "component"
 
-reg_t = regularization.Sparse(global_mesh, indActive=activeCells, mapping=wires.t)
-reg_t.alpha_s = 3
-reg_t.cell_weights = (wires.t * wr)
+reg_t = regularization.Sparse(global_mesh, indActive=global_active, mapping=wires.t)
 reg_t.mref = np.zeros(3 * nC)
+reg_t.norms = np.c_[0, 0, 0, 0]
+reg_t.gradientType = "component"
 
 reg = reg_p + reg_s + reg_t
-reg.mref = np.zeros(3 * nC)
 
-# Add directives to the inversion
 opt = optimization.ProjectedGNCG(
-    maxIter=10, lower=-10, upper=10.0, maxIterLS=20, maxIterCG=20, tolCG=1e-4
+    maxIter=15, lower=-10, upper=10.0, maxIterLS=10, maxIterCG=20, tolCG=1e-4
 )
 
-invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
-
-# A list of directive to control the inverson
-betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
-
-# Add sensitivity weights
-update_Jacobi = directives.UpdatePreconditioner()
-sensitivity_weights = directives.UpdateSensitivityWeights()
-
-# Here is where the norms are applied
-# Use pick a threshold parameter empirically based on the distribution of
-#  model parameters
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1)
-
-saveDict = directives.SaveOutputEveryIteration(save_txt=False)
-# Pre-conditioner
-update_Jacobi = directives.UpdatePreconditioner()
+inv_prob = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
+directive_list = [
+    directives.VectorInversion([local.simulation for local in local_misfits], reg),
+    directives.UpdateSensitivityWeights(),
+    directives.Update_IRLS(),
+    directives.UpdatePreconditioner(),
+    directives.BetaEstimate_ByEig()
+]
 
 inv = inversion.BaseInversion(
-    invProb, directiveList=[IRLS, sensitivity_weights, betaest, update_Jacobi, saveDict],
+    inv_prob, directiveList=directive_list
 )
 
 # Run the inversion
-mrec_MVIC = inv.run(m0)
+m0 = np.ones(3 * nC) * 1e-4  # Starting model
+mrec = inv.run(m0)
 
-vec_xyz = opt.xc
+vec_xyz = utils.mat_utils.spherical2cartesian(
+    mrec.reshape((nC, 3), order="F")
+).reshape((nC, 3), order="F")
+rec_amp = np.linalg.norm(vec_xyz, axis=1)
 
-vec_x = vec_xyz[:nC]
-vec_y = vec_xyz[nC:2*nC]
-vec_z = vec_xyz[2*nC:]
-
-vec = np.c_[vec_x, vec_y, vec_z]
-
-amp_ = np.sum(vec ** 2.0, axis=1) ** 0.5
-
-fig = plt.figure(figsize=(12, 6))
+fig = plt.figure(figsize=(12, 8))
 # Plot the result
-ax = plt.subplot(3, 2, 1)
+ax = plt.subplot(2, 2, 1)
 global_mesh.plot_slice(inject_global * amp, ind=75, normal="Z", ax=ax, grid=False)
 ax.set_title("True")
 ax.set_xlim(-100, 100)
 ax.set_ylim(-100, 100)
 ax.set_aspect("equal")
 
-ax = plt.subplot(3, 2, 2)
-global_mesh.plot_slice(inject_global * amp, ind=64, normal="X", ax=ax, grid=False)
+ax = plt.subplot(2, 2, 3)
+global_mesh.plot_slice(inject_global * amp, normal="Y", ax=ax, grid=True)
 ax.set_title("True")
 ax.set_xlim(-100, 100)
 ax.set_ylim(-100, 100)
 ax.set_aspect("equal")
 
-ax = plt.subplot(3, 2, 3)
-global_mesh.plot_slice(inject_global * amp_, ind=75, normal="Z", ax=ax, grid=False)
+ax = plt.subplot(2, 2, 2)
+global_mesh.plot_slice(inject_global * rec_amp, ind=75, normal="Z", ax=ax, grid=False)
 ax.set_title("Recovered")
 ax.set_xlim(-100, 100)
 ax.set_ylim(-100, 100)
 ax.set_aspect("equal")
 
-ax = plt.subplot(3, 2, 4)
-global_mesh.plot_slice(inject_global * amp_, ind=64, normal="X", ax=ax, grid=False)
+ax = plt.subplot(2, 2, 4)
+global_mesh.plot_slice(inject_global * rec_amp, normal="Y", ax=ax, grid=True)
 ax.set_title("Recovered")
 ax.set_xlim(-100, 100)
 ax.set_ylim(-100, 100)
-
-ax = plt.subplot(3, 2, 5)
-ax.hist(synthetic_data - np.hstack(invProb.dpred), 100)
-ax.set_title("predicted - observed")
-plt.show()
+ax.set_aspect("equal")

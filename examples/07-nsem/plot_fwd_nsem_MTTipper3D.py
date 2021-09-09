@@ -22,10 +22,10 @@ except:
 
 def run(plotIt=True):
     """
-        MT: 3D: Forward
-        ===============
+    MT: 3D: Forward
+    ===============
 
-        Forward model 3D MT data.
+    Forward model 3D MT data.
 
     """
 

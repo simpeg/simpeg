@@ -50,9 +50,7 @@ class BaseSrcVRM(BaseSrc):
 
 class MagDipole(BaseSrcVRM):
 
-    """
-
-    """
+    """"""
 
     def __init__(self, receiver_list, location, moment, waveform, **kwargs):
 
@@ -156,9 +154,7 @@ class MagDipole(BaseSrcVRM):
 
 class CircLoop(BaseSrcVRM):
 
-    """
-
-    """
+    """"""
 
     def __init__(
         self, receiver_list, location, radius, orientation, Imax, waveform, **kwargs
@@ -338,13 +334,11 @@ class CircLoop(BaseSrcVRM):
 
 class LineCurrent(BaseSrcVRM):
 
-    """
-
-    """
+    """"""
 
     location = properties.Array("location of the source wire points", shape=("*", 3))
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.15.0"
+        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
     )
 
     def __init__(self, receiver_list, location, Imax, waveform, **kwargs):

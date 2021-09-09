@@ -25,9 +25,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 try:
-    from pymatsolver import Pardiso as Solver
+    from pymatsolver import Pardiso as solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+    from SimPEG import SolverLU as solver
 
 save_file = False
 
@@ -63,7 +63,7 @@ def create_tile_em_misfit(sources, obs, uncert, global_mesh, global_active, tile
     max_chunk_size = 256
     simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
         local_mesh, survey=local_survey, sigmaMap=mapping,
-        Solver=Solver,
+        solver=solver,
 #         chunk_format="row",
 #         max_chunk_size=max_chunk_size,
 #         workers=workers
@@ -206,7 +206,7 @@ def run():
     # cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 
     simulation_g = fdem.simulation.Simulation3DMagneticFluxDensity(
-        mesh, survey=survey, sigmaMap=model_map, Solver=Solver
+        mesh, survey=survey, sigmaMap=model_map, solver=solver
     )
 
     TreeMesh.writeUBC(mesh, "Mesh.msh", models={"True.con": model_map * model})
@@ -409,11 +409,11 @@ def run():
     plot_data(receiver_locations, global_data.dobs - np.hstack(invProb.dpred))
     plot_data(receiver_locations, (global_data.dobs - np.hstack(invProb.dpred))/survey.std)
 
-    for ii, local_misfit in enumerate(global_misfit.objfcts):
-        idx_start, idx_end = ii * 2 * ntx, (ii + 1) * 2 * ntx
-        obs, pre, std = survey.dobs[idx_start:idx_end], np.hstack(invProb.dpred)[idx_start:idx_end], survey.std[idx_start:idx_end]
-        print(np.sum((obs[::2] - pre[::2])**2. / std[::2]**2.))
-        print(np.sum((obs[1::2] - pre[1::2]) ** 2. / std[1::2] ** 2.))
+    # for ii, local_misfit in enumerate(global_misfit.objfcts):
+    #     idx_start, idx_end = ii * 2 * ntx, (ii + 1) * 2 * ntx
+    #     obs, pre, std = survey.dobs[idx_start:idx_end], np.hstack(invProb.dpred)[idx_start:idx_end], survey.std[idx_start:idx_end]
+    #     print(np.sum((obs[::2] - pre[::2])**2. / std[::2]**2.))
+    #     print(np.sum((obs[1::2] - pre[1::2]) ** 2. / std[1::2] ** 2.))
 
     # mesh.writeUBC('OctreeMesh-test.msh', models={'ubc.con': rho_est})
 

@@ -10,7 +10,7 @@ matplotlib.use("Agg")
 
 dirname, filename = os.path.split(os.path.abspath(__file__))
 example_dir = dirname.split(os.path.sep)[:-2] + ["examples"]
-dirs_to_test = ["07-nsem", "08-vrm", "09-flow", "20-published"]
+dirs_to_test = ["07-nsem", "08-vrm", "09-flow", "10-pgi", "20-published"]
 
 
 class ExampleTest(unittest.TestCase):

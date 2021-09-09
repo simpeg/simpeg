@@ -709,7 +709,7 @@ class Fields3DPrimarySecondary(Fields):
         return -1.0 / (1j * omega(src.freq)) * (C * du_dm_v)
 
     def _b_pyDeriv_u(self, src, du_dm_v, adjoint=False):
-        """ Derivative of b_py with wrt u
+        """Derivative of b_py with wrt u
 
         :param SimPEG.NSEM.src src: The source of the problem
         :param numpy.ndarray du_dm_v: vector to take product with. Size (nF,) when adjoint=True, (nU,) when adjoint=False
@@ -739,11 +739,11 @@ class Fields3DPrimarySecondary(Fields):
 ############
 # Deprecated
 ############
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Fields1D_ePrimSec(Fields1DPrimarySecondary):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Fields3D_ePrimSec(Fields3DPrimarySecondary):
     pass

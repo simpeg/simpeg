@@ -6,7 +6,7 @@ from discretize.utils import isScalar
 from scipy.constants import mu_0
 from ...utils.code_utils import deprecate_class
 
-from ...utils import mkvc, sdiag
+from ...utils import mkvc, sdiag, Zero
 from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
 from ..utils import omega
 from .survey import Data, Survey1D
@@ -60,7 +60,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             # Get the system
             A = self.getA(freq)
             # Factor
-            Ainv = self.Solver(A, **self.solver_opts)
+            Ainv = self.solver(A, **self.solver_opts)
 
             for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[
@@ -110,7 +110,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         for freq in self.survey.frequencies:
             AT = self.getA(freq).T
 
-            ATinv = self.Solver(AT, **self.solver_opts)
+            ATinv = self.solver(AT, **self.solver_opts)
 
             for src in self.survey.get_sources_by_frequency(freq):
                 # u_src needs to have both polarizations
@@ -157,7 +157,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         for freq in self.survey.frequencies:
             AT = self.getA(freq).T
 
-            ATinv = self.Solver(AT, **self.solverOpts)
+            ATinv = self.solver(AT, **self.solverOpts)
 
             for src in self.survey.get_sources_by_frequency(freq):
                 # u_src needs to have both polarizations
@@ -252,7 +252,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     @property
     def MeMui(self):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         if getattr(self, "_MeMui", None) is None:
             self._MeMui = self.mesh.getEdgeInnerProduct(1.0 / mu_0)
@@ -261,7 +261,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     @property
     def MfSigma(self):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         # if getattr(self, '_MfSigma', None) is None:
         self._MfSigma = self.mesh.getFaceInnerProduct(self.sigma)
@@ -269,7 +269,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
     def MfSigmaDeriv(self, u):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         # if getattr(self, '_MfSigmaDeriv', None) is None:
         # print('[info mfsigmad] !!!!!!!!!!! ', u[:, 0])
@@ -293,11 +293,11 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
     def getA(self, freq):
         """
-            Function to get the A matrix.
+        Function to get the A matrix.
 
-            :param float freq: Frequency
-            :rtype: scipy.sparse.csr_matrix
-            :return: A
+        :param float freq: Frequency
+        :rtype: scipy.sparse.csr_matrix
+        :return: A
         """
 
         # Note: need to use the code above since in the 1D problem I want
@@ -326,11 +326,11 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
     def getRHS(self, freq):
         """
-            Function to return the right hand side for the system.
+        Function to return the right hand side for the system.
 
-            :param float freq: Frequency
-            :rtype: numpy.ndarray
-            :return: RHS for 1 polarizations, primary fields (nF, 1)
+        :param float freq: Frequency
+        :rtype: numpy.ndarray
+        :return: RHS for 1 polarizations, primary fields (nF, 1)
         """
 
         # Get sources for the frequncy(polarizations)
@@ -370,7 +370,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solver_opts)
+            Ainv = self.solver(A, **self.solver_opts)
             e_s = Ainv * rhs
 
             # Store the fields
@@ -561,7 +561,7 @@ class Simulation1DMagneticFluxDensity(BaseFDEMSimulation):
         if getattr(self, "_MfSigmaDeriv", None) is None:
             self._MfSigmaDeriv = (
                 self.mesh.getFaceInnerProductDeriv(np.ones(self.mesh.nC))(
-                    np.ones(sef.mesh.nF)
+                    np.ones(self.mesh.nF)
                 )
             ) * self.sigmaDeriv
 
@@ -669,7 +669,6 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
     _sigmaPrimary = None
 
     # fieldsPair = Fields3DPrimarySecondary
-
     @property
     def sigmaPrimary(self):
         """
@@ -683,17 +682,118 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
         # Note: TODO add logic for val, make sure it is the correct size.
         self._sigmaPrimary = val
 
+    # def fields2(self, freq):
+    #     """
+    #     Function to calculate all the fields for the model m.
+    #
+    #     :param numpy.ndarray (nC,) m: Conductivity model
+    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+    #     :return: Fields object with of the solution
+    #
+    #     """
+    #     """
+    #     Function to calculate all the fields for the model m.
+    #
+    #     :param numpy.ndarray (nC,) m: Conductivity model
+    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+    #     :return: Fields object with of the solution
+    #
+    #     """
+    #     A = self.getA(freq)
+    #     rhs = self.getRHS(freq)
+    #     # Solve the system
+    #     Ainv = self.solver(A, **self.solver_opts)
+    #     e_s = Ainv * rhs
+    #
+    #     # Store the fields
+    #     # Src = self.survey.get_sources_by_frequency(freq)[0]
+    #     # Store the fields
+    #     # Use self._solutionType
+    #     # self.F[Src, 'e_pxSolution'] = e_s[:, 0]
+    #     # self.F[Src, 'e_pySolution'] = e_s[:, 1]
+    #         # Note curl e = -iwb so b = -curl/iw
+    #
+    #     Ainv.clean()
+    #     return e_s
+    #
+    # def fieldsMulti(self, freq):
+    #     """
+    #     Function to calculate all the fields for the model m.
+    #
+    #     :param numpy.ndarray (nC,) m: Conductivity model
+    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+    #     :return: Fields object with of the solution
+    #
+    #     """
+    #     """
+    #     Function to calculate all the fields for the model m.
+    #
+    #     :param numpy.ndarray (nC,) m: Conductivity model
+    #     :rtype: SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+    #     :return: Fields object with of the solution
+    #
+    #     """
+    #     A = self.getA(freq)
+    #     rhs = self.getRHS(freq)
+    #     # Solve the system
+    #     Ainv = self.solver(A, **self.solver_opts)
+    #     e_s = Ainv * rhs
+    #
+    #     # Store the fields
+    #     Src = self.survey.get_sources_by_frequency(freq)[0]
+    #     # Store the fields
+    #     # Use self._solutionType
+    #     self.F[Src, 'e_pxSolution'] = e_s[:, 0]
+    #     self.F[Src, 'e_pySolution'] = e_s[:, 1]
+    #         # Note curl e = -iwb so b = -curl/iw
+    #     Ainv.clean()
+    #
+    # def fieldsParallel(self, m=None):
+    #     parallel = 'dask'
+    #
+    #     if m is not None:
+    #         self.model = m
+    #
+    #     F = self.fieldsPair(self)
+    #
+    #     if parallel == 'dask':
+    #         output = []
+    #         f_ = dask.delayed(self.fields2, pure=True)
+    #         for freq in self.survey.frequencies:
+    #             output.append(da.from_delayed(f_(freq), (self.model.size, 2), dtype=float))
+    #
+    #         e_s = da.hstack(output).compute()
+    #         cnt = 0
+    #         for freq in self.survey.frequencies:
+    #             index = cnt * 2
+    #             # Store the fields
+    #             Src = self.survey.get_sources_by_frequency(freq)[0]
+    #             # Store the fields
+    #             # Use self._solutionType
+    #             F[Src, 'e_pxSolution'] = e_s[:, index]
+    #             F[Src, 'e_pySolution'] = e_s[:, index + 1]
+    #             cnt += 1
+    #
+    #     elif parallel == 'multipro':
+    #         self.F = F
+    #         pool = multiprocessing.Pool()
+    #         pool.map(self.fieldsMulti, self.survey.frequencies)
+    #         pool.close()
+    #         pool.join()
+    #
+    #     return F
+
 
 ############
 # Deprecated
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_ePrimSec(Simulation3DPrimarySecondary):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem1D_ePrimSec(Simulation1DPrimarySecondary):
     pass

@@ -21,8 +21,15 @@ class Simulation3DIntegral(BasePFSimulation):
         super().__init__(mesh, **kwargs)
         self._G = None
         self._gtg_diagonal = None
-        self.modelMap = self.rhoMap
         self.evaluate_integral = evaluate_integral
+
+    @property
+    def model_map(self):
+        return self.rhoMap
+
+    @model_map.setter
+    def model_map(self, value):
+        self.rhoMap = value
 
     def fields(self, m):
         self.model = m
@@ -38,12 +45,12 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def getJtJdiag(self, m, W=None):
         """
-            Return the diagonal of JtJ
+        Return the diagonal of JtJ
         """
         self.model = m
 
         if W is None:
-            W = np.ones(self.nD)
+            W = np.ones(self.survey.nD)
         else:
             W = W.diagonal() ** 2
         if getattr(self, "_gtg_diagonal", None) is None:
@@ -58,7 +65,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def getJ(self, m, f=None):
         """
-            Sensitivity matrix
+        Sensitivity matrix
         """
         return self.G.dot(self.rhoDeriv)
 
@@ -176,7 +183,6 @@ def evaluate_integral(Xn, Yn, Zn, min_hx, min_hy, min_hz, receiver_location, com
                             - dy[:, bb] * np.arctan(dxdz / dyr)
                         )
                     )
-
                 if "gz" in components:
                     rows["gz"] += (
                         (-1) ** aa
@@ -211,7 +217,6 @@ def evaluate_integral(Xn, Yn, Zn, min_hx, min_hy, min_hz, receiver_location, com
                             * (r + dx[:, aa] ** 2.0 / r)
                         )
                     )
-
                 if "gxy" in components:
                     rows["gxy"] -= (
                         (-1) ** aa
@@ -227,7 +232,6 @@ def evaluate_integral(Xn, Yn, Zn, min_hx, min_hy, min_hz, receiver_location, com
                             * (r - dy[:, bb] ** 2.0 / r)
                         )
                     )
-
                 if "gxz" in components:
                     rows["gxz"] -= (
                         (-1) ** aa
@@ -243,9 +247,7 @@ def evaluate_integral(Xn, Yn, Zn, min_hx, min_hy, min_hz, receiver_location, com
                             * (r - dz[:, cc] ** 2.0 / r)
                         )
                     )
-
                 arg = dx[:, aa] * dz[:, cc] / dyr
-
                 if (
                     ("gyy" in components)
                     or ("gzz" in components)
@@ -266,7 +268,6 @@ def evaluate_integral(Xn, Yn, Zn, min_hx, min_hy, min_hz, receiver_location, com
                             * (r + dy[:, bb] ** 2.0 / r)
                         )
                     )
-
                 if "gyz" in components:
                     rows["gyz"] -= (
                         (-1) ** aa
@@ -306,7 +307,7 @@ def evaluate_integral(Xn, Yn, Zn, min_hx, min_hy, min_hz, receiver_location, com
 
 class Simulation3DDifferential(BaseSimulation):
     """
-        Gravity in differential equations!
+    Gravity in differential equations!
     """
 
     _deprecate_main_map = "rhoMap"
@@ -336,10 +337,7 @@ class Simulation3DDifferential(BaseSimulation):
         self._MfI = utils.sdiag(1.0 / self._Mfi.diagonal())
 
     def getRHS(self, m):
-        """
-
-
-        """
+        """"""
 
         Mc = utils.sdiag(self.mesh.cell_volumes)
 
@@ -363,15 +361,15 @@ class Simulation3DDifferential(BaseSimulation):
 
     def fields(self, m):
         """
-            Return magnetic potential (u) and flux (B)
-            u: defined on the cell nodes [nC x 1]
-            gField: defined on the cell faces [nF x 1]
+        Return magnetic potential (u) and flux (B)
+        u: defined on the cell nodes [nC x 1]
+        gField: defined on the cell faces [nF x 1]
 
-            After we compute u, then we update B.
+        After we compute u, then we update B.
 
-            .. math ::
+        .. math ::
 
-                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
+            \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
         from scipy.constants import G as NewtG
@@ -393,11 +391,11 @@ class Simulation3DDifferential(BaseSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class GravityIntegral(Simulation3DIntegral):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_Diff(Simulation3DDifferential):
     pass

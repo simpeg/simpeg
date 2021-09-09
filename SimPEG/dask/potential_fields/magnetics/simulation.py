@@ -31,10 +31,7 @@ Sim.fields = dask_fields
 
 
 def linear_operator(self):
-    self.nC = self.modelMap.shape[0]
-
-    hx, hy, hz = self.mesh.h[0].min(), self.mesh.h[1].min(), self.mesh.h[2].min()
-
+    self.nC = self.model_map.shape[0]
     n_data_comp = len(self.survey.components)
     components = np.array(list(self.survey.components.keys()))
     active_components = np.hstack(
@@ -117,7 +114,7 @@ Sim.linear_operator = linear_operator
 
 def dask_getJtJdiag(self, m, W=None):
     """
-        Return the diagonal of JtJ
+    Return the diagonal of JtJ
     """
 
     self.model = m

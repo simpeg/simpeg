@@ -375,7 +375,7 @@ class SparseDeriv(BaseSparse):
     @property
     def length_scales(self):
         """
-            Normalized cell based weighting
+        Normalized cell based weighting
 
         """
         Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))

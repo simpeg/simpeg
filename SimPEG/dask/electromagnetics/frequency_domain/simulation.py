@@ -21,9 +21,9 @@ def fields(self, m=None, return_Ainv=False):
         rhs = self.getRHS(freq)
 
         if return_Ainv:
-            Ainv += [self.Solver(A.T, **self.solver_opts)]
+            Ainv += [self.solver(A.T, **self.solver_opts)]
 
-        Ainv_solve = self.Solver(A, **self.solver_opts)
+        Ainv_solve = self.solver(A, **self.solver_opts)
         u = Ainv_solve * rhs
         Srcs = self.survey.get_sources_by_frequency(freq)
         f[Srcs, self._solutionType] = u
