@@ -537,44 +537,44 @@ class SimplePGI(SimpleComboRegularization):
                 **kwargs
             )
         ]
-        objfcts += [
-            SimpleSmoothDeriv(
-                mesh=mesh, orientation="x", mapping=maps * wire[1], **kwargs
-            )
-            for wire, maps in zip(self._wiresmap.maps, self._maplist)
-        ]
-        objfcts += [
-            SmoothDeriv2(mesh=mesh, orientation="x", mapping=maps * wire[1], **kwargs)
-            for wire, maps in zip(self._wiresmap.maps, self._maplist)
-        ]
-
-        if mesh.dim > 1:
-            objfcts += [
-                SimpleSmoothDeriv(
-                    mesh=mesh, orientation="y", mapping=maps * wire[1], **kwargs
-                )
-                for wire, maps in zip(self._wiresmap.maps, self._maplist)
-            ]
-            objfcts += [
-                SmoothDeriv2(
-                    mesh=mesh, orientation="y", mapping=maps * wire[1], **kwargs
-                )
-                for wire, maps in zip(self._wiresmap.maps, self._maplist)
-            ]
-
-        if mesh.dim > 2:
-            objfcts += [
-                SimpleSmoothDeriv(
-                    mesh=mesh, orientation="z", mapping=maps * wire[1], **kwargs
-                )
-                for wire, maps in zip(self._wiresmap.maps, self._maplist)
-            ]
-            objfcts += [
-                SmoothDeriv2(
-                    mesh=mesh, orientation="z", mapping=maps * wire[1], **kwargs
-                )
-                for wire, maps in zip(self._wiresmap.maps, self._maplist)
-            ]
+        # objfcts += [
+        #     SimpleSmoothDeriv(
+        #         mesh=mesh, orientation="x", mapping=maps * wire[1], **kwargs
+        #     )
+        #     for wire, maps in zip(self._wiresmap.maps, self._maplist)
+        # ]
+        # objfcts += [
+        #     SmoothDeriv2(mesh=mesh, orientation="x", mapping=maps * wire[1], **kwargs)
+        #     for wire, maps in zip(self._wiresmap.maps, self._maplist)
+        # ]
+        #
+        # if mesh.dim > 1:
+        #     objfcts += [
+        #         SimpleSmoothDeriv(
+        #             mesh=mesh, orientation="y", mapping=maps * wire[1], **kwargs
+        #         )
+        #         for wire, maps in zip(self._wiresmap.maps, self._maplist)
+        #     ]
+        #     objfcts += [
+        #         SmoothDeriv2(
+        #             mesh=mesh, orientation="y", mapping=maps * wire[1], **kwargs
+        #         )
+        #         for wire, maps in zip(self._wiresmap.maps, self._maplist)
+        #     ]
+        #
+        # if mesh.dim > 2:
+        #     objfcts += [
+        #         SimpleSmoothDeriv(
+        #             mesh=mesh, orientation="z", mapping=maps * wire[1], **kwargs
+        #         )
+        #         for wire, maps in zip(self._wiresmap.maps, self._maplist)
+        #     ]
+        #     objfcts += [
+        #         SmoothDeriv2(
+        #             mesh=mesh, orientation="z", mapping=maps * wire[1], **kwargs
+        #         )
+        #         for wire, maps in zip(self._wiresmap.maps, self._maplist)
+        #     ]
 
         super(SimplePGI, self).__init__(
             mesh=mesh,
@@ -719,6 +719,14 @@ class PGIsmallness(SimplePGIsmallness):
         """
         if self.cell_weights is not None:
             if len(self.cell_weights) == self.wiresmap.nP:
+                return sdiag(np.sqrt(self.cell_weights))
+            else:
+                return sp.kron(
+                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.cell_weights))
+                )
+
+        if self.cell_weights is not None:
+            if len(self.cell_weights) == self.wiresmap.nP:
                 return (
                     sp.kron(
                         speye(len(self.wiresmap.maps)),
@@ -797,42 +805,45 @@ class PGI(SimpleComboRegularization):
                 **kwargs
             )
         ]
-        objfcts += [
-            SmoothDeriv(mesh=mesh, orientation="x", mapping=maps * wire[1], **kwargs)
-            for wire, maps in zip(self._wiresmap.maps, self._maplist)
-        ]
-        objfcts += [
-            SmoothDeriv2(mesh=mesh, orientation="x", mapping=maps * wire[1], **kwargs)
-            for wire, maps in zip(self._wiresmap.maps, self._maplist)
-        ]
-
-        if mesh.dim > 1:
-            objfcts += [
-                SmoothDeriv(
-                    mesh=mesh, orientation="y", mapping=maps * wire[1], **kwargs
-                )
-                for wire, maps in zip(self._wiresmap.maps, self._maplist)
-            ]
-            objfcts += [
-                SmoothDeriv2(
-                    mesh=mesh, orientation="y", mapping=maps * wire[1], **kwargs
-                )
-                for wire, maps in zip(self._wiresmap.maps, self._maplist)
-            ]
-
-        if mesh.dim > 2:
-            objfcts += [
-                SmoothDeriv(
-                    mesh=mesh, orientation="z", mapping=maps * wire[1], **kwargs
-                )
-                for wire, maps in zip(self._wiresmap.maps, self._maplist)
-            ]
-            objfcts += [
-                SmoothDeriv2(
-                    mesh=mesh, orientation="z", mapping=maps * wire[1], **kwargs
-                )
-                for wire, maps in zip(self._wiresmap.maps, self._maplist)
-            ]
+        # objfcts += [
+        #     SmoothDeriv(mesh=mesh, orientation="x", mapping=maps * wire[1], **kwargs)
+        #     for wire, maps in zip(self._wiresmap.maps, self._maplist)
+        # ]
+        # objfcts += [
+        #     SmoothDeriv2(mesh=mesh, orientation="x", mapping=maps * wire[1], **kwargs)
+        #     for wire, maps in zip(self._wiresmap.maps, self._maplist)
+        # ]
+        #
+        # for key in kwargs.keys():
+        #     print("kwargs key: ", key)
+        #
+        # if mesh.dim > 1:
+        #     objfcts += [
+        #         SmoothDeriv(
+        #             mesh=mesh, orientation="y", mapping=maps * wire[1], **kwargs
+        #         )
+        #         for wire, maps in zip(self._wiresmap.maps, self._maplist)
+        #     ]
+        #     objfcts += [
+        #         SmoothDeriv2(
+        #             mesh=mesh, orientation="y", mapping=maps * wire[1], **kwargs
+        #         )
+        #         for wire, maps in zip(self._wiresmap.maps, self._maplist)
+        #     ]
+        #
+        # if mesh.dim > 2:
+        #     objfcts += [
+        #         SmoothDeriv(
+        #             mesh=mesh, orientation="z", mapping=maps * wire[1], **kwargs
+        #         )
+        #         for wire, maps in zip(self._wiresmap.maps, self._maplist)
+        #     ]
+        #     objfcts += [
+        #         SmoothDeriv2(
+        #             mesh=mesh, orientation="z", mapping=maps * wire[1], **kwargs
+        #         )
+        #         for wire, maps in zip(self._wiresmap.maps, self._maplist)
+        #     ]
 
         super(PGI, self).__init__(
             mesh=mesh,

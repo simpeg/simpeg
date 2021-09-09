@@ -783,7 +783,7 @@ class TestPGI(unittest.TestCase):
         )
         clfref.fit(s)
 
-        reg = regularization.SimplePGI(
+        reg = make_SimplePGI_regularization(
             mesh=mesh,
             gmmref=clfref,
             wiresmap=wires,

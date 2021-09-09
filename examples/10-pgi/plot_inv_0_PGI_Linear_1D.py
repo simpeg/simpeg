@@ -108,8 +108,26 @@ clf.fit(mtrue.reshape(-1, 1))
 # Initial model, same as for Tikhonov
 minit = m0
 
+# wires to each physical property, optional when only one
+wires = maps.Wires(("m", m0.shape[0]))
+
 # Petrophyically constrained regularization
-reg = regularization.PGI(gmmref=clf, gmm=clf, mesh=mesh, mref=m0, alpha_s=1.0)
+reg = utils.make_PGI_regularization(
+    gmmref=clf,
+    mesh=mesh,
+    wiresmap=wires,
+    maplist=[maps.IdentityMap(nP=mesh.nC)],
+    mref=m0,
+    indActive=np.ones(mesh.nC,dtype=bool),
+    alpha_s=1.0,
+    alpha_x=1.0,
+    alpha_y=0.0,
+    alpha_z=0.0,
+    alpha_xx=0.0,
+    alpha_yy=0.0,
+    alpha_zz=0.0,
+    cell_weights_list=[np.ones(mesh.nC)],  # weights each phys. prop. by correct sensW
+)
 
 # Optimization
 opt = optimization.ProjectedGNCG(maxIter=10, maxIterCG=50, tolCG=1e-4)
@@ -157,7 +175,7 @@ axes[1].legend(["Mtrue Hist.", "L2 Model Hist.", "PGI Model Hist."])
 axes[2].plot(mesh.cell_centers_x, mtrue, color="black", linewidth=3)
 axes[2].plot(mesh.cell_centers_x, mnormal, color="blue")
 axes[2].plot(mesh.cell_centers_x, mcluster, "r-")
-axes[2].plot(mesh.cell_centers_x, invProb.reg.mref, "r--")
+axes[2].plot(mesh.cell_centers_x, invProb.reg.objfcts[0].mref, "r--")
 
 axes[2].legend(("True Model", "L2 Model", "PGI Model", "Learned Mref"))
 axes[2].set_ylim([-2, 2])

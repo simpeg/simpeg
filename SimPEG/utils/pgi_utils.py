@@ -22,7 +22,7 @@ from sklearn.mixture._gaussian_mixture import (
 from sklearn.mixture._base import _check_X, check_random_state, ConvergenceWarning
 import warnings
 from .mat_utils import mkvc
-from ..maps import IdentityMap, Wires
+from ..maps import IdentityMap, Wires, Identity
 from ..regularization import (
     SimplePGI,
     Simple,
@@ -110,7 +110,8 @@ def make_SimplePGI_regularization(
         mplst = maplist
 
     if cell_weights_list is None:
-        clwhtlst = [Identity() for maps in wrmp.maps]
+        clwhtlst = [np.ones(maps[1].shape[0]) for maps in wrmp.maps]
+        print(clwhtlst[0].shape)
     else:
         clwhtlst = cell_weights_list
 
@@ -229,7 +230,7 @@ def make_PGI_regularization(
     if wiresmap is None:
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
-            wrmp = Wires(("m", indActive.sum()))
+            wrmp = Wires(("m", int(indActive.sum())))
         else:
             wrmp = Wires(("m", mesh.nC))
     else:
@@ -241,7 +242,7 @@ def make_PGI_regularization(
         mplst = maplist
 
     if cell_weights_list is None:
-        clwhtlst = [Identity() for maps in wrmp.maps]
+        clwhtlst = [np.ones(maps[1].shape[0]) for maps in wrmp.maps]
     else:
         clwhtlst = cell_weights_list
 
@@ -368,7 +369,7 @@ def make_SimplePGIwithRelationships_regularization(
         mplst = maplist
 
     if cell_weights_list is None:
-        clwhtlst = [Identity() for maps in wrmp.maps]
+        clwhtlst = [np.ones(maps[1].shape[0]) for maps in wrmp.maps]
     else:
         clwhtlst = cell_weights_list
 
