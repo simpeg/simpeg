@@ -116,7 +116,7 @@ Sim.G = dask_G
 
 
 def linear_operator(self):
-    self.nC = self.modelMap.shape[0]
+    self.nC = self.model_map.shape[0]
 
     hx, hy, hz = self.mesh.h[0].min(), self.mesh.h[1].min(), self.mesh.h[2].min()
 
