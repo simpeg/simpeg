@@ -22,7 +22,7 @@ class RegularizationMesh(props.BaseSimPEG):
     a SimPEG Mesh.
 
     :param discretize.base.BaseMesh mesh: problem mesh
-    :param numpy.ndarray indActive: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
+    :param numpy.ndarray active_cells: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
 
     """
 
@@ -32,9 +32,9 @@ class RegularizationMesh(props.BaseSimPEG):
         self.mesh = mesh
         utils.setKwargs(self, **kwargs)
 
-    indActive = properties.Array("active indices in mesh", dtype=[bool, int])
+    active_cells = properties.Array("active indices in mesh", dtype=[bool, int])
 
-    @properties.validator("indActive")
+    @properties.validator("active_cells")
     def _cast_to_bool(self, change):
         value = change["value"]
         if value is not None:
@@ -64,8 +64,8 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: int
         :return: number of cells being regularized
         """
-        if self.indActive is not None:
-            return int(self.indActive.sum())
+        if self.active_cells is not None:
+            return int(self.active_cells.sum())
         return self.mesh.nC
 
     @property
@@ -84,101 +84,101 @@ class RegularizationMesh(props.BaseSimPEG):
     def Pac(self):
         """
         projection matrix that takes from the reduced space of active cells to
-        full modelling space (ie. nC x nindActive)
+        full modelling space (ie. nC x nactive_cells)
 
         :rtype: scipy.sparse.csr_matrix
         :return: active cell projection matrix
         """
         if getattr(self, "_Pac", None) is None:
-            if self.indActive is None:
+            if self.active_cells is None:
                 self._Pac = utils.speye(self.mesh.nC)
             else:
-                self._Pac = utils.speye(self.mesh.nC)[:, self.indActive]
+                self._Pac = utils.speye(self.mesh.nC)[:, self.active_cells]
         return self._Pac
 
     @property
     def Pafx(self):
         """
         projection matrix that takes from the reduced space of active x-faces
-        to full modelling space (ie. nFx x nindActive_Fx )
+        to full modelling space (ie. nFx x nactive_cells_Fx )
 
         :rtype: scipy.sparse.csr_matrix
         :return: active face-x projection matrix
         """
         if getattr(self, "_Pafx", None) is None:
-            if self.indActive is None:
+            if self.active_cells is None:
                 self._Pafx = utils.speye(self.mesh.nFx)
             else:
                 # if getattr(self.mesh, 'aveCC2Fx', None) is not None:
                 if self.mesh._meshType == "TREE":
                     if self.regularization_type == "Tikhonov":
-                        indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) >= 1
-                        self._Pafx = utils.speye(self.mesh.nFx)[:, indActive_Fx]
+                        active_cells_Fx = (self.mesh.aveFx2CC.T * self.active_cells) >= 1
+                        self._Pafx = utils.speye(self.mesh.nFx)[:, active_cells_Fx]
                     else:
-                        indActive_Fx = (
-                            self.mesh._aveCC2FxStencil() * self.indActive
+                        active_cells_Fx = (
+                            self.mesh._aveCC2FxStencil() * self.active_cells
                         ) >= 1
-                        self._Pafx = utils.speye(self.mesh.ntFx)[:, indActive_Fx]
+                        self._Pafx = utils.speye(self.mesh.ntFx)[:, active_cells_Fx]
                 else:
-                    indActive_Fx = self.mesh.aveFx2CC.T * self.indActive >= 1
+                    active_cells_Fx = self.mesh.aveFx2CC.T * self.active_cells >= 1
 
-                    self._Pafx = utils.speye(self.mesh.nFx)[:, indActive_Fx]
+                    self._Pafx = utils.speye(self.mesh.nFx)[:, active_cells_Fx]
         return self._Pafx
 
     @property
     def Pafy(self):
         """
         projection matrix that takes from the reduced space of active y-faces
-        to full modelling space (ie. nFy x nindActive_Fy )
+        to full modelling space (ie. nFy x nactive_cells_Fy )
 
         :rtype: scipy.sparse.csr_matrix
         :return: active face-y projection matrix
         """
         if getattr(self, "_Pafy", None) is None:
-            if self.indActive is None:
+            if self.active_cells is None:
                 self._Pafy = utils.speye(self.mesh.nFy)
             else:
                 # if getattr(self.mesh, 'aveCC2Fy', None) is not None:
                 if self.mesh._meshType == "TREE":
                     if self.regularization_type == "Tikhonov":
-                        indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) >= 1
-                        self._Pafy = utils.speye(self.mesh.nFy)[:, indActive_Fy]
+                        active_cells_Fy = (self.mesh.aveFy2CC.T * self.active_cells) >= 1
+                        self._Pafy = utils.speye(self.mesh.nFy)[:, active_cells_Fy]
                     else:
-                        indActive_Fy = (
-                            self.mesh._aveCC2FyStencil() * self.indActive
+                        active_cells_Fy = (
+                            self.mesh._aveCC2FyStencil() * self.active_cells
                         ) >= 1
-                        self._Pafy = utils.speye(self.mesh.ntFy)[:, indActive_Fy]
+                        self._Pafy = utils.speye(self.mesh.ntFy)[:, active_cells_Fy]
                 else:
-                    indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) >= 1
-                    self._Pafy = utils.speye(self.mesh.nFy)[:, indActive_Fy]
+                    active_cells_Fy = (self.mesh.aveFy2CC.T * self.active_cells) >= 1
+                    self._Pafy = utils.speye(self.mesh.nFy)[:, active_cells_Fy]
         return self._Pafy
 
     @property
     def Pafz(self):
         """
         projection matrix that takes from the reduced space of active z-faces
-        to full modelling space (ie. nFz x nindActive_Fz )
+        to full modelling space (ie. nFz x nactive_cells_Fz )
 
         :rtype: scipy.sparse.csr_matrix
         :return: active face-z projection matrix
         """
         if getattr(self, "_Pafz", None) is None:
-            if self.indActive is None:
+            if self.active_cells is None:
                 self._Pafz = utils.speye(self.mesh.nFz)
             else:
                 # if getattr(self.mesh, 'aveCC2Fz', None) is not None:
                 if self.mesh._meshType == "TREE":
                     if self.regularization_type == "Tikhonov":
-                        indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) >= 1
-                        self._Pafz = utils.speye(self.mesh.nFz)[:, indActive_Fz]
+                        active_cells_Fz = (self.mesh.aveFz2CC.T * self.active_cells) >= 1
+                        self._Pafz = utils.speye(self.mesh.nFz)[:, active_cells_Fz]
                     else:
-                        indActive_Fz = (
-                            self.mesh._aveCC2FzStencil() * self.indActive
+                        active_cells_Fz = (
+                            self.mesh._aveCC2FzStencil() * self.active_cells
                         ) >= 1
-                        self._Pafz = utils.speye(self.mesh.ntFz)[:, indActive_Fz]
+                        self._Pafz = utils.speye(self.mesh.ntFz)[:, active_cells_Fz]
                 else:
-                    indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) >= 1
-                    self._Pafz = utils.speye(self.mesh.nFz)[:, indActive_Fz]
+                    active_cells_Fz = (self.mesh.aveFz2CC.T * self.active_cells) >= 1
+                    self._Pafz = utils.speye(self.mesh.nFz)[:, active_cells_Fz]
         return self._Pafz
 
     @property
