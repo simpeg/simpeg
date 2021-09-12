@@ -1388,11 +1388,7 @@ class Update_IRLS(InversionDirective):
 
                 # If comboObj, go down one more level
                 for comp in reg.objfcts:
-                    comp.stashedR = None
-
-            for dmis in self.dmisfit.objfcts:
-                if getattr(dmis, "stashedR", None) is not None:
-                    dmis.stashedR = None
+                    comp.free_weights = None
 
             # Compute new model objective function value
             f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
