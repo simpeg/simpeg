@@ -1280,9 +1280,10 @@ class Update_IRLS(InversionDirective):
 
             self.norms = []
             for reg in self.reg.objfcts:
-                self.norms.append(reg.norms)
-                reg.norms = np.c_[2.0, 2.0, 2.0, 2.0]
-                reg.model = self.invProb.model
+                if hasattr(reg, "norms"):
+                    self.norms.append(reg.norms)
+                    reg.norms = np.c_[2.0, 2.0, 2.0, 2.0]
+                    reg.model = self.invProb.model
 
         # Update the model used by the regularization
         for reg in self.reg.objfcts:
@@ -1334,8 +1335,8 @@ class Update_IRLS(InversionDirective):
                 if multipier > 0:
                     phim_new += np.sum(
                         comp.f_m ** 2.0
-                        / (comp.f_m ** 2.0 + comp.epsilon ** 2.0)
-                        ** (1 - comp.norm / 2.0)
+                        # / (comp.f_m ** 2.0 + comp.epsilon ** 2.0)
+                        # ** (1 - comp.norm / 2.0)
                     )
 
         # Update the model used by the regularization

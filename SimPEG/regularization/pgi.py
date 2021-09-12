@@ -18,7 +18,6 @@ from ..maps import IdentityMap, Wires
 from .. import props
 from .base import (
     BaseRegularization,
-    SimpleComboRegularization,
     BaseComboRegularization,
 )
 from .tikhonov import *
@@ -91,20 +90,20 @@ class SimplePGIsmallness(BaseRegularization):
         else:
             return Identity()
 
-    @properties.validator("cell_weights")
-    def _validate_cell_weights(self, change):
-        if change["value"] is not None:
-            if self._nC_residual != "*":
-                if (len(change["value"]) != self._nC_residual) and (
-                    len(change["value"]) != len(self.wiresmap.maps) * self._nC_residual
-                ):
-                    raise Exception(
-                        "cell_weights must be length {} or {} not {}".format(
-                            self._nC_residual,
-                            len(self.wiresmap.maps) * self._nC_residual,
-                            len(change["value"]),
-                        )
-                    )
+    # @properties.validator("cell_weights")
+    # def _validate_cell_weights(self, change):
+    #     if change["value"] is not None:
+    #         if self._nC_residual != "*":
+    #             if (len(change["value"]) != self._nC_residual) and (
+    #                 len(change["value"]) != len(self.wiresmap.maps) * self._nC_residual
+    #             ):
+    #                 raise Exception(
+    #                     "cell_weights must be length {} or {} not {}".format(
+    #                         self._nC_residual,
+    #                         len(self.wiresmap.maps) * self._nC_residual,
+    #                         len(change["value"]),
+    #                     )
+    #                 )
 
     def membership(self, m):
         modellist = self.wiresmap * m
@@ -392,7 +391,7 @@ class SimplePGIsmallness(BaseRegularization):
             return (mD.T * mD) * (self.W * (Hr))
 
 
-class SimplePGI(SimpleComboRegularization):
+class SimplePGI(BaseComboRegularization):
     """
     class similar to regularization.tikhonov.Simple, with a SimplePGIsmallness.
     PARAMETERS
@@ -627,7 +626,7 @@ class PGIsmallness(SimplePGIsmallness):
             )
 
 
-class PGI(SimpleComboRegularization):
+class PGI(BaseComboRegularization):
     """
     class similar to regularization.tikhonov.Simple, with a SimplePGIsmallness.
     PARAMETERS
@@ -858,20 +857,20 @@ class SimplePGIwithNonlinearRelationshipsSmallness(BaseRegularization):
         else:
             return Identity()
 
-    @properties.validator("cell_weights")
-    def _validate_cell_weights(self, change):
-        if change["value"] is not None:
-            if self._nC_residual != "*":
-                if (len(change["value"]) != self._nC_residual) and (
-                    len(change["value"]) != len(self.wiresmap.maps) * self._nC_residual
-                ):
-                    raise Exception(
-                        "cell_weights must be length {} or {} not {}".format(
-                            self._nC_residual,
-                            len(self.wiresmap.maps) * self._nC_residual,
-                            len(change["value"]),
-                        )
-                    )
+    # @properties.validator("cell_weights")
+    # def _validate_cell_weights(self, change):
+    #     if change["value"] is not None:
+    #         if self._nC_residual != "*":
+    #             if (len(change["value"]) != self._nC_residual) and (
+    #                 len(change["value"]) != len(self.wiresmap.maps) * self._nC_residual
+    #             ):
+    #                 raise Exception(
+    #                     "cell_weights must be length {} or {} not {}".format(
+    #                         self._nC_residual,
+    #                         len(self.wiresmap.maps) * self._nC_residual,
+    #                         len(change["value"]),
+    #                     )
+    #                 )
 
     def membership(self, m):
         modellist = self.wiresmap * m
@@ -1089,7 +1088,7 @@ class SimplePGIwithNonlinearRelationshipsSmallness(BaseRegularization):
             return (mDW.T * mDW) * Hr
 
 
-class SimplePGIwithRelationships(SimpleComboRegularization):
+class SimplePGIwithRelationships(BaseComboRegularization):
     """
     class similar to regularization.tikhonov.Simple, with a
     SimplePGIwithNonlinearRelationshipsSmallness.

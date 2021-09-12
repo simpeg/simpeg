@@ -426,6 +426,8 @@ class Sparse(BaseComboRegularization):
     before updating.
     """
 
+    _normalized_gradients: bool = True
+
     def __init__(
         self, mesh, alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, **kwargs
     ):

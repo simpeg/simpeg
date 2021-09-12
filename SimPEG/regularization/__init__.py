@@ -1,4 +1,4 @@
-from .base import BaseRegularization, BaseComboRegularization
+from .base import BaseRegularization, L2Regularization, BaseComboRegularization, Small, SmoothDeriv, SmoothDeriv2
 from .regularization_mesh import RegularizationMesh
 from .tikhonov import (
     SimpleSmall,
