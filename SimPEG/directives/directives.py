@@ -1370,6 +1370,9 @@ class SaveIterationsGeoH5(InversionDirective):
 
         for fun in self.transforms:
             if isinstance(fun, (maps.IdentityMap, np.ndarray, float)):
+                if isinstance(fun, np.ndarray):
+                    if len(fun.ravel()) == len(prop.ravel()):
+                        fun = fun.reshape(prop.shape)
                 prop = fun * prop
             else:
                 prop = fun(prop)
