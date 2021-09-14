@@ -1,25 +1,31 @@
 from .....electromagnetics.static.induced_polarization.simulation import (
     BaseIPSimulation as Sim,
 )
-
+from .....utils import Zero, mkvc
+from .....data import Data
+from ....utils import compute_chunk_sizes
+import dask
 import dask.array as da
+from dask.distributed import Future
+import numpy as np
+import zarr
+import os
+import shutil
+import numcodecs
 
+numcodecs.blosc.use_threads = False
 
-def dask_getJtJdiag(self, m, W=None):
-    """
-    Return the diagonal of JtJ
-    """
-    if self.gtgdiag is None:
+Sim.sensitivity_path = './sensitivity/'
 
-        # Need to check if multiplying weights makes sense
-        if W is None:
-            W = self._scale
-        else:
-            W = self._scale * W.diagonal()
-        w = da.from_array(W)[:, None]
-        self.gtgdiag = da.sum((w * self.getJ(m)) ** 2, axis=0).compute()
+from ..resistivity.simulation import (
+    dask_fields, dask_getJtJdiag, dask_Jvec, dask_Jtvec,
+    compute_J, dask_dpred, dask_getSourceTerm,
+)
 
-    return self.gtgdiag
-
-
+Sim.fields = dask_fields
 Sim.getJtJdiag = dask_getJtJdiag
+Sim.Jvec = dask_Jvec
+Sim.Jtvec = dask_Jtvec
+Sim.compute_J = compute_J
+Sim.dpred = dask_dpred
+Sim.getSourceTerm = dask_getSourceTerm

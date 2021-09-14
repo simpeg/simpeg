@@ -184,7 +184,7 @@ class BaseDCSimulation(BaseEMSimulation):
                 if v is not None:
                     Jtv += (df_dmT + du_dmT).astype(float)
                 else:
-                    iend = istrt + rx.nD
+                    iend = istrt + rx.nDve
                     if rx.nD == 1:
                         Jtv[:, istrt] = df_dmT + du_dmT
                     else:
