@@ -105,28 +105,13 @@ clf = utils.WeightedGaussianMixture(
 )
 clf.fit(mtrue.reshape(-1, 1))
 
-# Initial model, same as for Tikhonov
-minit = m0
-
-# wires to each physical property, optional when only one
-wires = maps.Wires(("m", m0.shape[0]))
-
 # Petrophyically constrained regularization
 reg = utils.make_PGI_regularization(
     gmmref=clf,
     mesh=mesh,
-    wiresmap=wires,
-    maplist=[maps.IdentityMap(nP=mesh.nC)],
     mref=m0,
-    indActive=np.ones(mesh.nC,dtype=bool),
     alpha_s=1.0,
     alpha_x=1.0,
-    alpha_y=0.0,
-    alpha_z=0.0,
-    alpha_xx=0.0,
-    alpha_yy=0.0,
-    alpha_zz=0.0,
-    cell_weights_list=[np.ones(mesh.nC)],  # weights each phys. prop. by correct sensW
 )
 
 # Optimization
@@ -156,8 +141,8 @@ inv = inversion.BaseInversion(
     invProb, directiveList=[Alphas, beta, petrodir, targets, addmref, betaIt]
 )
 
-
-mcluster = inv.run(minit)
+# Initial model same as for Tikhonov
+mcluster = inv.run(m0)
 
 # Final Plot
 fig, axes = plt.subplots(1, 3, figsize=(12 * 1.2, 4 * 1.2))
