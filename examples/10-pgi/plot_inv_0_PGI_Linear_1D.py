@@ -109,7 +109,6 @@ clf.fit(mtrue.reshape(-1, 1))
 reg = utils.make_PGI_regularization(
     gmmref=clf,
     mesh=mesh,
-    mref=m0,
     alpha_s=1.0,
     alpha_x=1.0,
 )
