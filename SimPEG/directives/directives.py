@@ -1565,8 +1565,8 @@ class VectorInversion(InversionDirective):
             # Add directives
             directiveList = []
             sens_w = UpdateSensitivityWeights()
-            irls = Update_IRLS(),
-            jacobi = UpdatePreconditioner(),
+            irls = Update_IRLS()
+            jacobi = UpdatePreconditioner()
             for directive in self.inversion.directiveList.dList:
                 if isinstance(directive, SaveIterationsGeoH5):
                     for comp in directive.components:
