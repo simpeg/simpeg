@@ -1555,8 +1555,9 @@ class VectorInversion(InversionDirective):
                     if ind > 0:
                         reg_fun.alpha_s = 0
                         reg_fun.eps_q = np.pi
-                        for reg in reg_fun.objfcts:
-                            reg.space = "spherical"
+                        reg_fun.space = "spherical"
+                        # for reg in reg_fun.objfcts:
+                        #     reg.space =
 
             for simulation in self.simulations:
                 simulation.model_map = maps.SphericalSystem() * simulation.model_map

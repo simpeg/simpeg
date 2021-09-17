@@ -197,8 +197,11 @@ class SparseDeriv(BaseSparse):
 
             W = utils.sdiag((Ave * weights ** 0.5)) * R
 
-            theta = self.cellDiffStencil * (self.mapping * f_m)
-            dmdx = utils.mat_utils.coterminal(theta)
+            cell_diff = getattr(
+                self.regmesh, "cellDiff{}Stencil".format(self.orientation)
+            )
+            theta = cell_diff * (self.mapping * f_m)
+            dmdx = self.length_scales * utils.mat_utils.coterminal(theta)
             r = W * dmdx
 
         else:
@@ -283,8 +286,11 @@ class SparseDeriv(BaseSparse):
                 weights *= self.cell_weights
 
             W = utils.sdiag((Ave * weights) ** 0.5) * R
-            theta = self.cellDiffStencil * (self.mapping * model)
-            dmdx = utils.mat_utils.coterminal(theta)
+            cell_diff = getattr(
+                self.regmesh, "cellDiff{}Stencil".format(self.orientation)
+            )
+            theta = cell_diff * (self.mapping * model)
+            dmdx = self.length_scales * utils.mat_utils.coterminal(theta)
             r = W * dmdx
 
         else:
@@ -308,8 +314,12 @@ class SparseDeriv(BaseSparse):
             f_m = self.model
 
         if self.space == "spherical":
-            theta = self.cellDiffStencil * (self.mapping * f_m)
-            dmdx = utils.mat_utils.coterminal(theta)
+
+            cell_diff = getattr(
+                self.regmesh, "cellDiff{}Stencil".format(self.orientation)
+            )
+            theta = cell_diff * (self.mapping * f_m)
+            dmdx = self.length_scales * utils.mat_utils.coterminal(theta)
 
         else:
 
