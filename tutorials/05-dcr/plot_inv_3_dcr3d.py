@@ -276,7 +276,7 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 #
 
 dc_simulation = dc.simulation.Simulation3DNodal(
-    mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
+    mesh, survey=dc_survey, sigmaMap=conductivity_map, solver=Solver
 )
 
 #################################################################
@@ -312,8 +312,8 @@ dc_regularization = regularization.Simple(
 dc_regularization.mrefInSmooth = True  # Include reference model in smoothness
 
 # Define how the optimization problem is solved.
-dc_optimization = optimization.InexactGaussNewton(
-    maxIter=15, maxIterLS=20, maxIterCG=30, tolCG=1e-2
+dc_optimization = optimization.ProjectedGNCG(
+    maxIter=15, maxIterLS=20, maxIterCG=30, tolCG=1e-4
 )
 
 # Here we define the inverse problem that is to be solved
