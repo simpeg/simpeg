@@ -378,9 +378,9 @@ class Minimize(object):
 
         self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
         # self.printIter()
-
+        self.doStartIteration()
         while True:
-            self.doStartIteration()
+
 
             self.printIter()
             if self.stoppingCriteria():

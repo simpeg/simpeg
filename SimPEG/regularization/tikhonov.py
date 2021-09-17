@@ -53,12 +53,12 @@ class SimpleSmall(BaseRegularization):
         """
         Weighting matrix
         """
+
+        weights = self.regmesh.vol.copy()
         if self.cell_weights is not None:
-            return utils.sdiag(np.sqrt(self.cell_weights))
-        elif self._nC_residual != "*":
-            return sp.eye(self._nC_residual)
-        else:
-            return utils.Identity()
+            weights *= self.cell_weights
+
+        return utils.sdiag(np.sqrt(weights))
 
 
 class SimpleSmoothDeriv(BaseRegularization):
@@ -121,7 +121,7 @@ class SimpleSmoothDeriv(BaseRegularization):
             "cellDiff{orientation}Stencil".format(orientation=self.orientation),
         )
 
-        weights = self.regmesh.vol
+        weights = self.regmesh.vol.copy()
         if self.cell_weights is not None:
             weights *= self.cell_weights
 
