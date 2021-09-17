@@ -45,6 +45,7 @@ setup(
         "geoana>=0.0.4",
         "empymod",
         "pandas",
+        "geoh5py"
     ],
     author="Rowan Cockett",
     author_email="rowanc1@gmail.com",
