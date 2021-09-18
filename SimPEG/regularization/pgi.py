@@ -114,11 +114,12 @@ class SimplePGIsmallness(BaseRegularization):
         return self.gmm.predict(model)  # mkvc(m, numDims=2))
 
     def compute_quasi_geology_model(self):
-        #used once mref is built
+        # used once mref is built
         mreflist = self.wiresmap * self.mref
         mrefarray = np.c_[[a * b for a, b in zip(self.maplist, mreflist)]].T
-        return np.c_[[((mrefarray - mean)**2).sum(axis=1) for mean in self.gmm.means_]].argmin(axis=0)
-
+        return np.c_[
+            [((mrefarray - mean) ** 2).sum(axis=1) for mean in self.gmm.means_]
+        ].argmin(axis=0)
 
     @timeIt
     def __call__(self, m, externalW=True):
@@ -943,11 +944,12 @@ class SimplePGIwithNonlinearRelationshipsSmallness(BaseRegularization):
         return self.gmm.predict(model)
 
     def compute_quasi_geology_model(self):
-        #used once mref is built
+        # used once mref is built
         mreflist = self.wiresmap * self.mref
         mrefarray = np.c_[[a * b for a, b in zip(self.maplist, mreflist)]].T
-        return np.c_[[((mrefarray - mean)**2).sum(axis=1) for mean in self.gmm.means_]].argmin(axis=0)
-
+        return np.c_[
+            [((mrefarray - mean) ** 2).sum(axis=1) for mean in self.gmm.means_]
+        ].argmin(axis=0)
 
     @timeIt
     def __call__(self, m, externalW=True):

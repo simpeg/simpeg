@@ -28,17 +28,23 @@ class TestPGI(unittest.TestCase):
         sigma[1] += np.eye(self.ndim) - 0.25 * np.eye(self.ndim).transpose((1, 0))
         self.sigma = sigma
         self.means = (
-            np.abs(np.random.randn(self.n_components, self.ndim)) * np.c_[
-                [-100,100],
-                [100,1],
-                [-100,-100]
-            ].T)
-        self.rv_list = [multivariate_normal(mean, sigma) for i,(mean, sigma) in enumerate(zip(self.means,self.sigma))]
-        proportions = np.round(np.abs(np.random.rand(self.n_components)),decimals=1)
+            np.abs(np.random.randn(self.n_components, self.ndim))
+            * np.c_[[-100, 100], [100, 1], [-100, -100]].T
+        )
+        self.rv_list = [
+            multivariate_normal(mean, sigma)
+            for i, (mean, sigma) in enumerate(zip(self.means, self.sigma))
+        ]
+        proportions = np.round(np.abs(np.random.rand(self.n_components)), decimals=1)
         proportions = np.abs(np.random.rand(self.n_components))
-        self.proportions = proportions/proportions.sum()
+        self.proportions = proportions / proportions.sum()
         nsample = 1000
-        self.samples = np.concatenate([rv.rvs(int(nsample * prp)) for i,(rv,prp) in enumerate(zip(self.rv_list,self.proportions))])
+        self.samples = np.concatenate(
+            [
+                rv.rvs(int(nsample * prp))
+                for i, (rv, prp) in enumerate(zip(self.rv_list, self.proportions))
+            ]
+        )
         self.nsample = self.samples.shape[0]
         self.model = mkvc(self.samples)
         self.mesh = discretize.TensorMesh(

@@ -231,12 +231,18 @@ magmap = actvMap * wires.sus
 idenMap = maps.IdentityMap(nP=nactv)
 # Grav problem
 simulation_grav = pf.gravity.simulation.Simulation3DIntegral(
-    survey=data_grav.survey, mesh=mesh, rhoMap=wires.den, actInd=actv,
+    survey=data_grav.survey,
+    mesh=mesh,
+    rhoMap=wires.den,
+    actInd=actv,
 )
 dmis_grav = data_misfit.L2DataMisfit(data=data_grav, simulation=simulation_grav)
 # Mag problem
 simulation_mag = pf.magnetics.simulation.Simulation3DIntegral(
-    survey=data_mag.survey, mesh=mesh, chiMap=wires.sus, actInd=actv,
+    survey=data_mag.survey,
+    mesh=mesh,
+    chiMap=wires.sus,
+    actInd=actv,
 )
 dmis_mag = data_misfit.L2DataMisfit(data=data_mag, simulation=simulation_mag)
 
@@ -314,11 +320,11 @@ gmmref.compute_clusters_precisions()
 gmmref.weights_ = np.r_[0.9, 0.075, 0.025]
 
 # Plot the 2D GMM
-ax = gmmref.plot_pdf(flag2d=True,plotting_precision=250)
+ax = gmmref.plot_pdf(flag2d=True, plotting_precision=250)
 ax[0].set_xlabel("Density contrast [g/cc]")
-ax[0].set_ylim([0,5])
+ax[0].set_ylim([0, 5])
 ax[2].set_ylabel("magnetic Susceptibility [SI]")
-ax[2].set_xlim([0,100])
+ax[2].set_xlim([0, 100])
 plt.show()
 
 #########################################################################
@@ -364,14 +370,21 @@ Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbos
 # initialize beta and beta/alpha_s schedule
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-4)
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True, coolingFactor=2.0, tolerance=0.2, progress=0.2,
+    verbose=True,
+    coolingFactor=2.0,
+    tolerance=0.2,
+    progress=0.2,
 )
 # geophy. and petro. target misfits
 targets = directives.MultiTargetMisfits(
-    verbose=True, chiSmall=0.5,  # ask for twice as much clustering (target value is /2)
+    verbose=True,
+    chiSmall=0.5,  # ask for twice as much clustering (target value is /2)
 )
 # add learned mref in smooth once stable
-MrefInSmooth = directives.PGI_AddMrefInSmooth(wait_till_stable=True, verbose=True,)
+MrefInSmooth = directives.PGI_AddMrefInSmooth(
+    wait_till_stable=True,
+    verbose=True,
+)
 # update the parameters in smallness (L2-approx of PGI)
 update_smallness = directives.PGI_UpdateParameters(
     update_gmm=True,  # update the GMM each iteration
@@ -634,11 +647,11 @@ fig = plt.figure(figsize=(10, 10))
 ax0 = plt.subplot2grid((4, 4), (3, 1), colspan=3)
 ax1 = plt.subplot2grid((4, 4), (0, 1), colspan=3, rowspan=3)
 ax2 = plt.subplot2grid((4, 4), (0, 0), rowspan=3)
-ax = [ax0,ax1,ax2]
-learned_gmm.plot_pdf(flag2d=True, ax =ax, padding=1, plotting_precision=100)
+ax = [ax0, ax1, ax2]
+learned_gmm.plot_pdf(flag2d=True, ax=ax, padding=1, plotting_precision=100)
 ax[0].set_xlabel("Density contrast [g/cc]")
-ax[0].set_ylim([0,5])
-ax[2].set_xlim([0,50])
+ax[0].set_ylim([0, 5])
+ax[2].set_xlim([0, 50])
 ax[2].set_ylabel("magnetic Susceptibility [SI]")
 ax[1].scatter(
     density_model_no_info[actv],
