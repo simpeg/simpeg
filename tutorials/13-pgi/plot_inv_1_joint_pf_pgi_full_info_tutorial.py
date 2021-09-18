@@ -618,6 +618,7 @@ ax[1].scatter(
     label="recovered PGI model",
     alpha=0.5,
 )
+ax[1].legend()
 ax[0].hist(density_model[actv], density=True, bins=50)
 ax[2].hist(magsus_model[actv], density=True, bins=50, orientation="horizontal")
 plt.show()
