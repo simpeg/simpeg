@@ -952,18 +952,18 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                 phi_s += reg.objfcts[0](self.invProb.model) * reg.alpha_s
                 phi_x += reg.objfcts[1](self.invProb.model) * reg.alpha_x
 
-                if reg.regmesh.dim == 2:
+                if reg.regularization_mesh.dim == 2:
                     phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
-                elif reg.regmesh.dim == 3:
+                elif reg.regularization_mesh.dim == 3:
                     phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
                     phi_z += reg.objfcts[3](self.invProb.model) * reg.alpha_z
         elif getattr(self.reg.objfcts[0], "objfcts", None) is None:
             phi_s += self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
             phi_x += self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
 
-            if self.reg.regmesh.dim == 2:
+            if self.reg.regularization_mesh.dim == 2:
                 phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
-            elif self.reg.regmesh.dim == 3:
+            elif self.reg.regularization_mesh.dim == 3:
                 phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
                 phi_z += self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
 
@@ -1188,7 +1188,10 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
 
 class Update_IRLS(InversionDirective):
-
+    """
+    Directive for the iterative update of the IRLS weights used by the Sparse
+    regularization function.
+    """
     f_old = 0
     f_min_change = 1e-2
     beta_tol = 1e-1
@@ -1334,9 +1337,7 @@ class Update_IRLS(InversionDirective):
             for comp, multipier in zip(reg.objfcts, reg.multipliers):
                 if multipier > 0:
                     phim_new += np.sum(
-                        comp.f_m ** 2.0
-                        # / (comp.f_m ** 2.0 + comp.epsilon ** 2.0)
-                        # ** (1 - comp.norm / 2.0)
+                        comp.f_m(self.invProb.model) ** 2.0
                     )
 
         # Update the model used by the regularization
@@ -1347,7 +1348,7 @@ class Update_IRLS(InversionDirective):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([self.invProb.phi_d < self.start, self.mode == 1]):
-            self.startIRLS()
+            self.start_irls()
 
         # Only update after GN iterations
         if np.all(
@@ -1371,23 +1372,18 @@ class Update_IRLS(InversionDirective):
             # Print to screen
             for reg in self.reg.objfcts:
 
-                if reg.eps_p > self.floorEps_p and self.coolEps_p:
-                    reg.eps_p /= self.coolEpsFact
-                    # print('Eps_p: ' + str(reg.eps_p))
-                if reg.eps_q > self.floorEps_q and self.coolEps_q:
-                    reg.eps_q /= self.coolEpsFact
-                    # print('Eps_q: ' + str(reg.eps_q))
+                fct = reg.objfcts[0]
+                if fct.irls_threshold > self.floorEps_p and self.coolEps_p:
+                    fct.irls_threshold = fct.irls_threshold / self.coolEpsFact
 
-            # Remember the value of the norm from previous R matrices
-            # self.f_old = self.reg(self.invProb.model)
+                for fct in reg.objfcts[1:]:
+                    if fct.irls_threshold > self.floorEps_q and self.coolEps_q:
+                        fct.irls_threshold = fct.irls_threshold / self.coolEpsFact
 
             self.irls_iteration += 1
 
-            # Reset the regularization matrices so that it is
-            # recalculated for current model. Do it to all levels of comboObj
+            # Reset the IRLS weights
             for reg in self.reg.objfcts:
-
-                # If comboObj, go down one more level
                 for comp in reg.objfcts:
                     comp.free_weights = None
 
@@ -1412,7 +1408,7 @@ class Update_IRLS(InversionDirective):
             self.update_beta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
-    def startIRLS(self):
+    def start_irls(self):
         if not self.silent:
             print(
                 "Reached starting chifact with l2-norm regularization:"
@@ -1431,18 +1427,9 @@ class Update_IRLS(InversionDirective):
         # Either use the supplied epsilon, or fix base on distribution of
         # model values
         for reg in self.reg.objfcts:
-
-            if getattr(reg, "eps_p", None) is None:
-
-                reg.eps_p = np.percentile(
-                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
-                )
-
-            if getattr(reg, "eps_q", None) is None:
-
-                reg.eps_q = np.percentile(
-                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
-                )
+            reg.irls_threshold = np.percentile(
+                np.abs(reg.objfcts[0].f_m(self.invProb.model)), self.prctile
+            )
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
@@ -1450,11 +1437,6 @@ class Update_IRLS(InversionDirective):
 
         # Save l2-model
         self.invProb.l2model = self.invProb.model.copy()
-
-        # Print to screen
-        for reg in self.reg.objfcts:
-            if not self.silent:
-                print("eps_p: " + str(reg.eps_p) + " eps_q: " + str(reg.eps_q))
 
     def angleScale(self):
         """
@@ -1464,7 +1446,7 @@ class Update_IRLS(InversionDirective):
         # Currently implemented for MVI-S only
         max_p = []
         for reg in self.reg.objfcts[0].objfcts:
-            eps_p = reg.epsilon
+            eps_p = reg.irls_threshold
             f_m = abs(reg.f_m)
             max_p += [np.max(f_m)]
 
@@ -1473,7 +1455,7 @@ class Update_IRLS(InversionDirective):
         max_s = [np.pi, np.pi]
 
         for obj, var in zip(self.reg.objfcts[1:3], max_s):
-            obj.scales = np.ones(obj.scales.shape) * max_p / var
+            obj.free_multipliers = np.ones(obj.free_multipliers.shape) * max_p / var
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else

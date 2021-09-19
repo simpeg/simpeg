@@ -131,13 +131,9 @@ class BaseSimulation(props.HasModel):
     sensitivity_path = properties.String(
         "path to store the sensitivty", default="./sensitivity/"
     )
+    solver = DefaultSolver
 
     # TODO: need to implement a serializer for this & setter
-    solver = Class(
-        "Linear algebra solver (e.g. from pymatsolver)",
-        # default=pymatsolver.Solver
-    )
-
     solver_opts = properties.Dictionary("solver options as a kwarg dict", default={})
 
     def _reset(self, name=None):
@@ -200,6 +196,15 @@ class BaseSimulation(props.HasModel):
                 getattr(self, mat).clean()  # clean factors
                 setattr(self, mat, None)  # set to none
 
+    @property
+    def solver(self):
+        return self._solver
+
+    @solver.setter
+    def solver(self, value):
+        # TODO need to add checks on value
+        self._solver = value
+
     Solver = deprecate_property(
         solver,
         "Solver",
@@ -232,9 +237,6 @@ class BaseSimulation(props.HasModel):
             kwargs["mesh"] = mesh
 
         super(BaseSimulation, self).__init__(**kwargs)
-
-        if "solver" not in kwargs.keys() and "Solver" not in kwargs.keys():
-            self.solver = DefaultSolver
 
     ###########################################################################
     # Methods
@@ -519,7 +521,6 @@ class LinearSimulation(BaseSimulation):
     :math:`m` is the model.
     Inherit this class to build a linear simulation.
     """
-
     linear_model, model_map, model_deriv = props.Invertible(
         "The model for a linear problem"
     )
@@ -529,7 +530,7 @@ class LinearSimulation(BaseSimulation):
     survey = properties.Instance("a survey object", BaseSurvey)
 
     def __init__(self, mesh=None, **kwargs):
-        super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
+        super().__init__(mesh=mesh, **kwargs)
 
         if self.survey is None:
             # Give it an empty survey

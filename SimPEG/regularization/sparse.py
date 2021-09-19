@@ -1,9 +1,8 @@
-import numpy as np
-import scipy.sparse as sp
-import warnings
-import properties
+from __future__ import annotations
 
-from .base import BaseRegularization, BaseComboRegularization
+import numpy as np
+
+from .base import BaseRegularization, BaseComboRegularization, Small, SmoothDeriv
 from .. import utils
 
 
@@ -11,49 +10,62 @@ class BaseSparse(BaseRegularization):
     """
     Base class for building up the components of the Sparse Regularization
     """
+    _irls_scaled = True
+    _irls_threshold = 1e-8
+    _norm = 2.
 
     def __init__(self, mesh, **kwargs):
-        self._stashedR = None
-        super(BaseSparse, self).__init__(mesh=mesh, **kwargs)
-
-    model = properties.Array("current model", dtype=float)
-
-    epsilon = properties.Float(
-        "Threshold value for the model norm", default=1e-3, required=True
-    )
-
-    norm = properties.Array("norm used", dtype=float)
-
-    space = properties.String("By default inherit the objctive", default="linear")
-
-    gradientType = properties.String("type of gradient", default="components")
-
-    scale = properties.Array("General nob for scaling", dtype=float,)
-
-    # Give the option to scale or not
-    scaledIRLS = properties.Bool("Scale the gradients of the IRLS norms", default=True)
-
-    @properties.validator("scale")
-    def _validate_scale(self, change):
-        if change["value"] is not None:
-            # todo: residual size? we need to know the expected end shape
-            if self._nC_residual != "*":
-                assert (
-                    len(change["value"]) == self._nC_residual
-                ), "scale must be length {} not {}".format(
-                    self._nC_residual, len(change["value"])
-                )
+        super().__init__(mesh=mesh, **kwargs)
 
     @property
-    def stashedR(self):
-        return self._stashedR
+    def irls_scaled(self) -> bool:
+        """
+        Scale irls weights.
+        """
+        return self._irls_scaled
 
-    @stashedR.setter
-    def stashedR(self, value):
-        self._stashedR = value
+    @irls_scaled.setter
+    def irls_scaled(self, value: bool):
+        if not isinstance(value, bool):
+            raise TypeError(
+                "'irls_scaled must be of type 'bool'. "
+                f"Value of type {type(value)} provided."
+            )
+        self._irls_scaled = value
+
+    @property
+    def irls_threshold(self):
+        """
+        Constant added to the denominator of the IRLS weights for stability.
+        """
+        if self._irls_threshold is None:
+            raise AttributeError("'irls_threhsold' must be set on the regularization.")
+        return self._irls_threshold
+
+    @irls_threshold.setter
+    def irls_threshold(self, value):
+        if value <= 0:
+            raise ValueError("Value of 'irls_threshold' should be larger than 0.")
+
+        self._irls_threshold = value
+
+    @property
+    def norm(self):
+        """
+        Value of the norm
+        """
+        return self._norm
+
+    @norm.setter
+    def norm(self, value):
+        if (value < 0) or (value > 2):
+            raise ValueError(
+                "Value provided for 'norm' should be in the interval [0, 2]"
+            )
+        self._norm = value
 
 
-class SparseSmall(BaseSparse):
+class SparseSmall(BaseSparse, Small):
     """
     Sparse smallness regularization
 
@@ -65,339 +77,161 @@ class SparseSmall(BaseSparse):
     _multiplier_pair = "alpha_s"
 
     def __init__(self, mesh, **kwargs):
-        super(SparseSmall, self).__init__(mesh=mesh, **kwargs)
-
-    # Give the option to scale or not
-    scaledIRLS = properties.Bool("Scale the gradients of the IRLS norms", default=True)
-
-    @property
-    def f_m(self):
-
-        return self.mapping * self._delta_m(self.model)
+        super().__init__(mesh=mesh, **kwargs)
 
     @property
     def W(self):
-        if getattr(self, "model", None) is None:
-            R = utils.speye(self.mapping.shape[0])
-        else:
-            r = self.R(self.f_m)
-            R = utils.sdiag(r)
-
-        if self.scale is None:
-            self.scale = np.ones(self.mapping.shape[0])
+        """
+        Weighting matrix
+        """
+        weights = self.free_multiplier * self.regularization_mesh.vol
 
         if self.cell_weights is not None:
-            return utils.sdiag((self.scale * self.cell_weights) ** 0.5) * R
+            weights *= self.cell_weights
 
-        else:
-            return utils.sdiag((self.scale * self.regmesh.vol) ** 0.5) * R
+        if self.free_weights is not None:
+            weights *= self.free_weights
 
-    def R(self, f_m):
-        # if R is stashed, return that instead
-        if getattr(self, "stashedR") is not None:
-            return self.stashedR
+        weights *= self.free_weights
+        return utils.sdiag(weights ** 0.5)
 
-        # Default
+    @property
+    def free_weights(self):
+        if getattr(self, "_free_weights", None) is None:
+            if self.model is None or self.norm == 2:
+                self._free_weights = np.ones(self.mapping.shape[0])
+            else:
+                self.irls_weights(self.model)
+        return self._free_weights
+
+    @free_weights.setter
+    def free_weights(self, value):
+        self._free_weights = value
+
+    def irls_weights(self, m):
+        """
+        Compute and store the irls weights.
+        """
+        f_m = self.f_m(m)
         eta = np.ones_like(f_m)
 
-        if self.scaledIRLS:
-            # Eta scaling is important for mix-norms...do not mess with it
+        if self.irls_scaled:
             # Scale on l2-norm gradient: f_m.max()
             maxVal = np.ones_like(f_m) * np.abs(f_m).max()
 
             # Compute theoritical maximum gradients for p < 1
-            maxVal[self.norm < 1] = self.epsilon / np.sqrt(
+            maxVal[self.norm < 1] = self.irls_threshold / np.sqrt(
                 1.0 - self.norm[self.norm < 1]
             )
-            maxGrad = maxVal / (maxVal ** 2.0 + self.epsilon ** 2.0) ** (
-                1.0 - self.norm / 2.0
+            maxGrad = maxVal / (maxVal ** 2.0 + self.irls_threshold ** 2.0) ** (
+                    1.0 - self.norm / 2.0
             )
-            # Scaling factor
             eta[maxGrad != 0] = np.abs(f_m).max() / maxGrad[maxGrad != 0]
 
         # Scaled IRLS weights
-        r = (eta / (f_m ** 2.0 + self.epsilon ** 2.0) ** (1.0 - self.norm / 2.0)) ** 0.5
-
-        self.stashedR = r  # stash on the first calculation
-        return r
-
-    @utils.timeIt
-    def deriv(self, m):
-        """
-
-        The regularization is:
-
-        .. math::
-
-            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
-                   W(m-m_\\text{ref})}
-
-        So the derivative is straight forward:
-
-        .. math::
-
-            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
-
-        """
-
-        mD = self.mapping.deriv(self._delta_m(m))
-        r = self.W * (self.mapping * (self._delta_m(m)))
-        return mD.T * (self.W.T * r)
+        r = (eta / (f_m ** 2.0 + self.irls_threshold ** 2.0) ** (1.0 - self.norm / 2.0)) ** 0.5
+        self.free_weights = r  # stash on the first calculation
 
 
-class SparseDeriv(BaseSparse):
+class SparseDeriv(BaseSparse, SmoothDeriv):
     """
     Base Class for sparse regularization on first spatial derivatives
     """
+    _gradient_type = "total"
 
     def __init__(self, mesh, orientation="x", **kwargs):
         self.orientation = orientation
-        super(SparseDeriv, self).__init__(mesh=mesh, **kwargs)
+        super().__init__(mesh=mesh, **kwargs)
 
-    mrefInSmooth = properties.Bool(
-        "include mref in the smoothness calculation?", default=False
-    )
-
-    # Give the option to scale or not
-    scaledIRLS = properties.Bool("Scale the gradients of the IRLS norms", default=True)
-
-    @utils.timeIt
-    def __call__(self, m):
+    @property
+    def W(self):
         """
-        We use a weighted 2-norm objective function
-
-        .. math::
-
-            r(m) = \\frac{1}{2}
+        Weighting matrix that takes the volumes, free weights, fixed weights and
+        length scales of the difference operator (normalized optional).
         """
-        if self.mrefInSmooth:
+        average_cell_face = getattr(self.regularization_mesh, "aveCC2F{}".format(self.orientation))
+        weights = self.free_multiplier * self.regularization_mesh.vol
 
-            f_m = self._delta_m(m)
+        if self.cell_weights is not None:
+            weights *= self.cell_weights
 
-        else:
-            f_m = m
-        if self.scale is None:
-            self.scale = np.ones(self.mapping.shape[0])
+        return utils.sdiag(
+            self.length_scales *
+            ((average_cell_face * weights) * self.free_weights) ** 0.5
+        )
 
-        if self.space == "spherical":
-            Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
-
-            if getattr(self, "model", None) is None:
-                R = utils.speye(self.cellDiffStencil.shape[0])
-
+    @property
+    def free_weights(self):
+        if getattr(self, "_free_weights", None) is None:
+            if self.model is None or self.norm == 2:
+                self._free_weights = np.ones_like(self.length_scales)
             else:
-                r = self.R(self.f_m)
-                R = utils.sdiag(r)
+                self.irls_weights(self.model)
+        return self._free_weights
 
-            if self.cell_weights is not None:
-                W = utils.sdiag((Ave * (self.scale * self.cell_weights)) ** 0.5) * R
+    @free_weights.setter
+    def free_weights(self, value):
+        self._free_weights = value
 
+    def irls_weights(self, m):
+        """
+        Compute and store the irls weights.
+        """
+        if self.gradient_type == "total":
+            if self.reference_model_in_smooth:
+                delta_m = self.mapping * self._delta_m(m)
             else:
-                W = utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5) * R
+                delta_m = self.mapping * m
 
-            theta = self.cellDiffStencil * (self.mapping * f_m)
-            dmdx = utils.mat_utils.coterminal(theta)
-            r = W * dmdx
+            f_m = np.zeros_like(delta_m)
+            for ii, comp in enumerate("xyz"):
+                if self.regularization_mesh.dim > ii:
+                    dm_dl = getattr(self.regularization_mesh, f"cellDiff{comp}Stencil") * delta_m
 
+                    if self.model_units == "radian":
+                        dm_dl = utils.mat_utils.coterminal(dm_dl)
+
+                    f_m += np.abs(
+                        getattr(self.regularization_mesh, f"aveF{comp}2CC") *
+                        dm_dl
+                    )
+            f_m = getattr(self.regmesh, f"aveCC2F{self.orientation}") * f_m
         else:
-            r = self.W * (self.mapping * f_m)
+            f_m = self.f_m(m)
 
-        return 0.5 * r.dot(r)
-
-    def R(self, f_m):
-        # if R is stashed, return that instead
-        if getattr(self, "stashedR") is not None:
-            return self.stashedR
-
-        # Default
         eta = np.ones_like(f_m)
-
-        if self.scaledIRLS:
-            # Eta scaling is important for mix-norms...do not mess with it
+        if self.irls_scaled:
             # Scale on l2-norm gradient: f_m.max()
             maxVal = np.ones_like(f_m) * np.abs(f_m).max()
 
             # Compute theoritical maximum gradients for p < 1
-            maxVal[self.norm < 1] = self.epsilon / np.sqrt(
+            maxVal[self.norm < 1] = self.irls_threshold / np.sqrt(
                 1.0 - self.norm[self.norm < 1]
             )
-            maxGrad = maxVal / (
-                maxVal ** 2.0 + (self.epsilon * self.length_scales) ** 2.0
-            ) ** (1.0 - self.norm / 2.0)
-
-            # Scaling Factor
+            maxGrad = maxVal / (maxVal ** 2.0 + self.irls_threshold ** 2.0) ** (
+                    1.0 - self.norm / 2.0
+            )
             eta[maxGrad != 0] = np.abs(f_m).max() / maxGrad[maxGrad != 0]
 
-        # Scaled-IRLS weights
-        r = (
-            eta
-            / (f_m ** 2.0 + (self.epsilon * self.length_scales) ** 2.0)
-            ** (1.0 - self.norm / 2.0)
-        ) ** 0.5
-        self.stashedR = r  # stash on the first calculation
-        return r
+        # Scaled IRLS weights
+        r = (eta / (f_m ** 2.0 + self.irls_threshold ** 2.0) ** (1.0 - self.norm / 2.0)) ** 0.5
+        self.free_weights = r  # stash on the first calculation
 
-    @utils.timeIt
-    def deriv(self, m):
+    @property
+    def gradient_type(self) -> str:
         """
-
-        The regularization is:
-
-        .. math::
-
-            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
-                   W(m-m_\\text{ref})}
-
-        So the derivative is straight forward:
-
-        .. math::
-
-            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
-
+        Choice of gradient measure used in the irls weights
         """
+        return self._gradient_type
 
-        if self.mrefInSmooth:
-
-            model = self._delta_m(m)
-
-        else:
-            model = m
-        if self.scale is None:
-            self.scale = np.ones(self.mapping.shape[0])
-
-        if self.space == "spherical":
-            Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
-
-            if getattr(self, "model", None) is None:
-                R = utils.speye(self.cellDiffStencil.shape[0])
-
-            else:
-                r = self.R(self.f_m)
-                R = utils.sdiag(r)
-
-            if self.cell_weights is not None:
-                W = utils.sdiag(((Ave * (self.scale * self.cell_weights))) ** 0.5) * R
-
-            else:
-                W = utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5) * R
-
-            theta = self.cellDiffStencil * (self.mapping * model)
-            dmdx = utils.mat_utils.coterminal(theta)
-
-            r = W * dmdx
-
-        else:
-            r = self.W * (self.mapping * model)
-
-        mD = self.mapping.deriv(model)
-        return mD.T * (self.W.T * r)
-
-    @property
-    def _multiplier_pair(self):
-        return "alpha_{orientation}".format(orientation=self.orientation)
-
-    @property
-    def f_m(self):
-
-        if self.mrefInSmooth:
-
-            f_m = self._delta_m(self.model)
-
-        else:
-            f_m = self.model
-
-        if self.space == "spherical":
-            theta = self.cellDiffStencil * (self.mapping * f_m)
-            dmdx = utils.mat_utils.coterminal(theta)
-
-        else:
-
-            if self.gradientType == "total":
-                Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
-
-                dmdx = np.abs(
-                    self.regmesh.aveFx2CC
-                    * self.regmesh.cellDiffxStencil
-                    * (self.mapping * f_m)
-                )
-
-                if self.regmesh.dim > 1:
-
-                    dmdx += np.abs(
-                        self.regmesh.aveFy2CC
-                        * self.regmesh.cellDiffyStencil
-                        * (self.mapping * f_m)
-                    )
-
-                if self.regmesh.dim > 2:
-
-                    dmdx += np.abs(
-                        self.regmesh.aveFz2CC
-                        * self.regmesh.cellDiffzStencil
-                        * (self.mapping * f_m)
-                    )
-
-                dmdx = Ave * dmdx
-
-            else:
-                dmdx = self.cellDiffStencil * (self.mapping * f_m)
-
-        return dmdx
-
-    @property
-    def cellDiffStencil(self):
-        return utils.sdiag(self.length_scales) * getattr(
-            self.regmesh, "cellDiff{}Stencil".format(self.orientation)
-        )
-
-    @property
-    def W(self):
-
-        Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
-
-        if getattr(self, "model", None) is None:
-            R = utils.speye(self.cellDiffStencil.shape[0])
-
-        else:
-            r = self.R(self.f_m)
-            R = utils.sdiag(r)
-        if self.scale is None:
-            self.scale = np.ones(self.mapping.shape[0])
-        if self.cell_weights is not None:
-            return (
-                utils.sdiag((Ave * (self.scale * self.cell_weights)) ** 0.5)
-                * R
-                * self.cellDiffStencil
+    @gradient_type.setter
+    def gradient_type(self, value: str):
+        if value not in ["total", "components"]:
+            raise TypeError(
+                "Value for 'gradient_type' must be 'total' or 'components'. "
+                f"Value {value} provided."
             )
-        else:
-            return (
-                utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5)
-                * R
-                * self.cellDiffStencil
-            )
-
-    @property
-    def length_scales(self):
-        """
-        Normalized cell based weighting
-
-        """
-        Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
-
-        if getattr(self, "_length_scales", None) is None:
-            index = "xyz".index(self.orientation)
-
-            length_scales = Ave * (
-                self.regmesh.Pac.T * self.regmesh.mesh.h_gridded[:, index]
-            )
-
-            self._length_scales = length_scales.min() / length_scales
-
-        return self._length_scales
-
-    @length_scales.setter
-    def length_scales(self, value):
-        self._length_scales = value
+        self._gradient_type = value
 
 
 class Sparse(BaseComboRegularization):
@@ -425,25 +259,27 @@ class Sparse(BaseComboRegularization):
     It is strongly recommended to do a few Gauss-Newton iterations
     before updating.
     """
-
-    _normalized_gradients: bool = True
+    _irls_scaled = True
+    _irls_threshold = 1e-8
+    _gradient_type = "total"
+    _norms = [2, 2, 2, 2]
 
     def __init__(
         self, mesh, alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, **kwargs
     ):
 
         objfcts = [
-            SparseSmall(mesh=mesh, **kwargs),
-            SparseDeriv(mesh=mesh, orientation="x", **kwargs),
+            SparseSmall(mesh=mesh),
+            SparseDeriv(mesh=mesh, orientation="x"),
         ]
 
         if mesh.dim > 1:
-            objfcts.append(SparseDeriv(mesh=mesh, orientation="y", **kwargs))
+            objfcts.append(SparseDeriv(mesh=mesh, orientation="y"))
 
         if mesh.dim > 2:
-            objfcts.append(SparseDeriv(mesh=mesh, orientation="z", **kwargs))
+            objfcts.append(SparseDeriv(mesh=mesh, orientation="z"))
 
-        super(Sparse, self).__init__(
+        super().__init__(
             mesh=mesh,
             objfcts=objfcts,
             alpha_s=alpha_s,
@@ -453,106 +289,92 @@ class Sparse(BaseComboRegularization):
             **kwargs
         )
 
-        # Utils.setKwargs(self, **kwargs)
+    @property
+    def gradient_type(self) -> str:
+        """
+        Choice of gradient measure used in the irls weights
+        """
+        return self._gradient_type
 
-    # Properties
-    norms = properties.Array(
-        "Norms used to create the sparse regularization",
-        default=np.c_[2.0, 2.0, 2.0, 2.0],
-        shape={("*", "*")},
-    )
-
-    eps_p = properties.Float("Threshold value for the model norm", required=True)
-
-    eps_q = properties.Float(
-        "Threshold value for the model gradient norm", required=True
-    )
-
-    model = properties.Array("current model", dtype=float)
-
-    space = properties.String("type of model", default="linear")
-
-    gradientType = properties.String("type of gradient", default="components")
-
-    scales = properties.Array(
-        "General nob for scaling", default=np.c_[1.0, 1.0, 1.0, 1.0], shape={("*", "*")}
-    )
-    # Give the option to scale or not
-    scaledIRLS = properties.Bool("Scale the gradients of the IRLS norms", default=True)
-    # Save the l2 result during the IRLS
-    l2model = None
-
-    @properties.validator("norms")
-    def _validate_norms(self, change):
-        if change["value"].shape[0] == 1:
-            change["value"] = np.kron(
-                np.ones((self.regmesh.Pac.shape[1], 1)), change["value"]
+    @gradient_type.setter
+    def gradient_type(self, value: str):
+        if value not in ["total", "components"]:
+            raise TypeError(
+                "Value for 'gradient_type' must be 'total' or 'components'. "
+                f"Value {value} provided."
             )
-        elif change["value"].shape[0] > 1:
-            assert change["value"].shape[0] == self.regmesh.Pac.shape[1], (
-                "Vector of norms must be the size"
-                " of active model parameters ({})"
-                "The provided vector has length "
-                "{}".format(self.regmesh.Pac.shape[0], len(change["value"]))
-            )
+        self._gradient_type = value
 
-    # Observers
-    @properties.observer("norms")
-    def _mirror_norms_to_objfcts(self, change):
+        for fct in self.objfcts:
+            if hasattr(fct, "_gradient_type"):
+                fct._gradient_type = value
 
-        self.objfcts[0].norm = change["value"][:, 0]
-        for i, objfct in enumerate(self.objfcts[1:]):
-            Ave = getattr(objfct.regmesh, "aveCC2F{}".format(objfct.orientation))
-            objfct.norm = Ave * change["value"][:, i + 1]
+    @property
+    def norms(self):
+        """
+        Value of the norm
+        """
+        return self._norms
 
-    @properties.observer("model")
-    def _mirror_model_to_objfcts(self, change):
-        for objfct in self.objfcts:
-            objfct.model = change["value"]
+    @norms.setter
+    def norms(self, values: list | np.ndarray | float):
+        if isinstance(values, list) or isinstance(values, np.ndarray):
+            values = np.asarray(values, dtype=float).flatten()
 
-    @properties.observer("eps_p")
-    def _mirror_eps_p_to_smallness(self, change):
-        for objfct in self.objfcts:
-            if isinstance(objfct, SparseSmall):
-                objfct.epsilon = change["value"]
+            if len(values) != len(self.objfcts):
+                raise ValueError(
+                    "The number of values provided for 'norms' does not "
+                    "match the number of regularization functions."
+                )
 
-    @properties.observer("eps_q")
-    def _mirror_eps_q_to_derivs(self, change):
-        for objfct in self.objfcts:
-            if isinstance(objfct, SparseDeriv):
-                objfct.epsilon = change["value"]
 
-    @properties.observer("space")
-    def _mirror_space_to_objfcts(self, change):
-        for objfct in self.objfcts:
-            objfct.space = change["value"]
+        elif isinstance(values, int) or isinstance(values, float):
+            values = [float(values)] * len(self.objfcts)
+        else:
+            raise TypeError("Input 'norms' must be a float, list or array of values")
 
-    @properties.observer("gradientType")
-    def _mirror_gradientType_to_objfcts(self, change):
-        for objfct in self.objfcts:
-            objfct.gradientType = change["value"]
-
-    @properties.observer("scaledIRLS")
-    def _mirror_scaledIRLS_to_objfcts(self, change):
-        for objfct in self.objfcts:
-            objfct.scaledIRLS = change["value"]
-
-    @properties.validator("scales")
-    def _validate_scales(self, change):
-        if change["value"].shape[0] == 1:
-            change["value"] = np.kron(
-                np.ones((self.regmesh.Pac.shape[1], 1)), change["value"]
-            )
-        elif change["value"].shape[0] > 1:
-            assert change["value"].shape[0] == self.regmesh.Pac.shape[1], (
-                "Vector of scales must be the size"
-                " of active model parameters ({})"
-                "The provided vector has length "
-                "{}".format(self.regmesh.Pac.shape[0], len(change["value"]))
+        if np.any(values < 0) or np.any(values > 2):
+            raise ValueError(
+                "Value provided for 'norms' should be in the interval [0, 2]"
             )
 
-    # Observers
-    @properties.observer("scales")
-    def _mirror_scale_to_objfcts(self, change):
-        for i, objfct in enumerate(self.objfcts):
-            objfct.scale = change["value"][:, i]
+        self._norms = values
+
+        for val, fct in zip(values, self.objfcts):
+            fct.norm = val
+
+    @property
+    def irls_scaled(self) -> bool:
+        """
+        Scale irls weights.
+        """
+        return self._irls_scaled
+
+    @irls_scaled.setter
+    def irls_scaled(self, value: bool):
+        if not isinstance(value, bool):
+            raise TypeError(
+                "'irls_scaled must be of type 'bool'. "
+                f"Value of type {type(value)} provided."
+            )
+        self._irls_scaled = value
+
+        for fct in self.objfcts:
+            fct.irls_scaled = value
+
+    @property
+    def irls_threshold(self):
+        """
+        Constant added to the denominator of the IRLS weights for stability.
+        """
+        return self._irls_threshold
+
+    @irls_threshold.setter
+    def irls_threshold(self, value):
+        if value <= 0:
+            raise ValueError("Value of 'irls_threshold' should be larger than 0.")
+
+        self._irls_threshold = value
+
+        for fct in self.objfcts:
+            fct.irls_threshold = value

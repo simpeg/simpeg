@@ -71,17 +71,17 @@ class BaseInvProblem(BaseSimPEG):
         if self.debug:
             print("Calling InvProblem.startup")
 
-        if hasattr(self.reg, "mref") and getattr(self.reg, "mref", None) is None:
-            print("SimPEG.InvProblem will set Regularization.mref to m0.")
-            self.reg.mref = m0
+        if hasattr(self.reg, "reference_model") and getattr(self.reg, "reference_model", None) is None:
+            print("SimPEG.InvProblem will set Regularization.reference_model to m0.")
+            self.reg.reference_model = m0
 
         if isinstance(self.reg, ComboObjectiveFunction) and not isinstance(
             self.reg, BaseComboRegularization
         ):
             for fct in self.reg.objfcts:
-                if hasattr(fct, "mref") and getattr(fct, "mref", None) is None:
-                    print("SimPEG.InvProblem will set Regularization.mref to m0.")
-                    fct.mref = m0
+                if hasattr(fct, "reference_model") and getattr(fct, "reference_model", None) is None:
+                    print("SimPEG.InvProblem will set Regularization.reference_model to m0.")
+                    fct.reference_model = m0
 
         self.phi_d = np.nan
         self.phi_m = np.nan
