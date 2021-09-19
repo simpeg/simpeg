@@ -43,11 +43,10 @@ class GravInvLinProblemTest(unittest.TestCase):
         # Go from topo to actv cells
         topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
         actv = utils.surface2ind_topo(self.mesh, topo, "N")
-        actv = np.where(actv)[0]
 
         # Create active map to go from reduce space to full
         self.actvMap = maps.InjectActiveCells(self.mesh, actv, -100)
-        nC = len(actv)
+        nC = int(actv.sum())
 
         # Create and array of observation points
         xr = np.linspace(-20.0, 20.0, 20)
@@ -91,9 +90,9 @@ class GravInvLinProblemTest(unittest.TestCase):
         )
 
         # Create a regularization
-        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
-        reg.norms = np.c_[0, 0, 0, 0]
-        reg.gradientType = "component"
+        reg = regularization.L2Regularization(self.mesh, active_cells=actv, mapping=idenMap)
+        # reg.norms = np.c_[0, 0, 0, 0]
+        # reg.gradientType = "component"
         # reg.eps_p, reg.eps_q = 5e-2, 1e-2
 
         # Data misfit function
@@ -121,17 +120,18 @@ class GravInvLinProblemTest(unittest.TestCase):
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
         print(residual)
 
-        # plt.figure()
-        # ax = plt.subplot(1, 2, 1)
-        # midx = int(self.mesh.nCx/2)
-        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.5))
+        import matplotlib.pyplot as plt
+        plt.figure()
+        ax = plt.subplot(1, 2, 1)
+        midx = int(self.mesh.nCx/2)
+        self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
+                       grid=True, clim=(0, 0.5))
 
-        # ax = plt.subplot(1, 2, 2)
-        # midx = int(self.mesh.nCx/2)
-        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.5))
-        # plt.show()
+        ax = plt.subplot(1, 2, 2)
+        midx = int(self.mesh.nCx/2)
+        self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
+                       grid=True, clim=(0, 0.5))
+        plt.show()
 
         self.assertTrue(residual < 0.05)
 
