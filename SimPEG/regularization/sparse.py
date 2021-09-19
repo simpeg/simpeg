@@ -18,6 +18,19 @@ class BaseSparse(BaseRegularization):
         super().__init__(mesh=mesh, **kwargs)
 
     @property
+    def free_weights(self):
+        if getattr(self, "_free_weights", None) is None:
+            if self.model is None or all(self.norm == 2):
+                self._free_weights = np.ones(self.shape[0])
+            else:
+                self.irls_weights(self.model)
+        return self._free_weights
+
+    @free_weights.setter
+    def free_weights(self, value):
+        self._free_weights = value
+
+    @property
     def irls_scaled(self) -> bool:
         """
         Scale irls weights.
@@ -57,12 +70,20 @@ class BaseSparse(BaseRegularization):
         return self._norm
 
     @norm.setter
-    def norm(self, value):
-        if (value < 0) or (value > 2):
+    def norm(self, value: float | np.ndarray):
+
+        if isinstance(value, float):
+            value = np.ones(self.shape[0]) * value
+
+        if np.any(value < 0) or np.any(value > 2):
             raise ValueError(
                 "Value provided for 'norm' should be in the interval [0, 2]"
             )
         self._norm = value
+
+    @property
+    def shape(self):
+        raise AttributeError("Sparse regularization class must have a 'shape' implementation.")
 
 
 class SparseSmall(BaseSparse, Small):
@@ -80,6 +101,10 @@ class SparseSmall(BaseSparse, Small):
         super().__init__(mesh=mesh, **kwargs)
 
     @property
+    def shape(self):
+        return self.mapping.shape[0],
+
+    @property
     def W(self):
         """
         Weighting matrix
@@ -94,19 +119,6 @@ class SparseSmall(BaseSparse, Small):
 
         weights *= self.free_weights
         return utils.sdiag(weights ** 0.5)
-
-    @property
-    def free_weights(self):
-        if getattr(self, "_free_weights", None) is None:
-            if self.model is None or self.norm == 2:
-                self._free_weights = np.ones(self.mapping.shape[0])
-            else:
-                self.irls_weights(self.model)
-        return self._free_weights
-
-    @free_weights.setter
-    def free_weights(self, value):
-        self._free_weights = value
 
     def irls_weights(self, m):
         """
@@ -144,6 +156,12 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
         super().__init__(mesh=mesh, **kwargs)
 
     @property
+    def shape(self):
+        return getattr(
+            self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+        ).shape[0],
+
+    @property
     def W(self):
         """
         Weighting matrix that takes the volumes, free weights, fixed weights and
@@ -159,19 +177,6 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
             self.length_scales *
             ((average_cell_face * weights) * self.free_weights) ** 0.5
         )
-
-    @property
-    def free_weights(self):
-        if getattr(self, "_free_weights", None) is None:
-            if self.model is None or self.norm == 2:
-                self._free_weights = np.ones_like(self.length_scales)
-            else:
-                self.irls_weights(self.model)
-        return self._free_weights
-
-    @free_weights.setter
-    def free_weights(self, value):
-        self._free_weights = value
 
     def irls_weights(self, m):
         """
@@ -195,7 +200,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
                         getattr(self.regularization_mesh, f"aveF{comp}2CC") *
                         dm_dl
                     )
-            f_m = getattr(self.regmesh, f"aveCC2F{self.orientation}") * f_m
+            f_m = getattr(self.regularization_mesh, f"aveCC2F{self.orientation}") * f_m
         else:
             f_m = self.f_m(m)
 
