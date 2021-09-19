@@ -1385,7 +1385,7 @@ class Update_IRLS(InversionDirective):
             # Reset the IRLS weights
             for reg in self.reg.objfcts:
                 for comp in reg.objfcts:
-                    comp.free_weights = None
+                    comp._W = None
 
             # Compute new model objective function value
             f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
