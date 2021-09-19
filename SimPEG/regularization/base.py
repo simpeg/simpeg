@@ -29,6 +29,7 @@ class BaseRegularization(BaseObjectiveFunction):
     _free_multiplier = 1.
     _model = None
     _model_units = None
+    _W = None
 
     def __init__(self, mesh=None, **kwargs):
         super().__init__()
@@ -327,15 +328,19 @@ class Small(BaseRegularization):
         """
         Weighting matrix
         """
-        weights = self.free_multiplier * self.regularization_mesh.vol
+        if getattr(self, "_W", None) is None:
+            weights = self.free_multiplier * self.regularization_mesh.vol
 
-        if self.cell_weights is not None:
-            weights *= self.cell_weights
+            if self.cell_weights is not None:
+                weights *= self.cell_weights
 
-        if self.free_weights is not None:
-            weights *= self.free_weights
+            free_weights = self.free_weights
+            if free_weights is not None:
+                weights *= free_weights
 
-        return utils.sdiag(weights ** 0.5)
+            self._W = utils.sdiag(weights ** 0.5)
+
+        return self._W
 
 
 class SmoothDeriv(BaseRegularization):
@@ -438,16 +443,26 @@ class SmoothDeriv(BaseRegularization):
         Weighting matrix that takes the volumes, free weights, fixed weights and
         length scales of the difference operator (normalized optional).
         """
-        average_cell_face = getattr(self.regularization_mesh, "aveCC2F{}".format(self.orientation))
-        weights = self.free_multiplier * self.regularization_mesh.vol
+        if getattr(self, "_W", None) is None:
+            average_cell_2_face = getattr(
+                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+            )
+            weights = self.free_multiplier * self.regularization_mesh.vol
 
-        if self.cell_weights is not None:
-            weights *= self.cell_weights
+            if self.cell_weights is not None:
+                weights *= self.cell_weights
 
-        if self.free_weights is not None:
-            weights *= self.free_weights
+            weights = average_cell_2_face * weights
 
-        return utils.sdiag(self.length_scales * (average_cell_face * weights) ** 0.5)
+            free_weights = self.free_weights
+            if free_weights is not None:
+                if len(free_weights) == average_cell_2_face.shape[0]:  # Face weights
+                    weights *= free_weights
+                else:
+                    weights *= average_cell_2_face * free_weights
+
+            self._W = utils.sdiag(self.length_scales * weights ** 0.5)
+        return self._W
 
     @property
     def length_scales(self):
@@ -964,7 +979,7 @@ class L2Regularization(BaseComboRegularization):
             alpha_x=alpha_x,
             alpha_y=alpha_y,
             alpha_z=alpha_z,
-            normalized_gradients=normalized_gradients
+            normalized_gradients=normalized_gradients,
             **kwargs
         )
 

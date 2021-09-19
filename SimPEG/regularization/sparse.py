@@ -19,16 +19,11 @@ class BaseSparse(BaseRegularization):
 
     @property
     def free_weights(self):
-        if getattr(self, "_free_weights", None) is None:
-            if self.model is None or all(self.norm == 2):
-                self._free_weights = np.ones(self.shape[0])
-            else:
-                self.irls_weights(self.model)
+        if self.model is None or all(self.norm == 2):
+            self._free_weights = np.ones(self.shape[0])
+        else:
+            self._free_weights = self.irls_weights(self.model)
         return self._free_weights
-
-    @free_weights.setter
-    def free_weights(self, value):
-        self._free_weights = value
 
     @property
     def irls_scaled(self) -> bool:
@@ -85,6 +80,30 @@ class BaseSparse(BaseRegularization):
     def shape(self):
         raise AttributeError("Sparse regularization class must have a 'shape' implementation.")
 
+    def get_lp_weights(self, f_m):
+        """
+        Utility function to get the IRLS weights.
+        By default, the weights are scaled by the gradient of the IRLS on
+        the max of the l2-norm.
+        """
+        lp_scale = np.ones_like(f_m)
+        if self.irls_scaled:
+            # Scale on l2-norm gradient: f_m.max()
+            l2_max = np.ones_like(f_m) * np.abs(f_m).max()
+            # Compute theoretical maximum gradients for p < 1
+            l2_max[self.norm < 1] = self.irls_threshold / np.sqrt(
+                1.0 - self.norm[self.norm < 1]
+            )
+            lp_values = l2_max / (l2_max ** 2.0 + self.irls_threshold ** 2.0) ** (
+                    1.0 - self.norm / 2.0
+            )
+            lp_scale[lp_values != 0] = np.abs(f_m).max() / lp_values[lp_values != 0]
+
+        return (
+            lp_scale /
+            (f_m ** 2.0 + self.irls_threshold ** 2.0) ** (1.0 - self.norm / 2.0)
+        )
+
 
 class SparseSmall(BaseSparse, Small):
     """
@@ -104,45 +123,12 @@ class SparseSmall(BaseSparse, Small):
     def shape(self):
         return self.mapping.shape[0],
 
-    @property
-    def W(self):
-        """
-        Weighting matrix
-        """
-        weights = self.free_multiplier * self.regularization_mesh.vol
-
-        if self.cell_weights is not None:
-            weights *= self.cell_weights
-
-        if self.free_weights is not None:
-            weights *= self.free_weights
-
-        weights *= self.free_weights
-        return utils.sdiag(weights ** 0.5)
-
     def irls_weights(self, m):
         """
         Compute and store the irls weights.
         """
         f_m = self.f_m(m)
-        eta = np.ones_like(f_m)
-
-        if self.irls_scaled:
-            # Scale on l2-norm gradient: f_m.max()
-            maxVal = np.ones_like(f_m) * np.abs(f_m).max()
-
-            # Compute theoritical maximum gradients for p < 1
-            maxVal[self.norm < 1] = self.irls_threshold / np.sqrt(
-                1.0 - self.norm[self.norm < 1]
-            )
-            maxGrad = maxVal / (maxVal ** 2.0 + self.irls_threshold ** 2.0) ** (
-                    1.0 - self.norm / 2.0
-            )
-            eta[maxGrad != 0] = np.abs(f_m).max() / maxGrad[maxGrad != 0]
-
-        # Scaled IRLS weights
-        r = (eta / (f_m ** 2.0 + self.irls_threshold ** 2.0) ** (1.0 - self.norm / 2.0)) ** 0.5
-        self.free_weights = r  # stash on the first calculation
+        return self.get_lp_weights(f_m) ** 0.5
 
 
 class SparseDeriv(BaseSparse, SmoothDeriv):
@@ -152,31 +138,13 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
     _gradient_type = "total"
 
     def __init__(self, mesh, orientation="x", **kwargs):
-        self.orientation = orientation
-        super().__init__(mesh=mesh, **kwargs)
+        super().__init__(mesh=mesh, orientation=orientation, **kwargs)
 
     @property
     def shape(self):
         return getattr(
             self.regularization_mesh, "aveCC2F{}".format(self.orientation)
         ).shape[0],
-
-    @property
-    def W(self):
-        """
-        Weighting matrix that takes the volumes, free weights, fixed weights and
-        length scales of the difference operator (normalized optional).
-        """
-        average_cell_face = getattr(self.regularization_mesh, "aveCC2F{}".format(self.orientation))
-        weights = self.free_multiplier * self.regularization_mesh.vol
-
-        if self.cell_weights is not None:
-            weights *= self.cell_weights
-
-        return utils.sdiag(
-            self.length_scales *
-            ((average_cell_face * weights) * self.free_weights) ** 0.5
-        )
 
     def irls_weights(self, m):
         """
@@ -195,32 +163,20 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
 
                     if self.model_units == "radian":
                         dm_dl = utils.mat_utils.coterminal(dm_dl)
-
                     f_m += np.abs(
                         getattr(self.regularization_mesh, f"aveF{comp}2CC") *
                         dm_dl
                     )
-            f_m = getattr(self.regularization_mesh, f"aveCC2F{self.orientation}") * f_m
+
+            f_m = (
+                getattr(self.regularization_mesh, f"aveCC2F{self.orientation}") *
+                f_m
+            )
+
         else:
             f_m = self.f_m(m)
 
-        eta = np.ones_like(f_m)
-        if self.irls_scaled:
-            # Scale on l2-norm gradient: f_m.max()
-            maxVal = np.ones_like(f_m) * np.abs(f_m).max()
-
-            # Compute theoritical maximum gradients for p < 1
-            maxVal[self.norm < 1] = self.irls_threshold / np.sqrt(
-                1.0 - self.norm[self.norm < 1]
-            )
-            maxGrad = maxVal / (maxVal ** 2.0 + self.irls_threshold ** 2.0) ** (
-                    1.0 - self.norm / 2.0
-            )
-            eta[maxGrad != 0] = np.abs(f_m).max() / maxGrad[maxGrad != 0]
-
-        # Scaled IRLS weights
-        r = (eta / (f_m ** 2.0 + self.irls_threshold ** 2.0) ** (1.0 - self.norm / 2.0)) ** 0.5
-        self.free_weights = r  # stash on the first calculation
+        return self.get_lp_weights(self.length_scales * f_m) ** 0.5
 
     @property
     def gradient_type(self) -> str:
