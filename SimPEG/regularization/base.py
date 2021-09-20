@@ -452,16 +452,16 @@ class SmoothDeriv(BaseRegularization):
             if self.cell_weights is not None:
                 weights *= self.cell_weights
 
-            weights = average_cell_2_face * weights
+            weights = average_cell_2_face * weights ** 0.5
 
-            free_weights = self.free_weights
+            free_weights = self.free_weights ** 0.5
             if free_weights is not None:
                 if len(free_weights) == average_cell_2_face.shape[0]:  # Face weights
                     weights *= free_weights
                 else:
                     weights *= average_cell_2_face * free_weights
 
-            self._W = utils.sdiag(self.length_scales * weights ** 0.5)
+            self._W = utils.sdiag(self.length_scales * weights)
         return self._W
 
     @property

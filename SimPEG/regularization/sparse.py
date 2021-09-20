@@ -128,7 +128,7 @@ class SparseSmall(BaseSparse, Small):
         Compute and store the irls weights.
         """
         f_m = self.f_m(m)
-        return self.get_lp_weights(f_m) ** 0.5
+        return self.get_lp_weights(f_m)
 
 
 class SparseDeriv(BaseSparse, SmoothDeriv):
@@ -176,7 +176,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
         else:
             f_m = self.f_m(m)
 
-        return self.get_lp_weights(self.length_scales * f_m) ** 0.5
+        return self.get_lp_weights(self.length_scales * f_m)
 
     @property
     def gradient_type(self) -> str:
