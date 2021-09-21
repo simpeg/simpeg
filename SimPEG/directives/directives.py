@@ -1882,18 +1882,13 @@ class Update_IRLS(InversionDirective):
         # Either use the supplied epsilon, or fix base on distribution of
         # model values
         for reg in self.reg.objfcts:
+            values = np.abs(reg.mapping * reg._delta_m(self.invProb.model))
+            pct = np.percentile(values[values > 0], self.prctile)
 
             if getattr(reg, "eps_p", None) is None:
-
-                reg.eps_p = np.percentile(
-                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
-                )
-
+                reg.eps_p = pct
             if getattr(reg, "eps_q", None) is None:
-
-                reg.eps_q = np.percentile(
-                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
-                )
+                reg.eps_q = pct
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
