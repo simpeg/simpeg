@@ -680,13 +680,6 @@ class PGIsmallness(SimplePGIsmallness):
         Weighting matrix
         Need to change the size to match self.wiresmap.maps * mesh.nC
         """
-        if self.cell_weights is not None:
-            if len(self.cell_weights) == self.wiresmap.nP:
-                return sdiag(np.sqrt(self.cell_weights))
-            else:
-                return sp.kron(
-                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.cell_weights))
-                )
 
         if self.cell_weights is not None:
             if len(self.cell_weights) == self.wiresmap.nP:
