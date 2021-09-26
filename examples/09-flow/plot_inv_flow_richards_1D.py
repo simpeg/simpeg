@@ -98,7 +98,7 @@ def run(plotIt=True):
     )
 
     # Setup a pretty standard inversion
-    reg = regularization.Tikhonov(M, alpha_s=1e-1)
+    reg = regularization.L2Regularization(M, alpha_s=1e-1)
     dmis = data_misfit.L2DataMisfit(simulation=prob, data=data)
     opt = optimization.InexactGaussNewton(maxIter=20, maxIterCG=10)
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
