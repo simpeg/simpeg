@@ -1,8 +1,5 @@
 import numpy as np
 import scipy.sparse as sp
-import warnings
-import properties
-from scipy.stats import multivariate_normal
 from scipy.special import logsumexp
 import copy
 from ..utils import (
@@ -11,8 +8,6 @@ from ..utils import (
     mkvc,
     timeIt,
     Identity,
-    Zero,
-    coterminal,
 )
 from ..maps import IdentityMap, Wires
 from .. import props

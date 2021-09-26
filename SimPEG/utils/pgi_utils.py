@@ -21,140 +21,14 @@ from sklearn.mixture._gaussian_mixture import (
 )
 from sklearn.mixture._base import _check_X, check_random_state, ConvergenceWarning
 import warnings
-from .mat_utils import mkvc
+from .mat_utils import mkvc, Identity
 from ..maps import IdentityMap, Wires
 from ..regularization import (
+    L2Regularization,
     SimplePGI,
-    Simple,
     PGI,
-    Tikhonov,
     SimplePGIwithRelationships,
 )
-
-
-def make_SimplePGI_regularization(
-    mesh,
-    gmmref,
-    gmm=None,
-    wiresmap=None,
-    maplist=None,
-    cell_weights_list=None,
-    approx_gradient=True,
-    approx_eval=True,
-    alpha_s=1.0,
-    alpha_x=1.0,
-    alpha_y=1.0,
-    alpha_z=1.0,
-    alpha_xx=0.0,
-    alpha_yy=0.0,
-    alpha_zz=0.0,
-    **kwargs
-):
-    """
-    Create a complete SimplePGI regularization term ComboObjectiveFunction with all
-    necessary smallness and smoothness terms for any number of physical properties
-    and associated mapping.
-
-    Parameters
-    ----------
-
-    :param TensorMesh or TreeMesh mesh: TensorMesh or Treemesh object, used to weights
-                        the physical properties by cell volumes when updating the
-                        Gaussian Mixture Model (GMM)
-    :param WeightedGaussianMixture gmmref: reference GMM.
-    :param WeightedGaussianMixture gmm: Initial GMM. If not provided, gmmref is used.
-    :param Wires wiresmap: Wires map to obtain the various physical properties from the model.
-                        Optional for single physical property inversion. Required for multi-
-                        physical properties inversion.
-    :param list maplist: List of mapping for each physical property. Default is the IdentityMap for all.
-    :param list cell_weights_list: list of numpy.ndarray for the cells weight to apply to each physical property.
-    :param boolean approx_gradient: use the PGI least-squares approximation of the full nonlinear regularizer
-                        for computing the regularizer gradient. Default is True.
-    :param boolean approx_eval: use the PGI least-squares approximation of the full nonlinear regularizer
-                        for computing the value of the regularizer. Default is True.
-    :param float alpha_s: alpha_s multiplier for the PGI smallness.
-    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 1st-derivative
-                        Smoothness terms in X-direction for each physical property.
-    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 1st-derivative
-                        Smoothness terms in Y-direction for each physical property.
-    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 1st-derivative
-                        Smoothness terms in Z-direction for each physical property.
-    :param float or numpy.ndarray alpha_x: alpha_x multiplier for the 2nd-derivatibe
-                        Smoothness terms in X-direction for each physical property.
-    :param float or numpy.ndarray alpha_y: alpha_y multiplier for the 2nd-derivatibe
-                        Smoothness terms in Y-direction for each physical property.
-    :param float or numpy.ndarray alpha_z: alpha_z multiplier for the 2nd-derivatibe
-                        Smoothness terms in Z-direction for each physical property.
-
-
-    Returns
-    -------
-
-    :param SimPEG.objective_function.ComboObjectiveFunction reg: Full regularization with simplePGIsmallness
-                        and smoothness terms for all physical properties in all direction.
-    """
-
-    if wiresmap is None:
-        wrmp = Wires(("m", mesh.nC))
-    else:
-        wrmp = wiresmap
-
-    if maplist is None:
-        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
-    else:
-        mplst = maplist
-
-    if cell_weights_list is None:
-        clwhtlst = [Identity() for maps in wrmp.maps]
-    else:
-        clwhtlst = cell_weights_list
-
-    reg = SimplePGI(
-        mesh=mesh,
-        gmmref=gmmref,
-        gmm=gmm,
-        wiresmap=wiresmap,
-        maplist=maplist,
-        approx_gradient=approx_gradient,
-        approx_eval=approx_eval,
-        alpha_s=alpha_s,
-        alpha_x=0.0,
-        alpha_y=0.0,
-        alpha_z=0.0,
-        **kwargs
-    )
-
-    if cell_weights_list is not None:
-        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
-
-    if isinstance(alpha_x, float):
-        alph_x = alpha_x * np.ones(len(wrmp.maps))
-    else:
-        alph_x = alpha_x
-
-    if isinstance(alpha_y, float):
-        alph_y = alpha_y * np.ones(len(wrmp.maps))
-    else:
-        alph_y = alpha_y
-
-    if isinstance(alpha_z, float):
-        alph_z = alpha_z * np.ones(len(wrmp.maps))
-    else:
-        alph_z = alpha_z
-
-    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += Simple(
-            mesh=mesh,
-            mapping=maps * wire[1],
-            alpha_s=0.0,
-            alpha_x=alph_x[i],
-            alpha_y=alph_y[i],
-            alpha_z=alph_z[i],
-            cell_weights=clwhtlst[i],
-            **kwargs
-        )
-
-    return reg
 
 
 def make_PGI_regularization(
@@ -170,9 +44,6 @@ def make_PGI_regularization(
     alpha_x=1.0,
     alpha_y=1.0,
     alpha_z=1.0,
-    alpha_xx=0.0,
-    alpha_yy=0.0,
-    alpha_zz=0.0,
     **kwargs
 ):
     """
@@ -268,7 +139,7 @@ def make_PGI_regularization(
         alph_z = alpha_z
 
     for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += Tikhonov(
+        reg += L2Regularization(
             mesh=mesh,
             mapping=maps * wire[1],
             alpha_s=0.0,

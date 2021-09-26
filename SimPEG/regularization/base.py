@@ -454,8 +454,9 @@ class SmoothDeriv(BaseRegularization):
 
             weights = average_cell_2_face * weights ** 0.5
 
-            free_weights = self.free_weights ** 0.5
-            if free_weights is not None:
+            free_weights = self.free_weights  # Compute once
+            if self.free_weights is not None:
+                free_weights **= 0.5
                 if len(free_weights) == average_cell_2_face.shape[0]:  # Face weights
                     weights *= free_weights
                 else:
@@ -914,7 +915,7 @@ class BaseComboRegularization(ComboObjectiveFunction):
 
 class L2Regularization(BaseComboRegularization):
     """
-    Simple regularization that measures the l2-norm of the model and model gradients.
+    Base regularization that measures the l2-norm of the model and model gradients.
 
     .. math::
 
@@ -954,10 +955,13 @@ class L2Regularization(BaseComboRegularization):
     def __init__(
         self,
         mesh,
-        alpha_s=1e-4,
+        alpha_s=1e-6,
         alpha_x=1.0,
         alpha_y=1.0,
         alpha_z=1.0,
+        alpha_xx=1.0,
+        alpha_yy=1.0,
+        alpha_zz=1.0,
         normalized_gradients=False,
         **kwargs
     ):
@@ -979,6 +983,9 @@ class L2Regularization(BaseComboRegularization):
             alpha_x=alpha_x,
             alpha_y=alpha_y,
             alpha_z=alpha_z,
+            alpha_xx=alpha_xx,
+            alpha_yy=alpha_yy,
+            alpha_zz=alpha_zz,
             normalized_gradients=normalized_gradients,
             **kwargs
         )

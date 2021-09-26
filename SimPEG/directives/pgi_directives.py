@@ -10,11 +10,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import copy
 from ..regularization import (
-    SimpleSmall,
     Small,
     SparseSmall,
-    Simple,
-    Tikhonov,
     Sparse,
     SimplePGIsmallness,
     PGIsmallness,
@@ -22,7 +19,6 @@ from ..regularization import (
     SimplePGI,
     PGI,
     SmoothDeriv,
-    SimpleSmoothDeriv,
     SparseDeriv,
     SimplePGIwithRelationships,
 )
@@ -400,7 +396,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
                             i,
                             j,
                             isinstance(
-                                regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv)
+                                regpart, (SmoothDeriv, SparseDeriv)
                             ),
                         ]
                     ]
@@ -418,7 +414,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
             self.nbr = len(self.reg.objfcts)
             self.Smooth = np.r_[
                 [
-                    isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))
+                    isinstance(regpart, (SmoothDeriv, SparseDeriv))
                     for regpart in self.reg.objfcts
                 ]
             ]

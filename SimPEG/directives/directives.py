@@ -12,21 +12,13 @@ from ..maps import SphericalSystem, ComboMap, IdentityMap, Wires
 from ..regularization import (
     BaseComboRegularization,
     BaseRegularization,
-    SimpleSmall,
     Small,
     SparseSmall,
-    Simple,
-    Tikhonov,
-    Sparse,
     SimplePGIsmallness,
     PGIsmallness,
     SimplePGIwithNonlinearRelationshipsSmallness,
-    SimplePGI,
-    PGI,
     SmoothDeriv,
-    SimpleSmoothDeriv,
     SparseDeriv,
-    SimplePGIwithRelationships,
 )
 from ..utils import (
     mkvc,
@@ -318,7 +310,6 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                             isinstance(
                                 regpart,
                                 (
-                                    SimpleSmall,
                                     Small,
                                     SparseSmall,
                                     SimplePGIsmallness,
@@ -341,7 +332,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                             i,
                             j,
                             isinstance(
-                                regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv)
+                                regpart, (SmoothDeriv, SparseDeriv)
                             ),
                         ]
                     ]
@@ -353,7 +344,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             alpha0 = self.reg.multipliers
             smoothness = np.r_[
                 [
-                    isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))
+                    isinstance(regpart, (SmoothDeriv, SparseDeriv))
                     for regpart in self.reg.objfcts
                 ]
             ]

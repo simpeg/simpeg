@@ -196,30 +196,6 @@ class BaseSimulation(props.HasModel):
                 getattr(self, mat).clean()  # clean factors
                 setattr(self, mat, None)  # set to none
 
-    @property
-    def solver(self):
-        return self._solver
-
-    @solver.setter
-    def solver(self, value):
-        # TODO need to add checks on value
-        self._solver = value
-
-    Solver = deprecate_property(
-        solver,
-        "Solver",
-        new_name="simulation.solver",
-        removal_version="0.16.0",
-        future_warn=True,
-    )
-
-    solverOpts = deprecate_property(
-        solver_opts,
-        "solverOpts",
-        new_name="solver_opts",
-        removal_version="0.16.0",
-        future_warn=True,
-    )
 
     ###########################################################################
     # Instantiation

@@ -57,7 +57,6 @@ from .model_utils import surface2ind_topo, depth_weighting
 from .plot_utils import plot2Ddata, plotLayer, plot_1d_layer_model
 from .io_utils import download
 from .pgi_utils import (
-    make_SimplePGI_regularization,
     make_PGI_regularization,
     make_SimplePGIwithRelationships_regularization,
     GaussianMixture,
