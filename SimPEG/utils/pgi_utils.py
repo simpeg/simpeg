@@ -22,13 +22,15 @@ from sklearn.mixture._gaussian_mixture import (
 from sklearn.mixture._base import _check_X, check_random_state, ConvergenceWarning
 import warnings
 from .mat_utils import mkvc, Identity
+from .code_utils import deprecate_module
 from ..maps import IdentityMap, Wires
 from ..regularization import (
     L2Regularization,
-    SimplePGI,
     PGI,
     SimplePGIwithRelationships,
 )
+
+deprecate_module("make_SimplePGI_regularization", "make_PGI_regularization", removal_version="0.16.0", future_warn=True)
 
 
 def make_PGI_regularization(
