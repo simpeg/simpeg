@@ -617,7 +617,8 @@ class SimplePGI(SimpleComboRegularization):
 
     @approx_hessian.setter
     def approx_hessian(self, ap):
-        if ap is not None:
+        if not isinstance(ap, bool):
+            raise ValueError(f"Value provided for 'approx_hessian' must be of type 'bool'. Provided {value}")
             self._approx_hessian = ap
         self.objfcts[0].approx_hessian = self.approx_hessian
 
