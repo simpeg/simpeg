@@ -19,7 +19,7 @@ from sklearn.mixture._gaussian_mixture import (
     _check_precisions,
     _check_shape,
 )
-from sklearn.mixture._base import _check_X, check_random_state, ConvergenceWarning
+from sklearn.mixture._base import check_random_state, ConvergenceWarning
 import warnings
 from .mat_utils import mkvc
 from ..maps import IdentityMap, Wires
