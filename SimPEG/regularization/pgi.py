@@ -605,7 +605,8 @@ class SimplePGI(SimpleComboRegularization):
 
     @approx_gradient.setter
     def approx_gradient(self, ap):
-        if ap is not None:
+        if not isinstance(ap, bool):
+            raise ValueError(f"Value provided for 'approx_gradient' must be of type 'bool'. Provided {value}")
             self._approx_gradient = ap
         self.objfcts[0].approx_gradient = self.approx_gradient
 
@@ -630,7 +631,8 @@ class SimplePGI(SimpleComboRegularization):
 
     @approx_eval.setter
     def approx_eval(self, ap):
-        if ap is not None:
+        if not isinstance(ap, bool):
+            raise ValueError(f"Value provided for 'approx_eval' must be of type 'bool'. Provided {value}")
             self._approx_eval = ap
         self.objfcts[0].approx_eval = self.approx_eval
 

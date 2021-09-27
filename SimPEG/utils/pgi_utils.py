@@ -100,7 +100,7 @@ def make_SimplePGI_regularization(
     if wiresmap is None:
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
-            wrmp = Wires(("m", indActive.sum()))
+            wrmp = Wires(("m", int(indActive.sum())))
         else:
             wrmp = Wires(("m", mesh.nC))
     else:
@@ -113,7 +113,6 @@ def make_SimplePGI_regularization(
 
     if cell_weights_list is None:
         clwhtlst = [np.ones(maps[1].shape[0]) for maps in wrmp.maps]
-        print(clwhtlst[0].shape)
     else:
         clwhtlst = cell_weights_list
 
