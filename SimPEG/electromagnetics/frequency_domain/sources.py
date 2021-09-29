@@ -888,18 +888,28 @@ class LineCurrent(BaseFDEMSrc):
             mesh = simulation.mesh
             locs = self.location
             self._Mejs = self.current * segmented_line_current_source_term(mesh, locs)
-        return self._Mejs
+        return self.current * self._Mejs
+
+    def Mfjs(self, simulation):
+        if getattr(self, "_Mfjs", None) is None:
+            self._Mfjs = line_through_faces(
+                simulation.mesh, self.location, normalize_by_area=True
+            )
+        return self.current * self._Mfjs
 
     def getRHSdc(self, simulation):
-        Grad = simulation.mesh.nodalGrad
-        return Grad.T * self.Mejs(simulation)
+        if simulation._formulation == "EB":
+            Grad = simulation.mesh.nodalGrad
+            return Grad.T * self.Mejs(simulation)
+        elif simulation._formulation == "HJ":
+            Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+            return Div * self.Mfjs(simulation)
 
     def s_m(self, simulation):
         return Zero()
 
     def s_e(self, simulation):
-        if simulation._formulation != "EB":
-            raise NotImplementedError(
-                "LineCurrents are only implemented for EB formulations"
-            )
-        return self.Mejs(simulation)
+        if simulation._formulation == "EB":
+            return self.Mejs(simulation)
+        elif simulation._formulation == "HJ":
+            return self.Mfjs(simulation)
