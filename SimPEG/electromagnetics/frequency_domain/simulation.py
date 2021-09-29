@@ -65,6 +65,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     survey = properties.Instance("a survey object", Survey, required=True)
 
+    forward_only = properties.Boolean(
+        "If True, A-inverse not stored at each frequency in forward simulation", default=False
+    )
+
     # @profile
     def fields(self, m=None):
         """
@@ -101,6 +105,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
             u = self.Ainv[nf] * rhs
             Srcs = self.survey.get_sources_by_frequency(freq)
             f[Srcs, self._solutionType] = u
+            if self.forward_only:
+                if self.verbose:
+                    print("Fields simulated for frequency {}".format(nf))
+                self.Ainv[nf].clean()
         return f
 
     # @profile
