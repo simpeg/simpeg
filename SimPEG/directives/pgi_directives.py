@@ -50,7 +50,7 @@ class PGI_UpdateParameters(InversionDirective):
 
     verbose = False  # print info.  about the GMM at each iteration
     update_rate = 1  # updates at each `update_rate` iterations
-    update_gmm = True  # update the GMM
+    update_gmm = False  # update the GMM
     zeta = (
         1e10  # confidence in the prior proportions; default: high value, keep GMM fixed
     )
