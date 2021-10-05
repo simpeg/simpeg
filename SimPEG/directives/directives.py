@@ -1606,6 +1606,7 @@ class UpdateSensitivityWeights(InversionDirective):
     everyIter = True
     threshold = 1e-12
     switch = True
+    truncation_factor = 1e-10
 
     def initialize(self):
 
@@ -1669,6 +1670,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
             wr = wr ** 0.5
             wr /= wr.max()
+            wr[wr < self.truncation_factor] = self.truncation_factor
         else:
             wr += 1.0
 
