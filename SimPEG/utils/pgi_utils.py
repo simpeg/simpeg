@@ -19,7 +19,7 @@ from sklearn.mixture._gaussian_mixture import (
     _check_precisions,
     _check_shape,
 )
-from sklearn.mixture._base import _check_X, check_random_state, ConvergenceWarning
+from sklearn.mixture._base import check_random_state, ConvergenceWarning
 import warnings
 from .mat_utils import mkvc
 from ..maps import IdentityMap, Wires
@@ -877,7 +877,7 @@ class WeightedGaussianMixture(GaussianMixture):
             Log probabilities of each data point in X.
         """
         check_is_fitted(self)
-        X = _check_X(X, None, self.means_.shape[1])
+        X = self._validate_data(X, reset=False)
 
         return logsumexp(self._estimate_weighted_log_prob_with_sensW(X, sensW), axis=1)
 
@@ -1142,7 +1142,13 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         if self.verbose:
             print("modified from scikit-learn")
 
-        X = _check_X(X, self.n_components)
+        X = self._validate_data(X, dtype=[np.float64, np.float32], ensure_min_samples=2)
+        if X.shape[0] < self.n_components:
+            raise ValueError(
+                "Expected n_samples >= n_components "
+                f"but got n_components = {self.n_components}, "
+                f"n_samples = {X.shape[0]}"
+            )
         self._check_initial_parameters(X)
 
         # if we enable warm_start, we will have a unique initialisation
