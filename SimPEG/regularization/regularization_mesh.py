@@ -228,7 +228,7 @@ class RegularizationMesh(props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fx = (
-                        self.Pafx.T * self.mesh._aveCC2FxStencil() * self.Pac
+                        self.Pafx.T * self.mesh.average_cell_to_total_face_x() * self.Pac
                     )
             else:
                 self._aveCC2Fx = (
@@ -276,7 +276,7 @@ class RegularizationMesh(props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fy = (
-                        self.Pafy.T * self.mesh._aveCC2FyStencil() * self.Pac
+                        self.Pafy.T * self.mesh.average_cell_to_total_face_y() * self.Pac
                     )
             else:
                 self._aveCC2Fy = (
@@ -324,7 +324,7 @@ class RegularizationMesh(props.BaseSimPEG):
                     )
                 else:
                     self._aveCC2Fz = (
-                        self.Pafz.T * self.mesh._aveCC2FzStencil() * self.Pac
+                        self.Pafz.T * self.mesh.average_cell_to_total_face_z() * self.Pac
                     )
             else:
                 self._aveCC2Fz = (
