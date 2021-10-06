@@ -1606,7 +1606,6 @@ class UpdateSensitivityWeights(InversionDirective):
     everyIter = True
     threshold = 1e-12
     switch = True
-    truncation_factor = 1e-10
 
     def initialize(self):
 
@@ -1666,11 +1665,11 @@ class UpdateSensitivityWeights(InversionDirective):
                 self.JtJdiag, self.simulation, self.dmisfit.objfcts
             ):
 
-                wr += prob_JtJ + self.threshold
+                wr += prob_JtJ
 
             wr = wr ** 0.5
             wr /= wr.max()
-            wr[wr < self.truncation_factor] = self.truncation_factor
+            wr += self.threshold
         else:
             wr += 1.0
 
