@@ -1669,7 +1669,7 @@ class UpdateSensitivityWeights(InversionDirective):
 
             wr = wr ** 0.5
             wr /= wr.max()
-            wr += self.threshold
+            wr[wr<self.threshold] = self.threshold
         else:
             wr += 1.0
 
