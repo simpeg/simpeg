@@ -73,8 +73,11 @@ def make_synthetic_data(
     # client = get_client()
     dpred = self.dpred(m, f=f)
     if isinstance(dpred, Delayed):
-        client = get_client()
-        dclean = client.compute(dpred, workers=self.workers).result()
+        if self.workers is None:
+            dclean = dpred.compute()
+        else:
+            client = get_client()
+            dclean = client.compute(dpred, workers=self.workers).result()
     else:
         dclean = np.asarray(dpred)
 
