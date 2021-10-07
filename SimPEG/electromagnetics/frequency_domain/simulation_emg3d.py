@@ -404,15 +404,22 @@ def survey_to_emg3d(survey):
                     "Only projField = {'e'; 'h'} implemented."
                 )
 
-            if rec.orientation not in ['x', 'y', 'z']:
+            # Get azimuth, elevation.
+            if rec.orientation == "arb":
+                azimuth = rec.azimuth
+                elevation = rec.elevation
+
+            elif rec.orientation not in ['x', 'y', 'z']:
                 raise NotImplementedError(
-                    "Only orientation = {'x'; 'y'; 'z'} implemented."
+                    "Only orientation = {'arb'; 'x'; 'y'; 'z'} implemented."
                 )
 
-            # Get type, azimuth, elevation.
+            else:
+                azimuth = [0, 90][rec.orientation == 'y']
+                elevation = [0, 90][rec.orientation == 'z']
+
+            # Get type, component.
             rec_type = rec_types[rec.projField == 'h']
-            azimuth = [0, 90][rec.orientation == 'y']
-            elevation = [0, 90][rec.orientation == 'z']
             component = rec.component
 
             # Loop over receivers.

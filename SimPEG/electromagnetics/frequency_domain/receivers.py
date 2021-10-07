@@ -15,7 +15,7 @@ class BaseRx(survey.BaseRx):
     """
 
     orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
+        "orientation of the receiver. Must currently be 'x', 'y', 'z', 'arb'", ["x", "y", "z", "arb"]
     )
 
     component = properties.StringChoice(
@@ -121,13 +121,19 @@ class PointElectricField(BaseRx):
     Electric field FDEM receiver
 
     :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
+    :param string orientation: receiver orientation 'x', 'y', 'z', or 'arb'
+    :param string component: 'real', 'imag', or 'complex'
+    :param float azimuth: azimuth, only used if `orientation='arb'`
+    :param float elevation: elevation, only used if `orientation='arb'`
     """
 
-    def __init__(self, locations, orientation="x", component="real"):
+    azimuth = properties.Float("azimuth (anticlockwise from Easting)", default=0, min=-360.0, max=360)
+
+    elevation = properties.Float("elevation (positive up)", default=0, min=-180.0, max=180)
+
+    def __init__(self, locations, orientation="x", component="real", **kwargs):
         self.projField = "e"
-        super(PointElectricField, self).__init__(locations, orientation, component)
+        super(PointElectricField, self).__init__(locations, orientation, component, **kwargs)
 
 
 class PointMagneticFluxDensity(BaseRx):
