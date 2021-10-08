@@ -405,15 +405,9 @@ def survey_to_emg3d(survey):
                 )
 
             # Get azimuth, elevation.
-            if rec.orientation == "arb":
+            if rec.orientation == "rotated":
                 azimuth = rec.azimuth
                 elevation = rec.elevation
-
-            elif rec.orientation not in ['x', 'y', 'z']:
-                raise NotImplementedError(
-                    "Only orientation = {'arb'; 'x'; 'y'; 'z'} implemented."
-                )
-
             else:
                 azimuth = [0, 90][rec.orientation == 'y']
                 elevation = [0, 90][rec.orientation == 'z']
