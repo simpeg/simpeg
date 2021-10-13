@@ -111,7 +111,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
         raise IOError("Incorrect input type for locs. \n" + "Can be 'All' or ndarray ")
     # Sort out input frequencies
     if freqs == "All":
-        frequencies = NSEMdata.survey.freqs
+        frequencies = NSEMdata.survey.frequencies
     elif isinstance(freqs, np.ndarray):
         frequencies = freqs
     elif isinstance(freqs, list):

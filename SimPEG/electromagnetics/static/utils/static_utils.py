@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator, interp1d, griddata
 from scipy.spatial import cKDTree
-from numpy import matlib
 import discretize
 from discretize import TensorMesh
 import matplotlib.pyplot as plt
@@ -138,8 +137,8 @@ def electrode_separations(survey_object, electrode_pair="all", **kwargs):
 
             n_rx = np.shape(M)[0]
 
-            A = matlib.repmat(a_loc, n_rx, 1)
-            B = matlib.repmat(b_loc, n_rx, 1)
+            A = np.tile(a_loc, (n_rx, 1))
+            B = np.tile(b_loc, (n_rx, 1))
 
             # Compute distances
             AB.append(np.sqrt(np.sum((A - B) ** 2.0, axis=1)))
@@ -572,7 +571,7 @@ def plot_pseudosection(
             warnings.warn(
                 r"The {kwarg} keyword has been removed. This will become an error in "
                 "version 0.16.0 of SimPEG",
-                DerecationWarning,
+                DeprecationWarning,
             )
             kwargs.pop(kwarg)
     if len(kwargs) > 0:

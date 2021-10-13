@@ -46,6 +46,10 @@ class Survey(BaseSurvey):
     def __init__(self, source_list, **kwargs):
         super(Survey, self).__init__(source_list, **kwargs)
 
+    def __repr__(self):
+        return (f"{self.__class__.__name__}({self.survey_type}; "
+                f"#sources: {self.nSrc}; #data: {self.nD})")
+
     @property
     def locations_a(self):
         """

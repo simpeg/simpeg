@@ -185,6 +185,14 @@ class Dipole(BaseRx):
         super(Dipole, self).__init__(**kwargs)
         self.locations = locations
 
+    def __repr__(self):
+        return ",\n".join(
+            [
+                f"{self.__class__.__name__}(m: {m}; n: {n})"
+                for (m, n) in zip(self.locations_m, self.locations_n)
+            ]
+        )
+
     @property
     def locations_m(self):
         """Locations of the M-electrodes"""
@@ -227,6 +235,11 @@ class Pole(BaseRx):
     #     locations = np.atleast_2d(locationsM)
     #     # We may not need this ...
     #     BaseRx.__init__(self, locations)
+
+    def __repr__(self):
+        return ",\n".join(
+            [f"{self.__class__.__name__}(m: {m})" for m in self.locations]
+        )
 
     @property
     def nD(self):

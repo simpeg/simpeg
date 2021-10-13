@@ -94,7 +94,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         f = self.fieldsPair(self)
 
-        for nf, freq in enumerate(self.survey.freqs):
+        for nf, freq in enumerate(self.survey.frequencies):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
             self.Ainv[nf] = self.solver(A, **self.solver_opts)
@@ -125,7 +125,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         # Jv = Data(self.survey)
         Jv = []
 
-        for nf, freq in enumerate(self.survey.freqs):
+        for nf, freq in enumerate(self.survey.frequencies):
             for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
@@ -159,7 +159,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         Jtv = np.zeros(m.size)
 
-        for nf, freq in enumerate(self.survey.freqs):
+        for nf, freq in enumerate(self.survey.frequencies):
             for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, self._solutionType]
                 df_duT_sum = 0
