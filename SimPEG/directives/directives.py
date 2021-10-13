@@ -1366,12 +1366,11 @@ class SaveIterationsGeoH5(InversionDirective):
 
         if self.attribute_type == "predicted":
             prop = np.hstack(self.invProb.get_dpred(self.invProb.model))
-
         else:
             prop = self.invProb.model
 
         prop = prop.reshape((len(self.channels), len(self.components), -1), order='F')
-
+        
         for fun in self.transforms:
             if isinstance(fun, (maps.IdentityMap, np.ndarray, float)):
                 prop = fun * prop
