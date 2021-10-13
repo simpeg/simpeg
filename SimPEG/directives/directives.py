@@ -1369,16 +1369,15 @@ class SaveIterationsGeoH5(InversionDirective):
         else:
             prop = self.invProb.model
 
-        prop = prop.reshape((len(self.channels), len(self.components), -1), order='F')
-        
+
         for fun in self.transforms:
             if isinstance(fun, (maps.IdentityMap, np.ndarray, float)):
                 prop = fun * prop
             else:
                 prop = fun(prop)
 
-
-        
+        prop = prop.flatten()
+        prop = prop.reshape((len(self.channels), len(self.components), -1), order='F')
 
         for cc, component in enumerate(self.components):
 
