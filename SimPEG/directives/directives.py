@@ -1363,22 +1363,23 @@ class SaveIterationsGeoH5(InversionDirective):
         self.h5_object.workspace.finalize()
 
     def save_components(self, iteration: int):
+
         if self.attribute_type == "predicted":
-            prop = np.asarray(self.invProb.get_dpred(self.invProb.model))
+            prop = np.hstack(self.invProb.get_dpred(self.invProb.model))
+
         else:
             prop = self.invProb.model
 
+        prop = prop.reshape((len(self.channels), len(self.components), -1), order='F')
+
         for fun in self.transforms:
             if isinstance(fun, (maps.IdentityMap, np.ndarray, float)):
-                if isinstance(fun, np.ndarray):
-                    if len(fun.ravel()) == len(prop.ravel()):
-                        fun = fun.reshape(prop.shape)
                 prop = fun * prop
             else:
                 prop = fun(prop)
 
-        prop = prop.flatten()
-        prop = prop.reshape((len(self.channels), len(self.components), -1), order='F')
+
+        
 
         for cc, component in enumerate(self.components):
 
