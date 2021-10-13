@@ -16,15 +16,13 @@ from ..regularization import (
     Simple,
     Tikhonov,
     Sparse,
-    SimplePGIsmallness,
     PGIsmallness,
-    SimplePGIwithNonlinearRelationshipsSmallness,
-    SimplePGI,
+    PGIwithNonlinearRelationshipsSmallness,
     PGI,
     SmoothDeriv,
     SimpleSmoothDeriv,
     SparseDeriv,
-    SimplePGIwithRelationships,
+    PGIwithRelationships,
 )
 from ..utils import (
     mkvc,
@@ -70,7 +68,7 @@ class PGI_UpdateParameters(InversionDirective):
                 np.r_[
                     [
                         isinstance(
-                            regpart, (SimplePGI, PGI, SimplePGIwithRelationships)
+                            regpart, (PGI, PGIwithRelationships)
                         )
                         for regpart in self.reg.objfcts
                     ]
@@ -229,7 +227,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                 np.r_[
                     [
                         isinstance(
-                            regpart, (SimplePGI, PGI, SimplePGIwithRelationships)
+                            regpart, (PGI, PGIwithRelationships)
                         )
                         for regpart in self.reg.objfcts
                     ]
@@ -383,7 +381,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
                 np.r_[
                     [
                         isinstance(
-                            regpart, (SimplePGI, PGI, SimplePGIwithRelationships)
+                            regpart, (PGI, PGIwithRelationships)
                         )
                         for regpart in self.reg.objfcts
                     ]

@@ -24,12 +24,10 @@ IGNORE_ME = [
     "BaseComboRegularization",
     "SimpleComboRegularization",
     "BaseSparse",
-    "SimplePGI",
     "PGI",
-    "SimplePGIwithRelationships",
-    "SimplePGIwithNonlinearRelationshipsSmallness",
+    "PGIwithRelationships",
+    "PGIwithNonlinearRelationshipsSmallness",
     "PGIsmallness",
-    "SimplePGIsmallness",
 ]
 
 

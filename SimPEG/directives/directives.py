@@ -18,15 +18,13 @@ from ..regularization import (
     Simple,
     Tikhonov,
     Sparse,
-    SimplePGIsmallness,
     PGIsmallness,
-    SimplePGIwithNonlinearRelationshipsSmallness,
-    SimplePGI,
+    PGIwithNonlinearRelationshipsSmallness,
     PGI,
     SmoothDeriv,
     SimpleSmoothDeriv,
     SparseDeriv,
-    SimplePGIwithRelationships,
+    PGIwithRelationships,
 )
 from ..utils import (
     mkvc,
@@ -321,9 +319,8 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                                     SimpleSmall,
                                     Small,
                                     SparseSmall,
-                                    SimplePGIsmallness,
                                     PGIsmallness,
-                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                    PGIwithNonlinearRelationshipsSmallness,
                                 ),
                             ),
                         ]
@@ -614,9 +611,8 @@ class MultiTargetMisfits(InversionDirective):
                             (
                                 isinstance(
                                     regpart,
-                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                    PGIwithNonlinearRelationshipsSmallness,
                                 )
-                                or isinstance(regpart, SimplePGIsmallness)
                                 or isinstance(regpart, PGIsmallness)
                             ),
                         ]
@@ -658,9 +654,8 @@ class MultiTargetMisfits(InversionDirective):
                             (
                                 isinstance(
                                     regpart,
-                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                    PGIwithNonlinearRelationshipsSmallness,
                                 )
-                                or isinstance(regpart, SimplePGIsmallness)
                                 or isinstance(regpart, PGIsmallness)
                             ),
                         ]

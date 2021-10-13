@@ -341,7 +341,7 @@ wr_mag = np.sum(simulation_mag.G ** 2.0, axis=0) ** 0.5
 wr_mag = wr_mag / np.max(wr_mag)
 
 # create joint PGI regularization with smoothness
-reg = utils.make_SimplePGI_regularization(
+reg = utils.make_PGI_regularization(
     gmmref=gmmref,
     mesh=mesh,
     wiresmap=wires,
