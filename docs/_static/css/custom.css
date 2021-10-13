@@ -1,0 +1,30 @@
+@import url(https://fonts.googleapis.com/css?family=Raleway);
+
+.navbar-light {
+    background: #acd6af!important;
+}
+.navbar-nav>.active>.nav-link {
+    color: #000000!important;
+}
+
+#navbar-icon-links i.fa, #navbar-icon-links i.fab,
+#navbar-icon-links i.far, #navbar-icon-links i.fas {
+    color: #000000;
+}
+
+body{
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+h1{
+    font-family: "Raleway", Helvetica, Arial, sans-serif; font-weight: bold;
+}
+h2{
+    font-family: "Raleway", Helvetica, Arial, sans-serif; font-weight: bold;
+}
+h3{
+    font-family: "Raleway", Helvetica, Arial, sans-serif; font-weight: bold;
+}
+.column > h3{
+    font-family: "Raleway", Helvetica, Arial, sans-serif;
+}
