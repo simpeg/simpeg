@@ -81,7 +81,7 @@ from .coord_utils import (
     rotation_matrix_from_normals,
     rotate_points_from_normals
 )
-from .model_utils import surface2ind_topo
+from .model_utils import surface2ind_topo, depth_weighting
 from .plot_utils import plot2Ddata, plotLayer, plot_1d_layer_model
 from .io_utils import download
 from .pgi_utils import (

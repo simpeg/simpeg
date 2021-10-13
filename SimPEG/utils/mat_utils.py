@@ -61,7 +61,7 @@ def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
 
     numpy.ndarray
         Estimate of the diagonal elements of the input matrix
-
+    
     """
 
     if type(matrix_arg).__name__ == "ndarray":
