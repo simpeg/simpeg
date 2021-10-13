@@ -88,6 +88,7 @@ class TestPGI(unittest.TestCase):
         mref = mkvc(clf.means_[clf.predict(self.samples)])
 
         # check score value
+        dm = self.model - mref
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
@@ -196,6 +197,7 @@ class TestPGI(unittest.TestCase):
         mref = mkvc(clf.means_[clf.predict(self.samples)])
 
         # check score value
+        dm = self.model - mref
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
@@ -300,6 +302,7 @@ class TestPGI(unittest.TestCase):
         mref = mkvc(clf.means_[clf.predict(self.samples)])
 
         # check score value
+        dm = self.model - mref
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
@@ -404,6 +407,7 @@ class TestPGI(unittest.TestCase):
         mref = mkvc(clf.means_[clf.predict(self.samples)])
 
         # check score value
+        dm = self.model - mref
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
