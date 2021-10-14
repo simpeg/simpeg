@@ -5,8 +5,8 @@
     :hidden:
     :titlesonly:
 
-    content/basic/big_picture
-    content/basic/contributing
+    content/getting_started
+    content/user_guide
     api/index
 
 

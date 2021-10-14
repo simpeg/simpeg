@@ -194,11 +194,11 @@ if link_github:
             linespec = ""
 
         try:
-            fn = relpath(fn, start=dirname(discretize.__file__))
+            fn = relpath(fn, start=dirname(SimPEG.__file__))
         except ValueError:
             return None
 
-        return f"https://github.com/simpeg/discretize/blob/main/discretize/{fn}{linespec}"
+        return f"https://github.com/simpeg/simpeg/blob/main/SimPEG/{fn}{linespec}"
 else:
     extensions.append('sphinx.ext.viewcode')
 
@@ -252,7 +252,7 @@ try:
         "icon_links": [
             {
                 "name": "GitHub",
-                "url": "https://github.com/simpeg/discretize",
+                "url": "https://github.com/simpeg/simpeg",
                 "icon": "fab fa-github",
             },
             {
@@ -278,7 +278,7 @@ try:
         ],
         "use_edit_page_button": False,
     }
-    html_logo = "images/discretize-logo.png"
+    html_logo = "images/simpeg-logo.png"
 
     html_static_path = ['_static']
 
@@ -288,7 +288,7 @@ try:
 
     html_context = {
         "github_user": "simpeg",
-        "github_repo": "discretize",
+        "github_repo": "simpeg",
         "github_version": "main",
         "doc_path": "docs",
     }
@@ -460,7 +460,7 @@ import pyvista
 image_scrapers = (
     "matplotlib",
     plotly_sg_scraper,
-    pyvista.Scraper()
+    # pyvista.Scraper()
 )
 
 # Sphinx Gallery
@@ -469,7 +469,9 @@ sphinx_gallery_conf = {
     "examples_dirs": ["../examples"] + tutorial_dirs,
     "gallery_dirs": ["content/examples"] + tut_gallery_dirs,
     "within_subsection_order": FileNameSortKey,
-    "backreferences_dir": None,
+    "filename_pattern": "\.py",
+    "backreferences_dir": "api/generated/backreferences",
+    "doc_module": "simpeg",
     "show_memory": True,
     "image_scrapers": image_scrapers,
 }

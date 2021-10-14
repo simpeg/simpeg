@@ -60,9 +60,11 @@ tutorials/05-dcr/dcr1d/*
 tutorials/05-dcr/dcr2d/*
 tutorials/05-dcr/dcr3d/*
 tutorials/05-dcr/outputs/*
+tutorials/05-dcr/*.html
 tutorials/06-ip/dcip2d/*
 tutorials/06-ip/dcip3d/*
 tutorials/06-ip/outputs/*
+tutorials/06-ip/*.html
 tutorials/12-seismic/seismic/*
 tutorials/13-pgi/pgi/*
 
