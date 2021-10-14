@@ -470,8 +470,8 @@ sphinx_gallery_conf = {
     "gallery_dirs": ["content/examples"] + tut_gallery_dirs,
     "within_subsection_order": FileNameSortKey,
     "filename_pattern": "\.py",
-    "backreferences_dir": "api/generated/backreferences",
-    "doc_module": "simpeg",
+    "backreferences_dir": "content/api_core/generated/backreferences",
+    "doc_module": "SimPEG",
     "show_memory": True,
     "image_scrapers": image_scrapers,
 }

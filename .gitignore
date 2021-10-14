@@ -42,6 +42,7 @@ nosetests.xml
 *.sublime-workspace
 docs/_build/
 docs/warnings.txt
+docs/content/api_core/generated/*
 .DS_Store
 docs/content/examples/*
 docs/content/tutorials/*
