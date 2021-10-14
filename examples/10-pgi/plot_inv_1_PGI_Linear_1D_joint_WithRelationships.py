@@ -146,7 +146,7 @@ reg_simple = utils.make_PGIwithRelationships_regularization(
 )
 
 opt = optimization.ProjectedGNCG(
-    maxIter=30,
+    maxIter=50,
     tolX=1e-6,
     maxIterCG=100,
     tolCG=1e-3,
@@ -198,7 +198,7 @@ reg_simple_no_map = utils.make_PGI_regularization(
 )
 
 opt = optimization.ProjectedGNCG(
-    maxIter=20,
+    maxIter=50,
     tolX=1e-6,
     maxIterCG=100,
     tolCG=1e-3,
@@ -250,7 +250,7 @@ reg2.cell_weights = wr2
 reg = reg1 + reg2
 
 opt = optimization.ProjectedGNCG(
-    maxIter=30,
+    maxIter=50,
     tolX=1e-6,
     maxIterCG=100,
     tolCG=1e-3,
