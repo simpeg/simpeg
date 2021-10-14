@@ -4,25 +4,25 @@ import discretize
 import warnings
 
 
-def line(a, t, l):
-    """
-    Linear interpolation between a and b
-    0 <= t <= 1
-    """
-    return a + t * l
-
-
 def edge_basis_function(t, a1, l1, h1, a2, l2, h2):
     """
     Edge basis functions
     """
-    x1 = line(a1, t, l1)
-    x2 = line(a2, t, l2)
+    x1 = a1 + t * l1
+    x2 = a2 + t * l2
     w0 = (1.0 - x1 / h1) * (1.0 - x2 / h2)
     w1 = (x1 / h1) * (1.0 - x2 / h2)
     w2 = (1.0 - x1 / h1) * (x2 / h2)
     w3 = (x1 / h1) * (x2 / h2)
     return np.r_[w0, w1, w2, w3]
+
+
+def _simpsons_rule(a1, l1, h1, a2, l2, h2):
+    """Return weights for Simpson's rule."""
+    wl = edge_basis_function(0.0, a1, l1, h1, a2, l2, h2)
+    wc = edge_basis_function(0.5, a1, l1, h1, a2, l2, h2)
+    wr = edge_basis_function(1.0, a1, l1, h1, a2, l2, h2)
+    return (wl + 4.0 * wc + wr) / 6.0
 
 
 # TODO: Extend this when current is defined on cell-face
@@ -38,30 +38,11 @@ def getStraightLineCurrentIntegral(hx, hy, hz, ax, ay, az, bx, by, bz):
     lx = bx - ax
     ly = by - ay
     lz = bz - az
-    l = np.sqrt(lx ** 2 + ly ** 2 + lz ** 2)
-
-    if l == 0:
-        sx = np.zeros((4, 1))
-        sy = np.zeros((4, 1))
-        sz = np.zeros((4, 1))
 
     # integration using Simpson's rule
-    wx0 = edge_basis_function(0.0, ay, ly, hy, az, lz, hz)
-    wx0_5 = edge_basis_function(0.5, ay, ly, hy, az, lz, hz)
-    wx1 = edge_basis_function(1.0, ay, ly, hy, az, lz, hz)
-
-    wy0 = edge_basis_function(0.0, ax, lx, hx, az, lz, hz)
-    wy0_5 = edge_basis_function(0.5, ax, lx, hx, az, lz, hz)
-    wy1 = edge_basis_function(1.0, ax, lx, hx, az, lz, hz)
-
-    wz0 = edge_basis_function(0.0, ax, lx, hx, ay, ly, hy)
-    wz0_5 = edge_basis_function(0.5, ax, lx, hx, ay, ly, hy)
-    wz1 = edge_basis_function(1.0, ax, lx, hx, ay, ly, hy)
-
-    sx = (wx0 + 4.0 * wx0_5 + wx1) * (lx / 6.0)
-
-    sy = (wy0 + 4.0 * wy0_5 + wy1) * (ly / 6.0)
-    sz = (wz0 + 4.0 * wz0_5 + wz1) * (lz / 6.0)
+    sx = _simpsons_rule(ay, ly, hy, az, lz, hz) * lx
+    sy = _simpsons_rule(ax, lx, hx, az, lz, hz) * ly
+    sz = _simpsons_rule(ax, lx, hx, ay, ly, hy) * lz
 
     return sx, sy, sz
 
@@ -116,20 +97,17 @@ def _poly_line_source_tens(mesh, locs):
         Christoph Schwarzbach, February 2014
 
     """
-    # number of cells
-    xorig = mesh.x0
+    # Get some mesh properties
+    nx, ny, nz = mesh.shape_cells
     hx, hy, hz = mesh.h
+    x = mesh.nodes_x
+    y = mesh.nodes_y
+    z = mesh.nodes_z
+
+    # Source points
     px = locs[:, 0]
     py = locs[:, 1]
     pz = locs[:, 2]
-    nx = len(hx)
-    ny = len(hy)
-    nz = len(hz)
-    x0, y0, z0 = xorig[0], xorig[1], xorig[2]
-    # nodal grid
-    x = np.r_[x0, x0 + np.cumsum(hx)]
-    y = np.r_[y0, y0 + np.cumsum(hy)]
-    z = np.r_[z0, z0 + np.cumsum(hz)]
 
     # discrete edge function
     sx = np.zeros((nx, ny + 1, nz + 1))
@@ -222,6 +200,7 @@ def _poly_line_source_tens(mesh, locs):
             sx[ix, iy : iy + 2, iz : iz + 2] += np.reshape(sxloc, (2, 2), order="F")
             sy[ix : ix + 2, iy, iz : iz + 2] += np.reshape(syloc, (2, 2), order="F")
             sz[ix : ix + 2, iy : iy + 2, iz] += np.reshape(szloc, (2, 2), order="F")
+
     return np.r_[mkvc(sx), mkvc(sy), mkvc(sz)]
 
 
