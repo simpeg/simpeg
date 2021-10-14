@@ -94,6 +94,79 @@ class ComplexResistivityTest(unittest.TestCase):
         )
         return sim
 
+    def create_simulation_1dprimary_assign_scalar(self, rx_type="apparent_resistivity", rx_orientation="xy"):
+
+        rx_x, rx_y = np.meshgrid(
+            np.linspace(-5000, 5000, 10), np.linspace(-5000, 5000, 10)
+        )
+        rx_loc = np.hstack(
+            (mkvc(rx_x, 2), mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1)))
+        )
+        rx_loc[:, 2] = -50
+
+        # Make a receiver list
+        rxList = [ns.Rx.Point3DComplexResistivity(rx_loc, rx_orientation, rx_type)]
+
+        # give background a value
+        sigma_background = [1e-2]
+
+        # Source list
+        freqs = [10, 50, 200]
+        srcList = [ns.Src.Planewave_xy_1Dprimary(rxList, freq, sigma_primary=sigma_background) for freq in freqs]
+
+        # Survey MT
+        survey_ns = ns.Survey(srcList)
+
+        # Set the mapping
+        actMap = maps.InjectActiveCells(
+            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+        )
+        mapping = maps.ExpMap(self.mesh) * actMap
+        # print(survey_ns.source_list)
+        # # Setup the problem object
+        sim = ns.simulation.Simulation3DPrimarySecondary(
+            self.mesh,
+            survey=survey_ns,
+            sigmaMap=mapping,
+            solver=Solver,
+        )
+        return sim
+
+    def create_simulation_1dprimary_assign(self, rx_type="apparent_resistivity", rx_orientation="xy"):
+
+        rx_x, rx_y = np.meshgrid(
+            np.linspace(-5000, 5000, 10), np.linspace(-5000, 5000, 10)
+        )
+        rx_loc = np.hstack(
+            (mkvc(rx_x, 2), mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1)))
+        )
+        rx_loc[:, 2] = -50
+
+        # Make a receiver list
+        rxList = [ns.Rx.Point3DComplexResistivity(rx_loc, rx_orientation, rx_type)]
+
+        # Source list
+        freqs = [10, 50, 200]
+        srcList = [ns.Src.Planewave_xy_1Dprimary(rxList, freq, sigma_primary=self.sigma_background) for freq in freqs]
+
+        # Survey MT
+        survey_ns = ns.Survey(srcList)
+
+        # Set the mapping
+        actMap = maps.InjectActiveCells(
+            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+        )
+        mapping = maps.ExpMap(self.mesh) * actMap
+        # print(survey_ns.source_list)
+        # # Setup the problem object
+        sim = ns.simulation.Simulation3DPrimarySecondary(
+            self.mesh,
+            survey=survey_ns,
+            sigmaMap=mapping,
+            solver=Solver,
+        )
+        return sim
+
     def check_deriv(self, sim):
         def fun(x):
             return sim.dpred(x), lambda x: sim.Jvec(self.model, x)
@@ -119,8 +192,11 @@ class ComplexResistivityTest(unittest.TestCase):
     def check_deriv_adjoint(self, component, orientation):
         print(f"\n\n============= Testing {component} {orientation} =============\n")
         sim = self.create_simulation(component, orientation)
+        sim2 = self.create_simulation_1dprimary_assign(component, orientation)
         self.check_deriv(sim)
         self.check_adjoint(sim)
+        self.check_deriv(sim2)
+        self.check_adjoint(sim2)
         print(f"... done")
 
     def test_apparent_resistivity_xx(self):

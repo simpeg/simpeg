@@ -76,7 +76,13 @@ class NSEM_3D_AdjointTests(unittest.TestCase):
         )
 
     def test_JvecAdjoint_All(self):
+        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "All", 0.1))
+
+    def test_JvecAdjoint_Imp(self):
         self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Imp", 0.1))
+
+    def test_JvecAdjoint_Res(self):
+        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Res", 0.1))
 
 
 if __name__ == "__main__":

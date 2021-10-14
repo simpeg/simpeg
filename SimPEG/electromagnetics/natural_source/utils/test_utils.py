@@ -205,7 +205,7 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
     elif comp == "Tip":
         rx_type_list = ["zx", "zy"]
     elif comp == "Res":
-        rx_type_list = ["yx", "yy"]
+        rx_type_list = ["yx", "xy"]
     else:
         rx_type_list = [comp]
 

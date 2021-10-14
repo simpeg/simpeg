@@ -94,6 +94,8 @@ class NSEM_DerivTests(unittest.TestCase):
         self.assertTrue(DerivJvecTest(nsem.utils.test_utils.halfSpace(1e-2), "yy", 0.1))
 
     # apparent res and phase
+    # def test_derivJvec_resAll(self):
+    #     self.assertTrue(DerivJvecTest(nsem.utils.test_utils.halfSpace(1e-2), "Res", 0.1))
     def test_derivJvec_ryx(self):
         self.assertTrue(DerivJvecTest(nsem.utils.test_utils.halfSpace(1e-2), "yx", 0.1))
 
