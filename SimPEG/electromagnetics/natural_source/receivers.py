@@ -59,13 +59,14 @@ class BaseRxNSEM_Point(BaseRx):
             # check shape of locations
             if isinstance(locations, list):
                 if len(locations) == 2:
-                    self._locations_e = locations[:, 0]
-                    self._locations_h = locations[:, 1]
+                    self._locations_e = locations[0]
+                    self._locations_h = locations[1]
                 elif len(locations) == 1:
-                    self._locations_e = locations
-                    self._locations_h = locations
+                    self._locations_e = locations[0]
+                    self._locations_h = locations[0]
                 else:
                     raise Exception("incorrect size of list, must be length of 1 or 2")
+                locations = locations[0]
             elif isinstance(locations, np.ndarray):
                 self._locations_e = locations
                 self._locations_h = locations
