@@ -695,7 +695,7 @@ class BaseVRMSimulation(BaseSimulation):
                         G[COUNT, :] = c * np.c_[Gxz, Gyz, Gzz]
                         COUNT = COUNT + 1
 
-        return np.matrix(G)
+        return G
 
     def _getAMatricies(self):
 
@@ -894,7 +894,7 @@ class Simulation3DLinear(BaseVRMSimulation):
 
                     I = sp.diags(np.ones(nLoc))
                     eta = waveObj.getCharDecay(rxList[qq].fieldType, times)
-                    eta = np.matrix(eta).T
+                    eta = np.atleast_2d(eta).T
 
                     T.append(sp.kron(I, eta))
 
@@ -917,8 +917,7 @@ class Simulation3DLinear(BaseVRMSimulation):
         self.model = m  # Initiates/updates model and initiates mapping
 
         # Project to active mesh cells
-        # m = np.matrix(self.xiMap * m).T
-        m = np.matrix(self.xiMap * m).T
+        m = self.xiMap * m
 
         # Must return as a numpy array
         return mkvc(sp.coo_matrix.dot(self.T, np.dot(self.A, m)))
@@ -934,10 +933,10 @@ class Simulation3DLinear(BaseVRMSimulation):
         dxidm = self.xiMap.deriv(m)
 
         # dxidm*v
-        v = np.matrix(dxidm * v).T
+        v = dxidm * v
 
         # Dot product with A
-        v = self.A * v
+        v = self.A @ v
 
         # Get active time rows of T
         T = self.T.tocsr()[self.survey.t_active, :]
@@ -953,7 +952,7 @@ class Simulation3DLinear(BaseVRMSimulation):
             AssertionError("A survey must be set to generate A matrix")
 
         # Define v as a column vector
-        v = np.matrix(v).T
+        v = np.atleast_2d(v).T
 
         # Get T'*Pd'*v
         T = self.T.tocsr()[self.survey.t_active, :]
@@ -1047,7 +1046,7 @@ class Simulation3DLogUniform(BaseVRMSimulation):
                     self.tau2,
                 )
 
-                f.append(mkvc((self.A[qq] * np.matrix(eta)).T))
+                f.append(mkvc(self.A[qq] @ eta))
 
         return np.array(np.hstack(f))
 

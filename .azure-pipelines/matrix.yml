@@ -30,6 +30,7 @@ jobs:
               conda install --yes --quiet numpy scipy matplotlib ipython h5py
               conda install --yes -c conda-forge discretize empymod properties vectormath pandas dask zarr fsspec
               pip install geoana
+              conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec pymatsolver
               pip install -r requirements_dev.txt
               pip install pytest-azurepipelines
               pip install -e .
