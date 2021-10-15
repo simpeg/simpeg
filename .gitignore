@@ -77,3 +77,4 @@ tutorials/14-joint_inversion/gravity/*
 *.npy
 *.mod
 *.tar.gz
+tutorials/13-joint_inversion/gravity/*

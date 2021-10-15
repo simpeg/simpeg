@@ -18,5 +18,6 @@ from .pgi import (
     SimplePGIwithNonlinearRelationshipsSmallness,
     SimplePGIwithRelationships,
 )
+
 from .cross_gradient import CrossGradient
 from .correspondence import LinearCorrespondence
