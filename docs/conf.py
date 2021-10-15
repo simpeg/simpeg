@@ -39,8 +39,6 @@ sys.path.append(os.path.abspath(".{}_ext".format(os.path.sep)))
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
-    "sphinx.ext.todo",
-    "sphinx.ext.linkcode",
     "sphinx.ext.autodoc",
     "numpydoc",
     "sphinx.ext.autosummary",
@@ -55,6 +53,7 @@ extensions = [
     "sphinx_toolbox.collapse",
     "nbsphinx",
     "sphinx_gallery.gen_gallery",
+    "sphinx.ext.todo",
     "edit_on_github",
 ]
 
@@ -417,7 +416,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "simpeg", "SimPEG Documentation", ["SimPEG Team"], 1)]
+man_pages = [("index", "simpeg", u"SimPEG Documentation", [u"SimPEG Team"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -442,8 +441,8 @@ texinfo_documents = [
     (
         "index",
         "SimPEG",
-        "SimPEG Documentation",
-        "SimPEG Team",
+        u"SimPEG Documentation",
+        u"SimPEG Team",
         "SimPEG",
         "Simulation and parameter estimation in geophyiscs.",
         "Miscellaneous",
@@ -486,23 +485,27 @@ sphinx_gallery_conf = {
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 # texinfo_show_urls = 'footnote'
 
+graphviz_dot = shutil.which('dot')
+# this must be png, because links on SVG are broken
+graphviz_output_format = "png"
+
 autodoc_member_order = "bysource"
 
 
-def supress_nonlocal_image_warn():
-    import sphinx.environment
+# def supress_nonlocal_image_warn():
+#     import sphinx.environment
 
-    sphinx.environment.BuildEnvironment.warn_node = _supress_nonlocal_image_warn
-
-
-def _supress_nonlocal_image_warn(self, msg, node, **kwargs):
-    from docutils.utils import get_source_line
-
-    if not msg.startswith("nonlocal image URI found:"):
-        self._warnfunc(msg, "{0!s}:{1!s}".format(*get_source_line(node)))
+#     sphinx.environment.BuildEnvironment.warn_node = _supress_nonlocal_image_warn
 
 
-supress_nonlocal_image_warn()
+# def _supress_nonlocal_image_warn(self, msg, node, **kwargs):
+#     from docutils.utils import get_source_line
+
+#     if not msg.startswith("nonlocal image URI found:"):
+#         self._warnfunc(msg, "{0!s}:{1!s}".format(*get_source_line(node)))
+
+
+# supress_nonlocal_image_warn()
 
 # http://stackoverflow.com/questions/11417221/sphinx-autodoc-gives-warning-pyclass-reference-target-not-found-type-warning
 
