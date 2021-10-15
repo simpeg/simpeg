@@ -24,12 +24,16 @@ class CrossGradient(BaseCoupling):
 
     """
 
-    grad_tol = properties.Float(
-        "tolerance for avoiding the exteremly small gradient amplitude", default=1e-10
-    )
-    normalized = properties.Bool(
-        "whether to implement normalized cross-gradient", default=False
-    )
+    # reset this here to clear out the properties attribute
+    cell_weights = None
+
+    # These are not fully implemented yet
+    # grad_tol = properties.Float(
+    #     "tolerance for avoiding the exteremly small gradient amplitude", default=1e-10
+    # )
+    # normalized = properties.Bool(
+    #     "whether to implement normalized cross-gradient", default=False
+    # )
 
     approx_hessian = properties.Bool(
         "whether to use the semi-positive definate approximation for the hessian",
@@ -46,7 +50,7 @@ class CrossGradient(BaseCoupling):
         self._G = regmesh.cell_gradient
         self._Av = sp.diags(np.sqrt(regmesh.vol)) * regmesh.average_face_to_cell
 
-    def _calculate_gradient(self, model):
+    def _calculate_gradient(self, model, normalized=False, rtol=1e-6):
         """
         Calculate the spatial gradients of the model using central difference.
 
@@ -62,40 +66,51 @@ class CrossGradient(BaseCoupling):
                  and each column represents a component of the gradient.
 
         """
-        gradient = (self.Av @ (self._G @ model)).reshape((-1, self.dim), order="F")
+        regmesh = self.regmesh
+        Avs = [regmesh.aveFx2CC, regmesh.aveFy2CC]
+        if regmesh.dim == 3:
+            Avs.append(regmesh.aveFz2CC)
+        Av = sp.block_diag(Avs)
+        gradient = (Av @ (self._G @ model)).reshape((-1, regmesh.dim), order="F")
 
-        if self.normalized:
+        if normalized:
             norms = np.linalg.norm(gradient, axis=-1)
-            ind = norms >= self.grad_tol
-            gradient[ind] /= norms[~ind, None]
-            gradient[~ind] = 0.0
+            ind = norms <= norms.max() * rtol
+            norms[ind] = 1.0
+            gradient /= norms[:, None]
+            gradient[ind] = 0.0
             # set gradient to 0 if amplitude of gradient is extremely small
 
         return gradient
 
-    def calculate_cross_gradient(self, m1, m2):
+    def calculate_cross_gradient(self, model, normalized=False, rtol=1e-6):
         """
-        Calculates the cross-gradients of two models at each cell center.
+        Calculates the cross-gradients of the models at each cell center.
 
-        :param numpy.ndarray m1: model1
-        :param numpy.ndarray m2: model2
-        :param bool normalized: normalizes gradients if True
+        Parameters
+        ----------
+        model : numpy.ndarray
+            The input model, which will be automatically separated into the two
+            parameters internally
+        normalized : bool, optional
+            Whether to normalize the gradient
+        rtol : float, optional
+            relative cuttoff for small gradients in the normalization
 
-        :rtype: numpy.ndarray
-        :returns: array where at each location, we've computed the cross-product
-                  of the gradients of two models.
-
+        Returns
+        -------
+        cross_grad : numpy.ndarray
+            The norm of the cross gradient vector in each active cell.
         """
+        m1, m2 = self.wire_map * model
         # Compute the gradients and concatenate components.
-        grad_list_m1 = self._calculate_gradient(m1)
-        grad_list_m2 = self._calculate_gradient(m2)
+        grad_m1 = self._calculate_gradient(m1, normalized=normalized, rtol=rtol)
+        grad_m2 = self._calculate_gradient(m2, normalized=normalized, rtol=rtol)
 
         # for each model cell, compute the cross product of the gradient vectors.
-        if self._dim == 3:
-            cross_prod_vector = np.cross(grad_list_m1, grad_list_m2)
-            cross_prod = np.linalg.norm(cross_prod_vector, axis=-1)
-        else:
-            cross_prod = np.cross(grad_list_m1, grad_list_m2)
+        cross_prod = np.cross(grad_m1, grad_m2)
+        if self.regmesh.dim == 3:
+            cross_prod = np.linalg.norm(cross_prod, axis=-1)
 
         return cross_prod
 

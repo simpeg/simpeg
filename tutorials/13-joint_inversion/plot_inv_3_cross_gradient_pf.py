@@ -177,11 +177,10 @@ uncertainties_mag = 0.01 * maximum_anomaly_mag * np.ones(np.shape(dobs_mag))
 
 # Define the receivers. The data consist of vertical gravity anomaly measurements.
 # The set of receivers must be defined as a list.
-receiver_list_grav = gravity.receivers.Point(receiver_locations, components="gz")
-receiver_list_grav = [receiver_list_grav]
+receiver_grav = gravity.receivers.Point(receiver_locations, components="gz")
 
 # Define the source field and survey for gravity data
-source_field_grav = gravity.sources.SourceField(receiver_list=receiver_list_grav)
+source_field_grav = gravity.sources.SourceField(receiver_list=[receiver_grav])
 survey_grav = gravity.survey.Survey(source_field_grav)
 
 
@@ -191,9 +190,7 @@ components = ["tmi"]
 
 # Use the observation locations and components to define the receivers. To
 # simulate data, the receivers must be defined as a list.
-receiver_list_mag = magnetics.receivers.Point(receiver_locations, components=components)
-
-receiver_list_mag = [receiver_list_mag]
+receiver_mag = magnetics.receivers.Point(receiver_locations, components=components)
 
 # Define the inducing field H0 = (intensity [nT], inclination [deg], declination [deg])
 inclination = 90
@@ -203,7 +200,7 @@ inducing_field = (strength, inclination, declination)
 
 # Define the source field and survey for gravity data
 source_field_mag = magnetics.sources.SourceField(
-    receiver_list=receiver_list_mag, parameters=inducing_field
+    receiver_list=[receiver_mag], parameters=inducing_field
 )
 survey_mag = magnetics.survey.Survey(source_field_mag)
 
@@ -254,7 +251,7 @@ mesh = TensorMesh([hx, hy, hz], "CCN")
 # Define density contrast values for each unit in g/cc.
 background_dens, background_susc = 1e-6, 1e-6
 
-# Find the indecies of the active cells in forward model (ones below surface)
+# Find the indicies of the active cells in forward model (ones below surface)
 ind_active = surface2ind_topo(mesh, xyz_topo)
 
 # Define mapping from model to active cells
@@ -263,7 +260,7 @@ model_map = maps.IdentityMap(nP=nC)  # model consists of a value for each active
 
 # Create Wires Map that maps from stacked models to individual model components
 # m1 refers to density model, m2 refers to susceptibility
-wires = maps.Wires(("m1", nC), ("m2", nC))
+wires = maps.Wires(("density", nC), ("susceptibility", nC))
 
 # Define and plot starting model
 starting_model = np.r_[background_dens * np.ones(nC), background_susc * np.ones(nC)]
@@ -278,14 +275,14 @@ starting_model = np.r_[background_dens * np.ones(nC), background_susc * np.ones(
 #
 
 simulation_grav = gravity.simulation.Simulation3DIntegral(
-    survey=survey_grav, mesh=mesh, rhoMap=wires.m1, actInd=ind_active
+    survey=survey_grav, mesh=mesh, rhoMap=wires.density, actInd=ind_active
 )
 
 simulation_mag = magnetics.simulation.Simulation3DIntegral(
     survey=survey_mag,
     mesh=mesh,
     modelType="susceptibility",
-    chiMap=wires.m2,
+    chiMap=wires.susceptibility,
     actInd=ind_active,
 )
 
@@ -310,14 +307,14 @@ dmis_grav = data_misfit.L2DataMisfit(data=data_object_grav, simulation=simulatio
 dmis_mag = data_misfit.L2DataMisfit(data=data_object_mag, simulation=simulation_mag)
 
 # Define the regularization (model objective function).
-reg_grav = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m1)
-reg_mag = regularization.Simple(mesh, indActive=ind_active, mapping=wires.m2)
+reg_grav = regularization.Simple(mesh, indActive=ind_active, mapping=wires.density)
+reg_mag = regularization.Simple(
+    mesh, indActive=ind_active, mapping=wires.susceptibility
+)
 
 # Define the coupling term to connect two different physical property models
 lamda = 2.25e13  # weight for coupling term
-cross_grad = regularization.CrossGradient(
-    mesh, indActive=ind_active, mapping=(wires.m1 + wires.m2)
-)
+cross_grad = regularization.CrossGradient(mesh, wires, indActive=ind_active)
 
 # combo
 dmis = dmis_grav + dmis_mag
@@ -350,21 +347,21 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.Joint_BetaEstimate_ByEig(beta0_ratio=1e0)
+starting_beta = directives.PairedBetaEstimate_ByEig(beta0_ratio=1e0)
 # starting_beta.n_pw_iter = 10
 
 # Defining the fractional decrease in beta and the number of Gauss-Newton solves
 # for each beta value.
-beta_schedule = directives.Joint_BetaSchedule(coolingFactor=5, coolingRate=1)
+beta_schedule = directives.CrossGradientBetaSchedule(cooling_factor=5, cooling_rate=1)
 
 # Options for outputting recovered models and predicted data for each beta.
-save_iteration = directives.Joint_SaveOutputEveryIteration(save_txt=False)
+save_iteration = directives.CrossGradientSaveOutputEveryIteration(save_txt=False)
 
-joint_inv_dir = directives.Joint_InversionDirective()
+joint_inv_dir = directives.CrossGradientInversionDirective()
 
-stopping = directives.Joint_Stopping(tol=1e-6)
+stopping = directives.CrossGradientStopping(tol=1e-6)
 
-sensitivity_weights = directives.Joint_UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()
@@ -404,110 +401,54 @@ recovered_model = inv.run(starting_model)
 # Load the true model (was defined on the whole mesh) and extract only the
 # values on active cells.
 
-true_model_dens = np.loadtxt("true_model_dens.txt")
-true_model_dens = true_model_dens[ind_active]
+true_model_dens = np.loadtxt(dir_path + "true_model_dens.txt")
+true_model_dens[~ind_active] = np.NaN
 
-true_model_susc = np.loadtxt("true_model_susc.txt")
-true_model_susc = true_model_susc[ind_active]
+true_model_susc = np.loadtxt(dir_path + "true_model_susc.txt")
+true_model_susc[~ind_active] = np.NaN
 
-# Plot True Density Model
-fig = plt.figure(figsize=(9, 4))
-plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
+# Plot True Model
+fig = plt.figure(figsize=(9, 8))
+ax1 = plt.subplot(211)
 
-ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
-mesh.plotSlice(
-    plotting_map * true_model_dens,
-    normal="Y",
-    ax=ax1,
-    ind=int(mesh.nCy / 2),
-    grid=True,
-    clim=(np.min(true_model_dens), np.max(true_model_dens)),
-    pcolorOpts={"cmap": "viridis"},
-)
+(im,) = mesh.plot_slice(true_model_dens, normal="Y", ax=ax1, grid=True)
 ax1.set_title("True density model slice at y = 0 m")
-
-ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
-norm = mpl.colors.Normalize(vmin=np.min(true_model_dens), vmax=np.max(true_model_dens))
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
-)
+cbar = plt.colorbar(im, format="%.1e")
 cbar.set_label("g/cc", rotation=270, labelpad=15, size=12)
 
-plt.show()
-
-
-# Plot True Susceptibility Model
-fig = plt.figure(figsize=(9, 4))
-ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
-mesh.plotSlice(
-    plotting_map * true_model_susc,
-    normal="Y",
-    ax=ax1,
-    ind=int(mesh.nCy / 2),
-    grid=True,
-    clim=(np.min(true_model_susc), np.max(true_model_susc)),
-    pcolorOpts={"cmap": "viridis"},
+ax2 = plt.subplot(212)
+(im,) = mesh.plot_slice(
+    true_model_susc, normal="Y", ax=ax2, grid=True, pcolor_opts={"cmap": "inferno"}
 )
-ax1.set_title("True susceptibility model slice at y = 0 m")
 
-ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
-norm = mpl.colors.Normalize(vmin=np.min(true_model_susc), vmax=np.max(true_model_susc))
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
-)
+ax2.set_title("True susceptibility model slice at y = 0 m")
+cbar = plt.colorbar(im, format="%.1e")
 cbar.set_label("SI", rotation=270, labelpad=15, size=12)
-
+plt.tight_layout()
 plt.show()
 
-
-# Plot Recovered Density Model
-m_dens_joint, m_susc_joint = wires.m1 * recovered_model, wires.m2 * recovered_model
-fig = plt.figure(figsize=(9, 4))
+# Plot Recovered Model
+m_dens_joint, m_susc_joint = wires * recovered_model
 plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 
-ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
-mesh.plotSlice(
-    plotting_map * m_dens_joint,
-    normal="Y",
-    ax=ax1,
-    ind=int(mesh.nCy / 2),
-    grid=True,
-    clim=(-0.04, 0.03),
-    pcolorOpts={"cmap": "viridis"},
+fig = plt.figure(figsize=(9, 8))
+ax1 = plt.subplot(211)
+(im,) = mesh.plotSlice(
+    plotting_map * m_dens_joint, normal="Y", ax=ax1, clim=(-0.04, 0.03),
 )
 ax1.set_title("Density model slice at y = 0 m")
-
-ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
-norm = mpl.colors.Normalize(vmin=-0.04, vmax=0.03)
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
-)
+cbar = plt.colorbar(im)
 cbar.set_label("g/cc", rotation=270, labelpad=15, size=12)
 
-plt.show()
-
-
-# Plot Recovered Susceptibility Model
-fig = plt.figure(figsize=(9, 4))
-ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
-mesh.plotSlice(
-    plotting_map * m_susc_joint,
-    normal="Y",
-    ax=ax1,
-    ind=int(mesh.nCy / 2),
-    grid=True,
-    clim=(np.min(m_susc_joint), np.max(m_susc_joint)),
-    pcolorOpts={"cmap": "viridis"},
+ax2 = plt.subplot(212)
+(im,) = mesh.plotSlice(
+    plotting_map * m_susc_joint, normal="Y", ax=ax2, pcolor_opts={"cmap": "inferno"}
 )
-ax1.set_title("Susceptibility model slice at y = 0 m")
-
-ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
-norm = mpl.colors.Normalize(vmin=np.min(m_susc_joint), vmax=np.max(m_susc_joint))
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
-)
+ax2.set_title("Susceptibility model slice at y = 0 m")
+cbar = plt.colorbar(im)
 cbar.set_label("SI", rotation=270, labelpad=15, size=12)
 
+plt.tight_layout()
 plt.show()
 
 
@@ -517,59 +458,29 @@ plt.show()
 #
 
 # Normalized Cross Gradient of Jointly Recovered Susceptibility and Density Models
-cross_grad.normazlied = True
-ncg = cross_grad.calculate_cross_gradient(m_dens_joint, m_susc_joint)
+ncg = cross_grad.calculate_cross_gradient(recovered_model, normalized=True)
 
 fig = plt.figure(figsize=(9, 4))
-ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
-mesh.plotSlice(
-    plotting_map * ncg,
-    normal="Y",
-    ax=ax1,
-    ind=int(mesh.nCy / 2),
-    grid=True,
-    clim=(ncg.min(), ncg.max()),
-    pcolorOpts={"cmap": "viridis"},
-)
-ax1.set_title("Normalized cross gradient for joint inversion slice at y = 0 m")
-
-ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
-norm = mpl.colors.Normalize(vmin=ncg.min(), vmax=ncg.max())
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
-)
-cbar.set_label("SI", rotation=270, labelpad=15, size=12)
-
+ax = plt.subplot(111)
+(im,) = mesh.plot_slice(plotting_map * ncg, normal="Y", ax=ax, grid=True,)
+ax.set_title("Normalized cross gradient for joint inversion slice at y = 0 m")
+cbar = plt.colorbar(im, format="%.1e")
+cbar.set_label("|cross grad|", rotation=270, labelpad=15, size=12)
 plt.show()
 
-
 # Normalized Cross Gradient of Separately Recovered Susceptibility and Density Models
-m_dens_single = np.loadtxt("single_model_dens.txt")
-m_susc_single = np.loadtxt("single_model_susc.txt")
+m_dens_single = np.loadtxt(dir_path + "single_model_dens.txt")
+m_susc_single = np.loadtxt(dir_path + "single_model_susc.txt")
+m_separate = np.r_[m_dens_single[ind_active], m_susc_single[ind_active]]
 
-ncg_single = cross_grad.calculate_cross_gradient(
-    m_dens_single[ind_active], m_susc_single[ind_active],
-)
+ncg_single = cross_grad.calculate_cross_gradient(m_separate, normalized=True)
 
 fig = plt.figure(figsize=(9, 4))
-ax1 = fig.add_axes([0.08, 0.1, 0.75, 0.8])
-mesh.plotSlice(
-    plotting_map * ncg_single,
-    normal="Y",
-    ax=ax1,
-    ind=int(mesh.nCy / 2),
-    grid=True,
-    clim=(ncg.min(), ncg.max()),
-    pcolorOpts={"cmap": "viridis"},
-)
-ax1.set_title("Normalized cross gradient for separate inversion slice at y = 0 m")
-
-ax2 = fig.add_axes([0.85, 0.1, 0.05, 0.8])
-norm = mpl.colors.Normalize(vmin=ncg.min(), vmax=ncg.max())
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, orientation="vertical", cmap=mpl.cm.viridis, format="%.1e"
-)
-cbar.set_label("SI", rotation=270, labelpad=15, size=12)
+ax = plt.subplot(111)
+(im,) = mesh.plot_slice(plotting_map * ncg_single, normal="Y", ax=ax, grid=True,)
+ax.set_title("Normalized cross gradient for separate inversion slice at y = 0 m")
+cbar = plt.colorbar(im, format="%.1e")
+cbar.set_label("|cross grad|", rotation=270, labelpad=15, size=12)
 
 plt.show()
 
@@ -578,7 +489,7 @@ plt.show()
 fig = plt.figure(figsize=(14, 5))
 ax0 = plt.subplot(121)
 ax0.scatter(
-    plotting_map * m_dens_joint, plotting_map * m_susc_joint, s=4, c="black",
+    plotting_map * m_dens_joint, plotting_map * m_susc_joint, s=4, c="black", alpha=0.1
 )
 
 ax0.set_xlabel("Density", size=12)
@@ -587,9 +498,7 @@ ax0.tick_params(labelsize=12)
 ax0.set_title("Joint inversion")
 
 ax1 = plt.subplot(122)
-ax1.scatter(
-    m_dens_single, m_susc_single, s=4, c="black",
-)
+ax1.scatter(m_dens_single, m_susc_single, s=4, c="black", alpha=0.1)
 
 ax1.set_xlabel("Density", size=12)
 ax1.set_ylabel("Susceptibility", size=12)
