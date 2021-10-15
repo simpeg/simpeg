@@ -62,6 +62,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
     mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
 
     props.Reciprocal(mu, mui)
+    
+    forward_only = properties.Boolean(
+        "If True, A-inverse not stored at each frequency in forward simulation", default=False
+    )
 
     survey = properties.Instance("a survey object", Survey, required=True)
 
@@ -82,11 +86,11 @@ class BaseFDEMSimulation(BaseEMSimulation):
             self.Ainv
         except AttributeError:
             if self.verbose:
-                print("nFreq =", self.survey.nFreq)
-            self.Ainv = [None for i in range(self.survey.nFreq)]
+                print("nFreq =", self.survey.num_frequencies)
+            self.Ainv = [None for i in range(self.survey.num_frequencies)]
 
         if self.Ainv[0] is not None:
-            for i in range(self.survey.nFreq):
+            for i in range(self.survey.num_frequencies):
                 self.Ainv[i].clean()
 
             if self.verbose:
@@ -94,13 +98,17 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         f = self.fieldsPair(self)
 
-        for nf, freq in enumerate(self.survey.freqs):
+        for nf, freq in enumerate(self.survey.frequencies):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            self.Ainv[nf] = self.Solver(A, **self.solverOpts)
+            self.Ainv[nf] = self.solver(A, **self.solver_opts)
             u = self.Ainv[nf] * rhs
             Srcs = self.survey.get_sources_by_frequency(freq)
             f[Srcs, self._solutionType] = u
+            if self.forward_only:
+                if self.verbose:
+                    print("Fields simulated for frequency {}".format(nf))
+                self.Ainv[nf].clean()
         return f
 
     # @profile
@@ -124,7 +132,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         # Jv = Data(self.survey)
         Jv = []
 
-        for nf, freq in enumerate(self.survey.freqs):
+        for nf, freq in enumerate(self.survey.frequencies):
             for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
@@ -158,7 +166,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         Jtv = np.zeros(m.size)
 
-        for nf, freq in enumerate(self.survey.freqs):
+        for nf, freq in enumerate(self.survey.frequencies):
             for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, self._solutionType]
                 df_duT_sum = 0
@@ -883,21 +891,21 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_e(Simulation3DElectricField):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_b(Simulation3DMagneticFluxDensity):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_h(Simulation3DMagneticField):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_j(Simulation3DCurrentDensity):
     pass

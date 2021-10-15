@@ -54,7 +54,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             # Get the system
             A = self.getA(freq)
             # Factor
-            Ainv = self.Solver(A, **self.solver_opts)
+            Ainv = self.solver(A, **self.solver_opts)
 
             for src in self.survey.get_sources_by_frequency(freq):
                 # We need fDeriv_m = df/du*du/dm + df/dm
@@ -108,7 +108,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         for freq in self.survey.frequencies:
             AT = self.getA(freq).T
 
-            ATinv = self.Solver(AT, **self.solver_opts)
+            ATinv = self.solver(AT, **self.solver_opts)
 
             for src in self.survey.get_sources_by_frequency(freq):
                 # u_src needs to have both polarizations
@@ -183,7 +183,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     @property
     def MeMui(self):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         if getattr(self, "_MeMui", None) is None:
             self._MeMui = self.mesh.getEdgeInnerProduct(1.0 / mu_0)
@@ -192,7 +192,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     @property
     def MfSigma(self):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         # if getattr(self, '_MfSigma', None) is None:
         self._MfSigma = self.mesh.getFaceInnerProduct(self.sigma)
@@ -200,7 +200,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
     def MfSigmaDeriv(self, u):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         # if getattr(self, '_MfSigmaDeriv', None) is None:
         self._MfSigmaDeriv = (
@@ -223,11 +223,11 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
     def getA(self, freq):
         """
-            Function to get the A matrix.
+        Function to get the A matrix.
 
-            :param float freq: Frequency
-            :rtype: scipy.sparse.csr_matrix
-            :return: A
+        :param float freq: Frequency
+        :rtype: scipy.sparse.csr_matrix
+        :return: A
         """
 
         # Note: need to use the code above since in the 1D problem I want
@@ -256,11 +256,11 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
     def getRHS(self, freq):
         """
-            Function to return the right hand side for the system.
+        Function to return the right hand side for the system.
 
-            :param float freq: Frequency
-            :rtype: numpy.ndarray
-            :return: RHS for 1 polarizations, primary fields (nF, 1)
+        :param float freq: Frequency
+        :rtype: numpy.ndarray
+        :return: RHS for 1 polarizations, primary fields (nF, 1)
         """
 
         # Get sources for the frequncy(polarizations)
@@ -300,7 +300,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solver_opts)
+            Ainv = self.solver(A, **self.solver_opts)
             e_s = Ainv * rhs
 
             # Store the fields
@@ -467,7 +467,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
             # Solve the system
-            Ainv = self.Solver(A, **self.solver_opts)
+            Ainv = self.solver(A, **self.solver_opts)
             e_s = Ainv * rhs
 
             # Store the fields
@@ -504,7 +504,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     #     A = self.getA(freq)
     #     rhs = self.getRHS(freq)
     #     # Solve the system
-    #     Ainv = self.Solver(A, **self.solver_opts)
+    #     Ainv = self.solver(A, **self.solver_opts)
     #     e_s = Ainv * rhs
     #
     #     # Store the fields
@@ -538,7 +538,7 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
     #     A = self.getA(freq)
     #     rhs = self.getRHS(freq)
     #     # Solve the system
-    #     Ainv = self.Solver(A, **self.solver_opts)
+    #     Ainv = self.solver(A, **self.solver_opts)
     #     e_s = Ainv * rhs
     #
     #     # Store the fields
@@ -591,11 +591,11 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_ePrimSec(Simulation3DPrimarySecondary):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem1D_ePrimSec(Simulation1DPrimarySecondary):
     pass

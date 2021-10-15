@@ -6,9 +6,9 @@ parameters:
          'tests/examples/test_examples_1.py',
          'tests/examples/test_examples_2.py',
          'tests/examples/test_examples_3.py',
-         'tests/examples/test_tutorials_1.py tests/examples/test_tutorials_2.py tests/examples/test_tutorials_3.py',
-         'tests/pf',
-         'tests/dask',
+         'tests/examples/test_tutorials_1.py tests/examples/test_tutorials_2.py',
+         'tests/examples/test_tutorials_3.py',
+         'tests/pf tests/dask',
          ]
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
               eval "$(conda shell.bash hook)"
               conda activate test
               conda install --yes --quiet numpy scipy matplotlib ipython h5py
-              conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec
+              conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec pymatsolver
               pip install -r requirements_dev.txt
               pip install pytest-azurepipelines
               pip install -e .

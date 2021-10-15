@@ -134,8 +134,8 @@ class Dipole(BaseRx):
             warnings.warn(
                 "The locationsM property has been deprecated. Please set the "
                 "locations_m property instead. This will be removed in version"
-                " 0.15.0 of SimPEG",
-                DeprecationWarning,
+                " 0.16.0 of SimPEG",
+                FutureWarning,
             )
 
         if "locationsN" in kwargs.keys():
@@ -143,8 +143,8 @@ class Dipole(BaseRx):
             warnings.warn(
                 "The locationsN property has been deprecated. Please set the "
                 "locations_n property instead. This will be removed in version"
-                " 0.15.0 of SimPEG",
-                DeprecationWarning,
+                " 0.16.0 of SimPEG",
+                FutureWarning,
             )
 
         # if locations_m set, then use locations_m, locations_n
@@ -184,6 +184,14 @@ class Dipole(BaseRx):
         # instantiate
         super(Dipole, self).__init__(**kwargs)
         self.locations = locations
+
+    def __repr__(self):
+        return ",\n".join(
+            [
+                f"{self.__class__.__name__}(m: {m}; n: {n})"
+                for (m, n) in zip(self.locations_m, self.locations_n)
+            ]
+        )
 
     @property
     def locations_m(self):
@@ -228,6 +236,11 @@ class Pole(BaseRx):
     #     # We may not need this ...
     #     BaseRx.__init__(self, locations)
 
+    def __repr__(self):
+        return ",\n".join(
+            [f"{self.__class__.__name__}(m: {m})" for m in self.locations]
+        )
+
     @property
     def nD(self):
         """Number of data in the receiver."""
@@ -250,11 +263,11 @@ class Pole(BaseRx):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Dipole_ky(Dipole):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Pole_ky(Pole):
     pass

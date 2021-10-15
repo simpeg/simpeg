@@ -182,12 +182,12 @@ def read_grav3d_ubc(obs_file):
 
 def write_grav3d_ubc(filename, data_object):
     """
-        Write UBC grav file format
+    Write UBC grav file format
 
-        INPUT:
-        :param: fileName, path to the UBC obs grav file
-        :param: survey Gravity object
-        :param: data array
+    INPUT:
+    :param: fileName, path to the UBC obs grav file
+    :param: survey Gravity object
+    :param: data array
 
     """
     survey = data_object.survey
@@ -238,9 +238,9 @@ def read_gg3d_ubc(obs_file):
         factor = np.zeros(n_comp)
 
         # Convert component types from UBC to SimPEG
-        ubc_types = ["xx", "xy", "xz", "yy", "yz", "zz"]
-        simpeg_types = ["gyy", "gxy", "gyz", "gxx", "gxz", "gzz"]
-        factor_list = [1.0, 1.0, -1.0, 1.0, -1.0, 1.0]
+        ubc_types = ["xx", "xy", "xz", "yy", "yz", "zz", "uv"]
+        simpeg_types = ["gyy", "gxy", "gyz", "gxx", "gxz", "gzz", "guv"]
+        factor_list = [1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1.0]
 
         for ii in range(n_comp):
             k = ubc_types.index(components[ii])
@@ -289,12 +289,12 @@ def read_gg3d_ubc(obs_file):
 
 def write_gg3d_ubc(filename, data_object):
     """
-        Write UBC gravity gradiometry file format
+    Write UBC gravity gradiometry file format
 
-        INPUT:
-        :param: fileName, path to the UBC obs grav file
-        :param: survey Gravity object
-        :param: data array
+    INPUT:
+    :param: fileName, path to the UBC obs grav file
+    :param: survey Gravity object
+    :param: data array
 
     """
     survey = data_object.survey
@@ -304,9 +304,9 @@ def write_gg3d_ubc(filename, data_object):
     n_comp = len(components)
     factor = np.ones(n_comp)
 
-    ubc_types = ["xx", "xy", "xz", "yy", "yz", "zz"]
-    simpeg_types = ["gyy", "gxy", "gyz", "gxx", "gxz", "gzz"]
-    factor_list = [1.0, 1.0, -1.0, 1.0, -1.0, 1.0]
+    ubc_types = ["xx", "xy", "xz", "yy", "yz", "zz", "uv"]
+    simpeg_types = ["gyy", "gxy", "gyz", "gxx", "gxz", "gzz", "guv"]
+    factor_list = [1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1.0]
     for ii in range(0, len(components)):
         k = simpeg_types.index(components[ii])
         factor[ii] = factor_list[k]

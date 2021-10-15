@@ -100,7 +100,7 @@ class StreamingCurrents(Src.BaseSrc):
     @property
     def V(self):
         """
-            :code:`V`
+        :code:`V`
         """
         if getattr(self, "_V", None) is None:
             self._V = Utils.sdiag(self.mesh.vol)
@@ -109,7 +109,7 @@ class StreamingCurrents(Src.BaseSrc):
     @property
     def MfLi(self):
         """
-            :code:`MfLi`
+        :code:`MfLi`
         """
         if getattr(self, "_MfLi", None) is None:
             self._MfLi = self.mesh.getFaceInnerProduct(1.0 / self.L)
@@ -118,7 +118,7 @@ class StreamingCurrents(Src.BaseSrc):
     @property
     def MfLiI(self):
         """
-            Inverse of :code:`_MfLiI`
+        Inverse of :code:`_MfLiI`
         """
         if getattr(self, "_MfLiI", None) is None:
             self._MfLiI = self.mesh.getFaceInnerProduct(1.0 / self.L, invMat=True)

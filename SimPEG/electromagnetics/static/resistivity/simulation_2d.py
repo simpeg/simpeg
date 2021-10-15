@@ -170,7 +170,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     def getJ(self, m, f=None):
         """
-            Generate Full sensitivity matrix
+        Generate Full sensitivity matrix
         """
         if self._Jmatrix is not None:
             return self._Jmatrix
@@ -185,7 +185,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     def Jvec(self, m, v, f=None):
         """
-            Compute sensitivity matrix (J) and vector (v) product.
+        Compute sensitivity matrix (J) and vector (v) product.
         """
         if self.storeJ:
             J = self.getJ(m, f=f)
@@ -230,7 +230,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     def Jtvec(self, m, v, f=None):
         """
-            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
         """
         if self.storeJ:
             J = self.getJ(m, f=f)
@@ -246,8 +246,8 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     def _Jtvec(self, m, v=None, f=None):
         """
-            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
-            Full J matrix can be computed by inputing v=None
+        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+        Full J matrix can be computed by inputing v=None
         """
         kys = self._quad_points
         weights = self._quad_weights
@@ -384,8 +384,8 @@ class BaseDCSimulation2D(BaseEMSimulation):
     @property
     def MnSigma(self):
         """
-            Node inner product matrix for \\(\\sigma\\). Used in the E-B
-            formulation
+        Node inner product matrix for \\(\\sigma\\). Used in the E-B
+        formulation
         """
         # TODO: only works isotropic sigma
         if getattr(self, "_MnSigma", None) is None:
@@ -397,7 +397,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
     @property
     def MnSigmaDerivMat(self):
         """
-            Derivative of MnSigma with respect to the model
+        Derivative of MnSigma with respect to the model
         """
         if getattr(self, "_MnSigmaDerivMat", None) is None:
             vol = self.mesh.vol
@@ -406,7 +406,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     def MnSigmaDeriv(self, u, v, adjoint=False):
         """
-            Derivative of MnSigma with respect to the model times a vector (u)
+        Derivative of MnSigma with respect to the model times a vector (u)
         """
         if v.ndim > 1:
             u = u[:, None]
@@ -428,8 +428,8 @@ class BaseDCSimulation2D(BaseEMSimulation):
     @property
     def MccRhoi(self):
         """
-            Cell inner product matrix for \\(\\rho^{-1}\\). Used in the H-J
-            formulation
+        Cell inner product matrix for \\(\\rho^{-1}\\). Used in the H-J
+        formulation
         """
         # TODO: only works isotropic rho
         if getattr(self, "_MccRhoi", None) is None:
@@ -439,7 +439,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
     @property
     def MccRhoiDerivMat(self):
         """
-            Derivative of MccRho with respect to the model
+        Derivative of MccRho with respect to the model
         """
         if getattr(self, "_MccRhoiDerivMat", None) is None:
             rho = self.rho
@@ -449,7 +449,7 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     def MccRhoiDeriv(self, u, v, adjoint=False):
         """
-            Derivative of :code:`MccRhoi` with respect to the model.
+        Derivative of :code:`MccRhoi` with respect to the model.
         """
         if self.rhoMap is None:
             return Zero()
@@ -767,11 +767,11 @@ Simulation2DCellCentred = Simulation2DCellCentered  # UK and US
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem2D_N(Simulation2DNodal):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem2D_CC(Simulation2DCellCentered):
     pass

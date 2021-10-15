@@ -24,29 +24,31 @@ from discretize.utils import (
     invPropertyTensor,
 )
 
-avExtrap = deprecate_method(av_extrap, "avExtrap", removal_version="0.15.0")
+avExtrap = deprecate_method(
+    av_extrap, "avExtrap", removal_version="0.16.0", future_warn=True
+)
 
 
 def diagEst(matFun, n, k=None, approach="Probing"):
     """
-        Estimate the diagonal of a matrix, A. Note that the matrix may be a
-        function which returns A times a vector.
+    Estimate the diagonal of a matrix, A. Note that the matrix may be a
+    function which returns A times a vector.
 
-        Three different approaches have been implemented:
+    Three different approaches have been implemented:
 
-        1. Probing: cyclic permutations of vectors with 1's and 0's (default)
-        2. Ones: random +/- 1 entries
-        3. Random: random vectors
+    1. Probing: cyclic permutations of vectors with 1's and 0's (default)
+    2. Ones: random +/- 1 entries
+    3. Random: random vectors
 
-        :param callable matFun: takes a (numpy.ndarray) and multiplies it by a matrix to estimate the diagonal
-        :param int n: size of the vector that should be used to compute matFun(v)
-        :param int k: number of vectors to be used to estimate the diagonal
-        :param str approach: approach to be used for getting vectors
-        :rtype: numpy.ndarray
-        :return: est_diag(A)
+    :param callable matFun: takes a (numpy.ndarray) and multiplies it by a matrix to estimate the diagonal
+    :param int n: size of the vector that should be used to compute matFun(v)
+    :param int k: number of vectors to be used to estimate the diagonal
+    :param str approach: approach to be used for getting vectors
+    :rtype: numpy.ndarray
+    :return: est_diag(A)
 
-        Based on Saad http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf,
-        and https://www.cita.utoronto.ca/~niels/diagonal.pdf
+    Based on Saad https://doi.org/10.1016/j.apnum.2007.01.003,
+    and https://www.cita.utoronto.ca/~niels/diagonal.pdf
     """
 
     if type(matFun).__name__ == "ndarray":

@@ -16,6 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from scipy.constants import mu_0
+
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:

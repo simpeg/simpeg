@@ -130,7 +130,7 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
     try:
         from pymatsolver import Pardiso
 
-        problem.Solver = Pardiso
+        problem.solver = Pardiso
     except:
         pass
 

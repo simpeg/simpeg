@@ -74,7 +74,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
     def getJtJdiag(self, m, W=None):
         """
-            Return the diagonal of JtJ
+        Return the diagonal of JtJ
         """
         if self.gtgdiag is None:
             J = self.getJ(m)
@@ -93,7 +93,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
     def Jvec(self, m, v, f=None):
         """
-            Compute sensitivity matrix (J) and vector (v) product.
+        Compute sensitivity matrix (J) and vector (v) product.
         """
 
         if f is None:
@@ -125,7 +125,7 @@ class BaseDCSimulation(BaseEMSimulation):
 
     def Jtvec(self, m, v, f=None):
         """
-            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
         """
 
         if f is None:
@@ -141,8 +141,8 @@ class BaseDCSimulation(BaseEMSimulation):
 
     def _Jtvec(self, m, v=None, f=None):
         """
-            Compute adjoint sensitivity matrix (J^T) and vector (v) product.
-            Full J matrix can be computed by inputing v=None
+        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+        Full J matrix can be computed by inputing v=None
         """
 
         if self._mini_survey is not None:
@@ -574,11 +574,11 @@ Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_N(Simulation3DNodal):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_CC(Simulation3DCellCentered):
     pass
