@@ -415,6 +415,8 @@ class BaseCoupling(BaseRegularization):
 
     def __init__(self, mesh, wire_map, **kwargs):
         super().__init__(mesh, wire_map=wire_map, **kwargs)
+        # do this as a hack to make TreeMesh work.
+        self.regmesh.regularization_type = "Tikhonov"
 
     @properties.validator("wire_map")
     def _wire_map_validator(self, change):

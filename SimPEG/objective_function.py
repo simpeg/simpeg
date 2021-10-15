@@ -140,11 +140,12 @@ class BaseObjectiveFunction(BaseSimPEG):
                 x = np.random.randn(self.nP)
 
         v = x + 0.1 * np.random.rand(len(x))
+        expectedOrder = kwargs.pop("expectedOrder", 1)
         return checkDerivative(
             lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)],
             x,
             num=num,
-            expectedOrder=1,
+            expectedOrder=expectedOrder,
             plotIt=plotIt,
             **kwargs
         )

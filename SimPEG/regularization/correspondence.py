@@ -72,8 +72,8 @@ class LinearCorrespondence(BaseCoupling):
         """
         k1, k2, k3 = self.coefficients
         r = self.relation(model)
-        dc_dm1 = 2 * k1 * r
-        dc_dm2 = 2 * k2 * r
+        dc_dm1 = k1 * r
+        dc_dm2 = k2 * r
 
         result = np.r_[dc_dm1, dc_dm2]
 
@@ -94,12 +94,12 @@ class LinearCorrespondence(BaseCoupling):
         k1, k2, k3 = self.coefficients
         if v is not None:
             v1, v2 = self.wire_map * v
-            p1 = 2 * k1 ** 2 * v1 + 2 * k2 * k1 * v2
-            p2 = 2 * k2 * k1 * v1 + 2 * k2 ** 2 * v2
+            p1 = k1 ** 2 * v1 + k2 * k1 * v2
+            p2 = k2 * k1 * v1 + k2 ** 2 * v2
             return np.r_[p1, p2]
         else:
-            n = self.wire_map.maps[0].nP
-            A = utils.sdiag(np.ones(n) * (2 * k1 ** 2))
-            B = utils.sdiag(np.ones(n) * (2 * k2 ** 2))
-            C = utils.sdiag(np.ones(n) * (2 * k1 * k2))
+            n = self.regmesh.nC
+            A = utils.sdiag(np.ones(n) * (k1 ** 2))
+            B = utils.sdiag(np.ones(n) * (k2 ** 2))
+            C = utils.sdiag(np.ones(n) * (k1 * k2))
             return sp.bmat([[A, C], [C, B]], format="csr")
