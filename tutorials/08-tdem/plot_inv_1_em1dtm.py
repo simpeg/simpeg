@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-import SimPEG.electromagnetics.time_domain_1d as em1d
+import SimPEG.electromagnetics.time_domain as tdem
 from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_time, plot_layer
 from SimPEG.utils import mkvc
 from SimPEG import (
@@ -110,30 +110,28 @@ source_radius = 6.                             # loop radius
 # Receiver geometry
 receiver_location = np.array([0., 0., 20.])
 receiver_orientation = "z"                     # "x", "y" or "z"
-field_type = "secondary"                       # "secondary", "total" or "ppm"
 
 # Receiver list
 receiver_list = []
 receiver_list.append(
-    em1d.receivers.PointReceiver(
-        receiver_location, times, orientation=receiver_orientation,
-        component="b"
+    tdem.receivers.PointMagneticFluxDensity(
+        receiver_location, times, orientation=receiver_orientation
     )
 )
     
 # Define the source waveform.
-waveform = em1d.waveforms.StepoffWaveform()
+waveform = tdem.sources.StepOffWaveform()
 
 # Sources
 source_list = [
-    em1d.sources.HorizontalLoopSource(
+    tdem.sources.CircularLoop(
         receiver_list=receiver_list, location=source_location, waveform=waveform,
-        current_amplitude=source_current, radius=source_radius
+        current=source_current, radius=source_radius
     )
 ]
 
 # Survey
-survey = em1d.survey.EM1DSurveyTD(source_list)
+survey = tdem.Survey(source_list)
 
 
 ##############################################################
@@ -192,7 +190,7 @@ model_mapping = maps.ExpMap()
 # --------------------------------------------
 #
 
-simulation = em1d.simulation.EM1DTMSimulation(
+simulation = tdem.Simulation1DLayered(
     survey=survey, thicknesses=inv_thicknesses, sigmaMap=model_mapping
 )
 
@@ -216,19 +214,21 @@ dmis.W = 1./uncertainties
 
 # Define the regularization (model objective function)
 reg_map = maps.IdentityMap(nP=mesh.nC)
-reg = regularization.Sparse(mesh, mapping=reg_map)
+reg = regularization.Sparse(
+    mesh, mapping=reg_map, alpha_s=0.01, alpha_x=1.
+)
 
 # set reference model
 reg.mref = starting_model
 
 # Define sparse and blocky norms p, q
-p = 0
+p = 1
 q = 0
 reg.norms = np.c_[p, q]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.ProjectedGNCG(maxIter=100, maxIterLS=20, maxIterCG=20, tolCG=1e-3)
+opt = optimization.ProjectedGNCG(maxIter=100, maxIterLS=20, maxIterCG=30, tolCG=1e-3)
 
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -312,6 +312,7 @@ plot_layer(true_model, true_layers, ax=ax1, showlayers=False, color="k")
 plot_layer(model_mapping * l2_model, mesh, ax=ax1, showlayers=False, color="b")
 plot_layer(model_mapping * recovered_model, mesh, ax=ax1, showlayers=False, color="r")
 ax1.set_xlim(0.01, 10)
+ax1.grid()
 ax1.set_title("True and Recovered Models")
 ax1.legend(["True Model", "L2-Model", "Sparse Model"])
 plt.gca().invert_yaxis()
@@ -325,6 +326,7 @@ ax1 = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 ax1.loglog(times, np.abs(dobs), "k-o")
 ax1.loglog(times, np.abs(dpred_l2), "b-o")
 ax1.loglog(times, np.abs(dpred_final), "r-o")
+ax1.grid()
 ax1.set_xlabel("times (Hz)")
 ax1.set_ylabel("|Hs/Hp| (ppm)")
 ax1.set_title("Predicted and Observed Data")

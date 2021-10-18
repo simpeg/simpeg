@@ -54,6 +54,17 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
     def dpred(self, m, f=None):
         """
+            Return predicted data.
+            Predicted data, (`_pred`) are computed when
+            self.fields is called.
+        """
+        if f is None:
+            f = self.fields(m)
+
+        return f
+
+    def fields(self, m):
+        """
         This method evaluates the Hankel transform for each source and
         receiver and outputs it as a list. Used for computing response
         or sensitivities.
@@ -118,7 +129,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 C1s_dh = C1s.copy()
                 h_vec = self.h
                 i = 0
-                for i_src, src in self.survey.source_list:
+                for i_src, src in enumerate(self.survey.source_list):
                     h = h_vec[i_src]
                     nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
                     ip1 = i + nD
@@ -283,7 +294,7 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
 
         n_layer = len(thicknesses) + 1
         local_survey = Survey(src_list)
-        exp_map = maps.IdentityMap(nP=n_layer)
+        exp_map = maps.ExpMap(nP=n_layer)
 
         if not invert_height:
             # Use Exponential Map

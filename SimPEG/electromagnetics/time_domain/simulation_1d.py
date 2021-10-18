@@ -164,6 +164,17 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
     def dpred(self, m, f=None):
         """
+            Return predicted data.
+            Predicted data, (`_pred`) are computed when
+            self.fields is called.
+        """
+        if f is None:
+            f = self.fields(m)
+
+        return f
+
+    def fields(self, m):
+        """
         This method evaluates the Hankel transform for each source and
         receiver and outputs it as a list. Used for computing response
         or sensitivities.

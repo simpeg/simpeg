@@ -27,7 +27,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from SimPEG import maps
-import SimPEG.electromagnetics.time_domain_1d as em1d
+import SimPEG.electromagnetics.time_domain as tdem
 from SimPEG.electromagnetics.utils.em1d_utils import ColeCole, LogUniform
 
 # sphinx_gallery_thumbnail_number = 3
@@ -36,10 +36,11 @@ from SimPEG.electromagnetics.utils.em1d_utils import ColeCole, LogUniform
 # Create Survey
 # -------------
 #
-# Here we demonstrate a general way to define the receivers, sources and survey.
-# For this tutorial, we define a single horizontal loop source as well
-# receivers which measure the vertical component of the magnetic flux and
-# its time-derivative.
+# Here we demonstrate a general way to define the receivers, sources, waveforms and survey.
+# For this tutorial, the source is a horizontal loop whose current waveform
+# is a unit step-off. Receivers are defined to measure the vertical component of
+# the magnetic flux density and its time-derivative at the loop's center.
+#
 #
 
 source_location = np.array([0., 0., 0.5])  
@@ -49,35 +50,34 @@ source_radius = 10.                             # loop radius
 
 receiver_location = np.array([0., 0., 0.5])
 receiver_orientation = "z"                      # "x", "y" or "z"
-field_type = "secondary"                        # "secondary", "total" or "ppm"
 times = np.logspace(-6, -1, 51)                 # time channels (s)
 
 # Receiver list
 receiver_list = []
 receiver_list.append(
-    em1d.receivers.PointReceiver(
-        receiver_location, times, orientation=receiver_orientation, component="b"
+    tdem.receivers.PointMagneticFluxDensity(
+        receiver_location, times, orientation=receiver_orientation
     )
 )
 receiver_list.append(
-    em1d.receivers.PointReceiver(
-        receiver_location, times, orientation=receiver_orientation, component="dbdt"
+    tdem.receivers.PointMagneticFluxTimeDerivative(
+        receiver_location, times, orientation=receiver_orientation
     )
 )
     
 # Waveform
-waveform = em1d.waveforms.StepoffWaveform()
+waveform = tdem.sources.StepOffWaveform()
 
 # Sources
 source_list = [
-    em1d.sources.HorizontalLoopSource(
+    tdem.sources.CircularLoop(
         receiver_list=receiver_list, location=source_location, waveform=waveform,
-        current_amplitude=current_amplitude, radius=source_radius
+        current=current_amplitude, radius=source_radius
     )
 ]
 
 # Survey
-survey = em1d.survey.EM1DSurveyTD(source_list)
+survey = tdem.Survey(source_list)
 
 
 ###############################################
@@ -143,6 +143,7 @@ ax = fig.add_axes([0.15, 0.1, 0.8, 0.75])
 ax.semilogx(frequencies, sigma*np.ones(len(frequencies)), "b", lw=3)
 ax.semilogx(frequencies, np.real(sigma_complex), "r", lw=3)
 ax.semilogx(frequencies, np.imag(sigma_complex), "r--", lw=3)
+ax.grid()
 ax.set_xlim(np.min(frequencies), np.max(frequencies))
 ax.set_ylim(0., 1.1*sigma)
 ax.set_xlabel("Frequency (Hz)")
@@ -158,6 +159,7 @@ ax = fig.add_axes([0.15, 0.1, 0.8, 0.75])
 ax.semilogx(frequencies, chi*np.ones(len(frequencies)), "b", lw=3)
 ax.semilogx(frequencies, np.real(chi_complex), "r", lw=3)
 ax.semilogx(frequencies, np.imag(chi_complex), "r--", lw=3)
+ax.grid()
 ax.set_xlim(np.min(frequencies), np.max(frequencies))
 ax.set_ylim(-1.1*chi, 1.1*(chi+dchi))
 ax.set_xlabel("Frequency (Hz)")
@@ -188,14 +190,14 @@ ax.legend(
 #
 
 # Simulate response for static conductivity
-simulation_conductive = em1d.simulation.EM1DTMSimulation(
+simulation_conductive = tdem.Simulation1DLayered(
     survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping
 )
 
 dpred_conductive = simulation_conductive.dpred(sigma_model)
 
 # Simulate response for a chargeable Earth
-simulation_chargeable = em1d.simulation.EM1DTMSimulation(
+simulation_chargeable = tdem.Simulation1DLayered(
     survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping,
     eta=eta, tau=tau, c=c
 )
@@ -203,9 +205,11 @@ simulation_chargeable = em1d.simulation.EM1DTMSimulation(
 dpred_chargeable = simulation_chargeable.dpred(sigma_model)
 
 # Simulate response for viscous remanent magnetization
-simulation_vrm = em1d.simulation.EM1DTMSimulation(
+mu0 = 4*np.pi*1e-7
+mu = mu0 * (1 + chi)
+simulation_vrm = tdem.Simulation1DLayered(
     survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping,
-    chi=chi, dchi=dchi, tau1=tau1, tau2=tau2,
+    mu=mu, dchi=dchi, tau1=tau1, tau2=tau2,
 )
 
 dpred_vrm = simulation_vrm.dpred(sigma_model)
@@ -221,6 +225,8 @@ ax1 = fig.add_axes([0.1, 0.1, 0.38, 0.85])
 ax1.loglog(times, np.abs(dpred_conductive[0:len(times)]), 'k', lw=3)
 ax1.loglog(times, np.abs(dpred_chargeable[0:len(times)]), 'r', lw=3)
 ax1.loglog(times, np.abs(dpred_vrm[0:len(times)]), 'b', lw=3)
+ax1.set_xlim([times.min(), times.max()])
+ax1.grid()
 ax1.legend(["Purely Inductive", "Chargeable", "Magnetically Viscous"])
 ax1.set_xlabel("Times (s)")
 ax1.set_ylabel("|B| (T)")
@@ -230,6 +236,8 @@ ax2 = fig.add_axes([0.6, 0.1, 0.38, 0.85])
 ax2.loglog(times, np.abs(dpred_conductive[len(times):]), 'k', lw=3)
 ax2.loglog(times, np.abs(dpred_chargeable[len(times):]), 'r', lw=3)
 ax2.loglog(times, np.abs(dpred_vrm[len(times):]), 'b', lw=3)
+ax2.set_xlim([times.min(), times.max()])
+ax2.grid()
 ax2.legend(["Purely Inductive", "Chargeable", "Magnetically Viscous"])
 ax2.set_xlabel("Times (s)")
 ax2.set_ylabel("|dB/dt| (T/s)")

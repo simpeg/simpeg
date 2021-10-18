@@ -26,7 +26,7 @@ from matplotlib import pyplot as plt
 mpl.rcParams.update({'font.size':16})
 
 from SimPEG import maps
-import SimPEG.electromagnetics.time_domain_1d as em1d
+import SimPEG.electromagnetics.time_domain as tdem
 
 
 #####################################################################
@@ -38,36 +38,32 @@ import SimPEG.electromagnetics.time_domain_1d as em1d
 # 
 
 # Unit stepoff waveform can be defined directly
-stepoff_waveform = em1d.waveforms.StepoffWaveform()
+stepoff_waveform = tdem.sources.StepOffWaveform()
 
 # Rectangular waveform. The user may customize the waveform by setting the start
 # time, end time and on time amplitude for the current waveform.
-waveform_times = np.r_[np.linspace(-0.02, -0.011, 10), -np.logspace(-2, -6, 61), 0.]
-start_time = -0.004
-end_time = 0.
-peak_current_amplitude = 1.
-rectangular_waveform = em1d.waveforms.RectangularWaveform(
-        waveform_times, start_time, end_time, peak_current_amplitude
+eps = 1e-6
+ramp_on = np.r_[-0.004, -0.004+eps]
+ramp_off = np.r_[-eps, 0.]
+rectangular_waveform = tdem.sources.TrapezoidWaveform(
+    ramp_on=ramp_on, ramp_off=ramp_off
 )
 
 # Triangular waveform. The user may customize the waveform by setting the start
 # time, peak time, end time and peak amplitude for the current waveform.
-waveform_times = np.r_[np.linspace(-0.02, -0.011, 10), -np.logspace(-2, -6, 61), 0.]
+eps = 1e-8
 start_time = -0.02
 peak_time = -0.01
-end_time = 0.
-peak_current_amplitude = 1.
-triangle_waveform = em1d.waveforms.TriangleWaveform(
-        waveform_times, start_time, peak_time, end_time, peak_current_amplitude
+off_time = 0.
+triangle_waveform = tdem.sources.TriangularWaveform(
+        startTime=start_time, peakTime=peak_time, offTime=off_time
 )
 
-# VTEM plus 2015 waveform is part of small library of system-specific waveforms.
-# The discretization of the waveform is fixed, however the user may specify
-# the beginning of the off-time and scale the amplitude of the waveform.
-off_time = 0.
-peak_current_amplitude = 1.
-vtem_waveform = em1d.waveforms.VTEMPlusWaveform(
-    off_time=off_time, peak_current_amplitude=peak_current_amplitude
+# Quarter-sine ramp-off
+ramp_on = np.r_[-0.02, -0.01]
+ramp_off = np.r_[-0.01, 0.]
+qs_waveform = tdem.sources.QuarterSineRampOnWaveform(
+    ramp_on=ramp_on, ramp_off=ramp_off
 )
 
 # General waveform. This is a fully general way to define the waveform.
@@ -79,8 +75,8 @@ def custom_waveform(t, tmax):
 
 waveform_times = np.r_[np.linspace(-0.02, -0.011, 10), -np.logspace(-2, -6, 61), 0.]
 waveform_current = custom_waveform(waveform_times, -0.0055)
-general_waveform = em1d.waveforms.GeneralWaveform(
-        waveform_times=waveform_times, waveform_current=waveform_current
+general_waveform = tdem.sources.PiecewiseLinearWaveform(
+        times=waveform_times, currents=waveform_current
 )
 
 ###############################################
@@ -94,15 +90,24 @@ fig = plt.figure(figsize=(8, 6))
 ax = fig.add_axes([0.1, 0.1, 0.85, 0.8])
 
 ax.plot(np.r_[-2e-2, 0., 1e-10, 1e-3], np.r_[1., 1., 0., 0.], 'k', lw=3)
-ax.plot(rectangular_waveform.waveform_times, rectangular_waveform.waveform_current, 'r', lw=2)
-ax.plot(triangle_waveform.waveform_times, triangle_waveform.waveform_current, 'b', lw=2)
-ax.plot(vtem_waveform.waveform_times, vtem_waveform.waveform_current, 'g', lw=2)
-ax.plot(general_waveform.waveform_times, general_waveform.waveform_current, 'm', lw=2)
+plotting_current = [rectangular_waveform.eval(t) for t in waveform_times]
+ax.plot(waveform_times, plotting_current, 'r', lw=2)
+plotting_current = [triangle_waveform.eval(t) for t in waveform_times]
+ax.plot(waveform_times, plotting_current, 'b', lw=2)
+plotting_current = [qs_waveform.eval(t) for t in waveform_times]
+ax.plot(waveform_times, plotting_current, 'g', lw=2)
+plotting_current = [general_waveform.eval(t) for t in waveform_times]
+ax.plot(waveform_times, plotting_current, 'c', lw=2)
 
+ax.grid()
+ax.set_xlim([waveform_times.min(), 1e-3])
 ax.set_xlabel("Time (s)")
 ax.set_ylabel("Current (A)")
 ax.set_title("Waveforms")
-ax.legend(["Step-off", "Rectangular", "Triangle", "VTEM Plus", "General"])
+ax.legend(
+    ["Step-off", "Rectangular", "Triangle", "Quarter-Sine", "General"],
+    loc='lower left'
+)
 
 
 #####################################################################
@@ -118,13 +123,11 @@ ax.legend(["Step-off", "Rectangular", "Triangle", "VTEM Plus", "General"])
 # db/dt. Thus we only have a single receiver in the list.
 receiver_location = np.array([0., 0., 0.])
 receiver_orientation = "z"                    # "x", "y" or "z"
-field_type = "secondary"                      # "secondary", "total" or "ppm"
 times = np.logspace(-4, -1, 41)               # time channels
 
 receiver_list = [
-    em1d.receivers.PointReceiver(
-        receiver_location, times, orientation=receiver_orientation,
-        component="dbdt"
+    tdem.receivers.PointMagneticFluxTimeDerivative(
+        receiver_location, times, orientation=receiver_orientation
     )
 ]
 
@@ -139,46 +142,46 @@ source_list = []
 
 # Stepoff Waveform
 source_list.append(
-    em1d.sources.HorizontalLoopSource(
+    tdem.sources.CircularLoop(
         receiver_list=receiver_list, location=source_location,
-        waveform=stepoff_waveform, radius=source_radius, current_amplitude=current_amplitude
+        waveform=stepoff_waveform, radius=source_radius, current=current_amplitude
     )
 )
     
 # Rectangular Waveform
 source_list.append(
-    em1d.sources.HorizontalLoopSource(
+    tdem.sources.CircularLoop(
         receiver_list=receiver_list, location=source_location,
-        waveform=rectangular_waveform, radius=source_radius, current_amplitude=current_amplitude
+        waveform=rectangular_waveform, radius=source_radius, current=current_amplitude
     )
 )
 
 # Triangle Waveform
 source_list.append(
-    em1d.sources.HorizontalLoopSource(
+    tdem.sources.CircularLoop(
         receiver_list=receiver_list, location=source_location,
-        waveform=triangle_waveform, radius=source_radius, current_amplitude=current_amplitude
+        waveform=triangle_waveform, radius=source_radius, current=current_amplitude
     )
 )
     
-# VTEM Plus Waveform
+# Quarter-sine ramp-off Waveform
 source_list.append(
-    em1d.sources.HorizontalLoopSource(
+    tdem.sources.CircularLoop(
         receiver_list=receiver_list, location=source_location,
-        waveform=vtem_waveform, radius=source_radius, current_amplitude=current_amplitude
+        waveform=qs_waveform, radius=source_radius, current=current_amplitude
     )
 )
     
 # General Waveform
 source_list.append(
-    em1d.sources.HorizontalLoopSource(
+    tdem.sources.CircularLoop(
         receiver_list=receiver_list, location=source_location,
-        waveform=general_waveform, radius=source_radius, current_amplitude=current_amplitude
+        waveform=general_waveform, radius=source_radius, current=current_amplitude
     )
 )
 
 # Survey
-survey = em1d.survey.EM1DSurveyTD(source_list)
+survey = tdem.Survey(source_list)
 
 ###############################################
 # Defining a 1D Layered Earth Model
@@ -206,7 +209,8 @@ sigma_model = sigma * np.ones(n_layer)
 eta_model = eta * np.ones(n_layer)
 tau_model =  tau * np.ones(n_layer)
 c_model = c * np.ones(n_layer)
-chi_model = chi * np.ones(n_layer)
+mu0 = 4*np.pi*1e-7
+mu_model = mu0 * (1 + chi) * np.ones(n_layer)
 
 # Define a mapping for conductivities
 model_mapping = maps.IdentityMap(nP=n_layer)
@@ -217,9 +221,9 @@ model_mapping = maps.IdentityMap(nP=n_layer)
 #
 
 # Define the simulation
-simulation = em1d.simulation.EM1DTMSimulation(
+simulation = tdem.Simulation1DLayered(
     survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping,
-    chi=chi_model
+    mu=mu_model
 )
 
 # Predict data for a given model
@@ -233,11 +237,13 @@ dpred = simulation.dpred(sigma_model)
 fig = plt.figure(figsize = (8, 8))
 d = np.reshape(dpred, (len(source_list), len(times))).T
 ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
-colorlist = ['k', 'b', 'r', 'g', 'm']
+colorlist = ['k', 'b', 'r', 'g', 'c']
 for ii, k in enumerate(colorlist):
     ax.loglog(times, np.abs(d[:, ii]), k, lw=2)
 
-ax.legend(["Step-off", "Rectangular", "Triangle", "VTEM Plus", "General"])
+ax.set_xlim([times.min(), times.max()])
+ax.grid()
+ax.legend(["Step-off", "Rectangular", "Triangle", "Quarter-Sine", "General"])
 ax.set_xlabel("Times (s)")
 ax.set_ylabel("|dB/dt| (T/s)")
 ax.set_title("TEM Response")

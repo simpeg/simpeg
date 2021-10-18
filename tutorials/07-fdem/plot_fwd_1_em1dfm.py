@@ -43,8 +43,9 @@ write_output = False
 # -------------
 #
 # Here we demonstrate a general way to define the receivers, sources and survey.
-# For this tutorial, we define a single vertical magnetic dipole source as well
-# as receivers which measure real and imaginary ppm data for a set of frequencies.
+# For this tutorial, the source is a vertical magnetic dipole that will be used
+# to simulate data at a number of frequencies. The receivers measure real and
+# imaginary ppm data.
 # 
 
 # Frequencies being observed in Hz
@@ -54,11 +55,23 @@ frequencies = np.array([382, 1822, 7970, 35920, 130100], dtype=float)
 # as separate receivers.
 receiver_location = np.array([10., 0., 30.])
 receiver_orientation = "z"                   # "x", "y" or "z"
-field_type = "ppm"                           # "secondary", "total" or "ppm"
+data_type = "ppm"                            # "secondary", "total" or "ppm"
 
+receiver_list = []
+receiver_list.append(
+    fdem.receivers.PointMagneticFieldSecondary(
+        receiver_location, orientation=receiver_orientation,
+        data_type=data_type, component="real"
+    )
+)
+receiver_list.append(
+    fdem.receivers.PointMagneticFieldSecondary(
+        receiver_location, orientation=receiver_orientation,
+        data_type=data_type, component="imag"
+    )
+)
 
-# Define a source list. For each list of receivers, we define a source.
-# In this case, we define a single source.
+# Define the source list. A source must be defined for each frequency.
 source_location = np.array([0., 0., 30.])
 source_orientation = 'z'                      # "x", "y" or "z"
 moment = 1.                         # amplitude of the dipole moment
@@ -81,6 +94,19 @@ for ii, frequency in enumerate(frequencies):
 
 # Define a 1D FDEM survey
 survey = fdem.Survey(source_list)
+moment = 1.                                   # dipole moment
+
+source_list = []
+for freq in frequencies:
+    source_list.append(
+        fdem.sources.MagDipole(
+            receiver_list=receiver_list, frequency=freq,
+            location=source_location, orientation=source_orientation, moment=moment
+        )
+    )
+
+# Define a 1D FDEM survey
+survey = fdem.survey.Survey(source_list)
 
 
 ###############################################
@@ -144,8 +170,8 @@ dpred = simulation.dpred(model)
 # Plot sounding data
 fig = plt.figure(figsize=(6, 6))
 ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
-ax.semilogx(frequencies, np.abs(dpred[0:len(frequencies)]), 'k-o', lw=3, ms=10)
-ax.semilogx(frequencies, np.abs(dpred[len(frequencies):]), 'k:o', lw=3, ms=10)
+ax.semilogx(frequencies, np.abs(dpred[0::2]), 'k-o', lw=3, ms=10)
+ax.semilogx(frequencies, np.abs(dpred[1::2]), 'k:o', lw=3, ms=10)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("|Hs/Hp| (ppm)")
 ax.set_title("Secondary Magnetic Field as ppm")

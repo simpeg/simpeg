@@ -40,8 +40,9 @@ plt.rcParams.update({'font.size': 16})
 # -------------
 #
 # Here we demonstrate a general way to define the receivers, sources and survey.
-# For this tutorial, we define a single vertical magnetic dipole source as well
-# as receivers which measure real and imaginary ppm data for a set of frequencies.
+# For this tutorial, the source is a vertical magnetic dipole that will be used
+# to simulate data at a number of frequencies. The receivers measure real and
+# imaginary ppm data.
 # 
 
 # Frequencies being observed in Hz
@@ -114,7 +115,8 @@ sigma_model = sigma * np.ones(n_layer)
 eta_model = eta * np.ones(n_layer)
 tau_model =  tau * np.ones(n_layer)
 c_model = c * np.ones(n_layer)
-mu_model = mu_0*(chi+1) * np.ones(n_layer)
+mu0 = 4*np.pi*1e-7
+mu_model = mu0 * (1 + chi) * np.ones(n_layer)
 
 # Here, we let the infinite conductivity be the model. As a result, we only
 # need to define the mapping for this parameter. All other parameters used
@@ -129,6 +131,7 @@ ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 ax.semilogx(frequencies, sigma*np.ones(len(frequencies)), "b", lw=3)
 ax.semilogx(frequencies, np.real(sigma_complex), "r", lw=3)
 ax.semilogx(frequencies, np.imag(sigma_complex), "r--", lw=3)
+ax.grid()
 ax.set_xlim(np.min(frequencies), np.max(frequencies))
 ax.set_ylim(0., 1.1*sigma)
 ax.set_xlabel("Frequency (Hz)")
@@ -189,12 +192,15 @@ dpred_chargeable = simulation_chargeable.dpred(sigma_model)
 
 fig = plt.figure(figsize=(7, 7))
 ax = fig.add_axes([0.15, 0.1, 0.8, 0.8])
-ax.semilogx(frequencies, dpred[::2], 'b-', lw=3)
+
+ax.semilogx(frequencies, dpred[0::2], 'b-', lw=3)
 ax.semilogx(frequencies, dpred[1::2], 'b--', lw=3)
-ax.semilogx(frequencies, dpred_susceptible[::2], 'r-', lw=3)
+ax.semilogx(frequencies, dpred_susceptible[0::2], 'r-', lw=3)
 ax.semilogx(frequencies, dpred_susceptible[1::2], 'r--', lw=3)
-ax.semilogx(frequencies, dpred_chargeable[::2], 'g-', lw=3)
+ax.semilogx(frequencies, dpred_chargeable[0::2], 'g-', lw=3)
 ax.semilogx(frequencies, dpred_chargeable[1::2], 'g--', lw=3)
+ax.set_xlim([frequencies.min(), frequencies.max()])
+ax.grid()
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("|Hs| (A/m)")
 ax.set_title("Secondary Magnetic Field")

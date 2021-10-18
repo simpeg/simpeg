@@ -28,7 +28,7 @@ from matplotlib import pyplot as plt
 from discretize import TensorMesh
 
 from SimPEG import maps
-import SimPEG.electromagnetics.time_domain_1d as em1d
+import SimPEG.electromagnetics.time_domain as tdem
 from SimPEG.electromagnetics.utils.em1d_utils import plot_layer
 
 write_output = False
@@ -41,8 +41,9 @@ plt.rcParams.update({'font.size': 16})
 # -------------
 #
 # Here we demonstrate a general way to define the receivers, sources, waveforms and survey.
-# For this tutorial, we define a single horizontal loop source as well
-# a receiver which measures the vertical component of the magnetic flux.
+# For this tutorial, the source is a horizontal loop whose current waveform
+# is a unit step-off. The receiver measures the vertical component of the magnetic flux
+# density at the loop's center.
 #
 
 # Source properties
@@ -54,8 +55,6 @@ source_radius = 6.                            # source loop radius
 # Receiver properties
 receiver_location = np.array([0., 0., 20.])
 receiver_orientation = "z"                    # "x", "y" or "z"
-component = "b"                               # "h", "b", "dhdt" or "dbdt"
-field_type = "secondary"                      # "secondary" or "total"
 times = np.logspace(-5, -2, 31)               # time channels (s)
 
 # Define receiver list. In our case, we have only a single receiver for each source.
@@ -63,25 +62,25 @@ times = np.logspace(-5, -2, 31)               # time channels (s)
 # the list consists of multiple receiver objects.
 receiver_list = []
 receiver_list.append(
-    em1d.receivers.PointReceiver(
-        receiver_location, times, orientation=receiver_orientation, component=component
+    tdem.receivers.PointMagneticFluxDensity(
+        receiver_location, times, orientation=receiver_orientation
     )
 )
 
 # Define the source waveform. Here we define a unit step-off. The definition of
 # other waveform types is covered in a separate tutorial.
-waveform = em1d.waveforms.StepoffWaveform()
+waveform = tdem.sources.StepOffWaveform()
 
 # Define source list. In our case, we have only a single source.
 source_list = [
-    em1d.sources.HorizontalLoopSource(
+    tdem.sources.CircularLoop(
         receiver_list=receiver_list, location=source_location, waveform=waveform,
-        current_amplitude=source_current, radius=source_radius
+        current=source_current, radius=source_radius
     )
 ]
 
 # Define the survey
-survey = em1d.survey.EM1DSurveyTD(source_list)
+survey = tdem.Survey(source_list)
 
 
 ###############################################
@@ -136,7 +135,7 @@ plt.gca().invert_yaxis()
 #
 
 # Define the simulation
-simulation = em1d.simulation.EM1DTMSimulation(
+simulation = tdem.Simulation1DLayered(
     survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping,
 )
 

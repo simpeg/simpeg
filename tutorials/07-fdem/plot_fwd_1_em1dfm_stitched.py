@@ -34,7 +34,7 @@ from pymatsolver import PardisoSolver
 
 from SimPEG import maps
 from SimPEG.utils import mkvc
-import SimPEG.electromagnetics.frequency_domain_1d as em1d
+import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.electromagnetics.utils.em1d_utils import (
     plot_layer, get_vertical_discretization_frequency
 )
@@ -60,11 +60,11 @@ y = np.zeros(n_sounding)
 z = 30 *np.ones(n_sounding)
 
 source_locations = np.c_[x, y, z]  # xyz locations for the sources
-moment_amplitude=1.
+moment = 1.
 
 receiver_locations = np.c_[x+10., y, z]       # xyz locations for the receivers
 receiver_orientation = "z"                    # "x", "y" or "z"
-field_type = "ppm"                            # "secondary", "total" or "ppm"
+data_type = "ppm"                            # "secondary", "total" or "ppm"
 
 frequencies = np.array([25., 100., 382, 1822, 7970, 35920], dtype=float)
 
@@ -79,28 +79,29 @@ for ii in range(0, n_sounding):
     # Define receiver list for source ii
     receiver_list = []
     receiver_list.append(
-        em1d.receivers.PointReceiver(
-            receiver_location, frequencies, orientation=receiver_orientation,
-            field_type=field_type, component="real"
+        fdem.receivers.PointMagneticFieldSecondary(
+            receiver_location, orientation=receiver_orientation,
+            data_type=data_type, component="real"
         )
     )
     receiver_list.append(
-        em1d.receivers.PointReceiver(
-            receiver_location, frequencies, orientation=receiver_orientation,
-            field_type=field_type, component="imag"
+        fdem.receivers.PointMagneticFieldSecondary(
+            receiver_location, orientation=receiver_orientation,
+            data_type=data_type, component="imag"
         )
     )
         
-    # Define source ii
-    source_list.append(
-        em1d.sources.MagneticDipoleSource(
-            receiver_list=receiver_list, location=source_location, orientation="z",
-            moment_amplitude=moment_amplitude
+    # Define source ii at frequency jj
+    for freq in frequencies:
+        source_list.append(
+            fdem.sources.MagDipole(
+                receiver_list=receiver_list, frequency=freq, location=source_location,
+                orientation="z", moment=moment, i_sounding=ii
+            )
         )
-    )
 
 # Survey
-survey = em1d.survey.EM1DSurveyFD(source_list)
+survey = fdem.survey.Survey(source_list)
 
 
 ###############################################
@@ -258,9 +259,9 @@ sounding_models = np.log(sounding_models)
 mapping = maps.ExpMap(nP=len(sounding_models))
 
 # Define the simulation
-simulation = em1d.simulation.StitchedEM1DFMSimulation(
+simulation = fdem.Simulation1DLayeredStitched(
     survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
-    parallel=False, Solver=PardisoSolver
+    parallel=False, solver=PardisoSolver
 )
 
 # Predict data
@@ -272,10 +273,11 @@ dpred = simulation.dpred(sounding_models)
 # -------------------------------------------------
 #
 
-d_plotting = np.reshape(dpred, (2*n_sounding, len(frequencies))).T
+d_real = dpred[0::2]
+d_imag = dpred[1::2]
 
-d_real = d_plotting[:, 0::2]
-d_imag = d_plotting[:, 1::2]
+d_real = np.reshape(d_real, (n_sounding, len(frequencies))).T
+d_imag = np.reshape(d_imag, (n_sounding, len(frequencies))).T
 
 fig, ax = plt.subplots(1,1, figsize = (7, 7))
 
@@ -306,7 +308,7 @@ if write_output:
         os.mkdir(dir_path)
 
     np.random.seed(491)
-    noise = 0.1*np.abs(dpred)*np.random.rand(len(dpred))
+    noise = 0.05*np.abs(dpred)*np.random.rand(len(dpred))
     dpred += noise
     fname = dir_path + "em1dfm_stitched_data.txt"
 

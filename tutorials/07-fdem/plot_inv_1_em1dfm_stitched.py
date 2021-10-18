@@ -39,11 +39,11 @@ from SimPEG import (
     )
 
 from SimPEG.utils import mkvc
-import SimPEG.electromagnetics.frequency_domain_1d as em1d
+import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.regularization import LaterallyConstrained
 from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh, plot_layer, get_vertical_discretization_frequency
 
-save_file = True
+save_file = False
 
 plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8})
 
@@ -83,7 +83,6 @@ data_filename = dir_path + "em1dfm_stitched_data.txt"
 #
 
 # Load field data
-#dobs = np.loadtxt(str(data_filename))
 dobs = np.loadtxt(str(data_filename), skiprows=1)
 
 source_locations = np.unique(dobs[:, 0:3], axis=0)
@@ -123,11 +122,11 @@ plt.show()
 # The receiver was offset 10 m horizontally from the source. The data were
 # secondary field data in ppm.
 
-moment_amplitude = 1.
+moment = 1.
 
 receiver_locations = np.c_[source_locations[:, 0]+10., source_locations[:, 1:]]
 receiver_orientation = "z"  # "x", "y" or "z"
-field_type = "ppm"          # "secondary", "total" or "ppm"
+data_type = "ppm"           # "secondary", "total" or "ppm"
 
 source_list = []
 
@@ -139,27 +138,28 @@ for ii in range(0, n_sounding):
     receiver_list = []
 
     receiver_list.append(
-        em1d.receivers.PointReceiver(
-            receiver_location, frequencies, orientation=receiver_orientation,
-            field_type=field_type, component="real"
+        fdem.receivers.PointMagneticFieldSecondary(
+            receiver_location, orientation=receiver_orientation,
+            data_type=data_type, component="real"
         )
     )
     receiver_list.append(
-        em1d.receivers.PointReceiver(
-            receiver_location, frequencies, orientation=receiver_orientation,
-            field_type=field_type, component="imag"
+        fdem.receivers.PointMagneticFieldSecondary(
+            receiver_location, orientation=receiver_orientation,
+            data_type=data_type, component="imag"
         )
     )
-
-    source_list.append(
-        em1d.sources.MagneticDipoleSource(
-            receiver_list=receiver_list, location=source_location, orientation="z",
-            moment_amplitude=moment_amplitude
+    
+    for freq in frequencies:
+        source_list.append(
+            fdem.sources.MagDipole(
+                receiver_list=receiver_list, frequency=freq, location=source_location,
+                orientation="z", moment=moment, i_sounding=ii
+            )
         )
-    )
 
 # Survey
-survey = em1d.survey.EM1DSurveyFD(source_list)
+survey = fdem.Survey(source_list)
 
 
 ###############################################
@@ -170,13 +170,16 @@ survey = em1d.survey.EM1DSurveyFD(source_list)
 # A data object is used to define the survey, the observation values and the uncertainties.
 #
 
+# Extract real and imaginary data from dobs
+dobs = dobs[:, [4, 5]]
+
 # Define uncertainties for the real and imaginary components separately
-unc_real = 0.1*np.abs(d_real)*np.ones(np.shape(d_real))
-unc_imag = 0.1*np.abs(d_imag)*np.ones(np.shape(d_imag))
+unc_real = 0.05*np.abs(dobs[:, 0])
+unc_imag = 0.05*np.abs(dobs[:, 1])
 
 # Define the observed data and associated uncertainties as a vector. Data
-# should be organized by source (sounding), then by receiver, then by frequency.
-dobs = mkvc(np.c_[d_real, d_imag].T)
+# should be organized by source (sounding), then by frequency, then by receiver.
+dobs = mkvc(dobs.T)
 uncertainties = mkvc(np.c_[unc_real, unc_imag].T)
 
 # Define the data object
@@ -228,9 +231,9 @@ starting_model = np.log(conductivity)
 # -----------------------------------------------------
 #
 
-simulation = em1d.simulation.StitchedEM1DFMSimulation(
+simulation = fdem.Simulation1DLayeredStitched(
     survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
-    Solver=PardisoSolver
+    solver=PardisoSolver
 )
 
 
@@ -458,6 +461,7 @@ for ii in range(0, len(data_list)):
     ax1.semilogy(x, np.abs(d_real), color_list[ii], lw=1)
     ax2.semilogy(x, np.abs(d_imag), color_list[ii], lw=1)
 
+ax1.grid()
 ax1.set_xlabel("Sounding Location (m)")
 ax1.set_ylabel("Re[H] (ppm)")
 ax1.set_title("Real Component")
@@ -466,6 +470,7 @@ leg = ax1.get_legend()
 for ii in range(0, 3):
     leg.legendHandles[ii].set_color(color_list[ii])
 
+ax2.grid()
 ax2.set_xlabel("Sounding Location (m)")
 ax2.set_ylabel("Im[H] (ppm)")
 ax2.set_title("Imaginary Component")
