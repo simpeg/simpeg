@@ -34,7 +34,7 @@ from pymatsolver import PardisoSolver
 
 from SimPEG import maps
 from SimPEG.utils import mkvc
-import SimPEG.electromagnetics.time_domain_1d as em1d
+import SimPEG.electromagnetics.time_domain as tdem
 from SimPEG.electromagnetics.utils.em1d_utils import plot_layer, get_vertical_discretization_time
 
 plt.rcParams.update({'font.size': 16})
@@ -64,7 +64,7 @@ receiver_orientation = "z"            # "x", "y" or "z"
 times = np.logspace(-5, -2, 16)       # time channels
 
 # Define the waveform. In this case all sources use the same waveform.
-waveform = em1d.waveforms.StepoffWaveform()
+waveform = tdem.waveforms.StepOffWaveform()
 
 # For each sounding, we define the source and the associated receivers.
 source_list = []
@@ -76,21 +76,21 @@ for ii in range(0, n_sounding):
     
     # Receiver list for source i
     receiver_list = [
-        em1d.receivers.PointReceiver(
-            receiver_location, times, orientation=receiver_orientation, component="dbdt"
+        tdem.receivers.PointMagneticFluxTimeDerivative(
+            receiver_location, times, orientation=receiver_orientation
         )
     ]
 
-    # Source i
+    # Source ii
     source_list.append(
-        em1d.sources.HorizontalLoopSource(
+        tdem.sources.CircularLoop(
             receiver_list=receiver_list, location=source_location, waveform=waveform,
-            radius=source_radius, current_amplitude=source_current
+            radius=source_radius, current=source_current, i_sounding=ii
         )
     )
 
 # Define the survey
-survey = em1d.survey.EM1DSurveyTD(source_list)
+survey = tdem.Survey(source_list)
 
 ###############################################
 # Defining a Global Mesh and Model
@@ -248,9 +248,9 @@ sounding_models = np.log(sounding_models)
 mapping = maps.ExpMap(nP=len(sounding_models))
 
 # Define the simulation
-simulation = em1d.simulation.StitchedEM1DTMSimulation(
+simulation = tdem.Simulation1DLayeredStitched(
     survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
-    parallel=False, n_cpu=2, Solver=PardisoSolver
+    parallel=False, n_cpu=2, solver=PardisoSolver
 )
 
 # Predict data

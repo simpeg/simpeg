@@ -39,11 +39,11 @@ from SimPEG import (
     )
 
 from SimPEG.utils import mkvc
-import SimPEG.electromagnetics.frequency_domain_1d as em1d
+import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.regularization import LaterallyConstrained
 from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh, plot_layer, get_vertical_discretization_frequency
 
-save_file = True
+save_file = False
 
 plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8})
 
@@ -123,11 +123,11 @@ plt.show()
 # The receiver was offset 10 m horizontally from the source. The data were
 # secondary field data in ppm.
 
-moment_amplitude = 1.
+moment = 1.
 
 receiver_locations = np.c_[source_locations[:, 0]+10., source_locations[:, 1:]]
 receiver_orientation = "z"  # "x", "y" or "z"
-field_type = "ppm"          # "secondary", "total" or "ppm"
+data_type = "ppm"           # "secondary", "total" or "ppm"
 
 source_list = []
 
@@ -139,27 +139,28 @@ for ii in range(0, n_sounding):
     receiver_list = []
 
     receiver_list.append(
-        em1d.receivers.PointReceiver(
-            receiver_location, frequencies, orientation=receiver_orientation,
-            field_type=field_type, component="real"
+        fdem.receivers.PointMagneticFieldSecondary(
+            receiver_location, orientation=receiver_orientation,
+            data_type=data_type, component="real"
         )
     )
     receiver_list.append(
-        em1d.receivers.PointReceiver(
-            receiver_location, frequencies, orientation=receiver_orientation,
-            field_type=field_type, component="imag"
+        fdem.receivers.PointMagneticFieldSecondary(
+            receiver_location, orientation=receiver_orientation,
+            data_type=data_type, component="imag"
         )
     )
-
-    source_list.append(
-        em1d.sources.MagneticDipoleSource(
-            receiver_list=receiver_list, location=source_location, orientation="z",
-            moment_amplitude=moment_amplitude
+    
+    for freq in frequencies:
+        source_list.append(
+            fdem.sources.MagDipole(
+                receiver_list=receiver_list, frequency=freq, location=source_location,
+                orientation="z", moment=moment, i_sounding=ii
+            )
         )
-    )
 
 # Survey
-survey = em1d.survey.EM1DSurveyFD(source_list)
+survey = fdem.Survey(source_list)
 
 
 ###############################################
@@ -228,9 +229,9 @@ starting_model = np.log(conductivity)
 # -----------------------------------------------------
 #
 
-simulation = em1d.simulation.StitchedEM1DFMSimulation(
+simulation = fdem.Simulation1DLayeredStitched(
     survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
-    Solver=PardisoSolver
+    solver=PardisoSolver
 )
 
 

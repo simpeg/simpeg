@@ -47,6 +47,7 @@ class BaseEM1DSimulation(BaseSimulation):
     fix_Jmatrix = False
     _formulation = "1D"
     _coefficients_set = False
+    gtgdiag = None
 
     # Properties for electrical conductivity/resistivity
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
@@ -205,9 +206,9 @@ class BaseEM1DSimulation(BaseSimulation):
         else:
 
             if np.isscalar(self.dchi):
-                dchi = self.dchi * np.ones_like(self.chi)
-                tau1 = self.tau1 * np.ones_like(self.chi)
-                tau2 = self.tau2 * np.ones_like(self.chi)
+                dchi = self.dchi * np.ones_like(self.mu)
+                tau1 = self.tau1 * np.ones_like(self.mu)
+                tau2 = self.tau2 * np.ones_like(self.mu)
             else:
                 dchi = np.tile(self.dchi.reshape([-1, 1]), (1, n_frequency))
                 tau1 = np.tile(self.tau1.reshape([-1, 1]), (1, n_frequency))

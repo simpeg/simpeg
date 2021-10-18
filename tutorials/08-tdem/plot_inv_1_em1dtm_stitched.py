@@ -39,11 +39,11 @@ from SimPEG import (
     )
 
 from SimPEG.utils import mkvc
-import SimPEG.electromagnetics.time_domain_1d as em1d
+import SimPEG.electromagnetics.time_domain as tdem
 from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh,plot_layer, get_vertical_discretization_time
 from SimPEG.regularization import LaterallyConstrained
 
-save_file = True
+save_file = False
 
 plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8})
 
@@ -122,7 +122,7 @@ source_radius = 5.
 receiver_locations = np.c_[source_locations[:, 0], source_locations[:, 1:]]
 receiver_orientation = "z"
 
-waveform = em1d.waveforms.StepoffWaveform()
+waveform = tdem.sources.StepOffWaveform()
 
 source_list = []
 
@@ -132,22 +132,21 @@ for ii in range(0, n_sounding):
     receiver_location = mkvc(receiver_locations[ii, :])
     
     receiver_list = [
-        em1d.receivers.PointReceiver(
-            receiver_location, times, orientation=receiver_orientation,
-            component="dbdt"
+        tdem.receivers.PointMagneticFluxTimeDerivative(
+            receiver_location, times, orientation=receiver_orientation
         )
     ]
 
     # Sources
     source_list.append(
-        em1d.sources.HorizontalLoopSource(
+        tdem.sources.CircularLoop(
             receiver_list=receiver_list, location=source_location, waveform=waveform,
-            radius=source_radius, current_amplitude=current_amplitude
+            radius=source_radius, current=current_amplitude, i_sounding=ii
         )
     )
 
 # Survey
-survey = em1d.survey.EM1DSurveyTD(source_list)
+survey = tdem.Survey(source_list)
 
 
 ###############################################
@@ -212,9 +211,9 @@ starting_model = np.log(conductivity)
 # -----------------------------------------------------
 #
 
-simulation = em1d.simulation.StitchedEM1DTMSimulation(
+simulation = tdem.Simulation1DLayeredStitched(
     survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
-    Solver=PardisoSolver
+    solver=PardisoSolver
 )
 
 ########################################################################

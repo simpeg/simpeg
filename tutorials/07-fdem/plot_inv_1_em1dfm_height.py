@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-import SimPEG.electromagnetics.frequency_domain_1d as em1d
+import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_frequency, plot_layer
 from SimPEG.utils import mkvc
 from SimPEG import (
@@ -85,11 +85,11 @@ dobs = np.loadtxt(str(data_filename), skiprows=1)
 
 # Define receiver locations and observed data
 frequencies = dobs[:, 0]
-dobs = mkvc(dobs[:, 1:])
+dobs = mkvc(dobs[:, 1:].T)
 
 fig, ax = plt.subplots(1,1, figsize = (7, 7))
-ax.loglog(frequencies, np.abs(dobs[0:len(frequencies)]), 'k-o', lw=3)
-ax.loglog(frequencies, np.abs(dobs[len(frequencies):]), 'k:o', lw=3)
+ax.loglog(frequencies, np.abs(dobs[0::2]), 'k-o', lw=3)
+ax.loglog(frequencies, np.abs(dobs[1::2]), 'k:o', lw=3)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("|Hs/Hp| (ppm)")
 ax.set_title("Observed Data")
@@ -109,38 +109,40 @@ ax.legend(["Real", "Imaginary"])
 # Source geometry. In this case, the vertical location is a dummy value because the
 # flight height is unknown.
 source_location = np.array([0., 0., 30.])
-moment_amplitude = 1.
+moment = 1.
 
 source_receiver_offset = np.array([10., 0., 0.])
 receiver_orientation = "z"
-field_type = "ppm"
+data_type = "ppm"
 
 # Receiver list. Because we are inverting for the flight height, we MUST set
 # the receiver location as the offset between the source and receiver.
 receiver_list = []
 receiver_list.append(
-    em1d.receivers.PointReceiver(
-        source_receiver_offset, frequencies, orientation=receiver_orientation,
-        field_type=field_type, component="real", use_source_receiver_offset=True
+    fdem.receivers.PointMagneticFieldSecondary(
+        source_receiver_offset, orientation=receiver_orientation,
+        data_type=data_type, component="real", use_source_receiver_offset=True
     )
 )
 receiver_list.append(
-    em1d.receivers.PointReceiver(
-        source_receiver_offset, frequencies, orientation=receiver_orientation,
-        field_type=field_type, component="imag", use_source_receiver_offset=True
+    fdem.receivers.PointMagneticFieldSecondary(
+        source_receiver_offset, orientation=receiver_orientation,
+        data_type=data_type, component="imag", use_source_receiver_offset=True
     )
 )
     
 # Source list
-source_list = [
-    em1d.sources.MagneticDipoleSource(
-        receiver_list=receiver_list, location=source_location, orientation="z",
-        moment_amplitude=moment_amplitude
+source_list = []
+for freq in frequencies:
+    source_list.append(
+        fdem.sources.MagDipole(
+            receiver_list=receiver_list, frequency=freq, location=source_location,
+            orientation="z", moment=moment
+        )
     )
-]
 
 # Survey
-survey = em1d.survey.EM1DSurveyFD(source_list)
+survey = fdem.Survey(source_list)
 
 
 ###############################################################
@@ -167,7 +169,7 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 #
 
 # Layer thicknesses
-inv_thicknesses = np.logspace(0,1.5,25)
+inv_thicknesses = np.logspace(0, 1.5, 25)
 
 # Define a mesh for plotting and regularization.
 mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], '0')
@@ -201,7 +203,8 @@ wires = maps.Wires(('sigma', mesh.nC),('h', 1))
 sigma_map = maps.ExpMap() * wires.sigma
 
 # Define mapping from model to flight height
-h_map = wires.h
+projection_map = maps.Projection(nP=1, index=np.zeros(len(source_list), dtype=int))
+h_map = projection_map * wires.h
 
 
 #######################################################################
@@ -209,7 +212,7 @@ h_map = wires.h
 # ------------------
 #
 
-simulation = em1d.simulation.EM1DFMSimulation(
+simulation = fdem.Simulation1DLayered(
     survey=survey, thicknesses=inv_thicknesses, sigmaMap=sigma_map, hMap=h_map
 )
 
@@ -255,7 +258,7 @@ reg.mref = starting_model
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.ProjectedGNCG(maxIter=50, maxIterLS=20, maxIterCG=20, tolCG=1e-3)
+opt = optimization.ProjectedGNCG(maxIter=50, maxIterLS=50, maxIterCG=20, tolCG=1e-3)
 
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -272,7 +275,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 
 # Update the preconditionner
 update_Jacobi = directives.UpdatePreconditioner()
@@ -351,12 +354,12 @@ dpred_final = simulation.dpred(recovered_model)
 
 fig = plt.figure(figsize=(11, 6))
 ax1 = fig.add_axes([0.2, 0.1, 0.6, 0.8])
-ax1.loglog(frequencies, np.abs(dobs[0:len(frequencies)]), "k-o")
-ax1.loglog(frequencies, np.abs(dobs[len(frequencies):]), "k:o")
-ax1.loglog(frequencies, np.abs(dpred_l2[0:len(frequencies)]), "b-o")
-ax1.loglog(frequencies, np.abs(dpred_l2[len(frequencies):]), "b:o")
-ax1.loglog(frequencies, np.abs(dpred_final[0:len(frequencies)]), "r-o")
-ax1.loglog(frequencies, np.abs(dpred_final[len(frequencies):]), "r:o")
+ax1.loglog(frequencies, np.abs(dobs[0::2]), "k-o")
+ax1.loglog(frequencies, np.abs(dobs[1::2]), "k:o")
+ax1.loglog(frequencies, np.abs(dpred_l2[0::2]), "b-o")
+ax1.loglog(frequencies, np.abs(dpred_l2[1::2]), "b:o")
+ax1.loglog(frequencies, np.abs(dpred_final[0::2]), "r-o")
+ax1.loglog(frequencies, np.abs(dpred_final[1::2]), "r:o")
 ax1.set_xlabel("Frequencies (Hz)")
 ax1.set_ylabel("|Hs/Hp| (ppm)")
 ax1.set_title("Predicted and Observed Data")
