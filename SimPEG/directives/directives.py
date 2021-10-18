@@ -2037,7 +2037,7 @@ class UpdateSensitivityWeights(InversionDirective):
     mapping = None
     JtJdiag = None
     everyIter = True
-    threshold = None
+    threshold = 1e-6
     switch = True
 
     def initialize(self):
@@ -2109,10 +2109,12 @@ class UpdateSensitivityWeights(InversionDirective):
             for prob_JtJ, threshold in zip(
                 self.JtJdiag, self.threshold
             ):
-                wr += np.max(np.c_[prob_JtJ, threshold], axis=1)
+                wr += prob_JtJ
 
             wr /= wr.max()
             wr = wr ** 0.5
+            wr += threshold
+
 
         else:
             wr += 1.0
