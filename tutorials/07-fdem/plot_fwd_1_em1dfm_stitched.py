@@ -308,7 +308,7 @@ if write_output:
         os.mkdir(dir_path)
 
     np.random.seed(491)
-    noise = 0.1*np.abs(dpred)*np.random.rand(len(dpred))
+    noise = 0.05*np.abs(dpred)*np.random.rand(len(dpred))
     dpred += noise
     fname = dir_path + "em1dfm_stitched_data.txt"
 

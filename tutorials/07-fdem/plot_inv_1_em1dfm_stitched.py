@@ -83,7 +83,6 @@ data_filename = dir_path + "em1dfm_stitched_data.txt"
 #
 
 # Load field data
-#dobs = np.loadtxt(str(data_filename))
 dobs = np.loadtxt(str(data_filename), skiprows=1)
 
 source_locations = np.unique(dobs[:, 0:3], axis=0)
@@ -171,13 +170,16 @@ survey = fdem.Survey(source_list)
 # A data object is used to define the survey, the observation values and the uncertainties.
 #
 
+# Extract real and imaginary data from dobs
+dobs = dobs[:, [4, 5]]
+
 # Define uncertainties for the real and imaginary components separately
-unc_real = 0.1*np.abs(d_real)*np.ones(np.shape(d_real))
-unc_imag = 0.1*np.abs(d_imag)*np.ones(np.shape(d_imag))
+unc_real = 0.05*np.abs(dobs[:, 0])
+unc_imag = 0.05*np.abs(dobs[:, 1])
 
 # Define the observed data and associated uncertainties as a vector. Data
-# should be organized by source (sounding), then by receiver, then by frequency.
-dobs = mkvc(np.c_[d_real, d_imag].T)
+# should be organized by source (sounding), then by frequency, then by receiver.
+dobs = mkvc(dobs.T)
 uncertainties = mkvc(np.c_[unc_real, unc_imag].T)
 
 # Define the data object
@@ -459,6 +461,7 @@ for ii in range(0, len(data_list)):
     ax1.semilogy(x, np.abs(d_real), color_list[ii], lw=1)
     ax2.semilogy(x, np.abs(d_imag), color_list[ii], lw=1)
 
+ax1.grid()
 ax1.set_xlabel("Sounding Location (m)")
 ax1.set_ylabel("Re[H] (ppm)")
 ax1.set_title("Real Component")
@@ -467,6 +470,7 @@ leg = ax1.get_legend()
 for ii in range(0, 3):
     leg.legendHandles[ii].set_color(color_list[ii])
 
+ax2.grid()
 ax2.set_xlabel("Sounding Location (m)")
 ax2.set_ylabel("Im[H] (ppm)")
 ax2.set_title("Imaginary Component")
