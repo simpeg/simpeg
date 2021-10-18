@@ -1365,7 +1365,10 @@ class SaveIterationsGeoH5(InversionDirective):
     def save_components(self, iteration: int):
 
         if self.attribute_type == "predicted":
-            prop = np.hstack(self.invProb.get_dpred(self.invProb.model))
+            values = self.invProb.dpred
+            if values is None:
+                values = self.invProb.get_dpred(self.invProb.model)
+            prop = np.hstack(values)
         else:
             prop = self.invProb.model
 
