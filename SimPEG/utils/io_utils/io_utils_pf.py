@@ -5,18 +5,22 @@ from ...utils.code_utils import deprecate_method
 
 
 def read_mag3d_ubc(obs_file):
-    """
-    Read data files formatted for the UBC mag3d code.
+    """Read UBC-GIF MAG3D formatted survey or data files.
 
     This method can load survey locations, predicted data or observations
-    files formatted for the UBC mag3d code.
+    files formatted for the UBC-GIF MAG3D coding package. For more, see
+    the `UBC-GIF MAG3D v6.0 online manual <https://mag3d.readthedocs.io/en/v6/>`__.
 
-    INPUT:
-    :param fileName, path to the UBC obs mag file
+    Parameters
+    ----------
+    obs_file : str
+        Path to a UBC-GIF MAG3D formatted data file
 
-    OUTPUT:
-    :param survey
-    :param M, magnetization orentiaton (MI, MD)
+    Returns
+    -------
+    SimPEG.data.Data
+        Instance of a SimPEG data class. The `survey` attribute associated with
+        the data object is an instance of :class`SimPEG.potential_fields.magnetics.survey.Survey`.
     """
 
     # Prevent circular import
@@ -76,22 +80,19 @@ def read_mag3d_ubc(obs_file):
 
 
 def write_mag3d_ubc(filename, data_object):
-    """
-    writeUBCobs(filename,B,M,rxLoc,d,wd)
+    """Write UBC-GIF MAG3D formatted survey or data files.
 
-    Function writing an observation file in UBC-MAG3D format.
+    This function can write survey locations, predicted data or observations
+    files formatted for the UBC-GIF MAG3D coding package. For more, see
+    the `UBC-GIF MAG3D v6.0 online manual <https://mag3d.readthedocs.io/en/v6/>`__.
 
-    INPUT
-    filename    : Name of out file including directory
-    survey
-    flag          : dobs | dpred
-
-    OUTPUT
-    Obsfile
-
-    Created on Dec, 27th 2015
-
-    @author: dominiquef
+    Parameters
+    ----------
+    filename : str
+        File path for the output file
+    data_object : SimPEG.data.Data
+        An instance of SimPEG data class. The `survey` attribute associate with the
+        data object must be an instance of :class:`SimPEG.potential_fields.magnetics.survey.Survey`
     """
     survey = data_object.survey
 
@@ -118,16 +119,22 @@ def write_mag3d_ubc(filename, data_object):
 
 
 def read_grav3d_ubc(obs_file):
-    """
-    Read UBC grav file format
+    """Read UBC-GIF GRAV3D formatted survey or data files.
 
-    INPUT:
-    :param fileName, path to the UBC obs grav file
-    :param ftype, 'dobs' 'dpred' 'survey'
+    This method can load survey locations, predicted data or observations
+    files formatted for the UBC-GIF GRAV3D coding package. For more, see
+    the `UBC-GIF GRAV3D v6.0 online manual <https://grav3d.readthedocs.io/en/v6.0/>`__.
 
-    OUTPUT:
-    :param survey
+    Parameters
+    ----------
+    obs_file : str
+        Path to a UBC-GIF GRAV3D formatted file
 
+    Returns
+    -------
+    SimPEG.data.Data
+        Instance of a SimPEG data class. The `survey` attribute associated with
+        the data object is an instance of :class`SimPEG.potential_fields.gravity.survey.Survey`.
     """
 
     # Prevent circular import
@@ -181,14 +188,19 @@ def read_grav3d_ubc(obs_file):
 
 
 def write_grav3d_ubc(filename, data_object):
-    """
-    Write UBC grav file format
+    """Write UBC-GIF GRAV3D formatted survey or data files.
 
-    INPUT:
-    :param: fileName, path to the UBC obs grav file
-    :param: survey Gravity object
-    :param: data array
+    This function can write survey locations, predicted data or observations
+    files formatted for the UBC-GIF GRAV3D coding package. For more, see
+    the `UBC-GIF GRAV3D v6.0 online manual <https://grav3d.readthedocs.io/en/v6.0/>`__.
 
+    Parameters
+    ----------
+    filename : str
+        File path for the output file
+    data_object : SimPEG.data.Data
+        An instance of SimPEG data class. The `survey` attribute associate with the
+        data object must be an instance of :class:`SimPEG.potential_fields.gravity.survey.Survey`
     """
     survey = data_object.survey
 
@@ -211,16 +223,22 @@ def write_grav3d_ubc(filename, data_object):
 
 
 def read_gg3d_ubc(obs_file):
-    """
-    Read UBC gravity gradiometry file format
+    """Read UBC-GIF GG3D formatted survey or data files.
 
-    INPUT:
-    :param fileName, path to the UBC obs gravity gradiometry file
-    :param file_type, 'dobs' 'dpred' 'survey'
+    This method can load survey locations, predicted data or observations
+    files formatted for the UBC-GIF GG3D coding package. For more, see
+    the `UBC-GIF GRAV3D v6.0 online manual <https://gg3d.readthedocs.io/en/latest/>`__.
 
-    OUTPUT:
-    :param survey
+    Parameters
+    ----------
+    obs_file : str
+        Path to a UBC-GIF GG3D formatted file
 
+    Returns
+    -------
+    SimPEG.data.Data
+        Instance of a SimPEG data class. The `survey` attribute associated with
+        the data object is an instance of :class`SimPEG.potential_fields.gravity.survey.Survey`.
     """
 
     # Prevent circular import
@@ -288,14 +306,19 @@ def read_gg3d_ubc(obs_file):
 
 
 def write_gg3d_ubc(filename, data_object):
-    """
-    Write UBC gravity gradiometry file format
+    """Write UBC-GIF GG3D formatted survey or data files.
 
-    INPUT:
-    :param: fileName, path to the UBC obs grav file
-    :param: survey Gravity object
-    :param: data array
+    This function can write survey locations, predicted data or observations
+    files formatted for the UBC-GIF GG3D coding package. For more, see
+    the `UBC-GIF GG3D v6.0 online manual <https://gg3d.readthedocs.io/en/latest/>`__.
 
+    Parameters
+    ----------
+    filename : str
+        File path for the output file
+    data_object : SimPEG.data.Data
+        An instance of SimPEG data class. The `survey` attribute associate with the
+        data object must be an instance of :class:`SimPEG.potential_fields.gravity.survey.Survey`
     """
     survey = data_object.survey
 

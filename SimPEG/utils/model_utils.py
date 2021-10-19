@@ -17,7 +17,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
     mesh : discretize.TensorMesh or discretize.TreeMesh
         Mesh on which you want to identify active cells
-    topo : numpy.ndarray (*, 3)
+    topo : (n, 3) numpy.ndarray
         Topography data as a numpy array with columns [x,y,z]; can use [x,z] for 2D meshes.
         Topography data can be unstructured.
     gridLoc : str {'CC', 'N'}
@@ -240,7 +240,7 @@ def surface_layer_index(mesh, topo, index=0):
     ----------
     mesh : discretize.TensorMesh
         Input mesh
-    numpy.ndarray (*, 3)
+    topo : (n, 3) numpy.ndarray
         Topography data as a numpy array with columns [x,y,z]; can use [x,z] for 2D meshes.
         Topography data can be unstructured.
     index : int
@@ -300,7 +300,7 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=2.0, threshol
     ----------
     mesh : discretize.base.BaseMesh
         discretize model space.
-    reference_locs : float or (N, dim) numpy.ndarray
+    reference_locs : float or (n, dim) numpy.ndarray
         the reference values for top of the points
     indActive : (mesh.n_cells) numpy.ndarray of bool, optional
         index vector for the active cells on the mesh.
@@ -312,7 +312,7 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=2.0, threshol
 
     Returns
     -------
-    wz : (n_active) numpy.ndarray
+    (n_active) numpy.ndarray
         Normalized depth weights for the mesh, at every active cell.
 
     Notes

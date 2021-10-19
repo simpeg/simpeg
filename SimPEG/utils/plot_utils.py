@@ -47,35 +47,35 @@ def plot2Ddata(
         Data values. For scalar quantities, the data are stored in a 1D numpy array.
         For vector quantities, data are stored in a numpy array of shape (N, dim).
     vec : bool
-        If *True*, the data values represent a vector quantity and the function
+        If ``True``, the data values represent a vector quantity and the function
         creates a stream plot illustrating the *x* and *y* components of the vector.
     nx : int
         Number of grid locations along x-direction
     ny : int
         Number of grid locations along y-direction
     ax : matplotlib.axes
-        An axes object on which to plot. If *None*, the function creates an axes object
+        An axes object on which to plot. If ``None``, the function creates an axes object
     mask : numpy.ndarray of bool
         Locations in the unstructured grid whose data are masked.
     level : boolean
-        If *True*, adds contours according to :meth:`matplotlib.pyplot.contour`
+        If ``True``, adds contours according to :meth:`matplotlib.pyplot.contour`
     figname : str
         Figure name
     ncontour : int
         number of contours in the contour plot
     dataloc : bool
-        If *True*, plot the data locations
+        If ``True``, plot the data locations
     contourOpts : dict
         Dictionary defining keyword arguments when :meth:`matplotlib.pyplot.contourf` is called
     levelOpts : dict
         Dictionary defining keyword arguments when :meth:`matplotlib.pyplot.contour` is called.
-        This is only necessary when *level = True*.
-    clim : numpy.ndarray (2,)
+        This is only necessary when `level` = ``True``.
+    clim : (2) numpy.ndarray
         Colorbar limits
     method : str
         Interpolation method used to approximate at gridded locations. Must be 'linear' or 'nearest'
     shade : bool
-        If *True*, add shading to the plot
+        If ``True``, add shading to the plot
     shade_ncontour : int
         Number of :meth:`matplotlib.pyplot.contourf` contours for the shading
     shade_azimuth : float

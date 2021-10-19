@@ -156,8 +156,8 @@ def eigenvalue_by_power_iteration(
     seed : int
         Random seed for the initial random guess of eigenvector.
 
-    Return
-    ------
+    Returns
+    -------
     float
         Estimated value of the highest eigenvalue
 
@@ -244,14 +244,14 @@ def cartesian2spherical(m):
 
     Parameters
     ----------
-    m : numpy.array_like (*, 3)
+    m : (n, 3) numpy.array_like
         An array whose columns represent the x, y and z components of
         a set of vectors.
 
 
     Returns
     -------
-    numpy.array_like (*, 3)
+    (n, 3) numpy.array_like
         An array whose columns represent the *a*, *t* and *p* components
         of a set of vectors in spherical coordinates.
     """
@@ -299,14 +299,14 @@ def spherical2cartesian(m):
 
     Parameters
     ----------
-    m : numpy.array_like (*, 3)
+    m : (n, 3) array_like
         An array whose columns represent the *a*, *t* and *p* components of
         a set of vectors in spherical coordinates.
 
 
     Returns
     -------
-    numpy.array_like (*, 3)
+    (n, 3) array_like
         An array whose columns represent the *x*, *y* and *z* components
         of the set of vectors in Cartesian.
     """
@@ -336,7 +336,7 @@ def dip_azimuth2cartesian(dip, azm):
 
     Returns
     -------
-    numpy.ndarray (*, 3)
+    (n, 3) numpy.ndarray
         Numpy array whose columns represent the x, y and z components of the
         vector(s) in Cartesian coordinates
 
@@ -402,11 +402,11 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
 
     Parameters
     ----------
-    xyz1 : numpy.ndarray (3,)
+    xyz1 : (3) numpy.ndarray
         First point needed to define the plane (x1, y1, z1)
-    xyz2 : numpy.ndarray (3,)
+    xyz2 : (3) numpy.ndarray
         Second point needed to define the plane (x2, y2, z2)
-    xyz3 : numpy.ndarray (3,)
+    xyz3 : (3) numpy.ndarray
         Third point needed to define the plane (x3, y3, z3)
 
     Returns

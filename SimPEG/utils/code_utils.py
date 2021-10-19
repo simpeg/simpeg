@@ -21,44 +21,65 @@ except ImportError:
             )
 
 
-def memProfileWrapper(towrap, *funNames):
-    """
-    Create a wrapper for the functions you want to use, wrapping up the
-    class, and putting profile wrappers on the functions in funNames.
+def create_wrapper_from_class(input_class, *fun_names):
+    """Create wrapper class with memory profiler.
 
-    :param class towrap: Class to wrap
-    :param str funNames: And amount of function names to wrap
-    :rtype: class
-    :return: memory profiled wrapped class
+    Using *memory_profiler.profile*, this function creates a wrapper class
+    from the input class and function names specified.
+    
+    Parameters
+    ----------
+    input_class : class
+        Input class being used to create the wrapper
+    fun_names: list of str
+        Names of the functions that will be wrapped to the wrapper class. These names must
+        correspond to methods of the input class.  
+    
+    Returns
+    -------
+    class :
+        Wrapper class
 
-    For example::
+    Examples
+    --------
 
-        foo_mem = memProfileWrapper(foo,['my_func'])
-        fooi = foo_mem()
-        for i in range(5):
-            fooi.my_func()
+    >>> foo_mem = create_wrapper_from_class(foo,['my_func'])
+    >>> fooi = foo_mem()
+    >>> for i in range(5):
+    >>>     fooi.my_func()
 
-    Then run it from the command line::
+    Then run it from the command line
 
-        python -m memory_profiler exampleMemWrapper.py
+    ``python -m memory_profiler exampleMemWrapper.py``
     """
     from memory_profiler import profile
 
     attrs = {}
-    for f in funNames:
-        if hasattr(towrap, f):
-            attrs[f] = profile(getattr(towrap, f))
+    for f in fun_names:
+        if hasattr(input_class, f):
+            attrs[f] = profile(getattr(input_class, f))
         else:
-            print("{0!s} not found in {1!s} Class".format(f, towrap.__name__))
+            print("{0!s} not found in {1!s} Class".format(f, input_class.__name__))
 
-    return type(towrap.__name__ + "MemProfileWrap", (towrap,), attrs)
+    return type(input_class.__name__ + "MemProfileWrap", (input_class,), attrs)
 
 
 def hook(obj, method, name=None, overwrite=False, silent=False):
-    """
-    This dynamically binds a method to the instance of the class.
+    """Dynamically bind on class's method to an instance of a different class.
 
-    If name is None, the name of the method is used.
+    Parameters
+    ----------
+    obj : class
+        Instance of a class that will be binded to a new method
+    method : method
+        The method that will be binded to `obj`; i.e. ClassName.method_name
+    name : str
+        Provide a different name for the method being binded to `obj`. If ``None``,
+        the original method name is used. 
+    overwrite : bool
+        Overwrite previous hook
+    silent: bool
+        Print whether a previous hook was overwritten
     """
     if name is None:
         name = method.__name__
@@ -72,10 +93,16 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
         print("Method " + name + " was not overwritten.")
 
 
-def setKwargs(obj, ignore=None, **kwargs):
+def set_kwargs(obj, ignore=None, **kwargs):
     """
-    Sets key word arguments (kwargs) that are present in the object,
-    throw an error if they don't exist.
+    Set key word arguments for an object or throw an error if any don't exist.
+    
+    Parameters
+    ----------
+    obj : class
+        Instance of a class
+    ignore : str
+        List of strings denoting kwargs that are ignored (not being set)
     """
     if ignore is None:
         ignore = []
@@ -474,3 +501,10 @@ def deprecate_function(new_function, old_name, removal_version=None):
     """
     dep_function.__doc__ = doc
     return dep_function
+
+
+
+
+# DEPRECATIONS
+memProfileWrapper = deprecate_function(create_wrapper_from_class, "memProfileWrapper", removal_version="0.16.0", future_warn=False)
+setKwargs = deprecate_function(set_kwargs, "setKwargs", removal_version="0.16.0", future_warn=False)

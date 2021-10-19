@@ -20,20 +20,20 @@ def add_block(cell_centers, model, p0, p1, prop_value):
 
     Parameters
     ----------
-    cell_centers : numpy.ndarray (n_cells, dim) or discretize.base.BaseMesh
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
         A mesh or its gridded cell center locations
-    model : numpy.ndarray (n_cells,)
+    model : (n_cells) numpy.ndarray
         Cell-centered model. Currently, this is only implemented for isotropic properties.
-    p0 : numpy.ndarray (dim,)
+    p0 : (dim) numpy.ndarray
         Bottom southwest corner of the block
-    p1 : numpy.ndarray (dim,)
+    p1 : (dim) numpy.ndarray
         Top northeast corner of the block
     prop_value : float
         Physical property value assigned to the block
     
     Returns
     -------
-    numpy.ndarray (n_cells,)
+    (n_cells) numpy.ndarray
         The updated cell-centered model which includes the block
     """
     if isinstance(cell_centers, BaseMesh):
@@ -50,11 +50,11 @@ def get_indices_block(p0, p1, cell_centers):
 
     Parameters
     ----------
-    p0 : numpy.ndarray (dim,)
+    p0 : (dim) numpy.ndarray
         Bottom southwest corner of the block
-    p1 : numpy.ndarray (dim,)
+    p1 : (dim) numpy.ndarray
         Top northeast corner of the block
-    cell_centers : numpy.ndarray (n_cells, dim) or discretize.base.BaseMesh
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
         A mesh or its gridded cell center locations
 
     Returns
@@ -123,11 +123,11 @@ def create_block_in_wholespace(cell_centers, p0, p1, background_value=None, bloc
 
     Parameters
     ----------
-    cell_centers : numpy.ndarray (n_cells, dim) or discretize.base.BaseMesh
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
         A mesh or its gridded cell center locations
-    p0 : numpy.ndarray (dim,)
+    p0 : (dim) numpy.ndarray
         Bottom southwest corner of the block
-    p1 : numpy.ndarray (dim,)
+    p1 : (dim) numpy.ndarray
         Top northeast corner of the block
     background_value : float
         Background physical property value
@@ -136,7 +136,7 @@ def create_block_in_wholespace(cell_centers, p0, p1, background_value=None, bloc
 
     Returns
     -------
-    numpy.ndarray (n_cells,)
+    (n_cells) numpy.ndarray
         Physical property model defined at the cell centers
     """
 
@@ -165,11 +165,11 @@ def create_ellipse_in_wholespace(cell_centers, center=None, anisotropy=None, slo
 
     Parameters
     ----------
-    cell_centers : numpy.ndarray (n_cells, dim) or discretize.base.BaseMesh
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
         A mesh or its gridded cell center locations
-    center : numpy.ndarray (dim,)
+    center : (dim) numpy.ndarray
         Center of the ellipsoid
-    anisotropy : numpy.ndarray (dim,)
+    anisotropy : (dim) numpy.ndarray
         Anisotropy
     slope : float
         Slope
@@ -178,7 +178,7 @@ def create_ellipse_in_wholespace(cell_centers, center=None, anisotropy=None, slo
 
     Returns
     -------
-    numpy.ndarray (n_cells,)
+    (n_cells) numpy.ndarray
         Physical property model defined at the cell centers
     """
 
@@ -217,11 +217,11 @@ def get_indices_sphere(center, radius, cell_centers):
     
     Parameters
     ----------
-    center : numpy.ndarray (dim,)
+    center : (dim) numpy.ndarray
         Location of the center of the sphere
     radius : float
         Radius of the sphere
-    cell_centers : numpy.ndarray (n_cells, dim) or discretize.base.BaseMesh
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
         A mesh or its gridded cell center locations
 
     Returns
@@ -273,7 +273,7 @@ def create_2_layer_model(cell_centers, depth, top_value=None, bottom_value=None)
 
     Parameters
     ----------
-    cell_centers : numpy.ndarray (n_cells, dim) or discretize.base.BaseMesh
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
         A mesh or its gridded cell center locations
     depth : float
         Depth defining the interface between layer 1 and layer 2
@@ -284,7 +284,7 @@ def create_2_layer_model(cell_centers, depth, top_value=None, bottom_value=None)
 
     Returns
     -------
-    numpy.ndarray (n_cells)
+    (n_cells) numpy.ndarray
         Cell-centered physical property model
 
     """
@@ -341,7 +341,7 @@ def create_from_function(cell_centers, fun_handle):
 
     Parameters
     ----------
-    cell_centers : numpy.ndarray (n_cells, dim) or discretize.base.BaseMesh
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
         A mesh or its gridded cell center locations.
     fun_handle : function
         A function which defines a scalar physical property value as a function
@@ -350,7 +350,7 @@ def create_from_function(cell_centers, fun_handle):
 
     Returns
     -------
-    numpy.ndarray (n_cells,)
+    (n_cells) numpy.ndarray
         Cell-centered physical property model for the mesh.
     """
 
@@ -374,17 +374,17 @@ def create_layers_model(cell_centers, layer_tops, layer_values):
     
     Parameters
     ----------
-    cell_centers : numpy.ndarray (n_cells, dim) or discretize.base.BaseMesh
+    cell_centers : (n_cells, dim) numpy.ndarray or discretize.base.BaseMesh
         A mesh or its gridded cell center locations
-    layer_tops : numpy.ndarray (n_layer,)
+    layer_tops : (n_layer) numpy.ndarray
         Elevation values (z +ve up) for the top of each layer. Layers are defined from top to bottom.
         The first value can be very large if the top layer (e.g. air) extends to infinity.
-    layer_values : numpy.ndarray (n_layer,)
+    layer_values : (n_layer) numpy.ndarray
         Physical property value for each layer from top to bottom.
     
     Returns
     -------
-    numpy.ndarray (n_cells,)
+    (n_cells) numpy.ndarray
         Cell-centered physical property model for the mesh.
     """
 
@@ -429,12 +429,12 @@ def create_random_model(shape, seed=None, anisotropy=None, its=100, bounds=None)
     Parameters
     ----------
     shape : int or tuple of int
-        Shape of the model. Can define a vector of size (n_cells,) or define the dimensions of a tensor
+        Shape of the model. Can define a vector of size (n_cells) or define the dimensions of a tensor
     seed : int
         Sets the seed for the random uniform model that is convolved with the kernel.
         If *None*, an arbitrary seed is used.
     anisotropy : numpy.ndarray
-        this is the (3 x n) blurring kernel that is used.
+        this is the (3, n) blurring kernel that is used.
     its : int
         Number of smoothing iterations after convolutions
     bounds : list of float
@@ -502,7 +502,7 @@ def get_indices_polygon(mesh, pts):
     ----------
     mesh : discretize.base.BaseMesh
         Discretize mesh
-    pts : numpy.ndarray (*, dim)
+    pts : (n, dim) numpy.ndarray
         Set of points defining the convex hull
 
     Returns
