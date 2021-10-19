@@ -560,8 +560,8 @@ randomModel = deprecate_function(
     create_random_model, "randomModel", removal_version="0.16.0"
 )
 
-PolygonInd = deprecate_function(
-    get_indices_polygon, "PolygonInd", removal_version="0.16.0"
+polygonInd = deprecate_function(
+    get_indices_polygon, "polygonInd", removal_version="0.16.0"
 )
 
 scalarConductivity = deprecate_function(

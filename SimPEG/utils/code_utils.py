@@ -118,7 +118,7 @@ def set_kwargs(obj, ignore=None, **kwargs):
     # hook(obj, setKwargs, silent=True)
 
 
-def printDone(obj, printers, name="Done", pad=""):
+def print_done(obj, printers, name="Done", pad=""):
     titles = ""
     widths = 0
     for printer in printers:
@@ -128,7 +128,7 @@ def printDone(obj, printers, name="Done", pad=""):
     # print(pad + "%s" % '-'*widths)
 
 
-def printTitles(obj, printers, name="Print Titles", pad=""):
+def print_titles(obj, printers, name="Print Titles", pad=""):
     titles = ""
     widths = 0
     for printer in printers:
@@ -139,7 +139,7 @@ def printTitles(obj, printers, name="Print Titles", pad=""):
     print(pad + "%s" % "-" * widths)
 
 
-def printLine(obj, printers, pad=""):
+def print_line(obj, printers, pad=""):
     values = ""
     for printer in printers:
         values += ("{{:^{0:d}}}".format(printer["width"])).format(
@@ -148,7 +148,7 @@ def printLine(obj, printers, pad=""):
     print(pad + values)
 
 
-def checkStoppers(obj, stoppers):
+def check_stoppers(obj, stoppers):
     # check stopping rules
     optimal = []
     critical = []
@@ -168,7 +168,7 @@ def checkStoppers(obj, stoppers):
     return (len(optimal) > 0 and all(optimal)) | (len(critical) > 0 and any(critical))
 
 
-def printStoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
+def print_stoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
     print(pad + "{0!s}{1!s}{2!s}".format("-" * 25, stop, "-" * 25))
     for stopper in stoppers:
         l = stopper["left"](obj)
@@ -177,7 +177,7 @@ def printStoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
     print(pad + "{0!s}{1!s}{2!s}".format("-" * 25, done, "-" * 25))
 
 
-def callHooks(match, mainFirst=False):
+def call_hooks(match, mainFirst=False):
     """
     Use this to wrap a funciton::
 
@@ -233,7 +233,7 @@ def callHooks(match, mainFirst=False):
     return callHooksWrap
 
 
-def dependentProperty(name, value, children, doc):
+def dependent_property(name, value, children, doc):
     def fget(self):
         return getattr(self, name, value)
 
@@ -508,3 +508,10 @@ def deprecate_function(new_function, old_name, removal_version=None):
 # DEPRECATIONS
 memProfileWrapper = deprecate_function(create_wrapper_from_class, "memProfileWrapper", removal_version="0.16.0")
 setKwargs = deprecate_function(set_kwargs, "setKwargs", removal_version="0.16.0")
+printTitles = deprecate_function(print_titles, "printTitles", removal_version="0.16.0")
+printLine = deprecate_function(print_line, "printLine", removal_version="0.16.0")
+printStoppers = deprecate_function(print_stoppers, "printStoppers", removal_version="0.16.0")
+checkStoppers = deprecate_function(check_stoppers, "checkStoppers", removal_version="0.16.0")
+printDone = deprecate_function(print_done, "printDone", removal_version="0.16.0")
+callHooks = deprecate_function(call_hooks, "callHooks", removal_version="0.16.0")
+dependentProperty = deprecate_function(dependent_property, "dependentProperty", removal_version="0.16.0")

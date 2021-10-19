@@ -6,33 +6,37 @@ from functools import wraps
 
 
 class Counter(object):
-    """
+    """Class for recording iterations and operation times.
     Counter allows anything that calls it to record iterations and
     timings in a simple way.
 
     Also has plotting functions that allow quick recalls of data.
 
+    Examples
+    --------
+
     If you want to use this, import *count* or *timeIt* and use them as
     decorators on class methods.
+    
 
-    ::
-
-        class MyClass(object):
-            def __init__(self, url):
-                self.counter = Counter()
-
-            @count
-            def MyMethod(self):
-                pass
-
-            @timeIt
-            def MySecondMethod(self):
-                pass
-
-        c = MyClass('blah')
-        for i in range(100): c.MyMethod()
-        for i in range(300): c.MySecondMethod()
-        c.counter.summary()
+    >>> from SimPEG.utils import Counter
+    >>> 
+    >>> class MyClass(object):
+    >>>     def __init__(self, url):
+    >>>         self.counter = Counter()
+    >>> 
+    >>>     @count
+    >>>     def MyMethod(self):
+    >>>         pass
+    >>> 
+    >>>     @timeIt
+    >>>     def MySecondMethod(self):
+    >>>         pass
+    >>> 
+    >>> c = MyClass('blah')
+    >>> for i in range(100): c.MyMethod()
+    >>> for i in range(300): c.MySecondMethod()
+    >>> c.counter.summary()
 
     """
 

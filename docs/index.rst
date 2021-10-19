@@ -7,7 +7,7 @@
 
     content/getting_started
     content/user_guide
-    content/api_core/index
+    content/api/index
 
 
 .. .. toctree::

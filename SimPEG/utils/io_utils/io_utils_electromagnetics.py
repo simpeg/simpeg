@@ -218,6 +218,8 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
         :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
         - `dobs`: observed/predicted data if present in the data file
         - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
+
+    
     """
     data_type = data_type.lower()
     format_type = format_type.lower()
@@ -444,6 +446,7 @@ def read_dcip3d_ubc(file_name, data_type):
         - `dobs`: observed/predicted data if present in the data file
         - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
 
+
     """
 
     data_type = data_type.lower()
@@ -605,6 +608,7 @@ def read_dcipoctree_ubc(file_name, data_type):
         :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
         - `dobs`: observed/predicted data if present in the data file
         - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
+
 
     """
 
