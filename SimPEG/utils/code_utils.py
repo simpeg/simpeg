@@ -506,5 +506,5 @@ def deprecate_function(new_function, old_name, removal_version=None):
 
 
 # DEPRECATIONS
-memProfileWrapper = deprecate_function(create_wrapper_from_class, "memProfileWrapper", removal_version="0.16.0", future_warn=False)
-setKwargs = deprecate_function(set_kwargs, "setKwargs", removal_version="0.16.0", future_warn=False)
+memProfileWrapper = deprecate_function(create_wrapper_from_class, "memProfileWrapper", removal_version="0.16.0")
+setKwargs = deprecate_function(set_kwargs, "setKwargs", removal_version="0.16.0")
