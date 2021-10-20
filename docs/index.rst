@@ -41,16 +41,6 @@
 ..    content/vrm/index
 ..    content/flow/index
 
-.. .. toctree::
-..    :maxdepth: 2
-..    :caption: API
-
-..    content/api_core/api_FiniteVolume
-..    content/api_core/api_ForwardProblem
-..    content/api_core/api_InversionComponents
-..    content/api_core/api_Maps
-..    content/api_core/api_Utilities
-
 
 .. .. toctree::
 ..    :maxdepth: 1

@@ -9,7 +9,14 @@ SimPEG.
 
 Utility Classes
 ===============
+.. autosummary::
+  :toctree: generated/
 
+  Counter
+  Identity
+  Report
+  TensorType
+  Zero
   
 
 Utility Functions
