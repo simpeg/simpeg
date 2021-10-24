@@ -44,7 +44,7 @@ def plot2Ddata(
     xyz : numpy.ndarray
         Data locations [x,y(,z)]. If the data locations are defined in 3D, the z-column is ignored.
     data : numpy.ndarray
-        Data values. For scalar quantities, the data are stored in a 1D numpy array.
+        Data values. For scalar quantities, the data are stored in a 1D ``numpy.ndarray``.
         For vector quantities, data are stored in a numpy array of shape (N, dim).
     vec : bool
         If ``True``, the data values represent a vector quantity and the function
@@ -68,8 +68,8 @@ def plot2Ddata(
     contourOpts : dict
         Dictionary defining keyword arguments when :meth:`matplotlib.pyplot.contourf` is called
     levelOpts : dict
-        Dictionary defining keyword arguments when :meth:`matplotlib.pyplot.contour` is called.
-        This is only necessary when `level` = ``True``.
+        Dictionary defining keyword arguments when :meth:`matplotlib.pyplot.contourf` is called.
+        This is only necessary when *level* = ``True``.
     clim : (2) numpy.ndarray
         Colorbar limits
     method : str
@@ -90,7 +90,7 @@ def plot2Ddata(
     ax : matplotlib.axes
         The axes object for the plot.
     CS : matplotlib.contour.ContourSet
-        If the input parameter *levels* is *True*, the function outputs
+        If the input parameter *levels* is ``True``, the function outputs
         the level set for the contours
 
     """
@@ -277,9 +277,9 @@ def plot_1d_layer_model(
     Parameters
     ----------
     thicknesses : list or numpy.ndarray of float
-        A list or numpy.ndarray containing the layer thicknesses from the top layer down
+        A ``list`` or ``numpy.ndarray`` containing the layer thicknesses from the top layer down
     values :list or numpy.ndarray of float
-        A list or numpy.ndarray containing the physical property values from the top layer down
+        A ``list`` or ``numpy.ndarray`` containing the physical property values from the top layer down
     z0 : float
         Elevation of the surface
     scale: str
@@ -287,7 +287,7 @@ def plot_1d_layer_model(
     ax: matplotlib.axes.Axes, optional
         An axis object for the plot
     plot_elevation : bool
-        If False, the yaxis will be the depth. If True, the yaxis is the elevation.
+        If ``False``, the yaxis will be the depth. If ``True``, the yaxis is the elevation.
     show_layers : bool
         Plot horizontal lines to denote layers.
 

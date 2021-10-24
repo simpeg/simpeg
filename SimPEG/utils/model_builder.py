@@ -345,8 +345,8 @@ def create_from_function(cell_centers, fun_handle):
         A mesh or its gridded cell center locations.
     fun_handle : function
         A function which defines a scalar physical property value as a function
-        of location. The input argument for the location must be an (*, dim)
-        numpy.ndarray.
+        of location. The input argument for the location must be an (*n*, *dim*)
+        ``numpy.ndarray``.
 
     Returns
     -------
@@ -432,9 +432,9 @@ def create_random_model(shape, seed=None, anisotropy=None, its=100, bounds=None)
         Shape of the model. Can define a vector of size (n_cells) or define the dimensions of a tensor
     seed : int
         Sets the seed for the random uniform model that is convolved with the kernel.
-        If *None*, an arbitrary seed is used.
+        If ``None``, an arbitrary seed is used.
     anisotropy : numpy.ndarray
-        this is the (3, n) blurring kernel that is used.
+        this is the (*3*, *n*) blurring kernel that is used.
     its : int
         Number of smoothing iterations after convolutions
     bounds : list of float

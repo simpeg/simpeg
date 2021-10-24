@@ -473,7 +473,7 @@ sphinx_gallery_conf = {
     "backreferences_dir": "content/api/generated/backreferences",
     "doc_module": "SimPEG",
     "show_memory": True,
-    # "image_scrapers": image_scrapers,
+    "image_scrapers": image_scrapers,
 }
 
 

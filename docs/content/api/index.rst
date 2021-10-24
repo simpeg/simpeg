@@ -15,3 +15,12 @@ Classes and functions for performing useful operations.
 
   SimPEG.utils
 
+
+Base SimPEG Classes
+===================
+
+.. toctree::
+  :maxdepth: 2
+
+  SimPEG.base
+

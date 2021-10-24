@@ -33,8 +33,28 @@ from .utils import (
 
 
 class IdentityMap(properties.HasProperties):
-    """
-    SimPEG Map
+    r"""Identity mapping and the base mapping class for all other SimPEG mappings.
+
+    The ``IdentityMap`` class is used to define the mapping when
+    the model parameters are the same as the parameters used in the forward
+    simulation. For a discrete set of model parameters, the mapping is equivalent
+    to the identity matrix. The ``IdentityMap`` also acts as the base class for
+    all other SimPEG mapping classes.
+
+    Using the *mesh* or *nP* input arguments, the dimensions of the corresponding
+    mapping operator can be permanently set; i.e. (*mesh.nC*, *mesh.nC*) or (*nP*, *nP*).
+    However if both input arguments *mesh* and *nP* are ``None``, the shape of
+    mapping operator is arbitrary and can act on any vector; i.e. has shape (``*``, ``*``).
+    
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
@@ -57,9 +77,14 @@ class IdentityMap(properties.HasProperties):
 
     @property
     def nP(self):
-        """
-        :rtype: int
-        :return: number of parameters that the mapping accepts
+        r"""Number of parameters the mapping acts on.
+
+        Returns
+        -------
+        int or ``*``
+            Number of parameters that the mapping acts on. Returns an
+            ``int`` if the dimensions of the mapping are set. If the
+            mapping can act on a vector of any length, ``*`` is returned.
         """
         if self._nP != "*":
             return int(self._nP)
@@ -69,13 +94,25 @@ class IdentityMap(properties.HasProperties):
 
     @property
     def shape(self):
-        """
-        The default shape is (mesh.nC, nP) if the mesh is defined.
-        If this is a meshless mapping (i.e. nP is defined independently)
-        the shape will be the the shape (nP,nP).
+        r"""Dimensions of the mapping operator
 
-        :rtype: tuple
-        :return: shape of the operator as a tuple (int,int)
+        The dimensions of the mesh depend on the input arguments used
+        during instantiation. If *mesh* is used to define the
+        identity map, the shape of mapping operator is (mesh.nC, mesh.nC).
+        If *nP* is used to define the identity map, the mapping operator
+        has dimensions (*nP*, *nP*). However if both *mesh* and *nP* are
+        used to define the identity map, the mapping will have shape
+        (*mesh.nC*, *nP*)! And if *mesh* and *nP* were `None` when
+        instantiating, the mapping has dimensions (``*``, ``*``) and may
+        act on a vector of any length.
+
+        Returns
+        -------
+        tuple
+            Dimensions of the mapping operator. If the dimensions of
+            the mapping are set, the return is a tuple (``int``,``int``).
+            If the mapping can act on a vector of arbitrary length, the
+            return is a tuple (``*``, ``*``).
         """
         if self.mesh is None:
             return (self.nP, self.nP)
@@ -99,27 +136,42 @@ class IdentityMap(properties.HasProperties):
 
     def inverse(self, D):
         """
-        Changes the physical property into the model.
-
-        .. note::
-
-            The *transformInverse* may not be easy to create in general.
-
-        :param numpy.ndarray D: physical property
-        :rtype: numpy.ndarray
-        :return: model
-
+        Perform the inverse mapping (not implemented)
         """
         raise NotImplementedError("The transformInverse is not implemented.")
 
     def deriv(self, m, v=None):
-        """
-        The derivative of the transformation.
+        r"""Derivative of the mapping with respect to the input parameters.
 
-        :param numpy.ndarray m: model
-        :rtype: scipy.sparse.csr_matrix
-        :return: derivative of transformed model
+        Let :math:`\mathbf{m}` be a set of model parameters and let :math:`\mathbf{I}`
+        denote the identity map. Where the identity mapping acting on the model parameters
+        can be expressed as:
 
+        .. math::
+            \mathbf{u} = \mathbf{I m},
+
+        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters; i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{I}
+
+        Note that in this case, **deriv** simply returns a sparse identity matrix.
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. For an
+            identity mapping, this is just a sparse identity matrix. If the input
+            argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*; which in this case is just *v*.
         """
         if v is not None:
             return v
@@ -128,14 +180,24 @@ class IdentityMap(properties.HasProperties):
         return Identity()
 
     def test(self, m=None, num=4, **kwargs):
-        """Test the derivative of the mapping.
+        """Derivative test for the mapping.
 
-        :param numpy.ndarray m: model
-        :param kwargs: key word arguments of
-                       :meth:`discretize.tests.checkDerivative`
-        :rtype: bool
-        :return: passed the test?
-
+        This test validates the mapping by performing a convergence test.
+        
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            Starting vector of model parameters for the derivative test
+        num : int
+            Number of iterations for the derivative test
+        kwargs: dict
+            Keyword arguments and associated values in the dictionary must
+            match those used in :meth:`discretize.tests.checkDerivative`
+        
+        Returns
+        -------
+        bool
+            Returns ``True`` if the test passes
         """
         print("Testing {0!s}".format(str(self)))
         if m is None:
@@ -151,14 +213,25 @@ class IdentityMap(properties.HasProperties):
         )
 
     def testVec(self, m=None, **kwargs):
-        """Test the derivative of the mapping times a vector.
+        """Derivative test for the mapping times the model.
 
-        :param numpy.ndarray m: model
-        :param kwargs: key word arguments of
-                       :meth:`discretize.tests.checkDerivative`
-        :rtype: bool
-        :return: passed the test?
-
+        This test validates the mapping by performing a convergence test
+        on the mapping time a model.
+        
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            Starting vector of model parameters for the derivative test
+        num : int
+            Number of iterations for the derivative test
+        kwargs: dict
+            Keyword arguments and associated values in the dictionary must
+            match those used in :meth:`discretize.tests.checkDerivative`
+        
+        Returns
+        -------
+        bool
+            Returns ``True`` if the test passes
         """
         print("Testing {0!s}".format(self))
         if m is None:
@@ -204,16 +277,70 @@ class IdentityMap(properties.HasProperties):
             "You used a {} of type {}".format(val, type(val))
         )
 
-    def dot(self, val):
-        return self.__mul__(val)
+    def dot(self, map1):
+        r"""Multiply two mappings to create a :class:`SimPEG.maps.ComboMap`.
 
-    def __matmul__(self, val):
-        return self.__mul__(val)
+        Let :math:`\mathbf{f}_1` and :math:`\mathbf{f}_2` represent two mapping functions.
+        Where :math:`\mathbf{m}` represents a set of input model parameters,
+        the ``dot`` method is used to create a combination mapping:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = (\mathbf{f_2 \circ f_1})(\mathbf{m})
+        
+        Where :math:`\mathbf{f_1} : M \rightarrow K_1` and acts on the
+        model first, and :math:`\mathbf{f_2} : K_1 \rightarrow K_2`, the combination
+        mapping :math:`\mathbf{u} : M \rightarrow K_2`. 
+
+        When using the **dot** method, the input argument *map1* represents the first
+        mapping that is be applied and *self* represents the second mapping
+        that is be applied. Therefore, the correct syntax for using this method is::
+            
+            self.dot(map1)
+
+
+        Parameters
+        ----------
+        map1 :
+            A SimPEG mapping object.
+
+        Examples
+        --------
+        Here we create a combination mapping that 1) projects a single scalar to
+        a vector space of length 5, then takes the natural exponent.
+
+        >>> import numpy as np
+        >>> from SimPEG.maps import ExpMap, Projection
+
+        >>> nP1 = 1
+        >>> nP2 = 5
+        >>> ind = np.zeros(nP1, dtype=int)
+
+        >>> projection_map = Projection(nP1, ind)
+        >>> projection_map.shape
+        (5, 1)
+
+        >>> exp_map = ExpMap(nP=5)
+        >>> exp_map.shape
+        (5, 5)
+
+        >>> combo_map = exp_map.dot(projection_map)
+        >>> combo_map.shape
+        (5, 1)
+
+        >>> m = np.array([2])
+        >>> combo_map * m
+        array([7.3890561, 7.3890561, 7.3890561, 7.3890561, 7.3890561])
+
+        """
+        return self.__mul__(map1)
+
+    def __matmul__(self, map1):
+        return self.__mul__(map1)
 
     __numpy_ufunc__ = True
 
-    def __add__(self, map2):
-        return SumMap([self, map2])  # error-checking done inside of the SumMap
+    def __add__(self, map1):
+        return SumMap([self, map1])  # error-checking done inside of the SumMap
 
     def __str__(self):
         return "{0!s}({1!s},{2!s})".format(
@@ -225,13 +352,71 @@ class IdentityMap(properties.HasProperties):
 
 
 class ComboMap(IdentityMap):
-    """
-    Combination of various maps.
+    r"""Combination mapping constructed by joining a set of other mappings.
 
-    The ComboMap holds the information for multiplying and combining
-    maps. It also uses the chain rule to create the derivative.
-    Remember, any time that you make your own combination of mappings
+    A ``ComboMap`` is a single mapping object made by joining a set
+    of basic mapping operations. When creating a ``ComboMap``, the
+    user provides a list of SimPEG mapping objects they wish to join.
+    The order of the mappings in this list is from last to first; i.e.
+    :math:`[\mathbf{f}_n , ... , \mathbf{f}_2 , \mathbf{f}_1]`.
+
+    The combination mapping :math:`\mathbf{u}(\mathbf{m})` that acts on a
+    set of input model parameters :math:`\mathbf{m}` is defined as:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = (\mathbf{f_n} \circ \cdots \circ \mathbf{f_2} \circ \mathbf{f_1})(\mathbf{m})
+
+
+    Derivatives for the combination mapping are computed using the chain
+    rule. Thus:
+
+    .. math::
+        \frac{\partial \mathbf{u}}{\partial \mathbf{m}} =
+        \frac{\partial \mathbf{f_n}}{\partial \mathbf{f_{n-1}}}
+        \cdots
+        \frac{\partial \mathbf{f_2}}{\partial \mathbf{f_{1}}}
+        \frac{\partial \mathbf{f_1}}{\partial \mathbf{m}}
+
+    Note that any time that you create your own combination mapping,
     be sure to test that the derivative is correct.
+
+    Parameters
+    ----------
+    maps : list
+        A ``list`` of SimPEG mapping objects. The ordering of the mapping
+        objects in the ``list`` is from last applied to first applied!
+
+    Examples
+    --------
+    Here we create a combination mapping that 1) projects a single scalar to
+    a vector space of length 5, then takes the natural exponent.
+
+    >>> import numpy as np
+    >>> from SimPEG.maps import ExpMap, Projection, ComboMap
+
+    >>> nP1 = 1
+    >>> nP2 = 5
+    >>> ind = np.zeros(nP1, dtype=int)
+
+    >>> projection_map = Projection(nP1, ind)
+    >>> projection_map.shape
+    (5, 1)
+
+    >>> exp_map = ExpMap(nP=5)
+    >>> exp_map.shape
+    (5, 5)
+    
+    Recall that the order of the mapping objects is from last applied
+    to first applied.
+
+    >>> map_list = [exp_map, projection_map]
+    >>> combo_map = ComboMap(map_list)
+    >>> combo_map.shape
+    (5, 1)
+
+    >>> m = np.array([2.])
+    >>> combo_map * m
+    array([7.3890561, 7.3890561, 7.3890561, 7.3890561, 7.3890561])
 
     """
 
@@ -271,14 +456,30 @@ class ComboMap(IdentityMap):
 
     @property
     def shape(self):
+        r"""Dimensions of the mapping.
+
+        For a list of SimPEG mappings [:math:`\mathbf{f}_n,...,\mathbf{f}_1`]
+        that have been joined to create a ``ComboMap``, this method returns
+        the dimensions of the combination mapping. Recall that the ordering
+        of the list of mappings is from last to first.
+
+        Returns
+        -------
+        tuple
+            Dimensions of the mapping operator as a tuple of the
+            form (``int``,``int``).
+        """
         return (self.maps[0].shape[0], self.maps[-1].shape[1])
 
     @property
     def nP(self):
-        """Number of model properties.
+        r"""Number of parameters the mapping acts on.
 
-        The number of cells in the
-        last dimension of the mesh."""
+        Returns
+        -------
+        int
+            Number of parameters that the mapping acts on.
+        """
         return self.maps[-1].nP
 
     def _transform(self, m):
@@ -287,6 +488,46 @@ class ComboMap(IdentityMap):
         return m
 
     def deriv(self, m, v=None):
+        r"""Derivative of the mapping with respect to the input parameters.
+
+        Let :math:`\mathbf{m}` be a set of model parameters and let
+        [:math:`\mathbf{f}_n,...,\mathbf{f}_1`] be the list of SimPEG mappings joined
+        to create a combination mapping. Recall that the list of mappings is ordered
+        from last applied to first applied.
+
+        Where the combination mapping acting on the model parameters
+        can be expressed as:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = (\mathbf{f_n} \circ \cdots \circ \mathbf{f_2} \circ \mathbf{f_1})(\mathbf{m}),
+
+        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters. To do this, we use the chain rule, i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} =
+            \frac{\partial \mathbf{f_n}}{\partial \mathbf{f_{n-1}}}
+            \cdots
+            \frac{\partial \mathbf{f_2}}{\partial \mathbf{f_{1}}}
+            \frac{\partial \mathbf{f_1}}{\partial \mathbf{m}}
+
+        Note that any time that you create your own combination mapping,
+        be sure to test that the derivative is correct.
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters.
+            If the input argument *v* is not ``None``, the method returns
+            the derivative times the vector *v*.
+        """
 
         if v is not None:
             deriv = v
@@ -309,11 +550,38 @@ class ComboMap(IdentityMap):
 
 
 class Projection(IdentityMap):
-    """
-    A map to rearrange / select parameters
+    """Projection mapping.
 
-    :param int nP: number of model parameters
-    :param numpy.ndarray index: indices to select
+    ``Projection`` mapping can be used to project and/or rearange model
+    parameters. The number of model parameters the mapping acts on is
+    defined by *nP*. Projection and/or rearrangement of the parameters
+    is defined by *index*. Thus the dimensions of the mapping is
+    (*nInd*, *nP*).
+    
+    Parameters
+    ----------
+    nP : int
+        Number of model parameters the mapping acts on
+    index : numpy.ndarray of int
+        Indexes defining the projection from the model space
+
+    Examples
+    --------
+    Here we define a mapping that rearranges and projects 2 model
+    parameters to a vector space spanning 4 parameters.
+
+    >>> from SimPEG.maps import Projection
+    >>> import numpy as np
+
+    >>> nP = 2
+    >>> index = np.array([1, 0, 1, 0], dtype=int)
+    >>> mapping = Projection(nP, index)
+
+    >>> m = np.array([6, 8])
+    >>> mapping * m
+    array([8, 6, 8, 6])
+
+
     """
 
     def __init__(self, nP, index, **kwargs):
@@ -342,16 +610,49 @@ class Projection(IdentityMap):
 
     @property
     def shape(self):
-        """
-        Shape of the matrix operation (number of indices x nP)
+        r"""Dimensions of the mapping.
+
+        Returns
+        -------
+        tuple
+            Where *nP* is the number of parameters the mapping acts on and
+            *nInd* is the length of the vector defining the mapping, the
+            dimensions of the mapping operator is a tuple of the
+            form (*nInd*, *nP*).
         """
         return self._shape
 
     def deriv(self, m, v=None):
-        """
-        :param numpy.ndarray m: model
-        :rtype: scipy.sparse.csr_matrix
-        :return: derivative of transformed model
+        r"""Derivative of the mapping with respect to the input parameters.
+
+        Let :math:`\mathbf{m}` be a set of model parameters and let :math:`\mathbf{P}`
+        be a matrix denoting the projection mapping. Where the projection mapping acting
+        on the model parameters can be expressed as:
+
+        .. math::
+            \mathbf{u} = \mathbf{P m},
+
+        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters; i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{P}
+
+        Note that in this case, **deriv** simply returns a sparse projection matrix.
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
         """
 
         if v is not None:
@@ -360,7 +661,9 @@ class Projection(IdentityMap):
 
 
 class SumMap(ComboMap):
-    """
+    """Combination map constructed by summing multiple mappings
+    to the same vector space.
+
     A map to add model parameters contributing to the
     forward operation e.g. F(m) = F(g(x) + h(y))
 
@@ -368,6 +671,13 @@ class SumMap(ComboMap):
     are equal in length.
     Allows to assume different things about the model m:
     i.e. parametric + voxel models
+
+    Parameters
+    ----------
+    maps : list
+        A list of SimPEG mapping objects that are being summed.
+        Each mapping object in the list must act on the same number
+        of model parameters and must map to the same vector space!
     """
 
     def __init__(self, maps, **kwargs):
@@ -403,14 +713,24 @@ class SumMap(ComboMap):
 
     @property
     def shape(self):
+        """Dimensions of the mapping.
+
+        Returns
+        -------
+        tuple
+            The dimensions of the mapping. A tuple of the form (``int``,``int``)
+        """
         return (self.maps[0].shape[0], self.maps[0].shape[1])
 
     @property
     def nP(self):
-        """Number of model properties.
+        r"""Number of parameters the combined mapping acts on.
 
-        The number of cells in the
-        last dimension of the mesh."""
+        Returns
+        -------
+        int
+            Number of parameters that the mapping acts on.
+        """
         return self.maps[-1].shape[1]
 
     def _transform(self, m):
@@ -426,6 +746,22 @@ class SumMap(ComboMap):
         return mout
 
     def deriv(self, m, v=None):
+        """Derivative of mapping with respect to the input parameters
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
 
         for ii, map_i in enumerate(self.maps):
 
@@ -446,10 +782,43 @@ class SumMap(ComboMap):
 
 
 class SurjectUnits(IdentityMap):
-    """
-    A map to group model cells into homogeneous units
+    r"""Surjective mapping to all mesh cells.
 
-    :param list indices: list of bool for each homogeneous unit
+    Let :math:`\mathbf{m}` be a model that contains a physical property value
+    for *nP* geological units. ``SurjectUnits`` is used to construct a surjective
+    mapping from :math:`\mathbf{m}` to the set of voxel cells defining a mesh.
+    The mapping therefore has dimensions (*mesh.nC*, *nP*).
+    
+    Parameters
+    ----------
+    indices : (nP) list of (mesh.nC) numpy.ndarray
+        Each entry in the :class:`list` is a boolean :class:`numpy.ndarray` of length
+        *mesh.nC* that assigns the corresponding physical property value to the
+        appropriate mesh cells.
+
+    Examples
+    --------
+    For this example, we have a model that defines the property values
+    for two units. Using ``SurjectUnit``, we construct the mapping from
+    the model to a 1D mesh where the 1st unit's value is assigned to
+    all cells whose centers are located at *x < 0* and the 2nd unit's value
+    is assigned to all cells whose centers are located at *x > 0*. 
+
+    >>> from SimPEG.maps import SurjectUnits
+    >>> from discretize import TensorMesh
+    >>> import numpy as np
+    
+    >>> nP = 8
+    >>> mesh = TensorMesh([np.ones(nP)], 'C')
+    >>> unit_1_ind = mesh.cell_centers < 0
+    
+    >>> indices_list = [unit_1_ind, ~unit_1_ind]
+    >>> mapping = SurjectUnits(indices_list, nP=nP)
+    
+    >>> m = np.r_[0.01, 0.05]
+    >>> mapping * m
+    array([0.01, 0.01, 0.01, 0.01, 0.05, 0.05, 0.05, 0.05])
+
     """
 
     indices = properties.List(
@@ -470,6 +839,9 @@ class SurjectUnits(IdentityMap):
 
     @property
     def P(self):
+        """
+        Projection matrix from model parameters to mesh cells.
+        """
         if getattr(self, "_P", None) is None:
             # sparse projection matrix
             row = []
@@ -493,21 +865,60 @@ class SurjectUnits(IdentityMap):
 
     @property
     def nP(self):
+        r"""Number of parameters the mapping acts on.
+
+        Returns
+        -------
+        int
+            Number of parameters that the mapping acts on.
+        """
         return len(self.indices)
 
     @property
     def shape(self):
-        """
-        Shape of the matrix operation (number of indices x nP)
+        """Dimensions of the mapping
+
+        Returns
+        -------
+        tuple
+            Dimensions of the mapping. Where *nP* is the number of parameters the
+            mapping acts on and *mesh.nC* is the number of cells the corresponding
+            mesh, the return is a tuple of the form (*mesh.nC*, *nP*).
         """
         # return self.n_block*len(self.indices[0]), self.n_block*len(self.indices)
         return (len(self.indices[0]), self.nP)
 
     def deriv(self, m, v=None):
-        """
-        :param numpy.ndarray m: model
-        :rtype: scipy.sparse.csr_matrix
-        :return: derivative of transformed model
+        r"""Derivative of the mapping with respect to the input parameters.
+
+        Let :math:`\mathbf{m}` be a set of model parameters. The surjective mapping
+        can be defined as a sparse projection matrix :math:`\mathbf{P}`. Therefore
+        we can define the surjective mapping acting on the model parameters as:
+
+        .. math::
+            \mathbf{u} = \mathbf{P m},
+
+        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters; i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{P}
+
+        Note that in this case, **deriv** simply returns a sparse projection matrix.
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters.
+            If the input argument *v* is not ``None``, the method returns
+            the derivative times the vector *v*.
         """
 
         if v is not None:
@@ -516,7 +927,9 @@ class SurjectUnits(IdentityMap):
 
 
 class SphericalSystem(IdentityMap):
-    """
+    """Mapping vectors from spherical to Cartesian coordinates.
+
+
     A vector map to spherical parameters of amplitude, theta and phi
     """
 
@@ -605,10 +1018,21 @@ class SphericalSystem(IdentityMap):
         return (self.nP, self.nP)
 
     def deriv(self, m, v=None):
-        """
-        :param numpy.ndarray m: model
-        :rtype: scipy.sparse.csr_matrix
-        :return: derivative of transformed model
+        """Derivative of mapping with respect to the input parameters
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
         """
 
         if v is not None:
@@ -617,6 +1041,9 @@ class SphericalSystem(IdentityMap):
 
 
 class Wires(object):
+    """A mapping class for organizing multiple parameter types into a single model
+
+    """
     def __init__(self, *args):
         for arg in args:
             assert (
@@ -652,6 +1079,13 @@ class Wires(object):
 
     @property
     def nP(self):
+        r"""Number of parameters the mapping acts on.
+
+        Returns
+        -------
+        int
+            Number of parameters that the mapping acts on.
+        """
         return self._nP
 
 
@@ -1049,25 +1483,29 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
 
 
 class ExpMap(IdentityMap):
-    """
-    Electrical conductivity varies over many orders of magnitude, so it is
-    a common technique when solving the inverse problem to parameterize and
-    optimize in terms of log conductivity. This makes sense not only
-    because it ensures all conductivities will be positive, but because
-    this is fundamentally the space where conductivity
-    lives (i.e. it varies logarithmically).
+    r"""Mapping that computes the natural exponentials of the model parameters.
 
-    Changes the model into the physical property.
-
-    A common example of this is to invert for electrical conductivity
-    in log space. In this case, your model will be log(sigma) and to
-    get back to sigma, you can take the exponential:
+    Where :math:`\mathbf{m}` is a set of model parameters, ``ExpMap`` creates
+    a mapping :math:`\mathbf{u}(\mathbf{m})` that computes the natural exponential
+    of every element in :math:`\mathbf{m}`; i.e.:
 
     .. math::
+        \mathbf{u}(\mathbf{m}) = exp(\mathbf{m}) 
 
-        m = \log{\sigma}
+    ``ExpMap`` is commonly used when working with physical properties whose values
+    span many orders of magnitude (e.g. the electrical conductivity :math:`\sigma`).
+    By using ``ExpMap``, we can invert for a model that represents the natural log
+    of a set of physical property values, i.e. when :math:`m = log(\sigma)`
 
-        \exp{m} = \exp{\log{\sigma}} = \sigma
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
@@ -1077,43 +1515,59 @@ class ExpMap(IdentityMap):
         return np.exp(mkvc(m))
 
     def inverse(self, D):
-        """
-        :param numpy.ndarray D: physical property
-        :rtype: numpy.ndarray
-        :return: model
+        r"""Apply the inverse of the exponential mapping to an array.
 
-        The *transformInverse* changes the physical property into the
-        model.
+        For the exponential mapping :math:`\mathbf{u}(\mathbf{m})`, the
+        inverse mapping on a variable :math:`\mathbf{x}` is performed by taking
+        the natural logarithms of elements, i.e.:
 
         .. math::
+            \mathbf{m} = \mathbf{u}^{-1}(\mathbf{x}) = log(\mathbf{x})
 
-            m = \log{\sigma}
-
+        Parameters
+        ----------
+        D : numpy.ndarray
+            A set of input values
+        
+        Returns
+        -------
+        numpy.ndarray
+            A :class:`numpy.ndarray` containing result of applying the
+            inverse mapping to the elements in *D*; which in this case
+            is the natural logarithm.
         """
         return np.log(mkvc(D))
 
     def deriv(self, m, v=None):
-        """
-        :param numpy.ndarray m: model
-        :rtype: scipy.sparse.csr_matrix
-        :return: derivative of transformed model
+        r"""Derivative of mapping with respect to the input parameters.
 
-        The *transform* changes the model into the physical property.
-        The *transformDeriv* provides the derivative of the *transform*.
-
-        If the model *transform* is:
+        For a mapping :math:`\mathbf{u}(\mathbf{m})` that computes the natural
+        exponential function for each parameter in the model :math:`\mathbf{m}`,
+        i.e.:
 
         .. math::
+            \mathbf{u}(\mathbf{m}) = exp(\mathbf{m}),
 
-            m = \log{\sigma}
-
-            \exp{m} = \exp{\log{\sigma}} = \sigma
-
-        Then the derivative is:
+        the derivative of the mapping with respect to the model is a diagonal
+        matrix of the form:
 
         .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}}
+            = \textrm{diag} \big ( exp(\mathbf{m}) \big )
 
-            \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
         """
         deriv = sdiag(np.exp(mkvc(m)))
         if v is not None:
@@ -1122,14 +1576,25 @@ class ExpMap(IdentityMap):
 
 
 class ReciprocalMap(IdentityMap):
-    """
-    Reciprocal mapping. For example, electrical resistivity and
-    conductivity.
+    r"""Mapping that computes the reciprocals of the model parameters.
+
+    Where :math:`\mathbf{m}` is a set of model parameters, ``ReciprocalMap``
+    creates a mapping :math:`\mathbf{u}(\mathbf{m})` that computes the
+    reciprocal of every element in :math:`\mathbf{m}`;
+    i.e.:
 
     .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{m}^{-1}
 
-        \\rho = \\frac{1}{\sigma}
-
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
@@ -1139,10 +1604,59 @@ class ReciprocalMap(IdentityMap):
         return 1.0 / mkvc(m)
 
     def inverse(self, D):
+        r"""Apply the inverse of the reciprocal mapping to an array.
+
+        For the reciprocal mapping :math:`\mathbf{u}(\mathbf{m})`,
+        the inverse mapping on a variable :math:`\mathbf{x}` is itself a
+        reciprocal mapping, i.e.:
+
+        .. math::
+            \mathbf{m} = \mathbf{u}^{-1}(\mathbf{x}) = \mathbf{x}^{-1}
+
+        Parameters
+        ----------
+        D : numpy.ndarray
+            A set of input values
+        
+        Returns
+        -------
+        numpy.ndarray
+            A :class:`numpy.ndarray` containing result of applying the
+            inverse mapping to the elements in *D*; which in this case
+            is just a reciprocal mapping.
+        """
         return 1.0 / mkvc(D)
 
     def deriv(self, m, v=None):
-        # TODO: if this is a tensor, you might have a problem.
+        r"""Derivative of mapping with respect to the input parameters.
+
+        For a mapping that computes the reciprocal for each
+        parameter in the model :math:`\mathbf{m}`, i.e.:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{m}^{-1}
+
+        the derivative of the mapping with respect to the model is a diagonal
+        matrix of the form:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}}
+            = \textrm{diag} \big ( -\mathbf{m}^{-2} \big )
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
         deriv = sdiag(-mkvc(m) ** (-2))
         if v is not None:
             return deriv * v
@@ -1150,25 +1664,25 @@ class ReciprocalMap(IdentityMap):
 
 
 class LogMap(IdentityMap):
-    """
-    Changes the model into the physical property.
+    r"""Mapping that computes the natural logarithm of the model parameters.
 
-    If \\(p\\) is the physical property and \\(m\\) is the model, then
-
-    .. math::
-
-        p = \\log(m)
-
-    and
+    Where :math:`\mathbf{m}` is a set of model parameters, ``LogMap``
+    creates a mapping :math:`\mathbf{u}(\mathbf{m})` that computes the
+    natural logarithm of every element in
+    :math:`\mathbf{m}`; i.e.:
 
     .. math::
+        \mathbf{u}(\mathbf{m}) = \textrm{log}(\mathbf{m})
 
-        m = \\exp(p)
-
-    NOTE: If you have a model which is log conductivity
-    (ie. \\(m = \\log(\\sigma)\\)),
-    you should be using an ExpMap
-
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
@@ -1178,6 +1692,36 @@ class LogMap(IdentityMap):
         return np.log(mkvc(m))
 
     def deriv(self, m, v=None):
+        r"""Derivative of mapping with respect to the input parameters.
+
+        For a mapping :math:`\mathbf{u}(\mathbf{m})` that computes the
+        natural logarithm for each parameter in the model :math:`\mathbf{m}`,
+        i.e.:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = log(\mathbf{m})
+
+        the derivative of the mapping with respect to the model is a diagonal
+        matrix of the form:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}}
+            = \textrm{diag} \big ( \mathbf{m}^{-1} \big )
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
         mod = mkvc(m)
         deriv = np.zeros(mod.shape)
         tol = 1e-16  # zero
@@ -1188,18 +1732,52 @@ class LogMap(IdentityMap):
         return sdiag(deriv)
 
     def inverse(self, m):
+        r"""Apply the inverse of the natural log mapping to an array.
+
+        For the natural log mapping :math:`\mathbf{u}(\mathbf{m})`,
+        the inverse mapping on a variable :math:`\mathbf{x}` is performed by
+        taking the natural exponent of the elements, i.e.:
+
+        .. math::
+            \mathbf{m} = \mathbf{u}^{-1}(\mathbf{x}) = exp(\mathbf{x})
+
+        Parameters
+        ----------
+        D : numpy.ndarray
+            A set of input values
+        
+        Returns
+        -------
+        numpy.ndarray
+            A :class:`numpy.ndarray` containing result of applying the
+            inverse mapping to the elements in *D*; which in this case
+            is the natural exponent.
+        """
         return np.exp(mkvc(m))
 
 
 class ChiMap(IdentityMap):
-    """Chi Map
+    r"""Mapping that computes the magnetic permeability given a set of magnetic susceptibilities.
 
-    Convert Magnetic Susceptibility to Magnetic Permeability.
+    Where :math:`\boldsymbol{\chi}` is the input model parameters defining a set of magnetic
+    susceptibilities, ``ChiMap`` creates a mapping :math:`\boldsymbol{\mu}(\boldsymbol{\chi})`
+    that computes the corresponding magnetic permeabilities of every
+    element in :math:`\boldsymbol{\chi}`; i.e.:
 
     .. math::
+        \boldsymbol{\mu}(\boldsymbol{\chi}) = \mu_0 \big (1 + \boldsymbol{\chi} \big )
 
-        \mu(m) = \mu_0 (1 + \chi(m))
+    where :math:`\mu_0` is the permeability of free space.
 
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
@@ -1209,21 +1787,90 @@ class ChiMap(IdentityMap):
         return mu_0 * (1 + m)
 
     def deriv(self, m, v=None):
+        r"""Derivative of mapping with respect to the input parameters.
+
+        For a mapping :math:`\boldsymbol{\mu}(\boldsymbol{\chi})` that transforms a
+        set of magnetic susceptibilities :math:`\boldsymbol{\chi}` to their corresponding
+        magnetic permeabilities, i.e.:
+
+        .. math::
+            \boldsymbol{\mu}(\boldsymbol{\chi}) = \mu_0 \big (1 + \boldsymbol{\chi} \big ),
+
+        the derivative of the mapping with respect to the model is the identity
+        matrix scaled by the permeability of free-space. Thus:
+
+        .. math::
+            \frac{\partial \boldsymbol{\mu}}{\partial \boldsymbol{\chi}} = \mu_0 \mathbf{I}
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
         if v is not None:
             return mu_0 * v
         return mu_0 * sp.eye(self.nP)
 
     def inverse(self, m):
+        r"""Apply the inverse mapping to an array.
+
+        For the ``ChiMap`` class, the inverse mapping recoveres the set of
+        magnetic susceptibilities :math:`\boldsymbol{\chi}` from a set of
+        magnetic permeabilities :math:`\boldsymbol{\mu}`. Thus the inverse
+        mapping is defined as:
+
+        .. math::
+            \boldsymbol{\chi}(\boldsymbol{\mu}) = \frac{\boldsymbol{\mu}}{\mu_0} - 1
+
+        where :math:`\mu_0` is the permeability of free space.
+
+        Parameters
+        ----------
+        D : numpy.ndarray
+            A set of input values
+        
+        Returns
+        -------
+        numpy.ndarray
+            A :class:`numpy.ndarray` containing result of applying the
+            inverse mapping to the elements in *D*; which in this case
+            represents the conversion of magnetic permeabilities
+            to their corresponding magnetic susceptibility values.
+        """
         return m / mu_0 - 1
 
 
 class MuRelative(IdentityMap):
-    """
-    Invert for relative permeability
+    r"""Mapping that computes the magnetic permeability given a set of relative permeabilities.
+
+    Where :math:`\boldsymbol{\mu_r}` defines a set of relative permeabilities, ``MuRelative``
+    creates a mapping :math:`\boldsymbol{\mu}(\boldsymbol{\mu_r})` that computes the
+    corresponding magnetic permeabilities of every element in :math:`\boldsymbol{\mu_r}`;
+    i.e.:
 
     .. math::
+        \boldsymbol{\mu}(\boldsymbol{\mu_r}) = \mu_0 \boldsymbol{\mu_r}
 
-        \mu(m) = \mu_0 * \mathbf{m}
+    where :math:`\mu_0` is the permeability of free space.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
@@ -1233,17 +1880,95 @@ class MuRelative(IdentityMap):
         return mu_0 * m
 
     def deriv(self, m, v=None):
+        r"""Derivative of mapping with respect to the input parameters.
+
+        For a mapping that transforms a set of relative permeabilities
+        :math:`\boldsymbol{\mu_r}` to their corresponding magnetic permeabilities, i.e.:
+
+        .. math::
+            \boldsymbol{\mu}(\boldsymbol{\mu_r}) = \mu_0 \boldsymbol{\mu_r},
+
+        the derivative of the mapping with respect to the model is the identity
+        matrix scaled by the permeability of free-space. Thus:
+
+        .. math::
+            \frac{\partial \boldsymbol{\mu}}{\partial \boldsymbol{\mu_r}} = \mu_0 \mathbf{I}
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
         if v is not None:
             return mu_0 * v
         return mu_0 * sp.eye(self.nP)
 
     def inverse(self, m):
+        r"""Apply the inverse mapping to an array.
+
+        For the ``MuRelative`` class, the inverse mapping recoveres the set of
+        relative permeabilities :math:`\boldsymbol{\mu_r}` from a set of
+        magnetic permeabilities :math:`\boldsymbol{\mu}`. Thus the inverse
+        mapping is defined as:
+
+        .. math::
+            \boldsymbol{\mu_r}(\boldsymbol{\mu}) = \frac{\boldsymbol{\mu}}{\mu_0}
+
+        where :math:`\mu_0` is the permeability of free space.
+
+        Parameters
+        ----------
+        D : numpy.ndarray
+            A set of input values
+        
+        Returns
+        -------
+        numpy.ndarray
+            A :class:`numpy.ndarray` containing result of applying the
+            inverse mapping to the elements in *D*; which in this case
+            represents the conversion of magnetic permeabilities
+            to their corresponding relative permeability values.
+        """
         return 1.0 / mu_0 * m
 
 
 class Weighting(IdentityMap):
-    """
-    Model weight parameters.
+    r"""Mapping that scales the elements of the model by a corresponding set of weights.
+
+    Where :math:`\mathbf{m}` defines the set of input model parameters and
+    :math:`\mathbf{w}` represents a corresponding set of model weight,
+    ``Weighting`` constructs a mapping :math:`\mathbf{u}(\mathbf{m})` of the form:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{w} \odot \mathbf{m}
+
+    where :math:`\odot` is the Hadamard product. The mapping may also be
+    defined using a linear operator as follows:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{Pm} \;\;\;\;\; \textrm{where} \;\;\;\;\; \mathbf{P} = diag(\mathbf{w})
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
+    weights : (nP) numpy.ndarray
+        A set of independent model weights. If ``None``, all model weights are set
+        to *1*.
     """
 
     def __init__(self, mesh=None, nP=None, weights=None, **kwargs):
@@ -1265,50 +1990,264 @@ class Weighting(IdentityMap):
 
     @property
     def shape(self):
+        """Dimensions of the mapping.
+
+        Returns
+        -------
+        tuple
+            Dimensions of the mapping. Where *nP* is the number of parameters
+            the mapping acts on, this method returns a tuple of the form
+            (*nP*, *nP*).
+        """
         return (self.nP, self.nP)
 
     @property
     def P(self):
+        r"""The linear mapping operator
+
+        This property returns the sparse matrix :math:`\mathbf{P}` that carries
+        out the weighting mapping via matrix-vector product, i.e.:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{Pm} \;\;\;\;\; \textrm{where} \;\;\;\;\; \mathbf{P} = diag(\mathbf{w})
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Sparse linear mapping operator
+        """
         return sdiag(self.weights)
 
     def _transform(self, m):
         return self.weights * m
 
     def inverse(self, D):
+        r"""Apply the inverse of the weighting mapping to an array.
+
+        For the weighting mapping :math:`\mathbf{u}(\mathbf{m})`, the inverse
+        mapping on a variable :math:`\mathbf{x}` is performed by multplying each element by
+        the reciprocal of its corresponding weighting value, i.e.:
+
+        .. math::
+            \mathbf{m} = \mathbf{u}^{-1}(\mathbf{x}) = \mathbf{w}^{-1} \odot \mathbf{x}
+
+        where :math:`\odot` is the Hadamard product. The inverse mapping may also be defined
+        using a linear operator as follows:
+
+        .. math::
+             \mathbf{m} = \mathbf{u}^{-1}(\mathbf{x}) = \mathbf{P^{-1} m}
+             \;\;\;\;\; \textrm{where} \;\;\;\;\; \mathbf{P} = diag(\mathbf{w})
+
+        Parameters
+        ----------
+        D : numpy.ndarray
+            A set of input values
+        
+        Returns
+        -------
+        numpy.ndarray
+            A :class:`numpy.ndarray` containing result of applying the
+            inverse mapping to the elements in *D*; which in this case
+            is simply dividing each element by its corresponding
+            weight.
+        """
         return self.weights ** (-1.0) * D
 
     def deriv(self, m, v=None):
+        r"""Derivative of mapping with respect to the input parameters.
+
+        For a weighting mapping :math:`\mathbf{u}(\mathbf{m})` that scales the
+        input parameters in the model :math:`\mathbf{m}` by their corresponding
+        weights :math:`\mathbf{w}`; i.e.:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{w} \dot \mathbf{m},
+
+        the derivative of the mapping with respect to the model is a diagonal
+        matrix of the form:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}}
+            = diag (\mathbf{w})
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
         if v is not None:
             return self.weights * v
         return self.P
 
 
 class ComplexMap(IdentityMap):
-    """ComplexMap
+    r"""Maps the real and imaginary component values stored in a model to complex values.
 
-    default nP is nC in the mesh times 2 [real, imag]
+    Let :math:`\mathbf{m}` be a model which stores the real and imaginary components of
+    a set of complex values :math:`\mathbf{z}`. Where the model parameters are organized
+    into a vector of the form
+    :math:`\mathbf{m} = [\mathbf{z}^\prime , \mathbf{z}^{\prime\prime}]`, ``ComplexMap``
+    constructs the following mapping:
+
+    .. math::
+        \mathbf{z}(\mathbf{m}) = \mathbf{z}^\prime + j \mathbf{z}^{\prime\prime}
+    
+    Note that the mapping is :math:`\mathbb{R}^{2n} \rightarrow \mathbb{C}^n`.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        If a mesh is used to construct the mapping, the number of input model
+        parameters is *2\*mesh.nC* and the number of complex values output from
+        the mapping is equal to *mesh.nC*. If *mesh* is ``None``, the dimensions
+        of the mapping are set using the *nP* input argument.
+    nP : int
+        Defines the number of input model parameters directly. Must be an even number!!!
+        In this case, the number of complex values output from the mapping is *nP/2*.
+        If *nP* = ``None``, the dimensions of the mapping are set using the *mesh*
+        input argument.
+
+    Examples
+    --------
+    Here we construct a complex mapping on a 1D mesh comprised
+    of 4 cells. The input model is real-valued array of length 8
+    (4 real and 4 imaginary values). The output of the mapping
+    is a complex array with 4 values.
+
+    >>> from SimPEG.maps import ComplexMap
+    >>> from discretize import TensorMesh
+    >>> import numpy as np
+
+    >>> nC = 4
+    >>> mesh = TensorMesh([np.ones(nC)])
+
+    >>> z_real = np.ones(nC)
+    >>> z_imag = 2*np.ones(nC)
+    >>> m = np.r_[z_real, z_imag]
+    >>> m
+    array([1., 1., 1., 1., 2., 2., 2., 2.])
+
+    >>> mapping = ComplexMap(mesh=mesh)
+    >>> z = mapping * m
+    >>> z
+    array([1.+2.j, 1.+2.j, 1.+2.j, 1.+2.j])
 
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
         super(ComplexMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        if nP is not None and mesh is not None:
+            assert 2*mesh.nC == nP, "Number parameters must be 2 X number of mesh cells."
         if nP is not None:
             assert nP % 2 == 0, "nP must be even."
         self._nP = nP or int(self.mesh.nC * 2)
 
     @property
     def nP(self):
+        r"""Number of parameters the mapping acts on.
+
+        Returns
+        -------
+        int or '*'
+            Number of parameters that the mapping acts on.
+        """
         return self._nP
 
     @property
     def shape(self):
+        """Dimensions of the mapping
+
+        Returns
+        -------
+        tuple
+            The dimensions of the mapping. Where *nP* is the number
+            of input parameters, this property returns a tuple
+            (*nP/2*, *nP*).
+        """
         return (int(self.nP / 2), self.nP)
 
     def _transform(self, m):
-        nC = self.mesh.nC
+        nC = int(self.nP / 2)
         return m[:nC] + m[nC:] * 1j
 
     def deriv(self, m, v=None):
+        r"""Derivative of the complex mapping with respect to the input parameters.
+
+        The complex mapping maps the real and imaginary components stored in a model
+        of the form :math:`\mathbf{m} = [\mathbf{z}^\prime , \mathbf{z}^{\prime\prime}]`
+        to their corresponding complex values :math:`\mathbf{z}`, i.e.
+
+        .. math::
+            \mathbf{z}(\mathbf{m}) = \mathbf{z}^\prime + j \mathbf{z}^{\prime\prime}
+
+        The derivative of the mapping with respect to the model is block
+        matrix of the form:
+
+        .. math::
+            \frac{\partial \mathbf{z}}{\partial \mathbf{m}} = \big ( \mathbf{I} \;\;\; j\mathbf{I} \big )
+
+        where :math:`\mathbf{I}` is the identity matrix of shape (*nP/2*, *nP/2*) and
+        :math:`j = \sqrt{-1}`.
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+
+        Examples
+        --------
+        Here we construct the derivative operator for the complex mapping on a 1D
+        mesh comprised of 4 cells. We then demonstrate how the derivative of the
+        mapping and its adjoint can be applied to a vector.
+
+        >>> from SimPEG.maps import ComplexMap
+        >>> from discretize import TensorMesh
+        >>> import numpy as np
+
+        >>> nC = 4
+        >>> mesh = TensorMesh([np.ones(nC)])
+
+        >>> m = np.random.rand(2*nC)
+        >>> mapping = ComplexMap(mesh=mesh)
+        >>> M = mapping.deriv(m)
+
+        When applying the derivative operator to a vector, it will convert
+        the real and imaginary values stored in the vector to
+        complex values; essentially applying the mapping.
+
+        >>> v1 = np.arange(0, 2*nC, 1)
+        >>> u1 = M * v1
+        >>> u1
+        array([0.+4.j, 1.+5.j, 2.+6.j, 3.+7.j])
+
+        When applying the adjoint of the derivative operator to a set of
+        complex values, the operator will decompose these values into
+        their real and imaginary components.
+
+        >>> v2 = np.arange(0, nC, 1) + 1j*np.arange(nC, 2*nC, 1)
+        >>> u2 = M.adjoint() * v2
+        >>> u2
+        array([0., 1., 2., 3., 4., 5., 6., 7.])
+
+        """
         nC = self.shape[0]
         shp = (nC, nC * 2)
 
@@ -1345,6 +2284,13 @@ class SurjectFull(IdentityMap):
 
     @property
     def nP(self):
+        r"""Number of parameters the mapping acts on; i.e. 1.
+
+        Returns
+        -------
+        int
+            Returns an integer value of 1
+        """
         return 1
 
     def _transform(self, m):
@@ -1380,11 +2326,14 @@ class SurjectVertical1D(IdentityMap):
 
     @property
     def nP(self):
-        """Number of model properties.
+        r"""Number of parameters the mapping acts on.
 
-        The number of cells in the
-        last dimension of the mesh."""
-        # in discretize 0.7 the int conversion will not be required
+        Returns
+        -------
+        int
+            Number of parameters that the mapping acts on. Equal to the
+            number of mesh cells; i.e. `mesh.nC`.
+        """
         return int(self.mesh.vnC[self.mesh.dim - 1])
 
     def _transform(self, m):

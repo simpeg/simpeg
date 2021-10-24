@@ -18,7 +18,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
     mesh : discretize.TensorMesh or discretize.TreeMesh
         Mesh on which you want to identify active cells
     topo : (n, 3) numpy.ndarray
-        Topography data as a numpy array with columns [x,y,z]; can use [x,z] for 2D meshes.
+        Topography data as a ``numpyndarray`` with columns [x,y,z]; can use [x,z] for 2D meshes.
         Topography data can be unstructured.
     gridLoc : str {'CC', 'N'}
         If 'CC', all cells whose centers are below the topography are active cells.
@@ -304,7 +304,7 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=2.0, threshol
         the reference values for top of the points
     indActive : (mesh.n_cells) numpy.ndarray of bool, optional
         index vector for the active cells on the mesh.
-        A value of `None` implies every cell is active.
+        A value of ``None`` implies every cell is active.
     exponent : float, optional
         exponent parameter for depth weighting.
     threshold : float, optional
@@ -317,12 +317,12 @@ def depth_weighting(mesh, reference_locs, indActive=None, exponent=2.0, threshol
 
     Notes
     -----
-    When ``reference_locs`` is a single value the function is defined as,
+    When *reference_locs* is a single value the function is defined as,
 
     >>> wz = (np.abs(mesh.cell_centers[:, -1] - reference_locs) + threshold) ** (-0.5 * exponent)
 
-    When ``reference_locs`` is an array of values, the difference is between the
-    nearest point (of first two dimensions) in ``reference_locs``.
+    When *reference_locs* is an array of values, the difference is between the
+    nearest point (of first two dimensions) in *reference_locs*.
     'exponent' and 'threshold' are two adjustable parameters.
     """
 

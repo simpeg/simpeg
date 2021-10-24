@@ -14,12 +14,31 @@ from SimPEG.utils import mkvc
 
 ###############################################################################
 #                                                                             #
-#                             Base Potential Fields Simulation                   #
+#                             Base Potential Fields Simulation                #
 #                                                                             #
 ###############################################################################
 
 
 class BasePFSimulation(LinearSimulation):
+    r"""Base class for potential field simulations that use integral formulations.
+
+    For integral formulations, the forward simulation for a set of voxel calls
+    can be defined as a linear operation of the form:
+
+    .. math::
+        \mathbf{d} = \mathbf{Am}
+
+    where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model paramters
+    and :math:`\mathbf{A}` is a linear operator defining the sensitivities. The primary
+    difference between child simulation classes is the kernel function used to create
+    the rows of :math:`\mathbf{A}`.
+
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh or discretize.TreeMesh
+        A 3D tensor or tree mesh.
+
+    """
     actInd = properties.Array(
         "Array of active cells (ground)", dtype=(bool, int), default=None
     )

@@ -24,7 +24,7 @@ except ImportError:
 def create_wrapper_from_class(input_class, *fun_names):
     """Create wrapper class with memory profiler.
 
-    Using *memory_profiler.profile*, this function creates a wrapper class
+    Using :meth:`memory_profiler.profile`, this function creates a wrapper class
     from the input class and function names specified.
     
     Parameters
@@ -72,9 +72,9 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
     obj : class
         Instance of a class that will be binded to a new method
     method : method
-        The method that will be binded to `obj`; i.e. ClassName.method_name
+        The method that will be binded to *obj*; i.e. *ClassName.method_name*
     name : str
-        Provide a different name for the method being binded to `obj`. If ``None``,
+        Provide a different name for the method being binded to *obj*. If ``None``,
         the original method name is used. 
     overwrite : bool
         Overwrite previous hook
@@ -101,8 +101,8 @@ def set_kwargs(obj, ignore=None, **kwargs):
     ----------
     obj : class
         Instance of a class
-    ignore : str
-        List of strings denoting kwargs that are ignored (not being set)
+    ignore : list
+        ``list`` of ``str`` denoting kwargs that are ignored (not being set)
     """
     if ignore is None:
         ignore = []
@@ -185,7 +185,7 @@ def call_hooks(match, mainFirst=False):
         def doEndIteration(self):
             pass
 
-    This will call everything named _doEndIteration* at the beginning of the function call.
+    This will call everything named *_doEndIteration* at the beginning of the function call.
     By default the main method (doEndIteration) is run after all of the sub methods (_doEndIteration*).
     This can be reversed by adding the mainFirst=True kwarg.
     """

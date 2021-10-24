@@ -31,9 +31,9 @@ def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
     This function estimates the diagonal of a matrix using one of the following
     iterative methods:
 
-        - *Probing:* cyclic permutations of vectors with 1's and 0's (default)
-        - *Ones:* random +/- 1 entries
-        - *Random:* random vectors with entries in the range [-1, 1]
+        - **Probing:** cyclic permutations of vectors with 1's and 0's (default)
+        - **Ones:** random +/- 1 entries
+        - **Random:** random vectors with entries in the range [-1, 1]
 
     The user can estimate the diagonal of the matrix by providing the matrix,
     or by providing a function hangle which computes the dot product of the matrix
@@ -47,7 +47,7 @@ def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
     ----------
 
     matrix_arg : numpy.ndarray or function
-        The matrix as a numpy.ndarray, or a function handle which computes the dot product
+        The matrix as a ``numpy.ndarray``, or a function handle which computes the dot product
         between the matrix and a vector.
     n : int
         The length of the random vectors used to compute the diagonal; equals number of columns
@@ -149,7 +149,7 @@ def eigenvalue_by_power_iteration(
     n_pw_iter : int
         Number of power iterations used to estimate the highest eigenvalue
     fields_list : list (optional)
-        List of fields object for each data misfit term in combo_objfct. If none given,
+        ``list`` of fields objects for each data misfit term in combo_objfct. If none given,
         they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
         terms, the list should contains SimPEG.fields for the data misfit terms and None for the
         regularization term.

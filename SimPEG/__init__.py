@@ -1,3 +1,36 @@
+"""
+========================================================
+Base SimPEG Classes (:mod:`SimPEG`)
+========================================================
+.. currentmodule:: SimPEG
+
+Data Classes
+============
+.. autosummary::
+  :toctree: generated/
+
+  data.UncertaintyArray
+  data.Data
+  data.SyntheticData
+
+Mapping Classes
+===============
+.. autosummary::
+  :toctree: generated/
+
+  maps.ChiMap
+  maps.ComboMap
+  maps.ComplexMap
+  maps.ExpMap
+  maps.IdentityMap
+  maps.MuRelative
+  maps.LogMap
+  maps.Projection
+  maps.ReciprocalMap
+  maps.SurjectUnits
+  maps.Weighting
+
+"""
 from __future__ import print_function
 from __future__ import absolute_import
 
