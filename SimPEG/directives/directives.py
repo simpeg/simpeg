@@ -1362,20 +1362,21 @@ class SaveIterationsGeoH5(InversionDirective):
 
         self.h5_object.workspace.finalize()
 
-    def save_components(self, iteration: int):
-        if self.attribute_type == "predicted":
-            values = self.invProb.dpred
-            if values is None:
-                values = self.invProb.get_dpred(self.invProb.model)
-            prop = np.hstack(values)
+    def save_components(self, iteration: int, values: np.ndarray = None):
+
+        if values is not None:
+            prop = values
+        elif self.attribute_type == "predicted":
+            dpred = self.invProb.dpred
+            if dpred is None:
+                dpred = self.invProb.get_dpred(self.invProb.model)
+            prop = np.hstack(dpred)
         else:
             prop = self.invProb.model
 
+
         for fun in self.transforms:
             if isinstance(fun, (maps.IdentityMap, np.ndarray, float)):
-                if isinstance(fun, np.ndarray):
-                    if len(fun.ravel()) == len(prop.ravel()):
-                        fun = fun.reshape(prop.shape)
                 prop = fun * prop
             else:
                 prop = fun(prop)
