@@ -1,5 +1,3 @@
-from __future__ import print_function, annotations
-
 import properties
 import numpy as np
 import matplotlib.pyplot as plt
