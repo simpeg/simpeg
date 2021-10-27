@@ -133,6 +133,10 @@ class PointElectricField(BaseRx):
     :param float elevation: elevation, only used if `orientation='rotated'`
     """
 
+    # TODO : the current implementation of azimuth/elevation is not good. It
+    #        only allows for one azimuth/elevation for all locations. Ideally
+    #        the angles should have the same size as locations (but 1D).
+
     azimuth = properties.Float("azimuth (anticlockwise from Easting)", default=0, min=-360.0, max=360)
 
     elevation = properties.Float("elevation (positive up)", default=0, min=-180.0, max=180)
