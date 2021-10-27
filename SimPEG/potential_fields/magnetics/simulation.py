@@ -16,6 +16,7 @@ from SimPEG import Solver
 from SimPEG import props
 import properties
 from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
+from SimPEG.utils.code_utils import deprecate_property
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -33,6 +34,14 @@ class Simulation3DIntegral(BasePFSimulation):
     )
 
     _model_type: str = "scalar"
+
+    modelType = deprecate_property(
+        _model_type,
+        "modelType",
+        new_name="model_type",
+        removal_version="0.16.0",
+        future_warn=True,
+    )
 
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh, **kwargs)
