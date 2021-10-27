@@ -5,6 +5,8 @@ from discretize.utils import requires
 from ...utils import mkvc
 from .simulation import BaseFDEMSimulation
 from .sources import ElectricDipole, ElectricWire
+from .receivers import PointElectricField, PointMagneticField
+from .survey import Survey
 from ...data import ComplexData
 # from memory_profiler import profile
 
@@ -170,7 +172,7 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         :return: Jtvec (nP,)
         """
         if self.verbose:
-            print("Compute Jtvec")  
+            print("Compute Jtvec")
 
         if self.storeJ:
 
@@ -307,6 +309,11 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
 def survey_to_emg3d(survey):
     """Return emg3d survey from provided SimPEG survey.
+
+
+    See Also
+    --------
+    :func:`survey_to_simpeg` : Opposite way, from emg3d to SimPEG.
 
 
     Parameters
@@ -472,3 +479,106 @@ def survey_to_emg3d(survey):
     emg3d_survey.data['indices'] = emg3d_survey.data.observed.copy(data=ind)
 
     return emg3d_survey, data_map
+
+
+def survey_to_simpeg(survey):
+    """Return SimPEG survey from provided emg3d survey.
+
+    .. note::
+
+        If the survey contains observed data, then only the src-rec-freq
+        combinations with non-NaN values are added to the SimPEG survey.
+
+
+    See Also
+    --------
+    :func:`survey_to_emg3d` : Opposite way, from SimPEG to emg3d.
+
+
+    Parameters
+    ----------
+    survey : Survey
+        emg3d survey instance.
+
+
+    Returns
+    -------
+    simpeg_survey : Survey
+        SimPEG survey instance.
+
+    """
+
+    # Check if survey contains any non-NaN data.
+    data = survey.data.observed
+    check = True
+    if not np.any(np.isfinite(survey.data.observed.data)):
+        check = False
+
+    # Start source list
+    src_list = []
+
+    # 1. loop over sources
+    for sname, src in survey.sources.items():
+
+        # If source has no data, skip it.
+        sdata = data.loc[sname, :, :]
+        if check and not np.any(np.isfinite(sdata.data)):
+            continue
+
+        # 2. loop over frequencies
+        for sfreq, freq in survey.frequencies.items():
+
+            # If frequency has no data, skip it.
+            fdata = sdata.loc[:, sfreq]
+            if check and not np.any(np.isfinite(fdata.data)):
+                continue
+
+            # Start receiver list
+            rec_list = []
+
+            # 3. loop over non-nan receivers
+            for srec, rec in survey.receivers.items():
+
+                # If receiver has no data, skip it.
+                if check and not np.isfinite(fdata.loc[srec].data):
+                    continue
+
+                # Add this receiver to receiver list
+                if isinstance(rec, emg3d.electrodes.RxElectricPoint):
+                    rfunc = PointElectricField
+                elif isinstance(rec, emg3d.electrodes.RxMagneticPoint):
+                    rfunc = PointMagneticField
+                else:
+                    raise NotImplementedError(
+                        f"Receiver type {rec} not implemented."
+                    )
+
+                trec = rfunc(
+                    locations=rec.center, component='complex',
+                    orientation='rotated', azimuth=rec.azimuth,
+                    elevation=rec.elevation,
+                )
+
+                rec_list.append(trec)
+
+            # Add this source-frequency to source list
+            if isinstance(src, emg3d.electrodes.TxElectricWire):
+                tsrc = ElectricWire(
+                    locations=src.points, receiver_list=rec_list,
+                    frequency=freq,
+                )
+            elif isinstance(src, emg3d.electrodes.TxElectricDipole):
+                tsrc = ElectricDipole(
+                    location=src.center, azimuth=src.azimuth,
+                    elevation=src.elevation, receiver_list=rec_list,
+                    frequency=freq,
+                )
+            else:
+                raise NotImplementedError(
+                    f"Source type {src} not implemented."
+                )
+
+            src_list.append(tsrc)
+
+    # Return SimPEG survey
+    return Survey(src_list)
