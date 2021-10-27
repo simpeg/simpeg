@@ -12,8 +12,8 @@ def dask_Dipole_getP(self, mesh, Gloc, transpose=False):
 
     if self.data_type == "apparent_resistivity":
         P = sdiag(1.0 / self.geometric_factor) * P
-    elif self.data_type == "apparent_chargeability":
-        P = sdiag(1.0 / self.dc_voltage) * P
+    # elif self.data_type == "apparent_chargeability":
+    #     P = sdiag(1.0 / self.dc_voltage) * P
 
     if self.storeProjections:
         self._Ps[0] = P
@@ -35,8 +35,8 @@ def dask_Pole_getP(self, mesh, Gloc):
 
     if self.data_type == "apparent_resistivity":
         P = sdiag(1.0 / self.geometric_factor) * P
-    elif self.data_type == "apparent_chargeability":
-        P = sdiag(1.0 / self.dc_voltage) * P
+    # elif self.data_type == "apparent_chargeability":
+    #     P = sdiag(1.0 / self.dc_voltage) * P
     if self.storeProjections:
         self._Ps[0] = P
 
