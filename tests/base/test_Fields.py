@@ -89,7 +89,6 @@ class FieldsTest(unittest.TestCase):
             self.assertTrue(np.all(F[:, "b"] == b * 0))
 
         b = np.random.rand(F.mesh.nF, 1)
-        print(type(self.Src0), "here")
         F[self.Src0, "b"] = b
         self.assertTrue(np.all(F[self.Src0, "b"] == b))
 

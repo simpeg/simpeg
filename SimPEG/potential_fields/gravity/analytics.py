@@ -6,12 +6,12 @@ import numpy as np
 
 def GravSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
     """
-        Computing the gravity response of a sphere in free-space.
-        >> Input
-        x, y, z:   Observation locations
-        R:     radius of the sphere
-        xc, yc, zc: Location of the sphere
-        rho: Density of sphere
+    Computing the gravity response of a sphere in free-space.
+    >> Input
+    x, y, z:   Observation locations
+    R:     radius of the sphere
+    xc, yc, zc: Location of the sphere
+    rho: Density of sphere
 
     """
     if ~np.size(x) == np.size(y) == np.size(z):
@@ -44,12 +44,12 @@ def GravSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
 
 def GravityGradientSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
     """
-        Computing the induced response of magnetic sphere in free-space.
-        >> Input
-        x, y, z:   Observation locations
-        R:     radius of the sphere
-        xc, yc, zc: Location of the sphere
-        rho: Density of sphere
+    Computing the induced response of magnetic sphere in free-space.
+    >> Input
+    x, y, z:   Observation locations
+    R:     radius of the sphere
+    xc, yc, zc: Location of the sphere
+    rho: Density of sphere
 
     """
     if ~np.size(x) == np.size(y) == np.size(z):

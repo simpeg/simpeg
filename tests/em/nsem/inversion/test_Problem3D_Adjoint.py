@@ -17,10 +17,22 @@ freq = [1e-1, 2e-1]
 addrandoms = True
 
 
-def JvecAdjointTest(inputSetup, comp="All", freq=False):
-    m, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
-        inputSetup, [freq], comp=comp, singleFreq=False
-    )
+def JvecAdjointTest(inputSetup, comp="All", freq=False, testLocations=False, testSingle=False):
+
+    if testLocations:
+        if testSingle:
+            m, simulation = nsem.utils.test_utils.setupSimpegNSEM_tests_location_assign_list(
+                inputSetup, [freq], comp=comp, singleFreq=False, singleList=True
+            )
+        else:
+            m, simulation = nsem.utils.test_utils.setupSimpegNSEM_tests_location_assign_list(
+                inputSetup, [freq], comp=comp, singleFreq=False
+            )
+            # print(simulation.)
+    else:
+        m, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
+            inputSetup, [freq], comp=comp, singleFreq=False
+        )
 
     print("Using {0} solver for the simulation".format(simulation.Solver))
     print(
@@ -76,7 +88,20 @@ class NSEM_3D_AdjointTests(unittest.TestCase):
         )
 
     def test_JvecAdjoint_All(self):
+        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "All", 0.1))
+
+    def test_JvecAdjoint_Imp(self):
         self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Imp", 0.1))
+
+    def test_JvecAdjoint_Res(self):
+        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Res", 0.1))
+
+    # test location assign
+    def test_JvecAdjoint_location_e_b(self):
+        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Res", 0.1, testLocations=True, testSingle=False))
+    def test_JvecAdjoint_location_single(self):
+        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Res", 0.1, testLocations=True, testSingle=True))
+
 
 
 if __name__ == "__main__":

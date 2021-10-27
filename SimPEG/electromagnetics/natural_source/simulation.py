@@ -60,7 +60,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             # Get the system
             A = self.getA(freq)
             # Factor
-            Ainv = self.Solver(A, **self.solver_opts)
+            Ainv = self.solver(A, **self.solver_opts)
 
             for src in self.survey.get_sources_by_frequency(freq):
                 u_src = f[src, :]
@@ -108,7 +108,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         for freq in self.survey.frequencies:
             AT = self.getA(freq).T
 
-            ATinv = self.Solver(AT, **self.solver_opts)
+            ATinv = self.solver(AT, **self.solver_opts)
 
             for src in self.survey.get_sources_by_frequency(freq):
                 # u_src needs to have both polarizations
@@ -123,101 +123,17 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
 
                     ATinvdf_duT = ATinv * df_duT
 
-                    # Get the
-                    dA_duIT = mkvc(ATinv * PTv)  # Force (nU,) shape
-                    dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv(freq, dA_duIT, adjoint=True)
-                    # Make du_dmT
                     dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(freq, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
 
                     df_dmT = df_dmT + du_dmT
 
                     Jtv += np.array(df_dmT, dtype=complex).real
-                    # du_dmT = -dA_dmT + dRHS_dmT
-                    # # Select the correct component
-                    # # du_dmT needs to be of size (nP,) number of model parameters
-
-                    # if rx.component == "imag":
-                    #     Jtv += -np.array(du_dmT, dtype=complex).real
-                    # else:
-                    #     Jtv += np.array(du_dmT, dtype=complex).real
 
             # Clean the factorization, clear memory.
             ATinv.clean()
         return Jtv
-
-    def getJ(self, m, f=None):
-        """
-        Function to calculate the sensitivity matrix.
-        :param numpy.ndarray m: inversion model (nP,)
-        :param SimPEG.EM.NSEM.FieldsNSEM f (optional): NSEM fields object, if not given it is calculated
-        :rtype: numpy.ndarray
-        :return: J (nD, nP) Data sensitivities wrt m
-        """
-
-        if f is None:
-            f = self.fields(m)
-
-        self.model = m
-
-        J = np.empty((self.survey.nD, self.model.size))
-
-        istrt = 0
-        for freq in self.survey.frequencies:
-            AT = self.getA(freq).T
-
-            ATinv = self.Solver(AT, **self.solverOpts)
-
-            for src in self.survey.get_sources_by_frequency(freq):
-                # u_src needs to have both polarizations
-                u_src = f[src, :]
-
-                for rx in src.receiver_list:
-                    # Get the adjoint evalDeriv
-
-                    # Need to make PT
-                    # Ideally rx.evalDeriv will be updated to return a matrix,
-                    # but for now just calculate it like so...
-                    PT = np.empty((AT.shape[0], rx.nD * 2), dtype=complex, order="F")
-                    for i in range(rx.nD):
-                        v = np.zeros(rx.nD)
-                        v[i] = 1.0
-                        PTv = rx.evalDeriv(src, self.mesh, f, v, adjoint=True)
-                        PT[:, 2 * i : 2 * i + 2] = PTv
-
-                    dA_duIT = ATinv * PT
-                    dA_duIT = dA_duIT.reshape(-1, rx.nD, order="F")  # shape now nUxnD
-
-                    # getADeriv and getRHSDeriv should be updated to accept and return
-                    # matrices, but for now this works.
-                    # They should also be update to return the real parts as well.
-                    dA_dmT = np.empty((rx.nD, J.shape[1]))
-                    dRHS_dmT = np.empty((rx.nD, J.shape[1]))
-                    for i in range(rx.nD):
-                        dA_dmT[i, :] = self.getADeriv(
-                            freq, u_src, dA_duIT[:, i], adjoint=True
-                        ).real
-                        dRHS_dmT[i, :] = self.getRHSDeriv(
-                            freq, dA_duIT[:, i], adjoint=True
-                        ).real
-                    # Make du_dmT
-                    du_dmT = -dA_dmT + dRHS_dmT
-                    # Now just need to put it in the right spot.....
-                    real_or_imag = rx.component
-                    if real_or_imag == "real":
-                        J_rows = du_dmT
-                    elif real_or_imag == "imag":
-                        J_rows = -du_dmT
-                    else:
-                        raise Exception("Must be real or imag")
-                    iend = istrt + rx.nD
-                    J[istrt:iend, :] = J_rows
-                    istrt = iend
-            # Clean the factorization, clear memory.
-            ATinv.clean()
-        return J
 
 
 ###################################
@@ -263,7 +179,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     @property
     def MeMui(self):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         if getattr(self, "_MeMui", None) is None:
             self._MeMui = self.mesh.getEdgeInnerProduct(1.0 / mu_0)
@@ -272,7 +188,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     @property
     def MfSigma(self):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         # if getattr(self, '_MfSigma', None) is None:
         self._MfSigma = self.mesh.getFaceInnerProduct(self.sigma)
@@ -280,7 +196,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
     def MfSigmaDeriv(self, u):
         """
-            Edge inner product matrix
+        Edge inner product matrix
         """
         # if getattr(self, '_MfSigmaDeriv', None) is None:
         # print('[info mfsigmad] !!!!!!!!!!! ', u[:, 0])
@@ -304,11 +220,11 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
     def getA(self, freq):
         """
-            Function to get the A matrix.
+        Function to get the A matrix.
 
-            :param float freq: Frequency
-            :rtype: scipy.sparse.csr_matrix
-            :return: A
+        :param float freq: Frequency
+        :rtype: scipy.sparse.csr_matrix
+        :return: A
         """
 
         # Note: need to use the code above since in the 1D problem I want
@@ -337,11 +253,11 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
     def getRHS(self, freq):
         """
-            Function to return the right hand side for the system.
+        Function to return the right hand side for the system.
 
-            :param float freq: Frequency
-            :rtype: numpy.ndarray
-            :return: RHS for 1 polarizations, primary fields (nF, 1)
+        :param float freq: Frequency
+        :rtype: numpy.ndarray
+        :return: RHS for 1 polarizations, primary fields (nF, 1)
         """
 
         # Get sources for the frequncy(polarizations)
@@ -381,7 +297,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            Ainv = self.Solver(A, **self.solver_opts)
+            Ainv = self.solver(A, **self.solver_opts)
             e_s = Ainv * rhs
 
             # Store the fields
@@ -745,11 +661,11 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem3D_ePrimSec(Simulation3DPrimarySecondary):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Problem1D_ePrimSec(Simulation1DPrimarySecondary):
     pass

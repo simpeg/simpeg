@@ -59,13 +59,14 @@ class BaseRxNSEM_Point(BaseRx):
             # check shape of locations
             if isinstance(locations, list):
                 if len(locations) == 2:
-                    self._locations_e = locations[:, 0]
-                    self._locations_h = locations[:, 1]
+                    self._locations_e = locations[0]
+                    self._locations_h = locations[1]
                 elif len(locations) == 1:
-                    self._locations_e = locations
-                    self._locations_h = locations
+                    self._locations_e = locations[0]
+                    self._locations_h = locations[0]
                 else:
                     raise Exception("incorrect size of list, must be length of 1 or 2")
+                locations = locations[0]
             elif isinstance(locations, np.ndarray):
                 self._locations_e = locations
                 self._locations_h = locations
@@ -199,24 +200,14 @@ class Point1DImpedance(BaseRx):
 
         if adjoint:
             # Work backwards!
-            # print([info bot] !!!!!! ', bot, v, imp)
             gtop_v = (v / bot)
             gbot_v = (-imp * v / bot)
 
-            gh_v = -h[:, 0] * gbot_v
-            ge_v = e[:, 0] * gtop_v
-
-            # print('[info shapes ] !!!!!!!!!!! ', ge_v[:, None].shape, gh_v[:, None].shape, PEx.shape, PHy.shape)
-
-            gh_v = PHy.T @ gh_v[:, None].T
-            ge_v = PEx.T @ ge_v[:, None].T
-
-            # print('[info shapes 2] !!!!!!!!!!! ', ge_v.shape, gh_v.shape)
+            gh_v = PHy.T @ gbot_v
+            ge_v = PEx.T @ gtop_v
 
             gfu_h_v, gfm_h_v = f._hDeriv(src, None, gh_v, adjoint=True)
-            gfu_e_v, gfm_e_v = f._eDeriv(src, None, ge_v, adjoint=True)
-
-            # print('[info shapes 3] !!!!!!!!!!! ', gfu_h_v.shape, gfm_h_v, gfu_e_v.shape, gfm_e_v)
+            gfu_e_v, gfm_e_v = f._eDeriv(src, None, -ge_v, adjoint=True)
 
             return gfu_h_v + gfu_e_v, gfm_h_v + gfm_e_v
 
@@ -792,16 +783,16 @@ class AnalyticReceiver1D(BaseRx):
 ############
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_impedance1D(Point1DImpedance):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_impedance3D(Point3DImpedance):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Point_tipper3D(Point3DTipper):
     pass

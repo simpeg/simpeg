@@ -22,10 +22,10 @@ except:
 
 def run(plotIt=True):
     """
-        MT: 3D: Forward
-        ===============
+    MT: 3D: Forward
+    ===============
 
-        Forward model 3D MT data.
+    Forward model 3D MT data.
 
     """
 
@@ -69,7 +69,7 @@ def run(plotIt=True):
 
     # Source list
     srcList = [
-        NSEM.Src.Planewave_xy_1Dprimary(rxList, freq) for freq in np.logspace(4, -2, 13)
+        NSEM.Src.Planewave_xy_1Dprimary(rxList, freq) for freq in np.logspace(4, -2, 3)
     ]
     # Survey MT
     survey = NSEM.Survey(srcList)

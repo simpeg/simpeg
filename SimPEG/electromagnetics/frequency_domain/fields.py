@@ -1612,21 +1612,21 @@ class Fields3DMagneticField(FieldsFDEM):
 ############
 # Deprecated
 ############
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Fields3D_e(Fields3DElectricField):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Fields3D_b(Fields3DMagneticFluxDensity):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Fields3D_j(Fields3DCurrentDensity):
     pass
 
 
-@deprecate_class(removal_version="0.15.0")
+@deprecate_class(removal_version="0.16.0", future_warn=True)
 class Fields3D_h(Fields3DMagneticField):
     pass

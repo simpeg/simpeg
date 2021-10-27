@@ -69,9 +69,9 @@ def read_GOCAD_ts(tsfile):
 
 
 def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
-    """"
+    """ "
     Function to read gocad polystructure file and output indexes of
-    mesh with in the structure.
+    mesh within the structure.
 
     """
     import vtk
