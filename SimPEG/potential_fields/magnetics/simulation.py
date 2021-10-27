@@ -35,14 +35,6 @@ class Simulation3DIntegral(BasePFSimulation):
 
     _model_type: str = "scalar"
 
-    modelType = deprecate_property(
-        _model_type,
-        "modelType",
-        new_name="model_type",
-        removal_version="0.16.0",
-        future_warn=True,
-    )
-
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh, **kwargs)
         self._G = None
@@ -137,6 +129,14 @@ class Simulation3DIntegral(BasePFSimulation):
             )
 
         self._model_type = value
+
+    modelType = deprecate_property(
+        model_type,
+        "modelType",
+        new_name="model_type",
+        removal_version="0.16.0",
+        future_warn=True,
+    )
 
     @property
     def nD(self):
