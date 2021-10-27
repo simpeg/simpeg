@@ -188,13 +188,28 @@ class PointMagneticField(BaseRx):
     Magnetic field FDEM receiver
 
     :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
+    :param string orientation: receiver orientation 'x', 'y', 'z', or 'rotated'
+    :param string component: 'real', 'imag', 'complex', 'amplitude', or 'phase'
+    :param float azimuth: azimuth, only used if `orientation='rotated'`
+    :param float elevation: elevation, only used if `orientation='rotated'`
     """
 
-    def __init__(self, locations, orientation="x", component="real"):
+    # TODO : the current implementation of azimuth/elevation is not good. It
+    #        only allows for one azimuth/elevation for all locations. Ideally
+    #        the angles should have the same size as locations (but 1D).
+
+    azimuth = properties.Float("azimuth (anticlockwise from Easting)", default=0, min=-360.0, max=360)
+
+    elevation = properties.Float("elevation (positive up)", default=0, min=-180.0, max=180)
+
+    def __init__(self, locations, orientation="x", component="real", **kwargs):
+        angles = kwargs.get("azimuth", None) or kwargs.get("elevation", None)
+        if orientation in ["x", "y", "z"] and angles:
+            raise ValueError(
+                "orientation must be 'rotated' if angles are provided."
+            )
         self.projField = "h"
-        super(PointMagneticField, self).__init__(locations, orientation, component)
+        super(PointMagneticField, self).__init__(locations, orientation, component, **kwargs)
 
 
 class PointCurrentDensity(BaseRx):
