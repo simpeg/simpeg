@@ -17,6 +17,8 @@ jobs:
       - ${{ each test in parameters.test }}:
         - job:
           displayName: ${{ os }}_${{ py_vers }}_${{ test }}
+          pool:
+            vmImage: ${{ os }}
           steps:
           - script: echo "##vso[task.prependpath]$CONDA/bin"
             displayName: Add conda to PATH
