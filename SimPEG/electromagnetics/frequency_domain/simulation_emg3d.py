@@ -506,16 +506,20 @@ def survey_to_simpeg(survey):
     simpeg_survey : Survey
         SimPEG survey instance.
 
+    simpeg_data : ndarray
+        Data in the layout of SimPEG.
+
     """
 
     # Check if survey contains any non-NaN data.
     data = survey.data.observed
-    check = True
-    if not np.any(np.isfinite(survey.data.observed.data)):
-        check = False
+    check = False
+    if np.any(np.isfinite(data.data)):
+        check = True
 
-    # Start source list
+    # Start source and data lists
     src_list = []
+    data_list = []
 
     # 1. loop over sources
     for sname, src in survey.sources.items():
@@ -540,7 +544,8 @@ def survey_to_simpeg(survey):
             for srec, rec in survey.receivers.items():
 
                 # If receiver has no data, skip it.
-                if check and not np.isfinite(fdata.loc[srec].data):
+                rdata = fdata.loc[srec].data
+                if check and not np.isfinite(rdata):
                     continue
 
                 # Add this receiver to receiver list
@@ -560,6 +565,7 @@ def survey_to_simpeg(survey):
                 )
 
                 rec_list.append(trec)
+                data_list.append(rdata)
 
             # Add this source-frequency to source list
             if isinstance(src, emg3d.electrodes.TxElectricWire):
@@ -580,5 +586,4 @@ def survey_to_simpeg(survey):
 
             src_list.append(tsrc)
 
-    # Return SimPEG survey
-    return Survey(src_list)
+    return Survey(src_list), np.array(data_list)
