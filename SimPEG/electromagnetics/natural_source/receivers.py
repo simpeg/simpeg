@@ -614,9 +614,22 @@ class Point3DTipper(BaseRxNSEM_Point):
         "orientation of the receiver. Must currently be 'zx', 'zy'", ["zx", "zy"]
     )
 
-    def __init__(self, locs, orientation="zx", component="real"):
+    def __init__(
+        self,
+        locations=None,
+        orientation="zx",
+        component="real",
+        locations_e=None,
+        locations_h=None,
+    ):
 
-        super().__init__(locs, orientation=orientation, component=component)
+        super().__init__(
+            locations=locations,
+            orientation=orientation,
+            component=component,
+            locations_e=locations_e,
+            locations_h=locations_h,
+        )
 
     def _eval_tipper(self, src, mesh, f):
         # will grab both primary and secondary and sum them!

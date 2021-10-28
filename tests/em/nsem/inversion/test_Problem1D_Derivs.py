@@ -7,11 +7,57 @@ import numpy as np
 from scipy.constants import mu_0
 from SimPEG import maps, mkvc, tests
 from SimPEG.electromagnetics import natural_source as nsem
+from pymatsolver import Pardiso
 
 TOL = 1e-4
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
+
+
+def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True, formulation="e"):
+
+    survey, sig, sigBG, mesh, freqs = nsem.utils.test_utils.setup1DSurveyElectricMagnetic(
+        halfspace_value, False, structure=True
+    )
+
+    if formulation == "e":
+        simulation = nsem.simulation.Simulation1DElectricField(
+            mesh=mesh,
+            solver=Pardiso,
+            survey=survey,
+            sigmaMap=maps.IdentityMap(),
+        )
+    elif formulation == "b":
+        simulation = nsem.simulation.Simulation1DMagneticFluxDensity(
+            mesh=mesh,
+            solver=Pardiso,
+            survey=survey,
+            sigmaMap=maps.IdentityMap(),
+        )
+
+    print("Using {0} solver for the simulation".format(simulation.Solver))
+    # print(
+    #     "Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n".format(
+    #         survey.frequencies[0], survey.frequencies[-1]
+    #     )
+    # )
+    # simulation.mapping = maps.ExpMap(simulation.mesh)
+    # simulation.sigmaPrimary = np.log(sigBG)
+
+    x0 = sigBG
+    # cond = sig[0]
+    # x0 = np.log(np.ones(simulation.mesh.nC)*halfspace_value)
+    # simulation.sigmaPrimary = x0
+    np.random.seed(1983)
+    # if True:
+    #     x0  = x0 + np.random.randn(simulation.mesh.nC)*halfspace_value*1e-1
+    survey = simulation.survey
+
+    def fun(x):
+        return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
+
+    return tests.checkDerivative(fun, x0, num=4, plotIt=False, eps=FLR)
 
 
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):
@@ -77,11 +123,17 @@ def DerivProjfieldsTest(inputSetup, comp="All", freq=False):
 
 
 class NSEM_DerivTests(unittest.TestCase):
-    def test_derivJvec_Z1dr(self):
-        self.assertTrue(DerivJvecTest(1e-2))
+    # def test_derivJvec_Z1dr(self):
+    #     self.assertTrue(DerivJvecTest(1e-2))
 
-    def test_derivJvec_Z1di(self):
-        self.assertTrue(DerivJvecTest(1e-2))
+    # def test_derivJvec_Z1di(self):
+    #     self.assertTrue(DerivJvecTest(1e-2))
+
+    def test_derivJvec_Z1d_e(self):
+        self.assertTrue(DerivJvecTest_1D(1e-2, formulation="e"))
+
+    # def test_derivJvec_Z1d_b(self):
+    #     self.assertTrue(DerivJvecTest_1D(1e-2, formulation="b"))
 
 
 if __name__ == "__main__":

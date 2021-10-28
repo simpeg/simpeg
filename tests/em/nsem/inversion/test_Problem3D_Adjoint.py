@@ -99,8 +99,18 @@ class NSEM_3D_AdjointTests(unittest.TestCase):
     # test location assign
     def test_JvecAdjoint_location_e_b(self):
         self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Res", 0.1, testLocations=True, testSingle=False))
+    
     def test_JvecAdjoint_location_single(self):
         self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Res", 0.1, testLocations=True, testSingle=True))
+    
+    def test_JvecAdjoint_location_single_all(self):
+        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "All", 0.1, testLocations=True, testSingle=True))
+
+    def test_JvecAdjoint_location_single_all(self):
+        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Imp", 0.1, testLocations=True, testSingle=True))
+
+    def test_JvecAdjoint_location_single_all(self):
+        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Tip", 0.1, testLocations=True, testSingle=True))
 
 
 
