@@ -64,15 +64,6 @@ class Fields1DElectricField(FieldsFDEM):
     def _j(self, eSolution, source_list):
         return self._MccSigma @ eSolution
 
-    def _jDeriv_u(self, src, du_dm_v, adjoint=False):
-        if adjoint:
-            return self._MccSigma.T @ du_dm_v
-        return self._MccSigma @ du_dm_v
-
-    def _jDeriv_m(self, src, v, adjoint=False):
-        e = self[src, "e"]
-        return self._MccSigmaDeriv(e, v, adjoint=adjoint)
-
     def _b(self, eSolution, source_list):
         b = np.zeros((self._nF, len(source_list)), dtype=complex)
         for i, src in enumerate(source_list):
@@ -86,28 +77,8 @@ class Fields1DElectricField(FieldsFDEM):
             )
         return b
 
-    def _bDeriv_u(self, src, du_dm_v, adjoint=False):
-        if adjoint:
-            # V, MfI are symmetric
-            return (
-                -1
-                / (1j * omega(src.frequency))
-                * (self._V @ (self._D @ (self._MfI @ du_dm_v)))
-            )
-        return (
-            1
-            / (1j * omega(src.frequency))
-            * (self._MfI @ (self._D.T @ (self._V @ du_dm_v)))
-        )
-
     def _h(self, eSolution, source_list):
         return self._MfI @ (self._MfMui @ self._b(eSolution, source_list))
-
-    def _hDeriv_u(self, src, du_dm_v, adjoint=False):
-        if adjoint:
-            v = self._MfMui @ (self._MfI @ du_dm_v)  # MfMui, MfI are symmetric
-            return self._bDeriv_u(src, v, adjoint=adjoint)
-        return self._MfI @ (self._MfMui @ self._bDeriv_u(src, du_dm_v))
 
     def _impedance(self, eSolution, source_list):
         return self._e(eSolution, source_list) / (
@@ -172,11 +143,6 @@ class Fields1DMagneticFluxDensity(Fields1DElectricField):
     def _h(self, hSolution, source_list):
         return self._MccMui @ hSolution
 
-    def _hDeriv_u(self, src, du_dm_v, adjoint=False):
-        if adjoint:
-            return self._MccMui.T @ du_dm_v
-        return self._MccMui @ du_dm_v
-
     def _e(self, bSolution, source_list):
         e = np.zeros((self._nF, len(source_list)), dtype=complex)
         for i, src in enumerate(source_list):
@@ -185,30 +151,8 @@ class Fields1DMagneticFluxDensity(Fields1DElectricField):
             ) + self._MfSigmaI @ (self._B @ self._b_bc)
         return e
 
-    def _eDeriv_u(self, src, du_dm_v, adjoint=False):
-        if adjoint:
-            # V, MfI are symmetric
-            return -V @ (self._MccMui @ (self._D @ (self.MfSigmaI @ du_dm_v)))
-        return -self._MfSigmaI @ (self._D.T @ (self._MccMui @ (V @ du_dm_v)))
-
-    def _eDeriv_m(self, src, v, adjoint=False):
-        b = self[src, "b"]
-        if adjoint:
-            return -V @ (
-                self._MccMui @ (self._D @ self._MfSigmaIDeriv(b, v, adjoint=adjoint))
-            ) + self._MfSigmaIDeriv(self._B @ self._b_bc, v, adjoint=adjoint)
-        return -self._MfSigmaIDeriv(
-            self._D.T @ (self._MccMui @ (V @ b)), v
-        ) + self._MfSigmaIDeriv(self._B @ self._b_bc, v)
-
     def _j(self, bSolution, source_list):
         return self._MfI @ self._MfSigma @ self._e(bSolution, source_list)
-
-    def _jDeriv_u(self, src, du_dm_v, adjoint=False):
-        if adjoint:
-            v = self._MfSigma @ (self._MfI @ du_dm_v)  # MfMui, MfI are symmetric
-            return self._eDeriv_u(src, v, adjoint=adjoint)
-        return self._MfI @ (self._MfSigma @ self._eDeriv_u(src, du_dm_v))
 
     def _impedance(self, bSolution, source_list):
         return (
