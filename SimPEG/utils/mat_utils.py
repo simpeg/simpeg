@@ -234,13 +234,13 @@ def cartesian2spherical(m):
     In spherical coordinates, vectors are is defined as:
 
     .. math::
-        \\mathbf{v^\\prime} = (a, p, t)
+        \\mathbf{v^\\prime} = (a, t, p)
 
     where
     
         - :math:`a` is the amplitude of the vector
-        - :math:`p` is the radial angle defined positive CCW from Easting
         - :math:`t` is the azimuthal angle defined positive from vertical
+        - :math:`p` is the radial angle defined positive CCW from Easting
 
     Parameters
     ----------
@@ -289,13 +289,13 @@ def spherical2cartesian(m):
     In spherical coordinates, vectors are is defined as:
 
     .. math::
-        \\mathbf{v^\\prime} = (a, p, t)
+        \\mathbf{v^\\prime} = (a, t, p)
 
     where
     
         - :math:`a` is the amplitude of the vector
-        - :math:`p` is the radial angle defined positive CCW from Easting
         - :math:`t` is the azimuthal angle defined positive from vertical
+        - :math:`p` is the radial angle defined positive CCW from Easting
 
     Parameters
     ----------

@@ -19,6 +19,7 @@ from scipy.sparse import csr_matrix as csr
 
 import properties
 from discretize.tests import checkDerivative
+from discretize import TensorMesh
 
 from .utils import (
     setKwargs,
@@ -37,9 +38,14 @@ class IdentityMap(properties.HasProperties):
 
     The ``IdentityMap`` class is used to define the mapping when
     the model parameters are the same as the parameters used in the forward
-    simulation. For a discrete set of model parameters, the mapping is equivalent
-    to the identity matrix. The ``IdentityMap`` also acts as the base class for
-    all other SimPEG mapping classes.
+    simulation. For a discrete set of model parameters :math:`\mathbf{m}`,
+    the mapping :math:`\mathbf{u}(\mathbf{m})` is equivalent to applying
+    the identity matrix; i.e.:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{Im}
+
+    The ``IdentityMap`` also acts as the base class for all other SimPEG mapping classes.
 
     Using the *mesh* or *nP* input arguments, the dimensions of the corresponding
     mapping operator can be permanently set; i.e. (*mesh.nC*, *mesh.nC*) or (*nP*, *nP*).
@@ -98,11 +104,11 @@ class IdentityMap(properties.HasProperties):
 
         The dimensions of the mesh depend on the input arguments used
         during instantiation. If *mesh* is used to define the
-        identity map, the shape of mapping operator is (mesh.nC, mesh.nC).
+        identity map, the shape of mapping operator is (*mesh.nC*, *mesh.nC*).
         If *nP* is used to define the identity map, the mapping operator
         has dimensions (*nP*, *nP*). However if both *mesh* and *nP* are
         used to define the identity map, the mapping will have shape
-        (*mesh.nC*, *nP*)! And if *mesh* and *nP* were `None` when
+        (*mesh.nC*, *nP*)! And if *mesh* and *nP* were ``None`` when
         instantiating, the mapping has dimensions (``*``, ``*``) and may
         act on a vector of any length.
 
@@ -550,10 +556,17 @@ class ComboMap(IdentityMap):
 
 
 class Projection(IdentityMap):
-    """Projection mapping.
+    r"""Projection mapping.
 
     ``Projection`` mapping can be used to project and/or rearange model
-    parameters. The number of model parameters the mapping acts on is
+    parameters. For a set of model parameter :math:`\mathbf{m}`,
+    the mapping :math:`\mathbf{u}(\mathbf{m})` can be defined by a linear
+    projection matrix :math:`\mathbf{P}` acting on the model, i.e.:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{Pm}
+
+    The number of model parameters the mapping acts on is
     defined by *nP*. Projection and/or rearrangement of the parameters
     is defined by *index*. Thus the dimensions of the mapping is
     (*nInd*, *nP*).
@@ -580,7 +593,6 @@ class Projection(IdentityMap):
     >>> m = np.array([6, 8])
     >>> mapping * m
     array([8, 6, 8, 6])
-
 
     """
 
@@ -786,7 +798,14 @@ class SurjectUnits(IdentityMap):
 
     Let :math:`\mathbf{m}` be a model that contains a physical property value
     for *nP* geological units. ``SurjectUnits`` is used to construct a surjective
-    mapping from :math:`\mathbf{m}` to the set of voxel cells defining a mesh.
+    mapping that projects :math:`\mathbf{m}` to the set of voxel cells defining a mesh.
+    As a result, the mapping :math:`\mathbf{u(\mathbf{m})}` is defined as
+    a projection matrix :math:`\mathbf{P}` acting on the model. Thus:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{Pm}
+
+
     The mapping therefore has dimensions (*mesh.nC*, *nP*).
     
     Parameters
@@ -927,13 +946,65 @@ class SurjectUnits(IdentityMap):
 
 
 class SphericalSystem(IdentityMap):
-    """Mapping vectors from spherical to Cartesian coordinates.
+    r"""Mapping vectors from spherical to Cartesian coordinates.
 
+    Let :math:`\mathbf{m}` be a model containing the amplitudes
+    (:math:`\mathbf{a}`), azimuthal angles (:math:`\mathbf{t}`)
+    and radial angles (:math:`\mathbf{p}`) for a set of vectors
+    in spherical space such that:
 
-    A vector map to spherical parameters of amplitude, theta and phi
+    .. math::
+        \mathbf{m} = \begin{bmatrix} \mathbf{a} \\ \mathbf{t} \\ \mathbf{p} \end{bmatrix}
+
+    ``SphericalSystem`` constructs a mapping :math:`\mathbf{u}(\mathbf{m})
+    that converts the set of vectors in spherical coordinates to
+    their representation in Cartesian coordinates, i.e.:
+    
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \begin{bmatrix} \mathbf{v_x} \\ \mathbf{v_y} \\ \mathbf{v_z} \end{bmatrix}
+
+    where :math:`\mathbf{v_x}`, :math:`\mathbf{v_y}` and :math:`\mathbf{v_z}`
+    store the x, y and z components of the vectors, respectively.
+
+    Using the *mesh* or *nP* input arguments, the dimensions of the corresponding
+    mapping operator can be permanently set; i.e. (*3\*mesh.nC*, *3\*mesh.nC*) or (*nP*, *nP*).
+    However if both input arguments *mesh* and *nP* are ``None``, the shape of
+    mapping operator is arbitrary and can act on any vector whose length
+    is a multiple of 3; i.e. has shape (``*``, ``*``).
+
+    Notes
+    -----
+
+    In Cartesian space, the components of each vector are defined as
+
+    .. math::
+        \mathbf{v} = (v_x, v_y, v_z)
+
+    In spherical coordinates, vectors are is defined as:
+
+    .. math::
+        \mathbf{v^\prime} = (a, t, p)
+
+    where
+    
+        - :math:`a` is the amplitude of the vector
+        - :math:`t` is the azimuthal angle defined positive from vertical
+        - :math:`p` is the radial angle defined positive CCW from Easting
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal
+        *3\*mesh.nC* .
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
+        if nP is not None:
+            assert nP % 3 == 0, 'Number of parameters must be a multiple of 3'
         super().__init__(mesh, nP, **kwargs)
         self.model = None
 
@@ -992,27 +1063,62 @@ class SphericalSystem(IdentityMap):
         return self._sphericalDeriv
 
     def _transform(self, model):
-        """
-
-        :param model:
-        :return:
-        """
         return mat_utils.spherical2cartesian(model.reshape((-1, 3), order="F"))
 
-    def inverse(self, model):
-        """
-        Cartesian to spherical.
+    def inverse(self, u):
+        r"""Maps vectors in Cartesian coordinates to spherical coordinates.
 
-        :param numpy.ndarray model: physical property in Cartesian
-        :return: model
+        Let :math:`\mathbf{v_x}`, :math:`\mathbf{v_y}` and :math:`\mathbf{v_z}`
+        store the x, y and z components of a set of vectors in Cartesian
+        coordinates such that:
 
+        .. math::
+            \mathbf{u} = \begin{bmatrix} \mathbf{x} \\ \mathbf{y} \\ \mathbf{z} \end{bmatrix}
+
+        The inverse mapping recovers the vectors in spherical coordinates, i.e.:
+
+        .. math::
+            \mathbf{m}(\mathbf{u}) = \begin{bmatrix} \mathbf{a} \\ \mathbf{t} \\ \mathbf{p} \end{bmatrix}
+
+        where :math:`\mathbf{a}` are the amplitudes, :math:`\mathbf{t}` are the
+        azimuthal angles and :math:`\mathbf{p}` are the radial angles.
+
+        Parameters
+        ----------
+        u : numpy.ndarray
+            The x, y and z components of a set of vectors in Cartesian coordinates.
+            If the mapping is defined for a mesh, the numpy.ndarray has length
+            *3\*mesh.nC* .
+
+        Returns
+        -------
+        numpy.ndarray
+            The amplitudes (:math:`\mathbf{a}`), azimuthal angles (:math:`\mathbf{t}`)
+            and radial angles (:math:`\mathbf{p}`) for the set of vectors in spherical
+            coordinates. If the mapping is defined for a mesh, the numpy.ndarray has length
+            *3\*mesh.nC* .
         """
-        return mat_utils.cartesian2spherical(model.reshape((-1, 3), order="F"))
+        return mat_utils.cartesian2spherical(u.reshape((-1, 3), order="F"))
 
     @property
     def shape(self):
-        """
-        Shape of the matrix operation (number of indices x nP)
+        r"""Dimensions of the mapping
+
+        The dimensions of the mesh depend on the input arguments used
+        during instantiation. If *mesh* is used to define the
+        mapping, the shape of mapping operator is (*3\*mesh.nC*, *3\*mesh.nC*).
+        If *nP* is used to define the identity map, the mapping operator
+        has dimensions (*nP*, *nP*). If *mesh* and *nP* were ``None`` when
+        instantiating, the mapping has dimensions (``*``, ``*``) and may
+        act on a vector whose length is a multiple of 3.
+
+        Returns
+        -------
+        tuple
+            Dimensions of the mapping operator. If the dimensions of
+            the mapping are set, the return is a tuple (``int``,``int``).
+            If the mapping can act on a vector of arbitrary length, the
+            return is a tuple (``*``, ``*``).
         """
         # return self.n_block*len(self.indices[0]), self.n_block*len(self.indices)
         return (self.nP, self.nP)
@@ -1041,7 +1147,69 @@ class SphericalSystem(IdentityMap):
 
 
 class Wires(object):
-    """A mapping class for organizing multiple parameter types into a single model
+    r"""Mapping class for organizing multiple parameter types into a single model.
+
+    Let :math:`\mathbf{p_1}` and :math:`\mathbf{p_2}` be vectors that
+    contain the parameter values for two different parameter types; for example,
+    electrical conductivity and magnetic permeability. Here, all parameters
+    are organized into a single model :math:`\mathbf{m}` of the form:
+
+    .. math::
+        \mathbf{m} = \begin{bmatrix} \mathbf{p_1} \\ \mathbf{p_2} \end{bmatrix}
+
+    The ``Wires`` class constructs and applies the basic projection mappings
+    for extracting the values of a particular parameter type from the model.
+    For example:
+
+    .. math::
+        \mathbf{p_1} = \mathbf{P_{\! 1} m}
+
+    where :math:`\mathbf{P_1}` is the projection matrix that extracts parameters
+    :math:`\mathbf{p_1}` from the complete set of model parameters :math:`\mathbf{m}`.
+    Likewise, there is a projection matrix for extracting :math:`\mathbf{p_2}`.
+    This can be extended to a model that containing more than 2 parameter types.
+
+    Parameters
+    ----------
+    args : tuple
+        Each input argument is a tuple (``str``, ``int``) that provides the name
+        and number of parameters for a given parameters type.
+
+    Examples
+    --------
+    Here we construct a wire mapping for a model where there
+    are two parameters types. Note that the number of parameters
+    of each type does not need to be the same.
+
+    >>> from SimPEG.maps import Wires, ReciprocalMap
+    >>> import numpy as np
+
+    >>> p1 = np.r_[4.5, 2.7, 6.9, 7.1, 1.2]
+    >>> p2 = np.r_[10., 2., 5.]**-1
+    >>> nP1 = len(p1)
+    >>> nP2 = len(p2)
+    >>> m = np.r_[p1, p2]
+    >>> m
+    array([4.5, 2.7, 6.9, 7.1, 1.2, 0.1, 0.5, 0.2])
+
+    Here we construct the wire map. The user provides a name
+    and the number of parameters for each type. The name
+    provided becomes the name of the method for constructing
+    the projection mapping.
+
+    >>> wire_map = Wires(('name_1', nP1), ('name_2', nP2))
+
+    Here, we extract the values for the first parameter type.
+
+    >>> wire_map.name_1 * m
+    array([4.5, 2.7, 6.9, 7.1, 1.2])
+
+    And here, we extract the values for the second parameter
+    type then apply a reciprocal mapping.
+
+    >>> reciprocal_map = ReciprocalMap()
+    >>> reciprocal_map * wire_map.name_2 * m
+    array([10.,  2.,  5.])
 
     """
     def __init__(self, *args):
@@ -2272,11 +2440,22 @@ class ComplexMap(IdentityMap):
 
 
 class SurjectFull(IdentityMap):
-    """
-    SurjectFull
+    r"""Mapping a single property value to all mesh cells.
 
-    Given a scalar, the SurjectFull maps the value to the
-    full model space.
+    Let :math:`m` be a model defined by a single physical property value
+    ``SurjectFull`` construct a surjective mapping that projects :math:`m`
+    to the set of voxel cells defining a mesh. The mapping
+    :math:`\mathbf{u(m)}` is a matrix of 1s of shape (*mesh.nC* , 1) that
+    projects the model to all mesh cells, i.e.:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{Pm}
+    
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+
     """
 
     def __init__(self, mesh, **kwargs):
@@ -2302,10 +2481,30 @@ class SurjectFull(IdentityMap):
         return np.ones(self.mesh.nC) * m
 
     def deriv(self, m, v=None):
-        """
-        :param numpy.ndarray m: model
-        :rtype: numpy.ndarray
-        :return: derivative of transformed model
+        r"""Derivative of the mapping with respect to the input parameters.
+
+        Let :math:`m` be the single parameter that the mapping acts on. The
+        ``SurjectFull`` class constructs a mapping that can be defined as
+        a projection matrix :math:`\mathbf{P}`; i.e.:
+
+        .. math::
+            \mathbf{u} = \mathbf{P m},
+
+        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters; i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{P}
+
+        Note that in this case, **deriv** simply returns the original operator
+        :math:`\mathbf{P}`; a (*mesh.nC* , 1) numpy.ndarray of 1s.
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
         """
         deriv = sp.csr_matrix(np.ones([self.mesh.nC, 1]))
         if v is not None:
@@ -2314,14 +2513,71 @@ class SurjectFull(IdentityMap):
 
 
 class SurjectVertical1D(IdentityMap):
-    """SurjectVertical1DMap
+    r"""Map 1D layered Earth model to 2D or 3D tensor mesh.
 
-    Given a 1D vector through the last dimension
-    of the mesh, this will extend to the full
-    model space.
+    Let :math:`m` be a 1D model that defines the property values along
+    the last dimension of a tensor mesh; i.e. the y-direction for 2D
+    meshes and the z-direction for 3D meshes. ``SurjectVertical1D``
+    construct a surjective mapping from the 1D model to all voxel cells
+    in the 2D or 3D tensor mesh provided.
+
+    Mathematically, the mapping :math:`\mathbf{u}(\mathbf{m})` can be
+    represented by a projection matrix:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{Pm}
+    
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh
+        A 2D or 3D tensor mesh
+
+    Examples
+    --------
+    Here we define a 1D layered Earth model comprised of 3 layers
+    on a 1D tensor mesh. We then use ``SurjectVertical1D`` to
+    construct a mapping which projects the 1D model onto a 2D
+    tensor mesh.
+
+    >>> from SimPEG.maps import SurjectVertical1D
+    >>> from SimPEG.utils import plot_1d_layer_model
+    >>> from discretize import TensorMesh
+    >>> import numpy as np
+    >>> import matplotlib as mpl
+    >>> import matplotlib.pyplot as plt
+
+    >>> dh = np.ones(20)
+    >>> mesh1D = TensorMesh([dh], 'C')
+    >>> mesh2D = TensorMesh([dh, dh], 'CC')
+
+    >>> m = np.zeros(mesh1D.nC)
+    >>> m[mesh1D.cell_centers < 0] = 10.
+    >>> m[mesh1D.cell_centers < -5] = 5.
+
+    >>> fig1 = plt.figure(figsize=(5,5))
+    >>> ax1 = fig1.add_subplot(111)
+    >>> plot_1d_layer_model(
+    >>>     mesh1D.hx, np.flip(m), ax=ax1, z0=0,
+    >>>     scale='linear', show_layers=True, plot_elevation=True
+    >>> )
+    >>> ax1.set_xlim([-0.1, 11])
+    >>> ax1.set_title('1D Model')
+
+    >>> mapping = SurjectVertical1D(mesh2D)
+    >>> u = mapping * m
+
+    >>> fig2 = plt.figure(figsize=(6, 5))
+    >>> ax2a = fig2.add_axes([0.1, 0.15, 0.7, 0.8])
+    >>> mesh2D.plot_image(u, ax=ax2a, grid=True)
+    >>> ax2a.set_title('Projected to 2D Mesh')
+    >>> ax2b = fig2.add_axes([0.83, 0.15, 0.05, 0.8])
+    >>> norm = mpl.colors.Normalize(vmin=np.min(m), vmax=np.max(m))
+    >>> cbar = mpl.colorbar.ColorbarBase(ax2b, norm=norm, orientation="vertical")
+
     """
 
     def __init__(self, mesh, **kwargs):
+        assert isinstance(mesh, TensorMesh), 'Only implemented for tensor meshes'
         IdentityMap.__init__(self, mesh, **kwargs)
 
     @property
@@ -2331,25 +2587,48 @@ class SurjectVertical1D(IdentityMap):
         Returns
         -------
         int
-            Number of parameters that the mapping acts on. Equal to the
-            number of mesh cells; i.e. `mesh.nC`.
+            Number of parameters the mapping acts on. Should equal the
+            number of cells along the last dimension of the tensor mesh
+            supplied when defining the mapping.
         """
         return int(self.mesh.vnC[self.mesh.dim - 1])
 
     def _transform(self, m):
-        """
-        :param numpy.ndarray m: model
-        :rtype: numpy.ndarray
-        :return: transformed model
-        """
         repNum = np.prod(self.mesh.vnC[: self.mesh.dim - 1])
         return mkvc(m).repeat(repNum)
 
     def deriv(self, m, v=None):
-        """
-        :param numpy.ndarray m: model
-        :rtype: scipy.sparse.csr_matrix
-        :return: derivative of transformed model
+        r"""Derivative of the mapping with respect to the model paramters.
+
+        Let :math:`\mathbf{m}` be a set of parameter values for the 1D model
+        and let :math:`\mathbf{P}` be a projection matrix that maps the 1D
+        model the 2D/3D tensor mesh. The forward mapping :math:`\mathbf{u}(\mathbf{m})`
+        is given by:
+
+        .. math::
+            \mathbf{u} = \mathbf{P m},
+
+        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters; i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{P}
+
+        Note that in this case, **deriv** simply returns the projection matrix.
+        
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
         """
         repNum = np.prod(self.mesh.vnC[: self.mesh.dim - 1])
         repVec = sp.csr_matrix(
@@ -2362,15 +2641,84 @@ class SurjectVertical1D(IdentityMap):
 
 
 class Surject2Dto3D(IdentityMap):
-    """Map2Dto3D
+    r"""Map 2D tensor model to 3D tensor mesh.
 
-    Given a 2D vector, this will extend to the full
-    3D model space.
+    Let :math:`m` define the parameters for a 2D tensor model.
+    ``Surject2Dto3D`` constructs a surjective mapping that projects
+    the 2D tensor model to a 3D tensor mesh.
+
+    Mathematically, the mapping :math:`\mathbf{u}(\mathbf{m})` can be
+    represented by a projection matrix:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{Pm}
+    
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh
+        A 3D tensor mesh
+    normal : str
+        Define the projection axis. Must be one of {'X','Y','Z'}
+
+    Examples
+    --------
+    Here we project a 3 layered Earth model defined on a 2D tensor mesh
+    to a 3D tensor mesh. We assume that at for some y-location, we
+    have a 2D tensor model which defines the physical property distribution
+    as a function of the *x* and *z* location. Using ``Surject2Dto3D``,
+    we project the model along the y-axis to obtain a 3D distribution
+    for the physical property (i.e. a 3D tensor model).
+
+    >>> from SimPEG.maps import Surject2Dto3D
+    >>> from discretize import TensorMesh
+    >>> import numpy as np
+    >>> import matplotlib as mpl
+    >>> import matplotlib.pyplot as plt
+
+    >>> dh = np.ones(20)
+    >>> mesh2D = TensorMesh([dh, dh], 'CC')
+    >>> mesh3D = TensorMesh([dh, dh, dh], 'CCC')
+
+    Here, we define the 2D tensor model.
+
+    >>> m = np.zeros(mesh2D.nC)
+    >>> m[mesh2D.cell_centers[:, 1] < 0] = 10.
+    >>> m[mesh2D.cell_centers[:, 1] < -5] = 5.
+
+    We then plot the 2D tensor model; which is defined along the
+    x and z axes.
+
+    >>> fig1 = plt.figure(figsize=(6, 5))
+    >>> ax11 = fig1.add_axes([0.1, 0.15, 0.7, 0.8])
+    >>> mesh2D.plot_image(m, ax=ax11, grid=True)
+    >>> ax11.set_ylabel('z')
+    >>> ax11.set_title('2D Tensor Model')
+    >>> ax12 = fig1.add_axes([0.83, 0.15, 0.05, 0.8])
+    >>> norm1 = mpl.colors.Normalize(vmin=np.min(m), vmax=np.max(m))
+    >>> cbar1 = mpl.colorbar.ColorbarBase(ax12, norm=norm1, orientation="vertical")
+
+    By setting *normal = 'Y'* we are projecting along the y-axis.
+
+    >>> mapping = Surject2Dto3D(mesh3D, normal='Y')
+    >>> u = mapping * m
+
+    Finally we plot a slice of the resulting 3D tensor model.
+
+    >>> fig2 = plt.figure(figsize=(6, 5))
+    >>> ax21 = fig2.add_axes([0.1, 0.15, 0.7, 0.8])
+    >>> mesh3D.plot_slice(u, ax=ax21, ind=10, normal='Y', grid=True)
+    >>> ax21.set_ylabel('z')
+    >>> ax21.set_title('Projected to 3D Mesh (y=0)')
+    >>> ax22 = fig2.add_axes([0.83, 0.15, 0.05, 0.8])
+    >>> norm2 = mpl.colors.Normalize(vmin=np.min(m), vmax=np.max(m))
+    >>> cbar2 = mpl.colorbar.ColorbarBase(ax22, norm=norm2, orientation="vertical")
+
     """
 
     normal = "Y"  #: The normal
 
     def __init__(self, mesh, **kwargs):
+        assert isinstance(mesh, TensorMesh), 'Only implemented for tensor meshes'
         assert mesh.dim == 3, "Surject2Dto3D Only works for a 3D Mesh"
         IdentityMap.__init__(self, mesh, **kwargs)
         assert self.normal in ["X", "Y", "Z"], 'For now, only "Y" normal is supported'
@@ -2389,11 +2737,7 @@ class Surject2Dto3D(IdentityMap):
             return self.mesh.nCy * self.mesh.nCz
 
     def _transform(self, m):
-        """
-        :param numpy.ndarray m: model
-        :rtype: numpy.ndarray
-        :return: transformed model
-        """
+
         m = mkvc(m)
         if self.normal == "Z":
             return mkvc(
@@ -2415,10 +2759,37 @@ class Surject2Dto3D(IdentityMap):
             )
 
     def deriv(self, m, v=None):
-        """
-        :param numpy.ndarray m: model
-        :rtype: scipy.sparse.csr_matrix
-        :return: derivative of transformed model
+        r"""Derivative of the mapping with respect to the model paramters.
+
+        Let :math:`\mathbf{m}` be a set of parameter values for the 2D tensor model
+        and let :math:`\mathbf{P}` be a projection matrix that maps the 2D tensor model
+        to the 3D tensor mesh. The forward mapping :math:`\mathbf{u}(\mathbf{m})`
+        is given by:
+
+        .. math::
+            \mathbf{u} = \mathbf{P m},
+
+        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters; i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{P}
+
+        Note that in this case, **deriv** simply returns the projection matrix.
+        
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
         """
         inds = self * np.arange(self.nP)
         nC, nP = self.mesh.nC, self.nP
@@ -2451,9 +2822,9 @@ class Mesh2Mesh(IdentityMap):
     def P(self):
         if getattr(self, "_P", None) is None:
             self._P = self.mesh2.getInterpolationMat(
-                self.mesh.gridCC[self.indActive, :]
+                self.mesh.cell_centers[self.indActive, :]
                 if self.indActive is not None
-                else self.mesh.gridCC,
+                else self.mesh.cell_centers,
                 "CC",
                 zerosOutside=True,
             )
@@ -2481,8 +2852,31 @@ class Mesh2Mesh(IdentityMap):
 
 
 class InjectActiveCells(IdentityMap):
-    """
-    Active model parameters.
+    r"""Map active cells model to all cell of a mesh.
+
+    The ``InjectActiveCells`` class is used to define the mapping when
+    the model consists of physical property values for a set of active
+    mesh cells; e.g. cells below topography. For a discrete set of
+    model parameters :math:`\mathbf{m}` defined on a set of active
+    cells, the mapping :math:`\mathbf{u}(\mathbf{m})` is defined as:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d}\, m_\perp
+
+    where :math:`\mathbf{P}` is a (*nC* , *nP*) projection matrix from
+    active cells to all mesh cells, and :math:`\mathbf{d}` is a
+    (*nC* , 1) matrix that projects the inactive cell value
+    :math:`m_\perp` to all inactive mesh cells.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    indActive : numpy.ndarray
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC* 
+        or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
+    valInactive : float
+        The physical property value assigned to all inactive cells in the mesh
 
     """
 
@@ -2515,20 +2909,97 @@ class InjectActiveCells(IdentityMap):
 
     @property
     def shape(self):
+        """Dimensions of the mapping
+
+        Returns
+        -------
+        tuple of int
+            Where *nP* is the number of active cells and *nC* is
+            number of cell in the mesh, **shape** returns a
+            tuple (*nC* , *nP*).
+        """
         return (self.nC, self.nP)
 
     @property
     def nP(self):
-        """Number of parameters in the model."""
+        """Number of parameters the model acts on.
+
+        Returns
+        -------
+        int
+            Number of parameters the model acts on; i.e. the number of active cells
+        """
         return int(self.indActive.sum())
 
     def _transform(self, m):
         return self.P * m + self.valInactive
 
-    def inverse(self, D):
-        return self.P.T * D
+    def inverse(self, u):
+        r"""Recover the model parameters (active cells) from a set of physical
+        property values defined on the entire mesh.
+
+        For a discrete set of model parameters :math:`\mathbf{m}` defined
+        on a set of active cells, the mapping :math:`\mathbf{u}(\mathbf{m})`
+        is defined as:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d} \,m_\perp
+
+        where :math:`\mathbf{P}` is a (*nC* , *nP*) projection matrix from
+        active cells to all mesh cells, and :math:`\mathbf{d}` is a
+        (*nC* , 1) matrix that projects the inactive cell value
+        :math:`m_\perp` to all inactive mesh cells.
+
+        The inverse mapping is given by:
+
+        .. math::
+            \mathbf{m}(\mathbf{u}) = \mathbf{P^T u}
+
+        Parameters
+        ----------
+        u : (mesh.nC) numpy.ndarray
+            A vector which contains physical property values for all
+            mesh cells.
+        """
+        return self.P.T * u
 
     def deriv(self, m, v=None):
+        r"""Derivative of the mapping with respect to the input parameters.
+
+        For a discrete set of model parameters :math:`\mathbf{m}` defined
+        on a set of active cells, the mapping :math:`\mathbf{u}(\mathbf{m})`
+        is defined as:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d} \, m_\perp
+
+        where :math:`\mathbf{P}` is a (*nC* , *nP*) projection matrix from
+        active cells to all mesh cells, and :math:`\mathbf{d}` is a
+        (*nC* , 1) matrix that projects the inactive cell value
+        :math:`m_\perp` to all inactive mesh cells.
+
+        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters; i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{P}
+
+        Note that in this case, **deriv** simply returns a sparse projection matrix.
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
         if v is not None:
             return self.P * v
         return self.P
@@ -2542,27 +3013,69 @@ class InjectActiveCells(IdentityMap):
 
 
 class ParametricCircleMap(IdentityMap):
-    """ParametricCircleMap
+    r"""Mapping for a parameterized circle.
 
-    Parameterize the model space using a circle in a wholespace.
+    Define the mapping from a parameterized model for a circle in a wholespace
+    to all cells within a 2D mesh. For a circle within a wholespace, the
+    model is defined by 5 parameters: the background physical property value
+    (:math:`\sigma_0`), the physical property value for the circle
+    (:math:`\sigma_c`), the x location :math:`x_0` and y location :math:`y_0`
+    for center of the circle, and the circle's radius (:math:`R`).
+
+    Let :math:`\mathbf{m} = [\sigma_0, \sigma_1, x_0, y_0, R]` be the set of
+    model parameters the defines a circle within a wholespace. The mapping
+    :math:`\mathbf{u}(\mathbf{m})` from the parameterized model to all cells
+    within a 2D mesh is given by:
 
     .. math::
 
-        \sigma(m) = \sigma_1 + (\sigma_2 - \sigma_1)\left(
-        \\arctan\left(100*\sqrt{(\\vec{x}-x_0)^2 + (\\vec{y}-y_0)}-r
-        \\right) \pi^{-1} + 0.5\\right)
+        \mathbf{u}(\mathbf{m}) = \sigma_0 + (\sigma_1 - \sigma_0)
+        \bigg [ \frac{1}{2} + \pi^{-1} \arctan \bigg ( a \big [ \sqrt{(\mathbf{x_c}-x_0)^2 +
+        (\mathbf{y_c}-y_0)^2} - R \big ] \bigg ) \bigg ]
 
-    Define the model as:
+    where :math:`\mathbf{x_c}` and :math:`\mathbf{y_c}` are vectors storing
+    the x and y positions of all cell centers for the 2D mesh and :math:`a`
+    is a user-defined constant which defines the sharpness of boundary of the
+    circular structure.
 
-    .. math::
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A 2D discretize mesh
+    logSigma : bool
+        If ``True``, parameters :math:`\sigma_0` and :math:`\sigma_1` represent the
+        natural log of the physical property values for the background and circle,
+        respectively.
+    slope : float
+        A constant for defining the sharpness of the boundary between the circle
+        and the wholespace. The sharpness increases as *slope* is increased.
 
-        m = [\sigma_1, \sigma_2, x_0, y_0, r]
+    Examples
+    --------
+    Here we define the parameterized model for a circle in a wholespace. We then
+    create and use a ``ParametricCircleMap`` to map the model to a 2D mesh.
+
+    >>> from SimPEG.maps import ParametricCircleMap
+    >>> from discretize import TensorMesh
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+
+    >>> h = 0.5*np.ones(20)
+    >>> mesh = TensorMesh([h, h])
+
+    >>> sigma0, sigma1, x0, y0, R = 0., 10., 4., 6., 2.
+    >>> model = np.r_[sigma0, sigma1, x0, y0, R]
+    >>> mapping = ParametricCircleMap(mesh, logSigma=False, slope=2)
+
+    >>> fig = plt.figure(figsize=(5, 5))
+    >>> ax = fig.add_subplot(111)
+    >>> mesh.plot_image(mapping * model, ax=ax)
 
     """
 
     slope = 1e-1
 
-    def __init__(self, mesh, logSigma=True):
+    def __init__(self, mesh, logSigma=True, slope=0.1):
         assert mesh.dim == 2, (
             "Working for a 2D mesh only right now. "
             "But it isn't that hard to change.. :)"
@@ -2570,9 +3083,17 @@ class ParametricCircleMap(IdentityMap):
         IdentityMap.__init__(self, mesh)
         # TODO: this should be done through a composition with and ExpMap
         self.logSigma = logSigma
+        self.slope=slope
 
     @property
     def nP(self):
+        r"""Number of parameters the mapping acts on; i.e. 5.
+
+        Returns
+        -------
+        int
+            The ``ParametricCircleMap`` acts on 5 parameters.
+        """
         return 5
 
     def _transform(self, m):
@@ -2580,19 +3101,57 @@ class ParametricCircleMap(IdentityMap):
         sig1, sig2, x, y, r = m[0], m[1], m[2], m[3], m[4]
         if self.logSigma:
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
-        X = self.mesh.gridCC[:, 0]
-        Y = self.mesh.gridCC[:, 1]
+        X = self.mesh.cell_centers[:, 0]
+        Y = self.mesh.cell_centers[:, 1]
         return sig1 + (sig2 - sig1) * (
             np.arctan(a * (np.sqrt((X - x) ** 2 + (Y - y) ** 2) - r)) / np.pi + 0.5
         )
 
     def deriv(self, m, v=None):
+        r"""Derivative of the mapping with respect to the input parameters.
+
+        Let :math:`\mathbf{m} = [\sigma_0, \sigma_1, x_0, y_0, R]` be the set of
+        model parameters the defines a circle within a wholespace. The mapping
+        :math:`\mathbf{u}(\mathbf{m})`from the parameterized model to all cells
+        within a 2D mesh is given by:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \sigma_0 + (\sigma_1 - \sigma_0)
+            \bigg [ \frac{1}{2} + \pi^{-1} \arctan \bigg ( a \big [ \sqrt{(\mathbf{x_c}-x_0)^2 +
+            (\mathbf{y_c}-y_0)^2} - R \big ] \bigg ) \bigg ]
+
+        The derivative of the mapping with respect to the model parameters is a
+        ``numpy.ndarray`` of shape (*mesh.nC*, 5) given by:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} =
+            \Bigg [ \frac{\partial \mathbf{u}}{\partial \sigma_0} \;\;
+            \Bigg [ \frac{\partial \mathbf{u}}{\partial \sigma_1} \;\;
+            \Bigg [ \frac{\partial \mathbf{u}}{\partial x_0} \;\;
+            \Bigg [ \frac{\partial \mathbf{u}}{\partial y_0} \;\;
+            \Bigg [ \frac{\partial \mathbf{u}}{\partial R}
+            \Bigg ]
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
         a = self.slope
         sig1, sig2, x, y, r = m[0], m[1], m[2], m[3], m[4]
         if self.logSigma:
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
-        X = self.mesh.gridCC[:, 0]
-        Y = self.mesh.gridCC[:, 1]
+        X = self.mesh.cell_centers[:, 0]
+        Y = self.mesh.cell_centers[:, 1]
         if self.logSigma:
             g1 = (
                 -(
@@ -2651,47 +3210,186 @@ class ParametricCircleMap(IdentityMap):
 
 
 class ParametricPolyMap(IdentityMap):
+    r"""Mapping for 2 layer model whose interface is defined by a polynomial.
 
-    """PolyMap
+    This mapping is used when the cells lying below the Earth's surface can
+    be parameterized by a 2 layer model whose interface is defined by a
+    polynomial function. The model is defined by the physical property
+    values for each unit (:math:`\sigma_1` and :math:`\sigma_2`) and the
+    coefficients for the polynomial function (:math:`\mathbf{c}`).
 
-    Parameterize the model space using a polynomials in a wholespace.
+    **For a 2D mesh** , the interface is defined by a polynomial function
+    of the form:
+
+    .. math::
+        p(x) = \sum_{i=0}^N c_i x^i
+
+    where :math:`c_i` are the polynomial coefficients and :math:`N` is
+    the order of the polynomial. In this case, the model is defined as
+
+    .. math::
+        \mathbf{m} = [\sigma_1, \;\sigma_2,\; c_0 ,\;\ldots\; ,\; c_N]
+
+    The mapping :math:`\mathbf{u}(\mathbf{m})` from the model to the mesh
+    is given by:
 
     .. math::
 
-        y = \mathbf{V} c
+        \mathbf{u}(\mathbf{m}) = \sigma_1 + (\sigma_2 - \sigma_1)
+        \bigg [ \frac{1}{2} + \pi^{-1} \arctan \bigg (
+        a \Big ( \mathbf{p}(\mathbf{x_c}) - \mathbf{y_c} \Big )
+        \bigg ) \bigg ]
 
-    Define the model as:
+    where :math:`\mathbf{x_c}` and :math:`\mathbf{y_c}` are vectors containing the
+    x and y cell center locations for all active cells in the mesh, and :math:`a` is a
+    parameter which defines the sharpness of the boundary between the two layers.
+    :math:`\mathbf{p}(\mathbf{x_c})` evaluates the polynomial function for
+    every element in :math:`\mathbf{x_c}`.
+
+    **For a 3D mesh** , the interface is defined by a 2D polynomial function
+    of the form:
+
+    .. math::
+        p(x,y) =
+        \sum_{j=0}^{N_y} \sum_{i=0}^{N_x} c_{ij} \, x^i y^j
+
+    where :math:`c_{ij}` are the polynomial coefficients. :math:`N_x`
+    and :math:`N_y` define the order of the polynomial in :math:`x` and
+    :math:`y`, respectively. In this case, the model is defined as:
+
+    .. math::
+        \mathbf{m} = [\sigma_1, \; \sigma_2, \; c_{0,0} , \; c_{1,0} , \;\ldots , \; c_{N_x, N_y}]
+
+    The mapping :math:`\mathbf{u}(\mathbf{m})` from the model to the mesh
+    is given by:
 
     .. math::
 
-        m = [\sigma_1, \sigma_2, c]
+        \mathbf{u}(\mathbf{m}) = \sigma_1 + (\sigma_2 - \sigma_1)
+        \bigg [ \frac{1}{2} + \pi^{-1} \arctan \bigg (
+        a \Big ( \mathbf{p}(\mathbf{x_c,y_c}) - \mathbf{z_c} \Big )
+        \bigg ) \bigg ]
 
-    Can take in an actInd vector to account for topography.
+    where :math:`\mathbf{x_c}, \mathbf{y_c}` and :math:`\mathbf{y_z}` are vectors
+    containing the x, y and z cell center locations for all active cells in the mesh.
+    :math:`\mathbf{p}(\mathbf{x_c, y_c})` evaluates the polynomial function for
+    every corresponding pair of :math:`\mathbf{x_c}` and :math:`\mathbf{y_c}`
+    elements.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    order : int or list of int
+        Order of the polynomial. For a 2D mesh, this is an ``int``. For a 3D
+        mesh, the order for both variables is entered separately; i.e.
+        [*order1* , *order2*].
+    logSigma : bool
+        If ``True``, parameters :math:`\sigma_1` and :math:`\sigma_2` represent
+        the natural log of a physical property.
+    normal : str
+        Must be one of {'X','Y','Z'}
+    actInd : numpy.ndarray
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC* 
+        or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
+
+    Examples
+    --------
+    In this example, we define a 2 layer model whose interface is sharp and lies
+    along a polynomial function :math:`y(x)=c_0 + c_1 x`. In this case, the model is
+    defined as :math:`\mathbf{m} = [\sigma_1 , \sigma_2 , c_0 , c_1]`. We construct
+    a polynomial mapping from the model to the set of active cells (i.e. below the surface),
+    We then use an active cells mapping to map from the set of active cells to all
+    cells in the 2D mesh.
+
+    >>> from SimPEG.maps import ParametricPolyMap, InjectActiveCells
+    >>> from discretize import TensorMesh
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+
+    >>> h = 0.5*np.ones(20)
+    >>> mesh = TensorMesh([h, h])
+    >>> ind_active = mesh.cell_centers[:, 1] < 8
+    >>> 
+    >>> sig1, sig2, c0, c1 = 10., 5., 2., 0.5
+    >>> model = np.r_[sig1, sig2, c0, c1]
+
+    >>> poly_map = ParametricPolyMap(
+    >>>     mesh, order=1, logSigma=False, normal='Y', actInd=ind_active, slope=1e4
+    >>> )
+    >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
+
+    >>> fig = plt.figure(figsize=(5, 5))
+    >>> ax = fig.add_subplot(111)
+    >>> mesh.plot_image(act_map * poly_map * model, ax=ax)
+    >>> ax.set_title('Mapping on a 2D mesh')
+
+    Here, we recreate the previous example on a 3D mesh but with a smoother interface.
+    For a 3D mesh, the 2D polynomial defining the sloping interface is given by
+    :math:`z(x,y) = c_0 + c_x x + c_y y + c_{xy} xy`. In this case, the model is
+    defined as :math:`\mathbf{m} = [\sigma_1 , \sigma_2 , c_0 , c_x, c_y, c_{xy}]`.
+
+    >>> mesh = TensorMesh([h, h, h])
+    >>> ind_active = mesh.cell_centers[:, 2] < 8
+    >>> 
+    >>> sig1, sig2, c0, cx, cy, cxy = 10., 5., 2., 0.5, 0., 0.
+    >>> model = np.r_[sig1, sig2, c0, cx, cy, cxy]
+    >>> 
+    >>> poly_map = ParametricPolyMap(
+    >>>     mesh, order=[1, 1], logSigma=False, normal='Z', actInd=ind_active, slope=2
+    >>> )
+    >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
+    >>> 
+    >>> fig = plt.figure(figsize=(5, 5))
+    >>> ax = fig.add_subplot(111)
+    >>> mesh.plot_slice(act_map * poly_map * model, ax=ax, normal='Y', ind=10)
+    >>> ax.set_title('Mapping on a 3D mesh')
 
     """
 
-    def __init__(self, mesh, order, logSigma=True, normal="X", actInd=None):
+
+    def __init__(self, mesh, order, logSigma=True, normal="X", actInd=None, slope=1e4):
         IdentityMap.__init__(self, mesh)
         self.logSigma = logSigma
         self.order = order
         self.normal = normal
         self.actInd = actInd
+        self.slope = slope
 
         if getattr(self, "actInd", None) is None:
             self.actInd = list(range(self.mesh.nC))
             self.nC = self.mesh.nC
 
         else:
-            self.nC = len(self.actInd)
-
-    slope = 1e4
+            if self.actInd.dtype == 'bool':
+                self.nC = int(np.sum(self.actInd))
+            else:
+                self.nC = len(self.actInd)
 
     @property
     def shape(self):
+        """Dimensions of the mapping.
+
+        Returns
+        -------
+        tuple of int
+            The dimensions of the mapping as a tuple of the form
+            (*nC* , *nP*), where *nP* is the number of model parameters
+            the mapping acts on and *nC* is the number of active cells
+            being mapping to. If *actInd* is ``None``, then
+            *nC = mesh.nC*.
+        """
         return (self.nC, self.nP)
 
     @property
     def nP(self):
+        """Number of parameters the mapping acts on.
+
+        Returns
+        -------
+        int
+            The number of parameters the mapping acts on.
+        """
         if np.isscalar(self.order):
             nP = self.order + 3
         else:
@@ -2708,8 +3406,8 @@ class ParametricPolyMap(IdentityMap):
 
         # 2D
         if self.mesh.dim == 2:
-            X = self.mesh.gridCC[self.actInd, 0]
-            Y = self.mesh.gridCC[self.actInd, 1]
+            X = self.mesh.cell_centers[self.actInd, 0]
+            Y = self.mesh.cell_centers[self.actInd, 1]
             if self.normal == "X":
                 f = polynomial.polyval(Y, c) - X
             elif self.normal == "Y":
@@ -2719,28 +3417,28 @@ class ParametricPolyMap(IdentityMap):
 
         # 3D
         elif self.mesh.dim == 3:
-            X = self.mesh.gridCC[self.actInd, 0]
-            Y = self.mesh.gridCC[self.actInd, 1]
-            Z = self.mesh.gridCC[self.actInd, 2]
+            X = self.mesh.cell_centers[self.actInd, 0]
+            Y = self.mesh.cell_centers[self.actInd, 1]
+            Z = self.mesh.cell_centers[self.actInd, 2]
 
             if self.normal == "X":
                 f = (
                     polynomial.polyval2d(
-                        Y, Z, c.reshape((self.order[0] + 1, self.order[1] + 1))
+                        Y, Z, c.reshape((self.order[0] + 1, self.order[1] + 1), order='F')
                     )
                     - X
                 )
             elif self.normal == "Y":
                 f = (
                     polynomial.polyval2d(
-                        X, Z, c.reshape((self.order[0] + 1, self.order[1] + 1))
+                        X, Z, c.reshape((self.order[0] + 1, self.order[1] + 1), order='F')
                     )
                     - Y
                 )
             elif self.normal == "Z":
                 f = (
                     polynomial.polyval2d(
-                        X, Y, c.reshape((self.order[0] + 1, self.order[1] + 1))
+                        X, Y, c.reshape((self.order[0] + 1, self.order[1] + 1), order='F')
                     )
                     - Z
                 )
@@ -2748,11 +3446,42 @@ class ParametricPolyMap(IdentityMap):
                 raise (Exception("Input for normal = X or Y or Z"))
 
         else:
-            raise (Exception("Only supports 2D"))
+            raise (Exception("Only supports 2D or 3D"))
 
         return sig1 + (sig2 - sig1) * (np.arctan(alpha * f) / np.pi + 0.5)
 
     def deriv(self, m, v=None):
+        r"""Derivative of the mapping with respect to the model.
+
+        For a model :math:`\mathbf{m} = [\sigma_1, \sigma_2, \mathbf{c}]`,
+        the derivative of the mapping with respect to the model parameters is a
+        ``numpy.ndarray`` of shape (*mesh.nC*, *nP*) of the form:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} =
+            \Bigg [ \frac{\partial \mathbf{u}}{\partial \sigma_0} \;\;
+            \Bigg [ \frac{\partial \mathbf{u}}{\partial \sigma_1} \;\;
+            \Bigg [ \frac{\partial \mathbf{u}}{\partial c_0} \;\;
+            \Bigg [ \frac{\partial \mathbf{u}}{\partial c_1} \;\;
+            \cdots \;\;
+            \Bigg [ \frac{\partial \mathbf{u}}{\partial c_N}
+            \Bigg ]
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+
+        """
         alpha = self.slope
         sig1, sig2, c = m[0], m[1], m[2:]
         if self.logSigma:
@@ -2760,8 +3489,8 @@ class ParametricPolyMap(IdentityMap):
 
         # 2D
         if self.mesh.dim == 2:
-            X = self.mesh.gridCC[self.actInd, 0]
-            Y = self.mesh.gridCC[self.actInd, 1]
+            X = self.mesh.cell_centers[self.actInd, 0]
+            Y = self.mesh.cell_centers[self.actInd, 1]
 
             if self.normal == "X":
                 f = polynomial.polyval(Y, c) - X
@@ -2770,13 +3499,13 @@ class ParametricPolyMap(IdentityMap):
                 f = polynomial.polyval(X, c) - Y
                 V = polynomial.polyvander(X, len(c) - 1)
             else:
-                raise (Exception("Input for normal = X or Y or Z"))
+                raise (Exception("Input for normal = X or Y"))
 
         # 3D
         elif self.mesh.dim == 3:
-            X = self.mesh.gridCC[self.actInd, 0]
-            Y = self.mesh.gridCC[self.actInd, 1]
-            Z = self.mesh.gridCC[self.actInd, 2]
+            X = self.mesh.cell_centers[self.actInd, 0]
+            Y = self.mesh.cell_centers[self.actInd, 1]
+            Z = self.mesh.cell_centers[self.actInd, 2]
 
             if self.normal == "X":
                 f = (
@@ -2820,11 +3549,8 @@ class ParametricPolyMap(IdentityMap):
 
 
 class ParametricSplineMap(IdentityMap):
-
-    """SplineMap
-
-    Parameterize the boundary of two geological units using
-    a spline interpolation
+    r"""Mapping to parameterize the boundary between two geological units using
+    spline interpolation.
 
     .. math::
 
@@ -2836,11 +3562,56 @@ class ParametricSplineMap(IdentityMap):
 
         m = [\sigma_1, \sigma_2, y]
 
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    pts : (n, dim) numpy.ndarray
+        
+    ptsv :
+    order : int
+        Order of the spline mapping; e.g. 3 is cubic spline
+    logSigma : bool
+        If ``True``, :math:`\sigma_1` and :math:`\sigma_2` represent the natural
+        log of some physical property value for each unit.
+    normal : str
+        Defines the general direction of the normal vector for the interface.
+        Must be one of {'X', 'Y', 'Z'}
+    slope : float
+        Parameter for defining the sharpness of the boundary. The sharpness is increased
+        if *slope* is large.
+
+    Examples
+    --------
+    In this example, we define a 2 layered model with a sloping
+    interface on a 2D mesh. The model consists of the physical
+    property values for the layers and the known elevations
+    for the interface at the horizontal positions supplied when
+    creating the mapping.
+
+    >>> from SimPEG.maps import ParametricSplineMap
+    >>> from discretize import TensorMesh
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+
+    >>> h = 0.5*np.ones(20)
+    >>> mesh = TensorMesh([h, h])
+
+    >>> x = np.linspace(0, 10, 6)
+    >>> y = 0.5*x + 2.5
+
+    >>> model = np.r_[10., 0., y]
+    >>> mapping = ParametricSplineMap(mesh, x, order=2, normal='Y', slope=2)
+
+    >>> fig = plt.figure(figsize=(5, 5))
+    >>> ax = fig.add_subplot(111)
+    >>> mesh.plot_image(mapping * model, ax=ax)
+
     """
 
     slope = 1e4
 
-    def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True, normal="X"):
+    def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True, normal="X", slope=1e4):
         IdentityMap.__init__(self, mesh)
         self.logSigma = logSigma
         self.order = order
@@ -2849,9 +3620,19 @@ class ParametricSplineMap(IdentityMap):
         self.npts = np.size(pts)
         self.ptsv = ptsv
         self.spl = None
+        self.slope=slope
 
     @property
     def nP(self):
+        r"""Number of parameters the mapping acts on
+
+        Returns
+        -------
+        int
+            Number of parameters the mapping acts on.
+            - **2D mesh:** the mapping acts on *mesh.nC + 2* parameters
+            - **3D mesh:** the mapping acts on *2\*mesh.nC + 2* parameters
+        """
         if self.mesh.dim == 2:
             return np.size(self.pts) + 2
         elif self.mesh.dim == 3:
@@ -2868,8 +3649,8 @@ class ParametricSplineMap(IdentityMap):
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
         # 2D
         if self.mesh.dim == 2:
-            X = self.mesh.gridCC[:, 0]
-            Y = self.mesh.gridCC[:, 1]
+            X = self.mesh.cell_centers[:, 0]
+            Y = self.mesh.cell_centers[:, 1]
             self.spl = UnivariateSpline(self.pts, c, k=self.order, s=0)
             if self.normal == "X":
                 f = self.spl(Y) - X
@@ -2885,9 +3666,9 @@ class ParametricSplineMap(IdentityMap):
         # Using 2D interpolation  is possible
 
         elif self.mesh.dim == 3:
-            X = self.mesh.gridCC[:, 0]
-            Y = self.mesh.gridCC[:, 1]
-            Z = self.mesh.gridCC[:, 2]
+            X = self.mesh.cell_centers[:, 0]
+            Y = self.mesh.cell_centers[:, 1]
+            Z = self.mesh.cell_centers[:, 2]
 
             npts = np.size(self.pts)
             if np.mod(c.size, 2):
@@ -2921,8 +3702,8 @@ class ParametricSplineMap(IdentityMap):
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
         # 2D
         if self.mesh.dim == 2:
-            X = self.mesh.gridCC[:, 0]
-            Y = self.mesh.gridCC[:, 1]
+            X = self.mesh.cell_centers[:, 0]
+            Y = self.mesh.cell_centers[:, 1]
 
             if self.normal == "X":
                 f = self.spl(Y) - X
@@ -2932,9 +3713,9 @@ class ParametricSplineMap(IdentityMap):
                 raise (Exception("Input for normal = X or Y or Z"))
         # 3D
         elif self.mesh.dim == 3:
-            X = self.mesh.gridCC[:, 0]
-            Y = self.mesh.gridCC[:, 1]
-            Z = self.mesh.gridCC[:, 2]
+            X = self.mesh.cell_centers[:, 0]
+            Y = self.mesh.cell_centers[:, 1]
+            Z = self.mesh.cell_centers[:, 2]
 
             if self.normal == "X":
                 zb = self.ptsv[0]
@@ -3041,6 +3822,23 @@ class ParametricSplineMap(IdentityMap):
 
 
 class BaseParametric(IdentityMap):
+    """Base class for parametric mappings from simple geological structures to meshes.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    indActive : numpy.ndarray
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC* 
+        or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
+    slope : float
+        Directly set the scaling parameter *a* which sets the sharpness of boundaries
+        between units.
+    slopeFact : float
+        Set sharpness of boundaries between units based on minimum cell size. If set,
+        the scalaing parameter *a = slopeFact / dh*.
+
+    """
 
     slopeFact = 1  # will be scaled by the mesh.
     slope = None
@@ -3054,29 +3852,43 @@ class BaseParametric(IdentityMap):
 
     @property
     def x(self):
+        """X cell center locations (active) for the output of the mapping.
+
+        Returns
+        -------
+        (n_active) numpy.ndarray
+            X cell center locations (active) for the output of the mapping.
+        """
         if getattr(self, "_x", None) is None:
             if self.mesh.dim == 1:
                 self._x = [
-                    self.mesh.gridCC
+                    self.mesh.cell_centers
                     if self.indActive is None
-                    else self.mesh.gridCC[self.indActive]
+                    else self.mesh.cell_centers[self.indActive]
                 ][0]
             else:
                 self._x = [
-                    self.mesh.gridCC[:, 0]
+                    self.mesh.cell_centers[:, 0]
                     if self.indActive is None
-                    else self.mesh.gridCC[self.indActive, 0]
+                    else self.mesh.cell_centers[self.indActive, 0]
                 ][0]
         return self._x
 
     @property
     def y(self):
+        """Y cell center locations (active) for the output of the mapping.
+
+        Returns
+        -------
+        (n_active) numpy.ndarray
+            Y cell center locations (active) for the output of the mapping.
+        """
         if getattr(self, "_y", None) is None:
             if self.mesh.dim > 1:
                 self._y = [
-                    self.mesh.gridCC[:, 1]
+                    self.mesh.cell_centers[:, 1]
                     if self.indActive is None
-                    else self.mesh.gridCC[self.indActive, 1]
+                    else self.mesh.cell_centers[self.indActive, 1]
                 ][0]
             else:
                 self._y = None
@@ -3084,12 +3896,19 @@ class BaseParametric(IdentityMap):
 
     @property
     def z(self):
+        """Z cell center locations (active) for the output of the mapping.
+
+        Returns
+        -------
+        (n_active) numpy.ndarray
+            Z cell center locations (active) for the output of the mapping.
+        """
         if getattr(self, "_z", None) is None:
             if self.mesh.dim > 2:
                 self._z = [
-                    self.mesh.gridCC[:, 2]
+                    self.mesh.cell_centers[:, 2]
                     if self.indActive is None
-                    else self.mesh.gridCC[self.indActive, 2]
+                    else self.mesh.cell_centers[self.indActive, 2]
                 ][0]
             else:
                 self._z = None
@@ -3106,29 +3925,75 @@ class BaseParametric(IdentityMap):
 
 
 class ParametricLayer(BaseParametric):
-    """
-    Parametric Layer Space
+    r"""Mapping for a horizontal layer within a wholespace.
 
-    .. code:: python
+    This mapping is used when the cells lying below the Earth's surface can
+    be parameterized by horizontal layer within a homogeneous medium.
+    The model is defined by the physical property value for the background
+    (:math:`\sigma_0`), the physical property value for the layer
+    (:math:`\sigma_1`), the elevation for the middle of the layer (:math:`z_L`)
+    and the thickness of the layer :math:`h`.
 
-        m = [
-            val_background,
-            val_layer,
-            layer_center,
-            layer_thickness
-        ]
+    For this mapping, the set of input model parameters are organized:
 
-    **Required**
+    .. math::
+        \mathbf{m} = [\sigma_0, \;\sigma_1,\; z_L , \; h]
 
-    :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+    The mapping :math:`\mathbf{u}(\mathbf{m})` from the model to the mesh
+    is given by:
 
-    **Optional**
+    .. math::
 
-    :param float slopeFact: arctan slope factor - divided by the minimum h
-                            spacing to give the slope of the arctan
-                            functions
-    :param float slope: slope of the arctan function
-    :param numpy.ndarray indActive: bool vector with
+        \mathbf{u}(\mathbf{m}) = \sigma_0 + \frac{(\sigma_1 - \sigma_0)}{\pi} \Bigg [
+        \arctan \Bigg ( a \bigg ( \mathbf{z_c} - z_L + \frac{h}{2} \bigg ) \Bigg )
+        - \arctan \Bigg ( a \bigg ( \mathbf{z_c} - z_L - \frac{h}{2} \bigg ) \Bigg ) \Bigg ]
+
+    where :math:`\mathbf{z_c}` is a vectors containing the vertical cell center
+    locations for all active cells in the mesh, and :math:`a` is a
+    parameter which defines the sharpness of the boundaries between the layer
+    and the background.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    actInd : numpy.ndarray
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC* 
+        or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
+    slope : float
+        Directly define the constant *a* in the mapping function which defines the
+        sharpness of the boundaries.
+    slopeFact : float
+        Scaling factor for the sharpness of the boundaries based on cell size.
+        Using this option, we set *a = slopeFact / dh*.
+    
+    Examples
+    --------
+    In this example, we define a layer in a wholespace whose interface is sharp.
+    We construct the mapping from the model to the set of active cells
+    (i.e. below the surface), We then use an active cells mapping to map from
+    the set of active cells to all cells in the mesh.
+
+    >>> from SimPEG.maps import ParametricLayer, InjectActiveCells
+    >>> from discretize import TensorMesh
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+
+    >>> dh = 0.25*np.ones(40)
+    >>> mesh = TensorMesh([dh, dh])
+    >>> ind_active = mesh.cell_centers[:, 1] < 8
+
+    >>> sig0, sig1, zL, h = 5., 10., 4., 2
+    >>> model = np.r_[sig0, sig1, zL, h]
+
+    >>> layer_map = ParametricLayer(
+    >>>     mesh, indActive=ind_active, slope=4
+    >>> )
+    >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
+
+    >>> fig = plt.figure(figsize=(5, 5))
+    >>> ax = fig.add_subplot(111)
+    >>> mesh.plot_image(act_map * layer_map * model, ax=ax)
 
     """
 
@@ -3137,15 +4002,43 @@ class ParametricLayer(BaseParametric):
 
     @property
     def nP(self):
+        """Number of model parameters the mapping acts on; i.e 4
+
+        Returns
+        -------
+        int
+            Returns an integer value of *4*.
+        """
         return 4
 
     @property
     def shape(self):
+        """Dimensions of the mapping
+
+        Returns
+        -------
+        tuple of int
+            Where *nP=4* is the number of parameters the mapping acts on
+            and *nAct* is the number of active cells in the mesh, **shape**
+            returns a tuple (*nAct* , *4*).
+        """
         if self.indActive is not None:
             return (sum(self.indActive), self.nP)
         return (self.mesh.nC, self.nP)
 
     def mDict(self, m):
+        r"""Return model parameters as a dictionary.
+
+        For a model :math:`\mathbf{m} = [\sigma_0, \;\sigma_1,\; z_L , \; h]`,
+        **mDict** returns a dictionary::
+
+            {"val_background": m[0], "val_layer": m[1], "layer_center": m[2], "layer_thickness": m[3]}
+
+        Returns
+        -------
+        dict
+            The model as a dictionary
+        """
         return {
             "val_background": m[0],
             "val_layer": m[1],
@@ -3222,6 +4115,45 @@ class ParametricLayer(BaseParametric):
         ) * self._atanLayerDeriv_layer_thickness(mDict)
 
     def deriv(self, m):
+        r"""Derivative of the mapping with respect to the input parameters.
+
+        Let :math:`\mathbf{m} = [\sigma_0, \;\sigma_1,\; z_L , \; h]` be the set of
+        model parameters the defines a layer within a wholespace. The mapping
+        :math:`\mathbf{u}(\mathbf{m})`from the parameterized model to all 
+        active cells is given by:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \sigma_0 + \frac{(\sigma_1 - \sigma_0)}{\pi} \Bigg [
+            \arctan \Bigg ( a \bigg ( \mathbf{z_c} - z_L + \frac{h}{2} \bigg ) \Bigg )
+            - \arctan \Bigg ( a \bigg ( \mathbf{z_c} - z_L - \frac{h}{2} \bigg ) \Bigg ) \Bigg ]
+
+        where :math:`\mathbf{z_c}` is a vectors containing the vertical cell center
+        locations for all active cells in the mesh. The derivative of the mapping
+        with respect to the model parameters is a ``numpy.ndarray`` of
+        shape (*nAct*, *4*) given by:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} =
+            \Bigg [ \frac{\partial \mathbf{u}}{\partial \sigma_0} \;\;
+            \frac{\partial \mathbf{u}}{\partial \sigma_1} \;\;
+            \frac{\partial \mathbf{u}}{\partial z_L} \;\;
+            \frac{\partial \mathbf{u}}{\partial h}
+            \Bigg ]
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
 
         mDict = self.mDict(m)
 
@@ -3238,59 +4170,90 @@ class ParametricLayer(BaseParametric):
 
 
 class ParametricBlock(BaseParametric):
-    """
-    Parametric Block in a Homogeneous Space
+    r"""Mapping for a rectangular block within a wholespace.
 
-    For 1D:
+    This mapping is used when the cells lying below the Earth's surface can
+    be parameterized by rectangular block within a homogeneous medium.
+    The model is defined by the physical property value for the background
+    (:math:`\sigma_0`), the physical property value for the block
+    (:math:`\sigma_b`), parameters for the center of the block
+    (:math:`x_b [,y_b, z_b]`) and parameters for the dimensions along
+    each Cartesian direction (:math:`dx [,dy, dz]`)
 
-    .. code:: python
+    For this mapping, the set of input model parameters are organized:
 
-        m = [
-            val_background,
-            val_block,
-            block_x0,
-            block_dx,
-        ]
+    .. math::
+        \mathbf{m} = \begin{cases}
+        1D: \;\; [\sigma_0, \;\sigma_b,\; x_b , \; dx] \\
+        2D: \;\; [\sigma_0, \;\sigma_b,\; x_b , \; dx,\; y_b , \; dy] \\
+        3D: \;\; [\sigma_0, \;\sigma_b,\; x_b , \; dx,\; y_b , \; dy,\; z_b , \; dz]
+        \end{cases}
 
-    For 2D:
+    The mapping :math:`\mathbf{u}(\mathbf{m})` from the model to the mesh
+    is given by:
 
-    .. code:: python
+    .. math::
 
-        m = [
-            val_background,
-            val_block,
-            block_x0,
-            block_dx,
-            block_y0,
-            block_dy
-        ]
+        \mathbf{u}(\mathbf{m}) = \sigma_0 + (\sigma_b - \sigma_0) \bigg [ \frac{1}{2} +
+        \pi^{-1} \arctan \bigg ( a \, \boldsymbol{\eta} \big (
+        x_b, y_b, z_b, dx, dy, dz \big ) \bigg ) \bigg ]
 
-    For 3D:
+    where *a* is a parameter that impacts the sharpness of the arctan function, and
 
-    .. code:: python
+    .. math::
+        \boldsymbol{\eta} \big ( x_b, y_b, z_b, dx, dy, dz \big ) = 1 -
+        \sum_{\xi \in (x,y,z)} \bigg [ \bigg ( \frac{2(\boldsymbol{\xi_c} - \xi_b)}{d\xi} \bigg )^2  + \varepsilon^2
+        \bigg ]^{p/2}
 
-        m = [
-            val_background,
-            val_block,
-            block_x0,
-            block_dx,
-            block_y0,
-            block_dy
-            block_z0,
-            block_dz
-        ]
+    Parameters :math:`p` and :math:`\varepsilon` define the parameters of the Ekblom
+    function. :math:`\boldsymbol{\xi_c}` is a place holder for vectors containing
+    the x, [y and z] cell center locations of the mesh, :math:`\xi_b` is a placeholder
+    for the x[, y and z] location for the center of the block, and :math:`d\xi` is a
+    placeholder for the x[, y and z] dimensions of the block.
 
-    **Required**
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    actInd : numpy.ndarray
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC* 
+        or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
+    slope : float
+        Directly define the constant *a* in the mapping function which defines the
+        sharpness of the boundaries.
+    slopeFact : float
+        Scaling factor for the sharpness of the boundaries based on cell size.
+        Using this option, we set *a = slopeFact / dh*.
+    epsilon : float
+        Epsilon value used in the ekblom representation of the block
+    p : float
+        p-value used in the ekblom representation of the block.
+    
+    Examples
+    --------
+    In this example, we define a rectangular block in a wholespace whose
+    interface is sharp. We construct the mapping from the model to the
+    set of active cells (i.e. below the surface), We then use an active
+    cells mapping to map from the set of active cells to all cells in the mesh.
 
-    :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+    >>> from SimPEG.maps import ParametricBlock, InjectActiveCells
+    >>> from discretize import TensorMesh
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
 
-    **Optional**
+    >>> dh = 0.5*np.ones(20)
+    >>> mesh = TensorMesh([dh, dh])
+    >>> ind_active = mesh.cell_centers[:, 1] < 8
 
-    :param float slopeFact: arctan slope factor - divided by the minimum h
-                            spacing to give the slope of the arctan
-                            functions
-    :param float slope: slope of the arctan function
-    :param numpy.ndarray indActive: bool vector with active indices
+    >>> sig0, sigb, xb, Lx, yb, Ly = 5., 10., 5., 4., 4., 2. 
+    >>> model = np.r_[sig0, sigb, xb, Lx, yb, Ly]
+
+    >>> block_map = ParametricBlock(mesh, indActive=ind_active)
+    >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
+
+    >>> fig = plt.figure(figsize=(5, 5))
+    >>> ax = fig.add_subplot(111)
+    >>> mesh.plot_image(act_map * block_map * model, ax=ax)
 
     """
 
@@ -3307,6 +4270,18 @@ class ParametricBlock(BaseParametric):
 
     @property
     def nP(self):
+        """Number of parameters the mapping acts on.
+
+        Returns
+        -------
+        int
+            The number of the parameters defining the model depends on the dimension
+            of the mesh. *nP*
+            
+            - =4 for a 1D mesh
+            - =6 for a 2D mesh
+            - =8 for a 3D mesh
+        """
         if self.mesh.dim == 1:
             return 4
         if self.mesh.dim == 2:
@@ -3316,6 +4291,15 @@ class ParametricBlock(BaseParametric):
 
     @property
     def shape(self):
+        """Dimensions of the mapping
+
+        Returns
+        -------
+        tuple of int
+            Where *nP* is the number of parameters the mapping acts on
+            and *nAct* is the number of active cells in the mesh, **shape**
+            returns a tuple (*nAct* , *nP*).
+        """
         if self.indActive is not None:
             return (sum(self.indActive), self.nP)
         return (self.mesh.nC, self.nP)
@@ -3352,6 +4336,13 @@ class ParametricBlock(BaseParametric):
         return mDict
 
     def mDict(self, m):
+        r"""Return model parameters as a dictionary.
+
+        Returns
+        -------
+        dict
+            The model as a dictionary
+        """
         return getattr(self, "_mDict{}d".format(self.mesh.dim))(m)
 
     def _ekblom(self, val):
@@ -3466,6 +4457,42 @@ class ParametricBlock(BaseParametric):
         ).T
 
     def deriv(self, m):
+        r"""Derivative of the mapping with respect to the input parameters.
+
+        Let :math:`\mathbf{m} = [\sigma_0, \;\sigma_1,\; x_b, \; dx, (\; y_b, \; dy, \; z_b , dz)]`
+        be the set of model parameters the defines a block/ellipsoid within a wholespace.
+        The mapping :math:`\mathbf{u}(\mathbf{m})` from the parameterized model to all 
+        active cells is given by:
+
+        The derivative of the mapping :math:`\mathbf{u}(\mathbf{m})` with respect to
+        the model parameters is a ``numpy.ndarray`` of shape (*nAct*, *nP*) given by:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \Bigg [
+            \frac{\partial \mathbf{u}}{\partial \sigma_0} \;\;
+            \frac{\partial \mathbf{u}}{\partial \sigma_1} \;\;
+            \frac{\partial \mathbf{u}}{\partial x_b} \;\;
+            \frac{\partial \mathbf{u}}{\partial dx} \;\;
+            \frac{\partial \mathbf{u}}{\partial y_b} \;\;
+            \frac{\partial \mathbf{u}}{\partial dy} \;\;
+            \frac{\partial \mathbf{u}}{\partial z_b} \;\;
+            \frac{\partial \mathbf{u}}{\partial dz}
+            \Bigg ) \Bigg ]
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
         return sp.csr_matrix(
             getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
         )
@@ -3473,23 +4500,89 @@ class ParametricBlock(BaseParametric):
 
 class ParametricEllipsoid(ParametricBlock):
 
-    # """
-    #     Parametric Ellipsoid in a Homogeneous Space
+    r"""Mapping for a rectangular block within a wholespace.
 
-    #     **Required**
+    This mapping is used when the cells lying below the Earth's surface can
+    be parameterized by an ellipsoid within a homogeneous medium.
+    The model is defined by the physical property value for the background
+    (:math:`\sigma_0`), the physical property value for the layer
+    (:math:`\sigma_b`), parameters for the center of the ellipsoid
+    (:math:`x_b [,y_b, z_b]`) and parameters for the dimensions along
+    each Cartesian direction (:math:`dx [,dy, dz]`)
 
-    #     :param discretize.base.BaseMesh mesh: SimPEG Mesh, 2D or 3D
+    For this mapping, the set of input model parameters are organized:
 
-    #     **Optional**
+    .. math::
+        \mathbf{m} = \begin{cases}
+        1D: \;\; [\sigma_0, \;\sigma_b,\; x_b , \; dx] \\
+        2D: \;\; [\sigma_0, \;\sigma_b,\; x_b , \; dx,\; y_b , \; dy] \\
+        3D: \;\; [\sigma_0, \;\sigma_b,\; x_b , \; dx,\; y_b , \; dy,\; z_b , \; dz]
+        \end{cases}
 
-    #     :param float slopeFact: arctan slope factor - divided by the minimum h
-    #                             spacing to give the slope of the arctan
-    #                             functions
-    #     :param float slope: slope of the arctan function
-    #     :param numpy.ndarray indActive: bool vector with active indices
+    The mapping :math:`\mathbf{u}(\mathbf{m})` from the model to the mesh
+    is given by:
 
-    # """
+    .. math::
 
+        \mathbf{u}(\mathbf{m}) = \sigma_0 + (\sigma_b - \sigma_0) \bigg [ \frac{1}{2} +
+        \pi^{-1} \arctan \bigg ( a \, \boldsymbol{\eta} \big (
+        x_b, y_b, z_b, dx, dy, dz \big ) \bigg ) \bigg ]
+
+    where *a* is a parameter that impacts the sharpness of the arctan function, and
+
+    .. math::
+        \boldsymbol{\eta} \big ( x_b, y_b, z_b, dx, dy, dz \big ) = 1 -
+        \sum_{\xi \in (x,y,z)} \bigg [ \bigg ( \frac{2(\boldsymbol{\xi_c} - \xi_b)}{d\xi} \bigg )^2  + \varepsilon^2
+        \bigg ]
+
+    :math:`\boldsymbol{\xi_c}` is a place holder for vectors containing
+    the x, [y and z] cell center locations of the mesh, :math:`\xi_b` is a placeholder
+    for the x[, y and z] location for the center of the block, and :math:`d\xi` is a
+    placeholder for the x[, y and z] dimensions of the block.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    actInd : numpy.ndarray
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC* 
+        or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
+    slope : float
+        Directly define the constant *a* in the mapping function which defines the
+        sharpness of the boundaries.
+    slopeFact : float
+        Scaling factor for the sharpness of the boundaries based on cell size.
+        Using this option, we set *a = slopeFact / dh*.
+    epsilon : float
+        Epsilon value used in the ekblom representation of the block
+    
+    Examples
+    --------
+    In this example, we define an ellipse in a wholespace whose
+    interface is sharp. We construct the mapping from the model to the
+    set of active cells (i.e. below the surface), We then use an active
+    cells mapping to map from the set of active cells to all cells in the mesh.
+
+    >>> from SimPEG.maps import ParametricEllipsoid, InjectActiveCells
+    >>> from discretize import TensorMesh
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+
+    >>> dh = 0.5*np.ones(20)
+    >>> mesh = TensorMesh([dh, dh])
+    >>> ind_active = mesh.cell_centers[:, 1] < 8
+
+    >>> sig0, sigb, xb, Lx, yb, Ly = 5., 10., 5., 4., 4., 3. 
+    >>> model = np.r_[sig0, sigb, xb, Lx, yb, Ly]
+
+    >>> ellipsoid_map = ParametricEllipsoid(mesh, indActive=ind_active)
+    >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
+
+    >>> fig = plt.figure(figsize=(5, 5))
+    >>> ax = fig.add_subplot(111)
+    >>> mesh.plot_image(act_map * ellipsoid_map * model, ax=ax)
+
+    """
     def __init__(self, mesh, **kwargs):
         super(ParametricEllipsoid, self).__init__(mesh, p=2, **kwargs)
 
@@ -4327,7 +5420,7 @@ class TileMap(IdentityMap):
         if getattr(self, "_P", None) is None:
 
             in_local = self.local_mesh._get_containing_cell_indexes(
-                self.global_mesh.gridCC
+                self.global_mesh.cell_centers
             )
 
             P = (
