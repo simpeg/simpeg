@@ -1,3 +1,5 @@
+import scipy.sparse as sp
+
 from .....electromagnetics.static.induced_polarization.simulation import (
     BaseIPSimulation as Sim,
 )
@@ -22,12 +24,43 @@ from ..resistivity.simulation import (
     compute_J, dask_getSourceTerm,
 )
 
-Sim.fields = dask_fields
-Sim.getJtJdiag = dask_getJtJdiag
-Sim.Jvec = dask_Jvec
-Sim.Jtvec = dask_Jtvec
 Sim.compute_J = compute_J
 Sim.getSourceTerm = dask_getSourceTerm
+
+
+def dask_fields(self, m=None, return_Ainv=False):
+    if m is not None:
+        self.model = m
+
+
+    A = self.getA()
+    Ainv = self.solver(A, **self.solver_opts)
+    RHS = self.getRHS()
+
+    f = self.fieldsPair(self, shape=RHS.shape)
+    f[:, self._solutionType] = Ainv * RHS
+
+    Ainv.clean()
+
+    if self._scale is None:
+        scale = Data(self.survey, np.full(self.survey.nD, self._sign))
+        # loop through receievers to check if they need to set the _dc_voltage
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                if (
+                        rx.data_type == "apparent_chargeability"
+                        or self._data_type == "apparent_chargeability"
+                ):
+                    scale[src, rx] = self._sign / rx.eval(src, self.mesh, f)
+        self._scale = scale.dobs
+
+    if return_Ainv:
+        return f, self.solver(sp.csr_matrix(A.T), **self.solver_opts)
+    else:
+        return f, None
+
+
+Sim.fields = dask_fields
 
 
 @dask.delayed
@@ -50,28 +83,16 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             "data. Please set the survey for the simulation: "
             "simulation.survey = survey"
         )
+    if self._Jmatrix is None or self._scale is None:
+        if f is None:
+            if m is None:
+                m = self.model
+            f, Ainv = self.fields(m, return_Ainv=compute_J)
 
-    if f is None:
-        if m is None:
-            m = self.model
-        f, Ainv = self.fields(m, return_Ainv=compute_J)
+        if compute_J:
+            Jmatrix = self.compute_J(f=f, Ainv=Ainv)
 
-    if self._scale is None:
-        scale = Data(self.survey, np.full(self.survey.nD, self._sign))
-        # loop through receievers to check if they need to set the _dc_voltage
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                if (
-                        rx.data_type == "apparent_chargeability"
-                        or self._data_type == "apparent_chargeability"
-                ):
-                    scale[src, rx] = self._sign / rx.eval(src, self.mesh, f)
-        self._scale = scale.dobs
-
-    if compute_J:
-        Jmatrix = self.compute_J(f=f, Ainv=Ainv)
-
-    data = self._scale * self.Jvec(m, m)
+    data = self.Jvec(m, m)
 
     if compute_J:
         return (np.asarray(data), Jmatrix)
@@ -80,6 +101,56 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 
 
 Sim.dpred = dask_dpred
+
+
+def dask_getJtJdiag(self, m, W=None):
+    """
+        Return the diagonal of JtJ
+    """
+    self.model = m
+    if self.gtgdiag is None:
+        if isinstance(self.Jmatrix, Future):
+            self.Jmatrix  # Wait to finish
+        # Need to check if multiplying weights makes sense
+        if W is None:
+            w = self._scale ** 2
+        else:
+            w = (self._scale * W.diagonal()) ** 2
+
+        w = da.from_array(W.diagonal(), chunks='auto')[:, None]
+        self.gtgdiag = da.sum((w * self.Jmatrix) ** 2, axis=0).compute()
+
+    return self.gtgdiag
+
+
+Sim.getJtJdiag = dask_getJtJdiag
+
+
+def dask_Jvec(self, m, v):
+    """
+        Compute sensitivity matrix (J) and vector (v) product.
+    """
+    self.model = m
+    if isinstance(self.Jmatrix, Future):
+        self.Jmatrix  # Wait to finish
+
+    return self._scale.astype(np.float32) * da.dot(self.Jmatrix, v).astype(np.float32)
+
+
+Sim.Jvec = dask_Jvec
+
+
+def dask_Jtvec(self, m, v):
+    """
+        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
+    """
+    self.model = m
+    if isinstance(self.Jmatrix, Future):
+        self.Jmatrix  # Wait to finish
+
+    return da.dot(v * self._scale, self.Jmatrix).astype(np.float32)
+
+Sim.Jtvec = dask_Jtvec
 
 #
 # if m is not None:

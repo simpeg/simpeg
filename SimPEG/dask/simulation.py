@@ -64,13 +64,6 @@ def make_synthetic_data(
         )
         relative_error = std
 
-    # if f is None:
-    #     f = self.fields(m)
-    #
-    #     if isinstance(f, Delayed):
-    #         f = f.compute()
-
-    # client = get_client()
     dpred = self.dpred(m, f=f)
     if isinstance(dpred, Delayed):
         if self.workers is None:
@@ -97,22 +90,7 @@ def make_synthetic_data(
     )
 
 Sim.make_synthetic_data = make_synthetic_data
-# @property
-# def client(self):
-#     if getattr(self, '_client', None) is None:
-#         self._client = get_client()
-#
-#     return self._client
-#
-#
-# @client.setter
-# def client(self, client):
-#     assert isinstance(client, Client)
-#     self._client = client
-#
-#
-# Sim.client = client
-#
+
 
 @property
 def workers(self):
@@ -164,11 +142,18 @@ def Jmatrix(self):
     Sensitivity matrix stored on disk
     """
     if getattr(self, "_Jmatrix", None) is None:
-        client = get_client()
-        self._Jmatrix = client.compute(
-                delayed(self.compute_J)(),
-            workers=self.workers
-        )
+        if self.workers is None:
+            self._Jmatrix = self.compute_J()
+        else:
+            try:
+                client = get_client()
+            except ValueError:
+                client = Client()
+
+            self._Jmatrix = client.compute(
+                    delayed(self.compute_J)(),
+                workers=self.workers
+            )
     elif isinstance(self._Jmatrix, Future):
         # client = get_client()
         self._Jmatrix.result()
