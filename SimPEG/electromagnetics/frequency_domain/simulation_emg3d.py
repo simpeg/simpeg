@@ -296,8 +296,27 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         return self.emg3d_sim
 
 
+@requires({"emg3d": emg3d})
 def survey_to_emg3d(survey):
     """Return emg3d survey from provided SimPEG survey.
+
+
+    - A SimPEG survey consists of a list of source-frequency pairs with
+      associated receiver lists:
+
+          [[source_1, frequency, rec_list],
+           [source_2, frequency, rec_list],
+           ...
+          ]
+
+      Frequencies and receiver lists can be different for different sources.
+      Data is not part of the survey, it is handled in a separate data class.
+
+    - An emg3d survey consists of a dictionary each for sources, receivers, and
+      frequencies. It contains the corresponding data in an xarray of dimension
+      ``nsrc x nrec x nfreq``. The xarray can store any amount of data set for
+      the survey. Source-receiver-frequency pair which do not exist in the
+      survey are marked with a NaN in the xarray.
 
 
     See Also
@@ -470,8 +489,28 @@ def survey_to_emg3d(survey):
     return emg3d_survey, data_map
 
 
+@requires({"emg3d": emg3d})
 def survey_to_simpeg(survey):
     """Return SimPEG survey from provided emg3d survey.
+
+
+    - A SimPEG survey consists of a list of source-frequency pairs with
+      associated receiver lists:
+
+          [[source_1, frequency, rec_list],
+           [source_2, frequency, rec_list],
+           ...
+          ]
+
+      Frequencies and receiver lists can be different for different sources.
+      Data is not part of the survey, it is handled in a separate data class.
+
+    - An emg3d survey consists of a dictionary each for sources, receivers, and
+      frequencies. It contains the corresponding data in an xarray of dimension
+      ``nsrc x nrec x nfreq``. The xarray can store any amount of data set for
+      the survey. Source-receiver-frequency pair which do not exist in the
+      survey are marked with a NaN in the xarray.
+
 
     .. note::
 
@@ -510,7 +549,7 @@ def survey_to_simpeg(survey):
     src_list = []
     data_list = []
 
-    # 1. loop over sources
+    # 1. Loop over sources
     for sname, src in survey.sources.items():
 
         # If source has no data, skip it.
@@ -518,7 +557,7 @@ def survey_to_simpeg(survey):
         if check and not np.any(np.isfinite(sdata.data)):
             continue
 
-        # 2. loop over frequencies
+        # 2. Loop over frequencies
         for sfreq, freq in survey.frequencies.items():
 
             # If frequency has no data, skip it.
@@ -529,7 +568,7 @@ def survey_to_simpeg(survey):
             # Start receiver list
             rec_list = []
 
-            # 3. loop over non-nan receivers
+            # 3. Loop over non-NaN receivers
             for srec, rec in survey.receivers.items():
 
                 # If receiver has no data, skip it.
