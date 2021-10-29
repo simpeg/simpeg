@@ -48,11 +48,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
         super().__init__(mesh, **kwargs)
 
-        # TODO : Count to store data per iteration.
-        # - Should be replaced by a proper count from SimPEG.inversion.
-        # - Should probably be made optional to store data at each step.
-        self._it_count = 0
-
     @property
     def emg3d_sim(self):
         """emg3d simulation; obtained from SimPEG simulation."""
@@ -297,12 +292,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
 
         # Compute forward model and set initial residuals.
         _ = self.emg3d_sim.misfit
-
-        # Store the data at each step in the survey-xarray
-        if m is not None:
-            current_data = self.emg3d_survey.data.synthetic.copy()
-            self.emg3d_survey.data[f"it_{self._it_count}"] = current_data
-            self._it_count += 1  # Update counter
 
         return self.emg3d_sim
 
