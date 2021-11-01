@@ -107,19 +107,28 @@ def get_dpred(self, m, f=None, compute_J=False):
                 else:
                     vec = m
 
+                compute_sensitivities = compute_J and (objfct.simulation._Jmatrix is None)
                 if objfct.workers is None:
                     # For locals, the future is now
+
                     future = objfct.simulation.dpred(
-                        vec, compute_J=compute_J and (objfct.simulation._Jmatrix is None)
+                        vec, compute_J=compute_sensitivities
                     )
                     if isinstance(future, (da.Array, Delayed)):
-                        future = future.compute()
+                        if (
+                            objfct.simulation.store_sensitivities == "forward_only"
+                            or compute_sensitivities
+                        ):
+                            with ProgressBar():
+                                future = future.compute()
+                        else:
+                            future = future.compute()
 
                 else:
                     client = get_client()
                     future = client.compute(
                         objfct.simulation.dpred(
-                            vec, compute_J=compute_J and (objfct.simulation._Jmatrix is None)
+                            vec, compute_J=compute_sensitivities
                         ), workers=objfct.workers
                     )
 
