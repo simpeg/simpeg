@@ -1,7 +1,7 @@
 from ..inverse_problem import BaseInvProblem
 import numpy as np
 
-from dask import delayed
+from dask.delayed import Delayed
 from dask.diagnostics import ProgressBar
 from dask.distributed import Future, get_client
 import dask.array as da
@@ -112,7 +112,7 @@ def get_dpred(self, m, f=None, compute_J=False):
                     future = objfct.simulation.dpred(
                         vec, compute_J=compute_J and (objfct.simulation._Jmatrix is None)
                     )
-                    if isinstance(future, da.Array):
+                    if isinstance(future, (da.Array, Delayed)):
                         future = future.compute()
 
                 else:
