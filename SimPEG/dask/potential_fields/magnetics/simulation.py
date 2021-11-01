@@ -37,17 +37,11 @@ def linear_operator(self):
     active_components = np.hstack(
         [np.c_[values] for values in self.survey.components.values()]
     ).tolist()
-
-    client = get_client()
-
-    Xn, Yn, Zn, M, projection = client.scatter(
-        [self.Xn, self.Yn, self.Zn, self.M, self.tmi_projection], workers=self.workers
-    )
     min_hx, min_hy, min_hz = self.mesh.hx.min(), self.mesh.hy.min(), self.mesh.hz.min()
     row = delayed(evaluate_integral, pure=True)
     rows = [
         array.from_delayed(
-            row(Xn, Yn, Zn, min_hx, min_hy, min_hz, M, projection, receiver_location, components[component]),
+            row(self.Xn, self.Yn, self.Zn, min_hx, min_hy, min_hz, self.M, self.tmi_projection, receiver_location, components[component]),
             dtype=np.float32,
             shape=(n_data_comp, self.nC),
         )
@@ -89,7 +83,7 @@ def linear_operator(self):
                 print("Zarr file detected with same shape and chunksize ... re-loading")
                 return kernel
 
-        print("Writing Zarr file to disk")
+        # print("Writing Zarr file to disk")
 
         # with ProgressBar():
         print("Saving kernel to zarr: " + sens_name)

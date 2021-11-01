@@ -31,12 +31,22 @@ def Jmatrix(self):
         if self.store_sensitivities == "ram":
             self._Jmatrix = np.asarray(self.linear_operator())
         else:
-            client = get_client()
-            # self.linear_operator()
-            self._Jmatrix = client.compute(
-                    self.linear_operator(),
-                workers=self.workers
-            )
+            if self.workers is not None:
+                client = get_client()
+                self.Xn, self.Yn, self.Zn, self.M = client.scatter(
+                    [self.Xn, self.Yn, self.Zn, self.M], workers=self.workers
+                )
+                if getattr(self, "tmi_projection", None) is not None:
+                    self.tmi_projection = client.scatter(
+                        [self.tmi_projection], workers=self.workers
+                    )
+                self._Jmatrix = client.compute(
+                        self.linear_operator(),
+                    workers=self.workers
+                )
+            else:
+                self._Jmatrix = self.linear_operator()
+
     elif isinstance(self._Jmatrix, Future):
         self._Jmatrix.result()
         self._Jmatrix = array.from_zarr(os.path.join(self.sensitivity_path, "J.zarr"))

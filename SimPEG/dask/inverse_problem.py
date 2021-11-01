@@ -2,6 +2,7 @@ from ..inverse_problem import BaseInvProblem
 import numpy as np
 
 from dask import delayed
+from dask.diagnostics import ProgressBar
 from dask.distributed import Future, get_client
 import dask.array as da
 import gc
@@ -100,9 +101,7 @@ def get_dpred(self, m, f=None, compute_J=False):
         return self.dmisfit.simulation.dpred(m)
     elif isinstance(self.dmisfit, BaseObjectiveFunction):
         for i, objfct in enumerate(self.dmisfit.objfcts):
-
             if hasattr(objfct, "simulation"):
-
                 if objfct.model_map is not None:
                     vec = objfct.model_map @ m
                 else:
@@ -112,7 +111,10 @@ def get_dpred(self, m, f=None, compute_J=False):
                     # For locals, the future is now
                     future = objfct.simulation.dpred(
                         vec, compute_J=compute_J and (objfct.simulation._Jmatrix is None)
-                    ).compute()
+                    )
+                    if isinstance(future, da.Array):
+                        future = future.compute()
+
                 else:
                     client = get_client()
                     future = client.compute(
@@ -205,7 +207,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
         if hasattr(self.reg.objfcts[0], "space") and self.reg.objfcts[0].space == "spherical":
             phi_mDeriv = self.reg.deriv(m)
         else:
-            phi_mDeriv = self.reg2Deriv * self.reg._delta_m(m)
+            phi_mDeriv = self.reg2Deriv * self.reg.objfcts[0]._delta_m(m)
 
         g = np.asarray(phi_dDeriv) + self.beta * phi_mDeriv
         out += (g,)

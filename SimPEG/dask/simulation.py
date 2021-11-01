@@ -1,5 +1,5 @@
 from ..simulation import BaseSimulation as Sim
-from dask.distributed import get_client, Future
+from dask.distributed import get_client, Future, Client
 from dask import array, delayed
 from dask.delayed import Delayed
 import warnings

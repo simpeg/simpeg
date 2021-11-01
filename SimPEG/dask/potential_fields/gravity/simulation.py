@@ -126,13 +126,13 @@ def linear_operator(self):
         [np.c_[values] for values in self.survey.components.values()]
     ).tolist()
 
-    client = get_client()
-
-    Xn, Yn, Zn = client.scatter([self.Xn, self.Yn, self.Zn], workers=self.workers)
+    # client = get_client()
+    #
+    # Xn, Yn, Zn = client.scatter([self.Xn, self.Yn, self.Zn], workers=self.workers)
     row = delayed(evaluate_integral, pure=True)
     rows = [
         array.from_delayed(
-            row(Xn, Yn, Zn, hx, hy, hz, receiver_location, components[component]),
+            row(self.Xn, self.Yn, self.Zn, hx, hy, hz, receiver_location, components[component]),
             dtype=np.float32,
             shape=(n_data_comp, self.nC),
         )
