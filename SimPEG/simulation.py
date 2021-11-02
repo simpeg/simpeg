@@ -145,7 +145,7 @@ class BaseSimulation(props.HasModel):
     )
 
     solver_opts = properties.Dictionary("solver options as a kwarg dict", default={})
-
+    verbose = True
     _Jmatrix = None
 
     def _reset(self, name=None):

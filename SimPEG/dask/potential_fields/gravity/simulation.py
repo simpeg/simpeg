@@ -16,13 +16,7 @@ def dask_fields(self, m):
     """
     self.model = m
 
-    if self.store_sensitivities == "forward_only":
-        self.model = m
-        # Compute the linear operation without forming the full dense G
-        fields = self.linear_operator()
-    else:
-        if hasattr(self, "G"): # Trigger calculations
-            fields = self.G @ (self.rhoMap @ m).astype(np.float32)
+    fields = self.G @ (self.rhoMap @ m).astype(np.float32)
 
     return fields
 
@@ -125,10 +119,6 @@ def linear_operator(self):
     active_components = np.hstack(
         [np.c_[values] for values in self.survey.components.values()]
     ).tolist()
-
-    # client = get_client()
-    #
-    # Xn, Yn, Zn = client.scatter([self.Xn, self.Yn, self.Zn], workers=self.workers)
     row = delayed(evaluate_integral, pure=True)
     rows = [
         array.from_delayed(
@@ -161,6 +151,7 @@ def linear_operator(self):
 
     if self.store_sensitivities == "disk":
         sens_name = os.path.join(self.sensitivity_path, "J.zarr")
+
         if os.path.exists(sens_name):
             kernel = array.from_zarr(sens_name)
             if np.all(
@@ -170,15 +161,9 @@ def linear_operator(self):
                     np.r_[kernel.shape] == np.r_[stack.shape],
                 ]
             ):
-                # Check that loaded kernel matches supplied data and mesh
-                print("Zarr file detected with same shape and chunksize ... re-loading")
                 return kernel
 
-        print("Writing Zarr file to disk")
-
-        # with ProgressBar():
-        print("Saving kernel to zarr: " + sens_name)
-
+        print("Saving sensitivities to zarr: " + sens_name)
         kernel = array.to_zarr(
                 stack, sens_name,
                 compute=False, return_stored=True, overwrite=True
@@ -186,10 +171,7 @@ def linear_operator(self):
         return kernel
 
     elif self.store_sensitivities == "forward_only":
-        # with ProgressBar():
-        print("Forward calculation (DASK): ")
-        pred = stack @ self.model.astype(np.float32)
-        return pred
+        return stack
 
     # with ProgressBar():
     #     print("Computing sensitivities to local ram")

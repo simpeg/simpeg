@@ -45,7 +45,12 @@ def Jmatrix(self):
                     workers=self.workers
                 )
             else:
-                self._Jmatrix = self.linear_operator()
+                delayed_array = self.linear_operator()
+
+                if "store-map" not in delayed_array.name:
+                    self._Jmatrix = delayed_array
+                else:
+                    return delayed_array
 
     elif isinstance(self._Jmatrix, Future):
         self._Jmatrix.result()

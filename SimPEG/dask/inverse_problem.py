@@ -101,29 +101,33 @@ def get_dpred(self, m, f=None, compute_J=False):
         return self.dmisfit.simulation.dpred(m)
     elif isinstance(self.dmisfit, BaseObjectiveFunction):
         for i, objfct in enumerate(self.dmisfit.objfcts):
+
             if hasattr(objfct, "simulation"):
+
                 if objfct.model_map is not None:
                     vec = objfct.model_map @ m
                 else:
                     vec = m
 
                 compute_sensitivities = compute_J and (objfct.simulation._Jmatrix is None)
+
                 if objfct.workers is None:
                     # For locals, the future is now
-
                     future = objfct.simulation.dpred(
                         vec, compute_J=compute_sensitivities
                     )
                     if isinstance(future, (da.Array, Delayed)):
                         if (
-                            objfct.simulation.store_sensitivities == "forward_only"
-                            or compute_sensitivities
+                            (
+                                objfct.simulation.store_sensitivities == "forward_only"
+                                or compute_sensitivities
+                            )
+                            and objfct.simulation.verbose
                         ):
                             with ProgressBar():
                                 future = future.compute()
                         else:
                             future = future.compute()
-
                 else:
                     client = get_client()
                     future = client.compute(
@@ -131,13 +135,14 @@ def get_dpred(self, m, f=None, compute_J=False):
                             vec, compute_J=compute_sensitivities
                         ), workers=objfct.workers
                     )
-
                 dpreds += [future]
+
             else:
                 dpreds += []
 
     if isinstance(dpreds[0], Future):
         dpreds = client.gather(dpreds)
+
     preds = []
     if isinstance(dpreds[0], tuple):  # Jmatrix was computed
         for future, objfct in zip(dpreds, self.dmisfit.objfcts):
