@@ -62,9 +62,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
     mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
 
     props.Reciprocal(mu, mui)
-    
+
     forward_only = properties.Boolean(
-        "If True, A-inverse not stored at each frequency in forward simulation", default=False
+        "If True, A-inverse not stored at each frequency in forward simulation",
+        default=False,
     )
 
     survey = properties.Instance("a survey object", Survey, required=True)
@@ -815,18 +816,10 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         :return: derivative of the system matrix times a vector (nP,) or
             adjoint (nD,)
         """
-
-        MeMu = self.MeMu
         C = self.mesh.edgeCurl
         if adjoint:
             return self.MfRhoDeriv(C * u, C * v, adjoint)
         return C.T * self.MfRhoDeriv(C * u, v, adjoint)
-
-        # MfRhoDeriv = self.MfRhoDeriv(C*u)
-
-        # if adjoint:
-        #     return MfRhoDeriv.T * (C * v)
-        # return C.T * (MfRhoDeriv * v)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         MeMuDeriv = self.MeMuDeriv(u)

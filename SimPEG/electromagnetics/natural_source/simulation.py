@@ -2,7 +2,7 @@ import time
 import sys
 import numpy as np
 import properties
-from discretize.utils import isScalar
+from discretize.utils import Zero
 from scipy.constants import mu_0
 from ...utils.code_utils import deprecate_class
 
@@ -445,14 +445,13 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
     """
     1D finite volume simulation for the natural source electromagnetic problem.
 
-    This corresponds to the TM mode 2D simulation where the magnetic flux is
-    located at cell centers and the electric field is on edges.
+    This corresponds to the TM mode 2D simulation where the magnetic field is
+    located at faces (nodes) and the electric field is on edges (cell_centers).
     """
 
     _solutionType = "hSolution"
-    _formulation = "EB"
+    _formulation = "HJ"
     fieldsPair = Fields1DMagneticField
-    _clear_on_sigma_update = ["_MfSigmaI", "_MfSigma", "_MfSigmaIDeriv"]
 
     # Must be 1D survey object
     survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
@@ -465,138 +464,48 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
 
         super().__init__(mesh, **kwargs)
 
-        # corresponds to a dirichlet boundary at the top (= 1)
-        # and nuemann boundary (= 0) at the bottom
-
-        # TODO: Pass these boundary parameters as simulation properties
-        alphas = np.r_[0, 1]
-        betas = np.r_[1, 0]
-        gammas = np.r_[0, 1]
-        B, bc = mesh.cell_gradient_robin_weak_form(
-            alpha=alphas, beta=betas, gamma=gammas,
-        )
-        self._B = B
-        self._bc = bc
-
-    @property
-    def MccMui(self):
-        """
-        Cell centered inner product matrix for inverse magnetic permeability
-        """
-        if getattr(self, "_MccMui", None) is None:
-            mui = self.mui
-            if isScalar(mui):
-                mui = mui * np.ones(self.mesh.nC)
-            self._MccMui = sdiag(mui)
-        return self._MccMui
-
-    @property
-    def MccMu(self):
-        """
-        Cell centered inner product matrix for inverse magnetic permeability
-        """
-        if getattr(self, "_MccMu", None) is None:
-            mu = self.mu
-            if isScalar(mu):
-                mu = mu * np.ones(self.mesh.nC)
-            self._MccMu = sdiag(mu)
-        return self._MccMu
-
-    @property
-    def MfSigmaI(self):
-        """
-        Inverse of the face inner product matrix for sigma
-        """
-        if getattr(self, "_MfSigmaI", None) is None:
-            self._MfSigmaI = self.mesh.getFaceInnerProduct(self.sigma, invMat=True)
-        return self._MfSigmaI
-
-    @property
-    def MfSigma(self):
-        if getattr(self, "_MfSigma", None) is None:
-            self._MfSigma = self.mesh.getFaceInnerProduct(self.sigma)
-        return self._MfSigma
-
-    def MfSigmaDeriv(self, u, v=None, adjoint=False):
-        if self.sigmaMap is None:
-            return Zero()
-
-        if getattr(self, "_MfSigmaDeriv", None) is None:
-            self._MfSigmaDeriv = (
-                self.mesh.getFaceInnerProductDeriv(np.ones(self.mesh.nC))(
-                    np.ones(self.mesh.nF)
-                )
-            ) * self.sigmaDeriv
-
-        if v is not None:
-            u = u.flatten()
-            if v.ndim > 1:
-                # promote u iff v is a matrix
-                u = u[:, None]  # Avoids constructing the sparse matrix
-            if adjoint is True:
-                return self._MfSigmaDeriv.T.dot(u * v)
-            return u * (self._MfSigmaDeriv.dot(v))
-        else:
-            if adjoint is True:
-                return self._MfSigmaDeriv.T.dot(sdiag(u))
-            return sdiag(u) * (self._MfSigmaDeriv)
-
-    def MfSigmaIDeriv(self, u, v=None, adjoint=False):
-        if self.sigmaMap is None:
-            return Zero()
-
-        dMfSigmaI_dI = -self.MfSigmaI ** 2
-
-        if adjoint:
-            return self.MfSigmaDeriv(dMfSigmaI_dI.dot(u), v=v, adjoint=adjoint)
-        return dMfSigmaI_dI.dot(self.MfSigmaDeriv(u, v=v))
+        # corresponds to a dirichlet boundaries at the top (= 1 ) and bottom(=0)
+        # for the y component of electric field
+        self._rhs = -mesh.boundary_node_vector_integral * [0 + 0j, 1 + 0j]
 
     def getA(self, freq):
         """
         system matrix
         """
-        MccMu = self.MccMu
-        V = self.Vol
-        D = V @ self.mesh.faceDiv
-        MfSigmaI = self.MfSigmaI
-        B = self._B
+        G = self.mesh.nodal_gradient
+        MeRho = self.MeRho
+        MnMu = self.MnMu
 
-        return D @ MfSigmaI @ (D.T - B) + 1j * omega(freq) * MccMu @ V
+        return G.T.tocsr() @ MeRho @ G + 1j * omega(freq) * MnMu
 
-    def getADeriv(self, freq, u, v, adjoint=False):
-        V = self.Vol
-        D = self.mesh.faceDiv
-        B = self._B
+    def getADeriv_rho(self, freq, u, v, adjoint=False):
+        G = self.mesh.nodal_gradient
 
         if adjoint:
-            y = V @ (D.T @ u)
-        else:
-            y = V @ (D.T @ u) - B @ u
+            return self.MeRhoDeriv(G * u, G * v, adjoint)
+        return G.T * self.MeRhoDeriv(G * u, v, adjoint)
 
-        y = self.MfSigmaIDeriv(y, v, adjoint=adjoint)
+    def getADeriv_mu(self, freq, u, v, adjoint=False):
+        MnMuDeriv = self.MnMuDeriv(u)
 
-        if adjoint:
-            return V @ (D @ y) - B.T @ y
-        else:
-            return V @ (D @ y)
+        if adjoint is True:
+            return 1j * omega(freq) * (MnMuDeriv.T * v)
+
+        return 1j * omega(freq) * (MnMuDeriv * v)
 
     def getRHS(self, freq):
         """
         right hand side
         """
-        V = self.Vol
-        D = self.mesh.faceDiv
-        MfSigmaI = self.MfSigmaI
-        h_bc = self._bc
+        return self._rhs
 
-        return V @ (D @ (MfSigmaI @ h_bc))
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        return Zero()
 
-    def getRHSDeriv(self, freq, u, v, adjoint=False):
-        D = self.mesh.faceDiv
-        V = self.Vol
-        hbc = self._bc
-
-        return V @ (D @ (self.MfSigmaIDeriv(hbc, v, adjoint=adjoint)))
+    def getADeriv(self, freq, u, v, adjoint=False):
+        return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+            freq, u, v, adjoint
+        )
 
 
 ###################################

@@ -72,6 +72,8 @@ class BaseEMSimulation(BaseSimulation):
         return [
             "_MeSigma",
             "_MeSigmaI",
+            "_MeRho",
+            "_MeRhoDeriv",
             "_MfRho",
             "_MfRhoI",
             "_MeSigmaDeriv",
@@ -375,6 +377,47 @@ class BaseEMSimulation(BaseSimulation):
             )
         return dMeMuI_dI * self.MeMuDeriv(u, v=v)
 
+    @property
+    def MnMu(self):
+        """
+        Nodal inner product matrix for \\(\\mu\\).
+        Used in the H-J 1D formulation
+        """
+        if getattr(self, "_MnMu", None) is None:
+            self._MnMu = sp.diags(
+                self.mesh.aveN2CC.T * (self.mu * self.mesh.cell_volumes)
+            )
+        return self._MnMu
+
+    def MnMuDeriv(self, u, v=None, adjoint=False):
+        """
+        Nodal inner product matrix for \\(\\mu\\).
+        Used in the H-J 1D formulation
+        """
+        if self.muMap is None:
+            return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
+
+        if getattr(self, "_MnMuDeriv", None) is None:
+            self._MnMuDeriv = (
+                self.mesh.aveN2CC.T * sp.diags(self.mesh.cell_volumes)
+            ) * self.muDeriv
+
+        if v is not None:
+            u = u.flatten()
+            if v.ndim > 1:
+                # promote u iff v is a matrix
+                u = u[:, None]  # Avoids constructing the sparse matrix
+            if adjoint:
+                return self._MnMuDeriv.T * (u * v)
+            return u * (self._MnMuDeriv * v)
+        else:
+            mat = sdiag(u) * self._MnMuDeriv
+            if adjoint is True:
+                return mat.T
+            return mat
+
     ####################################################
     # Electrical Conductivity
     ####################################################
@@ -543,6 +586,46 @@ class BaseEMSimulation(BaseSimulation):
             return self.MfRhoDeriv(dMfRhoI_dI.T.dot(u), v=v, adjoint=adjoint)
         else:
             return dMfRhoI_dI.dot(self.MfRhoDeriv(u, v=v))
+
+    @property
+    def MeRho(self):
+        """
+        edge inner product matrix for \\(\\rho\\). Used in the H-J
+        1D formulation
+        """
+        if getattr(self, "_MeRho", None) is None:
+            self._MeRho = self.mesh.get_edge_inner_product(self.rho)
+        return self._MeRho
+
+    def MeRhoDeriv(self, u, v=None, adjoint=False):
+        """
+        Derivative of :code:`MfRho` with respect to the model.
+        """
+        if self.rhoMap is None:
+            return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
+
+        if getattr(self, "_MeRhoDeriv", None) is None:
+            self._MeRhoDeriv = (
+                self.mesh.get_edge_inner_product_deriv(np.ones(self.mesh.n_cells))(
+                    np.ones(self.mesh.n_edges)
+                )
+                * self.rhoDeriv
+            )
+
+        if v is not None:
+            u = u.flatten()
+            if v.ndim > 1:
+                # promote u iff v is a matrix
+                u = u[:, None]  # Avoids constructing the sparse matrix
+            if adjoint is True:
+                return self._MeRhoDeriv.T.dot(u * v)
+            return u * (self._MeRhoDeriv.dot(v))
+        else:
+            if adjoint is True:
+                return self._MeRhoDeriv.T.dot(sdiag(u))
+            return sdiag(u) * (self._MeRhoDeriv)
 
 
 ###############################################################################

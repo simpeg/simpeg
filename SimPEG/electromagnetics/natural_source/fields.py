@@ -34,11 +34,8 @@ class Fields1DElectricField(FieldsFDEM):
         "j": ["eSolution", "CC", "_j"],
         "b": ["eSolution", "F", "_b"],
         "h": ["eSolution", "F", "_h"],
-        "impedance": ["eSolution", "CC", "_impedance"],
-        "apparent resistivity": ["eSolution", "CC", "_apparent_resistivity"],
-        "apparent conductivity": ["eSolution", "CC", "_apparent_conductivity"],
-        "phase": ["eSolution", "CC", "_phase"],
     }
+    field_directions = "yx"
 
     def startup(self):
         # boundary conditions
@@ -156,89 +153,58 @@ class Fields1DMagneticField(Fields1DElectricField):
     Fields
     """
 
-    knownFields = {"hSolution": "CC"}
+    knownFields = {"hSolution": "N"}
     aliasFields = {
-        "e": ["hSolution", "F", "_e"],
-        "j": ["hSolution", "F", "_j"],
-        "b": ["hSolution", "CC", "_b"],
-        "h": ["hSolution", "CC", "_h"],
-        # "impedance": ["hSolution", "CC", "_impedance"],
-        # "apparent resistivity": ["hSolution", "CC", "_apparent_resistivity"],
-        # "apparent conductivity": ["hSolution", "CC", "_apparent_conductivity"],
-        # "phase": ["hSolution", "CC", "_phase"],
+        "e": ["hSolution", "CC", "_e"],
+        "j": ["hSolution", "CC", "_j"],
+        "b": ["hSolution", "N", "_b"],
+        "h": ["hSolution", "N", "_h"],
     }
+
+    field_directions = "xy"
 
     def startup(self):
         # boundary conditions
-        self._B = self.simulation._B
-        self._bc = self.simulation._bc
-
-        # operators
-        self._D = self.mesh.faceDiv
-        self._V = self.simulation.Vol
-        self._MccMu = self.simulation.MccMu
-        self._MfSigmaI = self.simulation.MfSigmaI
-        self._MfSigmaIDeriv = self.simulation.MfSigmaIDeriv
-        self._MfSigma = self.simulation.MfSigma
-        self._MfSigmaDeriv = self.simulation.MfSigmaDeriv
-        self._MfI = self.simulation.MfI
-
-        # geometry
-        self._nC = self.mesh.nC
-        self._nF = self.mesh.nF
+        self._G = self.simulation.mesh.nodal_gradient
 
     def _h(self, hSolution, source_list):
         return hSolution
 
+    def _hDeriv_u(self, src, v, adjoint=False):
+        return v
+
+    def _hDeriv_m(self, src, v, adjoint=False):
+        return Zero()
+
     def _b(self, hSolution, source_list):
-        return self._MccMu @ hSolution
+        return self.simulation.MnMu @ hSolution
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
         if adjoint:
-            return self._MccMu.T @ du_dm_v
-        return self._MccMu @ du_dm_v
+            return self.simulation.MnMu.T @ du_dm_v
+        return self.simulation.MnMu @ du_dm_v
 
     def _e(self, hSolution, source_list):
-        e = self._MfSigmaI @ (
-            self._D.T @ (self._V @ hSolution) - self._B @ hSolution - self._bc[:, None]
-        )
-        return e
+        return -self.simulation.rho[:, None] * (self._G * hSolution)
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         if adjoint:
-            # V, MfI are symmetric
-            y = self.MfSigmaI @ du_dm_v
-            return self._V @ (self._D @ y) - self._B.T @ y
-        return self._MfSigmaI @ (self._D.T @ (self._V @ du_dm_v) - self._B @ du_dm_v)
+            return -self._G.T * (self.simulation.rho[:, None] * du_dm_v)
+        return -self.simulation.rho[:, None] * (self._G @ du_dm_v)
 
-    # TODO: pick up here
     def _eDeriv_m(self, src, v, adjoint=False):
         h = self[src, "h"]
         if adjoint:
-            return -self._V @ (
-                self._D @ self._MfSigmaIDeriv(b, v, adjoint=adjoint)
-            ) + self._MfSigmaIDeriv(self._B @ self._h_bc, v, adjoint=adjoint)
-        return -self._MfSigmaIDeriv(self._D.T @ (self._V @ b), v) + self._MfSigmaIDeriv(
-            self._B @ self._h_bc, v
-        )
+            return h * (self._G.T * v)
+        return self._G * (h * v)
 
-    def _j(self, bSolution, source_list):
-        return self._MfI @ self._MfSigma @ self._e(hSolution, source_list)
+    def _j(self, hSolution, source_list):
+        return -self._G * hSolution
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         if adjoint:
-            v = self._MfSigma @ (self._MfI @ du_dm_v)
-            return self._eDeriv_u(src, v, adjoint=adjoint)
-        return self._MfI @ (self._MfSigma @ self._eDeriv_u(src, du_dm_v))
-
-    # This should be on receiver
-    #
-    # def _impedance(self, bSolution, source_list):
-    #     return (
-    #         self._aveN2CC
-    #         @ self._e(bSolution, source_list)
-    #         / self._h(bSolution, source_list)
-    #     )
+            return -self._G.T @ du_dm_v
+        return -self._G @ du_dm_v
 
 
 class Fields1DPrimarySecondary(FieldsFDEM):
@@ -258,6 +224,8 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         "bSecondary": ["e_1dSolution", "E", "_bSecondary"],
         "h": ["e_1dSolution", "E", "_h"],
     }
+
+    field_directions = "xy"
 
     # def __init__(self, mesh, survey, **kwargs):
     #     super(Fields1DPrimarySecondary, self).__init__(mesh, survey, **kwargs)
