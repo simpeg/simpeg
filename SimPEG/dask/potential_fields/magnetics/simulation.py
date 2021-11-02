@@ -1,4 +1,5 @@
 import numpy as np
+from ..base import linear_operator
 from ....potential_fields.magnetics import Simulation3DIntegral as Sim
 from ....potential_fields.magnetics.simulation import evaluate_integral
 from ....utils import sdiag, mkvc
@@ -10,13 +11,23 @@ from ...utils import compute_chunk_sizes
 import os
 
 
+Sim.linear_operator = linear_operator
+
+
 def dask_fields(self, m):
     """
     Fields computed from a linear operation
     """
     self.model = m
-    self.Jmatrix  # Start process
-    fields = self.G @ (self.chiMap @ m).astype(np.float32)
+    kernels = self.G # Start process
+
+    if isinstance(kernels, Future):
+        client = get_client()
+        fields = client.compute(
+            client.submit(array.dot, kernels, (self.chiMap @ m).astype(np.float32))
+        )
+    else:
+        fields = kernels @ (self.chiMap @ m).astype(np.float32)
 
     return fields
 
@@ -24,8 +35,7 @@ def dask_fields(self, m):
 Sim.fields = dask_fields
 
 
-def linear_operator(self):
-    self.nC = self.model_map.shape[0]
+def make_row_stack(self):
     n_data_comp = len(self.survey.components)
     components = np.array(list(self.survey.components.keys()))
     active_components = np.hstack(
@@ -43,49 +53,11 @@ def linear_operator(self):
             self.survey.receiver_locations.tolist(), active_components
         )
     ]
-    stack = array.vstack(rows)
 
-    # Chunking options
-    if self.chunk_format == "row" or self.store_sensitivities == "forward_only":
-        config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
-        # Autochunking by rows is faster and more memory efficient for
-        # very large problems sensitivty and forward calculations
-        stack = stack.rechunk({0: "auto", 1: -1})
-
-    elif self.chunk_format == "equal":
-        # Manual chunks for equal number of blocks along rows and columns.
-        # Optimal for Jvec and Jtvec operations
-        row_chunk, col_chunk = compute_chunk_sizes(*stack.shape, self.max_chunk_size)
-        stack = stack.rechunk((row_chunk, col_chunk))
-    else:
-        # Auto chunking by columns is faster for Inversions
-        config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
-        stack = stack.rechunk({0: -1, 1: "auto"})
-
-    if self.store_sensitivities not in ["disk", "forward_only"]:
-        return array.asarray(stack)
-
-    sens_name = os.path.join(self.sensitivity_path, "J.zarr")
-    if os.path.exists(sens_name):
-        kernel = array.from_zarr(sens_name)
-        if np.all(
-                np.r_[
-                    np.any(np.r_[kernel.chunks[0]] == stack.chunks[0]),
-                    np.any(np.r_[kernel.chunks[1]] == stack.chunks[1]),
-                    np.r_[kernel.shape] == np.r_[stack.shape],
-                ]
-        ):
-            return kernel
-
-    print("Saving sensitivities to zarr: " + sens_name)
-    kernel = array.to_zarr(
-        stack, sens_name,
-        compute=False, return_stored=True, overwrite=True
-    )
-    return kernel
+    return array.vstack(rows)
 
 
-Sim.linear_operator = linear_operator
+Sim.make_row_stack = make_row_stack
 
 
 def dask_getJtJdiag(self, m, W=None):
@@ -103,7 +75,6 @@ def dask_getJtJdiag(self, m, W=None):
         self.Jmatrix  # Wait to finish
     if getattr(self, "_gtg_diagonal", None) is None:
         if not self.is_amplitude_data:
-            # diag = ((W[:, None] * self.Jmatrix) ** 2).sum(axis=0)
             diag = np.einsum('i,ij,ij->j', W, self.G, self.G)
         else:  # self.modelType is amplitude
             fieldDeriv = self.fieldDeriv
@@ -113,7 +84,11 @@ def dask_getJtJdiag(self, m, W=None):
                 + fieldDeriv[2, :, None] * self.G[2::3]
             )
             diag = ((W[:, None] * J) ** 2).sum(axis=0)
-        self._gtg_diagonal = diag.compute()
+
+        if isinstance(diag, array.Array):
+            diag = diag.compute()
+
+        self._gtg_diagonal = diag
 
 
     return mkvc((sdiag(np.sqrt(self._gtg_diagonal)) @ self.chiDeriv).power(2).sum(axis=0))

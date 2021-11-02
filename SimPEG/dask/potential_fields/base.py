@@ -25,17 +25,49 @@ def chunk_format(self, other):
 Sim.chunk_format = chunk_format
 
 
-def dask_fields(self, m):
-    """
-    Fields computed from a linear operation
-    """
-    self.model = m
-    fields = self.G @ (self.modelMap @ m).astype(np.float32)
+def linear_operator(self):
+    self.nC = self.model_map.shape[0]
+    active_components = np.hstack(
+        [np.c_[values] for values in self.survey.components.values()]
+    ).tolist()
 
-    return fields
+    sens_name = os.path.join(self.sensitivity_path, "J.zarr")
+    if os.path.exists(sens_name):
+        kernel = array.from_zarr(sens_name)
+        if np.all(kernel.shape == (np.sum(active_components), self.nC)):
+            return kernel
+
+    stack = self.make_row_stack()
+
+    # Chunking options
+    if self.chunk_format == "row" or self.store_sensitivities == "forward_only":
+        config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
+        # Autochunking by rows is faster and more memory efficient for
+        # very large problems sensitivty and forward calculations
+        stack = stack.rechunk({0: "auto", 1: -1})
+
+    elif self.chunk_format == "equal":
+        # Manual chunks for equal number of blocks along rows and columns.
+        # Optimal for Jvec and Jtvec operations
+        row_chunk, col_chunk = compute_chunk_sizes(*stack.shape, self.max_chunk_size)
+        stack = stack.rechunk((row_chunk, col_chunk))
+    else:
+        # Auto chunking by columns is faster for Inversions
+        config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
+        stack = stack.rechunk({0: -1, 1: "auto"})
+
+    if self.store_sensitivities not in ["disk", "forward_only"]:
+        return array.asarray(stack)
+
+    print("Saving sensitivities to zarr: " + sens_name)
+    kernel = array.to_zarr(
+        stack, sens_name,
+        compute=False, return_stored=True, overwrite=True
+    )
+    return kernel
 
 
-Sim.fields = dask_fields
+Sim.linear_operator = linear_operator
 
 
 @property
@@ -44,7 +76,7 @@ def Jmatrix(self):
         if self.store_sensitivities == "ram":
             self._Jmatrix = np.asarray(self.linear_operator())
         else:
-            if self.workers is not None:
+            try:
                 client = get_client()
                 workers = self.workers if isinstance(self.workers, tuple) else None
                 self.Xn, self.Yn, self.Zn = client.scatter(
@@ -55,7 +87,7 @@ def Jmatrix(self):
                 #     self._tmi_projection = client.scatter(
                 #         [self.tmi_projection], workers=workers
                 #     )
-                # 
+                #
                 # if getattr(self, "M", None) is not None:
                 #     self._M = client.scatter(
                 #         [self._M], workers=workers
@@ -65,7 +97,7 @@ def Jmatrix(self):
                         self.linear_operator(),
                     workers=workers
                 )
-            else:
+            except ValueError:
                 delayed_array = self.linear_operator()
 
                 if "store-map" not in delayed_array.name:

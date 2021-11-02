@@ -111,7 +111,14 @@ def get_dpred(self, m, f=None, compute_J=False):
 
                 compute_sensitivities = compute_J and (objfct.simulation._Jmatrix is None)
 
-                if objfct.workers is None:
+                try:
+                    client = get_client()
+                    future = client.compute(
+                        objfct.simulation.dpred(
+                            vec, compute_J=compute_sensitivities
+                        ), workers=objfct.workers
+                    )
+                except ValueError:
                     # For locals, the future is now
                     future = objfct.simulation.dpred(
                         vec, compute_J=compute_sensitivities
@@ -128,19 +135,14 @@ def get_dpred(self, m, f=None, compute_J=False):
                                 future = future.compute()
                         else:
                             future = future.compute()
-                else:
-                    client = get_client()
-                    future = client.compute(
-                        objfct.simulation.dpred(
-                            vec, compute_J=compute_sensitivities
-                        ), workers=objfct.workers
-                    )
+
                 dpreds += [future]
 
             else:
                 dpreds += []
 
     if isinstance(dpreds[0], Future):
+        client = get_client()
         dpreds = client.gather(dpreds)
 
     preds = []
@@ -149,6 +151,9 @@ def get_dpred(self, m, f=None, compute_J=False):
             preds += [future[0]]
             objfct.simulation._Jmatrix = future[1]
         return preds
+
+    else:
+        dpreds = da.compute(dpreds)[0]
     return dpreds
 
 
