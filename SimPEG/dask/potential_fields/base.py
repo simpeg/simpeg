@@ -25,6 +25,19 @@ def chunk_format(self, other):
 Sim.chunk_format = chunk_format
 
 
+def dask_fields(self, m):
+    """
+    Fields computed from a linear operation
+    """
+    self.model = m
+    fields = self.G @ (self.modelMap @ m).astype(np.float32)
+
+    return fields
+
+
+Sim.fields = dask_fields
+
+
 @property
 def Jmatrix(self):
     if getattr(self, "_Jmatrix", None) is None:
@@ -33,16 +46,23 @@ def Jmatrix(self):
         else:
             if self.workers is not None:
                 client = get_client()
-                self.Xn, self.Yn, self.Zn, self.M = client.scatter(
-                    [self.Xn, self.Yn, self.Zn, self.M], workers=self.workers
+                self.Xn, self.Yn, self.Zn = client.scatter(
+                    [self.Xn, self.Yn, self.Zn], workers=self.workers if isinstance(self.workers, tuple) else None
                 )
+
                 if getattr(self, "tmi_projection", None) is not None:
                     self.tmi_projection = client.scatter(
-                        [self.tmi_projection], workers=self.workers
+                        [self.tmi_projection], workers=self.workers if isinstance(self.workers, tuple) else None
                     )
+
+                if getattr(self, "M", None) is not None:
+                    self.M = client.scatter(
+                        [self.M], workers=self.workers
+                    )
+
                 self._Jmatrix = client.compute(
                         self.linear_operator(),
-                    workers=self.workers
+                    workers=self.workers if isinstance(self.workers, tuple) else None
                 )
             else:
                 delayed_array = self.linear_operator()

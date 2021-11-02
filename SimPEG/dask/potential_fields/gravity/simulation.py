@@ -15,10 +15,8 @@ def dask_fields(self, m):
     Fields computed from a linear operation
     """
     self.model = m
-
-    fields = self.G @ (self.rhoMap @ m).astype(np.float32)
-
-    return fields
+    self.Jmatrix  # Trigger computation
+    return self.G @ (self.rhoMap @ m).astype(np.float32)
 
 
 Sim.fields = dask_fields
@@ -149,33 +147,29 @@ def linear_operator(self):
         config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
         stack = stack.rechunk({0: -1, 1: "auto"})
 
-    if self.store_sensitivities == "disk":
-        sens_name = os.path.join(self.sensitivity_path, "J.zarr")
+    if self.store_sensitivities not in ["disk", "forward_only"]:
+        return array.asarray(stack)
 
-        if os.path.exists(sens_name):
-            kernel = array.from_zarr(sens_name)
-            if np.all(
-                np.r_[
-                    np.any(np.r_[kernel.chunks[0]] == stack.chunks[0]),
-                    np.any(np.r_[kernel.chunks[1]] == stack.chunks[1]),
-                    np.r_[kernel.shape] == np.r_[stack.shape],
-                ]
-            ):
-                return kernel
+    sens_name = os.path.join(self.sensitivity_path, "J.zarr")
+    if os.path.exists(sens_name):
+        kernel = array.from_zarr(sens_name)
+        if np.all(
+            np.r_[
+                np.any(np.r_[kernel.chunks[0]] == stack.chunks[0]),
+                np.any(np.r_[kernel.chunks[1]] == stack.chunks[1]),
+                np.r_[kernel.shape] == np.r_[stack.shape],
+            ]
+        ):
+            return kernel
 
-        print("Saving sensitivities to zarr: " + sens_name)
-        kernel = array.to_zarr(
-                stack, sens_name,
-                compute=False, return_stored=True, overwrite=True
-        )
-        return kernel
+    print("Saving sensitivities to zarr: " + sens_name)
+    kernel = array.to_zarr(
+            stack, sens_name,
+            compute=False, return_stored=True, overwrite=True
+    )
+    return kernel
 
-    elif self.store_sensitivities == "forward_only":
-        return stack
 
-    # with ProgressBar():
-    #     print("Computing sensitivities to local ram")
-    return array.asarray(stack)
 
 
 Sim.linear_operator = linear_operator

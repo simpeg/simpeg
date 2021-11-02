@@ -15,6 +15,7 @@ def dask_fields(self, m):
     Fields computed from a linear operation
     """
     self.model = m
+    self.Jmatrix  # Start process
     fields = self.G @ (self.chiMap @ m).astype(np.float32)
 
     return fields
@@ -61,32 +62,27 @@ def linear_operator(self):
         config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
         stack = stack.rechunk({0: -1, 1: "auto"})
 
-    if self.store_sensitivities == "disk":
-        sens_name = os.path.join(self.sensitivity_path, "J.zarr")
+    if self.store_sensitivities not in ["disk", "forward_only"]:
+        return array.asarray(stack)
 
-        if os.path.exists(sens_name):
-            kernel = array.from_zarr(sens_name)
-            if np.all(
+    sens_name = os.path.join(self.sensitivity_path, "J.zarr")
+    if os.path.exists(sens_name):
+        kernel = array.from_zarr(sens_name)
+        if np.all(
                 np.r_[
                     np.any(np.r_[kernel.chunks[0]] == stack.chunks[0]),
                     np.any(np.r_[kernel.chunks[1]] == stack.chunks[1]),
                     np.r_[kernel.shape] == np.r_[stack.shape],
                 ]
-            ):
-                return kernel
+        ):
+            return kernel
 
-        print("Saving sensitivities to zarr: " + sens_name)
-
-        kernel = array.to_zarr(
-                stack, sens_name,
-                compute=False, return_stored=True, overwrite=True
-        )
-        return kernel
-
-    elif self.store_sensitivities == "forward_only":
-        return stack
-
-    return array.asarray(stack)
+    print("Saving sensitivities to zarr: " + sens_name)
+    kernel = array.to_zarr(
+        stack, sens_name,
+        compute=False, return_stored=True, overwrite=True
+    )
+    return kernel
 
 
 Sim.linear_operator = linear_operator
