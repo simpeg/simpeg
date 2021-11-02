@@ -46,23 +46,24 @@ def Jmatrix(self):
         else:
             if self.workers is not None:
                 client = get_client()
+                workers = self.workers if isinstance(self.workers, tuple) else None
                 self.Xn, self.Yn, self.Zn = client.scatter(
-                    [self.Xn, self.Yn, self.Zn], workers=self.workers if isinstance(self.workers, tuple) else None
+                    [self.Xn, self.Yn, self.Zn], workers=workers
                 )
 
-                if getattr(self, "tmi_projection", None) is not None:
-                    self.tmi_projection = client.scatter(
-                        [self.tmi_projection], workers=self.workers if isinstance(self.workers, tuple) else None
-                    )
-
-                if getattr(self, "M", None) is not None:
-                    self.M = client.scatter(
-                        [self.M], workers=self.workers
-                    )
+                # if getattr(self, "tmi_projection", None) is not None:
+                #     self._tmi_projection = client.scatter(
+                #         [self.tmi_projection], workers=workers
+                #     )
+                # 
+                # if getattr(self, "M", None) is not None:
+                #     self._M = client.scatter(
+                #         [self._M], workers=workers
+                #     )
 
                 self._Jmatrix = client.compute(
                         self.linear_operator(),
-                    workers=self.workers if isinstance(self.workers, tuple) else None
+                    workers=workers
                 )
             else:
                 delayed_array = self.linear_operator()
