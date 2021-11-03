@@ -11,26 +11,62 @@ import types
 
 
 class RxLocationArray(properties.Array):
+    """Locations array for receivers"""
 
     class_info = "an array of receiver locations"
 
     def validate(self, instance, value):
+        """Validation method for setting locations array
+
+        Parameters
+        ----------
+        instance : class
+            The class used to validate the input argument *value*
+        value :
+            The input used to define the locations for a given receiver.
+
+        Returns
+        -------
+        properties.Array
+            The receiver location array
+        """
         value = np.atleast_2d(value)
         return super(RxLocationArray, self).validate(instance, value)
 
 
 class SourceLocationArray(properties.Array):
+    """Locations array for sources"""
 
     class_info = "a 1D array denoting the source location"
 
     def validate(self, instance, value):
+        """Validation method for setting locations array
+
+        Parameters
+        ----------
+        instance : class
+            The class used to validate the input argument *value*
+        value :
+            The input used to define the locations for a given source.
+
+        Returns
+        -------
+        properties.Array
+            The source location array
+        """
         if not isinstance(value, np.ndarray):
             value = np.atleast_1d(np.array(value))
         return super(SourceLocationArray, self).validate(instance, value)
 
 
 class BaseRx(properties.HasProperties):
-    """SimPEG Receiver Object"""
+    """Base SimPEG receiver class
+
+    Parameters
+    ----------
+    locations : numpy.ndarray
+        Locations assocated with a given receiver
+    """
 
     # TODO: write a validator that checks against mesh dimension in the
     # BaseSimulation
@@ -78,18 +114,42 @@ class BaseRx(properties.HasProperties):
 
     @property
     def nD(self):
-        """Number of data in the receiver."""
+        """Number of data associated with the receiver
+
+        Returns
+        -------
+        int
+            Number of data associated with the receiver
+        """
         return self.locations.shape[0]
 
     def getP(self, mesh, projGLoc=None):
-        """
-        Returns the projection matrices as a
-        list for all components collected by
-        the receivers.
+        """Get projection matrix from mesh to recei
 
-        .. note::
+        Parameters
+        ----------
+        mesh : discretize.BaseMesh
+            A discretize mesh
+        projGLoc : str
+            Define what part of the mesh (i.e. edges, faces, centers, nodes) to
+            project from. Must be one of::
 
-            Projection matrices are stored as a dictionary listed by meshes.
+                'Ex', 'edges_x'           -> x-component of field defined on x edges
+                'Ey', 'edges_y'           -> y-component of field defined on y edges
+                'Ez', 'edges_z'           -> z-component of field defined on z edges
+                'Fx', 'faces_x'           -> x-component of field defined on x faces
+                'Fy', 'faces_y'           -> y-component of field defined on y faces
+                'Fz', 'faces_z'           -> z-component of field defined on z faces
+                'N', 'nodes'              -> scalar field defined on nodes
+                'CC', 'cell_centers'      -> scalar field defined on cell centers
+                'CCVx', 'cell_centers_x'  -> x-component of vector field defined on cell centers
+                'CCVy', 'cell_centers_y'  -> y-component of vector field defined on cell centers
+                'CCVz', 'cell_centers_z'  -> z-component of vector field defined on cell centers
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            P, the interpolation matrix
         """
         if projGLoc is None:
             projGLoc = self.projGLoc
@@ -97,7 +157,7 @@ class BaseRx(properties.HasProperties):
         if (mesh, projGLoc) in self._Ps:
             return self._Ps[(mesh, projGLoc)]
 
-        P = mesh.getInterpolationMat(self.locations, projGLoc)
+        P = mesh._getInterpolationMat(self.locations, projGLoc)
         if self.storeProjections:
             self._Ps[(mesh, projGLoc)] = P
         return P
@@ -114,7 +174,7 @@ class BaseRx(properties.HasProperties):
 
 
 class BaseTimeRx(BaseRx):
-    """SimPEG Receiver Object for time-domain simulations"""
+    """Base receiver class for time-domain simulations"""
 
     times = properties.Array(
         "times where the recievers measure data", shape=("*",), required=True
@@ -133,7 +193,7 @@ class BaseTimeRx(BaseRx):
 
     @property
     def nD(self):
-        """Number of data in the receiver."""
+        """Number of data associated with the receiver."""
         return self.locations.shape[0] * len(self.times)
 
     def getSpatialP(self, mesh):
