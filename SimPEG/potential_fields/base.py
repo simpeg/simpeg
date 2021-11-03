@@ -14,38 +14,43 @@ from SimPEG.utils import mkvc
 
 ###############################################################################
 #                                                                             #
-#                             Base Potential Fields Simulation                   #
+#                             Base Potential Fields Simulation                #
 #                                                                             #
 ###############################################################################
 
 
 class BasePFSimulation(LinearSimulation):
-    actInd = properties.Array(
-        "Array of active cells (ground)", dtype=(bool, int), default=None
-    )
+    # actInd = properties.Array(
+    #     "Array of active cells (ground)", dtype=(bool, int), default=None
+    # )
 
     n_cpu = properties.Integer(
         "Number of processors used for the forward simulation",
         default=int(multiprocessing.cpu_count()),
     )
 
-    store_sensitivities = properties.StringChoice(
-        "Compute and store G", choices=["disk", "ram", "forward_only"], default="ram"
-    )
+    # store_sensitivities = properties.StringChoice(
+    #     "Compute and store G", choices=["disk", "ram", "forward_only"], default="ram"
+    # )
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh, ind_active=None, store_sensitivities='ram', **kwargs):
+
+        # If deprecated property set with kwargs
+        if "actInd" in kwargs:
+            ind_active = kwargs.pop("actInd")
+        if ind_active is not None:
+            self._ind_active = ind_active
 
         LinearSimulation.__init__(self, mesh, **kwargs)
+        self.store_sensitivities = store_sensitivities
 
-        # Find non-zero cells
-        if getattr(self, "actInd", None) is not None:
-            if self.actInd.dtype == "bool":
-                indices = np.where(self.actInd)[0]
+        # Find non-zero cells indices
+        if getattr(self, "ind_active", None) is not None:
+            if self.ind_active.dtype == "bool":
+                indices = np.where(self.ind_active)[0]
             else:
-                indices = self.actInd
-
+                indices = self.ind_active
         else:
-
             indices = np.asarray(range(self.mesh.nC))
 
         self.nC = len(indices)
@@ -56,8 +61,8 @@ class BasePFSimulation(LinearSimulation):
         )
 
         # Create vectors of nodal location for the lower and upper corners
-        bsw = self.mesh.gridCC - self.mesh.h_gridded / 2.0
-        tne = self.mesh.gridCC + self.mesh.h_gridded / 2.0
+        bsw = self.mesh.cell_centers - self.mesh.h_gridded / 2.0
+        tne = self.mesh.cell_centers + self.mesh.h_gridded / 2.0
 
         xn1, xn2 = bsw[:, 0], tne[:, 0]
         yn1, yn2 = bsw[:, 1], tne[:, 1]
@@ -69,6 +74,76 @@ class BasePFSimulation(LinearSimulation):
         if self.mesh.dim > 2:
             zn1, zn2 = bsw[:, 2], tne[:, 2]
             self.Zn = projection.T * np.c_[mkvc(zn1), mkvc(zn2)]
+
+    @property
+    def store_sensitivities(self):
+        """Options for storing sensitivities.
+
+        There are 3 options:
+
+        - 'ram': sensitivity matrix stored in RAM
+        - 'disk': sensitivities written and stored to disk
+        - 'forward_only': sensitivities are not store (only use for forward simulation)
+
+        Returns
+        -------
+        str
+            A string defining the model type for the simulation.
+            One of {'disk', 'ram', 'forward_only'}.
+        """
+        if self._store_sensitivities is None:
+            self._store_sensitivities = 'ram'
+        return self._store_sensitivities
+
+    @store_sensitivities.setter
+    def store_sensitivities(self, value):
+        choices = ["disk", "ram", "forward_only"]
+        value = value.lower()
+        if value not in choices:
+            raise ValueError(
+                "Store sensitivities option ({}) unrecognized. ",
+                "Choose one of ['disk', 'ram', 'forward_only']".format(value)
+            )
+        self._store_sensitivities = value
+
+    @property
+    def ind_active(self):
+        if self._ind_active is None:
+            self._ind_active = np.asarray(range(self.mesh.nC))
+        return self._ind_active
+
+    @ind_active.setter
+    def ind_active(self, input_array):
+        if not isinstance(input_array, (tuple, list, np.ndarray)):
+            raise TypeError(
+                "'ind_active' must be set using a tuple, list or numpy.ndarray"
+            )
+        if isinstance(input_array, (tuple, list)):
+            input_array = np.array(input_array)
+        if not isinstance(input_array.dtype, (int, bool)):
+            raise TypeError("'ind_active' must be an array of int or bool")
+
+        self._ind_active = input_array
+
+    @property
+    def actInd(self):
+        warnings.warn(
+            "The 'actInd' property has been deprecated. "
+            "Please use 'ind_active'. This will be removed in version 0.17.0 of SimPEG.",
+            FutureWarning,
+        )
+        return self._ind_active
+
+    @actInd.setter
+    def actInd(self, value):
+        warnings.warn(
+            "The 'actInd' property has been deprecated. "
+            "Please use 'ind_active'. This will be removed in version 0.17.0 of SimPEG.",
+            FutureWarning,
+        )
+        self.ind_active(value)
+
+    
 
     def linear_operator(self):
 

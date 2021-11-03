@@ -1,4 +1,3 @@
-import properties
 import numpy as np
 from ... import survey
 from ...utils.code_utils import deprecate_class

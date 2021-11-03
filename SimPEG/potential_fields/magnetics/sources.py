@@ -1,4 +1,3 @@
-import properties
 import numpy as np
 from scipy.constants import mu_0
 from ...survey import BaseSrc

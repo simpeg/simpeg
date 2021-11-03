@@ -1,5 +1,4 @@
 import numpy as np
-
 from ...survey import BaseSurvey
 from ...utils.code_utils import deprecate_class
 

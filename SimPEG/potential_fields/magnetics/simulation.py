@@ -28,23 +28,82 @@ class Simulation3DIntegral(BasePFSimulation):
         "Magnetic Susceptibility (SI)", default=1.0
     )
 
-    modelType = properties.StringChoice(
-        "Type of magnetization model",
-        choices=["susceptibility", "vector"],
-        default="susceptibility",
-    )
+    # modelType = properties.StringChoice(
+    #     "Type of magnetization model",
+    #     choices=["susceptibility", "vector"],
+    #     default="susceptibility",
+    # )
 
-    is_amplitude_data = properties.Boolean(
-        "Whether the supplied data is amplitude data", default=False
-    )
+    # is_amplitude_data = properties.Boolean(
+    #     "Whether the supplied data is amplitude data", default=False
+    # )
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh, model_type='susceptibility', is_amplitude_data=False, **kwargs):
+        
+        # If deprecated property set with kwargs
+        if "modelType" in kwargs:
+            model_type = kwargs.pop("modelType")
+
         super().__init__(mesh, **kwargs)
+
         self._G = None
         self._M = None
         self._gtg_diagonal = None
+        self.model_type = model_type
+        self.is_amplitude_data = is_amplitude_data
         self.modelMap = self.chiMap
-        setKwargs(self, **kwargs)
+
+    
+    @property
+    def model_type(self):
+        """Type of magnetization model
+
+        Returns
+        -------
+        str
+            A string defining the model type for the simulation.
+            One of {'susceptibility', 'vector'}.
+        """
+        return self._model_type
+
+    @model_type.setter
+    def model_type(self, value):
+        choices = ["susceptibility", "vector"]
+        value = value.lower()
+        if value not in choices:
+            raise ValueError(
+                "Model type ({}) unrecognized. Choose one of ['susceptibility', 'vector']".format(value)
+            )
+        self._model_type = value
+
+    @property
+    def modelType(self):
+        warnings.warn(
+            "The 'modelType' property has been deprecated. "
+            "Please use 'model_type'. This will be removed in version 0.17.0 of SimPEG.",
+            FutureWarning,
+        )
+        return self._model_type
+
+    @modelType.setter
+    def modelType(self, value):
+        warnings.warn(
+            "The 'modelType' property has been deprecated. "
+            "Please use 'model_type'. This will be removed in version 0.17.0 of SimPEG.",
+            FutureWarning,
+        )
+        self._model_type = value
+
+
+    @property
+    def is_amplitude_data(self):
+        return self._is_amplitude_data
+
+    @is_amplitude_data.setter
+    def is_amplitude_data(self, value):
+        if not isinstance(value, bool):
+            raise ValueError("is_amplitude_data must be a bool")
+        self._is_amplitude_data = value
 
     @property
     def M(self):
