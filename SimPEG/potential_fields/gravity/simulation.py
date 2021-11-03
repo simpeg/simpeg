@@ -5,6 +5,7 @@ from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
 from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
+from .survey import Survey
 import scipy.constants as constants
 import numpy as np
 
@@ -330,6 +331,19 @@ class Simulation3DDifferential(BaseSimulation):
         self.mesh.setCellGradBC("dirichlet")
 
         self._Div = self.mesh.cellGrad
+
+    @property
+    def survey(self):
+        return self._survey
+
+    @survey.setter
+    def survey(self, obj):
+        if isinstance(obj, Survey):
+            self._survey = obj
+        else:
+            raise TypeError(
+                "Survey must be an instace of class {Survey}".format(Survey)
+            )
 
     @property
     def MfI(self):

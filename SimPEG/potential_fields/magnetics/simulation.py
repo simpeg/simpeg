@@ -28,16 +28,6 @@ class Simulation3DIntegral(BasePFSimulation):
         "Magnetic Susceptibility (SI)", default=1.0
     )
 
-    # modelType = properties.StringChoice(
-    #     "Type of magnetization model",
-    #     choices=["susceptibility", "vector"],
-    #     default="susceptibility",
-    # )
-
-    # is_amplitude_data = properties.Boolean(
-    #     "Whether the supplied data is amplitude data", default=False
-    # )
-
     def __init__(self, mesh, model_type='susceptibility', is_amplitude_data=False, **kwargs):
         
         # If deprecated property set with kwargs
@@ -83,7 +73,7 @@ class Simulation3DIntegral(BasePFSimulation):
             "Please use 'model_type'. This will be removed in version 0.17.0 of SimPEG.",
             FutureWarning,
         )
-        return self._model_type
+        return self.model_type
 
     @modelType.setter
     def modelType(self, value):
@@ -92,7 +82,7 @@ class Simulation3DIntegral(BasePFSimulation):
             "Please use 'model_type'. This will be removed in version 0.17.0 of SimPEG.",
             FutureWarning,
         )
-        self._model_type = value
+        self.model_type = value
 
 
     @property
@@ -730,8 +720,6 @@ class Simulation3DDifferential(BaseSimulation):
 
     props.Reciprocal(mu, mui)
 
-    survey = properties.Instance("a survey object", Survey, required=True)
-
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh, **kwargs)
 
@@ -740,6 +728,19 @@ class Simulation3DDifferential(BaseSimulation):
         Dface = self.mesh.faceDiv
         Mc = sdiag(self.mesh.vol)
         self._Div = Mc * Dface * Pin.T * Pin
+
+    @property
+    def survey(self):
+        return self._survey
+
+    @survey.setter
+    def survey(self, obj):
+        if isinstance(obj, Survey):
+            self._survey = obj
+        else:
+            raise TypeError(
+                "Survey must be an instace of class {Survey}".format(Survey)
+            )
 
     @property
     def MfMuI(self):

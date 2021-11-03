@@ -20,18 +20,6 @@ from SimPEG.utils import mkvc
 
 
 class BasePFSimulation(LinearSimulation):
-    # actInd = properties.Array(
-    #     "Array of active cells (ground)", dtype=(bool, int), default=None
-    # )
-
-    n_cpu = properties.Integer(
-        "Number of processors used for the forward simulation",
-        default=int(multiprocessing.cpu_count()),
-    )
-
-    # store_sensitivities = properties.StringChoice(
-    #     "Compute and store G", choices=["disk", "ram", "forward_only"], default="ram"
-    # )
 
     def __init__(self, mesh, ind_active=None, store_sensitivities='ram', **kwargs):
 
@@ -41,9 +29,24 @@ class BasePFSimulation(LinearSimulation):
         if ind_active is not None:
             self._ind_active = ind_active
 
-        LinearSimulation.__init__(self, mesh, **kwargs)
-        self.store_sensitivities = store_sensitivities
+        if "forwardOnly" in kwargs:
+            store_sensitivities = kwargs.pop("forwardOnly")
+            if store_sensitivities == True:
+                self.store_sensitivities = 'forward_only'
+        else:
+            self.store_sensitivities = store_sensitivities
 
+        if "n_cpu" in kwargs:
+            del kwargs["n_cpu"]
+            warnings.warn(
+                "n_cpu has been deprecated. If interested, try out "
+                "loading dask for parallelism by doing ``import SimPEG.dask``. "
+                "This will be removed in version 0.16.0 of SimPEG",
+                FutureWarning,
+            )
+
+        LinearSimulation.__init__(self, mesh, **kwargs)
+        
         # Find non-zero cells indices
         if getattr(self, "ind_active", None) is not None:
             if self.ind_active.dtype == "bool":
