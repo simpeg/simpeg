@@ -720,6 +720,8 @@ class Simulation3DDifferential(BaseSimulation):
 
     props.Reciprocal(mu, mui)
 
+    survey = properties.Instance("a survey object", Survey, required=True)
+
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh, **kwargs)
 
@@ -729,18 +731,18 @@ class Simulation3DDifferential(BaseSimulation):
         Mc = sdiag(self.mesh.vol)
         self._Div = Mc * Dface * Pin.T * Pin
 
-    @property
-    def survey(self):
-        return self._survey
+    # @property
+    # def survey(self):
+    #     return self._survey
 
-    @survey.setter
-    def survey(self, obj):
-        if isinstance(obj, Survey):
-            self._survey = obj
-        else:
-            raise TypeError(
-                "Survey must be an instace of class {Survey}".format(Survey)
-            )
+    # @survey.setter
+    # def survey(self, obj):
+    #     if isinstance(obj, Survey):
+    #         self._survey = obj
+    #     else:
+    #         raise TypeError(
+    #             "Survey must be an instace of class {Survey}".format(Survey)
+    #         )
 
     @property
     def MfMuI(self):

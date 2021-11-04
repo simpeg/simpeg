@@ -332,18 +332,18 @@ class Simulation3DDifferential(BaseSimulation):
 
         self._Div = self.mesh.cellGrad
 
-    @property
-    def survey(self):
-        return self._survey
+    # @property
+    # def survey(self):
+    #     return self._survey
 
-    @survey.setter
-    def survey(self, obj):
-        if isinstance(obj, Survey):
-            self._survey = obj
-        else:
-            raise TypeError(
-                "Survey must be an instace of class {Survey}".format(Survey)
-            )
+    # @survey.setter
+    # def survey(self, obj):
+    #     if isinstance(obj, Survey):
+    #         self._survey = obj
+    #     else:
+    #         raise TypeError(
+    #             "Survey must be an instace of class {Survey}".format(Survey)
+    #         )
 
     @property
     def MfI(self):
