@@ -312,7 +312,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
 
 class Simulation1DElectricField(BaseFDEMSimulation):
-    """
+    r"""
     1D finite volume simulation for the natural source electromagnetic problem.
 
     This corresponds to the TE mode 2D simulation where the electric field is
@@ -322,28 +322,26 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
     .. math::
 
-        -\partial E_y + i \omega B_x = 0
+        \partial_z E_y = i \omega \mu_0 H_x = 0
 
-        \partial_z \mu^{-1} B_x - sigma E_y = 0
+        sigma E_y = \partial_z H_x
 
-    with default boundary conditions that $E_y[z_max] = 1$ (a plane wave source at
-    the top of the domain), and $\partial_z E_y[z_min] = 0$ (the derivative of the field
+    with default boundary conditions that $H_x[z_max] = 1$ (a plane wave source at
+    the top of the domain), and $\partial_z H_x[z_min] = 0$ (the derivative of the field
     vanishes at the bottom of the domain).
 
     When we discretize, we obtain:
 
     .. math::
 
-        \mathbf{b} = \frac{-1}{i\omega} \left( \mathbf{M^f}^{-1} \left((\mathbf{D}^\top \mathbf{V} - \mathbf{B}) \mathbf{e}\right) - \mathbf{e^{BC}} \right)
 
-        \left( \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \left(\mathbf{D^\top} \mathbf{V} - \mathbf{B}\right) + i\omega \mathbf{M^{cc}}_{\sigma}\mathbf{V} \right) \mathbf{e} = \mathbf{D} \mathbf{M^f}_{\mu^{-1}}\mathbf{e^{BC}}
-
+    where the Electric field is defined on faces (nodes), and the magnetic field is
+    defined on edges (cell centers).
     """
 
     _solutionType = "eSolution"
     _formulation = "HJ"  # magnetic component is on edges
     fieldsPair = Fields1DElectricField
-    _clear_on_sigma_update = ["_MccSigma", "_MfMuI"]
 
     # Must be 1D survey object
     survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
@@ -357,54 +355,7 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
         super().__init__(mesh, **kwargs)
 
-        # corresponds to a dirichlet boundary at the top (= 1)
-        # and nuemann boundary (= 0) at the bottom
-
-        # TODO: Pass these boundary parameters as simulation properties
-        alphas = np.r_[0, 1]
-        betas = np.r_[1, 0]
-        gammas = np.r_[0, 1]
-        B, bc = mesh.cell_gradient_robin_weak_form(
-            alpha=alphas, beta=betas, gamma=gammas,
-        )
-        self._B = B
-        self._bc = bc
-
-    @property
-    def MccSigma(self):
-        """
-        Cell centered inner product matrix for conductivity
-        """
-        if getattr(self, "_MccSigma", None) is None:
-            self._MccSigma = sdiag(self.sigma)
-        return self._MccSigma
-
-    def MccSigmaDeriv(self, u, v=None, adjoint=False):
-        """
-        Derivative of MccSigma with respect to the model times a vector
-        """
-        if self.sigmaMap is None:
-            return Zero()
-
-        if v is not None:
-            if not adjoint:
-                return u * (self.sigmaDeriv * v)
-            elif adjoint:
-                return self.sigmaDeriv.T * (u * v)
-        else:
-            mat = sdiag(u) * self.sigmaDeriv
-            if not adjoint:
-                return mat
-            elif adjoint:
-                return mat.T
-
-    @property
-    def MfMuI(self):
-        if getattr(self, "_MfMuI", None) is None:
-            self._MfMuI = self.mesh.get_face_inner_product(self.mu, invert_matrix=True)
-        return self._MfMuI
-
-    # TODO MfMuIDeriv
+        self._rhs = mesh.boundary_node_vector_integral * [0 + 0j, 1 + 0j]
 
     def getA(self, freq):
         """
@@ -415,30 +366,35 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         \mathbf{A} = \mathbf{V} \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma}
 
         """
-        V = self.Vol
-        D = V @ self.mesh.faceDiv
-        B = self._B
-        MfMuI = self.MfMuI
-        MccSigma = self.MccSigma
 
-        return D @ MfMuI @ (D.T - B) + 1j * omega(freq) * MccSigma @ V
+        G = self.mesh.nodal_gradient
+        MeMui = self.MeMui
+        MfSigma = self.MfSigma
 
-    def getADeriv(self, freq, u, v, adjoint=False):
-        """
-        Derivative with respect to the conductivity model
-        """
+        return G.T.tocsr() @ MeMui @ G + 1j * omega(freq) * MfSigma
 
-        return 1j * omega(freq) * self.Vol @ self.MccSigmaDeriv(u, v, adjoint)
+    def getADeriv_sigma(self, freq, u, v, adjoint=False):
+        return 1j * omega(freq) * self.MfSigmaDeriv(u, v, adjoint=adjoint)
+
+    def getADeriv_mui(self, freq, u, v, adjoint=False):
+        G = self.mesh.nodal_gradient
+        if adjoint:
+            return self.MeMuiDeriv(G * u, G * v, adjoint)
+        return G.T * self.MeMuiDeriv(G * u, v, adjoint)
 
     def getRHS(self, freq):
         """
         Right hand side constructed using Dirichlet boundary conditions
         """
-        D = self.mesh.faceDiv
-        MfMuI = self.MfMuI
-        e_bc = self._bc
+        return 1j * omega(freq) * self._rhs
 
-        return self.Vol @ (D @ (MfMuI @ e_bc))
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        return Zero()
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
+            freq, u, v, adjoint
+        )
 
 
 class Simulation1DMagneticField(BaseFDEMSimulation):
@@ -480,14 +436,12 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
         G = self.mesh.nodal_gradient
-
         if adjoint:
             return self.MeRhoDeriv(G * u, G * v, adjoint)
         return G.T * self.MeRhoDeriv(G * u, v, adjoint)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         MnMuDeriv = self.MnMuDeriv(u)
-
         if adjoint is True:
             return 1j * omega(freq) * (MnMuDeriv.T * v)
 

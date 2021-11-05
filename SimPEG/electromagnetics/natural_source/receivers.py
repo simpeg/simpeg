@@ -185,15 +185,13 @@ class Point1DImpedance(BaseRx):
         e = f[src, "e"]
         h = f[src, "h"]
 
-        # need to negate if 'yx' and fields are
-        # ex/hy
-        # and the opposite if 'xy' and fields are 'yx'
-
-        if self.orientation != f.field_directions:
-            h = -h
-
         e_top = PE @ e[:, 0]
         h_bot = PH @ h[:, 0]
+
+        # need to negate if 'yx' and fields are xy
+        # and as well if 'xy' and fields are 'yx'
+        if self.orientation != f.field_directions:
+            h_bot = -h_bot
 
         return e_top / h_bot
 
@@ -217,7 +215,7 @@ class Point1DImpedance(BaseRx):
         if adjoint:
             # Work backwards!
             gtop_v = v / bot
-            gbot_v = imp * v / bot
+            gbot_v = -imp * v / bot
 
             if self.orientation != f.field_directions:
                 gbot_v = -gbot_v
@@ -236,7 +234,7 @@ class Point1DImpedance(BaseRx):
         if self.orientation != f.field_directions:
             dh_v = -dh_v
 
-        return (1 / bot) * (de_v + imp * dh_v)
+        return (1 / bot) * (de_v - imp * dh_v)
 
     def eval(self, src, mesh, f, return_complex=False):
         """
@@ -280,7 +278,8 @@ class Point1DImpedance(BaseRx):
         if adjoint:
             return imp_deriv
 
-        return getattr(imp_deriv, self.component)
+        y = getattr(imp_deriv, self.component)
+        return y
 
 
 class Point1DComplexResistivity(Point1DImpedance):
@@ -341,7 +340,7 @@ class Point1DComplexResistivity(Point1DImpedance):
                 # imaginary part gets extra (-) due to conjugate transpose
             # Work backwards!
             gtop_v = v / bot
-            gbot_v = imp * v / bot
+            gbot_v = -imp * v / bot
 
             if self.orientation != f.field_directions:
                 gbot_v = -gbot_v
@@ -360,7 +359,7 @@ class Point1DComplexResistivity(Point1DImpedance):
             if self.orientation != f.field_directions:
                 dh_v = -dh_v
 
-            imp_deriv = (de_v + imp * dh_v) / bot
+            imp_deriv = (de_v - imp * dh_v) / bot
 
             if self.component == "apparent resistivity":
                 rx_deriv = (

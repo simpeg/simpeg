@@ -282,9 +282,6 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         return C.T * MfMui * C + 1j * omega(freq) * MeSigma
 
-    # def getADeriv(self, freq, u, v, adjoint=False):
-    #     return
-
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the

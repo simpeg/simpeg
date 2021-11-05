@@ -28,124 +28,62 @@ class Fields1DElectricField(FieldsFDEM):
     Fields
     """
 
-    knownFields = {"eSolution": "CC"}
+    knownFields = {"eSolution": "N"}
     aliasFields = {
-        "e": ["eSolution", "CC", "_e"],
-        "j": ["eSolution", "CC", "_j"],
-        "b": ["eSolution", "F", "_b"],
-        "h": ["eSolution", "F", "_h"],
+        "e": ["eSolution", "N", "_e"],
+        "h": ["eSolution", "CC", "_h"],
     }
     field_directions = "yx"
 
     def startup(self):
-        # boundary conditions
-        self._B = self.simulation._B
-        self._bc = self.simulation._bc
-
-        # operators
-        self._D = self.mesh.faceDiv
-        self._V = self.simulation.Vol
-        self._MfI = self.simulation.MfI
-        self._MfMuI = self.simulation.MfMuI
-        self._MccSigma = self.simulation.MccSigma
-        self._MccSigmaDeriv = self.simulation.MccSigmaDeriv
-
-        # geometry
-        self._nC = self.mesh.nC
-        self._nF = self.mesh.nF
+        self._G = self.simulation.mesh.nodal_gradient
 
     def _e(self, eSolution, source_list):
         return eSolution
 
-    def _j(self, eSolution, source_list):
-        return self._MccSigma @ eSolution
+    def _eDeriv_u(self, src, du_dm_v, adjoint=False):
+        return du_dm_v
 
-    def _jDeriv_u(self, src, du_dm_v, adjoint=False):
-        if adjoint:
-            return self._MccSigma.T @ du_dm_v
-        return self._MccSigma @ du_dm_v
-
-    def _jDeriv_m(self, src, v, adjoint=False):
-        e = self[src, "e"]
-        return self._MccSigmaDeriv(e, v, adjoint=adjoint)
-
-    def _b(self, eSolution, source_list):
-        omegas = np.array([omega(src.frequency) for src in source_list])
-        return (
-            1
-            / (1j * omegas)
-            * (
-                self._MfI
-                @ (
-                    -self._D.T @ (self._V @ eSolution)
-                    + self._B @ self.eSolution
-                    + self._bc[:, None]
-                )
-            )
-        )
-
-    def _bDeriv_u(self, src, du_dm_v, adjoint=False):
-        if self.adjoint:
-            y = self._MfI.T @ du_dm_v
-            return (
-                1
-                / (1j * omega(src.frequency))
-                * (-self._V @ (self._D @ y) + self._B.T @ y)
-            )
-        return (
-            1
-            / (1j * omega(src.frequency))
-            * (self._MfI @ (-self._D.T @ (self._V @ du_dm_v) + self._B @ du_dm_v))
-        )
+    def _eDeriv_m(self, src, v, adjoint=False):
+        return Zero()
 
     def _h(self, eSolution, source_list):
         omegas = np.array([omega(src.frequency) for src in source_list])
-        return (
-            1
-            / (1j * omegas)
-            * (
-                self._MfMuI
-                @ (
-                    -self._D.T @ (self._V @ eSolution)
-                    + self._B @ eSolution
-                    + self._bc[:, None]
-                )
-            )
-        )
+        e = self._e(eSolution, source_list)
+        if self.simulation.muiMap is not None:
+            mui = self.simulation.mui[:, None]
+        else:
+            mui = self.simulation.mui
+        v = mui * self._G * e
+        return v / (1j * omegas)
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
-        if self.adjoint:
-            y = self._MfMuI.T @ du_dm_v
-            return (
-                1
-                / (1j * omega(src.frequency))
-                * (-self._V @ (self._D @ y) + self._B.T @ y)
-            )
-        return (
-            1
-            / (1j * omega(src.frequency))
-            * (self._MfMuI @ (-self._D.T @ (self._V @ du_dm_v) + self._B @ du_dm_v))
-        )
+        if du_dm_v.ndim == 1:
+            du_dm_v = du_dm_v[:, None]
+        om = omega(src.frequency)
+        if self.simulation.muiMap is not None:
+            mui = self.simulation.mui[:, None]
+        else:
+            mui = self.simulation.mui
+        if adjoint:
+            y = self._eDeriv_u(src, self._G.T * (mui * du_dm_v), adjoint=adjoint)
+            return np.squeeze(y) / (1j * om)
+        y = mui * (self._G @ self._eDeriv_u(src, du_dm_v, adjoint=False))
+        return np.squeeze(y) / (1j * om)
 
-    # These should be on the receiver....
-    # def _impedance(self, eSolution, source_list):
-    #     return self._e(eSolution, source_list) / (
-    #         self._aveN2CC @ self._h(eSolution, source_list)
-    #     )
-    #
-    # def _apparent_resistivity(self, eSolution, source_list):
-    #     z = self._impedance(eSolution, source_list)
-    #     frequencies = [src.frequency for src in source_list]
-    #     return (z.real ** 2 + z.imag ** 2) @ sdiag(
-    #         1 / (omega(np.array(frequencies)) * mu_0)
-    #     )
-    #
-    # def _apparent_conductivity(self, eSolution, source_list):
-    #     return 1.0 / self._apparent_resistivity(eSolution, source_list)
-    #
-    # def _phase(self, eSolution, source_list):
-    #     z = self._impedance(eSolution, source_list)
-    #     return 180 / np.pi * np.arctan2(z.imag, z.real)
+    def _hDeriv_m(self, src, v, adjoint=False):
+        if self.simulation.muiMap is None:
+            return Zero()
+        om = omega(src.frequency)
+        dMui = self.simulation.muiDeriv
+        e = self[src, "e"]
+        if v.ndim == 1:
+            v = v[:, None]
+        if adjoint:
+            y = dMui.T * ((self._G * e) * v)
+            return np.squeeze(y) / (1j * om)
+        y = (self._G * e) * (dMui * v)
+        return np.squeeze(y) / (1j * om)
 
 
 class Fields1DMagneticField(Fields1DElectricField):
@@ -156,8 +94,6 @@ class Fields1DMagneticField(Fields1DElectricField):
     knownFields = {"hSolution": "N"}
     aliasFields = {
         "e": ["hSolution", "CC", "_e"],
-        "j": ["hSolution", "CC", "_j"],
-        "b": ["hSolution", "N", "_b"],
         "h": ["hSolution", "N", "_h"],
     }
 
@@ -170,41 +106,42 @@ class Fields1DMagneticField(Fields1DElectricField):
     def _h(self, hSolution, source_list):
         return hSolution
 
-    def _hDeriv_u(self, src, v, adjoint=False):
-        return v
+    def _hDeriv_u(self, src, du_dm_v, adjoint=False):
+        return du_dm_v
 
     def _hDeriv_m(self, src, v, adjoint=False):
         return Zero()
 
-    def _b(self, hSolution, source_list):
-        return self.simulation.MnMu @ hSolution
-
-    def _bDeriv_u(self, src, du_dm_v, adjoint=False):
-        if adjoint:
-            return self.simulation.MnMu.T @ du_dm_v
-        return self.simulation.MnMu @ du_dm_v
-
     def _e(self, hSolution, source_list):
-        return -self.simulation.rho[:, None] * (self._G * hSolution)
+        return -self.simulation.rho[:, None] * (
+            self._G * self._h(hSolution, source_list)
+        )
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
+        if du_dm_v.ndim == 1:
+            du_dm_v = du_dm_v[:, None]
         if adjoint:
-            return -self._G.T * (self.simulation.rho[:, None] * du_dm_v)
-        return -self.simulation.rho[:, None] * (self._G @ du_dm_v)
+            y = -self._hDeriv_u(
+                src, self._G.T * (self.simulation.rho[:, None] * du_dm_v), adjoint=True
+            )
+            return np.squeeze(y)
+        y = -self.simulation.rho[:, None] * (
+            self._G @ (self._hDeriv_u(src, du_dm_v, adjoint=False))
+        )
+        return np.squeeze(y)
 
     def _eDeriv_m(self, src, v, adjoint=False):
+        if self.simulation.rhoMap is None:
+            return Zero()
+        dRho = self.simulation.rhoDeriv
         h = self[src, "h"]
+        if v.ndim == 1:
+            v = v[:, None]
         if adjoint:
-            return h * (self._G.T * v)
-        return self._G * (h * v)
-
-    def _j(self, hSolution, source_list):
-        return -self._G * hSolution
-
-    def _jDeriv_u(self, src, du_dm_v, adjoint=False):
-        if adjoint:
-            return -self._G.T @ du_dm_v
-        return -self._G @ du_dm_v
+            y = -dRho.T * ((self._G * h) * v)
+            return np.squeeze(y)
+        y = -(self._G * h) * (dRho * v)
+        return np.squeeze(y)
 
 
 class Fields1DPrimarySecondary(FieldsFDEM):

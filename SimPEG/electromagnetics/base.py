@@ -61,7 +61,18 @@ class BaseEMSimulation(BaseSimulation):
         These matrices are deleted if there is an update to the permeability
         model
         """
-        return ["_MeMu", "_MeMuI", "_MfMui", "_MfMuiI", "_MfMuiDeriv", "_MeMuDeriv"]
+        return [
+            "_MeMu",
+            "_MeMuI",
+            "_MeMuDeriv",
+            "_MfMui",
+            "_MfMuiI",
+            "_MfMuiDeriv",
+            "_MeMui",
+            "_MeMuiDeriv",
+            "_MnMu",
+            "_MnMuDeriv",
+        ]
 
     @property
     def _clear_on_sigma_update(self):
@@ -71,12 +82,14 @@ class BaseEMSimulation(BaseSimulation):
         """
         return [
             "_MeSigma",
+            "_MeSigmaDeriv",
             "_MeSigmaI",
+            "_MfSigma",
+            "_MfSigmaDeriv",
             "_MeRho",
             "_MeRhoDeriv",
             "_MfRho",
             "_MfRhoI",
-            "_MeSigmaDeriv",
             "_MfRhoDeriv",
         ]
 
@@ -305,6 +318,67 @@ class BaseEMSimulation(BaseSimulation):
         return dMfMuiI_dI * uM
 
     @property
+    def MeMui(self):
+        """
+        Face inner product matrix for \\(\\mu^{-1}\\).
+        Used in the 1D E-B formulation
+        """
+        if getattr(self, "_MeMui", None) is None:
+            self._MeMui = self.mesh.get_edge_inner_product(self.mui)
+        return self._MeMui
+
+    def MeMuiDeriv(self, u, v=None, adjoint=False):
+        """
+        Derivative of :code:`MfMui` with respect to the model.
+        """
+        if self.muiMap is None:
+            return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
+
+        if getattr(self, "_MeMuiDeriv", None) is None:
+            self._MeMuiDeriv = (
+                self.mesh.get_edge_inner_product_deriv(np.ones(self.mesh.n_cells))(
+                    np.ones(self.mesh.n_edges)
+                )
+                * self.muiDeriv
+            )
+
+        M = self._MeMuiDeriv
+        if v is not None:
+            if u.ndim > 1:
+                if u.shape[1] > 1:
+                    # u has multiple fields
+                    if v.ndim == 1:
+                        v = v[:, None]
+                else:
+                    u = u[:, 0]
+            if u.ndim == 1:
+                if v.ndim > 1:
+                    if v.shape[1] == 1:
+                        v = v[:, 0]
+                    else:
+                        u = u[:, None]
+            if v.ndim > 2:
+                u = u[:, :, None]
+            if adjoint:
+                if u.ndim > 1 and u.shape[1] > 1:
+                    return M.T * (u * v).sum(axis=1)
+                return M.T * (u * v)
+            if u.ndim > 1 and u.shape[1] > 1:
+                return np.squeeze(u[:, None, :] * (M * v)[:, :, None])
+            return u * (M * v)
+        else:
+            if u.ndim > 1:
+                U = sp.vstack([sdiag(u[:, i]) for i in range(u.shape[1])])
+            else:
+                U = sdiag(u)
+            UM = U @ M
+            if adjoint:
+                return UM.T
+            return UM
+
+    @property
     def MeMu(self):
         """
         Edge inner product matrix for \\(\\mu\\).
@@ -482,9 +556,6 @@ class BaseEMSimulation(BaseSimulation):
             if adjoint:
                 return UM.T
             return UM
-            if adjoint is True:
-                return self._MeSigmaDeriv.T * sdiag(u)
-            return sdiag(u) * self._MeSigmaDeriv
 
     @property
     def MeSigmaI(self):
@@ -518,6 +589,68 @@ class BaseEMSimulation(BaseSimulation):
             )
         else:
             return dMeSigmaI_dI * self.MeSigmaDeriv(u, v=v)
+
+    @property
+    def MfSigma(self):
+        """
+        Edge inner product matrix for \\(\\sigma\\).
+        Used in the 1D E-B formulation
+        """
+        if getattr(self, "_MfSigma", None) is None:
+            self._MfSigma = self.mesh.get_face_inner_product(self.sigma)
+        return self._MfSigma
+
+    def MfSigmaDeriv(self, u, v=None, adjoint=False):
+        """
+        Derivative of MeSigma with respect to the model times a vector (u)
+        """
+        if self.sigmaMap is None:
+            return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
+
+        if getattr(self, "_MfSigmaDeriv", None) is None:
+            self._MfSigmaDeriv = (
+                self.mesh.get_face_inner_product_deriv(np.ones(self.mesh.n_cells))(
+                    np.ones(self.mesh.n_faces)
+                )
+                * self.sigmaDeriv
+            )
+
+        M = self._MfSigmaDeriv
+        if v is not None:
+            if u.ndim > 1:
+                if u.shape[1] > 1:
+                    # u has multiple fields
+                    if v.ndim == 1:
+                        v = v[:, None]
+                else:
+                    u = u[:, 0]
+            if u.ndim == 1:
+                if v.ndim > 1:
+                    if v.shape[1] == 1:
+                        v = v[:, 0]
+                    else:
+                        u = u[:, None]
+            if v.ndim > 2:
+                u = u[:, :, None]
+            if adjoint:
+                if u.ndim > 1 and u.shape[1] > 1:
+                    return M.T * (u * v).sum(axis=1)
+                return M.T * (u * v)
+            if u.ndim > 1 and u.shape[1] > 1:
+                return np.squeeze(u[:, None, :] * (M * v)[:, :, None])
+            return u * (M * v)
+
+        else:
+            if u.ndim > 1:
+                U = sp.vstack([sdiag(u[:, i]) for i in range(u.shape[1])])
+            else:
+                U = sdiag(u)
+            UM = U @ M
+            if adjoint:
+                return UM.T
+            return UM
 
     @property
     def MfRho(self):
@@ -599,7 +732,7 @@ class BaseEMSimulation(BaseSimulation):
 
     def MeRhoDeriv(self, u, v=None, adjoint=False):
         """
-        Derivative of :code:`MfRho` with respect to the model.
+        Derivative of MeRho with respect to the model times a vector (u)
         """
         if self.rhoMap is None:
             return Zero()
@@ -614,18 +747,43 @@ class BaseEMSimulation(BaseSimulation):
                 * self.rhoDeriv
             )
 
+        M = self._MeRhoDeriv
         if v is not None:
-            u = u.flatten()
-            if v.ndim > 1:
-                # promote u iff v is a matrix
-                u = u[:, None]  # Avoids constructing the sparse matrix
-            if adjoint is True:
-                return self._MeRhoDeriv.T.dot(u * v)
-            return u * (self._MeRhoDeriv.dot(v))
+            if u.ndim > 1:
+                if u.shape[1] > 1:
+                    # u has multiple fields
+                    if v.ndim == 1:
+                        v = v[:, None]
+                else:
+                    u = u[:, 0]
+            if u.ndim == 1:
+                if v.ndim > 1:
+                    if v.shape[1] == 1:
+                        v = v[:, 0]
+                    else:
+                        u = u[:, None]
+            if v.ndim > 2:
+                u = u[:, :, None]
+            if adjoint:
+                if u.ndim > 1 and u.shape[1] > 1:
+                    return M.T * (u * v).sum(axis=1)
+                return M.T * (u * v)
+            if u.ndim > 1 and u.shape[1] > 1:
+                return np.squeeze(u[:, None, :] * (M * v)[:, :, None])
+            return u * (M * v)
+
         else:
+            if u.ndim > 1:
+                U = sp.vstack([sdiag(u[:, i]) for i in range(u.shape[1])])
+            else:
+                U = sdiag(u)
+            UM = U @ M
+            if adjoint:
+                return UM.T
+            return UM
             if adjoint is True:
-                return self._MeRhoDeriv.T.dot(sdiag(u))
-            return sdiag(u) * (self._MeRhoDeriv)
+                return self._MeRhoDeriv.T * sdiag(u)
+            return sdiag(u) * self._MeRhoDeriv
 
 
 ###############################################################################
