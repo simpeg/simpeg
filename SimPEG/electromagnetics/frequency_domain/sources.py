@@ -10,7 +10,7 @@ from ...utils import mkvc, Zero
 from ...utils.code_utils import deprecate_property
 
 from ..utils import omega
-from ..utils import segmented_line_current_source_term
+from ..utils import segmented_line_current_source_term, line_through_faces
 from ..base import BaseEMSrc
 
 
