@@ -1338,6 +1338,7 @@ class SaveIterationsGeoH5(InversionDirective):
     _transforms: list = []
     save_objective_function = False
     sorting = None
+    reshape = None
 
     def __init__(self, h5_object, **kwargs):
 
@@ -1382,7 +1383,10 @@ class SaveIterationsGeoH5(InversionDirective):
                 prop = fun(prop)
 
         prop = prop.flatten()
-        prop = prop.reshape((len(self.channels), len(self.components), -1), order='F')
+        if self.reshape is None:
+            prop = prop.reshape((len(self.channels), len(self.components), -1), order='F')
+        else:
+            prop = self.reshape(prop)
 
         for cc, component in enumerate(self.components):
 
