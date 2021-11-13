@@ -166,7 +166,6 @@ class BaseSimulation(props.HasModel):
 
     ###########################################################################
     # Properties and observers
-
     @properties.observer("mesh")
     def _update_registry(self, change):
         self._REGISTRY.update(change["value"]._REGISTRY)
