@@ -230,7 +230,7 @@ simulation = magnetics.simulation.Simulation3DIntegral(
     mesh=mesh,
     chiMap=model_map,
     actInd=ind_active,
-    modelType="vector",
+    model_type="vector",
     store_sensitivities="forward_only",
 )
 
