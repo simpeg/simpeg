@@ -86,11 +86,12 @@ class SparseSmall(BaseSparse):
         if self.scale is None:
             self.scale = np.ones(self.mapping.shape[0])
 
-        if self.cell_weights is not None:
-            return utils.sdiag((self.scale * self.cell_weights) ** 0.5) * R
+        weights = self.scale * self.regmesh.vol
 
-        else:
-            return utils.sdiag((self.scale * self.regmesh.vol) ** 0.5) * R
+        if self.cell_weights is not None:
+            weights *= self.cell_weights
+
+        return utils.sdiag((weights ** 0.5)) * R
 
     def R(self, f_m):
         # if R is stashed, return that instead
@@ -180,7 +181,7 @@ class SparseDeriv(BaseSparse):
             self.scale = np.ones(self.mapping.shape[0])
 
         if self.space == "spherical":
-            Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
+            ave_cc_f = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
 
             if getattr(self, "model", None) is None:
                 R = utils.speye(self.cellDiffStencil.shape[0])
@@ -189,15 +190,16 @@ class SparseDeriv(BaseSparse):
                 r = self.R(self.f_m)
                 R = utils.sdiag(r)
 
-            if self.cell_weights is not None:
-                W = utils.sdiag((Ave * (self.scale * self.cell_weights)) ** 0.5) * R
+            weights = self.scale * self.regmesh.vol
 
-            else:
-                W = utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5) * R
+            if self.cell_weights is not None:
+                weights *= self.cell_weights
+
+            W = utils.sdiag((ave_cc_f * weights ** 0.5)) * R
 
             theta = self.cellDiffStencil * (self.mapping * f_m)
-            dmdx = utils.mat_utils.coterminal(theta)
-            r = W * dmdx
+            dm_dx = utils.mat_utils.coterminal(theta)
+            r = W * dm_dx
 
         else:
             r = self.W * (self.mapping * f_m)
@@ -266,7 +268,7 @@ class SparseDeriv(BaseSparse):
             self.scale = np.ones(self.mapping.shape[0])
 
         if self.space == "spherical":
-            Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
+            ave_cc_f = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
 
             if getattr(self, "model", None) is None:
                 R = utils.speye(self.cellDiffStencil.shape[0])
@@ -275,16 +277,15 @@ class SparseDeriv(BaseSparse):
                 r = self.R(self.f_m)
                 R = utils.sdiag(r)
 
+            weights = self.scale * self.regmesh.vol
+
             if self.cell_weights is not None:
-                W = utils.sdiag(((Ave * (self.scale * self.cell_weights))) ** 0.5) * R
+                weights *= self.cell_weights
 
-            else:
-                W = utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5) * R
-
+            W = utils.sdiag((ave_cc_f * weights ** 0.5)) * R
             theta = self.cellDiffStencil * (self.mapping * model)
-            dmdx = utils.mat_utils.coterminal(theta)
-
-            r = W * dmdx
+            dm_dx = utils.mat_utils.coterminal(theta)
+            r = W * dm_dx
 
         else:
             r = self.W * (self.mapping * model)
@@ -308,14 +309,14 @@ class SparseDeriv(BaseSparse):
 
         if self.space == "spherical":
             theta = self.cellDiffStencil * (self.mapping * f_m)
-            dmdx = utils.mat_utils.coterminal(theta)
+            dm_dx = utils.mat_utils.coterminal(theta)
 
         else:
 
             if self.gradientType == "total":
-                Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
+                ave_cc_f = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
 
-                dmdx = np.abs(
+                dm_dx = np.abs(
                     self.regmesh.aveFx2CC
                     * self.regmesh.cellDiffxStencil
                     * (self.mapping * f_m)
@@ -323,7 +324,7 @@ class SparseDeriv(BaseSparse):
 
                 if self.regmesh.dim > 1:
 
-                    dmdx += np.abs(
+                    dm_dx += np.abs(
                         self.regmesh.aveFy2CC
                         * self.regmesh.cellDiffyStencil
                         * (self.mapping * f_m)
@@ -331,18 +332,18 @@ class SparseDeriv(BaseSparse):
 
                 if self.regmesh.dim > 2:
 
-                    dmdx += np.abs(
+                    dm_dx += np.abs(
                         self.regmesh.aveFz2CC
                         * self.regmesh.cellDiffzStencil
                         * (self.mapping * f_m)
                     )
 
-                dmdx = Ave * dmdx
+                dm_dx = ave_cc_f * dm_dx
 
             else:
-                dmdx = self.cellDiffStencil * (self.mapping * f_m)
+                dm_dx = self.cellDiffStencil * (self.mapping * f_m)
 
-        return dmdx
+        return dm_dx
 
     @property
     def cellDiffStencil(self):
@@ -353,7 +354,7 @@ class SparseDeriv(BaseSparse):
     @property
     def W(self):
 
-        Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
+        ave_cc_f = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
 
         if getattr(self, "model", None) is None:
             R = utils.speye(self.cellDiffStencil.shape[0])
@@ -363,18 +364,13 @@ class SparseDeriv(BaseSparse):
             R = utils.sdiag(r)
         if self.scale is None:
             self.scale = np.ones(self.mapping.shape[0])
+
+        weights = self.scale * self.regmesh.vol
+
         if self.cell_weights is not None:
-            return (
-                utils.sdiag((Ave * (self.scale * self.cell_weights)) ** 0.5)
-                * R
-                * self.cellDiffStencil
-            )
-        else:
-            return (
-                utils.sdiag((Ave * (self.scale * self.regmesh.vol)) ** 0.5)
-                * R
-                * self.cellDiffStencil
-            )
+            weights *= self.cell_weights
+
+        return utils.sdiag((ave_cc_f * weights ** 0.5)) * R * self.cellDiffStencil
 
     @property
     def length_scales(self):
@@ -382,12 +378,12 @@ class SparseDeriv(BaseSparse):
         Normalized cell based weighting
 
         """
-        Ave = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
+        ave_cc_f = getattr(self.regmesh, "aveCC2F{}".format(self.orientation))
 
         if getattr(self, "_length_scales", None) is None:
             index = "xyz".index(self.orientation)
 
-            length_scales = Ave * (
+            length_scales = ave_cc_f * (
                 self.regmesh.Pac.T * self.regmesh.mesh.h_gridded[:, index]
             )
 
@@ -500,8 +496,8 @@ class Sparse(BaseComboRegularization):
 
         self.objfcts[0].norm = change["value"][:, 0]
         for i, objfct in enumerate(self.objfcts[1:]):
-            Ave = getattr(objfct.regmesh, "aveCC2F{}".format(objfct.orientation))
-            objfct.norm = Ave * change["value"][:, i + 1]
+            ave_cc_f = getattr(objfct.regmesh, "aveCC2F{}".format(objfct.orientation))
+            objfct.norm = ave_cc_f * change["value"][:, i + 1]
 
     @properties.observer("model")
     def _mirror_model_to_objfcts(self, change):

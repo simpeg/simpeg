@@ -1,3 +1,14 @@
+"""
+Petrophysically guided inversion: Joint linear example with nonlinear relationships
+===================================================================================
+
+We do a comparison between the classic Tikhonov inversion
+and our formulation of a petrophysically guided inversion.
+We explore it through coupling two linear problems whose respective physical
+properties are linked by polynomial relationships that change between rock units.
+
+"""
+
 import discretize as Mesh
 from SimPEG import (
     simulation,
@@ -124,7 +135,7 @@ wr2 = wr2 / np.max(wr2)
 wr = np.r_[wr1, wr2]
 W = utils.sdiag(wr)
 
-reg_simple = utils.make_SimplePGIwithRelationships_regularization(
+reg_simple = utils.make_PGIwithRelationships_regularization(
     mesh=mesh,
     gmmref=clfmapping,
     gmm=clfmapping,
@@ -135,7 +146,12 @@ reg_simple = utils.make_SimplePGIwithRelationships_regularization(
 )
 
 opt = optimization.ProjectedGNCG(
-    maxIter=30, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
+    maxIter=50,
+    tolX=1e-6,
+    maxIterCG=100,
+    tolCG=1e-3,
+    lower=-10,
+    upper=10,
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple, opt)
@@ -155,7 +171,9 @@ alphas = directives.AlphasSmoothEstimate_ByEig(
 )
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, n_pw_iter=10)
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True, coolingFactor=2.0, progress=0.2,
+    verbose=True,
+    coolingFactor=2.0,
+    progress=0.2,
 )
 targets = directives.MultiTargetMisfits(verbose=True)
 petrodir = directives.PGI_UpdateParameters(update_gmm=False)
@@ -169,7 +187,7 @@ inv = inversion.BaseInversion(
 mcluster_map = inv.run(minit)
 
 # Inversion with no nonlinear mapping
-reg_simple_no_map = utils.make_SimplePGI_regularization(
+reg_simple_no_map = utils.make_PGI_regularization(
     mesh=mesh,
     gmmref=clfnomapping,
     gmm=clfnomapping,
@@ -180,7 +198,12 @@ reg_simple_no_map = utils.make_SimplePGI_regularization(
 )
 
 opt = optimization.ProjectedGNCG(
-    maxIter=20, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
+    maxIter=50,
+    tolX=1e-6,
+    maxIterCG=100,
+    tolCG=1e-3,
+    lower=-10,
+    upper=10,
 )
 
 
@@ -191,12 +214,19 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
     chi0_ratio=np.r_[1.0, 1.0], verbose=True, n_pw_iter=10
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
+alpha0_ratio = np.r_[
+    np.zeros(len(reg_simple_no_map.objfcts[0].objfcts)),
+    100.0 * np.ones(len(reg_simple_no_map.objfcts[1].objfcts)),
+    1.0 * np.ones(len(reg_simple_no_map.objfcts[2].objfcts)),
+]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, n_pw_iter=10)
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True, coolingFactor=2.0, progress=0.2,
+    verbose=True,
+    coolingFactor=2.0,
+    progress=0.2,
 )
 targets = directives.MultiTargetMisfits(
     chiSmall=1.0, TriggerSmall=True, TriggerTheta=False, verbose=True
@@ -220,7 +250,12 @@ reg2.cell_weights = wr2
 reg = reg1 + reg2
 
 opt = optimization.ProjectedGNCG(
-    maxIter=30, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
+    maxIter=50,
+    tolX=1e-6,
+    maxIterCG=100,
+    tolCG=1e-3,
+    lower=-10,
+    upper=10,
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -239,7 +274,10 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, n_pw_iter=10)
 beta_schedule = directives.BetaSchedule(coolingFactor=5.0, coolingRate=1)
-targets = directives.MultiTargetMisfits(TriggerSmall=False, verbose=True,)
+targets = directives.MultiTargetMisfits(
+    TriggerSmall=False,
+    verbose=True,
+)
 
 # Setup Inversion
 inv = inversion.BaseInversion(

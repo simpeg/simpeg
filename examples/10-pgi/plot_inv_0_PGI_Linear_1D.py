@@ -1,6 +1,6 @@
 """
-Petrophysically constrained inversion: Linear example
-=====================================================
+Petrophysically guided inversion (PGI): Linear example
+======================================================
 
 We do a comparison between the classic Tikhonov inversion
 and our formulation of a petrophysically constrained inversion.
@@ -105,11 +105,13 @@ clf = utils.WeightedGaussianMixture(
 )
 clf.fit(mtrue.reshape(-1, 1))
 
-# Initial model, same as for Tikhonov
-minit = m0
-
 # Petrophyically constrained regularization
-reg = regularization.PGI(gmmref=clf, gmm=clf, mesh=mesh, mref=m0, alpha_s=1.0)
+reg = utils.make_PGI_regularization(
+    gmmref=clf,
+    mesh=mesh,
+    alpha_s=1.0,
+    alpha_x=1.0,
+)
 
 # Optimization
 opt = optimization.ProjectedGNCG(maxIter=10, maxIterCG=50, tolCG=1e-4)
@@ -138,8 +140,8 @@ inv = inversion.BaseInversion(
     invProb, directiveList=[Alphas, beta, petrodir, targets, addmref, betaIt]
 )
 
-
-mcluster = inv.run(minit)
+# Initial model same as for Tikhonov
+mcluster = inv.run(m0)
 
 # Final Plot
 fig, axes = plt.subplots(1, 3, figsize=(12 * 1.2, 4 * 1.2))
@@ -157,7 +159,7 @@ axes[1].legend(["Mtrue Hist.", "L2 Model Hist.", "PGI Model Hist."])
 axes[2].plot(mesh.cell_centers_x, mtrue, color="black", linewidth=3)
 axes[2].plot(mesh.cell_centers_x, mnormal, color="blue")
 axes[2].plot(mesh.cell_centers_x, mcluster, "r-")
-axes[2].plot(mesh.cell_centers_x, invProb.reg.mref, "r--")
+axes[2].plot(mesh.cell_centers_x, invProb.reg.objfcts[0].mref, "r--")
 
 axes[2].legend(("True Model", "L2 Model", "PGI Model", "Learned Mref"))
 axes[2].set_ylim([-2, 2])
