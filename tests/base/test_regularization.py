@@ -24,12 +24,10 @@ IGNORE_ME = [
     "BaseComboRegularization",
     "SimpleComboRegularization",
     "BaseSparse",
-    "SimplePGI",
     "PGI",
-    "SimplePGIwithRelationships",
-    "SimplePGIwithNonlinearRelationshipsSmallness",
+    "PGIwithRelationships",
+    "PGIwithNonlinearRelationshipsSmallness",
     "PGIsmallness",
-    "SimplePGIsmallness",
 ]
 
 
@@ -286,7 +284,7 @@ class RegularizationTests(unittest.TestCase):
         )
 
         objfct = objective_function.L2ObjectiveFunction(
-            W=utils.sdiag(np.sqrt(cell_weights)), mapping=wires.sigma
+            W=utils.sdiag(np.sqrt(cell_weights * mesh.cell_volumes)), mapping=wires.sigma
         )
 
         self.assertTrue(reg(m) == objfct(m))

@@ -231,7 +231,7 @@ starting_model = background_susceptibility * np.ones(nC)
 simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
-    modelType="susceptibility",
+    model_type="scalar",
     chiMap=model_map,
     actInd=ind_active,
 )
