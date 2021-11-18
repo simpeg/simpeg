@@ -23,6 +23,7 @@ from ..regularization import (
     SimpleSmoothDeriv,
     SparseDeriv,
     PGIwithRelationships,
+    BaseCoupling,
 )
 from ..utils import (
     mkvc,
@@ -1656,14 +1657,16 @@ class UpdateSensitivityWeights(InversionDirective):
         # Normalize and threshold weights
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
-            wr += reg.mapping.deriv(self.invProb.model).T * (
-                (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
-            )
+            if not isinstance(reg, BaseCoupling):
+                wr += reg.mapping.deriv(self.invProb.model).T * (
+                    (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
+                )
         wr /= wr.max()
         wr += self.threshold
         wr **= 0.5
         for reg in self.reg.objfcts:
-            reg.cell_weights = reg.mapping * wr
+            if not isinstance(reg, BaseCoupling):
+                reg.cell_weights = reg.mapping * wr
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights
