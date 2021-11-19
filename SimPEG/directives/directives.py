@@ -1331,6 +1331,7 @@ class SaveIterationsGeoH5(InversionDirective):
 
     _association = None
     attribute_type = "model"
+    _label = None
     channels = [""]
     components = [""]
     data_type = {}
@@ -1375,7 +1376,6 @@ class SaveIterationsGeoH5(InversionDirective):
         else:
             prop = self.invProb.model
 
-
         for fun in self.transforms:
             if isinstance(fun, (maps.IdentityMap, np.ndarray, float)):
                 prop = fun * prop
@@ -1400,10 +1400,21 @@ class SaveIterationsGeoH5(InversionDirective):
                     values = values[self.sorting]
                 if not isinstance(channel, str):
                     channel = f"{channel: .2e}"
+
+                base_name = f"Iteration_{iteration}"
+                if len(component) > 0:
+                    base_name += f"_{component}"
+
+                channel_name = base_name
+                if len(channel) > 0:
+                    channel_name += f"_{channel}"
+
+                if self.label is not None:
+                    channel_name += f"_{self.label}"
+
                 data = self.h5_object.add_data(
                     {
-                        f"Iteration_{iteration}_{component}_{channel}":
-                        {"association": self.association, "values": values}
+                        channel_name: {"association": self.association, "values": values}
                     }
                 )
                 if channel not in self.data_type[component].keys():
@@ -1414,7 +1425,7 @@ class SaveIterationsGeoH5(InversionDirective):
 
                 if len(self.channels) > 1 and self.attribute_type == "predicted":
                     self.h5_object.add_data_to_group(
-                        data, f"Iteration_{iteration}_{component}"
+                        data, base_name
                     )
 
     def save_log(self, iteration: int):
@@ -1434,6 +1445,16 @@ class SaveIterationsGeoH5(InversionDirective):
         self.h5_object.parent.add_comment(
             json.dumps(iter_block), author=f"Iteration_{iteration}"
         )
+
+    @property
+    def label(self):
+        return self._label
+
+    @label.setter
+    def label(self, value: str):
+        assert isinstance(value, str), "'label' must be a string"
+
+        self._label = value
 
     @property
     def transforms(self):
