@@ -1,4 +1,4 @@
-from .base import BaseRegularization, BaseComboRegularization
+from .base import BaseRegularization, BaseComboRegularization, BaseCoupling
 from .regularization_mesh import RegularizationMesh
 from .tikhonov import (
     SimpleSmall,
@@ -16,4 +16,5 @@ from .pgi import (
     PGIwithNonlinearRelationshipsSmallness,
     PGIwithRelationships,
 )
-from .coupling import CrossGradient, Linear
+from .cross_gradient import CrossGradient
+from .correspondence import LinearCorrespondence

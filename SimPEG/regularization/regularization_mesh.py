@@ -19,7 +19,7 @@ class RegularizationMesh(props.BaseSimPEG):
 
     This contains the operators used in the regularization. Note that these
     are not necessarily true differential operators, but are constructed from
-    a SimPEG Mesh.
+    a `discretize` Mesh.
 
     :param discretize.base.BaseMesh mesh: problem mesh
     :param numpy.ndarray indActive: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
@@ -176,6 +176,15 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._Pafz
 
     @property
+    def average_face_to_cell(self):
+        if self.dim == 1:
+            return self.aveFx2CC
+        elif self.dim == 2:
+            return sp.hstack([self.aveFx2CC, self.aveFy2CC])
+        else:
+            return sp.hstack([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC])
+
+    @property
     def aveFx2CC(self):
         """
         averaging from active cell centers to active x-faces
@@ -287,6 +296,15 @@ class RegularizationMesh(props.BaseSimPEG):
                     utils.sdiag(1.0 / (self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T
                 )
         return self._aveCC2Fz
+
+    @property
+    def cell_gradient(self):
+        if self.dim == 1:
+            return self.cellDiffx
+        elif self.dim == 2:
+            return sp.vstack([self.cellDiffx, self.cellDiffy])
+        else:
+            return sp.vstack([self.cellDiffx, self.cellDiffy, self.cellDiffz])
 
     @property
     def cellDiffx(self):

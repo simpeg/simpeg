@@ -25,11 +25,10 @@ from .pgi_directives import (
     PGI_AddMrefInSmooth,
 )
 
-from .joint_directives import (
-    Joint_InversionDirective,
-    Joint_SaveOutputEveryIteration,
-    Joint_BetaEstimate_ByEig,
-    Joint_BetaSchedule,
-    Joint_Stopping,
-    Joint_UpdateSensitivityWeights,
+from .cross_grad_directives import (
+    CrossGradientInversionDirective,
+    CrossGradientSaveOutputEveryIteration,
+    PairedBetaEstimate_ByEig,
+    CrossGradientBetaSchedule,
+    CrossGradientStopping,
 )

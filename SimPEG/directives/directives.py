@@ -23,6 +23,7 @@ from ..regularization import (
     SimpleSmoothDeriv,
     SparseDeriv,
     PGIwithRelationships,
+    BaseCoupling,
 )
 from ..utils import (
     mkvc,
@@ -319,7 +320,7 @@ class BetaSchedule(InversionDirective):
 class AlphasSmoothEstimate_ByEig(InversionDirective):
     """
     Estimate the alphas multipliers for the smoothness terms of the regularization
-     as a multiple of the ratio between the highest eigenvalue of the
+    as a multiple of the ratio between the highest eigenvalue of the
     smallness term and the highest eigenvalue of each smoothness term of the regularization.
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
@@ -648,8 +649,7 @@ class MultiTargetMisfits(InversionDirective):
                             j,
                             (
                                 isinstance(
-                                    regpart,
-                                    PGIwithNonlinearRelationshipsSmallness,
+                                    regpart, PGIwithNonlinearRelationshipsSmallness,
                                 )
                                 or isinstance(regpart, PGIsmallness)
                             ),
@@ -691,8 +691,7 @@ class MultiTargetMisfits(InversionDirective):
                             j,
                             (
                                 isinstance(
-                                    regpart,
-                                    PGIwithNonlinearRelationshipsSmallness,
+                                    regpart, PGIwithNonlinearRelationshipsSmallness,
                                 )
                                 or isinstance(regpart, PGIsmallness)
                             ),
@@ -1610,6 +1609,7 @@ class UpdateSensitivityWeights(InversionDirective):
     function is either Wires or Identity.
     Good for any problem where J is formed explicitly.
     """
+
     everyIter = True
     threshold = 1e-12
     normalization: bool = True
@@ -1657,14 +1657,16 @@ class UpdateSensitivityWeights(InversionDirective):
         # Normalize and threshold weights
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
-            wr += reg.mapping.deriv(self.invProb.model).T * (
-                    (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.
-            )
+            if not isinstance(reg, BaseCoupling):
+                wr += reg.mapping.deriv(self.invProb.model).T * (
+                    (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
+                )
         wr /= wr.max()
         wr += self.threshold
         wr **= 0.5
         for reg in self.reg.objfcts:
-            reg.cell_weights = reg.mapping * wr
+            if not isinstance(reg, BaseCoupling):
+                reg.cell_weights = reg.mapping * wr
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights
