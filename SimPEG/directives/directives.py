@@ -1648,7 +1648,8 @@ class VectorInversion(InversionDirective):
             self.inversion.directiveList = directiveList
 
             for directive in directiveList:
-                directive.endIter()
+                if not isinstance(directive, SaveIterationsGeoH5):
+                    directive.endIter()
 
         # elif (self.invProb.phi_d < self.target) and self.mode == "spherical":
         #
