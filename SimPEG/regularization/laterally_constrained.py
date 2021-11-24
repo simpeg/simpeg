@@ -6,18 +6,6 @@ from .. import utils
 from discretize import TensorMesh
 
 
-# def get_2d_mesh(n_sounding, hz):
-#     """
-#         Generate 2D mesh for regularization
-
-#         hx:
-#         hz:
-
-#     """
-#     hx = np.ones(n_sounding)
-#     return TensorMesh([hz, hx])
-
-
 class LaterallyConstrained(Sparse):
 
     def get_grad_horizontal(
