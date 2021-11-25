@@ -604,7 +604,8 @@ class CircularLoop(MagDipole):
                 self._1d_h = out
             return self._1d_h
         else:
-            super().hprimary(simulation)
+            b = self.bPrimary(simulation)
+            return 1.0 / self.mu * b
 
 
 class PrimSecSigma(BaseFDEMSrc):
