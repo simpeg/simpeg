@@ -20,3 +20,4 @@ pre-commit
 twine
 memory_profiler
 plotly
+geoana>=0.1.2
