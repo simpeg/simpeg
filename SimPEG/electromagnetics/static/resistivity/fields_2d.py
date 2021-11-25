@@ -255,16 +255,16 @@ Fields2DCellCentred = Fields2DCellCentered
 ############
 # Deprecated
 ############
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields_ky(Fields2D):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields_ky_CC(Fields2DCellCentered):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields_ky_N(Fields2DNodal):
     pass

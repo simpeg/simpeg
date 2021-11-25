@@ -128,11 +128,7 @@ class BaseFDEMSrc(BaseEMSrc):
         return Zero()
 
     freq = deprecate_property(
-        frequency,
-        "freq",
-        new_name="frequency",
-        removal_version="0.16.0",
-        future_warn=True,
+        frequency, "freq", new_name="frequency", removal_version="0.16.0", error=True,
     )
 
 
@@ -307,7 +303,7 @@ class MagDipole(BaseFDEMSrc):
         "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
     )
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
+        location, "loc", new_name="location", removal_version="0.16.0", error=True
     )
 
     def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):

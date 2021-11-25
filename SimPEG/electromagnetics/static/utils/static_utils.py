@@ -91,10 +91,9 @@ def electrode_separations(survey_object, electrode_pair="all", **kwargs):
 
     """
     if "survey_type" in kwargs:
-        warnings.warn(
+        raise TypeError(
             "The survey_type is no longer necessary to calculate electrode separations. "
-            "Feel free to remove it from the call. This option will be removed in SimPEG 0.16.0",
-            FutureWarning,
+            "It has been removed"
         )
 
     if not isinstance(electrode_pair, list):
@@ -275,10 +274,9 @@ def geometric_factor(survey_object, space_type="half space", **kwargs):
 
     """
     if "survey_type" in kwargs:
-        warnings.warn(
+        raise TypeError(
             "The survey_type is no longer necessary to calculate geometric factor. "
-            "Feel free to remove it from the call. This option will be removed in SimPEG 0.16.0",
-            FutureWarning,
+            "It has been removed."
         )
     # Set factor for whole-space or half-space assumption
     if space_type.lower() in SPACE_TYPES["whole space"]:
@@ -539,41 +537,28 @@ def plot_pseudosection(
 
     """
     if "pcolorOpts" in kwargs:
-        warnings.warn(
-            "The pcolorOpts keyword has been deprecated. Please use "
-            "pcolor_opts instead. This will be removed in version"
-            " 0.16.0 of SimPEG",
-            FutureWarning,
+        raise TypeError(
+            "The pcolorOpts keyword has been removed. Please use "
+            "pcolor_opts instead."
         )
-        pcolor_opts = kwargs.pop("pcolorOpts")
 
     if "data_location" in kwargs:
-        warnings.warn(
-            "The data_location keyword has been deprecated. Please use "
-            "data_locations instead. This will be removed in version"
-            " 0.16.0 of SimPEG",
-            FutureWarning,
+        raise TypeError(
+            "The data_location keyword has been removed. Please use "
+            "data_locations instead."
         )
-        data_locations = kwargs.pop("data_location")
 
     if "contour_opts" in kwargs:
-        warnings.warn(
-            "The contour_opts keyword has been deprecated. Please use "
-            "contourf_opts instead. This will be removed in version"
-            " 0.16.0 of SimPEG",
-            FutureWarning,
+        raise TypeError(
+            "The contour_opts keyword has been removed. Please use "
+            "contourf_opts instead."
         )
         contourf_opts = kwargs.pop("contour_opts")
 
     removed_kwargs = ["dim", "y_values", "sameratio", "survey_type"]
     for kwarg in removed_kwargs:
         if kwarg in kwargs:
-            warnings.warn(
-                r"The {kwarg} keyword has been removed. This will become an error in "
-                "version 0.16.0 of SimPEG",
-                DeprecationWarning,
-            )
-            kwargs.pop(kwarg)
+            raise TypeError(r"The {kwarg} keyword has been removed.")
     if len(kwargs) > 0:
         warnings.warn("plot_pseudosection unused kwargs: {list(kwargs.keys())}")
 
@@ -1092,10 +1077,9 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
     :return SimPEG.electromagnetics.static.resistivity.Survey dc_survey: DC survey object
     """
     if "d2flag" in kwargs:
-        warnings.warn(
+        raise TypeError(
             "The d2flag is no longer necessary to construct a survey. "
-            "Feel free to remove it from the call. This option will be removed in SimPEG 0.16.0",
-            FutureWarning,
+            "It has been removed."
         )
 
     def xy_2_r(x1, x2, y1, y2):
@@ -1727,24 +1711,9 @@ def plot_pseudoSection(
     dim=2,
 ):
 
-    warnings.warn(
-        "The plot_pseudoSection method has been deprecated. Please use "
-        "plot_pseudosection instead. This will be removed in version"
-        " 0.16.0 of SimPEG",
-        FutureWarning,
-    )
-
-    return plot_pseudosection(
-        data,
-        ax=ax,
-        survey_type=survey_type,
-        data_type=data_type,
-        space_type=space_type,
-        clim=clim,
-        scale=scale,
-        pcolor_opts=pcolorOpts,
-        data_locations=data_location,
-        dobs=dobs,
+    raise TypeError(
+        "The plot_pseudoSection method has been removed. Please use "
+        "plot_pseudosection instead."
     )
 
 
@@ -1757,31 +1726,14 @@ def apparent_resistivity(
     **kwargs,
 ):
 
-    warnings.warn(
-        "The apparent_resistivity method has been deprecated. Please use "
-        "apparent_resistivity_from_voltage instead. This will be removed in version"
-        " 0.16.0 of SimPEG",
-        DeprecationWarning,
-    )
-
-    if survey_type is not None:
-        warnings.warn(
-            "Keyword argument 'survey_type' is no longer necessary. "
-            "Survey may now have a mix of pole and dipole sources and receivers. "
-            "This will be removed in version 0.16.0 of SimPEG",
-            FutureWarning,
-        )
-
-    if dobs is None:
-        dobs = data_object.dobs
-
-    return apparent_resistivity_from_voltage(
-        data_object.survey, dobs, space_type=space_type, eps=eps, **kwargs
+    raise TypeError(
+        "The apparent_resistivity method has been removed. Please use "
+        "apparent_resistivity_from_voltage instead."
     )
 
 
 source_receiver_midpoints = deprecate_method(
-    pseudo_locations, "source_receiver_midpoints", "0.16.0"
+    pseudo_locations, "source_receiver_midpoints", "0.17.0", future_warn=True
 )
 
 
@@ -1790,21 +1742,17 @@ def plot_layer(rho, mesh, **kwargs):
         "The plot_layer method has been deprecated. Please use "
         "plot_1d_layer_model instead. This will be removed in version"
         " 0.17.0 of SimPEG",
-        DeprecationWarning,
+        FutureWarning,
     )
 
     return plot_1d_layer_model(mesh.hx, rho, z0=mesh.origin[0], **kwargs)
 
 
 def convertObs_DC3D_to_2D(survey, lineID, flag="local"):
-    warnings.warn(
-        "The convertObs_DC3D_to_2D method has been deprecated. Please use "
-        "convert_3d_survey_to_2d. This will be removed in version"
-        " 0.16.0 of SimPEG",
-        FutureWarning,
+    raise TypeError(
+        "The convertObs_DC3D_to_2D method has been removed. Please use "
+        "convert_3d_survey_to_2d."
     )
-
-    return convert_survey_3d_to_2d_lines(survey, lineID)
 
 
 def getSrc_locs(survey):
@@ -1813,7 +1761,7 @@ def getSrc_locs(survey):
         "locations are now computed as a method of the survey "
         "class. Please use Survey.source_locations(). This method "
         " will be removed in version 0.17.0 of SimPEG",
-        DeprecationWarning,
+        FutureWarning,
     )
 
     return survey.source_locations()
@@ -1849,7 +1797,7 @@ def writeUBC_DCobs(
         "write_dcip2d_ubc or write_dcip3d_ubc instead. These are imported "
         "from SimPEG.utils.io_utils. This function will be removed in version"
         " 0.17.0 of SimPEG",
-        DeprecationWarning,
+        FutureWarning,
     )
 
     if dim == 2:
@@ -1901,7 +1849,7 @@ def writeUBC_DClocs(
         "write_dcip2d_ubc or write_dcip3d_ubc instead. These are imported "
         "from SimPEG.utils.io_utils. This function will be removed in version"
         " 0.17.0 of SimPEG",
-        DeprecationWarning,
+        FutureWarning,
     )
 
     data = Data(dc_survey)
@@ -1950,7 +1898,7 @@ def readUBC_DC2Dpre(fileName):
         "read_dcip2d_ubc instead. This is imported "
         "from SimPEG.utils.io_utils. This function will be removed in version"
         " 0.17.0 of SimPEG",
-        DeprecationWarning,
+        FutureWarning,
     )
 
     return read_dcip2d_ubc(fileName, "volt", "general")
@@ -1972,7 +1920,7 @@ def readUBC_DC3Dobs(fileName, data_type="volt"):
         "read_dcip3d_ubc instead. This is imported "
         "from SimPEG.utils.io_utils. This function will be removed in version"
         " 0.17.0 of SimPEG",
-        DeprecationWarning,
+        FutureWarning,
     )
 
     return read_dcip3d_ubc(fileName, data_type)
@@ -1991,7 +1939,7 @@ def generate_dcip_survey_line(
         "The gen_dcip_survey_line method has been deprecated. Please use "
         "generate_dcip_sources_line instead. This will be removed in version"
         " 0.17.0 of SimPEG",
-        DeprecationWarning,
+        FutureWarning,
     )
 
     source_list = generate_dcip_sources_line(

@@ -304,7 +304,7 @@ class IO(properties.HasProperties):
         warnings.warn(
             "from_ambn_locations_to_survey has been renamed to "
             "from_abmn_locations_to_survey. It will be removed in a future version 0.17.0 of simpeg",
-            DeprecationWarning,
+            FutureWarning,
         )
         return self.from_abmn_locations_to_survey(*args, **kwargs)
 
@@ -872,12 +872,9 @@ class IO(properties.HasProperties):
     def write_to_csv(self, fname, dobs, standard_deviation=None, **kwargs):
         uncert = kwargs.pop("uncertainty", None)
         if uncert is not None:
-            warnings.warn(
-                "The uncertainty option has been deprecated and will be removed"
-                " in SimPEG 0.16.0. Please use standard_deviation.",
-                FutureWarning,
+            raise TypeError(
+                "The uncertainty option has been removed, please use standard_deviation."
             )
-            standard_deviation = uncert
 
         if standard_deviation is None:
             standard_deviation = np.ones(dobs.size) * np.nan
