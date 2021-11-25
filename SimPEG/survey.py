@@ -412,8 +412,12 @@ class BaseSurvey(properties.HasProperties):
         if self.source_list:
             locations = []
             for source in self.source_list:
-                if source.location is not None:
-                    locations += [source.location]
+                source_location = source.location
+                if source_location is not None:
+                    if not isinstance(source_location, list):
+                        locations += [[source_location]]
+                    else:
+                        locations += [source_location]
                 locations += [receiver.locations for receiver in source.receiver_list]
             locations = np.vstack([np.vstack(np.atleast_2d(*locs)) for locs in locations])
         else:

@@ -19,10 +19,10 @@ from sklearn.mixture._gaussian_mixture import (
     _check_precisions,
     _check_shape,
 )
-from sklearn.mixture._base import _check_X, check_random_state, ConvergenceWarning
+from sklearn.mixture._base import check_random_state, ConvergenceWarning
 import warnings
 from .mat_utils import mkvc
-from ..maps import IdentityMap, Wires
+from ..maps import IdentityMap, Wires, Identity
 from ..regularization import (
     SimplePGI,
     Simple,
@@ -95,7 +95,11 @@ def make_SimplePGI_regularization(
     """
 
     if wiresmap is None:
-        wrmp = Wires(("m", mesh.nC))
+        if "indActive" in kwargs.keys():
+            indActive = kwargs.pop("indActive")
+            wrmp = Wires(("m", indActive.sum()))
+        else:
+            wrmp = Wires(("m", mesh.nC))
     else:
         wrmp = wiresmap
 
@@ -105,7 +109,7 @@ def make_SimplePGI_regularization(
         mplst = maplist
 
     if cell_weights_list is None:
-        clwhtlst = [Identity() for maps in wrmp.maps]
+        clwhtlst = [np.ones(maps[1].shape[0]) for maps in wrmp.maps]
     else:
         clwhtlst = cell_weights_list
 
@@ -220,7 +224,11 @@ def make_PGI_regularization(
     """
 
     if wiresmap is None:
-        wrmp = Wires(("m", mesh.nC))
+        if "indActive" in kwargs.keys():
+            indActive = kwargs.pop("indActive")
+            wrmp = Wires(("m", int(indActive.sum())))
+        else:
+            wrmp = Wires(("m", mesh.nC))
     else:
         wrmp = wiresmap
 
@@ -230,7 +238,7 @@ def make_PGI_regularization(
         mplst = maplist
 
     if cell_weights_list is None:
-        clwhtlst = [Identity() for maps in wrmp.maps]
+        clwhtlst = [np.ones(maps[1].shape[0]) for maps in wrmp.maps]
     else:
         clwhtlst = cell_weights_list
 
@@ -356,7 +364,7 @@ def make_SimplePGIwithRelationships_regularization(
         mplst = maplist
 
     if cell_weights_list is None:
-        clwhtlst = [Identity() for maps in wrmp.maps]
+        clwhtlst = [np.ones(maps[1].shape[0]) for maps in wrmp.maps]
     else:
         clwhtlst = cell_weights_list
 
@@ -592,7 +600,7 @@ class WeightedGaussianMixture(GaussianMixture):
             _check_shape(weights, (n_components,), "weights")
 
         # check range
-        if np.less(weights, 0.0).any() or (np.greater(weights, 1.0)).any():
+        if any(np.less(weights, 0.0)) or any(np.greater(weights, 1.0)):
             raise ValueError(
                 "The parameter 'weights' should be in the range "
                 "[0, 1], but got max value %.5f, min value %.5f"
@@ -641,7 +649,7 @@ class WeightedGaussianMixture(GaussianMixture):
 
     def _initialize_parameters(self, X, random_state):
         """
-        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        [modified from Scikit-Learn.mixture._base]
         Initialize the model parameters.
         Parameters
         ----------
@@ -833,7 +841,7 @@ class WeightedGaussianMixture(GaussianMixture):
         else:
             log_prob = np.empty((n_samples, n_components))
             for k, (mu, prec_chol) in enumerate(zip(means, precisions_chol)):
-                prec_chol_mat = np.eye(n_components) * prec_chol
+                prec_chol_mat = np.eye(n_features) * prec_chol
                 y = np.dot(X * sensW, prec_chol_mat) - np.dot(mu * sensW, prec_chol_mat)
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
@@ -877,7 +885,7 @@ class WeightedGaussianMixture(GaussianMixture):
             Log probabilities of each data point in X.
         """
         check_is_fitted(self)
-        X = _check_X(X, None, self.means_.shape[1])
+        X = self._validate_data(X, reset=False)
 
         return logsumexp(self._estimate_weighted_log_prob_with_sensW(X, sensW), axis=1)
 
@@ -1124,32 +1132,73 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
     def fit(self, X, y=None, debug=False):
         """
         [modified from Scikit-Learn for Maximum A Posteriori estimates (MAP)]
-        Estimate model parameters with the MAP-EM algorithm.
-        The method fit the model `n_init` times and set the parameters with
+        Estimate model parameters with the EM algorithm.
+        The method fits the model ``n_init`` times and sets the parameters with
         which the model has the largest likelihood or lower bound. Within each
-        trial, the method iterates between E-step and M-step for `max_iter`
+        trial, the method iterates between E-step and M-step for ``max_iter``
         times until the change of likelihood or lower bound is less than
-        `tol`, otherwise, a `ConvergenceWarning` is raised.
+        ``tol``, otherwise, a ``ConvergenceWarning`` is raised.
+        If ``warm_start`` is ``True``, then ``n_init`` is ignored and a single
+        initialization is performed upon the first call. Upon consecutive
+        calls, training starts where it left off.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
             List of n_features-dimensional data points. Each row
             corresponds to a single data point.
+
+        y : Ignored
+            Not used, present for API consistency by convention.
+
         Returns
         -------
-        self
+        self : object
+            The fitted mixture.
+        """
+        self.fit_predict(X, y, debug)
+        return self
+
+    def fit_predict(self, X, y=None, debug=False):
+        """[modified from Scikit-Learn for Maximum A Posteriori estimates (MAP)]
+        Estimate model parameters using X and predict the labels for X.
+        The method fits the model n_init times and sets the parameters with
+        which the model has the largest likelihood or lower bound. Within each
+        trial, the method iterates between E-step and M-step for `max_iter`
+        times until the change of likelihood or lower bound is less than
+        `tol`, otherwise, a :class:`~sklearn.exceptions.ConvergenceWarning` is
+        raised. After fitting, it predicts the most probable label for the
+        input data points.
+        .. versionadded:: 0.20
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            List of n_features-dimensional data points. Each row
+            corresponds to a single data point.
+        y : Ignored
+            Not used, present for API consistency by convention.
+        Returns
+        -------
+        labels : array, shape (n_samples,)
+            Component labels.
         """
         if self.verbose:
             print("modified from scikit-learn")
 
-        X = _check_X(X, self.n_components)
+        X = self._validate_data(X, dtype=[np.float64, np.float32], ensure_min_samples=2)
+        if X.shape[0] < self.n_components:
+            raise ValueError(
+                "Expected n_samples >= n_components "
+                f"but got n_components = {self.n_components}, "
+                f"n_samples = {X.shape[0]}"
+            )
         self._check_initial_parameters(X)
 
         # if we enable warm_start, we will have a unique initialisation
         do_init = not (self.warm_start and hasattr(self, "converged_"))
         n_init = self.n_init if do_init else 1
 
-        max_lower_bound = -np.infty
+        max_lower_bound = -np.inf
         self.converged_ = False
 
         random_state = check_random_state(self.random_state)
@@ -1160,10 +1209,11 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
             if do_init:
                 self._initialize_parameters(X, random_state)
-                self.lower_bound_ = -np.infty
 
-            for n_iter in range(self.max_iter):
-                prev_lower_bound = self.lower_bound_
+            lower_bound = -np.inf if do_init else self.lower_bound_
+
+            for n_iter in range(1, self.max_iter + 1):
+                prev_lower_bound = lower_bound
 
                 log_prob_norm, log_resp = self._e_step(X)
 
@@ -1184,19 +1234,19 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                     aux[np.arange(len(aux)), self.fixed_membership[:, 1]] = 1
                     self.weights_[self.fixed_membership[:, 0]] = aux
 
-                self.lower_bound_ = self._compute_lower_bound(log_resp, log_prob_norm)
+                lower_bound = self._compute_lower_bound(log_resp, log_prob_norm)
 
-                change = self.lower_bound_ - prev_lower_bound
+                change = lower_bound - prev_lower_bound
                 self._print_verbose_msg_iter_end(n_iter, change)
 
                 if abs(change) < self.tol:
                     self.converged_ = True
                     break
 
-            self._print_verbose_msg_init_end(self.lower_bound_)
+            self._print_verbose_msg_init_end(lower_bound)
 
-            if self.lower_bound_ > max_lower_bound:
-                max_lower_bound = self.lower_bound_
+            if lower_bound > max_lower_bound or max_lower_bound == -np.inf:
+                max_lower_bound = lower_bound
                 best_params = self._get_parameters()
                 best_n_iter = n_iter
 
@@ -1211,7 +1261,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
         self._set_parameters(best_params)
         self.n_iter_ = best_n_iter
-        self.last_step_change = change
+        self.lower_bound_ = max_lower_bound
 
         return self
 

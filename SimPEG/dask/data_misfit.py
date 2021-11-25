@@ -12,6 +12,8 @@ def dask_call(self, m, f=None):
     """
     R = self.W * self.residual(m, f=f)
     phi_d = 0.5 * da.dot(R, R)
+    if self.workers is None:
+        return phi_d.compute()
     return self.client.compute(phi_d, workers=self.workers)
 
 
@@ -34,8 +36,12 @@ def dask_deriv(self, m, f=None):
         h_vec = da.from_delayed(
             Jtjvec_dmudm, dtype=float, shape=[self.model_map.deriv(m).shape[1]]
         )
+        if self.workers is None:
+            return h_vec.compute()
         return self.client.compute(h_vec, workers=self.workers)
 
+    if self.workers is None:
+        return Jtvec.compute()
     return self.client.compute(Jtvec, workers=self.workers)
 
 
@@ -60,8 +66,12 @@ def dask_deriv2(self, m, v, f=None):
         h_vec = da.from_delayed(
             Jtjvec_dmudm, dtype=float, shape=[self.model_map.deriv(m).shape[1]]
         )
+        if self.workers is None:
+            return h_vec.compute()
         return self.client.compute(h_vec, workers=self.workers)
 
+    if self.workers is None:
+        return jtwjvec.compute()
     return self.client.compute(jtwjvec, workers=self.workers)
 
 

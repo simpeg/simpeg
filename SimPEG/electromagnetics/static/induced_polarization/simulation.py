@@ -6,13 +6,14 @@ from .... import props
 from ....data import Data
 from ....utils import sdiag
 
+from ....simulation import LinearSimulation
 from ..resistivity.simulation import BaseDCSimulation
 from ..resistivity.fields import Fields3DCellCentered, Fields3DNodal
 from ..resistivity import Simulation3DCellCentered as BaseSimulation3DCellCentered
 from ..resistivity import Simulation3DNodal as BaseSimulation3DNodal
 
 
-class BaseIPSimulation(BaseDCSimulation):
+class BaseIPSimulation(BaseDCSimulation, LinearSimulation):
 
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability")
 

@@ -4,6 +4,7 @@ from scipy.interpolate import griddata, interp1d
 from scipy.interpolate import NearestNDInterpolator, LinearNDInterpolator, interp1d
 from scipy.spatial import cKDTree
 import scipy.sparse as sp
+import warnings
 
 
 def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.nan):
@@ -296,12 +297,16 @@ def tile_locations(
 
     if method == "kmeans":
         # Best for smaller problems
-        from sklearn.cluster import KMeans
 
         np.random.seed(0)
         # Cluster
-        cluster = KMeans(n_clusters=n_tiles, )
-        cluster.fit_predict(locations[:, :2])
+        # TODO turn off filter once sklearn has dealt with the issue causeing the warning
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=UserWarning)
+            from sklearn.cluster import KMeans
+            cluster = KMeans(n_clusters=n_tiles, )
+            cluster.fit_predict(locations[:, :2])
+
         labels = cluster.labels_
 
         # nData in each tile

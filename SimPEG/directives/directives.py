@@ -1338,6 +1338,7 @@ class SaveIterationsGeoH5(InversionDirective):
     _transforms: list = []
     save_objective_function = False
     sorting = None
+    reshape = None
 
     def __init__(self, h5_object, **kwargs):
 
@@ -1362,23 +1363,30 @@ class SaveIterationsGeoH5(InversionDirective):
 
         self.h5_object.workspace.finalize()
 
-    def save_components(self, iteration: int):
-        if self.attribute_type == "predicted":
-            prop = np.asarray(self.invProb.get_dpred(self.invProb.model))
+    def save_components(self, iteration: int, values: np.ndarray = None):
+
+        if values is not None:
+            prop = values
+        elif self.attribute_type == "predicted":
+            dpred = self.invProb.dpred
+            if dpred is None:
+                dpred = self.invProb.get_dpred(self.invProb.model)
+            prop = np.hstack(dpred)
         else:
             prop = self.invProb.model
 
+
         for fun in self.transforms:
             if isinstance(fun, (maps.IdentityMap, np.ndarray, float)):
-                if isinstance(fun, np.ndarray):
-                    if len(fun.ravel()) == len(prop.ravel()):
-                        fun = fun.reshape(prop.shape)
                 prop = fun * prop
             else:
                 prop = fun(prop)
 
         prop = prop.flatten()
-        prop = prop.reshape((len(self.channels), len(self.components), -1), order='F')
+        if self.reshape is None:
+            prop = prop.reshape((len(self.channels), len(self.components), -1), order='F')
+        else:
+            prop = self.reshape(prop)
 
         for cc, component in enumerate(self.components):
 
@@ -1769,15 +1777,6 @@ class Update_IRLS(InversionDirective):
 
             self.invProb.beta = self.invProb.beta / self.coolingFactor
 
-        phim_new = 0
-        for reg in self.reg.objfcts:
-            for comp, multipier in zip(reg.objfcts, reg.multipliers):
-                if multipier > 0:
-                    phim_new += np.sum(
-                        comp.f_m ** 2.0
-                        / (comp.f_m ** 2.0 + comp.epsilon ** 2.0)
-                        ** (1 - comp.norm / 2.0)
-                    )
 
         # Update the model used by the regularization
         phi_m_last = []
@@ -1794,6 +1793,15 @@ class Update_IRLS(InversionDirective):
         if np.all(
             [(self.opt.iter - self.iterStart) % self.minGNiter == 0, self.mode != 1]
         ):
+            phim_new = 0
+            for reg in self.reg.objfcts:
+                for comp, multipier in zip(reg.objfcts, reg.multipliers):
+                    if multipier > 0:
+                        phim_new += np.sum(
+                            comp.f_m ** 2.0
+                            / (comp.f_m ** 2.0 + comp.epsilon ** 2.0)
+                            ** (1 - comp.norm / 2.0)
+                        )
 
             if self.fix_Jmatrix:
                 print(">> Fix Jmatrix")
@@ -1882,18 +1890,13 @@ class Update_IRLS(InversionDirective):
         # Either use the supplied epsilon, or fix base on distribution of
         # model values
         for reg in self.reg.objfcts:
+            values = np.abs(reg.mapping * reg._delta_m(self.invProb.model))
+            pct = np.percentile(values[values > 0], self.prctile)
 
             if getattr(reg, "eps_p", None) is None:
-
-                reg.eps_p = np.percentile(
-                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
-                )
-
+                reg.eps_p = pct
             if getattr(reg, "eps_q", None) is None:
-
-                reg.eps_q = np.percentile(
-                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
-                )
+                reg.eps_q = pct
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
@@ -2039,7 +2042,7 @@ class UpdateSensitivityWeights(InversionDirective):
     mapping = None
     JtJdiag = None
     everyIter = True
-    threshold = None
+    threshold: int = 0
     switch = True
 
     def initialize(self):
@@ -2072,7 +2075,6 @@ class UpdateSensitivityWeights(InversionDirective):
         """
         self.JtJdiag = []
         m = self.invProb.model
-        threshold = []
         for ii, dmisfit in enumerate(self.dmisfit.objfcts):
             assert getattr(dmisfit.simulation, "getJtJdiag", None) is not None, (
                 "Simulation does not have a getJtJdiag attribute."
@@ -2084,20 +2086,6 @@ class UpdateSensitivityWeights(InversionDirective):
 
             self.JtJdiag += [dmisfit.getJtJdiag(m) / cell_volumes**2.]
 
-            if self.threshold is not None:
-                if isinstance(self.threshold, list):
-                    floor = self.threshold[ii]
-                else:
-                    floor = self.threshold
-
-                floor = np.ones_like(self.JtJdiag[ii]) * floor
-
-            else:
-                floor = np.zeros_like(self.JtJdiag[ii])
-
-            threshold += [floor]
-
-        self.threshold = threshold
         return self.JtJdiag
 
     def getWr(self):
@@ -2108,13 +2096,14 @@ class UpdateSensitivityWeights(InversionDirective):
 
         wr = np.zeros_like(self.invProb.model)
         if self.switch:
-            for prob_JtJ, threshold in zip(
-                self.JtJdiag, self.threshold
-            ):
-                wr += np.max(np.c_[prob_JtJ, threshold], axis=1)
+            for prob_JtJ in self.JtJdiag:
+                wr += prob_JtJ
 
             wr /= wr.max()
             wr = wr ** 0.5
+
+            wr += np.percentile(wr, self.threshold)#threshold
+
 
         else:
             wr += 1.0

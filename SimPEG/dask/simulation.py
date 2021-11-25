@@ -1,5 +1,5 @@
 from ..simulation import BaseSimulation as Sim
-from dask.distributed import get_client, Future
+from dask.distributed import get_client, Future, Client
 from dask import array, delayed
 from dask.delayed import Delayed
 import warnings
@@ -64,17 +64,13 @@ def make_synthetic_data(
         )
         relative_error = std
 
-    # if f is None:
-    #     f = self.fields(m)
-    #
-    #     if isinstance(f, Delayed):
-    #         f = f.compute()
-
-    # client = get_client()
     dpred = self.dpred(m, f=f)
     if isinstance(dpred, Delayed):
-        client = get_client()
-        dclean = client.compute(dpred, workers=self.workers).result()
+        if self.workers is None:
+            dclean = dpred.compute()
+        else:
+            client = get_client()
+            dclean = client.compute(dpred, workers=self.workers).result()
     else:
         dclean = np.asarray(dpred)
 
@@ -94,22 +90,7 @@ def make_synthetic_data(
     )
 
 Sim.make_synthetic_data = make_synthetic_data
-# @property
-# def client(self):
-#     if getattr(self, '_client', None) is None:
-#         self._client = get_client()
-#
-#     return self._client
-#
-#
-# @client.setter
-# def client(self, client):
-#     assert isinstance(client, Client)
-#     self._client = client
-#
-#
-# Sim.client = client
-#
+
 
 @property
 def workers(self):
@@ -161,11 +142,18 @@ def Jmatrix(self):
     Sensitivity matrix stored on disk
     """
     if getattr(self, "_Jmatrix", None) is None:
-        client = get_client()
-        self._Jmatrix = client.compute(
-                delayed(self.compute_J)(),
-            workers=self.workers
-        )
+        if self.workers is None:
+            self._Jmatrix = self.compute_J()
+        else:
+            try:
+                client = get_client()
+            except ValueError:
+                client = Client()
+
+            self._Jmatrix = client.compute(
+                    delayed(self.compute_J)(),
+                workers=self.workers
+            )
     elif isinstance(self._Jmatrix, Future):
         # client = get_client()
         self._Jmatrix.result()

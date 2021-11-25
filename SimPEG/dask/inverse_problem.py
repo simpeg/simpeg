@@ -1,7 +1,8 @@
 from ..inverse_problem import BaseInvProblem
 import numpy as np
 
-from dask import delayed
+from dask.delayed import Delayed
+from dask.diagnostics import ProgressBar
 from dask.distributed import Future, get_client
 import dask.array as da
 import gc
@@ -95,38 +96,64 @@ BaseInvProblem.getFields = dask_getFields
 
 def get_dpred(self, m, f=None, compute_J=False):
     dpreds = []
-    client = get_client()
 
     if isinstance(self.dmisfit, BaseDataMisfit):
         return self.dmisfit.simulation.dpred(m)
     elif isinstance(self.dmisfit, BaseObjectiveFunction):
-
         for i, objfct in enumerate(self.dmisfit.objfcts):
+
             if hasattr(objfct, "simulation"):
+
                 if objfct.model_map is not None:
                     vec = objfct.model_map @ m
                 else:
                     vec = m
 
-                future = client.compute(
-                    objfct.simulation.dpred(
-                        vec, compute_J=compute_J and (objfct.simulation._Jmatrix is None)
-                    ), workers=objfct.workers
-                )
+                compute_sensitivities = compute_J and (objfct.simulation._Jmatrix is None)
+
+                try:
+                    client = get_client()
+                    future = client.compute(
+                        objfct.simulation.dpred(
+                            vec, compute_J=compute_sensitivities
+                        ), workers=objfct.workers
+                    )
+                except ValueError:
+                    # For locals, the future is now
+                    future = objfct.simulation.dpred(
+                        vec, compute_J=compute_sensitivities
+                    )
+                    if isinstance(future, (da.Array, Delayed)):
+                        if (
+                            (
+                                objfct.simulation.store_sensitivities == "forward_only"
+                                or compute_sensitivities
+                            )
+                            and objfct.simulation.verbose
+                        ):
+                            with ProgressBar():
+                                future = future.compute()
+                        else:
+                            future = future.compute()
+
                 dpreds += [future]
 
             else:
                 dpreds += []
 
     if isinstance(dpreds[0], Future):
+        client = get_client()
         dpreds = client.gather(dpreds)
-        preds = []
-        if isinstance(dpreds[0], tuple):  # Jmatrix was computed
-            for future, objfct in zip(dpreds, self.dmisfit.objfcts):
-                preds += [future[0]]
-                objfct.simulation._Jmatrix = future[1]
 
-            return preds
+    preds = []
+    if isinstance(dpreds[0], tuple):  # Jmatrix was computed
+        for future, objfct in zip(dpreds, self.dmisfit.objfcts):
+            preds += [future[0]]
+            objfct.simulation._Jmatrix = future[1]
+        return preds
+
+    else:
+        dpreds = da.compute(dpreds)[0]
     return dpreds
 
 
@@ -197,9 +224,9 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     if return_g:
         phi_dDeriv = self.dmisfit.deriv(m, f=self.dpred)
         if hasattr(self.reg.objfcts[0], "space") and self.reg.objfcts[0].space == "spherical":
-            phi_mDeriv = self.reg2Deriv * self.reg._delta_m(m)
-        else:
             phi_mDeriv = self.reg.deriv(m)
+        else:
+            phi_mDeriv = self.reg2Deriv * self.reg.objfcts[0]._delta_m(m)
 
         g = np.asarray(phi_dDeriv) + self.beta * phi_mDeriv
         out += (g,)

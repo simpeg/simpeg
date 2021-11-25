@@ -506,7 +506,7 @@ class Simulation3DNodal(BaseDCSimulation):
             else:
                 MeSigma = self.mesh.getFaceInnerProduct(resistivity, invMat=True)
 
-        A = Grad.T @ MeSigma @ Grad
+        A = sp.csr_matrix(Grad.T @ MeSigma @ Grad)
 
         if self.bc_type == "Neumann":
             # Handling Null space of A

@@ -1,6 +1,7 @@
 from ....electromagnetics.frequency_domain.simulation import BaseFDEMSimulation as Sim
 from ....utils import Zero, mkvc
 import numpy as np
+import scipy.sparse as sp
 import dask.array as da
 from dask.distributed import Future
 import zarr
@@ -8,6 +9,8 @@ from time import time
 
 Sim.sensitivity_path = './sensitivity/'
 Sim.gtgdiag = None
+Sim.store_sensitivities = True
+
 
 def fields(self, m=None, return_Ainv=False):
     if m is not None:
@@ -21,9 +24,9 @@ def fields(self, m=None, return_Ainv=False):
         rhs = self.getRHS(freq)
 
         if return_Ainv:
-            Ainv += [self.solver(A.T, **self.solver_opts)]
+            Ainv += [self.solver(sp.csr_matrix(A.T), **self.solver_opts)]
 
-        Ainv_solve = self.solver(A, **self.solver_opts)
+        Ainv_solve = self.solver(sp.csr_matrix(A), **self.solver_opts)
         u = Ainv_solve * rhs
         Srcs = self.survey.get_sources_by_frequency(freq)
         f[Srcs, self._solutionType] = u

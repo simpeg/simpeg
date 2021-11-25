@@ -31,7 +31,7 @@ with open("README.rst") as f:
 
 setup(
     name="SimPEG",
-    version="0.15.1",
+    version="0.15.1.dev1+geoapps.0.6.0",
     packages=find_packages(exclude=["tests*", "examples*", "tutorials*"]),
     install_requires=[
         "numpy>=1.7",

@@ -1588,11 +1588,11 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         if mesh.dim == 3:
             uniqXYlocs, topoCC = gettopoCC(mesh, actind, option=option)
             inds = closestPointsGrid(uniqXYlocs, pts)
-            out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
+            out = np.c_[pts, topoCC[inds]]
         else:
             uniqXlocs, topoCC = gettopoCC(mesh, actind, option=option)
             inds = closestPointsGrid(uniqXlocs, pts, dim=1)
-            out = np.c_[uniqXlocs[inds], topoCC[inds]]
+            out = np.c_[pts, topoCC[inds]]
     else:
         raise NotImplementedError()
 
