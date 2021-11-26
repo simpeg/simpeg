@@ -69,7 +69,9 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
                     mesh3d.h[-1],
                 ]
                 mesh1d = discretize.TensorMesh(hs, x0=x0)
-                if len(self._sigma_primary) == mesh3d.nC:
+                if np.isscalar(self._sigma_primary):
+                    self._sigma1d = np.ones(mesh1d.nC) * self._sigma_primary
+                elif len(self._sigma_primary) == mesh3d.nC:
                     # volume average down to 1D mesh
                     self._sigma1d = np.exp(
                         volume_average(mesh3d, mesh1d, np.log(self._sigma_primary))
@@ -77,7 +79,7 @@ class Planewave_xy_1Dprimary(BaseFDEMSrc):
                 elif len(self._sigma_primary) == mesh1d.nC:
                     self._sigma1d = self._sigma_primary
                 else:
-                    self._sigma1d = np.ones(mesh1d.nC) * self._sigma_primary
+                    raise AttributeError("Background conductivity is not valid type")
                 self._sigma_p = np.exp(
                     volume_average(mesh1d, mesh3d, np.log(self._sigma1d))
                 )
