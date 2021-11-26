@@ -61,7 +61,6 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
     simulation = nsem.Simulation1DPrimarySecondary(
         mesh, sigmaPrimary=sig, sigma=sig, survey=survey
     )
-    # simulation.pair(survey)
 
     dataAnaObj = calculateAnalyticSolution(survey.source_list, mesh, sig)
 

@@ -185,9 +185,8 @@ class OldStyleProblemTest(unittest.TestCase):
         self.data_ana = data_ana
 
     def test_Problem3D_N(self, tolerance=0.2):
-        problem = DC.Problem3D_N(self.mesh, sigma=self.sigma)
+        problem = DC.Problem3D_N(self.mesh, survey=self.survey, sigma=self.sigma)
         problem.Solver = Solver
-        problem.pair(self.survey)
         with self.assertWarns(FutureWarning):
             data = self.survey.dpred()
         err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)

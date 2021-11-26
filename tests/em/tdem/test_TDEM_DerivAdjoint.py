@@ -42,8 +42,10 @@ def get_mapping(mesh):
     return maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
 
-def get_prob(mesh, mapping, formulation):
-    prb = getattr(tdem, "Simulation3D{}".format(formulation))(mesh, sigmaMap=mapping)
+def get_prob(mesh, mapping, formulation, **kwargs):
+    prb = getattr(tdem, "Simulation3D{}".format(formulation))(
+        mesh, sigmaMap=mapping, **kwargs
+    )
     prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
     prb.Solver = Solver
     return prb
@@ -64,12 +66,11 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         # create a prob where we will store the fields
         mesh = get_mesh()
         mapping = get_mapping(mesh)
-        self.prob = get_prob(mesh, mapping, self.formulation)
         self.survey = get_survey()
+        self.prob = get_prob(mesh, mapping, self.formulation, survey=self.survey)
         self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP) + 1e-3 * np.random.randn(
             self.prob.sigmaMap.nP
         )
-        self.prob.pair(self.survey)
         print("Solving Fields for problem {}".format(self.formulation))
         t = time.time()
         self.fields = self.prob.fields(self.m)
@@ -79,9 +80,8 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         # iteration
         mesh = get_mesh()
         mapping = get_mapping(mesh)
-        self.probfwd = get_prob(mesh, mapping, self.formulation)
         self.surveyfwd = get_survey()
-        self.probfwd.pair(self.surveyfwd)
+        self.probfwd = get_prob(mesh, mapping, self.formulation, survey=self.surveyfwd)
 
     def get_rx(self, rxcomp):
         rxOffset = 15.0

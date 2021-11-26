@@ -29,8 +29,14 @@ class BaseRichardsTest(unittest.TestCase):
         self.setup_maps(mesh, k_fun, theta_fun)
         bc, h = self.get_conditions(mesh)
 
+        time_steps = [(40, 3), (60, 3)]
+        mesh = discretize.TensorMesh(time_steps)
+        rx_list = self.get_rx_list(mesh.nodes_x)
+        survey = richards.Survey(rx_list)
+
         prob = richards.SimulationNDCellCentered(
             mesh,
+            survey=survey,
             hydraulic_conductivity=k_fun,
             water_retention=theta_fun,
             root_finder_tol=1e-6,
@@ -40,13 +46,8 @@ class BaseRichardsTest(unittest.TestCase):
             do_newton=False,
             method="mixed",
         )
-        prob.time_steps = [(40, 3), (60, 3)]
+        prob.time_steps = time_steps
         prob.Solver = Solver
-
-        rx_list = self.get_rx_list(prob)
-        survey = richards.Survey(rx_list)
-
-        prob.pair(survey)
 
         self.h0 = h
         self.mesh = mesh
@@ -120,9 +121,8 @@ class RichardsTests1D(BaseRichardsTest):
         print(mesh.dim)
         return mesh
 
-    def get_rx_list(self, prob):
+    def get_rx_list(self, times):
         locs = np.array([[5.0], [10], [15]])
-        times = prob.times[3:5]
         rxSat = richards.receivers.Saturation(locations=locs, times=times)
         rxPre = richards.receivers.Pressure(locations=locs, times=times)
         return [rxSat, rxPre]

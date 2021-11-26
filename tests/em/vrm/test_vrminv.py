@@ -56,8 +56,7 @@ class VRM_inversion_tests(unittest.TestCase):
         Survey = vrm.Survey(txList)
         Survey.t_active = np.zeros(Survey.nD, dtype=bool)
         Survey.set_active_interval(-1e6, 1e6)
-        Problem = vrm.Simulation3DLinear(meshObj, refinement_factor=2)
-        Problem.pair(Survey)
+        Problem = vrm.Simulation3DLinear(meshObj, survey=Survey, refinement_factor=2)
         dobs = Problem.make_synthetic_data(mod)
         Survey.eps = 1e-11
 

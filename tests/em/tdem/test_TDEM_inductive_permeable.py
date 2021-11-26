@@ -149,24 +149,23 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         src_list = [src_magnetostatic]
         src_list_late_ontime = [src_ramp_on]
 
+        survey = tdem.Survey(srcList=src_list)
+        survey_late_ontime = tdem.Survey(src_list_late_ontime)
+
         prob = tdem.Simulation3DMagneticFluxDensity(
             mesh=mesh,
+            survey=survey,
             timeSteps=timeSteps,
             sigmaMap=maps.IdentityMap(mesh),
             Solver=Pardiso,
         )
         prob_late_ontime = tdem.Simulation3DMagneticFluxDensity(
             mesh=mesh,
+            survey=survey_late_ontime,
             timeSteps=timeSteps,
             sigmaMap=maps.IdentityMap(mesh),
             Solver=Pardiso,
         )
-
-        survey = tdem.Survey(srcList=src_list)
-        survey_late_ontime = tdem.Survey(src_list_late_ontime)
-
-        prob.pair(survey)
-        prob_late_ontime.pair(survey_late_ontime)
 
         fields_dict = {}
 

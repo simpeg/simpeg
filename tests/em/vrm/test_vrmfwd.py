@@ -54,8 +54,7 @@ class VRM_fwd_tests(unittest.TestCase):
         txList = [Src]
 
         Survey = vrm.Survey(txList)
-        Problem = vrm.Simulation3DLinear(meshObj, refinement_factor=0)
-        Problem.pair(Survey)
+        Problem = vrm.Simulation3DLinear(meshObj, survey=Survey, refinement_factor=0)
         Fields = Problem.fields(mod)
 
         H0 = Src.getH0(np.c_[0.0, 0.0, 0.0])
@@ -152,8 +151,7 @@ class VRM_fwd_tests(unittest.TestCase):
         txList.append(vrm.sources.LineCurrent(rxList, np.c_[px, py, pz], 1.0, waveObj))
 
         Survey = vrm.Survey(txList)
-        Problem = vrm.Simulation3DLinear(meshObj, refinement_factor=1)
-        Problem.pair(Survey)
+        Problem = vrm.Simulation3DLinear(meshObj, survey=Survey, refinement_factor=1)
         Fields = Problem.fields(mod)
 
         err1 = np.all(
@@ -198,18 +196,11 @@ class VRM_fwd_tests(unittest.TestCase):
             )
         ]
 
-        Survey2 = vrm.Survey(txList)
-        Survey3 = vrm.Survey(txList)
-        Survey4 = vrm.Survey(txList)
-        Survey5 = vrm.Survey(txList)
-        Problem2 = vrm.Simulation3DLinear(meshObj, refinement_factor=2)
-        Problem3 = vrm.Simulation3DLinear(meshObj, refinement_factor=3)
-        Problem4 = vrm.Simulation3DLinear(meshObj, refinement_factor=4)
-        Problem5 = vrm.Simulation3DLinear(meshObj, refinement_factor=5)
-        Problem2.pair(Survey2)
-        Problem3.pair(Survey3)
-        Problem4.pair(Survey4)
-        Problem5.pair(Survey5)
+        survey = vrm.Survey(txList)
+        Problem2 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=2)
+        Problem3 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=3)
+        Problem4 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=4)
+        Problem5 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=5)
         Fields2 = Problem2.fields(mod)
         Fields3 = Problem3.fields(mod)
         Fields4 = Problem4.fields(mod)
@@ -268,18 +259,11 @@ class VRM_fwd_tests(unittest.TestCase):
             )
         ]
 
-        Survey2 = vrm.Survey(txList)
-        Survey3 = vrm.Survey(txList)
-        Survey4 = vrm.Survey(txList)
-        Survey5 = vrm.Survey(txList)
-        Problem2 = vrm.Simulation3DLinear(meshObj, refinement_factor=2)
-        Problem3 = vrm.Simulation3DLinear(meshObj, refinement_factor=3)
-        Problem4 = vrm.Simulation3DLinear(meshObj, refinement_factor=4)
-        Problem5 = vrm.Simulation3DLinear(meshObj, refinement_factor=5)
-        Problem2.pair(Survey2)
-        Problem3.pair(Survey3)
-        Problem4.pair(Survey4)
-        Problem5.pair(Survey5)
+        survey = vrm.Survey(txList)
+        Problem2 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=2)
+        Problem3 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=3)
+        Problem4 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=4)
+        Problem5 = vrm.Simulation3DLinear(meshObj, survey=survey, refinement_factor=5)
         Fields2 = Problem2.fields(mod)
         Fields3 = Problem3.fields(mod)
         Fields4 = Problem4.fields(mod)
@@ -380,15 +364,16 @@ class VRM_fwd_tests(unittest.TestCase):
             )
         ]
 
-        Survey1 = vrm.Survey(txList)
-        Survey2 = vrm.Survey(txList)
-        Survey3 = vrm.Survey(txList)
-        Survey4 = vrm.Survey(txList)
+        survey = vrm.Survey(txList)
         Problem1 = vrm.Simulation3DLinear(
-            meshObj_Tensor, refinement_factor=2, refinement_distance=[1.9, 3.6]
+            meshObj_Tensor,
+            survey=survey,
+            refinement_factor=2,
+            refinement_distance=[1.9, 3.6],
         )
         Problem2 = vrm.Simulation3DLogUniform(
             meshObj_Tensor,
+            survey=survey,
             refinement_factor=2,
             refinement_distance=[1.9, 3.6],
             chi0=mod_chi0_a,
@@ -396,19 +381,18 @@ class VRM_fwd_tests(unittest.TestCase):
             tau1=mod_tau1_a,
             tau2=mod_tau2_a,
         )
-        Problem3 = vrm.Simulation3DLinear(meshObj_OcTree, refinement_factor=0)
+        Problem3 = vrm.Simulation3DLinear(
+            meshObj_OcTree, survey=survey, refinement_factor=0
+        )
         Problem4 = vrm.Simulation3DLogUniform(
             meshObj_OcTree,
+            survey=survey,
             refinement_factor=0,
             chi0=mod_chi0_b,
             dchi=mod_dchi_b,
             tau1=mod_tau1_b,
             tau2=mod_tau2_b,
         )
-        Problem1.pair(Survey1)
-        Problem2.pair(Survey2)
-        Problem3.pair(Survey3)
-        Problem4.pair(Survey4)
         Fields1 = Problem1.fields(mod_a)
         Fields2 = Problem2.fields()
         Fields3 = Problem3.fields(mod_b)
@@ -512,13 +496,17 @@ class VRM_fwd_tests(unittest.TestCase):
         Survey1 = vrm.Survey(txList1)
         Survey2 = vrm.Survey(txList2)
         Problem1 = vrm.Simulation3DLinear(
-            meshObj_Tensor, refinement_factor=2, refinement_distance=[1.9, 3.6]
+            meshObj_Tensor,
+            survey=Survey1,
+            refinement_factor=2,
+            refinement_distance=[1.9, 3.6],
         )
         Problem2 = vrm.Simulation3DLinear(
-            meshObj_Tensor, refinement_factor=2, refinement_distance=[1.9, 3.6]
+            meshObj_Tensor,
+            survey=Survey2,
+            refinement_factor=2,
+            refinement_distance=[1.9, 3.6],
         )
-        Problem1.pair(Survey1)
-        Problem2.pair(Survey2)
         Fields1 = Problem1.fields(mod)
         Fields2 = Problem2.fields(mod)
 

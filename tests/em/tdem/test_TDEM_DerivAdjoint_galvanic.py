@@ -52,18 +52,14 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx"):
     )
     survey = tdem.Survey([src])
 
-    prb = getattr(tdem, "Simulation3D{}".format(prbtype))(mesh, sigmaMap=mapping)
+    time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
 
-    prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+    m = np.log(1e-1) * np.ones(mapping.nP) + 1e-3 * np.random.randn(mapping.nP)
 
-    prb.solver = Solver
-
-    m = np.log(1e-1) * np.ones(prb.sigmaMap.nP) + 1e-3 * np.random.randn(
-        prb.sigmaMap.nP
+    prb = getattr(tdem, "Simulation3D{}".format(prbtype))(
+        mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
     )
-
-    prb.pair(survey)
-    mesh = mesh
+    prb.solver = Solver
 
     return prb, m, mesh
 

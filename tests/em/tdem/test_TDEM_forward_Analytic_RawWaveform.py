@@ -41,11 +41,12 @@ def halfSpaceProblemAnaDiff(
     actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
-    prb = tdem.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
-    prb.Solver = Solver
-    prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
-    out = utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
-    wavefun = interp1d(prb.times, out)
+    time_mesh = discretize.TensorMesh(
+        [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
+    )
+    times = time_mesh.nodes_x
+    out = utils.VTEMFun(times, 0.00595, 0.006, 100)
+    wavefun = interp1d(times, out)
     t0 = 0.006
     waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
@@ -61,7 +62,8 @@ def halfSpaceProblemAnaDiff(
         )
 
     survey = tdem.Survey([src])
-    prb.pair(survey)
+    prb = tdem.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigmaMap=mapping)
+    prb.Solver = Solver
 
     sigma = np.ones(mesh.nCz) * 1e-8
     sigma[active] = sig_half

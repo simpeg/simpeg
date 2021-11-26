@@ -1,9 +1,6 @@
-from __future__ import print_function
-
 import unittest
 
 import numpy as np
-import scipy.sparse as sp
 
 import discretize as Mesh
 from SimPEG import data_misfit as DataMisfit
@@ -23,15 +20,13 @@ class DataMisfitTest(unittest.TestCase):
         sigma = np.ones(mesh.nC)
         model = np.log(sigma)
 
-        prob = DC.Problem3D_CC(mesh, rhoMap=Maps.ExpMap(mesh))
-
         rx = DC.Rx.Pole(Utils.ndgrid([mesh.vectorCCx, np.r_[mesh.vectorCCy.max()]]))
         src = DC.Src.Dipole(
             [rx], np.r_[-0.25, mesh.vectorCCy.max()], np.r_[0.25, mesh.vectorCCy.max()]
         )
         survey = DC.Survey([src])
 
-        prob.pair(survey)
+        prob = DC.Problem3D_CC(mesh, survey=survey, rhoMap=Maps.ExpMap(mesh))
 
         self.std = 0.01
         survey.std = self.std

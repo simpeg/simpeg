@@ -58,18 +58,22 @@ class IPProblemAnalyticTests(unittest.TestCase):
     def test_Simulation2DNodal(self):
 
         problemDC = dc.Simulation2DNodal(
-            self.mesh, sigmaMap=maps.IdentityMap(self.mesh)
+            self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
         problemDC.Solver = Solver
-        problemDC.pair(self.surveyDC)
         data0 = problemDC.dpred(self.sigma0)
         datainf = problemDC.dpred(self.sigmaInf)
+
+        surveyIP = ip.Survey(self.source_lists_ip)
+
         problemIP = ip.Simulation2DNodal(
-            self.mesh, sigma=self.sigmaInf, etaMap=maps.IdentityMap(self.mesh),
+            self.mesh,
+            survey=surveyIP,
+            sigma=self.sigmaInf,
+            etaMap=maps.IdentityMap(self.mesh),
         )
         problemIP.Solver = Solver
-        surveyIP = ip.Survey(self.source_lists_ip)
-        problemIP.pair(surveyIP)
+
         data_full = data0 - datainf
         data = problemIP.dpred(self.eta)
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
@@ -85,20 +89,22 @@ class IPProblemAnalyticTests(unittest.TestCase):
     def test_Simulation2DCellCentered(self):
 
         problemDC = dc.Simulation2DCellCentered(
-            self.mesh, rhoMap=maps.IdentityMap(self.mesh)
+            self.mesh, survey=self.surveyDC, rhoMap=maps.IdentityMap(self.mesh)
         )
         problemDC.Solver = Solver
-        problemDC.pair(self.surveyDC)
         data0 = problemDC.dpred(1.0 / self.sigma0)
         finf = problemDC.fields(1.0 / self.sigmaInf)
         datainf = problemDC.dpred(1.0 / self.sigmaInf, f=finf)
-        problemIP = ip.Simulation2DCellCentered(
-            self.mesh, rho=1.0 / self.sigmaInf, etaMap=maps.IdentityMap(self.mesh)
-        )
-        problemIP.Solver = Solver
 
         surveyIP = ip.Survey(self.source_lists_ip)
-        problemIP.pair(surveyIP)
+
+        problemIP = ip.Simulation2DCellCentered(
+            self.mesh,
+            survey=surveyIP,
+            rho=1.0 / self.sigmaInf,
+            etaMap=maps.IdentityMap(self.mesh),
+        )
+        problemIP.Solver = Solver
         data_full = data0 - datainf
         data = problemIP.dpred(self.eta)
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size

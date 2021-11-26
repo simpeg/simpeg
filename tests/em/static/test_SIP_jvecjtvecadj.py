@@ -62,10 +62,14 @@ class SIPProblemTestsCC(unittest.TestCase):
 
         wires = maps.Wires(("eta", mesh.nC), ("taui", mesh.nC))
         problem = sip.Simulation3DCellCentered(
-            mesh, rho=1.0 / sigma, etaMap=wires.eta, tauiMap=wires.taui, storeJ=False
+            mesh,
+            survey=survey,
+            rho=1.0 / sigma,
+            etaMap=wires.eta,
+            tauiMap=wires.taui,
+            storeJ=False,
         )
         problem.Solver = Solver
-        problem.pair(survey)
         mSynth = np.r_[eta, 1.0 / tau]
         problem.model = mSynth
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
@@ -152,11 +156,15 @@ class SIPProblemTestsN(unittest.TestCase):
         print("nodal2", survey.nD)
         wires = maps.Wires(("eta", mesh.nC), ("taui", mesh.nC))
         problem = sip.Simulation3DNodal(
-            mesh, sigma=sigma, etaMap=wires.eta, tauiMap=wires.taui, storeJ=False,
+            mesh,
+            survey=survey,
+            sigma=sigma,
+            etaMap=wires.eta,
+            tauiMap=wires.taui,
+            storeJ=False,
         )
         print(survey.nD)
         problem.Solver = Solver
-        problem.pair(survey)
         mSynth = np.r_[eta, 1.0 / tau]
         print(survey.nD)
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
@@ -252,6 +260,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         )
         problem = sip.Simulation3DNodal(
             mesh,
+            survey=survey,
             sigma=sigma,
             etaMap=actmapeta * wires.eta,
             tauiMap=actmaptau * wires.taui,
@@ -262,7 +271,6 @@ class SIPProblemTestsN_air(unittest.TestCase):
         )
 
         problem.Solver = Solver
-        problem.pair(survey)
         mSynth = np.r_[eta[~airind], 1.0 / tau[~airind], c[~airind]]
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization

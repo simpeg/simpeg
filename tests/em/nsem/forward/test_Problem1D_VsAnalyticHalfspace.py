@@ -12,9 +12,8 @@ def appRes_psFieldNorm(sigmaHalf):
     # Make the survey
     survey, sigma, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(sigmaHalf, False)
     simulation = nsem.Simulation1DPrimarySecondary(
-        mesh, sigmaPrimary=sigBG, sigma=sigma
+        mesh, survey=survey, sigmaPrimary=sigBG, sigma=sigma,
     )
-    simulation.pair(survey)
 
     # Get the fields
     fields = simulation.fields()
@@ -36,9 +35,8 @@ def appPhs_psFieldNorm(sigmaHalf):
     # Make the survey
     survey, sigma, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(sigmaHalf, False)
     simulation = nsem.Simulation1DPrimarySecondary(
-        mesh, sigmaPrimary=sigBG, sigma=sigma
+        mesh, survey=survey, sigmaPrimary=sigBG, sigma=sigma
     )
-    simulation.pair(survey)
 
     # Get the fields
     fields = simulation.fields()
