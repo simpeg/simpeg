@@ -372,7 +372,7 @@ class BaseSimulation(props.HasModel):
         dclean = self.dpred(m, f=f)
 
         if add_noise is True:
-            std = relative_error * abs(dclean) + noise_floor
+            std = np.sqrt((relative_error * np.abs(dclean))**2 + noise_floor**2)
             noise = std * np.random.randn(*dclean.shape)
             dobs = dclean + noise
         else:

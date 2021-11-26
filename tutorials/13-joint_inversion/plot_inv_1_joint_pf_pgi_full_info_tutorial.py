@@ -308,10 +308,10 @@ plt.show()
 #
 
 # Sensitivity weighting
-wr_grav = np.sum(simulation_grav.G ** 2.0, axis=0) ** 0.5
+wr_grav = np.sum(simulation_grav.G ** 2.0, axis=0) ** 0.5 / (mesh.cell_volumes[actv])
 wr_grav = wr_grav / np.max(wr_grav)
 
-wr_mag = np.sum(simulation_mag.G ** 2.0, axis=0) ** 0.5
+wr_mag = np.sum(simulation_mag.G ** 2.0, axis=0) ** 0.5 / (mesh.cell_volumes[actv])
 wr_mag = wr_mag / np.max(wr_mag)
 
 # create joint PGI regularization with smoothness
