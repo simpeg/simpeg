@@ -179,7 +179,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
             meshp, sigmaMap=primaryMapping
         )
         self.primarySimulation.solver = Solver
-        primarySrc = fdem.Src.MagDipole(self.rxlist, frequency=freq, loc=src_loc)
+        primarySrc = fdem.Src.MagDipole(self.rxlist, frequency=freq, location=src_loc)
         self.primarySurvey = fdem.Survey([primarySrc])
 
         self.secondarySrc = fdem.Src.PrimSecMappedSigma(
@@ -194,7 +194,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondarySimulation = fdem.Simulation3DMagneticFluxDensity(
             meshs, survey=self.secondarySurvey, sigmaMap=mapping
         )
-        self.secondarySimulation.Solver = Solver
+        self.secondarySimulation.solver = Solver
 
         # Full 3D problem to compare with
         self.survey3D = fdem.Survey([primarySrc])
@@ -202,7 +202,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.simulation3D = fdem.Simulation3DMagneticFluxDensity(
             meshs, survey=self.survey3D, sigmaMap=mapping
         )
-        self.simulation3D.Solver = Solver
+        self.simulation3D.solver = Solver
 
         # solve and store fields
         print("   solving primary - secondary")
@@ -268,20 +268,21 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondarySimulation = fdem.Simulation3DElectricField(
             meshs, survey=self.secondarySurvey, sigmaMap=mapping,
         )
-        self.secondarySimulation.Solver = Solver
+        self.secondarySimulation.solver = Solver
 
         # Full 3D problem to compare with
-        s_e3D = np.zeros(meshs.nE)
-        inds = meshs.nEx + meshs.nEy + utils.closestPoints(meshs, src_loc, gridLoc="Ez")
-        s_e3D[inds] = [1.0 / (len(inds))] * len(inds)
-        self.simulation3D.model = model
         src3D = fdem.Src.RawVec_e(self.rxlist, frequency=freq, s_e=s_e3D)
         self.survey3D = fdem.Survey([src3D])
 
         self.simulation3D = fdem.Simulation3DElectricField(
             meshs, survey=self.survey3D, sigmaMap=mapping
         )
-        self.simulation3D.Solver = Solver
+        self.simulation3D.solver = Solver
+
+        s_e3D = np.zeros(meshs.nE)
+        inds = meshs.nEx + meshs.nEy + utils.closestPoints(meshs, src_loc, gridLoc="Ez")
+        s_e3D[inds] = [1.0 / (len(inds))] * len(inds)
+        self.simulation3D.model = model
 
         # solve and store fields
         print("   solving primary - secondary")

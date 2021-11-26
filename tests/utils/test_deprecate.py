@@ -21,7 +21,7 @@ deprecated_modules = [
     "SimPEG.utils.meshutils",
     "SimPEG.utils.ModelBuilder",
     "SimPEG.utils.PlotUtils",
-    "SimPEG.utils.SolverUtils",
+    "SimPEG.utils.solverUtils",
     "SimPEG.electromagnetics.utils.EMUtils",
     "SimPEG.electromagnetics.utils.AnalyticUtils",
     "SimPEG.electromagnetics.utils.CurrentUtils",
@@ -186,7 +186,7 @@ class OldStyleProblemTest(unittest.TestCase):
 
     def test_Problem3D_N(self, tolerance=0.2):
         problem = DC.Problem3D_N(self.mesh, survey=self.survey, sigma=self.sigma)
-        problem.Solver = Solver
+        problem.solver = Solver
         with self.assertWarns(FutureWarning):
             data = self.survey.dpred()
         err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)

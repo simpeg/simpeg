@@ -22,7 +22,7 @@ def JvecAdjointTest(inputSetup, comp="All", freq=False):
     survey, problem = nsem.utils.test_utils.setupSimpegNSEM_ePrimSec(
         inputSetup, comp=comp, singleFreq=freq
     )
-    print("Using {0} solver for the problem".format(problem.Solver))
+    print("Using {0} solver for the problem".format(problem.solver))
     print(
         "Adjoint test of eForm primary/secondary "
         "for {:s} comp at {:s}\n".format(comp, str(survey.frequencies))

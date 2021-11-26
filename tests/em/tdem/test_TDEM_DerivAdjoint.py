@@ -47,13 +47,13 @@ def get_prob(mesh, mapping, formulation, **kwargs):
         mesh, sigmaMap=mapping, **kwargs
     )
     prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
-    prb.Solver = Solver
+    prb.solver = Solver
     return prb
 
 
 def get_survey():
-    src1 = tdem.Src.MagDipole([], loc=np.array([0.0, 0.0, 0.0]))
-    src2 = tdem.Src.MagDipole([], loc=np.array([0.0, 0.0, 8.0]))
+    src1 = tdem.Src.MagDipole([], location=np.array([0.0, 0.0, 0.0]))
+    src2 = tdem.Src.MagDipole([], location=np.array([0.0, 0.0, 8.0]))
     return tdem.Survey([src1, src2])
 
 

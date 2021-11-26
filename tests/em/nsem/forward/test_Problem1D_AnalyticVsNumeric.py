@@ -18,7 +18,7 @@ def getAppResPhs(nsemdata):
 
     zList = []
     for src in nsemdata.survey.source_list:
-        zc = [src.freq]
+        zc = [src.frequency]
         for rx in src.receiver_list:
             if "i" in rx.rxType:
                 m = 1j
@@ -37,7 +37,7 @@ def calculateAnalyticSolution(srcList, mesh, model):
     for src in surveyAna.source_list:
         elev = src.receiver_list[0].locations[0]
         anaEd, anaEu, anaHd, anaHu = nsem.utils.analytic_1d.getEHfields(
-            mesh, model, src.freq, elev
+            mesh, model, src.frequency, elev
         )
         anaE = anaEd + anaEu
         anaH = anaHd + anaHu

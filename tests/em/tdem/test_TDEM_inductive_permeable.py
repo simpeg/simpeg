@@ -139,11 +139,15 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             plt.show()
 
         src_magnetostatic = tdem.Src.CircularLoop(
-            [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100,
+            [], location=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100,
         )
 
         src_ramp_on = tdem.Src.CircularLoop(
-            [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100, waveform=waveform
+            [],
+            location=np.r_[0.0, 0.0, 0.0],
+            orientation="z",
+            radius=100,
+            waveform=waveform,
         )
 
         src_list = [src_magnetostatic]
@@ -157,14 +161,14 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             survey=survey,
             time_steps=time_steps,
             sigmaMap=maps.IdentityMap(mesh),
-            Solver=Pardiso,
+            solver=Pardiso,
         )
         prob_late_ontime = tdem.Simulation3DMagneticFluxDensity(
             mesh=mesh,
             survey=survey_late_ontime,
             time_steps=time_steps,
             sigmaMap=maps.IdentityMap(mesh),
-            Solver=Pardiso,
+            solver=Pardiso,
         )
 
         fields_dict = {}

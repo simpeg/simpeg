@@ -58,9 +58,9 @@ class FDEM_analyticTests(unittest.TestCase):
         try:
             from pymatsolver import Pardiso
 
-            prb.Solver = Pardiso
+            prb.solver = Pardiso
         except ImportError:
-            prb.Solver = SolverLU
+            prb.solver = SolverLU
 
         self.prb = prb
         self.mesh = mesh
@@ -81,7 +81,7 @@ class FDEM_analyticTests(unittest.TestCase):
             P = self.mesh.getInterpolationMat(XYZ, "Fz")
 
             ana = mu_0 * np.imag(
-                analytics.FDEM.hzAnalyticDipoleF(x, src.freq, self.sig)
+                analytics.FDEM.hzAnalyticDipoleF(x, src.frequency, self.sig)
             )
             num = P * np.imag(self.u[src, "b"])
 

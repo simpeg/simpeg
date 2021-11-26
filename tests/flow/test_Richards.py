@@ -30,7 +30,7 @@ class BaseRichardsTest(unittest.TestCase):
         bc, h = self.get_conditions(mesh)
 
         time_steps = [(40, 3), (60, 3)]
-        mesh = discretize.TensorMesh(time_steps)
+        mesh = discretize.TensorMesh([time_steps])
         rx_list = self.get_rx_list(mesh.nodes_x)
         survey = richards.Survey(rx_list)
 
@@ -47,7 +47,7 @@ class BaseRichardsTest(unittest.TestCase):
             method="mixed",
         )
         prob.time_steps = time_steps
-        prob.Solver = Solver
+        prob.solver = Solver
 
         self.h0 = h
         self.mesh = mesh

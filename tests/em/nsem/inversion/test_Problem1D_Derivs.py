@@ -22,7 +22,7 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
     simulation = nsem.Simulation1DPrimarySecondary(
         mesh, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(mesh), survey=survey
     )
-    print("Using {0} solver for the simulation".format(simulation.Solver))
+    print("Using {0} solver for the simulation".format(simulation.solver))
     print(
         "Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n".format(
             survey.frequencies[0], survey.frequencies[-1]

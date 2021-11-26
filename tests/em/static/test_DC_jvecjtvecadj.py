@@ -131,7 +131,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
             mesh=mesh,
             survey=self.survey,
             sigmaMap=self.sigma_map,
-            Solver=Pardiso,
+            solver=Pardiso,
             bc_type="Dirichlet",
         )
 

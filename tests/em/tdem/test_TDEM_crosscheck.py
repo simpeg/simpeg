@@ -57,14 +57,16 @@ def setUp_TDEM(prbtype="MagneticFluxDensity", rxcomp="bz", waveform="stepoff"):
     rx = getattr(tdem.Rx, "Point{}".format(rxcomp[:-1]))(
         np.r_[rxOffset, 0.0, -1e-2], rxtimes, rxcomp[-1]
     )
-    src = tdem.Src.MagDipole([rx], loc=np.array([0.0, 0.0, 0.0]), waveform=waveform)
+    src = tdem.Src.MagDipole(
+        [rx], location=np.array([0.0, 0.0, 0.0]), waveform=waveform
+    )
 
     survey = tdem.Survey([src])
 
     prb = getattr(tdem, "Simulation3D{}".format(prbtype))(
         mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
     )
-    prb.Solver = Solver
+    prb.solver = Solver
 
     m = np.log(1e-1) * np.ones(prb.sigmaMap.nP) + 1e-2 * np.random.rand(prb.sigmaMap.nP)
 
@@ -236,7 +238,7 @@ class TDEM_cross_check_EB(unittest.TestCase):
         ]
         src_loop = tdem.sources.CircularLoop(
             rxList=rx_list,
-            loc=np.r_[0.0, 0.0, 0.0],
+            location=np.r_[0.0, 0.0, 0.0],
             orientation="z",
             radius=300,
             current=1000.0,
