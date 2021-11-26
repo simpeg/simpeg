@@ -354,7 +354,7 @@ def deprecate_class(
         parent_name = cls.__bases__[0].__name__
         message = f"{my_name} has been deprecated, please use {parent_name}."
         if error:
-            message = f"{old_name} has been removed, please use {new_name}."
+            message = f"{my_name} has been removed, please use {parent_name}."
         elif removal_version is not None:
             message += f" It will be removed in version {removal_version} of SimPEG."
         else:
