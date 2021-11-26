@@ -46,7 +46,7 @@ def get_prob(mesh, mapping, formulation, **kwargs):
     prb = getattr(tdem, "Simulation3D{}".format(formulation))(
         mesh, sigmaMap=mapping, **kwargs
     )
-    prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+    prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
     prb.Solver = Solver
     return prb
 

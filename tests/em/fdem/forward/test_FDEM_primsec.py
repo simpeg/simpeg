@@ -179,7 +179,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
             meshp, sigmaMap=primaryMapping
         )
         self.primarySimulation.solver = Solver
-        primarySrc = fdem.Src.MagDipole(self.rxlist, freq=freq, loc=src_loc)
+        primarySrc = fdem.Src.MagDipole(self.rxlist, frequency=freq, loc=src_loc)
         self.primarySurvey = fdem.Survey([primarySrc])
 
         self.secondarySrc = fdem.Src.PrimSecMappedSigma(
@@ -250,7 +250,9 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         s_e = np.zeros(meshp.nF)
         inds = meshp.nFx + utils.closestPoints(meshp, src_loc, gridLoc="Fz")
         s_e[inds] = 1.0 / csz
-        primarySrc = fdem.Src.RawVec_e(self.rxlist, freq=freq, s_e=s_e / meshp.area)
+        primarySrc = fdem.Src.RawVec_e(
+            self.rxlist, frequency=freq, s_e=s_e / meshp.area
+        )
         self.primarySurvey = fdem.Survey([primarySrc])
 
         # Secondary Problem
@@ -273,7 +275,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         inds = meshs.nEx + meshs.nEy + utils.closestPoints(meshs, src_loc, gridLoc="Ez")
         s_e3D[inds] = [1.0 / (len(inds))] * len(inds)
         self.simulation3D.model = model
-        src3D = fdem.Src.RawVec_e(self.rxlist, freq=freq, s_e=s_e3D)
+        src3D = fdem.Src.RawVec_e(self.rxlist, frequency=freq, s_e=s_e3D)
         self.survey3D = fdem.Survey([src3D])
 
         self.simulation3D = fdem.Simulation3DElectricField(

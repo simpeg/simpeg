@@ -67,7 +67,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
 
         src = tdem.Src.RawVec_Grounded([], s_e=s_e)
 
-        timeSteps = [
+        time_steps = [
             (1e-6, 20),
             (1e-5, 30),
             (3e-5, 30),
@@ -77,7 +77,11 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             (1e-2, 17),
         ]
         prob = getattr(tdem, "Simulation3D{}".format(self.prob_type))(
-            mesh, timeSteps=timeSteps, mu=mu, sigmaMap=maps.ExpMap(mesh), Solver=Pardiso
+            mesh,
+            time_steps=time_steps,
+            mu=mu,
+            sigmaMap=maps.ExpMap(mesh),
+            Solver=Pardiso,
         )
         survey = tdem.Survey([src])
 

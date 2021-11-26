@@ -25,7 +25,7 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
     print("Using {0} solver for the simulation".format(simulation.Solver))
     print(
         "Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n".format(
-            survey.freqs[0], survey.freqs[-1]
+            survey.frequencies[0], survey.frequencies[-1]
         )
     )
     # simulation.mapping = maps.ExpMap(simulation.mesh)

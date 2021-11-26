@@ -228,7 +228,7 @@ class TDEM_cross_check_EB(unittest.TestCase):
     def test_waveform_instantiation(self):
 
         rx_list = [
-            tdem.receivers.Point_b(
+            tdem.receivers.PointMagneticFluxDensity(
                 locations=[np.r_[0.0, 0.0, 0.0]],
                 times=np.r_[1e-3, 2e-3, 5e-3],
                 orientation="z",

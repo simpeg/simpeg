@@ -25,7 +25,7 @@ def JvecAdjointTest(inputSetup, comp="All", freq=False):
     print("Using {0} solver for the problem".format(problem.Solver))
     print(
         "Adjoint test of eForm primary/secondary "
-        "for {:s} comp at {:s}\n".format(comp, str(survey.freqs))
+        "for {:s} comp at {:s}\n".format(comp, str(survey.frequencies))
     )
 
     m = sig

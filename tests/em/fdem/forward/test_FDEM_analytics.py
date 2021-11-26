@@ -45,10 +45,6 @@ class FDEM_analyticTests(unittest.TestCase):
                 frequency=freq,
                 radius=np.sqrt(1.0 / np.pi),
             ),
-            # fdem.Src.MagDipole_Bfield(
-            #     [rxList], loc=np.r_[0., 0., 0.],
-            #     freq=freq
-            # ), # less accurate
         ]
 
         survey = fdem.Survey(SrcList)

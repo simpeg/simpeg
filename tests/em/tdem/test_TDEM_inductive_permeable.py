@@ -124,7 +124,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             (3e-1, 20),
             (1, 50),
         ]
-        timeSteps = ramp
+        time_steps = ramp
 
         time_mesh = discretize.TensorMesh([ramp])
         offTime = 10000
@@ -155,14 +155,14 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         prob = tdem.Simulation3DMagneticFluxDensity(
             mesh=mesh,
             survey=survey,
-            timeSteps=timeSteps,
+            time_steps=time_steps,
             sigmaMap=maps.IdentityMap(mesh),
             Solver=Pardiso,
         )
         prob_late_ontime = tdem.Simulation3DMagneticFluxDensity(
             mesh=mesh,
             survey=survey_late_ontime,
-            timeSteps=timeSteps,
+            time_steps=time_steps,
             sigmaMap=maps.IdentityMap(mesh),
             Solver=Pardiso,
         )

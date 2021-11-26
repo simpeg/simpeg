@@ -23,15 +23,17 @@ SrcList_HJ = ["RawVec", "MagDipole_Bfield", "MagDipole", "CircularLoop"]
 
 class SrcLocTest(unittest.TestCase):
     def test_src(self):
-        src = fdem.Src.MagDipole([], loc=np.array([[1.5, 3.0, 5.0]]), freq=10)
+        src = fdem.Src.MagDipole([], loc=np.array([[1.5, 3.0, 5.0]]), frequency=10)
         self.assertTrue(np.all(src.location == np.r_[1.5, 3.0, 5.0]))
         self.assertTrue(src.location.shape == (3,))
 
         with self.assertRaises(Exception):
-            src = fdem.Src.MagDipole([], loc=np.array([[0.0, 0.0, 0.0, 1.0]]), freq=10)
+            src = fdem.Src.MagDipole(
+                [], loc=np.array([[0.0, 0.0, 0.0, 1.0]]), frequency=10
+            )
 
         with self.assertRaises(Exception):
-            src = fdem.Src.MagDipole([], loc=np.r_[0.0, 0.0, 0.0, 1.0], freq=10)
+            src = fdem.Src.MagDipole([], loc=np.r_[0.0, 0.0, 0.0, 1.0], frequency=10)
 
         src = tdem.Src.MagDipole([], loc=np.array([[1.5, 3.0, 5.0]]),)
         self.assertTrue(np.all(src.location == np.r_[1.5, 3.0, 5.0]))
