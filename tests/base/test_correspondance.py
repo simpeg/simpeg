@@ -38,7 +38,7 @@ class LinearCorrespondenceTest(unittest.TestCase):
     def test_order_full_hessian(self):
         """
 
-        Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
+        Test deriv and deriv2 matrix of linear correspondance with approx_hessian=True
 
         """
         corr = self.corr
