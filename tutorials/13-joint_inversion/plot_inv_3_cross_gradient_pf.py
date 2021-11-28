@@ -79,7 +79,7 @@ tar.close()
 dir_path = downloaded_data.split(".")[0] + os.path.sep
 
 # files to work with
-topo_filename = dir_path + "gravity_topo.txt"
+topo_filename = dir_path + "topo.txt"
 model_filename = dir_path + "true_model.txt"
 
 
