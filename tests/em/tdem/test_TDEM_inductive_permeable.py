@@ -162,8 +162,8 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             Solver=Pardiso,
         )
 
-        survey = tdem.Survey(srcList=src_list)
-        survey_late_ontime = tdem.Survey(src_list_late_ontime)
+        survey = tdem.Survey(source_list=src_list)
+        survey_late_ontime = tdem.Survey(source_list=src_list_late_ontime)
 
         prob.pair(survey)
         prob_late_ontime.pair(survey_late_ontime)
