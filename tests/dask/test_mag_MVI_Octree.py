@@ -92,7 +92,7 @@ class MVIProblemTest(unittest.TestCase):
         sim = mag.Simulation3DIntegral(
             self.mesh,
             survey=survey,
-            modelType="vector",
+            model_type="vector",
             chiMap=idenMap,
             actInd=actv,
             store_sensitivities="disk",
