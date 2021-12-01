@@ -114,7 +114,7 @@ class PrimSecFDEMTest(object):
                 "prim-sec: {normps:10.5e}, 3D: {norm3D:10.5e}, "
                 "diff: {diff:10.5e}, passed? {passed}".format(
                     rxfield=rx.projField,
-                    rxorient=rx.projComp,
+                    rxorient=rx.orientation,
                     rxcomp=rx.component,
                     normps=normps,
                     norm3D=norm3D,
@@ -271,6 +271,11 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondarySimulation.solver = Solver
 
         # Full 3D problem to compare with
+
+        s_e3D = np.zeros(meshs.nE)
+        inds = meshs.nEx + meshs.nEy + utils.closestPoints(meshs, src_loc, gridLoc="Ez")
+        s_e3D[inds] = [1.0 / (len(inds))] * len(inds)
+
         src3D = fdem.Src.RawVec_e(self.rxlist, frequency=freq, s_e=s_e3D)
         self.survey3D = fdem.Survey([src3D])
 
@@ -278,10 +283,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
             meshs, survey=self.survey3D, sigmaMap=mapping
         )
         self.simulation3D.solver = Solver
-
-        s_e3D = np.zeros(meshs.nE)
-        inds = meshs.nEx + meshs.nEy + utils.closestPoints(meshs, src_loc, gridLoc="Ez")
-        s_e3D[inds] = [1.0 / (len(inds))] * len(inds)
         self.simulation3D.model = model
 
         # solve and store fields
