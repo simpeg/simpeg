@@ -176,20 +176,20 @@ def TransientElectricDipoleWholeSpace(
             erf(kr) - 2 * kr * np.exp(-(kr ** 2)) / np.sqrt(pi)
         )
 
-        Fx = front * (my * (-dz / r) + mz * (dy / r))
+        Fx = front * (my * -dz + mz * dy)
 
-        Fy = front * (mx * (dz / r) + mz * (-dx / r))
+        Fy = front * (mx * dz + mz * -dx)
 
-        Fz = front * (mx * (-dy / r) + my * (dx / r))
+        Fz = front * (mx * -dy + my * dx)
 
     elif fieldType == "dhdt":
 
         front = -(2 * k ** 5 / (pi ** 1.5 * mu * sig)) * np.exp(-(kr ** 2))
 
-        Fx = front * (my * (-dz / r) + mz * (dy / r))
+        Fx = front * (my * -dz + mz * dy)
 
-        Fy = front * (mx * (dz / r) + mz * (-dx / r))
+        Fy = front * (mx * dz + mz * -dx)
 
-        Fz = front * (mx * (-dy / r) + my * (dx / r))
+        Fz = front * (mx * -dy + my * dx)
 
     return Fx, Fy, Fz
