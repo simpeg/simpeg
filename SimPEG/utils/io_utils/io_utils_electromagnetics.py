@@ -437,7 +437,7 @@ def read_dcip3d_ubc(file_name, data_type):
     is_pole_rx = False
 
     # IP data for dcip3d has a line with a flag we can remove.
-    if data_type != "volt":
+    if obsfile[0][0:6] == 'IPTYPE':
         obsfile = obsfile[1:]
 
     # Since SimPEG defines secondary potential from IP as voltage,
