@@ -433,8 +433,8 @@ class PrimSecCasingExample(object):
 
                 return dg_p
 
-            srcList = setupPrimarySource()  # create primary source
-            self._primarySurvey = FDEM.Survey(srcList)  # primary survey
+            source_list = setupPrimarySource()  # create primary source
+            self._primarySurvey = FDEM.Survey(source_list)  # primary survey
             print("... done building primary survey")
         return self._primarySurvey
 

@@ -294,7 +294,9 @@ rec_list = [
 
 # Set up the source list
 src_list = [
-    TDEM.Src.LineCurrent(rxList=rec_list, loc=np.array([[*src[::2]], [*src[1::2]]]),),
+    TDEM.Src.LineCurrent(
+        receiver_list=rec_list, loc=np.array([[*src[::2]], [*src[1::2]]]),
+    ),
 ]
 
 

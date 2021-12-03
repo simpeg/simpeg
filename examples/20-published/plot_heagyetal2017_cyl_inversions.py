@@ -87,11 +87,11 @@ def run(plotIt=True, saveFig=False):
         mesh.vectorCCz.max(),
     )
 
-    srcList = [
+    source_list = [
         FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc, orientation="Z") for freq in freqs
     ]
 
-    surveyFD = FDEM.Survey(srcList)
+    surveyFD = FDEM.Survey(source_list)
     prbFD = FDEM.Simulation3DMagneticFluxDensity(
         mesh, survey=surveyFD, sigmaMap=mapping, solver=Solver
     )

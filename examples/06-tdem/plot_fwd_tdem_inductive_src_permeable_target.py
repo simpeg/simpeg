@@ -184,7 +184,7 @@ prob_ramp_on = TDEM.Simulation3DMagneticFluxDensity(
     mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp, Solver=Solver
 )
 
-survey_magnetostatic = TDEM.Survey(srcList=src_list_magnetostatic)
+survey_magnetostatic = TDEM.Survey(source_list=src_list_magnetostatic)
 survey_ramp_on = TDEM.Survey(src_list_ramp_on)
 
 prob_magnetostatic.pair(survey_magnetostatic)

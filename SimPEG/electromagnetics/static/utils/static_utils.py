@@ -1649,7 +1649,7 @@ def gen_3d_survey_from_2d_lines(
     ylocs = np.arange(n_lines) * line_spacing + y0
 
     survey_lists_2d = []
-    srcList = []
+    source_list = []
     line_inds = []
     for i, y in enumerate(ylocs):
         # Generate DC survey object
@@ -1660,7 +1660,7 @@ def gen_3d_survey_from_2d_lines(
         endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
         survey_2d = gen_DCIPsurvey(endl, survey_type, a, b, n_spacing, dim=3,)
 
-        srcList.append(survey_2d.source_list)
+        source_list.append(survey_2d.source_list)
         survey_2d = IO_2d.from_abmn_locations_to_survey(
             survey_2d.locations_a[:, [0, 2]],
             survey_2d.locations_b[:, [0, 2]],
@@ -1672,8 +1672,8 @@ def gen_3d_survey_from_2d_lines(
         survey_lists_2d.append(survey_2d)
         line_inds.append(np.ones(survey_2d.nD, dtype=int) * i)
     line_inds = np.hstack(line_inds)
-    srcList = sum(srcList, [])
-    survey_3d = dc.Survey(srcList)
+    source_list = sum(source_list, [])
+    survey_3d = dc.Survey(source_list)
     IO_3d = dc.IO()
 
     survey_3d.locations_a[:, 1] += src_offset_y

@@ -19,11 +19,11 @@ class TomoTest(unittest.TestCase):
         rlocs = np.c_[y * 0 + M.vectorCCx[-1], y]
         rx = tomo.Rx(locations=rlocs)
 
-        srcList = [
-            tomo.Src(location=np.r_[M.vectorCCx[0], yi], rxList=[rx]) for yi in y
+        source_list = [
+            tomo.Src(location=np.r_[M.vectorCCx[0], yi], receiver_list=[rx]) for yi in y
         ]
 
-        survey = tomo.Survey(srcList)
+        survey = tomo.Survey(source_list)
         problem = tomo.Simulation(M, survey=survey, slownessMap=maps.IdentityMap(M))
 
         self.M = M

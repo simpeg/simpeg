@@ -36,8 +36,8 @@ class IPProblemAnalyticTests(unittest.TestCase):
         src0_ip = dc.Src.Dipole([rx], A0loc, B0loc)
         src1_ip = dc.Src.Dipole([rx], A1loc, B1loc)
 
-        srcLists = [src0, src1]
-        srcLists_ip = [src0_ip, src1_ip]
+        source_lists = [src0, src1]
+        source_lists_ip = [src0_ip, src1_ip]
         surveyDC = dc.Survey_ky([src0, src1])
 
         sigmaInf = np.ones(mesh.nC) * 1.0
@@ -51,8 +51,8 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.mesh = mesh
         self.sigmaInf = sigmaInf
         self.sigma0 = sigma0
-        self.source_lists = srcLists
-        self.source_lists_ip = srcLists_ip
+        self.source_lists = source_lists
+        self.source_lists_ip = source_lists_ip
         self.eta = eta
 
     def test_Simulation2DNodal(self):

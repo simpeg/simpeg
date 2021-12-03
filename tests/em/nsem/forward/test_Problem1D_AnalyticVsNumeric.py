@@ -31,8 +31,8 @@ def getAppResPhs(nsemdata):
     ]
 
 
-def calculateAnalyticSolution(srcList, mesh, model):
-    surveyAna = nsem.Survey(srcList)
+def calculateAnalyticSolution(source_list, mesh, model):
+    surveyAna = nsem.Survey(source_list)
     data1D = nsem.Data(surveyAna)
     for src in surveyAna.source_list:
         elev = src.receiver_list[0].locations[0]

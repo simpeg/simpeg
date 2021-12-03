@@ -353,7 +353,7 @@ class IO(properties.HasProperties):
 
         if self.survey_layout == "SURFACE":
             # 2D locations
-            srcLists = []
+            source_lists = []
             sort_inds = []
             for iSrc in range(nSrc):
                 inds = uniqSrc[2] == iSrc
@@ -380,14 +380,14 @@ class IO(properties.HasProperties):
                 elif survey_type in ["pole-dipole", "pole-pole"]:
                     src = Src.Pole([rx], locA)
 
-                srcLists.append(src)
+                source_lists.append(src)
 
             self.sort_inds = np.hstack(sort_inds)
 
             if dimension == 2:
-                survey = Survey(srcLists)
+                survey = Survey(source_lists)
             elif dimension == 3:
-                survey = Survey(srcLists)
+                survey = Survey(source_lists)
             else:
                 raise NotImplementedError()
 

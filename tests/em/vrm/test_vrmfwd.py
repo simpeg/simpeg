@@ -35,13 +35,13 @@ class VRM_fwd_tests(unittest.TestCase):
             R * np.c_[np.sin(phi) * np.cos(psi), np.sin(phi) * np.sin(psi), np.cos(phi)]
         )
 
-        rxList = [
+        receiver_list = [
             vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="x")
         ]
-        rxList.append(
+        receiver_list.append(
             vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="y")
         )
-        rxList.append(
+        receiver_list.append(
             vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
         )
 
@@ -49,7 +49,7 @@ class VRM_fwd_tests(unittest.TestCase):
         beta = np.random.uniform(-np.pi, np.pi)
         loc_tx = [0.0, 0.0, 0.0]
         Src = vrm.sources.CircLoop(
-            rxList, loc_tx, 25.0, np.r_[alpha, beta], 1.0, waveObj
+            receiver_list, loc_tx, 25.0, np.r_[alpha, beta], 1.0, waveObj
         )
         txList = [Src]
 
@@ -117,13 +117,13 @@ class VRM_fwd_tests(unittest.TestCase):
             * np.c_[np.sin(phi) * np.cos(psi), np.sin(phi) * np.sin(psi), np.cos(phi)]
         )
 
-        rxList = [
+        receiver_list = [
             vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="x")
         ]
-        rxList.append(
+        receiver_list.append(
             vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="y")
         )
-        rxList.append(
+        receiver_list.append(
             vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
         )
 
@@ -139,16 +139,25 @@ class VRM_fwd_tests(unittest.TestCase):
             ]
         )
 
-        txList = [vrm.sources.MagDipole(rxList, loc_tx, [0.0, 0.0, 0.01], waveObj)]
+        txList = [
+            vrm.sources.MagDipole(receiver_list, loc_tx, [0.0, 0.0, 0.01], waveObj)
+        ]
         txList.append(
             vrm.sources.CircLoop(
-                rxList, loc_tx, np.sqrt(0.01 / np.pi), np.r_[0.0, 0.0], 1.0, waveObj
+                receiver_list,
+                loc_tx,
+                np.sqrt(0.01 / np.pi),
+                np.r_[0.0, 0.0],
+                1.0,
+                waveObj,
             )
         )
         px = loc_tx[0] + np.r_[-0.05, 0.05, 0.05, -0.05, -0.05]
         py = loc_tx[1] + np.r_[-0.05, -0.05, 0.05, 0.05, -0.05]
         pz = loc_tx[2] * np.ones(5)
-        txList.append(vrm.sources.LineCurrent(rxList, np.c_[px, py, pz], 1.0, waveObj))
+        txList.append(
+            vrm.sources.LineCurrent(receiver_list, np.c_[px, py, pz], 1.0, waveObj)
+        )
 
         Survey = vrm.Survey(txList)
         Problem = vrm.Simulation3DLinear(meshObj, survey=Survey, refinement_factor=1)
@@ -187,12 +196,12 @@ class VRM_fwd_tests(unittest.TestCase):
         z = 0.5
         a = 0.1
         loc_rx = np.c_[0.0, 0.0, z]
-        rxList = [
+        receiver_list = [
             vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
         ]
         txList = [
             vrm.sources.CircLoop(
-                rxList, np.r_[0.0, 0.0, z], a, np.r_[0.0, 0.0], 1.0, waveObj
+                receiver_list, np.r_[0.0, 0.0, z], a, np.r_[0.0, 0.0], 1.0, waveObj
             )
         ]
 
@@ -243,19 +252,19 @@ class VRM_fwd_tests(unittest.TestCase):
 
         z = 0.25
         a = 5
-        rxList = [
+        receiver_list = [
             vrm.receivers.Point(
                 np.c_[a, 0.0, z], times=times, fieldType="dhdt", orientation="x"
             )
         ]
-        rxList.append(
+        receiver_list.append(
             vrm.receivers.Point(
                 np.c_[0.0, a, z], times=times, fieldType="dhdt", orientation="y"
             )
         )
         txList = [
             vrm.sources.CircLoop(
-                rxList, np.r_[0.0, 0.0, z], a, np.r_[0.0, 0.0], 1.0, waveObj
+                receiver_list, np.r_[0.0, 0.0, z], a, np.r_[0.0, 0.0], 1.0, waveObj
             )
         ]
 
@@ -355,12 +364,12 @@ class VRM_fwd_tests(unittest.TestCase):
         waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
         loc_rx = np.c_[4.0, 4.0, 8.25]
-        rxList = [
+        receiver_list = [
             vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
         ]
         txList = [
             vrm.sources.MagDipole(
-                rxList, np.r_[4.0, 4.0, 8.25], [0.0, 0.0, 1.0], waveObj
+                receiver_list, np.r_[4.0, 4.0, 8.25], [0.0, 0.0, 1.0], waveObj
             )
         ]
 
@@ -447,19 +456,19 @@ class VRM_fwd_tests(unittest.TestCase):
             * np.r_[np.sin(phi) * np.cos(psi), np.sin(phi) * np.sin(psi), np.cos(phi)]
         )
 
-        rxList1 = [
+        receiver_list1 = [
             vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="x")
         ]
-        rxList1.append(
+        receiver_list1.append(
             vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="y")
         )
-        rxList1.append(
+        receiver_list1.append(
             vrm.receivers.Point(loc_rx, times=times, fieldType="dhdt", orientation="z")
         )
 
         w = 0.1
         N = 100
-        rxList2 = [
+        receiver_list2 = [
             vrm.receivers.SquareLoop(
                 loc_rx,
                 times=times,
@@ -469,7 +478,7 @@ class VRM_fwd_tests(unittest.TestCase):
                 orientation="x",
             )
         ]
-        rxList2.append(
+        receiver_list2.append(
             vrm.receivers.SquareLoop(
                 loc_rx,
                 times=times,
@@ -479,7 +488,7 @@ class VRM_fwd_tests(unittest.TestCase):
                 orientation="y",
             )
         )
-        rxList2.append(
+        receiver_list2.append(
             vrm.receivers.SquareLoop(
                 loc_rx,
                 times=times,
@@ -490,8 +499,12 @@ class VRM_fwd_tests(unittest.TestCase):
             )
         )
 
-        txList1 = [vrm.sources.MagDipole(rxList1, loc_tx, [1.0, 1.0, 1.0], waveObj)]
-        txList2 = [vrm.sources.MagDipole(rxList2, loc_tx, [1.0, 1.0, 1.0], waveObj)]
+        txList1 = [
+            vrm.sources.MagDipole(receiver_list1, loc_tx, [1.0, 1.0, 1.0], waveObj)
+        ]
+        txList2 = [
+            vrm.sources.MagDipole(receiver_list2, loc_tx, [1.0, 1.0, 1.0], waveObj)
+        ]
 
         Survey1 = vrm.Survey(txList1)
         Survey2 = vrm.Survey(txList2)

@@ -208,12 +208,12 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     frequency_cp = resolve["frequency_cp"][()]
     freqs = frequency_cp.copy()
     srcLoc = np.array([0.0, 0.0, src_height_resolve])
-    srcList = [
+    source_list = [
         FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc, orientation="Z") for freq in freqs
     ]
 
     # Set FDEM survey (In-phase and Quadrature)
-    survey = FDEM.Survey(srcList)
+    survey = FDEM.Survey(source_list)
     prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping, Solver=Solver)
     prb.survey = survey
 
@@ -295,10 +295,10 @@ def run(plotIt=True, saveFig=False, cleanup=True):
         locations=rxLoc, times=times_off[:-3] + offTime, orientation="z"
     )  # vertical db_dt
 
-    rxList = [dbdt_z]  # list of receivers
-    srcList = [
+    receiver_list = [dbdt_z]  # list of receivers
+    source_list = [
         TDEM.Src.CircularLoop(
-            rxList,
+            receiver_list,
             loc=srcLoc,
             radius=radius,
             orientation="z",
@@ -317,10 +317,10 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     prob = TDEM.Simulation3DElectricField(
         mesh, time_steps=timeSteps, sigmaMap=mapping, Solver=Solver
     )
-    survey = TDEM.Survey(srcList)
+    survey = TDEM.Survey(source_list)
     prob.survey = survey
 
-    src = srcList[0]
+    src = source_list[0]
     rx = src.receiver_list[0]
     wave = []
     for time in prob.times:

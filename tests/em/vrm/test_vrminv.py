@@ -38,7 +38,7 @@ class VRM_inversion_tests(unittest.TestCase):
 
         x, y = np.meshgrid(np.linspace(-17, 17, 16), np.linspace(-17, 17, 16))
         x, y, z = mkvc(x), mkvc(y), 0.5 * np.ones(np.size(x))
-        rxList = [
+        receiver_list = [
             vrm.Rx.Point(np.c_[x, y, z], times=times, fieldType="dbdt", fieldComp="z")
         ]
 
@@ -51,7 +51,7 @@ class VRM_inversion_tests(unittest.TestCase):
                 [-20, -20, 0.001],
             ]
         )
-        txList = [vrm.Src.LineCurrent(rxList, txNodes, 1.0, waveObj)]
+        txList = [vrm.Src.LineCurrent(receiver_list, txNodes, 1.0, waveObj)]
 
         Survey = vrm.Survey(txList)
         Survey.t_active = np.zeros(Survey.nD, dtype=bool)

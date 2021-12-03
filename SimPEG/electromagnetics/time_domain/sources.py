@@ -512,7 +512,7 @@ class LineCurrent(BaseTDEMSrc):
     """
     RawVec electric source. It is defined by the user provided vector s_e
 
-    :param list rxList: receiver list
+    :param list receiver_list: receiver list
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 

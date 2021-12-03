@@ -237,7 +237,7 @@ class TDEM_cross_check_EB(unittest.TestCase):
             )
         ]
         src_loop = tdem.sources.CircularLoop(
-            rxList=rx_list,
+            receiver_list=rx_list,
             location=np.r_[0.0, 0.0, 0.0],
             orientation="z",
             radius=300,

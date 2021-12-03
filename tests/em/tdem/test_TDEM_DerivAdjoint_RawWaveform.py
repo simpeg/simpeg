@@ -107,20 +107,20 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
             np.array([[rxOffset, 0.0, 0.0]]), timerx, rxcomp[-1]
         )
 
-    def set_rxList(self, rxcomp):
+    def set_receiver_list(self, rxcomp):
         # append the right rxlist to the surveys
         rx = [self.get_rx(rxcomp)]
         rxfwd = [self.get_rx(rxcomp)]
 
         # append to srclists
-        for srcList, rxlist in zip(
+        for source_list, rxlist in zip(
             [self.survey.source_list, self.surveyfwd.source_list], [rx, rxfwd]
         ):
-            for src in srcList:
+            for src in source_list:
                 src.receiver_list = rxlist
 
     def JvecTest(self, rxcomp):
-        self.set_rxList(rxcomp)
+        self.set_receiver_list(rxcomp)
 
         def derChk(m):
             return [
@@ -136,7 +136,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         tests.checkDerivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
 
     def JvecVsJtvecTest(self, rxcomp):
-        self.set_rxList(rxcomp)
+        self.set_receiver_list(rxcomp)
         print(
             "\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(self.formulation, rxcomp)
         )

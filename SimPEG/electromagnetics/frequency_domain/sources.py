@@ -871,7 +871,7 @@ class LineCurrent(BaseFDEMSrc):
     array the cells intersected by the wire path are identified and integrated
     src terms are computed
 
-    :param list rxList: receiver list
+    :param list receiver_list: receiver list
     :param float freq: src frequency
     :param (n,3) array locations: points defining src path
     """

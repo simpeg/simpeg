@@ -36,11 +36,15 @@ class FDEM_analyticTests(unittest.TestCase):
 
         x = np.linspace(-10, 10, 5)
         XYZ = utils.ndgrid(x, np.r_[0], np.r_[0])
-        rxList = fdem.Rx.PointElectricField(XYZ, orientation="x", component="imag")
+        receiver_list = fdem.Rx.PointElectricField(
+            XYZ, orientation="x", component="imag"
+        )
         SrcList = [
-            fdem.Src.MagDipole([rxList], location=np.r_[0.0, 0.0, 0.0], frequency=freq),
+            fdem.Src.MagDipole(
+                [receiver_list], location=np.r_[0.0, 0.0, 0.0], frequency=freq
+            ),
             fdem.Src.CircularLoop(
-                [rxList],
+                [receiver_list],
                 location=np.r_[0.0, 0.0, 0.0],
                 frequency=freq,
                 radius=np.sqrt(1.0 / np.pi),

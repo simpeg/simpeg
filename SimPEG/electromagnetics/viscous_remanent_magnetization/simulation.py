@@ -171,7 +171,7 @@ class BaseVRMSimulation(BaseSimulation):
         srcObj = self.survey.source_list[pp]
 
         nC = np.shape(xyzc)[0]  # Number of cells
-        nRx = srcObj.nRx  # Number of receiver in all rxList
+        nRx = srcObj.nRx  # Number of receiver in all receiver_list
 
         ax = np.reshape(xyzc[:, 0] - xyzh[:, 0] / 2, (1, nC))
         bx = np.reshape(xyzc[:, 0] + xyzh[:, 0] / 2, (1, nC))
@@ -877,23 +877,23 @@ class Simulation3DLinear(BaseVRMSimulation):
 
             print("CREATING T MATRIX")
 
-            srcList = self.survey.source_list
-            nSrc = len(srcList)
+            source_list = self.survey.source_list
+            nSrc = len(source_list)
             T = []
 
             for pp in range(0, nSrc):
 
-                rxList = srcList[pp].receiver_list
-                nRx = len(rxList)
-                waveObj = srcList[pp].waveform
+                receiver_list = source_list[pp].receiver_list
+                nRx = len(receiver_list)
+                waveObj = source_list[pp].waveform
 
                 for qq in range(0, nRx):
 
-                    times = rxList[qq].times
-                    nLoc = np.shape(rxList[qq].locations)[0]
+                    times = receiver_list[qq].times
+                    nLoc = np.shape(receiver_list[qq].locations)[0]
 
                     I = sp.diags(np.ones(nLoc))
-                    eta = waveObj.getCharDecay(rxList[qq].fieldType, times)
+                    eta = waveObj.getCharDecay(receiver_list[qq].fieldType, times)
                     eta = np.atleast_2d(eta).T
 
                     T.append(sp.kron(I, eta))
@@ -1024,21 +1024,21 @@ class Simulation3DLogUniform(BaseVRMSimulation):
             AssertionError("A survey must be set to generate A matrix")
 
         # Fields from each source
-        srcList = self.survey.source_list
-        nSrc = len(srcList)
+        source_list = self.survey.source_list
+        nSrc = len(source_list)
         f = []
 
         for pp in range(0, nSrc):
 
-            rxList = srcList[pp].receiver_list
-            nRx = len(rxList)
-            waveObj = srcList[pp].waveform
+            receiver_list = source_list[pp].receiver_list
+            nRx = len(receiver_list)
+            waveObj = source_list[pp].waveform
 
             for qq in range(0, nRx):
 
-                times = rxList[qq].times
+                times = receiver_list[qq].times
                 eta = waveObj.getLogUniformDecay(
-                    rxList[qq].fieldType,
+                    receiver_list[qq].fieldType,
                     times,
                     self.chi0,
                     self.dchi,
