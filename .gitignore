@@ -64,8 +64,8 @@ tutorials/06-ip/dcip2d/*
 tutorials/06-ip/dcip3d/*
 tutorials/06-ip/outputs/*
 tutorials/12-seismic/seismic/*
-tutorials/13-pgi/pgi/*
-tutorials/14-joint_inversion/gravity/*
+tutorials/13-joint_inversion/pgi/*
+tutorials/13-joint_inversion/cross_gradient_data/*
 
 # jupyter
 *.ipynb
