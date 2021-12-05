@@ -34,8 +34,8 @@ from .utils.plot_utils import DataNSEMPlotMethods
 #         _freqDict = {}
 #         for src in source_list:
 #             if src.frequency not in _freqDict:
-#                 _freqDict[src.freq] = []
-#             _freqDict[src.freq] += [src]
+#                 _freqDict[src.frequency] = []
+#             _freqDict[src.frequency] += [src]
 
 #         self._freqDict = _freqDict
 #         self._freqs = sorted([f for f in self._freqDict])

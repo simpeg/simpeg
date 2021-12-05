@@ -70,7 +70,7 @@ def extract_data_info(NSEMdata):
     for src in NSEMdata.survey.source_list:
         for rx in src.receiver_list:
             dL.append(NSEMdata[src, rx])
-            freqL.append(np.ones(rx.nD) * src.freq)
+            freqL.append(np.ones(rx.nD) * src.frequency)
             if isinstance(rx, Point3DImpedance):
                 rxTL.extend((("z" + rx.orientation + " ") * rx.nD).split())
             if isinstance(rx, Point3DTipper):
@@ -204,7 +204,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
                             print("No standard deviation or floor assigned")
 
             new_src = type(src)
-            new_source_list.append(new_src(new_receiver_list, src.freq))
+            new_source_list.append(new_src(new_receiver_list, src.frequency))
 
     survey = Survey(new_source_list)
     if std_list or floor_list:
