@@ -281,7 +281,7 @@ simulation_grav = gravity.simulation.Simulation3DIntegral(
 simulation_mag = magnetics.simulation.Simulation3DIntegral(
     survey=survey_mag,
     mesh=mesh,
-    modelType="susceptibility",
+    model_type="scalar",
     chiMap=wires.susceptibility,
     actInd=ind_active,
 )
@@ -352,14 +352,14 @@ starting_beta = directives.PairedBetaEstimate_ByEig(beta0_ratio=1e0)
 
 # Defining the fractional decrease in beta and the number of Gauss-Newton solves
 # for each beta value.
-beta_schedule = directives.CrossGradientBetaSchedule(cooling_factor=5, cooling_rate=1)
+beta_schedule = directives.PairedBetaSchedule(cooling_factor=5, cooling_rate=1)
 
 # Options for outputting recovered models and predicted data for each beta.
-save_iteration = directives.CrossGradientSaveOutputEveryIteration(save_txt=False)
+save_iteration = directives.SimilarityMeasureSaveOutputEveryIteration(save_txt=False)
 
-joint_inv_dir = directives.CrossGradientInversionDirective()
+joint_inv_dir = directives.SimilarityMeasureInversionDirective()
 
-stopping = directives.CrossGradientStopping(tol=1e-6)
+stopping = directives.MovingAndMultiTargetStopping(tol=1e-6)
 
 sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
 

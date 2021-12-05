@@ -390,12 +390,12 @@ class BaseComboRegularization(SimpleComboRegularization):
 #                        Base Coupling Regularization                         #
 #                                                                             #
 ###############################################################################
-class BaseCoupling(BaseRegularization):
+class BaseSimilarityMeasure(BaseRegularization):
 
     """
-    Base class for the coupling term in joint inversions. Inherit this for building
-    your own coupling term.  The BaseCoupling assumes couple two different
-    geophysical models through one coupling term. However, if you wish
+    Base class for the similarity term in joint inversions. Inherit this for building
+    your own similarity term.  The BaseSimilarityMeasure assumes two different
+    geophysical models through one similarity term. However, if you wish
     to combine more than two models, e.g., 3 models,
     you may want to add a total of three coupling terms:
 
@@ -403,10 +403,6 @@ class BaseCoupling(BaseRegularization):
 
     where, lambdas are weights for coupling terms. m1, m2 and m3 indicate
     three different models.
-
-    :param discretize.base.BaseMesh mesh: SimPEG mesh
-
-
     """
 
     wire_map = properties.Instance(

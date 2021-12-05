@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 import properties
 
-from .base import BaseCoupling
+from .base import BaseSimilarityMeasure
 
 
 ###############################################################################
@@ -12,7 +12,7 @@ from .base import BaseCoupling
 ###############################################################################
 
 
-class CrossGradient(BaseCoupling):
+class CrossGradient(BaseSimilarityMeasure):
     """
     The cross-gradient constraint for joint inversions.
 

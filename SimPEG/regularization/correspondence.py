@@ -3,10 +3,10 @@ import scipy.sparse as sp
 import properties
 
 from .. import utils
-from .base import BaseCoupling
+from .base import BaseSimilarityMeasure
 
 
-class LinearCorrespondence(BaseCoupling):
+class LinearCorrespondence(BaseSimilarityMeasure):
     """
     The petrophysical linear constraint for joint inversions.
 

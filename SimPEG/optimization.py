@@ -76,7 +76,7 @@ class StoppingCriteria(object):
 
     moving_x = {
         "str": "%d : |xc-x_last| = %1.4e <= tolX*(1+|x0|) = %1.4e",
-        "left": lambda M: 1 if M.iter == 0 else norm(M.xc - M.x_last) / norm(M.x_last),
+        "left": lambda M: 1 if M.iter == 0 else norm(M.xc - M.x_last),
         "right": lambda M: 0 if M.iter == 0 else M.tolX * (1 + norm(M.x0)),
         "stopType": "optimal",
     }

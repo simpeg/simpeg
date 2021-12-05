@@ -1,4 +1,4 @@
-from .base import BaseRegularization, BaseComboRegularization, BaseCoupling
+from .base import BaseRegularization, BaseComboRegularization, BaseSimilarityMeasure
 from .regularization_mesh import RegularizationMesh
 from .tikhonov import (
     SimpleSmall,

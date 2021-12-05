@@ -25,10 +25,10 @@ from .pgi_directives import (
     PGI_AddMrefInSmooth,
 )
 
-from .cross_grad_directives import (
-    CrossGradientInversionDirective,
-    CrossGradientSaveOutputEveryIteration,
+from .sim_directives import (
+    SimilarityMeasureInversionDirective,
+    SimilarityMeasureSaveOutputEveryIteration,
     PairedBetaEstimate_ByEig,
-    CrossGradientBetaSchedule,
-    CrossGradientStopping,
+    PairedBetaSchedule,
+    MovingAndMultiTargetStopping,
 )

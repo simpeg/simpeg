@@ -23,7 +23,7 @@ from ..regularization import (
     SimpleSmoothDeriv,
     SparseDeriv,
     PGIwithRelationships,
-    BaseCoupling,
+    BaseSimilarityMeasure,
 )
 from ..utils import (
     mkvc,
@@ -1657,7 +1657,7 @@ class UpdateSensitivityWeights(InversionDirective):
         # Normalize and threshold weights
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
-            if not isinstance(reg, BaseCoupling):
+            if not isinstance(reg, BaseSimilarityMeasure):
                 wr += reg.mapping.deriv(self.invProb.model).T * (
                     (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
                 )
@@ -1665,7 +1665,7 @@ class UpdateSensitivityWeights(InversionDirective):
         wr += self.threshold
         wr **= 0.5
         for reg in self.reg.objfcts:
-            if not isinstance(reg, BaseCoupling):
+            if not isinstance(reg, BaseSimilarityMeasure):
                 reg.cell_weights = reg.mapping * wr
 
     def validate(self, directiveList):
