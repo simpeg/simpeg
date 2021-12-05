@@ -46,7 +46,7 @@ from .utils.plot_utils import DataNSEMPlotMethods
 #         return self._freqs
 
 #     @property
-#     def nFreq(self):
+#     def num_frequencies(self):
 #         """Number of frequencies"""
 #         return len(self._freqDict)
 

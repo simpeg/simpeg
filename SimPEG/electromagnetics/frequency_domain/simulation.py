@@ -87,7 +87,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
             self.Ainv
         except AttributeError:
             if self.verbose:
-                print("nFreq =", self.survey.num_frequencies)
+                print("num_frequencies =", self.survey.num_frequencies)
             self.Ainv = [None for i in range(self.survey.num_frequencies)]
 
         if self.Ainv[0] is not None:

@@ -40,8 +40,8 @@ def getAppResPhs(NSEMdata, survey):
 def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     # Frequency
-    nFreq = 33
-    freqs = np.logspace(3, -3, nFreq)
+    num_frequencies = 33
+    freqs = np.logspace(3, -3, num_frequencies)
     # Make the mesh
     ct = 5
     air = meshTensor([(ct, 25, 1.3)])
