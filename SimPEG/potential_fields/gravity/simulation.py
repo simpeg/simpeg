@@ -81,7 +81,6 @@ class Simulation3DIntegral(BasePFSimulation):
         Gravity forward operator
         """
         if getattr(self, "_G", None) is None:
-
             self._G = self.linear_operator()
 
         return self._G

@@ -228,6 +228,13 @@ class IterationPrinters(object):
         "format": "%1.2e",
     }
 
+    iterationCG = {
+        "title": "iterCG",
+        "value": lambda M: M.cg_count,
+        "width": 10,
+        "format": "%3d",
+    }
+
 
 class Minimize(object):
     """
@@ -1237,7 +1244,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         findSearchDirection()
         Finds the search direction based on projected CG
         """
-
+        self.cg_count = 0
         Active = self.activeSet(self.xc)
         temp = sum((np.ones_like(self.xc.size) - Active))
 

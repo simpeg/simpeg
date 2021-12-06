@@ -1,4 +1,4 @@
-from .base import BaseRegularization, BaseComboRegularization
+from .base import BaseRegularization, BaseComboRegularization, BaseSimilarityMeasure
 from .regularization_mesh import RegularizationMesh
 from .tikhonov import (
     SimpleSmall,
@@ -16,3 +16,5 @@ from .pgi import (
     PGIwithNonlinearRelationshipsSmallness,
     PGIwithRelationships,
 )
+from .cross_gradient import CrossGradient
+from .correspondence import LinearCorrespondence

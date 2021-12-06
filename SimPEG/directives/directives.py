@@ -23,6 +23,7 @@ from ..regularization import (
     SimpleSmoothDeriv,
     SparseDeriv,
     PGIwithRelationships,
+    BaseSimilarityMeasure,
 )
 from ..utils import (
     mkvc,
@@ -35,6 +36,7 @@ from ..utils import (
     eigenvalue_by_power_iteration,
 )
 from ..utils.code_utils import deprecate_property
+from .. import optimization
 
 
 class InversionDirective(properties.HasProperties):
@@ -275,7 +277,7 @@ class BetaSchedule(InversionDirective):
 class AlphasSmoothEstimate_ByEig(InversionDirective):
     """
     Estimate the alphas multipliers for the smoothness terms of the regularization
-     as a multiple of the ratio between the highest eigenvalue of the
+    as a multiple of the ratio between the highest eigenvalue of the
     smallness term and the highest eigenvalue of each smoothness term of the regularization.
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
@@ -1637,14 +1639,16 @@ class UpdateSensitivityWeights(InversionDirective):
         # Normalize and threshold weights
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
-            wr += reg.mapping.deriv(self.invProb.model).T * (
-                (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
-            )
+            if not isinstance(reg, BaseSimilarityMeasure):
+                wr += reg.mapping.deriv(self.invProb.model).T * (
+                    (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
+                )
         wr /= wr.max()
         wr += self.threshold
         wr **= 0.5
         for reg in self.reg.objfcts:
-            reg.cell_weights = reg.mapping * wr
+            if not isinstance(reg, BaseSimilarityMeasure):
+                reg.cell_weights = reg.mapping * wr
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights
