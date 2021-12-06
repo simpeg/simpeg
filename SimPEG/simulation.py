@@ -430,7 +430,7 @@ class BaseTimeSimulation(BaseSimulation):
     @property
     def time_mesh(self):
         if getattr(self, "_time_mesh", None) is None:
-            self._time_mesh = TensorMesh([self.time_steps], x0=[self.t0])
+            self._time_mesh = TensorMesh([self.time_steps,], x0=[self.t0])
         return self._time_mesh
 
     @time_mesh.deleter
@@ -445,7 +445,7 @@ class BaseTimeSimulation(BaseSimulation):
     @property
     def times(self):
         "Modeling times"
-        return self.time_mesh.vectorNx
+        return self.time_mesh.nodes_x
 
     timeSteps = deprecate_property(
         time_steps,

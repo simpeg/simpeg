@@ -38,7 +38,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
         source_lists = [src0, src1]
         source_lists_ip = [src0_ip, src1_ip]
-        surveyDC = dc.Survey_ky([src0, src1])
+        surveyDC = dc.Survey([src0, src1])
 
         sigmaInf = np.ones(mesh.nC) * 1.0
         blkind = utils.model_builder.getIndicesSphere(np.r_[0, -150], 40, mesh.gridCC)

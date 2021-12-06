@@ -30,10 +30,10 @@ class DataMisfitTest(unittest.TestCase):
         dobs = synthetic_data.dobs
 
         self.relative = 0.01
-        self.eps = 1e-8
+        self.noise_floor = 1e-8
 
         synthetic_data.relative_error = self.relative
-        synthetic_data.noise_floor = self.eps
+        synthetic_data.noise_floor = self.noise_floor
 
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=synthetic_data)
 
@@ -64,7 +64,7 @@ class DataMisfitTest(unittest.TestCase):
 
     def test_setting_W(self):
         self.data.relative_error = self.relative
-        self.data.noise_floor = self.eps
+        self.data.noise_floor = self.noise_floor
         Worig = self.dmis.W
         v = np.random.rand(self.survey.nD)
 
@@ -79,7 +79,7 @@ class DataMisfitTest(unittest.TestCase):
 
     def test_DataMisfitOrder(self):
         self.data.relative_error = self.relative
-        self.data.noise_floor = self.eps
+        self.data.noise_floor = self.noise_floor
         self.dmis.test(x=self.model)
 
 

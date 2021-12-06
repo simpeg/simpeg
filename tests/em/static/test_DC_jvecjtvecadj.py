@@ -120,7 +120,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         src_a = np.r_[0.0, 0.0, -5.0]
         src_b = np.r_[55.0, 0.0, -5.0]
 
-        src_list = [dc.sources.Dipole(rx_list, locationA=src_a, locationB=src_b)]
+        src_list = [dc.sources.Dipole(rx_list, location_a=src_a, location_b=src_b)]
 
         self.mesh = mesh
         self.survey = dc.survey.Survey(src_list)

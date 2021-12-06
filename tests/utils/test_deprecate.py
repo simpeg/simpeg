@@ -103,14 +103,14 @@ deprecated_receivers = [
     ["SimPEG.electromagnetics.static.resistivity.receivers", ("Dipole_ky", "Pole_ky")],
 ]
 
-deprcated_surveys = ["SimPEG.electromagnetics.static.resistivity", ("Survey_ky")]
+deprcated_surveys = ["SimPEG.electromagnetics.static.resistivity", ("Survey")]
 
 
 class DeprecateTest(unittest.TestCase):
     def test_module_deprecations(self):
         for module in deprecated_modules:
             print(module, end="...")
-            with self.assertWarns(FutureWarning):
+            with self.assertRaises(NotImplementedError):
                 import_module(module)
             print("ok")
 
@@ -120,7 +120,7 @@ class DeprecateTest(unittest.TestCase):
             for Problem in module[1]:
                 Prob = getattr(mod, Problem)
                 print(f"{module[0]}.{Problem}...", end="")
-                with self.assertWarns(FutureWarning):
+                with self.assertRaises(NotImplementedError):
                     Prob(mesh=mesh)
                 print("ok")
 
@@ -132,7 +132,7 @@ class DeprecateTest(unittest.TestCase):
                 # Only testing for a deprecation warning so removing startup of Fields
                 field.startup = lambda self: None
                 print(f"{module[0]}.{Field}...", end="")
-                with self.assertWarns(FutureWarning):
+                with self.assertRaises(NotImplementedError):
                     field(mesh)
                 print("ok")
 
@@ -142,7 +142,7 @@ class DeprecateTest(unittest.TestCase):
             for receiver in module[1]:
                 Rx = getattr(mod, receiver)
                 print(f"{module[0]}.{Rx}...", end="")
-                with self.assertWarns(FutureWarning):
+                with self.assertRaises(NotImplementedError):
                     try:
                         Rx(locs)  # for "Pole like" receiver
                     except (TypeError, ValueError):

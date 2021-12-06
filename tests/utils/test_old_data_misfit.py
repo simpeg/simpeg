@@ -31,8 +31,8 @@ class DataMisfitTest(unittest.TestCase):
         self.std = 0.01
         survey.std = self.std
         dobs = survey.makeSyntheticData(model)
-        self.eps = 1e-8 * np.min(np.abs(dobs))
-        survey.eps = self.eps
+        self.noise_floor = 1e-8 * np.min(np.abs(dobs))
+        survey.noise_floor = self.noise_floor
         dmis = DataMisfit.l2_DataMisfit(survey)
 
         self.model = model
@@ -70,11 +70,11 @@ class DataMisfitTest(unittest.TestCase):
 
     def test_std_eps(self):
         stdtest = np.all(self.survey.std == self.dmis.std)
-        epstest = np.all(self.survey.eps == self.dmis.eps)
+        epstest = np.all(self.survey.noise_floor == self.dmis.noise_floor)
         Wtest = np.allclose(
             np.abs(np.dot(self.dmis.W.todense(), self.dobs)),
             1.0 / self.std,
-            atol=self.eps,
+            atol=self.noise_floor,
         )
 
         self.assertTrue(stdtest)

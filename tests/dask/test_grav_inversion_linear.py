@@ -99,7 +99,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
         reg.norms = np.c_[0, 0, 0, 0]
         reg.gradientType = "component"
-        # reg.eps_p, reg.eps_q = 5e-2, 1e-2
+        # reg.noise_floor_p, reg.noise_floor_q = 5e-2, 1e-2
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)

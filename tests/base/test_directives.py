@@ -75,7 +75,7 @@ class ValidationInInversion(unittest.TestCase):
         reg = regularization.Sparse(mesh)
         reg.mref = np.zeros(mesh.nC)
         reg.norms = np.c_[0, 1, 1, 1]
-        reg.eps_p, reg.eps_q = 1e-3, 1e-3
+        reg.noise_floor_p, reg.noise_floor_q = 1e-3, 1e-3
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(data)

@@ -44,7 +44,7 @@ class GravSensProblemTests(unittest.TestCase):
         print(driver.alphas)
         print(driver.bounds)
         print(driver.lpnorms)
-        print(driver.eps)
+        print(driver.noise_floor)
 
         # Write obs to file
         io_utils.write_grav3d_ubc(
