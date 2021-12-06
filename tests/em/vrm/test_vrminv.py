@@ -39,7 +39,7 @@ class VRM_inversion_tests(unittest.TestCase):
         x, y = np.meshgrid(np.linspace(-17, 17, 16), np.linspace(-17, 17, 16))
         x, y, z = mkvc(x), mkvc(y), 0.5 * np.ones(np.size(x))
         receiver_list = [
-            vrm.Rx.Point(np.c_[x, y, z], times=times, fieldType="dbdt", fieldComp="z")
+            vrm.Rx.Point(np.c_[x, y, z], times=times, fieldType="dbdt", orientation="z")
         ]
 
         txNodes = np.array(
