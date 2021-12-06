@@ -31,6 +31,7 @@ IGNORE_ME = [
     "PGIsmallness",
     "CrossGradient",
     "LinearCorrespondence",
+    "JointTotalVariation",
 ]
 
 
