@@ -100,7 +100,7 @@ class BaseRichardsTest(unittest.TestCase):
         passed = checkDerivative(
             lambda m: [self.prob.dpred(m), lambda v: self.prob.Jvec(m, v)],
             self.mtrue,
-            num=4,
+            num=3,
             plotIt=False,
         )
         self.assertTrue(passed, True)

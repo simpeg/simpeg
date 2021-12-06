@@ -323,11 +323,11 @@ reg = reg_grav + reg_mag + lamda * cross_grad
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
 opt = optimization.ProjectedGNCG(
-    maxIter=30,
+    maxIter=10,
     lower=-2.0,
     upper=2.0,
     maxIterLS=20,
-    maxIterCG=300,
+    maxIterCG=100,
     tolCG=1e-3,
     tolX=1e-3,
 )
