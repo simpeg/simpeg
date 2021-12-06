@@ -32,7 +32,7 @@
 #         survey = sp.survey.Survey([src])
 #
 #         simulation = sp.simulation.Problem_CC(
-#                 mesh=mesh, survey=survey, sigma=sigma, qMap=maps.IdentityMap(mesh), Solver=PardisoSolver
+#                 mesh=mesh, survey=survey, sigma=sigma, qMap=maps.IdentityMap(mesh), solver=PardisoSolver
 #                 )
 #
 #         q = np.zeros(mesh.nC)

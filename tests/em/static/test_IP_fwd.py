@@ -54,7 +54,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         simulationdc = dc.simulation.Simulation3DNodal(
             mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
-        simulationdc.Solver = Solver
+        simulationdc.solver = Solver
         data0 = simulationdc.dpred(self.sigma0)
         finf = simulationdc.fields(self.sigmaInf)
         datainf = simulationdc.dpred(self.sigmaInf, f=finf)
@@ -67,7 +67,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
             Ainv=simulationdc.Ainv,
             _f=finf,
         )
-        simulationip.Solver = Solver
+        simulationip.solver = Solver
         data_full = data0 - datainf
         data = simulationip.dpred(self.eta)
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
@@ -84,7 +84,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         simulationdc = dc.simulation.Simulation3DCellCentered(
             mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
-        simulationdc.Solver = Solver
+        simulationdc.solver = Solver
         data0 = simulationdc.dpred(self.sigma0)
         finf = simulationdc.fields(self.sigmaInf)
         datainf = simulationdc.dpred(self.sigmaInf, f=finf)
@@ -97,7 +97,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
             Ainv=simulationdc.Ainv,
             _f=finf,
         )
-        simulationip.Solver = Solver
+        simulationip.solver = Solver
         data_full = data0 - datainf
         data = simulationip.dpred(self.eta)
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size

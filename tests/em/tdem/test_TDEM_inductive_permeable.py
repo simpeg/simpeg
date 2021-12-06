@@ -124,7 +124,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             (3e-1, 20),
             (1, 50),
         ]
-        timeSteps = ramp
+        time_steps = ramp
 
         time_mesh = discretize.TensorMesh([ramp])
         offTime = 10000
@@ -139,34 +139,37 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             plt.show()
 
         src_magnetostatic = tdem.Src.CircularLoop(
-            [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100,
+            [], location=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100,
         )
 
         src_ramp_on = tdem.Src.CircularLoop(
-            [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100, waveform=waveform
+            [],
+            location=np.r_[0.0, 0.0, 0.0],
+            orientation="z",
+            radius=100,
+            waveform=waveform,
         )
 
         src_list = [src_magnetostatic]
         src_list_late_ontime = [src_ramp_on]
 
+        survey = tdem.Survey(source_list=src_list)
+        survey_late_ontime = tdem.Survey(src_list_late_ontime)
+
         prob = tdem.Simulation3DMagneticFluxDensity(
             mesh=mesh,
-            timeSteps=timeSteps,
+            survey=survey,
+            time_steps=time_steps,
             sigmaMap=maps.IdentityMap(mesh),
-            Solver=Pardiso,
+            solver=Pardiso,
         )
         prob_late_ontime = tdem.Simulation3DMagneticFluxDensity(
             mesh=mesh,
-            timeSteps=timeSteps,
+            survey=survey_late_ontime,
+            time_steps=time_steps,
             sigmaMap=maps.IdentityMap(mesh),
-            Solver=Pardiso,
+            solver=Pardiso,
         )
-
-        survey = tdem.Survey(srcList=src_list)
-        survey_late_ontime = tdem.Survey(src_list_late_ontime)
-
-        prob.pair(survey)
-        prob_late_ontime.pair(survey_late_ontime)
 
         fields_dict = {}
 

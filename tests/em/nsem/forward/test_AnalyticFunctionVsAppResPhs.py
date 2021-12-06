@@ -9,14 +9,14 @@ TOL = 1e-6
 
 
 def appResNorm(sigmaHalf):
-    nFreq = 26
+    num_frequencies = 26
 
     m1d = discretize.TensorMesh([[(100, 5, 1.5), (100.0, 10), (100, 5, 1.5)]], x0=["C"])
     sigma = np.zeros(m1d.nC) + sigmaHalf
     sigma[m1d.gridCC[:] > 200] = 1e-8
 
     # Calculate the analytic fields
-    freqs = np.logspace(4, -4, nFreq)
+    freqs = np.logspace(4, -4, num_frequencies)
     Z = []
 
     for freq in freqs:
@@ -27,9 +27,9 @@ def appResNorm(sigmaHalf):
 
     app_r, app_p = nsem.utils.appResPhs(freqs, Zarr)
 
-    return np.linalg.norm(np.abs(app_r - np.ones(nFreq) / sigmaHalf)) / np.log10(
-        sigmaHalf
-    )
+    return np.linalg.norm(
+        np.abs(app_r - np.ones(num_frequencies) / sigmaHalf)
+    ) / np.log10(sigmaHalf)
 
 
 class TestAnalytics(unittest.TestCase):

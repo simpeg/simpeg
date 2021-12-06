@@ -94,18 +94,22 @@ x, y = np.meshgrid(np.linspace(-30, 30, 21), np.linspace(-30, 30, 21))
 z = 0.5 * np.ones(x.shape)
 loc = np.c_[utils.mkvc(x), utils.mkvc(y), utils.mkvc(z)]  # Src and Rx Locations
 
-srcListVRM = []
+source_listVRM = []
 
 for pp in range(0, loc.shape[0]):
 
     loc_pp = np.reshape(loc[pp, :], (1, 3))
-    rxListVRM = [VRM.Rx.Point(loc_pp, times=times, fieldType="dbdt", orientation="z")]
+    receiver_listVRM = [
+        VRM.Rx.Point(loc_pp, times=times, fieldType="dbdt", orientation="z")
+    ]
 
-    srcListVRM.append(
-        VRM.Src.MagDipole(rxListVRM, utils.mkvc(loc[pp, :]), [0.0, 0.0, 0.01], waveform)
+    source_listVRM.append(
+        VRM.Src.MagDipole(
+            receiver_listVRM, utils.mkvc(loc[pp, :]), [0.0, 0.0, 0.01], waveform
+        )
     )
 
-survey_vrm = VRM.Survey(srcListVRM)
+survey_vrm = VRM.Survey(source_listVRM)
 
 ##########################################################################
 # Forward Simulation
@@ -168,7 +172,7 @@ fields_tot = fields_tot + 0.05 * np.abs(fields_tot) * np.random.normal(
 #
 
 # Define problem
-# survey_inv = VRM.Survey(srcListVRM)
+# survey_inv = VRM.Survey(source_listVRM)
 actCells = (mesh.gridCC[:, 2] < 0.0) & (mesh.gridCC[:, 2] > -2.0)
 problem_inv = VRM.Simulation3DLinear(
     mesh,

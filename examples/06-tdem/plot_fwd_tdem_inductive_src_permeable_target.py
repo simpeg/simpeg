@@ -159,12 +159,16 @@ ax.set_title("quarter sine waveform")
 
 # For the magnetostatic simulation. The default waveform is a step-off
 src_magnetostatic = TDEM.Src.CircularLoop(
-    [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100,
+    [], location=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100,
 )
 
 # For the long on-time simulation. We use the ramp-on waveform
 src_ramp_on = TDEM.Src.CircularLoop(
-    [], loc=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100, waveform=quarter_sine
+    [],
+    location=np.r_[0.0, 0.0, 0.0],
+    orientation="z",
+    radius=100,
+    waveform=quarter_sine,
 )
 
 src_list_magnetostatic = [src_magnetostatic]
@@ -177,18 +181,23 @@ src_list_ramp_on = [src_ramp_on]
 # To simulate magnetic flux data, we use the b-formulation of Maxwell's
 # equations
 
-prob_magnetostatic = TDEM.Simulation3DMagneticFluxDensity(
-    mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp, Solver=Solver
-)
-prob_ramp_on = TDEM.Simulation3DMagneticFluxDensity(
-    mesh=mesh, sigmaMap=maps.IdentityMap(mesh), timeSteps=ramp, Solver=Solver
-)
-
-survey_magnetostatic = TDEM.Survey(srcList=src_list_magnetostatic)
+survey_magnetostatic = TDEM.Survey(source_list=src_list_magnetostatic)
 survey_ramp_on = TDEM.Survey(src_list_ramp_on)
 
-prob_magnetostatic.pair(survey_magnetostatic)
-prob_ramp_on.pair(survey_ramp_on)
+prob_magnetostatic = TDEM.Simulation3DMagneticFluxDensity(
+    mesh=mesh,
+    survey=survey_magnetostatic,
+    sigmaMap=maps.IdentityMap(mesh),
+    time_steps=ramp,
+    solver=Solver,
+)
+prob_ramp_on = TDEM.Simulation3DMagneticFluxDensity(
+    mesh=mesh,
+    survey=survey_ramp_on,
+    sigmaMap=maps.IdentityMap(mesh),
+    time_steps=ramp,
+    solver=Solver,
+)
 
 ###############################################################################
 # Run the long on-time simulation

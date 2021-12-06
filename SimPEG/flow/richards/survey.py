@@ -46,5 +46,5 @@ class Survey(BaseSurvey):
         "rxList",
         new_name="receiver_list",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )

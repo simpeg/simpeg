@@ -83,7 +83,7 @@ def run(plotIt=True):
     rlocs = np.c_[0 * y + M.vectorCCx[-1], y]
     rx = tomo.Rx(rlocs)
 
-    srcList = [
+    source_list = [
         tomo.Src(location=np.r_[M.vectorCCx[0], yi], receiver_list=[rx]) for yi in y
     ]
 
@@ -126,7 +126,7 @@ def run(plotIt=True):
     slownesstrue = slownessMap * phitrue  # true model (m = log(sigma))
 
     # set up the problem and survey
-    survey = tomo.Survey(srcList)
+    survey = tomo.Survey(source_list)
     problem = tomo.Simulation(M, survey=survey, slownessMap=slownessMap)
 
     if plotIt:

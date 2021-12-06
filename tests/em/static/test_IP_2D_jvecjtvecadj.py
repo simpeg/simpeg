@@ -43,9 +43,12 @@ class IPProblemTestsCC(unittest.TestCase):
 
         sigma = np.ones(mesh.nC) * 1.0
         problem = ip.Simulation2DCellCentered(
-            mesh, sigma=sigma, etaMap=maps.IdentityMap(mesh), verbose=False
+            mesh,
+            survey=survey,
+            sigma=sigma,
+            etaMap=maps.IdentityMap(mesh),
+            verbose=False,
         )
-        problem.pair(survey)
 
         mSynth = np.ones(mesh.nC) * 0.1
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
@@ -118,9 +121,12 @@ class IPProblemTestsN(unittest.TestCase):
 
         sigma = np.ones(mesh.nC) * 1.0
         problem = ip.Simulation2DNodal(
-            mesh, rho=1.0 / sigma, etaMap=maps.IdentityMap(mesh), verbose=False
+            mesh,
+            survey=survey,
+            rho=1.0 / sigma,
+            etaMap=maps.IdentityMap(mesh),
+            verbose=False,
         )
-        problem.pair(survey)
 
         mSynth = np.ones(mesh.nC) * 0.1
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)

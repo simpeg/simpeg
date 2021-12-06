@@ -24,9 +24,7 @@ from discretize.utils import (
     invPropertyTensor,
 )
 
-avExtrap = deprecate_method(
-    av_extrap, "avExtrap", removal_version="0.16.0", future_warn=True
-)
+avExtrap = deprecate_method(av_extrap, "avExtrap", removal_version="0.16.0", error=True)
 
 
 def diagEst(matFun, n, k=None, approach="Probing"):

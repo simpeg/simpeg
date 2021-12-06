@@ -399,11 +399,11 @@ class Simulation3DDifferential(BaseSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class GravityIntegral(Simulation3DIntegral):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_Diff(Simulation3DDifferential):
     pass

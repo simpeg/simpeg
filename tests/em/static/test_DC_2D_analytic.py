@@ -47,9 +47,9 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
         try:
             from pymatsolver import Pardiso
 
-            self.Solver = Pardiso
+            self.solver = Pardiso
         except ImportError:
-            self.Solver = SolverLU
+            self.solver = SolverLU
 
     def test_Simulation2DNodal(self, tolerance=0.05):
 
@@ -57,7 +57,7 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.Solver,
+            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -74,7 +74,7 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.Solver,
+            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -121,9 +121,9 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         try:
             from pymatsolver import Pardiso
 
-            self.Solver = Pardiso
+            self.solver = Pardiso
         except ImportError:
-            self.Solver = SolverLU
+            self.solver = SolverLU
 
     def test_Simulation2DNodal(self, tolerance=0.05):
 
@@ -131,7 +131,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.Solver,
+            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -147,7 +147,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.Solver,
+            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -197,9 +197,9 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         try:
             from pymatsolver import PardisoSolver
 
-            self.Solver = PardisoSolver
+            self.solver = PardisoSolver
         except ImportError:
-            self.Solver = SolverLU
+            self.solver = SolverLU
 
     def test_Simulation2DNodal(self, tolerance=0.05):
 
@@ -207,7 +207,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.Solver,
+            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -223,7 +223,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.Solver,
+            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -270,16 +270,16 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         try:
             from pymatsolver import PardisoSolver
 
-            self.Solver = PardisoSolver
+            self.solver = PardisoSolver
         except ImportError:
-            self.Solver = SolverLU
+            self.solver = SolverLU
 
     def test_Simulation2DCellCentered(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.Solver,
+            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -295,7 +295,7 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.Solver,
+            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -357,13 +357,13 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
         try:
             from pymatsolver import PardisoSolver
 
-            self.Solver = PardisoSolver
+            self.solver = PardisoSolver
         except ImportError:
-            self.Solver = SolverLU
+            self.solver = SolverLU
 
     def test_Simulation2DCellCentered(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.Solver,
+            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.solver,
         )
         field = simulation.fields(self.sigma)
 
@@ -378,7 +378,7 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
     def test_Simulation2DNodal(self, tolerance=0.05):
 
         simulation = dc.simulation_2d.Simulation2DNodal(
-            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.Solver,
+            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.solver,
         )
         field = simulation.fields(self.sigma)
         data = field[:, "phi"][:, 0]
@@ -427,9 +427,9 @@ class DCSimulationAppResTests(unittest.TestCase):
         try:
             from pymatsolver import Pardiso
 
-            self.Solver = Pardiso
+            self.solver = Pardiso
         except ImportError:
-            self.Solver = SolverLU
+            self.solver = SolverLU
 
     def test_Simulation2DNodal(self, tolerance=0.05):
 
@@ -437,7 +437,7 @@ class DCSimulationAppResTests(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.Solver,
+            solver=self.solver,
             bc_type="Robin",
         )
         with self.assertRaises(KeyError):
@@ -457,7 +457,7 @@ class DCSimulationAppResTests(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.Solver,
+            solver=self.solver,
             bc_type="Robin",
         )
         with self.assertRaises(KeyError):
