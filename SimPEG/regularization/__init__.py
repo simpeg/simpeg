@@ -18,3 +18,4 @@ from .pgi import (
 )
 from .cross_gradient import CrossGradient
 from .correspondence import LinearCorrespondence
+from .jtv import JointTotalVariation
