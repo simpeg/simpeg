@@ -124,11 +124,7 @@ class InversionDirective(properties.HasProperties):
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
 
     prob = deprecate_property(
-        simulation,
-        "prob",
-        new_name="simulation",
-        removal_version="0.16.0",
-        future_warn=True,
+        simulation, "prob", new_name="simulation", removal_version="0.16.0", error=True,
     )
 
     def initialize(self):
@@ -1232,21 +1228,21 @@ class Update_IRLS(InversionDirective):
         "maxIRLSiters",
         new_name="max_irls_iterations",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
     updateBeta = deprecate_property(
         update_beta,
         "updateBeta",
         new_name="update_beta",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
     betaSearch = deprecate_property(
         beta_search,
         "betaSearch",
         new_name="beta_search",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     @property

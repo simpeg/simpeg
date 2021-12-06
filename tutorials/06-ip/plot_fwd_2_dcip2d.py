@@ -250,7 +250,7 @@ dc_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 #
 
 dc_simulation = dc.simulation_2d.Simulation2DNodal(
-    mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
+    mesh, survey=dc_survey, sigmaMap=conductivity_map, solver=Solver
 )
 
 # Predict the data by running the simulation. The data are the raw voltage in
@@ -401,7 +401,7 @@ simulation_ip = ip.simulation_2d.Simulation2DNodal(
     survey=ip_survey,
     etaMap=chargeability_map,
     sigma=conductivity_map * conductivity_model,
-    Solver=Solver,
+    solver=Solver,
 )
 
 # Run forward simulation and predicted IP data. The data are the voltage (V)

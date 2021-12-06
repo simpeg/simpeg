@@ -976,7 +976,7 @@ class BFGS(Minimize, Remember):
         if k < 0:
             d = self.bfgsH0 * d  # Assume that bfgsH0 is a SimPEG.Solver
         else:
-            khat = 0 if nn is 0 else np.mod(n - nn + k, nn)
+            khat = 0 if nn == 0 else np.mod(n - nn + k, nn)
             gamma = np.vdot(S[:, khat], d) / np.vdot(Y[:, khat], S[:, khat])
             d = d - gamma * Y[:, khat]
             d = self.bfgsrec(k - 1, n, nn, S, Y, d)
@@ -991,7 +991,7 @@ class BFGS(Minimize, Remember):
         return self.bfgs(-self.g)
 
     def _doEndIteration_BFGS(self, xt):
-        if self.iter is 0:
+        if self.iter == 0:
             self.g_last = self.g
             return
 

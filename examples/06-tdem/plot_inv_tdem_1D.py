@@ -43,7 +43,7 @@ def run(plotIt=True):
     rx = time_domain.Rx.PointMagneticFluxTimeDerivative(
         np.array([[rxOffset, 0.0, 30]]), np.logspace(-5, -3, 31), "z"
     )
-    src = time_domain.Src.MagDipole([rx], loc=np.array([0.0, 0.0, 80]))
+    src = time_domain.Src.MagDipole([rx], location=np.array([0.0, 0.0, 80]))
     survey = time_domain.Survey([src])
     time_steps = [(1e-06, 20), (1e-05, 20), (0.0001, 20)]
     simulation = time_domain.Simulation3DElectricField(

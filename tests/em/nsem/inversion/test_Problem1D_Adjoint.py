@@ -25,13 +25,12 @@ def JvecAdjointTest(sigmaHalf, formulation="PrimSec"):
 
     if "PrimSec" in formulation:
         problem = nsem.Simulation1DPrimarySecondary(
-            m1d, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(m1d)
+            m1d, survey=survey, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(m1d)
         )
     else:
         raise NotImplementedError(
             "Only {} formulations are implemented.".format(formulation)
         )
-    problem.pair(survey)
     m = sigma
     u = problem.fields(m)
 
