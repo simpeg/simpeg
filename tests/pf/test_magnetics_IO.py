@@ -45,7 +45,7 @@ class MagSensProblemTests(unittest.TestCase):
         print(driver.alphas)
         print(driver.bounds)
         print(driver.lpnorms)
-        print(driver.noise_floor)
+        print(driver.eps)
 
         # Write obs to file
         io_utils.write_mag3d_ubc(

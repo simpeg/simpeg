@@ -199,9 +199,9 @@ for x in src_locations:
 
     src = FDEM.Src.MagDipole(
         receiver_list=[rx_real, rx_imag],
-        loc=src_loc,
+        location=src_loc,
         orientation=orientation,
-        freq=freq,
+        frequency=freq,
     )
 
     source_list.append(src)
@@ -209,7 +209,7 @@ for x in src_locations:
 # create the survey and problem objects for running the forward simulation
 survey = FDEM.Survey(source_list)
 prob = FDEM.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=mapping, Solver=Solver
+    mesh, survey=survey, sigmaMap=mapping, solver=Solver
 )
 
 ###############################################################################
