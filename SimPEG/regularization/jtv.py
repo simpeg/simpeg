@@ -1,13 +1,12 @@
 import numpy as np
 import scipy.sparse as sp
-import properties
 
 from .base import BaseSimilarityMeasure
 
 
 ###############################################################################
 #                                                                             #
-#                                Cross-Gradient                               #
+#                            Joint Total Variation                            #
 #                                                                             #
 ###############################################################################
 
@@ -24,42 +23,29 @@ class JointTotalVariation(BaseSimilarityMeasure):
     # reset this here to clear out the properties attribute
     cell_weights = None
 
-    # These are not fully implemented yet
-    # grad_tol = properties.Float(
-    #     "tolerance for avoiding the exteremly small gradient amplitude", default=1e-10
-    # )
-    # normalized = properties.Bool(
-    #     "whether to implement normalized cross-gradient", default=False
-    # )
     eps = 1e-8
-
-    approx_hessian = properties.Bool(
-        "whether to use the semi-positive definate approximation for the hessian",
-        default=True,
-    )
 
     def __init__(self, mesh, wire_map, **kwargs):
         super().__init__(mesh, wire_map=wire_map, **kwargs)
 
         regmesh = self.regmesh
-
-        if regmesh.mesh.dim not in (2, 3):
-            raise ValueError("Cross-Gradient is only defined for 2D or 3D")
         self._G = regmesh.cell_gradient
         vsq = regmesh.vol ** 2
         self._Av = sp.diags(vsq) * regmesh.average_face_to_cell
 
     def __call__(self, model):
         """
-        Computes the sum of all cross-gradient values at all cell centers.
+        Computes the sum of all joint total variation values.
 
-        :param numpy.ndarray model: stacked array of individual models
-                                    np.c_[model1, model2,...]
+        Parameters
+        ----------
+        model : numpy.ndarray
+            stacked array of individual models np.r_[model1, model2,...]
 
-        :rtype: float
-        :returns: the computed value of the joint total variation term.
-
-
+        Returns
+        -------
+        float
+            Tthe computed value of the joint total variation term.
         """
         m1, m2 = self.wire_map * model
         Av = self._Av
@@ -75,13 +61,17 @@ class JointTotalVariation(BaseSimilarityMeasure):
 
     def deriv(self, model):
         """
-        Computes the Jacobian of the cross-gradient.
+        Computes the derivative of the joint total variation.
 
-        :param list of numpy.ndarray ind_models: [model1, model2,...]
+        Parameters
+        ----------
+        model : numpy.ndarray
+            stacked array of individual models np.r_[model1, model2,...]
 
-        :rtype: numpy.ndarray
-        :return: result: gradient of the cross-gradient with respect to model1, model2
-
+        Returns
+        -------
+        numpy.ndarray
+            The gradient of joint total variatio  with respect to the model
         """
         m1, m2 = self.wire_map * model
         Av = self._Av
@@ -99,16 +89,20 @@ class JointTotalVariation(BaseSimilarityMeasure):
 
     def deriv2(self, model, v=None):
         """
-        Computes the Hessian of the cross-gradient.
+        Computes the Hessian of the joint total variation.
 
-        :param list of numpy.ndarray ind_models: [model1, model2, ...]
-        :param numpy.ndarray v: vector to be multiplied by Hessian
+        Parameters
+        ----------
+        model : numpy.ndarray
+            Stacked array of individual models
+        v : numpy.ndarray, optional
+            An array to multiply the Hessian by.
 
-        :rtype: scipy.sparse.csr_matrix if v is None
-                numpy.ndarray if v is not None
-        :return Hessian matrix if v is None
-                Hessian multiplied by vector if v is not No
-
+        Returns
+        -------
+        numpy.ndarray or scipy.sparse.csr_matrix
+            The Hessian of joint total variation with respect to the model times a
+            vector or the full Hessian if `v` is `None`.
         """
         m1, m2 = self.wire_map * model
         Av = self._Av
@@ -129,44 +123,46 @@ class JointTotalVariation(BaseSimilarityMeasure):
 
             p1 = G.T @ (mid * g_v1 - g_m1 * (Av.T @ ((Av @ (g_m1 * g_v1)) / sq ** 3)))
             p2 = G.T @ (mid * g_v2 - g_m2 * (Av.T @ ((Av @ (g_m2 * g_v2)) / sq ** 3)))
-            if not self.approx_hessian:
-                p1 -= G.T @ (g_m1 * (Av.T @ ((Av @ (g_m2 * g_v2)) / sq ** 3)))
-                p2 -= G.T @ (g_m2 * (Av.T @ ((Av @ (g_m1 * g_v1)) / sq ** 3)))
+
+            p1 -= G.T @ (g_m1 * (Av.T @ ((Av @ (g_m2 * g_v2)) / sq ** 3)))
+            p2 -= G.T @ (g_m2 * (Av.T @ ((Av @ (g_m1 * g_v1)) / sq ** 3)))
+
             return np.r_[p1, p2]
         else:
             A = (
-                G.T @ sp.diags(mid) @ G
-                - G.T
-                @ sp.diags(g_m1)
-                @ Av.T
-                @ sp.diags(1 / (sq ** 3))
-                @ Av
-                @ sp.diags(g_m1)
+                G.T
+                @ (
+                    sp.diags(mid)
+                    - sp.diags(g_m1)
+                    @ Av.T
+                    @ sp.diags(1 / (sq ** 3))
+                    @ Av
+                    @ sp.diags(g_m1)
+                )
                 @ G
             )
             C = (
-                G.T @ sp.diags(mid) @ G
-                - G.T
-                @ sp.diags(g_m2)
-                @ Av.T
-                @ sp.diags(1 / (sq ** 3))
-                @ Av
-                @ sp.diags(g_m2)
-                @ G
-            )
-
-            B = None
-            BT = None
-            if not self.approx_hessian:
-                B = (
-                    -G.T
-                    @ sp.diags(g_m1)
+                G.T
+                @ (
+                    sp.diags(mid)
+                    - sp.diags(g_m2)
                     @ Av.T
                     @ sp.diags(1 / (sq ** 3))
                     @ Av
                     @ sp.diags(g_m2)
-                    @ G
                 )
-                BT = B.T
+                @ G
+            )
+
+            B = (
+                -G.T
+                @ sp.diags(g_m1)
+                @ Av.T
+                @ sp.diags(1 / (sq ** 3))
+                @ Av
+                @ sp.diags(g_m2)
+                @ G
+            )
+            BT = B.T
 
             return sp.bmat([[A, B], [BT, C]], format="csr")

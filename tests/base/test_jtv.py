@@ -34,16 +34,6 @@ class JTVTensor2D(unittest.TestCase):
         self.jtv = jtv
         self.x0 = np.random.rand(len(mesh) * 2)
 
-    def test_order_approximate_hessian(self):
-        """
-
-        Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
-
-        """
-        jtv = self.jtv
-        jtv.approx_hessian = True
-        self.assertTrue(jtv.test(self.x0))
-
     def test_order_full_hessian(self):
         """
 
@@ -51,7 +41,6 @@ class JTVTensor2D(unittest.TestCase):
 
         """
         jtv = self.jtv
-        jtv.approx_hessian = False
         self.assertTrue(jtv._test_deriv(self.x0))
         self.assertTrue(jtv._test_deriv2(self.x0, expectedOrder=2))
 
@@ -62,12 +51,6 @@ class JTVTensor2D(unittest.TestCase):
 
         v = np.random.rand(len(m))
 
-        jtv.approx_hessian = False
-        W = jtv.deriv2(m)
-        Wv = jtv.deriv2(m, v)
-        np.testing.assert_allclose(Wv, W @ v)
-
-        jtv.approx_hessian = True
         W = jtv.deriv2(m)
         Wv = jtv.deriv2(m, v)
         np.testing.assert_allclose(Wv, W @ v)
@@ -98,16 +81,6 @@ class JTVTensor3D(unittest.TestCase):
         self.jtv = jtv
         self.x0 = np.random.rand(len(mesh) * 2)
 
-    def test_order_approximate_hessian(self):
-        """
-
-        Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
-
-        """
-        jtv = self.jtv
-        jtv.approx_hessian = True
-        self.assertTrue(jtv.test(self.x0))
-
     def test_order_full_hessian(self):
         """
 
@@ -115,7 +88,6 @@ class JTVTensor3D(unittest.TestCase):
 
         """
         jtv = self.jtv
-        jtv.approx_hessian = False
         self.assertTrue(jtv._test_deriv(self.x0))
         self.assertTrue(jtv._test_deriv2(self.x0, expectedOrder=2))
 
@@ -126,12 +98,6 @@ class JTVTensor3D(unittest.TestCase):
 
         v = np.random.rand(len(m))
 
-        jtv.approx_hessian = False
-        W = jtv.deriv2(m)
-        Wv = jtv.deriv2(m, v)
-        np.testing.assert_allclose(Wv, W @ v)
-
-        jtv.approx_hessian = True
         W = jtv.deriv2(m)
         Wv = jtv.deriv2(m, v)
         np.testing.assert_allclose(Wv, W @ v)
@@ -161,16 +127,6 @@ class JTVTree2D(unittest.TestCase):
         self.jtv = jtv
         self.x0 = np.random.rand(len(mesh) * 2)
 
-    def test_order_approximate_hessian(self):
-        """
-
-        Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
-
-        """
-        jtv = self.jtv
-        jtv.approx_hessian = True
-        self.assertTrue(jtv.test(self.x0))
-
     def test_order_full_hessian(self):
         """
 
@@ -178,7 +134,6 @@ class JTVTree2D(unittest.TestCase):
 
         """
         jtv = self.jtv
-        jtv.approx_hessian = False
         self.assertTrue(jtv._test_deriv(self.x0))
         self.assertTrue(jtv._test_deriv2(self.x0, expectedOrder=2))
 
@@ -189,12 +144,6 @@ class JTVTree2D(unittest.TestCase):
 
         v = np.random.rand(len(m))
 
-        jtv.approx_hessian = False
-        W = jtv.deriv2(m)
-        Wv = jtv.deriv2(m, v)
-        np.testing.assert_allclose(Wv, W @ v)
-
-        jtv.approx_hessian = True
         W = jtv.deriv2(m)
         Wv = jtv.deriv2(m, v)
         np.testing.assert_allclose(Wv, W @ v)
@@ -226,16 +175,6 @@ class JTVTree3D(unittest.TestCase):
         self.jtv = jtv
         self.x0 = np.random.rand(len(mesh) * 2)
 
-    def test_order_approximate_hessian(self):
-        """
-
-        Test deriv and deriv2 matrix of cross-gradient with approx_hessian=True
-
-        """
-        jtv = self.jtv
-        jtv.approx_hessian = True
-        self.assertTrue(jtv.test(self.x0))
-
     def test_order_full_hessian(self):
         """
 
@@ -243,7 +182,6 @@ class JTVTree3D(unittest.TestCase):
 
         """
         jtv = self.jtv
-        jtv.approx_hessian = False
         self.assertTrue(jtv._test_deriv(self.x0))
         self.assertTrue(jtv._test_deriv2(self.x0, expectedOrder=2))
 
@@ -254,12 +192,6 @@ class JTVTree3D(unittest.TestCase):
 
         v = np.random.rand(len(m))
 
-        jtv.approx_hessian = False
-        W = jtv.deriv2(m)
-        Wv = jtv.deriv2(m, v)
-        np.testing.assert_allclose(Wv, W @ v)
-
-        jtv.approx_hessian = True
         W = jtv.deriv2(m)
         Wv = jtv.deriv2(m, v)
         np.testing.assert_allclose(Wv, W @ v)
