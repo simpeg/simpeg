@@ -258,9 +258,9 @@ def run(plotIt=True, cleanAfterRun=True):
             "Compact Inversion: Depth weight = "
             + str(wgtexp)
             + ": $\epsilon_p$ = "
-            + str(round(reg.noise_floor_p, 1))
+            + str(round(reg.eps_p, 1))
             + ": $\epsilon_q$ = "
-            + str(round(reg.noise_floor_q, 2))
+            + str(round(reg.eps_q, 2))
         )
         ax = plt.subplot(221)
         dat = mesh.plotSlice(

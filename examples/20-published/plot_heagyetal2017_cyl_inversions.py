@@ -133,12 +133,12 @@ def run(plotIt=True, saveFig=False):
     src = TDEM.Src.MagDipole(
         [rx],
         waveform=TDEM.Src.StepOffWaveform(),
-        loc=srcLoc,  # same src location as FDEM problem
+        location=srcLoc,  # same src location as FDEM problem
     )
 
     surveyTD = TDEM.Survey([src])
     prbTD = TDEM.Simulation3DMagneticFluxDensity(
-        mesh, survey=surveyTD, sigmaMap=mapping, Solver=Solver
+        mesh, survey=surveyTD, sigmaMap=mapping, solver=Solver
     )
     prbTD.time_steps = [(5e-5, 10), (1e-4, 10), (5e-4, 10)]
 

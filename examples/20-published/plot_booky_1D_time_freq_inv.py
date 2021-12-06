@@ -214,7 +214,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Set FDEM survey (In-phase and Quadrature)
     survey = FDEM.Survey(source_list)
-    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping, Solver=Solver)
+    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping, solver=Solver)
     prb.survey = survey
 
     # ------------------ RESOLVE Inversion ------------------ #
@@ -299,7 +299,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     source_list = [
         TDEM.Src.CircularLoop(
             receiver_list,
-            loc=srcLoc,
+            location=srcLoc,
             radius=radius,
             orientation="z",
             waveform=TDEM.Src.VTEMWaveform(offTime=offTime, peakTime=peakTime, a=3.0),
@@ -315,7 +315,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
         (5e-4, 15),
     ]
     prob = TDEM.Simulation3DElectricField(
-        mesh, time_steps=timeSteps, sigmaMap=mapping, Solver=Solver
+        mesh, time_steps=timeSteps, sigmaMap=mapping, solver=Solver
     )
     survey = TDEM.Survey(source_list)
     prob.survey = survey
