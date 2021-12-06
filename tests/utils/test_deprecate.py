@@ -21,7 +21,7 @@ deprecated_modules = [
     "SimPEG.utils.meshutils",
     "SimPEG.utils.ModelBuilder",
     "SimPEG.utils.PlotUtils",
-    "SimPEG.utils.solverUtils",
+    "SimPEG.utils.SolverUtils",
     "SimPEG.electromagnetics.utils.EMUtils",
     "SimPEG.electromagnetics.utils.AnalyticUtils",
     "SimPEG.electromagnetics.utils.CurrentUtils",
@@ -148,59 +148,6 @@ class DeprecateTest(unittest.TestCase):
                     except (TypeError, ValueError):
                         Rx(locs, locs)  # for either Dipole, or Time receivers
                 print("ok")
-
-
-class OldStyleProblemTest(unittest.TestCase):
-    def setUp(self):
-        cs = 25.0
-        npad = 7
-        hx = [(cs, npad, -1.3), (cs, 21), (cs, npad, 1.3)]
-        hy = [(cs, npad, -1.3), (cs, 21), (cs, npad, 1.3)]
-        hz = [(cs, npad, -1.3), (cs, 20)]
-        mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
-        sigma = np.ones(mesh.nC) * 1e-2
-
-        x = mesh.vectorCCx[(mesh.vectorCCx > -155.0) & (mesh.vectorCCx < 155.0)]
-        y = mesh.vectorCCy[(mesh.vectorCCy > -155.0) & (mesh.vectorCCy < 155.0)]
-
-        Aloc = np.r_[-200.0, 0.0, 0.0]
-        Bloc = np.r_[200.0, 0.0, 0.0]
-        M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
-        N = utils.ndgrid(x + 25.0, y, np.r_[0.0])
-        phiA = EM.analytics.DCAnalytic_Pole_Dipole(
-            Aloc, [M, N], 1e-2, earth_type="halfspace"
-        )
-        phiB = EM.analytics.DCAnalytic_Pole_Dipole(
-            Bloc, [M, N], 1e-2, earth_type="halfspace"
-        )
-        data_ana = phiA - phiB
-
-        rx = DC.Rx.Dipole(M, N)
-        src = DC.Src.Dipole([rx], Aloc, Bloc)
-        survey = DC.Survey([src])
-
-        self.survey = survey
-        self.mesh = mesh
-        self.sigma = sigma
-        self.data_ana = data_ana
-
-    def test_Problem3D_N(self, tolerance=0.2):
-        problem = DC.Problem3D_N(self.mesh, survey=self.survey, sigma=self.sigma)
-        problem.solver = Solver
-        with self.assertWarns(FutureWarning):
-            data = self.survey.dpred()
-        err = np.linalg.norm(data - self.data_ana) / np.linalg.norm(self.data_ana)
-        if err < 0.2:
-            print(err)
-            passed = True
-            print(">> DC analytic test for Problem3D_N is passed")
-        else:
-            print(err)
-            passed = False
-            print(">> DC analytic test for Problem3D_N is failed")
-        self.assertTrue(passed)
-        with self.assertWarns(FutureWarning):
-            dataObject = self.survey.makeSyntheticData(self.sigma, std=0.05)
 
 
 if __name__ == "__main__":
