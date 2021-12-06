@@ -904,6 +904,10 @@ class SaveOutputEveryIteration(SaveEveryIteration):
     beta = None
     phi_d = None
     phi_m = None
+    phi_m_small = None
+    phi_m_smooth_x = None
+    phi_m_smooth_y = None
+    phi_m_smooth_z = None
     phi = None
 
     def initialize(self):
@@ -913,7 +917,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                 "progress as: '###-{0!s}.txt'".format(self.fileName)
             )
             f = open(self.fileName + ".txt", "w")
-            self.header = "  #     beta     phi_d     phi_m      phi       cg_iter\n"
+            self.header = "  #     beta     phi_d     phi_m   phi_m_small     phi_m_smoomth_x     phi_m_smoomth_y     phi_m_smoomth_z      phi\n"
             f.write(self.header)
             f.close()
 
@@ -922,6 +926,10 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.beta = []
         self.phi_d = []
         self.phi_m = []
+        self.phi_m_small = []
+        self.phi_m_smooth_x = []
+        self.phi_m_smooth_y = []
+        self.phi_m_smooth_z = []
         self.phi = []
 
     def endIter(self):
@@ -951,18 +959,26 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.beta.append(self.invProb.beta)
         self.phi_d.append(self.invProb.phi_d)
         self.phi_m.append(self.invProb.phi_m)
+        self.phi_m_small.append(phi_s)
+        self.phi_m_smooth_x.append(phi_x)
+        self.phi_m_smooth_y.append(phi_y)
+        self.phi_m_smooth_z.append(phi_z)
         self.phi.append(self.opt.f)
 
         if self.save_txt:
             f = open(self.fileName + ".txt", "a")
             f.write(
-                " {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e} {5:3d}\n".format(
+                " {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e} {5:1.4e} "
+                "{6:1.4e}  {7:1.4e}  {8:1.4e}\n".format(
                     self.opt.iter,
                     self.beta[self.opt.iter - 1],
                     self.phi_d[self.opt.iter - 1],
                     self.phi_m[self.opt.iter - 1],
+                    self.phi_m_small[self.opt.iter - 1],
+                    self.phi_m_smooth_x[self.opt.iter - 1],
+                    self.phi_m_smooth_y[self.opt.iter - 1],
+                    self.phi_m_smooth_z[self.opt.iter - 1],
                     self.phi[self.opt.iter - 1],
-                    self.opt.cg_count,
                 )
             )
             f.close()
@@ -972,7 +988,16 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.beta = results[:, 1]
         self.phi_d = results[:, 2]
         self.phi_m = results[:, 3]
-        self.f = results[:, 4]
+        self.phi_m_small = results[:, 4]
+        self.phi_m_smooth_x = results[:, 5]
+        self.phi_m_smooth_y = results[:, 6]
+        self.phi_m_smooth_z = results[:, 7]
+
+        self.phi_m_smooth = (
+            self.phi_m_smooth_x + self.phi_m_smooth_y + self.phi_m_smooth_z
+        )
+
+        self.f = results[:, 7]
 
         self.target_misfit = self.invProb.dmisfit.simulation.survey.nD / 2.0
         self.i_target = None
