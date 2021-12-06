@@ -312,7 +312,7 @@ class PairedBetaSchedule(InversionDirective):
         # check separately if misfits are within the tolerance,
         # otherwise, scale beta individually
         for i, phi_d in enumerate(self.invProb.phi_d_list):
-            if self.opt.iter % self.cooling_rate == 0:
+            if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
                 target = self.target[i]
                 ratio = phi_d / target
                 if (

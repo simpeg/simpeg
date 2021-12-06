@@ -258,59 +258,20 @@ class BetaEstimate_ByEig(InversionDirective):
 
 
 class BetaSchedule(InversionDirective):
-    """
-        Directive for beta cooling schedule to determine the tradeoff
-        parameters of the joint inverse problem.
-        We borrow some code from Update_IRLS.
-    """
+    """BetaSchedule"""
 
-    chifact_target = 1.0
-    beta_tol = 1e-1
-    update_beta = True
+    coolingFactor = 8.0
     coolingRate = 3
-    coolingFactor = 8
-    dmis_met = False
-
-    @property
-    def target(self):
-        if getattr(self, "_target", None) is None:
-            nD = 0
-            for survey in self.survey:
-                nD += survey.nD
-
-            self._target = nD * 0.5 * self.chifact_target
-
-        return self._target
-
-    @target.setter
-    def target(self, val):
-        self._target = val
 
     def endIter(self):
-
-        if self.invProb.phi_d < self.target:
-            self.dmis_met = True
-
-        if np.all(
-            [
-                np.abs(1.0 - self.invProb.phi_d / self.target) > self.beta_tol,
-                self.update_beta,
-                self.dmis_met,
-                self.opt.iter % self.coolingRate == 0,
-            ]
-        ):
-
-            ratio = self.target / self.invProb.phi_d
-
-            if ratio > 1:
-                ratio = np.minimum(1.5, ratio)
-            else:
-                ratio = np.maximum(0.75, ratio)
-
-            self.invProb.beta = self.invProb.beta * ratio
-
-        elif np.all([self.opt.iter % self.coolingRate == 0, self.dmis_met == False]):
-            self.invProb.beta = self.invProb.beta / self.coolingFactor
+        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
+            if self.debug:
+                print(
+                    "BetaSchedule is cooling Beta. Iteration: {0:d}".format(
+                        self.opt.iter
+                    )
+                )
+            self.invProb.beta /= self.coolingFactor
 
 
 class AlphasSmoothEstimate_ByEig(InversionDirective):
