@@ -19,7 +19,7 @@ PGI
 ===
 We have merged @thast's petrophysically guided inversion (PGI) methodology into SimPEG!
 There any many new directives and objective functions related to this methodology of
-joint inversion. There are also now new :ref:`tutorials <sphx_glr_content_tutorials_13-pgi>` showing how you can implement this
+joint inversion. There are also now new :ref:`tutorials <sphx_glr_content_tutorials_13-joint_inversion>` showing how you can implement this
 in both joint inversions and single-domain inversions to incorporate petrophysical
 information into the inversion! Check out the multiple PR's related to this branch
 addition for more details.
