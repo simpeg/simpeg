@@ -250,17 +250,6 @@ class BaseEM1DSimulation(BaseSimulation):
             out = out + self.thicknessesDeriv.T @ (Js["dthick"].T @ v)
         return out
 
-    def _set_coefficients(self, coefficients):
-        self._As = coefficients[0]
-        self._frequencies = coefficients[1]
-        self._lambs = coefficients[2]
-        self._unique_lambs = coefficients[3]
-        self._inv_lambs = coefficients[4]
-        self._C0s = coefficients[5]
-        self._C1s = coefficients[6]
-        self._coefficients_set = True
-        return
-
     def _compute_hankel_coefficients(self):
         survey = self.survey
         if self.hMap is not None:
@@ -900,30 +889,31 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         if self.parallel:
 
             pool = Pool(self.n_cpu)
-            if self.n_sounding_for_chunk is None:
-                self._Jmatrix_sigma = pool.map(
-                    run_simulation,
-                    [
-                        self.input_args(i, output_type='sensitivity_sigma') for i in range(self.n_sounding)
-                    ]
-                )
-                self._Jmatrix_sigma = np.hstack(self._Jmatrix_sigma)
-            else:
-                self._Jmatrix_sigma = pool.map(
-                    self._run_simulation_by_chunk,
-                    [
-                        self.input_args_by_chunk(i, output_type='sensitivity_sigma') for i in range(self.n_chunk)
-                    ]
-                )    
-                self._Jmatrix_sigma = np.r_[self._Jmatrix_sigma].ravel()
-            
+            # Deprecate this for now, but revisit later
+            # It is an idea of chunking for parallelization
+            # if self.n_sounding_for_chunk is None:
+            #     self._Jmatrix_sigma = pool.map(
+            #         run_simulation,
+            #         [
+            #             self.input_args(i, output_type='sensitivity_sigma') for i in range(self.n_sounding)
+            #         ]
+            #     )
+            #     self._Jmatrix_sigma = np.hstack(self._Jmatrix_sigma)
+            # else:
+            self._Jmatrix_sigma = pool.map(
+                self._run_simulation_by_chunk,
+                [
+                    self.input_args_by_chunk(i, output_type='sensitivity_sigma') for i in range(self.n_chunk)
+                ]
+            )
+            self._Jmatrix_sigma = np.r_[self._Jmatrix_sigma].ravel()
             pool.close()
             pool.join()
-            
+
             self._Jmatrix_sigma = sp.coo_matrix(
                 (self._Jmatrix_sigma, self.IJLayers), dtype=float
             ).tocsr()
-        
+
         else:
             self._Jmatrix_sigma = [
                     run_simulation(self.input_args(i, output_type='sensitivity_sigma')) for i in range(self.n_sounding)
@@ -953,20 +943,20 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
         if (self.parallel) & (__name__=='__main__'):
             pool = Pool(self.n_cpu)
-            if self.n_sounding_for_chunk is None:
-                self._Jmatrix_height = pool.map(
-                    run_simulation,
-                    [
-                        self.input_args(i, output_type="sensitivity_height") for i in range(self.n_sounding)
-                    ]
-                )
-            else:
-                self._Jmatrix_height = pool.map(
-                    self._run_simulation_by_chunk,
-                    [
-                        self.input_args_by_chunk(i, output_type='sensitivity_height') for i in range(self.n_chunk)
-                    ]
-                )                    
+            # if self.n_sounding_for_chunk is None:
+            #     self._Jmatrix_height = pool.map(
+            #         run_simulation,
+            #         [
+            #             self.input_args(i, output_type="sensitivity_height") for i in range(self.n_sounding)
+            #         ]
+            #     )
+            # else:
+            self._Jmatrix_height = pool.map(
+                self._run_simulation_by_chunk,
+                [
+                    self.input_args_by_chunk(i, output_type='sensitivity_height') for i in range(self.n_chunk)
+                ]
+            )
             pool.close()
             pool.join()
             if self.parallel_jvec_jtvec is False:
@@ -997,7 +987,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     def Jtvec(self, m, v, f=None):
         J_sigma = self.getJ_sigma(m)
         J_height = self.getJ_height(m)
- 
         Jtv = self.sigmaDeriv.T * (utils.sdiag(1./self.sigma) * (J_sigma.T*v))
         if self.hMap is not None:
             Jtv += self.hDeriv.T*(J_height.T*v)
@@ -1045,12 +1034,12 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         n = len(args_chunk)
         results = [
                     self.run_simulation(args_chunk[i_sounding]) for i_sounding in range(n)
-        ]        
+        ]
         return results
 
 
 class Sensitivity(Data):
-    
+
     sensitivity = properties.Array(
         """
         Matrix of the sensitivity.
@@ -1063,15 +1052,15 @@ class Sensitivity(Data):
         """,
         shape=("*","*"),
         required=True,
-    )    
+    )
 
-    
+
     M = properties.Integer(
         """
         """,
         required=True
     )
-    
+
     #######################
     # Instantiate the class
     #######################
