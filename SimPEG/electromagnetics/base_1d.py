@@ -693,6 +693,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             self.H[i_sounding],
             output_type,
             self.invert_height,
+            False,
             self._coefficients[i_sounding],
         )
         return output
@@ -713,6 +714,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             self.H[i_sounding],
             'forward',
             self.invert_height,
+            True,
             [],
         )
         return output
@@ -756,9 +758,12 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
                 if self.verbose:
                     print(">> Calculate coefficients")
 
-                self._coefficients = [
-                    run_simulation(self.input_args_for_coeff(i), return_projection=True) for i in range(self.n_sounding)
-                ]
+                self._coefficients = pool.map(
+                    run_simulation,
+                    [
+                        self.input_args_for_coeff(i) for i in range(self.n_sounding)
+                    ]
+                 )
                 self._coefficients_set = True
 
             # if self.n_sounding_for_chunk is None:
@@ -785,7 +790,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
                     print(">> Calculate coefficients")
 
                 self._coefficients = [
-                    run_simulation(self.input_args_for_coeff(i), return_projection=True) for i in range(self.n_sounding)
+                    run_simulation(self.input_args_for_coeff(i)) for i in range(self.n_sounding)
                 ]
                 self._coefficients_set = True
 
@@ -953,19 +958,19 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         if (self.parallel) & (__name__=='__main__'):
             pool = Pool(self.n_cpu)
             # if self.n_sounding_for_chunk is None:
-            #     self._Jmatrix_height = pool.map(
-            #         run_simulation,
-            #         [
-            #             self.input_args(i, output_type="sensitivity_height") for i in range(self.n_sounding)
-            #         ]
-            #     )
-            # else:
             self._Jmatrix_height = pool.map(
-                self._run_simulation_by_chunk,
+                run_simulation,
                 [
-                    self.input_args_by_chunk(i, output_type='sensitivity_height') for i in range(self.n_chunk)
+                    self.input_args(i, output_type="sensitivity_height") for i in range(self.n_sounding)
                 ]
             )
+            # else:
+            # self._Jmatrix_height = pool.map(
+            #     self._run_simulation_by_chunk,
+            #     [
+            #         self.input_args_by_chunk(i, output_type='sensitivity_height') for i in range(self.n_chunk)
+            #     ]
+            # )
             pool.close()
             pool.join()
             if self.parallel_jvec_jtvec is False:

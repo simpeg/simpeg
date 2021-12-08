@@ -263,15 +263,15 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
 
     survey = properties.Instance("a survey object", Survey, required=True)
 
-    def run_simulation(self, args, return_projection=False):
+    def run_simulation(self, args):
         if self.verbose:
             print(">> Frequency-domain")
-        return self._run_simulation(args, return_projection=return_projection)
+        return self._run_simulation(args)
 
     def dot(self, args):
         return np.dot(args[0], args[1])
 
-    def _run_simulation(self, args, return_projection=False):
+    def _run_simulation(self, args):
         """
         This method simulates the EM response or computes the sensitivities for
         a single sounding. The method allows for parallelization of
@@ -310,6 +310,7 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             h,
             output_type,
             invert_height,
+            return_projection,
             coefficients
         ) = args
 
