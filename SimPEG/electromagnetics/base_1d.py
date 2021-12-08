@@ -752,6 +752,15 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             pool = Pool(self.n_cpu)
 
             #This assumes the same # of layers for each of sounding
+            if self._coefficients_set is False:
+                if self.verbose:
+                    print(">> Calculate coefficients")
+
+                self._coefficients = [
+                    run_simulation(self.input_args_for_coeff(i), return_projection=True) for i in range(self.n_sounding)
+                ]
+                self._coefficients_set = True
+
             # if self.n_sounding_for_chunk is None:
             result = pool.map(
                 run_simulation,
@@ -892,20 +901,20 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             # Deprecate this for now, but revisit later
             # It is an idea of chunking for parallelization
             # if self.n_sounding_for_chunk is None:
-            #     self._Jmatrix_sigma = pool.map(
-            #         run_simulation,
-            #         [
-            #             self.input_args(i, output_type='sensitivity_sigma') for i in range(self.n_sounding)
-            #         ]
-            #     )
-            #     self._Jmatrix_sigma = np.hstack(self._Jmatrix_sigma)
-            # else:
             self._Jmatrix_sigma = pool.map(
-                self._run_simulation_by_chunk,
+                run_simulation,
                 [
-                    self.input_args_by_chunk(i, output_type='sensitivity_sigma') for i in range(self.n_chunk)
+                    self.input_args(i, output_type='sensitivity_sigma') for i in range(self.n_sounding)
                 ]
             )
+            self._Jmatrix_sigma = np.hstack(self._Jmatrix_sigma)
+            # else:
+            # self._Jmatrix_sigma = pool.map(
+            #     self._run_simulation_by_chunk,
+            #     [
+            #         self.input_args_by_chunk(i, output_type='sensitivity_sigma') for i in range(self.n_chunk)
+            #     ]
+            # )
             self._Jmatrix_sigma = np.r_[self._Jmatrix_sigma].ravel()
             pool.close()
             pool.join()
@@ -1095,4 +1104,4 @@ class Sensitivity(Data):
 
     def __getitem__(self, key):
         index = self.index_dictionary[key[0]][key[1]]
-        return self.sensitivity[index,:]  
+        return self.sensitivity[index,:]
