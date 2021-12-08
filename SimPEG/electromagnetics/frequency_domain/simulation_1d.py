@@ -33,6 +33,28 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 if rx.locations[0, 2] < self.topo[2]:
                     raise Exception("Receiver must be located above the topography")
 
+    def get_coefficients(self):
+        if self._coefficients_set is False:
+            self._compute_coefficients()
+        return (
+            self._i_freq,
+            self._lambs,
+            self._unique_lambs,
+            self._inv_lambs,
+            self._C0s,
+            self._C1s
+        )
+
+    def _set_coefficients(self, coefficients):
+        self._i_freq = coefficients[0]
+        self._lambs = coefficients[1]
+        self._unique_lambs = coefficients[2]
+        self._inv_lambs = coefficients[3]
+        self._C0s = coefficients[4]
+        self._C1s = coefficients[5]
+        self._coefficients_set = True
+        return
+
     def _compute_coefficients(self):
         if self._coefficients_set:
             return
@@ -241,15 +263,15 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
 
     survey = properties.Instance("a survey object", Survey, required=True)
 
-    def run_simulation(self, args):
+    def run_simulation(self, args, return_projection=False):
         if self.verbose:
             print(">> Frequency-domain")
-        return self._run_simulation(args)
+        return self._run_simulation(args, return_projection=return_projection)
 
     def dot(self, args):
         return np.dot(args[0], args[1])
 
-    def _run_simulation(self, args):
+    def _run_simulation(self, args, return_projection=False):
         """
         This method simulates the EM response or computes the sensitivities for
         a single sounding. The method allows for parallelization of
@@ -288,68 +310,72 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             h,
             output_type,
             invert_height,
-            _As,
-            _frequencies
+            coefficients
         ) = args
 
         n_layer = len(thicknesses) + 1
         local_survey = Survey(src_list)
         exp_map = maps.ExpMap(nP=n_layer)
 
-        if not invert_height:
-            # Use Exponential Map
-            # This is hard-wired at the moment
+        # if not invert_height:
+        # Use Exponential Map
+        # This is hard-wired at the moment
 
-            sim = Simulation1DLayered(
-                survey=local_survey,
-                thicknesses=thicknesses,
-                sigmaMap=exp_map,
-                eta=eta,
-                tau=tau,
-                c=c,
-                # chi=chi,
-                # dchi=dchi,
-                # tau1=tau1,
-                # tau2=tau2,
-                topo=topo,
-                hankel_filter="key_101_2009",
-            )
+        sim = Simulation1DLayered(
+            survey=local_survey,
+            thicknesses=thicknesses,
+            sigmaMap=exp_map,
+            eta=eta,
+            tau=tau,
+            c=c,
+            # chi=chi,
+            # dchi=dchi,
+            # tau1=tau1,
+            # tau2=tau2,
+            topo=topo,
+            hankel_filter="key_101_2009",
+        )
 
-            if output_type == "sensitivity_sigma":
-                J = sim.getJ(np.log(sigma))
-                return utils.mkvc(J['ds'] * sim.sigmaDeriv)
-            else:
-                resp = sim.dpred(np.log(sigma))
-                return resp
+        if return_projection:
+            return sim.get_coefficients()
 
+        sim._set_coefficients(coefficients)
+
+        if output_type == "sensitivity_sigma":
+            J = sim.getJ(np.log(sigma))
+            return utils.mkvc(J['ds'] * sim.sigmaDeriv)
         else:
+            resp = sim.dpred(np.log(sigma))
+            return resp
 
-            wires = maps.Wires(("sigma", n_layer), ("h", 1))
-            sigma_map = exp_map * wires.sigma
+        # else:
 
-            sim = Simulation1DLayered(
-                survey=local_survey,
-                thicknesses=thicknesses,
-                sigmaMap=sigma_map,
-                hMap=wires.h,
-                topo=topo,
-                eta=eta,
-                tau=tau,
-                c=c,
-                # chi=chi,
-                # dchi=dchi,
-                # tau1=tau1,
-                # tau2=tau2,
-                hankel_filter="key_101_2009",
-            )
+        #     wires = maps.Wires(("sigma", n_layer), ("h", 1))
+        #     sigma_map = exp_map * wires.sigma
 
-            m = np.r_[np.log(sigma), h]
-            if output_type == "sensitivity_sigma":
-                J = sim.getJ(m)
-                return utils.mkvc(J['ds'] * utils.sdiag(sigma))
-            elif output_type == "sensitivity_height":
-                J = sim.getJ(m)
-                return utils.mkvc(J['dh'])
-            else:
-                resp = sim.dpred(m)
-                return resp
+        #     sim = Simulation1DLayered(
+        #         survey=local_survey,
+        #         thicknesses=thicknesses,
+        #         sigmaMap=sigma_map,
+        #         hMap=wires.h,
+        #         topo=topo,
+        #         eta=eta,
+        #         tau=tau,
+        #         c=c,
+        #         # chi=chi,
+        #         # dchi=dchi,
+        #         # tau1=tau1,
+        #         # tau2=tau2,
+        #         hankel_filter="key_101_2009",
+        #     )
+
+        #     m = np.r_[np.log(sigma), h]
+        #     if output_type == "sensitivity_sigma":
+        #         J = sim.getJ(m)
+        #         return utils.mkvc(J['ds'] * utils.sdiag(sigma))
+        #     elif output_type == "sensitivity_height":
+        #         J = sim.getJ(m)
+        #         return utils.mkvc(J['dh'])
+        #     else:
+        #         resp = sim.dpred(m)
+        #         return resp

@@ -250,6 +250,17 @@ class BaseEM1DSimulation(BaseSimulation):
             out = out + self.thicknessesDeriv.T @ (Js["dthick"].T @ v)
         return out
 
+    def _set_coefficients(self, coefficients):
+        self._As = coefficients[0]
+        self._frequencies = coefficients[1]
+        self._lambs = coefficients[2]
+        self._unique_lambs = coefficients[3]
+        self._inv_lambs = coefficients[4]
+        self._C0s = coefficients[5]
+        self._C1s = coefficients[6]
+        self._coefficients_set = True
+        return
+
     def _compute_hankel_coefficients(self):
         survey = self.survey
         if self.hMap is not None:

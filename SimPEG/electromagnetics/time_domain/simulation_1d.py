@@ -28,8 +28,6 @@ class Simulation1DLayered(BaseEM1DSimulation):
     """
 
     time_filter = "key_81_CosSin_2009"
-    _As = []
-    _frequencies = []
     survey = properties.Instance("a survey object", Survey, required=True)
 
     def __init__(self, **kwargs):
