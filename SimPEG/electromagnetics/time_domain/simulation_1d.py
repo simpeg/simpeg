@@ -28,7 +28,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
     """
 
     time_filter = "key_81_CosSin_2009"
-
+    _As = []
+    _frequencies = []
     survey = properties.Instance("a survey object", Survey, required=True)
 
     def __init__(self, **kwargs):
@@ -51,6 +52,30 @@ class Simulation1DLayered(BaseEM1DSimulation):
             for i_rx, rx in enumerate(src.receiver_list):
                 if rx.locations[0, 2] < self.topo[2]:
                     raise Exception("Receiver must be located above the topography")
+
+    def get_coefficients(self):
+        if self._coefficients_set is False:
+            self._compute_coefficients()
+        return (
+            self._As,
+            self._frequencies,
+            self._lambs,
+            self._unique_lambs,
+            self._inv_lambs,
+            self._C0s,
+            self._C1s
+        )
+
+    def _set_coefficients(self, coefficients):
+        self._As = coefficients[0]
+        self._frequencies = coefficients[1]
+        self._lambs = coefficients[2]
+        self._unique_lambs = coefficients[3]
+        self._inv_lambs = coefficients[4]
+        self._C0s = coefficients[5]
+        self._C1s = coefficients[6]
+        self._coefficients_set = True
+        return
 
     def _compute_coefficients(self):
         if self._coefficients_set:
@@ -158,8 +183,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 ):
                     As[-1] *= mu_0
 
-        self._frequencies = omegas / (2 * np.pi)
-        self._As = As
+            self._frequencies = omegas / (2 * np.pi)
+            self._As = As
         self._coefficients_set = True
 
     def dpred(self, m, f=None):
@@ -340,13 +365,14 @@ class Simulation1DLayered(BaseEM1DSimulation):
 class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
 
     survey = properties.Instance("a survey object", Survey, required=True)
-
-    def run_simulation(self, args):
+    _As = []
+    _frequencies = []
+    def run_simulation(self, args, return_projection=False):
         if self.verbose:
             print(">> Time-domain")
-        return self._run_simulation(args)
+        return self._run_simulation(args, return_projection=return_projection)
 
-    def _run_simulation(self, args):
+    def _run_simulation(self, args, return_projection=False):
         """
         This method simulates the EM response or computes the sensitivities for
         a single sounding. The method allows for parallelization of
@@ -385,6 +411,7 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             h,
             output_type,
             invert_height,
+            coefficients
         ) = args
 
         n_layer = len(thicknesses) + 1
@@ -409,6 +436,11 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             topo=topo,
             hankel_filter="key_101_2009",
         )
+
+        if return_projection:
+            return sim.get_coefficients()
+
+        sim._set_coefficients(coefficients)
 
         if output_type == "sensitivity_sigma":
             J = sim.getJ(np.log(sigma))

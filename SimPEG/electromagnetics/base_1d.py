@@ -444,6 +444,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
     _Jmatrix_sigma = None
     _Jmatrix_height = None
+    _coefficients = []
+    _coefficients_set = False
     run_simulation = None
     n_cpu = None
     parallel = False
@@ -690,10 +692,30 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             self.Tau2[i_sounding, :],
             self.H[i_sounding],
             output_type,
-            self.invert_height
+            self.invert_height,
+            self._coefficients[i_sounding],
         )
         return output
 
+    def input_args_for_coeff(self, i_sounding):
+        output = (
+            self.survey.get_sources_by_sounding_number(i_sounding),
+            self.topo[i_sounding, :],
+            self.thicknesses,
+            self.Sigma[i_sounding, :],
+            self.Eta[i_sounding, :],
+            self.Tau[i_sounding, :],
+            self.C[i_sounding, :],
+            self.Chi[i_sounding, :],
+            self.dChi[i_sounding, :],
+            self.Tau1[i_sounding, :],
+            self.Tau2[i_sounding, :],
+            self.H[i_sounding],
+            'forward',
+            self.invert_height,
+            [],
+        )
+        return output
 
     def fields(self, m):
         if self.verbose:
@@ -728,41 +750,51 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             if self.verbose:
                 print ('parallel')
             pool = Pool(self.n_cpu)
-            
+
             #This assumes the same # of layers for each of sounding
-            if self.n_sounding_for_chunk is None:
-                result = pool.map(
-                    run_simulation,
-                    [
-                        self.input_args(i, output_type='forward') for i in range(self.n_sounding)
-                    ]
-                )
-            else:
-                result = pool.map(
-                    self._run_simulation_by_chunk,
-                    [
-                        self.input_args_by_chunk(i, output_type='forward') for i in range(self.n_chunk)
-                    ]
-                )      
-                return np.r_[result].ravel()
+            # if self.n_sounding_for_chunk is None:
+            result = pool.map(
+                run_simulation,
+                [
+                    self.input_args(i, output_type='forward') for i in range(self.n_sounding)
+                ]
+            )
+            # else:
+            #     result = pool.map(
+            #         self._run_simulation_by_chunk,
+            #         [
+            #             self.input_args_by_chunk(i, output_type='forward') for i in range(self.n_chunk)
+            #         ]
+            #     )
+            #     return np.r_[result].ravel()
 
             pool.close()
             pool.join()
         else:
+            if self._coefficients_set is False:
+                if self.verbose:
+                    print(">> Calculate coefficients")
+
+                self._coefficients = [
+                    run_simulation(self.input_args_for_coeff(i), return_projection=True) for i in range(self.n_sounding)
+                ]
+                self._coefficients_set = True
+
             result = [
                 run_simulation(self.input_args(i, output_type='forward')) for i in range(self.n_sounding)
             ]
         return np.hstack(result)
+
     @property
     def sounding_number(self):
         self._sounding_number = [key for key in self.survey.source_location_by_sounding_dict.keys()]
         return self._sounding_number
-    
+
     @property
     def sounding_number_chunks(self):
         self._sounding_number_chunks = list(self.chunks(self.sounding_number, self.n_sounding_for_chunk))
-        return self._sounding_number_chunks        
-    
+        return self._sounding_number_chunks
+
     @property
     def n_chunk(self):
         self._n_chunk = len(self.sounding_number_chunks)
@@ -772,7 +804,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         """Yield successive n-sized chunks from lst."""
         for i in range(0, len(lst), n):
             yield lst[i:i + n]
-    
+
     def input_args_by_chunk(self, i_chunk, output_type):
         args_by_chunks = []
         for i_sounding in self.sounding_number_chunks[i_chunk]:

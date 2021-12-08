@@ -288,6 +288,8 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             h,
             output_type,
             invert_height,
+            _As,
+            _frequencies
         ) = args
 
         n_layer = len(thicknesses) + 1
