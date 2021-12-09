@@ -13,7 +13,6 @@ from ..simulation import BaseSimulation
 from .. import utils
 from .. import props
 from empymod.utils import check_hankel
-from . import time_domain
 
 try:
     from multiprocessing import Pool
@@ -737,72 +736,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
         return f
 
-    def forward(self, m):
-        self.model = m
-
-        if self.verbose:
-            print(">> Compute response")
-
-        # Set flat topo at zero
-        if self.topo is None:
-            self.set_null_topography()
-
-        # run_simulation = self.run_simulation
-        run_simulation = time_domain.run_simulation_time_domain
-
-        if self.parallel:
-            if self.verbose:
-                print ('parallel')
-
-            #This assumes the same # of layers for each of sounding
-            if self._coefficients_set is False:
-                if self.verbose:
-                    print(">> Calculate coefficients")
-                pool = Pool(self.n_cpu)
-                self._coefficients = pool.map(
-                    run_simulation,
-                    [
-                        self.input_args_for_coeff(i) for i in range(self.n_sounding)
-                    ]
-                 )
-                self._coefficients_set = True
-                pool.close()
-                pool.join()
-
-            # if self.n_sounding_for_chunk is None:
-            pool = Pool(self.n_cpu)
-            result = pool.map(
-                run_simulation,
-                [
-                    self.input_args(i, output_type='forward') for i in range(self.n_sounding)
-                ]
-            )
-            # else:
-            #     result = pool.map(
-            #         self._run_simulation_by_chunk,
-            #         [
-            #             self.input_args_by_chunk(i, output_type='forward') for i in range(self.n_chunk)
-            #         ]
-            #     )
-            #     return np.r_[result].ravel()
-
-            pool.close()
-            pool.join()
-        else:
-            if self._coefficients_set is False:
-                if self.verbose:
-                    print(">> Calculate coefficients")
-
-                self._coefficients = [
-                    run_simulation(self.input_args_for_coeff(i)) for i in range(self.n_sounding)
-                ]
-                self._coefficients_set = True
-
-            result = [
-                run_simulation(self.input_args(i, output_type='forward')) for i in range(self.n_sounding)
-            ]
-        return np.hstack(result)
-
     @property
     def sounding_number(self):
         self._sounding_number = [key for key in self.survey.source_location_by_sounding_dict.keys()]
@@ -890,111 +823,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         J = np.hstack(J).astype(int)
         I = np.hstack(I).astype(int)
         return (I, J)
-
-
-    def getJ_sigma(self, m):
-        """
-             Compute d F / d sigma
-        """
-        if self._Jmatrix_sigma is not None:
-            return self._Jmatrix_sigma
-        if self.verbose:
-            print(">> Compute J sigma")
-        self.model = m
-
-        # run_simulation = self.run_simulation
-        run_simulation = time_domain.run_simulation_time_domain
-
-        if self.parallel:
-
-            pool = Pool(self.n_cpu)
-            # Deprecate this for now, but revisit later
-            # It is an idea of chunking for parallelization
-            # if self.n_sounding_for_chunk is None:
-            self._Jmatrix_sigma = pool.map(
-                run_simulation,
-                [
-                    self.input_args(i, output_type='sensitivity_sigma') for i in range(self.n_sounding)
-                ]
-            )
-            self._Jmatrix_sigma = np.hstack(self._Jmatrix_sigma)
-            # else:
-            # self._Jmatrix_sigma = pool.map(
-            #     self._run_simulation_by_chunk,
-            #     [
-            #         self.input_args_by_chunk(i, output_type='sensitivity_sigma') for i in range(self.n_chunk)
-            #     ]
-            # )
-            self._Jmatrix_sigma = np.r_[self._Jmatrix_sigma].ravel()
-            pool.close()
-            pool.join()
-
-            self._Jmatrix_sigma = sp.coo_matrix(
-                (self._Jmatrix_sigma, self.IJLayers), dtype=float
-            ).tocsr()
-
-        else:
-            self._Jmatrix_sigma = [
-                    run_simulation(self.input_args(i, output_type='sensitivity_sigma')) for i in range(self.n_sounding)
-            ]
-            self._Jmatrix_sigma = np.hstack(self._Jmatrix_sigma)
-            self._Jmatrix_sigma = sp.coo_matrix(
-                (self._Jmatrix_sigma, self.IJLayers), dtype=float
-            ).tocsr()
-
-        return self._Jmatrix_sigma
-
-    def getJ_height(self, m):
-        """
-             Compute d F / d height
-        """
-        if self.hMap is None:
-            return utils.Zero()
-
-        if self._Jmatrix_height is not None:
-            return self._Jmatrix_height
-        if self.verbose:
-            print(">> Compute J height")
-
-        self.model = m
-
-        # run_simulation = self.run_simulation
-        run_simulation = time_domain.run_simulation_time_domain
-
-        if (self.parallel) & (__name__=='__main__'):
-            pool = Pool(self.n_cpu)
-            # if self.n_sounding_for_chunk is None:
-            self._Jmatrix_height = pool.map(
-                run_simulation,
-                [
-                    self.input_args(i, output_type="sensitivity_height") for i in range(self.n_sounding)
-                ]
-            )
-            # else:
-            # self._Jmatrix_height = pool.map(
-            #     self._run_simulation_by_chunk,
-            #     [
-            #         self.input_args_by_chunk(i, output_type='sensitivity_height') for i in range(self.n_chunk)
-            #     ]
-            # )
-            pool.close()
-            pool.join()
-            if self.parallel_jvec_jtvec is False:
-                # self._Jmatrix_height = sp.block_diag(self._Jmatrix_height).tocsr()
-                self._Jmatrix_height = np.hstack(self._Jmatrix_height)
-                self._Jmatrix_height = sp.coo_matrix(
-                    (self._Jmatrix_height, self.IJHeight), dtype=float
-                ).tocsr()
-        else:
-            self._Jmatrix_height = [
-                    run_simulation(self.input_args(i, output_type='sensitivity_height')) for i in range(self.n_sounding)
-            ]
-            self._Jmatrix_height = np.hstack(self._Jmatrix_height)
-            self._Jmatrix_height = sp.coo_matrix(
-                (self._Jmatrix_height, self.IJHeight), dtype=float
-            ).tocsr()
-
-        return self._Jmatrix_height
 
     def Jvec(self, m, v, f=None):
         J_sigma = self.getJ_sigma(m)
