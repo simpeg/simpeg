@@ -751,13 +751,12 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         if self.parallel:
             if self.verbose:
                 print ('parallel')
-            pool = Pool(self.n_cpu)
 
             #This assumes the same # of layers for each of sounding
             if self._coefficients_set is False:
                 if self.verbose:
                     print(">> Calculate coefficients")
-
+                pool = Pool(self.n_cpu)
                 self._coefficients = pool.map(
                     run_simulation,
                     [
@@ -765,8 +764,11 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
                     ]
                  )
                 self._coefficients_set = True
+                pool.close()
+                pool.join()
 
             # if self.n_sounding_for_chunk is None:
+            pool = Pool(self.n_cpu)
             result = pool.map(
                 run_simulation,
                 [
