@@ -21,6 +21,17 @@ from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradi
 
 import properties
 
+try:
+    from multiprocessing import Pool
+    from sys import platform
+except ImportError:
+    print("multiprocessing is not available")
+    PARALLEL = False
+else:
+    PARALLEL = True
+    import multiprocessing
+
+
 
 class Simulation1DLayered(BaseEM1DSimulation):
     """

@@ -8,6 +8,17 @@ import properties
 
 from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradient
 
+try:
+    from multiprocessing import Pool
+    from sys import platform
+except ImportError:
+    print("multiprocessing is not available")
+    PARALLEL = False
+else:
+    PARALLEL = True
+    import multiprocessing
+
+
 #######################################################################
 #               SIMULATION FOR A SINGLE SOUNDING
 #######################################################################
