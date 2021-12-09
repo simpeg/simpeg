@@ -13,6 +13,7 @@ from ..simulation import BaseSimulation
 from .. import utils
 from .. import props
 from empymod.utils import check_hankel
+from . import time_domain
 
 try:
     from multiprocessing import Pool
@@ -746,7 +747,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         if self.topo is None:
             self.set_null_topography()
 
-        run_simulation = self.run_simulation
+        # run_simulation = self.run_simulation
+        run_simulation = time_domain.run_simulation_time_domain
 
         if self.parallel:
             if self.verbose:
@@ -900,7 +902,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             print(">> Compute J sigma")
         self.model = m
 
-        run_simulation = self.run_simulation
+        # run_simulation = self.run_simulation
+        run_simulation = time_domain.run_simulation_time_domain
 
         if self.parallel:
 
@@ -955,7 +958,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
         self.model = m
 
-        run_simulation = self.run_simulation
+        # run_simulation = self.run_simulation
+        run_simulation = time_domain.run_simulation_time_domain
 
         if (self.parallel) & (__name__=='__main__'):
             pool = Pool(self.n_cpu)
@@ -1112,3 +1116,4 @@ class Sensitivity(Data):
     def __getitem__(self, key):
         index = self.index_dictionary[key[0]][key[1]]
         return self.sensitivity[index,:]
+

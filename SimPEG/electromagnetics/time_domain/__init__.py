@@ -17,7 +17,7 @@ from . import receivers
 from . import sources as Src
 from . import receivers as Rx
 
-from .simulation_1d import Simulation1DLayered, Simulation1DLayeredStitched
+from .simulation_1d import Simulation1DLayered, Simulation1DLayeredStitched, run_simulation_time_domain
 
 ############
 # Deprecated

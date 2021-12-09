@@ -363,8 +363,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
 class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
 
     survey = properties.Instance("a survey object", Survey, required=True)
-    _As = []
-    _frequencies = []
+    _simulation_type = 'time'
+
     def run_simulation(self, args):
         if self.verbose:
             print(">> Time-domain")
@@ -478,3 +478,113 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
         #     else:
         #         resp = sim.dpred(m)
         #         return resp
+
+
+def run_simulation_time_domain(args):
+    """
+    This method simulates the EM response or computes the sensitivities for
+    a single sounding. The method allows for parallelization of
+    the stitched 1D problem.
+
+    :param src: a EM1DTM source object
+    :param topo: Topographic location (x, y, z)
+    :param np.array thicknesses: np.array(N-1,) layer thicknesses for a single sounding
+    :param np.array sigma: np.array(N,) layer conductivities for a single sounding
+    :param np.array eta: np.array(N,) intrinsic chargeabilities for a single sounding
+    :param np.array tau: np.array(N,) Cole-Cole time constant for a single sounding
+    :param np.array c: np.array(N,) Cole-Cole frequency distribution constant for a single sounding
+    :param np.array chi: np.array(N,) magnetic susceptibility for a single sounding
+    :param np.array dchi: np.array(N,) DC susceptibility for magnetic viscosity for a single sounding
+    :param np.array tau1: np.array(N,) lower time-relaxation constant for magnetic viscosity for a single sounding
+    :param np.array tau2: np.array(N,) upper time-relaxation constant for magnetic viscosity for a single sounding
+    :param float h: source height for a single sounding
+    :param string output_type: "response", "sensitivity_sigma", "sensitivity_height"
+    :param bool invert_height: boolean switch for inverting for source height
+    :return: response or sensitivities
+
+    """
+
+    (
+        source_list,
+        topo,
+        thicknesses,
+        sigma,
+        eta,
+        tau,
+        c,
+        chi,
+        dchi,
+        tau1,
+        tau2,
+        h,
+        output_type,
+        invert_height,
+        return_projection,
+        coefficients
+    ) = args
+
+    n_layer = len(thicknesses) + 1
+    local_survey = Survey(source_list)
+    exp_map = maps.ExpMap(nP=n_layer)
+
+    # Deprecate at the moment
+    # if not invert_height:
+    # Use Exponential Map
+    # This is hard-wired at the moment
+    sim = Simulation1DLayered(
+        survey=local_survey,
+        thicknesses=thicknesses,
+        sigmaMap=exp_map,
+        eta=eta,
+        tau=tau,
+        c=c,
+        # chi=chi,
+        # dchi=dchi,
+        # tau1=tau1,
+        # tau2=tau2,
+        topo=topo,
+        hankel_filter="key_101_2009",
+    )
+
+    if return_projection:
+        return sim.get_coefficients()
+
+    sim._set_coefficients(coefficients)
+
+    if output_type == "sensitivity_sigma":
+        J = sim.getJ(np.log(sigma))
+        return utils.mkvc(J['ds'] * sim.sigmaDeriv)
+    else:
+        resp = sim.dpred(np.log(sigma))
+        return resp
+    # else:
+
+    #     wires = maps.Wires(("sigma", n_layer), ("h", 1))
+    #     sigma_map = exp_map * wires.sigma
+    #     sim = Simulation1DLayered(
+    #         survey=local_survey,
+    #         thicknesses=thicknesses,
+    #         sigmaMap=sigma_map,
+    #         hMap=wires.h,
+    #         topo=topo,
+    #         eta=eta,
+    #         tau=tau,
+    #         c=c,
+    #         # chi=chi,
+    #         # dchi=dchi,
+    #         # tau1=tau1,
+    #         # tau2=tau2,
+    #         hankel_filter="key_101_2009",
+    #         use_sounding=True,
+    #     )
+
+    #     m = np.r_[np.log(sigma), h]
+    #     if output_type == "sensitivity_sigma":
+    #         J['ds'] = sim.getJ(m)
+    #         return utils.mkvc(J['ds'] * utils.sdiag(sigma))
+    #     elif output_type == "sensitivity_height":
+    #         J = sim.getJ(m)
+    #         return utils.mkvc(drespdh)
+    #     else:
+    #         resp = sim.dpred(m)
+    #         return resp
