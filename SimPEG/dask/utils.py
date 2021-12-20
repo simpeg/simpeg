@@ -1,5 +1,5 @@
 import numpy as np
-
+from dask.distributed import get_client
 
 def compute_chunk_sizes(M, N, target_chunk_size):
     """
@@ -23,3 +23,15 @@ def compute_chunk_sizes(M, N, target_chunk_size):
         colChunk = int(np.ceil(N / nChunks_col))
         chunk_size = rowChunk * colChunk * 8 * 1e-6  # in Mb
     return rowChunk, colChunk
+
+
+def compute(self, job):
+    """
+    Compute dask job for either dask array or client.
+    """
+    try:
+        client = get_client()
+        return client.compute(job, workers=self.workers)
+    except ValueError:
+        return job.compute()
+

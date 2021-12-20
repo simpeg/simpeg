@@ -93,7 +93,6 @@ class GravInvLinProblemTest(unittest.TestCase):
             data = sim.make_synthetic_data(
                 self.model, relative_error=0.0, noise_floor=0.001, add_noise=True
             )
-        print(sim.G)
 
         # Create a regularization
         reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)

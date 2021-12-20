@@ -5,6 +5,7 @@ from dask.delayed import Delayed
 import warnings
 from ..data import SyntheticData
 import numpy as np
+from .utils import compute
 from ..utils import mkvc
 from ..data import Data
 
@@ -65,14 +66,14 @@ def make_synthetic_data(
         relative_error = std
 
     dpred = self.dpred(m, f=f)
-    if isinstance(dpred, Delayed):
-        if self.workers is None:
-            dclean = dpred.compute()
-        else:
+
+    if not isinstance(dpred, np.ndarray):
+        dpred = compute(self, dpred)
+        if isinstance(dpred, Future):
             client = get_client()
-            dclean = client.compute(dpred, workers=self.workers).result()
-    else:
-        dclean = np.asarray(dpred)
+            dpred = client.gather(dpred)
+
+    dclean = np.asarray(dpred)
 
     if add_noise is True:
         std = relative_error * abs(dclean) + noise_floor

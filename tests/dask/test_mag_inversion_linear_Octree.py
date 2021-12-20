@@ -1,5 +1,6 @@
 from __future__ import print_function
 import unittest
+import os
 import SimPEG.dask
 from dask.distributed import Client
 from SimPEG import (
@@ -171,6 +172,13 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         self.assertLess(residual, 1)
         # self.assertTrue(residual < 0.05)
+
+    def test_missing_zarr(self):
+        shutil.rmtree(os.path.join(self.sim.sensitivity_path, "J.zarr"))
+        os.mkdir(os.path.join(self.sim.sensitivity_path, "J.zarr"))
+        self.sim._Jmatrix = None
+        self.sim.dpred(self.model)
+        pass
 
     def tearDown(self):
         # Clean up the working directory
