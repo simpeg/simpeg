@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import properties
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,17 +6,24 @@ import os
 import scipy.sparse as sp
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
-from ..maps import SphericalSystem, ComboMap, IdentityMap, Wires
+from ..maps import IdentityMap, Wires
 from ..regularization import (
     BaseComboRegularization,
     BaseRegularization,
+    SimpleSmall,
     Small,
     SparseSmall,
-    SimplePGIsmallness,
+    Simple,
+    Tikhonov,
+    Sparse,
     PGIsmallness,
-    SimplePGIwithNonlinearRelationshipsSmallness,
+    PGIwithNonlinearRelationshipsSmallness,
+    PGI,
     SmoothDeriv,
+    SimpleSmoothDeriv,
     SparseDeriv,
+    PGIwithRelationships,
+    BaseSimilarityMeasure,
 )
 from ..utils import (
     mkvc,
@@ -31,6 +36,7 @@ from ..utils import (
     eigenvalue_by_power_iteration,
 )
 from ..utils.code_utils import deprecate_property
+from .. import optimization
 
 
 class InversionDirective(properties.HasProperties):
@@ -118,11 +124,7 @@ class InversionDirective(properties.HasProperties):
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
 
     prob = deprecate_property(
-        simulation,
-        "prob",
-        new_name="simulation",
-        removal_version="0.16.0",
-        future_warn=True,
+        simulation, "prob", new_name="simulation", removal_version="0.16.0", error=True,
     )
 
     def initialize(self):
@@ -275,7 +277,7 @@ class BetaSchedule(InversionDirective):
 class AlphasSmoothEstimate_ByEig(InversionDirective):
     """
     Estimate the alphas multipliers for the smoothness terms of the regularization
-     as a multiple of the ratio between the highest eigenvalue of the
+    as a multiple of the ratio between the highest eigenvalue of the
     smallness term and the highest eigenvalue of each smoothness term of the regularization.
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
@@ -310,11 +312,11 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                             isinstance(
                                 regpart,
                                 (
+                                    SimpleSmall,
                                     Small,
                                     SparseSmall,
-                                    SimplePGIsmallness,
                                     PGIsmallness,
-                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                    PGIwithNonlinearRelationshipsSmallness,
                                 ),
                             ),
                         ]
@@ -332,7 +334,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                             i,
                             j,
                             isinstance(
-                                regpart, (SmoothDeriv, SparseDeriv)
+                                regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv)
                             ),
                         ]
                     ]
@@ -344,7 +346,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             alpha0 = self.reg.multipliers
             smoothness = np.r_[
                 [
-                    isinstance(regpart, (SmoothDeriv, SparseDeriv))
+                    isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))
                     for regpart in self.reg.objfcts
                 ]
             ]
@@ -604,10 +606,8 @@ class MultiTargetMisfits(InversionDirective):
                             j,
                             (
                                 isinstance(
-                                    regpart,
-                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                    regpart, PGIwithNonlinearRelationshipsSmallness,
                                 )
-                                or isinstance(regpart, SimplePGIsmallness)
                                 or isinstance(regpart, PGIsmallness)
                             ),
                         ]
@@ -648,10 +648,8 @@ class MultiTargetMisfits(InversionDirective):
                             j,
                             (
                                 isinstance(
-                                    regpart,
-                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                    regpart, PGIwithNonlinearRelationshipsSmallness,
                                 )
-                                or isinstance(regpart, SimplePGIsmallness)
                                 or isinstance(regpart, PGIsmallness)
                             ),
                         ]
@@ -943,18 +941,18 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                 phi_s += reg.objfcts[0](self.invProb.model) * reg.alpha_s
                 phi_x += reg.objfcts[1](self.invProb.model) * reg.alpha_x
 
-                if reg.regularization_mesh.dim == 2:
+                if reg.regmesh.dim == 2:
                     phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
-                elif reg.regularization_mesh.dim == 3:
+                elif reg.regmesh.dim == 3:
                     phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
                     phi_z += reg.objfcts[3](self.invProb.model) * reg.alpha_z
         elif getattr(self.reg.objfcts[0], "objfcts", None) is None:
             phi_s += self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
             phi_x += self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
 
-            if self.reg.regularization_mesh.dim == 2:
+            if self.reg.regmesh.dim == 2:
                 phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
-            elif self.reg.regularization_mesh.dim == 3:
+            elif self.reg.regmesh.dim == 3:
                 phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
                 phi_z += self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
 
@@ -1179,15 +1177,12 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
 
 class Update_IRLS(InversionDirective):
-    """
-    Directive for the iterative update of the IRLS weights used by the Sparse
-    regularization function.
-    """
+
     f_old = 0
     f_min_change = 1e-2
     beta_tol = 1e-1
     beta_ratio_l2 = None
-    prctile = 95
+    prctile = 100
     chifact_start = 1.0
     chifact_target = 1.0
 
@@ -1219,21 +1214,21 @@ class Update_IRLS(InversionDirective):
         "maxIRLSiters",
         new_name="max_irls_iterations",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
     updateBeta = deprecate_property(
         update_beta,
         "updateBeta",
         new_name="update_beta",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
     betaSearch = deprecate_property(
         beta_search,
         "betaSearch",
         new_name="beta_search",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     @property
@@ -1274,10 +1269,9 @@ class Update_IRLS(InversionDirective):
 
             self.norms = []
             for reg in self.reg.objfcts:
-                if hasattr(reg, "norms"):
-                    self.norms.append(reg.norms)
-                    reg.norms = np.c_[2.0, 2.0, 2.0, 2.0]
-                    reg.model = self.invProb.model
+                self.norms.append(reg.norms)
+                reg.norms = np.c_[2.0, 2.0, 2.0, 2.0]
+                reg.model = self.invProb.model
 
         # Update the model used by the regularization
         for reg in self.reg.objfcts:
@@ -1328,7 +1322,9 @@ class Update_IRLS(InversionDirective):
             for comp, multipier in zip(reg.objfcts, reg.multipliers):
                 if multipier > 0:
                     phim_new += np.sum(
-                        comp.f_m(self.invProb.model) ** 2.0
+                        comp.f_m ** 2.0
+                        / (comp.f_m ** 2.0 + comp.epsilon ** 2.0)
+                        ** (1 - comp.norm / 2.0)
                     )
 
         # Update the model used by the regularization
@@ -1339,7 +1335,7 @@ class Update_IRLS(InversionDirective):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([self.invProb.phi_d < self.start, self.mode == 1]):
-            self.start_irls()
+            self.startIRLS()
 
         # Only update after GN iterations
         if np.all(
@@ -1363,20 +1359,29 @@ class Update_IRLS(InversionDirective):
             # Print to screen
             for reg in self.reg.objfcts:
 
-                fct = reg.objfcts[0]
-                if fct.irls_threshold > self.floorEps_p and self.coolEps_p:
-                    fct.irls_threshold = fct.irls_threshold / self.coolEpsFact
+                if reg.eps_p > self.floorEps_p and self.coolEps_p:
+                    reg.eps_p /= self.coolEpsFact
+                    # print('Eps_p: ' + str(reg.eps_p))
+                if reg.eps_q > self.floorEps_q and self.coolEps_q:
+                    reg.eps_q /= self.coolEpsFact
+                    # print('Eps_q: ' + str(reg.eps_q))
 
-                for fct in reg.objfcts[1:]:
-                    if fct.irls_threshold > self.floorEps_q and self.coolEps_q:
-                        fct.irls_threshold = fct.irls_threshold / self.coolEpsFact
+            # Remember the value of the norm from previous R matrices
+            # self.f_old = self.reg(self.invProb.model)
 
             self.irls_iteration += 1
 
-            # Reset the IRLS weights
+            # Reset the regularization matrices so that it is
+            # recalculated for current model. Do it to all levels of comboObj
             for reg in self.reg.objfcts:
+
+                # If comboObj, go down one more level
                 for comp in reg.objfcts:
-                    comp._W = None
+                    comp.stashedR = None
+
+            for dmis in self.dmisfit.objfcts:
+                if getattr(dmis, "stashedR", None) is not None:
+                    dmis.stashedR = None
 
             # Compute new model objective function value
             f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
@@ -1399,7 +1404,7 @@ class Update_IRLS(InversionDirective):
             self.update_beta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
-    def start_irls(self):
+    def startIRLS(self):
         if not self.silent:
             print(
                 "Reached starting chifact with l2-norm regularization:"
@@ -1418,9 +1423,18 @@ class Update_IRLS(InversionDirective):
         # Either use the supplied epsilon, or fix base on distribution of
         # model values
         for reg in self.reg.objfcts:
-            reg.irls_threshold = np.percentile(
-                np.abs(reg.objfcts[0].f_m(self.invProb.model)), self.prctile
-            )
+
+            if getattr(reg, "eps_p", None) is None:
+
+                reg.eps_p = np.percentile(
+                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
+                )
+
+            if getattr(reg, "eps_q", None) is None:
+
+                reg.eps_q = np.percentile(
+                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
+                )
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
@@ -1428,6 +1442,11 @@ class Update_IRLS(InversionDirective):
 
         # Save l2-model
         self.invProb.l2model = self.invProb.model.copy()
+
+        # Print to screen
+        for reg in self.reg.objfcts:
+            if not self.silent:
+                print("eps_p: " + str(reg.eps_p) + " eps_q: " + str(reg.eps_q))
 
     def angleScale(self):
         """
@@ -1437,7 +1456,7 @@ class Update_IRLS(InversionDirective):
         # Currently implemented for MVI-S only
         max_p = []
         for reg in self.reg.objfcts[0].objfcts:
-            eps_p = reg.irls_threshold
+            eps_p = reg.epsilon
             f_m = abs(reg.f_m)
             max_p += [np.max(f_m)]
 
@@ -1446,7 +1465,7 @@ class Update_IRLS(InversionDirective):
         max_s = [np.pi, np.pi]
 
         for obj, var in zip(self.reg.objfcts[1:3], max_s):
-            obj.free_multipliers = np.ones(obj.free_multipliers.shape) * max_p / var
+            obj.scales = np.ones(obj.scales.shape) * max_p / var
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
@@ -1572,8 +1591,9 @@ class UpdateSensitivityWeights(InversionDirective):
     function is either Wires or Identity.
     Good for any problem where J is formed explicitly.
     """
+
     everyIter = True
-    threshold = 0.
+    threshold = 1e-12
     normalization: bool = True
 
     def initialize(self):
@@ -1619,16 +1639,16 @@ class UpdateSensitivityWeights(InversionDirective):
         # Normalize and threshold weights
         wr = np.zeros_like(self.invProb.model)
         for reg in self.reg.objfcts:
-            wr += reg.mapping.deriv(self.invProb.model).T * (
-                    (reg.mapping * jtj_diag) / reg.objfcts[0].regularization_mesh.vol ** 2.
-            )
+            if not isinstance(reg, BaseSimilarityMeasure):
+                wr += reg.mapping.deriv(self.invProb.model).T * (
+                    (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
+                )
         wr /= wr.max()
         wr += self.threshold
         wr **= 0.5
         for reg in self.reg.objfcts:
-            for fct in reg.objfcts:
-                fct.cell_weights = fct.mapping * wr
-                fct._W = None
+            if not isinstance(reg, BaseSimilarityMeasure):
+                reg.cell_weights = reg.mapping * wr
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights

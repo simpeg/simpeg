@@ -13,14 +13,12 @@ from ..regularization import (
     Small,
     SparseSmall,
     Sparse,
-    SimplePGIsmallness,
     PGIsmallness,
-    SimplePGIwithNonlinearRelationshipsSmallness,
-    SimplePGI,
+    PGIwithNonlinearRelationshipsSmallness,
     PGI,
     SmoothDeriv,
     SparseDeriv,
-    SimplePGIwithRelationships,
+    PGIwithRelationships,
 )
 from ..utils import (
     mkvc,
@@ -46,7 +44,7 @@ class PGI_UpdateParameters(InversionDirective):
 
     verbose = False  # print info.  about the GMM at each iteration
     update_rate = 1  # updates at each `update_rate` iterations
-    update_gmm = True  # update the GMM
+    update_gmm = False  # update the GMM
     zeta = (
         1e10  # confidence in the prior proportions; default: high value, keep GMM fixed
     )
@@ -66,7 +64,7 @@ class PGI_UpdateParameters(InversionDirective):
                 np.r_[
                     [
                         isinstance(
-                            regpart, (SimplePGI, PGI, SimplePGIwithRelationships)
+                            regpart, (PGI, PGIwithRelationships)
                         )
                         for regpart in self.reg.objfcts
                     ]
@@ -88,7 +86,7 @@ class PGI_UpdateParameters(InversionDirective):
             if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
                 self.fixed_membership = np.c_[
                     np.arange(len(self.pgi_reg.gmmref.cell_volumes)),
-                    self.pgi_reg.membership(self.pgi_reg.mref),
+                    self.pgi_reg.compute_quasi_geology_model(),
                 ]
 
             if self.update_gmm and isinstance(
@@ -225,7 +223,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                 np.r_[
                     [
                         isinstance(
-                            regpart, (SimplePGI, PGI, SimplePGIwithRelationships)
+                            regpart, (PGI, PGIwithRelationships)
                         )
                         for regpart in self.reg.objfcts
                     ]
@@ -379,7 +377,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
                 np.r_[
                     [
                         isinstance(
-                            regpart, (SimplePGI, PGI, SimplePGIwithRelationships)
+                            regpart, (PGI, PGIwithRelationships)
                         )
                         for regpart in self.reg.objfcts
                     ]
@@ -423,7 +421,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
         if ~np.any(self.pgi_updategmm_class):
             self.previous_membership = self.pgi_reg.membership(self.invProb.model)
         else:
-            self.previous_membership = self.pgi_reg.membership(self.pgi_reg.mref)
+            self.previous_membership = self.pgi_reg.compute_quasi_geology_model()
 
     @property
     def DMtarget(self):
@@ -443,7 +441,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
         if ~np.any(self.pgi_updategmm_class):
             self.membership = self.pgi_reg.membership(self.invProb.model)
         else:
-            self.membership = self.pgi_reg.membership(self.pgi_reg.mref)
+            self.membership = self.pgi_reg.compute_quasi_geology_model()
 
         same_mref = np.all(self.membership == self.previous_membership)
         percent_diff = (

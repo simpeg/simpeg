@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import copy
 from scipy.stats import multivariate_normal
 from scipy import spatial, linalg
@@ -19,18 +21,16 @@ from sklearn.mixture._gaussian_mixture import (
     _check_precisions,
     _check_shape,
 )
-from sklearn.mixture._base import _check_X, check_random_state, ConvergenceWarning
+from sklearn.mixture._base import check_random_state, ConvergenceWarning
 import warnings
-from .mat_utils import mkvc, Identity
-from .code_utils import deprecate_module
-from ..maps import IdentityMap, Wires
+from .mat_utils import mkvc
+from ..maps import IdentityMap, Wires, Identity
 from ..regularization import (
-    L2Regularization,
+    Simple,
     PGI,
-    SimplePGIwithRelationships,
+    Tikhonov,
+    PGIwithRelationships,
 )
-
-deprecate_module("make_SimplePGI_regularization", "make_PGI_regularization", removal_version="0.16.0", future_warn=True)
 
 
 def make_PGI_regularization(
@@ -40,13 +40,17 @@ def make_PGI_regularization(
     wiresmap=None,
     maplist=None,
     cell_weights_list=None,
+    approx_hessian=True,
     approx_gradient=True,
     approx_eval=True,
     alpha_s=1.0,
     alpha_x=1.0,
     alpha_y=1.0,
     alpha_z=1.0,
-    **kwargs
+    alpha_xx=0.0,
+    alpha_yy=0.0,
+    alpha_zz=0.0,
+    **kwargs,
 ):
     """
     Create a complete PGI regularization term ComboObjectiveFunction with all
@@ -93,7 +97,11 @@ def make_PGI_regularization(
     """
 
     if wiresmap is None:
-        wrmp = Wires(("m", mesh.nC))
+        if "indActive" in kwargs.keys():
+            indActive = kwargs.pop("indActive")
+            wrmp = Wires(("m", int(indActive.sum())))
+        else:
+            wrmp = Wires(("m", mesh.nC))
     else:
         wrmp = wiresmap
 
@@ -103,7 +111,7 @@ def make_PGI_regularization(
         mplst = maplist
 
     if cell_weights_list is None:
-        clwhtlst = [Identity() for maps in wrmp.maps]
+        clwhtlst = [np.ones(maps[1].shape[0]) for maps in wrmp.maps]
     else:
         clwhtlst = cell_weights_list
 
@@ -113,13 +121,14 @@ def make_PGI_regularization(
         gmm=gmm,
         wiresmap=wiresmap,
         maplist=maplist,
+        approx_hessian=approx_hessian,
         approx_gradient=approx_gradient,
         approx_eval=approx_eval,
         alpha_s=alpha_s,
         alpha_x=0.0,
         alpha_y=0.0,
         alpha_z=0.0,
-        **kwargs
+        **kwargs,
     )
 
     if cell_weights_list is not None:
@@ -141,7 +150,7 @@ def make_PGI_regularization(
         alph_z = alpha_z
 
     for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += L2Regularization(
+        reg += Tikhonov(
             mesh=mesh,
             mapping=maps * wire[1],
             alpha_s=0.0,
@@ -149,13 +158,13 @@ def make_PGI_regularization(
             alpha_y=alph_y[i],
             alpha_z=alph_z[i],
             cell_weights=clwhtlst[i],
-            **kwargs
+            **kwargs,
         )
 
     return reg
 
 
-def make_SimplePGIwithRelationships_regularization(
+def make_PGIwithRelationships_regularization(
     mesh,
     gmmref,
     gmm=None,
@@ -171,7 +180,7 @@ def make_SimplePGIwithRelationships_regularization(
     alpha_xx=0.0,
     alpha_yy=0.0,
     alpha_zz=0.0,
-    **kwargs
+    **kwargs,
 ):
     """
     Create a complete PGI, with nonlinear relationships, regularization term ComboObjectiveFunction with all
@@ -214,7 +223,7 @@ def make_SimplePGIwithRelationships_regularization(
     -------
 
     :param SimPEG.objective_function.ComboObjectiveFunction reg: Full regularization with
-                        SimplePGIwithNonlinearRelationshipsSmallness and smoothness terms
+                        PGIwithNonlinearRelationshipsSmallness and smoothness terms
                         for all physical properties in all direction.
     """
 
@@ -229,11 +238,11 @@ def make_SimplePGIwithRelationships_regularization(
         mplst = maplist
 
     if cell_weights_list is None:
-        clwhtlst = [Identity() for maps in wrmp.maps]
+        clwhtlst = [np.ones(maps[1].shape[0]) for maps in wrmp.maps]
     else:
         clwhtlst = cell_weights_list
 
-    reg = SimplePGIwithRelationships(
+    reg = PGIwithRelationships(
         mesh=mesh,
         gmmref=gmmref,
         gmm=gmm,
@@ -245,7 +254,7 @@ def make_SimplePGIwithRelationships_regularization(
         alpha_x=0.0,
         alpha_y=0.0,
         alpha_z=0.0,
-        **kwargs
+        **kwargs,
     )
 
     if cell_weights_list is not None:
@@ -267,7 +276,7 @@ def make_SimplePGIwithRelationships_regularization(
         alph_z = alpha_z
 
     for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += Simple(
+        reg += Tikhonov(
             mesh=mesh,
             mapping=maps * wire[1],
             alpha_s=0.0,
@@ -275,7 +284,7 @@ def make_SimplePGIwithRelationships_regularization(
             alpha_y=alph_y[i],
             alpha_z=alph_z[i],
             cell_weights=clwhtlst[i],
-            **kwargs
+            **kwargs,
         )
 
     return reg
@@ -444,7 +453,7 @@ class WeightedGaussianMixture(GaussianMixture):
         Check the user provided 'weights'.
         Parameters
         ----------
-        weights : array-like, shape (n_components,) or (n_samples, n_components_)
+        weights : array-like, shape (n_components,) or (n_samples, n_components)
             The proportions of components of each mixture.
         n_components : int
             Number of components.
@@ -465,7 +474,7 @@ class WeightedGaussianMixture(GaussianMixture):
             _check_shape(weights, (n_components,), "weights")
 
         # check range
-        if np.less(weights, 0.0).any() or (np.greater(weights, 1.0)).any():
+        if any(np.less(weights, 0.0)) or any(np.greater(weights, 1.0)):
             raise ValueError(
                 "The parameter 'weights' should be in the range "
                 "[0, 1], but got max value %.5f, min value %.5f"
@@ -496,7 +505,9 @@ class WeightedGaussianMixture(GaussianMixture):
 
         if self.weights_init is not None:
             self.weights_init = self._check_weights(
-                self.weights_init, self.n_components, n_samples,
+                self.weights_init,
+                self.n_components,
+                n_samples,
             )
 
         if self.means_init is not None:
@@ -514,7 +525,7 @@ class WeightedGaussianMixture(GaussianMixture):
 
     def _initialize_parameters(self, X, random_state):
         """
-        [modified from Scikit-Learn.mixture.gaussian_mixture]
+        [modified from Scikit-Learn.mixture._base]
         Initialize the model parameters.
         Parameters
         ----------
@@ -706,7 +717,7 @@ class WeightedGaussianMixture(GaussianMixture):
         else:
             log_prob = np.empty((n_samples, n_components))
             for k, (mu, prec_chol) in enumerate(zip(means, precisions_chol)):
-                prec_chol_mat = np.eye(n_components) * prec_chol
+                prec_chol_mat = np.eye(n_features) * prec_chol
                 y = np.dot(X * sensW, prec_chol_mat) - np.dot(mu * sensW, prec_chol_mat)
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
@@ -750,9 +761,253 @@ class WeightedGaussianMixture(GaussianMixture):
             Log probabilities of each data point in X.
         """
         check_is_fitted(self)
-        X = _check_X(X, None, self.means_.shape[1])
+        X = self._validate_data(X, reset=False)
 
         return logsumexp(self._estimate_weighted_log_prob_with_sensW(X, sensW), axis=1)
+
+    def plot_pdf(
+        self,
+        ax=None,
+        flag2d=False,
+        x_component=None,
+        y_component=None,
+        padding=0.2,
+        plotting_precision=100,
+        plot_membership=False,
+        contour_opts={},
+        level_opts={},
+    ):
+        """
+        Utils to plot the marginal PDFs of a GMM, either in 1D or 2D (1 or 2 physical properties at the time).
+
+        Parameters
+        ----------
+        ax: matplotlib axes to plot on; need to be a 3-array if flag2d is True
+        bool flag2d: flag to either plot a 1D or 2D probability distributions
+        int x_component: physical property to plot on the X-axis, as ordered in the GMM.
+        int y_component: physical property to plot on the Y-axis, as ordered in the GMM
+        float padding: how much relative padding around the petrophysical means for the 1D and 2D plots
+        int plotting_precision: number of divisions for the 1D and 2D plots
+        bool plot_membership: plot the membership rather than the probability
+        dict contour_opts: modify the plotting options of the contour plot (in 1D and 2D)
+        dict level_opts: modify the plotting options of the level plot (in 1D and 2D)
+
+        Returns
+        -------
+        ax: matplotlib axes
+        """
+
+        plotting_precision = int(plotting_precision)
+
+        if x_component is None:
+            x_component = 0
+            if y_component is None:
+                if flag2d and self.means_.shape[1] > 1:
+                    y_component = 1
+
+        if (not (x_component is None)) and (not (y_component is None)):
+            flag2d = True
+
+        if ax is None:
+            if flag2d:
+                fig = plt.figure(figsize=(10, 10))
+                ax0 = plt.subplot2grid((4, 4), (3, 1), colspan=3)
+                ax1 = plt.subplot2grid((4, 4), (0, 1), colspan=3, rowspan=3)
+                ax2 = plt.subplot2grid((4, 4), (0, 0), rowspan=3)
+                ax = [ax0, ax1, ax2]
+            else:
+                fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+            ax = np.r_[ax]
+
+        # deal with the various possible shapes of covariances
+        if self.covariance_type == "tied":
+            covariances = np.r_[
+                [self.covariances_ for i in range(self.n_components)]
+            ].reshape(self.n_components, self.n_features_in_, self.n_features_in_)
+        elif self.covariance_type == "diag" or self.covariance_type == "spherical":
+            covariances = np.r_[
+                [
+                    self.covariances_[i] * np.eye(self.n_features_in_)
+                    for i in range(self.n_components)
+                ]
+            ].reshape(self.n_components, self.n_features_in_, self.n_features_in_)
+        else:
+            covariances = self.covariances_
+
+        dx = padding * (
+            self.means_[:, x_component].max() - self.means_[:, x_component].min()
+        )
+        xmin, xmax = (
+            self.means_[:, x_component].min() - dx,
+            self.means_[:, x_component].max() + dx,
+        )
+
+        # create a sklearn.clustering.GaussianMixture for plotting (no influence from mesh and local weights)
+        meansx = self.means_[:, x_component].reshape(self.n_components, 1)
+        covx = covariances[:, [x_component]][:, :, [x_component]]
+        if len(self.weights_.shape) == 2:
+            weights = self.weights_.sum(axis=0)
+            weights /=weights.sum()
+        else:
+            weights = self.weights_
+
+        clfx = GaussianMixture(
+            n_components=self.n_components,
+            means_init=meansx,
+            n_init=1,
+            max_iter=2,
+            tol=np.inf,
+        )
+        # random fit, we set values after.
+        clfx.fit(np.random.randn(10, 1))
+        clfx.means_ = meansx
+        clfx.covariances_ = covx
+        clfx.precisions_cholesky_ = _compute_precision_cholesky(
+            clfx.covariances_, clfx.covariance_type
+        )
+        clfx.weights_ = weights
+
+        xplot = np.linspace(xmin, xmax, plotting_precision)[:, np.newaxis]
+        if plot_membership:
+            rvx = clfx.predict(xplot)
+            labelx = "membership"
+        else:
+            rvx = np.exp(clfx.score_samples(xplot))
+            labelx = "1D Probability\nDensity\nDistribution"
+
+        ax[0].set_xlim(xmin, xmax)
+        ax[0].plot(
+            xplot,
+            rvx,
+            linewidth=3.0,
+            label=labelx,
+            c="k",
+        )
+        ax[0].legend()
+        ax[0].set_xlabel("Physical property {}".format(x_component))
+        ax[0].set_ylabel("Probability Density values")
+
+        if flag2d:
+
+            dy = padding * (
+                self.means_[:, y_component].max() - self.means_[:, y_component].min()
+            )
+            ymin, ymax = (
+                self.means_[:, y_component].min() - dy,
+                self.means_[:, y_component].max() + dy,
+            )
+
+            # create a sklearn.clustering.GaussianMixture for plotting (no influence from mesh and local weights)
+            meansy = self.means_[:, y_component].reshape(self.n_components, 1)
+            covy = covariances[:, [y_component]][:, :, [y_component]]
+
+            clfy = GaussianMixture(
+                n_components=self.n_components,
+                means_init=meansy,
+                n_init=1,
+                max_iter=2,
+                tol=np.inf,
+            )
+            # random fit, we set values after.
+            clfy.fit(np.random.randn(10, 1))
+            clfy.means_ = meansy
+            clfy.covariances_ = covy
+            clfy.precisions_cholesky_ = _compute_precision_cholesky(
+                clfy.covariances_, clfy.covariance_type
+            )
+            clfy.weights_ = weights
+
+            # 1d y-plot
+            yplot = np.linspace(ymin, ymax, plotting_precision)[:, np.newaxis]
+            if plot_membership:
+                rvy = clfy.predict(yplot)
+                labely = "membership"
+            else:
+                rvy = np.exp(clfy.score_samples(yplot))
+                labely = "1D Probability\nDensity\nDistribution"
+            ax[2].plot(rvy, yplot, linewidth=3.0, c="k", label=labely)
+            ax[2].set_ylabel("Physical property {}".format(y_component))
+            ax[2].set_ylim(ymin, ymax)
+            ax[2].legend()
+
+            # 2d plot
+            mean2d = self.means_[:, [x_component, y_component]]
+            cov2d = covariances[:, [x_component, y_component]][
+                :, :, [x_component, y_component]
+            ]
+            clf2d = GaussianMixture(
+                n_components=self.n_components,
+                means_init=mean2d,
+                n_init=1,
+                max_iter=2,
+                tol=np.inf,
+            )
+            # random fit, we set values after.
+            clf2d.fit(np.random.randn(10, 2))
+            clf2d.means_ = mean2d
+            clf2d.covariances_ = cov2d
+            clf2d.precisions_cholesky_ = _compute_precision_cholesky(
+                clf2d.covariances_, clf2d.covariance_type
+            )
+            clf2d.weights_ = weights
+
+            x, y = np.mgrid[
+                xmin : xmax : (xmax - xmin) / plotting_precision,
+                ymin : ymax : (ymax - ymin) / plotting_precision,
+            ]
+            pos = np.empty(x.shape + (2,))
+            pos[:, :, 0] = x
+            pos[:, :, 1] = y
+
+            if plot_membership:
+                rv2d = clf2d.predict(pos.reshape(-1, 2))
+                labely = "membership"
+            else:
+                rv2d = clf2d.score_samples(pos.reshape(-1, 2))
+                labely = "2D Probability Density Distribution"
+
+            contour_opts = {"levels": 10, "cmap": "viridis", **contour_opts}
+            surf = ax[1].contourf(x, y, rv2d.reshape(x.shape), **contour_opts)
+
+            level_opts = {
+                "levels": 10,
+                "colors": "k",
+                "linewidths": 1.0,
+                "linestyles": "dashdot",
+                **level_opts,
+            }
+
+            ax[1].contour(x, y, rv2d.reshape(x.shape), **level_opts)
+            ax[1].scatter(
+                meansx,
+                meansy,
+                label="Petrophysical means",
+                cmap="inferno_r",
+                c=np.linspace(0, self.n_components, self.n_components),
+                marker="v",
+                edgecolors="k",
+            )
+
+            axbar = inset_axes(
+                ax[1],
+                width="40%",
+                height="3%",
+                loc="upper right",
+                borderpad=1,
+            )
+            cbpetro = plt.colorbar(surf, cax=axbar, orientation="horizontal")
+            cbpetro.set_ticks([rv2d.min(), rv2d.max()])
+            cbpetro.set_ticklabels(["Low", "High"])
+            cbpetro.set_label(labely)
+            cbpetro.outline.set_edgecolor("k")
+
+            ax[1].set_xlim(xmin, xmax)
+            ax[1].set_ylim(ymin, ymax)
+            ax[1].legend(loc=3)
+            ax[1].set_ylabel("")
+            ax[1].set_xlabel("")
+
+        return ax
 
 
 class GaussianMixtureWithPrior(WeightedGaussianMixture):
@@ -997,32 +1252,73 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
     def fit(self, X, y=None, debug=False):
         """
         [modified from Scikit-Learn for Maximum A Posteriori estimates (MAP)]
-        Estimate model parameters with the MAP-EM algorithm.
-        The method fit the model `n_init` times and set the parameters with
+        Estimate model parameters with the EM algorithm.
+        The method fits the model ``n_init`` times and sets the parameters with
         which the model has the largest likelihood or lower bound. Within each
-        trial, the method iterates between E-step and M-step for `max_iter`
+        trial, the method iterates between E-step and M-step for ``max_iter``
         times until the change of likelihood or lower bound is less than
-        `tol`, otherwise, a `ConvergenceWarning` is raised.
+        ``tol``, otherwise, a ``ConvergenceWarning`` is raised.
+        If ``warm_start`` is ``True``, then ``n_init`` is ignored and a single
+        initialization is performed upon the first call. Upon consecutive
+        calls, training starts where it left off.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
             List of n_features-dimensional data points. Each row
             corresponds to a single data point.
+
+        y : Ignored
+            Not used, present for API consistency by convention.
+
         Returns
         -------
-        self
+        self : object
+            The fitted mixture.
+        """
+        self.fit_predict(X, y, debug)
+        return self
+
+    def fit_predict(self, X, y=None, debug=False):
+        """[modified from Scikit-Learn for Maximum A Posteriori estimates (MAP)]
+        Estimate model parameters using X and predict the labels for X.
+        The method fits the model n_init times and sets the parameters with
+        which the model has the largest likelihood or lower bound. Within each
+        trial, the method iterates between E-step and M-step for `max_iter`
+        times until the change of likelihood or lower bound is less than
+        `tol`, otherwise, a :class:`~sklearn.exceptions.ConvergenceWarning` is
+        raised. After fitting, it predicts the most probable label for the
+        input data points.
+        .. versionadded:: 0.20
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            List of n_features-dimensional data points. Each row
+            corresponds to a single data point.
+        y : Ignored
+            Not used, present for API consistency by convention.
+        Returns
+        -------
+        labels : array, shape (n_samples,)
+            Component labels.
         """
         if self.verbose:
             print("modified from scikit-learn")
 
-        X = _check_X(X, self.n_components)
+        X = self._validate_data(X, dtype=[np.float64, np.float32], ensure_min_samples=2)
+        if X.shape[0] < self.n_components:
+            raise ValueError(
+                "Expected n_samples >= n_components "
+                f"but got n_components = {self.n_components}, "
+                f"n_samples = {X.shape[0]}"
+            )
         self._check_initial_parameters(X)
 
         # if we enable warm_start, we will have a unique initialisation
         do_init = not (self.warm_start and hasattr(self, "converged_"))
         n_init = self.n_init if do_init else 1
 
-        max_lower_bound = -np.infty
+        max_lower_bound = -np.inf
         self.converged_ = False
 
         random_state = check_random_state(self.random_state)
@@ -1033,10 +1329,11 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
             if do_init:
                 self._initialize_parameters(X, random_state)
-                self.lower_bound_ = -np.infty
 
-            for n_iter in range(self.max_iter):
-                prev_lower_bound = self.lower_bound_
+            lower_bound = -np.inf if do_init else self.lower_bound_
+
+            for n_iter in range(1, self.max_iter + 1):
+                prev_lower_bound = lower_bound
 
                 log_prob_norm, log_resp = self._e_step(X)
 
@@ -1057,19 +1354,19 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                     aux[np.arange(len(aux)), self.fixed_membership[:, 1]] = 1
                     self.weights_[self.fixed_membership[:, 0]] = aux
 
-                self.lower_bound_ = self._compute_lower_bound(log_resp, log_prob_norm)
+                lower_bound = self._compute_lower_bound(log_resp, log_prob_norm)
 
-                change = self.lower_bound_ - prev_lower_bound
+                change = lower_bound - prev_lower_bound
                 self._print_verbose_msg_iter_end(n_iter, change)
 
                 if abs(change) < self.tol:
                     self.converged_ = True
                     break
 
-            self._print_verbose_msg_init_end(self.lower_bound_)
+            self._print_verbose_msg_init_end(lower_bound)
 
-            if self.lower_bound_ > max_lower_bound:
-                max_lower_bound = self.lower_bound_
+            if lower_bound > max_lower_bound or max_lower_bound == -np.inf:
+                max_lower_bound = lower_bound
                 best_params = self._get_parameters()
                 best_n_iter = n_iter
 
@@ -1084,7 +1381,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
 
         self._set_parameters(best_params)
         self.n_iter_ = best_n_iter
-        self.last_step_change = change
+        self.lower_bound_ = max_lower_bound
 
         return self
 

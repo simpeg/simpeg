@@ -114,7 +114,7 @@ class PrimSecFDEMTest(object):
                 "prim-sec: {normps:10.5e}, 3D: {norm3D:10.5e}, "
                 "diff: {diff:10.5e}, passed? {passed}".format(
                     rxfield=rx.projField,
-                    rxorient=rx.projComp,
+                    rxorient=rx.orientation,
                     rxcomp=rx.component,
                     normps=normps,
                     norm3D=norm3D,
@@ -179,14 +179,9 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
             meshp, sigmaMap=primaryMapping
         )
         self.primarySimulation.solver = Solver
-        primarySrc = fdem.Src.MagDipole(self.rxlist, freq=freq, loc=src_loc)
+        primarySrc = fdem.Src.MagDipole(self.rxlist, frequency=freq, location=src_loc)
         self.primarySurvey = fdem.Survey([primarySrc])
 
-        # Secondary Problem
-        self.secondarySimulation = fdem.Simulation3DMagneticFluxDensity(
-            meshs, sigmaMap=mapping
-        )
-        self.secondarySimulation.Solver = Solver
         self.secondarySrc = fdem.Src.PrimSecMappedSigma(
             self.rxlist,
             freq,
@@ -195,15 +190,19 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
             primaryMap2Meshs,
         )
         self.secondarySurvey = fdem.Survey([self.secondarySrc])
-        self.secondarySimulation.pair(self.secondarySurvey)
+        # Secondary Problem
+        self.secondarySimulation = fdem.Simulation3DMagneticFluxDensity(
+            meshs, survey=self.secondarySurvey, sigmaMap=mapping
+        )
+        self.secondarySimulation.solver = Solver
 
         # Full 3D problem to compare with
-        self.simulation3D = fdem.Simulation3DMagneticFluxDensity(
-            meshs, sigmaMap=mapping
-        )
-        self.simulation3D.Solver = Solver
         self.survey3D = fdem.Survey([primarySrc])
-        self.simulation3D.pair(self.survey3D)
+
+        self.simulation3D = fdem.Simulation3DMagneticFluxDensity(
+            meshs, survey=self.survey3D, sigmaMap=mapping
+        )
+        self.simulation3D.solver = Solver
 
         # solve and store fields
         print("   solving primary - secondary")
@@ -251,14 +250,12 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         s_e = np.zeros(meshp.nF)
         inds = meshp.nFx + utils.closestPoints(meshp, src_loc, gridLoc="Fz")
         s_e[inds] = 1.0 / csz
-        primarySrc = fdem.Src.RawVec_e(self.rxlist, freq=freq, s_e=s_e / meshp.area)
+        primarySrc = fdem.Src.RawVec_e(
+            self.rxlist, frequency=freq, s_e=s_e / meshp.area
+        )
         self.primarySurvey = fdem.Survey([primarySrc])
 
         # Secondary Problem
-        self.secondarySimulation = fdem.Simulation3DElectricField(
-            meshs, sigmaMap=mapping
-        )
-        self.secondarySimulation.Solver = Solver
         self.secondarySrc = fdem.Src.PrimSecMappedSigma(
             self.rxlist,
             freq,
@@ -267,18 +264,26 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
             primaryMap2Meshs,
         )
         self.secondarySurvey = fdem.Survey([self.secondarySrc])
-        self.secondarySimulation.pair(self.secondarySurvey)
+
+        self.secondarySimulation = fdem.Simulation3DElectricField(
+            meshs, survey=self.secondarySurvey, sigmaMap=mapping,
+        )
+        self.secondarySimulation.solver = Solver
 
         # Full 3D problem to compare with
-        self.simulation3D = fdem.Simulation3DElectricField(meshs, sigmaMap=mapping)
-        self.simulation3D.Solver = Solver
+
         s_e3D = np.zeros(meshs.nE)
         inds = meshs.nEx + meshs.nEy + utils.closestPoints(meshs, src_loc, gridLoc="Ez")
         s_e3D[inds] = [1.0 / (len(inds))] * len(inds)
-        self.simulation3D.model = model
-        src3D = fdem.Src.RawVec_e(self.rxlist, freq=freq, s_e=s_e3D)
+
+        src3D = fdem.Src.RawVec_e(self.rxlist, frequency=freq, s_e=s_e3D)
         self.survey3D = fdem.Survey([src3D])
-        self.simulation3D.pair(self.survey3D)
+
+        self.simulation3D = fdem.Simulation3DElectricField(
+            meshs, survey=self.survey3D, sigmaMap=mapping
+        )
+        self.simulation3D.solver = Solver
+        self.simulation3D.model = model
 
         # solve and store fields
         print("   solving primary - secondary")

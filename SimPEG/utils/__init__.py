@@ -58,7 +58,7 @@ from .plot_utils import plot2Ddata, plotLayer, plot_1d_layer_model
 from .io_utils import download
 from .pgi_utils import (
     make_PGI_regularization,
-    make_SimplePGIwithRelationships_regularization,
+    make_PGIwithRelationships_regularization,
     GaussianMixture,
     WeightedGaussianMixture,
     GaussianMixtureWithPrior,

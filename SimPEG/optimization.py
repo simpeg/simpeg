@@ -228,6 +228,13 @@ class IterationPrinters(object):
         "format": "%1.2e",
     }
 
+    iterationCG = {
+        "title": "iterCG",
+        "value": lambda M: M.cg_count,
+        "width": 10,
+        "format": "%3d",
+    }
+
 
 class Minimize(object):
     """
@@ -969,7 +976,7 @@ class BFGS(Minimize, Remember):
         if k < 0:
             d = self.bfgsH0 * d  # Assume that bfgsH0 is a SimPEG.Solver
         else:
-            khat = 0 if nn is 0 else np.mod(n - nn + k, nn)
+            khat = 0 if nn == 0 else np.mod(n - nn + k, nn)
             gamma = np.vdot(S[:, khat], d) / np.vdot(Y[:, khat], S[:, khat])
             d = d - gamma * Y[:, khat]
             d = self.bfgsrec(k - 1, n, nn, S, Y, d)
@@ -984,7 +991,7 @@ class BFGS(Minimize, Remember):
         return self.bfgs(-self.g)
 
     def _doEndIteration_BFGS(self, xt):
-        if self.iter is 0:
+        if self.iter == 0:
             self.g_last = self.g
             return
 
@@ -1237,7 +1244,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         findSearchDirection()
         Finds the search direction based on projected CG
         """
-
+        self.cg_count = 0
         Active = self.activeSet(self.xc)
         temp = sum((np.ones_like(self.xc.size) - Active))
 

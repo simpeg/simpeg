@@ -409,11 +409,11 @@ Simulation2DCellCentred = Simulation2DCellCentered
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem2D_N(Simulation2DNodal):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem2D_CC(Simulation2DCellCentered):
     pass

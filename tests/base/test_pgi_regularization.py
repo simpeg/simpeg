@@ -20,22 +20,31 @@ class TestPGI(unittest.TestCase):
 
         # Create a cloud of  random points from a random gaussian mixture
         self.ndim = 2
-        self.n_components = 2
+        self.n_components = 3
         sigma = np.random.randn(self.n_components, self.ndim, self.ndim)
         sigma = np.c_[[sigma[i].dot(sigma[i].T) for i in range(sigma.shape[0])]]
         sigma[0] += np.eye(self.ndim)
         sigma[1] += np.eye(self.ndim) - 0.25 * np.eye(self.ndim).transpose((1, 0))
         self.sigma = sigma
         self.means = (
-            np.abs(np.random.randn(self.ndim, self.ndim)) * np.c_[[100.0, -100.0]]
+            np.abs(np.random.randn(self.n_components, self.ndim))
+            * np.c_[[-100, 100], [100, 1], [-100, -100]].T
         )
-        self.rv0 = multivariate_normal(self.means[0], self.sigma[0])
-        self.rv1 = multivariate_normal(self.means[1], self.sigma[1])
-        self.proportions = np.r_[0.6, 0.4]
-        self.nsample = 1000
-        self.s0 = self.rv0.rvs(int(self.nsample * self.proportions[0]))
-        self.s1 = self.rv1.rvs(int(self.nsample * self.proportions[1]))
-        self.samples = np.r_[self.s0, self.s1]
+        self.rv_list = [
+            multivariate_normal(mean, sigma)
+            for i, (mean, sigma) in enumerate(zip(self.means, self.sigma))
+        ]
+        proportions = np.round(np.abs(np.random.rand(self.n_components)), decimals=1)
+        proportions = np.abs(np.random.rand(self.n_components))
+        self.proportions = proportions / proportions.sum()
+        nsample = 1000
+        self.samples = np.concatenate(
+            [
+                rv.rvs(int(nsample * prp))
+                for i, (rv, prp) in enumerate(zip(self.rv_list, self.proportions))
+            ]
+        )
+        self.nsample = self.samples.shape[0]
         self.model = mkvc(self.samples)
         self.mesh = discretize.TensorMesh(
             [np.maximum(1e-1, np.random.randn(self.nsample) ** 2.0)]
@@ -66,7 +75,7 @@ class TestPGI(unittest.TestCase):
         )
         clf.fit(self.samples)
 
-        # Define reg with volumes
+        # Define reg
         reg = make_PGI_regularization(
             mesh=self.mesh,
             gmmref=clf,
@@ -80,7 +89,6 @@ class TestPGI(unittest.TestCase):
 
         # check score value
         dm = self.model - mref
-
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
@@ -88,17 +96,17 @@ class TestPGI(unittest.TestCase):
 
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
-        passed_score = np.allclose(score_approx0, score, rtol=1e-1)
+        passed_score = np.allclose(score_approx0, score, rtol=1e-4)
         self.assertTrue(passed_score)
 
         print("scores for PGI  & Full Cov. are ok.")
 
         # check derivatives as an optimization on locally quadratic function
-        # With volumes
         deriv = reg.deriv(self.model)
         reg.objfcts[0].approx_gradient = False
+        reg.objfcts[0].approx_hessian = False
         deriv_full = reg.deriv(self.model)
-        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
+        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-4)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & Full Cov. are ok.")
 
@@ -106,66 +114,31 @@ class TestPGI(unittest.TestCase):
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
-            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-1
+            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-4
         )
         self.assertTrue(passed_derivative)
         print("2nd derivatives for PGI & Full Cov. are ok.")
 
         if self.PlotIt:
+            print("Plotting", self.PlotIt)
             import matplotlib.pyplot as plt
 
             xmin, xmax = ymin, ymax = self.samples.min(), self.samples.max()
-            x, y = np.mgrid[xmin:xmax:0.01, ymin:ymax:0.01]
+            x, y = np.mgrid[xmin:xmax:0.5, ymin:ymax:0.5]
             pos = np.empty(x.shape + (2,))
             pos[:, :, 0] = x
             pos[:, :, 1] = y
             rv = clf.score_samples(pos.reshape(-1, 2))
             rvm = clf.predict(pos.reshape(-1, 2))
-            figfull, axfull = plt.subplots(1, 2, figsize=(16, 8))
+            figfull, axfull = plt.subplots(1, 1, figsize=(16, 8))
             figfull.suptitle("Full Covariances Tests")
-            # Simple
-            axfull[0].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
-            axfull[0].contour(x, y, rv.reshape(x.shape), 20)
-            axfull[0].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
+
+            axfull.contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
+            axfull.contour(x, y, rv.reshape(x.shape), 20)
+            axfull.scatter(
+                self.samples[:, 0], self.samples[:, 1], color="blue", s=5.0, alpha=0.25
             )
-            axfull[0].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
-            )
-            axfull[0].quiver(
-                self.samples[:, 0],
-                self.samples[:, 1],
-                -(self.wires.s0 * deriv_full),
-                -(self.wires.s1 * deriv_full),
-                color="red",
-                alpha=0.25,
-            )
-            axfull[0].quiver(
-                self.samples[:, 0],
-                self.samples[:, 1],
-                -direction2[:, 0],
-                -direction2[:, 1],
-                color="k",
-            )
-            axfull[0].scatter(
-                (self.samples - direction2)[:, 0],
-                (self.samples - direction2)[:, 1],
-                color="k",
-                s=50.0,
-            )
-            axfull[0].set_xlabel("Property 1")
-            axfull[0].set_ylabel("Property 2")
-            axfull[0].set_title("SimplePGI")
-            # With W
-            axfull[1].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
-            axfull[1].contour(x, y, rv.reshape(x.shape), 20)
-            axfull[1].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
-            )
-            axfull[1].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
-            )
-            axfull[1].quiver(
+            axfull.quiver(
                 self.samples[:, 0],
                 self.samples[:, 1],
                 -(self.wires.s0 * deriv),
@@ -173,22 +146,22 @@ class TestPGI(unittest.TestCase):
                 color="red",
                 alpha=0.25,
             )
-            axfull[1].quiver(
+            axfull.quiver(
                 self.samples[:, 0],
                 self.samples[:, 1],
                 -direction2[:, 0],
                 -direction2[:, 1],
                 color="k",
             )
-            axfull[1].scatter(
+            axfull.scatter(
                 (self.samples - direction2)[:, 0],
                 (self.samples - direction2)[:, 1],
                 color="k",
                 s=50.0,
             )
-            axfull[1].set_xlabel("Property 1")
-            axfull[1].set_ylabel("Property 2")
-            axfull[1].set_title("PGI with W")
+            axfull.set_xlabel("Property 1")
+            axfull.set_ylabel("Property 2")
+            axfull.set_title("PGI with W")
 
             plt.show()
 
@@ -211,7 +184,7 @@ class TestPGI(unittest.TestCase):
         )
         clf.fit(self.samples)
 
-        # Define reg with volumes
+        # Define reg
         reg = make_PGI_regularization(
             mesh=self.mesh,
             gmmref=clf,
@@ -225,23 +198,22 @@ class TestPGI(unittest.TestCase):
 
         # check score value
         dm = self.model - mref
-
         score_approx0 = reg(self.model)
         score_approx1 = 0.5 * dm.dot(reg.deriv2(self.model, dm))
         passed_score_approx = np.allclose(score_approx0, score_approx1)
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
-        passed_score = np.allclose(score_approx0, score, rtol=1e-1)
+        passed_score = np.allclose(score_approx0, score, rtol=1e-4)
         self.assertTrue(passed_score)
         print("scores for PGI & tied Cov. are ok.")
 
         # check derivatives as an optimization on locally quadratic function
-        # With volumes
         deriv = reg.deriv(self.model)
         reg.objfcts[0].approx_gradient = False
+        reg.objfcts[0].approx_hessian = False
         deriv_full = reg.deriv(self.model)
-        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
+        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-4)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & tied Cov. are ok.")
 
@@ -249,7 +221,7 @@ class TestPGI(unittest.TestCase):
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
-            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-1
+            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-4
         )
         self.assertTrue(passed_derivative)
         print("2nd derivatives for PGI & tied Cov. are ok.")
@@ -258,23 +230,21 @@ class TestPGI(unittest.TestCase):
             import matplotlib.pyplot as plt
 
             xmin, xmax = ymin, ymax = self.samples.min(), self.samples.max()
-            x, y = np.mgrid[xmin:xmax:0.01, ymin:ymax:0.01]
+            x, y = np.mgrid[xmin:xmax:0.5, ymin:ymax:0.5]
             pos = np.empty(x.shape + (2,))
             pos[:, :, 0] = x
             pos[:, :, 1] = y
             rv = clf.score_samples(pos.reshape(-1, 2))
             rvm = clf.predict(pos.reshape(-1, 2))
-            figtied, axtied = plt.subplots(1, 2, figsize=(16, 8))
+            figtied, axtied = plt.subplots(1, 1, figsize=(16, 8))
             figtied.suptitle("Tied Covariances Tests")
-            axtied[1].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
-            axtied[1].contour(x, y, rv.reshape(x.shape), 20)
-            axtied[1].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
+
+            axtied.contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
+            axtied.contour(x, y, rv.reshape(x.shape), 20)
+            axtied.scatter(
+                self.samples[:, 0], self.samples[:, 1], color="blue", s=5.0, alpha=0.25
             )
-            axtied[1].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
-            )
-            axtied[1].quiver(
+            axtied.quiver(
                 self.samples[:, 0],
                 self.samples[:, 1],
                 -(self.wires.s0 * deriv),
@@ -282,22 +252,22 @@ class TestPGI(unittest.TestCase):
                 color="red",
                 alpha=0.25,
             )
-            axtied[1].quiver(
+            axtied.quiver(
                 self.samples[:, 0],
                 self.samples[:, 1],
                 -direction2[:, 0],
                 -direction2[:, 1],
                 color="k",
             )
-            axtied[1].scatter(
+            axtied.scatter(
                 (self.samples - direction2)[:, 0],
                 (self.samples - direction2)[:, 1],
                 color="k",
                 s=50.0,
             )
-            axtied[1].set_xlabel("Property 1")
-            axtied[1].set_ylabel("Property 2")
-            axtied[1].set_title("PGI with W")
+            axtied.set_xlabel("Property 1")
+            axtied.set_ylabel("Property 2")
+            axtied.set_title("PGI with W")
 
             plt.show()
 
@@ -319,7 +289,7 @@ class TestPGI(unittest.TestCase):
         )
         clf.fit(self.samples)
 
-        # Define reg with volumes
+        # Define reg
         reg = make_PGI_regularization(
             mesh=self.mesh,
             gmmref=clf,
@@ -339,16 +309,16 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
-        passed_score = np.allclose(score_approx0, score, rtol=1e-1)
+        passed_score = np.allclose(score_approx0, score, rtol=1e-4)
         self.assertTrue(passed_score)
         print("scores for PGI & diag Cov. are ok.")
 
         # check derivatives as an optimization on locally quadratic function
-        # With volumes
         deriv = reg.deriv(self.model)
         reg.objfcts[0].approx_gradient = False
+        reg.objfcts[0].approx_hessian = False
         deriv_full = reg.deriv(self.model)
-        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
+        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-4)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & diag Cov. are ok.")
 
@@ -356,7 +326,7 @@ class TestPGI(unittest.TestCase):
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
-            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-1
+            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-4
         )
         self.assertTrue(passed_derivative)
         print("2nd derivatives for PGI & diag Cov. are ok.")
@@ -365,24 +335,21 @@ class TestPGI(unittest.TestCase):
             import matplotlib.pyplot as plt
 
             xmin, xmax = ymin, ymax = self.samples.min(), self.samples.max()
-            x, y = np.mgrid[xmin:xmax:0.01, ymin:ymax:0.01]
+            x, y = np.mgrid[xmin:xmax:0.5, ymin:ymax:0.5]
             pos = np.empty(x.shape + (2,))
             pos[:, :, 0] = x
             pos[:, :, 1] = y
             rv = clf.score_samples(pos.reshape(-1, 2))
             rvm = clf.predict(pos.reshape(-1, 2))
-            figdiag, axdiag = plt.subplots(1, 2, figsize=(16, 8))
+            figdiag, axdiag = plt.subplots(1, 1, figsize=(16, 8))
             figdiag.suptitle("Diag Covariances Tests")
-            # With W
-            axdiag[1].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
-            axdiag[1].contour(x, y, rv.reshape(x.shape), 20)
-            axdiag[1].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
+
+            axdiag.contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
+            axdiag.contour(x, y, rv.reshape(x.shape), 20)
+            axdiag.scatter(
+                self.samples[:, 0], self.samples[:, 1], color="blue", s=5.0, alpha=0.25
             )
-            axdiag[1].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
-            )
-            axdiag[1].quiver(
+            axdiag.quiver(
                 self.samples[:, 0],
                 self.samples[:, 1],
                 -(self.wires.s0 * deriv),
@@ -390,22 +357,22 @@ class TestPGI(unittest.TestCase):
                 color="red",
                 alpha=0.25,
             )
-            axdiag[1].quiver(
+            axdiag.quiver(
                 self.samples[:, 0],
                 self.samples[:, 1],
                 -direction2[:, 0],
                 -direction2[:, 1],
                 color="k",
             )
-            axdiag[1].scatter(
+            axdiag.scatter(
                 (self.samples - direction2)[:, 0],
                 (self.samples - direction2)[:, 1],
                 color="k",
                 s=50.0,
             )
-            axdiag[1].set_xlabel("Property 1")
-            axdiag[1].set_ylabel("Property 2")
-            axdiag[1].set_title("PGI with W")
+            axdiag.set_xlabel("Property 1")
+            axdiag.set_ylabel("Property 2")
+            axdiag.set_title("PGI with W")
 
             plt.show()
 
@@ -427,7 +394,7 @@ class TestPGI(unittest.TestCase):
         )
         clf.fit(self.samples)
 
-        # Define reg with volumes
+        # Define reg
         reg = make_PGI_regularization(
             mesh=self.mesh,
             gmmref=clf,
@@ -447,16 +414,16 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_score_approx)
         reg.objfcts[0].approx_eval = False
         score = reg(self.model) - reg(mref)
-        passed_score = np.allclose(score_approx0, score, rtol=1e-1)
+        passed_score = np.allclose(score_approx0, score, rtol=1e-4)
         self.assertTrue(passed_score)
         print("scores for PGI & spherical Cov. are ok.")
 
         # check derivatives as an optimization on locally quadratic function
-        # With volumes
         deriv = reg.deriv(self.model)
         reg.objfcts[0].approx_gradient = False
+        reg.objfcts[0].approx_hessian = False
         deriv_full = reg.deriv(self.model)
-        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-1)
+        passed_deriv1 = np.allclose(deriv, deriv_full, rtol=1e-4)
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & spherical Cov. are ok.")
 
@@ -464,7 +431,7 @@ class TestPGI(unittest.TestCase):
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
-            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-1
+            mkvc(self.samples - direction2), mkvc(mref), rtol=1e-4
         )
         self.assertTrue(passed_derivative)
         print("2nd derivatives for PGI & spherical Cov. are ok.")
@@ -473,24 +440,21 @@ class TestPGI(unittest.TestCase):
             import matplotlib.pyplot as plt
 
             xmin, xmax = ymin, ymax = self.samples.min(), self.samples.max()
-            x, y = np.mgrid[xmin:xmax:0.01, ymin:ymax:0.01]
+            x, y = np.mgrid[xmin:xmax:0.5, ymin:ymax:0.5]
             pos = np.empty(x.shape + (2,))
             pos[:, :, 0] = x
             pos[:, :, 1] = y
             rv = clf.score_samples(pos.reshape(-1, 2))
             rvm = clf.predict(pos.reshape(-1, 2))
-            figspherical, axspherical = plt.subplots(1, 2, figsize=(16, 8))
+            figspherical, axspherical = plt.subplots(1, 1, figsize=(16, 8))
             figspherical.suptitle("Spherical Covariances Tests")
-            # With W
-            axspherical[1].contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
-            axspherical[1].contour(x, y, rv.reshape(x.shape), 20)
-            axspherical[1].scatter(
-                self.s0[:, 0], self.s0[:, 1], color="blue", s=5.0, alpha=0.25
+
+            axspherical.contourf(x, y, rvm.reshape(x.shape), alpha=0.25, cmap="brg")
+            axspherical.contour(x, y, rv.reshape(x.shape), 20)
+            axspherical.scatter(
+                self.samples[:, 0], self.samples[:, 1], color="blue", s=5.0, alpha=0.25
             )
-            axspherical[1].scatter(
-                self.s1[:, 0], self.s1[:, 1], color="green", s=5.0, alpha=0.25
-            )
-            axspherical[1].quiver(
+            axspherical.quiver(
                 self.samples[:, 0],
                 self.samples[:, 1],
                 -(self.wires.s0 * deriv),
@@ -498,99 +462,24 @@ class TestPGI(unittest.TestCase):
                 color="red",
                 alpha=0.25,
             )
-            axspherical[1].quiver(
+            axspherical.quiver(
                 self.samples[:, 0],
                 self.samples[:, 1],
                 -direction2[:, 0],
                 -direction2[:, 1],
                 color="k",
             )
-            axspherical[1].scatter(
+            axspherical.scatter(
                 (self.samples - direction2)[:, 0],
                 (self.samples - direction2)[:, 1],
                 color="k",
                 s=50.0,
             )
-            axspherical[1].set_xlabel("Property 1")
-            axspherical[1].set_ylabel("Property 2")
-            axspherical[1].set_title("PGI with W")
+            axspherical.set_xlabel("Property 1")
+            axspherical.set_ylabel("Property 2")
+            axspherical.set_title("PGI with W")
 
             plt.show()
-
-    def test_pgi_regularization_approxDeriv(self):
-        """
-        This test might be redundant with the development
-        of the tests above.
-        """
-        print("Testing the PGI approximated derivatives for full Cov.")
-        print("======================================================")
-        mean0 = np.r_[2.0, 0.0]
-        sigma0 = np.r_[[[1.0, -1.0], [-1.0, 2.0]]]
-        rv0 = multivariate_normal(mean0, sigma0)
-
-        mean1 = mean0 - 2.0
-        sigma1 = np.r_[[[0.5, 0.3], [0.3, 0.5]]]
-        rv1 = multivariate_normal(mean1, sigma1)
-        s0 = rv0.rvs(700)
-        s1 = rv1.rvs(300)
-        s = np.r_[s0, s1]
-        model = mkvc(s)
-
-        mesh = discretize.TensorMesh([s.shape[0]])
-        wires = Wires(("s0", mesh.nC), ("s1", mesh.nC))
-
-        n = 2
-        clfref = WeightedGaussianMixture(
-            mesh=mesh, n_components=n, covariance_type="full", max_iter=1000, n_init=20
-        )
-        clfref.fit(s)
-
-        reg = regularization.SimplePGI(
-            mesh=mesh,
-            gmmref=clfref,
-            wiresmap=wires,
-            approx_eval=False,
-            approx_gradient=True,
-            alpha_x=0.0,
-        )
-
-        deriv = reg.deriv(model)
-        H = lambda x: reg.deriv2(model, x)
-        HH = LinearOperator([2000, 2000], matvec=H, rmatvec=H)
-        deriv2 = bicgstab(HH, deriv, atol=1e-8)[0]
-
-        Hfull = reg.deriv2(model)
-        deriv2bis = spsolve(Hfull, deriv)
-
-        tol = 1e-10
-        error00 = np.max(
-            np.minimum(
-                np.abs((wires * (model - deriv2))[0] - clfref.means_[0][0]),
-                np.abs((wires * (model - deriv2))[0] - clfref.means_[1][0]),
-            )
-        )
-        error01 = np.max(
-            np.minimum(
-                np.abs((wires * (model - deriv2))[1] - clfref.means_[0][1]),
-                np.abs((wires * (model - deriv2))[1] - clfref.means_[1][1]),
-            )
-        )
-        error10 = np.max(
-            np.minimum(
-                np.abs((wires * (model - deriv2bis))[0] - clfref.means_[0][0]),
-                np.abs((wires * (model - deriv2bis))[0] - clfref.means_[1][0]),
-            )
-        )
-        error11 = np.max(
-            np.minimum(
-                np.abs((wires * (model - deriv2bis))[1] - clfref.means_[0][1]),
-                np.abs((wires * (model - deriv2bis))[1] - clfref.means_[1][1]),
-            )
-        )
-
-        self.assertTrue(np.max([error00, error01, error10, error11]) < tol)
-        print("PGI approximated derivatives for full Cov. Tested and Happy")
-
 
 if __name__ == "__main__":
     unittest.main()

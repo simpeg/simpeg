@@ -3,7 +3,7 @@ Forward Simulation Including Inductive Response
 ===============================================
 
 Here we use the modules *SimPEG.electromagnetics.viscous_remanent_magnetization*
-and *SimPEG.electromagnetics.time_domain* to simulation the transient response 
+and *SimPEG.electromagnetics.time_domain* to simulation the transient response
 over a conductive and magnetically viscous Earth. We consider a small-loop,
 ground-based survey which uses a coincident loop geometry. Earth is comprised
 of a conductive pipe and resistive surface layer as well as a magnetically
@@ -156,7 +156,7 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 time_steps = [(5e-06, 20), (0.0001, 20), (0.001, 21)]
 
 tdem_simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=tdem_survey, sigmaMap=model_map, Solver=Solver
+    mesh, survey=tdem_survey, sigmaMap=model_map, solver=Solver
 )
 
 tdem_simulation.time_steps = time_steps

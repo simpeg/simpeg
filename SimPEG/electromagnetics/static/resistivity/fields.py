@@ -259,11 +259,11 @@ Fields3DCellCentred = Fields3DCellCentered
 ############
 # Deprecated
 ############
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields_CC(Fields3DCellCentered):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields_N(Fields3DNodal):
     pass
