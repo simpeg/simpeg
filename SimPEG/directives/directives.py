@@ -10,19 +10,12 @@ from ..maps import IdentityMap, Wires
 from ..regularization import (
     BaseComboRegularization,
     BaseRegularization,
-    SimpleSmall,
     Small,
     SparseSmall,
-    Simple,
-    Tikhonov,
-    Sparse,
     PGIsmallness,
     PGIwithNonlinearRelationshipsSmallness,
-    PGI,
     SmoothDeriv,
-    SimpleSmoothDeriv,
     SparseDeriv,
-    PGIwithRelationships,
     BaseSimilarityMeasure,
 )
 from ..utils import (
@@ -312,7 +305,6 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                             isinstance(
                                 regpart,
                                 (
-                                    SimpleSmall,
                                     Small,
                                     SparseSmall,
                                     PGIsmallness,
@@ -334,7 +326,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                             i,
                             j,
                             isinstance(
-                                regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv)
+                                regpart, (SmoothDeriv, SparseDeriv)
                             ),
                         ]
                     ]
@@ -346,7 +338,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             alpha0 = self.reg.multipliers
             smoothness = np.r_[
                 [
-                    isinstance(regpart, (SmoothDeriv, SimpleSmoothDeriv, SparseDeriv))
+                    isinstance(regpart, (SmoothDeriv, SparseDeriv))
                     for regpart in self.reg.objfcts
                 ]
             ]
@@ -1335,16 +1327,12 @@ class Update_IRLS(InversionDirective):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([self.invProb.phi_d < self.start, self.mode == 1]):
-            self.startIRLS()
+            self.start_irls()
 
         # Only update after GN iterations
         if np.all(
             [(self.opt.iter - self.iterStart) % self.minGNiter == 0, self.mode != 1]
         ):
-
-            if self.fix_Jmatrix:
-                print(">> Fix Jmatrix")
-                self.invProb.dmisfit.simulation.fix_Jmatrix = True
             # Check for maximum number of IRLS cycles
             if self.irls_iteration == self.max_irls_iterations:
                 if not self.silent:
@@ -1377,11 +1365,7 @@ class Update_IRLS(InversionDirective):
 
                 # If comboObj, go down one more level
                 for comp in reg.objfcts:
-                    comp.stashedR = None
-
-            for dmis in self.dmisfit.objfcts:
-                if getattr(dmis, "stashedR", None) is not None:
-                    dmis.stashedR = None
+                    comp.update_weights(comp.model)
 
             # Compute new model objective function value
             f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
@@ -1404,7 +1388,7 @@ class Update_IRLS(InversionDirective):
             self.update_beta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
-    def startIRLS(self):
+    def start_irls(self):
         if not self.silent:
             print(
                 "Reached starting chifact with l2-norm regularization:"
@@ -1648,7 +1632,7 @@ class UpdateSensitivityWeights(InversionDirective):
         wr **= 0.5
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
-                reg.cell_weights = reg.mapping * wr
+                reg.cell_weights["sensitivity"] = reg.mapping * wr
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights

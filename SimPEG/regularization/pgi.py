@@ -1,6 +1,8 @@
+from __future__ import annotations
 import numpy as np
 import scipy.sparse as sp
-from scipy.special import logsumexp
+import warnings
+import properties
 import copy
 from ..utils import (
     speye,
@@ -15,8 +17,6 @@ from .base import (
     BaseRegularization,
     BaseComboRegularization,
 )
-from .tikhonov import *
-
 
 ###############################################################################
 #                                                                             #
@@ -77,43 +77,43 @@ class PGIsmallness(BaseRegularization):
         Weighting matrix
         Need to change the size to match self.wiresmap.maps * mesh.nC
         """
+        weights = np.sum(list(self.weights.values()), axis=0)
+        return sdiag(weights ** 0.5)
 
-        if self.cell_weights is not None:
-            if len(self.cell_weights) == self.wiresmap.nP:
-                return (
-                    sp.kron(
-                        speye(len(self.wiresmap.maps)),
-                        sdiag(np.sqrt(self.regmesh.vol)),
-                    )
-                    * sdiag(np.sqrt(self.cell_weights))
-                )
-            else:
-                return sp.kron(
-                    speye(len(self.wiresmap.maps)),
-                    sdiag(np.sqrt(self.regmesh.vol)),
-                ) * sp.kron(
-                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.cell_weights))
-                )
-        else:
-            return sp.kron(
-                speye(len(self.wiresmap.maps)),
-                sdiag(np.sqrt(self.regmesh.vol)),
-            )
 
-    # @properties.validator("cell_weights")
-    # def _validate_cell_weights(self, change):
-    #     if change["value"] is not None:
-    #         if self._nC_residual != "*":
-    #             if (len(change["value"]) != self._nC_residual) and (
-    #                 len(change["value"]) != len(self.wiresmap.maps) * self._nC_residual
-    #             ):
-    #                 raise Exception(
-    #                     "cell_weights must be length {} or {} not {}".format(
-    #                         self._nC_residual,
-    #                         len(self.wiresmap.maps) * self._nC_residual,
-    #                         len(change["value"]),
-    #                     )
-    #                 )
+    @property
+    def weights(self):
+        """Regularization weights applied to the target elements"""
+        if getattr(self, "_weights", None) is None:
+            self.weights = {
+                "volume": self.regularization_mesh.vol
+            }
+
+        return self._weights
+
+    @weights.setter
+    def weights(self, weights: dict[str, np.ndarray] | np.ndarray | None):
+        if weights is not None:
+            if isinstance(weights, np.ndarray):
+                weights["user_weights"] = weights
+
+            if not isinstance(weights, dict):
+                raise TypeError("Weights must be provided as a dictionary or None.")
+
+            for key, values in weights:
+                if self._nC_residual != "*":
+                    if (len(values) != self._nC_residual) and (
+                            len(values) != len(self.wiresmap.maps) * self._nC_residual
+                    ):
+                        raise Exception(
+                            "cell_weights must be length {} or {} not {}".format(
+                                self._nC_residual,
+                                len(self.wiresmap.maps) * self._nC_residual,
+                                len(values),
+                            )
+                        )
+
+        self._weights = weights
 
     def membership(self, m):
         modellist = self.wiresmap * m
@@ -481,240 +481,8 @@ class PGIsmallness(BaseRegularization):
                 Hr = sp.vstack([Hr, Hc])
             Hr = (mD.T * mD) * Hr
 
-<<<<<<< HEAD
-            Hr = Hr.dot(self.W)
-            # mDW = self.W * mD
-
-            return (mD.T * mD) * (self.W * (Hr))
-
-
-class SimplePGI(BaseComboRegularization):
-    """
-    class similar to regularization.tikhonov.Simple, with a SimplePGIsmallness.
-    PARAMETERS
-    ----------
-    :param SimPEG.utils.WeightedGaussianMixture gmmref: refereence/prior GMM
-    :param SimPEG.utils.WeightedGaussianMixture gmm: GMM to use
-    :param SimPEG.maps.Wires wiresmap: wires mapping to the various physical properties
-    :param list maplist: list of SimPEG.maps for each physical property.
-    :param discretize.BaseMesh mesh: tensor, QuadTree or Octree mesh
-    :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
-    :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
-    """
-
-    def __init__(
-        self,
-        mesh,
-        gmmref,
-        gmm=None,
-        wiresmap=None,
-        maplist=None,
-        approx_gradient=True,
-        approx_eval=True,
-        alpha_s=1.0,
-        alpha_x=1.0,
-        alpha_y=1.0,
-        alpha_z=1.0,
-        alpha_xx=0.0,
-        alpha_yy=0.0,
-        alpha_zz=0.0,
-        **kwargs
-    ):
-        self.gmmref = copy.deepcopy(gmmref)
-        self.gmmref.order_clusters_GM_weight()
-        self._gmm = copy.deepcopy(gmm)
-        self._wiresmap = wiresmap
-        self._maplist = maplist
-        self._mesh = mesh
-        self.mesh = mesh
-        self._approx_gradient = approx_gradient
-        self._approx_eval = approx_eval
-        self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
-
-        objfcts = [
-            SimplePGIsmallness(
-                mesh=mesh,
-                gmm=self.gmm,
-                wiresmap=self.wiresmap,
-                maplist=self.maplist,
-                approx_gradient=approx_gradient,
-                approx_eval=approx_eval,
-                mapping=self.mapping,
-                **kwargs
-            )
-        ]
-        objfcts += [
-            SimpleSmoothDeriv(
-                mesh=mesh, orientation="x", mapping=maps * wire[1], **kwargs
-            )
-            for wire, maps in zip(self._wiresmap.maps, self._maplist)
-        ]
-        objfcts += [
-            SmoothDeriv2(mesh=mesh, orientation="x", mapping=maps * wire[1], **kwargs)
-            for wire, maps in zip(self._wiresmap.maps, self._maplist)
-        ]
-
-        if mesh.dim > 1:
-            objfcts += [
-                SimpleSmoothDeriv(
-                    mesh=mesh, orientation="y", mapping=maps * wire[1], **kwargs
-                )
-                for wire, maps in zip(self._wiresmap.maps, self._maplist)
-            ]
-            objfcts += [
-                SmoothDeriv2(
-                    mesh=mesh, orientation="y", mapping=maps * wire[1], **kwargs
-                )
-                for wire, maps in zip(self._wiresmap.maps, self._maplist)
-            ]
-
-        if mesh.dim > 2:
-            objfcts += [
-                SimpleSmoothDeriv(
-                    mesh=mesh, orientation="z", mapping=maps * wire[1], **kwargs
-                )
-                for wire, maps in zip(self._wiresmap.maps, self._maplist)
-            ]
-            objfcts += [
-                SmoothDeriv2(
-                    mesh=mesh, orientation="z", mapping=maps * wire[1], **kwargs
-                )
-                for wire, maps in zip(self._wiresmap.maps, self._maplist)
-            ]
-
-        super(SimplePGI, self).__init__(
-            mesh=mesh,
-            alpha_s=alpha_s,
-            alpha_x=alpha_x,
-            alpha_y=alpha_y,
-            alpha_z=alpha_z,
-            alpha_xx=alpha_xx,
-            alpha_yy=alpha_yy,
-            alpha_zz=alpha_zz,
-            objfcts=objfcts,
-            **kwargs
-        )
-
-    # Properties
-    alpha_s = props.Float("PGI smallness multiplier")
-
-    @property
-    def gmm(self):
-        if getattr(self, "_gmm", None) is None:
-            self._gmm = copy.deepcopy(self.gmmref)
-        return self._gmm
-
-    @gmm.setter
-    def gmm(self, gm):
-        if gm is not None:
-            self._gmm = copy.deepcopy(gm)
-        self.objfcts[0].gmm = self.gmm
-
-    def membership(self, m):
-        return self.objfcts[0].membership(m)
-
-    @property
-    def wiresmap(self):
-        if getattr(self, "_wiresmap", None) is None:
-            self._wiresmap = Wires(("m", self._mesh.nC))
-        return self._wiresmap
-
-    @wiresmap.setter
-    def wiresmap(self, wm):
-        if wm is not None:
-            self._wiresmap = wm
-        self.objfcts[0].wiresmap = self.wiresmap
-
-    @property
-    def maplist(self):
-        if getattr(self, "_maplist", None) is None:
-            self._maplist = [IdentityMap(self._mesh) for maps in self.wiresmap.maps]
-        return self._maplist
-
-    @maplist.setter
-    def maplist(self, mp):
-        if mp is not None:
-            self._maplist = mp
-        self.objfcts[0].maplist = self.maplist
-
-    @property
-    def approx_gradient(self):
-        if getattr(self, "_approx_gradient", None) is None:
-            self._approx_gradient = True
-        return self._approx_gradient
-
-    @approx_gradient.setter
-    def approx_gradient(self, ap):
-        if ap is not None:
-            self._approx_gradient = ap
-        self.objfcts[0].approx_gradient = self.approx_gradient
-
-    @property
-    def approx_eval(self):
-        if getattr(self, "_approx_eval", None) is None:
-            self._approx_eval = True
-        return self._approx_eval
-
-    @approx_eval.setter
-    def approx_eval(self, ap):
-        if ap is not None:
-            self._approx_eval = ap
-        self.objfcts[0].approx_eval = self.approx_eval
-
-
-class PGIsmallness(SimplePGIsmallness):
-    """
-    Smallness term for the petrophysically constrained regularization (PGI) with
-    cell_weights similar to the ones used in regularization.tikhonov.Tikhonov
-
-    PARAMETERS
-    ----------
-    :param SimPEG.utils.WeightedGaussianMixture gmm: GMM to use
-    :param SimPEG.maps.Wires wiresmap: wires mapping to the various physical properties
-    :param list maplist: list of SimPEG.maps for each physical property.
-    :param discretize.BaseMesh mesh: tensor, QuadTree or Octree mesh
-    :param boolean approx_gradient: use the L2-approximation of the gradient, default is True
-    :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
-    """
-
-    _multiplier_pair = "alpha_s"
-
-    def __init__(
-        self,
-        gmm,
-        wiresmap=None,
-        maplist=None,
-        mesh=None,
-        approx_gradient=True,
-        approx_eval=True,
-        **kwargs
-    ):
-
-        super(PGIsmallness, self).__init__(
-            gmm=gmm,
-            wiresmap=wiresmap,
-            maplist=maplist,
-            mesh=mesh,
-            approx_gradient=True,
-            approx_eval=approx_eval,
-            **kwargs
-        )
-
-    @property
-    def W(self):
-        """
-        Weighting matrix
-        Need to change the size to match self.wiresmap.maps * mesh.nC
-        """
-        if self.cell_weights is not None:
-            if len(self.cell_weights) == self.wiresmap.nP:
-                return sp.kron(
-                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.regmesh.vol)),
-                ) * sdiag(np.sqrt(self.cell_weights))
-=======
             if v is not None:
                 return Hr.dot(v)
->>>>>>> main
             else:
                 return Hr
 
@@ -922,21 +690,21 @@ class PGIwithNonlinearRelationshipsSmallness(BaseRegularization):
         Need to change the size to match self.wiresmap.maps * mesh.nC
         """
 
-        if self.cell_weights is not None:
-            if len(self.cell_weights) == self.wiresmap.nP:
+        if self.weights is not None:
+            if len(self.weights) == self.wiresmap.nP:
                 return (
                     sp.kron(
                         speye(len(self.wiresmap.maps)),
                         sdiag(np.sqrt(self.regmesh.vol)),
                     )
-                    * sdiag(np.sqrt(self.cell_weights))
+                    * sdiag(np.sqrt(self.weights))
                 )
             else:
                 return sp.kron(
                     speye(len(self.wiresmap.maps)),
                     sdiag(np.sqrt(self.regmesh.vol)),
                 ) * sp.kron(
-                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.cell_weights))
+                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.weights))
                 )
         else:
             return sp.kron(
@@ -1183,11 +951,7 @@ class PGIwithNonlinearRelationshipsSmallness(BaseRegularization):
             return (mDW.T * mDW) * Hr
 
 
-<<<<<<< HEAD
-class SimplePGIwithRelationships(BaseComboRegularization):
-=======
-class PGIwithRelationships(SimpleComboRegularization):
->>>>>>> main
+class PGIwithRelationships(BaseComboRegularization):
     """
     class similar to regularization.tikhonov.Simple, with a
     PGIwithNonlinearRelationshipsSmallness.

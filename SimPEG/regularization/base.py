@@ -20,22 +20,22 @@ class BaseRegularization(BaseObjectiveFunction):
 
     """
     _active_cells = None
-    _cell_weights = None
-    _free_weights = None
+    _weights: {} = None
     _mapping = None
     _reference_model = None
     _regularization_mesh = None
-    counter = None
-    _free_multiplier = 1.
     _model = None
-    _model_units = None
+    _units = None
     _W = None
 
-    def __init__(self, mesh=None, **kwargs):
+    def __init__(self, active_cells=None, mapping=None, mesh=None, reference_model=None, units=None, **kwargs):
         super().__init__()
+        self.active_cells = active_cells
+        self.mapping = mapping
+        self.reference_model = reference_model
         self.regularization_mesh = RegularizationMesh(mesh)
-        if "active_cells" in kwargs.keys():
-            self.regularization_mesh.active_cells = kwargs.pop("active_cells")
+        self.regularization_mesh.active_cells = self.active_cells
+        self.units = units
         utils.setKwargs(self, **kwargs)
 
     # Properties
@@ -55,42 +55,9 @@ class BaseRegularization(BaseObjectiveFunction):
         self._active_cells = values
 
     @property
-    def cell_weights(self):
-        """Regularization weights applied at cell centers"""
-        return self._cell_weights
-
-    @cell_weights.setter
-    def cell_weights(self, values: np.ndarray):
-        validate_array_type("cell_weights", values, float)
-        validate_shape("cell_weights", values, self._nC_residual)
-        self._cell_weights = values
-
-    @property
-    def free_multiplier(self):
-        return self._free_multiplier
-
-    @free_multiplier.setter
-    def free_multiplier(self, value: float):
-        validate_array_type("free_weights", value, float)
-        if value < 0.:
-            raise ValueError("Input free_multiplier must be > 0")
-
-        self._free_multiplier = value
-
-    @property
-    def free_weights(self):
-        """Regularization weights applied at cell centers"""
-        return self._free_weights
-
-    @free_weights.setter
-    def free_weights(self, values: np.ndarray | None):
-
-        if values is None:
-            self._free_weights = None
-        else:
-            validate_array_type("free_weights", values, float)
-            validate_shape("free_weights", values, self._nC_residual)
-            self._free_weights = values
+    def weights(self):
+        """Regularization weights applied to the target elements"""
+        raise AttributeError("Regularization class must have 'weights' implementation.")
 
     @property
     def model(self) -> np.ndarray:
@@ -125,18 +92,18 @@ class BaseRegularization(BaseObjectiveFunction):
         self._mapping = mapping
 
     @property
-    def model_units(self) -> maps.IdentityMap:
-        """Specify the model model_units. Special care given to 'radian' values"""
-        return self._model_units
+    def units(self) -> str:
+        """Specify the model units. Special care given to 'radian' values"""
+        return self._units
 
-    @model_units.setter
-    def model_units(self, model_units: str | None):
-        if model_units is not None and not isinstance(model_units, str):
+    @units.setter
+    def units(self, units: str | None):
+        if units is not None and not isinstance(units, str):
             raise TypeError(
-                f"'model_units' must be None or type str. "
-                f"Value of type {type(model_units)} provided."
+                f"'units' must be None or type str. "
+                f"Value of type {type(units)} provided."
             )
-        self._model_units = model_units
+        self._units = units
 
     @property
     def nP(self):
@@ -302,14 +269,17 @@ class Small(BaseRegularization):
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
     :param numpy.ndarray reference_model: reference model
     :param numpy.ndarray active_cells: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
-    :param numpy.ndarray cell_weights: cell weights
+    :param numpy.ndarray weights: cell weights
 
     """
 
     _multiplier_pair = "alpha_s"
 
-    def __init__(self, mesh=None, **kwargs):
-        super().__init__(mesh=mesh, **kwargs)
+    def __init__(self, weights=None, **kwargs):
+
+        super().__init__(**kwargs)
+
+        self.weights = weights
 
     def f_m(self, m):
         """
@@ -324,20 +294,37 @@ class Small(BaseRegularization):
         return self.mapping.deriv(self._delta_m(m))
 
     @property
+    def weights(self):
+        """Regularization weights applied to the target elements"""
+        if getattr(self, "_weights", None) is None:
+            self.weights = {
+                "volume": self.regularization_mesh.vol
+            }
+
+        return self._weights
+
+    @weights.setter
+    def weights(self, weights: dict[str, np.ndarray] | np.ndarray | None):
+        if weights is not None:
+            if isinstance(weights, np.ndarray):
+                weights["user_weights"] = weights
+
+            if not isinstance(weights, dict):
+                raise TypeError("Weights must be provided as a dictionary or None.")
+
+            for key, values in weights:
+                validate_array_type("weights", values, float)
+                validate_shape("weights", values, self._nC_residual)
+
+        self._weights = weights
+
+    @property
     def W(self):
         """
         Weighting matrix
         """
         if getattr(self, "_W", None) is None:
-            weights = self.free_multiplier * self.regularization_mesh.vol
-
-            if self.cell_weights is not None:
-                weights *= self.cell_weights
-
-            free_weights = self.free_weights
-            if free_weights is not None:
-                weights *= free_weights
-
+            weights = np.sum(list(self.weights.values()), axis=0)
             self._W = utils.sdiag(weights ** 0.5)
 
         return self._W
@@ -355,37 +342,25 @@ class SmoothDeriv(BaseRegularization):
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
     :param numpy.ndarray reference_model: reference model
     :param numpy.ndarray active_cells: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
-    :param numpy.ndarray cell_weights: cell weights
+    :param numpy.ndarray weights: cell weights
     :param bool reference_model_in_smooth: include the reference model in the smoothness computation? (eg. look at Deriv of m (False) or Deriv of (m-reference_model) (True))
-    :param numpy.ndarray cell_weights: vector of cell weights (applied in all terms)
+    :param numpy.ndarray weights: vector of cell weights (applied in all terms)
     """
     _cell_difference = None
     _length_scales = None
     _normalized_gradients: bool = True
+    _orientation = None
     _reference_model_in_smooth: bool = False
 
-    def __init__(self, mesh, orientation="x", **kwargs):
-        self.orientation = orientation
-
-        assert self.orientation in [
-            "x",
-            "y",
-            "z",
-        ], "Orientation must be 'x', 'y' or 'z'"
-
-        if self.orientation == "y":
-            assert mesh.dim > 1, (
-                "Mesh must have at least 2 dimensions to regularize along the "
-                "y-direction"
-            )
-
-        elif self.orientation == "z":
-            assert mesh.dim > 2, (
-                "Mesh must have at least 3 dimensions to regularize along the "
-                "z-direction"
-            )
+    def __init__(self, mesh, weights=None, normalized_gradients=True, orientation="x", reference_model_in_smooth=False, **kwargs):
+        self.normalized_gradients = normalized_gradients
+        self.reference_model_in_smooth = reference_model_in_smooth
 
         super().__init__(mesh=mesh, **kwargs)
+
+        self.orientation = orientation
+        self.weights = weights
+
 
     @property
     def cell_difference(self):
@@ -427,7 +402,7 @@ class SmoothDeriv(BaseRegularization):
 
         dfm_dl = self.cell_difference @ (self.mapping * delta_m)
 
-        if self.model_units == "radian":
+        if self.units == "radian":
             return utils.mat_utils.coterminal(dfm_dl)
         return dfm_dl
 
@@ -438,30 +413,48 @@ class SmoothDeriv(BaseRegularization):
         return self.cell_difference @ self.mapping.deriv(self._delta_m(m))
 
     @property
+    def weights(self):
+        """Regularization weights applied to the target elements"""
+        if getattr(self, "_weights", None) is None:
+            average_cell_2_face = getattr(
+                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+            )
+            self.weights = {
+                "volume": average_cell_2_face * self.regularization_mesh.vol
+            }
+
+        return self._weights
+
+    @weights.setter
+    def weights(self, weights: dict[str, np.ndarray] | np.ndarray | None):
+        if weights is not None:
+
+            average_cell_2_face = getattr(
+                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+            )
+
+            if isinstance(weights, np.ndarray):
+                weights["user_weights"] = weights
+
+            if not isinstance(weights, dict):
+                raise TypeError("Weights must be provided as a dictionary or None.")
+
+            for key, values in weights:
+                if values.shape[0] == self._nC_residual:
+                    values = average_cell_2_face * values
+                validate_array_type("weights", values, float)
+                validate_shape("weights", values, average_cell_2_face.shape[0])
+
+        self._weights = weights
+
+    @property
     def W(self):
         """
         Weighting matrix that takes the volumes, free weights, fixed weights and
         length scales of the difference operator (normalized optional).
         """
         if getattr(self, "_W", None) is None:
-            average_cell_2_face = getattr(
-                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
-            )
-            weights = self.free_multiplier * self.regularization_mesh.vol
-
-            if self.cell_weights is not None:
-                weights *= self.cell_weights
-
-            weights = average_cell_2_face * weights ** 0.5
-
-            free_weights = self.free_weights  # Compute once
-            if self.free_weights is not None:
-                free_weights **= 0.5
-                if len(free_weights) == average_cell_2_face.shape[0]:  # Face weights
-                    weights *= free_weights
-                else:
-                    weights *= average_cell_2_face * free_weights
-
+            weights = np.sum(list(self.weights.values()), axis=0)
             self._W = utils.sdiag(self.length_scales * weights)
         return self._W
 
@@ -507,6 +500,30 @@ class SmoothDeriv(BaseRegularization):
             )
         self._normalized_gradients = value
 
+    @property
+    def orientation(self):
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, value):
+        assert value in [
+            "x",
+            "y",
+            "z",
+        ], "Orientation must be 'x', 'y' or 'z'"
+
+        if value == "y":
+            assert self.regularization_mesh.dim > 1, (
+                "Mesh must have at least 2 dimensions to regularize along the "
+                "y-direction"
+            )
+
+        elif value == "z":
+            assert self.regularization_mesh.dim > 2, (
+                "Mesh must have at least 3 dimensions to regularize along the "
+                "z-direction"
+            )
+
 
 class SmoothDeriv2(SmoothDeriv):
     """
@@ -520,9 +537,9 @@ class SmoothDeriv2(SmoothDeriv):
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
     :param numpy.ndarray reference_model: reference model
     :param numpy.ndarray active_cells: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
-    :param numpy.ndarray cell_weights: cell weights
+    :param numpy.ndarray weights: cell weights
     :param bool reference_model_in_smooth: include the reference model in the smoothness computation? (eg. look at Deriv of m (False) or Deriv of (m-reference_model) (True))
-    :param numpy.ndarray cell_weights: vector of cell weights (applied in all terms)
+    :param numpy.ndarray weights: vector of cell weights (applied in all terms)
     """
     def __init__(self, mesh, orientation="x", **kwargs):
         super().__init__(mesh=mesh, orientation=orientation, **kwargs)
@@ -538,7 +555,7 @@ class SmoothDeriv2(SmoothDeriv):
 
         dfm_dl = self.cell_difference @ (self.mapping * delta_m)
 
-        if self.model_units == "radian":
+        if self.units == "radian":
             dfm_dl = utils.mat_utils.coterminal(dfm_dl)
 
         dfm_dl2 = self.cell_difference.T @ (self.length_scales ** 2. * dfm_dl)
@@ -560,13 +577,7 @@ class SmoothDeriv2(SmoothDeriv):
         """
         Weighting matrix to cell center.
         """
-        weights = self.free_multiplier * self.regularization_mesh.vol
-
-        if self.cell_weights is not None:
-            weights *= self.cell_weights
-
-        if self.free_weights is not None:
-            weights *= self.free_weights
+        weights = np.sum(list(self.weights.values()), axis=0)
 
         return utils.sdiag(weights ** 0.5)
 
@@ -590,9 +601,7 @@ class BaseComboRegularization(ComboObjectiveFunction):
     _alpha_xx = 1.
     _alpha_yy = 1.
     _alpha_zz = 1.
-    _cell_weights = None
-    _free_weights = None
-    _free_multipliers = None
+    _weights = None
     _normalized_gradients = True
     _reference_model_in_smooth = False
     _reference_model = None
@@ -709,16 +718,14 @@ class BaseComboRegularization(ComboObjectiveFunction):
                 fct.reference_model_in_smooth = value
 
     @property
-    def cell_weights(self):
+    def weights(self):
         """Fixed regularization weights applied at cell centers"""
-        return self._cell_weights
+        return self._weights
 
-    @cell_weights.setter
-    def cell_weights(self, value: np.ndarray):
-        validate_array_type("cell_weights", value, float)
-        validate_shape("cell_weights", value, self._nC_residual)
+    @weights.setter
+    def weights(self, value: dict[str, np.ndarray] | np.ndarray | None):
         for fct in self.objfcts:
-            fct.cell_weights = value
+            fct.weights = value
 
     @property
     def free_weights(self):
@@ -862,19 +869,19 @@ class BaseComboRegularization(ComboObjectiveFunction):
             fct.model = values
 
     @property
-    def model_units(self) -> maps.IdentityMap:
-        """Specify the model model_units. Special care given to 'radian' values"""
-        return self._model_units
+    def units(self) -> maps.IdentityMap:
+        """Specify the model units. Special care given to 'radian' values"""
+        return self._units
 
-    @model_units.setter
-    def model_units(self, model_units: str | None):
-        if model_units is not None and not isinstance(model_units, str):
+    @units.setter
+    def units(self, units: str | None):
+        if units is not None and not isinstance(units, str):
             raise TypeError(
-                f"'model_units' must be None or type str. "
-                f"Value of type {type(model_units)} provided."
+                f"'units' must be None or type str. "
+                f"Value of type {type(units)} provided."
             )
         for fct in self.objfcts:
-            fct.model = model_units
+            fct.model = units
 
     @property
     def regularization_mesh(self) -> RegularizationMesh:
@@ -939,9 +946,9 @@ class L2Regularization(BaseComboRegularization):
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
     :param numpy.ndarray reference_model: reference model
     :param numpy.ndarray active_cells: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
-    :param numpy.ndarray cell_weights: cell weights
+    :param numpy.ndarray weights: cell weights
     :param bool reference_model_in_smooth: include the reference model in the smoothness computation? (eg. look at Deriv of m (False) or Deriv of (m-reference_model) (True))
-    :param numpy.ndarray cell_weights: vector of cell weights (applied in all terms)
+    :param numpy.ndarray weights: vector of cell weights (applied in all terms)
 
     **Weighting Parameters**
 

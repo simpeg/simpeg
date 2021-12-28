@@ -1,14 +1,13 @@
-from .base import BaseRegularization, BaseComboRegularization, BaseSimilarityMeasure
-from .regularization_mesh import RegularizationMesh
-from .tikhonov import (
-    SimpleSmall,
-    SimpleSmoothDeriv,
-    Simple,
+from .base import (
+    BaseRegularization,
+    BaseComboRegularization,
+    BaseSimilarityMeasure,
     Small,
     SmoothDeriv,
     SmoothDeriv2,
-    Tikhonov,
+    L2Regularization
 )
+from .regularization_mesh import RegularizationMesh
 from .sparse import SparseSmall, SparseDeriv, Sparse
 from .pgi import (
     PGIsmallness,

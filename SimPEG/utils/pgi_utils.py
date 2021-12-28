@@ -26,9 +26,9 @@ import warnings
 from .mat_utils import mkvc
 from ..maps import IdentityMap, Wires, Identity
 from ..regularization import (
-    Simple,
+    Small,
     PGI,
-    Tikhonov,
+    L2Regularization,
     PGIwithRelationships,
 )
 
@@ -150,7 +150,7 @@ def make_PGI_regularization(
         alph_z = alpha_z
 
     for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += Tikhonov(
+        reg += L2Regularization(
             mesh=mesh,
             mapping=maps * wire[1],
             alpha_s=0.0,
@@ -276,7 +276,7 @@ def make_PGIwithRelationships_regularization(
         alph_z = alpha_z
 
     for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += Tikhonov(
+        reg += L2Regularization(
             mesh=mesh,
             mapping=maps * wire[1],
             alpha_s=0.0,

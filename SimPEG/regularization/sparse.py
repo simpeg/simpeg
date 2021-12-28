@@ -18,14 +18,6 @@ class BaseSparse(BaseRegularization):
         super().__init__(mesh=mesh, **kwargs)
 
     @property
-    def free_weights(self):
-        if self.model is None or all(self.norm == 2):
-            self._free_weights = np.ones(self.shape[0])
-        else:
-            self._free_weights = self.irls_weights(self.model)
-        return self._free_weights
-
-    @property
     def irls_scaled(self) -> bool:
         """
         Scale irls weights.
@@ -123,12 +115,12 @@ class SparseSmall(BaseSparse, Small):
     def shape(self):
         return self.mapping.shape[0],
 
-    def irls_weights(self, m):
+    def update_weights(self, m):
         """
         Compute and store the irls weights.
         """
         f_m = self.f_m(m)
-        return self.get_lp_weights(f_m)
+        self.weights["irls"] = self.get_lp_weights(f_m)
 
 
 class SparseDeriv(BaseSparse, SmoothDeriv):
@@ -146,7 +138,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
             self.regularization_mesh, "aveCC2F{}".format(self.orientation)
         ).shape[0],
 
-    def irls_weights(self, m):
+    def update_weights(self, m):
         """
         Compute and store the irls weights.
         """
@@ -176,7 +168,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
         else:
             f_m = self.f_m(m)
 
-        return self.get_lp_weights(self.length_scales * f_m)
+        self.weights["irls"] = self.get_lp_weights(self.length_scales * f_m)
 
     @property
     def gradient_type(self) -> str:
@@ -287,7 +279,6 @@ class Sparse(BaseComboRegularization):
                     "The number of values provided for 'norms' does not "
                     "match the number of regularization functions."
                 )
-
 
         elif isinstance(values, int) or isinstance(values, float):
             values = [float(values)] * len(self.objfcts)
