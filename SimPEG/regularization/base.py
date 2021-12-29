@@ -307,9 +307,9 @@ class Small(BaseRegularization):
     def weights(self):
         """Regularization weights applied to the target elements"""
         if getattr(self, "_weights", None) is None:
-            self.weights = {
-                "volume": self.regularization_mesh.vol
-            }
+            self.add_set_weights(
+                "volume", self.regularization_mesh.vol
+            )
 
         return self._weights
 
@@ -331,6 +331,10 @@ class Small(BaseRegularization):
     def add_set_weights(self, key, values):
         validate_array_type("weights", values, float)
         validate_shape("weights", values, self.nP)
+
+        if self._weights is None:
+            self._weights = {}
+
         self.weights[key] = values
         self._W = None
 
@@ -439,12 +443,9 @@ class SmoothDeriv(BaseRegularization):
     def weights(self):
         """Regularization weights applied to the target elements"""
         if getattr(self, "_weights", None) is None:
-            average_cell_2_face = getattr(
-                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+            self.add_set_weights(
+                "volume", self.regularization_mesh.vol
             )
-            self.weights = {
-                "volume": average_cell_2_face * self.regularization_mesh.vol
-            }
 
         return self._weights
 
@@ -475,7 +476,11 @@ class SmoothDeriv(BaseRegularization):
             values = average_cell_2_face * values
 
         validate_shape("weights", values, self.n_faces)
-        self.weights[key] = values
+
+        if self._weights is None:
+            self._weights = {}
+
+        self._weights[key] = values
         self._W = None
 
     @property
