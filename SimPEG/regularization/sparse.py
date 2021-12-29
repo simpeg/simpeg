@@ -120,7 +120,7 @@ class SparseSmall(BaseSparse, Small):
         Compute and store the irls weights.
         """
         f_m = self.f_m(m)
-        self.weights["irls"] = self.get_lp_weights(f_m)
+        self.add_set_weights("irls", self.get_lp_weights(f_m))
 
 
 class SparseDeriv(BaseSparse, SmoothDeriv):
@@ -153,7 +153,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
                 if self.regularization_mesh.dim > ii:
                     dm_dl = getattr(self.regularization_mesh, f"cellDiff{comp}Stencil") * delta_m
 
-                    if self.model_units == "radian":
+                    if self.units == "radian":
                         dm_dl = utils.mat_utils.coterminal(dm_dl)
                     f_m += np.abs(
                         getattr(self.regularization_mesh, f"aveF{comp}2CC") *
@@ -168,7 +168,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
         else:
             f_m = self.f_m(m)
 
-        self.weights["irls"] = self.get_lp_weights(self.length_scales * f_m)
+        self.add_set_weights("irls", self.get_lp_weights(self.length_scales * f_m))
 
     @property
     def gradient_type(self) -> str:

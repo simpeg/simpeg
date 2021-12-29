@@ -54,7 +54,15 @@ class BaseInvProblem(BaseSimPEG):
         assert isinstance(reg, BaseRegularization) or isinstance(
             reg, BaseObjectiveFunction
         ), "reg must be a Regularization or Objective Function class."
+
+        if not isinstance(dmisfit, ComboObjectiveFunction):
+            dmisfit = ComboObjectiveFunction(objfcts=[dmisfit])
+
         self.dmisfit = dmisfit
+
+        if not isinstance(reg, ComboObjectiveFunction):
+            reg = ComboObjectiveFunction(objfcts=[reg])
+
         self.reg = reg
         self.opt = opt
         # TODO: Remove: (and make iteration printers better!)
@@ -71,48 +79,30 @@ class BaseInvProblem(BaseSimPEG):
         if self.debug:
             print("Calling InvProblem.startup")
 
-        if hasattr(self.reg, "reference_model") and getattr(self.reg, "reference_model", None) is None:
-            print("SimPEG.InvProblem will set Regularization.reference_model to m0.")
-            self.reg.reference_model = m0
-
-        if isinstance(self.reg, ComboObjectiveFunction) and not isinstance(
-            self.reg, BaseComboRegularization
-        ):
-            for fct in self.reg.objfcts:
-                if hasattr(fct, "reference_model") and getattr(fct, "reference_model", None) is None:
-                    print("SimPEG.InvProblem will set Regularization.reference_model to m0.")
-                    fct.reference_model = m0
+        for fct in self.reg.objfcts:
+            if hasattr(fct, "reference_model") and getattr(fct, "reference_model", None) is None:
+                print("SimPEG.InvProblem will set Regularization.reference_model to m0.")
+                fct.reference_model = m0
 
         self.phi_d = np.nan
         self.phi_m = np.nan
 
         self.model = m0
+        for objfct in self.dmisfit.objfcts:
 
-        if isinstance(self.dmisfit, BaseDataMisfit):
-            if getattr(self.dmisfit.simulation, "solver", None) is not None:
+            if isinstance(objfct, BaseDataMisfit) and getattr(objfct.simulation, "solver", None) is not None:
                 print(
                     """
-        SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-        ***Done using same Solver and solverOpts as the problem***"""
-                )
-                self.opt.bfgsH0 = self.dmisfit.simulation.solver(
-                    self.reg.deriv2(self.model), **self.dmisfit.simulation.solver_opts
-                )
-        elif isinstance(self.dmisfit, BaseObjectiveFunction):
-            for objfct in self.dmisfit.objfcts:
-                if isinstance(objfct, BaseDataMisfit):
-                    if getattr(objfct.simulation, "solver", None) is not None:
-                        print(
-                            """
-        SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-        ***Done using same Solver and solver_opts as the {} problem***""".format(
-                                objfct.simulation.__class__.__name__
-                            )
+                        SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+                        ***Done using same Solver and solver_opts as the {} problem***
+                        """.format(
+                            objfct.simulation.__class__.__name__
                         )
-                        self.opt.bfgsH0 = objfct.simulation.solver(
-                            self.reg.deriv2(self.model), **objfct.simulation.solver_opts
-                        )
-                        break
+                )
+                self.opt.bfgsH0 = objfct.simulation.solver(
+                    self.reg.deriv2(self.model), **objfct.simulation.solver_opts
+                )
+                break
 
     @property
     def warmstart(self):
@@ -161,16 +151,13 @@ class BaseInvProblem(BaseSimPEG):
         return f
 
     def get_dpred(self, m, f):
-        if isinstance(self.dmisfit, BaseDataMisfit):
-            return self.dmisfit.simulation.dpred(m, f=f)
-        elif isinstance(self.dmisfit, BaseObjectiveFunction):
-            dpred = []
-            for i, objfct in enumerate(self.dmisfit.objfcts):
-                if hasattr(objfct, "survey"):
-                    dpred += [objfct.survey.dpred(m, f=f[i])]
-                else:
-                    dpred += []
-            return dpred
+        dpred = []
+        for i, objfct in enumerate(self.dmisfit.objfcts):
+            if hasattr(objfct, "survey"):
+                dpred += [objfct.survey.dpred(m, f=f[i])]
+            else:
+                dpred += []
+        return dpred
 
     @timeIt
     def evalFunction(self, m, return_g=True, return_H=True):

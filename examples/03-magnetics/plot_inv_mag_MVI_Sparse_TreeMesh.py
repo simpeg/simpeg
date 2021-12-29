@@ -314,17 +314,17 @@ m0 = np.ones(3 * nC) * 1e-4  # Starting model
 
 # Create three regularizations for the different components
 # of magnetization
-reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
-reg_p.mref = np.zeros(3 * nC)
+reg_p = regularization.Sparse(mesh, active_cells=actv, mapping=wires.p)
+reg_p.reference_model = np.zeros(3 * nC)
 
-reg_s = regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
-reg_s.mref = np.zeros(3 * nC)
+reg_s = regularization.Sparse(mesh, active_cells=actv, mapping=wires.s)
+reg_s.reference_model = np.zeros(3 * nC)
 
-reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
-reg_t.mref = np.zeros(3 * nC)
+reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.t)
+reg_t.reference_model = np.zeros(3 * nC)
 
 reg = reg_p + reg_s + reg_t
-reg.mref = np.zeros(3 * nC)
+reg.reference_model = np.zeros(3 * nC)
 
 # Data misfit function
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
@@ -378,18 +378,18 @@ wires = maps.Wires(("amp", nC), ("theta", nC), ("phi", nC))
 
 # Create a Combo Regularization
 # Regularize the amplitude of the vectors
-reg_a = regularization.Sparse(mesh, indActive=actv, mapping=wires.amp)
+reg_a = regularization.Sparse(mesh, active_cells=actv, mapping=wires.amp)
 reg_a.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Sparse on the model and its gradients
 reg_a.mref = np.zeros(3 * nC)
 
 # Regularize the vertical angle of the vectors
-reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.theta)
+reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.theta)
 reg_t.alpha_s = 0.0  # No reference angle
 reg_t.space = "spherical"
 reg_t.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 # Regularize the horizontal angle of the vectors
-reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.phi)
+reg_p = regularization.Sparse(mesh, active_cells=actv, mapping=wires.phi)
 reg_p.alpha_s = 0.0  # No reference angle
 reg_p.space = "spherical"
 reg_p.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used

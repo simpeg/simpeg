@@ -532,6 +532,8 @@ class LinearSimulation(BaseSimulation):
             if getattr(self, "G", None) is not None:
                 self.survey._vnD = np.r_[self.G.shape[0]]
 
+        self.solver = None
+
     @property
     def G(self):
         if getattr(self, "_G", None) is not None:

@@ -6,6 +6,7 @@ from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
+from SimPEG.utils.code_utils import deprecate_property
 
 
 class BaseRegularization(BaseObjectiveFunction):
@@ -30,11 +31,12 @@ class BaseRegularization(BaseObjectiveFunction):
 
     def __init__(self, active_cells=None, mapping=None, mesh=None, reference_model=None, units=None, **kwargs):
         super().__init__()
+
+        self.regularization_mesh = RegularizationMesh(mesh)
         self.active_cells = active_cells
+        self.regularization_mesh.active_cells = self.active_cells
         self.mapping = mapping
         self.reference_model = reference_model
-        self.regularization_mesh = RegularizationMesh(mesh)
-        self.regularization_mesh.active_cells = self.active_cells
         self.units = units
         utils.setKwargs(self, **kwargs)
 
@@ -50,9 +52,17 @@ class BaseRegularization(BaseObjectiveFunction):
         validate_shape("active_cells", values, self.regularization_mesh.nC)
 
         if getattr(self, "regularization_mesh", None) is not None:
-            self.regularization_mesh.active_cells = utils.mkvc(values)
+            self.regularization_mesh.active_cells = values
 
         self._active_cells = values
+
+    indActive = deprecate_property(
+        active_cells,
+        "indActive",
+        new_name="active_cells",
+        removal_version="0.x.0",
+        future_warn=True,
+    )
 
     @property
     def weights(self):
@@ -83,7 +93,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @mapping.setter
     def mapping(self, mapping: maps.IdentityMap):
-        if not isinstance(mapping, maps.IdentityMap):
+        if not isinstance(mapping, (maps.IdentityMap, type(None))):
             raise TypeError(
                 f"'mapping' must be of type {maps.IdentityMap}. "
                 f"Value of type {type(mapping)} provided."
@@ -110,10 +120,10 @@ class BaseRegularization(BaseObjectiveFunction):
         """
         number of model parameters
         """
-        if getattr(self.mapping, "nP") != "*":
-            return self.mapping.nP
-        elif getattr(self.regularization_mesh, "nC") != "*":
+        if getattr(self, "_regularization_mesh", None) is not None and self.regularization_mesh.nC != "*":
             return self.regularization_mesh.nC
+        elif getattr(self, "_mapping", None) is not None and self.mapping.nP != "*":
+            return self.mapping.shape[0]
         else:
             return "*"
 
@@ -162,10 +172,10 @@ class BaseRegularization(BaseObjectiveFunction):
         nC = getattr(self.regularization_mesh, "nC", None)
         mapping = getattr(self, "_mapping", None)
 
-        if nC != "*" and nC is not None:
+        if mapping is not None and mapping.shape[1] != "*":
+            return self.mapping.shape[1]
+        elif nC != "*" and nC is not None:
             return self.regularization_mesh.nC
-        elif mapping is not None and mapping.shape[0] != "*":
-            return self.mapping.shape[0]
         else:
             return self.nP
 
@@ -312,11 +322,17 @@ class Small(BaseRegularization):
             if not isinstance(weights, dict):
                 raise TypeError("Weights must be provided as a dictionary or None.")
 
-            for key, values in weights:
+            for key, values in weights.items():
                 validate_array_type("weights", values, float)
-                validate_shape("weights", values, self._nC_residual)
+                validate_shape("weights", values, self.nP)
 
         self._weights = weights
+
+    def add_set_weights(self, key, values):
+        validate_array_type("weights", values, float)
+        validate_shape("weights", values, self.nP)
+        self.weights[key] = values
+        self._W = None
 
     @property
     def W(self):
@@ -324,7 +340,7 @@ class Small(BaseRegularization):
         Weighting matrix
         """
         if getattr(self, "_W", None) is None:
-            weights = np.sum(list(self.weights.values()), axis=0)
+            weights = np.prod(list(self.weights.values()), axis=0)
             self._W = utils.sdiag(weights ** 0.5)
 
         return self._W
@@ -361,6 +377,13 @@ class SmoothDeriv(BaseRegularization):
         self.orientation = orientation
         self.weights = weights
 
+    @property
+    def n_faces(self):
+        if getattr(self, "_nP", None) is None:
+            self._n_faces = getattr(
+                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+            ).shape[0]
+        return self._n_faces
 
     @property
     def cell_difference(self):
@@ -429,23 +452,31 @@ class SmoothDeriv(BaseRegularization):
     def weights(self, weights: dict[str, np.ndarray] | np.ndarray | None):
         if weights is not None:
 
-            average_cell_2_face = getattr(
-                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
-            )
-
             if isinstance(weights, np.ndarray):
                 weights["user_weights"] = weights
 
             if not isinstance(weights, dict):
                 raise TypeError("Weights must be provided as a dictionary or None.")
 
-            for key, values in weights:
-                if values.shape[0] == self._nC_residual:
-                    values = average_cell_2_face * values
+            for key, values in weights.items():
                 validate_array_type("weights", values, float)
-                validate_shape("weights", values, average_cell_2_face.shape[0])
+                validate_shape("weights", values, self.n_faces)
 
         self._weights = weights
+
+    def add_set_weights(self, key, values):
+        average_cell_2_face = getattr(
+            self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+        )
+
+        validate_array_type("weights", values, float)
+
+        if values.shape[0] == self.regularization_mesh.nC:
+            values = average_cell_2_face * values
+
+        validate_shape("weights", values, self.n_faces)
+        self.weights[key] = values
+        self._W = None
 
     @property
     def W(self):
@@ -454,7 +485,7 @@ class SmoothDeriv(BaseRegularization):
         length scales of the difference operator (normalized optional).
         """
         if getattr(self, "_W", None) is None:
-            weights = np.sum(list(self.weights.values()), axis=0)
+            weights = np.prod(list(self.weights.values()), axis=0)
             self._W = utils.sdiag(self.length_scales * weights)
         return self._W
 
@@ -481,7 +512,7 @@ class SmoothDeriv(BaseRegularization):
     @length_scales.setter
     def length_scales(self, values):
         validate_array_type("length_scales", values, float)
-        validate_shape("length_scales", values, self._nC_residual)
+        validate_shape("length_scales", values, self.nP)
         self._length_scales = values
 
     @property
@@ -523,6 +554,7 @@ class SmoothDeriv(BaseRegularization):
                 "Mesh must have at least 3 dimensions to regularize along the "
                 "z-direction"
             )
+        self._orientation = value
 
 
 class SmoothDeriv2(SmoothDeriv):
@@ -577,7 +609,7 @@ class SmoothDeriv2(SmoothDeriv):
         """
         Weighting matrix to cell center.
         """
-        weights = np.sum(list(self.weights.values()), axis=0)
+        weights = np.prod(list(self.weights.values()), axis=0)
 
         return utils.sdiag(weights ** 0.5)
 
@@ -601,13 +633,15 @@ class BaseComboRegularization(ComboObjectiveFunction):
     _alpha_xx = 1.
     _alpha_yy = 1.
     _alpha_zz = 1.
-    _weights = None
+    _model = None
     _normalized_gradients = True
     _reference_model_in_smooth = False
     _reference_model = None
+    _regularization_mesh = None
+    _units = None
+    _weights = None
 
-    def __init__(self, mesh, objfcts=[], **kwargs):
-
+    def __init__(self, mesh, objfcts=(), **kwargs):
         super().__init__(
             objfcts=objfcts, multipliers=None
         )
@@ -727,44 +761,15 @@ class BaseComboRegularization(ComboObjectiveFunction):
         for fct in self.objfcts:
             fct.weights = value
 
-    @property
-    def free_weights(self):
-        """Free regularization weights applied at cell centers"""
-        return self._free_weights
-
-    @free_weights.setter
-    def free_weights(self, value):
-        if value is None:
-            self._free_weights = None
-        else:
-            validate_array_type("free_weights", value, float)
-            validate_shape("free_weights", value, self._nC_residual)
-            self._free_weights = value
-
-    @property
-    def free_multipliers(self):
-        """Free regularization multipliers applied at cell centers"""
-        return self._free_multipliers
-
-    @free_multipliers.setter
-    def free_multipliers(self, values: np.ndarray | list):
-        if len(values) != len(self.objfcts):
-            raise ValueError(
-                f"List of 'free_multipliers' must be of length {len(self.objfcts)}. "
-                f"List or array of length {len(values)} provided."
-            )
-        for fct, value in zip(self.objfcts, values):
-            fct.free_multiplier = value
-
     # Other properties and methods
     @property
     def nP(self):
         """
         number of model parameters
         """
-        if getattr(self.mapping, "nP") != "*":
+        if getattr(self, "_mapping", None) is not None and self.mapping.nP != "*":
             return self.mapping.nP
-        elif getattr(self.regularization_mesh, "nC") != "*":
+        elif getattr(self, "_regularization_mesh", None) is not None and self.regularization_mesh.nC != "*":
             return self.regularization_mesh.nC
         else:
             return "*"
@@ -774,20 +779,21 @@ class BaseComboRegularization(ComboObjectiveFunction):
         """
         Shape of the residual
         """
+
         nC = getattr(self.regularization_mesh, "nC", None)
         mapping = getattr(self, "_mapping", None)
 
-        if nC != "*" and nC is not None:
+        if mapping is not None and mapping.shape[1] != "*":
+            return self.mapping.shape[1]
+        elif nC != "*" and nC is not None:
             return self.regularization_mesh.nC
-        elif mapping is not None and mapping.shape[0] != "*":
-            return self.mapping.shape[0]
         else:
             return self.nP
 
     def _delta_m(self, m):
         if self.reference_model is None:
             return m
-        return -self.reference_model + m  # in case self.reference_model is Zero, returns type m
+        return m-self.reference_model
 
     @property
     def multipliers(self):
@@ -827,12 +833,20 @@ class BaseComboRegularization(ComboObjectiveFunction):
     @active_cells.setter
     def active_cells(self, values: np.ndarray):
         validate_array_type("active_cells", values, bool)
-        validate_shape("active_cells", values, self._nC_residual)
+        validate_shape("active_cells", values, self.nP)
 
         if getattr(self, "regularization_mesh", None) is not None:
             self.regularization_mesh.active_cells = utils.mkvc(values)
 
         self._active_cells = values
+
+    indActive = deprecate_property(
+        active_cells,
+        "indActive",
+        new_name="active_cells",
+        removal_version="0.x.0",
+        future_warn=True,
+    )
 
     @property
     def reference_model(self) -> np.ndarray:
@@ -850,6 +864,8 @@ class BaseComboRegularization(ComboObjectiveFunction):
 
         for fct in self.objfcts:
             fct.reference_model = values
+
+        self._reference_model = values
 
     @property
     def model(self) -> np.ndarray:
@@ -869,7 +885,7 @@ class BaseComboRegularization(ComboObjectiveFunction):
             fct.model = values
 
     @property
-    def units(self) -> maps.IdentityMap:
+    def units(self) -> str:
         """Specify the model units. Special care given to 'radian' values"""
         return self._units
 
@@ -1000,7 +1016,7 @@ class L2Regularization(BaseComboRegularization):
 
 def validate_array_type(attribute, array, dtype):
     """Generic array and type validator"""
-    if not isinstance(array, np.ndarray) and not array.dtype == dtype:
+    if array is not None and not isinstance(array, np.ndarray) and not array.dtype == dtype:
         TypeError(
             f"{attribute} must by a {np.ndarray} of type {dtype}. "
             f"Values of type {type(array)} provided."
@@ -1009,8 +1025,8 @@ def validate_array_type(attribute, array, dtype):
 
 def validate_shape(attribute, values, shape):
     """Generic array shape validator"""
-    if (
-        shape != "*"
+    if (values is not None
+        and shape != "*"
         and len(values) != shape
     ):
         raise ValueError(

@@ -933,18 +933,18 @@ class SaveOutputEveryIteration(SaveEveryIteration):
                 phi_s += reg.objfcts[0](self.invProb.model) * reg.alpha_s
                 phi_x += reg.objfcts[1](self.invProb.model) * reg.alpha_x
 
-                if reg.regmesh.dim == 2:
+                if reg.regularization_mesh.dim == 2:
                     phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
-                elif reg.regmesh.dim == 3:
+                elif reg.regularization_mesh.dim == 3:
                     phi_y += reg.objfcts[2](self.invProb.model) * reg.alpha_y
                     phi_z += reg.objfcts[3](self.invProb.model) * reg.alpha_z
         elif getattr(self.reg.objfcts[0], "objfcts", None) is None:
             phi_s += self.reg.objfcts[0](self.invProb.model) * self.reg.alpha_s
             phi_x += self.reg.objfcts[1](self.invProb.model) * self.reg.alpha_x
 
-            if self.reg.regmesh.dim == 2:
+            if self.reg.regularization_mesh.dim == 2:
                 phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
-            elif self.reg.regmesh.dim == 3:
+            elif self.reg.regularization_mesh.dim == 3:
                 phi_y += self.reg.objfcts[2](self.invProb.model) * self.reg.alpha_y
                 phi_z += self.reg.objfcts[3](self.invProb.model) * self.reg.alpha_z
 
@@ -1314,8 +1314,8 @@ class Update_IRLS(InversionDirective):
             for comp, multipier in zip(reg.objfcts, reg.multipliers):
                 if multipier > 0:
                     phim_new += np.sum(
-                        comp.f_m ** 2.0
-                        / (comp.f_m ** 2.0 + comp.epsilon ** 2.0)
+                        comp.f_m(comp.model) ** 2.0
+                        / (comp.f_m(comp.model) ** 2.0 + comp.irls_threshold ** 2.0)
                         ** (1 - comp.norm / 2.0)
                     )
 
@@ -1404,7 +1404,7 @@ class Update_IRLS(InversionDirective):
 
         self.invProb.phi_m_last = self.reg(self.invProb.model)
 
-        # Either use the supplied epsilon, or fix base on distribution of
+        # Either use the supplied irls_threshold, or fix base on distribution of
         # model values
         for reg in self.reg.objfcts:
 
@@ -1440,16 +1440,16 @@ class Update_IRLS(InversionDirective):
         # Currently implemented for MVI-S only
         max_p = []
         for reg in self.reg.objfcts[0].objfcts:
-            eps_p = reg.epsilon
-            f_m = abs(reg.f_m)
+            f_m = abs(reg.f_m(reg.model))
             max_p += [np.max(f_m)]
 
         max_p = np.asarray(max_p).max()
 
         max_s = [np.pi, np.pi]
 
-        for obj, var in zip(self.reg.objfcts[1:3], max_s):
-            obj.scales = np.ones(obj.scales.shape) * max_p / var
+        for reg, var in zip(self.reg.objfcts[1:], max_s):
+            for obj in reg.objfcts:
+                obj.add_set_weights("angle_scale", np.ones(obj.nP) * max_p / var)
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
@@ -1625,14 +1625,15 @@ class UpdateSensitivityWeights(InversionDirective):
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 wr += reg.mapping.deriv(self.invProb.model).T * (
-                    (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
+                    (reg.mapping * jtj_diag) / reg.objfcts[0].regularization_mesh.vol ** 2.0
                 )
         wr /= wr.max()
         wr += self.threshold
         wr **= 0.5
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
-                reg.cell_weights["sensitivity"] = reg.mapping * wr
+                for sub_reg in reg.objfcts:
+                    sub_reg.add_set_weights("sensitivity", sub_reg.mapping * wr)
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights
