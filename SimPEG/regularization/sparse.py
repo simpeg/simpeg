@@ -129,8 +129,8 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
     """
     _gradient_type = "total"
 
-    def __init__(self, mesh, orientation="x", **kwargs):
-        super().__init__(mesh=mesh, orientation=orientation, **kwargs)
+    def __init__(self, mesh, orientation="x", normalized_gradients=True, **kwargs):
+        super().__init__(mesh=mesh, orientation=orientation, normalized_gradients=normalized_gradients, **kwargs)
 
     @property
     def shape(self):

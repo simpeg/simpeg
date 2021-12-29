@@ -368,11 +368,11 @@ class SmoothDeriv(BaseRegularization):
     """
     _cell_difference = None
     _length_scales = None
-    _normalized_gradients: bool = True
+    _normalized_gradients: bool = False
     _orientation = None
     _reference_model_in_smooth: bool = False
 
-    def __init__(self, mesh, weights=None, normalized_gradients=True, orientation="x", reference_model_in_smooth=False, **kwargs):
+    def __init__(self, mesh, weights=None, normalized_gradients=False, orientation="x", reference_model_in_smooth=False, **kwargs):
         self.normalized_gradients = normalized_gradients
         self.reference_model_in_smooth = reference_model_in_smooth
 
