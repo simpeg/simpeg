@@ -491,7 +491,7 @@ class SmoothDeriv(BaseRegularization):
         """
         if getattr(self, "_W", None) is None:
             weights = np.prod(list(self.weights.values()), axis=0)
-            self._W = utils.sdiag(self.length_scales * weights)
+            self._W = utils.sdiag(self.length_scales * weights**0.5)
         return self._W
 
     @property
