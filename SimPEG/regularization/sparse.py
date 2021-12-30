@@ -120,7 +120,7 @@ class SparseSmall(BaseSparse, Small):
         Compute and store the irls weights.
         """
         f_m = self.f_m(m)
-        self.add_set_weights("irls", self.get_lp_weights(f_m)**2.)
+        self.add_set_weights("irls", self.get_lp_weights(f_m))
 
 
 class SparseDeriv(BaseSparse, SmoothDeriv):
@@ -168,7 +168,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
         else:
             f_m = self.f_m(m)
 
-        self.add_set_weights("irls", self.get_lp_weights(self.length_scales * f_m)**2.)
+        self.add_set_weights("irls", self.get_lp_weights(self.length_scales * f_m))
 
     @property
     def gradient_type(self) -> str:
@@ -324,9 +324,16 @@ class Sparse(BaseComboRegularization):
     @irls_threshold.setter
     def irls_threshold(self, value):
         if value <= 0:
-            raise ValueError("Value of 'irls_threshold' should be larger than 0.")
+            raise ValueError("Value of 'irls_threshold' should be greater than 0.")
 
         self._irls_threshold = value
 
         for fct in self.objfcts:
             fct.irls_threshold = value
+
+    def update_weights(self, model):
+        """
+        Trigger irls update on all children
+        """
+        for fct in self.objfcts:
+            fct.update_weights(model)

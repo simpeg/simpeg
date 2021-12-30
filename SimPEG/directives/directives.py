@@ -1346,12 +1346,12 @@ class Update_IRLS(InversionDirective):
 
             # Print to screen
             for reg in self.reg.objfcts:
-
-                if reg.eps_p > self.floorEps_p and self.coolEps_p:
-                    reg.eps_p /= self.coolEpsFact
-                    # print('Eps_p: ' + str(reg.eps_p))
-                if reg.eps_q > self.floorEps_q and self.coolEps_q:
-                    reg.eps_q /= self.coolEpsFact
+                reg.irls_threshold = reg.irls_threshold / self.coolEpsFact
+                # if reg.eps_p > self.floorEps_p and self.coolEps_p:
+                #     reg.eps_p /= self.coolEpsFact
+                #     # print('Eps_p: ' + str(reg.eps_p))
+                # if reg.eps_q > self.floorEps_q and self.coolEps_q:
+                #     reg.eps_q /= self.coolEpsFact
                     # print('Eps_q: ' + str(reg.eps_q))
 
             # Remember the value of the norm from previous R matrices
@@ -1362,10 +1362,7 @@ class Update_IRLS(InversionDirective):
             # Reset the regularization matrices so that it is
             # recalculated for current model. Do it to all levels of comboObj
             for reg in self.reg.objfcts:
-
-                # If comboObj, go down one more level
-                for comp in reg.objfcts:
-                    comp.update_weights(comp.model)
+                reg.update_weights(reg.model)
 
             # Compute new model objective function value
             f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
@@ -1407,18 +1404,15 @@ class Update_IRLS(InversionDirective):
         # Either use the supplied irls_threshold, or fix base on distribution of
         # model values
         for reg in self.reg.objfcts:
+            reg.irls_threshold = np.percentile(
+                np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
+            )
 
-            if getattr(reg, "eps_p", None) is None:
-
-                reg.eps_p = np.percentile(
-                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
-                )
-
-            if getattr(reg, "eps_q", None) is None:
-
-                reg.eps_q = np.percentile(
-                    np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
-                )
+            # if getattr(reg, "eps_q", None) is None:
+            #
+            #     reg.eps_q = np.percentile(
+            #         np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
+            #     )
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):
@@ -1430,7 +1424,7 @@ class Update_IRLS(InversionDirective):
         # Print to screen
         for reg in self.reg.objfcts:
             if not self.silent:
-                print("eps_p: " + str(reg.eps_p) + " eps_q: " + str(reg.eps_q))
+                print("irls_threshold " + str(reg.irls_threshold))
 
     def angleScale(self):
         """

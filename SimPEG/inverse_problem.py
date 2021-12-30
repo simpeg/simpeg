@@ -153,11 +153,11 @@ class BaseInvProblem(BaseSimPEG):
     def get_dpred(self, m, f):
         dpred = []
         for i, objfct in enumerate(self.dmisfit.objfcts):
-            if hasattr(objfct, "survey"):
-                dpred += [objfct.survey.dpred(m, f=f[i])]
+            if hasattr(objfct, "simulation"):
+                dpred += [objfct.simulation.dpred(m, f=f[i])]
             else:
                 dpred += []
-        return dpred
+        return np.hstack(dpred)
 
     @timeIt
     def evalFunction(self, m, return_g=True, return_H=True):

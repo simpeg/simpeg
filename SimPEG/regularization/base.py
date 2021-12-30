@@ -884,6 +884,8 @@ class BaseComboRegularization(ComboObjectiveFunction):
         for fct in self.objfcts:
             fct.model = values
 
+        self._model = values
+
     @property
     def units(self) -> str:
         """Specify the model units. Special care given to 'radian' values"""
