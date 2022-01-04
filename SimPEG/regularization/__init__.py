@@ -15,6 +15,7 @@ from .pgi import (
     PGIwithNonlinearRelationshipsSmallness,
     PGIwithRelationships,
 )
+from .tikhonov import Tikhonov
 from .cross_gradient import CrossGradient
 from .correspondence import LinearCorrespondence
 from .jtv import JointTotalVariation

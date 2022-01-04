@@ -78,7 +78,7 @@ class ValidationInInversion(unittest.TestCase):
         reg.eps_p, reg.eps_q = 1e-3, 1e-3
 
         # Data misfit function
-        dmis = data_misfit.L2DataMisfit(data)
+        dmis = data_misfit.L2DataMisfit(data=data, simulation=sim)
         dmis.W = 1.0 / data.relative_error
 
         # Add directives to the inversion

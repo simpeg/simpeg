@@ -521,6 +521,8 @@ class LinearSimulation(BaseSimulation):
 
     survey = properties.Instance("a survey object", BaseSurvey)
 
+    solver = None
+
     def __init__(self, mesh=None, **kwargs):
         super(LinearSimulation, self).__init__(mesh=mesh, **kwargs)
 
@@ -531,8 +533,6 @@ class LinearSimulation(BaseSimulation):
             # try seting the number of data to G
             if getattr(self, "G", None) is not None:
                 self.survey._vnD = np.r_[self.G.shape[0]]
-
-        self.solver = None
 
     @property
     def G(self):

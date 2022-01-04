@@ -29,7 +29,7 @@ class BaseRegularization(BaseObjectiveFunction):
     _units = None
     _W = None
 
-    def __init__(self, active_cells=None, mapping=None, mesh=None, reference_model=None, units=None, **kwargs):
+    def __init__(self, mesh, active_cells=None, mapping=None, reference_model=None, units=None, **kwargs):
         super().__init__()
 
         self.regularization_mesh = RegularizationMesh(mesh)
@@ -142,6 +142,14 @@ class BaseRegularization(BaseObjectiveFunction):
         validate_shape("reference_model", values, self._nC_residual)
         self._reference_model = values
 
+    mref = deprecate_property(
+        reference_model,
+        "mref",
+        new_name="reference_model",
+        removal_version="0.x.0",
+        future_warn=True,
+    )
+
     @property
     def regularization_mesh(self) -> RegularizationMesh:
         """Regularization mesh"""
@@ -155,6 +163,14 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"Value of type {type(mesh)} provided."
             )
         self._regularization_mesh = mesh
+
+    regmesh = deprecate_property(
+        regularization_mesh,
+        "regmesh",
+        new_name="regularization_mesh",
+        removal_version="0.x.0",
+        future_warn=True,
+    )
 
     @property
     def W(self):
@@ -867,6 +883,14 @@ class BaseComboRegularization(ComboObjectiveFunction):
 
         self._reference_model = values
 
+    mref = deprecate_property(
+        reference_model,
+        "mref",
+        new_name="reference_model",
+        removal_version="0.x.0",
+        future_warn=True,
+    )
+
     @property
     def model(self) -> np.ndarray:
         """Physical property model"""
@@ -1068,10 +1092,10 @@ class BaseSimilarityMeasure(BaseRegularization):
         return self._wire_map
 
     @wire_map.setter
-    def wire_map(self, change):
-        map = change["value"]
+    def wire_map(self, wires):
+
         try:
-            m1, m2 = map.maps  # Assume a map has been passed for each model.
+            m1, m2 = wires.maps  # Assume a map has been passed for each model.
         except ValueError:
             ValueError("Wire map must have two model mappings")
 
@@ -1079,6 +1103,7 @@ class BaseSimilarityMeasure(BaseRegularization):
             raise ValueError(
                 f"All models must be the same size! Got {m1[1].shape[0]} and {m2[1].shape[0]}"
             )
+        self._wire_map = wires
 
     @property
     def nP(self):
@@ -1087,7 +1112,7 @@ class BaseSimilarityMeasure(BaseRegularization):
         """
         return self.wire_map.nP
 
-    def deriv(self):
+    def deriv(self, model):
         """
         First derivative of the coupling term with respect to individual models.
         Returns an array of dimensions [k*M,1],
@@ -1101,7 +1126,7 @@ class BaseSimilarityMeasure(BaseRegularization):
             )
         )
 
-    def deriv2(self):
+    def deriv2(self, model, v=None):
         """
         Second derivative of the coupling term with respect to individual models.
         Returns either an array of dimensions [k*M,1] (v is not None), or
@@ -1116,7 +1141,7 @@ class BaseSimilarityMeasure(BaseRegularization):
             )
         )
 
-    def __call__(self):
+    def __call__(self, model):
         """ Returns the computed value of the coupling term. """
         raise NotImplementedError(
             "The method __call__ has not been implemented for {}".format(

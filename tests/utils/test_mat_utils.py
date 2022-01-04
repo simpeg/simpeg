@@ -6,7 +6,7 @@ from scipy.sparse.linalg import eigsh
 from discretize import TensorMesh
 from SimPEG import simulation, data_misfit
 from SimPEG.maps import IdentityMap
-from SimPEG.regularization import Tikhonov
+from SimPEG.regularization import L2Regularization
 from SimPEG.utils.mat_utils import eigenvalue_by_power_iteration
 
 
@@ -68,7 +68,7 @@ class TestEigenvalues(unittest.TestCase):
         self.dmiscombo = dmiscombo
 
         # Test for a regularization term
-        reg = Tikhonov(mesh=mesh)
+        reg = L2Regularization(mesh=mesh)
         self.reg = reg
 
         # Test a mix combo
