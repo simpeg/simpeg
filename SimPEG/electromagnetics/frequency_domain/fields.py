@@ -348,8 +348,7 @@ class Fields3DElectricField(FieldsFDEM):
 
         ePrimary = np.zeros([self.simulation.mesh.nE, len(source_list)], dtype=complex)
         for i, src in enumerate(source_list):
-            ep = src.ePrimary(self.simulation)
-            ePrimary[:, i] = ePrimary[:, i] + ep
+            ePrimary[:, i] += src.ePrimary(self.simulation)
         return ePrimary
 
     def _eSecondary(self, eSolution, source_list):
@@ -410,8 +409,7 @@ class Fields3DElectricField(FieldsFDEM):
         )
 
         for i, src in enumerate(source_list):
-            bp = src.bPrimary(self.simulation)
-            bPrimary[:, i] = bPrimary[:, i] + bp
+            bPrimary[:, i] += src.bPrimary(self.simulation)
         return bPrimary
 
     def _bSecondary(self, eSolution, source_list):
@@ -429,7 +427,7 @@ class Fields3DElectricField(FieldsFDEM):
         for i, src in enumerate(source_list):
             b[:, i] *= -1.0 / (1j * omega(src.frequency))  # freq depends on the source
             s_m = src.s_m(self.simulation)
-            b[:, i] = b[:, i] + 1.0 / (1j * omega(src.frequency)) * s_m
+            b[:, i] += 1.0 / (1j * omega(src.frequency)) * s_m
         return b
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -645,8 +643,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
 
         bPrimary = np.zeros([self.simulation.mesh.nF, len(source_list)], dtype=complex)
         for i, src in enumerate(source_list):
-            bp = src.bPrimary(self.simulation)
-            bPrimary[:, i] = bPrimary[:, i] + bp
+            bPrimary[:, i] += src.bPrimary(self.simulation)
         return bPrimary
 
     def _bSecondary(self, bSolution, source_list):
@@ -708,8 +705,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
             [self._edgeCurl.shape[1], bSolution.shape[1]], dtype=complex
         )
         for i, src in enumerate(source_list):
-            ep = src.ePrimary(self.simulation)
-            ePrimary[:, i] = ePrimary[:, i] + ep
+            ePrimary[:, i] += src.ePrimary(self.simulation)
         return ePrimary
 
     def _eSecondary(self, bSolution, source_list):
@@ -724,8 +720,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
 
         e = self._edgeCurl.T * (self._MfMui * bSolution)
         for i, src in enumerate(source_list):
-            s_e = src.s_e(self.simulation)
-            e[:, i] = e[:, i] + -s_e
+            e[:, i] -= src.s_e(self.simulation)
 
         return self._MeSigmaI * e
 
@@ -797,8 +792,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         j = self._edgeCurl.T * (self._MfMui * bSolution)
 
         for i, src in enumerate(source_list):
-            s_e = src.s_e(self.simulation)
-            j[:, i] = j[:, i] - s_e
+            j[:, i] -= src.s_e(self.simulation)
 
         return self._MeI * j
 
@@ -946,8 +940,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
 
         jPrimary = np.zeros_like(jSolution, dtype=complex)
         for i, src in enumerate(source_list):
-            jp = src.jPrimary(self.simulation)
-            jPrimary[:, i] = jPrimary[:, i] + jp
+            jPrimary[:, i] += src.jPrimary(self.simulation)
         return jPrimary
 
     def _jSecondary(self, jSolution, source_list):
@@ -1022,8 +1015,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
             [self._edgeCurl.shape[1], jSolution.shape[1]], dtype=complex
         )
         for i, src in enumerate(source_list):
-            hp = src.hPrimary(self.simulation)
-            hPrimary[:, i] = hPrimary[:, i] + hp
+            hPrimary[:, i] += src.hPrimary(self.simulation)
         return hPrimary
 
     def _hSecondary(self, jSolution, source_list):
@@ -1040,7 +1032,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
         for i, src in enumerate(source_list):
             h[:, i] *= -1.0 / (1j * omega(src.frequency))
             s_m = src.s_m(self.simulation)
-            h[:, i] = h[:, i] + 1.0 / (1j * omega(src.frequency)) * (s_m)
+            h[:, i] += 1.0 / (1j * omega(src.frequency)) * (s_m)
         return self._MeMuI * h
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -1295,8 +1287,7 @@ class Fields3DMagneticField(FieldsFDEM):
 
         hPrimary = np.zeros_like(hSolution, dtype=complex)
         for i, src in enumerate(source_list):
-            hp = src.hPrimary(self.simulation)
-            hPrimary[:, i] = hPrimary[:, i] + hp
+            hPrimary[:, i] += src.hPrimary(self.simulation)
         return hPrimary
 
     def _hSecondary(self, hSolution, source_list):
@@ -1357,8 +1348,7 @@ class Fields3DMagneticField(FieldsFDEM):
             [self._edgeCurl.shape[0], hSolution.shape[1]], dtype=complex
         )
         for i, src in enumerate(source_list):
-            jp = src.jPrimary(self.simulation)
-            jPrimary[:, i] = jPrimary[:, i] + jp
+            jPrimary[:, i] += src.jPrimary(self.simulation)
         return jPrimary
 
     def _jSecondary(self, hSolution, source_list):
@@ -1373,8 +1363,7 @@ class Fields3DMagneticField(FieldsFDEM):
 
         j = self._edgeCurl * hSolution
         for i, src in enumerate(source_list):
-            s_e = src.s_e(self.simulation)
-            j[:, i] = j[:, i] + -s_e
+            j[:, i] -= src.s_e(self.simulation)
         return j
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
