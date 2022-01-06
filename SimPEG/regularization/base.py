@@ -30,7 +30,7 @@ class BaseRegularization(BaseObjectiveFunction):
     _W = None
 
     def __init__(self, mesh, active_cells=None, mapping=None, reference_model=None, units=None, **kwargs):
-        super().__init__()
+
 
         self.regularization_mesh = RegularizationMesh(mesh)
         self.active_cells = active_cells
@@ -38,7 +38,8 @@ class BaseRegularization(BaseObjectiveFunction):
         self.mapping = mapping
         self.reference_model = reference_model
         self.units = units
-        utils.setKwargs(self, **kwargs)
+
+        super().__init__(**kwargs)
 
     # Properties
     @property
@@ -344,6 +345,7 @@ class Small(BaseRegularization):
                 validate_shape("weights", values, self.nP)
 
         self._weights = weights
+        self._W = None
 
     def add_set_weights(self, key, values):
         validate_array_type("weights", values, float)
@@ -460,6 +462,9 @@ class SmoothDeriv(BaseRegularization):
             self.add_set_weights(
                 "volume", self.regularization_mesh.vol
             )
+            self.add_set_weights(
+                "length_scales", self.length_scales
+            )
 
         return self._weights
 
@@ -478,6 +483,7 @@ class SmoothDeriv(BaseRegularization):
                 validate_shape("weights", values, self.n_faces)
 
         self._weights = weights
+        self._W = None
 
     def add_set_weights(self, key, values):
         average_cell_2_face = getattr(
@@ -502,7 +508,7 @@ class SmoothDeriv(BaseRegularization):
         """
         if getattr(self, "_W", None) is None:
             weights = np.prod(list(self.weights.values()), axis=0)
-            self._W = utils.sdiag(self.length_scales * weights**0.5)
+            self._W = utils.sdiag(weights**0.5)
         return self._W
 
     @property
@@ -514,14 +520,9 @@ class SmoothDeriv(BaseRegularization):
         if getattr(self, "_length_scales", None) is None:
             Ave = getattr(self.regularization_mesh, "aveCC2F{}".format(self.orientation))
             index = "xyz".index(self.orientation)
-            length_scales = Ave * (
+            self._length_scales = Ave * (
                     self.regularization_mesh.Pac.T * self.regularization_mesh.mesh.h_gridded[:, index]
             )
-
-            if self.normalized_gradients:
-                length_scales /= length_scales.min()
-
-            self._length_scales = length_scales**-1.0
 
         return self._length_scales
 
@@ -640,15 +641,15 @@ class SmoothDeriv2(SmoothDeriv):
 ###############################################################################
 
 
-class BaseComboRegularization(ComboObjectiveFunction):
+class LeastSquaresRegularization(ComboObjectiveFunction):
     _active_cells = None
-    _alpha_s = 1.
-    _alpha_x = 1.
-    _alpha_y = 1.
-    _alpha_z = 1.
-    _alpha_xx = 1.
-    _alpha_yy = 1.
-    _alpha_zz = 1.
+    _alpha_s = None
+    _alpha_x = None
+    _alpha_y = None
+    _alpha_z = None
+    _alpha_xx = None
+    _alpha_yy = None
+    _alpha_zz = None
     _model = None
     _normalized_gradients = True
     _reference_model_in_smooth = False
@@ -657,12 +658,32 @@ class BaseComboRegularization(ComboObjectiveFunction):
     _units = None
     _weights = None
 
-    def __init__(self, mesh, objfcts=(), **kwargs):
-        super().__init__(
-            objfcts=objfcts, multipliers=None
-        )
+    def __init__(
+        self, mesh, alpha_s=None, alpha_x=None, alpha_y=None, alpha_z=None, alpha_xx=None, alpha_yy=None, alpha_zz=None, normalized_gradients=False, _reference_model_in_smooth=False, **kwargs
+    ):
+
         self.regularization_mesh = RegularizationMesh(mesh)
-        utils.setKwargs(self, **kwargs)
+
+        objfcts = [
+            Small(mesh=mesh, **kwargs),
+            SmoothDeriv(mesh=mesh, orientation="x", **kwargs),
+        ]
+
+        if mesh.dim > 1:
+            objfcts.append(SmoothDeriv(mesh=mesh, orientation="y", **kwargs))
+
+        if mesh.dim > 2:
+            objfcts.append(SmoothDeriv(mesh=mesh, orientation="z", **kwargs))
+
+        super().__init__(
+            objfcts=objfcts,
+        )
+
+        self.alpha_s = alpha_s
+        self.alpha_x = alpha_x
+        self.alpha_y = alpha_y
+        self.alpha_z = alpha_z
+
 
     @property
     def alpha_s(self):
@@ -960,85 +981,6 @@ class BaseComboRegularization(ComboObjectiveFunction):
 
         for fct in self.objfcts:
             fct.mapping = mapping
-
-
-class L2Regularization(BaseComboRegularization):
-    """
-    Base regularization that measures the l2-norm of the model and model gradients.
-
-    .. math::
-
-        r(\mathbf{m}) = \\alpha_s \phi_s + \\alpha_x \phi_x +
-        \\alpha_y \phi_y + \\alpha_z \phi_z
-
-    where:
-
-    - :math:`\phi_s` is a :class:`SimPEG.regularization.Small` instance
-    - :math:`\phi_x` is a :class:`SimPEG.regularization.SmoothDeriv` instance, with :code:`orientation='x'`
-    - :math:`\phi_y` is a :class:`SimPEG.regularization.SmoothDeriv` instance, with :code:`orientation='y'`
-    - :math:`\phi_z` is a :class:`SimPEG.regularization.SmoothDeriv` instance, with :code:`orientation='z'`
-
-
-    **Required Inputs**
-
-    :param discretize.base.BaseMesh mesh: a SimPEG mesh
-
-    **Optional Inputs**
-
-    :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
-    :param numpy.ndarray reference_model: reference model
-    :param numpy.ndarray active_cells: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
-    :param numpy.ndarray weights: cell weights
-    :param bool reference_model_in_smooth: include the reference model in the smoothness computation? (eg. look at Deriv of m (False) or Deriv of (m-reference_model) (True))
-    :param numpy.ndarray weights: vector of cell weights (applied in all terms)
-
-    **Weighting Parameters**
-
-    :param float alpha_s: weighting on the smallness (default 1.)
-    :param float alpha_x: weighting on the x-smoothness (default 1.)
-    :param float alpha_y: weighting on the y-smoothness (default 1.)
-    :param float alpha_z: weighting on the z-smoothness(default 1.)
-
-    """
-
-    def __init__(
-        self,
-        mesh,
-        alpha_s=1e-6,
-        alpha_x=1.0,
-        alpha_y=1.0,
-        alpha_z=1.0,
-        alpha_xx=1.0,
-        alpha_yy=1.0,
-        alpha_zz=1.0,
-        normalized_gradients=False,
-        **kwargs
-    ):
-        objfcts = [
-            Small(mesh=mesh, **kwargs),
-            SmoothDeriv(mesh=mesh, orientation="x", **kwargs),
-        ]
-
-        if mesh.dim > 1:
-            objfcts.append(SmoothDeriv(mesh=mesh, orientation="y", **kwargs))
-
-        if mesh.dim > 2:
-            objfcts.append(SmoothDeriv(mesh=mesh, orientation="z", **kwargs))
-
-        super().__init__(
-            mesh=mesh,
-            objfcts=objfcts,
-            alpha_s=alpha_s,
-            alpha_x=alpha_x,
-            alpha_y=alpha_y,
-            alpha_z=alpha_z,
-            alpha_xx=alpha_xx,
-            alpha_yy=alpha_yy,
-            alpha_zz=alpha_zz,
-            normalized_gradients=normalized_gradients,
-            **kwargs
-        )
-
 
 def validate_array_type(attribute, array, dtype):
     """Generic array and type validator"""
