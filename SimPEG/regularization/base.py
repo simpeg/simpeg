@@ -21,17 +21,16 @@ class BaseRegularization(BaseObjectiveFunction):
 
     """
     _active_cells = None
-    _weights: {} = None
     _mapping = None
+    _model = None
     _reference_model = None
     _regularization_mesh = None
-    _model = None
+    _shape = None
     _units = None
+    _weights: {} = None
     _W = None
 
     def __init__(self, mesh, active_cells=None, mapping=None, reference_model=None, units=None, **kwargs):
-
-
         self.regularization_mesh = RegularizationMesh(mesh)
         self.active_cells = active_cells
         self.regularization_mesh.active_cells = self.active_cells
@@ -117,14 +116,14 @@ class BaseRegularization(BaseObjectiveFunction):
         self._units = units
 
     @property
-    def nP(self):
+    def shape(self):
         """
         number of model parameters
         """
         if getattr(self, "_regularization_mesh", None) is not None and self.regularization_mesh.nC != "*":
-            return self.regularization_mesh.nC
-        elif getattr(self, "_mapping", None) is not None and self.mapping.nP != "*":
-            return self.mapping.shape[0]
+            return self.regularization_mesh.nC,
+        elif getattr(self, "_mapping", None) is not None and self.mapping.shape != "*":
+            return self.mapping.shape
         else:
             return "*"
 
@@ -194,7 +193,7 @@ class BaseRegularization(BaseObjectiveFunction):
         elif nC != "*" and nC is not None:
             return self.regularization_mesh.nC
         else:
-            return self.nP
+            return self.shape[0]
 
     def _delta_m(self, m):
         if self.reference_model is None:
@@ -292,7 +291,7 @@ class Small(BaseRegularization):
     **Optional Inputs**
 
     :param discretize.base.BaseMesh mesh: SimPEG mesh
-    :param int nP: number of parameters
+    :param int shape: number of parameters
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
     :param numpy.ndarray reference_model: reference model
     :param numpy.ndarray active_cells: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
@@ -326,7 +325,7 @@ class Small(BaseRegularization):
         if getattr(self, "_weights", None) is None:
             self._weights = {}
             self.add_set_weights(
-                "volume", self.regularization_mesh.vol
+                {"volume": self.regularization_mesh.vol}
             )
 
         return self._weights
@@ -342,15 +341,16 @@ class Small(BaseRegularization):
 
             for key, values in weights.items():
                 validate_array_type("weights", values, float)
-                validate_shape("weights", values, self.nP)
+                validate_shape("weights", values, self.shape[0])
 
         self._weights = weights
         self._W = None
 
-    def add_set_weights(self, key, values):
-        validate_array_type("weights", values, float)
-        validate_shape("weights", values, self.nP)
-        self.weights[key] = values
+    def add_set_weights(self, weights: dict):
+        for key, values in weights.items():
+            validate_array_type("weights", values, float)
+            validate_shape("weights", values, self.shape[0])
+            self.weights[key] = values
         self._W = None
 
     @property
@@ -373,7 +373,7 @@ class SmoothDeriv(BaseRegularization):
     **Optional Inputs**
 
     :param discretize.base.BaseMesh mesh: SimPEG mesh
-    :param int nP: number of parameters
+    :param int shape: number of parameters
     :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
     :param numpy.ndarray reference_model: reference model
     :param numpy.ndarray active_cells: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
@@ -383,12 +383,11 @@ class SmoothDeriv(BaseRegularization):
     """
     _cell_difference = None
     _length_scales = None
-    _normalized_gradients: bool = False
     _orientation = None
+    _shape = None
     _reference_model_in_smooth: bool = False
 
-    def __init__(self, mesh, weights=None, normalized_gradients=False, orientation="x", reference_model_in_smooth=False, **kwargs):
-        self.normalized_gradients = normalized_gradients
+    def __init__(self, mesh, orientation="x", reference_model_in_smooth=False, weights=None, **kwargs):
         self.reference_model_in_smooth = reference_model_in_smooth
 
         super().__init__(mesh=mesh, **kwargs)
@@ -397,12 +396,12 @@ class SmoothDeriv(BaseRegularization):
         self.weights = weights
 
     @property
-    def n_faces(self):
+    def shape(self):
         if getattr(self, "_nP", None) is None:
-            self._n_faces = getattr(
+            self._shape = getattr(
                 self.regularization_mesh, "aveCC2F{}".format(self.orientation)
-            ).shape[0]
-        return self._n_faces
+            ).shape
+        return self._shape
 
     @property
     def cell_difference(self):
@@ -460,10 +459,10 @@ class SmoothDeriv(BaseRegularization):
         if getattr(self, "_weights", None) is None:
             self._weights = {}
             self.add_set_weights(
-                "volume", self.regularization_mesh.vol
-            )
-            self.add_set_weights(
-                "length_scales", self.length_scales
+                {
+                    "volume": self.regularization_mesh.vol,
+                    "length_scales": self.length_scales**-2.0,
+                }
             )
 
         return self._weights
@@ -480,24 +479,24 @@ class SmoothDeriv(BaseRegularization):
 
             for key, values in weights.items():
                 validate_array_type("weights", values, float)
-                validate_shape("weights", values, self.n_faces)
+                validate_shape("weights", values, self.shape[0])
 
         self._weights = weights
         self._W = None
 
-    def add_set_weights(self, key, values):
-        average_cell_2_face = getattr(
-            self.regularization_mesh, "aveCC2F{}".format(self.orientation)
-        )
+    def add_set_weights(self, weights: dict):
+        for key, values in weights.items():
+            average_cell_2_face = getattr(
+                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+            )
+            validate_array_type("weights", values, float)
 
-        validate_array_type("weights", values, float)
+            if values.shape[0] == self.regularization_mesh.nC:
+                values = average_cell_2_face * values
 
-        if values.shape[0] == self.regularization_mesh.nC:
-            values = average_cell_2_face * values
+            validate_shape("weights", values, self.shape[0])
+            self.weights[key] = values
 
-        validate_shape("weights", values, self.n_faces)
-
-        self.weights[key] = values
         self._W = None
 
     @property
@@ -509,6 +508,7 @@ class SmoothDeriv(BaseRegularization):
         if getattr(self, "_W", None) is None:
             weights = np.prod(list(self.weights.values()), axis=0)
             self._W = utils.sdiag(weights**0.5)
+
         return self._W
 
     @property
@@ -531,22 +531,6 @@ class SmoothDeriv(BaseRegularization):
         validate_array_type("length_scales", values, float)
         validate_shape("length_scales", values, self.nP)
         self._length_scales = values
-
-    @property
-    def normalized_gradients(self):
-        """
-        Pre-normalize the model gradients by the base cell size
-        """
-        return self._normalized_gradients
-
-    @normalized_gradients.setter
-    def normalized_gradients(self, value):
-        if not isinstance(value, bool):
-            raise TypeError(
-                "'normalized_gradients must be of type 'bool'. "
-                f"Value of type {type(value)} provided."
-            )
-        self._normalized_gradients = value
 
     @property
     def orientation(self):
@@ -651,6 +635,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     _alpha_yy = None
     _alpha_zz = None
     _model = None
+    _mapping = None
     _normalized_gradients = True
     _reference_model_in_smooth = False
     _reference_model = None
@@ -659,40 +644,63 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     _weights = None
 
     def __init__(
-        self, mesh, alpha_s=None, alpha_x=None, alpha_y=None, alpha_z=None, alpha_xx=None, alpha_yy=None, alpha_zz=None, normalized_gradients=False, _reference_model_in_smooth=False, **kwargs
+        self,
+        mesh,
+        active_cells=None,
+        alpha_s=None,
+        alpha_x=None,
+        alpha_y=None,
+        alpha_z=None,
+        alpha_xx=None,
+        alpha_yy=None,
+        alpha_zz=None,
+        mapping=None,
+        objfcts=None,
+        reference_model=None,
+        reference_model_in_smooth=False,
+        **kwargs
     ):
 
         self.regularization_mesh = RegularizationMesh(mesh)
 
-        objfcts = [
-            Small(mesh=mesh, **kwargs),
-            SmoothDeriv(mesh=mesh, orientation="x", **kwargs),
-        ]
+        if objfcts is None:
+            objfcts = [
+                Small(mesh=mesh),
+                SmoothDeriv(mesh=mesh, orientation="x"),
+            ]
 
-        if mesh.dim > 1:
-            objfcts.append(SmoothDeriv(mesh=mesh, orientation="y", **kwargs))
+            if mesh.dim > 1:
+                objfcts.append(SmoothDeriv(mesh=mesh, orientation="y"))
 
-        if mesh.dim > 2:
-            objfcts.append(SmoothDeriv(mesh=mesh, orientation="z", **kwargs))
+            if mesh.dim > 2:
+                objfcts.append(SmoothDeriv(mesh=mesh, orientation="z"))
 
         super().__init__(
             objfcts=objfcts,
+            active_cells=active_cells,
+            mapping=mapping,
+            reference_model=reference_model,
+            reference_model_in_smooth=reference_model_in_smooth,
+            alpha_s=alpha_s,
+            alpha_x=alpha_x,
+            alpha_y=alpha_y,
+            alpha_z=alpha_z,
+            alpha_xx=alpha_xx,
+            alpha_yy=alpha_yy,
+            alpha_zz=alpha_zz,
+            **kwargs
         )
-
-        self.alpha_s = alpha_s
-        self.alpha_x = alpha_x
-        self.alpha_y = alpha_y
-        self.alpha_z = alpha_z
-
 
     @property
     def alpha_s(self):
         """smallness weight"""
+        if getattr(self, "_alpha_s", None) is None:
+            self._alpha_s = 1.
         return self._alpha_s
 
     @alpha_s.setter
     def alpha_s(self, value):
-        if not isinstance(value, float) and value > 0:
+        if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_s' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
         self._alpha_s = value
@@ -700,11 +708,13 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     @property
     def alpha_x(self):
         """weight for the first x-derivative"""
+        if getattr(self, "_alpha_x", None) is None:
+            self._alpha_x = self.regularization_mesh.mesh.h_gridded.min()**2.
         return self._alpha_x
 
     @alpha_x.setter
     def alpha_x(self, value):
-        if not isinstance(value, float) and value > 0:
+        if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_x' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
         self._alpha_x = value
@@ -712,11 +722,13 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     @property
     def alpha_y(self):
         """weight for the first y-derivative"""
+        if getattr(self, "_alpha_y", None) is None:
+            self._alpha_y = self.regularization_mesh.mesh.h_gridded.min()**2.
         return self._alpha_y
 
     @alpha_y.setter
     def alpha_y(self, value):
-        if not isinstance(value, float) and value > 0:
+        if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_y' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
         self._alpha_y = value
@@ -724,11 +736,13 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     @property
     def alpha_z(self):
         """weight for the first z-derivative"""
+        if getattr(self, "_alpha_z", None) is None:
+            self._alpha_z = self.regularization_mesh.mesh.h_gridded.min()**2.
         return self._alpha_z
 
     @alpha_z.setter
     def alpha_z(self, value):
-        if not isinstance(value, float) and value > 0:
+        if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_z' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
         self._alpha_z = value
@@ -736,11 +750,13 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     @property
     def alpha_xx(self):
         """weight for the second x-derivative"""
+        if getattr(self, "_alpha_xx", None) is None:
+            self._alpha_xx = self.regularization_mesh.mesh.h_gridded.min()**4.
         return self._alpha_xx
 
     @alpha_xx.setter
     def alpha_xx(self, value):
-        if not isinstance(value, float) and value > 0:
+        if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_xx' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
         self._alpha_xx = value
@@ -748,11 +764,13 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     @property
     def alpha_yy(self):
         """weight for the second y-derivative"""
+        if getattr(self, "_alpha_yy", None) is None:
+            self._alpha_yy = self.regularization_mesh.mesh.h_gridded.min()**4.
         return self._alpha_yy
 
     @alpha_yy.setter
     def alpha_yy(self, value):
-        if not isinstance(value, float) and value > 0:
+        if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_yy' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
         self._alpha_yy = value
@@ -760,11 +778,13 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     @property
     def alpha_zz(self):
         """weight for the second z-derivative"""
+        if getattr(self, "_alpha_zz", None) is None:
+            self._alpha_zz = self.regularization_mesh.mesh.h_gridded.min()**4.
         return self._alpha_zz
 
     @alpha_zz.setter
     def alpha_zz(self, value):
-        if not isinstance(value, float) and value > 0:
+        if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_zz' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
         self._alpha_zz = value
@@ -875,6 +895,9 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         if getattr(self, "regularization_mesh", None) is not None:
             self.regularization_mesh.active_cells = utils.mkvc(values)
 
+        for objfct in self.objfcts:
+            objfct.active_cells = values
+
         self._active_cells = values
 
     indActive = deprecate_property(
@@ -959,8 +982,6 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
                 f"Value of type {type(mesh)} provided."
             )
         self._regularization_mesh = mesh
-        for fct in self.objfcts:
-            fct.regularization_mesh = mesh
 
     @property
     def mapping(self) -> maps.IdentityMap:

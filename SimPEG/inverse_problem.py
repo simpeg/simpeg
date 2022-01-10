@@ -6,7 +6,7 @@ import scipy.sparse as sp
 import gc
 from .data_misfit import BaseDataMisfit
 from .props import BaseSimPEG, Model
-from .regularization import BaseRegularization, BaseComboRegularization, Sparse
+from .regularization import BaseRegularization, LeastSquaresRegularization, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .utils import callHooks, timeIt
 
@@ -186,7 +186,7 @@ class BaseInvProblem(BaseSimPEG):
             self.phi_y = 0.0
             self.phi_z = 0.0
 
-            if not isinstance(self.reg, BaseComboRegularization):
+            if not isinstance(self.reg, LeastSquaresRegularization):
                 regs = self.reg.objfcts
                 mults = self.reg.multipliers
             else:

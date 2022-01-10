@@ -15,7 +15,7 @@ from ..maps import IdentityMap, Wires
 from .. import props
 from .base import (
     BaseRegularization,
-    BaseComboRegularization,
+    LeastSquaresRegularization,
 )
 
 ###############################################################################
@@ -487,7 +487,7 @@ class PGIsmallness(BaseRegularization):
                 return Hr
 
 
-class PGI(BaseComboRegularization):
+class PGI(LeastSquaresRegularization):
     """
     class similar to regularization.tikhonov.Simple, with a PGIsmallness.
     PARAMETERS
@@ -951,7 +951,7 @@ class PGIwithNonlinearRelationshipsSmallness(BaseRegularization):
             return (mDW.T * mDW) * Hr
 
 
-class PGIwithRelationships(BaseComboRegularization):
+class PGIwithRelationships(LeastSquaresRegularization):
     """
     class similar to regularization.tikhonov.Simple, with a
     PGIwithNonlinearRelationshipsSmallness.

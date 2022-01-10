@@ -1,4 +1,4 @@
-from .base import Small, SmoothDeriv, L2Regularization
+from .base import Small, SmoothDeriv, LeastSquaresRegularization
 from ..utils.code_utils import deprecate_class
 
 
@@ -17,7 +17,7 @@ class SimpleSmoothDeriv(SmoothDeriv):
 
 
 @deprecate_class(removal_version="0.16.0", future_warn=True)
-class Simple(L2Regularization):
+class Simple(LeastSquaresRegularization):
     def __init__(self, mesh=None, **kwargs):
         if "alpha_s" not in kwargs:
             kwargs["alpha_s"] = 1
@@ -25,5 +25,5 @@ class Simple(L2Regularization):
 
 
 @deprecate_class(removal_version="0.16.0", future_warn=True)
-class Tikhonov(L2Regularization):
+class Tikhonov(LeastSquaresRegularization):
     pass

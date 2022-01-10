@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .base import BaseRegularization, BaseComboRegularization, Small, SmoothDeriv
+from .base import BaseRegularization, LeastSquaresRegularization, Small, SmoothDeriv
 from .. import utils
 
 
@@ -120,7 +120,7 @@ class SparseSmall(BaseSparse, Small):
         Compute and store the irls weights.
         """
         f_m = self.f_m(m)
-        self.add_set_weights("irls", self.get_lp_weights(f_m))
+        self.add_set_weights({"irls": self.get_lp_weights(f_m)})
 
 
 class SparseDeriv(BaseSparse, SmoothDeriv):
@@ -129,8 +129,8 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
     """
     _gradient_type = "total"
 
-    def __init__(self, mesh, orientation="x", normalized_gradients=True, **kwargs):
-        super().__init__(mesh=mesh, orientation=orientation, normalized_gradients=normalized_gradients, **kwargs)
+    def __init__(self, mesh, orientation="x", **kwargs):
+        super().__init__(mesh=mesh, orientation=orientation, **kwargs)
 
     @property
     def shape(self):
@@ -168,7 +168,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
         else:
             f_m = self.f_m(m)
 
-        self.add_set_weights("irls", self.get_lp_weights(self.length_scales * f_m))
+        self.add_set_weights({"irls": self.get_lp_weights(f_m)})
 
     @property
     def gradient_type(self) -> str:
@@ -187,7 +187,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
         self._gradient_type = value
 
 
-class Sparse(BaseComboRegularization):
+class Sparse(LeastSquaresRegularization):
     """
     The regularization is:
 
@@ -215,10 +215,10 @@ class Sparse(BaseComboRegularization):
     _irls_scaled = True
     _irls_threshold = 1e-8
     _gradient_type = "total"
-    _norms = [2, 2, 2, 2]
+    _norms = None
 
     def __init__(
-        self, mesh, alpha_s=1.0, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, **kwargs
+        self, mesh, norms=(2, 2, 2, 2), gradient_type="total", **kwargs
     ):
 
         objfcts = [
@@ -233,12 +233,10 @@ class Sparse(BaseComboRegularization):
             objfcts.append(SparseDeriv(mesh=mesh, orientation="z"))
 
         super().__init__(
-            mesh=mesh,
+            mesh,
             objfcts=objfcts,
-            alpha_s=alpha_s,
-            alpha_x=alpha_x,
-            alpha_y=alpha_y,
-            alpha_z=alpha_z,
+            norms=norms,
+            gradient_type=gradient_type,
             **kwargs
         )
 
@@ -271,7 +269,7 @@ class Sparse(BaseComboRegularization):
 
     @norms.setter
     def norms(self, values: list | np.ndarray | float):
-        if isinstance(values, list) or isinstance(values, np.ndarray):
+        if isinstance(values, (list, tuple, np.ndarray)):
             values = np.asarray(values, dtype=float).flatten()
 
             if len(values) != len(self.objfcts):
@@ -279,7 +277,6 @@ class Sparse(BaseComboRegularization):
                     "The number of values provided for 'norms' does not "
                     "match the number of regularization functions."
                 )
-
         elif isinstance(values, int) or isinstance(values, float):
             values = [float(values)] * len(self.objfcts)
         else:

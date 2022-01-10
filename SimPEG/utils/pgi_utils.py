@@ -28,7 +28,7 @@ from ..maps import IdentityMap, Wires, Identity
 from ..regularization import (
     Small,
     PGI,
-    L2Regularization,
+    LeastSquaresRegularization,
     PGIwithRelationships,
 )
 
@@ -150,7 +150,7 @@ def make_PGI_regularization(
         alph_z = alpha_z
 
     for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += L2Regularization(
+        reg += LeastSquaresRegularization(
             mesh=mesh,
             mapping=maps * wire[1],
             alpha_s=0.0,
@@ -276,7 +276,7 @@ def make_PGIwithRelationships_regularization(
         alph_z = alpha_z
 
     for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
-        reg += L2Regularization(
+        reg += LeastSquaresRegularization(
             mesh=mesh,
             mapping=maps * wire[1],
             alpha_s=0.0,

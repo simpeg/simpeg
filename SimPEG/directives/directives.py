@@ -8,7 +8,7 @@ from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
 from ..maps import IdentityMap, Wires
 from ..regularization import (
-    BaseComboRegularization,
+    LeastSquaresRegularization,
     BaseRegularization,
     Small,
     SparseSmall,
@@ -38,7 +38,7 @@ class InversionDirective(properties.HasProperties):
     _REGISTRY = {}
 
     debug = False  #: Print debugging information
-    _regPair = [BaseComboRegularization, BaseRegularization, ComboObjectiveFunction]
+    _regPair = [LeastSquaresRegularization, BaseRegularization, ComboObjectiveFunction]
     _dmisfitPair = [BaseDataMisfit, ComboObjectiveFunction]
 
     def __init__(self, **kwargs):
@@ -79,7 +79,7 @@ class InversionDirective(properties.HasProperties):
             [isinstance(value, regtype) for regtype in self._regPair]
         ), "Regularization must be in {}, not {}".format(self._regPair, type(value))
 
-        if isinstance(value, BaseComboRegularization):
+        if isinstance(value, LeastSquaresRegularization):
             value = 1 * value  # turn it into a combo objective function
         self._reg = value
 
@@ -1443,7 +1443,7 @@ class Update_IRLS(InversionDirective):
 
         for reg, var in zip(self.reg.objfcts[1:], max_s):
             for obj in reg.objfcts:
-                obj.add_set_weights("angle_scale", np.ones(obj.nP) * max_p / var)
+                obj.add_set_weights({"angle_scale": np.ones(obj.nP) * max_p / var})
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
@@ -1627,7 +1627,7 @@ class UpdateSensitivityWeights(InversionDirective):
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 for sub_reg in reg.objfcts:
-                    sub_reg.add_set_weights("sensitivity", sub_reg.mapping * wr)
+                    sub_reg.add_set_weights({"sensitivity": sub_reg.mapping * wr})
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights

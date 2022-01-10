@@ -1,11 +1,10 @@
 from .base import (
     BaseRegularization,
-    BaseComboRegularization,
+    LeastSquaresRegularization,
     BaseSimilarityMeasure,
     Small,
     SmoothDeriv,
     SmoothDeriv2,
-    L2Regularization
 )
 from .regularization_mesh import RegularizationMesh
 from .sparse import SparseSmall, SparseDeriv, Sparse
