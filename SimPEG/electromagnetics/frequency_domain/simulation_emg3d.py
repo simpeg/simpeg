@@ -33,6 +33,11 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         Input parameters forward to ``emg3d.Simulation``. See the emg3d
         documentation for all the possibilities.
 
+        By default, `gridding='same'`, which is different from the default in
+        emg3d. However, any `gridding` and `gridding_opts` can be provided. In
+        that case one can also provide a `model`, which is used as the
+        reference model for the automatic gridding routine.
+
     """
 
     _solutionType = "eSolution"
@@ -57,12 +62,14 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
             # Create twin Simulation in emg3d.
             self._emg3d_sim = emg3d.Simulation(
                 survey=self.emg3d_survey,
-                model=emg3d.Model(self.mesh),  # Dummy values of 1 for init.
-                **{'name': 'Simulation created by SimPEG',
-                   'gridding': 'same',               # Change this eventually!
-                   'tqdm_opts': {'disable': True},   # Switch-off tqdm
-                   'receiver_interpolation': 'linear',  # Should be linear
-                   **self.simulation_opts}              # User input
+                **{  # The following options can be provided by the user
+                    'name': 'Simulation created by SimPEG',
+                    'gridding': 'same',               # Default is same for all
+                    'model': emg3d.Model(self.mesh),  # Dummy 1's for init
+                    'tqdm_opts': {'disable': True},   # Switch-off tqdm
+                    'receiver_interpolation': 'linear',  # Should be linear
+                    **self.simulation_opts,              # User input
+                }
             )
 
         return self._emg3d_sim
