@@ -157,9 +157,9 @@ def make_PGI_regularization(
             alpha_x=alph_x[i],
             alpha_y=alph_y[i],
             alpha_z=alph_z[i],
-            cell_weights=clwhtlst[i],
             **kwargs,
         )
+        reg.objfcts[-1].add_set_weights({"user_weights": clwhtlst[i]})
 
     return reg
 

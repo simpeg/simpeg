@@ -334,7 +334,7 @@ class Small(BaseRegularization):
     def weights(self, weights: dict[str, np.ndarray] | np.ndarray | None):
         if weights is not None:
             if isinstance(weights, np.ndarray):
-                weights["user_weights"] = weights
+                weights = {"user_weights": weights}
 
             if not isinstance(weights, dict):
                 raise TypeError("Weights must be provided as a dictionary or None.")
@@ -893,7 +893,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         validate_shape("active_cells", values, self.nP)
 
         if getattr(self, "regularization_mesh", None) is not None:
-            self.regularization_mesh.active_cells = utils.mkvc(values)
+            self.regularization_mesh.active_cells = values
 
         for objfct in self.objfcts:
             objfct.active_cells = values
@@ -992,7 +992,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
     @mapping.setter
     def mapping(self, mapping: maps.IdentityMap):
-        if not isinstance(mapping, maps.IdentityMap):
+        if not isinstance(mapping, (maps.IdentityMap, type(None))):
             raise TypeError(
                 f"'mapping' must be of type {maps.IdentityMap}. "
                 f"Value of type {type(mapping)} provided."

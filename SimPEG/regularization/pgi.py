@@ -530,7 +530,6 @@ class PGI(LeastSquaresRegularization):
         self._approx_hessian = approx_hessian
         self._approx_gradient = approx_gradient
         self._approx_eval = approx_eval
-        self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
 
         objfcts = [
             PGIsmallness(
@@ -540,7 +539,6 @@ class PGI(LeastSquaresRegularization):
                 maplist=self.maplist,
                 approx_gradient=approx_gradient,
                 approx_eval=approx_eval,
-                mapping=self.mapping,
                 **kwargs
             )
         ]
@@ -555,6 +553,7 @@ class PGI(LeastSquaresRegularization):
             alpha_yy=alpha_yy,
             alpha_zz=alpha_zz,
             objfcts=objfcts,
+            mapping=IdentityMap(mesh, nP=self.wiresmap.nP),
             **kwargs
         )
 
