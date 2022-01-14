@@ -315,18 +315,14 @@ class PairedBetaSchedule(InversionDirective):
             if self.opt.iter > 0 and self.opt.iter % self.cooling_rate == 0:
                 target = self.target[i]
                 ratio = phi_d / target
-                if (
-                    self.update_beta
-                    and self.dmis_met[i]
-                    and np.abs(1.0 - ratio) > self.beta_tol
-                ):
+                if self.update_beta and ratio <= (1.0 + self.beta_tol):
                     if ratio <= 1:
-                        ratio = np.minimum(1.5, ratio)
-                    else:
                         ratio = np.maximum(0.75, ratio)
+                    else:
+                        ratio = np.minimum(1.5, ratio)
 
-                    self.invProb.betas[i] *= ratio
-                elif not self.dmis_met[i]:
+                    self.invProb.betas[i] /= ratio
+                elif ratio > 1.0:
                     self.invProb.betas[i] /= self.cooling_factor
 
         self.reg.multipliers[:-1] = self.invProb.betas
