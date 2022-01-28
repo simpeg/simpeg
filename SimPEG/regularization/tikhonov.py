@@ -54,7 +54,7 @@ class SimpleSmall(BaseRegularization):
         Weighting matrix
         """
         if self.cell_weights is not None:
-            return utils.sdiag(np.sqrt(self.cell_weights))
+            return utils.sdiag(np.sqrt(self.cell_weights * self.regmesh.vol))
         elif self._nC_residual != "*":
             return sp.eye(self._nC_residual)
         else:
@@ -122,7 +122,7 @@ class SimpleSmoothDeriv(BaseRegularization):
         )
         if self.cell_weights is not None:
 
-            W = utils.sdiag((Ave * (self.cell_weights)) ** 0.5) * W
+            W = utils.sdiag((Ave * (self.cell_weights * self.regmesh.vol)) ** 0.5) * W
         else:
             W = utils.sdiag((Ave * self.regmesh.vol) ** 0.5) * W
 

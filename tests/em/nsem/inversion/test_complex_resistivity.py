@@ -95,6 +95,42 @@ class ComplexResistivityTest(unittest.TestCase):
         )
         return sim
 
+    def create_simulation_rx(self, rx_type="apparent_resistivity", rx_orientation="xy"):
+
+        rx_x, rx_y = np.meshgrid(
+            np.linspace(-5000, 5000, 10), np.linspace(-5000, 5000, 10)
+        )
+        rx_loc = np.hstack(
+            (mkvc(rx_x, 2), mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1)))
+        )
+        rx_loc[:, 2] = -50
+
+        # Make a receiver list
+        rxList = [ns.Rx.Point3DComplexResistivity(orientation=rx_orientation, component=rx_type, locations_e=rx_loc, locations_h=rx_loc)]
+
+        # Source list
+        freqs = [10, 50, 200]
+        srcList = [ns.Src.Planewave_xy_1Dprimary(rxList, freq) for freq in freqs]
+
+        # Survey MT
+        survey_ns = ns.Survey(srcList)
+
+        # Set the mapping
+        actMap = maps.InjectActiveCells(
+            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+        )
+        mapping = maps.ExpMap(self.mesh) * actMap
+        # print(survey_ns.source_list)
+        # # Setup the problem object
+        sim = ns.simulation.Simulation3DPrimarySecondary(
+            self.mesh,
+            survey=survey_ns,
+            sigmaPrimary=self.sigma_background,
+            sigmaMap=mapping,
+            solver=Solver,
+        )
+        return sim
+
     def create_simulation_1dprimary_assign_mesh1d(self, rx_type="apparent_resistivity", rx_orientation="xy"):
 
         rx_x, rx_y = np.meshgrid(
@@ -204,12 +240,15 @@ class ComplexResistivityTest(unittest.TestCase):
         sim = self.create_simulation(component, orientation)
         sim2 = self.create_simulation_1dprimary_assign(component, orientation)
         sim3 = self.create_simulation_1dprimary_assign_mesh1d(component, orientation)
+        sim4 = self.create_simulation_rx(component, orientation)
         self.check_deriv(sim)
         self.check_adjoint(sim)
         self.check_deriv(sim2)
         self.check_adjoint(sim2)
         self.check_deriv(sim3)
         self.check_adjoint(sim3)
+        self.check_deriv(sim4)
+        self.check_adjoint(sim4)
         print(f"... done")
 
     def test_apparent_resistivity_xx(self):

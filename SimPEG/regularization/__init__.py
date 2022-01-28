@@ -11,10 +11,8 @@ from .tikhonov import (
 )
 from .sparse import SparseSmall, SparseDeriv, Sparse
 from .pgi import (
-    SimplePGIsmallness,
     PGIsmallness,
-    SimplePGI,
     PGI,
-    SimplePGIwithNonlinearRelationshipsSmallness,
-    SimplePGIwithRelationships,
+    PGIwithNonlinearRelationshipsSmallness,
+    PGIwithRelationships,
 )
