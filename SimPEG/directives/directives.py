@@ -1339,7 +1339,7 @@ class SaveIterationsGeoH5(InversionDirective):
     _transforms: list = []
     save_objective_function = False
     sorting = None
-    reshape = None
+    _reshape = None
 
     def __init__(self, h5_object, **kwargs):
 
@@ -1367,26 +1367,35 @@ class SaveIterationsGeoH5(InversionDirective):
     def save_components(self, iteration: int, values: np.ndarray = None):
 
         if values is not None:
-            prop = values
+            prop = self.reshape(values)
         elif self.attribute_type == "predicted":
             dpred = self.invProb.dpred
             if dpred is None:
                 dpred = self.invProb.get_dpred(self.invProb.model)
-            prop = np.hstack(dpred)
-        else:
-            prop = self.invProb.model
 
+            tile_stack = []
+            channels = []
+            n_c = 0
+            for pred in dpred:
+                n_c += 1
+                channels += [pred]
+                if n_c == len(self.channels):
+                    tile_stack += [self.reshape(np.vstack(channels))]
+                    n_c = 0
+                    channels = []
+
+            prop = np.dstack(tile_stack)
+        else:
+            prop = self.reshape(self.invProb.model)
+
+        prop = prop.flatten()
         for fun in self.transforms:
             if isinstance(fun, (maps.IdentityMap, np.ndarray, float)):
                 prop = fun * prop
             else:
                 prop = fun(prop)
 
-        prop = prop.flatten()
-        if self.reshape is None:
-            prop = prop.reshape((len(self.channels), len(self.components), -1), order='F')
-        else:
-            prop = self.reshape(prop)
+        prop = prop.reshape((len(self.channels), len(self.components), -1))
 
         for cc, component in enumerate(self.components):
 
@@ -1455,6 +1464,20 @@ class SaveIterationsGeoH5(InversionDirective):
         assert isinstance(value, str), "'label' must be a string"
 
         self._label = value
+
+    @property
+    def reshape(self):
+        """
+        Reshape function
+        """
+        if getattr(self, "_reshape", None) is None:
+            self._reshape = lambda x: x.reshape((len(self.channels), len(self.components), -1), order="F")
+
+        return self._reshape
+
+    @reshape.setter
+    def reshape(self, fun):
+        self._reshape = fun
 
     @property
     def transforms(self):
