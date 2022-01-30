@@ -24,7 +24,7 @@ def getAppResPhs(NSEMdata, survey):
     # Make impedance
     zList = []
     for src in survey.source_list:
-        zc = [src.freq]
+        zc = [src.frequency]
         for rx in src.receiver_list:
             if "imag" in rx.component:
                 m = 1j
@@ -40,8 +40,8 @@ def getAppResPhs(NSEMdata, survey):
 def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     # Frequency
-    nFreq = 33
-    freqs = np.logspace(3, -3, nFreq)
+    num_frequencies = 33
+    freqs = np.logspace(3, -3, num_frequencies)
     # Make the mesh
     ct = 5
     air = meshTensor([(ct, 25, 1.3)])
@@ -64,20 +64,20 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
         sigma[shallow] = 1
         sigma[deep] = 0.1
 
-    rxList = []
+    receiver_list = []
     for rxType in ["z1d", "z1d"]:
-        rxList.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "real"))
-        rxList.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "imag"))
+        receiver_list.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "real"))
+        receiver_list.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "imag"))
     # Source list
-    srcList = []
+    source_list = []
     if tD:
         for freq in freqs:
-            srcList.append(Planewave_xy_1DhomotD(rxList, freq))
+            source_list.append(Planewave_xy_1DhomotD(receiver_list, freq))
     else:
         for freq in freqs:
-            srcList.append(Planewave_xy_1Dprimary(rxList, freq))
+            source_list.append(Planewave_xy_1Dprimary(receiver_list, freq))
 
-    survey = Survey(srcList)
+    survey = Survey(source_list)
     return (survey, sigma, sigmaBack, m1d)
 
 
@@ -85,7 +85,7 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
 
     M, freqs, sig, sigBG, rx_loc = inputSetup
     # Make a receiver list
-    rxList = []
+    receiver_list = []
     if comp == "All":
         rx_type_list = ["xx", "xy", "yx", "yy", "zx", "zy"]
     elif comp == "Imp":
@@ -97,35 +97,36 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
 
     for rx_type in rx_type_list:
         if rx_type in ["xx", "xy", "yx", "yy"]:
-            rxList.append(Point3DImpedance(rx_loc, rx_type, "real"))
-            rxList.append(Point3DImpedance(rx_loc, rx_type, "imag"))
+            receiver_list.append(Point3DImpedance(rx_loc, rx_type, "real"))
+            receiver_list.append(Point3DImpedance(rx_loc, rx_type, "imag"))
         if rx_type in ["zx", "zy"]:
-            rxList.append(Point3DTipper(rx_loc, rx_type, "real"))
-            rxList.append(Point3DTipper(rx_loc, rx_type, "imag"))
+            receiver_list.append(Point3DTipper(rx_loc, rx_type, "real"))
+            receiver_list.append(Point3DTipper(rx_loc, rx_type, "imag"))
 
     # Source list
-    srcList = []
+    source_list = []
 
     if singleFreq:
-        srcList.append(Planewave_xy_1Dprimary(rxList, singleFreq))
+        source_list.append(Planewave_xy_1Dprimary(receiver_list, singleFreq))
     else:
         for freq in freqs:
-            srcList.append(Planewave_xy_1Dprimary(rxList, freq))
+            source_list.append(Planewave_xy_1Dprimary(receiver_list, freq))
     # Survey NSEM
-    survey = Survey(srcList)
+    survey = Survey(source_list)
 
     # Setup the problem object
     sigma1d = M.r(sigBG, "CC", "CC", "M")[0, 0, :]
 
     if expMap:
-        problem = Simulation3DPrimarySecondary(M, sigmaPrimary=np.log(sigma1d))
+        problem = Simulation3DPrimarySecondary(
+            M, survey=survey, sigmaPrimary=np.log(sigma1d)
+        )
         problem.sigmaMap = maps.ExpMap(problem.mesh)
         problem.model = np.log(sig)
     else:
-        problem = Simulation3DPrimarySecondary(M, sigmaPrimary=sigma1d)
+        problem = Simulation3DPrimarySecondary(M, survey=survey, sigmaPrimary=sigma1d)
         problem.sigmaMap = maps.IdentityMap(problem.mesh)
         problem.model = sig
-    problem.pair(survey)
     problem.verbose = False
     try:
         from pymatsolver import Pardiso

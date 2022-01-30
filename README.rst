@@ -24,10 +24,6 @@ SimPEG
     :target: https://codecov.io/gh/simpeg/simpeg
     :alt: Coverage status
 
-.. image:: https://api.codacy.com/project/badge/Grade/4fc959a5294a418fa21fc7bc3b3aa078
-    :target: https://www.codacy.com/app/lindseyheagy/simpeg?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=simpeg/simpeg&amp;utm_campaign=Badge_Grade
-    :alt: codacy
-
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.596373.svg
    :target: https://doi.org/10.5281/zenodo.596373
 

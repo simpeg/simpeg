@@ -33,11 +33,11 @@ def from_dc_to_sip_survey(survey_dc, times):
     """
     Generate sip survey from dc survey
     """
-    srcList = survey_dc.source_list
+    source_list = survey_dc.source_list
 
-    srcList_sip = []
-    for src in srcList:
-        rxList_sip = []
+    source_list_sip = []
+    for src in source_list:
+        receiver_list_sip = []
         for rx in src.receiver_list:
             if isinstance(rx, dc.receivers.Pole):
                 rx_sip = receivers.Pole(rx.locations, times=times)
@@ -46,17 +46,17 @@ def from_dc_to_sip_survey(survey_dc, times):
             else:
                 print(rx)
                 raise NotImplementedError()
-            rxList_sip.append(rx_sip)
+            receiver_list_sip.append(rx_sip)
 
         if isinstance(src, dc.sources.Pole):
-            src_sip = sources.Pole(rxList_sip, src.loc)
+            src_sip = sources.Pole(receiver_list_sip, src.loc)
         elif isinstance(src, dc.sources.Dipole):
-            src_sip = sources.Dipole(rxList_sip, src.loc[0], src.loc[1])
+            src_sip = sources.Dipole(receiver_list_sip, src.loc[0], src.loc[1])
         else:
             print(src)
             raise NotImplementedError()
-        srcList_sip.append(src_sip)
+        source_list_sip.append(src_sip)
 
-    survey_sip = Survey(srcList_sip)
+    survey_sip = Survey(source_list_sip)
 
     return survey_sip

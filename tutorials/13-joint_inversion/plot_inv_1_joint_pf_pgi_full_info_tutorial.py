@@ -230,18 +230,12 @@ magmap = actvMap * wires.sus
 idenMap = maps.IdentityMap(nP=nactv)
 # Grav problem
 simulation_grav = pf.gravity.simulation.Simulation3DIntegral(
-    survey=data_grav.survey,
-    mesh=mesh,
-    rhoMap=wires.den,
-    actInd=actv,
+    survey=data_grav.survey, mesh=mesh, rhoMap=wires.den, actInd=actv,
 )
 dmis_grav = data_misfit.L2DataMisfit(data=data_grav, simulation=simulation_grav)
 # Mag problem
 simulation_mag = pf.magnetics.simulation.Simulation3DIntegral(
-    survey=data_mag.survey,
-    mesh=mesh,
-    chiMap=wires.sus,
-    actInd=actv,
+    survey=data_mag.survey, mesh=mesh, chiMap=wires.sus, actInd=actv,
 )
 dmis_mag = data_misfit.L2DataMisfit(data=data_mag, simulation=simulation_mag)
 
@@ -355,20 +349,12 @@ Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbos
 # initialize beta and beta/alpha_s schedule
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-2)
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True,
-    coolingFactor=2.0,
-    tolerance=0.2,
-    progress=0.2,
+    verbose=True, coolingFactor=2.0, tolerance=0.2, progress=0.2,
 )
 # geophy. and petro. target misfits
-targets = directives.MultiTargetMisfits(
-    verbose=True,
-)
+targets = directives.MultiTargetMisfits(verbose=True,)
 # add learned mref in smooth once stable
-MrefInSmooth = directives.PGI_AddMrefInSmooth(
-    wait_till_stable=True,
-    verbose=True,
-)
+MrefInSmooth = directives.PGI_AddMrefInSmooth(wait_till_stable=True, verbose=True,)
 # update the parameters in smallness (L2-approx of PGI)
 update_smallness = directives.PGI_UpdateParameters(
     update_gmm=False  # keep GMM model fixed

@@ -11,7 +11,7 @@ coplanar survey geometry. For this tutorial, we focus on the following:
     - How to define the survey
     - How to solve the FDEM problem on cylindrical meshes
     - The units of the conductivity/resistivity model and resulting data
-    
+
 
 Please note that we have used a coarse mesh to shorten the time of the simulation.
 Proper discretization is required to simulate the fields at each frequency with
@@ -190,7 +190,7 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 #
 
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=model_map, Solver=Solver
+    mesh, survey=survey, sigmaMap=model_map, solver=Solver
 )
 
 ######################################################

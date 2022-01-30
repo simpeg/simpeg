@@ -46,8 +46,10 @@ class AmpProblemTest(unittest.TestCase):
 
         # Create a MAGsurvey
         rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
-        rxList = magnetics.receivers.Point(rxLoc)
-        srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
+        receiver_list = magnetics.receivers.Point(rxLoc)
+        srcField = magnetics.sources.SourceField(
+            receiver_list=[receiver_list], parameters=H0
+        )
         survey = magnetics.survey.Survey(srcField)
 
         ###############################################################################
@@ -184,8 +186,10 @@ class AmpProblemTest(unittest.TestCase):
         # components of the field and add them up: :math:`|B| = \sqrt{( Bx^2 + Bx^2 + Bx^2 )}`
         #
 
-        rxList = magnetics.receivers.Point(rxLoc, components=["bx", "by", "bz"])
-        srcField = magnetics.sources.SourceField(receiver_list=[rxList], parameters=H0)
+        receiver_list = magnetics.receivers.Point(rxLoc, components=["bx", "by", "bz"])
+        srcField = magnetics.sources.SourceField(
+            receiver_list=[receiver_list], parameters=H0
+        )
         surveyAmp = magnetics.survey.Survey(srcField)
 
         simulation = magnetics.simulation.Simulation3DIntegral(

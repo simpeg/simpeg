@@ -39,8 +39,6 @@ def setUp_TDEM(prbtype="MagneticFluxDensity", rxcomp="bz", waveform="stepoff"):
     activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
-    prb = getattr(tdem, "Simulation3D{}".format(prbtype))(mesh, sigmaMap=mapping)
-
     rxtimes = np.logspace(-4, -3, 20)
 
     if waveform.upper() == "RAW":
@@ -48,27 +46,29 @@ def setUp_TDEM(prbtype="MagneticFluxDensity", rxcomp="bz", waveform="stepoff"):
         wavefun = interp1d(prb.times, out)
         t0 = 0.006
         waveform = tdem.Src.RawWaveform(offTime=t0, waveFct=wavefun)
-        prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
+        time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
         rxtimes = t0 + rxtimes
 
     else:
         waveform = tdem.Src.StepOffWaveform()
-        prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+        time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
 
     rxOffset = 10.0
     rx = getattr(tdem.Rx, "Point{}".format(rxcomp[:-1]))(
         np.r_[rxOffset, 0.0, -1e-2], rxtimes, rxcomp[-1]
     )
-    src = tdem.Src.MagDipole([rx], loc=np.array([0.0, 0.0, 0.0]), waveform=waveform)
+    src = tdem.Src.MagDipole(
+        [rx], location=np.array([0.0, 0.0, 0.0]), waveform=waveform
+    )
 
     survey = tdem.Survey([src])
 
-    prb.Solver = Solver
+    prb = getattr(tdem, "Simulation3D{}".format(prbtype))(
+        mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
+    )
+    prb.solver = Solver
 
     m = np.log(1e-1) * np.ones(prb.sigmaMap.nP) + 1e-2 * np.random.rand(prb.sigmaMap.nP)
-
-    prb.pair(survey)
-    mesh = mesh
 
     return prb, m, mesh
 
@@ -230,15 +230,15 @@ class TDEM_cross_check_EB(unittest.TestCase):
     def test_waveform_instantiation(self):
 
         rx_list = [
-            tdem.receivers.Point_b(
+            tdem.receivers.PointMagneticFluxDensity(
                 locations=[np.r_[0.0, 0.0, 0.0]],
                 times=np.r_[1e-3, 2e-3, 5e-3],
                 orientation="z",
             )
         ]
         src_loop = tdem.sources.CircularLoop(
-            rxList=rx_list,
-            loc=np.r_[0.0, 0.0, 0.0],
+            receiver_list=rx_list,
+            location=np.r_[0.0, 0.0, 0.0],
             orientation="z",
             radius=300,
             current=1000.0,

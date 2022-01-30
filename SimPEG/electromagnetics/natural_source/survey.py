@@ -19,23 +19,23 @@ from .utils.plot_utils import DataNSEMPlotMethods
 #     Survey class for NSEM.
 
 #     **Requried**
-#     :param list srcList: List of sources associated with the survey
+#     :param list source_list: List of sources associated with the survey
 
 
 #     **Optional**
 #     """
 #     srcPair = BaseNSEMSrc
 
-#     def __init__(self, srcList, **kwargs):
+#     def __init__(self, source_list, **kwargs):
 #         # Sort these by frequency
-#         self.source_list = srcList
+#         self.source_list = source_list
 #         BaseSurvey.__init__(self, **kwargs)
 
 #         _freqDict = {}
-#         for src in srcList:
+#         for src in source_list:
 #             if src.frequency not in _freqDict:
-#                 _freqDict[src.freq] = []
-#             _freqDict[src.freq] += [src]
+#                 _freqDict[src.frequency] = []
+#             _freqDict[src.frequency] += [src]
 
 #         self._freqDict = _freqDict
 #         self._freqs = sorted([f for f in self._freqDict])
@@ -46,7 +46,7 @@ from .utils.plot_utils import DataNSEMPlotMethods
 #         return self._freqs
 
 #     @property
-#     def nFreq(self):
+#     def num_frequencies(self):
 #         """Number of frequencies"""
 #         return len(self._freqDict)
 
@@ -203,11 +203,11 @@ class Data(BaseData, DataNSEMPlotMethods):
 
         # Find all the frequencies in recArray
         uniFreq = np.unique(recArray["freq"].copy())
-        srcList = []
+        source_list = []
         dataList = []
         for freq in uniFreq:
-            # Initiate rxList
-            rxList = []
+            # Initiate receiver_list
+            receiver_list = []
             # Find that data for freq
             dFreq = recArray[recArray["freq"] == freq].copy()
             # Find the impedance rxTypes in the recArray.
@@ -223,30 +223,40 @@ class Data(BaseData, DataNSEMPlotMethods):
                     locs = _rec_to_ndarr(dFreq[["x", "y", "z"]][notNaNind].copy())
                     if dFreq[rxType].dtype.name in "complex128":
                         if "t" in rxType:
-                            rxList.append(Point3DTipper(locs, rxType[1:3], "real"))
+                            receiver_list.append(
+                                Point3DTipper(locs, rxType[1:3], "real")
+                            )
                             dataList.append(dFreq[rxType][notNaNind].real.copy())
-                            rxList.append(Point3DTipper(locs, rxType[1:3], "imag"))
+                            receiver_list.append(
+                                Point3DTipper(locs, rxType[1:3], "imag")
+                            )
                             dataList.append(dFreq[rxType][notNaNind].imag.copy())
                         elif "z" in rxType:
-                            rxList.append(Point3DImpedance(locs, rxType[1:3], "real"))
+                            receiver_list.append(
+                                Point3DImpedance(locs, rxType[1:3], "real")
+                            )
                             dataList.append(dFreq[rxType][notNaNind].real.copy())
-                            rxList.append(Point3DImpedance(locs, rxType[1:3], "imag"))
+                            receiver_list.append(
+                                Point3DImpedance(locs, rxType[1:3], "imag")
+                            )
                             dataList.append(dFreq[rxType][notNaNind].imag.copy())
                     else:
                         component = "real" if "r" in rxType else "imag"
                         if "z" in rxType:
-                            rxList.append(
+                            receiver_list.append(
                                 Point3DImpedance(locs, rxType[1:3], component)
                             )
                             dataList.append(dFreq[rxType][notNaNind].copy())
                         if "t" in rxType:
-                            rxList.append(Point3DTipper(locs, rxType[1:3], component))
+                            receiver_list.append(
+                                Point3DTipper(locs, rxType[1:3], component)
+                            )
                             dataList.append(dFreq[rxType][notNaNind].copy())
 
-            srcList.append(src(rxList, freq))
+            source_list.append(src(receiver_list, freq))
 
         # Make a survey
-        survey = Survey(srcList)
+        survey = Survey(source_list)
         dataVec = np.hstack(dataList)
         return cls(survey, dataVec)
 

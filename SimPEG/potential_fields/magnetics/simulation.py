@@ -135,7 +135,7 @@ class Simulation3DIntegral(BasePFSimulation):
         "modelType",
         new_name="model_type",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     @property
@@ -1150,11 +1150,11 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class MagneticIntegral(Simulation3DIntegral):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_Diff(Simulation3DDifferential):
     pass
