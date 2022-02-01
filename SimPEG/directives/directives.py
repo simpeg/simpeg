@@ -1364,27 +1364,30 @@ class SaveIterationsGeoH5(InversionDirective):
 
         self.h5_object.workspace.finalize()
 
-    def save_components(self, iteration: int, values: np.ndarray = None):
+    def stack_channels(self, dpred):
+
+        tile_stack = []
+        channels = []
+        n_c = 0
+        for pred in dpred:
+            n_c += 1
+            channels += [pred]
+            if n_c == len(self.channels):
+                tile_stack += [self.reshape(np.vstack(channels))]
+                n_c = 0
+                channels = []
+
+        return np.dstack(tile_stack)
+
+    def save_components(self, iteration: int, values: list[np.ndarray] = None):
 
         if values is not None:
-            prop = self.reshape(values)
+            prop = self.stack_channels(values)
         elif self.attribute_type == "predicted":
             dpred = self.invProb.dpred
             if dpred is None:
                 dpred = self.invProb.get_dpred(self.invProb.model)
-
-            tile_stack = []
-            channels = []
-            n_c = 0
-            for pred in dpred:
-                n_c += 1
-                channels += [pred]
-                if n_c == len(self.channels):
-                    tile_stack += [self.reshape(np.vstack(channels))]
-                    n_c = 0
-                    channels = []
-
-            prop = np.dstack(tile_stack)
+            prop = self.stack_channels(dpred)
         else:
             prop = self.reshape(self.invProb.model)
 
