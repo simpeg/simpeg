@@ -1,8 +1,11 @@
+import shutil
+import warnings
 import numpy as np
 from ...potential_fields.base import BasePFSimulation as Sim
 import os
 from dask import delayed, array, config
 from dask.diagnostics import ProgressBar
+from zarr.errors import ArrayNotFoundError
 from ..utils import compute_chunk_sizes
 from dask.distributed import get_client, Future, Client
 
@@ -33,9 +36,17 @@ def linear_operator(self):
 
     sens_name = os.path.join(self.sensitivity_path, "J.zarr")
     if os.path.exists(sens_name):
-        kernel = array.from_zarr(sens_name)
-        if np.all(kernel.shape == (np.sum(active_components), self.nC)):
-            return kernel
+        try:
+            kernel = array.from_zarr(sens_name)
+            if np.all(kernel.shape == (np.sum(active_components), self.nC)):
+                return kernel
+        except ArrayNotFoundError:
+            warnings.warn(
+                f"Malformed sensitivity matrix found in {sens_name}. Re-computing",
+                UserWarning,
+            )
+            shutil.rmtree(sens_name)
+            pass
 
     stack = self.make_row_stack()
 

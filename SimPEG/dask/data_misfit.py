@@ -1,6 +1,9 @@
+import numpy as np
+
 from ..data_misfit import L2DataMisfit
 from ..fields import Fields
 from ..utils import mkvc
+from .utils import compute
 import dask.array as da
 from scipy.sparse import csr_matrix as csr
 from dask import delayed
@@ -12,10 +15,9 @@ def dask_call(self, m, f=None):
     """
     R = self.W * self.residual(m, f=f)
     phi_d = 0.5 * da.dot(R, R)
-    if self.workers is None:
-        return phi_d.compute()
-    return self.client.compute(phi_d, workers=self.workers)
-
+    if not isinstance(phi_d, np.ndarray):
+        return compute(self, phi_d)
+    return phi_d
 
 L2DataMisfit.__call__ = dask_call
 
@@ -36,13 +38,13 @@ def dask_deriv(self, m, f=None):
         h_vec = da.from_delayed(
             Jtjvec_dmudm, dtype=float, shape=[self.model_map.deriv(m).shape[1]]
         )
-        if self.workers is None:
-            return h_vec.compute()
-        return self.client.compute(h_vec, workers=self.workers)
+        if not isinstance(h_vec, np.ndarray):
+            return compute(self, h_vec)
+        return h_vec
 
-    if self.workers is None:
-        return Jtvec.compute()
-    return self.client.compute(Jtvec, workers=self.workers)
+    if not isinstance(Jtvec, np.ndarray):
+        return compute(self, Jtvec)
+    return Jtvec
 
 
 L2DataMisfit.deriv = dask_deriv
@@ -66,13 +68,13 @@ def dask_deriv2(self, m, v, f=None):
         h_vec = da.from_delayed(
             Jtjvec_dmudm, dtype=float, shape=[self.model_map.deriv(m).shape[1]]
         )
-        if self.workers is None:
-            return h_vec.compute()
-        return self.client.compute(h_vec, workers=self.workers)
+        if not isinstance(h_vec, np.ndarray):
+            return compute(self, h_vec)
+        return h_vec
 
-    if self.workers is None:
-        return jtwjvec.compute()
-    return self.client.compute(jtwjvec, workers=self.workers)
+    if not isinstance(jtwjvec, np.ndarray):
+        return compute(self, jtwjvec)
+    return jtwjvec
 
 
 L2DataMisfit.deriv2 = dask_deriv2
