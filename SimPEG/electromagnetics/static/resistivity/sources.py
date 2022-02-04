@@ -4,8 +4,6 @@ import properties
 from .... import survey
 from ....utils import Zero
 
-import warnings
-
 
 class BaseSrc(survey.BaseSrc):
     """
@@ -51,7 +49,7 @@ class BaseSrc(survey.BaseSrc):
             return self._q
         else:
             if sim._formulation == "HJ":
-                inds = sim.mesh.get_nearest_indices(self.location, grid_location="CC")
+                inds = sim.mesh.closest_points_index(self.location, grid_loc="CC")
                 self._q = np.zeros(sim.mesh.nC)
                 self._q[inds] = self.current
             elif sim._formulation == "EB":
@@ -96,9 +94,6 @@ class Dipole(BaseSrc):
     location = properties.List(
         "location of the source electrodes",
         survey.SourceLocationArray("location of electrode"),
-    )
-    loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", error=True
     )
 
     def __init__(

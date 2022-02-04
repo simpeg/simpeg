@@ -4,7 +4,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
-import warnings
 
 import discretize
 import properties
@@ -58,7 +57,7 @@ class BasePFSimulation(LinearSimulation):
         )
         if isinstance(mesh, discretize.CurvilinearMesh):
             raise ValueError(
-                "Mesh must be 3D tensor or 3D tree."
+                "Mesh must be 3D tensor or Octree."
                 )
         # Create vectors of nodal location for the lower and upper corners
         bsw = self.mesh.gridCC - self.mesh.h_gridded / 2.0
