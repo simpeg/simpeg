@@ -38,7 +38,6 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True, formulation="e"):
     #         sigmaMap=maps.IdentityMap(),
     #     )
 
-
     #####################################################################
     # Create Survey
     # -------------
@@ -54,16 +53,18 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True, formulation="e"):
 
     # Define a receiver for each data type as a list
     receivers_list = [
-            nsem.receivers.AnalyticReceiver1D(component='real'),
-            nsem.receivers.AnalyticReceiver1D(component='imag'),
-            nsem.receivers.AnalyticReceiver1D(component='app_res'),
-            nsem.receivers.AnalyticReceiver1D(component='phase')
-            ]
+        nsem.receivers.AnalyticReceiver1D(component="real"),
+        nsem.receivers.AnalyticReceiver1D(component="imag"),
+        nsem.receivers.AnalyticReceiver1D(component="app_res"),
+        nsem.receivers.AnalyticReceiver1D(component="phase"),
+    ]
 
     # Use a list to define the planewave source at each frequency and assign receivers
     source_list = []
     for ii in range(0, len(frequencies)):
-        source_list.append(nsem.sources.AnalyticPlanewave1D(receivers_list, frequencies[ii]))
+        source_list.append(
+            nsem.sources.AnalyticPlanewave1D(receivers_list, frequencies[ii])
+        )
 
     # Define the survey object
     survey = nsem.survey.Survey1D(source_list)
@@ -97,8 +98,8 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True, formulation="e"):
     # Define a 1D mesh for plotting. Provide a maximum depth for the plot.
     max_depth = 600
     plotting_mesh = TensorMesh(
-        [np.r_[layer_thicknesses, max_depth-layer_thicknesses.sum()]]
-        )
+        [np.r_[layer_thicknesses, max_depth - layer_thicknesses.sum()]]
+    )
 
     #######################################################################
     # Define the Forward Simulation and Predict MT Data
@@ -145,10 +146,10 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
     simulation = nsem.Simulation1DPrimarySecondary(
         mesh, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(mesh), survey=survey
     )
-    print("Using {0} solver for the simulation".format(simulation.Solver))
+    print("Using {0} solver for the simulation".format(simulation.solver))
     print(
         "Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n".format(
-            survey.freqs[0], survey.freqs[-1]
+            survey.frequencies[0], survey.frequencies[-1]
         )
     )
     # simulation.mapping = maps.ExpMap(simulation.mesh)

@@ -320,7 +320,7 @@ class MagDipole(BaseTDEMSrc):
         "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
     )
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
+        location, "loc", new_name="location", removal_version="0.16.0", error=True
     )
 
     def __init__(self, receiver_list=None, **kwargs):
@@ -334,7 +334,7 @@ class MagDipole(BaseTDEMSrc):
             self._dipole = MagneticDipoleWholeSpace(
                 mu=self.mu,
                 orientation=self.orientation,
-                location=self.loc,
+                location=self.location,
                 moment=self.moment,
             )
         return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
@@ -494,13 +494,13 @@ class CircularLoop(MagDipole):
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         # return MagneticLoopVectorPotential(
-        #     self.loc, obsLoc, component, mu=self.mu, radius=self.radius
+        #     self.location, obsLoc, component, mu=self.mu, radius=self.radius
         # )
 
         if getattr(self, "_loop", None) is None:
             self._loop = CircularLoopWholeSpace(
                 mu=self.mu,
-                location=self.loc,
+                location=self.location,
                 orientation=self.orientation,
                 radius=self.radius,
                 current=self.current,
@@ -512,13 +512,13 @@ class LineCurrent(BaseTDEMSrc):
     """
     RawVec electric source. It is defined by the user provided vector s_e
 
-    :param list rxList: receiver list
+    :param list receiver_list: receiver list
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 
     location = properties.Array("location of the source", shape=("*", 3))
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
+        location, "loc", new_name="location", removal_version="0.16.0", error=True
     )
     current = properties.Float("current in the line", default=1.0)
 

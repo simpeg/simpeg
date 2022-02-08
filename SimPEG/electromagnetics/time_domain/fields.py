@@ -683,31 +683,31 @@ class Fields3DCurrentDensity(FieldsTDEM):
 ############
 # Deprecated
 ############
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields_Derivs_eb(FieldsDerivativesEB):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields_Derivs_hj(FieldsDerivativesHJ):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields3D_b(Fields3DMagneticFluxDensity):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields3D_e(Fields3DElectricField):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields3D_h(Fields3DMagneticField):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields3D_j(Fields3DCurrentDensity):
     pass

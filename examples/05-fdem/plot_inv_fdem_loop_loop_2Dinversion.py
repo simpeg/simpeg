@@ -185,7 +185,7 @@ orientation = "z"  # z-oriented dipole for horizontal co-planar loops
 rx_offsets = np.vstack([np.r_[sep, 0.0, 0.0] for sep in coil_separations])
 
 # create our source list - one source per location
-srcList = []
+source_list = []
 for x in src_locations:
     src_loc = np.r_[x, 0.0, src_z]
     rx_locs = src_loc - rx_offsets
@@ -199,17 +199,17 @@ for x in src_locations:
 
     src = FDEM.Src.MagDipole(
         receiver_list=[rx_real, rx_imag],
-        loc=src_loc,
+        location=src_loc,
         orientation=orientation,
-        freq=freq,
+        frequency=freq,
     )
 
-    srcList.append(src)
+    source_list.append(src)
 
 # create the survey and problem objects for running the forward simulation
-survey = FDEM.Survey(srcList)
+survey = FDEM.Survey(source_list)
 prob = FDEM.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=mapping, Solver=Solver
+    mesh, survey=survey, sigmaMap=mapping, solver=Solver
 )
 
 ###############################################################################

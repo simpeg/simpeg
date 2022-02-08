@@ -20,7 +20,7 @@ def DerivJvecTest(inputSetup, comp="All", freq=False, expMap=True):
     m, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
         inputSetup, [freq], comp=comp, singleFreq=False
     )
-    print("Using {0} solver for the simulation".format(simulation.Solver))
+    print("Using {0} solver for the simulation".format(simulation.solver))
     print(
         "Derivative test of Jvec for eForm primary/secondary for {} comp at {}\n".format(
             comp, simulation.survey.freqs
@@ -95,7 +95,9 @@ class NSEM_DerivTests(unittest.TestCase):
 
     # apparent res and phase
     def test_derivJvec_resAll(self):
-        self.assertTrue(DerivJvecTest(nsem.utils.test_utils.halfSpace(1e-2), "Res", 0.1))
+        self.assertTrue(
+            DerivJvecTest(nsem.utils.test_utils.halfSpace(1e-2), "Res", 0.1)
+        )
 
     # Tipper
     def test_derivJvec_tipperAll(self):

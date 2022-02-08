@@ -234,7 +234,7 @@ survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 #
 
 simulation = dc.simulation_2d.Simulation2DNodal(
-    mesh, survey=survey, sigmaMap=conductivity_map, Solver=Solver
+    mesh, survey=survey, sigmaMap=conductivity_map, solver=Solver
 )
 
 # Predict the data by running the simulation. The data are the raw voltage in

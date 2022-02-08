@@ -7,7 +7,12 @@ import numpy as np
 import discretize
 from SimPEG import maps, mkvc, utils, Data
 from ....utils import meshTensor
-from ..receivers import Point1DImpedance, Point3DImpedance, Point3DTipper, Point3DComplexResistivity
+from ..receivers import (
+    Point1DImpedance,
+    Point3DImpedance,
+    Point3DTipper,
+    Point3DComplexResistivity,
+)
 from ..survey import Survey, Survey1D
 from ..sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD, Planewave1D
 from ..simulation import Simulation3DPrimarySecondary
@@ -24,7 +29,7 @@ def getAppResPhs(NSEMdata, survey):
     # Make impedance
     zList = []
     for src in survey.source_list:
-        zc = [src.freq]
+        zc = [src.frequency]
         for rx in src.receiver_list:
             if "imag" in rx.component:
                 m = 1j
@@ -40,8 +45,8 @@ def getAppResPhs(NSEMdata, survey):
 def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     # Frequency
-    nFreq = 33
-    freqs = np.logspace(3, -3, nFreq)
+    num_frequencies = 33
+    freqs = np.logspace(3, -3, num_frequencies)
     # Make the mesh
     ct = 5
     air = meshTensor([(ct, 25, 1.3)])
@@ -64,21 +69,22 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
         sigma[shallow] = 1
         sigma[deep] = 0.1
 
-    rxList = []
+    receiver_list = []
     for rxType in ["z1d", "z1d"]:
-        rxList.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "real"))
-        rxList.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "imag"))
+        receiver_list.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "real"))
+        receiver_list.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "imag"))
     # Source list
-    srcList = []
+    source_list = []
     if tD:
         for freq in freqs:
-            srcList.append(Planewave_xy_1DhomotD(rxList, freq))
+            source_list.append(Planewave_xy_1DhomotD(receiver_list, freq))
     else:
         for freq in freqs:
-            srcList.append(Planewave_xy_1Dprimary(rxList, freq))
+            source_list.append(Planewave_xy_1Dprimary(receiver_list, freq))
 
-    survey = Survey(srcList)
+    survey = Survey(source_list)
     return (survey, sigma, sigmaBack, m1d)
+
 
 def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
 
@@ -125,19 +131,26 @@ def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
     return (survey, sigma, sigmaBack, m1d, frequencies)
 
 
-def setupSimpegNSEM_tests_location_assign_list(inputSetup, freqs, comp="Imp", singleFreq=False, singleList=False):
+def setupSimpegNSEM_tests_location_assign_list(
+    inputSetup, freqs, comp="Imp", singleFreq=False, singleList=False
+):
     rx_x, rx_y = np.meshgrid(np.linspace(-5000, 5000, 5), np.linspace(-5000, 5000, 5))
 
-    rx_loc = np.hstack((mkvc(rx_x, 2), mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1))))
+    rx_loc = np.hstack(
+        (mkvc(rx_x, 2), mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1)))
+    )
 
-    csx = 2000.
-    csz = 2000.
+    csx = 2000.0
+    csz = 2000.0
 
-    mesh = discretize.TensorMesh([
-        [(csx, 1, -3), (csx, 6), (csx, 1, 3)],
-        [(csx, 1, -3), (csx, 6), (csx, 1, 3)],
-        [(csz, 1, -3), (csz, 6), (csz, 1, 3)]
-    ], x0="CCC")
+    mesh = discretize.TensorMesh(
+        [
+            [(csx, 1, -3), (csx, 6), (csx, 1, 3)],
+            [(csx, 1, -3), (csx, 6), (csx, 1, 3)],
+            [(csz, 1, -3), (csz, 6), (csz, 1, 3)],
+        ],
+        x0="CCC",
+    )
 
     active = mesh.gridCC[:, 2] < 50
     sig = np.ones(mesh.nC) * 0.01
@@ -164,17 +177,51 @@ def setupSimpegNSEM_tests_location_assign_list(inputSetup, freqs, comp="Imp", si
         if rx_type in ["xx", "xy", "yx", "yy"]:
             if comp == "Res":
                 if singleList:
-                    rxList.append(Point3DComplexResistivity(locations=[rx_loc], orientation=rx_type, component='apparent_resistivity'))
-                    rxList.append(Point3DComplexResistivity(locations=[rx_loc], orientation=rx_type, component='phase'))
+                    rxList.append(
+                        Point3DComplexResistivity(
+                            locations=[rx_loc],
+                            orientation=rx_type,
+                            component="apparent_resistivity",
+                        )
+                    )
+                    rxList.append(
+                        Point3DComplexResistivity(
+                            locations=[rx_loc], orientation=rx_type, component="phase"
+                        )
+                    )
                 else:
-                    rxList.append(Point3DComplexResistivity(locations=[rx_loc, rx_loc], orientation=rx_type, component='apparent_resistivity'))
-                    rxList.append(Point3DComplexResistivity(locations=[rx_loc, rx_loc], orientation=rx_type, component='phase'))
+                    rxList.append(
+                        Point3DComplexResistivity(
+                            locations=[rx_loc, rx_loc],
+                            orientation=rx_type,
+                            component="apparent_resistivity",
+                        )
+                    )
+                    rxList.append(
+                        Point3DComplexResistivity(
+                            locations=[rx_loc, rx_loc],
+                            orientation=rx_type,
+                            component="phase",
+                        )
+                    )
             else:
-                rxList.append(Point3DImpedance(orientation=rx_type, component="real", locations=[rx_loc]))
-                rxList.append(Point3DImpedance(orientation=rx_type, component="imag", locations=[rx_loc]))
+                rxList.append(
+                    Point3DImpedance(
+                        orientation=rx_type, component="real", locations=[rx_loc]
+                    )
+                )
+                rxList.append(
+                    Point3DImpedance(
+                        orientation=rx_type, component="imag", locations=[rx_loc]
+                    )
+                )
         if rx_type in ["zx", "zy"]:
-            rxList.append(Point3DTipper(orientation=rx_type, component="real", locations=[rx_loc]))
-            rxList.append(Point3DTipper(orientation=rx_type, component="imag", locations=[rx_loc]))
+            rxList.append(
+                Point3DTipper(orientation=rx_type, component="real", locations=[rx_loc])
+            )
+            rxList.append(
+                Point3DTipper(orientation=rx_type, component="imag", locations=[rx_loc])
+            )
 
     srcList = []
     if singleFreq:
@@ -193,34 +240,32 @@ def setupSimpegNSEM_tests_location_assign_list(inputSetup, freqs, comp="Imp", si
     # discretize.TensorMesh.writeUBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
     # create background conductivity model
     sigma_back = 1e-2
-    sigBG = np.zeros(mesh.nC)*sigma_back
+    sigBG = np.zeros(mesh.nC) * sigma_back
     sigBG[~active] = 1e-8
 
     # Set the mapping
     actMap = maps.InjectActiveCells(
-        mesh=mesh, indActive=active, valInactive=np.log(1e-8))
+        mesh=mesh, indActive=active, valInactive=np.log(1e-8)
+    )
     mapping = maps.ExpMap(mesh) * actMap
     # print(survey_ns.source_list)
     # # Setup the problem object
     sim = Simulation3DPrimarySecondary(
-        mesh, survey=survey_ns,
-        sigmaPrimary=sigBG,
-        sigmaMap=mapping
+        mesh, survey=survey_ns, sigmaPrimary=sigBG, sigmaMap=mapping
     )
 
     # create the test model
-    block = [
-        csx*np.r_[-3, 3],
-        csx*np.r_[-3, 3],
-        csz*np.r_[-6, -1]
-    ]
+    block = [csx * np.r_[-3, 3], csx * np.r_[-3, 3], csz * np.r_[-6, -1]]
 
     block_sigma = 3e-1
 
     block_inds = (
-        (mesh.gridCC[:, 0] >= block[0].min()) & (mesh.gridCC[:, 0] <= block[0].max()) & 
-        (mesh.gridCC[:, 1] >= block[1].min()) & (mesh.gridCC[:, 1] <= block[1].max()) &
-        (mesh.gridCC[:, 2] >= block[2].min()) & (mesh.gridCC[:, 2] <= block[2].max())
+        (mesh.gridCC[:, 0] >= block[0].min())
+        & (mesh.gridCC[:, 0] <= block[0].max())
+        & (mesh.gridCC[:, 1] >= block[1].min())
+        & (mesh.gridCC[:, 1] <= block[1].max())
+        & (mesh.gridCC[:, 2] >= block[2].min())
+        & (mesh.gridCC[:, 2] <= block[2].max())
     )
 
     m = model_true.copy()
@@ -244,16 +289,21 @@ def setupSimpegNSEM_tests_location_assign_list(inputSetup, freqs, comp="Imp", si
 def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=False):
     rx_x, rx_y = np.meshgrid(np.linspace(-5000, 5000, 5), np.linspace(-5000, 5000, 5))
 
-    rx_loc = np.hstack((mkvc(rx_x, 2), mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1))))
+    rx_loc = np.hstack(
+        (mkvc(rx_x, 2), mkvc(rx_y, 2), np.zeros((np.prod(rx_x.shape), 1)))
+    )
 
-    csx = 2000.
-    csz = 2000.
+    csx = 2000.0
+    csz = 2000.0
 
-    mesh = discretize.TensorMesh([
-        [(csx, 1, -3), (csx, 6), (csx, 1, 3)],
-        [(csx, 1, -3), (csx, 6), (csx, 1, 3)],
-        [(csz, 1, -3), (csz, 6), (csz, 1, 3)]
-    ], x0="CCC")
+    mesh = discretize.TensorMesh(
+        [
+            [(csx, 1, -3), (csx, 6), (csx, 1, 3)],
+            [(csx, 1, -3), (csx, 6), (csx, 1, 3)],
+            [(csz, 1, -3), (csz, 6), (csz, 1, 3)],
+        ],
+        x0="CCC",
+    )
 
     active = mesh.gridCC[:, 2] < 50
     sig = np.ones(mesh.nC) * 0.01
@@ -279,8 +329,18 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
     for rx_type in rx_type_list:
         if rx_type in ["xx", "xy", "yx", "yy"]:
             if comp == "Res":
-                rxList.append(Point3DComplexResistivity(locations=rx_loc, orientation=rx_type, component='apparent_resistivity'))
-                rxList.append(Point3DComplexResistivity(locations=rx_loc, orientation=rx_type, component='phase'))
+                rxList.append(
+                    Point3DComplexResistivity(
+                        locations=rx_loc,
+                        orientation=rx_type,
+                        component="apparent_resistivity",
+                    )
+                )
+                rxList.append(
+                    Point3DComplexResistivity(
+                        locations=rx_loc, orientation=rx_type, component="phase"
+                    )
+                )
             else:
                 rxList.append(Point3DImpedance(rx_loc, rx_type, "real"))
                 rxList.append(Point3DImpedance(rx_loc, rx_type, "imag"))
@@ -305,33 +365,32 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
     # discretize.TensorMesh.writeUBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
     # create background conductivity model
     sigma_back = 1e-2
-    sigBG = np.zeros(mesh.nC)*sigma_back
+    sigBG = np.zeros(mesh.nC) * sigma_back
     sigBG[~active] = 1e-8
 
     # Set the mapping
     actMap = maps.InjectActiveCells(
-        mesh=mesh, indActive=active, valInactive=np.log(1e-8))
+        mesh=mesh, indActive=active, valInactive=np.log(1e-8)
+    )
     mapping = maps.ExpMap(mesh) * actMap
     # print(survey_ns.source_list)
     # # Setup the problem object
     sim = Simulation3DPrimarySecondary(
-        mesh, survey=survey_ns, sigmaPrimary=sigBG,
-        sigmaMap=mapping
+        mesh, survey=survey_ns, sigmaPrimary=sigBG, sigmaMap=mapping
     )
 
     # create the test model
-    block = [
-        csx*np.r_[-3, 3],
-        csx*np.r_[-3, 3],
-        csz*np.r_[-6, -1]
-    ]
+    block = [csx * np.r_[-3, 3], csx * np.r_[-3, 3], csz * np.r_[-6, -1]]
 
     block_sigma = 3e-1
 
     block_inds = (
-        (mesh.gridCC[:, 0] >= block[0].min()) & (mesh.gridCC[:, 0] <= block[0].max()) & 
-        (mesh.gridCC[:, 1] >= block[1].min()) & (mesh.gridCC[:, 1] <= block[1].max()) &
-        (mesh.gridCC[:, 2] >= block[2].min()) & (mesh.gridCC[:, 2] <= block[2].max())
+        (mesh.gridCC[:, 0] >= block[0].min())
+        & (mesh.gridCC[:, 0] <= block[0].max())
+        & (mesh.gridCC[:, 1] >= block[1].min())
+        & (mesh.gridCC[:, 1] <= block[1].max())
+        & (mesh.gridCC[:, 2] >= block[2].min())
+        & (mesh.gridCC[:, 2] <= block[2].max())
     )
 
     m = model_true.copy()
@@ -356,7 +415,7 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
 
     M, freqs, sig, sigBG, rx_loc = inputSetup
     # Make a receiver list
-    rxList = []
+    receiver_list = []
     if comp == "All":
         rx_type_list = ["xx", "xy", "yx", "yy", "zx", "zy"]
     elif comp == "Imp":
@@ -371,43 +430,52 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
     for rx_type in rx_type_list:
         if rx_type in ["xx", "xy", "yx", "yy"]:
             if comp == "Res":
-                rxList.append(Point3DComplexResistivity(locations_e=rx_loc, locations_h=rx_loc, orientation=rx_type, component='apparent_resistivity'))
-                rxList.append(Point3DComplexResistivity(locations_e=rx_loc, locations_h=rx_loc, orientation=rx_type, component='phase'))
+                receiver_list.append(
+                    Point3DComplexResistivity(
+                        locations_e=rx_loc,
+                        locations_h=rx_loc,
+                        orientation=rx_type,
+                        component="apparent_resistivity",
+                    )
+                )
+                receiver_list.append(
+                    Point3DComplexResistivity(
+                        locations_e=rx_loc,
+                        locations_h=rx_loc,
+                        orientation=rx_type,
+                        component="phase",
+                    )
+                )
             else:
-                rxList.append(Point3DImpedance(rx_loc, rx_type, "real"))
-                rxList.append(Point3DImpedance(rx_loc, rx_type, "imag"))
+                receiver_list.append(Point3DImpedance(rx_loc, rx_type, "real"))
+                receiver_list.append(Point3DImpedance(rx_loc, rx_type, "imag"))
         if rx_type in ["zx", "zy"]:
-            rxList.append(Point3DTipper(rx_loc, rx_type, "real"))
-            rxList.append(Point3DTipper(rx_loc, rx_type, "imag"))
+            receiver_list.append(Point3DTipper(rx_loc, rx_type, "real"))
+            receiver_list.append(Point3DTipper(rx_loc, rx_type, "imag"))
 
     # Source list
-    srcList = []
+    source_list = []
 
     if singleFreq:
-        # srcList.append(Planewave_xy_1Dprimary(rxList, singleFreq, sigma_primary=sigBG))
-        srcList.append(Planewave_xy_1Dprimary(rxList, singleFreq))
+
+        source_list.append(Planewave_xy_1Dprimary(receiver_list, singleFreq))
     else:
         for freq in freqs:
-            # srcList.append(Planewave_xy_1Dprimary(rxList, freq, sigma_primary=sigBG))
-            srcList.append(Planewave_xy_1Dprimary(rxList, freq))
+            source_list.append(Planewave_xy_1Dprimary(receiver_list, freq))
     # Survey NSEM
-    survey = Survey(srcList)
+    survey = Survey(source_list)
 
     # Setup the problem object
     sigma1d = M.r(sigBG, "CC", "CC", "M")[0, 0, :]
 
     if expMap:
-        problem = Simulation3DPrimarySecondary(M,
-            survey=survey,
-            sigmaPrimary=np.log(sigBG),
-            sigmaMap=maps.ExpMap(M)
+        problem = Simulation3DPrimarySecondary(
+            M, survey=survey, sigmaPrimary=np.log(sigBG), sigmaMap=maps.ExpMap(M)
         )
         problem.model = np.log(sig)
     else:
-        problem = Simulation3DPrimarySecondary(M,
-            survey=survey,
-            sigmaPrimary=sigBG,
-            sigmaMap=maps.IdentityMap(M)
+        problem = Simulation3DPrimarySecondary(
+            M, survey=survey, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(M)
         )
         problem.model = sig
     problem.verbose = False

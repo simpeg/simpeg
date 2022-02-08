@@ -18,22 +18,24 @@ MU = mu_0
 
 
 def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
-    
+
     # Frequencies being measured
     frequencies = np.logspace(0, 4, 21)
 
     # Define a receiver for each data type as a list
     receivers_list = [
-            nsem.receivers.AnalyticReceiver1D(component='real'),
-            nsem.receivers.AnalyticReceiver1D(component='imag'),
-            nsem.receivers.AnalyticReceiver1D(component='app_res'),
-            nsem.receivers.AnalyticReceiver1D(component='phase')
-            ]
+        nsem.receivers.AnalyticReceiver1D(component="real"),
+        nsem.receivers.AnalyticReceiver1D(component="imag"),
+        nsem.receivers.AnalyticReceiver1D(component="app_res"),
+        nsem.receivers.AnalyticReceiver1D(component="phase"),
+    ]
 
     # Use a list to define the planewave source at each frequency and assign receivers
     source_list = []
     for ii in range(0, len(frequencies)):
-        source_list.append(nsem.sources.AnalyticPlanewave1D(receivers_list, frequencies[ii]))
+        source_list.append(
+            nsem.sources.AnalyticPlanewave1D(receivers_list, frequencies[ii])
+        )
 
     # Define the survey object
     survey = nsem.survey.Survey1D(source_list)
@@ -67,8 +69,8 @@ def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
     # Define a 1D mesh for plotting. Provide a maximum depth for the plot.
     max_depth = 600
     plotting_mesh = TensorMesh(
-        [np.r_[layer_thicknesses, max_depth-layer_thicknesses.sum()]]
-        )
+        [np.r_[layer_thicknesses, max_depth - layer_thicknesses.sum()]]
+    )
 
     #######################################################################
     # Define the Forward Simulation and Predict MT Data
@@ -108,13 +110,12 @@ def JvecAdjointTest(sigmaHalf, formulation="PrimSec"):
 
     if "PrimSec" in formulation:
         problem = nsem.Simulation1DPrimarySecondary(
-            m1d, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(m1d)
+            m1d, survey=survey, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(m1d)
         )
     else:
         raise NotImplementedError(
             "Only {} formulations are implemented.".format(formulation)
         )
-    problem.pair(survey)
     m = sigma
     u = problem.fields(m)
 
@@ -146,7 +147,7 @@ class NSEM_1D_AdjointTests(unittest.TestCase):
     # def test_JvecAdjoint_zyyi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyyi',.1))
     def test_JvecAdjoint_All(self):
         self.assertTrue(JvecAdjointTest(1e-2))
-    
+
     def test_JvecAdjoint_All_1D(self):
         self.assertTrue(JvecAdjointTest_1D(1e-2))
 

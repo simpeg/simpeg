@@ -433,8 +433,8 @@ class PrimSecCasingExample(object):
 
                 return dg_p
 
-            srcList = setupPrimarySource()  # create primary source
-            self._primarySurvey = FDEM.Survey(srcList)  # primary survey
+            source_list = setupPrimarySource()  # create primary source
+            self._primarySurvey = FDEM.Survey(source_list)  # primary survey
             print("... done building primary survey")
         return self._primarySurvey
 
@@ -572,7 +572,7 @@ class PrimSecCasingExample(object):
         if mapping is None:
             mapping = [("sigma", maps.IdentityMap(self.meshs))]
         sec_problem = FDEM.Simulation3DElectricField(self.meshs, sigmaMap=mapping)
-        sec_problem.Solver = Solver
+        sec_problem.solver = Solver
         print("... done setting up secondary problem")
         return sec_problem
 

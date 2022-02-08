@@ -200,8 +200,8 @@ class Point1DImpedance(BaseRx):
 
         if adjoint:
             # Work backwards!
-            gtop_v = (v / bot)
-            gbot_v = (-imp * v / bot)
+            gtop_v = v / bot
+            gbot_v = -imp * v / bot
 
             gh_v = PHy.T @ gbot_v
             ge_v = PEx.T @ gtop_v
@@ -796,16 +796,16 @@ class AnalyticReceiver1D(BaseRx):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Point_impedance1D(Point1DImpedance):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Point_impedance3D(Point3DImpedance):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Point_tipper3D(Point3DTipper):
     pass

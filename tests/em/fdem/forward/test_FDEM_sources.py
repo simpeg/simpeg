@@ -79,7 +79,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             fdem.sources.MagDipole(
                 [],
                 frequency=self.frequency,
-                loc=np.r_[0.0, 0.0, 0.0],
+                location=np.r_[0.0, 0.0, 0.0],
                 orientation=np.r_[1.0, 1.0, 0.0],
             )
 
@@ -188,49 +188,81 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
     def test_MagDipole_bPrimaryMu0_e(self):
         src = fdem.sources.MagDipole(
-            [], freq=self.frequency, location=self.location, orientation="Z", mu=mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=mu_0,
         )
         assert self.bPrimaryTest(src, "e")
 
     def test_MagDipole_bPrimaryMu50_e(self):
         src = fdem.sources.MagDipole(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=50.0 * mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "e")
 
     def test_MagDipole_bPrimaryMu0_b(self):
         src = fdem.sources.MagDipole(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=mu_0,
         )
         assert self.bPrimaryTest(src, "b")
 
     def test_MagDipole_bPrimaryMu50_b(self):
         src = fdem.sources.MagDipole(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=50.0 * mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "b")
 
     def test_MagDipole_bPrimaryMu0_h(self):
         src = fdem.sources.MagDipole(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=mu_0,
         )
         assert self.bPrimaryTest(src, "h")
 
     def test_MagDipole_bPrimaryMu50_h(self):
         src = fdem.sources.MagDipole(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=50.0 * mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "h")
 
     def test_MagDipole_bPrimaryMu0_h(self):
         src = fdem.sources.MagDipole(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=mu_0,
         )
         assert self.bPrimaryTest(src, "j")
 
     def test_MagDipole_bPrimaryMu50_h(self):
         src = fdem.sources.MagDipole(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=50.0 * mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "j")
 
@@ -238,49 +270,81 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
     def test_MagDipole_Bfield_bPrimaryMu0_e(self):
         src = fdem.sources.MagDipole_Bfield(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=mu_0,
         )
         assert self.bPrimaryTest(src, "e")
 
     def test_MagDipole_Bfield_bPrimaryMu50_e(self):
         src = fdem.sources.MagDipole_Bfield(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=50.0 * mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "e")
 
     def test_MagDipole_Bfield_bPrimaryMu0_b(self):
         src = fdem.sources.MagDipole_Bfield(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=mu_0,
         )
         assert self.bPrimaryTest(src, "b")
 
     def test_MagDipole_Bfield_bPrimaryMu50_b(self):
         src = fdem.sources.MagDipole_Bfield(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=50.0 * mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "b")
 
     def test_MagDipole_Bfield_bPrimaryMu0_h(self):
         src = fdem.sources.MagDipole_Bfield(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=mu_0,
         )
         assert self.bPrimaryTest(src, "h")
 
     def test_MagDipole_Bfield_bPrimaryMu50_h(self):
         src = fdem.sources.MagDipole_Bfield(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=50.0 * mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "h")
 
     def test_MagDipole_Bfield_bPrimaryMu0_h(self):
         src = fdem.sources.MagDipole_Bfield(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=mu_0,
         )
         assert self.bPrimaryTest(src, "j")
 
     def test_MagDipole_Bfield_bPrimaryMu50_h(self):
         src = fdem.sources.MagDipole_Bfield(
-            [], freq=self.frequency, loc=self.location, orientation="Z", mu=50.0 * mu_0
+            [],
+            frequency=self.frequency,
+            location=self.location,
+            orientation="Z",
+            mu=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "j")
 
@@ -289,9 +353,9 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     def test_CircularLoop_bPrimaryMu0_e(self):
         src = fdem.sources.CircularLoop(
             [],
-            freq=self.frequency,
+            frequency=self.frequency,
             radius=np.sqrt(1 / np.pi),
-            loc=self.location,
+            location=self.location,
             orientation="Z",
             mu=mu_0,
         )
@@ -300,9 +364,9 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     def test_CircularLoop_bPrimaryMu50_e(self):
         src = fdem.sources.CircularLoop(
             [],
-            freq=self.frequency,
+            frequency=self.frequency,
             radius=np.sqrt(1 / np.pi),
-            loc=self.location,
+            location=self.location,
             orientation="Z",
             mu=50.0 * mu_0,
         )
@@ -311,9 +375,9 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     def test_CircularLoop_bPrimaryMu0_b(self):
         src = fdem.sources.CircularLoop(
             [],
-            freq=self.frequency,
+            frequency=self.frequency,
             radius=np.sqrt(1 / np.pi),
-            loc=self.location,
+            location=self.location,
             orientation="Z",
             mu=mu_0,
         )
@@ -322,9 +386,9 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     def test_CircularLoop_bPrimaryMu50_b(self):
         src = fdem.sources.CircularLoop(
             [],
-            freq=self.frequency,
+            frequency=self.frequency,
             radius=np.sqrt(1 / np.pi),
-            loc=self.location,
+            location=self.location,
             orientation="Z",
             mu=50.0 * mu_0,
         )
@@ -333,9 +397,9 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     def test_CircularLoop_bPrimaryMu0_h(self):
         src = fdem.sources.CircularLoop(
             [],
-            freq=self.frequency,
+            frequency=self.frequency,
             radius=np.sqrt(1 / np.pi),
-            loc=self.location,
+            location=self.location,
             orientation="Z",
             mu=mu_0,
         )
@@ -344,9 +408,9 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     def test_CircularLoop_bPrimaryMu50_h(self):
         src = fdem.sources.CircularLoop(
             [],
-            freq=self.frequency,
+            frequency=self.frequency,
             radius=np.sqrt(1 / np.pi),
-            loc=self.location,
+            location=self.location,
             orientation="Z",
             mu=50.0 * mu_0,
         )
@@ -355,9 +419,9 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     def test_CircularLoop_bPrimaryMu0_h(self):
         src = fdem.sources.CircularLoop(
             [],
-            freq=self.frequency,
+            frequency=self.frequency,
             radius=np.sqrt(1 / np.pi),
-            loc=self.location,
+            location=self.location,
             orientation="Z",
             mu=mu_0,
         )
@@ -366,9 +430,9 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     def test_CircularLoop_bPrimaryMu50_h(self):
         src = fdem.sources.CircularLoop(
             [],
-            freq=self.frequency,
+            frequency=self.frequency,
             radius=np.sqrt(1 / np.pi),
-            loc=self.location,
+            location=self.location,
             orientation="Z",
             mu=50.0 * mu_0,
         )

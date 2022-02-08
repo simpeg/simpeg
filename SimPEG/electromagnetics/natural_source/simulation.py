@@ -63,9 +63,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
             Ainv = self.solver(A, **self.solver_opts)
 
             for src in self.survey.get_sources_by_frequency(freq):
-                u_src = f[
-                    src, :
-                ]
+                u_src = f[src, :]
 
                 dA_dm_v = self.getADeriv(
                     freq, u_src, v
@@ -613,17 +611,16 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
         self._sigmaPrimary = val
 
 
-
 ############
 # Deprecated
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_ePrimSec(Simulation3DPrimarySecondary):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem1D_ePrimSec(Simulation1DPrimarySecondary):
     pass
