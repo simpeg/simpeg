@@ -47,8 +47,10 @@ class Survey(BaseSurvey):
         super(Survey, self).__init__(source_list, **kwargs)
 
     def __repr__(self):
-        return (f"{self.__class__.__name__}({self.survey_type}; "
-                f"#sources: {self.nSrc}; #data: {self.nD})")
+        return (
+            f"{self.__class__.__name__}({self.survey_type}; "
+            f"#sources: {self.nSrc}; #data: {self.nD})"
+        )
 
     @property
     def locations_a(self):
@@ -91,28 +93,28 @@ class Survey(BaseSurvey):
         "a_locations",
         new_name="locations_a",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
     b_locations = deprecate_property(
         locations_b,
         "b_locations",
         new_name="locations_b",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
     m_locations = deprecate_property(
         locations_m,
         "m_locations",
         new_name="locations_m",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
     n_locations = deprecate_property(
         locations_n,
         "n_locations",
         new_name="locations_n",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     @property
@@ -159,18 +161,12 @@ class Survey(BaseSurvey):
         self, space_type="half-space", data_type=None, survey_type=None,
     ):
         if data_type is not None:
-            warnings.warn(
-                "The data_type kwarg is deprecated, please set the data_type on the "
-                "receiver object itself. This behavoir will be removed in SimPEG "
-                "0.16.0",
-                DeprecationWarning,
+            raise TypeError(
+                "The data_type kwarg has been removed, please set the data_type on the "
+                "receiver object itself."
             )
         if survey_type is not None:
-            warnings.warn(
-                "The survey_type parameter is no longer needed, and it will be removed "
-                "in SimPEG 0.16.0.",
-                FutureWarning,
-            )
+            raise TypeError("The survey_type parameter is no longer needed")
 
         geometric_factor = static_utils.geometric_factor(self, space_type=space_type)
 
@@ -223,12 +219,10 @@ class Survey(BaseSurvey):
         self._locations_n = np.vstack(locations_n)
 
     def getABMN_locations(self):
-        warnings.warn(
-            "The getABMN_locations method has been deprecated. Please instead "
+        raise TypeError(
+            "The getABMN_locations method has been Removed. Please instead "
             "ask for the property of interest: survey.locations_a, "
-            "survey.locations_b, survey.locations_m, or survey.locations_n. "
-            "This will be removed in version 0.16.0 of SimPEG",
-            FutureWarning,
+            "survey.locations_b, survey.locations_m, or survey.locations_n."
         )
 
     def drape_electrodes_on_topography(
@@ -281,13 +275,10 @@ class Survey(BaseSurvey):
             raise Exception("Input valid survey survey_geometry: surface or borehole")
 
     def drapeTopo(self, *args, **kwargs):
-        warnings.warn(
-            "The drapeTopo method has been deprecated. Please instead "
-            "use the drape_electrodes_on_topography method. "
-            "This will be removed in version 0.16.0 of SimPEG",
-            FutureWarning,
+        raise TypeError(
+            "The drapeTopo method has been removed. Please instead "
+            "use the drape_electrodes_on_topography method."
         )
-        self.drape_electrodes_on_topography(*args, **kwargs)
 
 
 ############
@@ -295,6 +286,6 @@ class Survey(BaseSurvey):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Survey_ky(Survey):
     pass

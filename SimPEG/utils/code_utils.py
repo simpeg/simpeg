@@ -346,12 +346,16 @@ class Report(ScoobyReport):
         )
 
 
-def deprecate_class(removal_version=None, new_location=None, future_warn=False):
+def deprecate_class(
+    removal_version=None, new_location=None, future_warn=False, error=False
+):
     def decorator(cls):
         my_name = cls.__name__
         parent_name = cls.__bases__[0].__name__
         message = f"{my_name} has been deprecated, please use {parent_name}."
-        if removal_version is not None:
+        if error:
+            message = f"{my_name} has been removed, please use {parent_name}."
+        elif removal_version is not None:
             message += f" It will be removed in version {removal_version} of SimPEG."
         else:
             message += " It will be removed in a future version of SimPEG."
@@ -362,6 +366,8 @@ def deprecate_class(removal_version=None, new_location=None, future_warn=False):
         def __init__(self, *args, **kwargs):
             if future_warn:
                 warnings.warn(message, FutureWarning)
+            elif error:
+                raise NotImplementedError(message)
             else:
                 warnings.warn(message, DeprecationWarning)
             self._old__init__(*args, **kwargs)
@@ -375,21 +381,27 @@ def deprecate_class(removal_version=None, new_location=None, future_warn=False):
     return decorator
 
 
-def deprecate_module(old_name, new_name, removal_version=None, future_warn=False):
+def deprecate_module(
+    old_name, new_name, removal_version=None, future_warn=False, error=False
+):
     message = f"The {old_name} module has been deprecated, please use {new_name}."
-    if removal_version is not None:
+    if error:
+        message = f"{old_name} has been removed, please use {new_name}."
+    elif removal_version is not None:
         message += f" It will be removed in version {removal_version} of SimPEG"
     else:
         message += " It will be removed in a future version of SimPEG."
     message += " Please update your code accordingly."
     if future_warn:
         warnings.warn(message, FutureWarning)
+    elif error:
+        raise NotImplementedError(message)
     else:
         warnings.warn(message, DeprecationWarning)
 
 
 def deprecate_property(
-    prop, old_name, new_name=None, removal_version=None, future_warn=False
+    prop, old_name, new_name=None, removal_version=None, future_warn=False, error=False
 ):
 
     if isinstance(prop, property):
@@ -403,7 +415,9 @@ def deprecate_property(
         prop = prop.get_property()
 
     message = f"{old_name} has been deprecated, please use {new_name}."
-    if removal_version is not None:
+    if error:
+        message = f"{old_name} has been removed, please use {new_name}."
+    elif removal_version is not None:
         message += f" It will be removed in version {removal_version} of SimPEG."
     else:
         message += " It will be removed in a future version of SimPEG."
@@ -411,6 +425,8 @@ def deprecate_property(
     def get_dep(self):
         if future_warn:
             warnings.warn(message, FutureWarning)
+        elif error:
+            raise NotImplementedError(message)
         else:
             warnings.warn(message, DeprecationWarning)
         return prop.fget(self)
@@ -418,6 +434,8 @@ def deprecate_property(
     def set_dep(self, other):
         if future_warn:
             warnings.warn(message, FutureWarning)
+        elif error:
+            raise NotImplementedError(message)
         else:
             warnings.warn(message, DeprecationWarning)
         prop.fset(self, other)
@@ -427,14 +445,18 @@ def deprecate_property(
     return property(get_dep, set_dep, prop.fdel, doc)
 
 
-def deprecate_method(method, old_name, removal_version=None, future_warn=False):
+def deprecate_method(
+    method, old_name, removal_version=None, future_warn=False, error=False
+):
     new_name = method.__qualname__
     split_name = new_name.split(".")
     if len(split_name) > 1:
         old_name = f"{split_name[0]}.{old_name}"
 
     message = f"{old_name} has been deprecated, please use {new_name}."
-    if removal_version is not None:
+    if error:
+        message = f"{old_name} has been removed, please use {new_name}."
+    elif removal_version is not None:
         message += f" It will be removed in version {removal_version} of SimPEG."
     else:
         message += " It will be removed in a future version of SimPEG."
@@ -442,6 +464,8 @@ def deprecate_method(method, old_name, removal_version=None, future_warn=False):
     def new_method(*args, **kwargs):
         if future_warn:
             warnings.warn(message, FutureWarning)
+        elif error:
+            raise NotImplementedError(message)
         else:
             warnings.warn(message, DeprecationWarning)
         return method(*args, **kwargs)

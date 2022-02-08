@@ -107,23 +107,24 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     if fdemType == "e":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DElectricField(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DElectricField(mesh, survey=survey, sigmaMap=mapping)
 
     elif fdemType == "b":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DMagneticFluxDensity(
+            mesh, survey=survey, sigmaMap=mapping
+        )
 
     elif fdemType == "j":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DCurrentDensity(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DCurrentDensity(mesh, survey=survey, sigmaMap=mapping)
 
     elif fdemType == "h":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DMagneticField(mesh, sigmaMap=mapping)
+        prb = fdem.Simulation3DMagneticField(mesh, survey=survey, sigmaMap=mapping)
 
     else:
         raise NotImplementedError()
-    prb.pair(survey)
 
     try:
         from pymatsolver import Pardiso

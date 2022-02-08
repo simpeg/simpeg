@@ -44,21 +44,21 @@ def halfSpaceProblemAnaDiff(
 
     if srctype == "MagDipole":
         src = tdem.Src.MagDipole(
-            [rx], waveform=tdem.Src.StepOffWaveform(), loc=np.array([0.0, 0.0, 0.0])
+            [rx],
+            waveform=tdem.Src.StepOffWaveform(),
+            location=np.array([0.0, 0.0, 0.0]),
         )
     elif srctype == "CircularLoop":
         src = tdem.Src.CircularLoop(
             [rx],
             waveform=tdem.Src.StepOffWaveform(),
-            loc=np.array([0.0, 0.0, 0.0]),
+            location=np.array([0.0, 0.0, 0.0]),
             radius=0.1,
         )
 
     survey = tdem.Survey([src])
-    prb = tdem.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
-    prb.Solver = Solver
 
-    prb.timeSteps = [
+    time_steps = [
         (1e-06, 40),
         (5e-06, 40),
         (1e-05, 40),
@@ -67,10 +67,14 @@ def halfSpaceProblemAnaDiff(
         (0.0005, 40),
     ]
 
+    prb = tdem.Simulation3DMagneticFluxDensity(
+        mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
+    )
+    prb.solver = Solver
+
     sigma = np.ones(mesh.nCz) * 1e-8
     sigma[active] = sig_half
     sigma = np.log(sigma[active])
-    prb.pair(survey)
     if srctype == "MagDipole":
         bz_ana = mu_0 * analytics.hzAnalyticDipoleT(
             rx.locations[0][0] + 1e-3, rx.times, sig_half

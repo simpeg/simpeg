@@ -17,15 +17,23 @@ freq = [1e-1, 2e-1]
 addrandoms = True
 
 
-def JvecAdjointTest(inputSetup, comp="All", freq=False, testLocations=False, testSingle=False):
+def JvecAdjointTest(
+    inputSetup, comp="All", freq=False, testLocations=False, testSingle=False
+):
 
     if testLocations:
         if testSingle:
-            m, simulation = nsem.utils.test_utils.setupSimpegNSEM_tests_location_assign_list(
+            (
+                m,
+                simulation,
+            ) = nsem.utils.test_utils.setupSimpegNSEM_tests_location_assign_list(
                 inputSetup, [freq], comp=comp, singleFreq=False, singleList=True
             )
         else:
-            m, simulation = nsem.utils.test_utils.setupSimpegNSEM_tests_location_assign_list(
+            (
+                m,
+                simulation,
+            ) = nsem.utils.test_utils.setupSimpegNSEM_tests_location_assign_list(
                 inputSetup, [freq], comp=comp, singleFreq=False
             )
             # print(simulation.)
@@ -98,20 +106,59 @@ class NSEM_3D_AdjointTests(unittest.TestCase):
 
     # test location assign
     def test_JvecAdjoint_location_e_b(self):
-        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Res", 0.1, testLocations=True, testSingle=False))
-    
+        self.assertTrue(
+            JvecAdjointTest(
+                nsem.utils.test_utils.random(1e-2),
+                "Res",
+                0.1,
+                testLocations=True,
+                testSingle=False,
+            )
+        )
+
     def test_JvecAdjoint_location_single(self):
-        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Res", 0.1, testLocations=True, testSingle=True))
-    
+        self.assertTrue(
+            JvecAdjointTest(
+                nsem.utils.test_utils.random(1e-2),
+                "Res",
+                0.1,
+                testLocations=True,
+                testSingle=True,
+            )
+        )
+
     def test_JvecAdjoint_location_single_all(self):
-        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "All", 0.1, testLocations=True, testSingle=True))
+        self.assertTrue(
+            JvecAdjointTest(
+                nsem.utils.test_utils.random(1e-2),
+                "All",
+                0.1,
+                testLocations=True,
+                testSingle=True,
+            )
+        )
 
     def test_JvecAdjoint_location_single_imp(self):
-        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Imp", 0.1, testLocations=True, testSingle=True))
+        self.assertTrue(
+            JvecAdjointTest(
+                nsem.utils.test_utils.random(1e-2),
+                "Imp",
+                0.1,
+                testLocations=True,
+                testSingle=True,
+            )
+        )
 
     def test_JvecAdjoint_location_single_tip(self):
-        self.assertTrue(JvecAdjointTest(nsem.utils.test_utils.random(1e-2), "Tip", 0.1, testLocations=True, testSingle=True))
-
+        self.assertTrue(
+            JvecAdjointTest(
+                nsem.utils.test_utils.random(1e-2),
+                "Tip",
+                0.1,
+                testLocations=True,
+                testSingle=True,
+            )
+        )
 
 
 if __name__ == "__main__":

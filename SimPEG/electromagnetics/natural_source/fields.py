@@ -256,7 +256,7 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         C = self.mesh.nodalGrad
         b = C * eSolution
         for i, src in enumerate(source_list):
-            b[:, i] *= -1.0 / (1j * omega(src.freq))
+            b[:, i] *= -1.0 / (1j * omega(src.frequency))
         return b
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -272,9 +272,9 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         # bPrimary: no model depenency
         C = self.mesh.nodalGrad
         if adjoint:
-            bSecondaryDeriv_u = -1.0 / (1j * omega(src.freq)) * (C.T * du_dm_v)
+            bSecondaryDeriv_u = -1.0 / (1j * omega(src.frequency)) * (C.T * du_dm_v)
         else:
-            bSecondaryDeriv_u = -1.0 / (1j * omega(src.freq)) * (C * du_dm_v)
+            bSecondaryDeriv_u = -1.0 / (1j * omega(src.frequency)) * (C * du_dm_v)
         return bSecondaryDeriv_u
 
     def _bDeriv_m(self, src, v, adjoint=False):
@@ -513,7 +513,7 @@ class Fields3DPrimarySecondary(Fields):
         C = self.mesh.edgeCurl
         b = C * e_pxSolution
         for i, src in enumerate(source_list):
-            b[:, i] *= -1.0 / (1j * omega(src.freq))
+            b[:, i] *= -1.0 / (1j * omega(src.frequency))
         return b
 
     def _b_pySecondary(self, e_pySolution, source_list):
@@ -528,7 +528,7 @@ class Fields3DPrimarySecondary(Fields):
         C = self.mesh.edgeCurl
         b = C * e_pySolution
         for i, src in enumerate(source_list):
-            b[:, i] *= -1.0 / (1j * omega(src.freq))
+            b[:, i] *= -1.0 / (1j * omega(src.frequency))
         return b
 
     def _b_px(self, eSolution, source_list):
@@ -678,8 +678,8 @@ class Fields3DPrimarySecondary(Fields):
             (self.mesh.edgeCurl, spzeros(self.mesh.nF, self.mesh.nE))
         )  # This works for adjoint = None
         if adjoint:
-            return -1.0 / (1j * omega(src.freq)) * (C.T * du_dm_v)
-        return -1.0 / (1j * omega(src.freq)) * (C * du_dm_v)
+            return -1.0 / (1j * omega(src.frequency)) * (C.T * du_dm_v)
+        return -1.0 / (1j * omega(src.frequency)) * (C * du_dm_v)
 
     def _b_pyDeriv_u(self, src, du_dm_v, adjoint=False):
         """Derivative of b_py with wrt u
@@ -695,8 +695,8 @@ class Fields3DPrimarySecondary(Fields):
             (spzeros(self.mesh.nF, self.mesh.nE), self.mesh.edgeCurl)
         )  # This works for adjoint = None
         if adjoint:
-            return -1.0 / (1j * omega(src.freq)) * (C.T * du_dm_v)
-        return -1.0 / (1j * omega(src.freq)) * (C * du_dm_v)
+            return -1.0 / (1j * omega(src.frequency)) * (C.T * du_dm_v)
+        return -1.0 / (1j * omega(src.frequency)) * (C * du_dm_v)
 
     def _b_pxDeriv_m(self, src, v, adjoint=False):
         """ Derivative of b_px wrt m """
@@ -712,11 +712,11 @@ class Fields3DPrimarySecondary(Fields):
 ############
 # Deprecated
 ############
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields1D_ePrimSec(Fields1DPrimarySecondary):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields3D_ePrimSec(Fields3DPrimarySecondary):
     pass

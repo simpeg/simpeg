@@ -42,15 +42,15 @@ def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
         def getLoc(ii, abmn):
             return np.r_[elocs[WENNER[ii, abmn]], 0, 0]
 
-    srcList = []
+    source_list = []
     for i in range(WENNER.shape[0]):
         rx = receivers.Dipole(
             getLoc(i, 1).reshape([1, -1]), getLoc(i, 2).reshape([1, -1])
         )
         src = sources.Dipole([rx], getLoc(i, 0), getLoc(i, 3))
-        srcList += [src]
+        source_list += [src]
 
-    return srcList
+    return source_list
 
 
 def _mini_pole_pole(survey, verbose=False):

@@ -69,11 +69,7 @@ class BaseRx(properties.HasProperties):
             self._Ps = {}
 
     locs = deprecate_property(
-        locations,
-        "locs",
-        new_name="locations",
-        removal_version="0.16.0",
-        future_warn=True,
+        locations, "locs", new_name="locations", removal_version="0.16.0", error=True,
     )
 
     @property
@@ -196,7 +192,7 @@ class BaseSrc(BaseSimPEG):
     _fields_per_source = 1
 
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
+        location, "loc", new_name="location", removal_version="0.16.0", error=True
     )
 
     @properties.validator("receiver_list")
@@ -211,7 +207,7 @@ class BaseSrc(BaseSimPEG):
         "rxList",
         new_name="receiver_list",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     def getReceiverIndex(self, receiver):
@@ -326,7 +322,7 @@ class BaseSurvey(properties.HasProperties):
         "srcList",
         new_name="source_list",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     def dpred(self, m=None, f=None):
@@ -342,66 +338,11 @@ class BaseSurvey(properties.HasProperties):
         )
 
     def pair(self, simulation):
-        warnings.warn(
-            "survey.pair(simulation) will be deprecated. Please update your code "
+        raise TypeError(
+            "survey.pair(simulation) will be removed. Please update your code "
             "to instead use simulation.survey = survey, or pass it upon intialization "
-            "of the simulation object. This will be removed in version "
-            "0.16.0 of SimPEG",
-            FutureWarning,
+            "of the simulation object."
         )
-        simulation.survey = self
-        self.simulation = simulation
-
-        def dep_dpred(target, m=None, f=None):
-            warnings.warn(
-                "The Survey.dpred method has been deprecated. Please use "
-                "simulation.dpred instead. This will be removed in version "
-                "0.16.0 of SimPEG",
-                FutureWarning,
-            )
-            return target.simulation.dpred(m=m, f=f)
-
-        self.dpred = types.MethodType(dep_dpred, self)
-
-        def dep_makeSyntheticData(target, m, std=None, f=None, **kwargs):
-            warnings.warn(
-                "The Survey.makeSyntheticData method has been deprecated. Please use "
-                "simulation.make_synthetic_data instead. This will be removed in version "
-                "0.16.0 of SimPEG",
-                FutureWarning,
-            )
-            if std is None and getattr(target, "std", None) is None:
-                rel_err = 0.05
-                print("SimPEG.Survey assigned default rel_err " "of 5%")
-            elif std is None:
-                rel_err = target.std
-            else:
-                rel_err = std
-                print(
-                    "SimPEG.Survey assigned new rel_err "
-                    "of {:.2f}%".format(100.0 * rel_err)
-                )
-
-            data = target.simulation.make_synthetic_data(
-                m, relative_error=rel_err, f=f, add_noise=True
-            )
-            target.dtrue = data.dclean
-            target.dobs = data.dobs
-            target.std = data.relative_error
-            return target.dobs
-
-        self.makeSyntheticData = types.MethodType(dep_makeSyntheticData, self)
-
-        def dep_residual(target, m, f=None):
-            warnings.warn(
-                "The Survey.residual method has been deprecated. Please use "
-                "L2DataMisfit.residual instead. This will be removed in version "
-                "0.16.0 of SimPEG",
-                FutureWarning,
-            )
-            return mkvc(target.dpred(m, f=f) - target.dobs)
-
-        self.residual = types.MethodType(dep_residual, self)
 
 
 class BaseTimeSurvey(BaseSurvey):
@@ -420,7 +361,7 @@ class BaseTimeSurvey(BaseSurvey):
         "times",
         new_name="unique_times",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
 
@@ -431,7 +372,7 @@ class BaseTimeSurvey(BaseSurvey):
 ###############################################################################
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class LinearSurvey(BaseSurvey):
     pass
 

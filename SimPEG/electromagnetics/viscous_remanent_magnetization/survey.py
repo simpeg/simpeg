@@ -55,19 +55,19 @@ class SurveyVRM(BaseSurvey):
     def set_active_interval(self, tmin, tmax):
         """Set active times using an interval"""
 
-        srcList = self.source_list
-        nSrc = len(srcList)
+        source_list = self.source_list
+        nSrc = len(source_list)
         tActBool = np.array([])
 
         for pp in range(0, nSrc):
 
-            rxList = srcList[pp].receiver_list
-            nRx = len(rxList)
+            receiver_list = source_list[pp].receiver_list
+            nRx = len(receiver_list)
 
             for qq in range(0, nRx):
 
-                times = rxList[qq].times
-                nLoc = np.shape(rxList[qq].locations)[0]
+                times = receiver_list[qq].times
+                nLoc = np.shape(receiver_list[qq].locations)[0]
                 tActBool = np.r_[tActBool, np.kron(np.ones(nLoc), times)]
 
         self.t_active = (tActBool >= tmin) & (tActBool <= tmax)

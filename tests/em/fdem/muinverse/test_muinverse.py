@@ -48,7 +48,7 @@ def setupProblem(
         rxfields_y = ["MagneticFluxDensity", "MagneticField"]
         rxfields_xz = ["ElectricField", "CurrentDensity"]
 
-    rxList_edge = [
+    receiver_list_edge = [
         getattr(fdem.receivers, "Point{f}".format(f=f))(
             loc, component=comp, orientation=orient
         )
@@ -57,7 +57,7 @@ def setupProblem(
         for orient in ["y"]
     ]
 
-    rxList_face = [
+    receiver_list_face = [
         getattr(fdem.receivers, "Point{f}".format(f=f))(
             loc, component=comp, orientation=orient
         )
@@ -66,13 +66,13 @@ def setupProblem(
         for orient in ["x", "z"]
     ]
 
-    rxList = rxList_edge + rxList_face
+    receiver_list = receiver_list_edge + receiver_list_face
 
     src_loc = np.r_[0.0, 0.0, 0.0]
 
     if prbtype in ["ElectricField", "MagneticFluxDensity"]:
         src = fdem.sources.MagDipole(
-            receiver_list=rxList, location=src_loc, frequency=freq
+            receiver_list=receiver_list, location=src_loc, frequency=freq
         )
 
     elif prbtype in ["MagneticField", "CurrentDensity"]:
@@ -80,7 +80,9 @@ def setupProblem(
         vec = np.zeros(mesh.nF)
         vec[ind] = 1.0
 
-        src = fdem.sources.RawVec_e(receiver_list=rxList, frequency=freq, s_e=vec)
+        src = fdem.sources.RawVec_e(
+            receiver_list=receiver_list, frequency=freq, s_e=vec
+        )
 
     survey = fdem.Survey([src])
 
@@ -163,7 +165,6 @@ class MuTests(unittest.TestCase):
         self.assertTrue(isinstance(MfMuiDeriv_zero, utils.Zero))
         self.assertTrue(isinstance(MfMuiIDeriv_zero, utils.Zero))
         self.assertTrue(isinstance(MeMuDeriv_zero, utils.Zero))
-
 
     def JvecTest(
         self, prbtype="ElectricField", sigmaInInversion=False, invertMui=False

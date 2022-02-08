@@ -131,20 +131,16 @@ class Dipole(BaseRx):
         # Check for old keywords
         if "locationsM" in kwargs.keys():
             locations_m = kwargs.pop("locationsM")
-            warnings.warn(
-                "The locationsM property has been deprecated. Please set the "
-                "locations_m property instead. This will be removed in version"
-                " 0.16.0 of SimPEG",
-                FutureWarning,
+            raise TypeError(
+                "The locationsM property has been removed Please set the "
+                "locations_m property instead."
             )
 
         if "locationsN" in kwargs.keys():
             locations_n = kwargs.pop("locationsN")
-            warnings.warn(
+            raise TypeError(
                 "The locationsN property has been deprecated. Please set the "
-                "locations_n property instead. This will be removed in version"
-                " 0.16.0 of SimPEG",
-                FutureWarning,
+                "locations_n property instead"
             )
 
         # if locations_m set, then use locations_m, locations_n
@@ -263,11 +259,11 @@ class Pole(BaseRx):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Dipole_ky(Dipole):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Pole_ky(Pole):
     pass

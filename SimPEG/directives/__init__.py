@@ -24,3 +24,11 @@ from .pgi_directives import (
     PGI_BetaAlphaSchedule,
     PGI_AddMrefInSmooth,
 )
+
+from .sim_directives import (
+    SimilarityMeasureInversionDirective,
+    SimilarityMeasureSaveOutputEveryIteration,
+    PairedBetaEstimate_ByEig,
+    PairedBetaSchedule,
+    MovingAndMultiTargetStopping,
+)

@@ -44,7 +44,7 @@ class Survey(BaseSurvey):
         "freq",
         new_name="frequencies",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     @property
@@ -57,7 +57,7 @@ class Survey(BaseSurvey):
         "nFreq",
         new_name="num_frequencies",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     @property
@@ -76,7 +76,7 @@ class Survey(BaseSurvey):
         "nSrcByFreq",
         new_name="num_sources_by_frequency",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     def get_sources_by_frequency(self, frequency):
@@ -92,5 +92,5 @@ class Survey(BaseSurvey):
         return self._frequency_dict[frequency]
 
     getSrcByFreq = deprecate_method(
-        get_sources_by_frequency, "getSrcByFreq", "0.16.0", future_warn=True
+        get_sources_by_frequency, "getSrcByFreq", "0.16.0", error=True
     )
