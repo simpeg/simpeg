@@ -2,18 +2,23 @@ import time
 import sys
 import numpy as np
 import properties
+import discretize
 from discretize.utils import Zero
 from scipy.constants import mu_0
 from ...utils.code_utils import deprecate_class
 
 from ...utils import mkvc, sdiag
 from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
+from ..frequency_domain.survey import Survey
 from ..utils import omega
 from .survey import Data, Survey1D
+from .sources import Planewave1D
 from .fields import (
     Fields1DPrimarySecondary,
     Fields1DElectricField,
     Fields1DMagneticField,
+    Fields2DElectricField,
+    Fields2DMagneticField,
 )
 
 
@@ -327,16 +332,12 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         sigma E_y = \partial_z H_x
 
     with default boundary conditions that $H_x[z_max] = 1$ (a plane wave source at
-    the top of the domain), and $\partial_z H_x[z_min] = 0$ (the derivative of the field
-    vanishes at the bottom of the domain).
+    the top of the domain), and $H_x[z_min] = 0$.
 
     When we discretize, we obtain:
 
-    .. math::
-
-
-    where the Electric field is defined on faces (nodes), and the magnetic field is
-    defined on edges (cell centers).
+    where the Magnetic field is defined on edges, and the electric field is
+    defined on cell centers.
     """
 
     _solutionType = "eSolution"
@@ -363,8 +364,7 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
         .. math::
 
-        \mathbf{A} = \mathbf{V} \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma}
-
+        \mathbf{A} = \mathbf{G}^\top \mathbf{M}^e_{\mu^{-1}} \mathbf{G} + 1\omega \mathbf{M}^f_\sigma
         """
 
         G = self.mesh.nodal_gradient
@@ -465,11 +465,182 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
 ###################################
 # 2D problems
 ###################################
+class Simulation2DElectricField(BaseFDEMSimulation):
+    """
+    A
+    """
 
-# class Simulation2DElectricField(BaseFDEMSimulation):
-#     """
-#     A
-#     """
+    _solutionType = "hSolution"
+    _formulation = "EB"
+    fieldsPair = Fields2DElectricField
+
+    def __init__(self, mesh, h_bc, **kwargs):
+
+        if mesh.dim != 2:
+            raise ValueError(
+                f"The mesh must be a 2D mesh. The provided mesh has dimension {mesh.dim}"
+            )
+
+        super().__init__(mesh, **kwargs)
+
+        # if e_bc is None:
+        #     # If no explicit boundary conditions are given for the electric field
+        #     # use a simulation object to generate at left and right sides
+        #     # create a 1D simulation object
+        #     if mesh_bc is None:
+        #         # get a mesh from my mesh
+        #         if isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh):
+        #             mesh_bc = discretize.TensorMesh(
+        #                 (mesh.h[1], ), origin=(mesh.origin[0],)
+        #             )
+        #             survey = Survey(
+        #                 [Planewave1D([], frequency=freq) for freq in self.survey.frequencies]
+        #             )
+        #             sim = Simulation1DMagneticField(mesh_bc, survey)
+        #             if isinstance(discretize.TensorMesh):
+        #                 pass
+        for freq in self.survey.frequenies:
+            try:
+                e_bc[freq]
+            except KeyError:
+                raise KeyError(
+                    "e_bc must be a dictionary of numpy arrays indexed by frequency. Did not"
+                    f" find key {freq}."
+                )
+            except TypeError:
+                raise TypeError(
+                    "e_bc must be a dictionary of numpy arrays indexed by frequency."
+                )
+        self.e_bc = e_bc
+
+    def getA(self, freq):
+        """
+        System matrix
+
+        .. math::
+
+        \mathbf{A} = \mathbf{C}^\top \mathbf{M}^{cc}_{\rho} \mathbf{C} + 1\omega \mathbf{M}^e_\mu
+        """
+        C = self.mesh.edge_curl
+        Mcc_rho = self.MccRho
+        Me_mu = self.MeMu
+
+        return C.T.tocsr() @ Mcc_rho @ C + 1j * omega(freq) * Me_mu
+
+    def getRHS(self, freq):
+        """
+        Right hand side constructed using Dirichlet boundary conditions
+        """
+        M_bc = self._M_bc
+        e_bc = self._e_bc[freq]
+
+        return M_bc @ e_bc
+
+    def getADeriv_rho(self, freq, u, v, adjoint=False):
+        C = self.mesh.edge_curl
+        if adjoint:
+            return self.MccRhoDeriv(C * u, C * v, adjoint)
+        return C.T * self.MccRhoDeriv(C * u, v, adjoint)
+
+    def getADeriv_mu(self, freq, u, v, adjoint=False):
+        return 1j * omega(freq) * self.MeMuDeriv(u, v, adjoint=adjoint)
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+            freq, u, v, adjoint
+        )
+
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        return Zero()
+
+
+class Simulation2DMagneticField(BaseFDEMSimulation):
+    """
+    A
+    """
+
+    _solutionType = "hSolution"
+    _formulation = "HJ"
+    fieldsPair = Fields2DMagneticField
+
+    def __init__(self, mesh, e_bc, **kwargs):
+
+        if mesh.dim != 2:
+            raise ValueError(
+                f"The mesh must be a 2D mesh. The provided mesh has dimension {mesh.dim}"
+            )
+
+        super().__init__(mesh, **kwargs)
+
+        # if e_bc is None:
+        #     # If no explicit boundary conditions are given for the electric field
+        #     # use a simulation object to generate at left and right sides
+        #     # create a 1D simulation object
+        #     if mesh_bc is None:
+        #         # get a mesh from my mesh
+        #         if isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh):
+        #             mesh_bc = discretize.TensorMesh(
+        #                 (mesh.h[1], ), origin=(mesh.origin[0],)
+        #             )
+        #             survey = Survey(
+        #                 [Planewave1D([], frequency=freq) for freq in self.survey.frequencies]
+        #             )
+        #             sim = Simulation1DMagneticField(mesh_bc, survey)
+        #             if isinstance(discretize.TensorMesh):
+        #                 pass
+        for freq in self.survey.frequenies:
+            try:
+                e_bc[freq]
+            except KeyError:
+                raise KeyError(
+                    "e_bc must be a dictionary of numpy arrays indexed by frequency. Did not"
+                    f" find key {freq}."
+                )
+            except TypeError:
+                raise TypeError(
+                    "e_bc must be a dictionary of numpy arrays indexed by frequency."
+                )
+        self.e_bc = e_bc
+
+    def getA(self, freq):
+        """
+        System matrix
+
+        .. math::
+
+        \mathbf{A} = \mathbf{C}^\top \mathbf{M}^{cc}_{\rho} \mathbf{C} + 1\omega \mathbf{M}^e_\mu
+        """
+        C = self.mesh.edge_curl
+        Mcc_rho = self.MccRho
+        Me_mu = self.MeMu
+
+        return C.T.tocsr() @ Mcc_rho @ C + 1j * omega(freq) * Me_mu
+
+    def getRHS(self, freq):
+        """
+        Right hand side constructed using Dirichlet boundary conditions
+        """
+        M_bc = self._M_bc
+        e_bc = self._e_bc[freq]
+
+        return M_bc @ e_bc
+
+    def getADeriv_rho(self, freq, u, v, adjoint=False):
+        C = self.mesh.edge_curl
+        if adjoint:
+            return self.MccRhoDeriv(C * u, C * v, adjoint)
+        return C.T * self.MccRhoDeriv(C * u, v, adjoint)
+
+    def getADeriv_mu(self, freq, u, v, adjoint=False):
+        return 1j * omega(freq) * self.MeMuDeriv(u, v, adjoint=adjoint)
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+            freq, u, v, adjoint
+        )
+
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        return Zero()
 
 
 ###################################

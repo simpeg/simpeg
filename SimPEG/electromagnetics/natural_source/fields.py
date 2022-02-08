@@ -18,25 +18,11 @@ from ..utils import omega
 #     dtype = complex
 
 
-###########
-# 1D Fields
-###########
-
-
-class Fields1DElectricField(FieldsFDEM):
+class _EField:
     """
-    Fields
+    A simple class containing some common code to the
+    1D and 2D E-fields
     """
-
-    knownFields = {"eSolution": "N"}
-    aliasFields = {
-        "e": ["eSolution", "N", "_e"],
-        "h": ["eSolution", "CC", "_h"],
-    }
-    field_directions = "yx"
-
-    def startup(self):
-        self._G = self.simulation.mesh.nodal_gradient
 
     def _e(self, eSolution, source_list):
         return eSolution
@@ -54,8 +40,8 @@ class Fields1DElectricField(FieldsFDEM):
             mui = self.simulation.mui[:, None]
         else:
             mui = self.simulation.mui
-        v = mui * self._G * e
-        return v / (1j * omegas)
+        v = mui * self._C * e
+        return -v / (1j * omegas)
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         if du_dm_v.ndim == 1:
@@ -66,10 +52,10 @@ class Fields1DElectricField(FieldsFDEM):
         else:
             mui = self.simulation.mui
         if adjoint:
-            y = self._eDeriv_u(src, self._G.T * (mui * du_dm_v), adjoint=adjoint)
-            return np.squeeze(y) / (1j * om)
-        y = mui * (self._G @ self._eDeriv_u(src, du_dm_v, adjoint=False))
-        return np.squeeze(y) / (1j * om)
+            y = self._eDeriv_u(src, self._C.T * (mui * du_dm_v), adjoint=adjoint)
+            return -np.squeeze(y) / (1j * om)
+        y = mui * (self._C @ self._eDeriv_u(src, du_dm_v, adjoint=False))
+        return -np.squeeze(y) / (1j * om)
 
     def _hDeriv_m(self, src, v, adjoint=False):
         if self.simulation.muiMap is None:
@@ -80,13 +66,81 @@ class Fields1DElectricField(FieldsFDEM):
         if v.ndim == 1:
             v = v[:, None]
         if adjoint:
-            y = dMui.T * ((self._G * e) * v)
-            return np.squeeze(y) / (1j * om)
-        y = (self._G * e) * (dMui * v)
-        return np.squeeze(y) / (1j * om)
+            y = dMui.T * ((self._C * e) * v)
+            return -np.squeeze(y) / (1j * om)
+        y = (self._C * e) * (dMui * v)
+        return -np.squeeze(y) / (1j * om)
 
 
-class Fields1DMagneticField(Fields1DElectricField):
+class _HField:
+    """
+    A simple class containing some common code to the
+    1D and 2D H-fields
+    """
+
+    def _h(self, hSolution, source_list):
+        return hSolution
+
+    def _hDeriv_u(self, src, du_dm_v, adjoint=False):
+        return du_dm_v
+
+    def _hDeriv_m(self, src, v, adjoint=False):
+        return Zero()
+
+    def _e(self, hSolution, source_list):
+        return self.simulation.rho[:, None] * (
+            self._C * self._h(hSolution, source_list)
+        )
+
+    def _eDeriv_u(self, src, du_dm_v, adjoint=False):
+        if du_dm_v.ndim == 1:
+            du_dm_v = du_dm_v[:, None]
+        if adjoint:
+            y = self._hDeriv_u(
+                src, self._C.T * (self.simulation.rho[:, None] * du_dm_v), adjoint=True
+            )
+            return np.squeeze(y)
+        y = self.simulation.rho[:, None] * (
+            self._C @ (self._hDeriv_u(src, du_dm_v, adjoint=False))
+        )
+        return np.squeeze(y)
+
+    def _eDeriv_m(self, src, v, adjoint=False):
+        if self.simulation.rhoMap is None:
+            return Zero()
+        dRho = self.simulation.rhoDeriv
+        h = self[src, "h"]
+        if v.ndim == 1:
+            v = v[:, None]
+        if adjoint:
+            y = dRho.T * ((self._C * h) * v)
+            return np.squeeze(y)
+        y = (self._C * h) * (dRho * v)
+        return np.squeeze(y)
+
+
+###########
+# 1D Fields
+###########
+
+
+class Fields1DElectricField(_EField, FieldsFDEM):
+    """
+    Fields
+    """
+
+    knownFields = {"eSolution": "N"}
+    aliasFields = {
+        "e": ["eSolution", "N", "_e"],
+        "h": ["eSolution", "CC", "_h"],
+    }
+    field_directions = "yx"
+
+    def startup(self):
+        self._C = -self.simulation.mesh.nodal_gradient
+
+
+class Fields1DMagneticField(_HField, Fields1DElectricField):
     """
     Fields
     """
@@ -101,47 +155,7 @@ class Fields1DMagneticField(Fields1DElectricField):
 
     def startup(self):
         # boundary conditions
-        self._G = self.simulation.mesh.nodal_gradient
-
-    def _h(self, hSolution, source_list):
-        return hSolution
-
-    def _hDeriv_u(self, src, du_dm_v, adjoint=False):
-        return du_dm_v
-
-    def _hDeriv_m(self, src, v, adjoint=False):
-        return Zero()
-
-    def _e(self, hSolution, source_list):
-        return -self.simulation.rho[:, None] * (
-            self._G * self._h(hSolution, source_list)
-        )
-
-    def _eDeriv_u(self, src, du_dm_v, adjoint=False):
-        if du_dm_v.ndim == 1:
-            du_dm_v = du_dm_v[:, None]
-        if adjoint:
-            y = -self._hDeriv_u(
-                src, self._G.T * (self.simulation.rho[:, None] * du_dm_v), adjoint=True
-            )
-            return np.squeeze(y)
-        y = -self.simulation.rho[:, None] * (
-            self._G @ (self._hDeriv_u(src, du_dm_v, adjoint=False))
-        )
-        return np.squeeze(y)
-
-    def _eDeriv_m(self, src, v, adjoint=False):
-        if self.simulation.rhoMap is None:
-            return Zero()
-        dRho = self.simulation.rhoDeriv
-        h = self[src, "h"]
-        if v.ndim == 1:
-            v = v[:, None]
-        if adjoint:
-            y = -dRho.T * ((self._G * h) * v)
-            return np.squeeze(y)
-        y = -(self._G * h) * (dRho * v)
-        return np.squeeze(y)
+        self._C = -self.simulation.mesh.nodal_gradient
 
 
 class Fields1DPrimarySecondary(FieldsFDEM):
@@ -302,6 +316,37 @@ class Fields1DPrimarySecondary(FieldsFDEM):
 ###########
 # 2D Fields
 ###########
+
+
+class Fields2DElectricField(_EField, FieldsFDEM):
+    """
+    Fields
+    """
+
+    knownFields = {"eSolution": "CC"}
+    aliasFields = {
+        "e": ["eSolution", "CC", "_e"],
+        "h": ["eSolution", "E", "_h"],
+    }
+
+    def startup(self):
+        self._C = self.simulation.mesh.edge_curl
+
+
+class Fields2DMagneticField(_HField, FieldsFDEM):
+    """
+    Fields
+    """
+
+    knownFields = {"hSolution": "E"}
+    aliasFields = {
+        "e": ["hSolution", "CC", "_e"],
+        "h": ["hSolution", "E", "_h"],
+    }
+
+    def startup(self):
+        # boundary conditions
+        self._C = self.simulation.mesh.edge_curl
 
 
 ###########

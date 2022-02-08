@@ -653,6 +653,41 @@ class BaseEMSimulation(BaseSimulation):
             return UM
 
     @property
+    def MccRho(self):
+        """Cell inner product matrix for \\(\\rho\\). Used in the 2D
+        E-H formulation
+        """
+        if getattr(self, "_MccRho", None) is None:
+            self._MccRho = sp.diags(self.mesh.cell_volumes * self.rho)
+        return self._MccRho
+
+    @property
+    def MccRhoDeriv(self, u, v=None, adjoint=False):
+        """
+        Derivative of :code:`MccRho` with respect to the model.
+        """
+        if self.rhoMap is None:
+            return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
+
+        if getattr(self, "_MccRhoDeriv", None) is None:
+            self._MccRhoDeriv = sp.diags(self.mesh.cell_volumes) * self.rhoDeriv
+
+        if v is not None:
+            u = u.flatten()
+            if v.ndim > 1:
+                # promote u iff v is a matrix
+                u = u[:, None]  # Avoids constructing the sparse matrix
+            if adjoint is True:
+                return self._MccRhoDeriv.T.dot(u * v)
+            return u * (self._MccRhoDeriv.dot(v))
+        else:
+            if adjoint is True:
+                return self._MccRhoDeriv.T.dot(sdiag(u))
+            return sdiag(u) * (self._MccRhoDeriv)
+
+    @property
     def MfRho(self):
         """
         Face inner product matrix for \\(\\rho\\). Used in the H-J
