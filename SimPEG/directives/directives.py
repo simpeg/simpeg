@@ -1411,7 +1411,7 @@ class SaveIterationsGeoH5(InversionDirective):
                 if self.sorting is not None:
                     values = values[self.sorting]
                 if not isinstance(channel, str):
-                    channel = f"{channel: .2e}"
+                    channel = f"{channel:.2e}"
 
                 base_name = f"Iteration_{iteration}"
                 if len(component) > 0:
