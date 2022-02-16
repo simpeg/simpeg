@@ -5,7 +5,7 @@ from discretize.tests import check_derivative
 
 from SimPEG.electromagnetics import natural_source as nsem
 from SimPEG import maps
-from discretize import TensorMesh, TreeMesh
+from discretize import TensorMesh, TreeMesh, CylindricalMesh
 from pymatsolver import Pardiso
 
 
@@ -301,6 +301,13 @@ class Sim_2D(unittest.TestCase):
             nsem.simulation.Simulation2DElectricField(mesh_2d, survey=survey_yx)
         with self.assertRaises(TypeError):
             nsem.simulation.Simulation2DMagneticField(mesh_2d, survey=survey_xy)
+
+        # Check mesh type error without a given h_bc
+        bad_mesh = CylindricalMesh([10, 10, 10])
+        with self.assertRaises(TypeError):
+            nsem.simulation.Simulation2DElectricField(bad_mesh, survey=survey_xy)
+        with self.assertRaises(TypeError):
+            nsem.simulation.Simulation2DMagneticField(bad_mesh, survey=survey_yx)
 
         # Check fixed boundary condition Type Error
         with self.assertRaises(TypeError):

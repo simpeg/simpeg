@@ -166,31 +166,6 @@ class Fields1DElectricField(_EField, FieldsFDEM):
     def startup(self):
         self._C = self.simulation.mesh.nodal_gradient
 
-    def field_deriv_m(self, field, freq, src, v, adjoint=False):
-        sim = self.simulation
-        nf = sim.survey.frequencies.index(freq)
-        u_src = self[src, sim._solutionType]
-        # left deriv
-        if not adjoint:
-            dA_dm_v = sim.getADeriv(freq, u_src, v, adjoint=False)
-            dRHS_dm_v = sim.getRHSDeriv(freq, src, v)
-            du_dm_v = sim.Ainv[nf] * (-dA_dm_v + dRHS_dm_v)
-            if field == "e":
-                return self._eDeriv(src, du_dm_v, v, adjoint=False)
-            elif field == "h":
-                return self._hDeriv(src, du_dm_v, v, adjoint=False)
-        else:
-            if field == "e":
-                df_duT, df_dmT = self._eDeriv(src, None, v, adjoint=True)
-            elif field == "h":
-                df_duT, df_dmT = self._hDeriv(src, None, v, adjoint=True)
-            ATinv_duT = sim.Ainv[nf] * df_duT
-            dA_dmT = sim.getADeriv(freq, u_src, ATinv_duT, adjoint=True)
-            dRHS_dmT = sim.getRHSDeriv(freq, src, ATinv_duT, adjoint=True)
-            du_dmT = -dA_dmT + dRHS_dmT
-            df_dmT += du_dmT
-            return df_dmT
-
 
 class Fields1DMagneticField(_HField, Fields1DElectricField):
     """
