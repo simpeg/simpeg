@@ -9,6 +9,7 @@ import warnings
 from SimPEG import utils
 from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
+from ...base import BaseMagneticPDESimulation
 from .survey import Survey
 from .analytics import CongruousMagBC
 
@@ -679,19 +680,10 @@ class Simulation3DIntegral(BasePFSimulation):
         )
 
 
-class Simulation3DDifferential(BaseSimulation):
+class Simulation3DDifferential(BaseMagneticPDESimulation):
     """
     Secondary field approach using differential equations!
     """
-
-    # surveyPair = MAG.BaseMagSurvey
-    # modelPair = MAG.BaseMagMap
-
-    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability (H/m)", default=mu_0)
-
-    mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
-
-    props.Reciprocal(mu, mui)
 
     survey = properties.Instance("a survey object", Survey, required=True)
 
@@ -703,14 +695,6 @@ class Simulation3DDifferential(BaseSimulation):
         Dface = self.mesh.faceDiv
         Mc = sdiag(self.mesh.vol)
         self._Div = Mc * Dface * Pin.T * Pin
-
-    @property
-    def MfMuI(self):
-        return self._MfMuI
-
-    @property
-    def MfMui(self):
-        return self._MfMui
 
     @property
     def MfMu0(self):

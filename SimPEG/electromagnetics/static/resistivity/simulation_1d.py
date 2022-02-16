@@ -2,8 +2,7 @@ import numpy as np
 import properties
 
 from ....utils import mkvc
-from ...base import BaseEMSimulation
-from ....data import Data
+from ....simulation import BaseSimulation
 from .... import props
 
 from .survey import Survey
@@ -18,10 +17,14 @@ from empymod.utils import check_hankel
 from ..utils import static_utils
 
 
-class Simulation1DLayers(BaseEMSimulation):
+class Simulation1DLayers(BaseSimulation):
     """
     1D DC Simulation
     """
+
+    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
+    props.Reciprocal(sigma, rho)
 
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "thicknesses of the layers"
