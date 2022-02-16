@@ -18,7 +18,34 @@ from ..utils import omega
 #     dtype = complex
 
 
-class _EField:
+class _1DField:
+    def field_deriv_m(self, field, freq, src, v, adjoint=False):
+        sim = self.simulation
+        nf = sim.survey.frequencies.index(freq)
+        u_src = self[src, sim._solutionType]
+        # left deriv
+        if not adjoint:
+            dA_dm_v = sim.getADeriv(freq, u_src, v, adjoint=False)
+            dRHS_dm_v = sim.getRHSDeriv(freq, src, v)
+            du_dm_v = sim.Ainv[nf] * (-dA_dm_v + dRHS_dm_v)
+            if field == "e":
+                return self._eDeriv(src, du_dm_v, v, adjoint=False)
+            elif field == "h":
+                return self._hDeriv(src, du_dm_v, v, adjoint=False)
+        else:
+            if field == "e":
+                df_duT, df_dmT = self._eDeriv(src, None, v, adjoint=True)
+            elif field == "h":
+                df_duT, df_dmT = self._hDeriv(src, None, v, adjoint=True)
+            ATinv_duT = sim.Ainv[nf] * df_duT
+            dA_dmT = sim.getADeriv(freq, u_src, ATinv_duT, adjoint=True)
+            dRHS_dmT = sim.getRHSDeriv(freq, src, ATinv_duT, adjoint=True)
+            du_dmT = -dA_dmT + dRHS_dmT
+            df_dmT += du_dmT
+            return df_dmT
+
+
+class _EField(_1DField):
     """
     A simple class containing some common code to the
     1D and 2D E-fields
@@ -40,8 +67,8 @@ class _EField:
             mui = self.simulation.mui[:, None]
         else:
             mui = self.simulation.mui
-        v = mui * self._C * e
-        return -v / (1j * omegas)
+        v = mui * (self._C * e)
+        return v / (1j * omegas)
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         if du_dm_v.ndim == 1:
@@ -53,9 +80,9 @@ class _EField:
             mui = self.simulation.mui
         if adjoint:
             y = self._eDeriv_u(src, self._C.T * (mui * du_dm_v), adjoint=adjoint)
-            return -np.squeeze(y) / (1j * om)
+            return np.squeeze(y) / (1j * om)
         y = mui * (self._C @ self._eDeriv_u(src, du_dm_v, adjoint=False))
-        return -np.squeeze(y) / (1j * om)
+        return np.squeeze(y) / (1j * om)
 
     def _hDeriv_m(self, src, v, adjoint=False):
         if self.simulation.muiMap is None:
@@ -67,12 +94,12 @@ class _EField:
             v = v[:, None]
         if adjoint:
             y = dMui.T * ((self._C * e) * v)
-            return -np.squeeze(y) / (1j * om)
+            return np.squeeze(y) / (1j * om)
         y = (self._C * e) * (dMui * v)
-        return -np.squeeze(y) / (1j * om)
+        return np.squeeze(y) / (1j * om)
 
 
-class _HField:
+class _HField(_1DField):
     """
     A simple class containing some common code to the
     1D and 2D H-fields
@@ -137,7 +164,32 @@ class Fields1DElectricField(_EField, FieldsFDEM):
     field_directions = "yx"
 
     def startup(self):
-        self._C = -self.simulation.mesh.nodal_gradient
+        self._C = self.simulation.mesh.nodal_gradient
+
+    def field_deriv_m(self, field, freq, src, v, adjoint=False):
+        sim = self.simulation
+        nf = sim.survey.frequencies.index(freq)
+        u_src = self[src, sim._solutionType]
+        # left deriv
+        if not adjoint:
+            dA_dm_v = sim.getADeriv(freq, u_src, v, adjoint=False)
+            dRHS_dm_v = sim.getRHSDeriv(freq, src, v)
+            du_dm_v = sim.Ainv[nf] * (-dA_dm_v + dRHS_dm_v)
+            if field == "e":
+                return self._eDeriv(src, du_dm_v, v, adjoint=False)
+            elif field == "h":
+                return self._hDeriv(src, du_dm_v, v, adjoint=False)
+        else:
+            if field == "e":
+                df_duT, df_dmT = self._eDeriv(src, None, v, adjoint=True)
+            elif field == "h":
+                df_duT, df_dmT = self._hDeriv(src, None, v, adjoint=True)
+            ATinv_duT = sim.Ainv[nf] * df_duT
+            dA_dmT = sim.getADeriv(freq, u_src, ATinv_duT, adjoint=True)
+            dRHS_dmT = sim.getRHSDeriv(freq, src, ATinv_duT, adjoint=True)
+            du_dmT = -dA_dmT + dRHS_dmT
+            df_dmT += du_dmT
+            return df_dmT
 
 
 class Fields1DMagneticField(_HField, Fields1DElectricField):
@@ -323,10 +375,10 @@ class Fields2DElectricField(_EField, FieldsFDEM):
     Fields
     """
 
-    knownFields = {"eSolution": "CC"}
+    knownFields = {"eSolution": "E"}
     aliasFields = {
-        "e": ["eSolution", "CC", "_e"],
-        "h": ["eSolution", "E", "_h"],
+        "e": ["eSolution", "E", "_e"],
+        "h": ["eSolution", "CC", "_h"],
     }
 
     def startup(self):
@@ -346,7 +398,7 @@ class Fields2DMagneticField(_HField, FieldsFDEM):
 
     def startup(self):
         # boundary conditions
-        self._C = self.simulation.mesh.edge_curl
+        self._C = -self.simulation.mesh.edge_curl
 
 
 ###########

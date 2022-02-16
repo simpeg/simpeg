@@ -65,13 +65,15 @@ class BaseEMSimulation(BaseSimulation):
             "_MeMu",
             "_MeMuI",
             "_MeMuDeriv",
+            "_MnMu",
+            "_MnMuDeriv",
             "_MfMui",
             "_MfMuiI",
             "_MfMuiDeriv",
             "_MeMui",
             "_MeMuiDeriv",
-            "_MnMu",
-            "_MnMuDeriv",
+            "_MccMui",
+            "_MccMuiDeriv",
         ]
 
     @property
@@ -86,6 +88,8 @@ class BaseEMSimulation(BaseSimulation):
             "_MeSigmaI",
             "_MfSigma",
             "_MfSigmaDeriv",
+            "_MccRho",
+            "_MccRhoDeriv",
             "_MeRho",
             "_MeRhoDeriv",
             "_MfRho",
@@ -209,6 +213,41 @@ class BaseEMSimulation(BaseSimulation):
     ####################################################
     # Magnetic Permeability
     ####################################################
+
+    @property
+    def MccMui(self):
+        """Cell inner product matrix for \\(\\rho\\). Used in the 2D
+        E-H formulation
+        """
+        if getattr(self, "_MccMui", None) is None:
+            self._MccMui = sp.diags(self.mesh.cell_volumes * self.mui)
+        return self._MccMui
+
+    def MccMuiDeriv(self, u, v=None, adjoint=False):
+        """
+        Derivative of :code:`MccMui` with respect to the model.
+        """
+        if self.muiMap is None:
+            return Zero()
+        if isinstance(u, Zero) or isinstance(v, Zero):
+            return Zero()
+
+        if getattr(self, "_MccMuiDeriv", None) is None:
+            self._MccMuiDeriv = sp.diags(self.mesh.cell_volumes) * self.muiDeriv
+
+        if v is not None:
+            u = u.flatten()
+            if v.ndim > 1:
+                # promote u iff v is a matrix
+                u = u[:, None]  # Avoids constructing the sparse matrix
+            if adjoint is True:
+                return self._MccMuiDeriv.T.dot(u * v)
+            return u * (self._MccMuiDeriv.dot(v))
+        else:
+            if adjoint is True:
+                return self._MccMuiDeriv.T.dot(sdiag(u))
+            return sdiag(u) * (self._MccMuiDeriv)
+
     @property
     def MfMui(self):
         """
@@ -661,7 +700,6 @@ class BaseEMSimulation(BaseSimulation):
             self._MccRho = sp.diags(self.mesh.cell_volumes * self.rho)
         return self._MccRho
 
-    @property
     def MccRhoDeriv(self, u, v=None, adjoint=False):
         """
         Derivative of :code:`MccRho` with respect to the model.
