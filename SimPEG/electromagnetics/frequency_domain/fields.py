@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
+from scipy.constants import epsilon_0
 from ...fields import Fields
 from ...utils import mkvc, Zero, Identity, sdiag
 from ..utils import omega
@@ -314,6 +315,8 @@ class Fields3DElectricField(FieldsFDEM):
         "bSecondary": ["eSolution", "F", "_bSecondary"],
         "j": ["eSolution", "E", "_j"],
         "h": ["eSolution", "F", "_h"],
+        "charge": ["eSolution", "N", "_charge"],
+        "charge_density": ["eSolution", "CC", "_charge_density"],
     }
 
     def startup(self):
@@ -605,6 +608,22 @@ class Fields3DElectricField(FieldsFDEM):
             self._MfI * (self._MfMui * self._bDeriv_m(src, v, adjoint=adjoint))
         ) + self._hDeriv_mui(src, v, adjoint=adjoint)
 
+    def _charge(self, eSolution, source_list):
+        """
+            .. math::
+                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        """
+        return -epsilon_0 * (
+            self.mesh.nodalGrad.T
+            * self.mesh.getEdgeInnerProduct()
+            * self._e(eSolution, source_list)
+        )
+
+    def _charge_density(self, eSolution, source_list):
+        return (
+            self.mesh.aveN2CC * self._charge(eSolution, source_list)
+        ) / self.mesh.vol[:, None]
+
 
 class Fields3DMagneticFluxDensity(FieldsFDEM):
     """
@@ -624,6 +643,8 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         "eSecondary": ["bSolution", "E", "_eSecondary"],
         "j": ["bSolution", "E", "_j"],
         "h": ["bSolution", "F", "_h"],
+        "charge": ["bSolution", "N", "_charge"],
+        "charge_density": ["bSolution", "CC", "_charge_density"],
     }
 
     def startup(self):
@@ -908,6 +929,22 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
             src, v, adjoint
         )
 
+    def _charge(self, bSolution, source_list):
+        """
+            .. math::
+                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        """
+        return -epsilon_0 * (
+            self.mesh.nodalGrad.T
+            * self.mesh.getEdgeInnerProduct()
+            * self._e(bSolution, source_list)
+        )
+
+    def _charge_density(self, bSolution, source_list):
+        return (
+            self.mesh.aveN2CC * self._charge(bSolution, source_list)
+        ) / self.mesh.vol[:, None]
+
 
 class Fields3DCurrentDensity(FieldsFDEM):
     """
@@ -927,6 +964,8 @@ class Fields3DCurrentDensity(FieldsFDEM):
         "hSecondary": ["jSolution", "E", "_hSecondary"],
         "e": ["jSolution", "F", "_e"],
         "b": ["jSolution", "E", "_b"],
+        "charge": ["bSolution", "CC", "_charge"],
+        "charge_density": ["bSolution", "CC", "_charge_density"],
     }
 
     def startup(self):
@@ -1257,6 +1296,23 @@ class Fields3DCurrentDensity(FieldsFDEM):
             s_mDeriv(v) - self._edgeCurl.T * self._MfRhoDeriv(jSolution, v, adjoint)
         ) + src.bPrimaryDeriv(self.simulation, v, adjoint)
 
+    def _charge(self, jSolution, source_list):
+        """
+            .. math::
+
+                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        """
+        return self.mesh.vol[:, None] * self._charge_density(jSolution, source_list)
+
+    def _charge_density(self, jSolution, source_list):
+        """
+            .. math::
+
+                \frac{1}{V}\int \nabla \codt \vec{e} =
+                \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
+        """
+        return epsilon_0 * (self._faceDiv * self._e(jSolution, source_list))
+
 
 class Fields3DMagneticField(FieldsFDEM):
     """
@@ -1276,6 +1332,8 @@ class Fields3DMagneticField(FieldsFDEM):
         "jSecondary": ["hSolution", "F", "_jSecondary"],
         "e": ["hSolution", "CCV", "_e"],
         "b": ["hSolution", "CCV", "_b"],
+        "charge": ["hSolution", "CC", "_charge"],
+        "charge_density": ["hSolution", "CC", "_charge_density"],
     }
 
     def startup(self):
@@ -1532,6 +1590,23 @@ class Fields3DMagneticField(FieldsFDEM):
         return src.bPrimaryDeriv(self.simulation, v, adjoint) + self._bDeriv_mu(
             src, v, adjoint
         )
+
+    def _charge(self, hSolution, source_list):
+        """
+            .. math::
+
+                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        """
+        return self.mesh.vol[:, None] * self._charge_density(hSolution, source_list)
+
+    def _charge_density(self, hSolution, source_list):
+        """
+            .. math::
+
+                \frac{1}{V}\int \nabla \codt \vec{e} =
+                \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
+        """
+        return epsilon_0 * (self._faceDiv * self._e(hSolution, source_list))
 
 
 ############

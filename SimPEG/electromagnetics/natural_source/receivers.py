@@ -125,9 +125,9 @@ class BaseRxNSEM_Point(BaseRx):
         )
 
 
-class Point1DImpedance(BaseRx):
+class PointNaturalSource(BaseRx):
     """
-    Natural source 1D impedance receiver class
+    Natural source 1D/2D impedance receiver class
 
     :param string component: real or imaginary component 'real' or 'imag'
     """
@@ -137,14 +137,23 @@ class Point1DImpedance(BaseRx):
         {
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
+            "apparent_resistivity": [
+                "apparent resistivity",
+                "apparent-resistivity",
+                "app_rho",
+            ],
+            "phase": ["phi"],
         },
     )
 
-    orientation = "yx"
+    orientation = properties.StringChoice(
+        "orientation of the receiver. Must currently be 'xy', 'yx'", ["xy", "yx"],
+    )
 
-    def __init__(self, locs, component="real"):
+    def __init__(self, locations, component="real", orientation="xy"):
         self.component = component
-        BaseRx.__init__(self, locs)
+        self.orientation = orientation
+        BaseRx.__init__(self, locations)
 
     @property
     def mesh(self):
@@ -173,48 +182,112 @@ class Point1DImpedance(BaseRx):
     def f(self, value):
         self._f = value
 
+    def _alpha(self, src):
+        return 1 / (2 * np.pi * mu_0 * src.frequency)
+
     def _eval_impedance(self, src, mesh, f):
-        # NOTE: Maybe set this as a property
-        PEx = self.getP(mesh, "Fx")
-        PHy = self.getP(mesh, "Ex")
+        if mesh.dim == 1:
+            e_loc = f.aliasFields["e"][1]
+            h_loc = f.aliasFields["h"][1]
+            PE = self.getP(mesh, e_loc)
+            PH = self.getP(mesh, h_loc)
+        elif mesh.dim == 2:
+            if self.orientation == "xy":
+                PE = self.getP(mesh, "Ex")
+                PH = self.getP(mesh, "CC")
+            elif self.orientation == "yx":
+                PE = self.getP(mesh, "CC")
+                PH = self.getP(mesh, "Ex")
 
         e = f[src, "e"]
         h = f[src, "h"]
 
-        e_top = PEx @ e[:, 0]
-        h_bot = PHy @ -h[:, 0]
+        e_top = PE @ e[:, 0]
+        h_bot = PH @ h[:, 0]
+
+        # need to negate if 'yx' and fields are xy
+        # and as well if 'xy' and fields are 'yx'
+        if mesh.dim == 1 and self.orientation != f.field_directions:
+            h_bot = -h_bot
 
         return e_top / h_bot
 
     def _eval_impedance_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        PEx = self.getP(mesh, "Fx")
-        PHy = self.getP(mesh, "Ex")
+        if mesh.dim == 1:
+            e_loc = f.aliasFields["e"][1]
+            h_loc = f.aliasFields["h"][1]
+            PE = self.getP(mesh, e_loc)
+            PH = self.getP(mesh, h_loc)
+        elif mesh.dim == 2:
+            if self.orientation == "xy":
+                PE = self.getP(mesh, "Ex")
+                PH = self.getP(mesh, "CC")
+            elif self.orientation == "yx":
+                PE = self.getP(mesh, "CC")
+                PH = self.getP(mesh, "Ex")
 
         e = f[src, "e"]
         h = f[src, "h"]
 
-        top = PEx @ e[:, 0]
-        bot = PHy @ h[:, 0]
+        top = PE @ e[:, 0]
+        bot = PH @ h[:, 0]
 
-        imp = top / -bot
+        if mesh.dim == 1 and self.orientation != f.field_directions:
+            bot = -bot
+
+        imp = top / bot
 
         if adjoint:
+            if self.component == "phase":
+                # gradient of arctan2(y, x) is (-y/(x**2 + y**2), x/(x**2 + y**2))
+                v = 180 / np.pi * imp / (imp.real ** 2 + imp.imag ** 2) * v
+                # switch real and imaginary, and negate real part of output
+                v = -v.imag - 1j * v.real
+                # imaginary part gets extra (-) due to conjugate transpose
+            elif self.component == "apparent_resistivity":
+                v = 2 * self._alpha(src) * imp * v
+                v = v.real - 1j * v.imag
+            elif self.component == "imag":
+                v = -1j * v
+
             # Work backwards!
             gtop_v = v / bot
             gbot_v = -imp * v / bot
 
-            gh_v = PHy.T @ gbot_v
-            ge_v = PEx.T @ gtop_v
+            if mesh.dim == 1 and self.orientation != f.field_directions:
+                gbot_v = -gbot_v
+
+            gh_v = PH.T @ gbot_v
+            ge_v = PE.T @ gtop_v
 
             gfu_h_v, gfm_h_v = f._hDeriv(src, None, gh_v, adjoint=True)
-            gfu_e_v, gfm_e_v = f._eDeriv(src, None, -ge_v, adjoint=True)
+            gfu_e_v, gfm_e_v = f._eDeriv(src, None, ge_v, adjoint=True)
 
             return gfu_h_v + gfu_e_v, gfm_h_v + gfm_e_v
 
-        de_v = PEx @ f._eDeriv(src, du_dm_v, v, adjoint=False)
-        dh_v = PHy @ f._hDeriv(src, du_dm_v, v, adjoint=False)
+        de_v = PE @ f._eDeriv(src, du_dm_v, v, adjoint=False)
+        dh_v = PH @ f._hDeriv(src, du_dm_v, v, adjoint=False)
 
-        return (1 / bot) * (-de_v - imp * dh_v)
+        if mesh.dim == 1 and self.orientation != f.field_directions:
+            dh_v = -dh_v
+
+        imp_deriv = (de_v - imp * dh_v) / bot
+
+        if self.component == "apparent_resistivity":
+            rx_deriv = (
+                2
+                * self._alpha(src)
+                * (imp.real * imp_deriv.real + imp.imag * imp_deriv.imag)
+            )
+        elif self.component == "phase":
+            amp2 = imp.imag ** 2 + imp.real ** 2
+            deriv_re = -imp.imag / amp2 * imp_deriv.real
+            deriv_im = imp.real / amp2 * imp_deriv.imag
+
+            rx_deriv = (180 / np.pi) * (deriv_re + deriv_im)
+        else:
+            rx_deriv = getattr(imp_deriv, self.component)
+        return rx_deriv
 
     def eval(self, src, mesh, f, return_complex=False):
         """
@@ -231,6 +304,10 @@ class Point1DImpedance(BaseRx):
         imp = self._eval_impedance(src, mesh, f)
         if return_complex:
             return imp
+        elif self.component == "apparent_resistivity":
+            return self._alpha(src) * (imp.real ** 2 + imp.imag ** 2)
+        elif self.component == "phase":
+            return 180 / np.pi * (np.arctan2(imp.imag, imp.real))
         else:
             return getattr(imp, self.component)
 
@@ -246,19 +323,21 @@ class Point1DImpedance(BaseRx):
         :rtype: numpy.ndarray
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
         """
-
-        if adjoint:
-            if self.component == "imag":
-                v = -1j * v
-
-        imp_deriv = self._eval_impedance_deriv(
+        return self._eval_impedance_deriv(
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
         )
 
-        if adjoint:
-            return imp_deriv
 
-        return getattr(imp_deriv, self.component)
+class Point1DImpedance(PointNaturalSource):
+    """
+    Natural source 1D impedance receiver class
+
+    :param string component: real or imaginary component 'real' or 'imag'
+    """
+
+    pass
+    # This is provided to have a unique class just for 1D
+    # Although it works with just the base class here
 
 
 class Point3DImpedance(BaseRxNSEM_Point):

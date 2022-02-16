@@ -282,9 +282,6 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         return C.T * MfMui * C + 1j * omega(freq) * MeSigma
 
-    # def getADeriv(self, freq, u, v, adjoint=False):
-    #     return
-
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the
@@ -816,18 +813,10 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         :return: derivative of the system matrix times a vector (nP,) or
             adjoint (nD,)
         """
-
-        MeMu = self.MeMu
         C = self.mesh.edgeCurl
         if adjoint:
             return self.MfRhoDeriv(C * u, C * v, adjoint)
         return C.T * self.MfRhoDeriv(C * u, v, adjoint)
-
-        # MfRhoDeriv = self.MfRhoDeriv(C*u)
-
-        # if adjoint:
-        #     return MfRhoDeriv.T * (C * v)
-        # return C.T * (MfRhoDeriv * v)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         MeMuDeriv = self.MeMuDeriv(u)

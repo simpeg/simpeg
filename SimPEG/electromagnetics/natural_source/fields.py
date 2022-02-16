@@ -18,148 +18,171 @@ from ..utils import omega
 #     dtype = complex
 
 
+class _1DField:
+    def field_deriv_m(self, field, freq, src, v, adjoint=False):
+        sim = self.simulation
+        nf = sim.survey.frequencies.index(freq)
+        u_src = self[src, sim._solutionType]
+        # left deriv
+        if not adjoint:
+            dA_dm_v = sim.getADeriv(freq, u_src, v, adjoint=False)
+            dRHS_dm_v = sim.getRHSDeriv(freq, src, v)
+            du_dm_v = sim.Ainv[nf] * (-dA_dm_v + dRHS_dm_v)
+            if field == "e":
+                return self._eDeriv(src, du_dm_v, v, adjoint=False)
+            elif field == "h":
+                return self._hDeriv(src, du_dm_v, v, adjoint=False)
+        else:
+            if field == "e":
+                df_duT, df_dmT = self._eDeriv(src, None, v, adjoint=True)
+            elif field == "h":
+                df_duT, df_dmT = self._hDeriv(src, None, v, adjoint=True)
+            ATinv_duT = sim.Ainv[nf] * df_duT
+            dA_dmT = sim.getADeriv(freq, u_src, ATinv_duT, adjoint=True)
+            dRHS_dmT = sim.getRHSDeriv(freq, src, ATinv_duT, adjoint=True)
+            du_dmT = -dA_dmT + dRHS_dmT
+            df_dmT += du_dmT
+            return df_dmT
+
+
+class _EField(_1DField):
+    """
+    A simple class containing some common code to the
+    1D and 2D E-fields
+    """
+
+    def _e(self, eSolution, source_list):
+        return eSolution
+
+    def _eDeriv_u(self, src, du_dm_v, adjoint=False):
+        return du_dm_v
+
+    def _eDeriv_m(self, src, v, adjoint=False):
+        return Zero()
+
+    def _h(self, eSolution, source_list):
+        omegas = np.array([omega(src.frequency) for src in source_list])
+        e = self._e(eSolution, source_list)
+        if self.simulation.muiMap is not None:
+            mui = self.simulation.mui[:, None]
+        else:
+            mui = self.simulation.mui
+        v = mui * (self._C * e)
+        return v / (1j * omegas)
+
+    def _hDeriv_u(self, src, du_dm_v, adjoint=False):
+        if du_dm_v.ndim == 1:
+            du_dm_v = du_dm_v[:, None]
+        om = omega(src.frequency)
+        if self.simulation.muiMap is not None:
+            mui = self.simulation.mui[:, None]
+        else:
+            mui = self.simulation.mui
+        if adjoint:
+            y = self._eDeriv_u(src, self._C.T * (mui * du_dm_v), adjoint=adjoint)
+            return np.squeeze(y) / (1j * om)
+        y = mui * (self._C @ self._eDeriv_u(src, du_dm_v, adjoint=False))
+        return np.squeeze(y) / (1j * om)
+
+    def _hDeriv_m(self, src, v, adjoint=False):
+        if self.simulation.muiMap is None:
+            return Zero()
+        om = omega(src.frequency)
+        dMui = self.simulation.muiDeriv
+        e = self[src, "e"]
+        if v.ndim == 1:
+            v = v[:, None]
+        if adjoint:
+            y = dMui.T * ((self._C * e) * v)
+            return np.squeeze(y) / (1j * om)
+        y = (self._C * e) * (dMui * v)
+        return np.squeeze(y) / (1j * om)
+
+
+class _HField(_1DField):
+    """
+    A simple class containing some common code to the
+    1D and 2D H-fields
+    """
+
+    def _h(self, hSolution, source_list):
+        return hSolution
+
+    def _hDeriv_u(self, src, du_dm_v, adjoint=False):
+        return du_dm_v
+
+    def _hDeriv_m(self, src, v, adjoint=False):
+        return Zero()
+
+    def _e(self, hSolution, source_list):
+        return self.simulation.rho[:, None] * (
+            self._C * self._h(hSolution, source_list)
+        )
+
+    def _eDeriv_u(self, src, du_dm_v, adjoint=False):
+        if du_dm_v.ndim == 1:
+            du_dm_v = du_dm_v[:, None]
+        if adjoint:
+            y = self._hDeriv_u(
+                src, self._C.T * (self.simulation.rho[:, None] * du_dm_v), adjoint=True
+            )
+            return np.squeeze(y)
+        y = self.simulation.rho[:, None] * (
+            self._C @ (self._hDeriv_u(src, du_dm_v, adjoint=False))
+        )
+        return np.squeeze(y)
+
+    def _eDeriv_m(self, src, v, adjoint=False):
+        if self.simulation.rhoMap is None:
+            return Zero()
+        dRho = self.simulation.rhoDeriv
+        h = self[src, "h"]
+        if v.ndim == 1:
+            v = v[:, None]
+        if adjoint:
+            y = dRho.T * ((self._C * h) * v)
+            return np.squeeze(y)
+        y = (self._C * h) * (dRho * v)
+        return np.squeeze(y)
+
+
 ###########
 # 1D Fields
 ###########
 
 
-class Fields1DElectricField(FieldsFDEM):
+class Fields1DElectricField(_EField, FieldsFDEM):
     """
     Fields
     """
 
-    knownFields = {"eSolution": "CC"}
+    knownFields = {"eSolution": "N"}
     aliasFields = {
-        "e": ["eSolution", "CC", "_e"],
-        "j": ["eSolution", "CC", "_j"],
-        "b": ["eSolution", "F", "_b"],
-        "h": ["eSolution", "F", "_h"],
-        "impedance": ["eSolution", "CC", "_impedance"],
-        "apparent resistivity": ["eSolution", "CC", "_apparent_resistivity"],
-        "apparent conductivity": ["eSolution", "CC", "_apparent_conductivity"],
-        "phase": ["eSolution", "CC", "_phase"],
+        "e": ["eSolution", "N", "_e"],
+        "h": ["eSolution", "CC", "_h"],
     }
+    field_directions = "yx"
 
     def startup(self):
-        # boundary conditions
-        self._B = self.simulation._B
-        self._e_bc = self.simulation._e_bc
-
-        # operators
-        self._D = self.mesh.faceDiv
-        self._V = self.simulation.Vol
-        self._aveN2CC = self.mesh.aveN2CC
-        self._MfMui = self.simulation.MfMui
-        self._MfI = self.simulation.MfI
-        self._MccSigma = self.simulation.MccSigma
-        self._MccSigmaDeriv = self.simulation.MccSigmaDeriv
-
-        # geometry
-        self._nC = self.mesh.nC
-        self._nF = self.mesh.nF
-
-    def _e(self, eSolution, source_list):
-        return eSolution
-
-    def _j(self, eSolution, source_list):
-        return self._MccSigma @ eSolution
-
-    def _b(self, eSolution, source_list):
-        b = np.zeros((self._nF, len(source_list)), dtype=complex)
-        for i, src in enumerate(source_list):
-            b[:, i] = (
-                -1
-                / (1j * omega(src.frequency))
-                * (
-                    self._MfI @ (self._D.T @ (self._V @ eSolution[:, i]))
-                    - self._B @ self._e_bc
-                )
-            )
-        return b
-
-    def _h(self, eSolution, source_list):
-        return self._MfI @ (self._MfMui @ self._b(eSolution, source_list))
-
-    def _impedance(self, eSolution, source_list):
-        return self._e(eSolution, source_list) / (
-            self._aveN2CC @ self._h(eSolution, source_list)
-        )
-
-    def _apparent_resistivity(self, eSolution, source_list):
-        z = self._impedance(eSolution, source_list)
-        frequencies = [src.frequency for src in source_list]
-        return (z.real ** 2 + z.imag ** 2) @ sdiag(
-            1 / (omega(np.array(frequencies)) * mu_0)
-        )
-
-    def _apparent_conductivity(self, eSolution, source_list):
-        return 1.0 / self._apparent_resistivity(eSolution, source_list)
-
-    def _phase(self, eSolution, source_list):
-        z = self._impedance(eSolution, source_list)
-        return 180 / np.pi * np.arctan2(z.imag, z.real)
+        self._C = self.simulation.mesh.nodal_gradient
 
 
-class Fields1DMagneticFluxDensity(Fields1DElectricField):
+class Fields1DMagneticField(_HField, Fields1DElectricField):
     """
     Fields
     """
 
-    knownFields = {"bSolution": "CC"}
+    knownFields = {"hSolution": "N"}
     aliasFields = {
-        "e": ["bSolution", "F", "_e"],
-        "j": ["bSolution", "F", "_j"],
-        "b": ["bSolution", "CC", "_b"],
-        "h": ["bSolution", "CC", "_h"],
-        "impedance": ["bSolution", "CC", "_impedance"],
-        "apparent resistivity": ["bSolution", "CC", "_apparent_resistivity"],
-        "apparent conductivity": ["bSolution", "CC", "_apparent_conductivity"],
-        "phase": ["bSolution", "CC", "_phase"],
+        "e": ["hSolution", "CC", "_e"],
+        "h": ["hSolution", "N", "_h"],
     }
+
+    field_directions = "xy"
 
     def startup(self):
         # boundary conditions
-        self._B = self.simulation._B
-        self._b_bc = self.simulation._b_bc
-
-        # operators
-        self._D = self.mesh.faceDiv
-        self._V = self.simulation.Vol
-        self._aveN2CC = self.mesh.aveN2CC
-        self._MccMui = self.simulation.MccMui
-        self._MfSigmaI = self.simulation.MfSigmaI
-        self._MfSigmaIDeriv = self.simulation.MfSigmaIDeriv
-        self._MfSigma = self.simulation.MfSigma
-        self._MfSigmaDeriv = self.simulation.MfSigmaDeriv
-        self._MfI = self.simulation.MfI
-
-        # geometry
-        self._nC = self.mesh.nC
-        self._nF = self.mesh.nF
-
-    def _b(self, bSolution, source_list):
-        return bSolution
-
-    def _h(self, hSolution, source_list):
-        return self._MccMui @ hSolution
-
-    def _e(self, bSolution, source_list):
-        e = np.zeros((self._nF, len(source_list)), dtype=complex)
-        for i, src in enumerate(source_list):
-            e[:, i] = -self._MfSigmaI @ (
-                self._D.T @ (self._MccMui @ (self._V @ bSolution[:, i]))
-            ) + self._MfSigmaI @ (self._B @ self._b_bc)
-        return e
-
-    def _j(self, bSolution, source_list):
-        return self._MfI @ self._MfSigma @ self._e(bSolution, source_list)
-
-    def _impedance(self, bSolution, source_list):
-        return (
-            self._aveN2CC
-            @ self._e(bSolution, source_list)
-            / self._h(bSolution, source_list)
-        )
+        self._C = -self.simulation.mesh.nodal_gradient
 
 
 class Fields1DPrimarySecondary(FieldsFDEM):
@@ -179,6 +202,8 @@ class Fields1DPrimarySecondary(FieldsFDEM):
         "bSecondary": ["e_1dSolution", "E", "_bSecondary"],
         "h": ["e_1dSolution", "E", "_h"],
     }
+
+    field_directions = "xy"
 
     # def __init__(self, mesh, survey, **kwargs):
     #     super(Fields1DPrimarySecondary, self).__init__(mesh, survey, **kwargs)
@@ -318,6 +343,37 @@ class Fields1DPrimarySecondary(FieldsFDEM):
 ###########
 # 2D Fields
 ###########
+
+
+class Fields2DElectricField(_EField, FieldsFDEM):
+    """
+    Fields
+    """
+
+    knownFields = {"eSolution": "E"}
+    aliasFields = {
+        "e": ["eSolution", "E", "_e"],
+        "h": ["eSolution", "CC", "_h"],
+    }
+
+    def startup(self):
+        self._C = self.simulation.mesh.edge_curl
+
+
+class Fields2DMagneticField(_HField, FieldsFDEM):
+    """
+    Fields
+    """
+
+    knownFields = {"hSolution": "E"}
+    aliasFields = {
+        "e": ["hSolution", "CC", "_e"],
+        "h": ["hSolution", "E", "_h"],
+    }
+
+    def startup(self):
+        # boundary conditions
+        self._C = -self.simulation.mesh.edge_curl
 
 
 ###########

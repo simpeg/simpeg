@@ -41,8 +41,8 @@ class FiniteVolume1DTest(unittest.TestCase):
                 survey=self.survey,
                 sigmaMap=maps.IdentityMap(),
             )
-        elif formulation == "b":
-            return nsem.simulation.Simulation1DMagneticFluxDensity(
+        elif formulation == "h":
+            return nsem.simulation.Simulation1DMagneticField(
                 mesh=self.mesh,
                 solver=Pardiso,
                 survey=self.survey,
@@ -68,9 +68,9 @@ class FiniteVolume1DTest(unittest.TestCase):
         sig_a_error = np.abs(sig_a - s) / s
 
         if formulation == "e":
-            p = 45  # Zxy = ex / hy
-        elif formulation == "b":
-            p = -45  # Zyx = ey / hx
+            p = 45  # Zyx = ey / hx
+        elif formulation == "h":
+            p = -135  # Zxy = ex / hy
 
         phase_error = np.abs(phase - p)
 
@@ -95,10 +95,10 @@ class FiniteVolume1DTest(unittest.TestCase):
         self.apparent_resistivity_phase_test(3e-1, "e")
 
     def test_1en1_b(self):
-        self.apparent_resistivity_phase_test(1e-1, "b")
+        self.apparent_resistivity_phase_test(1e-1, "h")
 
     def test_3en1_b(self):
-        self.apparent_resistivity_phase_test(3e-1, "b")
+        self.apparent_resistivity_phase_test(3e-1, "h")
 
 
 if __name__ == "__main__":

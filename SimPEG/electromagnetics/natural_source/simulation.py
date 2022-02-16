@@ -2,19 +2,35 @@ import time
 import sys
 import numpy as np
 import properties
-from discretize.utils import isScalar
+from discretize import TensorMesh, TreeMesh
+from discretize.utils import Zero, make_boundary_bool
 from scipy.constants import mu_0
 from ...utils.code_utils import deprecate_class
 
 from ...utils import mkvc, sdiag
+from ... import maps
 from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
+from ..frequency_domain.survey import Survey
 from ..utils import omega
 from .survey import Data, Survey1D
+from .sources import Planewave1D
 from .fields import (
     Fields1DPrimarySecondary,
     Fields1DElectricField,
-    Fields1DMagneticFluxDensity,
+    Fields1DMagneticField,
+    Fields2DElectricField,
+    Fields2DMagneticField,
 )
+
+
+def _centers_to_widths(centers):
+    centers = np.asarray(centers)
+    d = np.empty_like(centers)
+    n = centers.shape[-1]
+    d[..., 0] = 2 * centers[..., 0]
+    for i in range(1, n):
+        d[..., i] = 2 * (centers[..., i] - centers[..., i - 1]) - d[..., i - 1]
+    return d
 
 
 class BaseNSEMSimulation(BaseFDEMSimulation):
@@ -55,7 +71,7 @@ class BaseNSEMSimulation(BaseFDEMSimulation):
         # Initiate the Jv object
         Jv = Data(self.survey)
 
-        # Loop all the frequenies
+        # Loop all the frequencies
         for freq in self.survey.frequencies:
             # Get the system
             A = self.getA(freq)
@@ -312,7 +328,7 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
 
 
 class Simulation1DElectricField(BaseFDEMSimulation):
-    """
+    r"""
     1D finite volume simulation for the natural source electromagnetic problem.
 
     This corresponds to the TE mode 2D simulation where the electric field is
@@ -322,28 +338,22 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
     .. math::
 
-        -\partial E_y + i \omega B_x = 0
+        \partial_z E_y = i \omega \mu_0 H_x = 0
 
-        \partial_z \mu^{-1} B_x - sigma E_y = 0
+        sigma E_y = \partial_z H_x
 
-    with the boundary conditions that $E_y[z_max] = 1$ (a plane wave source at
-    the top of the domain), and $E_y[z_min] = 0$. This can later be updated to
-    mixed boundary conditions (see Haber, 2014).
+    with default boundary conditions that $H_x[z_max] = 1$ (a plane wave source at
+    the top of the domain), and $H_x[z_min] = 0$.
 
     When we discretize, we obtain:
 
-    .. math::
-
-        \mathbf{b} = \frac{1}{i\omega} \left( \mathbf{M^f}^{-1} \mathbf{D}^\top \mathbf{V} \mathbf{e} - \mathbf{B} \mathbf{e^{BC}} \right)
-
-        \left( \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma} \right) \mathbf{e} = \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{B} \mathbf{e^{BC}}
-
+    where the Magnetic field is defined on edges, and the electric field is
+    defined on cell centers.
     """
 
     _solutionType = "eSolution"
     _formulation = "HJ"  # magnetic component is on edges
     fieldsPair = Fields1DElectricField
-    _clear_on_sigma_update = ["_MccSigma"]
 
     # Must be 1D survey object
     survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
@@ -355,39 +365,9 @@ class Simulation1DElectricField(BaseFDEMSimulation):
                 f"The mesh must be a 1D mesh. The provided mesh has dimension {mesh.dim}"
             )
 
-        super(Simulation1DElectricField, self).__init__(mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
-        # todo: update to enable user to input / customize boundary conditions
-        self._B = self.mesh.getBCProjWF("dirichlet")[0]
-        self._e_bc = np.r_[0, 1]  # 0 at the bottom of the domain, 1 at the top
-
-    @property
-    def MccSigma(self):
-        """
-        Cell centered inner product matrix for conductivity
-        """
-        if getattr(self, "_MccSigma", None) is None:
-            self._MccSigma = sdiag(self.sigma)
-        return self._MccSigma
-
-    def MccSigmaDeriv(self, u, v=None, adjoint=False):
-        """
-        Derivative of MccSigma with respect to the model times a vector
-        """
-        if self.sigmaMap is None:
-            return Zero()
-
-        if v is not None:
-            if not adjoint:
-                return u * (self.sigmaDeriv * v)
-            elif adjoint:
-                return self.sigmaDeriv.T * (u * v)
-        else:
-            mat = sdiag(u) * self.sigmaDeriv
-            if not adjoint:
-                return mat
-            elif adjoint:
-                return mat.T
+        self._rhs = mesh.boundary_node_vector_integral * [0 + 0j, 1 + 0j]
 
     def getA(self, freq):
         """
@@ -395,49 +375,50 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
         .. math::
 
-        \mathbf{A} = \mathbf{V} \mathbf{D} \mathbf{M^f}_{\mu^{-1}} \mathbf{M^f}^{-1} \mathbf{D^\top} - i\omega \mathbf{M^{cc}}_{\sigma}
-
-        """
-        D = self.mesh.faceDiv
-        MfMui = self.MfMui
-        MfI = self.MfI
-        MccSigma = self.MccSigma
-
-        return D @ MfMui @ MfI @ D.T + 1j * omega(freq) * MccSigma
-
-    def getADeriv(self, freq, u, v, adjoint=False):
-        """
-        Derivative with respect to the conductivity model
+        \mathbf{A} = \mathbf{G}^\top \mathbf{M}^e_{\mu^{-1}} \mathbf{G} + 1\omega \mathbf{M}^f_\sigma
         """
 
-        return 1j * omega(freq) * self.MccSigmaDeriv(u, v, adjoint)
+        G = self.mesh.nodal_gradient
+        MeMui = self.MeMui
+        MfSigma = self.MfSigma
+
+        return G.T.tocsr() @ MeMui @ G + 1j * omega(freq) * MfSigma
+
+    def getADeriv_sigma(self, freq, u, v, adjoint=False):
+        return 1j * omega(freq) * self.MfSigmaDeriv(u, v, adjoint=adjoint)
+
+    def getADeriv_mui(self, freq, u, v, adjoint=False):
+        G = self.mesh.nodal_gradient
+        if adjoint:
+            return self.MeMuiDeriv(G * u, G * v, adjoint)
+        return G.T * self.MeMuiDeriv(G * u, v, adjoint)
 
     def getRHS(self, freq):
         """
         Right hand side constructed using Dirichlet boundary conditions
         """
-        D = self.mesh.faceDiv
-        MfMui = self.MfMui
-        B = self._B
-        ebc = self._e_bc
+        return 1j * omega(freq) * self._rhs
 
-        sources = self.survey.get_sources_by_frequency(freq)
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        return Zero()
 
-        return D @ (MfMui @ (B @ ebc))
+    def getADeriv(self, freq, u, v, adjoint=False):
+        return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
+            freq, u, v, adjoint
+        )
 
 
-class Simulation1DMagneticFluxDensity(BaseFDEMSimulation):
+class Simulation1DMagneticField(BaseFDEMSimulation):
     """
     1D finite volume simulation for the natural source electromagnetic problem.
 
-    This corresponds to the TM mode 2D simulation where the magnetic flux is
-    located at cell centers and the electric field is on edges.
+    This corresponds to the TM mode 2D simulation where the magnetic field is
+    located at faces (nodes) and the electric field is on edges (cell_centers).
     """
 
-    _solutionType = "bSolution"
-    _formulation = "EB"
-    fieldsPair = Fields1DMagneticFluxDensity
-    _clear_on_sigma_update = ["_MfSigmaI", "_MfSigma", "_MfSigmaIDeriv"]
+    _solutionType = "hSolution"
+    _formulation = "HJ"
+    fieldsPair = Fields1DMagneticField
 
     # Must be 1D survey object
     survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
@@ -448,120 +429,496 @@ class Simulation1DMagneticFluxDensity(BaseFDEMSimulation):
                 f"The mesh must be a 1D mesh. The provided mesh has dimension {mesh.dim}"
             )
 
-        super(Simulation1DMagneticFluxDensity, self).__init__(mesh, **kwargs)
+        super().__init__(mesh, **kwargs)
 
-        # todo: update to enable user to input / customize boundary conditions
-        self._B = self.mesh.getBCProjWF("dirichlet")[0]
-        self._b_bc = np.r_[0, 1]  # 0 at the bottom of the domain, 1 at the top
-
-    @property
-    def MccMui(self):
-        """
-        Cell centered inner product matrix for inverse magnetic permeability
-        """
-        if getattr(self, "_MccMui", None) is None:
-            mui = self.mui
-            if isScalar(mui):
-                mui = mui * np.ones(self.mesh.nC)
-            self._MccMui = sdiag(mui)
-        return self._MccMui
-
-    @property
-    def MfSigmaI(self):
-        """
-        Inverse of the face inner product matrix for sigma
-        """
-        if getattr(self, "_MfSigmaI", None) is None:
-            self._MfSigmaI = self.mesh.getFaceInnerProduct(self.sigma, invMat=True)
-        return self._MfSigmaI
-
-    @property
-    def MfSigma(self):
-        if getattr(self, "_MfSigma", None) is None:
-            self._MfSigma = self.mesh.getFaceInnerProduct(self.sigma)
-        return self._MfSigma
-
-    def MfSigmaDeriv(self, u, v=None, adjoint=False):
-        if self.sigmaMap is None:
-            return Zero()
-
-        if getattr(self, "_MfSigmaDeriv", None) is None:
-            self._MfSigmaDeriv = (
-                self.mesh.getFaceInnerProductDeriv(np.ones(self.mesh.nC))(
-                    np.ones(sef.mesh.nF)
-                )
-            ) * self.sigmaDeriv
-
-        if v is not None:
-            u = u.flatten()
-            if v.ndim > 1:
-                # promote u iff v is a matrix
-                u = u[:, None]  # Avoids constructing the sparse matrix
-            if adjoint is True:
-                return self._MfSigmaDeriv.T.dot(u * v)
-            return u * (self._MfSigmaDeriv.dot(v))
-        else:
-            if adjoint is True:
-                return self._MfSigmaDeriv.T.dot(sdiag(u))
-            return sdiag(u) * (self._MfSigmaDeriv)
-
-    def MfSigmaIDeriv(self, u, v=None, adjoint=False):
-        if self.sigmaMap is None:
-            return Zero()
-
-        dMfSigmaI_dI = -self.MfSigmaI ** 2
-
-        if adjoint:
-            return self.MfSigmaDeriv(dMfSigmaI_dI.dot(u), v=v, adjoint=adjoint)
-        return dMfSigmaI_dI.dot(self.MfSigmaDeriv(u, v=v))
+        # corresponds to a dirichlet boundaries at the top (= 1 ) and bottom(=0)
+        # for the y component of electric field
+        self._rhs = -mesh.boundary_node_vector_integral * [0 + 0j, 1 + 0j]
 
     def getA(self, freq):
         """
         system matrix
         """
-        MccMui = self.MccMui
-        V = self.Vol
-        D = self.mesh.faceDiv
-        MfSigmaI = self.MfSigmaI
+        G = self.mesh.nodal_gradient
+        MeRho = self.MeRho
+        MnMu = self.MnMu
 
-        return (
-            V @ MccMui @ D @ MfSigmaI @ D.T @ MccMui @ V - 1j * omega(freq) * MccMui @ V
-        )
+        return G.T.tocsr() @ MeRho @ G + 1j * omega(freq) * MnMu
 
-    def getADeriv(self, freq, u, v, adjoint=False):
-        MccMui = self.MccMui
-        V = self.Vol
-        D = self.mesh.faceDiv
+    def getADeriv_rho(self, freq, u, v, adjoint=False):
+        G = self.mesh.nodal_gradient
+        if adjoint:
+            return self.MeRhoDeriv(G * u, G * v, adjoint)
+        return G.T * self.MeRhoDeriv(G * u, v, adjoint)
 
-        # V, MccMui are symmetric
-        return (
-            V
-            @ MccMui
-            @ D
-            @ self.MfSigmaIDeriv(D.T @ MccMui @ V @ u, v, adjoint=adjoint)
-        )
+    def getADeriv_mu(self, freq, u, v, adjoint=False):
+        MnMuDeriv = self.MnMuDeriv(u)
+        if adjoint is True:
+            return 1j * omega(freq) * (MnMuDeriv.T * v)
+
+        return 1j * omega(freq) * (MnMuDeriv * v)
 
     def getRHS(self, freq):
         """
         right hand side
         """
-        MccMui = self.MccMui
-        D = self.mesh.faceDiv
-        V = self.Vol
-        B = self._B
-        bbc = self._b_bc
+        return self._rhs
 
-        return V @ (MccMui @ (D @ (B @ bbc)))
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        return Zero()
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+            freq, u, v, adjoint
+        )
 
 
 ###################################
 # 2D problems
 ###################################
+class Simulation2DElectricField(BaseFDEMSimulation):
+    """
+    A
+    """
 
-# class Simulation2DElectricField(BaseFDEMSimulation):
-#     """
-#     A
-#     """
+    _solutionType = "eSolution"
+    _formulation = "EB"
+    fieldsPair = Fields2DElectricField
+
+    def __init__(self, mesh, h_bc=None, **kwargs):
+
+        if mesh.dim != 2:
+            raise ValueError(
+                f"The mesh must be a 2D mesh. The provided mesh has dimension {mesh.dim}"
+            )
+
+        super().__init__(mesh, **kwargs)
+
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                if rx.orientation != "xy":
+                    raise TypeError(
+                        "natural_source.Simulation2DElectricField only supports xy oriented"
+                        " receivers. Please use the Simulation2DMagneticField class for"
+                        " those receivers."
+                    )
+
+        if h_bc is None:
+            if isinstance(mesh, (TensorMesh, TreeMesh)):
+                b_e = mesh.boundary_edges
+                top = np.where(b_e[:, 1] == mesh.nodes_y[-1])
+                bot = np.where(b_e[:, 1] == mesh.nodes_y[0])
+                left = np.where(b_e[:, 0] == mesh.nodes_x[0])
+                right = np.where(b_e[:, 0] == mesh.nodes_x[-1])
+
+                if isinstance(mesh, TensorMesh):
+                    h_l = h_r = mesh.h[1]
+                    is_b = np.zeros(mesh.shape_cells, dtype=bool)
+                    is_b[:, 0] = True
+                    P_l = maps.Projection(mesh.n_cells, is_b.reshape(-1))
+                    is_b[:, 0] = False
+                    is_b[:, -1] = True
+                    P_r = maps.Projection(mesh.n_cells, is_b.reshape(-1))
+                else:
+                    h_l = _centers_to_widths(b_e[left][:, 1])
+                    h_r = _centers_to_widths(b_e[right][:, 1])
+                    b_l, b_r, _, __ = mesh.cell_boundary_indices
+                    P_l = maps.Projection(mesh.n_cells, b_l)
+                    P_r = maps.Projection(mesh.n_cells, b_r)
+
+                self._b_inds = (left, right, bot, top)
+                self._P_l = P_l
+                self._P_r = P_r
+
+                map_l_kwargs = {}
+                map_r_kwargs = {}
+                if self.sigmaMap is not None:
+                    map_l_kwargs["sigmaMap"] = P_l * self.sigmaMap
+                    map_r_kwargs["sigmaMap"] = P_r * self.sigmaMap
+                if self.muiMap is not None:
+                    map_l_kwargs["muiMap"] = P_l * self.muiMap
+                    map_r_kwargs["muiMap"] = P_r * self.muiMap
+
+                # create a survey with 1 source per frequency (no receivers)
+                frequencies = self.survey.frequencies
+                survey = Survey1D([Planewave1D([], freq) for freq in frequencies])
+                self._sim_left = Simulation1DElectricField(
+                    TensorMesh((h_l,), (mesh.nodes_y[0],)),
+                    survey=survey,
+                    solver=self.solver,
+                    **map_l_kwargs,
+                )
+                self._sim_right = Simulation1DElectricField(
+                    TensorMesh((h_r,), (mesh.nodes_y[0],)),
+                    survey=survey,
+                    solver=self.solver,
+                    **map_r_kwargs,
+                )
+            else:
+                raise NotImplementedError(
+                    f"Unable to infer 1D mesh from {type(mesh)}. You must supply custom"
+                    " boundary conditions for the electric field."
+                )
+            self._h_bc = None
+        else:
+            n_be = mesh.boundary_edges.shape[0]
+            for freq in self.survey.frequencies:
+                try:
+                    h = h_bc[freq]
+                    if len(h) != n_be:
+                        raise ValueError(
+                            f"Boundary condition item for frequency {freq} is incorrect length."
+                            f" Should be the same length as number of boundary_edges, {n_be}, "
+                            f" saw a length of {len(h)}"
+                        )
+                except TypeError:
+                    raise TypeError(
+                        "h_bc must be a dictionary of numpy arrays indexed by frequency."
+                    )
+                except IndexError:
+                    raise TypeError(
+                        "h_bc must be a dictionary of numpy arrays indexed by frequency. Did not"
+                        f" find key {freq}."
+                    )
+                except KeyError:
+                    raise KeyError(
+                        "h_bc must be a dictionary of numpy arrays indexed by frequency. Did not"
+                        f" find key {freq}."
+                    )
+            self._h_bc = h_bc
+        self._M_bc = mesh.boundary_edge_vector_integral
+
+    def getA(self, freq):
+        """
+        System matrix
+
+        .. math::
+
+        \mathbf{A} = \mathbf{C}^\top \mathbf{M}^{cc}_{\mu} \mathbf{C} + 1\omega \mathbf{M}^e_\sigma
+        """
+        C = self.mesh.edge_curl
+        Mcc_mui = self.MccMui
+        Me_sigma = self.MeSigma
+
+        return C.T.tocsr() @ Mcc_mui @ C + 1j * omega(freq) * Me_sigma
+
+    def getRHS(self, freq):
+        """
+        Right hand side constructed using Dirichlet boundary conditions
+        """
+        M_bc = self._M_bc
+        if self._h_bc is None:
+            # left and right have the same 1D survey
+            src = self._sim_left.survey.get_sources_by_frequency(freq)[0]
+            f_left, f_right = self.boundary_fields()
+            h_bc = np.zeros(M_bc.shape[1], dtype=complex)
+            left, right, bot, top = self._b_inds
+            h_bc[top] = 1.0
+            h_bc[left] = f_left[src, "h"][:, 0]
+            h_bc[right] = f_right[src, "h"][:, 0]
+        else:
+            h_bc = self._h_bc[freq]
+        return 1j * omega(freq) * (M_bc @ h_bc)
+
+    def getADeriv_sigma(self, freq, u, v, adjoint=False):
+        return 1j * omega(freq) * self.MeSigmaDeriv(u, v, adjoint=adjoint)
+
+    def getADeriv_mui(self, freq, u, v, adjoint=False):
+        C = self.mesh.edge_curl
+        if adjoint:
+            return self.MccMuiDeriv(C * u, C * v, adjoint)
+        return C.T * self.MccMuiDeriv(C * u, v, adjoint)
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
+            freq, u, v, adjoint
+        )
+
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        if self._h_bc is not None:
+            return Zero()
+        M_bc = self._M_bc
+        f_left, f_right = self.boundary_fields()
+        left, right, _, __ = self._b_inds
+        src_1d = self._sim_left.survey.get_sources_by_frequency(freq)[0]
+
+        # derivatives from the Jv func of the 1D sim
+        if not adjoint:
+            h_bc_dm_v = np.zeros(M_bc.shape[1], dtype=complex)
+            h_bc_dm_v[left] = f_left.field_deriv_m("h", freq, src_1d, v, adjoint=False)
+            h_bc_dm_v[right] = f_right.field_deriv_m(
+                "h", freq, src_1d, v, adjoint=False
+            )
+
+            return 1j * omega(freq) * (M_bc @ h_bc_dm_v)
+        else:
+            v_dm = M_bc.T @ v
+            v_left, v_right = v_dm[left], v_dm[right]
+            df_dmT = f_left.field_deriv_m("h", freq, src_1d, v_left, adjoint=True)
+            df_dmT += f_right.field_deriv_m("h", freq, src_1d, v_right, adjoint=True)
+
+            return 1j * omega(freq) * df_dmT
+
+    def boundary_fields(self, model=None):
+        "Returns the 1D field objects at the boundaries"
+        if getattr(self, "_boundary_fields", None) is None:
+            if model is None:
+                model = self.model
+            sim = self._sim_left
+            if self.muiMap is None:
+                try:
+                    sim.mui = self._P_l @ self.mui
+                except Exception:
+                    sim.mui = self.mui
+            if self.sigmaMap is None:
+                try:
+                    sim.sigma = self._P_l @ self.sigma
+                except Exception:
+                    sim.sigma = self.sigma
+            f_left = sim.fields(model)
+
+            sim = self._sim_right
+            if self.muiMap is None:
+                try:
+                    sim.mui = self._P_r @ self.mui
+                except Exception:
+                    sim.mui = self.mui
+            if self.sigmaMap is None:
+                try:
+                    sim.sigma = self._P_r @ self.sigma
+                except Exception:
+                    sim.sigma = self.sigma
+            f_right = sim.fields(model)
+
+            self._boundary_fields = (f_left, f_right)
+        return self._boundary_fields
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        items = super().deleteTheseOnModelUpdate
+        items.append("_boundary_fields")
+        return items
+
+
+class Simulation2DMagneticField(BaseFDEMSimulation):
+    """
+    A
+    """
+
+    _solutionType = "hSolution"
+    _formulation = "HJ"
+    fieldsPair = Fields2DMagneticField
+
+    def __init__(self, mesh, e_bc=None, **kwargs):
+
+        if mesh.dim != 2:
+            raise ValueError(
+                f"The mesh must be a 2D mesh. The provided mesh has dimension {mesh.dim}"
+            )
+
+        super().__init__(mesh, **kwargs)
+
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                if rx.orientation != "yx":
+                    raise TypeError(
+                        "natural_source.Simulation2DMagneticField only supports yx oriented"
+                        " receivers. Please use the Simulation2DElectricField class for"
+                        " those receivers."
+                    )
+
+        if e_bc is None:
+            if isinstance(mesh, (TensorMesh, TreeMesh)):
+                b_e = mesh.boundary_edges
+                top = np.where(b_e[:, 1] == mesh.nodes_y[-1])
+                bot = np.where(b_e[:, 1] == mesh.nodes_y[0])
+                left = np.where(b_e[:, 0] == mesh.nodes_x[0])
+                right = np.where(b_e[:, 0] == mesh.nodes_x[-1])
+
+                if isinstance(mesh, TensorMesh):
+                    h_l = h_r = mesh.h[1]
+                    is_b = np.zeros(mesh.shape_cells, dtype=bool)
+                    is_b[:, 0] = True
+                    P_l = maps.Projection(mesh.n_cells, is_b.reshape(-1))
+                    is_b[:, 0] = False
+                    is_b[:, -1] = True
+                    P_r = maps.Projection(mesh.n_cells, is_b.reshape(-1))
+                else:
+                    h_l = _centers_to_widths(b_e[left][:, 1])
+                    h_r = _centers_to_widths(b_e[right][:, 1])
+                    b_l, b_r, _, __ = mesh.cell_boundary_indices
+                    P_l = maps.Projection(mesh.n_cells, b_l)
+                    P_r = maps.Projection(mesh.n_cells, b_r)
+
+                self._b_inds = (left, right, bot, top)
+                self._P_l = P_l
+                self._P_r = P_r
+
+                map_l_kwargs = {}
+                map_r_kwargs = {}
+                if self.rhoMap is not None:
+                    map_l_kwargs["rhoMap"] = P_l * self.rhoMap
+                    map_r_kwargs["rhoMap"] = P_r * self.rhoMap
+                if self.muMap is not None:
+                    map_l_kwargs["muMap"] = P_l * self.muMap
+                    map_r_kwargs["muMap"] = P_r * self.muMap
+
+                # create a survey with 1 source per frequency (no receivers)
+                frequencies = self.survey.frequencies
+                survey = Survey1D([Planewave1D([], freq) for freq in frequencies])
+                self._sim_left = Simulation1DMagneticField(
+                    TensorMesh((h_l,), (mesh.nodes_y[0],)),
+                    survey=survey,
+                    solver=self.solver,
+                    **map_l_kwargs,
+                )
+                self._sim_right = Simulation1DMagneticField(
+                    TensorMesh((h_r,), (mesh.nodes_y[0],)),
+                    survey=survey,
+                    solver=self.solver,
+                    **map_r_kwargs,
+                )
+            else:
+                raise NotImplementedError(
+                    f"Unable to infer 1D mesh from {type(mesh)}. You must supply custom"
+                    " boundary conditions for the electric field."
+                )
+            self._e_bc = None
+        else:
+            n_be = mesh.boundary_edges.shape[0]
+            for freq in self.survey.frequencies:
+                try:
+                    e = e_bc[freq]
+                    if len(e) != n_be:
+                        raise ValueError(
+                            f"Boundary condition item for frequency {freq} is incorrect length."
+                            f" Should be the same length as number of boundary_edges, {n_be}, "
+                            f" saw a length of {len(e)}"
+                        )
+                except TypeError:
+                    raise TypeError(
+                        "e_bc must be a dictionary of numpy arrays indexed by frequency."
+                    )
+                except IndexError:
+                    raise TypeError(
+                        "e_bc must be a dictionary of numpy arrays indexed by frequency."
+                    )
+                except KeyError:
+                    raise KeyError(
+                        "e_bc must be a dictionary of numpy arrays indexed by frequency. Did not"
+                        f" find key {freq}."
+                    )
+            self._e_bc = e_bc
+        self._M_bc = mesh.boundary_edge_vector_integral
+
+    def getA(self, freq):
+        """
+        System matrix
+
+        .. math::
+
+        \mathbf{A} = \mathbf{C}^\top \mathbf{M}^{cc}_{\rho} \mathbf{C} + 1\omega \mathbf{M}^e_\mu
+        """
+        C = self.mesh.edge_curl
+        Mcc_rho = self.MccRho
+        Me_mu = self.MeMu
+
+        return C.T.tocsr() @ Mcc_rho @ C + 1j * omega(freq) * Me_mu
+
+    def getRHS(self, freq):
+        """
+        Right hand side constructed using Dirichlet boundary conditions
+        """
+        M_bc = self._M_bc
+        if self._e_bc is None:
+            # left and right have the same 1D survey
+            src = self._sim_left.survey.get_sources_by_frequency(freq)[0]
+            f_left, f_right = self.boundary_fields()
+            e_bc = np.zeros(M_bc.shape[1], dtype=complex)
+            left, right, bot, top = self._b_inds
+            e_bc[top] = 1.0
+            e_bc[left] = f_left[src, "e"][:, 0]
+            e_bc[right] = f_right[src, "e"][:, 0]
+        else:
+            e_bc = self._e_bc[freq]
+        return -M_bc @ e_bc
+
+    def getADeriv_rho(self, freq, u, v, adjoint=False):
+        C = self.mesh.edge_curl
+        if adjoint:
+            return self.MccRhoDeriv(C * u, C * v, adjoint)
+        return C.T * self.MccRhoDeriv(C * u, v, adjoint)
+
+    def getADeriv_mu(self, freq, u, v, adjoint=False):
+        return 1j * omega(freq) * self.MeMuDeriv(u, v, adjoint=adjoint)
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+            freq, u, v, adjoint
+        )
+
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        if self._e_bc is not None:
+            return Zero()
+        M_bc = self._M_bc
+        f_left, f_right = self.boundary_fields()
+        left, right, _, __ = self._b_inds
+        src_1d = self._sim_left.survey.get_sources_by_frequency(freq)[0]
+
+        # derivatives from the Jv func of the 1D sim
+        if not adjoint:
+            e_bc_dm_v = np.zeros(M_bc.shape[1], dtype=complex)
+            e_bc_dm_v[left] = f_left.field_deriv_m("e", freq, src_1d, v, adjoint=False)
+            e_bc_dm_v[right] = f_right.field_deriv_m(
+                "e", freq, src_1d, v, adjoint=False
+            )
+            return -(M_bc @ e_bc_dm_v)
+        else:
+            v_dm = -(M_bc.T @ v)
+            v_left, v_right = v_dm[left], v_dm[right]
+            df_dmT = f_left.field_deriv_m("e", freq, src_1d, v_left, adjoint=True)
+            df_dmT += f_right.field_deriv_m("e", freq, src_1d, v_right, adjoint=True)
+            return df_dmT
+
+    def boundary_fields(self, model=None):
+        "Returns the 1D field objects at the boundaries"
+        if getattr(self, "_boundary_fields", None) is None:
+            if model is None:
+                model = self.model
+            sim = self._sim_left
+            if self.muMap is None:
+                try:
+                    sim.mu = self._P_l @ self.mu
+                except Exception:
+                    sim.mu = self.mu
+            if self.rhoMap is None:
+                try:
+                    sim.rho = self._P_l @ self.rho
+                except Exception:
+                    sim.rho = self.rho
+            f_left = sim.fields(model)
+
+            sim = self._sim_right
+            if self.muMap is None:
+                try:
+                    sim.mu = self._P_r @ self.mu
+                except Exception:
+                    sim.mu = self.mu
+            if self.rhoMap is None:
+                try:
+                    sim.rho = self._P_r @ self.rho
+                except Exception:
+                    sim.rho = self.rho
+            f_right = sim.fields(model)
+
+            self._boundary_fields = (f_left, f_right)
+        return self._boundary_fields
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        items = super().deleteTheseOnModelUpdate
+        items.append("_boundary_fields")
+        return items
 
 
 ###################################
