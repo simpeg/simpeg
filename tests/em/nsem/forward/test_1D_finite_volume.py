@@ -7,8 +7,8 @@ from pymatsolver import Pardiso
 import unittest
 
 
-TOL_SIGMA = 0.05  # 5%
-TOL_PHASE = 3  # 3 degrees
+TOL_SIGMA = 0.2  # 20% (These are very loose tests)
+TOL_PHASE = 5  # 3 degrees
 
 
 class FiniteVolume1DTest(unittest.TestCase):
@@ -28,8 +28,24 @@ class FiniteVolume1DTest(unittest.TestCase):
         # survey
         self.frequencies = np.logspace(-2, 1, 30)
 
+        rx_list = [
+            nsem.receivers.PointNaturalSource(
+                [[0]], orientation="xy", component="apparent_resistivity"
+            ),
+            nsem.receivers.PointNaturalSource(
+                [[0]], orientation="xy", component="phase"
+            ),
+            nsem.receivers.PointNaturalSource(
+                [[0]], orientation="yx", component="apparent_resistivity"
+            ),
+            nsem.receivers.PointNaturalSource(
+                [[0]], orientation="yx", component="phase"
+            ),
+        ]
         # simulation
-        src_list = [nsem.sources.Planewave1D([], frequency=f) for f in self.frequencies]
+        src_list = [
+            nsem.sources.Planewave1D(rx_list, frequency=f) for f in self.frequencies
+        ]
         self.survey = nsem.survey.Survey1D(src_list)
 
     def get_simulation(self, formulation="e"):
@@ -60,33 +76,18 @@ class FiniteVolume1DTest(unittest.TestCase):
     def apparent_resistivity_phase_test(self, s, formulation="e"):
         sigma = self.get_sigma(s)
         sim = self.get_simulation(formulation)
-        f = sim.fields(sigma)
+        d = sim.dpred(sigma)
 
-        sig_a = f[:, "apparent conductivity"][-self.npad - 1, :]
-        phase = f[:, "phase"][-self.npad - 1, :]
+        rho_a_xy = d[0::4]
+        phase_xy = d[1::4]
+        rho_a_yx = d[2::4]
+        phase_yx = d[3::4]
 
-        sig_a_error = np.abs(sig_a - s) / s
+        np.testing.assert_allclose(rho_a_xy, 1.0 / s, rtol=TOL_SIGMA)
+        np.testing.assert_allclose(rho_a_yx, 1.0 / s, rtol=TOL_SIGMA)
 
-        if formulation == "e":
-            p = 45  # Zyx = ey / hx
-        elif formulation == "h":
-            p = -135  # Zxy = ex / hy
-
-        phase_error = np.abs(phase - p)
-
-        passed_sigma = np.all(sig_a_error < TOL_SIGMA)
-        passed_phase = np.all(phase_error < TOL_PHASE)
-
-        print(f"Testing {s:1.1e} {formulation}")
-        print(
-            f"   App Con. max:{sig_a_error.max():1.2e}, mean:{sig_a_error.mean():1.2e}, tol:{TOL_SIGMA}, passed?: {passed_sigma}"
-        )
-        print(
-            f"   Phase    max:{phase_error.max():1.2e}, mean:{phase_error.mean():1.2e}, tol:{TOL_PHASE}, passed?: {passed_phase}"
-        )
-
-        self.assertTrue(passed_sigma)
-        self.assertTrue(passed_phase)
+        np.testing.assert_allclose(phase_yx, 45, atol=TOL_PHASE)
+        np.testing.assert_allclose(phase_xy, -135, atol=TOL_PHASE)
 
     def test_1en1_e(self):
         self.apparent_resistivity_phase_test(1e-1, "e")

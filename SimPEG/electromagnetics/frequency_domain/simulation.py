@@ -86,31 +86,20 @@ class BaseFDEMSimulation(BaseEMSimulation):
         try:
             self.Ainv
         except AttributeError:
-            if self.verbose:
-                print("num_frequencies =", self.survey.num_frequencies)
-            self.Ainv = [None for i in range(self.survey.num_frequencies)]
-
-        if self.Ainv[0] is not None:
-            for i in range(self.survey.num_frequencies):
-                self.Ainv[i].clean()
-
-            if self.verbose:
-                print("Cleaning Ainv")
+            self.Ainv = len(self.survey.frequencies) * [None]
 
         f = self.fieldsPair(self)
 
-        for nf, freq in enumerate(self.survey.frequencies):
+        for i_f, freq in enumerate(self.survey.frequencies):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            self.Ainv[nf] = self.solver(A, **self.solver_opts)
-            u = self.Ainv[nf] * rhs
+            Ainv = self.solver(A, **self.solver_opts)
+            u = Ainv * rhs
+            if not self.forward_only:
+                self.Ainv[i_f] = Ainv
 
             Srcs = self.survey.get_sources_by_frequency(freq)
             f[Srcs, self._solutionType] = u
-            if self.forward_only:
-                if self.verbose:
-                    print("Fields simulated for frequency {}".format(nf))
-                self.Ainv[nf].clean()
         return f
 
     # @profile
@@ -422,7 +411,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
         A = C * (MeSigmaI * (C.T * MfMui)) + iomega
 
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return MfMui.T * A
         return A
 

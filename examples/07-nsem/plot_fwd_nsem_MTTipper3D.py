@@ -77,7 +77,12 @@ def run(plotIt=True):
 
     # Setup the problem object
     problem = NSEM.Simulation3DPrimarySecondary(
-        M, survey=survey, solver=Solver, sigma=sig, sigmaPrimary=sigBG
+        M,
+        survey=survey,
+        solver=Solver,
+        sigma=sig,
+        sigmaPrimary=sigBG,
+        forward_only=True,
     )
 
     # Calculate the data

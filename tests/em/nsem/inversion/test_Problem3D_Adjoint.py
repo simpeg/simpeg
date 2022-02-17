@@ -42,10 +42,10 @@ def JvecAdjointTest(
             inputSetup, [freq], comp=comp, singleFreq=False
         )
 
-    print("Using {0} solver for the simulation".format(simulation.Solver))
+    print("Using {0} solver for the simulation".format(simulation.solver))
     print(
         "Adjoint test of eForm primary/secondary "
-        "for {:s} comp at {:s}\n".format(comp, str(simulation.survey.freqs))
+        "for {:s} comp at {:s}\n".format(comp, str(simulation.survey.frequencies))
     )
 
     u = simulation.fields(m)

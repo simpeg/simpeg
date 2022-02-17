@@ -303,10 +303,10 @@ class Sim_2D(unittest.TestCase):
             nsem.simulation.Simulation2DMagneticField(mesh_2d, survey=survey_xy)
 
         # Check mesh type error without a given h_bc
-        bad_mesh = CylindricalMesh([10, 10, 10])
-        with self.assertRaises(TypeError):
+        bad_mesh = CylindricalMesh([10, 10])
+        with self.assertRaises(NotImplementedError):
             nsem.simulation.Simulation2DElectricField(bad_mesh, survey=survey_xy)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(NotImplementedError):
             nsem.simulation.Simulation2DMagneticField(bad_mesh, survey=survey_yx)
 
         # Check fixed boundary condition Type Error

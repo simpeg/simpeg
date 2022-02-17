@@ -192,15 +192,15 @@ class Fields1DPrimarySecondary(FieldsFDEM):
     Solving for e fields, using primary/secondary formulation
     """
 
-    knownFields = {"e_1dSolution": "F"}
+    knownFields = {"e_1dSolution": "N"}
     aliasFields = {
-        "e": ["e_1dSolution", "F", "_e"],
-        "ePrimary": ["e_1dSolution", "F", "_ePrimary"],
-        "eSecondary": ["e_1dSolution", "F", "_eSecondary"],
-        "b": ["e_1dSolution", "E", "_b"],
-        "bPrimary": ["e_1dSolution", "E", "_bPrimary"],
-        "bSecondary": ["e_1dSolution", "E", "_bSecondary"],
-        "h": ["e_1dSolution", "E", "_h"],
+        "e": ["e_1dSolution", "N", "_e"],
+        "ePrimary": ["e_1dSolution", "N", "_ePrimary"],
+        "eSecondary": ["e_1dSolution", "N", "_eSecondary"],
+        "b": ["e_1dSolution", "CC", "_b"],
+        "bPrimary": ["e_1dSolution", "CC", "_bPrimary"],
+        "bSecondary": ["e_1dSolution", "CC", "_bSecondary"],
+        "h": ["e_1dSolution", "CC", "_h"],
     }
 
     field_directions = "xy"
