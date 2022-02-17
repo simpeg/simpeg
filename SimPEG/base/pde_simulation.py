@@ -271,17 +271,22 @@ def with_property_mass_matrices(property_name):
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
 
-            stash_name = f"_MccI_{arg}_deriv"
-            if getattr(self, stash_name, None) is None:
-                MI_prop = getattr(self, f"Mcc{arg}I")
-                M_prop_deriv = sp.diags(self.mesh.cell_volumes) * getattr(
-                    self, f"{arg.lower()}Deriv"
-                )
-                M_prop_deriv = -MI_prop @ MI_prop @ M_prop_deriv
-                setattr(self, stash_name, M_prop_deriv)
-            return __inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+            MI_prop = getattr(self, f"Mcc{arg}I")
+            u = MI_prop @ (MI_prop @ -u)
+            M_prop_deriv = getattr(self, f"Mcc{arg}Deriv")
+            return M_prop_deriv(u, v, adjoint=adjoint)
+
+            # stash_name = f"_MccI_{arg}_deriv"
+            # if getattr(self, stash_name, None) is None:
+            #     MI_prop = getattr(self, f"Mcc{arg}I")
+            #     M_prop_deriv = sp.diags(self.mesh.cell_volumes) * getattr(
+            #         self, f"{arg.lower()}Deriv"
+            #     )
+            #     M_prop_deriv = -MI_prop @ MI_prop @ M_prop_deriv
+            #     setattr(self, stash_name, M_prop_deriv)
+            # return __inner_mat_mul_op(
+            #     getattr(self, stash_name), u, v=v, adjoint=adjoint
+            # )
 
         setattr(cls, f"Mcc{arg}IDeriv", MccIDeriv_prop)
 
@@ -294,19 +299,24 @@ def with_property_mass_matrices(property_name):
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
 
-            stash_name = f"_MnI_{arg}_deriv"
-            if getattr(self, stash_name, None) is None:
-                MI_prop = getattr(self, f"Mn{arg}I")
-                M_prop_deriv = (
-                    self.mesh.aveN2CC.T
-                    * sp.diags(self.mesh.cell_volumes)
-                    * getattr(self, f"{arg.lower()}Deriv")
-                )
-                M_prop_deriv = -MI_prop @ MI_prop @ M_prop_deriv
-                setattr(self, stash_name, M_prop_deriv)
-            return __inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+            MI_prop = getattr(self, f"Mn{arg}I")
+            u = MI_prop @ (MI_prop @ -u)
+            M_prop_deriv = getattr(self, f"Mn{arg}Deriv")
+            return M_prop_deriv(u, v, adjoint=adjoint)
+
+            # stash_name = f"_MnI_{arg}_deriv"
+            # if getattr(self, stash_name, None) is None:
+            #     MI_prop = getattr(self, f"Mn{arg}I")
+            #     M_prop_deriv = (
+            #         self.mesh.aveN2CC.T
+            #         * sp.diags(self.mesh.cell_volumes)
+            #         * getattr(self, f"{arg.lower()}Deriv")
+            #     )
+            #     M_prop_deriv = -MI_prop @ MI_prop @ M_prop_deriv
+            #     setattr(self, stash_name, M_prop_deriv)
+            # return __inner_mat_mul_op(
+            #     getattr(self, stash_name), u, v=v, adjoint=adjoint
+            # )
 
         setattr(cls, f"Mn{arg}IDeriv", MnIDeriv_prop)
 
@@ -319,17 +329,22 @@ def with_property_mass_matrices(property_name):
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
 
-            stash_name = f"_MfI_{arg}_deriv"
-            if getattr(self, stash_name, None) is None:
-                MI_prop = getattr(self, f"Mf{arg}I")
-                M_prop_deriv = self.mesh.get_face_inner_product_deriv(
-                    np.ones(self.mesh.n_cells)
-                )(np.ones(self.mesh.n_faces)) * getattr(self, f"{arg.lower()}Deriv")
-                M_prop_deriv = -MI_prop @ MI_prop @ M_prop_deriv
-                setattr(self, stash_name, M_prop_deriv)
-            return __inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+            MI_prop = getattr(self, f"Mf{arg}I")
+            u = MI_prop @ (MI_prop @ -u)
+            M_prop_deriv = getattr(self, f"Mf{arg}Deriv")
+            return M_prop_deriv(u, v, adjoint=adjoint)
+
+            # stash_name = f"_MfI_{arg}_deriv"
+            # if getattr(self, stash_name, None) is None:
+            #     MI_prop = getattr(self, f"Mf{arg}I")
+            #     M_prop_deriv = self.mesh.get_face_inner_product_deriv(
+            #         np.ones(self.mesh.n_cells)
+            #     )(np.ones(self.mesh.n_faces)) * getattr(self, f"{arg.lower()}Deriv")
+            #     M_prop_deriv = -MI_prop @ MI_prop @ M_prop_deriv
+            #     setattr(self, stash_name, M_prop_deriv)
+            # return __inner_mat_mul_op(
+            #     getattr(self, stash_name), u, v=v, adjoint=adjoint
+            # )
 
         setattr(cls, f"Mf{arg}IDeriv", MfIDeriv_prop)
 
@@ -342,17 +357,22 @@ def with_property_mass_matrices(property_name):
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
 
-            stash_name = f"_MeI_{arg}_deriv"
-            if getattr(self, stash_name, None) is None:
-                MI_prop = getattr(self, f"Me{arg}I")
-                M_prop_deriv = self.mesh.get_edge_inner_product_deriv(
-                    np.ones(self.mesh.n_cells)
-                )(np.ones(self.mesh.n_edges)) * getattr(self, f"{arg.lower()}Deriv")
-                M_prop_deriv = -MI_prop @ MI_prop @ M_prop_deriv
-                setattr(self, stash_name, M_prop_deriv)
-            return __inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+            MI_prop = getattr(self, f"Me{arg}I")
+            u = MI_prop @ (MI_prop @ -u)
+            M_prop_deriv = getattr(self, f"Me{arg}Deriv")
+            return M_prop_deriv(u, v, adjoint=adjoint)
+
+            # stash_name = f"_MeI_{arg}_deriv"
+            # if getattr(self, stash_name, None) is None:
+            #     MI_prop = getattr(self, f"Me{arg}I")
+            #     M_prop_deriv = self.mesh.get_edge_inner_product_deriv(
+            #         np.ones(self.mesh.n_cells)
+            #     )(np.ones(self.mesh.n_edges)) * getattr(self, f"{arg.lower()}Deriv")
+            #     M_prop_deriv = -MI_prop @ MI_prop @ M_prop_deriv
+            #     setattr(self, stash_name, M_prop_deriv)
+            # return __inner_mat_mul_op(
+            #     getattr(self, stash_name), u, v=v, adjoint=adjoint
+            # )
 
         setattr(cls, f"Me{arg}IDeriv", MeIDeriv_prop)
 
@@ -371,10 +391,10 @@ def with_property_mass_matrices(property_name):
                 f"_Mn_{arg}_deriv",
                 f"_Mf_{arg}_deriv",
                 f"_Me_{arg}_deriv",
-                f"_MccI_{arg}_deriv",
-                f"_MnI_{arg}_deriv",
-                f"_MfI_{arg}_deriv",
-                f"_MeI_{arg}_deriv",
+                # f"_MccI_{arg}_deriv",
+                # f"_MnI_{arg}_deriv",
+                # f"_MfI_{arg}_deriv",
+                # f"_MeI_{arg}_deriv",
             ]
             return items
 

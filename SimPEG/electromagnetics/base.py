@@ -4,16 +4,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import properties
-from scipy.constants import mu_0
-import numpy as np
 
-from ..data import Data
-from ..maps import IdentityMap
-from ..simulation import BaseSimulation
-from ..survey import BaseSurvey, BaseSrc
-from ..utils import sdiag, Zero, mkvc
+from ..survey import BaseSrc
+from ..utils import Zero
 from ..base import BaseElectricalPDESimulation, BaseMagneticPDESimulation
-from .. import props
 
 __all__ = ["BaseEMSimulation", "BaseEMSrc"]
 
