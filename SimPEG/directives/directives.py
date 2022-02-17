@@ -1364,39 +1364,48 @@ class SaveIterationsGeoH5(InversionDirective):
 
         self.h5_object.workspace.finalize()
 
-    def stack_channels(self, dpred):
+    def stack_channels(self, dpred: list):
+        """
+        Regroup channel values along rows.
+        """
+        if isinstance(dpred, np.ndarray):
+            return dpred.reshape((1, -1))
 
         tile_stack = []
         channels = []
-        n_c = 0
         for pred in dpred:
-            n_c += 1
             channels += [pred]
-            if n_c == len(self.channels):
+            if len(channels) == len(self.channels):
                 tile_stack += [self.reshape(np.vstack(channels))]
-                n_c = 0
                 channels = []
 
         return np.dstack(tile_stack)
 
     def save_components(self, iteration: int, values: list[np.ndarray] = None):
-
+        """
+        Sort, transform and store data per components and channels.
+        """
         if values is not None:
             prop = self.stack_channels(values)
         elif self.attribute_type == "predicted":
             dpred = self.invProb.dpred
             if dpred is None:
                 dpred = self.invProb.get_dpred(self.invProb.model)
+                self.invProb.dpred = dpred
             prop = self.stack_channels(dpred)
         else:
             prop = self.reshape(self.invProb.model)
 
+        # Apply transformations
         prop = prop.flatten()
         for fun in self.transforms:
             if isinstance(fun, (maps.IdentityMap, np.ndarray, float)):
                 prop = fun * prop
             else:
                 prop = fun(prop)
+
+        if prop.ndim == 2:
+            prop = prop.T.flatten()
 
         prop = prop.reshape((len(self.channels), len(self.components), -1))
 
@@ -1423,6 +1432,7 @@ class SaveIterationsGeoH5(InversionDirective):
 
                 if self.label is not None:
                     channel_name += f"_{self.label}"
+                    base_name += f"_{self.label}"
 
                 data = self.h5_object.add_data(
                     {
