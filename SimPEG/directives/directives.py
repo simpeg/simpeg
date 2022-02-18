@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, annotations
 import json
 import properties
 import numpy as np
