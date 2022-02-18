@@ -219,7 +219,6 @@ simulation = fdem.Simulation1DLayered(
 # residual between the observed data and the data predicted for a given model.
 # The weighting is defined by the reciprocal of the uncertainties.
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
-dmis.W = 1./uncertainties
 
 # Define the regularization (model objective function)
 reg_map = maps.IdentityMap(nP=mesh.nC)
