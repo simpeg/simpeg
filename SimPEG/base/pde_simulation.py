@@ -19,10 +19,10 @@ def __inner_mat_mul_op(M, u, v=None, adjoint=False):
             if v.ndim > 1:
                 u = u[:, None]
         if v.ndim > 2:
-            u = u[:, :, None]
+            u = u[:, None, :]
         if adjoint:
-            if u.ndim > 1 and u.shape[1] > 1:
-                return M.T * (u * v).sum(axis=1)
+            if u.ndim > 1 and u.shape[-1] > 1:
+                return M.T * (u * v).sum(axis=-1)
             return M.T * (u * v)
         if u.ndim > 1 and u.shape[1] > 1:
             return np.squeeze(u[:, None, :] * (M * v)[:, :, None])
