@@ -1381,7 +1381,7 @@ class SaveIterationsGeoH5(InversionDirective):
 
         return np.dstack(tile_stack)
 
-    def save_components(self, iteration: int, values = None):
+    def save_components(self, iteration: int, values: list[np.ndarray] = None):
         """
         Sort, transform and store data per components and channels.
         """
