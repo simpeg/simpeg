@@ -10,6 +10,14 @@ TOL = 1e-14
 np.random.seed(121)
 
 
+REMOVED_IGNORE = [
+    "FullMap",
+    "CircleMap",
+    "Map2Dto3D",
+    "Vertical1DMap",
+    "ActiveCells",
+]
+
 MAPS_TO_EXCLUDE_2D = [
     "ComboMap",
     "ActiveCells",
@@ -35,7 +43,7 @@ MAPS_TO_EXCLUDE_2D = [
     "SumMap",
     "SurjectUnits",
     "TileMap",
-]
+] + REMOVED_IGNORE
 MAPS_TO_EXCLUDE_3D = [
     "ComboMap",
     "ActiveCells",
@@ -61,7 +69,7 @@ MAPS_TO_EXCLUDE_3D = [
     "SumMap",
     "SurjectUnits",
     "TileMap",
-]
+] + REMOVED_IGNORE
 
 
 class MapTests(unittest.TestCase):
@@ -253,7 +261,6 @@ class MapTests(unittest.TestCase):
         M = discretize.TensorMesh([2, 4], "0C")
         for actMap in [
             maps.InjectActiveCells(M, M.vectorCCy <= 0, 10, nC=M.nCy),
-            maps.ActiveCells(M, M.vectorCCy <= 0, 10, nC=M.nCy),
         ]:
 
             vertMap = maps.SurjectVertical1D(M)
@@ -300,7 +307,6 @@ class MapTests(unittest.TestCase):
 
         for m2to3 in [
             maps.Surject2Dto3D(M3, normal="X"),
-            maps.Map2Dto3D(M3, normal="X"),
         ]:
 
             # m2to3 = maps.Surject2Dto3D(M3, normal='X')
@@ -318,7 +324,6 @@ class MapTests(unittest.TestCase):
 
         for m2to3 in [
             maps.Surject2Dto3D(M3, normal="Y"),
-            maps.Map2Dto3D(M3, normal="Y"),
         ]:
             # m2to3 = maps.Surject2Dto3D(M3, normal='Y')
             m = np.arange(m2to3.nP)
@@ -335,7 +340,6 @@ class MapTests(unittest.TestCase):
 
         for m2to3 in [
             maps.Surject2Dto3D(M3, normal="Z"),
-            maps.Map2Dto3D(M3, normal="Z"),
         ]:
 
             # m2to3 = maps.Surject2Dto3D(M3, normal='Z')

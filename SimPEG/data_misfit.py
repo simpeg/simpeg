@@ -126,9 +126,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
             raise Exception("data must be set before a residual can be calculated.")
         return self.simulation.residual(m, self.data.dobs, f=f)
 
-    Wd = deprecate_property(
-        W, "Wd", new_name="W", removal_version="0.16.0", future_warn=True
-    )
+    Wd = deprecate_property(W, "Wd", new_name="W", removal_version="0.16.0", error=True)
 
 
 class L2DataMisfit(BaseDataMisfit):
@@ -193,7 +191,7 @@ class L2DataMisfit(BaseDataMisfit):
         )
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class l2_DataMisfit(L2DataMisfit):
     def __init__(self, survey):
         try:
@@ -235,7 +233,7 @@ class l2_DataMisfit(L2DataMisfit):
         "eps",
         new_name="data.noise_floor",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     @property
@@ -247,5 +245,5 @@ class l2_DataMisfit(L2DataMisfit):
         "std",
         new_name="data.relative_error",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )

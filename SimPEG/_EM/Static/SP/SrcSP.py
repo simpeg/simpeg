@@ -14,8 +14,8 @@ class StreamingCurrents(Src.BaseSrc):
     modelType = None
     indActive = None
 
-    def __init__(self, rxList, **kwargs):
-        Src.BaseSrc.__init__(self, rxList, **kwargs)
+    def __init__(self, receiver_list, **kwargs):
+        Src.BaseSrc.__init__(self, receiver_list, **kwargs)
         if self.modelType == "Head":
             if self.L is None:
                 raise Exception("SP source requires cross coupling coefficient L")

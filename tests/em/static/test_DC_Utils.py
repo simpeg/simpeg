@@ -95,7 +95,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
 
             # Create synthetic data
             dobs = problem.make_synthetic_data(self.model, relative_error=0.0)
-            dobs.eps = 1e-5
+            dobs.noise_floor = 1e-5
 
             # Testing IO
             surveyfile = os.path.sep.join([self.basePath, test_file])
@@ -125,8 +125,8 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             # Test the utils functions electrode_separations,
             # source_receiver_midpoints, geometric_factor,
             # apparent_resistivity all at once
-            rhoapp = utils.apparent_resistivity(
-                dobs, survey_type=survey_type, space_type="half-space", eps=0.0
+            rhoapp = utils.apparent_resistivity_from_voltage(
+                dobs.survey, dobs.dobs, space_type="half-space", eps=0.0
             )
 
             rhoA_GIF_file = os.path.sep.join([self.basePath, rhoa_file])
@@ -204,10 +204,10 @@ class DCUtilsTests_fullspace(unittest.TestCase):
 
         self.assertTrue(passed)
 
-    def test_apparent_resistivity(self):
+    def test_apparent_resistivity_from_voltage(self):
         # Compute apparent resistivity from survey
-        rhoapp = utils.apparent_resistivity(
-            self.data, space_type="whole-space", eps=1e-16
+        rhoapp = utils.apparent_resistivity_from_voltage(
+            self.survey, self.data.dobs, space_type="whole-space", eps=1e-16
         )
 
         # Load benchmarks files from UBC-GIF codes

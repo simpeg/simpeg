@@ -591,11 +591,11 @@ class Simulation3DPrimarySecondary(BaseNSEMSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_ePrimSec(Simulation3DPrimarySecondary):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem1D_ePrimSec(Simulation1DPrimarySecondary):
     pass

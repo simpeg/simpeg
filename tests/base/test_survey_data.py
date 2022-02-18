@@ -14,17 +14,20 @@ class TestData(unittest.TestCase):
         x = np.linspace(5, 10, 3)
         XYZ = utils.ndgrid(x, x, np.r_[0.0])
         srcLoc = np.r_[0, 0, 0.0]
-        rxList0 = survey.BaseRx(XYZ)
-        Src0 = survey.BaseSrc([rxList0], location=srcLoc)
-        rxList1 = survey.BaseRx(XYZ)
-        Src1 = survey.BaseSrc([rxList1], location=srcLoc)
-        rxList2 = survey.BaseRx(XYZ)
-        Src2 = survey.BaseSrc([rxList2], location=srcLoc)
-        rxList3 = survey.BaseRx(XYZ)
-        Src3 = survey.BaseSrc([rxList3], location=srcLoc)
-        Src4 = survey.BaseSrc([rxList0, rxList1, rxList2, rxList3], location=srcLoc)
-        srcList = [Src0, Src1, Src2, Src3, Src4]
-        mysurvey = survey.BaseSurvey(source_list=srcList)
+        receiver_list0 = survey.BaseRx(XYZ)
+        Src0 = survey.BaseSrc([receiver_list0], location=srcLoc)
+        receiver_list1 = survey.BaseRx(XYZ)
+        Src1 = survey.BaseSrc([receiver_list1], location=srcLoc)
+        receiver_list2 = survey.BaseRx(XYZ)
+        Src2 = survey.BaseSrc([receiver_list2], location=srcLoc)
+        receiver_list3 = survey.BaseRx(XYZ)
+        Src3 = survey.BaseSrc([receiver_list3], location=srcLoc)
+        Src4 = survey.BaseSrc(
+            [receiver_list0, receiver_list1, receiver_list2, receiver_list3],
+            location=srcLoc,
+        )
+        source_list = [Src0, Src1, Src2, Src3, Src4]
+        mysurvey = survey.BaseSurvey(source_list=source_list)
         self.D = data.Data(mysurvey)
 
     def test_data(self):

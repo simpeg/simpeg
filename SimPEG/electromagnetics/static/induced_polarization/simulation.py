@@ -21,7 +21,11 @@ class BaseIPSimulation(BaseDCSimulation):
     )
 
     data_type = deprecate_property(
-        _data_type, "data_type", new_name="receiver.data_type", removal_version="0.16.0"
+        _data_type,
+        "data_type",
+        new_name="receiver.data_type",
+        removal_version="0.17.0",
+        future_warn=True,
     )
 
     Ainv = None
@@ -206,11 +210,11 @@ class Simulation3DNodal(BaseIPSimulation, BaseSimulation3DNodal):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_N(Simulation3DNodal):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_CC(Simulation3DCellCentered):
     pass

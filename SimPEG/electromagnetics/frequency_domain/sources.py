@@ -132,11 +132,7 @@ class BaseFDEMSrc(BaseEMSrc):
         return Zero()
 
     freq = deprecate_property(
-        frequency,
-        "freq",
-        new_name="frequency",
-        removal_version="0.16.0",
-        future_warn=True,
+        frequency, "freq", new_name="frequency", removal_version="0.16.0", error=True,
     )
 
 
@@ -311,7 +307,7 @@ class MagDipole(BaseFDEMSrc):
         "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
     )
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
+        location, "loc", new_name="location", removal_version="0.16.0", error=True
     )
 
     def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
@@ -918,7 +914,7 @@ class LineCurrent(BaseFDEMSrc):
     array the cells intersected by the wire path are identified and integrated
     src terms are computed
 
-    :param list rxList: receiver list
+    :param list receiver_list: receiver list
     :param float freq: src frequency
     :param (n,3) array locations: points defining src path
     """

@@ -16,6 +16,7 @@ from SimPEG import Solver
 from SimPEG import props
 import properties
 from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
+from SimPEG.utils.code_utils import deprecate_property
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -28,15 +29,11 @@ class Simulation3DIntegral(BasePFSimulation):
         "Magnetic Susceptibility (SI)", default=1.0
     )
 
-    modelType = properties.StringChoice(
-        "Type of magnetization model",
-        choices=["susceptibility", "vector"],
-        default="susceptibility",
-    )
-
     is_amplitude_data = properties.Boolean(
         "Whether the supplied data is amplitude data", default=False
     )
+
+    _model_type: str = "scalar"
 
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh, **kwargs)
@@ -54,7 +51,7 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         if getattr(self, "_M", None) is None:
 
-            if self.modelType == "vector":
+            if self.model_type == "vector":
                 self._M = sp.identity(self.nC) * self.survey.source_field.parameters[0]
 
             else:
@@ -80,7 +77,7 @@ class Simulation3DIntegral(BasePFSimulation):
         :parameter
         M: array (3*nC,) or (nC, 3)
         """
-        if self.modelType == "vector":
+        if self.model_type == "vector":
             self._M = sdiag(mkvc(M) * self.survey.source_field.parameters[0])
         else:
             M = M.reshape((-1, 3))
@@ -115,6 +112,31 @@ class Simulation3DIntegral(BasePFSimulation):
             self._G = self.linear_operator()
 
         return self._G
+
+    @property
+    def model_type(self) -> str:
+        """
+        Define the type of model. Choice of 'scalar' or 'vector' (3-components)
+        """
+        return self._model_type
+
+    @model_type.setter
+    def model_type(self, value: str):
+        if value not in ["scalar", "vector"]:
+            raise ValueError(
+                "'model_type' value should be a string: 'scalar' or 'vector'."
+                + f"Value {value} of type {type(value)} provided."
+            )
+
+        self._model_type = value
+
+    modelType = deprecate_property(
+        model_type,
+        "modelType",
+        new_name="model_type",
+        removal_version="0.16.0",
+        error=True,
+    )
 
     @property
     def nD(self):
@@ -1128,11 +1150,11 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class MagneticIntegral(Simulation3DIntegral):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_Diff(Simulation3DDifferential):
     pass

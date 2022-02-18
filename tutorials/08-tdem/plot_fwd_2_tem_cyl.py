@@ -12,7 +12,7 @@ radially symmetric conductivity. For this tutorial, we focus on the following:
     - How to define the survey
     - How to solve TDEM problems on a cylindrical mesh
     - The units of the conductivity/resistivity model and resulting data
-    
+
 
 Please note that we have used a coarse mesh larger time-stepping to shorten the
 time of the simulation. Proper discretization in space and time is required to
@@ -201,7 +201,7 @@ time_steps = [(5e-06, 20), (0.0001, 20), (0.001, 21)]
 #
 
 simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=model_map, Solver=Solver
+    mesh, survey=survey, sigmaMap=model_map, solver=Solver
 )
 
 # Set the time-stepping for the simulation

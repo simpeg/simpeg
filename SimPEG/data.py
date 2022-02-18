@@ -191,9 +191,9 @@ class Data(properties.HasProperties):
 
         uncert = np.zeros(self.nD)
         if self.relative_error is not None:
-            uncert += np.array(self.relative_error * np.absolute(self.dobs))**2
+            uncert += np.array(self.relative_error * np.absolute(self.dobs)) ** 2
         if self.noise_floor is not None:
-            uncert += np.array(self.noise_floor)**2
+            uncert += np.array(self.noise_floor) ** 2
 
         return np.sqrt(uncert)
 
@@ -297,14 +297,14 @@ class Data(properties.HasProperties):
         "std",
         new_name="relative_error",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
     eps = deprecate_property(
         noise_floor,
         "eps",
         new_name="noise_floor",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
 
@@ -353,12 +353,10 @@ class SyntheticData(Data):
 # inject a new data class into the survey module
 class _Data(Data):
     def __init__(self, *args, **kwargs):
-        warnings.warn(
+        raise NotImplementedError(
             "The survey.Data class has been moved. To import the data class, "
-            "please use SimPEG.data.Data. This class will be removed in SimPEG 0.16.0",
-            FutureWarning,
+            "please use SimPEG.data.Data."
         )
-        super().__init__(*args, **kwargs)
 
 
 survey.Data = _Data

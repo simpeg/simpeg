@@ -409,17 +409,17 @@ class TestIO_DCIP3D(unittest.TestCase):
         os.remove(filename)
 
         A = np.c_[
-            self.pp_survey.a_locations,
-            self.pp_survey.b_locations,
-            self.pp_survey.m_locations,
-            self.pp_survey.n_locations,
+            self.pp_survey.locations_a,
+            self.pp_survey.locations_b,
+            self.pp_survey.locations_m,
+            self.pp_survey.locations_n,
         ]
 
         B = np.c_[
-            data_loaded.survey.a_locations,
-            data_loaded.survey.b_locations,
-            data_loaded.survey.m_locations,
-            data_loaded.survey.n_locations,
+            data_loaded.survey.locations_a,
+            data_loaded.survey.locations_b,
+            data_loaded.survey.locations_m,
+            data_loaded.survey.locations_n,
         ]
 
         passed = np.all(np.isclose(A, B))
@@ -433,17 +433,17 @@ class TestIO_DCIP3D(unittest.TestCase):
         os.remove(filename)
 
         A = np.c_[
-            self.dpdp_survey.a_locations,
-            self.dpdp_survey.b_locations,
-            self.dpdp_survey.m_locations,
-            self.dpdp_survey.n_locations,
+            self.dpdp_survey.locations_a,
+            self.dpdp_survey.locations_b,
+            self.dpdp_survey.locations_m,
+            self.dpdp_survey.locations_n,
         ]
 
         B = np.c_[
-            data_loaded.survey.a_locations,
-            data_loaded.survey.b_locations,
-            data_loaded.survey.m_locations,
-            data_loaded.survey.n_locations,
+            data_loaded.survey.locations_a,
+            data_loaded.survey.locations_b,
+            data_loaded.survey.locations_m,
+            data_loaded.survey.locations_n,
         ]
 
         passed = np.all(np.isclose(A, B))
@@ -466,18 +466,18 @@ class TestIO_DCIP3D(unittest.TestCase):
         os.remove(filename)
 
         A = np.c_[
-            self.pp_survey.a_locations,
-            self.pp_survey.b_locations,
-            self.pp_survey.m_locations,
-            self.pp_survey.n_locations,
+            self.pp_survey.locations_a,
+            self.pp_survey.locations_b,
+            self.pp_survey.locations_m,
+            self.pp_survey.locations_n,
             self.dobs,
         ]
 
         B = np.c_[
-            data_loaded.survey.a_locations,
-            data_loaded.survey.b_locations,
-            data_loaded.survey.m_locations,
-            data_loaded.survey.n_locations,
+            data_loaded.survey.locations_a,
+            data_loaded.survey.locations_b,
+            data_loaded.survey.locations_m,
+            data_loaded.survey.locations_n,
             data_loaded.dobs,
         ]
 
@@ -492,18 +492,18 @@ class TestIO_DCIP3D(unittest.TestCase):
         os.remove(filename)
 
         A = np.c_[
-            self.dpdp_survey.a_locations,
-            self.dpdp_survey.b_locations,
-            self.dpdp_survey.m_locations,
-            self.dpdp_survey.n_locations,
+            self.dpdp_survey.locations_a,
+            self.dpdp_survey.locations_b,
+            self.dpdp_survey.locations_m,
+            self.dpdp_survey.locations_n,
             self.dobs,
         ]
 
         B = np.c_[
-            data_loaded.survey.a_locations,
-            data_loaded.survey.b_locations,
-            data_loaded.survey.m_locations,
-            data_loaded.survey.n_locations,
+            data_loaded.survey.locations_a,
+            data_loaded.survey.locations_b,
+            data_loaded.survey.locations_m,
+            data_loaded.survey.locations_n,
             data_loaded.dobs,
         ]
 
@@ -531,19 +531,19 @@ class TestIO_DCIP3D(unittest.TestCase):
         os.remove(filename)
 
         A = np.c_[
-            self.pp_survey.a_locations,
-            self.pp_survey.b_locations,
-            self.pp_survey.m_locations,
-            self.pp_survey.n_locations,
+            self.pp_survey.locations_a,
+            self.pp_survey.locations_b,
+            self.pp_survey.locations_m,
+            self.pp_survey.locations_n,
             self.dobs,
             self.std,
         ]
 
         B = np.c_[
-            data_loaded.survey.a_locations,
-            data_loaded.survey.b_locations,
-            data_loaded.survey.m_locations,
-            data_loaded.survey.n_locations,
+            data_loaded.survey.locations_a,
+            data_loaded.survey.locations_b,
+            data_loaded.survey.locations_m,
+            data_loaded.survey.locations_n,
             data_loaded.dobs,
             data_loaded.standard_deviation,
         ]
@@ -557,19 +557,19 @@ class TestIO_DCIP3D(unittest.TestCase):
         os.remove(filename)
 
         A = np.c_[
-            self.dpdp_survey.a_locations,
-            self.dpdp_survey.b_locations,
-            self.dpdp_survey.m_locations,
-            self.dpdp_survey.n_locations,
+            self.dpdp_survey.locations_a,
+            self.dpdp_survey.locations_b,
+            self.dpdp_survey.locations_m,
+            self.dpdp_survey.locations_n,
             self.dobs,
             self.std,
         ]
 
         B = np.c_[
-            data_loaded.survey.a_locations,
-            data_loaded.survey.b_locations,
-            data_loaded.survey.m_locations,
-            data_loaded.survey.n_locations,
+            data_loaded.survey.locations_a,
+            data_loaded.survey.locations_b,
+            data_loaded.survey.locations_m,
+            data_loaded.survey.locations_n,
             data_loaded.dobs,
             data_loaded.standard_deviation,
         ]

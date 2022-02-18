@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import properties
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,7 +6,7 @@ import os
 import scipy.sparse as sp
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
-from ..maps import SphericalSystem, ComboMap
+from ..maps import IdentityMap, Wires
 from ..regularization import (
     BaseComboRegularization,
     BaseRegularization,
@@ -18,15 +16,14 @@ from ..regularization import (
     Simple,
     Tikhonov,
     Sparse,
-    SimplePGIsmallness,
     PGIsmallness,
-    SimplePGIwithNonlinearRelationshipsSmallness,
-    SimplePGI,
+    PGIwithNonlinearRelationshipsSmallness,
     PGI,
     SmoothDeriv,
     SimpleSmoothDeriv,
     SparseDeriv,
-    SimplePGIwithRelationships,
+    PGIwithRelationships,
+    BaseSimilarityMeasure,
 )
 from ..utils import (
     mkvc,
@@ -39,6 +36,7 @@ from ..utils import (
     eigenvalue_by_power_iteration,
 )
 from ..utils.code_utils import deprecate_property
+from .. import optimization
 
 
 class InversionDirective(properties.HasProperties):
@@ -126,11 +124,7 @@ class InversionDirective(properties.HasProperties):
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
 
     prob = deprecate_property(
-        simulation,
-        "prob",
-        new_name="simulation",
-        removal_version="0.16.0",
-        future_warn=True,
+        simulation, "prob", new_name="simulation", removal_version="0.16.0", error=True,
     )
 
     def initialize(self):
@@ -283,7 +277,7 @@ class BetaSchedule(InversionDirective):
 class AlphasSmoothEstimate_ByEig(InversionDirective):
     """
     Estimate the alphas multipliers for the smoothness terms of the regularization
-     as a multiple of the ratio between the highest eigenvalue of the
+    as a multiple of the ratio between the highest eigenvalue of the
     smallness term and the highest eigenvalue of each smoothness term of the regularization.
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
@@ -321,9 +315,8 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                                     SimpleSmall,
                                     Small,
                                     SparseSmall,
-                                    SimplePGIsmallness,
                                     PGIsmallness,
-                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                    PGIwithNonlinearRelationshipsSmallness,
                                 ),
                             ),
                         ]
@@ -613,10 +606,8 @@ class MultiTargetMisfits(InversionDirective):
                             j,
                             (
                                 isinstance(
-                                    regpart,
-                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                    regpart, PGIwithNonlinearRelationshipsSmallness,
                                 )
-                                or isinstance(regpart, SimplePGIsmallness)
                                 or isinstance(regpart, PGIsmallness)
                             ),
                         ]
@@ -657,10 +648,8 @@ class MultiTargetMisfits(InversionDirective):
                             j,
                             (
                                 isinstance(
-                                    regpart,
-                                    SimplePGIwithNonlinearRelationshipsSmallness,
+                                    regpart, PGIwithNonlinearRelationshipsSmallness,
                                 )
-                                or isinstance(regpart, SimplePGIsmallness)
                                 or isinstance(regpart, PGIsmallness)
                             ),
                         ]
@@ -1225,21 +1214,21 @@ class Update_IRLS(InversionDirective):
         "maxIRLSiters",
         new_name="max_irls_iterations",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
     updateBeta = deprecate_property(
         update_beta,
         "updateBeta",
         new_name="update_beta",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
     betaSearch = deprecate_property(
         beta_search,
         "betaSearch",
         new_name="beta_search",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     @property
@@ -1598,92 +1587,68 @@ class Update_Wj(InversionDirective):
 class UpdateSensitivityWeights(InversionDirective):
     """
     Directive to take care of re-weighting
-    the non-linear magnetic problems.
+    the non-linear problems. Assumes that the map of the regularization
+    function is either Wires or Identity.
+    Good for any problem where J is formed explicitly.
     """
 
-    mapping = None
-    JtJdiag = None
     everyIter = True
     threshold = 1e-12
-    switch = True
+    normalization: bool = True
 
     def initialize(self):
+        """
+        Calculate and update sensitivity
+        for optimization and regularization
+        """
+        for reg in self.reg.objfcts:
+            if not isinstance(getattr(reg, "mapping"), (IdentityMap, Wires)):
+                raise TypeError(
+                    f"Mapping for the regularization must be of type {IdentityMap} or {Wires}. "
+                    + f"Input mapping of type {type(reg.mapping)}."
+                )
 
-        # Calculate and update sensitivity
-        # for optimization and regularization
         self.update()
 
     def endIter(self):
-
+        """
+        Update inverse problem
+        """
         if self.everyIter:
-            # Update inverse problem
             self.update()
 
     def update(self):
-
-        # Get sum square of columns of J
-        self.getJtJdiag()
-
-        # Compute normalized weights
-        self.wr = self.getWr()
-
-        # Update the regularization
-        self.updateReg()
-
-    def getJtJdiag(self):
         """
         Compute explicitly the main diagonal of JtJ
-        Good for any problem where J is formed explicitly
+
         """
-        self.JtJdiag = []
+        jtj_diag = np.zeros_like(self.invProb.model)
         m = self.invProb.model
 
         for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
-
             if getattr(sim, "getJtJdiag", None) is None:
-                assert getattr(sim, "getJ", None) is not None, (
-                    "Simulation does not have a getJ attribute."
-                    + "Cannot form the sensitivity explicitly"
-                )
-                self.JtJdiag += [
-                    mkvc(np.sum((dmisfit.W * sim.getJ(m)) ** (2.0), axis=0))
-                ]
+                if getattr(sim, "getJ", None) is None:
+                    raise AttributeError(
+                        "Simulation does not have a getJ attribute."
+                        + "Cannot form the sensitivity explicitly"
+                    )
+                jtj_diag += mkvc(np.sum((dmisfit.W * sim.getJ(m)) ** 2.0, axis=0))
             else:
-                self.JtJdiag += [sim.getJtJdiag(m, W=dmisfit.W)]
+                jtj_diag += sim.getJtJdiag(m, W=dmisfit.W)
 
-        return self.JtJdiag
-
-    def getWr(self):
-        """
-        Take the diagonal of JtJ and return
-        a normalized sensitivty weighting vector
-        """
-
+        # Normalize and threshold weights
         wr = np.zeros_like(self.invProb.model)
-        if self.switch:
-            for prob_JtJ, sim, dmisfit in zip(
-                self.JtJdiag, self.simulation, self.dmisfit.objfcts
-            ):
-
-                wr += prob_JtJ + self.threshold
-
-            wr = wr ** 0.5
-            wr /= wr.max()
-        else:
-            wr += 1.0
-
-        return wr
-
-    def updateReg(self):
-        """
-        Update the cell weights with the approximated sensitivity
-        """
-
         for reg in self.reg.objfcts:
-            reg.cell_weights = reg.mapping * (self.wr)
-            if getattr(reg, "objfcts", None) is not None:
-                for obj in reg.objfcts:
-                    obj.cell_weights = obj.mapping * (self.wr)
+            if not isinstance(reg, BaseSimilarityMeasure):
+                wr += reg.mapping.deriv(self.invProb.model).T * (
+                    (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
+                )
+        wr /= wr.max()
+        wr += self.threshold
+        wr **= 0.5
+        for reg in self.reg.objfcts:
+            if not isinstance(reg, BaseSimilarityMeasure):
+                reg.cell_weights = reg.mapping * wr
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights
