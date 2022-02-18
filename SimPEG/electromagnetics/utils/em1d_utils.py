@@ -518,6 +518,10 @@ class Stitched1DModel(properties.HasProperties):
         "Line", dtype=float, default=None
     )
 
+    time_stamp = properties.Array(
+        "Time stamp", dtype=float, default=None
+    )
+
     hz = properties.Array(
         "Vertical thickeness of 1D mesh", dtype=float
     )
@@ -579,6 +583,17 @@ class Stitched1DModel(properties.HasProperties):
                 raise Exception("physical_property information is required!")
             self._physical_property_matrix = self.physical_property.reshape((self.hz.size, self.n_sounding), order='F')
         return self._physical_property_matrix
+
+    @property
+    def distance(self):
+        if getattr(self, '_distance', None) is None:
+            self._distance = np.zeros(self.n_sounding, dtype=float)
+            for line_tmp in self.unique_line:
+                ind_line = self.line == line_tmp
+                xy_line = self.topography[ind_line,:2]
+                distance_line = np.r_[0, np.cumsum(np.sqrt((np.diff(xy_line, axis=0)**2).sum(axis=1)))]        
+                self._distance[ind_line] = distance_line
+        return self._distance
 
     def plot_plan(
             self, i_layer=0, i_line=0, show_line=False,
@@ -648,13 +663,15 @@ class Stitched1DModel(properties.HasProperties):
             return out, ax
 
     def plot_section(
-        self, i_layer=0, i_line=0, line_direction='x',
+        self, i_layer=0, i_line=0, x_axis='x',
         show_layer=False,
         plot_type="contour",
         physical_property=None, clim=None,
         ax=None, cmap='viridis', ncontour=20, scale='log',
-        show_colorbar=True, aspect=1, zlim=None, dx=20.,
-        contourOpts={}
+        show_colorbar=True, aspect=1, zlim=None, dx=20., 
+        invert_xaxis=False,
+        alpha=0.7,
+        pcolorOpts={}
     ):
         ind_line = self.line == self.unique_line[i_line]
         if physical_property is not None:
@@ -664,16 +681,14 @@ class Stitched1DModel(properties.HasProperties):
         else:
             physical_property_matrix = self.physical_property_matrix
 
-        if line_direction.lower() == 'y':
+        if x_axis.lower() == 'y':
             x_ind = 1
             xlabel = 'Northing (m)'
-        elif line_direction.lower() == 'x':
+        elif x_axis.lower() == 'x':
             x_ind = 0
             xlabel = 'Easting (m)'
-
-        yz = self.xyz[:, ind_line, :][:,:,[x_ind,2]].reshape(
-            (int(self.hz.size*ind_line.sum()), 2), order='F'
-        )
+        elif x_axis.lower() == 'distance':
+            xlabel = 'Distance (m)'
 
         if ax is None:
             fig = plt.figure(figsize=(15, 10))
@@ -684,46 +699,37 @@ class Stitched1DModel(properties.HasProperties):
             vmax = np.percentile(physical_property_matrix, 95)
         else:
             vmin, vmax = clim
-        if plot_type == "contour":
-            if scale == 'log':
-                contourOpts['vmin'] = np.log10(vmin)
-                contourOpts['vmax'] = np.log10(vmax)
-                norm = LogNorm()
-            else:
-                norm=None
 
-            contourOpts['cmap'] = cmap
-            im = utils.plot2Ddata(
-                yz, utils.mkvc(physical_property_matrix[:, ind_line]), scale='log', ncontour=40, dataloc=False, ax=ax,
-                contourOpts=contourOpts
-            )
-            ax.fill_between(self.topography[ind_line, 1], self.topography[ind_line, 2], y2=yz[:,1].max(), color='w')
+        if scale == 'log':
+            norm = LogNorm(vmin=vmin, vmax=vmax)
+            vmin=None
+            vmax=None
+        else:
+            norm=None
 
-            out = ax.scatter(
-                yz[:, 0], yz[:, 1],
-                c=utils.mkvc(physical_property_matrix[:, ind_line]), s=0.1, vmin=vmin, vmax=vmax,
-                cmap=cmap, alpha=1, norm=norm
-            )
-        elif plot_type == "pcolor":
-            if scale == 'log':
-                norm = LogNorm()
+        ind_line = np.arange(ind_line.size)[ind_line]
+
+        for i in ind_line:
+            inds_temp = [i, i]
+            if x_axis == 'distance':
+                x_tmp = self.distance[i]
             else:
-                norm=None
-            ind_line = np.arange(ind_line.size)[ind_line]
-            for i in ind_line:
-                inds_temp = [i, i]
-                topo_temp = np.c_[
-                    self.topography[i, x_ind]-dx,
-                    self.topography[i, x_ind]+dx
-                ]
-                out = ax.pcolormesh(
-                    topo_temp, -self.mesh_1d.vectorCCx+self.topography[i, 2], physical_property_matrix[:, inds_temp],
-                    cmap=cmap, alpha=0.7,
-                    vmin=vmin, vmax=vmax, norm=norm
-                )
+                x_tmp = self.topography[i, x_ind]
+
+            topo_temp = np.c_[
+                x_tmp-dx,
+                x_tmp+dx
+            ]
+
+            out = ax.pcolormesh(
+                topo_temp, -self.mesh_1d.vectorCCx+self.topography[i, 2], physical_property_matrix[:, inds_temp],
+                cmap=cmap, alpha=alpha,
+                vmin=vmin, vmax=vmax, norm=norm, **pcolorOpts
+            )
+
         if show_layer:
             ax.plot(
-                self.topography[ind_line, x_ind], self.topography[ind_line, 2]-self.mesh_1d.vectorCCx[i_layer],
+                x_tmp, self.topography[ind_line, 2]-self.mesh_1d.vectorCCx[i_layer],
                 '--', lw=1, color='grey'
             )
 
@@ -738,8 +744,14 @@ class Stitched1DModel(properties.HasProperties):
         if zlim is not None:
             ax.set_ylim(zlim)
 
-        xlim = self.topography[ind_line, x_ind].min(), self.topography[ind_line, x_ind].max()
-        ax.set_xlim(xlim)
+        if x_axis == 'distance':
+            xlim = self.distance[ind_line].min(), self.distance[ind_line].max()
+        else:
+            xlim = self.topography[ind_line, x_ind].min(), self.topography[ind_line, x_ind].max() 
+        if invert_xaxis:
+            ax.set_xlim(xlim[1], xlim[0])
+        else:
+            ax.set_xlim(xlim)
 
         plt.tight_layout()
 
@@ -771,7 +783,7 @@ class Stitched1DModel(properties.HasProperties):
             print ((">> dx:%.1e")%(dx))
         if dy is None:
             dy = ly/ny
-            print ((">> dx:%.1e")%(dy))
+            print ((">> dy:%.1e")%(dy))
         if dz is None:
             dz = np.median(self.mesh_1d.hx)
 
@@ -867,3 +879,4 @@ class Stitched1DModel(properties.HasProperties):
             )
 
         return physical_property_3d
+
