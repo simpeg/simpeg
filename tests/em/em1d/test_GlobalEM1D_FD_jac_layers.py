@@ -68,9 +68,10 @@ class Simulation1DLayeredStitched(unittest.TestCase):
 
         simulation = fdem.Simulation1DLayeredStitched(
             survey=survey, thicknesses=thicknesses, sigmaMap=sigma_map,
-            topo=topo, parallel=parallel, n_cpu=2, verbose=False, Solver=PardisoSolver,
+            topo=topo, parallel=parallel, n_cpu=2, verbose=False,
             n_sounding_for_chunk=10, use_sounding=True
         )
+        simulation.solver = PardisoSolver
 
         dpred = simulation.dpred(mSynth)
         noise = 0.1*np.abs(dpred)*np.random.rand(len(dpred))
