@@ -5,7 +5,7 @@ import properties
 from ....utils.code_utils import deprecate_class
 
 from ....utils import mkvc, sdiag, Zero
-from ....simulation import BaseSimulation
+from ....base import BaseElectricalPDESimulation
 from ....data import Data
 
 from .survey import Survey
@@ -16,7 +16,7 @@ from scipy.special import k0e, k1e, k0
 from discretize.utils import make_boundary_bool
 
 
-class BaseDCSimulation2D(BaseSimulation):
+class BaseDCSimulation2D(BaseElectricalPDESimulation):
     """
     Base 2.5D DC problem
     """

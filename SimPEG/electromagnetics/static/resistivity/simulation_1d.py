@@ -44,7 +44,7 @@ class Simulation1DLayers(BaseSimulation):
     fix_Jmatrix = False
 
     def __init__(self, **kwargs):
-        BaseEMSimulation.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         try:
             ht, htarg = check_hankel(
                 "fht", [self.hankel_filter, self.hankel_pts_per_dec], 1
@@ -182,7 +182,7 @@ class Simulation1DLayers(BaseSimulation):
             return toDelete
 
         if self._Jmatrix is not None:
-            toDelete += ["_Jmatrix"]
+            toDelete = toDelete + ["_Jmatrix"]
         return toDelete
 
     @property
