@@ -42,7 +42,7 @@ setup(
         "properties>=0.5.2",
         "vectormath>=0.2.0",
         "discretize>=0.7.0",
-        "geoana>=0.0.4",
+        "geoana>=0.1.3",
         "empymod",
         "pandas",
     ],
