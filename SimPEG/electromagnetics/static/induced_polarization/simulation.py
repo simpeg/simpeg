@@ -7,7 +7,6 @@ from .... import props, maps
 from ....data import Data
 from ....base import BasePDESimulation
 
-from ..resistivity.fields import Fields3DCellCentered, Fields3DNodal
 from ..resistivity import Simulation3DCellCentered as DC_3D_CC
 from ..resistivity import Simulation3DNodal as DC_3D_N
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
@@ -18,9 +17,6 @@ class BaseIPSimulation(BasePDESimulation):
     sigma = props.PhysicalProperty("Electrical Conductivity (S/m)")
     rho = props.PhysicalProperty("Electrical Resistivity (Ohm m)")
     props.Reciprocal(sigma, rho)
-
-    sigmaMap = maps.IdentityMap()
-    rhoMap = maps.IdentityMap()
 
     @property
     def sigmaMap(self):
@@ -75,9 +71,9 @@ class BaseIPSimulation(BasePDESimulation):
 
         if self._scale is None:
             scale = Data(self.survey, np.ones(self.survey.nD))
-            if self.mesh.dim == 2:
+            try:
                 f = self.fields_to_space(self._f)
-            else:
+            except AttributeError:
                 f = self._f
             # loop through receievers to check if they need to set the _dc_voltage
             for src in self.survey.source_list:

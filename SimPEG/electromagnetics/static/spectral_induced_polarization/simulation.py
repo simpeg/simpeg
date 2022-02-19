@@ -266,9 +266,9 @@ class BaseSIPSimulation(BaseIPSimulation):
             self._f = super(BaseIPSimulation, self).fields(None)
 
         if not self._dc_voltage_set:
-            if self.mesh.dim == 2:
+            try:
                 f = self.fields_to_space(self._f)
-            else:
+            except AttributeError:
                 f = self._f
             # loop through receievers to check if they need to set the _dc_voltage
             for src in self.survey.source_list:
