@@ -38,7 +38,6 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
     def fields(self, m=None, calcJ=True):
         if m is not None:
             self.model = m
-            self._Jmatrix = None
 
         f = self.fieldsPair(self)
         if self.Ainv is not None:
@@ -95,9 +94,10 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         """
         Compute sensitivity matrix (J) and vector (v) product.
         """
-
         if f is None:
             f = self.fields(m)
+
+        self.model = m
 
         if self.storeJ:
             J = self.getJ(m, f=f)
