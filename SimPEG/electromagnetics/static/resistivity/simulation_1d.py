@@ -177,7 +177,7 @@ class Simulation1DLayers(BaseSimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super(Simulation1DLayers, self).deleteTheseOnModelUpdate
+        toDelete = super().deleteTheseOnModelUpdate
         if self.fix_Jmatrix:
             return toDelete
 

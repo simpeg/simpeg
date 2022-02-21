@@ -669,7 +669,7 @@ class Simulation3DIntegral(BasePFSimulation):
     def deleteTheseOnModelUpdate(self):
         deletes = super().deleteTheseOnModelUpdate
         if self.is_amplitude_data:
-            deletes += ["_gtg_diagonal"]
+            deletes = deletes + ["_gtg_diagonal"]
         return deletes
 
     @property
