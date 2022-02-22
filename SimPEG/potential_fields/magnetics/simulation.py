@@ -697,6 +697,14 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         self._Div = Mc * Dface * Pin.T * Pin
 
     @property
+    def MfMuI(self):
+        return self._MfMuI
+
+    @property
+    def MfMui(self):
+        return self._MfMui
+
+    @property
     def MfMu0(self):
         return self._MfMu0
 
