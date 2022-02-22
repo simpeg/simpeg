@@ -3,13 +3,18 @@ from SimPEG import props, maps
 import unittest
 import discretize
 import numpy as np
+from scipy.constants import mu_0
 from discretize.tests import check_derivative
+from discretize.utils import Zero
 
 
 # define a very simple class...
 @with_property_mass_matrices("sigma")
+@with_property_mass_matrices("mu")
 class SimpleSim(BasePDESimulation):
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+
+    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability", default=mu_0)
 
     @property
     def deleteTheseOnModelUpdate(self):
@@ -30,6 +35,82 @@ class TestSim(unittest.TestCase):
         self.start_mod = np.log(1e-2 * np.ones(self.mesh.n_cells)) + np.random.randn(
             self.mesh.n_cells
         )
+
+    def test_zero_returns(self):
+        n_c = self.mesh.n_cells
+        n_n = self.mesh.n_nodes
+        n_f = self.mesh.n_faces
+        n_e = self.mesh.n_edges
+        sim = self.sim
+
+        v = np.random.rand(n_c)
+        u_c = np.random.rand(n_c)
+        u_n = np.random.rand(n_n)
+        u_f = np.random.rand(n_f)
+        u_e = np.random.rand(n_e)
+
+        # Test zero return on no map
+        assert sim.MccMuDeriv(u_c, v).__class__ == Zero
+        assert sim.MnMuDeriv(u_n, v).__class__ == Zero
+        assert sim.MfMuDeriv(u_f, v).__class__ == Zero
+        assert sim.MeMuDeriv(u_e, v).__class__ == Zero
+        assert sim.MccMuIDeriv(u_c, v).__class__ == Zero
+        assert sim.MnMuIDeriv(u_n, v).__class__ == Zero
+        assert sim.MfMuIDeriv(u_f, v).__class__ == Zero
+        assert sim.MeMuIDeriv(u_e, v).__class__ == Zero
+
+        # Test zero return on u passed as Zero
+        assert sim.MccSigmaDeriv(Zero(), v).__class__ == Zero
+        assert sim.MnSigmaDeriv(Zero(), v).__class__ == Zero
+        assert sim.MfSigmaDeriv(Zero(), v).__class__ == Zero
+        assert sim.MeSigmaDeriv(Zero(), v).__class__ == Zero
+        assert sim.MccSigmaIDeriv(Zero(), v).__class__ == Zero
+        assert sim.MnSigmaIDeriv(Zero(), v).__class__ == Zero
+        assert sim.MfSigmaIDeriv(Zero(), v).__class__ == Zero
+        assert sim.MeSigmaIDeriv(Zero(), v).__class__ == Zero
+
+        # Test zero return on v as Zero
+        assert sim.MccSigmaDeriv(u_c, Zero()).__class__ == Zero
+        assert sim.MnSigmaDeriv(u_n, Zero()).__class__ == Zero
+        assert sim.MfSigmaDeriv(u_f, Zero()).__class__ == Zero
+        assert sim.MeSigmaDeriv(u_e, Zero()).__class__ == Zero
+        assert sim.MccSigmaIDeriv(u_c, Zero()).__class__ == Zero
+        assert sim.MnSigmaIDeriv(u_n, Zero()).__class__ == Zero
+        assert sim.MfSigmaIDeriv(u_f, Zero()).__class__ == Zero
+        assert sim.MeSigmaIDeriv(u_e, Zero()).__class__ == Zero
+
+    def test_simple_mass(self):
+        sim = self.sim
+        n_c = self.mesh.n_cells
+        n_n = self.mesh.n_nodes
+        n_f = self.mesh.n_faces
+        n_e = self.mesh.n_edges
+
+        e_c = np.ones(n_c)
+        e_n = np.ones(n_n)
+        e_f = np.ones(n_f)
+        e_e = np.ones(n_e)
+
+        volume = np.sum(self.mesh.cell_volumes)
+        dim = self.mesh.dim
+
+        # Test volume sum
+        np.testing.assert_allclose(e_c @ sim.Mcc @ e_c, volume)
+        np.testing.assert_allclose(e_n @ sim.Mn @ e_n, volume)
+        np.testing.assert_allclose((e_f @ sim.Mf @ e_f)/dim, volume)
+        np.testing.assert_allclose((e_e @ sim.Me @ e_e)/dim, volume)
+
+        # Test matrix simple inverse
+        x_c = np.random.rand(n_c)
+        x_n = np.random.rand(n_n)
+        x_f = np.random.rand(n_f)
+        x_e = np.random.rand(n_e)
+
+        np.testing.assert_allclose(x_c, sim.MccI @ (sim.Mcc @ x_c))
+        np.testing.assert_allclose(x_n, sim.MnI @ (sim.Mn @ x_n))
+        np.testing.assert_allclose(x_f, sim.MfI @ (sim.Mf @ x_f))
+        np.testing.assert_allclose(x_e, sim.MeI @ (sim.Me @ x_e))
+
 
     def test_forward_expected_shapes(self):
         sim = self.sim
