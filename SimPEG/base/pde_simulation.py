@@ -451,7 +451,7 @@ class BaseElectricalPDESimulation(BasePDESimulation):
         return toDelete
 
     @properties.observer("sigma")
-    def _clear_sigma_mats_on_sigma_update(self, change):
+    def _clear_mats_on_sigma_update(self, change):
         if change["previous"] is change["value"]:
             return
         if (
@@ -460,12 +460,12 @@ class BaseElectricalPDESimulation(BasePDESimulation):
             and np.allclose(change["previous"], change["value"])
         ):
             return
-        for mat in self._clear_on_sigma_update:
+        for mat in self._clear_on_sigma_update + self._clear_on_rho_update:
             if hasattr(self, mat):
                 delattr(self, mat)
 
     @properties.observer("rho")
-    def _clear_rho_mats_on_rho_update(self, change):
+    def _clear_mats_on_rho_update(self, change):
         if change["previous"] is change["value"]:
             return
         if (
@@ -474,7 +474,7 @@ class BaseElectricalPDESimulation(BasePDESimulation):
             and np.allclose(change["previous"], change["value"])
         ):
             return
-        for mat in self._clear_on_rho_update:
+        for mat in self._clear_on_sigma_update + self._clear_on_rho_update:
             if hasattr(self, mat):
                 delattr(self, mat)
 
@@ -501,7 +501,7 @@ class BaseMagneticPDESimulation(BasePDESimulation):
         return toDelete
 
     @properties.observer("mu")
-    def _clear_mu_mats_on_mu_update(self, change):
+    def _clear_mats_on_mu_update(self, change):
         if change["previous"] is change["value"]:
             return
         if (
@@ -510,12 +510,12 @@ class BaseMagneticPDESimulation(BasePDESimulation):
             and np.allclose(change["previous"], change["value"])
         ):
             return
-        for mat in self._clear_on_mu_update:
+        for mat in self._clear_on_mu_update + self._clear_on_mui_update:
             if hasattr(self, mat):
                 delattr(self, mat)
 
     @properties.observer("mui")
-    def _clear_mui_mats_on_mui_update(self, change):
+    def _clear_mats_on_mui_update(self, change):
         if change["previous"] is change["value"]:
             return
         if (
@@ -524,6 +524,6 @@ class BaseMagneticPDESimulation(BasePDESimulation):
             and np.allclose(change["previous"], change["value"])
         ):
             return
-        for mat in self._clear_on_mui_update:
+        for mat in self._clear_on_mu_update + self._clear_on_mui_update:
             if hasattr(self, mat):
                 delattr(self, mat)

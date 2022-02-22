@@ -120,7 +120,7 @@ class BaseIPSimulation(BasePDESimulation):
         return self._scale * super().Jvec(m, v, f)
 
     def forward(self, m, f=None):
-        return self.Jvec(m, m, f=f)
+        return np.asarray(self.Jvec(m, m, f=f))
 
     def Jtvec(self, m, v, f=None):
         return super().Jtvec(m, v * self._scale, f)
