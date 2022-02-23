@@ -35,7 +35,7 @@ setup(
     packages=find_packages(exclude=["tests*", "examples*", "tutorials*"]),
     install_requires=[
         "numpy>=1.7",
-        "scipy>=1.0.0,<=1.4.1",
+        "scipy>=1.0.0",
         "scikit-learn>=0.22",
         "pymatsolver>=0.1.1",
         "matplotlib",
