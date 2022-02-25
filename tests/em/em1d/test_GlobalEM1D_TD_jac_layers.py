@@ -21,7 +21,7 @@ class StitchedEM1DTM(unittest.TestCase):
         dz = 1
         geometric_factor = 1.1
         n_layer = 20
-        thicknesses = dz * geometric_factor ** np.arange(n_layer-1)        
+        thicknesses = dz * geometric_factor ** np.arange(n_layer-1)
         n_layer = 20
 
         n_sounding = 5
@@ -188,7 +188,7 @@ class StitchedEM1DTM(unittest.TestCase):
 #         waveform_times = np.r_[-np.logspace(-2, -5, 31), 0.]
 #         waveform_current = triangular_waveform_current(
 #             waveform_times, -0.01, -0.005, 0., 1.
-#         )        
+#         )
 
 #         waveform = tdem.sources.RawWaveform(
 #                 waveform_times=waveform_times, waveform_current=waveform_current,

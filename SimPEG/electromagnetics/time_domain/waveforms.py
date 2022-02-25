@@ -190,7 +190,7 @@ class TrapezoidWaveform(BaseWaveform):
 
     @property
     def time_nodes(self):
-        return np.r_[self.ramp_on, self.ramp_off]
+        return np.unique(np.r_[self.ramp_on, self.ramp_off])
 
 
 class TriangularWaveform(TrapezoidWaveform):
@@ -266,7 +266,7 @@ class QuarterSineRampOnWaveform(BaseWaveform):
             )
         )
 
-        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1])
+        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1]) & (~p_1)
         out[p_2] = -1.0 / (self.ramp_off[1] - self.ramp_off[0])
 
         if out.ndim == 0:
@@ -275,7 +275,7 @@ class QuarterSineRampOnWaveform(BaseWaveform):
 
     @property
     def time_nodes(self):
-        return np.r_[self.ramp_on, self.ramp_off]
+        return np.unique(np.r_[self.ramp_on, self.ramp_off])
 
 
 class HalfSineWaveform(BaseWaveform):
@@ -331,7 +331,7 @@ class HalfSineWaveform(BaseWaveform):
             )
         )
 
-        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1])
+        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1]) &(~p_1)
         out[p_2] = (
             -np.pi
             / 2
@@ -350,7 +350,7 @@ class HalfSineWaveform(BaseWaveform):
 
     @property
     def time_nodes(self):
-        return np.r_[self.ramp_on, self.ramp_off]
+        return np.unique(np.r_[self.ramp_on, self.ramp_off])
 
 
 class PiecewiseLinearWaveform(BaseWaveform):

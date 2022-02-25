@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import scipy.sparse as sp
 from numpy.testing import assert_array_almost_equal
 from SimPEG.electromagnetics.time_domain.sources import (
     StepOffWaveform,
@@ -10,7 +11,9 @@ from SimPEG.electromagnetics.time_domain.sources import (
     TriangularWaveform,
     QuarterSineRampOnWaveform,
     HalfSineWaveform,
+    PiecewiseLinearWaveform,
 )
+from discretize.tests import check_derivative
 
 
 class TestStepOffWaveform(unittest.TestCase):
@@ -49,6 +52,23 @@ class TestRampOffWaveform(unittest.TestCase):
         expected = np.array([1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         assert_array_almost_equal(result, expected)
 
+    def test_waveform_derivative(self):
+        # Test the waveform derivative at points between the time_nodes
+        wave = RampOffWaveform(offTime=1e-2)
+
+        def f(t):
+            wave_eval = np.array([wave.eval(ti) for ti in t])
+            dWave_dt = sp.diags(wave.evalDeriv(t))
+            return wave_eval, dWave_dt
+
+        t_nodes = wave.time_nodes
+        t0 = np.concatenate(
+            [np.linspace(t_nodes[i], t_nodes[i+1], 6)[1:-2] for i in range(len(t_nodes)-1)]
+        )
+        dt = np.min(np.diff(t0))*0.5 * np.ones_like(t0)
+
+        assert check_derivative(f, t0, dx=dt, plotIt=False)
+
 
 class TestVTEMWaveform(unittest.TestCase):
     @classmethod
@@ -70,6 +90,23 @@ class TestVTEMWaveform(unittest.TestCase):
             [0.0, 0.455054, 0.731059, 0.898464, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0, 0.0]
         )
         assert_array_almost_equal(result, expected)
+
+    def test_waveform_derivative(self):
+        # Test the waveform derivative at points between the time_nodes
+        wave = VTEMWaveform(offTime=8e-3, peakTime=4e-3, a=2.0)
+
+        def f(t):
+            wave_eval = np.array([wave.eval(ti) for ti in t])
+            dWave_dt = sp.diags(wave.evalDeriv(t))
+            return wave_eval, dWave_dt
+
+        t_nodes = wave.time_nodes
+        t0 = np.concatenate(
+            [np.linspace(t_nodes[i], t_nodes[i+1], 6)[1:-2] for i in range(len(t_nodes)-1)]
+        )
+        dt = np.min(np.diff(t0))*0.5 * np.ones_like(t0)
+
+        assert check_derivative(f, t0, dx=dt, plotIt=False)
 
 
 class TestTrapezoidWaveform(unittest.TestCase):
@@ -93,6 +130,25 @@ class TestTrapezoidWaveform(unittest.TestCase):
         expected = np.array([0.0, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 0.75, 0.5, 0.25, 0.0])
         assert_array_almost_equal(result, expected)
 
+    def test_waveform_derivative(self):
+        # Test the waveform derivative at points between the time_nodes
+        wave = TrapezoidWaveform(
+            ramp_on=np.r_[0.0, 2e-3], ramp_off=np.r_[6e-3, 10e-3]
+        )
+
+        def f(t):
+            wave_eval = np.array([wave.eval(ti) for ti in t])
+            dWave_dt = sp.diags(wave.evalDeriv(t))
+            return wave_eval, dWave_dt
+
+        t_nodes = wave.time_nodes
+        t0 = np.concatenate(
+            [np.linspace(t_nodes[i], t_nodes[i+1], 6)[1:-2] for i in range(len(t_nodes)-1)]
+        )
+        dt = np.min(np.diff(t0))*0.5 * np.ones_like(t0)
+
+        assert check_derivative(f, t0, dx=dt, plotIt=False)
+
 
 class TestTriangularWaveform(unittest.TestCase):
     @classmethod
@@ -110,6 +166,23 @@ class TestTriangularWaveform(unittest.TestCase):
         result = [triangular.eval(t) for t in self.times]
         expected = np.array([0.0, 0.5, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0])
         assert_array_almost_equal(result, expected)
+
+    def test_waveform_derivative(self):
+        # Test the waveform derivative at points between the time_nodes
+        wave = TriangularWaveform(peakTime=2e-3, offTime=6e-3)
+
+        def f(t):
+            wave_eval = np.array([wave.eval(ti) for ti in t])
+            dWave_dt = sp.diags(wave.evalDeriv(t))
+            return wave_eval, dWave_dt
+
+        t_nodes = wave.time_nodes
+        t0 = np.concatenate(
+            [np.linspace(t_nodes[i], t_nodes[i+1], 6)[1:-2] for i in range(len(t_nodes)-1)]
+        )
+        dt = np.min(np.diff(t0))*0.5 * np.ones_like(t0)
+
+        assert check_derivative(f, t0, dx=dt, plotIt=False)
 
 
 class TestQuarterSineRampOnWaveform(unittest.TestCase):
@@ -162,6 +235,63 @@ class TestQuarterSineRampOnWaveform(unittest.TestCase):
 
         assert_array_almost_equal(result, expected)
 
+    def test_waveform_with_plateau_derivative(self):
+        # Test the waveform derivative at points between the time_nodes
+        wave = QuarterSineRampOnWaveform(
+            ramp_on=np.r_[0.0, 3e-3], ramp_off=np.r_[7e-3, 1e-2]
+        )
+
+        def f(t):
+            wave_eval = np.array([wave.eval(ti) for ti in t])
+            dWave_dt = sp.diags(wave.evalDeriv(t))
+            return wave_eval, dWave_dt
+
+        t_nodes = wave.time_nodes
+        t0 = np.concatenate(
+            [np.linspace(t_nodes[i], t_nodes[i+1], 6)[1:-2] for i in range(len(t_nodes)-1)]
+        )
+        dt = np.min(np.diff(t0))*0.5 * np.ones_like(t0)
+
+        assert check_derivative(f, t0, dx=dt, plotIt=False)
+
+    def test_waveform_without_plateau_derivative(self):
+        # Test the waveform derivative at points between the time_nodes
+        wave = QuarterSineRampOnWaveform(
+            ramp_on=np.r_[0.0, 5e-3], ramp_off=np.r_[5e-3, 1e-2]
+        )
+
+        def f(t):
+            wave_eval = np.array([wave.eval(ti) for ti in t])
+            dWave_dt = sp.diags(wave.evalDeriv(t))
+            return wave_eval, dWave_dt
+
+        t_nodes = wave.time_nodes
+        t0 = np.concatenate(
+            [np.linspace(t_nodes[i], t_nodes[i+1], 6)[1:-2] for i in range(len(t_nodes)-1)]
+        )
+        dt = np.min(np.diff(t0))*0.5 * np.ones_like(t0)
+
+        assert check_derivative(f, t0, dx=dt, plotIt=False)
+
+    def test_waveform_negative_plateau_derivative(self):
+        # Test the waveform derivative at points between the time_nodes
+        wave = QuarterSineRampOnWaveform(
+            ramp_on=np.r_[0.0, 8e-3], ramp_off=np.r_[2e-3, 1e-2]
+        )
+
+        def f(t):
+            wave_eval = np.array([wave.eval(ti) for ti in t])
+            dWave_dt = sp.diags(wave.evalDeriv(t))
+            return wave_eval, dWave_dt
+
+        t_nodes = wave.time_nodes
+        t0 = np.concatenate(
+            [np.linspace(t_nodes[i], t_nodes[i+1], 6)[1:-2] for i in range(len(t_nodes)-1)]
+        )
+        dt = np.min(np.diff(t0))*0.5 * np.ones_like(t0)
+
+        assert check_derivative(f, t0, dx=dt, plotIt=False)
+
 
 class TestHalfSineWaveform(unittest.TestCase):
     @classmethod
@@ -201,3 +331,78 @@ class TestHalfSineWaveform(unittest.TestCase):
         )
 
         assert_array_almost_equal(result, expected)
+
+    def test_waveform_with_plateau_derivative(self):
+        # Test the waveform derivative at points between the time_nodes
+        wave = HalfSineWaveform(
+            ramp_on=np.r_[0.0, 3e-3], ramp_off=np.r_[7e-3, 1e-2]
+        )
+
+        def f(t):
+            wave_eval = np.array([wave.eval(ti) for ti in t])
+            dWave_dt = sp.diags(wave.evalDeriv(t))
+            return wave_eval, dWave_dt
+
+        t_nodes = wave.time_nodes
+        t0 = np.concatenate(
+            [np.linspace(t_nodes[i], t_nodes[i+1], 6)[1:-2] for i in range(len(t_nodes)-1)]
+        )
+        dt = np.min(np.diff(t0))*0.5 * np.ones_like(t0)
+
+        assert check_derivative(f, t0, dx=dt, plotIt=False)
+
+    def test_waveform_without_plateau_derivative(self):
+        # Test the waveform derivative at points between the time_nodes
+        wave = HalfSineWaveform(
+            ramp_on=np.r_[0.0, 5e-3], ramp_off=np.r_[5e-3, 1e-2]
+        )
+
+        def f(t):
+            wave_eval = np.array([wave.eval(ti) for ti in t])
+            dWave_dt = sp.diags(wave.evalDeriv(t))
+            return wave_eval, dWave_dt
+
+        t_nodes = wave.time_nodes
+        t0 = np.concatenate(
+            [np.linspace(t_nodes[i], t_nodes[i+1], 6)[1:-2] for i in range(len(t_nodes)-1)]
+        )
+        dt = np.min(np.diff(t0))*0.5 * np.ones_like(t0)
+
+        assert check_derivative(f, t0, dx=dt, plotIt=False)
+
+
+class TestPiecewiseLinearWaveform(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.times = np.linspace(start=0, stop=1e-2, num=11)
+
+    def test_waveform_with_default_param(self):
+        wave = PiecewiseLinearWaveform(
+            [0, 0.0025, 0.005, 0.0075, 0.01],
+            [0, 0.4, 1.0, 0.6, 0.0]
+        )
+        result = [wave.eval(t) for t in self.times]
+        expected = np.array(
+            [0.0, 0.16, 0.32, 0.52, 0.76, 1.0, 0.84, 0.68, 0.48, 0.24, 0.0]
+        )
+        assert_array_almost_equal(result, expected)
+
+    def test_waveform_derivative(self):
+        # Test the waveform derivative at points between the time_nodes
+        wave = PiecewiseLinearWaveform(
+            [0, 0.0025, 0.005, 0.0075, 0.01],
+            [0, 0.4, 1.0, 0.6, 0.0]
+        )
+
+        def f(t):
+            wave_eval = np.array([wave.eval(ti) for ti in t])
+            dWave_dt = sp.diags(wave.evalDeriv(t))
+            return wave_eval, dWave_dt
+
+        t_nodes = wave.time_nodes
+        t0 = np.concatenate(
+            [np.linspace(t_nodes[i], t_nodes[i+1], 6)[1:-2] for i in range(len(t_nodes)-1)]
+        )
+        dt = np.min(np.diff(t0))*0.5 * np.ones_like(t0)
+
+        assert check_derivative(f, t0, dx=dt, plotIt=False)
