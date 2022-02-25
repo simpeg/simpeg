@@ -1,9 +1,7 @@
 import scipy as sp
 import numpy as np
-from .sparse import Sparse, SparseSmall, SparseDeriv
-from .tikhonov import Simple
+from .sparse import Sparse
 from .. import utils
-from discretize import TensorMesh
 
 
 class LaterallyConstrained(Sparse):

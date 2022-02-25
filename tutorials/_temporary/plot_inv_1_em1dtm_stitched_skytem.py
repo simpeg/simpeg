@@ -14,10 +14,9 @@ Forward Simulation of Stitched SkyTEM Data
 #
 
 import numpy as np
-import os, tarfile
+import tarfile
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-from matplotlib.colors import LogNorm
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
@@ -27,10 +26,8 @@ from SimPEG import (
     directives, inversion, utils
     )
 
-from SimPEG.utils import mkvc
 import SimPEG.electromagnetics.time_domain_1d as em1d
-from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh, plot_layer, get_vertical_discretization_time
-from SimPEG.regularization import LaterallyConstrained
+from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh, get_vertical_discretization_time
 from SimPEG.electromagnetics.time_domain_1d.known_waveforms import skytem_HM_2015, skytem_LM_2015
 
 save_file = True
@@ -253,7 +250,7 @@ dmis.W = 1./uncertainties
 # Define the regularization (model objective function)
 mesh_reg = get_2d_mesh(n_sounding, hz)
 reg_map = maps.IdentityMap(mesh_reg)
-reg = LaterallyConstrained(
+reg = regularization.LaterallyConstrained(
     mesh_reg, mapping=reg_map,
     alpha_s = 0.1,
     alpha_x = 1.,
@@ -470,23 +467,3 @@ for ii in range(0, len(data_list)):
 ax.set_xlabel("Times (s)")
 ax.set_ylabel("|dBdt| (T/s)")
 plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
