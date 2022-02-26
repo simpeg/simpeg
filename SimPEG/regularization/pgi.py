@@ -80,7 +80,6 @@ class PGIsmallness(BaseRegularization):
         weights = np.sum(list(self.weights.values()), axis=0)
         return sdiag(weights ** 0.5)
 
-
     @property
     def weights(self):
         """Regularization weights applied to the target elements"""
@@ -100,7 +99,7 @@ class PGIsmallness(BaseRegularization):
             if not isinstance(weights, dict):
                 raise TypeError("Weights must be provided as a dictionary or None.")
 
-            for key, values in weights:
+            for key, values in weights.items():
                 if self._nC_residual != "*":
                     if (len(values) != self._nC_residual) and (
                             len(values) != len(self.wiresmap.maps) * self._nC_residual

@@ -177,7 +177,7 @@ class BaseRegularization(BaseObjectiveFunction):
         """
         Weighting matrix
         """
-        raise AttributeError("Regularization class must have a 'W' implementation.")
+        raise NotImplementedError("Regularization class must have a 'W' implementation.")
 
     @property
     def _nC_residual(self):
@@ -690,6 +690,11 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
             alpha_zz=alpha_zz,
             **kwargs
         )
+
+    def add_set_weights(self, weights: dict):
+        """Update weights to objective functions"""
+        for fct in self.objfcts:
+            fct.add_set_weights(weights)
 
     @property
     def alpha_s(self):

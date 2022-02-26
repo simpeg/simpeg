@@ -6,7 +6,7 @@ from scipy.sparse.linalg import eigsh
 from discretize import TensorMesh
 from SimPEG import simulation, data_misfit
 from SimPEG.maps import IdentityMap
-from SimPEG.regularization import L2Regularization
+from SimPEG.regularization import LeastSquaresRegularization
 from SimPEG.utils.mat_utils import eigenvalue_by_power_iteration
 
 
