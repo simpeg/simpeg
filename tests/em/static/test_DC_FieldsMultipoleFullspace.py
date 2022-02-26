@@ -30,21 +30,32 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         x = mesh.vectorCCx[(mesh.vectorCCx > -75.0) & (mesh.vectorCCx < 75.0)]
         y = mesh.vectorCCy[(mesh.vectorCCy > -75.0) & (mesh.vectorCCy < 75.0)]
 
-        Aloc = np.r_[1.0, 0.0, 0.0]
-        Bloc = np.r_[-1.0, 0.0, 0.0]
+        Aloc = np.r_[2.0, 0.0, 0.0]
+        Bloc = np.r_[1.0, 0.0, 0.0]
+        Cloc = np.r_[0.0, 0.0, 0.0]
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
         N = utils.ndgrid(x + 25.0, y, np.r_[0.0])
 
         rx = dc.receivers.Dipole(M, N)
-        src = dc.sources.Multipole([rx], location=[Aloc, Bloc], current=[1.0, -1.0])
+        src = dc.sources.Multipole([rx], location=[Aloc, Bloc, Cloc], current=[1.0, 1.0, -2.0])
         survey = dc.survey.Survey([src])
 
         # Create Dipole Obj for Analytic Solution
-        edipole = fdem.ElectricDipoleWholeSpace(
+        e1dipole = fdem.ElectricDipoleWholeSpace(
             sigma=1e-2,  # conductivity of 1 S/m
             mu=mu_0,  # permeability of free space (this is the default)
             epsilon=epsilon_0,  # permittivity of free space (this is the default)
-            location=np.r_[0.0, 0.0, 0.0],  # location of the dipole
+            location=np.r_[0.5, 0.0, 0.0],  # location of the dipole
+            orientation="X",  # horizontal dipole (can also be a unit-vector)
+            quasistatic=True,  # don't use the quasistatic assumption
+            frequency=0.0,  # DC
+            length=1.0,  # length of dipole
+        )
+        e2dipole = fdem.ElectricDipoleWholeSpace(
+            sigma=1e-2,  # conductivity of 1 S/m
+            mu=mu_0,  # permeability of free space (this is the default)
+            epsilon=epsilon_0,  # permittivity of free space (this is the default)
+            location=np.r_[1.0, 0.0, 0.0],  # location of the dipole
             orientation="X",  # horizontal dipole (can also be a unit-vector)
             quasistatic=True,  # don't use the quasistatic assumption
             frequency=0.0,  # DC
@@ -55,17 +66,17 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         Ex_analytic = np.zeros_like([mesh.nFx, 1])
         Ey_analytic = np.zeros_like([mesh.nFy, 1])
         Ez_analytic = np.zeros_like([mesh.nFz, 1])
-        Ex_analytic = np.real(edipole.electric_field(mesh.gridFx))[:, 0]
-        Ey_analytic = np.real(edipole.electric_field(mesh.gridFy))[:, 1]
-        Ez_analytic = np.real(edipole.electric_field(mesh.gridFz))[:, 2]
+        Ex_analytic = np.real(e1dipole.electric_field(mesh.gridFx) + e2dipole.electric_field(mesh.gridFx))[:, 0]
+        Ey_analytic = np.real(e1dipole.electric_field(mesh.gridFy) + e2dipole.electric_field(mesh.gridFy))[:, 1]
+        Ez_analytic = np.real(e1dipole.electric_field(mesh.gridFz) + e2dipole.electric_field(mesh.gridFz))[:, 2]
         E_analytic = np.hstack([Ex_analytic, Ey_analytic, Ez_analytic])
 
         Jx_analytic = np.zeros_like([mesh.nFx, 1])
         Jy_analytic = np.zeros_like([mesh.nFy, 1])
         Jz_analytic = np.zeros_like([mesh.nFz, 1])
-        Jx_analytic = np.real(edipole.current_density(mesh.gridFx))[:, 0]
-        Jy_analytic = np.real(edipole.current_density(mesh.gridFy))[:, 1]
-        Jz_analytic = np.real(edipole.current_density(mesh.gridFz))[:, 2]
+        Jx_analytic = np.real(e1dipole.current_density(mesh.gridFx) + e2dipole.current_density(mesh.gridFx))[:, 0]
+        Jy_analytic = np.real(e1dipole.current_density(mesh.gridFy) + e2dipole.current_density(mesh.gridFy))[:, 1]
+        Jz_analytic = np.real(e1dipole.current_density(mesh.gridFz) + e2dipole.current_density(mesh.gridFz))[:, 2]
         J_analytic = np.hstack([Jx_analytic, Jy_analytic, Jz_analytic])
 
         # Find faces at which to compare solutions
@@ -190,7 +201,7 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         self.assertTrue(passed)
 
 
-class DC_N_DipoleFullspaceTests(unittest.TestCase):
+class DC_N_MultipoleFullspaceTests(unittest.TestCase):
     def setUp(self):
 
         cs = 0.5
@@ -205,21 +216,34 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
         x = mesh.vectorNx[(mesh.vectorNx > -75.0) & (mesh.vectorNx < 75.0)]
         y = mesh.vectorNy[(mesh.vectorNy > -75.0) & (mesh.vectorNy < 75.0)]
 
-        Aloc = np.r_[1.25, 0.0, 0.0]
-        Bloc = np.r_[-1.25, 0.0, 0.0]
+        Aloc = np.r_[2.25, 0.0, 0.0]
+        Bloc = np.r_[1.25, 0.0, 0.0]
+        Cloc = np.r_[-0.25, 0.0, 0.0]
+
         M = utils.ndgrid(x - 25.0, y, np.r_[0.0])
         N = utils.ndgrid(x + 25.0, y, np.r_[0.0])
 
         rx = dc.receivers.Dipole(M, N)
-        src = dc.sources.Dipole([rx], Aloc, Bloc)
+        src = dc.sources.Multipole([rx], location=[Aloc, Bloc, Cloc], current=[1.0, 1.0, -2.0])
+
         survey = dc.survey.Survey([src])
 
         # Create Dipole Obj for Analytic Solution
-        edipole = fdem.ElectricDipoleWholeSpace(
+        e1dipole = fdem.ElectricDipoleWholeSpace(
             sigma=1e-2,  # conductivity of 1 S/m
             mu=mu_0,  # permeability of free space (this is the default)
             epsilon=epsilon_0,  # permittivity of free space (this is the default)
-            location=np.r_[0.0, 0.0, 0.0],  # location of the dipole
+            location=np.r_[0.5, 0.0, 0.0],  # location of the dipole
+            orientation="X",  # horizontal dipole (can also be a unit-vector)
+            quasistatic=True,  # don't use the quasistatic assumption
+            frequency=0.0,  # DC
+            length=1.5,  # length of dipole
+        )
+        e2dipole = fdem.ElectricDipoleWholeSpace(
+            sigma=1e-2,  # conductivity of 1 S/m
+            mu=mu_0,  # permeability of free space (this is the default)
+            epsilon=epsilon_0,  # permittivity of free space (this is the default)
+            location=np.r_[1.0, 0.0, 0.0],  # location of the dipole
             orientation="X",  # horizontal dipole (can also be a unit-vector)
             quasistatic=True,  # don't use the quasistatic assumption
             frequency=0.0,  # DC
@@ -230,17 +254,17 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
         Ex_analytic = np.zeros_like([mesh.nEx, 1])
         Ey_analytic = np.zeros_like([mesh.nEy, 1])
         Ez_analytic = np.zeros_like([mesh.nEz, 1])
-        Ex_analytic = np.real(edipole.electric_field(mesh.gridEx))[:, 0]
-        Ey_analytic = np.real(edipole.electric_field(mesh.gridEy))[:, 1]
-        Ez_analytic = np.real(edipole.electric_field(mesh.gridEz))[:, 2]
+        Ex_analytic = np.real(e1dipole.electric_field(mesh.gridEx) + e2dipole.electric_field(mesh.gridEx))[:, 0]
+        Ey_analytic = np.real(e1dipole.electric_field(mesh.gridEy) + e2dipole.electric_field(mesh.gridEy))[:, 1]
+        Ez_analytic = np.real(e1dipole.electric_field(mesh.gridEz) + e2dipole.electric_field(mesh.gridEz))[:, 2]
         E_analytic = np.hstack([Ex_analytic, Ey_analytic, Ez_analytic])
 
         Jx_analytic = np.zeros_like([mesh.nEx, 1])
         Jy_analytic = np.zeros_like([mesh.nEy, 1])
         Jz_analytic = np.zeros_like([mesh.nEz, 1])
-        Jx_analytic = np.real(edipole.current_density(mesh.gridEx))[:, 0]
-        Jy_analytic = np.real(edipole.current_density(mesh.gridEy))[:, 1]
-        Jz_analytic = np.real(edipole.current_density(mesh.gridEz))[:, 2]
+        Jx_analytic = np.real(e1dipole.current_density(mesh.gridEx) + e2dipole.current_density(mesh.gridEx))[:, 0]
+        Jy_analytic = np.real(e1dipole.current_density(mesh.gridEy) + e2dipole.current_density(mesh.gridEy))[:, 1]
+        Jz_analytic = np.real(e1dipole.current_density(mesh.gridEz) + e2dipole.current_density(mesh.gridEz))[:, 2]
         J_analytic = np.hstack([Jx_analytic, Jy_analytic, Jz_analytic])
 
         # Find edges at which to compare solutions
