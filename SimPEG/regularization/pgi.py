@@ -463,8 +463,8 @@ class PGIsmallness(Small):
 
             if v is not None:
                 return Hr.dot(v)
-            else:
-                return
+
+            return Hr
 
 
 class PGI(LeastSquaresRegularization):
