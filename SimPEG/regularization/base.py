@@ -323,7 +323,6 @@ class Small(BaseRegularization):
     def weights(self):
         """Regularization weights applied to the target elements"""
         if getattr(self, "_weights", None) is None:
-            self._weights = {}
             self.add_set_weights(
                 {"volume": self.regularization_mesh.vol}
             )
@@ -347,6 +346,9 @@ class Small(BaseRegularization):
         self._W = None
 
     def add_set_weights(self, weights: dict):
+        if self._weights is None:
+            self._weights = {}
+
         for key, values in weights.items():
             validate_array_type("weights", values, float)
             validate_shape("weights", values, self.shape[0])
@@ -457,7 +459,6 @@ class SmoothDeriv(BaseRegularization):
     def weights(self):
         """Regularization weights applied to the target elements"""
         if getattr(self, "_weights", None) is None:
-            self._weights = {}
             self.add_set_weights(
                 {
                     "volume": self.regularization_mesh.vol,
@@ -485,6 +486,9 @@ class SmoothDeriv(BaseRegularization):
         self._W = None
 
     def add_set_weights(self, weights: dict):
+        if self._weights is None:
+            self._weights = {}
+
         for key, values in weights.items():
             average_cell_2_face = getattr(
                 self.regularization_mesh, "aveCC2F{}".format(self.orientation)
@@ -1007,6 +1011,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         for fct in self.objfcts:
             fct.mapping = mapping
+
 
 def validate_array_type(attribute, array, dtype):
     """Generic array and type validator"""

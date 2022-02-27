@@ -2,7 +2,7 @@ from __future__ import annotations
 import numpy as np
 import scipy.sparse as sp
 import warnings
-import properties
+
 import copy
 from ..utils import (
     speye,
@@ -12,10 +12,12 @@ from ..utils import (
     Identity,
 )
 from ..maps import IdentityMap, Wires
-from .. import props
+
 from .base import (
     BaseRegularization,
     LeastSquaresRegularization,
+    validate_array_type,
+    validate_shape
 )
 
 ###############################################################################
@@ -71,6 +73,24 @@ class PGIsmallness(BaseRegularization):
         self._r_first_deriv = None
         self._r_second_deriv = None
 
+    def add_set_weights(self, weights: dict):
+        if self._weights is None:
+            self._weights = {}
+
+        for key, values in weights.items():
+            if values.shape == self._nC_residual:
+                values = np.tile(values, len(self.wiresmap.maps))
+
+            validate_array_type("weights", values, float)
+            validate_shape("weights", values, self.shape)
+            self.weights[key] = values
+        self._W = None
+
+    @property
+    def shape(self):
+        """"""
+        return len(self.wiresmap.maps) * self._nC_residual
+
     @property
     def W(self):
         """
@@ -84,9 +104,9 @@ class PGIsmallness(BaseRegularization):
     def weights(self):
         """Regularization weights applied to the target elements"""
         if getattr(self, "_weights", None) is None:
-            self.weights = {
+            self.add_set_weights({
                 "volume": self.regularization_mesh.vol
-            }
+            })
 
         return self._weights
 
@@ -483,7 +503,7 @@ class PGIsmallness(BaseRegularization):
             if v is not None:
                 return Hr.dot(v)
             else:
-                return Hr
+                return
 
 
 class PGI(LeastSquaresRegularization):
@@ -555,9 +575,6 @@ class PGI(LeastSquaresRegularization):
             mapping=IdentityMap(mesh, nP=self.wiresmap.nP),
             **kwargs
         )
-
-    # Properties
-    alpha_s = props.Float("PGI smallness multiplier")
 
     @property
     def gmm(self):
@@ -951,7 +968,7 @@ class PGIwithNonlinearRelationshipsSmallness(BaseRegularization):
 
 class PGIwithRelationships(LeastSquaresRegularization):
     """
-    class similar to regularization.tikhonov.Simple, with a
+    Class similar to regularization.base.LeastSquaresRegularization, with a
     PGIwithNonlinearRelationshipsSmallness.
 
     PARAMETERS
@@ -1020,9 +1037,6 @@ class PGIwithRelationships(LeastSquaresRegularization):
             **kwargs
         )
 
-    # Properties
-    alpha_s = props.Float("PGI smallness multiplier")
-
     @property
     def gmm(self):
         if getattr(self, "_gmm", None) is None:
@@ -1077,3 +1091,4 @@ class PGIwithRelationships(LeastSquaresRegularization):
         if ap is not None:
             self._approx_gradient = ap
         self.objfcts[0].approx_gradient = self.approx_gradient
+
