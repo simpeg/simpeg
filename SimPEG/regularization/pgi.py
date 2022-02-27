@@ -16,6 +16,7 @@ from ..maps import IdentityMap, Wires
 from .base import (
     BaseRegularization,
     LeastSquaresRegularization,
+    Small,
     validate_array_type,
     validate_shape
 )
@@ -31,7 +32,7 @@ from .base import (
 #####################################
 
 
-class PGIsmallness(BaseRegularization):
+class PGIsmallness(Small):
     """
     Smallness term for the petrophysically constrained regularization (PGI)
     with cell_weights similar to the regularization.tikhonov.SimpleSmall class.
@@ -78,61 +79,21 @@ class PGIsmallness(BaseRegularization):
             self._weights = {}
 
         for key, values in weights.items():
-            if values.shape == self._nC_residual:
-                values = np.tile(values, len(self.wiresmap.maps))
-
             validate_array_type("weights", values, float)
-            validate_shape("weights", values, self.shape)
+
+            if values.shape[0] == self.mapping.shape[0]:
+                values = np.tile(values, len(self.wiresmap.maps))
+            else:
+                validate_shape("weights", values, self.shape[0])
+
             self.weights[key] = values
+
         self._W = None
 
     @property
     def shape(self):
         """"""
-        return len(self.wiresmap.maps) * self._nC_residual
-
-    @property
-    def W(self):
-        """
-        Weighting matrix
-        Need to change the size to match self.wiresmap.maps * mesh.nC
-        """
-        weights = np.sum(list(self.weights.values()), axis=0)
-        return sdiag(weights ** 0.5)
-
-    @property
-    def weights(self):
-        """Regularization weights applied to the target elements"""
-        if getattr(self, "_weights", None) is None:
-            self.add_set_weights({
-                "volume": self.regularization_mesh.vol
-            })
-
-        return self._weights
-
-    @weights.setter
-    def weights(self, weights: dict[str, np.ndarray] | np.ndarray | None):
-        if weights is not None:
-            if isinstance(weights, np.ndarray):
-                weights["user_weights"] = weights
-
-            if not isinstance(weights, dict):
-                raise TypeError("Weights must be provided as a dictionary or None.")
-
-            for key, values in weights.items():
-                if self._nC_residual != "*":
-                    if (len(values) != self._nC_residual) and (
-                            len(values) != len(self.wiresmap.maps) * self._nC_residual
-                    ):
-                        raise Exception(
-                            "cell_weights must be length {} or {} not {}".format(
-                                self._nC_residual,
-                                len(self.wiresmap.maps) * self._nC_residual,
-                                len(values),
-                            )
-                        )
-
-        self._weights = weights
+        return self.wiresmap.nP,
 
     def membership(self, m):
         modellist = self.wiresmap * m
