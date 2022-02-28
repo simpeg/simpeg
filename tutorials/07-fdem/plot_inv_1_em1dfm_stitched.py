@@ -2,7 +2,7 @@
 Stitched 1D Frequency-Domain Inversion
 ======================================
 
-Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to perform
+Here we use the module *SimPEG.electromagnetics.frequency_domain* to perform
 a stitched 1D inversion on a 3D FDEM dataset. That is, we recover a local 1D
 conductivity model for each sounding. In this tutorial, we focus on the following:
 
@@ -25,10 +25,10 @@ located 30 m above the Earth's surface. The receiver was offset
 
 import numpy as np
 from scipy.spatial import cKDTree, Delaunay
-import os, tarfile
+import os
+import tarfile
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-from matplotlib.colors import LogNorm
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
@@ -38,10 +38,8 @@ from SimPEG import (
     directives, inversion, utils
     )
 
-from SimPEG.utils import mkvc
 import SimPEG.electromagnetics.frequency_domain as fdem
-from SimPEG.regularization import LaterallyConstrained
-from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh, plot_layer, get_vertical_discretization_frequency
+from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh, get_vertical_discretization_frequency
 
 save_file = False
 
@@ -149,7 +147,7 @@ for ii in range(0, n_sounding):
             data_type=data_type, component="imag"
         )
     )
-    
+
     for freq in frequencies:
         source_list.append(
             fdem.sources.MagDipole(
@@ -189,7 +187,7 @@ data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
 #######################################################
 # Define Layer Thicknesses Used for All Soundings
 # -----------------------------------------------
-# 
+#
 # Although separate 1D models are recovered for each sounding, the number of
 # layers and the thicknesses is the same for each sounding.
 # For a background conductivity and a set of frequencies, we can determine the
@@ -206,14 +204,14 @@ thicknesses = get_vertical_discretization_frequency(
 ######################################################
 # Define a Mapping and a Starting/Reference Model
 # -----------------------------------------------
-# 
+#
 # When defining a starting or reference model, it is important to realize that
 # the total number of conductivity required is the number of layers times the
 # number of soundings. To keep the tutorial simple, we will invert for the
 # log-conductivity. Where *mi* is a 1D array  representing the 1D conductivity
 # model for sounding *i*, the 1D array containing all 1D conductivity models is
 # organized as [m1,m2,m3,...].
-# 
+#
 
 n_param = n_layer*n_sounding  # Number of model parameters
 
@@ -262,7 +260,7 @@ dmis.W = 1./uncertainties
 hz = np.r_[thicknesses, thicknesses[-1]]  # We need to include a thickness for bottom layer
 mesh_reg = get_2d_mesh(n_sounding, hz)    # Define a modified mesh for stitched 1D regularization
 reg_map = maps.IdentityMap(nP=n_param)    # Mapping between the model and regularization
-reg = LaterallyConstrained(
+reg = regularization.LaterallyConstrained(
     mesh_reg, mapping=reg_map,
     alpha_s = 0.1,
     alpha_x = 1.,
@@ -359,7 +357,7 @@ mesh2D = TensorMesh([hx, hz], x0='0N')
 
 # Define the locations which correspond to the model values in the recovered model.
 # Recall that the array containing these values is organized by sounding, then
-# layer from the top layer down. 
+# layer from the top layer down.
 z = np.r_[thicknesses, thicknesses[-1]]
 z = -(np.cumsum(z) - z/2.)
 x, z = np.meshgrid(x, z)
@@ -452,12 +450,12 @@ ax1 = fig.add_axes([0.1, 0.1, 0.37, 0.8])
 ax2 = fig.add_axes([0.6, 0.1, 0.37, 0.8])
 
 for ii in range(0, len(data_list)):
-    
+
     d_plotting = np.reshape(data_list[ii], (2*n_sounding, len(frequencies)))
 
     d_real = d_plotting[0::2, :]
     d_imag = d_plotting[1::2, :]
-    
+
     ax1.semilogy(x, np.abs(d_real), color_list[ii], lw=1)
     ax2.semilogy(x, np.abs(d_imag), color_list[ii], lw=1)
 
@@ -474,4 +472,3 @@ ax2.grid()
 ax2.set_xlabel("Sounding Location (m)")
 ax2.set_ylabel("Im[H] (ppm)")
 ax2.set_title("Imaginary Component")
-

@@ -28,7 +28,7 @@ class GlobalEM1DTD(unittest.TestCase):
         dz = 1
         geometric_factor = 1.1
         n_layer = 20
-        thicknesses = dz * geometric_factor ** np.arange(n_layer-1)        
+        thicknesses = dz * geometric_factor ** np.arange(n_layer-1)
         n_layer = 20
 
         n_sounding = 5
@@ -89,7 +89,7 @@ class GlobalEM1DTD(unittest.TestCase):
                 i_sounding=i_sounding,
             )
             )
-                    
+
             source_list.append(tdem.sources.MagDipole(
                 [dbzdt_receiver_lm],
                 location=source_location,

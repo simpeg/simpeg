@@ -11,7 +11,7 @@ conductivity model for each sounding. In this tutorial, we focus on the followin
     - Recovering a models for each sounding that define the vertical conductivity profile
     - Constructing a 2D/3D mesh, then interpolating the set of local 1D models onto the mesh
 
-For each sounding, the survey geometry consisted of horizontal loop source 
+For each sounding, the survey geometry consisted of horizontal loop source
 with a radius of 6 m, located 25 m above the Earth's surface. The receiver
 measured the vertical component of db/dt at the loop's centre.
 
@@ -25,10 +25,10 @@ measured the vertical component of db/dt at the loop's centre.
 
 import numpy as np
 from scipy.spatial import cKDTree, Delaunay
-import os, tarfile
+import os
+import tarfile
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-from matplotlib.colors import LogNorm
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
@@ -37,11 +37,8 @@ from SimPEG import (
     maps, data, data_misfit, inverse_problem, regularization, optimization,
     directives, inversion, utils
     )
-
-from SimPEG.utils import mkvc
 import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh,plot_layer, get_vertical_discretization_time
-from SimPEG.regularization import LaterallyConstrained
+from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh, get_vertical_discretization_time
 
 save_file = False
 
@@ -98,7 +95,7 @@ ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 
 for ii in range(0, len(times)):
     ax.semilogy(source_locations[:, 0], np.abs(dobs_plotting[:, ii]), 'k-', lw=2)
-    
+
 ax.set_xlabel("Sounding Location (m)")
 ax.set_ylabel("|dBdt| (T/s)")
 ax.set_title("Observed Data")
@@ -127,10 +124,10 @@ waveform = tdem.sources.StepOffWaveform()
 source_list = []
 
 for ii in range(0, n_sounding):
-    
+
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
-    
+
     receiver_list = [
         tdem.receivers.PointMagneticFluxTimeDerivative(
             receiver_location, times, orientation=receiver_orientation
@@ -168,7 +165,7 @@ data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
 #######################################################
 # Define Layer Thicknesses Used for All Soundings
 # -----------------------------------------------
-# 
+#
 # Although separate 1D models are recovered for each sounding, the number of
 # layers and the thicknesses is the same for each sounding.
 # For a background conductivity and a set of time channels, we can determine the
@@ -186,14 +183,14 @@ thicknesses = get_vertical_discretization_time(
 ######################################################
 # Define a Mapping and a Starting/Reference Model
 # -----------------------------------------------
-# 
+#
 # When defining a starting or reference model, it is important to realize that
 # the total number of conductivity required is the number of layers times the
 # number of soundings. To keep the tutorial simple, we will invert for the
 # log-conductivity. Where *mi* is a 1D array  representing the 1D conductivity
 # model for sounding *i*, the 1D array containing all 1D conductivity models is
 # organized as [m1,m2,m3,...].
-# 
+#
 
 n_param = n_layer*n_sounding  # Number of model parameters
 
@@ -241,7 +238,7 @@ dmis.W = 1./uncertainties
 hz = np.r_[thicknesses, thicknesses[-1]]  # We need to include a thickness for bottom layer
 mesh_reg = get_2d_mesh(n_sounding, hz)    # Define a modified mesh for stitched 1D regularization
 reg_map = maps.IdentityMap(nP=n_param)    # Mapping between the model and regularization
-reg = LaterallyConstrained(
+reg = regularization.LaterallyConstrained(
     mesh_reg, mapping=reg_map,
     alpha_s = 0.1,
     alpha_x = 1.,
@@ -344,7 +341,7 @@ mesh2D = TensorMesh([hx, hz], x0='0N')
 
 # Define the locations which correspond to the model values in the recovered model.
 # Recall that the array containing these values is organized by sounding, then
-# layer from the top layer down. 
+# layer from the top layer down.
 z = np.r_[thicknesses, thicknesses[-1]]
 z = -(np.cumsum(z) - z/2.)
 x, z = np.meshgrid(x, z)
@@ -438,7 +435,7 @@ ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
 for ii in range(0, len(data_list)):
     d = np.reshape(data_list[ii], (n_sounding, len(times)))
     ax.semilogy(x, np.abs(d), color_list[ii], lw=1)
-    
+
 ax.set_xlabel("Sounding Location (m)")
 ax.set_ylabel("|dBdt| (T/s)")
 ax.set_title("Predicted vs. Observed Data")
@@ -446,4 +443,3 @@ ax.legend(["True Model", "L2 Model", "Sparse Model"])
 leg = ax.get_legend()
 for ii in range(0, 3):
     leg.legendHandles[ii].set_color(color_list[ii])
-

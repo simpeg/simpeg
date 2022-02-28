@@ -2,7 +2,7 @@
 Stitched 1D Forward Simulation
 ==============================
 
-Here we use the module *SimPEG.electromangetics.frequency_domain_1d* to predict
+Here we use the module *SimPEG.electromagnetics.frequency_domain* to predict
 frequency domain data for a set of "stitched" 1D soundings. That is, the data
 for each source is predicted for a separate, user-defined 1D model.
 In this tutorial, we focus on the following:
@@ -28,7 +28,6 @@ from scipy.spatial import Delaunay, cKDTree
 import os
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-from matplotlib.colors import LogNorm
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
@@ -36,7 +35,7 @@ from SimPEG import maps
 from SimPEG.utils import mkvc
 import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.electromagnetics.utils.em1d_utils import (
-    plot_layer, get_vertical_discretization_frequency
+    get_vertical_discretization_frequency
 )
 
 plt.rcParams.update({'font.size': 16})
@@ -57,7 +56,7 @@ write_output = False
 x = np.linspace(50,4950,50)
 n_sounding = len(x)
 y = np.zeros(n_sounding)
-z = 30 *np.ones(n_sounding)
+z = 30 * np.ones(n_sounding)
 
 source_locations = np.c_[x, y, z]  # xyz locations for the sources
 moment = 1.
@@ -71,11 +70,11 @@ frequencies = np.array([25., 100., 382, 1822, 7970, 35920], dtype=float)
 # For each sounding, we define the source and the associated receivers.
 source_list = []
 for ii in range(0, n_sounding):
-    
+
     # Source and receiver locations
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
-    
+
     # Define receiver list for source ii
     receiver_list = []
     receiver_list.append(
@@ -90,7 +89,7 @@ for ii in range(0, n_sounding):
             data_type=data_type, component="imag"
         )
     )
-        
+
     # Define source ii at frequency jj
     for freq in frequencies:
         source_list.append(
@@ -107,14 +106,14 @@ survey = fdem.survey.Survey(source_list)
 ###############################################
 # Defining a Global Mesh and Model
 # --------------------------------
-# 
+#
 # It is easy to create and visualize 2D and 3D models in SimPEG, as opposed
 # to an arbitrary set of local 1D models. Here, we create a 2D model
 # which represents the global conductivity structure of the Earth. In the next
 # part of the tutorial, we will demonstrate how the set of local 1D models can be
 # extracted and organized for the stitched 1D simulation. This process can
 # be adapted easily for 3D meshes and models.
-# 
+#
 
 # Conductivity values for each unit
 background_conductivity = 0.1
@@ -249,7 +248,7 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 # Here we define the simulation and predict the FDEM data.
 # The simulation requires the user define the survey, the layer thicknesses
 # and a mapping from the model to the conductivities.
-# 
+#
 # When using the *SimPEG.electromagnetics.frequency_domain_1d* module, predicted
 # data are organized by source (sounding), then by receiver, then by frequency.
 #
@@ -321,4 +320,3 @@ if write_output:
         np.c_[loc, fvec, dout],
         fmt='%.4e', header='X Y Z FREQUENCY HZ_REAL HZ_IMAG'
     )
-

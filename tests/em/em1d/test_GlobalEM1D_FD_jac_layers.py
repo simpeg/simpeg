@@ -51,7 +51,7 @@ class Simulation1DLayeredStitched(unittest.TestCase):
             receiver_list = []
             receiver_list.append(
                 fdem.receivers.PointMagneticFieldSecondary(
-                    receiver_location, 
+                    receiver_location,
                     orientation="z",
                     component="both"
                 )
@@ -59,7 +59,7 @@ class Simulation1DLayeredStitched(unittest.TestCase):
 
             for i_freq, frequency in enumerate(frequencies):
                 src = fdem.sources.MagDipole(
-                    receiver_list, frequency, source_location, 
+                    receiver_list, frequency, source_location,
                     orientation="z", i_sounding=i_sounding
                 )
                 source_list.append(src)
@@ -176,7 +176,7 @@ class Simulation1DLayeredStitched(unittest.TestCase):
 
 #             receiver_list.append(
 #                 fdem.receivers.PointMagneticFieldSecondary(
-#                     receiver_offset, 
+#                     receiver_offset,
 #                     orientation="z",
 #                     component="both",
 #                     use_source_receiver_offset=True
@@ -185,7 +185,7 @@ class Simulation1DLayeredStitched(unittest.TestCase):
 
 #             for i_freq, frequency in enumerate(frequencies):
 #                 src = fdem.sources.MagDipole(
-#                     receiver_list, frequency, source_location, 
+#                     receiver_list, frequency, source_location,
 #                     orientation="z", i_sounding=i_sounding
 #                 )
 #                 source_list.append(src)
