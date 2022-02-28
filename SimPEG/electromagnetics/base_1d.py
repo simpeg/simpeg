@@ -14,15 +14,8 @@ from .. import utils
 from .. import props
 from empymod.utils import check_hankel
 
-try:
-    from multiprocessing import Pool
-    from sys import platform
-except ImportError:
-    print("multiprocessing is not available")
-    PARALLEL = False
-else:
-    PARALLEL = True
-    import multiprocessing
+from multiprocessing import Pool
+from sys import platform
 
 __all__ = ["BaseEM1DSimulation", "BaseStitchedEM1DSimulation"]
 
@@ -503,14 +496,11 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     def __init__(self, **kwargs):
         utils.setKwargs(self, **kwargs)
 
-        if PARALLEL:
-            if self.parallel:
-                print(">> Use multiprocessing for parallelization")
-                if self.n_cpu is None:
-                    self.n_cpu = multiprocessing.cpu_count()
-                print((">> n_cpu: %i") % (self.n_cpu))
-            else:
-                print(">> Serial version is used")
+        if self.parallel:
+            print(">> Use multiprocessing for parallelization")
+            if self.n_cpu is None:
+                self.n_cpu = multiprocessing.cpu_count()
+            print((">> n_cpu: %i") % (self.n_cpu))
         else:
             print(">> Serial version is used")
 
