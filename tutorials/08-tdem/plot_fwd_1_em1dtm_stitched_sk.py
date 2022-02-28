@@ -8,8 +8,8 @@ for each source is predicted for a separate, user-defined 1D model.
 In this tutorial, we focus on the following:
 
     - Defining receivers, sources and the survey for the stitched 1D case
-    - Constructing a model on a 2D/3D mesh, then interpolating that model to create the set of local 1D models
-    - The organization of the set of 1D models
+    - Constructing a stitched model - a set of 1D vertical conductivity profiels
+    - Running an EM simulation
 
 For each sounding, our survey geometry consists of a horizontal loop source with a
 radius of 10 m located 203 m above the Earth's surface. The receiver is located at the centre
@@ -71,11 +71,11 @@ waveform = tdem.waveforms.StepOffWaveform()
 # For each sounding, we define the source and the associated receivers.
 source_list = []
 for ii in range(0, n_sounding):
-    
+
     # Source and receiver locations
     source_location = mkvc(source_locations[ii, :])
     receiver_location = mkvc(receiver_locations[ii, :])
-    
+
     # Receiver list for source i
     receiver_list = [
         tdem.receivers.PointMagneticFluxTimeDerivative(
