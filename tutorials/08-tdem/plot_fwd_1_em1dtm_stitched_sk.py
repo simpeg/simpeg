@@ -112,6 +112,8 @@ line = (np.arange(ny).repeat(nx)).astype(float)
 time_stamp = np.arange(n_sounding).astype(float)
 # topography
 topography = np.c_[xyz[:,:2], np.zeros(n_sounding)]
+# vertical cell widths
+hz = 10*np.ones(40)
 
 fig, ax = plt.subplots(1,1, figsize=(5,5))
 ax.plot(xyz[:,0], xyz[:,1], '.')
