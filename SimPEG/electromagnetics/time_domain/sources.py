@@ -21,6 +21,22 @@ from ...utils import setKwargs, sdiag, Zero, Identity
 
 
 class BaseWaveform:
+    """
+    Base class for creating a waveform for time-domain EM simulations.
+
+    Parameters
+    ----------
+    has_initial_fields: bool
+        If the transmitter has non-zero current prior to the start of the simulation
+        (e.g. a step-off waveform), set `has_initial_fields` to True
+
+    off_time: float
+        Time when the transmitter current is zero in units of seconds. Default is 0.0
+
+    epsilon: float
+        Small time-constant for which the transmitter is assumed to still be on for
+    """
+
     def __init__(self, has_initial_fields=False, off_time=0.0, epsilon=1e-9, **kwargs):
         self.has_initial_fields = has_initial_fields
         self.off_time = off_time
@@ -102,18 +118,46 @@ class BaseWaveform:
     )
 
     eps = deprecate_property(
-        epsilon, "eps", new_name="epsilon", removal_version="0.16.0", future_warn=True,
+        epsilon,
+        "eps",
+        new_name="epsilon",
+        removal_version="0.16.0",
+        future_warn=True,
     )
 
 
 class StepOffWaveform(BaseWaveform):
+    """
+    A heavy-side step function waveform. This is the default for time-domain EM simulations.
+
+    Parameters
+    ----------
+    off_time: float
+        time at which the transmitter is turned off in units of seconds (default is 0s)
+
+    Examples
+    --------
+    The default off-time for the step-off waveform is 0s. In the example below, we set it to
+    1e-5s (0.01msec) to illustrate it in a plot
+
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from SimPEG.electromagnetics import time_domain as tdem
+
+    >>> times = np.linspace(0, 1e-4, 1000)
+    >>> waveform = tdem.sources.StepOffWaveform(off_time=1e-5)
+    >>> plt.plot(times, [waveform.eval(t) for t in times])
+    >>> plt.show()
+
+    """
+
     def __init__(self, off_time=0.0, **kwargs):
         super(StepOffWaveform, self).__init__(
             off_time=off_time, has_initial_fields=True
         )
 
     def eval(self, time):
-        if abs(time - 0.0) < self.epsilon:
+        if (time - self.off_time) < self.epsilon:
             return 1.0
         else:
             return 0.0
