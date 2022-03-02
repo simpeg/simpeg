@@ -157,13 +157,35 @@ class StepOffWaveform(BaseWaveform):
         )
 
     def eval(self, time):
-        if (time - self.off_time) < self.epsilon:
+        if (abs(time - 0.0) < self.epsilon) or ((time - self.off_time) < self.epsilon):
             return 1.0
         else:
             return 0.0
 
 
 class RampOffWaveform(BaseWaveform):
+    """
+    A waveform with a linear ramp-off.
+
+    Parameters
+    ----------
+    off_time: float
+        time at which the transmitter is turned off in units of seconds (default is 0s)
+
+    Examples
+    --------
+
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from SimPEG.electromagnetics import time_domain as tdem
+
+    >>> times = np.linspace(0, 1e-4, 1000)
+    >>> waveform = tdem.sources.RampOffWaveform(off_time=1e-5)
+    >>> plt.plot(times, [waveform.eval(t) for t in times])
+    >>> plt.show()
+
+    """
+
     def __init__(self, off_time=0.0, **kwargs):
         BaseWaveform.__init__(
             self, off_time=off_time, has_initial_fields=True, **kwargs
@@ -179,11 +201,50 @@ class RampOffWaveform(BaseWaveform):
 
 
 class RawWaveform(BaseWaveform):
+    """
+    A waveform you can define. You need to provide a `waveform_function` that returns
+    the waveform evaluated at a given time. This can be used, for example if you would
+    like to interpolate between points specified in a waveform file.
+
+    Parameters
+    ----------
+    off_time: float
+        time at which the transmitter is turned off in units of seconds (default is 0s)
+
+    waveform_function: function
+
+    Examples
+    --------
+
+    In this example, we define a saw-tooth waveform
+
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from SimPEG.electromagnetics import time_domain as tdem
+
+    >>> def my_waveform(t):
+    >>>     period = 1e-2
+    >>>     quarter_period = period / 4
+    >>>     t_cycle = np.mod(t, period)
+    >>>     if t_cycle <= quarter_period:
+    >>>         return t_cycle / quarter_period
+    >>>     elif (t_cycle > quarter_period) & (t_cycle <= 3*quarter_period):
+    >>>         return -t_cycle / quarter_period + 2
+    >>>     elif t_cycle > 3*quarter_period:
+    >>>         return t_cycle / quarter_period - 4
+
+    >>> times = np.linspace(0, 1e-2, 1000)
+    >>> waveform = tdem.sources.RawWaveform(waveform_function=my_waveform)
+    >>> plt.plot(times, [waveform.eval(t) for t in times])
+    >>> plt.show()
+
+    """
+
     def __init__(self, off_time=0.0, waveform_function=None, **kwargs):
         super(RawWaveform, self).__init__(off_time=off_time)
         if waveform_function is not None:
             self.waveform_function = waveform_function
-        wavefct = kwargs.pop("waveFct")
+        wavefct = kwargs.pop("waveFct", None)
         if wavefct is not None:
             self.waveFct = wavefct
         setKwargs(self, **kwargs)
@@ -214,6 +275,36 @@ class RawWaveform(BaseWaveform):
 
 
 class VTEMWaveform(BaseWaveform):
+    """
+    A VTEM style waveform
+
+    Parameters
+    ----------
+    off_time: float
+        time at which the transmitter is turned off in units of seconds (default is 4.2e-3s)
+
+    peak_time: float
+        the peak time for the waveform (default: 2.73e-3)
+
+    ramp_on_rate: float
+        parameter controlling how quickly the waveform ramps on (default is 3)
+
+    Examples
+    --------
+
+    In this example, we define a saw-tooth waveform
+
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from SimPEG.electromagnetics import time_domain as tdem
+
+    >>> times = np.linspace(0, 1e-2, 1000)
+    >>> waveform = tdem.sources.VTEMWaveform()
+    >>> plt.plot(times, [waveform.eval(t) for t in times])
+    >>> plt.show()
+
+    """
+
     def __init__(self, off_time=4.2e-3, peak_time=2.73e-3, ramp_on_rate=3.0, **kwargs):
         BaseWaveform.__init__(self, has_initial_fields=False, off_time=off_time)
         self.peak_time = peak_time
