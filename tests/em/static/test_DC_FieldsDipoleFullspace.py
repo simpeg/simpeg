@@ -101,7 +101,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         simulation = dc.Simulation3DCellCentered(
             self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Dirichlet"
         )
-        simulation.Solver = Solver
+        simulation.solver = Solver
 
         #        f = simulation.fields()
         f = simulation.fields(self.sigma)
@@ -135,7 +135,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         simulation = dc.simulation.Simulation3DCellCentered(
             self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Mixed"
         )
-        simulation.Solver = Solver
+        simulation.solver = Solver
 
         f = simulation.fields(self.sigma)
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
@@ -164,7 +164,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         simulation = dc.Simulation3DCellCentered(
             self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Neumann"
         )
-        simulation.Solver = Solver
+        simulation.solver = Solver
 
         f = simulation.fields(self.sigma)
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
@@ -276,7 +276,7 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
         simulation = dc.simulation.Simulation3DNodal(
             self.mesh, survey=self.survey, sigma=self.sigma
         )
-        simulation.Solver = Solver
+        simulation.solver = Solver
 
         f = simulation.fields(self.sigma)
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])

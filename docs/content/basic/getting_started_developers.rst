@@ -166,7 +166,7 @@ line at the end of all saved documents. The rest are up to you.
 Jupyter Notebook
 ----------------
 
-.. image:: https://jupyter.org/assets/main-logo.svg
+.. image:: https://raw.githubusercontent.com/jupyter/design/master/logos/Square%20Logo/squarelogo-greytext-orangebody-greymoons/squarelogo-greytext-orangebody-greymoons.svg
     :align: right
     :width: 100
 

@@ -70,7 +70,7 @@ def extract_data_info(NSEMdata):
     for src in NSEMdata.survey.source_list:
         for rx in src.receiver_list:
             dL.append(NSEMdata[src, rx])
-            freqL.append(np.ones(rx.nD) * src.freq)
+            freqL.append(np.ones(rx.nD) * src.frequency)
             if isinstance(rx, Point3DImpedance):
                 rxTL.extend((("z" + rx.orientation + " ") * rx.nD).split())
             if isinstance(rx, Point3DTipper):
@@ -97,7 +97,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
     """
 
     # Initiate new objects
-    new_srcList = []
+    new_source_list = []
     data_list = []
     std_list = []
     floor_list = []
@@ -141,7 +141,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
     # Filter the data
     for src in NSEMdata.survey.source_list:
         if src.frequency in frequencies:
-            new_rxList = []
+            new_receiver_list = []
             for rx in src.receiver_list:
                 if rx_comp is True or np.any(
                     [
@@ -192,7 +192,9 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
                         )
                         new_locs = rx.locations[ind_loc, :]
                     new_rx = type(rx)
-                    new_rxList.append(new_rx(new_locs, rx.orientation, rx.component))
+                    new_receiver_list.append(
+                        new_rx(new_locs, rx.orientation, rx.component)
+                    )
                     data_list.append(NSEMdata[src, rx][ind_loc])
                     try:
                         std_list.append(NSEMdata.relative_error[src, rx][ind_loc])
@@ -202,9 +204,9 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
                             print("No standard deviation or floor assigned")
 
             new_src = type(src)
-            new_srcList.append(new_src(new_rxList, src.freq))
+            new_source_list.append(new_src(new_receiver_list, src.frequency))
 
-    survey = Survey(new_srcList)
+    survey = Survey(new_source_list)
     if std_list or floor_list:
         return Data(
             survey,

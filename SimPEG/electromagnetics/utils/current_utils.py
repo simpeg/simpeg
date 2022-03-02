@@ -438,8 +438,8 @@ def line_through_faces(
 def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
     warnings.warn(
         "getSourceTermLineCurrentPolygon has been deprecated and will be"
-        "removed in SimPEG 0.16.0. Please use segmented_line_current_source_term.",
-        DeprecationWarning,
+        "removed in SimPEG 0.17.0. Please use segmented_line_current_source_term.",
+        FutureWarning,
     )
     mesh = discretize.TensorMesh((hx, hy, hz), x0=xorig)
     locs = np.c_[px, py, pz]

@@ -39,11 +39,7 @@ class Point(BaseRx):
             return len(self.times)
 
     nTimes = deprecate_property(
-        n_times,
-        "nTimes",
-        new_name="n_times",
-        removal_version="0.16.0",
-        future_warn=True,
+        n_times, "nTimes", new_name="n_times", removal_version="0.16.0", error=True,
     )
 
     @property
@@ -56,7 +52,7 @@ class Point(BaseRx):
         "nLocs",
         new_name="n_locations",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     @property
@@ -70,7 +66,7 @@ class Point(BaseRx):
         "fieldComp",
         new_name="orientation",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
 

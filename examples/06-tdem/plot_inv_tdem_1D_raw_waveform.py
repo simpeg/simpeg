@@ -71,7 +71,7 @@ def run(plotIt=True):
         rxloc, np.logspace(-4, -2.5, 11) + t0, "z"
     )
     src = TDEM.Src.CircularLoop(
-        [rx], waveform=waveform, loc=np.array([0.0, 0.0, 0.0]), radius=10.0
+        [rx], waveform=waveform, location=np.array([0.0, 0.0, 0.0]), radius=10.0
     )
     survey = TDEM.Survey([src])
     prb.survey = survey

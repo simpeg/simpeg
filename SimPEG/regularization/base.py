@@ -141,14 +141,14 @@ class BaseRegularization(BaseObjectiveFunction):
 
         .. math::
 
-            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top
+            R(m) = \\frac{1}{2}\\mathbf{(m-m_\\text{ref})^\\top W^\\top
                    W(m-m_\\text{ref})}
 
         So the derivative is straight forward:
 
         .. math::
 
-            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+            R(m) = \\mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
 
@@ -383,3 +383,90 @@ class BaseComboRegularization(SimpleComboRegularization):
                 ), "cell_weights must be length {} not {}".format(
                     self._nC_residual, len(change["value"])
                 )
+
+
+###############################################################################
+#                                                                             #
+#                        Base Coupling Regularization                         #
+#                                                                             #
+###############################################################################
+class BaseSimilarityMeasure(BaseRegularization):
+
+    """
+    Base class for the similarity term in joint inversions. Inherit this for building
+    your own similarity term.  The BaseSimilarityMeasure assumes two different
+    geophysical models through one similarity term. However, if you wish
+    to combine more than two models, e.g., 3 models,
+    you may want to add a total of three coupling terms:
+
+    e.g., lambda1*(m1, m2) + lambda2*(m1, m3) + lambda3*(m2, m3)
+
+    where, lambdas are weights for coupling terms. m1, m2 and m3 indicate
+    three different models.
+    """
+
+    wire_map = properties.Instance(
+        "Wire Map for the two coupled parameters", maps.Wires,
+    )
+
+    def __init__(self, mesh, wire_map, **kwargs):
+        super().__init__(mesh, wire_map=wire_map, **kwargs)
+        # do this as a hack to make TreeMesh work.
+        self.regmesh.regularization_type = "Tikhonov"
+
+    @properties.validator("wire_map")
+    def _wire_map_validator(self, change):
+        map = change["value"]
+        try:
+            m1, m2 = map.maps  # Assume a map has been passed for each model.
+        except ValueError:
+            ValueError("Wire map must have two model mappings")
+
+        if m1[1].shape[0] != m2[1].shape[0]:
+            raise ValueError(
+                f"All models must be the same size! Got {m1[1].shape[0]} and {m2[1].shape[0]}"
+            )
+
+    @property
+    def nP(self):
+        """
+        number of model parameters
+        """
+        return self.wire_map.nP
+
+    def deriv(self):
+        """
+        First derivative of the coupling term with respect to individual models.
+        Returns an array of dimensions [k*M,1],
+        k: number of models we are inverting for.
+        M: number of cells in each model.
+
+        """
+        raise NotImplementedError(
+            "The method deriv has not been implemented for {}".format(
+                self.__class__.__name__
+            )
+        )
+
+    def deriv2(self):
+        """
+        Second derivative of the coupling term with respect to individual models.
+        Returns either an array of dimensions [k*M,1] (v is not None), or
+        sparse matrix of dimensions [k*M, k*M] (v is None).
+        k: number of models we are inverting for.
+        M: number of cells in each model.
+
+        """
+        raise NotImplementedError(
+            "The method _deriv2 has not been implemented for {}".format(
+                self.__class__.__name__
+            )
+        )
+
+    def __call__(self):
+        """ Returns the computed value of the coupling term. """
+        raise NotImplementedError(
+            "The method __call__ has not been implemented for {}".format(
+                self.__class__.__name__
+            )
+        )

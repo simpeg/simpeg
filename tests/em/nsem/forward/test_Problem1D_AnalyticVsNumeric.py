@@ -18,7 +18,7 @@ def getAppResPhs(nsemdata):
 
     zList = []
     for src in nsemdata.survey.source_list:
-        zc = [src.freq]
+        zc = [src.frequency]
         for rx in src.receiver_list:
             if "i" in rx.rxType:
                 m = 1j
@@ -31,13 +31,13 @@ def getAppResPhs(nsemdata):
     ]
 
 
-def calculateAnalyticSolution(srcList, mesh, model):
-    surveyAna = nsem.Survey(srcList)
+def calculateAnalyticSolution(source_list, mesh, model):
+    surveyAna = nsem.Survey(source_list)
     data1D = nsem.Data(surveyAna)
     for src in surveyAna.source_list:
         elev = src.receiver_list[0].locations[0]
         anaEd, anaEu, anaHd, anaHu = nsem.utils.analytic_1d.getEHfields(
-            mesh, model, src.freq, elev
+            mesh, model, src.frequency, elev
         )
         anaE = anaEd + anaEu
         anaH = anaHd + anaHu
@@ -61,7 +61,6 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
     simulation = nsem.Simulation1DPrimarySecondary(
         mesh, sigmaPrimary=sig, sigma=sig, survey=survey
     )
-    # simulation.pair(survey)
 
     dataAnaObj = calculateAnalyticSolution(survey.source_list, mesh, sig)
 

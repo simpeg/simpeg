@@ -24,7 +24,7 @@ class BaseRx(BaseTimeRx):
         "projComp",
         new_name="orientation",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     def __init__(self, locations, times, orientation=None, **kwargs):
@@ -260,31 +260,31 @@ class PointMagneticFieldTimeDerivative(BaseRx):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Point_e(PointElectricField):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Point_b(PointMagneticFluxDensity):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Point_h(PointMagneticField):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Point_j(PointCurrentDensity):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Point_dbdt(PointMagneticFluxTimeDerivative):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Point_dhdt(PointMagneticFieldTimeDerivative):
     pass

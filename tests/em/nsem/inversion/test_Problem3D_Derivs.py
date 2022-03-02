@@ -21,10 +21,10 @@ def DerivJvecTest(inputSetup, comp="All", freq=False, expMap=True):
     survey, simulation = nsem.utils.test_utils.setupSimpegNSEM_ePrimSec(
         inputSetup, comp=comp, singleFreq=freq, expMap=expMap
     )
-    print("Using {0} solver for the simulation".format(simulation.Solver))
+    print("Using {0} solver for the simulation".format(simulation.solver))
     print(
         "Derivative test of Jvec for eForm primary/secondary for {} comp at {}\n".format(
-            comp, survey.freqs
+            comp, survey.frequencies
         )
     )
     # simulation.mapping = Maps.ExpMap(simulation.mesh)

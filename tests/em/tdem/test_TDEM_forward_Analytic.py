@@ -174,23 +174,22 @@ def analytic_halfspace_mag_dipole_comparison(
         np.array([[rxOffset, 0.0, 0.0]]), np.logspace(-5, -4, 21), rx_type[-1]
     )
 
-    if src_type == "MagDipole":
-        src = tdem.sources.MagDipole(
-            [rx], waveform=tdem.sources.StepOffWaveform(), loc=np.array([0.0, 0.0, 0.0])
+    if srctype == "MagDipole":
+        src = tdem.Src.MagDipole(
+            [rx],
+            waveform=tdem.Src.StepOffWaveform(),
+            location=np.array([0.0, 0.0, 0.0]),
         )
     elif src_type == "CircularLoop":
         src = tdem.sources.CircularLoop(
             [rx],
-            waveform=tdem.sources.StepOffWaveform(),
-            loc=np.array([0.0, 0.0, 0.0]),
+            waveform=tdem.Src.StepOffWaveform(),
+            location=np.array([0.0, 0.0, 0.0]),
             radius=0.1,
         )
 
     survey = tdem.Survey([src])
-    sim = tdem.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
-    sim.solver = Solver
-
-    sim.time_steps = [
+    time_steps = [
         (1e-06, 40),
         (5e-06, 40),
         (1e-05, 40),
@@ -199,11 +198,16 @@ def analytic_halfspace_mag_dipole_comparison(
         (0.0005, 40),
     ]
 
+    sim = tdem.Simulation3DMagneticFluxDensity(
+        mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
+    )
+    sim.solver = Solver
+
     sigma = np.ones(mesh.nCz) * 1e-8
     sigma[active] = sig_half
     sigma = np.log(sigma[active])
-    sim.pair(survey)
-    if src_type == "MagDipole":
+
+    if srctype == "MagDipole":
         bz_ana = mu_0 * analytics.hzAnalyticDipoleT(
             rx.locations[0][0] + 1e-3, rx.times, sig_half
         )
