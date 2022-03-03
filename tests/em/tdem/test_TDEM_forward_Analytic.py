@@ -10,14 +10,12 @@ import matplotlib.pyplot as plt
 from pymatsolver import Pardiso as Solver
 
 
-
-
 def analytic_wholespace_dipole_comparison(
     mesh_type,
-    formulation_type='MagneticFluxDensity',
+    formulation_type="MagneticFluxDensity",
     src_type="MagDipole",
     rx_type="MagneticFluxDensity",
-    rx_orientation='Z',
+    rx_orientation="Z",
     sigma=1e-2,
     rx_offset=None,
     bounds=None,
@@ -40,7 +38,7 @@ def analytic_wholespace_dipole_comparison(
 
     mapping = maps.IdentityMap(mesh)
     sigma_model = np.ones(mesh.nC) * sigma
-    
+
     times = np.logspace(-5, -4, 21)
     rx = getattr(tdem.receivers, "Point{}".format(rx_type))(
         np.array([rx_offset]), times, orientation=rx_orientation
@@ -49,56 +47,93 @@ def analytic_wholespace_dipole_comparison(
     if src_type == "MagDipole":
         # Vertical magnetic dipole
         src = tdem.sources.MagDipole(
-            [rx], waveform=tdem.sources.StepOffWaveform(), location=np.array([0.0, 0.0, 0.0]), orientation='Z'
+            [rx],
+            waveform=tdem.sources.StepOffWaveform(),
+            location=np.array([0.0, 0.0, 0.0]),
+            orientation="Z",
         )
     elif src_type == "ElectricDipole":
         # Vertical electric dipole along x
-        ds = 1.  # Dipole length
+        ds = 1.0  # Dipole length
         locations = np.zeros((2, 3))
-        locations[0, -1] = -ds/2
-        locations[1, -1] = ds/2
+        locations[0, -1] = -ds / 2
+        locations[1, -1] = ds / 2
         src = tdem.sources.LineCurrent(
-            [rx],
-            waveform=tdem.sources.StepOffWaveform(),
-            location=locations
+            [rx], waveform=tdem.sources.StepOffWaveform(), location=locations
         )
 
     survey = tdem.Survey([src])
-    
-    ind = ['X','Y','Z'].index(rx_orientation)
+
+    ind = ["X", "Y", "Z"].index(rx_orientation)
 
     if src_type == "MagDipole":
         if rx_type == "MagneticFluxDensity":
             analytic_solution = mu_0 * analytics.TDEM.TransientMagneticDipoleWholeSpace(
-                np.c_[rx_offset].T, np.r_[0., 0., 0.], sigma, times, 'Z', fieldType="h", mu_r=1
+                np.c_[rx_offset].T,
+                np.r_[0.0, 0.0, 0.0],
+                sigma,
+                times,
+                "Z",
+                fieldType="h",
+                mu_r=1,
             )[ind]
         elif rx_type == "MagneticFluxTimeDerivative":
             analytic_solution = mu_0 * analytics.TDEM.TransientMagneticDipoleWholeSpace(
-                np.c_[rx_offset].T, np.r_[0., 0., 0.], sigma, times, 'Z', fieldType="dhdt", mu_r=1
+                np.c_[rx_offset].T,
+                np.r_[0.0, 0.0, 0.0],
+                sigma,
+                times,
+                "Z",
+                fieldType="dhdt",
+                mu_r=1,
             )[ind]
         else:
             analytic_solution = analytics.TDEM.TransientMagneticDipoleWholeSpace(
-                np.c_[rx_offset].T, np.r_[0., 0., 0.], sigma, times, 'Z', fieldType="e", mu_r=1
+                np.c_[rx_offset].T,
+                np.r_[0.0, 0.0, 0.0],
+                sigma,
+                times,
+                "Z",
+                fieldType="e",
+                mu_r=1,
             )[ind]
 
     elif src_type == "ElectricDipole":
         if rx_type == "MagneticFluxDensity":
             analytic_solution = mu_0 * analytics.TDEM.TransientElectricDipoleWholeSpace(
-                np.c_[rx_offset].T, np.r_[0., 0., 0.], sigma, times, 'Z', fieldType="h", mu_r=1
+                np.c_[rx_offset].T,
+                np.r_[0.0, 0.0, 0.0],
+                sigma,
+                times,
+                "Z",
+                fieldType="h",
+                mu_r=1,
             )[ind]
         elif rx_type == "MagneticFluxTimeDerivative":
             analytic_solution = mu_0 * analytics.TDEM.TransientElectricDipoleWholeSpace(
-                np.c_[rx_offset].T, np.r_[0., 0., 0.], sigma, times, 'Z', fieldType="dhdt", mu_r=1
+                np.c_[rx_offset].T,
+                np.r_[0.0, 0.0, 0.0],
+                sigma,
+                times,
+                "Z",
+                fieldType="dhdt",
+                mu_r=1,
             )[ind]
         else:
             analytic_solution = analytics.TDEM.TransientElectricDipoleWholeSpace(
-                np.c_[rx_offset].T, np.r_[0., 0., 0.], sigma, times, 'Z', fieldType="e", mu_r=1
+                np.c_[rx_offset].T,
+                np.r_[0.0, 0.0, 0.0],
+                sigma,
+                times,
+                "Z",
+                fieldType="e",
+                mu_r=1,
             )[ind]
-    
+
     sim = getattr(tdem.simulation, "Simulation3D{}".format(formulation_type))(
         mesh=mesh, survey=survey, sigmaMap=mapping
     )
-        
+
     sim.solver = Solver
     sim.time_steps = [
         (1e-06, 40),
@@ -109,10 +144,11 @@ def analytic_wholespace_dipole_comparison(
         (0.0005, 40),
     ]
     numeric_solution = sim.dpred(sigma_model)
-    
+
     ind = np.logical_and(rx.times > bounds[0], rx.times < bounds[1])
     log10diff = np.linalg.norm(
-        np.log10(np.abs(numeric_solution[ind])) - np.log10(np.abs(analytic_solution[ind]))
+        np.log10(np.abs(numeric_solution[ind]))
+        - np.log10(np.abs(analytic_solution[ind]))
     ) / np.linalg.norm(np.log10(np.abs(analytic_solution[ind])))
 
     print(
@@ -138,8 +174,6 @@ def analytic_wholespace_dipole_comparison(
         plt.show()
 
     return log10diff
-
-
 
 
 def analytic_halfspace_mag_dipole_comparison(
@@ -174,7 +208,7 @@ def analytic_halfspace_mag_dipole_comparison(
         np.array([[rxOffset, 0.0, 0.0]]), np.logspace(-5, -4, 21), rx_type[-1]
     )
 
-    if srctype == "MagDipole":
+    if src_type == "MagDipole":
         src = tdem.Src.MagDipole(
             [rx],
             waveform=tdem.Src.StepOffWaveform(),
@@ -207,7 +241,7 @@ def analytic_halfspace_mag_dipole_comparison(
     sigma[active] = sig_half
     sigma = np.log(sigma[active])
 
-    if srctype == "MagDipole":
+    if src_type == "MagDipole":
         bz_ana = mu_0 * analytics.hzAnalyticDipoleT(
             rx.locations[0][0] + 1e-3, rx.times, sig_half
         )
@@ -255,22 +289,37 @@ class TDEM_SimpleSrcTests(unittest.TestCase):
 # ANALYTIC WHOLESPACE TESTS FOR MAG AND ELECTRIC DIPOLES
 ###########################################################
 
+
 class WholespaceTests(unittest.TestCase):
 
     # WORKING
     def test_cyl_Bform_MagDipole_Bfield_Z(self):
         self.assertTrue(
             analytic_wholespace_dipole_comparison(
-                'CYL', 'MagneticFluxDensity', 'MagDipole', 'MagneticFluxDensity', 'Z', 1e-2, [0,0,48]
-            ) < 0.01
+                "CYL",
+                "MagneticFluxDensity",
+                "MagDipole",
+                "MagneticFluxDensity",
+                "Z",
+                1e-2,
+                [0, 0, 48],
+            )
+            < 0.01
         )
 
     # WORKING
     def test_tensor_Bform_MagDipole_Bfield_Z(self):
         self.assertTrue(
             analytic_wholespace_dipole_comparison(
-                'TENSOR', 'MagneticFluxDensity', 'MagDipole', 'MagneticFluxDensity', 'Z', 1e-2, [0,0,48]
-            ) < 0.01
+                "TENSOR",
+                "MagneticFluxDensity",
+                "MagDipole",
+                "MagneticFluxDensity",
+                "Z",
+                1e-2,
+                [0, 0, 48],
+            )
+            < 0.01
         )
 
     # NOT IMPLEMENTED (NO PHI_0 BECAUSE NO GRAD?)
@@ -285,8 +334,15 @@ class WholespaceTests(unittest.TestCase):
     def test_tensor_Eform_ElectricDipole_Efield_Z(self):
         self.assertTrue(
             analytic_wholespace_dipole_comparison(
-                'TENSOR', 'ElectricField', 'ElectricDipole', 'ElectricField', 'Z', 1e-2, [0,0,48]
-            ) < 0.01
+                "TENSOR",
+                "ElectricField",
+                "ElectricDipole",
+                "ElectricField",
+                "Z",
+                1e-2,
+                [0, 0, 48],
+            )
+            < 0.01
         )
 
     # NOT IMPLEMENTED (NO BO)
@@ -317,10 +373,16 @@ class WholespaceTests(unittest.TestCase):
     def test_tensor_Eform_ElectricDipole_dBdtfield_Z(self):
         self.assertTrue(
             analytic_wholespace_dipole_comparison(
-                'TENSOR', 'ElectricField', 'ElectricDipole', 'MagneticFluxTimeDerivative', 'X', 1e-2, [0,48,0]
-            ) < 0.01
+                "TENSOR",
+                "ElectricField",
+                "ElectricDipole",
+                "MagneticFluxTimeDerivative",
+                "X",
+                1e-2,
+                [0, 48, 0],
+            )
+            < 0.01
         )
-
 
 
 ###########################################################
@@ -331,52 +393,68 @@ class WholespaceTests(unittest.TestCase):
 class TDEM_bTests(unittest.TestCase):
     def test_analytic_p2_CYL_50_MagDipolem(self):
         self.assertTrue(
-            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=50.0, sig_half=1e2) < 0.01
+            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=50.0, sig_half=1e2)
+            < 0.01
         )
 
     def test_analytic_p1_CYL_50_MagDipolem(self):
         self.assertTrue(
-            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=50.0, sig_half=1e1) < 0.01
+            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=50.0, sig_half=1e1)
+            < 0.01
         )
 
     def test_analytic_p0_CYL_50_MagDipolem(self):
         self.assertTrue(
-            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=50.0, sig_half=1e0) < 0.01
+            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=50.0, sig_half=1e0)
+            < 0.01
         )
 
     def test_analytic_m1_CYL_50_MagDipolem(self):
         self.assertTrue(
-            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=50.0, sig_half=1e-1) < 0.01
+            analytic_halfspace_mag_dipole_comparison(
+                "CYL", rxOffset=50.0, sig_half=1e-1
+            )
+            < 0.01
         )
 
     def test_analytic_m2_CYL_50_MagDipolem(self):
         self.assertTrue(
-            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=50.0, sig_half=1e-2) < 0.01
+            analytic_halfspace_mag_dipole_comparison(
+                "CYL", rxOffset=50.0, sig_half=1e-2
+            )
+            < 0.01
         )
 
     def test_analytic_m3_CYL_50_MagDipolem(self):
         self.assertTrue(
-            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=50.0, sig_half=1e-3) < 0.02
+            analytic_halfspace_mag_dipole_comparison(
+                "CYL", rxOffset=50.0, sig_half=1e-3
+            )
+            < 0.02
         )
 
     def test_analytic_p0_CYL_1m_MagDipole(self):
         self.assertTrue(
-            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=1.0, sig_half=1e0) < 0.01
+            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=1.0, sig_half=1e0)
+            < 0.01
         )
 
     def test_analytic_m1_CYL_1m_MagDipole(self):
         self.assertTrue(
-            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=1.0, sig_half=1e-1) < 0.01
+            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=1.0, sig_half=1e-1)
+            < 0.01
         )
 
     def test_analytic_m2_CYL_1m_MagDipole(self):
         self.assertTrue(
-            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=1.0, sig_half=1e-2) < 0.01
+            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=1.0, sig_half=1e-2)
+            < 0.01
         )
 
     def test_analytic_m3_CYL_1m_MagDipole(self):
         self.assertTrue(
-            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=1.0, sig_half=1e-3) < 0.02
+            analytic_halfspace_mag_dipole_comparison("CYL", rxOffset=1.0, sig_half=1e-3)
+            < 0.02
         )
 
     def test_analytic_p0_CYL_0m_CircularLoop(self):
