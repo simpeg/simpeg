@@ -292,8 +292,6 @@ class VTEMWaveform(BaseWaveform):
     Examples
     --------
 
-    In this example, we define a saw-tooth waveform
-
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
     >>> from SimPEG.electromagnetics import time_domain as tdem
@@ -380,6 +378,30 @@ class VTEMWaveform(BaseWaveform):
 class TrapezoidWaveform(BaseWaveform):
     """
     A waveform that has a linear ramp-on and a linear ramp-off.
+
+    Parameters
+    ----------
+    ramp_on: float
+        time when the linear ramp_on ends
+
+    ramp_off: float
+        start of the ramp_off
+
+    off_time: float
+        time when the transmitter_current returns to zero
+
+    Examples
+    --------
+
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from SimPEG.electromagnetics import time_domain as tdem
+
+    >>> times = np.linspace(0, 1e-2, 1000)
+    >>> waveform = tdem.sources.TrapezoidWaveform(ramp_on=2e-3, ramp_off=4e-3, off_time=6e-3)
+    >>> plt.plot(times, [waveform.eval(t) for t in times])
+    >>> plt.show()
+
     """
 
     def __init__(self, ramp_on, ramp_off, off_time=None, **kwargs):
@@ -459,6 +481,27 @@ class TrapezoidWaveform(BaseWaveform):
 class TriangularWaveform(TrapezoidWaveform):
     """
     TriangularWaveform is a special case of TrapezoidWaveform where there's no pleateau
+
+    Parameters
+    ----------
+    off_time: float
+        time when the transmitter current returns to zero
+
+    peak_time: float
+        time when the transmitter waveform is at a peak
+
+    Examples
+    --------
+
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from SimPEG.electromagnetics import time_domain as tdem
+
+    >>> times = np.linspace(0, 1e-2, 1000)
+    >>> waveform = tdem.sources.TriangularWaveform(off_time=6e-3, peak_time=3e-3)
+    >>> plt.plot(times, [waveform.eval(t) for t in times])
+    >>> plt.show()
+
     """
 
     def __init__(self, off_time=None, peak_time=None, **kwargs):
@@ -530,6 +573,26 @@ class TriangularWaveform(TrapezoidWaveform):
 class QuarterSineRampOnWaveform(TrapezoidWaveform):
     """
     A waveform that has a quarter-sine ramp-on and a linear ramp-off
+
+    Parameters
+    ----------
+    ramp_on: tuple
+        times during which the transmitter ramps on
+
+    ramp_off: tuple
+        times between which there is a linear ramp-off
+
+    Examples
+    --------
+
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> from SimPEG.electromagnetics import time_domain as tdem
+
+    >>> times = np.linspace(0, 1e-2, 1000)
+    >>> waveform = tdem.sources.QuarterSineRampOnWaveform(ramp_on=(0, 2e-3), ramp_off=(3e-3, 3.5e-3))
+    >>> plt.plot(times, [waveform.eval(t) for t in times])
+    >>> plt.show()
     """
 
     def __init__(self, ramp_on, ramp_off, **kwargs):
