@@ -6,7 +6,7 @@ from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
-from SimPEG.utils.code_utils import deprecate_property
+from SimPEG.utils.code_utils import deprecate_module
 
 
 class BaseRegularization(BaseObjectiveFunction):
@@ -31,7 +31,7 @@ class BaseRegularization(BaseObjectiveFunction):
     _W = None
 
     def __init__(self, mesh, active_cells=None, mapping=None, reference_model=None, units=None, **kwargs):
-        self.regularization_mesh = RegularizationMesh(mesh)
+        self.regularization_mesh = mesh
         self.active_cells = active_cells
         self.regularization_mesh.active_cells = self.active_cells
         self.mapping = mapping
@@ -49,19 +49,19 @@ class BaseRegularization(BaseObjectiveFunction):
     @active_cells.setter
     def active_cells(self, values: np.ndarray):
         validate_array_type("active_cells", values, bool)
-        validate_shape("active_cells", values, self.regularization_mesh.nC)
+        validate_shape("active_cells", values, self.regularization_mesh.mesh.nC)
 
         if getattr(self, "regularization_mesh", None) is not None:
             self.regularization_mesh.active_cells = values
 
         self._active_cells = values
 
-    indActive = deprecate_property(
+    indActive = deprecate_module(
         active_cells,
         "indActive",
-        new_name="active_cells",
-        removal_version="0.x.0",
-        future_warn=True,
+        "active_cells",
+        "0.x.0",
+        True,
     )
 
     @property
@@ -142,12 +142,12 @@ class BaseRegularization(BaseObjectiveFunction):
         validate_shape("reference_model", values, self._nC_residual)
         self._reference_model = values
 
-    mref = deprecate_property(
+    mref = deprecate_module(
         reference_model,
         "mref",
-        new_name="reference_model",
-        removal_version="0.x.0",
-        future_warn=True,
+        "reference_model",
+        "0.x.0",
+        True,
     )
 
     @property
@@ -158,19 +158,11 @@ class BaseRegularization(BaseObjectiveFunction):
     @regularization_mesh.setter
     def regularization_mesh(self, mesh: RegularizationMesh):
         if not isinstance(mesh, RegularizationMesh):
-            TypeError(
-                f"'regularization_mesh' must be of type {RegularizationMesh}. "
-                f"Value of type {type(mesh)} provided."
-            )
+            mesh = RegularizationMesh(mesh)
+
         self._regularization_mesh = mesh
 
-    regmesh = deprecate_property(
-        regularization_mesh,
-        "regmesh",
-        new_name="regularization_mesh",
-        removal_version="0.x.0",
-        future_warn=True,
-    )
+    deprecate_module("regmesh", "regularization_mesh", "0.x.0", error=False, future_warn=True)
 
     @property
     def W(self):
@@ -669,15 +661,15 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         if objfcts is None:
             objfcts = [
-                Small(mesh=mesh),
-                SmoothDeriv(mesh=mesh, orientation="x"),
+                Small(mesh=self.regularization_mesh),
+                SmoothDeriv(mesh=self.regularization_mesh, orientation="x"),
             ]
 
             if mesh.dim > 1:
-                objfcts.append(SmoothDeriv(mesh=mesh, orientation="y"))
+                objfcts.append(SmoothDeriv(mesh=self.regularization_mesh, orientation="y"))
 
             if mesh.dim > 2:
-                objfcts.append(SmoothDeriv(mesh=mesh, orientation="z"))
+                objfcts.append(SmoothDeriv(mesh=self.regularization_mesh, orientation="z"))
 
         super().__init__(
             objfcts=objfcts,
@@ -909,12 +901,12 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         self._active_cells = values
 
-    indActive = deprecate_property(
+    indActive = deprecate_module(
         active_cells,
         "indActive",
-        new_name="active_cells",
-        removal_version="0.x.0",
-        future_warn=True,
+        "active_cells",
+        "0.x.0",
+        True,
     )
 
     @property
@@ -936,12 +928,12 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         self._reference_model = values
 
-    mref = deprecate_property(
+    mref = deprecate_module(
         reference_model,
         "mref",
-        new_name="reference_model",
-        removal_version="0.x.0",
-        future_warn=True,
+        "reference_model",
+        "0.x.0",
+        True,
     )
 
     @property
@@ -996,7 +988,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     def mapping(self) -> maps.IdentityMap:
         """Mapping applied to the model values"""
         if getattr(self, "_mapping", None) is None:
-            self._mapping = maps.IdentityMap(nP=self._nC_residual)
+            self.mapping = maps.IdentityMap(nP=self._nC_residual)
         return self._mapping
 
     @mapping.setter

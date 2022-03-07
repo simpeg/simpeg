@@ -96,14 +96,14 @@ class RegularizationTests(unittest.TestCase):
                     print("Testing Active Cells {0:d}D".format((mesh.dim)))
 
                     if mesh.dim == 1:
-                        indActive = utils.mkvc(mesh.gridCC <= 0.8)
+                        active_cells = utils.mkvc(mesh.gridCC <= 0.8)
                     elif mesh.dim == 2:
-                        indActive = utils.mkvc(
+                        active_cells = utils.mkvc(
                             mesh.gridCC[:, -1]
                             <= (2 * np.sin(2 * np.pi * mesh.gridCC[:, 0]) + 0.5)
                         )
                     elif mesh.dim == 3:
-                        indActive = utils.mkvc(
+                        active_cells = utils.mkvc(
                             mesh.gridCC[:, -1]
                             <= (
                                 2 * np.sin(2 * np.pi * mesh.gridCC[:, 0])
@@ -118,15 +118,15 @@ class RegularizationTests(unittest.TestCase):
                         continue
 
                     for indAct in [
-                        indActive,
-                        indActive.nonzero()[0],
+                        active_cells,
+                        active_cells.nonzero()[0],
                     ]:  # test both bool and integers
                         if indAct.dtype != bool:
                             nP = indAct.size
                         else:
                             nP = int(indAct.sum())
 
-                        reg = r(mesh, indActive=indAct, mapping=maps.IdentityMap(nP=nP))
+                        reg = r(mesh, active_cells=indAct, mapping=maps.IdentityMap(nP=nP))
                         m = np.random.rand(mesh.nC)[indAct]
                         mref = np.ones_like(m) * np.mean(m)
                         reg.mref = mref
@@ -163,7 +163,7 @@ class RegularizationTests(unittest.TestCase):
                         + 0.5
                     )
 
-                regmesh = regularization.RegularizationMesh(mesh, indActive=indAct)
+                regmesh = regularization.RegularizationMesh(mesh, active_cells=indAct)
 
                 assert (regmesh.vol == mesh.vol[indAct]).all()
 
@@ -177,15 +177,15 @@ class RegularizationTests(unittest.TestCase):
             self.assertTrue(reg.nP == mesh.nC)
 
             # Test assignment of active indices
-            indActive = mesh.gridCC[:, 2] < 0.6
-            reg.indActive = indActive
+            active_cells = mesh.gridCC[:, 2] < 0.6
+            reg.active_cells = active_cells
 
-            self.assertTrue(reg.nP == int(indActive.sum()))
+            self.assertTrue(reg.nP == int(active_cells.sum()))
 
-            [self.assertTrue(np.all(fct.indActive == indActive)) for fct in reg.objfcts]
+            [self.assertTrue(np.all(fct.active_cells == active_cells)) for fct in reg.objfcts]
 
             # test assignment of cell weights
-            cell_weights = np.random.rand(indActive.sum())
+            cell_weights = np.random.rand(active_cells.sum())
             reg.cell_weights = cell_weights
             [
                 self.assertTrue(np.all(fct.cell_weights == cell_weights))
@@ -193,7 +193,7 @@ class RegularizationTests(unittest.TestCase):
             ]
 
             # test updated mappings
-            mapping = maps.ExpMap(nP=int(indActive.sum()))
+            mapping = maps.ExpMap(nP=int(active_cells.sum()))
             reg.mapping = mapping
             m = np.random.rand(mapping.nP)
             [
@@ -335,28 +335,28 @@ class RegularizationTests(unittest.TestCase):
 
     def test_linked_properties(self):
         mesh = discretize.TensorMesh([8, 7, 6])
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.LeastSquaresRegularization(mesh)
 
-        [self.assertTrue(reg.regmesh is fct.regmesh) for fct in reg.objfcts]
+        [self.assertTrue(reg.regularization_mesh is fct.regularization_mesh) for fct in reg.objfcts]
         [self.assertTrue(reg.mapping is fct.mapping) for fct in reg.objfcts]
 
-        D = reg.regmesh.cellDiffx
-        reg.regmesh._cellDiffx = 4 * D
+        D = reg.regularization_mesh.cellDiffx
+        reg.regularization_mesh._cellDiffx = 4 * D
         v = np.random.rand(D.shape[1])
         [
             self.assertTrue(
-                np.all(reg.regmesh._cellDiffx * v == fct.regmesh.cellDiffx * v)
+                np.all(reg.regularization_mesh._cellDiffx * v == fct.regularization_mesh.cellDiffx * v)
             )
             for fct in reg.objfcts
         ]
 
-        indActive = mesh.gridCC[:, 2] < 0.4
-        reg.indActive = indActive
-        self.assertTrue(np.all(reg.regmesh.indActive == indActive))
-        [self.assertTrue(np.all(reg.indActive == fct.indActive)) for fct in reg.objfcts]
+        active_cells = mesh.gridCC[:, 2] < 0.4
+        reg.active_cells = active_cells
+        self.assertTrue(np.all(reg.regularization_mesh.active_cells == active_cells))
+        [self.assertTrue(np.all(reg.active_cells == fct.active_cells)) for fct in reg.objfcts]
 
         [
-            self.assertTrue(np.all(reg.indActive == fct.regmesh.indActive))
+            self.assertTrue(np.all(reg.active_cells == fct.regularization_mesh.active_cells))
             for fct in reg.objfcts
         ]
 
@@ -378,13 +378,13 @@ class RegularizationTests(unittest.TestCase):
         actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
         mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
-        regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
+        regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].active_cells]])
         reg = regularization.Simple(regMesh)
 
         self.assertTrue(reg._nC_residual == regMesh.nC)
         self.assertTrue(all([fct._nC_residual == regMesh.nC for fct in reg.objfcts]))
 
-    def test_indActive_nc_residual(self):
+    def test_active_cells_nc_residual(self):
         # x-direction
         cs, ncx, ncz, npad = 1.0, 10.0, 10.0, 20
         hx = [(cs, ncx), (cs, npad, 1.3)]
@@ -397,7 +397,7 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.CylMesh([hx, 1, hz], "00C")
         active = mesh.vectorCCz < 0.0
 
-        reg = regularization.Simple(mesh, indActive=active)
+        reg = regularization.LeastSquaresRegularization(mesh, active_cells=active)
         self.assertTrue(reg._nC_residual == len(active.nonzero()[0]))
 
 
