@@ -465,7 +465,7 @@ class SmoothDeriv(BaseRegularization):
         if weights is not None:
 
             if isinstance(weights, np.ndarray):
-                weights["user_weights"] = weights
+                weights = {"user_weights": weights}
 
             if not isinstance(weights, dict):
                 raise TypeError("Weights must be provided as a dictionary or None.")

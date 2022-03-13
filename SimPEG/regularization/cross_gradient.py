@@ -43,7 +43,7 @@ class CrossGradient(BaseSimilarityMeasure):
     def __init__(self, mesh, wire_map, **kwargs):
         super().__init__(mesh, wire_map=wire_map, **kwargs)
 
-        regmesh = self.regmesh
+        regmesh = self.regularization_mesh
 
         if regmesh.mesh.dim not in (2, 3):
             raise ValueError("Cross-Gradient is only defined for 2D or 3D")
@@ -66,7 +66,7 @@ class CrossGradient(BaseSimilarityMeasure):
                  and each column represents a component of the gradient.
 
         """
-        regmesh = self.regmesh
+        regmesh = self.regularization_mesh
         Avs = [regmesh.aveFx2CC, regmesh.aveFy2CC]
         if regmesh.dim == 3:
             Avs.append(regmesh.aveFz2CC)
@@ -109,7 +109,7 @@ class CrossGradient(BaseSimilarityMeasure):
 
         # for each model cell, compute the cross product of the gradient vectors.
         cross_prod = np.cross(grad_m1, grad_m2)
-        if self.regmesh.dim == 3:
+        if self.regularization_mesh.dim == 3:
             cross_prod = np.linalg.norm(cross_prod, axis=-1)
 
         return cross_prod

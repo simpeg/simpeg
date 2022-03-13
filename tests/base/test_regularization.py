@@ -170,7 +170,7 @@ class RegularizationTests(unittest.TestCase):
     def test_property_mirroring(self):
         mesh = discretize.TensorMesh([8, 7, 6])
 
-        for regType in ["Tikhonov", "Sparse", "Simple"]:
+        for regType in ["LeastSquaresRegularization", "Sparse"]:
             reg = getattr(regularization, regType)(mesh)
 
             print(reg.nP, mesh.nC)
@@ -186,9 +186,9 @@ class RegularizationTests(unittest.TestCase):
 
             # test assignment of cell weights
             cell_weights = np.random.rand(active_cells.sum())
-            reg.cell_weights = cell_weights
+            reg.weights = cell_weights
             [
-                self.assertTrue(np.all(fct.cell_weights == cell_weights))
+                self.assertTrue(np.all(list(fct.weights.values())[0] == cell_weights))
                 for fct in reg.objfcts
             ]
 
@@ -219,8 +219,8 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([8, 7, 6])
         m = np.random.rand(mesh.nC)
 
-        reg1 = regularization.Tikhonov(mesh)
-        reg2 = regularization.Simple(mesh)
+        reg1 = regularization.LeastSquaresRegularization(mesh)
+        reg2 = regularization.LeastSquaresRegularization(mesh)
 
         reg_a = reg1 + reg2
         self.assertTrue(len(reg_a) == 2)
@@ -243,7 +243,7 @@ class RegularizationTests(unittest.TestCase):
 
         wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
 
-        for regType in ["Tikhonov", "Sparse", "Simple"]:
+        for regType in ["LeastSquaresRegularization", "Sparse"]:
             reg1 = getattr(regularization, regType)(mesh, mapping=wires.sigma)
             reg2 = getattr(regularization, regType)(mesh, mapping=wires.mu)
 
@@ -252,8 +252,6 @@ class RegularizationTests(unittest.TestCase):
             self.assertTrue(reg1.nP == 2 * mesh.nC)
             self.assertTrue(reg2.nP == 2 * mesh.nC)
             self.assertTrue(reg3.nP == 2 * mesh.nC)
-
-            print(reg3(m), reg1(m), reg2(m))
             self.assertTrue(reg3(m) == reg1(m) + reg2(m))
 
             reg1.test(eps=TOL)
@@ -265,7 +263,7 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([10, 5, 8])
         mref = np.ones(mesh.nC)
 
-        for regType in ["Tikhonov", "Sparse", "Simple"]:
+        for regType in ["LeastSquaresRegularization", "Sparse"]:
             reg = getattr(regularization, regType)(
                 mesh, mref=mref, mapping=maps.IdentityMap(mesh)
             )
