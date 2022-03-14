@@ -323,28 +323,25 @@ class Small(BaseRegularization):
 
     @weights.setter
     def weights(self, weights: dict[str, np.ndarray] | np.ndarray | None):
+        self._weights = None
         if weights is not None:
-            if isinstance(weights, np.ndarray):
-                weights = {"user_weights": weights}
+            self.add_set_weights(weights)
 
-            if not isinstance(weights, dict):
-                raise TypeError("Weights must be provided as a dictionary or None.")
-
-            for key, values in weights.items():
-                validate_array_type("weights", values, float)
-                validate_shape("weights", values, self.shape[0])
-
-        self._weights = weights
-        self._W = None
-
-    def add_set_weights(self, weights: dict):
+    def add_set_weights(self, weights: dict | np.ndarray):
         if self._weights is None:
             self._weights = {}
+
+        if isinstance(weights, np.ndarray):
+            weights = {"user_weights": weights}
+
+        if not isinstance(weights, dict):
+            raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
 
         for key, values in weights.items():
             validate_array_type("weights", values, float)
             validate_shape("weights", values, self.shape[0])
             self.weights[key] = values
+
         self._W = None
 
     @property
@@ -462,29 +459,25 @@ class SmoothDeriv(BaseRegularization):
 
     @weights.setter
     def weights(self, weights: dict[str, np.ndarray] | np.ndarray | None):
-        if weights is not None:
-
-            if isinstance(weights, np.ndarray):
-                weights = {"user_weights": weights}
-
-            if not isinstance(weights, dict):
-                raise TypeError("Weights must be provided as a dictionary or None.")
-
-            for key, values in weights.items():
-                validate_array_type("weights", values, float)
-                validate_shape("weights", values, self.shape[0])
-
         self._weights = weights
-        self._W = None
+        if weights is not None:
+            self.add_set_weights(weights)
 
     def add_set_weights(self, weights: dict):
         if self._weights is None:
             self._weights = {}
 
+        if isinstance(weights, np.ndarray):
+            weights = {"user_weights": weights}
+
+        if not isinstance(weights, dict):
+            raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
+
+        average_cell_2_face = getattr(
+            self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+        )
+
         for key, values in weights.items():
-            average_cell_2_face = getattr(
-                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
-            )
             validate_array_type("weights", values, float)
 
             if values.shape[0] == self.regularization_mesh.nC:

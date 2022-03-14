@@ -186,7 +186,7 @@ class RegularizationTests(unittest.TestCase):
 
             # test assignment of cell weights
             cell_weights = np.random.rand(active_cells.sum())
-            reg.weights = cell_weights
+            reg.add_set_weights(cell_weights)
             [
                 self.assertTrue(np.all(list(fct.weights.values())[0] == cell_weights))
                 for fct in reg.objfcts
