@@ -262,7 +262,7 @@ dc_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 #
 
 # Define the DC simulation
-dc_simulation = dc.simulation.Simulation3DNodal(
+dc_simulation = dc.Simulation3DNodal(
     mesh, survey=dc_survey, sigmaMap=conductivity_map, solver=Solver
 )
 
@@ -432,7 +432,7 @@ cbar.set_label("Intrinsic Chargeability [V/V]", rotation=270, labelpad=15, size=
 # We use the keyword argument *sigma* to define the background conductivity on
 # the mesh. We could use the keyword argument *rho* to accomplish the same thing
 # using a background resistivity model.
-ip_simulation = ip.simulation.Simulation3DNodal(
+ip_simulation = ip.Simulation3DNodal(
     mesh,
     survey=ip_survey,
     etaMap=chargeability_map,

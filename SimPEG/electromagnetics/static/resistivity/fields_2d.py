@@ -8,7 +8,7 @@ from ....utils import Identity, Zero
 
 # TODO: this should be the BaseDCSimulation2D --> but circular imports at the
 # moment, so we can settle for its base at the moment
-from ...base import BaseEMSimulation
+from ....base import BaseElectricalPDESimulation
 
 
 class Fields2D(TimeFields):
@@ -44,7 +44,7 @@ class Fields2D(TimeFields):
 
     """
 
-    simulation = properties.Instance("2D DC simulation", BaseEMSimulation)
+    simulation = properties.Instance("2D DC simulation", BaseElectricalPDESimulation)
 
     knownFields = {}
     dtype = float
