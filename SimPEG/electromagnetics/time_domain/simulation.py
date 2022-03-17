@@ -32,6 +32,14 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     survey = properties.Instance("a survey object", Survey, required=True)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.muMap is not None:
+            raise NotImplementedError(
+                "Time domain EM simulations do not support magnetic permeability "
+                "inversion, yet."
+            )
+
     # def fields_nostore(self, m):
     #     """
     #     Solve the forward problem without storing fields

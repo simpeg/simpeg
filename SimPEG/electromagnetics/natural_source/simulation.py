@@ -188,39 +188,6 @@ class Simulation1DPrimarySecondary(BaseNSEMSimulation):
     # Initiate properties
     _sigmaPrimary = None
 
-    def __init__(self, mesh, **kwargs):
-        BaseNSEMSimulation.__init__(self, mesh, **kwargs)
-        # self._sigmaPrimary = sigmaPrimary
-
-    @property
-    def MeMui(self):
-        """
-        Edge inner product matrix
-        """
-        if getattr(self, "_MeMui", None) is None:
-            self._MeMui = self.mesh.getEdgeInnerProduct(1.0 / mu_0)
-        return self._MeMui
-
-    @property
-    def MfSigma(self):
-        """
-        Edge inner product matrix
-        """
-        # if getattr(self, '_MfSigma', None) is None:
-        self._MfSigma = self.mesh.getFaceInnerProduct(self.sigma)
-        return self._MfSigma
-
-    def MfSigmaDeriv(self, u):
-        """
-        Edge inner product matrix
-        """
-        # if getattr(self, '_MfSigmaDeriv', None) is None:
-        # print('[info mfsigmad] !!!!!!!!!!! ', u[:, 0])
-        self._MfSigmaDeriv = (
-            self.mesh.getFaceInnerProductDeriv(self.sigma)(u[:, 0]) * self.sigmaDeriv
-        )
-        return self._MfSigmaDeriv
-
     @property
     def sigmaPrimary(self):
         """

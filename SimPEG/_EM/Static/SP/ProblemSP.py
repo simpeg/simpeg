@@ -186,9 +186,9 @@ class Problem_CC_Jstore(Problem_CC):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super(BaseDCProblem, self).deleteTheseOnModelUpdate
+        toDelete = super().deleteTheseOnModelUpdate
         if self._S is not None:
-            toDelete += ["_S"]
+            toDelete = toDelete + ["_S"]
         return toDelete
 
 
