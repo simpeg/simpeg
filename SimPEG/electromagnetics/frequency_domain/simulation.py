@@ -120,8 +120,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         self.model = m
 
-        # Jv = Data(self.survey)
-        Jv = []
+        Jv = Data(self.survey)
 
         for nf, freq in enumerate(self.survey.frequencies):
             for src in self.survey.get_sources_by_frequency(freq):
@@ -129,12 +128,11 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
                 du_dm_v = self.Ainv[nf] * (-dA_dm_v + dRHS_dm_v)
-
                 for rx in src.receiver_list:
-                    Jv.append(rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v))
-        return np.hstack(Jv)
+                    Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
 
-    # @profile
+        return Jv.dobs
+
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector

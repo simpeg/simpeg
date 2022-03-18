@@ -75,12 +75,8 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
         receiver_list.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "imag"))
     # Source list
     source_list = []
-    if tD:
-        for freq in freqs:
-            source_list.append(Planewave_xy_1DhomotD(receiver_list, freq))
-    else:
-        for freq in freqs:
-            source_list.append(PlanewaveXYPrimary(receiver_list, freq))
+    for freq in freqs:
+        source_list.append(PlanewaveXYPrimary(receiver_list, freq))
 
     survey = Survey(source_list)
     return (survey, sigma, sigmaBack, m1d)

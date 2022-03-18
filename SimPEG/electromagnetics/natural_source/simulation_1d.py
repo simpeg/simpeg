@@ -237,8 +237,8 @@ class Simulation1DRecursive(BaseSimulation):
         J = np.empty((self.survey.nD, Js.shape[1]))
 
         start = 0
-        for src in enumerate(self.survey.source_list):
-            i_freq = np.searchsorted(src.frequency)
+        for src in self.survey.source_list:
+            i_freq = np.searchsorted(self.survey.frequencies, src.frequency)
             Js_row = Js[i_freq]
             for rx in src.receiver_list:
                 if rx.component == "real":
@@ -246,10 +246,10 @@ class Simulation1DRecursive(BaseSimulation):
                 elif rx.component == "imag":
                     Jrows = np.imag(Js_row)
                 elif rx.component == "apparent_resistivity":
-                        Jrows = (np.pi * src.frequency * mu_0) ** -1 * (
-                            np.real(Z[i_freq]) * np.real(Js_row)
-                            + np.imag(Z[i_freq]) * np.imag(Js_row)
-                        )
+                    Jrows = (np.pi * src.frequency * mu_0) ** -1 * (
+                        np.real(Z[i_freq]) * np.real(Js_row)
+                        + np.imag(Z[i_freq]) * np.imag(Js_row)
+                    )
                 elif rx.component == "phase":
                     C = 180 / np.pi
                     real = np.real(Z[i_freq])
@@ -305,7 +305,7 @@ class Simulation1DRecursive(BaseSimulation):
         JTvec = []
         if self.sigmaMap is not None:
             JTvec.append(self.sigmaDeriv.T @ (J['sigma'].T @ v))
-        if self.sigmaMap is not None:
+        if self.thicknessesMap is not None:
             JTvec.append(self.thicknessesDeriv.T @ (J['thick'].T @ v))
         return np.concatenate(JTvec)
 

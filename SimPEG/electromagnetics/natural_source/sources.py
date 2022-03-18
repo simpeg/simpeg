@@ -133,38 +133,14 @@ class PlanewaveXYPrimary(Planewave):
         if simulation.mesh.dim == 1:
             # Need to use the faceInnerProduct
             ePri = self.ePrimary(simulation)[:, 1]
-            MsigmaDeriv = (
-                simulation.mesh.getFaceInnerProductDeriv(simulation.sigma)(ePri)
-                * simulation.sigmaDeriv
-            )
-            # MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
-
-            if adjoint:
-                #
-                return MsigmaDeriv.T * v
-            else:
-                # v should be nC size
-                return MsigmaDeriv * v
+            return simulation.MfSigmaDeriv(ePri, v, adjoint=adjoint)
         if simulation.mesh.dim == 2:
             raise NotImplementedError("The NSEM 2D simulation is not implemented")
         if simulation.mesh.dim == 3:
             # Need to take the derivative of both u_px and u_py
             # And stack them to be of the correct size
             e_p = self.ePrimary(simulation)
-            if adjoint:
-                return simulation.MeSigmaDeriv(e_p, v, adjoint=adjoint)
-                # return simulation.MeSigmaDeriv(
-                #     e_p[:, 0], v[: int(v.shape[0] / 2)], adjoint
-                # ) + simulation.MeSigmaDeriv(
-                #     e_p[:, 1], v[int(v.shape[0] / 2) :], adjoint
-                # )
-            return simulation.MeSigmaDeriv(e_p, v, adjoint)
-            # return np.hstack(
-            #     (
-            #         mkvc(simulation.MeSigmaDeriv(e_p[:, 0], v, adjoint), 2),
-            #         mkvc(simulation.MeSigmaDeriv(e_p[:, 1], v, adjoint), 2),
-            #     )
-            # )
+            return simulation.MeSigmaDeriv(e_p, v, adjoint=adjoint)
 
     S_e = s_e
     S_eDeriv = s_eDeriv
