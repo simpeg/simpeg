@@ -274,6 +274,24 @@ class Simulation1DRecursive(BaseSimulation):
             self._Jmatrix['thick'] = J[:, start:end]
         return self._Jmatrix
 
+    def getJtJdiag(self, m, W=None):
+        if self.gtgdiag is None:
+            Js = self.getJ(m)
+            if W is None:
+                W = np.ones(J.shape[0])
+            else:
+                W = W.diagonal() ** 2
+
+            gtgdiag = 0
+            if self.sigmaMap is not None:
+                J = Js['sigma'] @ self.sigmaDeriv
+                gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
+            if self.thicknessesMap is not None:
+                J = Js['thick'] @ self.thicknessesDeriv
+                gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
+            self.gtgdiag = gtgdiag
+        return self.gtgdiag
+
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
