@@ -1,5 +1,5 @@
 from .base import BaseRegularization, BaseComboRegularization, BaseSimilarityMeasure
-from .regularization_mesh import RegularizationMesh
+from .regularization_mesh import RegularizationMesh, LCRegularizationMesh
 from .tikhonov import (
     SimpleSmall,
     SimpleSmoothDeriv,
@@ -10,6 +10,11 @@ from .tikhonov import (
     Tikhonov,
 )
 from .sparse import SparseSmall, SparseDeriv, Sparse
+from .laterally_constrained import (
+    LaterallyConstrained,
+    LaterallyConstrainedSmall,
+    LaterallyConstrainedDeriv,
+)
 from .pgi import (
     PGIsmallness,
     PGI,
@@ -19,4 +24,3 @@ from .pgi import (
 from .cross_gradient import CrossGradient
 from .correspondence import LinearCorrespondence
 from .jtv import JointTotalVariation
-from .laterally_constrained import LaterallyConstrained

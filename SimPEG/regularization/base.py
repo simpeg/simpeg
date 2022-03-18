@@ -7,8 +7,8 @@ from .. import props
 from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
-from .regularization_mesh import RegularizationMesh
-
+from .regularization_mesh import RegularizationMesh, LCRegularizationMesh
+from discretize import SimplexMesh, TensorMesh
 ###############################################################################
 #                                                                             #
 #                          Base Regularization                                #
@@ -30,7 +30,10 @@ class BaseRegularization(BaseObjectiveFunction):
 
     def __init__(self, mesh=None, **kwargs):
         super(BaseRegularization, self).__init__()
-        self.regmesh = RegularizationMesh(mesh)
+        if isinstance(mesh, list):
+            self.regmesh = LCRegularizationMesh(mesh)
+        else:
+            self.regmesh = RegularizationMesh(mesh)
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
             self.regmesh.indActive = indActive
@@ -45,6 +48,9 @@ class BaseRegularization(BaseObjectiveFunction):
     )
     cell_weights = properties.Array(
         "regularization weights applied at cell centers", dtype=float
+    )
+    indActiveEdges = properties.Array(
+        "indices of active edges in the mesh", dtype=(bool, int)
     )
     regmesh = properties.Instance(
         "regularization mesh", RegularizationMesh, required=True
@@ -179,7 +185,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
             R(m) = \\mathbf{W^\\top W}
 
-        """
+        """     
 
         mD = self.mapping.deriv(self._delta_m(m))
         if v is None:
@@ -201,10 +207,17 @@ class SimpleComboRegularization(ComboObjectiveFunction):
         super(SimpleComboRegularization, self).__init__(
             objfcts=objfcts, multipliers=None
         )
-        self.regmesh = RegularizationMesh(mesh)
+        if isinstance(mesh, list):
+            self.regmesh = LCRegularizationMesh(mesh)
+        else:
+            self.regmesh = RegularizationMesh(mesh)
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
             self.regmesh.indActive = indActive
+        if "indActiveEdges" in kwargs.keys():
+            indActiveEdges = kwargs.pop("indActiveEdges")
+            self.regmesh.indActiveEdges = indActiveEdges
+
         utils.setKwargs(self, **kwargs)
 
         # link these attributes
@@ -238,6 +251,9 @@ class SimpleComboRegularization(ComboObjectiveFunction):
     )
     cell_weights = properties.Array(
         "regularization weights applied at cell centers", dtype=float
+    )
+    indActiveEdges = properties.Array(
+        "indices of active edges in the mesh", dtype=(bool, int)
     )
     scale = properties.Float("function scaling applied inside the norm", default=1.0)
     regmesh = properties.Instance(
