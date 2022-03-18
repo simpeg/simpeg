@@ -6,12 +6,9 @@ Receivers for the NSEM problem
 from ...utils.code_utils import deprecate_class
 
 import numpy as np
-import scipy as sp
 from scipy.constants import mu_0
 import properties
 
-from ...utils import sdiag, mkvc
-from ...utils import spzeros
 from ...survey import BaseRx
 
 
@@ -141,6 +138,7 @@ class PointNaturalSource(BaseRx):
                 "apparent resistivity",
                 "apparent-resistivity",
                 "app_rho",
+                "app_res",
             ],
             "phase": ["phi"],
         },
@@ -150,9 +148,11 @@ class PointNaturalSource(BaseRx):
         "orientation of the receiver. Must currently be 'xy', 'yx'", ["xy", "yx"],
     )
 
-    def __init__(self, locations, component="real", orientation="xy"):
+    def __init__(self, locations=None, component="real", orientation="xy"):
         self.component = component
         self.orientation = orientation
+        if locations is None:
+            locations = np.array([[0]])
         BaseRx.__init__(self, locations)
 
     @property
@@ -826,48 +826,6 @@ class Point3DTipper(BaseRxNSEM_Point):
         if adjoint:
             return imp_deriv
         return getattr(imp_deriv, self.component)
-
-
-##################################################
-# Receiver for 1D Analytic
-
-
-class AnalyticReceiver1D(BaseRx):
-    """
-    Receiver class for the 1D and pseudo-3D problems. For the 1D problem,
-    locations are not necessary. For the 3D problem, xyz positions are required.
-
-    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string component: 'real'|'imag'|'app_res'
-    """
-
-    component = properties.StringChoice(
-        "component of the field (real, imag or app_res)",
-        {
-            "real": ["re", "in-phase", "in phase"],
-            "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-            "apparent resistivity": [
-                "apparent_resistivity",
-                "apparent-resistivity",
-                "app_res",
-            ],
-            "phase": ["phi"],
-        },
-    )
-
-    def __init__(self, locations=None, component=None):
-        self.component = component
-
-        BaseRx.__init__(self, locations)
-
-    @property
-    def nD(self):
-        """Number of data in the receiver."""
-
-        if self.locations == None:
-            return 1
-        else:
-            return self.locations.shape[0]
 
 
 ############

@@ -1,19 +1,13 @@
 import numpy as np
-import scipy as sp
 import properties
 from scipy.constants import mu_0
 
-from ...utils import mkvc, sdiag, Zero
-from ..base import BaseEMSimulation
-from ...data import Data
+from ...simulation import BaseSimulation
 from ... import props
-
-from .survey import Survey1D
-
-from discretize import TensorMesh
+from ..frequency_domain.survey import Survey
 
 
-class Simulation1DRecursive(BaseEMSimulation):
+class Simulation1DRecursive(BaseSimulation):
     """
     Simulation class for the 1D MT problem using recursive solution.
 
@@ -37,201 +31,125 @@ class Simulation1DRecursive(BaseEMSimulation):
 
 
     """
-
-    # Must be 1D survey object
-    survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
-
-    # Finite difference or analytic sensitivities can be computed
-    sensitivity_method = properties.StringChoice(
-        "Choose 1st or 2nd order computations with sensitivity matrix ('1st order', '2nd order')",
-        {
-            "1st order": ["1st_order", "1st-order", "1st", "1", "first"],
-            "2nd order": ["2nd_order", "2nd-order", "2nd", "2", "second"],
-        },
-    )
+    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
+    props.Reciprocal(sigma, rho)
 
     # Add layer thickness as invertible property
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "thicknesses of the layers starting from the positive end of the mesh"
     )
 
-    # Storing sensitivity
-    _Jmatrix = None
+    # Must be 1D survey object
+    survey = properties.Instance("a frequency_domain survey", Survey, required=True)
     fix_Jmatrix = False
-    storeJ = properties.Bool("store the sensitivity", default=False)
 
-    # Frequency for each datum
-    _frequency_vector = None
-
-    @property
-    def frequency_vector(self):
-        """
-        A vector containing the corresponding frequency for each datum.
-        """
-
-        if getattr(self, "_frequency_vector", None) is None:
-            if self._frequency_vector is None:
-                fvec = []
-                for src in self.survey.source_list:
-                    fvec.append(src.frequency)
-                self._frequency_vector = np.hstack(fvec)
-
-        return self._frequency_vector
-
-    @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super(Simulation1DRecursive, self).deleteTheseOnModelUpdate
-        if self.fix_Jmatrix:
-            return toDelete
-
-        if self._Jmatrix is not None:
-            toDelete += ["_Jmatrix"]
-        return toDelete
-
-    # Instantiate
-    def __init__(self, sensitivity_method="2nd order", **kwargs):
-
-        self.sensitivity_method = sensitivity_method
-
-        BaseEMSimulation.__init__(self, **kwargs)
-
-    def _get_recursive_impedances_1d(self, fvec, thicknesses, sigma_1d):
+    def _get_recursive_impedances(self, frequencies, thicknesses, sigmas):
         """
         For a given layered Earth model, this returns the complex impedances
         at the surface for all frequencies.
 
-        :param numpy.ndarray fvec: vector with frequencies in Hz (nFreq,)
-        :param numpy.ndarray thicknesses: layer thicknesses (nLayers-1,)
-        :param numpy.ndarray sigma_1d: layer conductivities (nLayers,)
-        :return numpy.ndarray Z: complex impedances at surface for all frequencies (nFreq,)
+        Parameters
+        ----------
+        frequencies : (n_freq, ) np.ndarray
+            vector with frequencies in Hz
+        thicknesses : (n_layer-1, ) np.ndarray
+            layer thicknesses
+        sigmas : (n_layer, ) np.ndarray
+            layer conductivities
+
+        Returns
+        -------
+        Z : (n_freq, ) np.ndarray
+            complex impedances at surface
         """
+        frequencies = np.asarray(frequencies)
+        thicknesses = np.asarray(thicknesses)
+        sigmas = np.asarray(sigmas)
+        omega = 2 * np.pi * frequencies
+        n_layer = len(sigmas)
 
-        omega = 2 * np.pi * fvec
-        n_layer = len(sigma_1d)
+        # layer quantities
+        alphas = np.sqrt(1j * omega * mu_0 * sigmas[:, None])
+        ratios = alphas / sigmas[:, None]
+        tanhs = np.tanh(alphas[:-1] * thicknesses[:, None])
 
-        # Bottom layer quantities
-        alpha = np.sqrt(1j * omega * mu_0 * sigma_1d[-1])
-        ratio = alpha / sigma_1d[-1]
-        Z = -ratio
-
+        Z = -ratios[-1]
         # Work from lowest layer to top layer
         for ii in range(n_layer - 2, -1, -1):
-            alpha = np.sqrt(1j * omega * mu_0 * sigma_1d[ii])
-            ratio = alpha / sigma_1d[ii]
-            tanh = np.tanh(alpha * thicknesses[ii])
-
-            top = Z / ratio - tanh
-            bot = 1 - Z / ratio * tanh
-            Z = ratio * (top / bot)
-
+            top = Z / ratios[ii] - tanhs[ii]
+            bot = 1 - Z / ratios[ii] * tanhs[ii]
+            Z = ratios[ii] * top / bot
         return Z
 
-    def _get_sigma_sensitivities(self, fvec, thicknesses, sigma_1d):
+    def _get_recursive_impedances_deriv(self, frequencies, thicknesses, sigmas):
         """
-        For a given layered Earth model, this returns the Jacobian for the
-        complex impedances at the surface with respect to the layer conductivities.
+        For a given layered Earth model, this returns the complex impedances
+        at the surface for all frequencies.
 
-        :param numpy.ndarray fvec: vector with frequencies for each datum in Hz (nD,)
-        :param numpy.ndarray thicknesses: layer thicknesses (nLayers-1,)
-        :param numpy.ndarray sigma_1d: layer conductivities (nLayers,)
-        :return numpy.ndarray J: Jacobian (nD, nLayers)
+        Parameters
+        ----------
+        frequencies : (n_freq, ) np.ndarray
+            Frequencies in Hz
+        thicknesses : (n_layer-1, ) np.ndarray
+            Layer thicknesses in meters
+        sigmas : (n_layer, ) np.ndarray
+            Layer conductivities in S/m
+
+        Returns
+        -------
+        Z : (n_freq, ) np.ndarray
+            Complex impedance at surface
+        Z_dsigma : (n_freq, n_layer) np.ndarray
+            Derivative of complex impedances at surface with respect to sigma
+        Z_dsigma : (n_freq, n_layer-1) np.ndarray
+            Derivative of complex impedances at surface with respect to thicknesses
         """
-
-        omega = 2 * np.pi * fvec
-        n_layer = len(sigma_1d)
-        J = np.empty((len(fvec), n_layer), dtype=np.complex128)
+        frequencies = np.asarray(frequencies)
+        thicknesses = np.asarray(thicknesses)
+        sigmas = np.asarray(sigmas)
+        omega = 2 * np.pi * frequencies
+        n_layer = len(sigmas)
 
         # Bottom layer quantities
-        alpha = np.sqrt(1j * omega * mu_0 * sigma_1d[-1])
-        alpha_ds = 1j * omega * mu_0 / (2 * alpha)
+        alphas = np.sqrt(1j * omega * mu_0 * sigmas[:, None])
+        ratios = alphas / sigmas[:, None]
+        tanhs = np.tanh(alphas[:-1] * thicknesses[:, None])
 
-        ratio = alpha / sigma_1d[-1]
-        ratio_ds = alpha_ds / sigma_1d[-1] - ratio / sigma_1d[-1]
-
-        Z = -ratio
-        dZ_dsigma = -ratio_ds
-        J[:, -1] = dZ_dsigma
-
+        tops = np.empty_like(tanhs)
+        bots = np.empty_like(tanhs)
+        Zs = np.empty_like(ratios)
+        Zs[-1] = -ratios[-1]
         # Work from lowest layer to top layer
         for ii in range(n_layer - 2, -1, -1):
-            alpha = np.sqrt(1j * omega * mu_0 * sigma_1d[ii])
-            alpha_ds = 1j * omega * mu_0 / (2 * alpha)
+            tops[ii] = Zs[ii+1] / ratios[ii] - tanhs[ii]
+            bots[ii] = 1 - Zs[ii+1] / ratios[ii] * tanhs[ii]
+            Zs[ii] = ratios[ii] * (tops[ii] / bots[ii])
 
-            ratio = alpha / sigma_1d[ii]
-            ratio_ds = alpha_ds / sigma_1d[ii] - ratio / sigma_1d[ii]
+        gZ = 1.0
+        gratios = np.empty_like(ratios)
+        gtanhs = np.empty_like(tanhs)
+        for ii in range(n_layer - 1):
+            gratios[ii] = (tops[ii] / bots[ii]) * gZ
+            gtop = ratios[ii] / bots[ii] * gZ
+            gbot = - Zs[ii] / bots[ii] * gZ
 
-            tanh = np.tanh(alpha * thicknesses[ii])
-            tanh_ds = thicknesses[ii] * (1 - tanh * tanh) * alpha_ds
+            gZ = -tanhs[ii] / ratios[ii] * gbot
+            gratios[ii] += Zs[ii+1] * tanhs[ii] / ratios[ii]**2 * gbot
+            gtanhs[ii] = -Zs[ii+1] / ratios[ii] * gbot
 
-            top = Z / ratio - tanh
-            top_ds = -tanh_ds - Z / (ratio * ratio) * ratio_ds
-            top_dZ = 1 / ratio
+            gZ += gtop / ratios[ii]
+            gratios[ii] -= Zs[ii+1] / ratios[ii] ** 2 * gtop
+            gtanhs[ii] -= gtop
+        gratios[-1] = -gZ
+        d_thick = (1 - tanhs**2) * alphas[:-1] * gtanhs
 
-            bot = 1 - Z / ratio * tanh
-            bot_ds = (-Z / ratio) * tanh_ds + Z * tanh / (ratio ** 2) * ratio_ds
-            bot_dZ = -(tanh / ratio)
+        galphas = gratios / sigmas[:, None]
+        galphas[:-1] += (1 - tanhs**2) * thicknesses[:, None] * gtanhs
 
-            Z = ratio * (top / bot)
-            Z_dratio = top / bot
-            Z_dtop = ratio / bot
-            Z_dbot = -ratio * top / (bot * bot)
-
-            dZ_ds = Z_dtop * top_ds + Z_dbot * bot_ds + Z_dratio * ratio_ds
-            dZ_dZp1 = Z_dtop * top_dZ + Z_dbot * bot_dZ
-
-            J[:, ii] = dZ_ds
-            J[:, ii + 1 :] *= dZ_dZp1[:, None]
-
-        return J
-
-    def _get_thickness_sensitivities(self, fvec, thicknesses, sigma_1d):
-        """
-        For a given layered Earth model, this returns the Jacobian for the
-        complex impedances at the surface with respect to the layer thicknesses.
-
-        :param numpy.ndarray fvec: vector with frequencies for each datum in Hz (nD,)
-        :param numpy.ndarray thicknesses: layer thicknesses (nLayers-1,)
-        :param numpy.ndarray sigma_1d: layer conductivities (nLayers,)
-        :return numpy.ndarray J: Jacobian (nD, nLayers-1)
-        """
-
-        # Bottom layer quantities
-        omega = 2 * np.pi * fvec
-        n_layer = len(sigma_1d)
-        J = np.empty((len(fvec), n_layer - 1), dtype=np.complex128)
-
-        alpha = np.sqrt(1j * omega * mu_0 * sigma_1d[-1])
-        ratio = alpha / sigma_1d[-1]
-
-        Z = -ratio
-
-        # Work from lowest layer to top layer
-        for ii in range(n_layer - 2, -1, -1):
-            alpha = np.sqrt(1j * omega * mu_0 * sigma_1d[ii])
-            ratio = alpha / sigma_1d[ii]
-
-            tanh = np.tanh(alpha * thicknesses[ii])
-            tanh_dh = alpha * (1 - tanh * tanh)
-
-            top = Z / ratio - tanh
-            top_dh = -tanh_dh
-            top_dZ = 1 / ratio
-
-            bot = 1 - Z / ratio * tanh
-            bot_dh = (-Z / ratio) * tanh_dh
-            bot_dZ = -(tanh / ratio)
-
-            Z = ratio * (top / bot)
-            Z_dtop = ratio / bot
-            Z_dbot = -ratio * top / (bot * bot)
-
-            dZ_dh = Z_dtop * top_dh + Z_dbot * bot_dh
-            dZ_dZp1 = Z_dtop * top_dZ + Z_dbot * bot_dZ
-
-            J[:, ii] = dZ_dh
-            J[:, ii + 1 :] *= dZ_dZp1[:, None]
-
-        return J
+        d_sigma = - ratios / sigmas[:, None] * gratios
+        d_sigma += (0.5j * omega * mu_0) / alphas * galphas
+        return Zs[0], d_sigma.T, d_thick.T
 
     def fields(self, m):
         """
@@ -244,30 +162,31 @@ class Simulation1DRecursive(BaseEMSimulation):
         if m is not None:
             self.model = m
 
-        # Compute complex impedances for each datum
-        complex_impedance = self._get_recursive_impedances_1d(
-            self.frequency_vector, self.thicknesses, self.sigma
+        # Compute complex impedances for each frequency=
+        Z = self._get_recursive_impedances(
+            self.survey.frequencies, self.thicknesses, self.sigma
         )
 
         # For each complex impedance, extract compute datum
         f = []
-        for ii, src in enumerate(self.survey.source_list):
+        for src in self.survey.source_list:
+            i_freq = np.searchsorted(self.survey.frequencies, src.frequency)
             for rx in src.receiver_list:
                 if rx.component == "real":
-                    f.append(np.real(complex_impedance[ii]))
+                    f.append(np.real(Z[i_freq]))
                 elif rx.component == "imag":
-                    f.append(np.imag(complex_impedance[ii]))
-                elif rx.component == "apparent resistivity":
+                    f.append(np.imag(Z[i_freq]))
+                elif rx.component == "apparent_resistivity":
                     f.append(
-                        np.abs(complex_impedance[ii]) ** 2
+                        np.abs(Z[i_freq]) ** 2
                         / (2 * np.pi * src.frequency * mu_0)
                     )
                 elif rx.component == "phase":
                     f.append(
                         (180.0 / np.pi)
                         * np.arctan(
-                            np.imag(complex_impedance[ii])
-                            / np.real(complex_impedance[ii])
+                            np.imag(Z[i_freq])
+                            / np.real(Z[i_freq])
                         )
                     )
 
@@ -288,7 +207,7 @@ class Simulation1DRecursive(BaseEMSimulation):
 
         return f
 
-    def getJ(self, m, f=None, sensitivity_method=None):
+    def getJ(self, m, f=None):
 
         """
         Compute and store the sensitivity matrix.
@@ -298,136 +217,103 @@ class Simulation1DRecursive(BaseEMSimulation):
         :return numpy.ndarray J: Sensitivity matrix (nD, nP)
         """
 
-        if sensitivity_method is None:
-            sensitivity_method = self.sensitivity_method
-
-        if self._Jmatrix is not None:
-            pass
-
-        # Finite difference computation
-        elif sensitivity_method == "1st order":
-
-            # 1st order computation
-            self.model = m
-
-            N = self.survey.nD
-            M = self.model.size
-            Jmatrix = np.zeros((N, M), dtype=float, order="F")
-
-            factor = 0.01
-            for ii in range(0, len(m)):
-                m1 = m.copy()
-                m2 = m.copy()
-                dm = np.max([factor * np.abs(m[ii]), 1e-3])
-                m1[ii] = m[ii] - 0.5 * dm
-                m2[ii] = m[ii] + 0.5 * dm
-                d1 = self.dpred(m1)
-                d2 = self.dpred(m2)
-                Jmatrix[:, ii] = (d2 - d1) / dm
-
-            self._Jmatrix = Jmatrix
-
         # Analytic computation
-        elif sensitivity_method == "2nd order":
+        self.model = m
+        if getattr(self, '_Jmatrix', None) is not None:
+            return self._Jmatrix
 
-            self.model = m
+        # Derivatives for conductivity
+        Z, Z_dsigma, Z_dthick = self._get_recursive_impedances_deriv(
+            self.survey.frequencies, self.thicknesses, self.sigma
+        )
+        Js = []
+        if self.sigmaMap is not None:
+            Js.append(Z_dsigma)
+        if self.thicknessesMap is not None:
+            Js.append(Z_dthick)
+        Js = np.hstack(Js)
 
-            dMdm = []  # Derivative of properties with respect to model
-            Jmatrix = []  # Jacobian
+        # build data projection matrix
+        J = np.empty((self.survey.nD, Js.shape[1]))
 
-            # Derivatives for conductivity
-            if self.sigmaMap != None:
-                dMdm.append(self.sigmaDeriv)
-                Jmatrix.append(
-                    self._get_sigma_sensitivities(
-                        self.frequency_vector, self.thicknesses, self.sigma
-                    )
-                )
-
-            # Derivatives for thicknesses
-            if self.thicknessesMap != None:
-                dMdm.append(self.thicknessesDeriv)
-                Jmatrix.append(
-                    self._get_thickness_sensitivities(
-                        self.frequency_vector, self.thicknesses, self.sigma
-                    )
-                )
-
-            # Combine
-            if len(dMdm) == 1:
-                dMdm = dMdm[0]
-                Jmatrix = Jmatrix[0]
-            else:
-                dMdm = sp.sparse.vstack(dMdm)
-                Jmatrix = np.hstack(Jmatrix)
-            J = np.empty((self.survey.nD, Jmatrix.shape[1]))
-
-            start = 0
-            for ii, source_ii in enumerate(self.survey.source_list):
-                for rx in source_ii.receiver_list:
-                    if rx.component == "real":
-                        Jrows = np.real(Jmatrix[ii, :])
-                    elif rx.component == "imag":
-                        Jrows = np.imag(Jmatrix[ii, :])
-                    else:
-                        Z = self._get_recursive_impedances_1d(
-                            source_ii.frequency, self.thicknesses, self.sigma
+        start = 0
+        for src in enumerate(self.survey.source_list):
+            i_freq = np.searchsorted(src.frequency)
+            Js_row = Js[i_freq]
+            for rx in src.receiver_list:
+                if rx.component == "real":
+                    Jrows = np.real(Js_row)
+                elif rx.component == "imag":
+                    Jrows = np.imag(Js_row)
+                elif rx.component == "apparent_resistivity":
+                        Jrows = (np.pi * src.frequency * mu_0) ** -1 * (
+                            np.real(Z[i_freq]) * np.real(Js_row)
+                            + np.imag(Z[i_freq]) * np.imag(Js_row)
                         )
-                        if rx.component == "apparent resistivity":
-                            Jrows = (np.pi * source_ii.frequency * mu_0) ** -1 * (
-                                np.real(Z) * np.real(Jmatrix[ii, :])
-                                + np.imag(Z) * np.imag(Jmatrix[ii, :])
-                            )
-                        elif rx.component == "phase":
-                            C = 180 / np.pi
-                            real = np.real(Z)
-                            imag = np.imag(Z)
-                            bot = np.abs(Z) ** 2
-                            d_real_dm = np.real(Jmatrix[ii, :])
-                            d_imag_dm = np.imag(Jmatrix[ii, :])
-                            Jrows = C * (
-                                -imag / bot * d_real_dm + real / bot * d_imag_dm
-                            )
-                    end = start + rx.nD
-                    J[start:end] = Jrows
-                    start = end
-
-            self._Jmatrix = J * dMdm
-
+                elif rx.component == "phase":
+                    C = 180 / np.pi
+                    real = np.real(Z[i_freq])
+                    imag = np.imag(Z[i_freq])
+                    bot = real ** 2 + imag**2
+                    d_real_dm = np.real(Js_row)
+                    d_imag_dm = np.imag(Js_row)
+                    Jrows = C * (
+                        -imag / bot * d_real_dm + real / bot * d_imag_dm
+                    )
+                end = start + rx.nD
+                J[start:end] = Jrows
+                start = end
+        self._Jmatrix = {}
+        start = 0
+        if self.sigmaMap is not None:
+            end = start + Z_dsigma.shape[1]
+            self._Jmatrix['sigma'] = J[:, start:end]
+            start = end
+        if self.thicknessesMap is not None:
+            end = start + Z_dthick.shape[1]
+            self._Jmatrix['thick'] = J[:, start:end]
         return self._Jmatrix
 
-    def Jvec(self, m, v, f=None, sensitivity_method=None):
+    def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
 
         :param numpy.ndarray m: inversion model (nP,)
         :param numpy.ndarray v: vector which we take sensitivity product
             witH (nP,)
-        :param String method: Choose from '1st_order' or '2nd_order'
         :return numpy.ndarray Jv: Jv (nD,)
         """
+        J = self.getJ(m, f=None)
+        Jvec = 0
+        if self.sigmaMap is not None:
+            Jvec += J['sigma'] @ (self.sigmaDeriv * v)
+        if self.thicknessesMap is not None:
+            Jvec += J['thick'] @ (self.thicknessesDeriv * v)
+        return Jvec
 
-        if sensitivity_method is None:
-            sensitivity_method = self.sensitivity_method
-
-        J = self.getJ(m, f=None, sensitivity_method=sensitivity_method)
-
-        return mkvc(np.dot(J, v))
-
-    def Jtvec(self, m, v, f=None, sensitivity_method=None):
+    def Jtvec(self, m, v, f=None):
         """
         Transpose of sensitivity times a vector.
 
         :param numpy.ndarray m: inversion model (nP,)
         :param numpy.ndarray v: vector which we take sensitivity product
             with (nD,)
-        :param String method: Choose from '1st_order' or '2nd_order'
         :return numpy.ndarray Jtv: Jtv (nP,)
         """
 
-        if sensitivity_method is None:
-            sensitivity_method = self.sensitivity_method
+        J = self.getJ(m, f=None)
+        JTvec = []
+        if self.sigmaMap is not None:
+            JTvec.append(self.sigmaDeriv.T @ (J['sigma'].T @ v))
+        if self.sigmaMap is not None:
+            JTvec.append(self.thicknessesDeriv.T @ (J['thick'].T @ v))
+        return np.concatenate(JTvec)
 
-        J = self.getJ(m, f=None, sensitivity_method=sensitivity_method)
-
-        return mkvc(np.dot(v, J))
+    @property
+    def deleteTheseOnModelUpdate(self):
+        toDelete = super().deleteTheseOnModelUpdate
+        if self.fix_Jmatrix:
+            return toDelete
+        else:
+            toDelete = toDelete + ["_Jmatrix"]
+        return toDelete

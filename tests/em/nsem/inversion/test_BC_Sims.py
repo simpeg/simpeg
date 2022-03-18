@@ -63,8 +63,8 @@ def create_simulation_1d(sim_type, deriv_type):
         ),
         nsem.receivers.PointNaturalSource([[0]], orientation="yx", component="phase"),
     ]
-    src_list = [nsem.sources.Planewave1D(rx_list, frequency=f) for f in frequencies]
-    survey = nsem.Survey1D(src_list)
+    src_list = [nsem.sources.Planewave(rx_list, frequency=f) for f in frequencies]
+    survey = nsem.Survey(src_list)
 
     sigma_back = 1e-1
     sigma_right = 1e-3
@@ -136,8 +136,8 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
     if sim_type.lower() == "e":
         if fixed_boundary:
             # get field from 1D simulation
-            survey_1d = nsem.Survey1D(
-                [nsem.sources.Planewave1D([], frequency=f) for f in frequencies]
+            survey_1d = nsem.Survey(
+                [nsem.sources.Planewave([], frequency=f) for f in frequencies]
             )
             mesh_1d = TensorMesh([mesh.h[1]], [mesh.origin[1]])
             sim_1d = nsem.simulation.Simulation1DElectricField(
@@ -176,7 +176,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
                 rx_locs, orientation="xy", component="phase"
             ),
         ]
-        src_list = [nsem.sources.Planewave1D(rx_list, frequency=f) for f in frequencies]
+        src_list = [nsem.sources.Planewave(rx_list, frequency=f) for f in frequencies]
         survey = nsem.Survey(src_list)
 
         sim = nsem.simulation.Simulation2DElectricField(
@@ -185,8 +185,8 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
     else:
         if fixed_boundary:
             # get field from 1D simulation
-            survey_1d = nsem.Survey1D(
-                [nsem.sources.Planewave1D([], frequency=f) for f in frequencies]
+            survey_1d = nsem.Survey(
+                [nsem.sources.Planewave([], frequency=f) for f in frequencies]
             )
             mesh_1d = TensorMesh([mesh.h[1]], [mesh.origin[1]])
             sim_1d = nsem.simulation.Simulation1DMagneticField(
@@ -224,7 +224,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
                 rx_locs, orientation="yx", component="phase"
             ),
         ]
-        src_list = [nsem.sources.Planewave1D(rx_list, frequency=f) for f in frequencies]
+        src_list = [nsem.sources.Planewave(rx_list, frequency=f) for f in frequencies]
         survey = nsem.Survey(src_list)
 
         sim = nsem.simulation.Simulation2DMagneticField(
@@ -236,7 +236,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
 class Sim_1D(unittest.TestCase):
     def test_errors(self):
         mesh = TensorMesh([5, 5])
-        survey = nsem.Survey1D([nsem.sources.Planewave1D([], frequency=10)])
+        survey = nsem.Survey([nsem.sources.Planewave([], frequency=10)])
 
         with self.assertRaises(ValueError):
             nsem.simulation.Simulation1DElectricField(mesh, survey=survey)
@@ -287,8 +287,8 @@ class Sim_2D(unittest.TestCase):
         r_yx = nsem.receivers.PointNaturalSource(
             rx_locs, orientation="yx", component="apparent_resistivity"
         )
-        survey_xy = nsem.Survey1D([nsem.sources.Planewave1D([r_xy], frequency=10)])
-        survey_yx = nsem.Survey1D([nsem.sources.Planewave1D([r_yx], frequency=10)])
+        survey_xy = nsem.Survey([nsem.sources.Planewave([r_xy], frequency=10)])
+        survey_yx = nsem.Survey([nsem.sources.Planewave([r_yx], frequency=10)])
 
         # Check mesh dim error
         with self.assertRaises(ValueError):

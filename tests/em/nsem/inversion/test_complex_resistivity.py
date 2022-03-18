@@ -74,7 +74,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Source list
         freqs = [10, 50, 200]
-        srcList = [ns.Src.Planewave_xy_1Dprimary(rxList, freq) for freq in freqs]
+        srcList = [ns.Src.PlanewaveXYPrimary(rxList, freq) for freq in freqs]
 
         # Survey MT
         survey_ns = ns.Survey(srcList)
@@ -110,7 +110,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Source list
         freqs = [10, 50, 200]
-        srcList = [ns.Src.Planewave_xy_1Dprimary(rxList, freq) for freq in freqs]
+        srcList = [ns.Src.PlanewaveXYPrimary(rxList, freq) for freq in freqs]
 
         # Survey MT
         survey_ns = ns.Survey(srcList)
@@ -158,7 +158,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Source list
         freqs = [10, 50, 200]
-        srcList = [ns.Src.Planewave_xy_1Dprimary(rxList, freq, sigma_primary=sigma1d) for freq in freqs]
+        srcList = [ns.Src.PlanewaveXYPrimary(rxList, freq, sigma_primary=sigma1d) for freq in freqs]
 
         # Survey MT
         survey_ns = ns.Survey(srcList)
@@ -193,7 +193,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Source list
         freqs = [10, 50, 200]
-        srcList = [ns.Src.Planewave_xy_1Dprimary(rxList, freq, sigma_primary=self.sigma_background) for freq in freqs]
+        srcList = [ns.Src.PlanewaveXYPrimary(rxList, freq, sigma_primary=self.sigma_background) for freq in freqs]
 
         # Survey MT
         survey_ns = ns.Survey(srcList)

@@ -13,8 +13,8 @@ from ..receivers import (
     Point3DTipper,
     Point3DComplexResistivity,
 )
-from ..survey import Survey, Survey1D
-from ..sources import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD, Planewave1D
+from ..survey import Survey
+from ..sources import PlanewaveXYPrimary, Planewave_xy_1DhomotD, Planewave
 from ..simulation import Simulation3DPrimarySecondary
 from .data_utils import appResPhs
 
@@ -80,7 +80,7 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
             source_list.append(Planewave_xy_1DhomotD(receiver_list, freq))
     else:
         for freq in freqs:
-            source_list.append(Planewave_xy_1Dprimary(receiver_list, freq))
+            source_list.append(PlanewaveXYPrimary(receiver_list, freq))
 
     survey = Survey(source_list)
     return (survey, sigma, sigmaBack, m1d)
@@ -119,15 +119,15 @@ def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
         rxList.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "imag"))
     # Source list
     # srcList = []
-    src_list = [Planewave1D([], frequency=f) for f in frequencies]
+    src_list = [Planewave([], frequency=f) for f in frequencies]
     # if tD:
     #     for freq in freqs:
     #         srcList.append(Planewave_xy_1DhomotD(rxList, freq))
     # else:
     #     for freq in freqs:
-    #         srcList.append(Planewave_xy_1Dprimary(rxList, freq))
+    #         srcList.append(PlanewaveXYPrimary(rxList, freq))
 
-    survey = Survey1D(src_list)
+    survey = Survey(src_list)
     return (survey, sigma, sigmaBack, m1d, frequencies)
 
 
@@ -225,12 +225,12 @@ def setupSimpegNSEM_tests_location_assign_list(
 
     srcList = []
     if singleFreq:
-        # srcList.append(Planewave_xy_1Dprimary(rxList, singleFreq, sigma_primary=sigBG))
-        srcList.append(Planewave_xy_1Dprimary(rxList, singleFreq))
+        # srcList.append(PlanewaveXYPrimary(rxList, singleFreq, sigma_primary=sigBG))
+        srcList.append(PlanewaveXYPrimary(rxList, singleFreq))
     else:
         for freq in freqs:
-            # srcList.append(Planewave_xy_1Dprimary(rxList, freq, sigma_primary=sigBG))
-            srcList.append(Planewave_xy_1Dprimary(rxList, freq))
+            # srcList.append(PlanewaveXYPrimary(rxList, freq, sigma_primary=sigBG))
+            srcList.append(PlanewaveXYPrimary(rxList, freq))
 
     # Survey MT
     survey_ns = Survey(srcList)
@@ -350,12 +350,12 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
 
     srcList = []
     if singleFreq:
-        # srcList.append(Planewave_xy_1Dprimary(rxList, singleFreq, sigma_primary=sigBG))
-        srcList.append(Planewave_xy_1Dprimary(rxList, singleFreq))
+        # srcList.append(PlanewaveXYPrimary(rxList, singleFreq, sigma_primary=sigBG))
+        srcList.append(PlanewaveXYPrimary(rxList, singleFreq))
     else:
         for freq in freqs:
-            # srcList.append(Planewave_xy_1Dprimary(rxList, freq, sigma_primary=sigBG))
-            srcList.append(Planewave_xy_1Dprimary(rxList, freq))
+            # srcList.append(PlanewaveXYPrimary(rxList, freq, sigma_primary=sigBG))
+            srcList.append(PlanewaveXYPrimary(rxList, freq))
 
     # Survey MT
     survey_ns = Survey(srcList)
@@ -458,10 +458,10 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
 
     if singleFreq:
 
-        source_list.append(Planewave_xy_1Dprimary(receiver_list, singleFreq))
+        source_list.append(PlanewaveXYPrimary(receiver_list, singleFreq))
     else:
         for freq in freqs:
-            source_list.append(Planewave_xy_1Dprimary(receiver_list, freq))
+            source_list.append(PlanewaveXYPrimary(receiver_list, freq))
     # Survey NSEM
     survey = Survey(source_list)
 

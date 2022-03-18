@@ -69,7 +69,7 @@ def run(plotIt=True):
 
     # Source list
     source_list = [
-        NSEM.Src.Planewave_xy_1Dprimary(receiver_list, freq)
+        NSEM.Src.PlanewaveXYPrimary(receiver_list, freq)
         for freq in np.logspace(4, -2, 13)
     ]
     # Survey MT

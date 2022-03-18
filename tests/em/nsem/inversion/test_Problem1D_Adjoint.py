@@ -24,21 +24,21 @@ def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
 
     # Define a receiver for each data type as a list
     receivers_list = [
-        nsem.receivers.AnalyticReceiver1D(component="real"),
-        nsem.receivers.AnalyticReceiver1D(component="imag"),
-        nsem.receivers.AnalyticReceiver1D(component="app_res"),
-        nsem.receivers.AnalyticReceiver1D(component="phase"),
+        nsem.receivers.PointNaturalSource(component="real"),
+        nsem.receivers.PointNaturalSource(component="imag"),
+        nsem.receivers.PointNaturalSource(component="app_res"),
+        nsem.receivers.PointNaturalSource(component="phase"),
     ]
 
     # Use a list to define the planewave source at each frequency and assign receivers
     source_list = []
     for ii in range(0, len(frequencies)):
         source_list.append(
-            nsem.sources.AnalyticPlanewave1D(receivers_list, frequencies[ii])
+            nsem.sources.Planewave(receivers_list, frequencies[ii])
         )
 
     # Define the survey object
-    survey = nsem.survey.Survey1D(source_list)
+    survey = nsem.survey.Survey(source_list)
 
     ###############################################
     # Defining a 1D Layered Earth Model

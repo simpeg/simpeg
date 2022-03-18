@@ -44,9 +44,9 @@ class FiniteVolume1DTest(unittest.TestCase):
         ]
         # simulation
         src_list = [
-            nsem.sources.Planewave1D(rx_list, frequency=f) for f in self.frequencies
+            nsem.sources.Planewave(rx_list, frequency=f) for f in self.frequencies
         ]
-        self.survey = nsem.survey.Survey1D(src_list)
+        self.survey = nsem.survey.Survey(src_list)
 
     def get_simulation(self, formulation="e"):
 

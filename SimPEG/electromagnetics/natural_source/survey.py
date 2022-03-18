@@ -1,80 +1,12 @@
-import sys
 import numpy as np
 from numpy.lib import recfunctions as recFunc
 
 from ..frequency_domain.survey import Survey
 from ...data import Data as BaseData
 from ...utils import mkvc
-from ...utils.code_utils import deprecate_class
-from .sources import Planewave_xy_1Dprimary, Planewave1D
+from .sources import PlanewaveXYPrimary
 from .receivers import Point3DImpedance, Point3DTipper
 from .utils.plot_utils import DataNSEMPlotMethods
-import properties
-
-#########
-# Survey
-#########
-
-
-# class Survey(BaseSurvey):
-#     """
-#     Survey class for NSEM.
-
-#     **Requried**
-#     :param list source_list: List of sources associated with the survey
-
-
-#     **Optional**
-#     """
-#     srcPair = BaseNSEMSrc
-
-#     def __init__(self, source_list, **kwargs):
-#         # Sort these by frequency
-#         self.source_list = source_list
-#         BaseSurvey.__init__(self, **kwargs)
-
-#         _freqDict = {}
-#         for src in source_list:
-#             if src.frequency not in _freqDict:
-#                 _freqDict[src.frequency] = []
-#             _freqDict[src.frequency] += [src]
-
-#         self._freqDict = _freqDict
-#         self._freqs = sorted([f for f in self._freqDict])
-
-#     @property
-#     def freqs(self):
-#         """Frequencies"""
-#         return self._freqs
-
-#     @property
-#     def num_frequencies(self):
-#         """Number of frequencies"""
-#         return len(self._freqDict)
-
-#     def getSrcByFreq(self, freq):
-#         """Returns the sources associated with a specific frequency."""
-#         assert freq in self._freqDict, "The requested frequency is not in this survey."
-#         return self._freqDict[freq]
-
-#     def eval(self, f):
-#         """
-#         Evalute and return Data given calculated fields
-
-#         :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: A NSEM fileds object to evaluate data from
-#         :retype: SimPEG.EM.NSEM.Data
-#         :return: NSEM Data object
-#         """
-#         data = Data(self)
-#         for src in self.source_list:
-#             sys.stdout.flush()
-#             for rx in src.receiver_list:
-#                 data[src, rx] = rx.eval(src, self.mesh, f)
-#         return data
-
-#     def evalDeriv(self, f):
-#         raise Exception('Use Sources to project fields deriv.')
-
 #########
 # Data
 #########
@@ -197,7 +129,7 @@ class Data(BaseData, DataNSEMPlotMethods):
 
         """
         if srcType == "primary":
-            src = Planewave_xy_1Dprimary
+            src = PlanewaveXYPrimary
         elif srcType == "total":
             src = Planewave_xy_1DhomotD
         else:
@@ -276,24 +208,3 @@ def _rec_to_ndarr(rec_arr, data_type=float):
         ),
         dtype=data_type,
     )
-
-
-##################################################
-# Survey for 1D analytic simulation
-
-
-class Survey1D(Survey):
-    """
-    Survey class for the 1D and pseudo-3D problems
-    :param List source_list: list of of SimPEG.electromagnetics.natural_sources.receivers.AnalyticPlanewave1D
-    """
-
-    source_list = properties.List(
-        "A list of sources for the survey",
-        properties.Instance("An Planewave1D source", Planewave1D),
-        default=[],
-    )
-
-    def __init__(self, source_list=None, **kwargs):
-        # Sort these by frequency
-        super(Survey1D, self).__init__(source_list, **kwargs)

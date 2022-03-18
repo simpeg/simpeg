@@ -15,7 +15,7 @@ from SimPEG.electromagnetics.natural_source.receivers import (
     Point3DImpedance,
     Point3DTipper,
 )
-from SimPEG.electromagnetics.natural_source.sources import Planewave_xy_1Dprimary
+from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 from SimPEG.electromagnetics.natural_source.utils import (
     analytic_1d,
     plot_data_types as pDt,
@@ -275,7 +275,7 @@ def convert3Dto1Dobject(NSEMdata, rxType3D="yx"):
         dat1DList = []
         src1DList = []
         for freq in locrecData["freq"]:
-            src1DList.append(Planewave_xy_1Dprimary(rx1DList, freq))
+            src1DList.append(PlanewaveXYPrimary(rx1DList, freq))
             for comp in ["r", "i"]:
                 dat1DList.append(
                     corr * locrecData[rxType3D + comp][locrecData["freq"] == freq]

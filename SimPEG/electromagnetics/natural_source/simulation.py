@@ -1,19 +1,17 @@
 import time
 import sys
 import numpy as np
-import properties
 from discretize import TensorMesh, TreeMesh
-from discretize.utils import Zero, make_boundary_bool
-from scipy.constants import mu_0
+from discretize.utils import Zero
 from ...utils.code_utils import deprecate_class
 
-from ...utils import mkvc, sdiag
+from ...utils import mkvc
 from ... import maps
 from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
 from ..frequency_domain.survey import Survey
 from ..utils import omega
-from .survey import Data, Survey1D
-from .sources import Planewave1D
+from .survey import Data
+from .sources import Planewave
 from .fields import (
     Fields1DPrimarySecondary,
     Fields1DElectricField,
@@ -322,9 +320,6 @@ class Simulation1DElectricField(BaseFDEMSimulation):
     _formulation = "HJ"  # magnetic component is on edges
     fieldsPair = Fields1DElectricField
 
-    # Must be 1D survey object
-    survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
-
     def __init__(self, mesh, **kwargs):
 
         if mesh.dim > 1:
@@ -386,9 +381,6 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
     _solutionType = "hSolution"
     _formulation = "HJ"
     fieldsPair = Fields1DMagneticField
-
-    # Must be 1D survey object
-    survey = properties.Instance("a Survey1D survey object", Survey1D, required=True)
 
     def __init__(self, mesh, **kwargs):
         if mesh.dim > 1:
@@ -508,7 +500,7 @@ class Simulation2DElectricField(BaseFDEMSimulation):
 
                 # create a survey with 1 source per frequency (no receivers)
                 frequencies = self.survey.frequencies
-                survey = Survey1D([Planewave1D([], freq) for freq in frequencies])
+                survey = Survey([Planewave([], freq) for freq in frequencies])
                 self._sim_left = Simulation1DElectricField(
                     TensorMesh((h_l,), (mesh.nodes_y[0],)),
                     survey=survey,
@@ -732,7 +724,7 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
 
                 # create a survey with 1 source per frequency (no receivers)
                 frequencies = self.survey.frequencies
-                survey = Survey1D([Planewave1D([], freq) for freq in frequencies])
+                survey = Survey([Planewave([], freq) for freq in frequencies])
                 self._sim_left = Simulation1DMagneticField(
                     TensorMesh((h_l,), (mesh.nodes_y[0],)),
                     survey=survey,
