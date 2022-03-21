@@ -648,7 +648,7 @@ class Stitched1DModel(properties.HasProperties):
         ind_line = np.arange(ind_line.size)[ind_line]
 
         for i in ind_line:
-            inds_temp = [i, i]
+            inds_temp = [i]
             if x_axis == 'distance':
                 x_tmp = self.distance[i]
             else:
