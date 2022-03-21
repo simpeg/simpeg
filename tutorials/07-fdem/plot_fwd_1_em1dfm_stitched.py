@@ -8,8 +8,9 @@ for each source is predicted for a separate, user-defined 1D model.
 In this tutorial, we focus on the following:
 
     - Defining receivers, sources and the survey for the stitched 1D case
-    - Constructing a model on a 2D/3D mesh, then interpolating that model to create the set of local 1D models
-    - The organization of the set of 1D models
+    - Constructing a stitched conductivity model composed of many 1D vertical conductivity profiles
+    - Plotting the stitched model
+    - Simulating the frequency-domain electromagnetic (FDEM) data
 
 For each sounding, we compute predicted data for a vertical magnetic dipole source
 located 30 m above the Earth's surface. The receiver is offset
@@ -24,7 +25,7 @@ located 30 m above the Earth's surface. The receiver is offset
 #
 
 import numpy as np
-from scipy.spatial import Delaunay, cKDTree
+from scipy.spatial import Delaunay
 import os
 import matplotlib as mpl
 from matplotlib import pyplot as plt
@@ -32,10 +33,10 @@ from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 
 from SimPEG import maps
-from SimPEG.utils import mkvc
+from SimPEG.utils import mkvc, ndgrid
 import SimPEG.electromagnetics.frequency_domain as fdem
 from SimPEG.electromagnetics.utils.em1d_utils import (
-    get_vertical_discretization_frequency
+    get_vertical_discretization, set_mesh_1d, Stitched1DModel
 )
 
 plt.rcParams.update({'font.size': 16})
@@ -48,22 +49,30 @@ write_output = False
 # -------------
 #
 # Here we demonstrate a general way to define receivers, sources and the survey.
-# For this tutorial, we define a line of equally spaced 1D soundings along the
+# For this tutorial, we define three lines of 1D soundings along the
 # Easting direction. However, there is no restriction on the spacing and position
 # of each sounding.
 #
 
-x = np.linspace(50,4950,50)
-n_sounding = len(x)
-y = np.zeros(n_sounding)
-z = 30 * np.ones(n_sounding)
+nx = 11
+ny = 3
+x = np.arange(nx)*50
+y = np.arange(ny)*100
+z = np.array([30.])
 
-source_locations = np.c_[x, y, z]  # xyz locations for the sources
-moment = 1.
+xyz = ndgrid(x, y, z)
+np.random.seed(1)
+xyz[:,1] += np.random.randn(nx*ny) * 5
+n_sounding = xyz.shape[0]
+source_locations = xyz  # xyz locations for the centre of the loop
+moment = 1
 
-receiver_locations = np.c_[x+10., y, z]       # xyz locations for the receivers
-receiver_orientation = "z"                    # "x", "y" or "z"
-data_type = "ppm"                            # "secondary", "total" or "ppm"
+receiver_locations = xyz.copy()         # xyz locations for the receivers
+source_receiver_offset = 10.
+receiver_locations[:,0] = xyz[:,0] + source_receiver_offset
+receiver_orientation = "z"              # "x", "y" or "z"
+data_type = "ppm"                       # "secondary", "total" or "ppm"
+
 
 frequencies = np.array([25., 100., 382, 1822, 7970, 35920], dtype=float)
 
@@ -80,13 +89,7 @@ for ii in range(0, n_sounding):
     receiver_list.append(
         fdem.receivers.PointMagneticFieldSecondary(
             receiver_location, orientation=receiver_orientation,
-            data_type=data_type, component="real"
-        )
-    )
-    receiver_list.append(
-        fdem.receivers.PointMagneticFieldSecondary(
-            receiver_location, orientation=receiver_orientation,
-            data_type=data_type, component="imag"
+            data_type=data_type, component="both"
         )
     )
 
@@ -99,146 +102,69 @@ for ii in range(0, n_sounding):
             )
         )
 
+fig, ax = plt.subplots(1,1, figsize=(5,5))
+ax.plot(xyz[:,0], xyz[:,1], '.')
+ax.set_aspect(1)
+ax.set_xlabel("x (m)")
+ax.set_ylabel("y (m)")
+ax.set_title("Sounding locations")
+
 # Survey
 survey = fdem.survey.Survey(source_list)
 
-
 ###############################################
-# Defining a Global Mesh and Model
+# Constructing a stitched model
 # --------------------------------
 #
-# It is easy to create and visualize 2D and 3D models in SimPEG, as opposed
-# to an arbitrary set of local 1D models. Here, we create a 2D model
-# which represents the global conductivity structure of the Earth. In the next
-# part of the tutorial, we will demonstrate how the set of local 1D models can be
-# extracted and organized for the stitched 1D simulation. This process can
-# be adapted easily for 3D meshes and models.
-#
+# A stitched model is composed of many 1D conductivity vertical profiles.
+# Here, we create each 1D conductivity profile then stack all of them to generate
+# the stitched model.
 
+
+# line number
+line = (np.arange(ny).repeat(nx)).astype(float)
+# time stamp
+time_stamp = np.arange(n_sounding).astype(float)
+# topography
+topography = np.c_[xyz[:,:2], np.zeros(n_sounding)]
+# vertical cell widths
+hz = 10*np.ones(40)
+
+# A function for generating a wedge layer
+def get_y(x):
+    y = 30/500 * x + 70.
+    return y
 # Conductivity values for each unit
-background_conductivity = 0.1
-overburden_conductivity = 0.025
-slope_conductivity = 0.4
+background_conductivity = 1./50.
+layer_conductivity = 1./10
 
-# Define a global 2D mesh.
-dx = 50.                                      # horizontal cell width
-ncx = int(np.ceil((np.max(x)-np.min(x))/dx))  # number of horizontal cells
-hx = np.ones(ncx) * dx                        # horizontal cell widths
-hz = 10*np.ones(40)                           # vertical cell widths
-mesh2D = TensorMesh([hx, hz], x0='0N')
+# Define a 1D vertical mesh
+mesh_1d = set_mesh_1d(hz)
+# Generate a stitched 1D model
+n_layer = hz.size
+conductivity = np.zeros((n_sounding, n_layer), dtype=float)
 
-# Define global 2D model
-def PolygonInd(mesh, pts):
-    hull = Delaunay(pts)
-    inds = hull.find_simplex(mesh.gridCC)>=0
-    return inds
+for i_sounding in range(n_sounding):
+    y = get_y(xyz[i_sounding, 0])
+    layer_ind = np.logical_and(mesh_1d.vectorCCx>50., mesh_1d.vectorCCx<y)
+    conductivity_1d = np.ones(n_layer, dtype=float) * background_conductivity
+    conductivity_1d[layer_ind] = layer_conductivity
+    conductivity[i_sounding,:]=conductivity_1d
 
-model = np.ones(mesh2D.nC) * background_conductivity
+# Note: oder of the conductivity model is vertical first then lateral
+stitched_conductivity_model = conductivity.flatten()
 
-layer_ind = mesh2D.gridCC[:, -1] > -30.
-model[layer_ind] = overburden_conductivity
-
-x0 = np.r_[0., -30.]
-x1 = np.r_[mesh2D.nodes_x[-1], -30.]
-x2 = np.r_[mesh2D.nodes_x[-1], -130.]
-x3 = np.r_[0., -50.]
-pts = np.vstack((x0, x1, x2, x3, x0))
-poly_inds = PolygonInd(mesh2D, pts)
-model[poly_inds] = slope_conductivity
-
-# Plot global 2D model
-fig = plt.figure(figsize=(9, 3))
-ax1 = fig.add_axes([0.15, 0.12, 0.65, 0.78])
-log_mod = np.log10(model)
-
-mesh2D.plot_image(
-    log_mod, ax=ax1, grid=False,
-    clim=(np.log10(overburden_conductivity), np.log10(slope_conductivity)),
-    pcolorOpts={"cmap": "viridis"},
-)
-ax1.set_ylim(mesh2D.vectorNy.min(), mesh2D.vectorNy.max())
-
-ax1.set_title("Conductivity Model")
-ax1.set_xlabel("x (m)")
-ax1.set_ylabel("z (m)")
-
-ax2 = fig.add_axes([0.82, 0.12, 0.03, 0.78])
-norm = mpl.colors.Normalize(
-    vmin=np.log10(overburden_conductivity), vmax=np.log10(slope_conductivity)
-)
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, cmap=mpl.cm.viridis, orientation="vertical", format="$10^{%.1f}$"
-)
-cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
-
-################################################################
-# Layer Thicknesses and Conductivities of Local 1D Models
-# -------------------------------------------------------
-#
-# Here, we plot and organize the set of local 1D conductivity models which are used to
-# simulate the response for all sounding locations. Where *mi* is a 1D array
-# representing the 1D conductivity model for sounding *i*, the 1D array
-# containing all local 1D models is organized as [m1,m2,m3,...]. That is,
-# we organize by sounding, then by layer.
-# Since the conductivity of the Earth was defined on a 2D mesh, we must interpolate
-# from the global 2D model to the local 1D models for each sounding.
-#
-
-
-# Define layer the thicknesses used for all local 1D models.
-# For a background conductivity and a set of frequencies, we can determine the
-# the optimum layer thicknesses for a set number of layers. Note that when defining
-# the thicknesses, it is the number of layers minus one.
-n_layer = 30
-thicknesses = get_vertical_discretization_frequency(
-    frequencies, sigma_background=background_conductivity, n_layer=n_layer-1
+# Generate a Stitched1DModel object for plotting
+model_plot = Stitched1DModel(
+    hz=hz,
+    line=line,
+    time_stamp=time_stamp,
+    topography=topography,
+    physical_property=1./stitched_conductivity_model
 )
 
-# Nearest neighbour interpolation. We use nearest neighbour to output a 1D
-# array that contains the 1D models for all soundings. This vector is organized
-# by sounding location, then by layer from top to bottom.
-z = np.r_[thicknesses, thicknesses[-1]]
-z = -(np.cumsum(z) - z/2.)
-x, z = np.meshgrid(x, z)
-xz = np.c_[mkvc(x), mkvc(z)]
-
-tree = cKDTree(mesh2D.cell_centers)
-_, ind = tree.query(xz)
-
-sounding_models = model[ind]
-
-# Create a 2D mesh and plot the numpy array containing all the organized 1D models.
-hx = np.ones(n_sounding)
-hz = np.r_[thicknesses, thicknesses[-1]]
-mesh_soundings = TensorMesh([hz, hx], x0='00')
-
-# Plot the organized 1D models
-fig = plt.figure(figsize=(4, 7.5))
-ax1 = fig.add_axes([0.15, 0.12, 0.67, 0.78])
-log_mod_sounding = np.log10(sounding_models)
-
-mesh_soundings.plot_image(
-    log_mod_sounding, ax=ax1, grid=True,
-    clim=(np.log10(overburden_conductivity), np.log10(slope_conductivity)),
-    pcolorOpts={"cmap": "viridis"},
-)
-ax1.set_ylim(mesh_soundings.vectorNy.min(), mesh_soundings.vectorNy.max())
-
-ax1.set_xticks([])
-ax1.set_yticks([])
-
-ax1.set_title("Sounding Models")
-ax1.set_xlabel("Layer")
-ax1.set_ylabel("Sounding Number")
-
-ax2 = fig.add_axes([0.85, 0.12, 0.05, 0.78])
-norm = mpl.colors.Normalize(
-    vmin=np.log10(overburden_conductivity), vmax=np.log10(slope_conductivity)
-)
-cbar = mpl.colorbar.ColorbarBase(
-    ax2, norm=norm, cmap=mpl.cm.viridis, orientation="vertical", format="$10^{%.1f}$"
-)
-cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
+_, ax, cb = model_plot.plot_section(cmap='turbo', aspect=0.5, dx=20, i_line=2, clim=(8, 100))
+cb.set_label("Resistivity ($\Omega$m)")
 
 
 #######################################################################
@@ -254,8 +180,12 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 #
 
 # Model and mapping. Here the model is defined by the log-conductivity.
-sounding_models = np.log(sounding_models)
-mapping = maps.ExpMap(nP=len(sounding_models))
+stitched_model = np.log(stitched_conductivity_model)
+mapping = maps.ExpMap(nP=len(stitched_model))
+
+# Thicknesses of the layers from the surface to the top of the last layer
+# The last one is infinite, so no need to define the thickness
+thicknesses = hz[:-1]
 
 # Define the simulation
 simulation = fdem.Simulation1DLayeredStitched(
@@ -264,7 +194,7 @@ simulation = fdem.Simulation1DLayeredStitched(
 )
 
 # Predict data
-dpred = simulation.dpred(sounding_models)
+dpred = simulation.dpred(stitched_model)
 
 
 #######################################################################
@@ -298,7 +228,9 @@ ax.legend(["Real", "Imaginary"])
 #
 
 if write_output:
-
+    import pandas as pd
+    import tarfile
+    import os.path
     dir_path = os.path.dirname(__file__).split(os.path.sep)
     dir_path.extend(["outputs"])
     dir_path = os.path.sep.join(dir_path) + os.path.sep
@@ -306,17 +238,28 @@ if write_output:
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
 
-    np.random.seed(491)
-    noise = 0.05*np.abs(dpred)*np.random.rand(len(dpred))
+    np.random.seed(1)
+    noise = 0.03*np.abs(dpred)*np.random.rand(len(dpred))
     dpred += noise
-    fname = dir_path + "em1dfm_stitched_data.txt"
+    fname = dir_path + "em1dfm_stitched_data.csv"
 
-    loc = np.repeat(source_locations, len(frequencies), axis=0)
-    fvec = np.kron(np.ones(n_sounding), frequencies)
-    dout = np.c_[mkvc(d_real), mkvc(d_imag)]
-
-    np.savetxt(
-        fname,
-        np.c_[loc, fvec, dout],
-        fmt='%.4e', header='X Y Z FREQUENCY HZ_REAL HZ_IMAG'
-    )
+    DPRED = np.reshape(dpred, (n_sounding, len(frequencies), 2))
+    data_header = []
+    data_table = np.zeros((n_sounding, int(len(frequencies)*2)), dtype=float)
+    i_count = 0
+    for i_freq, freq in enumerate(frequencies):
+        for i_comp, comp in enumerate(['R', 'I']):
+            data_table[:,i_count] = DPRED[:,i_freq,i_comp]
+            header = 'Hz{}{}'.format(int(freq), comp)
+            data_header.append(header)
+            i_count += 1
+    sounding_number = np.arange(n_sounding)
+    data = np.c_[sounding_number, line, source_locations, topography[:,2], data_table]
+    header = ['SOUNDINGNUMBER', 'LINENO', 'X', 'Y', 'Z', 'ELEVATION'] + data_header
+    df = pd.DataFrame(data=data, columns=header)
+    df.to_csv(fname, index=False)
+    def make_tarfile(output_filename, source_dir):
+        with tarfile.open(output_filename, "w:gz") as tar:
+            tar.add(source_dir, arcname=os.path.basename(source_dir))
+    fname_zip = dir_path + 'em1dfm_stitched_fwd.tar.gz'
+    make_tarfile(fname_zip, dir_path)    

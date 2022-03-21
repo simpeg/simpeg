@@ -3,16 +3,15 @@ Stitched 1D Time-Domain Inversion
 =================================
 
 Here we use the module *SimPEG.electromangetics.time_domain_1d* to perform
-a stitched 1D inversion on a 3D TDEM dataset. That is, we recover a local 1D
+a stitched 1D inversion on a 3D TDEM (time-domain electromagnetic) dataset. That is, we recover a local 1D
 conductivity model for each sounding. In this tutorial, we focus on the following:
 
     - Defining receivers, sources and the survey for the stitched 1D case
-    - Implementing a regularization that connects nearby 1D models
-    - Recovering a models for each sounding that define the vertical conductivity profile
-    - Constructing a 2D/3D mesh, then interpolating the set of local 1D models onto the mesh
+    - Implementing a regularization that connects nearby 1D vertical conductivity profiles
+    - Recovering a stitched model composed of a 1D vertical conductivity profile at each sounding location
 
 For each sounding, the survey geometry consisted of horizontal loop source
-with a radius of 6 m, located 25 m above the Earth's surface. The receiver
+with a radius of 10 m, located 30 m above the Earth's surface. The receiver
 measured the vertical component of db/dt at the loop's centre.
 
 
@@ -24,12 +23,13 @@ measured the vertical component of db/dt at the loop's centre.
 #
 
 import numpy as np
-from scipy.spatial import cKDTree, Delaunay
+import pandas as pd
+from scipy.spatial import Delaunay
 import os
 import tarfile
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-from discretize import TensorMesh
+from discretize import TensorMesh, SimplexMesh
 from pymatsolver import PardisoSolver
 
 from SimPEG.utils import mkvc
@@ -38,7 +38,9 @@ from SimPEG import (
     directives, inversion, utils
     )
 import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG.electromagnetics.utils.em1d_utils import get_2d_mesh, get_vertical_discretization_time
+from SimPEG.electromagnetics.utils.em1d_utils import (
+    get_vertical_discretization, set_mesh_1d, Stitched1DModel
+)
 
 save_file = False
 
@@ -57,22 +59,23 @@ plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8
 #
 
 # storage bucket where we have the data
-data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dtm_stitched.tar.gz"
+data_source = "https://storage.googleapis.com/simpeg/doc-assets/em1dtm_stitched_fwd.tar.gz"
 
 # download the data
 downloaded_data = utils.download(data_source, overwrite=True)
 
+# path to the directory containing our data
+dir_path = downloaded_data.split(".")[0] + os.sep[0]
+if not os.path.exists(dir_path):
+    os.mkdir(dir_path)
+
 # unzip the tarfile
 tar = tarfile.open(downloaded_data, "r")
-tar.extractall()
+tar.extractall(dir_path)
 tar.close()
 
-# path to the directory containing our data
-dir_path = downloaded_data.split(".")[0] + os.path.sep
-
 # files to work with
-data_filename = dir_path + "em1dtm_stitched_data.txt"
-
+data_filename = dir_path + "em1dtm_stitched_data.csv"
 
 #############################################
 # Load Data and Plot
@@ -80,26 +83,29 @@ data_filename = dir_path + "em1dtm_stitched_data.txt"
 #
 
 # Load field data
-dobs = np.loadtxt(str(data_filename), skiprows=1)
+df = pd.read_csv(data_filename)
 
-source_locations = np.unique(dobs[:, 0:3], axis=0)
-times = mkvc(np.unique(dobs[:, 3]))
-dobs = mkvc(dobs[:, -1])
-
+source_locations = df[['X', 'Y', 'Z']].values
 n_sounding = np.shape(source_locations)[0]
 
-dobs_plotting = np.reshape(dobs, (n_sounding, len(times)))
+data_header = np.array(list(key for key in df.columns[6:]))
+tdem_data = df[data_header].values
 
-fig = plt.figure(figsize = (7, 7))
-ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
+time_filename = dir_path + "times.txt"
+times = np.loadtxt(time_filename)
 
-for ii in range(0, len(times)):
-    ax.semilogy(source_locations[:, 0], np.abs(dobs_plotting[:, ii]), 'k-', lw=2)
+n_time = len(times)
 
-ax.set_xlabel("Sounding Location (m)")
-ax.set_ylabel("|dBdt| (T/s)")
-ax.set_title("Observed Data")
+group_line = df.groupby('LINENO')
 
+uniq_line = list(group_line.groups.keys())
+data_tmp = group_line.get_group(uniq_line[0])[data_header].values
+fig, ax = plt.subplots(1,1,figsize=(10, 5))
+x = group_line.get_group(uniq_line[0])['X'].values
+_ = ax.semilogy(x, -data_tmp, 'k')
+ax.set_xlabel("Easting (m)")
+ax.set_ylabel("-dbzdt (V/A-m$^4$)")
+ax.set_title("Observed data")
 
 ######################################################
 # Create Survey
@@ -114,7 +120,7 @@ ax.set_title("Observed Data")
 
 
 current_amplitude = 1.
-source_radius = 5.
+source_radius = 10.
 
 receiver_locations = np.c_[source_locations[:, 0], source_locations[:, 1:]]
 receiver_orientation = "z"
@@ -145,7 +151,6 @@ for ii in range(0, n_sounding):
 # Survey
 survey = tdem.Survey(source_list)
 
-
 ###############################################
 # Assign Uncertainties and Define Data
 # ------------------------------------
@@ -155,12 +160,11 @@ survey = tdem.Survey(source_list)
 #
 
 # Define uncertainties
-uncertainties = 0.1*np.abs(dobs)*np.ones(np.shape(dobs))
+dobs = tdem_data.flatten()
+uncertainties = 0.03*np.abs(dobs)*np.ones(np.shape(dobs))
 
 # Define the data object
 data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
-
-
 
 #######################################################
 # Define Layer Thicknesses Used for All Soundings
@@ -168,16 +172,13 @@ data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
 #
 # Although separate 1D models are recovered for each sounding, the number of
 # layers and the thicknesses is the same for each sounding.
-# For a background conductivity and a set of time channels, we can determine the
+# For a background conductivity and a set of frequencies, we can determine the
 # the optimum layer thicknesses for a set number of layers. Note that when defining
 # the thicknesses, it is the number of layers minus one.
 #
 
 n_layer = 30
-thicknesses = get_vertical_discretization_time(
-    times, sigma_background=0.1, n_layer=n_layer-1
-)
-
+thicknesses = get_vertical_discretization(n_layer-1, 3, 1.07)
 
 
 ######################################################
@@ -236,28 +237,19 @@ dmis.W = 1./uncertainties
 # nearby soundings and ensure lateral changes in electrical conductivity are
 # sufficiently smooth.
 hz = np.r_[thicknesses, thicknesses[-1]]  # We need to include a thickness for bottom layer
-mesh_reg = get_2d_mesh(n_sounding, hz)    # Define a modified mesh for stitched 1D regularization
+tri = Delaunay(source_locations[:,:2])
+
+mesh_radial = SimplexMesh(tri.points, tri.simplices)
+mesh_vertical = set_mesh_1d(hz)
+mesh_reg = [mesh_radial, mesh_vertical]
+n_param = int(mesh_radial.n_nodes * mesh_vertical.nC)
 reg_map = maps.IdentityMap(nP=n_param)    # Mapping between the model and regularization
 reg = regularization.LaterallyConstrained(
     mesh_reg, mapping=reg_map,
-    alpha_s = 0.1,
-    alpha_x = 1.,
-    alpha_y = 1.,
+    alpha_s = 1e-10,
+    alpha_r = 1.,
+    alpha_z = 1.,
 )
-
-# We must set the gradient for the smoothness portion of the regularization
-xy = source_locations[:, [0, 1]]
-reg.get_grad_horizontal(xy, hz, dim=2, use_cell_weights=True)
-
-# The laterally constrained case does support sparse norm inversion
-ps, px, py = 1, 1, 1
-reg.norms = np.c_[ps, px, py, 0]
-
-# Define starting model
-reg.mref = starting_model
-
-# Include the regulariztion in the smoothness term
-reg.mrefInSmooth = False
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
@@ -265,7 +257,6 @@ opt = optimization.InexactGaussNewton(maxIter = 40, maxIterCG=20)
 
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
-
 
 #######################################################################
 # Define Inversion Directives
@@ -280,27 +271,19 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # misfit and the regularization.
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=10)
 
-# Update the preconditionner
-update_jacobi = directives.UpdatePreconditioner()
+# Defining how to cool the trade-off parameter, beta, through out the inversion
+# coolingFactor=2, coolingRate=1 indicate the beta value is decreased with a factor of 2
+# for every iteration.
 
-# Options for outputting recovered models and predicted data for each beta.
-save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
+beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 
-# Directives of the IRLS
-update_IRLS = directives.Update_IRLS(
-    max_irls_iterations=30,
-    minGNiter=1,
-    fix_Jmatrix=True,
-    f_min_change = 1e-3,
-    coolingRate=1
-)
+target =directives.TargetMisfit()
 
 # The directives are defined as a list.
 directives_list = [
     starting_beta,
-    save_iteration,
-    update_IRLS,
-    update_jacobi,
+    beta_schedule,
+    target
 ]
 
 
@@ -318,128 +301,18 @@ inv = inversion.BaseInversion(inv_prob, directives_list)
 # Run the inversion
 recovered_model = inv.run(starting_model)
 
-# Define the least-squares model (if relevant)
-l2_model = inv_prob.l2model
+# Generate a Stitched1DModel object for plotting
+line = df['LINENO'].values
+topography = df[['X', 'Y', 'ELEVATION']].values
+time_stamp = df['SOUNDINGNUMBER'].values
+model_plot = Stitched1DModel(
+    hz=hz,
+    line=line,
+    time_stamp=time_stamp,
+    topography=topography,
+    physical_property=1./np.exp(recovered_model),
+)
 
-
-#######################################################################
-# Interpolate Local Models to 2D/3D Mesh
-# --------------------------------------
-#
-# Now that we have recovered a vector containing the 1D log-conductivities for
-# each sounding, we would like to plot recovered models on a 2D or 3D mesh.
-# Here, we demonstrate how to interpolate the local 1D models to a global mesh.
-#
-
-# Define the global 2D or 3D mesh on which you would like to interpolate your model.
-x = source_locations[:, 0]
-dx = 50.                                      # horizontal cell width
-ncx = int(np.ceil((np.max(x)-np.min(x))/dx))  # number of horizontal cells
-hx = np.ones(ncx) * dx                        # horizontal cell widths
-hz = 10*np.ones(40)                           # vertical cell widths
-mesh2D = TensorMesh([hx, hz], x0='0N')
-
-# Define the locations which correspond to the model values in the recovered model.
-# Recall that the array containing these values is organized by sounding, then
-# layer from the top layer down.
-z = np.r_[thicknesses, thicknesses[-1]]
-z = -(np.cumsum(z) - z/2.)
-x, z = np.meshgrid(x, z)
-xz = np.c_[mkvc(x), mkvc(z)]
-
-# Use nearest neighbour to interpolate from vector of 1D soundings to the
-# global mesh.
-tree = cKDTree(xz)
-_, ind = tree.query(mesh2D.cell_centers)
-
-model2d_L2 = l2_model[ind]
-model2d_sparse = recovered_model[ind]
-
-# Convert from log-conductivity to conductivity
-conductivity_L2 = np.exp(model2d_L2)
-conductivity_sparse = np.exp(model2d_sparse)
-
-#######################################################################
-# Plot the True and Recovered Models
-# ----------------------------------
-#
-
-# Defining the true model
-def PolygonInd(mesh, pts):
-    hull = Delaunay(pts)
-    inds = hull.find_simplex(mesh.cell_centers)>=0
-    return inds
-
-background_conductivity = 0.1
-overburden_conductivity = 0.025
-slope_conductivity = 0.4
-
-conductivity_true = np.ones(mesh2D.nC) * background_conductivity
-
-layer_ind = mesh2D.cell_centers[:, -1] > -30.
-conductivity_true[layer_ind] = overburden_conductivity
-
-x0 = np.r_[0., -30.]
-x1 = np.r_[np.max(source_locations[:, 0]), -30.]
-x2 = np.r_[np.max(source_locations[:, 0]), -130.]
-x3 = np.r_[0., -50.]
-pts = np.vstack((x0, x1, x2, x3, x0))
-poly_inds = PolygonInd(mesh2D, pts)
-conductivity_true[poly_inds] = slope_conductivity
-
-# Plot
-title_list = ['True', 'L2', 'Sparse']
-models_list = [conductivity_true, conductivity_L2, conductivity_sparse]
-for ii, mod in enumerate(models_list):
-
-    fig = plt.figure(figsize=(9, 4))
-    ax1 = fig.add_axes([0.15, 0.2, 0.65, 0.7])
-    log_mod = np.log10(mod)
-
-    mesh2D.plotImage(
-        log_mod, ax=ax1, grid=False,
-        clim=(np.log10(conductivity_true.min()), np.log10(conductivity_true.max())),
-        pcolorOpts={"cmap": "viridis"},
-    )
-    ax1.set_ylim(mesh2D.vectorNy.min(), mesh2D.vectorNy.max())
-
-    ax1.set_title("{} Conductivity Model".format(title_list[ii]))
-    ax1.set_xlabel("x (m)")
-    ax1.set_ylabel("depth (m)")
-
-    ax2 = fig.add_axes([0.82, 0.12, 0.03, 0.78])
-    norm = mpl.colors.Normalize(
-        vmin=np.log10(conductivity_true.min()), vmax=np.log10(conductivity_true.max())
-    )
-    cbar = mpl.colorbar.ColorbarBase(
-        ax2, norm=norm, cmap=mpl.cm.viridis, orientation="vertical", format="$10^{%.1f}$"
-    )
-    cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
-
-#############################################################
-# Plot Predicted vs. Observed Data
-# --------------------------------
-#
-
-x = source_locations[:, 0]
-
-dpred_l2 = simulation.dpred(l2_model)
-dpred = simulation.dpred(recovered_model)
-
-data_list = [dobs, dpred_l2, dpred]
-color_list = ['k', 'b', 'r']
-
-fig = plt.figure(figsize = (7, 7))
-ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
-
-for ii in range(0, len(data_list)):
-    d = np.reshape(data_list[ii], (n_sounding, len(times)))
-    ax.semilogy(x, np.abs(d), color_list[ii], lw=1)
-
-ax.set_xlabel("Sounding Location (m)")
-ax.set_ylabel("|dBdt| (T/s)")
-ax.set_title("Predicted vs. Observed Data")
-ax.legend(["True Model", "L2 Model", "Sparse Model"])
-leg = ax.get_legend()
-for ii in range(0, 3):
-    leg.legendHandles[ii].set_color(color_list[ii])
+fig, ax = plt.subplots(1,1, figsize=(10, 8))
+_, ax, cb = model_plot.plot_section(i_line=0, aspect=1, dx=20, cmap='turbo', clim=(8, 100), ax=ax)
+cb.set_label("Resistivity ($\Omega$m)")

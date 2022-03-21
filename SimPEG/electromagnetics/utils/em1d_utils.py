@@ -82,6 +82,11 @@ def plotComplexData(frequency, val, xscale='log', ax=None, **kwargs):
 
         return ax.semilogx(frequency, val[Nfreq:], 'r', **kwargs)
 
+def get_vertical_discretization(n_layer, minimum_dz, geomtric_factor):
+    hz = minimum_dz*(geomtric_factor)**np.arange(n_layer)
+    print (">> Depth from the surface to the base of the bottom layer is {:.1f}m".format(hz[:].sum()))
+    return hz
+
 def get_vertical_discretization_frequency(
     frequency, sigma_background=0.01,
     factor_fmax=4, factor_fmin=1., n_layer=19,
@@ -595,73 +600,6 @@ class Stitched1DModel(properties.HasProperties):
                 self._distance[ind_line] = distance_line
         return self._distance
 
-    def plot_plan(
-            self, i_layer=0, i_line=0, show_line=False,
-            physical_property=None, clim=None,
-            ax=None, cmap='viridis', ncontour=20, scale='log',
-            show_colorbar=True, aspect=1,
-            contourOpts={}
-    ):
-        ind_line = self.line == self.unique_line[i_line]
-        if physical_property is not None:
-            physical_property_matrix = physical_property.reshape(
-                (self.hz.size, self.n_sounding), order='F'
-            )
-        else:
-            physical_property_matrix = self.physical_property_matrix
-
-        if ax is None:
-            fig = plt.figure(figsize=(10, 10))
-            ax = plt.subplot(111)
-
-        if clim is None:
-            vmin = np.percentile(physical_property_matrix, 5)
-            vmax = np.percentile(physical_property_matrix, 95)
-        else:
-            vmin, vmax = clim
-
-        if scale == 'log':
-            contourOpts['vmin'] = np.log10(vmin)
-            contourOpts['vmax'] = np.log10(vmax)
-            norm = LogNorm()
-        else:
-            norm = None
-
-        contourOpts['cmap'] = cmap
-
-        im = utils.plot2Ddata(
-            self.topography[:, :2], utils.mkvc(physical_property_matrix[i_layer, :]), scale=scale,
-            ncontour=ncontour, ax=ax,
-            contourOpts=contourOpts, dataloc=False,
-        )
-
-        out = ax.scatter(
-            self.topography[:, 0], self.topography[:, 1],
-            c=physical_property_matrix[i_layer, :], s=0.5, vmin=vmin, vmax=vmax,
-            cmap=cmap, alpha=1, norm=norm
-        )
-
-        if show_line:
-            ax.plot(self.topography[ind_line,0], self.topography[ind_line,1], 'k.')
-
-        if show_colorbar:
-            from mpl_toolkits import axes_grid1
-            divider = axes_grid1.make_axes_locatable(ax)
-            cax = divider.append_axes('right', size='5%', pad=0.05)
-            cb = plt.colorbar(out, cax=cax)
-#             cb.set_label("Conductivity (S/m)")
-        ax.set_aspect(aspect)
-        ax.set_title(("At %.1f m below surface")%(self.mesh_1d.vectorCCx[i_layer]))
-        ax.set_xlabel("Easting (m)")
-        ax.set_ylabel("Northing (m)")
-        ax.grid(True)
-        plt.tight_layout()
-#         plt.show()
-        if show_colorbar:
-            return out, ax, cb
-        else:
-            return out, ax
-
     def plot_section(
         self, i_layer=0, i_line=0, x_axis='x',
         show_layer=False,
@@ -720,11 +658,10 @@ class Stitched1DModel(properties.HasProperties):
                 x_tmp-dx,
                 x_tmp+dx
             ]
-
             out = ax.pcolormesh(
-                topo_temp, -self.mesh_1d.vectorCCx+self.topography[i, 2], physical_property_matrix[:, inds_temp],
+                topo_temp, -self.mesh_1d.vectorNx+self.topography[i, 2], physical_property_matrix[:, inds_temp],
                 cmap=cmap, alpha=alpha,
-                vmin=vmin, vmax=vmax, norm=norm, **pcolorOpts
+                vmin=vmin, vmax=vmax, norm=norm, shading='auto', **pcolorOpts
             )
 
         if show_layer:
@@ -745,9 +682,9 @@ class Stitched1DModel(properties.HasProperties):
             ax.set_ylim(zlim)
 
         if x_axis == 'distance':
-            xlim = self.distance[ind_line].min(), self.distance[ind_line].max()
+            xlim = self.distance[ind_line].min()-dx, self.distance[ind_line].max()+dx
         else:
-            xlim = self.topography[ind_line, x_ind].min(), self.topography[ind_line, x_ind].max() 
+            xlim = self.topography[ind_line, x_ind].min()-dx, self.topography[ind_line, x_ind].max()+dx
         if invert_xaxis:
             ax.set_xlim(xlim[1], xlim[0])
         else:
