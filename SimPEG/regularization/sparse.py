@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .base import BaseRegularization, LeastSquaresRegularization, Small, SmoothDeriv
+from .base import BaseRegularization, LeastSquaresRegularization, RegularizationMesh, Small, SmoothDeriv
 from .. import utils
 
 
@@ -54,23 +54,21 @@ class BaseSparse(BaseRegularization):
         """
         Value of the norm
         """
+        if getattr(self, "_norm", None) is None:
+            self.norm = 2.
         return self._norm
 
     @norm.setter
-    def norm(self, value: float | np.ndarray):
+    def norm(self, value: float | np.ndarray | None):
+        if value is not None:
+            if isinstance(value, float):
+                value = np.ones(self.shape[0]) * value
 
-        if isinstance(value, float):
-            value = np.ones(self.shape[0]) * value
-
-        if np.any(value < 0) or np.any(value > 2):
-            raise ValueError(
-                "Value provided for 'norm' should be in the interval [0, 2]"
-            )
+            if (np.any(value < 0) or np.any(value > 2)):
+                raise ValueError(
+                    "Value provided for 'norm' should be in the interval [0, 2]"
+                )
         self._norm = value
-
-    @property
-    def shape(self):
-        raise AttributeError("Sparse regularization class must have a 'shape' implementation.")
 
     def get_lp_weights(self, f_m):
         """
@@ -111,10 +109,6 @@ class SparseSmall(BaseSparse, Small):
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
 
-    @property
-    def shape(self):
-        return self.mapping.shape[0],
-
     def update_weights(self, m):
         """
         Compute and store the irls weights.
@@ -131,12 +125,6 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
 
     def __init__(self, mesh, orientation="x", **kwargs):
         super().__init__(mesh=mesh, orientation=orientation, **kwargs)
-
-    @property
-    def shape(self):
-        return getattr(
-            self.regularization_mesh, "aveCC2F{}".format(self.orientation)
-        ).shape[0],
 
     def update_weights(self, m):
         """
@@ -218,23 +206,25 @@ class Sparse(LeastSquaresRegularization):
     _norms = None
 
     def __init__(
-        self, mesh, norms=(2, 2, 2, 2), gradient_type="total", **kwargs
+        self, mesh, active_cells=None, norms=None, gradient_type="total", **kwargs
     ):
+        self.regularization_mesh = RegularizationMesh(mesh)
 
         objfcts = [
-            SparseSmall(mesh=mesh),
-            SparseDeriv(mesh=mesh, orientation="x"),
+            SparseSmall(mesh=self.regularization_mesh),
+            SparseDeriv(mesh=self.regularization_mesh, orientation="x"),
         ]
 
         if mesh.dim > 1:
-            objfcts.append(SparseDeriv(mesh=mesh, orientation="y"))
+            objfcts.append(SparseDeriv(mesh=self.regularization_mesh, orientation="y"))
 
         if mesh.dim > 2:
-            objfcts.append(SparseDeriv(mesh=mesh, orientation="z"))
+            objfcts.append(SparseDeriv(mesh=self.regularization_mesh, orientation="z"))
 
         super().__init__(
-            mesh,
+            self.regularization_mesh,
             objfcts=objfcts,
+            active_cells=active_cells,
             norms=norms,
             gradient_type=gradient_type,
             **kwargs
@@ -268,29 +258,18 @@ class Sparse(LeastSquaresRegularization):
         return self._norms
 
     @norms.setter
-    def norms(self, values: list | np.ndarray | float):
-        if isinstance(values, (list, tuple, np.ndarray)):
-            values = np.asarray(values, dtype=float).flatten()
-
+    def norms(self, values: list | np.ndarray | None):
+        if values is not None:
             if len(values) != len(self.objfcts):
                 raise ValueError(
                     "The number of values provided for 'norms' does not "
                     "match the number of regularization functions."
                 )
-        elif isinstance(values, int) or isinstance(values, float):
-            values = [float(values)] * len(self.objfcts)
-        else:
-            raise TypeError("Input 'norms' must be a float, list or array of values")
 
-        if np.any(values < 0) or np.any(values > 2):
-            raise ValueError(
-                "Value provided for 'norms' should be in the interval [0, 2]"
-            )
+            for val, fct in zip(values, self.objfcts):
+                fct.norm = val
 
         self._norms = values
-
-        for val, fct in zip(values, self.objfcts):
-            fct.norm = val
 
     @property
     def irls_scaled(self) -> bool:

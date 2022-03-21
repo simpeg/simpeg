@@ -17,8 +17,6 @@ from .base import (
     BaseRegularization,
     LeastSquaresRegularization,
     Small,
-    validate_array_type,
-    validate_shape
 )
 
 ###############################################################################
@@ -79,12 +77,12 @@ class PGIsmallness(Small):
             self._weights = {}
 
         for key, values in weights.items():
-            validate_array_type("weights", values, float)
+            self.validate_array_type("weights", values, float)
 
             if values.shape[0] == self.mapping.shape[0]:
                 values = np.tile(values, len(self.wiresmap.maps))
             else:
-                validate_shape("weights", values, self.shape[0])
+                self.validate_shape("weights", values, self.shape[0])
 
             self.weights[key] = values
 

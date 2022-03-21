@@ -170,10 +170,9 @@ class RegularizationTests(unittest.TestCase):
     def test_property_mirroring(self):
         mesh = discretize.TensorMesh([8, 7, 6])
 
-        for regType in ["LeastSquaresRegularization", "Sparse"]:
+        for regType in ["Sparse"]:
             reg = getattr(regularization, regType)(mesh)
 
-            print(reg.nP, mesh.nC)
             self.assertTrue(reg.nP == mesh.nC)
 
             # Test assignment of active indices
@@ -188,7 +187,7 @@ class RegularizationTests(unittest.TestCase):
             cell_weights = np.random.rand(active_cells.sum())
             reg.add_set_weights(cell_weights)
             [
-                self.assertTrue(np.all(list(fct.weights.values())[0] == cell_weights))
+                self.assertTrue(np.all(fct.weights["user_weights"] == cell_weights))
                 for fct in reg.objfcts
             ]
 
@@ -265,7 +264,7 @@ class RegularizationTests(unittest.TestCase):
 
         for regType in ["LeastSquaresRegularization", "Sparse"]:
             reg = getattr(regularization, regType)(
-                mesh, mref=mref, mapping=maps.IdentityMap(mesh)
+                mesh, reference_model=mref, mapping=maps.IdentityMap(mesh)
             )
 
             print("Check: phi_m (mref) = {0:f}".format(reg(mref)))
@@ -281,8 +280,8 @@ class RegularizationTests(unittest.TestCase):
 
         wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
 
-        reg = regularization.SimpleSmall(
-            mesh, mapping=wires.sigma, cell_weights=cell_weights
+        reg = regularization.Small(
+            mesh, mapping=wires.sigma, weights=cell_weights
         )
 
         objfct = objective_function.L2ObjectiveFunction(
@@ -376,7 +375,7 @@ class RegularizationTests(unittest.TestCase):
         actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
         mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
-        regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].active_cells]])
+        regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
         reg = regularization.Simple(regMesh)
 
         self.assertTrue(reg._nC_residual == regMesh.nC)
@@ -393,7 +392,7 @@ class RegularizationTests(unittest.TestCase):
         temp_pad = temp[-1] * 1.3 ** np.arange(npad)
         hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
         mesh = discretize.CylMesh([hx, 1, hz], "00C")
-        active = mesh.vectorCCz < 0.0
+        active = mesh.cell_centers[:, 2] < 0.0
 
         reg = regularization.LeastSquaresRegularization(mesh, active_cells=active)
         self.assertTrue(reg._nC_residual == len(active.nonzero()[0]))

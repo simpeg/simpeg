@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+from discretize.base import BaseMesh
 
 from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
@@ -23,6 +24,7 @@ class BaseRegularization(BaseObjectiveFunction):
     _active_cells = None
     _mapping = None
     _model = None
+    _mesh: RegularizationMesh | None = None
     _reference_model = None
     _regularization_mesh = None
     _shape = None
@@ -30,13 +32,23 @@ class BaseRegularization(BaseObjectiveFunction):
     _weights: {} = None
     _W = None
 
-    def __init__(self, mesh, active_cells=None, mapping=None, reference_model=None, units=None, **kwargs):
+    def __init__(
+            self,
+            mesh: RegularizationMesh | BaseMesh,
+            active_cells=None,
+            mapping=None,
+            reference_model=None,
+            units=None,
+            weights=None,
+            **kwargs
+    ):
         self.regularization_mesh = mesh
         self.active_cells = active_cells
         self.regularization_mesh.active_cells = self.active_cells
         self.mapping = mapping
         self.reference_model = reference_model
         self.units = units
+        self.weights = weights
 
         super().__init__(**kwargs)
 
@@ -48,9 +60,6 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @active_cells.setter
     def active_cells(self, values: np.ndarray):
-        validate_array_type("active_cells", values, bool)
-        validate_shape("active_cells", values, self.regularization_mesh.mesh.nC)
-
         if getattr(self, "regularization_mesh", None) is not None:
             self.regularization_mesh.active_cells = values
 
@@ -67,7 +76,11 @@ class BaseRegularization(BaseObjectiveFunction):
     @property
     def weights(self):
         """Regularization weights applied to the target elements"""
-        raise AttributeError("Regularization class must have 'weights' implementation.")
+        return self._weights
+
+    @weights.setter
+    def weights(self, values):
+        raise NotImplementedError("The 'weights' setter must be implemented by the child class.")
 
     @property
     def model(self) -> np.ndarray:
@@ -80,8 +93,8 @@ class BaseRegularization(BaseObjectiveFunction):
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
 
-        validate_array_type("model", values, float)
-        validate_shape("model", values, self._nC_residual)
+        self.validate_array_type("model", values, float)
+        self.validate_shape("model", values, (self._nC_residual,))
         self._model = values
 
     @property
@@ -138,8 +151,8 @@ class BaseRegularization(BaseObjectiveFunction):
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
 
-        validate_array_type("reference_model", values, float)
-        validate_shape("reference_model", values, self._nC_residual)
+        self.validate_array_type("reference_model", values, float)
+        self.validate_shape("reference_model", values, (self._nC_residual,))
         self._reference_model = values
 
     mref = deprecate_module(
@@ -261,6 +274,24 @@ class BaseRegularization(BaseObjectiveFunction):
 
         return f_m_deriv.T * (self.W.T * (self.W * (f_m_deriv * v)))
 
+    def validate_array_type(self, attribute, array, dtype):
+        """Generic array and type validator"""
+        if array is not None and not isinstance(array, np.ndarray) and not array.dtype == dtype:
+            TypeError(
+                f"Values provided for '{attribute}' for {self} must by a {np.ndarray} of type {dtype}. "
+                f"Values of type {type(array)} provided."
+            )
+
+    def validate_shape(self, attribute, values, shape: tuple | tuple[tuple]):
+        """Generic array shape validator"""
+        if (values is not None
+            and shape != "*"
+            and not (values.shape == shape or values.shape in shape)
+        ):
+            raise ValueError(
+                f"Values provided for attribute '{attribute}' for {self} must be of shape {shape} not {values.shape}"
+            )
+
 
 class Small(BaseRegularization):
     """
@@ -293,11 +324,9 @@ class Small(BaseRegularization):
 
     _multiplier_pair = "alpha_s"
 
-    def __init__(self, weights=None, **kwargs):
+    def __init__(self, mesh, **kwargs):
 
-        super().__init__(**kwargs)
-
-        self.weights = weights
+        super().__init__(mesh, **kwargs)
 
     def f_m(self, m):
         """
@@ -315,9 +344,8 @@ class Small(BaseRegularization):
     def weights(self):
         """Regularization weights applied to the target elements"""
         if getattr(self, "_weights", None) is None:
-            self.add_set_weights(
-                {"volume": self.regularization_mesh.vol}
-            )
+            self._weights = {}
+            self.add_set_weights({"volume": self.regularization_mesh.vol})
 
         return self._weights
 
@@ -328,9 +356,6 @@ class Small(BaseRegularization):
             self.add_set_weights(weights)
 
     def add_set_weights(self, weights: dict | np.ndarray):
-        if self._weights is None:
-            self._weights = {}
-
         if isinstance(weights, np.ndarray):
             weights = {"user_weights": weights}
 
@@ -338,8 +363,8 @@ class Small(BaseRegularization):
             raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
 
         for key, values in weights.items():
-            validate_array_type("weights", values, float)
-            validate_shape("weights", values, self.shape[0])
+            self.validate_array_type("weights", values, float)
+            self.validate_shape("weights", values, (self.shape[0],))
             self.weights[key] = values
 
         self._W = None
@@ -378,21 +403,17 @@ class SmoothDeriv(BaseRegularization):
     _shape = None
     _reference_model_in_smooth: bool = False
 
-    def __init__(self, mesh, orientation="x", reference_model_in_smooth=False, weights=None, **kwargs):
+    def __init__(self, mesh, orientation="x", reference_model_in_smooth=False, **kwargs):
         self.reference_model_in_smooth = reference_model_in_smooth
 
         super().__init__(mesh=mesh, **kwargs)
 
         self.orientation = orientation
-        self.weights = weights
 
     @property
     def shape(self):
-        if getattr(self, "_nP", None) is None:
-            self._shape = getattr(
-                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
-            ).shape
-        return self._shape
+        return getattr(
+                self.regularization_mesh, "aveCC2F{}".format(self.orientation)).shape
 
     @property
     def cell_difference(self):
@@ -448,6 +469,7 @@ class SmoothDeriv(BaseRegularization):
     def weights(self):
         """Regularization weights applied to the target elements"""
         if getattr(self, "_weights", None) is None:
+            self._weights = {}
             self.add_set_weights(
                 {
                     "volume": self.regularization_mesh.vol,
@@ -459,31 +481,20 @@ class SmoothDeriv(BaseRegularization):
 
     @weights.setter
     def weights(self, weights: dict[str, np.ndarray] | np.ndarray | None):
-        self._weights = weights
+        self._weights = None
         if weights is not None:
             self.add_set_weights(weights)
 
     def add_set_weights(self, weights: dict):
-        if self._weights is None:
-            self._weights = {}
-
         if isinstance(weights, np.ndarray):
             weights = {"user_weights": weights}
 
         if not isinstance(weights, dict):
             raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
 
-        average_cell_2_face = getattr(
-            self.regularization_mesh, "aveCC2F{}".format(self.orientation)
-        )
-
         for key, values in weights.items():
-            validate_array_type("weights", values, float)
-
-            if values.shape[0] == self.regularization_mesh.nC:
-                values = average_cell_2_face * values
-
-            validate_shape("weights", values, self.shape[0])
+            self.validate_array_type("weights", values, float)
+            self.validate_shape("weights", values, ((self.shape[0],), (self.shape[1],)))
             self.weights[key] = values
 
         self._W = None
@@ -495,7 +506,14 @@ class SmoothDeriv(BaseRegularization):
         length scales of the difference operator (normalized optional).
         """
         if getattr(self, "_W", None) is None:
-            weights = np.prod(list(self.weights.values()), axis=0)
+            average_cell_2_face = getattr(
+                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+            )
+            weights = 1.
+            for values in self.weights.values():
+                if values.shape[0] == self.regularization_mesh.nC:
+                    values = average_cell_2_face * values
+                weights *= values
             self._W = utils.sdiag(weights**0.5)
 
         return self._W
@@ -517,8 +535,8 @@ class SmoothDeriv(BaseRegularization):
 
     @length_scales.setter
     def length_scales(self, values):
-        validate_array_type("length_scales", values, float)
-        validate_shape("length_scales", values, self.nP)
+        self.validate_array_type("length_scales", values, float)
+        self.validate_shape("length_scales", values, (self.nP,))
         self._length_scales = values
 
     @property
@@ -650,7 +668,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         **kwargs
     ):
 
-        self.regularization_mesh = RegularizationMesh(mesh)
+        self.regularization_mesh = mesh
 
         if objfcts is None:
             objfcts = [
@@ -883,14 +901,10 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
     @active_cells.setter
     def active_cells(self, values: np.ndarray):
-        validate_array_type("active_cells", values, bool)
-        validate_shape("active_cells", values, self.nP)
-
-        if getattr(self, "regularization_mesh", None) is not None:
-            self.regularization_mesh.active_cells = values
+        self.regularization_mesh.active_cells = values
 
         for objfct in self.objfcts:
-            objfct.active_cells = values
+            objfct._active_cells = values
 
         self._active_cells = values
 
@@ -912,9 +926,6 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
-
-        validate_array_type("reference_model", values, float)
-        validate_shape("reference_model", values, self._nC_residual)
 
         for fct in self.objfcts:
             fct.reference_model = values
@@ -939,9 +950,6 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         if isinstance(values, float):
             values = np.ones(self._nC_residual) * values
-
-        validate_array_type("model", values, float)
-        validate_shape("model", values, self._nC_residual)
 
         for fct in self.objfcts:
             fct.model = values
@@ -969,10 +977,13 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         return self._regularization_mesh
 
     @regularization_mesh.setter
-    def regularization_mesh(self, mesh: RegularizationMesh):
+    def regularization_mesh(self, mesh: RegularizationMesh | BaseMesh):
+        if isinstance(mesh, BaseMesh):
+            mesh = RegularizationMesh(mesh)
+
         if not isinstance(mesh, RegularizationMesh):
             TypeError(
-                f"'regularization_mesh' must be of type {RegularizationMesh}. "
+                f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
                 f"Value of type {type(mesh)} provided."
             )
         self._regularization_mesh = mesh
@@ -997,25 +1008,6 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         for fct in self.objfcts:
             fct.mapping = mapping
 
-
-def validate_array_type(attribute, array, dtype):
-    """Generic array and type validator"""
-    if array is not None and not isinstance(array, np.ndarray) and not array.dtype == dtype:
-        TypeError(
-            f"{attribute} must by a {np.ndarray} of type {dtype}. "
-            f"Values of type {type(array)} provided."
-        )
-
-
-def validate_shape(attribute, values, shape):
-    """Generic array shape validator"""
-    if (values is not None
-        and shape != "*"
-        and len(values) != shape
-    ):
-        raise ValueError(
-            f"{attribute} must be length {shape} not {len(values)}"
-        )
 
 
 ###############################################################################
