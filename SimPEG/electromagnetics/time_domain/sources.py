@@ -334,7 +334,7 @@ class MagDipole(BaseTDEMSrc):
             self._dipole = MagneticDipoleWholeSpace(
                 mu=self.mu,
                 orientation=self.orientation,
-                location=self.loc,
+                location=self.location,
                 moment=self.moment,
             )
         return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
@@ -494,13 +494,13 @@ class CircularLoop(MagDipole):
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         # return MagneticLoopVectorPotential(
-        #     self.loc, obsLoc, component, mu=self.mu, radius=self.radius
+        #     self.location, obsLoc, component, mu=self.mu, radius=self.radius
         # )
 
         if getattr(self, "_loop", None) is None:
             self._loop = CircularLoopWholeSpace(
                 mu=self.mu,
-                location=self.loc,
+                location=self.location,
                 orientation=self.orientation,
                 radius=self.radius,
                 current=self.current,

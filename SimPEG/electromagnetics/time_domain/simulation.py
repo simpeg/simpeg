@@ -534,8 +534,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         A = 1.0 / dt * I + (C * (MeSigmaI * (C.T * MfMui)))
 
         if self._makeASymmetric is True:
-            return MfMui.T * A
-        return A
+            return sp.csr_matrix(MfMui.T * A)
+        return sp.csr_matrix(A)
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         """
@@ -556,8 +556,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         ADeriv = C * (self.MeSigmaIDeriv(C.T * (MfMui * u), v, adjoint))
 
         if self._makeASymmetric is True:
-            return MfMui.T * ADeriv
-        return ADeriv
+            return sp.csr_matrix(MfMui.T * ADeriv)
+        return sp.csr_matrix(ADeriv)
 
     def getAsubdiag(self, tInd):
         """
@@ -843,7 +843,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         MfMui = self.MfMui
         MeSigma = self.MeSigma
 
-        return C.T * (MfMui * C) + 1.0 / dt * MeSigma
+        return sp.csr_matrix(C.T * (MfMui * C) + 1.0 / dt * MeSigma)
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         """
