@@ -61,7 +61,7 @@ class BaseSparse(BaseRegularization):
     @norm.setter
     def norm(self, value: float | np.ndarray | None):
         if value is not None:
-            if isinstance(value, float):
+            if isinstance(value, (float, int)):
                 value = np.ones(self.shape[0]) * value
 
             if (np.any(value < 0) or np.any(value > 2)):
@@ -139,10 +139,17 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
             f_m = np.zeros_like(delta_m)
             for ii, comp in enumerate("xyz"):
                 if self.regularization_mesh.dim > ii:
-                    dm_dl = getattr(self.regularization_mesh, f"cellDiff{comp}Stencil") * delta_m
+                    Ave = getattr(self.regularization_mesh, f"aveCC2F{comp}")
+                    length_scales = Ave * (
+                            self.regularization_mesh.Pac.T * self.regularization_mesh.mesh.h_gridded[:, ii]
+                    )
+                    dm = getattr(self.regularization_mesh, f"cellDiff{comp}Stencil") * delta_m
 
                     if self.units == "radian":
-                        dm_dl = utils.mat_utils.coterminal(dm_dl)
+                        dm = utils.mat_utils.coterminal(dm)
+
+                    dm_dl = dm / length_scales
+
                     f_m += np.abs(
                         getattr(self.regularization_mesh, f"aveF{comp}2CC") *
                         dm_dl
