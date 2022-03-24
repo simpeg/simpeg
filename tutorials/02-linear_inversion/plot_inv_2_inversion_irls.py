@@ -155,7 +155,7 @@ reg = regularization.Sparse(mesh, mapping=model_map)
 reg.mref = np.zeros(nParam)
 p = 0.0
 q = 0.0
-reg.norms = np.c_[p, q]
+reg.norms = [p, q]
 
 # Define how the optimization problem is solved.
 opt = optimization.ProjectedGNCG(

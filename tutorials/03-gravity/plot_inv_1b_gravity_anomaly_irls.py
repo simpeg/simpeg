@@ -239,7 +239,7 @@ dmis.W = utils.sdiag(1 / uncertainties)
 
 # Define the regularization (model objective function).
 reg = regularization.Sparse(mesh, indActive=ind_active, mapping=model_map)
-reg.norms = np.c_[0, 2, 2, 2]
+reg.norms = [0, 2, 2, 2]
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.

@@ -109,8 +109,8 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
         # Create a regularization
-        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
-        reg.norms = np.c_[0, 0, 0, 0]
+        reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
+        reg.norms = [0, 0, 0, 0]
 
         reg.mref = np.zeros(nC)
 
@@ -157,7 +157,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         #                grid=True, clim=(0, 0.02))
         # ax.set_xlim(self.mesh.gridCC[:, 0].min(), self.mesh.gridCC[:, 0].max())
         # ax.set_ylim(self.mesh.gridCC[:, 2].min(), self.mesh.gridCC[:, 2].max())
-
+        #
         # ax = plt.subplot(1, 2, 2)
         # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
         #                grid=True, clim=(0, 0.02))

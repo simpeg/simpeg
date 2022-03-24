@@ -456,7 +456,7 @@ class SmoothDeriv(BaseRegularization):
         dfm_dl = self.cell_difference @ (self.mapping * delta_m)
 
         if self.units == "radian":
-            return utils.mat_utils.coterminal(dfm_dl)
+            return utils.mat_utils.coterminal(dfm_dl * self.length_scales) / self.length_scales
         return dfm_dl
 
     def f_m_deriv(self, m):
@@ -473,7 +473,6 @@ class SmoothDeriv(BaseRegularization):
             self.add_set_weights(
                 {
                     "volume": self.regularization_mesh.vol,
-                    # "length_scales": self.length_scales**-2.0,
                 }
             )
 
@@ -596,7 +595,7 @@ class SmoothDeriv2(SmoothDeriv):
         dfm_dl = self.cell_difference @ (self.mapping * delta_m)
 
         if self.units == "radian":
-            dfm_dl = utils.mat_utils.coterminal(dfm_dl)
+            dfm_dl = utils.mat_utils.coterminal(dfm_dl * self.length_scales) / self.length_scales
 
         dfm_dl2 = self.cell_difference.T @ dfm_dl
 

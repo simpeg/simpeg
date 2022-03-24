@@ -91,7 +91,7 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Create a regularization
         reg = regularization.L2Regularization(self.mesh, active_cells=actv, mapping=idenMap)
-        # reg.norms = np.c_[0, 0, 0, 0]
+        # reg.norms = [0, 0, 0, 0]
         # reg.gradientType = "component"
         # reg.eps_p, reg.eps_q = 5e-2, 1e-2
 

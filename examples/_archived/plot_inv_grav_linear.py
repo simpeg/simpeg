@@ -103,7 +103,7 @@ def run(plotIt=True):
 
     # Create a regularization
     reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-    reg.norms = np.c_[0, 0, 0, 0]
+    reg.norms = [0, 0, 0, 0]
 
     # Data misfit function
     dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)

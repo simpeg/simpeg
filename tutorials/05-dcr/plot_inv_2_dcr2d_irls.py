@@ -317,7 +317,7 @@ reg.mrefInSmooth = True  # Include reference model in smoothness
 p = 0
 qx = 1
 qz = 1
-reg.norms = np.c_[p, qx, qz]
+reg.norms = [p, qx, qz]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach.

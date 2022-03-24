@@ -229,7 +229,7 @@ reg = regularization.Sparse(mesh, mapping=model_map)
 reg.mref = starting_model
 p = 0
 q = 0
-reg.norms = np.c_[p, q]
+reg.norms = [p, q]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.

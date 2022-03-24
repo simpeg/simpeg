@@ -103,7 +103,7 @@ def run(plotIt=True, cleanAfterRun=True):
     )
     reg.mref = driver.mref[dynamic]
 
-    reg.norms = np.c_[0.0, 1.0, 1.0, 1.0]
+    reg.norms = [0.0, 1.0, 1.0, 1.0]
     # reg.norms = driver.lpnorms
 
     # Specify how the optimization will proceed
