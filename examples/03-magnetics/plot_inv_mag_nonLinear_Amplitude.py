@@ -94,10 +94,10 @@ plt.show()
 # Inversion Mesh
 # --------------
 #
-# Here, we create a TreeMesh with base cell size of 5 m. We reated a small
+# Here, we create a TreeMesh with base cell size of 5 m. We created a small
 # utility function to center the mesh around points and to figure out the
-# outer most dimension for adequate padding distance.
-# The second stage allows to refine the mesh around points or surfaces
+# outermost dimension for adequate padding distance.
+# The second stage allows us to refine the mesh around points or surfaces
 # (point assumed to follow an horiontal interface such as topo)
 #
 
@@ -112,7 +112,7 @@ mesh = refine_tree_xyz(
     mesh, topo, method="surface", octree_levels=[4, 4], finalize=True
 )
 
-# Define an active cells from topo
+# Define the active cells from topo
 actv = utils.surface2ind_topo(mesh, topo)
 nC = int(actv.sum())
 
@@ -123,7 +123,7 @@ nC = int(actv.sum())
 # We can now generate TMI data
 #
 
-# Convert the inclination declination to vector in Cartesian
+# Convert the inclination and declination to vector in Cartesian
 M_xyz = utils.mat_utils.dip_azimuth2cartesian(np.ones(nC) * M[0], np.ones(nC) * M[1])
 
 # Get the indicies of the magnetized block
@@ -139,7 +139,7 @@ model[ind] = chi_e
 # Remove air cells
 model = model[actv]
 
-# Creat reduced identity map
+# Create reduced identity map
 idenMap = maps.IdentityMap(nP=nC)
 
 # Create the forward model operator
@@ -162,7 +162,7 @@ std = 5  # nT
 synthetic_data += np.random.randn(nD) * std
 wd = np.ones(nD) * std
 
-# Assigne data and uncertainties to the survey
+# Assign data and uncertainties to the survey
 data_object = data.Data(survey, dobs=synthetic_data, standard_deviation=wd)
 
 
@@ -203,11 +203,11 @@ plt.show()
 # -----------------
 #
 # We first need to convert the TMI data into amplitude. We do this by
-# for an effective susceptibility layer, from which we can forward component
+# an effective susceptibility layer, from which we can forward component
 # data
 #
 
-# Get the active cells for equivalent source is the top only
+# Get the active cells for equivalent source is the topo only
 surf = surface2ind_topo(mesh, topo)
 # surf = utils.plot_utils.surface_layer_index(mesh, topo)
 nC = np.count_nonzero(surf)  # Number of active cells
@@ -263,7 +263,7 @@ mrec = inv.run(mstart)
 # Forward Amplitude Data
 # ----------------------
 #
-# Now that we have an equialent source layer, we can forward model alh three
+# Now that we have an equialent source layer, we can forward model all three
 # components of the field and add them up: :math:`|B| = \sqrt{( Bx^2 + Bx^2 + Bx^2 )}`
 #
 
@@ -363,7 +363,7 @@ IRLS = directives.Update_IRLS(
 )
 
 # Special directive specific to the mag amplitude problem. The sensitivity
-# weights are update between each iteration.
+# weights are updated between each iteration.
 update_SensWeight = directives.UpdateSensitivityWeights()
 update_Jacobi = directives.UpdatePreconditioner()
 
@@ -380,7 +380,7 @@ mrec_Amp = inv.run(mstart)
 # ----------
 #
 # Let's compare the smooth and compact model
-# Note that the recovered effective susceptibility block is slightly offseted
+# Note that the recovered effective susceptibility block is slightly offset
 # to the left of the true model. This is due to the wrong assumption of a
 # vertical magnetization. Important to remember that the amplitude inversion
 # is weakly sensitive to the magnetization direction, but can still have
