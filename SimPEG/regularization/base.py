@@ -44,7 +44,6 @@ class BaseRegularization(BaseObjectiveFunction):
     ):
         self.regularization_mesh = mesh
         self.active_cells = active_cells
-        self.regularization_mesh.active_cells = self.active_cells
         self.mapping = mapping
         self.reference_model = reference_model
         self.units = units
@@ -66,11 +65,11 @@ class BaseRegularization(BaseObjectiveFunction):
         self._active_cells = values
 
     indActive = deprecate_module(
-        active_cells,
         "indActive",
         "active_cells",
         "0.x.0",
-        True,
+        error=False,
+        future_warn=False
     )
 
     @property
@@ -156,11 +155,11 @@ class BaseRegularization(BaseObjectiveFunction):
         self._reference_model = values
 
     mref = deprecate_module(
-        reference_model,
         "mref",
         "reference_model",
         "0.x.0",
-        True,
+        error=False,
+        future_warn=False
     )
 
     @property
@@ -175,7 +174,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
         self._regularization_mesh = mesh
 
-    deprecate_module("regmesh", "regularization_mesh", "0.x.0", error=False, future_warn=True)
+    deprecate_module("regmesh", "regularization_mesh", "0.x.0", error=False, future_warn=False)
 
     @property
     def W(self):
@@ -284,7 +283,8 @@ class BaseRegularization(BaseObjectiveFunction):
 
     def validate_shape(self, attribute, values, shape: tuple | tuple[tuple]):
         """Generic array shape validator"""
-        if (values is not None
+        if (
+            values is not None
             and shape != "*"
             and not (values.shape == shape or values.shape in shape)
         ):
@@ -419,7 +419,7 @@ class SmoothDeriv(BaseRegularization):
     def cell_difference(self):
         """Cell difference operator"""
         if getattr(self, "_cell_difference", None) is None:
-            self._cell_difference = getattr(
+            self._cell_difference = utils.sdiag(self.length_scales**-1) * getattr(
                 self.regularization_mesh, "cellDiff{}Stencil".format(self.orientation)
             )
         return self._cell_difference
@@ -473,7 +473,7 @@ class SmoothDeriv(BaseRegularization):
             self.add_set_weights(
                 {
                     "volume": self.regularization_mesh.vol,
-                    "length_scales": self.length_scales**-2.0,
+                    # "length_scales": self.length_scales**-2.0,
                 }
             )
 
@@ -598,7 +598,7 @@ class SmoothDeriv2(SmoothDeriv):
         if self.units == "radian":
             dfm_dl = utils.mat_utils.coterminal(dfm_dl)
 
-        dfm_dl2 = self.cell_difference.T @ (self.length_scales ** 2. * dfm_dl)
+        dfm_dl2 = self.cell_difference.T @ dfm_dl
 
         return dfm_dl2
 
@@ -608,18 +608,19 @@ class SmoothDeriv2(SmoothDeriv):
         """
         return (
             self.cell_difference.T *
-            utils.sdiag(self.length_scales ** 2.) *
             self.cell_difference @ self.mapping.deriv(self._delta_m(m))
         )
 
     @property
     def W(self):
         """
-        Weighting matrix to cell center.
+        Weighting matrix
         """
-        weights = np.prod(list(self.weights.values()), axis=0)
+        if getattr(self, "_W", None) is None:
+            weights = np.prod(list(self.weights.values()), axis=0)
+            self._W = utils.sdiag(weights ** 0.5)
 
-        return utils.sdiag(weights ** 0.5)
+        return self._W
 
     @property
     def _multiplier_pair(self):
@@ -871,7 +872,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         to build to composite regularization
         """
         return [
-            getattr(self, "{alpha}".format(alpha=objfct._multiplier_pair))
+            getattr(self, objfct._multiplier_pair)
             for objfct in self.objfcts
         ]
 
@@ -909,11 +910,11 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         self._active_cells = values
 
     indActive = deprecate_module(
-        active_cells,
         "indActive",
         "active_cells",
         "0.x.0",
-        True,
+        error = False,
+        future_warn = False
     )
 
     @property
@@ -933,11 +934,11 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         self._reference_model = values
 
     mref = deprecate_module(
-        reference_model,
         "mref",
         "reference_model",
         "0.x.0",
-        True,
+        error=False,
+        future_warn=False
     )
 
     @property

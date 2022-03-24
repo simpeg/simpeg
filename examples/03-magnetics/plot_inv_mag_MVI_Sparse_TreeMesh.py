@@ -379,23 +379,23 @@ wires = maps.Wires(("amp", nC), ("theta", nC), ("phi", nC))
 # Create a Combo Regularization
 # Regularize the amplitude of the vectors
 reg_a = regularization.Sparse(mesh, gradient_type="components", active_cells=actv, mapping=wires.amp)
-reg_a.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Sparse on the model and its gradients
-reg_a.mref = np.zeros(3 * nC)
+reg_a.norms = [0.0, 0.0, 0.0, 0.0]  # Sparse on the model and its gradients
+reg_a.reference_model = np.zeros(3 * nC)
 
 # Regularize the vertical angle of the vectors
 reg_t = regularization.Sparse(mesh, gradient_type="components", active_cells=actv, mapping=wires.theta)
 reg_t.alpha_s = 0.0  # No reference angle
 reg_t.space = "spherical"
-reg_t.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
+reg_t.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 # Regularize the horizontal angle of the vectors
 reg_p = regularization.Sparse(mesh, gradient_type="components", active_cells=actv, mapping=wires.phi)
 reg_p.alpha_s = 0.0  # No reference angle
 reg_p.space = "spherical"
-reg_p.norms = np.c_[0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
+reg_p.norms = [0.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
 reg = reg_a + reg_t + reg_p
-reg.mref = np.zeros(3 * nC)
+reg.reference_model = np.zeros(3 * nC)
 
 lower_bound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
 upper_bound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
@@ -460,7 +460,6 @@ plotVectorSectionsOctree(
     vmin=0.0,
     vmax=0.005,
 )
-
 ax.set_xlim([-200, 200])
 ax.set_ylim([-100, 75])
 ax.set_title("Smooth model (Cartesian)")

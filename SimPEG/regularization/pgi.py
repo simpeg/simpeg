@@ -669,21 +669,21 @@ class PGIwithNonlinearRelationshipsSmallness(BaseRegularization):
                 return (
                     sp.kron(
                         speye(len(self.wiresmap.maps)),
-                        sdiag(np.sqrt(self.regmesh.vol)),
+                        sdiag(np.sqrt(self.regularization_mesh.vol)),
                     )
                     * sdiag(np.sqrt(self.weights))
                 )
             else:
                 return sp.kron(
                     speye(len(self.wiresmap.maps)),
-                    sdiag(np.sqrt(self.regmesh.vol)),
+                    sdiag(np.sqrt(self.regularization_mesh.vol)),
                 ) * sp.kron(
                     speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.weights))
                 )
         else:
             return sp.kron(
                 speye(len(self.wiresmap.maps)),
-                sdiag(np.sqrt(self.regmesh.vol)),
+                sdiag(np.sqrt(self.regularization_mesh.vol)),
             )
 
     # @properties.validator("cell_weights")

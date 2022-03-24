@@ -1262,7 +1262,7 @@ class Update_IRLS(InversionDirective):
             self.norms = []
             for reg in self.reg.objfcts:
                 self.norms.append(reg.norms)
-                reg.norms = np.c_[2.0, 2.0, 2.0, 2.0]
+                reg.norms = [2.0, 2.0, 2.0, 2.0]
                 reg.model = self.invProb.model
 
         # Update the model used by the regularization
@@ -1443,7 +1443,7 @@ class Update_IRLS(InversionDirective):
 
         for reg, var in zip(self.reg.objfcts[1:], max_s):
             for obj in reg.objfcts:
-                obj.add_set_weights({"angle_scale": np.ones(obj.nP) * max_p / var})
+                obj.add_set_weights({"angle_scale": np.ones(obj.shape[0]) * max_p / var})
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else

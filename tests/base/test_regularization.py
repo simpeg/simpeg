@@ -117,24 +117,16 @@ class RegularizationTests(unittest.TestCase):
                     if mesh.dim < 2 and r.__name__[-1] == "y":
                         continue
 
-                    for indAct in [
-                        active_cells,
-                        active_cells.nonzero()[0],
-                    ]:  # test both bool and integers
-                        if indAct.dtype != bool:
-                            nP = indAct.size
-                        else:
-                            nP = int(indAct.sum())
+                    nP = int(active_cells.sum())
+                    reg = r(mesh, active_cells=active_cells, mapping=maps.IdentityMap(nP=nP))
+                    m = np.random.rand(mesh.nC)[active_cells]
+                    mref = np.ones_like(m) * np.mean(m)
+                    reg.reference_model = mref
 
-                        reg = r(mesh, active_cells=indAct, mapping=maps.IdentityMap(nP=nP))
-                        m = np.random.rand(mesh.nC)[indAct]
-                        mref = np.ones_like(m) * np.mean(m)
-                        reg.mref = mref
+                    print("--- Checking {} ---\n".format(reg.__class__.__name__))
 
-                        print("--- Checking {} ---\n".format(reg.__class__.__name__))
-
-                        passed = reg.test(m, eps=TOL)
-                        self.assertTrue(passed)
+                    passed = reg.test(m, eps=TOL)
+                    self.assertTrue(passed)
 
     if testRegMesh:
 
@@ -163,9 +155,9 @@ class RegularizationTests(unittest.TestCase):
                         + 0.5
                     )
 
-                regmesh = regularization.RegularizationMesh(mesh, active_cells=indAct)
+                regularization_mesh = regularization.RegularizationMesh(mesh, active_cells=indAct)
 
-                assert (regmesh.vol == mesh.vol[indAct]).all()
+                assert (regularization_mesh.vol == mesh.vol[indAct]).all()
 
     def test_property_mirroring(self):
         mesh = discretize.TensorMesh([8, 7, 6])
@@ -300,13 +292,13 @@ class RegularizationTests(unittest.TestCase):
 
         cell_weights = np.random.rand(mesh.nC)
 
-        reg = regularization.Sparse(mesh, cell_weights=cell_weights)
-        reg.norms = np.c_[2.0, 2.0, 2.0, 2.0]
+        reg = regularization.Sparse(mesh, weights=cell_weights)
+        reg.norms = [2.0, 2.0, 2.0, 2.0]
         self.assertTrue(
             np.all(
                 reg.norms
                 == np.kron(
-                    np.ones((reg.regmesh.Pac.shape[1], 1)), np.c_[2.0, 2.0, 2.0, 2.0]
+                    np.ones((reg.regularization_mesh.Pac.shape[1], 1)), np.c_[2.0, 2.0, 2.0, 2.0]
                 )
             )
         )
@@ -316,12 +308,12 @@ class RegularizationTests(unittest.TestCase):
         self.assertTrue(np.all(reg.objfcts[2].norm == 2.0 * np.ones(mesh.nFy)))
         self.assertTrue(np.all(reg.objfcts[3].norm == 2.0 * np.ones(mesh.nFz)))
 
-        reg.norms = np.c_[0.0, 1.0, 1.0, 1.0]
+        reg.norms = [0.0, 1.0, 1.0, 1.0]
         self.assertTrue(
             np.all(
                 reg.norms
                 == np.kron(
-                    np.ones((reg.regmesh.Pac.shape[1], 1)), np.c_[0.0, 1.0, 1.0, 1.0]
+                    np.ones((reg.regularization_mesh.Pac.shape[1], 1)), np.c_[0.0, 1.0, 1.0, 1.0]
                 )
             )
         )

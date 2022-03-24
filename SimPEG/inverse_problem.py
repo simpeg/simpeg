@@ -197,7 +197,7 @@ class BaseInvProblem(BaseSimPEG):
                     i_s, i_x, i_y, i_z = 0, 1, 2, 3
                 else:
                     i_s, i_x, i_y, i_z = 0, 1, 3, 5
-                dim = reg.regmesh.dim
+                dim = reg.regularization_mesh.dim
                 self.phi_s += mult * reg.objfcts[i_s](m) * reg.alpha_s
                 self.phi_x += mult * reg.objfcts[i_x](m) * reg.alpha_x
                 if dim > 1:
