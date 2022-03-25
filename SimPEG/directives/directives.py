@@ -1346,7 +1346,8 @@ class Update_IRLS(InversionDirective):
 
             # Print to screen
             for reg in self.reg.objfcts:
-                reg.irls_threshold = reg.irls_threshold / self.coolEpsFact
+                for obj in reg.objfcts:
+                    obj.irls_threshold = obj.irls_threshold / self.coolEpsFact
                 # if reg.eps_p > self.floorEps_p and self.coolEps_p:
                 #     reg.eps_p /= self.coolEpsFact
                 #     # print('Eps_p: ' + str(reg.eps_p))
@@ -1404,15 +1405,15 @@ class Update_IRLS(InversionDirective):
         # Either use the supplied irls_threshold, or fix base on distribution of
         # model values
         for reg in self.reg.objfcts:
-            reg.irls_threshold = np.percentile(
-                np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
-            )
+            for obj in reg.objfcts:
+                threshold = np.percentile(
+                    np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
+                )
 
-            # if getattr(reg, "eps_q", None) is None:
-            #
-            #     reg.eps_q = np.percentile(
-            #         np.abs(reg.mapping * reg._delta_m(self.invProb.model)), self.prctile
-            #     )
+                if hasattr(obj, "length_scales"):
+                    threshold /= obj.length_scales.min()
+
+                obj.irls_threshold = threshold
 
         # Re-assign the norms supplied by user l2 -> lp
         for reg, norms in zip(self.reg.objfcts, self.norms):

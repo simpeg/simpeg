@@ -143,7 +143,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
                     length_scales = Ave * (
                             self.regularization_mesh.Pac.T * self.regularization_mesh.mesh.h_gridded[:, ii]
                     )
-                    dm = getattr(self.regularization_mesh, f"cellDiff{comp}Stencil") * delta_m
+                    dm = getattr(self.regularization_mesh, f"cellDiff{comp}") * delta_m
 
                     if self.units == "radian":
                         dm = utils.mat_utils.coterminal(dm)
@@ -180,6 +180,14 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
                 f"Value {value} provided."
             )
         self._gradient_type = value
+
+    gradientType = utils.code_utils.deprecate_property(
+        gradient_type,
+        "gradientType",
+        "0.x.0",
+        error=False,
+        future_warn=False
+    )
 
 
 class Sparse(LeastSquaresRegularization):
@@ -246,16 +254,19 @@ class Sparse(LeastSquaresRegularization):
 
     @gradient_type.setter
     def gradient_type(self, value: str):
-        if value not in ["total", "components"]:
-            raise TypeError(
-                "Value for 'gradient_type' must be 'total' or 'components'. "
-                f"Value {value} provided."
-            )
-        self._gradient_type = value
-
         for fct in self.objfcts:
             if hasattr(fct, "_gradient_type"):
                 fct._gradient_type = value
+
+        self._gradient_type = value
+
+    gradientType = utils.code_utils.deprecate_property(
+        gradient_type,
+        "gradientType",
+        "0.x.0",
+        error=False,
+        future_warn=False
+    )
 
     @property
     def norms(self):

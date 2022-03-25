@@ -25,7 +25,7 @@ class CrossGradient(BaseSimilarityMeasure):
     """
 
     # reset this here to clear out the properties attribute
-    cell_weights = None
+    weights = None
 
     # These are not fully implemented yet
     # grad_tol = properties.Float(

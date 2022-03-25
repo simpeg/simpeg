@@ -35,8 +35,8 @@ class GravInvLinProblemTest(unittest.TestCase):
         self.mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
 
         # Get index of the center
-        midx = int(self.mesh.nCx / 2)
-        midy = int(self.mesh.nCy / 2)
+        midx = int(self.mesh.shape_cells[0] / 2)
+        midy = int(self.mesh.shape_cells[1] / 2)
 
         # Lets create a simple Gaussian topo and set the active cells
         [xx, yy] = np.meshgrid(self.mesh.vectorNx, self.mesh.vectorNy)
@@ -48,7 +48,7 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Create active map to go from reduce space to full
         self.actvMap = maps.InjectActiveCells(self.mesh, actv, -100)
-        nC = len(actv)
+        nC = int(actv.sum())
 
         # Create and array of observation points
         xr = np.linspace(-20.0, 20.0, 20)
@@ -66,13 +66,10 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # We can now create a density model and generate data
         # Here a simple block in half-space
-        model = np.zeros((self.mesh.nCx, self.mesh.nCy, self.mesh.nCz))
-        model[(midx - 2) : (midx + 2), (midy - 2) : (midy + 2), -6:-2] = 0.5
+        model = np.zeros(self.mesh.shape_cells)
+        model[(midx - 2): (midx + 2), (midy - 2): (midy + 2), -6:-2] = 0.5
         model = utils.mkvc(model)
         self.model = model[actv]
-
-        # Create active map to go from reduce set to full
-        actvMap = maps.InjectActiveCells(self.mesh, actv, ndv)
 
         # Create reduced identity map
         idenMap = maps.IdentityMap(nP=nC)
@@ -92,13 +89,10 @@ class GravInvLinProblemTest(unittest.TestCase):
             data = sim.make_synthetic_data(
                 self.model, relative_error=0.0, noise_floor=0.001, add_noise=True
             )
-        print(sim.G)
-
         # Create a regularization
-        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
+        reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [0, 0, 0, 0]
-        reg.gradientType = "component"
-        # reg.eps_p, reg.eps_q = 5e-2, 1e-2
+        reg.gradientType = "components"
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
@@ -119,22 +113,22 @@ class GravInvLinProblemTest(unittest.TestCase):
         self.sim = sim
 
     def test_grav_inverse(self):
-
         # Run the inversion
         mrec = self.inv.run(self.model)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
-        print(residual)
-
+        # import matplotlib.pyplot as plt
         # plt.figure()
         # ax = plt.subplot(1, 2, 1)
-        # midx = int(self.mesh.nCx/2)
-        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.5))
-
+        # midx = int(self.mesh.shape_cells[0]/2)
+        # self.mesh.plotSlice(
+        #     self.actvMap*mrec, ax=ax, normal='Y', ind=midx, grid=True, clim=(0, 0.5)
+        # )
+        #
         # ax = plt.subplot(1, 2, 2)
-        # midx = int(self.mesh.nCx/2)
-        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.5))
+        # midx = int(self.mesh.shape_cells[0]/2)
+        # self.mesh.plotSlice(
+        #     self.actvMap*self.model, ax=ax, normal='Y', ind=midx, grid=True, clim=(0, 0.5)
+        # )
         # plt.show()
 
         self.assertTrue(residual < 0.05)

@@ -7,7 +7,7 @@ from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
-from SimPEG.utils.code_utils import deprecate_module
+from SimPEG.utils.code_utils import deprecate_property
 
 
 class BaseRegularization(BaseObjectiveFunction):
@@ -64,22 +64,12 @@ class BaseRegularization(BaseObjectiveFunction):
 
         self._active_cells = values
 
-    indActive = deprecate_module(
+    indActive = deprecate_property(
+        active_cells,
         "indActive",
-        "active_cells",
         "0.x.0",
         error=False,
-        future_warn=False
     )
-
-    @property
-    def weights(self):
-        """Regularization weights applied to the target elements"""
-        return self._weights
-
-    @weights.setter
-    def weights(self, values):
-        raise NotImplementedError("The 'weights' setter must be implemented by the child class.")
 
     @property
     def model(self) -> np.ndarray:
@@ -154,12 +144,11 @@ class BaseRegularization(BaseObjectiveFunction):
         self.validate_shape("reference_model", values, (self._nC_residual,))
         self._reference_model = values
 
-    mref = deprecate_module(
+    mref = deprecate_property(
+        reference_model,
         "mref",
-        "reference_model",
         "0.x.0",
         error=False,
-        future_warn=False
     )
 
     @property
@@ -174,14 +163,52 @@ class BaseRegularization(BaseObjectiveFunction):
 
         self._regularization_mesh = mesh
 
-    deprecate_module("regmesh", "regularization_mesh", "0.x.0", error=False, future_warn=False)
+    regmesh = deprecate_property(
+        regularization_mesh,
+        "regmesh",
+        "0.x.0",
+        error=False,
+    )
+
+    @property
+    def weights(self):
+        """Regularization weights applied to the target elements"""
+        if getattr(self, "_weights", None) is None:
+            self._weights = {}
+            self.add_set_weights({"volume": self.regularization_mesh.vol})
+
+        return self._weights
+
+    @weights.setter
+    def weights(self, weights: dict[str, np.ndarray] | np.ndarray | None):
+        self._weights = None
+        if weights is not None:
+            self.add_set_weights(weights)
+
+    def add_set_weights(self, weights: dict | np.ndarray):
+        if isinstance(weights, np.ndarray):
+            weights = {"user_weights": weights}
+
+        if not isinstance(weights, dict):
+            raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
+
+        for key, values in weights.items():
+            self.validate_array_type("weights", values, float)
+            self.validate_shape("weights", values, (self.shape[0],))
+            self.weights[key] = values
+
+        self._W = None
 
     @property
     def W(self):
         """
         Weighting matrix
         """
-        raise NotImplementedError("Regularization class must have a 'W' implementation.")
+        if getattr(self, "_W", None) is None:
+            weights = np.prod(list(self.weights.values()), axis=0)
+            self._W = utils.sdiag(weights ** 0.5)
+
+        return self._W
 
     @property
     def _nC_residual(self):
@@ -340,46 +367,6 @@ class Small(BaseRegularization):
         """
         return self.mapping.deriv(self._delta_m(m))
 
-    @property
-    def weights(self):
-        """Regularization weights applied to the target elements"""
-        if getattr(self, "_weights", None) is None:
-            self._weights = {}
-            self.add_set_weights({"volume": self.regularization_mesh.vol})
-
-        return self._weights
-
-    @weights.setter
-    def weights(self, weights: dict[str, np.ndarray] | np.ndarray | None):
-        self._weights = None
-        if weights is not None:
-            self.add_set_weights(weights)
-
-    def add_set_weights(self, weights: dict | np.ndarray):
-        if isinstance(weights, np.ndarray):
-            weights = {"user_weights": weights}
-
-        if not isinstance(weights, dict):
-            raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
-
-        for key, values in weights.items():
-            self.validate_array_type("weights", values, float)
-            self.validate_shape("weights", values, (self.shape[0],))
-            self.weights[key] = values
-
-        self._W = None
-
-    @property
-    def W(self):
-        """
-        Weighting matrix
-        """
-        if getattr(self, "_W", None) is None:
-            weights = np.prod(list(self.weights.values()), axis=0)
-            self._W = utils.sdiag(weights ** 0.5)
-
-        return self._W
-
 
 class SmoothDeriv(BaseRegularization):
     """
@@ -419,8 +406,8 @@ class SmoothDeriv(BaseRegularization):
     def cell_difference(self):
         """Cell difference operator"""
         if getattr(self, "_cell_difference", None) is None:
-            self._cell_difference = utils.sdiag(self.length_scales**-1) * getattr(
-                self.regularization_mesh, "cellDiff{}Stencil".format(self.orientation)
+            self._cell_difference = getattr(
+                self.regularization_mesh, "cellDiff{}".format(self.orientation)
             )
         return self._cell_difference
 
@@ -908,12 +895,11 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         self._active_cells = values
 
-    indActive = deprecate_module(
+    indActive = deprecate_property(
+        active_cells,
         "indActive",
-        "active_cells",
         "0.x.0",
-        error = False,
-        future_warn = False
+        error=False,
     )
 
     @property
@@ -932,12 +918,11 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         self._reference_model = values
 
-    mref = deprecate_module(
+    mref = deprecate_property(
+        reference_model,
         "mref",
-        "reference_model",
         "0.x.0",
         error=False,
-        future_warn=False
     )
 
     @property

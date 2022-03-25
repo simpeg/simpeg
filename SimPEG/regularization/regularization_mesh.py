@@ -114,7 +114,6 @@ class RegularizationMesh(props.BaseSimPEG):
         :return: active face-x projection matrix
         """
         if getattr(self, "_Pafx", None) is None:
-            # if getattr(self.mesh, 'aveCC2Fx', None) is not None:
             if self.mesh._meshType == "TREE":
                 ind_active = self.active_cells
                 if ind_active is None:
@@ -294,7 +293,6 @@ class RegularizationMesh(props.BaseSimPEG):
         :return: averaging matrix from active z-faces to active cell centers
         """
         if getattr(self, "_aveCC2Fz", None) is None:
-            # if getattr(self.mesh, 'aveCC2Fz', None) is not None:
             if self.mesh._meshType == "TREE":
                 self._aveCC2Fz = (
                     self.Pafz.T * self.mesh.average_cell_to_total_face_z() * self.Pac
@@ -323,7 +321,18 @@ class RegularizationMesh(props.BaseSimPEG):
         :return: differencing matrix for active cells in the x-direction
         """
         if getattr(self, "_cellDiffx", None) is None:
-            self._cellDiffx = self.Pafx.T * self.mesh.cell_gradient_x * self.Pac
+            if self.mesh._meshType == "TREE":
+                self._cellDiffx = (
+                    self.Pafx.T *
+                    utils.sdiag(
+                        self.mesh.average_cell_to_total_face_x() *
+                        (self.mesh.h_gridded[:, 0] ** -1)
+                    ) *
+                    self.mesh._cellGradxStencil *
+                    self.Pac
+                )
+            else:
+                self._cellDiffx = self.Pafx.T * self.mesh.cellGradx * self.Pac
         return self._cellDiffx
 
     @property
@@ -335,7 +344,18 @@ class RegularizationMesh(props.BaseSimPEG):
         :return: differencing matrix for active cells in the y-direction
         """
         if getattr(self, "_cellDiffy", None) is None:
-            self._cellDiffy = self.Pafy.T * self.mesh.cellGrady * self.Pac
+            if self.mesh._meshType == "TREE":
+                self._cellDiffy = (
+                    self.Pafy.T *
+                    utils.sdiag(
+                        self.mesh.average_cell_to_total_face_y() *
+                        (self.mesh.h_gridded[:, 1] ** -1)
+                    ) *
+                    self.mesh._cellGradyStencil *
+                    self.Pac
+                )
+            else:
+                self._cellDiffy = self.Pafy.T * self.mesh.cellGrady * self.Pac
         return self._cellDiffy
 
     @property
@@ -347,7 +367,18 @@ class RegularizationMesh(props.BaseSimPEG):
         :return: differencing matrix for active cells in the z-direction
         """
         if getattr(self, "_cellDiffz", None) is None:
-            self._cellDiffz = self.Pafz.T * self.mesh.cellGradz * self.Pac
+            if self.mesh._meshType == "TREE":
+                self._cellDiffz = (
+                    self.Pafz.T *
+                    utils.sdiag(
+                        self.mesh.average_cell_to_total_face_z() *
+                        (self.mesh.h_gridded[:, 2] ** -1)
+                    ) *
+                    self.mesh._cellGradzStencil *
+                    self.Pac
+                )
+            else:
+                self._cellDiffz = self.Pafz.T * self.mesh.cellGradz * self.Pac
         return self._cellDiffz
 
     @property
@@ -385,58 +416,6 @@ class RegularizationMesh(props.BaseSimPEG):
         if getattr(self, "_faceDiffz", None) is None:
             self._faceDiffz = self.Pac.T * self.mesh.faceDivz * self.Pafz
         return self._faceDiffz
-
-    @property
-    def cellDiffxStencil(self):
-        """
-        cell centered difference stencil (no cell lengths include) in the
-        x-direction
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active cells in the x-direction
-        """
-        if getattr(self, "_cellDiffxStencil", None) is None:
-
-            self._cellDiffxStencil = (
-                self.Pafx.T * self.mesh._cellGradxStencil * self.Pac
-            )
-        return self._cellDiffxStencil
-
-    @property
-    def cellDiffyStencil(self):
-        """
-        cell centered difference stencil (no cell lengths include) in the
-        y-direction
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active cells in the y-direction
-        """
-        if self.dim < 2:
-            return None
-        if getattr(self, "_cellDiffyStencil", None) is None:
-
-            self._cellDiffyStencil = (
-                self.Pafy.T * self.mesh._cellGradyStencil * self.Pac
-            )
-        return self._cellDiffyStencil
-
-    @property
-    def cellDiffzStencil(self):
-        """
-        cell centered difference stencil (no cell lengths include) in the
-        y-direction
-
-        :rtype: scipy.sparse.csr_matrix
-        :return: differencing matrix for active cells in the y-direction
-        """
-        if self.dim < 3:
-            return None
-        if getattr(self, "_cellDiffzStencil", None) is None:
-
-            self._cellDiffzStencil = (
-                self.Pafz.T * self.mesh._cellGradzStencil * self.Pac
-            )
-        return self._cellDiffzStencil
 
 
 # Make it look like it's in the regularization module
