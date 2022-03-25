@@ -185,6 +185,13 @@ class BaseRegularization(BaseObjectiveFunction):
         if weights is not None:
             self.add_set_weights(weights)
 
+    cell_weights = deprecate_property(
+        weights,
+        "cell_weights",
+        "0.x.0",
+        error=False,
+    )
+
     def add_set_weights(self, weights: dict | np.ndarray):
         if isinstance(weights, np.ndarray):
             weights = {"user_weights": weights}
@@ -470,6 +477,13 @@ class SmoothDeriv(BaseRegularization):
         self._weights = None
         if weights is not None:
             self.add_set_weights(weights)
+
+    cell_weights = deprecate_property(
+        weights,
+        "cell_weights",
+        "0.x.0",
+        error=False,
+    )
 
     def add_set_weights(self, weights: dict):
         if isinstance(weights, np.ndarray):
@@ -816,6 +830,13 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     def weights(self, value: dict[str, np.ndarray] | np.ndarray | None):
         for fct in self.objfcts:
             fct.weights = value
+
+    cell_weights = deprecate_property(
+        weights,
+        "cell_weights",
+        "0.x.0",
+        error=False,
+    )
 
     # Other properties and methods
     @property

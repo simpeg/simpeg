@@ -1262,7 +1262,7 @@ class Update_IRLS(InversionDirective):
             self.norms = []
             for reg in self.reg.objfcts:
                 self.norms.append(reg.norms)
-                reg.norms = [2.0, 2.0, 2.0, 2.0]
+                reg.norms = [2.0 for norm in reg.norms]
                 reg.model = self.invProb.model
 
         # Update the model used by the regularization
@@ -1620,7 +1620,7 @@ class UpdateSensitivityWeights(InversionDirective):
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 wr += reg.mapping.deriv(self.invProb.model).T * (
-                    (reg.mapping * jtj_diag) / reg.objfcts[0].regularization_mesh.vol ** 2.0
+                    (reg.mapping * jtj_diag) / reg.regularization_mesh.vol ** 2.0
                 )
         wr /= wr.max()
         wr += self.threshold
