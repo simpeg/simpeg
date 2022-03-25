@@ -89,7 +89,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             np.zeros(self.mesh.nC),
             np.r_[-20, -20, -15],
             np.r_[20, 20, 20],
-            0.05,
+            0.1,
         )[actv]
 
         # Create active map to go from reduce set to full
@@ -108,25 +108,24 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
         self.sim = sim
         data = sim.make_synthetic_data(
-            self.model, relative_error=0.0, noise_floor=1.0, add_noise=True
+            self.model, relative_error=0.0, noise_floor=0.5, add_noise=True
         )
 
         # Create a regularization
-        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
-        reg.norms = np.c_[0, 0, 0, 0]
-
-        reg.mref = np.zeros(nC)
+        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap, gradient_type="components")
+        reg.norms = [0, 0, 0, 0]
+        reg.reference_model = np.zeros(nC)
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=10,
+            maxIter=25,
             lower=0.0,
             upper=10.0,
             maxIterLS=5,
-            maxIterCG=5,
+            maxIterCG=10,
             tolCG=1e-4,
             stepOffBoundsFact=1e-4,
         )
@@ -160,7 +159,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         #                grid=True, clim=(0, 0.02))
         # ax.set_xlim(self.mesh.gridCC[:, 0].min(), self.mesh.gridCC[:, 0].max())
         # ax.set_ylim(self.mesh.gridCC[:, 2].min(), self.mesh.gridCC[:, 2].max())
-
+        #
         # ax = plt.subplot(1, 2, 2)
         # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
         #                grid=True, clim=(0, 0.02))
@@ -168,8 +167,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # ax.set_ylim(self.mesh.gridCC[:, 2].min(), self.mesh.gridCC[:, 2].max())
         # plt.show()
 
-        self.assertLess(residual, 1)
-        # self.assertTrue(residual < 0.05)
+        self.assertLess(residual, 0.05)
 
     def tearDown(self):
         # Clean up the working directory
