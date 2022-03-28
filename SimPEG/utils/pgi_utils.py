@@ -173,13 +173,13 @@ def make_PGIwithRelationships_regularization(
     cell_weights_list=None,
     approx_gradient=True,
     approx_eval=True,
-    alpha_s=1.0,
-    alpha_x=1.0,
-    alpha_y=1.0,
-    alpha_z=1.0,
-    alpha_xx=0.0,
-    alpha_yy=0.0,
-    alpha_zz=0.0,
+    alpha_s=None,
+    alpha_x=None,
+    alpha_y=None,
+    alpha_z=None,
+    alpha_xx=None,
+    alpha_yy=None,
+    alpha_zz=None,
     **kwargs,
 ):
     """
@@ -258,32 +258,26 @@ def make_PGIwithRelationships_regularization(
     )
 
     if cell_weights_list is not None:
-        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
+        reg.objfcts[0].weights = np.hstack(clwhtlst)
 
-    if isinstance(alpha_x, float):
-        alph_x = alpha_x * np.ones(len(wrmp.maps))
-    else:
-        alph_x = alpha_x
+    if isinstance(alpha_x, float or type(None)):
+        alpha_x = [alpha_x] * len(wrmp.maps)
 
-    if isinstance(alpha_y, float):
-        alph_y = alpha_y * np.ones(len(wrmp.maps))
-    else:
-        alph_y = alpha_y
+    if isinstance(alpha_y, float or type(None)):
+        alpha_y = [alpha_y] * len(wrmp.maps)
 
-    if isinstance(alpha_z, float):
-        alph_z = alpha_z * np.ones(len(wrmp.maps))
-    else:
-        alph_z = alpha_z
+    if isinstance(alpha_z, float or type(None)):
+        alpha_z = [alpha_z] * len(wrmp.maps)
 
     for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
         reg += LeastSquaresRegularization(
             mesh=mesh,
             mapping=maps * wire[1],
             alpha_s=0.0,
-            alpha_x=alph_x[i],
-            alpha_y=alph_y[i],
-            alpha_z=alph_z[i],
-            cell_weights=clwhtlst[i],
+            alpha_x=alpha_x[i],
+            alpha_y=alpha_y[i],
+            alpha_z=alpha_z[i],
+            weights=clwhtlst[i],
             **kwargs,
         )
 

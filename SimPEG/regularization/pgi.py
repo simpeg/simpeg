@@ -72,9 +72,12 @@ class PGIsmallness(Small):
         self._r_first_deriv = None
         self._r_second_deriv = None
 
-    def add_set_weights(self, weights: dict):
-        if self._weights is None:
-            self._weights = {}
+    def add_set_weights(self, weights: dict | np.ndarray):
+        if isinstance(weights, np.ndarray):
+            weights = {"user_weights": weights}
+
+        if not isinstance(weights, dict):
+            raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
 
         for key, values in weights.items():
             self.validate_array_type("weights", values, float)
@@ -82,7 +85,7 @@ class PGIsmallness(Small):
             if values.shape[0] == self.mapping.shape[0]:
                 values = np.tile(values, len(self.wiresmap.maps))
             else:
-                self.validate_shape("weights", values, self.shape[0])
+                self.validate_shape("weights", values, self.shape)
 
             self.weights[key] = values
 
@@ -950,13 +953,13 @@ class PGIwithRelationships(LeastSquaresRegularization):
         maplist=None,
         approx_gradient=True,
         approx_eval=True,
-        alpha_s=1.0,
-        alpha_x=1.0,
-        alpha_y=1.0,
-        alpha_z=1.0,
-        alpha_xx=0.0,
-        alpha_yy=0.0,
-        alpha_zz=0.0,
+        alpha_s=None,
+        alpha_x=None,
+        alpha_y=None,
+        alpha_z=None,
+        alpha_xx=None,
+        alpha_yy=None,
+        alpha_zz=None,
         **kwargs
     ):
         self.gmmref = copy.deepcopy(gmmref)
@@ -964,26 +967,10 @@ class PGIwithRelationships(LeastSquaresRegularization):
         self._gmm = copy.deepcopy(gmm)
         self._wiresmap = wiresmap
         self._maplist = maplist
-        self._mesh = mesh
-        self.mesh = mesh
         self._approx_gradient = approx_gradient
         self._approx_eval = approx_eval
-        self.mapping = IdentityMap(mesh, nP=self.wiresmap.nP)
 
-        objfcts = [
-            PGIwithNonlinearRelationshipsSmallness(
-                mesh=mesh,
-                gmm=self.gmm,
-                wiresmap=self.wiresmap,
-                maplist=self.maplist,
-                approx_gradient=approx_gradient,
-                approx_eval=approx_eval,
-                mapping=self.mapping,
-                **kwargs
-            )
-        ]
-
-        super(PGIwithRelationships, self).__init__(
+        super().__init__(
             mesh=mesh,
             alpha_s=alpha_s,
             alpha_x=alpha_x,
@@ -992,9 +979,23 @@ class PGIwithRelationships(LeastSquaresRegularization):
             alpha_xx=alpha_xx,
             alpha_yy=alpha_yy,
             alpha_zz=alpha_zz,
-            objfcts=objfcts,
             **kwargs
         )
+
+        self.objfcts = [
+            PGIwithNonlinearRelationshipsSmallness(
+                mesh=self.regularization_mesh,
+                gmm=self.gmm,
+                wiresmap=self.wiresmap,
+                maplist=self.maplist,
+                approx_gradient=approx_gradient,
+                approx_eval=approx_eval,
+                mapping=IdentityMap(mesh, nP=self.wiresmap.nP),
+                **kwargs
+            )
+        ] + self.objfcts
+
+
 
     @property
     def gmm(self):
@@ -1030,7 +1031,7 @@ class PGIwithRelationships(LeastSquaresRegularization):
     @property
     def maplist(self):
         if getattr(self, "_maplist", None) is None:
-            self._maplist = [IdentityMap(self._mesh) for maps in self.wiresmap.maps]
+            self._maplist = [IdentityMap(self.regularization_mesh) for maps in self.wiresmap.maps]
         return self._maplist
 
     @maplist.setter
