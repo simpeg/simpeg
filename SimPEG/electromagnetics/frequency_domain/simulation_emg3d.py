@@ -65,8 +65,9 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 **{  # The following options can be provided by the user
                     'name': 'Simulation created by SimPEG',
                     'gridding': 'same',               # Default is same for all
-                    'model': emg3d.Model(self.mesh),  # Dummy 1's for init
-                    'tqdm_opts': {'disable': True},   # Switch-off tqdm
+                    # Model: Dummy 1's for init
+                    'model': emg3d.Model(self.mesh, mapping='Conductivity'),
+                    'tqdm_opts': False,                  # Switch-off tqdm
                     'receiver_interpolation': 'linear',  # Should be linear
                     **self.simulation_opts,              # User input
                 }
