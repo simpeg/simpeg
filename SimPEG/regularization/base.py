@@ -730,7 +730,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_x' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
-        self._alpha_x = value
+        self._alpha_x = self.regularization_mesh.mesh.h_gridded.min()**2. * value
 
     @property
     def alpha_y(self):
@@ -744,7 +744,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_y' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
-        self._alpha_y = value
+        self._alpha_y = self.regularization_mesh.mesh.h_gridded.min()**2. * value
 
     @property
     def alpha_z(self):
@@ -758,7 +758,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_z' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
-        self._alpha_z = value
+        self._alpha_z = self.regularization_mesh.mesh.h_gridded.min()**2. * value
 
     @property
     def alpha_xx(self):
@@ -772,7 +772,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_xx' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
-        self._alpha_xx = value
+        self._alpha_xx = self.regularization_mesh.mesh.h_gridded.min()**4. * value
 
     @property
     def alpha_yy(self):
@@ -786,7 +786,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_yy' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
-        self._alpha_yy = value
+        self._alpha_yy = self.regularization_mesh.mesh.h_gridded.min()**4. * value
 
     @property
     def alpha_zz(self):
@@ -800,7 +800,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         if not isinstance(value, (float, type(None))) and value > 0:
             raise ValueError("Input 'alpha_zz' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
-        self._alpha_zz = value
+        self._alpha_zz = self.regularization_mesh.mesh.h_gridded.min()**4. * value
 
     @property
     def reference_model_in_smooth(self) -> bool:
