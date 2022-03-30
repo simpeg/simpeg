@@ -607,13 +607,13 @@ def survey_to_simpeg(survey):
             if isinstance(src, emg3d.electrodes.TxElectricWire):
                 tsrc = ElectricWire(
                     locations=src.points, receiver_list=rec_list,
-                    frequency=freq,
+                    frequency=freq, strength=src.strength,
                 )
             elif isinstance(src, emg3d.electrodes.TxElectricDipole):
                 tsrc = ElectricDipole(
                     location=src.center, azimuth=src.azimuth,
                     elevation=src.elevation, receiver_list=rec_list,
-                    frequency=freq,
+                    frequency=freq, strength=src.strength,
                 )
             else:
                 raise NotImplementedError(
