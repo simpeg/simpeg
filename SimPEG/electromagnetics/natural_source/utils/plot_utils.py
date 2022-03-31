@@ -830,7 +830,7 @@ def _extract_location_data(data, location, orientation, component, return_uncert
 
         ind_loc = np.sqrt(np.sum((rx.locations[:, :2] - location) ** 2, axis=1)) < 0.1
         if np.any(ind_loc):
-            freq_list.append(src.freq)
+            freq_list.append(src.frequency)
             data_list.append(data[src, rx][ind_loc])
 
             if return_uncert:

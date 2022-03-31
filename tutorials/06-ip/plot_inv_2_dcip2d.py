@@ -286,8 +286,8 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 #
 
 # Define the problem. Define the cells below topography and the mapping
-dc_simulation = dc.simulation_2d.Simulation2DNodal(
-    mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
+dc_simulation = dc.Simulation2DNodal(
+    mesh, survey=dc_survey, sigmaMap=conductivity_map, solver=Solver, storeJ=True
 )
 
 #######################################################################
@@ -520,12 +520,13 @@ starting_chargeability_model = background_chargeability * np.ones(nC)
 # entire mesh.
 #
 
-ip_simulation = ip.simulation_2d.Simulation2DNodal(
+ip_simulation = ip.Simulation2DNodal(
     mesh,
     survey=ip_survey,
     etaMap=chargeability_map,
     sigma=conductivity_map * recovered_conductivity_model,
-    Solver=Solver,
+    solver=Solver,
+    storeJ=True,
 )
 
 #####################################################

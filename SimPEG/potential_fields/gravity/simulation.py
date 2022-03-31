@@ -4,8 +4,10 @@ from SimPEG import utils
 from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
 from ...simulation import BaseSimulation
+from ...base import BasePDESimulation
 from ..base import BasePFSimulation
 import scipy.constants as constants
+from scipy.constants import G as NewtG
 import numpy as np
 
 
@@ -81,7 +83,6 @@ class Simulation3DIntegral(BasePFSimulation):
         Gravity forward operator
         """
         if getattr(self, "_G", None) is None:
-
             self._G = self.linear_operator()
 
         return self._G
@@ -313,7 +314,7 @@ class Simulation3DIntegral(BasePFSimulation):
         return np.vstack([rows[component] for component in components])
 
 
-class Simulation3DDifferential(BaseSimulation):
+class Simulation3DDifferential(BasePDESimulation):
     """
     Gravity in differential equations!
     """
@@ -327,34 +328,15 @@ class Simulation3DDifferential(BaseSimulation):
     def __init__(self, mesh, **kwargs):
         BaseSimulation.__init__(self, mesh, **kwargs)
 
-        self.mesh.setCellGradBC("dirichlet")
+        self._Div = self.mesh.face_divergence
 
-        self._Div = self.mesh.cellGrad
-
-    @property
-    def MfI(self):
-        return self._MfI
-
-    @property
-    def Mfi(self):
-        return self._Mfi
-
-    def makeMassMatrices(self, m):
-        self.model = m
-        self._Mfi = self.mesh.getFaceInnerProduct()
-        self._MfI = utils.sdiag(1.0 / self._Mfi.diagonal())
-
-    def getRHS(self, m):
+    def getRHS(self):
         """"""
-
-        Mc = utils.sdiag(self.mesh.vol)
-
-        self.model = m
+        Mc = self.Mcc
         rho = self.rho
+        return -Mc * rho
 
-        return Mc * rho
-
-    def getA(self, m):
+    def getA(self):
         """
         GetA creates and returns the A matrix for the Gravity nodal problem
 
@@ -363,11 +345,13 @@ class Simulation3DDifferential(BaseSimulation):
         .. math ::
 
             \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
-
         """
-        return -self._Div.T * self.Mfi * self._Div
+        # Constructs A with 0 dirichlet
+        if getattr(self, "_A", None) is None:
+            self._A = self._Div * self.Mf * self._Div.T
+        return self._A
 
-    def fields(self, m):
+    def fields(self, m=None):
         """
         Return magnetic potential (u) and flux (B)
         u: defined on the cell nodes [nC x 1]
@@ -380,11 +364,11 @@ class Simulation3DDifferential(BaseSimulation):
             \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
-        from scipy.constants import G as NewtG
+        if m is not None:
+            self.model = m
 
-        self.makeMassMatrices(m)
-        A = self.getA(m)
-        RHS = self.getRHS(m)
+        A = self.getA()
+        RHS = self.getRHS()
 
         Ainv = self.solver(A)
         u = Ainv * RHS
@@ -399,11 +383,11 @@ class Simulation3DDifferential(BaseSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class GravityIntegral(Simulation3DIntegral):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_Diff(Simulation3DDifferential):
     pass

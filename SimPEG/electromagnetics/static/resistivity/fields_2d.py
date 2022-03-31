@@ -8,7 +8,7 @@ from ....utils import Identity, Zero
 
 # TODO: this should be the BaseDCSimulation2D --> but circular imports at the
 # moment, so we can settle for its base at the moment
-from ...base import BaseEMSimulation
+from ....base import BaseElectricalPDESimulation
 
 
 class Fields2D(TimeFields):
@@ -27,8 +27,8 @@ class Fields2D(TimeFields):
     .. code-block:: python
 
         f = problem.fields(m)
-        e = f[srcList,'e']
-        j = f[srcList,'j']
+        e = f[source_list,'e']
+        j = f[source_list,'j']
 
     If accessing all sources for a given field, use the
 
@@ -44,7 +44,7 @@ class Fields2D(TimeFields):
 
     """
 
-    simulation = properties.Instance("2D DC simulation", BaseEMSimulation)
+    simulation = properties.Instance("2D DC simulation", BaseElectricalPDESimulation)
 
     knownFields = {}
     dtype = float
@@ -120,10 +120,10 @@ class Fields2D(TimeFields):
             dtype=float,
         )
 
-    def _phi_ky(self, phiSolution, srcList, kyInd):
+    def _phi_ky(self, phiSolution, source_list, kyInd):
         return phiSolution
 
-    def _phi(self, phiSolution, srcList):
+    def _phi(self, phiSolution, source_list):
         return phiSolution.dot(self.simulation._quad_weights)
 
     def _phiDeriv_u(self, kyInd, src, v, adjoint=False):
@@ -255,16 +255,16 @@ Fields2DCellCentred = Fields2DCellCentered
 ############
 # Deprecated
 ############
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields_ky(Fields2D):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields_ky_CC(Fields2DCellCentered):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Fields_ky_N(Fields2DNodal):
     pass

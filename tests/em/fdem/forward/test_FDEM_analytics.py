@@ -36,19 +36,19 @@ class FDEM_analyticTests(unittest.TestCase):
 
         x = np.linspace(-10, 10, 5)
         XYZ = utils.ndgrid(x, np.r_[0], np.r_[0])
-        rxList = fdem.Rx.PointElectricField(XYZ, orientation="x", component="imag")
+        receiver_list = fdem.Rx.PointElectricField(
+            XYZ, orientation="x", component="imag"
+        )
         SrcList = [
-            fdem.Src.MagDipole([rxList], location=np.r_[0.0, 0.0, 0.0], frequency=freq),
+            fdem.Src.MagDipole(
+                [receiver_list], location=np.r_[0.0, 0.0, 0.0], frequency=freq
+            ),
             fdem.Src.CircularLoop(
-                [rxList],
+                [receiver_list],
                 location=np.r_[0.0, 0.0, 0.0],
                 frequency=freq,
                 radius=np.sqrt(1.0 / np.pi),
             ),
-            # fdem.Src.MagDipole_Bfield(
-            #     [rxList], loc=np.r_[0., 0., 0.],
-            #     freq=freq
-            # ), # less accurate
         ]
 
         survey = fdem.Survey(SrcList)
@@ -57,15 +57,14 @@ class FDEM_analyticTests(unittest.TestCase):
         sigma = np.ones(mesh.nC) * sig
         sigma[mesh.gridCC[:, 2] > 0] = 1e-8
 
-        prb = fdem.Simulation3DMagneticFluxDensity(mesh, sigma=sigma)
-        prb.pair(survey)
+        prb = fdem.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigma=sigma)
 
         try:
             from pymatsolver import Pardiso
 
-            prb.Solver = Pardiso
+            prb.solver = Pardiso
         except ImportError:
-            prb.Solver = SolverLU
+            prb.solver = SolverLU
 
         self.prb = prb
         self.mesh = mesh
@@ -86,7 +85,7 @@ class FDEM_analyticTests(unittest.TestCase):
             P = self.mesh.getInterpolationMat(XYZ, "Fz")
 
             ana = mu_0 * np.imag(
-                analytics.FDEM.hzAnalyticDipoleF(x, src.freq, self.sig)
+                analytics.FDEM.hzAnalyticDipoleF(x, src.frequency, self.sig)
             )
             num = P * np.imag(self.u[src, "b"])
 
@@ -155,12 +154,12 @@ class TestDipoles(unittest.TestCase):
         surveye = fdem.Survey(de_p)
         surveym = fdem.Survey(dm_p)
 
-        prbe = fdem.Simulation3DMagneticField(mesh, sigma=sigmaback, mu=mur * mu_0)
-        prbm = fdem.Simulation3DElectricField(mesh, sigma=sigmaback, mu=mur * mu_0)
-
-        # pair problem and survey
-        prbe.pair(surveye)
-        prbm.pair(surveym)
+        prbe = fdem.Simulation3DMagneticField(
+            mesh, survey=surveye, sigma=sigmaback, mu=mur * mu_0
+        )
+        prbm = fdem.Simulation3DElectricField(
+            mesh, survey=surveym, sigma=sigmaback, mu=mur * mu_0
+        )
 
         # solve
         fieldsBackE = prbe.fields()

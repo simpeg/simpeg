@@ -324,8 +324,8 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 #
 #
 
-dc_simulation = dc.simulation.Simulation3DNodal(
-    mesh, survey=dc_survey, sigmaMap=conductivity_map, Solver=Solver
+dc_simulation = dc.Simulation3DNodal(
+    mesh, survey=dc_survey, sigmaMap=conductivity_map, solver=Solver, storeJ=True
 )
 
 #################################################################
@@ -349,13 +349,7 @@ dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation
 
 # Define the regularization (model objective function)
 dc_regularization = regularization.Simple(
-    mesh,
-    indActive=ind_active,
-    mref=starting_conductivity_model,
-    alpha_s=0.01,
-    alpha_x=1,
-    alpha_y=1,
-    alpha_z=1,
+    mesh, indActive=ind_active, mref=starting_conductivity_model,
 )
 
 dc_regularization.mrefInSmooth = True  # Include reference model in smoothness
@@ -509,6 +503,7 @@ cbar = mpl.colorbar.ColorbarBase(
     ax2, cmap=mpl.cm.viridis, norm=norm, orientation="vertical", format="$10^{%.1f}$"
 )
 cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
+plt.show()
 
 #######################################################################
 # Plotting Normalized Data Misfit or Predicted DC Data
@@ -590,12 +585,13 @@ starting_chargeability_model = background_chargeability * np.ones(nC)
 #
 #
 
-ip_simulation = ip.simulation.Simulation3DNodal(
+ip_simulation = ip.Simulation3DNodal(
     mesh,
     survey=ip_survey,
     etaMap=chargeability_map,
     sigma=conductivity_map * recovered_conductivity_model,
-    Solver=Solver,
+    solver=Solver,
+    storeJ=True,
 )
 
 #################################################
@@ -744,6 +740,7 @@ cbar = mpl.colorbar.ColorbarBase(
 )
 cbar.set_label("Intrinsic Chargeability [V/V]", rotation=270, labelpad=15, size=12)
 
+plt.show()
 ##########################################################
 # Plotting Normalized Data Misfit or Predicted IP Data
 # ----------------------------------------------------

@@ -256,9 +256,9 @@ def read_gg3d_ubc(obs_file):
         factor = np.zeros(n_comp)
 
         # Convert component types from UBC to SimPEG
-        ubc_types = ["xx", "xy", "xz", "yy", "yz", "zz"]
-        simpeg_types = ["gyy", "gxy", "gyz", "gxx", "gxz", "gzz"]
-        factor_list = [1.0, 1.0, -1.0, 1.0, -1.0, 1.0]
+        ubc_types = ["xx", "xy", "xz", "yy", "yz", "zz", "uv"]
+        simpeg_types = ["gyy", "gxy", "gyz", "gxx", "gxz", "gzz", "guv"]
+        factor_list = [1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1.0]
 
         for ii in range(n_comp):
             k = ubc_types.index(components[ii])
@@ -327,9 +327,9 @@ def write_gg3d_ubc(filename, data_object):
     n_comp = len(components)
     factor = np.ones(n_comp)
 
-    ubc_types = ["xx", "xy", "xz", "yy", "yz", "zz"]
-    simpeg_types = ["gyy", "gxy", "gyz", "gxx", "gxz", "gzz"]
-    factor_list = [1.0, 1.0, -1.0, 1.0, -1.0, 1.0]
+    ubc_types = ["xx", "xy", "xz", "yy", "yz", "zz", "uv"]
+    simpeg_types = ["gyy", "gxy", "gyz", "gxx", "gxz", "gzz", "guv"]
+    factor_list = [1.0, 1.0, -1.0, 1.0, -1.0, 1.0, 1.0]
     for ii in range(0, len(components)):
         k = simpeg_types.index(components[ii])
         factor[ii] = factor_list[k]

@@ -106,8 +106,7 @@ def run(
         grid=False,
         ax=ax,
         gridOpts={"alpha": 0.2},
-        clim=(10, 1000),
-        pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+        pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
     )
     ax.plot(survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "k.")
     ax.set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
@@ -127,8 +126,7 @@ def run(
         grid=False,
         ax=ax,
         gridOpts={"alpha": 0.2},
-        clim=(10, 1000),
-        pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+        pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
     )
     ax.plot(survey.electrode_locations[:, 0], survey.electrode_locations[:, 1], "k.")
     ax.set_xlim(IO.grids[:, 0].min(), IO.grids[:, 0].max())
@@ -189,14 +187,12 @@ def run(
     fig, ax = plt.subplots(2, 1, figsize=(20, 6))
     out1 = mesh.plotImage(
         rho_true,
-        clim=(10, 1000),
-        pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+        pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
         ax=ax[0],
     )
     out2 = mesh.plotImage(
         rho_est,
-        clim=(10, 1000),
-        pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm()},
+        pcolorOpts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
         ax=ax[1],
     )
     out = [out1, out2]

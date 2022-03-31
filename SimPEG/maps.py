@@ -2142,12 +2142,10 @@ class Weighting(IdentityMap):
     def __init__(self, mesh=None, nP=None, weights=None, **kwargs):
 
         if "nC" in kwargs:
-            warnings.warn(
-                "`nC` is deprecated. Use `nP` to set the number of model "
-                "parameters, This option will be removed in version 0.16.0 of SimPEG",
-                FutureWarning,
+            raise TypeError(
+                "`nC` has been removed. Use `nP` to set the number of model "
+                "parameters."
             )
-            nP = nC
 
         super(Weighting, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
@@ -5557,36 +5555,36 @@ class PolynomialPetroClusterMap(IdentityMap):
 ###############################################################################
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class FullMap(SurjectFull):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Vertical1DMap(SurjectVertical1D):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Map2Dto3D(Surject2Dto3D):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class ActiveCells(InjectActiveCells):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class CircleMap(ParametricCircleMap):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class PolyMap(ParametricPolyMap):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class SplineMap(ParametricSplineMap):
     pass

@@ -24,6 +24,7 @@ from discretize.utils import (
     inverse_property_tensor
 )
 
+avExtrap = deprecate_method(av_extrap, "avExtrap", removal_version="0.16.0", error=True)
 
 def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
     """Estimate the diagonal of a matrix.
