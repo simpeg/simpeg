@@ -21,44 +21,65 @@ except ImportError:
             )
 
 
-def memProfileWrapper(towrap, *funNames):
-    """
-    Create a wrapper for the functions you want to use, wrapping up the
-    class, and putting profile wrappers on the functions in funNames.
+def create_wrapper_from_class(input_class, *fun_names):
+    """Create wrapper class with memory profiler.
 
-    :param class towrap: Class to wrap
-    :param str funNames: And amount of function names to wrap
-    :rtype: class
-    :return: memory profiled wrapped class
+    Using :meth:`memory_profiler.profile`, this function creates a wrapper class
+    from the input class and function names specified.
+    
+    Parameters
+    ----------
+    input_class : class
+        Input class being used to create the wrapper
+    fun_names: list of str
+        Names of the functions that will be wrapped to the wrapper class. These names must
+        correspond to methods of the input class.  
+    
+    Returns
+    -------
+    class :
+        Wrapper class
 
-    For example::
+    Examples
+    --------
 
-        foo_mem = memProfileWrapper(foo,['my_func'])
-        fooi = foo_mem()
-        for i in range(5):
-            fooi.my_func()
+    >>> foo_mem = create_wrapper_from_class(foo,['my_func'])
+    >>> fooi = foo_mem()
+    >>> for i in range(5):
+    >>>     fooi.my_func()
 
-    Then run it from the command line::
+    Then run it from the command line
 
-        python -m memory_profiler exampleMemWrapper.py
+    ``python -m memory_profiler exampleMemWrapper.py``
     """
     from memory_profiler import profile
 
     attrs = {}
-    for f in funNames:
-        if hasattr(towrap, f):
-            attrs[f] = profile(getattr(towrap, f))
+    for f in fun_names:
+        if hasattr(input_class, f):
+            attrs[f] = profile(getattr(input_class, f))
         else:
-            print("{0!s} not found in {1!s} Class".format(f, towrap.__name__))
+            print("{0!s} not found in {1!s} Class".format(f, input_class.__name__))
 
-    return type(towrap.__name__ + "MemProfileWrap", (towrap,), attrs)
+    return type(input_class.__name__ + "MemProfileWrap", (input_class,), attrs)
 
 
 def hook(obj, method, name=None, overwrite=False, silent=False):
-    """
-    This dynamically binds a method to the instance of the class.
+    """Dynamically bind on class's method to an instance of a different class.
 
-    If name is None, the name of the method is used.
+    Parameters
+    ----------
+    obj : class
+        Instance of a class that will be binded to a new method
+    method : method
+        The method that will be binded to *obj*; i.e. *ClassName.method_name*
+    name : str
+        Provide a different name for the method being binded to *obj*. If ``None``,
+        the original method name is used. 
+    overwrite : bool
+        Overwrite previous hook
+    silent: bool
+        Print whether a previous hook was overwritten
     """
     if name is None:
         name = method.__name__
@@ -72,10 +93,16 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
         print("Method " + name + " was not overwritten.")
 
 
-def setKwargs(obj, ignore=None, **kwargs):
+def set_kwargs(obj, ignore=None, **kwargs):
     """
-    Sets key word arguments (kwargs) that are present in the object,
-    throw an error if they don't exist.
+    Set key word arguments for an object or throw an error if any don't exist.
+    
+    Parameters
+    ----------
+    obj : class
+        Instance of a class
+    ignore : list
+        ``list`` of ``str`` denoting kwargs that are ignored (not being set)
     """
     if ignore is None:
         ignore = []
@@ -91,7 +118,7 @@ def setKwargs(obj, ignore=None, **kwargs):
     # hook(obj, setKwargs, silent=True)
 
 
-def printDone(obj, printers, name="Done", pad=""):
+def print_done(obj, printers, name="Done", pad=""):
     titles = ""
     widths = 0
     for printer in printers:
@@ -101,7 +128,7 @@ def printDone(obj, printers, name="Done", pad=""):
     # print(pad + "%s" % '-'*widths)
 
 
-def printTitles(obj, printers, name="Print Titles", pad=""):
+def print_titles(obj, printers, name="Print Titles", pad=""):
     titles = ""
     widths = 0
     for printer in printers:
@@ -112,7 +139,7 @@ def printTitles(obj, printers, name="Print Titles", pad=""):
     print(pad + "%s" % "-" * widths)
 
 
-def printLine(obj, printers, pad=""):
+def print_line(obj, printers, pad=""):
     values = ""
     for printer in printers:
         values += ("{{:^{0:d}}}".format(printer["width"])).format(
@@ -121,7 +148,7 @@ def printLine(obj, printers, pad=""):
     print(pad + values)
 
 
-def checkStoppers(obj, stoppers):
+def check_stoppers(obj, stoppers):
     # check stopping rules
     optimal = []
     critical = []
@@ -141,7 +168,7 @@ def checkStoppers(obj, stoppers):
     return (len(optimal) > 0 and all(optimal)) | (len(critical) > 0 and any(critical))
 
 
-def printStoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
+def print_stoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
     print(pad + "{0!s}{1!s}{2!s}".format("-" * 25, stop, "-" * 25))
     for stopper in stoppers:
         l = stopper["left"](obj)
@@ -150,7 +177,7 @@ def printStoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
     print(pad + "{0!s}{1!s}{2!s}".format("-" * 25, done, "-" * 25))
 
 
-def callHooks(match, mainFirst=False):
+def call_hooks(match, mainFirst=False):
     """
     Use this to wrap a funciton::
 
@@ -158,7 +185,7 @@ def callHooks(match, mainFirst=False):
         def doEndIteration(self):
             pass
 
-    This will call everything named _doEndIteration* at the beginning of the function call.
+    This will call everything named *_doEndIteration* at the beginning of the function call.
     By default the main method (doEndIteration) is run after all of the sub methods (_doEndIteration*).
     This can be reversed by adding the mainFirst=True kwarg.
     """
@@ -206,7 +233,7 @@ def callHooks(match, mainFirst=False):
     return callHooksWrap
 
 
-def dependentProperty(name, value, children, doc):
+def dependent_property(name, value, children, doc):
     def fget(self):
         return getattr(self, name, value)
 
@@ -346,12 +373,16 @@ class Report(ScoobyReport):
         )
 
 
-def deprecate_class(removal_version=None, new_location=None, future_warn=False):
+def deprecate_class(
+    removal_version=None, new_location=None, future_warn=False, error=False
+):
     def decorator(cls):
         my_name = cls.__name__
         parent_name = cls.__bases__[0].__name__
         message = f"{my_name} has been deprecated, please use {parent_name}."
-        if removal_version is not None:
+        if error:
+            message = f"{my_name} has been removed, please use {parent_name}."
+        elif removal_version is not None:
             message += f" It will be removed in version {removal_version} of SimPEG."
         else:
             message += " It will be removed in a future version of SimPEG."
@@ -362,6 +393,8 @@ def deprecate_class(removal_version=None, new_location=None, future_warn=False):
         def __init__(self, *args, **kwargs):
             if future_warn:
                 warnings.warn(message, FutureWarning)
+            elif error:
+                raise NotImplementedError(message)
             else:
                 warnings.warn(message, DeprecationWarning)
             self._old__init__(*args, **kwargs)
@@ -375,21 +408,27 @@ def deprecate_class(removal_version=None, new_location=None, future_warn=False):
     return decorator
 
 
-def deprecate_module(old_name, new_name, removal_version=None, future_warn=False):
+def deprecate_module(
+    old_name, new_name, removal_version=None, future_warn=False, error=False
+):
     message = f"The {old_name} module has been deprecated, please use {new_name}."
-    if removal_version is not None:
+    if error:
+        message = f"{old_name} has been removed, please use {new_name}."
+    elif removal_version is not None:
         message += f" It will be removed in version {removal_version} of SimPEG"
     else:
         message += " It will be removed in a future version of SimPEG."
     message += " Please update your code accordingly."
     if future_warn:
         warnings.warn(message, FutureWarning)
+    elif error:
+        raise NotImplementedError(message)
     else:
         warnings.warn(message, DeprecationWarning)
 
 
 def deprecate_property(
-    prop, old_name, new_name=None, removal_version=None, future_warn=False
+    prop, old_name, new_name=None, removal_version=None, future_warn=False, error=False
 ):
 
     if isinstance(prop, property):
@@ -403,7 +442,9 @@ def deprecate_property(
         prop = prop.get_property()
 
     message = f"{old_name} has been deprecated, please use {new_name}."
-    if removal_version is not None:
+    if error:
+        message = f"{old_name} has been removed, please use {new_name}."
+    elif removal_version is not None:
         message += f" It will be removed in version {removal_version} of SimPEG."
     else:
         message += " It will be removed in a future version of SimPEG."
@@ -411,6 +452,8 @@ def deprecate_property(
     def get_dep(self):
         if future_warn:
             warnings.warn(message, FutureWarning)
+        elif error:
+            raise NotImplementedError(message)
         else:
             warnings.warn(message, DeprecationWarning)
         return prop.fget(self)
@@ -418,6 +461,8 @@ def deprecate_property(
     def set_dep(self, other):
         if future_warn:
             warnings.warn(message, FutureWarning)
+        elif error:
+            raise NotImplementedError(message)
         else:
             warnings.warn(message, DeprecationWarning)
         prop.fset(self, other)
@@ -427,14 +472,18 @@ def deprecate_property(
     return property(get_dep, set_dep, prop.fdel, doc)
 
 
-def deprecate_method(method, old_name, removal_version=None, future_warn=False):
+def deprecate_method(
+    method, old_name, removal_version=None, future_warn=False, error=False
+):
     new_name = method.__qualname__
     split_name = new_name.split(".")
     if len(split_name) > 1:
         old_name = f"{split_name[0]}.{old_name}"
 
     message = f"{old_name} has been deprecated, please use {new_name}."
-    if removal_version is not None:
+    if error:
+        message = f"{old_name} has been removed, please use {new_name}."
+    elif removal_version is not None:
         message += f" It will be removed in version {removal_version} of SimPEG."
     else:
         message += " It will be removed in a future version of SimPEG."
@@ -442,6 +491,8 @@ def deprecate_method(method, old_name, removal_version=None, future_warn=False):
     def new_method(*args, **kwargs):
         if future_warn:
             warnings.warn(message, FutureWarning)
+        elif error:
+            raise NotImplementedError(message)
         else:
             warnings.warn(message, DeprecationWarning)
         return method(*args, **kwargs)
@@ -449,3 +500,42 @@ def deprecate_method(method, old_name, removal_version=None, future_warn=False):
     doc = f"`{old_name}` has been deprecated. See `{new_name}` for documentation"
     new_method.__doc__ = doc
     return new_method
+
+
+def deprecate_function(new_function, old_name, removal_version=None):
+    new_name = new_function.__name__
+    if removal_version is not None:
+        tag = f" It will be removed in version {removal_version} of SimPEG."
+    else:
+        tag = " It will be removed in a future version of SimPEG."
+
+    def dep_function(*args, **kwargs):
+        warnings.warn(
+            f"{old_name} has been deprecated, please use {new_name}." + tag,
+            DeprecationWarning,
+        )
+        return new_function(*args, **kwargs)
+
+    doc = f"""
+    `{old_name}` has been deprecated. See `{new_name}` for documentation
+
+    See Also
+    --------
+    {new_name}
+    """
+    dep_function.__doc__ = doc
+    return dep_function
+
+
+
+
+# DEPRECATIONS
+memProfileWrapper = deprecate_function(create_wrapper_from_class, "memProfileWrapper", removal_version="0.16.0")
+setKwargs = deprecate_function(set_kwargs, "setKwargs", removal_version="0.16.0")
+printTitles = deprecate_function(print_titles, "printTitles", removal_version="0.16.0")
+printLine = deprecate_function(print_line, "printLine", removal_version="0.16.0")
+printStoppers = deprecate_function(print_stoppers, "printStoppers", removal_version="0.16.0")
+checkStoppers = deprecate_function(check_stoppers, "checkStoppers", removal_version="0.16.0")
+printDone = deprecate_function(print_done, "printDone", removal_version="0.16.0")
+callHooks = deprecate_function(call_hooks, "callHooks", removal_version="0.16.0")
+dependentProperty = deprecate_function(dependent_property, "dependentProperty", removal_version="0.16.0")

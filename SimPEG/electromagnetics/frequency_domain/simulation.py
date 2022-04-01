@@ -62,9 +62,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
     mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
 
     props.Reciprocal(mu, mui)
-    
+
     forward_only = properties.Boolean(
-        "If True, A-inverse not stored at each frequency in forward simulation", default=False
+        "If True, A-inverse not stored at each frequency in forward simulation",
+        default=False,
     )
 
     survey = properties.Instance("a survey object", Survey, required=True)
@@ -86,7 +87,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
             self.Ainv
         except AttributeError:
             if self.verbose:
-                print("nFreq =", self.survey.num_frequencies)
+                print("num_frequencies =", self.survey.num_frequencies)
             self.Ainv = [None for i in range(self.survey.num_frequencies)]
 
         if self.Ainv[0] is not None:
@@ -891,21 +892,21 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_e(Simulation3DElectricField):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_b(Simulation3DMagneticFluxDensity):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_h(Simulation3DMagneticField):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_j(Simulation3DCurrentDensity):
     pass

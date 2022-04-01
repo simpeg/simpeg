@@ -20,6 +20,28 @@ from SimPEG.utils import mkvc
 
 
 class BasePFSimulation(LinearSimulation):
+    r"""Base class for potential field simulations that use integral formulations.
+
+    For integral formulations, the forward simulation for a set of voxel calls
+    can be defined as a linear operation of the form:
+
+    .. math::
+        \mathbf{d} = \mathbf{Am}
+
+    where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model paramters
+    and :math:`\mathbf{A}` is a linear operator defining the sensitivities. The primary
+    difference between child simulation classes is the kernel function used to create
+    the rows of :math:`\mathbf{A}`.
+
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh or discretize.TreeMesh
+        A 3D tensor or tree mesh.
+
+    """
+    actInd = properties.Array(
+        "Array of active cells (ground)", dtype=(bool, int), default=None
+    )
 
     def __init__(self, mesh, ind_active=None, store_sensitivities='ram', **kwargs):
 
@@ -209,70 +231,53 @@ class BasePFSimulation(LinearSimulation):
 
     @property
     def forwardOnly(self):
-        """The forwardOnly property has been deprecated. Please set the store_sensitivites
-        property instead. This will be removed in version 0.16.0 of SimPEG
+        """The forwardOnly property has been removed. Please set the store_sensitivites
+        property instead.
         """
-        warnings.warn(
-            "The forwardOnly property has been deprecated. Please set the store_sensitivites "
-            "property instead. This will be removed in version 0.16.0 of SimPEG",
-            FutureWarning,
+        raise TypeError(
+            "The forwardOnly property has been removed. Please set the store_sensitivites "
+            "property instead."
         )
-        return self.store_sensitivities == "forward_only"
 
     @forwardOnly.setter
     def forwardOnly(self, other):
-        warnings.warn(
-            "The forwardOnly property has been deprecated. Please set the store_sensitivites "
-            "property instead. This will be removed in version 0.16.0 of SimPEG",
-            FutureWarning,
+        raise TypeError(
+            "The forwardOnly property has been removed. Please set the store_sensitivites "
+            "property instead."
         )
-        if self.other:
-            self.store_sensitivities = "forward_only"
 
     @property
     def parallelized(self):
         """The parallelized property has been removed. If interested, try out
-        loading dask for parallelism by doing ``import SimPEG.dask``. This will
-        be removed in version 0.16.0 of SimPEG
+        loading dask for parallelism by doing ``import SimPEG.dask``.
         """
-        warnings.warn(
-            "parallelized has been deprecated. If interested, try out "
+        raise TypeError(
+            "parallelized has been removed. If interested, try out "
             "loading dask for parallelism by doing ``import SimPEG.dask``. "
-            "This will be removed in version 0.16.0 of SimPEG",
-            FutureWarning,
         )
-        return False
 
     @parallelized.setter
     def parallelized(self, other):
-        warnings.warn(
+        raise TypeError(
             "Do not set parallelized. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``. This will"
-            "be removed in version 0.16.0 of SimPEG",
-            FutureWarning,
+            "loading dask for parallelism by doing ``import SimPEG.dask``."
         )
 
     @property
     def n_cpu(self):
         """The parallelized property has been removed. If interested, try out
-        loading dask for parallelism by doing ``import SimPEG.dask``. This will
-        be removed in version 0.16.0 of SimPEG
+        loading dask for parallelism by doing ``import SimPEG.dask``.
         """
-        warnings.warn(
-            "n_cpu has been deprecated. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``. "
-            "This will be removed in version 0.16.0 of SimPEG",
-            FutureWarning,
+        raise TypeError(
+            "n_cpu has been removed. If interested, try out "
+            "loading dask for parallelism by doing ``import SimPEG.dask``."
         )
-        return 1
 
     @parallelized.setter
     def n_cpu(self, other):
-        warnings.warn(
+        raise TypeError(
             "Do not set n_cpu. If interested, try out "
-            "loading dask for parallelism by doing ``import SimPEG.dask``. This will"
-            "be removed in version 0.16.0 of SimPEG",
-            FutureWarning,
+            "loading dask for parallelism by doing ``import SimPEG.dask``."
         )
 
 

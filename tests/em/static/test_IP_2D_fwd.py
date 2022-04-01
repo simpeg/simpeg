@@ -36,9 +36,9 @@ class IPProblemAnalyticTests(unittest.TestCase):
         src0_ip = dc.Src.Dipole([rx], A0loc, B0loc)
         src1_ip = dc.Src.Dipole([rx], A1loc, B1loc)
 
-        srcLists = [src0, src1]
-        srcLists_ip = [src0_ip, src1_ip]
-        surveyDC = dc.Survey_ky([src0, src1])
+        source_lists = [src0, src1]
+        source_lists_ip = [src0_ip, src1_ip]
+        surveyDC = dc.Survey([src0, src1])
 
         sigmaInf = np.ones(mesh.nC) * 1.0
         blkind = utils.model_builder.getIndicesSphere(np.r_[0, -150], 40, mesh.gridCC)
@@ -51,25 +51,29 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.mesh = mesh
         self.sigmaInf = sigmaInf
         self.sigma0 = sigma0
-        self.source_lists = srcLists
-        self.source_lists_ip = srcLists_ip
+        self.source_lists = source_lists
+        self.source_lists_ip = source_lists_ip
         self.eta = eta
 
     def test_Simulation2DNodal(self):
 
         problemDC = dc.Simulation2DNodal(
-            self.mesh, sigmaMap=maps.IdentityMap(self.mesh)
+            self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
-        problemDC.Solver = Solver
-        problemDC.pair(self.surveyDC)
+        problemDC.solver = Solver
         data0 = problemDC.dpred(self.sigma0)
         datainf = problemDC.dpred(self.sigmaInf)
-        problemIP = ip.Simulation2DNodal(
-            self.mesh, sigma=self.sigmaInf, etaMap=maps.IdentityMap(self.mesh),
-        )
-        problemIP.Solver = Solver
+
         surveyIP = ip.Survey(self.source_lists_ip)
-        problemIP.pair(surveyIP)
+
+        problemIP = ip.Simulation2DNodal(
+            self.mesh,
+            survey=surveyIP,
+            sigma=self.sigmaInf,
+            etaMap=maps.IdentityMap(self.mesh),
+        )
+        problemIP.solver = Solver
+
         data_full = data0 - datainf
         data = problemIP.dpred(self.eta)
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
@@ -85,20 +89,22 @@ class IPProblemAnalyticTests(unittest.TestCase):
     def test_Simulation2DCellCentered(self):
 
         problemDC = dc.Simulation2DCellCentered(
-            self.mesh, rhoMap=maps.IdentityMap(self.mesh)
+            self.mesh, survey=self.surveyDC, rhoMap=maps.IdentityMap(self.mesh)
         )
-        problemDC.Solver = Solver
-        problemDC.pair(self.surveyDC)
+        problemDC.solver = Solver
         data0 = problemDC.dpred(1.0 / self.sigma0)
         finf = problemDC.fields(1.0 / self.sigmaInf)
         datainf = problemDC.dpred(1.0 / self.sigmaInf, f=finf)
-        problemIP = ip.Simulation2DCellCentered(
-            self.mesh, rho=1.0 / self.sigmaInf, etaMap=maps.IdentityMap(self.mesh)
-        )
-        problemIP.Solver = Solver
 
         surveyIP = ip.Survey(self.source_lists_ip)
-        problemIP.pair(surveyIP)
+
+        problemIP = ip.Simulation2DCellCentered(
+            self.mesh,
+            survey=surveyIP,
+            rho=1.0 / self.sigmaInf,
+            etaMap=maps.IdentityMap(self.mesh),
+        )
+        problemIP.solver = Solver
         data_full = data0 - datainf
         data = problemIP.dpred(self.eta)
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
@@ -192,7 +198,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
 
         np.testing.assert_allclose(data, data2)
 
-        np.testing.assert_allclose(simIP._scale, simIP._sign / datainf)
+        np.testing.assert_allclose(simIP._scale, 1.0 / datainf)
 
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
         if err > 0.05:
@@ -225,7 +231,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
         )
         data = simIP.dpred(self.eta)
 
-        np.testing.assert_allclose(simIP._scale, simIP._sign / datainf)
+        np.testing.assert_allclose(simIP._scale, 1.0 / datainf)
 
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
         if err > 0.05:

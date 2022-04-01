@@ -32,6 +32,14 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     survey = properties.Instance("a survey object", Survey, required=True)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.muMap is not None:
+            raise NotImplementedError(
+                "Time domain EM simulations do not support magnetic permeability "
+                "inversion, yet."
+            )
+
     # def fields_nostore(self, m):
     #     """
     #     Solve the forward problem without storing fields
@@ -1148,21 +1156,21 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_e(Simulation3DElectricField):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_b(Simulation3DMagneticFluxDensity):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_h(Simulation3DMagneticField):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_j(Simulation3DCurrentDensity):
     pass

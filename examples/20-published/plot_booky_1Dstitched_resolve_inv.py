@@ -107,12 +107,12 @@ def resolve_1Dinversions(
 
     # source location
     srcLoc = np.array([0.0, 0.0, src_height])
-    srcList = [
+    source_list = [
         FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc, orientation="Z") for freq in freqs
     ]
 
     # construct a forward simulation
-    survey = FDEM.Survey(srcList)
+    survey = FDEM.Survey(source_list)
     prb = FDEM.Simulation3DMagneticFluxDensity(
         mesh, sigmaMap=mapping, Solver=PardisoSolver
     )

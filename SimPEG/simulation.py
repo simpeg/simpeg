@@ -140,6 +140,8 @@ class BaseSimulation(props.HasModel):
 
     solver_opts = properties.Dictionary("solver options as a kwarg dict", default={})
 
+    verbose = properties.Boolean("Verbosity flag", default=False)
+
     def _reset(self, name=None):
         """Revert specified property to default value
 
@@ -204,7 +206,7 @@ class BaseSimulation(props.HasModel):
         "Solver",
         new_name="simulation.solver",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     solverOpts = deprecate_property(
@@ -212,7 +214,7 @@ class BaseSimulation(props.HasModel):
         "solverOpts",
         new_name="solver_opts",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     ###########################################################################
@@ -359,12 +361,9 @@ class BaseSimulation(props.HasModel):
 
         std = kwargs.pop("std", None)
         if std is not None:
-            warnings.warn(
-                "The std parameter will be deprecated in SimPEG 0.16.0. "
-                "Please use relative_error.",
-                FutureWarning,
+            raise TypeError(
+                "The std parameter has been removed. " "Please use relative_error."
             )
-            relative_error = std
 
         if f is None:
             f = self.fields(m)
@@ -372,7 +371,7 @@ class BaseSimulation(props.HasModel):
         dclean = self.dpred(m, f=f)
 
         if add_noise is True:
-            std = relative_error * abs(dclean) + noise_floor
+            std = np.sqrt((relative_error * np.abs(dclean)) ** 2 + noise_floor ** 2)
             noise = std * np.random.randn(*dclean.shape)
             dobs = dclean + noise
         else:
@@ -388,17 +387,14 @@ class BaseSimulation(props.HasModel):
 
     def pair(self, survey):
         """
-        Deprecated pairing method. Please use :code:`simulation.survey=survey`
-        instead
+        Removed pairing method. Please use :code:`simulation.survey=survey`
+        instead.
         """
-        warnings.warn(
-            "Simulation.pair(survey) will be deprecated. Please update your code "
+        raise TypeError(
+            "Simulation.pair(survey) has been removed. Please update your code "
             "to instead use simulation.survey = survey, or pass it upon intialization "
-            "of the simulation object. This will be removed in version "
-            "0.16.0 of SimPEG",
-            FutureWarning,
+            "of the simulation object."
         )
-        survey.pair(self)
 
 
 class BaseTimeSimulation(BaseSimulation):
@@ -436,7 +432,7 @@ class BaseTimeSimulation(BaseSimulation):
     @property
     def time_mesh(self):
         if getattr(self, "_time_mesh", None) is None:
-            self._time_mesh = TensorMesh([self.time_steps], x0=[self.t0])
+            self._time_mesh = TensorMesh([self.time_steps,], x0=[self.t0])
         return self._time_mesh
 
     @time_mesh.deleter
@@ -451,14 +447,14 @@ class BaseTimeSimulation(BaseSimulation):
     @property
     def times(self):
         "Modeling times"
-        return self.time_mesh.vectorNx
+        return self.time_mesh.nodes_x
 
     timeSteps = deprecate_property(
         time_steps,
         "timeSteps",
         new_name="time_steps",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     timeMesh = deprecate_property(
@@ -466,7 +462,7 @@ class BaseTimeSimulation(BaseSimulation):
         "timeMesh",
         new_name="time_mesh",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     def dpred(self, m=None, f=None):

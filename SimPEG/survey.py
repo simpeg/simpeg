@@ -11,26 +11,62 @@ import types
 
 
 class RxLocationArray(properties.Array):
+    """Locations array for receivers"""
 
     class_info = "an array of receiver locations"
 
     def validate(self, instance, value):
+        """Validation method for setting locations array
+
+        Parameters
+        ----------
+        instance : class
+            The class used to validate the input argument *value*
+        value :
+            The input used to define the locations for a given receiver.
+
+        Returns
+        -------
+        properties.Array
+            The receiver location array
+        """
         value = np.atleast_2d(value)
         return super(RxLocationArray, self).validate(instance, value)
 
 
 class SourceLocationArray(properties.Array):
+    """Locations array for sources"""
 
     class_info = "a 1D array denoting the source location"
 
     def validate(self, instance, value):
+        """Validation method for setting locations array
+
+        Parameters
+        ----------
+        instance : class
+            The class used to validate the input argument *value*
+        value :
+            The input used to define the locations for a given source.
+
+        Returns
+        -------
+        properties.Array
+            The source location array
+        """
         if not isinstance(value, np.ndarray):
             value = np.atleast_1d(np.array(value))
         return super(SourceLocationArray, self).validate(instance, value)
 
 
 class BaseRx(properties.HasProperties):
-    """SimPEG Receiver Object"""
+    """Base SimPEG receiver class
+
+    Parameters
+    ----------
+    locations : numpy.ndarray
+        Locations assocated with a given receiver
+    """
 
     # TODO: write a validator that checks against mesh dimension in the
     # BaseSimulation
@@ -69,27 +105,47 @@ class BaseRx(properties.HasProperties):
             self._Ps = {}
 
     locs = deprecate_property(
-        locations,
-        "locs",
-        new_name="locations",
-        removal_version="0.16.0",
-        future_warn=True,
+        locations, "locs", new_name="locations", removal_version="0.16.0", error=True,
     )
 
     @property
     def nD(self):
-        """Number of data in the receiver."""
+        """Number of data associated with the receiver
+
+        Returns
+        -------
+        int
+            Number of data associated with the receiver
+        """
         return self.locations.shape[0]
 
     def getP(self, mesh, projGLoc=None):
-        """
-        Returns the projection matrices as a
-        list for all components collected by
-        the receivers.
+        """Get projection matrix from mesh to recei
 
-        .. note::
+        Parameters
+        ----------
+        mesh : discretize.BaseMesh
+            A discretize mesh
+        projGLoc : str
+            Define what part of the mesh (i.e. edges, faces, centers, nodes) to
+            project from. Must be one of::
 
-            Projection matrices are stored as a dictionary listed by meshes.
+                'Ex', 'edges_x'           -> x-component of field defined on x edges
+                'Ey', 'edges_y'           -> y-component of field defined on y edges
+                'Ez', 'edges_z'           -> z-component of field defined on z edges
+                'Fx', 'faces_x'           -> x-component of field defined on x faces
+                'Fy', 'faces_y'           -> y-component of field defined on y faces
+                'Fz', 'faces_z'           -> z-component of field defined on z faces
+                'N', 'nodes'              -> scalar field defined on nodes
+                'CC', 'cell_centers'      -> scalar field defined on cell centers
+                'CCVx', 'cell_centers_x'  -> x-component of vector field defined on cell centers
+                'CCVy', 'cell_centers_y'  -> y-component of vector field defined on cell centers
+                'CCVz', 'cell_centers_z'  -> z-component of vector field defined on cell centers
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            P, the interpolation matrix
         """
         if projGLoc is None:
             projGLoc = self.projGLoc
@@ -97,7 +153,7 @@ class BaseRx(properties.HasProperties):
         if (mesh, projGLoc) in self._Ps:
             return self._Ps[(mesh, projGLoc)]
 
-        P = mesh.getInterpolationMat(self.locations, projGLoc)
+        P = mesh._getInterpolationMat(self.locations, projGLoc)
         if self.storeProjections:
             self._Ps[(mesh, projGLoc)] = P
         return P
@@ -114,7 +170,7 @@ class BaseRx(properties.HasProperties):
 
 
 class BaseTimeRx(BaseRx):
-    """SimPEG Receiver Object for time-domain simulations"""
+    """Base receiver class for time-domain simulations"""
 
     times = properties.Array(
         "times where the recievers measure data", shape=("*",), required=True
@@ -133,28 +189,48 @@ class BaseTimeRx(BaseRx):
 
     @property
     def nD(self):
-        """Number of data in the receiver."""
+        """Number of data associated with the receiver.
+
+        Returns
+        -------
+        int
+            Number of data associated with the receiver
+        """
         return self.locations.shape[0] * len(self.times)
 
     def getSpatialP(self, mesh):
-        """
-        Returns the spatial projection matrix.
+        """Returns the spatial projection matrix from mesh to receivers.
 
-        .. note::
+        Parameters
+        ----------
+        mesh: discretize.BaseMesh
+            A ``discretize`` mesh; i.e. ``TensorMesh``, ``CylMesh``, ``TreeMesh``
 
-            This is not stored in memory, but is created on demand.
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            The projection matrix from the mesh (one of cell centers, nodes,
+            edges, etc...) to the receivers. The returned quantity is not stored
+            in memory. Instead, it is created on demand when needed.
         """
         return mesh.getInterpolationMat(self.locations, self.projGLoc)
 
-    def getTimeP(self, timeMesh):
-        """
-        Returns the time projection matrix.
+    def getTimeP(self, time_mesh):
+        """Returns the time projection matrix from all time steps to receiver time channels.
 
-        .. note::
+        Parameters
+        ----------
+        time_mesh: discretize.TensorMesh
+            Projects from all time steps to receiver time channels
 
-            This is not stored in memory, but is created on demand.
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            The projection matrix from the mesh (one of cell centers, nodes,
+            edges, etc...) to the receivers. The returned quantity is not stored
+            in memory. Instead, it is created on demand when needed.
         """
-        return timeMesh.getInterpolationMat(self.times, self.projTLoc)
+        return time_mesh.getInterpolationMat(self.times, self.projTLoc)
 
     def getP(self, mesh, timeMesh):
         """
@@ -194,7 +270,7 @@ class BaseSrc(BaseSimPEG):
     _uid = properties.Uuid("unique identifier for the source")
 
     loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", future_warn=True
+        location, "loc", new_name="location", removal_version="0.16.0", error=True
     )
 
     @properties.validator("receiver_list")
@@ -209,7 +285,7 @@ class BaseSrc(BaseSimPEG):
         "rxList",
         new_name="receiver_list",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     def getReceiverIndex(self, receiver):
@@ -313,7 +389,7 @@ class BaseSurvey(properties.HasProperties):
         "srcList",
         new_name="source_list",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     def dpred(self, m=None, f=None):
@@ -329,66 +405,11 @@ class BaseSurvey(properties.HasProperties):
         )
 
     def pair(self, simulation):
-        warnings.warn(
-            "survey.pair(simulation) will be deprecated. Please update your code "
+        raise TypeError(
+            "survey.pair(simulation) will be removed. Please update your code "
             "to instead use simulation.survey = survey, or pass it upon intialization "
-            "of the simulation object. This will be removed in version "
-            "0.16.0 of SimPEG",
-            FutureWarning,
+            "of the simulation object."
         )
-        simulation.survey = self
-        self.simulation = simulation
-
-        def dep_dpred(target, m=None, f=None):
-            warnings.warn(
-                "The Survey.dpred method has been deprecated. Please use "
-                "simulation.dpred instead. This will be removed in version "
-                "0.16.0 of SimPEG",
-                FutureWarning,
-            )
-            return target.simulation.dpred(m=m, f=f)
-
-        self.dpred = types.MethodType(dep_dpred, self)
-
-        def dep_makeSyntheticData(target, m, std=None, f=None, **kwargs):
-            warnings.warn(
-                "The Survey.makeSyntheticData method has been deprecated. Please use "
-                "simulation.make_synthetic_data instead. This will be removed in version "
-                "0.16.0 of SimPEG",
-                FutureWarning,
-            )
-            if std is None and getattr(target, "std", None) is None:
-                rel_err = 0.05
-                print("SimPEG.Survey assigned default rel_err " "of 5%")
-            elif std is None:
-                rel_err = target.std
-            else:
-                rel_err = std
-                print(
-                    "SimPEG.Survey assigned new rel_err "
-                    "of {:.2f}%".format(100.0 * rel_err)
-                )
-
-            data = target.simulation.make_synthetic_data(
-                m, relative_error=rel_err, f=f, add_noise=True
-            )
-            target.dtrue = data.dclean
-            target.dobs = data.dobs
-            target.std = data.relative_error
-            return target.dobs
-
-        self.makeSyntheticData = types.MethodType(dep_makeSyntheticData, self)
-
-        def dep_residual(target, m, f=None):
-            warnings.warn(
-                "The Survey.residual method has been deprecated. Please use "
-                "L2DataMisfit.residual instead. This will be removed in version "
-                "0.16.0 of SimPEG",
-                FutureWarning,
-            )
-            return mkvc(target.dpred(m, f=f) - target.dobs)
-
-        self.residual = types.MethodType(dep_residual, self)
 
 
 class BaseTimeSurvey(BaseSurvey):
@@ -407,7 +428,7 @@ class BaseTimeSurvey(BaseSurvey):
         "times",
         new_name="unique_times",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
 
@@ -418,7 +439,7 @@ class BaseTimeSurvey(BaseSurvey):
 ###############################################################################
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class LinearSurvey(BaseSurvey):
     pass
 

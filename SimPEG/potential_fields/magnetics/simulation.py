@@ -9,6 +9,7 @@ import warnings
 from SimPEG import utils
 from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
+from ...base import BaseMagneticPDESimulation
 from .survey import Survey
 from .analytics import CongruousMagBC
 
@@ -188,7 +189,7 @@ class Simulation3DIntegral(BasePFSimulation):
         "modelType",
         new_name="model_type",
         removal_version="0.16.0",
-        future_warn=True,
+        error=True,
     )
 
     @property
@@ -721,7 +722,7 @@ class Simulation3DIntegral(BasePFSimulation):
     def deleteTheseOnModelUpdate(self):
         deletes = super().deleteTheseOnModelUpdate
         if self.is_amplitude_data:
-            deletes += ["_gtg_diagonal"]
+            deletes = deletes + ["_gtg_diagonal"]
         return deletes
 
     @property
@@ -732,19 +733,10 @@ class Simulation3DIntegral(BasePFSimulation):
         )
 
 
-class Simulation3DDifferential(BaseSimulation):
+class Simulation3DDifferential(BaseMagneticPDESimulation):
     """
     Secondary field approach using differential equations!
     """
-
-    # surveyPair = MAG.BaseMagSurvey
-    # modelPair = MAG.BaseMagMap
-
-    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability (H/m)", default=mu_0)
-
-    mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
-
-    props.Reciprocal(mu, mui)
 
     survey = properties.Instance("a survey object", Survey, required=True)
 
@@ -1216,11 +1208,11 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class MagneticIntegral(Simulation3DIntegral):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_Diff(Simulation3DDifferential):
     pass

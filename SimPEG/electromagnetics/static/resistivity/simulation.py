@@ -5,14 +5,14 @@ from ....utils.code_utils import deprecate_class
 
 from ....utils import mkvc, Zero
 from ....data import Data
-from ...base import BaseEMSimulation
+from ....base import BaseElectricalPDESimulation
 from .survey import Survey
 from .fields import Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
 from discretize.utils import make_boundary_bool
 
 
-class BaseDCSimulation(BaseEMSimulation):
+class BaseDCSimulation(BaseElectricalPDESimulation):
     """
     Base DC Problem
     """
@@ -38,7 +38,6 @@ class BaseDCSimulation(BaseEMSimulation):
     def fields(self, m=None, calcJ=True):
         if m is not None:
             self.model = m
-            self._Jmatrix = None
 
         f = self.fieldsPair(self)
         if self.Ainv is not None:
@@ -95,9 +94,10 @@ class BaseDCSimulation(BaseEMSimulation):
         """
         Compute sensitivity matrix (J) and vector (v) product.
         """
-
         if f is None:
             f = self.fields(m)
+
+        self.model = m
 
         if self.storeJ:
             J = self.getJ(m, f=f)
@@ -222,11 +222,11 @@ class BaseDCSimulation(BaseEMSimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super(BaseDCSimulation, self).deleteTheseOnModelUpdate
+        toDelete = super().deleteTheseOnModelUpdate
         if self._Jmatrix is not None:
-            toDelete += ["_Jmatrix"]
+            toDelete = toDelete + ["_Jmatrix"]
         if self.gtgdiag is not None:
-            toDelete += ["gtgdiag"]
+            toDelete = toDelete + ["gtgdiag"]
         return toDelete
 
     def _mini_survey_data(self, d_mini):
@@ -574,11 +574,11 @@ Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
 ############
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_N(Simulation3DNodal):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class Problem3D_CC(Simulation3DCellCentered):
     pass

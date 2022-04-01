@@ -41,8 +41,8 @@ class DCProblemTestsCC(unittest.TestCase):
             "CN",
         )
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(source_list)
         simulation = dc.simulation.Simulation3DCellCentered(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh)
         )
@@ -120,7 +120,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         src_a = np.r_[0.0, 0.0, -5.0]
         src_b = np.r_[55.0, 0.0, -5.0]
 
-        src_list = [dc.sources.Dipole(rx_list, locationA=src_a, locationB=src_b)]
+        src_list = [dc.sources.Dipole(rx_list, location_a=src_a, location_b=src_b)]
 
         self.mesh = mesh
         self.survey = dc.survey.Survey(src_list)
@@ -131,7 +131,7 @@ class DCProblemTestsCC_fields(unittest.TestCase):
             mesh=mesh,
             survey=self.survey,
             sigmaMap=self.sigma_map,
-            Solver=Pardiso,
+            solver=Pardiso,
             bc_type="Dirichlet",
         )
 
@@ -182,8 +182,8 @@ class DCProblemTestsN(unittest.TestCase):
             "CN",
         )
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(source_list)
         simulation = dc.simulation.Simulation3DNodal(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh)
         )
@@ -254,8 +254,8 @@ class DCProblemTestsN_Robin(unittest.TestCase):
             "CN",
         )
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(source_list)
         simulation = dc.simulation.Simulation3DNodal(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh), bc_type="Robin"
         )
@@ -326,8 +326,8 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
             "CN",
         )
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(source_list)
         simulation = dc.simulation.Simulation3DCellCentered(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh), storeJ=True
         )
@@ -405,8 +405,8 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
             "CN",
         )
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(source_list)
         simulation = dc.simulation.Simulation3DNodal(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh), storeJ=True
         )
@@ -484,8 +484,8 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
             "CN",
         )
 
-        srcList = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
-        survey = dc.survey.Survey(srcList)
+        source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = dc.survey.Survey(source_list)
         simulation = dc.simulation.Simulation3DNodal(
             mesh=mesh,
             survey=survey,

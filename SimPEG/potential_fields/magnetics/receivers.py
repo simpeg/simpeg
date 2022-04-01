@@ -60,6 +60,6 @@ class Point(survey.BaseRx):
         return self.receiver_index
 
 
-@deprecate_class(removal_version="0.16.0", future_warn=True)
+@deprecate_class(removal_version="0.16.0", error=True)
 class RxObs(Point):
     pass

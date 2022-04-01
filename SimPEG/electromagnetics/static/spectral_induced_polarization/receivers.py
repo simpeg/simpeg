@@ -4,7 +4,6 @@ from ....utils.code_utils import deprecate_property
 from ....utils import sdiag
 
 from ....survey import BaseTimeRx, RxLocationArray
-import warnings
 
 
 class BaseRx(BaseTimeRx):
@@ -86,20 +85,16 @@ class Dipole(BaseRx):
         # Check for old keywords
         if "locationsM" in kwargs.keys():
             locations_m = kwargs.pop("locationsM")
-            warnings.warn(
-                "The locationsM property has been deprecated. Please set the "
-                "locations_m property instead. This will be removed in version"
-                " 0.16.0 of SimPEG",
-                FutureWarning,
+            raise TypeError(
+                "The locationsM property has been removed. Please set the "
+                "locations_m property instead."
             )
 
         if "locationsN" in kwargs.keys():
             locations_n = kwargs.pop("locationsN")
-            warnings.warn(
-                "The locationsN property has been deprecated. Please set the "
-                "locations_n property instead. This will be removed in version"
-                " 0.16.0 of SimPEG",
-                FutureWarning,
+            raise TypeError(
+                "The locationsN property has been removed. Please set the "
+                "locations_n property instead."
             )
 
         # if locations_m set, then use locations_m, locations_n
@@ -156,7 +151,7 @@ class Dipole(BaseRx):
         return self.locations[0].shape[0]
 
     nRx = deprecate_property(
-        nD, "nRx", new_name="nD", removal_version="0.16.0", future_warn=True
+        nD, "nRx", new_name="nD", removal_version="0.16.0", error=True
     )
 
     def getP(self, mesh, Gloc):
@@ -190,7 +185,7 @@ class Pole(BaseRx):
         return self.locations.shape[0]
 
     nRx = deprecate_property(
-        nD, "nRx", new_name="nD", removal_version="0.16.0", future_warn=True
+        nD, "nRx", new_name="nD", removal_version="0.16.0", error=True
     )
 
     def getP(self, mesh, Gloc):
