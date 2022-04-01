@@ -189,28 +189,48 @@ class BaseTimeRx(BaseRx):
 
     @property
     def nD(self):
-        """Number of data associated with the receiver."""
+        """Number of data associated with the receiver.
+
+        Returns
+        -------
+        int
+            Number of data associated with the receiver
+        """
         return self.locations.shape[0] * len(self.times)
 
     def getSpatialP(self, mesh):
-        """
-        Returns the spatial projection matrix.
+        """Returns the spatial projection matrix from mesh to receivers.
 
-        .. note::
+        Parameters
+        ----------
+        mesh: discretize.BaseMesh
+            A ``discretize`` mesh; i.e. ``TensorMesh``, ``CylMesh``, ``TreeMesh``
 
-            This is not stored in memory, but is created on demand.
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            The projection matrix from the mesh (one of cell centers, nodes,
+            edges, etc...) to the receivers. The returned quantity is not stored
+            in memory. Instead, it is created on demand when needed.
         """
         return mesh.getInterpolationMat(self.locations, self.projGLoc)
 
-    def getTimeP(self, timeMesh):
-        """
-        Returns the time projection matrix.
+    def getTimeP(self, time_mesh):
+        """Returns the time projection matrix from all time steps to receiver time channels.
 
-        .. note::
+        Parameters
+        ----------
+        time_mesh: discretize.TensorMesh
+            Projects from all time steps to receiver time channels
 
-            This is not stored in memory, but is created on demand.
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            The projection matrix from the mesh (one of cell centers, nodes,
+            edges, etc...) to the receivers. The returned quantity is not stored
+            in memory. Instead, it is created on demand when needed.
         """
-        return timeMesh.getInterpolationMat(self.times, self.projTLoc)
+        return time_mesh.getInterpolationMat(self.times, self.projTLoc)
 
     def getP(self, mesh, timeMesh):
         """

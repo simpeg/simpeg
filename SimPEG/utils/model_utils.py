@@ -38,6 +38,8 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
     Examples
     --------
 
+    *EXAMPLE PENDING*
+
 
     """
     if mesh._meshType == "TENSOR":
@@ -250,6 +252,11 @@ def surface_layer_index(mesh, topo, index=0):
     -------
     numpy.ndarray of int
         Index vector for layer of cells
+
+    Examples
+    --------
+
+    *EXAMPLE PENDING*
 
     """
 

@@ -161,7 +161,7 @@ def create_block_in_wholespace(cell_centers, p0, p1, background_value=None, bloc
 
 
 def create_ellipse_in_wholespace(cell_centers, center=None, anisotropy=None, slope=10.0, theta=0.0):
-    """Construct cell-centered model comprised of an ellipsoid vacuum.
+    """Construct cell-centered model comprised of an ellipsoid in a wholespace.
 
     Parameters
     ----------
