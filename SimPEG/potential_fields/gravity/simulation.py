@@ -316,8 +316,27 @@ class Simulation3DIntegral(BasePFSimulation):
 
 
 class Simulation3DDifferential(BasePDESimulation):
-    """
-    Gravity in differential equations!
+    r"""Finite volume simulation class for gravity.
+
+
+    Notes
+    -----
+    From Blakely (1996), the scalar potential :math:`\phi` outside the source region
+    is obtained by solving a Poisson's equation:
+
+    .. math::
+        \nabla^2 \phi = 4 \pi \gamma \rho
+
+    where :math:`\gamma` is the gravitational constant and :math:`\rho` defines the
+    distribution of density within the source region.
+
+    Applying the finite volumn method, we can solve the Poisson's equation on a
+    3D voxel grid according to:
+
+    .. math::
+        \big [ \mathbf{D M_f D^T} \big ] \mathbf{u} = - \mathbf{M_c \, \rho}
+
+
     """
 
     _deprecate_main_map = "rhoMap"
@@ -332,20 +351,22 @@ class Simulation3DDifferential(BasePDESimulation):
         self._Div = self.mesh.face_divergence
 
     def getRHS(self):
-        """"""
+        """Return right-hand side for the linear system
+
+        """
         Mc = self.Mcc
         rho = self.rho
         return -Mc * rho
 
     def getA(self):
-        """
+        r"""
         GetA creates and returns the A matrix for the Gravity nodal problem
 
         The A matrix has the form:
 
         .. math ::
 
-            \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
+            \mathbf{A} =  \Div(\Mf Mui)^{-1}\Div^{T}
         """
         # Constructs A with 0 dirichlet
         if getattr(self, "_A", None) is None:
@@ -353,17 +374,19 @@ class Simulation3DDifferential(BasePDESimulation):
         return self._A
 
     def fields(self, m=None):
-        """
-        Return magnetic potential (u) and flux (B)
-        u: defined on the cell nodes [nC x 1]
-        gField: defined on the cell faces [nF x 1]
+        r"""Compute fields
 
-        After we compute u, then we update B.
+        **INCOMPLETE**
 
-        .. math ::
+        Parameters
+        ----------
+        m: (nP) np.ndarray
+            The model
 
-            \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
-
+        Returns
+        -------
+        dict
+            The fields
         """
         if m is not None:
             self.model = m

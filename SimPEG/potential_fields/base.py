@@ -22,7 +22,7 @@ from SimPEG.utils import mkvc
 class BasePFSimulation(LinearSimulation):
     r"""Base class for potential field simulations that use integral formulations.
 
-    For integral formulations, the forward simulation for a set of voxel calls
+    For integral formulations, the forward simulation for a set of voxel cells
     can be defined as a linear operation of the form:
 
     .. math::

@@ -4,6 +4,18 @@ Base SimPEG Classes (:mod:`SimPEG`)
 ========================================================
 .. currentmodule:: SimPEG
 
+Source, Receiver and Survey Classes
+===================================
+.. autosummary::
+  :toctree: generated/
+
+  survey.BaseRx
+  survey.BaseTimeRx
+  survey.BaseSrc
+  survey.BaseSurvey
+  survey.BaseTimeSurvey
+  
+
 Data Classes
 ============
 .. autosummary::

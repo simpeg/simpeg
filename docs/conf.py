@@ -20,6 +20,7 @@ import SimPEG
 import plotly.io as pio
 import subprocess
 import shutil
+import graphviz
 
 pio.renderers.default = "sphinx_gallery"
 
