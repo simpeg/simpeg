@@ -19,7 +19,7 @@ from scipy.sparse import csr_matrix as csr
 
 import properties
 from discretize.tests import checkDerivative
-from discretize import TensorMesh
+from discretize import TensorMesh, CylMesh
 
 from .utils import (
     setKwargs,
@@ -2575,7 +2575,7 @@ class SurjectVertical1D(IdentityMap):
     """
 
     def __init__(self, mesh, **kwargs):
-        assert isinstance(mesh, TensorMesh), 'Only implemented for tensor meshes'
+        assert isinstance(mesh, (TensorMesh, CylMesh)), 'Only implemented for tensor meshes'
         IdentityMap.__init__(self, mesh, **kwargs)
 
     @property
