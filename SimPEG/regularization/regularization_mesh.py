@@ -304,6 +304,13 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._aveCC2Fz
 
     @property
+    def base_length(self):
+        """The smallest core cell size"""
+        if getattr(self, "_base_length", None) is None:
+            self._base_length = self.mesh.h_gridded.min()
+        return self._base_length
+
+    @property
     def cell_gradient(self):
         if self.dim == 1:
             return self.cellDiffx

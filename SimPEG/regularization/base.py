@@ -662,6 +662,9 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         alpha_xx=None,
         alpha_yy=None,
         alpha_zz=None,
+        length_scale_x=None,
+        length_scale_y=None,
+        length_scale_z=None,
         mapping=None,
         objfcts=None,
         reference_model=None,
@@ -683,7 +686,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
             if mesh.dim > 2:
                 objfcts.append(SmoothDeriv(mesh=self.regularization_mesh, orientation="z"))
 
-        super().__init__(
+        super(LeastSquaresRegularization, self).__init__(
             objfcts=objfcts,
             active_cells=active_cells,
             mapping=mapping,
@@ -713,7 +716,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
     @alpha_s.setter
     def alpha_s(self, value):
-        if not isinstance(value, (float, type(None))) and value > 0:
+        if isinstance(value, (float, int)) and value < 0:
             raise ValueError("Input 'alpha_s' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
         self._alpha_s = value
@@ -722,85 +725,133 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     def alpha_x(self):
         """weight for the first x-derivative"""
         if getattr(self, "_alpha_x", None) is None:
-            self._alpha_x = self.regularization_mesh.mesh.h_gridded.min()**2.
+            self._alpha_x = (self.length_scale_x * self.regularization_mesh.base_length) ** 2.
         return self._alpha_x
 
     @alpha_x.setter
     def alpha_x(self, value):
-        if not isinstance(value, (float, type(None))) and value > 0:
+        if isinstance(value, (float, int)) and value < 0:
             raise ValueError("Input 'alpha_x' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
-        self._alpha_x = self.regularization_mesh.mesh.h_gridded.min()**2. * value
+        self._alpha_x = value
 
     @property
     def alpha_y(self):
         """weight for the first y-derivative"""
         if getattr(self, "_alpha_y", None) is None:
-            self._alpha_y = self.regularization_mesh.mesh.h_gridded.min()**2.
+            self._alpha_y = (self.length_scale_y * self.regularization_mesh.base_length) ** 2.
         return self._alpha_y
 
     @alpha_y.setter
     def alpha_y(self, value):
-        if not isinstance(value, (float, type(None))) and value > 0:
+        if isinstance(value, (float, int)) and value < 0:
             raise ValueError("Input 'alpha_y' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
-        self._alpha_y = self.regularization_mesh.mesh.h_gridded.min()**2. * value
+        self._alpha_y = value
 
     @property
     def alpha_z(self):
         """weight for the first z-derivative"""
         if getattr(self, "_alpha_z", None) is None:
-            self._alpha_z = self.regularization_mesh.mesh.h_gridded.min()**2.
+            self._alpha_z = (self.length_scale_z * self.regularization_mesh.base_length) ** 2.
         return self._alpha_z
 
     @alpha_z.setter
     def alpha_z(self, value):
-        if not isinstance(value, (float, type(None))) and value > 0:
+        if isinstance(value, (float, int)) and value < 0:
             raise ValueError("Input 'alpha_z' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
-        self._alpha_z = self.regularization_mesh.mesh.h_gridded.min()**2. * value
+        self._alpha_z = value
 
     @property
     def alpha_xx(self):
         """weight for the second x-derivative"""
         if getattr(self, "_alpha_xx", None) is None:
-            self._alpha_xx = self.regularization_mesh.mesh.h_gridded.min()**4.
+            self._alpha_xx = (self.length_scale_x * self.regularization_mesh.base_length) ** 4.
         return self._alpha_xx
 
     @alpha_xx.setter
     def alpha_xx(self, value):
-        if not isinstance(value, (float, type(None))) and value > 0:
+        if isinstance(value, (float, int)) and value < 0:
             raise ValueError("Input 'alpha_xx' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
-        self._alpha_xx = self.regularization_mesh.mesh.h_gridded.min()**4. * value
+        self._alpha_xx = value
 
     @property
     def alpha_yy(self):
         """weight for the second y-derivative"""
         if getattr(self, "_alpha_yy", None) is None:
-            self._alpha_yy = self.regularization_mesh.mesh.h_gridded.min()**4.
+            self._alpha_yy = (self.length_scale_y * self.regularization_mesh.base_length) ** 4.
         return self._alpha_yy
 
     @alpha_yy.setter
     def alpha_yy(self, value):
-        if not isinstance(value, (float, type(None))) and value > 0:
+        if isinstance(value, (float, int)) and value < 0:
             raise ValueError("Input 'alpha_yy' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
-        self._alpha_yy = self.regularization_mesh.mesh.h_gridded.min()**4. * value
+        self._alpha_yy = value
 
     @property
     def alpha_zz(self):
         """weight for the second z-derivative"""
         if getattr(self, "_alpha_zz", None) is None:
-            self._alpha_zz = self.regularization_mesh.mesh.h_gridded.min()**4.
+            self._alpha_zz = (self.length_scale_z * self.regularization_mesh.base_length) ** 4.
         return self._alpha_zz
 
     @alpha_zz.setter
     def alpha_zz(self, value):
-        if not isinstance(value, (float, type(None))) and value > 0:
+        if isinstance(value, (float, int)) and value < 0:
             raise ValueError("Input 'alpha_zz' value must me of type float > 0"
                              f"Value {value} of type {type(value)} provided")
-        self._alpha_zz = self.regularization_mesh.mesh.h_gridded.min()**4. * value
+        self._alpha_zz = value
+
+    @property
+    def length_scale_x(self):
+        """Constant multiplier of the base length scale on model gradients along x."""
+        if getattr(self, "_length_scale_x", None) is None:
+            self._length_scale_x = 1.
+        return self._length_scale_x
+
+    @length_scale_x.setter
+    def length_scale_x(self, value: float):
+        if not isinstance(value, (float, int)):
+            raise ValueError(
+                "Input length scale should be of type 'float' or 'int'. "
+                f"Provided {value} of type {type(value)}."
+            )
+        self._length_scale_x = value
+
+    @property
+    def length_scale_y(self):
+        """Constant multiplier of the base length scale on model gradients along y."""
+        if getattr(self, "_length_scale_y", None) is None:
+            self._length_scale_y = 1.
+        return self._length_scale_y
+
+    @length_scale_y.setter
+    def length_scale_y(self, value: float):
+        if not isinstance(value, (float, int)):
+            raise ValueError(
+                "Input length scale should be of type 'float' or 'int'. "
+                f"Provided {value} of type {type(value)}."
+            )
+        self._length_scale_y = value
+
+    @property
+    def length_scale_z(self):
+        """Constant multiplier of the base length scale on model gradients along z."""
+        if getattr(self, "_length_scale_z", None) is None:
+            self._length_scale_z = 1.
+        return self._length_scale_z
+
+    @length_scale_z.setter
+    def length_scale_z(self, value: float):
+        if not isinstance(value, (float, int)):
+            raise ValueError(
+                "Input length scale should be of type 'float' or 'int'. "
+                f"Provided {value} of type {type(value)}."
+            )
+        self._length_scale_z = value
 
     @property
     def reference_model_in_smooth(self) -> bool:
