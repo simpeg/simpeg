@@ -37,11 +37,19 @@ class BasePFSimulation(LinearSimulation):
     ----------
     mesh : discretize.TensorMesh or discretize.TreeMesh
         A 3D tensor or tree mesh.
+    ind_active : np.ndarray of int or bool
+        Indices array denoting the active topography cells.
+    store_sensitivities : str {'ram', 'disk', 'forward_only'}, Default='ram'
+        Options for storing sensitivities. There are 3 options
+
+        - 'ram': sensitivities are stored in the computer's RAM
+        - 'disk': sensitivities are written to a directory
+        - 'forward_only': you intend only do perform a forward simulation and sensitivities do no need to be stored
 
     """
-    actInd = properties.Array(
-        "Array of active cells (ground)", dtype=(bool, int), default=None
-    )
+    # actInd = properties.Array(
+    #     "Array of active cells (ground)", dtype=(bool, int), default=None
+    # )
 
     def __init__(self, mesh, ind_active=None, store_sensitivities='ram', **kwargs):
 
@@ -53,7 +61,7 @@ class BasePFSimulation(LinearSimulation):
 
         if "forwardOnly" in kwargs:
             store_sensitivities = kwargs.pop("forwardOnly")
-            if store_sensitivities == True:
+            if store_sensitivities:
                 self.store_sensitivities = 'forward_only'
         else:
             self.store_sensitivities = store_sensitivities
