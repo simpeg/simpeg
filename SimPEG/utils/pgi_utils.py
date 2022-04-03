@@ -19,6 +19,7 @@ from discretize.utils.code_utils import requires
 
 # sklearn is a soft dependency
 try:
+    import sklearn
     from sklearn.mixture import GaussianMixture
     from sklearn.cluster import KMeans
     from sklearn.utils import check_array
