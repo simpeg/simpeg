@@ -76,7 +76,7 @@ class BaseRx:
 
     _Ps = None
 
-    def __init__(self, locations=None, projGLoc='CC', storeProjections=False, uid=None, **kwargs):
+    def __init__(self, locations=None, projGLoc=None, storeProjections=False, uid=None, **kwargs):
 
         locs = kwargs.pop("locs", None)
         if locs is not None:
@@ -96,7 +96,8 @@ class BaseRx:
 
         if locations is not None:
             self.locations = locations
-        self.projGLoc = projGLoc
+        if projGLoc is not None:
+            self.projGLoc = projGLoc
         self.storeProjections = storeProjections
         if uid is None:
             self.uid = uuid.uuid4()
