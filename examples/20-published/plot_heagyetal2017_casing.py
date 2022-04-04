@@ -1474,8 +1474,10 @@ def run(plotIt=True, runTests=False, reRun=False, saveFig=False):
 
     # remove the downloaded results
     if reRun is False:
-        casingExample.removeStoredResults()
-
+        try:
+            casingExample.removeStoredResults()
+        except PermissionError:
+            pass
 
 if __name__ == "__main__":
     run(plotIt=True, runTests=False, reRun=False, saveFig=False)

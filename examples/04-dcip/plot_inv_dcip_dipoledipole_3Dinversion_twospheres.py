@@ -163,8 +163,8 @@ m0 = np.median(ln_sigback) * np.ones(mapping.nP)
 # Data Misfit
 dmis = data_misfit.L2DataMisfit(simulation=problem, data=data)
 # Regularization
-regT = regularization.Simple(
-    mesh, indActive=actind, alpha_s=1e-6, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0
+regT = regularization.LeastSquaresRegularization(
+    mesh, active_cells=actind, alpha_s=1e-6, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0
 )
 
 # Optimization Scheme
