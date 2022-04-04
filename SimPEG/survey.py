@@ -245,7 +245,7 @@ class BaseRx:
         if (mesh, projGLoc) in self._Ps:
             return self._Ps[(mesh, projGLoc)]
 
-        P = mesh._getInterpolationMat(self.locations, projGLoc)
+        P = mesh.getInterpolationMat(self.locations, projGLoc)
         if self.storeProjections:
             self._Ps[(mesh, projGLoc)] = P
         return P

@@ -101,9 +101,9 @@ class BaseRx(survey.BaseRx):
 
     
 
-    def projGLoc(self, f):
-        """Grid Location projection (e.g. Ex Fy ...)"""
-        return f._GLoc(self.projField) + self.orientation
+    # def projGLoc(self, f):
+    #     """Grid Location projection (e.g. Ex Fy ...)"""
+    #     return f._GLoc(self.projField) + self.orientation
 
     def eval(self, src, mesh, f):
         """
@@ -115,8 +115,9 @@ class BaseRx(survey.BaseRx):
         :rtype: numpy.ndarray
         :return: fields projected to recievers
         """
-
-        P = self.getP(mesh, self.projGLoc(f))
+        if getattr(self, 'projGLoc', None) is None:
+            self.projGLoc = f._GLoc(self.projField) + self.orientation
+        P = self.getP(mesh, self.projGLoc)
         f_part_complex = f[src, self.projField]
         f_part = getattr(f_part_complex, self.component)  # real or imag component
 
@@ -137,8 +138,10 @@ class BaseRx(survey.BaseRx):
         df_dmFun = getattr(f, "_{0}Deriv".format(self.projField), None)
 
         assert v is not None, "v must be provided to compute the deriv or adjoint"
-
-        P = self.getP(mesh, self.projGLoc(f))
+        
+        if getattr(self, 'projGLoc', None) is None:
+            self.projGLoc = f._GLoc(self.projField) + self.orientation
+        P = self.getP(mesh, self.projGLoc)
 
         if not adjoint:
             assert (
