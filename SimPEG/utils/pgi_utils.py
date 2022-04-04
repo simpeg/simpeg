@@ -228,19 +228,13 @@ def make_PGIwithRelationships_regularization(
     """
 
     if wiresmap is None:
-        wrmp = Wires(("m", mesh.nC))
-    else:
-        wrmp = wiresmap
+        wiresmap = Wires(("m", mesh.nC))
 
     if maplist is None:
-        mplst = [IdentityMap(mesh) for maps in wrmp.maps]
-    else:
-        mplst = maplist
+        maplist = [IdentityMap(mesh) for maps in wiresmap.maps]
 
     if cell_weights_list is None:
-        clwhtlst = [np.ones(maps[1].shape[0]) for maps in wrmp.maps]
-    else:
-        clwhtlst = cell_weights_list
+        cell_weights_list = [np.ones(maps[1].shape[0]) for maps in wiresmap.maps]
 
     reg = PGIwithRelationships(
         mesh=mesh,
@@ -258,18 +252,18 @@ def make_PGIwithRelationships_regularization(
     )
 
     if cell_weights_list is not None:
-        reg.objfcts[0].weights = np.hstack(clwhtlst)
+        reg.objfcts[0].weights = np.hstack(cell_weights_list)
 
     if isinstance(alpha_x, float or type(None)):
-        alpha_x = [alpha_x] * len(wrmp.maps)
+        alpha_x = [alpha_x] * len(wiresmap.maps)
 
     if isinstance(alpha_y, float or type(None)):
-        alpha_y = [alpha_y] * len(wrmp.maps)
+        alpha_y = [alpha_y] * len(wiresmap.maps)
 
     if isinstance(alpha_z, float or type(None)):
-        alpha_z = [alpha_z] * len(wrmp.maps)
+        alpha_z = [alpha_z] * len(wiresmap.maps)
 
-    for i, (wire, maps) in enumerate(zip(wrmp.maps, mplst)):
+    for i, (wire, maps) in enumerate(zip(wiresmap.maps, maplist)):
         reg += LeastSquaresRegularization(
             mesh=mesh,
             mapping=maps * wire[1],

@@ -85,7 +85,7 @@ class PGIsmallness(Small):
             if values.shape[0] == self.mapping.shape[0]:
                 values = np.tile(values, len(self.wiresmap.maps))
             else:
-                self.validate_shape("weights", values, self.shape)
+                self.validate_shape("weights", values, ((self.shape,), (len(self.wiresmap.maps) * self._nC_residual,)))
 
             self.weights[key] = values
 
@@ -953,13 +953,6 @@ class PGIwithRelationships(LeastSquaresRegularization):
         maplist=None,
         approx_gradient=True,
         approx_eval=True,
-        alpha_s=None,
-        alpha_x=None,
-        alpha_y=None,
-        alpha_z=None,
-        alpha_xx=None,
-        alpha_yy=None,
-        alpha_zz=None,
         **kwargs
     ):
         self.gmmref = copy.deepcopy(gmmref)
@@ -972,13 +965,6 @@ class PGIwithRelationships(LeastSquaresRegularization):
 
         super().__init__(
             mesh=mesh,
-            alpha_s=alpha_s,
-            alpha_x=alpha_x,
-            alpha_y=alpha_y,
-            alpha_z=alpha_z,
-            alpha_xx=alpha_xx,
-            alpha_yy=alpha_yy,
-            alpha_zz=alpha_zz,
             **kwargs
         )
 

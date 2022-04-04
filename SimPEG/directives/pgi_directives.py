@@ -83,7 +83,7 @@ class PGI_UpdateParameters(InversionDirective):
             modellist = self.pgi_reg.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
 
-            if self.pgi_reg.mrefInSmooth and self.keep_ref_fixed_in_Smooth:
+            if self.pgi_reg.reference_model_in_smooth and self.keep_ref_fixed_in_Smooth:
                 self.fixed_membership = np.c_[
                     np.arange(len(self.pgi_reg.gmmref.cell_volumes)),
                     self.pgi_reg.compute_quasi_geology_model(),
@@ -460,8 +460,8 @@ class PGI_AddMrefInSmooth(InversionDirective):
         ) and (
             same_mref or not self.wait_till_stable or percent_diff <= self.tolerance
         ):
-            self.reg.mrefInSmooth = True
-            self.pgi_reg.mrefInSmooth = True
+            self.reg.reference_model_in_smooth = True
+            self.pgi_reg.reference_model_in_smooth = True
 
             if self._regmode == 2:
                 for i in range(self.nbr):
