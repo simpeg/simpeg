@@ -645,12 +645,10 @@ class BaseSurvey:
 
     @source_list.setter
     def source_list(self, new_list):
-
-        if isinstance(new_list, BaseSrc):
+        if not isinstance(new_list, list):
             new_list = [new_list]
-        elif isinstance(new_list, list):
-            pass
-        else:
+        
+        if any([isinstance(x, BaseSrc)==False for x in new_list]):
             raise TypeError("Source list must be a list of SimPEG.survey.BaseSrc")
 
         assert len(set(new_list)) == len(new_list), "The source_list must be unique. Cannot re-use sources"

@@ -5,33 +5,17 @@ from ... import survey
 
 
 class BaseRx(survey.BaseRx):
+    """Base FDEM receivers class.
+
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) np.ndarray
+        Receiver locations. 
+    orientation : str, default = 'z'
+        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    component : str
+        Real or imaginary component. Choose one of: 'real' or 'imag'
     """
-    Frequency domain receiver base class
-
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
-    """
-
-    orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
-    )
-
-    component = properties.StringChoice(
-        "component of the field (real or imag)",
-        {
-            "real": ["re", "in-phase", "in phase"],
-            "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-        },
-    )
-
-    projComp = deprecate_property(
-        orientation,
-        "projComp",
-        new_name="orientation",
-        removal_version="0.16.0",
-        error=True,
-    )
 
     def __init__(self, locations, orientation=None, component=None, **kwargs):
         proj = kwargs.pop("projComp", None)
@@ -43,6 +27,79 @@ class BaseRx(survey.BaseRx):
         self.component = component
 
         super(BaseRx, self).__init__(locations, **kwargs)
+
+    # orientation = properties.StringChoice(
+    #     "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
+    # )
+
+    @property
+    def orientation(self):
+        """Orientation of the receiver.
+
+        Returns
+        -------
+        str
+            Orientation of the receiver. One of {'x', 'y', 'z'}
+        """
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, var):
+
+        if isinstance(var, str):
+            var = var.lower()
+            if var not in ('x', 'y', 'z'):
+                raise ValueError(f"orientation must be either 'x', 'y' or 'z'. Got {var}")
+        else:
+            raise TypeError(f"orientation must be a str. Got {type(var)}")
+
+        self._orientation = var
+
+    # component = properties.StringChoice(
+    #     "component of the field (real or imag)",
+    #     {
+    #         "real": ["re", "in-phase", "in phase"],
+    #         "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
+    #     },
+    # )
+
+    @property
+    def component(self):
+        """Data component; i.e. real or imaginary.
+
+        Returns
+        -------
+        str
+            Orientation of the receiver; i.e. 'real' or 'imag'
+        """
+        return self._component
+
+    @component.setter
+    def component(self, var):
+
+        if isinstance(var, str):
+            if var.lower() in ('real', 're', 'in-phase', 'in phase'):
+                self._component = 'real'
+            elif var.lower() in ('imag', 'imaginary', 'im', 'out-of-phase', 'out of phase', 'quadrature'):
+                self._component = 'imag'
+            else:
+                raise ValueError(f"orientation must be either 'real' or 'imag'. Got {var}")
+        else:
+            raise TypeError(f"orientation must be a str. Got {type(var)}")
+
+    
+
+    
+
+    projComp = deprecate_property(
+        orientation,
+        "projComp",
+        new_name="orientation",
+        removal_version="0.16.0",
+        error=True,
+    )
+
+    
 
     def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""

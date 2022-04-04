@@ -42,38 +42,83 @@ class BaseEMSimulation(BaseElectricalPDESimulation, BaseMagneticPDESimulation):
 
 
 class BaseEMSrc(BaseSrc):
-    """
-    Base class for an EM sources
+    """Base class for a electromagnetic sources
+
+    Parameters
+    ----------
+    location : (n_dim) numpy.ndarray
+        Location of the source
+    receiver_list : list of SimPEG.survey.BaseRx objects
+        Sets the receivers associated with the source
+    uid : uuid.UUID
+        A universally unique identifier
+    integrate : bool
+        If ``True``, we integrate the source term
     """
 
-    integrate = properties.Bool("integrate the source term?", default=False)
+    def __init__(self, receiver_list=None, location=None, integrate=False, **kwargs):
+
+        super(BaseEMSrc, self).__init__(
+            receiver_list=receiver_list, location=location, **kwargs
+        )
+        self.integrate = integrate
+
+    # integrate = properties.Bool("integrate the source term?", default=False)
+
+    @property
+    def integrate(self):
+        """Integrated source term
+
+        Returns
+        -------
+        bool
+            If ``True``, the source term is integrated
+        """
+        return self._integrate
+
+    @integrate.setter
+    def integrate(self, var):
+        if not isinstance(var, bool):
+            raise TypeError(f"integrate property is a bool. Got {type(var)}")
+        self._integrate = var
 
     def eval(self, simulation):
-        """
-        - :math:`s_m` : magnetic source term
-        - :math:`s_e` : electric source term
+        """Return magnetic and electric source terms
 
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :rtype: tuple
-        :return: tuple with magnetic source term and electric source term
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
+            An instance of an electromagnetic simulation
+
+        Returns
+        -------
+        tuple
+            A tuple (s_m, s_e), where s_m is the discretized magnetic source term
+            and s_e is the discretized electric course term.
         """
         s_m = self.s_m(simulation)
         s_e = self.s_e(simulation)
         return s_m, s_e
 
     def evalDeriv(self, simulation, v=None, adjoint=False):
-        """
-        Derivatives of the source terms with respect to the inversion model
-        - :code:`s_mDeriv` : derivative of the magnetic source term
-        - :code:`s_eDeriv` : derivative of the electric source term
+        """Return derivative of the magnetic and electric source terms with respect to the model.
 
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: tuple
-        :return: tuple with magnetic source term and electric source term
-            derivatives times a vector
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
+            An instance of an electromagnetic simulation
+        v : np.ndarray
+            A vector
+        adjoint : bool
+            If ``True``, return the adjoint operation
 
+        Returns
+        -------
+        tuple
+            A tuple (s_mDeriv, s_eDerive). If `v` is not ``None``, the method returns
+            the derivatives of the magnetic and electric sources times the vector `v`.
+            If `v` is ``None``, the method returns the functions for multiplying the
+            derivatives with a vector.
         """
         if v is not None:
             return (

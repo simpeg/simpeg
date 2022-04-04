@@ -15,21 +15,52 @@ from ..base import BaseEMSrc
 
 
 class BaseFDEMSrc(BaseEMSrc):
-    """
-    Base source class for FDEM Survey
+    """Base FDEM source class
+
+    Parameters
+    ----------
+
     """
 
-    frequency = properties.Float("frequency of the source", min=0, required=True)
+    # frequency = properties.Float("frequency of the source", min=0, required=True)
 
     _ePrimary = None
     _bPrimary = None
     _hPrimary = None
     _jPrimary = None
 
-    def __init__(self, receiver_list=None, frequency=None, **kwargs):
-        super(BaseFDEMSrc, self).__init__(receiver_list=receiver_list, **kwargs)
+    def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
+
+        super(BaseFDEMSrc, self).__init__(
+            receiver_list=receiver_list, location=location, **kwargs
+        )
+        if 'freq' in kwargs:
+            frequency = kwargs.pop('freq')
         if frequency is not None:
             self.frequency = frequency
+
+    @property
+    def frequency(self):
+        """Source frequency
+
+        Returns
+        -------
+        float
+            Source frequency
+        """
+        return self._frequency
+
+    @frequency.setter
+    def frequency(self, freq):
+        try:
+            loc = float(freq)
+        except:
+            raise TypeError(f"frequency must be int or float, got {type(freq)}")
+
+        if freq < 0.:
+            raise TypeError(f"frequency must be a positive value")
+
+        self._frequency=freq
 
     def bPrimary(self, simulation):
         """
@@ -235,7 +266,7 @@ class RawVec(BaseFDEMSrc):
 
 
 class MagDipole(BaseFDEMSrc):
-    """
+    r"""
     Point magnetic dipole source calculated by taking the curl of a magnetic
     vector potential. By taking the discrete curl, we ensure that the magnetic
     flux density is divergence free (no magnetic monopoles!).
@@ -293,23 +324,155 @@ class MagDipole(BaseFDEMSrc):
     :param float mu: background magnetic permeability
 
     """
+    def __init__(
+        self,
+        receiver_list=None,
+        frequency=None,
+        location=np.r_[0.0, 0.0, 0.0],
+        moment=1.,
+        orientation='Z',
+        mu=mu_0,
+        **kwargs
+    ):
 
-    moment = properties.Float("dipole moment of the transmitter", default=1.0, min=0.0)
-    mu = properties.Float("permeability of the background", default=mu_0, min=0.0)
-    orientation = properties.Vector3(
-        "orientation of the source", default="Z", length=1.0, required=True
-    )
-    location = LocationVector(
-        "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
-    )
-    loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", error=True
-    )
+        super(MagDipole, self).__init__(
+            receiver_list=receiver_list, frequency=frequency, location=location, **kwargs
+        )
 
-    def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
-        super(MagDipole, self).__init__(receiver_list, frequency=frequency, **kwargs)
-        if location is not None:
-            self.location = location
+        self.moment = moment
+        self.orientation = orientation
+        self.mu = mu
+
+    # moment = properties.Float("dipole moment of the transmitter", default=1.0, min=0.0)
+    # mu = properties.Float("permeability of the background", default=mu_0, min=0.0)
+    # orientation = properties.Vector3(
+    #     "orientation of the source", default="Z", length=1.0, required=True
+    # )
+    # location = LocationVector(
+    #     "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
+    # )
+    # loc = deprecate_property(
+    #     location, "loc", new_name="location", removal_version="0.16.0", error=True
+    # )
+
+    # def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
+    #     super(MagDipole, self).__init__(receiver_list, frequency=frequency, **kwargs)
+    #     if location is not None:
+    #         self.location = location
+
+
+    @property
+    def location(self):
+        """Location of the dipole
+
+        Returns
+        -------
+        (3) numpy.ndarray of float
+            xyz dipole location
+        """
+        return self._location
+
+    @location.setter
+    def location(self, vec):
+
+        try:
+            vec = np.atleast_1d(vec).astype(float)
+        except:
+            raise TypeError(f"location must be array_like, got {type(vec)}")
+
+        if len(vec) != 3:
+            raise ValueError(
+                f"location must be array_like with shape (3,), got {len(vec)}"
+            )
+
+        self._location = vec
+    
+
+    @property
+    def moment(self):
+        """Amplitude of the dipole moment of the magnetic dipole (:math:`A/m^2`)
+
+        Returns
+        -------
+        float
+            Amplitude of the dipole moment of the magnetic dipole (:math:`A/m^2`)
+        """
+        return self._moment
+
+    @moment.setter
+    def moment(self, value):
+
+        try:
+            value = float(value)
+        except:
+            raise TypeError(f"moment must be a number, got {type(value)}")
+
+        if value <= 0.0:
+            raise ValueError("moment must be greater than 0")
+
+        self._moment = value
+
+
+    @property
+    def orientation(self):
+        """Orientation of the dipole as a normalized vector
+
+        Returns
+        -------
+        (3) numpy.ndarray of float or str in {'X','Y','Z'}
+            dipole orientation, normalized to unit magnitude
+        """
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, var):
+
+        if isinstance(var, str):
+            if var.upper() == 'X':
+                var = np.r_[1., 0., 0.]
+            elif var.upper() == 'Y':
+                var = np.r_[0., 1., 0.]
+            elif var.upper() == 'Z':
+                var = np.r_[0., 0., 1.]
+        else:
+            try:
+                var = np.atleast_1d(var).astype(float)
+            except:
+                raise TypeError(f"orientation must be str or array_like, got {type(var)}")
+
+            if len(var) != 3:
+                raise ValueError(
+                    f"orientation must be array_like with shape (3,), got {len(var)}"
+                )
+
+        # Normalize the orientation
+        var /= np.sqrt(np.sum(var**2))
+
+        self._orientation = var
+
+    @property
+    def mu(self):
+        """Magnetic permeability in H/m
+
+        Returns
+        -------
+        float
+            Magnetic permeability in H/m
+        """
+        return self._mu
+
+    @mu.setter
+    def mu(self, value):
+
+        try:
+            value = float(value)
+        except:
+            raise TypeError(f"mu must be a number, got {type(value)}")
+
+        if value <= 0.0:
+            raise ValueError("mu must be greater than 0")
+
+        self._mu = value
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_dipole", None) is None:

@@ -13,11 +13,11 @@ class Survey(BaseSurvey):
     Frequency domain electromagnetic survey
     """
 
-    source_list = properties.List(
-        "A list of sources for the survey",
-        properties.Instance("A SimPEG source", BaseFDEMSrc),
-        default=[],
-    )
+    # source_list = properties.List(
+    #     "A list of sources for the survey",
+    #     properties.Instance("A SimPEG source", BaseFDEMSrc),
+    #     default=[],
+    # )
 
     def __init__(self, source_list=None, **kwargs):
         # Sort these by frequency
@@ -31,6 +31,31 @@ class Survey(BaseSurvey):
 
         self._frequency_dict = _frequency_dict
         self._frequencies = sorted([f for f in self._frequency_dict])
+
+    @property
+    def source_list(self):
+        """List of FDEM sources associated with the survey
+
+        Returns
+        -------
+        list of SimPEG.survey.BaseFDEMSrc
+            List of FDEM sources associated with the survey
+        """
+        return self._source_list
+
+    @source_list.setter
+    def source_list(self, new_list):
+        if not isinstance(new_list, list):
+            new_list = [new_list]
+        
+        if any([isinstance(x, BaseFDEMSrc)==False for x in new_list]):
+            raise TypeError("Source list must be a list of SimPEG.survey.BaseFDEMSrc")
+
+        assert len(set(new_list)) == len(new_list), "The source_list must be unique. Cannot re-use sources"
+
+        self._sourceOrder = dict()
+        [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(new_list)]
+        self._source_list = new_list
 
     @property
     def frequencies(self):
@@ -49,7 +74,13 @@ class Survey(BaseSurvey):
 
     @property
     def num_frequencies(self):
-        """Number of frequencies"""
+        """Number of frequencies
+
+        Returns
+        -------
+        int
+            Number of frequencies
+        """
         return len(self._frequency_dict)
 
     nFreq = deprecate_property(
