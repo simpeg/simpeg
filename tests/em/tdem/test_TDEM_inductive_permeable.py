@@ -258,22 +258,23 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         prob.rho = 1.0 / 1e-3 * np.ones(mesh.nC)
         v = utils.mkvc(np.random.rand(mesh.nE))
         w = utils.mkvc(np.random.rand(mesh.nF))
-        assert np.all(
-            mesh.getEdgeInnerProduct(1e-3 * np.ones(mesh.nC)) * v == prob.MeSigma * v
+
+        np.testing.assert_allclose(
+            mesh.getEdgeInnerProduct(1e-3 * np.ones(mesh.nC)) * v, prob.MeSigma * v
         )
 
-        assert np.all(
-            mesh.getEdgeInnerProduct(1e-3 * np.ones(mesh.nC), invMat=True) * v
-            == prob.MeSigmaI * v
-        )
-        assert np.all(
-            mesh.getFaceInnerProduct(1.0 / 1e-3 * np.ones(mesh.nC)) * w
-            == prob.MfRho * w
+        np.testing.assert_allclose(
+            mesh.getEdgeInnerProduct(1e-3 * np.ones(mesh.nC), invMat=True) * v,
+            prob.MeSigmaI * v,
         )
 
-        assert np.all(
-            mesh.getFaceInnerProduct(1.0 / 1e-3 * np.ones(mesh.nC), invMat=True) * w
-            == prob.MfRhoI * w
+        np.testing.assert_allclose(
+            mesh.getFaceInnerProduct(1.0 / 1e-3 * np.ones(mesh.nC)) * w, prob.MfRho * w
+        )
+
+        np.testing.assert_allclose(
+            mesh.getFaceInnerProduct(1.0 / 1e-3 * np.ones(mesh.nC), invMat=True) * w,
+            prob.MfRhoI * w,
         )
 
 

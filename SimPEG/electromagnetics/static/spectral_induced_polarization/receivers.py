@@ -4,7 +4,6 @@ from ....utils.code_utils import deprecate_property
 from ....utils import sdiag
 
 from ....survey import BaseTimeRx, RxLocationArray
-import warnings
 
 
 class BaseRx(BaseTimeRx):
