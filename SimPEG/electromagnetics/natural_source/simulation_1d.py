@@ -37,13 +37,14 @@ class Simulation1DRecursive(BaseSimulation):
 
     # Add layer thickness as invertible property
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "thicknesses of the layers starting from the positive end of the mesh"
+        "thicknesses of the layers starting from the bottom of the mesh"
     )
 
     # Must be 1D survey object
     survey = properties.Instance("a frequency_domain survey", Survey, required=True)
     fix_Jmatrix = False
 
+    # TODO: These should be moved to geoana
     def _get_recursive_impedances(self, frequencies, thicknesses, sigmas):
         """
         For a given layered Earth model, this returns the complex impedances
@@ -52,11 +53,11 @@ class Simulation1DRecursive(BaseSimulation):
         Parameters
         ----------
         frequencies : (n_freq, ) np.ndarray
-            vector with frequencies in Hz
+            Frequencies in Hz
         thicknesses : (n_layer-1, ) np.ndarray
-            layer thicknesses
+            Layer thicknesses in meters, starting from the bottom
         sigmas : (n_layer, ) np.ndarray
-            layer conductivities
+            Layer conductivities in S/m, starting from the bottom
 
         Returns
         -------
@@ -64,8 +65,8 @@ class Simulation1DRecursive(BaseSimulation):
             complex impedances at surface
         """
         frequencies = np.asarray(frequencies)
-        thicknesses = np.asarray(thicknesses)
-        sigmas = np.asarray(sigmas)
+        thicknesses = np.asarray(thicknesses)[::-1]
+        sigmas = np.asarray(sigmas)[::-1]
         omega = 2 * np.pi * frequencies
         n_layer = len(sigmas)
 
@@ -92,9 +93,9 @@ class Simulation1DRecursive(BaseSimulation):
         frequencies : (n_freq, ) np.ndarray
             Frequencies in Hz
         thicknesses : (n_layer-1, ) np.ndarray
-            Layer thicknesses in meters
+            Layer thicknesses in meters, starting from the bottom
         sigmas : (n_layer, ) np.ndarray
-            Layer conductivities in S/m
+            Layer conductivities in S/m, starting from the bottom
 
         Returns
         -------
@@ -106,8 +107,8 @@ class Simulation1DRecursive(BaseSimulation):
             Derivative of complex impedances at surface with respect to thicknesses
         """
         frequencies = np.asarray(frequencies)
-        thicknesses = np.asarray(thicknesses)
-        sigmas = np.asarray(sigmas)
+        thicknesses = np.asarray(thicknesses)[::-1]
+        sigmas = np.asarray(sigmas)[::-1]
         omega = 2 * np.pi * frequencies
         n_layer = len(sigmas)
 
@@ -149,18 +150,23 @@ class Simulation1DRecursive(BaseSimulation):
 
         d_sigma = - ratios / sigmas[:, None] * gratios
         d_sigma += (0.5j * omega * mu_0) / alphas * galphas
-        return Zs[0], d_sigma.T, d_thick.T
+
+        # d_mu would be this below when it gets activated:
+        # d_mu = (0.5j * omega * sigmas[:, None]) / alphas * galphas
+        return Zs[0], d_sigma[::-1].T, d_thick[::-1].T
 
     def fields(self, m):
+        # The layered simulation does not have fields.
+        return None
+
+    def dpred(self, m, f=None):
         """
         Computes the data for a given 1D model.
 
         :param np.array m: inversion model (nP,)
         :return np.array f: data (nD,)
         """
-
-        if m is not None:
-            self.model = m
+        self.model = m
 
         # Compute complex impedances for each frequency=
         Z = self._get_recursive_impedances(
@@ -168,7 +174,7 @@ class Simulation1DRecursive(BaseSimulation):
         )
 
         # For each complex impedance, extract compute datum
-        f = []
+        d = []
         for src in self.survey.source_list:
             i_freq = np.searchsorted(self.survey.frequencies, src.frequency)
             for rx in src.receiver_list:
@@ -190,33 +196,15 @@ class Simulation1DRecursive(BaseSimulation):
                         )
                     )
 
-        return np.array(f)
-
-    def dpred(self, m=None, f=None):
-        """
-        Predict data vector for a given model.
-
-        :param numpy.ndarray m: inversion model (nP,)
-        :return numpy.ndarray d: data (nD,)
-        """
-
-        if f is None:
-            if m is None:
-                m = self.model
-            f = self.fields(m)
-
-        return f
+        return np.array(d)
 
     def getJ(self, m, f=None):
-
         """
         Compute and store the sensitivity matrix.
 
         :param numpy.ndarray m: inversion model (nP,)
-        :param String method: Choose from '1st_order' or '2nd_order'
         :return numpy.ndarray J: Sensitivity matrix (nD, nP)
         """
-
         # Analytic computation
         self.model = m
         if getattr(self, '_Jmatrix', None) is not None:
@@ -233,7 +221,6 @@ class Simulation1DRecursive(BaseSimulation):
             Js.append(Z_dthick)
         Js = np.hstack(Js)
 
-        # build data projection matrix
         J = np.empty((self.survey.nD, Js.shape[1]))
 
         start = 0
@@ -275,10 +262,10 @@ class Simulation1DRecursive(BaseSimulation):
         return self._Jmatrix
 
     def getJtJdiag(self, m, W=None):
-        if self.gtgdiag is None:
+        if getattr(self, '_gtgdiag', None) is None:
             Js = self.getJ(m)
             if W is None:
-                W = np.ones(J.shape[0])
+                W = np.ones(self.survey.nD)
             else:
                 W = W.diagonal() ** 2
 
@@ -289,18 +276,10 @@ class Simulation1DRecursive(BaseSimulation):
             if self.thicknessesMap is not None:
                 J = Js['thick'] @ self.thicknessesDeriv
                 gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
-            self.gtgdiag = gtgdiag
-        return self.gtgdiag
+            self._gtgdiag = gtgdiag
+        return self._gtgdiag
 
     def Jvec(self, m, v, f=None):
-        """
-        Sensitivity times a vector.
-
-        :param numpy.ndarray m: inversion model (nP,)
-        :param numpy.ndarray v: vector which we take sensitivity product
-            witH (nP,)
-        :return numpy.ndarray Jv: Jv (nD,)
-        """
         J = self.getJ(m, f=None)
         Jvec = 0
         if self.sigmaMap is not None:
@@ -310,22 +289,13 @@ class Simulation1DRecursive(BaseSimulation):
         return Jvec
 
     def Jtvec(self, m, v, f=None):
-        """
-        Transpose of sensitivity times a vector.
-
-        :param numpy.ndarray m: inversion model (nP,)
-        :param numpy.ndarray v: vector which we take sensitivity product
-            with (nD,)
-        :return numpy.ndarray Jtv: Jtv (nP,)
-        """
-
         J = self.getJ(m, f=None)
-        JTvec = []
+        JTvec = 0
         if self.sigmaMap is not None:
-            JTvec.append(self.sigmaDeriv.T @ (J['sigma'].T @ v))
+            JTvec += self.sigmaDeriv.T @ (J['sigma'].T @ v)
         if self.thicknessesMap is not None:
-            JTvec.append(self.thicknessesDeriv.T @ (J['thick'].T @ v))
-        return np.concatenate(JTvec)
+            JTvec += self.thicknessesDeriv.T @ (J['thick'].T @ v)
+        return JTvec
 
     @property
     def deleteTheseOnModelUpdate(self):
@@ -333,5 +303,5 @@ class Simulation1DRecursive(BaseSimulation):
         if self.fix_Jmatrix:
             return toDelete
         else:
-            toDelete = toDelete + ["_Jmatrix"]
+            toDelete = toDelete + ["_Jmatrix", "_gtgdiag"]
         return toDelete

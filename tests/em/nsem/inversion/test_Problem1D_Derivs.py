@@ -39,25 +39,25 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
     survey = nsem.survey.Survey(source_list)
 
     # Layer thicknesses
-    layer_thicknesses = np.array([200, 200])
+    layer_thicknesses = np.array([200, 100])
 
     # Layer conductivities
-    model = np.array([0.001, 0.01, 0.001])
+    sigma_model = np.array([0.001, 0.01, 0.1])
 
     # Define a mapping for conductivities
-    model_mapping = maps.IdentityMap()
+    mapping = maps.Wires(('sigma', 3), ('thicknesses', 2))
 
     simulation = nsem.simulation_1d.Simulation1DRecursive(
-        survey=survey, thicknesses=layer_thicknesses, sigmaMap=model_mapping
+        survey=survey, sigmaMap=mapping.sigma, thicknessesMap=mapping.thicknesses,
     )
 
-    x0 = model
+    x0 = np.r_[sigma_model, layer_thicknesses]
     np.random.seed(1983)
 
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
 
-    return tests.checkDerivative(fun, model, num=6, plotIt=False, eps=FLR)
+    return tests.checkDerivative(fun, x0, num=6, plotIt=False, eps=FLR)
 
 
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):

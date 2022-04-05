@@ -59,7 +59,7 @@ class Simulation1DElectricField(BaseFDEMSimulation):
     """
 
     _solutionType = "eSolution"
-    _formulation = "HJ"  # magnetic component is on edges
+    _formulation = "EB"  # electric-field component is on cell-centers
     fieldsPair = Fields1DElectricField
 
     def __init__(self, mesh, **kwargs):
@@ -194,10 +194,6 @@ class Simulation1DPrimarySecondary(Simulation1DElectricField):
 
     The primary field is estimated from a background model (commonly half space ).
     """
-
-    # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
-    _solutionType = "e_1dSolution"
-    _formulation = "EF"
     fieldsPair = Fields1DPrimarySecondary
 
     # Initiate properties
@@ -235,7 +231,7 @@ class Simulation1DPrimarySecondary(Simulation1DElectricField):
         # Get sources for the frequncy(polarizations)
         src = self.survey.get_sources_by_frequency(freq)[0]
         # Only select the yx polarization
-        S_e = mkvc(src.S_e(self)[:, 1], 2)
+        S_e = mkvc(src.s_e(self)[:, 1], 2)
         return -1j * omega(freq) * S_e
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):

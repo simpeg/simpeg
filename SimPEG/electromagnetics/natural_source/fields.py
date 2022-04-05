@@ -5,17 +5,13 @@ from ...utils.code_utils import deprecate_class
 
 from ...fields import Fields
 from ..frequency_domain.fields import FieldsFDEM
-from ...utils import spzeros, Identity, Zero, sdiag
+from ...utils import spzeros, Identity, Zero
 from ..utils import omega
 
 
 # ##############
 # #   Fields   #
 # ##############
-# class BaseNSEMFields(Fields):
-#     """Field Storage for a NSEM method."""
-#     knownFields = {}
-#     dtype = complex
 
 
 class _1DField:
@@ -192,15 +188,15 @@ class Fields1DPrimarySecondary(FieldsFDEM):
     Solving for e fields, using primary/secondary formulation
     """
 
-    knownFields = {"e_1dSolution": "N"}
+    knownFields = {"eSolution": "N"}
     aliasFields = {
-        "e": ["e_1dSolution", "N", "_e"],
-        "ePrimary": ["e_1dSolution", "N", "_ePrimary"],
-        "eSecondary": ["e_1dSolution", "N", "_eSecondary"],
-        "b": ["e_1dSolution", "CC", "_b"],
-        "bPrimary": ["e_1dSolution", "CC", "_bPrimary"],
-        "bSecondary": ["e_1dSolution", "CC", "_bSecondary"],
-        "h": ["e_1dSolution", "CC", "_h"],
+        "e": ["eSolution", "N", "_e"],
+        "ePrimary": ["eSolution", "N", "_ePrimary"],
+        "eSecondary": ["eSolution", "N", "_eSecondary"],
+        "b": ["eSolution", "CC", "_b"],
+        "bPrimary": ["eSolution", "CC", "_bPrimary"],
+        "bSecondary": ["eSolution", "CC", "_bSecondary"],
+        "h": ["eSolution", "CC", "_h"],
     }
 
     field_directions = "xy"

@@ -7,7 +7,7 @@ from discretize.utils import Zero
 
 from ... import props
 from ...data import Data
-from ...utils import mkvc, Zero
+from ...utils import mkvc
 from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
@@ -193,11 +193,11 @@ class BaseFDEMSimulation(BaseEMSimulation):
         Srcs = self.survey.get_sources_by_frequency(freq)
         n_fields = sum(src._fields_per_source for src in Srcs)
         if self._formulation == "EB":
-            s_m = np.zeros((self.mesh.nF, n_fields), dtype=complex)
-            s_e = np.zeros((self.mesh.nE, n_fields), dtype=complex)
+            s_m = np.zeros((self.mesh.nF, n_fields), dtype=complex, order="F")
+            s_e = np.zeros((self.mesh.nE, n_fields), dtype=complex, order="F")
         elif self._formulation == "HJ":
-            s_m = np.zeros((self.mesh.nE, n_fields), dtype=complex)
-            s_e = np.zeros((self.mesh.nF, n_fields), dtype=complex)
+            s_m = np.zeros((self.mesh.nE, n_fields), dtype=complex, order="F")
+            s_e = np.zeros((self.mesh.nF, n_fields), dtype=complex, order="F")
 
         i = 0
         for src in Srcs:

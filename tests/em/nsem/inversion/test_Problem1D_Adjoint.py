@@ -8,7 +8,6 @@ from scipy.constants import mu_0
 
 from SimPEG.electromagnetics import natural_source as nsem
 from SimPEG import maps
-from discretize import TensorMesh
 
 
 TOL = 1e-4
@@ -40,61 +39,28 @@ def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
     # Define the survey object
     survey = nsem.survey.Survey(source_list)
 
-    ###############################################
-    # Defining a 1D Layered Earth Model
-    # ---------------------------------
-    #
-    # Here, we define the layer thicknesses and electrical conductivities for our
-    # 1D simulation. If we have N layers, we define N electrical conductivity
-    # values and N-1 layer thicknesses. The lowest layer is assumed to extend to
-    # infinity.
-    #
-
     # Layer thicknesses
-    layer_thicknesses = np.array([200, 200])
+    layer_thicknesses = np.array([200, 100])
 
     # Layer conductivities
-    model = np.array([0.001, 0.01, 0.001])
+    sigma_model = np.array([0.001, 0.01, 0.1])
 
-    # Define a mapping for conductivities
-    model_mapping = maps.IdentityMap()
-
-    ###############################################################
-    # Plot Resistivity Model
-    # ----------------------
-    #
-    # Here we plot the 1D conductivity model.
-    #
-
-    # Define a 1D mesh for plotting. Provide a maximum depth for the plot.
-    max_depth = 600
-    plotting_mesh = TensorMesh(
-        [np.r_[layer_thicknesses, max_depth - layer_thicknesses.sum()]]
-    )
-
-    #######################################################################
-    # Define the Forward Simulation and Predict MT Data
-    # -------------------------------------------------
-    #
-    # Here we predict MT data. If the keyword argument *rhoMap* is
-    # defined, the simulation will expect a resistivity model. If the keyword
-    # argument *sigmaMap* is defined, the simulation will expect a conductivity model.
-    #
+    # Define a mapping for conductivities, thicknesses
+    mapping = maps.Wires(('sigma', 3), ('thicknesses', 2))
 
     simulation = nsem.simulation_1d.Simulation1DRecursive(
-        survey=survey, thicknesses=layer_thicknesses, sigmaMap=model_mapping
+        survey=survey, sigmaMap=mapping.sigma, thicknessesMap=mapping.thicknesses,
     )
 
-    m = model
+    m = np.r_[sigma_model, layer_thicknesses]
     u = simulation.fields(m)
 
     np.random.seed(1983)
-    v = np.random.rand(survey.nD,)
-    # print problem.PropMap.PropModel.nP
-    w = np.random.rand(plotting_mesh.nC,)
+    v = np.random.rand(survey.nD)
+    w = np.random.rand(len(m))
 
-    vJw = v.ravel().dot(simulation.Jvec(m, w, u))
-    wJtv = w.ravel().dot(simulation.Jtvec(m, v, u))
+    vJw = v.dot(simulation.Jvec(m, w, u))
+    wJtv = w.dot(simulation.Jtvec(m, v, u))
     tol = np.max([TOL * (10 ** int(np.log10(np.abs(vJw)))), FLR])
     print(" vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol")
     print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)
@@ -136,15 +102,6 @@ class NSEM_1D_AdjointTests(unittest.TestCase):
     def setUp(self):
         pass
 
-    # Test the adjoint of Jvec and Jtvec
-    # def test_JvecAdjoint_zxxr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zxxr',.1))
-    # def test_JvecAdjoint_zxxi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zxxi',.1))
-    # def test_JvecAdjoint_zxyr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zxyr',.1))
-    # def test_JvecAdjoint_zxyi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zxyi',.1))
-    # def test_JvecAdjoint_zyxr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyxr',.1))
-    # def test_JvecAdjoint_zyxi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyxi',.1))
-    # def test_JvecAdjoint_zyyr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyyr',.1))
-    # def test_JvecAdjoint_zyyi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyyi',.1))
     def test_JvecAdjoint_All(self):
         self.assertTrue(JvecAdjointTest(1e-2))
 
