@@ -221,7 +221,7 @@ class BaseRx:
         return self.locations.shape[0]
 
     def getP(self, mesh, projGLoc=None):
-        """Get projection matrix from mesh to recei
+        """Get projection matrix from mesh to receivers
 
         Parameters
         ----------

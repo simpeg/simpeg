@@ -7,17 +7,56 @@ from ...survey import BaseTimeRx
 
 
 class BaseRx(BaseTimeRx):
-    """
-    Time domain receiver base class
+    """Base TDEM receiver class
 
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param numpy.ndarray times: times
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) np.ndarray
+        Receiver locations. 
+    orientation : str, default = 'z'
+        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    times : (n_times) np.ndarray
+        Time channels
     """
+    def __init__(self, locations, times, orientation='z', **kwargs):
+        proj = kwargs.pop("projComp", None)
+        if proj is not None:
+            warnings.warn(
+                "'projComp' overrides the 'orientation' property which automatically"
+                " handles the projection from the mesh the receivers!!! "
+                "'projComp' is deprecated and will be removed in SimPEG 0.16.0."
+            )
+            self.projComp = proj
 
-    orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
-    )
+        self.orientation = orientation
+        super().__init__(locations=locations, times=times, **kwargs)
+
+    # orientation = properties.StringChoice(
+    #     "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
+    # )
+
+    @property
+    def orientation(self):
+        """Orientation of the receiver.
+
+        Returns
+        -------
+        str
+            Orientation of the receiver. One of {'x', 'y', 'z'}
+        """
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, var):
+
+        if isinstance(var, str):
+            var = var.lower()
+            if var not in ('x', 'y', 'z'):
+                raise ValueError(f"orientation must be either 'x', 'y' or 'z'. Got {var}")
+        else:
+            raise TypeError(f"orientation must be a str. Got {type(var)}")
+
+        self._orientation = var
 
     projComp = deprecate_property(
         orientation,
@@ -27,21 +66,13 @@ class BaseRx(BaseTimeRx):
         error=True,
     )
 
-    def __init__(self, locations, times, orientation=None, **kwargs):
-        proj = kwargs.pop("projComp", None)
-        if proj is not None:
-            self.projComp = proj
-        else:
-            self.orientation = orientation
-        super().__init__(locations=locations, times=times, **kwargs)
+    # def projGLoc(self, f):
+    #     """Grid Location projection (e.g. Ex Fy ...)"""
+    #     return f._GLoc(self.projField) + self.orientation
 
-    def projGLoc(self, f):
-        """Grid Location projection (e.g. Ex Fy ...)"""
-        return f._GLoc(self.projField) + self.orientation
-
-    def projTLoc(self, f):
-        """Time Location projection (e.g. CC N)"""
-        return f._TLoc(self.projField)
+    # def projTLoc(self, f):
+    #     """Time Location projection (e.g. CC N)"""
+    #     return f._TLoc(self.projField)
 
     def getSpatialP(self, mesh, f):
         """
@@ -51,7 +82,9 @@ class BaseRx(BaseTimeRx):
 
             This is not stored in memory, but is created on demand.
         """
-        return mesh.getInterpolationMat(self.locations, self.projGLoc(f))
+        if getattr(self, 'projGLoc', None) is None:
+            self.projGLoc = f._GLoc(self.projField) + self.orientation
+        return mesh.getInterpolationMat(self.locations, self.projGLoc)
 
     def getTimeP(self, time_mesh, f):
         """
@@ -61,16 +94,16 @@ class BaseRx(BaseTimeRx):
 
             This is not stored in memory, but is created on demand.
         """
-        return time_mesh.getInterpolationMat(self.times, self.projTLoc(f))
+        if getattr(self, 'projTLoc', None) is None:
+            self.projTLoc = f._TLoc(self.projField)
+        return time_mesh.getInterpolationMat(self.times, self.projTLoc)
 
     def getP(self, mesh, time_mesh, f):
-        """
-        Returns the projection matrices as a
+        """Returns the projection matrices as a
         list for all components collected by
         the receivers.
 
         .. note::
-
             Projection matrices are stored as a dictionary (mesh, time_mesh) if storeProjections is True
         """
         if (mesh, time_mesh) in self._Ps:
@@ -84,21 +117,6 @@ class BaseRx(BaseTimeRx):
             self._Ps[(mesh, time_mesh)] = P
 
         return P
-
-    def getTimeP(self, time_mesh, f):
-        """
-        Returns the time projection matrix.
-
-        .. note::
-
-            This is not stored in memory, but is created on demand.
-        """
-        # if self.projField == 'dbdt':
-        #     return time_mesh.getInterpolationMat(
-        #         self.times, self.projTLoc(f)
-        #     )*time_mesh.faceDiv
-        # else:
-        return time_mesh.getInterpolationMat(self.times, self.projTLoc(f))
 
     def eval(self, src, mesh, time_mesh, f):
         """
