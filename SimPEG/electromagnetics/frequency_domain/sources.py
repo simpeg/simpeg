@@ -19,7 +19,12 @@ class BaseFDEMSrc(BaseEMSrc):
 
     Parameters
     ----------
-
+    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+        A list of FDEM receivers
+    frequency : float
+        Source frequency
+    location : (dim) np.ndarray, default = None
+        Source location.
     """
 
     # frequency = properties.Float("frequency of the source", min=0, required=True)
@@ -36,7 +41,9 @@ class BaseFDEMSrc(BaseEMSrc):
         )
         if 'freq' in kwargs:
             frequency = kwargs.pop('freq')
-        if frequency is not None:
+        if frequency is None:
+            raise AttributeError("Source cannot be instantiated without assigning 'frequency'.")
+        else:
             self.frequency = frequency
 
     @property
@@ -63,98 +70,146 @@ class BaseFDEMSrc(BaseEMSrc):
         self._frequency=freq
 
     def bPrimary(self, simulation):
-        """
-        Primary magnetic flux density
+        """Compute primary magnetic flux density
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :rtype: numpy.ndarray
-        :return: primary magnetic flux density
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            A SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Primary magnetic flux density
         """
         if self._bPrimary is None:
             return Zero()
         return self._bPrimary
 
     def bPrimaryDeriv(self, simulation, v, adjoint=False):
-        """
-        Derivative of the primary magnetic flux density
+        """Compute derivative of primary magnetic flux density times a vector
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :param numpy.ndarray v: vector
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: primary magnetic flux density
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            A SimPEG FDEM simulation
+        v : np.ndarray
+            A vector
+        adjoint : bool
+            If ``True``, return the adjoint
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of primary magnetic flux density times a vector
         """
         return Zero()
 
     def hPrimary(self, simulation):
-        """
-        Primary magnetic field
+        """Compute primary magnetic field
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :rtype: numpy.ndarray
-        :return: primary magnetic field
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            A SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Primary magnetic field
         """
         if self._hPrimary is None:
             return Zero()
         return self._hPrimary
 
     def hPrimaryDeriv(self, simulation, v, adjoint=False):
-        """
-        Derivative of the primary magnetic field
+        """Compute derivative of primary magnetic field times a vector
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :param numpy.ndarray v: vector
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: primary magnetic flux density
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            A SimPEG FDEM simulation
+        v : np.ndarray
+            A vector
+        adjoint : bool
+            If ``True``, return the adjoint
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of primary magnetic field times a vector
         """
         return Zero()
 
     def ePrimary(self, simulation):
-        """
-        Primary electric field
+        """Compute primary electric field
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :rtype: numpy.ndarray
-        :return: primary electric field
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            A SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Primary electric field
         """
         if self._ePrimary is None:
             return Zero()
         return self._ePrimary
 
     def ePrimaryDeriv(self, simulation, v, adjoint=False):
-        """
-        Derivative of the primary electric field
+        """Compute derivative of primary electric field times a vector
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :param numpy.ndarray v: vector
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: primary magnetic flux density
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            A SimPEG FDEM simulation
+        v : np.ndarray
+            A vector
+        adjoint : bool
+            If ``True``, return the adjoint
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of primary eletric field times a vector
         """
         return Zero()
 
     def jPrimary(self, simulation):
-        """
-        Primary current density
+        """Compute primary current density
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :rtype: numpy.ndarray
-        :return: primary current density
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            A SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Primary current density
         """
         if self._jPrimary is None:
             return Zero()
         return self._jPrimary
 
     def jPrimaryDeriv(self, simulation, v, adjoint=False):
-        """
-        Derivative of the primary current density
+        """Compute derivative of primary current density times a vector
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :param numpy.ndarray v: vector
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: primary magnetic flux density
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            A SimPEG FDEM simulation
+        v : np.ndarray
+            A vector
+        adjoint : bool
+            If ``True``, return the adjoint
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of primary current density times a vector
         """
         return Zero()
 
@@ -164,13 +219,18 @@ class BaseFDEMSrc(BaseEMSrc):
 
 
 class RawVec_e(BaseFDEMSrc):
-    """
-    RawVec electric source. It is defined by the user provided vector s_e
+    """User-provided electric source term (s_e) class.
 
-    :param list receiver_list: receiver list
-    :param float freq: frequency
-    :param numpy.ndarray s_e: electric source term
-    :param bool integrate: Integrate the source term (multiply by Me) [False]
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+        A list of FDEM receivers
+    frequency : float
+        Source frequency
+    s_e: np.ndarray
+        Electric source term
+    integrate : bool, default = ``False``
+        If ``True``, integrate the source term; i.e. multiply by Me matrix
     """
 
     def __init__(self, receiver_list=None, frequency=None, s_e=None, **kwargs):
@@ -179,12 +239,17 @@ class RawVec_e(BaseFDEMSrc):
         super(RawVec_e, self).__init__(receiver_list, frequency=frequency, **kwargs)
 
     def s_e(self, simulation):
-        """
-        Electric source term
+        """Electric source term (s_e)
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :rtype: numpy.ndarray
-        :return: electric source term on mesh
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            electric source term on mesh.
         """
         if simulation._formulation == "EB" and self.integrate is True:
             return simulation.Me * self._s_e
@@ -192,13 +257,18 @@ class RawVec_e(BaseFDEMSrc):
 
 
 class RawVec_m(BaseFDEMSrc):
-    """
-    RawVec magnetic source. It is defined by the user provided vector s_m
+    """User-provided magnetic source term (s_m) class.
 
-    :param float freq: frequency
-    :param receiver_list: receiver list
-    :param numpy.ndarray s_m: magnetic source term
-    :param bool integrate: Integrate the source term (multiply by Me) [False]
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+        A list of FDEM receivers
+    frequency : float
+        Source frequency
+    s_m: np.ndarray
+        Magnetic source term
+    integrate : bool, default = ``False``
+        If ``True``, integrate the source term; i.e. multiply by Me matrix
     """
 
     def __init__(self, receiver_list=None, frequency=None, s_m=None, **kwargs):
@@ -208,12 +278,17 @@ class RawVec_m(BaseFDEMSrc):
         )
 
     def s_m(self, simulation):
-        """
-        Magnetic source term
+        """Magnetic source term (s_m)
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :rtype: numpy.ndarray
-        :return: magnetic source term on mesh
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            magnetic source term on mesh.
         """
         if simulation._formulation == "HJ" and self.integrate is True:
             return simulation.Me * self._s_m
@@ -221,14 +296,20 @@ class RawVec_m(BaseFDEMSrc):
 
 
 class RawVec(BaseFDEMSrc):
-    """
-    RawVec source. It is defined by the user provided vectors s_m, s_e
+    """User-provided electric (s_e) and magnetic (s_m) source terms.
 
-    :param receiver_list: receiver list
-    :param float freq: frequency
-    :param numpy.ndarray s_m: magnetic source term
-    :param numpy.ndarray s_e: electric source term
-    :param bool integrate: Integrate the source term (multiply by Me) [False]
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+        A list of FDEM receivers
+    frequency : float
+        Source frequency
+    s_e: np.ndarray
+        Electric source term
+    s_m: np.ndarray
+        Magnetic source term
+    integrate : bool, default = ``False``
+        If ``True``, integrate the source terms; i.e. multiply by Me matrix
     """
 
     def __init__(
@@ -241,24 +322,34 @@ class RawVec(BaseFDEMSrc):
         )
 
     def s_m(self, simulation):
-        """
-        Magnetic source term
+        """Magnetic source term (s_m)
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :rtype: numpy.ndarray
-        :return: magnetic source term on mesh
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Magnetic source term on mesh.
         """
         if simulation._formulation == "HJ" and self.integrate is True:
             return simulation.Me * self._s_m
         return self._s_m
 
     def s_e(self, simulation):
-        """
-        Electric source term
+        """Electric source term (s_m)
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :rtype: numpy.ndarray
-        :return: electric source term on mesh
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Electric source term on mesh.
         """
         if simulation._formulation == "EB" and self.integrate is True:
             return simulation.Me * self._s_e
@@ -315,14 +406,18 @@ class MagDipole(BaseFDEMSrc):
         \mathbf{M_{\sigma}^e} \mathbf{e^S} =
         -\mathbf{C}^T \mathbf{{M_{\mu^{-1}}^f}^S} \mathbf{b^P}}
 
-    :param list receiver_list: receiver list
-    :param float freq: frequency
-    :param numpy.ndarray location: source location
-        (ie: :code:`np.r_[xloc,yloc,zloc]`)
-    :param string orientation: 'X', 'Y', 'Z'
-    :param float moment: magnetic dipole moment
-    :param float mu: background magnetic permeability
-
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+        A list of FDEM receivers
+    frequency : float
+        Source frequency
+    location : (dim) np.ndarray, default = np.r_[0., 0., 0.]
+        Source location.
+    moment : float
+        Magnetic dipole moment amplitude
+    mu : float
+        Background magnetic permeability
     """
     def __init__(
         self,
@@ -330,7 +425,7 @@ class MagDipole(BaseFDEMSrc):
         frequency=None,
         location=np.r_[0.0, 0.0, 0.0],
         moment=1.,
-        orientation='Z',
+        orientation='z',
         mu=mu_0,
         **kwargs
     ):
@@ -376,13 +471,13 @@ class MagDipole(BaseFDEMSrc):
     def location(self, vec):
 
         try:
-            vec = np.atleast_1d(vec).astype(float)
+            vec = np.atleast_1d(vec).astype(float).squeeze()
         except:
             raise TypeError(f"location must be array_like, got {type(vec)}")
 
-        if len(vec) != 3:
+        if len(vec) > 3:
             raise ValueError(
-                f"location must be array_like with shape (3,), got {len(vec)}"
+                f"location must be array_like with shape (3), got {len(vec)}"
             )
 
         self._location = vec
@@ -419,7 +514,7 @@ class MagDipole(BaseFDEMSrc):
 
         Returns
         -------
-        (3) numpy.ndarray of float or str in {'X','Y','Z'}
+        (3) numpy.ndarray of float or str in {'x','y','z'}
             dipole orientation, normalized to unit magnitude
         """
         return self._orientation
@@ -428,11 +523,11 @@ class MagDipole(BaseFDEMSrc):
     def orientation(self, var):
 
         if isinstance(var, str):
-            if var.upper() == 'X':
+            if var.lower() == 'x':
                 var = np.r_[1., 0., 0.]
-            elif var.upper() == 'Y':
+            elif var.lower() == 'y':
                 var = np.r_[0., 1., 0.]
-            elif var.upper() == 'Z':
+            elif var.lower() == 'z':
                 var = np.r_[0., 0., 1.]
         else:
             try:
@@ -485,12 +580,20 @@ class MagDipole(BaseFDEMSrc):
         return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
 
     def bPrimary(self, simulation):
-        """
-        The primary magnetic flux density from a magnetic vector potential
+        """Compute primary magnetic flux density.
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :rtype: numpy.ndarray
-        :return: primary magnetic field
+        Note that we compute analytic vector potential and take numerical
+        curl do it is divergence free on the mesh.
+
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            A SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Primary magnetic flux density
         """
         formulation = simulation._formulation
         coordinates = "cartesian"
@@ -528,23 +631,36 @@ class MagDipole(BaseFDEMSrc):
         return C * a
 
     def hPrimary(self, simulation):
-        """
-        The primary magnetic field from a magnetic vector potential
+        """Compute primary magnetic field.
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :rtype: numpy.ndarray
-        :return: primary magnetic field
+        Note that we compute analytic vector potential and take numerical
+        curl so that B is divergence-free.
+
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            A SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Primary magnetic field
         """
         b = self.bPrimary(simulation)
         return 1.0 / self.mu * b
 
     def s_m(self, simulation):
-        """
-        The magnetic source term
+        """Magnetic source term (s_m)
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :rtype: numpy.ndarray
-        :return: primary magnetic field
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Magnetic source term on mesh.
         """
 
         b_p = self.bPrimary(simulation)
@@ -553,12 +669,17 @@ class MagDipole(BaseFDEMSrc):
         return -1j * omega(self.frequency) * b_p
 
     def s_e(self, simulation):
-        """
-        The electric source term
+        """Electric source term (s_m)
 
-        :param BaseFDEMSimulation simulation: FDEM simulation
-        :rtype: numpy.ndarray
-        :return: primary magnetic field
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Electric source term on mesh.
         """
 
         if all(np.r_[self.mu] == np.r_[simulation.mu]):
@@ -618,13 +739,18 @@ class MagDipole_Bfield(MagDipole):
     This approach uses a primary-secondary in frequency in the same fashion as
     the MagDipole.
 
-    :param list receiver_list: receiver list
-    :param float freq: frequency
-    :param numpy.ndarray loc: source location (ie:
-                              :code:`np.r_[xloc,yloc,zloc]`)
-    :param string orientation: 'X', 'Y', 'Z'
-    :param float moment: magnetic dipole moment
-    :param float mu: background magnetic permeability
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+        A list of FDEM receivers
+    frequency : float
+        Source frequency
+    location : (dim) np.ndarray, default = np.r_[0., 0., 0.]
+        Source location.
+    moment : float
+        Magnetic dipole moment amplitude
+    mu : float
+        Background magnetic permeability
     """
 
     def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
@@ -692,25 +818,116 @@ class CircularLoop(MagDipole):
     This approach uses a primary-secondary in frequency in the same fashion as
     the MagDipole.
 
-    :param list receiver_list: receiver list
-    :param float freq: frequency
-    :param numpy.ndarray loc: source location
-        (ie: :code:`np.r_[xloc,yloc,zloc]`)
-    :param string orientation: 'X', 'Y', 'Z'
-    :param float moment: magnetic dipole moment
-    :param float mu: background magnetic permeability
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+        A list of FDEM receivers
+    frequency : float
+        Source frequency
+    location : (dim) np.ndarray, default = np.r_[0., 0., 0.]
+        Source location.
+    orientation : str, default = 'z'
+        Loop orientation. One of ('x', 'y', 'z')
+    radius : float, default = 1.
+        Loop radius
+    current : float, default = 1.
+        Source current
+    mu : float
+        Background magnetic permeability
     """
 
-    radius = properties.Float("radius of the loop", default=1.0, min=0.0)
+    def __init__(
+        self,
+        receiver_list=None,
+        frequency=None,
+        location=np.r_[0.0, 0.0, 0.0],
+        orientation='z',
+        radius=1.,
+        current=1.,
+        mu=mu_0,
+        **kwargs
+    ):
 
-    current = properties.Float("current in the loop", default=1.0)
+        if 'moment' in kwargs:
+            kwargs.pop('moment')
 
-    def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
-        super(CircularLoop, self).__init__(receiver_list, frequency, location, **kwargs)
+        BaseFDEMSrc.__init__(
+            self,
+            receiver_list=receiver_list,
+            frequency=frequency,
+            location=location,
+            **kwargs
+        )
+
+        self.orientation = orientation
+        self.radius = radius
+        self.current = current
+        self.mu = mu
+
+    # radius = properties.Float("radius of the loop", default=1.0, min=0.0)
+
+    @property
+    def radius(self):
+        """Loop radius
+
+        Returns
+        -------
+        float
+            Loop radius
+        """
+        return self._radius
+
+    @radius.setter
+    def radius(self, rad):
+        try:
+            rad = float(rad)
+        except:
+            raise TypeError(f"radius must be int or float, got {type(rad)}")
+
+        if rad < 0.:
+            raise TypeError("radius must be a positive value")
+
+        self._radius = rad
+
+    # current = properties.Float("current in the loop", default=1.0)
+
+    @property
+    def current(self):
+        """Source current
+
+        Returns
+        -------
+        float
+            Source current
+        """
+        return self._current
+
+    @current.setter
+    def current(self, I):
+        try:
+            I = float(I)
+        except:
+            raise TypeError(f"current must be int or float, got {type(I)}")
+
+        if np.abs(I) == 0.:
+            raise TypeError("current must be non-zero.")
+
+        self._current = I
+
+    # def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
+    #     super(CircularLoop, self).__init__(receiver_list, frequency, location, **kwargs)
 
     @property
     def moment(self):
-        return np.pi * self.radius ** 2 * self.current
+        return np.pi * self.radius ** 2 * np.abs(self.current)
+
+    @moment.setter
+    def moment(self):
+        warnings.warn(
+            "Moment is not set as a property. I is the product"
+            "of the loop radius and transmitter current"
+        )
+        pass
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_loop", None) is None:
@@ -725,6 +942,7 @@ class CircularLoop(MagDipole):
 
 
 class PrimSecSigma(BaseFDEMSrc):
+
     def __init__(
         self, receiver_list=None, frequency=None, sigBack=None, ePrimary=None, **kwargs
     ):
@@ -984,6 +1202,20 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         return mkvc(bp)
 
     def s_e(self, simulation, f=None):
+        """Electric source term (s_m)
+
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            SimPEG FDEM simulation
+        f : SimPEG.electromagnetics.frequency_domain.field.FieldsFDEM
+            A SimPEG FDEM fields object
+
+        Returns
+        -------
+        numpy.ndarray
+            Electric source term on mesh.
+        """
         sigmaPrimary = self.map2meshSecondary * simulation.model
 
         return mkvc(
@@ -1039,8 +1271,77 @@ class LineCurrent(BaseFDEMSrc):
     :param (n,3) array locations: points defining src path
     """
 
-    location = properties.Array("location of the source", shape=("*", 3))
-    current = properties.Float("current in the line", default=1.0)
+    def __init__(
+        self,
+        receiver_list=None,
+        frequency=None,
+        location=None,
+        current=1.,
+        mu=mu_0,
+        **kwargs
+    ):
+
+        BaseFDEMSrc.__init__(
+            self,
+            receiver_list=receiver_list,
+            frequency=frequency,
+            location=location,
+            **kwargs
+        )
+
+        self.current = current
+        self.mu = mu
+
+
+    # location = properties.Array("location of the source", shape=("*", 3))
+
+    @property
+    def location(self):
+        """Line current nodes locations
+
+        Returns
+        -------
+        (n, 3) np.ndarray
+            Line current node locations.
+        """
+        return self._location
+
+    @location.setter
+    def location(self, loc):
+        try:
+            loc = np.atleast_2d(loc).astype(float)
+        except:
+            raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
+
+        if loc.ndim != 3:
+            raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
+
+        self._location = loc
+
+    # current = properties.Float("current in the line", default=1.0)
+
+    @property
+    def current(self):
+        """Source current
+
+        Returns
+        -------
+        float
+            Source current
+        """
+        return self._current
+
+    @current.setter
+    def current(self, I):
+        try:
+            I = float(I)
+        except:
+            raise TypeError(f"current must be int or float, got {type(I)}")
+
+        if np.abs(I) == 0.:
+            raise TypeError("current must be non-zero.")
+
+        self._current = I
 
     def Mejs(self, simulation):
         if getattr(self, "_Mejs", None) is None:
@@ -1054,9 +1355,33 @@ class LineCurrent(BaseFDEMSrc):
         return Grad.T * self.Mejs(simulation)
 
     def s_m(self, simulation):
+        """Magnetic source term (s_m)
+
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Magnetic source term on mesh.
+        """
         return Zero()
 
     def s_e(self, simulation):
+        """Electric source term (s_m)
+
+        Parameters
+        ----------
+        simulation : BaseFDEMSimulation
+            SimPEG FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Electric source term on mesh.
+        """
         if simulation._formulation != "EB":
             raise NotImplementedError(
                 "LineCurrents are only implemented for EB formulations"

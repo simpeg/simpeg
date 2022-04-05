@@ -13,17 +13,21 @@ class BaseRx(survey.BaseRx):
         Receiver locations. 
     orientation : str, default = 'z'
         Receiver orientation. Must be one of: 'x', 'y' or 'z'
-    component : str
+    component : str, default = 'real'
         Real or imaginary component. Choose one of: 'real' or 'imag'
     """
 
-    def __init__(self, locations, orientation=None, component=None, **kwargs):
+    def __init__(self, locations, orientation='z', component='real', **kwargs):
         proj = kwargs.pop("projComp", None)
         if proj is not None:
+            warnings.warn(
+                "'projComp' overrides the 'orientation' property which automatically"
+                " handles the projection from the mesh the receivers!!! "
+                "'projComp' is deprecated and will be removed in SimPEG 0.16.0."
+            )
             self.projComp = proj
-        else:
-            self.orientation = orientation
 
+        self.orientation = orientation
         self.component = component
 
         super(BaseRx, self).__init__(locations, **kwargs)
@@ -87,10 +91,6 @@ class BaseRx(survey.BaseRx):
         else:
             raise TypeError(f"orientation must be a str. Got {type(var)}")
 
-    
-
-    
-
     projComp = deprecate_property(
         orientation,
         "projComp",
@@ -99,21 +99,26 @@ class BaseRx(survey.BaseRx):
         error=True,
     )
 
-    
-
     # def projGLoc(self, f):
     #     """Grid Location projection (e.g. Ex Fy ...)"""
     #     return f._GLoc(self.projField) + self.orientation
 
     def eval(self, src, mesh, f):
-        """
-        Project fields to receivers to get data.
+        """Project fields from the mesh to the receiver(s).
 
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: FDEM source
-        :param discretize.base.BaseMesh mesh: mesh used
-        :param Fields f: fields object
-        :rtype: numpy.ndarray
-        :return: fields projected to recievers
+        Parameters
+        ----------
+        src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+            A frequency-domain EM source
+        mesh : discretize.base.BaseMesh
+            The mesh on which the discrete set of equations is solved
+        f : SimPEG.electromagnetic.frequency_domain.fields.FieldsFDEM
+            The solution for the fields defined on the mesh
+        
+        Returns
+        -------
+        np.ndarray
+            Fields projected to the receiver(s)
         """
         if getattr(self, 'projGLoc', None) is None:
             self.projGLoc = f._GLoc(self.projField) + self.orientation
@@ -124,15 +129,28 @@ class BaseRx(survey.BaseRx):
         return P * f_part
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        """
-        Derivative of projected fields with respect to the inversion model times a vector.
+        """Derivative of the projected fields with respect to the model, times a vector.
 
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: FDEM source
-        :param discretize.base.BaseMesh mesh: mesh used
-        :param Fields f: fields object
-        :param numpy.ndarray v: vector to multiply
-        :rtype: numpy.ndarray
-        :return: fields projected to recievers
+        Parameters
+        ----------
+        src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+            A frequency-domain EM source
+        mesh : discretize.base.BaseMesh
+            The mesh on which the discrete set of equations is solved
+        f : SimPEG.electromagnetic.frequency_domain.fields.FieldsFDEM
+            The solution for the fields defined on the mesh
+        du_dm_v : np.ndarray, default = ``None``
+            The derivative of the fields on the mesh with respect to the model,
+            times a vector.
+        v : np.ndarray
+            The vector which being multiplied
+        adjoint : bool, default = ``False``
+            If ``True``, return the ajoint
+        
+        Returns
+        -------
+        np.ndarray
+            The derivative times a vector at the receiver(s)
         """
 
         df_dmFun = getattr(f, "_{0}Deriv".format(self.projField), None)
@@ -172,12 +190,16 @@ class BaseRx(survey.BaseRx):
 
 
 class PointElectricField(BaseRx):
-    """
-    Electric field FDEM receiver
+    """Measure FDEM electric field at a point.
 
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) np.ndarray
+        Receiver locations. 
+    orientation : str, default = 'z'
+        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    component : str, default = 'real'
+        Real or imaginary component. Choose one of: 'real' or 'imag'
     """
 
     def __init__(self, locations, orientation="x", component="real"):
@@ -186,12 +208,16 @@ class PointElectricField(BaseRx):
 
 
 class PointMagneticFluxDensity(BaseRx):
-    """
-    Magnetic flux FDEM receiver
+    """Measure FDEM total field magnetic flux density at a point.
 
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) np.ndarray
+        Receiver locations. 
+    orientation : str, default = 'z'
+        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    component : str, default = 'real'
+        Real or imaginary component. Choose one of: 'real' or 'imag'
     """
 
     def __init__(self, locations, orientation="x", component="real"):
@@ -202,12 +228,16 @@ class PointMagneticFluxDensity(BaseRx):
 
 
 class PointMagneticFluxDensitySecondary(BaseRx):
-    """
-    Magnetic flux FDEM receiver
+    """Measure FDEM secondary magnetic flux density at a point.
 
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) np.ndarray
+        Receiver locations. 
+    orientation : str, default = 'z'
+        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    component : str, default = 'real'
+        Real or imaginary component. Choose one of: 'real' or 'imag'
     """
 
     def __init__(self, locations, orientation="x", component="real"):
@@ -218,12 +248,16 @@ class PointMagneticFluxDensitySecondary(BaseRx):
 
 
 class PointMagneticField(BaseRx):
-    """
-    Magnetic field FDEM receiver
+    """Measure FDEM total magnetic field at a point.
 
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) np.ndarray
+        Receiver locations. 
+    orientation : str, default = 'z'
+        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    component : str, default = 'real'
+        Real or imaginary component. Choose one of: 'real' or 'imag'
     """
 
     def __init__(self, locations, orientation="x", component="real"):
@@ -232,12 +266,16 @@ class PointMagneticField(BaseRx):
 
 
 class PointCurrentDensity(BaseRx):
-    """
-    Current density FDEM receiver
+    """Measure FDEM current density at a point.
 
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) np.ndarray
+        Receiver locations. 
+    orientation : str, default = 'z'
+        Receiver orientation. Must be one of: 'x', 'y' or 'z'
+    component : str, default = 'real'
+        Real or imaginary component. Choose one of: 'real' or 'imag'
     """
 
     def __init__(self, locations, orientation="x", component="real"):

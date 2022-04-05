@@ -76,8 +76,9 @@ class BaseRx:
 
     _Ps = None
 
-    def __init__(self, locations=None, projGLoc=None, storeProjections=False, uid=None, **kwargs):
+    def __init__(self, locations=None, storeProjections=False, uid=None, projGLoc=None, **kwargs):
 
+        # Define receiver locations
         locs = kwargs.pop("locs", None)
         if locs is not None:
             warnings.warn(
@@ -85,19 +86,27 @@ class BaseRx:
                 "'locs' be removed in SimPEG 0.16.0."
             )
             locations = locs
+        if locations is None:
+            raise AttributeError("Receiver cannot be instantiated without assigning 'locations'.")
+        else:
+            self.locations = locations
+
+        # Deprecated properties
         rxType = kwargs.pop("rxType", None)
         if rxType is not None:
-            warnings.warn(
-                "BaseRx no longer has an rxType. Each rxType should instead "
-                "be a different receiver class."
+            raise AttributeError(
+                "BaseRx no longer has an rxType property. Each receiver type is defined by "
+                "a different receiver class."
             )
+        if projGLoc is not None:
+            raise AttributeError(
+                "'projGLoc' is not set as a kwargs. It is set automatically "
+                "based on the receiver and simulation class."
+            )
+
+        # Remaining properties
         if getattr(self, "_Ps", None) is None:
             self._Ps = {}
-
-        if locations is not None:
-            self.locations = locations
-        if projGLoc is not None:
-            self.projGLoc = projGLoc
         self.storeProjections = storeProjections
         if uid is None:
             self.uid = uuid.uuid4()
@@ -251,13 +260,13 @@ class BaseRx:
         return P
 
     def eval(self, **kwargs):
-        """Not currently implemented"""
+        """Not implemented for BaseRx"""
         raise NotImplementedError(
             "the eval method for {} has not been implemented".format(self)
         )
 
     def evalDeriv(self, **kwargs):
-        """Not currently implemented"""
+        """Not implemented for BaseRx"""
         raise NotImplementedError(
             "the evalDeriv method for {} has not been implemented".format(self)
         )
@@ -266,20 +275,14 @@ class BaseRx:
 class BaseTimeRx(BaseRx):
     """Base SimPEG receiver class for time-domain simulations"""
 
-    # times = properties.Array(
-    #     "times where the recievers measure data", shape=("*",), required=True
-    # )
-
-    # projTLoc = properties.StringChoice(
-    #     "location on the time mesh where the data are projected from",
-    #     choices=["N", "CC"],
-    #     default="N",
-    # )
-
     def __init__(self, locations=None, times=None, **kwargs):
         super(BaseTimeRx, self).__init__(locations=locations, **kwargs)
         if times is not None:
             self.times = times
+
+    # times = properties.Array(
+    #     "times where the recievers measure data", shape=("*",), required=True
+    # )
 
     @property
     def times(self):
@@ -305,6 +308,11 @@ class BaseTimeRx(BaseRx):
 
         self._times = value
 
+    # projTLoc = properties.StringChoice(
+    #     "location on the time mesh where the data are projected from",
+    #     choices=["N", "CC"],
+    #     default="N",
+    # )
 
     @property
     def projTLoc(self):
@@ -417,14 +425,7 @@ class BaseSrc:
 
     def __init__(self, receiver_list=None, location=None, uid=None, **kwargs):
 
-        loc = kwargs.pop("loc", None)
-        if loc is not None:
-            warnings.warn(
-                "'loc' is a deprecated property. Please use 'location' instead."
-                "'loc' be removed in SimPEG 0.16.0."
-            )
-            location = loc
-
+        # Receiver list
         rxList = kwargs.pop("rxList", None)
         if rxList is not None:
             warnings.warn(
@@ -432,12 +433,20 @@ class BaseSrc:
                 "'rxList' be removed in SimPEG 0.16.0."
             )
             receiver_list = rxList
+        if receiver_list is None:
+            raise AttributeError("Source cannot be instantiated without assigning 'receiver_list'.")
+        else:
+            self.receiver_list = receiver_list
 
+        loc = kwargs.pop("loc", None)
+        if loc is not None:
+            warnings.warn(
+                "'loc' is a deprecated property. Please use 'location' instead."
+                "'loc' be removed in SimPEG 0.16.0."
+            )
+            location = loc
         if location is not None:
             self.location = location
-
-        if receiver_list is not None:
-            self.receiver_list = receiver_list
 
         if uid is None:
             self.uid = uuid.uuid4()
@@ -462,7 +471,7 @@ class BaseSrc:
     @location.setter
     def location(self, loc):
         try:
-            loc = np.atleast_1d(loc).astype(float)
+            loc = np.atleast_1d(loc).astype(float).squeeze()
         except:
             raise TypeError(f"location must be (n_dim) array_like, got {type(loc)}")
 
@@ -613,6 +622,7 @@ class BaseSurvey:
 
     def __init__(self, source_list=None, uid=None, counter=None, **kwargs):
 
+        # Source list
         srcList = kwargs.pop("srcList", None)
         if srcList is not None:
             warnings.warn(
@@ -620,8 +630,9 @@ class BaseSurvey:
                 "'srcList' be removed in SimPEG 0.16.0."
             )
             source_list = srcList
-
-        if source_list is not None:
+        if source_list is None:
+            raise AttributeError("Survey cannot be instantiated without assigning 'source_list'.")
+        else:
             self.source_list = source_list
 
         if uid is None:
