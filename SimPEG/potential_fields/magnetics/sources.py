@@ -6,7 +6,20 @@ from ...utils.code_utils import deprecate_class
 
 
 class SourceField(BaseSrc):
-    """ Define the inducing field """
+    """Source field for magnetics integral formulation
+
+    Parameters
+    ----------
+    receivers_list : list of SimPEG.potential_fields.receivers.Point
+        List of magnetics receivers
+    parameters : (3) array_like of float
+        Define the Earth's inducing field according to
+        [*amplitude*, *inclination*, *declination*] where:
+
+        - *amplitude* is the field intensity in nT
+        - *inclination* is the inclination of the Earth's field in degrees
+        - *declination* is the declination of the Earth's field in degrees
+    """
 
     def __init__(self, receiver_list=None, parameters=[50000, 90, 0], **kwargs):
         assert (

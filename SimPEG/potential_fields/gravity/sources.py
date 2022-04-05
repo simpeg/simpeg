@@ -3,7 +3,13 @@ from ...utils.code_utils import deprecate_class
 
 
 class SourceField(BaseSrc):
-    """ Define the inducing field """
+    """Source field for gravity integral formulation
+
+    Parameters
+    ----------
+    receivers_list : list of SimPEG.potential_fields.receivers.Point
+        List of magnetics receivers
+    """
 
     parameters = None
 

@@ -630,9 +630,7 @@ class BaseSurvey:
                 "'srcList' be removed in SimPEG 0.16.0."
             )
             source_list = srcList
-        if source_list is None:
-            raise AttributeError("Survey cannot be instantiated without assigning 'source_list'.")
-        else:
+        if source_list is not None:
             self.source_list = source_list
 
         if uid is None:

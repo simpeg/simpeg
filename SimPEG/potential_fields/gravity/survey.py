@@ -1,29 +1,43 @@
 from ...survey import BaseSurvey
 from ...utils.code_utils import deprecate_class
 
-
 class Survey(BaseSurvey):
-    """Base Gravity Survey
-
+    """Base Magnetics Survey
 
     Parameters
     ----------
-    
-
-
+    source_field : SimPEG.potential_fields.magnetics.sources.SourceField
+        A source object that defines the Earth's inducing field
     """
 
-    receiver_locations = None  #: receiver locations
-    rxType = None  #: receiver type
-    components = ["gz"]
-
     def __init__(self, source_field, **kwargs):
+
+        if 'receiver_locations' in kwargs:
+            raise AttributeError(
+                "Receiver locations are set through the receiver class"
+                " and cannot be assigned directly to the survey."
+                )
+        if 'rxType' in kwargs:
+            raise AttributeError(
+                "Receiver type is set through the receiver class"
+                " and cannot be assigned directly to the survey."
+                )
+        if 'components' in kwargs:
+            raise AttributeError(
+                "Receiver component is set through the receiver class"
+                " and cannot be assigned directly to the survey."
+                )
+
         self.source_field = source_field
         BaseSurvey.__init__(self, **kwargs)
 
     def eval(self, fields):
-        """Eval 
+        """Evaluate the field
 
+        Returns
+        -------
+        np.ndarray
+            the fields at the receiver locations.
         """
         return fields
 

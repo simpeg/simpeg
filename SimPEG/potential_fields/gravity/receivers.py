@@ -32,9 +32,9 @@ class Point(survey.BaseRx):
         - "amp"  --> amplitude of the gravity field
     """
 
-    def __init__(self, locations, components="gz", **kwargs):
+    def __init__(self, locations=None, components="gz", **kwargs):
 
-        super(survey.BaseRx, self).__init__(locations=locations, **kwargs)
+        super(Point, self).__init__(locations, **kwargs)
 
         n_locations = locations.shape[0]
 
@@ -77,7 +77,13 @@ class Point(survey.BaseRx):
             return None
 
     def receiver_index(self):
+        """Receiver index
 
+        Returns
+        -------
+        np.ndarray of int
+            Receiver indices
+        """
         return self.receiver_index
 
 
