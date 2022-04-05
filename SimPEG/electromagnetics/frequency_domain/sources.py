@@ -1313,7 +1313,7 @@ class LineCurrent(BaseFDEMSrc):
         except:
             raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
 
-        if loc.ndim != 3:
+        if loc.ndim != 2:
             raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
 
         self._location = loc

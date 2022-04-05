@@ -9,8 +9,12 @@ from .sources import BaseFDEMSrc
 
 
 class Survey(BaseSurvey):
-    """
-    Frequency domain electromagnetic survey
+    """Frequency domain electromagnetic survey
+
+    Parameters
+    ----------
+    source_list : list of SimPEG.electromagnetic.frequency_domain.sources.BaseFDEMSrc
+        List of SimPEG FDEM sources
     """
 
     # source_list = properties.List(
@@ -59,8 +63,12 @@ class Survey(BaseSurvey):
 
     @property
     def frequencies(self):
-        """
-        Frequencies in the survey
+        """Frequencies in the survey
+
+        Returns
+        -------
+        int
+            Frequencies used in the survey
         """
         return self._frequencies
 
@@ -93,7 +101,13 @@ class Survey(BaseSurvey):
 
     @property
     def num_sources_by_frequency(self):
-        """Number of sources at each frequency"""
+        """Number of sources at each frequency
+
+        Returns
+        -------
+        list of int
+            Number of sources associated with each frequency
+        """
         if getattr(self, "_num_sources_by_frequency", None) is None:
             self._num_sources_by_frequency = {}
             for freq in self.frequencies:
@@ -111,11 +125,17 @@ class Survey(BaseSurvey):
     )
 
     def get_sources_by_frequency(self, frequency):
-        """
-        Returns the sources associated with a specific frequency.
-        :param float frequency: frequency for which we look up sources
-        :rtype: dictionary
-        :return: sources at the sepcified frequency
+        """Get sources by frequency
+
+        Parameters
+        ----------
+        frequency : float
+            Frequency
+
+        Returns
+        -------
+        dict
+            sources at the sepcified frequency
         """
         assert (
             frequency in self._frequency_dict
