@@ -16,6 +16,16 @@ try:
 except ImportError:
     emg3d = False
 
+# Temporary work-around to ensure multiprocessing does not hang if sklearn is
+# installed. This should hopefully not be necessary in the future. See https://scikit-learn.org/stable/faq.html#why-do-i-sometime-get-a-crash-freeze-with-n-jobs-1-under-osx-or-linux
+try:
+    import sklearn
+except ImportError:
+    pass
+else:
+    import multiprocessing
+    multiprocessing.set_start_method('forkserver')
+
 
 @requires({"emg3d": emg3d})
 class Simulation3DEMG3D(BaseFDEMSimulation):
