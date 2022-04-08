@@ -9,7 +9,7 @@ from SimPEG import maps, mkvc, utils, Data
 from ....utils import meshTensor
 from ..receivers import (
     Point1DImpedance,
-    Point3DImpedance,
+    Point3DNaturalSource,
     Point3DTipper,
     Point3DComplexResistivity,
 )
@@ -202,12 +202,12 @@ def setupSimpegNSEM_tests_location_assign_list(
                     )
             else:
                 rxList.append(
-                    Point3DImpedance(
+                    Point3DNaturalSource(
                         orientation=rx_type, component="real", locations=[rx_loc]
                     )
                 )
                 rxList.append(
-                    Point3DImpedance(
+                    Point3DNaturalSource(
                         orientation=rx_type, component="imag", locations=[rx_loc]
                     )
                 )
@@ -338,8 +338,8 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
                     )
                 )
             else:
-                rxList.append(Point3DImpedance(rx_loc, rx_type, "real"))
-                rxList.append(Point3DImpedance(rx_loc, rx_type, "imag"))
+                rxList.append(Point3DNaturalSource(rx_loc, rx_type, "real"))
+                rxList.append(Point3DNaturalSource(rx_loc, rx_type, "imag"))
         if rx_type in ["zx", "zy"]:
             rxList.append(Point3DTipper(rx_loc, rx_type, "real"))
             rxList.append(Point3DTipper(rx_loc, rx_type, "imag"))
@@ -443,8 +443,8 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
                     )
                 )
             else:
-                receiver_list.append(Point3DImpedance(rx_loc, rx_type, "real"))
-                receiver_list.append(Point3DImpedance(rx_loc, rx_type, "imag"))
+                receiver_list.append(Point3DNaturalSource(rx_loc, rx_type, "real"))
+                receiver_list.append(Point3DNaturalSource(rx_loc, rx_type, "imag"))
         if rx_type in ["zx", "zy"]:
             receiver_list.append(Point3DTipper(rx_loc, rx_type, "real"))
             receiver_list.append(Point3DTipper(rx_loc, rx_type, "imag"))

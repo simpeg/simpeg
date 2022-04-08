@@ -168,9 +168,6 @@ class BaseSimulation(props.HasModel):
 
     ###########################################################################
     # Properties and observers
-    @properties.observer("mesh")
-    def _update_registry(self, change):
-        self._REGISTRY.update(change["value"]._REGISTRY)
 
     #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
     # TODO: rename to _delete_on_model_update

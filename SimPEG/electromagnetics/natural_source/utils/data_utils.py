@@ -12,7 +12,7 @@ import SimPEG as simpeg
 from SimPEG.electromagnetics.natural_source.survey import Survey, Data
 from SimPEG.electromagnetics.natural_source.receivers import (
     Point1DImpedance,
-    Point3DImpedance,
+    Point3DNaturalSource,
     Point3DTipper,
 )
 from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary
@@ -71,7 +71,7 @@ def extract_data_info(NSEMdata):
         for rx in src.receiver_list:
             dL.append(NSEMdata[src, rx])
             freqL.append(np.ones(rx.nD) * src.frequency)
-            if isinstance(rx, Point3DImpedance):
+            if isinstance(rx, Point3DNaturalSource):
                 rxTL.extend((("z" + rx.orientation + " ") * rx.nD).split())
             if isinstance(rx, Point3DTipper):
                 rxTL.extend((("t" + rx.orientation + " ") * rx.nD).split())
@@ -127,7 +127,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
         rx_comp = []
         for rxT in rxs:
             if "z" in rxT[0]:
-                rxtype = Point3DImpedance
+                rxtype = Point3DNaturalSource
             elif "t" in rxT[0]:
                 rxtype = Point3DTipper
             else:
