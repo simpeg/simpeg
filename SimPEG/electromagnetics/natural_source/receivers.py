@@ -431,11 +431,11 @@ class Point3DNaturalSource(BaseRxNSEM_Point):
                 # switch real and imaginary, and negate real part of output
                 v = -v.imag - 1j * v.real
                 # imaginary part gets extra (-) due to conjugate transpose
-            elif self.component == 'apparent_resistivity':
+            elif self.component == "apparent_resistivity":
                 alpha = self._alpha(src)
                 v = 2 * alpha * imp * v
                 v = v.real - 1j * v.imag
-            elif self.component == 'imag':
+            elif self.component == "imag":
                 v = -1j * v
                 # imaginary part gets extra (-) due to conjugate transpose
             # Work backwards!
@@ -483,6 +483,7 @@ class Point3DNaturalSource(BaseRxNSEM_Point):
             )
             imp_deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
             if self.component == "apparent resistivity":
+                alpha = self._alpha(src)
                 rx_deriv = (
                     2 * alpha * (imp.real * imp_deriv.real + imp.imag * imp_deriv.imag)
                 )
@@ -515,9 +516,7 @@ class Point3DNaturalSource(BaseRxNSEM_Point):
                 alpha = self._alpha(src)
                 return alpha * (imp.real ** 2 + imp.imag ** 2)
             elif self.component == "phase":
-                return (
-                    180 / np.pi * (np.arctan2(imp.imag, imp.real))
-                )
+                return 180 / np.pi * (np.arctan2(imp.imag, imp.real))
             else:
                 return getattr(imp, self.component)
 
