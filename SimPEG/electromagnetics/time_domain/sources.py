@@ -1039,7 +1039,7 @@ class LineCurrent(BaseTDEMSrc):
         else:
             return Zero()
 
-    def jInitialDeriv(self, simulation, v, adjoint=False):
+    def jInitialDeriv(self, simulation, v=None, adjoint=False, f=None):
         if simulation._formulation != "HJ":
             raise NotImplementedError
 
