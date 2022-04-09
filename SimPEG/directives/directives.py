@@ -1393,6 +1393,10 @@ class SaveIterationsGeoH5(InversionDirective):
                 dpred = self.invProb.get_dpred(self.invProb.model)
                 self.invProb.dpred = dpred
             prop = self.stack_channels(dpred)
+        elif self.attribute_type == "sensitivities":
+            for directive in self.inversion.directiveList.dList:
+                if isinstance(directive, UpdateSensitivityWeights):
+                    prop = self.reshape(np.sum(directive.JtJdiag, axis=0)**0.5)
         else:
             prop = self.reshape(self.invProb.model)
 
