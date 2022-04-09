@@ -85,7 +85,7 @@ class PGIsmallness(Small):
             if values.shape[0] == self.mapping.shape[0]:
                 values = np.tile(values, len(self.wiresmap.maps))
             else:
-                self.validate_shape("weights", values, ((self.shape,), (len(self.wiresmap.maps) * self._nC_residual,)))
+                self.validate_shape("weights", values, (self.shape, (len(self.wiresmap.maps) * self._nC_residual,)))
 
             self.weights[key] = values
 
@@ -689,20 +689,29 @@ class PGIwithNonlinearRelationshipsSmallness(BaseRegularization):
                 sdiag(np.sqrt(self.regularization_mesh.vol)),
             )
 
-    # @properties.validator("cell_weights")
-    # def _validate_cell_weights(self, change):
-    #     if change["value"] is not None:
-    #         if self._nC_residual != "*":
-    #             if (len(change["value"]) != self._nC_residual) and (
-    #                 len(change["value"]) != len(self.wiresmap.maps) * self._nC_residual
-    #             ):
-    #                 raise Exception(
-    #                     "cell_weights must be length {} or {} not {}".format(
-    #                         self._nC_residual,
-    #                         len(self.wiresmap.maps) * self._nC_residual,
-    #                         len(change["value"]),
-    #                     )
-    #                 )
+    def add_set_weights(self, weights: dict | np.ndarray):
+        if isinstance(weights, np.ndarray):
+            weights = {"user_weights": weights}
+
+        if not isinstance(weights, dict):
+            raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
+
+        for key, values in weights.items():
+            self.validate_array_type("weights", values, float)
+
+            if values.shape[0] == self.mapping.shape[0]:
+                values = np.tile(values, len(self.wiresmap.maps))
+            else:
+                self.validate_shape("weights", values, self.shape)
+
+            self.weights[key] = values
+
+        self._W = None
+
+    @property
+    def shape(self):
+        """"""
+        return self.wiresmap.nP,
 
     def membership(self, m):
         modellist = self.wiresmap * m

@@ -233,9 +233,6 @@ def make_PGIwithRelationships_regularization(
     if maplist is None:
         maplist = [IdentityMap(mesh) for maps in wiresmap.maps]
 
-    if cell_weights_list is None:
-        cell_weights_list = [np.ones(maps[1].shape[0]) for maps in wiresmap.maps]
-
     reg = PGIwithRelationships(
         mesh=mesh,
         gmmref=gmmref,
@@ -248,19 +245,24 @@ def make_PGIwithRelationships_regularization(
         alpha_x=0.0,
         alpha_y=0.0,
         alpha_z=0.0,
+        alpha_xx=alpha_xx,
+        alpha_yy=alpha_yy,
+        alpha_zz=alpha_zz,
         **kwargs,
     )
 
     if cell_weights_list is not None:
         reg.objfcts[0].weights = np.hstack(cell_weights_list)
+    else:
+        cell_weights_list = [None] * len(wiresmap.maps)
 
-    if isinstance(alpha_x, float or type(None)):
+    if isinstance(alpha_x, (float, type(None))):
         alpha_x = [alpha_x] * len(wiresmap.maps)
 
-    if isinstance(alpha_y, float or type(None)):
+    if isinstance(alpha_y, (float, type(None))):
         alpha_y = [alpha_y] * len(wiresmap.maps)
 
-    if isinstance(alpha_z, float or type(None)):
+    if isinstance(alpha_z, (float, type(None))):
         alpha_z = [alpha_z] * len(wiresmap.maps)
 
     for i, (wire, maps) in enumerate(zip(wiresmap.maps, maplist)):
@@ -271,7 +273,7 @@ def make_PGIwithRelationships_regularization(
             alpha_x=alpha_x[i],
             alpha_y=alpha_y[i],
             alpha_z=alpha_z[i],
-            weights=clwhtlst[i],
+            weights=cell_weights_list[i],
             **kwargs,
         )
 
