@@ -245,9 +245,6 @@ def make_PGIwithRelationships_regularization(
         alpha_x=0.0,
         alpha_y=0.0,
         alpha_z=0.0,
-        alpha_xx=alpha_xx,
-        alpha_yy=alpha_yy,
-        alpha_zz=alpha_zz,
         **kwargs,
     )
 

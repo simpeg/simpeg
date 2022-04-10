@@ -642,6 +642,9 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     _alpha_xx = None
     _alpha_yy = None
     _alpha_zz = None
+    _length_scale_x = None
+    _length_scale_y = None
+    _length_scale_z = None
     _model = None
     _mapping = None
     _normalized_gradients = True
@@ -699,6 +702,9 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
             alpha_xx=alpha_xx,
             alpha_yy=alpha_yy,
             alpha_zz=alpha_zz,
+            length_scale_x=length_scale_x,
+            length_scale_y=length_scale_y,
+            length_scale_z=length_scale_z,
             **kwargs
         )
 
@@ -814,7 +820,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
     @length_scale_x.setter
     def length_scale_x(self, value: float):
-        if not isinstance(value, (float, int)):
+        if not isinstance(value, (float, int, type(None))):
             raise ValueError(
                 "Input length scale should be of type 'float' or 'int'. "
                 f"Provided {value} of type {type(value)}."
@@ -830,7 +836,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
     @length_scale_y.setter
     def length_scale_y(self, value: float):
-        if not isinstance(value, (float, int)):
+        if not isinstance(value, (float, int, type(None))):
             raise ValueError(
                 "Input length scale should be of type 'float' or 'int'. "
                 f"Provided {value} of type {type(value)}."
@@ -846,7 +852,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
     @length_scale_z.setter
     def length_scale_z(self, value: float):
-        if not isinstance(value, (float, int)):
+        if not isinstance(value, (float, int, type(None))):
             raise ValueError(
                 "Input length scale should be of type 'float' or 'int'. "
                 f"Provided {value} of type {type(value)}."
@@ -895,7 +901,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         """
         number of model parameters
         """
-        if getattr(self, "_mapping", None) is not None and self.mapping.nP != "*":
+        if getattr(self, "mapping", None) is not None and self.mapping.nP != "*":
             return self.mapping.nP
         elif getattr(self, "_regularization_mesh", None) is not None and self.regularization_mesh.nC != "*":
             return self.regularization_mesh.nC
