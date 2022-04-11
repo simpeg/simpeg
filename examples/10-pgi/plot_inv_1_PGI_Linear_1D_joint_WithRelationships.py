@@ -132,8 +132,6 @@ wr1 = np.sum(prob1.G ** 2.0, axis=0) ** 0.5 / mesh.cell_volumes
 wr1 = wr1 / np.max(wr1)
 wr2 = np.sum(prob2.G ** 2.0, axis=0) ** 0.5 / mesh.cell_volumes
 wr2 = wr2 / np.max(wr2)
-wr = np.r_[wr1, wr2]
-W = utils.sdiag(wr)
 
 reg_simple = utils.make_PGIwithRelationships_regularization(
     mesh=mesh,

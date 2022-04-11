@@ -660,34 +660,19 @@ class PGIwithNonlinearRelationshipsSmallness(BaseRegularization):
         self._r_first_deriv = None
         self._r_second_deriv = None
 
-    @property
-    def W(self):
-        """
-        Weighting matrix
-        Need to change the size to match self.wiresmap.maps * mesh.nC
-        """
-
-        if self.weights is not None:
-            if len(self.weights) == self.wiresmap.nP:
-                return (
-                    sp.kron(
-                        speye(len(self.wiresmap.maps)),
-                        sdiag(np.sqrt(self.regularization_mesh.vol)),
-                    )
-                    * sdiag(np.sqrt(self.weights))
-                )
-            else:
-                return sp.kron(
-                    speye(len(self.wiresmap.maps)),
-                    sdiag(np.sqrt(self.regularization_mesh.vol)),
-                ) * sp.kron(
-                    speye(len(self.wiresmap.maps)), sdiag(np.sqrt(self.weights))
-                )
-        else:
-            return sp.kron(
-                speye(len(self.wiresmap.maps)),
-                sdiag(np.sqrt(self.regularization_mesh.vol)),
-            )
+    # @property
+    # def W(self):
+    #     """
+    #     Weighting matrix
+    #     Need to change the size to match self.wiresmap.maps * mesh.nC
+    #     """
+    #     if getattr(self, "_W", None) is None:
+    #         weights = np.prod(list(self.weights.values()), axis=0)
+    #         if len(weights) == self.wiresmap.nP:
+    #             weights = np.tile(weights, len(self.wiresmap.maps))
+    #
+    #         self._W = sdiag(weights ** 0.5)
+    #     return self._W
 
     def add_set_weights(self, weights: dict | np.ndarray):
         if isinstance(weights, np.ndarray):
@@ -988,6 +973,7 @@ class PGIwithRelationships(LeastSquaresRegularization):
             alpha_xx=alpha_xx,
             alpha_yy=alpha_yy,
             alpha_zz=alpha_zz,
+            mapping=IdentityMap(mesh, nP=self.wiresmap.nP),
             **kwargs
         )
 
@@ -999,7 +985,7 @@ class PGIwithRelationships(LeastSquaresRegularization):
                 maplist=self.maplist,
                 approx_gradient=approx_gradient,
                 approx_eval=approx_eval,
-                mapping=IdentityMap(mesh, nP=self.wiresmap.nP),
+                mapping=self.mapping,
                 **kwargs
             )
         ] + self.objfcts

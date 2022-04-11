@@ -132,7 +132,7 @@ def make_PGI_regularization(
     )
 
     if cell_weights_list is not None:
-        reg.objfcts[0].cell_weights = np.hstack(clwhtlst)
+        reg.objfcts[0].weights = np.hstack(clwhtlst)
 
     if isinstance(alpha_x, float):
         alph_x = alpha_x * np.ones(len(wrmp.maps))
