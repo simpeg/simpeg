@@ -482,7 +482,7 @@ class Point3DNaturalSource(BaseRxNSEM_Point):
                 - dhx_v[:, 1] * hy[:, 0]
             )
             imp_deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
-            if self.component == "apparent resistivity":
+            if self.component == "apparent_resistivity":
                 alpha = self._alpha(src)
                 rx_deriv = (
                     2 * alpha * (imp.real * imp_deriv.real + imp.imag * imp_deriv.imag)
@@ -512,7 +512,7 @@ class Point3DNaturalSource(BaseRxNSEM_Point):
         if return_complex:
             return imp
         else:
-            if self.component == "apparent resistivity":
+            if self.component == "apparent_resistivity":
                 alpha = self._alpha(src)
                 return alpha * (imp.real ** 2 + imp.imag ** 2)
             elif self.component == "phase":
