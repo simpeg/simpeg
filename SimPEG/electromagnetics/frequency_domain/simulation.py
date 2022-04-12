@@ -267,7 +267,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         MeSigma = self.MeSigma
         C = self.mesh.edgeCurl
 
-        return C.T * MfMui * C + 1j * omega(freq) * MeSigma
+        return C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigma
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
         """
@@ -407,10 +407,10 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        A = C * (MeSigmaI * (C.T * MfMui)) + iomega
+        A = C * (MeSigmaI * (C.T.tocsr() * MfMui)) + iomega
 
         if self._makeASymmetric:
-            return MfMui.T * A
+            return MfMui.T.tocsr() * A
         return A
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
@@ -588,10 +588,10 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        A = C * MeMuI * C.T * MfRho + iomega
+        A = C * MeMuI * C.T.tocsr() * MfRho + iomega
 
         if self._makeASymmetric is True:
-            return MfRho.T * A
+            return MfRho.T.tocsr() * A
         return A
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
@@ -779,7 +779,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         MfRho = self.MfRho
         C = self.mesh.edgeCurl
 
-        return C.T * (MfRho * C) + 1j * omega(freq) * MeMu
+        return C.T.tocsr() * (MfRho * C) + 1j * omega(freq) * MeMu
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
         """
