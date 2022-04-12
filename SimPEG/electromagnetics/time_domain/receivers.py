@@ -73,15 +73,15 @@ class BaseRx(BaseTimeRx):
 
             Projection matrices are stored as a dictionary (mesh, time_mesh) if storeProjections is True
         """
-        if (mesh, time_mesh) in self._Ps:
-            return self._Ps[(mesh, time_mesh)]
+        if (mesh.nC, time_mesh) in self._Ps:
+            return self._Ps[(mesh.nC, time_mesh)]
 
         Ps = self.getSpatialP(mesh, f)
         Pt = self.getTimeP(time_mesh, f)
         P = sp.kron(Pt, Ps)
 
         if self.storeProjections:
-            self._Ps[(mesh, time_mesh)] = P
+            self._Ps[(mesh.nC, time_mesh)] = P
 
         return P
 
