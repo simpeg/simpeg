@@ -12,7 +12,11 @@ import properties
 from ...survey import BaseRx
 
 
-class BaseRxNSEM_Point(BaseRx):
+def _alpha(src):
+    return 1 / (2 * np.pi * mu_0 * src.frequency)
+
+
+class PointNaturalSource(BaseRx):
     """
     Natural source receiver base class.
 
@@ -24,7 +28,7 @@ class BaseRxNSEM_Point(BaseRx):
     """
 
     component = properties.StringChoice(
-        "component of the field (real or imag)",
+        "component of the field (real, imag, apparent_resistivity, or phase)",
         {
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
@@ -32,16 +36,21 @@ class BaseRxNSEM_Point(BaseRx):
                 "apparent resistivity",
                 "apparent-resistivity",
                 "app_rho",
+                "app_res",
             ],
             "phase": ["phi"],
         },
     )
 
+    orientation = properties.StringChoice(
+        "orientation of the receiver. Must currently be 'xy', 'yx'", ["xx", "xy", "yx", "yy"],
+    )
+
     def __init__(
         self,
         locations=None,
-        orientation=None,
-        component=None,
+        orientation="xy",
+        component="real",
         locations_e=None,
         locations_h=None,
     ):
@@ -76,15 +85,14 @@ class BaseRxNSEM_Point(BaseRx):
             else:
                 raise Exception("locations need to be either a list or numpy array")
         else:
-            raise Exception(
-                "locations need to be either E & H coincident or seperate items"
-            )
+            locations = np.array([[0.0]])
+        super().__init__(locations)
 
-        BaseRx.__init__(self, locations)
-
+    @property
     def locations_e(self):
         return self._locations_e
 
+    @property
     def locations_h(self):
         return self._locations_h
 
@@ -98,6 +106,8 @@ class BaseRxNSEM_Point(BaseRx):
 
                 Projection matrices are stored as a dictionary listed by meshes.
         """
+        if mesh.dim < 3:
+            return super().getP(mesh, projGloc=projGLoc)
         if projGLoc is None:
             projGLoc = self.projGLoc
 
@@ -105,116 +115,105 @@ class BaseRxNSEM_Point(BaseRx):
             return self._Ps[(mesh, projGLoc, field)]
 
         if field == "e":
-            locs = self.locations_e()
+            locs = self.locations_e
         else:
-            locs = self.locations_h()
+            locs = self.locations_h
         P = mesh.getInterpolationMat(locs, projGLoc)
         if self.storeProjections:
             self._Ps[(mesh, projGLoc, field)] = P
         return P
 
-    def eval(self, src, mesh, f, return_complex=False):
-        """
-        Function to evaluate datum for this receiver
-        """
-        raise NotImplementedError("SimPEG.EM.NSEM receiver has to have an eval method")
-
-    def evalDeriv(self, src, mesh, f, v, adjoint=False):
-        """
-        Function to evaluate datum for this receiver
-        """
-        raise NotImplementedError(
-            "SimPEG.EM.NSEM receiver has to have an evalDeriv method"
-        )
-
-
-class PointNaturalSource(BaseRx):
-    """
-    Natural source 1D/2D impedance receiver class
-
-    :param string component: real or imaginary component 'real' or 'imag'
-    """
-
-    component = properties.StringChoice(
-        "component of the field (real or imag)",
-        {
-            "real": ["re", "in-phase", "in phase"],
-            "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-            "apparent_resistivity": [
-                "apparent resistivity",
-                "apparent-resistivity",
-                "app_rho",
-                "app_res",
-            ],
-            "phase": ["phi"],
-        },
-    )
-
-    orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'xy', 'yx'", ["xy", "yx"],
-    )
-
-    def __init__(self, locations=None, component="real", orientation="xy"):
-        self.component = component
-        self.orientation = orientation
-        if locations is None:
-            locations = np.array([[0]])
-        BaseRx.__init__(self, locations)
-
-    def _alpha(self, src):
-        return 1 / (2 * np.pi * mu_0 * src.frequency)
-
     def _eval_impedance(self, src, mesh, f):
-        if mesh.dim == 1:
-            e_loc = f.aliasFields["e"][1]
-            h_loc = f.aliasFields["h"][1]
-            PE = self.getP(mesh, e_loc)
-            PH = self.getP(mesh, h_loc)
-        elif mesh.dim == 2:
-            if self.orientation == "xy":
-                PE = self.getP(mesh, "Ex")
-                PH = self.getP(mesh, "CC")
-            elif self.orientation == "yx":
-                PE = self.getP(mesh, "CC")
-                PH = self.getP(mesh, "Ex")
-
+        if mesh.dim < 3 and self.orientation in ["xx", "yy"]:
+            return 0.0
         e = f[src, "e"]
         h = f[src, "h"]
+        if mesh.dim == 3:
+            if self.orientation[0] == "x":
+                e = self.getP(mesh, "Ex", "e") @ e
+            else:
+                e = self.getP(mesh, "Ey", "e") @ e
 
-        e_top = PE @ e[:, 0]
-        h_bot = PH @ h[:, 0]
+            hx = self.getP(mesh, "Fx", "h") @ h
+            hy = self.getP(mesh, "Fy", "h") @ h
+            if self.orientation[1] == "x":
+                h = hy
+            else:
+                h = -hx
 
-        # need to negate if 'yx' and fields are xy
-        # and as well if 'xy' and fields are 'yx'
-        if mesh.dim == 1 and self.orientation != f.field_directions:
-            h_bot = -h_bot
+            top = e[:, 0] * h[:, 1] - e[:, 1] * h[:, 0]
+            bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+        else:
+            if mesh.dim == 1:
+                e_loc = f.aliasFields["e"][1]
+                h_loc = f.aliasFields["h"][1]
+                PE = self.getP(mesh, e_loc)
+                PH = self.getP(mesh, h_loc)
+            elif mesh.dim == 2:
+                if self.orientation == "xy":
+                    PE = self.getP(mesh, "Ex")
+                    PH = self.getP(mesh, "CC")
+                elif self.orientation == "yx":
+                    PE = self.getP(mesh, "CC")
+                    PH = self.getP(mesh, "Ex")
+            top = PE @ e[:, 0]
+            bot = PH @ h[:, 0]
 
-        return e_top / h_bot
+            # need to negate if 'yx' and fields are xy
+            # and as well if 'xy' and fields are 'yx'
+            if mesh.dim == 1 and self.orientation != f.field_directions:
+                bot = -bot
+        return top / bot
 
     def _eval_impedance_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        if mesh.dim == 1:
-            e_loc = f.aliasFields["e"][1]
-            h_loc = f.aliasFields["h"][1]
-            PE = self.getP(mesh, e_loc)
-            PH = self.getP(mesh, h_loc)
-        elif mesh.dim == 2:
-            if self.orientation == "xy":
-                PE = self.getP(mesh, "Ex")
-                PH = self.getP(mesh, "CC")
-            elif self.orientation == "yx":
-                PE = self.getP(mesh, "CC")
-                PH = self.getP(mesh, "Ex")
-
+        if mesh.dim < 3 and self.orientation in ["xx", "yy"]:
+            if adjoint:
+                return 0 * v
+            else:
+                return 0 * du_dm_v
         e = f[src, "e"]
         h = f[src, "h"]
+        if mesh.dim == 3:
+            if self.orientation[0] == "x":
+                Pe = self.getP(mesh, "Ex", "e")
+                e = Pe @ e
+            else:
+                Pe = self.getP(mesh, "Ey", "e")
+                e = Pe @ e
 
-        top = PE @ e[:, 0]
-        bot = PH @ h[:, 0]
+            Phx = self.getP(mesh, "Fx", "h")
+            Phy = self.getP(mesh, "Fy", "h")
+            hx = Phx @ h
+            hy = Phy @ h
+            if self.orientation[1] == "x":
+                h = hy
+            else:
+                h = -hx
 
-        if mesh.dim == 1 and self.orientation != f.field_directions:
-            bot = -bot
+            top = e[:, 0] * h[:, 1] - e[:, 1] * h[:, 0]
+            bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+            imp = top / bot
+        else:
+            if mesh.dim == 1:
+                e_loc = f.aliasFields["e"][1]
+                h_loc = f.aliasFields["h"][1]
+                PE = self.getP(mesh, e_loc)
+                PH = self.getP(mesh, h_loc)
+            elif mesh.dim == 2:
+                if self.orientation == "xy":
+                    PE = self.getP(mesh, "Ex")
+                    PH = self.getP(mesh, "CC")
+                elif self.orientation == "yx":
+                    PE = self.getP(mesh, "CC")
+                    PH = self.getP(mesh, "Ex")
 
-        imp = top / bot
+            top = PE @ e[:, 0]
+            bot = PH @ h[:, 0]
+
+            if mesh.dim == 1 and self.orientation != f.field_directions:
+                bot = -bot
+
+            imp = top / bot
 
         if adjoint:
             if self.component == "phase":
@@ -224,7 +223,7 @@ class PointNaturalSource(BaseRx):
                 v = -v.imag - 1j * v.real
                 # imaginary part gets extra (-) due to conjugate transpose
             elif self.component == "apparent_resistivity":
-                v = 2 * self._alpha(src) * imp * v
+                v = 2 * _alpha(src) * imp * v
                 v = v.real - 1j * v.imag
             elif self.component == "imag":
                 v = -1j * v
@@ -233,29 +232,67 @@ class PointNaturalSource(BaseRx):
             gtop_v = v / bot
             gbot_v = -imp * v / bot
 
-            if mesh.dim == 1 and self.orientation != f.field_directions:
-                gbot_v = -gbot_v
+            if mesh.dim == 3:
+                ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v[:, None]
+                ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v[:, None]
+                ge_v = np.c_[h[:, 1], -h[:, 0]] * gtop_v[:, None]
+                gh_v = np.c_[-e[:, 1], e[:, 0]] * gtop_v[:, None]
 
-            gh_v = PH.T @ gbot_v
-            ge_v = PE.T @ gtop_v
+                if self.orientation[1] == "x":
+                    ghy_v += gh_v
+                else:
+                    ghx_v -= gh_v
+
+                gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v
+                ge_v = Pe.T @ ge_v
+            else:
+                if mesh.dim == 1 and self.orientation != f.field_directions:
+                    gbot_v = -gbot_v
+
+                gh_v = PH.T @ gbot_v
+                ge_v = PE.T @ gtop_v
 
             gfu_h_v, gfm_h_v = f._hDeriv(src, None, gh_v, adjoint=True)
             gfu_e_v, gfm_e_v = f._eDeriv(src, None, ge_v, adjoint=True)
 
             return gfu_h_v + gfu_e_v, gfm_h_v + gfm_e_v
 
-        de_v = PE @ f._eDeriv(src, du_dm_v, v, adjoint=False)
-        dh_v = PH @ f._hDeriv(src, du_dm_v, v, adjoint=False)
+        if mesh.dim == 3:
+            de_v = Pe @ f._eDeriv(src, du_dm_v, v, adjoint=False)
+            dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
+            dhx_v = Phx @ dh_v
+            dhy_v = Phy @ dh_v
+            if self.orientation[1] == "x":
+                dh_dm_v = dhy_v
+            else:
+                dh_dm_v = -dhx_v
 
-        if mesh.dim == 1 and self.orientation != f.field_directions:
-            dh_v = -dh_v
+            dtop_v = (
+                e[:, 0] * dh_dm_v[:, 1]
+                + de_v[:, 0] * h[:, 1]
+                - e[:, 1] * dh_dm_v[:, 0]
+                - de_v[:, 1] * h[:, 0]
+            )
+            dbot_v = (
+                hx[:, 0] * dhy_v[:, 1]
+                + dhx_v[:, 0] * hy[:, 1]
+                - hx[:, 1] * dhy_v[:, 0]
+                - dhx_v[:, 1] * hy[:, 0]
+            )
+            imp_deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
+        else:
+            de_v = PE @ f._eDeriv(src, du_dm_v, v, adjoint=False)
+            dh_v = PH @ f._hDeriv(src, du_dm_v, v, adjoint=False)
 
-        imp_deriv = (de_v - imp * dh_v) / bot
+            if mesh.dim == 1 and self.orientation != f.field_directions:
+                dh_v = -dh_v
+
+            imp_deriv = (de_v - imp * dh_v) / bot
 
         if self.component == "apparent_resistivity":
             rx_deriv = (
                 2
-                * self._alpha(src)
+                * _alpha(src)
                 * (imp.real * imp_deriv.real + imp.imag * imp_deriv.imag)
             )
         elif self.component == "phase":
@@ -284,7 +321,7 @@ class PointNaturalSource(BaseRx):
         if return_complex:
             return imp
         elif self.component == "apparent_resistivity":
-            return self._alpha(src) * (imp.real ** 2 + imp.imag ** 2)
+            return _alpha(src) * (imp.real ** 2 + imp.imag ** 2)
         elif self.component == "phase":
             return 180 / np.pi * (np.arctan2(imp.imag, imp.real))
         else:
@@ -319,7 +356,14 @@ class Point1DImpedance(PointNaturalSource):
     # Although it works with just the base class here
 
 
-class Point3DNaturalSource(BaseRxNSEM_Point):
+class Point2DNaturalSource(PointNaturalSource):
+    """
+    Natural source 1D/2D impedance receiver class
+    """
+    pass
+
+
+class Point3DNaturalSource(PointNaturalSource):
     """
     Natural source 3D receiver class
 
@@ -327,191 +371,14 @@ class Point3DNaturalSource(BaseRxNSEM_Point):
     :param string orientation: receiver orientation 'xx', 'xy', 'yx' or 'yy'
     :param string component: real or imaginary component 'real' or 'imag'
     """
-
-    orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'xx', 'xy', 'yx', 'yy'",
-        ["xx", "xy", "yx", "yy"],
-    )
-
-    def __init__(
-        self,
-        locations=None,
-        orientation="xy",
-        component="real",
-        locations_e=None,
-        locations_h=None,
-    ):
-
-        super().__init__(
-            locations=locations,
-            orientation=orientation,
-            component=component,
-            locations_e=locations_e,
-            locations_h=locations_h,
-        )
-
-    def _alpha(self, src):
-        return 1 / (2 * np.pi * mu_0 * src.frequency)
-
-    def _eval_impedance(self, src, mesh, f):
-        e = f[src, "e"]  # will grab both primary and secondary and sum them!
-        h = f[src, "h"]
-
-        if self.orientation[0] == "x":
-            e = self.getP(mesh, "Ex", "e") @ e
-        else:
-            e = self.getP(mesh, "Ey", "e") @ e
-
-        hx = self.getP(mesh, "Fx", "h") @ h
-        hy = self.getP(mesh, "Fy", "h") @ h
-        if self.orientation[1] == "x":
-            h = hy
-        else:
-            h = -hx
-
-        top = e[:, 0] * h[:, 1] - e[:, 1] * h[:, 0]
-        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
-        return top / bot
-
-    def _eval_rx_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        e = f[src, "e"]
-        h = f[src, "h"]
-
-        if self.orientation[0] == "x":
-            Pe = self.getP(mesh, "Ex", "e")
-            e = Pe @ e
-        else:
-            Pe = self.getP(mesh, "Ey", "e")
-            e = Pe @ e
-
-        Phx = self.getP(mesh, "Fx", "h")
-        Phy = self.getP(mesh, "Fy", "h")
-        hx = Phx @ h
-        hy = Phy @ h
-        if self.orientation[1] == "x":
-            h = hy
-        else:
-            h = -hx
-
-        top = e[:, 0] * h[:, 1] - e[:, 1] * h[:, 0]
-        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
-        imp = top / bot
-
-        if adjoint:
-            if self.component == "phase":
-                # gradient of arctan2(y, x) is (-y/(x**2 + y**2), x/(x**2 + y**2))
-                v = 180 / np.pi * imp / (imp.real ** 2 + imp.imag ** 2) * v
-                # switch real and imaginary, and negate real part of output
-                v = -v.imag - 1j * v.real
-                # imaginary part gets extra (-) due to conjugate transpose
-            elif self.component == "apparent_resistivity":
-                alpha = self._alpha(src)
-                v = 2 * alpha * imp * v
-                v = v.real - 1j * v.imag
-            elif self.component == "imag":
-                v = -1j * v
-                # imaginary part gets extra (-) due to conjugate transpose
-            # Work backwards!
-            gtop_v = (v / bot)[:, None]
-            gbot_v = (-imp * v / bot)[:, None]
-
-            ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
-            ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
-            ge_v = np.c_[h[:, 1], -h[:, 0]] * gtop_v
-            gh_v = np.c_[-e[:, 1], e[:, 0]] * gtop_v
-
-            if self.orientation[1] == "x":
-                ghy_v += gh_v
-            else:
-                ghx_v -= gh_v
-
-            gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v
-            ge_v = Pe.T @ ge_v
-
-            gfu_h_v, gfm_h_v = f._hDeriv(src, None, gh_v, adjoint=True)
-            gfu_e_v, gfm_e_v = f._eDeriv(src, None, ge_v, adjoint=True)
-
-            return gfu_h_v + gfu_e_v, gfm_h_v + gfm_e_v
-        else:
-            de_v = Pe @ f._eDeriv(src, du_dm_v, v, adjoint=False)
-            dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
-            dhx_v = Phx @ dh_v
-            dhy_v = Phy @ dh_v
-            if self.orientation[1] == "x":
-                dh_dm_v = dhy_v
-            else:
-                dh_dm_v = -dhx_v
-
-            dtop_v = (
-                e[:, 0] * dh_dm_v[:, 1]
-                + de_v[:, 0] * h[:, 1]
-                - e[:, 1] * dh_dm_v[:, 0]
-                - de_v[:, 1] * h[:, 0]
-            )
-            dbot_v = (
-                hx[:, 0] * dhy_v[:, 1]
-                + dhx_v[:, 0] * hy[:, 1]
-                - hx[:, 1] * dhy_v[:, 0]
-                - dhx_v[:, 1] * hy[:, 0]
-            )
-            imp_deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
-            if self.component == "apparent_resistivity":
-                alpha = self._alpha(src)
-                rx_deriv = (
-                    2 * alpha * (imp.real * imp_deriv.real + imp.imag * imp_deriv.imag)
-                )
-            elif self.component == "phase":
-                amp2 = imp.imag ** 2 + imp.real ** 2
-                deriv_re = -imp.imag / amp2 * imp_deriv.real
-                deriv_im = imp.real / amp2 * imp_deriv.imag
-
-                rx_deriv = (180 / np.pi) * (deriv_re + deriv_im)
-            else:
-                rx_deriv = getattr(imp_deriv, self.component)
-            return rx_deriv
-
-    def eval(self, src, mesh, f, return_complex=False):
-        """
-        Project the fields to natural source data.
-
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: The source of the fields to project
-        :param discretize.TensorMesh mesh: topological mesh corresponding to the fields
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: Natural source fields object to project
-        :rtype: numpy.ndarray
-        :return: component of the impedance evaluation
-        """
-
-        imp = self._eval_impedance(src, mesh, f)
-        if return_complex:
-            return imp
-        else:
-            if self.component == "apparent_resistivity":
-                alpha = self._alpha(src)
-                return alpha * (imp.real ** 2 + imp.imag ** 2)
-            elif self.component == "phase":
-                return 180 / np.pi * (np.arctan2(imp.imag, imp.real))
-            else:
-                return getattr(imp, self.component)
-
-    def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        """
-        The derivative of the projection wrt u
-
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: NSEM source
-        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: NSEM fields object of the source
-        :param numpy.ndarray v: vector of size (nU, 2) (adjoint=False) and size (nD,) (adjoint=True)
-        :rtype: numpy.ndarray
-        :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
-        """
-        return self._eval_rx_deriv(src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint)
+    pass
 
 
 class Point3DComplexResistivity(Point3DNaturalSource):
     pass
 
 
-class Point3DTipper(BaseRxNSEM_Point):
+class Point3DTipper(PointNaturalSource):
     """
     Natural source 3D tipper receiver base class
 
