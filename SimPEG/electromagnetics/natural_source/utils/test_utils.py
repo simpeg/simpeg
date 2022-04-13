@@ -9,12 +9,10 @@ from SimPEG import maps, mkvc, utils, Data
 from ....utils import meshTensor
 from ..receivers import (
     PointNaturalSource,
-    PointNaturalSource,
     Point3DTipper,
-    PointNaturalSource,
 )
 from ..survey import Survey
-from ..sources import PlanewaveXYPrimary, Planewave_xy_1DhomotD, Planewave
+from ..sources import PlanewaveXYPrimary, Planewave
 from ..simulation import Simulation3DPrimarySecondary
 from .data_utils import appResPhs
 
@@ -71,8 +69,8 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     receiver_list = []
     for rxType in ["z1d", "z1d"]:
-        receiver_list.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, "real"))
-        receiver_list.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, "imag"))
+        receiver_list.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="real"))
+        receiver_list.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="imag"))
     # Source list
     source_list = []
     for freq in freqs:
@@ -111,8 +109,8 @@ def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
 
     rxList = []
     for rxType in ["z1d", "z1d"]:
-        rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, "real"))
-        rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, "imag"))
+        rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="real"))
+        rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="imag"))
     # Source list
     # srcList = []
     src_list = [Planewave([], frequency=f) for f in frequencies]

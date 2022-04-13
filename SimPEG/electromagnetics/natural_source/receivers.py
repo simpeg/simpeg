@@ -107,7 +107,7 @@ class PointNaturalSource(BaseRx):
                 Projection matrices are stored as a dictionary listed by meshes.
         """
         if mesh.dim < 3:
-            return super().getP(mesh, projGloc=projGLoc)
+            return super().getP(mesh, projGLoc=projGLoc)
         if projGLoc is None:
             projGLoc = self.projGLoc
 
