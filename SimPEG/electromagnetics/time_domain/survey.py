@@ -1,4 +1,4 @@
-import properties
+# import properties
 from ...survey import BaseSurvey
 from .sources import BaseTDEMSrc
 
@@ -32,7 +32,7 @@ class Survey(BaseSurvey):
 
         Returns
         -------
-        list of SimPEG.survey.BaseTDEMSrc
+        list of BaseTDEMSrc
             List of TDEM sources associated with the survey
         """
         return self._source_list
@@ -47,6 +47,6 @@ class Survey(BaseSurvey):
 
         assert len(set(new_list)) == len(new_list), "The source_list must be unique. Cannot re-use sources"
 
-        # self._sourceOrder = dict()
-        # [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(new_list)]
-        # self._source_list = new_list
+        self._sourceOrder = dict()
+        [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(new_list)]
+        self._source_list = new_list

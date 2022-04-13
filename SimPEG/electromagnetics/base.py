@@ -132,22 +132,34 @@ class BaseEMSrc(BaseSrc):
             )
 
     def s_m(self, simulation):
-        """
-        Magnetic source term
+        """Magnetic source term
 
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :rtype: numpy.ndarray
-        :return: magnetic source term on mesh
+        Parameters
+        ----------
+        simulation : BaseEMSimulation
+            An EM Simulation object
+        
+        Returns
+        -------
+        numpy.ndarray
+            Magnetic source term defined on the mesh. Defined on faces for EB formulations,
+            and defined on edges for HJ formulations.
         """
         return Zero()
 
     def s_e(self, simulation):
-        """
-        Electric source term
+        """Electric source term
 
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :rtype: numpy.ndarray
-        :return: electric source term on mesh
+        Parameters
+        ----------
+        simulation : BaseEMSimulation
+            An EM Simulation object
+        
+        Returns
+        -------
+        numpy.ndarray
+            Electric source term defined on the mesh. Defined on edges for EB formulations,
+            and defined on faces for HJ formulations.
         """
         return Zero()
 
@@ -155,11 +167,19 @@ class BaseEMSrc(BaseSrc):
         """
         Derivative of magnetic source term with respect to the inversion model
 
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of magnetic source term derivative with a vector
+        Parameters
+        ----------
+        simulation : BaseEMSimulation
+            An EM Simulation object
+        v : numpy.ndarray
+            A vector to take the dot product with
+        adjoint : bool, default==Fasel
+            If ``True``, return the adjoint operation
+        
+        Returns
+        -------
+        numpy.ndarray
+            Product of the derivative of the magnetic source term and a vector
         """
 
         return Zero()
@@ -168,10 +188,18 @@ class BaseEMSrc(BaseSrc):
         """
         Derivative of electric source term with respect to the inversion model
 
-        :param BaseFDEMSimulation simulation: FDEM Simulation
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of electric source term derivative with a vector
+        Parameters
+        ----------
+        simulation : BaseEMSimulation
+            An EM Simulation object
+        v : numpy.ndarray
+            A vector to take the dot product with
+        adjoint : bool, default==Fasel
+            If ``True``, return the adjoint operation
+        
+        Returns
+        -------
+        numpy.ndarray
+            Product of the derivative of the electric source term and a vector
         """
         return Zero()

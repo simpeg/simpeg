@@ -1,6 +1,6 @@
 import scipy.sparse as sp
 from ...utils.code_utils import deprecate_class, deprecate_property
-import properties
+# import properties
 
 from ...utils import mkvc
 from ...survey import BaseTimeRx

@@ -2,7 +2,7 @@ from __future__ import division, print_function
 
 import numpy as np
 from scipy.constants import mu_0
-import properties
+# import properties
 import warnings
 from ...utils.code_utils import deprecate_property
 
@@ -11,7 +11,7 @@ from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 from ..base import BaseEMSrc
 from ..utils import segmented_line_current_source_term, line_through_faces
 from ...props import LocationVector
-from ...utils import setKwargs, sdiag, Zero, Identity
+from ...utils import set_kwargs, sdiag, Zero, Identity
 
 ###############################################################################
 #                                                                             #
@@ -41,11 +41,22 @@ class BaseWaveform:
         self.has_initial_fields = has_initial_fields
         self.off_time = off_time
         self.epsilon = epsilon
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
     @property
     def has_initial_fields(self):
-        """Does the waveform have initial fields?"""
+        """Whether the waveform has initial fields.
+
+        If the current at the first time in the defined waveform is non-zero,
+        there are static fields that must be computed by the simulations.
+        `has_initial_fields` tells the simulation that initial fields must be
+        computed for the corresponding source.
+
+        Returns
+        -------
+        bool
+            If ``True``, the waveform has initial fields. 
+        """
         return self._has_initial_fields
 
     @has_initial_fields.setter
@@ -60,6 +71,15 @@ class BaseWaveform:
 
     @property
     def off_time(self):
+        """Off-time
+
+        Sets the start of the off-time for the waveform.
+
+        Returns
+        -------
+        float
+            The start of the off-time for the waveform
+        """
         return self._off_time
 
     @off_time.setter
@@ -76,7 +96,13 @@ class BaseWaveform:
 
     @property
     def epsilon(self):
-        """window of time within which the waveform is considered on"""
+        """Window of time within which the waveform is considered on
+
+        Returns
+        -------
+        float
+            Window of time within which the waveform is considered on
+        """
         return self._epsilon
 
     @epsilon.setter
@@ -93,9 +119,11 @@ class BaseWaveform:
         self._epsilon = value
 
     def eval(self, time):
+        """Not implemented for base TDEM source"""
         raise NotImplementedError
 
     def evalDeriv(self, time):
+        """Not implemented for base TDEM source"""
         raise NotImplementedError  # needed for E-formulation
 
     ##########################
@@ -132,7 +160,7 @@ class StepOffWaveform(BaseWaveform):
 
     Parameters
     ----------
-    off_time: float
+    off_time: float, default=0.
         time at which the transmitter is turned off in units of seconds (default is 0s)
 
     Examples
@@ -157,6 +185,18 @@ class StepOffWaveform(BaseWaveform):
         )
 
     def eval(self, time):
+        """Evaluate step-off waveform at a given time
+
+        Parameters
+        ----------
+        time : float
+            A time
+
+        Returns
+        -------
+        float
+            Source current at the time provided
+        """
         if (abs(time - 0.0) < self.epsilon) or ((time - self.off_time) < self.epsilon):
             return 1.0
         else:
@@ -192,6 +232,18 @@ class RampOffWaveform(BaseWaveform):
         )
 
     def eval(self, time):
+        """Evaluate linear ramp-off waveform at a given time
+
+        Parameters
+        ----------
+        time : float
+            A time
+
+        Returns
+        -------
+        float
+            Source current at the time provided
+        """
         if abs(time - 0.0) < self.epsilon:
             return 1.0
         elif time < self.off_time:
@@ -247,10 +299,18 @@ class RawWaveform(BaseWaveform):
         wavefct = kwargs.pop("waveFct", None)
         if wavefct is not None:
             self.waveFct = wavefct
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
     @property
     def waveform_function(self):
+        """Function handle for a custom waveform
+
+        Returns
+        -------
+        function
+            A function that returns the source current for an input
+            argument *time*.
+        """
         return self._waveform_function
 
     @waveform_function.setter
@@ -263,6 +323,18 @@ class RawWaveform(BaseWaveform):
         self._waveform_function = value
 
     def eval(self, time):
+        """Evaluate custom waveform function at a given time
+
+        Parameters
+        ----------
+        time : float
+            A time
+
+        Returns
+        -------
+        float
+            Source current at the time provided
+        """
         return self.waveform_function(time)
 
     waveFct = deprecate_property(
@@ -282,10 +354,8 @@ class VTEMWaveform(BaseWaveform):
     ----------
     off_time: float
         time at which the transmitter is turned off in units of seconds (default is 4.2e-3s)
-
     peak_time: float
         the peak time for the waveform (default: 2.73e-3)
-
     ramp_on_rate: float
         parameter controlling how quickly the waveform ramps on (default is 3)
 
@@ -309,10 +379,17 @@ class VTEMWaveform(BaseWaveform):
         self.ramp_on_rate = (
             ramp_on_rate  # we should come up with a better name for this
         )
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
     @property
     def peak_time(self):
+        """Peak time
+
+        Returns
+        -------
+        float
+            The peak time for the VTEM waveform
+        """
         return self._peak_time
 
     @peak_time.setter
@@ -331,6 +408,15 @@ class VTEMWaveform(BaseWaveform):
 
     @property
     def ramp_on_rate(self):
+        """Ramp on rate
+
+        Parameter controlling how quickly the waveform ramps on (default is 3)
+
+        Returns
+        -------
+        float
+            Ramp on rate
+        """
         return self._ramp_on_rate
 
     @ramp_on_rate.setter
@@ -345,6 +431,18 @@ class VTEMWaveform(BaseWaveform):
         self._ramp_on_rate = value
 
     def eval(self, time):
+        """Evaluate VTEM waveform at a given time
+
+        Parameters
+        ----------
+        time : float
+            A time
+
+        Returns
+        -------
+        float
+            Source current at the time provided
+        """
         if time <= self.peak_time:
             return (1.0 - np.exp(-self.ramp_on_rate * time / self.peak_time)) / (
                 1.0 - np.exp(-self.ramp_on_rate)
@@ -409,12 +507,19 @@ class TrapezoidWaveform(BaseWaveform):
         self.ramp_on = ramp_on
         self.ramp_off = ramp_off
         self.off_time = off_time if off_time is not None else self.ramp_off[-1]
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
     @property
     def ramp_on(self):
-        """times over which the transmitter ramps on
-        [time starting to ramp on, time fully on]
+        """times over which the transmitter ramps on.
+
+        Defines the start and end times over which the ramp-on occurs.
+
+        Returns
+        -------
+        (2) np.ndarray
+            A numpy array (t_start, t_final), where *t_start* defines the start of the ramp-on
+            and *t_end* defines the time where the ramp-on is completed.
         """
         return self._ramp_on
 
@@ -438,8 +543,15 @@ class TrapezoidWaveform(BaseWaveform):
 
     @property
     def ramp_off(self):
-        """times over which we ramp off the waveform
-        [time starting to ramp off, time off]
+        """times over which the transmitter ramps off.
+
+        Defines the start and end times over which the ramp-off occurs.
+
+        Returns
+        -------
+        (2) np.ndarray
+            A numpy array (t_start, t_final), where *t_start* defines the start of the ramp-off
+            and *t_end* defines the time where the ramp-off is completed.
         """
         return self._ramp_off
 
@@ -462,6 +574,18 @@ class TrapezoidWaveform(BaseWaveform):
         self._ramp_off = value
 
     def eval(self, time):
+        """Evaluate the waveform at a given time
+
+        Parameters
+        ----------
+        time : float
+            A time
+
+        Returns
+        -------
+        float
+            Source current at the time provided
+        """
         if time < self.ramp_on[0]:
             return 0
         elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
@@ -535,10 +659,17 @@ class TriangularWaveform(TrapezoidWaveform):
             has_initial_fields=False,
         )
         self.peak_time = peak_time
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
     @property
     def peak_time(self):
+        """Peak time
+
+        Returns
+        -------
+        float
+            The peak time for the triangular waveform
+        """
         return self._peak_time
 
     @peak_time.setter
@@ -601,6 +732,18 @@ class QuarterSineRampOnWaveform(TrapezoidWaveform):
         )
 
     def eval(self, time):
+        """Evaluate the waveform at a given time
+
+        Parameters
+        ----------
+        time : float
+            A time
+
+        Returns
+        -------
+        float
+            Source current at the time provided
+        """
         if time < self.ramp_on[0]:
             return 0
         elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
@@ -633,6 +776,18 @@ class HalfSineWaveform(TrapezoidWaveform):
         )
 
     def eval(self, time):
+        """Evaluate the waveform at a given time
+
+        Parameters
+        ----------
+        time : float
+            A time
+
+        Returns
+        -------
+        float
+            Source current at the time provided
+        """
         if time < self.ramp_on[0]:
             return 0
         elif time >= self.ramp_on[0] and time <= self.ramp_on[1]:
@@ -659,22 +814,92 @@ class HalfSineWaveform(TrapezoidWaveform):
 
 
 class BaseTDEMSrc(BaseEMSrc):
+    """Base TDEM source class
 
-    # rxPair = Rx
-    waveform = properties.Instance(
-        "A source waveform", BaseWaveform, default=StepOffWaveform()
-    )
-    srcType = properties.StringChoice(
-        "is the source a galvanic of inductive source",
-        choices=["inductive", "galvanic"],
-    )
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+        A list of FDEM receivers
+    location : (dim) np.ndarray
+        Source locations
+    waveform : BaseWaveform, default=StepOffWaveform
+        A SimPEG waveform object
+    source_type : str in {'inductive','galvanic'}
+        Implement as an inductive or galvanic source
+    """
 
-    def __init__(self, receiver_list=None, **kwargs):
-        if receiver_list is not None:
-            kwargs["receiver_list"] = receiver_list
-        super(BaseTDEMSrc, self).__init__(**kwargs)
+    # # rxPair = Rx
+    # waveform = properties.Instance(
+    #     "A source waveform", BaseWaveform, default=StepOffWaveform()
+    # )
+    # srcType = properties.StringChoice(
+    #     "is the source a galvanic of inductive source",
+    #     choices=["inductive", "galvanic"],
+    # )
+
+    def __init__(self, receiver_list=None, location=None, waveform=StepOffWaveform(), srcType=None, **kwargs):
+
+        super(BaseTDEMSrc, self).__init__(
+            receiver_list=receiver_list, location=location, **kwargs
+        )
+
+        self.waveform = waveform
+        if srcType is not None:
+            self.srcType = srcType
+
+    @property
+    def waveform(self):
+        """Current waveform for the source
+
+        Returns
+        -------
+        BaseWaveform
+            A SimPEG waveform
+        """
+        return self._waveform
+
+    @waveform.setter
+    def waveform(self, wave):
+
+        if isinstance(wave, BaseWaveform):
+            self._waveform = wave
+        else:
+            raise TypeError(f"Must be an instance of 'BaseWaveform', Got {type(wave)}")
+    
+    @property
+    def srcType(self):
+        """Implement at inductive or galvanic source
+
+        Returns
+        -------
+        str
+            Either 'inductive' or 'galvanic'
+        """
+        return self._srcType
+
+    @srcType.setter
+    def srcType(self, var):
+        if isinstance(var, str):
+            if var in ['inductive', 'galvanic']:
+                self._srcType = var
+            else:
+                raise ValueError("srcType must be either 'inductive' or 'galvanic'.")
+        else:
+            raise TypeError(f"srcType must be str, got {type(var)}")
 
     def bInitial(self, simulation):
+        """Return initial B-field (``Zero`` for ``BaseTDEMSrc`` class)
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSrc
+            TDEM source
+
+        Returns
+        -------
+        Zero
+            Returns ``Zero`` for ``BaseTDEMSrc``
+        """
         return Zero()
 
     def bInitialDeriv(self, simulation, v=None, adjoint=False, f=None):
@@ -699,11 +924,47 @@ class BaseTDEMSrc(BaseEMSrc):
         return Zero()
 
     def eval(self, simulation, time):
+        """Return magnetic and electric source terms at a given time
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.base.BaseTDEMSimulation
+            An instance of a time-domain electromagnetic simulation
+        time : float
+            The time at which you want to compute the source terms
+
+        Returns
+        -------
+        tuple
+            A tuple (s_m, s_e), where s_m is the discretized magnetic source term
+            and s_e is the discretized electric course term.
+        """
         s_m = self.s_m(simulation, time)
         s_e = self.s_e(simulation, time)
         return s_m, s_e
 
     def evalDeriv(self, simulation, time, v=None, adjoint=False):
+        """Derivative of magnetic and electric source terms time a vector at a given time
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.base.BaseTDEMSimulation
+            An instance of a time-domain electromagnetic simulation
+        time :
+            The time at which you want to compute the derivative
+        v : np.ndarray
+            A vector
+        adjoint : bool
+            If ``True``, return the adjoint operation
+
+        Returns
+        -------
+        tuple
+            A tuple (s_mDeriv, s_eDerive). If `v` is not ``None``, the method returns
+            the derivatives of the magnetic and electric sources times the vector `v`.
+            If `v` is ``None``, the method returns the functions for multiplying the
+            derivatives with a vector.
+        """
         if v is not None:
             return (
                 self.s_mDeriv(simulation, time, v, adjoint),
@@ -729,25 +990,174 @@ class BaseTDEMSrc(BaseEMSrc):
 
 
 class MagDipole(BaseTDEMSrc):
+    r"""
+    Point magnetic dipole source calculated by taking the curl of a magnetic
+    vector potential. By taking the discrete curl, we ensure that the magnetic
+    flux density is divergence free (no magnetic monopoles!).
 
-    moment = properties.Float("dipole moment of the transmitter", default=1.0, min=0.0)
-    mu = properties.Float("permeability of the background", default=mu_0, min=0.0)
-    orientation = properties.Vector3(
-        "orientation of the source", default="Z", length=1.0, required=True
-    )
-    location = LocationVector(
-        "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
-    )
-    loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", error=True
-    )
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
+        A list of TDEM receivers
+    location : (dim) np.ndarray, default = np.r_[0., 0., 0.]
+        Source location.
+    moment : float
+        Magnetic dipole moment amplitude
+    mu : float
+        Background magnetic permeability
+    source_type : str in {'inductive','galvanic'}
+        Implement as an inductive or galvanic source
+    """
 
-    def __init__(self, receiver_list=None, **kwargs):
-        kwargs.pop("srcType", None)
-        BaseTDEMSrc.__init__(
-            self, receiver_list=receiver_list, srcType="inductive", **kwargs
+    # moment = properties.Float("dipole moment of the transmitter", default=1.0, min=0.0)
+    # mu = properties.Float("permeability of the background", default=mu_0, min=0.0)
+    # orientation = properties.Vector3(
+    #     "orientation of the source", default="Z", length=1.0, required=True
+    # )
+    # location = LocationVector(
+    #     "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
+    # )
+    # loc = deprecate_property(
+    #     location, "loc", new_name="location", removal_version="0.16.0", error=True
+    # )
+
+    # def __init__(self, receiver_list=None, **kwargs):
+    #     kwargs.pop("srcType", None)
+    #     BaseTDEMSrc.__init__(
+    #         self, receiver_list=receiver_list, srcType="inductive", **kwargs
+    #     )
+
+    def __init__(
+        self,
+        receiver_list=None,
+        location=np.r_[0.0, 0.0, 0.0],
+        moment=1.,
+        orientation='z',
+        mu=mu_0,
+        srcType='inductive',
+        **kwargs
+    ):
+
+        super(MagDipole, self).__init__(
+            receiver_list=receiver_list, location=location, **kwargs
         )
 
+        self.moment = moment
+        self.orientation = orientation
+        self.mu = mu
+        self.srcType = srcType
+
+    @property
+    def location(self):
+        """Location of the dipole
+
+        Returns
+        -------
+        (3) numpy.ndarray of float
+            xyz dipole location
+        """
+        return self._location
+
+    @location.setter
+    def location(self, vec):
+
+        try:
+            vec = np.atleast_1d(vec).astype(float).squeeze()
+        except:
+            raise TypeError(f"location must be array_like, got {type(vec)}")
+
+        if len(vec) > 3:
+            raise ValueError(
+                f"location must be array_like with shape (3), got {len(vec)}"
+            )
+
+        self._location = vec
+
+    @property
+    def moment(self):
+        """Amplitude of the dipole moment of the magnetic dipole (:math:`A/m^2`)
+
+        Returns
+        -------
+        float
+            Amplitude of the dipole moment of the magnetic dipole (:math:`A/m^2`)
+        """
+        return self._moment
+
+    @moment.setter
+    def moment(self, value):
+
+        try:
+            value = float(value)
+        except:
+            raise TypeError(f"moment must be a number, got {type(value)}")
+
+        if value <= 0.0:
+            raise ValueError("moment must be greater than 0")
+
+        self._moment = value
+
+    @property
+    def orientation(self):
+        """Orientation of the dipole as a normalized vector
+
+        Returns
+        -------
+        (3) numpy.ndarray of float or str in {'x','y','z'}
+            dipole orientation, normalized to unit magnitude
+        """
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, var):
+
+        if isinstance(var, str):
+            if var.lower() == 'x':
+                var = np.r_[1., 0., 0.]
+            elif var.lower() == 'y':
+                var = np.r_[0., 1., 0.]
+            elif var.lower() == 'z':
+                var = np.r_[0., 0., 1.]
+        else:
+            try:
+                var = np.atleast_1d(var).astype(float)
+            except:
+                raise TypeError(f"orientation must be str or array_like, got {type(var)}")
+
+            if len(var) != 3:
+                raise ValueError(
+                    f"orientation must be array_like with shape (3,), got {len(var)}"
+                )
+
+        # Normalize the orientation
+        var /= np.sqrt(np.sum(var**2))
+
+        self._orientation = var
+
+    @property
+    def mu(self):
+        """Magnetic permeability in H/m
+
+        Returns
+        -------
+        float
+            Magnetic permeability in H/m
+        """
+        return self._mu
+
+    @mu.setter
+    def mu(self, value):
+
+        try:
+            value = float(value)
+        except:
+            raise TypeError(f"mu must be a number, got {type(value)}")
+
+        if value <= 0.0:
+            raise ValueError("mu must be greater than 0")
+
+        self._mu = value
+    
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_dipole", None) is None:
             self._dipole = MagneticDipoleWholeSpace(
@@ -842,6 +1252,21 @@ class MagDipole(BaseTDEMSrc):
         return C * self._aSrc(simulation)
 
     def bInitial(self, simulation):
+        """Compute initial magnetic flux density.
+
+        Note that we compute analytic vector potential and take numerical
+        curl do it is divergence free on the mesh.
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            A SimPEG TDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Initial magnetic flux density
+        """
 
         if self.waveform.has_initial_fields is False:
             return Zero()
@@ -858,6 +1283,21 @@ class MagDipole(BaseTDEMSrc):
                 raise NotImplementedError
 
     def hInitial(self, simulation):
+        """Compute initial magnetic field.
+
+        Note that we compute analytic vector potential and take numerical
+        curl so that B is divergence-free before converting to H-field.
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            A SimPEG TDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Initial magnetic field
+        """
 
         if self.waveform.has_initial_fields is False:
             return Zero()
@@ -868,11 +1308,39 @@ class MagDipole(BaseTDEMSrc):
         return 1.0 / self.mu * self.bInitial(simulation)
 
     def s_m(self, simulation, time):
+        """Magnetic source term (s_m) at a given time
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            SimPEG TDEM simulation
+        time : float
+            Evaluation time
+
+        Returns
+        -------
+        numpy.ndarray
+            magnetic source term on mesh.
+        """
         if self.waveform.has_initial_fields is False:
             return Zero()
         return Zero()
 
     def s_e(self, simulation, time):
+        """Electric source term (s_e) at a given time
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            SimPEG TDEM simulation
+        time : float
+            Evaluation time
+
+        Returns
+        -------
+        numpy.ndarray
+            Electric source term on mesh.
+        """
         C = simulation.mesh.edgeCurl
         b = self._bSrc(simulation)
 
@@ -909,19 +1377,137 @@ class MagDipole(BaseTDEMSrc):
 
 
 class CircularLoop(MagDipole):
+    """
+    Circular loop magnetic source calculated by taking the curl of a magnetic
+    vector potential. By taking the discrete curl, we ensure that the magnetic
+    flux density is divergence free (no magnetic monopoles!).
 
-    radius = properties.Float("radius of the loop source", default=1.0, min=0.0)
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
+        A list of TDEM receivers
+    location : (dim) np.ndarray, default = np.r_[0., 0., 0.]
+        Source location.
+    orientation : str, default = 'z'
+        Loop orientation. One of ('x', 'y', 'z')
+    radius : float, default = 1.
+        Loop radius
+    current : float, default = 1.
+        Source current
+    mu : float
+        Background magnetic permeability
+    srcType : str, default = 'inductive'
+        'inductive' to implement as inductive source and 'galvanic' to implement
+        as galvanic source
+    N : int, default = 1
+        Number of turns in the loop
+    """
 
-    current = properties.Float("current in the loop", default=1.0)
+    # def __init__(self, receiver_list=None, **kwargs):
+    #     super(CircularLoop, self).__init__(receiver_list, **kwargs)
 
-    N = properties.Float("number of turns in the loop", default=1.0)
+    def __init__(
+        self,
+        receiver_list=None,
+        location=np.r_[0.0, 0.0, 0.0],
+        orientation='z',
+        radius=1.,
+        current=1.,
+        N=1,
+        mu=mu_0,
+        srcType='inductive',
+        **kwargs
+    ):
 
-    def __init__(self, receiver_list=None, **kwargs):
-        super(CircularLoop, self).__init__(receiver_list, **kwargs)
+        if 'moment' in kwargs:
+            kwargs.pop('moment')
+
+        BaseTDEMSrc.__init__(
+            self,
+            receiver_list=receiver_list,
+            location=location,
+            **kwargs
+        )
+
+        self.orientation = orientation
+        self.radius = radius
+        self.current = current
+        self.N = N
+        self.mu = mu
+        self.srcType = srcType
+
+    # radius = properties.Float("radius of the loop source", default=1.0, min=0.0)
+
+    @property
+    def radius(self):
+        """Loop radius
+
+        Returns
+        -------
+        float
+            Loop radius
+        """
+        return self._radius
+
+    @radius.setter
+    def radius(self, rad):
+        try:
+            rad = float(rad)
+        except:
+            raise TypeError(f"radius must be int or float, got {type(rad)}")
+
+        if rad < 0.:
+            raise TypeError("radius must be a positive value")
+
+        self._radius = rad
+
+    # current = properties.Float("current in the loop", default=1.0)
+
+    @property
+    def current(self):
+        """Source current
+
+        Returns
+        -------
+        float
+            Source current
+        """
+        return self._current
+
+    @current.setter
+    def current(self, I):
+        try:
+            I = float(I)
+        except:
+            raise TypeError(f"current must be int or float, got {type(I)}")
+
+        if np.abs(I) == 0.:
+            raise TypeError("current must be non-zero.")
+
+        self._current = I
+
+    # N = properties.Float("number of turns in the loop", default=1.0)
 
     @property
     def moment(self):
+        """Dipole moment of the loop.
+
+        The dipole moment is given by :math:`NI\\pi r^2`
+
+        Returns
+        -------
+        float
+            Dipole moment of the loop
+        """
         return np.pi * self.radius ** 2 * self.current * self.N
+
+    @moment.setter
+    def moment(self):
+        warnings.warn(
+            "Moment is not set as a property. I is the product"
+            "of the loop radius and transmitter current"
+        )
+        pass
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         # return MagneticLoopVectorPotential(
@@ -940,25 +1526,113 @@ class CircularLoop(MagDipole):
 
 
 class LineCurrent(BaseTDEMSrc):
+    """Line current source.
+
+    Given the wire path provided by the (n_loc, 3) locations array,
+    the cells intersected by the wire path are identified and integrated
+    source terms are computed.
+
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.time_domain.receivers.BaseRx
+        List of TDEM receivers
+    locations : (n,3) numpy.ndarray
+        Array defining the node locations for the wire path. For inductive sources,
+        you must close the loop.
     """
-    RawVec electric source. It is defined by the user provided vector s_e
 
-    :param list receiver_list: receiver list
-    :param bool integrate: Integrate the source term (multiply by Me) [False]
-    """
+    # location = properties.Array("location of the source", shape=("*", 3))
+    # loc = deprecate_property(
+    #     location, "loc", new_name="location", removal_version="0.16.0", error=True
+    # )
+    # current = properties.Float("current in the line", default=1.0)
 
-    location = properties.Array("location of the source", shape=("*", 3))
-    loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", error=True
-    )
-    current = properties.Float("current in the line", default=1.0)
+    # def __init__(self, receiver_list=None, **kwargs):
+    #     self.integrate = False
+    #     kwargs.pop("srcType", None)  # TODO: generalize this to loop sources
+    #     super(LineCurrent, self).__init__(receiver_list, srcType="galvanic", **kwargs)
 
-    def __init__(self, receiver_list=None, **kwargs):
+    def __init__(
+        self,
+        receiver_list=None,
+        location=None,
+        current=1.,
+        mu=mu_0,
+        **kwargs
+    ):
+
+        BaseTDEMSrc.__init__(
+            self,
+            receiver_list=receiver_list,
+            location=location,
+            **kwargs
+        )
+
         self.integrate = False
-        kwargs.pop("srcType", None)  # TODO: generalize this to loop sources
-        super(LineCurrent, self).__init__(receiver_list, srcType="galvanic", **kwargs)
+        self.current = current
+        self.mu = mu
+
+
+    @property
+    def location(self):
+        """Line current nodes locations
+
+        Returns
+        -------
+        (n, 3) np.ndarray
+            Line current node locations.
+        """
+        return self._location
+
+    @location.setter
+    def location(self, loc):
+        try:
+            loc = np.atleast_2d(loc).astype(float)
+        except:
+            raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
+
+        if loc.ndim != 2:
+            raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
+
+        self._location = loc
+
+    @property
+    def current(self):
+        """Source current
+
+        Returns
+        -------
+        float
+            Source current
+        """
+        return self._current
+
+    @current.setter
+    def current(self, I):
+        try:
+            I = float(I)
+        except:
+            raise TypeError(f"current must be int or float, got {type(I)}")
+
+        if np.abs(I) == 0.:
+            raise TypeError("current must be non-zero.")
+
+        self._current = I
+    
 
     def Mejs(self, simulation):
+        """Integrated electrical source term on edges
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+            Base TDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray of length (mesh.nE)
+            Contains the source term for all x, y, and z edges of the mesh.
+        """
         if getattr(self, "_Mejs", None) is None:
             self._Mejs = segmented_line_current_source_term(
                 simulation.mesh, self.location
@@ -966,6 +1640,18 @@ class LineCurrent(BaseTDEMSrc):
         return self.current * self._Mejs
 
     def Mfjs(self, simulation):
+        """Integrated electrical source term on faces
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+            Base TDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray of length (mesh.nF)
+            Contains the source term for all x, y, and z faces of the mesh.
+        """
         if getattr(self, "_Mfjs", None) is None:
             self._Mfjs = line_through_faces(
                 simulation.mesh, self.location, normalize_by_area=True
@@ -973,6 +1659,19 @@ class LineCurrent(BaseTDEMSrc):
         return self.current * self._Mfjs
 
     def getRHSdc(self, simulation):
+        """Right-hand side for galvanic source term
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.time_domain.simulation.BaseTDEMSimulation
+            Base TDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Right-hand side of galvanic source term. On edges for 'EB' formulation,
+            and on faces for 'HJ' formulation.
+        """
         if simulation._formulation == "EB":
             Grad = simulation.mesh.nodalGrad
             return Grad.T * self.Mejs(simulation)
@@ -1004,6 +1703,18 @@ class LineCurrent(BaseTDEMSrc):
             return Zero()
 
     def eInitial(self, simulation):
+        """Compute initial electric field
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            A SimPEG TDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Initial electric field
+        """
         if self.waveform.has_initial_fields:
             if simulation._formulation == "EB":
                 phi = self.phiInitial(simulation)
@@ -1014,6 +1725,22 @@ class LineCurrent(BaseTDEMSrc):
             return Zero()
 
     def eInitialDeriv(self, simulation, v=None, adjoint=False, f=None):
+        """Compute derivative of initial electric field times a vector
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            A SimPEG TDEM simulation
+        v : np.ndarray
+            A vector
+        adjoint : bool
+            If ``True``, return the adjoint
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of initial electric field times a vector
+        """
         if self.waveform.has_initial_fields:
             edc = f[self, "e", 0]
             Grad = simulation.mesh.nodalGrad
@@ -1029,6 +1756,18 @@ class LineCurrent(BaseTDEMSrc):
             return Zero()
 
     def jInitial(self, simulation):
+        """Compute initial current density
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            A SimPEG TDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Initial current density
+        """
         if self.waveform.has_initial_fields:
             if simulation._formulation == "HJ":
                 phi = self.phiInitial(simulation)
@@ -1040,6 +1779,22 @@ class LineCurrent(BaseTDEMSrc):
             return Zero()
 
     def jInitialDeriv(self, simulation, v=None, adjoint=False, f=None):
+        """Compute derivative of initial current density times a vector
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            A SimPEG TDEM simulation
+        v : np.ndarray
+            A vector
+        adjoint : bool
+            If ``True``, return the adjoint
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of initial current density times a vector
+        """
         if simulation._formulation != "HJ":
             raise NotImplementedError
 
@@ -1094,6 +1849,21 @@ class LineCurrent(BaseTDEMSrc):
         return -1 * (Ainv * self.jInitialDeriv(simulation, v))
 
     def hInitial(self, simulation):
+        """Compute initial magnetic field.
+
+        Note that we compute analytic vector potential and take numerical
+        curl so that B is divergence-free before converting to H-field.
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            A SimPEG TDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Initial magnetic field
+        """
         if simulation._formulation != "HJ":
             raise NotImplementedError
 
@@ -1104,6 +1874,22 @@ class LineCurrent(BaseTDEMSrc):
         return simulation.MeMuI * b
 
     def hInitialDeriv(self, simulation, v, adjoint=False, f=None):
+        """Compute derivative of intitial magnetic field times a vector
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            A SimPEG TDEM simulation
+        v : np.ndarray
+            A vector
+        adjoint : bool
+            If ``True``, return the adjoint
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of initial magnetic field times a vector
+        """
         if simulation._formulation != "HJ":
             raise NotImplementedError
 
@@ -1115,6 +1901,21 @@ class LineCurrent(BaseTDEMSrc):
         return simulation.MeMuI * self.bInitialDeriv(simulation, v)
 
     def bInitial(self, simulation):
+        """Compute initial magnetic flux density.
+
+        Note that we compute analytic vector potential and take numerical
+        curl do it is divergence free on the mesh.
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            A SimPEG TDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Initial magnetic flux density
+        """
         if simulation._formulation != "HJ":
             raise NotImplementedError
 
@@ -1125,6 +1926,22 @@ class LineCurrent(BaseTDEMSrc):
         return simulation.mesh.edgeCurl.T * a
 
     def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
+        """Compute derivative of intitial magnetic flux density times a vector
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            A SimPEG tDEM simulation
+        v : np.ndarray
+            A vector
+        adjoint : bool
+            If ``True``, return the adjoint
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of initial magnetic flux density times a vector
+        """
         if simulation._formulation != "HJ":
             raise NotImplementedError
 
@@ -1141,6 +1958,20 @@ class LineCurrent(BaseTDEMSrc):
         return Zero()
 
     def s_e(self, simulation, time):
+        """Electric source term (s_e) at the time provided
+
+        Parameters
+        ----------
+        simulation : BaseTDEMSimulation
+            SimPEG TDEM simulation
+        time : float
+            Time
+
+        Returns
+        -------
+        numpy.ndarray
+            electric source term on mesh.
+        """
         if simulation._formulation == "EB":
             return self.Mejs(simulation) * self.waveform.eval(time)
         elif simulation._formulation == "HJ":
@@ -1155,7 +1986,7 @@ class RawVec_Grounded(LineCurrent):
     #     "permeability of the background", default=mu_0, min=0.
     # )
 
-    _s_e = properties.Array("source term", shape=("*",))
+    # _s_e = properties.Array("source term", shape=("*",))
 
     def __init__(self, receiver_list=None, s_e=None, **kwargs):
         self.integrate = False

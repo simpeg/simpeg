@@ -35,8 +35,8 @@ def setUp_TDEM(prbtype="MagneticFluxDensity", rxcomp="bz", waveform="stepoff"):
         "CCC",
     )
 
-    active = mesh.vectorCCz < 0.0
-    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    active = mesh.cell_centers_z < 0.0
+    activeMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
     rxtimes = np.logspace(-4, -3, 20)

@@ -1,4 +1,4 @@
-import properties
+# import properties
 import numpy as np
 from scipy.constants import mu_0
 import warnings
@@ -339,7 +339,7 @@ class RawVec(BaseFDEMSrc):
         return self._s_m
 
     def s_e(self, simulation):
-        """Electric source term (s_m)
+        """Electric source term (s_e)
 
         Parameters
         ----------
@@ -669,7 +669,7 @@ class MagDipole(BaseFDEMSrc):
         return -1j * omega(self.frequency) * b_p
 
     def s_e(self, simulation):
-        """Electric source term (s_m)
+        """Electric source term (s_e)
 
         Parameters
         ----------
@@ -919,6 +919,15 @@ class CircularLoop(MagDipole):
 
     @property
     def moment(self):
+        """Dipole moment of the loop.
+
+        The dipole moment is given by :math:`I\\pi r^2`
+
+        Returns
+        -------
+        float
+            Dipole moment of the loop
+        """
         return np.pi * self.radius ** 2 * np.abs(self.current)
 
     @moment.setter
@@ -968,7 +977,6 @@ class PrimSecSigma(BaseFDEMSrc):
 
 
 class PrimSecMappedSigma(BaseFDEMSrc):
-
     """
     Primary-Secondary Source in which a mapping is provided to put the current
     model onto the primary mesh. This is solved on every model update.
@@ -1261,14 +1269,21 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
 
 class LineCurrent(BaseFDEMSrc):
-    """
-    Line current source. Given the wire path provided by the (n,3) loc
-    array the cells intersected by the wire path are identified and integrated
-    src terms are computed
+    """Line current source.
 
-    :param list receiver_list: receiver list
-    :param float freq: src frequency
-    :param (n,3) array locations: points defining src path
+    Given the wire path provided by the (n_loc, 3) locations array,
+    the cells intersected by the wire path are identified and integrated
+    source terms are computed.
+
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receivers.BaseRx
+        List of FDEM receivers
+    frequency : float
+        Source frequency
+    locations : (n,3) numpy.ndarray
+        Array defining the node locations for the wire path. For inductive sources,
+        you must close the loop.
     """
 
     def __init__(
@@ -1344,6 +1359,18 @@ class LineCurrent(BaseFDEMSrc):
         self._current = I
 
     def Mejs(self, simulation):
+        """Integrated electrical source term on edges
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+            Base FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray of length (mesh.nE)
+            Contains the source term for all x, y, and z edges of the mesh.
+        """
         if getattr(self, "_Mejs", None) is None:
             mesh = simulation.mesh
             locs = self.location
@@ -1351,6 +1378,18 @@ class LineCurrent(BaseFDEMSrc):
         return self.current * self._Mejs
 
     def Mfjs(self, simulation):
+        """Integrated electrical source term on faces
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+            Base FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray of length (mesh.nF)
+            Contains the source term for all x, y, and z faces of the mesh.
+        """
         if getattr(self, "_Mfjs", None) is None:
             self._Mfjs = line_through_faces(
                 simulation.mesh, self.location, normalize_by_area=True
@@ -1358,6 +1397,19 @@ class LineCurrent(BaseFDEMSrc):
         return self.current * self._Mfjs
 
     def getRHSdc(self, simulation):
+        """Right-hand side for galvanic source term
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+            Base FDEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Right-hand side of galvanic source term. On edges for 'EB' formulation,
+            and on faces for 'HJ' formulation.
+        """
         if simulation._formulation == "EB":
             Grad = simulation.mesh.nodalGrad
             return Grad.T * self.Mejs(simulation)

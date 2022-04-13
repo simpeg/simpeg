@@ -1,4 +1,4 @@
-import properties
+# import properties
 from ...utils.code_utils import deprecate_class, deprecate_property
 
 from ... import survey

@@ -1,5 +1,5 @@
 from scipy.constants import mu_0
-import properties
+# import properties
 from ...utils.code_utils import deprecate_property, deprecate_method
 
 from ...utils import Zero, Identity
@@ -42,7 +42,7 @@ class Survey(BaseSurvey):
 
         Returns
         -------
-        list of SimPEG.survey.BaseFDEMSrc
+        list of BaseFDEMSrc
             List of FDEM sources associated with the survey
         """
         return self._source_list
