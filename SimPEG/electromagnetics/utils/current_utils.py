@@ -303,6 +303,138 @@ def _poly_line_source_tree(mesh, locs):
     return s
 
 
+def line_through_faces(
+    mesh,
+    locations,
+    normalize_by_area=True,
+    check_divergence=True,
+    tolerance_divergence=1e-9,
+):
+    """
+    Define the current through cell faces given path locations. Note that this
+    will perform best of your path locations are at cell centers. Only paths
+    that align with the mesh (e.g. a straight line in x, y, z) are currently
+    supported
+    """
+
+    current = np.zeros(mesh.n_faces)
+
+    def not_aligned_error(i):
+        raise NotImplementedError(
+            "With the current implementation, the line between points "
+            "must align with the axes of the mesh. The points "
+            f"{locations[i, :]} and {locations[i+1, :]} do not."
+        )
+
+    # pre-processing step: find closest cell centers
+    cell_centers = discretize.utils.closest_points_index(mesh, locations, "CC")
+    locations = mesh.gridCC[cell_centers, :]
+
+    # next step: find segments between lines
+    for i in range(locations.shape[0] - 1):
+
+        dimension = np.nonzero(np.abs(locations[i, :] - locations[i + 1, :]))[0]
+        if len(dimension) > 1:
+            not_aligned_error(i)
+        dimension = dimension[0]
+        direction = np.sign(locations[i, dimension] - locations[i + 1, dimension])
+
+        if dimension == 0:
+            grid_loc = "x"
+            current_inds = slice(0, mesh.n_faces_x)
+        elif dimension == 1:
+            grid_loc = "y"
+            start = mesh.n_faces_x
+            current_inds = slice(start, start + mesh.n_faces_y)
+        elif dimension == 2:
+            grid_loc = "z"
+            start = mesh.n_faces_x + mesh.n_faces_y
+            current_inds = slice(start, start + mesh.n_faces_z)
+
+        # interpolate to closest face
+        loca = discretize.utils.closest_points_index(
+            mesh, locations[i, :], f"F{grid_loc}"
+        )
+        locb = discretize.utils.closest_points_index(
+            mesh, locations[i + 1, :], f"F{grid_loc}"
+        )
+
+        if len(loca) > 1 or len(locb) > 1:
+            raise Exception(
+                "Current across multiple faces is not implemented. "
+                "Please put path through a cell rather than along edges"
+            )
+
+        grid = getattr(mesh, f"faces_{grid_loc}")
+        loca = grid[loca[0]]
+        locb = grid[locb[0]]
+
+        # find all faces between these points
+        if dimension == 0:
+            xlocs = np.r_[locations[i, 0], locations[i + 1, 0]]
+
+            if not (np.allclose(loca[1], locb[1]) and np.allclose(loca[2], locb[2])):
+                not_aligned_error(i)
+
+            ylocs = loca[1] + mesh.hy.min() / 4 * np.r_[-1, 1]
+            zlocs = loca[2] + mesh.hz.min() / 4 * np.r_[-1, 1]
+
+        elif dimension == 1:
+            ylocs = np.r_[locations[i, 1], locations[i + 1, 1]]
+
+            if not (np.allclose(loca[0], locb[0]) and np.allclose(loca[2], locb[2])):
+                not_aligned_error(i)
+
+            xlocs = loca[0] + mesh.hx.min() / 4 * np.r_[-1, 1]
+            zlocs = loca[2] + mesh.hz.min() / 4 * np.r_[-1, 1]
+
+        elif dimension == 2:
+            zlocs = np.r_[locations[i, 2], locations[i + 1, 2]]
+
+            if not (np.allclose(loca[0], locb[0]) and np.allclose(loca[1], locb[1])):
+                not_aligned_error(i)
+
+            xlocs = loca[0] + mesh.hx.min() / 4 * np.r_[-1, 1]
+            ylocs = loca[1] + mesh.hy.min() / 4 * np.r_[-1, 1]
+
+        src_inds = (
+            (grid[:, 0] >= xlocs.min())
+            & (grid[:, 0] <= xlocs.max())
+            & (grid[:, 1] >= ylocs.min())
+            & (grid[:, 1] <= ylocs.max())
+            & (grid[:, 2] >= zlocs.min())
+            & (grid[:, 2] <= zlocs.max())
+        )
+
+        current[current_inds][src_inds] = direction
+
+    if normalize_by_area:
+        current = current / mesh.area
+
+    # check that there is only a divergence at the ends if not a loop
+    if check_divergence:
+        div = mesh.vol * mesh.face_divergence * current
+        nonzero = np.abs(div) > tolerance_divergence
+
+        # check if the source is a loop or grounded
+        if not np.allclose(locations[0, :], locations[-1, :]):  # grounded source
+            if nonzero.sum() > 2:
+                raise Exception(
+                    "The source path is not connected. Check that all points go through cell centers"
+                )
+            if np.abs(div.sum()) > tolerance_divergence:
+                raise Exception(
+                    "The integral of the divergence is not zero. Something is wrong :("
+                )
+        else:  # loop source
+            if nonzero.sum() > 0:
+                raise Exception(
+                    "The source path is not connected. Check that all points go through cell centers"
+                )
+
+    return current
+
+
 def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
     warnings.warn(
         "getSourceTermLineCurrentPolygon has been deprecated and will be"
