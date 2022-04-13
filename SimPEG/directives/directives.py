@@ -1449,6 +1449,7 @@ class SaveIterationsGeoH5(InversionDirective):
                     self.h5_object.add_data_to_group(
                         data, base_name
                     )
+        self.h5_object.workspace.finalize()
 
     def save_log(self, iteration: int):
         """
