@@ -32,6 +32,8 @@ class BaseInvProblem(BaseSimPEG):
     #: Optimization program
     opt = None
 
+    #: use the solver from the simulation or a default one from BFGS.bfgsH0
+    use_simulation_solver = True
     #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
     deleteTheseOnModelUpdate = []
 
@@ -90,14 +92,21 @@ class BaseInvProblem(BaseSimPEG):
 
         if isinstance(self.dmisfit, BaseDataMisfit):
             if getattr(self.dmisfit.simulation, "solver", None) is not None:
-                print(
-                    """
-        SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-        ***Done using same Solver and solverOpts as the problem***"""
-                )
-                self.opt.bfgsH0 = self.dmisfit.simulation.solver(
-                    self.reg.deriv2(self.model), **self.dmisfit.simulation.solver_opts
-                )
+                if self.use_simulation_solver:
+                    print(
+                        """
+            SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+            ***Done using same Solver and solverOpts as the problem***"""
+                    )
+                    self.opt.bfgsH0 = self.dmisfit.simulation.solver(
+                        self.reg.deriv2(self.model), **self.dmisfit.simulation.solver_opts
+                    )
+                else:
+                    print(
+                        """
+            SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+            ***Done using default solver of bfgsH0***"""
+                    )                    
         elif isinstance(self.dmisfit, BaseObjectiveFunction):
             for objfct in self.dmisfit.objfcts:
                 if isinstance(objfct, BaseDataMisfit):

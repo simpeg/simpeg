@@ -160,6 +160,54 @@ class RawVec_e(BaseFDEMSrc):
         return self._s_e
 
 
+class ElectricDipole(BaseFDEMSrc):
+    """
+    Electric Dipole source. It is defined by the user provided vector s_e
+
+    :param list receiver_list: receiver list
+    :param float freq: frequency
+
+    """
+    strength = properties.Float("dipole strength", default=1.0, min=1e-15)
+
+    length = properties.Float("dipole length", default=1.0, min=1e-15)
+
+    azimuth = properties.Float("azimuth (anticlockwise from Easting)", default=0, min=-360.0, max=360)
+
+    elevation = properties.Float("elevation (positive up)", default=0, min=-180.0, max=180)
+
+    location = LocationVector("location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,))
+
+
+    def __init__(self, receiver_list=None, frequency=None, **kwargs):
+        super().__init__(receiver_list, frequency=frequency, **kwargs)
+
+class WireSourceLocationArray(properties.Array):
+
+    class_info = "an array of receiver locations"
+
+    def validate(self, instance, value):
+        value = np.atleast_2d(value)
+        return super(WireSourceLocationArray, self).validate(instance, value)
+
+class ElectricWire(BaseFDEMSrc):
+    """
+    Electric Dipole source. It is defined by the user provided vector s_e
+
+    :param list receiver_list: receiver list
+    :param float freq: frequency
+
+    """
+    strength = properties.Float("dipole strength", default=1.0, min=1e-15)
+
+    locations = WireSourceLocationArray(
+        "Location of the source [x, y, z] in 3D", shape=("*","*"), required=True
+    )
+
+
+    def __init__(self, receiver_list=None, frequency=None, **kwargs):
+        super().__init__(receiver_list, frequency=frequency, **kwargs)        
+
 class RawVec_m(BaseFDEMSrc):
     """
     RawVec magnetic source. It is defined by the user provided vector s_m

@@ -8,7 +8,7 @@ from . import survey
 from .utils import mkvc
 from .utils.code_utils import deprecate_property
 
-__all__ = ["Data", "SyntheticData"]
+__all__ = ["Data", "ComplexData", "SyntheticData"]
 
 
 class UncertaintyArray(properties.Array):
@@ -21,7 +21,6 @@ class UncertaintyArray(properties.Array):
         elif isinstance(value, float):
             return value
         return super(properties.Array, self).validate(instance, value)
-
 
 class Data(properties.HasProperties):
     """
@@ -307,6 +306,8 @@ class Data(properties.HasProperties):
         error=True,
     )
 
+class ComplexData(Data):
+    dobs = None
 
 class SyntheticData(Data):
     """
