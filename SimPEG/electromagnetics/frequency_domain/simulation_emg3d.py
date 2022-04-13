@@ -8,7 +8,6 @@ from .sources import ElectricDipole, ElectricWire
 from .receivers import PointElectricField, PointMagneticField
 from .survey import Survey
 from ...data import ComplexData
-# from memory_profiler import profile
 
 # emg3d is a soft dependency
 try:
@@ -17,7 +16,8 @@ except ImportError:
     emg3d = False
 
 # Temporary work-around to ensure multiprocessing does not hang if sklearn is
-# installed. This should hopefully not be necessary in the future. See https://scikit-learn.org/stable/faq.html#why-do-i-sometime-get-a-crash-freeze-with-n-jobs-1-under-osx-or-linux
+# installed. This should hopefully not be necessary in the future. See
+# https://scikit-learn.org/stable/faq.html#why-do-i-sometime-get-a-crash-freeze-with-n-jobs-1-under-osx-or-linux
 try:
     import sklearn
 except ImportError:
@@ -142,7 +142,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         )
         return self._emg3d_model
 
-    # @profile
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
@@ -167,13 +166,13 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
         if f is None:
             f = self.fields(m=m)
 
-        dsig_dm_v = self.sigmaDeriv @ v
+        dsig_dm_v = (self.sigmaDeriv @ v).reshape(
+                self.emg3d_model.shape, order='F')
         j_vec = f.jvec(vector=dsig_dm_v)
 
         # Map emg3d-data-array to SimPEG-data-vector
         return j_vec[self._dmap_simpeg_emg3d]
 
-    # @profile
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector
@@ -287,7 +286,6 @@ class Simulation3DEMG3D(BaseFDEMSimulation):
                 data.append(data_complex_rx)
         return np.hstack(data)
 
-    # @profile
     def fields(self, m=None):
         """Return the electric fields for a given model.
 
