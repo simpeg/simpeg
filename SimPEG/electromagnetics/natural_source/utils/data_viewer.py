@@ -72,7 +72,7 @@ class NSEM_data_viewer(properties.HasProperties):
                 ]
             )
         )
-        if rx.Point3DNaturalSource in unique_rx:
+        if rx.PointNaturalSource in unique_rx:
             self.station_figs.append(ApparentResPhsStationPlot())
         if rx.Point3DTipper in unique_rx:
             self.station_figs.append(TipperAmplitudeStationPlot())

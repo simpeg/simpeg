@@ -344,40 +344,6 @@ class PointNaturalSource(BaseRx):
         )
 
 
-class Point1DImpedance(PointNaturalSource):
-    """
-    Natural source 1D impedance receiver class
-
-    :param string component: real or imaginary component 'real' or 'imag'
-    """
-
-    pass
-    # This is provided to have a unique class just for 1D
-    # Although it works with just the base class here
-
-
-class Point2DNaturalSource(PointNaturalSource):
-    """
-    Natural source 1D/2D impedance receiver class
-    """
-    pass
-
-
-class Point3DNaturalSource(PointNaturalSource):
-    """
-    Natural source 3D receiver class
-
-    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'xx', 'xy', 'yx' or 'yy'
-    :param string component: real or imaginary component 'real' or 'imag'
-    """
-    pass
-
-
-class Point3DComplexResistivity(Point3DNaturalSource):
-    pass
-
-
 class Point3DTipper(PointNaturalSource):
     """
     Natural source 3D tipper receiver base class
@@ -531,16 +497,16 @@ class Point3DTipper(PointNaturalSource):
 ############
 
 
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_impedance1D(Point1DImpedance):
+@deprecate_class(removal_version="0.19.0", error=True)
+class Point_impedance1D(PointNaturalSource):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_impedance3D(Point3DNaturalSource):
+@deprecate_class(removal_version="0.19.0", error=True)
+class Point_impedance3D(PointNaturalSource):
     pass
 
 
-@deprecate_class(removal_version="0.16.0", error=True)
+@deprecate_class(removal_version="0.19.0", error=True)
 class Point_tipper3D(Point3DTipper):
     pass

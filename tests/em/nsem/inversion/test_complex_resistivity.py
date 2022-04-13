@@ -70,7 +70,7 @@ class ComplexResistivityTest(unittest.TestCase):
         rx_loc[:, 2] = -50
 
         # Make a receiver list
-        rxList = [ns.Rx.Point3DComplexResistivity(rx_loc, rx_orientation, rx_type)]
+        rxList = [ns.Rx.PointNaturalSource(rx_loc, rx_orientation, rx_type)]
 
         # Source list
         freqs = [10, 50, 200]
@@ -106,7 +106,7 @@ class ComplexResistivityTest(unittest.TestCase):
         rx_loc[:, 2] = -50
 
         # Make a receiver list
-        rxList = [ns.Rx.Point3DComplexResistivity(orientation=rx_orientation, component=rx_type, locations_e=rx_loc, locations_h=rx_loc)]
+        rxList = [ns.Rx.PointNaturalSource(orientation=rx_orientation, component=rx_type, locations_e=rx_loc, locations_h=rx_loc)]
 
         # Source list
         freqs = [10, 50, 200]
@@ -142,7 +142,7 @@ class ComplexResistivityTest(unittest.TestCase):
         rx_loc[:, 2] = -50
 
         # Make a receiver list
-        rxList = [ns.Rx.Point3DComplexResistivity(rx_loc, rx_orientation, rx_type)]
+        rxList = [ns.Rx.PointNaturalSource(rx_loc, rx_orientation, rx_type)]
 
         # give background a value
         x0 = self.mesh.x0
@@ -189,7 +189,7 @@ class ComplexResistivityTest(unittest.TestCase):
         rx_loc[:, 2] = -50
 
         # Make a receiver list
-        rxList = [ns.Rx.Point3DComplexResistivity(rx_loc, rx_orientation, rx_type)]
+        rxList = [ns.Rx.PointNaturalSource(rx_loc, rx_orientation, rx_type)]
 
         # Source list
         freqs = [10, 50, 200]

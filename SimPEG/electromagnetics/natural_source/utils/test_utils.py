@@ -8,10 +8,10 @@ import discretize
 from SimPEG import maps, mkvc, utils, Data
 from ....utils import meshTensor
 from ..receivers import (
-    Point1DImpedance,
-    Point3DNaturalSource,
+    PointNaturalSource,
+    PointNaturalSource,
     Point3DTipper,
-    Point3DComplexResistivity,
+    PointNaturalSource,
 )
 from ..survey import Survey
 from ..sources import PlanewaveXYPrimary, Planewave_xy_1DhomotD, Planewave
@@ -71,8 +71,8 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     receiver_list = []
     for rxType in ["z1d", "z1d"]:
-        receiver_list.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "real"))
-        receiver_list.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "imag"))
+        receiver_list.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, "real"))
+        receiver_list.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, "imag"))
     # Source list
     source_list = []
     for freq in freqs:
@@ -111,8 +111,8 @@ def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
 
     rxList = []
     for rxType in ["z1d", "z1d"]:
-        rxList.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "real"))
-        rxList.append(Point1DImpedance(mkvc(np.array([0.0]), 2).T, "imag"))
+        rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, "real"))
+        rxList.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, "imag"))
     # Source list
     # srcList = []
     src_list = [Planewave([], frequency=f) for f in frequencies]
@@ -174,27 +174,27 @@ def setupSimpegNSEM_tests_location_assign_list(
             if comp == "Res":
                 if singleList:
                     rxList.append(
-                        Point3DComplexResistivity(
+                        PointNaturalSource(
                             locations=[rx_loc],
                             orientation=rx_type,
                             component="apparent_resistivity",
                         )
                     )
                     rxList.append(
-                        Point3DComplexResistivity(
+                        PointNaturalSource(
                             locations=[rx_loc], orientation=rx_type, component="phase"
                         )
                     )
                 else:
                     rxList.append(
-                        Point3DComplexResistivity(
+                        PointNaturalSource(
                             locations=[rx_loc, rx_loc],
                             orientation=rx_type,
                             component="apparent_resistivity",
                         )
                     )
                     rxList.append(
-                        Point3DComplexResistivity(
+                        PointNaturalSource(
                             locations=[rx_loc, rx_loc],
                             orientation=rx_type,
                             component="phase",
@@ -202,12 +202,12 @@ def setupSimpegNSEM_tests_location_assign_list(
                     )
             else:
                 rxList.append(
-                    Point3DNaturalSource(
+                    PointNaturalSource(
                         orientation=rx_type, component="real", locations=[rx_loc]
                     )
                 )
                 rxList.append(
-                    Point3DNaturalSource(
+                    PointNaturalSource(
                         orientation=rx_type, component="imag", locations=[rx_loc]
                     )
                 )
@@ -326,20 +326,20 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
         if rx_type in ["xx", "xy", "yx", "yy"]:
             if comp == "Res":
                 rxList.append(
-                    Point3DComplexResistivity(
+                    PointNaturalSource(
                         locations=rx_loc,
                         orientation=rx_type,
                         component="apparent_resistivity",
                     )
                 )
                 rxList.append(
-                    Point3DComplexResistivity(
+                    PointNaturalSource(
                         locations=rx_loc, orientation=rx_type, component="phase"
                     )
                 )
             else:
-                rxList.append(Point3DNaturalSource(rx_loc, rx_type, "real"))
-                rxList.append(Point3DNaturalSource(rx_loc, rx_type, "imag"))
+                rxList.append(PointNaturalSource(rx_loc, rx_type, "real"))
+                rxList.append(PointNaturalSource(rx_loc, rx_type, "imag"))
         if rx_type in ["zx", "zy"]:
             rxList.append(Point3DTipper(rx_loc, rx_type, "real"))
             rxList.append(Point3DTipper(rx_loc, rx_type, "imag"))
@@ -427,7 +427,7 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
         if rx_type in ["xx", "xy", "yx", "yy"]:
             if comp == "Res":
                 receiver_list.append(
-                    Point3DComplexResistivity(
+                    PointNaturalSource(
                         locations_e=rx_loc,
                         locations_h=rx_loc,
                         orientation=rx_type,
@@ -435,7 +435,7 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
                     )
                 )
                 receiver_list.append(
-                    Point3DComplexResistivity(
+                    PointNaturalSource(
                         locations_e=rx_loc,
                         locations_h=rx_loc,
                         orientation=rx_type,
@@ -443,8 +443,8 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
                     )
                 )
             else:
-                receiver_list.append(Point3DNaturalSource(rx_loc, rx_type, "real"))
-                receiver_list.append(Point3DNaturalSource(rx_loc, rx_type, "imag"))
+                receiver_list.append(PointNaturalSource(rx_loc, rx_type, "real"))
+                receiver_list.append(PointNaturalSource(rx_loc, rx_type, "imag"))
         if rx_type in ["zx", "zy"]:
             receiver_list.append(Point3DTipper(rx_loc, rx_type, "real"))
             receiver_list.append(Point3DTipper(rx_loc, rx_type, "imag"))

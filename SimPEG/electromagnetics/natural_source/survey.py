@@ -5,7 +5,7 @@ from ..frequency_domain.survey import Survey
 from ...data import Data as BaseData
 from ...utils import mkvc
 from .sources import PlanewaveXYPrimary
-from .receivers import Point3DNaturalSource, Point3DTipper
+from .receivers import PointNaturalSource, Point3DTipper
 from .utils.plot_utils import DataNSEMPlotMethods
 #########
 # Data
@@ -167,18 +167,18 @@ class Data(BaseData, DataNSEMPlotMethods):
                             dataList.append(dFreq[rxType][notNaNind].imag.copy())
                         elif "z" in rxType:
                             receiver_list.append(
-                                Point3DNaturalSource(locs, rxType[1:3], "real")
+                                PointNaturalSource(locs, rxType[1:3], "real")
                             )
                             dataList.append(dFreq[rxType][notNaNind].real.copy())
                             receiver_list.append(
-                                Point3DNaturalSource(locs, rxType[1:3], "imag")
+                                PointNaturalSource(locs, rxType[1:3], "imag")
                             )
                             dataList.append(dFreq[rxType][notNaNind].imag.copy())
                     else:
                         component = "real" if "r" in rxType else "imag"
                         if "z" in rxType:
                             receiver_list.append(
-                                Point3DNaturalSource(locs, rxType[1:3], component)
+                                PointNaturalSource(locs, rxType[1:3], component)
                             )
                             dataList.append(dFreq[rxType][notNaNind].copy())
                         if "t" in rxType:
