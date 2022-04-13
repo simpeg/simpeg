@@ -28,8 +28,8 @@ class BaseRxNSEM_Point(BaseRx):
         {
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-            "apparent resistivity": [
-                "apparent_resistivity",
+            "apparent_resistivity": [
+                "apparent resistivity",
                 "apparent-resistivity",
                 "app_rho",
             ],
@@ -160,33 +160,6 @@ class PointNaturalSource(BaseRx):
         if locations is None:
             locations = np.array([[0]])
         BaseRx.__init__(self, locations)
-
-    @property
-    def mesh(self):
-        return self._mesh
-
-    @mesh.setter
-    def mesh(self, value):
-        if value is getattr(self, "_mesh", None):
-            pass
-        else:
-            self._mesh = value
-
-    @property
-    def src(self):
-        return self._src
-
-    @src.setter
-    def src(self, value):
-        self._src = value
-
-    @property
-    def f(self):
-        return self._f
-
-    @f.setter
-    def f(self, value):
-        self._f = value
 
     def _alpha(self, src):
         return 1 / (2 * np.pi * mu_0 * src.frequency)
