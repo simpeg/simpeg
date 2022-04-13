@@ -172,6 +172,8 @@ class BaseRx(BaseTimeRx):
             Fields projected to the receiver(s)
         """
 
+        if getattr(self, 'projGLoc', None) is None:
+            self.projGLoc = f._GLoc(self.projField) + self.orientation
         P = self.getP(mesh, time_mesh, f)
         f_part = mkvc(f[src, self.projField, :])
         return P * f_part
@@ -200,7 +202,10 @@ class BaseRx(BaseTimeRx):
             derivative of fields times a vector projected to the receiver(s)
         """
 
+        if getattr(self, 'projGLoc', None) is None:
+            self.projGLoc = f._GLoc(self.projField) + self.orientation
         P = self.getP(mesh, time_mesh, f)
+        
         if not adjoint:
             return P * v
         elif adjoint:
@@ -297,11 +302,11 @@ class PointMagneticFluxTimeDerivative(BaseRx):
         f_part = mkvc(f[src, "b", :])
         return P * f_part
 
-    def projGLoc(self, f):
-        """Grid Location projection (e.g. Ex Fy ...)"""
-        if self.projField in f.aliasFields:
-            return super(PointMagneticFluxTimeDerivative, self).projGLoc(f)
-        return f._GLoc(self.projField) + self.orientation
+    # def projGLoc(self, f):
+    #     """Grid Location projection (e.g. Ex Fy ...)"""
+    #     if self.projField in f.aliasFields:
+    #         return super(PointMagneticFluxTimeDerivative, self).projGLoc(f)
+    #     return f._GLoc(self.projField) + self.orientation
 
     def getTimeP(self, time_mesh, f):
         """Get time projection matrix from mesh to receivers.

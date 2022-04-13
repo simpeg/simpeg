@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 import unittest
 import discretize
-import properties
+# import properties
 
 from SimPEG import maps
 from SimPEG.electromagnetics import time_domain as tdem
@@ -220,7 +220,7 @@ class TDEM_cross_check_EB(unittest.TestCase):
     def test_MagDipoleSimpleFail(self):
         print("\ntesting MagDipole error handling")
 
-        with self.assertRaises(properties.ValidationError):
+        with self.assertRaises(TypeError):
             tdem.Src.MagDipole(
                 ["a", 0, {"s": 1}],
                 location=np.r_[0.0, 0.0, 0.0],
@@ -251,7 +251,7 @@ class TDEM_cross_check_EB(unittest.TestCase):
 
         self.assertIsInstance(src_loop.waveform, tdem.sources.QuarterSineRampOnWaveform)
 
-        with self.assertRaises(properties.ValidationError):
+        with self.assertRaises(TypeError):
             src_loop.waveform = (1, 5)
 
 
