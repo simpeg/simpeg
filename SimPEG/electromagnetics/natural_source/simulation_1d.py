@@ -179,16 +179,16 @@ class Simulation1DRecursive(BaseSimulation):
             i_freq = np.searchsorted(self.survey.frequencies, src.frequency)
             for rx in src.receiver_list:
                 if rx.component == "real":
-                    f.append(np.real(Z[i_freq]))
+                    d.append(np.real(Z[i_freq]))
                 elif rx.component == "imag":
-                    f.append(np.imag(Z[i_freq]))
+                    d.append(np.imag(Z[i_freq]))
                 elif rx.component == "apparent_resistivity":
-                    f.append(
+                    d.append(
                         np.abs(Z[i_freq]) ** 2
                         / (2 * np.pi * src.frequency * mu_0)
                     )
                 elif rx.component == "phase":
-                    f.append(
+                    d.append(
                         (180.0 / np.pi)
                         * np.arctan(
                             np.imag(Z[i_freq])
