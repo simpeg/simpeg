@@ -90,7 +90,7 @@ class Problem_CC_Jstore(Problem_CC):
         """
         if getattr(self, "_G", None) is None:
             A = self.getA()
-            self.Ainv = self.solver(A, **self.solver_spts)
+            self.Ainv = self.solver(A, **self.solver_opts)
             src = self.survey.source_list[0]
             rx = src.receiver_list[0]
             P = rx.getP(self.mesh, "CC").toarray()
