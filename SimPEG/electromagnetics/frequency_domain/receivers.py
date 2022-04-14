@@ -97,16 +97,16 @@ class BaseRx(survey.BaseRx):
             PTv_real = P.T * v
 
             if self.component == "imag":
-                PTv = 1j * PTv_real
+                PTv = -1j * PTv_real
             elif self.component == "real":
                 PTv = PTv_real.astype(complex)
             else:
                 raise NotImplementedError("must be real or imag")
 
             df_duT, df_dmT = df_dmFun(src, None, PTv, adjoint=True)
-            if self.component == "imag":  # conjugate
-                df_duT *= -1
-                df_dmT *= -1
+            # if self.component == "imag":  # conjugate
+            #     df_duT *= -1
+            #     df_dmT *= -1
 
             return df_duT, df_dmT
 

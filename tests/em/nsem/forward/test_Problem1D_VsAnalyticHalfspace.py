@@ -24,10 +24,7 @@ def appRes_psFieldNorm(sigmaHalf):
     # Calculate the app res and phs
     app_r = np.array(nsem.utils.test_utils.getAppResPhs(data, survey=survey))[:, 0]
 
-    return np.linalg.norm(
-        np.abs(np.log(app_r) - np.log(np.ones(survey.num_frequencies) / sigmaHalf))
-        * np.log(sigmaHalf)
-    )
+    return app_r
 
 
 def appPhs_psFieldNorm(sigmaHalf):
@@ -47,7 +44,7 @@ def appPhs_psFieldNorm(sigmaHalf):
     # Calculate the app  phs
     app_p = np.array(nsem.utils.test_utils.getAppResPhs(data, survey))[:, 1]
 
-    return np.linalg.norm(np.abs(app_p - np.ones(survey.num_frequencies) * 45) / 45)
+    return app_p
 
 
 class TestAnalytics(unittest.TestCase):
@@ -56,22 +53,34 @@ class TestAnalytics(unittest.TestCase):
 
     # Primary/secondary
     def test_appRes1en0_ps(self):
-        self.assertLess(appRes_psFieldNorm(1e-0), TOLr)
+        sigma_half = 1.0
+        np.testing.assert_allclose(
+            appRes_psFieldNorm(sigma_half), 1 / sigma_half, rtol=TOLr
+        )
 
     def test_appPhs1en0_ps(self):
-        self.assertLess(appPhs_psFieldNorm(1e-0), TOLp)
+        sigma_half = 1.0
+        np.testing.assert_allclose(appPhs_psFieldNorm(sigma_half), -135, rtol=TOLp)
 
     def test_appRes2en1_ps(self):
-        self.assertLess(appRes_psFieldNorm(2e-1), TOLr)
+        sigma_half = 2e-1
+        np.testing.assert_allclose(
+            appRes_psFieldNorm(sigma_half), 1 / sigma_half, rtol=TOLr
+        )
 
     def test_appPhs2en1_ps(self):
-        self.assertLess(appPhs_psFieldNorm(2e-1), TOLp)
+        sigma_half = 2e-1
+        np.testing.assert_allclose(appPhs_psFieldNorm(sigma_half), -135, rtol=TOLp)
 
     def test_appRes2en3_ps(self):
-        self.assertLess(appRes_psFieldNorm(2e-3), TOLr)
+        sigma_half = 2e-3
+        np.testing.assert_allclose(
+            appRes_psFieldNorm(sigma_half), 1 / sigma_half, rtol=TOLr
+        )
 
     def test_appPhs2en3_ps(self):
-        self.assertLess(appPhs_psFieldNorm(2e-3), TOLp)
+        sigma_half = 2e-1
+        np.testing.assert_allclose(appPhs_psFieldNorm(sigma_half), -135, rtol=TOLp)
 
 
 if __name__ == "__main__":

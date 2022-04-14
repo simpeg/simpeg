@@ -61,15 +61,15 @@ def run(plotIt=True):
     # Make a receiver list
     receiver_list = []
     for rx_orientation in ["xx", "xy", "yx", "yy"]:
-        receiver_list.append(NSEM.Rx.Point3DImpedance(rx_loc, rx_orientation, "real"))
-        receiver_list.append(NSEM.Rx.Point3DImpedance(rx_loc, rx_orientation, "imag"))
+        receiver_list.append(NSEM.Rx.PointNaturalSource(rx_loc, rx_orientation, "real"))
+        receiver_list.append(NSEM.Rx.PointNaturalSource(rx_loc, rx_orientation, "imag"))
     for rx_orientation in ["zx", "zy"]:
         receiver_list.append(NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "real"))
         receiver_list.append(NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "imag"))
 
     # Source list
     source_list = [
-        NSEM.Src.Planewave_xy_1Dprimary(receiver_list, freq)
+        NSEM.Src.PlanewaveXYPrimary(receiver_list, freq)
         for freq in np.logspace(4, -2, 13)
     ]
     # Survey MT
@@ -77,7 +77,12 @@ def run(plotIt=True):
 
     # Setup the problem object
     problem = NSEM.Simulation3DPrimarySecondary(
-        M, survey=survey, solver=Solver, sigma=sig, sigmaPrimary=sigBG
+        M,
+        survey=survey,
+        solver=Solver,
+        sigma=sig,
+        sigmaPrimary=sigBG,
+        forward_only=True,
     )
 
     # Calculate the data
