@@ -283,7 +283,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # Define Inversion Directives
 # ---------------------------
 #
-# Here we define any directiveas that are carried out during the inversion. This
+# Here we define any directives that are carried out during the inversion. This
 # includes the cooling schedule for the trade-off parameter (beta), stopping
 # criteria for the inversion and saving inversion results at each iteration.
 #
@@ -301,7 +301,7 @@ update_IRLS = directives.Update_IRLS(
     f_min_change=1e-4, max_irls_iterations=30, coolEpsFact=1.5, beta_tol=1e-2,
 )
 
-# Updating the preconditionner if it is model dependent.
+# Updating the preconditioner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()
 
 # Setting a stopping criteria for the inversion.
