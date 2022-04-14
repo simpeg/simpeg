@@ -47,7 +47,7 @@ need a github_ account and fork the `SimPEG repository <http://github.com/simpeg
 Next, clone your fork so that you have a local copy. We recommend setting up a
 directory called :code:`git` in your home directory to put your version-
 controlled repositories. There are two ways you can clone a repository: (1)
-from a terminal (checkout: https://try.github.io for an tutorial)::
+from a terminal (checkout: https://docs.github.com/en/get-started/quickstart/set-up-git for an tutorial)::
 
     git clone https://github.com/YOUR-USERNAME/SimPEG
 
