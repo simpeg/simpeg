@@ -58,7 +58,12 @@ class Survey(BaseSurvey):
         assert len(set(new_list)) == len(new_list), "The source_list must be unique. Cannot re-use sources"
 
         self._sourceOrder = dict()
-        [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(new_list)]
+        # [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(new_list)]
+        ii = 0
+        for src in new_list:
+            n_fields = src._fields_per_source
+            self._sourceOrder[src._uid] = [ii + i for i in range(n_fields)]
+            ii += n_fields
         self._source_list = new_list
 
     @property
