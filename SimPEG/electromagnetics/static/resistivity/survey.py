@@ -230,10 +230,10 @@ class Survey(BaseSurvey):
     ):
         """Shift electrode locations to be on [top] of the active cells."""
         if self.survey_geometry == "surface":
-            loc_a = self.locations_a
-            loc_b = self.locations_b
-            loc_m = self.locations_m
-            loc_n = self.locations_n
+            loc_a = self.locations_a[:, :2]
+            loc_b = self.locations_b[:, :2]
+            loc_m = self.locations_m[:, :2]
+            loc_n = self.locations_n[:, :2]
             unique_electrodes, inv = np.unique(
                 np.vstack((loc_a, loc_b, loc_m, loc_n)), return_inverse=True, axis=0
             )

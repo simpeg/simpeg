@@ -53,7 +53,7 @@ Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2)
 # Create a topo array
 topo = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
 
-# Create station locations drapped 0.1 m above topo
+# Create station locations draped 0.1 m above topo
 rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T) + 0.1]
 
 ##########################################################################
@@ -106,7 +106,7 @@ mesh = mesh_builder_xyz(
     topo, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
 )
 
-# This garantees that the local meshes are always coarser or equal
+# This guarantees that the local meshes are always coarser or equal
 for local_mesh in local_meshes:
     mesh.insert_cells(
         local_mesh.gridCC,

@@ -108,6 +108,7 @@ linkcheck_ignore = [
     "/content/examples/*",
     "/content/tutorials/*",
     r"https://www.pardiso-project.org",
+    r"https://docs.github.com/*",
     # GJI refuses the connexion during the check
     r"https://doi.org/10.1093/gji/*",
 ]

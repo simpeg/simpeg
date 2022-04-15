@@ -15,6 +15,7 @@ from .fields import Fields1DPrimarySecondary, Fields3DPrimarySecondary
 from .simulation import Simulation1DPrimarySecondary, Simulation3DPrimarySecondary
 from . import sources
 from . import receivers
+from .simulation_1d import Simulation1DRecursive
 
 ############
 # Deprecated

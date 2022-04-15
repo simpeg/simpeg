@@ -86,30 +86,20 @@ class BaseFDEMSimulation(BaseEMSimulation):
         try:
             self.Ainv
         except AttributeError:
-            if self.verbose:
-                print("num_frequencies =", self.survey.num_frequencies)
-            self.Ainv = [None for i in range(self.survey.num_frequencies)]
-
-        if self.Ainv[0] is not None:
-            for i in range(self.survey.num_frequencies):
-                self.Ainv[i].clean()
-
-            if self.verbose:
-                print("Cleaning Ainv")
+            self.Ainv = len(self.survey.frequencies) * [None]
 
         f = self.fieldsPair(self)
 
-        for nf, freq in enumerate(self.survey.frequencies):
+        for i_f, freq in enumerate(self.survey.frequencies):
             A = self.getA(freq)
             rhs = self.getRHS(freq)
-            self.Ainv[nf] = self.solver(A, **self.solver_opts)
-            u = self.Ainv[nf] * rhs
+            Ainv = self.solver(A, **self.solver_opts)
+            u = Ainv * rhs
+            if not self.forward_only:
+                self.Ainv[i_f] = Ainv
+
             Srcs = self.survey.get_sources_by_frequency(freq)
             f[Srcs, self._solutionType] = u
-            if self.forward_only:
-                if self.verbose:
-                    print("Fields simulated for frequency {}".format(nf))
-                self.Ainv[nf].clean()
         return f
 
     # @profile
@@ -130,8 +120,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         self.model = m
 
-        # Jv = Data(self.survey)
-        Jv = []
+        Jv = Data(self.survey)
 
         for nf, freq in enumerate(self.survey.frequencies):
             for src in self.survey.get_sources_by_frequency(freq):
@@ -139,12 +128,11 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 dA_dm_v = self.getADeriv(freq, u_src, v, adjoint=False)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
                 du_dm_v = self.Ainv[nf] * (-dA_dm_v + dRHS_dm_v)
-
                 for rx in src.receiver_list:
-                    Jv.append(rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v))
-        return np.hstack(Jv)
+                    Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
 
-    # @profile
+        return Jv.dobs
+
     def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector
@@ -203,19 +191,25 @@ class BaseFDEMSimulation(BaseEMSimulation):
         :return: (s_m, s_e) (nE or nF, nSrc)
         """
         Srcs = self.survey.get_sources_by_frequency(freq)
+        n_fields = sum(src._fields_per_source for src in Srcs)
         if self._formulation == "EB":
-            s_m = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
-            s_e = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
+            s_m = np.zeros((self.mesh.nF, n_fields), dtype=complex, order="F")
+            s_e = np.zeros((self.mesh.nE, n_fields), dtype=complex, order="F")
         elif self._formulation == "HJ":
-            s_m = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
-            s_e = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
+            s_m = np.zeros((self.mesh.nE, n_fields), dtype=complex, order="F")
+            s_e = np.zeros((self.mesh.nF, n_fields), dtype=complex, order="F")
 
-        for i, src in enumerate(Srcs):
+        i = 0
+        for src in Srcs:
+            ii = i + src._fields_per_source
             smi, sei = src.eval(self)
-
-            s_m[:, i] = s_m[:, i] + smi
-            s_e[:, i] = s_e[:, i] + sei
-
+            if not isinstance(smi, Zero) and smi.ndim == 1:
+                smi = smi[:, None]
+            if not isinstance(sei, Zero) and sei.ndim == 1:
+                sei = sei[:, None]
+            s_m[:, i:ii] = s_m[:, i:ii] + smi
+            s_e[:, i:ii] = s_e[:, i:ii] + sei
+            i = ii
         return s_m, s_e
 
 
@@ -273,10 +267,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         MeSigma = self.MeSigma
         C = self.mesh.edgeCurl
 
-        return C.T * MfMui * C + 1j * omega(freq) * MeSigma
-
-    # def getADeriv(self, freq, u, v, adjoint=False):
-    #     return
+        return C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigma
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
         """
@@ -416,10 +407,10 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        A = C * (MeSigmaI * (C.T * MfMui)) + iomega
+        A = C * (MeSigmaI * (C.T.tocsr() * MfMui)) + iomega
 
-        if self._makeASymmetric is True:
-            return MfMui.T * A
+        if self._makeASymmetric:
+            return MfMui.T.tocsr() * A
         return A
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
@@ -597,10 +588,10 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        A = C * MeMuI * C.T * MfRho + iomega
+        A = C * MeMuI * C.T.tocsr() * MfRho + iomega
 
         if self._makeASymmetric is True:
-            return MfRho.T * A
+            return MfRho.T.tocsr() * A
         return A
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
@@ -788,7 +779,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         MfRho = self.MfRho
         C = self.mesh.edgeCurl
 
-        return C.T * (MfRho * C) + 1j * omega(freq) * MeMu
+        return C.T.tocsr() * (MfRho * C) + 1j * omega(freq) * MeMu
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
         """
@@ -809,18 +800,10 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         :return: derivative of the system matrix times a vector (nP,) or
             adjoint (nD,)
         """
-
-        MeMu = self.MeMu
         C = self.mesh.edgeCurl
         if adjoint:
             return self.MfRhoDeriv(C * u, C * v, adjoint)
         return C.T * self.MfRhoDeriv(C * u, v, adjoint)
-
-        # MfRhoDeriv = self.MfRhoDeriv(C*u)
-
-        # if adjoint:
-        #     return MfRhoDeriv.T * (C * v)
-        # return C.T * (MfRhoDeriv * v)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         MeMuDeriv = self.MeMuDeriv(u)

@@ -538,6 +538,8 @@ class BaseSrc:
 
     # _uid = properties.Uuid("unique identifier for the source")
 
+    _fields_per_source = 1
+
     loc = deprecate_property(
         location, "loc", new_name="location", removal_version="0.16.0", error=True
     )
@@ -586,7 +588,7 @@ class BaseSrc:
         int
             Total number of data associated with the source.
         """
-        return self.vnD.sum()
+        return sum(self.vnD)
 
     @property
     def vnD(self):
@@ -664,8 +666,13 @@ class BaseSurvey:
         assert len(set(new_list)) == len(new_list), "The source_list must be unique. Cannot re-use sources"
 
         self._sourceOrder = dict()
-        [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(new_list)]
-        self._source_list = new_list
+        # [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(new_list)]
+        # self._source_list = new_list
+        ii = 0
+        for src in new_list:
+            n_fields = src._fields_per_source
+            self._sourceOrder[src._uid] = [ii + i for i in range(n_fields)]
+            ii += n_fields
 
 
 
@@ -706,21 +713,29 @@ class BaseSurvey:
     #         raise Exception("The source_list must be unique")
     #     self._sourceOrder = dict()
     #     [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(value)]
+    #     ii = 0
+    #     for src in value:
+    #         n_fields = src._fields_per_source
+    #         self._sourceOrder[src._uid] = [ii + i for i in range(n_fields)]
+    #         ii += n_fields
+
 
     # TODO: this should be private
     def get_source_indices(self, sources):
         if not isinstance(sources, list):
             sources = [sources]
 
+        inds = []
         for src in sources:
             if getattr(src, "_uid", None) is None:
                 raise KeyError("Source does not have a _uid: {0!s}".format(str(src)))
-        inds = list(map(lambda src: self._sourceOrder.get(src._uid, None), sources))
-        if None in inds:
-            raise KeyError(
-                "Some of the sources specified are not in this survey. "
-                "{0!s}".format(str(inds))
-            )
+            ind = self._sourceOrder.get(src._uid, None)
+            if ind is None:
+                raise KeyError(
+                    "Some of the sources specified are not in this survey. "
+                    "{0!s}".format(str(inds))
+                )
+            inds.extend(ind)
         return inds
 
     @property
@@ -732,7 +747,7 @@ class BaseSurvey:
         int
             Total number of data for the survey
         """
-        return self.vnD.sum()
+        return sum(self.vnD)
 
     @property
     def vnD(self):
@@ -757,6 +772,11 @@ class BaseSurvey:
             Number of sources
         """
         return len(self.source_list)
+
+    @property
+    def _n_fields(self):
+        """number of fields required for solution"""
+        return sum(src._fields_per_source for src in self.source_list)
 
     #############
     # Deprecated
