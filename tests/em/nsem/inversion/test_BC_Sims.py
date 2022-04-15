@@ -44,7 +44,11 @@ def create_simulation_1d(sim_type, deriv_type):
 
     hz = [(cs, npad, -pf), (cs, ncz), (cs, npad)]
 
-    mesh = TensorMesh([hz,])
+    mesh = TensorMesh(
+        [
+            hz,
+        ]
+    )
     mesh.x0 = np.r_[-mesh.h[0][:-npad].sum()]
 
     frequencies = np.logspace(-2, 1, 30)
@@ -82,11 +86,17 @@ def create_simulation_1d(sim_type, deriv_type):
         test_mod = np.log(mu_0) * np.ones(mesh.n_cells)
     if sim_type.lower() == "e":
         sim = nsem.simulation.Simulation1DElectricField(
-            mesh, survey=survey, **sim_kwargs, solver=Pardiso,
+            mesh,
+            survey=survey,
+            **sim_kwargs,
+            solver=Pardiso,
         )
     else:
         sim = nsem.simulation.Simulation1DMagneticField(
-            mesh, survey=survey, **sim_kwargs, solver=Pardiso,
+            mesh,
+            survey=survey,
+            **sim_kwargs,
+            solver=Pardiso,
         )
     return sim, test_mod
 
@@ -180,7 +190,10 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
         survey = nsem.Survey(src_list)
 
         sim = nsem.simulation.Simulation2DElectricField(
-            mesh, survey=survey, **sim_kwargs, solver=Pardiso,
+            mesh,
+            survey=survey,
+            **sim_kwargs,
+            solver=Pardiso,
         )
     else:
         if fixed_boundary:
@@ -228,7 +241,10 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
         survey = nsem.Survey(src_list)
 
         sim = nsem.simulation.Simulation2DMagneticField(
-            mesh, survey=survey, **sim_kwargs, solver=Pardiso,
+            mesh,
+            survey=survey,
+            **sim_kwargs,
+            solver=Pardiso,
         )
     return sim, test_mod
 

@@ -1,7 +1,6 @@
 import numpy as np
 import sys
 import gc
-from ....utils.code_utils import deprecate_class
 import properties
 
 from .... import props
@@ -578,18 +577,3 @@ class Simulation3DNodal(BaseSIPSimulation, BaseSimulation3DNodal):
 
 
 Simulation3DCellCentred = Simulation3DCellCentered
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_N(Simulation3DNodal):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_CC(Simulation3DCellCentered):
-    pass

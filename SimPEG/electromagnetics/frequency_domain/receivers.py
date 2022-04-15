@@ -1,6 +1,4 @@
 import properties
-from ...utils.code_utils import deprecate_class, deprecate_property
-
 from ... import survey
 
 
@@ -23,14 +21,6 @@ class BaseRx(survey.BaseRx):
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
         },
-    )
-
-    projComp = deprecate_property(
-        orientation,
-        "projComp",
-        new_name="orientation",
-        removal_version="0.16.0",
-        error=True,
     )
 
     def __init__(self, locations, orientation=None, component=None, **kwargs):
@@ -183,31 +173,3 @@ class PointCurrentDensity(BaseRx):
     def __init__(self, locations, orientation="x", component="real"):
         self.projField = "j"
         super(PointCurrentDensity, self).__init__(locations, orientation, component)
-
-
-############
-# Deprecated
-############
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_e(PointElectricField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_b(PointMagneticFluxDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_bSecondary(PointMagneticFluxDensitySecondary):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_h(PointMagneticField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_j(PointCurrentDensity):
-    pass

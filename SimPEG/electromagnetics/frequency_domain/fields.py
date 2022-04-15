@@ -1,10 +1,8 @@
 import numpy as np
-import scipy.sparse as sp
 from scipy.constants import epsilon_0
 from ...fields import Fields
 from ...utils import mkvc, Zero, Identity, sdiag
 from ..utils import omega
-from ...utils.code_utils import deprecate_class
 
 
 class FieldsFDEM(Fields):
@@ -610,8 +608,8 @@ class Fields3DElectricField(FieldsFDEM):
 
     def _charge(self, eSolution, source_list):
         """
-            .. math::
-                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        .. math::
+            \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return -epsilon_0 * (
             self.mesh.nodalGrad.T
@@ -931,8 +929,8 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
 
     def _charge(self, bSolution, source_list):
         """
-            .. math::
-                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        .. math::
+            \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return -epsilon_0 * (
             self.mesh.nodalGrad.T
@@ -1298,18 +1296,18 @@ class Fields3DCurrentDensity(FieldsFDEM):
 
     def _charge(self, jSolution, source_list):
         """
-            .. math::
+        .. math::
 
-                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+            \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return self.mesh.vol[:, None] * self._charge_density(jSolution, source_list)
 
     def _charge_density(self, jSolution, source_list):
         """
-            .. math::
+        .. math::
 
-                \frac{1}{V}\int \nabla \codt \vec{e} =
-                \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
+            \frac{1}{V}\int \nabla \codt \vec{e} =
+            \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
         """
         return epsilon_0 * (self._faceDiv * self._e(jSolution, source_list))
 
@@ -1593,40 +1591,17 @@ class Fields3DMagneticField(FieldsFDEM):
 
     def _charge(self, hSolution, source_list):
         """
-            .. math::
+        .. math::
 
-                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+            \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return self.mesh.vol[:, None] * self._charge_density(hSolution, source_list)
 
     def _charge_density(self, hSolution, source_list):
         """
-            .. math::
+        .. math::
 
-                \frac{1}{V}\int \nabla \codt \vec{e} =
-                \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
+            \frac{1}{V}\int \nabla \codt \vec{e} =
+            \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
         """
         return epsilon_0 * (self._faceDiv * self._e(hSolution, source_list))
-
-
-############
-# Deprecated
-############
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_e(Fields3DElectricField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_b(Fields3DMagneticFluxDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_j(Fields3DCurrentDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_h(Fields3DMagneticField):
-    pass

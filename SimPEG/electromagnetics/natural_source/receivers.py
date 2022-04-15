@@ -43,7 +43,8 @@ class PointNaturalSource(BaseRx):
     )
 
     orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'xy', 'yx'", ["xx", "xy", "yx", "yy"],
+        "orientation of the receiver. Must currently be 'xy', 'yx'",
+        ["xx", "xy", "yx", "yy"],
     )
 
     def __init__(
@@ -98,13 +99,13 @@ class PointNaturalSource(BaseRx):
 
     def getP(self, mesh, projGLoc=None, field="e"):
         """
-            Returns the projection matrices as a
-            list for all components collected by
-            the receivers.
+        Returns the projection matrices as a
+        list for all components collected by
+        the receivers.
 
-            .. note::
+        .. note::
 
-                Projection matrices are stored as a dictionary listed by meshes.
+            Projection matrices are stored as a dictionary listed by meshes.
         """
         if mesh.dim < 3:
             return super().getP(mesh, projGLoc=projGLoc)

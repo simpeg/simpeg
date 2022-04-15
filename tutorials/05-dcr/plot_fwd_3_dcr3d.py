@@ -279,7 +279,10 @@ dpred = simulation.dpred(conductivity_model)
 
 # Since the data are normalized voltage, we must convert predicted
 # to apparent conductivities.
-apparent_conductivity = 1 / apparent_resistivity_from_voltage(survey, dpred,)
+apparent_conductivity = 1 / apparent_resistivity_from_voltage(
+    survey,
+    dpred,
+)
 
 # For large datasets or for surveys with unconventional electrode geometry,
 # interpretation can be challenging if we plot every datum. Here, we plot

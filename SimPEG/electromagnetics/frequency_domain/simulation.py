@@ -2,7 +2,6 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
 import properties
-from ...utils.code_utils import deprecate_class
 from discretize.utils import Zero
 
 from ... import props
@@ -868,28 +867,3 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         return RHSDeriv + s_mDeriv(v) + C.T * (MfRho * s_eDeriv(v))
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_e(Simulation3DElectricField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_b(Simulation3DMagneticFluxDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_h(Simulation3DMagneticField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_j(Simulation3DCurrentDensity):
-    pass

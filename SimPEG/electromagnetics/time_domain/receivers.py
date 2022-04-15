@@ -1,5 +1,4 @@
 import scipy.sparse as sp
-from ...utils.code_utils import deprecate_class, deprecate_property
 import properties
 
 from ...utils import mkvc
@@ -17,14 +16,6 @@ class BaseRx(BaseTimeRx):
 
     orientation = properties.StringChoice(
         "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
-    )
-
-    projComp = deprecate_property(
-        orientation,
-        "projComp",
-        new_name="orientation",
-        removal_version="0.16.0",
-        error=True,
     )
 
     def __init__(self, locations, times, orientation=None, **kwargs):
@@ -253,38 +244,3 @@ class PointMagneticFieldTimeDerivative(BaseRx):
         super(PointMagneticFieldTimeDerivative, self).__init__(
             locations, times, orientation, **kwargs
         )
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_e(PointElectricField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_b(PointMagneticFluxDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_h(PointMagneticField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_j(PointCurrentDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_dbdt(PointMagneticFluxTimeDerivative):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_dhdt(PointMagneticFieldTimeDerivative):
-    pass

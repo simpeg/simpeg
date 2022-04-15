@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
-from ...utils.code_utils import deprecate_class
 
 from ...fields import Fields
 from ..frequency_domain.fields import FieldsFDEM
@@ -585,7 +584,7 @@ class Fields3DPrimarySecondary(Fields):
     # v has to be u(2*nE) long for the not adjoint and nE long for adjoint.
     # Returns nE long for not adjoint and 2*nE long for adjoint
     def _e_pxDeriv(self, src, du_dm_v, v, adjoint=False):
-        """ Derivative of e_px with respect to the solution (u) and model (m) """
+        """Derivative of e_px with respect to the solution (u) and model (m)"""
         # e_px does not depend on the model
         return np.array(
             self._e_pxDeriv_u(src, du_dm_v, adjoint)
@@ -594,7 +593,7 @@ class Fields3DPrimarySecondary(Fields):
         )
 
     def _e_pyDeriv(self, src, du_dm_v, v, adjoint=False):
-        """ Derivative of e_py with respect to the solution (u) and model (m) """
+        """Derivative of e_py with respect to the solution (u) and model (m)"""
         return np.array(
             self._e_pyDeriv_u(src, du_dm_v, adjoint)
             + self._e_pyDeriv_m(src, v, adjoint),
@@ -668,7 +667,7 @@ class Fields3DPrimarySecondary(Fields):
 
     # Magnetic flux
     def _b_pxDeriv(self, src, du_dm_v, v, adjoint=False):
-        """ Derivative of b_px with respect to the solution (u) and model (m) """
+        """Derivative of b_px with respect to the solution (u) and model (m)"""
         # b_px does not depend on the model
 
         return np.array(
@@ -678,7 +677,7 @@ class Fields3DPrimarySecondary(Fields):
         )
 
     def _b_pyDeriv(self, src, du_dm_v, adjoint=False):
-        """ Derivative of b_px with respect to the solution (u) and model (m) """
+        """Derivative of b_px with respect to the solution (u) and model (m)"""
         # Primary does not depend on u
         return np.array(
             self._b_pyDeriv_u(src, du_dm_v, adjoint)
@@ -722,24 +721,11 @@ class Fields3DPrimarySecondary(Fields):
         return -1.0 / (1j * omega(src.frequency)) * (C * du_dm_v)
 
     def _b_pxDeriv_m(self, src, v, adjoint=False):
-        """ Derivative of b_px wrt m """
+        """Derivative of b_px wrt m"""
         # b_px does not depend on the model
         return Zero()
 
     def _b_pyDeriv_m(self, src, v, adjoint=False):
-        """ Derivative of b_py wrt m """
+        """Derivative of b_py wrt m"""
         # b_py does not depend on the model
         return Zero()
-
-
-############
-# Deprecated
-############
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields1D_ePrimSec(Fields1DPrimarySecondary):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_ePrimSec(Fields3DPrimarySecondary):
-    pass

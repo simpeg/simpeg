@@ -2,7 +2,6 @@ import numpy as np
 from scipy.optimize import minimize
 import warnings
 import properties
-from ....utils.code_utils import deprecate_class
 
 from ....utils import mkvc, sdiag, Zero
 from ....base import BaseElectricalPDESimulation
@@ -661,18 +660,3 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
 
 Simulation2DCellCentred = Simulation2DCellCentered  # UK and US
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem2D_N(Simulation2DNodal):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem2D_CC(Simulation2DCellCentered):
-    pass

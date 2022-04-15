@@ -1,13 +1,5 @@
 import numpy as np
-from scipy.special import ellipk, ellipe
 from scipy.constants import mu_0
-
-import properties
-
-from discretize.base import BaseMesh
-from discretize import TensorMesh
-
-from ...utils import mkvc
 
 
 def MagneticDipoleVectorPotential(

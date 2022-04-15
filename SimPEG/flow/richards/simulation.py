@@ -1,13 +1,7 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
 import scipy.sparse as sp
 import time
 import properties
-from ...utils.code_utils import deprecate_class
 import warnings
 
 from ... import utils
@@ -342,13 +336,3 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
 
 SimulationNDCellCentred = SimulationNDCellCentered
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class RichardsProblem(SimulationNDCellCentered):
-    pass

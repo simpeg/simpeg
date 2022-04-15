@@ -46,7 +46,10 @@ class MagFwdProblemTests(unittest.TestCase):
         self.survey = mag.Survey(srcField)
 
         self.sim = mag.simulation.Simulation3DDifferential(
-            M, survey=self.survey, muMap=maps.ChiMap(M), solver=Pardiso,
+            M,
+            survey=self.survey,
+            muMap=maps.ChiMap(M),
+            solver=Pardiso,
         )
         self.M = M
         self.chi = chi

@@ -1,5 +1,4 @@
 from ...survey import BaseSurvey
-from ...utils.code_utils import deprecate_class
 
 
 class Survey(BaseSurvey):
@@ -81,8 +80,3 @@ class Survey(BaseSurvey):
 
         fields = {"gx": gfx, "gy": gfy, "gz": gfz}
         return fields
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class LinearSurvey(Survey):
-    pass

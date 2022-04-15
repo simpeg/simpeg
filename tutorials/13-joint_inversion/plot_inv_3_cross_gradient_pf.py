@@ -434,7 +434,10 @@ plotting_map = maps.InjectActiveCells(mesh, ind_active, np.nan)
 fig = plt.figure(figsize=(9, 8))
 ax1 = plt.subplot(211)
 (im,) = mesh.plotSlice(
-    plotting_map * m_dens_joint, normal="Y", ax=ax1, clim=(-0.04, 0.03),
+    plotting_map * m_dens_joint,
+    normal="Y",
+    ax=ax1,
+    clim=(-0.04, 0.03),
 )
 ax1.set_title("Density model slice at y = 0 m")
 cbar = plt.colorbar(im)
@@ -462,7 +465,12 @@ ncg = cross_grad.calculate_cross_gradient(recovered_model, normalized=True)
 
 fig = plt.figure(figsize=(9, 4))
 ax = plt.subplot(111)
-(im,) = mesh.plot_slice(plotting_map * ncg, normal="Y", ax=ax, grid=True,)
+(im,) = mesh.plot_slice(
+    plotting_map * ncg,
+    normal="Y",
+    ax=ax,
+    grid=True,
+)
 ax.set_title("Normalized cross gradient for joint inversion slice at y = 0 m")
 cbar = plt.colorbar(im, format="%.1e")
 cbar.set_label("|cross grad|", rotation=270, labelpad=15, size=12)
@@ -477,7 +485,12 @@ ncg_single = cross_grad.calculate_cross_gradient(m_separate, normalized=True)
 
 fig = plt.figure(figsize=(9, 4))
 ax = plt.subplot(111)
-(im,) = mesh.plot_slice(plotting_map * ncg_single, normal="Y", ax=ax, grid=True,)
+(im,) = mesh.plot_slice(
+    plotting_map * ncg_single,
+    normal="Y",
+    ax=ax,
+    grid=True,
+)
 ax.set_title("Normalized cross gradient for separate inversion slice at y = 0 m")
 cbar = plt.colorbar(im, format="%.1e")
 cbar.set_label("|cross grad|", rotation=270, labelpad=15, size=12)

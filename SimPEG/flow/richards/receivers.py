@@ -3,14 +3,6 @@ import numpy as np
 from ...survey import BaseTimeRx
 from ...utils import Zero
 
-# class BaseTimeRx(survey.BaseTimeRx):
-#     """Richards Receiver Object"""
-
-#     def __init__(self, locs, times):
-#         self.locations = locs
-#         self.times = times
-#         self._Ps = {}
-
 
 class Pressure(BaseTimeRx):
     """Richards Receiver Object"""

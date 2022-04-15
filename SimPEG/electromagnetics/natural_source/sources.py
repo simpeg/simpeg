@@ -13,6 +13,7 @@ from discretize.utils import volume_average
 #    Sources    #
 #################
 
+
 class Planewave(BaseFDEMSrc):
     """
     Source class for the 1D and pseudo-3D problems.
@@ -20,6 +21,7 @@ class Planewave(BaseFDEMSrc):
     :param list receiver_list: List of SimPEG.electromagnetics.natural_sources.receivers.PointNaturalSource
     :param float frequency: frequency for the source
     """
+
     # This class is only provided to have a uniquely identifiable "Planewave" class
     pass
 
@@ -73,8 +75,8 @@ class PlanewaveXYPrimary(Planewave):
                 )
             else:
                 self._sigma1d = simulation.mesh.r(
-                        simulation._sigmaPrimary, "CC", "CC", "M"
-                    )[:]
+                    simulation._sigmaPrimary, "CC", "CC", "M"
+                )[:]
                 self._sigma_p = None
                 self.sigma1d = self._sigma1d
             return self._sigma1d, self._sigma_p

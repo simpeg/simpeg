@@ -4,19 +4,15 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import numpy as np
-from scipy.interpolate import interp1d, NearestNDInterpolator
 import properties
-from ....utils.code_utils import deprecate_class, deprecate_property
+from ....utils.code_utils import deprecate_property
 
-from ....utils import uniqueRows
 from ....survey import BaseSurvey
 from ..utils import drapeTopotoLoc
 from . import receivers as Rx
 from . import sources as Src
 from ..utils import static_utils
 from SimPEG import data
-
-import warnings
 
 
 class Survey(BaseSurvey):
@@ -88,35 +84,6 @@ class Survey(BaseSurvey):
             self._set_abmn_locations()
         return self._locations_n
 
-    a_locations = deprecate_property(
-        locations_a,
-        "a_locations",
-        new_name="locations_a",
-        removal_version="0.16.0",
-        error=True,
-    )
-    b_locations = deprecate_property(
-        locations_b,
-        "b_locations",
-        new_name="locations_b",
-        removal_version="0.16.0",
-        error=True,
-    )
-    m_locations = deprecate_property(
-        locations_m,
-        "m_locations",
-        new_name="locations_m",
-        removal_version="0.16.0",
-        error=True,
-    )
-    n_locations = deprecate_property(
-        locations_n,
-        "n_locations",
-        new_name="locations_n",
-        removal_version="0.16.0",
-        error=True,
-    )
-
     @property
     def unique_electrode_locations(self):
         """
@@ -132,7 +99,8 @@ class Survey(BaseSurvey):
         unique_electrode_locations,
         "electrode_locations",
         new_name="unique_electrode_locations",
-        removal_version="0.16.0",
+        removal_version="0.17.0",
+        future_warn=True,
     )
 
     @property
@@ -158,7 +126,10 @@ class Survey(BaseSurvey):
         return [np.vstack(src_a), np.vstack(src_b)]
 
     def set_geometric_factor(
-        self, space_type="half-space", data_type=None, survey_type=None,
+        self,
+        space_type="half-space",
+        data_type=None,
+        survey_type=None,
     ):
         if data_type is not None:
             raise TypeError(
@@ -279,13 +250,3 @@ class Survey(BaseSurvey):
             "The drapeTopo method has been removed. Please instead "
             "use the drape_electrodes_on_topography method."
         )
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Survey_ky(Survey):
-    pass

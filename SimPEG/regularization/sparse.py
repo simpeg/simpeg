@@ -28,7 +28,10 @@ class BaseSparse(BaseRegularization):
 
     gradientType = properties.String("type of gradient", default="components")
 
-    scale = properties.Array("General nob for scaling", dtype=float,)
+    scale = properties.Array(
+        "General nob for scaling",
+        dtype=float,
+    )
 
     # Give the option to scale or not
     scaledIRLS = properties.Bool("Scale the gradients of the IRLS norms", default=True)
