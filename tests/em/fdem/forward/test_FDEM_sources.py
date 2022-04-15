@@ -437,7 +437,3 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             mu=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "j")
-
-
-if __name__ == "__main__":
-    unittest.main()

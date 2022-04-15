@@ -393,7 +393,3 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 #             )
 #         )
 #         self.assertTrue(passed)
-
-
-if __name__ == "__main__":
-    unittest.main()

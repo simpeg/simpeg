@@ -306,7 +306,3 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
 
     def test_Jadjoint_HJ(self):
         self.AdjointTest()
-
-
-if __name__ == "__main__":
-    unittest.main()

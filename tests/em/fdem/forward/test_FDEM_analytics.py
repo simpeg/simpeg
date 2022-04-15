@@ -305,7 +305,3 @@ class TestDipoles(unittest.TestCase):
 
         self.assertTrue(np.linalg.norm(bxa - bx) / np.linalg.norm(bxa) < tol_EBdipole)
         self.assertTrue(np.linalg.norm(bza - bz) / np.linalg.norm(bza) < tol_EBdipole)
-
-
-if __name__ == "__main__":
-    unittest.main()

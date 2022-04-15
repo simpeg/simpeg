@@ -253,7 +253,3 @@ class TDEM_cross_check_EB(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             src_loop.waveform = (1, 5)
-
-
-if __name__ == "__main__":
-    unittest.main()

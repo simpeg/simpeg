@@ -201,6 +201,3 @@ class TestHalfSineWaveform(unittest.TestCase):
         )
 
         assert_array_almost_equal(result, expected)
-
-if __name__ == "__main__":
-    unittest.main()
