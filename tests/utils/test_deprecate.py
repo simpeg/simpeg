@@ -103,7 +103,9 @@ deprecated_receivers = [
     # ["SimPEG.electromagnetics.static.resistivity.receivers", ("Dipole_ky", "Pole_ky")],
 ]
 
-deprcated_surveys = ["SimPEG.electromagnetics.static.resistivity", ("Survey")]
+deprcated_surveys = [
+    # "SimPEG.electromagnetics.static.resistivity", ("Survey")
+]
 
 
 class DeprecateTest(unittest.TestCase):
