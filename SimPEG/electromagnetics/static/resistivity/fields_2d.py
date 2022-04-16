@@ -1,7 +1,6 @@
 import numpy as np
 import properties
 from scipy.constants import epsilon_0
-from ....utils.code_utils import deprecate_class
 
 from ....fields import TimeFields
 from ....utils import Identity, Zero
@@ -250,21 +249,3 @@ class Fields2DNodal(Fields2D):
 
 
 Fields2DCellCentred = Fields2DCellCentered
-
-
-############
-# Deprecated
-############
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields_ky(Fields2D):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields_ky_CC(Fields2DCellCentered):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields_ky_N(Fields2DNodal):
-    pass

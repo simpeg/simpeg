@@ -31,9 +31,7 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
     # Use a list to define the planewave source at each frequency and assign receivers
     source_list = []
     for ii in range(0, len(frequencies)):
-        source_list.append(
-            nsem.sources.Planewave(receivers_list, frequencies[ii])
-        )
+        source_list.append(nsem.sources.Planewave(receivers_list, frequencies[ii]))
 
     # Define the survey object
     survey = nsem.survey.Survey(source_list)
@@ -45,10 +43,12 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
     sigma_model = np.array([0.001, 0.01, 0.1])
 
     # Define a mapping for conductivities
-    mapping = maps.Wires(('sigma', 3), ('thicknesses', 2))
+    mapping = maps.Wires(("sigma", 3), ("thicknesses", 2))
 
     simulation = nsem.simulation_1d.Simulation1DRecursive(
-        survey=survey, sigmaMap=mapping.sigma, thicknessesMap=mapping.thicknesses,
+        survey=survey,
+        sigmaMap=mapping.sigma,
+        thicknessesMap=mapping.thicknesses,
     )
 
     x0 = np.r_[sigma_model, layer_thicknesses]

@@ -534,7 +534,11 @@ class MapTests(unittest.TestCase):
 
         for local_mesh in local_meshes:
 
-            tile_map = maps.TileMap(mesh, activeCells, local_mesh,)
+            tile_map = maps.TileMap(
+                mesh,
+                activeCells,
+                local_mesh,
+            )
 
             local_mass = (
                 (tile_map * model) * local_mesh.vol[tile_map.local_active]
@@ -547,7 +551,10 @@ class TestWires(unittest.TestCase):
     def test_basic(self):
         mesh = discretize.TensorMesh([10, 10, 10])
 
-        wires = maps.Wires(("sigma", mesh.nCz), ("mu_casing", 1),)
+        wires = maps.Wires(
+            ("sigma", mesh.nCz),
+            ("mu_casing", 1),
+        )
 
         model = np.arange(mesh.nCz + 1)
 

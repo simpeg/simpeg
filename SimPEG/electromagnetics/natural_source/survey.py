@@ -7,6 +7,7 @@ from ...utils import mkvc
 from .sources import PlanewaveXYPrimary
 from .receivers import PointNaturalSource, Point3DTipper
 from .utils.plot_utils import DataNSEMPlotMethods
+
 #########
 # Data
 #########

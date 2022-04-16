@@ -3,4 +3,5 @@ repos:
     rev: 21.7b0
     hooks:
       - id: black
-        language_version: python3.7
+        language_version: python3.8
+        additional_dependencies: ['click==8.0.4']

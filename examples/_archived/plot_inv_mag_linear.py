@@ -82,7 +82,10 @@ def run(plotIt=True):
 
     # Create the forward model operator
     simulation = magnetics.simulation.Simulation3DIntegral(
-        survey=survey, mesh=mesh, chiMap=idenMap, actInd=actv,
+        survey=survey,
+        mesh=mesh,
+        chiMap=idenMap,
+        actInd=actv,
     )
 
     # Compute linear forward operator and compute some data

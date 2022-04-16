@@ -1,9 +1,6 @@
-import time
-import sys
 import numpy as np
 from discretize import TensorMesh, TreeMesh
 from discretize.utils import Zero
-from ...utils.code_utils import deprecate_class
 
 from ...utils import mkvc
 from ... import maps
@@ -33,6 +30,7 @@ def _centers_to_widths(centers):
 ###################################
 # 1D problems
 ###################################
+
 
 class Simulation1DElectricField(BaseFDEMSimulation):
     r"""
@@ -194,6 +192,7 @@ class Simulation1DPrimarySecondary(Simulation1DElectricField):
 
     The primary field is estimated from a background model (commonly half space ).
     """
+
     fieldsPair = Fields1DPrimarySecondary
 
     # Initiate properties
@@ -735,18 +734,3 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
     def sigmaPrimary(self, val):
         # Note: TODO add logic for val, make sure it is the correct size.
         self._sigmaPrimary = val
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_ePrimSec(Simulation3DPrimarySecondary):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem1D_ePrimSec(Simulation1DPrimarySecondary):
-    pass

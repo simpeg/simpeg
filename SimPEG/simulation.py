@@ -15,7 +15,6 @@ from . import props
 from .data import SyntheticData, Data
 from .survey import BaseSurvey
 from .utils import Counter, timeIt, count, mkvc
-from .utils.code_utils import deprecate_property
 
 try:
     from pymatsolver import Pardiso as DefaultSolver
@@ -197,22 +196,6 @@ class BaseSimulation(props.HasModel):
             if getattr(self, mat, None) is not None:
                 getattr(self, mat).clean()  # clean factors
                 setattr(self, mat, None)  # set to none
-
-    Solver = deprecate_property(
-        solver,
-        "Solver",
-        new_name="simulation.solver",
-        removal_version="0.16.0",
-        error=True,
-    )
-
-    solverOpts = deprecate_property(
-        solver_opts,
-        "solverOpts",
-        new_name="solver_opts",
-        removal_version="0.16.0",
-        error=True,
-    )
 
     ###########################################################################
     # Instantiation
@@ -429,7 +412,12 @@ class BaseTimeSimulation(BaseSimulation):
     @property
     def time_mesh(self):
         if getattr(self, "_time_mesh", None) is None:
-            self._time_mesh = TensorMesh([self.time_steps,], x0=[self.t0])
+            self._time_mesh = TensorMesh(
+                [
+                    self.time_steps,
+                ],
+                x0=[self.t0],
+            )
         return self._time_mesh
 
     @time_mesh.deleter
@@ -445,22 +433,6 @@ class BaseTimeSimulation(BaseSimulation):
     def times(self):
         "Modeling times"
         return self.time_mesh.nodes_x
-
-    timeSteps = deprecate_property(
-        time_steps,
-        "timeSteps",
-        new_name="time_steps",
-        removal_version="0.16.0",
-        error=True,
-    )
-
-    timeMesh = deprecate_property(
-        time_mesh,
-        "timeMesh",
-        new_name="time_mesh",
-        removal_version="0.16.0",
-        error=True,
-    )
 
     def dpred(self, m=None, f=None):
         """

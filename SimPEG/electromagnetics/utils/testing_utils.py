@@ -1,7 +1,4 @@
-from __future__ import print_function
-import unittest
 import numpy as np
-import sys
 from scipy.constants import mu_0
 
 from discretize import TensorMesh

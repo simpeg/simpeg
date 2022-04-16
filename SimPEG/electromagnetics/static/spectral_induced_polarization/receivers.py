@@ -1,6 +1,5 @@
 import numpy as np
 import properties
-from ....utils.code_utils import deprecate_property
 from ....utils import sdiag
 
 from ....survey import BaseTimeRx, RxLocationArray
@@ -150,10 +149,6 @@ class Dipole(BaseRx):
         """Number of data in the receiver."""
         return self.locations[0].shape[0]
 
-    nRx = deprecate_property(
-        nD, "nRx", new_name="nD", removal_version="0.16.0", error=True
-    )
-
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
             return self._Ps[mesh]
@@ -183,10 +178,6 @@ class Pole(BaseRx):
     def nD(self):
         """Number of data in the receiver."""
         return self.locations.shape[0]
-
-    nRx = deprecate_property(
-        nD, "nRx", new_name="nD", removal_version="0.16.0", error=True
-    )
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:

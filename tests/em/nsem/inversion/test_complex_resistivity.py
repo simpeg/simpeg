@@ -106,7 +106,14 @@ class ComplexResistivityTest(unittest.TestCase):
         rx_loc[:, 2] = -50
 
         # Make a receiver list
-        rxList = [ns.Rx.PointNaturalSource(orientation=rx_orientation, component=rx_type, locations_e=rx_loc, locations_h=rx_loc)]
+        rxList = [
+            ns.Rx.PointNaturalSource(
+                orientation=rx_orientation,
+                component=rx_type,
+                locations_e=rx_loc,
+                locations_h=rx_loc,
+            )
+        ]
 
         # Source list
         freqs = [10, 50, 200]
@@ -131,7 +138,9 @@ class ComplexResistivityTest(unittest.TestCase):
         )
         return sim
 
-    def create_simulation_1dprimary_assign_mesh1d(self, rx_type="apparent_resistivity", rx_orientation="xy"):
+    def create_simulation_1dprimary_assign_mesh1d(
+        self, rx_type="apparent_resistivity", rx_orientation="xy"
+    ):
 
         rx_x, rx_y = np.meshgrid(
             np.linspace(-5000, 5000, 10), np.linspace(-5000, 5000, 10)
@@ -153,12 +162,15 @@ class ComplexResistivityTest(unittest.TestCase):
         ]
         mesh1d = discretize.TensorMesh(hs, x0=x0)
         sigma1d = np.exp(
-                        volume_average(self.mesh, mesh1d, np.log(self.sigma_background))
+            volume_average(self.mesh, mesh1d, np.log(self.sigma_background))
         )
 
         # Source list
         freqs = [10, 50, 200]
-        srcList = [ns.Src.PlanewaveXYPrimary(rxList, freq, sigma_primary=sigma1d) for freq in freqs]
+        srcList = [
+            ns.Src.PlanewaveXYPrimary(rxList, freq, sigma_primary=sigma1d)
+            for freq in freqs
+        ]
 
         # Survey MT
         survey_ns = ns.Survey(srcList)
@@ -178,7 +190,9 @@ class ComplexResistivityTest(unittest.TestCase):
         )
         return sim
 
-    def create_simulation_1dprimary_assign(self, rx_type="apparent_resistivity", rx_orientation="xy"):
+    def create_simulation_1dprimary_assign(
+        self, rx_type="apparent_resistivity", rx_orientation="xy"
+    ):
 
         rx_x, rx_y = np.meshgrid(
             np.linspace(-5000, 5000, 10), np.linspace(-5000, 5000, 10)
@@ -193,7 +207,10 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Source list
         freqs = [10, 50, 200]
-        srcList = [ns.Src.PlanewaveXYPrimary(rxList, freq, sigma_primary=self.sigma_background) for freq in freqs]
+        srcList = [
+            ns.Src.PlanewaveXYPrimary(rxList, freq, sigma_primary=self.sigma_background)
+            for freq in freqs
+        ]
 
         # Survey MT
         survey_ns = ns.Survey(srcList)

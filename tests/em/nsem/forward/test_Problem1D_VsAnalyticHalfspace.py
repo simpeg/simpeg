@@ -12,7 +12,10 @@ def appRes_psFieldNorm(sigmaHalf):
     # Make the survey
     survey, sigma, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(sigmaHalf, False)
     simulation = nsem.Simulation1DPrimarySecondary(
-        mesh, survey=survey, sigmaPrimary=sigBG, sigma=sigma,
+        mesh,
+        survey=survey,
+        sigmaPrimary=sigBG,
+        sigma=sigma,
     )
 
     # Get the fields

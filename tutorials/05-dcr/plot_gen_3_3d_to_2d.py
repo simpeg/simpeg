@@ -132,7 +132,10 @@ apparent_conductivity_3d = 1 / apparent_resistivity_from_voltage(
 if has_plotly:
 
     fig = plot_3d_pseudosection(
-        survey_3d, apparent_conductivity_3d, scale="log", units="S/m",
+        survey_3d,
+        apparent_conductivity_3d,
+        scale="log",
+        units="S/m",
     )
 
     fig.update_layout(
