@@ -5,6 +5,7 @@ import warnings
 import uuid
 
 from .utils import Counter
+from .utils.code_utils import deprecate_property, deprecate_method
 from .props import BaseSimPEG
 
 class RxLocationArray(properties.Array):
