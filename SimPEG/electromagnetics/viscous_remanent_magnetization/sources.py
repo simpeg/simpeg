@@ -3,9 +3,7 @@ import scipy.special as spec
 import properties
 
 from ...survey import BaseSrc
-from .receivers import Point as BaseRxVRM
 from .waveforms import StepOff, SquarePulse, ArbitraryDiscrete, ArbitraryPiecewise
-from ...utils.code_utils import deprecate_property
 
 #########################################
 # BASE VRM SOURCE CLASS
@@ -337,9 +335,6 @@ class LineCurrent(BaseSrcVRM):
     """"""
 
     location = properties.Array("location of the source wire points", shape=("*", 3))
-    loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", error=True
-    )
 
     def __init__(self, receiver_list, location, Imax, waveform, **kwargs):
 

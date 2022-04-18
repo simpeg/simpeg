@@ -303,10 +303,3 @@ from .pgi_utils import (
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
 )
-
-"""
-Deprecated,
-don't think we can throw warning if a user accesses them from here...
-"""
-SolverUtils = solver_utils
-ModelBuilder = model_builder

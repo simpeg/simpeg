@@ -328,12 +328,18 @@ fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 clim = np.r_[np.log(sigma_surface), np.log(sigma_deep)]
 
 # recovered model
-cb = plt.colorbar(inversion_mesh.plotImage(mrec, ax=ax[0], clim=clim)[0], ax=ax[0],)
+cb = plt.colorbar(
+    inversion_mesh.plotImage(mrec, ax=ax[0], clim=clim)[0],
+    ax=ax[0],
+)
 ax[0].set_title("recovered model")
 cb.set_label("$\log(\sigma)$")
 
 # true model
-cb = plt.colorbar(inversion_mesh.plotImage(m_true, ax=ax[1], clim=clim)[0], ax=ax[1],)
+cb = plt.colorbar(
+    inversion_mesh.plotImage(m_true, ax=ax[1], clim=clim)[0],
+    ax=ax[1],
+)
 ax[1].set_title("true model")
 cb.set_label("$\log(\sigma)$")
 

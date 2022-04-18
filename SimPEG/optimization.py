@@ -490,12 +490,16 @@ class Minimize(object):
             try:
                 printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
                 printDone(
-                    self, self.printers, pad=pad,
+                    self,
+                    self.printers,
+                    pad=pad,
                 )
                 print(self.print_target)
             except:
                 printDone(
-                    self, self.printers, pad=pad,
+                    self,
+                    self.printers,
+                    pad=pad,
                 )
         else:
             printStoppers(self, stoppers, pad="", stop=stop, done=done)

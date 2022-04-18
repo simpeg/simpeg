@@ -1,7 +1,5 @@
 import scipy.sparse as sp
-from ...utils.code_utils import deprecate_class, deprecate_property
 # import properties
-
 from ...utils import mkvc
 from ...survey import BaseTimeRx
 
@@ -63,14 +61,6 @@ class BaseRx(BaseTimeRx):
             raise TypeError(f"orientation must be a str. Got {type(var)}")
 
         self._orientation = var
-
-    projComp = deprecate_property(
-        orientation,
-        "projComp",
-        new_name="orientation",
-        removal_version="0.16.0",
-        error=True,
-    )
 
     # def projGLoc(self, f):
     #     """Grid Location projection (e.g. Ex Fy ...)"""
@@ -387,38 +377,3 @@ class PointMagneticFieldTimeDerivative(BaseRx):
         super(PointMagneticFieldTimeDerivative, self).__init__(
             locations, times, orientation, **kwargs
         )
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_e(PointElectricField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_b(PointMagneticFluxDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_h(PointMagneticField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_j(PointCurrentDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_dbdt(PointMagneticFluxTimeDerivative):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_dhdt(PointMagneticFieldTimeDerivative):
-    pass

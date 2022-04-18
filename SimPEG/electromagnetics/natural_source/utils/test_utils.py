@@ -69,8 +69,12 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     receiver_list = []
     for rxType in ["z1d", "z1d"]:
-        receiver_list.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="real"))
-        receiver_list.append(PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="imag"))
+        receiver_list.append(
+            PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="real")
+        )
+        receiver_list.append(
+            PointNaturalSource(mkvc(np.array([0.0]), 2).T, component="imag")
+        )
     # Source list
     source_list = []
     for freq in freqs:
@@ -511,7 +515,7 @@ def getInputs():
 
 
 def random(conds):
-    """ Returns a random model based on the inputs"""
+    """Returns a random model based on the inputs"""
     M, freqs, rx_loc, elev = getInputs()
 
     # Backround
@@ -523,7 +527,7 @@ def random(conds):
 
 
 def halfSpace(conds):
-    """ Returns a halfspace model based on the inputs"""
+    """Returns a halfspace model based on the inputs"""
     M, freqs, rx_loc, elev = getInputs()
 
     # Model
@@ -540,7 +544,7 @@ def halfSpace(conds):
 
 
 def blockInhalfSpace(conds):
-    """ Returns a block in a halfspace model based on the inputs"""
+    """Returns a block in a halfspace model based on the inputs"""
     M, freqs, rx_loc, elev = getInputs()
 
     # Model
@@ -559,7 +563,7 @@ def blockInhalfSpace(conds):
 
 
 def twoLayer(conds):
-    """ Returns a 2 layer model based on the conductivity values given"""
+    """Returns a 2 layer model based on the conductivity values given"""
     M, freqs, rx_loc, elev = getInputs()
 
     # Model

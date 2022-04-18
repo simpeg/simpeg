@@ -847,7 +847,7 @@ class WeightedGaussianMixture(GaussianMixture):
         covx = covariances[:, [x_component]][:, :, [x_component]]
         if len(self.weights_.shape) == 2:
             weights = self.weights_.sum(axis=0)
-            weights /=weights.sum()
+            weights /= weights.sum()
         else:
             weights = self.weights_
 

@@ -139,7 +139,10 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             plt.show()
 
         src_magnetostatic = tdem.Src.CircularLoop(
-            [], location=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100,
+            [],
+            location=np.r_[0.0, 0.0, 0.0],
+            orientation="z",
+            radius=100,
         )
 
         src_ramp_on = tdem.Src.CircularLoop(

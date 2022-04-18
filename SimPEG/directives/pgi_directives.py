@@ -67,9 +67,7 @@ class PGI_UpdateParameters(InversionDirective):
             pgi_reg = np.where(
                 np.r_[
                     [
-                        isinstance(
-                            regpart, (PGI, PGIwithRelationships)
-                        )
+                        isinstance(regpart, (PGI, PGIwithRelationships))
                         for regpart in self.reg.objfcts
                     ]
                 ]
@@ -226,9 +224,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
             petrosmallness = np.where(
                 np.r_[
                     [
-                        isinstance(
-                            regpart, (PGI, PGIwithRelationships)
-                        )
+                        isinstance(regpart, (PGI, PGIwithRelationships))
                         for regpart in self.reg.objfcts
                     ]
                 ]
@@ -380,9 +376,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
             petrosmallness = np.where(
                 np.r_[
                     [
-                        isinstance(
-                            regpart, (PGI, PGIwithRelationships)
-                        )
+                        isinstance(regpart, (PGI, PGIwithRelationships))
                         for regpart in self.reg.objfcts
                     ]
                 ]

@@ -1,9 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
-from scipy.constants import mu_0
 import time
 import properties
-from ...utils.code_utils import deprecate_class
 
 from ...data import Data
 from ...simulation import BaseTimeSimulation
@@ -1149,28 +1147,3 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
             #      self.MfRhoIDeriv(G * u, D.T * v, adjoint=True)
             return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
         return D * self.MfRhoIDeriv(G * u, v)
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_e(Simulation3DElectricField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_b(Simulation3DMagneticFluxDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_h(Simulation3DMagneticField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_j(Simulation3DCurrentDensity):
-    pass

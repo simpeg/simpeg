@@ -406,7 +406,8 @@ class BaseSimilarityMeasure(BaseRegularization):
     """
 
     wire_map = properties.Instance(
-        "Wire Map for the two coupled parameters", maps.Wires,
+        "Wire Map for the two coupled parameters",
+        maps.Wires,
     )
 
     def __init__(self, mesh, wire_map, **kwargs):
@@ -464,7 +465,7 @@ class BaseSimilarityMeasure(BaseRegularization):
         )
 
     def __call__(self):
-        """ Returns the computed value of the coupling term. """
+        """Returns the computed value of the coupling term."""
         raise NotImplementedError(
             "The method __call__ has not been implemented for {}".format(
                 self.__class__.__name__

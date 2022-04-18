@@ -1,6 +1,4 @@
 # import properties
-from ...utils.code_utils import deprecate_class, deprecate_property
-
 from ... import survey
 
 
@@ -91,17 +89,10 @@ class BaseRx(survey.BaseRx):
         else:
             raise TypeError(f"orientation must be a str. Got {type(var)}")
 
-    projComp = deprecate_property(
-        orientation,
-        "projComp",
-        new_name="orientation",
-        removal_version="0.16.0",
-        error=True,
-    )
-
     # def projGLoc(self, f):
     #     """Grid Location projection (e.g. Ex Fy ...)"""
     #     return f._GLoc(self.projField) + self.orientation
+
 
     def eval(self, src, mesh, f):
         """Project fields from the mesh to the receiver(s).
@@ -281,31 +272,3 @@ class PointCurrentDensity(BaseRx):
     def __init__(self, locations, orientation="x", component="real"):
         self.projField = "j"
         super(PointCurrentDensity, self).__init__(locations, orientation, component)
-
-
-############
-# Deprecated
-############
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_e(PointElectricField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_b(PointMagneticFluxDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_bSecondary(PointMagneticFluxDensitySecondary):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_h(PointMagneticField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_j(PointCurrentDensity):
-    pass

@@ -1,4 +1,3 @@
-from __future__ import division
 import numpy as np
 from .code_utils import deprecate_method, deprecate_function
 from discretize.utils import (
@@ -23,8 +22,6 @@ from discretize.utils import (
     make_property_tensor,
     inverse_property_tensor
 )
-
-avExtrap = deprecate_method(av_extrap, "avExtrap", removal_version="0.16.0", error=True)
 
 def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
     """Estimate the diagonal of a matrix.
@@ -216,7 +213,12 @@ def eigenvalue_by_power_iteration(
         if hasattr(obj, "simulation"):  # if data misfit term
             eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0, f=fields_list[j]))
         else:
-            eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0,))
+            eigenvalue += mult * x0.dot(
+                obj.deriv2(
+                    model,
+                    v=x0,
+                )
+            )
 
     return eigenvalue
 

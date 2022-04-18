@@ -266,7 +266,10 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 # Defines the directives for the IRLS regularization. This includes setting
 # the cooling schedule for the trade-off parameter.
 update_IRLS = directives.Update_IRLS(
-    f_min_change=1e-4, max_irls_iterations=30, coolEpsFact=1.5, beta_tol=1e-2,
+    f_min_change=1e-4,
+    max_irls_iterations=30,
+    coolEpsFact=1.5,
+    beta_tol=1e-2,
 )
 
 # Defining the fractional decrease in beta and the number of Gauss-Newton solves
@@ -400,7 +403,7 @@ plt.show()
 #
 
 # Predicted data with final recovered model
-# SimPEG uses right handed coordinate where Z is positive upward. 
+# SimPEG uses right handed coordinate where Z is positive upward.
 # This causes gravity signals look "inconsistent" with density values in visualization.
 dpred = inv_prob.dpred
 

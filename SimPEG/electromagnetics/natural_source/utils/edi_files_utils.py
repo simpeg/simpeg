@@ -186,7 +186,7 @@ def _findLatLong(fileLines):
 
 
 def _findLine(comp, fileLines):
-    """ Find a line number in the file"""
+    """Find a line number in the file"""
     # Line counter
     c = 0
     # List of indices for found lines
@@ -213,7 +213,7 @@ def _findEDIcomp(comp, fileLines, dt=float):
         (st, nr) for nr, st in enumerate(fileLines) if re.search(comp, st)
     ][0]
     # Extract the data
-    if 'NFREQ' in headLine:
+    if "NFREQ" in headLine:
         breakup = headLine.split("=")
         breakup2 = breakup[1].split()[0]
         # print(breakup, breakup2)

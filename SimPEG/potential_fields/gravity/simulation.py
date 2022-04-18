@@ -1,6 +1,3 @@
-from __future__ import print_function
-from ...utils.code_utils import deprecate_class
-from SimPEG import utils
 from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
 from ...simulation import BaseSimulation
@@ -400,18 +397,3 @@ class Simulation3DDifferential(BasePDESimulation):
         gField = 4.0 * np.pi * NewtG * 1e8 * self._Div * u
 
         return {"G": gField, "u": u}
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class GravityIntegral(Simulation3DIntegral):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_Diff(Simulation3DDifferential):
-    pass

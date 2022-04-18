@@ -1,11 +1,8 @@
 import numpy as np
-from ....utils.code_utils import deprecate_class
 
 import properties
 from ....utils import sdiag
 from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
-
-import warnings
 
 
 # Receiver classes
@@ -252,18 +249,3 @@ class Pole(BaseRx):
             self._Ps[mesh] = P
 
         return P
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Dipole_ky(Dipole):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Pole_ky(Pole):
-    pass

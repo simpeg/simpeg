@@ -266,7 +266,9 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondarySurvey = fdem.Survey([self.secondarySrc])
 
         self.secondarySimulation = fdem.Simulation3DElectricField(
-            meshs, survey=self.secondarySurvey, sigmaMap=mapping,
+            meshs,
+            survey=self.secondarySurvey,
+            sigmaMap=mapping,
         )
         self.secondarySimulation.solver = Solver
 

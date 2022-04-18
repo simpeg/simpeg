@@ -1,9 +1,4 @@
 from scipy.constants import mu_0
-# import properties
-from ...utils.code_utils import deprecate_property, deprecate_method
-
-from ...utils import Zero, Identity
-from ..utils import omega
 from ...survey import BaseSurvey
 from .sources import BaseFDEMSrc
 
@@ -16,12 +11,6 @@ class Survey(BaseSurvey):
     source_list : list of SimPEG.electromagnetic.frequency_domain.sources.BaseFDEMSrc
         List of SimPEG FDEM sources
     """
-
-    # source_list = properties.List(
-    #     "A list of sources for the survey",
-    #     properties.Instance("A SimPEG source", BaseFDEMSrc),
-    #     default=[],
-    # )
 
     def __init__(self, source_list=None, **kwargs):
         # Sort these by frequency
@@ -77,14 +66,6 @@ class Survey(BaseSurvey):
         """
         return self._frequencies
 
-    freqs = deprecate_property(
-        frequencies,
-        "freq",
-        new_name="frequencies",
-        removal_version="0.16.0",
-        error=True,
-    )
-
     @property
     def num_frequencies(self):
         """Number of frequencies
@@ -95,14 +76,6 @@ class Survey(BaseSurvey):
             Number of frequencies
         """
         return len(self._frequency_dict)
-
-    nFreq = deprecate_property(
-        num_frequencies,
-        "nFreq",
-        new_name="num_frequencies",
-        removal_version="0.16.0",
-        error=True,
-    )
 
     @property
     def num_sources_by_frequency(self):
@@ -121,14 +94,6 @@ class Survey(BaseSurvey):
                 )
         return self._num_sources_by_frequency
 
-    nSrcByFreq = deprecate_property(
-        num_sources_by_frequency,
-        "nSrcByFreq",
-        new_name="num_sources_by_frequency",
-        removal_version="0.16.0",
-        error=True,
-    )
-
     def get_sources_by_frequency(self, frequency):
         """Get sources by frequency
 
@@ -146,7 +111,3 @@ class Survey(BaseSurvey):
             frequency in self._frequency_dict
         ), "The requested frequency is not in this survey."
         return self._frequency_dict[frequency]
-
-    getSrcByFreq = deprecate_method(
-        get_sources_by_frequency, "getSrcByFreq", "0.16.0", error=True
-    )

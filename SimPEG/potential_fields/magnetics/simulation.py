@@ -1,13 +1,8 @@
-from __future__ import print_function
-
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
-from ...utils.code_utils import deprecate_class
-import warnings
 
 from SimPEG import utils
-from ...simulation import BaseSimulation
 from ..base import BasePFSimulation
 from ...base import BaseMagneticPDESimulation
 from .survey import Survey
@@ -17,7 +12,6 @@ from SimPEG import Solver
 from SimPEG import props
 import properties
 from SimPEG.utils import mkvc, mat_utils, sdiag, setKwargs
-from SimPEG.utils.code_utils import deprecate_property
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -183,14 +177,6 @@ class Simulation3DIntegral(BasePFSimulation):
             )
 
         self._model_type = value
-
-    modelType = deprecate_property(
-        model_type,
-        "modelType",
-        new_name="model_type",
-        removal_version="0.16.0",
-        error=True,
-    )
 
     @property
     def nD(self):
@@ -1201,18 +1187,3 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     inv = Inversion.BaseInversion(obj, opt)
 
     return inv, reg
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class MagneticIntegral(Simulation3DIntegral):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_Diff(Simulation3DDifferential):
-    pass

@@ -1,5 +1,3 @@
-from __future__ import division, print_function
-
 import numpy as np
 from scipy.constants import mu_0
 # import properties
@@ -11,7 +9,7 @@ from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 from ..base import BaseEMSrc
 from ..utils import segmented_line_current_source_term, line_through_faces
 from ...props import LocationVector
-from ...utils import set_kwargs, sdiag, Zero, Identity
+from ...utils import set_kwargs, sdiag, Zero
 
 ###############################################################################
 #                                                                             #
@@ -133,7 +131,7 @@ class BaseWaveform:
         has_initial_fields,
         "hasInitialFields",
         new_name="has_initial_fields",
-        removal_version="0.16.0",
+        removal_version="0.17.0",
         future_warn=True,
     )
 
@@ -141,7 +139,7 @@ class BaseWaveform:
         off_time,
         "offTime",
         new_name="off_time",
-        removal_version="0.16.0",
+        removal_version="0.17.0",
         future_warn=True,
     )
 
@@ -149,7 +147,7 @@ class BaseWaveform:
         epsilon,
         "eps",
         new_name="epsilon",
-        removal_version="0.16.0",
+        removal_version="0.17.0",
         future_warn=True,
     )
 
@@ -341,7 +339,7 @@ class RawWaveform(BaseWaveform):
         waveform_function,
         "waveFct",
         new_name="waveform_function",
-        removal_version="0.16.0",
+        removal_version="0.17.0",
         future_warn=True,
     )
 
@@ -460,7 +458,7 @@ class VTEMWaveform(BaseWaveform):
         peak_time,
         "peakTime",
         new_name="peak_time",
-        removal_version="0.16.0",
+        removal_version="0.17.0",
         future_warn=True,
     )
 
@@ -468,7 +466,7 @@ class VTEMWaveform(BaseWaveform):
         ramp_on_rate,
         "a",
         new_name="ramp_on_rate",
-        removal_version="0.16.0",
+        removal_version="0.17.0",
         future_warn=True,
     )
 
@@ -635,7 +633,7 @@ class TriangularWaveform(TrapezoidWaveform):
                 raise Exception("peak_time must be provided")
             else:
                 warnings.warn(
-                    "peakTime will be deprecated in 0.16.0. Please update your code to use peak_time instead",
+                    "peakTime will be deprecated in 0.17.0. Please update your code to use peak_time instead",
                     FutureWarning,
                 )
 
@@ -645,7 +643,7 @@ class TriangularWaveform(TrapezoidWaveform):
                 raise Exception("off_time must be provided")
             else:
                 warnings.warn(
-                    "offTime will be deprecated in 0.16.0. Please update your code to use off_time instead",
+                    "offTime will be deprecated in 0.17.0. Please update your code to use off_time instead",
                     FutureWarning,
                 )
 
@@ -696,7 +694,7 @@ class TriangularWaveform(TrapezoidWaveform):
         peak_time,
         "peakTime",
         new_name="peak_time",
-        removal_version="0.16.0",
+        removal_version="0.17.0",
         future_warn=True,
     )
 

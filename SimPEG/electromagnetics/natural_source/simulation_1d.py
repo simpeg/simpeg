@@ -31,6 +31,7 @@ class Simulation1DRecursive(BaseSimulation):
 
 
     """
+
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
     props.Reciprocal(sigma, rho)
@@ -123,8 +124,8 @@ class Simulation1DRecursive(BaseSimulation):
         Zs[-1] = -ratios[-1]
         # Work from lowest layer to top layer
         for ii in range(n_layer - 2, -1, -1):
-            tops[ii] = Zs[ii+1] / ratios[ii] - tanhs[ii]
-            bots[ii] = 1 - Zs[ii+1] / ratios[ii] * tanhs[ii]
+            tops[ii] = Zs[ii + 1] / ratios[ii] - tanhs[ii]
+            bots[ii] = 1 - Zs[ii + 1] / ratios[ii] * tanhs[ii]
             Zs[ii] = ratios[ii] * (tops[ii] / bots[ii])
 
         gZ = 1.0
@@ -133,22 +134,22 @@ class Simulation1DRecursive(BaseSimulation):
         for ii in range(n_layer - 1):
             gratios[ii] = (tops[ii] / bots[ii]) * gZ
             gtop = ratios[ii] / bots[ii] * gZ
-            gbot = - Zs[ii] / bots[ii] * gZ
+            gbot = -Zs[ii] / bots[ii] * gZ
 
             gZ = -tanhs[ii] / ratios[ii] * gbot
-            gratios[ii] += Zs[ii+1] * tanhs[ii] / ratios[ii]**2 * gbot
-            gtanhs[ii] = -Zs[ii+1] / ratios[ii] * gbot
+            gratios[ii] += Zs[ii + 1] * tanhs[ii] / ratios[ii] ** 2 * gbot
+            gtanhs[ii] = -Zs[ii + 1] / ratios[ii] * gbot
 
             gZ += gtop / ratios[ii]
-            gratios[ii] -= Zs[ii+1] / ratios[ii] ** 2 * gtop
+            gratios[ii] -= Zs[ii + 1] / ratios[ii] ** 2 * gtop
             gtanhs[ii] -= gtop
         gratios[-1] = -gZ
-        d_thick = (1 - tanhs**2) * alphas[:-1] * gtanhs
+        d_thick = (1 - tanhs ** 2) * alphas[:-1] * gtanhs
 
         galphas = gratios / sigmas[:, None]
-        galphas[:-1] += (1 - tanhs**2) * thicknesses[:, None] * gtanhs
+        galphas[:-1] += (1 - tanhs ** 2) * thicknesses[:, None] * gtanhs
 
-        d_sigma = - ratios / sigmas[:, None] * gratios
+        d_sigma = -ratios / sigmas[:, None] * gratios
         d_sigma += (0.5j * omega * mu_0) / alphas * galphas
 
         # d_mu would be this below when it gets activated:
@@ -184,16 +185,12 @@ class Simulation1DRecursive(BaseSimulation):
                     d.append(np.imag(Z[i_freq]))
                 elif rx.component == "apparent_resistivity":
                     d.append(
-                        np.abs(Z[i_freq]) ** 2
-                        / (2 * np.pi * src.frequency * mu_0)
+                        np.abs(Z[i_freq]) ** 2 / (2 * np.pi * src.frequency * mu_0)
                     )
                 elif rx.component == "phase":
                     d.append(
                         (180.0 / np.pi)
-                        * np.arctan(
-                            np.imag(Z[i_freq])
-                            / np.real(Z[i_freq])
-                        )
+                        * np.arctan(np.imag(Z[i_freq]) / np.real(Z[i_freq]))
                     )
 
         return np.array(d)
@@ -207,7 +204,7 @@ class Simulation1DRecursive(BaseSimulation):
         """
         # Analytic computation
         self.model = m
-        if getattr(self, '_Jmatrix', None) is not None:
+        if getattr(self, "_Jmatrix", None) is not None:
             return self._Jmatrix
 
         # Derivatives for conductivity
@@ -241,12 +238,10 @@ class Simulation1DRecursive(BaseSimulation):
                     C = 180 / np.pi
                     real = np.real(Z[i_freq])
                     imag = np.imag(Z[i_freq])
-                    bot = real ** 2 + imag**2
+                    bot = real ** 2 + imag ** 2
                     d_real_dm = np.real(Js_row)
                     d_imag_dm = np.imag(Js_row)
-                    Jrows = C * (
-                        -imag / bot * d_real_dm + real / bot * d_imag_dm
-                    )
+                    Jrows = C * (-imag / bot * d_real_dm + real / bot * d_imag_dm)
                 end = start + rx.nD
                 J[start:end] = Jrows
                 start = end
@@ -254,15 +249,15 @@ class Simulation1DRecursive(BaseSimulation):
         start = 0
         if self.sigmaMap is not None:
             end = start + Z_dsigma.shape[1]
-            self._Jmatrix['sigma'] = J[:, start:end]
+            self._Jmatrix["sigma"] = J[:, start:end]
             start = end
         if self.thicknessesMap is not None:
             end = start + Z_dthick.shape[1]
-            self._Jmatrix['thick'] = J[:, start:end]
+            self._Jmatrix["thick"] = J[:, start:end]
         return self._Jmatrix
 
     def getJtJdiag(self, m, W=None):
-        if getattr(self, '_gtgdiag', None) is None:
+        if getattr(self, "_gtgdiag", None) is None:
             Js = self.getJ(m)
             if W is None:
                 W = np.ones(self.survey.nD)
@@ -271,10 +266,10 @@ class Simulation1DRecursive(BaseSimulation):
 
             gtgdiag = 0
             if self.sigmaMap is not None:
-                J = Js['sigma'] @ self.sigmaDeriv
+                J = Js["sigma"] @ self.sigmaDeriv
                 gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
             if self.thicknessesMap is not None:
-                J = Js['thick'] @ self.thicknessesDeriv
+                J = Js["thick"] @ self.thicknessesDeriv
                 gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
             self._gtgdiag = gtgdiag
         return self._gtgdiag
@@ -283,18 +278,18 @@ class Simulation1DRecursive(BaseSimulation):
         J = self.getJ(m, f=None)
         Jvec = 0
         if self.sigmaMap is not None:
-            Jvec += J['sigma'] @ (self.sigmaDeriv * v)
+            Jvec += J["sigma"] @ (self.sigmaDeriv * v)
         if self.thicknessesMap is not None:
-            Jvec += J['thick'] @ (self.thicknessesDeriv * v)
+            Jvec += J["thick"] @ (self.thicknessesDeriv * v)
         return Jvec
 
     def Jtvec(self, m, v, f=None):
         J = self.getJ(m, f=None)
         JTvec = 0
         if self.sigmaMap is not None:
-            JTvec += self.sigmaDeriv.T @ (J['sigma'].T @ v)
+            JTvec += self.sigmaDeriv.T @ (J["sigma"].T @ v)
         if self.thicknessesMap is not None:
-            JTvec += self.thicknessesDeriv.T @ (J['thick'].T @ v)
+            JTvec += self.thicknessesDeriv.T @ (J["thick"].T @ v)
         return JTvec
 
     @property
