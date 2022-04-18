@@ -133,14 +133,14 @@ wr1 = wr1 / np.max(wr1)
 wr2 = np.sum(prob2.G ** 2.0, axis=0) ** 0.5 / mesh.cell_volumes
 wr2 = wr2 / np.max(wr2)
 
-reg_simple = utils.make_PGIwithRelationships_regularization(
+reg_simple = regularization.PGI(
     mesh=mesh,
     gmmref=clfmapping,
     gmm=clfmapping,
     approx_gradient=True,
-    alpha_x=1.0,
     wiresmap=wires,
-    cell_weights_list=[wr1, wr2],
+    non_linear_relationships=True,
+    weights_list=[wr1, wr2],
 )
 
 opt = optimization.ProjectedGNCG(

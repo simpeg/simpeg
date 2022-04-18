@@ -100,7 +100,7 @@ class BaseInvProblem(BaseSimPEG):
                         )
                 )
                 self.opt.bfgsH0 = objfct.simulation.solver(
-                    self.reg.deriv2(self.model), **objfct.simulation.solver_opts
+                    sp.csr_matrix(self.reg.deriv2(self.model)), **objfct.simulation.solver_opts
                 )
                 break
 

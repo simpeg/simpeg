@@ -12,10 +12,11 @@ from ..utils import (
     Identity,
 )
 from ..maps import IdentityMap, Wires
-
+from ..objective_function import ComboObjectiveFunction
 from .base import (
     BaseRegularization,
     LeastSquaresRegularization,
+    RegularizationMesh,
     Small,
 )
 
@@ -47,6 +48,8 @@ class PGIsmallness(Small):
 
     _multiplier_pair = "alpha_s"
     _non_linear_relationships = False
+    _maplist = None
+    _wiresmap = None
 
     def __init__(
         self,
@@ -67,6 +70,7 @@ class PGIsmallness(Small):
         self.non_linear_relationships = non_linear_relationships
 
         super().__init__(mesh=mesh, **kwargs)
+
         self.gmm = gmm
         self.wiresmap = wiresmap
         self.maplist = maplist
@@ -76,8 +80,8 @@ class PGIsmallness(Small):
         self._r_second_deriv = None
 
     def add_set_weights(self, weights: dict | np.ndarray):
-        if isinstance(weights, np.ndarray):
-            weights = {"user_weights": weights}
+        if isinstance(weights, (np.ndarray, list)):
+            weights = {"user_weights": np.r_[weights]}
 
         if not isinstance(weights, dict):
             raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
@@ -125,6 +129,41 @@ class PGIsmallness(Small):
                 f"Provided {value} of type {type(value)}."
             )
         self._non_linear_relationships = value
+
+    @property
+    def wiresmap(self):
+        if getattr(self, "_wiresmap", None) is None:
+            self._wiresmap = Wires(("m", self.regularization_mesh.nC))
+        return self._wiresmap
+
+    @wiresmap.setter
+    def wiresmap(self, wires):
+        if self._maplist is not None and len(wiresmap.maps) != len(self._maplist):
+            raise Exception(f"Provided 'wiresmap' should have wires the len of 'maplist' {len(self._maplist)}.")
+
+        if not isinstance(wires, Wires):
+            raise ValueError(f"Attribure 'wiresmap' should be of type {Wire} or None.")
+
+        self._wiresmap = wires
+
+    @property
+    def maplist(self):
+        if getattr(self, "_maplist", None) is None:
+            self._maplist = [IdentityMap(self.regularization_mesh) for maps in self.wiresmap.maps]
+        return self._maplist
+
+    @maplist.setter
+    def maplist(self, maplist):
+        if self._wiresmap is not None and len(maplist) != len(self._wiresmap.maps):
+            raise Exception(f"Provided 'maplist' should be a list of maps equal to the 'wiresmap' list of len {len(self._maplist)}.")
+
+        if not isinstance(maplist, (list, type(None))):
+            raise ValueError("Attribure 'maplist' should be a list of maps or None.")
+
+        if isinstance(maplist, list) and not all(isinstance(map, IdentityMap) for map in maplist):
+            raise ValueError(f"Attribure 'maplist' should be a list of maps or None.")
+
+        self._maplist = maplist
 
     @timeIt
     def __call__(self, m):
@@ -596,7 +635,7 @@ class PGIsmallness(Small):
             return Hr
 
 
-class PGI(LeastSquaresRegularization):
+class PGI(ComboObjectiveFunction):
     """
     class similar to regularization.tikhonov.Simple, with a PGIsmallness.
     PARAMETERS
@@ -620,14 +659,8 @@ class PGI(LeastSquaresRegularization):
         approx_hessian=True,
         approx_gradient=True,
         approx_eval=True,
-        non_linear_relationship=False,
-        alpha_s=1.0,
-        alpha_x=1.0,
-        alpha_y=1.0,
-        alpha_z=1.0,
-        alpha_xx=0.0,
-        alpha_yy=0.0,
-        alpha_zz=0.0,
+        weights_list=None,
+        non_linear_relationships=False,
         **kwargs
     ):
         self.gmmref = copy.deepcopy(gmmref)
@@ -635,35 +668,37 @@ class PGI(LeastSquaresRegularization):
         self._gmm = copy.deepcopy(gmm)
         self._wiresmap = wiresmap
         self._maplist = maplist
-        self.mesh = mesh
+        self.regularization_mesh = mesh
 
         objfcts = [
             PGIsmallness(
-                mesh=self.mesh,
+                mesh=self.regularization_mesh,
                 gmm=self.gmm,
                 wiresmap=self.wiresmap,
                 maplist=self.maplist,
                 approx_eval=approx_eval,
                 approx_gradient=approx_gradient,
                 approx_hessian=approx_hessian,
-                non_linear_relationship=non_linear_relationship,
+                non_linear_relationships=non_linear_relationships,
+                weights=weights_list,
                 **kwargs
             )
         ]
 
-        super().__init__(
-            mesh=self.mesh,
-            alpha_s=alpha_s,
-            alpha_x=alpha_x,
-            alpha_y=alpha_y,
-            alpha_z=alpha_z,
-            alpha_xx=alpha_xx,
-            alpha_yy=alpha_yy,
-            alpha_zz=alpha_zz,
-            objfcts=objfcts,
-            mapping=IdentityMap(mesh, nP=self.wiresmap.nP),
-            **kwargs
-        )
+        if not isinstance(weights_list, list):
+            weights_list = [weights_list] * len(self.maplist)
+
+        for map, wire, weights in zip(self.maplist, self.wiresmap, weights_list):
+            objfcts += [
+                LeastSquaresRegularization(
+                    mesh=self.regularization_mesh,
+                    mapping=map * wire,
+                    weights=weights,
+                    **kwargs
+                )
+            ]
+
+        super(PGI, self).__init__(objfcts=objfcts)
 
     @property
     def gmm(self):
@@ -686,11 +721,23 @@ class PGI(LeastSquaresRegularization):
     @property
     def wiresmap(self):
         if getattr(self, "_wiresmap", None) is None:
-            self._wiresmap = Wires(("m", self._mesh.nC))
+            self._wiresmap = Wires(("m", self.regularization_mesh.nC))
         return self._wiresmap
 
     @property
     def maplist(self):
         if getattr(self, "_maplist", None) is None:
-            self._maplist = [IdentityMap(self._mesh) for maps in self.wiresmap.maps]
+            self._maplist = [IdentityMap(self.regularization_mesh) for maps in self.wiresmap.maps]
         return self._maplist
+
+    @property
+    def regularization_mesh(self) -> RegularizationMesh:
+        """Regularization mesh"""
+        return self._regularization_mesh
+
+    @regularization_mesh.setter
+    def regularization_mesh(self, mesh: RegularizationMesh):
+        if not isinstance(mesh, RegularizationMesh):
+            mesh = RegularizationMesh(mesh)
+
+        self._regularization_mesh = mesh

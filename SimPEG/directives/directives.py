@@ -729,7 +729,7 @@ class MultiTargetMisfits(InversionDirective):
             return self.invProb.reg.objfcts[0](self.invProb.model)
         else:
             return (
-                self.pgi_smallness(self.invProb.model, externalW=self.WeightsInTarget,)
+                self.pgi_smallness(self.invProb.model)
                 / self.CLnormalizedConstant
             )
 
