@@ -76,7 +76,7 @@ def setupProblem(
         )
 
     elif prbtype in ["MagneticField", "CurrentDensity"]:
-        ind = utils.closestPoints(mesh, src_loc, "Fz") + mesh.vnF[0]
+        ind = utils.closest_points_index(mesh, src_loc, "Fz") + mesh.vnF[0]
         vec = np.zeros(mesh.nF)
         vec[ind] = 1.0
 
@@ -178,7 +178,7 @@ class MuTests(unittest.TestCase):
                 lambda x: self.simulation.Jvec(self.m0, x),
             )
 
-        return tests.checkDerivative(fun, self.m0, num=3, plotIt=False)
+        return tests.check_derivative(fun, self.m0, num=3, plotIt=False)
 
     def JtvecTest(
         self, prbtype="ElectricField", sigmaInInversion=False, invertMui=False

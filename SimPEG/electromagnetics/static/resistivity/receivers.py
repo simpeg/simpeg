@@ -24,9 +24,7 @@ class BaseRx(BaseSimPEGRx):
     _geometric_factor = {}
 
     def __init__(self, locations=None, **kwargs):
-        super(BaseRx, self).__init__(**kwargs)
-        if locations is not None:
-            self.locations = locations
+        super(BaseRx, self).__init__(locations, **kwargs)
 
     # @property
     # def projField(self):
