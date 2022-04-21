@@ -1562,15 +1562,15 @@ def r_unit(p1, p2):
     return vec, r
 
 
-def gettopoCC(mesh, actind, option="top"):
+def gettopoCC(mesh, ind_active, option="top"):
     """
-    Get topography from active indices of mesh.
+    Generate surface topography from active indices of mesh.
 
     Parameters
     ----------
     mesh : discretize.TensorMesh or discretize.TreeMesh
         A tensor or tree mesh
-    actind : numpy.ndarray of bool or int
+    ind_active : numpy.ndarray of bool or int
         Active cells index; i.e. indices of cells below surface
     option : str, default="top"
         Use string "top" or "center" to specify if the surface passes through the
@@ -1588,7 +1588,7 @@ def gettopoCC(mesh, actind, option="top"):
 
             mesh2D = discretize.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
             zc = mesh.cell_centers[:, 2]
-            ACTIND = actind.reshape((mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F")
+            ACTIND = ind_active.reshape((mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F")
             ZC = zc.reshape((mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F")
             topoCC = np.zeros(ZC.shape[0])
 
@@ -1607,7 +1607,7 @@ def gettopoCC(mesh, actind, option="top"):
 
             mesh1D = discretize.TensorMesh([mesh.hx], [mesh.x0[0]])
             yc = mesh.cell_centers[:, 1]
-            ACTIND = actind.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
+            ACTIND = ind_active.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
             YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
             topoCC = np.zeros(YC.shape[0])
             for i in range(YC.shape[0]):
@@ -1623,7 +1623,7 @@ def gettopoCC(mesh, actind, option="top"):
 
     elif mesh._meshType == "TREE":
 
-        inds = mesh.get_boundary_cells(actind, direction="zu")[0]
+        inds = mesh.get_boundary_cells(ind_active, direction="zu")[0]
 
         if option == "top":
             dz = mesh.h_gridded[inds, -1] * 0.5
@@ -1632,10 +1632,32 @@ def gettopoCC(mesh, actind, option="top"):
         return mesh.cell_centers[inds, :-1], mesh.cell_centers[inds, -1] + dz
 
 
-def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
+def drapeTopotoLoc(mesh, pts, ind_active=None, option="top", topo=None, **kwargs):
+    """Drape locations right below discretized surface topography
+
+    This function projects the set of locations provided to the discrete
+    surface topography.
+
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh or discretize.TreeMesh
+        A 2D tensor or tree mesh
+    pts : (n, dim) numpy.ndarray
+        The set of points being projected to the discretize surface topography
+    ind_active : numpy.ndarray of int or bool, optional
+        Index array for all cells lying below the surface topography. Surface topography
+        can be specified using the 'ind_active' or 'topo' input parameters.
+    option : str, default = "top"
+        Define whether the cell center or entire cell of actice cells must be below the topography.
+        Choose from "center" or "top". The topography is defined using the 'topo' input parameter.
+    topo : (n, dim) numpy.ndarray
+        Surface topography. Can be used if an active indices array cannot be provided
+        for the input parameter 'ind_active'
     """
-    Drape location right below (cell center) the topography
-    """
+    
+    if "actind" in kwargs:
+        ind_active = kwargs.pop("actind")
+
     if mesh.dim == 2:
         # if shape is (*, 1) or (*, 2) just grab first column
         if pts.ndim == 2 and pts.shape[1] in [1, 2]:
@@ -1649,21 +1671,21 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         pts = pts[:, :2]
     else:
         raise NotImplementedError()
-    if actind is None:
-        actind = surface2ind_topo(mesh, topo)
+    if ind_active is None:
+        ind_active = surface2ind_topo(mesh, topo)
     if mesh._meshType == "TENSOR":
-        meshtemp, topoCC = gettopoCC(mesh, actind, option=option)
+        meshtemp, topoCC = gettopoCC(mesh, ind_active, option=option)
         inds = closestPoints(meshtemp, pts)
         topo = topoCC[inds]
         out = np.c_[pts, topo]
 
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
-            uniqXYlocs, topoCC = gettopoCC(mesh, actind, option=option)
+            uniqXYlocs, topoCC = gettopoCC(mesh, ind_active, option=option)
             inds = closestPointsGrid(uniqXYlocs, pts)
             out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
         else:
-            uniqXlocs, topoCC = gettopoCC(mesh, actind, option=option)
+            uniqXlocs, topoCC = gettopoCC(mesh, ind_active, option=option)
             inds = closestPointsGrid(uniqXlocs, pts, dim=1)
             out = np.c_[uniqXlocs[inds], topoCC[inds]]
     else:
