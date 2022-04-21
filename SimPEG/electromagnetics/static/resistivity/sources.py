@@ -159,8 +159,8 @@ class Dipole(BaseSrc):
             )
 
         # instantiate
-        super(Dipole, self).__init__(receiver_list, **kwargs)
-        self.location = location
+        super(Dipole, self).__init__(receiver_list, location=location, **kwargs)
+        # self.location = location
 
     def __repr__(self):
         return (
@@ -187,7 +187,7 @@ class Dipole(BaseSrc):
                     f"length {len(locs)}"
                 )
         
-        locs = [np.atleast_1d(locs[0]), np.atleast_2d(locs[1])]
+        locs = [np.atleast_1d(locs[0]), np.atleast_1d(locs[1])]
 
         # check the size of locations_m, locations_n
         if locs[0].shape != locs[1].shape:

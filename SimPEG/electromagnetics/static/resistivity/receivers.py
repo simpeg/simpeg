@@ -18,13 +18,16 @@ class BaseRx(BaseSimPEGRx):
         Receiver orientation. Must be one of: ``None``, 'x', 'y' or 'z'
     data_type : str, default = 'volt'
         Data type. Choose one of: "volt", "apparent_resistivity", "apparent_chargeability"
+    projField : str, default = 'phi'
+        Fields solved on the mesh. Choose one of: "phi", "e", "j"
     """
 
-    def __init__(self, locations=None, data_type='volt', orientation=None, **kwargs):
+    def __init__(self, locations=None, data_type='volt', orientation=None, projField="phi", **kwargs):
         super(BaseRx, self).__init__(locations=locations, **kwargs)
 
         self.orientation = orientation
         self.data_type = data_type
+        self.projField = projField
 
     # orientation = properties.StringChoice(
     #     "orientation of the receiver. Must currently be 'x', 'y', 'z'", ["x", "y", "z"]
@@ -67,6 +70,30 @@ class BaseRx(BaseSimPEGRx):
     # def projField(self):
     #     """Field Type projection (e.g. e b ...)"""
     #     return self.knownRxTypes[self.rxType][0]
+
+    @property
+    def projField(self):
+        """Fields on the mesh
+
+        Returns
+        -------
+        str
+            Fields defined on mesh. One of {"phi", "e", "j"}
+        """
+        return self._projField
+
+    @projField.setter
+    def projField(self, var):
+
+        if isinstance(var, str):
+            var = var.lower()
+            if var not in ('phi', 'e', 'j'):
+                raise ValueError(f"projField must be either 'phi', 'e', 'j'. Got {var}")
+        else:
+            raise TypeError(f"projField must be a str. Got {type(var)}")
+
+        self._projField = var
+
 
     # data_type = properties.StringChoice(
     #     "Type of DC-IP survey",
@@ -310,8 +337,8 @@ class Dipole(BaseRx):
             )
 
         # instantiate
-        super(Dipole, self).__init__(**kwargs)
-        self.locations = locations
+        super(Dipole, self).__init__(locations=locations, **kwargs)
+        # self.locations = locations
 
     def __repr__(self):
         return ",\n".join(
