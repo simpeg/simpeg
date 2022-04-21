@@ -98,8 +98,8 @@ class BaseRxNSEM_Point(BaseRx):
         if projGLoc is None:
             projGLoc = self.projGLoc
 
-        if (mesh, projGLoc) in self._Ps:
-            return self._Ps[(mesh, projGLoc, field)]
+        if (mesh.nC, projGLoc, field) in self._Ps:
+            return self._Ps[(mesh.nC, projGLoc, field)]
 
         if field == "e":
             locs = self.locations_e()
@@ -114,7 +114,7 @@ class BaseRxNSEM_Point(BaseRx):
                 locs = self.locations_h()
         P = mesh.getInterpolationMat(locs, projGLoc)
         if self.storeProjections:
-            self._Ps[(mesh, projGLoc, field)] = P
+            self._Ps[(mesh.nC, projGLoc, field)] = P
         return P
 
     # NOTE: need to add a .T at the end for the output to be (nU,)

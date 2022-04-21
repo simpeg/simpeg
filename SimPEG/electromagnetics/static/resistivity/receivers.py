@@ -209,15 +209,15 @@ class Dipole(BaseRx):
         return self.locations[0].shape[0]
 
     def getP(self, mesh, Gloc, transpose=False):
-        if mesh in self._Ps:
-            return self._Ps[mesh]
+        if mesh.nC in self._Ps:
+            return self._Ps[mesh.nC]
 
         P0 = mesh.getInterpolationMat(self.locations[0], Gloc)
         P1 = mesh.getInterpolationMat(self.locations[1], Gloc)
         P = P0 - P1
 
         if self.storeProjections:
-            self._Ps[mesh] = P
+            self._Ps[mesh.nC] = P
 
         if transpose:
             P = P.toarray().T
@@ -247,13 +247,13 @@ class Pole(BaseRx):
         return self.locations.shape[0]
 
     def getP(self, mesh, Gloc):
-        if mesh in self._Ps:
-            return self._Ps[mesh]
+        if mesh.nC in self._Ps:
+            return self._Ps[mesh.nC]
 
         P = mesh.getInterpolationMat(self.locations, Gloc)
 
         if self.storeProjections:
-            self._Ps[mesh] = P
+            self._Ps[mesh.nC] = P
 
         return P
 

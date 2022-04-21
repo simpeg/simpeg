@@ -1,6 +1,7 @@
 from ..inverse_problem import BaseInvProblem
 import numpy as np
-
+from time import time
+from datetime import timedelta
 from dask.delayed import Delayed
 from dask.diagnostics import ProgressBar
 from dask.distributed import Future, get_client
@@ -100,6 +101,7 @@ def get_dpred(self, m, f=None, compute_J=False):
     if isinstance(self.dmisfit, BaseDataMisfit):
         return self.dmisfit.simulation.dpred(m)
     elif isinstance(self.dmisfit, BaseObjectiveFunction):
+
         for i, objfct in enumerate(self.dmisfit.objfcts):
 
             if hasattr(objfct, "simulation"):
@@ -111,6 +113,9 @@ def get_dpred(self, m, f=None, compute_J=False):
 
                 compute_sensitivities = compute_J and (objfct.simulation._Jmatrix is None)
 
+                if compute_sensitivities and i == 0:
+                    print("Computing forward & sensitivities:")
+
                 try:
                     client = get_client()
                     future = client.compute(
@@ -120,6 +125,7 @@ def get_dpred(self, m, f=None, compute_J=False):
                     )
                 except ValueError:
                     # For locals, the future is now
+                    ct = time()
                     future = objfct.simulation.dpred(
                         vec, compute_J=compute_sensitivities
                     )
@@ -135,7 +141,14 @@ def get_dpred(self, m, f=None, compute_J=False):
                                 future = future.compute()
                         else:
                             future = future.compute()
-
+                            if compute_sensitivities:
+                                runtime = time() - ct
+                                total = len(self.dmisfit.objfcts)
+                                print(
+                                    f"{i+1} of {total} "
+                                    f"in {timedelta(seconds=runtime)}. "
+                                    f"ETA -> {timedelta(seconds=(total - i - 1) * runtime)}"
+                                )
                 dpreds += [future]
 
             else:
@@ -181,7 +194,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     phi_d = np.asarray(phi_d)
     # print(self.dpred[0])
-    self.reg2Deriv = self.reg.deriv2(m)
+    # self.reg2Deriv = [obj.deriv2(m) for obj in self.reg.objfcts]
     # reg = np.linalg.norm(self.reg2Deriv * self.reg._delta_m(m))
     phi_m = self.reg(m)
 
@@ -223,10 +236,10 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     out = (phi,)
     if return_g:
         phi_dDeriv = self.dmisfit.deriv(m, f=self.dpred)
-        if hasattr(self.reg.objfcts[0], "space") and self.reg.objfcts[0].space == "spherical":
-            phi_mDeriv = self.reg.deriv(m)
-        else:
-            phi_mDeriv = self.reg2Deriv * self.reg.objfcts[0]._delta_m(m)
+        # if hasattr(self.reg.objfcts[0], "space") and self.reg.objfcts[0].space == "spherical":
+        phi_mDeriv = self.reg.deriv(m)
+        # else:
+        #     phi_mDeriv = np.sum([reg2Deriv * obj.f_m for reg2Deriv, obj in zip(self.reg2Deriv, self.reg.objfcts)], axis=0)
 
         g = np.asarray(phi_dDeriv) + self.beta * phi_mDeriv
         out += (g,)
@@ -235,10 +248,10 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
         def H_fun(v):
             phi_d2Deriv = self.dmisfit.deriv2(m, v)
-            if hasattr(self.reg.objfcts[0], "space") and self.reg.objfcts[0].space == "spherical":
-                phi_m2Deriv = self.reg.deriv2(m, v=v)
-            else:
-                phi_m2Deriv = self.reg2Deriv * v
+            # if hasattr(self.reg.objfcts[0], "space") and self.reg.objfcts[0].space == "spherical":
+            phi_m2Deriv = self.reg.deriv2(m, v=v)
+            # else:
+            #     phi_m2Deriv = np.sum([reg2Deriv * v for reg2Deriv in self.reg2Deriv])
 
             H = phi_d2Deriv + self.beta * phi_m2Deriv
 

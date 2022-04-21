@@ -3365,6 +3365,20 @@ class TileMap(IdentityMap):
         self.projection
 
     @property
+    def enforce_active(self):
+        """
+        Force only fully active in the global.
+        """
+        return self._enforce_active
+
+    @enforce_active.setter
+    def enforce_active(self, value: bool):
+        if not isinstance(value, bool):
+            raise ValueError("''enforce_active' must be of type 'bool'")
+        self._enforce_active = value
+
+
+    @property
     def local_mesh(self):
         """
         The local nested TreeMesh
@@ -3438,7 +3452,7 @@ class TileMap(IdentityMap):
             self.local_active = mkvc(np.sum(P, axis=1) > 0)
 
             # Remove cells with inactive in global
-            if self._enforce_active:
+            if self.enforce_active:
                 self.local_active[
                     self.local_mesh._get_containing_cell_indexes(
                         self.global_mesh.gridCC[self.global_active == False, :]

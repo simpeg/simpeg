@@ -1,4 +1,7 @@
+import warnings
 from typing import List, Optional
+
+import discretize
 from SimPEG import dask
 import numpy as np
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
@@ -141,38 +144,38 @@ def create_tile_meshes(
 
 
 def create_nested_mesh(
-        locations,
-        base_mesh,
-        method="convex_hull",
-        max_distance=100.,
-        pad_distance=1000.,
-        min_level=2,
-        finalize=True
+        locations: np.ndarray,
+        base_mesh: TreeMesh,
+        method: str = "padding_cells",
+        padding_cells: int = 8,
+        minimum_level: int = 3,
+        finalize: bool = True
 ):
+    """
+    Create a nested mesh with the same extent as the input global mesh.
+    Refinement levels are preserved only around the input locations (local survey).
+
+    Parameters
+    ----------
+
+    locations: Array of coordinates for the local survey shape(*, 3).
+    base_mesh: Input global TreeMesh object.
+    method: Refinement of cells from the base mesh determined by from either
+        'convex_hull': Cells that fall inside a 2D Delaunay triangulation of the input locations.
+        'padding_cells':  Cells inside concentric shells made of 'padding_cells'
+    padding_cells: Used for 'method'= 'padding_cells'. Number of cells in each concentric shell.
+    minimum_level: Minimum octree level to preserve everywhere outside the local survey area.
+    finalize: Return a finalized local treemesh.
+    """
     nested_mesh = TreeMesh(
         [base_mesh.h[0], base_mesh.h[1], base_mesh.h[2]], x0=base_mesh.x0
     )
-
-    min_level = (base_mesh.max_level - min_level)
+    base_level = (base_mesh.max_level - minimum_level)
     base_refinement = base_mesh.cell_levels_by_index(np.arange(base_mesh.nC))
-    base_refinement[base_refinement > min_level] = min_level
-
+    base_refinement[base_refinement > base_level] = base_level
     nested_mesh.insert_cells(
         base_mesh.gridCC,
         base_refinement,
-        finalize=False,
-    )
-
-    tree = cKDTree(locations[:, :2])
-    rad, _ = tree.query(base_mesh.gridCC[:, :2])
-
-    indices = np.where(rad < pad_distance)[0]
-    # indices = np.where(tri2D.find_simplex(base_mesh.gridCC[:, :2]) != -1)[0]
-    levels = base_mesh.cell_levels_by_index(indices)
-    levels[levels==base_mesh.max_level] = base_mesh.max_level-1
-    nested_mesh.insert_cells(
-        base_mesh.gridCC[indices, :],
-        levels,
         finalize=False,
     )
 
@@ -181,17 +184,39 @@ def create_nested_mesh(
         try:
             tri2D = Delaunay(locations[:, :2])
             indices = tri2D.find_simplex(base_mesh.gridCC[:, :2]) != -1
+            return nested_mesh.insert_cells(
+                base_mesh.gridCC[indices, :],
+                base_mesh.cell_levels_by_index(np.where(indices)[0]),
+                finalize=finalize,
+            )
         except qhull.QhullError:
-            indices = rad < max_distance
-    else:
-        # tree = cKDTree(locations[:, :2])
-        # rad, _ = tree.query(base_mesh.gridCC[:, :2])
-        indices = rad < max_distance
+            warnings.warn("qhull failed to triangulate. Defaulting to 'padding_cells' method.")
+            pass
+    elif method != "padding_cells":
+        raise ValueError("Input 'method' must be one of 'convex_hull' or 'padding_cells'.")
 
-    nested_mesh.insert_cells(
-        base_mesh.gridCC[indices, :],
-        base_mesh.cell_levels_by_index(np.where(indices)[0]),
-        finalize=finalize,
-    )
+    base_cell = np.min([base_mesh.h[0][0], base_mesh.h[1][0]])
+    tree = cKDTree(locations[:, :2])
+    center = np.mean(base_mesh.gridCC[:, :2], axis=0)
+    stretched_cc = (
+        (base_mesh.gridCC[:, :2] - center)
+        * (base_cell / np.r_[base_mesh.h[0][0], base_mesh.h[1][0]])
+    ) + center
+    rad, _ = tree.query(stretched_cc)
+    pad_distance = 0.
+    for ii in range(minimum_level):
+        pad_distance += base_cell * 2 ** ii * padding_cells
+        indices = np.where(rad < pad_distance)[0]
+        # indices = np.where(tri2D.find_simplex(base_mesh.gridCC[:, :2]) != -1)[0]
+        levels = base_mesh.cell_levels_by_index(indices)
+        levels[levels > (base_mesh.max_level - ii)] = base_mesh.max_level - ii
+        nested_mesh.insert_cells(
+            base_mesh.gridCC[indices, :],
+            levels,
+            finalize=False,
+        )
+
+    if finalize:
+        nested_mesh.finalize()
 
     return nested_mesh

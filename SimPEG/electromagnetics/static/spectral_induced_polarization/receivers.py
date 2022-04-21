@@ -160,8 +160,8 @@ class Dipole(BaseRx):
     )
 
     def getP(self, mesh, Gloc):
-        if mesh in self._Ps:
-            return self._Ps[mesh]
+        if mesh.nC in self._Ps:
+            return self._Ps[mesh.nC]
 
         P0 = mesh.getInterpolationMat(self.locations[0], Gloc)
         P1 = mesh.getInterpolationMat(self.locations[1], Gloc)
@@ -173,7 +173,7 @@ class Dipole(BaseRx):
             P = sdiag(1.0 / self.dc_voltage) * P
 
         if self.storeProjections:
-            self._Ps[mesh] = P
+            self._Ps[mesh.nC] = P
 
         return P
 
@@ -194,8 +194,8 @@ class Pole(BaseRx):
     )
 
     def getP(self, mesh, Gloc):
-        if mesh in self._Ps:
-            return self._Ps[mesh]
+        if mesh.nC in self._Ps:
+            return self._Ps[mesh.nC]
 
         P = mesh.getInterpolationMat(self.locations, Gloc)
 
@@ -205,6 +205,6 @@ class Pole(BaseRx):
             P = sdiag(1.0 / self.dc_voltage) * P
 
         if self.storeProjections:
-            self._Ps[mesh] = P
+            self._Ps[mesh.nC] = P
 
         return P
