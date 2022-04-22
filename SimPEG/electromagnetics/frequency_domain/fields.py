@@ -1,9 +1,8 @@
 import numpy as np
-import scipy.sparse as sp
+from scipy.constants import epsilon_0
 from ...fields import Fields
 from ...utils import mkvc, Zero, Identity, sdiag
 from ..utils import omega
-from ...utils.code_utils import deprecate_class
 
 
 class FieldsFDEM(Fields):
@@ -314,6 +313,8 @@ class Fields3DElectricField(FieldsFDEM):
         "bSecondary": ["eSolution", "F", "_bSecondary"],
         "j": ["eSolution", "E", "_j"],
         "h": ["eSolution", "F", "_h"],
+        "charge": ["eSolution", "N", "_charge"],
+        "charge_density": ["eSolution", "CC", "_charge_density"],
     }
 
     def startup(self):
@@ -346,10 +347,17 @@ class Fields3DElectricField(FieldsFDEM):
         :return: primary electric field as defined by the sources
         """
 
-        ePrimary = np.zeros([self.simulation.mesh.nE, len(source_list)], dtype=complex)
-        for i, src in enumerate(source_list):
+        n_fields = sum(src._fields_per_source for src in source_list)
+        ePrimary = np.zeros([self.simulation.mesh.nE, n_fields], dtype=complex)
+        i = 0
+        for src in source_list:
+            ii = i + src._fields_per_source
             ep = src.ePrimary(self.simulation)
-            ePrimary[:, i] = ePrimary[:, i] + ep
+            if not isinstance(ep, Zero) and ep.ndim == 1:
+                ep = ep[:, None]
+            ePrimary[:, i:ii] = ePrimary[:, i:ii] + ep
+            i = ii
+
         return ePrimary
 
     def _eSecondary(self, eSolution, source_list):
@@ -409,9 +417,14 @@ class Fields3DElectricField(FieldsFDEM):
             [self._edgeCurl.shape[0], eSolution.shape[1]], dtype=complex
         )
 
-        for i, src in enumerate(source_list):
+        i = 0
+        for src in source_list:
+            ii = i + src._fields_per_source
             bp = src.bPrimary(self.simulation)
-            bPrimary[:, i] = bPrimary[:, i] + bp
+            if not isinstance(bp, Zero) and bp.ndim == 1:
+                bp = bp[:, None]
+            bPrimary[:, i:ii] = bPrimary[:, i:ii] + bp
+            i = ii
         return bPrimary
 
     def _bSecondary(self, eSolution, source_list):
@@ -426,10 +439,16 @@ class Fields3DElectricField(FieldsFDEM):
 
         C = self._edgeCurl
         b = C * eSolution
-        for i, src in enumerate(source_list):
-            b[:, i] *= -1.0 / (1j * omega(src.frequency))  # freq depends on the source
+        i = 0
+        for src in source_list:
+            ii = i + src._fields_per_source
+            b[:, i:ii] *= -1.0 / (
+                1j * omega(src.frequency)
+            )  # freq depends on the source
             s_m = src.s_m(self.simulation)
-            b[:, i] = b[:, i] + 1.0 / (1j * omega(src.frequency)) * s_m
+            if not isinstance(s_m, Zero) and s_m.ndim == 1:
+                s_m = s_m[:, None]
+            b[:, i:ii] = b[:, i:ii] + 1.0 / (1j * omega(src.frequency)) * s_m
         return b
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -587,6 +606,22 @@ class Fields3DElectricField(FieldsFDEM):
             self._MfI * (self._MfMui * self._bDeriv_m(src, v, adjoint=adjoint))
         ) + self._hDeriv_mui(src, v, adjoint=adjoint)
 
+    def _charge(self, eSolution, source_list):
+        """
+        .. math::
+            \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        """
+        return -epsilon_0 * (
+            self.mesh.nodalGrad.T
+            * self.mesh.getEdgeInnerProduct()
+            * self._e(eSolution, source_list)
+        )
+
+    def _charge_density(self, eSolution, source_list):
+        return (
+            self.mesh.aveN2CC * self._charge(eSolution, source_list)
+        ) / self.mesh.vol[:, None]
+
 
 class Fields3DMagneticFluxDensity(FieldsFDEM):
     """
@@ -606,6 +641,8 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         "eSecondary": ["bSolution", "E", "_eSecondary"],
         "j": ["bSolution", "E", "_j"],
         "h": ["bSolution", "F", "_h"],
+        "charge": ["bSolution", "N", "_charge"],
+        "charge_density": ["bSolution", "CC", "_charge_density"],
     }
 
     def startup(self):
@@ -890,6 +927,22 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
             src, v, adjoint
         )
 
+    def _charge(self, bSolution, source_list):
+        """
+        .. math::
+            \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        """
+        return -epsilon_0 * (
+            self.mesh.nodalGrad.T
+            * self.mesh.getEdgeInnerProduct()
+            * self._e(bSolution, source_list)
+        )
+
+    def _charge_density(self, bSolution, source_list):
+        return (
+            self.mesh.aveN2CC * self._charge(bSolution, source_list)
+        ) / self.mesh.vol[:, None]
+
 
 class Fields3DCurrentDensity(FieldsFDEM):
     """
@@ -909,6 +962,8 @@ class Fields3DCurrentDensity(FieldsFDEM):
         "hSecondary": ["jSolution", "E", "_hSecondary"],
         "e": ["jSolution", "F", "_e"],
         "b": ["jSolution", "E", "_b"],
+        "charge": ["bSolution", "CC", "_charge"],
+        "charge_density": ["bSolution", "CC", "_charge_density"],
     }
 
     def startup(self):
@@ -1239,6 +1294,23 @@ class Fields3DCurrentDensity(FieldsFDEM):
             s_mDeriv(v) - self._edgeCurl.T * self._MfRhoDeriv(jSolution, v, adjoint)
         ) + src.bPrimaryDeriv(self.simulation, v, adjoint)
 
+    def _charge(self, jSolution, source_list):
+        """
+        .. math::
+
+            \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        """
+        return self.mesh.vol[:, None] * self._charge_density(jSolution, source_list)
+
+    def _charge_density(self, jSolution, source_list):
+        """
+        .. math::
+
+            \frac{1}{V}\int \nabla \codt \vec{e} =
+            \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
+        """
+        return epsilon_0 * (self._faceDiv * self._e(jSolution, source_list))
+
 
 class Fields3DMagneticField(FieldsFDEM):
     """
@@ -1258,6 +1330,8 @@ class Fields3DMagneticField(FieldsFDEM):
         "jSecondary": ["hSolution", "F", "_jSecondary"],
         "e": ["hSolution", "CCV", "_e"],
         "b": ["hSolution", "CCV", "_b"],
+        "charge": ["hSolution", "CC", "_charge"],
+        "charge_density": ["hSolution", "CC", "_charge_density"],
     }
 
     def startup(self):
@@ -1515,25 +1589,19 @@ class Fields3DMagneticField(FieldsFDEM):
             src, v, adjoint
         )
 
+    def _charge(self, hSolution, source_list):
+        """
+        .. math::
 
-############
-# Deprecated
-############
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_e(Fields3DElectricField):
-    pass
+            \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        """
+        return self.mesh.vol[:, None] * self._charge_density(hSolution, source_list)
 
+    def _charge_density(self, hSolution, source_list):
+        """
+        .. math::
 
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_b(Fields3DMagneticFluxDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_j(Fields3DCurrentDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_h(Fields3DMagneticField):
-    pass
+            \frac{1}{V}\int \nabla \codt \vec{e} =
+            \frac{1}{V}\int \frac{\rho_v }{\epsillon_0}
+        """
+        return epsilon_0 * (self._faceDiv * self._e(hSolution, source_list))

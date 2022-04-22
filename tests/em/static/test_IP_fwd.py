@@ -185,7 +185,7 @@ class ApparentChargeability3DTest(unittest.TestCase):
 
         np.testing.assert_allclose(data, data2)
 
-        np.testing.assert_allclose(simulationip._scale, simulationip._sign / datainf)
+        np.testing.assert_allclose(simulationip._scale, 1.0 / datainf)
 
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
         if err > 0.05:
@@ -219,7 +219,7 @@ class ApparentChargeability3DTest(unittest.TestCase):
         )
         data = simulationip.dpred(self.eta)
 
-        np.testing.assert_allclose(simulationip._scale, simulationip._sign / datainf)
+        np.testing.assert_allclose(simulationip._scale, 1.0 / datainf)
 
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
         if err > 0.05:

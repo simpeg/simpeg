@@ -2,7 +2,7 @@ import numpy as np
 import properties
 
 from .... import survey
-from ....utils import Zero
+from ....utils import Zero, closestPoints
 
 
 class BaseSrc(survey.BaseSrc):
