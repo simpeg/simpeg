@@ -1,13 +1,8 @@
-""" Module RxNSEM.py
-
-Receivers for the NSEM problem
-
-"""
 from ...utils.code_utils import deprecate_class
 
 import numpy as np
 from scipy.constants import mu_0
-import properties
+# import properties
 
 from ...survey import BaseRx
 
@@ -17,35 +12,40 @@ def _alpha(src):
 
 
 class PointNaturalSource(BaseRx):
+    """Point receiver class for magnetotelluric simulations.
+
+    Assumes that the data locations are standard xyz coordinates;
+    i.e. (x,y,z) is (Easting, Northing, up).
+
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) np.ndarray
+        Receiver locations. 
+    orientation : str, default = 'xy'
+        MT receiver orientation. Must be one of {'xx', 'xy', 'yx', 'yy'}
+    component : str, default = 'real'
+        MT data type. Choose one of {'real', 'imag', 'apparent_resistivity', 'phase'}
     """
-    Natural source receiver base class.
 
-    Assumes that the data locations are xyz coordinates.
+    # component = properties.StringChoice(
+    #     "component of the field (real, imag, apparent_resistivity, or phase)",
+    #     {
+    #         "real": ["re", "in-phase", "in phase"],
+    #         "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
+    #         "apparent_resistivity": [
+    #             "apparent resistivity",
+    #             "apparent-resistivity",
+    #             "app_rho",
+    #             "app_res",
+    #         ],
+    #         "phase": ["phi"],
+    #     },
+    # )
 
-    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
-    """
-
-    component = properties.StringChoice(
-        "component of the field (real, imag, apparent_resistivity, or phase)",
-        {
-            "real": ["re", "in-phase", "in phase"],
-            "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-            "apparent_resistivity": [
-                "apparent resistivity",
-                "apparent-resistivity",
-                "app_rho",
-                "app_res",
-            ],
-            "phase": ["phi"],
-        },
-    )
-
-    orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'xy', 'yx'",
-        ["xx", "xy", "yx", "yy"],
-    )
+    # orientation = properties.StringChoice(
+    #     "orientation of the receiver. Must currently be 'xy', 'yx'",
+    #     ["xx", "xy", "yx", "yy"],
+    # )
 
     def __init__(
         self,
@@ -90,22 +90,104 @@ class PointNaturalSource(BaseRx):
         super().__init__(locations)
 
     @property
+    def component(self):
+        """Data type; i.e. "real", "imag", "apparent_resistivity", "phase"
+
+        Returns
+        -------
+        str
+            Data type; i.e. "real", "imag", "apparent_resistivity", "phase"
+        """
+        return self._component
+
+    @component.setter
+    def component(self, var):
+        if isinstance(var, str):
+            if var.lower() in ("real", "re", "in-phase", "in phase"):
+                self._component = 'real'
+            elif var.lower() in ("imag", "imaginary", "im", "out-of-phase", "out of phase"):
+                self._component = 'imag'
+            elif var.lower() in ("apparent_resistivity", "apparent resistivity","appresistivity","apparentresistivity","apparent-resistivity","apparent_resistivity","appres","app_res","rho","rhoa"):
+                self._component = 'apparent_resistivity'
+            elif var.lower() in ("phase", "phi"):
+                self._component = 'phase'
+            else:
+                raise ValueError(f"component must be either 'real', 'imag', 'apparent_resistivity' or 'phase'. Got {var}")
+        else:
+            raise TypeError(f"component must be a str. Got {type(var)}")
+
+    @property
+    def orientation(self):
+        """Orientation of the receiver.
+
+        Returns
+        -------
+        str
+            Orientation of the receiver. One of {'xx', 'xy', 'yx', 'yy'}
+        """
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, var):
+        if isinstance(var, str):
+            var = var.lower()
+            if var not in ('xx', 'xy', 'yx', 'yy'):
+                raise ValueError(f"orientation must be either 'xx', 'xy', 'yx' or 'yy'. Got {var}")
+        else:
+            raise TypeError(f"orientation must be a str. Got {type(var)}")
+
+        self._orientation = var
+
+    @property
     def locations_e(self):
+        """Electric field measurement locations
+
+        Returns
+        -------
+        numpy.ndarray
+            Location where the electric field is measured for all receiver data
+        """
         return self._locations_e
 
     @property
     def locations_h(self):
+        """Magnetic field measurement locations
+
+        Returns
+        -------
+        numpy.ndarray
+            Location where the magnetic field is measured for all receiver data
+        """
         return self._locations_h
 
     def getP(self, mesh, projGLoc=None, field="e"):
-        """
-        Returns the projection matrices as a
-        list for all components collected by
-        the receivers.
+        """Projection matrices for all components collected by the receivers
 
-        .. note::
+        Note projection matrices are stored as a dictionary listed by meshes.
 
-            Projection matrices are stored as a dictionary listed by meshes.
+        Parameters
+        ----------
+        mesh : discretize.base.BaseMesh
+            The mesh on which the discrete set of equations is solved
+        projGLoc : str, default = ``None``
+            Define what part of the mesh (i.e. edges, faces, centers, nodes) to
+            project from. Must be one of::
+
+                'Ex', 'edges_x'           -> x-component of field defined on x edges
+                'Ey', 'edges_y'           -> y-component of field defined on y edges
+                'Ez', 'edges_z'           -> z-component of field defined on z edges
+                'Fx', 'faces_x'           -> x-component of field defined on x faces
+                'Fy', 'faces_y'           -> y-component of field defined on y faces
+                'Fz', 'faces_z'           -> z-component of field defined on z faces
+                'N', 'nodes'              -> scalar field defined on nodes
+                'CC', 'cell_centers'      -> scalar field defined on cell centers
+                'CCVx', 'cell_centers_x'  -> x-component of vector field defined on cell centers
+                'CCVy', 'cell_centers_y'  -> y-component of vector field defined on cell centers
+                'CCVz', 'cell_centers_z'  -> z-component of vector field defined on cell centers
+
+        field : str, default = "e"
+            Whether to project electric or magnetic fields from mesh.
+            Choose "e" or "h"
         """
         if mesh.dim < 3:
             return super().getP(mesh, projGLoc=projGLoc)
@@ -119,7 +201,7 @@ class PointNaturalSource(BaseRx):
             locs = self.locations_e
         else:
             locs = self.locations_h
-        P = mesh.getInterpolationMat(locs, projGLoc)
+        P = mesh.get_interpolation_matrix(locs, projGLoc)
         if self.storeProjections:
             self._Ps[(mesh, projGLoc, field)] = P
         return P
@@ -310,12 +392,21 @@ class PointNaturalSource(BaseRx):
         """
         Project the fields to natural source data.
 
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: NSEM source
-        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: NSEM fields object of the source
-        :param bool (optional) return_complex: Flag for return the complex evaluation
-        :rtype: numpy.ndarray
-        :return: Evaluated data for the receiver
+        Parameters
+        ----------
+        src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+            NSEM source
+        mesh : discretize.TensorMesh mesh
+            Mesh on which the discretize solution is obtained
+        f : SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+            NSEM fields object of the source
+        return_complex : bool (optional)
+            Flag for return the complex evaluation
+
+        Returns
+        -------
+        numpy.ndarray
+            Evaluated data for the receiver
         """
 
         imp = self._eval_impedance(src, mesh, f)
@@ -329,16 +420,27 @@ class PointNaturalSource(BaseRx):
             return getattr(imp, self.component)
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        """method evalDeriv
+        """Derivative of projection with respect to the fields
+        
+        Parameters
+        ----------
+        str : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+            NSEM source
+        mesh : discretize.TensorMesh
+            Mesh on which the discretize solution is obtained
+        f : SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+            NSEM fields object of the source
+        du_dm_v : None,
+            Supply pre-computed derivative?
+        v : numpy.ndarray
+            Vector of size
+        adjoint : bool, default = ``False``
+            If ``True``, compute the adjoint operation
 
-        The derivative of the projection wrt u
-
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: NSEM source
-        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: NSEM fields object of the source
-        :param numpy.ndarray v: vector of size (nU,) (adjoint=False) and size (nD,) (adjoint=True)
-        :rtype: numpy.ndarray
-        :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
+        Returns
+        -------
+        numpy.ndarray
+            Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
         """
         return self._eval_impedance_deriv(
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
@@ -346,17 +448,24 @@ class PointNaturalSource(BaseRx):
 
 
 class Point3DTipper(PointNaturalSource):
-    """
-    Natural source 3D tipper receiver base class
+    """Point receiver class for Z-axis tipper simulations.
 
-    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
+    Assumes that the data locations are standard xyz coordinates;
+    i.e. (x,y,z) is (Easting, Northing, up).
+
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) np.ndarray
+        Receiver locations. 
+    orientation : str, default = 'zx'
+        NSEM receiver orientation. Must be one of {'zx', 'zy'}
+    component : str, default = 'real'
+        NSEM data type. Choose one of {'real', 'imag', 'apparent_resistivity', 'phase'}
     """
 
-    orientation = properties.StringChoice(
-        "orientation of the receiver. Must currently be 'zx', 'zy'", ["zx", "zy"]
-    )
+    # orientation = properties.StringChoice(
+    #     "orientation of the receiver. Must currently be 'zx', 'zy'", ["zx", "zy"]
+    # )
 
     def __init__(
         self,
@@ -374,6 +483,28 @@ class Point3DTipper(PointNaturalSource):
             locations_e=locations_e,
             locations_h=locations_h,
         )
+
+    @property
+    def orientation(self):
+        """Orientation of the receiver.
+
+        Returns
+        -------
+        str
+            Orientation of the receiver. One of {'zx', 'zy'}
+        """
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, var):
+        if isinstance(var, str):
+            var = var.lower()
+            if var not in ('zx', 'zy'):
+                raise ValueError(f"orientation must be either 'zx' or 'zy'. Got {var}")
+        else:
+            raise TypeError(f"orientation must be a str. Got {type(var)}")
+
+        self._orientation = var
 
     def _eval_tipper(self, src, mesh, f):
         # will grab both primary and secondary and sum them!
@@ -458,11 +589,21 @@ class Point3DTipper(PointNaturalSource):
         """
         Project the fields to natural source data.
 
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: The source of the fields to project
-        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: Natural source fields object to project
-        :rtype: numpy.ndarray
-        :return: Evaluated component of the impedance data
+        Parameters
+        ----------
+        src : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+            NSEM source
+        mesh : discretize.TensorMesh mesh
+            Mesh on which the discretize solution is obtained
+        f : SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+            NSEM fields object of the source
+        return_complex : bool (optional)
+            Flag for return the complex evaluation
+
+        Returns
+        -------
+        numpy.ndarray
+            Evaluated data for the receiver
         """
 
         rx_eval_complex = self._eval_tipper(src, mesh, f)
@@ -470,16 +611,27 @@ class Point3DTipper(PointNaturalSource):
         return getattr(rx_eval_complex, self.component)
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        """
-        The derivative of the projection wrt u
+        """Derivative of projection with respect to the fields
+        
+        Parameters
+        ----------
+        str : SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+            NSEM source
+        mesh : discretize.TensorMesh
+            Mesh on which the discretize solution is obtained
+        f : SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM
+            NSEM fields object of the source
+        du_dm_v : None,
+            Supply pre-computed derivative?
+        v : numpy.ndarray
+            Vector of size
+        adjoint : bool, default = ``False``
+            If ``True``, compute the adjoint operation
 
-        :param SimPEG.electromagnetics.frequency_domain.sources.BaseFDEMSrc src: NSEM source
-        :param discretize.TensorMesh mesh: Mesh defining the topology of the problem
-        :param SimPEG.electromagnetics.frequency_domain.fields.FieldsFDEM f: NSEM fields object of the source
-        :param numpy.ndarray v: Random vector of size
-        :rtype: numpy.ndarray
-        :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True)
-            for both polarizations
+        Returns
+        -------
+        numpy.ndarray
+            Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True) for both polarizations
         """
 
         if adjoint:
