@@ -1,6 +1,6 @@
 import numpy as np
 
-import properties
+# import properties
 from ....utils import sdiag
 from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
 
@@ -338,7 +338,6 @@ class Dipole(BaseRx):
 
         # instantiate
         super(Dipole, self).__init__(locations=locations, **kwargs)
-        # self.locations = locations
 
     def __repr__(self):
         return ",\n".join(
@@ -467,7 +466,7 @@ class Pole(BaseRx):
 
     Parameters
     ----------
-    locations : (n_loc, n_dim) np.ndarray
+    locations : (n_loc, dim) np.ndarray
         Receiver locations. 
     orientation : str, default = ``None``
         Receiver orientation. Must be one of: ``None``, 'x', 'y' or 'z'

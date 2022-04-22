@@ -4,7 +4,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import numpy as np
-import properties
+# import properties
 from ....utils.code_utils import deprecate_property
 
 from ....survey import BaseSurvey
@@ -20,7 +20,7 @@ class Survey(BaseSurvey):
 
     Parameters
     ----------
-    source_list : list of SimPEG.electromagnetic.static.sources.BaseSrc
+    source_list : list of SimPEG.electromagnetic.static.resistivity.sources.BaseSrc
         List of SimPEG DC/IP sources
     survey_geometry : str, default="surface"
         Survey geometry. Choose one of {"surface", "borehole", "general"}

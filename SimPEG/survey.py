@@ -272,7 +272,15 @@ class BaseRx:
 
 
 class BaseTimeRx(BaseRx):
-    """Base SimPEG receiver class for time-domain simulations"""
+    """Base SimPEG receiver class for time-domain simulations
+
+    Parameters
+    ----------
+    locations : (n, dim) numpy.ndarray
+        Receiver locations
+    times : numpy.array_like
+        Time channels
+    """
 
     def __init__(self, locations=None, times=None, **kwargs):
         super(BaseTimeRx, self).__init__(locations=locations, **kwargs)

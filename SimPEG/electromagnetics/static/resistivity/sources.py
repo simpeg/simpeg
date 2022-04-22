@@ -1,5 +1,5 @@
 import numpy as np
-import properties
+# import properties
 
 from .... import survey
 from ....utils import Zero, closest_points_index
