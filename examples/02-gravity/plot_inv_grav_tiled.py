@@ -53,7 +53,7 @@ Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2)
 # Create a topo array
 topo = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
 
-# Create station locations drapped 0.1 m above topo
+# Create station locations draped 0.1 m above topo
 rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T) + 0.1]
 
 ##########################################################################
@@ -106,7 +106,7 @@ mesh = mesh_builder_xyz(
     topo, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
 )
 
-# This garantees that the local meshes are always coarser or equal
+# This guarantees that the local meshes are always coarser or equal
 for local_mesh in local_meshes:
     mesh.insert_cells(
         local_mesh.gridCC,
@@ -123,8 +123,10 @@ nC = int(activeCells.sum())
 # Here a simple block in half-space
 # Get the indices of the magnetized block
 model = np.zeros(mesh.nC)
-ind = utils.ModelBuilder.getIndicesBlock(
-    np.r_[-10, -10, -30], np.r_[10, 10, -10], mesh.gridCC,
+ind = utils.model_builder.getIndicesBlock(
+    np.r_[-10, -10, -30],
+    np.r_[10, 10, -10],
+    mesh.gridCC,
 )[0]
 
 # Assign magnetization values
@@ -244,7 +246,10 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 # Use a threshold parameter empirically based on the distribution of
 # model parameters
 update_IRLS = directives.Update_IRLS(
-    f_min_change=1e-4, max_irls_iterations=0, coolEpsFact=1.5, beta_tol=1e-2,
+    f_min_change=1e-4,
+    max_irls_iterations=0,
+    coolEpsFact=1.5,
+    beta_tol=1e-2,
 )
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)
 update_Jacobi = directives.UpdatePreconditioner()

@@ -63,7 +63,10 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # self.mesh.finalize()
         self.mesh = meshutils.mesh_builder_xyz(
-            xyzLoc, h, padding_distance=padDist, mesh_type="TREE",
+            xyzLoc,
+            h,
+            padding_distance=padDist,
+            mesh_type="TREE",
         )
 
         self.mesh = meshutils.refine_tree_xyz(

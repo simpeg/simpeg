@@ -363,7 +363,10 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
 
     def test_Simulation2DCellCentered(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.solver,
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.solver,
         )
         field = simulation.fields(self.sigma)
 
@@ -378,7 +381,10 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
     def test_Simulation2DNodal(self, tolerance=0.05):
 
         simulation = dc.simulation_2d.Simulation2DNodal(
-            self.mesh, survey=self.survey, sigma=self.sigma, solver=self.solver,
+            self.mesh,
+            survey=self.survey,
+            sigma=self.sigma,
+            solver=self.solver,
         )
         field = simulation.fields(self.sigma)
         data = field[:, "phi"][:, 0]

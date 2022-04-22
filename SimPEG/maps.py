@@ -1,9 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-from .utils.code_utils import deprecate_class
-
 from six import integer_types
 from six import string_types
 from collections import namedtuple
@@ -3504,45 +3498,3 @@ class PolynomialPetroClusterMap(IdentityMap):
         else:
             out = np.dot(self._derivmatrix(m.reshape(-1, 2)), v.reshape(2, -1))
             return out
-
-
-###############################################################################
-#                                                                             #
-#                              Deprecated Maps                               #
-#                                                                             #
-###############################################################################
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class FullMap(SurjectFull):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Vertical1DMap(SurjectVertical1D):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Map2Dto3D(Surject2Dto3D):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class ActiveCells(InjectActiveCells):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class CircleMap(ParametricCircleMap):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class PolyMap(ParametricPolyMap):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class SplineMap(ParametricSplineMap):
-    pass

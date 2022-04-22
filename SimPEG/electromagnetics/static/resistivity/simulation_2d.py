@@ -2,10 +2,9 @@ import numpy as np
 from scipy.optimize import minimize
 import warnings
 import properties
-from ....utils.code_utils import deprecate_class
 
 from ....utils import mkvc, sdiag, Zero
-from ...base import BaseEMSimulation
+from ....base import BaseElectricalPDESimulation
 from ....data import Data
 
 from .survey import Survey
@@ -16,7 +15,7 @@ from scipy.special import k0e, k1e, k0
 from discretize.utils import make_boundary_bool
 
 
-class BaseDCSimulation2D(BaseEMSimulation):
+class BaseDCSimulation2D(BaseElectricalPDESimulation):
     """
     Base 2.5D DC problem
     """
@@ -342,15 +341,11 @@ class BaseDCSimulation2D(BaseEMSimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super(BaseDCSimulation2D, self).deleteTheseOnModelUpdate
-        if self.sigmaMap is not None:
-            toDelete += ["_MnSigma", "_MnSigmaDerivMat", "_MccRhoi", "_MccRhoiDerivMat"]
-
+        toDelete = super().deleteTheseOnModelUpdate
         if self.fix_Jmatrix:
             return toDelete
-
         if self._Jmatrix is not None:
-            toDelete += ["_Jmatrix"]
+            toDelete = toDelete + ["_Jmatrix"]
         return toDelete
 
     def _mini_survey_data(self, d_mini):
@@ -376,101 +371,6 @@ class BaseDCSimulation2D(BaseEMSimulation):
         else:
             out = v
         return out
-
-    ####################################################
-    # Mass Matrices
-    ####################################################
-
-    @property
-    def MnSigma(self):
-        """
-        Node inner product matrix for \\(\\sigma\\). Used in the E-B
-        formulation
-        """
-        # TODO: only works isotropic sigma
-        if getattr(self, "_MnSigma", None) is None:
-            sigma = self.sigma
-            vol = self.mesh.vol
-            self._MnSigma = sdiag(self.mesh.aveN2CC.T * (vol * sigma))
-        return self._MnSigma
-
-    @property
-    def MnSigmaDerivMat(self):
-        """
-        Derivative of MnSigma with respect to the model
-        """
-        if getattr(self, "_MnSigmaDerivMat", None) is None:
-            vol = self.mesh.vol
-            self._MnSigmaDerivMat = self.mesh.aveN2CC.T * sdiag(vol) * self.sigmaDeriv
-        return self._MnSigmaDerivMat
-
-    def MnSigmaDeriv(self, u, v, adjoint=False):
-        """
-        Derivative of MnSigma with respect to the model times a vector (u)
-        """
-        if v.ndim > 1:
-            u = u[:, None]
-        if self.storeInnerProduct:
-            if adjoint:
-                return self.MnSigmaDerivMat.T * (u * v)
-            else:
-                return u * (self.MnSigmaDerivMat * v)
-        else:
-            vol = self.mesh.vol
-            if v.ndim > 1:
-                vol = vol[:, None]
-            if adjoint:
-                return self.sigmaDeriv.T * (vol * (self.mesh.aveN2CC * (u * v)))
-            else:
-                dsig_dm_v = self.sigmaDeriv * v
-                return u * (self.mesh.aveN2CC.T * (vol * dsig_dm_v))
-
-    @property
-    def MccRhoi(self):
-        """
-        Cell inner product matrix for \\(\\rho^{-1}\\). Used in the H-J
-        formulation
-        """
-        # TODO: only works isotropic rho
-        if getattr(self, "_MccRhoi", None) is None:
-            self._MccRhoi = sdiag(self.mesh.vol / self.rho)
-        return self._MccRhoi
-
-    @property
-    def MccRhoiDerivMat(self):
-        """
-        Derivative of MccRho with respect to the model
-        """
-        if getattr(self, "_MccRhoiDerivMat", None) is None:
-            rho = self.rho
-            vol = self.mesh.vol
-            self._MccRhoiDerivMat = sdiag(vol * (-1.0 / rho ** 2)) * self.rhoDeriv
-        return self._MccRhoiDerivMat
-
-    def MccRhoiDeriv(self, u, v, adjoint=False):
-        """
-        Derivative of :code:`MccRhoi` with respect to the model.
-        """
-        if self.rhoMap is None:
-            return Zero()
-
-        if len(self.rho.shape) > 1:
-            if self.rho.shape[1] > self.mesh.dim:
-                raise NotImplementedError(
-                    "Full anisotropy is not implemented for MccRhoiDeriv."
-                )
-        if self.storeInnerProduct:
-            if adjoint:
-                return self.MccRhoiDerivMat.T * (sdiag(u) * v)
-            else:
-                return sdiag(u) * (self.MccRhoiDerivMat * v)
-        else:
-            vol = self.mesh.vol
-            rho = self.rho
-            if adjoint:
-                return self.rhoDeriv.T * (sdiag(u * vol * (-1.0 / rho ** 2)) * v)
-            else:
-                return (sdiag(u * vol * (-1.0 / rho ** 2))) * (self.rhoDeriv * v)
 
 
 class Simulation2DCellCentered(BaseDCSimulation2D):
@@ -509,7 +409,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             G = G - self._MBC[ky]
         MfRhoI = self.MfRhoI
         # Get resistivity rho
-        A = D * MfRhoI * G + ky ** 2 * self.MccRhoi
+        A = D * MfRhoI * G + ky ** 2 * self.MccSigma
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.0
         return A
@@ -521,12 +421,12 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             G = G - self._MBC[ky]
         if adjoint:
             return self.MfRhoIDeriv(
-                G * u.flatten(), D.T * v, adjoint=adjoint
-            ) + ky ** 2 * self.MccRhoiDeriv(u.flatten(), v, adjoint=adjoint)
+                G * u, D.T * v, adjoint=adjoint
+            ) + ky ** 2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
         else:
             return D * self.MfRhoIDeriv(
-                G * u.flatten(), v, adjoint=adjoint
-            ) + ky ** 2 * self.MccRhoiDeriv(u.flatten(), v, adjoint=adjoint)
+                G * u, v, adjoint=adjoint
+            ) + ky ** 2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
 
     def getRHS(self, ky):
         """
@@ -658,12 +558,12 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
         if adjoint:
             out = self.MeSigmaDeriv(
-                Grad * u.flatten(), Grad * v, adjoint=adjoint
-            ) + ky ** 2 * self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
+                Grad * u, Grad * v, adjoint=adjoint
+            ) + ky ** 2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
         else:
             out = Grad.T * self.MeSigmaDeriv(
-                Grad * u.flatten(), v, adjoint=adjoint
-            ) + ky ** 2 * self.MnSigmaDeriv(u.flatten(), v, adjoint=adjoint)
+                Grad * u, v, adjoint=adjoint
+            ) + ky ** 2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
         if self.bc_type != "Neumann" and self.sigmaMap is not None:
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = {}
@@ -760,18 +660,3 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
 
 Simulation2DCellCentred = Simulation2DCellCentered  # UK and US
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem2D_N(Simulation2DNodal):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem2D_CC(Simulation2DCellCentered):
-    pass

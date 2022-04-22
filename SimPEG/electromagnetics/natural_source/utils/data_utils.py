@@ -11,11 +11,11 @@ from scipy import interpolate as sciint
 import SimPEG as simpeg
 from SimPEG.electromagnetics.natural_source.survey import Survey, Data
 from SimPEG.electromagnetics.natural_source.receivers import (
-    Point1DImpedance,
-    Point3DImpedance,
+    PointNaturalSource,
+    PointNaturalSource,
     Point3DTipper,
 )
-from SimPEG.electromagnetics.natural_source.sources import Planewave_xy_1Dprimary
+from SimPEG.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 from SimPEG.electromagnetics.natural_source.utils import (
     analytic_1d,
     plot_data_types as pDt,
@@ -71,7 +71,7 @@ def extract_data_info(NSEMdata):
         for rx in src.receiver_list:
             dL.append(NSEMdata[src, rx])
             freqL.append(np.ones(rx.nD) * src.frequency)
-            if isinstance(rx, Point3DImpedance):
+            if isinstance(rx, PointNaturalSource):
                 rxTL.extend((("z" + rx.orientation + " ") * rx.nD).split())
             if isinstance(rx, Point3DTipper):
                 rxTL.extend((("t" + rx.orientation + " ") * rx.nD).split())
@@ -127,7 +127,7 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
         rx_comp = []
         for rxT in rxs:
             if "z" in rxT[0]:
-                rxtype = Point3DImpedance
+                rxtype = PointNaturalSource
             elif "t" in rxT[0]:
                 rxtype = Point3DTipper
             else:
@@ -261,8 +261,8 @@ def convert3Dto1Dobject(NSEMdata, rxType3D="yx"):
     for loc in uniLocs:
         # Make the receiver list
         rx1DList = []
-        rx1DList.append(Point1DImpedance(simpeg.mkvc(loc, 2).T, "real"))
-        rx1DList.append(Point1DImpedance(simpeg.mkvc(loc, 2).T, "imag"))
+        rx1DList.append(PointNaturalSource(simpeg.mkvc(loc, 2).T, "real"))
+        rx1DList.append(PointNaturalSource(simpeg.mkvc(loc, 2).T, "imag"))
         # Source list
         locrecData = recData[
             np.sqrt(
@@ -275,7 +275,7 @@ def convert3Dto1Dobject(NSEMdata, rxType3D="yx"):
         dat1DList = []
         src1DList = []
         for freq in locrecData["freq"]:
-            src1DList.append(Planewave_xy_1Dprimary(rx1DList, freq))
+            src1DList.append(PlanewaveXYPrimary(rx1DList, freq))
             for comp in ["r", "i"]:
                 dat1DList.append(
                     corr * locrecData[rxType3D + comp][locrecData["freq"] == freq]
@@ -305,7 +305,7 @@ def appResPhs(freq, z):
 
 
 def skindepth(rho, freq):
-    """ Function to calculate the skindepth of EM waves"""
+    """Function to calculate the skindepth of EM waves"""
     return np.sqrt((rho * ((1 / (freq * mu_0 * np.pi)))))
 
 
@@ -399,7 +399,12 @@ def plotMT1DModelData(problem, models, symList=None):
         meshPts = np.concatenate(
             (problem.mesh.gridN[0:1], np.kron(problem.mesh.gridN[1::], np.ones(2))[:-1])
         )
-        modelPts = np.kron(1.0 / (problem.sigmaMap * model), np.ones(2,),)
+        modelPts = np.kron(
+            1.0 / (problem.sigmaMap * model),
+            np.ones(
+                2,
+            ),
+        )
         axM.semilogx(modelPts, meshPts, color=col)
 
         ## Data

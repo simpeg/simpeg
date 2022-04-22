@@ -2,8 +2,7 @@ import numpy as np
 import properties
 
 from ....utils import mkvc
-from ...base import BaseEMSimulation
-from ....data import Data
+from ....simulation import BaseSimulation
 from .... import props
 
 from .survey import Survey
@@ -18,10 +17,14 @@ from empymod.utils import check_hankel
 from ..utils import static_utils
 
 
-class Simulation1DLayers(BaseEMSimulation):
+class Simulation1DLayers(BaseSimulation):
     """
     1D DC Simulation
     """
+
+    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
+    props.Reciprocal(sigma, rho)
 
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "thicknesses of the layers"
@@ -41,7 +44,7 @@ class Simulation1DLayers(BaseEMSimulation):
     fix_Jmatrix = False
 
     def __init__(self, **kwargs):
-        BaseEMSimulation.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         try:
             ht, htarg = check_hankel(
                 "fht", [self.hankel_filter, self.hankel_pts_per_dec], 1
@@ -78,25 +81,31 @@ class Simulation1DLayers(BaseEMSimulation):
             T1 = T0
         PJ = (T0, None, None)
         try:
-            voltage = dlf(
-                PJ,
-                self.lambd,
-                self.offset,
-                self.fhtfilt,
-                self.hankel_pts_per_dec,
-                factAng=None,
-                ab=33,
-            ).real / (2 * np.pi)
+            voltage = (
+                dlf(
+                    PJ,
+                    self.lambd,
+                    self.offset,
+                    self.fhtfilt,
+                    self.hankel_pts_per_dec,
+                    factAng=None,
+                    ab=33,
+                ).real
+                / (2 * np.pi)
+            )
         except TypeError:
-            voltage = dlf(
-                PJ,
-                self.lambd,
-                self.offset,
-                self.fhtfilt,
-                self.hankel_pts_per_dec,
-                ang_fact=None,
-                ab=33,
-            ).real / (2 * np.pi)
+            voltage = (
+                dlf(
+                    PJ,
+                    self.lambd,
+                    self.offset,
+                    self.fhtfilt,
+                    self.hankel_pts_per_dec,
+                    ang_fact=None,
+                    ab=33,
+                ).real
+                / (2 * np.pi)
+            )
 
         # Assume dipole-dipole
         V = voltage.reshape((self.survey.nD, 4), order="F")
@@ -174,12 +183,12 @@ class Simulation1DLayers(BaseEMSimulation):
 
     @property
     def deleteTheseOnModelUpdate(self):
-        toDelete = super(Simulation1DLayers, self).deleteTheseOnModelUpdate
+        toDelete = super().deleteTheseOnModelUpdate
         if self.fix_Jmatrix:
             return toDelete
 
         if self._Jmatrix is not None:
-            toDelete += ["_Jmatrix"]
+            toDelete = toDelete + ["_Jmatrix"]
         return toDelete
 
     @property

@@ -1,4 +1,3 @@
-from __future__ import print_function
 from scipy.constants import mu_0
 from SimPEG import utils
 
