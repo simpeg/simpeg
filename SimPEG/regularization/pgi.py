@@ -317,7 +317,7 @@ class PGIsmallness(Small):
                     )
 
                 else:
-
+                    r0 = (self.W * (mkvc(dm))).reshape(dm.shape, order="F")
                     r = self.W * mkvc(
                         np.r_[
                             [
