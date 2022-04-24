@@ -71,7 +71,11 @@ class PGIsmallness(Small):
         self.wiresmap = wiresmap
         self.maplist = maplist
 
-        super().__init__(mesh=mesh, **kwargs)
+        if "mapping" in kwargs:
+            warnings.warn(f"Property 'mapping' of class {type(self)} cannot be set. Defaults to IdentityMap.")
+            kwargs.pop("mapping")
+
+        super().__init__(mesh=mesh, mapping=IdentityMap(nP=self.shape[0]), **kwargs)
 
         # Save repetitive computations (see withmapping implementation)
         self._r_first_deriv = None
@@ -87,14 +91,15 @@ class PGIsmallness(Small):
         for key, values in weights.items():
             self.validate_array_type("weights", values, float)
 
-            if values.shape[0] == self.mapping.shape[0]:
+            if values.shape[0] == self.regularization_mesh.nC:
                 values = np.tile(values, len(self.wiresmap.maps))
-            else:
-                self.validate_shape("weights", values, (self.shape, (len(self.wiresmap.maps) * self._nC_residual,)))
+
+            self.validate_shape("weights", values, (self._nC_residual,))
 
             self.weights[key] = values
 
         self._W = None
+
 
     @property
     def shape(self):
@@ -658,7 +663,8 @@ class PGI(ComboObjectiveFunction):
         approx_gradient=True,
         approx_eval=True,
         weights_list=None,
-        non_linear_relationships=False,
+        non_linear_relationships: bool = False,
+        reference_model_in_smooth: bool = False,
         **kwargs
     ):
         self.gmmref = copy.deepcopy(gmmref)
@@ -697,6 +703,7 @@ class PGI(ComboObjectiveFunction):
             ]
 
         super(PGI, self).__init__(objfcts=objfcts)
+        self.reference_model_in_smooth = reference_model_in_smooth
 
     @property
     def gmm(self):
@@ -739,3 +746,22 @@ class PGI(ComboObjectiveFunction):
             mesh = RegularizationMesh(mesh)
 
         self._regularization_mesh = mesh
+
+    @property
+    def reference_model_in_smooth(self) -> bool:
+        """
+        Use the reference model in the model gradient penalties.
+        """
+        return self._reference_model_in_smooth
+
+    @reference_model_in_smooth.setter
+    def reference_model_in_smooth(self, value: bool):
+        if not isinstance(value, bool):
+            raise TypeError(
+                "'reference_model_in_smooth must be of type 'bool'. "
+                f"Value of type {type(value)} provided."
+            )
+        self._reference_model_in_smooth = value
+        for fct in self.objfcts[1:]:
+            if getattr(fct, "reference_model_in_smooth", None) is not None:
+                fct.reference_model_in_smooth = value

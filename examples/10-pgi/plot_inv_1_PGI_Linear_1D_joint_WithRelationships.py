@@ -155,7 +155,7 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 alpha0_ratio = np.r_[
-    np.zeros(len(reg_simple.objfcts[0].objfcts)),
+    0,
     100.0 * np.ones(len(reg_simple.objfcts[1].objfcts)),
     1.0 * np.ones(len(reg_simple.objfcts[2].objfcts)),
 ]
@@ -178,20 +178,19 @@ inv = inversion.BaseInversion(
 mcluster_map = inv.run(minit)
 
 # Inversion with no nonlinear mapping
-reg_simple_no_map = utils.make_PGI_regularization(
+reg_simple_no_map = regularization.PGI(
     mesh=mesh,
     gmmref=clfnomapping,
     gmm=clfnomapping,
     approx_gradient=True,
-    alpha_x=1.0,
     wiresmap=wires,
-    cell_weights_list=[wr1, wr2],
+    non_linear_relationships=False,
+    weights_list=[wr1, wr2],
 )
 
 opt = optimization.ProjectedGNCG(
     maxIter=50, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
 )
-
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple_no_map, opt)
 
@@ -201,9 +200,9 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 alpha0_ratio = np.r_[
-    np.zeros(len(reg_simple_no_map.objfcts[0].objfcts)),
-    100.0 * np.ones(len(reg_simple_no_map.objfcts[1].objfcts)),
-    1.0 * np.ones(len(reg_simple_no_map.objfcts[2].objfcts)),
+    0,
+    [0, 100.0 * np.ones(len(reg_simple_no_map.objfcts[1].objfcts[1:]))],
+    [0, 1.0 * np.ones(len(reg_simple_no_map.objfcts[2].objfcts))],
 ]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
@@ -227,9 +226,9 @@ mcluster_no_map = inv.run(minit)
 
 # Tikhonov Inversion
 
-reg1 = regularization.Tikhonov(mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1)
+reg1 = regularization.LeastSquaresRegularization(mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1)
 reg1.cell_weights = wr1
-reg2 = regularization.Tikhonov(mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2)
+reg2 = regularization.LeastSquaresRegularization(mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2)
 reg2.cell_weights = wr2
 reg = reg1 + reg2
 
