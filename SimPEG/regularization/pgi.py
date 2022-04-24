@@ -63,17 +63,15 @@ class PGIsmallness(Small):
         non_linear_relationships=False,
         **kwargs
     ):
-
         self.approx_gradient = approx_gradient
         self.approx_eval = approx_eval
         self.approx_hessian = approx_hessian
         self.non_linear_relationships = non_linear_relationships
-
-        super().__init__(mesh=mesh, **kwargs)
-
         self.gmm = gmm
         self.wiresmap = wiresmap
         self.maplist = maplist
+
+        super().__init__(mesh=mesh, **kwargs)
 
         # Save repetitive computations (see withmapping implementation)
         self._r_first_deriv = None
@@ -81,7 +79,7 @@ class PGIsmallness(Small):
 
     def add_set_weights(self, weights: dict | np.ndarray):
         if isinstance(weights, (np.ndarray, list)):
-            weights = {"user_weights": np.r_[weights]}
+            weights = {"user_weights": np.r_[weights].flatten()}
 
         if not isinstance(weights, dict):
             raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
@@ -688,11 +686,11 @@ class PGI(ComboObjectiveFunction):
         if not isinstance(weights_list, list):
             weights_list = [weights_list] * len(self.maplist)
 
-        for map, wire, weights in zip(self.maplist, self.wiresmap, weights_list):
+        for map, wire, weights in zip(self.maplist, self.wiresmap.maps, weights_list):
             objfcts += [
                 LeastSquaresRegularization(
                     mesh=self.regularization_mesh,
-                    mapping=map * wire,
+                    mapping=map * wire[1],
                     weights=weights,
                     **kwargs
                 )
