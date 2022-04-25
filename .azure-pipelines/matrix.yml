@@ -30,7 +30,7 @@ jobs:
               eval "$(conda shell.bash hook)"
               conda activate test
               conda install --yes --quiet numpy scipy matplotlib ipython h5py
-              conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec pymatsolver
+              conda install --yes -c conda-forge discretize empymod geoana properties vectormath pandas dask zarr fsspec pymatsolver graphviz
               pip install -r requirements_dev.txt
               pip install pytest-azurepipelines
               pip install -e .

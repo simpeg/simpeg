@@ -20,4 +20,3 @@ pre-commit
 twine
 memory_profiler
 plotly
-python-graphviz
