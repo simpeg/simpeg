@@ -1,37 +1,69 @@
 import numpy as np
 import scipy.special as spec
-import properties
+# import properties
 
 ###################################################
 #           STEP OFF WAVEFORM
 ###################################################
 
 
-class StepOff(properties.HasProperties):
+class StepOff:
+    """Characteristic decay class for step-off waveform
 
-    """"""
+    Parameters
+    ----------
+    t0 : float
+        Beginning of the off-time
+    """
 
-    t0 = properties.Float("Start of off-time", default=0.0)
+    # t0 = properties.Float("Start of off-time", default=0.0)
+
+    def __init__(self, t0=0.0):
+
+        self.t0 = t0
+
+    @property
+    def t0(self):
+        """Beginning of the off-time
+
+        Returns
+        -------
+        float
+            Beginning of the off-time
+        """
+        return self._t0
+
+    @t0.setter
+    def t0(self, value):
+        if isinstance(value, int):
+            value = float(value)
+        if not isinstance(value, float):
+            raise TypeError(
+                f"t0 must be a float, the value provided, {value} is "
+                f"{type(value)}"
+            )
+        self._t0 = value
+    
 
     def getCharDecay(self, fieldType, times):
+        """Return characteristic decay for step-off waveform.
 
-        """
-        Characteristic decay function for step-off waveform. This function
-        describes the decay of the VRM response for the linear problem type.
+        This function defines the decay of the VRM response for the linear problem type.
         Note that the current will be normalized by its maximum value. The
         maximum current in the transmitter is specified in the source object.
 
-        REQUIRED ARGUMENTS:
+        Parameters
+        ----------
+        fieldType : str
+            Field type. Must be one of 'dhdt' or 'dbdt'. Characteristic decay for 'h'
+            or 'b' CANNOT be computed for step-off
+        times : numpy.ndarray
+            Observation times. These times MUST be during the off-time.
 
-        fieldType -- must be 'dhdt' or 'dbdt'. Characteristic decay for 'h'
-        or 'b' CANNOT be computed for step-off
-
-        times -- Observation times. These times MUST be during the off-time.
-
-        OUTPUTS:
-
-        eta -- characteristic decay function evaluated at all specified times.
-
+        Returns
+        -------
+        eta : (n_times) numpy.ndarray
+            Characteristic decay evaluated at all specified times.
         """
 
         if fieldType not in ["dhdt", "dbdt"]:
@@ -54,34 +86,32 @@ class StepOff(properties.HasProperties):
         return eta
 
     def getLogUniformDecay(self, fieldType, times, chi0, dchi, tau1, tau2):
+        """Return characteristic decay for a step-off waveform for a log-uniform distribution of time-relaxation constants.
 
-        """
-        Decay function for a step-off waveform for log-uniform distribution of
-        time-relaxation constants. The output of this function is the
-        magnetization at each time for each cell, normalized by the inducing
+        The output of this function is the magnetization at each time for each cell, normalized by the inducing
         field.
 
-        REQUIRED ARGUMENTS:
+        Parameters
+        ----------
+        fieldType : str
+            Field type. Must be one of {'h', 'b', 'dhdt', 'dbdt'}.
+        times : numpy.ndarray
+            Observation times. These times MUST be during the off-time.
+        chi0 : float
+            DC (zero-frequency) magnetic susceptibility for all cells
+        dchi : float
+            DC (zero-frequency) magnetic susceptibility attributed to VRM for all cells
+        tau1 : float
+            Lower-bound for log-uniform distribution of time-relaxation
+            constants for all cells
+        tau2 : float
+            Upper-bound for log-uniform distribution of time-relaxation
+            constants for all cells
 
-        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
-
-        times -- Observation times
-
-        chi0 -- DC (zero-frequency) magnetic susceptibility for all cells
-
-        dchi -- DC (zero-frequency) magnetic susceptibility attributed to VRM
-        for all cells
-
-        tau1 -- Lower-bound for log-uniform distribution of time-relaxation
-        constants for all cells
-
-        tau2 -- Upper-bound for log-uniform distribution of time-relaxation
-        constants for all cells
-
-        OUTPUTS:
-
-        eta -- characteristic decay function evaluated at all specified times.
-
+        Returns
+        -------
+        eta : (n_times) numpy.ndarray
+            Characteristic decay evaluated at all specified times.
         """
 
         if fieldType not in ["dhdt", "dbdt"]:
@@ -136,32 +166,71 @@ class StepOff(properties.HasProperties):
 ###################################################
 
 
-class SquarePulse(properties.HasProperties):
+class SquarePulse(StepOff):
+    """Characteristic decay class for square-pulse waveform
 
-    """"""
+    Parameters
+    ----------
+    t0 : float
+        Beginning of the off-time
+    delt : float
+        Pulse width
+    """
 
-    t0 = properties.Float("Start of off-time", default=0.0)
-    delt = properties.Float("Pulse width")
+    # t0 = properties.Float("Start of off-time", default=0.0)
+    # delt = properties.Float("Pulse width")
+
+    def __init__(self, delt=None, t0=0.0):
+        if delt is None:
+            raise AttributeError("Pulse width must be defined using 'delt'. Cannot be 'None'")
+
+        super(SquarePulse, self).__init__(t0=t0)
+
+        self.delt = delt
+
+    @property
+    def delt(self):
+        """Square pulse on-time length
+
+        Returns
+        -------
+        float
+            Square pulse on-time length
+        """
+        return self._delt
+
+    @delt.setter
+    def delt(self, value):
+        if isinstance(value, int):
+            value = float(value)
+        if not isinstance(value, float):
+            raise TypeError(
+                f"delt must be a float, the value provided, {value} is "
+                f"{type(value)}"
+            )
+        if delt <= 0.:
+            raise ValueError("'delt' must be positive")
+        self._delt = value
 
     def getCharDecay(self, fieldType, times):
+        """Compute characteristic decay for a square-pulse waveform.
 
-        """
-        Characteristic decay function for a square-pulse waveform. This
-        function describes the decay of the VRM response for the linear
+        This function describes the decay of the VRM response for the linear
         problem type. Note that the current will be normalized by its maximum
         value. The maximum current in the transmitter is specified in the
         source object.
 
-        REQUIRED ARGUMENTS:
+        Parameters
+        ----------
+        fieldType : str
+            Field type. Must be one of {'h', 'b', 'dhdt', 'dbdt'}.
+        times : numpy.ndarray
+            Observation times. These times MUST be during the off-time.
 
-        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
-
-        times -- Observation times. These times MUST be during the off-time.
-
-        OUTPUTS:
-
-        eta -- characteristic decay function evaluated at all specified times.
-
+        Returns
+        -------
+        eta : (n_times) numpy.ndarray
+            Characteristic decay evaluated at all specified times.
         """
 
         if self.delt is None:
@@ -194,34 +263,34 @@ class SquarePulse(properties.HasProperties):
         return eta
 
     def getLogUniformDecay(self, fieldType, times, chi0, dchi, tau1, tau2):
+        """Characteristic decay for a square-pulse waveform for log-uniform distribution of time-relaxation constants.
 
-        """
-        Decay function for a square-pulse waveform for log-uniform distribution
-        of time-relaxation constants. The output of this function is the
-        magnetization at each time for each cell, normalized by the inducing
+        The output of this function is the magnetization at each time for each cell, normalized by the inducing field.
+
+        The output of this function is the magnetization at each time for each cell, normalized by the inducing
         field.
 
-        REQUIRED ARGUMENTS:
+        Parameters
+        ----------
+        fieldType : str
+            Field type. Must be one of {'h', 'b', 'dhdt', 'dbdt'}.
+        times : numpy.ndarray
+            Observation times. These times MUST be during the off-time.
+        chi0 : float
+            DC (zero-frequency) magnetic susceptibility for all cells
+        dchi : float
+            DC (zero-frequency) magnetic susceptibility attributed to VRM for all cells
+        tau1 : float
+            Lower-bound for log-uniform distribution of time-relaxation
+            constants for all cells
+        tau2 : float
+            Upper-bound for log-uniform distribution of time-relaxation
+            constants for all cells
 
-        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
-
-        times -- Observation times.
-
-        chi0 -- DC (zero-frequency) magnetic susceptibility for all cells
-
-        dchi -- DC (zero-frequency) magnetic susceptibility attributed to VRM
-        for all cells
-
-        tau1 -- Lower-bound for log-uniform distribution of time-relaxation
-        constants for all cells
-
-        tau2 -- Upper-bound for log-uniform distribution of time-relaxation
-        constants for all cells
-
-        OUTPUTS:
-
-        eta -- characteristic decay function evaluated at all specified times.
-
+        Returns
+        -------
+        eta : (n_times) numpy.ndarray
+            Characteristic decay evaluated at all specified times.
         """
 
         if self.delt is None:
@@ -308,62 +377,143 @@ class SquarePulse(properties.HasProperties):
 ###################################################
 
 
-class ArbitraryDiscrete(properties.HasProperties):
+class ArbitraryDiscrete:
+    """Characteristic decay for arbitrary discrete waveform
 
-    """"""
+    This class is used to approximate an arbitrary waveform as a set of square-pulse waveforms;
+    for which we have a solution to the characteristic decay.
 
-    t_wave = properties.Array("Waveform times", dtype=float)
-    I_wave = properties.Array("Waveform current", dtype=float)
+    Parameters
+    ----------
+    t_wave : numpy.ndarray
+        Waveform on-times
+    I_wave : numpy.ndarray
+        Waveform on-time currents
+    """
 
-    @properties.validator("t_wave")
-    def _t_wave_validator(self, change):
+    def __init__(self, t_wave=None, I_wave=None):
+        if (t_wave is None) | (I_wave is None):
+            raise AttributeError("Must instantiate with 't_wave' and 'I_wave'. Cannot be 'None'")
 
-        if len(change["value"]) < 3:
-            ValueError("Waveform must be defined by at least 3 points.")
+        try:
+            if len(t_wave) != len(I_wave):
+                raise ValueError("'t_wave' and 'I_wave' must have the same length.")
+        else:
+            TypeError("'t_wave' and 'I_wave' must be 1D array-like")
 
-        if self.I_wave is not None:
-            if len(change["value"]) != len(self.I_wave):
-                print(
-                    "Length of time vector no longer matches length of current vector"
-                )
+        self.t_wave = t_wave
+        self.I_wave = I_wave
 
-    @properties.validator("I_wave")
-    def _I_wave_validator(self, change):
+    # t_wave = properties.Array("Waveform times", dtype=float)
+    # I_wave = properties.Array("Waveform current", dtype=float)
 
-        if len(change["value"]) < 3:
-            ValueError("Waveform must be defined by at least 3 points.")
+    # @properties.validator("t_wave")
+    # def _t_wave_validator(self, change):
 
-        if (np.abs(change["value"][0]) > 1e-10) | (np.abs(change["value"][-1]) > 1e-10):
-            raise ValueError(
-                "Current waveform should begin and end with amplitude of 0. Right now I_1 = {0:.2e} and I_end = {1:.2e}".format(
-                    change["value"][0], change["value"][-1]
-                )
-            )
+    #     if len(change["value"]) < 3:
+    #         ValueError("Waveform must be defined by at least 3 points.")
 
-        if self.t_wave is not None:
-            if len(change["value"]) != len(self.t_wave):
-                print(
-                    "Length of time vector no longer matches length of current vector"
-                )
+    #     if self.I_wave is not None:
+    #         if len(change["value"]) != len(self.I_wave):
+    #             print(
+    #                 "Length of time vector no longer matches length of current vector"
+    #             )
+
+    # @properties.validator("I_wave")
+    # def _I_wave_validator(self, change):
+
+    #     if len(change["value"]) < 3:
+    #         ValueError("Waveform must be defined by at least 3 points.")
+
+    #     if (np.abs(change["value"][0]) > 1e-10) | (np.abs(change["value"][-1]) > 1e-10):
+    #         raise ValueError(
+    #             "Current waveform should begin and end with amplitude of 0. Right now I_1 = {0:.2e} and I_end = {1:.2e}".format(
+    #                 change["value"][0], change["value"][-1]
+    #             )
+    #         )
+
+    #     if self.t_wave is not None:
+    #         if len(change["value"]) != len(self.t_wave):
+    #             print(
+    #                 "Length of time vector no longer matches length of current vector"
+    #             )
+
+    @property
+    def t_wave(self):
+        """Waveform on-times
+
+        Returns
+        -------
+        numpy.ndarray
+            Waveform on-times
+        """
+        return self._t_wave
+
+    @t_wave.setter
+    def t_wave(self, value):
+        try:
+            value = np.atleast_1d(value).astype(float)
+        except:
+            raise TypeError(f"t_wave is not a valid type. Got {type(value)}")
+        
+        if value.ndim > 1:
+            raise TypeError(f"t_wave must be ('*') array")
+
+        if getattr(self, 'I_wave') is not None:
+            if len(value) == len(self._I_wave):
+                self._t_wave = value
+            else:
+                raise ValueError("'t_wave' and 'I_wave' must be the same length")
+        else:
+            self._t_wave = value
+
+    @property
+    def I_wave(self):
+        """Waveform on-time currents
+
+        Returns
+        -------
+        numpy.ndarray
+            Waveform on-time currents
+        """
+        return self._I_wave
+
+    @I_wave.setter
+    def I_wave(self, value):
+        try:
+            value = np.atleast_1d(value).astype(float)
+        except:
+            raise TypeError(f"I_wave is not a valid type. Got {type(value)}")
+        
+        if value.ndim > 1:
+            raise TypeError(f"I_wave must be ('*') array")
+
+        if getattr(self, 't_wave') is not None:
+            if len(value) == len(self._t_wave):
+                self._I_wave = value
+            else:
+                raise ValueError("'t_wave' and 'I_wave' must be the same length")
+        else:
+            self._I_wave = value
 
     def getCharDecay(self, fieldType, times):
+        """Compute characteristic decay for arbitrary waveform.
 
-        """
-        Characteristic decay function for arbitrary waveform. This function
-        describes the decay of the VRM response for the Linear problem type.
+        This function describes the decay of the VRM response for the Linear problem type.
         Note that the current will be normalized by its maximum value. The
         maximum current in the transmitter is specified in the source object.
 
-        REQUIRD ARGUMENTS:
+        Parameters
+        ----------
+        fieldType : str
+            Field type. Must be one of {'h', 'b', 'dhdt', 'dbdt'}.
+        times : numpy.ndarray
+            Observation times. These times MUST be during the off-time.
 
-        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
-
-        times -- Observation times. These times MUST be during the off-time.
-
-        OUTPUTS:
-
-        eta -- characteristic decay function evaluated at all specified times.
-
+        Returns
+        -------
+        eta : (n_times) numpy.ndarray
+            Characteristic decay evaluated at all specified times.
         """
 
         if self.t_wave is None:
@@ -432,64 +582,77 @@ class ArbitraryDiscrete(properties.HasProperties):
 ###################################################
 
 
-class ArbitraryPiecewise(properties.HasProperties):
+class ArbitraryPiecewise(ArbitraryDiscrete):
+    """Characteristic decay for arbitrary piecewise waveform
 
-    """"""
+    This class is used to approximate an arbitrary waveform using a piecewise linear approximation;
+    for which we have a solution to the characteristic decay.
 
-    t_wave = properties.Array("Waveform times", dtype=float)
-    I_wave = properties.Array("Waveform current", dtype=float)
+    Parameters
+    ----------
+    t_wave : numpy.ndarray
+        Waveform on-times
+    I_wave : numpy.ndarray
+        Waveform on-time currents
+    """
 
-    @properties.validator("t_wave")
-    def _t_wave_validator(self, change):
-        if len(change["value"]) < 3:
-            ValueError("Waveform must be defined by at least 3 points.")
+    def __init__(self, t_wave=None, I_wave=None):
+        super(ArbitraryDiscrete, self).__init__(t_wave=t_wave, I_wave=I_wave)
 
-    @properties.observer("t_wave")
-    def _t_wave_observer(self, change):
-        if self.I_wave is not None:
-            if len(change["value"]) != len(self.I_wave):
-                print(
-                    "Length of time vector no longer matches length of current vector"
-                )
+    # t_wave = properties.Array("Waveform times", dtype=float)
+    # I_wave = properties.Array("Waveform current", dtype=float)
 
-    @properties.validator("I_wave")
-    def _I_wave_validator(self, change):
-        if len(change["value"]) < 3:
-            ValueError("Waveform must be defined by at least 3 points.")
+    # @properties.validator("t_wave")
+    # def _t_wave_validator(self, change):
+    #     if len(change["value"]) < 3:
+    #         ValueError("Waveform must be defined by at least 3 points.")
 
-        if (np.abs(change["value"][0]) > 1e-10) | (np.abs(change["value"][-1]) > 1e-10):
-            raise ValueError(
-                "Current waveform should begin and end with amplitude of 0. Right now I_1 = {0:.2e} and I_end = {1:.2e}".format(
-                    change["value"][0], change["value"][-1]
-                )
-            )
+    # @properties.observer("t_wave")
+    # def _t_wave_observer(self, change):
+    #     if self.I_wave is not None:
+    #         if len(change["value"]) != len(self.I_wave):
+    #             print(
+    #                 "Length of time vector no longer matches length of current vector"
+    #             )
 
-    @properties.observer("I_wave")
-    def _I_wave_observer(self, change):
-        if self.t_wave is not None:
-            if len(change["value"]) != len(self.t_wave):
-                print(
-                    "Length of time vector no longer matches length of current vector"
-                )
+    # @properties.validator("I_wave")
+    # def _I_wave_validator(self, change):
+    #     if len(change["value"]) < 3:
+    #         ValueError("Waveform must be defined by at least 3 points.")
+
+    #     if (np.abs(change["value"][0]) > 1e-10) | (np.abs(change["value"][-1]) > 1e-10):
+    #         raise ValueError(
+    #             "Current waveform should begin and end with amplitude of 0. Right now I_1 = {0:.2e} and I_end = {1:.2e}".format(
+    #                 change["value"][0], change["value"][-1]
+    #             )
+    #         )
+
+    # @properties.observer("I_wave")
+    # def _I_wave_observer(self, change):
+    #     if self.t_wave is not None:
+    #         if len(change["value"]) != len(self.t_wave):
+    #             print(
+    #                 "Length of time vector no longer matches length of current vector"
+    #             )
 
     def getCharDecay(self, fieldType, times):
+        """Compute characteristic decay function for arbitrary waveform.
 
-        """
-        Characteristic decay function for arbitrary waveform. This function
-        describes the decay of the VRM response for the Linear problem type.
+        This function describes the decay of the VRM response for the Linear problem type.
         Note that the current will be LogUniformized by its maximum value. The
         maximum current in the transmitter is specified in the source object.
 
-        INPUTS:
+        Parameters
+        ----------
+        fieldType : str
+            Field type. Must be one of {'h', 'b', 'dhdt', 'dbdt'}.
+        times : numpy.ndarray
+            Observation times. These times MUST be during the off-time.
 
-        fieldType -- must be 'h', 'b', 'dhdt' or 'dbdt'.
-
-        times -- Observation times. These times must be during the off-time.
-
-        OUTPUTS:
-
-        eta -- characteristic decay function evaluated at all specified times.
-
+        Returns
+        -------
+        eta : (n_times) numpy.ndarray
+            Characteristic decay evaluated at all specified times.
         """
 
         if self.t_wave is None:
@@ -548,33 +711,47 @@ class ArbitraryPiecewise(properties.HasProperties):
 ###################################################
 
 
-class Custom(properties.HasProperties):
+class Custom:
+    """Define characteristic decay with function handle
 
-    """"""
+    Parameters
+    ----------
+    waveform_function : function
+        Function handle defining the characteristic decay as a function of time
+    """
 
-    times = properties.Array(
-        "Times at which characteristic decay function is evaluated", dtype=float
-    )
-    eta = properties.Array(
-        "Characteristic decay function at evaluation times", dtype=float
-    )
+    def __init__(self, waveform_function):
+        self.waveform_function = waveform_function
 
-    @properties.observer("times")
-    def _times_observer(self, change):
-        if self.eta is not None:
-            if len(change["value"]) != len(self.eta):
-                print("Length of time vector no longer matches length of eta vector")
+    @property
+    def waveform_function(self):
+        """Function handle for characteristic decay
 
-    @properties.observer("eta")
-    def _eta_observer(self, change):
-        if self.times is not None:
-            if len(change["value"]) != len(self.times):
-                print("Length of eta vector no longer matches length of time vector")
+        Returns
+        -------
+        function
+            A function that returns the characteristic decay as a
+            function of *times*.
+        """
+        return self._waveform_function
 
-    def getCharDecay(self):
-        """Returns characteristic decay function at specified times"""
+    @waveform_function.setter
+    def waveform_function(self, value):
+        if not callable(value):
+            raise ValueError(
+                "waveform_function must be a function. The input value is type: "
+                f"{type(value)}"
+            )
+        self._waveform_function = value
 
-        if self.eta is None:
-            raise AssertionError("Characteristic decay (Property: eta) must be set.")
 
-        return self.eta
+    def getCharDecay(self, times):
+        """Returns characteristic decay function at specified times
+
+        Parameters
+        ----------
+        times : numpy.ndarray
+            Off-times where characteristic decay is evaluated
+        """
+
+        return self.waveform_function(times)
