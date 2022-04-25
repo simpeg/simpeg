@@ -1,4 +1,6 @@
 from ...survey import BaseRx
+import numpy as np
+import warnings
 # import properties
 
 #########################################
@@ -116,7 +118,7 @@ class Point(BaseRx):
     def field_type(self, var):
         if isinstance(var, str):
             var = var.lower()
-            if var not in ('x', 'y', 'z'):
+            if var not in ('h', 'b', 'dhdt', 'dbdt'):
                 raise ValueError(f"field_type must be either 'h', 'b', 'dhdt', 'dbdt'. Got {var}")
         else:
             raise TypeError(f"field_type must be a str. Got {type(var)}")
@@ -187,11 +189,11 @@ class SquareLoop(Point):
     
     """
 
-    width = properties.Float("Square loop width", min=1e-6)
-    nTurns = properties.Integer("Number of loop turns", min=1, default=1)
-    quadOrder = properties.Integer(
-        "Order for numerical quadrature integration over loop", min=1, max=7, default=3
-    )
+    # width = properties.Float("Square loop width", min=1e-6)
+    # nTurns = properties.Integer("Number of loop turns", min=1, default=1)
+    # quadOrder = properties.Integer(
+    #     "Order for numerical quadrature integration over loop", min=1, max=7, default=3
+    # )
 
     def __init__(
         self,
@@ -204,14 +206,14 @@ class SquareLoop(Point):
         quadrature_order=3,
         **kwargs):
 
-        if nTurns in kwargs:
+        if 'nTurns' in kwargs:
             warnings.warn(
                 "'nTurns' is a deprecated property. Please use 'n_turns' instead."
                 "'nTurns' be removed in SimPEG 0.17.0."
             )
             n_turns = kwargs.pop('nTurns')
 
-        if quadOrder in kwargs:
+        if 'quadOrder' in kwargs:
             warnings.warn(
                 "'quadOrder' is a deprecated property. Please use 'quadrature_order' instead."
                 "'quadOrder' be removed in SimPEG 0.17.0."
@@ -246,7 +248,7 @@ class SquareLoop(Point):
                 f"width must be a float, the value provided, {value} is "
                 f"{type(value)}"
             )
-        if width <= 0.:
+        if value <= 0.:
             raise ValueError("Width must be positive")
         self._width = value
 

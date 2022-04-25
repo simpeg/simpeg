@@ -208,7 +208,7 @@ class SquarePulse(StepOff):
                 f"delt must be a float, the value provided, {value} is "
                 f"{type(value)}"
             )
-        if delt <= 0.:
+        if value <= 0.:
             raise ValueError("'delt' must be positive")
         self._delt = value
 
@@ -398,8 +398,8 @@ class ArbitraryDiscrete:
         try:
             if len(t_wave) != len(I_wave):
                 raise ValueError("'t_wave' and 'I_wave' must have the same length.")
-        else:
-            TypeError("'t_wave' and 'I_wave' must be 1D array-like")
+        except:
+            raise TypeError("'t_wave' and 'I_wave' must be 1D array-like")
 
         self.t_wave = t_wave
         self.I_wave = I_wave
@@ -457,9 +457,9 @@ class ArbitraryDiscrete:
             raise TypeError(f"t_wave is not a valid type. Got {type(value)}")
         
         if value.ndim > 1:
-            raise TypeError(f"t_wave must be ('*') array")
+            raise TypeError("t_wave must be ('*') array")
 
-        if getattr(self, 'I_wave') is not None:
+        if getattr(self, 'I_wave', None) is not None:
             if len(value) == len(self._I_wave):
                 self._t_wave = value
             else:
@@ -483,12 +483,12 @@ class ArbitraryDiscrete:
         try:
             value = np.atleast_1d(value).astype(float)
         except:
-            raise TypeError(f"I_wave is not a valid type. Got {type(value)}")
+            raise TypeError("I_wave is not a valid type. Got {type(value)}")
         
         if value.ndim > 1:
-            raise TypeError(f"I_wave must be ('*') array")
+            raise TypeError("I_wave must be ('*') array")
 
-        if getattr(self, 't_wave') is not None:
+        if getattr(self, 't_wave', None) is not None:
             if len(value) == len(self._t_wave):
                 self._I_wave = value
             else:
@@ -597,7 +597,7 @@ class ArbitraryPiecewise(ArbitraryDiscrete):
     """
 
     def __init__(self, t_wave=None, I_wave=None):
-        super(ArbitraryDiscrete, self).__init__(t_wave=t_wave, I_wave=I_wave)
+        super(ArbitraryPiecewise, self).__init__(t_wave=t_wave, I_wave=I_wave)
 
     # t_wave = properties.Array("Waveform times", dtype=float)
     # I_wave = properties.Array("Waveform current", dtype=float)

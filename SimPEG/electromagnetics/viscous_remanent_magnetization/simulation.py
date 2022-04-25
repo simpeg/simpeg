@@ -392,10 +392,10 @@ class BaseVRMSimulation(BaseSimulation):
                         0.129485,
                     ],
                 ]
-                wt = wt[rxObj.quadOrder - 1]
+                wt = wt[rxObj.quadrature_order - 1]
                 nw = len(wt)
                 wt = (
-                    rxObj.nTurns
+                    rxObj.n_turns
                     * (rxObj.width / 2) ** 2
                     * np.reshape(np.outer(wt, wt), (1, nw ** 2))
                 )
@@ -425,14 +425,14 @@ class BaseVRMSimulation(BaseSimulation):
                     0.5
                     * rxObj.width
                     * np.reshape(
-                        np.kron(ds[rxObj.quadOrder - 1], np.ones(nw)), (nw ** 2, 1)
+                        np.kron(ds[rxObj.quadrature_order - 1], np.ones(nw)), (nw ** 2, 1)
                     )
                 )
                 s2 = (
                     0.5
                     * rxObj.width
                     * np.reshape(
-                        np.kron(np.ones(nw), ds[rxObj.quadOrder - 1]), (nw ** 2, 1)
+                        np.kron(np.ones(nw), ds[rxObj.quadrature_order - 1]), (nw ** 2, 1)
                     )
                 )
 
@@ -877,7 +877,7 @@ class Simulation3DLinear(BaseVRMSimulation):
                     nLoc = np.shape(receiver_list[qq].locations)[0]
 
                     I = sp.diags(np.ones(nLoc))
-                    eta = waveObj.getCharDecay(receiver_list[qq].fieldType, times)
+                    eta = waveObj.getCharDecay(receiver_list[qq].field_type, times)
                     eta = np.atleast_2d(eta).T
 
                     T.append(sp.kron(I, eta))
@@ -1022,7 +1022,7 @@ class Simulation3DLogUniform(BaseVRMSimulation):
 
                 times = receiver_list[qq].times
                 eta = waveObj.getLogUniformDecay(
-                    receiver_list[qq].fieldType,
+                    receiver_list[qq].field_type,
                     times,
                     self.chi0,
                     self.dchi,
