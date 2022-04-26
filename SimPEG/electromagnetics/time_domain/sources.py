@@ -1556,6 +1556,7 @@ class LineCurrent(BaseTDEMSrc):
         location=None,
         current=1.,
         mu=mu_0,
+        srcType=None,
         **kwargs
     ):
 
@@ -1591,6 +1592,11 @@ class LineCurrent(BaseTDEMSrc):
 
         if loc.ndim != 2:
             raise TypeError(f"location must be (n, 3) array_like, got {type(loc)}")
+
+        if np.all(np.isclose(loc[0, :], loc[-1, :])):
+            self.srcType = 'inductive'
+        else:
+            self.srcType = 'galvanic'
 
         self._location = loc
 
