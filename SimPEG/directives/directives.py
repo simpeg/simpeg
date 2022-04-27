@@ -1459,19 +1459,22 @@ class SaveIterationsGeoH5(InversionDirective):
         """
         Save iteration metrics to comments.
         """
-        reg_components = ["phi_ms", "phi_msx", "phi_msy", "phi_msz"]
-        iter_block = {
-            "beta": f"{self.invProb.beta:.3e}",
-            "phi_d": f"{self.invProb.phi_d:.3e}",
-            "phi_m": f"{self.invProb.phi_m:.3e}"
-        }
 
-        for label, comp in zip(reg_components, self.reg.objfcts[0].objfcts):
-            iter_block[label] = f"{comp(self.invProb.model):.3e}"
+        dirpath = os.path.dirname(self.h5_object.workspace.h5file)
+        filepath = os.path.join(dirpath, "SimPEG.out")
+        
+        if iteration == 0:
+            with open(filepath, 'w') as f:
+                f.write("beta phid phim\n")
 
-        self.h5_object.parent.add_comment(
-            json.dumps(iter_block), author=f"Iteration_{iteration}"
-        )
+        with open(filepath, 'a') as f:
+            f.write(f"{self.invProb.beta:.3e} {self.invProb.phi_d:.3e} {self.invProb.phi_m:.3e}\n")
+
+        file_entity = self.h5_object.parent.add_file(filepath)
+        with open(filepath, "rb") as f:
+            file_entity.values = f.read()
+
+        self.h5_object.workspace.finalize()
 
     @property
     def label(self):
