@@ -144,7 +144,7 @@ class Dipole(BaseRx):
         if locations_m is not None or locations_n is not None:
             if locations_n is None or locations_m is None:
                 raise ValueError(
-                    "For a dipole source both locations_m and locations_n "
+                    "For a dipole receiver both locations_m and locations_n "
                     "must be set"
                 )
 
