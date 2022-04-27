@@ -33,7 +33,7 @@ class BaseVRMSimulation(BaseSimulation):
         refinement_distance = kwargs.pop("refinement_distance", None)
         indActive = kwargs.pop("indActive", None)
 
-        if isinstance(mesh, discretize.CurvilinearMesh):
+        if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
             raise ValueError("Mesh must be 3D tensor or 3D tree.")
         if len(mesh.h) != 3:
             raise ValueError(

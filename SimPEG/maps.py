@@ -1884,8 +1884,8 @@ class ParametricSplineMap(IdentityMap):
     slope = 1e4
 
     def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True, normal="X"):
-        if isinstance(mesh, discretize.CurvilinearMesh):
-            raise ValueError("Curvilinear mesh is not supported.")
+        if not isinstance(mesh, discretize.base.BaseTensorMesh):
+            raise NotImplementedError(f"{type(mesh)} is not supported.")
         IdentityMap.__init__(self, mesh)
         self.logSigma = logSigma
         self.order = order

@@ -49,7 +49,7 @@ class BasePFSimulation(LinearSimulation):
         projection = csr(
             (np.ones(self.nC), (indices, range(self.nC))), shape=(self.mesh.nC, self.nC)
         )
-        if isinstance(mesh, discretize.CurvilinearMesh):
+        if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
             raise ValueError("Mesh must be 3D tensor or Octree.")
         # Create vectors of nodal location for the lower and upper corners
         bsw = self.mesh.gridCC - self.mesh.h_gridded / 2.0
