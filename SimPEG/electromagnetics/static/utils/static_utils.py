@@ -1499,8 +1499,6 @@ def gettopoCC(mesh, actind, option="top"):
     """
     Get topography from active indices of mesh.
     """
-    if isinstance(mesh, discretize.CurvilinearMesh):
-        raise ValueError("Curvilinear mesh is not supported.")
     if mesh._meshType == "TENSOR":
 
         if mesh.dim == 3:
@@ -1549,6 +1547,9 @@ def gettopoCC(mesh, actind, option="top"):
         elif option == "center":
             dz = 0.0
         return mesh.cell_centers[inds, :-1], mesh.cell_centers[inds, -1] + dz
+    else:
+        raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
+
 
 
 def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
@@ -1569,7 +1570,7 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
         # just grab the xy locations in the first two columns
         pts = pts[:, :2]
     else:
-        raise NotImplementedError()
+        raise ValueError("Unsupported mesh dimension")
     if actind is None:
         actind = surface2ind_topo(mesh, topo)
     if mesh._meshType == "TENSOR":
@@ -1588,7 +1589,7 @@ def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
             inds = closestPointsGrid(uniqXlocs, pts, dim=1)
             out = np.c_[uniqXlocs[inds], topoCC[inds]]
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
     return out
 

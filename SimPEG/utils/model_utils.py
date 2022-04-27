@@ -30,8 +30,6 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
     :param numpy.ndarray actind: index vector for the active cells on the mesh
                                below the topography
     """
-    if isinstance(mesh, discretize.CurvilinearMesh):
-        raise ValueError("Curvilinear mesh is not supported.")
     if mesh._meshType == "TENSOR":
 
         if mesh.dim == 3:
@@ -221,7 +219,8 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
         else:
             raise NotImplementedError("surface2ind_topo not implemented for 1D mesh")
-
+    else:
+        raise NotImplementedError(f"{type(mesh)} is not supported.")
     return mkvc(actind)
 
 
