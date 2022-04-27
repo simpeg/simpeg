@@ -50,9 +50,7 @@ class BasePFSimulation(LinearSimulation):
             (np.ones(self.nC), (indices, range(self.nC))), shape=(self.mesh.nC, self.nC)
         )
         if isinstance(mesh, discretize.CurvilinearMesh):
-            raise ValueError(
-                "Mesh must be 3D tensor or Octree."
-                )
+            raise ValueError("Mesh must be 3D tensor or Octree.")
         # Create vectors of nodal location for the lower and upper corners
         bsw = self.mesh.gridCC - self.mesh.h_gridded / 2.0
         tne = self.mesh.gridCC + self.mesh.h_gridded / 2.0

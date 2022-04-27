@@ -31,9 +31,7 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
                                below the topography
     """
     if isinstance(mesh, discretize.CurvilinearMesh):
-        raise ValueError(
-            "Curvilinear mesh is not supported."
-        )
+        raise ValueError("Curvilinear mesh is not supported.")
     if mesh._meshType == "TENSOR":
 
         if mesh.dim == 3:
