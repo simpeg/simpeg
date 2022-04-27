@@ -138,26 +138,19 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         # also test we can get charge and charge density
         f[:, "charge"]
         f[:, "charge_density"]
-
-        errE = np.linalg.norm(
-            jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]
-        ) / np.linalg.norm(self.J_analytic[self.ROIfaceInds])
+        # errJ
+        # np.testing.assert_allclose(jNumeric[self.ROIfaceInds], self.J_analytic[self.ROIfaceInds], rtol=tolerance)
+        # # errE
+        # np.testing.assert_allclose(eNumeric[self.ROIfaceInds], self.E_analytic[self.ROIfaceInds], rtol=tolerance)
+        #
         errJ = np.linalg.norm(
-            eNumeric[self.ROIfaceInds] - self.E_analytic[self.ROIfaceInds]
+             jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]
+        ) / np.linalg.norm(self.J_analytic[self.ROIfaceInds])
+        errE = np.linalg.norm(
+             eNumeric[self.ROIfaceInds] - self.E_analytic[self.ROIfaceInds]
         ) / np.linalg.norm(self.E_analytic[self.ROIfaceInds])
-        if errE < tolerance and errJ < tolerance:
-            print("\n")
-            print("E field error =", errE)
-            print("J field error =", errJ)
-            passed = True
-            print(">> DC analytic test for Simulation3DCellCentered_Dirichlet passed")
-        else:
-            print("\n")
-            print("E field error =", errE)
-            print("J field error =", errJ)
-            passed = False
-            print(">> DC analytic test for Simulation3DCellCentered_Dirchlet failed")
-        self.assertTrue(passed)
+        self.assertLess(errE, tolerance)
+        self.assertLess(errJ, tolerance)
 
     def test_Simulation3DCellCentered_Mixed(self, tolerance=0.1):
         simulation = dc.simulation.Simulation3DCellCentered(
@@ -168,25 +161,14 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         f = simulation.fields(self.sigma)
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
         jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
-        errE = np.linalg.norm(
+        errJ = np.linalg.norm(
             jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]
         ) / np.linalg.norm(self.J_analytic[self.ROIfaceInds])
-        errJ = np.linalg.norm(
+        errE = np.linalg.norm(
             eNumeric[self.ROIfaceInds] - self.E_analytic[self.ROIfaceInds]
         ) / np.linalg.norm(self.E_analytic[self.ROIfaceInds])
-        if errE < tolerance and errJ < tolerance:
-            print("\n")
-            print("E field error =", errE)
-            print("J field error =", errJ)
-            passed = True
-            print(">> DC analytic test for Simulation3DCellCentered_Mixed passed")
-        else:
-            print("\n")
-            print("E field error =", errE)
-            print("J field error =", errJ)
-            passed = False
-            print(">> DC analytic test for Simulation3DCellCentered_Mixed failed")
-        self.assertTrue(passed)
+        self.assertLess(errE, tolerance)
+        self.assertLess(errJ, tolerance)
 
     def test_Simulation3DCellCentered_Neumann(self, tolerance=0.1):
         simulation = dc.Simulation3DCellCentered(
@@ -197,26 +179,14 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         f = simulation.fields(self.sigma)
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
         jNumeric = utils.mkvc(f[self.survey.source_list, "j"])
-        errE = np.linalg.norm(
+        errJ = np.linalg.norm(
             jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]
         ) / np.linalg.norm(self.J_analytic[self.ROIfaceInds])
-        errJ = np.linalg.norm(
+        errE = np.linalg.norm(
             eNumeric[self.ROIfaceInds] - self.E_analytic[self.ROIfaceInds]
         ) / np.linalg.norm(self.E_analytic[self.ROIfaceInds])
-        if errE < tolerance and errJ < tolerance:
-            print("\n")
-            print("E field error =", errE)
-            print("J field error =", errJ)
-            passed = True
-            print(">> DC analytic test for Simulation3DCellCentered_Neumann passed")
-        else:
-            print("\n")
-            print("E field error =", errE)
-            print("J field error =", errJ)
-            passed = False
-            print(">> DC analytic test for Simulation3DCellCentered_Neumann failed")
-        self.assertTrue(passed)
-
+        self.assertLess(errE, tolerance)
+        self.assertLess(errJ, tolerance)
 
 class DC_N_MultipoleFullspaceTests(unittest.TestCase):
     def setUp(self):
@@ -343,25 +313,14 @@ class DC_N_MultipoleFullspaceTests(unittest.TestCase):
         f[:, "charge"]
         f[:, "charge_density"]
 
-        errE = np.linalg.norm(
+        errJ = np.linalg.norm(
             jNumeric[self.ROIedgeInds] - self.J_analytic[self.ROIedgeInds]
         ) / np.linalg.norm(self.J_analytic[self.ROIedgeInds])
-        errJ = np.linalg.norm(
+        errE = np.linalg.norm(
             eNumeric[self.ROIedgeInds] - self.E_analytic[self.ROIedgeInds]
         ) / np.linalg.norm(self.E_analytic[self.ROIedgeInds])
-        if errE < tolerance and errJ < tolerance:
-            print("\n")
-            print("E field error =", errE)
-            print("J field error =", errJ)
-            passed = True
-            print(">> DC analytic test for Simulation3DNodal passed")
-        else:
-            print("\n")
-            print("E field error =", errE)
-            print("J field error =", errJ)
-            passed = False
-            print(">> DC analytic test for Simulation3DNodal failed")
-        self.assertTrue(passed)
+        self.assertLess(errE, tolerance)
+        self.assertLess(errJ, tolerance)
 
 
 if __name__ == "__main__":

@@ -227,7 +227,7 @@ class Survey(BaseSurvey):
             ind = 0
             for src in self.source_list:
                 a_loc, b_loc = a_shifted[ind], b_shifted[ind]
-                if isinstance(src, (Src.Pole, Src.Multipole):
+                if isinstance(src, (Src.Pole, Src.Multipole)):
                     src.location = [a_loc]
                 else:
                     src.location = [a_loc, b_loc]
