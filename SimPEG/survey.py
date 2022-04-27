@@ -160,7 +160,7 @@ class BaseRx:
             raise TypeError(
                 "projGLoc must be one of the following strings: "
                 "'CC', 'Fx', 'Fy', 'Fz', 'Ex', 'Ey', 'Ez', 'N'"
-                f"Got {type(locs)}"
+                f"Got {type(var)}"
             )
 
         self._projGLoc = var
@@ -311,7 +311,7 @@ class BaseTimeRx(BaseRx):
             raise TypeError(f"times is not a valid type. Got {type(value)}")
         
         if value.ndim > 1:
-            raise TypeError(f"times must be ('*') array")
+            raise TypeError("times must be ('*') array")
 
         self._times = value
 
@@ -342,7 +342,7 @@ class BaseTimeRx(BaseRx):
     def projTLoc(self, var):
         if (var in ["CC", "N"]) == False:
             raise TypeError(
-                f"projTLoc must be 'CC' or 'N'. Got {type(locs)}"
+                f"projTLoc must be 'CC' or 'N'. Got {type(var)}"
             )
 
         self._projTLoc = var

@@ -5,7 +5,7 @@ from ...utils import Zero
 
 
 class Pressure(BaseTimeRx):
-    """Richards Receiver Object"""
+    """Richards pressue receiver class"""
 
     def __call__(self, U, simulation):
         P = self.getP(simulation.mesh, simulation.time_mesh)
@@ -13,6 +13,26 @@ class Pressure(BaseTimeRx):
         return P * u
 
     def deriv(self, U, simulation, du_dm_v=None, v=None, adjoint=False):
+        """Derivative with respect to the model
+
+        Parameters
+        ----------
+        U :
+            Fields computed on the mesh
+        simulation : SimPEG.flow.richards.simulation.SimulationNDCellCentered
+            A Richards flor simulation
+        du_dm_v : numpy.ndarray
+            Derivative with respect to the model times a vector
+        v : numpy.ndarray
+            A vector
+        adjoint : bool, default = ``False``.
+            If ``True``, return the adjoint
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative with respect to the model times a vector
+        """
         P = self.getP(simulation.mesh, simulation.time_mesh)
         if not adjoint:
             return P * du_dm_v  # + 0 for dRx_dm contribution
@@ -22,16 +42,40 @@ class Pressure(BaseTimeRx):
 
 
 class Saturation(BaseTimeRx):
-    """Richards Receiver Object"""
+    """Richards saturation receiver class"""
 
     def __call__(self, U, simulation):
         # The water retention curve model should have been updated in the prob
+        if getattr(self, 'projGLoc', None) is None:
+            self.projGLoc = "CC"
         P = self.getP(simulation.mesh, simulation.time_mesh)
         usat = np.concatenate([simulation.water_retention(ui) for ui in U])
         return P * usat
 
     def deriv(self, U, simulation, du_dm_v=None, v=None, adjoint=False):
-        # The water retention curve model should have been updated in the prob
+        """Derivative with respect to the model
+
+        Parameters
+        ----------
+        U :
+            Fields computed on the mesh
+        simulation : SimPEG.flow.richards.simulation.SimulationNDCellCentered
+            A Richards flor simulation
+        du_dm_v : numpy.ndarray
+            Derivative with respect to the model times a vector
+        v : numpy.ndarray
+            A vector
+        adjoint : bool, default = ``False``.
+            If ``True``, return the adjoint
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative with respect to the model times a vector
+        """
+        
+        if getattr(self, 'projGLoc', None) is None:
+            self.projGLoc = "CC"
 
         P = self.getP(simulation.mesh, simulation.time_mesh)
         dT_du = sp.block_diag([simulation.water_retention.derivU(ui) for ui in U])
