@@ -2,7 +2,7 @@ import numpy as np
 import properties
 
 from .... import survey
-from ....utils import Zero, closestPoints
+from ....utils import Zero
 
 
 class BaseSrc(survey.BaseSrc):
@@ -10,39 +10,40 @@ class BaseSrc(survey.BaseSrc):
     Base DC source
     """
 
-    current = properties.List(doc="amplitudes of the source currents", default=[1.0])
-    location = properties.List(
-        "location of the source electrodes",
-        survey.SourceLocationArray("location of electrode"),
-    )
-
     _q = None
 
-    def __init__(self, receiver_list, location, current=None, **kwargs):
-        super(BaseSrc, self).__init__(receiver_list, **kwargs)
-        if type(location) is np.ndarray:
-            if location.ndim == 2:
-                location = list(location)
-            else:
-                location = [location]
-        if current is None:
-            current = self.current
-        if type(current) == float or type(current) == int:
-            current = [float(current)]
-        elif type(current) == np.ndarray:
-            if current.ndim == 2:
-                current = list(current)
-            else:
-                location = [location]
-        if len(current) != 1 and len(current) != len(location):
+    def __init__(self, receiver_list, location, current=1.0, **kwargs):
+        super().__init__(receiver_list=receiver_list, **kwargs)
+        self.location = location
+        self.current = current
+
+    @property
+    def location(self):
+        """location of the source electrodes"""
+        return self._location
+
+    @location.setter
+    def location(self, other):
+        other = np.stack(other)
+        other = np.atleast_2d(other)
+        self._location = other
+
+    @property
+    def current(self):
+        """amplitudes of the source currents"""
+        return self._current
+
+    @current.setter
+    def current(self, other):
+        other = np.atleast_1d(np.asarray(other, dtype=float))
+        if other.ndim > 1:
+            raise ValueError("Too many dimensions for current array")
+        if len(other) != self.location.shape[0]:
             raise ValueError(
                 "Current must be constant or equal to the number of specified source locations."
+                f" saw {len(other)} current sources and {self.location.shape[0]} locations."
             )
-        if type(current) != list:
-            current = np.repeat(current, len(location)).tolist()
-
-        self.current = current
-        self.location = location
+        self._current = other
 
     def eval(self, sim):
         if self._q is not None:
@@ -53,8 +54,8 @@ class BaseSrc(survey.BaseSrc):
                 self._q = np.zeros(sim.mesh.nC)
                 self._q[inds] = self.current
             elif sim._formulation == "EB":
-                loc = np.row_stack(self.location)
-                cur = np.asarray(self.current)
+                loc = self.location
+                cur = self.current
                 interpolation_matrix = sim.mesh.get_interpolation_matrix(
                     loc, locType="N"
                 ).toarray()
@@ -71,9 +72,6 @@ class Multipole(BaseSrc):
     Generic Multipole Source
     """
 
-    def __init__(self, receiver_list=[], location=None, **kwargs):
-        super(Multipole, self).__init__(receiver_list, location, **kwargs)
-
     @property
     def location_a(self):
         """Locations of the A electrode"""
@@ -82,9 +80,7 @@ class Multipole(BaseSrc):
     @property
     def location_b(self):
         """Location of the B electrode"""
-        return list(
-            np.tile((len(self.location), 1), np.full_like(self.location[0], np.nan))
-        )
+        return np.full_like(self.location, np.nan)
 
 
 class Dipole(BaseSrc):
@@ -92,33 +88,14 @@ class Dipole(BaseSrc):
     Dipole source
     """
 
-    location = properties.List(
-        "location of the source electrodes",
-        survey.SourceLocationArray("location of electrode"),
-    )
-
     def __init__(
         self,
-        receiver_list=[],
+        receiver_list,
         location_a=None,
         location_b=None,
         location=None,
         **kwargs,
     ):
-        # Check for old keywords
-        if "locationA" in kwargs.keys():
-            location_a = kwargs.pop("locationA")
-            raise TypeError(
-                "The locationA property has been removed. Please set the "
-                "location_a property instead.",
-            )
-
-        if "locationB" in kwargs.keys():
-            location_b = kwargs.pop("locationB")
-            raise TypeError(
-                "The locationB property has been removed. Please set the "
-                "location_b property instead.",
-            )
         if "current" in kwargs.keys():
             value = kwargs.pop("current")
             current = [value, -value]
@@ -149,15 +126,10 @@ class Dipole(BaseSrc):
                     f"length {len(location)}"
                 )
 
-        if location[0].shape != location[1].shape:
-            raise ValueError(
-                f"m_location (shape: {location[0].shape}) and "
-                f"n_location (shape: {location[1].shape}) need to be "
-                f"the same size"
-            )
-
         # instantiate
-        super(Dipole, self).__init__(receiver_list, location, current, **kwargs)
+        super().__init__(
+            receiver_list=receiver_list, location=location, current=current, **kwargs
+        )
 
     def __repr__(self):
         return (
@@ -176,15 +148,19 @@ class Dipole(BaseSrc):
 
 
 class Pole(BaseSrc):
-    def __init__(self, receiver_list=[], location=None, **kwargs):
-        super(Pole, self).__init__(receiver_list, location, **kwargs)
+    def __init__(self, receiver_list, location=None, **kwargs):
+        super().__init__(receiver_list=receiver_list, location=location, **kwargs)
+        if len(self.location) != 1:
+            raise ValueError(
+                f"Pole sources only have a single location, not {len(self.location)}"
+            )
 
     @property
     def location_a(self):
-        """Locations of the A electrode"""
+        """Location of the A electrode"""
         return self.location[0]
 
     @property
     def location_b(self):
         """Location of the B electrode"""
-        return np.nan * np.ones_like(self.location[0])
+        return np.full_like(self.location[0], np.nan)
