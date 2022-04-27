@@ -161,10 +161,10 @@ class Survey(BaseSurvey):
                 # Pole Source
                 if isinstance(source, Src.Pole):
                     locations_a.append(
-                        source.location[0].reshape([1, -1]).repeat(nRx, axis=0)
+                        source.location.reshape([1, -1]).repeat(nRx, axis=0)
                     )
                     locations_b.append(
-                        source.location[0].reshape([1, -1]).repeat(nRx, axis=0)
+                        source.location.reshape([1, -1]).repeat(nRx, axis=0)
                     )
                 # Dipole Source
                 elif isinstance(source, Src.Dipole):
@@ -175,10 +175,9 @@ class Survey(BaseSurvey):
                         source.location[1].reshape([1, -1]).repeat(nRx, axis=0)
                     )
                 elif isinstance(source, Src.Multipole):
-                    location_as_array = np.asarray(source.location)
-                    location_as_array = np.tile(location_as_array, (nRx, 1))
-                    locations_a.append(location_as_array)
-                    locations_b.append(location_as_array)
+                    location_tiled = np.tile(source.location, (nRx, 1))
+                    locations_a.append(location_tiled)
+                    locations_b.append(location_tiled)
                 # Pole RX
                 if isinstance(rx, Rx.Pole):
                     locations_m.append(rx.locations)
@@ -228,7 +227,7 @@ class Survey(BaseSurvey):
             ind = 0
             for src in self.source_list:
                 a_loc, b_loc = a_shifted[ind], b_shifted[ind]
-                if type(src) is Src.Pole or type(src) is Src.BaseSrc:
+                if isinstance(src, (Src.Pole, Src.Multipole):
                     src.location = [a_loc]
                 else:
                     src.location = [a_loc, b_loc]
