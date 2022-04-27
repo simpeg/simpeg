@@ -34,9 +34,7 @@ class BaseVRMSimulation(BaseSimulation):
         indActive = kwargs.pop("indActive", None)
 
         if isinstance(mesh, discretize.CurvilinearMesh):
-            raise ValueError(
-                "Mesh must be 3D tensor or 3D tree."
-                )
+            raise ValueError("Mesh must be 3D tensor or 3D tree.")
         if len(mesh.h) != 3:
             raise ValueError(
                 f"Mesh must be 3D tensor or 3D tree. Current mesh is {len(mesh.h)}"
@@ -81,7 +79,7 @@ class BaseVRMSimulation(BaseSimulation):
                 "Refinement factor larger than 4 may result in computations which exceed memory limits"
             )
         if self.refinement_distance is not None and change["value"] != len(
-                self.refinement_distance
+            self.refinement_distance
         ):
             print(
                 "Number of refinement radii currently DOES NOT match refinement_factor"
@@ -90,8 +88,8 @@ class BaseVRMSimulation(BaseSimulation):
     @properties.observer("refinement_distance")
     def _refinement_distance_validator(self, change):
         if (
-                self.refinement_factor is not None
-                and len(change["value"]) != self.refinement_factor
+            self.refinement_factor is not None
+            and len(change["value"]) != self.refinement_factor
         ):
             print("Number of refinement radii current DOES NOT match refinement_factor")
 
@@ -198,46 +196,46 @@ class BaseVRMSimulation(BaseSimulation):
                         w2 = locs[rr, 2] - bz
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxx = (
-                                np.arctan((v1 * w1) / (u1 * d111 + tol))
-                                - np.arctan((v1 * w1) / (u2 * d211 + tol))
-                                + np.arctan((v2 * w1) / (u2 * d221 + tol))
-                                - np.arctan((v2 * w1) / (u1 * d121 + tol))
-                                + np.arctan((v2 * w2) / (u1 * d122 + tol))
-                                - np.arctan((v1 * w2) / (u1 * d112 + tol))
-                                + np.arctan((v1 * w2) / (u2 * d212 + tol))
-                                - np.arctan((v2 * w2) / (u2 * d222 + tol))
+                            np.arctan((v1 * w1) / (u1 * d111 + tol))
+                            - np.arctan((v1 * w1) / (u2 * d211 + tol))
+                            + np.arctan((v2 * w1) / (u2 * d221 + tol))
+                            - np.arctan((v2 * w1) / (u1 * d121 + tol))
+                            + np.arctan((v2 * w2) / (u1 * d122 + tol))
+                            - np.arctan((v1 * w2) / (u1 * d112 + tol))
+                            + np.arctan((v1 * w2) / (u2 * d212 + tol))
+                            - np.arctan((v2 * w2) / (u2 * d222 + tol))
                         )
 
                         Gyx = (
-                                np.log(d111 - w1)
-                                - np.log(d211 - w1)
-                                + np.log(d221 - w1)
-                                - np.log(d121 - w1)
-                                + np.log(d122 - w2)
-                                - np.log(d112 - w2)
-                                + np.log(d212 - w2)
-                                - np.log(d222 - w2)
+                            np.log(d111 - w1)
+                            - np.log(d211 - w1)
+                            + np.log(d221 - w1)
+                            - np.log(d121 - w1)
+                            + np.log(d122 - w2)
+                            - np.log(d112 - w2)
+                            + np.log(d212 - w2)
+                            - np.log(d222 - w2)
                         )
 
                         Gzx = (
-                                np.log(d111 - v1)
-                                - np.log(d211 - v1)
-                                + np.log(d221 - v2)
-                                - np.log(d121 - v2)
-                                + np.log(d122 - v2)
-                                - np.log(d112 - v1)
-                                + np.log(d212 - v1)
-                                - np.log(d222 - v2)
+                            np.log(d111 - v1)
+                            - np.log(d211 - v1)
+                            + np.log(d221 - v2)
+                            - np.log(d121 - v2)
+                            + np.log(d122 - v2)
+                            - np.log(d112 - v1)
+                            + np.log(d212 - v1)
+                            - np.log(d222 - v2)
                         )
 
                         G[COUNT, :] = c * np.c_[Gxx, Gyx, Gzx]
@@ -258,46 +256,46 @@ class BaseVRMSimulation(BaseSimulation):
                         w2 = locs[rr, 2] - bz
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxy = (
-                                np.log(d111 - w1)
-                                - np.log(d211 - w1)
-                                + np.log(d221 - w1)
-                                - np.log(d121 - w1)
-                                + np.log(d122 - w2)
-                                - np.log(d112 - w2)
-                                + np.log(d212 - w2)
-                                - np.log(d222 - w2)
+                            np.log(d111 - w1)
+                            - np.log(d211 - w1)
+                            + np.log(d221 - w1)
+                            - np.log(d121 - w1)
+                            + np.log(d122 - w2)
+                            - np.log(d112 - w2)
+                            + np.log(d212 - w2)
+                            - np.log(d222 - w2)
                         )
 
                         Gyy = (
-                                np.arctan((u1 * w1) / (v1 * d111 + tol))
-                                - np.arctan((u2 * w1) / (v1 * d211 + tol))
-                                + np.arctan((u2 * w1) / (v2 * d221 + tol))
-                                - np.arctan((u1 * w1) / (v2 * d121 + tol))
-                                + np.arctan((u1 * w2) / (v2 * d122 + tol))
-                                - np.arctan((u1 * w2) / (v1 * d112 + tol))
-                                + np.arctan((u2 * w2) / (v1 * d212 + tol))
-                                - np.arctan((u2 * w2) / (v2 * d222 + tol))
+                            np.arctan((u1 * w1) / (v1 * d111 + tol))
+                            - np.arctan((u2 * w1) / (v1 * d211 + tol))
+                            + np.arctan((u2 * w1) / (v2 * d221 + tol))
+                            - np.arctan((u1 * w1) / (v2 * d121 + tol))
+                            + np.arctan((u1 * w2) / (v2 * d122 + tol))
+                            - np.arctan((u1 * w2) / (v1 * d112 + tol))
+                            + np.arctan((u2 * w2) / (v1 * d212 + tol))
+                            - np.arctan((u2 * w2) / (v2 * d222 + tol))
                         )
 
                         Gzy = (
-                                np.log(d111 - u1)
-                                - np.log(d211 - u2)
-                                + np.log(d221 - u2)
-                                - np.log(d121 - u1)
-                                + np.log(d122 - u1)
-                                - np.log(d112 - u1)
-                                + np.log(d212 - u2)
-                                - np.log(d222 - u2)
+                            np.log(d111 - u1)
+                            - np.log(d211 - u2)
+                            + np.log(d221 - u2)
+                            - np.log(d121 - u1)
+                            + np.log(d122 - u1)
+                            - np.log(d112 - u1)
+                            + np.log(d212 - u2)
+                            - np.log(d222 - u2)
                         )
 
                         G[COUNT, :] = c * np.c_[Gxy, Gyy, Gzy]
@@ -318,58 +316,58 @@ class BaseVRMSimulation(BaseSimulation):
                         w2 = locs[rr, 2] - bz
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxz = (
-                                np.log(d111 - v1)
-                                - np.log(d211 - v1)
-                                + np.log(d221 - v2)
-                                - np.log(d121 - v2)
-                                + np.log(d122 - v2)
-                                - np.log(d112 - v1)
-                                + np.log(d212 - v1)
-                                - np.log(d222 - v2)
+                            np.log(d111 - v1)
+                            - np.log(d211 - v1)
+                            + np.log(d221 - v2)
+                            - np.log(d121 - v2)
+                            + np.log(d122 - v2)
+                            - np.log(d112 - v1)
+                            + np.log(d212 - v1)
+                            - np.log(d222 - v2)
                         )
 
                         Gyz = (
-                                np.log(d111 - u1)
-                                - np.log(d211 - u2)
-                                + np.log(d221 - u2)
-                                - np.log(d121 - u1)
-                                + np.log(d122 - u1)
-                                - np.log(d112 - u1)
-                                + np.log(d212 - u2)
-                                - np.log(d222 - u2)
+                            np.log(d111 - u1)
+                            - np.log(d211 - u2)
+                            + np.log(d221 - u2)
+                            - np.log(d121 - u1)
+                            + np.log(d122 - u1)
+                            - np.log(d112 - u1)
+                            + np.log(d212 - u2)
+                            - np.log(d222 - u2)
                         )
 
                         Gzz = (
-                                -np.arctan((v1 * w1) / (u1 * d111 + tol))
-                                + np.arctan((v1 * w1) / (u2 * d211 + tol))
-                                - np.arctan((v2 * w1) / (u2 * d221 + tol))
-                                + np.arctan((v2 * w1) / (u1 * d121 + tol))
-                                - np.arctan((v2 * w2) / (u1 * d122 + tol))
-                                + np.arctan((v1 * w2) / (u1 * d112 + tol))
-                                - np.arctan((v1 * w2) / (u2 * d212 + tol))
-                                + np.arctan((v2 * w2) / (u2 * d222 + tol))
+                            -np.arctan((v1 * w1) / (u1 * d111 + tol))
+                            + np.arctan((v1 * w1) / (u2 * d211 + tol))
+                            - np.arctan((v2 * w1) / (u2 * d221 + tol))
+                            + np.arctan((v2 * w1) / (u1 * d121 + tol))
+                            - np.arctan((v2 * w2) / (u1 * d122 + tol))
+                            + np.arctan((v1 * w2) / (u1 * d112 + tol))
+                            - np.arctan((v1 * w2) / (u2 * d212 + tol))
+                            + np.arctan((v2 * w2) / (u2 * d222 + tol))
                         )
 
                         Gzz = (
-                                Gzz
-                                - np.arctan((u1 * w1) / (v1 * d111 + tol))
-                                + np.arctan((u2 * w1) / (v1 * d211 + tol))
-                                - np.arctan((u2 * w1) / (v2 * d221 + tol))
-                                + np.arctan((u1 * w1) / (v2 * d121 + tol))
-                                - np.arctan((u1 * w2) / (v2 * d122 + tol))
-                                + np.arctan((u1 * w2) / (v1 * d112 + tol))
-                                - np.arctan((u2 * w2) / (v1 * d212 + tol))
-                                + np.arctan((u2 * w2) / (v2 * d222 + tol))
+                            Gzz
+                            - np.arctan((u1 * w1) / (v1 * d111 + tol))
+                            + np.arctan((u2 * w1) / (v1 * d211 + tol))
+                            - np.arctan((u2 * w1) / (v2 * d221 + tol))
+                            + np.arctan((u1 * w1) / (v2 * d121 + tol))
+                            - np.arctan((u1 * w2) / (v2 * d122 + tol))
+                            + np.arctan((u1 * w2) / (v1 * d112 + tol))
+                            - np.arctan((u2 * w2) / (v1 * d212 + tol))
+                            + np.arctan((u2 * w2) / (v2 * d222 + tol))
                         )
 
                         G[COUNT, :] = c * np.c_[Gxz, Gyz, Gzz]
@@ -398,9 +396,9 @@ class BaseVRMSimulation(BaseSimulation):
                 wt = wt[rxObj.quadOrder - 1]
                 nw = len(wt)
                 wt = (
-                        rxObj.nTurns
-                        * (rxObj.width / 2) ** 2
-                        * np.reshape(np.outer(wt, wt), (1, nw ** 2))
+                    rxObj.nTurns
+                    * (rxObj.width / 2) ** 2
+                    * np.reshape(np.outer(wt, wt), (1, nw**2))
                 )
 
                 # Gaussian quadrature locations on [-1,1]
@@ -425,89 +423,89 @@ class BaseVRMSimulation(BaseSimulation):
                 ]
 
                 s1 = (
-                        0.5
-                        * rxObj.width
-                        * np.reshape(
-                    np.kron(ds[rxObj.quadOrder - 1], np.ones(nw)), (nw ** 2, 1)
-                )
+                    0.5
+                    * rxObj.width
+                    * np.reshape(
+                        np.kron(ds[rxObj.quadOrder - 1], np.ones(nw)), (nw**2, 1)
+                    )
                 )
                 s2 = (
-                        0.5
-                        * rxObj.width
-                        * np.reshape(
-                    np.kron(np.ones(nw), ds[rxObj.quadOrder - 1]), (nw ** 2, 1)
-                )
+                    0.5
+                    * rxObj.width
+                    * np.reshape(
+                        np.kron(np.ones(nw), ds[rxObj.quadOrder - 1]), (nw**2, 1)
+                    )
                 )
 
                 if dComp.lower() == "x":
                     for rr in range(0, nLoc):
-                        u1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - ax)
+                        u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax)
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0]) / tol2
-                        u2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - bx)
+                        u2 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx)
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0]) / tol2
 
-                        v1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - ay) + np.kron(
+                        v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1]) / tol2
-                        v2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - by) + np.kron(
+                        v2 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1]) / tol2
 
-                        w1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - az) + np.kron(
+                        w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2]) / tol2
-                        w2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - bz) + np.kron(
+                        w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxx = (
-                                np.arctan((v1 * w1) / (u1 * d111 + tol))
-                                - np.arctan((v1 * w1) / (u2 * d211 + tol))
-                                + np.arctan((v2 * w1) / (u2 * d221 + tol))
-                                - np.arctan((v2 * w1) / (u1 * d121 + tol))
-                                + np.arctan((v2 * w2) / (u1 * d122 + tol))
-                                - np.arctan((v1 * w2) / (u1 * d112 + tol))
-                                + np.arctan((v1 * w2) / (u2 * d212 + tol))
-                                - np.arctan((v2 * w2) / (u2 * d222 + tol))
+                            np.arctan((v1 * w1) / (u1 * d111 + tol))
+                            - np.arctan((v1 * w1) / (u2 * d211 + tol))
+                            + np.arctan((v2 * w1) / (u2 * d221 + tol))
+                            - np.arctan((v2 * w1) / (u1 * d121 + tol))
+                            + np.arctan((v2 * w2) / (u1 * d122 + tol))
+                            - np.arctan((v1 * w2) / (u1 * d112 + tol))
+                            + np.arctan((v1 * w2) / (u2 * d212 + tol))
+                            - np.arctan((v2 * w2) / (u2 * d222 + tol))
                         )
 
                         Gxx = np.dot(wt, Gxx)
 
                         Gyx = (
-                                np.log(d111 - w1)
-                                - np.log(d211 - w1)
-                                + np.log(d221 - w1)
-                                - np.log(d121 - w1)
-                                + np.log(d122 - w2)
-                                - np.log(d112 - w2)
-                                + np.log(d212 - w2)
-                                - np.log(d222 - w2)
+                            np.log(d111 - w1)
+                            - np.log(d211 - w1)
+                            + np.log(d221 - w1)
+                            - np.log(d121 - w1)
+                            + np.log(d122 - w2)
+                            - np.log(d112 - w2)
+                            + np.log(d212 - w2)
+                            - np.log(d222 - w2)
                         )
 
                         Gyx = np.dot(wt, Gyx)
 
                         Gzx = (
-                                np.log(d111 - v1)
-                                - np.log(d211 - v1)
-                                + np.log(d221 - v2)
-                                - np.log(d121 - v2)
-                                + np.log(d122 - v2)
-                                - np.log(d112 - v1)
-                                + np.log(d212 - v1)
-                                - np.log(d222 - v2)
+                            np.log(d111 - v1)
+                            - np.log(d211 - v1)
+                            + np.log(d221 - v2)
+                            - np.log(d121 - v2)
+                            + np.log(d122 - v2)
+                            - np.log(d112 - v1)
+                            + np.log(d212 - v1)
+                            - np.log(d222 - v2)
                         )
 
                         Gzx = np.dot(wt, Gzx)
@@ -517,73 +515,73 @@ class BaseVRMSimulation(BaseSimulation):
 
                 elif dComp.lower() == "y":
                     for rr in range(0, nLoc):
-                        u1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - ax) + np.kron(
+                        u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0]) / tol2
-                        u2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - bx) + np.kron(
+                        u2 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0]) / tol2
 
-                        v1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - ay)
+                        v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay)
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1]) / tol2
-                        v2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - by)
+                        v2 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by)
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1]) / tol2
 
-                        w1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - az) + np.kron(
+                        w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2]) / tol2
-                        w2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - bz) + np.kron(
+                        w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxy = (
-                                np.log(d111 - w1)
-                                - np.log(d211 - w1)
-                                + np.log(d221 - w1)
-                                - np.log(d121 - w1)
-                                + np.log(d122 - w2)
-                                - np.log(d112 - w2)
-                                + np.log(d212 - w2)
-                                - np.log(d222 - w2)
+                            np.log(d111 - w1)
+                            - np.log(d211 - w1)
+                            + np.log(d221 - w1)
+                            - np.log(d121 - w1)
+                            + np.log(d122 - w2)
+                            - np.log(d112 - w2)
+                            + np.log(d212 - w2)
+                            - np.log(d222 - w2)
                         )
 
                         Gxy = np.dot(wt, Gxy)
 
                         Gyy = (
-                                np.arctan((u1 * w1) / (v1 * d111 + tol))
-                                - np.arctan((u2 * w1) / (v1 * d211 + tol))
-                                + np.arctan((u2 * w1) / (v2 * d221 + tol))
-                                - np.arctan((u1 * w1) / (v2 * d121 + tol))
-                                + np.arctan((u1 * w2) / (v2 * d122 + tol))
-                                - np.arctan((u1 * w2) / (v1 * d112 + tol))
-                                + np.arctan((u2 * w2) / (v1 * d212 + tol))
-                                - np.arctan((u2 * w2) / (v2 * d222 + tol))
+                            np.arctan((u1 * w1) / (v1 * d111 + tol))
+                            - np.arctan((u2 * w1) / (v1 * d211 + tol))
+                            + np.arctan((u2 * w1) / (v2 * d221 + tol))
+                            - np.arctan((u1 * w1) / (v2 * d121 + tol))
+                            + np.arctan((u1 * w2) / (v2 * d122 + tol))
+                            - np.arctan((u1 * w2) / (v1 * d112 + tol))
+                            + np.arctan((u2 * w2) / (v1 * d212 + tol))
+                            - np.arctan((u2 * w2) / (v2 * d222 + tol))
                         )
 
                         Gyy = np.dot(wt, Gyy)
 
                         Gzy = (
-                                np.log(d111 - u1)
-                                - np.log(d211 - u2)
-                                + np.log(d221 - u2)
-                                - np.log(d121 - u1)
-                                + np.log(d122 - u1)
-                                - np.log(d112 - u1)
-                                + np.log(d212 - u2)
-                                - np.log(d222 - u2)
+                            np.log(d111 - u1)
+                            - np.log(d211 - u2)
+                            + np.log(d221 - u2)
+                            - np.log(d121 - u1)
+                            + np.log(d122 - u1)
+                            - np.log(d112 - u1)
+                            + np.log(d212 - u2)
+                            - np.log(d222 - u2)
                         )
 
                         Gzy = np.dot(wt, Gzy)
@@ -593,85 +591,85 @@ class BaseVRMSimulation(BaseSimulation):
 
                 elif dComp.lower() == "z":
                     for rr in range(0, nLoc):
-                        u1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - ax) + np.kron(
+                        u1 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - ax) + np.kron(
                             s1, np.ones((1, nC))
                         )
                         u1[np.abs(u1) < tol] = np.min(xyzh[:, 0]) / tol2
-                        u2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 0] - bx) + np.kron(
+                        u2 = np.kron(np.ones((nw**2, 1)), locs[rr, 0] - bx) + np.kron(
                             s1, np.ones((1, nC))
                         )
 
                         u2[np.abs(u2) < tol] = -np.min(xyzh[:, 0]) / tol2
-                        v1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - ay) + np.kron(
+                        v1 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - ay) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         v1[np.abs(v1) < tol] = np.min(xyzh[:, 1]) / tol2
-                        v2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 1] - by) + np.kron(
+                        v2 = np.kron(np.ones((nw**2, 1)), locs[rr, 1] - by) + np.kron(
                             s2, np.ones((1, nC))
                         )
                         v2[np.abs(v2) < tol] = -np.min(xyzh[:, 1]) / tol2
 
-                        w1 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - az)
+                        w1 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - az)
                         w1[np.abs(w1) < tol] = np.min(xyzh[:, 2]) / tol2
-                        w2 = np.kron(np.ones((nw ** 2, 1)), locs[rr, 2] - bz)
+                        w2 = np.kron(np.ones((nw**2, 1)), locs[rr, 2] - bz)
                         w2[np.abs(w2) < tol] = -np.min(xyzh[:, 2]) / tol2
 
-                        d111 = np.sqrt(u1 ** 2 + v1 ** 2 + w1 ** 2)
-                        d211 = np.sqrt(u2 ** 2 + v1 ** 2 + w1 ** 2)
-                        d221 = np.sqrt(u2 ** 2 + v2 ** 2 + w1 ** 2)
-                        d121 = np.sqrt(u1 ** 2 + v2 ** 2 + w1 ** 2)
-                        d122 = np.sqrt(u1 ** 2 + v2 ** 2 + w2 ** 2)
-                        d112 = np.sqrt(u1 ** 2 + v1 ** 2 + w2 ** 2)
-                        d212 = np.sqrt(u2 ** 2 + v1 ** 2 + w2 ** 2)
-                        d222 = np.sqrt(u2 ** 2 + v2 ** 2 + w2 ** 2)
+                        d111 = np.sqrt(u1**2 + v1**2 + w1**2)
+                        d211 = np.sqrt(u2**2 + v1**2 + w1**2)
+                        d221 = np.sqrt(u2**2 + v2**2 + w1**2)
+                        d121 = np.sqrt(u1**2 + v2**2 + w1**2)
+                        d122 = np.sqrt(u1**2 + v2**2 + w2**2)
+                        d112 = np.sqrt(u1**2 + v1**2 + w2**2)
+                        d212 = np.sqrt(u2**2 + v1**2 + w2**2)
+                        d222 = np.sqrt(u2**2 + v2**2 + w2**2)
 
                         Gxz = (
-                                np.log(d111 - v1)
-                                - np.log(d211 - v1)
-                                + np.log(d221 - v2)
-                                - np.log(d121 - v2)
-                                + np.log(d122 - v2)
-                                - np.log(d112 - v1)
-                                + np.log(d212 - v1)
-                                - np.log(d222 - v2)
+                            np.log(d111 - v1)
+                            - np.log(d211 - v1)
+                            + np.log(d221 - v2)
+                            - np.log(d121 - v2)
+                            + np.log(d122 - v2)
+                            - np.log(d112 - v1)
+                            + np.log(d212 - v1)
+                            - np.log(d222 - v2)
                         )
 
                         Gxz = np.dot(wt, Gxz)
 
                         Gyz = (
-                                np.log(d111 - u1)
-                                - np.log(d211 - u2)
-                                + np.log(d221 - u2)
-                                - np.log(d121 - u1)
-                                + np.log(d122 - u1)
-                                - np.log(d112 - u1)
-                                + np.log(d212 - u2)
-                                - np.log(d222 - u2)
+                            np.log(d111 - u1)
+                            - np.log(d211 - u2)
+                            + np.log(d221 - u2)
+                            - np.log(d121 - u1)
+                            + np.log(d122 - u1)
+                            - np.log(d112 - u1)
+                            + np.log(d212 - u2)
+                            - np.log(d222 - u2)
                         )
 
                         Gyz = np.dot(wt, Gyz)
 
                         Gzz = (
-                                -np.arctan((v1 * w1) / (u1 * d111 + tol))
-                                + np.arctan((v1 * w1) / (u2 * d211 + tol))
-                                - np.arctan((v2 * w1) / (u2 * d221 + tol))
-                                + np.arctan((v2 * w1) / (u1 * d121 + tol))
-                                - np.arctan((v2 * w2) / (u1 * d122 + tol))
-                                + np.arctan((v1 * w2) / (u1 * d112 + tol))
-                                - np.arctan((v1 * w2) / (u2 * d212 + tol))
-                                + np.arctan((v2 * w2) / (u2 * d222 + tol))
+                            -np.arctan((v1 * w1) / (u1 * d111 + tol))
+                            + np.arctan((v1 * w1) / (u2 * d211 + tol))
+                            - np.arctan((v2 * w1) / (u2 * d221 + tol))
+                            + np.arctan((v2 * w1) / (u1 * d121 + tol))
+                            - np.arctan((v2 * w2) / (u1 * d122 + tol))
+                            + np.arctan((v1 * w2) / (u1 * d112 + tol))
+                            - np.arctan((v1 * w2) / (u2 * d212 + tol))
+                            + np.arctan((v2 * w2) / (u2 * d222 + tol))
                         )
 
                         Gzz = (
-                                Gzz
-                                - np.arctan((u1 * w1) / (v1 * d111 + tol))
-                                + np.arctan((u2 * w1) / (v1 * d211 + tol))
-                                - np.arctan((u2 * w1) / (v2 * d221 + tol))
-                                + np.arctan((u1 * w1) / (v2 * d121 + tol))
-                                - np.arctan((u1 * w2) / (v2 * d122 + tol))
-                                + np.arctan((u1 * w2) / (v1 * d112 + tol))
-                                - np.arctan((u2 * w2) / (v1 * d212 + tol))
-                                + np.arctan((u2 * w2) / (v2 * d222 + tol))
+                            Gzz
+                            - np.arctan((u1 * w1) / (v1 * d111 + tol))
+                            + np.arctan((u2 * w1) / (v1 * d211 + tol))
+                            - np.arctan((u2 * w1) / (v2 * d221 + tol))
+                            + np.arctan((u1 * w1) / (v2 * d121 + tol))
+                            - np.arctan((u1 * w2) / (v2 * d122 + tol))
+                            + np.arctan((u1 * w2) / (v1 * d112 + tol))
+                            - np.arctan((u2 * w2) / (v1 * d212 + tol))
+                            + np.arctan((u2 * w2) / (v2 * d222 + tol))
                         )
 
                         Gzz = np.dot(wt, Gzz)
@@ -745,7 +743,7 @@ class BaseVRMSimulation(BaseSimulation):
         """
 
         # GET SUBMESH GRID
-        n = 2 ** qq
+        n = 2**qq
         [nx, ny, nz] = np.meshgrid(
             np.linspace(1, n, n) - 0.5,
             np.linspace(1, n, n) - 0.5,
@@ -755,14 +753,14 @@ class BaseVRMSimulation(BaseSimulation):
 
         xyzh_sub = xyzh[refFlag == qq, :]  # Get widths of cells to be refined
         xyzc_sub = (
-                xyzc[refFlag == qq, :] - xyzh[refFlag == qq, :] / 2
+            xyzc[refFlag == qq, :] - xyzh[refFlag == qq, :] / 2
         )  # Get bottom southwest corners of cells to be refined
         m = np.shape(xyzc_sub)[0]
         xyzc_sub = np.kron(
-            xyzc_sub, np.ones((n ** 3, 1))
+            xyzc_sub, np.ones((n**3, 1))
         )  # Kron for n**3 refined cells
         xyzh_sub = np.kron(
-            xyzh_sub / n, np.ones((n ** 3, 1))
+            xyzh_sub / n, np.ones((n**3, 1))
         )  # Kron for n**3 refined cells with widths h/n
         nxyz_sub = np.kron(np.ones((m, 1)), nxyz_sub)  # Kron for n**3 refined cells
         xyzc_sub = xyzc_sub + xyzh_sub * nxyz_sub
@@ -770,7 +768,7 @@ class BaseVRMSimulation(BaseSimulation):
         # GET SUBMESH A MATRIX AND COLLAPSE TO COLUMNS
         G = self._getGeometryMatrix(xyzc_sub, xyzh_sub, pp)
         H0 = self._getH0matrix(xyzc_sub, pp)
-        Acols = (G * H0) * sp.kron(sp.diags(np.ones(m)), np.ones((n ** 3, 1)))
+        Acols = (G * H0) * sp.kron(sp.diags(np.ones(m)), np.ones((n**3, 1)))
 
         return Acols
 

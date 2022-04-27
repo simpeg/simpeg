@@ -177,12 +177,8 @@ class Survey(BaseSurvey):
                 elif isinstance(source, Src.Multipole):
                     location_as_array = np.asarray(source.location)
                     location_as_array = np.tile(location_as_array, (nRx, 1))
-                    locations_a.append(
-                        location_as_array
-                    )
-                    locations_b.append(
-                        location_as_array
-                    )
+                    locations_a.append(location_as_array)
+                    locations_b.append(location_as_array)
                 # Pole RX
                 if isinstance(rx, Rx.Pole):
                     locations_m.append(rx.locations)
@@ -206,7 +202,7 @@ class Survey(BaseSurvey):
         )
 
     def drape_electrodes_on_topography(
-            self, mesh, actind, option="top", topography=None, force=False
+        self, mesh, actind, option="top", topography=None, force=False
     ):
         """Shift electrode locations to be on [top] of the active cells."""
         if self.survey_geometry == "surface":
@@ -217,9 +213,9 @@ class Survey(BaseSurvey):
             unique_electrodes, inv = np.unique(
                 np.vstack((loc_a, loc_b, loc_m, loc_n)), return_inverse=True, axis=0
             )
-            inv_a, inv = inv[: len(loc_a)], inv[len(loc_a):]
-            inv_b, inv = inv[: len(loc_b)], inv[len(loc_b):]
-            inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m):]
+            inv_a, inv = inv[: len(loc_a)], inv[len(loc_a) :]
+            inv_b, inv = inv[: len(loc_b)], inv[len(loc_b) :]
+            inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m) :]
 
             electrodes_shifted = drapeTopotoLoc(
                 mesh, unique_electrodes, actind=actind, option=option

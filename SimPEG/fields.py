@@ -74,7 +74,7 @@ class Fields(properties.HasProperties):
         sz = 0.0
         for f in self.knownFields:
             loc = self.knownFields[f]
-            sz += np.array(self._storageShape(loc)).prod() * 8.0 / (1024 ** 2)
+            sz += np.array(self._storageShape(loc)).prod() * 8.0 / (1024**2)
         return "{0:e} MB".format(sz)
 
     def _storageShape(self, loc):

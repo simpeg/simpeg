@@ -55,7 +55,9 @@ class BaseSrc(survey.BaseSrc):
             elif sim._formulation == "EB":
                 loc = np.row_stack(self.location)
                 cur = np.asarray(self.current)
-                interpolation_matrix = sim.mesh.get_interpolation_matrix(loc, locType='N').toarray()
+                interpolation_matrix = sim.mesh.get_interpolation_matrix(
+                    loc, locType="N"
+                ).toarray()
                 q = np.sum(cur[:, np.newaxis] * interpolation_matrix, axis=0)
                 self._q = q
             return self._q
@@ -80,10 +82,9 @@ class Multipole(BaseSrc):
     @property
     def location_b(self):
         """Location of the B electrode"""
-        return list(np.tile((len(self.location), 1),
-                            np.full_like(self.location[0], np.nan)
-                            )
-                    )
+        return list(
+            np.tile((len(self.location), 1), np.full_like(self.location[0], np.nan))
+        )
 
 
 class Dipole(BaseSrc):
@@ -119,7 +120,7 @@ class Dipole(BaseSrc):
                 "location_b property instead.",
             )
         if "current" in kwargs.keys():
-            value = kwargs.pop('current')
+            value = kwargs.pop("current")
             current = [value, -value]
         else:
             current = [1.0, -1.0]

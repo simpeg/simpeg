@@ -144,7 +144,7 @@ def _poly_line_source_tens(mesh, locs):
         dx = bx - ax
         dy = by - ay
         dz = bz - az
-        d = np.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
+        d = np.sqrt(dx**2 + dy**2 + dz**2)
 
         tol = d * np.finfo(float).eps
 
