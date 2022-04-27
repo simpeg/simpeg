@@ -2,7 +2,6 @@ import numpy as np
 from scipy.optimize import minimize
 import warnings
 import properties
-import discretize
 
 
 from ....utils import mkvc, sdiag, Zero
@@ -61,13 +60,11 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
 
                 return phi, g
 
-            if isinstance(self.mesh, discretize.CurvilinearMesh):
-                min_r = min(self.mesh.edge_lengths)
-                max_r = max(self.mesh.edge_lengths)
-            else:
-                # find the minimum cell spacing, and the maximum side of the mesh
-                min_r = min(*[np.min(h) for h in self.mesh.h])
-                max_r = max(*[np.sum(h) for h in self.mesh.h])
+            # find the minimum cell spacing, and the maximum side of the mesh
+            min_r = min(self.mesh.edge_lengths)
+            max_r = max(
+                np.max(self.mesh.nodes, axis=0) - np.min(self.mesh.nodes, axis=0)
+            )
             # generate test points log spaced between these two end members
             rs = np.logspace(np.log10(min_r / 4), np.log10(max_r * 4), 100)
 
