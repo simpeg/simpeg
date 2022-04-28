@@ -89,7 +89,7 @@ class BaseRx(survey.BaseRx):
         else:
             raise TypeError(f"orientation must be a str. Got {type(var)}")
 
-    # def projGLoc(self, f):
+    # def projected_grid(self, f):
     #     """Grid Location projection (e.g. Ex Fy ...)"""
     #     return f._GLoc(self.projField) + self.orientation
 
@@ -111,9 +111,8 @@ class BaseRx(survey.BaseRx):
         np.ndarray
             Fields projected to the receiver(s)
         """
-        if getattr(self, 'projGLoc', None) is None:
-            self.projGLoc = f._GLoc(self.projField) + self.orientation
-        P = self.getP(mesh, self.projGLoc)
+        projected_grid = f._GLoc(self.projField) + self.orientation
+        P = self.getP(mesh, projected_grid)
         f_part_complex = f[src, self.projField]
         f_part = getattr(f_part_complex, self.component)  # real or imag component
 
@@ -148,9 +147,8 @@ class BaseRx(survey.BaseRx):
 
         assert v is not None, "v must be provided to compute the deriv or adjoint"
         
-        if getattr(self, 'projGLoc', None) is None:
-            self.projGLoc = f._GLoc(self.projField) + self.orientation
-        P = self.getP(mesh, self.projGLoc)
+        projected_grid = f._GLoc(self.projField) + self.orientation
+        P = self.getP(mesh, projected_grid)
 
         if not adjoint:
             assert (

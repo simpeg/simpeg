@@ -160,7 +160,7 @@ class PointNaturalSource(BaseRx):
         """
         return self._locations_h
 
-    def getP(self, mesh, projGLoc=None, field="e"):
+    def getP(self, mesh, projected_grid, field="e"):
         """Projection matrices for all components collected by the receivers
 
         Note projection matrices are stored as a dictionary listed by meshes.
@@ -169,7 +169,7 @@ class PointNaturalSource(BaseRx):
         ----------
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
-        projGLoc : str, default = ``None``
+        projected_grid : str
             Define what part of the mesh (i.e. edges, faces, centers, nodes) to
             project from. Must be one of::
 
@@ -190,20 +190,18 @@ class PointNaturalSource(BaseRx):
             Choose "e" or "h"
         """
         if mesh.dim < 3:
-            return super().getP(mesh, projGLoc=projGLoc)
-        if projGLoc is None:
-            projGLoc = self.projGLoc
+            return super().getP(mesh, projected_grid)
 
-        if (mesh, projGLoc) in self._Ps:
-            return self._Ps[(mesh, projGLoc, field)]
+        if (mesh, projected_grid) in self._Ps:
+            return self._Ps[(mesh, projected_grid, field)]
 
         if field == "e":
             locs = self.locations_e
         else:
             locs = self.locations_h
-        P = mesh.get_interpolation_matrix(locs, projGLoc)
+        P = mesh.get_interpolation_matrix(locs, projected_grid)
         if self.storeProjections:
-            self._Ps[(mesh, projGLoc, field)] = P
+            self._Ps[(mesh, projected_grid, field)] = P
         return P
 
     def _eval_impedance(self, src, mesh, f):

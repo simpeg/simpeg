@@ -8,7 +8,9 @@ class Pressure(BaseTimeRx):
     """Richards pressue receiver class"""
 
     def __call__(self, U, simulation):
-        P = self.getP(simulation.mesh, simulation.time_mesh)
+        projected_grid = "CC"
+        projected_time_grid = "N"
+        P = self.getP(simulation.mesh, simulation.time_mesh, projected_grid, projected_time_grid)
         u = np.concatenate(U)
         return P * u
 
@@ -33,7 +35,9 @@ class Pressure(BaseTimeRx):
         numpy.ndarray
             Derivative with respect to the model times a vector
         """
-        P = self.getP(simulation.mesh, simulation.time_mesh)
+        projected_grid = "CC"
+        projected_time_grid = "N"
+        P = self.getP(simulation.mesh, simulation.time_mesh, projected_grid, projected_time_grid)
         if not adjoint:
             return P * du_dm_v  # + 0 for dRx_dm contribution
         if v is None:
@@ -46,9 +50,9 @@ class Saturation(BaseTimeRx):
 
     def __call__(self, U, simulation):
         # The water retention curve model should have been updated in the prob
-        if getattr(self, 'projGLoc', None) is None:
-            self.projGLoc = "CC"
-        P = self.getP(simulation.mesh, simulation.time_mesh)
+        projected_grid = "CC"
+        projected_time_grid = "N"
+        P = self.getP(simulation.mesh, simulation.time_mesh, projected_grid, projected_time_grid)
         usat = np.concatenate([simulation.water_retention(ui) for ui in U])
         return P * usat
 
@@ -73,11 +77,9 @@ class Saturation(BaseTimeRx):
         numpy.ndarray
             Derivative with respect to the model times a vector
         """
-        
-        if getattr(self, 'projGLoc', None) is None:
-            self.projGLoc = "CC"
-
-        P = self.getP(simulation.mesh, simulation.time_mesh)
+        projected_grid = "CC"
+        projected_time_grid = "N"
+        P = self.getP(simulation.mesh, simulation.time_mesh, projected_grid, projected_time_grid)
         dT_du = sp.block_diag([simulation.water_retention.derivU(ui) for ui in U])
 
         if simulation.water_retention.needs_model:

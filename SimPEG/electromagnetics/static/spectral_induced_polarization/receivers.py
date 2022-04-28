@@ -137,7 +137,7 @@ class BaseRx(BaseTimeRx):
         """
         return self._dc_voltage
 
-    # def projGLoc(self, f):
+    # def projected_grid(self, f):
     #     """Grid Location projection (e.g. Ex Fy ...)"""
     #     if self.orientation is not None:
     #         return f._GLoc(self.projField) + self.orientation
@@ -178,13 +178,12 @@ class BaseRx(BaseTimeRx):
         np.ndarray
             Fields projected to the receiver(s)
         """
-        if getattr(self, 'projGLoc', None) is None:
-            if self.orientation is not None:
-                self.projGLoc = f._GLoc(self.projField) + self.orientation
-            else:
-                self.projGLoc = f._GLoc(self.projField)
+        if self.orientation is not None:
+            projected_grid = f._GLoc(self.projField) + self.orientation
+        else:
+            projected_grid = f._GLoc(self.projField)
 
-        P = self.getP(mesh, self.projGLoc)
+        P = self.getP(mesh, projected_grid)
         proj_f = self.projField
         if proj_f == "phi":
             proj_f = "phiSolution"
@@ -211,13 +210,12 @@ class BaseRx(BaseTimeRx):
         np.ndarray
             derivative of fields times a vector projected to the receiver(s)
         """
-        if getattr(self, 'projGLoc', None) is None:
-            if self.orientation is not None:
-                self.projGLoc = f._GLoc(self.projField) + self.orientation
-            else:
-                self.projGLoc = f._GLoc(self.projField)
+        if self.orientation is not None:
+            projected_grid = f._GLoc(self.projField) + self.orientation
+        else:
+            projected_grid = f._GLoc(self.projField)
 
-        P = self.getP(mesh, self.projGLoc)
+        P = self.getP(mesh, projected_grid)
         if not adjoint:
             return P * v
         elif adjoint:
@@ -370,7 +368,7 @@ class Dipole(BaseRx):
         """
         return self.locations[0].shape[0]
 
-    def getP(self, mesh, location_type):
+    def getP(self, mesh, projected_grid):
         """
         Get projection matrix from mesh to receivers
 
@@ -378,8 +376,8 @@ class Dipole(BaseRx):
         ----------
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
-        location_type : str
-            Tensor locations on the mesh being interpolated from. *location_type* must be one of:
+        projected_grid : str
+            Tensor locations on the mesh being interpolated from. *projected_grid* must be one of:
 
             - 'Ex', 'edges_x'           -> x-component of field defined on x edges
             - 'Ey', 'edges_y'           -> y-component of field defined on y edges
@@ -402,8 +400,8 @@ class Dipole(BaseRx):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P0 = mesh.get_interpolation_matrix(self.locations[0], location_type)
-        P1 = mesh.get_interpolation_matrix(self.locations[1], location_type)
+        P0 = mesh.get_interpolation_matrix(self.locations[0], projected_grid)
+        P1 = mesh.get_interpolation_matrix(self.locations[1], projected_grid)
         P = P0 - P1
 
         if self.data_type == "apparent_resistivity":
@@ -443,7 +441,7 @@ class Pole(BaseRx):
         """
         return self.locations.shape[0]
 
-    def getP(self, mesh, location_type):
+    def getP(self, mesh, projected_grid):
         """
         Get projection matrix from mesh to receivers
 
@@ -451,8 +449,8 @@ class Pole(BaseRx):
         ----------
         mesh : discretize.base.BaseMesh
             The mesh on which the discrete set of equations is solved
-        location_type : str
-            Tensor locations on the mesh being interpolated from. *location_type* must be one of:
+        projected_grid : str
+            Tensor locations on the mesh being interpolated from. *projected_grid* must be one of:
 
             - 'Ex', 'edges_x'           -> x-component of field defined on x edges
             - 'Ey', 'edges_y'           -> y-component of field defined on y edges
@@ -475,7 +473,7 @@ class Pole(BaseRx):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P = mesh.get_interpolation_matrix(self.locations, location_type)
+        P = mesh.get_interpolation_matrix(self.locations, projected_grid)
 
         if self.data_type == "apparent_resistivity":
             P = sdiag(1.0 / self.geometric_factor) * P

@@ -64,8 +64,6 @@ class BaseRx:
     ----------
     locations : (n_loc, ndim) numpy.ndarray
         Locations assocated with a given receiver
-    projGLoc : str in ["CC", "Fx", "Fy", "Fz", "Ex", "Ey", "Ez", "N"], Default='CC'
-        Sets the location of numerical solution
     storeProjections : bool, Default=``False``
         Store projections from the mesh to receiver
     uid : uuid.UUID
@@ -75,7 +73,7 @@ class BaseRx:
     _Ps = None
 
 
-    def __init__(self, locations=None, storeProjections=False, uid=None, projGLoc=None, **kwargs):
+    def __init__(self, locations=None, storeProjections=False, uid=None, **kwargs):
 
         # Define receiver locations
         locs = kwargs.pop("locs", None)
@@ -97,9 +95,9 @@ class BaseRx:
                 "BaseRx no longer has an rxType property. Each receiver type is defined by "
                 "a different receiver class."
             )
-        if projGLoc is not None:
-            raise AttributeError(
-                "'projGLoc' is not set as a kwargs. It is set automatically "
+        if 'projGLoc' in kwargs:
+            warnings.warn(
+                "'projected_grid' is not set as a kwargs. It is set automatically "
                 "based on the receiver and simulation class."
             )
 
@@ -131,39 +129,39 @@ class BaseRx:
             raise TypeError(f"locations must be (n_loc, n_dim) array_like, got {type(locs)}")
         self._locations = locs
 
-    @property
-    def projGLoc(self):
-        """Gridded locations being projected to receiver locations.
+    # @property
+    # def projected_grid(self):
+    #     """Gridded locations being projected to receiver locations.
 
-        A ``str`` is used to the define the projection from the gridded locations
-        on the mesh to the receiver locations. The choices are as follows:
+    #     A ``str`` is used to the define the projection from the gridded locations
+    #     on the mesh to the receiver locations. The choices are as follows:
 
-        - "CC"  --> cell centers
-        - "Fx"  --> x-faces
-        - "Fy"  --> y-faces
-        - "Fz"  --> z-faces
-        - "Ex"  --> x-edges
-        - "Ey"  --> y-edges
-        - "Ez"  --> z-edges
-        - "N"   --> nodes
+    #     - "CC"  --> cell centers
+    #     - "Fx"  --> x-faces
+    #     - "Fy"  --> y-faces
+    #     - "Fz"  --> z-faces
+    #     - "Ex"  --> x-edges
+    #     - "Ey"  --> y-edges
+    #     - "Ez"  --> z-edges
+    #     - "N"   --> nodes
 
-        Returns
-        -------
-        str
-            The gridded locations being projected to the receiver locations.
-        """
-        return self._projGLoc
+    #     Returns
+    #     -------
+    #     str
+    #         The gridded locations being projected to the receiver locations.
+    #     """
+    #     return self._projected_grid
 
-    @projGLoc.setter
-    def projGLoc(self, var):
-        if (var in ["CC", "Fx", "Fy", "Fz", "Ex", "Ey", "Ez", "N"]) == False:
-            raise TypeError(
-                "projGLoc must be one of the following strings: "
-                "'CC', 'Fx', 'Fy', 'Fz', 'Ex', 'Ey', 'Ez', 'N'"
-                f"Got {type(var)}"
-            )
+    # @projected_grid.setter
+    # def projected_grid(self, var):
+    #     if (var in ["CC", "Fx", "Fy", "Fz", "Ex", "Ey", "Ez", "N"]) == False:
+    #         raise TypeError(
+    #             "projected_grid must be one of the following strings: "
+    #             "'CC', 'Fx', 'Fy', 'Fz', 'Ex', 'Ey', 'Ez', 'N'"
+    #             f"Got {type(var)}"
+    #         )
 
-        self._projGLoc = var
+    #     self._projected_grid = var
 
     @property
     def uid(self):
@@ -191,7 +189,7 @@ class BaseRx:
     # )
 
     # TODO: project_grid?
-    # projGLoc = properties.StringChoice(
+    # projected_grid = properties.StringChoice(
     #     "Projection grid location, default is CC",
     #     choices=["CC", "Fx", "Fy", "Fz", "Ex", "Ey", "Ez", "N"],
     #     default="CC",
@@ -219,14 +217,14 @@ class BaseRx:
         """
         return self.locations.shape[0]
 
-    def getP(self, mesh, projGLoc=None):
+    def getP(self, mesh, projected_grid):
         """Get projection matrix from mesh to receivers
 
         Parameters
         ----------
         mesh : discretize.BaseMesh
             A discretize mesh
-        projGLoc : str
+        projected_grid : str
             Define what part of the mesh (i.e. edges, faces, centers, nodes) to
             project from. Must be one of::
 
@@ -247,15 +245,12 @@ class BaseRx:
         scipy.sparse.csr_matrix
             P, the interpolation matrix
         """
-        if projGLoc is None:
-            projGLoc = self.projGLoc
+        if (mesh, projected_grid) in self._Ps:
+            return self._Ps[(mesh, projected_grid)]
 
-        if (mesh, projGLoc) in self._Ps:
-            return self._Ps[(mesh, projGLoc)]
-
-        P = mesh.getInterpolationMat(self.locations, projGLoc)
+        P = mesh.getInterpolationMat(self.locations, projected_grid)
         if self.storeProjections:
-            self._Ps[(mesh, projGLoc)] = P
+            self._Ps[(mesh, projected_grid)] = P
         return P
 
     def eval(self, **kwargs):
@@ -315,37 +310,37 @@ class BaseTimeRx(BaseRx):
 
         self._times = value
 
-    # projTLoc = properties.StringChoice(
+    # projected_time_grid = properties.StringChoice(
     #     "location on the time mesh where the data are projected from",
     #     choices=["N", "CC"],
     #     default="N",
     # )
 
-    @property
-    def projTLoc(self):
-        """Define gridding for projection from all time steps to receiver time channels.
+    # @property
+    # def projected_time_grid(self):
+    #     """Define gridding for projection from all time steps to receiver time channels.
 
-        A ``str`` is used to the define gridding of the time steps and how they are
-        projected to the time channels. The choices are as follows:
+    #     A ``str`` is used to the define gridding of the time steps and how they are
+    #     projected to the time channels. The choices are as follows:
 
-        - "CC": time-steps defined as cell centers
-        - "N": time-steps defined as nodes
+    #     - "CC": time-steps defined as cell centers
+    #     - "N": time-steps defined as nodes
 
-        Returns
-        -------
-        str
-            The gridding used for the time-steps.
-        """
-        return self._projTLoc
+    #     Returns
+    #     -------
+    #     str
+    #         The gridding used for the time-steps.
+    #     """
+    #     return self._projected_time_grid
 
-    @projTLoc.setter
-    def projTLoc(self, var):
-        if (var in ["CC", "N"]) == False:
-            raise TypeError(
-                f"projTLoc must be 'CC' or 'N'. Got {type(var)}"
-            )
+    # @projected_time_grid.setter
+    # def projected_time_grid(self, var):
+    #     if (var in ["CC", "N"]) == False:
+    #         raise TypeError(
+    #             f"projected_time_grid must be 'CC' or 'N'. Got {type(var)}"
+    #         )
 
-        self._projTLoc = var
+    #     self._projected_time_grid = var
     
 
     @property
@@ -359,7 +354,7 @@ class BaseTimeRx(BaseRx):
         """
         return self.locations.shape[0] * len(self.times)
 
-    def getSpatialP(self, mesh):
+    def getSpatialP(self, mesh, projected_grid):
         """Returns the spatial projection matrix from mesh to receivers.
 
         Parameters
@@ -374,9 +369,9 @@ class BaseTimeRx(BaseRx):
             edges, etc...) to the receivers. The returned quantity is not stored
             in memory. Instead, it is created on demand when needed.
         """
-        return mesh.getInterpolationMat(self.locations, self.projGLoc)
+        return mesh.getInterpolationMat(self.locations, projected_grid)
 
-    def getTimeP(self, time_mesh):
+    def getTimeP(self, time_mesh, projected_time_grid):
         """Returns the time projection matrix from all time steps to receiver time channels.
 
         Parameters
@@ -391,9 +386,9 @@ class BaseTimeRx(BaseRx):
             edges, etc...) to the receivers. The returned quantity is not stored
             in memory. Instead, it is created on demand when needed.
         """
-        return time_mesh.getInterpolationMat(self.times, self.projTLoc)
+        return time_mesh.getInterpolationMat(self.times, projected_time_grid)
 
-    def getP(self, mesh, timeMesh):
+    def getP(self, mesh, time_mesh, projected_grid, projected_time_grid):
         """
         Returns the projection matrices as a
         list for all components collected by
@@ -404,15 +399,15 @@ class BaseTimeRx(BaseRx):
         Projection matrices are stored as a dictionary (mesh, timeMesh)
         if `storeProjections` is ``True``
         """
-        if (mesh, timeMesh) in self._Ps:
-            return self._Ps[(mesh, timeMesh)]
+        if (mesh, time_mesh) in self._Ps:
+            return self._Ps[(mesh, time_mesh)]
 
-        Ps = self.getSpatialP(mesh)
-        Pt = self.getTimeP(timeMesh)
+        Ps = self.getSpatialP(mesh, projected_grid)
+        Pt = self.getTimeP(time_mesh, projected_time_grid)
         P = sp.kron(Pt, Ps)
 
         if self.storeProjections:
-            self._Ps[(mesh, timeMesh)] = P
+            self._Ps[(mesh, time_mesh)] = P
 
         return P
 
