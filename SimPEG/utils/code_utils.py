@@ -373,6 +373,10 @@ class Report(ScoobyReport):
         )
 
 
+##############################################################
+#               DEPRECATION FUNCTIONS
+##############################################################
+
 def deprecate_class(
     removal_version=None, new_location=None, future_warn=False, error=False
 ):
@@ -556,7 +560,7 @@ def validate_string_property(property_name, var, string_list=None):
             if var in string_list:
                 return var
             else:
-                raise ValueError(f"orientation must be either 'x', 'y' or 'z'. Got {var}")
+                raise ValueError(f"'{property_name}' must in '{string_list}'. Got '{var}'")
     else:
         raise TypeError(f"'{property_name}' must be a str. Got '{type(var)}'")
     
@@ -684,7 +688,7 @@ def validate_location_property(property_name, var, dim=None):
             )
 
 
-def validate_ndarray_property(property_name, val, dtype=None, shape=None):
+def validate_ndarray_property(property_name, var, shape=('*', '*'), dtype=float):
     """Validate numerical array property
 
     Parameters
@@ -692,19 +696,36 @@ def validate_ndarray_property(property_name, val, dtype=None, shape=None):
     property_name : str
         The name of the property being set
     var : numpy.ndarray
-        The input variable
-    dtype : float, int, complex, bool (optional)
-        The data type for the array
-    shape : tuple of int
+        The input array
+    shape : tuple of int, default = ('*', '*')
         The shape of the array; e.g. (3), (3, 3), ('*', 2).
         The '*' indicates that an arbitrary number of elements is allowed
         along a particular dimension.
+    dtype : float (default), int, complex, bool
+        The data type for the array
 
     Returns
     -------
     numpy.ndarray
         Returns the array in the specified data type once validated
     """
+    try:
+        if len(shape) == 1:
+            var = np.atleast_1d(var).astype(dtype)
+        elif len(shape) == 2:
+            var = np.atleast_2d(var).astype(dtype)
+        elif len(shape) == 3:
+            var = np.atleast_3d(var).astype(dtype)
+        else:
+            raise NotImplementedError("Only implemented for 1D, 2D and 3D arrays!!!")
+    except:
+        raise TypeError(f"'{property_name}' must be {shape} array_like, got {type(var)}")
+
+    for ii, value in np.shape(var):
+        if (shape[ii] != '*') & (shape[ii] != value):
+            raise ValueError(f"'{property_name}' must be {shape}, got {np.shape(var)}")
+
+    return var
 
 
 ###############################################################

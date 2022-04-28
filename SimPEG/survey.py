@@ -8,53 +8,53 @@ from .utils import Counter
 from .utils.code_utils import deprecate_property, deprecate_method
 from .props import BaseSimPEG
 
-class RxLocationArray(properties.Array):
-    """Locations array for receivers"""
+# class RxLocationArray(properties.Array):
+#     """Locations array for receivers"""
 
-    class_info = "an array of receiver locations"
+#     class_info = "an array of receiver locations"
 
-    def validate(self, instance, value):
-        """Validation method for setting locations array
+#     def validate(self, instance, value):
+#         """Validation method for setting locations array
 
-        Parameters
-        ----------
-        instance : class
-            The class used to validate the input argument *value*
-        value :
-            The input used to define the locations for a given receiver.
+#         Parameters
+#         ----------
+#         instance : class
+#             The class used to validate the input argument *value*
+#         value :
+#             The input used to define the locations for a given receiver.
 
-        Returns
-        -------
-        properties.Array
-            The receiver location array
-        """
-        value = np.atleast_2d(value)
-        return super(RxLocationArray, self).validate(instance, value)
+#         Returns
+#         -------
+#         properties.Array
+#             The receiver location array
+#         """
+#         value = np.atleast_2d(value)
+#         return super(RxLocationArray, self).validate(instance, value)
 
 
-class SourceLocationArray(properties.Array):
-    """Locations array for sources"""
+# class SourceLocationArray(properties.Array):
+#     """Locations array for sources"""
 
-    class_info = "a 1D array denoting the source location"
+#     class_info = "a 1D array denoting the source location"
 
-    def validate(self, instance, value):
-        """Validation method for setting locations array
+#     def validate(self, instance, value):
+#         """Validation method for setting locations array
 
-        Parameters
-        ----------
-        instance : class
-            The class used to validate the input argument *value*
-        value :
-            The input used to define the locations for a given source.
+#         Parameters
+#         ----------
+#         instance : class
+#             The class used to validate the input argument *value*
+#         value :
+#             The input used to define the locations for a given source.
 
-        Returns
-        -------
-        properties.Array
-            The source location array
-        """
-        if not isinstance(value, np.ndarray):
-            value = np.atleast_1d(np.array(value))
-        return super(SourceLocationArray, self).validate(instance, value)
+#         Returns
+#         -------
+#         properties.Array
+#             The source location array
+#         """
+#         if not isinstance(value, np.ndarray):
+#             value = np.atleast_1d(np.array(value))
+#         return super(SourceLocationArray, self).validate(instance, value)
 
 
 class BaseRx:
@@ -73,16 +73,8 @@ class BaseRx:
     _Ps = None
 
 
-    def __init__(self, locations=None, storeProjections=False, uid=None, **kwargs):
+    def __init__(self, locations=None, storeProjections=False, **kwargs):
 
-        # Define receiver locations
-        locs = kwargs.pop("locs", None)
-        if locs is not None:
-            warnings.warn(
-                "'locs' is a deprecated property. Please use 'locations' instead."
-                "'locs' be removed in SimPEG 0.16.0."
-            )
-            locations = locs
         if locations is None:
             raise AttributeError("Receiver cannot be instantiated without assigning 'locations'.")
         else:
@@ -97,18 +89,15 @@ class BaseRx:
             )
         if 'projGLoc' in kwargs:
             warnings.warn(
-                "'projected_grid' is not set as a kwargs. It is set automatically "
-                "based on the receiver and simulation class."
+                "'projGLoc' is no longer of property of the receiver class. It is set automatically "
+                "based on the receiver and simulation class. Will be remove in SimPEG 0.18.0"
             )
 
         # Remaining properties
         if getattr(self, "_Ps", None) is None:
             self._Ps = {}
         self.storeProjections = storeProjections
-        if uid is None:
-            self.uid = uuid.uuid4()
-        else:
-            self.uid = uid
+        self._uid = uuid.uuid4()
 
     @property
     def locations(self):
@@ -174,12 +163,6 @@ class BaseRx:
         """
         return self._uid
 
-    @uid.setter
-    def uid(self, var):
-        if not isinstance(var, uuid.UUID):
-            raise TypeError(f"uid must be an instance of uuid.UUID. Got {type(var)}")
-        self._uid = var
-
 
     # TODO: write a validator that checks against mesh dimension in the
     # BaseSimulation
@@ -217,7 +200,7 @@ class BaseRx:
         """
         return self.locations.shape[0]
 
-    def getP(self, mesh, projected_grid):
+    def getP(self, mesh, projected_grid="CC"):
         """Get projection matrix from mesh to receivers
 
         Parameters
@@ -354,7 +337,7 @@ class BaseTimeRx(BaseRx):
         """
         return self.locations.shape[0] * len(self.times)
 
-    def getSpatialP(self, mesh, projected_grid):
+    def getSpatialP(self, mesh, projected_grid="CC"):
         """Returns the spatial projection matrix from mesh to receivers.
 
         Parameters
@@ -435,10 +418,7 @@ class BaseSrc:
         if location is not None:
             self.location = location
 
-        if uid is None:
-            self.uid = uuid.uuid4()
-        else:
-            self.uid = uid
+        self._uid = uuid.uuid4()
 
     # location = SourceLocationArray(
     #     "Location of the source [x, y, z] in 3D", shape=("*",), required=False
@@ -517,12 +497,6 @@ class BaseSrc:
         """
         return self._uid
 
-    @uid.setter
-    def uid(self, var):
-        if not isinstance(var, uuid.UUID):
-            raise TypeError(f"uid must be an instance of uuid.UUID. Got {type(var)}")
-        self._uid = var
-
     # _uid = properties.Uuid("unique identifier for the source")
 
     _fields_per_source = 1
@@ -576,13 +550,6 @@ class BaseSrc:
         """
         return np.array([rx.nD for rx in self.receiver_list])
 
-    getReceiverIndex = deprecate_method(
-        get_receiver_indices,
-        "getReceiverIndex",
-        future_warn=True,
-        removal_version="0.16.0"
-    )
-
 
 # TODO: allow a reciever list to be provided and assume it is used for all
 # sources? (and store the projections)
@@ -599,26 +566,16 @@ class BaseSurvey:
 
     _source_list = []
 
-    def __init__(self, source_list=None, uid=None, counter=None, **kwargs):
+    def __init__(self, source_list=None, counter=None, **kwargs):
 
         # Source list
-        srcList = kwargs.pop("srcList", None)
-        if srcList is not None:
-            warnings.warn(
-                "'srcList' is a deprecated property. Please use 'source_list' instead."
-                "'srcList' be removed in SimPEG 0.16.0."
-            )
-            source_list = srcList
         if source_list is not None:
             self.source_list = source_list
 
-        if uid is None:
-            self.uid = uuid.uuid4()
-        else:
-            self.uid = uid
-
         if counter is not None:
             self.counter = counter
+
+        self._uid = uuid.uuid4()
 
 
     @property
@@ -651,6 +608,17 @@ class BaseSurvey:
             ii += n_fields
 
         self._source_list = new_list
+
+    @property
+    def uid(self):
+        """Universal unique identifier
+
+        Returns
+        -------
+        uuid.UUID
+            A universal unique identifier
+        """
+        return self._uid
 
     @property
     def counter(self):
