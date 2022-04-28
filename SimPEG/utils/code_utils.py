@@ -527,9 +527,189 @@ def deprecate_function(new_function, old_name, removal_version=None):
     return dep_function
 
 
+###############################################################
+#                    PROPERTY VALIDATORS
+###############################################################
+
+def validate_string_property(property_name, var, string_list=None):
+    """Validate a string property
+
+    Parameters
+    ----------
+    property_name : str
+        The name of the property being set
+    var : str
+        The input variable
+    string_list : list or tuple of str, optional
+        Provide a list of acceptable strings
+
+    Returns
+    -------
+    str
+        Returns the input argument *var* once validated 
+    """
+
+    if isinstance(var, str):
+        if string_list is None:
+            return var
+        else:
+            if var in string_list:
+                return var
+            else:
+                raise ValueError(f"orientation must be either 'x', 'y' or 'z'. Got {var}")
+    else:
+        raise TypeError(f"'{property_name}' must be a str. Got '{type(var)}'")
+    
+
+def validate_integer_property(property_name, var, min_val=-np.inf, max_val=np.inf):
+    """Validate integer property
+
+    Parameters
+    ----------
+    property_name : str
+        The name of the property being set
+    var : int or float
+        The input variable
+    min_val : int or float, optional
+        Minimum value
+    max_val : int or float, optional
+        Maximum value
+
+    Returns
+    -------
+    float
+        Returns the input variable as a float once validated
+    """
+    try:
+        var = int(var)
+    except:
+        raise TypeError(f"'{property_name}' must be int or float, got '{type(var)}'")
+
+    if (var < min_val) | (var > max_val):
+        raise ValueError(f"'{property_name}' must be a value between {min_val} and {max_val}")
+    else:
+        return var
+
+def validate_float_property(property_name, var, min_val=-np.inf, max_val=np.inf):
+    """Validate float property
+
+    Parameters
+    ----------
+    property_name : str
+        The name of the property being set
+    var : int or float
+        The input variable
+    min_val : int or float, optional
+        Minimum value
+    max_val : int or float, optional
+        Maximum value
+
+    Returns
+    -------
+    float
+        Returns the input variable as a float once validated
+    """
+    try:
+        var = float(var)
+    except:
+        raise TypeError(f"'{property_name}' must be int or float, got '{type(var)}'")
+
+    if (var < min_val) | (var > max_val):
+        raise ValueError(f"'{property_name}' must be a value between {min_val} and {max_val}")
+    else:
+        return var
 
 
-# DEPRECATIONS
+def validate_list_property(property_name, var, class_type):
+    """Validate list of instances of a certain class
+
+    Parameters
+    ----------
+    property_name : str
+        The name of the property being set
+    var : object or a list of object
+        A list of objects
+    class_type : class or tuple of class types
+        Class type(s) that are allowed in the list
+
+    Returns
+    -------
+    list
+        Returns the list once validated
+    """
+    if isinstance(var, class_type):
+        var = [var]
+    elif isinstance(var, list):
+        pass
+    else:
+        raise TypeError(f"'{property_name}' must be a list of '{class_type}'")
+
+    is_true = [isinstance(x, class_type) for x in var]
+    if np.all(is_true):
+        return var
+    else:
+        TypeError(f"'{property_name}' must be a list of '{class_type}'")
+
+
+def validate_location_property(property_name, var, dim=None):
+    """Validate a location
+
+    Parameters
+    ----------
+    property_name : str
+        The name of the property being set
+    var : numpy.array_like
+        The input variable
+    dim : int, optional
+        The dimension; i.e. 1, 2 or 3
+
+    Returns
+    -------
+    numpy.ndarray
+        Returns the location once validated
+    """
+    try:
+        var = np.atleast_1d(var).astype(float).squeeze()
+    except:
+        raise TypeError(f"'{property_name}' must be array_like, got {type(var)}")
+
+    if dim is None:
+        return var
+    else:
+        if len(var) == dim:
+            return var
+        else:
+            raise ValueError(
+                f"'{property_name}' must be array_like with shape '{dim}', got '{len(var)}'"
+            )
+
+
+def validate_ndarray_property(property_name, val, dtype=None, shape=None):
+    """Validate numerical array property
+
+    Parameters
+    ----------
+    property_name : str
+        The name of the property being set
+    var : numpy.ndarray
+        The input variable
+    dtype : float, int, complex, bool (optional)
+        The data type for the array
+    shape : tuple of int
+        The shape of the array; e.g. (3), (3, 3), ('*', 2).
+        The '*' indicates that an arbitrary number of elements is allowed
+        along a particular dimension.
+
+    Returns
+    -------
+    numpy.ndarray
+        Returns the array in the specified data type once validated
+    """
+
+
+###############################################################
+#                      DEPRECATIONS
+###############################################################
 memProfileWrapper = deprecate_function(create_wrapper_from_class, "memProfileWrapper", removal_version="0.16.0")
 setKwargs = deprecate_function(set_kwargs, "setKwargs", removal_version="0.16.0")
 printTitles = deprecate_function(print_titles, "printTitles", removal_version="0.16.0")

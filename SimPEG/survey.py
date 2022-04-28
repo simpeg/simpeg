@@ -64,7 +64,7 @@ class BaseRx:
     ----------
     locations : (n_loc, ndim) numpy.ndarray
         Locations assocated with a given receiver
-    storeProjections : bool, Default=``False``
+    storeProjections : bool, Default = ``False``
         Store projections from the mesh to receiver
     uid : uuid.UUID
         A universally unique identifier
@@ -371,7 +371,7 @@ class BaseTimeRx(BaseRx):
         """
         return mesh.getInterpolationMat(self.locations, projected_grid)
 
-    def getTimeP(self, time_mesh, projected_time_grid):
+    def getTimeP(self, time_mesh, projected_time_grid="N"):
         """Returns the time projection matrix from all time steps to receiver time channels.
 
         Parameters
@@ -388,7 +388,7 @@ class BaseTimeRx(BaseRx):
         """
         return time_mesh.getInterpolationMat(self.times, projected_time_grid)
 
-    def getP(self, mesh, time_mesh, projected_grid, projected_time_grid):
+    def getP(self, mesh, time_mesh, projected_grid="CC", projected_time_grid="N"):
         """
         Returns the projection matrices as a
         list for all components collected by
@@ -425,28 +425,13 @@ class BaseSrc:
         A universally unique identifier
     """
 
-    def __init__(self, receiver_list=None, location=None, uid=None, **kwargs):
+    _receiver_list = []
 
-        # Receiver list
-        rxList = kwargs.pop("rxList", None)
-        if rxList is not None:
-            warnings.warn(
-                "'rxList' is a deprecated property. Please use 'receiver_list' instead."
-                "'rxList' be removed in SimPEG 0.16.0."
-            )
-            receiver_list = rxList
-        if receiver_list is None:
-            raise AttributeError("Source cannot be instantiated without assigning 'receiver_list'.")
-        else:
+    def __init__(self, receiver_list=None, location=None, **kwargs):
+
+        if receiver_list is not None:
             self.receiver_list = receiver_list
 
-        loc = kwargs.pop("loc", None)
-        if loc is not None:
-            warnings.warn(
-                "'loc' is a deprecated property. Please use 'location' instead."
-                "'loc' be removed in SimPEG 0.16.0."
-            )
-            location = loc
         if location is not None:
             self.location = location
 
@@ -542,18 +527,6 @@ class BaseSrc:
 
     _fields_per_source = 1
 
-    loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", error=True
-    )
-
-    rxList = deprecate_property(
-        receiver_list,
-        "rxList",
-        new_name="receiver_list",
-        removal_version="0.16.0",
-        error=True,
-    )
-
     def get_receiver_indices(self, receivers):
         """Get indices for a subset of receivers within the source's receivers list. 
 
@@ -624,6 +597,8 @@ class BaseSurvey:
         A universally unique identifier
     """
 
+    _source_list = []
+
     def __init__(self, source_list=None, uid=None, counter=None, **kwargs):
 
         # Source list
@@ -676,8 +651,6 @@ class BaseSurvey:
             ii += n_fields
 
         self._source_list = new_list
-
-
 
     @property
     def counter(self):

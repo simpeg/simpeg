@@ -50,9 +50,7 @@ class Saturation(BaseTimeRx):
 
     def __call__(self, U, simulation):
         # The water retention curve model should have been updated in the prob
-        projected_grid = "CC"
-        projected_time_grid = "N"
-        P = self.getP(simulation.mesh, simulation.time_mesh, projected_grid, projected_time_grid)
+        P = self.getP(simulation.mesh, simulation.time_mesh)
         usat = np.concatenate([simulation.water_retention(ui) for ui in U])
         return P * usat
 
@@ -77,9 +75,7 @@ class Saturation(BaseTimeRx):
         numpy.ndarray
             Derivative with respect to the model times a vector
         """
-        projected_grid = "CC"
-        projected_time_grid = "N"
-        P = self.getP(simulation.mesh, simulation.time_mesh, projected_grid, projected_time_grid)
+        P = self.getP(simulation.mesh, simulation.time_mesh)
         dT_du = sp.block_diag([simulation.water_retention.derivU(ui) for ui in U])
 
         if simulation.water_retention.needs_model:

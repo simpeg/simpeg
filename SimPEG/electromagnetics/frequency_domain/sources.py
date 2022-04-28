@@ -59,14 +59,14 @@ class BaseFDEMSrc(BaseEMSrc):
     @frequency.setter
     def frequency(self, freq):
         try:
-            loc = float(freq)
+            freq = float(freq)
         except:
             raise TypeError(f"frequency must be int or float, got {type(freq)}")
 
         if freq < 0.:
             raise TypeError(f"frequency must be a positive value")
 
-        self._frequency=freq
+        self._frequency = freq
 
     def bPrimary(self, simulation):
         """Compute primary magnetic flux density
