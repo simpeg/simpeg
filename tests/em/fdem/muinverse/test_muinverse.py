@@ -149,6 +149,9 @@ class MuTests(unittest.TestCase):
         MfMuiI = self.simulation.MfMuiI
         MeMuDeriv = self.simulation.MeMuDeriv(u[:, "e"])
         MfMuiDeriv = self.simulation.MfMuiDeriv(u[:, "b"])
+        MfMuiDeriv_zero = self.simulation.MfMuiDeriv(utils.Zero())
+        MfMuiIDeriv_zero = self.simulation.MfMuiIDeriv(utils.Zero())
+        MeMuDeriv_zero = self.simulation.MeMuDeriv(utils.Zero())
 
         m1 = np.random.rand(self.mesh.nC)
         self.simulation.model = m1
@@ -159,6 +162,9 @@ class MuTests(unittest.TestCase):
         self.assertTrue(getattr(self, "_MfMuiI", None) is None)
         self.assertTrue(getattr(self, "_MfMuiDeriv", None) is None)
         self.assertTrue(getattr(self, "_MeMuDeriv", None) is None)
+        self.assertTrue(isinstance(MfMuiDeriv_zero, utils.Zero))
+        self.assertTrue(isinstance(MfMuiIDeriv_zero, utils.Zero))
+        self.assertTrue(isinstance(MeMuDeriv_zero, utils.Zero))
 
     def JvecTest(
         self, prbtype="ElectricField", sigmaInInversion=False, invertMui=False

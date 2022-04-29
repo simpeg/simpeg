@@ -8,7 +8,8 @@ class TestLinearSimulation(unittest.TestCase):
     def setUp(self):
         mesh = discretize.TensorMesh([100])
         self.sim = simulation.ExponentialSinusoidSimulation(
-            mesh=mesh, model_map=maps.IdentityMap(mesh),
+            mesh=mesh,
+            model_map=maps.IdentityMap(mesh),
         )
 
         mtrue = np.zeros(mesh.nC)

@@ -12,8 +12,3 @@ from ..resistivity import utils
 
 Simulation2DCellCentred = Simulation2DCellCentered
 Simulation3DCellCentred = Simulation2DCellCentered
-
-############
-# Deprecated
-############
-from .simulation import Problem3D_CC, Problem3D_N, Problem2D_CC, Problem2D_N

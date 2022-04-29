@@ -79,7 +79,7 @@ write_output = False
 x_topo, y_topo = np.meshgrid(
     np.linspace(-2100, 2100, 141), np.linspace(-2000, 2000, 141)
 )
-s = np.sqrt(x_topo ** 2 + y_topo ** 2)
+s = np.sqrt(x_topo**2 + y_topo**2)
 z_topo = (1 / np.pi) * 140 * (-np.pi / 2 + np.arctan((s - 600.0) / 80.0))
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 topo_xyz = np.c_[x_topo, y_topo, z_topo]
@@ -285,7 +285,10 @@ dpred_dc = dc_simulation.dpred(conductivity_model)
 
 # Since the data are normalized voltage, we must convert predicted
 # to apparent conductivities.
-apparent_conductivity = 1 / apparent_resistivity_from_voltage(dc_survey, dpred_dc,)
+apparent_conductivity = 1 / apparent_resistivity_from_voltage(
+    dc_survey,
+    dpred_dc,
+)
 
 # For large datasets or for surveys with unconventional electrode geometry,
 # interpretation can be challenging if we plot every datum. Here, we plot

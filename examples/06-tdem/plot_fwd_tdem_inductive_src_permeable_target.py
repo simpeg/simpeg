@@ -159,7 +159,10 @@ ax.set_title("quarter sine waveform")
 
 # For the magnetostatic simulation. The default waveform is a step-off
 src_magnetostatic = TDEM.Src.CircularLoop(
-    [], location=np.r_[0.0, 0.0, 0.0], orientation="z", radius=100,
+    [],
+    location=np.r_[0.0, 0.0, 0.0],
+    orientation="z",
+    radius=100,
 )
 
 # For the long on-time simulation. We use the ramp-on waveform

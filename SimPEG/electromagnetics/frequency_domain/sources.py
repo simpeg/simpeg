@@ -1,16 +1,14 @@
 import properties
 import numpy as np
 from scipy.constants import mu_0
-import warnings
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
 from ...props import LocationVector
 from ...utils import mkvc, Zero
-from ...utils.code_utils import deprecate_property
 
 from ..utils import omega
-from ..utils import segmented_line_current_source_term
+from ..utils import segmented_line_current_source_term, line_through_faces
 from ..base import BaseEMSrc
 
 
@@ -126,10 +124,6 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary magnetic flux density
         """
         return Zero()
-
-    freq = deprecate_property(
-        frequency, "freq", new_name="frequency", removal_version="0.16.0", error=True,
-    )
 
 
 class RawVec_e(BaseFDEMSrc):
@@ -301,9 +295,6 @@ class MagDipole(BaseFDEMSrc):
     )
     location = LocationVector(
         "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
-    )
-    loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", error=True
     )
 
     def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
@@ -547,7 +538,7 @@ class CircularLoop(MagDipole):
 
     @property
     def moment(self):
-        return np.pi * self.radius ** 2 * self.current
+        return np.pi * self.radius**2 * self.current
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_loop", None) is None:
@@ -884,18 +875,28 @@ class LineCurrent(BaseFDEMSrc):
             mesh = simulation.mesh
             locs = self.location
             self._Mejs = self.current * segmented_line_current_source_term(mesh, locs)
-        return self._Mejs
+        return self.current * self._Mejs
+
+    def Mfjs(self, simulation):
+        if getattr(self, "_Mfjs", None) is None:
+            self._Mfjs = line_through_faces(
+                simulation.mesh, self.location, normalize_by_area=True
+            )
+        return self.current * self._Mfjs
 
     def getRHSdc(self, simulation):
-        Grad = simulation.mesh.nodalGrad
-        return Grad.T * self.Mejs(simulation)
+        if simulation._formulation == "EB":
+            Grad = simulation.mesh.nodalGrad
+            return Grad.T * self.Mejs(simulation)
+        elif simulation._formulation == "HJ":
+            Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+            return Div * self.Mfjs(simulation)
 
     def s_m(self, simulation):
         return Zero()
 
     def s_e(self, simulation):
-        if simulation._formulation != "EB":
-            raise NotImplementedError(
-                "LineCurrents are only implemented for EB formulations"
-            )
-        return self.Mejs(simulation)
+        if simulation._formulation == "EB":
+            return self.Mejs(simulation)
+        elif simulation._formulation == "HJ":
+            return self.Mfjs(simulation)

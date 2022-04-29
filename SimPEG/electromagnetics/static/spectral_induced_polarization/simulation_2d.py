@@ -1,5 +1,4 @@
 import numpy as np
-from ....utils.code_utils import deprecate_class
 
 from ..induced_polarization import Simulation2DNodal as BaseSimulation2DNodal
 from ..induced_polarization import (
@@ -79,17 +78,3 @@ class Simulation2DNodal(BaseSIPSimulation2D, BaseSimulation2DNodal):
 
 
 Simulation2DCellCentred = Simulation2DCellCentered
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem2D_N(Simulation2DNodal):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem2D_CC(Simulation2DCellCentered):
-    pass

@@ -3,7 +3,6 @@ from scipy.constants import epsilon_0
 
 from ....fields import Fields
 from ....utils import Identity, Zero
-from ....utils.code_utils import deprecate_class
 
 
 class FieldsDC(Fields):
@@ -254,16 +253,3 @@ class Fields3DNodal(FieldsDC):
 
 
 Fields3DCellCentred = Fields3DCellCentered
-
-
-############
-# Deprecated
-############
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields_CC(Fields3DCellCentered):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields_N(Fields3DNodal):
-    pass

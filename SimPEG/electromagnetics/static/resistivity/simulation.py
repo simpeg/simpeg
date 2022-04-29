@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
 import properties
-from ....utils.code_utils import deprecate_class
 
 from ....utils import mkvc, Zero
 from ....data import Data
@@ -567,18 +566,3 @@ class Simulation3DNodal(BaseDCSimulation):
 
 
 Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_N(Simulation3DNodal):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_CC(Simulation3DCellCentered):
-    pass

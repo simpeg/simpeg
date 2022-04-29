@@ -142,7 +142,8 @@ ip_data = read_dcip_xyz(
 
 # Convert predicted data to apparent conductivities
 apparent_conductivity = 1 / apparent_resistivity_from_voltage(
-    dc_data.survey, dc_data.dobs,
+    dc_data.survey,
+    dc_data.dobs,
 )
 
 if has_plotly:
@@ -349,7 +350,9 @@ dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation
 
 # Define the regularization (model objective function)
 dc_regularization = regularization.Simple(
-    mesh, indActive=ind_active, mref=starting_conductivity_model,
+    mesh,
+    indActive=ind_active,
+    mref=starting_conductivity_model,
 )
 
 dc_regularization.mrefInSmooth = True  # Include reference model in smoothness

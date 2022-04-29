@@ -1,7 +1,7 @@
 import numpy as np
 import properties
 import scipy.sparse as sp
-from ....utils.code_utils import deprecate_class, deprecate_property
+from ....utils.code_utils import deprecate_property
 
 from .... import props, maps
 from ....data import Data
@@ -45,7 +45,9 @@ class BaseIPSimulation(BasePDESimulation):
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
 
     _data_type = properties.StringChoice(
-        "IP data type", default="volt", choices=["volt", "apparent_chargeability"],
+        "IP data type",
+        default="volt",
+        choices=["volt", "apparent_chargeability"],
     )
 
     data_type = deprecate_property(
@@ -108,7 +110,7 @@ class BaseIPSimulation(BasePDESimulation):
         if self.gtgdiag is None:
             J = self.getJ(m)
             if W is None:
-                W = self._scale ** 2
+                W = self._scale**2
             else:
                 W = (self._scale * W.diagonal()) ** 2
 
@@ -157,28 +159,3 @@ class Simulation3DNodal(BaseIPSimulation, DC_3D_N):
 
 Simulation2DCellCentred = Simulation2DCellCentered
 Simulation3DCellCentred = Simulation3DCellCentered
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem2D_N(Simulation2DNodal):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem2D_CC(Simulation2DCellCentered):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_N(Simulation3DNodal):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_CC(Simulation3DCellCentered):
-    pass

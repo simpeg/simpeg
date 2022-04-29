@@ -1,6 +1,3 @@
-from __future__ import print_function
-from ...utils.code_utils import deprecate_class
-from SimPEG import utils
 from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
 from ...simulation import BaseSimulation
@@ -215,9 +212,9 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dxdz / (r * dy_r)
                                 - np.arctan(arg)
                                 + dx[:, aa]
-                                * (1.0 / (1 + arg ** 2.0))
+                                * (1.0 / (1 + arg**2.0))
                                 * dydz
-                                / dxr ** 2.0
+                                / dxr**2.0
                                 * (r + dx[:, aa] ** 2.0 / r)
                             )
                         )
@@ -232,8 +229,8 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dy[:, bb] ** 2.0 / (r * dz_r)
                                 + dz[:, cc] / r
                                 - 1.0
-                                / (1 + arg ** 2.0)
-                                * (dz[:, cc] / r ** 2)
+                                / (1 + arg**2.0)
+                                * (dz[:, cc] / r**2)
                                 * (r - dy[:, bb] ** 2.0 / r)
                             )
                         )
@@ -248,8 +245,8 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dz[:, cc] ** 2.0 / (r * dy_r)
                                 + dy[:, bb] / r
                                 - 1.0
-                                / (1 + arg ** 2.0)
-                                * (dy[:, bb] / (r ** 2))
+                                / (1 + arg**2.0)
+                                * (dy[:, bb] / (r**2))
                                 * (r - dz[:, cc] ** 2.0 / r)
                             )
                         )
@@ -270,9 +267,9 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dydz / (r * dx_r)
                                 - np.arctan(arg)
                                 + dy[:, bb]
-                                * (1.0 / (1 + arg ** 2.0))
+                                * (1.0 / (1 + arg**2.0))
                                 * dxdz
-                                / dyr ** 2.0
+                                / dyr**2.0
                                 * (r + dy[:, bb] ** 2.0 / r)
                             )
                         )
@@ -287,8 +284,8 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dz[:, cc] ** 2.0 / (r * (dx_r))
                                 + dx[:, aa] / r
                                 - 1.0
-                                / (1 + arg ** 2.0)
-                                * (dx[:, aa] / (r ** 2))
+                                / (1 + arg**2.0)
+                                * (dx[:, aa] / (r**2))
                                 * (r - dz[:, cc] ** 2.0 / r)
                             )
                         )
@@ -376,18 +373,3 @@ class Simulation3DDifferential(BasePDESimulation):
         gField = 4.0 * np.pi * NewtG * 1e8 * self._Div * u
 
         return {"G": gField, "u": u}
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class GravityIntegral(Simulation3DIntegral):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_Diff(Simulation3DDifferential):
-    pass

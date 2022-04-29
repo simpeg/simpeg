@@ -1,6 +1,4 @@
-from __future__ import division
 import numpy as np
-from .code_utils import deprecate_method
 from discretize.utils import (
     Zero,
     Identity,
@@ -23,8 +21,6 @@ from discretize.utils import (
     makePropertyTensor,
     invPropertyTensor,
 )
-
-avExtrap = deprecate_method(av_extrap, "avExtrap", removal_version="0.16.0", error=True)
 
 
 def diagEst(matFun, n, k=None, approach="Probing"):
@@ -175,13 +171,18 @@ def eigenvalue_by_power_iteration(
         if hasattr(obj, "simulation"):  # if data misfit term
             eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0, f=fields_list[j]))
         else:
-            eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0,))
+            eigenvalue += mult * x0.dot(
+                obj.deriv2(
+                    model,
+                    v=x0,
+                )
+            )
 
     return eigenvalue
 
 
 def cartesian2spherical(m):
-    """ Convert from cartesian to spherical """
+    """Convert from cartesian to spherical"""
 
     # nC = int(len(m)/3)
 
@@ -189,7 +190,7 @@ def cartesian2spherical(m):
     y = m[:, 1]
     z = m[:, 2]
 
-    a = (x ** 2.0 + y ** 2.0 + z ** 2.0) ** 0.5
+    a = (x**2.0 + y**2.0 + z**2.0) ** 0.5
 
     t = np.zeros_like(x)
     t[a > 0] = np.arcsin(z[a > 0] / a[a > 0])
@@ -203,7 +204,7 @@ def cartesian2spherical(m):
 
 
 def spherical2cartesian(m):
-    """ Convert from spherical to cartesian """
+    """Convert from spherical to cartesian"""
 
     a = m[:, 0] + 1e-8
     t = m[:, 1]

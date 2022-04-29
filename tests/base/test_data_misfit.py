@@ -46,13 +46,6 @@ class DataMisfitTest(unittest.TestCase):
         self.data = synthetic_data
         self.dmis = dmis
 
-    def test_Wd_depreciation(self):
-        with self.assertRaises(NotImplementedError):
-            print(self.dmis.Wd)
-
-        with self.assertRaises(NotImplementedError):
-            self.dmis.Wd = utils.Identity()
-
     def test_DataMisfit_nP(self):
         self.assertTrue(self.dmis.nP == self.mesh.nC)
 

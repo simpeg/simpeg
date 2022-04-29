@@ -17,30 +17,28 @@ MU = mu_0
 
 # Test the Jvec derivative
 def DerivJvecTest(inputSetup, comp="All", freq=False, expMap=True):
-    (M, freqs, sig, sigBG, rx_loc) = inputSetup
-    survey, simulation = nsem.utils.test_utils.setupSimpegNSEM_ePrimSec(
-        inputSetup, comp=comp, singleFreq=freq, expMap=expMap
+    m, simulation = nsem.utils.test_utils.setupSimpegNSEM_PrimarySecondary(
+        inputSetup, [freq], comp=comp, singleFreq=False
     )
     print("Using {0} solver for the simulation".format(simulation.solver))
     print(
         "Derivative test of Jvec for eForm primary/secondary for {} comp at {}\n".format(
-            comp, survey.frequencies
+            comp, simulation.survey.frequencies
         )
     )
     # simulation.mapping = Maps.ExpMap(simulation.mesh)
     # simulation.sigmaPrimary = np.log(sigBG)
-    x0 = np.log(sigBG)
+    # x0 = np.log(simulation.sigmaPrimary)
     # cond = sig[0]
     # x0 = np.log(np.ones(simulation.mesh.nC)*cond)
     # simulation.sigmaPrimary = x0
     # if True:
     #     x0  = x0 + np.random.randn(simulation.mesh.nC)*cond*1e-1
-    survey = simulation.survey
 
     def fun(x):
-        return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
+        return simulation.dpred(x), lambda x: simulation.Jvec(m, x)
 
-    return tests.checkDerivative(fun, x0, num=3, plotIt=False, eps=FLR)
+    return tests.checkDerivative(fun, m, num=3, plotIt=False, eps=FLR)
 
 
 def DerivProjfieldsTest(inputSetup, comp="All", freq=False):
@@ -94,6 +92,12 @@ class NSEM_DerivTests(unittest.TestCase):
 
     def test_derivJvec_zyyi(self):
         self.assertTrue(DerivJvecTest(nsem.utils.test_utils.halfSpace(1e-2), "yy", 0.1))
+
+    # apparent res and phase
+    def test_derivJvec_resAll(self):
+        self.assertTrue(
+            DerivJvecTest(nsem.utils.test_utils.halfSpace(1e-2), "Res", 0.1)
+        )
 
     # Tipper
     def test_derivJvec_tipperAll(self):
