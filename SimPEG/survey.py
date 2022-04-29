@@ -66,8 +66,6 @@ class BaseRx:
         Locations assocated with a given receiver
     storeProjections : bool, Default = ``False``
         Store projections from the mesh to receiver
-    uid : uuid.UUID
-        A universally unique identifier
     """
 
     _Ps = None
@@ -404,8 +402,6 @@ class BaseSrc:
         Location of the source
     receiver_list : list of SimPEG.survey.BaseRx objects
         Sets the receivers associated with the source
-    uid : uuid.UUID
-        A universally unique identifier
     """
 
     _receiver_list = []
@@ -560,8 +556,8 @@ class BaseSurvey:
     ----------
     source_list : list of SimPEG.survey.BaseSrc objects
         Sets the sources (and their receivers)
-    uid : uuid.UUID
-        A universally unique identifier
+    counter : SimPEG.utils.Counter
+        A SimPEG counter object
     """
 
     _source_list = []

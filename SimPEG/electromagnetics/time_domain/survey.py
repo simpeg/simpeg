@@ -24,6 +24,8 @@ class Survey(BaseSurvey):
     # )
 
     def __init__(self, source_list=None, **kwargs):
+        if source_list is None:
+            raise AttributeError("Survey cannot be instantiated without sources")
         super(Survey, self).__init__(source_list, **kwargs)
 
     @property

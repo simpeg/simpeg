@@ -48,6 +48,8 @@ class Survey(BaseSurvey):
     # )
 
     def __init__(self, source_list=None, survey_geometry="surface", survey_type="dipole-dipole", **kwargs):
+        if source_list is None:
+            raise AttributeError("Survey cannot be instantiated without sources")
         super(Survey, self).__init__(source_list, **kwargs)
         self.survey_geometry = survey_geometry
         self.survey_type = survey_type

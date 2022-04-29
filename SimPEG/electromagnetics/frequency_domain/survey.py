@@ -13,7 +13,9 @@ class Survey(BaseSurvey):
     """
 
     def __init__(self, source_list=None, **kwargs):
-        # Sort these by frequency
+        
+        if source_list is None:
+            raise AttributeError("Frequency domain survey cannot be instantiated without sources")
         super(Survey, self).__init__(source_list, **kwargs)
 
         _frequency_dict = {}

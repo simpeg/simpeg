@@ -33,6 +33,9 @@ class SurveyVRM(BaseSurvey):
 
     def __init__(self, source_list=None, t_active=None, **kwargs):
 
+        if source_list is None:
+            raise AttributeError("Survey cannot be instantiated without sources")
+
         super(SurveyVRM, self).__init__(source_list=source_list, **kwargs)
 
         self._nD_all = self.vnD.sum()
