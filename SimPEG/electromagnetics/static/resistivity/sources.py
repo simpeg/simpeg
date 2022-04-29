@@ -24,7 +24,7 @@ class BaseSrc(survey.BaseSrc):
 
     @location.setter
     def location(self, other):
-        other = np.stack(other)
+        other = np.asarray(other, dtype=float)
         other = np.atleast_2d(other)
         self._location = other
 

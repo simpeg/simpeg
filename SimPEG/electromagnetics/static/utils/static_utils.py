@@ -215,11 +215,7 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
 
     for ii, source in enumerate(survey.source_list):
         src_loc = source.location
-        if isinstance(src_loc, list):
-            src_midpoint = (src_loc[0] + src_loc[1]) / 2
-        else:
-            src_midpoint = src_loc
-        src_midpoint = src_midpoint.reshape((1, len(src_midpoint)))
+        src_midpoint = np.mean(src_loc, axis=0)[None, :]
 
         for receiver in source.receiver_list:
             rx_locs = receiver.locations
