@@ -139,7 +139,7 @@ def defineElipse(ccMesh, center=None, anisotropy=None, slope=10.0, theta=0.0):
     for i in range(dim):
         G[:, i] = G[:, i] / anisotropy[i] * 2.0
 
-    D = np.sqrt(np.sum(G ** 2, axis=1))
+    D = np.sqrt(np.sum(G**2, axis=1))
     return -np.arctan((D - 1) * slope) * (2.0 / np.pi) / 2.0 + 0.5
 
 
@@ -333,11 +333,11 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
     np.random.seed(seed)
     mr = np.random.rand(*shape)
     if anisotropy is None:
-        if len(shape) is 1:
+        if len(shape) == 1:
             smth = np.array([1, 10.0, 1], dtype=float)
-        elif len(shape) is 2:
+        elif len(shape) == 2:
             smth = np.array([[1, 7, 1], [2, 10, 2], [1, 7, 1]], dtype=float)
-        elif len(shape) is 3:
+        elif len(shape) == 3:
             kernal = np.array([1, 4, 1], dtype=float).reshape((1, 3))
             smth = np.array(
                 sp.kron(sp.kron(kernal, kernal.T).todense()[:], kernal).todense()

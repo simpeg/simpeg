@@ -174,6 +174,10 @@ class Survey(BaseSurvey):
                     locations_b.append(
                         source.location[1].reshape([1, -1]).repeat(nRx, axis=0)
                     )
+                elif isinstance(source, Src.Multipole):
+                    location_tiled = np.tile(source.location, (nRx, 1))
+                    locations_a.append(location_tiled)
+                    locations_b.append(location_tiled)
                 # Pole RX
                 if isinstance(rx, Rx.Pole):
                     locations_m.append(rx.locations)
@@ -223,8 +227,8 @@ class Survey(BaseSurvey):
             ind = 0
             for src in self.source_list:
                 a_loc, b_loc = a_shifted[ind], b_shifted[ind]
-                if isinstance(src, Src.Pole):
-                    src.location = a_loc
+                if isinstance(src, (Src.Pole, Src.Multipole)):
+                    src.location = [a_loc]
                 else:
                     src.location = [a_loc, b_loc]
                 for rx in src.receiver_list:

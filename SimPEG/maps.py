@@ -2,7 +2,7 @@ from six import integer_types
 from six import string_types
 from collections import namedtuple
 import warnings
-
+import discretize
 import numpy as np
 from numpy.polynomial import polynomial
 import scipy.sparse as sp
@@ -868,21 +868,21 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
     def getQ(self, alpha):
         """Geometric factor in the depolarization tensor"""
         if alpha < 1.0:  # oblate spheroid
-            chi = np.sqrt((1.0 / alpha ** 2.0) - 1)
+            chi = np.sqrt((1.0 / alpha**2.0) - 1)
             return (
                 1.0
                 / 2.0
-                * (1 + 1.0 / (alpha ** 2.0 - 1) * (1.0 - np.arctan(chi) / chi))
+                * (1 + 1.0 / (alpha**2.0 - 1) * (1.0 - np.arctan(chi) / chi))
             )
         elif alpha > 1.0:  # prolate spheroid
-            chi = np.sqrt(1 - (1.0 / alpha ** 2.0))
+            chi = np.sqrt(1 - (1.0 / alpha**2.0))
             return (
                 1.0
                 / 2.0
                 * (
                     1
                     + 1.0
-                    / (alpha ** 2.0 - 1)
+                    / (alpha**2.0 - 1)
                     * (1.0 - 1.0 / (2.0 * chi) * np.log((1 + chi) / (1 - chi)))
                 )
             )
@@ -1666,7 +1666,7 @@ class ParametricCircleMap(IdentityMap):
             * (-sig1 + sig2)
             / (
                 np.pi
-                * (a ** 2 * (-r + np.sqrt((X - x) ** 2 + (Y - y) ** 2)) ** 2 + 1)
+                * (a**2 * (-r + np.sqrt((X - x) ** 2 + (Y - y) ** 2)) ** 2 + 1)
                 * np.sqrt((X - x) ** 2 + (Y - y) ** 2)
             )
         )
@@ -1677,7 +1677,7 @@ class ParametricCircleMap(IdentityMap):
             * (-sig1 + sig2)
             / (
                 np.pi
-                * (a ** 2 * (-r + np.sqrt((X - x) ** 2 + (Y - y) ** 2)) ** 2 + 1)
+                * (a**2 * (-r + np.sqrt((X - x) ** 2 + (Y - y) ** 2)) ** 2 + 1)
                 * np.sqrt((X - x) ** 2 + (Y - y) ** 2)
             )
         )
@@ -1685,7 +1685,7 @@ class ParametricCircleMap(IdentityMap):
         g5 = (
             -a
             * (-sig1 + sig2)
-            / (np.pi * (a ** 2 * (-r + np.sqrt((X - x) ** 2 + (Y - y) ** 2)) ** 2 + 1))
+            / (np.pi * (a**2 * (-r + np.sqrt((X - x) ** 2 + (Y - y) ** 2)) ** 2 + 1))
         )
 
         if v is not None:
@@ -1884,6 +1884,8 @@ class ParametricSplineMap(IdentityMap):
     slope = 1e4
 
     def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True, normal="X"):
+        if not isinstance(mesh, discretize.base.BaseTensorMesh):
+            raise NotImplementedError(f"{type(mesh)} is not supported.")
         IdentityMap.__init__(self, mesh)
         self.logSigma = logSigma
         self.order = order
@@ -2145,7 +2147,7 @@ class BaseParametric(IdentityMap):
         # d/dx(atan(x)) = 1/(1+x**2)
         x = slope * val
         dx = -slope
-        return (1.0 / (1 + x ** 2)) / np.pi * dx
+        return (1.0 / (1 + x**2)) / np.pi * dx
 
 
 class ParametricLayer(BaseParametric):
@@ -2398,12 +2400,12 @@ class ParametricBlock(BaseParametric):
         return getattr(self, "_mDict{}d".format(self.mesh.dim))(m)
 
     def _ekblom(self, val):
-        return (val ** 2 + self.epsilon ** 2) ** (self.p / 2.0)
+        return (val**2 + self.epsilon**2) ** (self.p / 2.0)
 
     def _ekblomDeriv(self, val):
         return (
             (self.p / 2)
-            * (val ** 2 + self.epsilon ** 2) ** ((self.p / 2) - 1)
+            * (val**2 + self.epsilon**2) ** ((self.p / 2) - 1)
             * 2
             * val
         )
@@ -2469,7 +2471,7 @@ class ParametricBlock(BaseParametric):
                 getattr(self, "_block{}D".format(self.mesh.dim))(mDict),
                 slope=self.slope,
             )
-            * (self._ekblomDeriv((x - x0) / (0.5 * dx)) * (-(x - x0) / (0.5 * dx ** 2)))
+            * (self._ekblomDeriv((x - x0) / (0.5 * dx)) * (-(x - x0) / (0.5 * dx**2)))
         )
 
     def _deriv1D(self, mDict):

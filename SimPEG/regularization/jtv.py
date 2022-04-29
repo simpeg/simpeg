@@ -30,7 +30,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
 
         regmesh = self.regmesh
         self._G = regmesh.cell_gradient
-        vsq = regmesh.vol ** 2
+        vsq = regmesh.vol**2
         self._Av = sp.diags(vsq) * regmesh.average_face_to_cell
 
     def __call__(self, model):
@@ -50,11 +50,11 @@ class JointTotalVariation(BaseSimilarityMeasure):
         m1, m2 = self.wire_map * model
         Av = self._Av
         G = self._G
-        v2 = self.regmesh.vol ** 2
+        v2 = self.regmesh.vol**2
         g_m1 = G @ m1
         g_m2 = G @ m2
 
-        g2 = g_m1 ** 2 + g_m2 ** 2
+        g2 = g_m1**2 + g_m2**2
         Av_g = Av @ g2
         sq = np.sqrt(Av_g + self.eps * v2)
         return np.sum(sq)
@@ -76,11 +76,11 @@ class JointTotalVariation(BaseSimilarityMeasure):
         m1, m2 = self.wire_map * model
         Av = self._Av
         G = self._G
-        v2 = self.regmesh.vol ** 2
+        v2 = self.regmesh.vol**2
         g_m1 = G @ m1
         g_m2 = G @ m2
 
-        g2 = g_m1 ** 2 + g_m2 ** 2
+        g2 = g_m1**2 + g_m2**2
         Av_g = Av @ g2
         sq = np.sqrt(Av_g + self.eps * v2)
         mid = Av.T @ (1 / sq)
@@ -107,11 +107,11 @@ class JointTotalVariation(BaseSimilarityMeasure):
         m1, m2 = self.wire_map * model
         Av = self._Av
         G = self._G
-        v2 = self.regmesh.vol ** 2
+        v2 = self.regmesh.vol**2
         g_m1 = G @ m1
         g_m2 = G @ m2
 
-        g2 = g_m1 ** 2 + g_m2 ** 2
+        g2 = g_m1**2 + g_m2**2
         Av_g = Av @ g2
         sq = np.sqrt(Av_g + self.eps * v2)
         mid = Av.T @ (1 / sq)
@@ -121,11 +121,11 @@ class JointTotalVariation(BaseSimilarityMeasure):
             g_v1 = G @ v1
             g_v2 = G @ v2
 
-            p1 = G.T @ (mid * g_v1 - g_m1 * (Av.T @ ((Av @ (g_m1 * g_v1)) / sq ** 3)))
-            p2 = G.T @ (mid * g_v2 - g_m2 * (Av.T @ ((Av @ (g_m2 * g_v2)) / sq ** 3)))
+            p1 = G.T @ (mid * g_v1 - g_m1 * (Av.T @ ((Av @ (g_m1 * g_v1)) / sq**3)))
+            p2 = G.T @ (mid * g_v2 - g_m2 * (Av.T @ ((Av @ (g_m2 * g_v2)) / sq**3)))
 
-            p1 -= G.T @ (g_m1 * (Av.T @ ((Av @ (g_m2 * g_v2)) / sq ** 3)))
-            p2 -= G.T @ (g_m2 * (Av.T @ ((Av @ (g_m1 * g_v1)) / sq ** 3)))
+            p1 -= G.T @ (g_m1 * (Av.T @ ((Av @ (g_m2 * g_v2)) / sq**3)))
+            p2 -= G.T @ (g_m2 * (Av.T @ ((Av @ (g_m1 * g_v1)) / sq**3)))
 
             return np.r_[p1, p2]
         else:
@@ -135,7 +135,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
                     sp.diags(mid)
                     - sp.diags(g_m1)
                     @ Av.T
-                    @ sp.diags(1 / (sq ** 3))
+                    @ sp.diags(1 / (sq**3))
                     @ Av
                     @ sp.diags(g_m1)
                 )
@@ -147,7 +147,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
                     sp.diags(mid)
                     - sp.diags(g_m2)
                     @ Av.T
-                    @ sp.diags(1 / (sq ** 3))
+                    @ sp.diags(1 / (sq**3))
                     @ Av
                     @ sp.diags(g_m2)
                 )
@@ -158,7 +158,7 @@ class JointTotalVariation(BaseSimilarityMeasure):
                 -G.T
                 @ sp.diags(g_m1)
                 @ Av.T
-                @ sp.diags(1 / (sq ** 3))
+                @ sp.diags(1 / (sq**3))
                 @ Av
                 @ sp.diags(g_m2)
                 @ G
