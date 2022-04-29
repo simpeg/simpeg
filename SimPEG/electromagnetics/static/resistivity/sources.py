@@ -38,7 +38,7 @@ class BaseSrc(survey.BaseSrc):
         other = np.atleast_1d(np.asarray(other, dtype=float))
         if other.ndim > 1:
             raise ValueError("Too many dimensions for current array")
-        if len(other) != self.location.shape[0]:
+        if len(other) > 1 and len(other) != self.location.shape[0]:
             raise ValueError(
                 "Current must be constant or equal to the number of specified source locations."
                 f" saw {len(other)} current sources and {self.location.shape[0]} locations."
