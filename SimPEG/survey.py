@@ -8,53 +8,53 @@ from .utils import Counter
 from .utils.code_utils import deprecate_property, deprecate_method
 from .props import BaseSimPEG
 
-# class RxLocationArray(properties.Array):
-#     """Locations array for receivers"""
+class RxLocationArray(properties.Array):
+    """Locations array for receivers"""
 
-#     class_info = "an array of receiver locations"
+    class_info = "an array of receiver locations"
 
-#     def validate(self, instance, value):
-#         """Validation method for setting locations array
+    def validate(self, instance, value):
+        """Validation method for setting locations array
 
-#         Parameters
-#         ----------
-#         instance : class
-#             The class used to validate the input argument *value*
-#         value :
-#             The input used to define the locations for a given receiver.
+        Parameters
+        ----------
+        instance : class
+            The class used to validate the input argument *value*
+        value :
+            The input used to define the locations for a given receiver.
 
-#         Returns
-#         -------
-#         properties.Array
-#             The receiver location array
-#         """
-#         value = np.atleast_2d(value)
-#         return super(RxLocationArray, self).validate(instance, value)
+        Returns
+        -------
+        properties.Array
+            The receiver location array
+        """
+        value = np.atleast_2d(value)
+        return super(RxLocationArray, self).validate(instance, value)
 
 
-# class SourceLocationArray(properties.Array):
-#     """Locations array for sources"""
+class SourceLocationArray(properties.Array):
+    """Locations array for sources"""
 
-#     class_info = "a 1D array denoting the source location"
+    class_info = "a 1D array denoting the source location"
 
-#     def validate(self, instance, value):
-#         """Validation method for setting locations array
+    def validate(self, instance, value):
+        """Validation method for setting locations array
 
-#         Parameters
-#         ----------
-#         instance : class
-#             The class used to validate the input argument *value*
-#         value :
-#             The input used to define the locations for a given source.
+        Parameters
+        ----------
+        instance : class
+            The class used to validate the input argument *value*
+        value :
+            The input used to define the locations for a given source.
 
-#         Returns
-#         -------
-#         properties.Array
-#             The source location array
-#         """
-#         if not isinstance(value, np.ndarray):
-#             value = np.atleast_1d(np.array(value))
-#         return super(SourceLocationArray, self).validate(instance, value)
+        Returns
+        -------
+        properties.Array
+            The source location array
+        """
+        if not isinstance(value, np.ndarray):
+            value = np.atleast_1d(np.array(value))
+        return super(SourceLocationArray, self).validate(instance, value)
 
 
 class BaseRx:
