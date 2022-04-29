@@ -282,11 +282,11 @@ class Simulation2DElectricField(BaseFDEMSimulation):
                 if isinstance(mesh, TensorMesh):
                     h_l = h_r = mesh.h[1]
                     is_b = np.zeros(mesh.shape_cells, dtype=bool)
-                    is_b[:, 0] = True
-                    P_l = maps.Projection(mesh.n_cells, is_b.reshape(-1))
-                    is_b[:, 0] = False
-                    is_b[:, -1] = True
-                    P_r = maps.Projection(mesh.n_cells, is_b.reshape(-1))
+                    is_b[0, :] = True
+                    P_l = maps.Projection(mesh.n_cells, is_b.reshape(-1, order='F'))
+                    is_b[0, :] = False
+                    is_b[-1, :] = True
+                    P_r = maps.Projection(mesh.n_cells, is_b.reshape(-1, order='F'))
                 else:
                     h_l = _centers_to_widths(b_e[left][:, 1])
                     h_r = _centers_to_widths(b_e[right][:, 1])
@@ -506,11 +506,11 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
                 if isinstance(mesh, TensorMesh):
                     h_l = h_r = mesh.h[1]
                     is_b = np.zeros(mesh.shape_cells, dtype=bool)
-                    is_b[:, 0] = True
-                    P_l = maps.Projection(mesh.n_cells, is_b.reshape(-1))
-                    is_b[:, 0] = False
-                    is_b[:, -1] = True
-                    P_r = maps.Projection(mesh.n_cells, is_b.reshape(-1))
+                    is_b[0, :] = True
+                    P_l = maps.Projection(mesh.n_cells, is_b.reshape(-1, order='F'))
+                    is_b[0, :] = False
+                    is_b[-1, :] = True
+                    P_r = maps.Projection(mesh.n_cells, is_b.reshape(-1, order='F'))
                 else:
                     h_l = _centers_to_widths(b_e[left][:, 1])
                     h_r = _centers_to_widths(b_e[right][:, 1])
