@@ -15,6 +15,7 @@ __all__ = ["BaseEMSimulation", "BaseEMSrc"]
 
 
 class BaseEMSimulation(BaseElectricalPDESimulation, BaseMagneticPDESimulation):
+    """Base electromagnetic simulation class"""
 
     verbose = False
     storeInnerProduct = True

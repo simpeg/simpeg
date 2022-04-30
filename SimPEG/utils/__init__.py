@@ -271,7 +271,13 @@ from .code_utils import (
     dependentProperty,
     asArray_N_x_Dim,
     requires,
-    Report
+    Report,
+    validate_float_property,
+    validate_integer_property,
+    validate_list_property,
+    validate_location_property,
+    validate_ndarray_property,
+    validate_string_property,
 )
 from .mesh_utils import (
     meshTensor,

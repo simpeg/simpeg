@@ -1,9 +1,34 @@
-""" module SimPEG.electromagnetics.natural_source
+"""
+==============================================================================
+Natural Source EM Module (:mod:`SimPEG.electromagnetics.natural_source`)
+==============================================================================
+.. currentmodule:: SimPEG.electromagnetics.natural_source
 
-SimPEG implementation of the natural source problem
-(including magenetotelluric, tipper and ZTEM)
+About ``natural_source``
 
+Receiver Classes
+----------------
 
+.. autosummary::
+  :toctree: generated/
+
+  receivers.PointNaturalSource
+  receivers.Point3DTipper
+
+Source Classes
+--------------
+.. autosummary::
+  :toctree: generated/
+
+  sources.Planewave
+  sources.PlanewaveXYPrimary
+
+Survey Classes
+--------------
+.. autosummary::
+  :toctree: generated/
+
+  survey.Data
 
 """
 

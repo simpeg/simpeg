@@ -11,6 +11,7 @@ Geophysical Simulation Modules
   :maxdepth: 2
 
   SimPEG.potential_fields
+  SimPEG.electromagnetics
 
 
 

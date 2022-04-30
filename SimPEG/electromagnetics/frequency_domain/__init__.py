@@ -1,3 +1,48 @@
+"""
+==============================================================================
+Frequency-Domain EM Module (:mod:`SimPEG.electromagnetics.frequency_domain`)
+==============================================================================
+.. currentmodule:: SimPEG.electromagnetics.frequency_domain
+
+About ``frequency_domain``
+
+Receiver Classes
+----------------
+
+.. autosummary::
+  :toctree: generated/
+
+  receivers.BaseRx
+  receivers.PointElectricField
+  receivers.PointMagneticFluxDensity
+  receivers.PointMagneticFluxDensitySecondary
+  receivers.PointMagneticField
+  receivers.PointCurrentDensity
+
+Source Classes
+--------------
+.. autosummary::
+  :toctree: generated/
+
+  sources.BaseFDEMSrc
+  sources.RawVec_e
+  sources.RawVec_m
+  sources.RawVec
+  sources.MagDipole
+  sources.MagDipole_Bfield
+  sources.CircularLoop
+  sources.PrimSecSigma
+  sources.PrimSecMappedSigma
+  sources.LineCurrent
+
+Survey Classes
+--------------
+.. autosummary::
+  :toctree: generated/
+
+  survey.Survey
+
+"""
 from .survey import Survey
 from . import sources
 from . import receivers

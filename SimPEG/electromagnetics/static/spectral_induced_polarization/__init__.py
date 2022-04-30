@@ -1,3 +1,38 @@
+"""
+====================================================================================================
+Spectral Induced Polarization Module (:mod:`SimPEG.electromagnetics.static.induced_polarization`)
+====================================================================================================
+.. currentmodule:: SimPEG.electromagnetics.static.spectral_induced_polarization
+
+
+
+Receiver Classes
+----------------
+
+.. autosummary::
+  :toctree: generated/
+
+  receivers.BaseRx
+  receivers.Dipole
+  receivers.Pole
+
+Source Classes
+--------------
+.. autosummary::
+  :toctree: generated/
+
+  sources.BaseSrc
+  sources.Dipole
+  sources.Pole
+
+Survey Classes
+--------------
+.. autosummary::
+  :toctree: generated/
+
+  survey.Survey
+
+"""
 from ....data import Data
 from .simulation import Simulation3DCellCentered, Simulation3DNodal
 from .simulation_2d import Simulation2DCellCentered, Simulation2DNodal

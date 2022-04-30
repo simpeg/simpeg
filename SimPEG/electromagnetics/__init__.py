@@ -1,3 +1,18 @@
+"""
+=================================================================
+Base Classes (:mod:`SimPEG.electromagnetics`)
+=================================================================
+.. currentmodule:: SimPEG.electromagnetics
+
+About ``electromagnetics``
+
+.. autosummary::
+  :toctree: generated/
+
+  base.BaseEMSimulation
+  base.BaseEMSrc
+
+"""
 from scipy.constants import mu_0, epsilon_0
 
 from . import time_domain
