@@ -1,3 +1,23 @@
+"""
+=========================================================================
+Magnetics Simulation Module (:mod:`SimPEG.potential_fields.magnetics`)
+=========================================================================
+.. currentmodule:: SimPEG.potential_fields.magnetics
+
+About ``magnetics``
+
+Survey, Source and Receiver Classes
+-----------------------------------
+
+.. autosummary::
+  :toctree: generated/
+
+  receivers.Point
+  sources.SourceField
+  survey.Survey
+
+
+"""
 from . import survey
 from . import sources
 from . import receivers

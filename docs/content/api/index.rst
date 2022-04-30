@@ -4,16 +4,14 @@
 API Reference
 =============
 
-
-Utilities
-=========
-
-Classes and functions for performing useful operations.
+Geophysical Simulation Modules
+==============================
 
 .. toctree::
-  :maxdepth: 3
+  :maxdepth: 2
 
-  SimPEG.utils
+  SimPEG.potential_fields
+
 
 
 Base SimPEG Classes
@@ -23,4 +21,18 @@ Base SimPEG Classes
   :maxdepth: 2
 
   SimPEG.base
+
+
+Utilities
+=========
+
+Classes and functions for performing useful operations.
+
+.. toctree::
+  :maxdepth: 2
+
+  SimPEG.utils
+
+
+
 

@@ -45,8 +45,12 @@ class Counter(object):
         self._timeList = {}
 
     def count(self, prop):
-        """
-        Increases the count of the property.
+        """Increases the count of the property.
+
+        Parameters
+        ----------
+        prop : str
+            The property being counted
         """
         assert isinstance(prop, string_types), "The property must be a string."
         if prop not in self._countList:
@@ -54,8 +58,12 @@ class Counter(object):
         self._countList[prop] += 1
 
     def countTic(self, prop):
-        """
-        Times a property call, this is the init call.
+        """Times a property call, this is the init call.
+        
+        Parameters
+        ----------
+        prop : str
+            The property being timed
         """
         assert isinstance(prop, string_types), "The property must be a string."
         if prop not in self._timeList:
@@ -63,8 +71,12 @@ class Counter(object):
         self._timeList[prop].append(-time.time())
 
     def countToc(self, prop):
-        """
-        Times a property call, this is the end call.
+        """Times a property call, this is the end call.
+        
+        Parameters
+        ----------
+        prop : str
+            The property being timed
         """
         assert isinstance(prop, string_types), "The property must be a string."
         assert prop in self._timeList, "The property must already be in the dictionary."

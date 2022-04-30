@@ -19,11 +19,9 @@ Utility Classes
   Zero
   
 
-Utility Functions
-=================
+Code Utility Functions
+======================
 
-Code Utilities
---------------
 .. autosummary::
   :toctree: generated/
 
@@ -35,6 +33,11 @@ Code Utilities
   create_wrapper_from_class
   dependent_property
   dependentProperty
+  deprecate_class
+  deprecate_function
+  deprecate_method
+  deprecate_module
+  deprecate_property
   hook
   memProfileWrapper
   print_done
@@ -48,9 +51,16 @@ Code Utilities
   requires
   set_kwargs
   setKwargs
+  validate_float_property
+  validate_integer_property
+  validate_list_property
+  validate_location_property
+  validate_ndarray_property
+  validate_string_property
 
-Coordinates Utilities
----------------------
+
+Coordinates Utility Functions
+=============================
 
 .. autosummary::
   :toctree: generated/
@@ -60,8 +70,8 @@ Coordinates Utilities
   rotation_matrix_from_normals
   rotate_points_from_normals
 
-Counter Utilities
------------------
+Counter Utility Functions
+=========================
 
 .. autosummary::
   :toctree: generated/
@@ -69,8 +79,8 @@ Counter Utilities
   count
   timeIt
 
-Curvilinear Utilities
----------------------
+Curvilinear Utility Functions
+=============================
 
 .. autosummary::
   :toctree: generated/
@@ -85,8 +95,8 @@ Curvilinear Utilities
   volTetra
   
 
-IO Utilities
-------------
+IO Utility Functions
+====================
 
 .. autosummary::
   :toctree: generated/
@@ -108,8 +118,8 @@ IO Utilities
   io_utils.write_mag3d_ubc
   
 
-Matrix Utilities
-----------------
+Matrix Utility Functions
+========================
 
 .. autosummary::
   :toctree: generated/
@@ -146,8 +156,8 @@ Matrix Utilities
   uniqueRows
   
 
-Mesh Utilities
---------------
+Mesh Utility Functions
+======================
 
 .. autosummary::
   :toctree: generated/
@@ -160,8 +170,8 @@ Mesh Utilities
   unpack_widths
   
 
-Model Builder Utilities
------------------------
+Model Utility Functions
+=======================
 
 .. autosummary::
   :toctree: generated/
@@ -188,8 +198,8 @@ Model Builder Utilities
   model_builder.scalarConductivity
   
 
-Plotting Utilities
-------------------
+Plotting Utility Functions
+==========================
 
 .. autosummary::
   :toctree: generated/

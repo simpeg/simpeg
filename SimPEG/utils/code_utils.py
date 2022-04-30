@@ -31,7 +31,7 @@ def create_wrapper_from_class(input_class, *fun_names):
     ----------
     input_class : class
         Input class being used to create the wrapper
-    fun_names: list of str
+    fun_names : list of str
         Names of the functions that will be wrapped to the wrapper class. These names must
         correspond to methods of the input class.  
     
@@ -65,20 +65,22 @@ def create_wrapper_from_class(input_class, *fun_names):
 
 
 def hook(obj, method, name=None, overwrite=False, silent=False):
-    """Dynamically bind on class's method to an instance of a different class.
+    """Dynamically bind a class's method to an instance of a different class.
 
     Parameters
     ----------
     obj : class
         Instance of a class that will be binded to a new method
     method : method
-        The method that will be binded to *obj*; i.e. *ClassName.method_name*
-    name : str
+        The method that will be binded to *obj*. The syntax is *ClassName.method*
+    name : str, optional
         Provide a different name for the method being binded to *obj*. If ``None``,
         the original method name is used. 
-    overwrite : bool
-        Overwrite previous hook
-    silent: bool
+    overwrite : bool, default: ``False``
+        If ``True``, the hook will overwrite a preexisting method of *obj* if it has
+        the same name as the *name* input argument. If ``False``, preexisting methods
+        are not overwritten.
+    silent : bool, default: ``False``
         Print whether a previous hook was overwritten
     """
     if name is None:
@@ -95,13 +97,13 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
 
 def set_kwargs(obj, ignore=None, **kwargs):
     """
-    Set key word arguments for an object or throw an error if any don't exist.
+    Set key word arguments for an object or throw an error if any do not exist.
     
     Parameters
     ----------
     obj : class
         Instance of a class
-    ignore : list
+    ignore : list, optional
         ``list`` of ``str`` denoting kwargs that are ignored (not being set)
     """
     if ignore is None:
@@ -119,6 +121,20 @@ def set_kwargs(obj, ignore=None, **kwargs):
 
 
 def print_done(obj, printers, name="Done", pad=""):
+    """Print completion of an operation
+
+    Parameters
+    ----------
+    obj : object
+        An object
+    printers : list of dict
+        Has keys "width" and "title"
+    name : str, default: "Done"
+        A string for the process being completed
+    pad : str, default: ""
+        Trailing string
+
+    """
     titles = ""
     widths = 0
     for printer in printers:
@@ -129,6 +145,19 @@ def print_done(obj, printers, name="Done", pad=""):
 
 
 def print_titles(obj, printers, name="Print Titles", pad=""):
+    """Print titles
+
+    Parameters
+    ----------
+    obj : object
+        An object
+    printers : list of dict
+        Has keys "width" and "title"
+    name : str, default: "Print Titles"
+        A string for the process being completed
+    pad : str, default: ""
+        Trailing string
+    """
     titles = ""
     widths = 0
     for printer in printers:
@@ -140,6 +169,17 @@ def print_titles(obj, printers, name="Print Titles", pad=""):
 
 
 def print_line(obj, printers, pad=""):
+    """Print line
+
+    Parameters
+    ----------
+    obj : object
+        An object
+    printers : list of dict
+        Has keys "width" and "title"
+    pad : str, default: ""
+        Trailing string
+    """
     values = ""
     for printer in printers:
         values += ("{{:^{0:d}}}".format(printer["width"])).format(
@@ -149,7 +189,20 @@ def print_line(obj, printers, pad=""):
 
 
 def check_stoppers(obj, stoppers):
-    # check stopping rules
+    """Check stopping rules
+    
+    Parameters
+    ----------
+    obj : object
+        Input object
+    stoppers : list of dict
+        List of stoppers
+
+    Returns
+    -------
+    bool :
+        Whether stopping criteria was encountered
+    """
     optimal = []
     critical = []
     for stopper in stoppers:
@@ -169,6 +222,21 @@ def check_stoppers(obj, stoppers):
 
 
 def print_stoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
+    """Print stoppers
+
+    Parameters
+    ----------
+    obj : object
+        An object
+    stoppers : list of dict
+        Has keys "width" and "title"
+    pad : str, default: ""
+        Trailing string
+    stop : str, default: "STOP!"
+        String for statement when stopping criteria encountered
+    done : str, default: "DONE!"
+        String for statement when stopping criterian not encountered
+    """
     print(pad + "{0!s}{1!s}{2!s}".format("-" * 25, stop, "-" * 25))
     for stopper in stoppers:
         l = stopper["left"](obj)
@@ -179,7 +247,7 @@ def print_stoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
 
 def call_hooks(match, mainFirst=False):
     """
-    Use this to wrap a funciton::
+    Use this to wrap a function::
 
         @callHooks('doEndIteration')
         def doEndIteration(self):
@@ -380,6 +448,24 @@ class Report(ScoobyReport):
 def deprecate_class(
     removal_version=None, new_location=None, future_warn=False, error=False
 ):
+    """Utility function to deprecate a class
+
+    Paramters
+    ---------
+    removal_version : str
+        A string denoting the SimPEG version in which the class will be removed
+    new_location : str
+        Name for the class replacing the deprecated class
+    future_warn : bool, default: ``False``
+        If ``True``, throw comprehensive warning the class will be deprecated
+    error : bool, default: ``False``
+        Throw error if deprecated class no longer implemented
+
+    Returns
+    -------
+    class
+        The new class 
+    """
     def decorator(cls):
         my_name = cls.__name__
         parent_name = cls.__bases__[0].__name__
@@ -415,6 +501,21 @@ def deprecate_class(
 def deprecate_module(
     old_name, new_name, removal_version=None, future_warn=False, error=False
 ):
+    """Deprecate module
+
+    Parameters
+    ----------
+    old_name : str
+        Original name for the now deprecated module
+    new_name : str
+        New name for the module
+    removal_version : str, optional
+        SimPEG version in which the module will be removed from the code base
+    future_warn : bool, default: ``False``
+        If ``True``, throw comprehensive warning the module will be deprecated
+    error : bool, default: ``False``
+        Throw error if deprecated module no longer implemented
+    """
     message = f"The {old_name} module has been deprecated, please use {new_name}."
     if error:
         message = f"{old_name} has been removed, please use {new_name}."
@@ -434,6 +535,29 @@ def deprecate_module(
 def deprecate_property(
     prop, old_name, new_name=None, removal_version=None, future_warn=False, error=False
 ):
+    """Deprecate property
+
+    Parameters
+    ----------
+    prop : property
+        Current property
+    old_name : str
+        Original name for the now deprecated property
+    new_name : str, optional
+        New name for the property. If ``None``, the property name is take from the
+        *prop* input argument.
+    removal_version : str, optional
+        SimPEG version in which the property will be removed from the code base
+    future_warn : bool, default: ``False``
+        If ``True``, throw comprehensive warning the property will be deprecated
+    error : bool, default: ``False``
+        Throw error if deprecated property no longer implemented
+
+    Returns
+    -------
+    property
+        The new property
+    """
 
     if isinstance(prop, property):
         if new_name is None:
@@ -479,6 +603,26 @@ def deprecate_property(
 def deprecate_method(
     method, old_name, removal_version=None, future_warn=False, error=False
 ):
+    """Deprecate method
+
+    Parameters
+    ----------
+    method : method
+        Current method
+    old_name : str
+        Original name for the now deprecated method
+    removal_version : str, optional
+        SimPEG version in which the method will be removed from the code base
+    future_warn : bool, default: ``False``
+        If ``True``, throw comprehensive warning the method will be deprecated
+    error : bool, default: ``False``
+        Throw error if deprecated method no longer implemented
+
+    Returns
+    -------
+    method
+        The new method
+    """
     new_name = method.__qualname__
     split_name = new_name.split(".")
     if len(split_name) > 1:
@@ -507,6 +651,26 @@ def deprecate_method(
 
 
 def deprecate_function(new_function, old_name, removal_version=None):
+    """Deprecate function
+
+    Parameters
+    ----------
+    new_function : function
+        Current function
+    old_name : str
+        Original name for the now deprecated function
+    removal_version : str, optional
+        SimPEG version in which the method will be removed from the code base
+    future_warn : bool, default: ``False``
+        If ``True``, throw comprehensive warning the method will be deprecated
+    error : bool, default: ``False``
+        Throw error if deprecated method no longer implemented
+
+    Returns
+    -------
+    function
+        The new function
+    """
     new_name = new_function.__name__
     if removal_version is not None:
         tag = f" It will be removed in version {removal_version} of SimPEG."
@@ -697,7 +861,7 @@ def validate_ndarray_property(property_name, var, shape=('*', '*'), dtype=float)
         The name of the property being set
     var : numpy.ndarray
         The input array
-    shape : tuple of int, default = ('*', '*')
+    shape : tuple of int, default: ('*', '*')
         The shape of the array; e.g. (3), (3, 3), ('*', 2).
         The '*' indicates that an arbitrary number of elements is allowed
         along a particular dimension.

@@ -1,5 +1,5 @@
 import os
-import properties
+# import properties
 import numpy as np
 import multiprocessing
 from ..simulation import LinearSimulation
@@ -135,6 +135,13 @@ class BasePFSimulation(LinearSimulation):
 
     @property
     def ind_active(self):
+        """Active topography cells
+
+        Returns
+        -------
+        (n_cell) numpy.ndarray of bool
+            Returns the active topography cells
+        """
         if self._ind_active is None:
             self._ind_active = np.asarray(range(self.mesh.nC))
         return self._ind_active
@@ -154,6 +161,7 @@ class BasePFSimulation(LinearSimulation):
 
     @property
     def actInd(self):
+        """'actInd' is deprecated. Use 'ind_active' instead."""
         warnings.warn(
             "The 'actInd' property has been deprecated. "
             "Please use 'ind_active'. This will be removed in version 0.17.0 of SimPEG.",
@@ -173,7 +181,13 @@ class BasePFSimulation(LinearSimulation):
     
 
     def linear_operator(self):
+        """Return linear operator
 
+        Returns
+        -------
+        numpy.ndarray
+            Linear operator
+        """
         self.nC = self.modelMap.shape[0]
 
         components = np.array(list(self.survey.components.keys()))
@@ -219,13 +233,7 @@ class BasePFSimulation(LinearSimulation):
         return kernel
 
     def evaluate_integral(self):
-        """
-        evaluate_integral
-
-        Compute the forward linear relationship between the model and the physics at a point.
-        :param self:
-        :return:
-        """
+        """'evaluate_integral' method no longer implemented for *BaseSimulation* class."""
 
         raise RuntimeError(
             f"Integral calculations must implemented by the subclass {self}."
@@ -284,12 +292,21 @@ class BasePFSimulation(LinearSimulation):
 
 
 def progress(iter, prog, final):
-    """
-    progress(iter,prog,final)
-    Function measuring the progress of a process and print to screen the %.
-    Useful to estimate the remaining runtime of a large problem.
-    Created on Dec, 20th 2015
-    @author: dominiquef
+    """Progress (% complete) for constructing sensitivity matrix
+
+    Parameters
+    ----------
+    iter : int
+        Current rows
+    prog : float
+        Progress
+    final : int
+        Number of rows (= number of receivers)
+    
+    Returns
+    -------
+    float
+        % completed
     """
     arg = np.floor(float(iter) / float(final) * 10.0)
 
@@ -302,25 +319,24 @@ def progress(iter, prog, final):
 
 
 def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
-    """
-    get_dist_wgt(xn,yn,zn,receiver_locations,R,R0)
+    """Compute distance weights for potential field simulations
 
-    Function creating a distance weighting function required for the magnetic
-    inverse problem.
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    receiver_locations : (n, 3) numpy.ndarray
+        Observation locations [x, y, z]
+    actv : (n_cell) numpy.ndarray of bool
+        Active cells vector [0:air , 1: ground]
+    R : float
+        Decay factor (mag=3, grav =2)
+    R0 : float
+        Stabilization factor. Usually a fraction of the minimum cell size
 
-    INPUT
-    xn, yn, zn : Node location
-    receiver_locations       : Observation locations [obsx, obsy, obsz]
-    actv        : Active cell vector [0:air , 1: ground]
-    R           : Decay factor (mag=3, grav =2)
-    R0          : Small factor added (default=dx/4)
-
-    OUTPUT
-    wr       : [nC] Vector of distance weighting
-
-    Created on Dec, 20th 2015
-
-    @author: dominiquef
+    Returns
+    wr : (n_cell) numpy.ndarray
+        Distance weighting model; 0 for all inactive cells
     """
 
     # Find non-zero cells
