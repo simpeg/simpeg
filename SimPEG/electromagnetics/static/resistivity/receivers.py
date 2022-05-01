@@ -2,7 +2,7 @@ import numpy as np
 
 # import properties
 from ....utils import sdiag
-from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
+from ....survey import BaseRx as BaseSimPEGRx
 
 
 # Receiver classes

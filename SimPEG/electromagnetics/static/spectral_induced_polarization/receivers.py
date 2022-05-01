@@ -2,7 +2,7 @@ import numpy as np
 # import properties
 from ....utils import sdiag
 
-from ....survey import BaseTimeRx, RxLocationArray
+from ....survey import BaseTimeRx
 
 
 class BaseRx(BaseTimeRx):
