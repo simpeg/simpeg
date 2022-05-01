@@ -8,9 +8,9 @@ Things about electromagnetics
   :maxdepth: 2
 
   .. SimPEG.electomagnetics.base
-  SimPEG.electomagnetics.frequency_domain
-  SimPEG.electomagnetics.natural_source
-  SimPEG.electomagnetics.static
-  SimPEG.electomagnetics.time_domain
-  SimPEG.electomagnetics.utils
-  SimPEG.electomagnetics.viscous_remanent_magnetization
+  SimPEG.electromagnetics.frequency_domain
+  SimPEG.electromagnetics.natural_source
+  SimPEG.electromagnetics.static
+  SimPEG.electromagnetics.time_domain
+  SimPEG.electromagnetics.utils
+  SimPEG.electromagnetics.viscous_remanent_magnetization

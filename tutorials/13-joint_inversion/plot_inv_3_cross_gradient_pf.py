@@ -457,7 +457,7 @@ plt.show()
 
 ############################################################
 # Comparing jointly and separatly recovered models
-# ---------------------------------------
+# ------------------------------------------------
 #
 
 # Normalized Cross Gradient of Jointly Recovered Susceptibility and Density Models

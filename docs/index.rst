@@ -1,52 +1,14 @@
 .. include:: ../README.rst
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
     :hidden:
     :titlesonly:
 
     content/getting_started
     content/user_guide
     content/api/index
-
-
-.. .. toctree::
-..    :maxdepth: 1
-..    :caption: Getting Started
-
-..    content/basic/big_picture
-..    content/basic/contributing
-..    content/basic/installing
-..    content/basic/getting_started_developers
-..    content/basic/practices
-..    content/examples/index
-
-.. .. toctree::
-..    :maxdepth: 1
-..    :caption: Tutorials
-..    :name: simpeg_tuts
-..    :glob:
-
-..    content/tutorials/*/index
-
-
-.. .. toctree::
-..    :maxdepth: 2
-..    :caption: Packages
-
-..    content/em/index
-..    content/dc/index
-..    content/ip/index
-..    content/pf/index
-..    content/vrm/index
-..    content/flow/index
-
-
-.. .. toctree::
-..    :maxdepth: 1
-..    :caption: Meta Information
-
-..    content/release/index
+    content/release/index
 
 .. Project Index & Search
 .. ======================

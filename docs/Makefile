@@ -41,7 +41,7 @@ help:
 
 clean:
 	rm -rf $(BUILDDIR)/*
-	rm -rf content/api/generated/*
+	rm -rf content/api/generated/
 	rm -rf content/examples/
 	rm -rf content/tutorials/
 

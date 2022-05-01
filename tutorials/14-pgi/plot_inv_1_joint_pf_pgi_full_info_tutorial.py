@@ -247,7 +247,7 @@ dmis_mag = data_misfit.L2DataMisfit(data=data_mag, simulation=simulation_mag)
 
 #########################################################################
 # Create a joint Data Misfit
-#
+# --------------------------
 
 # Joint data misfit
 dmis = 0.5 * dmis_grav + 0.5 * dmis_mag

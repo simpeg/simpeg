@@ -9,7 +9,7 @@ About ``potential_fields``
 .. autosummary::
   :toctree: generated/
 
-  base.BasePFSimulation
+  # base.BasePFSimulation
   base.progress
   base.get_dist_wgt
 
