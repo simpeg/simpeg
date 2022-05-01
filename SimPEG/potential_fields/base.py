@@ -1,5 +1,6 @@
 import os
 # import properties
+import discretize
 import numpy as np
 import multiprocessing
 from ..simulation import LinearSimulation
@@ -86,7 +87,8 @@ class BasePFSimulation(LinearSimulation):
         projection = csr(
             (np.ones(self.nC), (indices, range(self.nC))), shape=(self.mesh.nC, self.nC)
         )
-
+        if not isinstance(mesh, (discretize.TensorMesh, discretize.TreeMesh)):
+            raise ValueError("Mesh must be 3D tensor or Octree.")
         # Create vectors of nodal location for the lower and upper corners
         bsw = self.mesh.cell_centers - self.mesh.h_gridded / 2.0
         tne = self.mesh.cell_centers + self.mesh.h_gridded / 2.0

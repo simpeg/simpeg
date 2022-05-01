@@ -265,7 +265,7 @@ def cartesian2spherical(m):
     y = m[:, 1]
     z = m[:, 2]
 
-    a = (x ** 2.0 + y ** 2.0 + z ** 2.0) ** 0.5
+    a = (x**2.0 + y**2.0 + z**2.0) ** 0.5
 
     t = np.zeros_like(x)
     t[a > 0] = np.arcsin(z[a > 0] / a[a > 0])

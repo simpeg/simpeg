@@ -43,7 +43,7 @@ def run(plotIt=True):
 
     # Lets create a simple Gaussian topo and set the active cells
     [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
-    zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + mesh.vectorNz[-1]
+    zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.vectorNz[-1]
 
     # We would usually load a topofile
     topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
@@ -59,7 +59,7 @@ def run(plotIt=True):
     X, Y = np.meshgrid(xr, yr)
 
     # Move the observation points 5m above the topo
-    Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2) + mesh.vectorNz[-1] + 5.0
+    Z = -np.exp((X**2 + Y**2) / 75**2) + mesh.vectorNz[-1] + 5.0
 
     # Create a MAGsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]

@@ -19,12 +19,11 @@ class BaseSrc(survey.BaseSrc):
         Current amplitude [A]
     """
 
-    # current = properties.Float("amplitude of the source current", default=1.0)
-
     _q = None
 
     def __init__(self, receiver_list, location, current=1.0, **kwargs):
-        super(BaseSrc, self).__init__(receiver_list=receiver_list, location=location, **kwargs)
+        super().__init__(receiver_list=receiver_list, **kwargs)
+        self.location = location
         self.current = current
 
     @property
@@ -54,39 +53,107 @@ class BaseSrc(survey.BaseSrc):
         [self._rxOrder.setdefault(rx._uid, ii) for ii, rx in enumerate(new_list)]
         self._receiver_list = new_list
 
-
     @property
-    def current(self):
-        """Source current
+    def location(self):
+        """location of the source electrodes
 
         Returns
         -------
-        float
-            Source current
+        (n, dim) numpy.ndarray
+            Location of the source electrodes
+        """
+        return self._location
+
+    @location.setter
+    def location(self, var):
+        var = np.asarray(var, dtype=float)
+        var = np.atleast_2d(var)
+        self._location = var
+
+    @property
+    def current(self):
+        """Amplitudes of the source currents
+
+        Returns
+        -------
+        (n_source) numpy.ndarray
+            Amplitudes of the source currents
         """
         return self._current
 
     @current.setter
-    def current(self, I):
-        try:
-            I = float(I)
-        except:
-            raise TypeError(f"current must be int or float, got {type(I)}")
-
-        if np.abs(I) == 0.:
-            raise TypeError("current must be non-zero.")
-
-        self._current = I
+    def current(self, var):
+        var = np.atleast_1d(np.asarray(var, dtype=float))
+        if var.ndim > 1:
+            raise ValueError("Too many dimensions for current array")
+        if len(var) > 1 and len(var) != self.location.shape[0]:
+            raise ValueError(
+                "Current must be constant or equal to the number of specified source locations."
+                f" saw {len(var)} current sources and {self.location.shape[0]} locations."
+            )
+        self._current = var
 
     def eval(self, sim):
-        """Not implemented for BaseSrc"""
-        raise NotImplementedError(
-            "the eval method for {} has not been implemented".format(self)
-        )
+        """Evaluate RHS for each source term
+
+        Parameters
+        ----------
+        sim : SimPEG.base.BaseElectricalPDESimulation
+            The static electromagnetic simulation
+
+        Returns
+        -------
+        np.ndarray
+            The right-hand sides corresponding to the sources
+        """
+        if self._q is not None:
+            return self._q
+        else:
+            if sim._formulation == "HJ":
+                inds = sim.mesh.closest_points_index(self.location, grid_loc="CC")
+                self._q = np.zeros(sim.mesh.nC)
+                self._q[inds] = self.current
+            elif sim._formulation == "EB":
+                loc = self.location
+                cur = self.current
+                interpolation_matrix = sim.mesh.get_interpolation_matrix(
+                    loc, locType="N"
+                ).toarray()
+                q = np.sum(cur[:, np.newaxis] * interpolation_matrix, axis=0)
+                self._q = q
+            return self._q
 
     def evalDeriv(self, sim):
         """Returns zero"""
         return Zero()
+
+
+class Multipole(BaseSrc):
+    """
+    Generic multipole source
+    """
+
+    @property
+    def location_a(self):
+        """Locations of the A electrodes
+
+        Returns
+        -------
+        (n, dim) numpy.ndarray
+            Locations of the A electrodes
+        """
+        return self.location
+
+    @property
+    def location_b(self):
+        """Location of the B electrodes
+
+        Returns
+        -------
+        (n, dim) numpy.ndarray
+            Locations of the B electrodes
+        """
+        return np.full_like(self.location, np.nan)
 
 
 class Dipole(BaseSrc):
@@ -114,26 +181,17 @@ class Dipole(BaseSrc):
 
     def __init__(
         self,
-        receiver_list=None,
+        receiver_list,
         location_a=None,
         location_b=None,
         location=None,
         **kwargs,
     ):
-        # Check for old keywords
-        if "locationA" in kwargs.keys():
-            location_a = kwargs.pop("locationA")
-            raise TypeError(
-                "The locationA property has been removed. Please set the "
-                "location_a property instead.",
-            )
-
-        if "locationB" in kwargs.keys():
-            location_b = kwargs.pop("locationB")
-            raise TypeError(
-                "The locationB property has been removed. Please set the "
-                "location_b property instead.",
-            )
+        if "current" in kwargs.keys():
+            value = kwargs.pop("current")
+            current = [value, -value]
+        else:
+            current = [1.0, -1.0]
 
         # if location_a set, then use location_a, location_b
         if location_a is not None:
@@ -151,16 +209,18 @@ class Dipole(BaseSrc):
 
             location = [location_a, location_b]
 
-        if location is None:
-            raise AttributeError(
-                "Source cannot be instantiated without assigning 'location'."
-                "Please provide either location=(location_a, location_b) "
-                "or both location_a=location_a, location_b=location_b"
-            )
+        elif location is not None:
+            if len(location) != 2:
+                raise ValueError(
+                    "location must be a list or tuple of length 2: "
+                    "[location_a, location_b]. The input location has "
+                    f"length {len(location)}"
+                )
 
         # instantiate
-        super(Dipole, self).__init__(receiver_list, location=location, **kwargs)
-        # self.location = location
+        super().__init__(
+            receiver_list=receiver_list, location=location, current=current, **kwargs
+        )
 
     def __repr__(self):
         return (
@@ -264,8 +324,12 @@ class Pole(BaseSrc):
     current : float, default=1.0
         Current amplitude [A]
     """
-    def __init__(self, receiver_list=None, location=None, **kwargs):
+    def __init__(self, receiver_list, location=None, **kwargs):
         super(Pole, self).__init__(receiver_list, location=location, **kwargs)
+        if len(self.location) != 1:
+            raise ValueError(
+                f"Pole sources only have a single location, not {len(self.location)}"
+            )
 
     def eval(self, sim):
         """Project source to mesh.
@@ -301,7 +365,7 @@ class Pole(BaseSrc):
         (dim) numpy.ndarray
             Location of the A-electrode
         """
-        return self.location
+        return self.location[0]
 
     @property
     def location_b(self):
@@ -312,4 +376,4 @@ class Pole(BaseSrc):
         (dim) numpy.ndarray of np.nan
             Location of the B-electrode.
         """
-        return np.nan * np.ones_like(self.location)
+        return np.full_like(self.location[0], np.nan)

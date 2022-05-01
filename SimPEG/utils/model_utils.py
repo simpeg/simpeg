@@ -1,3 +1,5 @@
+import discretize
+
 from .mat_utils import mkvc, ndgrid, uniqueRows
 import numpy as np
 from scipy.interpolate import griddata, interp1d
@@ -231,7 +233,8 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
         else:
             raise NotImplementedError("surface2ind_topo not implemented for 1D mesh")
-
+    else:
+        raise NotImplementedError(f"{type(mesh)} is not supported.")
     return mkvc(actind)
 
 

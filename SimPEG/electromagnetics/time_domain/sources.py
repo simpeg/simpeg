@@ -1497,7 +1497,7 @@ class CircularLoop(MagDipole):
         float
             Dipole moment of the loop
         """
-        return np.pi * self.radius ** 2 * self.current * self.N
+        return np.pi * self.radius**2 * self.current * self.N
 
     @moment.setter
     def moment(self):

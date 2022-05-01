@@ -86,13 +86,10 @@ class PGIsmallness(BaseRegularization):
 
         if self.cell_weights is not None:
             if len(self.cell_weights) == self.wiresmap.nP:
-                return (
-                    sp.kron(
-                        speye(len(self.wiresmap.maps)),
-                        sdiag(np.sqrt(self.regmesh.vol)),
-                    )
-                    * sdiag(np.sqrt(self.cell_weights))
-                )
+                return sp.kron(
+                    speye(len(self.wiresmap.maps)),
+                    sdiag(np.sqrt(self.regmesh.vol)),
+                ) * sdiag(np.sqrt(self.cell_weights))
             else:
                 return sp.kron(
                     speye(len(self.wiresmap.maps)),
@@ -698,13 +695,10 @@ class PGIwithNonlinearRelationshipsSmallness(BaseRegularization):
 
         if self.cell_weights is not None:
             if len(self.cell_weights) == self.wiresmap.nP:
-                return (
-                    sp.kron(
-                        speye(len(self.wiresmap.maps)),
-                        sdiag(np.sqrt(self.regmesh.vol)),
-                    )
-                    * sdiag(np.sqrt(self.cell_weights))
-                )
+                return sp.kron(
+                    speye(len(self.wiresmap.maps)),
+                    sdiag(np.sqrt(self.regmesh.vol)),
+                ) * sdiag(np.sqrt(self.cell_weights))
             else:
                 return sp.kron(
                     speye(len(self.wiresmap.maps)),

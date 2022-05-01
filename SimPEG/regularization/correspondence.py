@@ -94,12 +94,12 @@ class LinearCorrespondence(BaseSimilarityMeasure):
         k1, k2, k3 = self.coefficients
         if v is not None:
             v1, v2 = self.wire_map * v
-            p1 = k1 ** 2 * v1 + k2 * k1 * v2
-            p2 = k2 * k1 * v1 + k2 ** 2 * v2
+            p1 = k1**2 * v1 + k2 * k1 * v2
+            p2 = k2 * k1 * v1 + k2**2 * v2
             return np.r_[p1, p2]
         else:
             n = self.regmesh.nC
-            A = utils.sdiag(np.ones(n) * (k1 ** 2))
-            B = utils.sdiag(np.ones(n) * (k2 ** 2))
+            A = utils.sdiag(np.ones(n) * (k1**2))
+            B = utils.sdiag(np.ones(n) * (k2**2))
             C = utils.sdiag(np.ones(n) * (k1 * k2))
             return sp.bmat([[A, C], [C, B]], format="csr")

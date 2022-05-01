@@ -48,7 +48,7 @@ yr = np.linspace(-30.0, 30.0, 20)
 X, Y = np.meshgrid(xr, yr)
 
 # Move the observation points 5m above the topo
-Z = -np.exp((X ** 2 + Y ** 2) / 75 ** 2)
+Z = -np.exp((X**2 + Y**2) / 75**2)
 
 # Create a topo array
 topo = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]

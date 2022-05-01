@@ -151,13 +151,13 @@ class MagDipole(BaseSrcVRM):
         )
 
         hx0 = (1 / (4 * np.pi)) * (
-            3 * (xyz[:, 0] - r0[0]) * mdotr / r ** 5 - m[0] / r ** 3
+            3 * (xyz[:, 0] - r0[0]) * mdotr / r**5 - m[0] / r**3
         )
         hy0 = (1 / (4 * np.pi)) * (
-            3 * (xyz[:, 1] - r0[1]) * mdotr / r ** 5 - m[1] / r ** 3
+            3 * (xyz[:, 1] - r0[1]) * mdotr / r**5 - m[1] / r**3
         )
         hz0 = (1 / (4 * np.pi)) * (
-            3 * (xyz[:, 2] - r0[2]) * mdotr / r ** 5 - m[2] / r ** 3
+            3 * (xyz[:, 2] - r0[2]) * mdotr / r**5 - m[2] / r**3
         )
 
         return np.c_[hx0, hy0, hz0]
@@ -289,29 +289,29 @@ class CircLoop(BaseSrcVRM):
             rot_mat[2, :].T,
         )
 
-        s = np.sqrt(x1p ** 2 + x2p ** 2) + 1e-10  # Radial distance
-        k = 4 * a * s / (x3p ** 2 + (a + s) ** 2)
+        s = np.sqrt(x1p**2 + x2p**2) + 1e-10  # Radial distance
+        k = 4 * a * s / (x3p**2 + (a + s) ** 2)
 
         hxp = (
             (x1p / s)
-            * (x3p * I / (2 * np.pi * s * np.sqrt(x3p ** 2 + (a + s) ** 2)))
+            * (x3p * I / (2 * np.pi * s * np.sqrt(x3p**2 + (a + s) ** 2)))
             * (
-                ((a ** 2 + x3p ** 2 + s ** 2) / (x3p ** 2 + (s - a) ** 2))
+                ((a**2 + x3p**2 + s**2) / (x3p**2 + (s - a) ** 2))
                 * spec.ellipe(k)
                 - spec.ellipk(k)
             )
         )
         hyp = (
             (x2p / s)
-            * (x3p * I / (2 * np.pi * s * np.sqrt(x3p ** 2 + (a + s) ** 2)))
+            * (x3p * I / (2 * np.pi * s * np.sqrt(x3p**2 + (a + s) ** 2)))
             * (
-                ((a ** 2 + x3p ** 2 + s ** 2) / (x3p ** 2 + (s - a) ** 2))
+                ((a**2 + x3p**2 + s**2) / (x3p**2 + (s - a) ** 2))
                 * spec.ellipe(k)
                 - spec.ellipk(k)
             )
         )
-        hzp = (I / (2 * np.pi * np.sqrt(x3p ** 2 + (a + s) ** 2))) * (
-            ((a ** 2 - x3p ** 2 - s ** 2) / (x3p ** 2 + (s - a) ** 2)) * spec.ellipe(k)
+        hzp = (I / (2 * np.pi * np.sqrt(x3p**2 + (a + s) ** 2))) * (
+            ((a**2 - x3p**2 - s**2) / (x3p**2 + (s - a) ** 2)) * spec.ellipe(k)
             + spec.ellipk(k)
         )
 
@@ -376,9 +376,9 @@ class CircLoop(BaseSrcVRM):
             np.c_[xyzc[:, 0] - r0[0], xyzc[:, 1] - r0[1], xyzc[:, 2] - r0[2]],
             rot_mat[2, :].T,
         )
-        r = np.sqrt(x1p ** 2 + x2p ** 2 + x3p ** 2)
-        cosA = np.sqrt(x1p ** 2 + x2p ** 2) / r
-        d = np.sqrt(a ** 2 + r ** 2 - 2 * a * r * cosA)
+        r = np.sqrt(x1p**2 + x2p**2 + x3p**2)
+        cosA = np.sqrt(x1p**2 + x2p**2) / r
+        d = np.sqrt(a**2 + r**2 - 2 * a * r * cosA)
 
         for nn in range(0, refinement_factor):
 
@@ -509,11 +509,11 @@ class LineCurrent(BaseSrcVRM):
                 + (x3a - xyz[:, 2]) * (x3b - x3a)
             )
 
-            rx1 = (x1a - xyz[:, 0]) - dot_temp * (x1b - x1a) / vab ** 2
-            rx2 = (x2a - xyz[:, 1]) - dot_temp * (x2b - x2a) / vab ** 2
-            rx3 = (x3a - xyz[:, 2]) - dot_temp * (x3b - x3a) / vab ** 2
+            rx1 = (x1a - xyz[:, 0]) - dot_temp * (x1b - x1a) / vab**2
+            rx2 = (x2a - xyz[:, 1]) - dot_temp * (x2b - x2a) / vab**2
+            rx3 = (x3a - xyz[:, 2]) - dot_temp * (x3b - x3a) / vab**2
 
-            r = np.sqrt(rx1 ** 2 + rx2 ** 2 + rx3 ** 2)
+            r = np.sqrt(rx1**2 + rx2**2 + rx3**2)
 
             phi = (cos_alpha + cos_beta) / r
 
@@ -571,9 +571,9 @@ class LineCurrent(BaseSrcVRM):
                     (tx0[0] - xyzc[:, 0]) ** 2
                     + (tx0[1] - xyzc[:, 1]) ** 2
                     + (tx0[2] - xyzc[:, 2]) ** 2
-                    - d ** 2
+                    - d**2
                 )
-                e = np.array(b ** 2 - 4 * a * c, dtype=np.complex)
+                e = np.array(b**2 - 4 * a * c, dtype=np.complex)
 
                 q_pos = (-b + np.sqrt(e)) / (2 * a)
                 q_neg = (-b - np.sqrt(e)) / (2 * a)
