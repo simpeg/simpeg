@@ -16,9 +16,9 @@ from discretize.tests import checkDerivative
 from discretize import TensorMesh, CylMesh
 
 from .utils import (
-    setKwargs,
+    set_kwargs,
     mkvc,
-    rotationMatrixFromNormals,
+    rotation_matrix_from_normals,
     Zero,
     Identity,
     sdiag,
@@ -58,7 +58,7 @@ class IdentityMap(properties.HasProperties):
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
         if nP is not None:
             if isinstance(nP, string_types):
@@ -136,9 +136,9 @@ class IdentityMap(properties.HasProperties):
 
     def inverse(self, D):
         """
-        Perform the inverse mapping (not implemented)
+        The transform inverse is not implemented.
         """
-        raise NotImplementedError("The transformInverse is not implemented.")
+        raise NotImplementedError("The transform inverse is not implemented.")
 
     def deriv(self, m, v=None):
         r"""Derivative of the mapping with respect to the input parameters.
@@ -224,7 +224,7 @@ class IdentityMap(properties.HasProperties):
             Starting vector of model parameters for the derivative test
         num : int
             Number of iterations for the derivative test
-        kwargs: dict
+        kwargs : dict
             Keyword arguments and associated values in the dictionary must
             match those used in :meth:`discretize.tests.checkDerivative`
         
@@ -1495,7 +1495,7 @@ class SelfConsistentEffectiveMedium(IdentityMap, properties.HasProperties):
         """Depolarization tensor"""
         Q = self.getQ(alpha)
         A = np.diag([Q, Q, 1 - 2 * Q])
-        R = rotationMatrixFromNormals(np.r_[0.0, 0.0, 1.0], orientation)
+        R = rotation_matrix_from_normals(np.r_[0.0, 0.0, 1.0], orientation)
         return (R.T).dot(A).dot(R)
 
     def getR(self, sj, se, alpha, orientation=None):
@@ -2799,7 +2799,7 @@ class Mesh2Mesh(IdentityMap):
     indActive = properties.Array("active indices on target mesh", dtype=bool)
 
     def __init__(self, meshes, **kwargs):
-        setKwargs(self, **kwargs)
+        set_kwargs(self, **kwargs)
 
         assert type(meshes) is list, "meshes must be a list of two meshes"
         assert len(meshes) == 2, "meshes must be a list of two meshes"

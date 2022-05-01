@@ -27,34 +27,34 @@ Data Classes
   data.Data
   data.SyntheticData
 
-Mapping Classes
-===============
-.. autosummary::
-  :toctree: generated/
+# Mapping Classes
+# ===============
+# .. autosummary::
+#   :toctree: generated/
 
-  maps.BaseParametric
-  maps.ChiMap
-  maps.ComboMap
-  maps.ComplexMap
-  maps.ExpMap
-  maps.IdentityMap
-  maps.InjectActiveCells
-  maps.MuRelative
-  maps.LogMap
-  maps.ParametricBlock
-  maps.ParametricCircleMap
-  maps.ParametricEllipsoid
-  maps.ParametricLayer
-  maps.ParametricPolyMap
-  maps.Projection
-  maps.ReciprocalMap
-  maps.SphericalSystem
-  maps.Surject2Dto3D
-  maps.SurjectFull
-  maps.SurjectUnits
-  maps.SurjectVertical1D
-  maps.Weighting
-  maps.Wires
+#   maps.BaseParametric
+#   maps.ChiMap
+#   maps.ComboMap
+#   maps.ComplexMap
+#   maps.ExpMap
+#   maps.IdentityMap
+#   maps.InjectActiveCells
+#   maps.MuRelative
+#   maps.LogMap
+#   maps.ParametricBlock
+#   maps.ParametricCircleMap
+#   maps.ParametricEllipsoid
+#   maps.ParametricLayer
+#   maps.ParametricPolyMap
+#   maps.Projection
+#   maps.ReciprocalMap
+#   maps.SphericalSystem
+#   maps.Surject2Dto3D
+#   maps.SurjectFull
+#   maps.SurjectUnits
+#   maps.SurjectVertical1D
+#   maps.Weighting
+#   maps.Wires
 
 """
 from __future__ import print_function
