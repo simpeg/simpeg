@@ -9,6 +9,7 @@ from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
 import copy
+from ..objective_function import ComboObjectiveFunction
 from ..regularization import (
     Small,
     SparseSmall,
@@ -173,6 +174,7 @@ class PGI_BetaAlphaSchedule(InversionDirective):
     alphasmax = 1e10  # max alpha_s
     betamin = 1e-10  # minimum beta
     update_rate = 1  # update every `update_rate` iterations
+    pgi_reg = None
     ratio_in_cooling = (
         False  # add the ratio of geophysical misfit with their target in cooling
     )
@@ -218,26 +220,23 @@ class PGI_BetaAlphaSchedule(InversionDirective):
                 updategaussianclass
             ]
 
-        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
-            petrosmallness = np.where(
-                np.r_[
-                    [
-                        isinstance(
-                            regpart, (PGI, PGIwithRelationships)
-                        )
-                        for regpart in self.reg.objfcts
-                    ]
-                ]
-            )[0][0]
-            self.petrosmallness = petrosmallness
-            self._regmode = 1
-        else:
-            self._regmode = 2
+        pgi_reg = []
+        if isinstance(self.reg, PGI):
+            pgi_reg += [self.reg]
 
-        if self._regmode == 1:
-            self.pgi_reg = self.reg.objfcts[self.petrosmallness]
-        else:
-            self.pgi_reg = self.reg
+        for reg in self.reg.objfcts:
+            if isinstance(reg, PGI):
+                pgi_reg += [reg]
+
+            if isinstance(reg, ComboObjectiveFunction):
+                for objfct in reg.objfcts:
+                    if isinstance(reg, PGI):
+                        pgi_reg += [objfct]
+
+        if len(pgi_reg) != 1:
+            raise UserWarning(f"The directive 'PGI_BetaAlphaSchedule' requires one instance of PGI regularization. Found {len(pgi_reg)}")
+
+        self.pgi_reg = pgi_reg[0]
 
     def endIter(self):
 
@@ -299,15 +298,15 @@ class PGI_BetaAlphaSchedule(InversionDirective):
 
             elif np.all([self.DM, self.mode == 2]):
 
-                if np.all([self.pgi_reg.alpha_s < self.alphasmax]):
+                if np.all([self.pgi_reg.alpha_pgi < self.alphasmax]):
 
                     ratio = np.median(self.DMtarget / self.dmlist)
-                    self.pgi_reg.alpha_s *= self.warmingFactor * ratio
+                    self.pgi_reg.alpha_pgi *= self.warmingFactor * ratio
 
                     if self.verbose:
                         print(
-                            "Warming alpha_s to favor clustering: ",
-                            self.pgi_reg.alpha_s,
+                            "Warming alpha_pgi to favor clustering: ",
+                            self.pgi_reg.alpha_pgi,
                         )
 
             elif np.all(

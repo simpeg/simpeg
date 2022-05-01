@@ -288,117 +288,160 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
-            nbr = np.sum(
-                [len(self.reg.objfcts[i].objfcts) for i in range(len(self.reg.objfcts))]
+        smoothness = []
+        smallness = []
+        parents = {}
+        for regobjcts in self.reg.objfcts:
+
+            if isinstance(regobjcts, ComboObjectiveFunction):
+                objfcts = regobjcts.objfcts
+            else:
+                objfcts = [regobjcts]
+
+            for obj in objfcts:
+
+                if isinstance(obj, (Small, SparseSmall, PGIsmallness, PGIwithNonlinearRelationshipsSmallness)):
+                    smallness += [obj]
+
+                elif isinstance(obj, (SmoothDeriv, SparseDeriv)):
+                    parents[obj] = regobjcts
+                    smoothness += [obj]
+
+        if len(smallness) == 0:
+            raise UserWarning("Directive 'AlphasSmoothEstimate_ByEig' requires a regularization with at least one Small instance.")
+
+        smallness_eigenvalue = eigenvalue_by_power_iteration(
+            smallness[0],
+            self.invProb.model,
+            n_pw_iter=self.n_pw_iter,
+        )
+
+        if not isinstance(self.alpha0_ratio, (np.ndarray, list)):
+            self.alpha0_ratio = self.alpha0_ratio * np.ones(len(smoothness))
+
+        if len(self.alpha0_ratio) != len(smoothness):
+            raise ValueError(f"Input values for 'alpha0_ratio' should be of len({len(smoothness)}). Provided {self.alpha0_ratio}")
+
+        alphas = []
+        for user_alpha, obj in zip(self.alpha0_ratio, smoothness):
+            smooth_i_eigenvalue = eigenvalue_by_power_iteration(
+                obj, self.invProb.model, n_pw_iter=self.n_pw_iter,
             )
-            # Find the smallness terms in a two-levels combo-regularization.
-            smallness = []
-            alpha0 = []
-            for i, regobjcts in enumerate(self.reg.objfcts):
-                for j, regpart in enumerate(regobjcts.objfcts):
-                    alpha0 += [self.reg.multipliers[i] * regobjcts.multipliers[j]]
-                    smallness += [
-                        [
-                            i,
-                            j,
-                            isinstance(
-                                regpart,
-                                (
-                                    Small,
-                                    SparseSmall,
-                                    PGIsmallness,
-                                    PGIwithNonlinearRelationshipsSmallness,
-                                ),
-                            ),
-                        ]
-                    ]
-            smallness = np.r_[smallness]
-            # Select the first, only considered, smallness term.
-            smallness = smallness[smallness[:, 2] == 1][:, :2][0]
+            ratio = smallness_eigenvalue / smooth_i_eigenvalue
 
-            # Find the smoothness terms in a two-levels combo-regularization.
-            smoothness = []
-            for i, regobjcts in enumerate(self.reg.objfcts):
-                for j, regpart in enumerate(regobjcts.objfcts):
-                    smoothness += [
-                        [
-                            i,
-                            j,
-                            isinstance(
-                                regpart, (SmoothDeriv, SparseDeriv)
-                            ),
-                        ]
-                    ]
-            smoothness = np.r_[smoothness]
-            mode = 1
+            mtype = obj._multiplier_pair
 
-        else:
-            nbr = len(self.reg.objfcts)
-            alpha0 = self.reg.multipliers
-            smoothness = np.r_[
-                [
-                    isinstance(regpart, (SmoothDeriv, SparseDeriv))
-                    for regpart in self.reg.objfcts
-                ]
-            ]
-            mode = 2
-
-        if not isinstance(self.alpha0_ratio, np.ndarray):
-            self.alpha0_ratio = self.alpha0_ratio * np.ones(nbr)
-
-        if self.debug:
-            print("Calculating the Alpha0 parameter.")
-
-        m = self.invProb.model
-
-        if mode == 2:
-            smallness_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg.objfcts[0], m, n_pw_iter=self.n_pw_iter,
-            )
-            for i in range(nbr):
-                if smoothness[i]:
-                    smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-                        self.reg.objfcts[i], m, n_pw_iter=self.n_pw_iter,
-                    )
-                    ratio = smallness_eigenvalue / smooth_i_eigenvalue
-
-                    alpha0[i] *= self.alpha0_ratio[i] * ratio
-                    mtype = self.reg.objfcts[i]._multiplier_pair
-                    setattr(self.reg, mtype, alpha0[i])
-
-        elif mode == 1:
-            smallness_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg.objfcts[smallness[0]].objfcts[smallness[1]],
-                m,
-                n_pw_iter=self.n_pw_iter,
-            )
-            for i in range(nbr):
-                ratio = []
-                if smoothness[i, 2]:
-                    idx = smoothness[i, :2]
-                    smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-                        self.reg.objfcts[idx[0]].objfcts[idx[1]],
-                        m,
-                        n_pw_iter=self.n_pw_iter,
-                    )
-
-                    ratio = np.divide(
-                        smallness_eigenvalue,
-                        smooth_i_eigenvalue,
-                        out=np.zeros_like(smallness_eigenvalue),
-                        where=smooth_i_eigenvalue != 0,
-                    )
-
-                    alpha0[i] *= self.alpha0_ratio[i] * ratio
-                    mtype = self.reg.objfcts[idx[0]].objfcts[idx[1]]._multiplier_pair
-                    setattr(self.reg.objfcts[idx[0]], mtype, alpha0[i])
+            new_alpha = getattr(parents[obj], mtype) * user_alpha * ratio
+            setattr(parents[obj], mtype, new_alpha)
+            alphas += [new_alpha]
+        # if getattr(self.reg, "objfcts", None) is not None:
+        #     nbr = np.sum(
+        #         [len(self.reg.objfcts.objfcts) for obj in self.reg.objfcts]
+        #     )
+        #     # Find the smallness terms in a two-levels combo-regularization.
+        #     smallness = []
+        #     alpha0 = []
+        #     for i, regobjcts in enumerate(self.reg.objfcts):
+        #         for j, regpart in enumerate(regobjcts.objfcts):
+        #             alpha0 += [self.reg.multipliers[i] * regobjcts.multipliers[j]]
+        #             smallness += [
+        #                 [
+        #                     i,
+        #                     j,
+        #                     isinstance(
+        #                         regpart,
+        #                         (
+        #                             Small,
+        #                             SparseSmall,
+        #                             PGIsmallness,
+        #                             PGIwithNonlinearRelationshipsSmallness,
+        #                         ),
+        #                     ),
+        #                 ]
+        #             ]
+        #     smallness = np.r_[smallness]
+        #     # Select the first, only considered, smallness term.
+        #     smallness = smallness[smallness[:, 2] == 1][:, :2][0]
+        #
+        #     # Find the smoothness terms in a two-levels combo-regularization.
+        #     smoothness = []
+        #     for i, regobjcts in enumerate(self.reg.objfcts):
+        #         for j, regpart in enumerate(regobjcts.objfcts):
+        #             smoothness += [
+        #                 [
+        #                     i,
+        #                     j,
+        #                     isinstance(
+        #                         regpart, (SmoothDeriv, SparseDeriv)
+        #                     ),
+        #                 ]
+        #             ]
+        #     smoothness = np.r_[smoothness]
+        #     mode = 1
+        #
+        # else:
+        #     nbr = len(self.reg.objfcts)
+        #     alpha0 = self.reg.multipliers
+        #     smoothness = np.r_[
+        #         [
+        #             isinstance(regpart, (SmoothDeriv, SparseDeriv))
+        #             for regpart in self.reg.objfcts
+        #         ]
+        #     ]
+        #     mode = 2
+        #
+        # if not isinstance(self.alpha0_ratio, np.ndarray):
+        #     self.alpha0_ratio = self.alpha0_ratio * np.ones(nbr)
+        #
+        # if self.debug:
+        #     print("Calculating the Alpha0 parameter.")
+        #
+        # m = self.invProb.model
+        #
+        # if mode == 2:
+        #     smallness_eigenvalue = eigenvalue_by_power_iteration(
+        #         self.reg.objfcts[0], m, n_pw_iter=self.n_pw_iter,
+        #     )
+        #     for i in range(nbr):
+        #         if smoothness[i]:
+        #             smooth_i_eigenvalue = eigenvalue_by_power_iteration(
+        #                 self.reg.objfcts[i], m, n_pw_iter=self.n_pw_iter,
+        #             )
+        #             ratio = smallness_eigenvalue / smooth_i_eigenvalue
+        #
+        #             alpha0[i] *= self.alpha0_ratio[i] * ratio
+        #             mtype = self.reg.objfcts[i]._multiplier_pair
+        #             setattr(self.reg, mtype, alpha0[i])
+        #
+        # elif mode == 1:
+        #     smallness_eigenvalue = eigenvalue_by_power_iteration(
+        #         self.reg.objfcts[smallness[0]].objfcts[smallness[1]],
+        #         m,
+        #         n_pw_iter=self.n_pw_iter,
+        #     )
+        #     for i in range(nbr):
+        #         ratio = []
+        #         if smoothness[i, 2]:
+        #             idx = smoothness[i, :2]
+        #             smooth_i_eigenvalue = eigenvalue_by_power_iteration(
+        #                 self.reg.objfcts[idx[0]].objfcts[idx[1]],
+        #                 m,
+        #                 n_pw_iter=self.n_pw_iter,
+        #             )
+        #
+        #             ratio = np.divide(
+        #                 smallness_eigenvalue,
+        #                 smooth_i_eigenvalue,
+        #                 out=np.zeros_like(smallness_eigenvalue),
+        #                 where=smooth_i_eigenvalue != 0,
+        #             )
+        #
+        #             alpha0[i] *= self.alpha0_ratio[i] * ratio
+        #             mtype = self.reg.objfcts[idx[0]].objfcts[idx[1]]._multiplier_pair
+        #             setattr(self.reg.objfcts[idx[0]], mtype, alpha0[i])
 
         if self.verbose:
-            print("Alpha scales: ", self.reg.multipliers)
-            if mode == 1:
-                for objf in self.reg.objfcts:
-                    print("Alpha scales: ", objf.multipliers)
+            print(f"Alpha scales: {alphas}")
 
 
 class ScalingMultipleDataMisfits_ByEig(InversionDirective):

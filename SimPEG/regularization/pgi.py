@@ -46,7 +46,7 @@ class PGIsmallness(Small):
     :param boolean approx_eval: use the L2-approximation evaluation of the smallness term
     """
 
-    _multiplier_pair = "alpha_s"
+    _multiplier_pair = "alpha_pgi"
     _non_linear_relationships = False
     _maplist = None
     _wiresmap = None
@@ -659,6 +659,7 @@ class PGI(ComboObjectiveFunction):
         gmm=None,
         wiresmap=None,
         maplist=None,
+        alpha_pgi=None,
         approx_hessian=True,
         approx_gradient=True,
         approx_eval=True,
@@ -706,6 +707,21 @@ class PGI(ComboObjectiveFunction):
         self.reference_model_in_smooth = reference_model_in_smooth
 
     @property
+    def alpha_pgi(self):
+        """PGI smallness weight"""
+        if getattr(self, "_alpha_pgi", None) is None:
+            self._alpha_pgi = self.multipliers[0]
+        return self._alpha_pgi
+
+    @alpha_pgi.setter
+    def alpha_pgi(self, value):
+        if isinstance(value, (float, int)) and value < 0:
+            raise ValueError("Input 'alpha_pgi' value must me of type float > 0"
+                             f"Value {value} of type {type(value)} provided")
+        self._alpha_pgi = value
+        self._multipliers[0] =  value
+
+    @property
     def gmm(self):
         if getattr(self, "_gmm", None) is None:
             self._gmm = copy.deepcopy(self.gmmref)
@@ -734,6 +750,7 @@ class PGI(ComboObjectiveFunction):
         if getattr(self, "_maplist", None) is None:
             self._maplist = [IdentityMap(self.regularization_mesh) for maps in self.wiresmap.maps]
         return self._maplist
+
 
     @property
     def regularization_mesh(self) -> RegularizationMesh:

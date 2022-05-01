@@ -155,9 +155,7 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 alpha0_ratio = np.r_[
-    0,
-    100.0 * np.ones(len(reg_simple.objfcts[1].objfcts)),
-    1.0 * np.ones(len(reg_simple.objfcts[2].objfcts)),
+    1e+6 * np.ones(len(reg_simple.objfcts[1].objfcts)),
 ]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
@@ -200,9 +198,7 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 alpha0_ratio = np.r_[
-    0,
-    [0, 100.0 * np.ones(len(reg_simple_no_map.objfcts[1].objfcts[1:]))],
-    [0, 1.0 * np.ones(len(reg_simple_no_map.objfcts[2].objfcts))],
+    100.0 * np.ones(2),
 ]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
@@ -239,10 +235,7 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # directives
-alpha0_ratio = np.r_[
-    100.0 * np.ones(len(reg.objfcts[0].objfcts)),
-    1.0 * np.ones(len(reg.objfcts[1].objfcts)),
-]
+alpha0_ratio = np.r_[1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
