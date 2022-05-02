@@ -43,7 +43,6 @@ def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
 
     Parameters
     ----------
-
     matrix_arg : numpy.ndarray or function
         The matrix as a ``numpy.ndarray``, or a function handle which computes the dot product
         between the matrix and a vector.
@@ -56,7 +55,6 @@ def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
     
     Returns
     -------
-
     numpy.ndarray
         Estimate of the diagonal elements of the input matrix
     
@@ -159,9 +157,6 @@ def eigenvalue_by_power_iteration(
     float
         Estimated value of the highest eigenvalue
 
-    Notes
-    -----
-
     """
 
     if seed is not None:
@@ -226,6 +221,18 @@ def eigenvalue_by_power_iteration(
 def cartesian2spherical(m):
     """Converts a set of 3D vectors from Cartesian to spherical coordinates.
     
+    Parameters
+    ----------
+    m : (n, 3) numpy.array_like
+        An array whose columns represent the x, y and z components of
+        a set of vectors.
+
+    Returns
+    -------
+    (n, 3) numpy.array_like
+        An array whose columns represent the *a*, *t* and *p* components
+        of a set of vectors in spherical coordinates.
+
     Notes
     -----
 
@@ -244,19 +251,7 @@ def cartesian2spherical(m):
         - :math:`a` is the amplitude of the vector
         - :math:`t` is the azimuthal angle defined positive from vertical
         - :math:`p` is the radial angle defined positive CCW from Easting
-
-    Parameters
-    ----------
-    m : (n, 3) numpy.array_like
-        An array whose columns represent the x, y and z components of
-        a set of vectors.
-
-
-    Returns
-    -------
-    (n, 3) numpy.array_like
-        An array whose columns represent the *a*, *t* and *p* components
-        of a set of vectors in spherical coordinates.
+    
     """
 
     # nC = int(len(m)/3)
@@ -281,6 +276,18 @@ def cartesian2spherical(m):
 def spherical2cartesian(m):
     """Converts a set of 3D vectors from spherical to Catesian coordinates.
     
+    Parameters
+    ----------
+    m : (n, 3) array_like
+        An array whose columns represent the *a*, *t* and *p* components of
+        a set of vectors in spherical coordinates.
+
+    Returns
+    -------
+    (n, 3) array_like
+        An array whose columns represent the *x*, *y* and *z* components
+        of the set of vectors in Cartesian.
+
     Notes
     -----
 
@@ -300,18 +307,6 @@ def spherical2cartesian(m):
         - :math:`t` is the azimuthal angle defined positive from vertical
         - :math:`p` is the radial angle defined positive CCW from Easting
 
-    Parameters
-    ----------
-    m : (n, 3) array_like
-        An array whose columns represent the *a*, *t* and *p* components of
-        a set of vectors in spherical coordinates.
-
-
-    Returns
-    -------
-    (n, 3) array_like
-        An array whose columns represent the *x*, *y* and *z* components
-        of the set of vectors in Cartesian.
     """
 
     a = m[:, 0] + 1e-8

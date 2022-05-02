@@ -16,7 +16,6 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
     Parameters
     ----------
-
     mesh : discretize.TensorMesh or discretize.TreeMesh
         Mesh on which you want to identify active cells
     topo : (n, 3) numpy.ndarray
@@ -36,13 +35,6 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
     -------
     numpy.ndarray of int
         Index vector for cells lying below the topography
-
-    Examples
-    --------
-
-    *EXAMPLE PENDING*
-
-
     """
     if mesh._meshType == "TENSOR":
 
@@ -255,12 +247,6 @@ def surface_layer_index(mesh, topo, index=0):
     -------
     numpy.ndarray of int
         Index vector for layer of cells
-
-    Examples
-    --------
-
-    *EXAMPLE PENDING*
-
     """
 
     actv = np.zeros(mesh.nC, dtype="bool")

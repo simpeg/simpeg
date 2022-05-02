@@ -349,7 +349,7 @@ def plot_1d_layer_model(
 def plotLayer(
     sig, LocSigZ, xscale="log", ax=None, showlayers=False, xlim=None, **kwargs
 ):
-    """*plotLayer* has been deprecated, please use plot_1d_layer_model"""
+    """*plotLayer* has been deprecated, please use :func:`plot_1d_layer_model`"""
     warnings.warn(
         "plotLayer has been deprecated, please use plot_1d_layer_model",
         DeprecationWarning,

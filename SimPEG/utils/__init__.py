@@ -208,6 +208,19 @@ Plotting Utility Functions
   plotLayer
   plot_1d_layer_model
 
+
+PGI Utility Classes and Functions
+=================================
+.. autosummary::
+  :toctree: generated/
+
+  make_PGI_regularization
+  make_PGIwithRelationships_regularization
+  WeightedGaussianMixture
+  GaussianMixtureWithPrior
+  GaussianMixtureWithNonlinearRelationships
+  GaussianMixtureWithNonlinearRelationshipsWithPrior
+
 """
 from __future__ import print_function
 

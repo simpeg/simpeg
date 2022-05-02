@@ -20,15 +20,26 @@ def _checkAccuracy(A, b, X, accuracyTol):
 
 
 def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=None):
-    """
-    Wraps a direct Solver.
+    """Wraps a direct Solver.
 
-    ::
+    The syntax for using the solver wrapper is as follows::
 
         import scipy.sparse as sp
         Solver   = solver_utils.SolverWrapD(sp.linalg.spsolve, factorize=False)
         SolverLU = solver_utils.SolverWrapD(sp.linalg.splu, factorize=True)
-
+    
+    Parameters
+    ----------
+    fun : function
+        A function handle
+    factorize : bool, default: ``True``
+        Factorize the solver
+    checkAccuracy : bool, default: ``True``
+        If ``True``, verify the accuracy of the solve
+    accuracyTol : float, default: 1e-6
+        Minimum accuracy of the solve
+    name : str, optional
+        A name for the function
     """
 
     def __init__(self, A, **kwargs):
@@ -113,14 +124,23 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
 
 
 def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
-    """
-    Wraps an iterative Solver.
+    """Wraps an iterative Solver.
 
-    ::
+    The followin syntax is used to wrap an iterative solver::
 
         import scipy.sparse as sp
         SolverCG = solver_utils.SolverWrapI(sp.linalg.cg)
 
+    Parameters
+    ----------
+    fun : function
+        A function handle
+    checkAccuracy : bool, default: ``True``
+        If ``True``, verify the accuracy of the solve
+    accuracyTol : float, default: 1e-5
+        Minimum accuracy of the solve
+    name : str, optional
+        A name for the function
     """
 
     def __init__(self, A, **kwargs):
@@ -205,7 +225,13 @@ SolverBiCG = SolverWrapI(linalg.bicgstab, name="SolverBiCG")
 
 
 class SolverDiag(object):
-    """docstring for SolverDiag"""
+    """Solver for a diagonal linear system
+
+    Parameters
+    ----------
+    A :
+        A diagonal linear system
+    """
 
     def __init__(self, A, **kwargs):
         self.A = A
@@ -240,4 +266,5 @@ class SolverDiag(object):
         return rhs / self._diagonal.repeat(nrhs).reshape((n, nrhs))
 
     def clean(self):
+        """Clean"""
         pass

@@ -14,7 +14,6 @@ class Counter(object):
 
     Examples
     --------
-
     If you want to use this, import *count* or *timeIt* and use them as
     decorators on class methods.
     
@@ -101,6 +100,13 @@ class Counter(object):
 
 
 def count(f):
+    """Count function (**DOCSTRING INCOMPLETE**)
+    
+    Returns
+    -------
+    wrapper
+        Returns the wrapper
+    """
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         counter = getattr(self, "counter", None)
@@ -113,6 +119,13 @@ def count(f):
 
 
 def timeIt(f):
+    """Timing function (**DOCSTRING INCOMPLETE**)
+    
+    Returns
+    -------
+    wrapper
+        Returns the wrapper
+    """
     @wraps(f)
     def wrapper(self, *args, **kwargs):
         counter = getattr(self, "counter", None)

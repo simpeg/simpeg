@@ -121,7 +121,7 @@ def set_kwargs(obj, ignore=None, **kwargs):
 
 
 def print_done(obj, printers, name="Done", pad=""):
-    """Print completion of an operation
+    """Print completion of an operation (**DOCSTRING INCOMPLETE**)
 
     Parameters
     ----------
@@ -145,7 +145,7 @@ def print_done(obj, printers, name="Done", pad=""):
 
 
 def print_titles(obj, printers, name="Print Titles", pad=""):
-    """Print titles
+    """Print titles (**DOCSTRING INCOMPLETE**)
 
     Parameters
     ----------
@@ -169,7 +169,7 @@ def print_titles(obj, printers, name="Print Titles", pad=""):
 
 
 def print_line(obj, printers, pad=""):
-    """Print line
+    """Print line (**DOCSTRING INCOMPLETE**)
 
     Parameters
     ----------
@@ -189,7 +189,7 @@ def print_line(obj, printers, pad=""):
 
 
 def check_stoppers(obj, stoppers):
-    """Check stopping rules
+    """Check stopping rules (**DOCSTRING INCOMPLETE**)
     
     Parameters
     ----------
@@ -222,7 +222,7 @@ def check_stoppers(obj, stoppers):
 
 
 def print_stoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
-    """Print stoppers
+    """Print stoppers (**DOCSTRING INCOMPLETE**)
 
     Parameters
     ----------
@@ -246,8 +246,9 @@ def print_stoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
 
 
 def call_hooks(match, mainFirst=False):
-    """
-    Use this to wrap a function::
+    """Wrap a function to an instance of a class (**DOCSTRING INCOMPLETE**)
+
+    Use the following syntax::
 
         @callHooks('doEndIteration')
         def doEndIteration(self):
@@ -256,6 +257,18 @@ def call_hooks(match, mainFirst=False):
     This will call everything named *_doEndIteration* at the beginning of the function call.
     By default the main method (doEndIteration) is run after all of the sub methods (_doEndIteration*).
     This can be reversed by adding the mainFirst=True kwarg.
+
+    Parameters
+    ----------
+    match : str
+        Name of the function being wrapped to class instance
+    mainFirst : bool, default: ``False``
+        Main first
+
+    Returns
+    -------
+    wrapper
+        The wrapper
     """
 
     def callHooksWrap(f):
@@ -302,6 +315,19 @@ def call_hooks(match, mainFirst=False):
 
 
 def dependent_property(name, value, children, doc):
+    """Dependent property (**DOCSTRING INCOMPLETE**)
+
+    Parameters
+    ----------
+    name : str
+        Property name
+    value : scalar
+        A scalar value
+    children : class instances
+        Child classes
+    doc : str
+        Property documentation
+    """
     def fget(self):
         return getattr(self, name, value)
 
@@ -319,8 +345,9 @@ def dependent_property(name, value, children, doc):
 
 
 def requires(var):
-    """
-    Use this to wrap a funciton::
+    """Wrap a function (**DOCSTRING INCOMPLETE**)
+
+    Use the following syntax to wrap a funciton::
 
         @requires('prob')
         def dpred(self):
@@ -328,6 +355,16 @@ def requires(var):
 
     This wrapper will ensure that a problem has been bound to the data.
     If a problem is not bound an Exception will be raised, and an nice error message printed.
+
+    Parameters
+    ----------
+    var :
+        Input variable
+
+    Returns
+    -------
+    wrapper
+        The wrapper
     """
 
     def requiresVar(f):
@@ -389,17 +426,13 @@ class Report(ScoobyReport):
     add_pckg : packages, optional
         Package or list of packages to add to output information (must be
         imported beforehand).
-
     ncol : int, optional
         Number of package-columns in html table (no effect in text-version);
         Defaults to 3.
-
     text_width : int, optional
         The text width for non-HTML display modes
-
     sort : bool, optional
         Sort the packages when the report is shown
-
 
     Examples
     --------
