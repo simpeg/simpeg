@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import warnings
 import os
 import scipy.sparse as sp
+from datetime import datetime
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
 from ..regularization import (
@@ -1465,10 +1466,15 @@ class SaveIterationsGeoH5(InversionDirective):
         
         if iteration == 0:
             with open(filepath, 'w') as f:
-                f.write("beta phid phim\n")
+                f.write("iteration beta phi_d phi_m time\n")
 
         with open(filepath, 'a') as f:
-            f.write(f"{self.invProb.beta:.3e} {self.invProb.phi_d:.3e} {self.invProb.phi_m:.3e}\n")
+            date_time = datetime.now().strftime("%b-%d-%Y:%H:%M:%S")
+            f.write(
+                f"{iteration} {self.invProb.beta:.3e} {self.invProb.phi_d:.3e} "
+                f"{self.invProb.phi_m:.3e} {date_time}\n"
+            )
+
 
         file_entity = self.h5_object.parent.add_file(filepath)
         with open(filepath, "rb") as f:
