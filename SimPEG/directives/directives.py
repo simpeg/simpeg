@@ -1475,8 +1475,12 @@ class SaveIterationsGeoH5(InversionDirective):
                 f"{self.invProb.phi_m:.3e} {date_time}\n"
             )
 
-
-        file_entity = self.h5_object.parent.add_file(filepath)
+        child_names = [k.name for k in self.h5_object.parent.children]
+        if "SimPEG.out" in child_names:
+            file_entity = self.h5_object.parent.children[child_names.index("SimPEG.out")]
+        else:
+            file_entity = self.h5_object.parent.add_file(filepath)
+            
         with open(filepath, "rb") as f:
             file_entity.values = f.read()
 
