@@ -23,12 +23,12 @@ Source Classes
   sources.Planewave
   sources.PlanewaveXYPrimary
 
-Survey Classes
---------------
-.. autosummary::
-  :toctree: generated/
+# Survey Classes
+# --------------
+# .. autosummary::
+#   :toctree: generated/
 
-  survey.Data
+#   survey.Data
 
 """
 

@@ -13,10 +13,10 @@ Utility Classes
   :toctree: generated/
 
   Counter
-  Identity
-  Report
+  # Identity
+  # Report
   TensorType
-  Zero
+  # Zero
   
 
 Code Utility Functions
