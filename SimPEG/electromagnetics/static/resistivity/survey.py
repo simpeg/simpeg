@@ -364,6 +364,7 @@ class Survey(BaseSurvey):
             raise Exception("Input valid survey survey_geometry: surface or borehole")
 
     def drapeTopo(self, *args, **kwargs):
+        """This method is deprecated. See :meth:`drape_electrodes_on_topography`"""
         raise TypeError(
             "The drapeTopo method has been removed. Please instead "
             "use the drape_electrodes_on_topography method."

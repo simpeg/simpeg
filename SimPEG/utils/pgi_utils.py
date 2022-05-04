@@ -52,8 +52,7 @@ def make_PGI_regularization(
     alpha_zz=0.0,
     **kwargs,
 ):
-    """
-    Create a complete PGI regularization.
+    """Create a complete PGI regularization.
 
     Create a complete PGI regularization term ``ComboObjectiveFunction`` with all
     necessary smallness and smoothness terms for any number of physical properties
@@ -65,7 +64,7 @@ def make_PGI_regularization(
         TensorMesh or Treemesh object, used to weights the physical properties by cell
         volumes when updating the Gaussian Mixture Model (GMM)
     gmmref : WeightedGaussianMixture
-        reference GMM.
+        Reference GMM.
     gmm : WeightedGaussianMixture, optional
         Initial GMM. If not provided, gmmref is used.
     wiresmap : maps.Wires
@@ -336,11 +335,13 @@ class WeightedGaussianMixture(GaussianMixture):
 
     This class upon the GaussianMixture class from Scikit-Learn.
     Two main modifications:
-        1: Each sample/observation is given a weight, the volume of the
+        
+        1. Each sample/observation is given a weight, the volume of the
         corresponding discretize.BaseMesh cell, when fitting the
         Gaussian Mixture Model (GMM). More volume gives more importance, ensuing a
         mesh-free evaluation of the clusters of the geophysical model.
-        2: When set manually, the proportions can be set either globally (normal behavior)
+        
+        2. When set manually, the proportions can be set either globally (normal behavior)
         or cell-by-cell (improvements)
 
     Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.

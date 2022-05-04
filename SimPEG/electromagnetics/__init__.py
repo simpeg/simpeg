@@ -9,7 +9,6 @@ About ``electromagnetics``
 .. autosummary::
   :toctree: generated/
 
-  base.BaseEMSimulation
   base.BaseEMSrc
 
 """

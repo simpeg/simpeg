@@ -281,10 +281,9 @@ class Dipole(BaseRx):
         Receiver orientation. Must be one of: ``None``, 'x', 'y' or 'z'
     data_type : str, default = 'volt'
         Data type. Choose one of: "volt", "apparent_resistivity", "apparent_chargeability"
+    threshold : float, default: 1e-5
+        Minimum electrode separation distance required. Otherwise we assume a pole source.
     """
-
-    # Threshold to be assumed as a pole receiver
-    threshold = 1e-5
 
     # locations = properties.List(
     #     "list of locations of each electrode in a dipole receiver",
@@ -293,7 +292,7 @@ class Dipole(BaseRx):
     #     max_length=2,
     # )
 
-    def __init__(self, locations_m=None, locations_n=None, locations=None, **kwargs):
+    def __init__(self, locations_m=None, locations_n=None, locations=None, threshold=1e-5, **kwargs):
         # if locations_m set, then use locations_m, locations_n
         if locations_m is not None or locations_n is not None:
             if locations_n is None or locations_m is None:
@@ -321,6 +320,8 @@ class Dipole(BaseRx):
         # instantiate
         super(Dipole, self).__init__(locations=locations, **kwargs)
 
+        self.threshold = threshold
+
     def __repr__(self):
         return ",\n".join(
             [
@@ -328,6 +329,30 @@ class Dipole(BaseRx):
                 for (m, n) in zip(self.locations_m, self.locations_n)
             ]
         )
+
+    @property
+    def threshold(self):
+        """Minimum separation distance before source is considered a pole
+
+        Parameters
+        ----------
+        float
+            Threshold value
+        """
+        return self._threshold
+
+    @threshold.setter
+    def threshold(self, var):
+        try:
+            var = float(var)
+        except:
+            raise TypeError("threshold must be a float")
+
+        if var <= 0.0:
+            raise ValueError("threshold must be positive")
+
+        self._threshold = var
+    
 
     @property
     def locations(self):

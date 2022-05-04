@@ -9,7 +9,7 @@ class Point(survey.BaseRx):
     ----------
     locations : (n, 3) np.ndarray
         Receiver locations.
-    components : str or list of str, default = 'tmi'
+    components : str or list of str, default: 'tmi'
         Use a ``str`` for a single component or a ``list`` of ``str` if multiple
         components are simulated at each location. Component choices are:
 
@@ -23,6 +23,7 @@ class Point(survey.BaseRx):
         - "byy"  --> y-derivative of the y-component
         - "byz"  --> z-derivative of the y-component (and visa versa)
         - "bzz"  --> z-derivative of the z-component
+
     """
 
     def __init__(self, locations=None, components="tmi", **kwargs):

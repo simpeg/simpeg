@@ -22,6 +22,19 @@ class Survey(BaseSurvey):
         BaseSurvey.__init__(self, **kwargs)
 
     def eval(self, fields):
+        """Compute the fields
+        
+        Parameters
+        ----------
+        fields : numpy.ndarray
+            For the magnetics simulation, *fields* are the simulated response
+            at the receiver locations.
+
+        Returns
+        -------
+        numpy.ndarray
+            Returns the input *fields*
+        """
         return fields
 
     @property

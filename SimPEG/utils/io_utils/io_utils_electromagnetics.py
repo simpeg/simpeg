@@ -213,13 +213,10 @@ def read_dcip2d_ubc(file_name, data_type, format_type):
         A SimPEG data object. The data from the input file is loaded and parsed into
         three attributes of the data object:
 
-        - `survey`: the survey geometry as defined by an instance of
-        :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
-        :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        - `survey`: the survey geometry as defined by an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
         - `dobs`: observed/predicted data if present in the data file
         - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
 
-    
     """
     data_type = data_type.lower()
     format_type = format_type.lower()
@@ -440,12 +437,9 @@ def read_dcip3d_ubc(file_name, data_type):
         A SimPEG data object. The data from the input file is loaded and parsed into
         three attributes of the data object:
 
-        - `survey`: the survey geometry as defined by an instance of
-        :class`SimPEG.electromagnetics.static.resitivity.survey.Survey` or
-        :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        - `survey`: the survey geometry as defined by an instance of :class`SimPEG.electromagnetics.static.resitivity.survey.Survey` or :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
         - `dobs`: observed/predicted data if present in the data file
         - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
-
 
     """
 
@@ -603,12 +597,9 @@ def read_dcipoctree_ubc(file_name, data_type):
         A SimPEG data object. The data from the input file is loaded and parsed into
         three attributes of the data object:
 
-        - `survey`: the survey geometry as defined by an instance of
-        :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or
-        :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
+        - `survey`: the survey geometry as defined by an instance of :class`SimPEG.electromagnetics.static.resistivity.survey.Survey` or :class`SimPEG.electromagnetics.static.induced_polarization.survey.Survey`
         - `dobs`: observed/predicted data if present in the data file
         - `standard_deviations`: uncertainties (if observed data file) or apparent resistivities (if predicted data file)
-
 
     """
 

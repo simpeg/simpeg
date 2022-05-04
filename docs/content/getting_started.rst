@@ -13,4 +13,4 @@ Here you'll find instructions on getting up and running with ``SimPEG``.
   basic/installing
   basic/installing_for_developers
   basic/practices
-  basic/additional_resources
+  basic/contributing

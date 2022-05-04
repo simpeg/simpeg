@@ -84,8 +84,7 @@ class Data(properties.HasProperties):
 
     By using *standard_deviation* to assign the uncertainties, we are effectively
     providing :math:`\varepsilon` directly.
-
-
+    
     """
 
     dobs = properties.Array(

@@ -477,13 +477,13 @@ class TrapezoidWaveform(BaseWaveform):
 
     Parameters
     ----------
-    ramp_on: float
+    ramp_on : (2) array_like of float
         time when the linear ramp_on ends
 
-    ramp_off: float
+    ramp_off : (2) array_like of float
         start of the ramp_off
 
-    off_time: float
+    off_time : float
         time when the transmitter_current returns to zero
 
     Examples
@@ -524,7 +524,7 @@ class TrapezoidWaveform(BaseWaveform):
     @ramp_on.setter
     def ramp_on(self, value):
         if isinstance(value, (tuple, list)):
-            value = np.array(value, dtype=float)
+            value = np.asarray(value, dtype=float)
         if not isinstance(value, np.ndarray):
             raise ValueError(
                 f"ramp_on must be a numpy array, list or tuple, the value provided, {value} is "
@@ -556,7 +556,7 @@ class TrapezoidWaveform(BaseWaveform):
     @ramp_off.setter
     def ramp_off(self, value):
         if isinstance(value, (tuple, list)):
-            value = np.array(value, dtype=float)
+            value = np.asarray(value, dtype=float)
         if not isinstance(value, np.ndarray):
             raise ValueError(
                 f"ramp_off must be a numpy array, list or tuple, the value provided, {value} is "
@@ -901,24 +901,31 @@ class BaseTDEMSrc(BaseEMSrc):
         return Zero()
 
     def bInitialDeriv(self, simulation, v=None, adjoint=False, f=None):
+        """Returns :class:`Zero` for ``BaseTDEMSrc``"""
         return Zero()
 
     def eInitial(self, simulation):
+        """Returns :class:`Zero` for ``BaseTDEMSrc``"""
         return Zero()
 
     def eInitialDeriv(self, simulation, v=None, adjoint=False, f=None):
+        """Returns :class:`Zero` for ``BaseTDEMSrc``"""
         return Zero()
 
     def hInitial(self, simulation):
+        """Returns :class:`Zero` for ``BaseTDEMSrc``"""
         return Zero()
 
     def hInitialDeriv(self, simulation, v=None, adjoint=False, f=None):
+        """Returns :class:`Zero` for ``BaseTDEMSrc``"""
         return Zero()
 
     def jInitial(self, simulation):
+        """Returns :class:`Zero` for ``BaseTDEMSrc``"""
         return Zero()
 
     def jInitialDeriv(self, simulation, v=None, adjoint=False, f=None):
+        """Returns :class:`Zero` for ``BaseTDEMSrc``"""
         return Zero()
 
     def eval(self, simulation, time):
@@ -975,15 +982,19 @@ class BaseTDEMSrc(BaseEMSrc):
             )
 
     def s_m(self, simulation, time):
+        """Returns :class:`Zero` for ``BaseTDEMSrc``"""
         return Zero()
 
     def s_e(self, simulation, time):
+        """Returns :class:`Zero` for ``BaseTDEMSrc``"""
         return Zero()
 
     def s_mDeriv(self, simulation, time, v=None, adjoint=False):
+        """Returns :class:`Zero` for ``BaseTDEMSrc``"""
         return Zero()
 
     def s_eDeriv(self, simulation, time, v=None, adjoint=False):
+        """Returns :class:`Zero` for ``BaseTDEMSrc``"""
         return Zero()
 
 
@@ -1684,6 +1695,23 @@ class LineCurrent(BaseTDEMSrc):
             return Div * self.Mfjs(simulation)
 
     def phiInitial(self, simulation):
+        """Initial scalar potential
+
+        Returns the scalar potential at the initial time is static
+        fields are present.
+
+        Parameters
+        ----------
+        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
+            An electromagnetic simulation
+
+        Returns
+        -------
+        Zero or numpy.ndarray
+            Returns :class:`Zero` if there are no initial fields.
+            Returns a numpy.ndarray if there are initial fields.
+
+        """
         if self.waveform.has_initial_fields:
             RHSdc = self.getRHSdc(simulation)
             phi = simulation.Adcinv * RHSdc
@@ -1959,6 +1987,7 @@ class LineCurrent(BaseTDEMSrc):
         return simulation.mesh.edgeCurl.T * self._aInitialDeriv(simulation, v)
 
     def s_m(self, simulation, time):
+        """Returns :class:`Zero` for ``LineCurrent``"""
         return Zero()
 
     def s_e(self, simulation, time):

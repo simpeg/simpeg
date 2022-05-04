@@ -36,7 +36,6 @@ Static Utilities (:mod:`SimPEG.electromagnetics.utils`)
   static_utils.gen_3d_survey_from_2d_lines
   static_utils.plot_1d_layer_model
   static_utils.plot_layer
-  static_utils.plot_pseudoSection
 
 """
 from .static_utils import (

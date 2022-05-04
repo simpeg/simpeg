@@ -38,6 +38,31 @@ class Survey(BaseTimeSurvey):
         self.survey_geometry = survey_geometry
         self.survey_type = survey_type
 
+
+    @property
+    def n_pulse(self):
+        """Number of pulses
+
+        Returns
+        -------
+        int
+            Number of pulses
+        """
+        return self._n_pulse
+
+    @property
+    def T(self):
+        """Period
+
+        Returns
+        -------
+        float
+            Period
+        """
+        return self._T
+    
+    
+
     @property
     def survey_geometry(self):
         """Survey geometry; one of {"surface", "borehole", "general"}

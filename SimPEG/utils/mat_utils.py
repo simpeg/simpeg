@@ -24,7 +24,7 @@ from discretize.utils import (
 )
 
 def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
-    """Estimate the diagonal of a matrix.
+    r"""Estimate the diagonal of a matrix.
 
     This function estimates the diagonal of a matrix using one of the following
     iterative methods:
@@ -37,9 +37,9 @@ def estimate_diagonal(matrix_arg, n, k=None, approach="Probing"):
     or by providing a function hangle which computes the dot product of the matrix
     and a vector.
 
-    For background information on this method, see Saad
-    `http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf`__
-    and `https://www.cita.utoronto.ca/~niels/diagonal.pdf`__
+    For background information on this method, see
+    `Bekas (et al., 2005) http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf`__
+    and `Selig (et al., 2012) https://www.cita.utoronto.ca/~niels/diagonal.pdf`__
 
     Parameters
     ----------

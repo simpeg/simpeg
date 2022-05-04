@@ -43,7 +43,7 @@ class PlanewaveXYPrimary(Planewave):
         A list of NSEM receivers
     frequency : float
         Source frequency
-    sigma_primary : float, default = ``None``
+    sigma_primary : float, default: ``None``
         Wholespace conductivity for primary field
     """
 
@@ -139,8 +139,8 @@ class PlanewaveXYPrimary(Planewave):
 
         Parameters
         ----------
-        simulation : BaseFDEMSimulation
-            SimPEG FDEM simulation
+        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
+            SimPEG EM simulation
 
         Returns
         -------
@@ -169,11 +169,11 @@ class PlanewaveXYPrimary(Planewave):
 
         Parameters
         ----------
-        simulation : BaseFDEMSimulation
-            SimPEG FDEM simulation
+        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
+            SimPEG EM simulation
         v : numpy.ndarray
             A vector
-        adjoint : bool, default = ``False``
+        adjoint : bool, default: ``False``
             If ``True``, perform the adjoint operation
 
         Returns
@@ -189,11 +189,11 @@ class PlanewaveXYPrimary(Planewave):
 
         Parameters
         ----------
-        simulation : BaseFDEMSimulation
-            SimPEG FDEM simulation
+        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
+            SimPEG EM simulation
         v : numpy.ndarray
             A vector
-        adjoint : bool, default = ``False``
+        adjoint : bool, default: ``False``
             If ``True``, perform the adjoint operation
 
         Returns
@@ -216,16 +216,3 @@ class PlanewaveXYPrimary(Planewave):
 
     S_e = s_e
     S_eDeriv = s_eDeriv
-
-
-############
-# Deprecated
-############
-@deprecate_class(removal_version="0.15.0")
-class Planewave_xy_1Dprimary(PlanewaveXYPrimary):
-    pass
-
-
-@deprecate_class(removal_version="0.15.0")
-class Planewave_xy_1DhomotD(PlanewaveXYPrimary):
-    pass

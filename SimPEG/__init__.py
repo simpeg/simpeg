@@ -16,16 +16,7 @@ Source, Receiver and Survey Classes
   survey.BaseSrc
   survey.BaseSurvey
   survey.BaseTimeSurvey
-  
 
-Data Classes
-============
-.. autosummary::
-  :toctree: generated/
-
-  data.UncertaintyArray
-  data.Data
-  data.SyntheticData
 
 # Mapping Classes
 # ===============

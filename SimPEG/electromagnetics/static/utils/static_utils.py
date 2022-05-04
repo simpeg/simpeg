@@ -528,16 +528,16 @@ def plot_pseudosection(
     dobs : numpy.ndarray (ndata,) or None
         A data vector containing volts, integrated chargeabilities, apparent
         resistivities, apparent chargeabilities or data misfits.
-    plot_type: {'contourf', 'pcolor', or 'scatter'}
+    plot_type : str, default:'"contourf'
         'scatter' creates a scatter plot, 'contourf' creates a filled contour plot, and
         'pcolor' creates a linearly interpolated plot.
-    ax: mpl_toolkits.mplot3d.axes.Axes, optional
+    ax : mpl_toolkits.mplot3d.axes.Axes, optional
         An axis for the plot
     clim : list, optional
         list containing the minimum and maximum value for the color range,
         i.e. [vmin, vmax]
-    scale: {'linear', 'log'}
-        Plot on linear or log base 10 scale
+    scale : str, default: 'linear'
+        Plot on linear or log base 10 scale {'linear', 'log'}
     pcolor_opts : dict, optional
         Dictionary defining kwargs for pcolor plot if `plot_type=='pcolor'`
     contourf_opts : dict, optional
@@ -559,13 +559,14 @@ def plot_pseudosection(
         data; e.g. 'S/m', '$\\Omega m$', '%'
     cax : mpl_toolkits.mplot3d.axes.Axes, optional
         An axis object for the colorbar
-    data_type: {None, "apparent_conductivity", "apparent_resistivity"}, optional
-        if dobs is None, this will transform the data vector in the `survey` parameter
+    data_type : str, optional
+        If dobs is ``None``, this will transform the data vector in the `survey` parameter
         when it is a SimPEG.data.Data object from voltage to the requested `data_type`.
-        This occurs when `dobs` is `None`.
-    space_type: {'half space', "whole space"}
-        space type to use for the transformation from voltage to `data_type`
-        if `dobs` is `None`.
+        This occurs when `dobs` is `None`. You may also use "apparent_conductivity"
+        or "apparent_resistivity" to define the data type.
+    space_type : str, default: "half space" 
+        Space type to used for the transformation from voltage to `data_type`
+        if `dobs` is ``None``. Choose from {'half space', "whole space"}
 
 
     Returns

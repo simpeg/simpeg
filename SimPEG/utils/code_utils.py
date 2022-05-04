@@ -483,8 +483,8 @@ def deprecate_class(
 ):
     """Utility function to deprecate a class
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     removal_version : str
         A string denoting the SimPEG version in which the class will be removed
     new_location : str
