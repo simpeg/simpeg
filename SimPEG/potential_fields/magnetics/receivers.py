@@ -10,7 +10,7 @@ class Point(survey.BaseRx):
     locations : (n, 3) np.ndarray
         Receiver locations.
     components : str or list of str, default: 'tmi'
-        Use a ``str`` for a single component or a ``list`` of ``str` if multiple
+        Use a ``str`` for a single component or a ``list`` of ``str`` if multiple
         components are simulated at each location. Component choices are:
 
         - "tmi"  --> total magnetic intensity data (DEFAULT)

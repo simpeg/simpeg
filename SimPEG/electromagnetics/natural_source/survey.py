@@ -28,9 +28,7 @@ class Data(BaseData, DataNSEMPlotMethods):
         Relative error
     noise_floor : numpy.ndarray, optional
         Noise floor
-
     """
-
     def __init__(self, survey, dobs=None, relative_error=None, noise_floor=None):
         BaseData.__init__(self, survey, dobs, relative_error, noise_floor)
 

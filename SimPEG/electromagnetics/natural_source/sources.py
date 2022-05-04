@@ -135,17 +135,17 @@ class PlanewaveXYPrimary(Planewave):
         return bBG_bp
 
     def s_e(self, simulation):
-        """Electric source term (s_e)
+        """Electric source term
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
-            SimPEG EM simulation
+        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+            A NSEM simulation
 
         Returns
         -------
         numpy.ndarray
-            electric source term on mesh.
+            Electric source term on mesh.
         """
         e_p = self.ePrimary(simulation)
         # Make mass matrix
@@ -169,8 +169,8 @@ class PlanewaveXYPrimary(Planewave):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
-            SimPEG EM simulation
+        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+            A NSEM simulation
         v : numpy.ndarray
             A vector
         adjoint : bool, default: ``False``
@@ -179,7 +179,7 @@ class PlanewaveXYPrimary(Planewave):
         Returns
         -------
         numpy.ndarray
-            derivative of electric source term on mesh.
+            Derivative of electric source term on mesh.
         """
 
         return self.s_eDeriv_m(simulation, v, adjoint)
@@ -189,8 +189,8 @@ class PlanewaveXYPrimary(Planewave):
 
         Parameters
         ----------
-        simulation : SimPEG.electromagnetics.base.BaseEMSimulation
-            SimPEG EM simulation
+        simulation : SimPEG.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+            A NSEM simulation
         v : numpy.ndarray
             A vector
         adjoint : bool, default: ``False``
@@ -199,7 +199,7 @@ class PlanewaveXYPrimary(Planewave):
         Returns
         -------
         numpy.ndarray
-            derivative of electric source term on mesh.
+            Derivative of electric source term on mesh.
         """
         # Need to deal with
         if simulation.mesh.dim == 1:
