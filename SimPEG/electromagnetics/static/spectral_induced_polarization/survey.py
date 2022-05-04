@@ -20,8 +20,8 @@ class Survey(BaseTimeSurvey):
         Survey type. Choose one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
     """
 
-    n_pulse = 2
-    T = 8.0
+    _n_pulse = 2
+    _T = 8.0
 
     # source_list = properties.List(
     #     "A list of sources for the survey",
