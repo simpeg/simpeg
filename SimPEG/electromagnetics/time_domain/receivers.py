@@ -1,6 +1,6 @@
 import scipy.sparse as sp
 # import properties
-from ...utils import mkvc
+from ...utils import mkvc, validate_string_property
 from ...survey import BaseTimeRx
 
 
@@ -52,15 +52,8 @@ class BaseRx(BaseTimeRx):
 
     @orientation.setter
     def orientation(self, var):
-
-        if isinstance(var, str):
-            var = var.lower()
-            if var not in ('x', 'y', 'z'):
-                raise ValueError(f"orientation must be either 'x', 'y' or 'z'. Got {var}")
-        else:
-            raise TypeError(f"orientation must be a str. Got {type(var)}")
-
-        self._orientation = var
+        var = validate_string_property('orientation', var, string_list=('x', 'y', 'z'))
+        self._orientation = var.lower()
 
     # def projected_grid(self, f):
     #     """Grid Location projection (e.g. Ex Fy ...)"""

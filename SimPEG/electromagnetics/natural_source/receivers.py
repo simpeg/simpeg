@@ -1,4 +1,4 @@
-from ...utils.code_utils import deprecate_class
+from ...utils.code_utils import deprecate_class, validate_string_property
 
 import numpy as np
 from scipy.constants import mu_0
@@ -103,13 +103,14 @@ class PointNaturalSource(BaseRx):
     @component.setter
     def component(self, var):
         if isinstance(var, str):
-            if var.lower() in ("real", "re", "in-phase", "in phase"):
+            var = validate_string_property('component', var).lower()
+            if var in ("real", "re", "in-phase", "in phase"):
                 self._component = 'real'
-            elif var.lower() in ("imag", "imaginary", "im", "out-of-phase", "out of phase"):
+            elif var in ("imag", "imaginary", "im", "out-of-phase", "out of phase"):
                 self._component = 'imag'
-            elif var.lower() in ("apparent_resistivity", "apparent resistivity","appresistivity","apparentresistivity","apparent-resistivity","apparent_resistivity","appres","app_res","rho","rhoa"):
+            elif var in ("apparent_resistivity", "apparent resistivity","appresistivity","apparentresistivity","apparent-resistivity","apparent_resistivity","appres","app_res","rho","rhoa"):
                 self._component = 'apparent_resistivity'
-            elif var.lower() in ("phase", "phi"):
+            elif var in ("phase", "phi"):
                 self._component = 'phase'
             else:
                 raise ValueError(f"component must be either 'real', 'imag', 'apparent_resistivity' or 'phase'. Got {var}")
@@ -129,13 +130,7 @@ class PointNaturalSource(BaseRx):
 
     @orientation.setter
     def orientation(self, var):
-        if isinstance(var, str):
-            var = var.lower()
-            if var not in ('xx', 'xy', 'yx', 'yy'):
-                raise ValueError(f"orientation must be either 'xx', 'xy', 'yx' or 'yy'. Got {var}")
-        else:
-            raise TypeError(f"orientation must be a str. Got {type(var)}")
-
+        var = validate_string_property('orientation', var, string_list=('xx','xy','yx','yy')).lower()
         self._orientation = var
 
     @property
@@ -495,13 +490,7 @@ class Point3DTipper(PointNaturalSource):
 
     @orientation.setter
     def orientation(self, var):
-        if isinstance(var, str):
-            var = var.lower()
-            if var not in ('zx', 'zy'):
-                raise ValueError(f"orientation must be either 'zx' or 'zy'. Got {var}")
-        else:
-            raise TypeError(f"orientation must be a str. Got {type(var)}")
-
+        var = validate_string_property('orientation', var, string_list=('zx','zy')).lower()
         self._orientation = var
 
     def _eval_tipper(self, src, mesh, f):

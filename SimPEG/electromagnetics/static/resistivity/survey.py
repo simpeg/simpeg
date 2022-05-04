@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 # import properties
-from ....utils.code_utils import deprecate_property
+from ....utils.code_utils import deprecate_property, validate_string_property
 
 from ....survey import BaseSurvey
 from ..utils import drapeTopotoLoc
@@ -67,14 +67,8 @@ class Survey(BaseSurvey):
 
     @survey_geometry.setter
     def survey_geometry(self, var):
-
-        if isinstance(var, str):
-            if var.lower() in ("surface", "borehole", "general"):
-                self._survey_geometry = var.lower() 
-            else:
-                raise ValueError(f"'survey_geometry' must be 'surface', 'borehole' or 'general'. Got {var}")
-        else:
-            raise TypeError(f"'survey_geometry' must be a str. Got {type(var)}")
+        var = validate_string_property('survey_geometry', var, ("surface", "borehole", "general")).lower()
+        self._survey_geometry = var 
 
     @property
     def survey_type(self):
@@ -89,15 +83,8 @@ class Survey(BaseSurvey):
 
     @survey_type.setter
     def survey_type(self, var):
-
-        if isinstance(var, str):
-            if var.lower() in ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"):
-                self._survey_type = var.lower() 
-            else:
-                raise ValueError(f"'survey_type' must be 'dipole-dipole', 'pole-dipole', 'dipole-pole', 'pole-pole'. Got {var}")
-        else:
-            raise TypeError(f"'survey_type' must be a str. Got {type(var)}")
-
+        var = validate_string_property('survey_type', var, ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole")).lower()
+        self._survey_type = var 
 
     def __repr__(self):
         return (

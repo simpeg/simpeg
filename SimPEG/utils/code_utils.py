@@ -732,7 +732,7 @@ def deprecate_function(new_function, old_name, removal_version=None):
 #                    PROPERTY VALIDATORS
 ###############################################################
 
-def validate_string_property(property_name, var, string_list=None):
+def validate_string_property(property_name, var, string_list=None, case_sensitive=False):
     """Validate a string property
 
     Parameters
@@ -743,21 +743,29 @@ def validate_string_property(property_name, var, string_list=None):
         The input variable
     string_list : list or tuple of str, optional
         Provide a list of acceptable strings
+    case_sensitive : bool, default: ``False``
+        If ``True`` and *string_list* is not ``None``, the string
+        comparison is case-sensitive
 
     Returns
     -------
     str
         Returns the input argument *var* once validated 
     """
-
     if isinstance(var, str):
         if string_list is None:
             return var
         else:
-            if var in string_list:
-                return var
+            if case_sensitive:
+                if var.lower() in [x.lower() for x in string_list]:
+                    return var
+                else:
+                    raise ValueError(f"'{property_name}' must be in '{string_list}'. Got '{var}'")
             else:
-                raise ValueError(f"'{property_name}' must in '{string_list}'. Got '{var}'")
+                if var in string_list:
+                    return var
+                else:
+                    raise ValueError(f"'{property_name}' must be in '{string_list}'. Got '{var}'")
     else:
         raise TypeError(f"'{property_name}' must be a str. Got '{type(var)}'")
     

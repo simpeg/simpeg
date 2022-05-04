@@ -1,4 +1,5 @@
 from ...survey import BaseRx
+from ...utils import validate_float_property, validate_string_property, validate_integer_property
 import numpy as np
 import warnings
 # import properties
@@ -93,15 +94,8 @@ class Point(BaseRx):
 
     @orientation.setter
     def orientation(self, var):
-
-        if isinstance(var, str):
-            var = var.lower()
-            if var not in ('x', 'y', 'z'):
-                raise ValueError(f"orientation must be either 'x', 'y' or 'z'. Got {var}")
-        else:
-            raise TypeError(f"orientation must be a str. Got {type(var)}")
-
-        self._orientation = var
+        var = validate_string_property('orientation', var, string_list=('x', 'y', 'z'))
+        self._orientation = var.lower()
 
     @property
     def field_type(self):
@@ -116,13 +110,7 @@ class Point(BaseRx):
 
     @field_type.setter
     def field_type(self, var):
-        if isinstance(var, str):
-            var = var.lower()
-            if var not in ('h', 'b', 'dhdt', 'dbdt'):
-                raise ValueError(f"field_type must be either 'h', 'b', 'dhdt', 'dbdt'. Got {var}")
-        else:
-            raise TypeError(f"field_type must be a str. Got {type(var)}")
-
+        var = validate_string_property('field_type', var, string_list=('h', 'b', 'dhdt', 'dbdt')).lower()
         self._field_type = var
 
     @property
@@ -241,13 +229,7 @@ class SquareLoop(Point):
 
     @width.setter
     def width(self, value):
-        if isinstance(value, int):
-            value = float(value)
-        if not isinstance(value, float):
-            raise TypeError(
-                f"width must be a float, the value provided, {value} is "
-                f"{type(value)}"
-            )
+        value = validate_float_property('width', value)
         if value <= 0.:
             raise ValueError("Width must be positive")
         self._width = value
@@ -265,16 +247,8 @@ class SquareLoop(Point):
 
     @n_turns.setter
     def n_turns(self, value):
-        if not isinstance(value, int):
-            TypeError(
-                f"n_turns must be int, the value provided, {value} is "
-                f"{type(value)}"
-            )
-
-        if value < 1:
-            raise ValueError("'n_turns' must be a positive integer")
-        else:
-            self._n_turns = value
+        value = validate_integer_property('n_turns', value, min_val=1)
+        self._n_turns = value
 
     @property
     def quadrature_order(self):
@@ -289,15 +263,5 @@ class SquareLoop(Point):
 
     @quadrature_order.setter
     def quadrature_order(self, value):
-        if not isinstance(value, int):
-            TypeError(
-                f"quadrature_order must be int, the value provided, {value} is "
-                f"{type(value)}"
-            )
-
-        if value < 1:
-            raise ValueError("'quadrature_order' must be a positive integer")
-        elif value > 7:
-            raise ValueError("Largest 'quadrature_order' implemented is 7")
-        else:
-            self._quadrature_order = value       
+        value = validate_integer_property('quadrature_order', value, min_val=1, max_val=7)
+        self._quadrature_order = value       

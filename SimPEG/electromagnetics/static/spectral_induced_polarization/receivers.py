@@ -47,15 +47,8 @@ class BaseRx(BaseTimeRx):
 
     @orientation.setter
     def orientation(self, var):
-
-        if var is not None:
-            if isinstance(var, str):
-                var = var.lower()
-                if var not in ('x', 'y', 'z'):
-                    raise ValueError(f"orientation must be either 'x', 'y' or 'z'. Got {var}")
-            else:
-                raise TypeError(f"orientation must be a str. Got {type(var)}")
-
+        if orientation is not None:
+            var = validate_string_property('orientation', var, ('x', 'y', 'z')).lower()
         self._orientation = var
 
     # projField = properties.StringChoice(
@@ -77,14 +70,7 @@ class BaseRx(BaseTimeRx):
 
     @projField.setter
     def projField(self, var):
-
-        if isinstance(var, str):
-            var = var.lower()
-            if var not in ('phi', 'e', 'j'):
-                raise ValueError(f"projField must be either 'phi', 'e', 'j'. Got {var}")
-        else:
-            raise TypeError(f"projField must be a str. Got {type(var)}")
-
+        var = validate_string_property('projField', var, ('phi', 'e', 'j')).lower()
         self._projField = var
 
     # data_type = properties.StringChoice(
@@ -107,18 +93,15 @@ class BaseRx(BaseTimeRx):
 
     @data_type.setter
     def data_type(self, var):
-
-        if isinstance(var, str):
-            if var.lower() in ("potential", "potentials", "volt", "v", "voltages", "voltage"):
-                self._data_type = 'volt'
-            elif var.lower() in ("apparent resistivity","appresistivity","apparentresistivity","apparent-resistivity","apparent_resistivity","appres"):
-                self._data_type = 'apparent_resistivity'
-            elif var.lower() in ("apparent chargeability","appchargeability","apparentchargeability","apparent-chargeability","apparent_chargeability"):
-                self._data_type = 'apparent_chargeability'
-            else:
-                raise ValueError(f"data_type must be either 'volt', 'apparent_resistivity' or 'apparent_chargeability'. Got {var}")
+        var = validate_string_property('data_type', var).lower()
+        if var in ("potential", "potentials", "volt", "v", "voltages", "voltage"):
+            self._data_type = 'volt'
+        elif var in ("apparent resistivity","appresistivity","apparentresistivity","apparent-resistivity","apparent_resistivity","appres"):
+            self._data_type = 'apparent_resistivity'
+        elif var in ("apparent chargeability","appchargeability","apparentchargeability","apparent-chargeability","apparent_chargeability"):
+            self._data_type = 'apparent_chargeability'
         else:
-            raise TypeError(f"data_type must be a str. Got {type(var)}")
+            raise ValueError(f"data_type must be either 'volt', 'apparent_resistivity' or 'apparent_chargeability'. Got {var}")
 
 
     # @property

@@ -1,5 +1,6 @@
 # import properties
 from ... import survey
+from ...utils import validate_string_property
 
 
 class BaseRx(survey.BaseRx):
@@ -47,15 +48,8 @@ class BaseRx(survey.BaseRx):
 
     @orientation.setter
     def orientation(self, var):
-
-        if isinstance(var, str):
-            var = var.lower()
-            if var not in ('x', 'y', 'z'):
-                raise ValueError(f"orientation must be either 'x', 'y' or 'z'. Got {var}")
-        else:
-            raise TypeError(f"orientation must be a str. Got {type(var)}")
-
-        self._orientation = var
+        var = validate_string_property('orientation', var, string_list=('x', 'y', 'z'))
+        self._orientation = var.lower()
 
     # component = properties.StringChoice(
     #     "component of the field (real or imag)",

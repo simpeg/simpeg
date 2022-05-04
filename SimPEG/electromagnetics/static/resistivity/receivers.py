@@ -1,7 +1,7 @@
 import numpy as np
 
 # import properties
-from ....utils import sdiag
+from ....utils import sdiag, validate_string_property, validate_float_property
 from ....survey import BaseRx as BaseSimPEGRx
 
 
@@ -46,15 +46,8 @@ class BaseRx(BaseSimPEGRx):
 
     @orientation.setter
     def orientation(self, var):
-
-        if var is not None:
-            if isinstance(var, str):
-                var = var.lower()
-                if var not in ('x', 'y', 'z'):
-                    raise ValueError(f"orientation must be either 'x', 'y' or 'z'. Got {var}")
-            else:
-                raise TypeError(f"orientation must be a str. Got {type(var)}")
-
+        if orientation is not None:
+            var = validate_string_property('orientation', var, ('x', 'y', 'z')).lower()
         self._orientation = var
 
     # projField = properties.StringChoice(
@@ -115,18 +108,15 @@ class BaseRx(BaseSimPEGRx):
 
     @data_type.setter
     def data_type(self, var):
-
-        if isinstance(var, str):
-            if var.lower() in ("potential", "potentials", "volt", "v", "voltages", "voltage"):
-                self._data_type = 'volt'
-            elif var.lower() in ("apparent resistivity","appresistivity","apparentresistivity","apparent-resistivity","apparent_resistivity","appres"):
-                self._data_type = 'apparent_resistivity'
-            elif var.lower() in ("apparent chargeability","appchargeability","apparentchargeability","apparent-chargeability","apparent_chargeability"):
-                self._data_type = 'apparent_chargeability'
-            else:
-                raise ValueError(f"data_type must be either 'volt', 'apparent_resistivity' or 'apparent_chargeability'. Got {var}")
+        var = validate_string_property('data_type', var).lower()
+        if var in ("potential", "potentials", "volt", "v", "voltages", "voltage"):
+            self._data_type = 'volt'
+        elif var in ("apparent resistivity","appresistivity","apparentresistivity","apparent-resistivity","apparent_resistivity","appres"):
+            self._data_type = 'apparent_resistivity'
+        elif var in ("apparent chargeability","appchargeability","apparentchargeability","apparent-chargeability","apparent_chargeability"):
+            self._data_type = 'apparent_chargeability'
         else:
-            raise TypeError(f"data_type must be a str. Got {type(var)}")
+            raise ValueError(f"data_type must be either 'volt', 'apparent_resistivity' or 'apparent_chargeability'. Got {var}")
 
     # data_type = 'volt'
 
@@ -343,17 +333,9 @@ class Dipole(BaseRx):
 
     @threshold.setter
     def threshold(self, var):
-        try:
-            var = float(var)
-        except:
-            raise TypeError("threshold must be a float")
-
-        if var <= 0.0:
-            raise ValueError("threshold must be positive")
-
+        var = validate_float_property('threshold', var, min_val=1e-10)
         self._threshold = var
     
-
     @property
     def locations(self):
         """M and N electrode locations

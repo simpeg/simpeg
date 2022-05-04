@@ -12,7 +12,7 @@ class BaseSrc(survey.BaseSrc):
         A list of DC/IP receivers
     location : (n_source, dim) np.ndarray
         Source locations
-    current : float, default=1.0
+    current : float or numpy.ndarray, default: 1.0
         Current amplitude [A]
     """
 

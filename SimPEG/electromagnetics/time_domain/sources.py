@@ -2,7 +2,7 @@ import numpy as np
 from scipy.constants import mu_0
 # import properties
 import warnings
-from ...utils.code_utils import deprecate_property
+from ...utils.code_utils import deprecate_property, validate_float_property
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
@@ -83,13 +83,7 @@ class BaseWaveform:
     @off_time.setter
     def off_time(self, value):
         """ "off-time of the source"""
-        if isinstance(value, int):
-            value = float(value)
-        if not isinstance(value, float):
-            raise ValueError(
-                f"off_time must be a float, the value provided, {value} is "
-                f"{type(value)}"
-            )
+        value = validate_float_property('off_time', value, min_value=1e-20)
         self._off_time = value
 
     @property
@@ -105,15 +99,7 @@ class BaseWaveform:
 
     @epsilon.setter
     def epsilon(self, value):
-        if not isinstance(value, float):
-            raise ValueError(
-                f"epsilon must be a float, the value provided, {value} is "
-                f"{type(value)}"
-            )
-        if value < 0:
-            raise ValueError(
-                f"epsilon must be greater than 0, the value provided, {value} is not"
-            )
+        value = validate_float_property('epsilon', value, min_value=1e-20)
         self._epsilon = value
 
     def eval(self, time):
@@ -392,16 +378,7 @@ class VTEMWaveform(BaseWaveform):
 
     @peak_time.setter
     def peak_time(self, value):
-        if not isinstance(value, float):
-            raise ValueError(
-                f"peak_time must be a float, the value provided, {value} is "
-                f"{type(value)}"
-            )
-        if value > self.off_time:
-            raise ValueError(
-                f"peak_time must be less than off_time {self.off_time}. "
-                f"The value provided {value} is not"
-            )
+        value = validate_float_property('peak_time', value, max_value=self.off_time)
         self._peak_time = value
 
     @property
@@ -419,13 +396,7 @@ class VTEMWaveform(BaseWaveform):
 
     @ramp_on_rate.setter
     def ramp_on_rate(self, value):
-        if isinstance(value, int):
-            value = float(value)
-        if not isinstance(value, float):
-            raise ValueError(
-                f"ramp_on_rate must be a float, the value provided, {value} is "
-                f"{type(value)}"
-            )
+        value = validate_float_property('ramp_on_rate', value)
         self._ramp_on_rate = value
 
     def eval(self, time):
@@ -672,16 +643,7 @@ class TriangularWaveform(TrapezoidWaveform):
 
     @peak_time.setter
     def peak_time(self, value):
-        if not isinstance(value, float):
-            raise ValueError(
-                f"peak_time must be a float, the value provided, {value} is "
-                f"{type(value)}"
-            )
-        if value > self.off_time:
-            raise ValueError(
-                f"peak_time must be less than off_time {self.off_time}. "
-                f"The value provided {value} is not"
-            )
+        value = validate_float_property('peak_time', value, max_value=self.off_time)
         self._peak_time = value
         self._ramp_on = np.r_[self._ramp_on[0], value]
         self._ramp_off = np.r_[value, self._ramp_off[1]]
@@ -1095,15 +1057,7 @@ class MagDipole(BaseTDEMSrc):
 
     @moment.setter
     def moment(self, value):
-
-        try:
-            value = float(value)
-        except:
-            raise TypeError(f"moment must be a number, got {type(value)}")
-
-        if value <= 0.0:
-            raise ValueError("moment must be greater than 0")
-
+        value = validate_float_property('moment', value, min_value=1e-20)
         self._moment = value
 
     @property
@@ -1121,11 +1075,12 @@ class MagDipole(BaseTDEMSrc):
     def orientation(self, var):
 
         if isinstance(var, str):
-            if var.lower() == 'x':
+            var = validate_string_property('orientation', var.lower(), string_list=('x', 'y', 'z'))
+            if var == 'x':
                 var = np.r_[1., 0., 0.]
-            elif var.lower() == 'y':
+            elif var == 'y':
                 var = np.r_[0., 1., 0.]
-            elif var.lower() == 'z':
+            elif var == 'z':
                 var = np.r_[0., 0., 1.]
         else:
             try:
@@ -1156,15 +1111,7 @@ class MagDipole(BaseTDEMSrc):
 
     @mu.setter
     def mu(self, value):
-
-        try:
-            value = float(value)
-        except:
-            raise TypeError(f"mu must be a number, got {type(value)}")
-
-        if value <= 0.0:
-            raise ValueError("mu must be greater than 0")
-
+        value = validate_float_property('mu', value, min_val=mu_0)
         self._mu = value
     
     def _srcFct(self, obsLoc, coordinates="cartesian"):
@@ -1460,14 +1407,7 @@ class CircularLoop(MagDipole):
 
     @radius.setter
     def radius(self, rad):
-        try:
-            rad = float(rad)
-        except:
-            raise TypeError(f"radius must be int or float, got {type(rad)}")
-
-        if rad < 0.:
-            raise TypeError("radius must be a positive value")
-
+        rad = validate_float_property('radius', rad, min_val=1e-10)
         self._radius = rad
 
     # current = properties.Float("current in the loop", default=1.0)
@@ -1485,14 +1425,9 @@ class CircularLoop(MagDipole):
 
     @current.setter
     def current(self, I):
-        try:
-            I = float(I)
-        except:
-            raise TypeError(f"current must be int or float, got {type(I)}")
-
+        I = validate_float_property('current', I)
         if np.abs(I) == 0.:
             raise TypeError("current must be non-zero.")
-
         self._current = I
 
     # N = properties.Float("number of turns in the loop", default=1.0)
@@ -1624,14 +1559,9 @@ class LineCurrent(BaseTDEMSrc):
 
     @current.setter
     def current(self, I):
-        try:
-            I = float(I)
-        except:
-            raise TypeError(f"current must be int or float, got {type(I)}")
-
+        I = validate_float_property('current', I)
         if np.abs(I) == 0.:
             raise TypeError("current must be non-zero.")
-
         self._current = I
     
 

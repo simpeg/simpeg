@@ -6,7 +6,7 @@ import warnings
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
 from ...props import LocationVector
-from ...utils import mkvc, Zero
+from ...utils import mkvc, Zero, validate_float_property, validate_string_property
 
 from ..utils import omega
 from ..utils import segmented_line_current_source_term, line_through_faces
@@ -58,14 +58,7 @@ class BaseFDEMSrc(BaseEMSrc):
 
     @frequency.setter
     def frequency(self, freq):
-        try:
-            freq = float(freq)
-        except:
-            raise TypeError(f"frequency must be int or float, got {type(freq)}")
-
-        if freq < 0.:
-            raise TypeError(f"frequency must be a positive value")
-
+        freq = validate_float_property('frequency', freq, min_val=0.0)
         self._frequency = freq
 
     def bPrimary(self, simulation):
@@ -488,17 +481,8 @@ class MagDipole(BaseFDEMSrc):
 
     @moment.setter
     def moment(self, value):
-
-        try:
-            value = float(value)
-        except:
-            raise TypeError(f"moment must be a number, got {type(value)}")
-
-        if value <= 0.0:
-            raise ValueError("moment must be greater than 0")
-
+        value = validate_float_property('moment', value, min_val=0.0)
         self._moment = value
-
 
     @property
     def orientation(self):
@@ -515,11 +499,12 @@ class MagDipole(BaseFDEMSrc):
     def orientation(self, var):
 
         if isinstance(var, str):
-            if var.lower() == 'x':
+            var = validate_string_property('orientation', var.lower(), string_list=('x', 'y', 'z'))
+            if var == 'x':
                 var = np.r_[1., 0., 0.]
-            elif var.lower() == 'y':
+            elif var == 'y':
                 var = np.r_[0., 1., 0.]
-            elif var.lower() == 'z':
+            elif var == 'z':
                 var = np.r_[0., 0., 1.]
         else:
             try:
@@ -550,15 +535,7 @@ class MagDipole(BaseFDEMSrc):
 
     @mu.setter
     def mu(self, value):
-
-        try:
-            value = float(value)
-        except:
-            raise TypeError(f"mu must be a number, got {type(value)}")
-
-        if value <= 0.0:
-            raise ValueError("mu must be greater than 0")
-
+        value = validate_float_property('mu', value, min_val=mu_0)
         self._mu = value
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
@@ -820,9 +797,9 @@ class CircularLoop(MagDipole):
         Source location.
     orientation : str, default = 'z'
         Loop orientation. One of ('x', 'y', 'z')
-    radius : float, default = 1.
+    radius : float, default: 1.0
         Loop radius
-    current : float, default = 1.
+    current : float, default: 1.0
         Source current
     mu : float
         Background magnetic permeability
@@ -871,14 +848,7 @@ class CircularLoop(MagDipole):
 
     @radius.setter
     def radius(self, rad):
-        try:
-            rad = float(rad)
-        except:
-            raise TypeError(f"radius must be int or float, got {type(rad)}")
-
-        if rad < 0.:
-            raise TypeError("radius must be a positive value")
-
+        rad = validate_float_property('radius', rad, min_val=1e-10)
         self._radius = rad
 
     # current = properties.Float("current in the loop", default=1.0)
@@ -896,14 +866,9 @@ class CircularLoop(MagDipole):
 
     @current.setter
     def current(self, I):
-        try:
-            I = float(I)
-        except:
-            raise TypeError(f"current must be int or float, got {type(I)}")
-
+        I = validate_float_property('current', I)
         if np.abs(I) == 0.:
             raise TypeError("current must be non-zero.")
-
         self._current = I
 
     # def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
@@ -974,15 +939,18 @@ class PrimSecMappedSigma(BaseFDEMSrc):
     model onto the primary mesh. This is solved on every model update.
     There are a lot of layers to the derivatives here!
 
-    **Required**
-    :param list receiver_list: Receiver List
-    :param float freq: frequency
-    :param BaseFDEMSimulation primarySimulation: FDEM psimulation
-    :param SurveyFDEM primarySurvey: FDEM primary survey
-
-    **Optional**
-    :param Mapping map2meshSecondary: mapping current model to act as primary
-    model on the secondary mesh
+    Parameters
+    ----------
+    receiver_list : list of SimPEG.electromagnetics.frequency_domain.receiver.BaseRx
+        List of FDEM receivers
+    frequency : float
+        Frequency
+    primarySimulation : BaseFDEMSimulation
+        Base simulation
+    primarySurvey : BaseEMSimulation
+        Primary FDEM survey
+    map2meshSecondary : maps.BaseMap
+        Mapping current model to act as primary model on the secondary mesh
     """
 
     def __init__(
@@ -1340,14 +1308,9 @@ class LineCurrent(BaseFDEMSrc):
 
     @current.setter
     def current(self, I):
-        try:
-            I = float(I)
-        except:
-            raise TypeError(f"current must be int or float, got {type(I)}")
-
+        I = validate_float_property('current', I)
         if np.abs(I) == 0.:
             raise TypeError("current must be non-zero.")
-
         self._current = I
 
     def Mejs(self, simulation):
