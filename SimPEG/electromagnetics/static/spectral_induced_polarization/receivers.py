@@ -1,6 +1,6 @@
 import numpy as np
 # import properties
-from ....utils import sdiag
+from ....utils import sdiag, validate_string_property, validate_float_property
 
 from ....survey import BaseTimeRx
 
