@@ -24,14 +24,12 @@ class BaseWaveform:
 
     Parameters
     ----------
-    has_initial_fields: bool
+    has_initial_fields : bool, default: ``False``
         If the transmitter has non-zero current prior to the start of the simulation
         (e.g. a step-off waveform), set `has_initial_fields` to True
-
-    off_time: float
-        Time when the transmitter current is zero in units of seconds. Default is 0.0
-
-    epsilon: float
+    off_time : float, default: 0.0
+        Time when the transmitter current is zero in units of seconds.
+    epsilon : float, default: 1e-9
         Small time-constant for which the transmitter is assumed to still be on for
     """
 
@@ -83,7 +81,7 @@ class BaseWaveform:
     @off_time.setter
     def off_time(self, value):
         """ "off-time of the source"""
-        value = validate_float_property('off_time', value, min_val=1e-20)
+        value = validate_float_property('off_time')
         self._off_time = value
 
     @property
@@ -144,13 +142,13 @@ class StepOffWaveform(BaseWaveform):
 
     Parameters
     ----------
-    off_time: float, default=0.
+    off_time : float, default: 0.0
         time at which the transmitter is turned off in units of seconds (default is 0s)
 
     Examples
     --------
     The default off-time for the step-off waveform is 0s. In the example below, we set it to
-    1e-5s (0.01msec) to illustrate it in a plot
+    1e-5 s (0.01 ms) to illustrate it in a plot
 
     >>> import matplotlib.pyplot as plt
     >>> import numpy as np
@@ -193,8 +191,8 @@ class RampOffWaveform(BaseWaveform):
 
     Parameters
     ----------
-    off_time: float
-        time at which the transmitter is turned off in units of seconds (default is 0s)
+    off_time : float, default: 0.0
+        time at which the transmitter is turned off in units of seconds
 
     Examples
     --------
@@ -244,7 +242,7 @@ class RawWaveform(BaseWaveform):
 
     Parameters
     ----------
-    off_time: float
+    off_time : float, default: 0.0
         time at which the transmitter is turned off in units of seconds (default is 0s)
 
     waveform_function: function
@@ -336,12 +334,12 @@ class VTEMWaveform(BaseWaveform):
 
     Parameters
     ----------
-    off_time: float
-        time at which the transmitter is turned off in units of seconds (default is 4.2e-3s)
-    peak_time: float
-        the peak time for the waveform (default: 2.73e-3)
-    ramp_on_rate: float
-        parameter controlling how quickly the waveform ramps on (default is 3)
+    off_time : float, default: 4.2e-3
+        time at which the transmitter is turned off in units of seconds
+    peak_time : float, default: 2.73e-3
+        the peak time for the waveform
+    ramp_on_rate : float, default: 3.0
+        parameter controlling how quickly the waveform ramps on
 
     Examples
     --------
@@ -450,10 +448,8 @@ class TrapezoidWaveform(BaseWaveform):
     ----------
     ramp_on : (2) array_like of float
         time when the linear ramp_on ends
-
     ramp_off : (2) array_like of float
         start of the ramp_off
-
     off_time : float
         time when the transmitter_current returns to zero
 
@@ -577,10 +573,9 @@ class TriangularWaveform(TrapezoidWaveform):
 
     Parameters
     ----------
-    off_time: float
+    off_time : float
         time when the transmitter current returns to zero
-
-    peak_time: float
+    peak_time : float
         time when the transmitter waveform is at a peak
 
     Examples
