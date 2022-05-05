@@ -83,7 +83,7 @@ class BaseWaveform:
     @off_time.setter
     def off_time(self, value):
         """ "off-time of the source"""
-        value = validate_float_property('off_time', value, min_value=1e-20)
+        value = validate_float_property('off_time', value, min_val=1e-20)
         self._off_time = value
 
     @property
@@ -99,7 +99,7 @@ class BaseWaveform:
 
     @epsilon.setter
     def epsilon(self, value):
-        value = validate_float_property('epsilon', value, min_value=1e-20)
+        value = validate_float_property('epsilon', value, min_val=1e-20)
         self._epsilon = value
 
     def eval(self, time):
@@ -1057,7 +1057,7 @@ class MagDipole(BaseTDEMSrc):
 
     @moment.setter
     def moment(self, value):
-        value = validate_float_property('moment', value, min_value=1e-20)
+        value = validate_float_property('moment', value, min_val=1e-20)
         self._moment = value
 
     @property

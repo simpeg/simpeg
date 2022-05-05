@@ -22,7 +22,7 @@ class BaseFDEMSrc(BaseEMSrc):
         A list of FDEM receivers
     frequency : float
         Source frequency
-    location : (dim) np.ndarray, default = None
+    location : (dim) np.ndarray, default: ``None``
         Source location.
     """
 
@@ -217,7 +217,7 @@ class RawVec_e(BaseFDEMSrc):
         Source frequency
     s_e: np.ndarray
         Electric source term
-    integrate : bool, default = ``False``
+    integrate : bool, default: ``False``
         If ``True``, integrate the source term; i.e. multiply by Me matrix
     """
 
@@ -255,7 +255,7 @@ class RawVec_m(BaseFDEMSrc):
         Source frequency
     s_m: np.ndarray
         Magnetic source term
-    integrate : bool, default = ``False``
+    integrate : bool, default: ``False``
         If ``True``, integrate the source term; i.e. multiply by Me matrix
     """
 
@@ -296,7 +296,7 @@ class RawVec(BaseFDEMSrc):
         Electric source term
     s_m: np.ndarray
         Magnetic source term
-    integrate : bool, default = ``False``
+    integrate : bool, default: ``False``
         If ``True``, integrate the source terms; i.e. multiply by Me matrix
     """
 
@@ -400,7 +400,7 @@ class MagDipole(BaseFDEMSrc):
         A list of FDEM receivers
     frequency : float
         Source frequency
-    location : (dim) np.ndarray, default = np.r_[0., 0., 0.]
+    location : (dim) np.ndarray, default: np.r_[0., 0., 0.]
         Source location.
     moment : float
         Magnetic dipole moment amplitude
@@ -714,7 +714,7 @@ class MagDipole_Bfield(MagDipole):
         A list of FDEM receivers
     frequency : float
         Source frequency
-    location : (dim) np.ndarray, default = np.r_[0., 0., 0.]
+    location : (dim) np.ndarray, default: np.r_[0., 0., 0.]
         Source location.
     moment : float
         Magnetic dipole moment amplitude
@@ -793,9 +793,9 @@ class CircularLoop(MagDipole):
         A list of FDEM receivers
     frequency : float
         Source frequency
-    location : (dim) np.ndarray, default = np.r_[0., 0., 0.]
+    location : (dim) np.ndarray, default: np.r_[0., 0., 0.]
         Source location.
-    orientation : str, default = 'z'
+    orientation : str, default: 'z'
         Loop orientation. One of ('x', 'y', 'z')
     radius : float, default: 1.0
         Loop radius
