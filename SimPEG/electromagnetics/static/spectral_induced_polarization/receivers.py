@@ -47,7 +47,7 @@ class BaseRx(BaseTimeRx):
 
     @orientation.setter
     def orientation(self, var):
-        if orientation is not None:
+        if var is not None:
             var = validate_string_property('orientation', var, ('x', 'y', 'z')).lower()
         self._orientation = var
 
