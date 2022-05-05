@@ -81,7 +81,7 @@ class BaseWaveform:
     @off_time.setter
     def off_time(self, value):
         """ "off-time of the source"""
-        value = validate_float_property('off_time')
+        value = validate_float_property('off_time', value)
         self._off_time = value
 
     @property
