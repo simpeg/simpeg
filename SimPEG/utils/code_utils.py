@@ -757,12 +757,12 @@ def validate_string_property(property_name, var, string_list=None, case_sensitiv
             return var
         else:
             if case_sensitive:
-                if var.lower() in [x.lower() for x in string_list]:
+                if var in string_list:
                     return var
                 else:
                     raise ValueError(f"'{property_name}' must be in '{string_list}'. Got '{var}'")
             else:
-                if var in string_list:
+                if var.lower() in [x.lower() for x in string_list]:
                     return var
                 else:
                     raise ValueError(f"'{property_name}' must be in '{string_list}'. Got '{var}'")
