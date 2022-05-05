@@ -13,3 +13,4 @@ Things about electromagnetics
   SimPEG.electromagnetics.static
   SimPEG.electromagnetics.time_domain
   SimPEG.electromagnetics.viscous_remanent_magnetization
+  SimPEG.electromagnetics.utils

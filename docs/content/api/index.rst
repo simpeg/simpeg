@@ -12,6 +12,8 @@ Geophysical Simulation Modules
 
   SimPEG.potential_fields
   SimPEG.electromagnetics
+  SimPEG.flow.richards
+  SimPEG.seismic.straight_ray_tomography
 
 
 

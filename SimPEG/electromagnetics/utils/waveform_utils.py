@@ -3,24 +3,64 @@ from scipy.constants import mu_0, epsilon_0
 
 # useful params
 def omega(freq):
-    """Angular frequency, omega"""
-    return 2.0 * np.pi * freq
+    """Compute angular frequency from frequency
+
+    Parameters
+    ----------
+    frequency : float or numpy.ndarray
+        Frequencies in Hz
+
+    Returns
+    -------
+    float or numpy.ndarray
+        Angular frequencies in rad/s
+    """
+    return 2.0 * np.pi * frequency
 
 
-def k(freq, sigma, mu=mu_0, eps=epsilon_0):
-    """Eq 1.47 - 1.49 in Ward and Hohmann"""
-    w = omega(freq)
+def k(frequency, sigma, mu=mu_0, eps=epsilon_0):
+    r"""Wavenumber for EM waves in homogeneous media
+
+    See eq 1.47 - 1.49 in Ward and Hohmann
+
+    Parameters
+    ----------
+    frequency : float or numpy.ndarray
+        Frequencies in Hz
+    sigma : float
+        Electrical conductivity in S/m
+    mu : float, default: :math:`4\pi \;\times\; 10^{-7}` H/m
+        Magnetic permeability in H/m
+    eps : float, default: 8.8541878128 :math:`\times \; 1-^{-12}` F/m
+        Dielectric permittivity in F/m
+
+    Returns
+    -------
+    complex or numpy.ndarray
+        Wavenumbers at all input frequencies
+    """
+    w = omega(frequency)
     alp = w * np.sqrt(mu * eps / 2 * (np.sqrt(1.0 + (sigma / (eps * w)) ** 2) + 1))
     beta = w * np.sqrt(mu * eps / 2 * (np.sqrt(1.0 + (sigma / (eps * w)) ** 2) - 1))
     return alp - 1j * beta
 
 
 def TriangleFun(time, ta, tb):
-    """
-    Triangular Waveform
-    * time: 1D array for time
-    * ta: time at peak
-    * tb: time at step-off
+    """Triangular waveform function
+
+    Parameters
+    ----------
+    time : numpy.ndarray
+        Times vector
+    ta : float
+        Peak time
+    tb : float
+        Start of off-time
+
+    Returns
+    -------
+    (n_time) numpy.ndarray
+        The waveform evaluated at all input times
     """
     out = np.zeros(time.size)
     out[time <= ta] = 1 / ta * time[time <= ta]
@@ -31,8 +71,21 @@ def TriangleFun(time, ta, tb):
 
 
 def TriangleFunDeriv(time, ta, tb):
-    """
-    Derivative of Triangular Waveform
+    """Derivative of triangular waveform function wrt time
+
+    Parameters
+    ----------
+    time : numpy.ndarray
+        Times vector
+    ta : float
+        Peak time
+    tb : float
+        Start of off-time
+
+    Returns
+    -------
+    (n_time) numpy.ndarray
+        Derivative wrt to time at all input times
     """
     out = np.zeros(time.size)
     out[time <= ta] = 1 / ta
@@ -41,10 +94,19 @@ def TriangleFunDeriv(time, ta, tb):
 
 
 def SineFun(time, ta):
-    """
-    Sine Waveform
-    * time: 1D array for time
-    * ta: Pulse Period
+    """Sine waveform function
+
+    Parameters
+    ----------
+    time : numpy.ndarray
+        Times vector
+    ta : float
+        Pulse period
+
+    Returns
+    -------
+    (n_time) numpy.ndarray
+        The waveform evaluated at all input times
     """
     out = np.zeros(time.size)
     out[time <= ta] = np.sin(1.0 / ta * np.pi * time[time <= ta])
@@ -53,8 +115,19 @@ def SineFun(time, ta):
 
 
 def SineFunDeriv(time, ta):
-    """
-    Derivative of Sine Waveform
+    """Derivative of sine waveform function
+
+    Parameters
+    ----------
+    time : numpy.ndarray
+        Times vector
+    ta : float
+        Pulse period
+
+    Returns
+    -------
+    (n_time) numpy.ndarray
+        The waveform evaluated at all input times
     """
     out = np.zeros(time.size)
     out[time <= ta] = 1.0 / ta * np.pi * np.cos(1.0 / ta * np.pi * time[time <= ta])
@@ -62,11 +135,21 @@ def SineFunDeriv(time, ta):
 
 
 def VTEMFun(time, ta, tb, a):
-    """
-    VTEM Waveform
-    * time: 1D array for time
-    * ta: time at peak of exponential part
-    * tb: time at step-off
+    """VTEM waveform function
+
+    Parameters
+    ----------
+    time : numpy.ndarray
+        Times vector
+    ta : float
+        Time at peak exponential
+    tb : float
+        Start of off-time
+
+    Returns
+    -------
+    (n_time) numpy.ndarray
+        The waveform evaluated at all input times
     """
     out = np.zeros(time.size)
     out[time <= ta] = (1 - np.exp(-a * time[time <= ta] / ta)) / (1 - np.exp(-a))
