@@ -2,7 +2,7 @@ import numpy as np
 from scipy.constants import mu_0
 # import properties
 import warnings
-from ...utils.code_utils import deprecate_property, validate_float_property
+from ...utils.code_utils import deprecate_property, validate_float_property, validate_string_property
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
@@ -376,7 +376,7 @@ class VTEMWaveform(BaseWaveform):
 
     @peak_time.setter
     def peak_time(self, value):
-        value = validate_float_property('peak_time', value, max_value=self.off_time)
+        value = validate_float_property('peak_time', value, max_val=self.off_time)
         self._peak_time = value
 
     @property
@@ -638,7 +638,7 @@ class TriangularWaveform(TrapezoidWaveform):
 
     @peak_time.setter
     def peak_time(self, value):
-        value = validate_float_property('peak_time', value, max_value=self.off_time)
+        value = validate_float_property('peak_time', value, max_val=self.off_time)
         self._peak_time = value
         self._ramp_on = np.r_[self._ramp_on[0], value]
         self._ramp_off = np.r_[value, self._ramp_off[1]]
