@@ -2,7 +2,7 @@ import numpy as np
 from scipy.constants import mu_0, epsilon_0
 
 # useful params
-def omega(freq):
+def omega(frequency):
     """Compute angular frequency from frequency
 
     Parameters
