@@ -4,6 +4,7 @@ sphinx-gallery>=0.1.13
 sphinx-toolbox
 sphinxcontrib-apidoc
 pydata-sphinx-theme
+nbsphinx
 numpydoc
 pillow
 pylint
