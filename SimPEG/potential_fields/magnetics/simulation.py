@@ -276,11 +276,14 @@ class Simulation3DIntegral(BasePFSimulation):
         nC = self.Xn.shape[0]
 
         # base cell dimensions
-        min_hx, min_hy, min_hz = (
-            self.mesh.hx.min(),
-            self.mesh.hy.min(),
-            self.mesh.hz.min(),
-        )
+        # base cell dimensions
+        min_hx, min_hy = self.mesh.hx.min(), self.mesh.hy.min()
+        if self.mesh.hz is None:
+            # Allow for 2D quadtree represnetations by using a dummy cell height.
+            # Actually cell heights will come from externally defined ``self.Zn``
+            min_hz = min_hx
+        else:
+            min_hz = self.mesh.hz.min()
 
         # comp. pos. differences for tne, bsw nodes. Adjust if location within
         # tolerance of a node or edge
