@@ -120,12 +120,17 @@ class Simulation3DIntegral(BasePFSimulation):
         tol1 = 1e-4
         tol2 = 1e-10
 
+        print(self.mesh.hx, self.mesh.hy, self.mesh.hz)
         # base cell dimensions
-        min_hx, min_hy, min_hz = (
+        min_hx, min_hy = (
             self.mesh.hx.min(),
             self.mesh.hy.min(),
-            self.mesh.hz.min(),
         )
+        if self.mesh.hz:
+            min_hz = (self.mesh.hz.min(),)
+        else:
+            min_hz = (0.0,)
+        print(self.mesh.hx, self.mesh.hy, self.mesh.hz)
 
         dx = self.Xn - receiver_location[0]
         dx[np.abs(dx) / min_hx < tol1] = tol1 * min_hx
@@ -213,9 +218,9 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dxdz / (r * dy_r)
                                 - np.arctan(arg)
                                 + dx[:, aa]
-                                * (1.0 / (1 + arg ** 2.0))
+                                * (1.0 / (1 + arg**2.0))
                                 * dydz
-                                / dxr ** 2.0
+                                / dxr**2.0
                                 * (r + dx[:, aa] ** 2.0 / r)
                             )
                         )
@@ -230,8 +235,8 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dy[:, bb] ** 2.0 / (r * dz_r)
                                 + dz[:, cc] / r
                                 - 1.0
-                                / (1 + arg ** 2.0)
-                                * (dz[:, cc] / r ** 2)
+                                / (1 + arg**2.0)
+                                * (dz[:, cc] / r**2)
                                 * (r - dy[:, bb] ** 2.0 / r)
                             )
                         )
@@ -246,8 +251,8 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dz[:, cc] ** 2.0 / (r * dy_r)
                                 + dy[:, bb] / r
                                 - 1.0
-                                / (1 + arg ** 2.0)
-                                * (dy[:, bb] / (r ** 2))
+                                / (1 + arg**2.0)
+                                * (dy[:, bb] / (r**2))
                                 * (r - dz[:, cc] ** 2.0 / r)
                             )
                         )
@@ -268,9 +273,9 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dydz / (r * dx_r)
                                 - np.arctan(arg)
                                 + dy[:, bb]
-                                * (1.0 / (1 + arg ** 2.0))
+                                * (1.0 / (1 + arg**2.0))
                                 * dxdz
-                                / dyr ** 2.0
+                                / dyr**2.0
                                 * (r + dy[:, bb] ** 2.0 / r)
                             )
                         )
@@ -285,8 +290,8 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dz[:, cc] ** 2.0 / (r * (dx_r))
                                 + dx[:, aa] / r
                                 - 1.0
-                                / (1 + arg ** 2.0)
-                                * (dx[:, aa] / (r ** 2))
+                                / (1 + arg**2.0)
+                                * (dx[:, aa] / (r**2))
                                 * (r - dz[:, cc] ** 2.0 / r)
                             )
                         )
