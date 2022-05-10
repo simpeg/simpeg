@@ -35,7 +35,6 @@ from ..utils import (
     Zero,
     eigenvalue_by_power_iteration,
 )
-from ..utils.code_utils import deprecate_property
 from .. import optimization
 
 
@@ -122,10 +121,6 @@ class InversionDirective(properties.HasProperties):
         return a list of problems for each dmisfit [prob1, prob2, ...]
         """
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
-
-    prob = deprecate_property(
-        simulation, "prob", new_name="simulation", removal_version="0.16.0", error=True,
-    )
 
     def initialize(self):
         pass
@@ -245,10 +240,14 @@ class BetaEstimate_ByEig(InversionDirective):
         m = self.invProb.model
 
         dm_eigenvalue = eigenvalue_by_power_iteration(
-            self.dmisfit, m, n_pw_iter=self.n_pw_iter,
+            self.dmisfit,
+            m,
+            n_pw_iter=self.n_pw_iter,
         )
         reg_eigenvalue = eigenvalue_by_power_iteration(
-            self.reg, m, n_pw_iter=self.n_pw_iter,
+            self.reg,
+            m,
+            n_pw_iter=self.n_pw_iter,
         )
 
         self.ratio = dm_eigenvalue / reg_eigenvalue
@@ -362,12 +361,16 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
         if mode == 2:
             smallness_eigenvalue = eigenvalue_by_power_iteration(
-                self.reg.objfcts[0], m, n_pw_iter=self.n_pw_iter,
+                self.reg.objfcts[0],
+                m,
+                n_pw_iter=self.n_pw_iter,
             )
             for i in range(nbr):
                 if smoothness[i]:
                     smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-                        self.reg.objfcts[i], m, n_pw_iter=self.n_pw_iter,
+                        self.reg.objfcts[i],
+                        m,
+                        n_pw_iter=self.n_pw_iter,
                     )
                     ratio = smallness_eigenvalue / smooth_i_eigenvalue
 
@@ -606,7 +609,8 @@ class MultiTargetMisfits(InversionDirective):
                             j,
                             (
                                 isinstance(
-                                    regpart, PGIwithNonlinearRelationshipsSmallness,
+                                    regpart,
+                                    PGIwithNonlinearRelationshipsSmallness,
                                 )
                                 or isinstance(regpart, PGIsmallness)
                             ),
@@ -648,7 +652,8 @@ class MultiTargetMisfits(InversionDirective):
                             j,
                             (
                                 isinstance(
-                                    regpart, PGIwithNonlinearRelationshipsSmallness,
+                                    regpart,
+                                    PGIwithNonlinearRelationshipsSmallness,
                                 )
                                 or isinstance(regpart, PGIsmallness)
                             ),
@@ -737,7 +742,10 @@ class MultiTargetMisfits(InversionDirective):
             return self.invProb.reg.objfcts[0](self.invProb.model)
         else:
             return (
-                self.pgi_smallness(self.invProb.model, externalW=self.WeightsInTarget,)
+                self.pgi_smallness(
+                    self.invProb.model,
+                    externalW=self.WeightsInTarget,
+                )
                 / self.CLnormalizedConstant
             )
 
@@ -827,8 +835,10 @@ class MultiTargetMisfits(InversionDirective):
                 )
             )
             if self.TriggerSmall:
-                message += " | smallness misfit: {0:.1f} (target: {1:.1f} [{2}])".format(
-                    self.phims(), self.CLtarget, self.CL
+                message += (
+                    " | smallness misfit: {0:.1f} (target: {1:.1f} [{2}])".format(
+                        self.phims(), self.CLtarget, self.CL
+                    )
                 )
             if self.TriggerTheta:
                 message += " | GMM parameters within tolerance: {}".format(self.DP)
@@ -1209,28 +1219,6 @@ class Update_IRLS(InversionDirective):
     silent = False
     fix_Jmatrix = False
 
-    maxIRLSiters = deprecate_property(
-        max_irls_iterations,
-        "maxIRLSiters",
-        new_name="max_irls_iterations",
-        removal_version="0.16.0",
-        error=True,
-    )
-    updateBeta = deprecate_property(
-        update_beta,
-        "updateBeta",
-        new_name="update_beta",
-        removal_version="0.16.0",
-        error=True,
-    )
-    betaSearch = deprecate_property(
-        beta_search,
-        "betaSearch",
-        new_name="beta_search",
-        removal_version="0.16.0",
-        error=True,
-    )
-
     @property
     def target(self):
         if getattr(self, "_target", None) is None:
@@ -1322,8 +1310,8 @@ class Update_IRLS(InversionDirective):
             for comp, multipier in zip(reg.objfcts, reg.multipliers):
                 if multipier > 0:
                     phim_new += np.sum(
-                        comp.f_m ** 2.0
-                        / (comp.f_m ** 2.0 + comp.epsilon ** 2.0)
+                        comp.f_m**2.0
+                        / (comp.f_m**2.0 + comp.epsilon**2.0)
                         ** (1 - comp.norm / 2.0)
                     )
 

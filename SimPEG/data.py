@@ -6,7 +6,6 @@ import warnings
 from .survey import BaseSurvey
 from . import survey
 from .utils import mkvc
-from .utils.code_utils import deprecate_property
 
 __all__ = ["Data", "SyntheticData"]
 
@@ -288,24 +287,6 @@ class Data(properties.HasProperties):
     def fromvec(self, v):
         v = mkvc(v)
         self.dobs = v
-
-    ##########################
-    # Deprecated
-    ##########################
-    std = deprecate_property(
-        relative_error,
-        "std",
-        new_name="relative_error",
-        removal_version="0.16.0",
-        error=True,
-    )
-    eps = deprecate_property(
-        noise_floor,
-        "eps",
-        new_name="noise_floor",
-        removal_version="0.16.0",
-        error=True,
-    )
 
 
 class SyntheticData(Data):

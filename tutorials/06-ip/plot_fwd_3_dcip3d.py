@@ -79,7 +79,7 @@ write_output = False
 x_topo, y_topo = np.meshgrid(
     np.linspace(-2100, 2100, 141), np.linspace(-2000, 2000, 141)
 )
-s = np.sqrt(x_topo ** 2 + y_topo ** 2)
+s = np.sqrt(x_topo**2 + y_topo**2)
 z_topo = (1 / np.pi) * 140 * (-np.pi / 2 + np.arctan((s - 600.0) / 80.0))
 x_topo, y_topo, z_topo = mkvc(x_topo), mkvc(y_topo), mkvc(z_topo)
 topo_xyz = np.c_[x_topo, y_topo, z_topo]
@@ -262,7 +262,7 @@ dc_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 #
 
 # Define the DC simulation
-dc_simulation = dc.simulation.Simulation3DNodal(
+dc_simulation = dc.Simulation3DNodal(
     mesh, survey=dc_survey, sigmaMap=conductivity_map, solver=Solver
 )
 
@@ -285,7 +285,10 @@ dpred_dc = dc_simulation.dpred(conductivity_model)
 
 # Since the data are normalized voltage, we must convert predicted
 # to apparent conductivities.
-apparent_conductivity = 1 / apparent_resistivity_from_voltage(dc_survey, dpred_dc,)
+apparent_conductivity = 1 / apparent_resistivity_from_voltage(
+    dc_survey,
+    dpred_dc,
+)
 
 # For large datasets or for surveys with unconventional electrode geometry,
 # interpretation can be challenging if we plot every datum. Here, we plot
@@ -432,7 +435,7 @@ cbar.set_label("Intrinsic Chargeability [V/V]", rotation=270, labelpad=15, size=
 # We use the keyword argument *sigma* to define the background conductivity on
 # the mesh. We could use the keyword argument *rho* to accomplish the same thing
 # using a background resistivity model.
-ip_simulation = ip.simulation.Simulation3DNodal(
+ip_simulation = ip.Simulation3DNodal(
     mesh,
     survey=ip_survey,
     etaMap=chargeability_map,

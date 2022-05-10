@@ -28,7 +28,11 @@ class CrossGradientTensor2D(unittest.TestCase):
         # maps
         wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC))
 
-        cros_grad = regularization.CrossGradient(mesh, wire_map=wires, indActive=actv,)
+        cros_grad = regularization.CrossGradient(
+            mesh,
+            wire_map=wires,
+            indActive=actv,
+        )
 
         self.mesh = mesh
         self.cross_grad = cros_grad
@@ -117,7 +121,11 @@ class CrossGradientTensor3D(unittest.TestCase):
         # maps
         wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC))
 
-        cros_grad = regularization.CrossGradient(mesh, wire_map=wires, indActive=actv,)
+        cros_grad = regularization.CrossGradient(
+            mesh,
+            wire_map=wires,
+            indActive=actv,
+        )
 
         self.mesh = mesh
         self.cross_grad = cros_grad

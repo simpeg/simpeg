@@ -2,7 +2,6 @@ import numpy as np
 import properties
 
 from ...survey import BaseSurvey, BaseRx
-from ...utils.code_utils import deprecate_property
 
 
 class Survey(BaseSurvey):
@@ -40,11 +39,3 @@ class Survey(BaseSurvey):
             )
             cnt += rx.nD
         return np.sum(dd_du, axis=0), np.sum(dd_dm, axis=0)
-
-    rxList = deprecate_property(
-        receiver_list,
-        "rxList",
-        new_name="receiver_list",
-        removal_version="0.16.0",
-        error=True,
-    )

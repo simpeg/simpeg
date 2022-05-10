@@ -1,9 +1,5 @@
 from ...survey import BaseRx
 import properties
-from ...utils.code_utils import deprecate_property
-
-import warnings
-
 
 #########################################
 # POINT RECEIVER CLASS FOR VRM
@@ -38,36 +34,16 @@ class Point(BaseRx):
         if self.times is not None:
             return len(self.times)
 
-    nTimes = deprecate_property(
-        n_times, "nTimes", new_name="n_times", removal_version="0.16.0", error=True,
-    )
-
     @property
     def n_locations(self):
         """Number of locations."""
         return self.locations.shape[0]
-
-    nLocs = deprecate_property(
-        n_locations,
-        "nLocs",
-        new_name="n_locations",
-        removal_version="0.16.0",
-        error=True,
-    )
 
     @property
     def nD(self):
         """Number of data in the receiver."""
         if self.times is not None:
             return self.locations.shape[0] * len(self.times)
-
-    fieldComp = deprecate_property(
-        orientation,
-        "fieldComp",
-        new_name="orientation",
-        removal_version="0.16.0",
-        error=True,
-    )
 
 
 class SquareLoop(Point):

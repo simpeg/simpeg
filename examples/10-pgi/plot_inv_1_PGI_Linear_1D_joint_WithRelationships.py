@@ -128,9 +128,9 @@ dmis = dmis1 + dmis2
 minit = np.zeros_like(m)
 
 # Distance weighting
-wr1 = np.sum(prob1.G ** 2.0, axis=0) ** 0.5 / mesh.cell_volumes
+wr1 = np.sum(prob1.G**2.0, axis=0) ** 0.5 / mesh.cell_volumes
 wr1 = wr1 / np.max(wr1)
-wr2 = np.sum(prob2.G ** 2.0, axis=0) ** 0.5 / mesh.cell_volumes
+wr2 = np.sum(prob2.G**2.0, axis=0) ** 0.5 / mesh.cell_volumes
 wr2 = wr2 / np.max(wr2)
 wr = np.r_[wr1, wr2]
 W = utils.sdiag(wr)
@@ -146,7 +146,12 @@ reg_simple = utils.make_PGIwithRelationships_regularization(
 )
 
 opt = optimization.ProjectedGNCG(
-    maxIter=50, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
+    maxIter=50,
+    tolX=1e-6,
+    maxIterCG=100,
+    tolCG=1e-3,
+    lower=-10,
+    upper=10,
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg_simple, opt)
@@ -166,7 +171,9 @@ alphas = directives.AlphasSmoothEstimate_ByEig(
 )
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, n_pw_iter=10)
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True, coolingFactor=2.0, progress=0.2,
+    verbose=True,
+    coolingFactor=2.0,
+    progress=0.2,
 )
 targets = directives.MultiTargetMisfits(verbose=True)
 petrodir = directives.PGI_UpdateParameters(update_gmm=False)
@@ -191,7 +198,12 @@ reg_simple_no_map = utils.make_PGI_regularization(
 )
 
 opt = optimization.ProjectedGNCG(
-    maxIter=50, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
+    maxIter=50,
+    tolX=1e-6,
+    maxIterCG=100,
+    tolCG=1e-3,
+    lower=-10,
+    upper=10,
 )
 
 
@@ -212,7 +224,9 @@ alphas = directives.AlphasSmoothEstimate_ByEig(
 )
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, n_pw_iter=10)
 betaIt = directives.PGI_BetaAlphaSchedule(
-    verbose=True, coolingFactor=2.0, progress=0.2,
+    verbose=True,
+    coolingFactor=2.0,
+    progress=0.2,
 )
 targets = directives.MultiTargetMisfits(
     chiSmall=1.0, TriggerSmall=True, TriggerTheta=False, verbose=True
@@ -236,7 +250,12 @@ reg2.cell_weights = wr2
 reg = reg1 + reg2
 
 opt = optimization.ProjectedGNCG(
-    maxIter=50, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
+    maxIter=50,
+    tolX=1e-6,
+    maxIterCG=100,
+    tolCG=1e-3,
+    lower=-10,
+    upper=10,
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -255,7 +274,10 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-5, n_pw_iter=10)
 beta_schedule = directives.BetaSchedule(coolingFactor=5.0, coolingRate=1)
-targets = directives.MultiTargetMisfits(TriggerSmall=False, verbose=True,)
+targets = directives.MultiTargetMisfits(
+    TriggerSmall=False,
+    verbose=True,
+)
 
 # Setup Inversion
 inv = inversion.BaseInversion(

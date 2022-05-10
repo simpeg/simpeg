@@ -188,7 +188,7 @@ def plotVectorSectionsOctree(
     # Interpolate values from mesh.gridCC to grid2d
     ind_3d_to_2d = mesh._get_containing_cell_indexes(tm_gridboost)
     v2d = m[ind_3d_to_2d, :]
-    amp = np.sum(v2d ** 2.0, axis=1) ** 0.5
+    amp = np.sum(v2d**2.0, axis=1) ** 0.5
 
     if axs is None:
         axs = plt.subplot(111)
@@ -228,7 +228,9 @@ M_xyz = utils.mat_utils.dip_azimuth2cartesian(M[0], M[1])
 
 # Get the indicies of the magnetized block
 ind = utils.model_builder.getIndicesBlock(
-    np.r_[-20, -20, -10], np.r_[20, 20, 25], mesh.gridCC,
+    np.r_[-20, -20, -10],
+    np.r_[20, 20, 25],
+    mesh.gridCC,
 )[0]
 
 # Assign magnetization values

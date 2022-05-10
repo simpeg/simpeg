@@ -127,34 +127,3 @@ def dask_getJtJdiag(self, m, W=None):
 
 
 Sim.getJtJdiag = dask_getJtJdiag
-
-
-# def J_func(src_list, rx_list_per_source):
-#     func_nD = sum([rx.nD for rx in rx_list_per_source])
-#     J = np.empty((func_nD, len(m)))
-#
-#     for source, rx_list in zip(src_list, rx_list_per_source):
-#         if f is not None:
-#             u_source = f[source, self._solutionType]
-#         else:
-#             u_source = Ainv*source.eval(self)
-#         PT_src = np.empty(np.sum([rx.nD for rx in rx_list]), len(m), order='F')
-#         start = 0
-#         for rx in rx_list:
-#             # wrt f, need possibility wrt m
-#             PTv = rx.getP(self.mesh, rx.projGLoc(f)).toarray().T
-#
-#             df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField),
-#                                 None)
-#             df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
-#             end = start+rx.nD
-#             PT_src[start:end] = df_dmT.reshape((rx.nD, len(m)), order='F')
-#             start = end
-#
-#         ATinvdf_duT = self.Ainv * PT_src
-#
-#         dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
-#         dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
-#         du_dmT = -dA_dmT + dRHS_dmT
-#
-#     return J
