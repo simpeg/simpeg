@@ -16,8 +16,6 @@ from SimPEG.potential_fields import gravity
 
 import shutil
 
-np.random.seed(43)
-
 
 class GravInvLinProblemTest(unittest.TestCase):
     def setUp(self):
@@ -37,9 +35,9 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Create and array of observation points
         altitude = 5
-        xr = np.linspace(-100.0, 100.0, 20)
-        yr = np.linspace(-100.0, 100.0, 20)
-        X, Y = np.meshgrid(xr, yr)
+        [X, Y] = np.meshgrid(
+            np.linspace(-100.0, 100.0, 20), np.linspace(-100.0, 100.0, 20)
+        )
         Z = simulate_topo(X, Y) + altitude
 
         # Create a gravity survey
@@ -48,7 +46,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         srcField = gravity.SourceField([rxLoc])
         survey = gravity.Survey(srcField)
 
-        # Create a quadtree mesh
+        # Create a quadtree mesh. Only requires x and y coordinates and padding
         h = [5, 5]
         padDist = np.ones((2, 2)) * 100
         nCpad = [2, 4]
