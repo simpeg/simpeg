@@ -19,18 +19,6 @@ np.random.seed(43)
 
 
 class QuadTreeLinProblemTest(unittest.TestCase):
-    def __init__(self):
-        self.mesh = None
-        self.mesh_elevations = None
-
-        self.grav_data = None
-        self.grav_model = None
-        self.grav_sim = None
-
-        self.mag_data = None
-        self.mag_model = None
-        self.mag_sim = None
-
     def setUp(self):
         def simulate_topo(x, y, amplitude=50, scale_factor=100):
             # Create synthetic Gaussian topography from a function
