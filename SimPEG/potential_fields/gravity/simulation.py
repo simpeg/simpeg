@@ -122,7 +122,7 @@ class Simulation3DIntegral(BasePFSimulation):
         # base cell dimensions
         min_hx, min_hy = self.mesh.h[0].min(), self.mesh.h[1].min()
         if len(self.mesh.h) < 3:
-            # Allow for 2D quadtree represnetations by using a dummy cell height.
+            # Allow for 2D quadtree representations by using a dummy cell height.
             # Actually cell heights will come from externally defined ``self.Zn``
             min_hz = np.minimum(min_hx, min_hy) / 10.0
         else:
