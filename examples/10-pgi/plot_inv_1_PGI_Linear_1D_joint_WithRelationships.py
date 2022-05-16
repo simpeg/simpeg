@@ -155,7 +155,7 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 alpha0_ratio = np.r_[
-    1e+6 * np.ones(len(reg_simple.objfcts[1].objfcts)),
+    1e+6, 1e+4
 ]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True

@@ -60,23 +60,14 @@ class PGI_UpdateParameters(InversionDirective):
     keep_ref_fixed_in_Smooth = True  # keep mref fixed in the Smoothness
 
     def initialize(self):
-        if getattr(self.reg.objfcts[0], "objfcts", None) is not None:
-            pgi_reg = np.where(
-                np.r_[
-                    [
-                        isinstance(
-                            regpart, (PGI, PGIwithRelationships)
-                        )
-                        for regpart in self.reg.objfcts
-                    ]
-                ]
-            )[0][0]
-            self.pgi_reg = self.reg.objfcts[pgi_reg]
-            self._regmode = 1
 
-        else:
-            self._regmode = 2
-            self.pgi_reg = self.reg
+        pgi_reg = self.reg.get_functions_of_type(PGI)
+        if len(pgi_reg) != 1:
+            raise UserWarning(
+                "'PGI_UpdateParameters' requires one 'PGI' regularization "
+                "in the objective function."
+            )
+        self.pgi_reg = pgi_reg[0]
 
     def endIter(self):
         if self.opt.iter > 0 and self.opt.iter % self.update_rate == 0:
@@ -219,23 +210,12 @@ class PGI_BetaAlphaSchedule(InversionDirective):
             self.updategaussianclass = self.inversion.directiveList.dList[
                 updategaussianclass
             ]
-
-        pgi_reg = []
-        if isinstance(self.reg, PGI):
-            pgi_reg += [self.reg]
-
-        for reg in self.reg.objfcts:
-            if isinstance(reg, PGI):
-                pgi_reg += [reg]
-
-            if isinstance(reg, ComboObjectiveFunction):
-                for objfct in reg.objfcts:
-                    if isinstance(reg, PGI):
-                        pgi_reg += [objfct]
-
+        pgi_reg = self.reg.get_functions_of_type(PGI)
         if len(pgi_reg) != 1:
-            raise UserWarning(f"The directive 'PGI_BetaAlphaSchedule' requires one instance of PGI regularization. Found {len(pgi_reg)}")
-
+            raise UserWarning(
+                "'PGI_UpdateParameters' requires one 'PGI' regularization "
+                "in the objective function."
+            )
         self.pgi_reg = pgi_reg[0]
 
     def endIter(self):

@@ -394,6 +394,21 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 W.append(curW)
         return sp.vstack(W)
 
+    def get_functions_of_type(self, fun_class) -> list:
+        """
+        Find an objective function type from a ComboObjectiveFunction class.
+        """
+        target = []
+        if isinstance(self, fun_class):
+            target += [self]
+        else:
+            for object in self.objfcts:
+                if isinstance(object, ComboObjectiveFunction):
+                    target += [object.get_functions_of_type(fun_class)]
+                elif isinstance(objfct, fun_class):
+                    target += [object]
+
+        return target
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
     """

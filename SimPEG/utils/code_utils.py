@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 import types
+from typing import TYPE_CHECKING
 import numpy as np
 from functools import wraps
 import warnings
