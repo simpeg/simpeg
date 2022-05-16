@@ -120,13 +120,13 @@ class Simulation3DIntegral(BasePFSimulation):
         tol2 = 1e-10  # Tolerance 2 for numerical stability over nodes and edges
 
         # base cell dimensions
-        min_hx, min_hy = self.mesh.hx.min(), self.mesh.hy.min()
-        if self.mesh.hz is None:
+        min_hx, min_hy = self.mesh.h[0].min(), self.mesh.h[1].min()
+        if len(self.mesh.h) < 3:
             # Allow for 2D quadtree represnetations by using a dummy cell height.
             # Actually cell heights will come from externally defined ``self.Zn``
-            min_hz = min_hx
+            min_hz = np.minimum(min_hx, min_hy) / 10.0
         else:
-            min_hz = self.mesh.hz.min()
+            min_hz = self.mesh.h[2].min()
 
         # comp. pos. differences for tne, bsw nodes. Adjust if location within
         # tolerance of a node or edge
