@@ -117,7 +117,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         """
         tol1 = 1e-4  # Tolerance 1 for numerical stability over nodes and edges
-        tol2 = 1e-10  # Tolerance 2 for numerical stability over nodes and edges
+       
 
         # base cell dimensions
         min_hx, min_hy = self.mesh.h[0].min(), self.mesh.h[1].min()
