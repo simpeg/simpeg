@@ -202,11 +202,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertAlmostEqual(model_residual, 0.57, delta=0.1)
 
         # Check data converged to less than 10% of target misfit
-        data_rms = (
-            np.linalg.norm((dpred - self.grav_data.dobs) / self.grav_data.noise_floor)
-            ** 2
-        )
-        self.assertLess(data_rms, dpred.shape[0] * 1.1)
+        data_misfit = 2.0 * self.grav_inv.invProb.dmisfit(self.grav_model)
+        self.assertLess(data_misfit, dpred.shape[0] * 1.1)
 
     def test_quadtree_mag_inverse(self):
 
@@ -223,11 +220,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertAlmostEqual(model_residual, 0.03, delta=0.05)
 
         # Check data converged to less than 10% of target misfit
-        data_rms = (
-            np.linalg.norm((dpred - self.mag_data.dobs) / self.mag_data.noise_floor)
-            ** 2
-        )
-        self.assertLess(data_rms, dpred.shape[0] * 1.1)
+        data_misfit = 2.0 * self.mag_inv.invProb.dmisfit(self.mag_model)
+        self.assertLess(data_misfit, dpred.shape[0] * 1.1)
 
     def tearDown(self):
         # Clean up the working directory
