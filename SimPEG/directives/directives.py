@@ -1,5 +1,7 @@
 from __future__ import print_function, annotations
 import json
+import uuid
+
 import properties
 import numpy as np
 import matplotlib.pyplot as plt
@@ -1337,6 +1339,7 @@ class SaveIterationsGeoH5(InversionDirective):
     components = [""]
     data_type = {}
     _h5_object = None
+    _workspace = None
     _transforms: list = []
     save_objective_function = False
     sorting = None
@@ -1348,22 +1351,22 @@ class SaveIterationsGeoH5(InversionDirective):
         setKwargs(self, **kwargs)
 
     def initialize(self):
-
+        self._workspace.open()
         self.save_components(0)
 
         if self.save_objective_function:
             self.save_log(0)
 
-        self.h5_object.workspace.finalize()
+        self._workspace.close()
 
     def endIter(self):
-
+        self._workspace.open()
         self.save_components(self.opt.iter)
 
         if self.save_objective_function:
             self.save_log(self.opt.iter)
 
-        self.h5_object.workspace.finalize()
+        self._workspace.close()
 
     def stack_channels(self, dpred: list):
         """
@@ -1454,7 +1457,6 @@ class SaveIterationsGeoH5(InversionDirective):
                     self.h5_object.add_data_to_group(
                         data, base_name
                     )
-        self.h5_object.workspace.finalize()
 
     def save_log(self, iteration: int):
         """
@@ -1484,7 +1486,6 @@ class SaveIterationsGeoH5(InversionDirective):
         with open(filepath, "rb") as f:
             file_entity.values = f.read()
 
-        self.h5_object.workspace.finalize()
 
     @property
     def label(self):
@@ -1533,14 +1534,15 @@ class SaveIterationsGeoH5(InversionDirective):
 
     @property
     def h5_object(self):
-        return self._h5_object
+        return self._workspace.get_entity(self._h5_object)[0]
 
     @h5_object.setter
-    def h5_object(self, entity: ObjectBase):
+    def h5_object(self, entity: ObjectBase | uuid.UUID):
         if not isinstance(entity, ObjectBase):
             raise TypeError(f"Input entity should be of type {ObjectBase}. {type(entity)} provided")
 
-        self._h5_object = entity
+        self._h5_object = entity.uid
+        self._workspace = entity.workspace
 
         if getattr(entity, "n_cells", None) is not None:
             self.association = "CELL"
