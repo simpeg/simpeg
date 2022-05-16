@@ -235,7 +235,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return amplitude
 
-    def evaluate_integral(self, receiver_location, components):
+    def evaluate_integral(self, receiver_location, components, tolerance=1e-8):
         """
         Load in the active nodes of a tensor mesh and computes the magnetic
         forward relation between a cuboid and a given observation
@@ -248,15 +248,15 @@ class Simulation3DIntegral(BasePFSimulation):
             List of magnetic components chosen from:
             'bx', 'by', 'bz', 'bxx', 'bxy', 'bxz', 'byy', 'byz', 'bzz'
 
+        tolerance: float
+            Small constant to avoid singularity near nodes and edges.
+
         OUTPUT:
         Tx = [Txx Txy Txz]
         Ty = [Tyx Tyy Tyz]
         Tz = [Tzx Tzy Tzz]
         """
         # TODO: This should probably be converted to C
-        tol1 = 1e-4  # Tolerance 1 for numerical stability over nodes and edges
-        tol2 = 1e-10  # Tolerance 2 for numerical stability over nodes and edges
-
         rows = {component: np.zeros(3 * self.Xn.shape[0]) for component in components}
 
         # number of cells in mesh
@@ -274,19 +274,19 @@ class Simulation3DIntegral(BasePFSimulation):
         # comp. pos. differences for tne, bsw nodes. Adjust if location within
         # tolerance of a node or edge
         dx1 = self.Xn[:, 0] - receiver_location[0]
-        dx1[np.abs(dx1) / min_hx < tol1] = tol1 * min_hx
+        dx1[np.abs(dx1) / min_hx < tolerance] = tolerance * min_hx
         dx2 = self.Xn[:, 1] - receiver_location[0]
-        dx2[np.abs(dx2) / min_hx < tol1] = tol1 * min_hx
+        dx2[np.abs(dx2) / min_hx < tolerance] = tolerance * min_hx
 
         dy1 = self.Yn[:, 0] - receiver_location[1]
-        dy1[np.abs(dy1) / min_hy < tol1] = tol1 * min_hy
+        dy1[np.abs(dy1) / min_hy < tolerance] = tolerance * min_hy
         dy2 = self.Yn[:, 1] - receiver_location[1]
-        dy2[np.abs(dy2) / min_hy < tol1] = tol1 * min_hy
+        dy2[np.abs(dy2) / min_hy < tolerance] = tolerance * min_hy
 
         dz1 = self.Zn[:, 0] - receiver_location[2]
-        dz1[np.abs(dz1) / min_hz < tol1] = tol1 * min_hz
+        dz1[np.abs(dz1) / min_hz < tolerance] = tolerance * min_hz
         dz2 = self.Zn[:, 1] - receiver_location[2]
-        dz2[np.abs(dz2) / min_hz < tol1] = tol1 * min_hz
+        dz2[np.abs(dz2) / min_hz < tolerance] = tolerance * min_hz
 
         # comp. squared diff
         dx2dx2 = dx2**2.0
@@ -549,14 +549,14 @@ class Simulation3DIntegral(BasePFSimulation):
             rows["bx"] = np.zeros((1, 3 * nC))
 
             rows["bx"][0, 0:nC] = (
-                (-2 * np.arctan2(dx1, arg1 + tol2))
-                - (-2 * np.arctan2(dx2, arg6 + tol2))
-                + (-2 * np.arctan2(dx2, arg11 + tol2))
-                - (-2 * np.arctan2(dx1, arg16 + tol2))
-                + (-2 * np.arctan2(dx2, arg21 + tol2))
-                - (-2 * np.arctan2(dx1, arg26 + tol2))
-                + (-2 * np.arctan2(dx1, arg31 + tol2))
-                - (-2 * np.arctan2(dx2, arg36 + tol2))
+                (-2 * np.arctan2(dx1, arg1 + tolerance))
+                - (-2 * np.arctan2(dx2, arg6 + tolerance))
+                + (-2 * np.arctan2(dx2, arg11 + tolerance))
+                - (-2 * np.arctan2(dx1, arg16 + tolerance))
+                + (-2 * np.arctan2(dx2, arg21 + tolerance))
+                - (-2 * np.arctan2(dx1, arg26 + tolerance))
+                + (-2 * np.arctan2(dx1, arg31 + tolerance))
+                - (-2 * np.arctan2(dx2, arg36 + tolerance))
             )
             rows["bx"][0, nC : 2 * nC] = (
                 np.log(arg5)
@@ -592,14 +592,14 @@ class Simulation3DIntegral(BasePFSimulation):
                 - np.log(arg40)
             )
             rows["by"][0, nC : 2 * nC] = (
-                (-2 * np.arctan2(dy2, arg2 + tol2))
-                - (-2 * np.arctan2(dy2, arg7 + tol2))
-                + (-2 * np.arctan2(dy2, arg12 + tol2))
-                - (-2 * np.arctan2(dy2, arg17 + tol2))
-                + (-2 * np.arctan2(dy1, arg22 + tol2))
-                - (-2 * np.arctan2(dy1, arg27 + tol2))
-                + (-2 * np.arctan2(dy1, arg32 + tol2))
-                - (-2 * np.arctan2(dy1, arg37 + tol2))
+                (-2 * np.arctan2(dy2, arg2 + tolerance))
+                - (-2 * np.arctan2(dy2, arg7 + tolerance))
+                + (-2 * np.arctan2(dy2, arg12 + tolerance))
+                - (-2 * np.arctan2(dy2, arg17 + tolerance))
+                + (-2 * np.arctan2(dy1, arg22 + tolerance))
+                - (-2 * np.arctan2(dy1, arg27 + tolerance))
+                + (-2 * np.arctan2(dy1, arg32 + tolerance))
+                - (-2 * np.arctan2(dy1, arg37 + tolerance))
             )
             rows["by"][0, 2 * nC :] = (
                 (np.log(arg3) - np.log(arg8))
@@ -632,14 +632,14 @@ class Simulation3DIntegral(BasePFSimulation):
                 + (np.log(arg33) - np.log(arg38))
             )
             rows["bz"][0, 2 * nC :] = (
-                (-2 * np.arctan2(dz2, arg1_ + tol2))
-                - (-2 * np.arctan2(dz2, arg6_ + tol2))
-                + (-2 * np.arctan2(dz1, arg11_ + tol2))
-                - (-2 * np.arctan2(dz1, arg16_ + tol2))
-                + (-2 * np.arctan2(dz2, arg21_ + tol2))
-                - (-2 * np.arctan2(dz2, arg26_ + tol2))
-                + (-2 * np.arctan2(dz1, arg31_ + tol2))
-                - (-2 * np.arctan2(dz1, arg36_ + tol2))
+                (-2 * np.arctan2(dz2, arg1_ + tolerance))
+                - (-2 * np.arctan2(dz2, arg6_ + tolerance))
+                + (-2 * np.arctan2(dz1, arg11_ + tolerance))
+                - (-2 * np.arctan2(dz1, arg16_ + tolerance))
+                + (-2 * np.arctan2(dz2, arg21_ + tolerance))
+                - (-2 * np.arctan2(dz2, arg26_ + tolerance))
+                + (-2 * np.arctan2(dz1, arg31_ + tolerance))
+                - (-2 * np.arctan2(dz1, arg36_ + tolerance))
             )
             rows["bz"] /= -4 * np.pi
 
