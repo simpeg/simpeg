@@ -1333,21 +1333,20 @@ class SaveIterationsGeoH5(InversionDirective):
     Saves inversion results to a geoh5 file
     """
 
-    _association = None
-    attribute_type = "model"
-    _label = None
-    channels = [""]
-    components = [""]
-    data_type = {}
-    _h5_object = None
-    _workspace = None
-    _transforms: list = []
-    save_objective_function = False
-    sorting = None
-    _reshape = None
-
     def __init__(self, h5_object, **kwargs):
 
+        self.data_type = {}
+        self._association = None
+        self.attribute_type = "model"
+        self._label = None
+        self.channels = [""]
+        self.components = [""]
+        self._h5_object = None
+        self._workspace = None
+        self._transforms: list = []
+        self.save_objective_function = False
+        self.sorting = None
+        self._reshape = None
         self.h5_object = h5_object
         setKwargs(self, **kwargs)
 
@@ -1477,6 +1476,9 @@ class SaveIterationsGeoH5(InversionDirective):
                 f"{self.invProb.phi_m:.3e} {date_time}\n"
             )
 
+        with open(filepath, "rb") as f:
+            raw_file = f.read()
+
         with Workspace(self._h5_file) as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
             child_names = [k.name for k in h5_object.parent.children]
@@ -1485,8 +1487,7 @@ class SaveIterationsGeoH5(InversionDirective):
             else:
                 file_entity = h5_object.parent.add_file(filepath)
 
-            with open(filepath, "rb") as f:
-                file_entity.values = f.read()
+            file_entity.values = raw_file
 
 
     @property
