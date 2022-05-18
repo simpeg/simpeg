@@ -857,7 +857,7 @@ def validate_list_property(property_name, var, class_type):
     if np.all(is_true):
         return var
     else:
-        TypeError(f"'{property_name}' must be a list of '{class_type}'")
+        raise TypeError(f"'{property_name}' must be a list of '{class_type}'")
 
 
 def validate_location_property(property_name, var, dim=None):
@@ -880,7 +880,10 @@ def validate_location_property(property_name, var, dim=None):
     try:
         var = np.atleast_1d(var).astype(float).squeeze()
     except:
-        raise TypeError(f"'{property_name}' must be array_like, got {type(var)}")
+        raise TypeError(f"'{property_name}' must be 1D array_like, got {type(var)}")
+
+    if len(var.shape )> 1:
+        raise TypeError(f"'{property_name}' must be 1D array_like, got {len(var.shape)}D")
 
     if dim is None:
         return var
@@ -893,7 +896,7 @@ def validate_location_property(property_name, var, dim=None):
             )
 
 
-def validate_ndarray_property(property_name, var, shape=('*', '*'), dtype=float):
+def validate_ndarray_property(property_name, var, shape=None, dtype=float):
     """Validate numerical array property
 
     Parameters
@@ -902,10 +905,11 @@ def validate_ndarray_property(property_name, var, shape=('*', '*'), dtype=float)
         The name of the property being set
     var : numpy.ndarray
         The input array
-    shape : tuple of int, default: ('*', '*')
+    shape : tuple of int, default: None
         The shape of the array; e.g. (3), (3, 3), ('*', 2).
         The '*' indicates that an arbitrary number of elements is allowed
-        along a particular dimension.
+        along a particular dimension. By default, shape is a tuple of length
+        ndim of '*'.
     dtype : float (default), int, complex, bool
         The data type for the array
 
@@ -914,6 +918,18 @@ def validate_ndarray_property(property_name, var, shape=('*', '*'), dtype=float)
     numpy.ndarray
         Returns the array in the specified data type once validated
     """
+
+    if shape is None:
+        try:
+            shape = tuple(['*' for ii in range(0, var.ndim)])
+        except:
+            raise TypeError(f"'{property_name}' must be {shape} array_like, got {type(var)}")
+            
+    if len(shape) > 3:
+        raise NotImplementedError("Only implemented for 1D, 2D and 3D arrays!!!")
+    if var.ndim > len(shape):
+        raise TypeError(f"The dimensions of the input argument 'var' are greater than is specified by 'shape'")
+            
     try:
         if len(shape) == 1:
             var = np.atleast_1d(var).astype(dtype)
@@ -921,12 +937,10 @@ def validate_ndarray_property(property_name, var, shape=('*', '*'), dtype=float)
             var = np.atleast_2d(var).astype(dtype)
         elif len(shape) == 3:
             var = np.atleast_3d(var).astype(dtype)
-        else:
-            raise NotImplementedError("Only implemented for 1D, 2D and 3D arrays!!!")
     except:
         raise TypeError(f"'{property_name}' must be {shape} array_like, got {type(var)}")
 
-    for ii, value in np.shape(var):
+    for ii, value in enumerate(np.shape(var)):
         if (shape[ii] != '*') & (shape[ii] != value):
             raise ValueError(f"'{property_name}' must be {shape}, got {np.shape(var)}")
 
