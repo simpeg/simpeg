@@ -71,12 +71,9 @@ class BaseRx:
     _Ps = None
 
 
-    def __init__(self, locations=None, storeProjections=False, **kwargs):
+    def __init__(self, locations, storeProjections=False, **kwargs):
 
-        if locations is None:
-            raise AttributeError("Receiver cannot be instantiated without assigning 'locations'.")
-        else:
-            self.locations = locations
+        self.locations = locations
 
         # Deprecated properties
         rxType = kwargs.pop("rxType", None)
@@ -593,7 +590,8 @@ class BaseSurvey:
         if any([isinstance(x, BaseSrc)==False for x in new_list]):
             raise TypeError("Source list must be a list of SimPEG.survey.BaseSrc")
 
-        assert len(set(new_list)) == len(new_list), "The source_list must be unique. Cannot re-use sources"
+        if len(set(new_list)) != len(new_list):
+            raise AttributeError("The source_list must be unique. Cannot re-use sources")
 
         self._sourceOrder = dict()
         # [self._sourceOrder.setdefault(src._uid, ii) for ii, src in enumerate(new_list)]

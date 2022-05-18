@@ -15,10 +15,10 @@ class Doc_Test(unittest.TestCase):
         os.chdir(os.path.sep.join(self.path_to_docs))
 
         if platform.system() != "Windows":
-            response = subprocess.run(["make", "html"])
+            response = subprocess.run(["make", "html-noplot"])
             self.assertTrue(response.returncode == 0)
         else:
-            response = subprocess.call(["make", "html"], shell=True)
+            response = subprocess.call(["make", "html-noplot"], shell=True)
             self.assertTrue(response == 0)
 
         os.chdir(wd)
