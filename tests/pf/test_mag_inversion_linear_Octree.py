@@ -1,5 +1,8 @@
-from __future__ import print_function
+import shutil
 import unittest
+import numpy as np
+
+from discretize.utils import meshutils
 from SimPEG import (
     directives,
     maps,
@@ -10,12 +13,7 @@ from SimPEG import (
     utils,
     regularization,
 )
-
-from discretize.utils import meshutils
-
-# import SimPEG.PF as PF
 from SimPEG.potential_fields import magnetics as mag
-import numpy as np
 
 
 class MagInvLinProblemTest(unittest.TestCase):
@@ -63,10 +61,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # self.mesh.finalize()
         self.mesh = meshutils.mesh_builder_xyz(
-            xyzLoc,
-            h,
-            padding_distance=padDist,
-            mesh_type="TREE",
+            xyzLoc, h, padding_distance=padDist, mesh_type="TREE",
         )
 
         self.mesh = meshutils.refine_tree_xyz(

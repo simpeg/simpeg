@@ -95,7 +95,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return self._gtg_diagonal
 
-    def evaluate_integral(self, receiver_location, components):
+    def evaluate_integral(self, receiver_location, components, tolerance=1e-4):
         """
         Compute the forward linear relationship between the model and the physics at a point
         and for all components of the survey.
@@ -104,7 +104,7 @@ class Simulation3DIntegral(BasePFSimulation):
             Array of receiver locations as x, y, z columns.
         :param list[str] components: List of gravity components chosen from:
             'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz', 'gyy', 'gyz', 'gzz', 'guv'
-
+        :param float tolerance: Small constant to avoid singularity near nodes and edges.
         :rtype numpy.ndarray: rows
         :returns: ndarray with shape (n_components, n_cells)
             Dense array mapping of the contribution of all active cells to data components::
@@ -116,22 +116,23 @@ class Simulation3DIntegral(BasePFSimulation):
                     g_c = [g_cx g_cy g_cz]
 
         """
-        tol1 = 1e-4
-        tol2 = 1e-10
-
         # base cell dimensions
-        min_hx, min_hy, min_hz = (
-            self.mesh.hx.min(),
-            self.mesh.hy.min(),
-            self.mesh.hz.min(),
-        )
+        min_hx, min_hy = self.mesh.h[0].min(), self.mesh.h[1].min()
+        if len(self.mesh.h) < 3:
+            # Allow for 2D quadtree representations by using a dummy cell height.
+            # Actually cell heights will come from externally defined ``self.Zn``
+            min_hz = np.minimum(min_hx, min_hy) / 10.0
+        else:
+            min_hz = self.mesh.h[2].min()
 
+        # comp. pos. differences for tne, bsw nodes. Adjust if location within
+        # tolerance of a node or edge
         dx = self.Xn - receiver_location[0]
-        dx[np.abs(dx) / min_hx < tol1] = tol1 * min_hx
+        dx[np.abs(dx) / min_hx < tolerance] = tolerance * min_hx
         dy = self.Yn - receiver_location[1]
-        dy[np.abs(dy) / min_hy < tol1] = tol1 * min_hy
+        dy[np.abs(dy) / min_hy < tolerance] = tolerance * min_hy
         dz = self.Zn - receiver_location[2]
-        dz[np.abs(dz) / min_hz < tol1] = tol1 * min_hz
+        dz[np.abs(dz) / min_hz < tolerance] = tolerance * min_hz
 
         rows = {component: np.zeros(self.Xn.shape[0]) for component in components}
 
