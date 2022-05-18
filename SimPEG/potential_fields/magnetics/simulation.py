@@ -668,6 +668,25 @@ class Simulation3DIntegral(BasePFSimulation):
         )
 
 
+class SimulationEquivalentSourceLayer(Simulation3DIntegral):
+    """
+    Equivalent source layer simulations
+    """
+
+    def __init__(self, mesh2D, cell_z_top, cell_z_bottom, **kwargs):
+
+        if mesh2D.dim != 2:
+            raise AttributeError("Must instantiate with 2D mesh.")
+
+        if (mesh2D.nC != len(cell_z_top)) | (mesh2D.nC != len(cell_z_bottom)):
+            raise AttributeError("'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells.")
+
+        super().__init__(mesh2D, **kwargs)
+
+        self.Zn = np.c_[cell_z_bottom, cell_z_top]
+
+
+
 class Simulation3DDifferential(BaseMagneticPDESimulation):
     """
     Secondary field approach using differential equations!

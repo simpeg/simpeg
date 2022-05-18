@@ -61,7 +61,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             )
             # Set bsw to 50 m below the lowest z_tne
             z_bsw = np.full_like(z_tne, fill_value=z_tne.min() - min_height)
-            self.mesh_elevations = np.c_[z_bsw, z_tne]
+            self.z_bsw = z_bsw
+            self.z_tne = z_tne
 
         def create_gravity_sim(self, block_value=1.0, noise_floor=0.01):
             # Create a gravity survey
@@ -70,15 +71,14 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             grav_survey = gravity.Survey(grav_srcField)
 
             # Create the gravity forward model operator
-            self.grav_sim = gravity.Simulation3DIntegral(
+            self.grav_sim = gravity.SimulationEquivalentSourceLayer(
                 self.mesh,
+                self.z_tne,
+                self.z_bsw,
                 survey=grav_survey,
                 rhoMap=self.idenMap,
                 store_sensitivities="ram",
             )
-
-            # Define the mesh cell heights independent from mesh
-            self.grav_sim.Zn = self.mesh_elevations
 
             self.grav_model = block_value * self.model
 
@@ -97,16 +97,16 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             mag_survey = magnetics.Survey(mag_srcField)
 
             # Create the magnetics forward model operator
-            self.mag_sim = magnetics.Simulation3DIntegral(
+            self.mag_sim = magnetics.SimulationEquivalentSourceLayer(
                 self.mesh,
+                self.z_tne,
+                self.z_bsw,
                 survey=mag_survey,
                 chiMap=self.idenMap,
                 store_sensitivities="ram",
             )
 
             # Define the mesh cell heights independent from mesh
-            self.mag_sim.Zn = self.mesh_elevations
-
             self.mag_model = block_value * self.model
 
             self.mag_data = self.mag_sim.make_synthetic_data(
