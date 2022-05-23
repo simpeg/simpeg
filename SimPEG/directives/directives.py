@@ -608,7 +608,7 @@ class TargetMisfit(InversionDirective):
 
 class MultiTargetMisfits(InversionDirective):
 
-    WeightsInTarget = 0
+    WeightsInTarget = False
     verbose = False
     # Chi factor for Geophsyical Data Misfit
     chifact = 1.0
@@ -772,7 +772,7 @@ class MultiTargetMisfits(InversionDirective):
             return self.invProb.reg.objfcts[0](self.invProb.model)
         else:
             return (
-                self.pgi_smallness(self.invProb.model)
+                self.pgi_smallness(self.invProb.model, external_weights=self.WeightsInTarget)
                 / self.CLnormalizedConstant
             )
 

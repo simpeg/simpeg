@@ -402,13 +402,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         if isinstance(self, fun_class):
             target += [self]
         else:
-            for object in self.objfcts:
-                if isinstance(object, ComboObjectiveFunction):
-                    target += [object.get_functions_of_type(fun_class)]
-                elif isinstance(objfct, fun_class):
-                    target += [object]
+            for fct in self.objfcts:
+                if isinstance(fct, ComboObjectiveFunction):
+                    target += [fct.get_functions_of_type(fun_class)]
+                elif isinstance(fct, fun_class):
+                    target += [fct]
 
-        return target
+        return [fun for fun in target if fun]
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
     """

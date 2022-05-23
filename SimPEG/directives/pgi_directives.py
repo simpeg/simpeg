@@ -61,10 +61,10 @@ class PGI_UpdateParameters(InversionDirective):
 
     def initialize(self):
 
-        pgi_reg = self.reg.get_functions_of_type(PGI)
+        pgi_reg = self.reg.get_functions_of_type(PGIsmallness)
         if len(pgi_reg) != 1:
             raise UserWarning(
-                "'PGI_UpdateParameters' requires one 'PGI' regularization "
+                "'PGI_UpdateParameters' requires one 'PGIsmallness' regularization "
                 "in the objective function."
             )
         self.pgi_reg = pgi_reg[0]
@@ -75,11 +75,11 @@ class PGI_UpdateParameters(InversionDirective):
             modellist = self.pgi_reg.wiresmap * m
             model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
 
-            if self.pgi_reg.reference_model_in_smooth and self.keep_ref_fixed_in_Smooth:
-                self.fixed_membership = np.c_[
-                    np.arange(len(self.pgi_reg.gmmref.cell_volumes)),
-                    self.pgi_reg.compute_quasi_geology_model(),
-                ]
+            # if self.pgi_reg.reference_model_in_smooth and self.keep_ref_fixed_in_Smooth:
+            #     self.fixed_membership = np.c_[
+            #         np.arange(len(self.pgi_reg.gmmref.cell_volumes)),
+            #         self.pgi_reg.compute_quasi_geology_model(),
+            #     ]
 
             if self.update_gmm and isinstance(
                 self.pgi_reg.gmmref, GaussianMixtureWithNonlinearRelationships
@@ -141,9 +141,9 @@ class PGI_UpdateParameters(InversionDirective):
                 membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
 
             mref = mkvc(self.pgi_reg.gmm.means_[membership])
-            self.pgi_reg.mref = mref
+            self.pgi_reg.reference_model = mref
             if getattr(self.fixed_membership, "shape", [0, 0])[0] < len(membership):
-                self.pgi_reg.objfcts[0]._r_second_deriv = None
+                self.pgi_reg._r_second_deriv = None
 
 
 class PGI_BetaAlphaSchedule(InversionDirective):
@@ -445,7 +445,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
             if self._regmode == 2:
                 for i in range(self.nbr):
                     if self.Smooth[i]:
-                        self.reg.objfcts[i].mref = mkvc(
+                        self.reg.objfcts[i].reference_model = mkvc(
                             self.pgi_reg.gmm.means_[self.membership]
                         )
                 if self.verbose:
@@ -459,7 +459,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
                 for i in range(self.nbr):
                     if self.Smooth[i, 2]:
                         idx = self.Smooth[i, :2]
-                        self.reg.objfcts[idx[0]].objfcts[idx[1]].mref = mkvc(
+                        self.reg.objfcts[idx[0]].objfcts[idx[1]].reference_model = mkvc(
                             self.pgi_reg.gmm.means_[self.membership]
                         )
                 if self.verbose:

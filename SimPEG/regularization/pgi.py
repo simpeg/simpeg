@@ -20,6 +20,8 @@ from .base import (
     Small,
 )
 
+from SimPEG.utils.code_utils import deprecate_property
+
 ###############################################################################
 #                                                                             #
 #            Petrophysically And Geologically Guided Regularization           #
@@ -53,7 +55,8 @@ class PGIsmallness(Small):
 
     def __init__(
         self,
-        gmm,
+        gmmref,
+        gmm=None,
         wiresmap=None,
         maplist=None,
         mesh=None,
@@ -63,6 +66,8 @@ class PGIsmallness(Small):
         non_linear_relationships=False,
         **kwargs
     ):
+        self.gmmref = copy.deepcopy(gmmref)
+        self.gmmref.order_clusters_GM_weight()
         self.approx_gradient = approx_gradient
         self.approx_eval = approx_eval
         self.approx_hessian = approx_hessian
@@ -100,6 +105,16 @@ class PGIsmallness(Small):
 
         self._W = None
 
+    @property
+    def gmm(self):
+        if getattr(self, "_gmm", None) is None:
+            self._gmm = copy.deepcopy(self.gmmref)
+        return self._gmm
+
+    @gmm.setter
+    def gmm(self, gm):
+        if gm is not None:
+            self._gmm = copy.deepcopy(gm)
 
     @property
     def shape(self):
@@ -169,7 +184,13 @@ class PGIsmallness(Small):
         self._maplist = maplist
 
     @timeIt
-    def __call__(self, m):
+    def __call__(self, m, external_weights=True):
+
+        if external_weights:
+            W = self.W
+        else:
+            W = Identity()
+
         if getattr(self, "mref", None) is None:
             self.mref = mkvc(self.gmm.means_[self.membership(m)])
 
@@ -189,7 +210,7 @@ class PGIsmallness(Small):
             dmmref = np.c_[[a for a in dmref]].T
             dmr = dmm - dmmref
             # r0 = (W * mkvc(dmr)).reshape(dmr.shape, order="F")
-            r0 = self.W * mkvc(dmr)
+            r0 = W * mkvc(dmr)
 
             if self.gmm.covariance_type == "tied":
                 r1 = np.r_[
@@ -220,7 +241,7 @@ class PGIsmallness(Small):
                     ]
                 ]
 
-            return 0.5 * r0.dot(self.W * mkvc(r1))
+            return 0.5 * r0.dot(W * mkvc(r1))
 
         else:
             modellist = self.wiresmap * m
@@ -232,7 +253,7 @@ class PGIsmallness(Small):
                 return -np.sum((W.T * W) * score_vec) / len(self.wiresmap.maps)
 
             else:
-                if externalW and getattr(self.W, "diagonal", None) is not None:
+                if external_weights and getattr(self.W, "diagonal", None) is not None:
                     sensW = np.c_[
                         [wire[1] * self.W.diagonal() for wire in self.wiresmap.maps]
                     ].T
@@ -668,17 +689,15 @@ class PGI(ComboObjectiveFunction):
         reference_model_in_smooth: bool = False,
         **kwargs
     ):
-        self.gmmref = copy.deepcopy(gmmref)
-        self.gmmref.order_clusters_GM_weight()
-        self._gmm = copy.deepcopy(gmm)
         self._wiresmap = wiresmap
         self._maplist = maplist
         self.regularization_mesh = mesh
 
         objfcts = [
             PGIsmallness(
+                gmmref,
                 mesh=self.regularization_mesh,
-                gmm=self.gmm,
+                gmm=gmm,
                 wiresmap=self.wiresmap,
                 maplist=self.maplist,
                 approx_eval=approx_eval,
@@ -723,8 +742,6 @@ class PGI(ComboObjectiveFunction):
 
     @property
     def gmm(self):
-        if getattr(self, "_gmm", None) is None:
-            self._gmm = copy.deepcopy(self.gmmref)
         return self._gmm
 
     @gmm.setter
@@ -782,3 +799,26 @@ class PGI(ComboObjectiveFunction):
         for fct in self.objfcts[1:]:
             if getattr(fct, "reference_model_in_smooth", None) is not None:
                 fct.reference_model_in_smooth = value
+
+    @property
+    def reference_model(self) -> np.ndarray:
+        """Reference physical property model"""
+        return self._reference_model
+
+    @reference_model.setter
+    def reference_model(self, values: np.ndarray | float):
+
+        if isinstance(values, float):
+            values = np.ones(self._nC_residual) * values
+
+        for fct in self.objfcts:
+            fct.reference_model = values
+
+        self._reference_model = values
+
+    mref = deprecate_property(
+        reference_model,
+        "mref",
+        "0.x.0",
+        error=False,
+    )
