@@ -147,7 +147,7 @@ opt = optimization.ProjectedGNCG(
     maxIter=50, tolX=1e-6, maxIterCG=100, tolCG=1e-3, lower=-10, upper=10,
 )
 
-invProb = inverse_problem.BaseInvProblem(dmis, reg_simple, opt, beta=2e+1)
+invProb = inverse_problem.BaseInvProblem(dmis, reg_simple, opt)
 
 # directives
 scales = directives.ScalingMultipleDataMisfits_ByEig(
@@ -170,7 +170,7 @@ petrodir = directives.PGI_UpdateParameters(update_gmm=False)
 # Setup Inversion
 inv = inversion.BaseInversion(
     invProb,
-    directiveList=[alphas, scales, petrodir, targets, betaIt, scaling_schedule],
+    directiveList=[alphas, scales, beta, petrodir, targets, betaIt, scaling_schedule],
 )
 
 mcluster_map = inv.run(minit)

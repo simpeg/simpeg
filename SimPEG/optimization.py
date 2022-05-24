@@ -1253,7 +1253,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
         r = resid - (1 - Active) * (self.H * step)
 
-        p =  r
+        p = self.approxHinv * r
 
         sold = np.dot(r, p)
 
@@ -1271,7 +1271,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
             r -= alpha * q
 
-            h = r
+            h = self.approxHinv * r
 
             snew = np.dot(r, h)
 

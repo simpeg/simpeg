@@ -6,7 +6,6 @@ from SimPEG.maps import Wires
 from SimPEG.utils import (
     mkvc,
     WeightedGaussianMixture,
-    make_PGI_regularization,
 )
 from scipy.stats import multivariate_normal
 from scipy.sparse.linalg import spsolve, LinearOperator, bicgstab
@@ -76,13 +75,13 @@ class TestPGI(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg
-        reg = make_PGI_regularization(
-            mesh=self.mesh,
-            gmmref=clf,
+        reg = regularization.PGI(
+            self.mesh,
+            clf,
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            cell_weights_list=self.cell_weights_list,
+            cell_weights=np.hstack(self.cell_weights_list),
         )
 
         mref = mkvc(clf.means_[clf.predict(self.samples)])
@@ -185,13 +184,13 @@ class TestPGI(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg
-        reg = make_PGI_regularization(
-            mesh=self.mesh,
-            gmmref=clf,
+        reg = regularization.PGI(
+            self.mesh,
+            clf,
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            cell_weights_list=self.cell_weights_list,
+            cell_weights=np.hstack(self.cell_weights_list),
         )
 
         mref = mkvc(clf.means_[clf.predict(self.samples)])
@@ -290,13 +289,13 @@ class TestPGI(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg
-        reg = make_PGI_regularization(
-            mesh=self.mesh,
-            gmmref=clf,
+        reg = regularization.PGI(
+            self.mesh,
+            clf,
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            cell_weights_list=self.cell_weights_list,
+            cell_weights=np.hstack(self.cell_weights_list),
         )
 
         mref = mkvc(clf.means_[clf.predict(self.samples)])
@@ -395,13 +394,13 @@ class TestPGI(unittest.TestCase):
         clf.fit(self.samples)
 
         # Define reg
-        reg = make_PGI_regularization(
-            mesh=self.mesh,
-            gmmref=clf,
+        reg = regularization.PGI(
+            self.mesh,
+            clf,
             approx_gradient=True,
             alpha_x=0.0,
             wiresmap=self.wires,
-            cell_weights_list=self.cell_weights_list,
+            cell_weights=np.hstack(self.cell_weights_list),
         )
 
         mref = mkvc(clf.means_[clf.predict(self.samples)])
