@@ -533,12 +533,14 @@ class CircularLoop(MagDipole):
 
     current = properties.Float("current in the loop", default=1.0)
 
+    N = properties.Float("number of turns in the loop", default=1.0)
+
     def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
         super(CircularLoop, self).__init__(receiver_list, frequency, location, **kwargs)
 
     @property
     def moment(self):
-        return np.pi * self.radius**2 * self.current
+        return np.pi * self.radius**2 * self.current * self.N
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_loop", None) is None:
@@ -547,7 +549,7 @@ class CircularLoop(MagDipole):
                 location=self.location,
                 orientation=self.orientation,
                 radius=self.radius,
-                current=self.current,
+                current=self.N * self.current,
             )
         return self._loop.vector_potential(obsLoc, coordinates)
 
