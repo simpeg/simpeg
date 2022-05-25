@@ -78,7 +78,7 @@ dask = ["dask", "zarr", "fsspec"]
 
 [tool.conda-lock]
 platforms = ['win-64', 'osx-64', 'linux-64']
-channels = ['conda-forge', 'main']
+channels = ['conda-forge', 'defaults']
 
 [tool.black]
 # defaults are just fine
