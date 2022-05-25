@@ -1,5 +1,7 @@
 from __future__ import print_function, annotations
 import json
+import uuid
+
 import properties
 import numpy as np
 import matplotlib.pyplot as plt
@@ -37,6 +39,7 @@ import SimPEG.maps as maps
 from ..utils.code_utils import deprecate_property
 
 from discretize import TensorMesh, TreeMesh
+from geoh5py.workspace import Workspace
 from geoh5py.objects import ObjectBase
 
 
@@ -1330,40 +1333,34 @@ class SaveIterationsGeoH5(InversionDirective):
     Saves inversion results to a geoh5 file
     """
 
-    _association = None
-    attribute_type = "model"
-    _label = None
-    channels = [""]
-    components = [""]
-    data_type = {}
-    _h5_object = None
-    _transforms: list = []
-    save_objective_function = False
-    sorting = None
-    _reshape = None
-
     def __init__(self, h5_object, **kwargs):
 
+        self.data_type = {}
+        self._association = None
+        self.attribute_type = "model"
+        self._label = None
+        self.channels = [""]
+        self.components = [""]
+        self._h5_object = None
+        self._workspace = None
+        self._transforms: list = []
+        self.save_objective_function = False
+        self.sorting = None
+        self._reshape = None
         self.h5_object = h5_object
         setKwargs(self, **kwargs)
 
     def initialize(self):
-
         self.save_components(0)
 
         if self.save_objective_function:
             self.save_log(0)
 
-        self.h5_object.workspace.finalize()
-
     def endIter(self):
-
         self.save_components(self.opt.iter)
 
         if self.save_objective_function:
             self.save_log(self.opt.iter)
-
-        self.h5_object.workspace.finalize()
 
     def stack_channels(self, dpred: list):
         """
@@ -1414,54 +1411,58 @@ class SaveIterationsGeoH5(InversionDirective):
 
         prop = prop.reshape((len(self.channels), len(self.components), -1))
 
-        for cc, component in enumerate(self.components):
+        with Workspace(self._h5_file) as w_s:
+            h5_object = w_s.get_entity(self.h5_object)[0]
+            for cc, component in enumerate(self.components):
 
-            if component not in self.data_type.keys():
-                self.data_type[component] = {}
+                if component not in self.data_type.keys():
+                    self.data_type[component] = {}
 
-            for ii, channel in enumerate(self.channels):
-                values = prop[ii, cc, :]
+                for ii, channel in enumerate(self.channels):
+                    values = prop[ii, cc, :]
 
-                if self.sorting is not None:
-                    values = values[self.sorting]
-                if not isinstance(channel, str):
-                    channel = f"{channel:.2e}"
+                    if self.sorting is not None:
+                        values = values[self.sorting]
+                    if not isinstance(channel, str):
+                        channel = f"{channel:.2e}"
 
-                base_name = f"Iteration_{iteration}"
-                if len(component) > 0:
-                    base_name += f"_{component}"
+                    base_name = f"Iteration_{iteration}"
+                    if len(component) > 0:
+                        base_name += f"_{component}"
 
-                channel_name = base_name
-                if len(channel) > 0:
-                    channel_name += f"_{channel}"
+                    channel_name = base_name
+                    if len(channel) > 0:
+                        channel_name += f"_{channel}"
 
-                if self.label is not None:
-                    channel_name += f"_{self.label}"
-                    base_name += f"_{self.label}"
+                    if self.label is not None:
+                        channel_name += f"_{self.label}"
+                        base_name += f"_{self.label}"
 
-                data = self.h5_object.add_data(
-                    {
-                        channel_name: {"association": self.association, "values": values}
-                    }
-                )
-                if channel not in self.data_type[component].keys():
-                    self.data_type[component][channel] = data.entity_type
-                    data.entity_type.name = f"{self.attribute_type}_" + channel
-                else:
-                    data.entity_type = self.data_type[component][channel]
-
-                if len(self.channels) > 1 and self.attribute_type == "predicted":
-                    self.h5_object.add_data_to_group(
-                        data, base_name
+                    data = h5_object.add_data(
+                        {
+                            channel_name: {"association": self.association, "values": values}
+                        }
                     )
-        self.h5_object.workspace.finalize()
+                    if channel not in self.data_type[component].keys():
+                        self.data_type[component][channel] = data.entity_type
+                        data.entity_type.name = f"{self.attribute_type}_" + channel
+                    else:
+                        data.entity_type = w_s.find_type(
+                            self.data_type[component][channel].uid,
+                            type(self.data_type[component][channel])
+                        )
+
+                    if len(self.channels) > 1 and self.attribute_type == "predicted":
+                        h5_object.add_data_to_group(
+                            data, base_name
+                        )
 
     def save_log(self, iteration: int):
         """
         Save iteration metrics to comments.
         """
 
-        dirpath = os.path.dirname(self.h5_object.workspace.h5file)
+        dirpath = os.path.dirname(self._h5_file)
         filepath = os.path.join(dirpath, "SimPEG.out")
         
         if iteration == 0:
@@ -1475,16 +1476,19 @@ class SaveIterationsGeoH5(InversionDirective):
                 f"{self.invProb.phi_m:.3e} {date_time}\n"
             )
 
-        child_names = [k.name for k in self.h5_object.parent.children]
-        if "SimPEG.out" in child_names:
-            file_entity = self.h5_object.parent.children[child_names.index("SimPEG.out")]
-        else:
-            file_entity = self.h5_object.parent.add_file(filepath)
-            
         with open(filepath, "rb") as f:
-            file_entity.values = f.read()
+            raw_file = f.read()
 
-        self.h5_object.workspace.finalize()
+        with Workspace(self._h5_file) as w_s:
+            h5_object = w_s.get_entity(self.h5_object)[0]
+            child_names = [k.name for k in h5_object.parent.children]
+            if "SimPEG.out" in child_names:
+                file_entity = h5_object.parent.children[child_names.index("SimPEG.out")]
+            else:
+                file_entity = h5_object.parent.add_file(filepath)
+
+            file_entity.values = raw_file
+
 
     @property
     def label(self):
@@ -1540,7 +1544,8 @@ class SaveIterationsGeoH5(InversionDirective):
         if not isinstance(entity, ObjectBase):
             raise TypeError(f"Input entity should be of type {ObjectBase}. {type(entity)} provided")
 
-        self._h5_object = entity
+        self._h5_object = entity.uid
+        self._h5_file = entity.workspace.h5file
 
         if getattr(entity, "n_cells", None) is not None:
             self.association = "CELL"
