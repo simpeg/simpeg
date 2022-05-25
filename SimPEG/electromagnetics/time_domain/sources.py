@@ -929,7 +929,7 @@ class CircularLoop(MagDipole):
                 location=self.location,
                 orientation=self.orientation,
                 radius=self.radius,
-                current=self.current,
+                current=self.N * self.current,
             )
         return self._loop.vector_potential(obsLoc, coordinates)
 
