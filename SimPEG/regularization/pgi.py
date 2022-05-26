@@ -677,6 +677,13 @@ class PGI(ComboObjectiveFunction):
         self,
         mesh,
         gmmref,
+        alpha_s=None,
+        alpha_x=None,
+        alpha_y=None,
+        alpha_z=None,
+        alpha_xx=None,
+        alpha_yy=None,
+        alpha_zz=None,
         gmm=None,
         wiresmap=None,
         maplist=None,
@@ -715,6 +722,13 @@ class PGI(ComboObjectiveFunction):
         for map, wire, weights in zip(self.maplist, self.wiresmap.maps, weights_list):
             objfcts += [
                 LeastSquaresRegularization(
+                    alpha_s=alpha_s,
+                    alpha_x=alpha_x,
+                    alpha_y=alpha_y,
+                    alpha_z=alpha_z,
+                    alpha_xx=alpha_xx,
+                    alpha_yy=alpha_yy,
+                    alpha_zz=alpha_zz,
                     mesh=self.regularization_mesh,
                     mapping=map * wire[1],
                     weights=weights,
