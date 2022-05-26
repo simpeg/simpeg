@@ -35,7 +35,6 @@ exclude = ["tests*", "examples*", "tutorials*"]
 [tool.poetry.dependencies]
 #geoana = ">=0.0.4"
 #geoana = { url = "https://github.com/sebhmg/geoana/archive/refs/heads/GEOPY-433.zip#sha256=None" }
-#matplotlib = "*"
 discretize = ">=0.7.0"
 empymod = "*"
 geoh5py = "*"
@@ -49,6 +48,12 @@ vectormath = ">=0.2.0"
 dask = {version = "*", optional = true}
 fsspec = {version = ">=0.3.3", optional = true}
 zarr = {version = "*", optional = true}
+
+# use "regular" in extras to get required matplotlib.
+# It is not actually optional, but it needs to be excluded for building geoapps
+# as matplotlib resolves to a different package name through Conda and through pip.
+# geoapps takes care of placing explicitly matplotlib in its requirements.
+matplotlib = { version = "*", optional = true }
 
 [tool.poetry.dev-dependencies]
 black = "*"
@@ -75,6 +80,7 @@ twine = "*"
 
 [tool.poetry.extras]
 dask = ["dask", "zarr", "fsspec"]
+regular = ["matplotlib"]
 
 [tool.conda-lock]
 platforms = ['win-64', 'osx-64', 'linux-64']
