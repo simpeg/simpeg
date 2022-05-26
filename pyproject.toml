@@ -33,45 +33,45 @@ classifiers = [
 exclude = ["tests*", "examples*", "tutorials*"]
 
 [tool.poetry.dependencies]
-numpy = ">=1.7"
-scipy = ">=1.0.0"
-scikit-learn = ">=0.22"
-pymatsolver = ">=0.1.1"
-#matplotlib = "*"
-properties = ">=0.5.2"
-vectormath = ">=0.2.0"
-discretize = ">=0.7.0"
 #geoana = ">=0.0.4"
 #geoana = { url = "https://github.com/sebhmg/geoana/archive/refs/heads/GEOPY-433.zip#sha256=None" }
+#matplotlib = "*"
+discretize = ">=0.7.0"
 empymod = "*"
-pandas = "*"
 geoh5py = "*"
+numpy = ">=1.7"
+pandas = "*"
+properties = ">=0.5.2"
+pymatsolver = ">=0.1.1"
+scikit-learn = ">=0.22"
+scipy = ">=1.0.0"
+vectormath = ">=0.2.0"
 dask = {version = "*", optional = true}
-zarr = {version = "*", optional = true}
 fsspec = {version = ">=0.3.3", optional = true}
+zarr = {version = "*", optional = true}
 
 [tool.poetry.dev-dependencies]
-sphinx = "*"
-sphinx_rtd_theme = "*"
-sphinx-gallery = ">=0.1.13"
-pillow = "*"
-pylint = "*"
+black = "*"
+empymod = "*"
+jupyter = "*"
+memory_profiler = "*"
 numpy = ">=1.7"
-scipy = ">=1.0.0"
-scikit-learn = ">=0.22"
-sympy = "*"
+pillow = "*"
+plotly = "*"
+pre-commit = "*"
+pylint = "*"
 pytest = "*"
 pytest-cov = "*"
-jupyter = "*"
-sphinxcontrib-napoleon = "*"
-toolz = "*"
-empymod = "*"
+scikit-learn = ">=0.22"
+scipy = ">=1.0.0"
 scooby = "*"
-black = "*"
-pre-commit = "*"
+sphinx = "*"
+sphinx-gallery = ">=0.1.13"
+sphinx_rtd_theme = "*"
+sphinxcontrib-napoleon = "*"
+sympy = "*"
+toolz = "*"
 twine = "*"
-memory_profiler = "*"
-plotly = "*"
 
 [tool.poetry.extras]
 dask = ["dask", "zarr", "fsspec"]
