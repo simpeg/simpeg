@@ -9,7 +9,7 @@ def omega(freq):
 
 
 def k(freq, sigma, mu=mu_0, eps=epsilon_0):
-    """ Eq 1.47 - 1.49 in Ward and Hohmann """
+    """Eq 1.47 - 1.49 in Ward and Hohmann"""
     w = omega(freq)
     alp = w * np.sqrt(mu * eps / 2 * (np.sqrt(1.0 + (sigma / (eps * w)) ** 2) + 1))
     beta = w * np.sqrt(mu * eps / 2 * (np.sqrt(1.0 + (sigma / (eps * w)) ** 2) - 1))

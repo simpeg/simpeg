@@ -393,7 +393,7 @@ plt.show()
 #
 
 # Predicted data with final recovered model
-# SimPEG uses right handed coordinate where Z is positive upward. 
+# SimPEG uses right handed coordinate where Z is positive upward.
 # This causes gravity signals look "inconsistent" with density values in visualization.
 dpred = inv_prob.dpred
 

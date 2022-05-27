@@ -1,17 +1,14 @@
 import properties
 import numpy as np
 from scipy.constants import mu_0
-from scipy import special as spec
-import warnings
 
 from geoana.em.static import MagneticDipoleWholeSpace, CircularLoopWholeSpace
 
 from ...props import LocationVector
 from ...utils import mkvc, Zero
-from ...utils.code_utils import deprecate_property
 
 from ..utils import omega
-from ..utils import segmented_line_current_source_term
+from ..utils import segmented_line_current_source_term, line_through_faces
 from ..base import BaseEMSrc
 
 
@@ -21,9 +18,6 @@ class BaseFDEMSrc(BaseEMSrc):
     """
 
     frequency = properties.Float("frequency of the source", min=0, required=True)
-    i_sounding = properties.Integer(
-        "sounding number of the source", min=0, default=0, required=True
-    )
 
     _ePrimary = None
     _bPrimary = None
@@ -130,10 +124,6 @@ class BaseFDEMSrc(BaseEMSrc):
         :return: primary magnetic flux density
         """
         return Zero()
-
-    freq = deprecate_property(
-        frequency, "freq", new_name="frequency", removal_version="0.16.0", error=True,
-    )
 
 
 class RawVec_e(BaseFDEMSrc):
@@ -306,27 +296,20 @@ class MagDipole(BaseFDEMSrc):
     location = LocationVector(
         "location of the source", default=np.r_[0.0, 0.0, 0.0], shape=(3,)
     )
-    loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", error=True
-    )
 
     def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
         super(MagDipole, self).__init__(receiver_list, frequency=frequency, **kwargs)
         if location is not None:
             self.location = location
 
-    @property
-    def _dipole(self):
-        if getattr(self, "__dipole", None) is None:
-            self.__dipole = MagneticDipoleWholeSpace(
+    def _srcFct(self, obsLoc, coordinates="cartesian"):
+        if getattr(self, "_dipole", None) is None:
+            self._dipole = MagneticDipoleWholeSpace(
                 mu=self.mu,
                 orientation=self.orientation,
                 location=self.location,
                 moment=self.moment,
             )
-        return self.__dipole
-
-    def _srcFct(self, obsLoc, coordinates="cartesian"):
         return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
 
     def bPrimary(self, simulation):
@@ -380,19 +363,6 @@ class MagDipole(BaseFDEMSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
-        if simulation._formulation == "1D":
-            if getattr(self, "_1d_h", None) is None:
-                dipole = self._dipole
-                out = []
-                for rx in self.receiver_list:
-                    if rx.use_source_receiver_offset:
-                        locs = rx.locations + self.location
-                    else:
-                        locs = rx.locations
-                    h_rx = dipole.magnetic_field(locs)
-                    out.append(h_rx[:, {"x": 0, "y": 1, "z": 2}[rx.orientation]])
-                self._1d_h = out
-            return self._1d_h
         b = self.bPrimary(simulation)
         return 1.0 / self.mu * b
 
@@ -568,40 +538,18 @@ class CircularLoop(MagDipole):
 
     @property
     def moment(self):
-        return np.pi * self.radius ** 2 * self.current
+        return np.pi * self.radius**2 * self.current
 
-    @property
-    def _loop(self):
-        if getattr(self, "__loop", None) is None:
-            self.__loop = CircularLoopWholeSpace(
+    def _srcFct(self, obsLoc, coordinates="cartesian"):
+        if getattr(self, "_loop", None) is None:
+            self._loop = CircularLoopWholeSpace(
                 mu=self.mu,
                 location=self.location,
                 orientation=self.orientation,
                 radius=self.radius,
                 current=self.current,
             )
-        return self.__loop
-
-    def _srcFct(self, obsLoc, coordinates="cartesian"):
         return self._loop.vector_potential(obsLoc, coordinates)
-
-    def hPrimary(self, simulation):
-        if simulation._formulation == "1D":
-            if getattr(self, "_1d_h", None) is None:
-                loop = self._loop
-                out = []
-                for rx in self.receiver_list:
-                    if rx.use_source_receiver_offset:
-                        locs = rx.locations + self.location
-                    else:
-                        locs = rx.locations
-                    h_rx = loop.magnetic_field(locs)
-                    out.append(h_rx[:, {"x": 0, "y": 1, "z": 2}[rx.orientation]])
-                self._1d_h = out
-            return self._1d_h
-        else:
-            b = self.bPrimary(simulation)
-            return 1.0 / self.mu * b
 
 
 class PrimSecSigma(BaseFDEMSrc):
@@ -927,18 +875,28 @@ class LineCurrent(BaseFDEMSrc):
             mesh = simulation.mesh
             locs = self.location
             self._Mejs = self.current * segmented_line_current_source_term(mesh, locs)
-        return self._Mejs
+        return self.current * self._Mejs
+
+    def Mfjs(self, simulation):
+        if getattr(self, "_Mfjs", None) is None:
+            self._Mfjs = line_through_faces(
+                simulation.mesh, self.location, normalize_by_area=True
+            )
+        return self.current * self._Mfjs
 
     def getRHSdc(self, simulation):
-        Grad = simulation.mesh.nodalGrad
-        return Grad.T * self.Mejs(simulation)
+        if simulation._formulation == "EB":
+            Grad = simulation.mesh.nodalGrad
+            return Grad.T * self.Mejs(simulation)
+        elif simulation._formulation == "HJ":
+            Div = sdiag(simulation.mesh.vol) * simulation.mesh.faceDiv
+            return Div * self.Mfjs(simulation)
 
     def s_m(self, simulation):
         return Zero()
 
     def s_e(self, simulation):
-        if simulation._formulation != "EB":
-            raise NotImplementedError(
-                "LineCurrents are only implemented for EB formulations"
-            )
-        return self.Mejs(simulation)
+        if simulation._formulation == "EB":
+            return self.Mejs(simulation)
+        elif simulation._formulation == "HJ":
+            return self.Mfjs(simulation)

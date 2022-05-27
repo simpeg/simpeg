@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
-from ...utils.code_utils import deprecate_class
 
 from ...simulation import LinearSimulation
 from ...utils import sub2ind
@@ -10,7 +9,7 @@ from ... import props
 
 def lengthInCell(O, D, x, y, plotIt=False):
 
-    maxD = np.sqrt(np.sum(D ** 2))
+    maxD = np.sqrt(np.sum(D**2))
     D = D / maxD
 
     def dist(a):
@@ -55,7 +54,7 @@ def lengthInCell(O, D, x, y, plotIt=False):
         if plotIt:
             c = np.c_[dist(midAlp[0]), dist(midAlp[1])]
             plt.plot(c[0, :], c[1, :], "r", lw=2)
-        return np.sqrt(np.sum(vec ** 2))
+        return np.sqrt(np.sum(vec**2))
 
     return None
 
@@ -113,13 +112,3 @@ class Simulation2DIntegral(LinearSimulation):
         # mt = self.model.transformDeriv
         # return mt.T * ( self.A.T * v )
         return self.slownessDeriv.T * self.A.T * v
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class StraightRayProblem(Simulation2DIntegral):
-    pass

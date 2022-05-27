@@ -1,6 +1,4 @@
 import properties
-from ...utils.code_utils import deprecate_class, deprecate_property
-
 from ... import survey
 
 
@@ -22,25 +20,7 @@ class BaseRx(survey.BaseRx):
         {
             "real": ["re", "in-phase", "in phase"],
             "imag": ["imaginary", "im", "out-of-phase", "out of phase"],
-            "both": ["re and im", "in-phase and out-of-phase"],
-            "complex": ["re + im"],
         },
-    )
-
-    data_type = properties.StringChoice(
-        "Data type", default="field", choices=["field", "ppm"]
-    )
-
-    use_source_receiver_offset = properties.Bool(
-        "Use source-receiver offset", default=False
-    )
-
-    projComp = deprecate_property(
-        orientation,
-        "projComp",
-        new_name="orientation",
-        removal_version="0.16.0",
-        error=True,
     )
 
     def __init__(self, locations, orientation=None, component=None, **kwargs):
@@ -107,25 +87,18 @@ class BaseRx(survey.BaseRx):
             PTv_real = P.T * v
 
             if self.component == "imag":
-                PTv = 1j * PTv_real
+                PTv = -1j * PTv_real
             elif self.component == "real":
                 PTv = PTv_real.astype(complex)
             else:
                 raise NotImplementedError("must be real or imag")
 
             df_duT, df_dmT = df_dmFun(src, None, PTv, adjoint=True)
-            if self.component == "imag":  # conjugate
-                df_duT *= -1
-                df_dmT *= -1
+            # if self.component == "imag":  # conjugate
+            #     df_duT *= -1
+            #     df_dmT *= -1
 
             return df_duT, df_dmT
-
-    @property
-    def nD(self):
-        if self.component == "both":
-            return int(self.locations.shape[0] * 2)
-        else:
-            return self.locations.shape[0]
 
 
 class PointElectricField(BaseRx):
@@ -188,22 +161,6 @@ class PointMagneticField(BaseRx):
         super(PointMagneticField, self).__init__(locations, orientation, component)
 
 
-class PointMagneticFieldSecondary(BaseRx):
-    """
-    Magnetic flux FDEM receiver
-
-    :param numpy.ndarray locations: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string component: real or imaginary component 'real' or 'imag'
-    """
-
-    def __init__(self, locations, orientation="x", component="real", **kwargs):
-        self.projField = "hSecondary"
-        super(PointMagneticFieldSecondary, self).__init__(
-            locations, orientation=orientation, component=component, **kwargs
-        )
-
-
 class PointCurrentDensity(BaseRx):
     """
     Current density FDEM receiver
@@ -216,31 +173,3 @@ class PointCurrentDensity(BaseRx):
     def __init__(self, locations, orientation="x", component="real"):
         self.projField = "j"
         super(PointCurrentDensity, self).__init__(locations, orientation, component)
-
-
-############
-# Deprecated
-############
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_e(PointElectricField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_b(PointMagneticFluxDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_bSecondary(PointMagneticFluxDensitySecondary):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_h(PointMagneticField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Point_j(PointCurrentDensity):
-    pass

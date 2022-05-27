@@ -4,6 +4,7 @@ from .simulation import (
     Simulation3DMagneticField,
     Simulation3DCurrentDensity,
 )
+from .simulation_1d import Simulation1DLayered
 from .fields import (
     Fields3DMagneticFluxDensity,
     Fields3DElectricField,
@@ -16,11 +17,3 @@ from . import receivers
 
 from . import sources as Src
 from . import receivers as Rx
-
-from .simulation_1d import Simulation1DLayered
-
-############
-# Deprecated
-############
-from .simulation import Problem3D_e, Problem3D_b, Problem3D_h, Problem3D_j
-from .fields import Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j

@@ -142,7 +142,8 @@ ip_data = read_dcip_xyz(
 
 # Convert predicted data to apparent conductivities
 apparent_conductivity = 1 / apparent_resistivity_from_voltage(
-    dc_data.survey, dc_data.dobs,
+    dc_data.survey,
+    dc_data.dobs,
 )
 
 if has_plotly:
@@ -324,7 +325,7 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 #
 #
 
-dc_simulation = dc.simulation.Simulation3DNodal(
+dc_simulation = dc.Simulation3DNodal(
     mesh, survey=dc_survey, sigmaMap=conductivity_map, solver=Solver, storeJ=True
 )
 
@@ -349,7 +350,9 @@ dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation
 
 # Define the regularization (model objective function)
 dc_regularization = regularization.Simple(
-    mesh, indActive=ind_active, mref=starting_conductivity_model,
+    mesh,
+    indActive=ind_active,
+    mref=starting_conductivity_model,
 )
 
 dc_regularization.mrefInSmooth = True  # Include reference model in smoothness
@@ -585,7 +588,7 @@ starting_chargeability_model = background_chargeability * np.ones(nC)
 #
 #
 
-ip_simulation = ip.simulation.Simulation3DNodal(
+ip_simulation = ip.Simulation3DNodal(
     mesh,
     survey=ip_survey,
     etaMap=chargeability_map,

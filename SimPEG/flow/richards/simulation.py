@@ -1,13 +1,7 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import numpy as np
 import scipy.sparse as sp
 import time
 import properties
-from ...utils.code_utils import deprecate_class
 import warnings
 
 from ... import utils
@@ -259,7 +253,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
         J = dT / dt - DIV * utils.sdiag(aveK) * GRAD
         if self.do_newton:
-            DDharmAve = utils.sdiag(aveK ** 2) * AV * utils.sdiag(K ** (-2)) * dK
+            DDharmAve = utils.sdiag(aveK**2) * AV * utils.sdiag(K ** (-2)) * dK
             J = J - DIV * utils.sdiag(GRAD * h + BC * bc) * DDharmAve - Dz * DDharmAve
 
         return r, J
@@ -342,13 +336,3 @@ class SimulationNDCellCentered(BaseTimeSimulation):
 
 
 SimulationNDCellCentred = SimulationNDCellCentered
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class RichardsProblem(SimulationNDCellCentered):
-    pass

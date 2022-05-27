@@ -45,14 +45,14 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
     k = np.sqrt(-1j * 2.0 * np.pi * freq * mu * sigma)
 
     m = 1
-    front = m / (2.0 * np.pi * (k ** 2) * (r ** 5))
+    front = m / (2.0 * np.pi * (k**2) * (r**5))
     back = 9 - (
-        9 + 9j * k * r - 4 * (k ** 2) * (r ** 2) - 1j * (k ** 3) * (r ** 3)
+        9 + 9j * k * r - 4 * (k**2) * (r**2) - 1j * (k**3) * (r**3)
     ) * np.exp(-1j * k * r)
     hz = front * back
 
     if secondary:
-        hp = -1 / (4 * np.pi * r ** 3)
+        hp = -1 / (4 * np.pi * r**3)
         hz = hz - hp
 
     if hz.ndim == 1:
@@ -141,30 +141,30 @@ def MagneticDipoleWholeSpace(
     dy = XYZ[:, 1] - srcLoc[1]
     dz = XYZ[:, 2] - srcLoc[2]
 
-    r = np.sqrt(dx ** 2.0 + dy ** 2.0 + dz ** 2.0)
-    k = np.sqrt(-1j * w * mu * sig + w ** 2 * mu * eps)
+    r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
+    k = np.sqrt(-1j * w * mu * sig + w**2 * mu * eps)
     kr = k * r
 
     if fieldType in ["h", "b"]:
-        front = 1 / (4.0 * pi * r ** 3.0) * np.exp(-1j * kr)
-        mid = -(kr ** 2.0) + 3.0 * 1j * kr + 3.0
+        front = 1 / (4.0 * pi * r**3.0) * np.exp(-1j * kr)
+        mid = -(kr**2.0) + 3.0 * 1j * kr + 3.0
 
         Fx = front * (
-            mx * ((dx / r) ** 2.0 * mid + (kr ** 2.0 - 1j * kr - 1.0))
-            + my * ((dy * dx / r ** 2.0) * mid)
-            + mz * ((dx * dz / r ** 2.0) * mid)
+            mx * ((dx / r) ** 2.0 * mid + (kr**2.0 - 1j * kr - 1.0))
+            + my * ((dy * dx / r**2.0) * mid)
+            + mz * ((dx * dz / r**2.0) * mid)
         )
 
         Fy = front * (
-            mx * ((dx * dy / r ** 2.0) * mid)
-            + my * ((dy / r) ** 2.0 * mid + (kr ** 2.0 - 1j * kr - 1.0))
-            + mz * ((dy * dz / r ** 2.0) * mid)
+            mx * ((dx * dy / r**2.0) * mid)
+            + my * ((dy / r) ** 2.0 * mid + (kr**2.0 - 1j * kr - 1.0))
+            + mz * ((dy * dz / r**2.0) * mid)
         )
 
         Fz = front * (
-            mx * ((dx * dz / r ** 2.0) * mid)
-            + my * ((dy * dz / r ** 2.0) * mid)
-            + mz * ((dz / r) ** 2.0 * mid + (kr ** 2.0 - 1j * kr - 1.0))
+            mx * ((dx * dz / r**2.0) * mid)
+            + my * ((dy * dz / r**2.0) * mid)
+            + mz * ((dz / r) ** 2.0 * mid + (kr**2.0 - 1j * kr - 1.0))
         )
 
         if fieldType == "b":
@@ -172,7 +172,7 @@ def MagneticDipoleWholeSpace(
 
     elif fieldType == "e":
 
-        front = 1j * w * mu * (1 + 1j * kr) / (4.0 * pi * r ** 3.0) * np.exp(-1j * kr)
+        front = 1j * w * mu * (1 + 1j * kr) / (4.0 * pi * r**3.0) * np.exp(-1j * kr)
 
         Fx = front * (my * (dz / r) + mz * (-dy / r))
 
@@ -232,36 +232,36 @@ def ElectricDipoleWholeSpace(
     dy = XYZ[:, 1] - srcLoc[1]
     dz = XYZ[:, 2] - srcLoc[2]
 
-    r = np.sqrt(dx ** 2.0 + dy ** 2.0 + dz ** 2.0)
-    k = np.sqrt(-1j * w * mu * sig + w ** 2 * mu * eps)
+    r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
+    k = np.sqrt(-1j * w * mu * sig + w**2 * mu * eps)
     kr = k * r
 
     if fieldType == "e":
 
-        front = 1 / (4.0 * np.pi * sig * r ** 3) * np.exp(-1j * k * r)
-        mid = -(k ** 2) * r ** 2 + 3 * 1j * k * r + 3
+        front = 1 / (4.0 * np.pi * sig * r**3) * np.exp(-1j * k * r)
+        mid = -(k**2) * r**2 + 3 * 1j * k * r + 3
 
         Fx = front * (
-            mx * ((dx ** 2 / r ** 2) * mid + (k ** 2 * r ** 2 - 1j * k * r - 1.0))
-            + my * (dy * dx / r ** 2) * mid
-            + mz * (dz * dx / r ** 2) * mid
+            mx * ((dx**2 / r**2) * mid + (k**2 * r**2 - 1j * k * r - 1.0))
+            + my * (dy * dx / r**2) * mid
+            + mz * (dz * dx / r**2) * mid
         )
 
         Fy = front * (
-            mx * (dx * dy / r ** 2) * mid
-            + my * ((dy ** 2 / r ** 2) * mid + (k ** 2 * r ** 2 - 1j * k * r - 1.0))
-            + mz * (dz * dy / r ** 2) * mid
+            mx * (dx * dy / r**2) * mid
+            + my * ((dy**2 / r**2) * mid + (k**2 * r**2 - 1j * k * r - 1.0))
+            + mz * (dz * dy / r**2) * mid
         )
 
         Fz = front * (
-            mx * (dx * dz / r ** 2) * mid
-            + my * (dy * dz / r ** 2) * mid
-            + mz * ((dz ** 2 / r ** 2) * mid + (k ** 2 * r ** 2 - 1j * k * r - 1.0))
+            mx * (dx * dz / r**2) * mid
+            + my * (dy * dz / r**2) * mid
+            + mz * ((dz**2 / r**2) * mid + (k**2 * r**2 - 1j * k * r - 1.0))
         )
 
     elif fieldType in ["h", "b"]:
 
-        front = (1 + 1j * kr) / (4.0 * np.pi * r ** 2) * np.exp(-1j * k * r)
+        front = (1 + 1j * kr) / (4.0 * np.pi * r**2) * np.exp(-1j * k * r)
 
         Fx = front * (my * (dz / r) + mz * (-dy / r))
 

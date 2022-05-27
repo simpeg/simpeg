@@ -50,9 +50,9 @@ class DataTest(unittest.TestCase):
             np.allclose(
                 data.standard_deviation,
                 np.sqrt(
-                    ( relative * np.abs(self.dobs) ) ** 2 +
-                    floor ** 2 * np.ones(len(self.dobs)),
-                )
+                    (relative * np.abs(self.dobs)) ** 2
+                    + floor**2 * np.ones(len(self.dobs)),
+                ),
             )
         )
 

@@ -1,11 +1,8 @@
 import numpy as np
-from ....utils.code_utils import deprecate_class
 
 import properties
 from ....utils import sdiag
 from ....survey import BaseRx as BaseSimPEGRx, RxLocationArray
-
-import warnings
 
 
 # Receiver classes
@@ -127,27 +124,11 @@ class Dipole(BaseRx):
     )
 
     def __init__(self, locations_m=None, locations_n=None, locations=None, **kwargs):
-
-        # Check for old keywords
-        if "locationsM" in kwargs.keys():
-            locations_m = kwargs.pop("locationsM")
-            raise TypeError(
-                "The locationsM property has been removed Please set the "
-                "locations_m property instead."
-            )
-
-        if "locationsN" in kwargs.keys():
-            locations_n = kwargs.pop("locationsN")
-            raise TypeError(
-                "The locationsN property has been deprecated. Please set the "
-                "locations_n property instead"
-            )
-
         # if locations_m set, then use locations_m, locations_n
-        if locations_m is not None:
-            if locations_n is None:
+        if locations_m is not None or locations_n is not None:
+            if locations_n is None or locations_m is None:
                 raise ValueError(
-                    "For a dipole source both locations_m and locations_n "
+                    "For a dipole receiver both locations_m and locations_n "
                     "must be set"
                 )
 
@@ -252,18 +233,3 @@ class Pole(BaseRx):
             self._Ps[mesh] = P
 
         return P
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Dipole_ky(Dipole):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Pole_ky(Pole):
-    pass

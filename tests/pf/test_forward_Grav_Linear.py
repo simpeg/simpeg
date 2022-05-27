@@ -28,7 +28,7 @@ class GravFwdProblemTests(unittest.TestCase):
         sph_ind = getIndicesSphere([0.0, 0.0, 0.0], self.rad, mesh.gridCC)
 
         # Adjust density for volume difference
-        Vratio = (4.0 / 3.0 * np.pi * self.rad ** 3.0) / (np.sum(sph_ind) * cs ** 3.0)
+        Vratio = (4.0 / 3.0 * np.pi * self.rad**3.0) / (np.sum(sph_ind) * cs**3.0)
         model = np.ones(mesh.nC) * self.rho * Vratio
         self.model = model[sph_ind]
 
@@ -115,7 +115,7 @@ class GravityGradientFwdProblemTests(unittest.TestCase):
         sph_ind = getIndicesSphere([0.0, 0.0, 0.0], self.rad, mesh.gridCC)
 
         # Adjust density for volume difference
-        Vratio = (4.0 / 3.0 * np.pi * self.rad ** 3.0) / (np.sum(sph_ind) * cs ** 3.0)
+        Vratio = (4.0 / 3.0 * np.pi * self.rad**3.0) / (np.sum(sph_ind) * cs**3.0)
         model = np.ones(mesh.nC) * self.rho * Vratio
         self.model = model[sph_ind]
 

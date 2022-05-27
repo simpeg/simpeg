@@ -37,14 +37,23 @@ class SrcLocTest(unittest.TestCase):
                 [], location=np.r_[0.0, 0.0, 0.0, 1.0], frequency=10
             )
 
-        src = tdem.Src.MagDipole([], location=np.array([[1.5, 3.0, 5.0]]),)
+        src = tdem.Src.MagDipole(
+            [],
+            location=np.array([[1.5, 3.0, 5.0]]),
+        )
         self.assertTrue(np.all(src.location == np.r_[1.5, 3.0, 5.0]))
 
         with self.assertRaises(Exception):
-            src = tdem.Src.MagDipole([], location=np.array([[0.0, 0.0, 0.0, 1.0]]),)
+            src = tdem.Src.MagDipole(
+                [],
+                location=np.array([[0.0, 0.0, 0.0, 1.0]]),
+            )
 
         with self.assertRaises(Exception):
-            src = tdem.Src.MagDipole([], location=np.r_[0.0, 0.0, 0.0, 1.0],)
+            src = tdem.Src.MagDipole(
+                [],
+                location=np.r_[0.0, 0.0, 0.0, 1.0],
+            )
 
 
 class FDEM_CrossCheck(unittest.TestCase):

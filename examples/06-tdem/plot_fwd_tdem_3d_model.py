@@ -286,7 +286,13 @@ epm_bg = empymod.bipole(**inp)
 # Set up the receiver list
 rec_list = [
     TDEM.Rx.PointElectricField(
-        orientation="x", times=times, locations=np.array([[*rec[:3]],]),
+        orientation="x",
+        times=times,
+        locations=np.array(
+            [
+                [*rec[:3]],
+            ]
+        ),
     ),
 ]
 
@@ -294,7 +300,8 @@ rec_list = [
 # Set up the source list
 src_list = [
     TDEM.Src.LineCurrent(
-        receiver_list=rec_list, location=np.array([[*src[::2]], [*src[1::2]]]),
+        receiver_list=rec_list,
+        location=np.array([[*src[::2]], [*src[1::2]]]),
     ),
 ]
 
