@@ -17,7 +17,7 @@ from .fields import (
 from . import sources as Src
 from . import receivers as Rx
 
-from .simulation_1d import Simulation1DLayered, Simulation1DLayeredStitched, run_simulation_frequency_domain
+from .simulation_1d import Simulation1DLayered
 
 ############
 # Deprecated
