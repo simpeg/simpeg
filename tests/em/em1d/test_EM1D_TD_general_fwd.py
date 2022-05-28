@@ -26,7 +26,7 @@ class EM1D_TD_CircularLoop_FwdProblemTests(unittest.TestCase):
 
         # Waveform
         waveform = tdem.sources.TriangularWaveform(
-            startTime=-0.01, peakTime=-0.005, offTime=0.0
+            start_time=-0.01, peak_time=-0.005, off_time=0.0
         )
 
         # Receiver list
@@ -113,7 +113,7 @@ class EM1D_TD_MagDipole_FwdProblemTests(unittest.TestCase):
         times = np.logspace(-5, -2, 31)
         # Waveform
         waveform = tdem.sources.TriangularWaveform(
-            startTime=-0.01, peakTime=-0.005, offTime=0.0
+            start_time=-0.01, peak_time=-0.005, off_time=0.0
         )
 
         # Receiver list

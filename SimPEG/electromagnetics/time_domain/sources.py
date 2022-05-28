@@ -197,6 +197,20 @@ class RampOffWaveform(BaseWaveform):
         else:
             return 0.0
 
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        out[(t < self.offTime) & (t >= self.eps)] = -1.0 / self.offTime
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+    @property
+    def time_nodes(self):
+        return np.r_[0.0, self.off_time]
+
 
 class RawWaveform(BaseWaveform):
     """
@@ -352,6 +366,29 @@ class VTEMWaveform(BaseWaveform):
         else:
             return 0.0
 
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        p_1 = (t <= self.peakTime) & (t >= 0.0)
+        out[p_1] = (
+            self.a
+            / self.peakTime
+            * np.exp(-self.a * t[p_1] / self.peakTime)
+            / (1.0 - np.exp(-self.a))
+        )
+
+        p_2 = (t > self.peakTime) & (t < self.offTime)
+        out[p_2] = -1.0 / (self.offTime - self.peakTime)
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+    @property
+    def time_nodes(self):
+        return np.r_[0, self.peak_time, self.off_time]
+
     ##########################
     # Deprecated
     ##########################
@@ -475,6 +512,23 @@ class TrapezoidWaveform(BaseWaveform):
         else:
             return 0
 
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        p_1 = (t >= self.ramp_on[0]) & (t <= self.ramp_on[1])
+        out[p_1] = 1.0 / (self.ramp_on[1] - self.ramp_on[0])
+
+        p_2 = (t >= self.ramp_off[0]) & (t <= self.ramp_off[1])
+        out[p_2] = -1.0 / (self.ramp_off[1] - self.ramp_off[0])
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+    @property
+    def time_nodes(self):
+        return np.unique(np.r_[self.ramp_on, self.ramp_off])
 
 class TriangularWaveform(TrapezoidWaveform):
     """
@@ -502,7 +556,18 @@ class TriangularWaveform(TrapezoidWaveform):
 
     """
 
-    def __init__(self, off_time=None, peak_time=None, **kwargs):
+    def __init__(self, start_time=None, off_time=None, peak_time=None, **kwargs):
+
+        if start_time is None:
+            start_time = kwargs.get("startTime")
+            if start_time is None:
+                raise Exception("start_time must be provided")
+            else:
+                warnings.warn(
+                    "startTime will be deprecated in 0.17.0. Please update your code to use peak_time instead",
+                    FutureWarning,
+                )
+
         if peak_time is None:
             peak_time = kwargs.get("peakTime")
             if peak_time is None:
@@ -523,7 +588,7 @@ class TriangularWaveform(TrapezoidWaveform):
                     FutureWarning,
                 )
 
-        ramp_on = np.r_[0.0, peak_time]
+        ramp_on = np.r_[start_time, peak_time]
         ramp_off = np.r_[peak_time, off_time]
 
         super(TriangularWaveform, self).__init__(
@@ -617,6 +682,30 @@ class QuarterSineRampOnWaveform(TrapezoidWaveform):
         else:
             return 0
 
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        p_1 = (t >= self.ramp_on[0]) & (t < self.ramp_on[1])
+        out[p_1] = (
+            np.pi
+            / 2
+            / (self.ramp_on[1] - self.ramp_on[0])
+            * np.cos(
+                np.pi
+                / 2
+                * (t[p_1] - self.ramp_on[0])
+                / (self.ramp_on[1] - self.ramp_on[0])
+            )
+        )
+
+        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1]) & (~p_1)
+        out[p_2] = -1.0 / (self.ramp_off[1] - self.ramp_off[0])
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
 
 class HalfSineWaveform(TrapezoidWaveform):
     """
@@ -648,6 +737,123 @@ class HalfSineWaveform(TrapezoidWaveform):
         else:
             return 0
 
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        p_1 = (t >= self.ramp_on[0]) & (t < self.ramp_on[1])
+        out[p_1] = (
+            np.pi
+            / 2
+            / (self.ramp_on[1] - self.ramp_on[0])
+            * np.cos(
+                np.pi
+                / 2
+                * (t[p_1] - self.ramp_on[0])
+                / (self.ramp_on[1] - self.ramp_on[0])
+            )
+        )
+
+        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1]) &(~p_1)
+        out[p_2] = (
+            -np.pi
+            / 2
+            / (self.ramp_off[1] - self.ramp_off[0])
+            * np.sin(
+                np.pi
+                / 2
+                * (t[p_2] - self.ramp_off[0])
+                / (self.ramp_off[1] - self.ramp_off[0])
+            )
+        )
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        p_1 = (t >= self.ramp_on[0]) & (t < self.ramp_on[1])
+        out[p_1] = (
+            np.pi
+            / 2
+            / (self.ramp_on[1] - self.ramp_on[0])
+            * np.cos(
+                np.pi
+                / 2
+                * (t[p_1] - self.ramp_on[0])
+                / (self.ramp_on[1] - self.ramp_on[0])
+            )
+        )
+
+        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1]) &(~p_1)
+        out[p_2] = (
+            -np.pi
+            / 2
+            / (self.ramp_off[1] - self.ramp_off[0])
+            * np.sin(
+                np.pi
+                / 2
+                * (t[p_2] - self.ramp_off[0])
+                / (self.ramp_off[1] - self.ramp_off[0])
+            )
+        )
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+class PiecewiseLinearWaveform(BaseWaveform):
+
+    times = properties.Array("Time for input currents", dtype=float)
+
+    currents = properties.Array("Input currents", dtype=float)
+
+    def __init__(self, times, currents, **kwargs):
+        super().__init__(**kwargs)
+        times = np.asarray(times)
+        currents = np.asarray(currents)
+        if len(times) != len(currents):
+            raise ValueError("time array and current array must be the same length")
+        # ensure it is a sorted list...
+        ind_sort = np.argsort(times)
+        self.times = times[ind_sort]
+        self.currents = currents[ind_sort]
+
+    def eval(self, time):
+        times = self.times
+        currents = self.currents
+        if time <= times[0]:
+            return currents[0]
+        elif time >= times[-1]:
+            return currents[-1]
+        else:
+            i = np.searchsorted(times, time)
+            return (currents[i] - currents[i - 1]) * (time - times[i - 1]) / (
+                times[i] - times[i - 1]
+            ) + currents[i - 1]
+
+    def evalDeriv(self, time):
+        t = np.asarray(time, dtype=float)
+        out = np.zeros_like(t)
+
+        times = self.times
+        currents = self.currents
+        p_1 = (t > times[0]) & (t < times[-1])
+
+        i = np.searchsorted(times, t[p_1])
+
+        out[p_1] = (currents[i] - currents[i - 1]) / (times[i] - times[i - 1])
+
+        if out.ndim == 0:
+            out = out.item()
+        return out
+
+    @property
+    def time_nodes(self):
+        return self.times
 
 ###############################################################################
 #                                                                             #

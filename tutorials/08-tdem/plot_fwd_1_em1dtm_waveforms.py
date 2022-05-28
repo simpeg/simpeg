@@ -56,7 +56,7 @@ start_time = -0.02
 peak_time = -0.01
 off_time = 0.
 triangle_waveform = tdem.sources.TriangularWaveform(
-        startTime=start_time, peakTime=peak_time, offTime=off_time
+        start_time=start_time, peak_time=peak_time, off_time=off_time
 )
 
 # Quarter-sine ramp-off
