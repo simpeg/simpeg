@@ -30,6 +30,10 @@ classifiers = [
     "Natural Language :: English",
 ]
 
+packages = [
+    { include = "SimPEG" },
+]
+
 exclude = ["tests*", "examples*", "tutorials*"]
 
 [tool.poetry.dependencies]
