@@ -80,6 +80,7 @@ class TestPGI(unittest.TestCase):
             clf,
             approx_gradient=True,
             alpha_x=0.0,
+            alpha_s=0.0,
             wiresmap=self.wires,
             weights_list=self.cell_weights_list,
         )
@@ -189,6 +190,7 @@ class TestPGI(unittest.TestCase):
             clf,
             approx_gradient=True,
             alpha_x=0.0,
+            alpha_s=0.0,
             wiresmap=self.wires,
             weights_list=self.cell_weights_list,
         )
@@ -294,6 +296,7 @@ class TestPGI(unittest.TestCase):
             clf,
             approx_gradient=True,
             alpha_x=0.0,
+            alpha_s=0.0,
             wiresmap=self.wires,
             weights_list=self.cell_weights_list,
         )
@@ -399,6 +402,7 @@ class TestPGI(unittest.TestCase):
             clf,
             approx_gradient=True,
             alpha_x=0.0,
+            alpha_s=0.0,
             wiresmap=self.wires,
             weights_list=self.cell_weights_list,
         )

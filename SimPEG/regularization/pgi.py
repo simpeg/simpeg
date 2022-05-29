@@ -156,11 +156,11 @@ class PGIsmallness(Small):
 
     @wiresmap.setter
     def wiresmap(self, wires):
-        if self._maplist is not None and len(wiresmap.maps) != len(self._maplist):
+        if self._maplist is not None and len(wires.maps) != len(self._maplist):
             raise Exception(f"Provided 'wiresmap' should have wires the len of 'maplist' {len(self._maplist)}.")
 
         if not isinstance(wires, Wires):
-            raise ValueError(f"Attribure 'wiresmap' should be of type {Wire} or None.")
+            raise ValueError(f"Attribure 'wiresmap' should be of type {Wires} or None.")
 
         self._wiresmap = wires
 
@@ -209,14 +209,13 @@ class PGIsmallness(Small):
 
             dmmref = np.c_[[a for a in dmref]].T
             dmr = dmm - dmmref
-            # r0 = (W * mkvc(dmr)).reshape(dmr.shape, order="F")
-            r0 = W * mkvc(dmr)
+            r0 = (W * mkvc(dmr)).reshape(dmr.shape, order="F")
 
             if self.gmm.covariance_type == "tied":
                 r1 = np.r_[
                     [
-                        np.dot(self.gmm.precisions_, np.r_[dmr[i]])
-                        for i in range(len(dmr))
+                        np.dot(self.gmm.precisions_, np.r_[r0[i]])
+                        for i in range(len(r0))
                     ]
                 ]
             elif (
@@ -228,20 +227,20 @@ class PGIsmallness(Small):
                         np.dot(
                             self.gmm.precisions_[membership[i]]
                             * np.eye(len(self.wiresmap.maps)),
-                            np.r_[dmr[i]],
+                            np.r_[r0[i]],
                         )
-                        for i in range(len(dmr))
+                        for i in range(len(r0))
                     ]
                 ]
             else:
                 r1 = np.r_[
                     [
-                        np.dot(self.gmm.precisions_[membership[i]], np.r_[dmr[i]])
-                        for i in range(len(dmr))
+                        np.dot(self.gmm.precisions_[membership[i]], np.r_[r0[i]])
+                        for i in range(len(r0))
                     ]
                 ]
 
-            return 0.5 * r0.dot(W * mkvc(r1))
+            return 0.5 * mkvc(r0).dot(mkvc(r1))
 
         else:
             modellist = self.wiresmap * m
@@ -290,7 +289,7 @@ class PGIsmallness(Small):
 
             dmmref = np.c_[[a for a in mreflist]].T
             dm = dmmodel - dmmref
-            # r0 = (self.W * (mkvc(dm))).reshape(dm.shape, order="F")
+            r0 = (self.W * (mkvc(dm))).reshape(dm.shape, order="F")
 
             if self.gmm.covariance_type == "tied":
 
@@ -298,7 +297,7 @@ class PGIsmallness(Small):
                     raise Exception("Not implemented")
 
                 r = mkvc(
-                    np.r_[[np.dot(self.gmm.precisions_, dm[i]) for i in range(len(dm))]]
+                    np.r_[[np.dot(self.gmm.precisions_, r0[i]) for i in range(len(r0))]]
                 )
             elif (
                     (
@@ -307,28 +306,28 @@ class PGIsmallness(Small):
                     )
                 and not self.non_linear_relationships
             ):
-                r = self.W * mkvc(
+                r = mkvc(
                     np.r_[
                         [
                             np.dot(
                                 self.gmm.precisions_[membership[i]]
                                 * np.eye(len(self.wiresmap.maps)),
-                                dm[i],
+                                r0[i],
                             )
-                            for i in range(len(dm))
+                            for i in range(len(r0))
                         ]
                     ]
                 )
             else:
                 if self.non_linear_relationships:
-                    r = self.W * mkvc(
+                    r = mkvc(
                         np.r_[
                             [
                                 mkvc(
                                     self.gmm.cluster_mapping[membership[i]].deriv(
                                         dmmodel[i],
                                         v=np.dot(
-                                            self.gmm.precisions_[membership[i]], dm[i]
+                                            self.gmm.precisions_[membership[i]], r0[i]
                                         ),
                                     )
                                 )
@@ -339,7 +338,7 @@ class PGIsmallness(Small):
 
                 else:
                     r0 = (self.W * (mkvc(dm))).reshape(dm.shape, order="F")
-                    r = self.W * mkvc(
+                    r = mkvc(
                         np.r_[
                             [
                                 np.dot(self.gmm.precisions_[membership[i]], r0[i])
@@ -542,27 +541,20 @@ class PGIsmallness(Small):
             if v is not None:
                 mDv = self.wiresmap * (mD * v)
                 mDv = np.c_[mDv]
+                r0 = (self.W * (mkvc(mDv))).reshape(mDv.shape, order="F")
                 return mkvc(
                     mD.T
                     * (
-                            (self.W.T * self.W)
-                            * mkvc(
-                        np.r_[
-                            [
-                                np.dot(self._r_second_deriv[i], mDv[i])
-                                for i in range(len(mDv))
-                            ]
-                        ]
-                    )
+                            self.W
+                            * (mkvc(np.r_[[np.dot(r[i], r0[i]) for i in range(len(r0))]]))
                     )
                 )
             else:
                 # Forming the Hessian by diagonal blocks
                 hlist = [
-                    [self._r_second_deriv[:, i, j] for i in range(len(self.wiresmap.maps))]
+                    [r[:, i, j] for i in range(len(self.wiresmap.maps))]
                     for j in range(len(self.wiresmap.maps))
                 ]
-
                 Hr = sp.csc_matrix((0, 0), dtype=np.float64)
                 for i in range(len(self.wiresmap.maps)):
                     Hc = sp.csc_matrix((0, 0), dtype=np.float64)
@@ -570,9 +562,9 @@ class PGIsmallness(Small):
                         Hc = sp.hstack([Hc, sdiag(hlist[i][j])])
                     Hr = sp.vstack([Hr, Hc])
 
-                mDW = self.W * mD
+                Hr = Hr.dot(self.W)
 
-                return (mDW.T * mDW) * Hr
+                return (mD.T * mD) * (self.W * (Hr))
 
         else:
             if self.non_linear_relationships:
