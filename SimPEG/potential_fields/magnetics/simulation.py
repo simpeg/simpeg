@@ -3,7 +3,7 @@ import scipy.sparse as sp
 from scipy.constants import mu_0
 
 from SimPEG import utils
-from ..base import BasePFSimulation
+from ..base import BasePFSimulation, BaseEquivalentSourceLayerSimulation
 from ...base import BaseMagneticPDESimulation
 from .survey import Survey
 from .analytics import CongruousMagBC
@@ -668,22 +668,29 @@ class Simulation3DIntegral(BasePFSimulation):
         )
 
 
-class SimulationEquivalentSourceLayer(Simulation3DIntegral):
+class SimulationEquivalentSourceLayer(BaseEquivalentSourceLayerSimulation, Simulation3DIntegral):
     """
-    Equivalent source layer simulations
+    Equivalent source layer simulation
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A 2D tensor or tree mesh defining discretization along the x and y directions
+    cell_z_top : numpy.ndarray or float
+        Define the elevations for the top face of all cells in the layer
+    cell_z_bottom : numpy.ndarray or float
+        Define the elevations for the bottom face of all cells in the layer
+
     """
 
-    def __init__(self, mesh2D, cell_z_top, cell_z_bottom, **kwargs):
+    def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
 
-        if mesh2D.dim != 2:
-            raise AttributeError("Must instantiate with 2D mesh.")
-
-        if (mesh2D.nC != len(cell_z_top)) | (mesh2D.nC != len(cell_z_bottom)):
-            raise AttributeError("'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells.")
-
-        super().__init__(mesh2D, **kwargs)
-
-        self.Zn = np.c_[cell_z_bottom, cell_z_top]
+        BaseEquivalentSourceLayerSimulation().__init__(mesh, cell_z_top, cell_z_bottom, **kwargs)
+        self._G = None
+        self._M = None
+        self._gtg_diagonal = None
+        self.modelMap = self.chiMap
+        setKwargs(self, **kwargs)
 
 
 

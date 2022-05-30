@@ -176,6 +176,54 @@ class BasePFSimulation(LinearSimulation):
             "loading dask for parallelism by doing ``import SimPEG.dask``."
         )
 
+class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
+    """Base equivalent source layer simulation class
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A 2D tensor or tree mesh defining discretization along the x and y directions
+    cell_z_top : numpy.ndarray or float
+        Define the elevations for the top face of all cells in the layer
+    cell_z_bottom : numpy.ndarray or float
+        Define the elevations for the bottom face of all cells in the layer
+
+    """
+
+    def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
+
+        super().__init__(mesh, **kwargs)
+
+        if isinstance(cell_z_top, (int, float)):
+            cell_z_top = float(cell_z_top) * np.ones(mesh.nC)
+
+        if isinstance(cell_z_bottom, (int, float)):
+            cell_z_bottom = float(cell_z_bottom) * np.ones(mesh.nC)
+        
+        if (mesh.nC != len(cell_z_top)) | (mesh2D.nC != len(cell_z_bottom)):
+            raise AttributeError("'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells.")
+
+        self.Zn = np.c_[cell_z_bottom, cell_z_top]
+
+    @property
+    def mesh(self):
+        """2D mesh
+
+        Returns
+        -------
+        mesh : discretize.BaseMesh
+            2D tensor or tree mesh
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, new_mesh):
+
+        if new_mesh.dim != 2:
+            raise AttributeError("Mesh to equivalent source layer must be 2D.")
+
+        self._mesh = new_mesh
+
 
 def progress(iter, prog, final):
     """

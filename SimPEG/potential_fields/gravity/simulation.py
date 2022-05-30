@@ -2,7 +2,7 @@ from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
 from ...simulation import BaseSimulation
 from ...base import BasePDESimulation
-from ..base import BasePFSimulation
+from ..base import BasePFSimulation, BaseEquivalentSourceLayerSimulation
 import scipy.constants as constants
 from scipy.constants import G as NewtG
 import numpy as np
@@ -311,22 +311,28 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return np.vstack([rows[component] for component in components])
 
-class SimulationEquivalentSourceLayer(Simulation3DIntegral):
+class SimulationEquivalentSourceLayer(BaseEquivalentSourceLayerSimulation, Simulation3DIntegral):
     """
     Equivalent source layer simulations
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A 2D tensor or tree mesh defining discretization along the x and y directions
+    cell_z_top : numpy.ndarray or float
+        Define the elevations for the top face of all cells in the layer
+    cell_z_bottom : numpy.ndarray or float
+        Define the elevations for the bottom face of all cells in the layer
     """
 
-    def __init__(self, mesh2D, cell_z_top, cell_z_bottom, **kwargs):
+    def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
 
-        if mesh2D.dim != 2:
-            raise AttributeError("Must instantiate with 2D mesh.")
+        BaseEquivalentSourceLayerSimulation().__init__(mesh, cell_z_top, cell_z_bottom, **kwargs)
+        self._G = None
+        self._gtg_diagonal = None
+        self.modelMap = self.rhoMap
+        setKwargs(self, **kwargs)
 
-        if (mesh2D.nC != len(cell_z_top)) | (mesh2D.nC != len(cell_z_bottom)):
-            raise AttributeError("'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells.")
-
-        super().__init__(mesh2D, **kwargs)
-
-        self.Zn = np.c_[cell_z_bottom, cell_z_top]
 
 class Simulation3DDifferential(BasePDESimulation):
     """
