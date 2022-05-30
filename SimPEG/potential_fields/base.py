@@ -191,6 +191,9 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
     """
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
+        
+        if mesh.dim != 2:
+            raise AttributeError("Mesh to equivalent source layer must be 2D.")
 
         super().__init__(mesh, **kwargs)
 
@@ -200,29 +203,29 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
         if isinstance(cell_z_bottom, (int, float)):
             cell_z_bottom = float(cell_z_bottom) * np.ones(mesh.nC)
         
-        if (mesh.nC != len(cell_z_top)) | (mesh2D.nC != len(cell_z_bottom)):
+        if (mesh.nC != len(cell_z_top)) | (mesh.nC != len(cell_z_bottom)):
             raise AttributeError("'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells.")
 
         self.Zn = np.c_[cell_z_bottom, cell_z_top]
 
-    @property
-    def mesh(self):
-        """2D mesh
+    # @property
+    # def mesh(self):
+    #     """2D mesh
 
-        Returns
-        -------
-        mesh : discretize.BaseMesh
-            2D tensor or tree mesh
-        """
-        return self._mesh
+    #     Returns
+    #     -------
+    #     mesh : discretize.BaseMesh
+    #         2D tensor or tree mesh
+    #     """
+    #     return self._mesh
 
-    @mesh.setter
-    def mesh(self, new_mesh):
+    # @mesh.setter
+    # def mesh(self, new_mesh):
 
-        if new_mesh.dim != 2:
-            raise AttributeError("Mesh to equivalent source layer must be 2D.")
+    #     if new_mesh.dim != 2:
+    #         raise AttributeError("Mesh to equivalent source layer must be 2D.")
 
-        self._mesh = new_mesh
+    #     self._mesh = new_mesh
 
 
 def progress(iter, prog, final):

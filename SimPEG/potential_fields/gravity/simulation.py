@@ -1,4 +1,4 @@
-from SimPEG.utils import mkvc, sdiag
+from SimPEG.utils import mkvc, sdiag, setKwargs
 from SimPEG import props
 from ...simulation import BaseSimulation
 from ...base import BasePDESimulation
@@ -311,6 +311,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return np.vstack([rows[component] for component in components])
 
+
 class SimulationEquivalentSourceLayer(BaseEquivalentSourceLayerSimulation, Simulation3DIntegral):
     """
     Equivalent source layer simulations
@@ -327,11 +328,8 @@ class SimulationEquivalentSourceLayer(BaseEquivalentSourceLayerSimulation, Simul
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
 
-        BaseEquivalentSourceLayerSimulation().__init__(mesh, cell_z_top, cell_z_bottom, **kwargs)
-        self._G = None
-        self._gtg_diagonal = None
-        self.modelMap = self.rhoMap
-        setKwargs(self, **kwargs)
+        BaseEquivalentSourceLayerSimulation.__init__(self, mesh, cell_z_top, cell_z_bottom)
+        Simulation3DIntegral.__init__(self, mesh, **kwargs)
 
 
 class Simulation3DDifferential(BasePDESimulation):

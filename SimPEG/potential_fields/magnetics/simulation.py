@@ -685,12 +685,8 @@ class SimulationEquivalentSourceLayer(BaseEquivalentSourceLayerSimulation, Simul
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
 
-        BaseEquivalentSourceLayerSimulation().__init__(mesh, cell_z_top, cell_z_bottom, **kwargs)
-        self._G = None
-        self._M = None
-        self._gtg_diagonal = None
-        self.modelMap = self.chiMap
-        setKwargs(self, **kwargs)
+        BaseEquivalentSourceLayerSimulation.__init__(self, mesh, cell_z_top, cell_z_bottom)
+        Simulation3DIntegral.__init__(self, mesh, **kwargs)
 
 
 
