@@ -46,6 +46,7 @@ properties = ">=0.5.2"
 pymatsolver = ">=0.1.1"
 scikit-learn = ">=0.22"
 scipy = ">=1.0.0"
+utm = "*"
 vectormath = ">=0.2.0"
 
 dask = {version = "*", optional = true}
