@@ -48,6 +48,9 @@ class FDEM_analyticTests(unittest.TestCase):
                 location=np.r_[0.0, 0.0, 0.0],
                 frequency=freq,
                 radius=np.sqrt(1.0 / np.pi),
+                # test number of turns and current
+                N=2,
+                current=0.5,
             ),
         ]
 
