@@ -20,5 +20,3 @@ pre-commit
 twine
 memory_profiler
 plotly
-geoana>=0.1.2
-git+https://github.com/jcapriot/discretize.git@simplex_mesh
