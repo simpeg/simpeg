@@ -1,0 +1,99 @@
+#SimPEG: Simulation and Parameter Estimation in Geophysics
+#
+#SimPEG is a python package for simulation and gradient based
+#parameter estimation in the context of geophysical applications.
+
+[tool.poetry]
+name = "SimPEG"
+version = "0.15.1.dev2+geoapps.0.8.0"
+license = "MIT"
+description = "SimPEG: Simulation and Parameter Estimation in Geophysics"
+
+authors = ["Rowan Cockett <rowanc1@gmail.com>"]
+repository = "http://github.com/simpeg/simpeg"
+documentation = "https://docs.simpeg.xyz/"
+homepage = "http://simpeg.xyz/"
+readme = "README.rst"
+keywords = ["geophysics inverse problem"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Natural Language :: English",
+]
+
+packages = [
+    { include = "SimPEG" },
+]
+
+exclude = ["tests*", "examples*", "tutorials*"]
+
+[tool.poetry.dependencies]
+discretize = ">=0.7.0"
+empymod = "*"
+geoh5py = "*"
+numpy = ">=1.7"
+pandas = "*"
+properties = ">=0.5.2"
+pymatsolver = ">=0.1.1"
+scikit-learn = ">=0.22"
+scipy = ">=1.0.0"
+utm = "*"
+vectormath = ">=0.2.0"
+
+dask = {version = "*", optional = true}
+fsspec = {version = ">=0.3.3", optional = true}
+zarr = {version = "*", optional = true}
+
+# use "regular" in extras to get required geoana and matplotlib.
+# They are not actually optional, but they need to be excluded for building geoapps
+# due to matplotlib that resolves to a different package name through Conda and through pip.
+# geoapps takes care of placing explicitly geoana and matplotlib in its requirements.
+geoana = { version = "*", optional = true }
+matplotlib = { version = "*", optional = true }
+
+[tool.poetry.dev-dependencies]
+black = "*"
+empymod = "*"
+jupyter = "*"
+memory_profiler = "*"
+numpy = ">=1.7"
+pillow = "*"
+plotly = "*"
+pre-commit = "*"
+pylint = "*"
+pytest = "*"
+pytest-cov = "*"
+scikit-learn = ">=0.22"
+scipy = ">=1.0.0"
+scooby = "*"
+sphinx = "*"
+sphinx-gallery = ">=0.1.13"
+sphinx_rtd_theme = "*"
+sphinxcontrib-napoleon = "*"
+sympy = "*"
+toolz = "*"
+twine = "*"
+
+[tool.poetry.extras]
+dask = ["dask", "zarr", "fsspec"]
+regular = ["geoana", "matplotlib"]
+
+[tool.conda-lock]
+platforms = ['win-64', 'osx-64', 'linux-64']
+channels = ['conda-forge', 'defaults']
+
+[tool.black]
+# defaults are just fine
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "setuptools"]
+build-backend = "poetry.core.masonry.api"
