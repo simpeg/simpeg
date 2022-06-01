@@ -326,11 +326,6 @@ class SimulationEquivalentSourceLayer(BaseEquivalentSourceLayerSimulation, Simul
         Define the elevations for the bottom face of all cells in the layer
     """
 
-    def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
-
-        BaseEquivalentSourceLayerSimulation.__init__(self, mesh, cell_z_top, cell_z_bottom)
-        Simulation3DIntegral.__init__(self, mesh, **kwargs)
-
 
 class Simulation3DDifferential(BasePDESimulation):
     """

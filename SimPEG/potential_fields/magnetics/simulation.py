@@ -683,12 +683,6 @@ class SimulationEquivalentSourceLayer(BaseEquivalentSourceLayerSimulation, Simul
 
     """
 
-    def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
-
-        BaseEquivalentSourceLayerSimulation.__init__(self, mesh, cell_z_top, cell_z_bottom)
-        Simulation3DIntegral.__init__(self, mesh, **kwargs)
-
-
 
 class Simulation3DDifferential(BaseMagneticPDESimulation):
     """
