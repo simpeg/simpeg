@@ -302,14 +302,18 @@ class MagDipole(BaseFDEMSrc):
         if location is not None:
             self.location = location
 
-    def _srcFct(self, obsLoc, coordinates="cartesian"):
-        if getattr(self, "_dipole", None) is None:
-            self._dipole = MagneticDipoleWholeSpace(
+    @property
+    def _dipole(self):
+        if getattr(self, "__dipole", None) is None:
+            self.__dipole = MagneticDipoleWholeSpace(
                 mu=self.mu,
                 orientation=self.orientation,
                 location=self.location,
                 moment=self.moment,
             )
+        return self.__dipole
+
+    def _srcFct(self, obsLoc, coordinates="cartesian"):
         return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
 
     def bPrimary(self, simulation):

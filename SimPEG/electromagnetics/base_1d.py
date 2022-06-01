@@ -280,7 +280,6 @@ class BaseEM1DSimulation(BaseSimulation):
                 else:
                     dxyz = rx.locations - src.location
                     z = h + rx.locations[:, 2] - src.location[2]
-
                 offsets = np.linalg.norm(dxyz[:, :-1], axis=-1)
                 if is_circular_loop:
                     if np.any(offsets != 0.0):
@@ -369,7 +368,6 @@ class BaseEM1DSimulation(BaseSimulation):
                     raise TypeError(
                         f"Unsupported source type of {type(src)}. Must be a CircularLoop or MagDipole"
                     )
-
                 # divide by offsets to pre-do that part from the dft (1 less item to store)
                 C0s.append(np.exp(-lambd * (z + h)[:, None]) * C0 / offsets[:, None])
                 C1s.append(np.exp(-lambd * (z + h)[:, None]) * C1 / offsets[:, None])
