@@ -7,7 +7,7 @@ import platform
 class Doc_Test(unittest.TestCase):
     @property
     def path_to_docs(self):
-        dirname, file_name = os.path.split(os.path.abspath(__file__))
+        dirname, filename = os.path.split(os.path.abspath(__file__))
         return dirname.split(os.path.sep)[:-2] + ["docs"]
 
     def test_html(self):
@@ -18,7 +18,7 @@ class Doc_Test(unittest.TestCase):
             response = subprocess.run(["make", "html-noplot"])
             self.assertTrue(response.returncode == 0)
         else:
-            response = subprocess.call(["make", "html-noplot"], shell=True)
+            response = subprocess.call(["make", "html"], shell=True)
             self.assertTrue(response == 0)
 
         os.chdir(wd)
@@ -28,7 +28,7 @@ class Doc_Test(unittest.TestCase):
         os.chdir(os.path.sep.join(self.path_to_docs))
 
         if platform.system() != "Windows":
-            response = subprocess.run(["make", "linkcheck"])
+            response = subprocess.run(["make", "linkcheck-noplot"])
             self.assertTrue(response.returncode == 0)
         else:
             response = subprocess.call(["make", "linkcheck"], shell=True)
