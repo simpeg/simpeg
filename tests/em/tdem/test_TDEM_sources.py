@@ -156,20 +156,20 @@ class TestTriangularWaveform(unittest.TestCase):
         cls.times = np.linspace(start=0, stop=1e-2, num=11)
 
     def test_waveform_with_symmetric_on_off(self):
-        triangular = TriangularWaveform(peakTime=4e-3, offTime=8e-3)
+        triangular = TriangularWaveform(start_time=0, peak_time=4e-3, off_time=8e-3)
         result = [triangular.eval(t) for t in self.times]
         expected = np.array([0.0, 0.25, 0.5, 0.75, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0, 0.0])
         assert_array_almost_equal(result, expected)
 
     def test_waveform_with_asymmetric_on_off(self):
-        triangular = TriangularWaveform(peakTime=2e-3, offTime=6e-3)
+        triangular = TriangularWaveform(start_time=0, peak_time=2e-3, off_time=6e-3)
         result = [triangular.eval(t) for t in self.times]
         expected = np.array([0.0, 0.5, 1.0, 0.75, 0.5, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0])
         assert_array_almost_equal(result, expected)
 
     def test_waveform_derivative(self):
         # Test the waveform derivative at points between the time_nodes
-        wave = TriangularWaveform(peakTime=2e-3, offTime=6e-3)
+        wave = TriangularWaveform(start_time=0, peak_time=2e-3, off_time=6e-3)
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
