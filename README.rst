@@ -108,6 +108,26 @@ If you are using the electromagnetics module of SimPEG, please cite:
     }
 
 
+Installing from the sources
+===========================
+
+This Python package can be installed with ``pip``.
+The dependencies are defined in ``pyproject.toml``. It replaces the former ``requirements.txt`` and ``setup.py`` files
+(see `pip documentation`_ to learn more about ``pyproject.toml``).
+
+As this branch is meant to be used with a geopps environment, some conflicting packages have been moved
+to "extras" and declared optional. To use it outside of ``geoapps``, install it with ``simpeg[regular]``.
+
+.. _pip documentation: https://pip.pypa.io/en/stable/reference/build-system/pyproject-toml/
+
+Install from a local clone
+------------------
+pip install path/to/simpeg[regular]
+
+Install from a local clone in editable mode
+-----------------------------------
+pip install -e path/to/simpeg[regular]
+
 
 Links
 =====
