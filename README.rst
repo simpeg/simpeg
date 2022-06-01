@@ -117,16 +117,17 @@ The dependencies are defined in ``pyproject.toml``. It replaces the former ``req
 
 As this branch is meant to be used with a geopps environment, some conflicting packages have been moved
 to "extras" and declared optional. To use it outside of ``geoapps``, install it with ``simpeg[regular]``.
+To benefit from dask, install it with ``simpeg[regular, dask]``.
 
 .. _pip documentation: https://pip.pypa.io/en/stable/reference/build-system/pyproject-toml/
 
 Install from a local clone
 ------------------
-pip install path/to/simpeg[regular]
+pip install path/to/simpeg[regular,dask]
 
 Install from a local clone in editable mode
 -----------------------------------
-pip install -e path/to/simpeg[regular]
+pip install -e path/to/simpeg[regular,dask]
 
 
 Links
