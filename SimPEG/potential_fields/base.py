@@ -208,25 +208,6 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
 
         self.Zn = np.c_[cell_z_bottom, cell_z_top]
 
-    # @property
-    # def mesh(self):
-    #     """2D mesh
-
-    #     Returns
-    #     -------
-    #     mesh : discretize.BaseMesh
-    #         2D tensor or tree mesh
-    #     """
-    #     return self._mesh
-
-    # @mesh.setter
-    # def mesh(self, new_mesh):
-
-    #     if new_mesh.dim != 2:
-    #         raise AttributeError("Mesh to equivalent source layer must be 2D.")
-
-    #     self._mesh = new_mesh
-
 
 def progress(iter, prog, final):
     """
