@@ -39,7 +39,7 @@ exclude = ["tests*", "examples*", "tutorials*"]
 [tool.poetry.dependencies]
 discretize = ">=0.7.0"
 empymod = "*"
-geoh5py = {version = "*", allows-prereleases = true}
+geoh5py = {version = "*", allow-prereleases = true}
 numpy = ">=1.7"
 pandas = "*"
 properties = ">=0.5.2"
