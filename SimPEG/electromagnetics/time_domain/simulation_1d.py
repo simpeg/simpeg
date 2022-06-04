@@ -221,24 +221,11 @@ class Simulation1DLayered(BaseEM1DSimulation):
         C0s = self._C0s
         C1s = self._C1s
         lambs = self._lambs
-        if self.hMap is not None:
-            # Grab a copy
-            C0s = C0s.copy()
-            C1s = C1s.copy()
-            h_vec = self.h
-            i = 0
-            for i_src, src in self.survey.source_list:
-                h = h_vec[i_src]
-                nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
-                ip1 = i + nD
-                v = np.exp(-lambs[i:ip1] * h)
-                C0s[i:ip1] *= v
-                C1s[i:ip1] *= v
-                i = ip1
 
         frequencies = self._frequencies
         unique_lambs = self._unique_lambs
         inv_lambs = self._inv_lambs
+        W = self._W
 
         sig = self.compute_complex_sigma(frequencies)
         mu = self.compute_complex_mu(frequencies)
@@ -246,7 +233,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
         rTE = rTE[:, inv_lambs]
 
-        v = (C0s * rTE) @ self.fhtfilt.j0 + (C1s * rTE) @ self.fhtfilt.j1
+        v = W@((C0s * rTE) @ self.fhtfilt.j0 + (C1s * rTE) @ self.fhtfilt.j1)
 
         return self._project_to_data(v.T)
 
@@ -262,6 +249,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             frequencies = self._frequencies
             unique_lambs = self._unique_lambs
             inv_lambs = self._inv_lambs
+            W = self._W
 
             sig = self.compute_complex_sigma(frequencies)
             mu = self.compute_complex_mu(frequencies)
@@ -284,9 +272,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
                 rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
                 rTE = rTE[:, inv_lambs]
-                v_dh_temp = (C0s_dh * rTE) @ self.fhtfilt.j0 + (
+                v_dh_temp = W@((C0s_dh * rTE) @ self.fhtfilt.j0 + (
                     C1s_dh * rTE
-                ) @ self.fhtfilt.j1
+                ) @ self.fhtfilt.j1)
                 # need to re-arange v_dh as it's currently (n_data x n_freqs)
                 # however it already contains all the relevant information...
                 # just need to map it from the rx index to the source index associated..
@@ -311,24 +299,24 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 )
                 if self.sigmaMap is not None:
                     rTE_ds = rTE_ds[..., inv_lambs]
-                    v_ds = (
+                    v_ds = ((
                         (C0s * rTE_ds) @ self.fhtfilt.j0
                         + (C1s * rTE_ds) @ self.fhtfilt.j1
-                    ).T
+                    )@W.T).T
                     self._J["ds"] = self._project_to_data(v_ds)
                 if self.muMap is not None:
                     rTE_dmu = rTE_dmu[..., inv_lambs]
-                    v_dmu = (
+                    v_dmu = ((
                         (C0s * rTE_ds) @ self.fhtfilt.j0
                         + (C1s * rTE_ds) @ self.fhtfilt.j1
-                    ).T
+                    )@W.T).T
                     self._J["dmu"] = self._project_to_data(v_dmu)
                 if self.thicknessesMap is not None:
                     rTE_dh = rTE_dh[..., inv_lambs]
-                    v_dthick = (
+                    v_dthick = ((
                         (C0s * rTE_dh) @ self.fhtfilt.j0
                         + (C1s * rTE_dh) @ self.fhtfilt.j1
-                    ).T
+                    )@W.T).T
                     self._J["dthick"] = self._project_to_data(v_dthick)
         return self._J
 

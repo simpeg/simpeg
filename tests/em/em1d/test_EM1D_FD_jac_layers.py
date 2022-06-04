@@ -118,7 +118,7 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
         passed = tests.checkDerivative(
             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
         )
-
+        self.assertTrue(passed)
         if passed:
             print("EM1DFD-layers Jvec works")
 
@@ -149,7 +149,7 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
             print("EM1DFD-layers Jtvec works")
 
 class EM1D_FD_Jac_layers_PiecewiseWireLoop(unittest.TestCase):
-    # TODO update this test to do sigma, mu, and thicknesses at the same time
+
     def setUp(self):
 
         x_path = np.array([-2, -2, 2, 2, -2])
@@ -209,6 +209,7 @@ class EM1D_FD_Jac_layers_PiecewiseWireLoop(unittest.TestCase):
         passed = tests.checkDerivative(
             derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
         )
+        self.assertTrue(passed)
 
     def test_EM1DFDJtvec_Layers(self):
 
@@ -234,6 +235,7 @@ class EM1D_FD_Jac_layers_PiecewiseWireLoop(unittest.TestCase):
         passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
         self.assertTrue(passed)
 
+# Revisit this later; should not be any problem in theory
 # class EM1D_FD_Jac_layers_ProblemTests_Height(unittest.TestCase):
 
 #     def setUp(self):

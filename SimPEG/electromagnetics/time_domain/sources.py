@@ -1140,6 +1140,70 @@ class CircularLoop(MagDipole):
         return self._loop.vector_potential(obsLoc, coordinates)
 
 
+class PiecewiseWireLoop(BaseTDEMSrc):
+    """
+    Piecewise wire loop source (limited to 1D code at this point)
+
+    :param list receiver_list: receiver list
+    :param float freq: frequency
+    :param numpy.ndarray loc: wire path locations
+        (ie: :code:`np.array([[xloc1,yloc1,zloc1],[xloc2,yloc2,zloc2], ...])`)
+    """
+    wire_paths = properties.Array("wire path locations", shape=("*", 3))
+    current = properties.Float("current in the line", default=1.0)
+    n_points_per_path = properties.Integer("number of quadrature points per linear wire path", default=3)
+
+    def __init__(self, receiver_list=None, frequency=None, wire_paths=None, **kwargs):
+        super(PiecewiseWireLoop, self).__init__(receiver_list, frequency=frequency, wire_paths=wire_paths, **kwargs)
+        self._get_electric_dipole_locations()
+
+    @property
+    def location(self):
+        self._location = self.wire_paths.mean(axis=0)
+        return self._location
+
+    @property
+    def n_quad_points(self):
+        self._n_quad_points = len(self._weights)
+        return self._n_quad_points
+
+    def rotate_points_xy(self, xy, theta, x0=np.array([0., 0.])):
+        r = np.array(( (np.cos(theta), -np.sin(theta)),
+                   (np.sin(theta),  np.cos(theta)) ))
+        xy_rot = xy.dot(r.T)
+        xy_rot += x0
+        return xy_rot
+
+    def rotate_points_xy_var_theta(self, xy, thetas):
+        xy_rot = np.zeros_like(xy)
+        for i_theta, theta in enumerate(thetas):
+            xy_rot[i_theta,:] = self.rotate_points_xy(xy[i_theta,:], theta)
+        return xy_rot
+
+    def _get_electric_dipole_locations(self):
+        # calculate lateral dipole locations
+        x, w = roots_legendre(self.n_points_per_path)
+        xy_src_path = self.wire_paths[:,:2]
+        n_path = len(xy_src_path)-1
+        xyks = []
+        thetas = []
+        weights = []
+        for i_path in range(n_path):
+            dx = xy_src_path[i_path+1,0]-xy_src_path[i_path,0]
+            dy = xy_src_path[i_path+1,1]-xy_src_path[i_path,1]
+            l = np.sqrt(dx**2+dy**2)
+            theta = np.arctan2(dy, dx)
+            lk = np.c_[(x+1)*l/2, np.zeros(self.n_points_per_path)]
+            xyk = self.rotate_points_xy(lk, theta, x0=xy_src_path[i_path,:])
+            xyks.append(xyk)
+            thetas.append(theta*np.ones(xyk.shape[0]))
+            weights.append(w*l/2)
+        # store these for future evalution of integrals
+        self._xyks = np.vstack(xyks)
+        self._weights = np.hstack(weights)
+        self._thetas = np.hstack(thetas)
+
+
 class LineCurrent(BaseTDEMSrc):
     """
     RawVec electric source. It is defined by the user provided vector s_e
