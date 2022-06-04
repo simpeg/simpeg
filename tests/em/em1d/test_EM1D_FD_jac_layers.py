@@ -148,6 +148,91 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
         if passed:
             print("EM1DFD-layers Jtvec works")
 
+class EM1D_FD_Jac_layers_PiecewiseWireLoop(unittest.TestCase):
+    # TODO update this test to do sigma, mu, and thicknesses at the same time
+    def setUp(self):
+
+        x_path = np.array([-2, -2, 2, 2, -2])
+        y_path = np.array([-1, 1, 1, -1, -1])
+        frequencies = np.logspace(0, 4)
+
+        wire_paths= np.c_[x_path, y_path, np.ones(5) * 0.5]
+        source_list = []
+        receiver_list = []
+        receiver_location = np.array([9.28, 0., 0.45])
+        receiver_orientation = "z"
+        receiver_list.append(
+            fdem.receivers.PointMagneticFieldSecondary(
+                receiver_location, orientation=receiver_orientation,
+                data_type='field', component="both"
+            )
+        )
+
+        for freq in frequencies:
+            source = fdem.sources.PiecewiseWireLoop(receiver_list, wire_paths=wire_paths, frequency=freq)
+            source_list.append(source)
+
+        # Survey
+        survey = fdem.Survey(source_list)
+        thicknesses = np.array([20., 40.])
+
+        self.nlayers = len(thicknesses) + 1
+        sigma_map = maps.ExpMap(nP=self.nlayers)
+
+        sim = fdem.Simulation1DLayered(
+            survey=survey,
+            thicknesses=thicknesses,
+            sigmaMap=sigma_map,
+        )
+
+        self.sim = sim
+
+    def test_EM1DFDJvec_Layers(self):
+
+        sigma_half = 0.01
+        sigma_blk = 0.1
+        sig = np.ones(self.nlayers) * sigma_half
+        sig[1] = sigma_blk
+        m_1D = np.log(sig)
+
+        def fwdfun(m):
+            resp = self.sim.dpred(m)
+            return resp
+            # return Hz
+
+        def jacfun(m, dm):
+            Jvec = self.sim.Jvec(m, dm)
+            return Jvec
+
+        dm = m_1D * 0.5
+        derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
+        passed = tests.checkDerivative(
+            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
+        )
+
+    def test_EM1DFDJtvec_Layers(self):
+
+        sigma_half = 0.01
+        sigma_blk = 0.1
+        sig = np.ones(self.nlayers) * sigma_half
+        sig[1] = sigma_blk
+        m_true = np.log(sig)
+
+        dobs = self.sim.dpred(m_true)
+
+        m_ini = np.log(np.ones(self.nlayers) * sigma_half)
+        resp_ini = self.sim.dpred(m_ini)
+        dr = resp_ini - dobs
+
+        def misfit(m, dobs):
+            dpred = self.sim.dpred(m)
+            misfit = 0.5 * np.linalg.norm(dpred - dobs) ** 2
+            dmisfit = self.sim.Jtvec(m, dr)
+            return misfit, dmisfit
+
+        derChk = lambda m: misfit(m, dobs)
+        passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
+        self.assertTrue(passed)
 
 # class EM1D_FD_Jac_layers_ProblemTests_Height(unittest.TestCase):
 

@@ -573,16 +573,10 @@ class PiecewiseWireLoop(BaseFDEMSrc):
     """
     Piecewise wire loop source (limited to 1D code at this point)
 
-    This approach uses a primary-secondary in frequency in the same fashion as
-    the MagDipole.
-
     :param list receiver_list: receiver list
     :param float freq: frequency
-    :param numpy.ndarray loc: source locations
+    :param numpy.ndarray loc: wire path locations
         (ie: :code:`np.array([[xloc1,yloc1,zloc1],[xloc2,yloc2,zloc2], ...])`)
-    :param string orientation: 'X', 'Y', 'Z'
-    :param float moment: magnetic dipole moment
-    :param float mu: background magnetic permeability
     """
     wire_paths = properties.Array("wire path locations", shape=("*", 3))
     current = properties.Float("current in the line", default=1.0)
