@@ -256,18 +256,24 @@ class BaseEM1DSimulation(BaseSimulation):
         C0s = []
         C1s = []
         lambs = []
+        Is = []
+        n_w_past = 0
+        i_count = 0
         for i_src, src in enumerate(survey.source_list):
             # doing the check for source type by checking its name
             # to avoid importing and checking "isinstance"
             class_name = type(src).__name__
             is_circular_loop = class_name == "CircularLoop"
             is_mag_dipole = class_name == "MagDipole"
+            is_wire_loop = class_name == "PiecewiseWireLoop"
+
             if is_circular_loop:
                 if np.any(src.orientation[:-1] != 0.0):
                     raise ValueError("Can only simulate horizontal circular loops")
             h = h_vector[i_src]  # source height above topo
-            src_x, src_y, src_z = src.orientation * src.moment / (4 * np.pi)
-            # src.moment is pi * radius**2 * I for circular loop
+            if is_circular_loop or is_mag_dipole:
+                src_x, src_y, src_z = src.orientation * src.moment / (4 * np.pi)
+                # src.moment is pi * radius**2 * I for circular loop
             for i_rx, rx in enumerate(src.receiver_list):
                 #######
                 # Hankel Transform coefficients
@@ -280,7 +286,13 @@ class BaseEM1DSimulation(BaseSimulation):
                 else:
                     dxyz = rx.locations - src.location
                     z = h + rx.locations[:, 2] - src.location[2]
-                offsets = np.linalg.norm(dxyz[:, :-1], axis=-1)
+
+                if is_wire_loop:
+                    dxy = rx.locations[:,:2] - src._xyks
+                    offsets = np.linalg.norm(dxy, axis=-1)
+                else:
+                    offsets = np.linalg.norm(dxyz[:, :-1], axis=-1)
+
                 if is_circular_loop:
                     if np.any(offsets != 0.0):
                         raise ValueError(
@@ -298,7 +310,10 @@ class BaseEM1DSimulation(BaseSimulation):
                 if is_circular_loop:
                     # I * a/ 2 * (lambda **2 )/ (lambda)
                     C1 += src_z * (2 / src.radius) * lambd
+                    n_w = 1
+
                 elif is_mag_dipole:
+                    n_w = 1
                     if src_x != 0.0:
                         if rx.orientation == "x":
                             C0 += (
@@ -364,6 +379,14 @@ class BaseEM1DSimulation(BaseSimulation):
                             C1 += (src_z * dxyz[:, 1] / offsets)[:, None] * lambd ** 2
                         elif rx.orientation == "z":
                             C0 += src_z * lambd ** 2
+                elif is_wire_loop:
+                    weights = src._weights
+                    dxy_rot = src.rotate_points_xy_var_theta(dxy, -src._thetas)
+                    C1 = (1 /(4*np.pi)*(dxy_rot[:,1]/offsets * weights))[:,None] * lambd
+                    # Assume
+                    # 1) source_list only includes wire_loop sources
+                    # 1) rx.locations.shape = (1,3)
+                    n_w = weights.size
                 else:
                     raise TypeError(
                         f"Unsupported source type of {type(src)}. Must be a CircularLoop or MagDipole"
@@ -372,6 +395,9 @@ class BaseEM1DSimulation(BaseSimulation):
                 C0s.append(np.exp(-lambd * (z + h)[:, None]) * C0 / offsets[:, None])
                 C1s.append(np.exp(-lambd * (z + h)[:, None]) * C1 / offsets[:, None])
                 lambs.append(lambd)
+                n_w_past += n_w
+                Is.append(np.ones(n_w, dtype=int) * i_count)
+                i_count += 1
 
         # Store these on the simulation for faster future executions
         self._lambs = np.vstack(lambs)
@@ -379,6 +405,14 @@ class BaseEM1DSimulation(BaseSimulation):
         self._inv_lambs = inv_lambs.reshape(self._lambs.shape)
         self._C0s = np.vstack(C0s)
         self._C1s = np.vstack(C1s)
+        Is = np.hstack(Is)
+        n_row = Is.size
+        n_col = Is.max()+1
+        Js = np.arange(n_row)
+        data = np.ones(n_row, dtype=int)
+        self._W = sp.coo_matrix((data, (Is, Js)), shape=(n_col, n_row))
+        self._W = self._W.tocsr()
+
 
     @property
     def deleteTheseOnModelUpdate(self):
