@@ -58,10 +58,15 @@ class BaseRegularization(BaseObjectiveFunction):
         return self._active_cells
 
     @active_cells.setter
-    def active_cells(self, values: np.ndarray):
-        if getattr(self, "regularization_mesh", None) is not None:
-            self.regularization_mesh.active_cells = values
+    def active_cells(self, values: np.ndarray | None):
+        if self._active_cells is not None:
+            raise AttributeError("Cannot reset the 'active_cells' property.")
 
+        if (
+            isinstance(self.regularization_mesh, RegularizationMesh)
+            and getattr(self.regularization_mesh, "active_cells", None) is None
+        ):
+            self.regularization_mesh.active_cells = values
         self._active_cells = values
 
     indActive = deprecate_property(
@@ -1097,8 +1102,6 @@ class BaseSimilarityMeasure(BaseRegularization):
 
     def __init__(self, mesh, wire_map, **kwargs):
         super().__init__(mesh, wire_map=wire_map, **kwargs)
-        # do this as a hack to make TreeMesh work.
-        self.regularization_mesh.regularization_type = "Tikhonov"
 
     @property
     def wire_map(self):

@@ -26,7 +26,7 @@ class RegularizationMesh(props.BaseSimPEG):
 
     """
 
-    regularization_type = None  # or 'Simple', 'Sparse' or 'Tikhonov'
+    regularization_type = None  # or 'Base'
     _active_cells = None
 
     def __init__(self, mesh, **kwargs):

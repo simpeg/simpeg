@@ -163,15 +163,10 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([8, 7, 6])
 
         for regType in ["Sparse"]:
-            reg = getattr(regularization, regType)(mesh)
-
-            self.assertTrue(reg.nP == mesh.nC)
-
-            # Test assignment of active indices
             active_cells = mesh.gridCC[:, 2] < 0.6
-            reg.active_cells = active_cells
+            reg = getattr(regularization, regType)(mesh, active_cells=active_cells)
 
-            self.assertTrue(reg.nP == int(active_cells.sum()))
+            self.assertTrue(reg.nP == reg.regularization_mesh.nC)
 
             [self.assertTrue(np.all(fct.active_cells == active_cells)) for fct in reg.objfcts]
 
