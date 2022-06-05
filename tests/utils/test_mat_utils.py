@@ -68,7 +68,7 @@ class TestEigenvalues(unittest.TestCase):
         self.dmiscombo = dmiscombo
 
         # Test for a regularization term
-        reg = L2Regularization(mesh=mesh)
+        reg = LeastSquaresRegularization(mesh=mesh)
         self.reg = reg
 
         # Test a mix combo

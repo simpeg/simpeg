@@ -47,11 +47,10 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Go from topo to actv cells
         topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
         actv = utils.surface2ind_topo(self.mesh, topo, "N")
-        actv = np.where(actv)[0]
 
         # Create active map to go from reduce space to full
         self.actvMap = maps.InjectActiveCells(self.mesh, actv, -100)
-        nC = len(actv)
+        nC = int(actv.sum())
 
         # Create and array of observation points
         xr = np.linspace(-20.0, 20.0, 20)
