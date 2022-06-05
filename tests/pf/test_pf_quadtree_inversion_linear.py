@@ -120,7 +120,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
             # Create a regularization
             reg = regularization.Sparse(self.mesh, mapping=self.idenMap)
-            reg.norms = np.c_[0, 0, 0, 0]
+            reg.norms = [0, 0, 0]
+            reg.gradientType = "components"
             reg.mref = np.zeros(self.mesh.nC)
 
             # Data misfit function

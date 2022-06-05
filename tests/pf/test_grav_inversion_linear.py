@@ -115,18 +115,18 @@ class GravInvLinProblemTest(unittest.TestCase):
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
         print(residual)
 
-        import matplotlib.pyplot as plt
-        plt.figure()
-        ax = plt.subplot(1, 2, 1)
-        midx = int(self.mesh.nCx/2)
-        self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(0, 0.5))
-
-        ax = plt.subplot(1, 2, 2)
-        midx = int(self.mesh.nCx/2)
-        self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
-                       grid=True, clim=(0, 0.5))
-        plt.show()
+        # import matplotlib.pyplot as plt
+        # plt.figure()
+        # ax = plt.subplot(1, 2, 1)
+        # midx = int(self.mesh.nCx/2)
+        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
+        #                grid=True, clim=(0, 0.5))
+        #
+        # ax = plt.subplot(1, 2, 2)
+        # midx = int(self.mesh.nCx/2)
+        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
+        #                grid=True, clim=(0, 0.5))
+        # plt.show()
 
         self.assertTrue(residual < 0.05)
 
