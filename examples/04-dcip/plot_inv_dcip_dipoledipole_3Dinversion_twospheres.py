@@ -103,9 +103,9 @@ def getCylinderPoints(xc, zc, r):
     xLocOrig1 = np.arange(-r, r + r / 10.0, r / 10.0)
     xLocOrig2 = np.arange(r, -r - r / 10.0, -r / 10.0)
     # Top half of cylinder
-    zLoc1 = np.sqrt(-(xLocOrig1 ** 2.0) + r ** 2.0) + zc
+    zLoc1 = np.sqrt(-(xLocOrig1**2.0) + r**2.0) + zc
     # Bottom half of cylinder
-    zLoc2 = -np.sqrt(-(xLocOrig2 ** 2.0) + r ** 2.0) + zc
+    zLoc2 = -np.sqrt(-(xLocOrig2**2.0) + r**2.0) + zc
     # Shift from x = 0 to xc
     xLoc1 = xLocOrig1 + xc * np.ones_like(xLocOrig1)
     xLoc2 = xLocOrig2 + xc * np.ones_like(xLocOrig2)

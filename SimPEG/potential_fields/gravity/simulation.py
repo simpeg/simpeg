@@ -1,11 +1,10 @@
-from __future__ import print_function
-from ...utils.code_utils import deprecate_class
-from SimPEG import utils
 from SimPEG.utils import mkvc, sdiag
 from SimPEG import props
 from ...simulation import BaseSimulation
+from ...base import BasePDESimulation
 from ..base import BasePFSimulation
 import scipy.constants as constants
+from scipy.constants import G as NewtG
 import numpy as np
 
 
@@ -96,7 +95,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return self._gtg_diagonal
 
-    def evaluate_integral(self, receiver_location, components):
+    def evaluate_integral(self, receiver_location, components, tolerance=1e-4):
         """
         Compute the forward linear relationship between the model and the physics at a point
         and for all components of the survey.
@@ -105,7 +104,7 @@ class Simulation3DIntegral(BasePFSimulation):
             Array of receiver locations as x, y, z columns.
         :param list[str] components: List of gravity components chosen from:
             'gx', 'gy', 'gz', 'gxx', 'gxy', 'gxz', 'gyy', 'gyz', 'gzz', 'guv'
-
+        :param float tolerance: Small constant to avoid singularity near nodes and edges.
         :rtype numpy.ndarray: rows
         :returns: ndarray with shape (n_components, n_cells)
             Dense array mapping of the contribution of all active cells to data components::
@@ -117,22 +116,23 @@ class Simulation3DIntegral(BasePFSimulation):
                     g_c = [g_cx g_cy g_cz]
 
         """
-        tol1 = 1e-4
-        tol2 = 1e-10
-
         # base cell dimensions
-        min_hx, min_hy, min_hz = (
-            self.mesh.hx.min(),
-            self.mesh.hy.min(),
-            self.mesh.hz.min(),
-        )
+        min_hx, min_hy = self.mesh.h[0].min(), self.mesh.h[1].min()
+        if len(self.mesh.h) < 3:
+            # Allow for 2D quadtree representations by using a dummy cell height.
+            # Actually cell heights will come from externally defined ``self.Zn``
+            min_hz = np.minimum(min_hx, min_hy) / 10.0
+        else:
+            min_hz = self.mesh.h[2].min()
 
+        # comp. pos. differences for tne, bsw nodes. Adjust if location within
+        # tolerance of a node or edge
         dx = self.Xn - receiver_location[0]
-        dx[np.abs(dx) / min_hx < tol1] = tol1 * min_hx
+        dx[np.abs(dx) / min_hx < tolerance] = tolerance * min_hx
         dy = self.Yn - receiver_location[1]
-        dy[np.abs(dy) / min_hy < tol1] = tol1 * min_hy
+        dy[np.abs(dy) / min_hy < tolerance] = tolerance * min_hy
         dz = self.Zn - receiver_location[2]
-        dz[np.abs(dz) / min_hz < tol1] = tol1 * min_hz
+        dz[np.abs(dz) / min_hz < tolerance] = tolerance * min_hz
 
         rows = {component: np.zeros(self.Xn.shape[0]) for component in components}
 
@@ -213,9 +213,9 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dxdz / (r * dy_r)
                                 - np.arctan(arg)
                                 + dx[:, aa]
-                                * (1.0 / (1 + arg ** 2.0))
+                                * (1.0 / (1 + arg**2.0))
                                 * dydz
-                                / dxr ** 2.0
+                                / dxr**2.0
                                 * (r + dx[:, aa] ** 2.0 / r)
                             )
                         )
@@ -230,8 +230,8 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dy[:, bb] ** 2.0 / (r * dz_r)
                                 + dz[:, cc] / r
                                 - 1.0
-                                / (1 + arg ** 2.0)
-                                * (dz[:, cc] / r ** 2)
+                                / (1 + arg**2.0)
+                                * (dz[:, cc] / r**2)
                                 * (r - dy[:, bb] ** 2.0 / r)
                             )
                         )
@@ -246,8 +246,8 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dz[:, cc] ** 2.0 / (r * dy_r)
                                 + dy[:, bb] / r
                                 - 1.0
-                                / (1 + arg ** 2.0)
-                                * (dy[:, bb] / (r ** 2))
+                                / (1 + arg**2.0)
+                                * (dy[:, bb] / (r**2))
                                 * (r - dz[:, cc] ** 2.0 / r)
                             )
                         )
@@ -268,9 +268,9 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dydz / (r * dx_r)
                                 - np.arctan(arg)
                                 + dy[:, bb]
-                                * (1.0 / (1 + arg ** 2.0))
+                                * (1.0 / (1 + arg**2.0))
                                 * dxdz
-                                / dyr ** 2.0
+                                / dyr**2.0
                                 * (r + dy[:, bb] ** 2.0 / r)
                             )
                         )
@@ -285,8 +285,8 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dz[:, cc] ** 2.0 / (r * (dx_r))
                                 + dx[:, aa] / r
                                 - 1.0
-                                / (1 + arg ** 2.0)
-                                * (dx[:, aa] / (r ** 2))
+                                / (1 + arg**2.0)
+                                * (dx[:, aa] / (r**2))
                                 * (r - dz[:, cc] ** 2.0 / r)
                             )
                         )
@@ -312,7 +312,7 @@ class Simulation3DIntegral(BasePFSimulation):
         return np.vstack([rows[component] for component in components])
 
 
-class Simulation3DDifferential(BaseSimulation):
+class Simulation3DDifferential(BasePDESimulation):
     """
     Gravity in differential equations!
     """
@@ -326,34 +326,15 @@ class Simulation3DDifferential(BaseSimulation):
     def __init__(self, mesh, **kwargs):
         BaseSimulation.__init__(self, mesh, **kwargs)
 
-        self.mesh.setCellGradBC("dirichlet")
+        self._Div = self.mesh.face_divergence
 
-        self._Div = self.mesh.cellGrad
-
-    @property
-    def MfI(self):
-        return self._MfI
-
-    @property
-    def Mfi(self):
-        return self._Mfi
-
-    def makeMassMatrices(self, m):
-        self.model = m
-        self._Mfi = self.mesh.getFaceInnerProduct()
-        self._MfI = utils.sdiag(1.0 / self._Mfi.diagonal())
-
-    def getRHS(self, m):
+    def getRHS(self):
         """"""
-
-        Mc = utils.sdiag(self.mesh.vol)
-
-        self.model = m
+        Mc = self.Mcc
         rho = self.rho
+        return -Mc * rho
 
-        return Mc * rho
-
-    def getA(self, m):
+    def getA(self):
         """
         GetA creates and returns the A matrix for the Gravity nodal problem
 
@@ -362,11 +343,13 @@ class Simulation3DDifferential(BaseSimulation):
         .. math ::
 
             \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
-
         """
-        return -self._Div.T * self.Mfi * self._Div
+        # Constructs A with 0 dirichlet
+        if getattr(self, "_A", None) is None:
+            self._A = self._Div * self.Mf * self._Div.T
+        return self._A
 
-    def fields(self, m):
+    def fields(self, m=None):
         """
         Return magnetic potential (u) and flux (B)
         u: defined on the cell nodes [nC x 1]
@@ -379,11 +362,11 @@ class Simulation3DDifferential(BaseSimulation):
             \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
-        from scipy.constants import G as NewtG
+        if m is not None:
+            self.model = m
 
-        self.makeMassMatrices(m)
-        A = self.getA(m)
-        RHS = self.getRHS(m)
+        A = self.getA()
+        RHS = self.getRHS()
 
         Ainv = self.solver(A)
         u = Ainv * RHS
@@ -391,18 +374,3 @@ class Simulation3DDifferential(BaseSimulation):
         gField = 4.0 * np.pi * NewtG * 1e8 * self._Div * u
 
         return {"G": gField, "u": u}
-
-
-############
-# Deprecated
-############
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class GravityIntegral(Simulation3DIntegral):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Problem3D_Diff(Simulation3DDifferential):
-    pass

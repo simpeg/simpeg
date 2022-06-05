@@ -29,7 +29,9 @@ class LinearCorrespondenceTest(unittest.TestCase):
         wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC))
 
         corr = regularization.LinearCorrespondence(
-            mesh, wire_map=wires, indActive=actv,
+            mesh,
+            wire_map=wires,
+            indActive=actv,
         )
 
         self.mesh = mesh

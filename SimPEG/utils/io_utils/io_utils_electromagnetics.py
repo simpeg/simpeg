@@ -437,7 +437,7 @@ def read_dcip3d_ubc(file_name, data_type):
     is_pole_rx = False
 
     # IP data for dcip3d has a line with a flag we can remove.
-    if obsfile[0][0:6] == 'IPTYPE':
+    if obsfile[0][0:6] == "IPTYPE":
         obsfile = obsfile[1:]
 
     # Since SimPEG defines secondary potential from IP as voltage,
@@ -707,7 +707,7 @@ def write_dcip2d_ubc(
                 nD = src.nD
 
                 if isinstance(src, PoleSrc):
-                    tx = np.r_[src.location]
+                    tx = src.location[0]
                     tx = np.repeat(np.r_[[tx]], 2, axis=0)
                 elif isinstance(src, DipoleSrc):
                     tx = np.c_[src.location]
@@ -736,7 +736,9 @@ def write_dcip2d_ubc(
                     # Write receivers and locations
                     if isinstance(N, np.ndarray):
                         np.savetxt(
-                            fid, np.c_[M, N], fmt="%e",
+                            fid,
+                            np.c_[M, N],
+                            fmt="%e",
                         )
                     else:
                         raise Exception(
@@ -859,7 +861,7 @@ def write_dcip3d_ubc(
             nD = src.nD
 
             if isinstance(src, PoleSrc):
-                tx = np.r_[src.location]
+                tx = src.location[0]
                 tx = np.repeat(np.r_[[tx]], 2, axis=0)
             elif isinstance(src, DipoleSrc):
                 tx = np.c_[src.location]
@@ -886,7 +888,9 @@ def write_dcip3d_ubc(
                 # Write receivers and locations
                 if isinstance(N, np.ndarray):
                     np.savetxt(
-                        fid, np.c_[M, N], fmt="%e",
+                        fid,
+                        np.c_[M, N],
+                        fmt="%e",
                     )
                 else:
                     raise Exception(

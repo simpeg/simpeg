@@ -77,7 +77,9 @@ class AmpProblemTest(unittest.TestCase):
 
         # Get the indicies of the magnetized block
         ind = utils.model_builder.getIndicesBlock(
-            np.r_[-20, -20, -10], np.r_[20, 20, 25], mesh.gridCC,
+            np.r_[-20, -20, -10],
+            np.r_[20, 20, 25],
+            mesh.gridCC,
         )[0]
 
         # Assign magnetization value, inducing field strength will

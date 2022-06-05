@@ -1,13 +1,9 @@
-import properties
-import numpy as np
-from scipy.constants import mu_0
 from ...survey import BaseSrc
 from .analytics import IDTtoxyz
-from ...utils.code_utils import deprecate_class
 
 
 class SourceField(BaseSrc):
-    """ Define the inducing field """
+    """Define the inducing field"""
 
     def __init__(self, receiver_list=None, parameters=[50000, 90, 0], **kwargs):
         assert (
@@ -19,8 +15,3 @@ class SourceField(BaseSrc):
         super(SourceField, self).__init__(
             receiver_list=receiver_list, parameters=parameters, **kwargs
         )
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class SrcField(SourceField):
-    pass

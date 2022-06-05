@@ -249,7 +249,7 @@ dc_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 # argument *rhoMap* is defined, the simulation will expect a resistivity model.
 #
 
-dc_simulation = dc.simulation_2d.Simulation2DNodal(
+dc_simulation = dc.Simulation2DNodal(
     mesh, survey=dc_survey, sigmaMap=conductivity_map, solver=Solver
 )
 
@@ -396,7 +396,7 @@ plt.show()
 # We use the keyword argument *sigma* to define the background conductivity on
 # the mesh. We could use the keyword argument *rho* to accomplish the same thing
 # using a background resistivity model.
-simulation_ip = ip.simulation_2d.Simulation2DNodal(
+simulation_ip = ip.Simulation2DNodal(
     mesh,
     survey=ip_survey,
     etaMap=chargeability_map,

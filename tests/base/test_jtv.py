@@ -28,7 +28,11 @@ class JTVTensor2D(unittest.TestCase):
         # maps
         wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC))
 
-        jtv = regularization.JointTotalVariation(mesh, wire_map=wires, indActive=actv,)
+        jtv = regularization.JointTotalVariation(
+            mesh,
+            wire_map=wires,
+            indActive=actv,
+        )
 
         self.mesh = mesh
         self.jtv = jtv
@@ -75,7 +79,11 @@ class JTVTensor3D(unittest.TestCase):
         # maps
         wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC))
 
-        jtv = regularization.JointTotalVariation(mesh, wire_map=wires, indActive=actv,)
+        jtv = regularization.JointTotalVariation(
+            mesh,
+            wire_map=wires,
+            indActive=actv,
+        )
 
         self.mesh = mesh
         self.jtv = jtv

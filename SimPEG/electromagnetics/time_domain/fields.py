@@ -1,12 +1,8 @@
-from __future__ import division
 import numpy as np
-import scipy.sparse as sp
 from scipy.constants import epsilon_0
-from ...utils.code_utils import deprecate_class
 
 from ...fields import TimeFields
 from ...utils import mkvc, sdiag, Zero
-from ..utils import omega
 
 
 class FieldsTDEM(TimeFields):
@@ -678,36 +674,3 @@ class Fields3DCurrentDensity(FieldsTDEM):
         return self.simulation.MeI * (
             self.simulation.MeMu * self._dhdtDeriv_m(tInd, src, v)
         )
-
-
-############
-# Deprecated
-############
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields_Derivs_eb(FieldsDerivativesEB):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields_Derivs_hj(FieldsDerivativesHJ):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_b(Fields3DMagneticFluxDensity):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_e(Fields3DElectricField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_h(Fields3DMagneticField):
-    pass
-
-
-@deprecate_class(removal_version="0.16.0", error=True)
-class Fields3D_j(Fields3DCurrentDensity):
-    pass

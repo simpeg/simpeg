@@ -243,7 +243,10 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
 update_IRLS = directives.Update_IRLS(
-    f_min_change=1e-4, max_irls_iterations=30, coolEpsFact=1.5, beta_tol=1e-2,
+    f_min_change=1e-4,
+    max_irls_iterations=30,
+    coolEpsFact=1.5,
+    beta_tol=1e-2,
 )
 
 # Defining a starting value for the trade-off parameter (beta) between the data

@@ -3,8 +3,6 @@ import properties
 
 from .... import survey
 from ....utils import Zero, closestPoints, mkvc
-from ....utils.code_utils import deprecate_property
-import warnings
 
 
 class BaseSrc(survey.BaseSrc):
@@ -39,9 +37,6 @@ class Dipole(BaseSrc):
     location = properties.List(
         "location of the source electrodes",
         survey.SourceLocationArray("location of electrode"),
-    )
-    loc = deprecate_property(
-        location, "loc", new_name="location", removal_version="0.16.0", error=True
     )
 
     def __init__(

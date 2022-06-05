@@ -262,11 +262,19 @@ class PairedBetaEstimate_ByEig(InversionDirective):
             )
         for dmis, reg in zip(dmis_objs, reg_objs):
             dmis_eigenvalues.append(
-                eigenvalue_by_power_iteration(dmis, m, n_pw_iter=self.n_pw_iter,)
+                eigenvalue_by_power_iteration(
+                    dmis,
+                    m,
+                    n_pw_iter=self.n_pw_iter,
+                )
             )
 
             reg_eigenvalues.append(
-                eigenvalue_by_power_iteration(reg, m, n_pw_iter=self.n_pw_iter,)
+                eigenvalue_by_power_iteration(
+                    reg,
+                    m,
+                    n_pw_iter=self.n_pw_iter,
+                )
             )
 
         self.ratios = np.array(dmis_eigenvalues) / np.array(reg_eigenvalues)
@@ -330,12 +338,12 @@ class PairedBetaSchedule(InversionDirective):
 
 class MovingAndMultiTargetStopping(InversionDirective):
     r"""
-        Directive for setting stopping criteria for a joint inversion.
-        Ensures both that all target misfits are met and there is a small change in the
-        model. Computes the percentage change of the current model from the previous model.
+    Directive for setting stopping criteria for a joint inversion.
+    Ensures both that all target misfits are met and there is a small change in the
+    model. Computes the percentage change of the current model from the previous model.
 
-        ..math::
-            \frac {\| \mathbf{m_i} - \mathbf{m_{i-1}} \|} {\| \mathbf{m_{i-1}} \|}
+    ..math::
+        \frac {\| \mathbf{m_i} - \mathbf{m_{i-1}} \|} {\| \mathbf{m_{i-1}} \|}
     """
 
     tol = 1e-5

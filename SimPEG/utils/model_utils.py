@@ -1,3 +1,5 @@
+import discretize
+
 from .mat_utils import mkvc, ndgrid, uniqueRows
 import numpy as np
 from scipy.interpolate import griddata, interp1d
@@ -217,7 +219,8 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
 
         else:
             raise NotImplementedError("surface2ind_topo not implemented for 1D mesh")
-
+    else:
+        raise NotImplementedError(f"{type(mesh)} is not supported.")
     return mkvc(actind)
 
 
@@ -261,7 +264,7 @@ def surface_layer_index(mesh, topo, index=0):
 
 
 def depth_weighting(mesh, reference_locs, indActive=None, exponent=2.0, threshold=None):
-    """ A simple depth weighting function
+    """A simple depth weighting function
 
     This function is a simple form of depth weighting based off of the vertical distance
     of mesh cell centers from the reference location(s).

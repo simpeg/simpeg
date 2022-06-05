@@ -42,7 +42,11 @@ def halfSpaceProblemAnaDiff(
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
     time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
-    time_mesh = discretize.TensorMesh([time_steps,])
+    time_mesh = discretize.TensorMesh(
+        [
+            time_steps,
+        ]
+    )
     times = time_mesh.nodes_x
     out = utils.VTEMFun(times, 0.00595, 0.006, 100)
     wavefun = interp1d(times, out)
