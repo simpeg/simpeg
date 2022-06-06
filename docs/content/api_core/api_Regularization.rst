@@ -29,7 +29,7 @@ The API
     :members:
     :undoc-members:
 
-Tikhonov Regularization
+LeastSquaresRegularization Regularization
 =======================
 
 Here we will define regularization of a model, m, in general however, this
@@ -119,7 +119,7 @@ Then we can write
 The API
 -------
 
-.. autoclass:: SimPEG.regularization.Tikhonov
+.. autoclass:: SimPEG.regularization.LeastSquaresRegularization
     :members:
     :undoc-members:
 
