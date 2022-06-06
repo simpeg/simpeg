@@ -546,7 +546,7 @@ class PGIsmallness(Small):
                     mD.T
                     * (
                             self.W
-                            * (mkvc(np.r_[[np.dot(r[i], r0[i]) for i in range(len(r0))]]))
+                            * (mkvc(np.r_[[np.dot(self._r_second_deriv[i], r0[i]) for i in range(len(r0))]]))
                     )
                 )
             else:

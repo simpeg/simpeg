@@ -2,7 +2,7 @@
 Petrophysically guided inversion: Joint linear example with nonlinear relationships
 ===================================================================================
 
-We do a comparison between the classic Tikhonov inversion
+We do a comparison between the classic least-squares inversion
 and our formulation of a petrophysically guided inversion.
 We explore it through coupling two linear problems whose respective physical
 properties are linked by polynomial relationships that change between rock units.
@@ -234,7 +234,7 @@ inv = inversion.BaseInversion(
 
 mcluster_no_map = inv.run(minit)
 
-# Tikhonov Inversion
+# LeastSquaresRegularization Inversion
 
 reg1 = regularization.LeastSquaresRegularization(mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1)
 reg1.cell_weights = wr1
@@ -402,7 +402,7 @@ axes[8].set_axis_off()
 axes[8].text(
     0.5 * (left + right),
     0.5 * (bottom + top),
-    ("Tikhonov\n~Using a single cluster"),
+    ("Least-Squares\n~Using a single cluster"),
     horizontalalignment="center",
     verticalalignment="center",
     fontsize=20,

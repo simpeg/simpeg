@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 
 import discretize
-from discretize.tests import checkDerivative
+from discretize.tests import check_derivative
 
 from SimPEG import maps
 from SimPEG.flow import richards
@@ -18,7 +18,7 @@ class TestModels(unittest.TestCase):
     def test_haverkamp_theta_u(self):
         mesh = discretize.TensorMesh([50])
         hav = richards.empirical.Haverkamp_theta(mesh)
-        passed = checkDerivative(
+        passed = check_derivative(
             lambda u: (hav(u), hav.derivU(u)), np.random.randn(50), plotIt=False
         )
         self.assertTrue(passed, True)
@@ -54,13 +54,13 @@ class TestModels(unittest.TestCase):
 
             print("Haverkamp_theta test m deriv:  ", name)
 
-            passed = checkDerivative(fun, x0, plotIt=False)
+            passed = check_derivative(fun, x0, plotIt=False)
             self.assertTrue(passed, True)
 
     def test_vangenuchten_theta_u(self):
         mesh = discretize.TensorMesh([50])
         van = richards.empirical.Vangenuchten_theta(mesh)
-        passed = checkDerivative(
+        passed = check_derivative(
             lambda u: (van(u), van.derivU(u)), np.random.randn(50), plotIt=False
         )
         self.assertTrue(passed, True)
@@ -96,7 +96,7 @@ class TestModels(unittest.TestCase):
 
             print("Vangenuchten_theta test m deriv:  ", name)
 
-            passed = checkDerivative(fun, x0, plotIt=False)
+            passed = check_derivative(fun, x0, plotIt=False)
             self.assertTrue(passed, True)
 
     def test_haverkamp_k_u(self):
@@ -105,7 +105,7 @@ class TestModels(unittest.TestCase):
 
         hav = richards.empirical.Haverkamp_k(mesh)
         print("Haverkamp_k test u deriv")
-        passed = checkDerivative(
+        passed = check_derivative(
             lambda u: (hav(u), hav.derivU(u)), np.random.randn(mesh.nC), plotIt=False
         )
         self.assertTrue(passed, True)
@@ -155,7 +155,7 @@ class TestModels(unittest.TestCase):
 
             print("Haverkamp_k test m deriv:  ", name)
 
-            passed = checkDerivative(fun, np.random.randn(mesh.nC * nM), plotIt=False)
+            passed = check_derivative(fun, np.random.randn(mesh.nC * nM), plotIt=False)
             self.assertTrue(passed, True)
 
     def test_vangenuchten_k_u(self):
@@ -164,7 +164,7 @@ class TestModels(unittest.TestCase):
         van = richards.empirical.Vangenuchten_k(mesh)
 
         print("Vangenuchten_k test u deriv")
-        passed = checkDerivative(
+        passed = check_derivative(
             lambda u: (van(u), van.derivU(u)), np.random.randn(mesh.nC), plotIt=False
         )
         self.assertTrue(passed, True)
@@ -204,7 +204,7 @@ class TestModels(unittest.TestCase):
 
             print("Vangenuchten_k test m deriv:  ", name)
 
-            passed = checkDerivative(fun, x0, plotIt=False)
+            passed = check_derivative(fun, x0, plotIt=False)
             self.assertTrue(passed, True)
 
 

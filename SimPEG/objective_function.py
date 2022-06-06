@@ -8,7 +8,7 @@ import scipy.sparse as sp
 from six import integer_types
 import warnings
 
-from discretize.tests import checkDerivative
+from discretize.tests import check_derivative
 
 from .maps import IdentityMap
 from .props import BaseSimPEG
@@ -127,7 +127,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             else:
                 x = np.random.randn(self.nP)
 
-        return checkDerivative(
+        return check_derivative(
             lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt, **kwargs
         )
 
@@ -141,7 +141,7 @@ class BaseObjectiveFunction(BaseSimPEG):
 
         v = x + 0.1 * np.random.rand(len(x))
         expectedOrder = kwargs.pop("expectedOrder", 1)
-        return checkDerivative(
+        return check_derivative(
             lambda m: [self.deriv(m).dot(v), self.deriv2(m, v=v)],
             x,
             num=num,

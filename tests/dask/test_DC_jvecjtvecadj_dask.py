@@ -53,7 +53,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.LeastSquaresRegularization(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )
@@ -129,7 +129,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
-        reg = regularization.Tikhonov(mesh)
+        reg = regularization.LeastSquaresRegularization(mesh)
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
         )

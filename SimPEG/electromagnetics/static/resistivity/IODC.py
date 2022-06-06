@@ -821,7 +821,7 @@ class IO(properties.HasProperties):
             fig.savefig(figname, dpi=200)
 
     def read_ubc_dc2d_obs_file(self, filename, input_type="simple", toponame=None):
-        obsfile = np.genfromtxt(filename, delimiter=" \n", dtype=np.str, comments="!")
+        obsfile = np.genfromtxt(filename, delimiter=" \n", dtype=str, comments="!")
         if input_type == "general":
             topo = None
             n_src = 0

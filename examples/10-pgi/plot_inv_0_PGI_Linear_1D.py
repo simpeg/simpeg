@@ -2,7 +2,7 @@
 Petrophysically guided inversion (PGI): Linear example
 ======================================================
 
-We do a comparison between the classic Tikhonov inversion
+We do a comparison between the classic least-squares inversion
 and our formulation of a petrophysically constrained inversion.
 We explore it through the UBC linear example.
 
@@ -71,7 +71,7 @@ std = 0.01
 survey = prob.make_synthetic_data(mtrue, relative_error=std, add_noise=True)
 
 # Setup the inverse problem
-reg = regularization.Tikhonov(mesh, alpha_s=1.0, alpha_x=1.0)
+reg = regularization.LeastSquaresRegularization(mesh, alpha_s=1.0, alpha_x=1.0)
 dmis = data_misfit.L2DataMisfit(data=survey, simulation=prob)
 opt = optimization.ProjectedGNCG(maxIter=10, maxIterCG=50, tolCG=1e-4)
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -106,7 +106,7 @@ clf = utils.WeightedGaussianMixture(
 clf.fit(mtrue.reshape(-1, 1))
 
 # Petrophyically constrained regularization
-reg = utils.make_PGI_regularization(
+reg = regularization.PGI(
     gmmref=clf,
     mesh=mesh,
     alpha_s=1.0,
@@ -140,7 +140,7 @@ inv = inversion.BaseInversion(
     invProb, directiveList=[Alphas, beta, petrodir, targets, addmref, betaIt]
 )
 
-# Initial model same as for Tikhonov
+# Initial model same as for LeastSquaresRegularization
 mcluster = inv.run(m0)
 
 # Final Plot

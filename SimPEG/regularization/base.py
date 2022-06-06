@@ -45,11 +45,13 @@ class BaseRegularization(BaseObjectiveFunction):
         self.regularization_mesh = mesh
         self.active_cells = active_cells
         self.mapping = mapping
+
+        super().__init__(**kwargs)
+
         self.reference_model = reference_model
         self.units = units
         self.weights = weights
 
-        super().__init__(**kwargs)
 
     # Properties
     @property
@@ -1156,6 +1158,13 @@ class BaseSimilarityMeasure(BaseRegularization):
                 self.__class__.__name__
             )
         )
+
+    @property
+    def _nC_residual(self):
+        """
+        Shape of the residual
+        """
+        return self.wire_map.nP
 
     def __call__(self, model):
         """ Returns the computed value of the coupling term. """

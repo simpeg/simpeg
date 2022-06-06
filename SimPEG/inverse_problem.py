@@ -178,7 +178,7 @@ class BaseInvProblem(BaseSimPEG):
         self.phi_d, self.phi_d_last = phi_d, self.phi_d
         self.phi_m, self.phi_m_last = phi_m, self.phi_m
 
-        # Only works for Tikhonov
+        # Only works for LeastSquaresRegularization
         if self.opt.print_type == "ubc":
 
             self.phi_s = 0.0

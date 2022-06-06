@@ -155,8 +155,8 @@ problem = DC.Simulation3DCellCentered(
 
 data = problem.make_synthetic_data(mtrue[actind], relative_error=0.05, add_noise=True)
 
-# Tikhonov Inversion
-####################
+# Least Squares Inversion
+#########################
 
 # Initial Model
 m0 = np.median(ln_sigback) * np.ones(mapping.nP)

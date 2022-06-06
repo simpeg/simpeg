@@ -271,7 +271,7 @@ ax = plot_data(dclean)
 # --------------------
 #
 # We create the data misfit, simple regularization
-# (a Tikhonov-style regularization, :class:`SimPEG.regularization.Simple`)
+# (a least-squares-style regularization, :class:`SimPEG.regularization.Simple`)
 # The smoothness and smallness contributions can be set by including
 # `alpha_s, alpha_x, alpha_y` as input arguments when the regularization is
 # created. The default reference model in the regularization is the starting
