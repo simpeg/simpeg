@@ -334,7 +334,7 @@ reg = regularization.PGI(
     alpha_xx=0.0,
     alpha_yy=0.0,
     alpha_zz=0.0,
-    cell_weights_list=[wr_grav, wr_mag],  # weights each phys. prop. by correct sensW
+    weights_list=[wr_grav, wr_mag],  # weights each phys. prop. by correct sensW
 )
 
 #########################################################################
