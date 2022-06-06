@@ -7,7 +7,7 @@ from .. import props
 from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
-from .regularization_mesh import RegularizationMesh, LCRegularizationMesh
+from .regularization_mesh import RegularizationMesh
 from discretize import SimplexMesh, TensorMesh
 ###############################################################################
 #                                                                             #
@@ -30,10 +30,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
     def __init__(self, mesh=None, **kwargs):
         super(BaseRegularization, self).__init__()
-        if isinstance(mesh, list):
-            self.regmesh = LCRegularizationMesh(mesh)
-        else:
-            self.regmesh = RegularizationMesh(mesh)
+        self.regmesh = RegularizationMesh(mesh)
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
             self.regmesh.indActive = indActive
@@ -207,10 +204,7 @@ class SimpleComboRegularization(ComboObjectiveFunction):
         super(SimpleComboRegularization, self).__init__(
             objfcts=objfcts, multipliers=None
         )
-        if isinstance(mesh, list):
-            self.regmesh = LCRegularizationMesh(mesh)
-        else:
-            self.regmesh = RegularizationMesh(mesh)
+        self.regmesh = RegularizationMesh(mesh)
         if "indActive" in kwargs.keys():
             indActive = kwargs.pop("indActive")
             self.regmesh.indActive = indActive

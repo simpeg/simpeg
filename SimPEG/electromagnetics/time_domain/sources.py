@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.constants import mu_0
+from scipy.special import roots_legendre
 import properties
 import warnings
 from ...utils.code_utils import deprecate_property
@@ -1153,8 +1154,8 @@ class PiecewiseWireLoop(BaseTDEMSrc):
     current = properties.Float("current in the line", default=1.0)
     n_points_per_path = properties.Integer("number of quadrature points per linear wire path", default=3)
 
-    def __init__(self, receiver_list=None, frequency=None, wire_paths=None, **kwargs):
-        super(PiecewiseWireLoop, self).__init__(receiver_list, frequency=frequency, wire_paths=wire_paths, **kwargs)
+    def __init__(self, receiver_list=None, wire_paths=None, **kwargs):
+        super(PiecewiseWireLoop, self).__init__(receiver_list, wire_paths=wire_paths, **kwargs)
         self._get_electric_dipole_locations()
 
     @property

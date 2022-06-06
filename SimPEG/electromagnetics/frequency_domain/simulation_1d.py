@@ -209,6 +209,11 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 if self.sigmaMap is not None:
                     rTE_ds = rTE_ds[:, i_freq]
                     rTE_ds = np.take_along_axis(rTE_ds, inv_lambs[None, ...], axis=-1)
+                    tmp = (
+                        (C0s * rTE_ds) @ self.fhtfilt.j0
+                        + (C1s * rTE_ds) @ self.fhtfilt.j1
+                    )
+                    print (tmp.shape)
                     v_ds = ((
                         (C0s * rTE_ds) @ self.fhtfilt.j0
                         + (C1s * rTE_ds) @ self.fhtfilt.j1

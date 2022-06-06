@@ -232,8 +232,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
         rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
         rTE = rTE[:, inv_lambs]
-
-        v = W@((C0s * rTE) @ self.fhtfilt.j0 + (C1s * rTE) @ self.fhtfilt.j1)
+        v = ((C0s * rTE) @ self.fhtfilt.j0 + (C1s * rTE) @ self.fhtfilt.j1) @ W.T
 
         return self._project_to_data(v.T)
 
@@ -249,7 +248,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
             frequencies = self._frequencies
             unique_lambs = self._unique_lambs
             inv_lambs = self._inv_lambs
-            W = self._W
+            # Had to convert this to an array for a tensor operation (?)
+            W = self._W.toarray()
 
             sig = self.compute_complex_sigma(frequencies)
             mu = self.compute_complex_mu(frequencies)
