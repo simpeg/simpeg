@@ -119,6 +119,135 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-26)
         self.assertTrue(passed)
 
+class EM1D_TD_PiecewiseWireLoop_Jac_layers_ProblemTests(unittest.TestCase):
+    def setUp(self):
+        # WalkTEM waveform
+        # Low moment
+        lm_waveform_times = np.r_[-1.041E-03, -9.850E-04, 0.000E+00, 4.000E-06]
+        lm_waveform_current = np.r_[0.0, 1.0, 1.0, 0.0]
+
+        # High moment
+        hm_waveform_times = np.r_[-8.333E-03, -8.033E-03, 0.000E+00, 5.600E-06]
+        hm_waveform_current = np.r_[0.0, 1.0, 1.0, 0.0]
+
+        # Low moment
+        lm_off_time = np.array([
+            1.149E-05, 1.350E-05, 1.549E-05, 1.750E-05, 2.000E-05, 2.299E-05,
+            2.649E-05, 3.099E-05, 3.700E-05, 4.450E-05, 5.350E-05, 6.499E-05,
+            7.949E-05, 9.799E-05, 1.215E-04, 1.505E-04, 1.875E-04, 2.340E-04,
+            2.920E-04, 3.655E-04, 4.580E-04, 5.745E-04, 7.210E-04
+        ])
+
+        # High moment
+        hm_off_time = np.array([
+            9.810e-05, 1.216e-04, 1.506e-04, 1.876e-04, 2.341e-04, 2.921e-04,
+            3.656e-04, 4.581e-04, 5.746e-04, 7.211e-04, 9.056e-04, 1.138e-03,
+            1.431e-03, 1.799e-03, 2.262e-03, 2.846e-03, 3.580e-03, 4.505e-03,
+            5.670e-03, 7.135e-03
+        ])
+
+        # WalkTEM geometry
+        x_path = np.array([-20, -20, 20, 20, -20])
+        y_path = np.array([-20, 20, 20, -20, -20])
+
+        wire_paths= np.c_[x_path, y_path, np.zeros(5)]
+        source_list = []
+        receiver_list_lm = []
+        receiver_list_hm = []
+        receiver_location = np.array([[0, 0, 0]])
+        receiver_orientation = "z"
+
+        receiver_list_lm.append(
+            tdem.receivers.PointMagneticFluxTimeDerivative(
+                receiver_location, times=lm_off_time, orientation=receiver_orientation
+            )
+        )
+
+        receiver_list_hm.append(
+            tdem.receivers.PointMagneticFluxTimeDerivative(
+                receiver_location, times=hm_off_time, orientation=receiver_orientation
+            )
+        )
+
+        lm_wave = tdem.sources.PiecewiseLinearWaveform(lm_waveform_times, lm_waveform_current)
+        hm_wave = tdem.sources.PiecewiseLinearWaveform(hm_waveform_times, hm_waveform_current)
+
+        source_lm = tdem.sources.PiecewiseWireLoop(receiver_list_lm, wire_paths=wire_paths, waveform=lm_wave)
+        source_hm = tdem.sources.PiecewiseWireLoop(receiver_list_hm, wire_paths=wire_paths, waveform=hm_wave)
+        source_list.append(source_lm)
+        source_list.append(source_hm)
+
+        # Define a 1D TDEM survey
+        survey = tdem.survey.Survey(source_list)
+
+        # Physical properties
+        sigma = np.array([1./10, 1./1])
+
+        # Layer thicknesses
+        thicknesses = np.array([30.])
+        n_layer = len(thicknesses) + 1
+
+        self.survey = survey
+        self.sigma = sigma
+        self.thicknesses = thicknesses
+        self.nlayers = len(thicknesses) + 1
+
+    def test_EM1DTDJvec_Layers(self):
+
+        sigma_map = maps.ExpMap(nP=self.nlayers)
+        sim = tdem.Simulation1DLayered(
+            survey=self.survey,
+            thicknesses=self.thicknesses,
+            sigmaMap=sigma_map,
+        )
+
+        m_1D = np.log(np.ones(self.nlayers) * self.sigma)
+
+        def fwdfun(m):
+            resp = sim.dpred(m)
+            return resp
+
+        def jacfun(m, dm):
+            Jvec = sim.Jvec(m, dm)
+            return Jvec
+
+        dm = m_1D * 0.5
+        derChk = lambda m: [fwdfun(m), lambda mx: jacfun(m, mx)]
+        passed = tests.checkDerivative(
+            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
+        )
+        self.assertTrue(passed)
+
+    def test_EM1DTDJtvec_Layers(self):
+
+        sigma_map = maps.ExpMap(nP=self.nlayers)
+        sim = tdem.Simulation1DLayered(
+            survey=self.survey,
+            thicknesses=self.thicknesses,
+            sigmaMap=sigma_map,
+        )
+
+        sigma_layer = 0.1
+        sigma = np.ones(self.nlayers) * self.sigma
+        sigma[1] = sigma_layer
+        m_true = np.log(sigma)
+
+        dobs = sim.dpred(m_true)
+
+        m_ini = np.log(np.ones(self.nlayers) * self.sigma)
+        resp_ini = sim.dpred(m_ini)
+        dr = resp_ini - dobs
+
+        def misfit(m, dobs):
+            dpred = sim.dpred(m)
+            misfit = 0.5 * np.linalg.norm(dpred - dobs) ** 2
+            dmisfit = sim.Jtvec(m, dr)
+            return misfit, dmisfit
+
+        derChk = lambda m: misfit(m, dobs)
+        passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-26)
+        self.assertTrue(passed)
+
 
 if __name__ == "__main__":
     unittest.main()

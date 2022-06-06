@@ -100,121 +100,100 @@ class EM1D_TD_CircularLoop_FwdProblemTests(unittest.TestCase):
         np.testing.assert_allclose(dbdt, dbdt_analytic, atol=0.0, rtol=1e-2)
 
 
-class EM1D_TD_MagDipole_FwdProblemTests(unittest.TestCase):
+class EM1D_TD_PiecewiseWireLoop_FwdProblemTests(unittest.TestCase):
     def setUp(self):
+        # WalkTEM waveform
+        # Low moment
+        lm_waveform_times = np.r_[-1.041E-03, -9.850E-04, 0.000E+00, 4.000E-06]
+        lm_waveform_current = np.r_[0.0, 1.0, 1.0, 0.0]
 
-        nearthick = np.logspace(-1, 1, 5)
-        deepthick = np.logspace(1, 2, 10)
-        thicknesses = np.r_[nearthick, deepthick]
-        topo = np.r_[0.0, 0.0, 100.0]
+        # High moment
+        hm_waveform_times = np.r_[-8.333E-03, -8.033E-03, 0.000E+00, 5.600E-06]
+        hm_waveform_current = np.r_[0.0, 1.0, 1.0, 0.0]
 
-        source_location = np.array([0.0, 0.0, 100.0])
-        receiver_locations = np.array([[100.0, 0.0, 100.0]])
-        times = np.logspace(-5, -2, 31)
-        # Waveform
-        waveform = tdem.sources.TriangularWaveform(
-            start_time=-0.01, peak_time=-0.005, off_time=0.0
-        )
+        # Low moment
+        lm_off_time = np.array([
+            1.149E-05, 1.350E-05, 1.549E-05, 1.750E-05, 2.000E-05, 2.299E-05,
+            2.649E-05, 3.099E-05, 3.700E-05, 4.450E-05, 5.350E-05, 6.499E-05,
+            7.949E-05, 9.799E-05, 1.215E-04, 1.505E-04, 1.875E-04, 2.340E-04,
+            2.920E-04, 3.655E-04, 4.580E-04, 5.745E-04, 7.210E-04
+        ])
 
-        # Receiver list
-        receivers_list = [
-            tdem.receivers.PointMagneticFluxDensity(receiver_locations, times, "z"),
+        # High moment
+        hm_off_time = np.array([
+            9.810e-05, 1.216e-04, 1.506e-04, 1.876e-04, 2.341e-04, 2.921e-04,
+            3.656e-04, 4.581e-04, 5.746e-04, 7.211e-04, 9.056e-04, 1.138e-03,
+            1.431e-03, 1.799e-03, 2.262e-03, 2.846e-03, 3.580e-03, 4.505e-03,
+            5.670e-03, 7.135e-03
+        ])
+
+        # WalkTEM geometry
+        x_path = np.array([-20, -20, 20, 20, -20])
+        y_path = np.array([-20, 20, 20, -20, -20])
+
+        wire_paths= np.c_[x_path, y_path, np.zeros(5)]
+        source_list = []
+        receiver_list_lm = []
+        receiver_list_hm = []
+        receiver_location = np.array([[0, 0, 0]])
+        receiver_orientation = "z"
+
+        receiver_list_lm.append(
             tdem.receivers.PointMagneticFluxTimeDerivative(
-                receiver_locations, times, "z"
-            ),
-            tdem.receivers.PointMagneticFluxDensity(receiver_locations, times, "x"),
-            tdem.receivers.PointMagneticFluxTimeDerivative(
-                receiver_locations, times, "x"
-            ),
-        ]
-
-        # Must define the transmitter properties and associated receivers
-        source_list = [
-            tdem.sources.MagDipole(
-                receivers_list, location=source_location, waveform=waveform
+                receiver_location, times=lm_off_time, orientation=receiver_orientation
             )
-        ]
-
-        survey = tdem.Survey(source_list)
-
-        sigma = 1e-2
-
-        self.topo = topo
-        self.survey = survey
-        self.sigma = sigma
-        self.times = times
-        self.thicknesses = thicknesses
-        self.nlayers = len(thicknesses) + 1
-        self.waveform = waveform
-        self.rx_locations = receiver_locations
-
-        sigma_map = maps.ExpMap(nP=self.nlayers)
-        sim = tdem.Simulation1DLayered(
-            survey=self.survey,
-            thicknesses=self.thicknesses,
-            sigmaMap=sigma_map,
-            topo=self.topo,
         )
 
-        m_1D = np.log(np.ones(self.nlayers) * self.sigma)
-        d = sim.dpred(m_1D)
-        self.bz, self.bzdt, self.bx, self.bxdt = d.reshape(4, -1)
-
-    def test_em1dtd_mag_dipole_bz(self):
-        def func(t, *fargs, **fkwargs):
-            return b_dipole(t, *fargs, **fkwargs)[:, 0, 2]
-
-        analytic = convolve_with_waveform(
-            func,
-            self.waveform,
-            self.times,
-            fargs=(self.rx_locations,),
-            fkwargs={"sigma": self.sigma},
+        receiver_list_hm.append(
+            tdem.receivers.PointMagneticFluxTimeDerivative(
+                receiver_location, times=hm_off_time, orientation=receiver_orientation
+            )
         )
 
-        np.testing.assert_allclose(self.bz, analytic, rtol=1e-3)
+        lm_wave = tdem.sources.PiecewiseLinearWaveform(lm_waveform_times, lm_waveform_current)
+        hm_wave = tdem.sources.PiecewiseLinearWaveform(hm_waveform_times, hm_waveform_current)
+
+        source_lm = tdem.sources.PiecewiseWireLoop(receiver_list_lm, wire_paths=wire_paths, waveform=lm_wave)
+        source_hm = tdem.sources.PiecewiseWireLoop(receiver_list_hm, wire_paths=wire_paths, waveform=hm_wave)
+        source_list.append(source_lm)
+        source_list.append(source_hm)
+
+        # Define a 1D TDEM survey
+        survey = tdem.survey.Survey(source_list)
+
+        # Physical properties
+        model = np.array([1./10, 1./1])
+
+        # Layer thicknesses
+        thicknesses = np.array([30.])
+        n_layer = len(thicknesses) + 1
+
+        # Define a mapping from model parameters to conductivities
+        model_mapping = maps.IdentityMap(nP=n_layer)
+
+        simulation = tdem.Simulation1DLayered(
+            survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping,
+        )
+
+        self.bzdt = simulation.dpred(model)
 
     def test_em1dtd_mag_dipole_bzdt(self):
-        def func(t, *fargs, **fkwargs):
-            return dbdt_dipole(t, *fargs, **fkwargs)[:, 0, 2]
 
-        analytic = convolve_with_waveform(
-            func,
-            self.waveform,
-            self.times,
-            fargs=(self.rx_locations,),
-            fkwargs={"sigma": self.sigma},
-        )
+        empymod_solution = np.array([
+            9.34490123e-04, 6.94483184e-04, 5.30780675e-04, 4.13985491e-04,
+            3.12288448e-04, 2.30231119e-04, 1.66949789e-04, 1.15353241e-04,
+            7.46550309e-05, 4.66347045e-05, 2.88132824e-05, 1.72912356e-05,
+            1.03331515e-05, 6.25627742e-06, 3.92023957e-06, 2.58557463e-06,
+            1.75333907e-06, 1.21267186e-06, 8.45204615e-07, 5.84105319e-07,
+            3.98577218e-07, 2.67232863e-07, 1.75618980e-07, 6.47837095e-06,
+            4.06848723e-06, 2.70385819e-06, 1.85598003e-06, 1.30331551e-06,
+            9.26701266e-07, 6.56612546e-07, 4.62303042e-07, 3.22156332e-07,
+            2.21869133e-07, 1.50726507e-07, 1.00915787e-07, 6.65266826e-08,
+            4.32260520e-08, 2.76450055e-08, 1.73721794e-08, 1.07354465e-08,
+            6.50886256e-09, 3.86887941e-09, 2.25589672e-09
+        ])
 
-        np.testing.assert_allclose(self.bzdt, analytic, rtol=1e-2)
-
-    def test_em1dtd_mag_dipole_bx(self):
-        def func(t, *fargs, **fkwargs):
-            return b_dipole(t, *fargs, **fkwargs)[:, 0, 0]
-
-        analytic = convolve_with_waveform(
-            func,
-            self.waveform,
-            self.times,
-            fargs=(self.rx_locations,),
-            fkwargs={"sigma": self.sigma},
-        )
-
-        np.testing.assert_allclose(self.bx, analytic, rtol=1e-4)
-
-    def test_em1dtd_mag_dipole_bxdt(self):
-        def func(t, *fargs, **fkwargs):
-            return dbdt_dipole(t, *fargs, **fkwargs)[:, 0, 0]
-
-        analytic = convolve_with_waveform(
-            func,
-            self.waveform,
-            self.times,
-            fargs=(self.rx_locations,),
-            fkwargs={"sigma": self.sigma},
-        )
-
-        np.testing.assert_allclose(self.bxdt, analytic, rtol=1e-2)
+        np.testing.assert_allclose(self.bzdt, empymod_solution, rtol=1e-2)
 
 
 if __name__ == "__main__":
