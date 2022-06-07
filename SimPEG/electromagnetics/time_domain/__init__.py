@@ -4,7 +4,12 @@ from .simulation import (
     Simulation3DMagneticField,
     Simulation3DCurrentDensity,
 )
-from .simulation_1d import Simulation1DLayered
+from .simulation_1d import (
+	Simulation1DLayered,
+	Simulation1DLayeredStitched,
+	run_simulation_time_domain
+)
+
 from .fields import (
     Fields3DMagneticFluxDensity,
     Fields3DElectricField,

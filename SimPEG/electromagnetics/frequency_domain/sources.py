@@ -19,7 +19,9 @@ class BaseFDEMSrc(BaseEMSrc):
     """
 
     frequency = properties.Float("frequency of the source", min=0, required=True)
-
+    i_sounding = properties.Integer(
+        "sounding number of the source", min=0, default=0, required=True
+    )
     _ePrimary = None
     _bPrimary = None
     _hPrimary = None

@@ -433,3 +433,263 @@ class RegularizationMesh(props.BaseSimPEG):
 
 # Make it look like it's in the regularization module
 RegularizationMesh.__module__ = "SimPEG.regularization"
+
+class LCRegularizationMesh(RegularizationMesh):
+    """
+    **LCRegularization Mesh**
+
+    :param list mesh: lit including two discretize meshes
+    :param numpy.ndarray indActive: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
+    :param numpy.ndarray indActiveEdges: bool array, size nE, that is True where we have active edges. Used to reduce the operators so we regularize only on active edges
+
+    """
+
+    def __init__(self, mesh, **kwargs):
+        self.mesh_radial = mesh[0]
+        self.mesh_vertical = mesh[1]
+        utils.setKwargs(self, **kwargs)
+
+    indActive = properties.Array("active indices in mesh", dtype=[bool, int])
+    indActiveEdges = properties.Array(
+        "indices of active edges in the mesh", dtype=(bool, int)
+    )
+
+    @properties.validator("indActive")
+    def _cast_to_bool(self, change):
+        value = change["value"]
+        if value is not None:
+            if value.dtype != "bool":  # cast it to a bool otherwise
+                tmp = value
+                value = np.zeros(self.nC, dtype=bool)
+                value[tmp] = True
+                change["value"] = value
+
+    @properties.validator("indActiveEdges")
+    def _cast_to_bool(self, change):
+        value = change["value"]
+        if value is not None:
+            if value.dtype != "bool":  # cast it to a bool otherwise
+                tmp = value
+                value = np.zeros(self.nE, dtype=bool)
+                value[tmp] = True
+                change["value"] = value
+    @property
+    def vol(self):
+        # Assume a unit area for the radial points)
+        # We could use the average of cells to nodes
+        self._vol = (np.ones(self.n_nodes, dtype=float)[:, None] * self.mesh_vertical.hx).flatten()
+        return self._vol[self.indActive].flatten()
+
+    @property
+    def h_gridded_r(self):
+        """
+        Length of cells in the raidal direction
+
+        """
+        if getattr(self, "_h_gridded_r", None) is None:
+            # assume a unit length scale in radial direction
+            n = self.nz * self.n_nodes
+            self._h_gridded_r = np.ones(n)
+        return self._h_gridded_r
+
+    @property
+    def h_gridded_z(self):
+        """
+        Length of cells in the vertical direction
+
+        """
+        if getattr(self, "_h_gridded_z", None) is None:
+            self._h_gridded_z = np.tile(
+                self.mesh_vertical.hx, self.n_nodes
+            ).flatten()
+        return self._h_gridded_z
+
+    @property
+    def nodal_gradient_stencil(self):
+        ind_ptr = 2 * np.arange(self.mesh_radial.n_edges+1)
+        col_inds = self.mesh_radial._edges.reshape(-1)
+        Aijs = (np.ones(self.mesh_radial.n_edges, dtype=float)[:, None] * [-1, 1]).reshape(-1)
+
+        return sp.csr_matrix((Aijs, col_inds, ind_ptr), shape=(self.mesh_radial.n_edges, self.n_nodes))
+
+    @property
+    def gradient_r(self):
+        """
+        Nodal gradient in radial direction
+
+        """
+        if getattr(self, "_gradient_r", None) is None:
+            grad = self.nodal_gradient_stencil
+            self._gradient_r = self.Paer.T * sp.kron(grad, utils.speye(self.nz)) * self.Pac
+        return self._gradient_r
+
+    @property
+    def average_r(self):
+        """
+        Average of cells in the radial direction
+
+        """
+        if getattr(self, "_average_r", None) is None:
+            ave = self.mesh_radial.average_node_to_edge
+            self._average_r = self.Paer.T * sp.kron(ave, utils.speye(self.nz)) * self.Pac
+        return self._average_r
+
+    @property
+    def gradient_z(self):
+        """
+        Cell gradeint in vertical direction
+
+        """
+        if getattr(self, "_gradient_z", None) is None:
+            grad = self.mesh_vertical._cellGradStencil
+            self._gradient_z = self.Pafz.T * sp.kron(utils.speye(self.n_nodes), grad) * self.Pac
+        return self._gradient_z
+
+    @property
+    def average_z(self):
+        """
+        Average of cells in the vertical direction
+
+        """
+        if getattr(self, "_average_z", None) is None:
+            ave = self.mesh_vertical.average_cell_to_face
+            self._average_z = self.Pafz.T * sp.kron(utils.speye(self.n_nodes), ave) * self.Pac
+        return self._average_z
+
+    @property
+    def nz(self):
+        """
+        Number of cells of the 1D vertical mesh
+        """
+        if getattr(self, "_nz", None) is None:
+            self._nz = self.mesh_vertical.n_cells
+        return self._nz
+
+    @property
+    def nFz(self):
+        """
+        Number of faces in the vertical direction
+        """
+        if getattr(self, "_nFz", None) is None:
+            self._nFz = self.mesh_vertical.n_faces * self.n_nodes
+        return self._nFz
+
+    @property
+    def nE(self):
+        """
+        Number of edges in the radial direction
+        """
+        if getattr(self, "_nE", None) is None:
+            self._nE = self.nz * self.n_edges
+        return self._nE
+
+    @property
+    def nC(self):
+        """
+        reduced number of cells
+
+        :rtype: int
+        :return: number of cells being regularized
+        """
+        if self.indActive is not None:
+            return int(self.indActive.sum())
+        return self.nz * self.n_nodes
+
+    @property
+    def n_nodes(self):
+        """
+        Number of nodes of the 2D simplex mesh
+        """
+        if getattr(self, "_n_nodes", None) is None:
+            self._n_nodes = self.mesh_radial.n_nodes
+        return self._n_nodes
+
+    @property
+    def n_edges(self):
+        """
+        Number of edges of the 2D simplex mesh
+        """
+        if getattr(self, "_n_edges", None) is None:
+            self._n_edges = self.mesh_radial.n_edges
+        return self._n_edges
+
+    @property
+    def Pafz(self):
+        """
+        projection matrix that takes from the reduced space of active z-faces
+        to full modelling space (ie. nFz x nindActive_Fz )
+
+        :rtype: scipy.sparse.csr_matrix
+        :return: active face-x projection matrix
+        """
+        if getattr(self, "_Pafz", None) is None:
+            if self.indActive is None:
+                self._Pafz = utils.speye(self.nFz)
+            else:
+                ave = self.mesh_vertical.average_face_to_cell
+                aveFz2CC = sp.kron(utils.speye(self.n_nodes), ave)
+                indActive_Fz = aveFz2CC.T * self.indActive >= 1
+                self._Pafz = utils.speye(self.nFz)[:, indActive_Fz]
+        return self._Pafz
+
+    @property
+    def Pac(self):
+        """
+        projection matrix that takes from the reduced space of active cells to
+        full modelling space (ie. nC x nindActive)
+
+        :rtype: scipy.sparse.csr_matrix
+        :return: active cell projection matrix
+        """
+        if getattr(self, "_Pac", None) is None:
+            if self.indActive is None:
+                self._Pac = utils.speye(self.nz*self.n_nodes)
+            else:
+                self._Pac = utils.speye(self.nz*self.n_nodes)[:, self.indActive]
+        return self._Pac
+
+    @property
+    def Paer(self):
+        """
+        projection matrix that takes from the reduced space of active edges
+        to full modelling space (ie. nE x nindActive_E )
+
+        :rtype: scipy.sparse.csr_matrix
+        :return: active edge projection matrix
+        """
+        if getattr(self, "_Paer", None) is None:
+            if self.indActiveEdges is None:
+                self._Paer = utils.speye(self.nE)
+            else:
+                ave = self.mesh_vertical.average_face_to_cell
+                aveFz2CC = sp.kron(utils.speye(self.n_nodes), ave)
+                self._Paer = utils.speye(self.nE)[:, self.indActiveEdges]
+        return self._Paer
+
+    @property
+    def aveFz2CC(self):
+        """
+        averaging from active cell centers to active x-faces
+
+        :rtype: scipy.sparse.csr_matrix
+        :return: averaging from active cell centers to active x-faces
+        """
+        if getattr(self, "_aveFz2CC", None) is None:
+            ave = self.mesh_vertical.average_face_to_cell
+            self._aveFz2CC = self.Pac.T * sp.kron(utils.speye(self.n_nodes), ave) * self.Pafz
+        return self._aveFz2CC
+
+    @property
+    def aveE2N(self):
+        """
+        averaging from active nodes to active edges
+
+        :rtype: scipy.sparse.csr_matrix
+        :return: averaging from active cell centers to active edges
+        """
+
+        if getattr(self, "_aveE2N", None) is None:
+            ave = self.mesh_radial.average_node_to_edge.T
+            self._aveE2N = self.Pac.T * sp.kron(ave, utils.speye(self.nz)) * self.Paer
+        return self._aveE2N
+LCRegularizationMesh.__module__ = "SimPEG.regularization"

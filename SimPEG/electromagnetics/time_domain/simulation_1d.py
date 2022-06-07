@@ -1,5 +1,5 @@
 from ... import maps, utils
-from ..base_1d import BaseEM1DSimulation
+from ..base_1d import BaseEM1DSimulation, BaseStitchedEM1DSimulation
 from .sources import StepOffWaveform
 from .receivers import (
     PointMagneticFluxDensity,
@@ -73,7 +73,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
             self._unique_lambs,
             self._inv_lambs,
             self._C0s,
-            self._C1s
+            self._C1s,
+            self._W
         )
 
     def _set_coefficients(self, coefficients):
@@ -84,6 +85,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         self._inv_lambs = coefficients[4]
         self._C0s = coefficients[5]
         self._C1s = coefficients[6]
+        self._W = coefficients[7]
         self._coefficients_set = True
         return
 
@@ -92,7 +94,6 @@ class Simulation1DLayered(BaseEM1DSimulation):
             return
         self._compute_hankel_coefficients()
         survey = self.survey
-
         t_min = np.infty
         t_max = -np.infty
         x, w = roots_legendre(251)
@@ -232,8 +233,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
         rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
         rTE = rTE[:, inv_lambs]
-        v = ((C0s * rTE) @ self.fhtfilt.j0 + (C1s * rTE) @ self.fhtfilt.j1) @ W.T
-
+        v = ((C0s * rTE) @ self.fhtfilt.j0 + (C1s * rTE) @ self.fhtfilt.j1)@W.T
         return self._project_to_data(v.T)
 
     def getJ(self, m, f=None):
@@ -326,6 +326,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             out = np.empty((self.survey.nD, v.shape[-1]))
         else:
             out = np.empty((self.survey.nD))
+
         i_dat = 0
         i_A = 0
         i = 0
@@ -337,13 +338,19 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 v_slice = v[np.arange(i, i_p1)]
                 # this should order it as location changing faster than time
                 # i.e. loc_1 t_1, loc_2 t_1, loc1 t2, loc2 t2
+                frequencies = self._frequencies
+                h = (1+1j*(frequencies/rx.lp_cutoff_frequency_1))**-rx.lp_power_1   # First order type
+                h *= (1+1j*frequencies/rx.lp_cutoff_frequency_2)**-rx.lp_power_2 # First order type
+
                 if v.ndim == 3:
+                    v_slice *= h[None,:,None]
                     if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
                         d = np.einsum("ij,...jk->...ik", As[i_A], v_slice.imag)
                     else:
                         d = np.einsum("ij,...jk->...ik", As[i_A], v_slice.real)
                     out[i_dat:i_datp1] = d.reshape((-1, v.shape[-1]), order="F")
                 else:
+                    v_slice *= h[None,:]
                     if isinstance(rx, (PointMagneticFluxDensity, PointMagneticField)):
                         d = np.einsum("ij,...j->...i", As[i_A], v_slice.imag)
                     else:
@@ -353,3 +360,294 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 i = i_p1
                 i_A += 1
         return out
+
+
+def run_simulation_time_domain(args):
+    """
+    This method simulates the EM response or computes the sensitivities for
+    a single sounding. The method allows for parallelization of
+    the stitched 1D problem.
+    :param src: a EM1DTM source object
+    :param topo: Topographic location (x, y, z)
+    :param np.array thicknesses: np.array(N-1,) layer thicknesses for a single sounding
+    :param np.array sigma: np.array(N,) layer conductivities for a single sounding
+    :param np.array eta: np.array(N,) intrinsic chargeabilities for a single sounding
+    :param np.array tau: np.array(N,) Cole-Cole time constant for a single sounding
+    :param np.array c: np.array(N,) Cole-Cole frequency distribution constant for a single sounding
+    :param np.array chi: np.array(N,) magnetic susceptibility for a single sounding
+    :param np.array dchi: np.array(N,) DC susceptibility for magnetic viscosity for a single sounding
+    :param np.array tau1: np.array(N,) lower time-relaxation constant for magnetic viscosity for a single sounding
+    :param np.array tau2: np.array(N,) upper time-relaxation constant for magnetic viscosity for a single sounding
+    :param float h: source height for a single sounding
+    :param string output_type: "response", "sensitivity_sigma", "sensitivity_height"
+    :param bool invert_height: boolean switch for inverting for source height
+    :return: response or sensitivities
+    """
+
+    (
+        source_list,
+        topo,
+        thicknesses,
+        sigma,
+        eta,
+        tau,
+        c,
+        chi,
+        dchi,
+        tau1,
+        tau2,
+        h,
+        output_type,
+        invert_height,
+        return_projection,
+        coefficients
+    ) = args
+
+    n_layer = len(thicknesses) + 1
+    local_survey = Survey(source_list)
+    exp_map = maps.ExpMap(nP=n_layer)
+
+    # Deprecate at the moment
+    # if not invert_height:
+    # Use Exponential Map
+    # This is hard-wired at the moment
+    sim = Simulation1DLayered(
+        survey=local_survey,
+        thicknesses=thicknesses,
+        sigmaMap=exp_map,
+        eta=eta,
+        tau=tau,
+        c=c,
+        # chi=chi,
+        # dchi=dchi,
+        # tau1=tau1,
+        # tau2=tau2,
+        topo=topo,
+        hankel_filter="key_101_2009",
+    )
+
+    if return_projection:
+        return sim.get_coefficients()
+
+    sim._set_coefficients(coefficients)
+
+    if output_type == "sensitivity_sigma":
+        J = sim.getJ(np.log(sigma))
+        return utils.mkvc(J['ds'] * sim.sigmaDeriv)
+    else:
+        resp = sim.dpred(np.log(sigma))
+        return resp
+    # else:
+
+    #     wires = maps.Wires(("sigma", n_layer), ("h", 1))
+    #     sigma_map = exp_map * wires.sigma
+    #     sim = Simulation1DLayered(
+    #         survey=local_survey,
+    #         thicknesses=thicknesses,
+    #         sigmaMap=sigma_map,
+    #         hMap=wires.h,
+    #         topo=topo,
+    #         eta=eta,
+    #         tau=tau,
+    #         c=c,
+    #         # chi=chi,
+    #         # dchi=dchi,
+    #         # tau1=tau1,
+    #         # tau2=tau2,
+    #         hankel_filter="key_101_2009",
+    #         use_sounding=True,
+    #     )
+
+    #     m = np.r_[np.log(sigma), h]
+    #     if output_type == "sensitivity_sigma":
+    #         J['ds'] = sim.getJ(m)
+    #         return utils.mkvc(J['ds'] * utils.sdiag(sigma))
+    #     elif output_type == "sensitivity_height":
+    #         J = sim.getJ(m)
+    #         return utils.mkvc(drespdh)
+    #     else:
+    #         resp = sim.dpred(m)
+    #         return resp
+
+
+#######################################################################
+#       STITCHED 1D SIMULATION CLASS AND GLOBAL FUNCTIONS
+#######################################################################
+
+
+class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
+
+    survey = properties.Instance("a survey object", Survey, required=True)
+    _simulation_type = 'time'
+
+    def run_simulation(self, args):
+        if self.verbose:
+            print(">> Time-domain")
+        return self._run_simulation(args)
+
+    def forward(self, m):
+        self.model = m
+
+        if self.verbose:
+            print(">> Compute response")
+
+        # Set flat topo at zero
+        if self.topo is None:
+            self.set_null_topography()
+
+        run_simulation = run_simulation_time_domain
+
+        if self.parallel:
+            if self.verbose:
+                print ('parallel')
+
+            #This assumes the same # of layers for each of sounding
+            if self._coefficients_set is False:
+                if self.verbose:
+                    print(">> Calculate coefficients")
+                pool = Pool(self.n_cpu)
+                self._coefficients = pool.map(
+                    run_simulation,
+                    [
+                        self.input_args_for_coeff(i) for i in range(self.n_sounding)
+                    ]
+                 )
+                self._coefficients_set = True
+                pool.close()
+                pool.join()
+
+            # if self.n_sounding_for_chunk is None:
+            pool = Pool(self.n_cpu)
+            result = pool.map(
+                run_simulation,
+                [
+                    self.input_args(i, output_type='forward') for i in range(self.n_sounding)
+                ]
+            )
+            # else:
+            #     result = pool.map(
+            #         self._run_simulation_by_chunk,
+            #         [
+            #             self.input_args_by_chunk(i, output_type='forward') for i in range(self.n_chunk)
+            #         ]
+            #     )
+            #     return np.r_[result].ravel()
+
+            pool.close()
+            pool.join()
+        else:
+            if self._coefficients_set is False:
+                if self.verbose:
+                    print(">> Calculate coefficients")
+
+                self._coefficients = [
+                    run_simulation(self.input_args_for_coeff(i)) for i in range(self.n_sounding)
+                ]
+                self._coefficients_set = True
+
+            result = [
+                run_simulation(self.input_args(i, output_type='forward')) for i in range(self.n_sounding)
+            ]
+        return np.hstack(result)
+
+    def getJ_sigma(self, m):
+        """
+             Compute d F / d sigma
+        """
+        if self._Jmatrix_sigma is not None:
+            return self._Jmatrix_sigma
+        if self.verbose:
+            print(">> Compute J sigma")
+        self.model = m
+
+        run_simulation = run_simulation_time_domain
+
+        if self.parallel:
+
+            pool = Pool(self.n_cpu)
+            # Deprecate this for now, but revisit later
+            # It is an idea of chunking for parallelization
+            # if self.n_sounding_for_chunk is None:
+            self._Jmatrix_sigma = pool.map(
+                run_simulation,
+                [
+                    self.input_args(i, output_type='sensitivity_sigma') for i in range(self.n_sounding)
+                ]
+            )
+            self._Jmatrix_sigma = np.hstack(self._Jmatrix_sigma)
+            # else:
+            # self._Jmatrix_sigma = pool.map(
+            #     self._run_simulation_by_chunk,
+            #     [
+            #         self.input_args_by_chunk(i, output_type='sensitivity_sigma') for i in range(self.n_chunk)
+            #     ]
+            # )
+            self._Jmatrix_sigma = np.r_[self._Jmatrix_sigma].ravel()
+            pool.close()
+            pool.join()
+
+            self._Jmatrix_sigma = sp.coo_matrix(
+                (self._Jmatrix_sigma, self.IJLayers), dtype=float
+            ).tocsr()
+
+        else:
+            self._Jmatrix_sigma = [
+                    run_simulation(self.input_args(i, output_type='sensitivity_sigma')) for i in range(self.n_sounding)
+            ]
+            self._Jmatrix_sigma = np.hstack(self._Jmatrix_sigma)
+            self._Jmatrix_sigma = sp.coo_matrix(
+                (self._Jmatrix_sigma, self.IJLayers), dtype=float
+            ).tocsr()
+
+        return self._Jmatrix_sigma
+
+    def getJ_height(self, m):
+        """
+             Compute d F / d height
+        """
+        if self.hMap is None:
+            return utils.Zero()
+
+        if self._Jmatrix_height is not None:
+            return self._Jmatrix_height
+        if self.verbose:
+            print(">> Compute J height")
+
+        self.model = m
+
+        run_simulation = run_simulation_time_domain
+
+        if (self.parallel) & (__name__=='__main__'):
+            pool = Pool(self.n_cpu)
+            # if self.n_sounding_for_chunk is None:
+            self._Jmatrix_height = pool.map(
+                run_simulation,
+                [
+                    self.input_args(i, output_type="sensitivity_height") for i in range(self.n_sounding)
+                ]
+            )
+            # else:
+            # self._Jmatrix_height = pool.map(
+            #     self._run_simulation_by_chunk,
+            #     [
+            #         self.input_args_by_chunk(i, output_type='sensitivity_height') for i in range(self.n_chunk)
+            #     ]
+            # )
+            pool.close()
+            pool.join()
+            if self.parallel_jvec_jtvec is False:
+                # self._Jmatrix_height = sp.block_diag(self._Jmatrix_height).tocsr()
+                self._Jmatrix_height = np.hstack(self._Jmatrix_height)
+                self._Jmatrix_height = sp.coo_matrix(
+                    (self._Jmatrix_height, self.IJHeight), dtype=float
+                ).tocsr()
+        else:
+            self._Jmatrix_height = [
+                    run_simulation(self.input_args(i, output_type='sensitivity_height')) for i in range(self.n_sounding)
+            ]
+            self._Jmatrix_height = np.hstack(self._Jmatrix_height)
+            self._Jmatrix_height = sp.coo_matrix(
+                (self._Jmatrix_height, self.IJHeight), dtype=float
+            ).tocsr()
+
+        return self._Jmatrix_height

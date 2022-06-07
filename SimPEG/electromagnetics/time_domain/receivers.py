@@ -22,6 +22,11 @@ class BaseRx(BaseTimeRx):
         "Use source-receiver offset", default=False
     )
 
+    lp_cutoff_frequency_1 = properties.Float("lowpass filter cutoff frequency", default=3e5)
+    lp_power_1 = properties.Float("lowpass filter power", default=0)
+    lp_cutoff_frequency_2 = properties.Float("lowpass filter cutoff frequency", default=3e5)
+    lp_power_2 = properties.Float("lowpass filter power", default=0)
+
     def __init__(self, locations, times, orientation=None, **kwargs):
         proj = kwargs.pop("projComp", None)
         if proj is not None:

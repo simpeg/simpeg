@@ -873,7 +873,9 @@ class BaseTDEMSrc(BaseEMSrc):
         "is the source a galvanic of inductive source",
         choices=["inductive", "galvanic"],
     )
-
+    i_sounding = properties.Integer(
+        "sounding number of the source", min=0, default=0, required=True
+    )
     def __init__(self, receiver_list=None, **kwargs):
         if receiver_list is not None:
             kwargs["receiver_list"] = receiver_list
