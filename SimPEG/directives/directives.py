@@ -334,112 +334,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             new_alpha = getattr(parents[obj], mtype) * user_alpha * ratio
             setattr(parents[obj], mtype, new_alpha)
             alphas += [new_alpha]
-        # if getattr(self.reg, "objfcts", None) is not None:
-        #     nbr = np.sum(
-        #         [len(self.reg.objfcts.objfcts) for obj in self.reg.objfcts]
-        #     )
-        #     # Find the smallness terms in a two-levels combo-regularization.
-        #     smallness = []
-        #     alpha0 = []
-        #     for i, regobjcts in enumerate(self.reg.objfcts):
-        #         for j, regpart in enumerate(regobjcts.objfcts):
-        #             alpha0 += [self.reg.multipliers[i] * regobjcts.multipliers[j]]
-        #             smallness += [
-        #                 [
-        #                     i,
-        #                     j,
-        #                     isinstance(
-        #                         regpart,
-        #                         (
-        #                             Small,
-        #                             SparseSmall,
-        #                             PGIsmallness,
-        #                             PGIwithNonlinearRelationshipsSmallness,
-        #                         ),
-        #                     ),
-        #                 ]
-        #             ]
-        #     smallness = np.r_[smallness]
-        #     # Select the first, only considered, smallness term.
-        #     smallness = smallness[smallness[:, 2] == 1][:, :2][0]
-        #
-        #     # Find the smoothness terms in a two-levels combo-regularization.
-        #     smoothness = []
-        #     for i, regobjcts in enumerate(self.reg.objfcts):
-        #         for j, regpart in enumerate(regobjcts.objfcts):
-        #             smoothness += [
-        #                 [
-        #                     i,
-        #                     j,
-        #                     isinstance(
-        #                         regpart, (SmoothDeriv, SparseDeriv)
-        #                     ),
-        #                 ]
-        #             ]
-        #     smoothness = np.r_[smoothness]
-        #     mode = 1
-        #
-        # else:
-        #     nbr = len(self.reg.objfcts)
-        #     alpha0 = self.reg.multipliers
-        #     smoothness = np.r_[
-        #         [
-        #             isinstance(regpart, (SmoothDeriv, SparseDeriv))
-        #             for regpart in self.reg.objfcts
-        #         ]
-        #     ]
-        #     mode = 2
-        #
-        # if not isinstance(self.alpha0_ratio, np.ndarray):
-        #     self.alpha0_ratio = self.alpha0_ratio * np.ones(nbr)
-        #
-        # if self.debug:
-        #     print("Calculating the Alpha0 parameter.")
-        #
-        # m = self.invProb.model
-        #
-        # if mode == 2:
-        #     smallness_eigenvalue = eigenvalue_by_power_iteration(
-        #         self.reg.objfcts[0], m, n_pw_iter=self.n_pw_iter,
-        #     )
-        #     for i in range(nbr):
-        #         if smoothness[i]:
-        #             smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-        #                 self.reg.objfcts[i], m, n_pw_iter=self.n_pw_iter,
-        #             )
-        #             ratio = smallness_eigenvalue / smooth_i_eigenvalue
-        #
-        #             alpha0[i] *= self.alpha0_ratio[i] * ratio
-        #             mtype = self.reg.objfcts[i]._multiplier_pair
-        #             setattr(self.reg, mtype, alpha0[i])
-        #
-        # elif mode == 1:
-        #     smallness_eigenvalue = eigenvalue_by_power_iteration(
-        #         self.reg.objfcts[smallness[0]].objfcts[smallness[1]],
-        #         m,
-        #         n_pw_iter=self.n_pw_iter,
-        #     )
-        #     for i in range(nbr):
-        #         ratio = []
-        #         if smoothness[i, 2]:
-        #             idx = smoothness[i, :2]
-        #             smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-        #                 self.reg.objfcts[idx[0]].objfcts[idx[1]],
-        #                 m,
-        #                 n_pw_iter=self.n_pw_iter,
-        #             )
-        #
-        #             ratio = np.divide(
-        #                 smallness_eigenvalue,
-        #                 smooth_i_eigenvalue,
-        #                 out=np.zeros_like(smallness_eigenvalue),
-        #                 where=smooth_i_eigenvalue != 0,
-        #             )
-        #
-        #             alpha0[i] *= self.alpha0_ratio[i] * ratio
-        #             mtype = self.reg.objfcts[idx[0]].objfcts[idx[1]]._multiplier_pair
-        #             setattr(self.reg.objfcts[idx[0]], mtype, alpha0[i])
-
+        
         if self.verbose:
             print(f"Alpha scales: {alphas}")
 
@@ -1391,15 +1286,6 @@ class Update_IRLS(InversionDirective):
             for reg in self.reg.objfcts:
                 for obj in reg.objfcts:
                     obj.irls_threshold = obj.irls_threshold / self.coolEpsFact
-                # if reg.eps_p > self.floorEps_p and self.coolEps_p:
-                #     reg.eps_p /= self.coolEpsFact
-                #     # print('Eps_p: ' + str(reg.eps_p))
-                # if reg.eps_q > self.floorEps_q and self.coolEps_q:
-                #     reg.eps_q /= self.coolEpsFact
-                    # print('Eps_q: ' + str(reg.eps_q))
-
-            # Remember the value of the norm from previous R matrices
-            # self.f_old = self.reg(self.invProb.model)
 
             self.irls_iteration += 1
 
