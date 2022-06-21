@@ -441,6 +441,11 @@ class SmoothDeriv(BaseRegularization):
             )
         self._reference_model_in_smooth = value
 
+    def _delta_m(self, m):
+        if self.reference_model is None or not self.reference_model_in_smooth:
+            return m
+        return m - self.reference_model  # in case self.reference_model is Zero, returns type m
+
     @property
     def _multiplier_pair(self):
         return f"alpha_{self.orientation}"
@@ -449,12 +454,7 @@ class SmoothDeriv(BaseRegularization):
         """
         Model gradient
         """
-        if self.reference_model_in_smooth:
-            delta_m = self._delta_m(m)
-        else:
-            delta_m = m
-
-        dfm_dl = self.cell_difference @ (self.mapping * delta_m)
+        dfm_dl = self.cell_difference @ (self.mapping * self._delta_m(m))
 
         if self.units == "radian":
             return utils.mat_utils.coterminal(dfm_dl * self.length_scales) / self.length_scales
@@ -595,12 +595,7 @@ class SmoothDeriv2(SmoothDeriv):
         """
         Second model derivative
         """
-        if self.reference_model_in_smooth:
-            delta_m = self._delta_m(m)
-        else:
-            delta_m = m
-
-        dfm_dl = self.cell_difference @ (self.mapping * delta_m)
+        dfm_dl = self.cell_difference @ (self.mapping * self._delta_m(m))
 
         if self.units == "radian":
             dfm_dl = utils.mat_utils.coterminal(dfm_dl * self.length_scales) / self.length_scales
