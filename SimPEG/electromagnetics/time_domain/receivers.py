@@ -2,6 +2,7 @@ import scipy.sparse as sp
 # import properties
 from ...utils import mkvc, validate_string_property
 from ...survey import BaseTimeRx
+import warnings
 
 
 class BaseRx(BaseTimeRx):

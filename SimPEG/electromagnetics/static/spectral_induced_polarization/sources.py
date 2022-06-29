@@ -70,7 +70,7 @@ class BaseSrc(survey.BaseSrc):
             raise TypeError(f"current must be int or float, got {type(I)}")
 
         if np.abs(I) == 0.:
-            raise TypeError("current must be non-zero.")
+            raise ValueError("current must be non-zero.")
 
         self._current = I
 

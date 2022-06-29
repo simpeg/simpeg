@@ -868,7 +868,7 @@ class CircularLoop(MagDipole):
     def current(self, I):
         I = validate_float_property('current', I)
         if np.abs(I) == 0.:
-            raise TypeError("current must be non-zero.")
+            raise ValueError("current must be non-zero.")
         self._current = I
 
     # def __init__(self, receiver_list=None, frequency=None, location=None, **kwargs):
@@ -1310,7 +1310,7 @@ class LineCurrent(BaseFDEMSrc):
     def current(self, I):
         I = validate_float_property('current', I)
         if np.abs(I) == 0.:
-            raise TypeError("current must be non-zero.")
+            raise ValueError("current must be non-zero.")
         self._current = I
 
     def Mejs(self, simulation):
