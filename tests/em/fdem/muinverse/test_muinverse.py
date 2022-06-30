@@ -20,7 +20,7 @@ def setupMeshModel():
     hx = [(cs, nc), (cs, npad, 1.3)]
     hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
 
-    mesh = discretize.CylMesh([hx, 1.0, hz], "0CC")
+    mesh = discretize.CylindricalMesh([hx, 1.0, hz], "0CC")
     muMod = 1 + MuMax * np.random.randn(mesh.nC)
     sigmaMod = np.random.randn(mesh.nC)
 
