@@ -144,10 +144,10 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         # np.testing.assert_allclose(eNumeric[self.ROIfaceInds], self.E_analytic[self.ROIfaceInds], rtol=tolerance)
         #
         errJ = np.linalg.norm(
-             jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]
+            jNumeric[self.ROIfaceInds] - self.J_analytic[self.ROIfaceInds]
         ) / np.linalg.norm(self.J_analytic[self.ROIfaceInds])
         errE = np.linalg.norm(
-             eNumeric[self.ROIfaceInds] - self.E_analytic[self.ROIfaceInds]
+            eNumeric[self.ROIfaceInds] - self.E_analytic[self.ROIfaceInds]
         ) / np.linalg.norm(self.E_analytic[self.ROIfaceInds])
         self.assertLess(errE, tolerance)
         self.assertLess(errJ, tolerance)
@@ -187,6 +187,7 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         ) / np.linalg.norm(self.E_analytic[self.ROIfaceInds])
         self.assertLess(errE, tolerance)
         self.assertLess(errJ, tolerance)
+
 
 class DC_N_MultipoleFullspaceTests(unittest.TestCase):
     def setUp(self):

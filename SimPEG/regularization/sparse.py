@@ -94,7 +94,7 @@ class SparseSmall(BaseSparse):
         if self.cell_weights is not None:
             weights *= self.cell_weights
 
-        return utils.sdiag((weights**0.5)) * R
+        return utils.sdiag((weights ** 0.5)) * R
 
     def R(self, f_m):
         # if R is stashed, return that instead
@@ -113,14 +113,14 @@ class SparseSmall(BaseSparse):
             maxVal[self.norm < 1] = self.epsilon / np.sqrt(
                 1.0 - self.norm[self.norm < 1]
             )
-            maxGrad = maxVal / (maxVal**2.0 + self.epsilon**2.0) ** (
+            maxGrad = maxVal / (maxVal ** 2.0 + self.epsilon ** 2.0) ** (
                 1.0 - self.norm / 2.0
             )
             # Scaling factor
             eta[maxGrad != 0] = np.abs(f_m).max() / maxGrad[maxGrad != 0]
 
         # Scaled IRLS weights
-        r = (eta / (f_m**2.0 + self.epsilon**2.0) ** (1.0 - self.norm / 2.0)) ** 0.5
+        r = (eta / (f_m ** 2.0 + self.epsilon ** 2.0) ** (1.0 - self.norm / 2.0)) ** 0.5
 
         self.stashedR = r  # stash on the first calculation
         return r
@@ -198,7 +198,7 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 weights *= self.cell_weights
 
-            W = utils.sdiag((ave_cc_f * weights**0.5)) * R
+            W = utils.sdiag((ave_cc_f * weights ** 0.5)) * R
 
             theta = self.cellDiffStencil * (self.mapping * f_m)
             dm_dx = utils.mat_utils.coterminal(theta)
@@ -227,7 +227,7 @@ class SparseDeriv(BaseSparse):
                 1.0 - self.norm[self.norm < 1]
             )
             maxGrad = maxVal / (
-                maxVal**2.0 + (self.epsilon * self.length_scales) ** 2.0
+                maxVal ** 2.0 + (self.epsilon * self.length_scales) ** 2.0
             ) ** (1.0 - self.norm / 2.0)
 
             # Scaling Factor
@@ -236,7 +236,7 @@ class SparseDeriv(BaseSparse):
         # Scaled-IRLS weights
         r = (
             eta
-            / (f_m**2.0 + (self.epsilon * self.length_scales) ** 2.0)
+            / (f_m ** 2.0 + (self.epsilon * self.length_scales) ** 2.0)
             ** (1.0 - self.norm / 2.0)
         ) ** 0.5
         self.stashedR = r  # stash on the first calculation
@@ -285,7 +285,7 @@ class SparseDeriv(BaseSparse):
             if self.cell_weights is not None:
                 weights *= self.cell_weights
 
-            W = utils.sdiag((ave_cc_f * weights**0.5)) * R
+            W = utils.sdiag((ave_cc_f * weights ** 0.5)) * R
             theta = self.cellDiffStencil * (self.mapping * model)
             dm_dx = utils.mat_utils.coterminal(theta)
             r = W * dm_dx
@@ -373,7 +373,7 @@ class SparseDeriv(BaseSparse):
         if self.cell_weights is not None:
             weights *= self.cell_weights
 
-        return utils.sdiag((ave_cc_f * weights**0.5)) * R * self.cellDiffStencil
+        return utils.sdiag((ave_cc_f * weights ** 0.5)) * R * self.cellDiffStencil
 
     @property
     def length_scales(self):

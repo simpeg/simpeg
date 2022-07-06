@@ -34,31 +34,31 @@ def E_from_ElectricDipoleWholeSpace(
     dy = XYZ[:, 1] - srcLoc[1]
     dz = XYZ[:, 2] - srcLoc[2]
 
-    r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
+    r = np.sqrt(dx ** 2.0 + dy ** 2.0 + dz ** 2.0)
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
 
-    front = current * length / (4.0 * np.pi * sig_hat * r**3) * np.exp(-1j * k * r)
-    mid = -(k**2) * r**2 + 3 * 1j * k * r + 3
+    front = current * length / (4.0 * np.pi * sig_hat * r ** 3) * np.exp(-1j * k * r)
+    mid = -(k ** 2) * r ** 2 + 3 * 1j * k * r + 3
 
     if orientation.upper() == "X":
-        Ex = front * ((dx**2 / r**2) * mid + (k**2 * r**2 - 1j * k * r - 1.0))
-        Ey = front * (dx * dy / r**2) * mid
-        Ez = front * (dx * dz / r**2) * mid
+        Ex = front * ((dx ** 2 / r ** 2) * mid + (k ** 2 * r ** 2 - 1j * k * r - 1.0))
+        Ey = front * (dx * dy / r ** 2) * mid
+        Ez = front * (dx * dz / r ** 2) * mid
         return Ex, Ey, Ez
 
     elif orientation.upper() == "Y":
         #  x--> y, y--> z, z-->x
-        Ey = front * ((dy**2 / r**2) * mid + (k**2 * r**2 - 1j * k * r - 1.0))
-        Ez = front * (dy * dz / r**2) * mid
-        Ex = front * (dy * dx / r**2) * mid
+        Ey = front * ((dy ** 2 / r ** 2) * mid + (k ** 2 * r ** 2 - 1j * k * r - 1.0))
+        Ez = front * (dy * dz / r ** 2) * mid
+        Ex = front * (dy * dx / r ** 2) * mid
         return Ex, Ey, Ez
 
     elif orientation.upper() == "Z":
         # x --> z, y --> x, z --> y
-        Ez = front * ((dz**2 / r**2) * mid + (k**2 * r**2 - 1j * k * r - 1.0))
-        Ex = front * (dz * dx / r**2) * mid
-        Ey = front * (dz * dy / r**2) * mid
+        Ez = front * ((dz ** 2 / r ** 2) * mid + (k ** 2 * r ** 2 - 1j * k * r - 1.0))
+        Ex = front * (dz * dx / r ** 2) * mid
+        Ey = front * (dz * dy / r ** 2) * mid
         return Ex, Ey, Ez
 
 
@@ -86,31 +86,31 @@ def E_galvanic_from_ElectricDipoleWholeSpace(
     dy = XYZ[:, 1] - srcLoc[1]
     dz = XYZ[:, 2] - srcLoc[2]
 
-    r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
+    r = np.sqrt(dx ** 2.0 + dy ** 2.0 + dz ** 2.0)
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
 
-    front = current * length / (4.0 * np.pi * sig_hat * r**3) * np.exp(-1j * k * r)
-    mid = -(k**2) * r**2 + 3 * 1j * k * r + 3
+    front = current * length / (4.0 * np.pi * sig_hat * r ** 3) * np.exp(-1j * k * r)
+    mid = -(k ** 2) * r ** 2 + 3 * 1j * k * r + 3
 
     if orientation.upper() == "X":
-        Ex_galvanic = front * ((dx**2 / r**2) * mid + (-1j * k * r - 1.0))
-        Ey_galvanic = front * (dx * dy / r**2) * mid
-        Ez_galvanic = front * (dx * dz / r**2) * mid
+        Ex_galvanic = front * ((dx ** 2 / r ** 2) * mid + (-1j * k * r - 1.0))
+        Ey_galvanic = front * (dx * dy / r ** 2) * mid
+        Ez_galvanic = front * (dx * dz / r ** 2) * mid
         return Ex_galvanic, Ey_galvanic, Ez_galvanic
 
     elif orientation.upper() == "Y":
         #  x--> y, y--> z, z-->x
-        Ey_galvanic = front * ((dy**2 / r**2) * mid + (-1j * k * r - 1.0))
-        Ez_galvanic = front * (dy * dz / r**2) * mid
-        Ex_galvanic = front * (dy * dx / r**2) * mid
+        Ey_galvanic = front * ((dy ** 2 / r ** 2) * mid + (-1j * k * r - 1.0))
+        Ez_galvanic = front * (dy * dz / r ** 2) * mid
+        Ex_galvanic = front * (dy * dx / r ** 2) * mid
         return Ex_galvanic, Ey_galvanic, Ez_galvanic
 
     elif orientation.upper() == "Z":
         # x --> z, y --> x, z --> y
-        Ez_galvanic = front * ((dz**2 / r**2) * mid + (-1j * k * r - 1.0))
-        Ex_galvanic = front * (dz * dx / r**2) * mid
-        Ey_galvanic = front * (dz * dy / r**2) * mid
+        Ez_galvanic = front * ((dz ** 2 / r ** 2) * mid + (-1j * k * r - 1.0))
+        Ex_galvanic = front * (dz * dx / r ** 2) * mid
+        Ey_galvanic = front * (dz * dy / r ** 2) * mid
         return Ex_galvanic, Ey_galvanic, Ez_galvanic
 
 
@@ -138,28 +138,28 @@ def E_inductive_from_ElectricDipoleWholeSpace(
     dy = XYZ[:, 1] - srcLoc[1]
     dz = XYZ[:, 2] - srcLoc[2]
 
-    r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
+    r = np.sqrt(dx ** 2.0 + dy ** 2.0 + dz ** 2.0)
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
 
-    front = current * length / (4.0 * np.pi * sig_hat * r**3) * np.exp(-1j * k * r)
+    front = current * length / (4.0 * np.pi * sig_hat * r ** 3) * np.exp(-1j * k * r)
 
     if orientation.upper() == "X":
-        Ex_inductive = front * (k**2 * r**2)
+        Ex_inductive = front * (k ** 2 * r ** 2)
         Ey_inductive = np.zeros_like(Ex_inductive)
         Ez_inductive = np.zeros_like(Ex_inductive)
         return Ex_inductive, Ey_inductive, Ez_inductive
 
     elif orientation.upper() == "Y":
         #  x--> y, y--> z, z-->x
-        Ey_inductive = front * (k**2 * r**2)
+        Ey_inductive = front * (k ** 2 * r ** 2)
         Ez_inductive = np.zeros_like(Ey_inductive)
         Ex_inductive = np.zeros_like(Ey_inductive)
         return Ex_inductive, Ey_inductive, Ez_inductive
 
     elif orientation.upper() == "Z":
         # x --> z, y --> x, z --> y
-        Ez_inductive = front * (k**2 * r**2)
+        Ez_inductive = front * (k ** 2 * r ** 2)
         Ex_inductive = np.zeros_like(Ez_inductive)
         Ey_inductive = np.zeros_like(Ez_inductive)
         return Ex_inductive, Ey_inductive, Ez_inductive
@@ -272,14 +272,14 @@ def H_from_ElectricDipoleWholeSpace(
     dy = XYZ[:, 1] - srcLoc[1]
     dz = XYZ[:, 2] - srcLoc[2]
 
-    r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
+    r = np.sqrt(dx ** 2.0 + dy ** 2.0 + dz ** 2.0)
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
 
     front = (
         current
         * length
-        / (4.0 * np.pi * r**2)
+        / (4.0 * np.pi * r ** 2)
         * (-1j * k * r + 1)
         * np.exp(-1j * k * r)
     )
@@ -352,7 +352,7 @@ def A_from_ElectricDipoleWholeSpace(
     dy = XYZ[:, 1] - srcLoc[1]
     dz = XYZ[:, 2] - srcLoc[2]
 
-    r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
+    r = np.sqrt(dx ** 2.0 + dy ** 2.0 + dz ** 2.0)
     k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
 
     front = current * length / (4.0 * np.pi * r)

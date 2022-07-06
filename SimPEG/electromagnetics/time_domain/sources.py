@@ -531,6 +531,7 @@ class TrapezoidWaveform(BaseWaveform):
     def time_nodes(self):
         return np.unique(np.r_[self.ramp_on, self.ramp_off])
 
+
 class TriangularWaveform(TrapezoidWaveform):
     """
     TriangularWaveform is a special case of TrapezoidWaveform where there's no pleateau
@@ -755,7 +756,7 @@ class HalfSineWaveform(TrapezoidWaveform):
             )
         )
 
-        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1]) &(~p_1)
+        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1]) & (~p_1)
         out[p_2] = (
             -np.pi
             / 2
@@ -789,7 +790,7 @@ class HalfSineWaveform(TrapezoidWaveform):
             )
         )
 
-        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1]) &(~p_1)
+        p_2 = (t >= self.ramp_off[0]) & (t < self.ramp_off[1]) & (~p_1)
         out[p_2] = (
             -np.pi
             / 2
@@ -805,6 +806,7 @@ class HalfSineWaveform(TrapezoidWaveform):
         if out.ndim == 0:
             out = out.item()
         return out
+
 
 class PiecewiseLinearWaveform(BaseWaveform):
 
@@ -855,6 +857,7 @@ class PiecewiseLinearWaveform(BaseWaveform):
     @property
     def time_nodes(self):
         return self.times
+
 
 ###############################################################################
 #                                                                             #
@@ -1123,7 +1126,7 @@ class CircularLoop(MagDipole):
 
     @property
     def moment(self):
-        return np.pi * self.radius**2 * self.current * self.N
+        return np.pi * self.radius ** 2 * self.current * self.N
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         # return MagneticLoopVectorPotential(
@@ -1150,12 +1153,17 @@ class PiecewiseWireLoop(BaseTDEMSrc):
     :param numpy.ndarray loc: wire path locations
         (ie: :code:`np.array([[xloc1,yloc1,zloc1],[xloc2,yloc2,zloc2], ...])`)
     """
+
     wire_paths = properties.Array("wire path locations", shape=("*", 3))
     current = properties.Float("current in the line", default=1.0)
-    n_points_per_path = properties.Integer("number of quadrature points per linear wire path", default=3)
+    n_points_per_path = properties.Integer(
+        "number of quadrature points per linear wire path", default=3
+    )
 
     def __init__(self, receiver_list=None, wire_paths=None, **kwargs):
-        super(PiecewiseWireLoop, self).__init__(receiver_list, wire_paths=wire_paths, **kwargs)
+        super(PiecewiseWireLoop, self).__init__(
+            receiver_list, wire_paths=wire_paths, **kwargs
+        )
         self._get_electric_dipole_locations()
 
     @property
@@ -1168,9 +1176,8 @@ class PiecewiseWireLoop(BaseTDEMSrc):
         self._n_quad_points = len(self._weights)
         return self._n_quad_points
 
-    def rotate_points_xy(self, xy, theta, x0=np.array([0., 0.])):
-        r = np.array(( (np.cos(theta), -np.sin(theta)),
-                   (np.sin(theta),  np.cos(theta)) ))
+    def rotate_points_xy(self, xy, theta, x0=np.array([0.0, 0.0])):
+        r = np.array(((np.cos(theta), -np.sin(theta)), (np.sin(theta), np.cos(theta))))
         xy_rot = xy.dot(r.T)
         xy_rot += x0
         return xy_rot
@@ -1178,27 +1185,27 @@ class PiecewiseWireLoop(BaseTDEMSrc):
     def rotate_points_xy_var_theta(self, xy, thetas):
         xy_rot = np.zeros_like(xy)
         for i_theta, theta in enumerate(thetas):
-            xy_rot[i_theta,:] = self.rotate_points_xy(xy[i_theta,:], theta)
+            xy_rot[i_theta, :] = self.rotate_points_xy(xy[i_theta, :], theta)
         return xy_rot
 
     def _get_electric_dipole_locations(self):
         # calculate lateral dipole locations
         x, w = roots_legendre(self.n_points_per_path)
-        xy_src_path = self.wire_paths[:,:2]
-        n_path = len(xy_src_path)-1
+        xy_src_path = self.wire_paths[:, :2]
+        n_path = len(xy_src_path) - 1
         xyks = []
         thetas = []
         weights = []
         for i_path in range(n_path):
-            dx = xy_src_path[i_path+1,0]-xy_src_path[i_path,0]
-            dy = xy_src_path[i_path+1,1]-xy_src_path[i_path,1]
-            l = np.sqrt(dx**2+dy**2)
+            dx = xy_src_path[i_path + 1, 0] - xy_src_path[i_path, 0]
+            dy = xy_src_path[i_path + 1, 1] - xy_src_path[i_path, 1]
+            l = np.sqrt(dx ** 2 + dy ** 2)
             theta = np.arctan2(dy, dx)
-            lk = np.c_[(x+1)*l/2, np.zeros(self.n_points_per_path)]
-            xyk = self.rotate_points_xy(lk, theta, x0=xy_src_path[i_path,:])
+            lk = np.c_[(x + 1) * l / 2, np.zeros(self.n_points_per_path)]
+            xyk = self.rotate_points_xy(lk, theta, x0=xy_src_path[i_path, :])
             xyks.append(xyk)
-            thetas.append(theta*np.ones(xyk.shape[0]))
-            weights.append(w*l/2)
+            thetas.append(theta * np.ones(xyk.shape[0]))
+            weights.append(w * l / 2)
         # store these for future evalution of integrals
         self._xyks = np.vstack(xyks)
         self._weights = np.hstack(weights)
