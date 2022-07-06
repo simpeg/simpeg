@@ -412,7 +412,12 @@ class BaseTimeSimulation(BaseSimulation):
     @property
     def time_mesh(self):
         if getattr(self, "_time_mesh", None) is None:
-            self._time_mesh = TensorMesh([self.time_steps,], x0=[self.t0],)
+            self._time_mesh = TensorMesh(
+                [
+                    self.time_steps,
+                ],
+                x0=[self.t0],
+            )
         return self._time_mesh
 
     @time_mesh.deleter

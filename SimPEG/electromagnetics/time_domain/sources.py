@@ -116,7 +116,11 @@ class BaseWaveform:
     )
 
     eps = deprecate_property(
-        epsilon, "eps", new_name="epsilon", removal_version="0.17.0", future_warn=True,
+        epsilon,
+        "eps",
+        new_name="epsilon",
+        removal_version="0.17.0",
+        future_warn=True,
     )
 
 

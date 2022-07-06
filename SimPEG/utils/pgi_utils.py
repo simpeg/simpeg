@@ -249,7 +249,9 @@ class WeightedGaussianMixture(GaussianMixture):
 
         if self.weights_init is not None:
             self.weights_init = self._check_weights(
-                self.weights_init, self.n_components, n_samples,
+                self.weights_init,
+                self.n_components,
+                n_samples,
             )
 
         if self.means_init is not None:
@@ -619,7 +621,11 @@ class WeightedGaussianMixture(GaussianMixture):
 
         ax[0].set_xlim(xmin, xmax)
         ax[0].plot(
-            xplot, rvx, linewidth=3.0, label=labelx, c="k",
+            xplot,
+            rvx,
+            linewidth=3.0,
+            label=labelx,
+            c="k",
         )
         ax[0].legend()
         ax[0].set_xlabel("Physical property {}".format(x_component))
@@ -727,7 +733,11 @@ class WeightedGaussianMixture(GaussianMixture):
             )
 
             axbar = inset_axes(
-                ax[1], width="40%", height="3%", loc="upper right", borderpad=1,
+                ax[1],
+                width="40%",
+                height="3%",
+                loc="upper right",
+                borderpad=1,
             )
             cbpetro = plt.colorbar(surf, cax=axbar, orientation="horizontal")
             cbpetro.set_ticks([rv2d.min(), rv2d.max()])

@@ -71,7 +71,12 @@ class BaseRegularization(BaseObjectiveFunction):
             self.regularization_mesh.active_cells = values
         self._active_cells = values
 
-    indActive = deprecate_property(active_cells, "indActive", "0.x.0", error=False,)
+    indActive = deprecate_property(
+        active_cells,
+        "indActive",
+        "0.x.0",
+        error=False,
+    )
 
     @property
     def model(self) -> np.ndarray:
@@ -149,7 +154,12 @@ class BaseRegularization(BaseObjectiveFunction):
         self.validate_shape("reference_model", values, (self._nC_residual,))
         self._reference_model = values
 
-    mref = deprecate_property(reference_model, "mref", "0.x.0", error=False,)
+    mref = deprecate_property(
+        reference_model,
+        "mref",
+        "0.x.0",
+        error=False,
+    )
 
     @property
     def regularization_mesh(self) -> RegularizationMesh:
@@ -163,7 +173,12 @@ class BaseRegularization(BaseObjectiveFunction):
 
         self._regularization_mesh = mesh
 
-    regmesh = deprecate_property(regularization_mesh, "regmesh", "0.x.0", error=False,)
+    regmesh = deprecate_property(
+        regularization_mesh,
+        "regmesh",
+        "0.x.0",
+        error=False,
+    )
 
     @property
     def weights(self):
@@ -180,7 +195,12 @@ class BaseRegularization(BaseObjectiveFunction):
         if weights is not None:
             self.add_set_weights(weights)
 
-    cell_weights = deprecate_property(weights, "cell_weights", "0.x.0", error=False,)
+    cell_weights = deprecate_property(
+        weights,
+        "cell_weights",
+        "0.x.0",
+        error=False,
+    )
 
     def add_set_weights(self, weights: dict | np.ndarray):
         if isinstance(weights, np.ndarray):
@@ -474,7 +494,9 @@ class SmoothDeriv(BaseRegularization):
         if getattr(self, "_weights", None) is None:
             self._weights = {}
             self.add_set_weights(
-                {"volume": self.regularization_mesh.vol,}
+                {
+                    "volume": self.regularization_mesh.vol,
+                }
             )
 
         return self._weights
@@ -485,7 +507,12 @@ class SmoothDeriv(BaseRegularization):
         if weights is not None:
             self.add_set_weights(weights)
 
-    cell_weights = deprecate_property(weights, "cell_weights", "0.x.0", error=False,)
+    cell_weights = deprecate_property(
+        weights,
+        "cell_weights",
+        "0.x.0",
+        error=False,
+    )
 
     def add_set_weights(self, weights: dict):
         if isinstance(weights, np.ndarray):
@@ -552,7 +579,11 @@ class SmoothDeriv(BaseRegularization):
 
     @orientation.setter
     def orientation(self, value):
-        assert value in ["x", "y", "z",], "Orientation must be 'x', 'y' or 'z'"
+        assert value in [
+            "x",
+            "y",
+            "z",
+        ], "Orientation must be 'x', 'y' or 'z'"
 
         if value == "y":
             assert self.regularization_mesh.dim > 1, (
@@ -922,7 +953,12 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         for fct in self.objfcts:
             fct.weights = value
 
-    cell_weights = deprecate_property(weights, "cell_weights", "0.x.0", error=False,)
+    cell_weights = deprecate_property(
+        weights,
+        "cell_weights",
+        "0.x.0",
+        error=False,
+    )
 
     # Other properties and methods
     @property
@@ -1002,7 +1038,12 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         self._active_cells = values
 
-    indActive = deprecate_property(active_cells, "indActive", "0.x.0", error=False,)
+    indActive = deprecate_property(
+        active_cells,
+        "indActive",
+        "0.x.0",
+        error=False,
+    )
 
     @property
     def reference_model(self) -> np.ndarray:
@@ -1020,7 +1061,12 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         self._reference_model = values
 
-    mref = deprecate_property(reference_model, "mref", "0.x.0", error=False,)
+    mref = deprecate_property(
+        reference_model,
+        "mref",
+        "0.x.0",
+        error=False,
+    )
 
     @property
     def model(self) -> np.ndarray:
@@ -1178,7 +1224,7 @@ class BaseSimilarityMeasure(BaseRegularization):
         return self.wire_map.nP
 
     def __call__(self, model):
-        """ Returns the computed value of the coupling term. """
+        """Returns the computed value of the coupling term."""
         raise NotImplementedError(
             "The method __call__ has not been implemented for {}".format(
                 self.__class__.__name__

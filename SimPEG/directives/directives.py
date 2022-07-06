@@ -117,7 +117,11 @@ class InversionDirective(properties.HasProperties):
         return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
 
     prob = deprecate_property(
-        simulation, "prob", new_name="simulation", removal_version="0.16.0", error=True,
+        simulation,
+        "prob",
+        new_name="simulation",
+        removal_version="0.16.0",
+        error=True,
     )
 
     def initialize(self):
@@ -238,10 +242,14 @@ class BetaEstimate_ByEig(InversionDirective):
         m = self.invProb.model
 
         dm_eigenvalue = eigenvalue_by_power_iteration(
-            self.dmisfit, m, n_pw_iter=self.n_pw_iter,
+            self.dmisfit,
+            m,
+            n_pw_iter=self.n_pw_iter,
         )
         reg_eigenvalue = eigenvalue_by_power_iteration(
-            self.reg, m, n_pw_iter=self.n_pw_iter,
+            self.reg,
+            m,
+            n_pw_iter=self.n_pw_iter,
         )
 
         self.ratio = dm_eigenvalue / reg_eigenvalue
@@ -321,7 +329,9 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             )
 
         smallness_eigenvalue = eigenvalue_by_power_iteration(
-            smallness[0], self.invProb.model, n_pw_iter=self.n_pw_iter,
+            smallness[0],
+            self.invProb.model,
+            n_pw_iter=self.n_pw_iter,
         )
 
         if not isinstance(self.alpha0_ratio, (np.ndarray, list)):
@@ -335,7 +345,9 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         alphas = []
         for user_alpha, obj in zip(self.alpha0_ratio, smoothness):
             smooth_i_eigenvalue = eigenvalue_by_power_iteration(
-                obj, self.invProb.model, n_pw_iter=self.n_pw_iter,
+                obj,
+                self.invProb.model,
+                n_pw_iter=self.n_pw_iter,
             )
             ratio = smallness_eigenvalue / smooth_i_eigenvalue
 
@@ -546,7 +558,8 @@ class MultiTargetMisfits(InversionDirective):
                             j,
                             (
                                 isinstance(
-                                    regpart, PGIwithNonlinearRelationshipsSmallness,
+                                    regpart,
+                                    PGIwithNonlinearRelationshipsSmallness,
                                 )
                                 or isinstance(regpart, PGIsmallness)
                             ),
@@ -588,7 +601,8 @@ class MultiTargetMisfits(InversionDirective):
                             j,
                             (
                                 isinstance(
-                                    regpart, PGIwithNonlinearRelationshipsSmallness,
+                                    regpart,
+                                    PGIwithNonlinearRelationshipsSmallness,
                                 )
                                 or isinstance(regpart, PGIsmallness)
                             ),
@@ -769,8 +783,10 @@ class MultiTargetMisfits(InversionDirective):
                 )
             )
             if self.TriggerSmall:
-                message += " | smallness misfit: {0:.1f} (target: {1:.1f} [{2}])".format(
-                    self.phims(), self.CLtarget, self.CL
+                message += (
+                    " | smallness misfit: {0:.1f} (target: {1:.1f} [{2}])".format(
+                        self.phims(), self.CLtarget, self.CL
+                    )
                 )
             if self.TriggerTheta:
                 message += " | GMM parameters within tolerance: {}".format(self.DP)

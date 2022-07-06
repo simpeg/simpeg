@@ -15,12 +15,24 @@ _PCC = lambda siginf, m, t, c, f: siginf * (
 )
 
 # matrix P relating Up and Down components with E and H fields
-_P = lambda z: np.array([[1.0, 1,], [-1.0 / z, 1.0 / z],])
+_P = lambda z: np.array(
+    [
+        [
+            1.0,
+            1,
+        ],
+        [-1.0 / z, 1.0 / z],
+    ]
+)
 _Pinv = lambda z: np.array([[1.0, -z], [1.0, z]]) / 2.0
 
 # matrix T for transition of Up and Down components accross a layer
-_T = lambda h, k: np.array([[np.exp(1j * k * h), 0.0], [0.0, np.exp(-1j * k * h)]],)
-_Tinv = lambda h, k: np.array([[np.exp(-1j * k * h), 0.0], [0.0, np.exp(1j * k * h)]],)
+_T = lambda h, k: np.array(
+    [[np.exp(1j * k * h), 0.0], [0.0, np.exp(-1j * k * h)]],
+)
+_Tinv = lambda h, k: np.array(
+    [[np.exp(-1j * k * h), 0.0], [0.0, np.exp(1j * k * h)]],
+)
 
 # Propagate Up and Down component for a certain frequency & evaluate E and H field
 def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
@@ -61,7 +73,18 @@ def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
         UD = UD / ((np.abs(UD[0, :] + UD[1, :])).max())
 
     for j in range(0, n + 1):
-        EH[:, j] = np.array([[1.0, 1,], [-1.0 / Z[j], 1.0 / Z[j]],]) @ UD[:, j]
+        EH[:, j] = (
+            np.array(
+                [
+                    [
+                        1.0,
+                        1,
+                    ],
+                    [-1.0 / Z[j], 1.0 / Z[j]],
+                ]
+            )
+            @ UD[:, j]
+        )
 
     return UD, EH, Z, K
 

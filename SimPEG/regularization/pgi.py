@@ -606,7 +606,10 @@ class PGIsmallness(Small):
             score = self.gmm.score_samples_with_sensW(model, sensW)
             logP = np.zeros((len(model), self.gmm.n_components))
             W = []
-            logP = self.gmm._estimate_weighted_log_prob_with_sensW(model, sensW,)
+            logP = self.gmm._estimate_weighted_log_prob_with_sensW(
+                model,
+                sensW,
+            )
             for k in range(self.gmm.n_components):
                 if self.gmm.covariance_type == "tied":
 
@@ -841,4 +844,9 @@ class PGI(ComboObjectiveFunction):
 
         self._reference_model = values
 
-    mref = deprecate_property(reference_model, "mref", "0.x.0", error=False,)
+    mref = deprecate_property(
+        reference_model,
+        "mref",
+        "0.x.0",
+        error=False,
+    )

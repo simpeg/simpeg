@@ -50,7 +50,9 @@ class BaseRx(properties.HasProperties):
 
     _uid = properties.Uuid("unique ID for the receiver")
 
-    _Ps = properties.Dictionary("dictonary for storing projections",)
+    _Ps = properties.Dictionary(
+        "dictonary for storing projections",
+    )
 
     def __init__(self, locations=None, **kwargs):
         super(BaseRx, self).__init__(**kwargs)

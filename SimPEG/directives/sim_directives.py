@@ -262,11 +262,19 @@ class PairedBetaEstimate_ByEig(InversionDirective):
             )
         for dmis, reg in zip(dmis_objs, reg_objs):
             dmis_eigenvalues.append(
-                eigenvalue_by_power_iteration(dmis, m, n_pw_iter=self.n_pw_iter,)
+                eigenvalue_by_power_iteration(
+                    dmis,
+                    m,
+                    n_pw_iter=self.n_pw_iter,
+                )
             )
 
             reg_eigenvalues.append(
-                eigenvalue_by_power_iteration(reg, m, n_pw_iter=self.n_pw_iter,)
+                eigenvalue_by_power_iteration(
+                    reg,
+                    m,
+                    n_pw_iter=self.n_pw_iter,
+                )
             )
 
         self.ratios = np.array(dmis_eigenvalues) / np.array(reg_eigenvalues)

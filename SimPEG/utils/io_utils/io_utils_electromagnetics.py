@@ -736,7 +736,9 @@ def write_dcip2d_ubc(
                     # Write receivers and locations
                     if isinstance(N, np.ndarray):
                         np.savetxt(
-                            fid, np.c_[M, N], fmt="%e",
+                            fid,
+                            np.c_[M, N],
+                            fmt="%e",
                         )
                     else:
                         raise Exception(
@@ -886,7 +888,9 @@ def write_dcip3d_ubc(
                 # Write receivers and locations
                 if isinstance(N, np.ndarray):
                     np.savetxt(
-                        fid, np.c_[M, N], fmt="%e",
+                        fid,
+                        np.c_[M, N],
+                        fmt="%e",
                     )
                 else:
                     raise Exception(

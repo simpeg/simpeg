@@ -45,7 +45,9 @@ class BaseIPSimulation(BasePDESimulation):
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
 
     _data_type = properties.StringChoice(
-        "IP data type", default="volt", choices=["volt", "apparent_chargeability"],
+        "IP data type",
+        default="volt",
+        choices=["volt", "apparent_chargeability"],
     )
 
     data_type = deprecate_property(

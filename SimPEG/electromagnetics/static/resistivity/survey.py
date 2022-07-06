@@ -126,7 +126,10 @@ class Survey(BaseSurvey):
         return [np.vstack(src_a), np.vstack(src_b)]
 
     def set_geometric_factor(
-        self, space_type="half-space", data_type=None, survey_type=None,
+        self,
+        space_type="half-space",
+        data_type=None,
+        survey_type=None,
     ):
         if data_type is not None:
             raise TypeError(

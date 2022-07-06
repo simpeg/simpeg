@@ -641,7 +641,13 @@ def plot_pseudosection(
             except TypeError:
                 pass
 
-        data_plot = ax.tricontourf(x, z, dobs, norm=norm, **opts,)
+        data_plot = ax.tricontourf(
+            x,
+            z,
+            dobs,
+            norm=norm,
+            **opts,
+        )
         if data_locations:
             ax.plot(x, z, "k.", ms=1, alpha=0.4)
 
@@ -1660,7 +1666,14 @@ def gen_3d_survey_from_2d_lines(
         zmin, zmax = 0, 0
         IO_2d = dc.IO()
         endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-        survey_2d = gen_DCIPsurvey(endl, survey_type, a, b, n_spacing, dim=3,)
+        survey_2d = gen_DCIPsurvey(
+            endl,
+            survey_type,
+            a,
+            b,
+            n_spacing,
+            dim=3,
+        )
 
         source_list.append(survey_2d.source_list)
         survey_2d = IO_2d.from_abmn_locations_to_survey(
