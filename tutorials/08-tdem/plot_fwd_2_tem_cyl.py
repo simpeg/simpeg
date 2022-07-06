@@ -74,12 +74,12 @@ waveform = tdem.sources.StepOffWaveform(offTime=0.0)
 time_channels = np.logspace(-4, -2, 11)
 
 # Defining transmitter locations
-xtx, ytx, ztx = np.meshgrid([0], [0], np.linspace(0, -500, 26)-2.5)
+xtx, ytx, ztx = np.meshgrid([0], [0], np.linspace(0, -500, 26) - 2.5)
 source_locations = np.c_[mkvc(xtx), mkvc(ytx), mkvc(ztx)]
 ntx = np.size(xtx)
 
 # Define receiver locations
-xrx, yrx, zrx = np.meshgrid([0], [0], np.linspace(0, -500, 26)-2.5)
+xrx, yrx, zrx = np.meshgrid([0], [0], np.linspace(0, -500, 26) - 2.5)
 receiver_locations = np.c_[mkvc(xrx), mkvc(yrx), mkvc(zrx)]
 
 source_list = []  # Create empty list to store sources
@@ -101,7 +101,7 @@ for ii in range(ntx):
             receivers_list,
             location=source_locations[ii],
             waveform=waveform,
-            radius=10.
+            radius=10.0,
         )
     )
 
@@ -149,9 +149,13 @@ model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
 # Define the model
 model = background_conductivity * np.ones(ind_active.sum())
-ind = (mesh.cell_centers[ind_active, 2] > -200.0) & (mesh.cell_centers[ind_active, 2] < -0)
+ind = (mesh.cell_centers[ind_active, 2] > -200.0) & (
+    mesh.cell_centers[ind_active, 2] < -0
+)
 model[ind] = layer_conductivity_1
-ind = (mesh.cell_centers[ind_active, 2] > -400.0) & (mesh.cell_centers[ind_active, 2] < -200)
+ind = (mesh.cell_centers[ind_active, 2] > -400.0) & (
+    mesh.cell_centers[ind_active, 2] < -200
+)
 model[ind] = layer_conductivity_2
 
 # Plot Conductivity Model

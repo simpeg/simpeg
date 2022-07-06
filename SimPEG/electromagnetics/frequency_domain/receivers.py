@@ -117,6 +117,7 @@ class BaseRx(survey.BaseRx):
         else:
             return self.locations.shape[0]
 
+
 class PointElectricField(BaseRx):
     """
     Electric field FDEM receiver

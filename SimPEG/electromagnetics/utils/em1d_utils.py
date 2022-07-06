@@ -13,9 +13,9 @@ from matplotlib.colors import LogNorm
 import warnings
 
 
-def plot_layer(sig, mesh, xscale='log', ax=None, showlayers=False, xlim=None,**kwargs):
+def plot_layer(sig, mesh, xscale="log", ax=None, showlayers=False, xlim=None, **kwargs):
     """
-        Plot Conductivity model for the layered earth model
+    Plot Conductivity model for the layered earth model
     """
 
     z_grid = mesh.vectorNx
@@ -23,82 +23,106 @@ def plot_layer(sig, mesh, xscale='log', ax=None, showlayers=False, xlim=None,**k
     sigma = np.repeat(sig, 2)
     z = []
     for i in range(n_sig):
-        z.append(np.r_[z_grid[i], z_grid[i+1]])
+        z.append(np.r_[z_grid[i], z_grid[i + 1]])
     z = np.hstack(z)
     if xlim == None:
-        sig_min = sig[~np.isnan(sig)].min()*0.5
-        sig_max = sig[~np.isnan(sig)].max()*2
+        sig_min = sig[~np.isnan(sig)].min() * 0.5
+        sig_max = sig[~np.isnan(sig)].max() * 2
     else:
         sig_min, sig_max = xlim
 
-    if xscale == 'linear' and sig.min() == 0.:
+    if xscale == "linear" and sig.min() == 0.0:
         if xlim == None:
-            sig_min = -sig[~np.isnan(sig)].max()*0.5
-            sig_max = sig[~np.isnan(sig)].max()*2
+            sig_min = -sig[~np.isnan(sig)].max() * 0.5
+            sig_max = sig[~np.isnan(sig)].max() * 2
 
-    if ax==None:
+    if ax == None:
         plt.xscale(xscale)
         plt.xlim(sig_min, sig_max)
         plt.ylim(z.min(), z.max())
-        plt.xlabel('Conductivity (S/m)', fontsize = 14)
-        plt.ylabel('Depth (m)', fontsize = 14)
-        plt.ylabel('Depth (m)', fontsize = 14)
+        plt.xlabel("Conductivity (S/m)", fontsize=14)
+        plt.ylabel("Depth (m)", fontsize=14)
+        plt.ylabel("Depth (m)", fontsize=14)
         if showlayers == True:
             for locz in z_grid:
-                plt.plot(np.linspace(sig_min, sig_max, 100), np.ones(100)*locz, 'b--', lw = 0.5)
-        return plt.plot(sigma, z, 'k-', **kwargs)
+                plt.plot(
+                    np.linspace(sig_min, sig_max, 100),
+                    np.ones(100) * locz,
+                    "b--",
+                    lw=0.5,
+                )
+        return plt.plot(sigma, z, "k-", **kwargs)
 
     else:
         ax.set_xscale(xscale)
         ax.set_xlim(sig_min, sig_max)
         ax.set_ylim(z.min(), z.max())
-        ax.set_xlabel('Conductivity (S/m)', fontsize = 14)
-        ax.set_ylabel('Depth (m)', fontsize = 14)
+        ax.set_xlabel("Conductivity (S/m)", fontsize=14)
+        ax.set_ylabel("Depth (m)", fontsize=14)
         if showlayers == True:
             for locz in z_grid:
-                ax.plot(np.linspace(sig_min, sig_max, 100), np.ones(100)*locz, 'b--', lw = 0.5)
-        return ax.plot(sigma, z, 'k-', **kwargs)
+                ax.plot(
+                    np.linspace(sig_min, sig_max, 100),
+                    np.ones(100) * locz,
+                    "b--",
+                    lw=0.5,
+                )
+        return ax.plot(sigma, z, "k-", **kwargs)
+
 
 def get_vertical_discretization(n_layer, minimum_dz, geomtric_factor):
-    hz = minimum_dz*(geomtric_factor)**np.arange(n_layer)
-    print (">> Depth from the surface to the base of the bottom layer is {:.1f}m".format(hz[:].sum()))
+    hz = minimum_dz * (geomtric_factor) ** np.arange(n_layer)
+    print(
+        ">> Depth from the surface to the base of the bottom layer is {:.1f}m".format(
+            hz[:].sum()
+        )
+    )
     return hz
 
+
 def get_vertical_discretization_frequency(
-    frequency, sigma_background=0.01,
-    factor_fmax=4, factor_fmin=1., n_layer=19,
-    hz_min=None, z_max=None
+    frequency,
+    sigma_background=0.01,
+    factor_fmax=4,
+    factor_fmin=1.0,
+    n_layer=19,
+    hz_min=None,
+    z_max=None,
 ):
     if hz_min is None:
         hz_min = skin_depth(frequency.max(), sigma_background) / factor_fmax
     if z_max is None:
         z_max = skin_depth(frequency.min(), sigma_background) * factor_fmin
     i = 4
-    hz = np.logspace(np.log10(hz_min), np.log10(hz_min*i), n_layer)
+    hz = np.logspace(np.log10(hz_min), np.log10(hz_min * i), n_layer)
     z_sum = hz.sum()
 
     while z_sum < z_max:
         i += 1
-        hz = np.logspace(np.log10(hz_min), np.log10(hz_min*i), n_layer)
+        hz = np.logspace(np.log10(hz_min), np.log10(hz_min * i), n_layer)
         z_sum = hz.sum()
     return hz
 
 
 def get_vertical_discretization_time(
-    time, sigma_background=0.01,
-    factor_tmin=4, facter_tmax=1., n_layer=19,
-    hz_min=None, z_max=None
+    time,
+    sigma_background=0.01,
+    factor_tmin=4,
+    facter_tmax=1.0,
+    n_layer=19,
+    hz_min=None,
+    z_max=None,
 ):
     if hz_min is None:
         hz_min = diffusion_distance(time.min(), sigma_background) / factor_tmin
     if z_max is None:
         z_max = diffusion_distance(time.max(), sigma_background) * facter_tmax
     i = 4
-    hz = np.logspace(np.log10(hz_min), np.log10(hz_min*i), n_layer)
+    hz = np.logspace(np.log10(hz_min), np.log10(hz_min * i), n_layer)
     z_sum = hz.sum()
     while z_sum < z_max:
         i += 1
-        hz = np.logspace(np.log10(hz_min), np.log10(hz_min*i), n_layer)
+        hz = np.logspace(np.log10(hz_min), np.log10(hz_min * i), n_layer)
         z_sum = hz.sum()
     return hz
 
@@ -106,54 +130,61 @@ def get_vertical_discretization_time(
 def set_mesh_1d(hz):
     return TensorMesh([hz], x0=[0])
 
+
 #############################################################
 #       PHYSICAL PROPERTIES
 #############################################################
 
+
 def ColeCole(f, sig_inf=1e-2, eta=0.1, tau=0.1, c=1):
     """
-        Computing Cole-Cole model in frequency domain
+    Computing Cole-Cole model in frequency domain
 
-        .. math ::
-            \\sigma (\\omega ) = \\sigma_{\\infty} \\Bigg [
-            1 - \\eta \\Bigg ( \\frac{1}{1 + (1-\\eta ) (1 + i\\omega \\tau)^c} \\Bigg )
-            \\Bigg ]
+    .. math ::
+        \\sigma (\\omega ) = \\sigma_{\\infty} \\Bigg [
+        1 - \\eta \\Bigg ( \\frac{1}{1 + (1-\\eta ) (1 + i\\omega \\tau)^c} \\Bigg )
+        \\Bigg ]
 
 
     """
 
     if np.isscalar(sig_inf):
-        w = 2*np.pi*f
-        sigma = sig_inf - sig_inf*eta/(1+(1-eta)*(1j*w*tau)**c)
+        w = 2 * np.pi * f
+        sigma = sig_inf - sig_inf * eta / (1 + (1 - eta) * (1j * w * tau) ** c)
     else:
-        sigma = np.zeros((f.size,sig_inf.size), dtype=complex)
+        sigma = np.zeros((f.size, sig_inf.size), dtype=complex)
         for i in range(f.size):
-            w = 2*np.pi*f[i]
-            sigma[i,:] = utils.mkvc(sig_inf - sig_inf*eta/(1+(1-eta)*(1j*w*tau)**c))
+            w = 2 * np.pi * f[i]
+            sigma[i, :] = utils.mkvc(
+                sig_inf - sig_inf * eta / (1 + (1 - eta) * (1j * w * tau) ** c)
+            )
     return sigma
 
 
 def LogUniform(f, chi_inf=0.05, del_chi=0.05, tau1=1e-5, tau2=1e-2):
     """
-        Computing relaxation model in the frequency domain for a log-uniform
-        distribution of time-relaxation constants.
+    Computing relaxation model in the frequency domain for a log-uniform
+    distribution of time-relaxation constants.
 
-        .. math::
-            \\chi (\\omega ) = \\chi_{\\infty} + \\Delta \\chi \\Bigg [
-            1 - \\Bigg ( \\frac{1}{ln (\\tau_2 / \\tau_1 )} \\Bigg )
-            ln \\Bigg ( \\frac{1 + i\\omega \\tau_2}{1 + i\\omega tau_1} ) \\Bigg )
-            \\Bigg ]
+    .. math::
+        \\chi (\\omega ) = \\chi_{\\infty} + \\Delta \\chi \\Bigg [
+        1 - \\Bigg ( \\frac{1}{ln (\\tau_2 / \\tau_1 )} \\Bigg )
+        ln \\Bigg ( \\frac{1 + i\\omega \\tau_2}{1 + i\\omega tau_1} ) \\Bigg )
+        \\Bigg ]
 
 
     """
 
-    w = 2*np.pi*f
-    return chi_inf + del_chi*(1 - np.log((1 + 1j*w*tau2)/(1 + 1j*w*tau1))/np.log(tau2/tau1))
+    w = 2 * np.pi * f
+    return chi_inf + del_chi * (
+        1 - np.log((1 + 1j * w * tau2) / (1 + 1j * w * tau1)) / np.log(tau2 / tau1)
+    )
 
 
 #############################################################
 #       VMD SOURCE SOLUTIONS
 #############################################################
+
 
 def Hz_vertical_magnetic_dipole(f, r, sig, flag="secondary"):
 
@@ -178,14 +209,22 @@ def Hz_vertical_magnetic_dipole(f, r, sig, flag="secondary"):
 
     """
 
-    mu0 = 4*np.pi*1e-7
-    w = 2*np.pi*f
-    k = np.sqrt(-1j*w*mu0*sig)
-    Hz = 1./(2*np.pi*k**2*r**5)*(9-(9+9*1j*k*r-4*k**2*r**2-1j*k**3*r**3)*np.exp(-1j*k*r))
-    
-    if flag == 'secondary':
-        Hzp = -1/(4*np.pi*r**3)
-        Hz = Hz-Hzp
+    mu0 = 4 * np.pi * 1e-7
+    w = 2 * np.pi * f
+    k = np.sqrt(-1j * w * mu0 * sig)
+    Hz = (
+        1.0
+        / (2 * np.pi * k ** 2 * r ** 5)
+        * (
+            9
+            - (9 + 9 * 1j * k * r - 4 * k ** 2 * r ** 2 - 1j * k ** 3 * r ** 3)
+            * np.exp(-1j * k * r)
+        )
+    )
+
+    if flag == "secondary":
+        Hzp = -1 / (4 * np.pi * r ** 3)
+        Hz = Hz - Hzp
     return Hz
 
 
@@ -215,19 +254,17 @@ def Hr_vertical_magnetic_dipole(f, r, sig):
 
     """
 
-    mu0 = 4*np.pi*1e-7
-    w = 2*np.pi*f
-    k = np.sqrt(-1j*w*mu0*sig)
-    alpha = 1j*k*r/2.
+    mu0 = 4 * np.pi * 1e-7
+    w = 2 * np.pi * f
+    k = np.sqrt(-1j * w * mu0 * sig)
+    alpha = 1j * k * r / 2.0
 
-    IK1 = spec.iv(1, alpha)*spec.kv(1, alpha)
-    IK2 = spec.iv(2, alpha)*spec.kv(2, alpha)
+    IK1 = spec.iv(1, alpha) * spec.kv(1, alpha)
+    IK2 = spec.iv(2, alpha) * spec.kv(2, alpha)
 
-    Hr = (-k**2/(4*np.pi*r))*(IK1 - IK2)
-    
+    Hr = (-(k ** 2) / (4 * np.pi * r)) * (IK1 - IK2)
+
     return Hr
-
-
 
 
 def Hz_horizontal_magnetic_dipole(f, r, x, sig):
@@ -257,30 +294,27 @@ def Hz_horizontal_magnetic_dipole(f, r, x, sig):
 
     """
 
-    mu0 = 4*np.pi*1e-7
-    w = 2*np.pi*f
-    k = np.sqrt(-1j*w*mu0*sig)
-    alpha = 1j*k*r/2.
+    mu0 = 4 * np.pi * 1e-7
+    w = 2 * np.pi * f
+    k = np.sqrt(-1j * w * mu0 * sig)
+    alpha = 1j * k * r / 2.0
 
-    IK1 = spec.iv(1, alpha)*spec.kv(1, alpha)
-    IK2 = spec.iv(2, alpha)*spec.kv(2, alpha)
+    IK1 = spec.iv(1, alpha) * spec.kv(1, alpha)
+    IK2 = spec.iv(2, alpha) * spec.kv(2, alpha)
 
-    Hr = (x*k**2/(4*np.pi*r**2))*(IK1 - IK2)
+    Hr = (x * k ** 2 / (4 * np.pi * r ** 2)) * (IK1 - IK2)
     return Hr
-
-
 
 
 def Bz_vertical_magnetic_dipole(r, t, sigma):
 
-    theta = np.sqrt((sigma*mu_0)/(4*t))
-    tr = theta*r
+    theta = np.sqrt((sigma * mu_0) / (4 * t))
+    tr = theta * r
     etr = spec.erf(tr)
-    t1 = (9/(2*tr**2) - 1)*etr
-    t2 = (1/np.sqrt(pi))*(9/tr + 4*tr)*np.exp(-tr**2)
-    hz = (t1 - t2)/(4*pi*r**3)
-    return mu_0*hz
-
+    t1 = (9 / (2 * tr ** 2) - 1) * etr
+    t2 = (1 / np.sqrt(pi)) * (9 / tr + 4 * tr) * np.exp(-(tr ** 2))
+    hz = (t1 - t2) / (4 * pi * r ** 3)
+    return mu_0 * hz
 
 
 #############################################################
@@ -305,46 +339,40 @@ def Hz_horizontal_circular_loop(f, I, a, sig, flag="secondary"):
 
     """
 
-    mu_0 = 4*np.pi*1e-7
-    w = 2*np.pi*f
-    k = np.sqrt(-1j*w*mu_0*sig)
-    Hz = -I/(k**2*a**3)*(3-(3+3*1j*k*a-k**2*a**2)*np.exp(-1j*k*a))
-    
-    if flag == 'secondary':
-        Hzp = I/2./a
-        Hz = Hz-Hzp
-    
+    mu_0 = 4 * np.pi * 1e-7
+    w = 2 * np.pi * f
+    k = np.sqrt(-1j * w * mu_0 * sig)
+    Hz = (
+        -I
+        / (k ** 2 * a ** 3)
+        * (3 - (3 + 3 * 1j * k * a - k ** 2 * a ** 2) * np.exp(-1j * k * a))
+    )
+
+    if flag == "secondary":
+        Hzp = I / 2.0 / a
+        Hz = Hz - Hzp
+
     return Hz
-
-
-
 
 
 def dHzdsiganalCirc(sig, f, I, a, flag):
 
     """
-        Compute sensitivity for HzanalCirc by using perturbation
+    Compute sensitivity for HzanalCirc by using perturbation
 
-        .. math::
+    .. math::
 
-            \\frac{\partial H_z}{\partial \sigma}
-            = \\frac{H_z(\sigma+\\triangle\sigma)- H_z(\sigma-\\triangle\sigma)}
-                {2\\triangle\sigma}
+        \\frac{\partial H_z}{\partial \sigma}
+        = \\frac{H_z(\sigma+\\triangle\sigma)- H_z(\sigma-\\triangle\sigma)}
+            {2\\triangle\sigma}
     """
-    mu_0 = 4*np.pi*1e-7
-    w = 2*np.pi*f
-    k = np.sqrt(-1j*w*mu_0*sig)
+    mu_0 = 4 * np.pi * 1e-7
+    w = 2 * np.pi * f
+    k = np.sqrt(-1j * w * mu_0 * sig)
     perc = 0.001
     Hzfun = lambda m: HzanalCirc(m, f, I, a, flag)
-    dHzdsig = (Hzfun(sig+perc*sig)-Hzfun(sig-perc*sig))/(2*perc*sig)
+    dHzdsig = (Hzfun(sig + perc * sig) - Hzfun(sig - perc * sig)) / (2 * perc * sig)
     return dHzdsig
-
-
-
-
-
-
-
 
 
 def Bz_horizontal_circular_loop(a, t, sigma):
@@ -364,13 +392,13 @@ def Bz_horizontal_circular_loop(a, t, sigma):
             \\theta = \sqrt{\\frac{\sigma\mu}{4t}}
     """
 
-    theta = np.sqrt((sigma*mu_0)/(4*t))
-    ta = theta*a
+    theta = np.sqrt((sigma * mu_0) / (4 * t))
+    ta = theta * a
     eta = spec.erf(ta)
-    t1 = (3/(np.sqrt(pi)*ta))*np.exp(-ta**2)
-    t2 = (1 - (3/(2*ta**2)))*eta
-    hz = (t1 + t2)/(2*a)
-    return mu_0*hz
+    t1 = (3 / (np.sqrt(pi) * ta)) * np.exp(-(ta ** 2))
+    t2 = (1 - (3 / (2 * ta ** 2))) * eta
+    hz = (t1 + t2) / (2 * a)
+    return mu_0 * hz
 
 
 def dBzdt_horizontal_circular_loop(a, t, sigma):
@@ -388,50 +416,50 @@ def dBzdt_horizontal_circular_loop(a, t, sigma):
 
             \\theta = \sqrt{\\frac{\sigma\mu}{4t}}
     """
-    theta = np.sqrt((sigma*mu_0)/(4*t))
-    const = -1/(mu_0*sigma*a**3)
-    ta = theta*a
+    theta = np.sqrt((sigma * mu_0) / (4 * t))
+    const = -1 / (mu_0 * sigma * a ** 3)
+    ta = theta * a
     eta = spec.erf(ta)
-    t1 = 3*eta
-    t2 = -2/(np.pi**0.5)*ta*(3+2*ta**2)*np.exp(-ta**2)
-    dhzdt = const*(t1+t2)
-    return mu_0*dhzdt
+    t1 = 3 * eta
+    t2 = -2 / (np.pi ** 0.5) * ta * (3 + 2 * ta ** 2) * np.exp(-(ta ** 2))
+    dhzdt = const * (t1 + t2)
+    return mu_0 * dhzdt
 
 
 def Bz_horizontal_circular_loop_ColeCole(a, t, sigma):
 
     wt, tbase, omega_int = setFrequency(t)
-    hz = Hz_horizontal_circular_loop(omega_int/2/np.pi, 1., a, sigma, 'secondary')
+    hz = Hz_horizontal_circular_loop(omega_int / 2 / np.pi, 1.0, a, sigma, "secondary")
     # Treatment for inaccuracy in analytic solutions
     ind = omega_int < 0.2
-    hz[ind] = 0.
+    hz[ind] = 0.0
     hzTD, f0 = transFilt(hz, wt, tbase, omega_int, t)
-    return hzTD*mu_0
+    return hzTD * mu_0
 
 
 def dBzdt_horizontal_circular_loop_ColeCole(a, t, sigma):
 
     wt, tbase, omega_int = setFrequency(t)
-    hz = Hz_horizontal_circular_loop(omega_int/2/np.pi, 1., a, sigma, 'secondary')
+    hz = Hz_horizontal_circular_loop(omega_int / 2 / np.pi, 1.0, a, sigma, "secondary")
     # Treatment for inaccuracy in analytic solutions
     ind = omega_int < 0.2
-    hz[ind] = 0.
+    hz[ind] = 0.0
     dhzdtTD = -transFiltImpulse(hz, wt, tbase, omega_int, t)
 
-    return dhzdtTD*mu_0
+    return dhzdtTD * mu_0
 
 
 def Bz_horizontal_circular_loop_VRM(a, z, h, t, dchi, tau1, tau2):
 
-    mu0 = 4*np.pi*1e-7
-    F = - (1/np.log(tau2/tau1)) * (spec.expi(t/tau2) + spec.expi(-t/tau1))
-    B0 = (0.5*mu0*a**2) * (dchi/(2 + dchi)) * ((z + h)**2 + a**2)**-1.5
-    return B0*F
+    mu0 = 4 * np.pi * 1e-7
+    F = -(1 / np.log(tau2 / tau1)) * (spec.expi(t / tau2) + spec.expi(-t / tau1))
+    B0 = (0.5 * mu0 * a ** 2) * (dchi / (2 + dchi)) * ((z + h) ** 2 + a ** 2) ** -1.5
+    return B0 * F
 
 
 def dBzdt_horizontal_circular_loop_VRM(a, z, h, t, dchi, tau1, tau2):
 
-    mu0 = 4*np.pi*1e-7
-    dFdt = (1/np.log(tau2/tau1)) * (np.exp(-t/tau1) - np.exp(-t/tau2)) / t
-    B0 = (0.5*mu0*a**2) * (dchi/(2 + dchi)) * ((z + h)**2 + a**2)**-1.5
-    return B0*dFdt
+    mu0 = 4 * np.pi * 1e-7
+    dFdt = (1 / np.log(tau2 / tau1)) * (np.exp(-t / tau1) - np.exp(-t / tau2)) / t
+    B0 = (0.5 * mu0 * a ** 2) * (dchi / (2 + dchi)) * ((z + h) ** 2 + a ** 2) ** -1.5
+    return B0 * dFdt

@@ -9,6 +9,7 @@ from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
 from discretize import SimplexMesh, TensorMesh
+
 ###############################################################################
 #                                                                             #
 #                          Base Regularization                                #
@@ -182,7 +183,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
             R(m) = \\mathbf{W^\\top W}
 
-        """     
+        """
 
         mD = self.mapping.deriv(self._delta_m(m))
         if v is None:

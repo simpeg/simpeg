@@ -35,7 +35,7 @@ IGNORE_ME = [
     "JointTotalVariation",
     "LaterallyConstrainedSmall",
     "LaterallyConstrainedDeriv",
-    "LaterallyConstrained"
+    "LaterallyConstrained",
 ]
 
 
@@ -408,7 +408,7 @@ class RegularizationTests(unittest.TestCase):
 class LCRegularizationTests(unittest.TestCase):
     def setUp(self):
         nx = 11
-        x = np.arange(nx)*50 + np.random.randn(nx) * 5
+        x = np.arange(nx) * 50 + np.random.randn(nx) * 5
         y = np.random.randn(nx) * 5
         tri = Delaunay(np.c_[x, y])
         hz = np.ones(10)
@@ -473,6 +473,7 @@ class LCRegularizationTests(unittest.TestCase):
             # test derivs
             passed = reg.test(m, eps=TOL)
             self.assertTrue(passed)
+
 
 if __name__ == "__main__":
     unittest.main()

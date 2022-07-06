@@ -108,7 +108,11 @@ survey = fdem.Survey(source_list)
 #
 
 hr = [(10.0, 30), (10.0, 10, 1.5)]  # discretization in the radial direction
-hz = [(10.0, 10, -1.5), (10.0, 200), (10.0, 10, 1.5)]  # discretization in vertical direction
+hz = [
+    (10.0, 10, -1.5),
+    (10.0, 200),
+    (10.0, 10, 1.5),
+]  # discretization in vertical direction
 
 mesh = CylMesh([hr, 1, hz], x0="00C")
 
@@ -135,9 +139,13 @@ model_map = maps.InjectActiveCells(mesh, ind_active, air_conductivity)
 
 # Define the model
 model = background_conductivity * np.ones(ind_active.sum())
-ind = (mesh.cell_centers[ind_active, 2] > -200.0) & (mesh.cell_centers[ind_active, 2] < -0)
+ind = (mesh.cell_centers[ind_active, 2] > -200.0) & (
+    mesh.cell_centers[ind_active, 2] < -0
+)
 model[ind] = layer_conductivity_1
-ind = (mesh.cell_centers[ind_active, 2] > -400.0) & (mesh.cell_centers[ind_active, 2] < -200)
+ind = (mesh.cell_centers[ind_active, 2] > -400.0) & (
+    mesh.cell_centers[ind_active, 2] < -200
+)
 model[ind] = layer_conductivity_2
 
 # Plot Conductivity Model

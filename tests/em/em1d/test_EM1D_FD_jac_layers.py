@@ -148,33 +148,37 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
         if passed:
             print("EM1DFD-layers Jtvec works")
 
-class EM1D_FD_Jac_layers_PiecewiseWireLoop(unittest.TestCase):
 
+class EM1D_FD_Jac_layers_PiecewiseWireLoop(unittest.TestCase):
     def setUp(self):
 
         x_path = np.array([-2, -2, 2, 2, -2])
         y_path = np.array([-1, 1, 1, -1, -1])
         frequencies = np.logspace(0, 4)
 
-        wire_paths= np.c_[x_path, y_path, np.ones(5) * 0.5]
+        wire_paths = np.c_[x_path, y_path, np.ones(5) * 0.5]
         source_list = []
         receiver_list = []
-        receiver_location = np.array([9.28, 0., 0.45])
+        receiver_location = np.array([9.28, 0.0, 0.45])
         receiver_orientation = "z"
         receiver_list.append(
             fdem.receivers.PointMagneticFieldSecondary(
-                receiver_location, orientation=receiver_orientation,
-                data_type='field', component="both"
+                receiver_location,
+                orientation=receiver_orientation,
+                data_type="field",
+                component="both",
             )
         )
 
         for freq in frequencies:
-            source = fdem.sources.PiecewiseWireLoop(receiver_list, wire_paths=wire_paths, frequency=freq)
+            source = fdem.sources.PiecewiseWireLoop(
+                receiver_list, wire_paths=wire_paths, frequency=freq
+            )
             source_list.append(source)
 
         # Survey
         survey = fdem.Survey(source_list)
-        thicknesses = np.array([20., 40.])
+        thicknesses = np.array([20.0, 40.0])
 
         self.nlayers = len(thicknesses) + 1
         sigma_map = maps.ExpMap(nP=self.nlayers)
@@ -234,6 +238,7 @@ class EM1D_FD_Jac_layers_PiecewiseWireLoop(unittest.TestCase):
         derChk = lambda m: misfit(m, dobs)
         passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
         self.assertTrue(passed)
+
 
 # Revisit this later; should not be any problem in theory
 # class EM1D_FD_Jac_layers_ProblemTests_Height(unittest.TestCase):
