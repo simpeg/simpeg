@@ -3,7 +3,7 @@ import scipy.sparse as sp
 from scipy.constants import mu_0
 
 from SimPEG import utils
-from ..base import BasePFSimulation
+from ..base import BasePFSimulation, BaseEquivalentSourceLayerSimulation
 from ...base import BaseMagneticPDESimulation
 from .survey import Survey
 from .analytics import CongruousMagBC
@@ -666,6 +666,22 @@ class Simulation3DIntegral(BasePFSimulation):
             "The coordinate_system property has been removed. "
             "Instead make use of `SimPEG.maps.SphericalSystem`."
         )
+
+
+class SimulationEquivalentSourceLayer(BaseEquivalentSourceLayerSimulation, Simulation3DIntegral):
+    """
+    Equivalent source layer simulation
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A 2D tensor or tree mesh defining discretization along the x and y directions
+    cell_z_top : numpy.ndarray or float
+        Define the elevations for the top face of all cells in the layer
+    cell_z_bottom : numpy.ndarray or float
+        Define the elevations for the bottom face of all cells in the layer
+
+    """
 
 
 class Simulation3DDifferential(BaseMagneticPDESimulation):
