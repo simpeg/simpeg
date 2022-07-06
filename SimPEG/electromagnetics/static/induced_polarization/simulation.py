@@ -45,9 +45,7 @@ class BaseIPSimulation(BasePDESimulation):
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
 
     _data_type = properties.StringChoice(
-        "IP data type",
-        default="volt",
-        choices=["volt", "apparent_chargeability"],
+        "IP data type", default="volt", choices=["volt", "apparent_chargeability"],
     )
 
     data_type = deprecate_property(
@@ -110,7 +108,7 @@ class BaseIPSimulation(BasePDESimulation):
         if self.gtgdiag is None:
             J = self.getJ(m)
             if W is None:
-                W = self._scale**2
+                W = self._scale ** 2
             else:
                 W = (self._scale * W.diagonal()) ** 2
 

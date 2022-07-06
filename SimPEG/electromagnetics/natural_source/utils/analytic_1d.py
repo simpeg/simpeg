@@ -28,7 +28,7 @@ def getEHfields(m1d, sigma, freq, zd, scaleUD=True, scaleValue=1):
     # Add the halfspace value to the property
     sig = np.concatenate((np.array([sigma[0]]), sigma))
     # Calculate the wave number
-    k = np.sqrt(eps * mu * w**2 - 1j * mu * sig * w)
+    k = np.sqrt(eps * mu * w ** 2 - 1j * mu * sig * w)
 
     # Initiate the propagation matrix, in the order down up.
     UDp = np.zeros((2, m1d.nC + 1), dtype=complex)
@@ -122,7 +122,7 @@ def getImpedance(m1d, sigma, freq):
         for nr, hi in enumerate(h):
             # Calculate the wave number
             # print(nr,sigma[nr])
-            k = np.sqrt(mu_0 * eps_0 * om**2 - 1j * mu_0 * sigma[nr] * om)
+            k = np.sqrt(mu_0 * eps_0 * om ** 2 - 1j * mu_0 * sigma[nr] * om)
             Z = (mu_0 * om) / k
 
             Zall[nr + 1] = Z * (

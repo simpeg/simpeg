@@ -9,10 +9,7 @@ from .base import (
 )
 from .regularization_mesh import RegularizationMesh
 from .sparse import SparseSmall, SparseDeriv, Sparse
-from .pgi import (
-    PGIsmallness,
-    PGI
-)
+from .pgi import PGIsmallness, PGI
 from .cross_gradient import CrossGradient
 from .correspondence import LinearCorrespondence
 from .jtv import JointTotalVariation
@@ -40,10 +37,12 @@ class Simple(LeastSquaresRegularization):
 class Tikhonov(LeastSquaresRegularization):
     pass
 
+
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class PGIwithNonlinearRelationshipsSmallness(PGIsmallness):
     def __init__(self, gmm):
         super().__init__(gmm, non_linear_relationships=True, **kwargs)
+
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class PGIwithRelationships(PGI):

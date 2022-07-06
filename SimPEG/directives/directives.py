@@ -300,7 +300,15 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
             for obj in objfcts:
 
-                if isinstance(obj, (Small, SparseSmall, PGIsmallness, PGIwithNonlinearRelationshipsSmallness)):
+                if isinstance(
+                    obj,
+                    (
+                        Small,
+                        SparseSmall,
+                        PGIsmallness,
+                        PGIwithNonlinearRelationshipsSmallness,
+                    ),
+                ):
                     smallness += [obj]
 
                 elif isinstance(obj, (SmoothDeriv, SparseDeriv)):
@@ -308,19 +316,21 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                     smoothness += [obj]
 
         if len(smallness) == 0:
-            raise UserWarning("Directive 'AlphasSmoothEstimate_ByEig' requires a regularization with at least one Small instance.")
+            raise UserWarning(
+                "Directive 'AlphasSmoothEstimate_ByEig' requires a regularization with at least one Small instance."
+            )
 
         smallness_eigenvalue = eigenvalue_by_power_iteration(
-            smallness[0],
-            self.invProb.model,
-            n_pw_iter=self.n_pw_iter,
+            smallness[0], self.invProb.model, n_pw_iter=self.n_pw_iter,
         )
 
         if not isinstance(self.alpha0_ratio, (np.ndarray, list)):
             self.alpha0_ratio = self.alpha0_ratio * np.ones(len(smoothness))
 
         if len(self.alpha0_ratio) != len(smoothness):
-            raise ValueError(f"Input values for 'alpha0_ratio' should be of len({len(smoothness)}). Provided {self.alpha0_ratio}")
+            raise ValueError(
+                f"Input values for 'alpha0_ratio' should be of len({len(smoothness)}). Provided {self.alpha0_ratio}"
+            )
 
         alphas = []
         for user_alpha, obj in zip(self.alpha0_ratio, smoothness):
@@ -334,7 +344,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             new_alpha = getattr(parents[obj], mtype) * user_alpha * ratio
             setattr(parents[obj], mtype, new_alpha)
             alphas += [new_alpha]
-        
+
         if self.verbose:
             print(f"Alpha scales: {alphas}")
 
@@ -667,7 +677,9 @@ class MultiTargetMisfits(InversionDirective):
             return self.invProb.reg.objfcts[0](self.invProb.model)
         else:
             return (
-                self.pgi_smallness(self.invProb.model, external_weights=self.WeightsInTarget)
+                self.pgi_smallness(
+                    self.invProb.model, external_weights=self.WeightsInTarget
+                )
                 / self.CLnormalizedConstant
             )
 
@@ -1373,7 +1385,9 @@ class Update_IRLS(InversionDirective):
 
         for reg, var in zip(self.reg.objfcts[1:], max_s):
             for obj in reg.objfcts:
-                obj.add_set_weights({"angle_scale": np.ones(obj.shape[0]) * max_p / var})
+                obj.add_set_weights(
+                    {"angle_scale": np.ones(obj.shape[0]) * max_p / var}
+                )
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else

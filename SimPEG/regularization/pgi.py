@@ -64,7 +64,7 @@ class PGIsmallness(Small):
         approx_eval=True,  # L2 approximate of the value
         approx_hessian=True,
         non_linear_relationships=False,
-        **kwargs
+        **kwargs,
     ):
         self.gmmref = copy.deepcopy(gmmref)
         self.gmmref.order_clusters_GM_weight()
@@ -77,7 +77,9 @@ class PGIsmallness(Small):
         self.maplist = maplist
 
         if "mapping" in kwargs:
-            warnings.warn(f"Property 'mapping' of class {type(self)} cannot be set. Defaults to IdentityMap.")
+            warnings.warn(
+                f"Property 'mapping' of class {type(self)} cannot be set. Defaults to IdentityMap."
+            )
             kwargs.pop("mapping")
 
         super().__init__(mesh=mesh, mapping=IdentityMap(nP=self.shape[0]), **kwargs)
@@ -91,7 +93,9 @@ class PGIsmallness(Small):
             weights = {"user_weights": np.r_[weights].flatten()}
 
         if not isinstance(weights, dict):
-            raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
+            raise TypeError(
+                "Weights must be provided as a dictionary or numpy.ndarray."
+            )
 
         for key, values in weights.items():
             self.validate_array_type("weights", values, float)
@@ -119,7 +123,7 @@ class PGIsmallness(Small):
     @property
     def shape(self):
         """"""
-        return self.wiresmap.nP,
+        return (self.wiresmap.nP,)
 
     def membership(self, m):
         modellist = self.wiresmap * m
@@ -157,7 +161,9 @@ class PGIsmallness(Small):
     @wiresmap.setter
     def wiresmap(self, wires):
         if self._maplist is not None and len(wires.maps) != len(self._maplist):
-            raise Exception(f"Provided 'wiresmap' should have wires the len of 'maplist' {len(self._maplist)}.")
+            raise Exception(
+                f"Provided 'wiresmap' should have wires the len of 'maplist' {len(self._maplist)}."
+            )
 
         if not isinstance(wires, Wires):
             raise ValueError(f"Attribure 'wiresmap' should be of type {Wires} or None.")
@@ -167,18 +173,24 @@ class PGIsmallness(Small):
     @property
     def maplist(self):
         if getattr(self, "_maplist", None) is None:
-            self._maplist = [IdentityMap(self.regularization_mesh) for maps in self.wiresmap.maps]
+            self._maplist = [
+                IdentityMap(self.regularization_mesh) for maps in self.wiresmap.maps
+            ]
         return self._maplist
 
     @maplist.setter
     def maplist(self, maplist):
         if self._wiresmap is not None and len(maplist) != len(self._wiresmap.maps):
-            raise Exception(f"Provided 'maplist' should be a list of maps equal to the 'wiresmap' list of len {len(self._maplist)}.")
+            raise Exception(
+                f"Provided 'maplist' should be a list of maps equal to the 'wiresmap' list of len {len(self._maplist)}."
+            )
 
         if not isinstance(maplist, (list, type(None))):
             raise ValueError("Attribure 'maplist' should be a list of maps or None.")
 
-        if isinstance(maplist, list) and not all(isinstance(map, IdentityMap) for map in maplist):
+        if isinstance(maplist, list) and not all(
+            isinstance(map, IdentityMap) for map in maplist
+        ):
             raise ValueError(f"Attribure 'maplist' should be a list of maps or None.")
 
         self._maplist = maplist
@@ -213,10 +225,7 @@ class PGIsmallness(Small):
 
             if self.gmm.covariance_type == "tied":
                 r1 = np.r_[
-                    [
-                        np.dot(self.gmm.precisions_, np.r_[r0[i]])
-                        for i in range(len(r0))
-                    ]
+                    [np.dot(self.gmm.precisions_, np.r_[r0[i]]) for i in range(len(r0))]
                 ]
             elif (
                 self.gmm.covariance_type == "diag"
@@ -300,12 +309,9 @@ class PGIsmallness(Small):
                     np.r_[[np.dot(self.gmm.precisions_, r0[i]) for i in range(len(r0))]]
                 )
             elif (
-                    (
-                        self.gmm.covariance_type == "diag"
-                        or self.gmm.covariance_type == "spherical"
-                    )
-                and not self.non_linear_relationships
-            ):
+                self.gmm.covariance_type == "diag"
+                or self.gmm.covariance_type == "spherical"
+            ) and not self.non_linear_relationships:
                 r = mkvc(
                     np.r_[
                         [
@@ -490,7 +496,9 @@ class PGIsmallness(Small):
                         ]
                     else:
 
-                        r = self.gmm.precisions_[np.newaxis, :, :][np.zeros_like(membership)]
+                        r = self.gmm.precisions_[np.newaxis, :, :][
+                            np.zeros_like(membership)
+                        ]
                 elif (
                     self.gmm.covariance_type == "spherical"
                     or self.gmm.covariance_type == "diag"
@@ -504,7 +512,7 @@ class PGIsmallness(Small):
                                         self.gmm.cluster_mapping[membership[i]].deriv(
                                             dmmodel[i],
                                             v=self.gmm.precisions_[membership[i]]
-                                              * np.eye(len(self.wiresmap.maps)),
+                                            * np.eye(len(self.wiresmap.maps)),
                                         )
                                     ).T,
                                 )
@@ -514,7 +522,8 @@ class PGIsmallness(Small):
                     else:
                         r = np.r_[
                             [
-                                self.gmm.precisions_[memb] * np.eye(len(self.wiresmap.maps))
+                                self.gmm.precisions_[memb]
+                                * np.eye(len(self.wiresmap.maps))
                                 for memb in membership
                             ]
                         ]
@@ -526,7 +535,8 @@ class PGIsmallness(Small):
                                     dmmodel[i],
                                     v=(
                                         self.gmm.cluster_mapping[membership[i]].deriv(
-                                            dmmodel[i], v=self.gmm.precisions_[membership[i]]
+                                            dmmodel[i],
+                                            v=self.gmm.precisions_[membership[i]],
                                         )
                                     ).T,
                                 )
@@ -545,8 +555,17 @@ class PGIsmallness(Small):
                 return mkvc(
                     mD.T
                     * (
-                            self.W
-                            * (mkvc(np.r_[[np.dot(self._r_second_deriv[i], r0[i]) for i in range(len(r0))]]))
+                        self.W
+                        * (
+                            mkvc(
+                                np.r_[
+                                    [
+                                        np.dot(self._r_second_deriv[i], r0[i])
+                                        for i in range(len(r0))
+                                    ]
+                                ]
+                            )
+                        )
                     )
                 )
             else:
@@ -587,10 +606,7 @@ class PGIsmallness(Small):
             score = self.gmm.score_samples_with_sensW(model, sensW)
             logP = np.zeros((len(model), self.gmm.n_components))
             W = []
-            logP = self.gmm._estimate_weighted_log_prob_with_sensW(
-                model,
-                sensW,
-            )
+            logP = self.gmm._estimate_weighted_log_prob_with_sensW(model, sensW,)
             for k in range(self.gmm.n_components):
                 if self.gmm.covariance_type == "tied":
 
@@ -686,7 +702,7 @@ class PGI(ComboObjectiveFunction):
         weights_list=None,
         non_linear_relationships: bool = False,
         reference_model_in_smooth: bool = False,
-        **kwargs
+        **kwargs,
     ):
         self._wiresmap = wiresmap
         self._maplist = maplist
@@ -704,7 +720,7 @@ class PGI(ComboObjectiveFunction):
                 approx_hessian=approx_hessian,
                 non_linear_relationships=non_linear_relationships,
                 weights=weights_list,
-                **kwargs
+                **kwargs,
             )
         ]
 
@@ -724,7 +740,7 @@ class PGI(ComboObjectiveFunction):
                     mesh=self.regularization_mesh,
                     mapping=map * wire[1],
                     weights=weights,
-                    **kwargs
+                    **kwargs,
                 )
             ]
 
@@ -741,10 +757,12 @@ class PGI(ComboObjectiveFunction):
     @alpha_pgi.setter
     def alpha_pgi(self, value):
         if isinstance(value, (float, int)) and value < 0:
-            raise ValueError("Input 'alpha_pgi' value must me of type float > 0"
-                             f"Value {value} of type {type(value)} provided")
+            raise ValueError(
+                "Input 'alpha_pgi' value must me of type float > 0"
+                f"Value {value} of type {type(value)} provided"
+            )
         self._alpha_pgi = value
-        self._multipliers[0] =  value
+        self._multipliers[0] = value
 
     @property
     def gmm(self):
@@ -771,9 +789,10 @@ class PGI(ComboObjectiveFunction):
     @property
     def maplist(self):
         if getattr(self, "_maplist", None) is None:
-            self._maplist = [IdentityMap(self.regularization_mesh) for maps in self.wiresmap.maps]
+            self._maplist = [
+                IdentityMap(self.regularization_mesh) for maps in self.wiresmap.maps
+            ]
         return self._maplist
-
 
     @property
     def regularization_mesh(self) -> RegularizationMesh:
@@ -822,9 +841,4 @@ class PGI(ComboObjectiveFunction):
 
         self._reference_model = values
 
-    mref = deprecate_property(
-        reference_model,
-        "mref",
-        "0.x.0",
-        error=False,
-    )
+    mref = deprecate_property(reference_model, "mref", "0.x.0", error=False,)

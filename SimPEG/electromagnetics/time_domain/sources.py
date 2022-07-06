@@ -116,11 +116,7 @@ class BaseWaveform:
     )
 
     eps = deprecate_property(
-        epsilon,
-        "eps",
-        new_name="epsilon",
-        removal_version="0.17.0",
-        future_warn=True,
+        epsilon, "eps", new_name="epsilon", removal_version="0.17.0", future_warn=True,
     )
 
 
@@ -916,7 +912,7 @@ class CircularLoop(MagDipole):
 
     @property
     def moment(self):
-        return np.pi * self.radius**2 * self.current * self.N
+        return np.pi * self.radius ** 2 * self.current * self.N
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         # return MagneticLoopVectorPotential(

@@ -355,9 +355,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
             petrosmallness = np.where(
                 np.r_[
                     [
-                        isinstance(
-                            regpart, (PGI, PGIwithRelationships)
-                        )
+                        isinstance(regpart, (PGI, PGIwithRelationships))
                         for regpart in self.reg.objfcts
                     ]
                 ]
@@ -368,15 +366,7 @@ class PGI_AddMrefInSmooth(InversionDirective):
             Smooth = []
             for i, regobjcts in enumerate(self.reg.objfcts):
                 for j, regpart in enumerate(regobjcts.objfcts):
-                    Smooth += [
-                        [
-                            i,
-                            j,
-                            isinstance(
-                                regpart, (SmoothDeriv, SparseDeriv)
-                            ),
-                        ]
-                    ]
+                    Smooth += [[i, j, isinstance(regpart, (SmoothDeriv, SparseDeriv)),]]
             self.Smooth = np.r_[Smooth]
 
             self.nbr = np.sum(

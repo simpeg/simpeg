@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import numpy as np
 
-from .base import BaseRegularization, LeastSquaresRegularization, RegularizationMesh, Small, SmoothDeriv
+from .base import (
+    BaseRegularization,
+    LeastSquaresRegularization,
+    RegularizationMesh,
+    Small,
+    SmoothDeriv,
+)
 from .. import utils
 
 
@@ -10,9 +16,10 @@ class BaseSparse(BaseRegularization):
     """
     Base class for building up the components of the Sparse Regularization
     """
+
     _irls_scaled = True
     _irls_threshold = 1e-8
-    _norm = 2.
+    _norm = 2.0
 
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
@@ -55,7 +62,7 @@ class BaseSparse(BaseRegularization):
         Value of the norm
         """
         if getattr(self, "_norm", None) is None:
-            self.norm = 2.
+            self.norm = 2.0
         return self._norm
 
     @norm.setter
@@ -64,7 +71,7 @@ class BaseSparse(BaseRegularization):
             if isinstance(value, (float, int)):
                 value = np.ones(self.shape[0]) * value
 
-            if (np.any(value < 0) or np.any(value > 2)):
+            if np.any(value < 0) or np.any(value > 2):
                 raise ValueError(
                     "Value provided for 'norm' should be in the interval [0, 2]"
                 )
@@ -85,13 +92,12 @@ class BaseSparse(BaseRegularization):
                 1.0 - self.norm[self.norm < 1]
             )
             lp_values = l2_max / (l2_max ** 2.0 + self.irls_threshold ** 2.0) ** (
-                    1.0 - self.norm / 2.0
+                1.0 - self.norm / 2.0
             )
             lp_scale[lp_values != 0] = np.abs(f_m).max() / lp_values[lp_values != 0]
 
-        return (
-            lp_scale /
-            (f_m ** 2.0 + self.irls_threshold ** 2.0) ** (1.0 - self.norm / 2.0)
+        return lp_scale / (f_m ** 2.0 + self.irls_threshold ** 2.0) ** (
+            1.0 - self.norm / 2.0
         )
 
 
@@ -121,6 +127,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
     """
     Base Class for sparse regularization on first spatial derivatives
     """
+
     _gradient_type = "total"
 
     def __init__(self, mesh, orientation="x", **kwargs):
@@ -141,7 +148,8 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
                 if self.regularization_mesh.dim > ii:
                     Ave = getattr(self.regularization_mesh, f"aveCC2F{comp}")
                     length_scales = Ave * (
-                            self.regularization_mesh.Pac.T * self.regularization_mesh.mesh.h_gridded[:, ii]
+                        self.regularization_mesh.Pac.T
+                        * self.regularization_mesh.mesh.h_gridded[:, ii]
                     )
                     dm = getattr(self.regularization_mesh, f"cellDiff{comp}") * delta_m
 
@@ -151,14 +159,10 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
                     dm_dl = dm / length_scales
 
                     f_m += np.abs(
-                        getattr(self.regularization_mesh, f"aveF{comp}2CC") *
-                        dm_dl
+                        getattr(self.regularization_mesh, f"aveF{comp}2CC") * dm_dl
                     )
 
-            f_m = (
-                getattr(self.regularization_mesh, f"aveCC2F{self.orientation}") *
-                f_m
-            )
+            f_m = getattr(self.regularization_mesh, f"aveCC2F{self.orientation}") * f_m
 
         else:
             f_m = self.f_m(m)
@@ -182,11 +186,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
         self._gradient_type = value
 
     gradientType = utils.code_utils.deprecate_property(
-        gradient_type,
-        "gradientType",
-        "0.x.0",
-        error=False,
-        future_warn=False
+        gradient_type, "gradientType", "0.x.0", error=False, future_warn=False
     )
 
 
@@ -215,6 +215,7 @@ class Sparse(LeastSquaresRegularization):
     It is strongly recommended to do a few Gauss-Newton iterations
     before updating.
     """
+
     _irls_scaled = True
     _irls_threshold = 1e-8
     _gradient_type = "total"
@@ -242,7 +243,7 @@ class Sparse(LeastSquaresRegularization):
             active_cells=active_cells,
             norms=norms,
             gradient_type=gradient_type,
-            **kwargs
+            **kwargs,
         )
 
     @property
@@ -261,11 +262,7 @@ class Sparse(LeastSquaresRegularization):
         self._gradient_type = value
 
     gradientType = utils.code_utils.deprecate_property(
-        gradient_type,
-        "gradientType",
-        "0.x.0",
-        error=False,
-        future_warn=False
+        gradient_type, "gradientType", "0.x.0", error=False, future_warn=False
     )
 
     @property

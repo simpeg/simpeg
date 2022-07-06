@@ -43,13 +43,21 @@ class RegularizationMesh(props.BaseSimPEG):
     def active_cells(self, values: np.ndarray):
         if values is not None:
             if self._active_cells is not None:
-                raise AttributeError("The RegulatizationMesh already has an 'active_cells' property set.")
+                raise AttributeError(
+                    "The RegulatizationMesh already has an 'active_cells' property set."
+                )
 
-            if not isinstance(values, np.ndarray) or values.dtype != "bool":  # cast it to a bool otherwise
-                raise ValueError("Input 'active_cells' must be an numpy.ndarray of type 'bool'.")
+            if (
+                not isinstance(values, np.ndarray) or values.dtype != "bool"
+            ):  # cast it to a bool otherwise
+                raise ValueError(
+                    "Input 'active_cells' must be an numpy.ndarray of type 'bool'."
+                )
 
             if values.shape != (self.mesh.nC,):
-                raise ValueError(f"Input 'active_cells' must have shape {(self.mesh.nC,)}")
+                raise ValueError(
+                    f"Input 'active_cells' must have shape {(self.mesh.nC,)}"
+                )
         self._active_cells = values
 
     @property
@@ -330,13 +338,13 @@ class RegularizationMesh(props.BaseSimPEG):
         if getattr(self, "_cellDiffx", None) is None:
             if self.mesh._meshType == "TREE":
                 self._cellDiffx = (
-                    self.Pafx.T *
-                    utils.sdiag(
-                        self.mesh.average_cell_to_total_face_x() *
-                        (self.mesh.h_gridded[:, 0] ** -1)
-                    ) *
-                    self.mesh._cellGradxStencil *
-                    self.Pac
+                    self.Pafx.T
+                    * utils.sdiag(
+                        self.mesh.average_cell_to_total_face_x()
+                        * (self.mesh.h_gridded[:, 0] ** -1)
+                    )
+                    * self.mesh._cellGradxStencil
+                    * self.Pac
                 )
             else:
                 self._cellDiffx = self.Pafx.T * self.mesh.cellGradx * self.Pac
@@ -353,13 +361,13 @@ class RegularizationMesh(props.BaseSimPEG):
         if getattr(self, "_cellDiffy", None) is None:
             if self.mesh._meshType == "TREE":
                 self._cellDiffy = (
-                    self.Pafy.T *
-                    utils.sdiag(
-                        self.mesh.average_cell_to_total_face_y() *
-                        (self.mesh.h_gridded[:, 1] ** -1)
-                    ) *
-                    self.mesh._cellGradyStencil *
-                    self.Pac
+                    self.Pafy.T
+                    * utils.sdiag(
+                        self.mesh.average_cell_to_total_face_y()
+                        * (self.mesh.h_gridded[:, 1] ** -1)
+                    )
+                    * self.mesh._cellGradyStencil
+                    * self.Pac
                 )
             else:
                 self._cellDiffy = self.Pafy.T * self.mesh.cellGrady * self.Pac
@@ -376,13 +384,13 @@ class RegularizationMesh(props.BaseSimPEG):
         if getattr(self, "_cellDiffz", None) is None:
             if self.mesh._meshType == "TREE":
                 self._cellDiffz = (
-                    self.Pafz.T *
-                    utils.sdiag(
-                        self.mesh.average_cell_to_total_face_z() *
-                        (self.mesh.h_gridded[:, 2] ** -1)
-                    ) *
-                    self.mesh._cellGradzStencil *
-                    self.Pac
+                    self.Pafz.T
+                    * utils.sdiag(
+                        self.mesh.average_cell_to_total_face_z()
+                        * (self.mesh.h_gridded[:, 2] ** -1)
+                    )
+                    * self.mesh._cellGradzStencil
+                    * self.Pac
                 )
             else:
                 self._cellDiffz = self.Pafz.T * self.mesh.cellGradz * self.Pac

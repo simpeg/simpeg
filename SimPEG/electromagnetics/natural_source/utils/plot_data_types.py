@@ -258,7 +258,7 @@ def plotIsoStaImpedance(
     ax, loc, array, flag, par="abs", pSym="s", pColor=None, addLabel="", zorder=1
 ):
 
-    appResFact = 1 / (8 * np.pi**2 * 10 ** (-7))
+    appResFact = 1 / (8 * np.pi ** 2 * 10 ** (-7))
     treshold = 1.0  # 1 meter
     indUniSta = (
         np.sqrt(np.sum((array[["x", "y"]].copy().view((float, 2)) - loc) ** 2, axis=1))
@@ -331,7 +331,7 @@ def plotPsudoSectNSimpedance(
 
     elif par == "ares":
         zPlot = np.abs(array[flag][indSect]) ** 2 / (
-            8 * np.pi**2 * 10 ** (-7) * array["freq"][indSect]
+            8 * np.pi ** 2 * 10 ** (-7) * array["freq"][indSect]
         )
         cmap = plt.get_cmap("RdYlBu")  # seismic)
         if cLevel:
@@ -479,7 +479,7 @@ def plotPsudoSectNSDiff(
             zPlot[maskInd] = mask
         cmap = plt.get_cmap("RdYlBu")  # seismic)
     elif par == "ares":
-        arF = 1 / (8 * np.pi**2 * 10 ** (-7))
+        arF = 1 / (8 * np.pi ** 2 * 10 ** (-7))
         if useLog:
             zPlot = (
                 np.log10((arF / arr0["freq"]) * np.abs(arr0[flag]) ** 2)

@@ -351,7 +351,7 @@ class BaseSimulation(props.HasModel):
         dclean = self.dpred(m, f=f)
 
         if add_noise is True:
-            std = np.sqrt((relative_error * np.abs(dclean)) ** 2 + noise_floor**2)
+            std = np.sqrt((relative_error * np.abs(dclean)) ** 2 + noise_floor ** 2)
             noise = std * np.random.randn(*dclean.shape)
             dobs = dclean + noise
         else:
@@ -412,12 +412,7 @@ class BaseTimeSimulation(BaseSimulation):
     @property
     def time_mesh(self):
         if getattr(self, "_time_mesh", None) is None:
-            self._time_mesh = TensorMesh(
-                [
-                    self.time_steps,
-                ],
-                x0=[self.t0],
-            )
+            self._time_mesh = TensorMesh([self.time_steps,], x0=[self.t0],)
         return self._time_mesh
 
     @time_mesh.deleter

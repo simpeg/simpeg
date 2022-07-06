@@ -77,11 +77,7 @@ class IO(properties.HasProperties):
         "Type of DC-IP survey",
         required=True,
         default="volt",
-        choices=[
-            "volt",
-            "apparent_resistivity",
-            "apparent_conductivity",
-        ],
+        choices=["volt", "apparent_resistivity", "apparent_conductivity",],
     )
 
     data_dc = properties.Array(
@@ -92,10 +88,7 @@ class IO(properties.HasProperties):
         "Type of DC-IP survey",
         required=True,
         default="volt",
-        choices=[
-            "volt",
-            "apparent_chargeability",
-        ],
+        choices=["volt", "apparent_chargeability",],
     )
 
     data_ip = properties.Array(
@@ -106,10 +99,7 @@ class IO(properties.HasProperties):
         "Type of DC-IP survey",
         required=True,
         default="volt",
-        choices=[
-            "volt",
-            "apparent_chargeability",
-        ],
+        choices=["volt", "apparent_chargeability",],
     )
 
     data_sip = properties.Array(
@@ -152,10 +142,7 @@ class IO(properties.HasProperties):
     # Related to Physics and Discretization
     mesh = properties.Instance("Mesh for discretization", BaseMesh, required=True)
 
-    dx = properties.Float(
-        "Length of corecell in x-direction",
-        required=True,
-    )
+    dx = properties.Float("Length of corecell in x-direction", required=True,)
     dy = properties.Float("Length of corecell in y-direction", required=True)
     dz = properties.Float("Length of corecell in z-direction", required=True)
 
@@ -187,10 +174,7 @@ class IO(properties.HasProperties):
         "The number of cells between dipole electrodes", required=True, default=4
     )
 
-    corezlength = properties.Float(
-        "Core depth (m)",
-        required=True,
-    )
+    corezlength = properties.Float("Core depth (m)", required=True,)
 
     # For synthetic surveys
     x0 = None

@@ -410,6 +410,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         return [fun for fun in target if fun]
 
+
 class L2ObjectiveFunction(BaseObjectiveFunction):
     """
     An L2-Objective Function

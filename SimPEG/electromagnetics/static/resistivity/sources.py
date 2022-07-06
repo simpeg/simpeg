@@ -89,12 +89,7 @@ class Dipole(BaseSrc):
     """
 
     def __init__(
-        self,
-        receiver_list,
-        location_a=None,
-        location_b=None,
-        location=None,
-        **kwargs,
+        self, receiver_list, location_a=None, location_b=None, location=None, **kwargs,
     ):
         if "current" in kwargs.keys():
             value = kwargs.pop("current")

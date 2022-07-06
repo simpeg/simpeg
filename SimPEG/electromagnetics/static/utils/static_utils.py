@@ -636,18 +636,12 @@ def plot_pseudosection(
                 levels = opts.get("levels", "auto")
                 locator = ticker.MaxNLocator(levels)
                 levels = locator.tick_values(np.log10(dobs.min()), np.log10(dobs.max()))
-                levels = 10**levels
+                levels = 10 ** levels
                 opts["levels"] = levels
             except TypeError:
                 pass
 
-        data_plot = ax.tricontourf(
-            x,
-            z,
-            dobs,
-            norm=norm,
-            **opts,
-        )
+        data_plot = ax.tricontourf(x, z, dobs, norm=norm, **opts,)
         if data_locations:
             ax.plot(x, z, "k.", ms=1, alpha=0.4)
 
@@ -878,7 +872,7 @@ if has_plotly:
                         + c * locations[:, 2]
                         + d
                     )
-                    / np.sqrt(a**2 + b**2 + c**2)
+                    / np.sqrt(a ** 2 + b ** 2 + c ** 2)
                     < plane_distance[ii]
                 )
 
@@ -1547,7 +1541,6 @@ def gettopoCC(mesh, actind, option="top"):
         raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
 
-
 def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):
     """
     Drape location right below (cell center) the topography
@@ -1667,14 +1660,7 @@ def gen_3d_survey_from_2d_lines(
         zmin, zmax = 0, 0
         IO_2d = dc.IO()
         endl = np.array([[xmin, ymin, zmin], [xmax, ymax, zmax]])
-        survey_2d = gen_DCIPsurvey(
-            endl,
-            survey_type,
-            a,
-            b,
-            n_spacing,
-            dim=3,
-        )
+        survey_2d = gen_DCIPsurvey(endl, survey_type, a, b, n_spacing, dim=3,)
 
         source_list.append(survey_2d.source_list)
         survey_2d = IO_2d.from_abmn_locations_to_survey(

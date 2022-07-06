@@ -145,7 +145,7 @@ class CrossGradient(BaseSimilarityMeasure):
         g_m1 = G @ m1
         g_m2 = G @ m2
         return 0.5 * np.sum(
-            (Av @ g_m1**2) * (Av @ g_m2**2) - (Av @ (g_m1 * g_m2)) ** 2
+            (Av @ g_m1 ** 2) * (Av @ g_m2 ** 2) - (Av @ (g_m1 * g_m2)) ** 2
         )
 
     def deriv(self, model):
@@ -166,9 +166,9 @@ class CrossGradient(BaseSimilarityMeasure):
         g_m2 = G @ m2
 
         return np.r_[
-            (((Av @ g_m2**2) @ Av) * g_m1) @ G
+            (((Av @ g_m2 ** 2) @ Av) * g_m1) @ G
             - (((Av @ (g_m1 * g_m2)) @ Av) * g_m2) @ G,
-            (((Av @ g_m1**2) @ Av) * g_m2) @ G
+            (((Av @ g_m1 ** 2) @ Av) * g_m2) @ G
             - (((Av @ (g_m1 * g_m2)) @ Av) * g_m1) @ G,
         ]
 
@@ -197,7 +197,7 @@ class CrossGradient(BaseSimilarityMeasure):
             A = (
                 G.T
                 @ (
-                    sp.diags(Av.T @ (Av @ g_m2**2))
+                    sp.diags(Av.T @ (Av @ g_m2 ** 2))
                     - sp.diags(g_m2) @ Av.T @ Av @ sp.diags(g_m2)
                 )
                 @ G
@@ -206,7 +206,7 @@ class CrossGradient(BaseSimilarityMeasure):
             C = (
                 G.T
                 @ (
-                    sp.diags(Av.T @ (Av @ g_m1**2))
+                    sp.diags(Av.T @ (Av @ g_m1 ** 2))
                     - sp.diags(g_m1) @ Av.T @ Av @ sp.diags(g_m1)
                 )
                 @ G
@@ -235,10 +235,10 @@ class CrossGradient(BaseSimilarityMeasure):
             Gv2 = G @ v2
 
             p1 = G.T @ (
-                (Av.T @ (Av @ g_m2**2)) * Gv1 - g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))
+                (Av.T @ (Av @ g_m2 ** 2)) * Gv1 - g_m2 * (Av.T @ (Av @ (g_m2 * Gv1)))
             )
             p2 = G.T @ (
-                (Av.T @ (Av @ g_m1**2)) * Gv2 - g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))
+                (Av.T @ (Av @ g_m1 ** 2)) * Gv2 - g_m1 * (Av.T @ (Av @ (g_m1 * Gv2)))
             )
 
             if not self.approx_hessian:

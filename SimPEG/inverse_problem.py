@@ -80,8 +80,13 @@ class BaseInvProblem(BaseSimPEG):
             print("Calling InvProblem.startup")
 
         for fct in self.reg.objfcts:
-            if hasattr(fct, "reference_model") and getattr(fct, "reference_model", None) is None:
-                print("SimPEG.InvProblem will set Regularization.reference_model to m0.")
+            if (
+                hasattr(fct, "reference_model")
+                and getattr(fct, "reference_model", None) is None
+            ):
+                print(
+                    "SimPEG.InvProblem will set Regularization.reference_model to m0."
+                )
                 fct.reference_model = m0
 
         self.phi_d = np.nan
@@ -90,17 +95,21 @@ class BaseInvProblem(BaseSimPEG):
         self.model = m0
         for objfct in self.dmisfit.objfcts:
 
-            if isinstance(objfct, BaseDataMisfit) and getattr(objfct.simulation, "solver", None) is not None:
+            if (
+                isinstance(objfct, BaseDataMisfit)
+                and getattr(objfct.simulation, "solver", None) is not None
+            ):
                 print(
                     """
                         SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
                         ***Done using same Solver and solver_opts as the {} problem***
                         """.format(
-                            objfct.simulation.__class__.__name__
-                        )
+                        objfct.simulation.__class__.__name__
+                    )
                 )
                 self.opt.bfgsH0 = objfct.simulation.solver(
-                    sp.csr_matrix(self.reg.deriv2(self.model)), **objfct.simulation.solver_opts
+                    sp.csr_matrix(self.reg.deriv2(self.model)),
+                    **objfct.simulation.solver_opts
                 )
                 break
 

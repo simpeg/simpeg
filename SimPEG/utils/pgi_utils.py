@@ -131,7 +131,7 @@ class WeightedGaussianMixture(GaussianMixture):
                 self.precisions_cholesky_, self.precisions_cholesky_.T
             )
         else:
-            self.precisions_ = self.precisions_cholesky_**2
+            self.precisions_ = self.precisions_cholesky_ ** 2
 
     def compute_clusters_covariances(self):
         """
@@ -151,7 +151,7 @@ class WeightedGaussianMixture(GaussianMixture):
                 self.covariances_cholesky_, self.covariances_cholesky_.T
             )
         else:
-            self.covariances_ = self.covariances_cholesky_**2
+            self.covariances_ = self.covariances_cholesky_ ** 2
 
         self.precisions_cholesky_ = _compute_precision_cholesky(
             self.covariances_, self.covariance_type
@@ -249,9 +249,7 @@ class WeightedGaussianMixture(GaussianMixture):
 
         if self.weights_init is not None:
             self.weights_init = self._check_weights(
-                self.weights_init,
-                self.n_components,
-                n_samples,
+                self.weights_init, self.n_components, n_samples,
             )
 
         if self.means_init is not None:
@@ -621,11 +619,7 @@ class WeightedGaussianMixture(GaussianMixture):
 
         ax[0].set_xlim(xmin, xmax)
         ax[0].plot(
-            xplot,
-            rvx,
-            linewidth=3.0,
-            label=labelx,
-            c="k",
+            xplot, rvx, linewidth=3.0, label=labelx, c="k",
         )
         ax[0].legend()
         ax[0].set_xlabel("Physical property {}".format(x_component))
@@ -733,11 +727,7 @@ class WeightedGaussianMixture(GaussianMixture):
             )
 
             axbar = inset_axes(
-                ax[1],
-                width="40%",
-                height="3%",
-                loc="upper right",
-                borderpad=1,
+                ax[1], width="40%", height="3%", loc="upper right", borderpad=1,
             )
             cbpetro = plt.colorbar(surf, cax=axbar, orientation="horizontal")
             cbpetro.set_ticks([rv2d.min(), rv2d.max()])
@@ -1594,7 +1584,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
         elif covariance_type == "diag" or covariance_type == "spherical":
             log_prob = np.empty((n_samples, n_components))
-            precisions = precisions_chol**2
+            precisions = precisions_chol ** 2
             for k, (mu, prec_chol, mapping) in enumerate(
                 zip(means, precisions_chol, cluster_mapping)
             ):

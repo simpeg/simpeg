@@ -21,6 +21,7 @@ class BaseRegularization(BaseObjectiveFunction):
     :param discretize.base.BaseMesh mesh: SimPEG mesh
 
     """
+
     _active_cells = None
     _mapping = None
     _model = None
@@ -33,14 +34,14 @@ class BaseRegularization(BaseObjectiveFunction):
     _W = None
 
     def __init__(
-            self,
-            mesh: RegularizationMesh | BaseMesh,
-            active_cells=None,
-            mapping=None,
-            reference_model=None,
-            units=None,
-            weights=None,
-            **kwargs
+        self,
+        mesh: RegularizationMesh | BaseMesh,
+        active_cells=None,
+        mapping=None,
+        reference_model=None,
+        units=None,
+        weights=None,
+        **kwargs,
     ):
         self.regularization_mesh = mesh
         self.active_cells = active_cells
@@ -51,7 +52,6 @@ class BaseRegularization(BaseObjectiveFunction):
         self.reference_model = reference_model
         self.units = units
         self.weights = weights
-
 
     # Properties
     @property
@@ -71,12 +71,7 @@ class BaseRegularization(BaseObjectiveFunction):
             self.regularization_mesh.active_cells = values
         self._active_cells = values
 
-    indActive = deprecate_property(
-        active_cells,
-        "indActive",
-        "0.x.0",
-        error=False,
-    )
+    indActive = deprecate_property(active_cells, "indActive", "0.x.0", error=False,)
 
     @property
     def model(self) -> np.ndarray:
@@ -129,8 +124,11 @@ class BaseRegularization(BaseObjectiveFunction):
         """
         number of model parameters
         """
-        if getattr(self, "_regularization_mesh", None) is not None and self.regularization_mesh.nC != "*":
-            return self.regularization_mesh.nC,
+        if (
+            getattr(self, "_regularization_mesh", None) is not None
+            and self.regularization_mesh.nC != "*"
+        ):
+            return (self.regularization_mesh.nC,)
         elif getattr(self, "_mapping", None) is not None and self.mapping.shape != "*":
             return self.mapping.shape
         else:
@@ -151,12 +149,7 @@ class BaseRegularization(BaseObjectiveFunction):
         self.validate_shape("reference_model", values, (self._nC_residual,))
         self._reference_model = values
 
-    mref = deprecate_property(
-        reference_model,
-        "mref",
-        "0.x.0",
-        error=False,
-    )
+    mref = deprecate_property(reference_model, "mref", "0.x.0", error=False,)
 
     @property
     def regularization_mesh(self) -> RegularizationMesh:
@@ -170,12 +163,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
         self._regularization_mesh = mesh
 
-    regmesh = deprecate_property(
-        regularization_mesh,
-        "regmesh",
-        "0.x.0",
-        error=False,
-    )
+    regmesh = deprecate_property(regularization_mesh, "regmesh", "0.x.0", error=False,)
 
     @property
     def weights(self):
@@ -192,19 +180,16 @@ class BaseRegularization(BaseObjectiveFunction):
         if weights is not None:
             self.add_set_weights(weights)
 
-    cell_weights = deprecate_property(
-        weights,
-        "cell_weights",
-        "0.x.0",
-        error=False,
-    )
+    cell_weights = deprecate_property(weights, "cell_weights", "0.x.0", error=False,)
 
     def add_set_weights(self, weights: dict | np.ndarray):
         if isinstance(weights, np.ndarray):
             weights = {"user_weights": weights}
 
         if not isinstance(weights, dict):
-            raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
+            raise TypeError(
+                "Weights must be provided as a dictionary or numpy.ndarray."
+            )
 
         for key, values in weights.items():
             self.validate_array_type("weights", values, float)
@@ -243,7 +228,9 @@ class BaseRegularization(BaseObjectiveFunction):
     def _delta_m(self, m):
         if self.reference_model is None:
             return m
-        return m - self.reference_model  # in case self.reference_model is Zero, returns type m
+        return (
+            m - self.reference_model
+        )  # in case self.reference_model is Zero, returns type m
 
     @utils.timeIt
     def __call__(self, m):
@@ -261,7 +248,9 @@ class BaseRegularization(BaseObjectiveFunction):
         raise AttributeError("Regularization class must have a 'f_m' implementation.")
 
     def f_m_deriv(self, m):
-        raise AttributeError("Regularization class must have a 'f_m_deriv' implementation.")
+        raise AttributeError(
+            "Regularization class must have a 'f_m_deriv' implementation."
+        )
 
     @utils.timeIt
     def deriv(self, m):
@@ -316,7 +305,11 @@ class BaseRegularization(BaseObjectiveFunction):
 
     def validate_array_type(self, attribute, array, dtype):
         """Generic array and type validator"""
-        if array is not None and not isinstance(array, np.ndarray) and not array.dtype == dtype:
+        if (
+            array is not None
+            and not isinstance(array, np.ndarray)
+            and not array.dtype == dtype
+        ):
             TypeError(
                 f"Values provided for '{attribute}' for {self} must by a {np.ndarray} of type {dtype}. "
                 f"Values of type {type(array)} provided."
@@ -398,13 +391,16 @@ class SmoothDeriv(BaseRegularization):
     :param bool reference_model_in_smooth: include the reference model in the smoothness computation? (eg. look at Deriv of m (False) or Deriv of (m-reference_model) (True))
     :param numpy.ndarray weights: vector of cell weights (applied in all terms)
     """
+
     _cell_difference = None
     _length_scales = None
     _orientation = None
     _shape = None
     _reference_model_in_smooth: bool = False
 
-    def __init__(self, mesh, orientation="x", reference_model_in_smooth=False, **kwargs):
+    def __init__(
+        self, mesh, orientation="x", reference_model_in_smooth=False, **kwargs
+    ):
         self.reference_model_in_smooth = reference_model_in_smooth
 
         super().__init__(mesh=mesh, **kwargs)
@@ -414,7 +410,8 @@ class SmoothDeriv(BaseRegularization):
     @property
     def shape(self):
         return getattr(
-                self.regularization_mesh, "aveCC2F{}".format(self.orientation)).shape
+            self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+        ).shape
 
     @property
     def cell_difference(self):
@@ -444,7 +441,9 @@ class SmoothDeriv(BaseRegularization):
     def _delta_m(self, m):
         if self.reference_model is None or not self.reference_model_in_smooth:
             return m
-        return m - self.reference_model  # in case self.reference_model is Zero, returns type m
+        return (
+            m - self.reference_model
+        )  # in case self.reference_model is Zero, returns type m
 
     @property
     def _multiplier_pair(self):
@@ -457,7 +456,10 @@ class SmoothDeriv(BaseRegularization):
         dfm_dl = self.cell_difference @ (self.mapping * self._delta_m(m))
 
         if self.units == "radian":
-            return utils.mat_utils.coterminal(dfm_dl * self.length_scales) / self.length_scales
+            return (
+                utils.mat_utils.coterminal(dfm_dl * self.length_scales)
+                / self.length_scales
+            )
         return dfm_dl
 
     def f_m_deriv(self, m):
@@ -472,9 +474,7 @@ class SmoothDeriv(BaseRegularization):
         if getattr(self, "_weights", None) is None:
             self._weights = {}
             self.add_set_weights(
-                {
-                    "volume": self.regularization_mesh.vol,
-                }
+                {"volume": self.regularization_mesh.vol,}
             )
 
         return self._weights
@@ -485,19 +485,16 @@ class SmoothDeriv(BaseRegularization):
         if weights is not None:
             self.add_set_weights(weights)
 
-    cell_weights = deprecate_property(
-        weights,
-        "cell_weights",
-        "0.x.0",
-        error=False,
-    )
+    cell_weights = deprecate_property(weights, "cell_weights", "0.x.0", error=False,)
 
     def add_set_weights(self, weights: dict):
         if isinstance(weights, np.ndarray):
             weights = {"user_weights": weights}
 
         if not isinstance(weights, dict):
-            raise TypeError("Weights must be provided as a dictionary or numpy.ndarray.")
+            raise TypeError(
+                "Weights must be provided as a dictionary or numpy.ndarray."
+            )
 
         for key, values in weights.items():
             self.validate_array_type("weights", values, float)
@@ -516,12 +513,12 @@ class SmoothDeriv(BaseRegularization):
             average_cell_2_face = getattr(
                 self.regularization_mesh, "aveCC2F{}".format(self.orientation)
             )
-            weights = 1.
+            weights = 1.0
             for values in self.weights.values():
                 if values.shape[0] == self.regularization_mesh.nC:
                     values = average_cell_2_face * values
                 weights *= values
-            self._W = utils.sdiag(weights**0.5)
+            self._W = utils.sdiag(weights ** 0.5)
 
         return self._W
 
@@ -532,10 +529,13 @@ class SmoothDeriv(BaseRegularization):
         Normalized by the smallest cell dimension if 'normalized_gradient' is True.
         """
         if getattr(self, "_length_scales", None) is None:
-            Ave = getattr(self.regularization_mesh, "aveCC2F{}".format(self.orientation))
+            Ave = getattr(
+                self.regularization_mesh, "aveCC2F{}".format(self.orientation)
+            )
             index = "xyz".index(self.orientation)
             self._length_scales = Ave * (
-                    self.regularization_mesh.Pac.T * self.regularization_mesh.mesh.h_gridded[:, index]
+                self.regularization_mesh.Pac.T
+                * self.regularization_mesh.mesh.h_gridded[:, index]
             )
 
         return self._length_scales
@@ -552,11 +552,7 @@ class SmoothDeriv(BaseRegularization):
 
     @orientation.setter
     def orientation(self, value):
-        assert value in [
-            "x",
-            "y",
-            "z",
-        ], "Orientation must be 'x', 'y' or 'z'"
+        assert value in ["x", "y", "z",], "Orientation must be 'x', 'y' or 'z'"
 
         if value == "y":
             assert self.regularization_mesh.dim > 1, (
@@ -588,6 +584,7 @@ class SmoothDeriv2(SmoothDeriv):
     :param bool reference_model_in_smooth: include the reference model in the smoothness computation? (eg. look at Deriv of m (False) or Deriv of (m-reference_model) (True))
     :param numpy.ndarray weights: vector of cell weights (applied in all terms)
     """
+
     def __init__(self, mesh, orientation="x", **kwargs):
         super().__init__(mesh=mesh, orientation=orientation, **kwargs)
 
@@ -598,7 +595,10 @@ class SmoothDeriv2(SmoothDeriv):
         dfm_dl = self.cell_difference @ (self.mapping * self._delta_m(m))
 
         if self.units == "radian":
-            dfm_dl = utils.mat_utils.coterminal(dfm_dl * self.length_scales) / self.length_scales
+            dfm_dl = (
+                utils.mat_utils.coterminal(dfm_dl * self.length_scales)
+                / self.length_scales
+            )
 
         dfm_dl2 = self.cell_difference.T @ dfm_dl
 
@@ -609,8 +609,9 @@ class SmoothDeriv2(SmoothDeriv):
         Derivative of the second model residual
         """
         return (
-            self.cell_difference.T *
-            self.cell_difference @ self.mapping.deriv(self._delta_m(m))
+            self.cell_difference.T
+            * self.cell_difference
+            @ self.mapping.deriv(self._delta_m(m))
         )
 
     @property
@@ -627,6 +628,7 @@ class SmoothDeriv2(SmoothDeriv):
     @property
     def _multiplier_pair(self):
         return f"alpha_{self.orientation}{self.orientation}"
+
 
 ###############################################################################
 #                                                                             #
@@ -674,7 +676,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         objfcts=None,
         reference_model=None,
         reference_model_in_smooth=False,
-        **kwargs
+        **kwargs,
     ):
 
         self.regularization_mesh = mesh
@@ -686,10 +688,14 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
             ]
 
             if mesh.dim > 1:
-                objfcts.append(SmoothDeriv(mesh=self.regularization_mesh, orientation="y"))
+                objfcts.append(
+                    SmoothDeriv(mesh=self.regularization_mesh, orientation="y")
+                )
 
             if mesh.dim > 2:
-                objfcts.append(SmoothDeriv(mesh=self.regularization_mesh, orientation="z"))
+                objfcts.append(
+                    SmoothDeriv(mesh=self.regularization_mesh, orientation="z")
+                )
 
         super(LeastSquaresRegularization, self).__init__(
             objfcts=objfcts,
@@ -707,7 +713,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
             length_scale_x=length_scale_x,
             length_scale_y=length_scale_y,
             length_scale_z=length_scale_z,
-            **kwargs
+            **kwargs,
         )
 
     def add_set_weights(self, weights: dict):
@@ -719,105 +725,131 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     def alpha_s(self):
         """smallness weight"""
         if getattr(self, "_alpha_s", None) is None:
-            self._alpha_s = 1.
+            self._alpha_s = 1.0
         return self._alpha_s
 
     @alpha_s.setter
     def alpha_s(self, value):
         if isinstance(value, (float, int)) and value < 0:
-            raise ValueError("Input 'alpha_s' value must me of type float > 0"
-                             f"Value {value} of type {type(value)} provided")
+            raise ValueError(
+                "Input 'alpha_s' value must me of type float > 0"
+                f"Value {value} of type {type(value)} provided"
+            )
         self._alpha_s = value
 
     @property
     def alpha_x(self):
         """weight for the first x-derivative"""
         if getattr(self, "_alpha_x", None) is None:
-            self._alpha_x = (self.length_scale_x * self.regularization_mesh.base_length) ** 2.
+            self._alpha_x = (
+                self.length_scale_x * self.regularization_mesh.base_length
+            ) ** 2.0
         return self._alpha_x
 
     @alpha_x.setter
     def alpha_x(self, value):
         if isinstance(value, (float, int)) and value < 0:
-            raise ValueError("Input 'alpha_x' value must me of type float > 0"
-                             f"Value {value} of type {type(value)} provided")
+            raise ValueError(
+                "Input 'alpha_x' value must me of type float > 0"
+                f"Value {value} of type {type(value)} provided"
+            )
         self._alpha_x = value
 
     @property
     def alpha_y(self):
         """weight for the first y-derivative"""
         if getattr(self, "_alpha_y", None) is None:
-            self._alpha_y = (self.length_scale_y * self.regularization_mesh.base_length) ** 2.
+            self._alpha_y = (
+                self.length_scale_y * self.regularization_mesh.base_length
+            ) ** 2.0
         return self._alpha_y
 
     @alpha_y.setter
     def alpha_y(self, value):
         if isinstance(value, (float, int)) and value < 0:
-            raise ValueError("Input 'alpha_y' value must me of type float > 0"
-                             f"Value {value} of type {type(value)} provided")
+            raise ValueError(
+                "Input 'alpha_y' value must me of type float > 0"
+                f"Value {value} of type {type(value)} provided"
+            )
         self._alpha_y = value
 
     @property
     def alpha_z(self):
         """weight for the first z-derivative"""
         if getattr(self, "_alpha_z", None) is None:
-            self._alpha_z = (self.length_scale_z * self.regularization_mesh.base_length) ** 2.
+            self._alpha_z = (
+                self.length_scale_z * self.regularization_mesh.base_length
+            ) ** 2.0
         return self._alpha_z
 
     @alpha_z.setter
     def alpha_z(self, value):
         if isinstance(value, (float, int)) and value < 0:
-            raise ValueError("Input 'alpha_z' value must me of type float > 0"
-                             f"Value {value} of type {type(value)} provided")
+            raise ValueError(
+                "Input 'alpha_z' value must me of type float > 0"
+                f"Value {value} of type {type(value)} provided"
+            )
         self._alpha_z = value
 
     @property
     def alpha_xx(self):
         """weight for the second x-derivative"""
         if getattr(self, "_alpha_xx", None) is None:
-            self._alpha_xx = (self.length_scale_x * self.regularization_mesh.base_length) ** 4.
+            self._alpha_xx = (
+                self.length_scale_x * self.regularization_mesh.base_length
+            ) ** 4.0
         return self._alpha_xx
 
     @alpha_xx.setter
     def alpha_xx(self, value):
         if isinstance(value, (float, int)) and value < 0:
-            raise ValueError("Input 'alpha_xx' value must me of type float > 0"
-                             f"Value {value} of type {type(value)} provided")
+            raise ValueError(
+                "Input 'alpha_xx' value must me of type float > 0"
+                f"Value {value} of type {type(value)} provided"
+            )
         self._alpha_xx = value
 
     @property
     def alpha_yy(self):
         """weight for the second y-derivative"""
         if getattr(self, "_alpha_yy", None) is None:
-            self._alpha_yy = (self.length_scale_y * self.regularization_mesh.base_length) ** 4.
+            self._alpha_yy = (
+                self.length_scale_y * self.regularization_mesh.base_length
+            ) ** 4.0
         return self._alpha_yy
 
     @alpha_yy.setter
     def alpha_yy(self, value):
         if isinstance(value, (float, int)) and value < 0:
-            raise ValueError("Input 'alpha_yy' value must me of type float > 0"
-                             f"Value {value} of type {type(value)} provided")
+            raise ValueError(
+                "Input 'alpha_yy' value must me of type float > 0"
+                f"Value {value} of type {type(value)} provided"
+            )
         self._alpha_yy = value
 
     @property
     def alpha_zz(self):
         """weight for the second z-derivative"""
         if getattr(self, "_alpha_zz", None) is None:
-            self._alpha_zz = (self.length_scale_z * self.regularization_mesh.base_length) ** 4.
+            self._alpha_zz = (
+                self.length_scale_z * self.regularization_mesh.base_length
+            ) ** 4.0
         return self._alpha_zz
 
     @alpha_zz.setter
     def alpha_zz(self, value):
         if isinstance(value, (float, int)) and value < 0:
-            raise ValueError("Input 'alpha_zz' value must me of type float > 0"
-                             f"Value {value} of type {type(value)} provided")
+            raise ValueError(
+                "Input 'alpha_zz' value must me of type float > 0"
+                f"Value {value} of type {type(value)} provided"
+            )
         self._alpha_zz = value
 
     @property
     def length_scale_x(self):
         """Constant multiplier of the base length scale on model gradients along x."""
         if getattr(self, "_length_scale_x", None) is None:
-            self._length_scale_x = 1.
+            self._length_scale_x = 1.0
         return self._length_scale_x
 
     @length_scale_x.setter
@@ -833,7 +865,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     def length_scale_y(self):
         """Constant multiplier of the base length scale on model gradients along y."""
         if getattr(self, "_length_scale_y", None) is None:
-            self._length_scale_y = 1.
+            self._length_scale_y = 1.0
         return self._length_scale_y
 
     @length_scale_y.setter
@@ -849,7 +881,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     def length_scale_z(self):
         """Constant multiplier of the base length scale on model gradients along z."""
         if getattr(self, "_length_scale_z", None) is None:
-            self._length_scale_z = 1.
+            self._length_scale_z = 1.0
         return self._length_scale_z
 
     @length_scale_z.setter
@@ -890,12 +922,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         for fct in self.objfcts:
             fct.weights = value
 
-    cell_weights = deprecate_property(
-        weights,
-        "cell_weights",
-        "0.x.0",
-        error=False,
-    )
+    cell_weights = deprecate_property(weights, "cell_weights", "0.x.0", error=False,)
 
     # Other properties and methods
     @property
@@ -905,7 +932,10 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         """
         if getattr(self, "mapping", None) is not None and self.mapping.nP != "*":
             return self.mapping.nP
-        elif getattr(self, "_regularization_mesh", None) is not None and self.regularization_mesh.nC != "*":
+        elif (
+            getattr(self, "_regularization_mesh", None) is not None
+            and self.regularization_mesh.nC != "*"
+        ):
             return self.regularization_mesh.nC
         else:
             return "*"
@@ -929,7 +959,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
     def _delta_m(self, m):
         if self.reference_model is None:
             return m
-        return m-self.reference_model
+        return m - self.reference_model
 
     @property
     def multipliers(self):
@@ -937,10 +967,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         Factors that multiply the objective functions that are summed together
         to build to composite regularization
         """
-        return [
-            getattr(self, objfct._multiplier_pair)
-            for objfct in self.objfcts
-        ]
+        return [getattr(self, objfct._multiplier_pair) for objfct in self.objfcts]
 
     @property
     def normalized_gradients(self):
@@ -975,12 +1002,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         self._active_cells = values
 
-    indActive = deprecate_property(
-        active_cells,
-        "indActive",
-        "0.x.0",
-        error=False,
-    )
+    indActive = deprecate_property(active_cells, "indActive", "0.x.0", error=False,)
 
     @property
     def reference_model(self) -> np.ndarray:
@@ -998,12 +1020,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         self._reference_model = values
 
-    mref = deprecate_property(
-        reference_model,
-        "mref",
-        "0.x.0",
-        error=False,
-    )
+    mref = deprecate_property(reference_model, "mref", "0.x.0", error=False,)
 
     @property
     def model(self) -> np.ndarray:
@@ -1072,7 +1089,6 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
 
         for fct in self.objfcts:
             fct.mapping = mapping
-
 
 
 ###############################################################################
@@ -1168,4 +1184,3 @@ class BaseSimilarityMeasure(BaseRegularization):
                 self.__class__.__name__
             )
         )
-
