@@ -2,6 +2,7 @@ import shutil
 import unittest
 import numpy as np
 
+from discretize import TensorMesh
 from discretize.utils import mkvc, mesh_builder_xyz, refine_tree_xyz
 from SimPEG import (
     utils,
@@ -15,23 +16,32 @@ from SimPEG import (
 )
 from SimPEG.potential_fields import gravity, magnetics
 
-np.random.seed(43)
+np.random.seed(44)
 
 
 class QuadTreeLinProblemTest(unittest.TestCase):
     def setUp(self):
-        def simulate_topo(x, y, amplitude=50, scale_factor=100):
+        def generate_topo(x, y, amplitude=50, scale_factor=100):
             # Create synthetic Gaussian topography from a function
             return amplitude * np.exp(
                 -0.5 * ((x / scale_factor) ** 2.0 + (y / scale_factor) ** 2.0)
             )
+
+        def create_xyz_points_flat(x_range, y_range, spacing, altitude=0.0):
+            [xx, yy] = np.meshgrid(
+                np.linspace(x_range[0], x_range[1], spacing),
+                np.linspace(y_range[0], y_range[1], spacing),
+            )
+            zz = np.zeros_like(xx) + altitude
+
+            return np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
         def create_xyz_points(x_range, y_range, spacing, altitude=0.0):
             [xx, yy] = np.meshgrid(
                 np.linspace(x_range[0], x_range[1], spacing),
                 np.linspace(y_range[0], y_range[1], spacing),
             )
-            zz = simulate_topo(xx, yy) + altitude
+            zz = generate_topo(xx, yy) + altitude
 
             return np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
@@ -56,12 +66,65 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
             # elevations are Nx2 array of [bottom-southwest, top-northeast] corners
             # Set tne to topo height at cell centers
-            z_tne = simulate_topo(
+            z_tne = generate_topo(
                 self.mesh.cell_centers[:, 0], self.mesh.cell_centers[:, 1]
             )
             # Set bsw to 50 m below the lowest z_tne
             z_bsw = np.full_like(z_tne, fill_value=z_tne.min() - min_height)
-            self.mesh_elevations = np.c_[z_bsw, z_tne]
+            self.z_bsw = z_bsw
+            self.z_tne = z_tne
+
+        def create_gravity_sim_flat(self, block_value=1.0, noise_floor=0.01):
+            # Create a gravity survey
+            grav_rxLoc = gravity.Point(data_xyz_flat)
+            grav_srcField = gravity.SourceField([grav_rxLoc])
+            grav_survey = gravity.Survey(grav_srcField)
+
+            # Create the gravity forward model operator
+            self.grav_sim_flat = gravity.SimulationEquivalentSourceLayer(
+                self.mesh,
+                0.,
+                -5.,
+                survey=grav_survey,
+                rhoMap=self.idenMap,
+                store_sensitivities="ram",
+            )
+
+            self.grav_model = block_value * self.model
+
+            self.grav_data_flat = self.grav_sim_flat.make_synthetic_data(
+                self.grav_model,
+                relative_error=0.0,
+                noise_floor=noise_floor,
+                add_noise=True,
+            )
+
+        def create_magnetics_sim_flat(self, block_value=1.0, noise_floor=0.01):
+            # Create a magnetic survey
+            H0 = (50000.0, 90.0, 0.0)
+            mag_rxLoc = magnetics.Point(data_xyz_flat)
+            mag_srcField = magnetics.SourceField([mag_rxLoc], parameters=H0)
+            mag_survey = magnetics.Survey(mag_srcField)
+
+            # Create the magnetics forward model operator
+            self.mag_sim_flat = magnetics.SimulationEquivalentSourceLayer(
+                self.mesh,
+                0.,
+                -5.,
+                survey=mag_survey,
+                chiMap=self.idenMap,
+                store_sensitivities="ram",
+            )
+
+            # Define the mesh cell heights independent from mesh
+            self.mag_model = block_value * self.model
+
+            self.mag_data_flat = self.mag_sim_flat.make_synthetic_data(
+                self.mag_model,
+                relative_error=0.0,
+                noise_floor=noise_floor,
+                add_noise=True,
+            )
 
         def create_gravity_sim(self, block_value=1.0, noise_floor=0.01):
             # Create a gravity survey
@@ -70,17 +133,17 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             grav_survey = gravity.Survey(grav_srcField)
 
             # Create the gravity forward model operator
-            self.grav_sim = gravity.Simulation3DIntegral(
+            self.grav_sim = gravity.SimulationEquivalentSourceLayer(
                 self.mesh,
+                self.z_tne,
+                self.z_bsw,
                 survey=grav_survey,
                 rhoMap=self.idenMap,
                 store_sensitivities="ram",
             )
 
-            # Define the mesh cell heights independent from mesh
-            self.grav_sim.Zn = self.mesh_elevations
-
-            self.grav_model = block_value * self.model
+            # Already defined
+            # self.grav_model = block_value * self.model
 
             self.grav_data = self.grav_sim.make_synthetic_data(
                 self.grav_model,
@@ -97,17 +160,17 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             mag_survey = magnetics.Survey(mag_srcField)
 
             # Create the magnetics forward model operator
-            self.mag_sim = magnetics.Simulation3DIntegral(
+            self.mag_sim = magnetics.SimulationEquivalentSourceLayer(
                 self.mesh,
+                self.z_tne,
+                self.z_bsw,
                 survey=mag_survey,
                 chiMap=self.idenMap,
                 store_sensitivities="ram",
             )
 
-            # Define the mesh cell heights independent from mesh
-            self.mag_sim.Zn = self.mesh_elevations
-
-            self.mag_model = block_value * self.model
+            # Already defined
+            # self.mag_model = block_value * self.model
 
             self.mag_data = self.mag_sim.make_synthetic_data(
                 self.mag_model,
@@ -159,6 +222,10 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             x_range=(-100, 100), y_range=(-100, 100), spacing=20, altitude=5
         )
 
+        data_xyz_flat = create_xyz_points_flat(
+            x_range=(-100, 100), y_range=(-100, 100), spacing=20, altitude=5
+        )
+
         # Create the mesh
         create_mesh(
             h=[5, 5],
@@ -182,11 +249,57 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         # Create reduced identity map. All cells are active in an quadtree
         self.idenMap = maps.IdentityMap(nP=self.mesh.nC)
 
+        create_gravity_sim_flat(self, block_value=0.3, noise_floor=0.01)
+        create_magnetics_sim_flat(self, block_value=0.3, noise_floor=0.01)
+
         create_gravity_sim(self, block_value=0.3, noise_floor=0.01)
         self.grav_inv = create_inversion(self, self.grav_sim, self.grav_data, beta=1e3)
 
         create_magnetics_sim(self, block_value=0.03, noise_floor=3.0)
         self.mag_inv = create_inversion(self, self.mag_sim, self.mag_data, beta=1e3)
+
+    def test_instantiation_failures(self):
+        
+        # Ensure simulation can't be instantiated with 3D mesh.
+        dh = 5.0
+        hx = [(dh, 5, -1.3), (dh, 10), (dh, 5, 1.3)]
+        hy = [(dh, 5, -1.3), (dh, 10), (dh, 5, 1.3)]
+        hz = [(dh, 1)]
+        mesh3D = TensorMesh([hx, hy, hz], "CCN")
+
+        def create_xyz_points_flat(x_range, y_range, spacing, altitude=0.0):
+            [xx, yy] = np.meshgrid(
+                np.linspace(x_range[0], x_range[1], spacing),
+                np.linspace(y_range[0], y_range[1], spacing),
+            )
+            zz = np.zeros_like(xx) + altitude
+
+            return np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
+
+        data_xyz_flat = create_xyz_points_flat(
+            x_range=(-100, 100), y_range=(-100, 100), spacing=20, altitude=5
+        )
+        
+        grav_rxLoc = gravity.Point(data_xyz_flat)
+        grav_srcField = gravity.SourceField([grav_rxLoc])
+        grav_survey = gravity.Survey(grav_srcField)
+
+        self.assertRaises(
+            AttributeError,
+            gravity.SimulationEquivalentSourceLayer,
+            mesh3D, 0., -5., survey=grav_survey, rhoMap=self.idenMap
+        )
+
+        print('3D MESH ERROR TEST PASSED.')
+
+        self.assertRaises(
+            AttributeError,
+            gravity.SimulationEquivalentSourceLayer,
+            self.mesh, np.zeros(5), -5.*np.ones(5), survey=grav_survey, rhoMap=self.idenMap
+        )
+
+        print('Z_TOP OR Z_BOTTOM LENGTH MATCHING NCELLS ERROR TEST PASSED.')
+
 
     def test_quadtree_grav_inverse(self):
 
