@@ -145,7 +145,7 @@ def plot2Ddata(
             Fy = LinearNDInterpolator(xyz[:, :2], datay)
         DATAx = Fx(xy)
         DATAy = Fy(xy)
-        DATA = np.sqrt(DATAx**2 + DATAy**2).reshape(X.shape)
+        DATA = np.sqrt(DATAx ** 2 + DATAy ** 2).reshape(X.shape)
         DATAx = DATAx.reshape(X.shape)
         DATAy = DATAy.reshape(X.shape)
         if scale == "log":

@@ -655,7 +655,7 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
             plot_data = np.arctan2(imag_data, real_data) * (180.0 / np.pi)
             if plot_error:
                 phs_uncert = (
-                    (1.0 / (real_data**2 + imag_data**2))
+                    (1.0 / (real_data ** 2 + imag_data ** 2))
                     * ((real_data * real_uncert - imag_data * imag_uncert))
                 ) * (180.0 / np.pi)
                 # Scale back the errorbars
@@ -717,7 +717,7 @@ def _get_station_data(data, location, orientation, component, plot_error=False):
             plot_data = np.arctan2(imag_data, real_data) * (180.0 / np.pi)
             if plot_error:
                 phs_uncert = (
-                    (1.0 / (real_data**2 + imag_data**2))
+                    (1.0 / (real_data ** 2 + imag_data ** 2))
                     * ((real_data * real_uncert - imag_data * imag_uncert))
                 ) * (180.0 / np.pi)
                 # Scale back the errorbars

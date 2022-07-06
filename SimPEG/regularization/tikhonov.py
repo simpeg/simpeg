@@ -386,7 +386,7 @@ class SmoothDeriv2(BaseRegularization):
             vol *= self.cell_weights
 
         W = (
-            utils.sdiag(vol**0.5)
+            utils.sdiag(vol ** 0.5)
             * getattr(
                 self.regmesh,
                 "faceDiff{orientation}".format(orientation=self.orientation),
