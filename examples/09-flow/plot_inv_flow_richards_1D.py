@@ -119,7 +119,7 @@ def run(plotIt=True):
         plt.semilogx(np.exp(np.c_[mopt, mtrue]), M.gridCC)
         plt.xlabel("Saturated Hydraulic Conductivity, $K_s$")
         plt.ylabel("Depth, cm")
-        plt.semilogx([10**-3.9] * len(locs), locs, "ro")
+        plt.semilogx([10 ** -3.9] * len(locs), locs, "ro")
         plt.legend(("$m_{rec}$", "$m_{true}$", "Data locations"), loc=4)
 
         ax = plt.subplot(222)

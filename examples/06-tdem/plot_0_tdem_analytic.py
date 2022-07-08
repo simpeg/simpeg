@@ -71,7 +71,7 @@ for ii in range(0, 3):
     hzplt = Hz.reshape(x.size, z.size)
 
     ax[ii] = fig.add_axes([0.1 + 0.28 * ii, 0.1, 0.2, 0.8])
-    absH = np.sqrt(Hx**2 + Hy**2 + Hz**2)
+    absH = np.sqrt(Hx ** 2 + Hy ** 2 + Hz ** 2)
     pc[ii] = ax[ii].pcolor(x, z, absH.reshape(x.size, z.size), norm=LogNorm())
     ax[ii].streamplot(x, z, hxplt.real, hzplt.real, color="k", density=1)
     ax[ii].set_xlim([x.min(), x.max()])
@@ -105,7 +105,7 @@ for ii in range(0, 3):
     dhdtzplt = dHdtz.reshape(x.size, z.size)
 
     ax[ii] = fig.add_axes([0.1 + 0.28 * ii, 0.1, 0.2, 0.8])
-    absdHdt = np.sqrt(dHdtx**2 + dHdty**2 + dHdtz**2)
+    absdHdt = np.sqrt(dHdtx ** 2 + dHdty ** 2 + dHdtz ** 2)
     pc[ii] = ax[ii].pcolor(x, z, absdHdt.reshape(x.size, z.size), norm=LogNorm())
     ax[ii].streamplot(x, z, dhdtxplt.real, dhdtzplt.real, color="k", density=1)
     ax[ii].set_xlim([x.min(), x.max()])
@@ -162,7 +162,7 @@ for ii in range(0, 3):
     ezplt = Ez.reshape(x.size, z.size)
 
     ax[ii] = fig.add_axes([0.1 + 0.28 * ii, 0.1, 0.2, 0.8])
-    absE = np.sqrt(Ex**2 + Ey**2 + Ez**2)
+    absE = np.sqrt(Ex ** 2 + Ey ** 2 + Ez ** 2)
     pc[ii] = ax[ii].pcolor(x, z, absE.reshape(x.size, z.size), norm=LogNorm())
     ax[ii].streamplot(x, z, explt.real, ezplt.real, color="k", density=1)
     ax[ii].set_xlim([x.min(), x.max()])
@@ -219,7 +219,7 @@ for ii in range(0, 3):
     hzplt = Hz.reshape(x.size, z.size)
 
     ax[ii] = fig.add_axes([0.1 + 0.28 * ii, 0.1, 0.2, 0.8])
-    absH = np.sqrt(Hx**2 + Hy**2 + Hz**2)
+    absH = np.sqrt(Hx ** 2 + Hy ** 2 + Hz ** 2)
     pc[ii] = ax[ii].pcolor(x, z, absH.reshape(x.size, z.size), norm=LogNorm())
     ax[ii].streamplot(x, z, hxplt.real, hzplt.real, color="k", density=1)
     ax[ii].set_xlim([x.min(), x.max()])

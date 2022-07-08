@@ -745,7 +745,7 @@ class PrimSecCasingExample(object):
 
         # re-assign zero for amplitude of the real current density
         s_e_abs_cc = s_e_stream_cc.reshape(meshs_plt.nC, 3, order="F")
-        s_e_abs_cc = np.sqrt((s_e_abs_cc**2.0).sum(axis=1))
+        s_e_abs_cc = np.sqrt((s_e_abs_cc ** 2.0).sum(axis=1))
         s_e_abs_cc[np.isnan(s_e_abs_cc)] = 0.0
         s_e_stream_cc = np.ma.masked_where(np.isnan(s_e_stream_cc), s_e_stream_cc)
 

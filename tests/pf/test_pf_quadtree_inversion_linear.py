@@ -52,7 +52,10 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             nCpad = [2, 4]
 
             mesh = mesh_builder_xyz(
-                topo[:, :2], h, padding_distance=padDist, mesh_type="TREE",
+                topo[:, :2],
+                h,
+                padding_distance=padDist,
+                mesh_type="TREE",
             )
 
             self.mesh = refine_tree_xyz(
@@ -83,8 +86,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             # Create the gravity forward model operator
             self.grav_sim_flat = gravity.SimulationEquivalentSourceLayer(
                 self.mesh,
-                0.,
-                -5.,
+                0.0,
+                -5.0,
                 survey=grav_survey,
                 rhoMap=self.idenMap,
                 store_sensitivities="ram",
@@ -109,8 +112,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             # Create the magnetics forward model operator
             self.mag_sim_flat = magnetics.SimulationEquivalentSourceLayer(
                 self.mesh,
-                0.,
-                -5.,
+                0.0,
+                -5.0,
                 survey=mag_survey,
                 chiMap=self.idenMap,
                 store_sensitivities="ram",
@@ -192,7 +195,12 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
             # Add directives to the inversion
             opt = optimization.ProjectedGNCG(
-                maxIter=15, lower=-1.0, upper=1.0, maxIterLS=5, maxIterCG=5, tolCG=1e-4,
+                maxIter=15,
+                lower=-1.0,
+                upper=1.0,
+                maxIterLS=5,
+                maxIterCG=5,
+                tolCG=1e-4,
             )
 
             invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
@@ -259,7 +267,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.mag_inv = create_inversion(self, self.mag_sim, self.mag_data, beta=1e3)
 
     def test_instantiation_failures(self):
-        
+
         # Ensure simulation can't be instantiated with 3D mesh.
         dh = 5.0
         hx = [(dh, 5, -1.3), (dh, 10), (dh, 5, 1.3)]
@@ -279,7 +287,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         data_xyz_flat = create_xyz_points_flat(
             x_range=(-100, 100), y_range=(-100, 100), spacing=20, altitude=5
         )
-        
+
         grav_rxLoc = gravity.Point(data_xyz_flat)
         grav_srcField = gravity.SourceField([grav_rxLoc])
         grav_survey = gravity.Survey(grav_srcField)
@@ -287,19 +295,26 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         self.assertRaises(
             AttributeError,
             gravity.SimulationEquivalentSourceLayer,
-            mesh3D, 0., -5., survey=grav_survey, rhoMap=self.idenMap
+            mesh3D,
+            0.0,
+            -5.0,
+            survey=grav_survey,
+            rhoMap=self.idenMap,
         )
 
-        print('3D MESH ERROR TEST PASSED.')
+        print("3D MESH ERROR TEST PASSED.")
 
         self.assertRaises(
             AttributeError,
             gravity.SimulationEquivalentSourceLayer,
-            self.mesh, np.zeros(5), -5.*np.ones(5), survey=grav_survey, rhoMap=self.idenMap
+            self.mesh,
+            np.zeros(5),
+            -5.0 * np.ones(5),
+            survey=grav_survey,
+            rhoMap=self.idenMap,
         )
 
-        print('Z_TOP OR Z_BOTTOM LENGTH MATCHING NCELLS ERROR TEST PASSED.')
-
+        print("Z_TOP OR Z_BOTTOM LENGTH MATCHING NCELLS ERROR TEST PASSED.")
 
     def test_quadtree_grav_inverse(self):
 
