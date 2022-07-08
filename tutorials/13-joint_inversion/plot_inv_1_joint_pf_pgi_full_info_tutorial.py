@@ -347,9 +347,8 @@ reg = regularization.PGI(
 # ratio to use for each phys prop. smoothness in each direction;
 # roughly the ratio of the order of magnitude of each phys. prop.
 alpha0_ratio = np.r_[
-    np.zeros(len(reg.objfcts[0].objfcts)),
-    1e-4 * np.ones(len(reg.objfcts[1].objfcts)),
-    100.0 * 1e-4 * np.ones(len(reg.objfcts[2].objfcts)),
+    1e-2 * np.ones(len(reg.objfcts[1].objfcts[1:])),
+    1e-2 * 100.0 * np.ones(len(reg.objfcts[2].objfcts[1:])),
 ]
 Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbose=True)
 # initialize beta and beta/alpha_s schedule

@@ -571,7 +571,7 @@ class PGIsmallness(Small):
             else:
                 # Forming the Hessian by diagonal blocks
                 hlist = [
-                    [r[:, i, j] for i in range(len(self.wiresmap.maps))]
+                    [self._r_second_deriv[:, i, j] for i in range(len(self.wiresmap.maps))]
                     for j in range(len(self.wiresmap.maps))
                 ]
                 Hr = sp.csc_matrix((0, 0), dtype=np.float64)

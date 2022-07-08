@@ -346,7 +346,7 @@ reg = regularization.PGI(
     mesh=mesh,
     wiresmap=wires,
     maplist=[idenMap, idenMap],
-    indActive=actv,
+    active_cells=actv,
     alpha_s=1.0,
     alpha_x=1.0,
     alpha_y=1.0,
@@ -362,9 +362,8 @@ reg = regularization.PGI(
 # ratio to use for each phys prop. smoothness in each direction:
 # roughly the ratio of range of each phys. prop.
 alpha0_ratio = np.r_[
-    np.zeros(len(reg.objfcts[0].objfcts)),
-    1e-2 * np.ones(len(reg.objfcts[1].objfcts)),
-    1e-2 * 100.0 * np.ones(len(reg.objfcts[2].objfcts)),
+    1e-2 * np.ones(len(reg.objfcts[1].objfcts[1:])),
+    1e-2 * 100.0 * np.ones(len(reg.objfcts[2].objfcts[1:])),
 ]
 Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=alpha0_ratio, verbose=True)
 # initialize beta and beta/alpha_s schedule

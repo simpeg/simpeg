@@ -42,7 +42,7 @@ class RegularizationMesh(props.BaseSimPEG):
     @active_cells.setter
     def active_cells(self, values: np.ndarray):
         if values is not None:
-            if self._active_cells is not None:
+            if self._active_cells is not None and not all(self._active_cells == values):
                 raise AttributeError(
                     "The RegulatizationMesh already has an 'active_cells' property set."
                 )
