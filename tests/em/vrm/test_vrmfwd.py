@@ -60,27 +60,27 @@ class VRM_fwd_tests(unittest.TestCase):
         H0 = Src.getH0(np.c_[0.0, 0.0, 0.0])
         dmdtx = (
             -H0[0, 0]
-            * 0.1**3
+            * 0.1 ** 3
             * (dchi / np.log(tau2 / tau1))
             * (1 / times[1] - 1 / (times[1] + 0.02))
         )
         dmdty = (
             -H0[0, 1]
-            * 0.1**3
+            * 0.1 ** 3
             * (dchi / np.log(tau2 / tau1))
             * (1 / times[1] - 1 / (times[1] + 0.02))
         )
         dmdtz = (
             -H0[0, 2]
-            * 0.1**3
+            * 0.1 ** 3
             * (dchi / np.log(tau2 / tau1))
             * (1 / times[1] - 1 / (times[1] + 0.02))
         )
         dmdot = np.dot(np.r_[dmdtx, dmdty, dmdtz], loc_rx.T)
 
-        fx = (1 / (4 * np.pi)) * (3 * loc_rx[0, 0] * dmdot / R**5 - dmdtx / R**3)
-        fy = (1 / (4 * np.pi)) * (3 * loc_rx[0, 1] * dmdot / R**5 - dmdty / R**3)
-        fz = (1 / (4 * np.pi)) * (3 * loc_rx[0, 2] * dmdot / R**5 - dmdtz / R**3)
+        fx = (1 / (4 * np.pi)) * (3 * loc_rx[0, 0] * dmdot / R ** 5 - dmdtx / R ** 3)
+        fy = (1 / (4 * np.pi)) * (3 * loc_rx[0, 1] * dmdot / R ** 5 - dmdty / R ** 3)
+        fz = (1 / (4 * np.pi)) * (3 * loc_rx[0, 2] * dmdot / R ** 5 - dmdtz / R ** 3)
 
         self.assertTrue(
             np.all(
@@ -217,9 +217,9 @@ class VRM_fwd_tests(unittest.TestCase):
 
         F = -(1 / np.log(tau2 / tau1)) * (1 / times - 1 / (times + 0.02))
         Fields_true = (
-            (0.5 * np.pi * a**2 / np.pi)
+            (0.5 * np.pi * a ** 2 / np.pi)
             * (dchi / (2 + dchi))
-            * ((2 * z) ** 2 + a**2) ** -1.5
+            * ((2 * z) ** 2 + a ** 2) ** -1.5
             * F
         )
 
@@ -315,11 +315,11 @@ class VRM_fwd_tests(unittest.TestCase):
             np.c_[1.0, 3.0, 5.0, 7.0],
             np.c_[1.0, 3.0, 5.0, 7.0],
         )
-        x = x.reshape((4**3, 1))
-        y = y.reshape((4**3, 1))
-        z = z.reshape((4**3, 1))
+        x = x.reshape((4 ** 3, 1))
+        y = y.reshape((4 ** 3, 1))
+        z = z.reshape((4 ** 3, 1))
         loc_rx = np.c_[x, y, z]
-        meshObj_OcTree.insert_cells(loc_rx, 2 * np.ones((4**3)), finalize=False)
+        meshObj_OcTree.insert_cells(loc_rx, 2 * np.ones((4 ** 3)), finalize=False)
 
         x, y, z = np.meshgrid(
             np.c_[1.0, 3.0, 5.0, 7.0], np.c_[1.0, 3.0, 5.0, 7.0], np.c_[5.0, 7.0]

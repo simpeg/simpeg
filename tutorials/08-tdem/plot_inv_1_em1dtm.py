@@ -32,14 +32,24 @@ import matplotlib.pyplot as plt
 from discretize import TensorMesh
 
 import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_time, plot_layer
+from SimPEG.electromagnetics.utils.em1d_utils import (
+    get_vertical_discretization_time,
+    plot_layer,
+)
 from SimPEG.utils import mkvc
 from SimPEG import (
-    maps, data, data_misfit, inverse_problem, regularization, optimization,
-    directives, inversion, utils
-    )
+    maps,
+    data,
+    data_misfit,
+    inverse_problem,
+    regularization,
+    optimization,
+    directives,
+    inversion,
+    utils,
+)
 
-plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8})
+plt.rcParams.update({"font.size": 16, "lines.linewidth": 2, "lines.markersize": 8})
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -84,9 +94,9 @@ dobs = np.loadtxt(str(data_filename), skiprows=1)
 times = dobs[:, 0]
 dobs = mkvc(dobs[:, -1])
 
-fig = plt.figure(figsize = (7, 7))
+fig = plt.figure(figsize=(7, 7))
 ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
-ax.loglog(times, np.abs(dobs), 'k-o', lw=3)
+ax.loglog(times, np.abs(dobs), "k-o", lw=3)
 ax.set_xlabel("Times (s)")
 ax.set_ylabel("|B| (T)")
 ax.set_title("Observed Data")
@@ -99,17 +109,17 @@ ax.set_title("Observed Data")
 # Here we demonstrate a general way to define the receivers, sources, waveforms and survey.
 # For this tutorial, we define a single horizontal loop source as well
 # a receiver which measures the vertical component of the magnetic flux.
-# 
+#
 
 # Source loop geometry
-source_location = np.array([0., 0., 20.])  
-source_orientation = "z"                       # "x", "y" or "z"
-source_current = 1.                            # peak current amplitude
-source_radius = 6.                             # loop radius
+source_location = np.array([0.0, 0.0, 20.0])
+source_orientation = "z"  # "x", "y" or "z"
+source_current = 1.0  # peak current amplitude
+source_radius = 6.0  # loop radius
 
 # Receiver geometry
-receiver_location = np.array([0., 0., 20.])
-receiver_orientation = "z"                     # "x", "y" or "z"
+receiver_location = np.array([0.0, 0.0, 20.0])
+receiver_orientation = "z"  # "x", "y" or "z"
 
 # Receiver list
 receiver_list = []
@@ -118,15 +128,18 @@ receiver_list.append(
         receiver_location, times, orientation=receiver_orientation
     )
 )
-    
+
 # Define the source waveform.
 waveform = tdem.sources.StepOffWaveform()
 
 # Sources
 source_list = [
     tdem.sources.CircularLoop(
-        receiver_list=receiver_list, location=source_location, waveform=waveform,
-        current=source_current, radius=source_radius
+        receiver_list=receiver_list,
+        location=source_location,
+        waveform=waveform,
+        current=source_current,
+        radius=source_radius,
     )
 ]
 
@@ -143,7 +156,7 @@ survey = tdem.Survey(source_list)
 #
 
 # 5% of the absolute value
-uncertainties = 0.05*np.abs(dobs)*np.ones(np.shape(dobs))
+uncertainties = 0.05 * np.abs(dobs) * np.ones(np.shape(dobs))
 
 # Define the data object
 data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
@@ -158,10 +171,10 @@ data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
 #
 
 # Layer thicknesses
-inv_thicknesses = np.logspace(0,1.5,25)
+inv_thicknesses = np.logspace(0, 1.5, 25)
 
 # Define a mesh for plotting and regularization.
-mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], '0')
+mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], "0")
 
 
 ########################################################
@@ -179,7 +192,7 @@ mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], '0')
 # not converge.
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-starting_model = np.log(0.1*np.ones(mesh.nC))
+starting_model = np.log(0.1 * np.ones(mesh.nC))
 
 # Define mapping from model to active cells.
 model_mapping = maps.ExpMap()
@@ -210,13 +223,11 @@ simulation = tdem.Simulation1DLayered(
 # residual between the observed data and the data predicted for a given model.
 # The weighting is defined by the reciprocal of the uncertainties.
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
-dmis.W = 1./uncertainties
+dmis.W = 1.0 / uncertainties
 
 # Define the regularization (model objective function)
 reg_map = maps.IdentityMap(nP=mesh.nC)
-reg = regularization.Sparse(
-    mesh, mapping=reg_map, alpha_s=0.01, alpha_x=1.
-)
+reg = regularization.Sparse(mesh, mapping=reg_map, alpha_s=0.01, alpha_x=1.0)
 
 # set reference model
 reg.mref = starting_model
@@ -255,8 +266,7 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Directives for the IRLS
 update_IRLS = directives.Update_IRLS(
-    max_irls_iterations=30, minGNiter=1,
-    coolEpsFact=1.5, update_beta=True
+    max_irls_iterations=30, minGNiter=1, coolEpsFact=1.5, update_beta=True
 )
 
 # Updating the preconditionner if it is model dependent.
@@ -294,8 +304,8 @@ recovered_model = inv.run(starting_model)
 # ---------------------
 
 # Load the true model and layer thicknesses
-true_model = np.array([0.1, 1., 0.1])
-hz = np.r_[40., 40., 160.]
+true_model = np.array([0.1, 1.0, 0.1])
+hz = np.r_[40.0, 40.0, 160.0]
 true_layers = TensorMesh([hz])
 
 # Extract Least-Squares model
@@ -304,8 +314,12 @@ print(np.shape(l2_model))
 
 # Plot true model and recovered model
 fig = plt.figure(figsize=(8, 9))
-x_min = np.min(np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model])
-x_max = np.max(np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model])
+x_min = np.min(
+    np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model]
+)
+x_max = np.max(
+    np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model]
+)
 
 ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
 plot_layer(true_model, true_layers, ax=ax1, showlayers=False, color="k")
@@ -332,4 +346,3 @@ ax1.set_ylabel("|Hs/Hp| (ppm)")
 ax1.set_title("Predicted and Observed Data")
 ax1.legend(["Observed", "L2-Model", "Sparse"], loc="upper right")
 plt.show()
-

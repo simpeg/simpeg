@@ -220,7 +220,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     # ------------------ RESOLVE Inversion ------------------ #
 
     # Primary field
-    bp = -mu_0 / (4 * np.pi * rxOffset**3)
+    bp = -mu_0 / (4 * np.pi * rxOffset ** 3)
 
     # Observed data
     cpi_inds = [0, 2, 6, 8, 10]

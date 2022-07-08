@@ -51,7 +51,7 @@ class DataTest(unittest.TestCase):
                 data.standard_deviation,
                 np.sqrt(
                     (relative * np.abs(self.dobs)) ** 2
-                    + floor**2 * np.ones(len(self.dobs)),
+                    + floor ** 2 * np.ones(len(self.dobs)),
                 ),
             )
         )

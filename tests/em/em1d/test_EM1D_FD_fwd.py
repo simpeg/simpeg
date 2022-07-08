@@ -9,6 +9,7 @@ from geoana.em.fdem import (
 )
 import empymod
 
+
 class EM1D_FD_FwdProblemTests(unittest.TestCase):
     def setUp(self):
 
@@ -325,27 +326,30 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
 
 
 class EM1D_FD_PiecewiseWireLoopTest(unittest.TestCase):
-
     def setUp(self):
 
         x_path = np.array([-2, -2, 2, 2, -2])
         y_path = np.array([-1, 1, 1, -1, -1])
         frequencies = np.logspace(0, 4)
 
-        wire_paths= np.c_[x_path, y_path, np.ones(5) * 0.5]
+        wire_paths = np.c_[x_path, y_path, np.ones(5) * 0.5]
         source_list = []
         receiver_list = []
-        receiver_location = np.array([9.28, 0., 0.45])
+        receiver_location = np.array([9.28, 0.0, 0.45])
         receiver_orientation = "z"
         receiver_list.append(
             fdem.receivers.PointMagneticFieldSecondary(
-                receiver_location, orientation=receiver_orientation,
-                data_type='field', component="both"
+                receiver_location,
+                orientation=receiver_orientation,
+                data_type="field",
+                component="both",
             )
         )
 
         for freq in frequencies:
-            source = fdem.sources.PiecewiseWireLoop(receiver_list, wire_paths=wire_paths, frequency=freq)
+            source = fdem.sources.PiecewiseWireLoop(
+                receiver_list, wire_paths=wire_paths, frequency=freq
+            )
             source_list.append(source)
 
         # Survey
@@ -354,7 +358,7 @@ class EM1D_FD_PiecewiseWireLoopTest(unittest.TestCase):
         layer_conductivity = 1e0
         sigma = np.ones(3) * background_conductivity
         sigma[1] = layer_conductivity
-        thicknesses = np.array([20., 40.])
+        thicknesses = np.array([20.0, 40.0])
 
         self.frequencies = frequencies
         self.survey = survey
@@ -367,57 +371,66 @@ class EM1D_FD_PiecewiseWireLoopTest(unittest.TestCase):
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
             sigmaMap=maps.IdentityMap(nP=3),
-            thicknesses=self.thicknesses
+            thicknesses=self.thicknesses,
         )
         H = sim.dpred(self.sigma)
+
         def solution(res):
             EM_left = empymod.model.bipole(
                 src=[-2, -2, -1, 1, -0.5, -0.5],  # El. bipole source; half of one side.
-                rec=[9.28, 0, -0.45, 0, 90],         # Receiver at the origin, vertical.
-                depth=np.r_[0, np.cumsum(sim.thicknesses)],        # Depth-model, adding air-interface.
-                res=res,         # Provided resistivity model, adding air.
-                freqtime=self.frequencies,                # Required frequencies.
-                mrec=True,                    # It is an el. source, but a magn. rec.
-                strength=1,                   # To account for 1 side of square loop.
-                srcpts=3,                     # Approx. the finite dip. with 3 points.
-                htarg={'dlf': 'key_101_2009'},  # Short filter, so fast.
-                verb=0
+                rec=[9.28, 0, -0.45, 0, 90],  # Receiver at the origin, vertical.
+                depth=np.r_[
+                    0, np.cumsum(sim.thicknesses)
+                ],  # Depth-model, adding air-interface.
+                res=res,  # Provided resistivity model, adding air.
+                freqtime=self.frequencies,  # Required frequencies.
+                mrec=True,  # It is an el. source, but a magn. rec.
+                strength=1,  # To account for 1 side of square loop.
+                srcpts=3,  # Approx. the finite dip. with 3 points.
+                htarg={"dlf": "key_101_2009"},  # Short filter, so fast.
+                verb=0,
             )
 
             EM_right = empymod.model.bipole(
                 src=[2, 2, 1, -1, -0.5, -0.5],  # El. bipole source; half of one side.
-                rec=[9.28, 0, -0.45, 0, 90],         # Receiver at the origin, vertical.
-                depth=np.r_[0, np.cumsum(sim.thicknesses)],        # Depth-model, adding air-interface.
-                res=res,         # Provided resistivity model, adding air.
-                freqtime=self.frequencies,                # Required frequencies.
-                mrec=True,                    # It is an el. source, but a magn. rec.
-                strength=1,                   # To account for 1 side of square loop.
-                srcpts=3,                     # Approx. the finite dip. with 3 points.
-                htarg={'dlf': 'key_101_2009'},  # Short filter, so fast.
-                verb=0
+                rec=[9.28, 0, -0.45, 0, 90],  # Receiver at the origin, vertical.
+                depth=np.r_[
+                    0, np.cumsum(sim.thicknesses)
+                ],  # Depth-model, adding air-interface.
+                res=res,  # Provided resistivity model, adding air.
+                freqtime=self.frequencies,  # Required frequencies.
+                mrec=True,  # It is an el. source, but a magn. rec.
+                strength=1,  # To account for 1 side of square loop.
+                srcpts=3,  # Approx. the finite dip. with 3 points.
+                htarg={"dlf": "key_101_2009"},  # Short filter, so fast.
+                verb=0,
             )
 
             EM_top = empymod.model.bipole(
                 src=[-2, 2, 1, 1, -0.5, -0.5],  # El. bipole source; half of one side.
-                rec=[9.28, 0, -0.45, 0, 90],         # Receiver at the origin, vertical.
-                depth=np.r_[0, np.cumsum(sim.thicknesses)],        # Depth-model, adding air-interface.
-                res=res,         # Provided resistivity model, adding air.
-                freqtime=self.frequencies,                # Required frequencies.
-                mrec=True,                    # It is an el. source, but a magn. rec.
-                strength=2,                   # To account for 2 sides of square loop.
-                srcpts=3,                     # Approx. the finite dip. with 3 points.
-                htarg={'dlf': 'key_101_2009'},  # Short filter, so fast.
-                verb=0
+                rec=[9.28, 0, -0.45, 0, 90],  # Receiver at the origin, vertical.
+                depth=np.r_[
+                    0, np.cumsum(sim.thicknesses)
+                ],  # Depth-model, adding air-interface.
+                res=res,  # Provided resistivity model, adding air.
+                freqtime=self.frequencies,  # Required frequencies.
+                mrec=True,  # It is an el. source, but a magn. rec.
+                strength=2,  # To account for 2 sides of square loop.
+                srcpts=3,  # Approx. the finite dip. with 3 points.
+                htarg={"dlf": "key_101_2009"},  # Short filter, so fast.
+                verb=0,
             )
-            EM = EM_left+EM_right+EM_top
+            EM = EM_left + EM_right + EM_top
             return EM
-        res = np.r_[2e14, 1./sim.sigma]
+
+        res = np.r_[2e14, 1.0 / sim.sigma]
         resBG = np.ones(4) * 2e14
-        EM = solution(res)-solution(resBG)
+        EM = solution(res) - solution(resBG)
         H_analytic = np.c_[EM.real, EM.imag].reshape(-1)
 
         err = np.linalg.norm(H - H_analytic) / np.linalg.norm(H_analytic)
         self.assertLess(err, 1e-4)
+
 
 if __name__ == "__main__":
     unittest.main()

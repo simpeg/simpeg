@@ -144,10 +144,10 @@ class Simulation1DRecursive(BaseSimulation):
             gratios[ii] -= Zs[ii + 1] / ratios[ii] ** 2 * gtop
             gtanhs[ii] -= gtop
         gratios[-1] = -gZ
-        d_thick = (1 - tanhs**2) * alphas[:-1] * gtanhs
+        d_thick = (1 - tanhs ** 2) * alphas[:-1] * gtanhs
 
         galphas = gratios / sigmas[:, None]
-        galphas[:-1] += (1 - tanhs**2) * thicknesses[:, None] * gtanhs
+        galphas[:-1] += (1 - tanhs ** 2) * thicknesses[:, None] * gtanhs
 
         d_sigma = -ratios / sigmas[:, None] * gratios
         d_sigma += (0.5j * omega * mu_0) / alphas * galphas
@@ -238,7 +238,7 @@ class Simulation1DRecursive(BaseSimulation):
                     C = 180 / np.pi
                     real = np.real(Z[i_freq])
                     imag = np.imag(Z[i_freq])
-                    bot = real**2 + imag**2
+                    bot = real ** 2 + imag ** 2
                     d_real_dm = np.real(Js_row)
                     d_imag_dm = np.imag(Js_row)
                     Jrows = C * (-imag / bot * d_real_dm + real / bot * d_imag_dm)

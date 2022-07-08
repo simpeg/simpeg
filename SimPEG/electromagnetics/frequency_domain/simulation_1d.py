@@ -55,7 +55,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             self._inv_lambs,
             self._C0s,
             self._C1s,
-            self._W
+            self._W,
         )
 
     def _set_coefficients(self, coefficients):
@@ -93,9 +93,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
     def dpred(self, m, f=None):
         """
-            Return predicted data.
-            Predicted data, (`_pred`) are computed when
-            self.fields is called.
+        Return predicted data.
+        Predicted data, (`_pred`) are computed when
+        self.fields is called.
         """
         if f is None:
             f = self.fields(m)
@@ -128,7 +128,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
         rTE = rTE[i_freq]
         rTE = np.take_along_axis(rTE, inv_lambs, axis=1)
-        v = W@((C0s * rTE) @ self.fhtfilt.j0 + (C1s * rTE) @ self.fhtfilt.j1)
+        v = W @ ((C0s * rTE) @ self.fhtfilt.j0 + (C1s * rTE) @ self.fhtfilt.j1)
 
         return self._project_to_data(v)
 
@@ -162,7 +162,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
                     h = h_vec[i_src]
                     if is_wire_loop:
-                        nD = sum(rx.locations.shape[0] * src.n_quad_points for rx in src.receiver_list)
+                        nD = sum(
+                            rx.locations.shape[0] * src.n_quad_points
+                            for rx in src.receiver_list
+                        )
                     else:
                         nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
                     ip1 = i + nD
@@ -178,7 +181,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 v_dh_temp = (C0s_dh * rTE) @ self.fhtfilt.j0 + (
                     C1s_dh * rTE
                 ) @ self.fhtfilt.j1
-                v_dh_temp += W@v_dh_temp
+                v_dh_temp += W @ v_dh_temp
                 # need to re-arange v_dh as it's currently (n_data x 1)
                 # however it already contains all the relevant information...
                 # just need to map it from the rx index to the source index associated..
@@ -189,7 +192,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     class_name = type(src).__name__
                     is_circular_loop = class_name == "CircularLoop"
                     if is_wire_loop:
-                        nD = sum(rx.locations.shape[0] * src.n_quad_points for rx in src.receiver_list)
+                        nD = sum(
+                            rx.locations.shape[0] * src.n_quad_points
+                            for rx in src.receiver_list
+                        )
                     else:
                         nD = sum(rx.locations.shape[0] for rx in src.receiver_list)
                     ip1 = i + nD
@@ -209,31 +215,39 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 if self.sigmaMap is not None:
                     rTE_ds = rTE_ds[:, i_freq]
                     rTE_ds = np.take_along_axis(rTE_ds, inv_lambs[None, ...], axis=-1)
-                    tmp = (
-                        (C0s * rTE_ds) @ self.fhtfilt.j0
-                        + (C1s * rTE_ds) @ self.fhtfilt.j1
-                    )
-                    print (tmp.shape)
-                    v_ds = ((
-                        (C0s * rTE_ds) @ self.fhtfilt.j0
-                        + (C1s * rTE_ds) @ self.fhtfilt.j1
-                    )@W.T).T
+                    tmp = (C0s * rTE_ds) @ self.fhtfilt.j0 + (
+                        C1s * rTE_ds
+                    ) @ self.fhtfilt.j1
+                    print(tmp.shape)
+                    v_ds = (
+                        (
+                            (C0s * rTE_ds) @ self.fhtfilt.j0
+                            + (C1s * rTE_ds) @ self.fhtfilt.j1
+                        )
+                        @ W.T
+                    ).T
                     self._J["ds"] = self._project_to_data(v_ds)
                 if self.muMap is not None:
                     rTE_dmu = rTE_dmu[:, i_freq]
                     rTE_dmu = np.take_along_axis(rTE_dmu, inv_lambs[None, ...], axis=-1)
-                    v_dmu = ((
-                        (C0s * rTE_ds) @ self.fhtfilt.j0
-                        + (C1s * rTE_ds) @ self.fhtfilt.j1
-                    )@W.T).T
+                    v_dmu = (
+                        (
+                            (C0s * rTE_ds) @ self.fhtfilt.j0
+                            + (C1s * rTE_ds) @ self.fhtfilt.j1
+                        )
+                        @ W.T
+                    ).T
                     self._J["dmu"] = self._project_to_data(v_dmu)
                 if self.thicknessesMap is not None:
                     rTE_dh = rTE_dh[:, i_freq]
                     rTE_dh = np.take_along_axis(rTE_dh, inv_lambs[None, ...], axis=-1)
-                    v_dthick = ((
-                        (C0s * rTE_dh) @ self.fhtfilt.j0
-                        + (C1s * rTE_dh) @ self.fhtfilt.j1
-                    )@W.T).T
+                    v_dthick = (
+                        (
+                            (C0s * rTE_dh) @ self.fhtfilt.j0
+                            + (C1s * rTE_dh) @ self.fhtfilt.j1
+                        )
+                        @ W.T
+                    ).T
                     self._J["dthick"] = self._project_to_data(v_dthick)
         return self._J
 

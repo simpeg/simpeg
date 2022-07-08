@@ -11,18 +11,16 @@ from geoana.em.tdem import (
 import numpy as np
 
 
-
 class EM1D_TD_FwdProblemTests(unittest.TestCase):
-
     def setUp(self):
 
-        source_location = np.array([0., 0., 0.])
+        source_location = np.array([0.0, 0.0, 0.0])
         source_orientation = "z"  # "x", "y" or "z"
-        source_current = 1.
-        source_radius = 10.
-        moment_amplitude = 1.
+        source_current = 1.0
+        source_radius = 10.0
+        moment_amplitude = 1.0
 
-        receiver_locations = np.array([[0., 0., 0.]])
+        receiver_locations = np.array([[0.0, 0.0, 0.0]])
         receiver_orientation = "z"  # "x", "y" or "z"
 
         times_hm = np.logspace(-6, -3, 31)
@@ -54,13 +52,13 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
                 location=source_location,
                 waveform=waveform_hm,
                 radius=source_radius,
-           ),
+            ),
             tdem.sources.CircularLoop(
                 [dbzdt_receiver_lm],
                 location=source_location,
                 waveform=waveform_lm,
                 radius=source_radius,
-            )
+            ),
         ]
 
         survey = tdem.Survey(source_list)
@@ -94,9 +92,8 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         src = self.survey.source_list[0]
         rx = src.receiver_list[0]
         dbzdt = self.simulation.dpred(self.sigma_model)
-        dbzdt_hm = dbzdt[:rx.times.size]
-        dbzdt_lm = dbzdt[rx.times.size:]
-
+        dbzdt_hm = dbzdt[: rx.times.size]
+        dbzdt_lm = dbzdt[rx.times.size :]
 
         dbzdt_lm_analytic = convolve_with_waveform(
             dbdt_loop,
@@ -112,24 +109,22 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
             fkwargs={"sigma": self.sigma_halfspace, "radius": self.source_radius},
         )
 
-        err = (
-            np.linalg.norm(dbzdt_hm-dbzdt_hm_analytic)/
-            np.linalg.norm(dbzdt_hm_analytic)
+        err = np.linalg.norm(dbzdt_hm - dbzdt_hm_analytic) / np.linalg.norm(
+            dbzdt_hm_analytic
         )
 
-        print ('dBzdt error (hm) = ', err)
+        print("dBzdt error (hm) = ", err)
 
         self.assertTrue(err < 5e-2)
-        err = (
-            np.linalg.norm(dbzdt_lm-dbzdt_lm_analytic)/
-            np.linalg.norm(dbzdt_lm_analytic)
+        err = np.linalg.norm(dbzdt_lm - dbzdt_lm_analytic) / np.linalg.norm(
+            dbzdt_lm_analytic
         )
 
-        print ('dBzdt error (lm) = ', err)
+        print("dBzdt error (lm) = ", err)
         self.assertTrue(err < 5e-2)
 
-        print ("EM1DTD-CirculurLoop-general for real conductivity works")
+        print("EM1DTD-CirculurLoop-general for real conductivity works")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

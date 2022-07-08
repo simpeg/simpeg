@@ -1310,8 +1310,8 @@ class Update_IRLS(InversionDirective):
             for comp, multipier in zip(reg.objfcts, reg.multipliers):
                 if multipier > 0:
                     phim_new += np.sum(
-                        comp.f_m**2.0
-                        / (comp.f_m**2.0 + comp.epsilon**2.0)
+                        comp.f_m ** 2.0
+                        / (comp.f_m ** 2.0 + comp.epsilon ** 2.0)
                         ** (1 - comp.norm / 2.0)
                     )
 

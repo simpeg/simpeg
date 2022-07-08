@@ -77,7 +77,9 @@ class BaseEM1DSimulation(BaseSimulation):
     )
 
     # Additional properties
-    h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0",)
+    h, hMap, hDeriv = props.Invertible(
+        "Receiver Height (m), h > 0",
+    )
 
     topo = properties.Array("Topography (x, y, z)", dtype=float)
 
@@ -106,7 +108,7 @@ class BaseEM1DSimulation(BaseSimulation):
 
     @property
     def n_filter(self):
-        """ Length of filter """
+        """Length of filter"""
         return self.fhtfilt.base.size
 
     @property
@@ -288,7 +290,7 @@ class BaseEM1DSimulation(BaseSimulation):
                     z = h + rx.locations[:, 2] - src.location[2]
 
                 if is_wire_loop:
-                    dxy = rx.locations[:,:2] - src._xyks
+                    dxy = rx.locations[:, :2] - src._xyks
                     offsets = np.linalg.norm(dxy, axis=-1)
                 else:
                     offsets = np.linalg.norm(dxyz[:, :-1], axis=-1)
@@ -382,7 +384,9 @@ class BaseEM1DSimulation(BaseSimulation):
                 elif is_wire_loop:
                     weights = src._weights
                     dxy_rot = src.rotate_points_xy_var_theta(dxy, -src._thetas)
-                    C1 = (1 /(4*np.pi)*(dxy_rot[:,1]/offsets * weights))[:,None] * lambd
+                    C1 = (1 / (4 * np.pi) * (dxy_rot[:, 1] / offsets * weights))[
+                        :, None
+                    ] * lambd
                     # Assume
                     # 1) source_list only includes wire_loop sources
                     # 1) rx.locations.shape = (1,3)
@@ -407,12 +411,11 @@ class BaseEM1DSimulation(BaseSimulation):
         self._C1s = np.vstack(C1s)
         Is = np.hstack(Is)
         n_row = Is.size
-        n_col = Is.max()+1
+        n_col = Is.max() + 1
         Js = np.arange(n_row)
         data = np.ones(n_row, dtype=int)
         self._W = sp.coo_matrix((data, (Is, Js)), shape=(n_col, n_row))
         self._W = self._W.tocsr()
-
 
     @property
     def deleteTheseOnModelUpdate(self):

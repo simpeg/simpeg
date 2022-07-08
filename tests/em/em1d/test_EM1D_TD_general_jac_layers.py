@@ -119,38 +119,78 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-26)
         self.assertTrue(passed)
 
+
 class EM1D_TD_PiecewiseWireLoop_Jac_layers_ProblemTests(unittest.TestCase):
     def setUp(self):
         # WalkTEM waveform
         # Low moment
-        lm_waveform_times = np.r_[-1.041E-03, -9.850E-04, 0.000E+00, 4.000E-06]
+        lm_waveform_times = np.r_[-1.041e-03, -9.850e-04, 0.000e00, 4.000e-06]
         lm_waveform_current = np.r_[0.0, 1.0, 1.0, 0.0]
 
         # High moment
-        hm_waveform_times = np.r_[-8.333E-03, -8.033E-03, 0.000E+00, 5.600E-06]
+        hm_waveform_times = np.r_[-8.333e-03, -8.033e-03, 0.000e00, 5.600e-06]
         hm_waveform_current = np.r_[0.0, 1.0, 1.0, 0.0]
 
         # Low moment
-        lm_off_time = np.array([
-            1.149E-05, 1.350E-05, 1.549E-05, 1.750E-05, 2.000E-05, 2.299E-05,
-            2.649E-05, 3.099E-05, 3.700E-05, 4.450E-05, 5.350E-05, 6.499E-05,
-            7.949E-05, 9.799E-05, 1.215E-04, 1.505E-04, 1.875E-04, 2.340E-04,
-            2.920E-04, 3.655E-04, 4.580E-04, 5.745E-04, 7.210E-04
-        ])
+        lm_off_time = np.array(
+            [
+                1.149e-05,
+                1.350e-05,
+                1.549e-05,
+                1.750e-05,
+                2.000e-05,
+                2.299e-05,
+                2.649e-05,
+                3.099e-05,
+                3.700e-05,
+                4.450e-05,
+                5.350e-05,
+                6.499e-05,
+                7.949e-05,
+                9.799e-05,
+                1.215e-04,
+                1.505e-04,
+                1.875e-04,
+                2.340e-04,
+                2.920e-04,
+                3.655e-04,
+                4.580e-04,
+                5.745e-04,
+                7.210e-04,
+            ]
+        )
 
         # High moment
-        hm_off_time = np.array([
-            9.810e-05, 1.216e-04, 1.506e-04, 1.876e-04, 2.341e-04, 2.921e-04,
-            3.656e-04, 4.581e-04, 5.746e-04, 7.211e-04, 9.056e-04, 1.138e-03,
-            1.431e-03, 1.799e-03, 2.262e-03, 2.846e-03, 3.580e-03, 4.505e-03,
-            5.670e-03, 7.135e-03
-        ])
+        hm_off_time = np.array(
+            [
+                9.810e-05,
+                1.216e-04,
+                1.506e-04,
+                1.876e-04,
+                2.341e-04,
+                2.921e-04,
+                3.656e-04,
+                4.581e-04,
+                5.746e-04,
+                7.211e-04,
+                9.056e-04,
+                1.138e-03,
+                1.431e-03,
+                1.799e-03,
+                2.262e-03,
+                2.846e-03,
+                3.580e-03,
+                4.505e-03,
+                5.670e-03,
+                7.135e-03,
+            ]
+        )
 
         # WalkTEM geometry
         x_path = np.array([-20, -20, 20, 20, -20])
         y_path = np.array([-20, 20, 20, -20, -20])
 
-        wire_paths= np.c_[x_path, y_path, np.zeros(5)]
+        wire_paths = np.c_[x_path, y_path, np.zeros(5)]
         source_list = []
         receiver_list_lm = []
         receiver_list_hm = []
@@ -169,11 +209,19 @@ class EM1D_TD_PiecewiseWireLoop_Jac_layers_ProblemTests(unittest.TestCase):
             )
         )
 
-        lm_wave = tdem.sources.PiecewiseLinearWaveform(lm_waveform_times, lm_waveform_current)
-        hm_wave = tdem.sources.PiecewiseLinearWaveform(hm_waveform_times, hm_waveform_current)
+        lm_wave = tdem.sources.PiecewiseLinearWaveform(
+            lm_waveform_times, lm_waveform_current
+        )
+        hm_wave = tdem.sources.PiecewiseLinearWaveform(
+            hm_waveform_times, hm_waveform_current
+        )
 
-        source_lm = tdem.sources.PiecewiseWireLoop(receiver_list_lm, wire_paths=wire_paths, waveform=lm_wave)
-        source_hm = tdem.sources.PiecewiseWireLoop(receiver_list_hm, wire_paths=wire_paths, waveform=hm_wave)
+        source_lm = tdem.sources.PiecewiseWireLoop(
+            receiver_list_lm, wire_paths=wire_paths, waveform=lm_wave
+        )
+        source_hm = tdem.sources.PiecewiseWireLoop(
+            receiver_list_hm, wire_paths=wire_paths, waveform=hm_wave
+        )
         source_list.append(source_lm)
         source_list.append(source_hm)
 
@@ -181,10 +229,10 @@ class EM1D_TD_PiecewiseWireLoop_Jac_layers_ProblemTests(unittest.TestCase):
         survey = tdem.survey.Survey(source_list)
 
         # Physical properties
-        sigma = np.array([1./10, 1./1])
+        sigma = np.array([1.0 / 10, 1.0 / 1])
 
         # Layer thicknesses
-        thicknesses = np.array([30.])
+        thicknesses = np.array([30.0])
         n_layer = len(thicknesses) + 1
 
         self.survey = survey

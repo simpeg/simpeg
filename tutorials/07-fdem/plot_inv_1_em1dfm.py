@@ -32,14 +32,24 @@ import matplotlib.pyplot as plt
 from discretize import TensorMesh
 
 import SimPEG.electromagnetics.frequency_domain as fdem
-from SimPEG.electromagnetics.utils.em1d_utils import get_vertical_discretization_frequency, plot_layer
+from SimPEG.electromagnetics.utils.em1d_utils import (
+    get_vertical_discretization_frequency,
+    plot_layer,
+)
 from SimPEG.utils import mkvc
 from SimPEG import (
-    maps, data, data_misfit, inverse_problem, regularization, optimization,
-    directives, inversion, utils
-    )
+    maps,
+    data,
+    data_misfit,
+    inverse_problem,
+    regularization,
+    optimization,
+    directives,
+    inversion,
+    utils,
+)
 
-plt.rcParams.update({'font.size': 16, 'lines.linewidth': 2, 'lines.markersize':8})
+plt.rcParams.update({"font.size": 16, "lines.linewidth": 2, "lines.markersize": 8})
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -75,21 +85,21 @@ data_filename = dir_path + "em1dfm_data.txt"
 # Load Data and Plot
 # ------------------
 #
-# Here we load and plot the 1D sounding data. In this case, we have the 
+# Here we load and plot the 1D sounding data. In this case, we have the
 # secondary field response in ppm for a set of frequencies.
 #
 
 # Load field data
-#dobs = np.loadtxt(str(data_filename))
+# dobs = np.loadtxt(str(data_filename))
 dobs = np.loadtxt(str(data_filename), skiprows=1)
 
 # Define receiver locations and observed data
 frequencies = dobs[:, 0]
 dobs = mkvc(dobs[:, 1:].T)
 
-fig, ax = plt.subplots(1,1, figsize = (7, 7))
-ax.loglog(frequencies, np.abs(dobs[0::2]), 'k-o', lw=3)
-ax.loglog(frequencies, np.abs(dobs[1::2]), 'k:o', lw=3)
+fig, ax = plt.subplots(1, 1, figsize=(7, 7))
+ax.loglog(frequencies, np.abs(dobs[0::2]), "k-o", lw=3)
+ax.loglog(frequencies, np.abs(dobs[1::2]), "k:o", lw=3)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("|Hs/Hp| (ppm)")
 ax.set_title("Magnetic Field as a Function of Frequency")
@@ -99,17 +109,17 @@ ax.legend(["Real", "Imaginary"])
 #############################################
 # Defining the Survey
 # -------------------
-# 
+#
 # Here we demonstrate a general way to define the receivers, sources and survey.
 # The survey consisted of a vertical magnetic dipole source located 30 m above the
 # surface. The receiver measured the vertical component of the secondary field
 # at a 10 m offset from the source in ppm.
-# 
+#
 
-source_location = np.array([0., 0., 30.]) 
-moment=1.
+source_location = np.array([0.0, 0.0, 30.0])
+moment = 1.0
 
-receiver_location = np.array([10., 0., 30.])
+receiver_location = np.array([10.0, 0.0, 30.0])
 receiver_orientation = "z"
 data_type = "ppm"
 
@@ -117,24 +127,31 @@ data_type = "ppm"
 receiver_list = []
 receiver_list.append(
     fdem.receivers.PointMagneticFieldSecondary(
-        receiver_location, orientation=receiver_orientation,
-        data_type=data_type, component="real"
+        receiver_location,
+        orientation=receiver_orientation,
+        data_type=data_type,
+        component="real",
     )
 )
 receiver_list.append(
     fdem.receivers.PointMagneticFieldSecondary(
-        receiver_location, orientation=receiver_orientation,
-        data_type=data_type, component="imag"
+        receiver_location,
+        orientation=receiver_orientation,
+        data_type=data_type,
+        component="imag",
     )
 )
-    
+
 # Define source list
 source_list = []
 for freq in frequencies:
     source_list.append(
         fdem.sources.MagDipole(
-            receiver_list=receiver_list, frequency=freq, location=source_location,
-            orientation="z", moment=moment
+            receiver_list=receiver_list,
+            frequency=freq,
+            location=source_location,
+            orientation="z",
+            moment=moment,
         )
     )
 
@@ -151,7 +168,7 @@ survey = fdem.survey.Survey(source_list)
 #
 
 # 5% of the absolute value
-uncertainties = 0.05*np.abs(dobs)*np.ones(np.shape(dobs))
+uncertainties = 0.05 * np.abs(dobs) * np.ones(np.shape(dobs))
 
 # Define the data object
 data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
@@ -166,10 +183,10 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 #
 
 # Layer thicknesses
-inv_thicknesses = np.logspace(0,1.5,25)
+inv_thicknesses = np.logspace(0, 1.5, 25)
 
 # Define a mesh for plotting and regularization.
-mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], '0')
+mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], "0")
 
 
 #################################################################
@@ -187,7 +204,7 @@ mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], '0')
 # not converge.
 
 # Define model. A resistivity (Ohm meters) or conductivity (S/m) for each layer.
-starting_model = np.log(0.1*np.ones(mesh.nC))
+starting_model = np.log(0.1 * np.ones(mesh.nC))
 
 # Define mapping from model to active cells.
 model_mapping = maps.ExpMap()
@@ -222,9 +239,7 @@ dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 
 # Define the regularization (model objective function)
 reg_map = maps.IdentityMap(nP=mesh.nC)
-reg = regularization.Sparse(
-    mesh, mapping=reg_map, alpha_s=0.025, alpha_x=1.
-)
+reg = regularization.Sparse(mesh, mapping=reg_map, alpha_s=0.025, alpha_x=1.0)
 
 # reference model
 reg.mref = starting_model
@@ -263,8 +278,7 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Directive for the IRLS
 update_IRLS = directives.Update_IRLS(
-    max_irls_iterations=30, minGNiter=1,
-    coolEpsFact=1.5, update_beta=True
+    max_irls_iterations=30, minGNiter=1, coolEpsFact=1.5, update_beta=True
 )
 
 # Updating the preconditionner if it is model dependent.
@@ -300,11 +314,11 @@ recovered_model = inv.run(starting_model)
 #####################################################################
 # Plotting Results
 # ---------------------
-# 
+#
 
 # Load the true model and layer thicknesses
-true_model = np.array([0.1, 1., 0.1])
-hz = np.r_[20., 40., 160.]
+true_model = np.array([0.1, 1.0, 0.1])
+hz = np.r_[20.0, 40.0, 160.0]
 true_layers = TensorMesh([hz])
 
 # Extract Least-Squares model
@@ -312,8 +326,12 @@ l2_model = inv_prob.l2model
 
 # Plot true model and recovered model
 fig = plt.figure(figsize=(8, 9))
-x_min = np.min(np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model])
-x_max = np.max(np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model])
+x_min = np.min(
+    np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model]
+)
+x_max = np.max(
+    np.r_[model_mapping * recovered_model, model_mapping * l2_model, true_model]
+)
 
 ax1 = fig.add_axes([0.2, 0.15, 0.7, 0.7])
 plot_layer(true_model, true_layers, ax=ax1, showlayers=False, color="k")
@@ -339,11 +357,15 @@ ax1.loglog(frequencies, np.abs(dpred_final[1::2]), "r:o")
 ax1.set_xlabel("Frequencies (Hz)")
 ax1.set_ylabel("|Hs/Hp| (ppm)")
 ax1.set_title("Predicted and Observed Data")
-ax1.legend([
-    "Observed (real)", "Observed (imag)",
-    "L2-Model (real)", "L2-Model (imag)",
-    "Sparse (real)", "Sparse (imag)"],
-    loc="upper left"
+ax1.legend(
+    [
+        "Observed (real)",
+        "Observed (imag)",
+        "L2-Model (real)",
+        "L2-Model (imag)",
+        "Sparse (real)",
+        "Sparse (imag)",
+    ],
+    loc="upper left",
 )
 plt.show()
-
