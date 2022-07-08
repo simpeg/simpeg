@@ -33,9 +33,6 @@ IGNORE_ME = [
     "CrossGradient",
     "LinearCorrespondence",
     "JointTotalVariation",
-    "LaterallyConstrainedSmall",
-    "LaterallyConstrainedDeriv",
-    "LaterallyConstrained"
 ]
 
 
@@ -403,76 +400,6 @@ class RegularizationTests(unittest.TestCase):
 
         reg = regularization.Simple(mesh, indActive=active)
         self.assertTrue(reg._nC_residual == len(active.nonzero()[0]))
-
-
-class LCRegularizationTests(unittest.TestCase):
-    def setUp(self):
-        nx = 11
-        x = np.arange(nx)*50 + np.random.randn(nx) * 5
-        y = np.random.randn(nx) * 5
-        tri = Delaunay(np.c_[x, y])
-        hz = np.ones(10)
-        mesh_radial = discretize.SimplexMesh(tri.points, tri.simplices)
-        mesh_vertical = discretize.TensorMesh([hz])
-        mesh = [mesh_radial, mesh_vertical]
-        self.mesh = mesh
-        self.nC = 110
-
-    def test_mref_is_zero(self):
-
-        mref = np.ones(self.nC)
-
-        for regType in ["LaterallyConstrained"]:
-            reg = getattr(regularization, regType)(
-                self.mesh, mref=mref, mapping=maps.IdentityMap(nP=self.nC)
-            )
-
-            print("Check: phi_m (mref) = {0:f}".format(reg(mref)))
-            passed = reg(mref) < TOL
-            self.assertTrue(passed)
-
-    def test_mappings(self):
-
-        m = np.random.rand(2 * self.nC)
-
-        wires = maps.Wires(("sigma", self.nC), ("mu", self.nC))
-
-        for regType in ["LaterallyConstrained"]:
-            reg1 = getattr(regularization, regType)(self.mesh, mapping=wires.sigma)
-            reg2 = getattr(regularization, regType)(self.mesh, mapping=wires.mu)
-
-            reg3 = reg1 + reg2
-
-            self.assertTrue(reg1.nP == 2 * self.nC)
-            self.assertTrue(reg2.nP == 2 * self.nC)
-            self.assertTrue(reg3.nP == 2 * self.nC)
-
-            print(reg3(m), reg1(m), reg2(m))
-            self.assertTrue(reg3(m) == reg1(m) + reg2(m))
-
-            reg1.test(eps=TOL)
-            reg2.test(eps=TOL)
-            reg3.test(eps=TOL)
-
-    if testReg:
-
-        def test_regularization(self):
-            regType = "LaterallyConstrained"
-            mapping = maps.IdentityMap(nP=self.nC)
-            reg = getattr(regularization, regType)(mesh=self.mesh, mapping=mapping)
-
-            print("--- Checking {} --- \n".format(reg.__class__.__name__))
-
-            if mapping.nP != "*":
-                m = np.random.rand(mapping.nP)
-            else:
-                m = np.random.rand(self.nC)
-            mref = np.ones_like(m) * np.mean(m)
-            reg.mref = mref
-
-            # test derivs
-            passed = reg.test(m, eps=TOL)
-            self.assertTrue(passed)
 
 if __name__ == "__main__":
     unittest.main()
