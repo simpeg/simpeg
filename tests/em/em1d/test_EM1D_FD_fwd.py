@@ -53,7 +53,6 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             source_list.append(src)
 
         # Survey
-        # survey = em1d.survey.EM1DSurveyFD(source_list)
         survey = fdem.Survey(source_list)
 
         sigma = 1.0
