@@ -187,15 +187,15 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             # Create a regularization
             reg = regularization.Sparse(self.mesh, mapping=self.idenMap)
             reg.norms = [0, 0, 0]
-            reg.gradientType = "components"
-            reg.mref = np.zeros(self.mesh.nC)
+            reg.gradient_type = "components"
+            reg.reference_model = np.zeros(self.mesh.nC)
 
             # Data misfit function
             dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
 
             # Add directives to the inversion
             opt = optimization.ProjectedGNCG(
-                maxIter=15,
+                maxIter=20,
                 lower=-1.0,
                 upper=1.0,
                 maxIterLS=5,
