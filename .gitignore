@@ -40,12 +40,14 @@ nosetests.xml
 
 *.sublime-project
 *.sublime-workspace
+*.code-workspace
 docs/_build/
 docs/warnings.txt
 .DS_Store
 docs/content/examples/*
 docs/content/tutorials/*
 docs/modules/*
+.vscode/*
 
 # paths to where data are downloaded
 examples/20-published/bookpurnong_inversion/*
