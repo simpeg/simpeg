@@ -110,7 +110,7 @@ class BaseIPSimulation(BasePDESimulation):
         if self.gtgdiag is None:
             J = self.getJ(m)
             if W is None:
-                W = self._scale**2
+                W = self._scale ** 2
             else:
                 W = (self._scale * W.diagonal()) ** 2
 

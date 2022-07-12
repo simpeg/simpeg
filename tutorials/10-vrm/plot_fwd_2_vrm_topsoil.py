@@ -164,7 +164,7 @@ ind_active = surface2ind_topo(mesh, xyz_topo)
 
 # Define 3D Gaussian distribution parameters
 xyzc = mesh.gridCC[ind_active, :]
-c = 3 * np.pi * 8**2
+c = 3 * np.pi * 8 ** 2
 pc = np.r_[4e-4, 4e-4, 4e-4, 6e-4, 8e-4, 6e-4, 8e-4, 8e-4]
 x_0 = np.r_[50.0, -50.0, -40.0, -20.0, -15.0, 20.0, -10.0, 25.0]
 y_0 = np.r_[0.0, 0.0, 40.0, 10.0, -20.0, 15.0, 0.0, 0.0]

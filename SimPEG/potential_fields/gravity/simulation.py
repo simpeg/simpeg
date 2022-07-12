@@ -214,9 +214,9 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dxdz / (r * dy_r)
                                 - np.arctan(arg)
                                 + dx[:, aa]
-                                * (1.0 / (1 + arg**2.0))
+                                * (1.0 / (1 + arg ** 2.0))
                                 * dydz
-                                / dxr**2.0
+                                / dxr ** 2.0
                                 * (r + dx[:, aa] ** 2.0 / r)
                             )
                         )
@@ -231,8 +231,8 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dy[:, bb] ** 2.0 / (r * dz_r)
                                 + dz[:, cc] / r
                                 - 1.0
-                                / (1 + arg**2.0)
-                                * (dz[:, cc] / r**2)
+                                / (1 + arg ** 2.0)
+                                * (dz[:, cc] / r ** 2)
                                 * (r - dy[:, bb] ** 2.0 / r)
                             )
                         )
@@ -247,8 +247,8 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dz[:, cc] ** 2.0 / (r * dy_r)
                                 + dy[:, bb] / r
                                 - 1.0
-                                / (1 + arg**2.0)
-                                * (dy[:, bb] / (r**2))
+                                / (1 + arg ** 2.0)
+                                * (dy[:, bb] / (r ** 2))
                                 * (r - dz[:, cc] ** 2.0 / r)
                             )
                         )
@@ -269,9 +269,9 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dydz / (r * dx_r)
                                 - np.arctan(arg)
                                 + dy[:, bb]
-                                * (1.0 / (1 + arg**2.0))
+                                * (1.0 / (1 + arg ** 2.0))
                                 * dxdz
-                                / dyr**2.0
+                                / dyr ** 2.0
                                 * (r + dy[:, bb] ** 2.0 / r)
                             )
                         )
@@ -286,8 +286,8 @@ class Simulation3DIntegral(BasePFSimulation):
                                 + dz[:, cc] ** 2.0 / (r * (dx_r))
                                 + dx[:, aa] / r
                                 - 1.0
-                                / (1 + arg**2.0)
-                                * (dx[:, aa] / (r**2))
+                                / (1 + arg ** 2.0)
+                                * (dx[:, aa] / (r ** 2))
                                 * (r - dz[:, cc] ** 2.0 / r)
                             )
                         )
@@ -313,7 +313,9 @@ class Simulation3DIntegral(BasePFSimulation):
         return np.vstack([rows[component] for component in components])
 
 
-class SimulationEquivalentSourceLayer(BaseEquivalentSourceLayerSimulation, Simulation3DIntegral):
+class SimulationEquivalentSourceLayer(
+    BaseEquivalentSourceLayerSimulation, Simulation3DIntegral
+):
     """
     Equivalent source layer simulations
 

@@ -294,7 +294,7 @@ class PointNaturalSource(BaseRx):
         if adjoint:
             if self.component == "phase":
                 # gradient of arctan2(y, x) is (-y/(x**2 + y**2), x/(x**2 + y**2))
-                v = 180 / np.pi * imp / (imp.real**2 + imp.imag**2) * v
+                v = 180 / np.pi * imp / (imp.real ** 2 + imp.imag ** 2) * v
                 # switch real and imaginary, and negate real part of output
                 v = -v.imag - 1j * v.real
                 # imaginary part gets extra (-) due to conjugate transpose
@@ -372,7 +372,7 @@ class PointNaturalSource(BaseRx):
                 * (imp.real * imp_deriv.real + imp.imag * imp_deriv.imag)
             )
         elif self.component == "phase":
-            amp2 = imp.imag**2 + imp.real**2
+            amp2 = imp.imag ** 2 + imp.real ** 2
             deriv_re = -imp.imag / amp2 * imp_deriv.real
             deriv_im = imp.real / amp2 * imp_deriv.imag
 
@@ -406,7 +406,7 @@ class PointNaturalSource(BaseRx):
         if return_complex:
             return imp
         elif self.component == "apparent_resistivity":
-            return _alpha(src) * (imp.real**2 + imp.imag**2)
+            return _alpha(src) * (imp.real ** 2 + imp.imag ** 2)
         elif self.component == "phase":
             return 180 / np.pi * (np.arctan2(imp.imag, imp.real))
         else:

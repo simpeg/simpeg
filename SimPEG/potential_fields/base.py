@@ -292,6 +292,7 @@ class BasePFSimulation(LinearSimulation):
             "loading dask for parallelism by doing ``import SimPEG.dask``."
         )
 
+
 class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
     """Base equivalent source layer simulation class
 
@@ -307,7 +308,7 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
     """
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
-        
+
         if mesh.dim != 2:
             raise AttributeError("Mesh to equivalent source layer must be 2D.")
 
@@ -318,9 +319,11 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
 
         if isinstance(cell_z_bottom, (int, float)):
             cell_z_bottom = float(cell_z_bottom) * np.ones(mesh.nC)
-        
+
         if (mesh.nC != len(cell_z_top)) | (mesh.nC != len(cell_z_bottom)):
-            raise AttributeError("'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells.")
+            raise AttributeError(
+                "'cell_z_top' and 'cell_z_bottom' must have length equal to number of cells."
+            )
 
         self.Zn = np.c_[cell_z_bottom, cell_z_top]
 

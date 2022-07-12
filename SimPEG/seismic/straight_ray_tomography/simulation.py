@@ -9,7 +9,7 @@ from ... import props
 
 def lengthInCell(O, D, x, y, plotIt=False):
 
-    maxD = np.sqrt(np.sum(D**2))
+    maxD = np.sqrt(np.sum(D ** 2))
     D = D / maxD
 
     def dist(a):
@@ -54,7 +54,7 @@ def lengthInCell(O, D, x, y, plotIt=False):
         if plotIt:
             c = np.c_[dist(midAlp[0]), dist(midAlp[1])]
             plt.plot(c[0, :], c[1, :], "r", lw=2)
-        return np.sqrt(np.sum(vec**2))
+        return np.sqrt(np.sum(vec ** 2))
 
     return None
 

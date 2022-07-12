@@ -30,10 +30,10 @@ def GravSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
     r = np.sqrt((rx) ** 2 + (ry) ** 2 + (rz) ** 2)
 
     M = np.empty_like(x)  # create a vector of "Ms" if the point is outide
-    M[r >= R] = R**3 * 4.0 / 3.0 * np.pi * rho  # outside points
+    M[r >= R] = R ** 3 * 4.0 / 3.0 * np.pi * rho  # outside points
     M[r < R] = r[r < R] ** 3 * 4.0 / 3.0 * np.pi * rho  # inside points
 
-    g = -G * (1.0 / r**2) * M * unit_conv
+    g = -G * (1.0 / r ** 2) * M * unit_conv
 
     gx = g * (rx / r)
     gy = g * (ry / r)
@@ -72,7 +72,7 @@ def GravityGradientSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
     bot = r * r * r * r * r
 
     M = np.empty_like(x)  # create a vector of "Ms" if the point is outide
-    M[r >= R] = R**3 * 4.0 / 3.0 * np.pi * rho  # outside points
+    M[r >= R] = R ** 3 * 4.0 / 3.0 * np.pi * rho  # outside points
     M[r < R] = r[r < R] ** 3 * 4.0 / 3.0 * np.pi * rho  # inside points
 
     g = G * (1.0 / bot) * M * unit_conv
