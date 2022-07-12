@@ -207,7 +207,7 @@ class RegularizationMesh(props.BaseSimPEG):
                 ) >= 1
                 self._Pafy = utils.speye(self.mesh.ntFy)[:, active_cells_Fy]
             elif self.mesh_meshType == "CYL" and self.mesh.is_symmetric:
-                return None
+                return sp.csr_matrix(shape=(0, 0))
             else:
                 if self.active_cells is None:
                     self._Pafy = utils.speye(self.mesh.nFy)
