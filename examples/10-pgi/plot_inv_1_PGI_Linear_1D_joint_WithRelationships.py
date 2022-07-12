@@ -159,9 +159,7 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
     chi0_ratio=np.r_[1.0, 1.0], verbose=True, n_pw_iter=10
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
-alpha0_ratio = np.r_[
-    1e+6, 1e+4
-]
+alpha0_ratio = np.r_[1e6, 1e4]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
@@ -236,9 +234,13 @@ mcluster_no_map = inv.run(minit)
 
 # LeastSquaresRegularization Inversion
 
-reg1 = regularization.LeastSquaresRegularization(mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1)
+reg1 = regularization.LeastSquaresRegularization(
+    mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1
+)
 reg1.cell_weights = wr1
-reg2 = regularization.LeastSquaresRegularization(mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2)
+reg2 = regularization.LeastSquaresRegularization(
+    mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2
+)
 reg2.cell_weights = wr2
 reg = reg1 + reg2
 

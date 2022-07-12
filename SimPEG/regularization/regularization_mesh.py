@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-import warnings
-import properties
+from SimPEG.utils.code_utils import deprecate_property
 
 from .. import props
 from .. import utils
@@ -27,37 +26,87 @@ class RegularizationMesh(props.BaseSimPEG):
     """
 
     regularization_type = None  # or 'Base'
-    _active_cells = None
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh, active_cells=None, **kwargs):
         self.mesh = mesh
+        self.active_cells = active_cells
         utils.setKwargs(self, **kwargs)
 
     # active_cells = properties.Array("active indices in mesh", dtype=[bool, int])
 
     @property
     def active_cells(self):
+        """A boolean array indicating whether a cell is active
+
+        Returns
+        -------
+        (n_cells,) numpy.ndarray of bool
+
+        Notes
+        -----
+        If this is set with an array of integers, it interprets it as an array
+        listing the active cell indices.
+        """
         return self._active_cells
 
     @active_cells.setter
     def active_cells(self, values: np.ndarray):
+        if getattr(self, "_active_cells", None) is not None and not all(
+            self._active_cells == values
+        ):
+            raise AttributeError(
+                "The RegulatizationMesh already has an 'active_cells' property set."
+            )
         if values is not None:
-            if self._active_cells is not None and not all(self._active_cells == values):
-                raise AttributeError(
-                    "The RegulatizationMesh already has an 'active_cells' property set."
-                )
+            try:
+                values = np.asarray(values)
+            except:
+                raise ValueError("Input 'active_cells' must be array_like.")
 
-            if (
-                not isinstance(values, np.ndarray) or values.dtype != "bool"
-            ):  # cast it to a bool otherwise
-                raise ValueError(
-                    "Input 'active_cells' must be an numpy.ndarray of type 'bool'."
-                )
+            if values.dtype != bool:
+                try:
+                    tmp = np.zeros(self.mesh.nC, dtype=bool)
+                    tmp[values] = True
+                except:
+                    raise ValueError(
+                        "Values must be an array of integers or an array of bools "
+                        "indicating the active cells"
+                    )
+                if np.sum(tmp) != len(values):
+                    # This line should cause an error to be thrown if someone
+                    # accidentally passes a list of 0 & 1 integers instead of passing
+                    # it a list of booleans.
+                    raise ValueError(
+                        "Array was interpretted as a list of active indices and you "
+                        "attempted to set the same cell as active multiple times."
+                    )
+                values = tmp
 
             if values.shape != (self.mesh.nC,):
                 raise ValueError(
                     f"Input 'active_cells' must have shape {(self.mesh.nC,)}"
                 )
+            # Ensure any cached operators created when
+            # active_cells was None are deleted
+            self._Pac = None
+            self._Pafx = None
+            self._Pafy = None
+            self._Pafz = None
+            self._aveFx2CC = None
+            self._aveFy2CC = None
+            self._aveFz2CC = None
+            self._aveCC2Fx = None
+            self._aveCC2Fy = None
+            self._aveCC2Fz = None
+            self._cell_gradient_x = None
+            self._cell_gradient_y = None
+            self._cell_gradient_z = None
+            self._faceDiffx = None
+            self._faceDiffy = None
+            self._faceDiffz = None
+            self._cell_distances_x = None
+            self._cell_distances_y = None
+            self._cell_distances_z = None
         self._active_cells = values
 
     @property
@@ -68,8 +117,10 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: numpy.ndarray
         :return: reduced cell volume
         """
+        if self.active_cells is None:
+            return self.mesh.cell_volumes
         if getattr(self, "_vol", None) is None:
-            self._vol = self.Pac.T * self.mesh.cell_volumes
+            self._vol = self.mesh.cell_volumes[self.active_cells]
         return self._vol
 
     @property
@@ -156,6 +207,8 @@ class RegularizationMesh(props.BaseSimPEG):
                     self.mesh.average_cell_to_total_face_y() * ind_active
                 ) >= 1
                 self._Pafy = utils.speye(self.mesh.ntFy)[:, active_cells_Fy]
+            elif self.mesh_meshType == "CYL" and self.mesh.is_symmetric:
+                return None
             else:
                 if self.active_cells is None:
                     self._Pafy = utils.speye(self.mesh.nFy)
@@ -315,29 +368,31 @@ class RegularizationMesh(props.BaseSimPEG):
     def base_length(self):
         """The smallest core cell size"""
         if getattr(self, "_base_length", None) is None:
-            self._base_length = self.mesh.h_gridded.min()
+            self._base_length = self.mesh.edge_lengths.min()
         return self._base_length
 
     @property
     def cell_gradient(self):
         if self.dim == 1:
-            return self.cellDiffx
+            return self.cell_gradient_x
         elif self.dim == 2:
-            return sp.vstack([self.cellDiffx, self.cellDiffy])
+            return sp.vstack([self.cell_gradient_x, self.cell_gradient_y])
         else:
-            return sp.vstack([self.cellDiffx, self.cellDiffy, self.cellDiffz])
+            return sp.vstack(
+                [self.cell_gradient_x, self.cell_gradient_y, self.cell_gradient_z]
+            )
 
     @property
-    def cellDiffx(self):
+    def cell_gradient_x(self):
         """
-        cell centered difference in the x-direction
+        cell centered gradient in the x-direction
 
         :rtype: scipy.sparse.csr_matrix
         :return: differencing matrix for active cells in the x-direction
         """
-        if getattr(self, "_cellDiffx", None) is None:
+        if getattr(self, "_cell_gradient_x", None) is None:
             if self.mesh._meshType == "TREE":
-                self._cellDiffx = (
+                self._cell_gradient_x = (
                     self.Pafx.T
                     * utils.sdiag(
                         self.mesh.average_cell_to_total_face_x()
@@ -347,20 +402,22 @@ class RegularizationMesh(props.BaseSimPEG):
                     * self.Pac
                 )
             else:
-                self._cellDiffx = self.Pafx.T * self.mesh.cellGradx * self.Pac
-        return self._cellDiffx
+                self._cell_gradient_x = (
+                    self.Pafx.T * self.mesh.cell_gradient_x * self.Pac
+                )
+        return self._cell_gradient_x
 
     @property
-    def cellDiffy(self):
+    def cell_gradient_y(self):
         """
-        cell centered difference in the y-direction
+        cell centered gradient in the y-direction
 
         :rtype: scipy.sparse.csr_matrix
         :return: differencing matrix for active cells in the y-direction
         """
-        if getattr(self, "_cellDiffy", None) is None:
+        if getattr(self, "_cell_gradient_y", None) is None:
             if self.mesh._meshType == "TREE":
-                self._cellDiffy = (
+                self._cell_gradient_y = (
                     self.Pafy.T
                     * utils.sdiag(
                         self.mesh.average_cell_to_total_face_y()
@@ -370,20 +427,22 @@ class RegularizationMesh(props.BaseSimPEG):
                     * self.Pac
                 )
             else:
-                self._cellDiffy = self.Pafy.T * self.mesh.cellGrady * self.Pac
-        return self._cellDiffy
+                self._cell_gradient_y = (
+                    self.Pafy.T * self.mesh.cell_gradient_y * self.Pac
+                )
+        return self._cell_gradient_y
 
     @property
-    def cellDiffz(self):
+    def cell_gradient_z(self):
         """
         cell centered difference in the z-direction
 
         :rtype: scipy.sparse.csr_matrix
         :return: differencing matrix for active cells in the z-direction
         """
-        if getattr(self, "_cellDiffz", None) is None:
+        if getattr(self, "_cell_gradient_z", None) is None:
             if self.mesh._meshType == "TREE":
-                self._cellDiffz = (
+                self._cell_gradient_z = (
                     self.Pafz.T
                     * utils.sdiag(
                         self.mesh.average_cell_to_total_face_z()
@@ -393,8 +452,41 @@ class RegularizationMesh(props.BaseSimPEG):
                     * self.Pac
                 )
             else:
-                self._cellDiffz = self.Pafz.T * self.mesh.cellGradz * self.Pac
-        return self._cellDiffz
+                self._cell_gradient_z = (
+                    self.Pafz.T * self.mesh.cell_gradient_z * self.Pac
+                )
+        return self._cell_gradient_z
+
+    cellDiffx = deprecate_property(
+        cell_gradient_x, "cellDiffx", "0.x.0", error=False, future_warn=False
+    )
+    cellDiffy = deprecate_property(
+        cell_gradient_y, "cellDiffy", "0.x.0", error=False, future_warn=False
+    )
+    cellDiffz = deprecate_property(
+        cell_gradient_z, "cellDiffz", "0.x.0", error=False, future_warn=False
+    )
+
+    @property
+    def cell_distances_x(self):
+        if getattr(self, "_cell_distances_x", None) is None:
+            Ave = self.aveCC2Fx
+            self._cell_distances_x = Ave * (self.Pac.T * self.mesh.h_gridded[:, 0])
+        return self._cell_distances_x
+
+    @property
+    def cell_distances_y(self):
+        if getattr(self, "_cell_distances_y", None) is None:
+            Ave = self.aveCC2Fy
+            self._cell_distances_y = Ave * (self.Pac.T * self.mesh.h_gridded[:, 1])
+        return self._cell_distances_x
+
+    @property
+    def cell_distances_z(self):
+        if getattr(self, "_cell_distances_z", None) is None:
+            Ave = self.aveCC2Fz
+            self._cell_distances_z = Ave * (self.Pac.T * self.mesh.h_gridded[:, 2])
+        return self._cell_distances_x
 
     @property
     def faceDiffx(self):

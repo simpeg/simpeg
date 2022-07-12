@@ -17,12 +17,11 @@ class BaseSparse(BaseRegularization):
     Base class for building up the components of the Sparse Regularization
     """
 
-    _irls_scaled = True
-    _irls_threshold = 1e-8
-    _norm = 2.0
-
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh, norm=2.0, irls_scaled=True, irls_threshold=1e-8, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
+        self.norm = norm
+        self.irls_scaled = irls_scaled
+        self.irls_threshould = irls_threshold
 
     @property
     def irls_scaled(self) -> bool:
@@ -45,15 +44,13 @@ class BaseSparse(BaseRegularization):
         """
         Constant added to the denominator of the IRLS weights for stability.
         """
-        if self._irls_threshold is None:
-            raise AttributeError("'irls_threhsold' must be set on the regularization.")
         return self._irls_threshold
 
     @irls_threshold.setter
     def irls_threshold(self, value):
+        value = float(value)
         if value <= 0:
             raise ValueError("Value of 'irls_threshold' should be larger than 0.")
-
         self._irls_threshold = value
 
     @property
@@ -61,15 +58,15 @@ class BaseSparse(BaseRegularization):
         """
         Value of the norm
         """
-        if getattr(self, "_norm", None) is None:
-            self.norm = 2.0
         return self._norm
 
     @norm.setter
     def norm(self, value: float | np.ndarray | None):
-        if value is not None:
+        if value is None:
+            value = 2.0
+        else:
             if isinstance(value, (float, int)):
-                value = np.ones(self.shape[0]) * value
+                value = np.ones(self._weights_shapes[0]) * value
 
             if np.any(value < 0) or np.any(value > 2):
                 raise ValueError(
@@ -112,15 +109,12 @@ class SparseSmall(BaseSparse, Small):
 
     _multiplier_pair = "alpha_s"
 
-    def __init__(self, mesh, **kwargs):
-        super().__init__(mesh=mesh, **kwargs)
-
     def update_weights(self, m):
         """
         Compute and store the irls weights.
         """
         f_m = self.f_m(m)
-        self.add_set_weights({"irls": self.get_lp_weights(f_m)})
+        self.set_weights(irls=self.get_lp_weights(f_m))
 
 
 class SparseDeriv(BaseSparse, SmoothDeriv):
@@ -128,9 +122,11 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
     Base Class for sparse regularization on first spatial derivatives
     """
 
-    _gradient_type = "total"
-
-    def __init__(self, mesh, orientation="x", **kwargs):
+    def __init__(self, mesh, orientation="x", gradient_type="total", **kwargs):
+        if "gradientType" in kwargs:
+            self.gradientType = kwargs.pop("gradientType")
+        else:
+            self.gradient_type = gradient_type
         super().__init__(mesh=mesh, orientation=orientation, **kwargs)
 
     def update_weights(self, m):
@@ -151,7 +147,10 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
                         self.regularization_mesh.Pac.T
                         * self.regularization_mesh.mesh.h_gridded[:, ii]
                     )
-                    dm = getattr(self.regularization_mesh, f"cellDiff{comp}") * delta_m
+                    dm = (
+                        getattr(self.regularization_mesh, f"cell_gradient_{comp}")
+                        * delta_m
+                    )
 
                     if self.units == "radian":
                         dm = utils.mat_utils.coterminal(dm)
@@ -167,7 +166,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
         else:
             f_m = self.f_m(m)
 
-        self.add_set_weights({"irls": self.get_lp_weights(f_m)})
+        self.set_weights(irls=self.get_lp_weights(f_m))
 
     @property
     def gradient_type(self) -> str:
@@ -196,35 +195,45 @@ class Sparse(LeastSquaresRegularization):
 
     .. math::
 
-        R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R
+        R(m) = \\frac{1}{2}\\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R
         W(m-m_\\text{ref})}
 
     where the IRLS weight
 
     .. math::
 
-        R = \eta TO FINISH LATER!!!
+        R = \\eta TO FINISH LATER!!!
 
     So the derivative is straight forward:
 
     .. math::
 
-        R(m) = \mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
+        R(m) = \\mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
 
     The IRLS weights are recomputed after each beta solves.
     It is strongly recommended to do a few Gauss-Newton iterations
     before updating.
     """
 
-    _irls_scaled = True
-    _irls_threshold = 1e-8
-    _gradient_type = "total"
-    _norms = None
-
     def __init__(
-        self, mesh, active_cells=None, norms=None, gradient_type="total", **kwargs
+        self,
+        mesh,
+        active_cells=None,
+        norms=None,
+        gradient_type="total",
+        irls_scaled=True,
+        irls_threshold=1e-8,
+        **kwargs,
     ):
-        self.regularization_mesh = RegularizationMesh(mesh)
+        if not isinstance(mesh, RegularizationMesh):
+            mesh = RegularizationMesh(mesh)
+
+        if not isinstance(mesh, RegularizationMesh):
+            TypeError(
+                f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
+                f"Value of type {type(mesh)} provided."
+            )
+        self._regularization_mesh = mesh
 
         objfcts = [
             SparseSmall(mesh=self.regularization_mesh),
@@ -237,14 +246,22 @@ class Sparse(LeastSquaresRegularization):
         if mesh.dim > 2:
             objfcts.append(SparseDeriv(mesh=self.regularization_mesh, orientation="z"))
 
+        gradientType = kwargs.pop("gradientType", None)
         super().__init__(
             self.regularization_mesh,
             objfcts=objfcts,
             active_cells=active_cells,
-            norms=norms,
-            gradient_type=gradient_type,
             **kwargs,
         )
+        if norms is None:
+            norms = [1] * (mesh.dim + 1)
+        self.norms = norms
+
+        if gradientType is not None:
+            # Trigger deprecation warning
+            self.gradientType = gradientType
+        else:
+            self.gradient_type = gradient_type
 
     @property
     def gradient_type(self) -> str:
@@ -256,8 +273,8 @@ class Sparse(LeastSquaresRegularization):
     @gradient_type.setter
     def gradient_type(self, value: str):
         for fct in self.objfcts:
-            if hasattr(fct, "_gradient_type"):
-                fct._gradient_type = value
+            if hasattr(fct, "gradient_type"):
+                fct.gradient_type = value
 
         self._gradient_type = value
 
@@ -300,10 +317,9 @@ class Sparse(LeastSquaresRegularization):
                 "'irls_scaled must be of type 'bool'. "
                 f"Value of type {type(value)} provided."
             )
-        self._irls_scaled = value
-
         for fct in self.objfcts:
             fct.irls_scaled = value
+        self._irls_scaled = value
 
     @property
     def irls_threshold(self):
@@ -314,6 +330,7 @@ class Sparse(LeastSquaresRegularization):
 
     @irls_threshold.setter
     def irls_threshold(self, value):
+        value = float(value)
         if value <= 0:
             raise ValueError("Value of 'irls_threshold' should be greater than 0.")
 

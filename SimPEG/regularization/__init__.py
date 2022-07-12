@@ -29,18 +29,36 @@ class SimpleSmoothDeriv(SmoothDeriv):
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class Simple(LeastSquaresRegularization):
-    def __init__(self, mesh=None, **kwargs):
-        super().__init__(mesh=mesh, **kwargs)
+    def __init__(self, mesh=None, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, **kwargs):
+        # These alphas are now refered to as length_scalse in the
+        # new LeastSquaresRegularization
+        super().__init__(
+            mesh=mesh,
+            length_scale_x=alpha_x,
+            length_scale_y=alpha_y,
+            length_scale_z=alpha_z,
+            **kwargs
+        )
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class Tikhonov(LeastSquaresRegularization):
-    pass
+    def __init__(
+        self, mesh=None, alpha_s=1e-6, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, **kwargs
+    ):
+        super().__init__(
+            mesh=mesh,
+            alpha_s=alpha_s,
+            alpha_x=alpha_x,
+            alpha_y=alpha_y,
+            alpha_z=alpha_z,
+            **kwargs
+        )
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class PGIwithNonlinearRelationshipsSmallness(PGIsmallness):
-    def __init__(self, gmm):
+    def __init__(self, gmm, **kwargs):
         super().__init__(gmm, non_linear_relationships=True, **kwargs)
 
 

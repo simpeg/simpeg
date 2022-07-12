@@ -82,20 +82,20 @@ class PGIsmallness(Small):
             )
             kwargs.pop("mapping")
 
+        weights = kwargs.pop("weights", None)
+
         super().__init__(mesh=mesh, mapping=IdentityMap(nP=self.shape[0]), **kwargs)
 
         # Save repetitive computations (see withmapping implementation)
         self._r_first_deriv = None
         self._r_second_deriv = None
 
-    def add_set_weights(self, weights: dict | np.ndarray):
-        if isinstance(weights, (np.ndarray, list)):
-            weights = {"user_weights": np.r_[weights].flatten()}
+        if weights is not None:
+            if isinstance(weights, (np.ndarray, list)):
+                weights = {"user_weights": np.r_[weights].flatten()}
+            self.set_weights(**weights)
 
-        if not isinstance(weights, dict):
-            raise TypeError(
-                "Weights must be provided as a dictionary or numpy.ndarray."
-            )
+    def set_weights(self, **weights):
 
         for key, values in weights.items():
             self.validate_array_type("weights", values, float)
@@ -105,7 +105,7 @@ class PGIsmallness(Small):
 
             self.validate_shape("weights", values, (self._nC_residual,))
 
-            self.weights[key] = values
+            self._weights[key] = values
 
         self._W = None
 
@@ -571,7 +571,10 @@ class PGIsmallness(Small):
             else:
                 # Forming the Hessian by diagonal blocks
                 hlist = [
-                    [self._r_second_deriv[:, i, j] for i in range(len(self.wiresmap.maps))]
+                    [
+                        self._r_second_deriv[:, i, j]
+                        for i in range(len(self.wiresmap.maps))
+                    ]
                     for j in range(len(self.wiresmap.maps))
                 ]
                 Hr = sp.csc_matrix((0, 0), dtype=np.float64)
