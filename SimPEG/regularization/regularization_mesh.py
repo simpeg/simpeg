@@ -88,6 +88,7 @@ class RegularizationMesh(props.BaseSimPEG):
                 )
             # Ensure any cached operators created when
             # active_cells was None are deleted
+            self._vol = None
             self._Pac = None
             self._Pafx = None
             self._Pafy = None
@@ -143,9 +144,7 @@ class RegularizationMesh(props.BaseSimPEG):
         :rtype: int
         :return: dimension
         """
-        if getattr(self, "_dim", None) is None:
-            self._dim = self.mesh.dim
-        return self._dim
+        return self.mesh.dim
 
     @property
     def Pac(self):
