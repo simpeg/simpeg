@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 from discretize.base import BaseMesh
+import warnings
 
 from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
@@ -197,16 +198,18 @@ class BaseRegularization(BaseObjectiveFunction):
     @property
     def cell_weights(self):
         warnings.warn(
-            "cell_weights are deprecated please access weights using the `add_weights` "
-            "and `remove_weights` functionality. This will be removed in 0.x.0"
+            "cell_weights are deprecated please access weights using the `set_weights`,"
+            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.x.0",
+            DeprecationWarning,
         )
         return np.prod(list(self._weights.values()), axis=0)
 
     @cell_weights.setter
     def cell_weights(self, value):
         warnings.warn(
-            "cell_weights are deprecated please access weights using the `add_weights` "
-            "and `remove_weights` functionality. This will be removed in 0.x.0"
+            "cell_weights are deprecated please access weights using the `set_weights`,"
+            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.x.0",
+            DeprecationWarning,
         )
         self.set_weights(cell_weights=value)
 
@@ -744,6 +747,22 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         """removes weights in children objective functions"""
         for fct in self.objfcts:
             fct.remove_weights(key)
+
+    @property
+    def cell_weights(self):
+        # All of the objective functions should have the same weights,
+        # so just grab the one from smallness here, which should also
+        # trigger the deprecation warning
+        return self.objfcts[0].cell_weights
+
+    @cell_weights.setter
+    def cell_weights(self, value):
+        warnings.warn(
+            "cell_weights are deprecated please access weights using the `set_weights`,"
+            " `get_weights`, and `remove_weights` functionality. This will be removed in 0.x.0",
+            DeprecationWarning,
+        )
+        self.set_weights(cell_weights=value)
 
     @property
     def alpha_s(self):
