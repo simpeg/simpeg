@@ -206,8 +206,8 @@ class RegularizationMesh(props.BaseSimPEG):
                     self.mesh.average_cell_to_total_face_y() * ind_active
                 ) >= 1
                 self._Pafy = utils.speye(self.mesh.ntFy)[:, active_cells_Fy]
-            elif self.mesh_meshType == "CYL" and self.mesh.is_symmetric:
-                return sp.csr_matrix(shape=(0, 0))
+            elif self.mesh._meshType == "CYL" and self.mesh.is_symmetric:
+                return sp.csr_matrix((0, 0))
             else:
                 if self.active_cells is None:
                     self._Pafy = utils.speye(self.mesh.nFy)
@@ -264,7 +264,6 @@ class RegularizationMesh(props.BaseSimPEG):
                 nCinRow = utils.mkvc((self.aveCC2Fx.T).sum(1))
                 nCinRow[nCinRow > 0] = 1.0 / nCinRow[nCinRow > 0]
                 self._aveFx2CC = utils.sdiag(nCinRow) * self.aveCC2Fx.T
-
             else:
                 self._aveFx2CC = self.Pac.T * self.mesh.aveFx2CC * self.Pafx
 
@@ -302,6 +301,8 @@ class RegularizationMesh(props.BaseSimPEG):
                 nCinRow = utils.mkvc((self.aveCC2Fy.T).sum(1))
                 nCinRow[nCinRow > 0] = 1.0 / nCinRow[nCinRow > 0]
                 self._aveFy2CC = utils.sdiag(nCinRow) * self.aveCC2Fy.T
+            elif self.mesh._meshType == "CYL" and self.mesh.is_symmetric:
+                return sp.csr_matrix((self.nC, 0))
             else:
                 self._aveFy2CC = self.Pac.T * self.mesh.aveFy2CC * self.Pafy
 
@@ -320,6 +321,8 @@ class RegularizationMesh(props.BaseSimPEG):
                 self._aveCC2Fy = (
                     self.Pafy.T * self.mesh.average_cell_to_total_face_y() * self.Pac
                 )
+            elif self.mesh._meshType == "CYL" and self.mesh.is_symmetric:
+                return sp.csr_matrix((0, self.nC))
             else:
                 self._aveCC2Fy = (
                     utils.sdiag(1.0 / (self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
