@@ -76,16 +76,14 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @active_cells.setter
     def active_cells(self, values: np.ndarray | None):
-        reg_mesh = self.regularization_mesh
-        reg_mesh.active_cells = values
-        active_cells = reg_mesh.active_cells
-        if active_cells is not None:
-            reg_mesh = self.regularization_mesh
-            # look through my weights and try to reduce them if necessary
-            for key, value in self._weights.items():
-                if len(value) == reg_mesh.mesh.n_cells:
-                    self._weights[key] = values[active_cells]
-                    self._W = None
+        self.regularization_mesh.active_cells = values
+        # remove any weights, and reset the volume weight if present
+        if values is not None:
+            volume_term = "volume" in self._weights
+            self._weights = {}
+            self._W = None
+            if volume_term:
+                self.set_weights(volume=self.regularization_mesh.vol)
 
     indActive = deprecate_property(
         active_cells,
