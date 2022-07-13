@@ -53,7 +53,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
         self.reference_model = reference_model
         self.units = units
-        if weights is not None and not isinstance(weights, dict):
+        if weights is not None:
             if not isinstance(weights, dict):
                 weights = {"user_weights": weights}
             self.set_weights(**weights)
@@ -729,7 +729,7 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         self.alpha_xx = alpha_xx
         self.alpha_yy = alpha_yy
         self.alpha_zz = alpha_zz
-        if weights is not None and not isinstance(weights, dict):
+        if weights is not None:
             if not isinstance(weights, dict):
                 weights = {"user_weights": weights}
             self.set_weights(**weights)
