@@ -45,11 +45,8 @@ class BaseRegularization(BaseObjectiveFunction):
             )
         self._regularization_mesh = mesh
         self._weights = {}
-        # default behavoir is now to get the active cells from my regularization_mesh
-        # it they are there...
-        if active_cells is None and mesh.active_cells is not None:
-            active_cells = mesh.active_cells
-        self.active_cells = active_cells
+        if active_cells is not None:
+            self.active_cells = active_cells
         self.mapping = mapping
 
         super().__init__(**kwargs)
@@ -668,6 +665,8 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
                 f"Value of type {type(mesh)} provided."
             )
         self._regularization_mesh = mesh
+        if active_cells is not None:
+            self._regularization_mesh.active_cells = active_cells
 
         self.alpha_s = alpha_s
         if alpha_x is not None:
@@ -726,7 +725,6 @@ class LeastSquaresRegularization(ComboObjectiveFunction):
         else:
             objfcts = kwargs.pop("objfcts")
         super().__init__(objfcts=objfcts, **kwargs)
-        self.active_cells = active_cells
         self.mapping = mapping
         self.reference_model = reference_model
         self.reference_model_in_smooth = reference_model_in_smooth

@@ -234,6 +234,8 @@ class Sparse(LeastSquaresRegularization):
                 f"Value of type {type(mesh)} provided."
             )
         self._regularization_mesh = mesh
+        if active_cells is not None:
+            self._regularization_mesh.active_cells = active_cells
 
         objfcts = [
             SparseSmall(mesh=self.regularization_mesh),
@@ -250,7 +252,6 @@ class Sparse(LeastSquaresRegularization):
         super().__init__(
             self.regularization_mesh,
             objfcts=objfcts,
-            active_cells=active_cells,
             **kwargs,
         )
         if norms is None:
