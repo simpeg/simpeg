@@ -49,7 +49,6 @@ class PGIsmallness(Small):
     """
 
     _multiplier_pair = "alpha_pgi"
-    _non_linear_relationships = False
     _maplist = None
     _wiresmap = None
 
@@ -695,9 +694,9 @@ class PGI(ComboObjectiveFunction):
         alpha_x=None,
         alpha_y=None,
         alpha_z=None,
-        alpha_xx=None,
-        alpha_yy=None,
-        alpha_zz=None,
+        alpha_xx=0.0,
+        alpha_yy=0.0,
+        alpha_zz=0.0,
         gmm=None,
         wiresmap=None,
         maplist=None,
@@ -736,7 +735,7 @@ class PGI(ComboObjectiveFunction):
         for map, wire, weights in zip(self.maplist, self.wiresmap.maps, weights_list):
             objfcts += [
                 LeastSquaresRegularization(
-                    alpha_s=alpha_s,
+                    alpha_s=0.0,
                     alpha_x=alpha_x,
                     alpha_y=alpha_y,
                     alpha_z=alpha_z,
@@ -750,7 +749,7 @@ class PGI(ComboObjectiveFunction):
                 )
             ]
 
-        super(PGI, self).__init__(objfcts=objfcts)
+        super().__init__(objfcts=objfcts)
         self.reference_model_in_smooth = reference_model_in_smooth
 
     @property
