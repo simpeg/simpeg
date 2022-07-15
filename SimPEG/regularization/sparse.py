@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from discretize.base import BaseMesh
+
 from .base import (
     BaseRegularization,
     LeastSquaresRegularization,
