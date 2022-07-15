@@ -21,7 +21,7 @@ class BaseSparse(BaseRegularization):
         super().__init__(mesh=mesh, **kwargs)
         self.norm = norm
         self.irls_scaled = irls_scaled
-        self.irls_threshould = irls_threshold
+        self.irls_threshold = irls_threshold
 
     @property
     def irls_scaled(self) -> bool:
@@ -263,6 +263,9 @@ class Sparse(LeastSquaresRegularization):
             self.gradientType = gradientType
         else:
             self.gradient_type = gradient_type
+
+        self.irls_scaled = irls_scaled
+        self.irls_threshold = irls_threshold
 
     @property
     def gradient_type(self) -> str:
