@@ -1401,7 +1401,8 @@ class Update_IRLS(InversionDirective):
 
         for reg, var in zip(self.reg.objfcts[1:], max_s):
             for obj in reg.objfcts:
-                obj.set_weights(angle_scale=np.ones(obj.shape[0]) * max_p / var)
+                # TODO Need to make weights_shapes a public method
+                obj.set_weights(angle_scale=np.ones(obj._weights_shapes[0]) * max_p / var)
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
