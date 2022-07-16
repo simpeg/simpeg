@@ -3,18 +3,21 @@ from __future__ import annotations
 import numpy as np
 from discretize.base import BaseMesh
 import warnings
-
+from typing import TYPE_CHECKING
 from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
 from .regularization_mesh import RegularizationMesh
 from SimPEG.utils.code_utils import deprecate_property
 
+if TYPE_CHECKING:
+    from scipy.sparse import csr_matrix
+
 
 class BaseRegularization(BaseObjectiveFunction):
     """
     Base class for regularization. Inherit this for building your own
-    regularization. The base regularization assumes a weighted l2 style of
+    regularization. The base regularization assumes a weighted l2-norm style of
     regularization. However, if you wish to employ a different norm, the
     methods :meth:`__call__`, :meth:`deriv` and :meth:`deriv2` can be
     over-written
@@ -28,11 +31,11 @@ class BaseRegularization(BaseObjectiveFunction):
     def __init__(
         self,
         mesh: RegularizationMesh | BaseMesh,
-        active_cells=None,
-        mapping=None,
-        reference_model=None,
-        units=None,
-        weights=None,
+        active_cells: np.ndarray | None = None,
+        mapping: maps.IdentityMap | None = None,
+        reference_model: np.ndarray | None = None,
+        units: str | None = None,
+        weights: dict | None = None,
         **kwargs,
     ):
         if isinstance(mesh, BaseMesh):
@@ -43,29 +46,32 @@ class BaseRegularization(BaseObjectiveFunction):
                 f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
                 f"Value of type {type(mesh)} provided."
             )
+
         self._regularization_mesh = mesh
         self._weights = {}
+
         if active_cells is not None:
             self.active_cells = active_cells
+
         self.mapping = mapping
 
         super().__init__(**kwargs)
 
         self.reference_model = reference_model
         self.units = units
+
         if weights is not None:
             if not isinstance(weights, dict):
                 weights = {"user_weights": weights}
             self.set_weights(**weights)
 
-    # Properties
     @property
     def active_cells(self) -> np.ndarray:
         """A boolean array of active cells on the regularization
 
         Returns
         -------
-        (n_cells, ) numpy.ndarray of bool
+        (n_cells, ) Array of bool
 
         Notes
         -----
@@ -77,7 +83,7 @@ class BaseRegularization(BaseObjectiveFunction):
     @active_cells.setter
     def active_cells(self, values: np.ndarray | None):
         self.regularization_mesh.active_cells = values
-        # remove any weights, and reset the volume weight if present
+
         if values is not None:
             volume_term = "volume" in self._weights
             self._weights = {}
@@ -138,7 +144,7 @@ class BaseRegularization(BaseObjectiveFunction):
         self._units = units
 
     @property
-    def _weights_shapes(self):
+    def _weights_shapes(self) -> tuple[int] | str:
         """Acceptable lengths for the weights
 
         Returns
@@ -191,7 +197,7 @@ class BaseRegularization(BaseObjectiveFunction):
     )
 
     @property
-    def cell_weights(self):
+    def cell_weights(self) -> np.ndarray:
         warnings.warn(
             "cell_weights are deprecated please access weights using the `set_weights`,"
             " `get_weights`, and `remove_weights` functionality. This will be removed in 0.x.0",
@@ -208,13 +214,8 @@ class BaseRegularization(BaseObjectiveFunction):
         )
         self.set_weights(cell_weights=value)
 
-    def get_weights(self, key):
-        """Returns the weights with a given key
-
-        Returns
-        -------
-        numpy.ndarray
-        """
+    def get_weights(self, key) -> np.ndarray:
+        """Weights for a given key."""
         return self._weights[key]
 
     def set_weights(self, **weights):
@@ -242,7 +243,7 @@ class BaseRegularization(BaseObjectiveFunction):
             self._weights[key] = values
         self._W = None
 
-    def remote_weights(self, key):
+    def remove_weights(self, key):
         """Removes the weights with a given key"""
         try:
             self._weights.pop(key)
@@ -251,7 +252,7 @@ class BaseRegularization(BaseObjectiveFunction):
         self._W = None
 
     @property
-    def W(self):
+    def W(self) -> np.ndarray:
         """
         Weighting matrix
         """
@@ -261,7 +262,7 @@ class BaseRegularization(BaseObjectiveFunction):
         return self._W
 
     @property
-    def _nC_residual(self):
+    def _nC_residual(self) -> int:
         """
         Shape of the residual
         """
@@ -276,7 +277,7 @@ class BaseRegularization(BaseObjectiveFunction):
         else:
             return self._weights_shapes[0]
 
-    def _delta_m(self, m):
+    def _delta_m(self, m) -> np.ndarray:
         if self.reference_model is None:
             return m
         return (
@@ -295,16 +296,16 @@ class BaseRegularization(BaseObjectiveFunction):
         r = self.W * self.f_m(m)
         return 0.5 * r.dot(r)
 
-    def f_m(self, m):
+    def f_m(self, m) -> np.ndarray:
         raise AttributeError("Regularization class must have a 'f_m' implementation.")
 
-    def f_m_deriv(self, m):
+    def f_m_deriv(self, m) -> csr_matrix:
         raise AttributeError(
             "Regularization class must have a 'f_m_deriv' implementation."
         )
 
     @utils.timeIt
-    def deriv(self, m):
+    def deriv(self, m) -> np.ndarray:
         """
 
         The regularization is:
@@ -325,7 +326,7 @@ class BaseRegularization(BaseObjectiveFunction):
         return self.f_m_deriv(m).T * (self.W.T * r)
 
     @utils.timeIt
-    def deriv2(self, m, v=None):
+    def deriv2(self, m, v=None) -> csr_matrix:
         """
         Second derivative
 
@@ -415,13 +416,13 @@ class Small(BaseRegularization):
         super().__init__(mesh, **kwargs)
         self.set_weights(volume=self.regularization_mesh.vol)
 
-    def f_m(self, m):
+    def f_m(self, m) -> np.ndarray:
         """
         Model residual
         """
         return self.mapping * self._delta_m(m)
 
-    def f_m_deriv(self, m):
+    def f_m_deriv(self, m) -> csr_matrix:
         """
         Derivative of the model residual
         """
@@ -528,7 +529,7 @@ class SmoothDeriv(BaseRegularization):
             )
         return dfm_dl
 
-    def f_m_deriv(self, m):
+    def f_m_deriv(self, m) -> csr_matrix:
         """
         Derivative of the model gradient
         """
@@ -597,7 +598,7 @@ class SmoothDeriv2(SmoothDeriv):
 
         return dfm_dl2
 
-    def f_m_deriv(self, m):
+    def f_m_deriv(self, m) -> csr_matrix:
         """
         Derivative of the second model residual
         """
