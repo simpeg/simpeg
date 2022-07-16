@@ -24,9 +24,6 @@ class CrossGradient(BaseSimilarityMeasure):
 
     """
 
-    # reset this here to clear out the properties attribute
-    weights = None
-
     # These are not fully implemented yet
     # grad_tol = properties.Float(
     #     "tolerance for avoiding the exteremly small gradient amplitude", default=1e-10

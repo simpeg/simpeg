@@ -115,7 +115,9 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
         # Create a regularization
-        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap, gradient_type="components")
+        reg = regularization.Sparse(
+            self.mesh, indActive=actv, mapping=idenMap, gradient_type="components"
+        )
         reg.norms = [0, 0, 0, 0]
         reg.reference_model = np.zeros(nC)
 

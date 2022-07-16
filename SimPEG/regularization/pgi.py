@@ -49,7 +49,6 @@ class PGIsmallness(Small):
     """
 
     _multiplier_pair = "alpha_pgi"
-    _non_linear_relationships = False
     _maplist = None
     _wiresmap = None
 
@@ -82,20 +81,20 @@ class PGIsmallness(Small):
             )
             kwargs.pop("mapping")
 
+        weights = kwargs.pop("weights", None)
+
         super().__init__(mesh=mesh, mapping=IdentityMap(nP=self.shape[0]), **kwargs)
 
         # Save repetitive computations (see withmapping implementation)
         self._r_first_deriv = None
         self._r_second_deriv = None
 
-    def add_set_weights(self, weights: dict | np.ndarray):
-        if isinstance(weights, (np.ndarray, list)):
-            weights = {"user_weights": np.r_[weights].flatten()}
+        if weights is not None:
+            if isinstance(weights, (np.ndarray, list)):
+                weights = {"user_weights": np.r_[weights].flatten()}
+            self.set_weights(**weights)
 
-        if not isinstance(weights, dict):
-            raise TypeError(
-                "Weights must be provided as a dictionary or numpy.ndarray."
-            )
+    def set_weights(self, **weights):
 
         for key, values in weights.items():
             self.validate_array_type("weights", values, float)
@@ -105,7 +104,7 @@ class PGIsmallness(Small):
 
             self.validate_shape("weights", values, (self._nC_residual,))
 
-            self.weights[key] = values
+            self._weights[key] = values
 
         self._W = None
 
@@ -571,7 +570,10 @@ class PGIsmallness(Small):
             else:
                 # Forming the Hessian by diagonal blocks
                 hlist = [
-                    [self._r_second_deriv[:, i, j] for i in range(len(self.wiresmap.maps))]
+                    [
+                        self._r_second_deriv[:, i, j]
+                        for i in range(len(self.wiresmap.maps))
+                    ]
                     for j in range(len(self.wiresmap.maps))
                 ]
                 Hr = sp.csc_matrix((0, 0), dtype=np.float64)
@@ -692,9 +694,9 @@ class PGI(ComboObjectiveFunction):
         alpha_x=None,
         alpha_y=None,
         alpha_z=None,
-        alpha_xx=None,
-        alpha_yy=None,
-        alpha_zz=None,
+        alpha_xx=0.0,
+        alpha_yy=0.0,
+        alpha_zz=0.0,
         gmm=None,
         wiresmap=None,
         maplist=None,
@@ -733,7 +735,7 @@ class PGI(ComboObjectiveFunction):
         for map, wire, weights in zip(self.maplist, self.wiresmap.maps, weights_list):
             objfcts += [
                 LeastSquaresRegularization(
-                    alpha_s=alpha_s,
+                    alpha_s=0.0,
                     alpha_x=alpha_x,
                     alpha_y=alpha_y,
                     alpha_z=alpha_z,
@@ -747,7 +749,7 @@ class PGI(ComboObjectiveFunction):
                 )
             ]
 
-        super(PGI, self).__init__(objfcts=objfcts)
+        super().__init__(objfcts=objfcts)
         self.reference_model_in_smooth = reference_model_in_smooth
 
     @property

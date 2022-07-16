@@ -118,7 +118,9 @@ class RegularizationTests(unittest.TestCase):
                         continue
 
                     nP = int(active_cells.sum())
-                    reg = r(mesh, active_cells=active_cells, mapping=maps.IdentityMap(nP=nP))
+                    reg = r(
+                        mesh, active_cells=active_cells, mapping=maps.IdentityMap(nP=nP)
+                    )
                     m = np.random.rand(mesh.nC)[active_cells]
                     mref = np.ones_like(m) * np.mean(m)
                     reg.reference_model = mref
@@ -155,7 +157,9 @@ class RegularizationTests(unittest.TestCase):
                         + 0.5
                     )
 
-                regularization_mesh = regularization.RegularizationMesh(mesh, active_cells=indAct)
+                regularization_mesh = regularization.RegularizationMesh(
+                    mesh, active_cells=indAct
+                )
 
                 assert (regularization_mesh.vol == mesh.vol[indAct]).all()
 
@@ -168,13 +172,16 @@ class RegularizationTests(unittest.TestCase):
 
             self.assertTrue(reg.nP == reg.regularization_mesh.nC)
 
-            [self.assertTrue(np.all(fct.active_cells == active_cells)) for fct in reg.objfcts]
+            [
+                self.assertTrue(np.all(fct.active_cells == active_cells))
+                for fct in reg.objfcts
+            ]
 
             # test assignment of cell weights
             cell_weights = np.random.rand(active_cells.sum())
-            reg.add_set_weights(cell_weights)
+            reg.set_weights(user_weights=cell_weights)
             [
-                self.assertTrue(np.all(fct.weights["user_weights"] == cell_weights))
+                self.assertTrue(np.all(fct.get_weights("user_weights") == cell_weights))
                 for fct in reg.objfcts
             ]
 
@@ -267,9 +274,7 @@ class RegularizationTests(unittest.TestCase):
 
         wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
 
-        reg = regularization.Small(
-            mesh, mapping=wires.sigma, weights=cell_weights
-        )
+        reg = regularization.Small(mesh, mapping=wires.sigma, weights=cell_weights)
 
         objfct = objective_function.L2ObjectiveFunction(
             W=utils.sdiag(np.sqrt(cell_weights * mesh.cell_volumes)),
@@ -293,7 +298,8 @@ class RegularizationTests(unittest.TestCase):
             np.all(
                 reg.norms
                 == np.kron(
-                    np.ones((reg.regularization_mesh.Pac.shape[1], 1)), np.c_[2.0, 2.0, 2.0, 2.0]
+                    np.ones((reg.regularization_mesh.Pac.shape[1], 1)),
+                    np.c_[2.0, 2.0, 2.0, 2.0],
                 )
             )
         )
@@ -308,7 +314,8 @@ class RegularizationTests(unittest.TestCase):
             np.all(
                 reg.norms
                 == np.kron(
-                    np.ones((reg.regularization_mesh.Pac.shape[1], 1)), np.c_[0.0, 1.0, 1.0, 1.0]
+                    np.ones((reg.regularization_mesh.Pac.shape[1], 1)),
+                    np.c_[0.0, 1.0, 1.0, 1.0],
                 )
             )
         )
@@ -321,15 +328,21 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([8, 7, 6])
         reg = regularization.LeastSquaresRegularization(mesh)
 
-        [self.assertTrue(reg.regularization_mesh is fct.regularization_mesh) for fct in reg.objfcts]
+        [
+            self.assertTrue(reg.regularization_mesh is fct.regularization_mesh)
+            for fct in reg.objfcts
+        ]
         [self.assertTrue(reg.mapping is fct.mapping) for fct in reg.objfcts]
 
         D = reg.regularization_mesh.cellDiffx
-        reg.regularization_mesh._cellDiffx = 4 * D
+        reg.regularization_mesh._cell_gradient_x = 4 * D
         v = np.random.rand(D.shape[1])
         [
             self.assertTrue(
-                np.all(reg.regularization_mesh._cellDiffx * v == fct.regularization_mesh.cellDiffx * v)
+                np.all(
+                    reg.regularization_mesh._cell_gradient_x * v
+                    == fct.regularization_mesh.cellDiffx * v
+                )
             )
             for fct in reg.objfcts
         ]
@@ -337,10 +350,15 @@ class RegularizationTests(unittest.TestCase):
         active_cells = mesh.gridCC[:, 2] < 0.4
         reg.active_cells = active_cells
         self.assertTrue(np.all(reg.regularization_mesh.active_cells == active_cells))
-        [self.assertTrue(np.all(reg.active_cells == fct.active_cells)) for fct in reg.objfcts]
+        [
+            self.assertTrue(np.all(reg.active_cells == fct.active_cells))
+            for fct in reg.objfcts
+        ]
 
         [
-            self.assertTrue(np.all(reg.active_cells == fct.regularization_mesh.active_cells))
+            self.assertTrue(
+                np.all(reg.active_cells == fct.regularization_mesh.active_cells)
+            )
             for fct in reg.objfcts
         ]
 
@@ -378,7 +396,7 @@ class RegularizationTests(unittest.TestCase):
         temp = np.logspace(np.log10(1.0), np.log10(12.0), 19)
         temp_pad = temp[-1] * 1.3 ** np.arange(npad)
         hz = np.r_[temp_pad[::-1], temp[::-1], temp, temp_pad]
-        mesh = discretize.CylMesh([hx, 1, hz], "00C")
+        mesh = discretize.CylMesh([hx, 3, hz], "00C")
         active = mesh.cell_centers[:, 2] < 0.0
 
         reg = regularization.LeastSquaresRegularization(mesh, active_cells=active)

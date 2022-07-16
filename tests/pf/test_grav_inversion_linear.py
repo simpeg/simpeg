@@ -20,14 +20,11 @@ np.random.seed(43)
 
 class GravInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-
         # Create a self.mesh
         dx = 5.0
-
         hxind = [(dx, 5, -1.3), (dx, 5), (dx, 5, 1.3)]
         hyind = [(dx, 5, -1.3), (dx, 5), (dx, 5, 1.3)]
         hzind = [(dx, 5, -1.3), (dx, 6)]
-
         self.mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
 
         # Get index of the center
@@ -87,8 +84,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         # Create a regularization
         reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [0, 0, 0, 0]
-        reg.gradientType = "component"
-        # reg.eps_p, reg.eps_q = 5e-2, 1e-2
+        reg.gradientType = "components"
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
@@ -113,7 +109,6 @@ class GravInvLinProblemTest(unittest.TestCase):
         # Run the inversion
         mrec = self.inv.run(self.model)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
-        print(residual)
 
         # import matplotlib.pyplot as plt
         # plt.figure()

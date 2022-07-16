@@ -61,7 +61,12 @@ class VRM_inversion_tests(unittest.TestCase):
         Survey.noise_floor = 1e-11
 
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=Problem)
-        W = mkvc((np.sum(np.array(Problem.A) ** 2, axis=0))/meshObj.cell_volumes**2.) ** 0.25
+        W = (
+            mkvc(
+                (np.sum(np.array(Problem.A) ** 2, axis=0)) / meshObj.cell_volumes ** 2.0
+            )
+            ** 0.25
+        )
         reg = regularization.LeastSquaresRegularization(
             meshObj, alpha_s=0.01, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, weights=W
         )

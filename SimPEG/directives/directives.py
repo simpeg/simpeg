@@ -1401,9 +1401,8 @@ class Update_IRLS(InversionDirective):
 
         for reg, var in zip(self.reg.objfcts[1:], max_s):
             for obj in reg.objfcts:
-                obj.add_set_weights(
-                    {"angle_scale": np.ones(obj.shape[0]) * max_p / var}
-                )
+                # TODO Need to make weights_shapes a public method
+                obj.set_weights(angle_scale=np.ones(obj._weights_shapes[0]) * max_p / var)
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
@@ -1587,7 +1586,7 @@ class UpdateSensitivityWeights(InversionDirective):
         for reg in self.reg.objfcts:
             if not isinstance(reg, BaseSimilarityMeasure):
                 for sub_reg in reg.objfcts:
-                    sub_reg.add_set_weights({"sensitivity": sub_reg.mapping * wr})
+                    sub_reg.set_weights(sensitivity=sub_reg.mapping * wr)
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights

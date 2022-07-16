@@ -241,7 +241,8 @@ def run(plotIt=True, cleanAfterRun=True):
         plt.ylabel("Elevation")
         plt.gca().set_aspect("equal", adjustable="box")
         cb = plt.colorbar(
-            dat1[0], ax=ax,
+            dat1[0],
+            ax=ax,
             orientation="vertical",
             ticks=np.linspace(vmin, vmax, 4),
             cmap="bwr",

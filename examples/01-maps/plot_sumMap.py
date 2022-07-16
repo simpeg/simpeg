@@ -122,9 +122,7 @@ def run(plotIt=True):
 
     # Take the cell number out of the scaling.
     # Want to keep high sens for large volumes
-    scale = utils.sdiag(
-        np.r_[utils.mkvc(1.0 / homogMap.P.sum(axis=0)), np.ones(nC)]
-    )
+    scale = utils.sdiag(np.r_[utils.mkvc(1.0 / homogMap.P.sum(axis=0)), np.ones(nC)])
 
     # for ii in range(survey.nD):
     #     wr += (
@@ -132,9 +130,14 @@ def run(plotIt=True):
     #         / data.standard_deviation[ii]
     #     ) ** 2.0 / np.r_[homogMap.P.T * mesh.cell_volumes[actv], mesh.cell_volumes[actv]] **2.
 
-    wr = prob.getJtJdiag(np.ones(sumMap.shape[1])) / np.r_[homogMap.P.T * mesh.cell_volumes[actv], mesh.cell_volumes[actv]] **2.
+    wr = (
+        prob.getJtJdiag(np.ones(sumMap.shape[1]))
+        / np.r_[homogMap.P.T * mesh.cell_volumes[actv], mesh.cell_volumes[actv]] ** 2.0
+    )
     # Scale the model spaces independently
-    wr[wires.homo.index] /= np.max((wires.homo * wr)) * utils.mkvc(homogMap.P.sum(axis=0).flatten())
+    wr[wires.homo.index] /= np.max((wires.homo * wr)) * utils.mkvc(
+        homogMap.P.sum(axis=0).flatten()
+    )
     wr[wires.hetero.index] /= np.max(wires.hetero * wr)
     wr = wr ** 0.5
 
@@ -148,7 +151,9 @@ def run(plotIt=True):
     reg_m1.mref = np.zeros(sumMap.shape[1])
 
     # Regularization for the voxel model
-    reg_m2 = regularization.Sparse(mesh, active_cells=actv, mapping=wires.hetero, gradient_type="components")
+    reg_m2 = regularization.Sparse(
+        mesh, active_cells=actv, mapping=wires.hetero, gradient_type="components"
+    )
     reg_m2.cell_weights = wires.hetero * wr
     reg_m2.norms = [0, 0, 0, 0]
     reg_m2.mref = np.zeros(sumMap.shape[1])

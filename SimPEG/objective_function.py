@@ -294,10 +294,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return self.multipliers[key], self.objfcts[key]
 
     @property
-    def __len__(self):
-        return self.objfcts.__len__
-
-    @property
     def multipliers(self):
         return self._multipliers
 
@@ -312,7 +308,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         assert len(value) == len(self.objfcts), (
             "the length of multipliers should be the same as the number of"
-            " objective functions ({}), not {}".format(len(self.objfcts, len(value)))
+            " objective functions ({}), not {}".format(len(self.objfcts), len(value))
         )
 
         self._multipliers = value
