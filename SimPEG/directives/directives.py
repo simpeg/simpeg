@@ -1362,7 +1362,9 @@ class Update_IRLS(InversionDirective):
         for reg, var in zip(self.reg.objfcts[1:], max_s):
             for obj in reg.objfcts:
                 # TODO Need to make weights_shapes a public method
-                obj.set_weights(angle_scale=np.ones(obj._weights_shapes[0]) * max_p / var)
+                obj.set_weights(
+                    angle_scale=np.ones(obj._weights_shapes[0]) * max_p / var
+                )
 
     def validate(self, directiveList):
         # check if a linear preconditioner is in the list, if not warn else
@@ -1405,11 +1407,11 @@ class Update_IRLS(InversionDirective):
         # Check if the function has changed enough
         f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
         if np.all(
-                [
-                    f_change < self.f_min_change,
-                    self.irls_iteration > 1,
-                    np.abs(1.0 - self.invProb.phi_d / self.target) < self.beta_tol,
-                ]
+            [
+                f_change < self.f_min_change,
+                self.irls_iteration > 1,
+                np.abs(1.0 - self.invProb.phi_d / self.target) < self.beta_tol,
+            ]
         ):
             print("Minimum decrease in regularization." + "End of IRLS")
             return True
