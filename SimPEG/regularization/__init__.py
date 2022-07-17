@@ -8,7 +8,7 @@ from .base import (
     SmoothDeriv2,
 )
 from .regularization_mesh import RegularizationMesh
-from .sparse import SparseSmall, SparseDeriv, Sparse
+from .sparse import BaseSparse, SparseSmall, SparseDeriv, Sparse
 from .pgi import PGIsmallness, PGI
 from .cross_gradient import CrossGradient
 from .correspondence import LinearCorrespondence

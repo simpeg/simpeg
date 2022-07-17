@@ -10,7 +10,9 @@ from ..maps import IdentityMap, Wires
 from ..regularization import (
     LeastSquaresRegularization,
     BaseRegularization,
+    BaseSparse,
     Small,
+    Sparse,
     SparseSmall,
     PGIsmallness,
     PGIwithNonlinearRelationshipsSmallness,
@@ -1251,12 +1253,10 @@ class Update_IRLS(InversionDirective):
                 self.mode != 1,
             ]
         ):
-
             ratio = self.target / self.invProb.phi_d
 
             if ratio > 1:
                 ratio = np.mean([2.0, ratio])
-
             else:
                 ratio = np.mean([0.75, ratio])
 
@@ -1272,24 +1272,7 @@ class Update_IRLS(InversionDirective):
                 return
 
         elif np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):
-
             self.invProb.beta = self.invProb.beta / self.coolingFactor
-
-        phim_new = 0
-        for reg in self.reg.objfcts:
-            for comp, multipier in zip(reg.objfcts, reg.multipliers):
-                if multipier > 0:
-                    phim_new += np.sum(
-                        comp.f_m(comp.model) ** 2.0
-                        / (comp.f_m(comp.model) ** 2.0 + comp.irls_threshold ** 2.0)
-                        ** (1 - comp.norm / 2.0)
-                    )
-
-        # Update the model used by the regularization
-        phi_m_last = []
-        for reg in self.reg.objfcts:
-            reg.model = self.invProb.model
-            phi_m_last += [reg(self.invProb.model)]
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if np.all([self.invProb.phi_d < self.start, self.mode == 1]):
@@ -1299,46 +1282,23 @@ class Update_IRLS(InversionDirective):
         if np.all(
             [(self.opt.iter - self.iterStart) % self.minGNiter == 0, self.mode != 1]
         ):
-            # Check for maximum number of IRLS cycles
-            if self.irls_iteration == self.max_irls_iterations:
-                if not self.silent:
-                    print(
-                        "Reach maximum number of IRLS cycles:"
-                        + " {0:d}".format(self.max_irls_iterations)
-                    )
-
+            if self.stopping_criteria():
                 self.opt.stopNextIteration = True
                 return
 
             # Print to screen
             for reg in self.reg.objfcts:
                 for obj in reg.objfcts:
-                    obj.irls_threshold = obj.irls_threshold / self.coolEpsFact
+                    if isinstance(reg, (Sparse, BaseSparse)):
+                        obj.irls_threshold = obj.irls_threshold / self.coolEpsFact
 
             self.irls_iteration += 1
 
             # Reset the regularization matrices so that it is
             # recalculated for current model. Do it to all levels of comboObj
             for reg in self.reg.objfcts:
-                reg.update_weights(reg.model)
-
-            # Compute new model objective function value
-            f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
-
-            # Check if the function has changed enough
-            if np.all(
-                [
-                    f_change < self.f_min_change,
-                    self.irls_iteration > 1,
-                    np.abs(1.0 - self.invProb.phi_d / self.target) < self.beta_tol,
-                ]
-            ):
-
-                print("Minimum decrease in regularization." + "End of IRLS")
-                self.opt.stopNextIteration = True
-                return
-
-            self.f_old = phim_new
+                if isinstance(reg, (Sparse, BaseSparse)):
+                    reg.update_weights(reg.model)
 
             self.update_beta = True
             self.invProb.phi_m_last = self.reg(self.invProb.model)
@@ -1423,6 +1383,40 @@ class Update_IRLS(InversionDirective):
                 "directives list"
             )
         return True
+
+    def stopping_criteria(self):
+        """
+        Check for stopping criteria of max_irls_iteration or minimum change.
+        """
+        phim_new = 0
+        for reg in self.reg.objfcts:
+            if isinstance(reg, (Sparse, BaseSparse)):
+                phim_new += reg(reg.model)
+
+        # Check for maximum number of IRLS cycles
+        if self.irls_iteration == self.max_irls_iterations:
+            if not self.silent:
+                print(
+                    "Reach maximum number of IRLS cycles:"
+                    + " {0:d}".format(self.max_irls_iterations)
+                )
+            return True
+
+        # Check if the function has changed enough
+        f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
+        if np.all(
+                [
+                    f_change < self.f_min_change,
+                    self.irls_iteration > 1,
+                    np.abs(1.0 - self.invProb.phi_d / self.target) < self.beta_tol,
+                ]
+        ):
+            print("Minimum decrease in regularization." + "End of IRLS")
+            return True
+
+        self.f_old = phim_new
+
+        return False
 
 
 class UpdatePreconditioner(InversionDirective):

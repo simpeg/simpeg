@@ -195,7 +195,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
 
             # Add directives to the inversion
             opt = optimization.ProjectedGNCG(
-                maxIter=20,
+                maxIter=40,
                 lower=-1.0,
                 upper=1.0,
                 maxIterLS=5,
@@ -208,7 +208,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             # Build directives
             IRLS = directives.Update_IRLS(
                 f_min_change=1e-3,
-                max_irls_iterations=20,
+                max_irls_iterations=30,
                 beta_tol=1e-1,
                 beta_search=False,
             )
