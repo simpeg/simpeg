@@ -197,7 +197,7 @@ w = utils.mkvc((np.sum(np.array(problem_inv.A) ** 2, axis=0))) ** 0.5
 w = w / np.max(w)
 w = w
 
-reg = regularization.SimpleSmall(mesh=mesh, indActive=actCells, cell_weights=w)
+reg = regularization.Small(mesh=mesh, indActive=actCells, cell_weights=w)
 opt = optimization.ProjectedGNCG(
     maxIter=20, lower=0.0, upper=1e-2, maxIterLS=20, tolCG=1e-4
 )

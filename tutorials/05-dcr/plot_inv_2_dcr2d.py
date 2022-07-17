@@ -298,7 +298,7 @@ reg = regularization.LeastSquaresRegularization(
     reference_model=starting_conductivity_model,
 )
 
-reg.mrefInSmooth = True  # Reference model in smoothness term
+reg.reference_model_in_smooth = True  # Reference model in smoothness term
 
 # Define how the optimization problem is solved. Here we will use an
 # Inexact Gauss Newton approach.

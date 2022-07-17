@@ -152,7 +152,7 @@ dmis = data_misfit.L2DataMisfit(simulation=sim, data=data_obj)
 # the norm of the smallness term and 'q' defines the norm of the smoothness
 # term.
 reg = regularization.Sparse(mesh, mapping=model_map)
-reg.mref = np.zeros(nParam)
+reg.reference_model = np.zeros(nParam)
 p = 0.0
 q = 0.0
 reg.norms = [p, q]

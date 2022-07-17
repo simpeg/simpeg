@@ -230,7 +230,7 @@ simulation = gravity.simulation.Simulation3DIntegral(
 dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 
 # Define the regularization (model objective function).
-reg = regularization.Simple(mesh, indActive=ind_active, mapping=model_map)
+reg = regularization.LeastSquaresRegularization(mesh, indActive=ind_active, mapping=model_map)
 
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
