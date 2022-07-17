@@ -28,8 +28,8 @@ class GravInvLinProblemTest(unittest.TestCase):
         self.mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
 
         # Get index of the center
-        midx = int(self.mesh.nCx / 2)
-        midy = int(self.mesh.nCy / 2)
+        midx = int(self.mesh.shape_cells[0] / 2)
+        midy = int(self.mesh.shape_cells[1] / 2)
 
         # Lets create a simple Gaussian topo and set the active cells
         [xx, yy] = np.meshgrid(self.mesh.vectorNx, self.mesh.vectorNy)
@@ -59,7 +59,7 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # We can now create a density model and generate data
         # Here a simple block in half-space
-        model = np.zeros((self.mesh.nCx, self.mesh.nCy, self.mesh.nCz))
+        model = np.zeros((self.mesh.shape_cells[0], self.mesh.shape_cells[1], self.mesh.shape_cells[2]))
         model[(midx - 2) : (midx + 2), (midy - 2) : (midy + 2), -6:-2] = 0.5
         model = utils.mkvc(model)
         self.model = model[actv]
@@ -78,7 +78,7 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Compute linear forward operator and compute some data
         data = sim.make_synthetic_data(
-            self.model, relative_error=0.0, noise_floor=0.001, add_noise=True
+            self.model, relative_error=0.0, noise_floor=0.0005, add_noise=True
         )
 
         # Create a regularization
@@ -93,10 +93,10 @@ class GravInvLinProblemTest(unittest.TestCase):
         opt = optimization.ProjectedGNCG(
             maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
         )
-        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e8)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e1)
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1, max_irls_iterations=30)
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
         self.inv = inversion.BaseInversion(
@@ -113,14 +113,9 @@ class GravInvLinProblemTest(unittest.TestCase):
         # import matplotlib.pyplot as plt
         # plt.figure()
         # ax = plt.subplot(1, 2, 1)
-        # midx = int(self.mesh.nCx/2)
-        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.5))
-        #
+        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, clim=(0, 0.5))
         # ax = plt.subplot(1, 2, 2)
-        # midx = int(self.mesh.nCx/2)
-        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.5))
+        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, clim=(0, 0.5))
         # plt.show()
 
         self.assertTrue(residual < 0.05)

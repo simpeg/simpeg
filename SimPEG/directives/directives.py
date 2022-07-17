@@ -1367,8 +1367,8 @@ class Update_IRLS(InversionDirective):
                     np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
                 )
 
-                if hasattr(obj, "length_scales"):
-                    threshold /= obj.length_scales.min()
+                if isinstance(obj, SmoothDeriv):
+                    threshold /= reg.regularization_mesh.base_length
 
                 obj.irls_threshold = threshold
 
