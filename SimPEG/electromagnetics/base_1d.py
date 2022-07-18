@@ -155,7 +155,7 @@ class BaseEM1DSimulation(BaseSimulation):
                 [n_layer, n_frequency], dtype=np.complex128, order="F"
             )
             sigma_complex[:, :] = sigma - sigma * eta / (
-                1 + (1 - eta) * (1j * w * tau) ** c
+                1 + (1j * w * tau) ** c
             )
 
             return sigma_complex
@@ -224,7 +224,7 @@ class BaseEM1DSimulation(BaseSimulation):
         if self.muMap is not None:
             out = out + Js["dmu"] @ (self.muDeriv @ v)
         if self.thicknessesMap is not None:
-            out = out + Js["dthick"] @ (self.thicknessesDeriv @ v)
+            out = out + Js["dthick"] @ (self.nthicknessesDeriv @ v)
         return out
 
     def Jtvec(self, m, v, f=None):
@@ -521,6 +521,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
     topo = properties.Array("Topography (x, y, z)", dtype=float, shape=('*', 3))
 
+    n_layer = properties.Integer("Number of layers", default=None)
+
 
     def __init__(self, **kwargs):
         utils.setKwargs(self, **kwargs)
@@ -554,12 +556,12 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         else:
             return False
 
-    @property
-    def n_layer(self):
-        if self.thicknesses is None:
-            return 1
-        else:
-            return len(self.thicknesses) + 1
+    # @property
+    # def n_layer(self):
+    #     if self.thicknesses is None:
+    #         return 1
+    #     else:
+    #         return len(self.thicknesses) + 1
 
     @property
     def n_sounding(self):
@@ -578,6 +580,16 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             # Ordering: first z then x
             self._Sigma = self.sigma.reshape((self.n_sounding, self.n_layer))
         return self._Sigma
+
+    @property
+    def Thicknesses(self):
+        if getattr(self, '_Thicknesses', None) is None:
+            # Ordering: first z then x
+            if len(self.thicknesses) == int(self.n_sounding * (self.n_layer-1)):
+                self._Thicknesses = self.thicknesses.reshape((self.n_sounding, self.n_layer-1))
+            else:
+                self._Thicknesses = np.tile(self.thicknesses, (self.n_sounding, 1))
+        return self._Thicknesses
 
     @property
     def Eta(self):
@@ -700,7 +712,7 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         output = (
             self.survey.get_sources_by_sounding_number(i_sounding),
             self.topo[i_sounding, :],
-            self.thicknesses,
+            self.Thicknesses[i_sounding,:],
             self.Sigma[i_sounding, :],
             self.Eta[i_sounding, :],
             self.Tau[i_sounding, :],
@@ -717,11 +729,13 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         )
         return output
 
+    # This is the most expensive process, but required once
+    # May need to find unique 
     def input_args_for_coeff(self, i_sounding):
         output = (
             self.survey.get_sources_by_sounding_number(i_sounding),
             self.topo[i_sounding, :],
-            self.thicknesses,
+            self.Thicknesses[i_sounding,:],
             self.Sigma[i_sounding, :],
             self.Eta[i_sounding, :],
             self.Tau[i_sounding, :],
