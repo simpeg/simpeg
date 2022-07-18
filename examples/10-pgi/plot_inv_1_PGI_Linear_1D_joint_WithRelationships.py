@@ -159,7 +159,7 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
     chi0_ratio=np.r_[1.0, 1.0], verbose=True, n_pw_iter=10
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
-alpha0_ratio = np.r_[1e6, 1e4]
+alpha0_ratio = np.r_[1e6, 1e4, 1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
@@ -208,7 +208,7 @@ scales = directives.ScalingMultipleDataMisfits_ByEig(
 )
 scaling_schedule = directives.JointScalingSchedule(verbose=True)
 alpha0_ratio = np.r_[
-    100.0 * np.ones(2),
+    100.0 * np.ones(2), 1, 1
 ]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
@@ -256,7 +256,7 @@ opt = optimization.ProjectedGNCG(
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # directives
-alpha0_ratio = np.r_[1, 1]
+alpha0_ratio = np.r_[1, 1, 1, 1]
 alphas = directives.AlphasSmoothEstimate_ByEig(
     alpha0_ratio=alpha0_ratio, n_pw_iter=10, verbose=True
 )
