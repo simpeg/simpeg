@@ -14,7 +14,7 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.potential_fields import gravity, get_dist_wgt
+from SimPEG.potential_fields import gravity
 
 import shutil
 
@@ -24,7 +24,6 @@ np.random.seed(43)
 class GravInvLinProblemTest(unittest.TestCase):
     def setUp(self):
 
-        ndv = -100
         # Create a self.mesh
         dx = 5.0
 
@@ -101,10 +100,10 @@ class GravInvLinProblemTest(unittest.TestCase):
         opt = optimization.ProjectedGNCG(
             maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
         )
-        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e8)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e0)
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
+        IRLS = directives.Update_IRLS()
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
         self.inv = inversion.BaseInversion(
@@ -119,18 +118,10 @@ class GravInvLinProblemTest(unittest.TestCase):
         # import matplotlib.pyplot as plt
         # plt.figure()
         # ax = plt.subplot(1, 2, 1)
-        # midx = int(self.mesh.shape_cells[0]/2)
-        # self.mesh.plotSlice(
-        #     self.actvMap*mrec, ax=ax, normal='Y', ind=midx, grid=True, clim=(0, 0.5)
-        # )
-        #
+        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, clim=(0, 0.5))
         # ax = plt.subplot(1, 2, 2)
-        # midx = int(self.mesh.shape_cells[0]/2)
-        # self.mesh.plotSlice(
-        #     self.actvMap*self.model, ax=ax, normal='Y', ind=midx, grid=True, clim=(0, 0.5)
-        # )
+        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, clim=(0, 0.5))
         # plt.show()
-
         self.assertTrue(residual < 0.05)
 
     def tearDown(self):

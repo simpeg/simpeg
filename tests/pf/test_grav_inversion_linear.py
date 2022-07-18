@@ -96,7 +96,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e1)
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1, max_irls_iterations=30)
+        IRLS = directives.Update_IRLS()
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
         self.inv = inversion.BaseInversion(
@@ -110,13 +110,13 @@ class GravInvLinProblemTest(unittest.TestCase):
         mrec = self.inv.run(self.model)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
 
-        # import matplotlib.pyplot as plt
-        # plt.figure()
-        # ax = plt.subplot(1, 2, 1)
-        # self.mesh.plotSlice(self.actvMap*mrec, ax=ax, clim=(0, 0.5))
-        # ax = plt.subplot(1, 2, 2)
-        # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, clim=(0, 0.5))
-        # plt.show()
+        import matplotlib.pyplot as plt
+        plt.figure()
+        ax = plt.subplot(1, 2, 1)
+        self.mesh.plot_slice(self.actvMap*mrec, ax=ax, clim=(0, 0.5), normal="Y")
+        ax = plt.subplot(1, 2, 2)
+        self.mesh.plot_slice(self.actvMap*self.model, ax=ax, clim=(0, 0.5), normal="Y")
+        plt.show()
 
         self.assertTrue(residual < 0.05)
 

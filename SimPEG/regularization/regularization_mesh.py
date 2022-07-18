@@ -400,7 +400,7 @@ class RegularizationMesh(props.BaseSimPEG):
                         self.mesh.average_cell_to_total_face_x()
                         * (self.mesh.h_gridded[:, 0] ** -1)
                     )
-                    * self.mesh._cellGradxStencil
+                    * self.mesh.stencil_cell_gradient_x
                     * self.Pac
                 )
             else:
@@ -425,7 +425,7 @@ class RegularizationMesh(props.BaseSimPEG):
                         self.mesh.average_cell_to_total_face_y()
                         * (self.mesh.h_gridded[:, 1] ** -1)
                     )
-                    * self.mesh._cellGradyStencil
+                    * self.mesh.stencil_cell_gradient_y
                     * self.Pac
                 )
             else:
@@ -450,7 +450,7 @@ class RegularizationMesh(props.BaseSimPEG):
                         self.mesh.average_cell_to_total_face_z()
                         * (self.mesh.h_gridded[:, 2] ** -1)
                     )
-                    * self.mesh._cellGradzStencil
+                    * self.mesh.stencil_cell_gradient_z
                     * self.Pac
                 )
             else:

@@ -1322,7 +1322,12 @@ class Update_IRLS(InversionDirective):
         # Either use the supplied irls_threshold, or fix base on distribution of
         # model values
         for reg in self.reg.objfcts:
+
+            if not isinstance(reg, Sparse):
+                continue
+
             for obj in reg.objfcts:
+
                 threshold = np.percentile(
                     np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
                 )
@@ -1342,7 +1347,7 @@ class Update_IRLS(InversionDirective):
         # Print to screen
         for reg in self.reg.objfcts:
             if not self.silent:
-                print("irls_threshold " + str(reg.irls_threshold))
+                print("irls_threshold " + str(reg.objfcts[0].irls_threshold))
 
     def angleScale(self):
         """
@@ -1393,9 +1398,10 @@ class Update_IRLS(InversionDirective):
         phim_new = 0
         for reg in self.reg.objfcts:
             if isinstance(reg, (Sparse, BaseSparse)):
+                reg.model = self.invProb.model
                 phim_new += reg(reg.model)
 
-        # Check for maximum number of IRLS cycles
+        # Check for maximum number of IRLS cycles1
         if self.irls_iteration == self.max_irls_iterations:
             if not self.silent:
                 print(

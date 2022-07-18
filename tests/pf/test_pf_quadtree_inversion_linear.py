@@ -146,7 +146,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             )
 
             # Already defined
-            # self.grav_model = block_value * self.model
+            self.grav_model = block_value * self.model
 
             self.grav_data = self.grav_sim.make_synthetic_data(
                 self.grav_model,
@@ -173,7 +173,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             )
 
             # Already defined
-            # self.mag_model = block_value * self.model
+            self.mag_model = block_value * self.model
 
             self.mag_data = self.mag_sim.make_synthetic_data(
                 self.mag_model,
@@ -199,7 +199,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 lower=-1.0,
                 upper=1.0,
                 maxIterLS=5,
-                maxIterCG=5,
+                maxIterCG=10,
                 tolCG=1e-4,
             )
 
@@ -257,10 +257,10 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         # Create reduced identity map. All cells are active in an quadtree
         self.idenMap = maps.IdentityMap(nP=self.mesh.nC)
 
-        create_gravity_sim_flat(self, block_value=0.3, noise_floor=0.01)
-        create_magnetics_sim_flat(self, block_value=0.3, noise_floor=0.01)
+        # create_gravity_sim_flat(self, block_value=0.3, noise_floor=0.01)
+        # create_magnetics_sim_flat(self, block_value=0.3, noise_floor=0.01)
 
-        create_gravity_sim(self, block_value=0.3, noise_floor=0.01)
+        create_gravity_sim(self, block_value=0.3, noise_floor=0.005)
         self.grav_inv = create_inversion(self, self.grav_sim, self.grav_data, beta=1e3)
 
         create_magnetics_sim(self, block_value=0.03, noise_floor=3.0)
