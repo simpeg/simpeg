@@ -260,7 +260,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         # create_gravity_sim_flat(self, block_value=0.3, noise_floor=0.01)
         # create_magnetics_sim_flat(self, block_value=0.3, noise_floor=0.01)
 
-        create_gravity_sim(self, block_value=0.3, noise_floor=0.005)
+        create_gravity_sim(self, block_value=0.3, noise_floor=0.001)
         self.grav_inv = create_inversion(self, self.grav_sim, self.grav_data, beta=1e3)
 
         create_magnetics_sim(self, block_value=0.03, noise_floor=3.0)
@@ -328,7 +328,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         model_residual = np.linalg.norm(mrec - self.grav_model) / np.linalg.norm(
             self.grav_model
         )
-        self.assertAlmostEqual(model_residual, 0.57, delta=0.1)
+        self.assertAlmostEqual(model_residual, 0.2, delta=0.1)
 
         # Check data converged to less than 10% of target misfit
         data_misfit = 2.0 * self.grav_inv.invProb.dmisfit(self.grav_model)

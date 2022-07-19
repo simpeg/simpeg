@@ -100,7 +100,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         opt = optimization.ProjectedGNCG(
             maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
         )
-        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e0)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e1)
 
         # Here is where the norms are applied
         IRLS = directives.Update_IRLS()
