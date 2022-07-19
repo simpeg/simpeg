@@ -103,7 +103,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e1)
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS()
+        IRLS = directives.Update_IRLS(max_irls_iterations=20)
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
         self.inv = inversion.BaseInversion(
@@ -115,6 +115,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         # Run the inversion
         mrec = self.inv.run(self.model)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
+
         # import matplotlib.pyplot as plt
         # plt.figure()
         # ax = plt.subplot(1, 2, 1)
@@ -122,7 +123,8 @@ class GravInvLinProblemTest(unittest.TestCase):
         # ax = plt.subplot(1, 2, 2)
         # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, clim=(0, 0.5))
         # plt.show()
-        self.assertTrue(residual < 0.06)
+
+        self.assertTrue(residual < 0.05)
 
     def tearDown(self):
         # Clean up the working directory
