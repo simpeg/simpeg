@@ -38,8 +38,8 @@ class GravInvLinProblemTest(unittest.TestCase):
         midy = int(self.mesh.shape_cells[1] / 2)
 
         # Lets create a simple Gaussian topo and set the active cells
-        [xx, yy] = np.meshgrid(self.mesh.vectorNx, self.mesh.vectorNy)
-        zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + self.mesh.vectorNz[-1]
+        [xx, yy] = np.meshgrid(self.mesh.nodes_x, self.mesh.nodes_y)
+        zz = -np.exp((xx ** 2 + yy ** 2) / 75 ** 2) + self.mesh.nodes_z[-1]
 
         # Go from topo to actv cells
         topo = np.c_[utils.mkvc(xx), utils.mkvc(yy), utils.mkvc(zz)]
@@ -91,7 +91,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         # Create a regularization
         reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [0, 0, 0, 0]
-        reg.gradientType = "components"
+        reg.gradient_type = "components"
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
@@ -100,7 +100,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         opt = optimization.ProjectedGNCG(
             maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
         )
-        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e1)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e3)
 
         # Here is where the norms are applied
         IRLS = directives.Update_IRLS(max_irls_iterations=20)
