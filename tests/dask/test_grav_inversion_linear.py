@@ -98,12 +98,12 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
+            maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-4
         )
-        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e3)
+        invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e2)
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(max_irls_iterations=20)
+        IRLS = directives.Update_IRLS(max_irls_iterations=20, chifact_start=2.0)
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
         self.inv = inversion.BaseInversion(
