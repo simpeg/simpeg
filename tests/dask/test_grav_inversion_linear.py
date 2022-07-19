@@ -122,7 +122,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         # ax = plt.subplot(1, 2, 2)
         # self.mesh.plotSlice(self.actvMap*self.model, ax=ax, clim=(0, 0.5))
         # plt.show()
-        self.assertTrue(residual < 0.05)
+        self.assertTrue(residual < 0.06)
 
     def tearDown(self):
         # Clean up the working directory
