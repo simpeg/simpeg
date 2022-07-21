@@ -42,7 +42,7 @@ class BaseRegularization(BaseObjectiveFunction):
             mesh = RegularizationMesh(mesh)
 
         if not isinstance(mesh, RegularizationMesh):
-            TypeError(
+            raise TypeError(
                 f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
                 f"Value of type {type(mesh)} provided."
             )

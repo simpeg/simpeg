@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 
 import numpy as np
 import unittest
+
+import pytest
 from scipy.stats import multivariate_normal
 from scipy.sparse.linalg import spsolve, LinearOperator, bicgstab
 import inspect
@@ -137,10 +139,6 @@ class RegularizationTests(unittest.TestCase):
             for i, mesh in enumerate(self.meshlist):
 
                 print("Testing {0:d}D".format(mesh.dim))
-
-                # mapping = r.mapPair(mesh)
-                # reg = r(mesh, mapping=mapping)
-                # m = np.random.rand(mapping.nP)
 
                 if mesh.dim == 1:
                     indAct = utils.mkvc(mesh.gridCC <= 0.8)
@@ -401,6 +399,40 @@ class RegularizationTests(unittest.TestCase):
 
         reg = regularization.LeastSquaresRegularization(mesh, active_cells=active)
         self.assertTrue(reg._nC_residual == len(active.nonzero()[0]))
+
+    def test_base_regularization(self):
+        mesh = discretize.TensorMesh([8, 7, 6])
+
+        with pytest.raises(TypeError) as error:
+            regularization.BaseRegularization(np.ones(1))
+
+        assert "'regularization_mesh' must be of type " in str(error)
+
+        reg = regularization.BaseRegularization(mesh)
+        with pytest.raises(TypeError) as error:
+            reg.mapping = np.ones(1)
+
+        assert "'mapping' must be of type " in str(error)
+
+        with pytest.raises(TypeError) as error:
+            reg.units = 1
+
+        assert "'units' must be None or type str." in str(error)
+
+        reg.model = 1.
+
+        assert reg.model.shape[0] == mesh.nC, "Issue setting a model from float."
+
+        with pytest.raises(AttributeError) as error:
+            print(reg.f_m(reg.model))
+
+        assert "Regularization class must have a 'f_m' implementation." in str(error)
+
+        with pytest.raises(AttributeError) as error:
+            print(reg.f_m_deriv(reg.model))
+
+        assert "Regularization class must have a 'f_m_deriv' implementation." in str(error)
+
 
 
 if __name__ == "__main__":
