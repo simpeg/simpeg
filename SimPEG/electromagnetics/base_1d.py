@@ -707,6 +707,10 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
     # ------------- For physics ------------- #
 
+    def get_uniq_soundings(self):
+            self._sounding_types_uniq, self._ind_sounding_uniq = np.unique(
+                self.survey._sounding_types, return_index=True
+            )
 
     def input_args(self, i_sounding, output_type='forward'):
         output = (
@@ -725,12 +729,12 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
             output_type,
             self.invert_height,
             False,
-            self._coefficients[i_sounding],
+            self._coefficients[self.survey._sounding_types[i_sounding]],
         )
         return output
 
     # This is the most expensive process, but required once
-    # May need to find unique 
+    # May need to find unique
     def input_args_for_coeff(self, i_sounding):
         output = (
             self.survey.get_sources_by_sounding_number(i_sounding),

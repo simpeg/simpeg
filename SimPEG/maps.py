@@ -3500,3 +3500,126 @@ class PolynomialPetroClusterMap(IdentityMap):
         else:
             out = np.dot(self._derivmatrix(m.reshape(-1, 2)), v.reshape(2, -1))
             return out
+
+
+###############################################################################
+#                                                                             #
+#                       Maps for Laterally Constarined Inversion              #
+#                                                                             #
+###############################################################################
+
+import scipy.sparse as sp
+from scipy.spatial import cKDTree as KDTree
+
+
+class LayeredInterpolationMap(IdentityMap):
+    """
+    TBA
+    """
+    def __init__(self, xy_locations, n_layer, depth_in, factor=1, constant=50):
+        assert type(xy_locations) is list, "meshes must be a list of two meshes"
+        assert len(xy_locations) == 2, "meshes must be a list of two meshes"
+        self.n_layer = n_layer
+        self.xy_locations_in = xy_locations[0]
+        self.xy_locations_out = xy_locations[1]
+        self.depth_in = depth_in
+        self.tree = KDTree(self.xy_locations_in)
+        self.factor = factor
+        self.constant = constant
+    
+    def get_effective_radius(self, z):
+        radius = np.sqrt(3) * z * self.factor + self.constant
+        return radius
+    
+    @property
+    def P(self):
+        if getattr(self, "_P", None) is None:
+            I = []
+            J = []
+            data = []
+            n = 0
+            m = int(self.xy_locations_in.shape[0] * self.n_layer)
+            for i_layer in range(self.n_layer):
+                radius = self.get_effective_radius(self.depth_out[:,i_layer])
+                out = self.tree.query_ball_point(self.xy_locations_out, r=radius)
+                for i_radial, tmp in enumerate(out):
+                    e = i_radial*self.n_layer*np.ones(len(tmp), dtype=float) + i_layer
+                    weights = np.ones_like(e)/e.size
+                    I.append(e)
+                    J.append(np.array(tmp)*self.n_layer+i_layer)
+                    data.append(weights)
+                n+= len(out)
+            I = np.hstack(I)
+            J = np.hstack(J)
+            data = np.hstack(data)
+            self._P = sp.coo_matrix((data,(I,J)), shape=(n, m))
+            self._P = self._P.tocsr()
+        return self._P
+
+    @property
+    def depth_out(self):
+        if getattr(self, "_depth_out", None) is None:
+            _, inds = self.tree.query(self.xy_locations_out)  
+            self._depth_out = self.depth_in[inds,:] 
+        return self._depth_out
+    
+    @property
+    def shape(self):
+        """Number of parameters in the model."""
+        nP_out = int(self.xy_locations_out.shape[0]*self.n_layer)
+        return (nP_out, self.nP)
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        return int(self.xy_locations_in.shape[0]*self.n_layer)
+
+    def _transform(self, m):
+        return self.P * m
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
+class StackMaps(ComboMap):
+    """
+    TBA
+    """
+
+    def __init__(self, maps, **kwargs):
+        IdentityMap.__init__(self, None, **kwargs)
+        self.maps = maps
+    @property
+    def shape(self):
+        n=0
+        for map_i in self.maps:
+            n+= map_i.shape[0]
+        m=self.maps[0].shape[1]
+        return (n, m)
+
+    @property
+    def nP(self):
+        """Number of model properties.
+
+        The number of cells in the
+        last dimension of the mesh."""
+        return self.maps[-1].shape[1]
+
+    def _transform(self, m):
+        m_out = []
+        for ii, map_i in enumerate(self.maps):
+            m_out.append(map_i*m)
+        return np.hstack(m_out)
+
+    def deriv(self, m, v=None):
+        out_deriv = []
+        for ii, map_i in enumerate(self.maps):
+            deriv = map_i.deriv(m, v=v)
+            out_deriv.append(deriv)
+        if v is None:
+            out_deriv = sp.vstack(out_deriv)
+        else:
+            out_deriv = np.hstack(out_deriv)
+        return out_deriv

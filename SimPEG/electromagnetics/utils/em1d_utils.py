@@ -507,6 +507,8 @@ def dBzdt_horizontal_circular_loop_VRM(a, z, h, t, dchi, tau1, tau2):
 #############################################################
 #       PLOTTING RESTIVITY MODEL
 #############################################################
+#TODO: revisit, and replace hz with thickness
+#... clean up the code
 
 class Stitched1DModel(properties.HasProperties):
 
@@ -531,12 +533,13 @@ class Stitched1DModel(properties.HasProperties):
         "Vertical thickeness of 1D mesh", dtype=float
     )
 
+    n_layer = properties.Integer("Number of layers")
+
     def __init__(self, **kwargs):
         super(Stitched1DModel, self).__init__(**kwargs)
         warnings.warn(
             "code under construction - API might change in the future"
         )
-
     @property
     def n_sounding(self):
         if getattr(self, '_n_sounding', None) is None:
@@ -555,7 +558,7 @@ class Stitched1DModel(properties.HasProperties):
     def xyz(self):
         if getattr(self, '_xyz', None) is None:
             xyz = np.empty(
-                (self.hz.size, self.topography.shape[0], 3), order='F'
+                (self.n_layer, self.topography.shape[0], 3), order='F'
             )
             for i_xy in range(self.topography.shape[0]):
                 z = -self.mesh_1d.vectorCCx + self.topography[i_xy, 2]
@@ -570,7 +573,7 @@ class Stitched1DModel(properties.HasProperties):
         if getattr(self, '_mesh_1d', None) is None:
             if self.hz is None:
                 raise Exception("hz information is required!")
-            self._mesh_1d = set_mesh_1d(np.r_[self.hz])
+            self._mesh_1d = set_mesh_1d(np.r_[self.hz[:self.n_layer]])
         return self._mesh_1d
 
     @property
@@ -578,7 +581,7 @@ class Stitched1DModel(properties.HasProperties):
         if getattr(self, '_mesh_3d', None) is None:
             if self.hz is None:
                 raise Exception("hz information is required!")
-            self._mesh_3d = set_mesh_3d(np.r_[self.hz[:-1], 1e20])
+            self._mesh_3d = set_mesh_3d(np.r_[self.hz[:self.n_layer-1], 1e20])
         return self._mesh_3d
 
     @property
@@ -586,8 +589,20 @@ class Stitched1DModel(properties.HasProperties):
         if getattr(self, '_physical_property_matrix', None) is None:
             if self.physical_property is None:
                 raise Exception("physical_property information is required!")
-            self._physical_property_matrix = self.physical_property.reshape((self.hz.size, self.n_sounding), order='F')
+            self._physical_property_matrix = self.physical_property.reshape((self.n_layer, self.n_sounding), order='F')
         return self._physical_property_matrix
+
+    @property
+    def depth_matrix(self):
+        if getattr(self, '_depth_matrix', None) is None:
+            if self.hz.size == self.n_layer:
+                depth = np.cumsum(np.r_[0, self.hz])
+                self._depth_matrix = np.tile(depth, (self.n_sounding, 1)).T
+            else:
+                self._depth_matrix =np.hstack(
+                    (np.zeros((self.n_sounding,1)), np.cumsum(self.hz.reshape((self.n_sounding, self.n_layer)), axis=1))
+                ).T
+        return self._depth_matrix
 
     @property
     def distance(self):
@@ -596,17 +611,16 @@ class Stitched1DModel(properties.HasProperties):
             for line_tmp in self.unique_line:
                 ind_line = self.line == line_tmp
                 xy_line = self.topography[ind_line,:2]
-                distance_line = np.r_[0, np.cumsum(np.sqrt((np.diff(xy_line, axis=0)**2).sum(axis=1)))]        
+                distance_line = np.r_[0, np.cumsum(np.sqrt((np.diff(xy_line, axis=0)**2).sum(axis=1)))]
                 self._distance[ind_line] = distance_line
         return self._distance
 
     def plot_section(
         self, i_layer=0, i_line=0, x_axis='x',
-        show_layer=False,
         plot_type="contour",
         physical_property=None, clim=None,
         ax=None, cmap='viridis', ncontour=20, scale='log',
-        show_colorbar=True, aspect=1, zlim=None, dx=20., 
+        show_colorbar=True, aspect=1, zlim=None, dx=20.,
         invert_xaxis=False,
         alpha=0.7,
         pcolorOpts={}
@@ -614,7 +628,7 @@ class Stitched1DModel(properties.HasProperties):
         ind_line = self.line == self.unique_line[i_line]
         if physical_property is not None:
             physical_property_matrix = physical_property.reshape(
-                (self.hz.size, self.n_sounding), order='F'
+                (self.n_layer, self.n_sounding), order='F'
             )
         else:
             physical_property_matrix = self.physical_property_matrix
@@ -659,15 +673,9 @@ class Stitched1DModel(properties.HasProperties):
                 x_tmp+dx
             ]
             out = ax.pcolormesh(
-                topo_temp, -self.mesh_1d.vectorNx+self.topography[i, 2], physical_property_matrix[:, inds_temp],
+                topo_temp, -self.depth_matrix[:,i]+self.topography[i, 2], physical_property_matrix[:, inds_temp],
                 cmap=cmap, alpha=alpha,
                 vmin=vmin, vmax=vmax, norm=norm, shading='auto', **pcolorOpts
-            )
-
-        if show_layer:
-            ax.plot(
-                x_tmp, self.topography[ind_line, 2]-self.mesh_1d.vectorCCx[i_layer],
-                '--', lw=1, color='grey'
             )
 
         if show_colorbar:
@@ -797,7 +805,7 @@ class Stitched1DModel(properties.HasProperties):
     def interpolate_from_1d_to_3d(self, physical_property_1d):
         physical_property_2d = self.P*(
             physical_property_1d.reshape(
-                (self.hz.size, self.n_sounding), order='F'
+                (self.n_layer, self.n_sounding), order='F'
             ).T
         )
         physical_property_3d = np.ones(

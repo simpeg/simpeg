@@ -485,6 +485,11 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             print(">> Time-domain")
         return self._run_simulation(args)
 
+    def get_uniq_soundings(self):
+            self._sounding_types_uniq, self._ind_sounding_uniq = np.unique(
+                self.survey._sounding_types, return_index=True
+            )
+
     def forward(self, m):
         self.model = m
 
@@ -505,16 +510,21 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             if self._coefficients_set is False:
                 if self.verbose:
                     print(">> Calculate coefficients")
-                pool = Pool(self.n_cpu)
-                self._coefficients = pool.map(
-                    run_simulation,
-                    [
-                        self.input_args_for_coeff(i) for i in range(self.n_sounding)
-                    ]
-                 )
-                self._coefficients_set = True
-                pool.close()
-                pool.join()
+                # pool = Pool(self.n_cpu)
+                # self._coefficients = pool.map(
+                #     run_simulation,
+                #     [
+                #         self.input_args_for_coeff(i) for i in range(self.n_sounding)
+                #     ]
+                #  )
+                # self._coefficients_set = True
+                # pool.close()
+                # pool.join()
+                self.get_uniq_soundings()
+                self._coefficients = {}
+                for ii in self._ind_sounding_uniq:
+                    name = self._sounding_types_uniq[ii]
+                    self._coefficients[name] = run_simulation(self.input_args_for_coeff(ii))
 
             # if self.n_sounding_for_chunk is None:
             pool = Pool(self.n_cpu)
@@ -524,26 +534,22 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
                     self.input_args(i, output_type='forward') for i in range(self.n_sounding)
                 ]
             )
-            # else:
-            #     result = pool.map(
-            #         self._run_simulation_by_chunk,
-            #         [
-            #             self.input_args_by_chunk(i, output_type='forward') for i in range(self.n_chunk)
-            #         ]
-            #     )
-            #     return np.r_[result].ravel()
 
             pool.close()
             pool.join()
         else:
             if self._coefficients_set is False:
+                self.get_uniq_soundings()
                 if self.verbose:
                     print(">> Calculate coefficients")
 
-                self._coefficients = [
-                    run_simulation(self.input_args_for_coeff(i)) for i in range(self.n_sounding)
-                ]
-                self._coefficients_set = True
+                # self._coefficients = [
+                #     run_simulation(self.input_args_for_coeff(i)) for i in range(self.n_sounding)
+                # ]
+                self._coefficients = {}
+                for ii in self._ind_sounding_uniq:
+                    name = self._sounding_types_uniq[ii]
+                    self._coefficients[name] = run_simulation(self.input_args_for_coeff(ii))
 
             result = [
                 run_simulation(self.input_args(i, output_type='forward')) for i in range(self.n_sounding)
