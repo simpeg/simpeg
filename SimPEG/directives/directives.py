@@ -1661,6 +1661,145 @@ class UpdateSensitivityWeights(InversionDirective):
 
         return True
 
+class CurrentBasedSensitivityWeights(InversionDirective):
+    """
+    Directive to take care of re-weighting
+    the non-linear problems. Assumes that the map of the regularization
+    function is either Wires or Identity.
+    Good for any problem where J is formed explicitly.
+    """
+
+    everyIter = False
+    everyBeta = True
+    threshold = 1000.
+
+    def initialize(self):
+        """
+        Calculate and update sensitivity
+        for optimization and regularization
+        """
+        for reg in self.reg.objfcts:
+            if not isinstance(getattr(reg, "mapping"), (IdentityMap, Wires)):
+                raise TypeError(
+                    f"Mapping for the regularization must be of type {IdentityMap} or {Wires}. "
+                    + f"Input mapping of type {type(reg.mapping)}."
+                )
+
+        self.update()
+
+    def endIter(self):
+        """
+        Update inverse problem
+        """
+        if self.everyIter:
+            self.update()
+        elif self.everyBeta:
+            
+            directives_list = self.inversion.directiveList.dList
+            ind = np.where([isinstance(d, BetaSchedule) for d in directives_list])[0][0]
+
+            cooling_rate = directives_list[ind].coolingRate
+            
+            if (self.opt.iter % cooling_rate) == 0:
+                self.update()
+
+    def update(self):
+        """
+        Compute current based sensitivity weights
+
+        """
+        # Extract previous cell weights
+        phi_m_old = self.invProb.reg(self.invProb.model)
+
+        # Compute the equivalent to JtJ_diag from currents
+        jtj_diag = np.zeros_like(self.invProb.model)
+        m = self.invProb.model
+
+        for sim, dmisfit in zip(self.simulation, self.dmisfit.objfcts):
+            # jtj_diag += sim.getJtJdiag_currents(m, W=dmisfit.W)
+            jtj_diag += sim.getJtJdiag_currents(m, W=None)
+
+        # Normalize and threshold weights
+        wr = np.zeros_like(self.invProb.model)
+        for reg in self.reg.objfcts:
+            if not isinstance(reg, BaseSimilarityMeasure):
+                wr += reg.mapping.deriv(self.invProb.model).T * (
+                    (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
+                )
+        
+        wr = self.threshold * wr / wr.max()
+        wr[wr < 1.] = 1.
+        # wr **= 0.5  # Doing average sensitivities
+
+        # Set new weights
+        for reg in self.reg.objfcts:
+            if not isinstance(reg, BaseSimilarityMeasure):
+                reg.cell_weights = reg.mapping * wr
+        
+        # Re-weight cell weights
+        phi_m_new = self.invProb.reg(self.invProb.model)
+        
+        print("CELL WEIGHTS UPDATED: {}".format(np.sqrt(phi_m_old / phi_m_new)))
+        
+        if phi_m_new != 0.:
+            C = np.sqrt(phi_m_old / phi_m_new)
+            for reg in self.reg.objfcts:
+                if not isinstance(reg, BaseSimilarityMeasure):
+                    reg.cell_weights = reg.mapping * (C * wr)
+
+    def validate(self, directiveList):
+        # check if a beta estimator is in the list after setting the weights
+        dList = directiveList.dList
+        self_ind = dList.index(self)
+
+        beta_estimator_ind = [isinstance(d, BetaEstimate_ByEig) for d in dList]
+
+        lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in dList]
+
+        if any(beta_estimator_ind):
+            assert beta_estimator_ind.index(True) > self_ind, (
+                "The directive 'BetaEstimate_ByEig' must be after UpdateSensitivityWeights "
+                "in the directiveList"
+            )
+
+        if any(lin_precond_ind):
+            assert lin_precond_ind.index(True) > self_ind, (
+                "The directive 'UpdatePreconditioner' must be after UpdateSensitivityWeights "
+                "in the directiveList"
+            )
+
+        return True
+
+
+class UpdateMref(InversionDirective):
+    
+    everyIter = False
+    everyBeta = True
+    
+    def initialize(self):
+        pass
+    
+    def endIter(self):
+        """
+        Update inverse problem
+        """
+        if self.everyIter:
+            self.update()
+        elif self.everyBeta:
+            
+            directives_list = self.inversion.directiveList.dList
+            ind = np.where([isinstance(d, BetaSchedule) for d in directives_list])[0][0]
+
+            cooling_rate = directives_list[ind].coolingRate
+            
+            if (self.opt.iter % cooling_rate) == 0:
+                self.update()
+    
+    def update(self):
+        
+        self.invProb.reg.mref = self.invProb.model
+        print('MREF WAS UPDATED')
+        
 
 class ProjectSphericalBounds(InversionDirective):
     """

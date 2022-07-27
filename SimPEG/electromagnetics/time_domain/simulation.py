@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
+from scipy.special import ellipk, ellipe
 import time
 import properties
 
@@ -921,6 +922,94 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             return self.MeSigmaDeriv(-u, Grad * v, adjoint)
         return Adc
 
+    def getJtJdiag_currents(self, m, W=None, f=None):
+
+        if W is None:
+            W = np.ones(self.survey.nD)
+        else:
+            W = np.abs(W.diagonal())
+
+        if f is None:
+            f = self.fields(m)
+
+        mesh = self.mesh
+
+        cell_areas = mkvc(np.outer(self.mesh.hx, self.mesh.hz))
+
+        diagJtJ = np.zeros(len(m))
+        dsigdm_T = self.sigmaDeriv.T
+
+        COUNT = 0
+        
+        for src in self.survey.source_list:
+
+            # Return RHS geometry * dIdt
+            dIdt = 4./1.  # (T/4)
+            q = src.s_e(self, -np.inf) * dIdt
+
+            for rx in src.receiver_list:
+
+                n_times = len(rx.times)
+                n_loc = np.shape(rx.locations)[0]
+                v = np.ones(n_times)
+                
+                Pt = rx.getTimeP(self.time_mesh, f)  # project from fields to time_channels
+                
+                # diag(areas) x transpose of dedt all time channels
+                dedt = mesh.average_edge_to_cell * self.MeSigmaI * (
+                    np.outer(q, v) - mesh.edge_curl.T * self.Mf * f[src,'dhdt'] * Pt.T
+                )
+
+                xyz_rx = [rx.locations[ii, :] for ii in range(0, np.shape(rx.locations)[0])]
+                for ii, loc in enumerate(xyz_rx):
+                    Wi = sdiag(W[COUNT+ii:COUNT+rx.nD:n_loc])
+                    # temp = sdiag(cell_areas * self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)).dot(dedt)
+                    temp = sdiag(self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)).dot(dedt)
+                    temp = Wi.dot(np.abs(dsigdm_T.dot(temp)).T)
+                    # diagJtJ += np.sum((dsigdm_T.dot(temp))**2, axis=1)
+                    diagJtJ += np.sum(temp, axis=0)
+
+                COUNT = COUNT + rx.nD
+
+        return diagJtJ / self.survey.nD
+
+
+    def _cylmesh_geometric_factor(self, xyz_rx, comp, dh=None):
+
+        # Stabilization constant for rx next to cell centers
+        if dh is None:
+            dh = np.sqrt(np.min(self.mesh.hx) * np.min(self.mesh.hz))
+
+        # "loop radii"
+        a = self.mesh.cell_centers[:, 0]
+        s = xyz_rx[0]
+        dz = xyz_rx[-1] - self.mesh.cell_centers[:, -1]
+        r = np.sqrt((a-s)**2 + dz**2) + dh
+
+        alpha = s / a
+        beta = dz / a
+        gamma = dz / (s + dh)  # For stability
+        
+        Q = (1 + alpha)**2 + beta**2
+        k = np.sqrt(4*alpha / Q)
+
+        if comp == 'x':
+            return (2 * a * np.pi * np.sqrt(Q))**-1 * gamma * (
+                ellipe(k)*(1. + alpha**2 + beta**2)/(Q  - 4 * alpha) - ellipk(k)
+            )
+        elif comp == 'z':
+            return (2 * a * np.pi * np.sqrt(Q))**-1 * (
+                ellipe(k)*(1. - alpha**2 - beta**2)/(Q  - 4 * alpha) + ellipk(k)
+            )
+
+
+
+
+
+
+
+
+
     # def clean(self):
     #     """
     #     Clean factors
@@ -1147,3 +1236,36 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
             #      self.MfRhoIDeriv(G * u, D.T * v, adjoint=True)
             return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
         return D * self.MfRhoIDeriv(G * u, v)
+
+
+
+def _geometric_factor_cylindrical_mesh(self, ind_active, xyz_rx, dh=None):
+    """Compute geometric factor for cyl mesh current-based weights.
+
+    mesh: Cylindrical mesh
+    ind_active: Active mesh cells
+    xyz_rx: receiver location
+    dh: stabilization constant
+    """
+
+    a = self.mesh.cell_centers[ind_active, 0]  # "loop radii"
+    s = rx.locations[:, 0]                     # radial scalar distance
+    dz = xyz_rx[-1] - xyz_cc[:, -1]            # vertical distance
+    
+    alpha = s / a
+    beta = dz / a
+    gamma = dz / (s + dh)  # For stability
+    
+    Q = (1 + alpha)**2 + beta**2
+    
+    k = np.sqrt(4*alpha / Q)
+    
+    Hx = (2 * a * np.pi * np.sqrt(Q))**-1 * gamma * (
+        ellipe(k)*(1. + alpha**2 + beta**2)/(Q  - 4 * alpha) - ellipk(k)
+    )
+    Hz = (2 * a * np.pi * np.sqrt(Q))**-1 * (
+        ellipe(k)*(1. - alpha**2 - beta**2)/(Q  - 4 * alpha) + ellipk(k)
+    )
+    
+    return Hx, Hz
+

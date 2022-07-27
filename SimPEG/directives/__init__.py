@@ -3,6 +3,7 @@ from .directives import (
     DirectiveList,
     BetaEstimate_ByEig,
     BetaSchedule,
+    CurrentBasedSensitivityWeights,
     TargetMisfit,
     SaveEveryIteration,
     SaveModelEveryIteration,
@@ -16,6 +17,7 @@ from .directives import (
     ScalingMultipleDataMisfits_ByEig,
     JointScalingSchedule,
     UpdateSensitivityWeights,
+    UpdateMref,
     ProjectSphericalBounds,
 )
 

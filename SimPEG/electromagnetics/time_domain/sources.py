@@ -1307,6 +1307,8 @@ class MagDipole(BaseTDEMSrc):
                 elif simulation._fieldType == "e":
                     # Compute s_e from vector potential
                     return C.T * (MfMui * b)
+            elif time == -np.inf:
+                return C.T * (MfMui * b)
             else:
                 return C.T * (MfMui * b) * self.waveform.eval(time)
 
