@@ -254,7 +254,7 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([10, 5, 8])
         mref = np.ones(mesh.nC)
 
-        for regType in ["LeastSquaresRegularization", "Sparse"]:
+        for regType in ["WeightedLeastSquares", "Sparse"]:
             reg = getattr(regularization, regType)(
                 mesh, reference_model=mref, mapping=maps.IdentityMap(mesh)
             )
