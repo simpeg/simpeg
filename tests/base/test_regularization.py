@@ -458,6 +458,35 @@ class RegularizationTests(unittest.TestCase):
         assert "Regularization class must have a 'f_m_deriv' implementation." in str(error)
 
 
+    def test_smooth_deriv(self):
+        mesh = discretize.TensorMesh([8, 7])
+
+        with pytest.raises(ValueError) as error:
+            reg = regularization.SmoothDeriv(mesh, orientation="w")
+
+        assert "Orientation must be 'x', 'y' or 'z'" in str(error)
+
+        with pytest.raises(ValueError) as error:
+            reg = regularization.SmoothDeriv(mesh, orientation="z")
+
+        assert "Mesh must have at least 3 dimensions" in str(error)
+
+        mesh = discretize.TensorMesh([2])
+
+        with pytest.raises(ValueError) as error:
+            reg = regularization.SmoothDeriv(mesh, orientation="y")
+
+        assert "Mesh must have at least 2 dimensions" in str(error)
+
+        smooth_deriv = regularization.SmoothDeriv(mesh, units="radian")
+
+        with pytest.raises(TypeError) as error:
+            smooth_deriv.reference_model_in_smooth = "abc"
+
+        assert "'reference_model_in_smooth must be of type 'bool'." in str(error)
+
+        deriv_angle = smooth_deriv.f_m(np.r_[-np.pi, np.pi])
+        np.testing.assert_almost_equal(deriv_angle, 0., err_msg="Error computing coterminal angle")
 
 if __name__ == "__main__":
     unittest.main()

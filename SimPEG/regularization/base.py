@@ -461,7 +461,7 @@ class SmoothDeriv(BaseRegularization):
         self.reference_model_in_smooth = reference_model_in_smooth
 
         if orientation not in ["x", "y", "z"]:
-            raise KeyError("Orientation must be 'x', 'y' or 'z'")
+            raise ValueError("Orientation must be 'x', 'y' or 'z'")
 
         if orientation == "y" and mesh.dim < 2:
             raise ValueError(
