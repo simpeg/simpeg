@@ -360,10 +360,10 @@ class BaseRegularization(BaseObjectiveFunction):
         """Generic array and type validator"""
         if (
             array is not None
-            and not isinstance(array, np.ndarray)
-            and not array.dtype == dtype
+            and (not isinstance(array, np.ndarray)
+            or not array.dtype == dtype)
         ):
-            TypeError(
+            raise TypeError(
                 f"Values provided for '{attribute}' for {self} must by a {np.ndarray} of type {dtype}. "
                 f"Values of type {type(array)} provided."
             )

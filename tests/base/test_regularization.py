@@ -283,6 +283,30 @@ class RegularizationTests(unittest.TestCase):
         self.assertTrue(np.all(reg.deriv(m) == objfct.deriv(m)))
         self.assertTrue(np.all(reg.deriv2(m, v=v) == objfct.deriv2(m, v=v)))
 
+        reg.set_weights(user_weights=cell_weights)
+
+        # test removing the weigths
+        reg.remove_weights("user_weights")
+
+        assert "user_weights" not in reg._weights, "Issue removing the weights"
+
+        with pytest.raises(KeyError) as error:
+            reg.remove_weights("user_weights")
+
+        assert "user_weights is not in the weights dictionary" in str(error)
+
+        # test adding weights of bad type or shape
+        with pytest.raises(TypeError) as error:
+            reg.set_weights(user_weights="abc")
+
+        assert "Values provided for" in str(error)
+
+        with pytest.raises(ValueError) as error:
+            reg.set_weights(user_weights=cell_weights[1:])
+
+        assert "must be of shape" in str(error)
+
+
     def test_update_of_sparse_norms(self):
         mesh = discretize.TensorMesh([8, 7, 6])
         m = np.random.rand(mesh.nC)
