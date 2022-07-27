@@ -12,7 +12,7 @@ def getKc(freq, sigma, a, b, mu=mu_0, eps=epsilon_0):
 
 
 def _r2(xyz):
-    return np.sum(xyz**2, 1)
+    return np.sum(xyz ** 2, 1)
 
 
 def _getCasingHertzMagDipole(
@@ -80,11 +80,11 @@ def _getCasingHertzMagDipole2Deriv_z_r(
     r2 = _r2(dxyz[:, :2])
     r = np.sqrt(r2)
     z = dxyz[:, 2]
-    sqrtr2z2 = np.sqrt(r2 + z**2)
+    sqrtr2z2 = np.sqrt(r2 + z ** 2)
     k2 = k(freq, sigma[2], mu[2], eps)
 
     return dHertzZdr * (-z / sqrtr2z2) * (1j * k2 + 1.0 / sqrtr2z2) + HertzZ * (
-        z * r / sqrtr2z2**3
+        z * r / sqrtr2z2 ** 3
     ) * (1j * k2 + 2.0 / sqrtr2z2)
 
 
@@ -104,12 +104,12 @@ def _getCasingHertzMagDipole2Deriv_z_z(
     r2 = _r2(dxyz[:, :2])
     r = np.sqrt(r2)
     z = dxyz[:, 2]
-    sqrtr2z2 = np.sqrt(r2 + z**2)
+    sqrtr2z2 = np.sqrt(r2 + z ** 2)
     k2 = k(freq, sigma[2], mu[2], eps)
 
     return (dHertzZdz * z + HertzZ) / sqrtr2z2 * (
         -1j * k2 - 1.0 / sqrtr2z2
-    ) + HertzZ * z / sqrtr2z2**3 * (1j * k2 * z + 2.0 * z / sqrtr2z2)
+    ) + HertzZ * z / sqrtr2z2 ** 3 * (1j * k2 * z + 2.0 * z / sqrtr2z2)
 
 
 def getCasingEphiMagDipole(
@@ -143,7 +143,7 @@ def getCasingHzMagDipole(
     HertzZ = _getCasingHertzMagDipole(
         srcloc, obsloc, freq, sigma, a, b, mu, eps, moment
     )
-    return d2HertzZdz2 + k2**2 * HertzZ
+    return d2HertzZdz2 + k2 ** 2 * HertzZ
 
 
 def getCasingBrMagDipole(

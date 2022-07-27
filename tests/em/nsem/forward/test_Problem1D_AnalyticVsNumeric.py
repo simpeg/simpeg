@@ -12,7 +12,7 @@ TOLp = 5e-2
 def getAppResPhs(nsemdata):
     # Make impedance
     def appResPhs(freq, z):
-        app_res = ((1.0 / (8e-7 * np.pi**2)) / freq) * np.abs(z) ** 2
+        app_res = ((1.0 / (8e-7 * np.pi ** 2)) / freq) * np.abs(z) ** 2
         app_phs = np.arctan2(z.imag, z.real) * (180 / np.pi)
         return app_res, app_phs
 

@@ -183,13 +183,13 @@ def DCAnalyticSphere(
     # Center of the sphere should be aligned in txloc in y-direction
     yc = txloc[1]
     xyz = np.c_[rxloc[:, 0] - xc, rxloc[:, 1] - yc, rxloc[:, 2]]
-    r = np.sqrt((xyz**2).sum(axis=1))
+    r = np.sqrt((xyz ** 2).sum(axis=1))
 
     x0 = abs(txloc[0] - xc)
 
     costheta = xyz[:, 0] / r * (txloc[0] - xc) / x0
     # phi = np.zeros_like(r)
-    R = (r**2 + x0**2.0 - 2.0 * r * x0 * costheta) ** 0.5
+    R = (r ** 2 + x0 ** 2.0 - 2.0 * r * x0 * costheta) ** 0.5
     # primary potential in a whole space
     prim = rho * 1.0 / (4 * np.pi * R)
 

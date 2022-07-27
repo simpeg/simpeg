@@ -77,7 +77,7 @@ class TestEigenvalues(unittest.TestCase):
 
     def test_dm_eigenvalue_by_power_iteration(self):
         # Test for a single data misfit
-        dmis_matrix = self.G.T.dot((self.dmis.W**2).dot(self.G))
+        dmis_matrix = self.G.T.dot((self.dmis.W ** 2).dot(self.G))
         field = self.dmis.simulation.fields(self.true_model)
         max_eigenvalue_numpy, _ = eigsh(dmis_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
@@ -92,7 +92,7 @@ class TestEigenvalues(unittest.TestCase):
         for i, (mult, dm) in enumerate(
             zip(self.dmiscombo.multipliers, self.dmiscombo.objfcts)
         ):
-            WtW += mult * dm.W**2
+            WtW += mult * dm.W ** 2
         dmiscombo_matrix = self.G.T.dot(WtW.dot(self.G))
         max_eigenvalue_numpy, _ = eigsh(dmiscombo_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
@@ -114,7 +114,7 @@ class TestEigenvalues(unittest.TestCase):
 
     def test_combo_eigenvalue_by_power_iteration(self):
         reg_maxtrix = self.reg.deriv2(self.true_model)
-        dmis_matrix = self.G.T.dot((self.dmis.W**2).dot(self.G))
+        dmis_matrix = self.G.T.dot((self.dmis.W ** 2).dot(self.G))
         combo_matrix = dmis_matrix + self.beta * reg_maxtrix
         max_eigenvalue_numpy, _ = eigsh(combo_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(

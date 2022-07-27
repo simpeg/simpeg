@@ -636,7 +636,7 @@ def plot_pseudosection(
                 levels = opts.get("levels", "auto")
                 locator = ticker.MaxNLocator(levels)
                 levels = locator.tick_values(np.log10(dobs.min()), np.log10(dobs.max()))
-                levels = 10**levels
+                levels = 10 ** levels
                 opts["levels"] = levels
             except TypeError:
                 pass
@@ -878,7 +878,7 @@ if has_plotly:
                         + c * locations[:, 2]
                         + d
                     )
-                    / np.sqrt(a**2 + b**2 + c**2)
+                    / np.sqrt(a ** 2 + b ** 2 + c ** 2)
                     < plane_distance[ii]
                 )
 
@@ -1545,7 +1545,6 @@ def gettopoCC(mesh, actind, option="top"):
         return mesh.cell_centers[inds, :-1], mesh.cell_centers[inds, -1] + dz
     else:
         raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
-
 
 
 def drapeTopotoLoc(mesh, pts, actind=None, option="top", topo=None):

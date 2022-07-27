@@ -191,7 +191,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
 
     # survey parameters
     rxOffset = 7.86  # tx-rx separation
-    bp = -mu_0 / (4 * np.pi * rxOffset**3)  # primary magnetic field
+    bp = -mu_0 / (4 * np.pi * rxOffset ** 3)  # primary magnetic field
 
     # re-run the inversion
     if runIt:

@@ -300,7 +300,7 @@ simulation.time_steps = time_steps
 dpred = simulation.dpred(model)
 
 # Data were organized by location, then by time channel
-dpred_plotting = np.reshape(dpred, (n_tx**2, n_times))
+dpred_plotting = np.reshape(dpred, (n_tx ** 2, n_times))
 
 # Plot
 fig = plt.figure(figsize=(10, 4))
