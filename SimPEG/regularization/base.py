@@ -705,7 +705,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         if alpha_z is not None:
             if length_scale_z is not None:
                 raise ValueError(
-                    "Attempted to set both alpha_y and length_scale_y at the same time. Please "
+                    "Attempted to set both alpha_z and length_scale_z at the same time. Please "
                     "use only one of them"
                 )
             self.alpha_z = alpha_z

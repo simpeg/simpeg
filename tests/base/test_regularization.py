@@ -384,6 +384,41 @@ class RegularizationTests(unittest.TestCase):
             for fct in reg.objfcts
         ]
 
+    def test_weighted_least_squares(self):
+        mesh = discretize.TensorMesh([8, 7, 6])
+        reg = regularization.WeightedLeastSquares(mesh)
+        for comp in ["s", "x", "y", "z", "xx", "yy", "zz"]:
+            with pytest.raises(TypeError) as error:
+                setattr(reg, f"alpha_{comp}", "abc")
+
+            assert f"alpha_{comp} must be a real number" in str(error)
+
+            with pytest.raises(ValueError) as error:
+                setattr(reg, f"alpha_{comp}", -1)
+
+            assert f"alpha_{comp} must be non-negative" in str(error)
+
+            if comp in ["x", "y", "z"]:
+                with pytest.raises(TypeError) as error:
+                    setattr(reg, f"length_scale_{comp}", "abc")
+
+                assert f"length_scale_{comp} must be a real number" in str(error)
+
+        with pytest.raises(ValueError) as error:
+            reg = regularization.WeightedLeastSquares(mesh, alpha_x=1, length_scale_x=1)
+
+        assert "Attempted to set both alpha_x and length_scale_x" in str(error)
+
+        with pytest.raises(ValueError) as error:
+            reg = regularization.WeightedLeastSquares(mesh, alpha_y=1, length_scale_y=1)
+
+        assert "Attempted to set both alpha_y and length_scale_y" in str(error)
+
+        with pytest.raises(ValueError) as error:
+            reg = regularization.WeightedLeastSquares(mesh, alpha_z=1, length_scale_z=1)
+
+        assert "Attempted to set both alpha_z and length_scale_z" in str(error)
+
     def test_nC_residual(self):
 
         # x-direction
