@@ -126,7 +126,7 @@ def resolve_1Dinversions(
 
     # regularization
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.LeastSquaresRegularization(regMesh)
+    reg = regularization.WeightedLeastSquares(regMesh)
     reg.mref = mref
 
     # optimization

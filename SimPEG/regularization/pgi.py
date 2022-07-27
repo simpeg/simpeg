@@ -15,7 +15,7 @@ from ..maps import IdentityMap, Wires
 from ..objective_function import ComboObjectiveFunction
 from .base import (
     BaseRegularization,
-    LeastSquaresRegularization,
+    WeightedLeastSquares,
     RegularizationMesh,
     Small,
 )
@@ -734,7 +734,7 @@ class PGI(ComboObjectiveFunction):
 
         for map, wire, weights in zip(self.maplist, self.wiresmap.maps, weights_list):
             objfcts += [
-                LeastSquaresRegularization(
+                WeightedLeastSquares(
                     alpha_s=0.0,
                     alpha_x=alpha_x,
                     alpha_y=alpha_y,

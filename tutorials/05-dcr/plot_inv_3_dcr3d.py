@@ -300,7 +300,7 @@ dc_simulation = dc.simulation.Simulation3DNodal(
 dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation)
 
 # Define the regularization (model objective function)
-dc_regularization = regularization.LeastSquaresRegularization(
+dc_regularization = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
     reference_model=starting_conductivity_model,

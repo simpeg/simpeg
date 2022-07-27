@@ -6,7 +6,7 @@ import scipy.sparse as sp
 import gc
 from .data_misfit import BaseDataMisfit
 from .props import BaseSimPEG, Model
-from .regularization import BaseRegularization, LeastSquaresRegularization, Sparse
+from .regularization import BaseRegularization, WeightedLeastSquares, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .utils import callHooks, timeIt
 
@@ -187,7 +187,7 @@ class BaseInvProblem(BaseSimPEG):
         self.phi_d, self.phi_d_last = phi_d, self.phi_d
         self.phi_m, self.phi_m_last = phi_m, self.phi_m
 
-        # Only works for LeastSquaresRegularization
+        # Only works for WeightedLeastSquares regularization
         if self.opt.print_type == "ubc":
 
             self.phi_s = 0.0
@@ -195,7 +195,7 @@ class BaseInvProblem(BaseSimPEG):
             self.phi_y = 0.0
             self.phi_z = 0.0
 
-            if not isinstance(self.reg, LeastSquaresRegularization):
+            if not isinstance(self.reg, WeightedLeastSquares):
                 regs = self.reg.objfcts
                 mults = self.reg.multipliers
             else:

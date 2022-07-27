@@ -187,9 +187,9 @@ For example:
 .. code:: python
 
 
-    class LeastSquaresRegularization(BaseComboRegularization):
+    class WeightedLeastSquares(BaseComboRegularization):
         """
-        L2 LeastSquaresRegularization regularization with both smallness and smoothness (first order
+        L2 WeightedLeastSquares regularization with both smallness and smoothness (first order
         derivative) contributions.
 
         .. math::

@@ -72,7 +72,7 @@ class DataMisfitTest(unittest.TestCase):
         self.dmiscombo.test(x=self.model)
 
     def test_inv(self):
-        reg = regularization.LeastSquaresRegularization(self.mesh)
+        reg = regularization.WeightedLeastSquares(self.mesh)
         opt = optimization.InexactGaussNewton(maxIter=10, use_WolfeCurvature=True)
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
@@ -88,8 +88,8 @@ class DataMisfitTest(unittest.TestCase):
         mrec = inv.run(m0)
 
     def test_inv_mref_setting(self):
-        reg1 = regularization.LeastSquaresRegularization(self.mesh)
-        reg2 = regularization.LeastSquaresRegularization(self.mesh)
+        reg1 = regularization.WeightedLeastSquares(self.mesh)
+        reg2 = regularization.WeightedLeastSquares(self.mesh)
         reg = reg1 + reg2
         opt = optimization.ProjectedGNCG(
             maxIter=30, lower=-10, upper=10, maxIterLS=20, maxIterCG=50, tolCG=1e-4

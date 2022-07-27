@@ -232,13 +232,13 @@ inv = inversion.BaseInversion(
 
 mcluster_no_map = inv.run(minit)
 
-# LeastSquaresRegularization Inversion
+# WeightedLeastSquares Inversion
 
-reg1 = regularization.LeastSquaresRegularization(
+reg1 = regularization.WeightedLeastSquares(
     mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m1
 )
 reg1.cell_weights = wr1
-reg2 = regularization.LeastSquaresRegularization(
+reg2 = regularization.WeightedLeastSquares(
     mesh, alpha_s=1.0, alpha_x=1.0, mapping=wires.m2
 )
 reg2.cell_weights = wr2

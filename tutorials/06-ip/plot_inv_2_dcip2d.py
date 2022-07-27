@@ -309,7 +309,7 @@ dc_simulation = dc.Simulation2DNodal(
 dc_data_misfit = data_misfit.L2DataMisfit(data=dc_data, simulation=dc_simulation)
 
 # Define the regularization (model objective function)
-dc_regularization = regularization.LeastSquaresRegularization(
+dc_regularization = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
     reference_model=starting_conductivity_model,
@@ -540,7 +540,7 @@ ip_simulation = ip.Simulation2DNodal(
 ip_data_misfit = data_misfit.L2DataMisfit(data=ip_data, simulation=ip_simulation)
 
 # Define the regularization (model objective function)
-ip_regularization = regularization.LeastSquaresRegularization(
+ip_regularization = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
     mapping=maps.IdentityMap(nP=nC),

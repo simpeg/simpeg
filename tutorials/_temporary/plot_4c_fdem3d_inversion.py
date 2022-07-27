@@ -312,7 +312,7 @@ dmis = data_misfit.L2DataMisfit(data=data_object, simulation=simulation)
 dmis.W = utils.sdiag(1 / uncertainties)
 
 # Define the regularization (model objective function)
-reg = regularization.LeastSquaresRegularization(
+reg = regularization.WeightedLeastSquares(
     mesh,
     indActive=ind_active,
     reference_model=starting_model,

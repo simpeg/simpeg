@@ -1139,7 +1139,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     opt = optimization.InexactGaussNewton(maxIter=miter)
     opt.bfgsH0 = Solver(sp.identity(model.nP), flag="D")
     # Create a regularization program
-    reg = regularization.LeastSquaresRegularization(model)
+    reg = regularization.WeightedLeastSquares(model)
     # Create an objective function
     beta = directives.BetaSchedule(beta0=1e0)
     obj = objective_function.BaseObjFunction(prob, reg, beta=beta)

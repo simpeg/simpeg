@@ -71,7 +71,7 @@ std = 0.01
 survey = prob.make_synthetic_data(mtrue, relative_error=std, add_noise=True)
 
 # Setup the inverse problem
-reg = regularization.LeastSquaresRegularization(mesh, alpha_s=1.0, alpha_x=1.0)
+reg = regularization.WeightedLeastSquares(mesh, alpha_s=1.0, alpha_x=1.0)
 dmis = data_misfit.L2DataMisfit(data=survey, simulation=prob)
 opt = optimization.ProjectedGNCG(maxIter=10, maxIterCG=50, tolCG=1e-4)
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -140,7 +140,7 @@ inv = inversion.BaseInversion(
     invProb, directiveList=[Alphas, beta, petrodir, targets, addmref, betaIt]
 )
 
-# Initial model same as for LeastSquaresRegularization
+# Initial model same as for WeightedLeastSquares
 mcluster = inv.run(m0)
 
 # Final Plot

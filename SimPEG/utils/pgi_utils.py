@@ -29,7 +29,7 @@ from ..regularization import (
     Small,
     PGI,
     PGIsmallness,
-    LeastSquaresRegularization,
+    WeightedLeastSquares,
     PGIwithRelationships,
 )
 

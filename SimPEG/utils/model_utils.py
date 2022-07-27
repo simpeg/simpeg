@@ -46,12 +46,8 @@ def surface2ind_topo(mesh, topo, gridLoc="CC", method="nearest", fill_value=np.n
             ):
                 # If not, use nearest neihbor to extrapolate them
                 Ftopo = NearestNDInterpolator(topo[:, :2], topo[:, 2])
-                xinds = np.logical_or(
-                    xminTopo < mesh.nodes_x, xmaxTopo > mesh.nodes_x
-                )
-                yinds = np.logical_or(
-                    yminTopo < mesh.nodes_y, ymaxTopo > mesh.nodes_y
-                )
+                xinds = np.logical_or(xminTopo < mesh.nodes_x, xmaxTopo > mesh.nodes_x)
+                yinds = np.logical_or(yminTopo < mesh.nodes_y, ymaxTopo > mesh.nodes_y)
                 XYOut = ndgrid(mesh.nodes_x[xinds], mesh.nodes_y[yinds])
                 topoOut = Ftopo(XYOut)
                 topo = np.vstack((topo, np.c_[XYOut, topoOut]))

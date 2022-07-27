@@ -6,7 +6,7 @@ from discretize.base import BaseMesh
 
 from .base import (
     BaseRegularization,
-    LeastSquaresRegularization,
+    WeightedLeastSquares,
     RegularizationMesh,
     Small,
     SmoothDeriv,
@@ -191,7 +191,7 @@ class SparseDeriv(BaseSparse, SmoothDeriv):
     )
 
 
-class Sparse(LeastSquaresRegularization):
+class Sparse(WeightedLeastSquares):
     """
     The regularization is:
 

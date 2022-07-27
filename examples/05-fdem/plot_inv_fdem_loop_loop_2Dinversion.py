@@ -284,7 +284,7 @@ ax = plot_data(dclean)
 # employ a beta-cooling schedule using :class:`SimPEG.directives.BetaSchedule`
 
 dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data)
-reg = regularization.LeastSquaresRegularization(inversion_mesh)
+reg = regularization.WeightedLeastSquares(inversion_mesh)
 opt = optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
 invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 

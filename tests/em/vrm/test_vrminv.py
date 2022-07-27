@@ -67,7 +67,7 @@ class VRM_inversion_tests(unittest.TestCase):
             )
             ** 0.25
         )
-        reg = regularization.LeastSquaresRegularization(
+        reg = regularization.WeightedLeastSquares(
             meshObj, alpha_s=0.01, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, weights=W
         )
         opt = optimization.ProjectedGNCG(

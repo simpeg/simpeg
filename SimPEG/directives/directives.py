@@ -8,7 +8,7 @@ from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
 from ..maps import IdentityMap, Wires
 from ..regularization import (
-    LeastSquaresRegularization,
+    WeightedLeastSquares,
     BaseRegularization,
     BaseSparse,
     Small,
@@ -40,7 +40,7 @@ class InversionDirective(properties.HasProperties):
     _REGISTRY = {}
 
     debug = False  #: Print debugging information
-    _regPair = [LeastSquaresRegularization, BaseRegularization, ComboObjectiveFunction]
+    _regPair = [WeightedLeastSquares, BaseRegularization, ComboObjectiveFunction]
     _dmisfitPair = [BaseDataMisfit, ComboObjectiveFunction]
 
     def __init__(self, **kwargs):
@@ -81,7 +81,7 @@ class InversionDirective(properties.HasProperties):
             [isinstance(value, regtype) for regtype in self._regPair]
         ), "Regularization must be in {}, not {}".format(self._regPair, type(value))
 
-        if isinstance(value, LeastSquaresRegularization):
+        if isinstance(value, WeightedLeastSquares):
             value = 1 * value  # turn it into a combo objective function
         self._reg = value
 

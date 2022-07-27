@@ -43,7 +43,7 @@ def run_inversion(
         reg.alpha_y = alpha_y
         reg.alpha_z = alpha_z
     else:
-        reg = regularization.LeastSquaresRegularization(
+        reg = regularization.WeightedLeastSquares(
             mesh, indActive=actind, mapping=regmap
         )
         reg.alpha_s = alpha_s

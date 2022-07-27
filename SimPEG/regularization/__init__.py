@@ -1,7 +1,7 @@
 from ..utils.code_utils import deprecate_class
 from .base import (
     BaseRegularization,
-    LeastSquaresRegularization,
+    WeightedLeastSquares,
     BaseSimilarityMeasure,
     Small,
     SmoothDeriv,
@@ -17,21 +17,24 @@ from .jtv import JointTotalVariation
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class SimpleSmall(Small):
+    """Deprecated class for Small."""
     def __init__(self, mesh=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class SimpleSmoothDeriv(SmoothDeriv):
+    """Deprecated class for SmoothDeriv."""
     def __init__(self, mesh=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
-class Simple(LeastSquaresRegularization):
+class Simple(WeightedLeastSquares):
+    """Deprecated class for SmoothDeriv."""
     def __init__(self, mesh=None, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, **kwargs):
         # These alphas are now refered to as length_scalse in the
-        # new LeastSquaresRegularization
+        # new WeightedLeastSquares regularization
         super().__init__(
             mesh=mesh,
             length_scale_x=alpha_x,
@@ -42,7 +45,7 @@ class Simple(LeastSquaresRegularization):
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
-class Tikhonov(LeastSquaresRegularization):
+class Tikhonov(WeightedLeastSquares):
     def __init__(
         self, mesh=None, alpha_s=1e-6, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, **kwargs
     ):

@@ -358,10 +358,8 @@ class BaseRegularization(BaseObjectiveFunction):
     # TODO move these to general validation functions in code_utils
     def validate_array_type(self, attribute, array, dtype):
         """Generic array and type validator"""
-        if (
-            array is not None
-            and (not isinstance(array, np.ndarray)
-            or not array.dtype == dtype)
+        if array is not None and (
+            not isinstance(array, np.ndarray) or not array.dtype == dtype
         ):
             raise TypeError(
                 f"Values provided for '{attribute}' for {self} must by a {np.ndarray} of type {dtype}. "
@@ -631,7 +629,7 @@ class SmoothDeriv2(SmoothDeriv):
 ###############################################################################
 
 
-class LeastSquaresRegularization(ComboObjectiveFunction):
+class WeightedLeastSquares(ComboObjectiveFunction):
     _model = None
 
     def __init__(

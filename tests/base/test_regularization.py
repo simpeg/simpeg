@@ -210,8 +210,8 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.TensorMesh([8, 7, 6])
         m = np.random.rand(mesh.nC)
 
-        reg1 = regularization.LeastSquaresRegularization(mesh)
-        reg2 = regularization.LeastSquaresRegularization(mesh)
+        reg1 = regularization.WeightedLeastSquares(mesh)
+        reg2 = regularization.WeightedLeastSquares(mesh)
 
         reg_a = reg1 + reg2
         self.assertTrue(len(reg_a) == 2)
@@ -234,7 +234,7 @@ class RegularizationTests(unittest.TestCase):
 
         wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
 
-        for regType in ["LeastSquaresRegularization", "Sparse"]:
+        for regType in ["WeightedLeastSquares", "Sparse"]:
             reg1 = getattr(regularization, regType)(mesh, mapping=wires.sigma)
             reg2 = getattr(regularization, regType)(mesh, mapping=wires.mu)
 
@@ -348,7 +348,7 @@ class RegularizationTests(unittest.TestCase):
 
     def test_linked_properties(self):
         mesh = discretize.TensorMesh([8, 7, 6])
-        reg = regularization.LeastSquaresRegularization(mesh)
+        reg = regularization.WeightedLeastSquares(mesh)
 
         [
             self.assertTrue(reg.regularization_mesh is fct.regularization_mesh)
@@ -421,7 +421,7 @@ class RegularizationTests(unittest.TestCase):
         mesh = discretize.CylMesh([hx, 3, hz], "00C")
         active = mesh.cell_centers[:, 2] < 0.0
 
-        reg = regularization.LeastSquaresRegularization(mesh, active_cells=active)
+        reg = regularization.WeightedLeastSquares(mesh, active_cells=active)
         self.assertTrue(reg._nC_residual == len(active.nonzero()[0]))
 
     def test_base_regularization(self):

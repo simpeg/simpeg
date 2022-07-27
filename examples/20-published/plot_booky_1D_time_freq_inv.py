@@ -245,7 +245,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Regularization
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.LeastSquaresRegularization(regMesh, mapping=maps.IdentityMap(regMesh))
+    reg = regularization.WeightedLeastSquares(regMesh, mapping=maps.IdentityMap(regMesh))
 
     # Optimization
     opt = optimization.InexactGaussNewton(maxIter=5)
@@ -359,7 +359,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Regularization
     regMesh = discretize.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
-    reg = regularization.LeastSquaresRegularization(regMesh, mapping=maps.IdentityMap(regMesh))
+    reg = regularization.WeightedLeastSquares(regMesh, mapping=maps.IdentityMap(regMesh))
 
     # Optimization
     opt = optimization.InexactGaussNewton(maxIter=5)

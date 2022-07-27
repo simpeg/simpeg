@@ -307,10 +307,10 @@ dmis_grav = data_misfit.L2DataMisfit(data=data_object_grav, simulation=simulatio
 dmis_mag = data_misfit.L2DataMisfit(data=data_object_mag, simulation=simulation_mag)
 
 # Define the regularization (model objective function).
-reg_grav = regularization.LeastSquaresRegularization(
+reg_grav = regularization.WeightedLeastSquares(
     mesh, indActive=ind_active, mapping=wires.density
 )
-reg_mag = regularization.LeastSquaresRegularization(
+reg_mag = regularization.WeightedLeastSquares(
     mesh, indActive=ind_active, mapping=wires.susceptibility
 )
 
