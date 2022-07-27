@@ -157,10 +157,11 @@ class BaseRegularization(BaseObjectiveFunction):
             and self.regularization_mesh.nC != "*"
         ):
             return (self.regularization_mesh.nC,)
-        elif getattr(self, "_mapping", None) is not None and self.mapping.shape != "*":
+
+        if getattr(self, "_mapping", None) is not None and self.mapping.shape != "*":
             return (self.mapping.shape[0],)
-        else:
-            return "*"
+
+        return "*"
 
     @property
     def reference_model(self) -> np.ndarray:
@@ -198,6 +199,7 @@ class BaseRegularization(BaseObjectiveFunction):
 
     @property
     def cell_weights(self) -> np.ndarray:
+        """Deprecated property for 'volume' and user defined weights."""
         warnings.warn(
             "cell_weights are deprecated please access weights using the `set_weights`,"
             " `get_weights`, and `remove_weights` functionality. This will be removed in 0.x.0",
@@ -247,8 +249,8 @@ class BaseRegularization(BaseObjectiveFunction):
         """Removes the weights with a given key"""
         try:
             self._weights.pop(key)
-        except KeyError:
-            raise KeyError(f"{key} is not in the weights dictionary")
+        except KeyError as error:
+            raise KeyError(f"{key} is not in the weights dictionary") from error
         self._W = None
 
     @property
@@ -272,10 +274,11 @@ class BaseRegularization(BaseObjectiveFunction):
 
         if mapping is not None and mapping.shape[1] != "*":
             return self.mapping.shape[1]
-        elif nC != "*" and nC is not None:
+
+        if nC != "*" and nC is not None:
             return self.regularization_mesh.nC
-        else:
-            return self._weights_shapes[0]
+
+        return self._weights_shapes[0]
 
     def _delta_m(self, m) -> np.ndarray:
         if self.reference_model is None:
@@ -362,7 +365,8 @@ class BaseRegularization(BaseObjectiveFunction):
             not isinstance(array, np.ndarray) or not array.dtype == dtype
         ):
             raise TypeError(
-                f"Values provided for '{attribute}' for {self} must by a {np.ndarray} of type {dtype}. "
+                f"Values provided for '{attribute}' for {self} must by a"
+                f" {np.ndarray} of type {dtype}. "
                 f"Values of type {type(array)} provided."
             )
 
@@ -375,7 +379,8 @@ class BaseRegularization(BaseObjectiveFunction):
             and not (values.shape == shape or values.shape in shape)
         ):
             raise ValueError(
-                f"Values provided for attribute '{attribute}' for {self} must be of shape {shape} not {values.shape}"
+                f"Values provided for attribute '{attribute}' for {self} must be"
+                f" of shape {shape} not {values.shape}"
             )
 
 
@@ -386,24 +391,27 @@ class Small(BaseRegularization):
 
     .. math::
 
-        r(m) = \\frac{1}{2}(\\mathbf{m} - \\mathbf{m_ref})^\top \\mathbf{V}^T \\mathbf{W}^T
+        r(m) = \\frac{1}{2}(\\mathbf{m} - \\mathbf{m_ref})^\top \\mathbf{V}^T
+            \\mathbf{W}^T
         \\mathbf{W} \\mathbf{V} (\\mathbf{m} - \\mathbf{m_{ref}})
 
     where
     :math:`\\mathbf{m}` is the model,
     :math:`\\mathbf{m_{ref}}` is a reference model,
     :math:`\\mathbf{V}` are square root of cell volumes and
-    :math:`\\mathbf{W}` is a weighting matrix (default Identity).
-    If fixed or free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
+    :math:`\\mathbf{W}` is a weighting matrix (default Identity). If fixed or
+        free weights are provided, then it is :code:`diag(np.sqrt(weights))`).
 
 
     **Optional Inputs**
 
     :param discretize.base.BaseMesh mesh: SimPEG mesh
     :param int shape: number of parameters
-    :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
+    :param IdentityMap mapping: regularization mapping, takes the model from
+        model space to the space you want to regularize in
     :param numpy.ndarray reference_model: reference model
-    :param numpy.ndarray active_cells: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
+    :param numpy.ndarray active_cells: active cell indices for reducing the size
+        of differential operators in the definition of a regularization mesh
     :param numpy.ndarray weights: cell weights
 
     """
@@ -435,11 +443,15 @@ class SmoothDeriv(BaseRegularization):
     **Optional Inputs**
 
     :param discretize.base.BaseMesh mesh: SimPEG mesh
-    :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
+    :param IdentityMap mapping: regularization mapping, takes the model from
+        model space to the space you want to regularize in
     :param numpy.ndarray reference_model: reference model
-    :param numpy.ndarray active_cells: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
+    :param numpy.ndarray active_cells: active cell indices for reducing the
+        size of differential operators in the definition of a regularization mesh
     :param numpy.ndarray weights: cell weights
-    :param bool reference_model_in_smooth: include the reference model in the smoothness computation? (eg. look at Deriv of m (False) or Deriv of (m-reference_model) (True))
+    :param bool reference_model_in_smooth: include the reference model in the
+        smoothness computation? (eg. look at Deriv of m (False) or Deriv of
+        (m-reference_model) (True))
     :param numpy.ndarray weights: vector of cell weights (applied in all terms)
     """
 
@@ -572,11 +584,15 @@ class SmoothDeriv2(SmoothDeriv):
 
     :param discretize.base.BaseMesh mesh: SimPEG mesh
     :param int nP: number of parameters
-    :param IdentityMap mapping: regularization mapping, takes the model from model space to the space you want to regularize in
+    :param IdentityMap mapping: regularization mapping, takes the model from
+        model space to the space you want to regularize in
     :param numpy.ndarray reference_model: reference model
-    :param numpy.ndarray active_cells: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
+    :param numpy.ndarray active_cells: active cell indices for reducing the
+        size of differential operators in the definition of a regularization mesh
     :param numpy.ndarray weights: cell weights
-    :param bool reference_model_in_smooth: include the reference model in the smoothness computation? (eg. look at Deriv of m (False) or Deriv of (m-reference_model) (True))
+    :param bool reference_model_in_smooth: include the reference model in the
+        smoothness computation? (eg. look at Deriv of m (False) or Deriv of
+        (m-reference_model) (True))
     :param numpy.ndarray weights: vector of cell weights (applied in all terms)
     """
 

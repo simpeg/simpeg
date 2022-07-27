@@ -17,21 +17,24 @@ from .jtv import JointTotalVariation
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class SimpleSmall(Small):
-    """Deprecated class for Small."""
+    """Deprecated class, replaced by Small."""
+
     def __init__(self, mesh=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class SimpleSmoothDeriv(SmoothDeriv):
-    """Deprecated class for SmoothDeriv."""
+    """Deprecated class, replaced by SmoothDeriv."""
+
     def __init__(self, mesh=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class Simple(WeightedLeastSquares):
-    """Deprecated class for SmoothDeriv."""
+    """Deprecated class, replaced by SmoothDeriv."""
+
     def __init__(self, mesh=None, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, **kwargs):
         # These alphas are now refered to as length_scalse in the
         # new WeightedLeastSquares regularization
@@ -46,6 +49,8 @@ class Simple(WeightedLeastSquares):
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class Tikhonov(WeightedLeastSquares):
+    """Deprecated class, replaced by WeightedLeastSquares."""
+
     def __init__(
         self, mesh=None, alpha_s=1e-6, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0, **kwargs
     ):
@@ -61,11 +66,15 @@ class Tikhonov(WeightedLeastSquares):
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class PGIwithNonlinearRelationshipsSmallness(PGIsmallness):
+    """Deprecated class, replaced by PGIsmallness."""
+
     def __init__(self, gmm, **kwargs):
         super().__init__(gmm, non_linear_relationships=True, **kwargs)
 
 
 @deprecate_class(removal_version="0.x.0", future_warn=True)
 class PGIwithRelationships(PGI):
+    """Deprecated class, replaced by PGI."""
+
     def __init__(self, mesh, gmmref, **kwargs):
         super().__init__(mesh, gmmref, non_linear_relationships=True, **kwargs)
