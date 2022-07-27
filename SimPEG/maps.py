@@ -3526,11 +3526,11 @@ class LayeredInterpolationMap(IdentityMap):
         self.tree = KDTree(self.xy_locations_in)
         self.factor = factor
         self.constant = constant
-    
+
     def get_effective_radius(self, z):
         radius = np.sqrt(3) * z * self.factor + self.constant
         return radius
-    
+
     @property
     def P(self):
         if getattr(self, "_P", None) is None:
@@ -3562,7 +3562,7 @@ class LayeredInterpolationMap(IdentityMap):
             _, inds = self.tree.query(self.xy_locations_out)  
             self._depth_out = self.depth_in[inds,:] 
         return self._depth_out
-    
+
     @property
     def shape(self):
         """Number of parameters in the model."""
@@ -3573,6 +3573,44 @@ class LayeredInterpolationMap(IdentityMap):
     def nP(self):
         """Number of parameters in the model."""
         return int(self.xy_locations_in.shape[0]*self.n_layer)
+
+    def _transform(self, m):
+        return self.P * m
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
+class VerticalVolumeAveragingMap(IdentityMap):
+    """
+    TBA
+    """
+    def __init__(self, n_lateral, hzs):
+        assert type(hzs) is list, "hzs must be a list of two arrays"
+        assert len(hzs) == 2, "hzs must be a list of two arrays"
+        self.n_lateral = n_lateral
+        self.mesh_in = discretize.TensorMesh([hzs[0]], x0=[0])
+        self.mesh_out = discretize.TensorMesh([hzs[1]], x0=[0])
+
+    @property
+    def P(self):
+        if getattr(self, "_P", None) is None:
+            I_r = speye(self.n_lateral)
+            Pz = discretize.utils.volume_average(self.mesh_in, self.mesh_out)
+            self._P = sp.kron(I_r, Pz)
+        return self._P
+
+    @property
+    def shape(self):
+        """Number of parameters in the model."""
+        return self.P.shape
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        return self.P.shape[1]
 
     def _transform(self, m):
         return self.P * m
