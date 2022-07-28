@@ -590,6 +590,9 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             pool.close()
             pool.join()
 
+            if self.verbose:
+                print(">> End pooling and form J matrix")
+
             self._Jmatrix_sigma = np.hstack(self._Jmatrix_sigma)
             # else:
             # self._Jmatrix_sigma = pool.map(
@@ -599,12 +602,12 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             #     ]
             # )
             self._Jmatrix_sigma = np.r_[self._Jmatrix_sigma].ravel()
-            if self.verbose:
-                print(">> End pooling")
-
             self._Jmatrix_sigma = sp.coo_matrix(
                 (self._Jmatrix_sigma, self.IJLayers), dtype=float
             ).tocsr()
+            if self.verbose:
+                print(">> End forming J matrix")
+
 
         else:
             self._Jmatrix_sigma = [
