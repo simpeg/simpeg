@@ -584,6 +584,9 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
                     self.input_args(i, output_type='sensitivity_sigma') for i in range(self.n_sounding)
                 ]
             )
+            pool.close()
+            pool.join()
+
             self._Jmatrix_sigma = np.hstack(self._Jmatrix_sigma)
             # else:
             # self._Jmatrix_sigma = pool.map(
@@ -593,9 +596,6 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             #     ]
             # )
             self._Jmatrix_sigma = np.r_[self._Jmatrix_sigma].ravel()
-            pool.close()
-            pool.join()
-
             if self.verbose:
                 print(">> End pooling")
 
