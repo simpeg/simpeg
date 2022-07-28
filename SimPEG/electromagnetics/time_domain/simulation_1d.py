@@ -489,6 +489,25 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             self._sounding_types_uniq, self._ind_sounding_uniq = np.unique(
                 self.survey._sounding_types, return_index=True
             )
+    def get_coefficients(self):
+        if self.verbose:
+            print(">> Calculate coefficients")
+        # pool = Pool(self.n_cpu)
+        # self._coefficients = pool.map(
+        #     run_simulation,
+        #     [
+        #         self.input_args_for_coeff(i) for i in range(self.n_sounding)
+        #     ]
+        #  )
+        # self._coefficients_set = True
+        # pool.close()
+        # pool.join()
+        self.get_uniq_soundings()
+        self._coefficients = {}
+        for ii in self._ind_sounding_uniq:
+            name = self._sounding_types_uniq[ii]
+            self._coefficients[name] = run_simulation(self.input_args_for_coeff(ii))
+        self._coefficients_set = True
 
     def forward(self, m):
         self.model = m
@@ -500,6 +519,9 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
         if self.topo is None:
             self.set_null_topography()
 
+        if self._coefficients_set is False:
+            self.get_coefficients()
+
         run_simulation = run_simulation_time_domain
 
         if self.parallel:
@@ -507,26 +529,6 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
                 print ('parallel')
 
             #This assumes the same # of layers for each of sounding
-            if self._coefficients_set is False:
-                if self.verbose:
-                    print(">> Calculate coefficients")
-                # pool = Pool(self.n_cpu)
-                # self._coefficients = pool.map(
-                #     run_simulation,
-                #     [
-                #         self.input_args_for_coeff(i) for i in range(self.n_sounding)
-                #     ]
-                #  )
-                # self._coefficients_set = True
-                # pool.close()
-                # pool.join()
-                self.get_uniq_soundings()
-                self._coefficients = {}
-                for ii in self._ind_sounding_uniq:
-                    name = self._sounding_types_uniq[ii]
-                    self._coefficients[name] = run_simulation(self.input_args_for_coeff(ii))
-                self._coefficients_set = True
-
             # if self.n_sounding_for_chunk is None:
             pool = Pool(self.n_cpu)
             result = pool.map(
@@ -547,12 +549,6 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
                 # self._coefficients = [
                 #     run_simulation(self.input_args_for_coeff(i)) for i in range(self.n_sounding)
                 # ]
-                self._coefficients = {}
-                for ii in self._ind_sounding_uniq:
-                    name = self._sounding_types_uniq[ii]
-                    self._coefficients[name] = run_simulation(self.input_args_for_coeff(ii))
-                self._coefficients_set = True
-
             result = [
                 run_simulation(self.input_args(i, output_type='forward')) for i in range(self.n_sounding)
             ]
@@ -566,6 +562,10 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             return self._Jmatrix_sigma
         if self.verbose:
             print(">> Compute J sigma")
+
+        if self._coefficients_set is False:
+            self.get_coefficients()
+
         self.model = m
 
         run_simulation = run_simulation_time_domain
