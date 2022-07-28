@@ -580,16 +580,15 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
                 print(">> Start pooling")
 
             pool = Pool(self.n_cpu)
-                with Pool(processes=self.n_cpu) as pool:
 
-                # Deprecate this for now, but revisit later
-                # It is an idea of chunking for parallelization
-                # if self.n_sounding_for_chunk is None:
-                self._Jmatrix_sigma = pool.map(
-                    run_simulation,
-                    [
-                        self.input_args(i, output_type='sensitivity_sigma') for i in range(self.n_sounding)
-                    ]
+            # Deprecate this for now, but revisit later
+            # It is an idea of chunking for parallelization
+            # if self.n_sounding_for_chunk is None:
+            self._Jmatrix_sigma = pool.map(
+                run_simulation,
+                [
+                    self.input_args(i, output_type='sensitivity_sigma') for i in range(self.n_sounding)
+                ]
             )
 
 
