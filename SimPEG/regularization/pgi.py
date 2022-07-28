@@ -71,7 +71,7 @@ class PGIsmallness(Small):
         self.approx_eval = approx_eval
         self.approx_hessian = approx_hessian
         self.non_linear_relationships = non_linear_relationships
-        self.gmm = gmm
+        self._gmm = copy.deepcopy(gmm)
         self.wiresmap = wiresmap
         self.maplist = maplist
 
@@ -127,11 +127,11 @@ class PGIsmallness(Small):
     def membership(self, m):
         modellist = self.wiresmap * m
         model = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        return self.gmm.predict(model)  # mkvc(m, numDims=2))
+        return self.gmm.predict(model)
 
     def compute_quasi_geology_model(self):
         # used once mref is built
-        mreflist = self.wiresmap * self.mref
+        mreflist = self.wiresmap * self.reference_model
         mrefarray = np.c_[[a * b for a, b in zip(self.maplist, mreflist)]].T
         return np.c_[
             [((mrefarray - mean) ** 2).sum(axis=1) for mean in self.gmm.means_]
@@ -203,12 +203,12 @@ class PGIsmallness(Small):
             W = Identity()
 
         if getattr(self, "mref", None) is None:
-            self.mref = mkvc(self.gmm.means_[self.membership(m)])
+            self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.approx_eval:
             membership = self.compute_quasi_geology_model()
             dm = self.wiresmap * (m)
-            dmref = self.wiresmap * (self.mref)
+            dmref = self.wiresmap * (self.reference_model)
             dmm = np.c_[[a * b for a, b in zip(self.maplist, dm)]].T
             if self.non_linear_relationships:
                 dmm = np.r_[
@@ -276,12 +276,12 @@ class PGIsmallness(Small):
     def deriv(self, m):
 
         if getattr(self, "mref", None) is None:
-            self.mref = mkvc(self.gmm.means_[self.membership(m)])
+            self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
         membership = self.compute_quasi_geology_model()
         modellist = self.wiresmap * m
         dmmodel = np.c_[[a * b for a, b in zip(self.maplist, modellist)]].T
-        mreflist = self.wiresmap * self.mref
+        mreflist = self.wiresmap * self.reference_model
         mD = [a.deriv(b) for a, b in zip(self.maplist, modellist)]
         mD = sp.block_diag(mD)
 
@@ -467,7 +467,7 @@ class PGIsmallness(Small):
     def deriv2(self, m, v=None):
 
         if getattr(self, "mref", None) is None:
-            self.mref = mkvc(self.gmm.means_[self.membership(m)])
+            self.reference_model = mkvc(self.gmm.means_[self.membership(m)])
 
         if self.approx_hessian:
             # we approximate it with the covariance of the cluster
@@ -712,6 +712,8 @@ class PGI(ComboObjectiveFunction):
         self._wiresmap = wiresmap
         self._maplist = maplist
         self.regularization_mesh = mesh
+        self.gmmref = copy.deepcopy(gmmref)
+        self.gmmref.order_clusters_GM_weight()
 
         objfcts = [
             PGIsmallness(
@@ -771,13 +773,11 @@ class PGI(ComboObjectiveFunction):
 
     @property
     def gmm(self):
-        return self._gmm
+        return self.objfcts[0].gmm
 
     @gmm.setter
     def gmm(self, gm):
-        if gm is not None:
-            self._gmm = copy.deepcopy(gm)
-        self.objfcts[0].gmm = self.gmm
+        self.objfcts[0].gmm = copy.deepcopy(gm)
 
     def membership(self, m):
         return self.objfcts[0].membership(m)
@@ -833,7 +833,7 @@ class PGI(ComboObjectiveFunction):
     @property
     def reference_model(self) -> np.ndarray:
         """Reference physical property model"""
-        return self._reference_model
+        return self.objfcts[0].reference_model
 
     @reference_model.setter
     def reference_model(self, values: np.ndarray | float):
@@ -844,11 +844,9 @@ class PGI(ComboObjectiveFunction):
         for fct in self.objfcts:
             fct.reference_model = values
 
-        self._reference_model = values
-
     mref = deprecate_property(
         reference_model,
         "mref",
-        "0.x.0",
+        "reference_model",
         error=False,
     )

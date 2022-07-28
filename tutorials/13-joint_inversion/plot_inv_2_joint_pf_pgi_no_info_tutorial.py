@@ -354,7 +354,10 @@ reg = regularization.PGI(
     alpha_xx=0.0,
     alpha_yy=0.0,
     alpha_zz=0.0,
-    weights_list=[wr_grav, wr_mag],  # weights each phys. prop. by each sensW
+    # use the classification of the initial model (here, all background unit)
+    # as initial reference model
+    reference_model=utils.mkvc(gmmref.means_[gmmref.predict(m0.reshape(actvMap.nP,-1))]),
+    weights_list=[wr_grav, wr_mag], # weights each phys. prop. by correct sensW
 )
 
 # Directives

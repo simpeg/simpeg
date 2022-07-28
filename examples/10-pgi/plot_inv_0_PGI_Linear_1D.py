@@ -114,7 +114,7 @@ reg = regularization.PGI(
 )
 
 # Optimization
-opt = optimization.ProjectedGNCG(maxIter=10, maxIterCG=50, tolCG=1e-4)
+opt = optimization.ProjectedGNCG(maxIter=20, maxIterCG=50, tolCG=1e-4)
 opt.remember("xc")
 
 # Setup new inverse problem
@@ -122,7 +122,7 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # directives
 Alphas = directives.AlphasSmoothEstimate_ByEig(alpha0_ratio=10.0, verbose=True)
-beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-6)
+beta = directives.BetaEstimate_ByEig(beta0_ratio=1e-8)
 betaIt = directives.PGI_BetaAlphaSchedule(
     verbose=True,
     coolingFactor=2.0,
@@ -159,7 +159,7 @@ axes[1].legend(["Mtrue Hist.", "L2 Model Hist.", "PGI Model Hist."])
 axes[2].plot(mesh.cell_centers_x, mtrue, color="black", linewidth=3)
 axes[2].plot(mesh.cell_centers_x, mnormal, color="blue")
 axes[2].plot(mesh.cell_centers_x, mcluster, "r-")
-axes[2].plot(mesh.cell_centers_x, invProb.reg.objfcts[0].mref, "r--")
+axes[2].plot(mesh.cell_centers_x, invProb.reg.objfcts[0].reference_model, "r--")
 
 axes[2].legend(("True Model", "L2 Model", "PGI Model", "Learned Mref"))
 axes[2].set_ylim([-2, 2])
