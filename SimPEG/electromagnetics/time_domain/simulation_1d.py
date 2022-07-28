@@ -503,6 +503,9 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
         # pool.close()
         # pool.join()
         self.get_uniq_soundings()
+
+        run_simulation = run_simulation_time_domain
+
         self._coefficients = {}
         for ii in self._ind_sounding_uniq:
             name = self._sounding_types_uniq[ii]
