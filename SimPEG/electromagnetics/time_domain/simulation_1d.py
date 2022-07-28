@@ -525,6 +525,7 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
                 for ii in self._ind_sounding_uniq:
                     name = self._sounding_types_uniq[ii]
                     self._coefficients[name] = run_simulation(self.input_args_for_coeff(ii))
+                self._coefficients_set = True
 
             # if self.n_sounding_for_chunk is None:
             pool = Pool(self.n_cpu)
