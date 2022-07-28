@@ -570,6 +570,8 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
         run_simulation = run_simulation_time_domain
 
         if self.parallel:
+            if self.verbose:
+                print(">> Start pooling")
 
             pool = Pool(self.n_cpu)
             # Deprecate this for now, but revisit later
@@ -592,6 +594,9 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             self._Jmatrix_sigma = np.r_[self._Jmatrix_sigma].ravel()
             pool.close()
             pool.join()
+
+            if self.verbose:
+                print(">> End pooling")
 
             self._Jmatrix_sigma = sp.coo_matrix(
                 (self._Jmatrix_sigma, self.IJLayers), dtype=float
