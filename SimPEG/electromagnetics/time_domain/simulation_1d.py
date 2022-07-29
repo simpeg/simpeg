@@ -509,8 +509,8 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
         run_simulation = run_simulation_time_domain
 
         self._coefficients = {}
-        for ii in self._ind_sounding_uniq:
-            name = self._sounding_types_uniq[ii]
+        for kk, ii in enumerate(self._ind_sounding_uniq):
+            name = self._sounding_types_uniq[kk]
             self._coefficients[name] = run_simulation(self.input_args_for_coeff(ii))
         self._coefficients_set = True
 
