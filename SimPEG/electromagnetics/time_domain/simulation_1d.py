@@ -565,13 +565,14 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
         """
         if self._Jmatrix_sigma is not None:
             return self._Jmatrix_sigma
+
+        self.model = m
+
         if self.verbose:
             print(">> Compute J sigma")
 
         if self._coefficients_set is False:
             self.get_coefficients()
-
-        self.model = m
 
         run_simulation = run_simulation_time_domain
 

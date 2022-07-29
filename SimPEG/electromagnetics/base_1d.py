@@ -883,7 +883,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         trace of sensitivity matrix (J)
         """
         J_sigma = self.getJ_sigma(m)
-        # This is a memory-wise expensive
         J_matrix = J_sigma*(utils.sdiag(1./self.sigma)*(self.sigmaDeriv))
 
         if self.hMap is not None:
