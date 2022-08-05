@@ -160,6 +160,42 @@ class BaseEM1DSimulation(BaseSimulation):
 
             return sigma_complex
 
+    def compute_dcomplex_sigma_dsigma_inf(self, frequencies):
+        dsigma_dsigma_inf = np.empty(
+            [n_layer, n_frequency], dtype=np.complex128, order="F"
+        )
+        dsigma_dsigma_inf[:, :] = 1 - 1 * eta / (
+            1 + (1j * w * tau) ** c
+        )
+        return dsigma_dsigma_inf
+
+    def compute_dcomplex_sigma_deta(self, frequencies):
+        dsigma_deta = np.empty(
+            [n_layer, n_frequency], dtype=np.complex128, order="F"
+        )
+        dsigma_deta[:, :] = - sigma / (
+            1 + (1j * w * tau) ** c
+        )
+        return dsigma_deta
+
+    def compute_dcomplex_sigma_dtau(self, frequencies):
+        dsigma_tau = np.empty(
+            [n_layer, n_frequency], dtype=np.complex128, order="F"
+        )
+        dsigma_tau[:, :] = - sigma / (
+            1 + (1j * w * tau) ** c
+        )
+        return dsigma_tau
+
+    def compute_dcomplex_sigma_dc(self, frequencies):
+        dsigma_c = np.empty(
+            [n_layer, n_frequency], dtype=np.complex128, order="F"
+        )
+        dsigma_c[:, :] = - sigma / (
+            1 + (1j * w * tau) ** c
+        )
+        return dsigma_c
+
     def compute_complex_mu(self, frequencies):
         """
         Computes the complex magnetic permeability matrix assuming a log-uniform
@@ -528,12 +564,14 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         utils.setKwargs(self, **kwargs)
 
         if self.parallel:
-            print(">> Use multiprocessing for parallelization")
-            if self.n_cpu is None:
-                self.n_cpu = multiprocessing.cpu_count()
-            print((">> n_cpu: %i") % (self.n_cpu))
+            if self.verbose:
+                print(">> Use multiprocessing for parallelization")
+                if self.n_cpu is None:
+                    self.n_cpu = multiprocessing.cpu_count()
+                print((">> n_cpu: %i") % (self.n_cpu))
         else:
-            print(">> Serial version is used")
+            if self.verbose:
+                print(">> Serial version is used")
 
         if self.hMap is None:
             self.invert_height = False
