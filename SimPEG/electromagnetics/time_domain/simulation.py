@@ -962,12 +962,15 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
                 xyz_rx = [rx.locations[ii, :] for ii in range(0, np.shape(rx.locations)[0])]
                 for ii, loc in enumerate(xyz_rx):
+                    
+                    temp = sdiag(cell_areas * self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)).dot(dedt)
+                    # temp = sdiag(self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)).dot(dedt)
+                    
                     Wi = sdiag(W[COUNT+ii:COUNT+rx.nD:n_loc])
-                    # temp = sdiag(cell_areas * self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)).dot(dedt)
-                    temp = sdiag(self._cylmesh_geometric_factor(loc, rx.orientation, dh=None)).dot(dedt)
-                    temp = Wi.dot(np.abs(dsigdm_T.dot(temp)).T)
-                    # diagJtJ += np.sum((dsigdm_T.dot(temp))**2, axis=1)
-                    diagJtJ += np.sum(temp, axis=0)
+                    temp = Wi.dot((dsigdm_T.dot(temp)).T)
+                    
+                    diagJtJ += np.sum(temp**2, axis=0)
+                    # diagJtJ += np.sum(temp, axis=0)
 
                 COUNT = COUNT + rx.nD
 
@@ -990,7 +993,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         beta = dz / a
         gamma = dz / (s + dh)  # For stability
         
-        Q = (1 + alpha)**2 + beta**2
+        Q = (1 + alpha)**2 + beta**2 + 1e-6*dh  # For stability
         k = np.sqrt(4*alpha / Q)
 
         if comp == 'x':

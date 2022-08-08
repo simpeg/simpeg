@@ -255,6 +255,15 @@ class BetaEstimate_ByEig(InversionDirective):
 
         self.invProb.beta = self.beta0
 
+class StartingBeta(InversionDirective):
+
+    beta0 = 1.
+
+    def initialize(self):
+        self.invProb.beta = self.beta0
+
+
+
 
 class BetaSchedule(InversionDirective):
     """BetaSchedule"""
@@ -1181,7 +1190,12 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         # Save the file as a npz
         if self.saveOnDisk:
 
-            np.savez("{:03d}-{:s}".format(self.opt.iter, self.fileName), iterDict)
+            np.savez(
+                "{0!s}{1:03d}-{2!s}".format(
+                    self.directory + os.path.sep, self.opt.iter, self.fileName
+                ),
+                iterDict
+            )
 
         self.outDict[self.opt.iter] = iterDict
 
@@ -1671,6 +1685,7 @@ class CurrentBasedSensitivityWeights(InversionDirective):
 
     everyIter = False
     everyBeta = True
+    startingBetaIter = 2
     threshold = 1000.
 
     def initialize(self):
@@ -1685,7 +1700,8 @@ class CurrentBasedSensitivityWeights(InversionDirective):
                     + f"Input mapping of type {type(reg.mapping)}."
                 )
 
-        self.update()
+        if self.startingBetaIter == 0:
+            self.update()
 
     def endIter(self):
         """
@@ -1693,14 +1709,17 @@ class CurrentBasedSensitivityWeights(InversionDirective):
         """
         if self.everyIter:
             self.update()
+
         elif self.everyBeta:
             
             directives_list = self.inversion.directiveList.dList
             ind = np.where([isinstance(d, BetaSchedule) for d in directives_list])[0][0]
-
             cooling_rate = directives_list[ind].coolingRate
             
-            if (self.opt.iter % cooling_rate) == 0:
+            # Needs to be +2. Since updates at end of previous iteration and
+            # Python starts counting at 0.
+            if ((self.opt.iter) % cooling_rate == 0) & (self.opt.iter >= cooling_rate*self.startingBetaIter):
+                print("UPDATING AFTER ITER {}".format(self.opt.iter))
                 self.update()
 
     def update(self):
@@ -1727,9 +1746,9 @@ class CurrentBasedSensitivityWeights(InversionDirective):
                     (reg.mapping * jtj_diag) / reg.objfcts[0].regmesh.vol ** 2.0
                 )
         
+        wr **= 0.5
         wr = self.threshold * wr / wr.max()
         wr[wr < 1.] = 1.
-        # wr **= 0.5  # Doing average sensitivities
 
         # Set new weights
         for reg in self.reg.objfcts:
@@ -1739,13 +1758,15 @@ class CurrentBasedSensitivityWeights(InversionDirective):
         # Re-weight cell weights
         phi_m_new = self.invProb.reg(self.invProb.model)
         
-        print("CELL WEIGHTS UPDATED: {}".format(np.sqrt(phi_m_old / phi_m_new)))
-        
-        if phi_m_new != 0.:
+        if hasattr(self.invProb.opt, 'iter') & (phi_m_new > 0.):
+            print("CELL WEIGHTS UPDATED: {}".format(np.sqrt(phi_m_old / phi_m_new)))
             C = np.sqrt(phi_m_old / phi_m_new)
             for reg in self.reg.objfcts:
                 if not isinstance(reg, BaseSimilarityMeasure):
                     reg.cell_weights = reg.mapping * (C * wr)
+        else:
+            print("CELL WEIGHTS UPDATED")
+            
 
     def validate(self, directiveList):
         # check if a beta estimator is in the list after setting the weights

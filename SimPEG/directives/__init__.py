@@ -18,6 +18,7 @@ from .directives import (
     JointScalingSchedule,
     UpdateSensitivityWeights,
     UpdateMref,
+    StartingBeta,
     ProjectSphericalBounds,
 )
 
