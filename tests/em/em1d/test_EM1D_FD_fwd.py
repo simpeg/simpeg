@@ -10,6 +10,78 @@ from geoana.em.fdem import (
 import empymod
 
 
+class EM1D_FD_test_failures(unittest.TestCase):
+    def setUp(self):
+        
+        nearthick = np.logspace(-1, 1, 5)
+        deepthick = np.logspace(1, 2, 10)
+        thicknesses = np.r_[nearthick, deepthick]
+        topo = np.r_[0.0, 0.0, 100.0]
+        
+        self.topo = topo
+        self.thicknesses = thicknesses
+        self.nlayers = len(thicknesses) + 1
+    
+    def test_src_height_failure(self):
+        
+        offset = 10.0
+        src_location = np.array([[0.0, 0.0, self.topo[2]-10.]])
+        rx_location = np.array([[offset, 0.0, self.topo[2]+1e-5]])
+        frequencies = np.logspace(-1, 5, 11)
+        
+        receiver_list = [
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, orientation="z", component="both"
+            )
+        ]
+        
+        source_list = []
+        for ii, frequency in enumerate(frequencies):
+            src = fdem.sources.MagDipole(
+                receiver_list, frequency, src_location, orientation="z"
+            )
+            source_list.append(src)
+
+        survey = fdem.Survey(source_list)
+        
+        self.assertRaises(
+            ValueError,
+            fdem.Simulation1DLayered,
+            survey=survey,
+            thicknesses=self.thicknesses,
+            topo=self.topo
+        )
+    
+    def test_rx_height_failure(self):
+        
+        offset = 10.0
+        src_location = np.array([[0.0, 0.0, self.topo[2]+1e-5]])
+        rx_location = np.array([[offset, 0.0, self.topo[2]-10.]])
+        frequencies = np.logspace(-1, 5, 11)
+        
+        receiver_list = [
+            fdem.receivers.PointMagneticFieldSecondary(
+                rx_location, orientation="z", component="both"
+            )
+        ]
+        
+        source_list = []
+        for ii, frequency in enumerate(frequencies):
+            src = fdem.sources.MagDipole(
+                receiver_list, frequency, src_location, orientation="z"
+            )
+            source_list.append(src)
+
+        survey = fdem.Survey(source_list)
+        
+        self.assertRaises(
+            ValueError,
+            fdem.Simulation1DLayered,
+            survey=survey,
+            thicknesses=self.thicknesses,
+            topo=self.topo
+        )
+        
 class EM1D_FD_FwdProblemTests(unittest.TestCase):
     def setUp(self):
 
@@ -74,6 +146,19 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.frequencies = frequencies
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
+        
+    def test_basic_properties(self):
+        
+        sim = fdem.Simulation1DLayered(
+            survey=self.survey, thicknesses=self.thicknesses, topo=self.topo
+        )
+        
+        # Number of filters
+        self.assertEqual(sim.n_filter, sim.fhtfilt.base.size)
+        
+        # Layer depths
+        depths = np.r_[0.0, -np.cumsum(self.thicknesses)]
+        self.assertTrue(np.all(depths==sim.depth))
 
     def test_EM1DFDfwd_VMD_Halfspace(self):
 

@@ -40,10 +40,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
         for i_src, src in enumerate(self.survey.source_list):
             if src.location[2] < self.topo[2]:
-                raise Exception("Source must be located above the topography")
+                raise ValueError("Source must be located above the topography")
             for i_rx, rx in enumerate(src.receiver_list):
                 if rx.locations[0, 2] < self.topo[2]:
-                    raise Exception("Receiver must be located above the topography")
+                    raise ValueError("Receiver must be located above the topography")
 
     def get_coefficients(self):
         if self._coefficients_set is False:

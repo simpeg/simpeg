@@ -1,10 +1,11 @@
 import unittest
 from SimPEG import maps
 from SimPEG.utils import mkvc
-from discretize import tests
+from discretize import tests, TensorMesh
 import matplotlib.pyplot as plt
 import SimPEG.electromagnetics.frequency_domain as fdem
 import numpy as np
+from scipy.constants import mu_0
 
 
 class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
@@ -15,9 +16,10 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
         deepthick = np.logspace(1, 2, 10)
         thicknesses = np.r_[nearthick, deepthick]
         topo = np.r_[0.0, 0.0, 100.0]
+        height = 1.
 
-        src_location = np.array([0.0, 0.0, 100.0 + 1e-5])
-        rx_location = np.array([0.0, 0.0, 100.0 + 1e-5])
+        src_location = np.array([0.0, 0.0, 100.0 + height])
+        rx_location = np.array([0.0, 0.0, 100.0 + height])
         frequencies = np.logspace(1, 8, 21)
 
         # Receiver list
@@ -82,15 +84,29 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
         self.topo = topo
         self.survey = survey
         self.showIt = False
+        self.height = height
         self.frequencies = frequencies
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
-        self.sigma_map = maps.ExpMap(nP=self.nlayers)
+        
+        wire_map = maps.Wires(
+            ("sigma", self.nlayers),
+            # ("mu", self.nlayers),
+            ("thicknesses", self.nlayers-1),
+            # ("h", 1)
+        )
+        self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
+        # self.mu_map = maps.IdentityMap(nP=self.nlayers) * wire_map.mu
+        self.thicknesses_map = maps.ExpMap(nP=self.nlayers-1) * wire_map.thicknesses
+        # surject_mesh = TensorMesh([np.ones(len(self.frequencies))])
+        # self.h_map = maps.SurjectFull(surject_mesh) * maps.ExpMap(nP=1) * wire_map.h
 
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
-            thicknesses=self.thicknesses,
             sigmaMap=self.sigma_map,
+            # muMap=self.mu_map,
+            thicknessesMap=self.thicknesses_map,
+            # hMap=self.h_map,
             topo=self.topo,
         )
 
@@ -98,11 +114,25 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
 
     def test_EM1DFDJvec_Layers(self):
 
+        # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
         sig = np.ones(self.nlayers) * sigma_half
         sig[3] = sigma_blk
-        m_1D = np.log(sig)
+        
+        # Permeability
+        mu_half = mu_0
+        mu_blk = 2 * mu_0
+        mu = np.ones(self.nlayers) * mu_half
+        mu[3] = mu_blk
+        
+        # General model
+        m_1D = np.r_[
+            np.log(sig),
+            # mu,
+            np.log(self.thicknesses),
+            # np.log(self.height)            
+        ]
 
         def fwdfun(m):
             resp = self.sim.dpred(m)
@@ -124,15 +154,34 @@ class EM1D_FD_Jac_layers_ProblemTests(unittest.TestCase):
 
     def test_EM1DFDJtvec_Layers(self):
 
+        # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
         sig = np.ones(self.nlayers) * sigma_half
         sig[3] = sigma_blk
-        m_true = np.log(sig)
+        
+        # Permeability
+        mu_half = mu_0
+        mu_blk = 2 * mu_0
+        mu = np.ones(self.nlayers) * mu_half
+        mu[3] = mu_blk
+        
+        # General model
+        m_true = np.r_[
+            np.log(sig),
+            # mu,
+            np.log(self.thicknesses),
+            # np.log(self.height)
+        ]
 
         dobs = self.sim.dpred(m_true)
 
-        m_ini = np.log(np.ones(self.nlayers) * sigma_half)
+        m_ini = np.r_[
+            np.log(np.ones(self.nlayers) * sigma_half),
+            # np.ones(self.nlayers) * 1.5*mu_half,
+            np.log(self.thicknesses) * 0.9,
+            # np.log(0.5 * self.height)
+        ]
         resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs
 
@@ -178,26 +227,47 @@ class EM1D_FD_Jac_layers_PiecewiseWireLoop(unittest.TestCase):
 
         # Survey
         survey = fdem.Survey(source_list)
-        thicknesses = np.array([20.0, 40.0])
+        self.thicknesses = np.array([20.0, 40.0])
 
-        self.nlayers = len(thicknesses) + 1
-        sigma_map = maps.ExpMap(nP=self.nlayers)
+        self.nlayers = len(self.thicknesses) + 1
+        wire_map = maps.Wires(
+            ("sigma", self.nlayers),
+            # ("mu", self.nlayers),
+            ("thicknesses", self.nlayers-1)
+        )
+        self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
+        # self.mu_map = maps.IdentityMap(nP=self.nlayers) * wire_map.mu
+        self.thicknesses_map = maps.ExpMap(nP=self.nlayers-1) * wire_map.thicknesses
 
         sim = fdem.Simulation1DLayered(
             survey=survey,
-            thicknesses=thicknesses,
-            sigmaMap=sigma_map,
+            sigmaMap=self.sigma_map,
+            # muMap=self.mu_map,
+            thicknessesMap=self.thicknesses_map
         )
 
         self.sim = sim
 
     def test_EM1DFDJvec_Layers(self):
 
+        # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
         sig = np.ones(self.nlayers) * sigma_half
         sig[1] = sigma_blk
-        m_1D = np.log(sig)
+        
+        # Permeability
+        mu_half = mu_0
+        mu_blk = 1.1 * mu_0
+        mu = np.ones(self.nlayers) * mu_half
+        mu[1] = mu_blk
+        
+        # General model
+        m_1D = np.r_[
+            np.log(sig),
+            # mu,
+            np.log(self.thicknesses)
+        ]
 
         def fwdfun(m):
             resp = self.sim.dpred(m)
@@ -217,15 +287,32 @@ class EM1D_FD_Jac_layers_PiecewiseWireLoop(unittest.TestCase):
 
     def test_EM1DFDJtvec_Layers(self):
 
+        # Conductivity
         sigma_half = 0.01
         sigma_blk = 0.1
         sig = np.ones(self.nlayers) * sigma_half
         sig[1] = sigma_blk
-        m_true = np.log(sig)
+        
+        # Permeability
+        mu_half = mu_0
+        mu_blk = 1.1 * mu_0
+        mu = np.ones(self.nlayers) * mu_half
+        mu[1] = mu_blk
+        
+        # General model
+        m_true = np.r_[
+            np.log(sig),
+            # mu,
+            np.log(self.thicknesses)
+        ]
 
         dobs = self.sim.dpred(m_true)
 
-        m_ini = np.log(np.ones(self.nlayers) * sigma_half)
+        m_ini = np.r_[
+            np.log(np.ones(self.nlayers) * sigma_half),
+            # np.ones(self.nlayers) * mu_half,
+            np.log(self.thicknesses) * 0.9
+        ]
         resp_ini = self.sim.dpred(m_ini)
         dr = resp_ini - dobs
 
@@ -239,7 +326,7 @@ class EM1D_FD_Jac_layers_PiecewiseWireLoop(unittest.TestCase):
         passed = tests.checkDerivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
         self.assertTrue(passed)
 
-
+#======================================================================
 # Revisit this later; should not be any problem in theory
 # class EM1D_FD_Jac_layers_ProblemTests_Height(unittest.TestCase):
 
