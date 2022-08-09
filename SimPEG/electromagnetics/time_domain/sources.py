@@ -936,7 +936,7 @@ class CircularLoop(MagDipole):
 
 class LineCurrent(BaseTDEMSrc):
     """
-    RawVec electric source. It is defined by the user provided vector s_e
+    Line current source.
 
     :param list receiver_list: receiver list
     :param bool integrate: Integrate the source term (multiply by Me) [False]
@@ -1071,12 +1071,12 @@ class LineCurrent(BaseTDEMSrc):
         A = self._getAmmr(simulation)
         Ainv = simulation.solver(A)  # todo: store this
         s_e = self.s_e(simulation, 0)
-        rhs = s_e - self.jInitial(simulation)
+        rhs = s_e + self.jInitial(simulation)
         return Ainv * rhs
 
     def _aInitialDeriv(self, simulation, v, adjoint=False):
         A = self._getAmmr(simulation)
-        Ainv = simulation.solver(A)  # todo: store this - move it to the simulationlem
+        Ainv = simulation.solver(A)  # todo: store this - move it to the simulation
 
         if adjoint is True:
             return -1 * (
