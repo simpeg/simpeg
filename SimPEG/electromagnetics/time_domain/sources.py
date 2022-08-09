@@ -1059,12 +1059,12 @@ class LineCurrent(BaseTDEMSrc):
             raise NotImplementedError
 
         vol = simulation.mesh.vol
-
+        Div = sdiag(vol) * simulation.mesh.faceDiv
         return (
             simulation.mesh.edgeCurl * simulation.MeMuI * simulation.mesh.edgeCurl.T
-            - simulation.mesh.faceDiv.T
+            - Div.T
             * sdiag(1.0 / vol * simulation.mui)
-            * simulation.mesh.faceDiv  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
+            * Div  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
         )
 
     def _aInitial(self, simulation):
@@ -1079,11 +1079,11 @@ class LineCurrent(BaseTDEMSrc):
         Ainv = simulation.solver(A)  # todo: store this - move it to the simulation
 
         if adjoint is True:
-            return -1 * (
-                self.jInitialDeriv(simulation, Ainv * v, adjoint=True)
+            return self.jInitialDeriv(
+                simulation, Ainv * v, adjoint=True
             )  # A is symmetric
 
-        return -1 * (Ainv * self.jInitialDeriv(simulation, v))
+        return Ainv * self.jInitialDeriv(simulation, v)
 
     def hInitial(self, simulation):
         if simulation._formulation != "HJ":
