@@ -540,7 +540,7 @@ class CircularLoop(MagDipole):
 
     @property
     def moment(self):
-        return np.pi * self.radius ** 2 * self.current * self.N
+        return np.pi * self.radius ** 2 * self.current * self.n_turns
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_loop", None) is None:
