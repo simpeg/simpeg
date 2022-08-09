@@ -909,7 +909,7 @@ class CircularLoop(MagDipole):
 
     current = properties.Float("current in the loop", default=1.0)
 
-    N = properties.Integer("number of turns in the loop", default=1)
+    n_turns = properties.Integer("number of turns in the loop", default=1)
 
     def __init__(self, receiver_list=None, **kwargs):
         super(CircularLoop, self).__init__(receiver_list, **kwargs)
