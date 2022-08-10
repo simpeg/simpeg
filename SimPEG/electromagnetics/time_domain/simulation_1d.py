@@ -304,6 +304,30 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         + (C1s * rTE_ds) @ self.fhtfilt.j1
                     )@W.T).T
                     self._J["ds"] = self._project_to_data(v_ds)
+                    if(
+                        self.etaMap is None
+                        and self.tauMap is None
+                        and self.cMap is None
+                    ):
+                        # No IP effect
+                        self._J["ds"] = self._project_to_data(v_ds)
+                    else:
+                        # With IP effect
+                        ds_dsigma_inf = self.compute_dcomplex_sigma_dsigma_inf(frequencies)
+                        v_ds_inf = v_ds * ds_dsigma_inf.T
+                        self._J["ds"] = self._project_to_data(v_ds_inf)
+                        if self.etaMap is not None:
+                            ds_deta = self.compute_dcomplex_sigma_deta(frequencies)
+                            v_deta = v_ds * ds_deta.T
+                            self._J["deta"] = self._project_to_data(v_deta)
+                        if self.tauMap is not None:
+                            ds_dtau = self.compute_dcomplex_sigma_dtau(frequencies)
+                            v_tau = v_ds * ds_dtau.T
+                            self._J["dtau"] = self._project_to_data(v_tau)
+                        if self.cMap is not None:
+                            ds_dc = self.compute_dcomplex_sigma_dc(frequencies)
+                            v_c = v_ds * ds_dc.T
+                            self._J["dc"] = self._project_to_data(v_c)
                 if self.muMap is not None:
                     rTE_dmu = rTE_dmu[..., inv_lambs]
                     v_dmu = ((
