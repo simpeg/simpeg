@@ -18,7 +18,9 @@ FLR = 1e-20
 np.random.seed(25)
 
 
-def setUp_TDEM(prbtype="MagneticFluxDensity", rxcomp="bz", waveform="stepoff"):
+def setUp_TDEM(
+    prbtype="MagneticFluxDensity", rxcomp="bz", waveform="stepoff", src_type=None
+):
     cs = 5.0
     ncx = 8
     ncy = 8
@@ -57,9 +59,17 @@ def setUp_TDEM(prbtype="MagneticFluxDensity", rxcomp="bz", waveform="stepoff"):
     rx = getattr(tdem.Rx, "Point{}".format(rxcomp[:-1]))(
         np.r_[rxOffset, 0.0, -1e-2], rxtimes, rxcomp[-1]
     )
-    src = tdem.Src.MagDipole(
-        [rx], location=np.array([0.0, 0.0, 0.0]), waveform=waveform
-    )
+    if src_type == "LineCurrent":
+        src = tdem.sources.LineCurrent(
+            [rx],
+            location=np.vstack(
+                [np.r_[-cs / 2, -cs / 2, -cs / 2], np.r_[cs / 2, -cs / 2, -cs / 2]]
+            ),
+        )
+    else:
+        src = tdem.Src.MagDipole(
+            [rx], location=np.array([0.0, 0.0, 0.0]), waveform=waveform
+        )
 
     survey = tdem.Survey([src])
 
@@ -78,10 +88,11 @@ def CrossCheck(
     prbtype2="ElectricField",
     rxcomp="bz",
     waveform="stepoff",
+    src_type=None,
 ):
 
-    prb1, m1, mesh1 = setUp_TDEM(prbtype1, rxcomp, waveform)
-    prb2, _, mesh2 = setUp_TDEM(prbtype2, rxcomp, waveform)
+    prb1, m1, mesh1 = setUp_TDEM(prbtype1, rxcomp, waveform, src_type)
+    prb2, _, mesh2 = setUp_TDEM(prbtype2, rxcomp, waveform, src_type)
 
     d1 = prb1.dpred(m1)
     d2 = prb2.dpred(m1)
@@ -91,8 +102,8 @@ def CrossCheck(
     passed = check < tol
 
     print(
-        "Checking {}, {} for {} data, {} waveform".format(
-            prbtype1, prbtype2, rxcomp, waveform
+        "Checking {}, {} for {} data, {} waveform, {}".format(
+            prbtype1, prbtype2, rxcomp, waveform, src_type
         )
     )
     print(
@@ -159,6 +170,24 @@ class TDEM_cross_check_EB(unittest.TestCase):
             prbtype2="CurrentDensity",
             rxcomp="MagneticFieldTimeDerivativex",
             waveform="stepoff",
+        )
+
+    def test_HJ_jx_stepoff_linecurrent(self):
+        CrossCheck(
+            prbtype1="MagneticField",
+            prbtype2="CurrentDensity",
+            rxcomp="CurrentDensityx",
+            waveform="stepoff",
+            src_type="LineCurrent",
+        )
+
+    def test_HJ_jy_stepoff_linecurrent(self):
+        CrossCheck(
+            prbtype1="MagneticField",
+            prbtype2="CurrentDensity",
+            rxcomp="CurrentDensityy",
+            waveform="stepoff",
+            src_type="LineCurrent",
         )
 
     def test_EB_ey_vtem(self):
